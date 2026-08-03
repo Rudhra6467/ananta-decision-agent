@@ -1,29 +1,41 @@
-# Main entry point for Ananta Decision Agent
-
-from src.decision_agent import make_decision
-from src.tools import get_market_data, get_open_positions, get_strategy_rules
+from src.decision_agent import agent
+from src.tools import get_market_data, get_open_positions
 
 def run_agent():
-    print("Starting Ananta Decision Agent...")
+    print("\n" + "="*50)
+    print("ANANTA DECISION AGENT")
+    print("="*50)
 
-    # Get current data (placeholders for now)
-    market_data = get_market_data()
-    positions = get_open_positions()
-    rules = get_strategy_rules()
-
-    # Create initial state
-    state = {
-        "market_data": market_data,
-        "open_positions": positions,
+    # Prepare initial state
+    initial_state = {
+        "market_data": get_market_data(),
+        "open_positions": get_open_positions(),
         "decision": "",
-        "reason": ""
+        "reason": "",
+        "confidence": 0.0,
+        "messages": []
     }
 
-    # Make decision
-    result = make_decision(state)
+    # Show market data first
+    market = initial_state["market_data"]
+    print(f"\nMarket Data:")
+    print(f"  Symbol       : {market['symbol']}")
+    print(f"  Price        : ${market['price']}")
+    print(f"  Trend        : {market['trend']}")
+    print(f"  Volatility   : {market['volatility']}")
+    print(f"  RSI          : {market['rsi']}")
+    print(f"  Volume Change: {market['volume_change_percent']}%")
 
-    print("Decision:", result["decision"])
-    print("Reason:", result["reason"])
+    # Run the agent
+    result = agent.invoke(initial_state)
+
+    print("\n" + "-"*50)
+    print("AGENT DECISION")
+    print("-"*50)
+    print(f"Decision   : {result.get('decision')}")
+    print(f"Confidence : {result.get('confidence', 0):.0%}")
+    print(f"Reason     : {result.get('reason')}")
+    print("="*50 + "\n")
 
 if __name__ == "__main__":
     run_agent()

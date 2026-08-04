@@ -1,41 +1,48 @@
-from src.decision_agent import agent
-from src.tools import get_market_data, get_open_positions
+from src.graph import agent_graph
 
-def run_agent():
-    print("\n" + "="*50)
-    print("ANANTA DECISION AGENT")
-    print("="*50)
+def run():
+    print("=" * 55)
+    print("           Ananta Multi-Agent System")
+    print("=" * 55)
+    print()
 
-    # Prepare initial state
     initial_state = {
-        "market_data": get_market_data(),
-        "open_positions": get_open_positions(),
-        "decision": "",
-        "reason": "",
-        "confidence": 0.0,
-        "messages": []
+        "messages": [],
+        "user_goal": None,
+        "risk_tolerance": None,
+        "capital": None,
+        "preferred_markets": None,
+        "experience_level": None,
+        "market_data": None,
+        "market_regime": None,
+        "decision": None,
+        "reason": None,
+        "confidence": None,
+        "portfolio": None,
+        "next_agent": None
     }
 
-    # Show market data first
-    market = initial_state["market_data"]
-    print(f"\nMarket Data:")
-    print(f"  Symbol       : {market['symbol']}")
-    print(f"  Price        : ${market['price']}")
-    print(f"  Trend        : {market['trend']}")
-    print(f"  Volatility   : {market['volatility']}")
-    print(f"  RSI          : {market['rsi']}")
-    print(f"  Volume Change: {market['volume_change_percent']}%")
+    result = agent_graph.invoke(initial_state)
 
-    # Run the agent
-    result = agent.invoke(initial_state)
-
-    print("\n" + "-"*50)
-    print("AGENT DECISION")
-    print("-"*50)
-    print(f"Decision   : {result.get('decision')}")
-    print(f"Confidence : {result.get('confidence', 0):.0%}")
-    print(f"Reason     : {result.get('reason')}")
-    print("="*50 + "\n")
+    print("\n" + "=" * 55)
+    print("           FINAL ANALYSIS RESULT")
+    print("=" * 55)
+    print()
+    print("USER PROFILE")
+    print(f"  Goal              : {result.get('user_goal')}")
+    print(f"  Risk Tolerance    : {result.get('risk_tolerance')}")
+    print(f"  Capital           : ${result.get('capital')}")
+    print(f"  Preferred Markets : {result.get('preferred_markets')}")
+    print(f"  Experience        : {result.get('experience_level')}")
+    print()
+    print("MARKET ANALYSIS")
+    print(f"  Market Regime     : {result.get('market_regime')}")
+    print()
+    print("RECOMMENDATION")
+    print(f"  Strategy          : {result.get('decision')}")
+    print(f"  Confidence Score  : {result.get('confidence')}")
+    print(f"  Reason            : {result.get('reason')}")
+    print("=" * 55)
 
 if __name__ == "__main__":
-    run_agent()
+    run()

@@ -35,9 +35,15 @@ def run_once():
     print(f"  Preferred Markets : {result.get('preferred_markets')}")
     print(f"  Experience        : {result.get('experience_level')}")
     print()
+    
     print("MARKET ANALYSIS")
+    market_data = result.get("market_data") or {}
+    print(f"  Symbol            : {market_data.get('symbol', 'BTC')}")
+    print(f"  Current Price     : ${market_data.get('price', 'N/A')}")
+    print(f"  24h Change        : {market_data.get('change_24h', 'N/A')}%")
     print(f"  Market Regime     : {result.get('market_regime')}")
     print()
+    
     print("RECOMMENDATION")
     print(f"  Strategy          : {result.get('decision')}")
     print(f"  Confidence Score  : {result.get('confidence')}")

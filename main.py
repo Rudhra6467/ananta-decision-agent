@@ -1,6 +1,6 @@
 from src.graph import agent_graph
 
-def run():
+def run_once():
     print("=" * 55)
     print("           Ananta Multi-Agent System")
     print("=" * 55)
@@ -42,7 +42,42 @@ def run():
     print(f"  Strategy          : {result.get('decision')}")
     print(f"  Confidence Score  : {result.get('confidence')}")
     print(f"  Reason            : {result.get('reason')}")
+    print()
+
+    portfolio = result.get("portfolio")
+    if portfolio:
+        print("PORTFOLIO ANALYSIS")
+        print(f"  Total Value       : ${portfolio.get('total_value')}")
+        print(f"  Cash              : ${portfolio.get('cash')}")
+        print(f"  Invested          : ${portfolio.get('invested')}")
+        print(f"  Open Positions    : {portfolio.get('open_positions')}")
+        print(f"  Unrealized PnL    : ${portfolio.get('unrealized_pnl')}")
+        print(f"  Risk Score        : {portfolio.get('risk_score')}")
+        print(f"  Diversification   : {portfolio.get('diversification_score')}/10")
+        print(f"  Notes             : {portfolio.get('notes')}")
+
     print("=" * 55)
 
+
+def interactive_mode():
+    print("=" * 55)
+    print("     Ananta Agent - Interactive Mode")
+    print("=" * 55)
+    print("Type 'run' to get full analysis")
+    print("Type 'exit' to quit")
+    print("=" * 55)
+
+    while True:
+        user_input = input("\nYou: ").strip().lower()
+
+        if user_input in ["exit", "quit", "q"]:
+            print("Goodbye.")
+            break
+        elif user_input in ["run", "analyze", "start"]:
+            run_once()
+        else:
+            print("Agent: Please type 'run' to analyze or 'exit' to quit.")
+
+
 if __name__ == "__main__":
-    run()
+    interactive_mode()

@@ -42,12 +42,22 @@ def run_once():
     print(f"  Current Price     : ${market_data.get('price', 'N/A')}")
     print(f"  24h Change        : {market_data.get('change_24h', 'N/A')}%")
     print(f"  Market Regime     : {result.get('market_regime')}")
-    print()
-    
+    print()       
+
     print("RECOMMENDATION")
     print(f"  Strategy          : {result.get('decision')}")
     print(f"  Confidence Score  : {result.get('confidence')}")
     print(f"  Reason            : {result.get('reason')}")
+    print(f"  Entry Idea        : {result.get('entry_idea', 'N/A')}")
+    print(f"  Stop Loss Idea    : {result.get('stop_loss_idea', 'N/A')}")
+    print(f"  Take Profit Idea  : {result.get('take_profit_idea', 'N/A')}")
+    print()    
+    details = result.get("strategy_details")
+    if details:
+        print(f"  Bias              : {details.get('bias')}")
+        print(f"  Entry Idea        : {details.get('entry_idea')}")
+        print(f"  Stop Loss Idea    : {details.get('stop_loss_idea')}")
+        print(f"  Take Profit Idea  : {details.get('take_profit_idea')}")
     print()
 
     portfolio = result.get("portfolio")

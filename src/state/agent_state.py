@@ -19,6 +19,9 @@ class AgentState(TypedDict):
     decision: Optional[str]
     reason: Optional[str]
     confidence: Optional[float]
+    entry_idea: Optional[str]
+    stop_loss_idea: Optional[str]
+    take_profit_idea: Optional[str]
     
     # Portfolio related
     portfolio: Optional[dict]

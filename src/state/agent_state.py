@@ -22,6 +22,7 @@ class AgentState(TypedDict):
     entry_idea: Optional[str]
     stop_loss_idea: Optional[str]
     take_profit_idea: Optional[str]
+    execution_status: Optional[str]
     
     # Portfolio related
     portfolio: Optional[dict]

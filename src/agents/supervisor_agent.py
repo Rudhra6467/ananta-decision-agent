@@ -23,7 +23,11 @@ def supervisor_agent(state: AgentState) -> AgentState:
         state["next_agent"] = "portfolio_analysis"
         return state
 
-    # For now we stop before tool execution (we will enable it later with permission)
-    print("   → All analysis complete. Ending.")
+    if not state.get("execution_status"):
+        print("   → Calling Tool Execution Agent")
+        state["next_agent"] = "tool_execution"
+        return state
+
+    print("   → All analysis and permission complete. Ending.")
     state["next_agent"] = "end"
     return state

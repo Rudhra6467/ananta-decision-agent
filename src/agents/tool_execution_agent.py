@@ -1,8 +1,9 @@
 from src.state.agent_state import AgentState
+from src.tools.ananta_tools import start_paper_trade
 
 def tool_execution_agent(state: AgentState) -> AgentState:
     """
-    Asks for permission before simulating an action.
+    Asks for permission and then calls Ananta tools.
     """
     print("→ Tool Execution Agent is ready...")
 
@@ -11,6 +12,7 @@ def tool_execution_agent(state: AgentState) -> AgentState:
     entry = state.get("entry_idea", "N/A")
     stop = state.get("stop_loss_idea", "N/A")
     tp = state.get("take_profit_idea", "N/A")
+    capital = state.get("capital", 5000)
 
     print("\n" + "-" * 50)
     print("  PERMISSION REQUIRED")
@@ -26,12 +28,24 @@ def tool_execution_agent(state: AgentState) -> AgentState:
 
     if permission in ["yes", "y"]:
         print("\n→ Permission granted.")
-        print("→ Simulating paper trade setup in Ananta...")
-        print("→ (In future this will actually start a paper trade)")
-        state["execution_status"] = "APPROVED - Paper trade simulated"
+        
+        # Call the Ananta tool
+        result = start_paper_trade(
+            strategy_name=decision,
+            capital=capital,
+            entry_idea=entry,
+            stop_loss=stop,
+            take_profit=tp
+        )
+        
+        state["execution_status"] = result["message"]
     else:
         print("\n→ Permission denied. No action taken.")
         state["execution_status"] = "REJECTED by user"
 
     state["next_agent"] = "supervisor"
     return state
+
+
+
+

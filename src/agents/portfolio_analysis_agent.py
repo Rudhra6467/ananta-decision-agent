@@ -2,23 +2,26 @@ from src.state.agent_state import AgentState
 
 def portfolio_analysis_agent(state: AgentState) -> AgentState:
     """
-    Analyzes the user's portfolio (simulated for now).
+    Analyzes the portfolio using the actual capital from the user.
     """
     print("→ Portfolio Analysis Agent is analyzing...")
 
     capital = state.get("capital", 5000)
     risk = state.get("risk_tolerance", "Medium")
 
-    # Simulated portfolio for now
+    # More realistic simulation based on actual capital
+    cash_ratio = 0.40
+    invested_ratio = 0.60
+
     portfolio = {
         "total_value": capital,
-        "cash": capital * 0.4,
-        "invested": capital * 0.6,
+        "cash": round(capital * cash_ratio, 1),
+        "invested": round(capital * invested_ratio, 1),
         "open_positions": 1,
-        "unrealized_pnl": 120.50,
-        "risk_score": "Medium",
+        "unrealized_pnl": round(capital * 0.018, 2),  # simulated small profit
+        "risk_score": risk,
         "diversification_score": 6.5,
-        "notes": "Portfolio is moderately concentrated. Cash buffer is healthy."
+        "notes": f"Portfolio based on ${capital} capital. Cash buffer is healthy."
     }
 
     state["portfolio"] = portfolio

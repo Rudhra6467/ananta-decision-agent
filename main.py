@@ -71,9 +71,11 @@ def run_once():
         print(f"  Risk Score        : {portfolio.get('risk_score')}")
         print(f"  Diversification   : {portfolio.get('diversification_score')}/10")
         print(f"  Notes             : {portfolio.get('notes')}")
+        print()
 
+    print("EXECUTION STATUS")
+    print(f"  Status            : {result.get('execution_status', 'Not executed')}")
     print("=" * 55)
-
 
 def interactive_mode():
     print("=" * 55)

@@ -1,4 +1,6 @@
 from src.graph import agent_graph
+from src.memory import get_last_user_profile
+import os
 
 def run_once():
     print("=" * 55)
@@ -18,7 +20,11 @@ def run_once():
         "decision": None,
         "reason": None,
         "confidence": None,
+        "entry_idea": None,
+        "stop_loss_idea": None,
+        "take_profit_idea": None,
         "portfolio": None,
+        "execution_status": None,
         "next_agent": None
     }
 
@@ -42,8 +48,8 @@ def run_once():
     print(f"  Current Price     : ${market_data.get('price', 'N/A')}")
     print(f"  24h Change        : {market_data.get('change_24h', 'N/A')}%")
     print(f"  Market Regime     : {result.get('market_regime')}")
-    print()       
-
+    print()
+    
     print("RECOMMENDATION")
     print(f"  Strategy          : {result.get('decision')}")
     print(f"  Confidence Score  : {result.get('confidence')}")
@@ -51,13 +57,6 @@ def run_once():
     print(f"  Entry Idea        : {result.get('entry_idea', 'N/A')}")
     print(f"  Stop Loss Idea    : {result.get('stop_loss_idea', 'N/A')}")
     print(f"  Take Profit Idea  : {result.get('take_profit_idea', 'N/A')}")
-    print()    
-    details = result.get("strategy_details")
-    if details:
-        print(f"  Bias              : {details.get('bias')}")
-        print(f"  Entry Idea        : {details.get('entry_idea')}")
-        print(f"  Stop Loss Idea    : {details.get('stop_loss_idea')}")
-        print(f"  Take Profit Idea  : {details.get('take_profit_idea')}")
     print()
 
     portfolio = result.get("portfolio")
@@ -77,12 +76,17 @@ def run_once():
     print(f"  Status            : {result.get('execution_status', 'Not executed')}")
     print("=" * 55)
 
+
 def interactive_mode():
     print("=" * 55)
     print("     Ananta Agent - Interactive Mode")
     print("=" * 55)
-    print("Type 'run' to get full analysis")
-    print("Type 'exit' to quit")
+    print("You can type:")
+    print("  run / analyze / recommend  → Full analysis")
+    print("  profile                    → Show saved profile")
+    print("  clear                      → Clear memory")
+    print("  help                       → Show commands")
+    print("  exit                       → Quit")
     print("=" * 55)
 
     while True:
@@ -91,11 +95,40 @@ def interactive_mode():
         if user_input in ["exit", "quit", "q"]:
             print("Goodbye.")
             break
-        elif user_input in ["run", "analyze", "start"]:
-            run_once()
-        else:
-            print("Agent: Please type 'run' to analyze or 'exit' to quit.")
 
+        elif user_input in ["run", "analyze", "recommend", "start", "analysis"]:
+            run_once()
+
+        elif user_input in ["profile", "my profile", "show profile", "what is my profile"]:
+            from src.memory import get_last_user_profile
+            profile = get_last_user_profile()
+            if profile:
+                print("\nSaved Profile:")
+                print(f"  Goal       : {profile.get('user_goal')}")
+                print(f"  Risk       : {profile.get('risk_tolerance')}")
+                print(f"  Capital    : ${profile.get('capital')}")
+                print(f"  Experience : {profile.get('experience_level')}")
+            else:
+                print("No saved profile found.")
+
+        elif user_input in ["clear", "clear memory", "reset"]:
+            import os
+            if os.path.exists("agent_memory.json"):
+                os.remove("agent_memory.json")
+                print("Memory cleared successfully.")
+            else:
+                print("No memory file found.")
+
+        elif user_input in ["help", "commands", "?"]:
+            print("\nAvailable commands:")
+            print("  run / analyze / recommend  → Full market analysis")
+            print("  profile                    → Show your saved profile")
+            print("  clear                      → Clear saved memory")
+            print("  help                       → Show this message")
+            print("  exit                       → Quit the agent")
+
+        else:
+            print("Agent: I didn't understand that. Type 'help' to see available commands.")
 
 if __name__ == "__main__":
     interactive_mode()

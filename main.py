@@ -51,7 +51,7 @@ def run_once():
     print()
     
     print("RECOMMENDATION")
-    print(f"  Strategy          : {result.get('decision')}")
+    print(f"  Top Strategy      : {result.get('decision')}")
     print(f"  Confidence Score  : {result.get('confidence')}")
     print(f"  Reason            : {result.get('reason')}")
     print(f"  Entry Idea        : {result.get('entry_idea', 'N/A')}")
@@ -59,6 +59,14 @@ def run_once():
     print(f"  Take Profit Idea  : {result.get('take_profit_idea', 'N/A')}")
     print()
 
+    # Show all ranked options if available
+    strategy_options = result.get("strategy_options")
+    if strategy_options and len(strategy_options) > 1:
+        print("RANKED STRATEGY OPTIONS")
+        for i, opt in enumerate(strategy_options, 1):
+            print(f"  {i}. {opt.get('name')} | Confidence: {opt.get('confidence')} | Style: {opt.get('style')}")
+            print(f"     Reason: {opt.get('reason')}")
+        print()
     portfolio = result.get("portfolio")
     if portfolio:
         print("PORTFOLIO ANALYSIS")
@@ -128,11 +136,26 @@ def interactive_mode():
                 print("Memory cleared successfully.")
             else:
                 print("No memory file found.")
+       
+        elif user_input in ["history", "decisions", "log"]:
+            from src.tools.decision_log import get_recent_decisions
+            decisions = get_recent_decisions(limit=8)
+            
+            if not decisions:
+                print("No decisions logged yet.")
+            else:
+                print("\nRecent Decisions:")
+                print("-" * 55)
+                for i, d in enumerate(reversed(decisions), 1):
+                    print(f"{i}. {d.get('strategy')} | Confidence: {d.get('confidence')} | Regime: {d.get('regime')}")
+                    print(f"   Style: {d.get('style')} | Status: {d.get('status')} | Time: {d.get('timestamp', '')[:19]}")
+                print("-" * 55)
 
         elif user_input in ["help", "commands", "?"]:
             print("\nAvailable commands:")
             print("  run / analyze / recommend  → Full market analysis")
             print("  profile                    → Show your saved profile")
+            print("  history                    → Show recent decisions")
             print("  clear                      → Clear saved memory")
             print("  help                       → Show this message")
             print("  exit                       → Quit the agent")

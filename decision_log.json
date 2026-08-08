@@ -1,0 +1,30 @@
+[
+  {
+    "strategy": "Mean Reversion Scalp",
+    "confidence": 0.62,
+    "style": "Balanced",
+    "regime": "COMPRESSION",
+    "risk_tolerance": "High",
+    "capital": 66655.0,
+    "open_positions": 8,
+    "entry_idea": "Enter near range extremes with confirmation",
+    "stop_loss_idea": "Beyond the range high/low",
+    "take_profit_idea": "Mid-range or opposite side of range",
+    "status": "simulated",
+    "timestamp": "2026-08-08T22:50:36.034813"
+  },
+  {
+    "strategy": "Momentum Continuation",
+    "confidence": 0.62,
+    "style": "Aggressive",
+    "regime": "COMPRESSION",
+    "risk_tolerance": "High",
+    "capital": 66655.0,
+    "open_positions": 8,
+    "entry_idea": "Enter on strong candle + volume expansion",
+    "stop_loss_idea": "Below the last higher low",
+    "take_profit_idea": "Trail using ATR or previous swing",
+    "status": "simulated",
+    "timestamp": "2026-08-08T22:57:39.837339"
+  }
+]

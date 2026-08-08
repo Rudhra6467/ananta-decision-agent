@@ -1,116 +1,109 @@
 from src.state.agent_state import AgentState
+from src.tools.ananta_api import get_portfolio
 
 def strategy_recommendation_agent(state: AgentState) -> AgentState:
     """
-    Improved Strategy Recommendation Agent.
-    Gives clearer recommendation + respects actual risk tolerance.
+    Generates multiple ranked strategy options.
+    Aggressive bias for paper trading phase.
     """
     print("→ Strategy Recommendation Agent is thinking...")
 
-    regime = state.get("market_regime", "NEUTRAL")
-    risk = state.get("risk_tolerance", "Medium")
-    capital = state.get("capital", 5000)
-    price = state.get("market_data", {}).get("price", 0)
+    regime = state.get("market_regime") or "NEUTRAL"
+    risk = state.get("risk_tolerance") or "Medium"
 
-    recommendation = {
-        "strategy_name": "Stay Flat",
-        "reason": "No clear edge at the moment.",
-        "suitability_score": 0.50,
-        "entry_idea": "None",
-        "stop_loss_idea": "None",
-        "take_profit_idea": "None"
+    # Get current open positions
+    open_positions = 0
+    try:
+        portfolio_response = get_portfolio()
+        if portfolio_response.get("success"):
+            open_positions = portfolio_response["data"].get("slots_used", 0)
+    except:
+        open_positions = 0
+
+    # Define strategy options
+    options = []
+
+    # Option 1: Breakout
+    breakout = {
+        "name": "Breakout Strategy",
+        "confidence": 0.76,
+        "style": "Aggressive",
+        "entry_idea": "Enter only after clear breakout with volume",
+        "stop_loss_idea": "Opposite side of the compression range",
+        "take_profit_idea": "1.5x – 2x the range height",
+        "reason": f"Market is in {regime}. Breakout offers asymmetric upside."
     }
 
-    if regime == "BULLISH_TRENDING":
-        if risk == "High":
-            recommendation = {
-                "strategy_name": "Aggressive Trend Following Long",
-                "reason": f"Strong bullish regime + High risk profile. Looking for long continuation.",
-                "suitability_score": 0.85,
-                "entry_idea": f"Look for pullback entries near ${round(price * 0.985, 0)}",
-                "stop_loss_idea": f"Below recent swing low (~{round(price * 0.97, 0)})",
-                "take_profit_idea": f"Target 1: ${round(price * 1.03, 0)} | Target 2: ${round(price * 1.05, 0)}"
-            }
-        else:
-            recommendation = {
-                "strategy_name": "Conservative Trend Following Long",
-                "reason": f"Bullish regime with {risk} risk tolerance. Preferring safer long setup.",
-                "suitability_score": 0.74,
-                "entry_idea": f"Wait for confirmation above ${round(price * 1.005, 0)}",
-                "stop_loss_idea": f"Tight stop below ${round(price * 0.98, 0)}",
-                "take_profit_idea": f"Target around ${round(price * 1.025, 0)}"
-            }
+    # Option 2: Momentum Continuation
+    momentum = {
+        "name": "Momentum Continuation",
+        "confidence": 0.71,
+        "style": "Aggressive",
+        "entry_idea": "Enter on strong candle + volume expansion",
+        "stop_loss_idea": "Below the last higher low",
+        "take_profit_idea": "Trail using ATR or previous swing",
+        "reason": "Captures continuation moves quickly. Good for paper trading exploration."
+    }
 
+    # Option 3: Mean Reversion Scalp
+    mean_reversion = {
+        "name": "Mean Reversion Scalp",
+        "confidence": 0.64,
+        "style": "Balanced",
+        "entry_idea": "Enter near range extremes with confirmation",
+        "stop_loss_idea": "Beyond the range high/low",
+        "take_profit_idea": "Mid-range or opposite side of range",
+        "reason": "Works well in compression. Lower risk than pure breakout."
+    }
+
+    # Adjust based on regime
+    if regime == "COMPRESSION":
+        breakout["confidence"] = 0.78
+        momentum["confidence"] = 0.69
+        mean_reversion["confidence"] = 0.72
+    elif regime == "BULLISH_TRENDING":
+        breakout["confidence"] = 0.70
+        momentum["confidence"] = 0.82
+        mean_reversion["confidence"] = 0.55
     elif regime == "BEARISH_TRENDING":
-        if risk == "High":
-            recommendation = {
-                "strategy_name": "Aggressive Trend Following Short",
-                "reason": "Clear bearish regime + High risk → Short bias for paper trading.",
-                "suitability_score": 0.83,
-                "entry_idea": f"Look for retest entries near ${round(price * 1.015, 0)}",
-                "stop_loss_idea": f"Above recent high (~{round(price * 1.03, 0)})",
-                "take_profit_idea": f"Target 1: ${round(price * 0.97, 0)}"
-            }
-        else:
-            recommendation = {
-                "strategy_name": "Stay Flat / Light Hedge",
-                "reason": f"Bearish regime but risk is {risk}. Prefer capital protection.",
-                "suitability_score": 0.62,
-                "entry_idea": "Avoid aggressive shorts",
-                "stop_loss_idea": "N/A",
-                "take_profit_idea": "N/A"
-            }
+        breakout["confidence"] = 0.68
+        momentum["confidence"] = 0.80
+        mean_reversion["confidence"] = 0.58
 
-    elif regime == "COMPRESSION":
-        recommendation = {
-            "strategy_name": "Breakout Strategy",
-            "reason": f"Market is compressing. Waiting for expansion. Risk profile: {risk}.",
-            "suitability_score": 0.76 if risk == "High" else 0.68,
-            "entry_idea": "Enter only after clear breakout with volume",
-            "stop_loss_idea": "Opposite side of the compression range",
-            "take_profit_idea": "1.5x – 2x the range height"
-        }
+    # Aggressive bias when risk is High
+    if risk == "High":
+        breakout["confidence"] += 0.04
+        momentum["confidence"] += 0.05
+        mean_reversion["confidence"] += 0.02
 
-    elif regime == "REVERSAL":
-        recommendation = {
-            "strategy_name": "Mean Reversion Watch",
-            "reason": "Possible reversal forming. Better to wait for confirmation.",
-            "suitability_score": 0.65,
-            "entry_idea": "Wait for structure confirmation",
-            "stop_loss_idea": "Beyond the reversal wick",
-            "take_profit_idea": "Previous support/resistance"
-        }
+    # Reduce confidence if too many open positions
+    if open_positions >= 7:
+        for opt in [breakout, momentum, mean_reversion]:
+            opt["confidence"] = max(0.50, opt["confidence"] - 0.12)
+            opt["reason"] += f" | Warning: {open_positions} positions already open."
+    elif open_positions >= 5:
+        for opt in [breakout, momentum, mean_reversion]:
+            opt["confidence"] = max(0.55, opt["confidence"] - 0.06)
+            opt["reason"] += f" | Note: {open_positions} positions open."
 
-    else:  # NEUTRAL
-        if risk == "High":
-            recommendation = {
-                "strategy_name": "Active Range / Scalping Bias",
-                "reason": "Neutral market + High risk → active range trading allowed for paper testing.",
-                "suitability_score": 0.70,
-                "entry_idea": "Buy support / Sell resistance inside range",
-                "stop_loss_idea": "Outside the range",
-                "take_profit_idea": "Opposite side of range"
-            }
-        else:
-            recommendation = {
-                "strategy_name": "Stay Flat",
-                "reason": f"Neutral market with {risk} risk tolerance. Prefer waiting.",
-                "suitability_score": 0.55,
-                "entry_idea": "None",
-                "stop_loss_idea": "None",
-                "take_profit_idea": "None"
-            }
+    options = [breakout, momentum, mean_reversion]
 
-    state["decision"] = recommendation["strategy_name"]
-    state["reason"] = recommendation["reason"]
-    state["confidence"] = recommendation["suitability_score"]
-    
-    # Store extra details for later use
-    state["entry_idea"] = recommendation["entry_idea"]
-    state["stop_loss_idea"] = recommendation["stop_loss_idea"]
-    state["take_profit_idea"] = recommendation["take_profit_idea"]
+    # Sort by confidence (highest first)
+    options = sorted(options, key=lambda x: x["confidence"], reverse=True)
+
+    # Primary recommendation = top ranked
+    top = options[0]
+
+    state["decision"] = top["name"]
+    state["confidence"] = round(top["confidence"], 2)
+    state["reason"] = top["reason"]
+    state["entry_idea"] = top["entry_idea"]
+    state["stop_loss_idea"] = top["stop_loss_idea"]
+    state["take_profit_idea"] = top["take_profit_idea"]
+    state["strategy_options"] = options  # store all options
+
+    print(f"   Top Recommendation: {top['name']} (Score: {top['confidence']})")
+    print(f"   Other options generated: {len(options) - 1}")
 
     state["next_agent"] = "supervisor"
-
-    print(f"   Recommended: {recommendation['strategy_name']} (Score: {recommendation['suitability_score']})")
     return state

@@ -72,10 +72,20 @@ def run_once():
         print(f"  Notes             : {portfolio.get('notes')}")
         print()
 
+    # Show real paper trades if available
+    from src.tools.ananta_api import get_open_paper_trades
+    trades_result = get_open_paper_trades()
+    
+    if trades_result.get("success") and trades_result.get("count", 0) > 0:
+        print("OPEN PAPER TRADES (from Ananta)")
+        for i, trade in enumerate(trades_result.get("open_trades", [])[:5], 1):
+            print(f"  {i}. {trade.get('symbol')} | {trade.get('side')} | Qty: {round(trade.get('quantity', 0), 4)} | Price: ${trade.get('price')}")
+        print(f"  Total shown: {min(5, trades_result.get('count', 0))} of {trades_result.get('count')} paper trades")
+        print()
+
     print("EXECUTION STATUS")
     print(f"  Status            : {result.get('execution_status', 'Not executed')}")
     print("=" * 55)
-
 
 def interactive_mode():
     print("=" * 55)

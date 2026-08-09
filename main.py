@@ -54,9 +54,11 @@ def run_once():
     print(f"  Top Strategy      : {result.get('decision')}")
     print(f"  Confidence Score  : {result.get('confidence')}")
     print(f"  Reason            : {result.get('reason')}")
-    print(f"  Entry Idea        : {result.get('entry_idea', 'N/A')}")
-    print(f"  Stop Loss Idea    : {result.get('stop_loss_idea', 'N/A')}")
-    print(f"  Take Profit Idea  : {result.get('take_profit_idea', 'N/A')}")
+    print()
+    print("  Suggested Plan:")
+    print(f"    • Entry     : {result.get('entry_idea', 'N/A')}")
+    print(f"    • Stop Loss : {result.get('stop_loss_idea', 'N/A')}")
+    print(f"    • Take Profit: {result.get('take_profit_idea', 'N/A')}")
     print()
 
     # Show all ranked options if available
@@ -65,8 +67,9 @@ def run_once():
         print("RANKED STRATEGY OPTIONS")
         for i, opt in enumerate(strategy_options, 1):
             print(f"  {i}. {opt.get('name')} | Confidence: {opt.get('confidence')} | Style: {opt.get('style')}")
-            print(f"     Reason: {opt.get('reason')}")
+            print(f"     {opt.get('reason')}")
         print()
+
     portfolio = result.get("portfolio")
     if portfolio:
         print("PORTFOLIO ANALYSIS")
@@ -117,6 +120,29 @@ def interactive_mode():
         elif user_input in ["run", "analyze", "recommend", "start", "analysis"]:
             run_once()
 
+        elif user_input.startswith("mark "):
+            from src.tools.decision_log import update_decision_outcome
+            parts = user_input.split()
+            
+            if len(parts) < 3:
+                print("Usage: mark <number> <good/bad/neutral>")
+                print("Example: mark 1 good")
+            else:
+                try:
+                    index = int(parts[1])
+                    outcome = parts[2].lower()
+                    
+                    if outcome not in ["good", "bad", "neutral"]:
+                        print("Outcome must be: good / bad / neutral")
+                    else:
+                        success = update_decision_outcome(index, outcome)
+                        if success:
+                            print(f"→ Decision #{index} marked as '{outcome}'")
+                        else:
+                            print("Could not update decision. Check the number.")
+                except:
+                    print("Usage: mark <number> <good/bad/neutral>")
+
         elif user_input in ["profile", "my profile", "show profile", "what is my profile"]:
             from src.memory import get_last_user_profile
             profile = get_last_user_profile()
@@ -145,21 +171,23 @@ def interactive_mode():
                 print("No decisions logged yet.")
             else:
                 print("\nRecent Decisions:")
-                print("-" * 55)
+                print("-" * 60)
                 for i, d in enumerate(reversed(decisions), 1):
-                    print(f"{i}. {d.get('strategy')} | Confidence: {d.get('confidence')} | Regime: {d.get('regime')}")
-                    print(f"   Style: {d.get('style')} | Status: {d.get('status')} | Time: {d.get('timestamp', '')[:19]}")
-                print("-" * 55)
+                    outcome = d.get("outcome", "pending")
+                    print(f"{i}. {d.get('strategy')} | Conf: {d.get('confidence')} | Outcome: {outcome}")
+                    print(f"   Regime: {d.get('regime')} | Style: {d.get('style')} | Positions: {d.get('open_positions')}")
+                    print(f"   Time: {str(d.get('timestamp', ''))[:19]}")
+                print("-" * 60)
 
         elif user_input in ["help", "commands", "?"]:
             print("\nAvailable commands:")
             print("  run / analyze / recommend  → Full market analysis")
             print("  profile                    → Show your saved profile")
             print("  history                    → Show recent decisions")
+            print("  mark <num> <good/bad/neutral> → Mark decision outcome")
             print("  clear                      → Clear saved memory")
             print("  help                       → Show this message")
             print("  exit                       → Quit the agent")
-
         else:
             print("Agent: I didn't understand that. Type 'help' to see available commands.")
 

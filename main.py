@@ -60,6 +60,9 @@ def run_once():
     print(f"    • Stop Loss : {result.get('stop_loss_idea', 'N/A')}")
     print(f"    • Take Profit: {result.get('take_profit_idea', 'N/A')}")
     print()
+    if result.get("ranking_explanation"):
+        print(f"  Ranking Logic   : {result.get('ranking_explanation')}")
+        print()
 
     # Show all ranked options if available
     strategy_options = result.get("strategy_options")
@@ -86,14 +89,36 @@ def run_once():
     # Show real paper trades if available
     from src.tools.ananta_api import get_open_paper_trades
     trades_result = get_open_paper_trades()
-    
-    if trades_result.get("success") and trades_result.get("count", 0) > 0:
-        print("OPEN PAPER TRADES (from Ananta)")
-        for i, trade in enumerate(trades_result.get("open_trades", [])[:5], 1):
-            print(f"  {i}. {trade.get('symbol')} | {trade.get('side')} | Qty: {round(trade.get('quantity', 0), 4)} | Price: ${trade.get('price')}")
-        print(f"  Total shown: {min(5, trades_result.get('count', 0))} of {trades_result.get('count')} paper trades")
-        print()
 
+    if trades_result.get("success") and trades_result.get("count", 0) > 0:
+        open_trades = trades_result.get("open_trades", [])
+        
+        print("OPEN PAPER TRADES (from Ananta)")
+        for i, trade in enumerate(open_trades[:5], 1):
+            symbol = trade.get('symbol', 'N/A')
+            side = trade.get('side', 'N/A')
+            qty = round(trade.get('quantity', 0), 4)
+            price = trade.get('price', 'N/A')
+            print(f"  {i}. {symbol} | {side} | Qty: {qty} | Price: ${price}")
+        
+        print(f"  Total shown: {min(5, len(open_trades))} of {trades_result.get('count')} paper trades")
+        print()
+        
+        # Smart exposure summary
+        buy_count = sum(1 for t in open_trades if str(t.get("side", "")).upper() == "BUY")
+        sell_count = sum(1 for t in open_trades if str(t.get("side", "")).upper() == "SELL")
+        
+        print("  Exposure Summary:")
+        print(f"    • Long positions  : {buy_count}")
+        print(f"    • Short positions : {sell_count}")
+        
+        if buy_count > sell_count + 2:
+            print("    • Bias            : Currently net long")
+        elif sell_count > buy_count + 2:
+            print("    • Bias            : Currently net short")
+        else:
+            print("    • Bias            : Relatively balanced")
+        print()
     print("EXECUTION STATUS")
     print(f"  Status            : {result.get('execution_status', 'Not executed')}")
     print("=" * 55)

@@ -1,6 +1,45 @@
 from src.state.agent_state import AgentState
 from src.tools.ananta_api import get_portfolio
 
+def get_outcome_bias():
+    """
+    Look at recent decisions and return small confidence adjustments
+    based on past outcomes.
+    """
+    try:
+        from src.tools.decision_log import get_recent_decisions
+        decisions = get_recent_decisions(limit=20)
+        
+        bias = {
+            "Breakout Strategy": 0.0,
+            "Momentum Continuation": 0.0,
+            "Mean Reversion Scalp": 0.0
+        }
+        
+        for d in decisions:
+            strategy = d.get("strategy")
+            outcome = d.get("outcome", "pending")
+            
+            if strategy not in bias:
+                continue
+                
+            if outcome == "good":
+                bias[strategy] += 0.03
+            elif outcome == "bad":
+                bias[strategy] -= 0.04
+        
+        # Limit the bias
+        for k in bias:
+            bias[k] = max(-0.10, min(0.10, bias[k]))
+            
+        return bias
+    except:
+        return {
+            "Breakout Strategy": 0.0,
+            "Momentum Continuation": 0.0,
+            "Mean Reversion Scalp": 0.0
+        }
+
 def strategy_recommendation_agent(state: AgentState) -> AgentState:
     """
     Generates multiple ranked strategy options with better logic.
@@ -50,6 +89,13 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         "take_profit_idea": "Mid-range or opposite side of the range",
         "reason": "Works well during compression. Lower risk than pure breakout."
     }
+
+    # Apply learning bias from past outcomes
+    outcome_bias = get_outcome_bias()
+    breakout["confidence"] += outcome_bias.get("Breakout Strategy", 0)
+    momentum["confidence"] += outcome_bias.get("Momentum Continuation", 0)
+    mean_reversion["confidence"] += outcome_bias.get("Mean Reversion Scalp", 0)
+
 
     # === Regime Adjustments ===
     if regime == "COMPRESSION":
@@ -114,6 +160,21 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
 
     print(f"   Top Recommendation: {top['name']} (Score: {top['confidence']})")
     print(f"   Other options generated: {len(options) - 1}")
+
+    # Create ranking explanation
+    ranking_reason = f"Ranked based on current regime ({regime}), risk profile ({risk}), and open positions ({open_positions})."
+    
+    if open_positions >= 7:
+        ranking_reason += " High position count reduced confidence across aggressive strategies."
+    
+    if regime == "COMPRESSION":
+        ranking_reason += " Compression favors Breakout and Mean Reversion over pure Momentum."
+    elif regime == "BULLISH_TRENDING":
+        ranking_reason += " Uptrend favors Momentum Continuation."
+    elif regime == "BEARISH_TRENDING":
+        ranking_reason += " Downtrend favors Momentum Continuation on the short side."
+
+    state["ranking_explanation"] = ranking_reason
 
     state["next_agent"] = "supervisor"
     return state

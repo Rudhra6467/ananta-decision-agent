@@ -197,6 +197,33 @@ def interactive_mode():
             else:
                 print("\nRecent Decisions:")
                 print("-" * 60)
+
+        elif user_input in ["performance", "stats", "summary"]:
+            from src.tools.decision_log import get_recent_decisions
+            decisions = get_recent_decisions(limit=50)
+            
+            if not decisions:
+                print("No decisions logged yet.")
+            else:
+                total = len(decisions)
+                good = sum(1 for d in decisions if d.get("outcome") == "good")
+                bad = sum(1 for d in decisions if d.get("outcome") == "bad")
+                neutral = sum(1 for d in decisions if d.get("outcome") == "neutral")
+                pending = sum(1 for d in decisions if d.get("outcome") == "pending")
+                
+                print("\nDecision Performance Summary")
+                print("-" * 40)
+                print(f"  Total decisions   : {total}")
+                print(f"  Marked Good       : {good}")
+                print(f"  Marked Bad        : {bad}")
+                print(f"  Marked Neutral    : {neutral}")
+                print(f"  Still Pending     : {pending}")
+                
+                if good + bad > 0:
+                    win_rate = round((good / (good + bad)) * 100, 1)
+                    print(f"  Current Win Rate  : {win_rate}%")
+                print("-" * 40)
+
                 for i, d in enumerate(reversed(decisions), 1):
                     outcome = d.get("outcome", "pending")
                     print(f"{i}. {d.get('strategy')} | Conf: {d.get('confidence')} | Outcome: {outcome}")

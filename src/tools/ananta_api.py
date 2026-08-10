@@ -1,21 +1,87 @@
 import requests
 
+def login(email: str = "owner@ananta.ai", password: str = "123@ParvathiShiva"):
+    """
+    Log in as owner and return a fresh access token.
+    """
+    import requests
+    try:
+        r = requests.post(
+            "https://livetrading247.com/api/auth/login",
+            json={"email": email, "password": password},
+            headers={"Content-Type": "application/json"},
+            timeout=15
+        )
+        if r.status_code == 200:
+            data = r.json()
+            return {
+                "success": True,
+                "token": data.get("token"),
+                "email": data.get("email"),
+                "role": data.get("role")
+            }
+        return {"success": False, "status_code": r.status_code, "error": r.text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def enable_strategy(strategy_key: str, enabled: bool = True, allowed_regimes: list = None, token: str = None):
+    """
+    Enable or disable a strategy using a valid owner token.
+    If no token is provided, it will log in automatically.
+    """
+    import requests
+
+    if not token:
+        login_result = login()
+        if not login_result.get("success"):
+            return {"success": False, "error": "Login failed", "details": login_result}
+        token = login_result["token"]
+
+    if allowed_regimes is None:
+        allowed_regimes = ["REVERSAL"] if strategy_key == "hunter" else ["COMPRESSION"]
+
+    url = f"https://livetrading247.com/api/strategy/{strategy_key}/profile"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Origin": "https://livetrading247.com",
+        "Referer": "https://livetrading247.com/"
+    }
+    payload = {
+        "enabled": enabled,
+        "allowed_regimes": allowed_regimes,
+        "exit_method": "fixed",
+        "exit_params": {
+            "target_profit": 5.0,
+            "target_loss": 3.5
+        }
+    }
+
+    try:
+        r = requests.put(url, json=payload, headers=headers, timeout=15)
+        if r.status_code in (200, 201):
+            return {"success": True, "data": r.json()}
+        return {"success": False, "status_code": r.status_code, "error": r.text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 # Base URL of Ananta
 BASE_URL = "https://livetrading247.com"
 
 def get_headers(token: str = None):
     """
     Prepare headers for Ananta API calls.
-    Later we will handle real authentication properly.
     """
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
+        "Origin": "https://livetrading247.com",
+        "Referer": "https://livetrading247.com/",
     }
     if token:
         headers["Authorization"] = f"Bearer {token}"
     return headers
-
 
 def get_paper_trades(token: str = None, limit: int = 50):
     """
@@ -140,3 +206,4 @@ def get_open_paper_trades(token: str = None):
         "count": len(open_trades),
         "message": f"Found {len(open_trades)} paper trades"
     }
+

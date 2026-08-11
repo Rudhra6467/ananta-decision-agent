@@ -321,6 +321,29 @@ def interactive_mode():
                else:
                    print(f"→ Failed: {result.get('error') or result}")
 
+        elif user_input in ["status", "strategies", "strategy status"]:
+           from src.tools.ananta_api import get_strategy_status
+           print("Fetching strategy status from Ananta...")
+           result = get_strategy_status()
+           if result.get("success"):
+               strategies = result.get("data", {}).get("strategies", [])
+               print("\nSTRATEGY STATUS")
+               print("=" * 50)
+               if not strategies:
+                   print("No strategies found.")
+               else:
+                   for s in strategies:
+                       key = s.get("key", "unknown")
+                       name = s.get("name", key)
+                       desc = s.get("description", "")[:80]
+                       print(f"• {name} ({key})")
+                       if desc:
+                           print(f"  {desc}...")
+                       print()
+               print(f"Total strategies: {len(strategies)}")
+           else:
+               print(f"Failed to get status: {result.get('error') or result}")
+
         else:
             print("Agent: I didn't understand that. Type 'help' to see available commands.")
 

@@ -207,3 +207,29 @@ def get_open_paper_trades(token: str = None):
         "message": f"Found {len(open_trades)} paper trades"
     }
 
+def get_strategy_status(token: str = None):
+    """
+    Get current strategy registry and enabled status.
+    """
+    import requests
+
+    if not token:
+        login_result = login()
+        if not login_result.get("success"):
+            return {"success": False, "error": "Login failed", "details": login_result}
+        token = login_result["token"]
+
+    try:
+        r = requests.get(
+            "https://livetrading247.com/api/strategy/registry",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            },
+            timeout=15
+        )
+        if r.status_code == 200:
+            return {"success": True, "data": r.json()}
+        return {"success": False, "status_code": r.status_code, "error": r.text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

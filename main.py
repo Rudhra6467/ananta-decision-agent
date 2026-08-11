@@ -64,6 +64,8 @@ def run_once():
         print(f"  Ranking Logic   : {result.get('ranking_explanation')}")
         print()
 
+
+
     # Show all ranked options if available
     strategy_options = result.get("strategy_options")
     if strategy_options and len(strategy_options) > 1:
@@ -71,6 +73,11 @@ def run_once():
         for i, opt in enumerate(strategy_options, 1):
             print(f"  {i}. {opt.get('name')} | Confidence: {opt.get('confidence')} | Style: {opt.get('style')}")
             print(f"     {opt.get('reason')}")
+        print()
+
+        # Offer to enable a strategy
+        print("Would you like to enable one of these strategies?")
+        print("Type: enable <name>   (example: enable hunter)")
         print()
 
     portfolio = result.get("portfolio")
@@ -112,13 +119,26 @@ def run_once():
         print(f"    • Long positions  : {buy_count}")
         print(f"    • Short positions : {sell_count}")
         
-        if buy_count > sell_count + 2:
-            print("    • Bias            : Currently net long")
-        elif sell_count > buy_count + 2:
-            print("    • Bias            : Currently net short")
-        else:
-            print("    • Bias            : Relatively balanced")
-        print()
+    # Simple intelligent comment on open trades
+    if buy_count > 5:
+        print("  Note: Portfolio is heavily long. Consider reducing exposure or waiting for better setups.")
+    elif sell_count > buy_count:
+        print("  Note: More short positions than long. Bias is currently defensive.")
+    elif buy_count == 0 and sell_count == 0:
+        print("  Note: No open paper trades. Good time to look for new setups.")
+    else:
+        print("  Note: Exposure looks manageable.")
+    print()
+
+
+    if buy_count > sell_count + 2:
+        print("    • Bias            : Currently net long")
+    elif sell_count > buy_count + 2:
+        print("    • Bias            : Currently net short")
+    else:
+        print("    • Bias            : Relatively balanced")
+    print()
+
     print("EXECUTION STATUS")
     print(f"  Status            : {result.get('execution_status', 'Not executed')}")
     print("=" * 55)

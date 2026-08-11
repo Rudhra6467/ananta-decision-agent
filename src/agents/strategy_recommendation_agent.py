@@ -134,8 +134,8 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         for opt in [breakout, momentum, mean_reversion]:
             opt["confidence"] = max(0.48, opt["confidence"] - 0.14)
             opt["reason"] += f" | Warning: {open_positions} positions already open. Be selective."
-        breakout["entry_idea"] = "Only take A+ breakout setups. Portfolio is heavily loaded."
-        momentum["entry_idea"] = "Only take very strong momentum signals."
+            breakout["entry_idea"] = "Only take A+ breakout setups. Portfolio is heavily loaded."
+            momentum["entry_idea"] = "Only take very strong momentum signals."
     elif open_positions >= 5:
         for opt in [breakout, momentum, mean_reversion]:
             opt["confidence"] = max(0.55, opt["confidence"] - 0.07)
@@ -148,7 +148,23 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     options = [breakout, momentum, mean_reversion]
     options = sorted(options, key=lambda x: x["confidence"], reverse=True)
 
-    top = options[0]
+    # === WAIT Logic ===
+    # If confidence is low or portfolio is heavily loaded, recommend WAIT
+    best_confidence = max(opt["confidence"] for opt in options)
+    if best_confidence < 0.60 or open_positions >= 8:
+        wait_option = {
+            "name": "WAIT",
+            "confidence": round(1.0 - best_confidence, 2),
+            "style": "Defensive",
+            "reason": "Conditions are not attractive enough right now. Better to wait for a clearer setup.",
+            "entry_idea": "No entry",
+            "stop_loss_idea": "N/A",
+            "take_profit_idea": "N/A"
+        }
+        options = [wait_option] + options
+        top = wait_option
+    else:
+        top = options[0]
 
     state["decision"] = top["name"]
     state["confidence"] = top["confidence"]

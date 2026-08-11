@@ -240,6 +240,67 @@ def interactive_mode():
             print("  clear                      → Clear saved memory")
             print("  help                       → Show this message")
             print("  exit                       → Quit the agent")
+        
+        elif user_input.startswith("enable "):
+           from src.tools.ananta_api import enable_strategy
+           parts = user_input.split()
+           if len(parts) < 2:
+              print("Usage: enable <strategy_name>")
+              print("Example: enable hunter")
+           else:
+               strategy_name = parts[1].lower()
+               print(f"Enabling strategy: {strategy_name} ...")
+               result = enable_strategy(strategy_name, True)
+               if result.get("success"):
+                   print(f"→ Strategy '{strategy_name}' enabled successfully.")
+               else:
+                   print(f"→ Failed: {result.get('error') or result}")
+
+        elif user_input.startswith("enable "):
+           from src.tools.ananta_api import enable_strategy
+           parts = user_input.split()
+           if len(parts) < 2:
+              print("Usage: enable <strategy_name>")
+              print("Example: enable hunter")
+           else:
+               strategy_name = parts[1].lower()
+               print(f"Enabling strategy: {strategy_name} ...")
+               result = enable_strategy(strategy_name, True)
+               if result.get("success"):
+                   print(f"→ Strategy '{strategy_name}' enabled successfully.")
+               else:
+                   print(f"→ Failed: {result.get('error') or result}")
+
+        elif user_input.startswith("enable "):
+           from src.tools.ananta_api import enable_strategy
+           parts = user_input.split()
+           if len(parts) < 2:
+              print("Usage: enable <strategy_name>")
+              print("Example: enable hunter")
+           else:
+               strategy_name = parts[1].lower()
+               print(f"Enabling strategy: {strategy_name} ...")
+               result = enable_strategy(strategy_name, True)
+               if result.get("success"):
+                   print(f"→ Strategy '{strategy_name}' enabled successfully.")
+               else:
+                   print(f"→ Failed: {result.get('error') or result}")
+
+        elif user_input.startswith("disable "):
+           from src.tools.ananta_api import enable_strategy
+           parts = user_input.split()
+           if len(parts) < 2:
+              print("Usage: disable <strategy_name>")
+              print("Example: disable hunter")
+           else:
+               strategy_name = parts[1].lower()
+               print(f"Disabling strategy: {strategy_name} ...")
+               result = enable_strategy(strategy_name, False)
+               if result.get("success"):
+                   print(f"→ Strategy '{strategy_name}' disabled successfully.")
+               else:
+                   print(f"→ Failed: {result.get('error') or result}")
+
         else:
             print("Agent: I didn't understand that. Type 'help' to see available commands.")
 

@@ -209,7 +209,7 @@ def get_open_paper_trades(token: str = None):
 
 def get_strategy_status(token: str = None):
     """
-    Get current strategy registry and enabled status.
+    Get strategy registry + enabled status for each strategy.
     """
     import requests
 
@@ -219,17 +219,66 @@ def get_strategy_status(token: str = None):
             return {"success": False, "error": "Login failed", "details": login_result}
         token = login_result["token"]
 
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
     try:
+        # 1. Get full registry
         r = requests.get(
             "https://livetrading247.com/api/strategy/registry",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            },
+            headers=headers,
             timeout=15
         )
-        if r.status_code == 200:
-            return {"success": True, "data": r.json()}
-        return {"success": False, "status_code": r.status_code, "error": r.text}
+        if r.status_code != 200:
+            return {"success": False, "status_code": r.status_code, "error": r.text}
+
+        data = r.json()
+        strategies = data.get("strategies", [])
+
+        # 2. Get enabled status for each strategy
+        enriched = []
+        for s in strategies:
+            key = s.get("key")
+            if not key:
+                continue
+
+            try:
+                pr = requests.get(
+                    f"https://livetrading247.com/api/strategy/{key}/profile",
+                    headers=headers,
+                    timeout=10
+                )
+                if pr.status_code == 200:
+                    profile_data = pr.json()
+                    enabled = profile_data.get("profile", {}).get("enabled", False)
+                    s["enabled"] = enabled
+                    s["status_label"] = "Enabled" if enabled else "Disabled"
+                else:
+                    s["enabled"] = False
+                    s["status_label"] = "Unknown"
+            except Exception:
+                s["enabled"] = False
+                s["status_label"] = "Unknown"
+
+            enriched.append(s)
+
+        return {"success": True, "strategies": enriched}
+
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+def get_enabled_strategies(token: str = None):
+    """
+    Returns a list of currently enabled strategy keys.
+    """
+    result = get_strategy_status(token)
+    if not result.get("success"):
+        return []
+    
+    enabled = []
+    for s in result.get("strategies", []):
+        if s.get("enabled"):
+            enabled.append(s.get("key"))
+    return enabled

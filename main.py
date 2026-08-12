@@ -308,26 +308,32 @@ def interactive_mode():
                else:
                    print("Cancelled. Strategy was not disabled.")
 
+
         elif user_input in ["status", "strategies", "strategy status"]:
            from src.tools.ananta_api import get_strategy_status
            print("Fetching strategy status from Ananta...")
            result = get_strategy_status()
            if result.get("success"):
-               strategies = result.get("data", {}).get("strategies", [])
+               strategies = result.get("strategies", [])
                print("\nSTRATEGY STATUS")
-               print("=" * 50)
+               print("=" * 55)
                if not strategies:
                    print("No strategies found.")
                else:
+                   enabled_count = 0
                    for s in strategies:
                        key = s.get("key", "unknown")
                        name = s.get("name", key)
-                       desc = s.get("description", "")[:80]
-                       print(f"• {name} ({key})")
-                       if desc:
-                           print(f"  {desc}...")
-                       print()
-               print(f"Total strategies: {len(strategies)}")
+                       status = s.get("status_label", "Unknown")
+                       enabled = s.get("enabled", False)
+                       if enabled:
+                           enabled_count += 1
+                           mark = "●"
+                       else:
+                           mark = "○"
+                       print(f"{mark} {name} ({key})  →  {status}")
+                   print()
+                   print(f"Total: {len(strategies)} strategies | Enabled: {enabled_count}")
            else:
                print(f"Failed to get status: {result.get('error') or result}")
 

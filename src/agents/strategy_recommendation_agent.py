@@ -1,5 +1,5 @@
 from src.state.agent_state import AgentState
-from src.tools.ananta_api import get_portfolio
+from src.tools.ananta_api import get_portfolio, get_enabled_strategies
 
 def get_outcome_bias():
     """
@@ -165,6 +165,14 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         top = wait_option
     else:
         top = options[0]
+
+    # Note if top strategy is already enabled
+    enabled_strategies = get_enabled_strategies()
+    top_key = top.get("name", "").lower().replace(" ", "-")
+    if any(top_key in e or e in top_key for e in enabled_strategies):
+        top["reason"] += " | This strategy (or similar) is already enabled."
+    else:
+        top["reason"] += " | Not currently enabled."
 
     state["decision"] = top["name"]
     state["confidence"] = top["confidence"]

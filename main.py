@@ -265,6 +265,7 @@ def interactive_mode():
             print("  clear                      → Clear saved memory")
             print("  help                       → Show this message")
             print("  exit                       → Quit the agent")
+            print("  monitor / health / check     → Quick portfolio & strategy health check")
             print()
 
 
@@ -307,6 +308,57 @@ def interactive_mode():
                        print(f"→ Failed: {result.get('error') or result}")
                else:
                    print("Cancelled. Strategy was not disabled.")
+
+
+        elif user_input in ["monitor", "health", "check"]:
+           from src.tools.ananta_api import get_strategy_status, get_open_paper_trades
+           from src.tools.ananta_api import get_portfolio  # if available, otherwise skip
+
+           print("\nANANTA AGENT MONITOR")
+           print("=" * 50)
+
+           # Enabled strategies
+           status_result = get_strategy_status()
+           enabled = []
+           if status_result.get("success"):
+               for s in status_result.get("strategies", []):
+                   if s.get("enabled"):
+                       enabled.append(s.get("name", s.get("key")))
+               print(f"Enabled Strategies : {len(enabled)}")
+               if enabled:
+                   for name in enabled:
+                       print(f"  • {name}")
+               else:
+                   print("  • None")
+           else:
+               print("Enabled Strategies : Could not fetch")
+
+           # Open trades
+           trades_result = get_open_paper_trades()
+           open_count = 0
+           if trades_result.get("success"):
+               open_count = trades_result.get("count", 0)
+               print(f"Open Paper Trades  : {open_count}")
+           else:
+               print("Open Paper Trades  : Could not fetch")
+
+
+           # Simple intelligent comment
+           print()
+           if open_count >= 10:
+               print("⚠  Note: Very high number of open trades. Strongly consider reducing exposure.")
+           elif open_count >= 7:
+               print("⚠  Note: Portfolio is heavily loaded. Be selective with new entries.")
+           elif open_count >= 4:
+               print("Note: Moderate exposure. Monitor closely.")
+           elif open_count == 0:
+               print("Note: No open trades. Good time to look for setups.")
+           else:
+               print("Note: Exposure looks manageable.")
+
+           if len(enabled) >= 5:
+               print("Note: Many strategies are enabled. Watch for overlapping signals.")
+           print("=" * 50)
 
 
         elif user_input in ["status", "strategies", "strategy status"]:

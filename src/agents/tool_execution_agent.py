@@ -56,7 +56,7 @@ def tool_execution_agent(state: AgentState) -> AgentState:
 
     try:
         choice_num = int(choice)
-    except:
+    except Exception:
         choice_num = 0
 
     if choice_num == 0 or choice_num > len(options):
@@ -73,9 +73,6 @@ def tool_execution_agent(state: AgentState) -> AgentState:
     print(f"  Stop Loss  : {selected.get('stop_loss_idea')}")
     print(f"  Take Profit: {selected.get('take_profit_idea')}")
 
-    confirm = input("\nConfirm and simulate paper trade? (yes/no): ").strip().lower()
-
-    
     confirm = input("\nConfirm and simulate paper trade? (yes/no): ").strip().lower()
 
     if confirm in ["yes", "y"]:
@@ -110,37 +107,36 @@ def tool_execution_agent(state: AgentState) -> AgentState:
         })
         print("→ Decision logged for future analysis.")
 
-        # === NEW: Offer to enable the strategy for real ===
+        # Offer to enable the strategy for real
         print()
         enable_confirm = input(f"Would you like to ENABLE '{selected.get('name')}' strategy in Ananta now? (yes/no): ").strip().lower()
         if enable_confirm in ["yes", "y"]:
             from src.tools.ananta_api import enable_strategy
-            # Convert name to a likely key (simple mapping)
             strategy_key = selected.get("name", "").lower().replace(" ", "-")
-            # Common name → key fixes
             name_to_key = {
                 "breakout strategy": "donchian-breakout",
                 "momentum continuation": "continuation",
                 "mean reversion scalp": "bollinger-mr",
-                "hunter": "hunter"
+                "hunter": "hunter",
+                "wait": None,
             }
             strategy_key = name_to_key.get(selected.get("name", "").lower(), strategy_key)
 
-            print(f"Enabling strategy: {strategy_key} ...")
-            enable_result = enable_strategy(strategy_key, True)
-            if enable_result.get("success"):
-                print(f"→ Strategy '{strategy_key}' enabled successfully in Ananta.")
+            if strategy_key is None:
+                print("→ WAIT selected — nothing to enable.")
             else:
-                print(f"→ Could not enable automatically: {enable_result.get('error') or enable_result}")
-                print("  You can still enable it manually with: enable <name>")
+                print(f"Enabling strategy: {strategy_key} ...")
+                enable_result = enable_strategy(strategy_key, True)
+                if enable_result.get("success"):
+                    print(f"→ Strategy '{strategy_key}' enabled successfully in Ananta.")
+                else:
+                    print(f"→ Could not enable automatically: {enable_result.get('error') or enable_result}")
+                    print("  You can still enable it manually with: enable <name>")
         else:
             print("→ Strategy not enabled. You can enable it later with: enable <name>")
     else:
         print("→ Cancelled.")
-
         state["execution_status"] = "Cancelled by user"
+
     state["next_agent"] = "supervisor"
     return state
-
-
-

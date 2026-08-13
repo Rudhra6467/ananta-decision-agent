@@ -150,6 +150,107 @@ def enable_strategy(strategy_key: str, enabled: bool = True, allowed_regimes: li
         return {"success": False, "error": str(e)}
 
 
+def place_manual_paper_order(
+    symbol: str,
+    side: str,
+    notional_usd: float = None,
+    quantity: float = None,
+    fraction: float = None,
+    order_type: str = "MARKET",
+    limit_price: float = None,
+    token: str = None,
+):
+    """
+    Place a real paper (or live-routed) order via Ananta POST /api/orders/manual.
+
+    BUY: pass notional_usd (USD to deploy) and/or quantity.
+    SELL: pass fraction (0..1) or quantity of an open position.
+    Symbol: "BTC" or "BTC/USD" (must be in Ananta enabled_symbols).
+    """
+    if not token:
+        login_result = login()
+        if not login_result.get("success"):
+            return {"success": False, "error": "Login failed", "details": login_result}
+        token = login_result["token"]
+
+    side_u = (side or "").upper()
+    if side_u not in ("BUY", "SELL"):
+        return {"success": False, "error": "side must be BUY or SELL"}
+
+    payload = {
+        "symbol": symbol,
+        "side": side_u,
+        "order_type": (order_type or "MARKET").upper(),
+    }
+    if notional_usd is not None:
+        payload["notional_usd"] = float(notional_usd)
+    if quantity is not None:
+        payload["quantity"] = float(quantity)
+    if fraction is not None:
+        payload["fraction"] = float(fraction)
+    if limit_price is not None:
+        payload["limit_price"] = float(limit_price)
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Origin": BASE_URL,
+        "Referer": f"{BASE_URL}/",
+    }
+
+    try:
+        r = requests.post(
+            f"{BASE_URL}/api/orders/manual",
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+        if r.status_code in (200, 201):
+            data = r.json() if r.text else {}
+            return {"success": True, "data": data, "status_code": r.status_code}
+        return {
+            "success": False,
+            "status_code": r.status_code,
+            "error": r.text,
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def run_evaluation_cycle(symbol: str = None, token: str = None):
+    """
+    Trigger one Ananta evaluation cycle (strategies scan / act).
+    POST /api/cycle/run or /api/cycle/run/{symbol_base}
+    """
+    if not token:
+        login_result = login()
+        if not login_result.get("success"):
+            return {"success": False, "error": "Login failed", "details": login_result}
+        token = login_result["token"]
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Origin": BASE_URL,
+        "Referer": f"{BASE_URL}/",
+    }
+
+    if symbol:
+        base = symbol.split("/")[0].upper()
+        url = f"{BASE_URL}/api/cycle/run/{base}"
+    else:
+        url = f"{BASE_URL}/api/cycle/run"
+
+    try:
+        r = requests.post(url, headers=headers, timeout=60)
+        if r.status_code in (200, 201):
+            data = r.json() if r.text else {}
+            return {"success": True, "data": data, "status_code": r.status_code}
+        return {"success": False, "status_code": r.status_code, "error": r.text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 def get_headers(token: str = None):
     """
     Prepare headers for Ananta API calls.

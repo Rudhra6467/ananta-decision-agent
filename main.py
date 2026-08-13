@@ -64,7 +64,6 @@ def run_once():
         print(f"  Ranking Logic   : {result.get('ranking_explanation')}")
         print()
 
-    # Show all ranked options if available
     strategy_options = result.get("strategy_options")
     if strategy_options and len(strategy_options) > 1:
         print("RANKED STRATEGY OPTIONS")
@@ -72,7 +71,6 @@ def run_once():
             print(f"  {i}. {opt.get('name')} | Confidence: {opt.get('confidence')} | Style: {opt.get('style')}")
             print(f"     {opt.get('reason')}")
         print()
-
         print("Would you like to enable one of these strategies?")
         print("Type: enable <name>   (example: enable hunter)")
         print()
@@ -90,12 +88,8 @@ def run_once():
         print(f"  Notes             : {portfolio.get('notes')}")
         print()
 
-    # Show real paper trades if available
     from src.tools.ananta_api import get_open_paper_trades
     trades_result = get_open_paper_trades()
-
-    buy_count = 0
-    sell_count = 0
 
     if trades_result.get("success") and trades_result.get("count", 0) > 0:
         open_trades = trades_result.get("open_trades", [])
@@ -140,6 +134,140 @@ def run_once():
     print(f"  Status            : {result.get('execution_status', 'Not executed')}")
     print("=" * 55)
 
+
+def research_market():
+    from src.tools.market_tools import get_market_data
+    print("\nRESEARCH → MARKET")
+    print("-" * 45)
+    try:
+        m = get_market_data()
+        print(f"{'Metric':<18} {'Value'}")
+        print("-" * 45)
+        print(f"{'Symbol':<18} {m.get('symbol', 'BTC')}")
+        print(f"{'Price':<18} ${m.get('price', 'N/A')}")
+        print(f"{'24h Change':<18} {m.get('change_24h', 'N/A')}%")
+        print(f"{'Regime':<18} {m.get('trend', 'N/A')}")
+        print(f"{'RSI (approx)':<18} {m.get('rsi', 'N/A')}")
+        print(f"{'Volatility':<18} {m.get('volatility', 'N/A')}")
+        print("-" * 45)
+        regime = str(m.get('trend', '')).upper()
+        if regime == "COMPRESSION":
+            print("Note: Compression — breakout / mean-reversion setups preferred.")
+        elif "BULLISH" in regime or regime == "TREND_UP":
+            print("Note: Bullish regime — momentum continuation favored.")
+        elif "BEARISH" in regime or regime == "TREND_DOWN":
+            print("Note: Bearish regime — short momentum / caution on longs.")
+        else:
+            print("Note: Neutral / mixed conditions.")
+    except Exception as e:
+        print(f"Could not fetch market data: {e}")
+    print()
+
+
+def research_strategies():
+    from src.tools.ananta_api import get_strategy_status
+    print("\nRESEARCH → STRATEGIES")
+    print("-" * 55)
+    result = get_strategy_status()
+    if not result.get("success"):
+        print(f"Could not fetch strategies: {result.get('error') or result}")
+        print()
+        return
+
+    strategies = result.get("strategies", [])
+    if not strategies:
+        print("No strategies found.")
+        print()
+        return
+
+    print(f"{'Strategy':<28} {'Key':<22} {'Status'}")
+    print("-" * 55)
+    enabled_count = 0
+    for s in strategies:
+        name = (s.get("name") or s.get("key") or "?")[:27]
+        key = (s.get("key") or "?")[:21]
+        enabled = s.get("enabled", False)
+        status = "Enabled" if enabled else "Disabled"
+        if enabled:
+            enabled_count += 1
+        mark = "●" if enabled else "○"
+        print(f"{mark} {name:<26} {key:<22} {status}")
+    print("-" * 55)
+    print(f"Total: {len(strategies)} | Enabled: {enabled_count} | Disabled: {len(strategies) - enabled_count}")
+    if enabled_count >= 5:
+        print("Note: Many strategies enabled — watch for overlapping signals.")
+    print()
+
+
+def research_portfolio():
+    from src.tools.ananta_api import get_portfolio, get_open_paper_trades, get_strategy_status
+    print("\nRESEARCH → PORTFOLIO")
+    print("-" * 45)
+
+    equity = "N/A"
+    slots = "N/A"
+    try:
+        port = get_portfolio()
+        if port.get("success") and port.get("data"):
+            data = port["data"]
+            equity = data.get("equity") or data.get("total_value") or data.get("balance") or "N/A"
+            slots = data.get("slots_used") or data.get("open_positions") or "N/A"
+    except Exception:
+        pass
+
+    trades_result = get_open_paper_trades()
+    open_count = trades_result.get("count", 0) if trades_result.get("success") else "N/A"
+
+    enabled_count = 0
+    status_result = get_strategy_status()
+    if status_result.get("success"):
+        enabled_count = sum(1 for s in status_result.get("strategies", []) if s.get("enabled"))
+
+    # Health
+    try:
+        oc = int(open_count) if open_count != "N/A" else 0
+    except Exception:
+        oc = 0
+    if oc >= 10 or enabled_count >= 8:
+        health = "OVERLOADED"
+    elif oc >= 7 or enabled_count >= 5:
+        health = "CAUTION"
+    elif oc == 0 and enabled_count == 0:
+        health = "IDLE"
+    else:
+        health = "OK"
+
+    print(f"{'Metric':<22} {'Value'}")
+    print("-" * 45)
+    print(f"{'Equity':<22} ${equity}")
+    print(f"{'Slots / Positions':<22} {slots}")
+    print(f"{'Open Paper Trades':<22} {open_count}")
+    print(f"{'Enabled Strategies':<22} {enabled_count}")
+    print(f"{'Health':<22} {health}")
+    print("-" * 45)
+
+    if health == "OVERLOADED":
+        print("⚠  Exposure is very high. Prefer WAIT / reduce size.")
+    elif health == "CAUTION":
+        print("Note: Elevated exposure — be selective with new entries.")
+    elif health == "IDLE":
+        print("Note: Quiet book — good time to research setups.")
+    else:
+        print("Note: Portfolio health looks manageable.")
+    print()
+
+
+def research_menu():
+    print("\nRESEARCH OPTIONS")
+    print("-" * 40)
+    print("  research market      → BTC regime & price table")
+    print("  research strategies  → Strategy status table")
+    print("  research portfolio   → Equity, trades, health")
+    print("-" * 40)
+    print("Tip: type the full command, e.g. research market")
+    print()
+
+
 def interactive_mode():
     print("=" * 55)
     print("     Ananta Agent - Interactive Mode")
@@ -147,6 +275,7 @@ def interactive_mode():
     print("You can type:")
     print("  run / analyze / recommend  → Full analysis")
     print("  monitor / health           → Quick health check")
+    print("  research                   → Research reports (tables)")
     print("  status                     → Strategy enabled/disabled list")
     print("  help                       → Show all commands")
     print("  exit                       → Quit")
@@ -161,6 +290,22 @@ def interactive_mode():
 
         elif user_input in ["run", "analyze", "recommend", "start", "analysis"]:
             run_once()
+
+        elif user_input in ["research"]:
+            research_menu()
+
+        elif user_input in ["research market", "research markets", "research btc"]:
+            research_market()
+
+        elif user_input in ["research strategies", "research strategy", "research strats"]:
+            research_strategies()
+
+        elif user_input in ["research portfolio", "research port", "research positions"]:
+            research_portfolio()
+
+        elif user_input.startswith("research "):
+            print("Unknown research topic.")
+            print("Use: research market | research strategies | research portfolio")
 
         elif user_input.startswith("mark "):
             from src.tools.decision_log import update_decision_outcome
@@ -251,6 +396,10 @@ def interactive_mode():
             print("\nAvailable commands:")
             print("  run / analyze / recommend  → Full market analysis")
             print("  monitor / health / check   → Quick portfolio & strategy health check")
+            print("  research                   → Show research options")
+            print("  research market            → Market table (BTC, regime)")
+            print("  research strategies        → Strategy status table")
+            print("  research portfolio         → Portfolio health table")
             print("  status                     → Show all strategies + enabled status")
             print("  enable <name>              → Enable a strategy (with confirmation)")
             print("  disable <name>             → Disable a strategy (with confirmation)")
@@ -312,7 +461,6 @@ def interactive_mode():
             print("\nANANTA AGENT MONITOR")
             print("=" * 55)
 
-            # Market snapshot
             try:
                 market = get_market_data()
                 regime = market.get("trend", "N/A")
@@ -323,7 +471,6 @@ def interactive_mode():
             except Exception:
                 print("Market Regime      : Could not fetch")
 
-            # Portfolio snapshot
             try:
                 port = get_portfolio()
                 if port.get("success") and port.get("data"):
@@ -337,7 +484,6 @@ def interactive_mode():
             except Exception:
                 pass
 
-            # Enabled strategies
             status_result = get_strategy_status()
             enabled = []
             if status_result.get("success"):
@@ -353,7 +499,6 @@ def interactive_mode():
             else:
                 print("Enabled Strategies : Could not fetch")
 
-            # Open trades
             trades_result = get_open_paper_trades()
             open_count = 0
             if trades_result.get("success"):
@@ -362,7 +507,6 @@ def interactive_mode():
             else:
                 print("Open Paper Trades  : Could not fetch")
 
-            # Health score
             print()
             health = "OK"
             if open_count >= 10 or len(enabled) >= 8:

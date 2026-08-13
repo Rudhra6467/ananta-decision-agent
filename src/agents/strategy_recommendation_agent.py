@@ -167,11 +167,16 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     # === WAIT Logic ===
     best_confidence = max(opt["confidence"] for opt in options)
     if best_confidence < 0.60 or open_positions >= 8:
+        if open_positions >= 8:
+            wait_reason = f"Portfolio is overloaded ({open_positions} open positions). Prefer waiting over adding more risk."
+        else:
+            wait_reason = "Conditions are not attractive enough right now. Better to wait for a clearer setup."
+
         wait_option = {
             "name": "WAIT",
             "confidence": round(1.0 - best_confidence, 2),
             "style": "Defensive",
-            "reason": "Conditions are not attractive enough right now. Better to wait for a clearer setup.",
+            "reason": wait_reason,
             "entry_idea": "No entry",
             "stop_loss_idea": "N/A",
             "take_profit_idea": "N/A"
@@ -181,13 +186,14 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     else:
         top = options[0]
 
-    # Note if top strategy is already enabled
-    enabled_strategies = get_enabled_strategies()
-    top_key = top.get("name", "").lower().replace(" ", "-")
-    if any(top_key in e or e in top_key for e in enabled_strategies):
-        top["reason"] += " | This strategy (or similar) is already enabled."
-    else:
-        top["reason"] += " | Not currently enabled."
+    # Note if top strategy is already enabled (skip for WAIT)
+    if top.get("name", "").upper() != "WAIT":
+        enabled_strategies = get_enabled_strategies()
+        top_key = top.get("name", "").lower().replace(" ", "-")
+        if any(top_key in e or e in top_key for e in enabled_strategies):
+            top["reason"] += " | This strategy (or similar) is already enabled."
+        else:
+            top["reason"] += " | Not currently enabled."
 
     state["decision"] = top["name"]
     state["confidence"] = top["confidence"]

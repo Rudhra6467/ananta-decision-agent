@@ -9,36 +9,37 @@ def get_outcome_bias():
     try:
         from src.tools.decision_log import get_recent_decisions
         decisions = get_recent_decisions(limit=20)
-        
+
         bias = {
             "Breakout Strategy": 0.0,
             "Momentum Continuation": 0.0,
             "Mean Reversion Scalp": 0.0
         }
-        
+
         for d in decisions:
             strategy = d.get("strategy")
             outcome = d.get("outcome", "pending")
-            
+
             if strategy not in bias:
                 continue
-                
+
             if outcome == "good":
                 bias[strategy] += 0.03
             elif outcome == "bad":
                 bias[strategy] -= 0.04
-        
+
         # Limit the bias
         for k in bias:
             bias[k] = max(-0.10, min(0.10, bias[k]))
-            
+
         return bias
-    except:
+    except Exception:
         return {
             "Breakout Strategy": 0.0,
             "Momentum Continuation": 0.0,
             "Mean Reversion Scalp": 0.0
         }
+
 
 def strategy_recommendation_agent(state: AgentState) -> AgentState:
     """
@@ -56,7 +57,7 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         portfolio_response = get_portfolio()
         if portfolio_response.get("success"):
             open_positions = portfolio_response["data"].get("slots_used", 0)
-    except:
+    except Exception:
         open_positions = 0
 
     # Base strategies
@@ -89,13 +90,6 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         "take_profit_idea": "Mid-range or opposite side of the range",
         "reason": "Works well during compression. Lower risk than pure breakout."
     }
-
-    # Apply learning bias from past outcomes
-    outcome_bias = get_outcome_bias()
-    breakout["confidence"] += outcome_bias.get("Breakout Strategy", 0)
-    momentum["confidence"] += outcome_bias.get("Momentum Continuation", 0)
-    mean_reversion["confidence"] += outcome_bias.get("Mean Reversion Scalp", 0)
-
 
     # === Regime Adjustments ===
     if regime == "COMPRESSION":
@@ -134,12 +128,34 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         for opt in [breakout, momentum, mean_reversion]:
             opt["confidence"] = max(0.48, opt["confidence"] - 0.14)
             opt["reason"] += f" | Warning: {open_positions} positions already open. Be selective."
-            breakout["entry_idea"] = "Only take A+ breakout setups. Portfolio is heavily loaded."
-            momentum["entry_idea"] = "Only take very strong momentum signals."
+        breakout["entry_idea"] = "Only take A+ breakout setups. Portfolio is heavily loaded."
+        momentum["entry_idea"] = "Only take very strong momentum signals."
     elif open_positions >= 5:
         for opt in [breakout, momentum, mean_reversion]:
             opt["confidence"] = max(0.55, opt["confidence"] - 0.07)
             opt["reason"] += f" | Note: {open_positions} positions open."
+
+    # === Apply learning bias from past outcomes (AFTER regime/risk/positions) ===
+    outcome_bias = get_outcome_bias()
+    learning_notes = []
+
+    for opt, key in [
+        (breakout, "Breakout Strategy"),
+        (momentum, "Momentum Continuation"),
+        (mean_reversion, "Mean Reversion Scalp"),
+    ]:
+        bias_value = outcome_bias.get(key, 0.0)
+        if abs(bias_value) >= 0.01:
+            opt["confidence"] += bias_value
+            direction = "boosted" if bias_value > 0 else "reduced"
+            learning_notes.append(f"{key} {direction} by {bias_value:+.2f} from past outcomes")
+
+    if learning_notes:
+        print("   Learning adjustments:")
+        for note in learning_notes:
+            print(f"     • {note}")
+    else:
+        print("   Learning: no strong past outcomes yet (mark decisions with: mark <num> good/bad)")
 
     # Clamp confidence between 0.45 and 0.92
     for opt in [breakout, momentum, mean_reversion]:
@@ -149,7 +165,6 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     options = sorted(options, key=lambda x: x["confidence"], reverse=True)
 
     # === WAIT Logic ===
-    # If confidence is low or portfolio is heavily loaded, recommend WAIT
     best_confidence = max(opt["confidence"] for opt in options)
     if best_confidence < 0.60 or open_positions >= 8:
         wait_option = {
@@ -187,10 +202,10 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
 
     # Create ranking explanation
     ranking_reason = f"Ranked based on current regime ({regime}), risk profile ({risk}), and open positions ({open_positions})."
-    
+
     if open_positions >= 7:
         ranking_reason += " High position count reduced confidence across aggressive strategies."
-    
+
     if regime == "COMPRESSION":
         ranking_reason += " Compression favors Breakout and Mean Reversion over pure Momentum."
     elif regime == "BULLISH_TRENDING":
@@ -198,7 +213,9 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     elif regime == "BEARISH_TRENDING":
         ranking_reason += " Downtrend favors Momentum Continuation on the short side."
 
-    state["ranking_explanation"] = ranking_reason
+    if learning_notes:
+        ranking_reason += " Confidence also adjusted from past decision outcomes."
 
+    state["ranking_explanation"] = ranking_reason
     state["next_agent"] = "supervisor"
     return state

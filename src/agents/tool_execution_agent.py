@@ -84,8 +84,11 @@ def tool_execution_agent(state: AgentState) -> AgentState:
             take_profit=selected.get("take_profit_idea")
         )
         state["execution_status"] = result["message"]
+
+        # Update all recommendation fields so final report matches user choice
         state["decision"] = selected.get("name")
         state["confidence"] = selected.get("confidence")
+        state["reason"] = selected.get("reason")
         state["entry_idea"] = selected.get("entry_idea")
         state["stop_loss_idea"] = selected.get("stop_loss_idea")
         state["take_profit_idea"] = selected.get("take_profit_idea")

@@ -1,13 +1,30 @@
+import os
 import requests
+from dotenv import load_dotenv
 
-def login(email: str = "owner@ananta.ai", password: str = "123@ParvathiShiva"):
+# Load .env from project root (if present)
+load_dotenv()
+
+BASE_URL = os.getenv("ANANTA_BASE_URL", "https://livetrading247.com").rstrip("/")
+
+
+def login(email: str = None, password: str = None):
     """
     Log in as owner and return a fresh access token.
+    Credentials are read from environment / .env by default.
     """
-    import requests
+    email = email or os.getenv("ANANTA_EMAIL", "")
+    password = password or os.getenv("ANANTA_PASSWORD", "")
+
+    if not email or not password:
+        return {
+            "success": False,
+            "error": "Missing ANANTA_EMAIL or ANANTA_PASSWORD. Set them in a local .env file (see .env.example)."
+        }
+
     try:
         r = requests.post(
-            "https://livetrading247.com/api/auth/login",
+            f"{BASE_URL}/api/auth/login",
             json={"email": email, "password": password},
             headers={"Content-Type": "application/json"},
             timeout=15
@@ -79,16 +96,13 @@ def resolve_strategy_key(name_or_key: str):
 
     raw = name_or_key.strip().lower()
 
-    # Exact map first
     if raw in STRATEGY_NAME_TO_KEY:
         return STRATEGY_NAME_TO_KEY[raw]
 
-    # Normalize spaces/underscores
     normalized = raw.replace("_", "-").replace(" ", "-")
     if normalized in STRATEGY_NAME_TO_KEY:
         return STRATEGY_NAME_TO_KEY[normalized]
 
-    # Fallback: return normalized key (may still work if it matches Ananta)
     return normalized
 
 
@@ -97,15 +111,12 @@ def enable_strategy(strategy_key: str, enabled: bool = True, allowed_regimes: li
     Enable or disable a strategy using a valid owner token.
     If no token is provided, it will log in automatically.
     """
-    import requests
-
     if not token:
         login_result = login()
         if not login_result.get("success"):
             return {"success": False, "error": "Login failed", "details": login_result}
         token = login_result["token"]
 
-    # Resolve friendly names to keys
     strategy_key = resolve_strategy_key(strategy_key)
     if not strategy_key:
         return {"success": False, "error": "Cannot enable WAIT or empty strategy name"}
@@ -113,12 +124,12 @@ def enable_strategy(strategy_key: str, enabled: bool = True, allowed_regimes: li
     if allowed_regimes is None:
         allowed_regimes = ["REVERSAL"] if strategy_key == "hunter" else ["COMPRESSION"]
 
-    url = f"https://livetrading247.com/api/strategy/{strategy_key}/profile"
+    url = f"{BASE_URL}/api/strategy/{strategy_key}/profile"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
-        "Origin": "https://livetrading247.com",
-        "Referer": "https://livetrading247.com/"
+        "Origin": BASE_URL,
+        "Referer": f"{BASE_URL}/"
     }
     payload = {
         "enabled": enabled,
@@ -138,8 +149,6 @@ def enable_strategy(strategy_key: str, enabled: bool = True, allowed_regimes: li
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-# Base URL of Ananta
-BASE_URL = "https://livetrading247.com"
 
 def get_headers(token: str = None):
     """
@@ -148,12 +157,13 @@ def get_headers(token: str = None):
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "Origin": "https://livetrading247.com",
-        "Referer": "https://livetrading247.com/",
+        "Origin": BASE_URL,
+        "Referer": f"{BASE_URL}/",
     }
     if token:
         headers["Authorization"] = f"Bearer {token}"
     return headers
+
 
 def get_paper_trades(token: str = None, limit: int = 50):
     """
@@ -242,6 +252,7 @@ def get_account_summary(token: str = None):
             "message": f"Error: {str(e)}"
         }
 
+
 def get_open_paper_trades(token: str = None):
     """
     Fetch paper trades and return a clean summary of open ones.
@@ -279,12 +290,11 @@ def get_open_paper_trades(token: str = None):
         "message": f"Found {len(open_trades)} paper trades"
     }
 
+
 def get_strategy_status(token: str = None):
     """
     Get strategy registry + enabled status for each strategy.
     """
-    import requests
-
     if not token:
         login_result = login()
         if not login_result.get("success"):
@@ -298,7 +308,7 @@ def get_strategy_status(token: str = None):
 
     try:
         r = requests.get(
-            "https://livetrading247.com/api/strategy/registry",
+            f"{BASE_URL}/api/strategy/registry",
             headers=headers,
             timeout=15
         )
@@ -316,7 +326,7 @@ def get_strategy_status(token: str = None):
 
             try:
                 pr = requests.get(
-                    f"https://livetrading247.com/api/strategy/{key}/profile",
+                    f"{BASE_URL}/api/strategy/{key}/profile",
                     headers=headers,
                     timeout=10
                 )
@@ -338,6 +348,7 @@ def get_strategy_status(token: str = None):
 
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 def get_enabled_strategies(token: str = None):
     """

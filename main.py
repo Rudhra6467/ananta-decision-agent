@@ -223,7 +223,6 @@ def research_portfolio():
     if status_result.get("success"):
         enabled_count = sum(1 for s in status_result.get("strategies", []) if s.get("enabled"))
 
-    # Health
     try:
         oc = int(open_count) if open_count != "N/A" else 0
     except Exception:
@@ -277,6 +276,7 @@ def interactive_mode():
     print("  monitor / health           → Quick health check")
     print("  research                   → Research reports (tables)")
     print("  status                     → Strategy enabled/disabled list")
+    print("  history                    → Decision memory journal")
     print("  help                       → Show all commands")
     print("  exit                       → Quit")
     print("=" * 55)
@@ -312,23 +312,30 @@ def interactive_mode():
             parts = user_input.split()
 
             if len(parts) < 3:
-                print("Usage: mark <number> <good/bad/neutral>")
+                print("Usage: mark <number> <good/bad/neutral> [good_process/bad_process/unclear]")
                 print("Example: mark 1 good")
+                print("Example: mark 1 bad bad_process")
             else:
                 try:
                     index = int(parts[1])
                     outcome = parts[2].lower()
+                    quality = parts[3].lower() if len(parts) >= 4 else None
 
                     if outcome not in ["good", "bad", "neutral"]:
                         print("Outcome must be: good / bad / neutral")
+                    elif quality and quality not in ["good_process", "bad_process", "unclear"]:
+                        print("Quality must be: good_process / bad_process / unclear")
                     else:
-                        success = update_decision_outcome(index, outcome)
+                        success = update_decision_outcome(index, outcome, decision_quality=quality)
                         if success:
-                            print(f"→ Decision #{index} marked as '{outcome}'")
+                            msg = f"→ Decision #{index} marked outcome='{outcome}'"
+                            if quality:
+                                msg += f", quality='{quality}'"
+                            print(msg)
                         else:
                             print("Could not update decision. Check the number.")
                 except Exception:
-                    print("Usage: mark <number> <good/bad/neutral>")
+                    print("Usage: mark <number> <good/bad/neutral> [good_process/bad_process/unclear]")
 
         elif user_input in ["profile", "my profile", "show profile", "what is my profile"]:
             from src.memory import get_last_user_profile
@@ -345,9 +352,10 @@ def interactive_mode():
         elif user_input in ["clear", "clear memory", "reset"]:
             if os.path.exists("agent_memory.json"):
                 os.remove("agent_memory.json")
-                print("Memory cleared successfully.")
+                print("Profile memory cleared successfully.")
             else:
-                print("No memory file found.")
+                print("No profile memory file found.")
+            print("Note: decision_log.json (trading journal) was not deleted.")
 
         elif user_input in ["history", "decisions", "log"]:
             from src.tools.decision_log import get_recent_decisions
@@ -356,19 +364,27 @@ def interactive_mode():
             if not decisions:
                 print("No decisions logged yet.")
             else:
-                print("\nRecent Decisions:")
-                print("-" * 60)
+                print("\nDECISION MEMORY (recent)")
+                print("-" * 65)
                 for i, d in enumerate(reversed(decisions), 1):
                     outcome = d.get("outcome", "pending")
+                    quality = d.get("decision_quality", "pending")
+                    status = d.get("status", "?")
+                    override = "yes" if d.get("user_override") else "no"
                     print(f"{i}. {d.get('strategy')} | Conf: {d.get('confidence')} | Outcome: {outcome}")
-                    print(f"   Regime: {d.get('regime')} | Style: {d.get('style')} | Positions: {d.get('open_positions')}")
+                    print(f"   Regime: {d.get('regime')} | Positions: {d.get('open_positions')} | Status: {status}")
+                    print(f"   Top rec: {d.get('top_recommendation')} | Override: {override} | Quality: {quality}")
+                    if d.get("price") is not None:
+                        print(f"   Price: ${d.get('price')} | Equity: {d.get('portfolio_equity')}")
                     print(f"   Time: {str(d.get('timestamp', ''))[:19]}")
-                print("-" * 60)
-                print("Tip: mark <num> good/bad/neutral  (1 = most recent)")
+                    print()
+                print("-" * 65)
+                print("Tip: mark <num> good/bad/neutral")
+                print("     mark <num> good good_process   (optional quality)")
 
         elif user_input in ["performance", "stats", "summary"]:
             from src.tools.decision_log import get_recent_decisions
-            decisions = get_recent_decisions(limit=50)
+            decisions = get_recent_decisions(limit=100)
 
             if not decisions:
                 print("No decisions logged yet.")
@@ -378,6 +394,9 @@ def interactive_mode():
                 bad = sum(1 for d in decisions if d.get("outcome") == "bad")
                 neutral = sum(1 for d in decisions if d.get("outcome") == "neutral")
                 pending = sum(1 for d in decisions if d.get("outcome") == "pending")
+                overrides = sum(1 for d in decisions if d.get("user_override"))
+                enabled = sum(1 for d in decisions if d.get("user_enabled_strategy"))
+                waits = sum(1 for d in decisions if str(d.get("strategy", "")).upper() == "WAIT")
 
                 print("\nDecision Performance Summary")
                 print("-" * 40)
@@ -386,10 +405,13 @@ def interactive_mode():
                 print(f"  Marked Bad        : {bad}")
                 print(f"  Marked Neutral    : {neutral}")
                 print(f"  Still Pending     : {pending}")
+                print(f"  WAIT choices      : {waits}")
+                print(f"  User overrides    : {overrides}")
+                print(f"  Enabled in Ananta : {enabled}")
 
                 if good + bad > 0:
                     win_rate = round((good / (good + bad)) * 100, 1)
-                    print(f"  Current Win Rate  : {win_rate}%")
+                    print(f"  Outcome win rate  : {win_rate}%")
                 print("-" * 40)
 
         elif user_input in ["help", "commands", "?"]:
@@ -404,10 +426,11 @@ def interactive_mode():
             print("  enable <name>              → Enable a strategy (with confirmation)")
             print("  disable <name>             → Disable a strategy (with confirmation)")
             print("  profile                    → Show your saved profile")
-            print("  history                    → Show recent decisions")
+            print("  history                    → Decision memory journal")
             print("  performance / stats        → Decision performance summary")
-            print("  mark <num> good/bad/neutral→ Mark a decision outcome")
-            print("  clear                      → Clear saved memory")
+            print("  mark <num> good/bad/neutral→ Mark outcome")
+            print("  mark <num> good good_process → Mark outcome + process quality")
+            print("  clear                      → Clear saved profile memory")
             print("  help                       → Show this message")
             print("  exit                       → Quit the agent")
             print()

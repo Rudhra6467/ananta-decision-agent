@@ -438,7 +438,7 @@ def interactive_mode():
             print("  buy <symbol> <usd>         → Real paper BUY (e.g. buy BTC 25)")
             print("  sell <symbol> <fraction>   → Real paper SELL (e.g. sell BTC 1.0)")
             print("  cycle [symbol]             → Run one Ananta evaluation cycle")
-	    print("  help                       → Show this message")
+            print("  help                       → Show this message")
             print("  exit                       → Quit the agent")
             print()
 

@@ -4,11 +4,13 @@ from src.tools.ananta_tools import start_paper_trade
 def tool_execution_agent(state: AgentState) -> AgentState:
     """
     Shows ranked options and asks user which one to proceed with.
+    Logs a rich decision-memory record on confirm (Phase A1).
     """
     print("→ Tool Execution Agent is ready...")
 
     options = state.get("strategy_options") or []
     capital = state.get("capital", 5000)
+    top_name = (options[0].get("name") if options else state.get("decision")) or "None"
 
     if not options:
         # Fallback to single recommendation
@@ -62,6 +64,45 @@ def tool_execution_agent(state: AgentState) -> AgentState:
     if choice_num == 0 or choice_num > len(options):
         print("\n→ No strategy selected. No action taken.")
         state["execution_status"] = "No strategy selected"
+
+        # Still log a skip for memory completeness
+        try:
+            from src.tools.decision_log import save_decision
+            market_data = state.get("market_data") or {}
+            portfolio = state.get("portfolio") or {}
+            save_decision({
+                "market": "crypto",
+                "symbol": market_data.get("symbol", "BTC"),
+                "price": market_data.get("price"),
+                "change_24h": market_data.get("change_24h"),
+                "regime": state.get("market_regime"),
+                "user_goal": state.get("user_goal"),
+                "risk_tolerance": state.get("risk_tolerance"),
+                "capital": capital,
+                "experience_level": state.get("experience_level"),
+                "open_positions": portfolio.get("open_positions", 0),
+                "portfolio_equity": portfolio.get("total_value"),
+                "portfolio_notes": portfolio.get("notes"),
+                "top_recommendation": top_name,
+                "ranked_options": [
+                    {"name": o.get("name"), "confidence": o.get("confidence"), "style": o.get("style")}
+                    for o in options
+                ],
+                "strategy": "SKIP",
+                "confidence": 0,
+                "reason": "User skipped / no strategy selected",
+                "ranking_explanation": state.get("ranking_explanation"),
+                "user_selected": "SKIP",
+                "user_confirmed": False,
+                "user_enabled_strategy": False,
+                "user_override": False,
+                "status": "skipped",
+                "expected_outcome": "no_action",
+            })
+            print("→ Skip logged to decision memory.")
+        except Exception:
+            pass
+
         state["next_agent"] = "supervisor"
         return state
 
@@ -93,29 +134,20 @@ def tool_execution_agent(state: AgentState) -> AgentState:
         state["stop_loss_idea"] = selected.get("stop_loss_idea")
         state["take_profit_idea"] = selected.get("take_profit_idea")
 
-        # Log the decision for future analysis
-        from src.tools.decision_log import save_decision
-        save_decision({
-            "strategy": selected.get("name"),
-            "confidence": selected.get("confidence"),
-            "style": selected.get("style"),
-            "regime": state.get("market_regime"),
-            "risk_tolerance": state.get("risk_tolerance"),
-            "capital": capital,
-            "open_positions": state.get("portfolio", {}).get("open_positions", 0),
-            "entry_idea": selected.get("entry_idea"),
-            "stop_loss_idea": selected.get("stop_loss_idea"),
-            "take_profit_idea": selected.get("take_profit_idea"),
-            "status": "simulated"
-        })
-        print("→ Decision logged for future analysis.")
+        selected_name = selected.get("name", "")
+        user_override = str(selected_name).upper() != str(top_name).upper()
+        enabled_ok = False
+        strategy_key = None
 
         # Offer to enable the strategy for real
         print()
-        selected_name = selected.get("name", "")
         if selected_name.upper() == "WAIT":
             print("→ WAIT selected — nothing to enable.")
+            expected = "wait"
+            status = "wait_confirmed"
         else:
+            expected = "explore"
+            status = "simulated"
             enable_confirm = input(f"Would you like to ENABLE '{selected_name}' strategy in Ananta now? (yes/no): ").strip().lower()
             if enable_confirm in ["yes", "y"]:
                 from src.tools.ananta_api import enable_strategy, resolve_strategy_key
@@ -128,14 +160,91 @@ def tool_execution_agent(state: AgentState) -> AgentState:
                     enable_result = enable_strategy(strategy_key, True)
                     if enable_result.get("success"):
                         print(f"→ Strategy '{strategy_key}' enabled successfully in Ananta.")
+                        enabled_ok = True
+                        status = "enabled"
                     else:
                         print(f"→ Could not enable automatically: {enable_result.get('error') or enable_result}")
                         print("  You can still enable it manually with: enable <name>")
             else:
                 print("→ Strategy not enabled. You can enable it later with: enable <name>")
+
+        # Rich decision memory log (Phase A1)
+        from src.tools.decision_log import save_decision
+        market_data = state.get("market_data") or {}
+        portfolio = state.get("portfolio") or {}
+
+        invalidation = None
+        if selected_name.upper() != "WAIT":
+            invalidation = selected.get("stop_loss_idea") or "Reassess if regime or exposure changes materially"
+
+        save_decision({
+            "market": "crypto",
+            "symbol": market_data.get("symbol", "BTC"),
+            "price": market_data.get("price"),
+            "change_24h": market_data.get("change_24h"),
+            "regime": state.get("market_regime"),
+            "user_goal": state.get("user_goal"),
+            "risk_tolerance": state.get("risk_tolerance"),
+            "capital": capital,
+            "experience_level": state.get("experience_level"),
+            "open_positions": portfolio.get("open_positions", 0),
+            "portfolio_equity": portfolio.get("total_value"),
+            "portfolio_notes": portfolio.get("notes"),
+            "top_recommendation": top_name,
+            "ranked_options": [
+                {"name": o.get("name"), "confidence": o.get("confidence"), "style": o.get("style")}
+                for o in options
+            ],
+            "strategy": selected_name,
+            "strategy_key": strategy_key,
+            "confidence": selected.get("confidence"),
+            "style": selected.get("style"),
+            "reason": selected.get("reason"),
+            "ranking_explanation": state.get("ranking_explanation"),
+            "entry_idea": selected.get("entry_idea"),
+            "stop_loss_idea": selected.get("stop_loss_idea"),
+            "take_profit_idea": selected.get("take_profit_idea"),
+            "invalidation": invalidation,
+            "expected_outcome": expected,
+            "user_selected": selected_name,
+            "user_confirmed": True,
+            "user_enabled_strategy": enabled_ok,
+            "user_override": user_override,
+            "status": status,
+        })
+        print("→ Decision logged to memory (rich journal).")
     else:
         print("→ Cancelled.")
         state["execution_status"] = "Cancelled by user"
+
+        try:
+            from src.tools.decision_log import save_decision
+            market_data = state.get("market_data") or {}
+            portfolio = state.get("portfolio") or {}
+            save_decision({
+                "market": "crypto",
+                "symbol": market_data.get("symbol", "BTC"),
+                "price": market_data.get("price"),
+                "regime": state.get("market_regime"),
+                "user_goal": state.get("user_goal"),
+                "risk_tolerance": state.get("risk_tolerance"),
+                "capital": capital,
+                "open_positions": portfolio.get("open_positions", 0),
+                "portfolio_equity": portfolio.get("total_value"),
+                "top_recommendation": top_name,
+                "strategy": selected.get("name"),
+                "confidence": selected.get("confidence"),
+                "reason": selected.get("reason"),
+                "user_selected": selected.get("name"),
+                "user_confirmed": False,
+                "user_enabled_strategy": False,
+                "user_override": str(selected.get("name", "")).upper() != str(top_name).upper(),
+                "status": "cancelled",
+                "expected_outcome": "no_action",
+            })
+            print("→ Cancellation logged to decision memory.")
+        except Exception:
+            pass
 
     state["next_agent"] = "supervisor"
     return state

@@ -1,5 +1,6 @@
 from src.state.agent_state import AgentState
-from src.tools.ananta_api import get_portfolio, get_enabled_strategies
+from src.tools.ananta_api import get_portfolio, get_enabled_strategies, resolve_strategy_key
+
 
 def get_outcome_bias():
     """
@@ -28,7 +29,6 @@ def get_outcome_bias():
             elif outcome == "bad":
                 bias[strategy] -= 0.04
 
-        # Limit the bias
         for k in bias:
             bias[k] = max(-0.10, min(0.10, bias[k]))
 
@@ -43,22 +43,41 @@ def get_outcome_bias():
 
 def strategy_recommendation_agent(state: AgentState) -> AgentState:
     """
-    Generates multiple ranked strategy options with better logic.
-    Aggressive bias for paper trading phase.
+    Generates multiple ranked strategy options with risk guardrails.
+    Paper-trading bias remains, but overload forces WAIT preference.
     """
     print("→ Strategy Recommendation Agent is thinking...")
 
     regime = state.get("market_regime") or "NEUTRAL"
     risk = state.get("risk_tolerance") or "Medium"
 
-    # Get current open positions
+    # --- Portfolio load ---
     open_positions = 0
     try:
         portfolio_response = get_portfolio()
         if portfolio_response.get("success"):
-            open_positions = portfolio_response["data"].get("slots_used", 0)
+            data = portfolio_response.get("data") or {}
+            open_positions = (
+                data.get("slots_used")
+                or data.get("open_positions")
+                or 0
+            )
+            try:
+                open_positions = int(open_positions)
+            except Exception:
+                open_positions = 0
     except Exception:
         open_positions = 0
+
+    # --- Enabled strategies load ---
+    enabled_list = []
+    try:
+        enabled_list = get_enabled_strategies() or []
+    except Exception:
+        enabled_list = []
+    enabled_count = len(enabled_list)
+
+    print(f"   Load check → open positions: {open_positions} | enabled strategies: {enabled_count}")
 
     # Base strategies
     breakout = {
@@ -99,21 +118,21 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         breakout["reason"] = "Market is compressing. Breakout has good asymmetric potential."
         mean_reversion["reason"] = "Compression favors mean reversion until expansion begins."
 
-    elif regime == "BULLISH_TRENDING":
+    elif regime in ("BULLISH_TRENDING", "TREND_UP"):
         breakout["confidence"] = 0.70
         momentum["confidence"] = 0.84
         mean_reversion["confidence"] = 0.52
         momentum["reason"] = "Strong uptrend detected. Momentum continuation is favored."
         mean_reversion["reason"] = "Mean reversion is less reliable in strong trends."
 
-    elif regime == "BEARISH_TRENDING":
+    elif regime in ("BEARISH_TRENDING", "TREND_DOWN"):
         breakout["confidence"] = 0.67
         momentum["confidence"] = 0.81
         mean_reversion["confidence"] = 0.55
         momentum["reason"] = "Downtrend in progress. Momentum short continuation preferred."
         mean_reversion["reason"] = "Counter-trend mean reversion is riskier here."
 
-    # === Risk Tolerance Adjustments (Aggressive bias) ===
+    # === Risk Tolerance Adjustments ===
     if risk == "High":
         breakout["confidence"] += 0.05
         momentum["confidence"] += 0.06
@@ -123,19 +142,59 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         momentum["confidence"] -= 0.10
         mean_reversion["confidence"] += 0.04
 
-    # === Open Positions Adjustments ===
-    if open_positions >= 7:
+    # === RISK GUARDRAILS (positions + enabled strategies) ===
+    # Levels:
+    #   CAUTION  : positions >= 5 OR enabled >= 5
+    #   HIGH     : positions >= 7 OR enabled >= 7
+    #   CRITICAL : positions >= 10 OR enabled >= 9 OR (positions >= 8 and enabled >= 6)
+    load_level = "OK"
+    if open_positions >= 10 or enabled_count >= 9 or (open_positions >= 8 and enabled_count >= 6):
+        load_level = "CRITICAL"
+    elif open_positions >= 7 or enabled_count >= 7:
+        load_level = "HIGH"
+    elif open_positions >= 5 or enabled_count >= 5:
+        load_level = "CAUTION"
+
+    if load_level == "CRITICAL":
         for opt in [breakout, momentum, mean_reversion]:
-            opt["confidence"] = max(0.48, opt["confidence"] - 0.14)
-            opt["reason"] += f" | Warning: {open_positions} positions already open. Be selective."
+            # Aggressive styles hit harder
+            penalty = 0.22 if opt["style"] == "Aggressive" else 0.16
+            opt["confidence"] = max(0.40, opt["confidence"] - penalty)
+            opt["reason"] += (
+                f" | RISK: overloaded book "
+                f"({open_positions} positions, {enabled_count} strategies on). Prefer WAIT."
+            )
+        breakout["entry_idea"] = "Do not add size. Book is critically loaded."
+        momentum["entry_idea"] = "Do not add size. Book is critically loaded."
+        mean_reversion["entry_idea"] = "Only consider if closing other risk first."
+
+    elif load_level == "HIGH":
+        for opt in [breakout, momentum, mean_reversion]:
+            penalty = 0.16 if opt["style"] == "Aggressive" else 0.10
+            opt["confidence"] = max(0.45, opt["confidence"] - penalty)
+            opt["reason"] += (
+                f" | Warning: high load "
+                f"({open_positions} positions, {enabled_count} strategies on). Be selective."
+            )
         breakout["entry_idea"] = "Only take A+ breakout setups. Portfolio is heavily loaded."
         momentum["entry_idea"] = "Only take very strong momentum signals."
-    elif open_positions >= 5:
-        for opt in [breakout, momentum, mean_reversion]:
-            opt["confidence"] = max(0.55, opt["confidence"] - 0.07)
-            opt["reason"] += f" | Note: {open_positions} positions open."
 
-    # === Apply learning bias from past outcomes (AFTER regime/risk/positions) ===
+    elif load_level == "CAUTION":
+        for opt in [breakout, momentum, mean_reversion]:
+            penalty = 0.08 if opt["style"] == "Aggressive" else 0.05
+            opt["confidence"] = max(0.50, opt["confidence"] - penalty)
+            opt["reason"] += (
+                f" | Note: elevated load "
+                f"({open_positions} positions, {enabled_count} strategies on)."
+            )
+
+    # Low risk tolerance amplifies load pressure
+    if risk == "Low" and load_level in ("HIGH", "CRITICAL"):
+        for opt in [breakout, momentum, mean_reversion]:
+            opt["confidence"] = max(0.40, opt["confidence"] - 0.05)
+            opt["reason"] += " | Low risk profile + high load → defensive bias."
+
+    # === Apply learning bias from past outcomes ===
     outcome_bias = get_outcome_bias()
     learning_notes = []
 
@@ -157,24 +216,49 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     else:
         print("   Learning: no strong past outcomes yet (mark decisions with: mark <num> good/bad)")
 
-    # Clamp confidence between 0.45 and 0.92
+    # Clamp confidence
     for opt in [breakout, momentum, mean_reversion]:
-        opt["confidence"] = round(min(0.92, max(0.45, opt["confidence"])), 2)
+        opt["confidence"] = round(min(0.92, max(0.40, opt["confidence"])), 2)
 
     options = [breakout, momentum, mean_reversion]
     options = sorted(options, key=lambda x: x["confidence"], reverse=True)
 
-    # === WAIT Logic ===
+    # === WAIT Logic (stronger under load) ===
     best_confidence = max(opt["confidence"] for opt in options)
-    if best_confidence < 0.60 or open_positions >= 8:
-        if open_positions >= 8:
-            wait_reason = f"Portfolio is overloaded ({open_positions} open positions). Prefer waiting over adding more risk."
+    force_wait = (
+        load_level == "CRITICAL"
+        or open_positions >= 8
+        or enabled_count >= 8
+        or (risk == "Low" and load_level == "HIGH")
+        or best_confidence < 0.58
+    )
+
+    if force_wait:
+        if load_level == "CRITICAL":
+            wait_reason = (
+                f"CRITICAL load: {open_positions} open positions and "
+                f"{enabled_count} strategies enabled. Prefer WAIT / reduce exposure."
+            )
+            wait_conf = 0.82
+        elif open_positions >= 8 or enabled_count >= 8:
+            wait_reason = (
+                f"High load ({open_positions} positions, {enabled_count} strategies on). "
+                f"Prefer waiting over adding more risk."
+            )
+            wait_conf = 0.75
+        elif risk == "Low" and load_level == "HIGH":
+            wait_reason = (
+                f"Low risk profile with high portfolio load "
+                f"({open_positions} positions / {enabled_count} strategies). Defensive WAIT preferred."
+            )
+            wait_conf = 0.72
         else:
             wait_reason = "Conditions are not attractive enough right now. Better to wait for a clearer setup."
+            wait_conf = round(max(0.55, 1.0 - best_confidence), 2)
 
         wait_option = {
             "name": "WAIT",
-            "confidence": round(1.0 - best_confidence, 2),
+            "confidence": wait_conf,
             "style": "Defensive",
             "reason": wait_reason,
             "entry_idea": "No entry",
@@ -188,12 +272,18 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
 
     # Note if top strategy is already enabled (skip for WAIT)
     if top.get("name", "").upper() != "WAIT":
-        enabled_strategies = get_enabled_strategies()
-        top_key = top.get("name", "").lower().replace(" ", "-")
-        if any(top_key in e or e in top_key for e in enabled_strategies):
-            top["reason"] += " | This strategy (or similar) is already enabled."
-        else:
+        top_key = resolve_strategy_key(top.get("name", ""))
+        if top_key and top_key in enabled_list:
+            top["reason"] += " | This strategy is already enabled."
+        elif top_key:
             top["reason"] += " | Not currently enabled."
+        else:
+            # Fallback soft match
+            soft = top.get("name", "").lower().replace(" ", "-")
+            if any(soft in e or e in soft for e in enabled_list):
+                top["reason"] += " | This strategy (or similar) is already enabled."
+            else:
+                top["reason"] += " | Not currently enabled."
 
     state["decision"] = top["name"]
     state["confidence"] = top["confidence"]
@@ -204,19 +294,26 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     state["strategy_options"] = options
 
     print(f"   Top Recommendation: {top['name']} (Score: {top['confidence']})")
+    print(f"   Load level: {load_level}")
     print(f"   Other options generated: {len(options) - 1}")
 
-    # Create ranking explanation
-    ranking_reason = f"Ranked based on current regime ({regime}), risk profile ({risk}), and open positions ({open_positions})."
+    ranking_reason = (
+        f"Ranked based on regime ({regime}), risk ({risk}), "
+        f"open positions ({open_positions}), enabled strategies ({enabled_count})."
+    )
 
-    if open_positions >= 7:
-        ranking_reason += " High position count reduced confidence across aggressive strategies."
+    if load_level == "CRITICAL":
+        ranking_reason += " CRITICAL load forced strong WAIT preference."
+    elif load_level == "HIGH":
+        ranking_reason += " High load reduced confidence on aggressive strategies."
+    elif load_level == "CAUTION":
+        ranking_reason += " Elevated load applied mild confidence haircut."
 
     if regime == "COMPRESSION":
         ranking_reason += " Compression favors Breakout and Mean Reversion over pure Momentum."
-    elif regime == "BULLISH_TRENDING":
+    elif regime in ("BULLISH_TRENDING", "TREND_UP"):
         ranking_reason += " Uptrend favors Momentum Continuation."
-    elif regime == "BEARISH_TRENDING":
+    elif regime in ("BEARISH_TRENDING", "TREND_DOWN"):
         ranking_reason += " Downtrend favors Momentum Continuation on the short side."
 
     if learning_notes:

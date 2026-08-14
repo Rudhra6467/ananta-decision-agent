@@ -2,6 +2,31 @@ from src.state.agent_state import AgentState
 from src.tools.ananta_api import get_portfolio, get_enabled_strategies, resolve_strategy_key
 
 
+# Prefer keeping these when cleaning up an overloaded book
+KEEP_PRIORITY = [
+    "hunter",
+    "bollinger-mr",
+    "ema-cross",
+    "squeeze",
+]
+
+# Prefer turning these off first (more aggressive / overlapping / experimental)
+DISABLE_FIRST = [
+    "aggressive-movement-cf1358",
+    "turtle",
+    "keltner-breakout",
+    "atr-breakout",
+    "donchian-breakout",
+    "continuation",
+    "time-series-momentum",
+    "stochastic-momentum",
+    "rsi-momentum",
+    "macd-trend",
+    "vwap-mr",
+    "supertrend",
+]
+
+
 def get_outcome_bias():
     """
     Look at recent decisions and return small confidence adjustments
@@ -41,10 +66,78 @@ def get_outcome_bias():
         }
 
 
+def suggest_disables(enabled_list, target_max=5, regime="NEUTRAL"):
+    """
+    Pick concrete strategy keys to disable so enabled count moves toward target_max.
+    Keeps core strategies when possible; trims aggressive / overlapping ones first.
+    """
+    if not enabled_list:
+        return []
+
+    enabled = list(enabled_list)
+    if len(enabled) <= target_max:
+        return []
+
+    to_disable = []
+
+    # Regime-aware extras: in neutral/compression, momentum stack is less useful first
+    regime_u = str(regime or "").upper()
+    regime_prefer_disable = []
+    if regime_u in ("NEUTRAL", "COMPRESSION", "RANGE"):
+        regime_prefer_disable = [
+            "continuation",
+            "time-series-momentum",
+            "stochastic-momentum",
+            "rsi-momentum",
+            "macd-trend",
+            "aggressive-movement-cf1358",
+        ]
+    elif regime_u in ("TREND_UP", "BULLISH_TRENDING"):
+        regime_prefer_disable = [
+            "bollinger-mr",
+            "vwap-mr",
+            "turtle",
+        ]
+    elif regime_u in ("TREND_DOWN", "BEARISH_TRENDING"):
+        regime_prefer_disable = [
+            "turtle",
+            "donchian-breakout",
+            "atr-breakout",
+        ]
+
+    ordered = []
+    for key in regime_prefer_disable + DISABLE_FIRST:
+        if key not in ordered:
+            ordered.append(key)
+
+    for key in ordered:
+        if key in enabled and key not in KEEP_PRIORITY and key not in to_disable:
+            to_disable.append(key)
+            if len(enabled) - len(to_disable) <= target_max:
+                break
+
+    if len(enabled) - len(to_disable) > target_max:
+        for key in enabled:
+            if key not in KEEP_PRIORITY and key not in to_disable:
+                to_disable.append(key)
+                if len(enabled) - len(to_disable) <= target_max:
+                    break
+
+    # Last resort: trim even keep-list if still over target
+    if len(enabled) - len(to_disable) > target_max:
+        for key in enabled:
+            if key not in to_disable:
+                to_disable.append(key)
+                if len(enabled) - len(to_disable) <= target_max:
+                    break
+
+    return to_disable
+
+
 def strategy_recommendation_agent(state: AgentState) -> AgentState:
     """
     Generates multiple ranked strategy options with risk guardrails.
-    Paper-trading bias remains, but overload forces WAIT preference.
+    Paper-trading bias remains, but overload forces WAIT + cleanup suggestions.
     """
     print("→ Strategy Recommendation Agent is thinking...")
 
@@ -143,10 +236,6 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         mean_reversion["confidence"] += 0.04
 
     # === RISK GUARDRAILS (positions + enabled strategies) ===
-    # Levels:
-    #   CAUTION  : positions >= 5 OR enabled >= 5
-    #   HIGH     : positions >= 7 OR enabled >= 7
-    #   CRITICAL : positions >= 10 OR enabled >= 9 OR (positions >= 8 and enabled >= 6)
     load_level = "OK"
     if open_positions >= 10 or enabled_count >= 9 or (open_positions >= 8 and enabled_count >= 6):
         load_level = "CRITICAL"
@@ -157,7 +246,6 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
 
     if load_level == "CRITICAL":
         for opt in [breakout, momentum, mean_reversion]:
-            # Aggressive styles hit harder
             penalty = 0.22 if opt["style"] == "Aggressive" else 0.16
             opt["confidence"] = max(0.40, opt["confidence"] - penalty)
             opt["reason"] += (
@@ -188,11 +276,25 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
                 f"({open_positions} positions, {enabled_count} strategies on)."
             )
 
-    # Low risk tolerance amplifies load pressure
     if risk == "Low" and load_level in ("HIGH", "CRITICAL"):
         for opt in [breakout, momentum, mean_reversion]:
             opt["confidence"] = max(0.40, opt["confidence"] - 0.05)
             opt["reason"] += " | Low risk profile + high load → defensive bias."
+
+    # === Cleanup suggestions when overloaded ===
+    target_enabled = 4 if risk == "Low" else 5
+    disable_suggestions = []
+    if load_level in ("HIGH", "CRITICAL") and enabled_count > target_enabled:
+        disable_suggestions = suggest_disables(
+            enabled_list,
+            target_max=target_enabled,
+            regime=regime,
+        )
+
+    if disable_suggestions:
+        print("   Suggested cleanup (disable these to reduce load):")
+        for key in disable_suggestions:
+            print(f"     • disable {key}")
 
     # === Apply learning bias from past outcomes ===
     outcome_bias = get_outcome_bias()
@@ -216,7 +318,6 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     else:
         print("   Learning: no strong past outcomes yet (mark decisions with: mark <num> good/bad)")
 
-    # Clamp confidence
     for opt in [breakout, momentum, mean_reversion]:
         opt["confidence"] = round(min(0.92, max(0.40, opt["confidence"])), 2)
 
@@ -256,6 +357,10 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
             wait_reason = "Conditions are not attractive enough right now. Better to wait for a clearer setup."
             wait_conf = round(max(0.55, 1.0 - best_confidence), 2)
 
+        if disable_suggestions:
+            cmds = ", ".join(f"disable {k}" for k in disable_suggestions[:5])
+            wait_reason += f" Suggested cleanup: {cmds}."
+
         wait_option = {
             "name": "WAIT",
             "confidence": wait_conf,
@@ -278,7 +383,6 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         elif top_key:
             top["reason"] += " | Not currently enabled."
         else:
-            # Fallback soft match
             soft = top.get("name", "").lower().replace(" ", "-")
             if any(soft in e or e in soft for e in enabled_list):
                 top["reason"] += " | This strategy (or similar) is already enabled."
@@ -292,6 +396,10 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     state["stop_loss_idea"] = top["stop_loss_idea"]
     state["take_profit_idea"] = top["take_profit_idea"]
     state["strategy_options"] = options
+    state["disable_suggestions"] = disable_suggestions
+    state["load_level"] = load_level
+    state["enabled_count"] = enabled_count
+    state["open_positions_count"] = open_positions
 
     print(f"   Top Recommendation: {top['name']} (Score: {top['confidence']})")
     print(f"   Load level: {load_level}")
@@ -308,6 +416,13 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         ranking_reason += " High load reduced confidence on aggressive strategies."
     elif load_level == "CAUTION":
         ranking_reason += " Elevated load applied mild confidence haircut."
+
+    if disable_suggestions:
+        ranking_reason += (
+            " Cleanup suggested: "
+            + ", ".join(disable_suggestions[:5])
+            + "."
+        )
 
     if regime == "COMPRESSION":
         ranking_reason += " Compression favors Breakout and Mean Reversion over pure Momentum."

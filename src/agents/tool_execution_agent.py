@@ -1,10 +1,41 @@
 from src.state.agent_state import AgentState
 from src.tools.ananta_tools import start_paper_trade
 
+
+def _print_position_cleanup_hint(state: AgentState):
+    """When book is heavy, remind user that positions (not only strategies) drive load."""
+    load_level = state.get("load_level") or ""
+    open_count = state.get("open_positions_count")
+    portfolio = state.get("portfolio") or {}
+    if open_count is None:
+        open_count = portfolio.get("open_positions") or 0
+    try:
+        open_count = int(open_count)
+    except Exception:
+        open_count = 0
+
+    if load_level not in ("HIGH", "CRITICAL") and open_count < 7:
+        return
+
+    print()
+    print("POSITION LOAD NOTE")
+    print("-" * 55)
+    print(f"  Open positions driving load : {open_count}")
+    print(f"  Load level                  : {load_level or 'elevated'}")
+    print("  Strategies are trimmed, but open trades still force WAIT bias.")
+    print("  Options:")
+    print("    • review trades in Ananta cockpit / paper portfolio")
+    print("    • close weak or duplicate paper positions")
+    print("    • use: sell <symbol> <fraction>   (e.g. sell ARB 1.0)")
+    print("    • re-run analysis after exposure drops")
+    print("-" * 55)
+
+
 def tool_execution_agent(state: AgentState) -> AgentState:
     """
     Shows ranked options and asks user which one to proceed with.
     Logs a rich decision-memory record on confirm (Phase A1).
+    WAIT path skips paper-trade simulation.
     """
     print("→ Tool Execution Agent is ready...")
 
@@ -54,6 +85,9 @@ def tool_execution_agent(state: AgentState) -> AgentState:
     print("0. Skip / Do nothing")
     print("=" * 55)
 
+    # Position-load hint before choice when overloaded
+    _print_position_cleanup_hint(state)
+
     choice = input("Enter the number of the strategy you want to proceed with: ").strip()
 
     try:
@@ -65,7 +99,6 @@ def tool_execution_agent(state: AgentState) -> AgentState:
         print("\n→ No strategy selected. No action taken.")
         state["execution_status"] = "No strategy selected"
 
-        # Still log a skip for memory completeness
         try:
             from src.tools.decision_log import save_decision
             market_data = state.get("market_data") or {}
@@ -107,48 +140,57 @@ def tool_execution_agent(state: AgentState) -> AgentState:
         return state
 
     selected = options[choice_num - 1]
+    selected_name = selected.get("name", "")
+    is_wait = str(selected_name).upper() == "WAIT"
 
-    print(f"\n→ You selected: {selected.get('name')}")
+    print(f"\n→ You selected: {selected_name}")
     print(f"  Confidence : {selected.get('confidence')}")
     print(f"  Entry      : {selected.get('entry_idea')}")
     print(f"  Stop Loss  : {selected.get('stop_loss_idea')}")
     print(f"  Take Profit: {selected.get('take_profit_idea')}")
 
-    confirm = input("\nConfirm and simulate paper trade? (yes/no): ").strip().lower()
+    # WAIT: no paper-trade simulation — just confirm stance
+    if is_wait:
+        confirm = input("\nConfirm WAIT (no new risk / no enable)? (yes/no): ").strip().lower()
+    else:
+        confirm = input("\nConfirm and simulate paper trade? (yes/no): ").strip().lower()
 
     if confirm in ["yes", "y"]:
-        result = start_paper_trade(
-            strategy_name=selected.get("name"),
-            capital=capital,
-            entry_idea=selected.get("entry_idea"),
-            stop_loss=selected.get("stop_loss_idea"),
-            take_profit=selected.get("take_profit_idea")
-        )
-        state["execution_status"] = result["message"]
+        if is_wait:
+            state["execution_status"] = "WAIT confirmed — no new risk taken"
+            print("\n→ WAIT confirmed. No paper trade simulated. No strategy enabled.")
+            _print_position_cleanup_hint(state)
+        else:
+            result = start_paper_trade(
+                strategy_name=selected_name,
+                capital=capital,
+                entry_idea=selected.get("entry_idea"),
+                stop_loss=selected.get("stop_loss_idea"),
+                take_profit=selected.get("take_profit_idea")
+            )
+            state["execution_status"] = result["message"]
 
-        # Update all recommendation fields so final report matches user choice
-        state["decision"] = selected.get("name")
+        # Update recommendation fields so final report matches user choice
+        state["decision"] = selected_name
         state["confidence"] = selected.get("confidence")
         state["reason"] = selected.get("reason")
         state["entry_idea"] = selected.get("entry_idea")
         state["stop_loss_idea"] = selected.get("stop_loss_idea")
         state["take_profit_idea"] = selected.get("take_profit_idea")
 
-        selected_name = selected.get("name", "")
         user_override = str(selected_name).upper() != str(top_name).upper()
         enabled_ok = False
         strategy_key = None
 
-        # Offer to enable the strategy for real
-        print()
-        if selected_name.upper() == "WAIT":
-            print("→ WAIT selected — nothing to enable.")
+        if is_wait:
             expected = "wait"
             status = "wait_confirmed"
         else:
             expected = "explore"
             status = "simulated"
-            enable_confirm = input(f"Would you like to ENABLE '{selected_name}' strategy in Ananta now? (yes/no): ").strip().lower()
+            enable_confirm = input(
+                f"Would you like to ENABLE '{selected_name}' strategy in Ananta now? (yes/no): "
+            ).strip().lower()
             if enable_confirm in ["yes", "y"]:
                 from src.tools.ananta_api import enable_strategy, resolve_strategy_key
                 strategy_key = resolve_strategy_key(selected_name)
@@ -163,7 +205,6 @@ def tool_execution_agent(state: AgentState) -> AgentState:
                         enabled_ok = True
                         status = "enabled"
 
-                        # Offer to run one evaluation cycle immediately
                         cycle_now = input(
                             "Strategy enabled. Run one evaluation cycle now? (yes/no): "
                         ).strip().lower()
@@ -197,13 +238,13 @@ def tool_execution_agent(state: AgentState) -> AgentState:
             else:
                 print("→ Strategy not enabled. You can enable it later with: enable <name>")
 
-        # Rich decision memory log (Phase A1)
+        # Rich decision memory log
         from src.tools.decision_log import save_decision
         market_data = state.get("market_data") or {}
         portfolio = state.get("portfolio") or {}
 
         invalidation = None
-        if selected_name.upper() != "WAIT":
+        if not is_wait:
             invalidation = selected.get("stop_loss_idea") or "Reassess if regime or exposure changes materially"
 
         save_decision({
@@ -261,13 +302,13 @@ def tool_execution_agent(state: AgentState) -> AgentState:
                 "open_positions": portfolio.get("open_positions", 0),
                 "portfolio_equity": portfolio.get("total_value"),
                 "top_recommendation": top_name,
-                "strategy": selected.get("name"),
+                "strategy": selected_name,
                 "confidence": selected.get("confidence"),
                 "reason": selected.get("reason"),
-                "user_selected": selected.get("name"),
+                "user_selected": selected_name,
                 "user_confirmed": False,
                 "user_enabled_strategy": False,
-                "user_override": str(selected.get("name", "")).upper() != str(top_name).upper(),
+                "user_override": str(selected_name).upper() != str(top_name).upper(),
                 "status": "cancelled",
                 "expected_outcome": "no_action",
             })

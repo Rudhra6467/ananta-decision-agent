@@ -458,6 +458,15 @@ def interactive_mode():
                     if result.get("success"):
                         key = result.get("strategy_key", strategy_name)
                         print(f"→ Strategy '{key}' enabled successfully.")
+
+                        cycle_now = input(
+                            "Strategy enabled. Run one evaluation cycle now? (yes/no): "
+                        ).strip().lower()
+                        if cycle_now in ["yes", "y"]:
+                            from src.cli_exec import handle_cycle
+                            handle_cycle("cycle")
+                        else:
+                            print("→ Skipped cycle. You can run it later with: cycle")
                     else:
                         print(f"→ Failed: {result.get('error') or result}")
                 else:

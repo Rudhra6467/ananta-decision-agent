@@ -140,6 +140,11 @@ def run_once():
             print("    • Bias            : Relatively balanced")
         print()
 
+        open_count = trades_result.get("count", 0)
+        if open_count >= 7:
+            print("  Tip: type  cleanup  to reduce position load interactively.")
+            print()
+
     print("EXECUTION STATUS")
     print(f"  Status            : {result.get('execution_status', 'Not executed')}")
     print("=" * 55)
@@ -256,9 +261,9 @@ def research_portfolio():
     print("-" * 45)
 
     if health == "OVERLOADED":
-        print("⚠  Exposure is very high. Prefer WAIT / reduce size.")
+        print("⚠  Exposure is very high. Prefer WAIT / reduce size. Try: cleanup")
     elif health == "CAUTION":
-        print("Note: Elevated exposure — be selective with new entries.")
+        print("Note: Elevated exposure — be selective. Optional: cleanup")
     elif health == "IDLE":
         print("Note: Quiet book — good time to research setups.")
     else:
@@ -307,6 +312,7 @@ def interactive_mode():
     print("You can type:")
     print("  run / analyze / recommend  → Full analysis")
     print("  monitor / health           → Quick health check")
+    print("  cleanup                    → Reduce open paper positions")
     print("  research                   → Research reports (tables)")
     print("  status                     → Strategy enabled/disabled list")
     print("  history                    → Decision memory journal")
@@ -317,8 +323,13 @@ def interactive_mode():
     while True:
         user_input = input("\nYou: ").strip().lower()
 
-        from src.cli_exec import handle_buy, handle_sell, handle_cycle
-        if handle_buy(user_input) or handle_sell(user_input) or handle_cycle(user_input):
+        from src.cli_exec import handle_buy, handle_sell, handle_cycle, handle_cleanup
+        if (
+            handle_buy(user_input)
+            or handle_sell(user_input)
+            or handle_cycle(user_input)
+            or handle_cleanup(user_input)
+        ):
             continue
 
         if user_input in ["exit", "quit", "q"]:
@@ -455,6 +466,8 @@ def interactive_mode():
             print("\nAvailable commands:")
             print("  run / analyze / recommend  → Full market analysis")
             print("  monitor / health / check   → Quick portfolio & strategy health check")
+            print("  cleanup / clean            → Guided position reduction (paper)")
+            print("  cleanup list               → List aggregated positions only")
             print("  research                   → Show research options")
             print("  research market            → Market table (BTC, regime)")
             print("  research strategies        → Strategy status table")
@@ -595,9 +608,9 @@ def interactive_mode():
             print(f"Health Status      : {health}")
 
             if open_count >= 10:
-                print("⚠  Very high open trades. Strongly consider reducing exposure.")
+                print("⚠  Very high open trades. Strongly consider: cleanup")
             elif open_count >= 7:
-                print("⚠  Portfolio is heavily loaded. Be selective with new entries.")
+                print("⚠  Portfolio is heavily loaded. Try: cleanup")
             elif open_count >= 4:
                 print("Note: Moderate exposure. Monitor closely.")
             elif open_count == 0:

@@ -26,44 +26,127 @@ DISABLE_FIRST = [
     "supertrend",
 ]
 
+# Map many logged names / keys → canonical recommendation names
+STRATEGY_ALIASES = {
+    "breakout strategy": "Breakout Strategy",
+    "breakout": "Breakout Strategy",
+    "donchian-breakout": "Breakout Strategy",
+    "donchian": "Breakout Strategy",
+    "atr-breakout": "Breakout Strategy",
+    "keltner-breakout": "Breakout Strategy",
+    "momentum continuation": "Momentum Continuation",
+    "momentum": "Momentum Continuation",
+    "continuation": "Momentum Continuation",
+    "time-series-momentum": "Momentum Continuation",
+    "stochastic-momentum": "Momentum Continuation",
+    "rsi-momentum": "Momentum Continuation",
+    "macd-trend": "Momentum Continuation",
+    "ema-cross": "Momentum Continuation",
+    "mean reversion scalp": "Mean Reversion Scalp",
+    "mean reversion": "Mean Reversion Scalp",
+    "bollinger-mr": "Mean Reversion Scalp",
+    "bollinger": "Mean Reversion Scalp",
+    "vwap-mr": "Mean Reversion Scalp",
+    "squeeze": "Mean Reversion Scalp",
+    "wait": "WAIT",
+}
 
-def get_outcome_bias():
+
+def _canonical_strategy_name(raw: str):
+    if not raw:
+        return None
+    s = str(raw).strip().lower()
+    if s in STRATEGY_ALIASES:
+        return STRATEGY_ALIASES[s]
+    # soft contains match
+    for key, canon in STRATEGY_ALIASES.items():
+        if key in s or s in key:
+            return canon
+    return None
+
+
+def get_outcome_bias(current_regime: str = None):
     """
-    Look at recent decisions and return small confidence adjustments
-    based on past outcomes.
+    Build confidence adjustments from marked outcomes in decision memory.
+
+    Weights:
+      good            +0.05
+      bad             -0.06
+      good_process    extra +0.03
+      bad_process     extra -0.04
+      same regime     ×1.25
+      recent entries  slightly stronger
     """
+    empty = {
+        "Breakout Strategy": 0.0,
+        "Momentum Continuation": 0.0,
+        "Mean Reversion Scalp": 0.0,
+        "WAIT": 0.0,
+    }
     try:
         from src.tools.decision_log import get_recent_decisions
-        decisions = get_recent_decisions(limit=20)
+        decisions = get_recent_decisions(limit=40)
+        if not decisions:
+            return empty
 
-        bias = {
-            "Breakout Strategy": 0.0,
-            "Momentum Continuation": 0.0,
-            "Mean Reversion Scalp": 0.0
-        }
+        bias = dict(empty)
+        marked = 0
+        regime_u = str(current_regime or "").upper()
 
-        for d in decisions:
-            strategy = d.get("strategy")
-            outcome = d.get("outcome", "pending")
-
-            if strategy not in bias:
+        # decisions is oldest→newest; weight newer higher
+        n = len(decisions)
+        for i, d in enumerate(decisions):
+            outcome = str(d.get("outcome", "pending")).lower()
+            if outcome not in ("good", "bad", "neutral"):
                 continue
 
+            # Resolve strategy from several fields
+            candidates = [
+                d.get("strategy"),
+                d.get("strategy_key"),
+                d.get("user_selected"),
+                d.get("top_recommendation"),
+            ]
+            canon = None
+            for c in candidates:
+                canon = _canonical_strategy_name(c)
+                if canon:
+                    break
+            if not canon:
+                continue
+
+            marked += 1
+            recency = 0.7 + 0.3 * ((i + 1) / n)  # ~0.7 old → 1.0 newest
+
+            delta = 0.0
             if outcome == "good":
-                bias[strategy] += 0.03
+                delta = 0.05
             elif outcome == "bad":
-                bias[strategy] -= 0.04
+                delta = -0.06
+            elif outcome == "neutral":
+                delta = 0.0
 
-        for k in bias:
-            bias[k] = max(-0.10, min(0.10, bias[k]))
+            quality = str(d.get("decision_quality", "pending")).lower()
+            if quality == "good_process":
+                delta += 0.03 if outcome != "bad" else 0.01
+            elif quality == "bad_process":
+                delta -= 0.04 if outcome != "good" else 0.01
 
+            # Same-regime marks matter more
+            d_regime = str(d.get("regime", "")).upper()
+            if regime_u and d_regime and regime_u == d_regime:
+                delta *= 1.25
+
+            bias[canon] = bias.get(canon, 0.0) + delta * recency
+
+        # Clamp per strategy
+        for k in list(bias.keys()):
+            bias[k] = max(-0.15, min(0.15, round(bias[k], 3)))
+
+        bias["_marked_count"] = marked
         return bias
     except Exception:
-        return {
-            "Breakout Strategy": 0.0,
-            "Momentum Continuation": 0.0,
-            "Mean Reversion Scalp": 0.0
-        }
+        return empty
 
 
 def suggest_disables(enabled_list, target_max=5, regime="NEUTRAL"):
@@ -80,7 +163,6 @@ def suggest_disables(enabled_list, target_max=5, regime="NEUTRAL"):
 
     to_disable = []
 
-    # Regime-aware extras: in neutral/compression, momentum stack is less useful first
     regime_u = str(regime or "").upper()
     regime_prefer_disable = []
     if regime_u in ("NEUTRAL", "COMPRESSION", "RANGE"):
@@ -123,7 +205,6 @@ def suggest_disables(enabled_list, target_max=5, regime="NEUTRAL"):
                 if len(enabled) - len(to_disable) <= target_max:
                     break
 
-    # Last resort: trim even keep-list if still over target
     if len(enabled) - len(to_disable) > target_max:
         for key in enabled:
             if key not in to_disable:
@@ -138,6 +219,7 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     """
     Generates multiple ranked strategy options with risk guardrails.
     Paper-trading bias remains, but overload forces WAIT + cleanup suggestions.
+    Marked outcomes (good/bad) nudge ranking over time.
     """
     print("→ Strategy Recommendation Agent is thinking...")
 
@@ -297,26 +379,33 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
             print(f"     • disable {key}")
 
     # === Apply learning bias from past outcomes ===
-    outcome_bias = get_outcome_bias()
+    outcome_bias = get_outcome_bias(current_regime=regime)
     learning_notes = []
+    marked_count = outcome_bias.pop("_marked_count", 0) if isinstance(outcome_bias, dict) else 0
 
     for opt, key in [
         (breakout, "Breakout Strategy"),
         (momentum, "Momentum Continuation"),
         (mean_reversion, "Mean Reversion Scalp"),
     ]:
-        bias_value = outcome_bias.get(key, 0.0)
+        bias_value = float(outcome_bias.get(key, 0.0) or 0.0)
         if abs(bias_value) >= 0.01:
             opt["confidence"] += bias_value
             direction = "boosted" if bias_value > 0 else "reduced"
-            learning_notes.append(f"{key} {direction} by {bias_value:+.2f} from past outcomes")
+            learning_notes.append(f"{key} {direction} by {bias_value:+.2f} from marked outcomes")
+            opt["reason"] += f" | Memory: {direction} ({bias_value:+.2f}) from past marks"
+
+    wait_bias = float(outcome_bias.get("WAIT", 0.0) or 0.0)
 
     if learning_notes:
         print("   Learning adjustments:")
         for note in learning_notes:
             print(f"     • {note}")
+        if abs(wait_bias) >= 0.01:
+            print(f"     • WAIT bias {wait_bias:+.2f}")
     else:
-        print("   Learning: no strong past outcomes yet (mark decisions with: mark <num> good/bad)")
+        print("   Learning: no marked outcomes yet — use: mark <num> good/bad")
+        print("             optional quality: mark <num> good good_process")
 
     for opt in [breakout, momentum, mean_reversion]:
         opt["confidence"] = round(min(0.92, max(0.40, opt["confidence"])), 2)
@@ -324,7 +413,7 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     options = [breakout, momentum, mean_reversion]
     options = sorted(options, key=lambda x: x["confidence"], reverse=True)
 
-    # === WAIT Logic (stronger under load) ===
+    # === WAIT Logic (stronger under load; nudged by WAIT memory) ===
     best_confidence = max(opt["confidence"] for opt in options)
     force_wait = (
         load_level == "CRITICAL"
@@ -333,6 +422,9 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         or (risk == "Low" and load_level == "HIGH")
         or best_confidence < 0.58
     )
+    # If WAIT was marked good often, prefer it a bit more when borderline
+    if wait_bias >= 0.05 and best_confidence < 0.68 and load_level in ("CAUTION", "HIGH", "CRITICAL"):
+        force_wait = True
 
     if force_wait:
         if load_level == "CRITICAL":
@@ -356,6 +448,11 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
         else:
             wait_reason = "Conditions are not attractive enough right now. Better to wait for a clearer setup."
             wait_conf = round(max(0.55, 1.0 - best_confidence), 2)
+
+        # Apply WAIT memory nudge
+        if abs(wait_bias) >= 0.01:
+            wait_conf = round(min(0.90, max(0.50, wait_conf + wait_bias)), 2)
+            wait_reason += f" | Memory: WAIT bias {wait_bias:+.2f} from past marks."
 
         if disable_suggestions:
             cmds = ", ".join(f"disable {k}" for k in disable_suggestions[:5])
@@ -431,8 +528,8 @@ def strategy_recommendation_agent(state: AgentState) -> AgentState:
     elif regime in ("BEARISH_TRENDING", "TREND_DOWN"):
         ranking_reason += " Downtrend favors Momentum Continuation on the short side."
 
-    if learning_notes:
-        ranking_reason += " Confidence also adjusted from past decision outcomes."
+    if learning_notes or abs(wait_bias) >= 0.01:
+        ranking_reason += f" Confidence adjusted from {marked_count} marked past outcomes."
 
     state["ranking_explanation"] = ranking_reason
     state["next_agent"] = "supervisor"

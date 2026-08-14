@@ -27,6 +27,7 @@ def _print_position_cleanup_hint(state: AgentState):
     print("    • review trades in Ananta cockpit / paper portfolio")
     print("    • close weak or duplicate paper positions")
     print("    • use: sell <symbol> <fraction>   (e.g. sell ARB 1.0)")
+    print("    • use: cleanup")
     print("    • re-run analysis after exposure drops")
     print("-" * 55)
 
@@ -44,7 +45,6 @@ def tool_execution_agent(state: AgentState) -> AgentState:
     top_name = (options[0].get("name") if options else state.get("decision")) or "None"
 
     if not options:
-        # Fallback to single recommendation
         decision = state.get("decision", "None")
         entry = state.get("entry_idea", "N/A")
         stop = state.get("stop_loss_idea", "N/A")
@@ -72,20 +72,25 @@ def tool_execution_agent(state: AgentState) -> AgentState:
         state["next_agent"] = "supervisor"
         return state
 
-    # Show ranked options
+    # Show ranked options (real Ananta names + keys when present)
     print("\n" + "=" * 55)
     print("  SELECT A STRATEGY")
     print("=" * 55)
 
     for i, opt in enumerate(options, 1):
-        print(f"{i}. {opt.get('name')} | Confidence: {opt.get('confidence')} | Style: {opt.get('style')}")
+        key = opt.get("strategy_key")
+        key_bit = f" [{key}]" if key else ""
+        on_bit = " ★on" if opt.get("already_enabled") else ""
+        print(
+            f"{i}. {opt.get('name')}{key_bit}{on_bit} | "
+            f"Confidence: {opt.get('confidence')} | Style: {opt.get('style')}"
+        )
         print(f"   {opt.get('reason')}")
         print()
 
     print("0. Skip / Do nothing")
     print("=" * 55)
 
-    # Position-load hint before choice when overloaded
     _print_position_cleanup_hint(state)
 
     choice = input("Enter the number of the strategy you want to proceed with: ").strip()
@@ -118,7 +123,12 @@ def tool_execution_agent(state: AgentState) -> AgentState:
                 "portfolio_notes": portfolio.get("notes"),
                 "top_recommendation": top_name,
                 "ranked_options": [
-                    {"name": o.get("name"), "confidence": o.get("confidence"), "style": o.get("style")}
+                    {
+                        "name": o.get("name"),
+                        "key": o.get("strategy_key"),
+                        "confidence": o.get("confidence"),
+                        "style": o.get("style"),
+                    }
                     for o in options
                 ],
                 "strategy": "SKIP",
@@ -142,18 +152,20 @@ def tool_execution_agent(state: AgentState) -> AgentState:
     selected = options[choice_num - 1]
     selected_name = selected.get("name", "")
     is_wait = str(selected_name).upper() == "WAIT"
+    preset_key = selected.get("strategy_key")
 
     print(f"\n→ You selected: {selected_name}")
+    if preset_key:
+        print(f"  Ananta key : {preset_key}")
     print(f"  Confidence : {selected.get('confidence')}")
     print(f"  Entry      : {selected.get('entry_idea')}")
     print(f"  Stop Loss  : {selected.get('stop_loss_idea')}")
     print(f"  Take Profit: {selected.get('take_profit_idea')}")
 
-    # WAIT: no paper-trade simulation — just confirm stance
     if is_wait:
         confirm = input("\nConfirm WAIT (no new risk / no enable)? (yes/no): ").strip().lower()
     else:
-        confirm = input("\nConfirm and simulate paper trade? (yes/no): ").strip().lower()
+        confirm = input("\nConfirm this recommendation? (yes/no): ").strip().lower()
 
     if confirm in ["yes", "y"]:
         if is_wait:
@@ -170,7 +182,6 @@ def tool_execution_agent(state: AgentState) -> AgentState:
             )
             state["execution_status"] = result["message"]
 
-        # Update recommendation fields so final report matches user choice
         state["decision"] = selected_name
         state["confidence"] = selected.get("confidence")
         state["reason"] = selected.get("reason")
@@ -180,7 +191,7 @@ def tool_execution_agent(state: AgentState) -> AgentState:
 
         user_override = str(selected_name).upper() != str(top_name).upper()
         enabled_ok = False
-        strategy_key = None
+        strategy_key = preset_key
 
         if is_wait:
             expected = "wait"
@@ -188,12 +199,13 @@ def tool_execution_agent(state: AgentState) -> AgentState:
         else:
             expected = "explore"
             status = "simulated"
+            label = f"{selected_name}" + (f" [{preset_key}]" if preset_key else "")
             enable_confirm = input(
-                f"Would you like to ENABLE '{selected_name}' strategy in Ananta now? (yes/no): "
+                f"Would you like to ENABLE {label} in Ananta now? (yes/no): "
             ).strip().lower()
             if enable_confirm in ["yes", "y"]:
                 from src.tools.ananta_api import enable_strategy, resolve_strategy_key
-                strategy_key = resolve_strategy_key(selected_name)
+                strategy_key = preset_key or resolve_strategy_key(selected_name)
                 if not strategy_key:
                     print(f"→ Could not map '{selected_name}' to an Ananta strategy key.")
                     print("  You can still enable it manually with: enable <name>")
@@ -201,6 +213,7 @@ def tool_execution_agent(state: AgentState) -> AgentState:
                     print(f"Enabling strategy: {strategy_key} ...")
                     enable_result = enable_strategy(strategy_key, True)
                     if enable_result.get("success"):
+                        strategy_key = enable_result.get("strategy_key") or strategy_key
                         print(f"→ Strategy '{strategy_key}' enabled successfully in Ananta.")
                         enabled_ok = True
                         status = "enabled"
@@ -238,7 +251,6 @@ def tool_execution_agent(state: AgentState) -> AgentState:
             else:
                 print("→ Strategy not enabled. You can enable it later with: enable <name>")
 
-        # Rich decision memory log
         from src.tools.decision_log import save_decision
         market_data = state.get("market_data") or {}
         portfolio = state.get("portfolio") or {}
@@ -262,7 +274,12 @@ def tool_execution_agent(state: AgentState) -> AgentState:
             "portfolio_notes": portfolio.get("notes"),
             "top_recommendation": top_name,
             "ranked_options": [
-                {"name": o.get("name"), "confidence": o.get("confidence"), "style": o.get("style")}
+                {
+                    "name": o.get("name"),
+                    "key": o.get("strategy_key"),
+                    "confidence": o.get("confidence"),
+                    "style": o.get("style"),
+                }
                 for o in options
             ],
             "strategy": selected_name,
@@ -303,6 +320,7 @@ def tool_execution_agent(state: AgentState) -> AgentState:
                 "portfolio_equity": portfolio.get("total_value"),
                 "top_recommendation": top_name,
                 "strategy": selected_name,
+                "strategy_key": preset_key,
                 "confidence": selected.get("confidence"),
                 "reason": selected.get("reason"),
                 "user_selected": selected_name,

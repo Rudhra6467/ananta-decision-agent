@@ -267,6 +267,29 @@ def research_menu():
     print()
 
 
+def _log_strategy_toggle(action: str, key: str):
+    """Write enable/disable actions into decision memory."""
+    try:
+        from src.tools.decision_log import save_decision
+        is_enable = action == "enable"
+        save_decision({
+            "market": "crypto",
+            "strategy": key,
+            "strategy_key": key,
+            "style": "Manual",
+            "reason": f"Manual {action.upper()} via Agent CLI: {key}",
+            "user_selected": key,
+            "user_confirmed": True,
+            "user_enabled_strategy": is_enable,
+            "status": "enabled" if is_enable else "disabled",
+            "expected_outcome": f"manual_{action}",
+            "notes": f"standalone {action} command",
+        })
+        print("→ Logged to decision memory.")
+    except Exception as e:
+        print(f"→ (memory log skipped: {e})")
+
+
 def interactive_mode():
     print("=" * 55)
     print("     Ananta Agent - Interactive Mode")
@@ -458,6 +481,7 @@ def interactive_mode():
                     if result.get("success"):
                         key = result.get("strategy_key", strategy_name)
                         print(f"→ Strategy '{key}' enabled successfully.")
+                        _log_strategy_toggle("enable", key)
 
                         cycle_now = input(
                             "Strategy enabled. Run one evaluation cycle now? (yes/no): "
@@ -488,6 +512,7 @@ def interactive_mode():
                     if result.get("success"):
                         key = result.get("strategy_key", strategy_name)
                         print(f"→ Strategy '{key}' disabled successfully.")
+                        _log_strategy_toggle("disable", key)
                     else:
                         print(f"→ Failed: {result.get('error') or result}")
                 else:

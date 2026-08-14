@@ -162,6 +162,35 @@ def tool_execution_agent(state: AgentState) -> AgentState:
                         print(f"→ Strategy '{strategy_key}' enabled successfully in Ananta.")
                         enabled_ok = True
                         status = "enabled"
+
+                        # Offer to run one evaluation cycle immediately
+                        cycle_now = input(
+                            "Strategy enabled. Run one evaluation cycle now? (yes/no): "
+                        ).strip().lower()
+                        if cycle_now in ["yes", "y"]:
+                            from src.tools.ananta_api import run_evaluation_cycle
+                            print("Running one Ananta evaluation cycle ...")
+                            cycle_result = run_evaluation_cycle()
+                            if cycle_result.get("success"):
+                                data = cycle_result.get("data") or {}
+                                print("→ Cycle completed.")
+                                print(f"  ran_at : {data.get('ran_at')}")
+                                results = data.get("results") or []
+                                print(f"  symbols processed: {len(results)}")
+                                for item in results[:5]:
+                                    sym = item.get("symbol")
+                                    macro = item.get("macro") or {}
+                                    print(
+                                        f"  • {sym}: bias={macro.get('bias')} "
+                                        f"conf={macro.get('confidence')} | "
+                                        f"{str(macro.get('reason', ''))[:80]}"
+                                    )
+                                if len(results) > 5:
+                                    print(f"  ... and {len(results) - 5} more")
+                            else:
+                                print(f"→ Cycle failed: {cycle_result.get('error') or cycle_result}")
+                        else:
+                            print("→ Skipped cycle. You can run it later with: cycle")
                     else:
                         print(f"→ Could not enable automatically: {enable_result.get('error') or enable_result}")
                         print("  You can still enable it manually with: enable <name>")

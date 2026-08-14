@@ -64,6 +64,16 @@ def run_once():
         print(f"  Ranking Logic   : {result.get('ranking_explanation')}")
         print()
 
+    disable_suggestions = result.get("disable_suggestions") or []
+    if disable_suggestions:
+        print("CLEANUP SUGGESTIONS (reduce load)")
+        print(f"  Load level        : {result.get('load_level', 'N/A')}")
+        print(f"  Enabled now       : {result.get('enabled_count', 'N/A')}")
+        print("  Run these one by one:")
+        for key in disable_suggestions:
+            print(f"    disable {key}")
+        print()
+
     strategy_options = result.get("strategy_options")
     if strategy_options and len(strategy_options) > 1:
         print("RANKED STRATEGY OPTIONS")
@@ -473,7 +483,6 @@ def interactive_mode():
                 print("Example: enable hunter")
                 print("Example: enable mean reversion")
             else:
-                # Join all words after 'enable' so multi-word names work
                 strategy_name = " ".join(parts[1:]).strip().lower()
                 print(f"You are about to ENABLE strategy: {strategy_name}")
                 confirm = input("Are you sure? (yes/no): ").strip().lower()
@@ -506,7 +515,6 @@ def interactive_mode():
                 print("Example: disable hunter")
                 print("Example: disable mean reversion")
             else:
-                # Join all words after 'disable' so multi-word names work
                 strategy_name = " ".join(parts[1:]).strip().lower()
                 print(f"You are about to DISABLE strategy: {strategy_name}")
                 confirm = input("Are you sure? (yes/no): ").strip().lower()

@@ -1,4 +1,4 @@
-"""CLI helpers for real Ananta paper execution (buy/sell/cycle)."""
+"""CLI helpers for real Ananta paper execution (buy/sell/cycle/cleanup)."""
 
 
 def _log_manual_order(side: str, symbol: str, result: dict, extra: dict = None):
@@ -119,4 +119,218 @@ def handle_cycle(user_input: str) -> bool:
             print(f"  ... and {len(results) - 5} more")
     else:
         print(f"→ Failed: {result.get('error') or result}")
+    return True
+
+
+def _base_symbol(sym: str) -> str:
+    s = (sym or "").upper().replace(" ", "")
+    if "/" in s:
+        s = s.split("/")[0]
+    return s
+
+
+def _aggregate_positions(trades: list) -> list:
+    """
+    Aggregate filled paper trades by base symbol + side.
+    Returns list of dicts sorted by cleanup priority (highest first).
+    """
+    buckets = {}
+    for t in trades:
+        base = _base_symbol(t.get("symbol"))
+        side = str(t.get("side", "")).upper()
+        if not base or side not in ("BUY", "SELL"):
+            continue
+        key = (base, side)
+        b = buckets.setdefault(
+            key,
+            {
+                "symbol": base,
+                "side": side,
+                "quantity": 0.0,
+                "notional": 0.0,
+                "fills": 0,
+                "avg_price": 0.0,
+                "_px_sum": 0.0,
+            },
+        )
+        qty = float(t.get("quantity") or 0)
+        px = float(t.get("price") or 0)
+        notion = t.get("notional")
+        try:
+            notion = float(notion) if notion is not None else abs(qty * px)
+        except Exception:
+            notion = abs(qty * px)
+        b["quantity"] += qty
+        b["notional"] += abs(notion)
+        b["fills"] += 1
+        b["_px_sum"] += px * qty if qty else px
+
+    positions = []
+    for b in buckets.values():
+        if b["quantity"]:
+            b["avg_price"] = b["_px_sum"] / b["quantity"]
+        else:
+            b["avg_price"] = 0.0
+        del b["_px_sum"]
+
+        # Priority score: prefer closing duplicates, dust, large shorts
+        score = 0.0
+        if b["fills"] >= 2:
+            score += 40 + 10 * (b["fills"] - 1)  # duplicates
+        if b["symbol"] == "BTC" and b["notional"] < 50:
+            score += 35  # dust BTC lots
+        if b["side"] == "SELL" and b["notional"] > 200:
+            score += 25  # large short exposure
+        if b["notional"] < 30:
+            score += 15  # tiny residual
+        if b["symbol"] in ("ARB", "AAVE") and b["fills"] >= 2:
+            score += 20
+        b["priority"] = score
+        b["suggest_fraction"] = 1.0 if (b["fills"] >= 2 or b["notional"] < 50) else 0.5
+        positions.append(b)
+
+    positions.sort(key=lambda x: (x["priority"], x["notional"]), reverse=True)
+    return positions
+
+
+def handle_cleanup(user_input: str) -> bool:
+    """
+    Guided position cleanup:
+      cleanup           → list + interactive reduce
+      cleanup list      → list only
+    """
+    if user_input not in ("cleanup", "clean", "cleanup list", "clean list"):
+        return False
+
+    from src.tools.ananta_api import get_paper_trades, place_manual_paper_order
+
+    list_only = user_input.endswith("list")
+
+    print("\nPOSITION CLEANUP ASSISTANT")
+    print("=" * 60)
+    print("Fetching paper trades from Ananta...")
+
+    result = get_paper_trades(limit=100)
+    if not result.get("success"):
+        print(f"→ Failed to fetch trades: {result.get('message') or result}")
+        return True
+
+    data = result.get("data") or {}
+    items = data.get("items", []) if isinstance(data, dict) else []
+    paper_fills = [
+        t for t in items
+        if str(t.get("status", "")).upper() == "FILLED"
+        and str(t.get("mode", "")).upper() == "PAPER"
+    ]
+
+    if not paper_fills:
+        print("No filled paper trades found.")
+        print("=" * 60)
+        return True
+
+    positions = _aggregate_positions(paper_fills)
+    if not positions:
+        print("No aggregatable positions found.")
+        print("=" * 60)
+        return True
+
+    print(f"Aggregated positions: {len(positions)}  (from {len(paper_fills)} paper fills)")
+    print("-" * 60)
+    print(f"{'#':<3} {'Symbol':<8} {'Side':<6} {'Fills':<6} {'Qty':>12} {'Notional~$':>12} {'Priority'}")
+    print("-" * 60)
+    for i, p in enumerate(positions, 1):
+        flag = "← suggest" if p["priority"] >= 30 else ""
+        print(
+            f"{i:<3} {p['symbol']:<8} {p['side']:<6} {p['fills']:<6} "
+            f"{p['quantity']:>12.4f} {p['notional']:>12.2f} {p['priority']:>6.0f} {flag}"
+        )
+    print("-" * 60)
+    print("Priority = duplicates / dust / large shorts (higher = better to reduce first)")
+    print()
+
+    suggested = [p for p in positions if p["priority"] >= 30][:5]
+    if suggested:
+        print("Suggested reductions:")
+        for p in suggested:
+            frac = p["suggest_fraction"]
+            # SELL closes a long (BUY side aggregate); BUY covers a short (SELL side aggregate)
+            if p["side"] == "BUY":
+                action = f"sell {p['symbol']} {frac}"
+                meaning = "close long"
+            else:
+                action = f"buy {p['symbol']} <usd>"
+                meaning = "cover short (use buy with $ size)"
+            print(f"  • {p['symbol']} {p['side']} ×{p['fills']} fills → {action}  ({meaning})")
+        print()
+
+    if list_only:
+        print("List only. To reduce interactively: cleanup")
+        print("Or direct: sell ARB 1.0   |   sell BTC 1.0")
+        print("=" * 60)
+        return True
+
+    print("Options:")
+    print("  • Enter a number to reduce that LONG (BUY side) with a SELL fraction")
+    print("  • For SHORTS (SELL side): cover via  buy <symbol> <usd>")
+    print("  • 0 = exit cleanup")
+    print()
+
+    choice = input("Select position # to reduce (longs only via sell): ").strip()
+    try:
+        num = int(choice)
+    except Exception:
+        print("Cancelled.")
+        return True
+
+    if num == 0 or num < 1 or num > len(positions):
+        print("Exited cleanup.")
+        return True
+
+    pos = positions[num - 1]
+    if pos["side"] != "BUY":
+        print(f"→ {pos['symbol']} is a SHORT aggregate (side=SELL).")
+        print("  Covering shorts needs BUY size in USD, e.g.:")
+        approx = max(25.0, min(500.0, pos["notional"] * 0.5))
+        print(f"    buy {pos['symbol']} {approx:.0f}")
+        print("  Run that command from the main prompt after cleanup.")
+        return True
+
+    default_frac = pos["suggest_fraction"]
+    frac_raw = input(f"Fraction to SELL of {pos['symbol']} [default {default_frac}]: ").strip()
+    if not frac_raw:
+        frac = default_frac
+    else:
+        try:
+            frac = float(frac_raw)
+        except Exception:
+            print("Invalid fraction.")
+            return True
+
+    if frac <= 0 or frac > 1:
+        print("Fraction must be between 0 and 1.")
+        return True
+
+    print(f"\nYou are about to PAPER SELL fraction={frac} of {pos['symbol']}")
+    print(f"  Approx notional in aggregate: ~${pos['notional']:.2f} across {pos['fills']} fills")
+    confirm = input("Confirm real paper order on Ananta? (yes/no): ").strip().lower()
+    if confirm not in ["yes", "y"]:
+        print("Cancelled.")
+        return True
+
+    result = place_manual_paper_order(symbol=pos["symbol"], side="SELL", fraction=frac)
+    if result.get("success"):
+        print("→ Paper SELL submitted on Ananta.")
+        print(f"  Response: {str(result.get('data'))[:300]}")
+        _log_manual_order(
+            "SELL",
+            pos["symbol"],
+            result,
+            {"notes": f"cleanup fraction={frac} fills={pos['fills']} notional~{pos['notional']:.2f}"},
+        )
+        print("Tip: run  cleanup list  or  monitor  to see updated exposure.")
+    else:
+        print(f"→ Failed: {result.get('error') or result}")
+        print("  If Ananta rejects, try cockpit close or: sell SYMBOL 1.0")
+
+    print("=" * 60)
     return True

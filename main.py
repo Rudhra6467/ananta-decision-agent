@@ -471,8 +471,10 @@ def interactive_mode():
             if len(parts) < 2:
                 print("Usage: enable <strategy_name>")
                 print("Example: enable hunter")
+                print("Example: enable mean reversion")
             else:
-                strategy_name = parts[1].lower()
+                # Join all words after 'enable' so multi-word names work
+                strategy_name = " ".join(parts[1:]).strip().lower()
                 print(f"You are about to ENABLE strategy: {strategy_name}")
                 confirm = input("Are you sure? (yes/no): ").strip().lower()
                 if confirm in ["yes", "y"]:
@@ -502,8 +504,10 @@ def interactive_mode():
             if len(parts) < 2:
                 print("Usage: disable <strategy_name>")
                 print("Example: disable hunter")
+                print("Example: disable mean reversion")
             else:
-                strategy_name = parts[1].lower()
+                # Join all words after 'disable' so multi-word names work
+                strategy_name = " ".join(parts[1:]).strip().lower()
                 print(f"You are about to DISABLE strategy: {strategy_name}")
                 confirm = input("Are you sure? (yes/no): ").strip().lower()
                 if confirm in ["yes", "y"]:

@@ -44,66 +44,172 @@ def login(email: str = None, password: str = None):
 
 # Map agent recommendation names / aliases → Ananta strategy keys
 STRATEGY_NAME_TO_KEY = {
-    # Agent recommendation names
+    # Agent recommendation names (primary)
     "breakout strategy": "donchian-breakout",
     "breakout": "donchian-breakout",
+    "donchian": "donchian-breakout",
     "momentum continuation": "continuation",
     "momentum": "continuation",
+    "continuation strategy": "continuation",
     "mean reversion scalp": "bollinger-mr",
     "mean reversion": "bollinger-mr",
+    "mean-reversion": "bollinger-mr",
+    "mr scalp": "bollinger-mr",
+    "bollinger": "bollinger-mr",
     "wait": None,
+    "hold": None,
+    "do nothing": None,
 
     # Direct Ananta names / keys
     "hunter": "hunter",
     "volatility squeeze": "squeeze",
+    "vol squeeze": "squeeze",
     "squeeze": "squeeze",
     "continuation": "continuation",
     "ema cross": "ema-cross",
+    "ema": "ema-cross",
     "ema-cross": "ema-cross",
     "supertrend": "supertrend",
     "rsi momentum": "rsi-momentum",
+    "rsi": "rsi-momentum",
     "rsi-momentum": "rsi-momentum",
     "macd trend": "macd-trend",
+    "macd": "macd-trend",
     "macd-trend": "macd-trend",
     "bollinger mean reversion": "bollinger-mr",
     "bollinger-mr": "bollinger-mr",
     "donchian breakout": "donchian-breakout",
     "donchian-breakout": "donchian-breakout",
     "atr breakout": "atr-breakout",
+    "atr": "atr-breakout",
     "atr-breakout": "atr-breakout",
     "keltner breakout": "keltner-breakout",
+    "keltner": "keltner-breakout",
     "keltner-breakout": "keltner-breakout",
     "turtle trading": "turtle",
     "turtle": "turtle",
     "time series momentum": "time-series-momentum",
+    "tsmom": "time-series-momentum",
     "time-series-momentum": "time-series-momentum",
     "stochastic momentum": "stochastic-momentum",
+    "stochastic": "stochastic-momentum",
+    "stoch": "stochastic-momentum",
     "stochastic-momentum": "stochastic-momentum",
     "vwap mean reversion": "vwap-mr",
+    "vwap": "vwap-mr",
     "vwap-mr": "vwap-mr",
     "aggressive movement": "aggressive-movement-cf1358",
+    "aggressive": "aggressive-movement-cf1358",
+    "aggressive-movement": "aggressive-movement-cf1358",
     "aggressive-movement-cf1358": "aggressive-movement-cf1358",
 }
 
 
-def resolve_strategy_key(name_or_key: str):
+def _normalize_name(name: str) -> str:
+    return (
+        (name or "")
+        .strip()
+        .lower()
+        .replace("_", "-")
+        .replace("  ", " ")
+    )
+
+
+def _fuzzy_match_key(raw: str) -> str:
+    """
+    Best-effort match when exact alias is missing.
+    Prefer longer / more specific keys when multiple match.
+    """
+    raw = _normalize_name(raw)
+    if not raw:
+        return None
+
+    candidates = []
+    for alias, key in STRATEGY_NAME_TO_KEY.items():
+        if key is None:
+            continue
+        alias_n = _normalize_name(alias)
+        if raw == alias_n or raw == key:
+            return key
+        if raw in alias_n or alias_n in raw or raw in key or key in raw:
+            candidates.append((len(key), key))
+
+    if not candidates:
+        return None
+
+    # Prefer longer (more specific) key
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return candidates[0][1]
+
+
+def _match_against_registry(raw: str, token: str = None) -> str:
+    """Try matching input against live Ananta strategy registry names/keys."""
+    try:
+        status = get_strategy_status(token=token)
+        if not status.get("success"):
+            return None
+        raw_n = _normalize_name(raw)
+        for s in status.get("strategies", []):
+            key = (s.get("key") or "").lower()
+            name = _normalize_name(s.get("name") or "")
+            if not key:
+                continue
+            if raw_n == key or raw_n == name:
+                return key
+            if raw_n in key or key in raw_n or raw_n in name or name in raw_n:
+                return key
+    except Exception:
+        return None
+    return None
+
+
+def resolve_strategy_key(name_or_key: str, token: str = None):
     """
     Convert a human strategy name or alias into an Ananta strategy key.
-    Returns None for WAIT / unknown empty input.
+
+    Resolution order:
+      1. Exact alias map
+      2. Normalized dash form in map
+      3. Fuzzy alias/key contains match
+      4. Live registry name/key match (optional network)
+      5. None if still unknown (do not invent keys)
+
+    Returns None for WAIT / empty / unknown.
     """
     if not name_or_key:
         return None
 
-    raw = name_or_key.strip().lower()
+    raw = _normalize_name(name_or_key)
+    if raw in ("wait", "hold", "skip", "none", "do nothing"):
+        return None
 
+    # 1. Exact map
     if raw in STRATEGY_NAME_TO_KEY:
         return STRATEGY_NAME_TO_KEY[raw]
 
-    normalized = raw.replace("_", "-").replace(" ", "-")
+    # 2. Dash-normalized form in map
+    normalized = raw.replace(" ", "-")
     if normalized in STRATEGY_NAME_TO_KEY:
         return STRATEGY_NAME_TO_KEY[normalized]
 
-    return normalized
+    # 3. Fuzzy local map
+    fuzzy = _fuzzy_match_key(raw)
+    if fuzzy:
+        return fuzzy
+
+    # 4. Live registry (best accuracy when online)
+    live = _match_against_registry(raw, token=token)
+    if live:
+        return live
+
+    # 5. If input already looks like a real key (contains hyphen or known style), pass through
+    if "-" in normalized and normalized == raw.replace(" ", "-"):
+        # Only accept if it matches a known key value
+        known_keys = {v for v in STRATEGY_NAME_TO_KEY.values() if v}
+        if normalized in known_keys:
+            return normalized
+
+    return None
 
 
 def enable_strategy(strategy_key: str, enabled: bool = True, allowed_regimes: list = None, token: str = None):
@@ -117,9 +223,14 @@ def enable_strategy(strategy_key: str, enabled: bool = True, allowed_regimes: li
             return {"success": False, "error": "Login failed", "details": login_result}
         token = login_result["token"]
 
-    strategy_key = resolve_strategy_key(strategy_key)
-    if not strategy_key:
-        return {"success": False, "error": "Cannot enable WAIT or empty strategy name"}
+    resolved = resolve_strategy_key(strategy_key, token=token)
+    if not resolved:
+        return {
+            "success": False,
+            "error": f"Unknown strategy '{strategy_key}'. Use status to see valid keys, or enable <key>.",
+        }
+
+    strategy_key = resolved
 
     if allowed_regimes is None:
         allowed_regimes = ["REVERSAL"] if strategy_key == "hunter" else ["COMPRESSION"]

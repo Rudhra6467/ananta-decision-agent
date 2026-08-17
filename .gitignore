@@ -18,3 +18,10 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local lab ledgers (machine-specific; do not commit secrets or live journals)
+# Uncomment the lines below if you prefer ledgers only on disk, not in git:
+# decision_log.json
+# cycle_log.jsonl
+# opportunity_log.jsonl
+# agent_memory.json

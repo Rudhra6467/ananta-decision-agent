@@ -4,10 +4,12 @@ from datetime import datetime
 
 LOG_FILE = "decision_log.json"
 
-# Canonical decision memory fields (Phase A1)
+# Canonical decision memory fields
 # market state → recommendation → action → outcome → quality
+# cycle_id links to cycle_log.jsonl (Phase 4)
 SCHEMA_DEFAULTS = {
     "timestamp": None,
+    "cycle_id": None,
     "market": "crypto",
     "symbol": "BTC",
     "price": None,
@@ -33,14 +35,15 @@ SCHEMA_DEFAULTS = {
     "stop_loss_idea": None,
     "take_profit_idea": None,
     "invalidation": None,
-    "expected_outcome": "pending",  # e.g. wait / long bias / explore
+    "action": None,  # TAKE / SKIP / WAIT / ENABLE / DISABLE / HOLD / EXIT / REDUCE
+    "expected_outcome": "pending",
     "user_selected": None,
     "user_confirmed": False,
     "user_enabled_strategy": False,
-    "user_override": False,  # True if user picked something other than top rec
-    "status": "simulated",  # simulated / enabled / skipped / cancelled
-    "outcome": "pending",  # pending / good / bad / neutral
-    "decision_quality": "pending",  # pending / good_process / bad_process / unclear
+    "user_override": False,
+    "status": "simulated",
+    "outcome": "pending",
+    "decision_quality": "pending",
     "notes": "",
 }
 

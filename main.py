@@ -30,6 +30,101 @@ def run_once():
 
     result = agent_graph.invoke(initial_state)
 
+    # Phase 4: cycle provenance (fail soft — never break CLI)
+    cycle_id = None
+    try:
+        from src.tools.cycle_log import start_cycle, log_decision, log_opportunities
+        from src.tools.ananta_api import get_strategy_status, get_portfolio
+
+        market_data = result.get("market_data") or {}
+        enabled_names = []
+        enabled_count = None
+        try:
+            st = get_strategy_status()
+            if st.get("success"):
+                enabled_names = [
+                    s.get("name") or s.get("key")
+                    for s in st.get("strategies", [])
+                    if s.get("enabled")
+                ]
+                enabled_count = len(enabled_names)
+        except Exception:
+            pass
+
+        equity = None
+        open_positions = None
+        try:
+            port = get_portfolio()
+            if port.get("success") and port.get("data"):
+                data = port["data"]
+                equity = data.get("equity") or data.get("total_value") or data.get("balance")
+                open_positions = data.get("slots_used") or data.get("open_positions")
+        except Exception:
+            pass
+        if open_positions is None:
+            open_positions = (result.get("portfolio") or {}).get("open_positions")
+
+        load_level = None
+        try:
+            oc = int(open_positions or 0)
+            ec = int(enabled_count or 0)
+            if oc >= 10 or ec >= 8:
+                load_level = "OVERLOADED"
+            elif oc >= 7 or ec >= 5:
+                load_level = "CAUTION"
+            elif oc == 0 and ec == 0:
+                load_level = "IDLE"
+            else:
+                load_level = "OK"
+        except Exception:
+            pass
+
+        cycle_id = start_cycle(
+            regime=result.get("market_regime"),
+            symbol=market_data.get("symbol", "BTC"),
+            price=market_data.get("price"),
+            equity=equity,
+            open_positions=open_positions,
+            enabled_strategies=enabled_names,
+            enabled_count=enabled_count,
+            load_level=load_level,
+        )
+        result["_cycle_id"] = cycle_id
+
+        options = result.get("strategy_options") or []
+        candidates = [
+            {
+                "name": o.get("name"),
+                "confidence": o.get("confidence"),
+                "reason": o.get("reason"),
+                "style": o.get("style"),
+            }
+            for o in options
+        ]
+        top = result.get("decision")
+        action = "WAIT"
+        if top and str(top).upper() in ("WAIT", "SKIP", "HOLD"):
+            action = str(top).upper()
+        log_opportunities(
+            cycle_id,
+            candidates,
+            chosen_action=action,
+            chosen_strategy=top,
+            regime=result.get("market_regime"),
+        )
+        log_decision(
+            cycle_id,
+            action=action,
+            strategy=top,
+            confidence=result.get("confidence"),
+            reason=result.get("reason"),
+            top_recommendation=top,
+            ranked_options=candidates,
+            status="recommended",
+        )
+    except Exception as e:
+        print(f"(cycle log skipped: {e})")
+
     print("\n" + "=" * 55)
     print("           FINAL ANALYSIS RESULT")
     print("=" * 55)
@@ -147,6 +242,8 @@ def run_once():
 
     print("EXECUTION STATUS")
     print(f"  Status            : {result.get('execution_status', 'Not executed')}")
+    if result.get("_cycle_id"):
+        print(f"  Cycle ID          : {result.get('_cycle_id')}")
     print("=" * 55)
 
 
@@ -299,6 +396,7 @@ def _log_strategy_toggle(action: str, key: str):
             "status": "enabled" if is_enable else "disabled",
             "expected_outcome": f"manual_{action}",
             "notes": f"standalone {action} command",
+            "action": action.upper(),
         })
         print("→ Logged to decision memory.")
     except Exception as e:
@@ -316,6 +414,7 @@ def interactive_mode():
     print("  research                   → Research reports (tables)")
     print("  status                     → Strategy enabled/disabled list")
     print("  history                    → Decision memory journal")
+    print("  cycles                     → Cycle + opportunity ledger")
     print("  help                       → Show all commands")
     print("  exit                       → Quit")
     print("=" * 55)
@@ -462,6 +561,38 @@ def interactive_mode():
                     print(f"  Outcome win rate  : {win_rate}%")
                 print("-" * 40)
 
+        elif user_input in ["cycles", "cycle log", "cycle history"]:
+            from src.tools.cycle_log import read_recent_cycles, read_recent_opportunities
+            cycles = read_recent_cycles(limit=12)
+            if not cycles:
+                print("No cycles logged yet. Run an analysis first.")
+            else:
+                print("\nCYCLE LOG (recent events)")
+                print("-" * 65)
+                for row in reversed(cycles[-30:]):
+                    cid = str(row.get("cycle_id", ""))[:28]
+                    ev = row.get("event", "?")
+                    ts = str(row.get("timestamp", ""))[:19]
+                    if ev == "cycle_start":
+                        print(f"{ts}  START  {cid}  regime={row.get('regime')}  load={row.get('load_level')}  pos={row.get('open_positions')}")
+                    elif ev == "decision":
+                        print(f"{ts}  DECISION  action={row.get('action')}  strat={row.get('strategy')}  conf={row.get('confidence')}")
+                    elif ev == "outcome_link":
+                        print(f"{ts}  OUTCOME  equity={row.get('equity')}  pos={row.get('open_positions')}  {row.get('note','')}")
+                    else:
+                        print(f"{ts}  {ev}  {cid}")
+                print("-" * 65)
+            opps = read_recent_opportunities(limit=5)
+            if opps:
+                print("\nOPPORTUNITY LOG (recent)")
+                print("-" * 65)
+                for o in reversed(opps):
+                    print(f"{str(o.get('timestamp',''))[:19]}  chose={o.get('chosen_action')}  strat={o.get('chosen_strategy')}  skipped={o.get('skipped')}")
+                    cands = o.get("candidates") or []
+                    for i, c in enumerate(cands[:3], 1):
+                        print(f"   {i}. {c.get('name')} conf={c.get('confidence')}")
+                print("-" * 65)
+
         elif user_input in ["help", "commands", "?"]:
             print("\nAvailable commands:")
             print("  run / analyze / recommend  → Full market analysis")
@@ -477,6 +608,7 @@ def interactive_mode():
             print("  disable <name>             → Disable a strategy (with confirmation)")
             print("  profile                    → Show your saved profile")
             print("  history                    → Decision memory journal")
+            print("  cycles                     → Cycle + opportunity ledger")
             print("  performance / stats        → Decision performance summary")
             print("  mark <num> good/bad/neutral→ Mark outcome")
             print("  mark <num> good good_process → Mark outcome + process quality")

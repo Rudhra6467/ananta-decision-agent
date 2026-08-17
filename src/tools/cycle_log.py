@@ -185,3 +185,63 @@ def read_recent_opportunities(limit: int = 20) -> List[dict]:
         return rows[-limit:]
     except Exception:
         return []
+
+
+def get_last_cycle_id() -> Optional[str]:
+    """Return most recent cycle_id from cycle_start events, if any."""
+    rows = read_recent_cycles(limit=200)
+    for row in reversed(rows):
+        if row.get("event") == "cycle_start" and row.get("cycle_id"):
+            return row["cycle_id"]
+    for row in reversed(rows):
+        if row.get("cycle_id"):
+            return row["cycle_id"]
+    return None
+
+
+def wave_a_snapshot(marks_limit: int = 50) -> dict:
+    """
+    Light post-cycle helper: summarize Wave A strategies from decision marks + enables.
+    Human still decides KEEP/WATCH/CUT; this only suggests.
+    """
+    wave = ["hunter", "squeeze", "bollinger-mr"]
+    try:
+        from src.tools.decision_log import get_recent_decisions
+        decisions = get_recent_decisions(limit=marks_limit)
+    except Exception:
+        decisions = []
+
+    summary = {}
+    for key in wave:
+        related = [
+            d for d in decisions
+            if key in str(d.get("strategy_key") or "").lower()
+            or key in str(d.get("strategy") or "").lower()
+            or key in str(d.get("top_recommendation") or "").lower()
+        ]
+        good = sum(1 for d in related if d.get("outcome") == "good")
+        bad = sum(1 for d in related if d.get("outcome") == "bad")
+        neutral = sum(1 for d in related if d.get("outcome") == "neutral")
+        pending = sum(1 for d in related if d.get("outcome") == "pending")
+        total_marked = good + bad + neutral
+        if total_marked == 0:
+            suggestion = "WATCH"
+            note = "No marked outcomes yet — keep gathering evidence."
+        elif bad > good + 1:
+            suggestion = "CUT"
+            note = f"More bad ({bad}) than good ({good}) marks."
+        elif good >= 3 and good > bad:
+            suggestion = "KEEP"
+            note = f"Supportive marks good={good} bad={bad}."
+        else:
+            suggestion = "WATCH"
+            note = f"Mixed/early: good={good} bad={bad} neutral={neutral} pending={pending}."
+        summary[key] = {
+            "good": good,
+            "bad": bad,
+            "neutral": neutral,
+            "pending": pending,
+            "suggestion": suggestion,
+            "note": note,
+        }
+    return summary

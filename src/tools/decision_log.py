@@ -99,6 +99,29 @@ def get_recent_decisions(limit: int = 10):
         return []
 
 
+def normalize_decision_quality(raw):
+    """Accept good_process, 'good process', good-process, gp, etc."""
+    if raw is None or str(raw).strip() == "":
+        return None
+    s = str(raw).lower().strip().replace("-", "_").replace(" ", "_")
+    while "__" in s:
+        s = s.replace("__", "_")
+    aliases = {
+        "good_process": "good_process",
+        "goodprocess": "good_process",
+        "process_good": "good_process",
+        "gp": "good_process",
+        "bad_process": "bad_process",
+        "badprocess": "bad_process",
+        "process_bad": "bad_process",
+        "bp": "bad_process",
+        "unclear": "unclear",
+        "unknown": "unclear",
+        "na": "unclear",
+    }
+    return aliases.get(s)
+
+
 def update_decision_outcome(index_from_end: int, outcome: str, notes: str = "", decision_quality: str = None):
     """
     Update the outcome of a past decision.

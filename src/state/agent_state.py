@@ -37,3 +37,7 @@ class AgentState(TypedDict):
     portfolio: Optional[dict]
     # Control
     next_agent: Optional[str]
+
+    # Phase 4 cycle provenance (carried through graph)
+    _cycle_id: Optional[str]
+    _cycle_decision_logged: Optional[bool]

@@ -41,3 +41,4 @@ class AgentState(TypedDict):
     # Phase 4 cycle provenance (carried through graph)
     _cycle_id: Optional[str]
     _cycle_decision_logged: Optional[bool]
+    _user_action: Optional[str]

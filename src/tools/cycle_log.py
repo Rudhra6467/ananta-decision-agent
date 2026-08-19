@@ -199,6 +199,28 @@ def get_last_cycle_id() -> Optional[str]:
     return None
 
 
+def infer_cycle_action(result: dict) -> str:
+    """Map graph result + user choice to TAKE/SKIP/WAIT/ENABLE/CANCEL."""
+    explicit = str(result.get("_user_action") or "").upper().strip()
+    if explicit in ("TAKE", "SKIP", "WAIT", "ENABLE", "CANCEL", "HOLD", "REDUCE", "EXIT"):
+        return explicit
+    status = str(result.get("execution_status") or "")
+    top = result.get("decision")
+    if "No strategy selected" in status or status.lower() == "skipped":
+        return "SKIP"
+    if "Cancelled" in status or "REJECTED" in status:
+        return "CANCEL"
+    if "WAIT" in status.upper():
+        return "WAIT"
+    if "enabled" in status.lower():
+        return "ENABLE"
+    if top and str(top).upper() in ("WAIT", "SKIP", "HOLD"):
+        return str(top).upper()
+    if top:
+        return "TAKE"
+    return "WAIT"
+
+
 def wave_a_snapshot(marks_limit: int = 50) -> dict:
     """
     Light post-cycle helper: summarize Wave A strategies from decision marks + enables.

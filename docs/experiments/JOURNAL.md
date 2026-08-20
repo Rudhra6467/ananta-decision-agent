@@ -37,6 +37,40 @@ Notes:
 
 ---
 
+## 2026-08-20 — ops (Emergent expired → backend-first)
+
+Regime: n/a (no live API)
+Slots (start → end): n/a — hosted backend unavailable
+Enabled (start): n/a
+Enabled (end): n/a
+Wave: A (paused on API)
+
+Actions:
+- Confirmed failure chain: Agent → Ananta auth/API → backend unavailable → login failed
+- Inspected `Rudhra6467/Ananta` and `Rudhra6467/ananta-decision-agent`
+- Backend is intact (`backend/server.py`, FastAPI, Mongo, owner JWT, `/api/orders/manual`)
+- Locked operating mode: UI is a client; Agent talks to independently runnable backend
+- Preferred path: Option A — run existing Ananta backend locally; point `ANANTA_BASE_URL` at it
+- Explicitly rejected: Vercel-for-the-agent, Agent→DB architecture, auth bypass
+
+Cycle summary:
+- None (no backend)
+
+Marks:
+- None
+
+Charter OK? n/a — lab paused until local API is up
+
+Scoreboard updates:
+- None (book cannot be read)
+
+Notes:
+- **Next session priority:** start Ananta backend locally, then `status` / `monitor` / paper `sell ARB 1.0` through the contract
+- Default Agent URL `https://livetrading247.com` is dead; local default is `http://127.0.0.1:8001`
+- Product roadmap still locked (Wave A + Contract + Phase 4 ledgers). This is an operating-mode change, not a thesis change.
+
+---
+
 ## 2026-08-14 — session 1 (baseline)
 
 Regime: NEUTRAL (from agent runs earlier today)

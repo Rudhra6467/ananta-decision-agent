@@ -13,6 +13,7 @@ Ananta provides the truth. Agent Ananta understands the trader, turns truth into
 3. **Feature filter** — Improves intent → decision → execution → outcome → learning? Else defer.
 4. **Co-design** — If the Agent needs a sense, improve Ananta exposure via the shared contract.
 5. **Autonomy is earned** — Observe → Explain → Recommend → Paper → Confirm live → Constrained auto → Expanded auto.
+6. **Backend is the contract host** — The UI is a client, not a dependency. Talk to Ananta through the API. Never Agent → database as architecture. Never skip auth.
 
 ## Wave A lab
 
@@ -25,6 +26,8 @@ Ananta provides the truth. Agent Ananta understands the trader, turns truth into
 
 See `docs/AGENT_CONTRACT_V0.md`. `agent_api_version = 0`.
 
+Live HTTP the agent uses: `/api/auth/login`, `/api/portfolio`, `/api/orders/manual`, `/api/trades`, `/api/strategy/registry`, `/api/strategy/{key}/profile`, `/api/cycle/run`.
+
 ## Ledgers
 
 - `decision_log.json` — decision memory + marks
@@ -33,5 +36,8 @@ See `docs/AGENT_CONTRACT_V0.md`. `agent_api_version = 0`.
 
 ## Current mission
 
-Wave A evidence + Contract v0 + cycle/decision/opportunity logging.  
-No extra agents, no India, no autonomy, no UI cockpit until ledgers exist.
+**Phase 3.6 first:** local Ananta backend independently runnable; Agent pointed at `ANANTA_BASE_URL` (not the expired Emergent host). Then Wave A evidence + Contract v0 + cycle/decision/opportunity logging.
+
+See `docs/LOCAL_LOOP.md`.
+
+No extra agents, no India, no autonomy, no UI cockpit, no Vercel-for-the-agent until ledgers exist on a live API.

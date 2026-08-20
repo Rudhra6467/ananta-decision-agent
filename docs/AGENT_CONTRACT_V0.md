@@ -2,7 +2,10 @@
 
 **Version:** `agent_api_version = 0`  
 **Status:** Minimum shared truth (both repos)  
+**Updated:** 2026-08-20 (HTTP surface + backend-first note)  
 **Rule:** If Agent Ananta reasons on a fact, Ananta must expose it explicitly. No hidden assumptions. No duplicate truth.
+
+Canonical copy also lives in `Rudhra6467/Ananta` → `docs/AGENT_CONTRACT_V0.md`.
 
 ---
 
@@ -15,11 +18,15 @@
 
 Agent must never become a second hidden trading engine.
 
+The **backend** is the contract host. The Ananta UI is one client. Agent Ananta is another. Tests/CLI are a third. Hosting provider (Emergent, localhost, Railway, Vercel) is not part of the contract.
+
 ---
 
 ## Decision vocabulary (stable)
 
 `TAKE` · `SKIP` · `HOLD` · `EXIT` · `REDUCE`
+
+CLI/enable actions also use: `ENABLE` · `DISABLE` · `WAIT`
 
 ## Strategy lifecycle (stable)
 
@@ -31,6 +38,31 @@ Agent must never become a second hidden trading engine.
 
 ---
 
+## HTTP surface the agent actually calls (v0)
+
+All routes are under Ananta `APIRouter(prefix="/api")`. Auth is owner JWT unless noted.
+
+| Agent need | Method | Path | Notes |
+|------------|--------|------|-------|
+| Login | `POST` | `/api/auth/login` | `{email, password}` → `{token, email, role}` |
+| Portfolio | `GET` | `/api/portfolio` | equity, cash, positions, `slots_used` |
+| Paper / manual order | `POST` | `/api/orders/manual` | BUY: `notional_usd` and/or `quantity`; SELL: `fraction` or `quantity` |
+| Trades | `GET` | `/api/trades` | paper fills / history |
+| Strategy registry | `GET` | `/api/strategy/registry` | keys, names |
+| Strategy profile | `GET`/`PUT` | `/api/strategy/{key}/profile` | enable/disable + regimes |
+| Evaluation cycle | `POST` | `/api/cycle/run` | optional `/{symbol_base}` |
+| Health | `GET` | `/health` | no `/api` prefix; no DB |
+
+There is **no** `/api/orders/paper`. Paper mode is Ananta's default execution environment; the agent places paper orders through `/api/orders/manual`.
+
+`GET /api/summary` is referenced in the agent client but is **not** a current Ananta route. Do not reason on it until Ananta exposes it.
+
+### Auth rule
+
+Agent Ananta always authenticates. Do not bypass JWT to write Mongo collections from the agent. Direct DB access is fixture-only.
+
+---
+
 ## Contract domains (v0 minimum)
 
 ### portfolio_state
@@ -38,7 +70,7 @@ Agent must never become a second hidden trading engine.
 |-------|--------|
 | `equity` | Total portfolio equity |
 | `cash` | Available cash |
-| `invested` | Capital in positions |
+| `invested` | Capital in positions (`positions_value` on Ananta today) |
 | `open_positions` / `slots_used` | Count of open positions |
 | `unrealized_pnl` | Open PnL |
 | `realized_pnl` | Closed PnL (if available) |
@@ -103,8 +135,10 @@ Enough to reconstruct: what was known, what was decided, what happened next.
 - v0 is intentionally small.
 - New fields require a version bump or additive optional keys.
 - Breaking renames are discouraged; prefer additive fields.
+- New HTTP routes that the agent must call belong in this table in the same change.
 
 ## Implementation note
 
-Agent repo implements consumers + local cycle/decision/opportunity ledgers.  
-Ananta repo should expose matching facts via existing or new API fields over time.
+Agent repo implements consumers + local cycle/decision/opportunity ledgers (`decision_log.json`, `cycle_log.jsonl`, `opportunity_log.jsonl`).  
+Ananta repo exposes matching facts via the HTTP surface above.  
+Do not move ledger writes onto raw Mongo from the agent. If ledgers need to live in Ananta later, add an API.

@@ -202,6 +202,10 @@ def handle_cycle(user_input: str) -> bool:
                 f"  • {sym}: bias={macro.get('bias')} conf={macro.get('confidence')} "
                 f"regime={reg_s or '—'} | {str(macro.get('reason', ''))[:72]}"
             )
+            if item.get("status") or item.get("error"):
+                print(f"      DATA_GAP status={item.get('status')} error={item.get('error')}")
+            if not obs:
+                print("      DATA_GAP — no strategy_observations; do not treat as no-setup")
             for o in obs:
                 setup = o.get("setup_detected")
                 setup_s = "UNKNOWN" if setup is None else setup

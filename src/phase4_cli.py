@@ -282,3 +282,103 @@ def print_audit_pack():
     print("Files: decision_log.json  cycle_log.jsonl  opportunity_log.jsonl")
     print("=" * 64)
 
+
+_TRADE_ACTIONS = {"SKIP", "WAIT", "TAKE", "HOLD", "SKIPPED"}
+
+
+def _is_trade_decision(d: dict) -> bool:
+    action = str(d.get("action") or "").upper()
+    status = str(d.get("status") or "").lower()
+    strategy = str(d.get("strategy") or "").upper()
+    return (
+        action in _TRADE_ACTIONS
+        or status in ("skipped", "filled")
+        or strategy == "SKIP"
+    )
+
+
+def _evidence_label(good: int, bad: int, marked: int) -> str:
+    """Contract evidence lifecycle: UNKNOWN → WEAK → PROMISING → SUPPORTED → VALIDATED."""
+    if marked == 0:
+        return "UNKNOWN"
+    if marked < 3:
+        return "WEAK"
+    if good >= 5 and bad == 0:
+        return "VALIDATED"
+    if good >= 3 and good > bad:
+        return "SUPPORTED"
+    if good > bad:
+        return "PROMISING"
+    return "WEAK"
+
+
+def print_decision_eval():
+    """Phase 5: score Agent decisions (process vs outcome), not strategy PnL."""
+    from src.tools.decision_log import get_recent_decisions
+    from src.tools.cycle_log import read_recent_opportunities, get_last_cycle_id
+
+    rows = get_recent_decisions(limit=80)
+    trades = [d for d in rows if _is_trade_decision(d)]
+    skips = [
+        d for d in trades
+        if str(d.get("action") or d.get("status") or d.get("strategy") or "").upper()
+        in ("SKIP", "WAIT", "HOLD", "SKIPPED")
+        or str(d.get("strategy") or "").upper() == "SKIP"
+    ]
+    takes = [
+        d for d in trades
+        if str(d.get("action") or "").upper() == "TAKE"
+        or str(d.get("status") or "").lower() == "filled"
+    ]
+
+    def _count(ds, field, value):
+        return sum(1 for d in ds if d.get(field) == value)
+
+    skip_good = _count(skips, "outcome", "good")
+    skip_bad = _count(skips, "outcome", "bad")
+    skip_neu = _count(skips, "outcome", "neutral")
+    skip_pend = _count(skips, "outcome", "pending")
+    take_good = _count(takes, "outcome", "good")
+    take_bad = _count(takes, "outcome", "bad")
+    take_neu = _count(takes, "outcome", "neutral")
+    take_pend = _count(takes, "outcome", "pending")
+    gp = sum(1 for d in trades if d.get("decision_quality") == "good_process")
+    bp = sum(1 for d in trades if d.get("decision_quality") == "bad_process")
+
+    marked = skip_good + skip_bad + skip_neu + take_good + take_bad + take_neu
+    evidence = _evidence_label(skip_good + take_good, skip_bad + take_bad, marked)
+
+    opps = read_recent_opportunities(limit=20)
+    skipped_opps = sum(1 for o in opps if o.get("skipped"))
+
+    print("\nAGENT DECISION EVALUATION (Phase 5)")
+    print("=" * 60)
+    print("Scores the Agent's choices, not Ananta PnL.")
+    print("Process ≠ outcome. SKIP is first-class.")
+    print("-" * 60)
+    print("SKIP / WAIT")
+    print(f"  n={len(skips)}  good={skip_good}  bad={skip_bad}  neutral={skip_neu}  pending={skip_pend}")
+    print("TAKE")
+    print(f"  n={len(takes)}  good={take_good}  bad={take_bad}  neutral={take_neu}  pending={take_pend}")
+    print("PROCESS QUALITY (trade rows)")
+    print(f"  good_process={gp}  bad_process={bp}")
+    print(f"Opportunity SKIPs (recent 20): {skipped_opps}")
+    print("-" * 60)
+    print(f"Evidence strength : {evidence}")
+    if evidence == "UNKNOWN":
+        print("  No marked SKIP/TAKE yet. Run cycles, then mark.")
+    elif evidence == "WEAK":
+        print("  Too few marks to KEEP or CUT. Stay on WATCH.")
+    elif evidence == "PROMISING":
+        print("  Early positive tilt. Do not promote yet.")
+    elif evidence == "SUPPORTED":
+        print("  Enough supportive marks to consider KEEP on a strategy.")
+    else:
+        print("  Strong, clean marks. KEEP is defensible; still human-gated.")
+    last = get_last_cycle_id()
+    if last:
+        print(f"Last cycle_id    : {last}")
+    print("=" * 60)
+    print("Next: cycle → mark SKIP/TAKE → evaluate. Do not enable more strategies.")
+
+

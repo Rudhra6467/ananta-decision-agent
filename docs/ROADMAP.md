@@ -22,8 +22,8 @@ This addendum does **not** reopen the product roadmap. It records how we run the
 | 3 | Wave A discovery | Current — local API live; gather marks |
 | 3.5 | Shared contract v0 | Proven locally (auth, portfolio, paper order, enable, cycle) |
 | 3.6 | Backend independence (local Ananta API) | **Done 2026-08-21** — localhost:8001 + Mongo Atlas |
-| 4 | Decision Intelligence Infrastructure | Current — ledgers + wavea calls + audit pack |
-| 5 | Agent decision evaluation | Not started |
+| 4 | Decision Intelligence Infrastructure | Done enough to run — ledgers + wavea + audit |
+| 5 | Agent decision evaluation | Started — `evaluate` (process vs outcome, evidence label) |
 | 6 | Engine + strategy validation | Not started |
 | 7 | Research + PDF intelligence | Not started |
 | 8 | User intelligence + personalization | Not started |

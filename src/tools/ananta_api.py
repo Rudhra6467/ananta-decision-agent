@@ -682,3 +682,21 @@ def get_lab_run(run_id: str, token: str = None):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
+def list_lab_runs(limit: int = 20, token: str = None):
+    got = _owner_token(token)
+    if not got.get("success"):
+        return {"success": False, "error": "Login failed", "details": got}
+    try:
+        r = requests.get(
+            f"{BASE_URL}/api/lab/runs",
+            params={"limit": limit},
+            headers=_auth_headers(got["token"]),
+            timeout=20,
+        )
+        if r.status_code != 200:
+            return {"success": False, "status_code": r.status_code, "error": r.text}
+        return {"success": True, "data": r.json()}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+

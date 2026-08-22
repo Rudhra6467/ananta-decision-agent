@@ -21,6 +21,7 @@ Thumbs.db
 
 # Local lab ledgers (machine-specific; do not commit secrets or live journals)
 lab_evidence.json
+lab_run_id.txt
 # Uncomment the lines below if you prefer ledgers only on disk, not in git:
 # decision_log.json
 # cycle_log.jsonl

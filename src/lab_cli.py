@@ -8,6 +8,7 @@ from pathlib import Path
 
 WAVE_A = ("hunter", "squeeze", "bollinger-mr")
 LAB_EVIDENCE = Path("lab_evidence.json")
+LAB_RUN_ID = Path("lab_run_id.txt")
 DEFAULT_SYMBOLS = [
     "BTC/USD", "ETH/USD", "SOL/USD", "AVAX/USD", "XRP/USD",
     "PAXG/USD", "LINK/USD", "AAVE/USD", "ARB/USD", "RENDER/USD",
@@ -178,7 +179,7 @@ def print_lab_coverage():
 
 def run_wave_a_lab(period: str = "1y"):
     """Queue Ananta Research Lab backtest for Wave A. source=backtest, not KEEP."""
-    from src.tools.ananta_api import create_lab_run, get_lab_run
+    from src.tools.ananta_api import create_lab_run
 
     print("\nWAVE A LAB BACKTEST")
     print("=" * 64)
@@ -208,6 +209,18 @@ def run_wave_a_lab(period: str = "1y"):
         print("Warmup is enough for a *short* replay, but refusing period=1y until usable_1y.")
         return
 
+    from src.tools.ananta_api import create_lab_run
+
+    active = _active_lab_run()
+    if active:
+        rid = active.get("id")
+        st = active.get("status")
+        print(f"LabWorker already has {st} run_id={rid} — not queueing another.")
+        print("Attaching. Ctrl+C returns to the prompt; the backend keeps running.")
+        _remember_run(rid)
+        poll_lab_run(rid)
+        return
+
     payload = {
         "kind": "backtest",
         "symbols": DEFAULT_SYMBOLS,
@@ -224,53 +237,140 @@ def run_wave_a_lab(period: str = "1y"):
         print(f"Could not queue lab run: {created.get('error') or created}")
         return
     run_id = (created.get("data") or {}).get("id")
-    print(f"Queued run_id={run_id}  polling (LabWorker on the backend)...")
+    _remember_run(run_id)
+    print(f"Queued run_id={run_id}")
+    print("Polling until DONE. Ctrl+C returns to the prompt; backend job continues.")
+    poll_lab_run(run_id)
 
-    last_status = None
-    for _ in range(180):  # ~9 min
-        time.sleep(3)
-        got = get_lab_run(run_id)
-        if not got.get("success"):
-            print(f"  poll error: {got.get('error')}")
-            continue
-        run = got.get("data") or {}
-        status = run.get("status")
-        pct = run.get("progress_pct")
-        if status != last_status:
-            print(f"  status={status}  progress={pct}")
-            last_status = status
-        elif pct is not None:
-            print(f"  progress={pct}", flush=True)
-        if status in ("DONE", "FAILED"):
-            path = _save_evidence(run)
-            print("-" * 64)
-            print(f"  finished: {status}")
-            if run.get("error"):
-                print(f"  error: {run.get('error')}")
-            _summarize_result(run.get("result"))
-            print(f"  saved: {path}  (source=backtest)")
-            print("  KEEP still requires paper TAKEs.")
-            print("=" * 64)
-            return
-    print("Still running. Type: lab status")
-    print(f"  run_id={run_id}")
+
+def _remember_run(run_id: str):
+    if run_id:
+        LAB_RUN_ID.write_text(run_id.strip())
+
+
+def _known_run_id() -> str | None:
+    if LAB_RUN_ID.exists():
+        rid = LAB_RUN_ID.read_text().strip()
+        if rid:
+            return rid
+    if LAB_EVIDENCE.exists():
+        try:
+            return (json.loads(LAB_EVIDENCE.read_text()) or {}).get("run_id")
+        except Exception:
+            return None
+    return None
+
+
+def _active_lab_run() -> dict | None:
+    from src.tools.ananta_api import list_lab_runs
+
+    listed = list_lab_runs(limit=20)
+    if not listed.get("success"):
+        return None
+    runs = (listed.get("data") or {}).get("runs") or []
+    for run in runs:
+        if run.get("status") in ("RUNNING", "QUEUED") and run.get("kind") == "backtest":
+            return run
+    return None
+
+
+def poll_lab_run(run_id: str):
+    from src.tools.ananta_api import get_lab_run
+
+    last_key = None
+    started = time.time()
+    try:
+        while True:
+            got = get_lab_run(run_id)
+            if not got.get("success"):
+                print(f"  poll error: {got.get('error')}")
+                time.sleep(5)
+                continue
+            run = got.get("data") or {}
+            status = run.get("status")
+            pct = run.get("progress_pct")
+            key = (status, pct)
+            if key != last_key:
+                elapsed = int(time.time() - started)
+                print(f"  status={status}  progress={pct}  elapsed={elapsed}s", flush=True)
+                last_key = key
+            if status in ("DONE", "FAILED"):
+                path = _save_evidence(run)
+                print("-" * 64)
+                print(f"  finished: {status}")
+                if run.get("error"):
+                    print(f"  error: {run.get('error')}")
+                _summarize_result(run.get("result"))
+                print(f"  saved: {path}  (source=backtest)")
+                print("  KEEP still requires paper TAKEs.")
+                print("=" * 64)
+                return
+            time.sleep(10)
+    except KeyboardInterrupt:
+        print()
+        print(f"  Detached. Backend still running run_id={run_id}")
+        print("  Type: lab wait    to attach again")
+        print("  Type: lab status  to peek")
 
 
 def print_lab_status():
-    if not LAB_EVIDENCE.exists():
-        print("No lab_evidence.json yet. Type: lab")
+    from src.tools.ananta_api import get_lab_run
+
+    run_id = _known_run_id()
+    active = _active_lab_run()
+    if active and not run_id:
+        run_id = active.get("id")
+        _remember_run(run_id)
+    if not run_id:
+        print("No lab run id. Type: lab")
         return
-    doc = json.loads(LAB_EVIDENCE.read_text())
-    print("\nLAST LAB EVIDENCE")
+    got = get_lab_run(run_id)
+    if not got.get("success"):
+        print(f"Could not fetch run {run_id}: {got.get('error') or got}")
+        return
+    run = got.get("data") or {}
+    print("\nLAB RUN (live)")
     print("-" * 64)
-    print(f"  source   : {doc.get('source')}  (not KEEP)")
-    print(f"  run_id   : {doc.get('run_id')}")
-    print(f"  status   : {doc.get('status')}")
-    print(f"  period   : {doc.get('period')}")
-    print(f"  saved_at : {doc.get('saved_at')}")
-    _summarize_result(doc.get("result"))
+    print(f"  run_id   : {run.get('id') or run_id}")
+    print(f"  status   : {run.get('status')}")
+    print(f"  progress : {run.get('progress_pct')}")
+    print(f"  kind     : {run.get('kind')}  period={run.get('period')}")
+    print(f"  error    : {run.get('error')}")
+    if run.get("status") in ("DONE", "FAILED"):
+        _save_evidence(run)
+        _summarize_result(run.get("result"))
+    else:
+        print("  still running — type: lab wait")
     print("-" * 64)
     print()
+
+
+def handle_lab_command(user_input: str) -> bool:
+    """Dispatch all 'lab ...' CLI. Returns True if consumed."""
+    raw = (user_input or "").strip().lower()
+    if raw != "lab" and not raw.startswith("lab "):
+        return False
+    rest = raw[4:].strip() if raw.startswith("lab ") else ""
+    if rest in ("", "1y", "backtest"):
+        run_wave_a_lab("1y")
+    elif rest in ("status", "evidence"):
+        print_lab_status()
+    elif rest in ("wait", "attach", "poll"):
+        rid = _known_run_id()
+        active = _active_lab_run()
+        if active:
+            rid = active.get("id") or rid
+            _remember_run(rid)
+        if not rid:
+            print("No run to wait on. Type: lab")
+        else:
+            print(f"Attaching to {rid}. Ctrl+C detaches.")
+            poll_lab_run(rid)
+    elif rest in ("coverage",):
+        print_lab_coverage()
+    else:
+        print("lab | lab wait | lab status | lab coverage")
+    return True
 
 
 def print_understanding_report():

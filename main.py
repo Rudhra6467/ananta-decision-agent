@@ -665,18 +665,12 @@ def interactive_mode():
             from src.lab_cli import print_understanding_report
             print_understanding_report()
 
-        elif user_input in ["lab", "lab 1y", "lab backtest"]:
-            from src.lab_cli import run_wave_a_lab
-            run_wave_a_lab("1y")
-
-        elif user_input in ["lab status", "lab evidence"]:
-            from src.lab_cli import print_lab_status
-
-            print_lab_status()
-
-        elif user_input in ["lab coverage", "coverage"]:
-            from src.lab_cli import print_lab_coverage
-            print_lab_coverage()
+        elif user_input.startswith("lab") or user_input in ["coverage"]:
+            from src.lab_cli import handle_lab_command, print_lab_coverage
+            if user_input in ["coverage"]:
+                print_lab_coverage()
+            elif not handle_lab_command(user_input):
+                print("lab | lab wait | lab status | lab coverage")
 
         elif user_input in ["help", "commands", "?"]:
             print("\nAvailable commands:")
@@ -703,7 +697,9 @@ def interactive_mode():
             print("  evaluate / eval            → Phase 5 process vs outcome")
             print("  dna                        → Read strategy DNA from Ananta registry")
             print("  understand                 → Strategy Understanding Report (Wave A SKO)")
-            print("  lab                        → Wave A 1y Research Lab backtest (not KEEP)")
+            print("  lab                        → Queue Wave A 1y Lab (attaches if already running)")
+            print("  lab wait                   → Keep polling until DONE (Ctrl+C detaches)")
+            print("  lab status                 → Peek at the live LabWorker job")
             print("  lab coverage               → Prove 1h candle span/gaps in Mongo")
             print("  lab status                 → Last saved backtest evidence")
             print("  performance / stats        → Decision performance summary")

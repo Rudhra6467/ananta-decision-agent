@@ -48,9 +48,12 @@ All routes are under Ananta `APIRouter(prefix="/api")`. Auth is owner JWT unless
 | Portfolio | `GET` | `/api/portfolio` | equity, cash, positions, `slots_used` |
 | Paper / manual order | `POST` | `/api/orders/manual` | BUY: `notional_usd` and/or `quantity`; SELL: `fraction` or `quantity` |
 | Trades | `GET` | `/api/trades` | paper fills / history |
-| Strategy registry | `GET` | `/api/strategy/registry` | keys, names |
+| Strategy registry | `GET` | `/api/strategy/registry` | keys, names, DNA (thesis only) |
+| Strategy knowledge | `GET` | `/api/strategy/knowledge` | Wave A SKO — implementation + router authoritative |
 | Strategy profile | `GET`/`PUT` | `/api/strategy/{key}/profile` | enable/disable + regimes |
 | Evaluation cycle | `POST` | `/api/cycle/run` | optional `/{symbol_base}` |
+| Lab coverage | `GET` | `/api/lab/data/coverage` | 1h count, ISO span, gaps, `usable_1y` |
+| Lab run | `POST`/`GET` | `/api/lab/runs` | backtest JSON; tag `source=BACKTEST` |
 | Health | `GET` | `/health` | no `/api` prefix; no DB |
 
 There is **no** `/api/orders/paper`. Paper mode is Ananta's default execution environment; the agent places paper orders through `/api/orders/manual`.

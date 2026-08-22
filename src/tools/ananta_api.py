@@ -613,6 +613,24 @@ def get_strategy_registry(token: str = None):
         return {"success": False, "error": str(e)}
 
 
+def get_strategy_knowledge(token: str = None, keys: str = "hunter,squeeze,bollinger-mr"):
+    got = _owner_token(token)
+    if not got.get("success"):
+        return {"success": False, "error": "Login failed", "details": got}
+    try:
+        r = requests.get(
+            f"{BASE_URL}/api/strategy/knowledge",
+            params={"keys": keys},
+            headers=_auth_headers(got["token"]),
+            timeout=20,
+        )
+        if r.status_code != 200:
+            return {"success": False, "status_code": r.status_code, "error": r.text}
+        return {"success": True, "data": r.json()}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 def get_lab_coverage(token: str = None):
     got = _owner_token(token)
     if not got.get("success"):

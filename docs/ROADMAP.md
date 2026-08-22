@@ -3,6 +3,8 @@
 **Locked:** 2026-08-17  
 **Operating-mode addendum:** 2026-08-20  
 **North-star confirmation:** 2026-08-22 — [NORTH_STAR_LOCK.md](./NORTH_STAR_LOCK.md)  
+**Strategy intelligence audit:** 2026-08-22 — [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md)  
+**Immediate (locked):** P0 1y candles in Mongo → P1 Wave A Knowledge Object → P2 Lab evidence `source=BACKTEST`. Wave A stays hunter/squeeze/bollinger-mr WATCH. Do not rank the other 12 yet.
 **North star:** Ananta provides the truth. Agent Ananta understands the trader, turns truth into personalized decisions, directs Ananta to execute, measures results (including SKIPs), learns (evaluation + ranking only), and earns autonomy through evidence.
 
 **Philosophy:** Aggressive on paper. Ruthless on measurement. Conservative on promotion.

@@ -436,6 +436,7 @@ def interactive_mode():
     print("  audit / report             → Evidence pack (ledgers)")
     print("  evaluate                   → Phase 5 process vs outcome")
     print("  dna                        → Strategy DNA from Ananta (Wave A + catalog)")
+    print("  understand                 → Wave A Knowledge Object (implementation truth)")
     print("  lab                        → Queue Wave A 1y backtest (source=backtest)")
     print("  help                       → Show all commands")
     print("  exit                       → Quit")
@@ -660,6 +661,10 @@ def interactive_mode():
             from src.lab_cli import print_strategy_dna
             print_strategy_dna()
 
+        elif user_input in ["understand", "understanding", "sko"]:
+            from src.lab_cli import print_understanding_report
+            print_understanding_report()
+
         elif user_input in ["lab", "lab 1y", "lab backtest"]:
             from src.lab_cli import run_wave_a_lab
             run_wave_a_lab("1y")
@@ -697,7 +702,9 @@ def interactive_mode():
             print("  audit / report / evidence  → One-screen evidence pack")
             print("  evaluate / eval            → Phase 5 process vs outcome")
             print("  dna                        → Read strategy DNA from Ananta registry")
+            print("  understand                 → Strategy Understanding Report (Wave A SKO)")
             print("  lab                        → Wave A 1y Research Lab backtest (not KEEP)")
+            print("  lab coverage               → Prove 1h candle span/gaps in Mongo")
             print("  lab status                 → Last saved backtest evidence")
             print("  performance / stats        → Decision performance summary")
             print("  mark <num> good/bad/neutral→ Mark outcome")

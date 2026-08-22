@@ -26,36 +26,35 @@ Ananta provides the truth. Agent Ananta understands the trader, turns truth into
 4. **Co-design** — If the Agent needs a sense, improve Ananta exposure via the shared contract.
 5. **Autonomy is earned** — Observe → Explain → Recommend → Paper → Confirm live → Constrained auto → Expanded auto.
 6. **Backend is the contract host** — UI is a client. Talk through the API. Never Agent → database. Never skip auth.
-7. **No production mutation** — Agent may evaluate and rank. It must not rewrite hunter/squeeze/bollinger-mr (or any production strategy) because of losses. Mutation only via experiment pipeline + human promotion.
+7. **No production mutation** — Agent may evaluate, rank, and **propose versioned experiments**. It must not rewrite hunter/squeeze/bollinger-mr in place. Human promotes versions.
 8. **CLI is the lab** — No UI rewrite until ledgers cannot lie.
+9. **Implementation is authoritative** — If DNA says X and router/code does Y, the Agent states Y. Thesis ≠ deployment policy ≠ implementation.
+10. **Three confidences** — understanding / evidence / decision. Never one blended "82%".
+11. **Evidence is sourced** — BACKTEST, PAPER, LIVE, MATRIX, USER_MARK. Never silent mix. Matrix 2026-07-26 does not auto-CUT Wave A.
+12. **PDFs are supporting methodology** — not trading truth.
 
 ## Wave A lab
 
 - Strategies: hunter, squeeze, bollinger-mr (do not add unless instructed)
-- All three WATCH until evidence
+- All three WATCH until TAKE evidence
 - Enabled ~3 (max 5); slots ≤ 5–6
 - Mark TAKE / SKIP / WAIT separately; result-first (good/bad/neutral) + process quality
+- Knowledge Object: `understand` / `GET /api/strategy/knowledge`
+- 1y candles must be **proven in Mongo** (`lab coverage`) before a 1y Lab claim
 
 ## Contract
 
 See `docs/AGENT_CONTRACT_V0.md`. `agent_api_version = 0`.
 
-Live HTTP: `/api/auth/login`, `/api/portfolio`, `/api/orders/manual`, `/api/trades`, `/api/strategy/registry`, `/api/strategy/{key}/profile`, `/api/cycle/run`.
+Live HTTP: `/api/auth/login`, `/api/portfolio`, `/api/orders/manual`, `/api/trades`, `/api/strategy/registry`, `/api/strategy/knowledge`, `/api/strategy/{key}/profile`, `/api/cycle/run`, `/api/lab/data/coverage`, `/api/lab/runs`.
 
-Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SKIP|WAIT. Silence is a data-quality bug.
-
-## Ledgers
-
-- `decision_log.json` — decision memory + marks
-- `cycle_log.jsonl` — cycle provenance
-- `opportunity_log.jsonl` — candidates + TAKE/SKIP choices
+Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SKIP|WAIT. Silence is a data-quality bug. Per-symbol per-strategy rows are mandatory.
 
 ## Current mission
 
-**P0:** Contract-first cycle truth. Then Wave A paper evidence + Phase 5 evaluation.
+**P0:** Prove ~1y 1h candles in the Mongo collection Lab/API read.  
+**P1:** Wave A Strategy Knowledge Object (implementation truth).  
+**P2:** Structured Lab backtest evidence (`source=BACKTEST`).  
+Then paper loop. Do not expand the 12. Do not KEEP.
 
-Phase 3.6 done (2026-08-21): local Ananta at `ANANTA_BASE_URL=http://127.0.0.1:8001`.
-
-See `docs/LOCAL_LOOP.md` and `docs/ROADMAP.md`.
-
-**Not now:** extra agents, India, live autonomy, $50 experiment, education product, UI cockpit, Vercel, Agent→Mongo, leaderboard, adapters.
+See `docs/STRATEGY_INTEL_AUDIT.md`, `docs/NORTH_STAR_LOCK.md`, `docs/ROADMAP.md`.

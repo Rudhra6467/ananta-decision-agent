@@ -63,17 +63,20 @@ Policy/risk will eventually sit **outside** the LLM. Future layer, not a reason 
 **Wave A:** hunter, squeeze, bollinger-mr. Do not add a strategy unless instructed.
 All three stay **WATCH** until evidence exists. WAIT-only marks ≠ KEEP.
 
+**Knowledge law (2026-08-22):** Implementation + router are authoritative. DNA is thesis, not live policy. Contradictions are first-class. Three confidences stay separate: understanding / evidence / decision. Historical Lab = `source=BACKTEST`. Paper = `source=PAPER`. Matrix 2026-07-26 = `source=MATRIX`. Never mix into KEEP.
+
 | P | Job |
 |---|-----|
-| P0 | Contract-first cycle truth (regime + every enabled strategy ran/setup/reason) |
-| P1 | Aggressive paper evidence |
-| P2 | Correct TAKE / SKIP / WAIT marks |
-| P3 | Evaluation: process vs opportunity vs outcome vs strategy evidence |
-| P4 | Complete paper loop: TAKE → fill → exit → mark |
-| P5 | Wave A KEEP/WATCH/CUT from evidence |
-| P6 | Auditable Trust foundation |
+| **P0** | **Prove ~1y 1h candles in `historical_candles` (same Mongo Lab/API reads). Gaps explicit.** |
+| **P1** | **Wave A Strategy Knowledge Object on the Contract (`GET /api/strategy/knowledge`).** |
+| **P2** | Structured Lab evidence on the Contract (`source=BACKTEST`). |
+| P3 | Per-symbol per-strategy markable rows |
+| P4 | Aggressive Wave A paper cycles |
+| P5 | Evaluate TAKE / SKIP / WAIT separately |
+| P6 | Strategy comparison summaries |
+| P7 | Wave A KEEP/WATCH/CUT only when TAKE evidence justifies it |
 
-Lab loop: `cycle` → `history` → `mark` → `evaluate` → `wavea` → `audit`.
+Lab loop: `cycle` → `history` → `mark` → `evaluate` → `wavea` → `audit`. Knowledge: `understand`. History: `lab coverage` then `lab`.
 
 Definition of done: the Agent can repeatedly observe Ananta truth, decide, execute paper when appropriate, record why, observe outcome, evaluate honestly, and rank without inventing evidence.
 

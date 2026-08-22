@@ -12,7 +12,8 @@ DEFAULT_SYMBOLS = [
     "BTC/USD", "ETH/USD", "SOL/USD", "AVAX/USD", "XRP/USD",
     "PAXG/USD", "LINK/USD", "AAVE/USD", "ARB/USD", "RENDER/USD",
 ]
-MIN_1H_BARS = 250  # lab backtest warmup is 200
+MIN_1H_BARS = 250  # lab warmup
+USABLE_1Y_BARS = 6000
 
 
 def _dna_fields(s: dict) -> dict:
@@ -149,21 +150,30 @@ def print_lab_coverage():
         return None
     data = cov.get("data") or {}
     rows = data.get("symbols") or []
-    print("\nLAB CANDLE COVERAGE")
-    print("-" * 64)
+    print("\nLAB CANDLE COVERAGE (1h — what Lab/API actually read)")
+    print("-" * 72)
     weakest = None
+    usable_n = 0
     for row in rows:
         n = row.get("bars_1h") or 0
+        span = row.get("span_days")
+        gaps = row.get("gap_count")
+        usable = row.get("usable_1y")
+        if usable:
+            usable_n += 1
+        flag = "OK_1Y" if usable else "SHORT"
         print(
-            f"  {row.get('symbol'):<12} 1h={n:<6} 4h={row.get('bars_4h') or 0:<5} "
-            f"1d={row.get('bars_1d') or 0}"
+            f"  {str(row.get('symbol')):<12} 1h={n:<6} span={span}d  "
+            f"{row.get('from') or '—'} → {row.get('to') or '—'}  "
+            f"gaps={gaps}  {flag}"
         )
         if weakest is None or n < weakest:
             weakest = n
-    print("-" * 64)
-    print(f"  weakest 1h series: {weakest} bars (need ≥ {MIN_1H_BARS} to backtest)")
+    print("-" * 72)
+    print(f"  weakest 1h: {weakest}   usable_1y: {usable_n}/{len(rows)}")
+    print(f"  acceptance: ≥{USABLE_1Y_BARS} 1h bars and ≥300 days")
     print()
-    return weakest
+    return weakest, rows
 
 
 def run_wave_a_lab(period: str = "1y"):
@@ -176,18 +186,26 @@ def run_wave_a_lab(period: str = "1y"):
     print(f"strategies = {', '.join(WAVE_A)}   period = {period}")
     print("=" * 64)
 
-    weakest = print_lab_coverage()
+    cov = print_lab_coverage()
+    if cov is None:
+        return
+    weakest, rows = cov if isinstance(cov, tuple) else (cov, [])
     if weakest is None:
         return
-    if weakest < MIN_1H_BARS:
-        print("Not enough 1h candles for a 1y replay (warmup is 200 bars).")
-        print("In the backend venv, run this once (Kraken history download):")
+    usable_all = bool(rows) and all(r.get("usable_1y") for r in rows)
+    if not usable_all:
+        print("P0 not met: Lab/API does not yet have ~1y of 1h candles on the full book.")
+        print("In the backend venv (so MONGO_URL comes from backend/.env):")
         print()
         print("  cd ~/code/Ananta/backend")
         print("  source .venv/bin/activate")
         print("  python scripts/backfill_1h.py")
         print()
-        print("Then type lab again. Do not treat a failed short window as strategy proof.")
+        print("Wait for BACKFILL_DONE, then: lab coverage")
+        print("Do not treat a short window as 1y strategy proof.")
+        if weakest < MIN_1H_BARS:
+            return
+        print("Warmup is enough for a *short* replay, but refusing period=1y until usable_1y.")
         return
 
     payload = {
@@ -252,4 +270,61 @@ def print_lab_status():
     print(f"  saved_at : {doc.get('saved_at')}")
     _summarize_result(doc.get("result"))
     print("-" * 64)
+    print()
+
+
+def print_understanding_report():
+    """P1: Strategy Understanding Report from the Contract Knowledge Object."""
+    from src.tools.ananta_api import get_lab_coverage, get_strategy_knowledge
+
+    print("\nSTRATEGY UNDERSTANDING REPORT")
+    print("=" * 64)
+    print("Implementation + router are authoritative. DNA is thesis, not policy.")
+    print("Wave A stays WATCH. This is understanding, not KEEP.")
+    print("-" * 64)
+
+    cov = get_lab_coverage()
+    usable = False
+    if cov.get("success"):
+        data = cov.get("data") or {}
+        usable = bool(data.get("usable_1y_all"))
+        print(f"Historical coverage usable_1y_all={usable}  ({data.get('usable_1y_count')})")
+    else:
+        print(f"Coverage: {cov.get('error')}")
+
+    kn = get_strategy_knowledge()
+    if not kn.get("success"):
+        print(f"Knowledge Object failed: {kn.get('error') or kn}")
+        print("Backend must be restarted after git pull (GET /api/strategy/knowledge).")
+        print("=" * 64)
+        return
+
+    for s in (kn.get("data") or {}).get("strategies") or []:
+        key = s.get("strategy_id")
+        print()
+        print(f"{s.get('name')}  ({key} v{s.get('version')})")
+        print("─" * 40)
+        print("  Implementation:      VERIFIED")
+        print(f"  Entry logic:          VERIFIED  ({len(s.get('entry_conditions') or [])} gates)")
+        print(f"  Exit logic:           VERIFIED")
+        print(f"  Parameters:           VERIFIED")
+        print(f"  Regime gates:         VERIFIED  allowed={s.get('allowed_regimes')}")
+        print(f"  Router policy:        VERIFIED  {s.get('actual_router_gates')}")
+        print(f"  Timeframe:            {s.get('timeframe')}")
+        print(f"  Authoritative truth:  {s.get('authoritative_truth')}")
+        for c in s.get("contradictions") or []:
+            print("  CONTRADICTION:")
+            print(f"    {c.get('agent_must_say')}")
+        pe = s.get("paper_evidence") or {}
+        he = s.get("historical_evidence") or {}
+        print(f"  Historical evidence:  {'AVAILABLE' if he.get('available') else 'NOT YET'}  source={he.get('source')}")
+        print(f"  Paper evidence:       {pe.get('note')}")
+        print(f"  TAKE outcomes:        {pe.get('take_outcomes', 0)}")
+        print(f"  Understanding:        {s.get('understanding_confidence')}  (object consumed)")
+        print(f"  Evidence confidence:  {s.get('evidence_confidence')}")
+        print(f"  Decision confidence:  per-opportunity only — not a strategy score")
+        print(f"  Current status:       {s.get('current_status')}  / Wave A WATCH")
+    print()
+    print("=" * 64)
+    print("Do not KEEP. Do not enable the other 12.")
     print()

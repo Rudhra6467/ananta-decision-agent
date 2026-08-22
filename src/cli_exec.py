@@ -194,10 +194,15 @@ def handle_cycle(user_input: str) -> bool:
             )
             obs = item.get("strategy_observations") or []
             for o in obs:
+                setup = o.get("setup_detected")
+                setup_s = "UNKNOWN" if setup is None else setup
+                extra = ""
+                if o.get("skip_reason") == "REGIME_FILTERED" and o.get("regime"):
+                    extra = f" regime={o.get('regime')}"
                 print(
                     f"      [{o.get('strategy')}] enabled={o.get('enabled')} ran={o.get('ran')} "
-                    f"setup={o.get('setup_detected')} state={o.get('execution_state')} "
-                    f"dec={o.get('decision')} skip={o.get('skip_reason')}"
+                    f"setup={setup_s} state={o.get('execution_state')} "
+                    f"dec={o.get('decision')} skip={o.get('skip_reason')}{extra}"
                 )
         if len(results) > 5:
             print(f"  ... and {len(results) - 5} more")

@@ -1,12 +1,14 @@
 # Ananta Laboratory Charter
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Effective:** 2026-08-14  
 **Scope:** Crypto paper trading + Agent Ananta  
 **Owner:** Project operator (single-user lab)
 
 This charter is the rulebook for the paper laboratory.  
 If a session conflicts with this document, **the charter wins** until it is explicitly revised.
+
+Market Truth laws: [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md).
 
 ---
 
@@ -15,7 +17,7 @@ If a session conflicts with this document, **the charter wins** until it is expl
 Find what works by **aggressive discovery in paper**, then **filter by evidence**.
 
 We are not trying to look profitable for one day.  
-We are trying to learn which strategies, regimes, and behaviors deserve to survive.
+We are trying to learn which strategies, regimes, and behaviors deserve to survive — using **System + Market + Outcome** truth, not Ananta grading itself.
 
 ---
 
@@ -49,25 +51,36 @@ We are trying to learn which strategies, regimes, and behaviors deserve to survi
 
 ## 4. Daily ritual (required)
 
-Run in order when doing a lab session:
+When **`lab watch` is available**, prefer continuous Observation over manual cycle spam:
+
+```text
+1. monitor / status (limits)
+2. lab watch --interval 15   (or 5–15; laptop awake + backend up)
+3. Periodically: history → mark pending → evaluate → wavea
+4. When audits exist: review Regime Audit / Decision Audit
+5. Update SCOREBOARD + experiment journal
+```
+
+Manual session (if observer not running):
 
 ```text
 1. monitor
 2. cleanup list   (if slots ≥ 6)
 3. status
-4. run           (agent full analysis)
-5. enable/disable only if within limits
-6. cycle         (if something enabled or book changed)
-7. history
-8. mark <n> good|bad|neutral   (at least review pending)
-9. Update SCOREBOARD + experiment journal
+4. cycle
+5. history
+6. mark <n> good|bad|neutral
+7. evaluate / wavea
+8. Update SCOREBOARD + journal
 ```
 
-Minimum viable day if short on time:
+Minimum viable day:
 
 ```text
-monitor → status → run → mark (if pending) → journal one line
+monitor → status → (lab watch OR cycle) → mark pending → journal one line
 ```
+
+Observer **must not** auto-enable, auto-KEEP, or rewrite strategies.
 
 ---
 
@@ -84,6 +97,8 @@ Every strategy in the scoreboard must have exactly one status:
 | **PARK** | Not under test; available later |
 
 Only **WATCH** and **CORE** may stay enabled outside an active wave (still respecting max 5).
+
+Wave A (hunter, squeeze, bollinger-mr) stays **WATCH** until TAKE + decision-audit evidence justifies otherwise.
 
 ---
 
@@ -112,11 +127,16 @@ Soft rule: prefer **PARK** over CUT if evidence is thin (less than 1 week).
 - At least **3 calendar weeks** of intermittent or continuous paper use
 - Seen in **more than one regime** (e.g. NEUTRAL + TREND or COMPRESSION)
 - Scoreboard updated; no unresolved critical issues
-- Optional: backtest / walk-forward note attached (Phase 4)
+- Prefer decision-audit + market-truth support when available — not Ananta regime agreement alone
 
 ### CORE → demotion
 - Breaks kill criteria, or
 - Trust Report removes it
+
+### Strategy code changes
+- Agent may **propose** versioned experiments only
+- Path: observation → finding → hypothesis → experiment → validation → **human approval** → production
+- Never auto-deploy gate/parameter changes
 
 ---
 
@@ -126,14 +146,14 @@ Run one wave at a time when exploring:
 
 | Wave | Focus | Example keys |
 |------|--------|----------------|
-| A | Mean reversion / range | `squeeze`, `bollinger-mr`, `vwap-mr` |
+| A | Mean reversion / range (+ hunter) | `hunter`, `squeeze`, `bollinger-mr` |
 | B | Trend / momentum | `ema-cross`, `continuation`, `supertrend` |
 | C | Breakout | `donchian-breakout`, `atr-breakout`, `keltner-breakout` |
-| D | Selective core | `hunter` + best survivors |
+| D | Selective core | best survivors |
 
 **Wave rules:**
 - Max 3–4 wave strategies + optional 1 CORE
-- Wave length: 5–10 lab days
+- Wave length: 5–10 lab days (or continuous observer density)
 - End of wave: update scoreboard; CUT/PARK/WATCH
 
 ---
@@ -144,6 +164,7 @@ Run one wave at a time when exploring:
 - Prefer **real Ananta keys** (hunter, squeeze, …) over abstract labels
 - Every enable/disable should be logged (agent memory or journal)
 - Marks feed ranking — mark honestly, not to "make the agent look right"
+- Ananta regime is a **hypothesis**; do not treat agreement with Ananta as market proof
 
 ---
 
@@ -155,8 +176,9 @@ Yes:
 - Stable book under limits
 - Clear winners and losers with written reasons
 - Growing decision memory with marks
+- Observations that include Market Truth + forward outcomes when available
 - Agent actions that match charter
-- Progress toward a Trust Report (Phase 6)
+- Progress toward a Trust Report
 
 ---
 
@@ -173,3 +195,4 @@ Change this charter only by:
 | Date | Change |
 |------|--------|
 | 2026-08-14 | v1.0 initial charter |
+| 2026-08-22 | v1.1 continuous observer ritual; Market Truth; human-gated strategy experiments |

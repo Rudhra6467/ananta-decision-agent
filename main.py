@@ -475,11 +475,12 @@ def interactive_mode():
             print("Use: research market | research strategies | research portfolio")
 
         elif user_input.startswith("mark "):
-            from src.tools.decision_log import update_decision_outcome
+            from src.tools.decision_log import update_trade_outcome
             parts = user_input.split()
 
             if len(parts) < 3:
                 print("Usage: mark <number> <good/bad/neutral> [good_process/bad_process/unclear]")
+                print("Number is from  history  (SKIP/TAKE/WAIT rows only).")
                 print("Example: mark 1 good")
                 print("Example: mark 1 bad bad_process")
             else:
@@ -493,14 +494,14 @@ def interactive_mode():
                     elif quality and quality not in ["good_process", "bad_process", "unclear"]:
                         print("Quality must be: good_process / bad_process / unclear")
                     else:
-                        success = update_decision_outcome(index, outcome, decision_quality=quality)
+                        success = update_trade_outcome(index, outcome, decision_quality=quality)
                         if success:
-                            msg = f"→ Decision #{index} marked outcome='{outcome}'"
+                            msg = f"→ Trade decision #{index} marked outcome='{outcome}'"
                             if quality:
                                 msg += f", quality='{quality}'"
                             print(msg)
                         else:
-                            print("Could not update decision. Check the number.")
+                            print("Could not update. Use  history  — numbers are SKIP/TAKE/WAIT only.")
                 except Exception:
                     print("Usage: mark <number> <good/bad/neutral> [good_process/bad_process/unclear]")
 
@@ -524,14 +525,22 @@ def interactive_mode():
                 print("No profile memory file found.")
             print("Note: decision_log.json (trading journal) was not deleted.")
 
-        elif user_input in ["history", "decisions", "log"]:
-            from src.tools.decision_log import get_recent_decisions
-            decisions = get_recent_decisions(limit=12)
+        elif user_input in ["history", "decisions", "log", "history all"]:
+            from src.tools.decision_log import get_recent_decisions, get_recent_trade_decisions
+            show_all = user_input == "history all"
+            if show_all:
+                decisions = get_recent_decisions(limit=12)
+                title = "DECISION MEMORY (all recent — not for mark numbers)"
+            else:
+                decisions = get_recent_trade_decisions(limit=12)
+                title = "DECISION MEMORY (SKIP/TAKE/WAIT only — use these numbers to mark)"
 
             if not decisions:
-                print("No decisions logged yet.")
+                print("No SKIP/TAKE/WAIT rows yet." if not show_all else "No decisions logged yet.")
+                if not show_all:
+                    print("Tip: history all  → enable/disable/watch rows")
             else:
-                print("\nDECISION MEMORY (recent)")
+                print(f"\n{title}")
                 print("-" * 65)
                 for i, d in enumerate(reversed(decisions), 1):
                     outcome = d.get("outcome", "pending")
@@ -549,9 +558,12 @@ def interactive_mode():
                     print(f"   Time: {str(d.get('timestamp', ''))[:19]}")
                     print()
                 print("-" * 65)
-                print("Tip: mark <num> for SKIP/TAKE/WAIT rows — not enable/disable.")
-                print("     mark <num> good/bad/neutral")
-                print("     mark <num> good good_process   (optional quality)")
+                if show_all:
+                    print("This view is not for marking. Type  history  then  mark <num> ...")
+                else:
+                    print("mark <num> good/bad/neutral")
+                    print("mark <num> good good_process")
+                    print("history all  → include enable/disable/watch")
 
         elif user_input in ["performance", "stats", "summary"]:
             from src.tools.decision_log import get_recent_decisions
@@ -656,7 +668,8 @@ def interactive_mode():
             print("  enable <name>              → Enable a strategy (with confirmation)")
             print("  disable <name>             → Disable a strategy (with confirmation)")
             print("  profile                    → Show your saved profile")
-            print("  history                    → Decision memory journal")
+            print("  history                    → SKIP/TAKE/WAIT journal (mark numbers)")
+            print("  history all                → All rows including enable/watch")
             print("  cycles                     → Cycle + opportunity ledger")
             print("  wavea / postcycle          → Wave A KEEP/WATCH/CUT suggestions")
             print("  keep <key> <note>          → Record KEEP (e.g. keep hunter early evidence)")

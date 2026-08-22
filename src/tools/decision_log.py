@@ -99,6 +99,56 @@ def get_recent_decisions(limit: int = 10):
         return []
 
 
+TRADE_ACTIONS = {"SKIP", "WAIT", "TAKE", "HOLD", "SKIPPED"}
+
+
+def is_trade_decision(d: dict) -> bool:
+    """SKIP/TAKE/WAIT/HOLD/filled — not enable/disable/watch/keep/cut."""
+    if not d:
+        return False
+    action = str(d.get("action") or "").upper()
+    status = str(d.get("status") or "").lower()
+    strategy = str(d.get("strategy") or "").upper()
+    if action in ("ENABLE", "DISABLE", "KEEP", "WATCH", "CUT", "CYCLE"):
+        return False
+    if status in ("enabled", "disabled", "keep", "watch", "cut"):
+        return False
+    return (
+        action in TRADE_ACTIONS
+        or status in ("skipped", "filled")
+        or strategy == "SKIP"
+    )
+
+
+def get_recent_trade_decisions(limit: int = 12):
+    logs = get_recent_decisions(limit=300)
+    trades = [d for d in logs if is_trade_decision(d)]
+    return trades[-limit:]
+
+
+def update_trade_outcome(index_from_end: int, outcome: str, notes: str = "", decision_quality: str = None):
+    """Mark the Nth most recent TRADE decision (1 = latest SKIP/TAKE/WAIT)."""
+    if not os.path.exists(LOG_FILE):
+        return False
+    try:
+        with open(LOG_FILE, "r") as f:
+            logs = json.load(f)
+        trade_idxs = [i for i, d in enumerate(logs) if is_trade_decision(d)]
+        if index_from_end < 1 or index_from_end > len(trade_idxs):
+            return False
+        real_index = trade_idxs[-index_from_end]
+        logs[real_index]["outcome"] = outcome
+        if notes:
+            logs[real_index]["notes"] = notes
+        if decision_quality:
+            logs[real_index]["decision_quality"] = decision_quality
+        with open(LOG_FILE, "w") as f:
+            json.dump(logs, f, indent=2)
+        return True
+    except Exception:
+        return False
+
+
 def normalize_decision_quality(raw):
     """Accept good_process, 'good process', good-process, gp, etc."""
     if raw is None or str(raw).strip() == "":

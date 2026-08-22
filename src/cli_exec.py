@@ -179,11 +179,26 @@ def handle_cycle(user_input: str) -> bool:
         print("→ Cycle completed.")
         print(f"  ran_at : {data.get('ran_at')}")
         results = data.get("results") or []
+        # Single-symbol cycle returns a flat object, not {results: [...]}
+        if not results and data.get("symbol"):
+            results = [data]
         print(f"  symbols processed: {len(results)}")
         for item in results[:5]:
             sym = item.get("symbol")
             macro = item.get("macro") or {}
-            print(f"  • {sym}: bias={macro.get('bias')} conf={macro.get('confidence')} | {str(macro.get('reason', ''))[:80]}")
+            regime = item.get("regime") or {}
+            reg_s = regime.get("asset") or regime.get("market") or ""
+            print(
+                f"  • {sym}: bias={macro.get('bias')} conf={macro.get('confidence')} "
+                f"regime={reg_s or '—'} | {str(macro.get('reason', ''))[:72]}"
+            )
+            obs = item.get("strategy_observations") or []
+            for o in obs:
+                print(
+                    f"      [{o.get('strategy')}] enabled={o.get('enabled')} ran={o.get('ran')} "
+                    f"setup={o.get('setup_detected')} state={o.get('execution_state')} "
+                    f"dec={o.get('decision')} skip={o.get('skip_reason')}"
+                )
         if len(results) > 5:
             print(f"  ... and {len(results) - 5} more")
         try:
@@ -208,20 +223,36 @@ def handle_cycle(user_input: str) -> bool:
                 extra={"ananta_ran_at": data.get("ran_at"), "symbol_count": len(results)},
             )
             cands = []
+            regime_hint = None
             for item in results[:12]:
                 macro = item.get("macro") or {}
-                cands.append({
-                    "name": item.get("symbol"),
-                    "confidence": macro.get("confidence"),
-                    "reason": str(macro.get("reason", ""))[:160],
-                    "style": macro.get("bias"),
-                })
+                regime = item.get("regime") or {}
+                if regime_hint is None:
+                    regime_hint = regime.get("asset") or regime.get("market")
+                for o in (item.get("strategy_observations") or []):
+                    cands.append({
+                        "name": f"{item.get('symbol')}:{o.get('strategy')}",
+                        "confidence": o.get("confidence"),
+                        "reason": str(o.get("skip_reason") or o.get("rationale") or "")[:160],
+                        "style": o.get("execution_state"),
+                        "setup_detected": o.get("setup_detected"),
+                        "enabled": o.get("enabled"),
+                        "ran": o.get("ran"),
+                        "decision": o.get("decision"),
+                    })
+                if not item.get("strategy_observations"):
+                    cands.append({
+                        "name": item.get("symbol"),
+                        "confidence": macro.get("confidence"),
+                        "reason": str(macro.get("reason", ""))[:160],
+                        "style": macro.get("bias"),
+                    })
             log_opportunities(
                 cid,
                 cands,
                 chosen_action="WAIT",
                 chosen_strategy=None,
-                regime=None,
+                regime=regime_hint,
             )
             log_outcome_link(
                 cid,

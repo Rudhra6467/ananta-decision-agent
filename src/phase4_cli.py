@@ -297,15 +297,24 @@ def _is_trade_decision(d: dict) -> bool:
     )
 
 
-def _evidence_label(good: int, bad: int, marked: int) -> str:
-    """Contract evidence lifecycle: UNKNOWN → WEAK → PROMISING → SUPPORTED → VALIDATED."""
+def _evidence_label(good: int, bad: int, marked: int, *, take_marked: int = 0) -> str:
+    """Contract evidence lifecycle: UNKNOWN → WEAK → PROMISING → SUPPORTED → VALIDATED.
+
+    WAIT/NO_SETUP process marks alone cannot reach SUPPORTED/VALIDATED.
+    Promotion-grade labels require TAKE outcome evidence.
+    """
     if marked == 0:
         return "UNKNOWN"
-    if marked < 3:
+    if take_marked == 0:
+        # Process-only (WAIT/SKIP) dataset
+        if marked < 3:
+            return "WEAK"
+        return "INSUFFICIENT_EVIDENCE"
+    if take_marked < 3:
         return "WEAK"
-    if good >= 5 and bad == 0:
+    if good >= 5 and bad == 0 and take_marked >= 5:
         return "VALIDATED"
-    if good >= 3 and good > bad:
+    if good >= 3 and good > bad and take_marked >= 3:
         return "SUPPORTED"
     if good > bad:
         return "PROMISING"
@@ -346,7 +355,11 @@ def print_decision_eval():
     bp = sum(1 for d in trades if d.get("decision_quality") == "bad_process")
 
     marked = skip_good + skip_bad + skip_neu + take_good + take_bad + take_neu
-    evidence = _evidence_label(skip_good + take_good, skip_bad + take_bad, marked)
+    take_marked = take_good + take_bad + take_neu
+    # Promotion evidence uses TAKE outcomes; WAIT/SKIP are process-only.
+    evidence = _evidence_label(
+        take_good, take_bad, marked, take_marked=take_marked,
+    )
 
     opps = read_recent_opportunities(limit=20)
     skipped_opps = sum(1 for o in opps if o.get("skipped"))
@@ -354,11 +367,11 @@ def print_decision_eval():
     print("\nAGENT DECISION EVALUATION (Phase 5)")
     print("=" * 60)
     print("Scores the Agent's choices, not Ananta PnL.")
-    print("Process ≠ outcome. SKIP is first-class.")
+    print("Process ≠ outcome. SKIP is first-class. WAIT ≠ strategy success.")
     print("-" * 60)
-    print("SKIP / WAIT")
+    print("SKIP / WAIT  (process — not promotion evidence)")
     print(f"  n={len(skips)}  good={skip_good}  bad={skip_bad}  neutral={skip_neu}  pending={skip_pend}")
-    print("TAKE")
+    print("TAKE  (promotion evidence)")
     print(f"  n={len(takes)}  good={take_good}  bad={take_bad}  neutral={take_neu}  pending={take_pend}")
     print("PROCESS QUALITY (trade rows)")
     print(f"  good_process={gp}  bad_process={bp}")
@@ -367,14 +380,17 @@ def print_decision_eval():
     print(f"Evidence strength : {evidence}")
     if evidence == "UNKNOWN":
         print("  No marked SKIP/TAKE yet. Run cycles, then mark.")
+    elif evidence == "INSUFFICIENT_EVIDENCE":
+        print("  WAIT/SKIP process marks only. Need TAKE outcomes for KEEP/SUPPORTED.")
+        print("  Stay on WATCH. INSUFFICIENT EVIDENCE is a valid result.")
     elif evidence == "WEAK":
-        print("  Too few marks to KEEP or CUT. Stay on WATCH.")
+        print("  Too few TAKE marks to KEEP or CUT. Stay on WATCH.")
     elif evidence == "PROMISING":
-        print("  Early positive tilt. Do not promote yet.")
+        print("  Early positive TAKE tilt. Do not promote yet.")
     elif evidence == "SUPPORTED":
-        print("  Enough supportive marks to consider KEEP on a strategy.")
+        print("  Enough supportive TAKE marks to consider KEEP (still human-gated).")
     else:
-        print("  Strong, clean marks. KEEP is defensible; still human-gated.")
+        print("  Strong TAKE marks. KEEP is defensible; still human-gated.")
     last = get_last_cycle_id()
     if last:
         print(f"Last cycle_id    : {last}")

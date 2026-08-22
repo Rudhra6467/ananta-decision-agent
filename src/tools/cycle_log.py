@@ -237,9 +237,14 @@ def wave_a_snapshot(marks_limit: int = 50) -> dict:
     for key in wave:
         related = [
             d for d in decisions
-            if key in str(d.get("strategy_key") or "").lower()
-            or key in str(d.get("strategy") or "").lower()
-            or key in str(d.get("top_recommendation") or "").lower()
+            if (
+                key in str(d.get("strategy_key") or "").lower()
+                or key in str(d.get("strategy") or "").lower()
+                or key in str(d.get("top_recommendation") or "").lower()
+            )
+            and str(d.get("action") or "").upper() not in ("ENABLE", "DISABLE")
+            and str(d.get("status") or "").lower() not in ("enabled", "disabled")
+            and str(d.get("strategy_key") or "").lower() != "manual"
         ]
         good = sum(1 for d in related if d.get("outcome") == "good")
         bad = sum(1 for d in related if d.get("outcome") == "bad")

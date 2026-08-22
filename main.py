@@ -535,15 +535,19 @@ def interactive_mode():
                     quality = d.get("decision_quality", "pending")
                     status = d.get("status", "?")
                     override = "yes" if d.get("user_override") else "no"
-                    print(f"{i}. {d.get('strategy')} | Conf: {d.get('confidence')} | Outcome: {outcome}")
+                    action = d.get("action") or status
+                    cid = d.get("cycle_id") or "-"
+                    print(f"{i}. [{action}] {d.get('strategy')} | Conf: {d.get('confidence')} | Outcome: {outcome}")
                     print(f"   Regime: {d.get('regime')} | Positions: {d.get('open_positions')} | Status: {status}")
                     print(f"   Top rec: {d.get('top_recommendation')} | Override: {override} | Quality: {quality}")
+                    print(f"   cycle_id: {cid}")
                     if d.get("price") is not None:
                         print(f"   Price: ${d.get('price')} | Equity: {d.get('portfolio_equity')}")
                     print(f"   Time: {str(d.get('timestamp', ''))[:19]}")
                     print()
                 print("-" * 65)
-                print("Tip: mark <num> good/bad/neutral")
+                print("Tip: mark <num> for SKIP/TAKE/WAIT rows — not enable/disable.")
+                print("     mark <num> good/bad/neutral")
                 print("     mark <num> good good_process   (optional quality)")
 
         elif user_input in ["performance", "stats", "summary"]:

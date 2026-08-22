@@ -218,7 +218,16 @@ def print_audit_pack():
     decisions = get_recent_decisions(limit=40)
     skip_n = sum(1 for d in decisions if str(d.get("action") or d.get("status") or "").upper() in ("SKIP", "WAIT", "SKIPPED") or str(d.get("strategy") or "").upper() == "SKIP")
     take_n = sum(1 for d in decisions if str(d.get("action") or "").upper() == "TAKE" or str(d.get("status") or "").lower() == "filled")
-    marked = [d for d in decisions if d.get("outcome") in ("good", "bad", "neutral")]
+    _TRADE_ACTIONS = {"SKIP", "WAIT", "TAKE", "HOLD", "SKIPPED"}
+    marked = [
+        d for d in decisions
+        if d.get("outcome") in ("good", "bad", "neutral")
+        and (
+            str(d.get("action") or "").upper() in _TRADE_ACTIONS
+            or str(d.get("status") or "").lower() in ("skipped", "filled")
+            or str(d.get("strategy") or "").upper() == "SKIP"
+        )
+    ]
     pending = sum(1 for d in decisions if d.get("outcome") == "pending")
 
     print("DECISION MEMORY (recent 40)")

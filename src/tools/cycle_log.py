@@ -242,9 +242,12 @@ def wave_a_snapshot(marks_limit: int = 50) -> dict:
                 or key in str(d.get("strategy") or "").lower()
                 or key in str(d.get("top_recommendation") or "").lower()
             )
-            and str(d.get("action") or "").upper() not in ("ENABLE", "DISABLE")
+            and str(d.get("action") or "").upper() not in (
+                "ENABLE", "DISABLE", "KEEP", "WATCH", "CUT", "CYCLE",
+            )
             and str(d.get("status") or "").lower() not in ("enabled", "disabled")
             and str(d.get("strategy_key") or "").lower() != "manual"
+            and str(d.get("status") or "").lower() not in ("keep", "watch", "cut")
         ]
         good = sum(1 for d in related if d.get("outcome") == "good")
         bad = sum(1 for d in related if d.get("outcome") == "bad")

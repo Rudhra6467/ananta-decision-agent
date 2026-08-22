@@ -55,11 +55,18 @@ def handle_lab_command(user_input: str) -> bool:
     elif rest in ("observations", "obs", "observation"):
         from src.tools.observation_log import print_recent_observations
         print_recent_observations(limit=12)
+    elif rest in ("outcomes", "outcome", "forward"):
+        from src.tools.outcome_truth import backfill_outcomes, print_outcomes_summary
+        summary = backfill_outcomes(limit=200)
+        print(f"→ outcomes backfill: filled={summary.get('filled')} scanned={summary.get('scanned')} ok={summary.get('ok')}")
+        if summary.get("error"):
+            print(f"  error: {summary.get('error')}")
+        print_outcomes_summary(limit=10)
     elif rest in ("once", "tick", "observe"):
         from src.lab_watch import capture_one_observation, _print_tick
         _print_tick(capture_one_observation())
     else:
-        print("lab | lab watch [N] | lab once | lab observations | lab wait | lab status | lab coverage")
+        print("lab | lab watch [N] | lab once | lab outcomes | lab observations | lab wait | lab status | lab coverage")
     return True
 
 

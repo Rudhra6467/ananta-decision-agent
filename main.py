@@ -432,6 +432,7 @@ def interactive_mode():
     print("  history                    → Decision memory journal")
     print("  cycles                     → Cycle + opportunity ledger")
     print("  wavea / postcycle          → Wave A KEEP/WATCH/CUT suggestions")
+    print("  keep/watch/cut <key> note  → Record your Wave A call")
     print("  help                       → Show all commands")
     print("  exit                       → Quit")
     print("=" * 55)
@@ -618,6 +619,19 @@ def interactive_mode():
             from src.phase4_cli import print_wavea_snapshot
             print_wavea_snapshot()
 
+        elif user_input.startswith("keep ") or user_input.startswith("watch ") or user_input.startswith("cut "):
+            from src.phase4_cli import record_wavea_call
+            parts = user_input.split(None, 2)
+            if len(parts) < 2:
+                print("Usage: keep hunter <note>")
+                print("       watch squeeze still gathering")
+                print("       cut bollinger-mr no setups after N cycles")
+            else:
+                verdict = parts[0]
+                key = parts[1]
+                note = parts[2] if len(parts) >= 3 else ""
+                record_wavea_call(verdict, key, note)
+
         elif user_input in ["help", "commands", "?"]:
             print("\nAvailable commands:")
             print("  run / analyze / recommend  → Full market analysis")
@@ -635,6 +649,9 @@ def interactive_mode():
             print("  history                    → Decision memory journal")
             print("  cycles                     → Cycle + opportunity ledger")
             print("  wavea / postcycle          → Wave A KEEP/WATCH/CUT suggestions")
+            print("  keep <key> <note>          → Record KEEP (e.g. keep hunter early evidence)")
+            print("  watch <key> <note>         → Record WATCH")
+            print("  cut <key> <note>           → Record CUT")
             print("  performance / stats        → Decision performance summary")
             print("  mark <num> good/bad/neutral→ Mark outcome")
             print("  mark <num> good good_process → Mark outcome + process quality")

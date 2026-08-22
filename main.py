@@ -435,6 +435,8 @@ def interactive_mode():
     print("  keep/watch/cut <key> note  → Record your Wave A call")
     print("  audit / report             → Evidence pack (ledgers)")
     print("  evaluate                   → Phase 5 process vs outcome")
+    print("  dna                        → Strategy DNA from Ananta (Wave A + catalog)")
+    print("  lab                        → Queue Wave A 1y backtest (source=backtest)")
     print("  help                       → Show all commands")
     print("  exit                       → Quit")
     print("=" * 55)
@@ -654,6 +656,23 @@ def interactive_mode():
             from src.phase4_cli import print_decision_eval
             print_decision_eval()
 
+        elif user_input in ["dna", "strategy dna", "strategies dna"]:
+            from src.lab_cli import print_strategy_dna
+            print_strategy_dna()
+
+        elif user_input in ["lab", "lab 1y", "lab backtest"]:
+            from src.lab_cli import run_wave_a_lab
+            run_wave_a_lab("1y")
+
+        elif user_input in ["lab status", "lab evidence"]:
+            from src.lab_cli import print_lab_status
+
+            print_lab_status()
+
+        elif user_input in ["lab coverage", "coverage"]:
+            from src.lab_cli import print_lab_coverage
+            print_lab_coverage()
+
         elif user_input in ["help", "commands", "?"]:
             print("\nAvailable commands:")
             print("  run / analyze / recommend  → Full market analysis")
@@ -677,6 +696,9 @@ def interactive_mode():
             print("  cut <key> <note>           → Record CUT")
             print("  audit / report / evidence  → One-screen evidence pack")
             print("  evaluate / eval            → Phase 5 process vs outcome")
+            print("  dna                        → Read strategy DNA from Ananta registry")
+            print("  lab                        → Wave A 1y Research Lab backtest (not KEEP)")
+            print("  lab status                 → Last saved backtest evidence")
             print("  performance / stats        → Decision performance summary")
             print("  mark <num> good/bad/neutral→ Mark outcome")
             print("  mark <num> good good_process → Mark outcome + process quality")

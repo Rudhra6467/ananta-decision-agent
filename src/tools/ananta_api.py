@@ -580,3 +580,87 @@ def get_enabled_strategies(token: str = None):
         if s.get("enabled"):
             enabled.append(s.get("key"))
     return enabled
+
+
+def _owner_token(token: str = None):
+    if token:
+        return {"success": True, "token": token}
+    return login()
+
+
+def _auth_headers(token: str):
+    return {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Origin": BASE_URL,
+        "Referer": f"{BASE_URL}/",
+    }
+
+
+def get_strategy_registry(token: str = None):
+    """GET /api/strategy/registry — DNA + schema. Auth optional on Ananta."""
+    try:
+        headers = {}
+        got = _owner_token(token)
+        if got.get("success") and got.get("token"):
+            headers = _auth_headers(got["token"])
+        r = requests.get(f"{BASE_URL}/api/strategy/registry", headers=headers, timeout=20)
+        if r.status_code != 200:
+            return {"success": False, "status_code": r.status_code, "error": r.text}
+        data = r.json()
+        return {"success": True, "strategies": data.get("strategies") or data or []}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def get_lab_coverage(token: str = None):
+    got = _owner_token(token)
+    if not got.get("success"):
+        return {"success": False, "error": "Login failed", "details": got}
+    try:
+        r = requests.get(
+            f"{BASE_URL}/api/lab/data/coverage",
+            headers=_auth_headers(got["token"]),
+            timeout=20,
+        )
+        if r.status_code != 200:
+            return {"success": False, "status_code": r.status_code, "error": r.text}
+        return {"success": True, "data": r.json()}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def create_lab_run(payload: dict, token: str = None):
+    got = _owner_token(token)
+    if not got.get("success"):
+        return {"success": False, "error": "Login failed", "details": got}
+    try:
+        r = requests.post(
+            f"{BASE_URL}/api/lab/runs",
+            json=payload,
+            headers=_auth_headers(got["token"]),
+            timeout=30,
+        )
+        if r.status_code not in (200, 201):
+            return {"success": False, "status_code": r.status_code, "error": r.text}
+        return {"success": True, "data": r.json()}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def get_lab_run(run_id: str, token: str = None):
+    got = _owner_token(token)
+    if not got.get("success"):
+        return {"success": False, "error": "Login failed", "details": got}
+    try:
+        r = requests.get(
+            f"{BASE_URL}/api/lab/runs/{run_id}",
+            headers=_auth_headers(got["token"]),
+            timeout=30,
+        )
+        if r.status_code != 200:
+            return {"success": False, "status_code": r.status_code, "error": r.text}
+        return {"success": True, "data": r.json()}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+

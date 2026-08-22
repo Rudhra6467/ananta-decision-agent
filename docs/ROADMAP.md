@@ -2,13 +2,14 @@
 
 **Locked:** 2026-08-17  
 **Operating-mode addendum:** 2026-08-20  
-**North star:** Ananta provides the truth. Agent Ananta understands the trader, turns truth into personalized decisions, directs Ananta to execute, measures results (including SKIPs), learns, and earns autonomy through evidence.
+**North-star confirmation:** 2026-08-22 — [NORTH_STAR_LOCK.md](./NORTH_STAR_LOCK.md)  
+**North star:** Ananta provides the truth. Agent Ananta understands the trader, turns truth into personalized decisions, directs Ananta to execute, measures results (including SKIPs), learns (evaluation + ranking only), and earns autonomy through evidence.
 
-**Philosophy:** Experiment aggressively. Commit conservatively. Promote only with evidence.
+**Philosophy:** Aggressive on paper. Ruthless on measurement. Conservative on promotion.
 
 **Feature filter:** Does this improve user intent → informed decision → execution → outcome → learning? If no, defer.
 
-This addendum does **not** reopen the product roadmap. It records how we run the current phases after Emergent hosting expired.
+This file does **not** reopen the product roadmap. Destination layers (education, adapters, $50 live, cockpit, leaderboard) stay deferred.
 
 ---
 
@@ -16,14 +17,14 @@ This addendum does **not** reopen the product roadmap. It records how we run the
 
 | Phase | Objective | Status |
 |-------|-----------|--------|
-| 0 | Architecture + product lock | Locked by principles |
+| 0 | Architecture + product lock | Locked (2026-08-22 confirmation) |
 | 1 | Agent foundation | Done |
 | 2 | Lab operability | Nearly done |
 | 3 | Wave A discovery | Current — local API live; gather marks |
 | 3.5 | Shared contract v0 | Proven locally (auth, portfolio, paper order, enable, cycle) |
 | 3.6 | Backend independence (local Ananta API) | **Done 2026-08-21** — localhost:8001 + Mongo Atlas |
 | 4 | Decision Intelligence Infrastructure | Done enough to run — ledgers + wavea + audit |
-| 5 | Agent decision evaluation | Started — `evaluate` (process vs outcome, evidence label) |
+| 5 | Agent decision evaluation | In progress — WAIT ≠ KEEP; need TAKE evidence |
 | 6 | Engine + strategy validation | Not started |
 | 7 | Research + PDF intelligence | Not started |
 | 8 | User intelligence + personalization | Not started |
@@ -101,20 +102,24 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 ## Wave A constraints
 
 - Set: `hunter`, `squeeze`, `bollinger-mr`
-- Enabled prefer 3–4 (max 5)
+- All three WATCH until TAKE evidence exists
+- Enabled prefer 3 (max 5)
 - Slots prefer ≤ 5–6; at 6 → no new enables
-- Result-first marks: good / bad / neutral
+- Result-first marks: good / bad / neutral; WAIT/SKIP ≠ KEEP
 - Exit: KEEP / WATCH / CUT with documented evidence
+- Production strategy code is immutable to the Agent
 
 ---
 
-## Current mission
+## Current mission (P0 first)
 
+0. **P0 — Contract-first cycle truth** (in flight): every cycle must show regime + whether each enabled Wave A strategy ran, had a setup, and why TAKE/SKIP/WAIT. Silence ≠ no setup; silence = DATA GAP.
 1. ~~Make Ananta backend independently runnable locally (Phase 3.6)~~ **Done 2026-08-21**
 2. ~~Point Agent Ananta at that backend via `ANANTA_BASE_URL`~~ **Done**
 3. Keep proving Contract v0 over the live API (auth → portfolio → paper order → ledgers)
-4. Resume Wave A evidence (`hunter`, `squeeze`, `bollinger-mr`)
+4. Wave A paper evidence (`hunter`, `squeeze`, `bollinger-mr`) — aggressive, marked, honest
 5. Cycle logger → decision ledger → opportunity ledger → outcome linkage
+6. Complete paper loop: TAKE → fill → exit → mark → evaluate
 
 The next meaningful milestone is still:
 
@@ -122,4 +127,4 @@ The next meaningful milestone is still:
 
 Phase 3.6 is complete. Do not reopen hosting/UI work.
 
-**Do not start yet:** extra agents, fancy UI, autonomy, India, large strategy expansion, Vercel-for-the-agent.
+**Do not start yet:** extra agents, fancy UI, autonomy, India, education product, $50 live, leaderboard, large strategy expansion, Vercel-for-the-agent, production mutation.

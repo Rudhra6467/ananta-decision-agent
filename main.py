@@ -433,6 +433,7 @@ def interactive_mode():
     print("  cycles                     → Cycle + opportunity ledger")
     print("  wavea / postcycle          → Wave A KEEP/WATCH/CUT suggestions")
     print("  keep/watch/cut <key> note  → Record your Wave A call")
+    print("  audit / report             → Evidence pack (ledgers)")
     print("  help                       → Show all commands")
     print("  exit                       → Quit")
     print("=" * 55)
@@ -632,6 +633,10 @@ def interactive_mode():
                 note = parts[2] if len(parts) >= 3 else ""
                 record_wavea_call(verdict, key, note)
 
+        elif user_input in ["audit", "report", "evidence", "pack"]:
+            from src.phase4_cli import print_audit_pack
+            print_audit_pack()
+
         elif user_input in ["help", "commands", "?"]:
             print("\nAvailable commands:")
             print("  run / analyze / recommend  → Full market analysis")
@@ -652,6 +657,7 @@ def interactive_mode():
             print("  keep <key> <note>          → Record KEEP (e.g. keep hunter early evidence)")
             print("  watch <key> <note>         → Record WATCH")
             print("  cut <key> <note>           → Record CUT")
+            print("  audit / report / evidence  → One-screen evidence pack")
             print("  performance / stats        → Decision performance summary")
             print("  mark <num> good/bad/neutral→ Mark outcome")
             print("  mark <num> good good_process → Mark outcome + process quality")

@@ -155,3 +155,121 @@ def print_wavea_snapshot():
     print("                watch squeeze <note>")
     print("                cut bollinger-mr <note>")
     print("Tip: mark SKIP/TAKE/WAIT in history so suggestions get smarter.")
+
+
+def print_audit_pack():
+    """
+    Phase 4 evidence pack: one screen that answers
+    what was decided, skipped, why, and what happened after.
+    """
+    from src.tools.cycle_log import (
+        read_recent_cycles,
+        read_recent_opportunities,
+        get_last_cycle_id,
+        wave_a_snapshot,
+    )
+    from src.tools.decision_log import get_recent_decisions
+
+    print("\nAGENT ANANTA AUDIT PACK")
+    print("=" * 64)
+    print("What was decided, skipped, marked, and called (Wave A).")
+    print("-" * 64)
+
+    live = {}
+    equity = None
+    slots = None
+    try:
+        from src.tools.ananta_api import get_strategy_status, get_portfolio
+        st = get_strategy_status()
+        if st.get("success"):
+            for s in st.get("strategies", []):
+                live[(s.get("key") or "").lower()] = bool(s.get("enabled"))
+        port = get_portfolio()
+        if port.get("success") and port.get("data"):
+            data = port["data"]
+            equity = data.get("equity") or data.get("total_value") or data.get("balance")
+            slots = data.get("slots_used") or data.get("open_positions")
+    except Exception:
+        pass
+
+    print("BOOK")
+    print(f"  Equity     : {equity}")
+    print(f"  Positions  : {slots}")
+    on = [k for k in WAVE_A_KEYS if live.get(k)]
+    extra = [k for k, v in live.items() if v and k not in WAVE_A_KEYS]
+    print(f"  Wave A ON  : {', '.join(on) or 'none'}  ({len(on)}/3)")
+    if extra:
+        print(f"  Extra ON   : {', '.join(extra)}  (not Wave A)")
+    print()
+
+    print("WAVE A CALLS (human)")
+    calls = _last_human_calls()
+    snap = wave_a_snapshot()
+    for key in WAVE_A_KEYS:
+        info = snap.get(key) or {}
+        call = calls.get(key)
+        flag = "ON" if live.get(key) else "off"
+        if call:
+            print(f"  {key:<14} {flag:<3}  suggest={info.get('suggestion')}  call={call['action']}  {call['note']}")
+        else:
+            print(f"  {key:<14} {flag:<3}  suggest={info.get('suggestion')}  call=NONE")
+    print()
+
+    decisions = get_recent_decisions(limit=40)
+    skip_n = sum(1 for d in decisions if str(d.get("action") or d.get("status") or "").upper() in ("SKIP", "WAIT", "SKIPPED") or str(d.get("strategy") or "").upper() == "SKIP")
+    take_n = sum(1 for d in decisions if str(d.get("action") or "").upper() == "TAKE" or str(d.get("status") or "").lower() == "filled")
+    marked = [d for d in decisions if d.get("outcome") in ("good", "bad", "neutral")]
+    pending = sum(1 for d in decisions if d.get("outcome") == "pending")
+
+    print("DECISION MEMORY (recent 40)")
+    print(f"  SKIP/WAIT  : {skip_n}")
+    print(f"  TAKE/fill  : {take_n}")
+    print(f"  Marked     : {len(marked)}   pending={pending}")
+    if marked:
+        print("  Last marks:")
+        for d in reversed(marked[-5:]):
+            print(
+                f"    {str(d.get('timestamp', ''))[:19]}  "
+                f"{d.get('action') or d.get('status')}  {d.get('strategy')}  "
+                f"outcome={d.get('outcome')}  quality={d.get('decision_quality')}"
+            )
+    print()
+
+    print("LAST 8 LEDGER EVENTS")
+    cycles = read_recent_cycles(limit=40)
+    shown = 0
+    for row in reversed(cycles):
+        if shown >= 8:
+            break
+        ev = row.get("event")
+        ts = str(row.get("timestamp", ""))[:19]
+        cid = str(row.get("cycle_id") or "")[:28]
+        if ev == "cycle_start":
+            print(f"  {ts}  START    {cid}  pos={row.get('open_positions')}  {row.get('notes') or ''}")
+        elif ev == "decision":
+            print(f"  {ts}  {str(row.get('action') or 'DECISION'):<8} {row.get('strategy') or '-'}  {str(row.get('reason') or '')[:50]}")
+        elif ev == "outcome_link":
+            print(f"  {ts}  OUTCOME  equity={row.get('equity')} pos={row.get('open_positions')}  {row.get('note', '')}")
+        else:
+            continue
+        shown += 1
+    print()
+
+    opps = read_recent_opportunities(limit=4)
+    print("RECENT OPPORTUNITIES")
+    if not opps:
+        print("  (none)")
+    else:
+        for o in reversed(opps):
+            print(
+                f"  {str(o.get('timestamp', ''))[:19]}  "
+                f"chose={o.get('chosen_action')}  skipped={o.get('skipped')}  "
+                f"strat={o.get('chosen_strategy')}"
+            )
+    last = get_last_cycle_id()
+    print("-" * 64)
+    if last:
+        print(f"Last cycle_id: {last}")
+    print("Files: decision_log.json  cycle_log.jsonl  opportunity_log.jsonl")
+    print("=" * 64)
+

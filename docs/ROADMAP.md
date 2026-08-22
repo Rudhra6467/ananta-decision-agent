@@ -4,14 +4,18 @@
 **Operating-mode addendum:** 2026-08-20  
 **North-star confirmation:** 2026-08-22 — [NORTH_STAR_LOCK.md](./NORTH_STAR_LOCK.md)  
 **Strategy intelligence audit:** 2026-08-22 — [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md)  
-**Immediate (locked):** P0 1y candles in Mongo → P1 Wave A Knowledge Object → P2 Lab evidence `source=BACKTEST`. Wave A stays hunter/squeeze/bollinger-mr WATCH. Do not rank the other 12 yet.
-**North star:** Ananta provides the truth. Agent Ananta understands the trader, turns truth into personalized decisions, directs Ananta to execute, measures results (including SKIPs), learns (evaluation + ranking only), and earns autonomy through evidence.
+**Market Truth + continuous evidence:** 2026-08-22 — [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md)
 
-**Philosophy:** Aggressive on paper. Ruthless on measurement. Conservative on promotion.
+**Immediate (locked):** P0–P2 **done**. Next engineering = **Stage 1** (`lab watch` + independent Market Truth snapshot + co-timestamped Observation). Then S2 forward outcomes → S3 audits → S4 1y replay → S5 experiment proposals. Wave A stays hunter/squeeze/bollinger-mr **WATCH**. Do not rank the other 12. Do not ML-train yet.
+
+**North star:** Ananta provides System Truth. Independent Market Truth is the external reference. Agent Ananta understands the trader and the strategies, decides, measures Outcome Truth (including SKIPs and opportunity cost), learns (evaluation + ranking + proposals only), and earns autonomy through evidence — without a self-confirming loop.
+
+**Philosophy:** Aggressive on paper. Ruthless on measurement. Conservative on promotion.  
+**Evidence law:** Ananta regime = hypothesis. Ananta output is never proof Ananta was correct.
 
 **Feature filter:** Does this improve user intent → informed decision → execution → outcome → learning? If no, defer.
 
-This file does **not** reopen the product roadmap. Destination layers (education, adapters, $50 live, cockpit, leaderboard) stay deferred.
+This file does **not** reopen education, adapters, $50 live, cockpit, or leaderboard.
 
 ---
 
@@ -19,15 +23,16 @@ This file does **not** reopen the product roadmap. Destination layers (education
 
 | Phase | Objective | Status |
 |-------|-----------|--------|
-| 0 | Architecture + product lock | Locked (2026-08-22 confirmation) |
+| 0 | Architecture + product lock | Locked (2026-08-22 + Market Truth) |
 | 1 | Agent foundation | Done |
 | 2 | Lab operability | Nearly done |
-| 3 | Wave A discovery | Current — local API live; gather marks |
-| 3.5 | Shared contract v0 | Proven locally (auth, portfolio, paper order, enable, cycle) |
-| 3.6 | Backend independence (local Ananta API) | **Done 2026-08-21** — localhost:8001 + Mongo Atlas |
-| 4 | Decision Intelligence Infrastructure | Done enough to run — ledgers + wavea + audit |
-| 5 | Agent decision evaluation | In progress — WAIT ≠ KEEP; need TAKE evidence |
-| 6 | Engine + strategy validation | Not started |
+| 3 | Wave A discovery | Current — paper + continuous observer |
+| 3.5 | Shared contract v0 | Proven locally |
+| 3.6 | Backend independence (local Ananta API) | **Done 2026-08-21** |
+| 4 | Decision Intelligence Infrastructure | Done enough — ledgers + wavea + audit |
+| 4.5 | Market Truth + Observation schema | **Next — Stage 1** |
+| 5 | Agent decision evaluation | In progress — WAIT ≠ KEEP; need TAKE + outcome audits |
+| 6 | Engine + strategy validation (incl. regime audit) | Starts after S1–S3 |
 | 7 | Research + PDF intelligence | Not started |
 | 8 | User intelligence + personalization | Not started |
 | 9 | Personalized paper closed loop | Not started |
@@ -39,63 +44,29 @@ This file does **not** reopen the product roadmap. Destination layers (education
 
 ---
 
+## Market Truth stages (2026-08-22)
+
+| Stage | Deliverable |
+|-------|-------------|
+| **S1** | `lab watch --interval N` (5–15m) + market snapshot + Ananta cycle + decision → Observation |
+| **S2** | Forward attach +15m / +1h / +4h |
+| **S3** | Regime Audit + Decision Audit (SUPPORTED / MISCLASSIFIED / UNCERTAIN; opportunity cost) |
+| **S4** | Same schema replayed on 1y Lab data |
+| **S5** | Findings → experiment proposals; human approval mandatory |
+
+Same schema for live paper and historical replay. No second parallel evidence system.
+
+---
+
 ## Operating mode (2026-08-20)
 
-Emergent was hosting Ananta. That account is expired. The agent login failure is the expected chain:
+Emergent hosting expired. Lab runs on local Ananta backend + Mongo Atlas.
 
 ```text
-Agent Ananta → Ananta auth/API → Ananta backend → [backend unavailable] → Login failed
+Agent Ananta → Contract/API → Ananta Backend → DB / market / execution
 ```
 
-The website is **not** a dependency for Wave A, Contract v0, or Phase 4 ledgers.
-
-Keep this architecture:
-
-```text
-                Agent Ananta
-                     │
-                     │ Contract
-                     ▼
-              Ananta Backend
-                     │
-          ┌──────────┼──────────┐
-          ▼          ▼          ▼
-       Database   Strategies   Execution
-```
-
-Treat the UI as just another client:
-
-```text
-                   Ananta Backend
-                  /       |       \
-                 /        |        \
-                ▼         ▼         ▼
-             Ananta    Agent     Tests/CLI
-               UI      Ananta
-```
-
-The agent does not care whether the backend is Emergent, localhost, Vercel, Railway, or AWS. It cares about the **contract**.
-
-### Options for the current phase
-
-| Option | When | Use? |
-|--------|------|------|
-| **A. Run the existing Ananta backend locally** | Backend code is intact (it is) | **Preferred** |
-| **B. Talk directly to the database** | Test fixtures only (seed a position, then hit the API) | Fixtures only — never production architecture |
-| **C. Local contract-faithful test backend** | Only if A cannot start | Fallback |
-
-**Do not:**
-
-- Launch the Ananta website / Vercel frontend just so the agent has a host
-- Bypass authentication and write from Agent Ananta into production-style tables
-- Make `Agent → MongoDB` the architecture
-- Start Automaton, live autonomy, India adapters, or an agent cockpit
-
-Production boundary stays:
-
-```text
-Agent → Contract/API → Ananta backend → DB
-```
+UI is just another client. Never Agent→Mongo as architecture.
 
 See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 
@@ -108,25 +79,21 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 - Enabled prefer 3 (max 5)
 - Slots prefer ≤ 5–6; at 6 → no new enables
 - Result-first marks: good / bad / neutral; WAIT/SKIP ≠ KEEP
-- Exit: KEEP / WATCH / CUT with documented evidence
-- Production strategy code is immutable to the Agent
+- Production strategy code is immutable to the Agent; proposals only
 
 ---
 
-## Current mission (P0 first)
+## Current mission
 
-0. **P0 — Contract-first cycle truth** (in flight): every cycle must show regime + whether each enabled Wave A strategy ran, had a setup, and why TAKE/SKIP/WAIT. Silence ≠ no setup; silence = DATA GAP.
-1. ~~Make Ananta backend independently runnable locally (Phase 3.6)~~ **Done 2026-08-21**
-2. ~~Point Agent Ananta at that backend via `ANANTA_BASE_URL`~~ **Done**
-3. Keep proving Contract v0 over the live API (auth → portfolio → paper order → ledgers)
-4. Wave A paper evidence (`hunter`, `squeeze`, `bollinger-mr`) — aggressive, marked, honest
-5. Cycle logger → decision ledger → opportunity ledger → outcome linkage
-6. Complete paper loop: TAKE → fill → exit → mark → evaluate
+1. ~~P0 1y candles~~ **Done**
+2. ~~P1 Knowledge Object~~ **Done**
+3. ~~P2 Lab BACKTEST file~~ **Done** (mixed symbol results; not KEEP)
+4. **S1 — continuous Observation** (`lab watch` + Market Truth snapshot)
+5. Wave A paper density + honest marks while observer runs
+6. S2–S5 without expanding strategy universe or auto-mutation
 
-The next meaningful milestone is still:
+Next meaningful milestone:
 
-> Can Wave A + Contract + ledgers produce a durable, auditable dataset showing exactly what Agent Ananta decided, what it skipped, why, and what happened afterward?
+> Can Wave A + Contract + Market Truth Observations produce an auditable dataset showing what Ananta thought, what the market did, what the Agent decided, and what happened afterward — without Ananta grading itself?
 
-Phase 3.6 is complete. Do not reopen hosting/UI work.
-
-**Do not start yet:** extra agents, fancy UI, autonomy, India, education product, $50 live, leaderboard, large strategy expansion, Vercel-for-the-agent, production mutation.
+**Do not start yet:** extra agents, fancy UI, autonomy, India, education, $50 live, leaderboard, large strategy expansion, ML training, automatic production mutation.

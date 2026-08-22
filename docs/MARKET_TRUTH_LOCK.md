@@ -1,0 +1,99 @@
+# Market Truth + Evidence Engine Lock — 2026-08-22
+
+**Status:** Locked. Extension of existing architecture — **not a restart**.
+
+Two capabilities are now first-class:
+
+1. **Strategy structure intelligence** — Agent understands Ananta strategies and may propose versioned experiments; never auto-rewrites production.
+2. **Continuous objective evidence loop** — `lab watch` + independent Market Truth + forward outcomes so Ananta cannot grade itself.
+
+Related: [NORTH_STAR_LOCK.md](./NORTH_STAR_LOCK.md), [ROADMAP.md](./ROADMAP.md), [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md).
+
+---
+
+## Hard laws
+
+1. **Ananta regime is a hypothesis, not ground truth.**
+2. **Ananta output is never proof that Ananta was correct.**
+3. Keep **three truths separate**:
+   - **System Truth** — cycle, regime label, strategy states, gates, Agent decision, positions/equity
+   - **Market Truth** — independent observables (price, returns, vol proxy, trend/compression, breadth)
+   - **Outcome Truth** — forward returns, MFE/MAE, opportunity cost, PnL path
+4. **Same observation schema** for live paper cycles and 1y Lab historical replay.
+5. **No automatic production mutation.** Path only:
+
+```text
+observation → finding → hypothesis → experiment → validation
+  → human approval → production version (e.g. Hunter v1.1)
+```
+
+6. No expanding strategy count for this work. Wave A remains hunter / squeeze / bollinger-mr WATCH.
+7. No ML "training" until the evidence base is dense and auditable.
+8. Continuous observer **logs only** — never silent enable/disable/KEEP.
+
+---
+
+## Capability 1 — Strategy structure intelligence
+
+Agent must understand (from Contract / Knowledge Object, not DNA alone):
+
+- Purpose, regime requirements, gates
+- Entry / exit / risk constraints
+- Why ran / skipped / filtered
+- Performance across market conditions (when Outcome Truth exists)
+
+Agent may **propose** changes, e.g.:
+
+> Hunter v1.1 — tighten REVERSAL gate; exclude strong-trend environments.
+
+Human promotes. Lab + paper validate. Production versions stay auditable.
+
+---
+
+## Capability 2 — Continuous observation + evidence
+
+### `lab watch --interval N` (default 15m; allow 5–15)
+
+Each tick, **same timestamp**:
+
+| Layer | Capture |
+|-------|---------|
+| System | Ananta cycle, regime, strategy observations, Agent WAIT/SKIP/TAKE, positions/equity |
+| Market | BTC/ETH price, simple returns, vol proxy, trend/compression flags, basic breadth |
+| Decision | Agent choice + reasons already on cycle contract |
+
+### Forward outcomes (Stage 2)
+
+Attach at least: **+15m / +1h / +4h** (more horizons later).
+
+Enables:
+
+- Regime Audit: SUPPORTED / MISCLASSIFIED / UNCERTAIN
+- Decision Audit: protective vs costly WAIT; SKIP quality; TAKE path; opportunity cost
+- Gate × market-condition performance
+
+---
+
+## Staged build (do not parallelize all)
+
+| Stage | Deliverable | Status |
+|-------|-------------|--------|
+| **1** | `lab watch` + market snapshot + cycle + decision → co-timestamped Observation | **Next engineering** |
+| **2** | Forward outcome attachment (+15m / +1h / +4h) | Queued |
+| **3** | Thin Regime Audit + Decision Audit | Queued |
+| **4** | Replay same schema on 1y Lab dataset | Queued |
+| **5** | Agent findings → experiment proposals (human approval) | Queued |
+
+P0–P2 (candles, Knowledge Object, BACKTEST lab file) remain **done**. Stage 1 does not replace Wave A paper marks; it densifies evidence without human-as-cron.
+
+---
+
+## Explicitly not now
+
+ML training, auto KEEP, auto strategy rewrite, expanding beyond Wave A, new UI, autonomy, India, second evidence schema for "live only."
+
+---
+
+## Definition of done (this lock)
+
+Agent Ananta can **criticize Ananta with independent market evidence**, not only agree with Ananta's labels — and can propose **validated** strategy experiments without deploying them.

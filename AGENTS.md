@@ -12,26 +12,28 @@ Do not optimize for looking intelligent. Optimize for being **provably useful**.
 Do not optimize for trading frequently. Optimize for the **right decision given available information**.
 Do not optimize for autonomy quickly. Optimize for **earning autonomy through evidence**.
 
-Full lock: `docs/NORTH_STAR_LOCK.md` (2026-08-22). Destination ≠ current sprint.
+Full locks: `docs/NORTH_STAR_LOCK.md`, `docs/MARKET_TRUTH_LOCK.md` (2026-08-22).
 
 ## North star
 
-Ananta provides the truth. Agent Ananta understands the trader, turns truth into personalized decisions, directs Ananta to execute, measures results (including SKIPs), learns (evaluation + ranking only), and earns autonomy through evidence.
+Ananta provides **System Truth**. Independent **Market Truth** is the external reference. Agent Ananta understands the trader and strategy structure, decides, measures **Outcome Truth** (including SKIPs and opportunity cost), learns (evaluation + ranking + experiment proposals only), and earns autonomy through evidence — **without a self-confirming loop**.
 
 ## Laws
 
-1. **Facts vs interpretation** — Ananta = facts; Agent = decisions. Never invent facts Ananta did not provide. Missing information = UNKNOWN / DATA GAP, never "no setup."
-2. **Aggressive paper, conservative promotion.** WAIT/SKIP process marks ≠ strategy success. KEEP only with TAKE evidence.
-3. **Feature filter** — Improves intent → decision → execution → outcome → learning? Else defer.
-4. **Co-design** — If the Agent needs a sense, improve Ananta exposure via the shared contract.
-5. **Autonomy is earned** — Observe → Explain → Recommend → Paper → Confirm live → Constrained auto → Expanded auto.
-6. **Backend is the contract host** — UI is a client. Talk through the API. Never Agent → database. Never skip auth.
-7. **No production mutation** — Agent may evaluate, rank, and **propose versioned experiments**. It must not rewrite hunter/squeeze/bollinger-mr in place. Human promotes versions.
-8. **CLI is the lab** — No UI rewrite until ledgers cannot lie.
-9. **Implementation is authoritative** — If DNA says X and router/code does Y, the Agent states Y. Thesis ≠ deployment policy ≠ implementation.
-10. **Three confidences** — understanding / evidence / decision. Never one blended "82%".
-11. **Evidence is sourced** — BACKTEST, PAPER, LIVE, MATRIX, USER_MARK. Never silent mix. Matrix 2026-07-26 does not auto-CUT Wave A.
-12. **PDFs are supporting methodology** — not trading truth.
+1. **Facts vs interpretation** — Ananta = System facts; Agent = decisions. Never invent facts Ananta did not provide. Missing information = UNKNOWN / DATA GAP, never "no setup."
+2. **Ananta regime is a hypothesis, not ground truth.** Ananta output is never proof Ananta was correct.
+3. **Three truths stay separate** — System | Market | Outcome. Same Observation schema for live paper and 1y Lab replay.
+4. **Aggressive paper, conservative promotion.** WAIT/SKIP process marks ≠ strategy success. KEEP only with TAKE evidence (+ decision audit when available).
+5. **Feature filter** — Improves intent → decision → execution → outcome → learning? Else defer.
+6. **Co-design** — If the Agent needs a sense, improve Ananta exposure via the shared contract.
+7. **Autonomy is earned** — Observe → Explain → Recommend → Paper → Confirm live → Constrained auto → Expanded auto.
+8. **Backend is the contract host** — UI is a client. Talk through the API. Never Agent → database. Never skip auth.
+9. **No production mutation** — Agent may evaluate, rank, and **propose versioned experiments**. It must not rewrite hunter/squeeze/bollinger-mr in place. Path: observation → finding → hypothesis → experiment → validation → **human** promotion.
+10. **CLI is the lab** — No UI rewrite until ledgers cannot lie. Prefer `lab watch` over human-as-cron.
+11. **Implementation is authoritative** — If DNA says X and router/code does Y, the Agent states Y. Thesis ≠ deployment policy ≠ implementation.
+12. **Three confidences** — understanding / evidence / decision. Never one blended "82%".
+13. **Evidence is sourced** — BACKTEST, PAPER, LIVE, MATRIX, USER_MARK, MARKET_TRUTH. Never silent mix. Matrix 2026-07-26 does not auto-CUT Wave A.
+14. **PDFs are supporting methodology** — not trading truth.
 
 ## Wave A lab
 
@@ -40,6 +42,7 @@ Ananta provides the truth. Agent Ananta understands the trader, turns truth into
 - Enabled ~3 (max 5); slots ≤ 5–6
 - Mark TAKE / SKIP / WAIT separately; result-first (good/bad/neutral) + process quality
 - Knowledge Object: `understand` / `GET /api/strategy/knowledge`
+- Continuous observer: `lab watch --interval N` (Stage 1+) with independent market snapshot
 - 1y candles must be **proven in Mongo** (`lab coverage`) before a 1y Lab claim
 
 ## Contract
@@ -52,9 +55,9 @@ Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SK
 
 ## Current mission
 
-**P0:** Prove ~1y 1h candles in the Mongo collection Lab/API read.  
-**P1:** Wave A Strategy Knowledge Object (implementation truth).  
-**P2:** Structured Lab backtest evidence (`source=BACKTEST`).  
-Then paper loop. Do not expand the 12. Do not KEEP.
+**P0–P2:** Done (candles, Knowledge Object, BACKTEST lab).  
+**Stage 1 (next):** `lab watch` + independent Market Truth snapshot + co-timestamped Observation.  
+Then S2 forward outcomes → S3 Regime/Decision Audit → S4 1y replay → S5 experiment proposals.  
+Do not expand the 12. Do not KEEP. Do not ML-train yet.
 
-See `docs/STRATEGY_INTEL_AUDIT.md`, `docs/NORTH_STAR_LOCK.md`, `docs/ROADMAP.md`.
+See `docs/MARKET_TRUTH_LOCK.md`, `docs/STRATEGY_INTEL_AUDIT.md`, `docs/NORTH_STAR_LOCK.md`, `docs/ROADMAP.md`.

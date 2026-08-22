@@ -1,14 +1,18 @@
 # North Star Lock — 2026-08-22
 
-**Status:** Locked. Destination is refined. Current sprint is unchanged.
+**Status:** Locked. Destination is refined. Current sprint extended by Market Truth lock (same day).
 
 Build the observable intelligence first. Build the autonomous authority later.
 
 **Operating philosophy:** Aggressive on paper. Ruthless on measurement. Conservative on promotion.
 
+**Evidence philosophy (locked):** Ananta regime is a **hypothesis**. Market measurements + forward price are the external reference. Agent must never learn "Ananta was correct because Ananta said so."
+
+Full Market Truth detail: [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md).
+
 ---
 
-## Destination (not this sprint)
+## Destination (not full autonomy this sprint)
 
 One platform, three jobs, one trust ladder:
 
@@ -22,23 +26,32 @@ LEARN → UNDERSTAND → PRACTICE → DECIDE → EXECUTE
 **B. Trading OS** — natural-language control of Ananta (and later honest API adapters).
 **C. Autonomous operator** — allocated capital only after evidence.
 
-Closed loop:
+Closed loop (non-circular):
 
 ```text
-USER INTENT → Agent (understand) → Ananta truth (Contract)
+USER INTENT → Agent (understand) → Ananta System Truth (Contract)
+  + Independent Market Truth
   → DECISION (TAKE/SKIP/WAIT/HOLD/EXIT) → EXECUTION
-  → OUTCOME (including SKIPs) → LEDGERS → EVALUATION
-  → LEARNING (eval + ranking only) → TRUST → PERMISSION
+  → OUTCOME Truth (forward path, opportunity cost)
+  → LEDGERS → REGIME AUDIT + DECISION AUDIT
+  → LEARNING (eval + ranking + experiment proposals only)
+  → TRUST → PERMISSION
 ```
 
 Moat is the loop, not the LLM. Missing data = UNKNOWN, never "no setup."
+
+Strategy feedback into Ananta design is first-class, **human-gated**:
+
+```text
+finding → hypothesis → experiment → lab/paper → human approval → versioned production
+```
 
 ---
 
 ## Confirmed 1–6 (hard)
 
-1. Vision is destination. Sprint stays Wave A + Contract truth + Phase 4/5.
-2. First user is still this lab (personal proof). Education product is later. Agent is the student; human marks are the teacher.
+1. Vision is destination. Sprint stays Wave A + Contract truth + evidence engine (Market Truth Stages 1–5).
+2. First user is still this lab (personal proof). Education product is later. Agent is the student; market + marks are the teachers.
 3. **No automatic production-strategy mutation.** Eval and ranking may update. Hunter/squeeze/bollinger-mr code does not mutate from a losing week. Mutation only via: observation → hypothesis → experiment → paper/backtest → eval → validation → **human** promotion.
 4. Two surfaces later. **CLI is the lab until ledgers cannot lie.** No UI rewrite now.
 5. Portfolio veto is later — after real TAKE evidence, not empty WAITs.
@@ -52,40 +65,44 @@ Moat is the loop, not the LLM. Missing data = UNKNOWN, never "no setup."
 Agent → Shared Contract / API → Ananta → DB / market / execution
 ```
 
-Ananta owns facts. Agent owns intelligence. No Agent→Mongo. No UI scrape.
+Ananta owns **System** facts. Market Truth is computed from **independent observables** (and historical candles), not from Ananta's regime field as proof. Agent owns intelligence. No Agent→Mongo. No UI scrape.
 
-Policy/risk will eventually sit **outside** the LLM. Future layer, not a reason to stop Wave A.
+Three truths stay distinct: **System | Market | Outcome**.
+
+Policy/risk will eventually sit **outside** the LLM. Future layer, not a reason to stop the evidence engine.
 
 ---
 
 ## Current sprint
 
 **Wave A:** hunter, squeeze, bollinger-mr. Do not add a strategy unless instructed.
-All three stay **WATCH** until evidence exists. WAIT-only marks ≠ KEEP.
+All three stay **WATCH** until TAKE evidence exists. WAIT-only marks ≠ KEEP.
 
-**Knowledge law (2026-08-22):** Implementation + router are authoritative. DNA is thesis, not live policy. Contradictions are first-class. Three confidences stay separate: understanding / evidence / decision. Historical Lab = `source=BACKTEST`. Paper = `source=PAPER`. Matrix 2026-07-26 = `source=MATRIX`. Never mix into KEEP.
+**Knowledge law:** Implementation + router are authoritative. DNA is thesis, not live policy. Contradictions are first-class. Three confidences stay separate: understanding / evidence / decision. Historical Lab = `source=BACKTEST`. Paper = `source=PAPER`. Matrix 2026-07-26 = `source=MATRIX`. Never mix into KEEP.
 
-| P | Job |
-|---|-----|
-| **P0** | **Prove ~1y 1h candles in `historical_candles` (same Mongo Lab/API reads). Gaps explicit.** |
-| **P1** | **Wave A Strategy Knowledge Object on the Contract (`GET /api/strategy/knowledge`).** |
-| **P2** | Structured Lab evidence on the Contract (`source=BACKTEST`). |
-| P3 | Per-symbol per-strategy markable rows |
-| P4 | Aggressive Wave A paper cycles |
-| P5 | Evaluate TAKE / SKIP / WAIT separately |
-| P6 | Strategy comparison summaries |
-| P7 | Wave A KEEP/WATCH/CUT only when TAKE evidence justifies it |
+| P / Stage | Job | Status |
+|-----------|-----|--------|
+| **P0** | Prove ~1y 1h candles in Mongo Lab/API reads | **Done** |
+| **P1** | Wave A Strategy Knowledge Object | **Done** |
+| **P2** | Lab 1y evidence `source=BACKTEST` | **Done** |
+| **S1** | `lab watch` + independent market snapshot + Observation | **Next** |
+| **S2** | Forward outcomes +15m / +1h / +4h | Queued |
+| **S3** | Regime Audit + Decision Audit (thin) | Queued |
+| **S4** | Same schema on 1y historical replay | Queued |
+| **S5** | Findings → experiment proposals (human-gated) | Queued |
+| P3–P7 | Per-symbol marks, paper density, KEEP only with TAKE evidence | Ongoing ops |
 
-Lab loop: `cycle` → `history` → `mark` → `evaluate` → `wavea` → `audit`. Knowledge: `understand`. History: `lab coverage` then `lab`.
+Lab ops: `cycle` / `lab watch` → ledgers → `mark` → `evaluate` → `wavea` → audits.
+Knowledge: `understand`. History: `lab coverage` / `lab status`.
 
-Definition of done: the Agent can repeatedly observe Ananta truth, decide, execute paper when appropriate, record why, observe outcome, evaluate honestly, and rank without inventing evidence.
+Definition of done: the Agent can repeatedly observe System + Market truth, decide, record why, observe Outcome truth, evaluate honestly (including opportunity cost), rank without inventing evidence, and **propose** experiments without deploying them.
 
-Not done because: commands work, text looks smart, one green trade, `evaluate` says SUPPORTED, paper equity ticks up.
+Not done because: commands work, text looks smart, one green trade, `evaluate` says SUPPORTED, paper equity ticks up, or Ananta regime matched itself.
 
 ---
 
 ## Explicitly not now
 
-Extra agents, cloning, autonomous wallets, live autonomy, $50 live, public leaderboard, education product, Vercel/UI rewrite, Agent→Mongo, multi-broker, India/US/CA adapters, unrestricted self-modification, automatic production mutation, Agent cockpit.
+Extra agents, cloning, autonomous wallets, live autonomy, $50 live, public leaderboard, education product, Vercel/UI rewrite, Agent→Mongo, multi-broker, India/US/CA adapters, unrestricted self-modification, automatic production mutation, Agent cockpit, ML training on thin data.
 
-Learning allowed now: evaluation + ranking. Production mutation: never automatic.
+Learning allowed now: evaluation + ranking + structured experiment proposals. Production mutation: never automatic.

@@ -231,6 +231,42 @@ def handle_cycle(user_input: str) -> bool:
             )
             print(f"  cycle_id: {cid}")
             print("  → Written to cycle + opportunity ledgers.")
+            try:
+                from src.tools.decision_log import save_decision
+
+                reasons = [
+                    str((item.get("macro") or {}).get("reason") or "")
+                    for item in results
+                ]
+                no_setup = bool(results) and all(
+                    "no qualifying setup" in r.lower() or not r.strip()
+                    for r in reasons
+                )
+                wait_reason = (
+                    f"Ananta cycle: no qualifying setup on {len(results)} symbols"
+                    if no_setup
+                    else f"Ananta cycle completed on {len(results)} symbols; no Agent TAKE"
+                )
+                save_decision({
+                    "market": "crypto",
+                    "symbol": symbol or "MULTI",
+                    "strategy": "WAIT",
+                    "strategy_key": "hunter" if no_setup else None,
+                    "action": "WAIT",
+                    "status": "skipped",
+                    "reason": wait_reason,
+                    "notes": wait_reason,
+                    "top_recommendation": "WAIT",
+                    "user_confirmed": True,
+                    "user_enabled_strategy": False,
+                    "cycle_id": cid,
+                    "portfolio_equity": equity,
+                    "open_positions": pos or 0,
+                    "expected_outcome": "ananta_cycle_wait",
+                })
+                print("  → Markable WAIT added to history (use: history then mark 1 ...)")
+            except Exception as e:
+                print(f"  (decision memory skipped: {e})")
         except Exception as e:
             print(f"  (cycle ledger skipped: {e})")
     else:

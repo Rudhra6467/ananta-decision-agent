@@ -183,7 +183,17 @@ def handle_cycle(user_input: str) -> bool:
         if not results and data.get("symbol"):
             results = [data]
         print(f"  symbols processed: {len(results)}")
-        for item in results[:5]:
+        interesting = 0
+        for item in results:
+            obs = item.get("strategy_observations") or []
+            hot = any(
+                o.get("setup_detected")
+                or str(o.get("decision") or "").upper() in ("TAKE", "SKIP")
+                or str(o.get("execution_state") or "") == "TAKE_EXECUTED"
+                for o in obs
+            )
+            if hot:
+                interesting += 1
             sym = item.get("symbol")
             macro = item.get("macro") or {}
             regime = item.get("regime") or {}
@@ -192,7 +202,6 @@ def handle_cycle(user_input: str) -> bool:
                 f"  • {sym}: bias={macro.get('bias')} conf={macro.get('confidence')} "
                 f"regime={reg_s or '—'} | {str(macro.get('reason', ''))[:72]}"
             )
-            obs = item.get("strategy_observations") or []
             for o in obs:
                 setup = o.get("setup_detected")
                 setup_s = "UNKNOWN" if setup is None else setup
@@ -204,8 +213,7 @@ def handle_cycle(user_input: str) -> bool:
                     f"setup={setup_s} state={o.get('execution_state')} "
                     f"dec={o.get('decision')} skip={o.get('skip_reason')}{extra}"
                 )
-        if len(results) > 5:
-            print(f"  ... and {len(results) - 5} more")
+        print(f"  setups/SKIPs/TAKEs this cycle: {interesting}/{len(results)} symbols")
         try:
             from src.tools.cycle_log import start_cycle, log_decision, log_opportunities, log_outcome_link
 

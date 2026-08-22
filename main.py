@@ -523,7 +523,7 @@ def interactive_mode():
 
         elif user_input in ["history", "decisions", "log"]:
             from src.tools.decision_log import get_recent_decisions
-            decisions = get_recent_decisions(limit=8)
+            decisions = get_recent_decisions(limit=12)
 
             if not decisions:
                 print("No decisions logged yet.")

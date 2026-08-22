@@ -225,6 +225,9 @@ def wave_a_snapshot(marks_limit: int = 50) -> dict:
     """
     Light post-cycle helper: summarize Wave A strategies from decision marks + enables.
     Human still decides KEEP/WATCH/CUT; this only suggests.
+
+    WAIT/NO_SETUP process marks are NOT strategy-success evidence.
+    KEEP suggestions require TAKE outcome marks.
     """
     wave = ["hunter", "squeeze", "bollinger-mr"]
     try:
@@ -249,28 +252,56 @@ def wave_a_snapshot(marks_limit: int = 50) -> dict:
             and str(d.get("strategy_key") or "").lower() != "manual"
             and str(d.get("status") or "").lower() not in ("keep", "watch", "cut")
         ]
-        good = sum(1 for d in related if d.get("outcome") == "good")
-        bad = sum(1 for d in related if d.get("outcome") == "bad")
-        neutral = sum(1 for d in related if d.get("outcome") == "neutral")
-        pending = sum(1 for d in related if d.get("outcome") == "pending")
+        takes = [
+            d for d in related
+            if str(d.get("action") or "").upper() == "TAKE"
+            or str(d.get("status") or "").lower() == "filled"
+        ]
+        waits = [
+            d for d in related
+            if str(d.get("action") or "").upper() in ("WAIT", "SKIP", "SKIPPED")
+            or str(d.get("status") or "").lower() in ("skipped", "wait")
+        ]
+        take_good = sum(1 for d in takes if d.get("outcome") == "good")
+        take_bad = sum(1 for d in takes if d.get("outcome") == "bad")
+        take_neu = sum(1 for d in takes if d.get("outcome") == "neutral")
+        take_pend = sum(1 for d in takes if d.get("outcome") == "pending")
+        wait_good = sum(1 for d in waits if d.get("outcome") == "good")
+        wait_bad = sum(1 for d in waits if d.get("outcome") == "bad")
+        wait_neu = sum(1 for d in waits if d.get("outcome") == "neutral")
+        wait_pend = sum(1 for d in waits if d.get("outcome") == "pending")
+        good, bad, neutral, pending = take_good, take_bad, take_neu, take_pend
         total_marked = good + bad + neutral
-        if total_marked == 0:
+        if total_marked == 0 and (wait_good + wait_bad + wait_neu) == 0:
             suggestion = "WATCH"
             note = "No marked outcomes yet — keep gathering evidence."
+        elif total_marked == 0:
+            suggestion = "WATCH"
+            note = (
+                f"INSUFFICIENT_EVIDENCE for KEEP — only WAIT/SKIP marks "
+                f"(wait good={wait_good} bad={wait_bad}). Need TAKE outcomes."
+            )
         elif bad > good + 1:
             suggestion = "CUT"
-            note = f"More bad ({bad}) than good ({good}) marks."
+            note = f"More bad TAKEs ({bad}) than good ({good})."
         elif good >= 3 and good > bad:
             suggestion = "KEEP"
-            note = f"Supportive marks good={good} bad={bad}."
+            note = f"Supportive TAKE marks good={good} bad={bad}."
         else:
             suggestion = "WATCH"
-            note = f"Mixed/early: good={good} bad={bad} neutral={neutral} pending={pending}."
+            note = (
+                f"Mixed/early TAKEs: good={good} bad={bad} neutral={neutral} pending={pending}. "
+                f"WAIT marks: good={wait_good} bad={wait_bad}."
+            )
         summary[key] = {
             "good": good,
             "bad": bad,
             "neutral": neutral,
             "pending": pending,
+            "wait_good": wait_good,
+            "wait_bad": wait_bad,
+            "wait_neutral": wait_neu,
+            "wait_pending": wait_pend,
             "suggestion": suggestion,
             "note": note,
         }

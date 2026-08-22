@@ -36,7 +36,7 @@ Live HTTP the agent uses: `/api/auth/login`, `/api/portfolio`, `/api/orders/manu
 
 ## Current mission
 
-**Phase 3.6 first:** local Ananta backend independently runnable; Agent pointed at `ANANTA_BASE_URL` (not the expired Emergent host). Then Wave A evidence + Contract v0 + cycle/decision/opportunity logging.
+**Phase 3.6 done (2026-08-21):** local Ananta backend independently runnable; Agent pointed at `ANANTA_BASE_URL=http://127.0.0.1:8001`. Current: Wave A evidence + Contract v0 + cycle/decision/opportunity/outcome logging.
 
 See `docs/LOCAL_LOOP.md`.
 

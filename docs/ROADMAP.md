@@ -19,9 +19,9 @@ This addendum does **not** reopen the product roadmap. It records how we run the
 | 0 | Architecture + product lock | Locked by principles |
 | 1 | Agent foundation | Done |
 | 2 | Lab operability | Nearly done |
-| 3 | Wave A discovery | Current — blocked on a live Ananta API |
-| 3.5 | Shared contract v0 | In progress |
-| 3.6 | Backend independence (local Ananta API) | **Current unblocking work** |
+| 3 | Wave A discovery | Current — local API live; gather marks |
+| 3.5 | Shared contract v0 | Proven locally (auth, portfolio, paper order, enable, cycle) |
+| 3.6 | Backend independence (local Ananta API) | **Done 2026-08-21** — localhost:8001 + Mongo Atlas |
 | 4 | Decision Intelligence Infrastructure | In progress (loggers) |
 | 5 | Agent decision evaluation | Not started |
 | 6 | Engine + strategy validation | Not started |
@@ -110,16 +110,16 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 
 ## Current mission
 
-1. Make Ananta backend independently runnable locally (Phase 3.6)  
-2. Point Agent Ananta at that backend via `ANANTA_BASE_URL`  
-3. Prove Contract v0 over the live API (auth → portfolio → paper order → ledgers)  
-4. Resume Wave A evidence  
-5. Cycle logger → decision ledger → opportunity ledger → outcome linkage  
+1. ~~Make Ananta backend independently runnable locally (Phase 3.6)~~ **Done 2026-08-21**
+2. ~~Point Agent Ananta at that backend via `ANANTA_BASE_URL`~~ **Done**
+3. Keep proving Contract v0 over the live API (auth → portfolio → paper order → ledgers)
+4. Resume Wave A evidence (`hunter`, `squeeze`, `bollinger-mr`)
+5. Cycle logger → decision ledger → opportunity ledger → outcome linkage
 
 The next meaningful milestone is still:
 
 > Can Wave A + Contract + ledgers produce a durable, auditable dataset showing exactly what Agent Ananta decided, what it skipped, why, and what happened afterward?
 
-Phase 3.6 is how we get a backend to answer that. It is not a new product thesis.
+Phase 3.6 is complete. Do not reopen hosting/UI work.
 
 **Do not start yet:** extra agents, fancy UI, autonomy, India, large strategy expansion, Vercel-for-the-agent.

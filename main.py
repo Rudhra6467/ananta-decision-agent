@@ -380,10 +380,15 @@ def research_menu():
 
 
 def _log_strategy_toggle(action: str, key: str):
-    """Write enable/disable actions into decision memory."""
+    """Write enable/disable actions into decision memory + cycle ledger."""
     try:
         from src.tools.decision_log import save_decision
+        from src.tools.cycle_log import get_last_cycle_id, start_cycle, log_decision
+
         is_enable = action == "enable"
+        cycle_id = get_last_cycle_id()
+        if not cycle_id:
+            cycle_id = start_cycle(notes=f"manual_{action}")
         save_decision({
             "market": "crypto",
             "strategy": key,
@@ -397,8 +402,19 @@ def _log_strategy_toggle(action: str, key: str):
             "expected_outcome": f"manual_{action}",
             "notes": f"standalone {action} command",
             "action": action.upper(),
+            "cycle_id": cycle_id,
         })
+        log_decision(
+            cycle_id,
+            action=action.upper(),
+            strategy=key,
+            strategy_key=key,
+            reason=f"Manual {action.upper()} via Agent CLI: {key}",
+            user_confirmed=True,
+            status="enabled" if is_enable else "disabled",
+        )
         print("→ Logged to decision memory.")
+        print(f"→ Linked to cycle {cycle_id}")
     except Exception as e:
         print(f"→ (memory log skipped: {e})")
 
@@ -415,6 +431,7 @@ def interactive_mode():
     print("  status                     → Strategy enabled/disabled list")
     print("  history                    → Decision memory journal")
     print("  cycles                     → Cycle + opportunity ledger")
+    print("  wavea / postcycle          → Wave A KEEP/WATCH/CUT suggestions")
     print("  help                       → Show all commands")
     print("  exit                       → Quit")
     print("=" * 55)
@@ -593,6 +610,10 @@ def interactive_mode():
                         print(f"   {i}. {c.get('name')} conf={c.get('confidence')}")
                 print("-" * 65)
 
+        elif user_input in ["wavea", "wave a", "postcycle", "post-cycle"]:
+            from src.phase4_cli import print_wavea_snapshot
+            print_wavea_snapshot()
+
         elif user_input in ["help", "commands", "?"]:
             print("\nAvailable commands:")
             print("  run / analyze / recommend  → Full market analysis")
@@ -609,6 +630,7 @@ def interactive_mode():
             print("  profile                    → Show your saved profile")
             print("  history                    → Decision memory journal")
             print("  cycles                     → Cycle + opportunity ledger")
+            print("  wavea / postcycle          → Wave A KEEP/WATCH/CUT suggestions")
             print("  performance / stats        → Decision performance summary")
             print("  mark <num> good/bad/neutral→ Mark outcome")
             print("  mark <num> good good_process → Mark outcome + process quality")
@@ -754,6 +776,8 @@ def interactive_mode():
                 print("Note: Many strategies are enabled. Watch for overlapping signals.")
 
             print("=" * 55)
+            from src.phase4_cli import link_monitor_outcome
+            link_monitor_outcome(open_count, len(enabled), health, get_portfolio)
 
         elif user_input in ["status", "strategies", "strategy status"]:
             from src.tools.ananta_api import get_strategy_status

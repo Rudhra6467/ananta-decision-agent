@@ -1,11 +1,54 @@
 """CLI helpers for real Ananta paper execution (buy/sell/cycle/cleanup)."""
 
 
+def _book_snapshot():
+    """Best-effort enabled/equity snapshot for ledgers. Fail soft."""
+    enabled_names, enabled_count, equity, open_positions = [], 0, None, None
+    try:
+        from src.tools.ananta_api import get_strategy_status, get_portfolio
+
+        st = get_strategy_status()
+        if st.get("success"):
+            enabled_names = [
+                s.get("name") or s.get("key")
+                for s in st.get("strategies", [])
+                if s.get("enabled")
+            ]
+            enabled_count = len(enabled_names)
+        port = get_portfolio()
+        if port.get("success") and port.get("data"):
+            data = port["data"]
+            equity = data.get("equity") or data.get("total_value") or data.get("balance")
+            open_positions = data.get("slots_used") or data.get("open_positions")
+    except Exception:
+        pass
+    return enabled_names, enabled_count, equity, open_positions
+
+
 def _log_manual_order(side: str, symbol: str, result: dict, extra: dict = None):
-    """Write a decision-memory record for a manual paper order."""
+    """Write a decision-memory record for a manual paper order + cycle ledger TAKE."""
     try:
         from src.tools.decision_log import save_decision
+        from src.tools.cycle_log import (
+            get_last_cycle_id,
+            start_cycle,
+            log_decision,
+            log_outcome_link,
+        )
+
         trade = (result.get("data") or {}).get("trade") or {}
+        names, count, equity, pos = _book_snapshot()
+        cycle_id = get_last_cycle_id()
+        if not cycle_id:
+            cycle_id = start_cycle(
+                symbol=trade.get("symbol") or symbol,
+                price=trade.get("price"),
+                equity=equity,
+                open_positions=pos,
+                enabled_strategies=names,
+                enabled_count=count,
+                notes="manual_paper_order",
+            )
         payload = {
             "market": "crypto",
             "symbol": trade.get("symbol") or symbol,
@@ -23,11 +66,37 @@ def _log_manual_order(side: str, symbol: str, result: dict, extra: dict = None):
             "status": "filled" if result.get("success") else "failed",
             "expected_outcome": "manual_order",
             "notes": f"trade_id={trade.get('id')} notional={trade.get('notional')} qty={trade.get('quantity')}",
+            "action": "TAKE",
+            "cycle_id": cycle_id,
+            "portfolio_equity": equity,
+            "open_positions": pos or 0,
         }
         if extra:
             payload.update(extra)
         save_decision(payload)
+        log_decision(
+            cycle_id,
+            action="TAKE",
+            strategy="manual",
+            strategy_key="manual",
+            reason=f"Manual paper {side} {symbol}",
+            user_confirmed=True,
+            status=payload["status"],
+            extra={
+                "side": side,
+                "symbol": trade.get("symbol") or symbol,
+                "trade_id": trade.get("id"),
+                "notional": trade.get("notional"),
+            },
+        )
+        log_outcome_link(
+            cycle_id,
+            equity=equity,
+            open_positions=pos,
+            note=f"manual {side} {symbol}",
+        )
         print("→ Logged to decision memory.")
+        print(f"→ Linked to cycle {cycle_id}")
     except Exception as e:
         print(f"→ (memory log skipped: {e})")
 
@@ -117,6 +186,53 @@ def handle_cycle(user_input: str) -> bool:
             print(f"  • {sym}: bias={macro.get('bias')} conf={macro.get('confidence')} | {str(macro.get('reason', ''))[:80]}")
         if len(results) > 5:
             print(f"  ... and {len(results) - 5} more")
+        try:
+            from src.tools.cycle_log import start_cycle, log_decision, log_opportunities, log_outcome_link
+
+            names, count, equity, pos = _book_snapshot()
+            cid = start_cycle(
+                regime=None,
+                symbol=symbol or "MULTI",
+                equity=equity,
+                open_positions=pos,
+                enabled_strategies=names,
+                enabled_count=count,
+                load_level="OK" if (pos or 0) < 7 else "CAUTION",
+                notes="ananta_eval_cycle",
+            )
+            log_decision(
+                cid,
+                action="CYCLE",
+                reason=f"Ananta evaluation ran_at={data.get('ran_at')} symbols={len(results)}",
+                status="completed",
+                extra={"ananta_ran_at": data.get("ran_at"), "symbol_count": len(results)},
+            )
+            cands = []
+            for item in results[:12]:
+                macro = item.get("macro") or {}
+                cands.append({
+                    "name": item.get("symbol"),
+                    "confidence": macro.get("confidence"),
+                    "reason": str(macro.get("reason", ""))[:160],
+                    "style": macro.get("bias"),
+                })
+            log_opportunities(
+                cid,
+                cands,
+                chosen_action="WAIT",
+                chosen_strategy=None,
+                regime=None,
+            )
+            log_outcome_link(
+                cid,
+                equity=equity,
+                open_positions=pos,
+                note="after ananta evaluation cycle",
+            )
+            print(f"  cycle_id: {cid}")
+            print("  → Written to cycle + opportunity ledgers.")
+        except Exception as e:
+            print(f"  (cycle ledger skipped: {e})")
     else:
         print(f"→ Failed: {result.get('error') or result}")
     return True

@@ -1,5 +1,5 @@
 """
-Stage 1 — Continuous Market + Ananta Observation.
+Stage 1+2 — Continuous Market + Ananta Observation + Outcome backfill.
 
 lab watch [--interval N minutes]
 
@@ -8,6 +8,7 @@ Each tick:
   2. Ananta evaluation cycle (System Truth)
   3. Agent decision summary (WAIT/SKIP/TAKE aggregate)
   4. Co-timestamped Observation record
+  5. Backfill due +15m/+1h/+4h Outcome Truth on prior rows
 
 Does NOT enable strategies, KEEP, or mutate production code.
 Ctrl+C stops the watcher only.
@@ -164,6 +165,12 @@ def capture_one_observation() -> Dict[str, Any]:
     record["obs_id"] = obs_id
     ok = append_observation(record)
     record["_written"] = ok
+    try:
+        from src.tools.outcome_truth import backfill_outcomes
+        summary = backfill_outcomes(limit=100)
+        record["_outcome_backfill"] = summary
+    except Exception as e:
+        record["_outcome_backfill"] = {"ok": False, "error": str(e)}
     return record
 
 
@@ -187,7 +194,11 @@ def _print_tick(record: dict) -> None:
     if regimes:
         bits = [f"{k.split('/')[0]}={v}" for k, v in list(regimes.items())[:6]]
         print(f"  REGIME(hypothesis)  {', '.join(bits)}")
-    print("  OUTCOME  (Stage 2 — not attached yet)")
+    bf = record.get("_outcome_backfill") or {}
+    if bf.get("ok"):
+        print(f"  OUTCOME  backfill filled={bf.get('filled')} scanned={bf.get('scanned')} (Stage 2)")
+    else:
+        print(f"  OUTCOME  backfill pending/error={bf.get('error') or 'n/a'}")
     print(f"  saved={record.get('_written')}  file=observation_log.jsonl")
     print("  (log only — no KEEP, no strategy mutation)")
 
@@ -196,10 +207,10 @@ def run_lab_watch(interval_min: int = DEFAULT_INTERVAL_MIN) -> None:
     interval_min = max(MIN_INTERVAL_MIN, min(MAX_INTERVAL_MIN, int(interval_min)))
     seconds = interval_min * 60
     print()
-    print("LAB WATCH — Stage 1 continuous Observation")
+    print("LAB WATCH — Stage 1+2 continuous Observation + Outcome backfill")
     print("=" * 64)
     print(f"interval = {interval_min} min  (range {MIN_INTERVAL_MIN}–{MAX_INTERVAL_MIN})")
-    print("Each tick: Market Truth (Kraken) + Ananta cycle + decision")
+    print("Each tick: Market Truth + Ananta cycle + decision + due Outcome fill")
     print("Ananta regime = hypothesis. No auto ENABLE/KEEP/mutation.")
     print("Ctrl+C stops the watcher (backend keeps running).")
     print("=" * 64)
@@ -221,4 +232,5 @@ def run_lab_watch(interval_min: int = DEFAULT_INTERVAL_MIN) -> None:
         print("lab watch stopped.")
         print_recent_observations(limit=5)
         print("Tip: lab observations   → review ledger")
+        print("     lab outcomes       → backfill + show forward returns")
         print("     cycle / mark       → still available for human marks")

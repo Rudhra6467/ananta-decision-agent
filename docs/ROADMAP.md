@@ -52,8 +52,8 @@ This file does **not** reopen education, adapters, $50 live, cockpit, or leaderb
 | **S2** | Forward attach +15m / +1h / +4h | **Done** |
 | **S3** | Regime Audit + Decision Audit (SUPPORTED / MISCLASSIFIED / UNCERTAIN; opportunity cost) | **Done** (not a KEEP/CUT verdict) |
 | **S4** | Same schema replayed on 1y Lab data | **Done** — `lab replay` / `lab audit replay` |
-| **Compare** | Live vs historical (`lab compare`) | **Now** |
-| **S5** | Findings → experiment proposals; human approval mandatory | After compare review |
+| **Compare** | Live vs historical (`lab compare`) | **Done** — reviewed 2026-08-23, not KEEP |
+| **S5** | Findings → experiment proposals; human approval mandatory | **Proposed** — [S5_HYPOTHESES.md](./S5_HYPOTHESES.md); not executing |
 
 Same schema for live paper and historical replay. No second parallel evidence system.
 
@@ -91,8 +91,8 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 3. ~~P2 Lab BACKTEST file~~ **Done** (mixed symbol results; not KEEP)
 4. ~~S4 1y historical Observation replay~~ **Done** (`lab replay` + `lab audit replay`; TAKE-eq ≠ KEEP)
 5. Live watcher continues (`lab watch 15`) as a parallel evidence stream
-6. **Now: live vs historical compare** (`lab compare`)
-7. Only then S5 versioned experiment proposals (human approval). Decision Intelligence is NEXT, not now.
+6. ~~live vs historical compare~~ **Done** (`lab compare` 2026-08-23)
+7. **S5 proposed** (`docs/S5_HYPOTHESES.md`) — human approval before any experiment. Wave A WATCH.
 
 Next meaningful milestone:
 

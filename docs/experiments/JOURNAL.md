@@ -37,6 +37,28 @@ Notes:
 
 ---
 
+## 2026-08-23 — live vs historical compare reviewed
+
+Wave: A — all **WATCH**
+
+Actions:
+- `lab compare` — live n=54 (+1h=50), hist n=2474
+- Did **not** KEEP/CUT/enable TREND_UP/rewrite Hunter
+- Opened S5 as **proposed hypotheses only** (`docs/S5_HYPOTHESES.md`) — not approved
+
+Compare (incommensurable; do not mix):
+- Live: SKIP 19 / WAIT 35 / TAKE 0; sit-out +1h −0.116%; hunter 2/2 setups TREND_UP REGIME_FILTERED
+- Hist: WAIT 2206 / SKIP 213 / TAKE-eq 55 (47 bollinger); sit-out +1h −0.007%; hunter 104 filtered / 4 TAKE-eq
+
+FINDINGS (not modifications):
+> Hunter is noisy in TREND_UP and silent in REVERSAL. Squeeze is scarce and aligned. Bollinger owns hist TAKE-eq and stays shadow. Sit-out is a 1y wash.
+
+Scoreboard: no change. S5 not executing until human approval (recommended: H3 report split + H2 gate histogram).
+
+Charter OK? yes
+
+---
+
 ## 2026-08-23 — S3 audit locked as evidence; S4 replay shipped
 
 Wave: A (hunter / squeeze / bollinger-mr) — all **WATCH**

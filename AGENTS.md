@@ -57,9 +57,8 @@ Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SK
 ## Current mission
 
 **P0–P2:** Done (candles, Knowledge Object, BACKTEST lab).  
-**S1–S4:** Done (live observer + 1y `lab replay` / `lab audit replay`).  
-**Now:** `lab compare` — live vs historical, same schema, do not mix.  
-Then S5 experiment proposals (human approval). Wave A WATCH.  
-Decision Intelligence (typed deliberation, counter-thesis) is **NEXT**, not this sprint. No Bull/Bear, no TradingAgents integration, no extra agents.
+**S1–S4:** Done. **Compare:** Done (`lab compare` 2026-08-23).  
+**S5:** Proposed only — `docs/S5_HYPOTHESES.md`. Not executing until human approval.  
+Wave A WATCH. Recommended next if approved: H3 (split TAKE-eq by strategy) + H2 (hunter gate histogram). Not H1 live enable.
 
 See `docs/MARKET_TRUTH_LOCK.md`, `docs/STRATEGY_INTEL_AUDIT.md`, `docs/NORTH_STAR_LOCK.md`, `docs/ROADMAP.md`.

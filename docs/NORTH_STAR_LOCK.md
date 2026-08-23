@@ -89,8 +89,8 @@ All three stay **WATCH** until TAKE evidence exists. WAIT-only marks ≠ KEEP.
 | **S2** | Forward outcomes +15m / +1h / +4h | **Done** |
 | **S3** | Regime Audit + Decision Audit (thin) | **Done** (overnight sample = evidence, not KEEP/CUT) |
 | **S4** | Same schema on 1y historical replay | **Done** (`lab replay` / `lab audit replay` — TAKE-eq ≠ KEEP) |
-| **Compare** | Live vs historical, same schema, do not mix | **Now** (`lab compare`) |
-| **S5** | Findings → experiment proposals (human-gated) | After compare review |
+| **Compare** | Live vs historical, same schema, do not mix | **Done** (`lab compare` 2026-08-23) |
+| **S5** | Findings → experiment proposals (human-gated) | **Proposed** — not executing |
 | P3–P7 | Per-symbol marks, paper density, KEEP only with TAKE evidence | Ongoing ops |
 
 Lab ops: `cycle` / `lab watch` → ledgers → `mark` → `evaluate` → `wavea` → audits.

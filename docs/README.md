@@ -7,6 +7,7 @@ Observability and operating docs for the paper-trading laboratory.
 | [NORTH_STAR_LOCK.md](./NORTH_STAR_LOCK.md) | Destination + sprint laws |
 | [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md) | Independent Market Truth, lab watch, audits, experiment path |
 | [STAGE4_REPLAY_LOCK.md](./STAGE4_REPLAY_LOCK.md) | **2026-08-23** — 1y historical observation_v0 replay; not KEEP |
+| [TRADINGAGENTS_REFERENCE_AUDIT.md](./TRADINGAGENTS_REFERENCE_AUDIT.md) | **2026-08-23** — Tauric TradingAgents KEEP/ADAPT/REJECT; not a clone |
 | [ROADMAP.md](./ROADMAP.md) | Locked product roadmap + stages S1–S5 |
 | [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md) | What the Agent knows vs Ananta |
 | [LOCAL_LOOP.md](./LOCAL_LOOP.md) | Backend-first lab loop — **no website required** |

@@ -42,3 +42,8 @@ class AgentState(TypedDict):
     _cycle_id: Optional[str]
     _cycle_decision_logged: Optional[bool]
     _user_action: Optional[str]
+
+    # Decision Intelligence foundation (behavior profile, not extra agents)
+    risk_profile: Optional[str]
+    user_intent: Optional[str]
+    typed_decision: Optional[dict]

@@ -120,9 +120,37 @@ def handle_lab_command(user_input: str) -> bool:
     elif rest in ("once", "tick", "observe"):
         from src.lab_watch import capture_one_observation, _print_tick
         _print_tick(capture_one_observation())
+    elif _is_di_command(rest):
+        from src.intelligence.cli import main as di_main
+        di_main(rest.split())
     else:
-        print("lab | lab watch [N] | lab once | lab outcomes | lab audit | lab audit replay | lab replay [BTC/USD] | lab compare | lab understanding | lab observations | lab wait | lab status | lab coverage")
+        print(
+            "lab | lab watch [N] | lab once | lab outcomes | lab audit | lab audit replay | "
+            "lab replay [BTC/USD] | lab compare | lab understanding | lab observations | "
+            "lab wait | lab status | lab coverage | lab system | lab profile | lab di | "
+            "lab experiments | lab paper-sim | lab contract | lab attribution | lab research | "
+            "lab gates | lab intent"
+        )
     return True
+
+
+DI_COMMANDS = {
+    "di", "decide", "adjudicate",
+    "profile", "profiles", "risk",
+    "system", "completeness",
+    "experiments", "experiment", "s5",
+    "paper-sim", "papersim", "sim", "paper",
+    "contract", "api",
+    "attribution", "attr",
+    "research",
+    "gates", "gate", "safety",
+    "intent", "context",
+}
+
+
+def _is_di_command(rest: str) -> bool:
+    first = (rest.split()[0] if rest else "")
+    return first in DI_COMMANDS
 
 
 def print_lab_coverage():

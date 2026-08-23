@@ -6,7 +6,7 @@
 **Strategy intelligence audit:** 2026-08-22 — [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md)  
 **Market Truth + continuous evidence:** 2026-08-22 — [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md)
 
-**Immediate (locked):** P0–P2 **done**. S1–S4 **done** (live observer + 1y replay). **Now = live vs historical compare** (`lab compare`). Then S5 experiment proposals (human approval). Wave A stays **WATCH**. TradingAgents is a reference only — Decision Intelligence is NEXT, not this sprint.
+**Immediate (locked):** P0–P2 **done**. S1–S4 **done**. Compare **done**. S5 **parked** (tape accumulating; experiment ledger exists, `try_run` refused). **Now = Decision Intelligence foundation** while `lab watch` continues. Wave A stays **WATCH**. TradingAgents is a reference only — extra agents still not.
 
 **North star:** Ananta provides System Truth. Independent Market Truth is the external reference. Agent Ananta understands the trader and the strategies, decides, measures Outcome Truth (including SKIPs and opportunity cost), learns (evaluation + ranking + proposals only), and earns autonomy through evidence — without a self-confirming loop.
 
@@ -29,17 +29,20 @@ This file does **not** reopen education, adapters, $50 live, cockpit, or leaderb
 | 3 | Wave A discovery | Current — paper + continuous observer |
 | 3.5 | Shared contract v0 | Proven locally |
 | 3.6 | Backend independence (local Ananta API) | **Done 2026-08-21** |
-| 4 | Decision Intelligence Infrastructure | Done enough — ledgers + wavea + audit |
-| 4.5 | Market Truth + Observation schema | **S1–S4 done; compare now** |
-| 5 | Agent decision evaluation | In progress — WAIT ≠ KEEP; need TAKE + outcome audits |
-| 6 | Engine + strategy validation (incl. regime audit) | Starts after S1–S3 |
-| 7 | Research + PDF intelligence | Not started |
-| 8 | User intelligence + personalization | Not started |
-| 9 | Personalized paper closed loop | Not started |
+| 4 | Decision Intelligence Infrastructure | **Foundation now** — typed decisions, profiles, gates |
+| 4.5 | Market Truth + Observation schema | **S1–S4 + compare done**; live watch continues |
+| 5 | Agent decision evaluation | In progress — WAIT ≠ KEEP; attribution engine ready |
+| 6 | Engine + strategy validation (incl. regime audit) | S1–S3 done; KEEP still gated |
+| 7 | Research + PDF intelligence | Research workflow scaffold (`lab research`); PDF later |
+| 8 | User intelligence + personalization | Intent + profiles scaffold; personalization later |
+| 9 | Personalized paper closed loop | Not started (paper-sim exists, no fills) |
 | 10 | Trust report | Not started |
 | 11 | Human-confirmed live | Not started |
-| 12 | Agent cockpit | Not started |
-| 13–16 | Monitoring, management, autonomy, learning | Not started |
+| 12 | Agent cockpit | Not started — CLI is the lab |
+| 13 | Monitoring | Scaffold — `lab system` |
+| 14 | Management | Scaffold — profiles + intent |
+| 15 | Autonomy | Scaffold — orchestrate + gates; not live |
+| 16 | Learning | Proposals only |
 | 17 | India adapters | Gate: after Trust + Personal Proof |
 
 ---
@@ -53,7 +56,8 @@ This file does **not** reopen education, adapters, $50 live, cockpit, or leaderb
 | **S3** | Regime Audit + Decision Audit (SUPPORTED / MISCLASSIFIED / UNCERTAIN; opportunity cost) | **Done** (not a KEEP/CUT verdict) |
 | **S4** | Same schema replayed on 1y Lab data | **Done** — `lab replay` / `lab audit replay` |
 | **Compare** | Live vs historical (`lab compare`) | **Done** — reviewed 2026-08-23, not KEEP |
-| **S5** | Findings → experiment proposals; human approval mandatory | **Proposed** — [S5_HYPOTHESES.md](./S5_HYPOTHESES.md); not executing |
+| **S5** | Findings → experiment proposals; human approval mandatory | **Parked** — tape accumulating; [S5_HYPOTHESES.md](./S5_HYPOTHESES.md); `lab experiments` ledger, `try_run` refused |
+| **DI** | Typed decisions, profiles, hard gates, paper-sim | **Foundation now** — [DECISION_INTELLIGENCE_LOCK.md](./DECISION_INTELLIGENCE_LOCK.md) |
 
 Same schema for live paper and historical replay. No second parallel evidence system.
 
@@ -92,10 +96,11 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 4. ~~S4 1y historical Observation replay~~ **Done** (`lab replay` + `lab audit replay`; TAKE-eq ≠ KEEP)
 5. Live watcher continues (`lab watch 15`) as a parallel evidence stream
 6. ~~live vs historical compare~~ **Done** (`lab compare` 2026-08-23)
-7. **S5 proposed** (`docs/S5_HYPOTHESES.md`) — human approval before any experiment. Wave A WATCH.
+7. **S5 parked** (`docs/S5_HYPOTHESES.md`) — tape accumulating; experiment ledger exists; `try_run` refused. Wave A WATCH.
+8. **DI foundation now** — `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim`
 
 Next meaningful milestone:
 
-> Same schema, two clocks, honest compare — without mixing files or promoting Wave A.
+> Feature-complete behavior machine while Wave A stays WATCH — then fine-tune from tape.
 
-**Do not start yet:** extra agents, Bull/Bear, TradingAgents integration, fancy UI, autonomy, India, education, $50 live, leaderboard, large strategy expansion, ML training, automatic production mutation.
+**Do not start yet:** extra agents, Bull/Bear, TradingAgents integration, fancy UI, live autonomy, India, education, $50 live, leaderboard, large strategy expansion, ML training, automatic production mutation, H1 TREND_UP enable.

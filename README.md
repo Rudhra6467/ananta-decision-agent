@@ -7,9 +7,16 @@ Agent Ananta owns **interpretation, ranking, decisions, explanation, and learnin
 
 Built with LangGraph. Paper mode only until a Trust Report exists.
 
-## Current phase (2026-08-20)
+## Current phase (2026-08-23)
 
-Wave A + Contract v0 + Phase 4 ledgers.
+Wave A **WATCH**. S1–S4 + live vs historical compare **done**. S5 **parked** (tape accumulating).  
+Decision Intelligence **foundation now**: typed TAKE/SKIP/WAIT, SAFE/MODERATE/AGGRESSIVE profiles, hard gates outside the LLM.
+
+```text
+lab system | lab profile | lab di | lab gates | lab paper-sim | lab experiments
+```
+
+`python -m src.intelligence system` works even if `main.py` is the recovery stub.
 
 Emergent hosting is expired. **Do not depend on the Ananta website.** Run the Ananta **backend** locally and point this agent at it.
 

@@ -7,6 +7,7 @@ Load this when working on Agent Ananta code, lab decisions, ranking, or roadmap.
 Build the observable intelligence first. Build the autonomous authority later.
 
 Aggressive on paper. Ruthless on measurement. Conservative on promotion.
+Aggressive on development. Conservative on promotion.
 
 Do not optimize for looking intelligent. Optimize for being **provably useful**.
 Do not optimize for trading frequently. Optimize for the **right decision given available information**.
@@ -44,6 +45,7 @@ Ananta provides **System Truth**. Independent **Market Truth** is the external r
 - Knowledge Object: `understand` / `GET /api/strategy/knowledge`
 - Continuous observer: `lab watch --interval N` (Stage 1+) with independent market snapshot
 - Historical replay: `lab replay` / `lab audit replay` (Stage 4; `source=historical_lab`; never mix into live jsonl)
+- DI: `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim` / `lab experiments` / `lab attribution` / `lab research`
 - 1y candles must be **proven in Mongo** (`lab coverage`) before a 1y Lab claim
 
 ## Contract
@@ -58,7 +60,7 @@ Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SK
 
 **P0–P2:** Done (candles, Knowledge Object, BACKTEST lab).  
 **S1–S4:** Done. **Compare:** Done (`lab compare` 2026-08-23).  
-**S5:** Proposed only — `docs/S5_HYPOTHESES.md`. Not executing until human approval.  
-Wave A WATCH. Recommended next if approved: H3 (split TAKE-eq by strategy) + H2 (hunter gate histogram). Not H1 live enable.
+**S5:** Parked — `docs/S5_HYPOTHESES.md`. Tape accumulating. Experiment ledger exists (`lab experiments`); `try_run` refused. H1 live enable rejected.  
+**DI:** Foundation now — `src/intelligence/`. `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim`. Wave A WATCH. Extra agents still not.
 
-See `docs/MARKET_TRUTH_LOCK.md`, `docs/STRATEGY_INTEL_AUDIT.md`, `docs/NORTH_STAR_LOCK.md`, `docs/ROADMAP.md`.
+See `docs/MARKET_TRUTH_LOCK.md`, `docs/DECISION_INTELLIGENCE_LOCK.md`, `docs/RISK_PROFILES_LOCK.md`, `docs/SAFETY_GATES_LOCK.md`, `docs/FEATURE_COMPLETE_NOW.md`, `docs/ROADMAP.md`.

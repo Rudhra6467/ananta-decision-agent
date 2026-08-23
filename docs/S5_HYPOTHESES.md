@@ -1,8 +1,10 @@
 # S5 — Proposed hypotheses (NOT approved)
 
 **Opened:** 2026-08-23 after `lab compare`  
-**Status:** **PROPOSED.** No production change. Wave A stays **WATCH**.  
-**Gate:** human approval before any experiment runs. Path remains finding → hypothesis → experiment → validation → human → versioned production.
+**Status:** **PARKED pending tape.** Ledger exists (`lab experiments`). `try_run` is refused. Wave A stays **WATCH**.  
+**Gate:** live tape accumulates 3–4+ days. Then human approval before any experiment runs. Path remains finding → hypothesis → experiment → validation → human → versioned production.
+
+The attribution engine (`lab attribution`) and experiment ledger are built. That is **not** H3 running.
 
 These are measurement / paper experiments. They are **not** Hunter v1.1.
 

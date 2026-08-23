@@ -4,7 +4,7 @@
 
 Build the observable intelligence first. Build the autonomous authority later.
 
-**Operating philosophy:** Aggressive on paper. Ruthless on measurement. Conservative on promotion.
+**Operating philosophy:** Aggressive on paper. Ruthless on measurement. Conservative on promotion. Aggressive on **development**. Conservative on **promotion**.
 
 **Evidence philosophy (locked):** Ananta regime is a **hypothesis**. Market measurements + forward price are the external reference. Agent must never learn "Ananta was correct because Ananta said so."
 
@@ -69,7 +69,7 @@ Ananta owns **System** facts. Market Truth is computed from **independent observ
 
 Three truths stay distinct: **System | Market | Outcome**.
 
-Policy/risk will eventually sit **outside** the LLM. Future layer, not a reason to stop the evidence engine.
+Policy/risk sits **outside** the LLM. Implemented: `src/intelligence/gates.py`. Profiles cannot override Ananta.
 
 ---
 
@@ -90,7 +90,8 @@ All three stay **WATCH** until TAKE evidence exists. WAIT-only marks ≠ KEEP.
 | **S3** | Regime Audit + Decision Audit (thin) | **Done** (overnight sample = evidence, not KEEP/CUT) |
 | **S4** | Same schema on 1y historical replay | **Done** (`lab replay` / `lab audit replay` — TAKE-eq ≠ KEEP) |
 | **Compare** | Live vs historical, same schema, do not mix | **Done** (`lab compare` 2026-08-23) |
-| **S5** | Findings → experiment proposals (human-gated) | **Proposed** — not executing |
+| **S5** | Findings → experiment proposals (human-gated) | **Parked** — tape accumulating; ledger exists; not executing |
+| **DI** | Typed decisions, profiles, gates, orchestration | **Foundation now** — Wave A still WATCH; extra agents still not |
 | P3–P7 | Per-symbol marks, paper density, KEEP only with TAKE evidence | Ongoing ops |
 
 Lab ops: `cycle` / `lab watch` → ledgers → `mark` → `evaluate` → `wavea` → audits.
@@ -106,6 +107,6 @@ Not done because: commands work, text looks smart, one green trade, `evaluate` s
 
 Extra agents, cloning, autonomous wallets, live autonomy, $50 live, public leaderboard, education product, Vercel/UI rewrite, Agent→Mongo, multi-broker, India/US/CA adapters, unrestricted self-modification, automatic production mutation, Agent cockpit, ML training on thin data, TradingAgents integration / Bull-Bear nodes / provider zoo.
 
-Decision Intelligence (typed deliberation, counter-thesis, reflection, checkpointing) is **NEXT after** the evidence layer — destination lock: [DECISION_INTELLIGENCE_LOCK.md](./DECISION_INTELLIGENCE_LOCK.md). Not this sprint.
+Decision Intelligence foundation is **in tree** (typed deliberation, profiles, hard gates). Extra agents (Bull/Bear, TradingAgents integration, provider zoo) remain **not now**. Destination lock: [DECISION_INTELLIGENCE_LOCK.md](./DECISION_INTELLIGENCE_LOCK.md).
 
 Learning allowed now: evaluation + ranking + structured experiment proposals. Production mutation: never automatic.

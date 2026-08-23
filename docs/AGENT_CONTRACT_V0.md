@@ -107,13 +107,23 @@ Agent Ananta always authenticates. Do not bypass JWT to write Mongo collections 
 | Field | Meaning |
 |-------|--------|
 | `action` | TAKE / SKIP / HOLD / EXIT / REDUCE / ENABLE / DISABLE / WAIT |
+| `recommended_action` | What evidence argues (`decision_v0`) |
+| `issued_action` | What hard gates allow (`decision_v0`) |
 | `strategy` / `strategy_key` | Target strategy |
-| `confidence` | 0–1 or score used by Agent |
+| `confidence` | **deprecated as a single number** — use the triplet |
+| `confidences.understanding` / `.evidence` / `.decision` | Three separate 0–1 scores; never blended |
 | `reason` | Short explanation |
+| `thesis` / `counter_thesis` / `adjudication` | DI deliberation (`decision_v0`) |
+| `citations` | System / Market / Outcome row refs |
+| `skip_reason` | First-class SKIP (not "no setup") |
+| `profile` | SAFE / MODERATE / AGGRESSIVE |
+| `execution_allowed` | Always false for Wave A WATCH from the agent package |
 | `top_recommendation` | What Agent ranked #1 |
 | `user_confirmed` | bool |
 | `user_override` | bool — user picked non-top |
 | `ranked_options` | optional list of candidates |
+
+Additive: Agent package schema `decision_v0` (`src/intelligence/schema.py`). Does not bump `agent_api_version`. Ananta still owns fills.
 
 ### trade_state / exit_state (best-effort in v0)
 | Field | Meaning |

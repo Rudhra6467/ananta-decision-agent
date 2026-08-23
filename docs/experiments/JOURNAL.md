@@ -35,9 +35,29 @@ Notes:
 - 
 ```
 
+## 2026-08-23 — DI foundation shipped; S5 stays parked
+
+Wave: A — all **WATCH**
+
+Actions:
+- Did **not** run H1/H2/H3
+- Did **not** KEEP/CUT/enable TREND_UP/rewrite Hunter/add agents
+- Shipped Decision Intelligence foundation (`src/intelligence/`)
+- `lab watch 15` continues in the background
+
+Built (feature-complete ≠ strategy enabled):
+- typed `decision_v0` TAKE/SKIP/WAIT/HOLD/EXIT
+- SAFE / MODERATE / AGGRESSIVE behavior profiles (not agents)
+- hard gates outside the LLM (`WAVE_A_WATCH` blocks fills)
+- experiment ledger (`try_run` refused)
+- attribution engine (H3 not running)
+- paper-sim (no fills)
+- `lab system` completeness
+
+Charter OK? yes
+
 ---
 
-## 2026-08-23 — live vs historical compare reviewed
 
 Wave: A — all **WATCH**
 

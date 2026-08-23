@@ -8,8 +8,11 @@ Observability and operating docs for the paper-trading laboratory.
 | [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md) | Independent Market Truth, lab watch, audits, experiment path |
 | [STAGE4_REPLAY_LOCK.md](./STAGE4_REPLAY_LOCK.md) | 1y historical observation_v0 replay; not KEEP |
 | [LIVE_VS_HISTORICAL_COMPARE.md](./LIVE_VS_HISTORICAL_COMPARE.md) | Live vs 1y compare — **reviewed 2026-08-23** |
-| [S5_HYPOTHESES.md](./S5_HYPOTHESES.md) | S5 **proposed** only — not approved, not KEEP |
-| [DECISION_INTELLIGENCE_LOCK.md](./DECISION_INTELLIGENCE_LOCK.md) | **NEXT** — typed deliberation after evidence |
+| [S5_HYPOTHESES.md](./S5_HYPOTHESES.md) | S5 **parked** — tape accumulating; not KEEP |
+| [DECISION_INTELLIGENCE_LOCK.md](./DECISION_INTELLIGENCE_LOCK.md) | **NOW** — typed decisions, profiles, gates |
+| [RISK_PROFILES_LOCK.md](./RISK_PROFILES_LOCK.md) | SAFE / MODERATE / AGGRESSIVE (not agents) |
+| [SAFETY_GATES_LOCK.md](./SAFETY_GATES_LOCK.md) | Hard safety outside the LLM |
+| [FEATURE_COMPLETE_NOW.md](./FEATURE_COMPLETE_NOW.md) | What "build everything now" produced |
 | [TRADINGAGENTS_REFERENCE_AUDIT.md](./TRADINGAGENTS_REFERENCE_AUDIT.md) | Tauric TradingAgents KEEP/ADAPT/REJECT; not a clone |
 | [ROADMAP.md](./ROADMAP.md) | Locked product roadmap + stages S1–S5 |
 | [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md) | What the Agent knows vs Ananta |
@@ -35,8 +38,8 @@ If login fails, the backend is down or `ANANTA_BASE_URL` still points at the exp
 - **Phase 1–2:** Agent foundation + lab operability — done / nearly done
 - **Phase 3:** Wave A discovery — current
 - **Phase 3.5–3.6:** Contract v0 + local backend — done
-- **Phase 4:** Decision ledgers — done enough to run
-- **Phase 4.5:** Market Truth + continuous Observation — S1–S4 done; **compare now** (`lab compare`)
-- **Phase 5+:** Evaluation, Trust Report, cockpit, India — gated
+- **Phase 4:** Decision Intelligence foundation — typed decisions, profiles, gates (`lab di` / `lab system`)
+- **Phase 4.5:** Market Truth + continuous Observation — S1–S4 + compare done; live watch continues
+- **Phase 5+:** Evaluation, Trust Report, cockpit, India — gated. S5 parked on tape.
 
 Do not start extra agents, fancy UI, autonomy, or India until Observations can show System + Market + Outcome without Ananta grading itself.

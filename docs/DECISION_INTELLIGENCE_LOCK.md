@@ -1,27 +1,34 @@
-# Decision Intelligence — destination lock (NEXT, not now)
+# Decision Intelligence — foundation lock (NOW)
 
 **Locked:** 2026-08-23  
-**Status:** Destination only. **Does not start this sprint.**
+**Status:** Foundation is **in tree**. Extra agents are **still not**. Wave A stays **WATCH**. S5 H1/H2/H3 stay **parked**.
 
-Evidence first. Intelligence next. Not extra agents this week.
+Evidence keeps collecting in the background (`lab watch`).  
+The machine around that evidence is built now.
 
 ```text
-NOW:  Evidence layer
-      S4 replay (done) → live vs historical compare → S5 proposals → human approval
-      Wave A remains WATCH
-
-NEXT: Decision Intelligence (on top of a proven evidence layer)
-      typed TAKE/SKIP/WAIT
+NOW:  Decision Intelligence foundation
+      typed TAKE/SKIP/WAIT/HOLD/EXIT
       thesis → counter-thesis → cited evidence → adjudication
-      reflection into existing jsonl ledgers
-      checkpointing when graphs are actually long
+      SAFE / MODERATE / AGGRESSIVE as behavior profiles (not agents)
+      hard safety outside the LLM
+      experiment ledger (proposals only)
+      attribution engine (H3 not running)
+      paper-sim (no fills)
+
+PARKED: S5 H1/H2/H3 execution — tape accumulating
+NEVER:  Bull/Bear voters, LLM as risk, consensus as truth,
+        Wave A promotion from this package, Agent self-fill
 ```
 
-TradingAgents is a **reference**, not a clone. See [TRADINGAGENTS_REFERENCE_AUDIT.md](./TRADINGAGENTS_REFERENCE_AUDIT.md).
+TradingAgents remains a **reference**, not a clone. See [TRADINGAGENTS_REFERENCE_AUDIT.md](./TRADINGAGENTS_REFERENCE_AUDIT.md).
 
-**Take later:** structured deliberation, counter-thesis/evidence, typed outputs, reflection, checkpointing.  
-**Reject now and later as architecture:** Bull/Bear personas as voters, provider zoo as product, consensus as truth, LLM as risk engine, profitability as the only grade, TradingAgents integration branch.
+**Taken now:** structured deliberation shape, typed outputs, SKIP as a first-class decision, reflection into existing jsonl ledgers.  
+**Rejected now and later as architecture:** Bull/Bear personas as voters, provider zoo as product, consensus as truth, LLM as risk engine, profitability as the only grade, TradingAgents integration branch.
 
 A bull claim that cannot point at an Observation row is a speech.
 
-Until S5 has human-approved experiments, this file is a parking lot — not a workstream.
+Feature-complete ≠ strategy enabled.
+
+CLI: `lab system` · `lab profile` · `lab di` · `lab experiments` · `lab paper-sim` · `lab gates`  
+Module: `python -m src.intelligence`

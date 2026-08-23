@@ -57,9 +57,9 @@ Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SK
 ## Current mission
 
 **P0–P2:** Done (candles, Knowledge Object, BACKTEST lab).  
-**S1–S3:** Done (`lab watch`, `lab outcomes`, `lab audit`). Overnight sample is evidence, not KEEP/CUT.  
-**Stage 4 (now):** `lab replay` → `observation_replay.jsonl` (`source=historical_lab`, same `observation_v0`). `lab audit replay`. Live watcher stays first-class and continues in parallel.  
-Then compare live vs historical → S5 experiment proposals.  
-Do not expand the 12. Do not KEEP. Do not ML-train yet. Historical TAKE-equivalent is not promotion.
+**S1–S4:** Done (live observer + 1y `lab replay` / `lab audit replay`).  
+**Now:** `lab compare` — live vs historical, same schema, do not mix.  
+Then S5 experiment proposals (human approval). Wave A WATCH.  
+Decision Intelligence (typed deliberation, counter-thesis) is **NEXT**, not this sprint. No Bull/Bear, no TradingAgents integration, no extra agents.
 
 See `docs/MARKET_TRUTH_LOCK.md`, `docs/STRATEGY_INTEL_AUDIT.md`, `docs/NORTH_STAR_LOCK.md`, `docs/ROADMAP.md`.

@@ -103,8 +103,9 @@ Live watcher continues in parallel. Do not wait for a huge live sample before us
 | **1** | `lab watch` + market snapshot + cycle + decision → co-timestamped Observation | **Done** (live ticks continue) |
 | **2** | Forward outcome attachment (+15m / +1h / +4h) | **Done** (`lab outcomes`, OHLC fill) |
 | **3** | Thin Regime Audit + Decision Audit | **Done** (`lab audit` — 2026-08-23 overnight sample is evidence, not a verdict) |
-| **4** | Replay same schema on 1y Lab dataset | **Now** (`lab replay` → `observation_replay.jsonl`; `lab audit replay`) |
-| **5** | Agent findings → experiment proposals (human approval) | Queued — only after live vs historical comparison |
+| **4** | Replay same schema on 1y Lab dataset | **Done** (`lab replay` ran: 2474 BTC bars, usable_1y) |
+| **Compare** | Live vs historical, do not mix files | **Now** (`lab compare`) |
+| **5** | Agent findings → experiment proposals (human approval) | After compare review |
 
 P0–P2 (candles, Knowledge Object, BACKTEST lab file) remain **done**. Stage 1 does not replace Wave A paper marks; it densifies evidence without human-as-cron.
 

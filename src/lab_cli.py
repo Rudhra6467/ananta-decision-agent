@@ -72,6 +72,9 @@ def handle_lab_command(user_input: str) -> bool:
     elif rest in ("audit replay",) or rest.startswith("audit replay"):
         from src.tools.audit_truth import print_audit
         print_audit(source="replay")
+    elif rest in ("compare", "comparison", "vs"):
+        from src.tools.lab_compare import print_compare
+        print_compare()
     elif rest.startswith("replay"):
         parts = rest.split()
         symbols = []
@@ -118,7 +121,7 @@ def handle_lab_command(user_input: str) -> bool:
         from src.lab_watch import capture_one_observation, _print_tick
         _print_tick(capture_one_observation())
     else:
-        print("lab | lab watch [N] | lab once | lab outcomes | lab audit | lab audit replay | lab replay [BTC/USD] | lab understanding | lab observations | lab wait | lab status | lab coverage")
+        print("lab | lab watch [N] | lab once | lab outcomes | lab audit | lab audit replay | lab replay [BTC/USD] | lab compare | lab understanding | lab observations | lab wait | lab status | lab coverage")
     return True
 
 

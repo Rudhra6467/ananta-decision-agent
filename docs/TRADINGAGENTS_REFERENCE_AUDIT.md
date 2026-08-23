@@ -165,9 +165,9 @@ A bull agent that cannot point at an Observation row is a speech.
 
 ## PM action
 
-1. This file is the audit. Roadmap unchanged.  
+1. This file is the audit. Roadmap unchanged except S4→compare (evidence path).  
 2. Do not open a TradingAgents integration branch.  
-3. After live vs 1y compare, S5 may *cite* "thesis/counter-thesis" as a **proposal template**, not as new agents.  
+3. Decision Intelligence is **NEXT** after compare + S5 — [DECISION_INTELLIGENCE_LOCK.md](./DECISION_INTELLIGENCE_LOCK.md).  
 4. Steal structured outputs when we type Decision Intelligence — not before.
 
 Inspected paths: `tradingagents/graph/setup.py`, `trading_graph.py`, `agents/utils/memory.py`, `graph/reflection.py`, `agents/schemas.py`, `agents/managers/portfolio_manager.py`, `agents/researchers/bull_researcher.py`, `agents/risk_mgmt/conservative_debator.py`, `dataflows/market_data_validator.py`, `CHANGELOG.md` (v0.3.1 look-ahead + router crash-safety).

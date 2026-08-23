@@ -88,12 +88,13 @@ All three stay **WATCH** until TAKE evidence exists. WAIT-only marks ≠ KEEP.
 | **S1** | `lab watch` + independent market snapshot + Observation | **Done** |
 | **S2** | Forward outcomes +15m / +1h / +4h | **Done** |
 | **S3** | Regime Audit + Decision Audit (thin) | **Done** (overnight sample = evidence, not KEEP/CUT) |
-| **S4** | Same schema on 1y historical replay | **Now** (`lab replay` / `lab audit replay`) |
-| **S5** | Findings → experiment proposals (human-gated) | Queued — after live vs historical compare |
+| **S4** | Same schema on 1y historical replay | **Done** (`lab replay` / `lab audit replay` — TAKE-eq ≠ KEEP) |
+| **Compare** | Live vs historical, same schema, do not mix | **Now** (`lab compare`) |
+| **S5** | Findings → experiment proposals (human-gated) | After compare review |
 | P3–P7 | Per-symbol marks, paper density, KEEP only with TAKE evidence | Ongoing ops |
 
 Lab ops: `cycle` / `lab watch` → ledgers → `mark` → `evaluate` → `wavea` → audits.
-Knowledge: `understand` / `lab understanding`. History: `lab coverage` / `lab replay` / `lab audit replay`.
+Knowledge: `understand` / `lab understanding`. History: `lab coverage` / `lab replay` / `lab audit replay` / `lab compare`.
 
 Definition of done: the Agent can repeatedly observe System + Market truth, decide, record why, observe Outcome truth, evaluate honestly (including opportunity cost), rank without inventing evidence, and **propose** experiments without deploying them.
 
@@ -103,6 +104,8 @@ Not done because: commands work, text looks smart, one green trade, `evaluate` s
 
 ## Explicitly not now
 
-Extra agents, cloning, autonomous wallets, live autonomy, $50 live, public leaderboard, education product, Vercel/UI rewrite, Agent→Mongo, multi-broker, India/US/CA adapters, unrestricted self-modification, automatic production mutation, Agent cockpit, ML training on thin data.
+Extra agents, cloning, autonomous wallets, live autonomy, $50 live, public leaderboard, education product, Vercel/UI rewrite, Agent→Mongo, multi-broker, India/US/CA adapters, unrestricted self-modification, automatic production mutation, Agent cockpit, ML training on thin data, TradingAgents integration / Bull-Bear nodes / provider zoo.
+
+Decision Intelligence (typed deliberation, counter-thesis, reflection, checkpointing) is **NEXT after** the evidence layer — destination lock: [DECISION_INTELLIGENCE_LOCK.md](./DECISION_INTELLIGENCE_LOCK.md). Not this sprint.
 
 Learning allowed now: evaluation + ranking + structured experiment proposals. Production mutation: never automatic.

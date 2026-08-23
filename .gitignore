@@ -26,6 +26,7 @@ observation_log.jsonl
 observation_replay.jsonl
 audit_report.json
 audit_report_replay.json
+compare_live_vs_historical.json
 # Uncomment the lines below if you prefer ledgers only on disk, not in git:
 # decision_log.json
 # cycle_log.jsonl

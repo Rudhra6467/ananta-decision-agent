@@ -57,10 +57,14 @@ def handle_lab_command(user_input: str) -> bool:
         print_recent_observations(limit=12)
     elif rest in ("outcomes", "outcome", "forward"):
         from src.tools.outcome_truth import backfill_outcomes, print_outcomes_summary
-        summary = backfill_outcomes(limit=200)
-        print(f"→ outcomes backfill: filled={summary.get('filled')} scanned={summary.get('scanned')} ok={summary.get('ok')}")
+        summary = backfill_outcomes(limit=400)
+        print(
+            f"→ outcomes backfill: filled={summary.get('filled')} scanned={summary.get('scanned')} ok={summary.get('ok')}"
+        )
         if summary.get("error"):
             print(f"  error: {summary.get('error')}")
+        print(f"  status={summary.get('status_counts')}  ohlc_bars={summary.get('ohlc_bars')}")
+        print(f"  spots={summary.get('spots')}  reasons={summary.get('reasons')}")
         print_outcomes_summary(limit=10)
     elif rest in ("once", "tick", "observe"):
         from src.lab_watch import capture_one_observation, _print_tick

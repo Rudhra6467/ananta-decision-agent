@@ -6,7 +6,7 @@
 **Strategy intelligence audit:** 2026-08-22 — [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md)  
 **Market Truth + continuous evidence:** 2026-08-22 — [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md)
 
-**Immediate (locked):** P0–P2 **done**. Next engineering = **Stage 1** (`lab watch` + independent Market Truth snapshot + co-timestamped Observation). Then S2 forward outcomes → S3 audits → S4 1y replay → S5 experiment proposals. Wave A stays hunter/squeeze/bollinger-mr **WATCH**. Do not rank the other 12. Do not ML-train yet.
+**Immediate (locked):** P0–P2 **done**. S1–S3 **done** (live observer + outcomes + thin audit). Next engineering = **Stage 4** (`lab replay` 1y historical observation_v0; `lab audit replay`). Then compare live vs historical → S5 experiment proposals. Wave A stays hunter/squeeze/bollinger-mr **WATCH**. Do not rank the other 12. Do not ML-train yet. Overnight S3 sample is evidence, not a verdict.
 
 **North star:** Ananta provides System Truth. Independent Market Truth is the external reference. Agent Ananta understands the trader and the strategies, decides, measures Outcome Truth (including SKIPs and opportunity cost), learns (evaluation + ranking + proposals only), and earns autonomy through evidence — without a self-confirming loop.
 
@@ -30,7 +30,7 @@ This file does **not** reopen education, adapters, $50 live, cockpit, or leaderb
 | 3.5 | Shared contract v0 | Proven locally |
 | 3.6 | Backend independence (local Ananta API) | **Done 2026-08-21** |
 | 4 | Decision Intelligence Infrastructure | Done enough — ledgers + wavea + audit |
-| 4.5 | Market Truth + Observation schema | **Next — Stage 1** |
+| 4.5 | Market Truth + Observation schema | **S1–S3 done; S4 now** |
 | 5 | Agent decision evaluation | In progress — WAIT ≠ KEEP; need TAKE + outcome audits |
 | 6 | Engine + strategy validation (incl. regime audit) | Starts after S1–S3 |
 | 7 | Research + PDF intelligence | Not started |
@@ -46,13 +46,13 @@ This file does **not** reopen education, adapters, $50 live, cockpit, or leaderb
 
 ## Market Truth stages (2026-08-22)
 
-| Stage | Deliverable |
-|-------|-------------|
-| **S1** | `lab watch --interval N` (5–15m) + market snapshot + Ananta cycle + decision → Observation |
-| **S2** | Forward attach +15m / +1h / +4h |
-| **S3** | Regime Audit + Decision Audit (SUPPORTED / MISCLASSIFIED / UNCERTAIN; opportunity cost) |
-| **S4** | Same schema replayed on 1y Lab data |
-| **S5** | Findings → experiment proposals; human approval mandatory |
+| Stage | Deliverable | Status |
+|-------|-------------|--------|
+| **S1** | `lab watch --interval N` (5–15m) + market snapshot + Ananta cycle + decision → Observation | **Done** |
+| **S2** | Forward attach +15m / +1h / +4h | **Done** |
+| **S3** | Regime Audit + Decision Audit (SUPPORTED / MISCLASSIFIED / UNCERTAIN; opportunity cost) | **Done** (not a KEEP/CUT verdict) |
+| **S4** | Same schema replayed on 1y Lab data | **Now** — `lab replay` / `GET /api/lab/observation-replay` |
+| **S5** | Findings → experiment proposals; human approval mandatory | After live vs historical compare |
 
 Same schema for live paper and historical replay. No second parallel evidence system.
 
@@ -88,12 +88,12 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 1. ~~P0 1y candles~~ **Done**
 2. ~~P1 Knowledge Object~~ **Done**
 3. ~~P2 Lab BACKTEST file~~ **Done** (mixed symbol results; not KEEP)
-4. **S1 — continuous Observation** (`lab watch` + Market Truth snapshot)
-5. Wave A paper density + honest marks while observer runs
-6. S2–S5 without expanding strategy universe or auto-mutation
+4. **S4 — 1y historical Observation replay** (`lab replay` + `lab audit replay`)
+5. Live watcher continues (`lab watch 15`) as a parallel evidence stream
+6. Compare live vs historical; only then S5 versioned experiment proposals
 
 Next meaningful milestone:
 
-> Can Wave A + Contract + Market Truth Observations produce an auditable dataset showing what Ananta thought, what the market did, what the Agent decided, and what happened afterward — without Ananta grading itself?
+> Can Wave A + Contract + Market Truth Observations produce an auditable dataset showing what Ananta thought, what the market did, what the Agent decided, and what happened afterward — without Ananta grading itself? **S1–S3 yes on a thin live sample. S4 must prove the same schema on 1y Lab candles.**
 
 **Do not start yet:** extra agents, fancy UI, autonomy, India, education, $50 live, leaderboard, large strategy expansion, ML training, automatic production mutation.

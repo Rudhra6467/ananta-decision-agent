@@ -23,6 +23,9 @@ Thumbs.db
 lab_evidence.json
 lab_run_id.txt
 observation_log.jsonl
+observation_replay.jsonl
+audit_report.json
+audit_report_replay.json
 # Uncomment the lines below if you prefer ledgers only on disk, not in git:
 # decision_log.json
 # cycle_log.jsonl

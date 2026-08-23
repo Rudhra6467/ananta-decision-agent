@@ -700,3 +700,37 @@ def list_lab_runs(limit: int = 20, token: str = None):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
+def get_observation_replay(
+    symbol: str = "BTC/USD",
+    timeframe: str = "1h",
+    stride: int = 4,
+    include_observations: bool = True,
+    max_bars: int = None,
+    token: str = None,
+):
+    """Stage 4: Ananta historical observation_v0 replay. Owner auth. Long-running."""
+    got = _owner_token(token)
+    if not got.get("success"):
+        return {"success": False, "error": "Login failed", "details": got}
+    try:
+        params = {
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "stride": stride,
+            "include_observations": str(bool(include_observations)).lower(),
+        }
+        if max_bars is not None:
+            params["max_bars"] = int(max_bars)
+        r = requests.get(
+            f"{BASE_URL}/api/lab/observation-replay",
+            params=params,
+            headers=_auth_headers(got["token"]),
+            timeout=300,
+        )
+        if r.status_code != 200:
+            return {"success": False, "status_code": r.status_code, "error": r.text[:2000]}
+        return {"success": True, "data": r.json()}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+

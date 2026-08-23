@@ -85,15 +85,15 @@ All three stay **WATCH** until TAKE evidence exists. WAIT-only marks ≠ KEEP.
 | **P0** | Prove ~1y 1h candles in Mongo Lab/API reads | **Done** |
 | **P1** | Wave A Strategy Knowledge Object | **Done** |
 | **P2** | Lab 1y evidence `source=BACKTEST` | **Done** |
-| **S1** | `lab watch` + independent market snapshot + Observation | **Next** |
-| **S2** | Forward outcomes +15m / +1h / +4h | Queued |
-| **S3** | Regime Audit + Decision Audit (thin) | Queued |
-| **S4** | Same schema on 1y historical replay | Queued |
-| **S5** | Findings → experiment proposals (human-gated) | Queued |
+| **S1** | `lab watch` + independent market snapshot + Observation | **Done** |
+| **S2** | Forward outcomes +15m / +1h / +4h | **Done** |
+| **S3** | Regime Audit + Decision Audit (thin) | **Done** (overnight sample = evidence, not KEEP/CUT) |
+| **S4** | Same schema on 1y historical replay | **Now** (`lab replay` / `lab audit replay`) |
+| **S5** | Findings → experiment proposals (human-gated) | Queued — after live vs historical compare |
 | P3–P7 | Per-symbol marks, paper density, KEEP only with TAKE evidence | Ongoing ops |
 
 Lab ops: `cycle` / `lab watch` → ledgers → `mark` → `evaluate` → `wavea` → audits.
-Knowledge: `understand`. History: `lab coverage` / `lab status`.
+Knowledge: `understand` / `lab understanding`. History: `lab coverage` / `lab replay` / `lab audit replay`.
 
 Definition of done: the Agent can repeatedly observe System + Market truth, decide, record why, observe Outcome truth, evaluate honestly (including opportunity cost), rank without inventing evidence, and **propose** experiments without deploying them.
 

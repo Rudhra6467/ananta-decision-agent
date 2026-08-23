@@ -43,21 +43,23 @@ Ananta provides **System Truth**. Independent **Market Truth** is the external r
 - Mark TAKE / SKIP / WAIT separately; result-first (good/bad/neutral) + process quality
 - Knowledge Object: `understand` / `GET /api/strategy/knowledge`
 - Continuous observer: `lab watch --interval N` (Stage 1+) with independent market snapshot
+- Historical replay: `lab replay` / `lab audit replay` (Stage 4; `source=historical_lab`; never mix into live jsonl)
 - 1y candles must be **proven in Mongo** (`lab coverage`) before a 1y Lab claim
 
 ## Contract
 
 See `docs/AGENT_CONTRACT_V0.md`. `agent_api_version = 0`.
 
-Live HTTP: `/api/auth/login`, `/api/portfolio`, `/api/orders/manual`, `/api/trades`, `/api/strategy/registry`, `/api/strategy/knowledge`, `/api/strategy/{key}/profile`, `/api/cycle/run`, `/api/lab/data/coverage`, `/api/lab/runs`.
+Live HTTP: `/api/auth/login`, `/api/portfolio`, `/api/orders/manual`, `/api/trades`, `/api/strategy/registry`, `/api/strategy/knowledge`, `/api/strategy/{key}/profile`, `/api/cycle/run`, `/api/lab/data/coverage`, `/api/lab/runs`, `/api/lab/observation-replay`.
 
 Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SKIP|WAIT. Silence is a data-quality bug. Per-symbol per-strategy rows are mandatory.
 
 ## Current mission
 
 **P0–P2:** Done (candles, Knowledge Object, BACKTEST lab).  
-**Stage 1 (next):** `lab watch` + independent Market Truth snapshot + co-timestamped Observation.  
-Then S2 forward outcomes → S3 Regime/Decision Audit → S4 1y replay → S5 experiment proposals.  
-Do not expand the 12. Do not KEEP. Do not ML-train yet.
+**S1–S3:** Done (`lab watch`, `lab outcomes`, `lab audit`). Overnight sample is evidence, not KEEP/CUT.  
+**Stage 4 (now):** `lab replay` → `observation_replay.jsonl` (`source=historical_lab`, same `observation_v0`). `lab audit replay`. Live watcher stays first-class and continues in parallel.  
+Then compare live vs historical → S5 experiment proposals.  
+Do not expand the 12. Do not KEEP. Do not ML-train yet. Historical TAKE-equivalent is not promotion.
 
 See `docs/MARKET_TRUTH_LOCK.md`, `docs/STRATEGY_INTEL_AUDIT.md`, `docs/NORTH_STAR_LOCK.md`, `docs/ROADMAP.md`.

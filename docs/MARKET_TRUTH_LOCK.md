@@ -80,17 +80,31 @@ Command: `lab audit`
 
 Reads the Observation ledger. Scores Ananta's BTC **market label** against independent Kraken flags, and WAIT/SKIP against subsequent BTC path. **BTC path ≠ strategy PnL.** Does not KEEP.
 
+Overnight 2026-08-23 sample (43 obs, 0 TAKEs) is locked as **evidence, not a strategy verdict**. Hypothesis stored: BTC market label may lag rapid transitions; SKIP still avoided the drop. Do not rewrite Hunter from that window.
+
+### Historical replay (Stage 4)
+
+Command: `lab replay [BTC/USD] [--stride 4] [--smoke]`
+
+Ananta `GET /api/lab/observation-replay` runs **real** `classify_regime` / `evaluate_primary` / `evaluate_squeeze` / declarative bollinger-mr on 1y Lab candles (evaluate-then-filter). Writes `observation_replay.jsonl` (`source=historical_lab`). Same `observation_v0` as live. Live file stays first-class.
+
+`lab audit replay` scores the historical file with the same auditor. Historical TAKE = TAKE-equivalent (setup AND Wave A gate) — **not** a paper fill, **not** KEEP.
+
+`lab understanding` prints the Strategy Understanding Report seed (thesis ≠ implementation ≠ router ≠ historical evidence ≠ paper evidence).
+
+Live watcher continues in parallel. Do not wait for a huge live sample before using historical context. Compare live vs historical before S5 proposals.
+
 ---
 
 ## Staged build (do not parallelize all)
 
 | Stage | Deliverable | Status |
 |-------|-------------|--------|
-| **1** | `lab watch` + market snapshot + cycle + decision → co-timestamped Observation | **Done** (42+ live ticks, 2026-08-22/23) |
+| **1** | `lab watch` + market snapshot + cycle + decision → co-timestamped Observation | **Done** (live ticks continue) |
 | **2** | Forward outcome attachment (+15m / +1h / +4h) | **Done** (`lab outcomes`, OHLC fill) |
-| **3** | Thin Regime Audit + Decision Audit | **Next** (`lab audit`) |
-| **4** | Replay same schema on 1y Lab dataset | Queued |
-| **5** | Agent findings → experiment proposals (human approval) | Queued |
+| **3** | Thin Regime Audit + Decision Audit | **Done** (`lab audit` — 2026-08-23 overnight sample is evidence, not a verdict) |
+| **4** | Replay same schema on 1y Lab dataset | **Now** (`lab replay` → `observation_replay.jsonl`; `lab audit replay`) |
+| **5** | Agent findings → experiment proposals (human approval) | Queued — only after live vs historical comparison |
 
 P0–P2 (candles, Knowledge Object, BACKTEST lab file) remain **done**. Stage 1 does not replace Wave A paper marks; it densifies evidence without human-as-cron.
 

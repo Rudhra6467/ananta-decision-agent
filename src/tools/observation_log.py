@@ -1,8 +1,9 @@
 """
-Observation ledger — System + Market + Outcome (Outcome null until Stage 2).
+Observation ledger — System + Market + Outcome.
 
 schema: observation_v0
-Same shape intended for live paper and future 1y replay.
+Same shape for live paper (observation_log.jsonl) and 1y replay
+(observation_replay.jsonl). Never mix the two files.
 """
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 OBSERVATION_LOG = Path("observation_log.jsonl")
+REPLAY_LOG = Path("observation_replay.jsonl")
 SCHEMA = "observation_v0"
 
 
@@ -46,31 +48,46 @@ def build_observation(
             "ananta_regime_is_hypothesis": True,
             "ananta_output_not_proof": True,
             "no_auto_mutation": True,
+            "historical_take_is_not_keep": source == "historical_lab",
+            "live_and_historical_are_separate_files": True,
         },
     }
 
 
-def read_recent_observations(limit: int = 20) -> List[dict]:
-    if not OBSERVATION_LOG.exists():
+def _read_jsonl(path: Path, limit: Optional[int] = None) -> List[dict]:
+    if not path.exists():
         return []
     rows: List[dict] = []
     try:
-        lines = OBSERVATION_LOG.read_text().strip().splitlines()
-        for line in lines[-limit:]:
+        lines = path.read_text().strip().splitlines()
+        use = lines[-limit:] if limit else lines
+        for line in use:
             try:
                 rows.append(json.loads(line))
             except Exception:
                 continue
     except Exception:
         return []
-    return list(reversed(rows))
+    return rows
+
+
+def read_recent_observations(limit: int = 20) -> List[dict]:
+    return list(reversed(_read_jsonl(OBSERVATION_LOG, limit=limit)))
+
+
+def read_all_observations() -> List[dict]:
+    return _read_jsonl(OBSERVATION_LOG)
+
+
+def read_replay_observations(limit: Optional[int] = None) -> List[dict]:
+    return _read_jsonl(REPLAY_LOG, limit=limit)
 
 
 def print_recent_observations(limit: int = 8) -> None:
     rows = read_recent_observations(limit=limit)
-    print("\nOBSERVATION LEDGER (recent)")
+    print("\nOBSERVATION LEDGER (recent live_paper)")
     print("=" * 64)
-    print("schema=observation_v0  System|Market|Outcome (Outcome Stage 2)")
+    print("schema=observation_v0  System|Market|Outcome")
     print("-" * 64)
     if not rows:
         print("  (empty — run: lab watch)")
@@ -92,5 +109,6 @@ def print_recent_observations(limit: int = 8) -> None:
             print(f"    ananta_regime(hyp): {sample}")
     print("-" * 64)
     print(f"  file: {OBSERVATION_LOG}  (not KEEP; log only)")
+    print(f"  historical replay is a SEPARATE file: {REPLAY_LOG}")
     print("=" * 64)
     print()

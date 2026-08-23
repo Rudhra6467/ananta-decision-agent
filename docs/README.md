@@ -5,7 +5,8 @@ Observability and operating docs for the paper-trading laboratory.
 | Doc | Purpose |
 |-----|---------|
 | [NORTH_STAR_LOCK.md](./NORTH_STAR_LOCK.md) | Destination + sprint laws |
-| [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md) | **2026-08-22** — independent Market Truth, lab watch, audits, experiment path |
+| [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md) | Independent Market Truth, lab watch, audits, experiment path |
+| [STAGE4_REPLAY_LOCK.md](./STAGE4_REPLAY_LOCK.md) | **2026-08-23** — 1y historical observation_v0 replay; not KEEP |
 | [ROADMAP.md](./ROADMAP.md) | Locked product roadmap + stages S1–S5 |
 | [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md) | What the Agent knows vs Ananta |
 | [LOCAL_LOOP.md](./LOCAL_LOOP.md) | Backend-first lab loop — **no website required** |
@@ -19,7 +20,7 @@ Observability and operating docs for the paper-trading laboratory.
 1. Confirm Ananta **backend** is reachable (`ANANTA_BASE_URL`). Do not wait on the website.
 2. Read charter limits (slots ≤ 6 preferred, enabled ≤ 5).
 3. `git pull` + run agent.
-4. Prefer `lab watch` (when available) over manual `cycle` spam; still mark and review audits.
+4. Prefer `lab watch` (when available) over manual `cycle` spam; still mark and review audits. Stage 4: `lab replay` then `lab audit replay` in a third terminal — do not stop the watcher.
 5. `monitor` → `status` → ledgers → `evaluate` / `wavea`.
 6. Update JOURNAL + SCOREBOARD before closing the laptop.
 
@@ -31,7 +32,7 @@ If login fails, the backend is down or `ANANTA_BASE_URL` still points at the exp
 - **Phase 3:** Wave A discovery — current
 - **Phase 3.5–3.6:** Contract v0 + local backend — done
 - **Phase 4:** Decision ledgers — done enough to run
-- **Phase 4.5:** Market Truth + continuous Observation — **next (Stage 1)**
+- **Phase 4.5:** Market Truth + continuous Observation — S1–S3 done; **S4 now** (`lab replay`)
 - **Phase 5+:** Evaluation, Trust Report, cockpit, India — gated
 
 Do not start extra agents, fancy UI, autonomy, or India until Observations can show System + Market + Outcome without Ananta grading itself.

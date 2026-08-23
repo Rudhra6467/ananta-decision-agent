@@ -10,7 +10,7 @@ Verdicts: SUPPORTED / MISCLASSIFIED / UNCERTAIN
 Decision: PROTECTIVE / COSTLY / UNCERTAIN
 
 Does NOT KEEP, enable, or rewrite strategies.
-BTC path ≠ strategy PnL. No TAKE rows ⇒ no promotion evidence.
+BTC path ≠ strategy PnL. Historical TAKE-equivalent ≠ paper TAKE ≠ KEEP.
 """
 from __future__ import annotations
 
@@ -20,19 +20,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from src.tools.observation_log import OBSERVATION_LOG
+from src.tools.observation_log import OBSERVATION_LOG, REPLAY_LOG
 
 AUDIT_REPORT = Path("audit_report.json")
+AUDIT_REPORT_REPLAY = Path("audit_report_replay.json")
 NOISE_1H = 0.25  # |BTC +1h| below this is chop, not a call
 COST_1H = 0.40  # SKIP/WAIT vs rally/drop large enough to score
 STRONG_T0 = 0.35  # |ret_1h at observation| for a strong independent label
 
 
-def _load_rows() -> List[dict]:
-    if not OBSERVATION_LOG.exists():
+def _load_rows(source: str = "live") -> List[dict]:
+    path = REPLAY_LOG if source == "replay" else OBSERVATION_LOG
+    if not path.exists():
         return []
     rows: List[dict] = []
-    for line in OBSERVATION_LOG.read_text().strip().splitlines():
+    for line in path.read_text().strip().splitlines():
         try:
             rows.append(json.loads(line))
         except Exception:
@@ -43,7 +45,9 @@ def _load_rows() -> List[dict]:
 def _ananta_btc_regime(obs: dict) -> Tuple[str, str]:
     st = obs.get("system_truth") or {}
     regimes = st.get("regimes_by_symbol") or {}
-    raw = regimes.get("BTC/USD") or regimes.get("BTC") or {}
+    raw = regimes.get("BTC/USD") or regimes.get("BTC")
+    if raw in (None, {}, ""):
+        raw = next(iter(regimes.values()), {}) if regimes else {}
     if isinstance(raw, dict):
         return (
             str(raw.get("market") or "").upper(),
@@ -128,7 +132,8 @@ def _regime_verdict(ananta_market: str, independent: str) -> Tuple[str, str]:
 
 def _fwd_btc(obs: dict) -> dict:
     ot = obs.get("outcome_truth") or {}
-    slot = (ot.get("assets") or {}).get("BTC/USD") or {}
+    assets = ot.get("assets") or {}
+    slot = assets.get("BTC/USD") or next(iter(assets.values()), {}) if assets else {}
 
     def _ret(key: str) -> Optional[float]:
         cell = slot.get(key)
@@ -182,13 +187,14 @@ def _gate_notes(obs: dict) -> List[str]:
     return notes[:12]
 
 
-def audit_observations(rows: Optional[List[dict]] = None) -> dict:
-    rows = rows if rows is not None else _load_rows()
+def audit_observations(rows: Optional[List[dict]] = None, source: str = "live") -> dict:
+    rows = rows if rows is not None else _load_rows(source)
     scored: List[dict] = []
     regime_c = Counter()
     decision_c = Counter()
     dec_type = Counter()
     hunter_skip = Counter()
+    strategy_dec = {k: Counter() for k in ("hunter", "squeeze", "bollinger-mr")}
 
     for obs in rows:
         st = obs.get("system_truth") or {}
@@ -203,7 +209,10 @@ def audit_observations(rows: Optional[List[dict]] = None) -> dict:
         decision_c[d_verdict] += 1
         dec_type[decision] += 1
         for o in st.get("strategy_observations") or []:
-            if str(o.get("strategy") or "") == "hunter":
+            sk = str(o.get("strategy") or "")
+            if sk in strategy_dec:
+                strategy_dec[sk][str(o.get("decision") or o.get("skip_reason") or "?")] += 1
+            if sk == "hunter":
                 hunter_skip[str(o.get("skip_reason") or o.get("decision") or "?")] += 1
         scored.append({
             "ts": obs.get("ts"),
@@ -234,15 +243,20 @@ def audit_observations(rows: Optional[List[dict]] = None) -> dict:
 
     report = {
         "schema": "audit_v0",
+        "source": "historical_lab" if source == "replay" else "live_paper",
         "ts": datetime.now(timezone.utc).isoformat(),
         "n_observations": n,
         "n_with_fwd_1h": n_1h,
         "decisions": dict(dec_type),
         "regime_audit": dict(regime_c),
         "decision_audit": dict(decision_c),
+        "strategy_evidence": {k: dict(v) for k, v in strategy_dec.items()},
         "mean_fwd_1h_all": _mean([s.get("fwd_1h") for s in scored]),
         "mean_fwd_1h_after_skip_wait": _mean(
             [s.get("fwd_1h") for s in scored if s["decision"] in ("SKIP", "WAIT")]
+        ),
+        "mean_fwd_1h_after_take": _mean(
+            [s.get("fwd_1h") for s in scored if s["decision"] == "TAKE"]
         ),
         "hunter_skip_reasons_top": dict(hunter_skip.most_common(8)),
         "examples_misclassified": mis[:6],
@@ -253,28 +267,38 @@ def audit_observations(rows: Optional[List[dict]] = None) -> dict:
             "btc_path_is_not_strategy_pnl": True,
             "no_keep": True,
             "no_auto_mutation": True,
+            "historical_take_is_not_keep": source == "replay",
+            "strategy_evidence_ne_decision_evidence": True,
         },
         "note": (
             "Thin audit. SUPPORTED/MISCLASSIFIED is about Ananta's BTC market label "
-            "vs independent Kraken flags — not Wave A KEEP. Decision COSTLY means "
-            "BTC rallied after WAIT/SKIP; it does not prove a strategy TAKE was due."
+            "vs independent flags — not Wave A KEEP. Decision COSTLY means "
+            "BTC rallied after WAIT/SKIP; it does not prove a strategy TAKE was due. "
+            "Historical TAKE is TAKE-equivalent, not a paper fill, not promotion evidence."
         ),
     }
     return report
 
 
-def save_audit_report(report: dict) -> Path:
-    AUDIT_REPORT.write_text(json.dumps(report, indent=2, default=str))
-    return AUDIT_REPORT
+def save_audit_report(report: dict, source: str = "live") -> Path:
+    path = AUDIT_REPORT_REPLAY if source == "replay" else AUDIT_REPORT
+    path.write_text(json.dumps(report, indent=2, default=str))
+    return path
 
 
-def print_audit(report: Optional[dict] = None) -> None:
-    report = report or audit_observations()
-    path = save_audit_report(report)
+def print_audit(report: Optional[dict] = None, source: str = "live") -> None:
+    report = report or audit_observations(source=source)
+    path = save_audit_report(report, source=source)
+    label = "STAGE 4 HISTORICAL AUDIT" if source == "replay" else "STAGE 3 AUDIT"
     print()
-    print("STAGE 3 AUDIT  (thin — log only, not KEEP)")
+    print(f"{label}  (thin — log only, not KEEP)")
     print("=" * 64)
     print("Ananta regime = hypothesis. BTC path ≠ strategy PnL. No auto mutation.")
+    if source == "replay":
+        print("source=historical_lab  file=observation_replay.jsonl")
+        print("Historical TAKE-equivalent ≠ paper TAKE ≠ KEEP.")
+    else:
+        print("source=live_paper  file=observation_log.jsonl")
     print("-" * 64)
     print(
         f"  observations={report.get('n_observations')}  "
@@ -286,9 +310,13 @@ def print_audit(report: Optional[dict] = None) -> None:
     print(
         f"  mean BTC +1h after SKIP/WAIT: {report.get('mean_fwd_1h_after_skip_wait')}%"
     )
+    print(f"  mean BTC +1h after TAKE    : {report.get('mean_fwd_1h_after_take')}%")
     print(f"  hunter skip reasons: {report.get('hunter_skip_reasons_top')}")
+    se = report.get("strategy_evidence") or {}
+    if se:
+        print(f"  strategy evidence: {se}")
     print("-" * 64)
-    print("REGIME — Ananta BTC market label vs independent Kraken")
+    print("REGIME — Ananta BTC market label vs independent flags")
     print("  SUPPORTED      label matched independent bid/chop/offer")
     print("  MISCLASSIFIED  label disagreed with a clear independent state")
     print("  UNCERTAIN      chop, missing horizon, or weak independent signal")
@@ -296,6 +324,7 @@ def print_audit(report: Optional[dict] = None) -> None:
     print("DECISION — WAIT/SKIP vs subsequent BTC path (opportunity cost)")
     print(f"  noise band |+1h| < {NOISE_1H}% → UNCERTAIN")
     print(f"  |+1h| ≥ {COST_1H}% → COSTLY (rally after sit-out) or PROTECTIVE (drop)")
+    print("  TAKE here, if historical, is TAKE-equivalent — still not KEEP.")
     print("-" * 64)
 
     def _ex(title, items):
@@ -318,7 +347,7 @@ def print_audit(report: Optional[dict] = None) -> None:
     _ex("COSTLY sit-out examples", report.get("examples_costly") or [])
     _ex("PROTECTIVE sit-out examples", report.get("examples_protective") or [])
     print("-" * 64)
-    print("  Not KEEP. Need TAKE outcomes for promotion. Wave A stays WATCH.")
+    print("  Not KEEP. Wave A stays WATCH. Enough to evaluate ≠ enough to promote.")
     print(f"  saved: {path}")
     print("=" * 64)
     print()

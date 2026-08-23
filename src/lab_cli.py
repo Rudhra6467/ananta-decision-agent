@@ -69,11 +69,56 @@ def handle_lab_command(user_input: str) -> bool:
     elif rest in ("audit", "audits", "regime"):
         from src.tools.audit_truth import print_audit
         print_audit()
+    elif rest in ("audit replay",) or rest.startswith("audit replay"):
+        from src.tools.audit_truth import print_audit
+        print_audit(source="replay")
+    elif rest.startswith("replay"):
+        parts = rest.split()
+        symbols = []
+        stride = 4
+        max_bars = None
+        smoke = False
+        i = 1
+        while i < len(parts):
+            p = parts[i]
+            if p in ("--stride", "-s") and i + 1 < len(parts):
+                try:
+                    stride = int(parts[i + 1])
+                except ValueError:
+                    pass
+                i += 2
+                continue
+            if p in ("--max-bars", "--limit") and i + 1 < len(parts):
+                try:
+                    max_bars = int(parts[i + 1])
+                except ValueError:
+                    pass
+                i += 2
+                continue
+            if p in ("--smoke", "smoke"):
+                smoke = True
+                i += 1
+                continue
+            if p in ("--understanding", "understanding"):
+                from src.tools.lab_replay import print_understanding_from_replay
+                print_understanding_from_replay()
+                return True
+            if "/" in p or p.upper() in ("BTC", "ETH"):
+                sym = p.upper()
+                if "/" not in sym:
+                    sym = f"{sym}/USD"
+                symbols.append(sym)
+            i += 1
+        from src.tools.lab_replay import run_lab_replay
+        run_lab_replay(symbols=symbols or None, stride=stride, max_bars=max_bars, smoke=smoke)
+    elif rest in ("understanding", "report"):
+        from src.tools.lab_replay import print_understanding_from_replay
+        print_understanding_from_replay()
     elif rest in ("once", "tick", "observe"):
         from src.lab_watch import capture_one_observation, _print_tick
         _print_tick(capture_one_observation())
     else:
-        print("lab | lab watch [N] | lab once | lab outcomes | lab audit | lab observations | lab wait | lab status | lab coverage")
+        print("lab | lab watch [N] | lab once | lab outcomes | lab audit | lab audit replay | lab replay [BTC/USD] | lab understanding | lab observations | lab wait | lab status | lab coverage")
     return True
 
 

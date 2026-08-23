@@ -66,11 +66,14 @@ def handle_lab_command(user_input: str) -> bool:
         print(f"  status={summary.get('status_counts')}  ohlc_bars={summary.get('ohlc_bars')}")
         print(f"  spots={summary.get('spots')}  reasons={summary.get('reasons')}")
         print_outcomes_summary(limit=10)
+    elif rest in ("audit", "audits", "regime"):
+        from src.tools.audit_truth import print_audit
+        print_audit()
     elif rest in ("once", "tick", "observe"):
         from src.lab_watch import capture_one_observation, _print_tick
         _print_tick(capture_one_observation())
     else:
-        print("lab | lab watch [N] | lab once | lab outcomes | lab observations | lab wait | lab status | lab coverage")
+        print("lab | lab watch [N] | lab once | lab outcomes | lab audit | lab observations | lab wait | lab status | lab coverage")
     return True
 
 

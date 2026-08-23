@@ -64,7 +64,7 @@ Each tick, **same timestamp**:
 
 ### Forward outcomes (Stage 2)
 
-Attach at least: **+15m / +1h / +4h** (more horizons later).
+Attach at least: **+15m / +1h / +4h** via Kraken OHLC (`ohlc_close_at_or_after_horizon`).
 
 Enables:
 
@@ -72,15 +72,23 @@ Enables:
 - Decision Audit: protective vs costly WAIT; SKIP quality; TAKE path; opportunity cost
 - Gate × market-condition performance
 
+Command: `lab outcomes`
+
+### Thin audit (Stage 3)
+
+Command: `lab audit`
+
+Reads the Observation ledger. Scores Ananta's BTC **market label** against independent Kraken flags, and WAIT/SKIP against subsequent BTC path. **BTC path ≠ strategy PnL.** Does not KEEP.
+
 ---
 
 ## Staged build (do not parallelize all)
 
 | Stage | Deliverable | Status |
 |-------|-------------|--------|
-| **1** | `lab watch` + market snapshot + cycle + decision → co-timestamped Observation | **Next engineering** |
-| **2** | Forward outcome attachment (+15m / +1h / +4h) | Queued |
-| **3** | Thin Regime Audit + Decision Audit | Queued |
+| **1** | `lab watch` + market snapshot + cycle + decision → co-timestamped Observation | **Done** (42+ live ticks, 2026-08-22/23) |
+| **2** | Forward outcome attachment (+15m / +1h / +4h) | **Done** (`lab outcomes`, OHLC fill) |
+| **3** | Thin Regime Audit + Decision Audit | **Next** (`lab audit`) |
 | **4** | Replay same schema on 1y Lab dataset | Queued |
 | **5** | Agent findings → experiment proposals (human approval) | Queued |
 

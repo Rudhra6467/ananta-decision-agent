@@ -1,12 +1,12 @@
-# Decision Quality v0 — locked 2026-08-25
+# Decision Quality — v0.0 baseline + v0.1 population integrity
 
-**Status:** First-class project artifact.  
-**Command:** `lab quality`  
-**Version:** `DQ-v0.0`  
-**Tape:** live n=241 (`observation_log.jsonl`) + hist n=2474 (`observation_replay.jsonl`)  
-**H3:** `lab attribution` join fixed in `2c8bee9`
+**Commands:** `lab quality`  
+**Baseline (locked):** `DQ-v0.0` 2026-08-25  
+**Meter code:** `DQ-v0.1` — integrity patch (SKIP_SETUP vs FILTERED_IDLE). **Not a quality win. Not KEEP.**
 
-This is how Agent Ananta is **trained in the practical sense**: calibration against a frozen baseline, not weight updates, not KEEP.
+v0.1 does not beat v0.0. It makes the denominator honest so future Δ is real.
+
+---
 
 ```text
 Ananta DI v0.x
@@ -23,6 +23,44 @@ Did this make decisions better?
 ```
 
 If a change cannot show Δ on this meter, it did not improve Agent Ananta.
+
+---
+
+## Populations (law — measurement integrity)
+
+The squeeze/bollinger live print `setup=12 SKIP=2360` was a **denominator leak**: most of those SKIPs were idle bars behind a closed regime gate, not refused opportunities.
+
+| Token | Population | Used for |
+|---|---|---|
+| **UNIVERSE** | observation × symbol rows for that strategy (`n_rows`) | Coverage only |
+| **SETUP** | `setup_detected=True` | Opportunity existed |
+| **TAKE** | SETUP in an allowed regime (paper TAKE or hist TAKE-eq) | **A. Opportunity quality** |
+| **SKIP_SETUP** | SETUP that was refused (`SKIP` or `REGIME_FILTERED`) | **B. Refusal quality** |
+| **FILTERED_IDLE** | No setup; regime gate closed | **Not refusal.** Do not score as SKIP quality |
+| **WAIT** | No setup, not filtered | Idle / nothing to say |
+| **SKIP_LEGACY** | H3 all-row SKIP (includes FILTERED_IDLE) | Δ vs DQ-v0.0 only |
+| **FILTERED** | `skip_reason` starts with `REGIME_FILTERED` | Gate accounting |
+| **SIT-OUT** | Agent-level WAIT/SKIP vs BTC path | **C. Opportunity cost of the book** |
+
+Hunter live 64/64 TREND_UP setups are **SKIP_SETUP**. That is the 64 we may ask “was refusing correct?”
+
+Squeeze live ~12 setups vs ~2360 legacy SKIP: refusal n ≈ 12 (`SKIP_SETUP`); the rest is `FILTERED_IDLE`.
+
+---
+
+## Five questions (v0 answers A–B–C only; D–E later)
+
+| | Question | v0.1 |
+|---|---|---|
+| **A** | When we TAKE, was taking good? | Live: `NO_LIVE_TAKE`. Hist: hunter/squeeze `INSUFFICIENT`; bollinger `WASH` |
+| **B** | When we SKIP a **setup**, was refusing good? | Hunter live SKIP_SETUP n=64 WASH/+4h slight protective. Squeeze/bollinger SKIP_SETUP still small n |
+| **C** | Did we miss something meaningful? | Sit-out WASH. Not demonstrated. |
+| **D** | Calibration: does stated confidence match reality? | **Not yet.** No blended score as a fake substitute |
+| **E** | Consistency across asset × TF × regime × vol | **Universe v1+.** Do not pretend we have it |
+
+Readiness: **NOT EARNED**. Keep it that way until A or B is actually earned.
+
+Do **not** add Decision Quality = 73.4.
 
 ---
 
@@ -95,6 +133,7 @@ live sit-out      : WASH
 hist TAKE usable  : bollinger-mr n=47 WASH (slightly negative)
 hunter live SKIP  : n=64 WASH at +1h; slight protective at +4h
 promotion         : FORBIDDEN
+readiness         : NOT EARNED
 ```
 
 Hunter TREND_UP contradiction remains a **map cell**, not a rewrite sprint.
@@ -111,6 +150,8 @@ A DI / gate / ranking change is an improvement only if `lab quality` shows, with
 and Wave A is still not silently KEEP’d.
 
 Empty `delta_vs_baseline.moved_cells` means we are still on this baseline.
+
+v0.1 population split is **not** a quality win.
 
 ---
 
@@ -129,7 +170,8 @@ Empty `delta_vs_baseline.moved_cells` means we are still on this baseline.
 ## Sequence this meter sits in
 
 ```text
-H3 report (done) → DQ-v0.0 (this) → H2 instrumentation (queued)
+H3 report (done) → DQ-v0.0 (locked) → v0.1 populations (integrity)
+  → H2 instrumentation (queued)
   → Decision Quality retest
   → Strategy Research Universe v1 (specs → cells → this meter)
 ```

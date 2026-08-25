@@ -172,12 +172,14 @@ def print_universe() -> Dict[str, Any]:
             f"+1h={t.get('verdict')}"
         )
     print("-" * 64)
-    print("  Uncovered specs (no observation_v0 replay) — catalogued, not running")
+    print("  Uncovered specs (no observation_v0 on any cell) — catalogued, not running")
     seen = set()
+    covered_keys = {c["strategy"] for c in report["cells"] if c["coverage"] == "historical_lab"}
     for c in report["cells"]:
-        if c["coverage"] == "NONE" and c["strategy"] not in seen and not c["wave_a"]:
-            seen.add(c["strategy"])
-            print(f"    {c['strategy']:<22} family={c['family']:<16} fit=UNKNOWN  NO_REPLAY")
+        if c["strategy"] in seen or c["wave_a"] or c["strategy"] in covered_keys:
+            continue
+        seen.add(c["strategy"])
+        print(f"    {c['strategy']:<22} family={c['family']:<16} fit=UNKNOWN  NO_REPLAY")
     print("-" * 64)
     print("  SUITABLE is not KEEP. WASH is not UNSUITABLE. UNTESTED is not TESTED_UNKNOWN.")
     print("  provenance=evidence_provenance_v0 on every cell (source/version/period/policy).")

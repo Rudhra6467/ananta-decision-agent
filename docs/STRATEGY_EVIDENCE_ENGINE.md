@@ -1,7 +1,7 @@
 # Strategy Evidence Engine — destination lock (2026-08-25)
 
 **Status:** Destination architecture. **Not built as a ranker.** v0 is the Evidence Card on Universe cells.  
-**Now:** Universe-v1.2 continuation hist shadow. Wave A frozen.
+**Now:** Setup Memory v0 (`lab memory`). Wave A frozen.
 
 ## The question this layer exists to answer
 
@@ -16,7 +16,7 @@ Not: “this setup won 95% of the time — trade it.”
 |---|---|---|
 | Strategy Library | What capabilities exist? | Universe specs (15) |
 | Strategy Knowledge | What have we measured? | `universe_knowledge.json` cells |
-| Setup Memory | What happened on similar states? | `observation_v0` rows (live + hist). **Not a new DB.** |
+| Setup Memory | What happened on similar states? | **v0** `lab memory` — jsonl join of `setup_detected` rows |
 | Decision Quality | Were decisions any good? | DQ-v0 cells |
 
 Loop (locked — this is Decision Intelligence, not a strategy bot):
@@ -62,6 +62,22 @@ Every cell/card carries `evidence_provenance_v0`:
 
 Law: **evidence without provenance is a speech.**
 
+## Setup Memory v0 (`lab memory`)
+
+Join, not a database.
+
+Each `setup_detected=True` row → `setup_record_v0` (strategy × asset × TF × regime × role × outcomes × market flags × provenance).
+
+Idle bars (WAIT / FILTERED_IDLE) are **not** memory of a setup.
+
+```text
+lab memory                  # hist default
+lab memory replay continuation TREND_UP
+lab memory live
+```
+
+Not a ranker. n=7 TAKE-eq is still ANECDOTE. KEEP forbidden.
+
 A claim like “this setup has historically performed well” must answer: which data, which strategy version, which period, which regime definition, which policy, which outcomes.
 
 ## Laws
@@ -97,9 +113,9 @@ Every Universe cell now carries:
 2. DQ-v0 locked  
 3. Universe v1 scaffold  
 4. Universe v1.1 evidence depth  
-5. **Universe v1.2 continuation hist shadow ← now** (not live watch)  
-6. Setup records = joins of existing jsonl  
-7. Fingerprints from Market Truth  
+5. Universe v1.2 continuation hist shadow  
+6. **Setup Memory v0 ← now** (`lab memory` — jsonl join, not a DB)  
+7. Market-state fingerprints from Market Truth  
 8. Similarity search (only after TAKE n is real)  
 9. Contextual ranking — **separate boards**, never one leaderboard  
 10. Forward paper vs hist  

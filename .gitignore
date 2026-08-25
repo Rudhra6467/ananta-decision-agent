@@ -31,6 +31,7 @@ attribution_live.json
 attribution_replay.json
 decision_quality_report.json
 universe_knowledge.json
+setup_memory_index.json
 typed_decision.jsonl
 experiments_ledger.jsonl
 user_context.json

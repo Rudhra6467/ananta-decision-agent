@@ -46,6 +46,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cmd in ("research", "strategy"):
         key = rest[0] if rest else None
         return _cmd_research(key)
+    if cmd in ("memory", "setups", "setup-memory"):
+        return _cmd_memory(rest)
     if cmd in ("universe", "sru", "cells"):
         return _cmd_universe()
     if cmd in ("h2", "hunter-gates"):
@@ -65,9 +67,9 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab universe | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab memory | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
-    print("Wave A stays WATCH. H3 = lab attribution. H2 = lab h2. Universe = lab universe (offline). H1 live enable rejected.")
+    print("Wave A stays WATCH. Universe = lab universe. Memory = lab memory (jsonl join). H1 live enable rejected.")
 
 
 def _dump(obj) -> None:
@@ -270,6 +272,24 @@ def _cmd_research(key: Optional[str]) -> int:
         )
         print(f"    verdict={s['verdict']}  KEEP=no")
     print("=" * 64)
+    return 0
+
+
+def _cmd_memory(rest: List[str]) -> int:
+    from src.intelligence.setup_memory import print_memory
+
+    source = "replay"
+    strat = None
+    regime = None
+    args = [a for a in rest if a]
+    if args and args[0].lower() in ("live", "replay", "historical", "historical_lab"):
+        source = args[0]
+        args = args[1:]
+    if args:
+        strat = args[0]
+    if len(args) > 1:
+        regime = args[1]
+    print_memory(source, strat, regime)
     return 0
 
 

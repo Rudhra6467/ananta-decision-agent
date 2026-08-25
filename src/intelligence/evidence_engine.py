@@ -30,8 +30,8 @@ SEQUENCE = (
     "DQ-v0 locked",
     "Universe v1 scaffold",
     "Universe v1.1 evidence depth",
-    "Universe v1.2 continuation hist shadow (not live watch)",  # NOW
-    "Setup records = observation_v0 joins",
+    "Universe v1.2 continuation hist shadow (not live watch)",
+    "Setup Memory v0 jsonl join",  # NOW
     "Evidence cards (cells, not a score)",
     "Market-state fingerprints from Market Truth",
     "Similarity search",

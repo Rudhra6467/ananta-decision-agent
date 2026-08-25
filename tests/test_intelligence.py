@@ -8,6 +8,7 @@ from pathlib import Path
 
 from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
+from src.intelligence.setup_memory import extract, _record
 from src.intelligence.universe import fit_from_take, research
 from src.intelligence.universe_specs import generate_cells, catalog
 from src.intelligence.evidence_engine import card_from_cell, status_class, confidence_band, provenance
@@ -462,6 +463,43 @@ class TestEvidenceEngine(unittest.TestCase):
         self.assertEqual(gap["source"], "NONE")
 
 
+class TestSetupMemory(unittest.TestCase):
+    def test_record_is_not_keep_and_not_live(self):
+        rec = _record(
+            {
+                "strategy": "continuation",
+                "symbol": "BTC/USD",
+                "setup_detected": True,
+                "decision": "TAKE",
+                "skip_reason": None,
+                "research_shadow": True,
+                "regime": "TREND_UP",
+                "reason_codes": ["ok"],
+            },
+            {},
+            {"assets": {"BTC/USD": {"trend": "UP", "price": 1}}},
+            {"fwd_15m_pct": 0.1, "fwd_1h_pct": 0.4, "fwd_4h_pct": 0.2},
+            ts="2026-01-01T00:00:00Z",
+            obs_id="x",
+            source="historical_lab",
+            tf="1h",
+        )
+        self.assertEqual(rec["schema"], "setup_record_v0")
+        self.assertFalse(rec["keep"])
+        self.assertTrue(rec["research_shadow"])
+        self.assertFalse(rec["live_watch"])
+        self.assertEqual(rec["population_role"], "TAKE")
+        self.assertEqual(rec["outcomes"]["+1h"], 0.4)
+        self.assertEqual(rec["provenance"]["schema"], "evidence_provenance_v0")
+
+    def test_extract_empty_is_not_a_ranker(self):
+        report = extract("replay")
+        self.assertFalse(report["keep"])
+        self.assertFalse(report["ranker"])
+        self.assertFalse(report["similarity"])
+        self.assertEqual(report["version"], "SETUP-MEMORY-v0")
+
+
 
 
 class TestOrchestratePaper(unittest.TestCase):
@@ -517,6 +555,7 @@ class TestContractAndSystem(unittest.TestCase):
         self.assertIn("di.h2", names)
         self.assertIn("di.universe", names)
         self.assertIn("di.evidence", names)
+        self.assertIn("di.setup_memory", names)
 
     def test_typed_decision_schema(self):
         d = TypedDecision(recommended_action="TAKE", issued_action="WAIT")

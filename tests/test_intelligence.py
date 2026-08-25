@@ -10,7 +10,7 @@ from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
 from src.intelligence.universe import fit_from_take, research
 from src.intelligence.universe_specs import generate_cells, catalog
-from src.intelligence.evidence_engine import card_from_cell, status_class, confidence_band
+from src.intelligence.evidence_engine import card_from_cell, status_class, confidence_band, provenance
 from src.intelligence.h2 import _codes, histogram
 
 from src.intelligence.decision_quality import (
@@ -405,6 +405,9 @@ class TestUniverse(unittest.TestCase):
             })
             if c["coverage"] == "NONE":
                 self.assertEqual(c["status_class"], "UNTESTED")
+            self.assertEqual(c["provenance"]["schema"], "evidence_provenance_v0")
+            self.assertTrue(c["provenance"]["regime_is_hypothesis"])
+            self.assertFalse(c["provenance"]["decision_policy"]["keep"])
         for card in report.get("allowed_cards") or []:
             self.assertIsNone(card["blended_score"])
             self.assertFalse(card["keep"])
@@ -430,6 +433,23 @@ class TestEvidenceEngine(unittest.TestCase):
         })
         self.assertIsNone(card["blended_score"])
         self.assertNotIn("81", str(card.get("confidence_band")))
+
+    def test_provenance_does_not_invent_regime_version(self):
+        p = provenance(
+            strategy="hunter", asset="BTC/USD", timeframe="1h",
+            regime="REVERSAL", source="historical_lab",
+            period={"min_ts": "a", "max_ts": "b", "n_rows": 10},
+        )
+        self.assertEqual(p["strategy_version"], "1.0.0")
+        self.assertIsNone(p["regime_version"])
+        self.assertEqual(p["source"], "historical_lab")
+        self.assertEqual(p["evaluator"], "ananta.primary_layer.evaluate_primary")
+        gap = provenance(
+            strategy="turtle", asset="BTC/USD", timeframe="1h",
+            regime="TREND_UP", source="NONE",
+        )
+        self.assertTrue(gap["strategy_version_gap"])
+        self.assertEqual(gap["source"], "NONE")
 
 
 

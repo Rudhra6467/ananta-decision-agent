@@ -10,7 +10,20 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
+from src.intelligence.universe_specs import (
+    EVALUATORS,
+    REGIME_CLASSIFIER,
+    REGIME_VERSION,
+    STRATEGY_VERSIONS,
+    WAVE_A_REGIMES,
+)
+
 VERSION = "EVIDENCE-v0"
+PROVENANCE_SCHEMA = "evidence_provenance_v0"
+DQ_VERSION = "DQ-v0.1"
+UNIVERSE_VERSION = "UNIVERSE-v1.1"
+OBSERVATION_SCHEMA = "observation_v0"
+OUTCOME_HORIZONS = ("+15m", "+1h", "+4h")
 # Destination sequence. Do not skip to similarity.
 SEQUENCE = (
     "Wave A frozen",
@@ -39,6 +52,7 @@ LAWS = {
     "memory_does_not_authorize_keep": True,
     "fat_sample_of_a_bad_rule_is_still_bad": True,
     "similarity_is_structured_features_not_chart_lookalike": True,
+    "evidence_without_provenance_is_a_speech": True,
 }
 
 
@@ -87,6 +101,50 @@ def status_class(*, tested: bool, fit: str, why: str) -> str:
     return "TESTED_UNKNOWN"
 
 
+def provenance(
+    *,
+    strategy: str,
+    asset: str,
+    timeframe: str,
+    regime: str,
+    source: str,
+    period: Optional[dict] = None,
+) -> Dict[str, Any]:
+    """Every claim must answer: which data, version, period, regime, policy, outcomes."""
+    strat_ver = STRATEGY_VERSIONS.get(strategy)
+    return {
+        "schema": PROVENANCE_SCHEMA,
+        "source": source if source in ("historical_lab", "live_paper") else "NONE",
+        "live_and_hist_are_separate": True,
+        "observation_schema": OBSERVATION_SCHEMA,
+        "strategy": strategy,
+        "strategy_version": strat_ver,
+        "strategy_version_gap": strat_ver is None,
+        "evaluator": EVALUATORS.get(strategy),
+        "asset": asset,
+        "timeframe": timeframe,
+        "regime": regime,
+        "regime_classifier": REGIME_CLASSIFIER,
+        "regime_version": REGIME_VERSION,
+        "regime_is_hypothesis": True,
+        "decision_policy": {
+            "wave_a": "WATCH",
+            "wave_a_regimes": sorted(WAVE_A_REGIMES.get(strategy, frozenset())),
+            "dq_version": DQ_VERSION,
+            "universe_version": UNIVERSE_VERSION,
+            "keep": False,
+            "live_enable": False,
+        },
+        "outcome_horizons": list(OUTCOME_HORIZONS),
+        "hist_15m": "UNUSABLE" if source == "historical_lab" and timeframe == "1h" else None,
+        "period": period or {"min_ts": None, "max_ts": None, "n_rows": 0},
+        "note": (
+            "A claim without this block is a speech. "
+            "regime_version DATA_GAP until Ananta stamps classify_regime."
+        ),
+    }
+
+
 def completeness(n_fwd: int, n_rows: int) -> Optional[float]:
     if n_rows <= 0:
         return None
@@ -115,6 +173,13 @@ def card_from_cell(cell: dict) -> Dict[str, Any]:
         "evidence_depth": cell.get("evidence_depth"),
         "coverage_band": cell.get("coverage_band"),
         "confidence_band": cell.get("confidence_band"),
+        "provenance": cell.get("provenance") or provenance(
+            strategy=str(cell.get("strategy") or ""),
+            asset=str(cell.get("asset") or ""),
+            timeframe=str(cell.get("timeframe") or ""),
+            regime=str(cell.get("regime") or ""),
+            source=str(cell.get("coverage") or "NONE"),
+        ),
         "take_1h": take,
         "skip_setup_1h": cell.get("skip_setup_1h"),
         "failure_top": cell.get("failure_top") or {},

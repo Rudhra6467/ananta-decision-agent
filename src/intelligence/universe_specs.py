@@ -12,6 +12,25 @@ COVERED_STRATEGIES = ("hunter", "squeeze", "bollinger-mr")
 COVERED_ASSETS = ("BTC/USD",)
 COVERED_TIMEFRAMES = ("1h",)
 
+# Ananta StrategySchema.version where known. Missing = DATA_GAP, never invented.
+STRATEGY_VERSIONS = {
+    "hunter": "1.0.0",
+    "squeeze": "1.0.0",
+    "continuation": "1.0.0",
+    "bollinger-mr": "1.0.0",
+}
+
+EVALUATORS = {
+    "hunter": "ananta.primary_layer.evaluate_primary",
+    "squeeze": "ananta.squeeze.evaluate_squeeze",
+    "bollinger-mr": "ananta.declarative_engine.evaluate(DECLARATIVE['bollinger-mr'])",
+    "continuation": "ananta.continuation (not on observation_v0 replay yet)",
+}
+
+REGIME_CLASSIFIER = "ananta.regime.classify_regime"
+REGIME_VERSION = None  # DATA_GAP until Ananta stamps a classifier version
+
+
 ASSETS = ("BTC/USD", "ETH/USD")
 TIMEFRAMES = ("1h", "15m")
 REGIMES = (
@@ -88,6 +107,8 @@ def _spec(
         "key": key,
         "family": family,
         "thesis": thesis,
+        "version": STRATEGY_VERSIONS.get(key),  # None = DATA_GAP
+        "evaluator": EVALUATORS.get(key),
         "dna_regimes": list(dna),
         "wave_a": wave_a,
         "wave_a_regimes": sorted(WAVE_A_REGIMES.get(key, frozenset())),

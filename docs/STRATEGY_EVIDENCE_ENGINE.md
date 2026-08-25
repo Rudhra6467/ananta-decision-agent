@@ -19,7 +19,50 @@ Not: “this setup won 95% of the time — trade it.”
 | Setup Memory | What happened on similar states? | `observation_v0` rows (live + hist). **Not a new DB.** |
 | Decision Quality | Were decisions any good? | DQ-v0 cells |
 
-Loop: Market → setup → (later) similar memory → ranking boards → DI → TAKE/WAIT/SKIP → Ananta gates → Outcome → DQ → update knowledge.
+Loop (locked — this is Decision Intelligence, not a strategy bot):
+
+```text
+What is the market doing?          Market Truth
+        ↓
+What state are we in?              Market State (Ananta regime = hypothesis)
+        ↓
+Which strategies are compatible?   Universe specs + policy
+        ↓
+What happened historically here?   Setup memory / cells
+        ↓
+How deep/reliable is that?         DQ-v0 + depth + provenance
+        ↓
+What is forward paper doing now?   live_paper (separate file)
+        ↓
+How did prior decisions perform?   DQ-v0
+        ↓
+TAKE / WAIT / SKIP / UNKNOWN       DI
+        ↓
+Ananta hard risk constraints
+        ↓
+Execution
+```
+
+Not: Market → Strategy #1 → BUY.
+
+## Provenance (v1.1)
+
+Every cell/card carries `evidence_provenance_v0`:
+
+| Field | Why |
+|---|---|
+| source | `historical_lab` vs `live_paper` vs `NONE` — never mixed |
+| strategy + strategy_version | Which implementation; missing = DATA_GAP |
+| evaluator | Function identity (e.g. `evaluate_primary`) |
+| asset / timeframe | Cell identity |
+| regime + classifier | `classify_regime`; **regime_version is DATA_GAP until Ananta stamps it** |
+| decision_policy | WAVE_A WATCH + DQ-v0.1 + UNIVERSE-v1.1 + KEEP=false |
+| outcome_horizons | +15m / +1h / +4h (hist +15m UNUSABLE on 1h stride) |
+| period | min_ts / max_ts / n_rows |
+
+Law: **evidence without provenance is a speech.**
+
+A claim like “this setup has historically performed well” must answer: which data, which strategy version, which period, which regime definition, which policy, which outcomes.
 
 ## Laws
 
@@ -32,6 +75,7 @@ Loop: Market → setup → (later) similar memory → ranking boards → DI → 
 - Similarity = structured Market Truth features, not “charts look alike.”
 - Funding / news = DATA_GAP until Ananta exposes them.
 - A fat sample of a bad rule is still a bad rule.
+- **Evidence without provenance is a speech.**
 
 ## Evidence Card v0 (built)
 

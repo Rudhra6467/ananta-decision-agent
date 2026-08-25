@@ -21,6 +21,7 @@ from src.intelligence.evidence_engine import (
     completeness,
     confidence_band,
     coverage_band,
+    provenance,
     status_class,
 )
 from src.intelligence.h2 import _codes, _regime
@@ -37,10 +38,12 @@ def research() -> Dict[str, Any]:
     rows = _read_jsonl(REPLAY_LOG)
     buckets: Dict[str, dict] = {}
     failures: Dict[str, Counter] = {}
+    periods: Dict[str, dict] = {}
 
     for obs in rows:
         st = obs.get("system_truth") or {}
         ot = obs.get("outcome_truth") or {}
+        ts = str(obs.get("ts") or st.get("ts") or "")
         tf = "1h"
         for o in st.get("strategy_observations") or []:
             key = (o.get("strategy") or "").lower()
@@ -53,6 +56,13 @@ def research() -> Dict[str, Any]:
             for c in _codes(o):
                 if c != "UNCODED":
                     fc[c] += 1
+            if ts:
+                p = periods.setdefault(cid, {"min_ts": ts, "max_ts": ts, "n_rows": 0})
+                p["n_rows"] += 1
+                if ts < p["min_ts"]:
+                    p["min_ts"] = ts
+                if ts > p["max_ts"]:
+                    p["max_ts"] = ts
 
     for b in buckets.values():
         _means(b)
@@ -63,7 +73,7 @@ def research() -> Dict[str, Any]:
     for cell in cells:
         cid = cell["id"]
         bucket = buckets.get(cid)
-        entry = _score_cell(cell, bucket, failures.get(cid))
+        entry = _score_cell(cell, bucket, failures.get(cid), periods.get(cid))
         fit_counts[entry["fit"]] += 1
         status_counts[entry["status_class"]] += 1
         scored.append(entry)
@@ -106,6 +116,7 @@ def research() -> Dict[str, Any]:
             "untested_is_not_tested_unknown": True,
             "wash_is_not_unsuitable": True,
             "no_blended_dq_score": True,
+            "evidence_without_provenance_is_a_speech": True,
         },
         "specs": catalog(),
         "cells": scored,
@@ -169,13 +180,14 @@ def print_universe() -> Dict[str, Any]:
             print(f"    {c['strategy']:<22} family={c['family']:<16} fit=UNKNOWN  NO_REPLAY")
     print("-" * 64)
     print("  SUITABLE is not KEEP. WASH is not UNSUITABLE. UNTESTED is not TESTED_UNKNOWN.")
+    print("  provenance=evidence_provenance_v0 on every cell (source/version/period/policy).")
     print(f"  saved: {report.get('saved')}")
     print("=" * 64)
     print()
     return report
 
 
-def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter]) -> dict:
+def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter], period: Optional[dict] = None) -> dict:
     out = dict(cell)
     out["n_rows"] = int((bucket or {}).get("n_rows") or 0)
     out["n_setup"] = int((bucket or {}).get("n_setup") or 0)
@@ -187,6 +199,7 @@ def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter]) -> 
         out.update(_depth_fields(tested=False, fit="UNKNOWN", why="NO_OBSERVATION_REPLAY", n_rows=0, n_take=0, n_fwd=0, depth="NONE"))
         out["take_1h"] = None
         out["keep"] = False
+        out["provenance"] = _prov(cell, period)
         return out
 
     bucket = bucket or _empty_bucket()
@@ -222,7 +235,19 @@ def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter]) -> 
             depth=depth,
         )
     )
+    out["provenance"] = _prov(cell, period)
     return out
+
+
+def _prov(cell: dict, period: Optional[dict]) -> dict:
+    return provenance(
+        strategy=str(cell.get("strategy") or ""),
+        asset=str(cell.get("asset") or ""),
+        timeframe=str(cell.get("timeframe") or ""),
+        regime=str(cell.get("regime") or ""),
+        source=str(cell.get("coverage") or "NONE"),
+        period=period,
+    )
 
 
 def _depth_fields(*, tested: bool, fit: str, why: str, n_rows: int, n_take: int, n_fwd: int, depth: str) -> dict:

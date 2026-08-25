@@ -66,7 +66,7 @@ def completeness() -> Dict[str, Any]:
         "recovery": _recovery_notes(checks),
         "do_not": [
             "stop lab watch to develop",
-            "run H1/H2/H3 yet",
+            "run H1 as live enable",
             "KEEP Wave A",
             "enable TREND_UP",
             "add Bull/Bear agents",

@@ -58,7 +58,7 @@ def print_help() -> None:
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
         "lab research [hunter] | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
-    print("Wave A stays WATCH. S5 H1/H2/H3 stay parked. No extra agents.")
+    print("Wave A stays WATCH. H3 = lab attribution. H2 needs Ananta dump. H1 live enable rejected.")
 
 
 def _dump(obj) -> None:
@@ -142,7 +142,7 @@ def _cmd_experiments(rest: List[str]) -> int:
         _dump(propose(title=title, hypothesis=title, kind="measurement"))
         return 0
     rows = list_experiments()
-    print("\nEXPERIMENT LEDGER (S5 parked — tape accumulating)")
+    print("\nEXPERIMENT LEDGER (H3 measurement / H2 pending Ananta dump / H1 live enable rejected)")
     print("=" * 64)
     for r in rows:
         print(
@@ -150,7 +150,7 @@ def _cmd_experiments(rest: List[str]) -> int:
         )
         print(f"           blocked: {', '.join(r['blocked_by'])}")
     print("-" * 64)
-    print("  try_run is refused until the tape gate lifts. H1 live enable is rejected.")
+    print("  try_run never mutates Wave A. H3 report = lab attribution. H1 live enable rejected.")
     print("=" * 64)
     return 0
 
@@ -188,24 +188,55 @@ def _cmd_contract(rest: List[str]) -> int:
 
 
 def _cmd_attribution(source: str) -> int:
+    import json
+    from pathlib import Path
+
     from src.intelligence.attribution import attribute_print_ready
 
     report = attribute_print_ready(source)
-    print(f"\nATTRIBUTION ({report.get('source')})  n={report.get('n')}  data_gap={report.get('data_gap')}")
+    path = Path(
+        "attribution_replay.json" if report.get("source") == "historical_lab" else "attribution_live.json"
+    )
+    try:
+        path.write_text(json.dumps(report, indent=2, default=str))
+    except Exception:
+        path = None
+    print(f"\nATTRIBUTION / H3 ({report.get('source')})  n={report.get('n')}  data_gap={report.get('data_gap')}")
     print("=" * 64)
     print(f"  {report.get('note')}")
     print("-" * 64)
+
+    def _triple(means: dict) -> str:
+        means = means or {}
+        parts = []
+        for k in ("fwd_15m_pct", "fwd_1h_pct", "fwd_4h_pct"):
+            v = means.get(k)
+            parts.append("—" if v is None else f"{v}%")
+        return "  ".join(parts)
+
     for k, b in (report.get("by_strategy") or {}).items():
         print(
             f"  {k:<14} rows={b.get('n_rows')} setup={b.get('n_setup')} "
             f"TAKE={b.get('n_take')} SKIP={b.get('n_skip')} WAIT={b.get('n_wait')} "
             f"filtered={b.get('n_regime_filtered')}"
         )
-        take = (b.get("mean_fwd_after_take") or {}).get("fwd_1h_pct")
-        skip = (b.get("mean_fwd_after_skip") or {}).get("fwd_1h_pct")
-        print(f"                 mean +1h TAKE={take} SKIP={skip}")
+        print(f"                 mean +15m / +1h / +4h")
+        print(
+            f"                   TAKE n_1h={(b.get('n_fwd_after_take') or {}).get('fwd_1h_pct', 0)}  "
+            f"{_triple(b.get('mean_fwd_after_take'))}"
+        )
+        print(
+            f"                   SKIP n_1h={(b.get('n_fwd_after_skip') or {}).get('fwd_1h_pct', 0)}  "
+            f"{_triple(b.get('mean_fwd_after_skip'))}"
+        )
+        print(
+            f"                   WAIT n_1h={(b.get('n_fwd_after_wait') or {}).get('fwd_1h_pct', 0)}  "
+            f"{_triple(b.get('mean_fwd_after_wait'))}"
+        )
     print("-" * 64)
-    print("  S5-H3 is parked. This is the engine, not the experiment run.")
+    print("  H3 = this report. Wave A stays WATCH. Not KEEP. Not a trade.")
+    if path:
+        print(f"  saved: {path}")
     print("=" * 64)
     return 0
 

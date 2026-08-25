@@ -246,8 +246,8 @@ class TestExperiments(unittest.TestCase):
     def test_s5_catalog_parked(self):
         rows = {r["id"]: r for r in list_experiments()}
         self.assertEqual(rows["S5-H1"]["status"], "REJECTED_AS_LIVE_ENABLE")
-        self.assertEqual(rows["S5-H2"]["status"], "PENDING_TAPE")
-        self.assertEqual(rows["S5-H3"]["status"], "PENDING_TAPE")
+        self.assertEqual(rows["S5-H2"]["status"], "APPROVED_PENDING_INSTRUMENTATION")
+        self.assertEqual(rows["S5-H3"]["status"], "APPROVED_MEASUREMENT")
         self.assertFalse(rows["S5-H2"]["runnable_now"])
         self.assertFalse(rows["S5-H3"]["runnable_now"])
 
@@ -267,12 +267,51 @@ class TestAttribution(unittest.TestCase):
         self.assertEqual(_classify({"setup_detected": True, "skip_reason": "REGIME_FILTERED", "decision": "SKIP"}), "SKIP")
         self.assertEqual(_classify({"setup_detected": True, "skip_reason": None, "decision": "WAIT"}), "TAKE")
         self.assertEqual(_classify({"setup_detected": False, "decision": "WAIT"}), "WAIT")
+        self.assertEqual(
+            _classify(
+                {
+                    "setup_detected": True,
+                    "skip_reason": "REGIME_FILTERED regime=TREND_UP allowed=['REVERSAL']",
+                    "decision": "SKIP",
+                }
+            ),
+            "SKIP",
+        )
 
     def test_empty_ledger_is_data_gap(self):
         report = attribute_print_ready("live")
         self.assertTrue(report["data_gap"] or report["n"] >= 0)
         self.assertIn("hunter", report["by_strategy"])
         self.assertIn("bollinger-mr", report["by_strategy"])
+
+    def test_nested_outcome_join_and_filter_prefix(self):
+        from src.intelligence.attribution import _accumulate, _empty_bucket, _forward, _is_regime_filtered, _means
+
+        self.assertTrue(_is_regime_filtered("REGIME_FILTERED regime=TREND_UP allowed=['REVERSAL']"))
+        self.assertFalse(_is_regime_filtered("no_qualifying_setup"))
+        nested = {
+            "assets": {
+                "BTC/USD": {
+                    "+15m": {"ret_pct": 0.10},
+                    "+1h": {"ret_pct": 0.50},
+                    "+4h": {"ret_pct": -0.20},
+                }
+            }
+        }
+        fwd = _forward(nested)
+        self.assertEqual(fwd["fwd_1h_pct"], 0.50)
+        self.assertEqual(_forward({"fwd_1h_pct": 0.7})["fwd_1h_pct"], 0.7)
+        b = _empty_bucket()
+        _accumulate(
+            b,
+            {"strategy": "hunter", "setup_detected": True, "decision": "SKIP", "skip_reason": "REGIME_FILTERED regime=TREND_UP"},
+            nested,
+        )
+        _means(b)
+        self.assertEqual(b["n_skip"], 1)
+        self.assertEqual(b["n_regime_filtered"], 1)
+        self.assertEqual(b["mean_fwd_after_skip"]["fwd_1h_pct"], 0.5)
+        self.assertEqual(b["n_fwd_after_skip"]["fwd_1h_pct"], 1)
 
 
 class TestOrchestratePaper(unittest.TestCase):

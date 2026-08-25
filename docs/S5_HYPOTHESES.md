@@ -1,12 +1,10 @@
-# S5 — Proposed hypotheses (NOT approved)
+# S5 — Hypotheses (measurement vs mutation)
 
 **Opened:** 2026-08-23 after `lab compare`  
-**Status:** **PARKED pending tape.** Ledger exists (`lab experiments`). `try_run` is refused. Wave A stays **WATCH**.  
-**Gate:** live tape accumulates 3–4+ days. Then human approval before any experiment runs. Path remains finding → hypothesis → experiment → validation → human → versioned production.
+**Human lock 2026-08-25:** H3 + H2 approved as **measurement only**. H1 live enable remains **rejected**. Wave A stays **WATCH**. Watcher stays up.  
+**try_run** still refuses mutation. H3 report = `lab attribution live` / `lab attribution replay`. H2 waits on Ananta `reason_codes` dump.
 
-The attribution engine (`lab attribution`) and experiment ledger are built. That is **not** H3 running.
-
-These are measurement / paper experiments. They are **not** Hunter v1.1.
+Path remains finding → hypothesis → experiment → validation → human → versioned production. These are **not** Hunter v1.1.
 
 ---
 
@@ -36,6 +34,8 @@ These are measurement / paper experiments. They are **not** Hunter v1.1.
 
 **PM default:** **approve H2 as instrumentation** (replay field dump). No strategy mutation.
 
+**Status 2026-08-25:** APPROVED_PENDING_INSTRUMENTATION. Needs Ananta `evaluate_primary` reason_codes on REVERSAL bars (stride=1). Do not loosen gates from this finding.
+
 ---
 
 ## H3 — Split TAKE-eq by strategy (stop mixing Bollinger into Wave A)
@@ -47,6 +47,8 @@ These are measurement / paper experiments. They are **not** Hunter v1.1.
 **Proposed experiment (if approved):** Report +15m/+1h/+4h **per strategy** for hist TAKE-eq and live SKIPs. Bollinger stays shadow; hunter/squeeze scored separately.
 
 **PM default:** **approve H3** — it is a report, not a trade.
+
+**Status 2026-08-25:** APPROVED_MEASUREMENT. Run `lab attribution live` and `lab attribution replay`. Engine now joins `outcome_truth.assets[BTC/USD][+1h].ret_pct` (the previous None means were a join bug, not empty tape).
 
 ---
 
@@ -80,4 +82,5 @@ These are measurement / paper experiments. They are **not** Hunter v1.1.
 - Enabling the other 12
 - Treating sit-out wash as “always WAIT” or overnight protection as “Hunter is good”
 
-**Recommended approval set:** H3 (report split) + H2 (gate histogram). H1 shadow only if you want it. H4 none. H5 later.
+**Human lock 2026-08-25:** H3 report + H2 instrumentation approved. H1 live enable rejected. H4 none. H5 later.
+Wave A is the first baseline, not the Strategy Center. Next after H3 numbers: Decision Quality v0, then Strategy Research Universe v1. Do not spend weeks rescuing Hunter.

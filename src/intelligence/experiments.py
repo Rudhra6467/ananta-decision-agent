@@ -18,6 +18,8 @@ STATUSES = (
     "PROPOSED",
     "PENDING_TAPE",
     "APPROVED",
+    "APPROVED_MEASUREMENT",
+    "APPROVED_PENDING_INSTRUMENTATION",
     "REJECTED",
     "REJECTED_AS_LIVE_ENABLE",
     "NO_EXPERIMENT",
@@ -48,7 +50,7 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     "S5-H2": {
         "id": "S5-H2",
         "title": "Hunter REVERSAL gate histogram",
-        "status": "PENDING_TAPE",
+        "status": "APPROVED_PENDING_INSTRUMENTATION",
         "runnable": False,
         "kind": "measurement",
         "strategies": ["hunter"],
@@ -56,20 +58,20 @@ CATALOG: Dict[str, Dict[str, Any]] = {
         "live_enable": False,
         "hypothesis": "STABILIZED_REVERSAL gates may be conjunctively too rare — or REVERSAL itself is rare.",
         "if_approved": "Histogram reason_codes on REVERSAL bars (stride=1). No param change.",
-        "park_reason": "S5 paused — let live tape accumulate. Measurement only when approved.",
+        "park_reason": "Human approved 2026-08-25 as measurement. Blocked until Ananta dumps evaluate_primary reason_codes. No Hunter rewrite.",
     },
     "S5-H3": {
         "id": "S5-H3",
         "title": "Split TAKE-eq +1h by strategy",
-        "status": "PENDING_TAPE",
+        "status": "APPROVED_MEASUREMENT",
         "runnable": False,
         "kind": "report",
         "strategies": ["hunter", "squeeze", "bollinger-mr"],
         "mutates_production": False,
         "live_enable": False,
         "hypothesis": "Wave A TAKE quality is currently a Bollinger number wearing a Wave A badge.",
-        "if_approved": "Report +15m/+1h/+4h per strategy. Attribution engine exists; this experiment is still parked.",
-        "park_reason": "S5 paused — let live tape accumulate. Engine is ready; experiment is not running.",
+        "if_approved": "Report +15m/+1h/+4h per strategy. lab attribution live | lab attribution replay.",
+        "park_reason": "Human approved 2026-08-25. The report is lab attribution (join outcome_truth.assets). try_run stays refused. No KEEP.",
     },
     "S5-H4": {
         "id": "S5-H4",
@@ -209,7 +211,7 @@ def approve(exp_id: str, *, human: str, note: str = "") -> Dict[str, Any]:
 
 
 def try_run(exp_id: str) -> Dict[str, Any]:
-    """Always refuse S5 while parked. This is the safety gate."""
+    """Refuse mutation. H3 report is `lab attribution`, not try_run."""
     item = get_experiment(exp_id) or {"id": _norm_id(exp_id), "status": "UNKNOWN"}
     record = {
         "event": "try_run_blocked",
@@ -219,23 +221,32 @@ def try_run(exp_id: str) -> Dict[str, Any]:
         "blocked_by": _blocked_by(item) if item.get("id") in CATALOG else ["UNKNOWN_EXPERIMENT"],
     }
     _append(record)
+    hint = "Use lab attribution live / lab attribution replay for the H3 report." if item.get("id") == "S5-H3" else "No S5 mutation run."
     return {
         "ok": False,
         "ran": False,
         "id": item.get("id"),
-        "error": "Experiments are parked. Tape is accumulating. No S5 run.",
+        "error": f"try_run does not mutate Wave A. {hint}",
         "blocked_by": record["blocked_by"],
     }
 
 
 def _blocked_by(item: Dict[str, Any]) -> List[str]:
-    reasons = ["S5_PARKED_PENDING_TAPE", "WAVE_A_WATCH", "NO_PRODUCTION_MUTATION"]
-    if item.get("id") == "S5-H1" or item.get("live_enable"):
+    reasons = ["WAVE_A_WATCH", "NO_PRODUCTION_MUTATION"]
+    eid = item.get("id")
+    st = item.get("status")
+    if eid == "S5-H1" or item.get("live_enable"):
         reasons.append("H1_LIVE_ENABLE_REJECTED")
-    if item.get("status") == "NO_EXPERIMENT":
+    if eid == "S5-H2":
+        reasons.append("NEEDS_ANANTA_REASON_CODES")
+    if eid == "S5-H3":
+        reasons.append("USE_LAB_ATTRIBUTION")
+    if st == "NO_EXPERIMENT":
         reasons.append("NO_EXPERIMENT")
-    if item.get("status") == "LATER":
+    if st == "LATER":
         reasons.append("LATER")
+    if st in ("PENDING_TAPE",):
+        reasons.append("S5_PARKED_PENDING_TAPE")
     return reasons
 
 

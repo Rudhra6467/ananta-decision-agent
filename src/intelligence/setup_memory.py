@@ -17,12 +17,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.intelligence.attribution import HORIZON_SHORT, _forward, population_role
+from src.intelligence.decision_quality import NOISE_PCT, evidence_depth
 from src.intelligence.evidence_engine import provenance
 from src.intelligence.h2 import _codes, _regime
 from src.intelligence.schema import WAVE_A
 from src.tools.observation_log import OBSERVATION_LOG, REPLAY_LOG, _read_jsonl
 
-VERSION = "SETUP-MEMORY-v0"
+VERSION = "SETUP-MEMORY-v0.1"
 INDEX_PATH = Path("setup_memory_index.json")
 HORIZONS = ("fwd_15m_pct", "fwd_1h_pct", "fwd_4h_pct")
 
@@ -62,6 +63,7 @@ def extract(source: str = "replay") -> Dict[str, Any]:
         "similarity": False,
         "n_take": sum(1 for r in records if r["population_role"] == "TAKE"),
         "n_skip_setup": sum(1 for r in records if r["population_role"] == "SKIP_SETUP"),
+        "refusal": _refusal_rollup(records),
         "by_cell": index,
         "records": records,
         "laws": {
@@ -73,10 +75,12 @@ def extract(source: str = "replay") -> Dict[str, Any]:
             "win_rate_is_not_confidence": True,
             "no_blended_dq_score": True,
             "wave_a_watch": True,
+            "costly_skip_is_not_trend_up_enable": True,
+            "costly_skip_is_not_a_rewrite": True,
         },
         "note": (
-            "Empirical memory of setups. Not KEEP. Not similarity search. "
-            "Query cells; do not treat n=7 as a library entry."
+            "Empirical memory of setups AND refused setups. "
+            "COSTLY skip = tape went up after we said no. That is a finding, not KEEP."
         ),
     }
     slim = dict(report)
@@ -95,11 +99,17 @@ def print_memory(source: str = "replay", strategy: Optional[str] = None, regime:
     reg = (regime or "").upper().strip() or None
     print(f"\nSETUP MEMORY  {report.get('version')}  ({report.get('source')})")
     print("=" * 64)
-    print("jsonl join. Not a DB. Not a ranker. Not KEEP. Setups only.")
+    print("jsonl join. Not a DB. Not a ranker. Not KEEP. Setups + refused-setup aftermath.")
     print(
         f"  obs={report.get('n_obs')}  setups={report.get('n_setups')}  "
         f"TAKE={report.get('n_take')}  SKIP_SETUP={report.get('n_skip_setup')}  "
         f"data_gap={report.get('data_gap')}"
+    )
+    ref = report.get("refusal") or {}
+    print(
+        f"  refusal +1h  COSTLY={ref.get('n_costly_1h')}  "
+        f"PROTECTIVE={ref.get('n_protective_1h')}  WASH={ref.get('n_wash_1h')}  "
+        f"NO_SAMPLE={ref.get('n_no_sample_1h')}"
     )
     print("-" * 64)
     cells = report.get("by_cell") or {}
@@ -116,12 +126,12 @@ def print_memory(source: str = "replay", strategy: Optional[str] = None, regime:
             f"n={c['n']:<4} TAKE={c['n_take']:<4} SKIP_SETUP={c['n_skip_setup']:<4} "
             f"+1h_TAKE={_fmt(c.get('mean_1h_take'))}  "
             f"+1h_SKIP={_fmt(c.get('mean_1h_skip_setup'))}  "
-            f"depth={c.get('take_depth')}"
+            f"skip→ costly={c.get('n_costly_1h', 0)} prot={c.get('n_protective_1h', 0)} wash={c.get('n_wash_1h', 0)}"
         )
     if shown == 0:
         print("  no matching setup cells (DATA_GAP or filter empty).")
     print("-" * 64)
-    print("  Memory informs later ranking. Memory does not KEEP or live-enable.")
+    print("  COSTLY skip ≠ TREND_UP enable. COSTLY skip ≠ Hunter rewrite. Memory ≠ KEEP.")
     print(f"  saved: {report.get('saved')}")
     print("=" * 64)
     print()
@@ -152,6 +162,7 @@ def _record(o: dict, st: dict, mt: dict, fwd: dict, *, ts: str, obs_id: Any, sou
         "research_shadow": bool(o.get("research_shadow")),
         "live_watch": key in WAVE_A and source == "live_paper",
         "outcomes": outcomes,
+        "refusal": _refusal(role, outcomes, source),
         "market": _fingerprint(mt, asset),
         "provenance": provenance(
             strategy=key, asset=asset, timeframe=tf, regime=regime,
@@ -159,6 +170,60 @@ def _record(o: dict, st: dict, mt: dict, fwd: dict, *, ts: str, obs_id: Any, sou
         ),
         "keep": False,
     }
+
+
+def refusal_stamp(ret: Optional[float], *, usable: bool = True) -> str:
+    """What the tape did after we refused. Per-record, not a KEEP score."""
+    if not usable:
+        return "UNUSABLE_CLOCK"
+    if ret is None:
+        return "NO_SAMPLE"
+    try:
+        x = float(ret)
+    except (TypeError, ValueError):
+        return "NO_SAMPLE"
+    if x >= NOISE_PCT:
+        return "COSTLY"
+    if x <= -NOISE_PCT:
+        return "PROTECTIVE"
+    return "WASH"
+
+
+def _refusal(role: str, outcomes: dict, source: str) -> Optional[dict]:
+    if role != "SKIP_SETUP":
+        return None
+    hist = source == "historical_lab"
+    return {
+        "+15m": {
+            "ret_pct": outcomes.get("+15m"),
+            "stamp": refusal_stamp(outcomes.get("+15m"), usable=not hist),
+        },
+        "+1h": {
+            "ret_pct": outcomes.get("+1h"),
+            "stamp": refusal_stamp(outcomes.get("+1h")),
+        },
+        "+4h": {
+            "ret_pct": outcomes.get("+4h"),
+            "stamp": refusal_stamp(outcomes.get("+4h")),
+        },
+        "note": "COSTLY = market rose after SKIP. Finding, not a gate to loosen.",
+    }
+
+
+def _refusal_rollup(records: List[dict]) -> dict:
+    c = {"n_costly_1h": 0, "n_protective_1h": 0, "n_wash_1h": 0, "n_no_sample_1h": 0}
+    for r in records:
+        ref = r.get("refusal") or {}
+        stamp = ((ref.get("+1h") or {}).get("stamp"))
+        if stamp == "COSTLY":
+            c["n_costly_1h"] += 1
+        elif stamp == "PROTECTIVE":
+            c["n_protective_1h"] += 1
+        elif stamp == "WASH":
+            c["n_wash_1h"] += 1
+        elif stamp == "NO_SAMPLE":
+            c["n_no_sample_1h"] += 1
+    return c
 
 
 def _fingerprint(mt: dict, symbol: str) -> dict:
@@ -193,6 +258,9 @@ def _index(records: List[dict]) -> Dict[str, dict]:
                 "n": 0,
                 "n_take": 0,
                 "n_skip_setup": 0,
+                "n_costly_1h": 0,
+                "n_protective_1h": 0,
+                "n_wash_1h": 0,
                 "mean_1h_take": None,
                 "mean_1h_skip_setup": None,
                 "take_depth": "NONE",
@@ -212,8 +280,13 @@ def _index(records: List[dict]) -> Dict[str, dict]:
             if v is not None:
                 acc["skip"] += float(v)
                 acc["n_skip"] += 1
-    from src.intelligence.decision_quality import evidence_depth
-
+            stamp = ((r.get("refusal") or {}).get("+1h") or {}).get("stamp")
+            if stamp == "COSTLY":
+                b["n_costly_1h"] += 1
+            elif stamp == "PROTECTIVE":
+                b["n_protective_1h"] += 1
+            elif stamp == "WASH":
+                b["n_wash_1h"] += 1
     for cid, b in buckets.items():
         acc = sums[cid]
         if acc["n_take"]:

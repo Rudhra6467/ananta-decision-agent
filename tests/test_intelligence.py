@@ -8,7 +8,7 @@ from pathlib import Path
 
 from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
-from src.intelligence.setup_memory import extract, _record
+from src.intelligence.setup_memory import extract, _record, refusal_stamp
 from src.intelligence.universe import fit_from_take, research
 from src.intelligence.universe_specs import generate_cells, catalog
 from src.intelligence.evidence_engine import card_from_cell, status_class, confidence_band, provenance
@@ -497,7 +497,35 @@ class TestSetupMemory(unittest.TestCase):
         self.assertFalse(report["keep"])
         self.assertFalse(report["ranker"])
         self.assertFalse(report["similarity"])
-        self.assertEqual(report["version"], "SETUP-MEMORY-v0")
+        self.assertEqual(report["version"], "SETUP-MEMORY-v0.1")
+
+    def test_refusal_stamp_is_not_a_rewrite_license(self):
+        self.assertEqual(refusal_stamp(0.40), "COSTLY")
+        self.assertEqual(refusal_stamp(-0.40), "PROTECTIVE")
+        self.assertEqual(refusal_stamp(0.02), "WASH")
+        self.assertEqual(refusal_stamp(None), "NO_SAMPLE")
+        rec = _record(
+            {
+                "strategy": "hunter",
+                "symbol": "BTC/USD",
+                "setup_detected": True,
+                "decision": "SKIP",
+                "skip_reason": "REGIME_FILTERED",
+                "regime": "TREND_UP",
+            },
+            {},
+            {},
+            {"fwd_15m_pct": 1.0, "fwd_1h_pct": 0.5, "fwd_4h_pct": -0.1},
+            ts="t",
+            obs_id="y",
+            source="historical_lab",
+            tf="1h",
+        )
+        self.assertEqual(rec["population_role"], "SKIP_SETUP")
+        self.assertEqual(rec["refusal"]["+1h"]["stamp"], "COSTLY")
+        self.assertEqual(rec["refusal"]["+15m"]["stamp"], "UNUSABLE_CLOCK")
+        self.assertFalse(rec["keep"])
+
 
 
 

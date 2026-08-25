@@ -68,6 +68,17 @@ Join, not a database.
 
 Each `setup_detected=True` row → `setup_record_v0` (strategy × asset × TF × regime × role × outcomes × market flags × provenance).
 
+**Refused setups are first-class.** SKIP_SETUP rows stamp what the tape did after the refusal:
+
+| +1h after SKIP | stamp |
+|---|---|
+| ≥ +0.25% | COSTLY — we missed upside |
+| ≤ −0.25% | PROTECTIVE — skip was right |
+| inside band | WASH |
+| missing | NO_SAMPLE |
+
+COSTLY ≠ TREND_UP enable. COSTLY ≠ Hunter rewrite. It is a finding for later judgment.
+
 Idle bars (WAIT / FILTERED_IDLE) are **not** memory of a setup.
 
 ```text

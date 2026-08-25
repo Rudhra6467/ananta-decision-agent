@@ -143,6 +143,7 @@ DI_COMMANDS = {
     "contract", "api",
     "attribution", "attr",
     "quality", "dq", "meter",
+    "h2", "hunter-gates",
     "research",
     "gates", "gate", "safety",
     "intent", "context",

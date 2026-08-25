@@ -2,7 +2,7 @@
 
 **Opened:** 2026-08-23 after `lab compare`  
 **Human lock 2026-08-25:** H3 + H2 approved as **measurement only**. H1 live enable remains **rejected**. Wave A stays **WATCH**. Watcher stays up.  
-**try_run** still refuses mutation. H3 report = `lab attribution live` / `lab attribution replay`. H2 waits on Ananta `reason_codes` dump.
+**try_run** still refuses mutation. H3 report = `lab attribution live` / `lab attribution replay`. H2 report = `lab h2`.
 
 Path remains finding → hypothesis → experiment → validation → human → versioned production. These are **not** Hunter v1.1.
 
@@ -34,7 +34,7 @@ Path remains finding → hypothesis → experiment → validation → human → 
 
 **PM default:** **approve H2 as instrumentation** (replay field dump). No strategy mutation.
 
-**Status 2026-08-25:** APPROVED_PENDING_INSTRUMENTATION. Needs Ananta `evaluate_primary` reason_codes on REVERSAL bars (stride=1). Do not loosen gates from this finding.
+**Status 2026-08-25:** APPROVED_MEASUREMENT. Run `lab h2` (hist replay rationale already carries `REJECTED_*`). Live ticks get `reason_codes` after Ananta cycle-obs deploy — do not stop watch to wait. Histogram ≠ Hunter rewrite.
 
 ---
 

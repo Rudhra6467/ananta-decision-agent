@@ -8,6 +8,8 @@ from pathlib import Path
 
 from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
+from src.intelligence.h2 import _codes, histogram
+
 from src.intelligence.decision_quality import (
     BASELINE_V0,
     evidence_depth,
@@ -255,7 +257,7 @@ class TestExperiments(unittest.TestCase):
     def test_s5_catalog_parked(self):
         rows = {r["id"]: r for r in list_experiments()}
         self.assertEqual(rows["S5-H1"]["status"], "REJECTED_AS_LIVE_ENABLE")
-        self.assertEqual(rows["S5-H2"]["status"], "APPROVED_PENDING_INSTRUMENTATION")
+        self.assertEqual(rows["S5-H2"]["status"], "APPROVED_MEASUREMENT")
         self.assertEqual(rows["S5-H3"]["status"], "APPROVED_MEASUREMENT")
         self.assertFalse(rows["S5-H2"]["runnable_now"])
         self.assertFalse(rows["S5-H3"]["runnable_now"])
@@ -351,6 +353,25 @@ class TestPopulations(unittest.TestCase):
         )
 
 
+class TestH2(unittest.TestCase):
+    def test_codes_from_rationale_and_list(self):
+        self.assertEqual(
+            _codes({"rationale": "REJECTED_RSI_NOT_RESET,REJECTED_NO_VCP_BASE"}),
+            ["REJECTED_RSI_NOT_RESET", "REJECTED_NO_VCP_BASE"],
+        )
+        self.assertEqual(
+            _codes({"reason_codes": ["REJECTED_NO_SUPPORT_ZONE"]}),
+            ["REJECTED_NO_SUPPORT_ZONE"],
+        )
+
+    def test_histogram_empty_is_data_gap_not_keep(self):
+        report = histogram("replay")
+        self.assertFalse(report["keep"])
+        self.assertFalse(report.get("loosen_gates", False))
+        self.assertEqual(report["h2"], "APPROVED_MEASUREMENT")
+
+
+
 
 class TestOrchestratePaper(unittest.TestCase):
     def test_cycle_never_self_fills(self):
@@ -402,6 +423,7 @@ class TestContractAndSystem(unittest.TestCase):
         self.assertIn("di.gates", names)
         self.assertIn("di.adjudicate", names)
         self.assertIn("di.quality", names)
+        self.assertIn("di.h2", names)
 
     def test_typed_decision_schema(self):
         d = TypedDecision(recommended_action="TAKE", issued_action="WAIT")

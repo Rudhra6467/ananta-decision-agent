@@ -50,15 +50,15 @@ CATALOG: Dict[str, Dict[str, Any]] = {
     "S5-H2": {
         "id": "S5-H2",
         "title": "Hunter REVERSAL gate histogram",
-        "status": "APPROVED_PENDING_INSTRUMENTATION",
+        "status": "APPROVED_MEASUREMENT",
         "runnable": False,
         "kind": "measurement",
         "strategies": ["hunter"],
         "mutates_production": False,
         "live_enable": False,
         "hypothesis": "STABILIZED_REVERSAL gates may be conjunctively too rare — or REVERSAL itself is rare.",
-        "if_approved": "Histogram reason_codes on REVERSAL bars (stride=1). No param change.",
-        "park_reason": "Human approved 2026-08-25 as measurement. Blocked until Ananta dumps evaluate_primary reason_codes. No Hunter rewrite.",
+        "if_approved": "Histogram reason_codes on REVERSAL bars. lab h2. No param change.",
+        "park_reason": "Human approved 2026-08-25 as measurement. Report is lab h2. try_run stays refused. No Hunter rewrite.",
     },
     "S5-H3": {
         "id": "S5-H3",
@@ -221,7 +221,12 @@ def try_run(exp_id: str) -> Dict[str, Any]:
         "blocked_by": _blocked_by(item) if item.get("id") in CATALOG else ["UNKNOWN_EXPERIMENT"],
     }
     _append(record)
-    hint = "Use lab attribution live / lab attribution replay for the H3 report." if item.get("id") == "S5-H3" else "No S5 mutation run."
+    if item.get("id") == "S5-H3":
+        hint = "Use lab attribution live / lab attribution replay for the H3 report."
+    elif item.get("id") == "S5-H2":
+        hint = "Use lab h2 for the H2 histogram."
+    else:
+        hint = "No S5 mutation run."
     return {
         "ok": False,
         "ran": False,
@@ -238,7 +243,7 @@ def _blocked_by(item: Dict[str, Any]) -> List[str]:
     if eid == "S5-H1" or item.get("live_enable"):
         reasons.append("H1_LIVE_ENABLE_REJECTED")
     if eid == "S5-H2":
-        reasons.append("NEEDS_ANANTA_REASON_CODES")
+        reasons.append("USE_LAB_H2")
     if eid == "S5-H3":
         reasons.append("USE_LAB_ATTRIBUTION")
     if st == "NO_EXPERIMENT":

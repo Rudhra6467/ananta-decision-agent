@@ -9,7 +9,8 @@
     python -m src.intelligence contract
     python -m src.intelligence attribution
     python -m src.intelligence research hunter
-    python -m src.intelligence quality
+    python -m src.intelligence h2
+
     python -m src.intelligence intent OBSERVE
 """
 from __future__ import annotations
@@ -44,6 +45,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cmd in ("research", "strategy"):
         key = rest[0] if rest else None
         return _cmd_research(key)
+    if cmd in ("h2", "hunter-gates"):
+        source = rest[0] if rest else "replay"
+        return _cmd_h2(source)
     if cmd in ("quality", "dq", "meter"):
         return _cmd_quality()
     if cmd in ("gates", "gate", "safety"):
@@ -58,9 +62,9 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
-    print("Wave A stays WATCH. H3 = lab attribution. DQ v0 = lab quality. H1 live enable rejected.")
+    print("Wave A stays WATCH. H3 = lab attribution. H2 = lab h2. DQ = lab quality. H1 live enable rejected.")
 
 
 def _dump(obj) -> None:
@@ -263,6 +267,13 @@ def _cmd_research(key: Optional[str]) -> int:
         )
         print(f"    verdict={s['verdict']}  KEEP=no")
     print("=" * 64)
+    return 0
+
+
+def _cmd_h2(source: str) -> int:
+    from src.intelligence.h2 import print_h2
+
+    print_h2(source)
     return 0
 
 

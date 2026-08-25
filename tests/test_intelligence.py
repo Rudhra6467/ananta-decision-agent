@@ -8,6 +8,8 @@ from pathlib import Path
 
 from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
+from src.intelligence.universe import fit_from_take, research
+from src.intelligence.universe_specs import generate_cells, catalog
 from src.intelligence.h2 import _codes, histogram
 
 from src.intelligence.decision_quality import (
@@ -371,6 +373,32 @@ class TestH2(unittest.TestCase):
         self.assertEqual(report["h2"], "APPROVED_MEASUREMENT")
 
 
+class TestUniverse(unittest.TestCase):
+    def test_cells_are_generated_not_bots(self):
+        cells = generate_cells()
+        self.assertEqual(len(cells), 15 * 2 * 2 * 6)
+        self.assertTrue(all(c["live_watch"] is False for c in cells))
+        self.assertEqual(sum(1 for s in catalog() if s["wave_a"]), 3)
+
+    def test_fit_rules_conservative(self):
+        self.assertEqual(
+            fit_from_take({"verdict": "INSUFFICIENT_EVIDENCE"})[0], "UNKNOWN"
+        )
+        self.assertEqual(fit_from_take({"verdict": "WASH"})[0], "UNKNOWN")
+        self.assertEqual(fit_from_take({"verdict": "TAKE_HURT"})[0], "UNSUITABLE")
+        self.assertEqual(fit_from_take({"verdict": "TAKE_HELPED"})[0], "SUITABLE")
+
+    def test_research_never_promotes(self):
+        report = research()
+        self.assertFalse(report["keep"])
+        self.assertEqual(report["wave_a"], "WATCH")
+        self.assertEqual(report["promotion"], "FORBIDDEN")
+        self.assertTrue(report["live_watch_frozen"])
+        self.assertTrue(all(c.get("live_watch") is False for c in report["cells"]))
+        for c in report.get("candidates") or []:
+            self.assertIn("not live", c["note"].lower())
+
+
 
 
 class TestOrchestratePaper(unittest.TestCase):
@@ -424,6 +452,7 @@ class TestContractAndSystem(unittest.TestCase):
         self.assertIn("di.adjudicate", names)
         self.assertIn("di.quality", names)
         self.assertIn("di.h2", names)
+        self.assertIn("di.universe", names)
 
     def test_typed_decision_schema(self):
         d = TypedDecision(recommended_action="TAKE", issued_action="WAIT")

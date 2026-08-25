@@ -45,7 +45,7 @@ Ananta provides **System Truth**. Independent **Market Truth** is the external r
 - Knowledge Object: `understand` / `GET /api/strategy/knowledge`
 - Continuous observer: `lab watch --interval N` (Stage 1+) with independent market snapshot
 - Historical replay: `lab replay` / `lab audit replay` (Stage 4; `source=historical_lab`; never mix into live jsonl)
-- DI: `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim` / `lab experiments` / `lab attribution` / `lab quality` / `lab research`
+- DI: `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim` / `lab experiments` / `lab attribution` / `lab quality` / `lab h2` / `lab universe` / `lab research`
 - 1y candles must be **proven in Mongo** (`lab coverage`) before a 1y Lab claim
 
 ## Contract
@@ -60,8 +60,9 @@ Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SK
 
 **P0–P2:** Done (candles, Knowledge Object, BACKTEST lab).  
 **S1–S4:** Done. **Compare:** Done (`lab compare` 2026-08-23).  
-**S5:** H3 measurement done (`lab attribution`). H2 pending Ananta `reason_codes`. H1 live enable rejected. `try_run` still refuses mutation.  
+**S5:** H3 + H2 measurement done. H1 live enable rejected. `try_run` still refuses mutation.  
 **DQ-v0.0:** Locked 2026-08-25 — `lab quality` / `docs/DECISION_QUALITY_V0.md`. KEEP forbidden.  
+**Universe v1:** Offline research — `lab universe` / `docs/STRATEGY_UNIVERSE_V1.md`. Wave A watch **frozen**. No live strategy dump.  
 **DI:** Foundation now — `src/intelligence/`. Wave A WATCH. Extra agents still not.
 
 See `docs/MARKET_TRUTH_LOCK.md`, `docs/DECISION_INTELLIGENCE_LOCK.md`, `docs/RISK_PROFILES_LOCK.md`, `docs/SAFETY_GATES_LOCK.md`, `docs/FEATURE_COMPLETE_NOW.md`, `docs/ROADMAP.md`.

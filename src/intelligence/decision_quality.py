@@ -250,10 +250,10 @@ def meter(live: Optional[dict] = None, hist: Optional[dict] = None) -> Dict[str,
         ),
         "promotion": "FORBIDDEN",
         "next": [
-            "Leave lab watch 15 running.",
+            "Leave lab watch 15 running (Wave A frozen).",
             "Do not KEEP / TREND_UP / Hunter v1.1.",
-            "H2 still needs Ananta reason_codes dump.",
-            "Strategy Research Universe v1 only after this meter is the comparison baseline.",
+            "H2 = lab h2 (done as measurement).",
+            "Universe v1 = lab universe (offline). Do not add strategies to live watch.",
         ],
     }
     delta = _delta_vs_baseline(strategies)

@@ -97,11 +97,11 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 4. ~~S4 1y historical Observation replay~~ **Done** (`lab replay` + `lab audit replay`; TAKE-eq ≠ KEEP)
 5. Live watcher continues (`lab watch 15`) as a parallel evidence stream
 6. ~~live vs historical compare~~ **Done** (`lab compare` 2026-08-23)
-7. **H3 done** (`lab attribution`). **DQ-v0.0 locked** (`lab quality`, [DECISION_QUALITY_V0.md](./DECISION_QUALITY_V0.md)). H2 queued (Ananta dump). H1 live enable rejected. Wave A WATCH.
-8. **DI foundation** — `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim` / `lab quality`
+7. **H3 done** (`lab attribution`). **DQ-v0.0 locked** (`lab quality`). **H2 done** (`lab h2`). H1 live enable rejected. Wave A WATCH **frozen**.
+8. **Universe v1** — offline `lab universe` / [STRATEGY_UNIVERSE_V1.md](./STRATEGY_UNIVERSE_V1.md). Specs → cells → hist replay → DQ-v0. Not live watch.
 
 Next meaningful milestone:
 
-> Beat DQ-v0.0 on the meter without KEEP. Then Strategy Research Universe v1.
+> Score Universe cells honestly (almost all UNKNOWN is success). Beat DQ-v0.0 on TAKE evidence before any promotion.
 
-**Do not start yet:** extra agents, Bull/Bear, TradingAgents integration, fancy UI, live autonomy, India, education, $50 live, leaderboard, large strategy expansion, ML training, automatic production mutation, H1 TREND_UP enable.
+**Do not start yet:** extra agents, Bull/Bear, TradingAgents integration, fancy UI, live autonomy, India, education, $50 live, leaderboard, putting the other 12 on live watch, ML training, automatic production mutation, H1 TREND_UP enable.

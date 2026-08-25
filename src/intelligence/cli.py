@@ -9,7 +9,8 @@
     python -m src.intelligence contract
     python -m src.intelligence attribution
     python -m src.intelligence research hunter
-    python -m src.intelligence h2
+    python -m src.intelligence universe
+
 
     python -m src.intelligence intent OBSERVE
 """
@@ -45,6 +46,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cmd in ("research", "strategy"):
         key = rest[0] if rest else None
         return _cmd_research(key)
+    if cmd in ("universe", "sru", "cells"):
+        return _cmd_universe()
     if cmd in ("h2", "hunter-gates"):
         source = rest[0] if rest else "replay"
         return _cmd_h2(source)
@@ -62,9 +65,9 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
-    print("Wave A stays WATCH. H3 = lab attribution. H2 = lab h2. DQ = lab quality. H1 live enable rejected.")
+    print("Wave A stays WATCH. H3 = lab attribution. H2 = lab h2. Universe = lab universe (offline). H1 live enable rejected.")
 
 
 def _dump(obj) -> None:
@@ -267,6 +270,13 @@ def _cmd_research(key: Optional[str]) -> int:
         )
         print(f"    verdict={s['verdict']}  KEEP=no")
     print("=" * 64)
+    return 0
+
+
+def _cmd_universe() -> int:
+    from src.intelligence.universe import print_universe
+
+    print_universe()
     return 0
 
 

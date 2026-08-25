@@ -83,4 +83,4 @@ Path remains finding → hypothesis → experiment → validation → human → 
 - Treating sit-out wash as “always WAIT” or overnight protection as “Hunter is good”
 
 **Human lock 2026-08-25:** H3 report + H2 instrumentation approved. H1 live enable rejected. H4 none. H5 later.
-Wave A is the first baseline, not the Strategy Center. Next after H3 numbers: Decision Quality v0, then Strategy Research Universe v1. Do not spend weeks rescuing Hunter.
+Wave A is the first baseline, not the Strategy Center. H3 + H2 + DQ-v0 are locked measurement. Universe v1 is the **offline** next track (`lab universe`). Do not spend weeks rescuing Hunter. Do not put the catalog on live watch.

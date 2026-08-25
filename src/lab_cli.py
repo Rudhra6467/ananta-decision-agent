@@ -131,7 +131,6 @@ def handle_lab_command(user_input: str) -> bool:
             "lab experiments | lab paper-sim | lab contract | lab attribution | lab quality | lab research | "
             "lab h2 | lab universe | lab gates | lab intent"
         )
-        )
     return True
 
 

@@ -62,7 +62,8 @@ Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SK
 **S1–S4:** Done. **Compare:** Done (`lab compare` 2026-08-23).  
 **S5:** H3 + H2 measurement done. H1 live enable rejected. `try_run` still refuses mutation.  
 **DQ-v0.0:** Locked 2026-08-25 — `lab quality` / `docs/DECISION_QUALITY_V0.md`. KEEP forbidden.  
-**Universe v1:** Offline research — `lab universe` / `docs/STRATEGY_UNIVERSE_V1.md`. Wave A watch **frozen**. No live strategy dump.  
+**Universe v1.1:** Offline — `lab universe` depth on every cell (UNTESTED / TESTED_UNKNOWN / WASH). Wave A watch **frozen**.  
+**Evidence engine:** Destination only — [STRATEGY_EVIDENCE_ENGINE.md](./docs/STRATEGY_EVIDENCE_ENGINE.md). No similarity search yet.  
 **DI:** Foundation now — `src/intelligence/`. Wave A WATCH. Extra agents still not.
 
 See `docs/MARKET_TRUTH_LOCK.md`, `docs/DECISION_INTELLIGENCE_LOCK.md`, `docs/RISK_PROFILES_LOCK.md`, `docs/SAFETY_GATES_LOCK.md`, `docs/FEATURE_COMPLETE_NOW.md`, `docs/ROADMAP.md`.

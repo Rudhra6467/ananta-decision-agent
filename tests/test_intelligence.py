@@ -10,6 +10,7 @@ from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
 from src.intelligence.universe import fit_from_take, research
 from src.intelligence.universe_specs import generate_cells, catalog
+from src.intelligence.evidence_engine import card_from_cell, status_class, confidence_band
 from src.intelligence.h2 import _codes, histogram
 
 from src.intelligence.decision_quality import (
@@ -397,6 +398,38 @@ class TestUniverse(unittest.TestCase):
         self.assertTrue(all(c.get("live_watch") is False for c in report["cells"]))
         for c in report.get("candidates") or []:
             self.assertIn("not live", c["note"].lower())
+        self.assertEqual(report["version"], "UNIVERSE-v1.1")
+        for c in report["cells"]:
+            self.assertIn(c["status_class"], {
+                "UNTESTED", "TESTED_UNKNOWN", "WASH", "UNSUITABLE", "SUITABLE",
+            })
+            if c["coverage"] == "NONE":
+                self.assertEqual(c["status_class"], "UNTESTED")
+        for card in report.get("allowed_cards") or []:
+            self.assertIsNone(card["blended_score"])
+            self.assertFalse(card["keep"])
+
+
+class TestEvidenceEngine(unittest.TestCase):
+    def test_status_distinguishes_untested_from_wash(self):
+        self.assertEqual(status_class(tested=False, fit="UNKNOWN", why="NO_OBSERVATION_REPLAY"), "UNTESTED")
+        self.assertEqual(status_class(tested=True, fit="UNKNOWN", why="INSUFFICIENT_EVIDENCE"), "TESTED_UNKNOWN")
+        self.assertEqual(status_class(tested=True, fit="UNKNOWN", why="WASH"), "WASH")
+        self.assertEqual(status_class(tested=True, fit="UNSUITABLE", why="TAKE_HURT"), "UNSUITABLE")
+
+    def test_confidence_is_a_band_not_a_percent(self):
+        self.assertEqual(confidence_band("UNTESTED", "NONE", 0), "NONE")
+        self.assertEqual(confidence_band("TESTED_UNKNOWN", "ANECDOTE", 4), "VERY_LOW")
+        self.assertEqual(confidence_band("WASH", "ADEQUATE", 34), "MEDIUM")
+        card = card_from_cell({
+            "strategy": "hunter", "asset": "BTC/USD", "timeframe": "1h", "regime": "REVERSAL",
+            "policy": "ALLOWED", "status_class": "TESTED_UNKNOWN", "fit": "UNKNOWN",
+            "why": "INSUFFICIENT_EVIDENCE", "n_rows": 154, "n_setup": 4, "n_take": 4,
+            "n_skip_setup": 0, "outcome_completeness_1h": 1.0, "evidence_depth": "ANECDOTE",
+            "coverage_band": "MEDIUM", "confidence_band": "VERY_LOW", "take_1h": {},
+        })
+        self.assertIsNone(card["blended_score"])
+        self.assertNotIn("81", str(card.get("confidence_band")))
 
 
 
@@ -453,6 +486,7 @@ class TestContractAndSystem(unittest.TestCase):
         self.assertIn("di.quality", names)
         self.assertIn("di.h2", names)
         self.assertIn("di.universe", names)
+        self.assertIn("di.evidence", names)
 
     def test_typed_decision_schema(self):
         d = TypedDecision(recommended_action="TAKE", issued_action="WAIT")

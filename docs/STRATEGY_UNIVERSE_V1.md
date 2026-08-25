@@ -1,8 +1,9 @@
 # Strategy Research Universe v1 — 2026-08-25
 
-**Status:** Offline research track. Locked with Wave A **frozen**.  
+**Status:** Offline research track. **v1.1** adds evidence depth. Wave A **frozen**.  
 **CLI:** `lab universe`  
-**Knowledge file:** `universe_knowledge.json` (local; not a live enable list)
+**Knowledge file:** `universe_knowledge.json` (local; not a live enable list)  
+**Destination:** [STRATEGY_EVIDENCE_ENGINE.md](./STRATEGY_EVIDENCE_ENGINE.md)
 
 ## What this is
 
@@ -33,14 +34,16 @@ Everything else is **catalogued** and scored `UNKNOWN / NO_OBSERVATION_REPLAY` u
 
 ## Fit rules (evidence only)
 
-| TAKE +1h (DQ-v0) | Fit |
-|---|---|
-| n < 30 / no sample | UNKNOWN |
-| WASH (\|mean\| < 0.25%) | UNKNOWN |
-| TAKE_HURT | UNSUITABLE |
-| TAKE_HELPED | SUITABLE |
+| TAKE +1h (DQ-v0) | Fit | status_class |
+|---|---|---|
+| No observation_v0 | UNKNOWN | UNTESTED |
+| n < 30 / no sample | UNKNOWN | TESTED_UNKNOWN |
+| WASH (\|mean\| < 0.25%) | UNKNOWN | WASH |
+| TAKE_HURT | UNSUITABLE | UNSUITABLE |
+| TAKE_HELPED | SUITABLE | SUITABLE |
 
-**SUITABLE is not KEEP. SUITABLE is not live.** Promotion remains human-gated and still forbidden at Wave A.
+UNTESTED ≠ TESTED_UNKNOWN ≠ WASH. WASH is not UNSUITABLE.  
+**SUITABLE is not KEEP. SUITABLE is not live.**
 
 Policy is stored separately: `ALLOWED` (Wave A) / `ROUTER_ONLY` / `THESIS_ONLY` / `UNMAPPED`. A cell can be evidence-UNSUITABLE in an ALLOWED regime, or UNKNOWN in TREND_UP. That is the Hunter contradiction, documented — not a rewrite ticket.
 

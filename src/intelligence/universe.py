@@ -16,11 +16,18 @@ from typing import Any, Dict, List, Optional
 
 from src.intelligence.attribution import _accumulate, _empty_bucket, _means
 from src.intelligence.decision_quality import score_horizon
+from src.intelligence.evidence_engine import (
+    card_from_cell,
+    completeness,
+    confidence_band,
+    coverage_band,
+    status_class,
+)
 from src.intelligence.h2 import _codes, _regime
 from src.intelligence.universe_specs import generate_cells, catalog
 from src.tools.observation_log import REPLAY_LOG, _read_jsonl
 
-VERSION = "UNIVERSE-v1"
+VERSION = "UNIVERSE-v1.1"
 LOCKED = "2026-08-25"
 KNOWLEDGE_PATH = Path("universe_knowledge.json")
 
@@ -51,17 +58,20 @@ def research() -> Dict[str, Any]:
         _means(b)
 
     scored: List[dict] = []
-    counts = Counter()
+    fit_counts = Counter()
+    status_counts = Counter()
     for cell in cells:
         cid = cell["id"]
         bucket = buckets.get(cid)
         entry = _score_cell(cell, bucket, failures.get(cid))
-        counts[entry["fit"]] += 1
+        fit_counts[entry["fit"]] += 1
+        status_counts[entry["status_class"]] += 1
         scored.append(entry)
 
     suitable = [c for c in scored if c["fit"] == "SUITABLE"]
     unsuitable = [c for c in scored if c["fit"] == "UNSUITABLE"]
     covered = [c for c in scored if c["coverage"] == "historical_lab"]
+    cards = [card_from_cell(c) for c in covered if c.get("policy") == "ALLOWED"]
 
     report = {
         "ok": True,
@@ -79,8 +89,10 @@ def research() -> Dict[str, Any]:
         "n_replay_scored": len(covered),
         "n_suitable": len(suitable),
         "n_unsuitable": len(unsuitable),
-        "n_unknown": int(counts.get("UNKNOWN") or 0),
-        "fit_counts": dict(counts),
+        "n_unknown": int(fit_counts.get("UNKNOWN") or 0),
+        "fit_counts": dict(fit_counts),
+        "status_counts": dict(status_counts),
+        "allowed_cards": cards,
         "laws": {
             "offline_research_only": True,
             "suitable_is_not_keep": True,
@@ -91,6 +103,9 @@ def research() -> Dict[str, Any]:
             "no_auto_promotion": True,
             "dna_is_not_evidence": True,
             "wave_a_is_baseline_not_library": True,
+            "untested_is_not_tested_unknown": True,
+            "wash_is_not_unsuitable": True,
+            "no_blended_dq_score": True,
         },
         "specs": catalog(),
         "cells": scored,
@@ -105,9 +120,9 @@ def research() -> Dict[str, Any]:
             for c in suitable
         ],
         "note": (
-            "Universe v1. Cells are research, not bots. "
-            "SUITABLE still cannot KEEP or enter lab watch. "
-            "Uncovered specs stay UNKNOWN until observation_v0 exists."
+            "Universe v1.1. Depth on every cell. "
+            "UNTESTED ≠ TESTED_UNKNOWN ≠ WASH. "
+            "SUITABLE still cannot KEEP or enter lab watch."
         ),
     }
     try:
@@ -131,18 +146,19 @@ def print_universe() -> Dict[str, Any]:
         f"  SUITABLE={report.get('n_suitable')}  UNSUITABLE={report.get('n_unsuitable')}  "
         f"UNKNOWN={report.get('n_unknown')}"
     )
+    print(f"  status: {report.get('status_counts')}")
     print("-" * 64)
-    print("  Covered cells (historical_lab BTC/USD 1h) — fit is evidence, not KEEP")
+    print("  Covered cells — UNTESTED vs TESTED_UNKNOWN vs WASH. Not KEEP.")
     covered = [c for c in report["cells"] if c["coverage"] == "historical_lab"]
-    # Show policy-relevant + any non-UNKNOWN first
-    interesting = [c for c in covered if c["policy"] in ("ALLOWED", "ROUTER_ONLY") or c["fit"] != "UNKNOWN"]
-    show = interesting or covered
-    for c in sorted(show, key=lambda x: (x["strategy"], x["regime"]))[:24]:
+    for c in sorted(covered, key=lambda x: (x["strategy"], x["regime"])):
         t = c.get("take_1h") or {}
         print(
-            f"    {c['strategy']:<14} {c['regime']:<12} policy={c['policy']:<12} "
-            f"fit={c['fit']:<11} n_take={c['n_take']:<4} "
-            f"+1h={t.get('verdict')} {t.get('mean_pct')}"
+            f"    {c['strategy']:<14} {c['regime']:<12} {c['policy']:<12} "
+            f"{c['status_class']:<16} n={c['n_rows']:<5} take={c['n_take']:<4} "
+            f"depth={c.get('evidence_depth') or 'NONE':<10} "
+            f"comp={c.get('outcome_completeness_1h')} "
+            f"conf={c.get('confidence_band'):<9} "
+            f"+1h={t.get('verdict')}"
         )
     print("-" * 64)
     print("  Uncovered specs (no observation_v0 replay) — catalogued, not running")
@@ -152,7 +168,7 @@ def print_universe() -> Dict[str, Any]:
             seen.add(c["strategy"])
             print(f"    {c['strategy']:<22} family={c['family']:<16} fit=UNKNOWN  NO_REPLAY")
     print("-" * 64)
-    print("  SUITABLE is not KEEP. SUITABLE is not live watch. Promotion=FORBIDDEN.")
+    print("  SUITABLE is not KEEP. WASH is not UNSUITABLE. UNTESTED is not TESTED_UNKNOWN.")
     print(f"  saved: {report.get('saved')}")
     print("=" * 64)
     print()
@@ -166,9 +182,9 @@ def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter]) -> 
     out["n_take"] = int((bucket or {}).get("n_take") or 0)
     out["n_skip_setup"] = int((bucket or {}).get("n_skip_setup") or 0)
     out["n_wait"] = int((bucket or {}).get("n_wait") or 0)
-    if cell["coverage"] != "historical_lab":
-        out["fit"] = "UNKNOWN"
-        out["why"] = "NO_OBSERVATION_REPLAY"
+    tested = cell["coverage"] == "historical_lab"
+    if not tested:
+        out.update(_depth_fields(tested=False, fit="UNKNOWN", why="NO_OBSERVATION_REPLAY", n_rows=0, n_take=0, n_fwd=0, depth="NONE"))
         out["take_1h"] = None
         out["keep"] = False
         return out
@@ -177,15 +193,16 @@ def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter]) -> 
     n1, m1 = _h(bucket, "take", "fwd_1h_pct")
     n4, m4 = _h(bucket, "take", "fwd_4h_pct")
     ns, ms = _h(bucket, "skip_setup", "fwd_1h_pct")
+    n_fwd = int((bucket.get("n_fwd") or {}).get("fwd_1h_pct") or 0)
     take_1h = score_horizon(role="TAKE", n=n1, mean=m1, clock="+1h")
     take_4h = score_horizon(role="TAKE", n=n4, mean=m4, clock="+4h")
     skip_1h = score_horizon(role="SKIP", n=ns, mean=ms, clock="+1h")
     fit, why = fit_from_take(take_1h)
+    depth = take_1h["evidence_depth"]
     out.update(
         {
             "fit": fit,
             "why": why,
-            "evidence_depth": take_1h["evidence_depth"],
             "take_1h": take_1h,
             "take_4h": take_4h,
             "skip_setup_1h": skip_1h,
@@ -194,7 +211,31 @@ def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter]) -> 
             "live_enable": False,
         }
     )
+    out.update(
+        _depth_fields(
+            tested=True,
+            fit=fit,
+            why=why,
+            n_rows=out["n_rows"],
+            n_take=out["n_take"],
+            n_fwd=n_fwd,
+            depth=depth,
+        )
+    )
     return out
+
+
+def _depth_fields(*, tested: bool, fit: str, why: str, n_rows: int, n_take: int, n_fwd: int, depth: str) -> dict:
+    st = status_class(tested=tested, fit=fit, why=why)
+    return {
+        "fit": fit,
+        "why": why,
+        "status_class": st,
+        "evidence_depth": depth,
+        "coverage_band": coverage_band(n_rows, tested=tested),
+        "confidence_band": confidence_band(st, depth, n_take),
+        "outcome_completeness_1h": completeness(n_fwd, n_rows),
+    }
 
 
 def fit_from_take(take_1h: dict) -> tuple:

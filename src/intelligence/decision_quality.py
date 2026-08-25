@@ -19,8 +19,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from src.intelligence.attribution import attribute_print_ready
 from src.intelligence.schema import WAVE_A
 
-VERSION = "DQ-v0.0"
+VERSION = "DQ-v0.1"
 LOCKED = "2026-08-25"
+BASELINE_VERSION = "DQ-v0.0"
 REPORT_PATH = Path("decision_quality_report.json")
 
 NOISE_PCT = 0.25
@@ -30,7 +31,7 @@ SITOUT_MIN_N = 30
 
 # Frozen H3 print 2026-08-25. Δ is vs this, not vs hope.
 BASELINE_V0 = {
-    "version": VERSION,
+    "version": BASELINE_VERSION,
     "locked": LOCKED,
     "live_n_obs": 241,
     "hist_n_obs": 2474,
@@ -53,6 +54,20 @@ BASELINE_V0 = {
         "sit_out": "WASH",
         "hunter_weeks_forbidden": True,
     },
+}
+
+
+# Law: which rows each metric is allowed to use.
+POPULATIONS = {
+    "UNIVERSE": "Every observation × symbol row for that strategy (n_rows).",
+    "SETUP": "setup_detected=True. The strategy claimed an opportunity.",
+    "TAKE": "SETUP in an allowed regime (paper TAKE or hist TAKE-eq). Opportunity accepted.",
+    "SKIP_SETUP": "SETUP that was refused (SKIP or REGIME_FILTERED). Refusal quality lives here.",
+    "FILTERED_IDLE": "No setup; regime gate closed. NOT a refused opportunity. Do not score as SKIP quality.",
+    "WAIT": "No setup, not filtered. Strategy had nothing to say.",
+    "SKIP_LEGACY": "H3 all-row SKIP (includes FILTERED_IDLE). Kept for Δ vs DQ-v0.0 only.",
+    "SIT-OUT": "Agent-level WAIT/SKIP vs BTC path. Opportunity cost of the book, not one strategy's PnL.",
+    "FILTERED": "skip_reason starts with REGIME_FILTERED (may or may not have a setup).",
 }
 
 
@@ -144,19 +159,27 @@ def _h(bucket: dict, kind: str, horizon: str) -> Tuple[int, Optional[float]]:
 def score_strategy(key: str, source: str, bucket: dict) -> Dict[str, Any]:
     hist = source == "historical_lab"
     cells = {}
-    for role in ("take", "skip", "wait"):
+    for role in ("take", "skip", "wait", "skip_setup", "filtered_idle"):
+        score_role = "TAKE" if role == "take" else ("SKIP" if role in ("skip", "skip_setup", "filtered_idle") else "WAIT")
         n15, m15 = _h(bucket, role, "fwd_15m_pct")
         n1, m1 = _h(bucket, role, "fwd_1h_pct")
         n4, m4 = _h(bucket, role, "fwd_4h_pct")
-        cells[role.upper()] = {
+        label = {
+            "take": "TAKE",
+            "skip": "SKIP_LEGACY",
+            "wait": "WAIT",
+            "skip_setup": "SKIP_SETUP",
+            "filtered_idle": "FILTERED_IDLE",
+        }[role]
+        cells[label] = {
             "+15m": score_horizon(
-                role=role.upper(), n=n15, mean=m15, clock="+15m", usable=not hist
+                role=score_role, n=n15, mean=m15, clock="+15m", usable=not hist
             ),
-            "+1h": score_horizon(role=role.upper(), n=n1, mean=m1, clock="+1h"),
-            "+4h": score_horizon(role=role.upper(), n=n4, mean=m4, clock="+4h"),
+            "+1h": score_horizon(role=score_role, n=n1, mean=m1, clock="+1h"),
+            "+4h": score_horizon(role=score_role, n=n4, mean=m4, clock="+4h"),
         }
     take_1h = cells["TAKE"]["+1h"]
-    skip_1h = cells["SKIP"]["+1h"]
+    skip_1h = cells["SKIP_SETUP"]["+1h"]
     headline = _headline(key, source, take_1h, skip_1h, bucket)
     return {
         "strategy": key,
@@ -165,6 +188,8 @@ def score_strategy(key: str, source: str, bucket: dict) -> Dict[str, Any]:
         "n_setup": bucket.get("n_setup", 0),
         "n_take": bucket.get("n_take", 0),
         "n_skip": bucket.get("n_skip", 0),
+        "n_skip_setup": bucket.get("n_skip_setup", 0),
+        "n_filtered_idle": bucket.get("n_filtered_idle", 0),
         "n_wait": bucket.get("n_wait", 0),
         "n_regime_filtered": bucket.get("n_regime_filtered", 0),
         "cells": cells,
@@ -177,8 +202,8 @@ def _headline(key: str, source: str, take_1h: dict, skip_1h: dict, bucket: dict)
     if source != "historical_lab" and int(bucket.get("n_take") or 0) == 0:
         if key == "hunter" and int(bucket.get("n_setup") or 0):
             return (
-                f"NO_LIVE_TAKE. {bucket.get('n_setup')} setups SKIP/filtered. "
-                "Filter is a finding, not a TREND_UP enable."
+                f"NO_LIVE_TAKE. {bucket.get('n_setup')} setups refused "
+                f"(skip_setup={bucket.get('n_skip_setup')}). Filter is a finding, not TREND_UP enable."
             )
         return "NO_LIVE_TAKE. Safety is behaving. Decision quality on TAKE is unmeasured."
     if take_1h["verdict"] == "INSUFFICIENT_EVIDENCE":
@@ -187,7 +212,7 @@ def _headline(key: str, source: str, take_1h: dict, skip_1h: dict, bucket: dict)
         skip_v = skip_1h.get("verdict")
         return (
             f"Hist TAKE-eq n={take_1h['n']} {take_1h['verdict']} "
-            f"(+1h={take_1h['mean_pct']}%). SKIP {skip_v}. Shadow only."
+            f"(+1h={take_1h['mean_pct']}%). SKIP_SETUP {skip_v}. Shadow only."
         )
     return f"TAKE {take_1h['verdict']} n={take_1h['n']}; SKIP {skip_1h['verdict']} n={skip_1h['n']}. WATCH."
 
@@ -208,8 +233,8 @@ def meter(live: Optional[dict] = None, hist: Optional[dict] = None) -> Dict[str,
         )
     live_take = sum(int(s["live"].get("n_take") or 0) for s in strategies)
     boll_take = next(s["historical"]["cells"]["TAKE"]["+1h"] for s in strategies if s["strategy"] == "bollinger-mr")
-    hunter_skip = next(s["live"]["cells"]["SKIP"]["+1h"] for s in strategies if s["strategy"] == "hunter")
-    hunter_skip_4h = next(s["live"]["cells"]["SKIP"]["+4h"] for s in strategies if s["strategy"] == "hunter")
+    hunter_skip = next(s["live"]["cells"]["SKIP_SETUP"]["+1h"] for s in strategies if s["strategy"] == "hunter")
+    hunter_skip_4h = next(s["live"]["cells"]["SKIP_SETUP"]["+4h"] for s in strategies if s["strategy"] == "hunter")
 
     rollup = {
         "keep_allowed": False,
@@ -220,7 +245,7 @@ def meter(live: Optional[dict] = None, hist: Optional[dict] = None) -> Dict[str,
         "hist_take_usable": (
             f"bollinger-mr n={boll_take['n']} {boll_take['verdict']} +1h={boll_take['mean_pct']}%"
         ),
-        "hunter_live_skip": (
+        "hunter_live_skip_setup": (
             f"n={hunter_skip['n']} +1h={hunter_skip['verdict']} +4h={hunter_skip_4h['verdict']}"
         ),
         "promotion": "FORBIDDEN",
@@ -237,6 +262,7 @@ def meter(live: Optional[dict] = None, hist: Optional[dict] = None) -> Dict[str,
         "schema": "decision_quality_v0",
         "version": VERSION,
         "baseline_locked": LOCKED,
+        "baseline_version": BASELINE_VERSION,
         "ts": datetime.now(timezone.utc).isoformat(),
         "live_n": live.get("n"),
         "hist_n": hist.get("n"),
@@ -252,14 +278,18 @@ def meter(live: Optional[dict] = None, hist: Optional[dict] = None) -> Dict[str,
             "no_blended_score": True,
             "insufficient_evidence_is_valid": True,
             "wave_a_watch": True,
+            "skip_setup_is_refusal_quality": True,
+            "filtered_idle_is_not_refusal": True,
         },
+        "populations": POPULATIONS,
         "rollup": rollup,
         "strategies": strategies,
         "delta_vs_baseline": delta,
         "note": (
             "Finest quality here is refusal to lie. "
             "No blended 82%. No KEEP from a wash. "
-            "Δ vs DQ-v0.0 is how later behavior changes are judged."
+            "v0.1 adds population integrity (SKIP_SETUP vs FILTERED_IDLE). "
+            "Δ vs DQ-v0.0 is how later *behavior* changes are judged — this patch is not a quality win."
         ),
     }
 
@@ -269,8 +299,8 @@ def _delta_vs_baseline(strategies: List[dict]) -> Dict[str, Any]:
     for s in strategies:
         for side, tag in (("live", "live"), ("historical", "hist")):
             block = s[side]
-            for role in ("TAKE", "SKIP", "WAIT"):
-                cell = ((block.get("cells") or {}).get(role) or {}).get("+1h") or {}
+            for role, cell_name in (("TAKE", "TAKE"), ("SKIP", "SKIP_LEGACY"), ("WAIT", "WAIT")):
+                cell = ((block.get("cells") or {}).get(cell_name) or {}).get("+1h") or {}
                 key = f"{tag}:{s['strategy']}:{role}"
                 base = (BASELINE_V0["cells"] or {}).get(key)
                 if not base:
@@ -285,7 +315,7 @@ def _delta_vs_baseline(strategies: List[dict]) -> Dict[str, Any]:
                 if abs(dm) >= 0.10:
                     moved.append({"cell": key, "baseline_1h": base["m_1h"], "now_1h": m, "delta": dm, "n": n})
     return {
-        "baseline": VERSION,
+        "baseline": BASELINE_VERSION,
         "moved_cells": moved,
         "interpretation": (
             "Empty moved_cells = still on the 2026-08-25 baseline. "
@@ -319,34 +349,43 @@ def print_meter(report: Optional[dict] = None) -> Dict[str, Any]:
     print("\nDECISION QUALITY  " + str(report.get("version")))
     print("=" * 64)
     print("Institutional meter. Not a KEEP engine. No blended score.")
-    print(f"baseline locked {report.get('baseline_locked')}   live n={report.get('live_n')}  hist n={report.get('hist_n')}")
+    print("Populations: SKIP_SETUP = refused opportunity. FILTERED_IDLE ≠ SKIP quality.")
+    print(f"meter {report.get('version')}   baseline {report.get('baseline_version')} locked {report.get('baseline_locked')}")
+    print(f"live n={report.get('live_n')}  hist n={report.get('hist_n')}")
     print("-" * 64)
     print(f"  KEEP allowed     : {r.get('keep_allowed')}   wave_a={r.get('wave_a')}")
-    print(f"  live TAKE        : n={r.get('live_take_n')}  {r.get('live_take_quality')}")
-    print(f"  live sit-out     : {r.get('sit_out_live')}")
+    print(f"  TAKE quality     : n={r.get('live_take_n')}  {r.get('live_take_quality')}")
+    print(f"  WAIT / sit-out   : {r.get('sit_out_live')}")
+    print(f"  SKIP_SETUP       : hunter live {r.get('hunter_live_skip_setup')}")
     print(f"  hist TAKE usable : {r.get('hist_take_usable')}")
-    print(f"  hunter live SKIP : {r.get('hunter_live_skip')}")
+    print(f"  readiness        : NOT EARNED")
     print("-" * 64)
     for s in report.get("strategies") or []:
         print(f"  {s['strategy']}")
         for side in ("live", "historical"):
             b = s[side]
-            print(f"    {side:<12} setup={b.get('n_setup')} TAKE={b.get('n_take')} SKIP={b.get('n_skip')}  {b.get('headline')}")
+            print(
+                f"    {side:<12} setup={b.get('n_setup')} TAKE={b.get('n_take')} "
+                f"skip_setup={b.get('n_skip_setup')} filtered_idle={b.get('n_filtered_idle')} "
+                f"WAIT={b.get('n_wait')}"
+            )
+            print(f"                 {b.get('headline')}")
             take = (b.get("cells") or {}).get("TAKE") or {}
-            skip = (b.get("cells") or {}).get("SKIP") or {}
+            ref = (b.get("cells") or {}).get("SKIP_SETUP") or {}
+            idle = (b.get("cells") or {}).get("FILTERED_IDLE") or {}
             t1 = take.get("+1h") or {}
-            s1 = skip.get("+1h") or {}
-            s4 = skip.get("+4h") or {}
+            r1 = ref.get("+1h") or {}
+            r4 = ref.get("+4h") or {}
+            i1 = idle.get("+1h") or {}
+            print(f"                 TAKE       +1h n={t1.get('n')} {t1.get('mean_pct')}% {t1.get('verdict')}")
             print(
-                f"                 TAKE +1h n={t1.get('n')} {t1.get('mean_pct')}% {t1.get('verdict')}"
+                f"                 SKIP_SETUP +1h n={r1.get('n')} {r1.get('mean_pct')}% {r1.get('verdict')}  "
+                f"+4h {r4.get('verdict')}"
             )
-            print(
-                f"                 SKIP +1h n={s1.get('n')} {s1.get('mean_pct')}% {s1.get('verdict')}  "
-                f"+4h {s4.get('verdict')}"
-            )
+            print(f"                 FILTERED   +1h n={i1.get('n')} {i1.get('mean_pct')}% {i1.get('verdict')}  (not refusal)")
     moved = (report.get("delta_vs_baseline") or {}).get("moved_cells") or []
     print("-" * 64)
-    print(f"  Δ vs {VERSION}: {len(moved)} moved cell(s)")
+    print(f"  Δ vs {BASELINE_VERSION}: {len(moved)} moved cell(s)  (v0.1 is integrity, not a quality win)")
     for m in moved[:8]:
         print(f"    {m['cell']}  {m['baseline_1h']}% → {m['now_1h']}%  Δ={m['delta']}")
     print("-" * 64)

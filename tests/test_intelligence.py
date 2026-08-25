@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from src.intelligence.adjudicate import adjudicate
-from src.intelligence.attribution import attribute_print_ready, _classify
+from src.intelligence.attribution import attribute_print_ready, _classify, population_role
 from src.intelligence.decision_quality import (
     BASELINE_V0,
     evidence_depth,
@@ -323,6 +323,35 @@ class TestAttribution(unittest.TestCase):
         self.assertEqual(b["n_fwd_after_skip"]["fwd_1h_pct"], 1)
 
 
+class TestPopulations(unittest.TestCase):
+    def test_filtered_without_setup_is_idle_not_refusal(self):
+        self.assertEqual(
+            population_role(
+                {"setup_detected": False, "decision": "SKIP", "skip_reason": "REGIME_FILTERED"}
+            ),
+            "FILTERED_IDLE",
+        )
+        self.assertEqual(
+            population_role(
+                {
+                    "setup_detected": True,
+                    "decision": "SKIP",
+                    "skip_reason": "REGIME_FILTERED regime=TREND_UP allowed=['REVERSAL']",
+                }
+            ),
+            "SKIP_SETUP",
+        )
+        self.assertEqual(
+            population_role({"setup_detected": True, "decision": "TAKE", "skip_reason": None}),
+            "TAKE",
+        )
+        self.assertEqual(
+            population_role({"setup_detected": False, "decision": "WAIT", "skip_reason": None}),
+            "WAIT",
+        )
+
+
+
 class TestOrchestratePaper(unittest.TestCase):
     def test_cycle_never_self_fills(self):
         result = run_cycle(_take_eq_obs(), persist=False, user_confirmed=True)
@@ -396,6 +425,7 @@ class TestDecisionQuality(unittest.TestCase):
         self.assertEqual(signed_verdict("TAKE", -0.07, "WASH"), "WASH")
 
     def test_baseline_forbids_keep(self):
+        self.assertEqual(BASELINE_V0["version"], "DQ-v0.0")
         self.assertFalse(BASELINE_V0["laws"]["keep"])
         self.assertEqual(BASELINE_V0["live_take"], 0)
         self.assertEqual(BASELINE_V0["laws"]["hist_15m"], "UNUSABLE")
@@ -407,6 +437,10 @@ class TestDecisionQuality(unittest.TestCase):
         self.assertEqual(report["rollup"]["wave_a"], "WATCH")
         self.assertEqual(report["schema"], "decision_quality_v0")
         self.assertTrue(report["laws"]["no_blended_score"])
+        self.assertIn("SKIP_SETUP", report["populations"])
+        hunter = next(s for s in report["strategies"] if s["strategy"] == "hunter")
+        self.assertIn("SKIP_SETUP", hunter["live"]["cells"])
+        self.assertIn("FILTERED_IDLE", hunter["live"]["cells"])
 
     def test_score_horizon_hist_15m_unusable(self):
         cell = score_horizon(role="TAKE", n=47, mean=-18.4, clock="+15m", usable=False)

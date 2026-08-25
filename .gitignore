@@ -29,6 +29,7 @@ audit_report_replay.json
 compare_live_vs_historical.json
 attribution_live.json
 attribution_replay.json
+decision_quality_report.json
 typed_decision.jsonl
 experiments_ledger.jsonl
 user_context.json

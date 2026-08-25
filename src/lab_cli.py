@@ -128,7 +128,7 @@ def handle_lab_command(user_input: str) -> bool:
             "lab | lab watch [N] | lab once | lab outcomes | lab audit | lab audit replay | "
             "lab replay [BTC/USD] | lab compare | lab understanding | lab observations | "
             "lab wait | lab status | lab coverage | lab system | lab profile | lab di | "
-            "lab experiments | lab paper-sim | lab contract | lab attribution | lab research | "
+            "lab experiments | lab paper-sim | lab contract | lab attribution | lab quality | lab research | "
             "lab gates | lab intent"
         )
     return True
@@ -142,6 +142,7 @@ DI_COMMANDS = {
     "paper-sim", "papersim", "sim", "paper",
     "contract", "api",
     "attribution", "attr",
+    "quality", "dq", "meter",
     "research",
     "gates", "gate", "safety",
     "intent", "context",

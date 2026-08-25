@@ -35,6 +35,7 @@ def completeness() -> Dict[str, Any]:
         _file("di.gates", Path("src/intelligence/gates.py")),
         _file("di.adjudicate", Path("src/intelligence/adjudicate.py")),
         _file("di.experiments", Path("src/intelligence/experiments.py")),
+        _file("di.quality", Path("src/intelligence/decision_quality.py")),
         _file("di.orchestrate", Path("src/intelligence/orchestrate.py")),
         _ledger("live observation_log.jsonl", Path("observation_log.jsonl"), required=False),
         _ledger("replay observation_replay.jsonl", Path("observation_replay.jsonl"), required=False),

@@ -6,7 +6,7 @@
 **Strategy intelligence audit:** 2026-08-22 — [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md)  
 **Market Truth + continuous evidence:** 2026-08-22 — [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md)
 
-**Immediate (locked):** P0–P2 **done**. S1–S4 **done**. Compare **done**. S5 **parked** (tape accumulating; experiment ledger exists, `try_run` refused). **Now = Decision Intelligence foundation** while `lab watch` continues. Wave A stays **WATCH**. TradingAgents is a reference only — extra agents still not.
+**Immediate (locked):** P0–P2 **done**. S1–S4 **done**. Compare **done**. H3 **measurement done** (`lab attribution`). **Decision Quality v0 locked 2026-08-25** (`lab quality`). H2 pending Ananta `reason_codes`. H1 live enable rejected. Wave A stays **WATCH**. Live watch continues. Extra agents still not.
 
 **North star:** Ananta provides System Truth. Independent Market Truth is the external reference. Agent Ananta understands the trader and the strategies, decides, measures Outcome Truth (including SKIPs and opportunity cost), learns (evaluation + ranking + proposals only), and earns autonomy through evidence — without a self-confirming loop.
 
@@ -31,7 +31,7 @@ This file does **not** reopen education, adapters, $50 live, cockpit, or leaderb
 | 3.6 | Backend independence (local Ananta API) | **Done 2026-08-21** |
 | 4 | Decision Intelligence Infrastructure | **Foundation now** — typed decisions, profiles, gates |
 | 4.5 | Market Truth + Observation schema | **S1–S4 + compare done**; live watch continues |
-| 5 | Agent decision evaluation | In progress — WAIT ≠ KEEP; attribution engine ready |
+| 5 | Agent decision evaluation | **DQ-v0.0 locked 2026-08-25** — `lab quality`; WAIT ≠ KEEP |
 | 6 | Engine + strategy validation (incl. regime audit) | S1–S3 done; KEEP still gated |
 | 7 | Research + PDF intelligence | Research workflow scaffold (`lab research`); PDF later |
 | 8 | User intelligence + personalization | Intent + profiles scaffold; personalization later |
@@ -56,7 +56,8 @@ This file does **not** reopen education, adapters, $50 live, cockpit, or leaderb
 | **S3** | Regime Audit + Decision Audit (SUPPORTED / MISCLASSIFIED / UNCERTAIN; opportunity cost) | **Done** (not a KEEP/CUT verdict) |
 | **S4** | Same schema replayed on 1y Lab data | **Done** — `lab replay` / `lab audit replay` |
 | **Compare** | Live vs historical (`lab compare`) | **Done** — reviewed 2026-08-23, not KEEP |
-| **S5** | Findings → experiment proposals; human approval mandatory | **Parked** — tape accumulating; [S5_HYPOTHESES.md](./S5_HYPOTHESES.md); `lab experiments` ledger, `try_run` refused |
+| **S5** | Findings → experiment proposals; human approval mandatory | **H3 measurement done**; H2 pending instrumentation; H1 live enable rejected — [S5_HYPOTHESES.md](./S5_HYPOTHESES.md) |
+| **DQ** | Decision Quality meter (TAKE/WAIT/SKIP, per strategy, live vs hist) | **v0.0 locked 2026-08-25** — [DECISION_QUALITY_V0.md](./DECISION_QUALITY_V0.md) `lab quality` |
 | **DI** | Typed decisions, profiles, hard gates, paper-sim | **Foundation now** — [DECISION_INTELLIGENCE_LOCK.md](./DECISION_INTELLIGENCE_LOCK.md) |
 
 Same schema for live paper and historical replay. No second parallel evidence system.
@@ -96,11 +97,11 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 4. ~~S4 1y historical Observation replay~~ **Done** (`lab replay` + `lab audit replay`; TAKE-eq ≠ KEEP)
 5. Live watcher continues (`lab watch 15`) as a parallel evidence stream
 6. ~~live vs historical compare~~ **Done** (`lab compare` 2026-08-23)
-7. **S5 parked** (`docs/S5_HYPOTHESES.md`) — tape accumulating; experiment ledger exists; `try_run` refused. Wave A WATCH.
-8. **DI foundation now** — `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim`
+7. **H3 done** (`lab attribution`). **DQ-v0.0 locked** (`lab quality`, [DECISION_QUALITY_V0.md](./DECISION_QUALITY_V0.md)). H2 queued (Ananta dump). H1 live enable rejected. Wave A WATCH.
+8. **DI foundation** — `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim` / `lab quality`
 
 Next meaningful milestone:
 
-> Feature-complete behavior machine while Wave A stays WATCH — then fine-tune from tape.
+> Beat DQ-v0.0 on the meter without KEEP. Then Strategy Research Universe v1.
 
 **Do not start yet:** extra agents, Bull/Bear, TradingAgents integration, fancy UI, live autonomy, India, education, $50 live, leaderboard, large strategy expansion, ML training, automatic production mutation, H1 TREND_UP enable.

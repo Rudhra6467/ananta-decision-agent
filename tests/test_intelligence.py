@@ -8,6 +8,15 @@ from pathlib import Path
 
 from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify
+from src.intelligence.decision_quality import (
+    BASELINE_V0,
+    evidence_depth,
+    meter,
+    path_call,
+    score_horizon,
+    signed_verdict,
+)
+
 from src.intelligence.contract import contract_spec
 from src.intelligence.experiments import approve, list_experiments, try_run
 from src.intelligence.gates import evaluate_gates, WAVE_A_WATCH, REGIME_FILTER
@@ -363,6 +372,7 @@ class TestContractAndSystem(unittest.TestCase):
         names = {x["name"] for x in c["checks"]}
         self.assertIn("di.gates", names)
         self.assertIn("di.adjudicate", names)
+        self.assertIn("di.quality", names)
 
     def test_typed_decision_schema(self):
         d = TypedDecision(recommended_action="TAKE", issued_action="WAIT")
@@ -371,6 +381,36 @@ class TestContractAndSystem(unittest.TestCase):
         self.assertTrue(blob["laws"]["hard_safety_outside_llm"])
         self.assertTrue(blob["blocked"])
         self.assertTrue(blob["laws"]["skip_is_a_decision"])
+
+
+class TestDecisionQuality(unittest.TestCase):
+    def test_depth_and_noise_bands(self):
+        self.assertEqual(evidence_depth(0, role="TAKE"), "NONE")
+        self.assertEqual(evidence_depth(4, role="TAKE"), "ANECDOTE")
+        self.assertEqual(evidence_depth(47, role="TAKE"), "ADEQUATE")
+        self.assertEqual(path_call(0.00, 64, usable=True, role="SKIP"), "WASH")
+        self.assertEqual(path_call(-0.26, 64, usable=True, role="SKIP"), "SLIGHT")
+        self.assertEqual(path_call(-0.07, 4, usable=True, role="TAKE"), "INSUFFICIENT_EVIDENCE")
+        self.assertEqual(path_call(-18.4, 47, usable=False, role="TAKE"), "UNUSABLE_CLOCK")
+        self.assertEqual(signed_verdict("SKIP", -0.26, "SLIGHT"), "SITOUT_PROTECTIVE")
+        self.assertEqual(signed_verdict("TAKE", -0.07, "WASH"), "WASH")
+
+    def test_baseline_forbids_keep(self):
+        self.assertFalse(BASELINE_V0["laws"]["keep"])
+        self.assertEqual(BASELINE_V0["live_take"], 0)
+        self.assertEqual(BASELINE_V0["laws"]["hist_15m"], "UNUSABLE")
+
+    def test_meter_empty_ledgers_do_not_keep(self):
+        empty = {"n": 0, "data_gap": True, "source": "live_paper", "by_strategy": {}}
+        report = meter(live=empty, hist=empty)
+        self.assertFalse(report["rollup"]["keep_allowed"])
+        self.assertEqual(report["rollup"]["wave_a"], "WATCH")
+        self.assertEqual(report["schema"], "decision_quality_v0")
+        self.assertTrue(report["laws"]["no_blended_score"])
+
+    def test_score_horizon_hist_15m_unusable(self):
+        cell = score_horizon(role="TAKE", n=47, mean=-18.4, clock="+15m", usable=False)
+        self.assertEqual(cell["verdict"], "UNUSABLE_CLOCK")
 
 
 if __name__ == "__main__":

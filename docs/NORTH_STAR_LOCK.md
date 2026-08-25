@@ -90,7 +90,8 @@ All three stay **WATCH** until TAKE evidence exists. WAIT-only marks ≠ KEEP.
 | **S3** | Regime Audit + Decision Audit (thin) | **Done** (overnight sample = evidence, not KEEP/CUT) |
 | **S4** | Same schema on 1y historical replay | **Done** (`lab replay` / `lab audit replay` — TAKE-eq ≠ KEEP) |
 | **Compare** | Live vs historical, same schema, do not mix | **Done** (`lab compare` 2026-08-23) |
-| **S5** | Findings → experiment proposals (human-gated) | **Parked** — tape accumulating; ledger exists; not executing |
+| **S5** | Findings → experiment proposals (human-gated) | **H3 measurement done**; H2 pending Ananta dump; H1 live enable rejected |
+| **DQ** | Decision Quality meter | **v0.0 locked 2026-08-25** — [DECISION_QUALITY_V0.md](./DECISION_QUALITY_V0.md) `lab quality` |
 | **DI** | Typed decisions, profiles, gates, orchestration | **Foundation now** — Wave A still WATCH; extra agents still not |
 | P3–P7 | Per-symbol marks, paper density, KEEP only with TAKE evidence | Ongoing ops |
 

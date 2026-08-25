@@ -34,7 +34,8 @@ def write_replay_jsonl(observations: List[dict], *, append: bool = False) -> Pat
 
 
 def _print_strategy_evidence(stats: dict) -> None:
-    for key in WAVE_A:
+    keys = list(WAVE_A) + [k for k in (stats or {}) if k not in WAVE_A]
+    for key in keys:
         s = (stats or {}).get(key) or {}
         print(
             f"  {key:<14} bars={s.get('bars')}  setups={s.get('setups')}  "

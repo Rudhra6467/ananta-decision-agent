@@ -21,7 +21,7 @@ from src.intelligence.universe_specs import (
 VERSION = "EVIDENCE-v0"
 PROVENANCE_SCHEMA = "evidence_provenance_v0"
 DQ_VERSION = "DQ-v0.1"
-UNIVERSE_VERSION = "UNIVERSE-v1.1"
+UNIVERSE_VERSION = "UNIVERSE-v1.2"
 OBSERVATION_SCHEMA = "observation_v0"
 OUTCOME_HORIZONS = ("+15m", "+1h", "+4h")
 # Destination sequence. Do not skip to similarity.
@@ -29,8 +29,8 @@ SEQUENCE = (
     "Wave A frozen",
     "DQ-v0 locked",
     "Universe v1 scaffold",
-    "Universe v1.1 evidence depth",  # NOW
-    "One extra spec on observation_v0 (continuation, not live watch)",
+    "Universe v1.1 evidence depth",
+    "Universe v1.2 continuation hist shadow (not live watch)",  # NOW
     "Setup records = observation_v0 joins",
     "Evidence cards (cells, not a score)",
     "Market-state fingerprints from Market Truth",

@@ -1,7 +1,7 @@
 # Strategy Evidence Engine — destination lock (2026-08-25)
 
 **Status:** Destination architecture. **Not built as a ranker.** v0 is the Evidence Card on Universe cells.  
-**Now:** Universe-v1.1 depth metadata. Wave A frozen.
+**Now:** Universe-v1.2 continuation hist shadow. Wave A frozen.
 
 ## The question this layer exists to answer
 
@@ -96,8 +96,8 @@ Every Universe cell now carries:
 1. Wave A frozen  
 2. DQ-v0 locked  
 3. Universe v1 scaffold  
-4. **Universe v1.1 evidence depth ← now**  
-5. One extra spec on real `observation_v0` (`continuation` × BTC × 1h, **not** live watch)  
+4. Universe v1.1 evidence depth  
+5. **Universe v1.2 continuation hist shadow ← now** (not live watch)  
 6. Setup records = joins of existing jsonl  
 7. Fingerprints from Market Truth  
 8. Similarity search (only after TAKE n is real)  

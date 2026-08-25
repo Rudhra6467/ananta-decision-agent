@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 # Replay we actually have today.
-COVERED_STRATEGIES = ("hunter", "squeeze", "bollinger-mr")
+COVERED_STRATEGIES = ("hunter", "squeeze", "bollinger-mr", "continuation")
 COVERED_ASSETS = ("BTC/USD",)
 COVERED_TIMEFRAMES = ("1h",)
 
@@ -24,7 +24,7 @@ EVALUATORS = {
     "hunter": "ananta.primary_layer.evaluate_primary",
     "squeeze": "ananta.squeeze.evaluate_squeeze",
     "bollinger-mr": "ananta.declarative_engine.evaluate(DECLARATIVE['bollinger-mr'])",
-    "continuation": "ananta.continuation (not on observation_v0 replay yet)",
+    "continuation": "ananta.continuation.evaluate_continuation",
 }
 
 REGIME_CLASSIFIER = "ananta.regime.classify_regime"
@@ -68,7 +68,7 @@ def catalog() -> List[Dict[str, Any]]:
         _spec("bollinger-mr", "mean_reversion", "Fade range / compression extremes",
               dna=("RANGE", "COMPRESSION"), wave_a=True, covered=True),
         _spec("continuation", "trend", "Buy shallow dips in a confirmed uptrend",
-              dna=("TREND_UP",), wave_a=False, covered=False),
+              dna=("TREND_UP",), wave_a=False, covered=True),
         _spec("donchian-breakout", "breakout", "Channel breakout continuation",
               dna=("TREND_UP",), wave_a=False, covered=False),
         _spec("atr-breakout", "breakout", "Volatility breakout",

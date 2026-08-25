@@ -380,6 +380,16 @@ class TestUniverse(unittest.TestCase):
         self.assertEqual(len(cells), 15 * 2 * 2 * 6)
         self.assertTrue(all(c["live_watch"] is False for c in cells))
         self.assertEqual(sum(1 for s in catalog() if s["wave_a"]), 3)
+        from src.intelligence.schema import WAVE_A
+        self.assertNotIn("continuation", WAVE_A)
+        cont = [
+            c for c in cells
+            if c["strategy"] == "continuation" and c["asset"] == "BTC/USD" and c["timeframe"] == "1h"
+        ]
+        self.assertEqual(len(cont), 6)
+        self.assertTrue(all(c["coverage"] == "historical_lab" for c in cont))
+        self.assertTrue(all(c["live_watch"] is False for c in cont))
+        self.assertTrue(any(c["regime"] == "TREND_UP" and c["policy"] == "ROUTER_ONLY" for c in cont))
 
     def test_fit_rules_conservative(self):
         self.assertEqual(
@@ -398,7 +408,7 @@ class TestUniverse(unittest.TestCase):
         self.assertTrue(all(c.get("live_watch") is False for c in report["cells"]))
         for c in report.get("candidates") or []:
             self.assertIn("not live", c["note"].lower())
-        self.assertEqual(report["version"], "UNIVERSE-v1.1")
+        self.assertEqual(report["version"], "UNIVERSE-v1.2")
         for c in report["cells"]:
             self.assertIn(c["status_class"], {
                 "UNTESTED", "TESTED_UNKNOWN", "WASH", "UNSUITABLE", "SUITABLE",

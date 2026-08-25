@@ -28,7 +28,7 @@ from src.intelligence.h2 import _codes, _regime
 from src.intelligence.universe_specs import generate_cells, catalog
 from src.tools.observation_log import REPLAY_LOG, _read_jsonl
 
-VERSION = "UNIVERSE-v1.1"
+VERSION = "UNIVERSE-v1.2"
 LOCKED = "2026-08-25"
 KNOWLEDGE_PATH = Path("universe_knowledge.json")
 

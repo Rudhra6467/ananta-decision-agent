@@ -98,10 +98,10 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 5. Live watcher continues (`lab watch 15`) as a parallel evidence stream
 6. ~~live vs historical compare~~ **Done** (`lab compare` 2026-08-23)
 7. **H3 done** (`lab attribution`). **DQ-v0.0 locked** (`lab quality`). **H2 done** (`lab h2`). H1 live enable rejected. Wave A WATCH **frozen**.
-8. **Universe v1.1** — offline `lab universe` / [STRATEGY_UNIVERSE_V1.md](./STRATEGY_UNIVERSE_V1.md). Depth on every cell. Destination: [STRATEGY_EVIDENCE_ENGINE.md](./STRATEGY_EVIDENCE_ENGINE.md).
+8. **Universe v1.2** — continuation on hist `observation_v0` (research shadow). Wave A frozen. [STRATEGY_UNIVERSE_V1.md](./STRATEGY_UNIVERSE_V1.md).
 
 Next meaningful milestone:
 
-> Prove one extra spec (`continuation`) on real observation_v0 — not live watch. Then setup-record joins. Similarity search only after TAKE n is real.
+> Re-run `lab replay` after Ananta pull so continuation rows exist. Then `lab universe`. Still not live watch.
 
 **Do not start yet:** extra agents, Bull/Bear, TradingAgents integration, fancy UI, live autonomy, India, education, $50 live, leaderboard, putting the other 12 on live watch, ML training, automatic production mutation, H1 TREND_UP enable, chart-similarity search, blended 81/100 scores.

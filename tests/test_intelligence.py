@@ -8,6 +8,7 @@ from pathlib import Path
 
 from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
+from src.intelligence.fingerprint import from_slot, fingerprints, ret_bin
 from src.intelligence.setup_memory import extract, _record, refusal_stamp
 from src.intelligence.universe import fit_from_take, research
 from src.intelligence.universe_specs import generate_cells, catalog
@@ -527,6 +528,38 @@ class TestSetupMemory(unittest.TestCase):
         self.assertFalse(rec["keep"])
 
 
+class TestFingerprints(unittest.TestCase):
+    def test_bins_and_gap(self):
+        self.assertEqual(ret_bin(0.5), "UP_STRONG")
+        self.assertEqual(ret_bin(0.02), "FLAT")
+        self.assertEqual(ret_bin(-0.2), "DOWN")
+        gap = from_slot({"data_gap": True})
+        self.assertTrue(gap["data_gap"])
+        self.assertFalse(gap["keep"])
+
+    def test_uses_market_truth_flag_names(self):
+        fp = from_slot({
+            "trend_flag": "UP",
+            "compression_flag": "COMPRESSION",
+            "ret_1h_pct": 0.5,
+            "ret_4h_pct": 0.1,
+        })
+        self.assertFalse(fp["data_gap"])
+        self.assertEqual(fp["trend"], "UP")
+        self.assertEqual(fp["compression"], "COMPRESSION")
+        self.assertEqual(fp["ret_1h_bin"], "UP_STRONG")
+        self.assertEqual(fp["independent_label"], "BULLISH")
+        self.assertIn("UP|COMPRESSION", fp["key"])
+        self.assertFalse(fp["keep"])
+
+    def test_empty_extract_is_not_similarity(self):
+        report = fingerprints("replay")
+        self.assertFalse(report["keep"])
+        self.assertFalse(report["similarity"])
+        self.assertFalse(report["ranker"])
+        self.assertEqual(report["version"], "FP-v0")
+
+
 
 
 
@@ -584,6 +617,7 @@ class TestContractAndSystem(unittest.TestCase):
         self.assertIn("di.universe", names)
         self.assertIn("di.evidence", names)
         self.assertIn("di.setup_memory", names)
+        self.assertIn("di.fingerprint", names)
 
     def test_typed_decision_schema(self):
         d = TypedDecision(recommended_action="TAKE", issued_action="WAIT")

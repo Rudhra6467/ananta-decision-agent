@@ -122,7 +122,7 @@ def print_memory(source: str = "replay", strategy: Optional[str] = None, regime:
             continue
         shown += 1
         print(
-            f"    {c['strategy']:<14} {c['regime']:<12} "
+            f"    {c['strategy']:<14} {str(c.get('asset') or '').split('/')[0]:<5} {c['regime']:<12} "
             f"n={c['n']:<4} TAKE={c['n_take']:<4} SKIP_SETUP={c['n_skip_setup']:<4} "
             f"+1h_TAKE={_fmt(c.get('mean_1h_take'))}  "
             f"+1h_SKIP={_fmt(c.get('mean_1h_skip_setup'))}  "
@@ -228,17 +228,24 @@ def _refusal_rollup(records: List[dict]) -> dict:
 
 def _fingerprint(mt: dict, symbol: str) -> dict:
     assets = (mt or {}).get("assets") or {}
-    slot = assets.get(symbol) or (mt or {}).get("btc") or {}
+    slot: dict = {}
+    if isinstance(assets, dict):
+        slot = assets.get(symbol) or {}
+    if not slot:
+        if "ETH" in (symbol or ""):
+            slot = (mt or {}).get("eth") or {}
+        else:
+            slot = (mt or {}).get("btc") or {}
     if not isinstance(slot, dict) or not slot:
         return {"data_gap": True}
     return {
         "data_gap": False,
         "price": slot.get("price"),
-        "trend": slot.get("trend"),
-        "compression": slot.get("compression"),
+        "trend": slot.get("trend_flag") or slot.get("trend"),
+        "compression": slot.get("compression_flag") or slot.get("compression"),
         "ret_1h_pct": slot.get("ret_1h_pct"),
         "ret_4h_pct": slot.get("ret_4h_pct"),
-        "vol": slot.get("vol"),
+        "vol": slot.get("vol_proxy_1h_pct") or slot.get("vol"),
     }
 
 

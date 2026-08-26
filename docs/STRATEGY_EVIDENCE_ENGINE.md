@@ -1,7 +1,7 @@
 # Strategy Evidence Engine — destination lock (2026-08-25)
 
 **Status:** Destination architecture. **Not built as a ranker.** v0 is the Evidence Card on Universe cells.  
-**Now:** Setup Memory v0 (`lab memory`). Wave A frozen.
+**Now:** Market Truth fingerprints (`lab fingerprints`). Wave A frozen.
 
 ## The question this layer exists to answer
 
@@ -79,6 +79,12 @@ Each `setup_detected=True` row → `setup_record_v0` (strategy × asset × TF ×
 
 COSTLY ≠ TREND_UP enable. COSTLY ≠ Hunter rewrite. It is a finding for later judgment.
 
+## Fingerprints v0 (`lab fingerprints`)
+
+Coarse Market Truth bins on each setup: `trend | compression | ret_1h | independent_label`.
+
+Cross-tab TAKE vs COSTLY / PROTECTIVE / WASH. Not chart-similarity. Not KEEP.
+
 Idle bars (WAIT / FILTERED_IDLE) are **not** memory of a setup.
 
 ```text
@@ -126,7 +132,7 @@ Every Universe cell now carries:
 4. Universe v1.1 evidence depth  
 5. Universe v1.2 continuation hist shadow  
 6. **Setup Memory v0 ← now** (`lab memory` — jsonl join, not a DB)  
-7. Market-state fingerprints from Market Truth  
+7. Market-state fingerprints from Market Truth (`lab fingerprints`)  
 8. Similarity search (only after TAKE n is real)  
 9. Contextual ranking — **separate boards**, never one leaderboard  
 10. Forward paper vs hist  

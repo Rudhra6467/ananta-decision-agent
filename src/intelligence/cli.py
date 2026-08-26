@@ -48,6 +48,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _cmd_research(key)
     if cmd in ("memory", "setups", "setup-memory"):
         return _cmd_memory(rest)
+    if cmd in ("fingerprints", "fingerprint", "fp"):
+        source = rest[0] if rest else "replay"
+        return _cmd_fingerprints(source)
     if cmd in ("universe", "sru", "cells"):
         return _cmd_universe()
     if cmd in ("h2", "hunter-gates"):
@@ -67,9 +70,9 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab universe | lab memory | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab memory | lab fingerprints | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
-    print("Wave A stays WATCH. Universe = lab universe. Memory = lab memory (jsonl join). H1 live enable rejected.")
+    print("Wave A stays WATCH. Memory = lab memory. Fingerprints = lab fingerprints. H1 live enable rejected.")
 
 
 def _dump(obj) -> None:
@@ -290,6 +293,13 @@ def _cmd_memory(rest: List[str]) -> int:
     if len(args) > 1:
         regime = args[1]
     print_memory(source, strat, regime)
+    return 0
+
+
+def _cmd_fingerprints(source: str) -> int:
+    from src.intelligence.fingerprint import print_fingerprints
+
+    print_fingerprints(source)
     return 0
 
 

@@ -557,7 +557,10 @@ class TestFingerprints(unittest.TestCase):
         self.assertFalse(report["keep"])
         self.assertFalse(report["similarity"])
         self.assertFalse(report["ranker"])
-        self.assertEqual(report["version"], "FP-v0")
+        self.assertEqual(report["version"], "FP-v0.1")
+        self.assertIn("by_strategy", report)
+        self.assertTrue(report["laws"]["mixed_table_is_confounded"])
+        self.assertTrue(report["laws"]["strategy_slice_is_not_keep"])
 
 
 

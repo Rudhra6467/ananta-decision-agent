@@ -83,6 +83,13 @@ COSTLY ≠ TREND_UP enable. COSTLY ≠ Hunter rewrite. It is a finding for later
 
 Coarse Market Truth bins on each setup: `trend | compression | ret_1h | independent_label`.
 
+v0.1: **strategy-conditioned slices**. Mixed rollup confounds Bollinger TAKE-eq with Hunter refusals.
+
+```text
+lab fingerprints
+lab fingerprints replay hunter
+```
+
 Cross-tab TAKE vs COSTLY / PROTECTIVE / WASH. Not chart-similarity. Not KEEP.
 
 Idle bars (WAIT / FILTERED_IDLE) are **not** memory of a setup.

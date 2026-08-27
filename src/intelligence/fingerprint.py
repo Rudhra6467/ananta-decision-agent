@@ -6,7 +6,10 @@ Attaches a coarse fingerprint to every setup_record:
 Then cross-tabs TAKE vs COSTLY / PROTECTIVE / WASH.
 Does not KEEP. Does not search similar charts. Does not rank strategies.
 
-CLI: lab fingerprints [live|replay]
+CLI: lab fingerprints [live|replay] [strategy]
+
+v0.1: strategy-conditioned slices. Mixed tables confound
+Bollinger TAKE-eq with Hunter TREND_UP refusals.
 """
 from __future__ import annotations
 
@@ -19,9 +22,11 @@ from typing import Any, Dict, List, Optional
 from src.intelligence.setup_memory import extract
 from src.tools.audit_truth import _independent_label
 
-VERSION = "FP-v0"
+VERSION = "FP-v0.1"
 REPORT_PATH = Path("fingerprint_report.json")
 MIN_KEY_N = 5
+MIN_SLICE_KEY_N = 3
+SLICE_ORDER = ("hunter", "squeeze", "bollinger-mr", "continuation")
 
 
 def fingerprints(source: str = "replay") -> Dict[str, Any]:
@@ -43,6 +48,7 @@ def fingerprints(source: str = "replay") -> Dict[str, Any]:
     by_ret = _xtab(tagged, lambda r: r["fingerprint"]["ret_1h_bin"])
     by_key = _xtab(tagged, lambda r: r["fingerprint"]["key"])
     keys = {k: v for k, v in by_key.items() if v["n"] >= MIN_KEY_N}
+    by_strategy = _strategy_slices(tagged)
 
     report = {
         "ok": True,
@@ -60,16 +66,19 @@ def fingerprints(source: str = "replay") -> Dict[str, Any]:
         "by_independent_label": by_label,
         "by_ret_1h_bin": by_ret,
         "by_key": keys,
+        "by_strategy": by_strategy,
         "laws": {
             "fingerprint_is_not_chart_similarity": True,
             "fingerprint_is_not_keep": True,
             "ananta_regime_is_not_the_fingerprint": True,
             "sparse_keys_are_anecdote": True,
             "costly_on_a_flag_is_not_trend_up_enable": True,
+            "mixed_table_is_confounded": True,
+            "strategy_slice_is_not_keep": True,
         },
         "note": (
-            "Structured Market Truth on setups. A flag that co-occurs with COSTLY "
-            "skips is a finding, not a rewrite. TAKE n is still the DQ gate."
+            "v0.1 strategy slices. Mixed rollup confounds Bollinger TAKE-eq with "
+            "Hunter refusals. A slice is a map, not KEEP."
         ),
     }
     slim = {k: v for k, v in report.items()}
@@ -81,33 +90,76 @@ def fingerprints(source: str = "replay") -> Dict[str, Any]:
     return report
 
 
-def print_fingerprints(source: str = "replay") -> Dict[str, Any]:
+def print_fingerprints(source: str = "replay", strategy: Optional[str] = None) -> Dict[str, Any]:
     report = fingerprints(source)
+    want = (strategy or "").lower().strip() or None
     print(f"\nMARKET TRUTH FINGERPRINTS  {report.get('version')}  ({report.get('source')})")
     print("=" * 64)
-    print("Structured flags. Not similarity. Not KEEP. Ananta regime ≠ fingerprint.")
+    print("Structured flags. Not similarity. Not KEEP. Strategy slices ≠ mixed rollup.")
     print(
         f"  setups={report.get('n_setups')}  data_gap={report.get('n_data_gap')}  "
         f"keep=False"
     )
+    if not want:
+        print("-" * 64)
+        print("  ROLLUP (all strategies — confounded. Read slices below.)")
+        _print_xtab("BY TREND", report.get("by_trend") or {})
+        _print_xtab("BY INDEPENDENT LABEL", report.get("by_independent_label") or {})
     print("-" * 64)
-    _print_xtab("BY TREND (independent SMA flag)", report.get("by_trend") or {})
-    _print_xtab("BY COMPRESSION", report.get("by_compression") or {})
-    _print_xtab("BY RET +1h BIN", report.get("by_ret_1h_bin") or {})
-    _print_xtab("BY INDEPENDENT LABEL", report.get("by_independent_label") or {})
-    print(f"  COARSE KEYS  n>={MIN_KEY_N}  (trend|compression|ret1h|label)")
-    keys = report.get("by_key") or {}
-    if not keys:
-        print("    none — fingerprints too sparse or data_gap.")
-    else:
-        for k, row in sorted(keys.items(), key=lambda kv: -kv[1]["n"]):
-            print(f"    {_fmt_row(k, row, key_w=36)}")
+    slices = report.get("by_strategy") or {}
+    order = [k for k in SLICE_ORDER if k in slices] + [k for k in slices if k not in SLICE_ORDER]
+    shown = 0
+    for key in order:
+        if want and key != want:
+            continue
+        shown += 1
+        sl = slices[key]
+        print(
+            f"  {key:<14} n={sl.get('n')}  TAKE={sl.get('TAKE')}  "
+            f"COSTLY={sl.get('COSTLY')}  PROT={sl.get('PROTECTIVE')}  WASH={sl.get('WASH')}"
+        )
+        _print_xtab("    trend", sl.get("by_trend") or {})
+        _print_xtab("    independent", sl.get("by_independent_label") or {})
+        keys = sl.get("by_key") or {}
+        if keys:
+            print(f"    keys n>={MIN_SLICE_KEY_N}")
+            for k, row in sorted(keys.items(), key=lambda kv: -kv[1]["n"]):
+                print(f"      {_fmt_row(k, row, key_w=36)}")
+            print()
+    if shown == 0:
+        print("  no matching strategy slice.")
     print("-" * 64)
-    print("  Fingerprint ≠ similar-chart search. COSTLY on a flag ≠ TREND_UP enable.")
+    print("  Slice ≠ KEEP. Mixed rollup is confounded. COSTLY ≠ TREND_UP enable.")
     print(f"  saved: {report.get('saved')}")
     print("=" * 64)
     print()
     return report
+
+
+def _strategy_slices(tagged: List[dict]) -> Dict[str, dict]:
+    groups: Dict[str, list] = defaultdict(list)
+    for rec in tagged:
+        groups[str(rec.get("strategy") or "?")].append(rec)
+    out: Dict[str, dict] = {}
+    for key, rows in groups.items():
+        by_key = _xtab(rows, lambda r: r["fingerprint"]["key"])
+        tally = _xtab(rows, lambda _r: "ALL").get("ALL") or {
+            "n": 0, "TAKE": 0, "COSTLY": 0, "PROTECTIVE": 0, "WASH": 0,
+        }
+        out[key] = {
+            "n": tally.get("n", len(rows)),
+            "TAKE": tally.get("TAKE", 0),
+            "COSTLY": tally.get("COSTLY", 0),
+            "PROTECTIVE": tally.get("PROTECTIVE", 0),
+            "WASH": tally.get("WASH", 0),
+            "by_trend": _xtab(rows, lambda r: r["fingerprint"]["trend"]),
+            "by_compression": _xtab(rows, lambda r: r["fingerprint"]["compression"]),
+            "by_independent_label": _xtab(rows, lambda r: r["fingerprint"]["independent_label"]),
+            "by_ret_1h_bin": _xtab(rows, lambda r: r["fingerprint"]["ret_1h_bin"]),
+            "by_key": {k: v for k, v in by_key.items() if v["n"] >= MIN_SLICE_KEY_N},
+            "keep": False,
+        }
+    return out
 
 
 def from_record(rec: dict) -> dict:

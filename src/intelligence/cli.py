@@ -49,8 +49,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cmd in ("memory", "setups", "setup-memory"):
         return _cmd_memory(rest)
     if cmd in ("fingerprints", "fingerprint", "fp"):
-        source = rest[0] if rest else "replay"
-        return _cmd_fingerprints(source)
+        return _cmd_fingerprints(rest)
     if cmd in ("universe", "sru", "cells"):
         return _cmd_universe()
     if cmd in ("h2", "hunter-gates"):
@@ -296,10 +295,18 @@ def _cmd_memory(rest: List[str]) -> int:
     return 0
 
 
-def _cmd_fingerprints(source: str) -> int:
+def _cmd_fingerprints(rest: List[str]) -> int:
     from src.intelligence.fingerprint import print_fingerprints
 
-    print_fingerprints(source)
+    source = "replay"
+    strat = None
+    args = [a for a in rest if a]
+    if args and args[0].lower() in ("live", "replay", "historical", "historical_lab"):
+        source = args[0]
+        args = args[1:]
+    if args:
+        strat = args[0]
+    print_fingerprints(source, strat)
     return 0
 
 

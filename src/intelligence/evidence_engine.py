@@ -21,7 +21,7 @@ from src.intelligence.universe_specs import (
 VERSION = "EVIDENCE-v0"
 PROVENANCE_SCHEMA = "evidence_provenance_v0"
 DQ_VERSION = "DQ-v0.1"
-UNIVERSE_VERSION = "UNIVERSE-v1.2"
+UNIVERSE_VERSION = "UNIVERSE-v1.3"
 OBSERVATION_SCHEMA = "observation_v0"
 OUTCOME_HORIZONS = ("+15m", "+1h", "+4h")
 # Destination sequence. Do not skip to similarity.
@@ -32,7 +32,9 @@ SEQUENCE = (
     "Universe v1.1 evidence depth",
     "Universe v1.2 continuation hist shadow (not live watch)",
     "Setup Memory v0 jsonl join",
-    "Market Truth fingerprints v0",  # NOW
+    "Market Truth fingerprints v0",
+    "Strategy-conditioned fingerprints v0.1",
+    "Universe v1.3 regime vs independent tape",  # NOW
     "Evidence cards (cells, not a score)",
     "Market-state fingerprints from Market Truth",
     "Similarity search",
@@ -184,6 +186,7 @@ def card_from_cell(cell: dict) -> Dict[str, Any]:
         "take_1h": take,
         "skip_setup_1h": cell.get("skip_setup_1h"),
         "failure_top": cell.get("failure_top") or {},
+        "regime_vs_tape": cell.get("regime_vs_tape"),
         "blended_score": None,
         "keep": False,
         "live_enable": False,

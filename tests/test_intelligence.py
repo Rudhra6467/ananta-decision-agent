@@ -10,7 +10,7 @@ from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
 from src.intelligence.fingerprint import from_slot, fingerprints, ret_bin
 from src.intelligence.setup_memory import extract, _record, refusal_stamp
-from src.intelligence.universe import fit_from_take, research
+from src.intelligence.universe import fit_from_take, research, _regime_vs_tape
 from src.intelligence.universe_specs import generate_cells, catalog
 from src.intelligence.evidence_engine import card_from_cell, status_class, confidence_band, provenance
 from src.intelligence.h2 import _codes, histogram
@@ -401,6 +401,16 @@ class TestUniverse(unittest.TestCase):
         self.assertEqual(fit_from_take({"verdict": "TAKE_HURT"})[0], "UNSUITABLE")
         self.assertEqual(fit_from_take({"verdict": "TAKE_HELPED"})[0], "SUITABLE")
 
+    def test_continuation_trend_up_vs_independent_down_is_clash_not_rewrite(self):
+        from collections import Counter
+        clash = _regime_vs_tape("TREND_UP", Counter({"DOWN": 21, "FLAT": 13, "UP": 6}))
+        self.assertTrue(clash["clash"])
+        self.assertEqual(clash["clash_kind"], "TREND_UP_GATE_VS_INDEPENDENT_DOWN")
+        self.assertFalse(clash["keep"])
+        self.assertFalse(clash["rewrite"])
+        aligned = _regime_vs_tape("TREND_UP", Counter({"UP": 78, "FLAT": 27, "DOWN": 6}))
+        self.assertFalse(aligned["clash"])
+
     def test_research_never_promotes(self):
         report = research()
         self.assertFalse(report["keep"])
@@ -410,7 +420,7 @@ class TestUniverse(unittest.TestCase):
         self.assertTrue(all(c.get("live_watch") is False for c in report["cells"]))
         for c in report.get("candidates") or []:
             self.assertIn("not live", c["note"].lower())
-        self.assertEqual(report["version"], "UNIVERSE-v1.2")
+        self.assertEqual(report["version"], "UNIVERSE-v1.3")
         for c in report["cells"]:
             self.assertIn(c["status_class"], {
                 "UNTESTED", "TESTED_UNKNOWN", "WASH", "UNSUITABLE", "SUITABLE",
@@ -420,6 +430,12 @@ class TestUniverse(unittest.TestCase):
             self.assertEqual(c["provenance"]["schema"], "evidence_provenance_v0")
             self.assertTrue(c["provenance"]["regime_is_hypothesis"])
             self.assertFalse(c["provenance"]["decision_policy"]["keep"])
+            tape = c.get("regime_vs_tape") or {}
+            self.assertIn("clash", tape)
+            self.assertFalse(tape.get("keep", False))
+            self.assertFalse(tape.get("rewrite", False))
+            if tape.get("clash"):
+                self.assertFalse(c["keep"])
         for card in report.get("allowed_cards") or []:
             self.assertIsNone(card["blended_score"])
             self.assertFalse(card["keep"])

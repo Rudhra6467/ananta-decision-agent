@@ -24,11 +24,12 @@ from src.intelligence.evidence_engine import (
     provenance,
     status_class,
 )
+from src.intelligence.fingerprint import from_slot
 from src.intelligence.h2 import _codes, _regime
 from src.intelligence.universe_specs import generate_cells, catalog
 from src.tools.observation_log import REPLAY_LOG, _read_jsonl
 
-VERSION = "UNIVERSE-v1.2"
+VERSION = "UNIVERSE-v1.3"
 LOCKED = "2026-08-25"
 KNOWLEDGE_PATH = Path("universe_knowledge.json")
 
@@ -39,10 +40,12 @@ def research() -> Dict[str, Any]:
     buckets: Dict[str, dict] = {}
     failures: Dict[str, Counter] = {}
     periods: Dict[str, dict] = {}
+    tapes: Dict[str, Counter] = {}
 
     for obs in rows:
         st = obs.get("system_truth") or {}
         ot = obs.get("outcome_truth") or {}
+        mt = obs.get("market_truth") or {}
         ts = str(obs.get("ts") or st.get("ts") or "")
         tf = "1h"
         for o in st.get("strategy_observations") or []:
@@ -63,6 +66,16 @@ def research() -> Dict[str, Any]:
                     p["min_ts"] = ts
                 if ts > p["max_ts"]:
                     p["max_ts"] = ts
+            if o.get("setup_detected"):
+                assets = (mt.get("assets") or {}) if isinstance(mt, dict) else {}
+                slot = assets.get(asset) if isinstance(assets, dict) else None
+                if not slot:
+                    if "ETH" in str(asset):
+                        slot = mt.get("eth") if isinstance(mt, dict) else None
+                    else:
+                        slot = mt.get("btc") if isinstance(mt, dict) else None
+                fp = from_slot(slot if isinstance(slot, dict) else {})
+                tapes.setdefault(cid, Counter())[str(fp.get("trend") or "UNKNOWN")] += 1
 
     for b in buckets.values():
         _means(b)
@@ -73,7 +86,7 @@ def research() -> Dict[str, Any]:
     for cell in cells:
         cid = cell["id"]
         bucket = buckets.get(cid)
-        entry = _score_cell(cell, bucket, failures.get(cid), periods.get(cid))
+        entry = _score_cell(cell, bucket, failures.get(cid), periods.get(cid), tapes.get(cid))
         fit_counts[entry["fit"]] += 1
         status_counts[entry["status_class"]] += 1
         scored.append(entry)
@@ -117,6 +130,8 @@ def research() -> Dict[str, Any]:
             "wash_is_not_unsuitable": True,
             "no_blended_dq_score": True,
             "evidence_without_provenance_is_a_speech": True,
+            "ananta_regime_is_not_market_truth": True,
+            "regime_clash_is_not_a_rewrite": True,
         },
         "specs": catalog(),
         "cells": scored,
@@ -131,9 +146,8 @@ def research() -> Dict[str, Any]:
             for c in suitable
         ],
         "note": (
-            "Universe v1.1. Depth on every cell. "
-            "UNTESTED ≠ TESTED_UNKNOWN ≠ WASH. "
-            "SUITABLE still cannot KEEP or enter lab watch."
+            "Universe v1.3. Ananta TREND_UP vs independent SMA is stamped. "
+            "Clash is a finding, not a continuation rewrite. SUITABLE still cannot KEEP."
         ),
     }
     try:
@@ -171,6 +185,21 @@ def print_universe() -> Dict[str, Any]:
             f"conf={c.get('confidence_band'):<9} "
             f"+1h={t.get('verdict')}"
         )
+    clashes = [
+        c for c in covered
+        if (c.get("regime_vs_tape") or {}).get("clash")
+    ]
+    print("-" * 64)
+    print("  REGIME vs TAPE  (Ananta hypothesis vs independent SMA). Clash ≠ rewrite.")
+    if not clashes:
+        print("    no clash cells (or replay empty).")
+    for c in sorted(clashes, key=lambda x: (x["strategy"], x["regime"])):
+        tv = c.get("regime_vs_tape") or {}
+        print(
+            f"    {c['strategy']:<14} {c['regime']:<12} clash={tv.get('clash_kind')}  "
+            f"tape={tv.get('independent_trend')}  "
+            f"aligned={tv.get('aligned')}/{tv.get('n_setup_tape')}"
+        )
     print("-" * 64)
     print("  Uncovered specs (no observation_v0 on any cell) — catalogued, not running")
     seen = set()
@@ -189,7 +218,13 @@ def print_universe() -> Dict[str, Any]:
     return report
 
 
-def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter], period: Optional[dict] = None) -> dict:
+def _score_cell(
+    cell: dict,
+    bucket: Optional[dict],
+    fail: Optional[Counter],
+    period: Optional[dict] = None,
+    tape: Optional[Counter] = None,
+) -> dict:
     out = dict(cell)
     out["n_rows"] = int((bucket or {}).get("n_rows") or 0)
     out["n_setup"] = int((bucket or {}).get("n_setup") or 0)
@@ -202,6 +237,7 @@ def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter], per
         out["take_1h"] = None
         out["keep"] = False
         out["provenance"] = _prov(cell, period)
+        out["regime_vs_tape"] = _regime_vs_tape(str(cell.get("regime") or ""), tape)
         return out
 
     bucket = bucket or _empty_bucket()
@@ -238,7 +274,42 @@ def _score_cell(cell: dict, bucket: Optional[dict], fail: Optional[Counter], per
         )
     )
     out["provenance"] = _prov(cell, period)
+    out["regime_vs_tape"] = _regime_vs_tape(str(cell.get("regime") or ""), tape)
     return out
+
+
+def _regime_vs_tape(ananta_regime: str, tape: Optional[Counter]) -> dict:
+    """Ananta regime is a hypothesis. Independent SMA-20 is Market Truth."""
+    counts = dict(tape or {})
+    n = int(sum(counts.values()))
+    expected = _expected_independent_trend(ananta_regime)
+    aligned = int(counts.get(expected, 0)) if expected else 0
+    clash = bool(n >= 8 and expected and (aligned / n) < 0.4)
+    top = None
+    if counts:
+        top = max(counts.items(), key=lambda kv: kv[1])[0]
+    kind = f"{ananta_regime}_GATE_VS_INDEPENDENT_{top}" if clash and top else None
+    return {
+        "ananta_regime": ananta_regime,
+        "independent_trend": counts,
+        "n_setup_tape": n,
+        "expected_independent_trend": expected,
+        "aligned": aligned,
+        "clash": clash,
+        "clash_kind": kind,
+        "keep": False,
+        "rewrite": False,
+        "note": "Ananta 50-EMA TREND_UP ≠ Market Truth SMA-20. Finding, not a rewrite.",
+    }
+
+
+def _expected_independent_trend(regime: str) -> Optional[str]:
+    r = (regime or "").upper()
+    if r in ("TREND_UP", "BULL"):
+        return "UP"
+    if r in ("TREND_DOWN", "BEAR"):
+        return "DOWN"
+    return None
 
 
 def _prov(cell: dict, period: Optional[dict]) -> dict:

@@ -661,12 +661,13 @@ class TestLookup(unittest.TestCase):
     def test_lookup_is_not_keep(self):
         from src.intelligence.lookup import lookup
         report = lookup("UP")
-        self.assertEqual(report["version"], "LOOKUP-v0")
+        self.assertEqual(report["version"], "LOOKUP-v0.1")
         self.assertFalse(report["keep"])
         self.assertFalse(report["similarity"])
         self.assertFalse(report["ranker"])
         for r in report.get("rows") or []:
             self.assertFalse(r["keep"])
+            self.assertIn("vs_sitout", r)
 
 
 class TestOpportunityEngine(unittest.TestCase):

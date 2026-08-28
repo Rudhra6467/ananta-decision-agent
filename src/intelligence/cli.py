@@ -66,8 +66,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cmd in ("baseline", "i2", "lock"):
         return _cmd_baseline()
     if cmd in ("consult", "ask", "knowledge"):
+        if rest and rest[0].lower() in ("backfill", "fill"):
+            return _cmd_consult_backfill(rest[1] if len(rest) > 1 else "live")
+        if rest and rest[0].lower() in ("dq", "quality"):
+            return _cmd_consult_dq()
         source = rest[0] if rest else "live"
         return _cmd_consult(source)
+    if cmd in ("consult-dq", "consultdq"):
+        return _cmd_consult_dq()
     if cmd in ("sitout", "sit-out", "opportunity-cost"):
         return _cmd_sitout()
     if cmd in ("h2", "hunter-gates"):
@@ -87,7 +93,7 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab consult | lab sitout | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab consult | lab consult backfill | lab consult-dq | lab sitout | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
     print("Wave A stays WATCH. lab opportunity = interface lock, not a scanner. H1 live enable rejected.")
 
@@ -387,6 +393,20 @@ def _cmd_sitout() -> int:
     from src.intelligence.sitout import print_sitout
 
     print_sitout()
+    return 0
+
+
+def _cmd_consult_backfill(source: str) -> int:
+    from src.intelligence.consult import print_backfill
+
+    print_backfill(source if source in ("live", "replay") else "live")
+    return 0
+
+
+def _cmd_consult_dq() -> int:
+    from src.intelligence.consult_dq import print_consult_dq
+
+    print_consult_dq()
     return 0
 
 

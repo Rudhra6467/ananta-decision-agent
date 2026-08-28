@@ -22,7 +22,14 @@ CONSULT_LOG = Path("consult_log.jsonl")
 MIN_KEY_N = 5
 
 
-def consult(observation: Optional[dict] = None, *, source: str = "live") -> Dict[str, Any]:
+def consult(
+    observation: Optional[dict] = None,
+    *,
+    source: str = "live",
+    hist_mem: Optional[dict] = None,
+    parent_cache: Optional[dict] = None,
+    write_snapshot: bool = True,
+) -> Dict[str, Any]:
     obs = observation if observation is not None else _latest(source)
     mt = (obs or {}).get("market_truth") or {}
     st = (obs or {}).get("system_truth") or {}
@@ -38,13 +45,16 @@ def consult(observation: Optional[dict] = None, *, source: str = "live") -> Dict
     why = "NO_TAPE_FLAG"
 
     if flag not in ("UNKNOWN", "", "NONE"):
-        mem = extract("replay")
+        mem = hist_mem if hist_mem is not None else extract("replay")
         matched = [
             r for r in (mem.get("records") or [])
             if from_record(r).get("key") == key
         ]
         n_key = len(matched)
-        parent = lookup(flag, "replay")
+        cache = parent_cache if parent_cache is not None else {}
+        if flag not in cache:
+            cache[flag] = lookup(flag, "replay")
+        parent = cache[flag]
         parent_rows = _slim(parent.get("rows") or [])
         if n_key >= MIN_KEY_N:
             match = "KEY"
@@ -102,13 +112,74 @@ def consult(observation: Optional[dict] = None, *, source: str = "live") -> Dict
             "Memory does not fill."
         ),
     }
-    try:
-        OUT.write_text(json.dumps(report, indent=2, default=str))
-        report["saved"] = str(OUT)
-    except Exception:
-        report["saved"] = None
+    if write_snapshot:
+        try:
+            OUT.write_text(json.dumps(report, indent=2, default=str))
+            report["saved"] = str(OUT)
+        except Exception:
+            report["saved"] = None
     _append_log(report)
     return report
+
+
+def backfill(source: str = "live") -> Dict[str, Any]:
+    """Score every live obs once. Does not KEEP. Does not enable."""
+    path = OBSERVATION_LOG if source == "live" else REPLAY_LOG
+    rows = _read_jsonl(path)
+    seen = _logged_ids()
+    hist = extract("replay")
+    parents: dict = {}
+    n_new = 0
+    for obs in rows:
+        oid = (obs or {}).get("obs_id") or ((obs or {}).get("system_truth") or {}).get("obs_id")
+        if not oid or str(oid) in seen:
+            continue
+        consult(obs, source=source, hist_mem=hist, parent_cache=parents, write_snapshot=False)
+        seen.add(str(oid))
+        n_new += 1
+    return {
+        "ok": True,
+        "n_obs": len(rows),
+        "n_new": n_new,
+        "n_logged": len(seen),
+        "keep": False,
+        "live_enable": False,
+    }
+
+
+def print_backfill(source: str = "live") -> Dict[str, Any]:
+    report = backfill(source)
+    print(f"\nCONSULT BACKFILL  {VERSION}")
+    print("=" * 64)
+    print("Offline consult on existing live tape. Not KEEP. Not a fill.")
+    print(
+        f"  obs={report.get('n_obs')}  new={report.get('n_new')}  "
+        f"logged={report.get('n_logged')}  keep=False"
+    )
+    print("-" * 64)
+    print("  Next: lab consult-dq")
+    print("=" * 64)
+    return report
+
+
+def _logged_ids() -> set:
+    ids = set()
+    if not CONSULT_LOG.exists():
+        return ids
+    try:
+        for line in CONSULT_LOG.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            oid = row.get("obs_id")
+            if oid:
+                ids.add(str(oid))
+    except Exception:
+        return ids
+    return ids
 
 
 def _append_log(report: dict) -> None:

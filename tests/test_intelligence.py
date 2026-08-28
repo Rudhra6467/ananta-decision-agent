@@ -737,6 +737,16 @@ class TestLawsAndSitout(unittest.TestCase):
         self.assertEqual(report["live_take_zero_means"], "WAVE_A_WATCH")
 
 
+class TestConsultDq(unittest.TestCase):
+    def test_consult_dq_empty_is_gap_not_keep(self):
+        from src.intelligence.consult_dq import consult_dq
+        report = consult_dq()
+        self.assertEqual(report["version"], "CONSULT-DQ-v0")
+        self.assertFalse(report["keep"])
+        self.assertFalse(report["take_enable"])
+        self.assertFalse(report["trend_up_enable"])
+
+
 class TestOpportunityEngine(unittest.TestCase):
     def test_interface_refuses_scan_and_fair_value(self):
         s = opp_spec()

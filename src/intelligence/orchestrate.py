@@ -37,9 +37,19 @@ def run_cycle(
     if persist:
         record_decision(decision)
 
+    from src.intelligence.consult import consult as knowledge_consult
+
+    consult_report = knowledge_consult(observation, source="live")
     payload = {
         "ok": True,
         "decision": decision.as_dict(),
+        "knowledge_consult": {
+            "flag": consult_report.get("flag"),
+            "knowledge_action": consult_report.get("knowledge_action"),
+            "why": consult_report.get("why"),
+            "issued_override": False,
+            "keep": False,
+        },
         "would_execute": False,
         "execute_blocked_by": _execute_block_reasons(decision),
         "profile": profile.name,

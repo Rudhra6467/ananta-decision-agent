@@ -684,6 +684,18 @@ class TestI2Baseline(unittest.TestCase):
         self.assertFalse(report["authority_earned"])
 
 
+class TestConsult(unittest.TestCase):
+    def test_consult_cannot_take_or_keep(self):
+        from src.intelligence.consult import consult
+        report = consult(observation={"market_truth": {"trend": "UP"}}, source="live")
+        self.assertEqual(report["version"], "CONSULT-v0")
+        self.assertNotEqual(report["knowledge_action"], "TAKE")
+        self.assertFalse(report["keep"])
+        self.assertFalse(report["issued_override"])
+        self.assertFalse(report["trend_up_enable"])
+        self.assertFalse(report["authority_earned"])
+
+
 class TestOpportunityEngine(unittest.TestCase):
     def test_interface_refuses_scan_and_fair_value(self):
         s = opp_spec()

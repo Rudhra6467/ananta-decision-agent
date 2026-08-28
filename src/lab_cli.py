@@ -129,7 +129,7 @@ def handle_lab_command(user_input: str) -> bool:
             "lab replay [BTC/USD] | lab compare | lab understanding | lab observations | "
             "lab wait | lab status | lab coverage | lab system | lab profile | lab di | "
             "lab experiments | lab paper-sim | lab contract | lab attribution | lab quality | lab research | "
-            "lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent"
+            "lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab consult | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent"
         )
     return True
 
@@ -149,6 +149,7 @@ DI_COMMANDS = {
     "boards", "board", "rank",
     "lookup", "state", "recall",
     "baseline", "i2", "lock",
+    "consult", "ask", "knowledge",
     "memory", "setups", "setup-memory",
     "fingerprints", "fingerprint", "fp",
     "opportunity", "opp", "scan",

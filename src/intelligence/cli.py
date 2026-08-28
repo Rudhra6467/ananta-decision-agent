@@ -65,6 +65,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _cmd_lookup(flag, source)
     if cmd in ("baseline", "i2", "lock"):
         return _cmd_baseline()
+    if cmd in ("consult", "ask", "knowledge"):
+        source = rest[0] if rest else "live"
+        return _cmd_consult(source)
     if cmd in ("h2", "hunter-gates"):
         source = rest[0] if rest else "replay"
         return _cmd_h2(source)
@@ -82,7 +85,7 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab consult | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
     print("Wave A stays WATCH. lab opportunity = interface lock, not a scanner. H1 live enable rejected.")
 
@@ -143,8 +146,14 @@ def _cmd_di(rest: List[str]) -> int:
     print(f"  thesis      : {d.get('thesis')}")
     print(f"  counter     : {d.get('counter_thesis')}")
     print(f"  adjudicate  : {d.get('adjudication')}")
+    kc = result.get("knowledge_consult") or {}
+    if kc:
+        print(
+            f"  consult     : tape={kc.get('flag')}  knowledge_action={kc.get('knowledge_action')}  "
+            f"why={kc.get('why')}  override=False"
+        )
     print("-" * 64)
-    print("  Wave A WATCH. TAKE is not KEEP. S5 is parked.")
+    print("  Wave A WATCH. TAKE is not KEEP. S5 is parked. Consult cannot TAKE.")
     print("=" * 64)
     if "--json" in rest or "json" in rest:
         _dump(result)
@@ -362,6 +371,13 @@ def _cmd_baseline() -> int:
     from src.intelligence.i2_baseline import print_baseline
 
     print_baseline()
+    return 0
+
+
+def _cmd_consult(source: str) -> int:
+    from src.intelligence.consult import print_consult
+
+    print_consult(source if source in ("live", "replay", "historical") else "live")
     return 0
 
 

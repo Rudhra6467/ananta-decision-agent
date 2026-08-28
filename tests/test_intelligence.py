@@ -741,16 +741,54 @@ class TestConsultDq(unittest.TestCase):
     def test_consult_dq_empty_is_gap_not_keep(self):
         from src.intelligence.consult_dq import consult_dq
         report = consult_dq()
-        self.assertEqual(report["version"], "CONSULT-DQ-v0.2")
+        self.assertEqual(report["version"], "CONSULT-DQ-v0.3")
         self.assertFalse(report["keep"])
         self.assertFalse(report["take_enable"])
         self.assertFalse(report["trend_up_enable"])
 
 
+class TestPhasesI3I6(unittest.TestCase):
+    def test_phases_i2_locked_no_keep(self):
+        from src.intelligence.phases import snapshot, CURRENT
+        s = snapshot()
+        self.assertEqual(CURRENT, "I2_LOCKED")
+        self.assertFalse(s["keep"])
+        self.assertFalse(s["authority_earned"])
+        ids = [p["id"] for p in s["phases"]]
+        self.assertEqual(ids, ["I1", "I2", "I3", "I4", "I5", "I6"])
+
+    def test_rank_cannot_take(self):
+        from src.intelligence.rank import rank_state
+        r = rank_state("DOWN")
+        self.assertNotEqual(r["issued_action"], "TAKE")
+        self.assertFalse(r["take"])
+        self.assertFalse(r["keep"])
+
+    def test_catalysts_refuse(self):
+        from src.intelligence.catalysts import refuse_ingest
+        got = refuse_ingest(payload={"headline": "BTC moon"})
+        self.assertFalse(got["ingested"])
+        self.assertEqual(got["reason"], "I3_NOT_NOW")
+        self.assertTrue(got["llm_headline_is_not_a_trade"])
+
+    def test_paper_take_blocked_even_if_confirmed(self):
+        from src.intelligence.paper_take import propose
+        got = propose(user_confirmed=True)
+        self.assertFalse(got["placed_order"])
+        self.assertEqual(got["issued_action"], "WAIT")
+        self.assertEqual(got["reason"], "I5_NOT_NOW")
+
+    def test_autonomy_not_granted(self):
+        from src.intelligence.autonomy import grant
+        got = grant()
+        self.assertFalse(got["granted"])
+        self.assertTrue(got["profile_is_not_authority"])
+
+
 class TestOpportunityEngine(unittest.TestCase):
     def test_interface_refuses_scan_and_fair_value(self):
         s = opp_spec()
-        self.assertEqual(s["phase"], "I1_CURRENT")
+        self.assertEqual(s["phase"], "I2_LOCKED")
         self.assertFalse(s["scan_live"])
         self.assertFalse(s["mispricing_execute"])
         self.assertFalse(s["keep"])
@@ -823,6 +861,9 @@ class TestContractAndSystem(unittest.TestCase):
         self.assertIn("di.setup_memory", names)
         self.assertIn("di.fingerprint", names)
         self.assertIn("di.opportunity", names)
+        self.assertIn("di.phases", names)
+        self.assertIn("di.rank", names)
+        self.assertIn("di.paper_take", names)
 
     def test_typed_decision_schema(self):
         d = TypedDecision(recommended_action="TAKE", issued_action="WAIT")

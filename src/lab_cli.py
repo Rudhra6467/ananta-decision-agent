@@ -156,6 +156,11 @@ DI_COMMANDS = {
     "fingerprints", "fingerprint", "fp",
     "opportunity", "opp", "scan",
     "research",
+    "phases", "phase", "roadmap",
+    "rank-state", "rankstate", "i4",
+    "catalysts", "catalyst", "news",
+    "paper-take", "papertake", "i5",
+    "autonomy", "i6",
     "gates", "gate", "safety",
     "intent", "context",
 }

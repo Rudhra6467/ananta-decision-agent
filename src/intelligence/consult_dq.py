@@ -17,7 +17,7 @@ from src.intelligence.consult import CONSULT_LOG
 from src.intelligence.setup_memory import refusal_stamp
 from src.tools.observation_log import OBSERVATION_LOG, _read_jsonl
 
-VERSION = "CONSULT-DQ-v0.2"
+VERSION = "CONSULT-DQ-v0.3"
 OUT = Path("consult_dq.json")
 
 
@@ -34,6 +34,7 @@ def consult_dq() -> Dict[str, Any]:
     matches = Counter()
     by_action: Dict[str, Counter] = {}
     by_match: Dict[str, Counter] = {}
+    by_fp: Dict[str, Counter] = {}
     n_joined = 0
     n_complete = 0
     for row in logs:
@@ -43,6 +44,8 @@ def consult_dq() -> Dict[str, Any]:
         matches[match] += 1
         by_action.setdefault(act, Counter())
         by_match.setdefault(match, Counter())
+        fp = str(row.get("fp") or "?")
+        by_fp.setdefault(fp, Counter())
         obs = by_id.get(str(row.get("obs_id") or ""))
         if not obs:
             stamps["NO_OBS"] += 1
@@ -54,6 +57,7 @@ def consult_dq() -> Dict[str, Any]:
         stamps[stamp] += 1
         by_action[act][stamp] += 1
         by_match[match][stamp] += 1
+        by_fp[fp][stamp] += 1
         if stamp not in ("NO_SAMPLE", "UNUSABLE_CLOCK"):
             n_complete += 1
     report = {
@@ -68,6 +72,10 @@ def consult_dq() -> Dict[str, Any]:
         "plus_1h_stamps": dict(stamps),
         "plus_1h_by_action": {k: dict(v) for k, v in by_action.items()},
         "plus_1h_by_match": {k: dict(v) for k, v in by_match.items()},
+        "plus_1h_by_fp": [
+            {"fp": k, "n": sum(v.values()), "stamps": dict(v), "keep": False}
+            for k, v in sorted(by_fp.items(), key=lambda kv: -sum(kv[1].values()))[:12]
+        ],
         "keep": False,
         "take_enable": False,
         "trend_up_enable": False,
@@ -107,6 +115,9 @@ def print_consult_dq() -> Dict[str, Any]:
     print("  by match")
     for m, st in (report.get("plus_1h_by_match") or {}).items():
         print(f"    match {m}: {st}")
+    print("  top fingerprint keys (existing tape — not KEEP)")
+    for row in report.get("plus_1h_by_fp") or []:
+        print(f"    n={row.get('n'):<4} {row.get('fp')}  {row.get('stamps')}")
     print("-" * 64)
     print("  COSTLY wait ≠ TAKE enable. Sparse UNKNOWN is valid. Wave A stays WATCH.")
     if report.get("saved"):

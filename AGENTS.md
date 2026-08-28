@@ -62,8 +62,9 @@ Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SK
 **S1–S4:** Done. **Compare:** Done (`lab compare` 2026-08-23).  
 **S5:** H3 + H2 measurement done. H1 live enable rejected. `try_run` still refuses mutation.  
 **DQ-v0.0:** Locked 2026-08-25 — `lab quality` / `docs/DECISION_QUALITY_V0.md`. KEEP forbidden.  
-**Universe v1.3.1:** regime vs independent SMA. **Opportunity Engine:** interface lock only (`lab opportunity`) — scanner and fair-value are Phase I3, not now. Not Wave A live. Not KEEP.  
-**Evidence engine:** Destination only — [STRATEGY_EVIDENCE_ENGINE.md](./docs/STRATEGY_EVIDENCE_ENGINE.md). No similarity search yet.  
-**DI:** Foundation now — `src/intelligence/`. Wave A WATCH. Extra agents still not.
+**I2 hist:** LOCKED (`lab baseline`). SUITABLE=0. No turtle/ema.  
+**Consult-DQ / sitout:** live WAIT is WASH; sparse UNKNOWN ≠ TAKE. TAKE ≠ KEEP.  
+**I3–I6:** interfaces only — `lab phases` / `lab opportunity` / `lab rank-state` / `lab catalysts` / `lab paper-take` / `lab autonomy`. No live scan, no paper TAKE, no autonomy grant.  
+**Wave A:** WATCH. Extra agents still not.
 
 See `docs/MARKET_TRUTH_LOCK.md`, `docs/DECISION_INTELLIGENCE_LOCK.md`, `docs/RISK_PROFILES_LOCK.md`, `docs/SAFETY_GATES_LOCK.md`, `docs/FEATURE_COMPLETE_NOW.md`, `docs/ROADMAP.md`.

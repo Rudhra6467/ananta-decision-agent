@@ -14,10 +14,17 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-VERSION = "OPP-v0"
-PHASE = "I1_CURRENT"
+VERSION = "OPP-v0.1"
+PHASE = "I2_LOCKED"
 SCAN_LIVE = False
 MISPRICING_EXECUTE = False
+CANDIDATE_FIELDS = (
+    "asset", "timeframe", "strategy", "setup", "fingerprint", "evidence_ref", "provenance",
+)
+FAIR_VALUE_FIELDS = (
+    "asset", "asof", "model", "inputs", "fair_value", "spot", "divergence",
+    "uncertainty", "provenance",
+)
 
 INTELLIGENCE_PHASES = (
     ("I1", "CURRENT", "Wave A frozen, live+hist evidence, DQ, Universe, fingerprints, memory"),
@@ -82,19 +89,26 @@ def spec() -> Dict[str, Any]:
             "continuous_scan": {
                 "status": "INTERFACE_ONLY",
                 "live": False,
+                "candidate_fields": list(CANDIDATE_FIELDS),
                 "note": "Deterministic scanners filter. DI reasons only on candidates.",
             },
             "fair_value": {
                 "status": "INTERFACE_ONLY",
                 "execute": False,
                 "llm_invented_fair_value": False,
+                "required_fields": list(FAIR_VALUE_FIELDS),
                 "note": "Explicit inputs + provenance + uncertainty. Not a Wave A strategy.",
+            },
+            "catalysts": {
+                "status": "INTERFACE_ONLY",
+                "live": False,
+                "note": "lab catalysts — headline is not a trade.",
             },
         },
         "intelligence_phases": [
             {"id": i, "name": n, "means": m} for i, n, m in INTELLIGENCE_PHASES
         ],
-        "now": "I1",
+        "now": "I2_LOCKED",
         "not_now": ["I3 scan", "I3 mispricing execute", "I4 similarity", "I5 paper TAKE", "I6 autonomy"],
         "laws": LAWS,
     }
@@ -138,7 +152,7 @@ def print_opportunity() -> Dict[str, Any]:
     print("    Wave A live     lab watch 15 — frozen rules, accumulating tape")
     print("    Universe research  hist memory — catalogue, SUITABLE=0")
     print("-" * 64)
-    print("  NOW = I1. Mapped, not running:")
+    print("  NOW = I2_LOCKED. Mapped, not running:")
     print("    continuous_scan  INTERFACE_ONLY  live=False")
     print("    fair_value       INTERFACE_ONLY  execute=False  llm_invented=False")
     print("-" * 64)

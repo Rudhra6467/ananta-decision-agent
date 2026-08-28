@@ -29,6 +29,7 @@ def consult(
     hist_mem: Optional[dict] = None,
     parent_cache: Optional[dict] = None,
     write_snapshot: bool = True,
+    skip_log: bool = False,
 ) -> Dict[str, Any]:
     obs = observation if observation is not None else _latest(source)
     mt = (obs or {}).get("market_truth") or {}
@@ -118,7 +119,8 @@ def consult(
             report["saved"] = str(OUT)
         except Exception:
             report["saved"] = None
-    _append_log(report)
+    if not skip_log:
+        _append_log(report)
     return report
 
 

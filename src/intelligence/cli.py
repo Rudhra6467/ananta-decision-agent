@@ -81,6 +81,17 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _cmd_h2(source)
     if cmd in ("quality", "dq", "meter"):
         return _cmd_quality()
+    if cmd in ("phases", "phase", "roadmap"):
+        return _cmd_phases()
+    if cmd in ("rank-state", "rankstate", "i4"):
+        flag = rest[0] if rest else None
+        return _cmd_rank(flag)
+    if cmd in ("catalysts", "catalyst", "news"):
+        return _cmd_catalysts()
+    if cmd in ("paper-take", "papertake", "i5"):
+        return _cmd_paper_take()
+    if cmd in ("autonomy", "i6"):
+        return _cmd_autonomy()
     if cmd in ("gates", "gate", "safety"):
         return _cmd_gates()
     if cmd in ("intent", "context"):
@@ -93,7 +104,7 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab consult | lab consult backfill | lab consult-dq | lab sitout | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab phases | lab rank-state | lab catalysts | lab paper-take | lab autonomy | lab consult | lab consult-dq | lab sitout | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
     print("Wave A stays WATCH. lab opportunity = interface lock, not a scanner. H1 live enable rejected.")
 
@@ -462,4 +473,34 @@ def _cmd_intent(rest: List[str]) -> int:
         _dump(ctx.as_dict())
         return 0
     _dump(get_user_context().as_dict())
+    return 0
+
+
+def _cmd_phases() -> int:
+    from src.intelligence.phases import print_phases
+    print_phases()
+    return 0
+
+
+def _cmd_rank(flag) -> int:
+    from src.intelligence.rank import print_rank
+    print_rank(flag)
+    return 0
+
+
+def _cmd_catalysts() -> int:
+    from src.intelligence.catalysts import print_catalysts
+    print_catalysts()
+    return 0
+
+
+def _cmd_paper_take() -> int:
+    from src.intelligence.paper_take import print_paper_take
+    print_paper_take()
+    return 0
+
+
+def _cmd_autonomy() -> int:
+    from src.intelligence.autonomy import print_autonomy
+    print_autonomy()
     return 0

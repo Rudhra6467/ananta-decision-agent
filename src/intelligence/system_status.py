@@ -13,6 +13,7 @@ from src.intelligence.experiments import CATALOG
 from src.intelligence.profiles import get_active_profile_name
 from src.intelligence.schema import WAVE_A
 from src.intelligence.user_context import get_user_context
+from src.intelligence.phases import CURRENT as PHASE_CURRENT
 
 ROOT = Path(".")
 
@@ -43,6 +44,16 @@ def completeness() -> Dict[str, Any]:
         _file("di.setup_memory", Path("src/intelligence/setup_memory.py")),
         _file("di.fingerprint", Path("src/intelligence/fingerprint.py")),
         _file("di.opportunity", Path("src/intelligence/opportunity_engine.py")),
+        _file("di.laws", Path("src/intelligence/laws.py")),
+        _file("di.consult", Path("src/intelligence/consult.py")),
+        _file("di.consult_dq", Path("src/intelligence/consult_dq.py")),
+        _file("di.sitout", Path("src/intelligence/sitout.py")),
+        _file("di.phases", Path("src/intelligence/phases.py")),
+        _file("di.rank", Path("src/intelligence/rank.py")),
+        _file("di.catalysts", Path("src/intelligence/catalysts.py")),
+        _file("di.paper_take", Path("src/intelligence/paper_take.py")),
+        _file("di.autonomy", Path("src/intelligence/autonomy.py")),
+        _file("di.i2_baseline", Path("src/intelligence/i2_baseline.py")),
         _file("di.orchestrate", Path("src/intelligence/orchestrate.py")),
         _ledger("live observation_log.jsonl", Path("observation_log.jsonl"), required=False),
         _ledger("replay observation_replay.jsonl", Path("observation_replay.jsonl"), required=False),
@@ -50,6 +61,7 @@ def completeness() -> Dict[str, Any]:
         _ledger("cycle_log.jsonl", Path("cycle_log.jsonl"), required=False),
         _ledger("opportunity_log.jsonl", Path("opportunity_log.jsonl"), required=False),
         _ledger("typed_decision.jsonl", Path("typed_decision.jsonl"), required=False),
+        _ledger("consult_log.jsonl", Path("consult_log.jsonl"), required=False),
         _main_py_state(),
     ]
     n_ok = sum(1 for c in checks if c.get("ok"))
@@ -68,6 +80,7 @@ def completeness() -> Dict[str, Any]:
         },
         "s5": s5,
         "s5_running": False,
+        "phase": PHASE_CURRENT,
         "extra_agents": False,
         "checks": checks,
         "score": f"{n_ok}/{len(checks)}",
@@ -78,6 +91,8 @@ def completeness() -> Dict[str, Any]:
             "KEEP Wave A",
             "enable TREND_UP",
             "add Bull/Bear agents",
+            "add turtle/ema while I2 is LOCKED",
+            "grant I6 autonomy",
         ],
     }
 

@@ -166,3 +166,244 @@ def research() -> Dict[str, Any]:
     except Exception:
         report["saved"] = None
     return report
+
+
+def print_universe() -> Dict[str, Any]:
+    report = research()
+    print(f"\nSTRATEGY RESEARCH UNIVERSE  {report.get('version')}")
+    print("=" * 64)
+    print("Offline research. Wave A watch FROZEN. keep=False. No live enable.")
+    print(
+        f"  specs={report.get('n_specs')}  cells={report.get('n_cells')}  "
+        f"replay_rows={report.get('n_replay_rows')}  replay_scored={report.get('n_replay_scored')}"
+    )
+    print(
+        f"  SUITABLE={report.get('n_suitable')}  UNSUITABLE={report.get('n_unsuitable')}  "
+        f"UNKNOWN={report.get('n_unknown')}"
+    )
+    print(f"  status: {report.get('status_counts')}")
+    print("-" * 64)
+    print("  Covered cells — UNTESTED vs TESTED_UNKNOWN vs WASH. Not KEEP.")
+    covered = [c for c in report["cells"] if c["coverage"] == "historical_lab"]
+    for c in sorted(covered, key=lambda x: (x["strategy"], x["regime"])):
+        t = c.get("take_1h") or {}
+        print(
+            f"    {c['strategy']:<14} {c['regime']:<12} {c['policy']:<12} "
+            f"{c['status_class']:<16} n={c['n_rows']:<5} take={c['n_take']:<4} "
+            f"depth={c.get('evidence_depth') or 'NONE':<10} "
+            f"comp={c.get('outcome_completeness_1h')} "
+            f"conf={c.get('confidence_band'):<9} "
+            f"+1h={t.get('verdict')}"
+        )
+    print("-" * 64)
+    print("  REGIME vs TAPE  (Ananta hypothesis vs independent SMA). Clash ≠ rewrite.")
+    print("  Strategy = all setups vs DNA/router gate. Cell = that regime only.")
+    strat_tape = report.get("strategy_vs_tape") or {}
+    if not strat_tape:
+        print("    no setup tape (replay empty here).")
+    for key in sorted(strat_tape):
+        tv = strat_tape[key]
+        print(
+            f"    {key:<14} gate={tv.get('gate') or '—':<12} "
+            f"clash={tv.get('clash')}  {tv.get('clash_kind') or ''}  "
+            f"tape={tv.get('independent_trend')}  "
+            f"aligned={tv.get('aligned')}/{tv.get('n_setup_tape')}"
+        )
+    cell_clashes = [
+        c for c in covered
+        if (c.get("regime_vs_tape") or {}).get("clash")
+    ]
+    for c in sorted(cell_clashes, key=lambda x: (x["strategy"], x["regime"])):
+        tv = c.get("regime_vs_tape") or {}
+        print(
+            f"    cell {c['strategy']:<14} {c['regime']:<12} "
+            f"{tv.get('clash_kind')}  tape={tv.get('independent_trend')}  "
+            f"aligned={tv.get('aligned')}/{tv.get('n_setup_tape')}"
+        )
+    print("-" * 64)
+    print_definitions()
+    print("-" * 64)
+    print("  Uncovered specs (no observation_v0 on any cell) — catalogued, not running")
+    seen = set()
+    covered_keys = {c["strategy"] for c in report["cells"] if c["coverage"] == "historical_lab"}
+    for c in report["cells"]:
+        if c["strategy"] in seen or c["wave_a"] or c["strategy"] in covered_keys:
+            continue
+        seen.add(c["strategy"])
+        print(f"    {c['strategy']:<22} family={c['family']:<16} fit=UNKNOWN  NO_REPLAY")
+    print("-" * 64)
+    print("  SUITABLE is not KEEP. WASH is not UNSUITABLE. UNTESTED is not TESTED_UNKNOWN.")
+    print("  provenance=evidence_provenance_v0 on every cell (source/version/period/policy).")
+    print(f"  saved: {report.get('saved')}")
+    print("=" * 64)
+    print()
+    return report
+
+
+def _score_cell(
+    cell: dict,
+    bucket: Optional[dict],
+    fail: Optional[Counter],
+    period: Optional[dict] = None,
+    tape: Optional[Counter] = None,
+) -> dict:
+    out = dict(cell)
+    out["n_rows"] = int((bucket or {}).get("n_rows") or 0)
+    out["n_setup"] = int((bucket or {}).get("n_setup") or 0)
+    out["n_take"] = int((bucket or {}).get("n_take") or 0)
+    out["n_skip_setup"] = int((bucket or {}).get("n_skip_setup") or 0)
+    out["n_wait"] = int((bucket or {}).get("n_wait") or 0)
+    tested = cell["coverage"] == "historical_lab"
+    if not tested:
+        out.update(_depth_fields(tested=False, fit="UNKNOWN", why="NO_OBSERVATION_REPLAY", n_rows=0, n_take=0, n_fwd=0, depth="NONE"))
+        out["take_1h"] = None
+        out["keep"] = False
+        out["provenance"] = _prov(cell, period)
+        out["regime_vs_tape"] = _regime_vs_tape(str(cell.get("regime") or ""), tape)
+        return out
+
+    bucket = bucket or _empty_bucket()
+    n1, m1 = _h(bucket, "take", "fwd_1h_pct")
+    n4, m4 = _h(bucket, "take", "fwd_4h_pct")
+    ns, ms = _h(bucket, "skip_setup", "fwd_1h_pct")
+    n_fwd = int((bucket.get("n_fwd") or {}).get("fwd_1h_pct") or 0)
+    take_1h = score_horizon(role="TAKE", n=n1, mean=m1, clock="+1h")
+    take_4h = score_horizon(role="TAKE", n=n4, mean=m4, clock="+4h")
+    skip_1h = score_horizon(role="SKIP", n=ns, mean=ms, clock="+1h")
+    fit, why = fit_from_take(take_1h)
+    depth = take_1h["evidence_depth"]
+    out.update(
+        {
+            "fit": fit,
+            "why": why,
+            "take_1h": take_1h,
+            "take_4h": take_4h,
+            "skip_setup_1h": skip_1h,
+            "failure_top": dict((fail or Counter()).most_common(6)),
+            "keep": False,
+            "live_enable": False,
+        }
+    )
+    out.update(
+        _depth_fields(
+            tested=True,
+            fit=fit,
+            why=why,
+            n_rows=out["n_rows"],
+            n_take=out["n_take"],
+            n_fwd=n_fwd,
+            depth=depth,
+        )
+    )
+    out["provenance"] = _prov(cell, period)
+    out["regime_vs_tape"] = _regime_vs_tape(str(cell.get("regime") or ""), tape)
+    return out
+
+
+def _gate_vs_tape(strategy: str, tape: Optional[Counter]) -> dict:
+    allowed = ROUTER_REGIMES.get(strategy) or frozenset()
+    if "TREND_UP" in allowed:
+        gate = "TREND_UP"
+    elif "TREND_DOWN" in allowed:
+        gate = "TREND_DOWN"
+    else:
+        gate = None
+    out = _regime_vs_tape(gate or "", tape)
+    out["strategy"] = strategy
+    out["gate"] = gate
+    if gate:
+        out["note"] = (
+            f"{strategy} router gate={gate} vs independent SMA on ALL setups. "
+            "Clash is a finding, not a rewrite."
+        )
+    else:
+        out["clash"] = False
+        out["clash_kind"] = None
+        out["expected_independent_trend"] = None
+        out["note"] = f"{strategy} has no TREND_UP/DOWN router gate — no clash test."
+    return out
+
+
+def _regime_vs_tape(ananta_regime: str, tape: Optional[Counter]) -> dict:
+    """Ananta regime is a hypothesis. Independent SMA-20 is Market Truth."""
+    counts = dict(tape or {})
+    n = int(sum(counts.values()))
+    expected = _expected_independent_trend(ananta_regime)
+    aligned = int(counts.get(expected, 0)) if expected else 0
+    clash = bool(n >= 5 and expected and (aligned / n) < 0.4)
+    top = None
+    if counts:
+        top = max(counts.items(), key=lambda kv: kv[1])[0]
+    kind = f"{ananta_regime}_GATE_VS_INDEPENDENT_{top}" if clash and top else None
+    return {
+        "ananta_regime": ananta_regime,
+        "independent_trend": counts,
+        "n_setup_tape": n,
+        "expected_independent_trend": expected,
+        "aligned": aligned,
+        "clash": clash,
+        "clash_kind": kind,
+        "keep": False,
+        "rewrite": False,
+        "note": "Ananta 50-EMA TREND_UP ≠ Market Truth SMA-20. Finding, not a rewrite.",
+    }
+
+
+def _expected_independent_trend(regime: str) -> Optional[str]:
+    r = (regime or "").upper()
+    if r in ("TREND_UP", "BULL"):
+        return "UP"
+    if r in ("TREND_DOWN", "BEAR"):
+        return "DOWN"
+    return None
+
+
+def _prov(cell: dict, period: Optional[dict]) -> dict:
+    return provenance(
+        strategy=str(cell.get("strategy") or ""),
+        asset=str(cell.get("asset") or ""),
+        timeframe=str(cell.get("timeframe") or ""),
+        regime=str(cell.get("regime") or ""),
+        source=str(cell.get("coverage") or "NONE"),
+        period=period,
+    )
+
+
+def _depth_fields(*, tested: bool, fit: str, why: str, n_rows: int, n_take: int, n_fwd: int, depth: str) -> dict:
+    st = status_class(tested=tested, fit=fit, why=why)
+    return {
+        "fit": fit,
+        "why": why,
+        "status_class": st,
+        "evidence_depth": depth,
+        "coverage_band": coverage_band(n_rows, tested=tested),
+        "confidence_band": confidence_band(st, depth, n_take),
+        "outcome_completeness_1h": completeness(n_fwd, n_rows),
+    }
+
+
+def fit_from_take(take_1h: dict) -> tuple:
+    """Evidence fit only. WASH and thin n stay UNKNOWN. Never KEEP."""
+    v = take_1h.get("verdict")
+    if v in ("INSUFFICIENT_EVIDENCE", "NO_SAMPLE", "UNUSABLE_CLOCK"):
+        return "UNKNOWN", v
+    if v == "WASH":
+        return "UNKNOWN", "WASH"
+    if v == "TAKE_HURT":
+        return "UNSUITABLE", "TAKE_HURT"
+    if v == "TAKE_HELPED":
+        return "SUITABLE", "TAKE_HELPED"
+    return "UNKNOWN", str(v or "UNKNOWN")
+
+
+def _h(bucket: dict, kind: str, horizon: str):
+    means = bucket.get(f"mean_fwd_after_{kind}") or {}
+    ns = bucket.get(f"n_fwd_after_{kind}") or {}
+    n = int(ns.get(horizon) or 0)
+    m = means.get(horizon)
+    try:
+        m_f = None if m is None else float(m)
+    except (TypeError, ValueError):
+        m_f = None
+        n = 0
+    return n, m_f

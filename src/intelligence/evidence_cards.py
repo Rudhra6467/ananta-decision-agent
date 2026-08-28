@@ -15,13 +15,15 @@ from src.intelligence.evidence_engine import card_from_cell
 from src.intelligence.universe import research as universe_research
 from src.intelligence.universe_specs import catalog
 
-VERSION = "CARDS-v0"
+VERSION = "CARDS-v0.1"
 OUT = Path("evidence_cards.json")
 LAWS = {
     "card_is_not_keep": True,
     "suitable_is_not_keep": True,
     "unknown_is_valid": True,
     "no_blended_score": True,
+    "computed_tape_beats_stale_stamp": True,
+    "clash_is_not_a_rewrite": True,
 }
 
 
@@ -65,10 +67,45 @@ def cards(strategy: Optional[str] = None) -> Dict[str, Any]:
             }
         card["family"] = spec.get("family")
         card["thesis"] = spec.get("thesis")
-        card["definition_status"] = defn.get("status")
-        card["blocked_by"] = defn.get("blocked_by")
-        card["alignment"] = defn.get("alignment")
-        card["known_clash"] = defn.get("known_clash")
+        n_take = int(card.get("n_take") or 0)
+        n_setup = int(card.get("n_setup") or 0)
+        status = defn.get("status")
+        if n_take > 0:
+            status = "HIST_SCORED"
+        elif n_setup > 0 and not status:
+            status = "HIST_SHADOW"
+        card["definition_status"] = status
+        card["blocked_by"] = None if (n_take > 0 or n_setup > 0) else defn.get("blocked_by")
+        tape = (uni.get("strategy_vs_tape") or {}).get(key) or {}
+        card["tape"] = {
+            "gate": tape.get("gate"),
+            "gate_source": tape.get("gate_source"),
+            "clash": tape.get("clash"),
+            "clash_kind": tape.get("clash_kind"),
+            "independent_trend": tape.get("independent_trend"),
+            "aligned": tape.get("aligned"),
+            "n": tape.get("n_setup_tape"),
+            "keep": False,
+            "rewrite": False,
+        }
+        if tape.get("clash"):
+            card["known_clash"] = {
+                "kind": tape.get("clash_kind"),
+                "tape": tape.get("independent_trend"),
+                "take_n": n_take,
+            }
+            card["alignment"] = None
+        elif tape.get("n_setup_tape"):
+            card["known_clash"] = None
+            card["alignment"] = {
+                "kind": f"{tape.get('gate') or 'GATE'}_VS_INDEPENDENT",
+                "tape": tape.get("independent_trend"),
+                "take_n": n_take,
+                "aligned": tape.get("aligned"),
+            }
+        else:
+            card["alignment"] = defn.get("alignment")
+            card["known_clash"] = defn.get("known_clash")
         card["blended_score"] = None
         card["keep"] = False
         card["live_enable"] = False
@@ -81,7 +118,7 @@ def cards(strategy: Optional[str] = None) -> Dict[str, Any]:
         "n_cards": len(out_cards),
         "cards": out_cards,
         "laws": LAWS,
-        "note": "Cards are cells + definition status. Not KEEP. Not a ranker.",
+        "note": "Cards join universe cells + computed SMA-20 tape. Stale PENDING_REPLAY is cleared when n>0. Not KEEP.",
     }
     try:
         OUT.write_text(json.dumps(report, indent=2, default=str))
@@ -109,10 +146,17 @@ def print_cards(strategy: Optional[str] = None) -> Dict[str, Any]:
             f"+1h={take.get('verdict') or '—'}  conf={c.get('confidence_band') or '—'}  "
             f"def={c.get('definition_status') or '—'}"
         )
+        tape = c.get("tape") or {}
+        if tape.get("n"):
+            print(
+                f"    {'' :<18} gate={tape.get('gate') or '—'} src={tape.get('gate_source') or '—'} "
+                f"clash={tape.get('clash')} aligned={tape.get('aligned')}/{tape.get('n')} "
+                f"tape={tape.get('independent_trend')}"
+            )
         if c.get("known_clash"):
             k = c["known_clash"]
             print(f"    {'' :<18} clash={k.get('kind')} tape={k.get('tape')}")
-        if c.get("alignment"):
+        elif c.get("alignment"):
             a = c["alignment"]
             print(f"    {'' :<18} aligned={a.get('kind')} take_n={a.get('take_n')}")
         if c.get("blocked_by"):

@@ -635,13 +635,26 @@ class TestEvidenceCards(unittest.TestCase):
     def test_cards_never_keep(self):
         from src.intelligence.evidence_cards import cards
         report = cards()
-        self.assertEqual(report["version"], "CARDS-v0")
+        self.assertEqual(report["version"], "CARDS-v0.1")
         self.assertFalse(report["keep"])
         self.assertTrue(report["n_cards"] >= 5)
         for c in report["cards"]:
             self.assertFalse(c["keep"])
             self.assertFalse(c["live_enable"])
             self.assertIsNone(c.get("blended_score"))
+
+
+class TestBoards(unittest.TestCase):
+    def test_empty_suitable_is_not_keep(self):
+        from src.intelligence.boards import boards
+        report = boards()
+        self.assertEqual(report["version"], "BOARDS-v0")
+        self.assertFalse(report["keep"])
+        self.assertFalse(report["ranker"])
+        self.assertIsNone(report["blended_score"])
+        for rows in (report.get("boards") or {}).values():
+            for r in rows:
+                self.assertFalse(r["keep"])
 
 
 class TestOpportunityEngine(unittest.TestCase):

@@ -13,20 +13,24 @@ from typing import Any, Dict, List, Optional
 
 from src.intelligence.boards import boards
 from src.intelligence.consult import consult
-from src.intelligence.lookup import lookup
+from src.intelligence.lookup import LABEL_FLAGS, TREND_FLAGS, lookup
 
-VERSION = "RANK-v0.1"
+VERSION = "RANK-v0.2"
 OUT = Path("state_rank.json")
 BOARD_PRI = {"SUITABLE": 0, "WASH": 1, "TESTED_UNKNOWN": 2, "UNTESTED": 3, "UNSUITABLE": 4}
 DEPTH_PRI = {"SOLID": 0, "ADEQUATE": 1, "THIN": 2, "ANECDOTE": 3, "NONE": 4}
+EXPLICIT_FLAGS = set(TREND_FLAGS) | set(LABEL_FLAGS)
 
 
 def rank_state(flag: Optional[str] = None, *, source: str = "live") -> Dict[str, Any]:
     c = consult(source=source, write_snapshot=False, skip_log=True)
-    explicit = bool(flag) and str(flag).upper() not in ("LIVE", "NOW")
+    raw = str(flag or "").strip().upper()
+    # Only UP/DOWN/FLAT/BULLISH/... are explicit research.
+    # "lab", "live", garbage like DOWNLAB, and no-arg → live key path.
+    explicit = raw in EXPLICIT_FLAGS
     parent: List[dict] = []
     if explicit:
-        tape = str(flag).upper()
+        tape = raw
         match = "TREND"
         n_key = None
         hist_rows = (lookup(tape, "replay").get("rows") or []) if tape not in ("UNKNOWN", "NONE", "") else []

@@ -57,6 +57,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cmd in ("cards", "card", "evidence-cards"):
         key = rest[0] if rest else None
         return _cmd_cards(key)
+    if cmd in ("rank-state", "rankstate", "i4"):
+        flag = rest[0] if rest else None
+        return _cmd_rank(flag)
     if cmd in ("boards", "board", "rank"):
         return _cmd_boards()
     if cmd in ("lookup", "state", "recall"):
@@ -83,9 +86,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _cmd_quality()
     if cmd in ("phases", "phase", "roadmap"):
         return _cmd_phases()
-    if cmd in ("rank-state", "rankstate", "i4"):
-        flag = rest[0] if rest else None
-        return _cmd_rank(flag)
     if cmd in ("catalysts", "catalyst", "news"):
         return _cmd_catalysts()
     if cmd in ("paper-take", "papertake", "i5"):

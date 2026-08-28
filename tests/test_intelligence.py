@@ -760,11 +760,16 @@ class TestPhasesI3I6(unittest.TestCase):
     def test_rank_cannot_take(self):
         from src.intelligence.rank import rank_state
         r = rank_state("DOWN")
-        self.assertEqual(r["version"], "RANK-v0.1")
+        self.assertEqual(r["version"], "RANK-v0.2")
         self.assertNotEqual(r["issued_action"], "TAKE")
         self.assertFalse(r["take"])
         self.assertFalse(r["keep"])
         self.assertEqual(r["match"], "TREND")
+        live = rank_state(None)
+        self.assertNotEqual(live.get("issued_action"), "TAKE")
+        garbage = rank_state("DOWNLAB")
+        self.assertNotEqual(garbage.get("flag"), "DOWNLAB")
+        self.assertNotEqual(garbage.get("issued_action"), "TAKE")
 
     def test_catalysts_refuse(self):
         from src.intelligence.catalysts import refuse_ingest

@@ -27,10 +27,10 @@ from src.intelligence.evidence_engine import (
 from src.intelligence.fingerprint import from_slot
 from src.intelligence.h2 import _codes, _regime
 from src.intelligence.definition_cards import cards as definition_cards, print_definitions
-from src.intelligence.universe_specs import generate_cells, catalog, ROUTER_REGIMES
+from src.intelligence.universe_specs import generate_cells, catalog, ROUTER_REGIMES, dna_trend_gate
 from src.tools.observation_log import REPLAY_LOG, _read_jsonl
 
-VERSION = "UNIVERSE-v1.4"
+VERSION = "UNIVERSE-v1.4.1"
 LOCKED = "2026-08-25"
 KNOWLEDGE_PATH = Path("universe_knowledge.json")
 
@@ -301,26 +301,30 @@ def _score_cell(
 
 
 def _gate_vs_tape(strategy: str, tape: Optional[Counter]) -> dict:
+    """Router first, else thesis DNA. Thesis gate is not a live enable."""
     allowed = ROUTER_REGIMES.get(strategy) or frozenset()
+    source = "router"
     if "TREND_UP" in allowed:
         gate = "TREND_UP"
     elif "TREND_DOWN" in allowed:
         gate = "TREND_DOWN"
     else:
-        gate = None
+        gate = dna_trend_gate(strategy)
+        source = "thesis"
     out = _regime_vs_tape(gate or "", tape)
     out["strategy"] = strategy
     out["gate"] = gate
+    out["gate_source"] = source if gate else None
     if gate:
         out["note"] = (
-            f"{strategy} router gate={gate} vs independent SMA on ALL setups. "
-            "Clash is a finding, not a rewrite."
+            f"{strategy} {source} gate={gate} vs independent SMA on ALL setups. "
+            "Clash is a finding, not a rewrite. Thesis gate ≠ live router."
         )
     else:
         out["clash"] = False
         out["clash_kind"] = None
         out["expected_independent_trend"] = None
-        out["note"] = f"{strategy} has no TREND_UP/DOWN router gate — no clash test."
+        out["note"] = f"{strategy} has no TREND_UP/DOWN router or thesis gate — no clash test."
     return out
 
 

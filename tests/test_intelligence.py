@@ -419,6 +419,11 @@ class TestUniverse(unittest.TestCase):
         self.assertEqual(cont["gate"], "TREND_UP")
         hunter = _gate_vs_tape("hunter", Counter({"UP": 78, "DOWN": 6}))
         self.assertFalse(hunter["clash"])
+        don = _gate_vs_tape("donchian-breakout", Counter({"UP": 126}))
+        self.assertFalse(don["clash"])
+        self.assertEqual(don["gate"], "TREND_UP")
+        self.assertEqual(don["gate_source"], "thesis")
+        self.assertEqual(don["aligned"], 126)
 
     def test_research_never_promotes(self):
         report = research()
@@ -429,7 +434,7 @@ class TestUniverse(unittest.TestCase):
         self.assertTrue(all(c.get("live_watch") is False for c in report["cells"]))
         for c in report.get("candidates") or []:
             self.assertIn("not live", c["note"].lower())
-        self.assertEqual(report["version"], "UNIVERSE-v1.3.1")
+        self.assertEqual(report["version"], "UNIVERSE-v1.4.1")
         for c in report["cells"]:
             self.assertIn(c["status_class"], {
                 "UNTESTED", "TESTED_UNKNOWN", "WASH", "UNSUITABLE", "SUITABLE",
@@ -589,6 +594,19 @@ class TestFingerprints(unittest.TestCase):
 
 
 
+
+
+class TestDefinitionCards(unittest.TestCase):
+    def test_donchian_hist_scored_not_live(self):
+        from src.intelligence.definition_cards import I2_FAMILY, card_for, cards as def_cards
+        self.assertEqual(I2_FAMILY, "donchian-breakout")
+        don = card_for("donchian-breakout")
+        self.assertEqual(don["status"], "HIST_SCORED")
+        self.assertFalse(don["live_watch"])
+        self.assertFalse(don["keep"])
+        self.assertIsNone(don.get("blocked_by"))
+        self.assertEqual(don["alignment"]["take_n"], 28)
+        self.assertTrue(all(not c["keep"] and not c["live_watch"] for c in def_cards()))
 
 
 class TestOpportunityEngine(unittest.TestCase):

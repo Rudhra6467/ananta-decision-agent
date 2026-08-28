@@ -55,7 +55,7 @@ def cards() -> List[Dict[str, Any]]:
         {
             "strategy": "donchian-breakout",
             "phase": "I2",
-            "status": "HIST_SHADOW",
+            "status": "HIST_SCORED",
             "live_watch": False,
             "keep": False,
             "rewrite": False,
@@ -67,7 +67,7 @@ def cards() -> List[Dict[str, Any]]:
                 "ananta_regime": {
                     "name": "TREND_UP (thesis)",
                     "basis": "Breakout DNA — not routed live",
-                    "role": "thesis only",
+                    "role": "thesis / research gate",
                 },
                 "setup_rule": {
                     "name": "Donchian high/low channel",
@@ -77,12 +77,26 @@ def cards() -> List[Dict[str, Any]]:
                 "market_truth_trend": {
                     "name": "SMA-20 independent trend_flag",
                     "basis": "Same Market Truth as continuation",
-                    "role": "external tape when replay exists",
+                    "role": "external tape",
                 },
             },
             "known_clash": None,
-            "blocked_by": "PENDING_REPLAY",
-            "note": "I2 hist shadow in Ananta observation_replay. Re-run lab replay once. Not Wave A. Not live.",
+            "blocked_by": None,
+            "alignment": {
+                "kind": "THESIS_TREND_UP_VS_INDEPENDENT_UP",
+                "hist_setups": 126,
+                "tape": {"UP": 126},
+                "take_n": 28,
+                "depth": "THIN",
+                "plus_1h": "INSUFFICIENT_EVIDENCE",
+                "note": "Unlike continuation, Donchian setups sit on SMA-20 UP. Not KEEP.",
+            },
+            "cell_finding": {
+                "kind": "TREND_DOWN_CELL_VS_INDEPENDENT_UP",
+                "n": 15,
+                "note": "15 setups when Ananta said TREND_DOWN and tape was UP; research-filtered. Finding, not a rewrite.",
+            },
+            "note": "I2 hist scored. TAKE-eq 28 on TREND_UP. THIN. Not Wave A. Not live. Not KEEP.",
         },
     ]
 
@@ -107,6 +121,13 @@ def print_definitions() -> None:
             print(
                 f"      clash={clash.get('kind')}  "
                 f"tape={clash.get('tape')}  take_n={clash.get('take_n')}"
+            )
+        elif c.get("alignment"):
+            a = c["alignment"]
+            print(
+                f"      aligned={a.get('kind')}  "
+                f"tape={a.get('tape')}  take_n={a.get('take_n')}  "
+                f"+1h={a.get('plus_1h')}"
             )
         elif c.get("blocked_by"):
             print(f"      blocked={c['blocked_by']}  evaluator={c.get('evaluator')}")

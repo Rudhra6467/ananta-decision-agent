@@ -162,3 +162,17 @@ def _policy(spec: Dict[str, Any], regime: str) -> str:
     if regime in spec.get("dna_regimes") or []:
         return "THESIS_ONLY"
     return "UNMAPPED"
+
+
+def dna_trend_gate(strategy: str) -> str | None:
+    """Thesis TREND_UP/DOWN if DNA names it. Not a live router enable."""
+    key = (strategy or "").lower()
+    for spec in catalog():
+        if spec["key"] == key:
+            dna = set(spec.get("dna_regimes") or [])
+            if "TREND_UP" in dna:
+                return "TREND_UP"
+            if "TREND_DOWN" in dna:
+                return "TREND_DOWN"
+            return None
+    return None

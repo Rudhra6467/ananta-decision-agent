@@ -8,7 +8,7 @@ Build the observable intelligence first. Build the autonomous authority later.
 
 **Evidence philosophy (locked):** Ananta regime is a **hypothesis**. Market measurements + forward price are the external reference. Agent must never learn "Ananta was correct because Ananta said so."
 
-Full Market Truth detail: [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md).
+**Opportunity Engine (2026-08-28):** Scanner + fair-value are **named** for Phase I3. Not running. Coverage is not intelligence. See [OPPORTUNITY_ENGINE_LOCK.md](./OPPORTUNITY_ENGINE_LOCK.md).
 
 ---
 

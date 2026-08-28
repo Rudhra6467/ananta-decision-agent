@@ -1,7 +1,7 @@
 # Strategy Evidence Engine — destination lock (2026-08-25)
 
 **Status:** Destination architecture. **Not built as a ranker.** v0 is the Evidence Card on Universe cells.  
-**Now:** Universe v1.3 stamps Ananta regime vs independent SMA (`lab universe`). Clash ≠ rewrite. Wave A frozen.
+**Now:** I1 current. Opportunity Engine interface lock (`lab opportunity`). Scanner/fair-value = I3, not running. Wave A frozen.
 
 ## The question this layer exists to answer
 

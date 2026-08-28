@@ -45,7 +45,7 @@ Ananta provides **System Truth**. Independent **Market Truth** is the external r
 - Knowledge Object: `understand` / `GET /api/strategy/knowledge`
 - Continuous observer: `lab watch --interval N` (Stage 1+) with independent market snapshot
 - Historical replay: `lab replay` / `lab audit replay` (Stage 4; `source=historical_lab`; never mix into live jsonl)
-- DI: `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim` / `lab experiments` / `lab attribution` / `lab quality` / `lab h2` / `lab universe` / `lab memory` / `lab fingerprints` / `lab research`
+- DI: `lab system` / `lab profile` / `lab di` / `lab gates` / `lab paper-sim` / `lab experiments` / `lab attribution` / `lab quality` / `lab h2` / `lab universe` / `lab memory` / `lab fingerprints` / `lab opportunity` / `lab research`
 - 1y candles must be **proven in Mongo** (`lab coverage`) before a 1y Lab claim
 
 ## Contract
@@ -62,7 +62,7 @@ Cycle must expose, per enabled strategy: ran / setup / signal / reason / TAKE|SK
 **S1–S4:** Done. **Compare:** Done (`lab compare` 2026-08-23).  
 **S5:** H3 + H2 measurement done. H1 live enable rejected. `try_run` still refuses mutation.  
 **DQ-v0.0:** Locked 2026-08-25 — `lab quality` / `docs/DECISION_QUALITY_V0.md`. KEEP forbidden.  
-**Universe v1.2:** `continuation` hist shadow. **Setup Memory v0:** `lab memory`. **Fingerprints v0:** `lab fingerprints`. Not Wave A live. Not KEEP.  
+**Universe v1.3.1:** regime vs independent SMA. **Opportunity Engine:** interface lock only (`lab opportunity`) — scanner and fair-value are Phase I3, not now. Not Wave A live. Not KEEP.  
 **Evidence engine:** Destination only — [STRATEGY_EVIDENCE_ENGINE.md](./docs/STRATEGY_EVIDENCE_ENGINE.md). No similarity search yet.  
 **DI:** Foundation now — `src/intelligence/`. Wave A WATCH. Extra agents still not.
 

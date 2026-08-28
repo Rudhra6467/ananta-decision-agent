@@ -34,7 +34,8 @@ SEQUENCE = (
     "Setup Memory v0 jsonl join",
     "Market Truth fingerprints v0",
     "Strategy-conditioned fingerprints v0.1",
-    "Universe v1.3 regime vs independent tape",  # NOW
+    "Universe v1.3 regime vs independent tape",
+    "Opportunity Engine interface lock (I3 mapped, not running)",  # NOW
     "Evidence cards (cells, not a score)",
     "Market-state fingerprints from Market Truth",
     "Similarity search",

@@ -14,6 +14,7 @@ Observability and operating docs for the paper-trading laboratory.
 | [SAFETY_GATES_LOCK.md](./SAFETY_GATES_LOCK.md) | Hard safety outside the LLM |
 | [FEATURE_COMPLETE_NOW.md](./FEATURE_COMPLETE_NOW.md) | What "build everything now" produced |
 | [TRADINGAGENTS_REFERENCE_AUDIT.md](./TRADINGAGENTS_REFERENCE_AUDIT.md) | Tauric TradingAgents KEEP/ADAPT/REJECT; not a clone |
+| [OPPORTUNITY_ENGINE_LOCK.md](./OPPORTUNITY_ENGINE_LOCK.md) | Scanner + fair-value mapped, not running |
 | [ROADMAP.md](./ROADMAP.md) | Locked product roadmap + stages S1–S5 |
 | [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md) | What the Agent knows vs Ananta |
 | [LOCAL_LOOP.md](./LOCAL_LOOP.md) | Backend-first lab loop — **no website required** |

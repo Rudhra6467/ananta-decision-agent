@@ -4,9 +4,9 @@
 **Operating-mode addendum:** 2026-08-20  
 **North-star confirmation:** 2026-08-22 — [NORTH_STAR_LOCK.md](./NORTH_STAR_LOCK.md)  
 **Strategy intelligence audit:** 2026-08-22 — [STRATEGY_INTEL_AUDIT.md](./STRATEGY_INTEL_AUDIT.md)  
-**Market Truth + continuous evidence:** 2026-08-22 — [MARKET_TRUTH_LOCK.md](./MARKET_TRUTH_LOCK.md)
+**Opportunity Engine addendum:** 2026-08-28 — [OPPORTUNITY_ENGINE_LOCK.md](./OPPORTUNITY_ENGINE_LOCK.md) (mapped, not running)
 
-**Immediate (locked):** P0–P2 **done**. S1–S4 **done**. Compare **done**. H3 **measurement done** (`lab attribution`). **Decision Quality v0 locked 2026-08-25** (`lab quality`). H2 pending Ananta `reason_codes`. H1 live enable rejected. Wave A stays **WATCH**. Live watch continues. Extra agents still not.
+**Immediate (locked):** P0–P2 **done**. S1–S4 **done**. Compare **done**. H3 **measurement done**. DQ-v0 **locked**. Universe v1.3.1 + fingerprints + memory **done**. Opportunity Engine **interface only**. H1 live enable rejected. Wave A stays **WATCH**. Live watch continues. Extra agents still not.
 
 **North star:** Ananta provides System Truth. Independent Market Truth is the external reference. Agent Ananta understands the trader and the strategies, decides, measures Outcome Truth (including SKIPs and opportunity cost), learns (evaluation + ranking + proposals only), and earns autonomy through evidence — without a self-confirming loop.
 

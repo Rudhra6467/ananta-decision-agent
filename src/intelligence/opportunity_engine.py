@@ -1,0 +1,152 @@
+"""Opportunity Engine — interface lock only (I3). Not a scanner. Not KEEP.
+
+Two capabilities are on the roadmap:
+  1. Continuous opportunity scanning
+  2. Fair-value / mispricing detection
+
+Neither runs now. LLM does not scan unrestricted. LLM does not invent fair value.
+Coverage (N strategies × TF × assets) is not intelligence.
+
+CLI: lab opportunity
+"""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+VERSION = "OPP-v0"
+PHASE = "I1_CURRENT"
+SCAN_LIVE = False
+MISPRICING_EXECUTE = False
+
+INTELLIGENCE_PHASES = (
+    ("I1", "CURRENT", "Wave A frozen, live+hist evidence, DQ, Universe, fingerprints, memory"),
+    ("I2", "RESEARCH_EXPANSION", "Broader families offline, more assets/TF, evidence cards"),
+    ("I3", "OPPORTUNITY_INTELLIGENCE", "Scanner + state change + capability match + fair-value"),
+    ("I4", "DECISION_INTELLIGENCE", "Retrieve similar states, rank, TAKE/WAIT/SKIP/UNKNOWN"),
+    ("I5", "FORWARD_PAPER", "Human-gated paper TAKEs, beat DQ-v0.0"),
+    ("I6", "EARNED_AUTONOMY", "SAFE/MODERATE/AGGRESSIVE only after evidence"),
+)
+
+LAWS = {
+    "two_tracks_stay_separate": True,
+    "wave_a_frozen": True,
+    "watcher_untouched": True,
+    "coverage_is_not_intelligence": True,
+    "llm_does_not_scan_unrestricted": True,
+    "deterministic_market_truth_filters_first": True,
+    "di_reasons_only_on_candidates": True,
+    "scanner_is_not_live_enable": True,
+    "research_universe_can_be_broad": True,
+    "live_authority_stays_narrow": True,
+    "fair_value_is_not_a_strategy": True,
+    "llm_does_not_invent_fair_value": True,
+    "fair_value_needs_inputs_provenance_uncertainty": True,
+    "mispricing_is_not_execution": True,
+    "keep_forbidden": True,
+    "no_trend_up_enable": True,
+    "no_hunter_rewrite": True,
+    "paper_may_be_aggressive_later": True,
+    "live_stays_conservative": True,
+}
+
+
+def spec() -> Dict[str, Any]:
+    return {
+        "ok": True,
+        "schema": "opportunity_engine_v0",
+        "version": VERSION,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "phase": PHASE,
+        "scan_live": SCAN_LIVE,
+        "mispricing_execute": MISPRICING_EXECUTE,
+        "keep": False,
+        "tracks": {
+            "wave_a_live": "controlled baseline — lab watch 15 — do not change rules",
+            "universe_research": "catalogue + hist memory — not an intelligent library yet",
+        },
+        "target_flow": [
+            "Market APIs",
+            "Market Truth",
+            "Market State / fingerprint",
+            "strategy capability scanners",
+            "Opportunity Engine",
+            "historical/setup evidence",
+            "Decision Intelligence",
+            "TAKE / WAIT / SKIP / UNKNOWN",
+            "Ananta hard risk",
+            "execution",
+            "outcome + DQ",
+        ],
+        "capabilities": {
+            "continuous_scan": {
+                "status": "INTERFACE_ONLY",
+                "live": False,
+                "note": "Deterministic scanners filter. DI reasons only on candidates.",
+            },
+            "fair_value": {
+                "status": "INTERFACE_ONLY",
+                "execute": False,
+                "llm_invented_fair_value": False,
+                "note": "Explicit inputs + provenance + uncertainty. Not a Wave A strategy.",
+            },
+        },
+        "intelligence_phases": [
+            {"id": i, "name": n, "means": m} for i, n, m in INTELLIGENCE_PHASES
+        ],
+        "now": "I1",
+        "not_now": ["I3 scan", "I3 mispricing execute", "I4 similarity", "I5 paper TAKE", "I6 autonomy"],
+        "laws": LAWS,
+    }
+
+
+def refuse_scan(*, universe: Optional[List[str]] = None) -> Dict[str, Any]:
+    return {
+        "ok": False,
+        "executed": False,
+        "scanned": 0,
+        "candidates": [],
+        "reason": "I3_NOT_NOW",
+        "universe_requested": list(universe or []),
+        "keep": False,
+        "note": "Interface only. Continuous scan is Phase I3. Wave A watch is the live experiment.",
+    }
+
+
+def refuse_fair_value(*, asset: Optional[str] = None) -> Dict[str, Any]:
+    return {
+        "ok": False,
+        "executed": False,
+        "fair_value": None,
+        "divergence": None,
+        "reason": "I3_NOT_NOW",
+        "asset": asset,
+        "llm_invented": False,
+        "keep": False,
+        "note": "Fair value is not an LLM price. Not a strategy. Not execution.",
+    }
+
+
+def print_opportunity() -> Dict[str, Any]:
+    report = spec()
+    print(f"\nOPPORTUNITY ENGINE  {report['version']}  phase={report['phase']}")
+    print("=" * 64)
+    print("Interface lock. Not a scanner. Not mispricing execution. Not KEEP.")
+    print("Coverage (N×TF×asset) is not intelligence.")
+    print("-" * 64)
+    print("  TRACKS (keep separate)")
+    print("    Wave A live     lab watch 15 — frozen rules, accumulating tape")
+    print("    Universe research  hist memory — catalogue, SUITABLE=0")
+    print("-" * 64)
+    print("  NOW = I1. Mapped, not running:")
+    print("    continuous_scan  INTERFACE_ONLY  live=False")
+    print("    fair_value       INTERFACE_ONLY  execute=False  llm_invented=False")
+    print("-" * 64)
+    print("  I1 current → I2 research expansion → I3 opportunity intelligence")
+    print("  → I4 DI → I5 human-gated paper → I6 earned autonomy")
+    print("-" * 64)
+    print("  LLM does not scan unrestricted. Deterministic Market Truth filters first.")
+    print("  Scanner ≠ live enable. Fair value ≠ strategy. Clash ≠ rewrite.")
+    print("=" * 64)
+    print()
+    return report

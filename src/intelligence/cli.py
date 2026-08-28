@@ -50,6 +50,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _cmd_memory(rest)
     if cmd in ("fingerprints", "fingerprint", "fp"):
         return _cmd_fingerprints(rest)
+    if cmd in ("opportunity", "opp", "scan"):
+        return _cmd_opportunity()
     if cmd in ("universe", "sru", "cells"):
         return _cmd_universe()
     if cmd in ("h2", "hunter-gates"):
@@ -69,9 +71,9 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab universe | lab memory | lab fingerprints | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
-    print("Wave A stays WATCH. Memory = lab memory. Fingerprints = lab fingerprints. H1 live enable rejected.")
+    print("Wave A stays WATCH. lab opportunity = interface lock, not a scanner. H1 live enable rejected.")
 
 
 def _dump(obj) -> None:
@@ -307,6 +309,13 @@ def _cmd_fingerprints(rest: List[str]) -> int:
     if args:
         strat = args[0]
     print_fingerprints(source, strat)
+    return 0
+
+
+def _cmd_opportunity() -> int:
+    from src.intelligence.opportunity_engine import print_opportunity
+
+    print_opportunity()
     return 0
 
 

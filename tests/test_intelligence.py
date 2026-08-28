@@ -9,6 +9,7 @@ from pathlib import Path
 from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
 from src.intelligence.fingerprint import from_slot, fingerprints, ret_bin
+from src.intelligence.opportunity_engine import refuse_fair_value, refuse_scan, spec as opp_spec
 from src.intelligence.setup_memory import extract, _record, refusal_stamp
 from src.intelligence.universe import fit_from_take, research, _regime_vs_tape, _gate_vs_tape
 from src.intelligence.universe_specs import generate_cells, catalog
@@ -590,6 +591,24 @@ class TestFingerprints(unittest.TestCase):
 
 
 
+class TestOpportunityEngine(unittest.TestCase):
+    def test_interface_refuses_scan_and_fair_value(self):
+        s = opp_spec()
+        self.assertEqual(s["phase"], "I1_CURRENT")
+        self.assertFalse(s["scan_live"])
+        self.assertFalse(s["mispricing_execute"])
+        self.assertFalse(s["keep"])
+        self.assertTrue(s["laws"]["coverage_is_not_intelligence"])
+        self.assertTrue(s["laws"]["llm_does_not_invent_fair_value"])
+        scan = refuse_scan(universe=["BTC/USD"])
+        self.assertFalse(scan["executed"])
+        self.assertEqual(scan["reason"], "I3_NOT_NOW")
+        fv = refuse_fair_value(asset="BTC/USD")
+        self.assertFalse(fv["executed"])
+        self.assertIsNone(fv["fair_value"])
+        self.assertFalse(fv["llm_invented"])
+
+
 class TestOrchestratePaper(unittest.TestCase):
     def test_cycle_never_self_fills(self):
         result = run_cycle(_take_eq_obs(), persist=False, user_confirmed=True)
@@ -627,6 +646,8 @@ class TestContractAndSystem(unittest.TestCase):
         paths = [r["path"] for r in spec["expected_routes"]]
         self.assertIn("/api/lab/observation-replay", paths)
         self.assertIn("/api/orders/paper", spec["not_a_route"])
+        self.assertIn("/api/opportunity/scan", spec["not_a_route"])
+        self.assertIn("/api/fair-value", spec["not_a_route"])
         self.assertEqual(spec["decision_schema"], "decision_v0")
 
     def test_completeness_machine_flag(self):
@@ -645,6 +666,7 @@ class TestContractAndSystem(unittest.TestCase):
         self.assertIn("di.evidence", names)
         self.assertIn("di.setup_memory", names)
         self.assertIn("di.fingerprint", names)
+        self.assertIn("di.opportunity", names)
 
     def test_typed_decision_schema(self):
         d = TypedDecision(recommended_action="TAKE", issued_action="WAIT")

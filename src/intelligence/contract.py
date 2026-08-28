@@ -33,7 +33,8 @@ EXPECTED_ROUTES = [
 NOT_A_ROUTE = [
     "/api/orders/paper",
     "/api/summary",
-    "/api/kill-switch",  # kill is an Ananta engine fact; not yet a dedicated agent route
+    "/api/opportunity/scan",
+    "/api/fair-value",
 ]
 
 

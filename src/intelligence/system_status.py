@@ -42,6 +42,7 @@ def completeness() -> Dict[str, Any]:
         _file("di.evidence", Path("src/intelligence/evidence_engine.py")),
         _file("di.setup_memory", Path("src/intelligence/setup_memory.py")),
         _file("di.fingerprint", Path("src/intelligence/fingerprint.py")),
+        _file("di.opportunity", Path("src/intelligence/opportunity_engine.py")),
         _file("di.orchestrate", Path("src/intelligence/orchestrate.py")),
         _ledger("live observation_log.jsonl", Path("observation_log.jsonl"), required=False),
         _ledger("replay observation_replay.jsonl", Path("observation_replay.jsonl"), required=False),

@@ -699,11 +699,12 @@ class TestConsult(unittest.TestCase):
         self.assertEqual(report["flag"], "UP")
         self.assertNotEqual(report["knowledge_action"], "TAKE")
         self.assertFalse(report["keep"])
+        self.assertIn(report.get("match"), ("KEY", "SPARSE_KEY", "TREND", "NONE"))
 
     def test_consult_cannot_take_or_keep(self):
         from src.intelligence.consult import consult
         report = consult(observation={"market_truth": {"trend": "UP"}}, source="live")
-        self.assertEqual(report["version"], "CONSULT-v0")
+        self.assertEqual(report["version"], "CONSULT-v0.1")
         self.assertNotEqual(report["knowledge_action"], "TAKE")
         self.assertFalse(report["keep"])
         self.assertFalse(report["issued_override"])

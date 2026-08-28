@@ -1,7 +1,7 @@
-"""Knowledge consult v0 — DI may ask memory. Memory may not TAKE.
+"""Knowledge consult v0.1 — key match first, then trend. Memory may not TAKE.
 
-Given current Market Truth flags, retrieve hist lookup for that tape.
-knowledge_action is WAIT or UNKNOWN. Never TAKE. Never overrides issued_action.
+Exact fingerprint key (trend|compression|ret1h|label) before inheriting
+the whole UP/DOWN bucket. Sparse keys → UNKNOWN, not parent WASH.
 
 CLI: lab consult [live|replay]
 """
@@ -9,14 +9,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from src.intelligence.fingerprint import from_market_truth
+from src.intelligence.fingerprint import from_market_truth, from_record
 from src.intelligence.lookup import lookup
+from src.intelligence.setup_memory import extract
 from src.tools.observation_log import OBSERVATION_LOG, REPLAY_LOG, _read_jsonl
 
-VERSION = "CONSULT-v0"
+VERSION = "CONSULT-v0.1"
 OUT = Path("knowledge_consult.json")
+MIN_KEY_N = 5
 
 
 def consult(observation: Optional[dict] = None, *, source: str = "live") -> Dict[str, Any]:
@@ -26,28 +28,39 @@ def consult(observation: Optional[dict] = None, *, source: str = "live") -> Dict
     asset = str(st.get("symbol") or "BTC/USD")
     fp = from_market_truth(mt, asset)
     flag = str(fp.get("trend") or "UNKNOWN")
-    if flag in ("UNKNOWN", "", "NONE"):
-        hist = {"rows": [], "source": "historical_lab", "flag": flag}
-        k_action = "UNKNOWN"
-        why = "NO_TAPE_FLAG"
-    else:
-        hist = lookup(flag, "replay")
-        k_action = "WAIT"
-        why = "I2_BASELINE_NO_SUITABLE"
-        if not (hist.get("rows") or []):
+    key = str(fp.get("key") or "")
+    match = "NONE"
+    n_key = 0
+    rows: List[dict] = []
+    parent_rows: List[dict] = []
+    k_action = "UNKNOWN"
+    why = "NO_TAPE_FLAG"
+
+    if flag not in ("UNKNOWN", "", "NONE"):
+        mem = extract("replay")
+        matched = [
+            r for r in (mem.get("records") or [])
+            if from_record(r).get("key") == key
+        ]
+        n_key = len(matched)
+        parent = lookup(flag, "replay")
+        parent_rows = _slim(parent.get("rows") or [])
+        if n_key >= MIN_KEY_N:
+            match = "KEY"
+            rows = _slim(_score_records(matched, flag=key))
+            k_action = "WAIT"
+            why = "I2_BASELINE_NO_SUITABLE"
+        elif n_key > 0:
+            match = "SPARSE_KEY"
+            rows = _slim(_score_records(matched, flag=key))
             k_action = "UNKNOWN"
-            why = "NO_HIST_FOR_FLAG"
-    rows = []
-    for r in hist.get("rows") or []:
-        rows.append({
-            "strategy": r.get("strategy"),
-            "TAKE": r.get("TAKE"),
-            "depth": r.get("depth"),
-            "vs_sitout": r.get("vs_sitout"),
-            "mean_1h_take": r.get("mean_1h_take"),
-            "mean_1h_skip": r.get("mean_1h_skip"),
-            "keep": False,
-        })
+            why = "SPARSE_FINGERPRINT_KEY"
+        else:
+            match = "TREND"
+            rows = parent_rows
+            k_action = "WAIT" if parent_rows else "UNKNOWN"
+            why = "I2_BASELINE_NO_SUITABLE" if parent_rows else "NO_HIST_FOR_FLAG"
+
     report = {
         "ok": True,
         "version": VERSION,
@@ -57,12 +70,16 @@ def consult(observation: Optional[dict] = None, *, source: str = "live") -> Dict
             "trend": fp.get("trend"),
             "compression": fp.get("compression"),
             "independent_label": fp.get("independent_label"),
+            "ret_1h_bin": fp.get("ret_1h_bin"),
             "key": fp.get("key"),
             "data_gap": fp.get("data_gap"),
         },
         "flag": flag,
-        "hist_source": hist.get("source"),
+        "match": match,
+        "n_key": n_key,
+        "min_key_n": MIN_KEY_N,
         "rows": rows,
+        "parent_trend_rows": parent_rows if match == "SPARSE_KEY" else [],
         "knowledge_action": k_action,
         "why": why,
         "issued_override": False,
@@ -77,10 +94,11 @@ def consult(observation: Optional[dict] = None, *, source: str = "live") -> Dict
             "wave_a_watch": True,
             "i2_hist_baseline_locked": True,
             "unknown_is_valid": True,
+            "sparse_key_does_not_inherit_parent": True,
         },
         "note": (
-            "DI asked memory: given this tape, what happened historically? "
-            "Answer at this n is WAIT/UNKNOWN. Memory does not fill."
+            "Exact fingerprint key first. Sparse key → UNKNOWN, not parent WASH. "
+            "Memory does not fill."
         ),
     }
     try:
@@ -95,30 +113,104 @@ def print_consult(source: str = "live") -> Dict[str, Any]:
     report = consult(source=source)
     print(f"\nKNOWLEDGE CONSULT  {report.get('version')}")
     print("=" * 64)
-    print("DI may ask. Memory may not TAKE. Issued action unchanged.")
+    print("Key match first. Sparse key ≠ parent DOWN WASH. Memory may not TAKE.")
     print(
-        f"  tape={report.get('flag')}  obs={report.get('obs_id') or '—'}  "
-        f"knowledge_action={report.get('knowledge_action')}  override=False  keep=False"
+        f"  tape={report.get('flag')}  match={report.get('match')}  "
+        f"n_key={report.get('n_key')}  knowledge_action={report.get('knowledge_action')}  "
+        f"override=False"
     )
-    print(f"  why={report.get('why')}")
+    print(f"  why={report.get('why')}  obs={report.get('obs_id') or '—'}")
     fp = report.get("fingerprint") or {}
     print(f"  fp={fp.get('key')}  gap={fp.get('data_gap')}")
     print("-" * 64)
     rows = report.get("rows") or []
     if not rows:
-        print("  (no hist rows for this flag — UNKNOWN is valid)")
+        print("  (no hist rows — UNKNOWN is valid)")
     for r in rows:
         print(
-            f"  {r.get('strategy'):<18} TAKE={r.get('TAKE')}  depth={r.get('depth')}  "
-            f"vs_sitout={r.get('vs_sitout')}  +1h_TAKE={r.get('mean_1h_take')}  "
-            f"+1h_SKIP={r.get('mean_1h_skip')}"
+            f"  {r.get('strategy'):<18} n={r.get('n')} TAKE={r.get('TAKE')}  "
+            f"depth={r.get('depth')}  vs_sitout={r.get('vs_sitout')}  "
+            f"+1h_TAKE={r.get('mean_1h_take')}  +1h_SKIP={r.get('mean_1h_skip')}"
         )
+    parent = report.get("parent_trend_rows") or []
+    if parent:
+        print("  parent TREND (context only — not inherited)")
+        for r in parent:
+            print(
+                f"    {r.get('strategy'):<16} TAKE={r.get('TAKE')}  "
+                f"vs_sitout={r.get('vs_sitout')}"
+            )
     print("-" * 64)
     print("  Consult ≠ KEEP. Consult ≠ TREND_UP. Wave A stays WATCH.")
     if report.get("saved"):
         print(f"  saved: {report['saved']}")
     print("=" * 64)
     return report
+
+
+def _slim(rows: List[dict]) -> List[dict]:
+    out = []
+    for r in rows:
+        out.append({
+            "strategy": r.get("strategy"),
+            "n": r.get("n"),
+            "TAKE": r.get("TAKE"),
+            "depth": r.get("depth"),
+            "vs_sitout": r.get("vs_sitout"),
+            "mean_1h_take": r.get("mean_1h_take"),
+            "mean_1h_skip": r.get("mean_1h_skip"),
+            "keep": False,
+        })
+    return out
+
+
+def _score_records(records: List[dict], *, flag: str) -> List[dict]:
+    """Local score so key slices do not borrow the parent trend mean."""
+    from collections import defaultdict
+    from src.intelligence.decision_quality import NOISE_PCT, evidence_depth, path_call
+
+    buckets: Dict[str, dict] = defaultdict(lambda: {
+        "n": 0, "TAKE": 0, "take_rets": [], "skip_rets": [],
+    })
+    for rec in records:
+        key = str(rec.get("strategy") or "?")
+        b = buckets[key]
+        b["n"] += 1
+        ret = (rec.get("outcomes") or {}).get("+1h")
+        if rec.get("population_role") == "TAKE":
+            b["TAKE"] += 1
+            if isinstance(ret, (int, float)):
+                b["take_rets"].append(float(ret))
+        elif isinstance(ret, (int, float)):
+            b["skip_rets"].append(float(ret))
+    rows = []
+    for strat, b in buckets.items():
+        n_take = int(b["TAKE"])
+        take_mean = round(sum(b["take_rets"]) / len(b["take_rets"]), 4) if b["take_rets"] else None
+        skip_mean = round(sum(b["skip_rets"]) / len(b["skip_rets"]), 4) if b["skip_rets"] else None
+        take_call = path_call(take_mean, len(b["take_rets"]), usable=True, role="TAKE")
+        vs = "NO_TAKE" if n_take <= 0 else take_call
+        if n_take > 0 and take_call not in ("INSUFFICIENT_EVIDENCE", "NO_SAMPLE") and take_mean is not None and skip_mean is not None:
+            delta = take_mean - skip_mean
+            if abs(delta) < NOISE_PCT:
+                vs = "WASH"
+            elif delta >= NOISE_PCT:
+                vs = "TAKE_GT_SITOUT"
+            else:
+                vs = "TAKE_LT_SITOUT"
+        rows.append({
+            "strategy": strat,
+            "flag": flag,
+            "n": b["n"],
+            "TAKE": n_take,
+            "depth": evidence_depth(n_take, role="TAKE"),
+            "mean_1h_take": take_mean,
+            "mean_1h_skip": skip_mean,
+            "vs_sitout": vs,
+            "keep": False,
+        })
+    rows.sort(key=lambda r: (-int(r["TAKE"]), -int(r["n"]), r["strategy"]))
+    return rows
 
 
 def _latest(source: str) -> Optional[dict]:

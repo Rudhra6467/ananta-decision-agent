@@ -17,7 +17,7 @@ from src.intelligence.consult import CONSULT_LOG
 from src.intelligence.setup_memory import refusal_stamp
 from src.tools.observation_log import OBSERVATION_LOG, _read_jsonl
 
-VERSION = "CONSULT-DQ-v0.1"
+VERSION = "CONSULT-DQ-v0.2"
 OUT = Path("consult_dq.json")
 
 
@@ -33,13 +33,16 @@ def consult_dq() -> Dict[str, Any]:
     actions = Counter()
     matches = Counter()
     by_action: Dict[str, Counter] = {}
+    by_match: Dict[str, Counter] = {}
     n_joined = 0
     n_complete = 0
     for row in logs:
         act = str(row.get("knowledge_action") or "?")
+        match = str(row.get("match") or "?")
         actions[act] += 1
-        matches[str(row.get("match") or "?")] += 1
+        matches[match] += 1
         by_action.setdefault(act, Counter())
+        by_match.setdefault(match, Counter())
         obs = by_id.get(str(row.get("obs_id") or ""))
         if not obs:
             stamps["NO_OBS"] += 1
@@ -49,7 +52,8 @@ def consult_dq() -> Dict[str, Any]:
         ret = fwd.get("fwd_1h_pct")
         stamp = refusal_stamp(ret)
         stamps[stamp] += 1
-        by_action[str(row.get("knowledge_action") or "?")][stamp] += 1
+        by_action[act][stamp] += 1
+        by_match[match][stamp] += 1
         if stamp not in ("NO_SAMPLE", "UNUSABLE_CLOCK"):
             n_complete += 1
     report = {
@@ -63,13 +67,14 @@ def consult_dq() -> Dict[str, Any]:
         "matches": dict(matches),
         "plus_1h_stamps": dict(stamps),
         "plus_1h_by_action": {k: dict(v) for k, v in by_action.items()},
+        "plus_1h_by_match": {k: dict(v) for k, v in by_match.items()},
         "keep": False,
         "take_enable": False,
         "trend_up_enable": False,
         "laws": {
             "consult_dq_is_not_keep": True,
             "costly_wait_is_not_take_enable": True,
-            "unknown_is_valid": True,
+            "sparse_costly_is_not_take": True,
             "live_take_zero_is_watch_not_gap": True,
         },
         "note": (
@@ -98,7 +103,10 @@ def print_consult_dq() -> Dict[str, Any]:
     print(f"  match={report.get('matches')}")
     print(f"  +1h stamps={report.get('plus_1h_stamps')}")
     for act, st in (report.get("plus_1h_by_action") or {}).items():
-        print(f"    {act}: {st}")
+        print(f"    action {act}: {st}")
+    print("  by match")
+    for m, st in (report.get("plus_1h_by_match") or {}).items():
+        print(f"    match {m}: {st}")
     print("-" * 64)
     print("  COSTLY wait ≠ TAKE enable. Sparse UNKNOWN is valid. Wave A stays WATCH.")
     if report.get("saved"):

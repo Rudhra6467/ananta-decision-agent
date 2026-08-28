@@ -760,9 +760,11 @@ class TestPhasesI3I6(unittest.TestCase):
     def test_rank_cannot_take(self):
         from src.intelligence.rank import rank_state
         r = rank_state("DOWN")
+        self.assertEqual(r["version"], "RANK-v0.1")
         self.assertNotEqual(r["issued_action"], "TAKE")
         self.assertFalse(r["take"])
         self.assertFalse(r["keep"])
+        self.assertEqual(r["match"], "TREND")
 
     def test_catalysts_refuse(self):
         from src.intelligence.catalysts import refuse_ingest
@@ -807,6 +809,8 @@ class TestOrchestratePaper(unittest.TestCase):
     def test_cycle_never_self_fills(self):
         result = run_cycle(_take_eq_obs(), persist=False, user_confirmed=True)
         self.assertFalse(result["would_execute"])
+        self.assertIn("state_rank", result)
+        self.assertFalse(result["state_rank"]["take"])
         self.assertFalse(result["decision"]["execution_allowed"])
         self.assertEqual(result["s5"], "parked")
 

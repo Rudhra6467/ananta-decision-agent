@@ -48,6 +48,16 @@ def run_cycle(
     }
     decision.knowledge_consult = slim
     decision.keep = False
+    from src.intelligence.rank import rank_state
+    rank_report = rank_state(source="live")
+    rank_slim = {
+        "flag": rank_report.get("flag"),
+        "match": rank_report.get("match"),
+        "issued_action": rank_report.get("issued_action"),
+        "n": len(rank_report.get("rows") or []),
+        "keep": False,
+        "take": False,
+    }
     if persist:
         record_decision(decision)
 
@@ -55,6 +65,7 @@ def run_cycle(
         "ok": True,
         "decision": decision.as_dict(),
         "knowledge_consult": slim,
+        "state_rank": rank_slim,
         "would_execute": False,
         "execute_blocked_by": _execute_block_reasons(decision),
         "profile": profile.name,

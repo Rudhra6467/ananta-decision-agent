@@ -17,7 +17,7 @@ from src.intelligence.consult import CONSULT_LOG
 from src.intelligence.setup_memory import refusal_stamp
 from src.tools.observation_log import OBSERVATION_LOG, _read_jsonl
 
-VERSION = "CONSULT-DQ-v0"
+VERSION = "CONSULT-DQ-v0.1"
 OUT = Path("consult_dq.json")
 
 
@@ -32,20 +32,24 @@ def consult_dq() -> Dict[str, Any]:
     stamps = Counter()
     actions = Counter()
     matches = Counter()
+    by_action: Dict[str, Counter] = {}
     n_joined = 0
     n_complete = 0
     for row in logs:
-        actions[str(row.get("knowledge_action") or "?")] += 1
+        act = str(row.get("knowledge_action") or "?")
+        actions[act] += 1
         matches[str(row.get("match") or "?")] += 1
+        by_action.setdefault(act, Counter())
         obs = by_id.get(str(row.get("obs_id") or ""))
         if not obs:
             stamps["NO_OBS"] += 1
             continue
         n_joined += 1
         fwd = _forward(obs.get("outcome_truth") or {})
-        ret = fwd.get("+1h")
+        ret = fwd.get("fwd_1h_pct")
         stamp = refusal_stamp(ret)
         stamps[stamp] += 1
+        by_action[str(row.get("knowledge_action") or "?")][stamp] += 1
         if stamp not in ("NO_SAMPLE", "UNUSABLE_CLOCK"):
             n_complete += 1
     report = {
@@ -58,6 +62,7 @@ def consult_dq() -> Dict[str, Any]:
         "knowledge_actions": dict(actions),
         "matches": dict(matches),
         "plus_1h_stamps": dict(stamps),
+        "plus_1h_by_action": {k: dict(v) for k, v in by_action.items()},
         "keep": False,
         "take_enable": False,
         "trend_up_enable": False,
@@ -92,6 +97,8 @@ def print_consult_dq() -> Dict[str, Any]:
     print(f"  actions={report.get('knowledge_actions')}")
     print(f"  match={report.get('matches')}")
     print(f"  +1h stamps={report.get('plus_1h_stamps')}")
+    for act, st in (report.get("plus_1h_by_action") or {}).items():
+        print(f"    {act}: {st}")
     print("-" * 64)
     print("  COSTLY wait ≠ TAKE enable. Sparse UNKNOWN is valid. Wave A stays WATCH.")
     if report.get("saved"):

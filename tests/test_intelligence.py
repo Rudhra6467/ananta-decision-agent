@@ -741,7 +741,7 @@ class TestConsultDq(unittest.TestCase):
     def test_consult_dq_empty_is_gap_not_keep(self):
         from src.intelligence.consult_dq import consult_dq
         report = consult_dq()
-        self.assertEqual(report["version"], "CONSULT-DQ-v0")
+        self.assertEqual(report["version"], "CONSULT-DQ-v0.1")
         self.assertFalse(report["keep"])
         self.assertFalse(report["take_enable"])
         self.assertFalse(report["trend_up_enable"])

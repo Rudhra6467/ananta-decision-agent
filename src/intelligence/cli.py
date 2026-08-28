@@ -59,6 +59,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _cmd_cards(key)
     if cmd in ("boards", "board", "rank"):
         return _cmd_boards()
+    if cmd in ("lookup", "state", "recall"):
+        flag = rest[0] if rest else "UP"
+        source = rest[1] if len(rest) > 1 else "replay"
+        return _cmd_lookup(flag, source)
     if cmd in ("h2", "hunter-gates"):
         source = rest[0] if rest else "replay"
         return _cmd_h2(source)
@@ -76,7 +80,7 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab lookup | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
     print("Wave A stays WATCH. lab opportunity = interface lock, not a scanner. H1 live enable rejected.")
 
@@ -342,6 +346,13 @@ def _cmd_boards() -> int:
     from src.intelligence.boards import print_boards
 
     print_boards()
+    return 0
+
+
+def _cmd_lookup(flag: str, source: str) -> int:
+    from src.intelligence.lookup import print_lookup
+
+    print_lookup(flag, source)
     return 0
 
 

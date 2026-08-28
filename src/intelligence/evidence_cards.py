@@ -95,17 +95,17 @@ def cards(strategy: Optional[str] = None) -> Dict[str, Any]:
                 "take_n": n_take,
             }
             card["alignment"] = None
-        elif tape.get("n_setup_tape"):
+        elif tape.get("gate") and tape.get("n_setup_tape"):
             card["known_clash"] = None
             card["alignment"] = {
-                "kind": f"{tape.get('gate') or 'GATE'}_VS_INDEPENDENT",
+                "kind": f"{tape.get('gate')}_VS_INDEPENDENT",
                 "tape": tape.get("independent_trend"),
                 "take_n": n_take,
                 "aligned": tape.get("aligned"),
             }
         else:
-            card["alignment"] = defn.get("alignment")
-            card["known_clash"] = defn.get("known_clash")
+            card["alignment"] = None if tape.get("n_setup_tape") else defn.get("alignment")
+            card["known_clash"] = None if tape.get("n_setup_tape") else defn.get("known_clash")
         card["blended_score"] = None
         card["keep"] = False
         card["live_enable"] = False

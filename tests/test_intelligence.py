@@ -657,6 +657,18 @@ class TestBoards(unittest.TestCase):
                 self.assertFalse(r["keep"])
 
 
+class TestLookup(unittest.TestCase):
+    def test_lookup_is_not_keep(self):
+        from src.intelligence.lookup import lookup
+        report = lookup("UP")
+        self.assertEqual(report["version"], "LOOKUP-v0")
+        self.assertFalse(report["keep"])
+        self.assertFalse(report["similarity"])
+        self.assertFalse(report["ranker"])
+        for r in report.get("rows") or []:
+            self.assertFalse(r["keep"])
+
+
 class TestOpportunityEngine(unittest.TestCase):
     def test_interface_refuses_scan_and_fair_value(self):
         s = opp_spec()

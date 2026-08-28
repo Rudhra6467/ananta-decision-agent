@@ -7,7 +7,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 
-# Replay we actually have today (Donchian after Ananta I2 shadow + lab replay).
+# I2 hist breakout baseline locked 2026-08-28. Do not append turtle/ema here.
+I2_HIST_LOCKED = True
+I2_FAMILIES = ("donchian-breakout", "atr-breakout", "keltner-breakout")
 COVERED_STRATEGIES = ("hunter", "squeeze", "bollinger-mr", "continuation", "donchian-breakout", "atr-breakout", "keltner-breakout")
 COVERED_ASSETS = ("BTC/USD",)
 COVERED_TIMEFRAMES = ("1h",)

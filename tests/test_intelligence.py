@@ -670,6 +670,20 @@ class TestLookup(unittest.TestCase):
             self.assertIn("vs_sitout", r)
 
 
+class TestI2Baseline(unittest.TestCase):
+    def test_baseline_forbids_keep_and_turtle(self):
+        from src.intelligence.i2_baseline import DO_NOT_ADD, I2_FAMILIES, snapshot
+        from src.intelligence.universe_specs import I2_HIST_LOCKED
+        self.assertTrue(I2_HIST_LOCKED)
+        self.assertIn("turtle", DO_NOT_ADD)
+        self.assertIn("donchian-breakout", I2_FAMILIES)
+        report = snapshot()
+        self.assertTrue(report["locked"])
+        self.assertFalse(report["keep"])
+        self.assertFalse(report["trend_up_enable"])
+        self.assertFalse(report["authority_earned"])
+
+
 class TestOpportunityEngine(unittest.TestCase):
     def test_interface_refuses_scan_and_fair_value(self):
         s = opp_spec()

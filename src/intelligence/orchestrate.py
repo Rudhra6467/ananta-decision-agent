@@ -34,22 +34,27 @@ def run_cycle(
         user_intent=ctx.intent,
         user_confirmed=user_confirmed and intent_allows_take(ctx.intent),
     )
-    if persist:
-        record_decision(decision)
-
     from src.intelligence.consult import consult as knowledge_consult
 
     consult_report = knowledge_consult(observation, source="live")
+    slim = {
+        "flag": consult_report.get("flag"),
+        "match": consult_report.get("match"),
+        "n_key": consult_report.get("n_key"),
+        "knowledge_action": consult_report.get("knowledge_action"),
+        "why": consult_report.get("why"),
+        "issued_override": False,
+        "keep": False,
+    }
+    decision.knowledge_consult = slim
+    decision.keep = False
+    if persist:
+        record_decision(decision)
+
     payload = {
         "ok": True,
         "decision": decision.as_dict(),
-        "knowledge_consult": {
-            "flag": consult_report.get("flag"),
-            "knowledge_action": consult_report.get("knowledge_action"),
-            "why": consult_report.get("why"),
-            "issued_override": False,
-            "keep": False,
-        },
+        "knowledge_consult": slim,
         "would_execute": False,
         "execute_blocked_by": _execute_block_reasons(decision),
         "profile": profile.name,

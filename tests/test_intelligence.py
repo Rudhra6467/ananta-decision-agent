@@ -712,6 +712,31 @@ class TestConsult(unittest.TestCase):
         self.assertFalse(report["authority_earned"])
 
 
+class TestLawsAndSitout(unittest.TestCase):
+    def test_take_is_not_keep(self):
+        from src.intelligence.laws import LAWS, VOCAB
+        self.assertTrue(LAWS["take_is_not_keep"])
+        self.assertTrue(LAWS["keep_is_earned_authority"])
+        self.assertTrue(LAWS["live_take_zero_is_watch_not_gap"])
+        self.assertIn("TAKE", VOCAB)
+        self.assertIn("KEEP", VOCAB)
+        self.assertNotEqual(VOCAB["TAKE"], VOCAB["KEEP"])
+
+    def test_decision_dict_carries_take_not_keep(self):
+        d = adjudicate(_take_eq_obs())
+        blob = d.as_dict()
+        self.assertFalse(blob["keep"])
+        self.assertTrue(blob["laws"]["take_is_not_keep"])
+        self.assertTrue(blob["laws"]["live_take_zero_is_watch_not_gap"])
+
+    def test_sitout_is_not_keep(self):
+        from src.intelligence.sitout import sitout
+        report = sitout()
+        self.assertEqual(report["version"], "SITOUT-v0")
+        self.assertFalse(report["keep"])
+        self.assertEqual(report["live_take_zero_means"], "WAVE_A_WATCH")
+
+
 class TestOpportunityEngine(unittest.TestCase):
     def test_interface_refuses_scan_and_fair_value(self):
         s = opp_spec()

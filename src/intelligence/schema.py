@@ -13,6 +13,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from src.intelligence.laws import LAWS
+
 SCHEMA = "decision_v0"
 
 TRADE_ACTIONS = ("TAKE", "SKIP", "WAIT", "HOLD", "EXIT", "REDUCE")
@@ -115,6 +117,8 @@ class TypedDecision:
     wave_a_status: str = "WATCH"
     source: str = "live_paper"
     notes: str = ""
+    knowledge_consult: Optional[Dict[str, Any]] = None
+    keep: bool = False
 
     def __post_init__(self) -> None:
         if not self.ts:
@@ -151,11 +155,19 @@ class TypedDecision:
             "source": self.source,
             "blocked": self.blocked,
             "notes": self.notes,
+            "knowledge_consult": self.knowledge_consult,
+            "keep": False,
             "laws": {
-                "ananta_regime_is_hypothesis": True,
-                "take_on_watch_is_not_keep": True,
-                "skip_is_a_decision": True,
-                "hard_safety_outside_llm": True,
+                **{k: LAWS[k] for k in (
+                    "take_is_not_keep",
+                    "take_eq_is_not_paper_take",
+                    "paper_take_is_not_live_take",
+                    "keep_is_earned_authority",
+                    "live_take_zero_is_watch_not_gap",
+                    "skip_is_a_decision",
+                    "ananta_regime_is_hypothesis",
+                    "hard_safety_outside_llm",
+                )},
                 "no_extra_agents": True,
             },
         }

@@ -18,6 +18,7 @@ from src.tools.observation_log import OBSERVATION_LOG, REPLAY_LOG, _read_jsonl
 
 VERSION = "CONSULT-v0.1"
 OUT = Path("knowledge_consult.json")
+CONSULT_LOG = Path("consult_log.jsonl")
 MIN_KEY_N = 5
 
 
@@ -106,7 +107,30 @@ def consult(observation: Optional[dict] = None, *, source: str = "live") -> Dict
         report["saved"] = str(OUT)
     except Exception:
         report["saved"] = None
+    _append_log(report)
     return report
+
+
+def _append_log(report: dict) -> None:
+    """Append a slim consult so later DQ can score the consults themselves."""
+    slim = {
+        "ts": report.get("obs_id"),
+        "obs_id": report.get("obs_id"),
+        "flag": report.get("flag"),
+        "match": report.get("match"),
+        "n_key": report.get("n_key"),
+        "fp": (report.get("fingerprint") or {}).get("key"),
+        "knowledge_action": report.get("knowledge_action"),
+        "why": report.get("why"),
+        "keep": False,
+        "issued_override": False,
+        "version": report.get("version"),
+    }
+    try:
+        with CONSULT_LOG.open("a") as f:
+            f.write(json.dumps(slim, default=str) + "\n")
+    except Exception:
+        return
 
 
 def print_consult(source: str = "live") -> Dict[str, Any]:

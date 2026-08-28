@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from src.intelligence.fingerprint import from_slot
+from src.intelligence.fingerprint import from_market_truth
 from src.intelligence.lookup import lookup
 from src.tools.observation_log import OBSERVATION_LOG, REPLAY_LOG, _read_jsonl
 
@@ -22,7 +22,9 @@ OUT = Path("knowledge_consult.json")
 def consult(observation: Optional[dict] = None, *, source: str = "live") -> Dict[str, Any]:
     obs = observation if observation is not None else _latest(source)
     mt = (obs or {}).get("market_truth") or {}
-    fp = from_slot(mt)
+    st = (obs or {}).get("system_truth") or {}
+    asset = str(st.get("symbol") or "BTC/USD")
+    fp = from_market_truth(mt, asset)
     flag = str(fp.get("trend") or "UNKNOWN")
     if flag in ("UNKNOWN", "", "NONE"):
         hist = {"rows": [], "source": "historical_lab", "flag": flag}

@@ -167,7 +167,35 @@ def from_record(rec: dict) -> dict:
     return from_slot(slot, breadth=None)
 
 
+def from_market_truth(mt: dict, asset: str = "BTC/USD") -> dict:
+    """Unwrap observation market_truth (assets.BTC/USD) into a fingerprint."""
+    return from_slot(_unwrap(mt, asset))
+
+
+def _unwrap(slot: dict, asset: str = "BTC/USD") -> dict:
+    if not slot or not isinstance(slot, dict):
+        return {}
+    if slot.get("trend") or slot.get("trend_flag"):
+        return slot
+    assets = slot.get("assets")
+    if isinstance(assets, dict):
+        inner = assets.get(asset) or assets.get("BTC/USD") or assets.get("XBTUSD")
+        if not inner:
+            for k, v in assets.items():
+                if isinstance(v, dict) and (v.get("trend_flag") or v.get("trend")):
+                    inner = v
+                    break
+        if isinstance(inner, dict) and inner:
+            return inner
+    for key in ("btc", "BTC", "BTC/USD"):
+        inner = slot.get(key)
+        if isinstance(inner, dict) and (inner.get("trend_flag") or inner.get("trend")):
+            return inner
+    return slot
+
+
 def from_slot(slot: dict, breadth: Any = None) -> dict:
+    slot = _unwrap(slot or {})
     if not slot or slot.get("data_gap"):
         return _gap()
     trend = str(slot.get("trend") or slot.get("trend_flag") or "UNKNOWN").upper() or "UNKNOWN"

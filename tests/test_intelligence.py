@@ -685,6 +685,21 @@ class TestI2Baseline(unittest.TestCase):
 
 
 class TestConsult(unittest.TestCase):
+    def test_nested_live_market_truth_is_not_unknown(self):
+        from src.intelligence.consult import consult
+        obs = {
+            "obs_id": "t1",
+            "system_truth": {"symbol": "BTC/USD"},
+            "market_truth": {
+                "ok": True,
+                "assets": {"BTC/USD": {"trend_flag": "UP", "compression_flag": "NORMAL", "ret_1h_pct": 0.2}},
+            },
+        }
+        report = consult(observation=obs, source="live")
+        self.assertEqual(report["flag"], "UP")
+        self.assertNotEqual(report["knowledge_action"], "TAKE")
+        self.assertFalse(report["keep"])
+
     def test_consult_cannot_take_or_keep(self):
         from src.intelligence.consult import consult
         report = consult(observation={"market_truth": {"trend": "UP"}}, source="live")

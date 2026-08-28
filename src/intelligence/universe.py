@@ -26,10 +26,10 @@ from src.intelligence.evidence_engine import (
 )
 from src.intelligence.fingerprint import from_slot
 from src.intelligence.h2 import _codes, _regime
-from src.intelligence.universe_specs import generate_cells, catalog
+from src.intelligence.universe_specs import generate_cells, catalog, ROUTER_REGIMES
 from src.tools.observation_log import REPLAY_LOG, _read_jsonl
 
-VERSION = "UNIVERSE-v1.3"
+VERSION = "UNIVERSE-v1.3.1"
 LOCKED = "2026-08-25"
 KNOWLEDGE_PATH = Path("universe_knowledge.json")
 
@@ -41,6 +41,7 @@ def research() -> Dict[str, Any]:
     failures: Dict[str, Counter] = {}
     periods: Dict[str, dict] = {}
     tapes: Dict[str, Counter] = {}
+    strat_tapes: Dict[str, Counter] = {}
 
     for obs in rows:
         st = obs.get("system_truth") or {}
@@ -75,7 +76,9 @@ def research() -> Dict[str, Any]:
                     else:
                         slot = mt.get("btc") if isinstance(mt, dict) else None
                 fp = from_slot(slot if isinstance(slot, dict) else {})
-                tapes.setdefault(cid, Counter())[str(fp.get("trend") or "UNKNOWN")] += 1
+                trend = str(fp.get("trend") or "UNKNOWN")
+                tapes.setdefault(cid, Counter())[trend] += 1
+                strat_tapes.setdefault(key, Counter())[trend] += 1
 
     for b in buckets.values():
         _means(b)
@@ -115,6 +118,9 @@ def research() -> Dict[str, Any]:
         "n_unknown": int(fit_counts.get("UNKNOWN") or 0),
         "fit_counts": dict(fit_counts),
         "status_counts": dict(status_counts),
+        "strategy_vs_tape": {
+            k: _gate_vs_tape(k, v) for k, v in strat_tapes.items()
+        },
         "allowed_cards": cards,
         "laws": {
             "offline_research_only": True,
@@ -185,19 +191,29 @@ def print_universe() -> Dict[str, Any]:
             f"conf={c.get('confidence_band'):<9} "
             f"+1h={t.get('verdict')}"
         )
-    clashes = [
+    print("-" * 64)
+    print("  REGIME vs TAPE  (Ananta hypothesis vs independent SMA). Clash ≠ rewrite.")
+    print("  Strategy = all setups vs DNA/router gate. Cell = that regime only.")
+    strat_tape = report.get("strategy_vs_tape") or {}
+    if not strat_tape:
+        print("    no setup tape (replay empty here).")
+    for key in sorted(strat_tape):
+        tv = strat_tape[key]
+        print(
+            f"    {key:<14} gate={tv.get('gate') or '—':<12} "
+            f"clash={tv.get('clash')}  {tv.get('clash_kind') or ''}  "
+            f"tape={tv.get('independent_trend')}  "
+            f"aligned={tv.get('aligned')}/{tv.get('n_setup_tape')}"
+        )
+    cell_clashes = [
         c for c in covered
         if (c.get("regime_vs_tape") or {}).get("clash")
     ]
-    print("-" * 64)
-    print("  REGIME vs TAPE  (Ananta hypothesis vs independent SMA). Clash ≠ rewrite.")
-    if not clashes:
-        print("    no clash cells (or replay empty).")
-    for c in sorted(clashes, key=lambda x: (x["strategy"], x["regime"])):
+    for c in sorted(cell_clashes, key=lambda x: (x["strategy"], x["regime"])):
         tv = c.get("regime_vs_tape") or {}
         print(
-            f"    {c['strategy']:<14} {c['regime']:<12} clash={tv.get('clash_kind')}  "
-            f"tape={tv.get('independent_trend')}  "
+            f"    cell {c['strategy']:<14} {c['regime']:<12} "
+            f"{tv.get('clash_kind')}  tape={tv.get('independent_trend')}  "
             f"aligned={tv.get('aligned')}/{tv.get('n_setup_tape')}"
         )
     print("-" * 64)
@@ -278,13 +294,37 @@ def _score_cell(
     return out
 
 
+def _gate_vs_tape(strategy: str, tape: Optional[Counter]) -> dict:
+    allowed = ROUTER_REGIMES.get(strategy) or frozenset()
+    if "TREND_UP" in allowed:
+        gate = "TREND_UP"
+    elif "TREND_DOWN" in allowed:
+        gate = "TREND_DOWN"
+    else:
+        gate = None
+    out = _regime_vs_tape(gate or "", tape)
+    out["strategy"] = strategy
+    out["gate"] = gate
+    if gate:
+        out["note"] = (
+            f"{strategy} router gate={gate} vs independent SMA on ALL setups. "
+            "Clash is a finding, not a rewrite."
+        )
+    else:
+        out["clash"] = False
+        out["clash_kind"] = None
+        out["expected_independent_trend"] = None
+        out["note"] = f"{strategy} has no TREND_UP/DOWN router gate — no clash test."
+    return out
+
+
 def _regime_vs_tape(ananta_regime: str, tape: Optional[Counter]) -> dict:
     """Ananta regime is a hypothesis. Independent SMA-20 is Market Truth."""
     counts = dict(tape or {})
     n = int(sum(counts.values()))
     expected = _expected_independent_trend(ananta_regime)
     aligned = int(counts.get(expected, 0)) if expected else 0
-    clash = bool(n >= 8 and expected and (aligned / n) < 0.4)
+    clash = bool(n >= 5 and expected and (aligned / n) < 0.4)
     top = None
     if counts:
         top = max(counts.items(), key=lambda kv: kv[1])[0]

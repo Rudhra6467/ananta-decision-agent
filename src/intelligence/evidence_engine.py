@@ -21,7 +21,7 @@ from src.intelligence.universe_specs import (
 VERSION = "EVIDENCE-v0"
 PROVENANCE_SCHEMA = "evidence_provenance_v0"
 DQ_VERSION = "DQ-v0.1"
-UNIVERSE_VERSION = "UNIVERSE-v1.3"
+UNIVERSE_VERSION = "UNIVERSE-v1.3.1"
 OBSERVATION_SCHEMA = "observation_v0"
 OUTCOME_HORIZONS = ("+15m", "+1h", "+4h")
 # Destination sequence. Do not skip to similarity.

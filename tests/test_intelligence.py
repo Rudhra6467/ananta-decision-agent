@@ -10,7 +10,7 @@ from src.intelligence.adjudicate import adjudicate
 from src.intelligence.attribution import attribute_print_ready, _classify, population_role
 from src.intelligence.fingerprint import from_slot, fingerprints, ret_bin
 from src.intelligence.setup_memory import extract, _record, refusal_stamp
-from src.intelligence.universe import fit_from_take, research, _regime_vs_tape
+from src.intelligence.universe import fit_from_take, research, _regime_vs_tape, _gate_vs_tape
 from src.intelligence.universe_specs import generate_cells, catalog
 from src.intelligence.evidence_engine import card_from_cell, status_class, confidence_band, provenance
 from src.intelligence.h2 import _codes, histogram
@@ -410,6 +410,14 @@ class TestUniverse(unittest.TestCase):
         self.assertFalse(clash["rewrite"])
         aligned = _regime_vs_tape("TREND_UP", Counter({"UP": 78, "FLAT": 27, "DOWN": 6}))
         self.assertFalse(aligned["clash"])
+        thin = _regime_vs_tape("TREND_UP", Counter({"DOWN": 2, "FLAT": 4, "UP": 1}))
+        self.assertTrue(thin["clash"])
+        self.assertFalse(thin["rewrite"])
+        cont = _gate_vs_tape("continuation", Counter({"DOWN": 21, "FLAT": 13, "UP": 6}))
+        self.assertTrue(cont["clash"])
+        self.assertEqual(cont["gate"], "TREND_UP")
+        hunter = _gate_vs_tape("hunter", Counter({"UP": 78, "DOWN": 6}))
+        self.assertFalse(hunter["clash"])
 
     def test_research_never_promotes(self):
         report = research()
@@ -420,7 +428,7 @@ class TestUniverse(unittest.TestCase):
         self.assertTrue(all(c.get("live_watch") is False for c in report["cells"]))
         for c in report.get("candidates") or []:
             self.assertIn("not live", c["note"].lower())
-        self.assertEqual(report["version"], "UNIVERSE-v1.3")
+        self.assertEqual(report["version"], "UNIVERSE-v1.3.1")
         for c in report["cells"]:
             self.assertIn(c["status_class"], {
                 "UNTESTED", "TESTED_UNKNOWN", "WASH", "UNSUITABLE", "SUITABLE",

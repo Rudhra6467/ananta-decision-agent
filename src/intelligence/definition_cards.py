@@ -1,7 +1,7 @@
 """Strategy definition cards — I2-lite.
 
 Name the classifiers. Do not rewrite them to remove a clash.
-Donchian is the first I2 family: spec only, no observation_v0, not live.
+Donchian is the first I2 family: hist shadow after Ananta replay, not live.
 
 CLI surfaces these on `lab universe`.
 """
@@ -55,12 +55,12 @@ def cards() -> List[Dict[str, Any]]:
         {
             "strategy": "donchian-breakout",
             "phase": "I2",
-            "status": "SPEC_ONLY",
+            "status": "HIST_SHADOW",
             "live_watch": False,
             "keep": False,
             "rewrite": False,
-            "observation_v0": False,
-            "evaluator": None,
+            "observation_v0": True,
+            "evaluator": "ananta.declarative_engine.evaluate(DECLARATIVE['donchian-breakout'])",
             "thesis": "Channel breakout continuation",
             "family": "breakout",
             "classifiers": {
@@ -71,8 +71,8 @@ def cards() -> List[Dict[str, Any]]:
                 },
                 "setup_rule": {
                     "name": "Donchian high/low channel",
-                    "basis": "Close breaks N-bar high (long) / low (short). N unspecified until Ananta evaluator exists.",
-                    "role": "setup detector — DATA_GAP",
+                    "basis": "Close > 20-bar Donchian high (dc_entry=20). Ananta declarative_engine.",
+                    "role": "setup detector",
                 },
                 "market_truth_trend": {
                     "name": "SMA-20 independent trend_flag",
@@ -81,8 +81,8 @@ def cards() -> List[Dict[str, Any]]:
                 },
             },
             "known_clash": None,
-            "blocked_by": "NO_OBSERVATION_REPLAY",
-            "note": "First I2 family. Catalogued. Not running. Not Wave A.",
+            "blocked_by": "PENDING_REPLAY",
+            "note": "I2 hist shadow in Ananta observation_replay. Re-run lab replay once. Not Wave A. Not live.",
         },
     ]
 

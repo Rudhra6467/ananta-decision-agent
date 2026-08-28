@@ -98,6 +98,70 @@ def cards() -> List[Dict[str, Any]]:
             },
             "note": "I2 hist scored. TAKE-eq 28 on TREND_UP. THIN. Not Wave A. Not live. Not KEEP.",
         },
+        {
+            "strategy": "atr-breakout",
+            "phase": "I2",
+            "status": "HIST_SHADOW",
+            "live_watch": False,
+            "keep": False,
+            "rewrite": False,
+            "observation_v0": True,
+            "evaluator": "ananta.declarative_engine.evaluate(DECLARATIVE['atr-breakout'])",
+            "thesis": "Volatility breakout",
+            "family": "breakout",
+            "classifiers": {
+                "ananta_regime": {
+                    "name": "TREND_UP (thesis)",
+                    "basis": "Breakout DNA — not routed live",
+                    "role": "thesis / research gate",
+                },
+                "setup_rule": {
+                    "name": "ATR channel breakout",
+                    "basis": "Ananta declarative_engine DECLARATIVE['atr-breakout']",
+                    "role": "setup detector",
+                },
+                "market_truth_trend": {
+                    "name": "SMA-20 independent trend_flag",
+                    "basis": "Same Market Truth as Donchian",
+                    "role": "external tape when replay exists",
+                },
+            },
+            "known_clash": None,
+            "blocked_by": "PENDING_REPLAY",
+            "note": "I2 hist shadow. Re-run lab replay once. Not Wave A. Not live. Not KEEP.",
+        },
+        {
+            "strategy": "keltner-breakout",
+            "phase": "I2",
+            "status": "HIST_SHADOW",
+            "live_watch": False,
+            "keep": False,
+            "rewrite": False,
+            "observation_v0": True,
+            "evaluator": "ananta.declarative_engine.evaluate(DECLARATIVE['keltner-breakout'])",
+            "thesis": "Keltner expansion",
+            "family": "breakout",
+            "classifiers": {
+                "ananta_regime": {
+                    "name": "TREND_UP (thesis)",
+                    "basis": "DNA also lists COMPRESSION — named fact, not the research gate",
+                    "role": "thesis / research gate",
+                },
+                "setup_rule": {
+                    "name": "Keltner channel",
+                    "basis": "Ananta declarative_engine DECLARATIVE['keltner-breakout']",
+                    "role": "setup detector",
+                },
+                "market_truth_trend": {
+                    "name": "SMA-20 independent trend_flag",
+                    "basis": "Same Market Truth as Donchian",
+                    "role": "external tape when replay exists",
+                },
+            },
+            "known_clash": None,
+            "blocked_by": "PENDING_REPLAY",
+            "note": "I2 hist shadow. COMPRESSION in DNA ≠ TREND_UP gate. Not live. Not KEEP.",
+        },
     ]
 
 

@@ -26,7 +26,7 @@ VERSION = "FP-v0.1"
 REPORT_PATH = Path("fingerprint_report.json")
 MIN_KEY_N = 5
 MIN_SLICE_KEY_N = 3
-SLICE_ORDER = ("hunter", "squeeze", "bollinger-mr", "continuation")
+SLICE_ORDER = ("hunter", "squeeze", "bollinger-mr", "continuation", "donchian-breakout", "atr-breakout", "keltner-breakout")
 
 
 def fingerprints(source: str = "replay") -> Dict[str, Any]:

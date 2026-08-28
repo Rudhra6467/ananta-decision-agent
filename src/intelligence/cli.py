@@ -54,6 +54,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _cmd_opportunity()
     if cmd in ("universe", "sru", "cells"):
         return _cmd_universe()
+    if cmd in ("cards", "card", "evidence-cards"):
+        key = rest[0] if rest else None
+        return _cmd_cards(key)
     if cmd in ("h2", "hunter-gates"):
         source = rest[0] if rest else "replay"
         return _cmd_h2(source)
@@ -71,7 +74,7 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab universe | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
     print("Wave A stays WATCH. lab opportunity = interface lock, not a scanner. H1 live enable rejected.")
 
@@ -323,6 +326,13 @@ def _cmd_universe() -> int:
     from src.intelligence.universe import print_universe
 
     print_universe()
+    return 0
+
+
+def _cmd_cards(key: Optional[str]) -> int:
+    from src.intelligence.evidence_cards import print_cards
+
+    print_cards(key)
     return 0
 
 

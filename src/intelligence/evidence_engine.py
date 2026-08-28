@@ -4,7 +4,7 @@ Memory may inform TAKE/WAIT/SKIP. Memory may not KEEP.
 No blended 81/100. No LLM-invented 95% confidence.
 Similarity search is later — only after TAKE n is real.
 
-CLI uses Universe cards today: lab universe
+CLI: lab cards  (also lab universe cells)
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from src.intelligence.universe_specs import (
 VERSION = "EVIDENCE-v0"
 PROVENANCE_SCHEMA = "evidence_provenance_v0"
 DQ_VERSION = "DQ-v0.1"
-UNIVERSE_VERSION = "UNIVERSE-v1.3.1"
+UNIVERSE_VERSION = "UNIVERSE-v1.5"
 OBSERVATION_SCHEMA = "observation_v0"
 OUTCOME_HORIZONS = ("+15m", "+1h", "+4h")
 # Destination sequence. Do not skip to similarity.
@@ -35,8 +35,8 @@ SEQUENCE = (
     "Market Truth fingerprints v0",
     "Strategy-conditioned fingerprints v0.1",
     "Universe v1.3 regime vs independent tape",
-    "Opportunity Engine interface lock (I3 mapped, not running)",  # NOW
-    "Evidence cards (cells, not a score)",
+    "Opportunity Engine interface lock (I3 mapped, not running)",
+    "Evidence cards (cells, not a score)",  # NOW lab cards
     "Market-state fingerprints from Market Truth",
     "Similarity search",
     "Contextual ranking (separate boards)",

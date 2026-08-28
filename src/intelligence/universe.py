@@ -30,7 +30,7 @@ from src.intelligence.definition_cards import cards as definition_cards, print_d
 from src.intelligence.universe_specs import generate_cells, catalog, ROUTER_REGIMES, dna_trend_gate
 from src.tools.observation_log import REPLAY_LOG, _read_jsonl
 
-VERSION = "UNIVERSE-v1.4.1"
+VERSION = "UNIVERSE-v1.5"
 LOCKED = "2026-08-25"
 KNOWLEDGE_PATH = Path("universe_knowledge.json")
 
@@ -156,8 +156,7 @@ def research() -> Dict[str, Any]:
             for c in suitable
         ],
         "note": (
-            "Universe v1.4. Continuation classifiers named. "
-            "Donchian is I2 spec-only (no replay, not live). Clash ≠ rewrite."
+            "Universe v1.5. I2 shadows: donchian/atr/keltner. Cards ≠ KEEP. Clash ≠ rewrite."
         ),
     }
     try:

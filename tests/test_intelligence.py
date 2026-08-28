@@ -393,6 +393,19 @@ class TestUniverse(unittest.TestCase):
         self.assertTrue(all(c["coverage"] == "historical_lab" for c in cont))
         self.assertTrue(all(c["live_watch"] is False for c in cont))
         self.assertTrue(any(c["regime"] == "TREND_UP" and c["policy"] == "ROUTER_ONLY" for c in cont))
+        don = [
+            c for c in cells
+            if c["strategy"] == "donchian-breakout" and c["asset"] == "BTC/USD" and c["timeframe"] == "1h"
+        ]
+        self.assertEqual(len(don), 6)
+        self.assertTrue(all(c["coverage"] == "historical_lab" for c in don))
+        self.assertTrue(any(c["regime"] == "TREND_UP" and c["policy"] == "THESIS_ONLY" for c in don))
+        atr = [
+            c for c in cells
+            if c["strategy"] == "atr-breakout" and c["asset"] == "BTC/USD" and c["timeframe"] == "1h"
+        ]
+        self.assertTrue(all(c["live_watch"] is False for c in atr))
+        self.assertTrue(any(c["regime"] == "TREND_UP" and c["policy"] == "THESIS_ONLY" for c in atr))
 
     def test_fit_rules_conservative(self):
         self.assertEqual(
@@ -434,7 +447,7 @@ class TestUniverse(unittest.TestCase):
         self.assertTrue(all(c.get("live_watch") is False for c in report["cells"]))
         for c in report.get("candidates") or []:
             self.assertIn("not live", c["note"].lower())
-        self.assertEqual(report["version"], "UNIVERSE-v1.4.1")
+        self.assertEqual(report["version"], "UNIVERSE-v1.5")
         for c in report["cells"]:
             self.assertIn(c["status_class"], {
                 "UNTESTED", "TESTED_UNKNOWN", "WASH", "UNSUITABLE", "SUITABLE",
@@ -606,7 +619,27 @@ class TestDefinitionCards(unittest.TestCase):
         self.assertFalse(don["keep"])
         self.assertIsNone(don.get("blocked_by"))
         self.assertEqual(don["alignment"]["take_n"], 28)
+        atr = card_for("atr-breakout")
+        self.assertEqual(atr["status"], "HIST_SHADOW")
+        self.assertFalse(atr["live_watch"])
+        self.assertEqual(atr["blocked_by"], "PENDING_REPLAY")
+        kel = card_for("keltner-breakout")
+        self.assertEqual(kel["status"], "HIST_SHADOW")
+        self.assertFalse(kel["keep"])
         self.assertTrue(all(not c["keep"] and not c["live_watch"] for c in def_cards()))
+
+
+class TestEvidenceCards(unittest.TestCase):
+    def test_cards_never_keep(self):
+        from src.intelligence.evidence_cards import cards
+        report = cards()
+        self.assertEqual(report["version"], "CARDS-v0")
+        self.assertFalse(report["keep"])
+        self.assertTrue(report["n_cards"] >= 5)
+        for c in report["cards"]:
+            self.assertFalse(c["keep"])
+            self.assertFalse(c["live_enable"])
+            self.assertIsNone(c.get("blended_score"))
 
 
 class TestOpportunityEngine(unittest.TestCase):

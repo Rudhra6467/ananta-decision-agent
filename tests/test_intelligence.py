@@ -620,12 +620,14 @@ class TestDefinitionCards(unittest.TestCase):
         self.assertIsNone(don.get("blocked_by"))
         self.assertEqual(don["alignment"]["take_n"], 28)
         atr = card_for("atr-breakout")
-        self.assertEqual(atr["status"], "HIST_SHADOW")
+        self.assertEqual(atr["status"], "HIST_SCORED")
         self.assertFalse(atr["live_watch"])
-        self.assertEqual(atr["blocked_by"], "PENDING_REPLAY")
+        self.assertIsNone(atr.get("blocked_by"))
+        self.assertEqual(atr["alignment"]["take_n"], 9)
         kel = card_for("keltner-breakout")
-        self.assertEqual(kel["status"], "HIST_SHADOW")
+        self.assertEqual(kel["status"], "HIST_SCORED")
         self.assertFalse(kel["keep"])
+        self.assertEqual(kel["alignment"]["take_n"], 17)
         self.assertTrue(all(not c["keep"] and not c["live_watch"] for c in def_cards()))
 
 

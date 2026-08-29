@@ -14,7 +14,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-VERSION = "OPP-v0.1"
+VERSION = "OPP-v0.2"
 PHASE = "I2_LOCKED"
 SCAN_LIVE = False
 MISPRICING_EXECUTE = False
@@ -55,6 +55,7 @@ LAWS = {
     "no_hunter_rewrite": True,
     "paper_may_be_aggressive_later": True,
     "live_stays_conservative": True,
+    "incomplete_candidate_is_not_an_opportunity": True,
 }
 
 
@@ -141,6 +142,42 @@ def refuse_fair_value(*, asset: Optional[str] = None) -> Dict[str, Any]:
     }
 
 
+def make_candidate(payload: Optional[dict] = None) -> Dict[str, Any]:
+    """Accept only a complete candidate object. Never live-enables."""
+    payload = payload or {}
+    missing = [f for f in CANDIDATE_FIELDS if not payload.get(f)]
+    return {
+        "ok": not missing,
+        "schema": "opportunity_candidate_v0",
+        "live": False,
+        "execute": False,
+        "keep": False,
+        "missing": missing,
+        "reason": "INCOMPLETE_CANDIDATE" if missing else "CANDIDATE_RECORDED_NOT_LIVE",
+        "candidate": None if missing else {k: payload.get(k) for k in CANDIDATE_FIELDS},
+    }
+
+
+def make_fair_value(payload: Optional[dict] = None) -> Dict[str, Any]:
+    """Refuse LLM prices and incomplete models."""
+    payload = payload or {}
+    missing = [f for f in FAIR_VALUE_FIELDS if payload.get(f) in (None, "", [])]
+    invented = bool(payload.get("llm_invented") or payload.get("model") == "llm")
+    return {
+        "ok": False,
+        "schema": "fair_value_v0",
+        "execute": False,
+        "keep": False,
+        "llm_invented": invented,
+        "missing": missing,
+        "reason": "LLM_INVENTED_FAIR_VALUE" if invented else (
+            "INCOMPLETE_FAIR_VALUE" if missing else "I3_NOT_NOW"
+        ),
+        "fair_value": None,
+        "note": "Even a complete object cannot execute while I3 is interface-only.",
+    }
+
+
 def print_opportunity() -> Dict[str, Any]:
     report = spec()
     print(f"\nOPPORTUNITY ENGINE  {report['version']}  phase={report['phase']}")
@@ -155,6 +192,7 @@ def print_opportunity() -> Dict[str, Any]:
     print("  NOW = I2_LOCKED. Mapped, not running:")
     print("    continuous_scan  INTERFACE_ONLY  live=False")
     print("    fair_value       INTERFACE_ONLY  execute=False  llm_invented=False")
+    print("    candidate_v0     incomplete object is not an opportunity")
     print("-" * 64)
     print("  I1 current → I2 research expansion → I3 opportunity intelligence")
     print("  → I4 DI → I5 human-gated paper → I6 earned autonomy")

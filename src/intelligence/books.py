@@ -18,6 +18,7 @@ ALIASES: Dict[str, str] = {
     "link": "link",
     "xrp": "xrp",
     "aave": "aave",
+    "paxg": "paxg",
     "btc15s": "btc15s",
 }
 
@@ -28,6 +29,7 @@ SYMBOL = {
     "link": "LINK/USD",
     "xrp": "XRP/USD",
     "aave": "AAVE/USD",
+    "paxg": "PAXG/USD",
 }
 
 

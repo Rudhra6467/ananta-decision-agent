@@ -14,13 +14,10 @@ ALIASES: Dict[str, str] = {
     "historical_lab": "replay",
     "btc": "replay",
     "eth": "eth",
-    "replay-eth": "eth",
     "sol": "sol",
-    "replay-sol": "sol",
     "avax": "avax",
-    "replay-avax": "avax",
     "link": "link",
-    "replay-link": "link",
+    "xrp": "xrp",
     "btc15s": "btc15s",
     "btc15-smoke": "btc15s",
     "15m-smoke": "btc15s",
@@ -35,14 +32,15 @@ def ledger_path(source: str = "replay") -> Path:
     b = book(source)
     if b == "live":
         return OBSERVATION_LOG
-    if b == "eth":
-        return replay_path_for(symbol="ETH/USD")
-    if b == "sol":
-        return replay_path_for(symbol="SOL/USD")
-    if b == "avax":
-        return replay_path_for(symbol="AVAX/USD")
-    if b == "link":
-        return replay_path_for(symbol="LINK/USD")
+    mapping = {
+        "eth": "ETH/USD",
+        "sol": "SOL/USD",
+        "avax": "AVAX/USD",
+        "link": "LINK/USD",
+        "xrp": "XRP/USD",
+    }
+    if b in mapping:
+        return replay_path_for(symbol=mapping[b])
     if b == "btc15s":
         return Path("observation_replay_smoke_15m.jsonl")
     return REPLAY_LOG

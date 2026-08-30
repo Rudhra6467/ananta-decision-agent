@@ -4,6 +4,7 @@ Observation ledger — System + Market + Outcome.
 schema: observation_v0
 Same shape for live paper (observation_log.jsonl) and 1y replay
 (observation_replay.jsonl). Never mix the two files.
+ETH / smoke write sibling files. They must not replace the BTC ledger.
 """
 from __future__ import annotations
 
@@ -15,6 +16,15 @@ from typing import Any, Dict, List, Optional
 OBSERVATION_LOG = Path("observation_log.jsonl")
 REPLAY_LOG = Path("observation_replay.jsonl")
 SCHEMA = "observation_v0"
+
+
+def replay_path_for(*, symbol: str = "BTC/USD", smoke: bool = False) -> Path:
+    if smoke:
+        return Path("observation_replay_smoke.jsonl")
+    base = (symbol or "BTC/USD").replace("/", "").replace("-", "").upper()
+    if base in ("BTCUSD", "XBTUSD"):
+        return REPLAY_LOG
+    return Path(f"observation_replay_{base}.jsonl")
 
 
 def _utc_now() -> str:

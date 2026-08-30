@@ -19,6 +19,8 @@ ALIASES: Dict[str, str] = {
     "replay-sol": "sol",
     "avax": "avax",
     "replay-avax": "avax",
+    "link": "link",
+    "replay-link": "link",
     "btc15s": "btc15s",
     "btc15-smoke": "btc15s",
     "15m-smoke": "btc15s",
@@ -39,6 +41,8 @@ def ledger_path(source: str = "replay") -> Path:
         return replay_path_for(symbol="SOL/USD")
     if b == "avax":
         return replay_path_for(symbol="AVAX/USD")
+    if b == "link":
+        return replay_path_for(symbol="LINK/USD")
     if b == "btc15s":
         return Path("observation_replay_smoke_15m.jsonl")
     return REPLAY_LOG

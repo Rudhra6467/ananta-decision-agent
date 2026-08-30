@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from src.intelligence.decision_quality import NOISE_PCT, evidence_depth, score_horizon
 
-VERSION = "GRID-INDEX-v0"
+VERSION = "GRID-INDEX-v0.1"
 CELLS: List[Tuple[str, str]] = [
     ("donchian-breakout", "TREND_UP"),
     ("atr-breakout", "TREND_UP"),
@@ -23,6 +23,7 @@ BOOKS = [
     ("LINK", Path("setup_memory_index_link.json")),
     ("XRP", Path("setup_memory_index_xrp.json")),
     ("AAVE", Path("setup_memory_index_aave.json")),
+    ("PAXG", Path("setup_memory_index_paxg.json")),
 ]
 
 
@@ -86,7 +87,7 @@ def grid_from_index() -> Dict[str, Any]:
         "keep": False,
         "suitable": 0,
         "rows": rows,
-        "note": "From memory indices. No jsonl rescan.",
+        "note": "From memory indices. PAXG MISSING until scored.",
     }
     Path("knowledge_grid.json").write_text(json.dumps(out, indent=2, default=str))
     out["saved"] = "knowledge_grid.json"
@@ -97,7 +98,7 @@ def print_grid_index() -> Dict[str, Any]:
     r = grid_from_index()
     print(f"\nKNOWLEDGE GRID  {r['version']}")
     print("=" * 88)
-    print("7 books from indices. Fast. SUITABLE is not KEEP.")
+    print("Index grid. PAXG MISSING until replay+memory. Not KEEP.")
     print("-" * 88)
     for row in r["rows"]:
         label = f"{row['strategy']} × {row['regime']}"

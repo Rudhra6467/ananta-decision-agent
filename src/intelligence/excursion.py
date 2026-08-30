@@ -1,7 +1,7 @@
-"""Excursion v0 — MFE/MAE proxy from already-joined horizons.
+"""Excursion v0.1 — MFE/MAE proxy from usable horizons only.
 
-Not bar-high/low MFE. Uses max/min of +15m/+1h/+4h close returns.
-True path MFE needs Ananta OHLC highs. This is the offline table now.
+Historical replay +15m is UNUSABLE_CLOCK (known). Use +1h/+4h on hist books.
+Not bar-high/low MFE. Not KEEP.
 """
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ from typing import Any, Dict, List, Optional
 
 from src.intelligence.setup_memory import extract
 
-VERSION = "EXCURSION-v0"
+VERSION = "EXCURSION-v0.1"
 BOOKS = ("replay", "eth", "sol")
 LABEL = {"replay": "BTC", "eth": "ETH", "sol": "SOL"}
-HORIZONS = ("+15m", "+1h", "+4h")
+HIST_HORIZONS = ("+1h", "+4h")  # +15m unusable on historical_lab
 
 CELLS = [
     ("donchian-breakout", "TREND_UP"),
@@ -28,7 +28,7 @@ CELLS = [
 
 def _exc(outcomes: dict) -> Dict[str, Optional[float]]:
     vals = []
-    for h in HORIZONS:
+    for h in HIST_HORIZONS:
         v = (outcomes or {}).get(h)
         if isinstance(v, (int, float)):
             vals.append(float(v))
@@ -72,7 +72,7 @@ def report() -> Dict[str, Any]:
         "ok": True,
         "version": VERSION,
         "ts": datetime.now(timezone.utc).isoformat(),
-        "method": "max/min of +15m/+1h/+4h close returns",
+        "method": "max/min of +1h/+4h close returns (hist +15m excluded)",
         "not": "true high/low path MFE",
         "keep": False,
         "rows": rows,
@@ -86,7 +86,7 @@ def print_excursion() -> Dict[str, Any]:
     r = report()
     print(f"\nEXCURSION  {r['version']}")
     print("=" * 72)
-    print("MFE/MAE proxy from joined horizons. Not KEEP. Not bar-path.")
+    print("MFE/MAE proxy. Hist +15m excluded. Not KEEP. Not bar-path.")
     print(f"  method={r['method']}")
     print("-" * 72)
     print(f"  {'cell':<32} {'bk':<4} {'take':>4} {'MFE':>8} {'MAE':>8}")

@@ -22,6 +22,12 @@ def handle_lab_command(user_input: str) -> bool:
     if raw != "lab" and not raw.startswith("lab "):
         return False
     rest = raw[4:].strip() if raw.startswith("lab ") else ""
+    try:
+        from src.lab_hooks import run_hook
+        if run_hook(rest):
+            return True
+    except Exception:
+        pass
     if rest in ("", "1y", "backtest"):
         run_wave_a_lab("1y")
     elif rest in ("status", "evidence"):
@@ -129,7 +135,7 @@ def handle_lab_command(user_input: str) -> bool:
             "lab replay [BTC/USD] | lab compare | lab understanding | lab observations | "
             "lab wait | lab status | lab coverage | lab system | lab profile | lab di | "
             "lab experiments | lab paper-sim | lab contract | lab attribution | lab quality | lab research | "
-            "lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab consult | lab consult backfill | lab consult-dq | lab sitout | lab memory | lab fingerprints | lab opportunity | lab tables | lab policy | lab gates | lab intent"
+            "lab h2 | lab universe | lab universe eth | lab cards | lab boards | lab lookup | lab baseline | lab consult | lab consult-dq | lab sitout | lab memory | lab fingerprints | lab opportunity | lab tables | lab policy | lab gates | lab intent"
         )
     return True
 
@@ -174,14 +180,14 @@ def _is_di_command(rest: str) -> bool:
 
 
 def print_lab_coverage():
-    from src.tools.ananta_api import get_lab_coverage
-    cov = get_lab_coverage()
+    from src.tools.coverage_client import get_lab_coverage_long
+    cov = get_lab_coverage_long()
     if not cov.get("success"):
         print(f"Coverage failed: {cov.get('error') or cov}")
         return None
     data = cov.get("data") or {}
     rows = data.get("symbols") or []
-    print("\nLAB CANDLE COVERAGE (1h — what Lab/API actually read)")
+    print("\nLAB CANDLE COVERAGE (1h — timeout=120)")
     print("-" * 72)
     weakest = None
     usable_n = 0

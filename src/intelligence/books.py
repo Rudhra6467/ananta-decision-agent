@@ -1,4 +1,4 @@
-"""Named observation books. BTC replay is default. ETH/SOL are sibling files."""
+"""Named observation books. BTC default. ETH/SOL/AVAX are sibling files."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,12 +15,10 @@ ALIASES: Dict[str, str] = {
     "btc": "replay",
     "eth": "eth",
     "replay-eth": "eth",
-    "replay_eth": "eth",
-    "historical_eth": "eth",
     "sol": "sol",
     "replay-sol": "sol",
-    "replay_sol": "sol",
-    "historical_sol": "sol",
+    "avax": "avax",
+    "replay-avax": "avax",
 }
 
 
@@ -36,6 +34,8 @@ def ledger_path(source: str = "replay") -> Path:
         return replay_path_for(symbol="ETH/USD")
     if b == "sol":
         return replay_path_for(symbol="SOL/USD")
+    if b == "avax":
+        return replay_path_for(symbol="AVAX/USD")
     return REPLAY_LOG
 
 

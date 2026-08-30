@@ -1,8 +1,10 @@
 """
 Stage 4 — pull Ananta historical observation replay and persist observation_v0.
 
-Writes observation_replay.jsonl (NEVER mixes into live observation_log.jsonl).
-Historical TAKE is TAKE-equivalent: not a paper fill, not KEEP.
+BTC 1y → observation_replay.jsonl
+ETH     → observation_replay_ETHUSD.jsonl
+smoke   → observation_replay_smoke.jsonl
+Never mix into live observation_log.jsonl.
 """
 from __future__ import annotations
 
@@ -12,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.tools.observation_log import REPLAY_LOG, SCHEMA
+from src.tools.observation_log import REPLAY_LOG, SCHEMA, replay_path_for
 
 WAVE_A = ("hunter", "squeeze", "bollinger-mr")
 DEFAULT_SYMBOLS = ("BTC/USD",)
@@ -23,14 +25,14 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def write_replay_jsonl(observations: List[dict], *, append: bool = False) -> Path:
-    mode = "a" if append and REPLAY_LOG.exists() else "w"
-    with REPLAY_LOG.open(mode) as f:
+def write_replay_jsonl(observations: List[dict], path: Path, *, append: bool = False) -> Path:
+    mode = "a" if append and path.exists() else "w"
+    with path.open(mode) as f:
         for rec in observations:
             rec.setdefault("schema", SCHEMA)
             rec.setdefault("source", "historical_lab")
             f.write(json.dumps(rec, default=str) + "\n")
-    return REPLAY_LOG
+    return path
 
 
 def _print_strategy_evidence(stats: dict) -> None:
@@ -111,20 +113,21 @@ def run_lab_replay(
     if smoke and max_bars is None:
         max_bars = 80
         stride = max(stride, 12)
-        print("SMOKE: max_bars=80 stride bumped. Not a 1y claim.")
+        print("SMOKE: max_bars=80 stride bumped. Writes observation_replay_smoke.jsonl.")
+        print("Does NOT replace observation_replay.jsonl (BTC 1y).")
 
     print()
     print("lab replay — Stage 4 historical Observation")
-    print("source=historical_lab  file=observation_replay.jsonl")
+    print("BTC → observation_replay.jsonl · other symbols → sibling file · smoke → _smoke")
     print("Does not touch observation_log.jsonl (live watcher keeps that).")
     print("Does not KEEP / CUT / enable / rewrite strategies.")
     print()
 
-    combined: List[dict] = []
     payloads: List[dict] = []
-    first = True
+    written: Dict[str, int] = {}
     for sym in symbols:
-        print(f"→ requesting {sym}  stride={stride}  max_bars={max_bars or 'all'} ...")
+        dest = replay_path_for(symbol=sym, smoke=smoke)
+        print(f"→ requesting {sym}  stride={stride}  max_bars={max_bars or 'all'} → {dest}")
         got = get_observation_replay(
             symbol=sym,
             timeframe="1h",
@@ -141,28 +144,23 @@ def run_lab_replay(
         print_replay_summary(data)
         obs = data.get("observations") or []
         if include_observations and obs:
-            write_replay_jsonl(obs, append=not first)
-            first = False
-            combined.extend(obs)
-            print(f"  wrote {len(obs)} rows → {REPLAY_LOG}")
+            write_replay_jsonl(obs, dest, append=False)
+            written[str(dest)] = len(obs)
+            print(f"  wrote {len(obs)} rows → {dest}")
+            if dest != REPLAY_LOG:
+                print(f"  BTC ledger untouched: {REPLAY_LOG}")
         elif not data.get("ok"):
             print(f"  replay not ok: {data.get('error')}")
 
-    n = 0
-    if REPLAY_LOG.exists() and combined:
-        n = len(combined)
-    elif REPLAY_LOG.exists():
-        n = sum(1 for _ in REPLAY_LOG.open())
-
     print()
-    print(f"Replay ledger: {REPLAY_LOG}  rows={n}")
-    print("Next: lab audit replay")
+    print(f"Wrote: {written or 'nothing'}")
+    print(f"BTC 1y ledger remains: {REPLAY_LOG}")
     print("Live watcher is a separate stream (observation_log.jsonl).")
     print()
     return {
         "ok": any(p.get("ok") for p in payloads),
         "symbols": symbols,
-        "n_written": n,
+        "written": written,
         "path": str(REPLAY_LOG),
         "payloads": [
             {k: v for k, v in p.items() if k != "observations"} for p in payloads
@@ -172,9 +170,9 @@ def run_lab_replay(
 
 
 def print_understanding_from_replay() -> None:
-    """Strategy Understanding Report seed — evaluation info, not promotion."""
     from src.tools.ananta_api import get_strategy_knowledge
     from src.tools.observation_log import read_replay_observations
+    from src.tools.observation_log import OBSERVATION_LOG
 
     print()
     print("STRATEGY UNDERSTANDING REPORT  (seed — not KEEP)")
@@ -182,16 +180,13 @@ def print_understanding_from_replay() -> None:
     kn = get_strategy_knowledge()
     objects = ((kn.get("data") or {}).get("strategies") or []) if kn.get("success") else []
     by_id = {s.get("strategy_id"): s for s in objects}
-
     rows = read_replay_observations()
     live_n = 0
     try:
-        from src.tools.observation_log import OBSERVATION_LOG
         if OBSERVATION_LOG.exists():
             live_n = sum(1 for _ in OBSERVATION_LOG.open() if _.strip())
     except Exception:
         live_n = 0
-
     per = {k: Counter() for k in WAVE_A}
     regimes = {k: Counter() for k in WAVE_A}
     for rec in rows:
@@ -207,32 +202,12 @@ def print_understanding_from_replay() -> None:
             if o.get("skip_reason") == "REGIME_FILTERED":
                 per[key]["REGIME_FILTERED"] += 1
                 regimes[key][str(o.get("regime") or "?")] += 1
-
     for key in WAVE_A:
         obj = by_id.get(key) or {}
         print(f"\nSTRATEGY: {obj.get('name') or key.upper()}  ({key})")
-        print(f"  Implementation     : VERIFIED  (Ananta {', '.join((obj.get('implementation_files') or [])[:3])})")
-        print(f"  Strategy Knowledge : {'VERIFIED' if obj else 'MISSING'}")
-        print(f"  Router gates       : {obj.get('actual_router_gates') or obj.get('allowed_regimes')}")
-        print(f"  Thesis regimes     : {obj.get('thesis_regimes')}  ≠ live {obj.get('allowed_regimes')}")
-        print(f"  Historical rows    : {sum(per[key][d] for d in ('TAKE', 'SKIP', 'WAIT', 'UNKNOWN'))}  (source=historical_lab)")
-        print(f"  Historical setups  : {per[key].get('setups', 0)}")
-        print(f"  Historical TAKE-eq : {per[key].get('TAKE', 0)}   (NOT paper TAKE, NOT KEEP)")
-        print(f"  Historical SKIP    : {per[key].get('SKIP', 0)}  REGIME_FILTERED={per[key].get('REGIME_FILTERED', 0)}")
-        print(f"  Historical WAIT    : {per[key].get('WAIT', 0)}")
-        if regimes[key]:
-            print(f"  REGIME_FILTERED in : {dict(regimes[key])}")
-        for c in obj.get("contradictions") or []:
-            print(f"  CONTRADICTION: {c.get('agent_must_say')}")
-        print(f"  Paper observations : {live_n} live ticks (separate file)")
-        print(f"  Understanding conf : {obj.get('understanding_confidence') or 'MEDIUM'}")
-        print(f"  Evidence conf      : LOW  (replay evaluates; does not promote)")
+        print(f"  Historical TAKE-eq : {per[key].get('TAKE', 0)}   (NOT KEEP)")
+        print(f"  Paper observations : {live_n} live ticks")
         print(f"  Current decision   : WATCH")
-        print("  Potential hypotheses: none auto-written. S5 is PROPOSED experiments only.")
-
-    print()
-    print("-" * 64)
     print("Enough information to evaluate ≠ enough evidence to KEEP.")
-    print("Do not modify hunter / squeeze / bollinger-mr from this report.")
     print("=" * 64)
     print()

@@ -5,18 +5,16 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "FINDINGS-v0.2"
+VERSION = "FINDINGS-v0.3"
 GRID = Path("knowledge_grid.json")
 DESK = Path("evidence_desk.json")
 
 
 def _rows() -> List[dict]:
     if GRID.exists():
-        data = json.loads(GRID.read_text())
-        return data.get("rows") or []
+        return json.loads(GRID.read_text()).get("rows") or []
     if DESK.exists():
-        data = json.loads(DESK.read_text())
-        return data.get("rows") or []
+        return json.loads(DESK.read_text()).get("rows") or []
     return []
 
 
@@ -54,17 +52,17 @@ def findings() -> Dict[str, Any]:
         "wash": wash,
         "no_take": no_take,
         "headline": [
-            "Donchian × TREND_UP is TAKE_HURT on AVAX and LINK (ADEQUATE). Repeating, not a fluke.",
-            "Hunter × TREND_UP is NO_TAKE on BTC ETH SOL AVAX LINK. Not a TREND_UP enable.",
+            "Donchian × TREND_UP is asset-conditional: TAKE_HURT AVAX/LINK, WASH XRP/ETH/SOL, thin BTC.",
+            "Hunter × TREND_UP is NO_TAKE on all six 1h books. Not a TREND_UP enable.",
             "Bollinger × COMPRESSION is WASH on every ADEQUATE 1h book. Not KEEP.",
-            "Five 1h books are a prototype Universe. 3-4y and more TFs still ahead.",
+            "Six 1h books = prototype Universe. Next coverage AAVE then 4h / years.",
             "SUITABLE=0. I5 still blocked.",
         ],
         "do_not": [
-            "rewrite Donchian because alts hurt",
+            "rewrite Donchian because two alts hurt",
+            "KEEP Donchian on XRP because WASH",
             "enable TREND_UP",
             "KEEP bollinger",
-            "KEEP from 15m smoke",
             "confuse no-capital with no-development",
         ],
     }
@@ -81,7 +79,7 @@ def print_findings() -> Dict[str, Any]:
         print(f"  {r.get('reason')}")
         print("=" * 64)
         return r
-    print("From knowledge_grid.json. Not KEEP. Not a rewrite.")
+    print("From knowledge_grid.json. Hurt is not universal. Not KEEP.")
     print("-" * 64)
     for line in r.get("headline") or []:
         print(f"  • {line}")

@@ -129,7 +129,7 @@ def handle_lab_command(user_input: str) -> bool:
             "lab replay [BTC/USD] | lab compare | lab understanding | lab observations | "
             "lab wait | lab status | lab coverage | lab system | lab profile | lab di | "
             "lab experiments | lab paper-sim | lab contract | lab attribution | lab quality | lab research | "
-            "lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab consult | lab consult backfill | lab consult-dq | lab sitout | lab memory | lab fingerprints | lab opportunity | lab gates | lab intent"
+            "lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab consult | lab consult backfill | lab consult-dq | lab sitout | lab memory | lab fingerprints | lab opportunity | lab tables | lab policy | lab gates | lab intent"
         )
     return True
 
@@ -155,6 +155,8 @@ DI_COMMANDS = {
     "memory", "setups", "setup-memory",
     "fingerprints", "fingerprint", "fp",
     "opportunity", "opp", "scan",
+    "tables", "table", "knowledge-tables",
+    "policy", "filters", "veto",
     "research",
     "phases", "phase", "roadmap",
     "rank-state", "rankstate", "i4",
@@ -350,7 +352,7 @@ def print_lab_status():
 
 
 def print_strategy_dna():
-    from src.tools.ananta_api import get_strategy_registry, get_strategy_status
+    from src.tools.ananta_api import get_strategy_registry
     print("\nSTRATEGY DNA (from Ananta registry — facts, not Agent ranking)")
     reg = get_strategy_registry()
     if not reg.get("success"):
@@ -363,7 +365,7 @@ def print_strategy_dna():
 
 
 def print_understanding_report():
-    from src.tools.ananta_api import get_lab_coverage, get_strategy_knowledge
+    from src.tools.ananta_api import get_strategy_knowledge
     print("\nSTRATEGY UNDERSTANDING REPORT")
     kn = get_strategy_knowledge()
     if not kn.get("success"):

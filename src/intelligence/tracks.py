@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-VERSION = "TRACKS-v1"
+VERSION = "TRACKS-v1.1"
 
 TRACKS = {
     "T1_LIVE_VALIDATION": {
@@ -16,38 +16,21 @@ TRACKS = {
         "job": "lab watch 15 Wave A frozen",
         "is": "out-of-sample validation",
         "is_not": "the primary research engine",
-        "asks": [
-            "Do states recur?",
-            "Does hist behaviour survive?",
-            "Are WAIT/SKIP useful?",
-            "Does TAKE beat sit-out if it ever appears?",
-            "Do rankings hold on new tape?",
-        ],
     },
     "T2_HIST_UNIVERSE": {
-        "status": "ACTIVE",
-        "job": "one controlled slice at a time through PIPELINE-v1",
-        "done": ["BTC/USD 1h", "ETH/USD 1h"],
-        "next": "SOL/USD 1h existing specs only",
-        "not_next": ["turtle", "ema-cross", "supertrend", "4y dump", "live enable"],
-        "goal": "25+ research hypotheses, not 25 live bots",
+        "status": "PAUSE_ASSETS",
+        "job": "BTC + ETH + SOL 1h scored. SUITABLE=0 on all three.",
+        "done": ["BTC/USD 1h", "ETH/USD 1h", "SOL/USD 1h"],
+        "next": "do not add AVAX/turtle until a cell is SUITABLE or live DQ contradicts WASH",
+        "not_next": ["AVAX", "turtle", "ema-cross", "4y dump", "live enable"],
     },
     "T3_INTELLIGENCE": {
-        "status": "BUILD",
-        "job": "contextual knowledge objects the agent can query",
-        "shape": "state × strategy × n × outcome × risk × regime × recency × DQ",
-        "not_shape": "one blended 87/100 score",
-        "filters": "P1 market state + P2 capability evidence + veto-only",
+        "status": "BASELINE",
+        "job": "knowledge_grid.json + grid_cite. Queryable. Cite cannot TAKE.",
     },
     "T4_SCANNER_FV_DESIGN": {
         "status": "DESIGN_ONLY",
-        "job": "contracts for continuous scan + fair value",
-        "scanner_says": "something interesting is happening",
-        "fv_says": "price vs estimate with uncertainty",
-        "neither_says": "BUY",
-        "live_scan": False,
-        "execute": False,
-        "llm_price": False,
+        "job": "T4-CONTRACT-v0. live_scan=False execute=False llm_price=False",
     },
 }
 
@@ -67,15 +50,7 @@ def spec() -> Dict[str, Any]:
         "ananta_finished": False,
         "tracks": TRACKS,
         "law": LAW,
-        "ladder": [
-            "controlled slice hist",
-            "knowledge tables",
-            "scanner/FV design",
-            "human-gated paper",
-            "forward DQ",
-            "SAFE then MODERATE then AGGRESSIVE autonomy",
-            "KEEP only after evidence",
-        ],
+        "weekend_closed": True,
     }
 
 
@@ -89,7 +64,7 @@ def print_tracks() -> Dict[str, Any]:
     for k, t in r["tracks"].items():
         print(f"  {k:<22} {t.get('status'):<14} {t.get('job')}")
     print("-" * 64)
-    print("  NEXT hist slice = SOL/USD 1h existing specs. Not turtle. Not live.")
+    print("  T2 assets paused. T3 cite works. T4 design only.")
     print("  KEEP / TREND_UP / I5 / I6 still gated.")
     print("=" * 64)
     print()

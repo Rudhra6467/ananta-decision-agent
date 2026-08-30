@@ -1,22 +1,33 @@
-"""Findings card. What the desk already knows. Not KEEP. Not a rewrite."""
+"""Findings card. Prefer knowledge_grid.json. Not KEEP."""
 from __future__ import annotations
 
 import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "FINDINGS-v0.1"
+VERSION = "FINDINGS-v0.2"
+GRID = Path("knowledge_grid.json")
 DESK = Path("evidence_desk.json")
 
 
+def _rows() -> List[dict]:
+    if GRID.exists():
+        data = json.loads(GRID.read_text())
+        return data.get("rows") or []
+    if DESK.exists():
+        data = json.loads(DESK.read_text())
+        return data.get("rows") or []
+    return []
+
+
 def findings() -> Dict[str, Any]:
-    if not DESK.exists():
-        return {"ok": False, "reason": "NO_DESK", "keep": False}
-    data = json.loads(DESK.read_text())
+    rows = _rows()
+    if not rows:
+        return {"ok": False, "reason": "NO_GRID", "keep": False}
     hurt: List[dict] = []
     wash: List[dict] = []
     no_take: List[dict] = []
-    for row in data.get("rows") or []:
+    for row in rows:
         for bk, c in (row.get("books") or {}).items():
             rec = {
                 "strategy": row.get("strategy"),
@@ -40,22 +51,21 @@ def findings() -> Dict[str, Any]:
         "keep": False,
         "suitable": 0,
         "unsuitable_or_hurt": hurt,
-        "wash_adequate_or_labeled": wash,
+        "wash": wash,
         "no_take": no_take,
         "headline": [
-            "Donchian × TREND_UP × AVAX 1h is TAKE_HURT / UNSUITABLE on this version.",
-            "Hunter × TREND_UP is NO_TAKE on BTC ETH SOL AVAX. Not a TREND_UP enable.",
-            "Bollinger × COMPRESSION is WASH where ADEQUATE. Not KEEP.",
-            "BTC 15m smoke n=80 span=15.5d usable_1y=False. All cells UNKNOWN. Pipe works. Not a book.",
+            "Donchian × TREND_UP is TAKE_HURT on AVAX and LINK (ADEQUATE). Repeating, not a fluke.",
+            "Hunter × TREND_UP is NO_TAKE on BTC ETH SOL AVAX LINK. Not a TREND_UP enable.",
+            "Bollinger × COMPRESSION is WASH on every ADEQUATE 1h book. Not KEEP.",
+            "Five 1h books are a prototype Universe. 3-4y and more TFs still ahead.",
             "SUITABLE=0. I5 still blocked.",
         ],
         "do_not": [
-            "rewrite Donchian because AVAX hurt",
+            "rewrite Donchian because alts hurt",
             "enable TREND_UP",
-            "add LINK today",
             "KEEP bollinger",
             "KEEP from 15m smoke",
-            "run 15m max_bars=all this session",
+            "confuse no-capital with no-development",
         ],
     }
     Path("findings.json").write_text(json.dumps(out, indent=2, default=str))
@@ -71,7 +81,7 @@ def print_findings() -> Dict[str, Any]:
         print(f"  {r.get('reason')}")
         print("=" * 64)
         return r
-    print("From evidence_desk.json + 15m smoke lock. Not KEEP.")
+    print("From knowledge_grid.json. Not KEEP. Not a rewrite.")
     print("-" * 64)
     for line in r.get("headline") or []:
         print(f"  • {line}")

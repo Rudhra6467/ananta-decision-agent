@@ -29,6 +29,14 @@ def run_hook(rest: str) -> bool:
         print(f"  usable_1y: {usable_n}/{len(rows)}")
         print()
         return True
+    if r in ("tracks", "track", "four-tracks"):
+        from src.intelligence.tracks import print_tracks
+        print_tracks()
+        return True
+    if r in ("pipeline", "pipe"):
+        from src.intelligence.research_pipeline import print_pipeline
+        print_pipeline()
+        return True
     if r in ("universe eth", "universe replay-eth", "sru eth"):
         from src.intelligence.universe_book import print_universe_book
         print_universe_book("eth")

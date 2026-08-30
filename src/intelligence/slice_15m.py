@@ -1,14 +1,9 @@
-"""Next T2 slice: BTC 15m historical book.
-
-Live watch is already 15m (observation_log). That is T1, not this slice.
-A hist 15m book needs Ananta observation-replay at 15m without overwriting
-observation_replay.jsonl. If the API cannot do that, we do not invent bars.
-"""
+"""BTC 15m hist slice. Smoke passed. Full 1y not earned."""
 from __future__ import annotations
 
 from typing import Any, Dict
 
-VERSION = "SLICE-15M-v0"
+VERSION = "SLICE-15M-v0.1"
 
 
 def spec() -> Dict[str, Any]:
@@ -16,24 +11,26 @@ def spec() -> Dict[str, Any]:
         "ok": True,
         "version": VERSION,
         "keep": False,
-        "live_enable": False,
-        "wanted": {
-            "symbol": "BTC/USD",
-            "timeframe": "15m",
+        "smoke": {
+            "ok": True,
+            "file": "observation_replay_smoke_15m.jsonl",
+            "n": 80,
+            "span_days": 15.5,
+            "usable_1y": False,
+            "ananta_flag_15m": False,
+            "btc_1h_untouched": True,
+        },
+        "full": {
+            "status": "NOT_YET",
             "file": "observation_replay_BTCUSD_15m.jsonl",
-            "must_not_touch": [
-                "observation_replay.jsonl",
-                "observation_log.jsonl",
-            ],
+            "why_wait": "smoke window is 15.5d not 1y; all-bars 15m is huge",
         },
-        "today": {
-            "live_15m": "T1 observation_log.jsonl — already running",
-            "hist_15m_book": "NOT_WIRED",
-        },
-        "gate": "Ananta lab replay must accept timeframe=15m and write a sibling file",
-        "if_missing": "Do not downsample 1h into fake 15m. Leave NOT_WIRED.",
-        "also_ok_instead": "one new strategy family on existing 1h books",
-        "not_today": ["LINK", "XRP", "turtle live", "TREND_UP"],
+        "do_not": [
+            "downsample 1h into fake 15m",
+            "run max_bars=all this session",
+            "replace observation_replay.jsonl",
+            "KEEP from 80-bar smoke",
+        ],
     }
 
 
@@ -41,15 +38,13 @@ def print_slice() -> Dict[str, Any]:
     r = spec()
     print(f"\nT2 NEXT SLICE  {r['version']}")
     print("=" * 64)
-    print("Hist BTC 15m book. Live 15m watch is T1 and already running.")
-    print(f"  hist book: {r['today']['hist_15m_book']}")
-    print(f"  gate: {r['gate']}")
+    print("Smoke 15m OK. Not a 1y book. Not KEEP.")
+    s = r["smoke"]
+    print(f"  file={s['file']} n={s['n']} span={s['span_days']}d usable_1y={s['usable_1y']}")
+    print(f"  Ananta has_15m flag={s['ananta_flag_15m']} (summary quirk — span is 15m density)")
     print("-" * 64)
-    print(f"  want file: {r['wanted']['file']}")
-    print("  must not touch BTC 1y or live log")
-    print("-" * 64)
-    print(f"  if missing: {r['if_missing']}")
-    print("  alt: new family on 1h books already in memory")
+    print(f"  full dump: {r['full']['status']}  {r['full']['why_wait']}")
+    print("  do not: " + "; ".join(r["do_not"]))
     print("=" * 64)
     print()
     return r

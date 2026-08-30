@@ -1,36 +1,29 @@
 """Setup Memory v0 — jsonl join, not a database, not a ranker.
 
-Every setup_detected row becomes a setup_record_v0:
-  observation + outcome + market flags + provenance.
-
-Does not KEEP. Does not rank. Does not search “similar charts.”
-Live and hist stay separate.
-
-CLI: lab memory [live|replay] [strategy] [regime]
+CLI: lab memory [live|replay|eth] [strategy] [regime]
 """
 from __future__ import annotations
 
 import json
 from collections import defaultdict
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.intelligence.attribution import HORIZON_SHORT, _forward, population_role
+from src.intelligence.books import artifact, ledger_path, tag as book_tag
 from src.intelligence.decision_quality import NOISE_PCT, evidence_depth
 from src.intelligence.evidence_engine import provenance
 from src.intelligence.h2 import _codes, _regime
 from src.intelligence.schema import WAVE_A
-from src.tools.observation_log import OBSERVATION_LOG, REPLAY_LOG, _read_jsonl
+from src.tools.observation_log import _read_jsonl
 
-VERSION = "SETUP-MEMORY-v0.1"
-INDEX_PATH = Path("setup_memory_index.json")
+VERSION = "SETUP-MEMORY-v0.2"
 HORIZONS = ("fwd_15m_pct", "fwd_1h_pct", "fwd_4h_pct")
 
 
 def extract(source: str = "replay") -> Dict[str, Any]:
-    path = REPLAY_LOG if source in ("replay", "historical", "historical_lab") else OBSERVATION_LOG
-    tag = "historical_lab" if path == REPLAY_LOG else "live_paper"
+    path = ledger_path(source)
+    tag = book_tag(source)
     rows = _read_jsonl(path)
     records: List[dict] = []
     for obs in rows:
@@ -54,6 +47,7 @@ def extract(source: str = "replay") -> Dict[str, Any]:
         "version": VERSION,
         "ts": datetime.now(timezone.utc).isoformat(),
         "source": tag,
+        "book": str(path),
         "n_obs": len(rows),
         "n_setups": len(records),
         "data_gap": len(rows) == 0,
@@ -68,26 +62,18 @@ def extract(source: str = "replay") -> Dict[str, Any]:
         "records": records,
         "laws": {
             "jsonl_join_not_a_database": True,
-            "setup_only_not_idle_bars": True,
-            "live_and_hist_are_separate": True,
+            "books_are_separate": True,
             "memory_does_not_authorize_keep": True,
-            "memory_is_not_a_ranker": True,
-            "win_rate_is_not_confidence": True,
-            "no_blended_dq_score": True,
-            "wave_a_watch": True,
             "costly_skip_is_not_trend_up_enable": True,
-            "costly_skip_is_not_a_rewrite": True,
         },
-        "note": (
-            "Empirical memory of setups AND refused setups. "
-            "COSTLY skip = tape went up after we said no. That is a finding, not KEEP."
-        ),
+        "note": "Empirical memory. ETH book does not replace BTC replay.",
     }
     slim = dict(report)
-    slim["records"] = f"{len(records)} records omitted from index file — query via lab memory"
+    slim["records"] = f"{len(records)} records omitted from index file"
+    dest = artifact("setup_memory_index", source)
     try:
-        INDEX_PATH.write_text(json.dumps(slim, indent=2, default=str))
-        report["saved"] = str(INDEX_PATH)
+        dest.write_text(json.dumps(slim, indent=2, default=str))
+        report["saved"] = str(dest)
     except Exception:
         report["saved"] = None
     return report
@@ -99,7 +85,7 @@ def print_memory(source: str = "replay", strategy: Optional[str] = None, regime:
     reg = (regime or "").upper().strip() or None
     print(f"\nSETUP MEMORY  {report.get('version')}  ({report.get('source')})")
     print("=" * 64)
-    print("jsonl join. Not a DB. Not a ranker. Not KEEP. Setups + refused-setup aftermath.")
+    print(f"book={report.get('book')}  keep=False")
     print(
         f"  obs={report.get('n_obs')}  setups={report.get('n_setups')}  "
         f"TAKE={report.get('n_take')}  SKIP_SETUP={report.get('n_skip_setup')}  "
@@ -131,7 +117,7 @@ def print_memory(source: str = "replay", strategy: Optional[str] = None, regime:
     if shown == 0:
         print("  no matching setup cells (DATA_GAP or filter empty).")
     print("-" * 64)
-    print("  COSTLY skip ≠ TREND_UP enable. COSTLY skip ≠ Hunter rewrite. Memory ≠ KEEP.")
+    print("  COSTLY skip ≠ TREND_UP enable. Memory ≠ KEEP. ETH ≠ overwrite BTC.")
     print(f"  saved: {report.get('saved')}")
     print("=" * 64)
     print()
@@ -173,7 +159,6 @@ def _record(o: dict, st: dict, mt: dict, fwd: dict, *, ts: str, obs_id: Any, sou
 
 
 def refusal_stamp(ret: Optional[float], *, usable: bool = True) -> str:
-    """What the tape did after we refused. Per-record, not a KEEP score."""
     if not usable:
         return "UNUSABLE_CLOCK"
     if ret is None:
@@ -194,18 +179,9 @@ def _refusal(role: str, outcomes: dict, source: str) -> Optional[dict]:
         return None
     hist = source == "historical_lab"
     return {
-        "+15m": {
-            "ret_pct": outcomes.get("+15m"),
-            "stamp": refusal_stamp(outcomes.get("+15m"), usable=not hist),
-        },
-        "+1h": {
-            "ret_pct": outcomes.get("+1h"),
-            "stamp": refusal_stamp(outcomes.get("+1h")),
-        },
-        "+4h": {
-            "ret_pct": outcomes.get("+4h"),
-            "stamp": refusal_stamp(outcomes.get("+4h")),
-        },
+        "+15m": {"ret_pct": outcomes.get("+15m"), "stamp": refusal_stamp(outcomes.get("+15m"), usable=not hist)},
+        "+1h": {"ret_pct": outcomes.get("+1h"), "stamp": refusal_stamp(outcomes.get("+1h"))},
+        "+4h": {"ret_pct": outcomes.get("+4h"), "stamp": refusal_stamp(outcomes.get("+4h"))},
         "note": "COSTLY = market rose after SKIP. Finding, not a gate to loosen.",
     }
 
@@ -213,8 +189,7 @@ def _refusal(role: str, outcomes: dict, source: str) -> Optional[dict]:
 def _refusal_rollup(records: List[dict]) -> dict:
     c = {"n_costly_1h": 0, "n_protective_1h": 0, "n_wash_1h": 0, "n_no_sample_1h": 0}
     for r in records:
-        ref = r.get("refusal") or {}
-        stamp = ((ref.get("+1h") or {}).get("stamp"))
+        stamp = (((r.get("refusal") or {}).get("+1h") or {}).get("stamp"))
         if stamp == "COSTLY":
             c["n_costly_1h"] += 1
         elif stamp == "PROTECTIVE":
@@ -257,21 +232,12 @@ def _index(records: List[dict]) -> Dict[str, dict]:
         b = buckets.setdefault(
             cid,
             {
-                "id": cid,
-                "strategy": r["strategy"],
-                "asset": r["asset"],
-                "timeframe": r["timeframe"],
-                "regime": r["regime"],
-                "n": 0,
-                "n_take": 0,
-                "n_skip_setup": 0,
-                "n_costly_1h": 0,
-                "n_protective_1h": 0,
-                "n_wash_1h": 0,
-                "mean_1h_take": None,
-                "mean_1h_skip_setup": None,
-                "take_depth": "NONE",
-                "keep": False,
+                "id": cid, "strategy": r["strategy"], "asset": r["asset"],
+                "timeframe": r["timeframe"], "regime": r["regime"],
+                "n": 0, "n_take": 0, "n_skip_setup": 0,
+                "n_costly_1h": 0, "n_protective_1h": 0, "n_wash_1h": 0,
+                "mean_1h_take": None, "mean_1h_skip_setup": None,
+                "take_depth": "NONE", "keep": False,
             },
         )
         b["n"] += 1

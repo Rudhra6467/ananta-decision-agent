@@ -41,6 +41,10 @@ def run_hook(rest: str) -> bool:
         from src.intelligence.universe_book import print_universe_book
         print_universe_book("eth")
         return True
+    if r in ("universe sol", "universe replay-sol", "sru sol"):
+        from src.intelligence.universe_book import print_universe_book
+        print_universe_book("sol")
+        return True
     if r in ("fingerprints eth", "fp eth", "fingerprint eth"):
         from src.intelligence.fp_save import print_fp_book
         print_fp_book("eth")

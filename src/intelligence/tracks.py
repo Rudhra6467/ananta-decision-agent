@@ -1,40 +1,30 @@
-"""Four parallel tracks.
-
-T1 is time-blocked. T2/T3/T4 are not. Capital authority is.
-"""
+"""Four parallel tracks. T1 time-blocked. T2/T3/T4 offline. Capital gated."""
 from __future__ import annotations
 
 from typing import Any, Dict
 
-VERSION = "TRACKS-v1.2"
+VERSION = "TRACKS-v1.3"
 
 TRACKS = {
     "T1_LIVE_VALIDATION": {
         "status": "RUNNING_FROZEN_RULES",
-        "job": "lab watch 15. Needs time. Do not contaminate.",
+        "job": "lab watch 15. Do not contaminate.",
     },
     "T2_HIST_UNIVERSE": {
-        "status": "OFFLINE_ACTIVE",
-        "job": "BTC+ETH+SOL 1h done. Next slice = one TF or one family or one asset, not all three.",
-        "done": ["BTC/USD 1h", "ETH/USD 1h", "SOL/USD 1h"],
+        "status": "PAUSE_1H_COINS",
+        "job": "BTC ETH SOL AVAX 1h scored. First UNSUITABLE=Donchian AVAX UP.",
+        "done": ["BTC/USD 1h", "ETH/USD 1h", "SOL/USD 1h", "AVAX/USD 1h"],
+        "next": "BTC 15m book or one new family — not LINK/XRP today",
     },
     "T3_INTELLIGENCE": {
-        "status": "OFFLINE_ACTIVE",
-        "job": "grid + cite + excursion-v0 (MFE/MAE proxy). Next: richer fingerprints / hist vs live.",
+        "status": "DESK_PLUS_FINDINGS",
+        "job": "grid + excursion + desk + findings.json",
     },
     "T4_SCANNER_FV": {
-        "status": "DESIGN_PLUS_INTERFACE",
-        "job": "contracts exist. Next: named FV estimator interface, still execute=False.",
+        "status": "SMA20_LIVE_ONLY",
+        "job": "sma20_close PIT on live obs. vwap still PENDING. execute=False.",
     },
 }
-
-LAW = (
-    "Unfinished intelligence can be researched offline. "
-    "Nothing earns capital authority until forward DQ proves it."
-)
-NORTH_STAR = (
-    "Not wait-until-I5. Build the machine; evidence grants authority."
-)
 
 
 def spec() -> Dict[str, Any]:
@@ -42,12 +32,9 @@ def spec() -> Dict[str, Any]:
         "ok": True,
         "version": VERSION,
         "keep": False,
-        "ananta_finished": False,
+        "suitable": 0,
         "tracks": TRACKS,
-        "law": LAW,
-        "north_star": NORTH_STAR,
-        "capital_gated": ["I5", "I6", "KEEP", "TREND_UP", "live scanner", "FV execute"],
-        "offline_open": ["T2 slices", "T3 tables", "T4 interfaces"],
+        "law": "Discover offline. Capital waits on forward DQ.",
     }
 
 
@@ -55,13 +42,12 @@ def print_tracks() -> Dict[str, Any]:
     r = spec()
     print(f"\nPROJECT TRACKS  {r['version']}")
     print("=" * 64)
-    print(r["north_star"])
-    print(f"  {r['law']}")
+    print(r["law"])
     print("-" * 64)
     for k, t in r["tracks"].items():
-        print(f"  {k:<22} {t.get('status'):<24} {t.get('job')}")
+        print(f"  {k:<22} {t.get('status'):<22} {t.get('job')}")
     print("-" * 64)
-    print("  capital gated: I5 I6 KEEP TREND_UP live-scan FV-execute")
+    print("  I5 blocked. KEEP false. LINK not today.")
     print("=" * 64)
     print()
     return r

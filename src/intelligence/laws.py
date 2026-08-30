@@ -1,10 +1,7 @@
 """Project laws. TAKE is not KEEP.
 
-TAKE  = one observation: this setup is worth acting on under current policy.
-KEEP  = earned continued authority for a strategy/cell after repeated DQ.
-
-Hist TAKE-eq ≠ paper TAKE ≠ live TAKE ≠ KEEP.
-Live TAKE=0 is WAVE_A_WATCH, not a broken collector.
+Aggressive about discovery and evidence.
+Conservative about capital and authority.
 """
 from __future__ import annotations
 
@@ -29,6 +26,12 @@ LAWS: Dict[str, bool] = {
     "ananta_regime_is_hypothesis": True,
     "hard_safety_outside_llm": True,
     "coverage_is_not_intelligence": True,
+    "aggressive_discovery": True,
+    "conservative_capital": True,
+    "conservative_authority": True,
+    "acquire_years_progressively": True,
+    "do_not_refuse_data_if_pipeline_can_keep_pit": True,
+    "four_years_is_fuel_not_the_process": True,
 }
 
 VOCAB = {
@@ -38,6 +41,7 @@ VOCAB = {
     "SKIP": "Refused a detected setup. Still a decision. Aftermath is COSTLY/PROTECTIVE/WASH.",
     "UNKNOWN": "Not enough evidence to act or to inherit a parent bucket.",
     "WATCH": "Wave A policy: TAKE may be recommended, not issued, not executed.",
+    "DISCOVERY": "Search states, setups, missed setups, outcomes. Not a license to trade.",
 }
 
 

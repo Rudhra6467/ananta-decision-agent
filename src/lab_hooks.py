@@ -41,6 +41,10 @@ def run_hook(rest: str) -> bool:
         from src.intelligence.knowledge_grid import print_grid
         print_grid()
         return True
+    if r in ("t4", "scanner-contract", "fv-contract"):
+        from src.intelligence.t4_contracts import print_t4
+        print_t4()
+        return True
     if r in ("universe eth", "universe replay-eth", "sru eth"):
         from src.intelligence.universe_book import print_universe_book
         print_universe_book("eth")

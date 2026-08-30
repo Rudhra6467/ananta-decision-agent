@@ -1,8 +1,4 @@
-"""Excursion v0.1 — MFE/MAE proxy from usable horizons only.
-
-Historical replay +15m is UNUSABLE_CLOCK (known). Use +1h/+4h on hist books.
-Not bar-high/low MFE. Not KEEP.
-"""
+"""Excursion v0.2 — MFE/MAE proxy; cells aligned to the grid."""
 from __future__ import annotations
 
 import json
@@ -12,17 +8,21 @@ from typing import Any, Dict, List, Optional
 
 from src.intelligence.setup_memory import extract
 
-VERSION = "EXCURSION-v0.1"
+VERSION = "EXCURSION-v0.2"
 BOOKS = ("replay", "eth", "sol")
 LABEL = {"replay": "BTC", "eth": "ETH", "sol": "SOL"}
-HIST_HORIZONS = ("+1h", "+4h")  # +15m unusable on historical_lab
+HIST_HORIZONS = ("+1h", "+4h")
 
 CELLS = [
     ("donchian-breakout", "TREND_UP"),
     ("keltner-breakout", "TREND_UP"),
+    ("atr-breakout", "TREND_UP"),
     ("bollinger-mr", "COMPRESSION"),
-    ("hunter", "TREND_UP"),
+    ("bollinger-mr", "RANGE"),
+    ("continuation", "TREND_UP"),
     ("hunter", "REVERSAL"),
+    ("hunter", "TREND_UP"),
+    ("squeeze", "COMPRESSION"),
 ]
 
 
@@ -42,11 +42,12 @@ def _mean(xs: List[float]) -> Optional[float]:
 
 
 def report() -> Dict[str, Any]:
+    mems = {b: extract(b) for b in BOOKS}
     rows = []
     for strategy, regime in CELLS:
         entry = {"strategy": strategy, "regime": regime, "books": {}, "keep": False}
         for b in BOOKS:
-            mem = extract(b)
+            mem = mems[b]
             mfes, maes = [], []
             n_take = 0
             for rec in mem.get("records") or []:
@@ -73,7 +74,6 @@ def report() -> Dict[str, Any]:
         "version": VERSION,
         "ts": datetime.now(timezone.utc).isoformat(),
         "method": "max/min of +1h/+4h close returns (hist +15m excluded)",
-        "not": "true high/low path MFE",
         "keep": False,
         "rows": rows,
     }
@@ -86,10 +86,7 @@ def print_excursion() -> Dict[str, Any]:
     r = report()
     print(f"\nEXCURSION  {r['version']}")
     print("=" * 72)
-    print("MFE/MAE proxy. Hist +15m excluded. Not KEEP. Not bar-path.")
-    print(f"  method={r['method']}")
-    print("-" * 72)
-    print(f"  {'cell':<32} {'bk':<4} {'take':>4} {'MFE':>8} {'MAE':>8}")
+    print("Grid-aligned cells. Hist +15m excluded. Not KEEP.")
     print("-" * 72)
     for row in r["rows"]:
         label = f"{row['strategy']} × {row['regime']}"
@@ -97,13 +94,11 @@ def print_excursion() -> Dict[str, Any]:
         for bk in ("BTC", "ETH", "SOL"):
             c = row["books"][bk]
             print(
-                f"  {(label if first else ''):<32} {bk:<4} {c['n_take']:>4} "
-                f"{str(c['mean_mfe'] if c['mean_mfe'] is not None else '—'):>8} "
-                f"{str(c['mean_mae'] if c['mean_mae'] is not None else '—'):>8}"
+                f"  {(label if first else ''):<32} {bk:<4} take={c['n_take']:<4} "
+                f"MFE={c['mean_mfe']} MAE={c['mean_mae']}"
             )
             first = False
         print()
-    print("-" * 72)
     print(f"  saved={r['saved']}  keep=False")
     print("=" * 72)
     print()

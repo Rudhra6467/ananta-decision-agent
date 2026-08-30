@@ -1,43 +1,39 @@
-"""Four parallel tracks. Lab complete ≠ Ananta finished.
+"""Four parallel tracks.
 
-Data collection continuous. Research continuous.
-Strategy discovery continuous. Opportunity discovery continuous.
-Capital exposure gated.
+T1 is time-blocked. T2/T3/T4 are not. Capital authority is.
 """
 from __future__ import annotations
 
 from typing import Any, Dict
 
-VERSION = "TRACKS-v1.1"
+VERSION = "TRACKS-v1.2"
 
 TRACKS = {
     "T1_LIVE_VALIDATION": {
-        "status": "RUNNING",
-        "job": "lab watch 15 Wave A frozen",
-        "is": "out-of-sample validation",
-        "is_not": "the primary research engine",
+        "status": "RUNNING_FROZEN_RULES",
+        "job": "lab watch 15. Needs time. Do not contaminate.",
     },
     "T2_HIST_UNIVERSE": {
-        "status": "PAUSE_ASSETS",
-        "job": "BTC + ETH + SOL 1h scored. SUITABLE=0 on all three.",
+        "status": "OFFLINE_ACTIVE",
+        "job": "BTC+ETH+SOL 1h done. Next slice = one TF or one family or one asset, not all three.",
         "done": ["BTC/USD 1h", "ETH/USD 1h", "SOL/USD 1h"],
-        "next": "do not add AVAX/turtle until a cell is SUITABLE or live DQ contradicts WASH",
-        "not_next": ["AVAX", "turtle", "ema-cross", "4y dump", "live enable"],
     },
     "T3_INTELLIGENCE": {
-        "status": "BASELINE",
-        "job": "knowledge_grid.json + grid_cite. Queryable. Cite cannot TAKE.",
+        "status": "OFFLINE_ACTIVE",
+        "job": "grid + cite + excursion-v0 (MFE/MAE proxy). Next: richer fingerprints / hist vs live.",
     },
-    "T4_SCANNER_FV_DESIGN": {
-        "status": "DESIGN_ONLY",
-        "job": "T4-CONTRACT-v0. live_scan=False execute=False llm_price=False",
+    "T4_SCANNER_FV": {
+        "status": "DESIGN_PLUS_INTERFACE",
+        "job": "contracts exist. Next: named FV estimator interface, still execute=False.",
     },
 }
 
 LAW = (
-    "Data collection is continuous. Research is continuous. "
-    "Strategy discovery is continuous. Opportunity discovery is continuous. "
-    "Capital exposure is gated."
+    "Unfinished intelligence can be researched offline. "
+    "Nothing earns capital authority until forward DQ proves it."
+)
+NORTH_STAR = (
+    "Not wait-until-I5. Build the machine; evidence grants authority."
 )
 
 
@@ -46,11 +42,12 @@ def spec() -> Dict[str, Any]:
         "ok": True,
         "version": VERSION,
         "keep": False,
-        "lab_feature_complete": True,
         "ananta_finished": False,
         "tracks": TRACKS,
         "law": LAW,
-        "weekend_closed": True,
+        "north_star": NORTH_STAR,
+        "capital_gated": ["I5", "I6", "KEEP", "TREND_UP", "live scanner", "FV execute"],
+        "offline_open": ["T2 slices", "T3 tables", "T4 interfaces"],
     }
 
 
@@ -58,14 +55,13 @@ def print_tracks() -> Dict[str, Any]:
     r = spec()
     print(f"\nPROJECT TRACKS  {r['version']}")
     print("=" * 64)
-    print("Lab feature-complete ≠ Ananta finished.")
+    print(r["north_star"])
     print(f"  {r['law']}")
     print("-" * 64)
     for k, t in r["tracks"].items():
-        print(f"  {k:<22} {t.get('status'):<14} {t.get('job')}")
+        print(f"  {k:<22} {t.get('status'):<24} {t.get('job')}")
     print("-" * 64)
-    print("  T2 assets paused. T3 cite works. T4 design only.")
-    print("  KEEP / TREND_UP / I5 / I6 still gated.")
+    print("  capital gated: I5 I6 KEEP TREND_UP live-scan FV-execute")
     print("=" * 64)
     print()
     return r

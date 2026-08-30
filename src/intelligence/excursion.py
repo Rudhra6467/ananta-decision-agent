@@ -1,4 +1,4 @@
-"""Excursion v0.2 — MFE/MAE proxy; cells aligned to the grid."""
+"""Excursion v0.3 — MFE/MAE proxy; BTC ETH SOL AVAX."""
 from __future__ import annotations
 
 import json
@@ -8,9 +8,9 @@ from typing import Any, Dict, List, Optional
 
 from src.intelligence.setup_memory import extract
 
-VERSION = "EXCURSION-v0.2"
-BOOKS = ("replay", "eth", "sol")
-LABEL = {"replay": "BTC", "eth": "ETH", "sol": "SOL"}
+VERSION = "EXCURSION-v0.3"
+BOOKS = ("replay", "eth", "sol", "avax")
+LABEL = {"replay": "BTC", "eth": "ETH", "sol": "SOL", "avax": "AVAX"}
 HIST_HORIZONS = ("+1h", "+4h")
 
 CELLS = [
@@ -67,6 +67,7 @@ def report() -> Dict[str, Any]:
                 "n_path": len(mfes),
                 "mean_mfe": _mean(mfes),
                 "mean_mae": _mean(maes),
+                "data_gap": bool(mem.get("data_gap")),
             }
         rows.append(entry)
     out = {
@@ -86,15 +87,15 @@ def print_excursion() -> Dict[str, Any]:
     r = report()
     print(f"\nEXCURSION  {r['version']}")
     print("=" * 72)
-    print("Grid-aligned cells. Hist +15m excluded. Not KEEP.")
+    print("BTC ETH SOL AVAX. Hist +15m excluded. Not KEEP.")
     print("-" * 72)
     for row in r["rows"]:
         label = f"{row['strategy']} × {row['regime']}"
         first = True
-        for bk in ("BTC", "ETH", "SOL"):
+        for bk in ("BTC", "ETH", "SOL", "AVAX"):
             c = row["books"][bk]
             print(
-                f"  {(label if first else ''):<32} {bk:<4} take={c['n_take']:<4} "
+                f"  {(label if first else ''):<32} {bk:<5} take={c['n_take']:<4} "
                 f"MFE={c['mean_mfe']} MAE={c['mean_mae']}"
             )
             first = False

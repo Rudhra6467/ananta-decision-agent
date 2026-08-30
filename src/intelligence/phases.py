@@ -65,9 +65,10 @@ def snapshot() -> Dict[str, Any]:
             "I6 autonomy only after I5 DQ beats sit-out forward.",
         ],
         "data_independent_now": [
-            "I3/I4/I5/I6 contracts (this package).",
-            "Research rank from existing memory.",
-            "Consult-DQ key slices on existing consult_log.",
+            "lab tables — query saved artifacts; do not rescan candles.",
+            "lab policy — two primaries + veto contract; not wired to live watch.",
+            "OPP-v0.2 candidate / fair-value builders refuse incomplete or LLM objects.",
+            "I3/I4/I5/I6 contracts still refuse execute.",
         ],
         "laws": {
             "take_is_not_keep": True,
@@ -77,6 +78,7 @@ def snapshot() -> Dict[str, Any]:
             "rank_cannot_take": True,
             "paper_take_is_human_gated": True,
             "autonomy_is_earned": True,
+            "veto_cannot_create_take": True,
         },
     }
 
@@ -92,5 +94,6 @@ def print_phases() -> Dict[str, Any]:
     print("-" * 64)
     print("  Remaining that NEED more tape: sparse-key n, live TAKE (WATCH), I5/I6.")
     print("  I3 scan / fair-value execute / turtle / TREND_UP / KEEP = still no.")
+    print("  lab tables / lab policy = lookup + contract. Not a trade.")
     print("=" * 64)
     return report

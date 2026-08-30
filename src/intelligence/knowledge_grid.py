@@ -9,10 +9,13 @@ from typing import Any, Dict, List, Optional, Tuple
 from src.intelligence.decision_quality import NOISE_PCT, evidence_depth, score_horizon
 from src.intelligence.setup_memory import extract
 
-VERSION = "GRID-v0.2"
-BOOKS = ("replay", "eth", "sol", "avax", "link")
-BOOK_LABEL = {"replay": "BTC", "eth": "ETH", "sol": "SOL", "avax": "AVAX", "link": "LINK"}
-ORDER = ("BTC", "ETH", "SOL", "AVAX", "LINK")
+VERSION = "GRID-v0.3"
+BOOKS = ("replay", "eth", "sol", "avax", "link", "xrp")
+BOOK_LABEL = {
+    "replay": "BTC", "eth": "ETH", "sol": "SOL",
+    "avax": "AVAX", "link": "LINK", "xrp": "XRP",
+}
+ORDER = ("BTC", "ETH", "SOL", "AVAX", "LINK", "XRP")
 
 CELLS: List[Tuple[str, str]] = [
     ("donchian-breakout", "TREND_UP"),
@@ -84,7 +87,7 @@ def grid() -> Dict[str, Any]:
         "keep": False,
         "suitable": 0,
         "rows": rows,
-        "note": "Five 1h books. Prototype coverage, not the finished Universe.",
+        "note": "Six 1h books. Donchian UP hurt is asset-specific.",
     }
     Path("knowledge_grid.json").write_text(json.dumps(report, indent=2, default=str))
     report["saved"] = "knowledge_grid.json"
@@ -95,7 +98,7 @@ def print_grid() -> Dict[str, Any]:
     report = grid()
     print(f"\nKNOWLEDGE GRID  {report['version']}")
     print("=" * 88)
-    print("cell × 5 books 1h. SUITABLE is not KEEP.")
+    print("cell × 6 books 1h. Hurt is not universal. SUITABLE is not KEEP.")
     print("-" * 88)
     for row in report["rows"]:
         label = f"{row['strategy']} × {row['regime']}"

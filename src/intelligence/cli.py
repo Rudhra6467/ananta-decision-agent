@@ -1,18 +1,4 @@
 """CLI for Decision Intelligence. Also reachable as `lab di` / `lab system` / ...
-
-    python -m src.intelligence system
-    python -m src.intelligence profile
-    python -m src.intelligence profile SAFE
-    python -m src.intelligence di
-    python -m src.intelligence experiments
-    python -m src.intelligence paper-sim
-    python -m src.intelligence contract
-    python -m src.intelligence attribution
-    python -m src.intelligence research hunter
-    python -m src.intelligence universe
-
-
-    python -m src.intelligence intent OBSERVE
 """
 from __future__ import annotations
 
@@ -52,6 +38,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _cmd_fingerprints(rest)
     if cmd in ("opportunity", "opp", "scan"):
         return _cmd_opportunity()
+    if cmd in ("tables", "table", "knowledge-tables"):
+        return _cmd_tables()
+    if cmd in ("policy", "filters", "veto"):
+        return _cmd_policy()
     if cmd in ("universe", "sru", "cells"):
         return _cmd_universe()
     if cmd in ("cards", "card", "evidence-cards"):
@@ -104,7 +94,7 @@ def print_help() -> None:
     print(
         "lab system | lab profile [SAFE|MODERATE|AGGRESSIVE] | lab di | "
         "lab experiments | lab paper-sim | lab contract | lab attribution [live|replay] | "
-        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab phases | lab rank-state | lab catalysts | lab paper-take | lab autonomy | lab consult | lab consult-dq | lab sitout | lab opportunity | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
+        "lab research [hunter] | lab quality | lab h2 | lab universe | lab cards | lab boards | lab lookup | lab baseline | lab phases | lab rank-state | lab catalysts | lab paper-take | lab autonomy | lab consult | lab consult-dq | lab sitout | lab opportunity | lab tables | lab policy | lab gates | lab intent [OBSERVE|RESEARCH|PAPER_TRADE]"
     )
     print("Wave A stays WATCH. lab opportunity = interface lock, not a scanner. H1 live enable rejected.")
 
@@ -115,19 +105,14 @@ def _dump(obj) -> None:
 
 def _cmd_system() -> int:
     from src.intelligence.system_status import completeness
-
     _dump(completeness())
     return 0
 
 
 def _cmd_profile(rest: List[str]) -> int:
     from src.intelligence.profiles import (
-        PROFILES,
-        get_active_profile_name,
-        get_profile,
-        set_active_profile,
+        PROFILES, get_active_profile_name, get_profile, set_active_profile,
     )
-
     if rest:
         name = rest[0]
         if name.lower() in ("show", "list"):
@@ -145,7 +130,6 @@ def _cmd_profile(rest: List[str]) -> int:
 
 def _cmd_di(rest: List[str]) -> int:
     from src.intelligence.orchestrate import run_cycle
-
     persist = "--persist" in rest or "persist" in rest
     result = run_cycle(persist=persist)
     d = result.get("decision") or {}
@@ -181,7 +165,6 @@ def _cmd_di(rest: List[str]) -> int:
 
 def _cmd_experiments(rest: List[str]) -> int:
     from src.intelligence.experiments import approve, list_experiments, propose, try_run
-
     if rest and rest[0] in ("run", "start"):
         exp_id = rest[1] if len(rest) > 1 else "S5-H3"
         _dump(try_run(exp_id))
@@ -199,9 +182,7 @@ def _cmd_experiments(rest: List[str]) -> int:
     print("\nEXPERIMENT LEDGER (H3 measurement / H2 pending Ananta dump / H1 live enable rejected)")
     print("=" * 64)
     for r in rows:
-        print(
-            f"  {r['id']:<8} {r['status']:<24} runnable={r['runnable_now']}  {r['title']}"
-        )
+        print(f"  {r['id']:<8} {r['status']:<24} runnable={r['runnable_now']}  {r['title']}")
         print(f"           blocked: {', '.join(r['blocked_by'])}")
     print("-" * 64)
     print("  try_run never mutates Wave A. H3 report = lab attribution. H1 live enable rejected.")
@@ -211,7 +192,6 @@ def _cmd_experiments(rest: List[str]) -> int:
 
 def _cmd_paper() -> int:
     from src.intelligence.paper import simulate
-
     result = simulate(persist=False)
     print("\nPAPER SIMULATION (no fill, no enable)")
     print("=" * 64)
@@ -225,7 +205,6 @@ def _cmd_paper() -> int:
 
 def _cmd_contract(rest: List[str]) -> int:
     from src.intelligence.contract import contract_spec, probe
-
     if rest and rest[0] in ("probe", "ping"):
         _dump(probe())
         return 0
@@ -242,11 +221,8 @@ def _cmd_contract(rest: List[str]) -> int:
 
 
 def _cmd_attribution(source: str) -> int:
-    import json
     from pathlib import Path
-
     from src.intelligence.attribution import attribute_print_ready
-
     report = attribute_print_ready(source)
     path = Path(
         "attribution_replay.json" if report.get("source") == "historical_lab" else "attribution_live.json"
@@ -275,18 +251,9 @@ def _cmd_attribution(source: str) -> int:
             f"filtered={b.get('n_regime_filtered')}"
         )
         print(f"                 mean +15m / +1h / +4h")
-        print(
-            f"                   TAKE n_1h={(b.get('n_fwd_after_take') or {}).get('fwd_1h_pct', 0)}  "
-            f"{_triple(b.get('mean_fwd_after_take'))}"
-        )
-        print(
-            f"                   SKIP n_1h={(b.get('n_fwd_after_skip') or {}).get('fwd_1h_pct', 0)}  "
-            f"{_triple(b.get('mean_fwd_after_skip'))}"
-        )
-        print(
-            f"                   WAIT n_1h={(b.get('n_fwd_after_wait') or {}).get('fwd_1h_pct', 0)}  "
-            f"{_triple(b.get('mean_fwd_after_wait'))}"
-        )
+        print(f"                   TAKE n_1h={(b.get('n_fwd_after_take') or {}).get('fwd_1h_pct', 0)}  {_triple(b.get('mean_fwd_after_take'))}")
+        print(f"                   SKIP n_1h={(b.get('n_fwd_after_skip') or {}).get('fwd_1h_pct', 0)}  {_triple(b.get('mean_fwd_after_skip'))}")
+        print(f"                   WAIT n_1h={(b.get('n_fwd_after_wait') or {}).get('fwd_1h_pct', 0)}  {_triple(b.get('mean_fwd_after_wait'))}")
     print("-" * 64)
     print("  H3 = this report. Wave A stays WATCH. Not KEEP. Not a trade.")
     if path:
@@ -297,7 +264,6 @@ def _cmd_attribution(source: str) -> int:
 
 def _cmd_research(key: Optional[str]) -> int:
     from src.intelligence.research import research
-
     report = research(key)
     print("\nSTRATEGY RESEARCH")
     print("=" * 64)
@@ -305,14 +271,8 @@ def _cmd_research(key: Optional[str]) -> int:
         print(f"  {s['strategy_id']}  lifecycle={s['lifecycle']}  regimes={s['thesis_allowed_regimes']}")
         live = s.get("live_evidence") or {}
         hist = s.get("historical_evidence") or {}
-        print(
-            f"    live  setup={live.get('n_setup')} take={live.get('n_take')} "
-            f"skip={live.get('n_skip')} filtered={live.get('n_regime_filtered')} gap={live.get('data_gap')}"
-        )
-        print(
-            f"    hist  setup={hist.get('n_setup')} take={hist.get('n_take')} "
-            f"skip={hist.get('n_skip')} filtered={hist.get('n_regime_filtered')} gap={hist.get('data_gap')}"
-        )
+        print(f"    live  setup={live.get('n_setup')} take={live.get('n_take')} skip={live.get('n_skip')} filtered={live.get('n_regime_filtered')} gap={live.get('data_gap')}")
+        print(f"    hist  setup={hist.get('n_setup')} take={hist.get('n_take')} skip={hist.get('n_skip')} filtered={hist.get('n_regime_filtered')} gap={hist.get('data_gap')}")
         print(f"    verdict={s['verdict']}  KEEP=no")
     print("=" * 64)
     return 0
@@ -320,7 +280,6 @@ def _cmd_research(key: Optional[str]) -> int:
 
 def _cmd_memory(rest: List[str]) -> int:
     from src.intelligence.setup_memory import print_memory
-
     source = "replay"
     strat = None
     regime = None
@@ -338,7 +297,6 @@ def _cmd_memory(rest: List[str]) -> int:
 
 def _cmd_fingerprints(rest: List[str]) -> int:
     from src.intelligence.fingerprint import print_fingerprints
-
     source = "replay"
     strat = None
     args = [a for a in rest if a]
@@ -353,84 +311,84 @@ def _cmd_fingerprints(rest: List[str]) -> int:
 
 def _cmd_opportunity() -> int:
     from src.intelligence.opportunity_engine import print_opportunity
-
     print_opportunity()
+    return 0
+
+
+def _cmd_tables() -> int:
+    from src.intelligence.knowledge_tables import print_tables
+    print_tables()
+    return 0
+
+
+def _cmd_policy() -> int:
+    from src.intelligence.policy_contract import print_policy
+    print_policy()
     return 0
 
 
 def _cmd_universe() -> int:
     from src.intelligence.universe import print_universe
-
     print_universe()
     return 0
 
 
 def _cmd_cards(key: Optional[str]) -> int:
     from src.intelligence.evidence_cards import print_cards
-
     print_cards(key)
     return 0
 
 
 def _cmd_boards() -> int:
     from src.intelligence.boards import print_boards
-
     print_boards()
     return 0
 
 
 def _cmd_lookup(flag: str, source: str) -> int:
     from src.intelligence.lookup import print_lookup
-
     print_lookup(flag, source)
     return 0
 
 
 def _cmd_baseline() -> int:
     from src.intelligence.i2_baseline import print_baseline
-
     print_baseline()
     return 0
 
 
 def _cmd_consult(source: str) -> int:
     from src.intelligence.consult import print_consult
-
     print_consult(source if source in ("live", "replay", "historical") else "live")
     return 0
 
 
 def _cmd_sitout() -> int:
     from src.intelligence.sitout import print_sitout
-
     print_sitout()
     return 0
 
 
 def _cmd_consult_backfill(source: str) -> int:
     from src.intelligence.consult import print_backfill
-
     print_backfill(source if source in ("live", "replay") else "live")
     return 0
 
 
 def _cmd_consult_dq() -> int:
     from src.intelligence.consult_dq import print_consult_dq
-
     print_consult_dq()
     return 0
 
 
 def _cmd_h2(source: str) -> int:
     from src.intelligence.h2 import print_h2
-
     print_h2(source)
     return 0
 
 
 def _cmd_quality() -> int:
     from src.intelligence.decision_quality import print_meter
-
     print_meter()
     return 0
 
@@ -438,17 +396,10 @@ def _cmd_quality() -> int:
 def _cmd_gates() -> int:
     from src.intelligence.gates import HARD_ALWAYS, evaluate_gates
     from src.intelligence.profiles import get_profile
-
     allowed, issued, hits = evaluate_gates(
-        recommended_action="TAKE",
-        strategy_key="hunter",
-        setup_detected=True,
-        profile=get_profile(),
-        user_intent="PAPER_TRADE",
-        ananta_ok=True,
-        user_confirmed=True,
-        evidence_confidence=0.9,
-        decision_confidence=0.9,
+        recommended_action="TAKE", strategy_key="hunter", setup_detected=True,
+        profile=get_profile(), user_intent="PAPER_TRADE", ananta_ok=True,
+        user_confirmed=True, evidence_confidence=0.9, decision_confidence=0.9,
     )
     print("\nHARD SAFETY (TAKE hunter, confirmed, high confidence)")
     print("=" * 64)
@@ -466,7 +417,6 @@ def _cmd_gates() -> int:
 
 def _cmd_intent(rest: List[str]) -> int:
     from src.intelligence.user_context import get_user_context, set_user_intent
-
     if rest:
         ctx = set_user_intent(rest[0])
         print(f"→ intent = {ctx.intent}  (PROMOTE/AUTONOMOUS remain blocked)")

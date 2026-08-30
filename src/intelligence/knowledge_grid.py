@@ -1,7 +1,4 @@
-"""Cross-book knowledge grid. Agent reads this instead of three jsonl files.
-
-CLI: python -c "from src.intelligence.knowledge_grid import print_grid; print_grid()"
-"""
+"""Cross-book knowledge grid. Agent reads this instead of jsonl files."""
 from __future__ import annotations
 
 import json
@@ -12,9 +9,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from src.intelligence.decision_quality import NOISE_PCT, evidence_depth, score_horizon
 from src.intelligence.setup_memory import extract
 
-VERSION = "GRID-v0"
-BOOKS = ("replay", "eth", "sol")
-BOOK_LABEL = {"replay": "BTC", "eth": "ETH", "sol": "SOL"}
+VERSION = "GRID-v0.1"
+BOOKS = ("replay", "eth", "sol", "avax")
+BOOK_LABEL = {"replay": "BTC", "eth": "ETH", "sol": "SOL", "avax": "AVAX"}
 
 CELLS: List[Tuple[str, str]] = [
     ("donchian-breakout", "TREND_UP"),
@@ -59,7 +56,9 @@ def vs_sitout(take_n: int, take_mean: Optional[float], skip_mean: Optional[float
 
 
 def grid() -> Dict[str, Any]:
-    mems = {b: extract(b) for b in BOOKS}
+    mems = {}
+    for b in BOOKS:
+        mems[b] = extract(b)
     rows = []
     for strategy, regime in CELLS:
         entry = {"strategy": strategy, "regime": regime, "timeframe": "1h", "keep": False, "books": {}}
@@ -76,6 +75,7 @@ def grid() -> Dict[str, Any]:
                 "+1h_TAKE": take_m,
                 "+1h_SKIP": skip_m,
                 "vs_sitout": vs_sitout(n_take, take_m, skip_m),
+                "data_gap": bool(mems[b].get("data_gap")),
             }
         rows.append(entry)
     report = {
@@ -85,7 +85,7 @@ def grid() -> Dict[str, Any]:
         "keep": False,
         "suitable": 0,
         "rows": rows,
-        "note": "Queryable memory. WASH/UNKNOWN first-class. Not a ranker.",
+        "note": "Queryable. AVAX gap is honest if replay file missing.",
     }
     Path("knowledge_grid.json").write_text(json.dumps(report, indent=2, default=str))
     report["saved"] = "knowledge_grid.json"
@@ -96,23 +96,20 @@ def print_grid() -> Dict[str, Any]:
     report = grid()
     print(f"\nKNOWLEDGE GRID  {report['version']}")
     print("=" * 88)
-    print("cell × BTC/ETH/SOL. Queryable. SUITABLE is not KEEP.")
-    print("-" * 88)
-    print(f"  {'cell':<32} {'bk':<4} {'n':>4} {'take':>4} {'depth':<10} {'+1h TAKE':>10} {'vs sit-out'}")
+    print("cell × BTC/ETH/SOL/AVAX. Queryable. SUITABLE is not KEEP.")
     print("-" * 88)
     for row in report["rows"]:
         label = f"{row['strategy']} × {row['regime']}"
         first = True
-        for bk in ("BTC", "ETH", "SOL"):
+        for bk in ("BTC", "ETH", "SOL", "AVAX"):
             c = row["books"][bk]
+            gap = " GAP" if c.get("data_gap") else ""
             print(
-                f"  {(label if first else ''):<32} {bk:<4} {c['n']:>4} {c['n_take']:>4} "
-                f"{str(c['depth']):<10} {str(c['+1h_TAKE'] if c['+1h_TAKE'] is not None else '—'):>10} "
-                f"{c['vs_sitout']}"
+                f"  {(label if first else ''):<32} {bk:<5} n={c['n']:<4} take={c['n_take']:<4} "
+                f"{c['vs_sitout']}{gap}"
             )
             first = False
         print()
-    print("-" * 88)
     print(f"  SUITABLE={report['suitable']}  saved={report['saved']}  keep=False")
     print("=" * 88)
     print()

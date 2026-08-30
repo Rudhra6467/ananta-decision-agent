@@ -10,42 +10,18 @@ from typing import Any, Dict, List
 CURRENT = "I2_LOCKED"
 
 PHASES: List[Dict[str, str]] = [
-    {
-        "id": "I1",
-        "name": "EVIDENCE_LAB",
-        "status": "DONE",
-        "means": "Wave A watch, replay, DQ, Universe, memory, fingerprints, consult",
-    },
-    {
-        "id": "I2",
-        "name": "RESEARCH_EXPANSION",
-        "status": "LOCKED",
-        "means": "Donchian/ATR/Keltner hist shadow. SUITABLE=0. No turtle/ema.",
-    },
-    {
-        "id": "I3",
-        "name": "OPPORTUNITY_INTELLIGENCE",
-        "status": "INTERFACE",
-        "means": "Scanner + fair-value + catalysts. Refuse live scan/execute.",
-    },
-    {
-        "id": "I4",
-        "name": "DECISION_INTELLIGENCE",
-        "status": "INTERFACE",
-        "means": "Rank for a tape flag from memory. Issued WAIT/UNKNOWN only.",
-    },
-    {
-        "id": "I5",
-        "name": "FORWARD_PAPER",
-        "status": "BLOCKED",
-        "means": "Human-gated paper TAKE. Needs SUITABLE cell + vs_sitout edge.",
-    },
-    {
-        "id": "I6",
-        "name": "EARNED_AUTONOMY",
-        "status": "BLOCKED",
-        "means": "SAFE/MODERATE/AGGRESSIVE are parameters, not authority.",
-    },
+    {"id": "I1", "name": "EVIDENCE_LAB", "status": "DONE",
+     "means": "Wave A watch, replay, DQ, Universe, memory, fingerprints, consult"},
+    {"id": "I2", "name": "RESEARCH_EXPANSION", "status": "LOCKED",
+     "means": "Donchian/ATR/Keltner hist shadow. SUITABLE=0. No turtle/ema."},
+    {"id": "I3", "name": "OPPORTUNITY_INTELLIGENCE", "status": "INTERFACE",
+     "means": "Scanner + fair-value + catalysts. Refuse live scan/execute."},
+    {"id": "I4", "name": "DECISION_INTELLIGENCE", "status": "INTERFACE",
+     "means": "Rank for a tape flag from memory. Issued WAIT/UNKNOWN only."},
+    {"id": "I5", "name": "FORWARD_PAPER", "status": "BLOCKED",
+     "means": "Human-gated paper TAKE. Needs SUITABLE cell + vs_sitout edge."},
+    {"id": "I6", "name": "EARNED_AUTONOMY", "status": "BLOCKED",
+     "means": "SAFE/MODERATE/AGGRESSIVE are parameters, not authority."},
 ]
 
 
@@ -60,13 +36,15 @@ def snapshot() -> Dict[str, Any]:
         "phases": list(PHASES),
         "data_dependent_remaining": [
             "More live tape for sparse keys (n>=5) and live TAKE samples (still WATCH).",
+            "Longer hist years only when Ananta candle coverage exists.",
             "Re-open I2 only if a cell is SUITABLE or live DQ contradicts hist WASH.",
             "I5 paper TAKE only after SUITABLE + TAKE_GT_SITOUT + human confirm.",
             "I6 autonomy only after I5 DQ beats sit-out forward.",
         ],
         "data_independent_now": [
+            "PIPELINE-v1 process lock (lab pipeline / research_pipeline.py).",
             "lab tables — query saved artifacts; do not rescan candles.",
-            "lab policy — two primaries + veto contract; not wired to live watch.",
+            "lab policy — two primaries + veto; not wired to live watch.",
             "OPP-v0.2 candidate / fair-value builders refuse incomplete or LLM objects.",
             "I3/I4/I5/I6 contracts still refuse execute.",
         ],
@@ -79,6 +57,9 @@ def snapshot() -> Dict[str, Any]:
             "paper_take_is_human_gated": True,
             "autonomy_is_earned": True,
             "veto_cannot_create_take": True,
+            "point_in_time_only": True,
+            "india_after_trust": True,
+            "four_years_is_fuel_not_the_process": True,
         },
     }
 
@@ -93,7 +74,7 @@ def print_phases() -> Dict[str, Any]:
         print(f"  {p['id']:<4} {mark:<4}  {p['name']:<28} {p['means']}")
     print("-" * 64)
     print("  Remaining that NEED more tape: sparse-key n, live TAKE (WATCH), I5/I6.")
-    print("  I3 scan / fair-value execute / turtle / TREND_UP / KEEP = still no.")
-    print("  lab tables / lab policy = lookup + contract. Not a trade.")
+    print("  I3 scan / fair-value execute / turtle / TREND_UP / KEEP / 4y dump = still no.")
+    print("  PIPELINE-v1 = process. Adapters later. India after Trust.")
     print("=" * 64)
     return report

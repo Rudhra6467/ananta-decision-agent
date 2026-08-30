@@ -9,9 +9,10 @@ from typing import Any, Dict, List, Optional, Tuple
 from src.intelligence.decision_quality import NOISE_PCT, evidence_depth, score_horizon
 from src.intelligence.setup_memory import extract
 
-VERSION = "GRID-v0.1"
-BOOKS = ("replay", "eth", "sol", "avax")
-BOOK_LABEL = {"replay": "BTC", "eth": "ETH", "sol": "SOL", "avax": "AVAX"}
+VERSION = "GRID-v0.2"
+BOOKS = ("replay", "eth", "sol", "avax", "link")
+BOOK_LABEL = {"replay": "BTC", "eth": "ETH", "sol": "SOL", "avax": "AVAX", "link": "LINK"}
+ORDER = ("BTC", "ETH", "SOL", "AVAX", "LINK")
 
 CELLS: List[Tuple[str, str]] = [
     ("donchian-breakout", "TREND_UP"),
@@ -56,9 +57,7 @@ def vs_sitout(take_n: int, take_mean: Optional[float], skip_mean: Optional[float
 
 
 def grid() -> Dict[str, Any]:
-    mems = {}
-    for b in BOOKS:
-        mems[b] = extract(b)
+    mems = {b: extract(b) for b in BOOKS}
     rows = []
     for strategy, regime in CELLS:
         entry = {"strategy": strategy, "regime": regime, "timeframe": "1h", "keep": False, "books": {}}
@@ -85,7 +84,7 @@ def grid() -> Dict[str, Any]:
         "keep": False,
         "suitable": 0,
         "rows": rows,
-        "note": "Queryable. AVAX gap is honest if replay file missing.",
+        "note": "Five 1h books. Prototype coverage, not the finished Universe.",
     }
     Path("knowledge_grid.json").write_text(json.dumps(report, indent=2, default=str))
     report["saved"] = "knowledge_grid.json"
@@ -96,17 +95,16 @@ def print_grid() -> Dict[str, Any]:
     report = grid()
     print(f"\nKNOWLEDGE GRID  {report['version']}")
     print("=" * 88)
-    print("cell × BTC/ETH/SOL/AVAX. Queryable. SUITABLE is not KEEP.")
+    print("cell × 5 books 1h. SUITABLE is not KEEP.")
     print("-" * 88)
     for row in report["rows"]:
         label = f"{row['strategy']} × {row['regime']}"
         first = True
-        for bk in ("BTC", "ETH", "SOL", "AVAX"):
+        for bk in ORDER:
             c = row["books"][bk]
-            gap = " GAP" if c.get("data_gap") else ""
             print(
                 f"  {(label if first else ''):<32} {bk:<5} n={c['n']:<4} take={c['n_take']:<4} "
-                f"{c['vs_sitout']}{gap}"
+                f"{c['vs_sitout']}"
             )
             first = False
         print()

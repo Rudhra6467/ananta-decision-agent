@@ -14,7 +14,6 @@ import requests
 KRAKEN_TICKER = "https://api.kraken.com/0/public/Ticker"
 KRAKEN_OHLC = "https://api.kraken.com/0/public/OHLC"
 
-# Kraken pair ids → canonical symbols
 PAIRS = {
     "XXBTZUSD": "BTC/USD",
     "XETHZUSD": "ETH/USD",
@@ -45,6 +44,29 @@ def _kraken_get(url: str, params: dict, timeout: int = 12) -> Optional[dict]:
         return body.get("result") or {}
     except Exception:
         return None
+
+
+def _session_vwap(rows: list, highs: list, lows: list, closes: list) -> Optional[float]:
+    """UTC-day VWAP from 1h bars already in hand. PIT at capture."""
+    if not rows:
+        return None
+    now = datetime.now(timezone.utc)
+    start = int(datetime(now.year, now.month, now.day, tzinfo=timezone.utc).timestamp())
+    num = den = 0.0
+    for x, h, l, c in zip(rows, highs, lows, closes):
+        try:
+            t = int(x[0])
+            vol = float(x[6]) if len(x) > 6 else 0.0
+        except (TypeError, ValueError, IndexError):
+            continue
+        if t < start or vol <= 0:
+            continue
+        typ = (h + l + c) / 3.0
+        num += typ * vol
+        den += vol
+    if den <= 0:
+        return None
+    return round(num / den, 4)
 
 
 def _ohlc_metrics(pair: str) -> Dict[str, Any]:
@@ -97,6 +119,8 @@ def _ohlc_metrics(pair: str) -> Dict[str, Any]:
         ratio = recent / longer
         compression = "COMPRESSION" if ratio < 0.45 else ("EXPANSION" if ratio > 0.9 else "NORMAL")
 
+    session_vwap = _session_vwap(rows, highs, lows, closes)
+
     return {
         "ret_1h_pct": ret(1),
         "ret_4h_pct": ret(4),
@@ -105,6 +129,8 @@ def _ohlc_metrics(pair: str) -> Dict[str, Any]:
         "trend_flag": trend,
         "compression_flag": compression,
         "sma_ref": round(sma, 4),
+        "session_vwap": session_vwap,
+        "vwap": session_vwap,
         "bars_used": len(closes),
     }
 

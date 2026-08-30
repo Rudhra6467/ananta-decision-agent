@@ -37,6 +37,10 @@ def run_hook(rest: str) -> bool:
         from src.intelligence.research_pipeline import print_pipeline
         print_pipeline()
         return True
+    if r in ("grid", "knowledge-grid", "knowledge grid"):
+        from src.intelligence.knowledge_grid import print_grid
+        print_grid()
+        return True
     if r in ("universe eth", "universe replay-eth", "sru eth"):
         from src.intelligence.universe_book import print_universe_book
         print_universe_book("eth")

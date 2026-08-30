@@ -1,26 +1,26 @@
-"""Market Research & Evidence Pipeline v1.1.
+"""Market Research & Evidence Pipeline v1.2.
 
-Want the years. Run them through this pipe. Do not dump everything at once.
+Four tracks. Lab complete ≠ product finished.
 Aggressive discovery. Conservative capital. Conservative authority.
 """
 from __future__ import annotations
 
 from typing import Any, Dict, List
 
-VERSION = "PIPELINE-v1.1"
+VERSION = "PIPELINE-v1.2"
 RUN_EVERYTHING = False
 ACQUIRE_YEARS = True
 YEARS_TARGET = "3-4 if Ananta can serve PIT-clean candles"
-YEARS_NOW = "~1.2 BTC 1h historical_lab + live 15m Wave A"
+YEARS_NOW = "~1.2y BTC 1h + ETH 1h books + live 15m Wave A"
 
 NEXT_SLICE = {
-    "asset": "ETH/USD",
+    "asset": "SOL/USD",
     "timeframe": "1h",
     "family": "existing specs only",
     "live": False,
     "keep": False,
-    "needs": "Ananta observation-replay coverage for ETH/USD 1h",
-    "alt": "BTC/USD 15m if ETH coverage is short",
+    "needs": "lab replay SOL/USD after git pull (sibling file)",
+    "alt": "BTC/USD 15m if SOL replay is short",
 }
 
 STAGES: List[str] = [
@@ -85,31 +85,25 @@ def spec() -> Dict[str, Any]:
             "forbidden_at_decision": list(PIT_FORBIDDEN),
             "join_after": list(POST_ONLY),
         },
-        "objective": "live situation → resemble prior states → which capabilities handled them → evidence depth → act or not",
-        "not_objective": "wait for authority as the only project motion",
+        "objective": "state → similar hist → which capabilities → evidence depth → TAKE/WAIT/SKIP/UNKNOWN",
+        "not_objective": "wait for tape as the only project motion",
         "stance": {
             "discovery": "aggressive",
             "evidence": "aggressive",
             "capital": "conservative",
             "authority": "conservative",
         },
-        "reuse_existing": [
-            "observation_v0", "market_truth", "lab_replay", "outcome_truth",
-            "decision_quality", "universe", "setup_memory", "fingerprints",
-            "evidence_cards", "knowledge_tables",
-        ],
-        "do_not_fork": "a second crypto-only analytics product",
+        "four_tracks": True,
         "laws": {
             "point_in_time_only": True,
             "acquire_years_progressively": True,
-            "do_not_refuse_data_if_pipeline_can_keep_pit": True,
-            "adapter_not_new_brain": True,
-            "india_after_trust": True,
             "coverage_is_not_intelligence": True,
-            "ananta_owns_candles": True,
             "wave_a_frozen": True,
+            "i2_families_locked": True,
+            "asset_slices_allowed": True,
             "aggressive_discovery": True,
             "conservative_capital": True,
+            "capital_exposure_is_gated": True,
         },
     }
 
@@ -121,8 +115,7 @@ def refuse_bulk_score(*, years: int = 4, assets: int = 10) -> Dict[str, Any]:
         "reason": "NO_RUN_EVERYTHING",
         "requested": {"years": years, "assets": assets},
         "keep": False,
-        "acquire_years": True,
-        "note": "Get the years. Score one named slice through this pipe. Do not refuse the data.",
+        "note": "One named slice. Do not dump 4y × all assets.",
     }
 
 
@@ -131,18 +124,17 @@ def print_pipeline() -> Dict[str, Any]:
     sl = report["next_slice"]
     print(f"\nRESEARCH PIPELINE  {report['version']}")
     print("=" * 64)
-    print("Acquire years progressively. Do not dump everything. Not KEEP.")
+    print("Four tracks. Lab complete ≠ finished. Not KEEP.")
     print(f"  now={report['years_now']}")
     print(f"  want={report['years_target']}")
-    print(f"  stance=discover-aggressive  capital-conservative  authority-conservative")
+    print("  stance=discover-aggressive  capital-conservative  authority-conservative")
     print("-" * 64)
     print(f"  NEXT SLICE  {sl['asset']} {sl['timeframe']}  live={sl['live']}")
     print(f"    needs={sl['needs']}")
     print(f"    alt={sl['alt']}")
     print("-" * 64)
     print("  ladder: " + " → ".join(report["ladder"]))
-    print("  crypto adapter NOW. India/Canada/US = slots after Trust.")
-    print("  PIT at decision. Outcomes/MFE/MAE join after.")
+    print("  T1 watch  T2 hist slice  T3 knowledge tables  T4 scanner/FV design")
     print("=" * 64)
     print()
     return report

@@ -5,64 +5,45 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "FINDINGS-v0.3"
+VERSION = "FINDINGS-v0.4"
 GRID = Path("knowledge_grid.json")
-DESK = Path("evidence_desk.json")
-
-
-def _rows() -> List[dict]:
-    if GRID.exists():
-        return json.loads(GRID.read_text()).get("rows") or []
-    if DESK.exists():
-        return json.loads(DESK.read_text()).get("rows") or []
-    return []
 
 
 def findings() -> Dict[str, Any]:
-    rows = _rows()
-    if not rows:
+    if not GRID.exists():
         return {"ok": False, "reason": "NO_GRID", "keep": False}
+    rows = json.loads(GRID.read_text()).get("rows") or []
     hurt: List[dict] = []
-    wash: List[dict] = []
-    no_take: List[dict] = []
     for row in rows:
         for bk, c in (row.get("books") or {}).items():
-            rec = {
-                "strategy": row.get("strategy"),
-                "regime": row.get("regime"),
-                "book": bk,
-                "n_take": c.get("n_take"),
-                "vs_sitout": c.get("vs_sitout"),
-                "+1h_TAKE": c.get("+1h_TAKE"),
-                "keep": False,
-            }
-            vs = c.get("vs_sitout")
-            if vs in ("TAKE_HURT", "TAKE_LE_SITOUT"):
-                hurt.append(rec)
-            elif vs == "WASH":
-                wash.append(rec)
-            elif vs == "NO_TAKE":
-                no_take.append(rec)
+            if c.get("vs_sitout") in ("TAKE_HURT", "TAKE_LE_SITOUT"):
+                hurt.append({
+                    "strategy": row.get("strategy"),
+                    "regime": row.get("regime"),
+                    "book": bk,
+                    "n_take": c.get("n_take"),
+                    "vs_sitout": c.get("vs_sitout"),
+                    "+1h_TAKE": c.get("+1h_TAKE"),
+                    "keep": False,
+                })
     out = {
         "ok": True,
         "version": VERSION,
         "keep": False,
         "suitable": 0,
         "unsuitable_or_hurt": hurt,
-        "wash": wash,
-        "no_take": no_take,
         "headline": [
-            "Donchian × TREND_UP is asset-conditional: TAKE_HURT AVAX/LINK, WASH XRP/ETH/SOL, thin BTC.",
-            "Hunter × TREND_UP is NO_TAKE on all six 1h books. Not a TREND_UP enable.",
-            "Bollinger × COMPRESSION is WASH on every ADEQUATE 1h book. Not KEEP.",
-            "Six 1h books = prototype Universe. Next coverage AAVE then 4h / years.",
-            "SUITABLE=0. I5 still blocked.",
+            "Donchian × TREND_UP: TAKE_HURT AVAX/LINK; WASH ETH/SOL/XRP/AAVE; thin BTC.",
+            "ATR × TREND_UP: TAKE_HURT AAVE ADEQUATE. First ATR unsuitable cell.",
+            "Hunter × TREND_UP: NO_TAKE on all 7 books. Not a TREND_UP enable.",
+            "Bollinger × COMPRESSION: WASH on every ADEQUATE 1h book.",
+            "7 × 1h books = still a prototype. Next PAXG. Then 4h / years.",
+            "SUITABLE=0. I5 blocked.",
         ],
         "do_not": [
-            "rewrite Donchian because two alts hurt",
-            "KEEP Donchian on XRP because WASH",
+            "rewrite Donchian or ATR",
             "enable TREND_UP",
-            "KEEP bollinger",
+            "KEEP any Wave A or I2 shadow",
             "confuse no-capital with no-development",
         ],
     }
@@ -79,7 +60,7 @@ def print_findings() -> Dict[str, Any]:
         print(f"  {r.get('reason')}")
         print("=" * 64)
         return r
-    print("From knowledge_grid.json. Hurt is not universal. Not KEEP.")
+    print("From knowledge_grid.json. Asset-conditional. Not KEEP.")
     print("-" * 64)
     for line in r.get("headline") or []:
         print(f"  • {line}")

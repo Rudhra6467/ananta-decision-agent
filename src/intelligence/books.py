@@ -21,6 +21,8 @@ ALIASES: Dict[str, str] = {
     "arb": "arb",
     "render": "render",
     "btc15s": "btc15s",
+    "btc4s": "btc4s",
+    "4h-smoke": "btc4s",
 }
 
 SYMBOL = {
@@ -48,6 +50,8 @@ def ledger_path(source: str = "replay") -> Path:
         return replay_path_for(symbol=SYMBOL[b])
     if b == "btc15s":
         return Path("observation_replay_smoke_15m.jsonl")
+    if b == "btc4s":
+        return Path("observation_replay_smoke_4h.jsonl")
     return REPLAY_LOG
 
 

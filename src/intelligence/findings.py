@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "FINDINGS-v0"
+VERSION = "FINDINGS-v0.1"
 DESK = Path("evidence_desk.json")
 
 
@@ -46,6 +46,7 @@ def findings() -> Dict[str, Any]:
             "Donchian × TREND_UP × AVAX 1h is TAKE_HURT / UNSUITABLE on this version.",
             "Hunter × TREND_UP is NO_TAKE on BTC ETH SOL AVAX. Not a TREND_UP enable.",
             "Bollinger × COMPRESSION is WASH where ADEQUATE. Not KEEP.",
+            "BTC 15m smoke n=80 span=15.5d usable_1y=False. All cells UNKNOWN. Pipe works. Not a book.",
             "SUITABLE=0. I5 still blocked.",
         ],
         "do_not": [
@@ -53,6 +54,8 @@ def findings() -> Dict[str, Any]:
             "enable TREND_UP",
             "add LINK today",
             "KEEP bollinger",
+            "KEEP from 15m smoke",
+            "run 15m max_bars=all this session",
         ],
     }
     Path("findings.json").write_text(json.dumps(out, indent=2, default=str))
@@ -68,7 +71,7 @@ def print_findings() -> Dict[str, Any]:
         print(f"  {r.get('reason')}")
         print("=" * 64)
         return r
-    print("From evidence_desk.json. Not KEEP. Not a rewrite.")
+    print("From evidence_desk.json + 15m smoke lock. Not KEEP.")
     print("-" * 64)
     for line in r.get("headline") or []:
         print(f"  • {line}")
@@ -79,8 +82,6 @@ def print_findings() -> Dict[str, Any]:
             f"    {x['strategy']} × {x['regime']} × {x['book']}  "
             f"take={x['n_take']} +1h={x['+1h_TAKE']} {x['vs_sitout']}"
         )
-    if not r.get("unsuitable_or_hurt"):
-        print("    (none)")
     print("-" * 64)
     print("  do not: " + "; ".join(r.get("do_not") or []))
     print(f"  saved={r.get('saved')}  keep=False")

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "FINDINGS-v0.6"
+VERSION = "FINDINGS-v0.7"
 GRID = Path("knowledge_grid.json")
 
 
@@ -39,16 +39,18 @@ def findings() -> Dict[str, Any]:
             "Donchian UP hurt on AVAX LINK ARB RENDER. WASH on ETH SOL XRP AAVE PAXG. Thin BTC.",
             "ATR UP hurt on AAVE and RENDER. Hunter UP NO_TAKE on all 10.",
             "Bollinger COMPRESSION WASH wherever ADEQUATE.",
-            "4h observation-replay NOT_WIRED (replay_ok=False). Do not invent 4h from 1h.",
-            "15m smoke exists. Next T2 = bounded 15m slice, not max_bars=all.",
-            "SUITABLE=0. I5 blocked.",
+            "4h observation-replay NOT_WIRED. Do not invent 4h from 1h.",
+            "15m replay window = 15.5d (2026-08-14→30). year_pass n=161 = slice, not a year.",
+            "usable_1y=False on 15m. max_bars=all will not invent 1.17y of 15m bars.",
+            "3-4y candles NOT on Ananta (1.17y). SUITABLE=0. I5 blocked.",
         ],
         "do_not": [
             "rewrite Donchian or ATR",
             "enable TREND_UP",
             "KEEP any cell",
             "synthesize 4h from 1h",
-            "run 15m max_bars=all this sitting",
+            "treat 15m year_pass as a year book",
+            "run 15m max_bars=all expecting 1.17y",
         ],
     }
     Path("findings.json").write_text(json.dumps(out, indent=2, default=str))
@@ -64,7 +66,7 @@ def print_findings() -> Dict[str, Any]:
         print(f"  {r.get('reason')}")
         print("=" * 64)
         return r
-    print("10 × 1h + TF lock. Not KEEP.")
+    print("10 × 1h + TF lock. 15m is a window, not a year. Not KEEP.")
     print("-" * 64)
     for line in r.get("headline") or []:
         print(f"  • {line}")

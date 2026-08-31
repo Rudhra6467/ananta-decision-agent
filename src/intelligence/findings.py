@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "FINDINGS-v0.5"
+VERSION = "FINDINGS-v0.6"
 GRID = Path("knowledge_grid.json")
 
 
@@ -35,20 +35,20 @@ def findings() -> Dict[str, Any]:
         "suitable": 0,
         "unsuitable_or_hurt": hurt,
         "headline": [
-            "1h coverage set complete: BTC ETH SOL AVAX LINK XRP AAVE PAXG ARB RENDER.",
-            "Donchian × TREND_UP TAKE_HURT on AVAX LINK ARB RENDER. WASH on ETH SOL XRP AAVE PAXG. Thin BTC.",
-            "ATR × TREND_UP TAKE_HURT on AAVE and RENDER. Not a family kill.",
-            "Hunter × TREND_UP NO_TAKE on all 10 books. Not a TREND_UP enable.",
-            "Bollinger × COMPRESSION WASH wherever ADEQUATE. Not KEEP.",
-            "Next T2 dimension is TF or years, not another 1h coin on this list.",
+            "1h coverage set complete: 10 books.",
+            "Donchian UP hurt on AVAX LINK ARB RENDER. WASH on ETH SOL XRP AAVE PAXG. Thin BTC.",
+            "ATR UP hurt on AAVE and RENDER. Hunter UP NO_TAKE on all 10.",
+            "Bollinger COMPRESSION WASH wherever ADEQUATE.",
+            "4h observation-replay NOT_WIRED (replay_ok=False). Do not invent 4h from 1h.",
+            "15m smoke exists. Next T2 = bounded 15m slice, not max_bars=all.",
             "SUITABLE=0. I5 blocked.",
         ],
         "do_not": [
             "rewrite Donchian or ATR",
             "enable TREND_UP",
             "KEEP any cell",
-            "add another 1h coin before a TF/year slice",
-            "confuse no-capital with no-development",
+            "synthesize 4h from 1h",
+            "run 15m max_bars=all this sitting",
         ],
     }
     Path("findings.json").write_text(json.dumps(out, indent=2, default=str))
@@ -64,7 +64,7 @@ def print_findings() -> Dict[str, Any]:
         print(f"  {r.get('reason')}")
         print("=" * 64)
         return r
-    print("10 × 1h books. Asset-conditional. Not KEEP.")
+    print("10 × 1h + TF lock. Not KEEP.")
     print("-" * 64)
     for line in r.get("headline") or []:
         print(f"  • {line}")

@@ -3,25 +3,31 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-VERSION = "PROTOCOL-v1"
+VERSION = "PROTOCOL-v1.1"
 
 LAW = (
-    "Aggressive discovery. Conservative capital. Continuous learning. "
-    "Explicit uncertainty. Batch engineering. Stop only at a real gate."
+    "Aggressive discovery. Conservative capital. "
+    "Raw data rolls on Ananta. Intelligence is versioned and selectively recomputed. "
+    "No daily full-market re-analysis. Experiment IDs required. "
+    "Batch engineering. Stop only at a real gate."
 )
 
 LANES = {
     "A_AUTONOMOUS_ENGINEERING": (
-        "Inspect, implement, test on existing books, write artifacts, "
-        "compare, document. Batch in one work package."
+        "Inspect, implement, test on existing books, write artifacts. Batch one package."
     ),
     "B_MACHINE_VERIFICATION": (
-        "Live watcher, live ledgers, process health, env-only behaviour. "
-        "One batched command list. Wait."
+        "Live watcher, live ledgers, process health. One batched command list."
     ),
     "C_HUMAN_AUTHORITY": (
         "TAKE enable, KEEP, capital, autonomy, override evidence gates."
     ),
+}
+
+LAYERS = {
+    "A_RAW": "Ananta rolling PIT warehouse. Append daily. 3-4y when candles exist.",
+    "B_RESEARCH": "Versioned replay of selected windows. EXP-nnn. Not daily rescore-all.",
+    "C_KNOWLEDGE": "Compact objects the agent queries. Not millions of candles.",
 }
 
 REPORT_SECTIONS = [
@@ -38,13 +44,10 @@ REPORT_SECTIONS = [
 ]
 
 NEXT_PACKAGES = [
-    "WP-T2-15M-YEAR — budgeted BTC 15m 1y sibling book when a session can run it",
+    "WP-EXP-006 — live WAIT vs COSTLY by fingerprint (consult-dq). Not TAKE.",
+    "WP-1-RAW — Ananta daily append + coverage truth (warehouse, not Agent jsonl).",
     "WP-T2-4H-WIRE — only after Ananta observation-replay emits 4h rows",
-    "WP-T2-YEARS — Ananta PIT history beyond 1.17y; Agent does not invent bars",
-    "WP-T3-STATE — richer state on existing books (no new coin)",
-    "WP-T4-SCAN-CANDIDATE — offline candidate objects from fingerprints + desk",
-    "WP-T4-FV-NAMED — more PIT methods only if fields exist",
-    "WP-I4-RANK-LIVE — rank uses 10-book desk; issued still WAIT/UNKNOWN",
+    "WP-T2-YEARS — Ananta PIT beyond 1.17y; Agent does not invent bars",
     "WP-I5 — blocked until SUITABLE + forward vs-sit-out edge",
 ]
 
@@ -55,14 +58,12 @@ def spec() -> Dict[str, Any]:
         "version": VERSION,
         "keep": False,
         "law": LAW,
+        "layers": LAYERS,
         "lanes": LANES,
         "report": REPORT_SECTIONS,
         "next_packages": NEXT_PACKAGES,
-        "stop_only_when": [
-            "need live Mac state",
-            "need human authority",
-            "Ananta API cannot serve the slice",
-        ],
+        "experiments_module": "src.intelligence.research_exp",
+        "s5_module": "src.intelligence.experiments",
     }
 
 
@@ -72,9 +73,8 @@ def print_protocol() -> Dict[str, Any]:
     print("=" * 64)
     print(r["law"])
     print("-" * 64)
-    for k, v in r["lanes"].items():
-        print(f"  {k}")
-        print(f"    {v}")
+    for k, v in r["layers"].items():
+        print(f"  {k}: {v}")
     print("-" * 64)
     print("  Next packages:")
     for p in r["next_packages"]:

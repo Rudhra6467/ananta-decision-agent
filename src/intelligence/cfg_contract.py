@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-VERSION = "CFG-CONTRACT-v0"
+VERSION = "CFG-CONTRACT-v0.1"
 
 REQUIRED = (
     "exp_id",
@@ -38,25 +38,42 @@ REQUIRED = (
     "lab_run_id",
 )
 
+# Presence of key is not enough. These must be non-None to ingest.
+MUST_HAVE_VALUE = (
+    "exp_id",
+    "config_id",
+    "n",
+    "win_rate_after_cost",
+    "expectancy_after_cost",
+    "vs_sitout",
+    "parameter_honored",
+    "lab_run_id",
+    "source",
+)
+
 LAW = (
-    "If parameter_honored is not True, the row MUST NOT enter the catalog as evidence. "
-    "No single BEST_STRATEGY. Conditional boards only. Lab winner ≠ KEEP."
+    "If parameter_honored is not True, the row MUST NOT enter the catalog. "
+    "None is not a filled field. No BEST_STRATEGY. Lab winner ≠ KEEP."
 )
 
 
 def may_ingest(row: Dict[str, Any]) -> Dict[str, Any]:
     missing = [k for k in REQUIRED if k not in row]
+    empty = [k for k in MUST_HAVE_VALUE if row.get(k) is None]
     honored = row.get("parameter_honored") is True
-    ok = (not missing) and honored
     reasons = []
     if missing:
-        reasons.append("MISSING_FIELDS:" + ",".join(missing))
+        reasons.append("MISSING_KEYS:" + ",".join(missing))
+    if empty:
+        reasons.append("EMPTY:" + ",".join(empty))
     if not honored:
         reasons.append("PARAMETER_NOT_HONORED")
+    ok = (not missing) and (not empty) and honored
     return {
         "ok": ok,
         "ingest": ok,
         "missing": missing,
+        "empty": empty,
         "parameter_honored": honored,
         "reasons": reasons,
         "keep": False,
@@ -79,10 +96,8 @@ def print_contract(sample: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     print("=" * 64)
     print(LAW)
     print("-" * 64)
-    print("  required fields:", len(REQUIRED))
-    print("  sample ingest:", gate)
-    print("  boards: HIT_RATE | EXPECTANCY | LOW_MAE  (no polarity)")
-    print("  optimize HTTP 404 is expected — use POST /api/lab/runs kind=grid_search|walk_forward")
+    print("  required keys:", len(REQUIRED), "must_have_value:", len(MUST_HAVE_VALUE))
+    print("  sample ingest:", gate["ingest"], gate["reasons"])
     print("=" * 64)
     print()
     return {"ok": True, "version": VERSION, "gate": gate, "keep": False}

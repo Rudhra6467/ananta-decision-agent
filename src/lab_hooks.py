@@ -61,6 +61,10 @@ def run_hook(rest: str) -> bool:
         from src.intelligence.episode_slice import print_slice
         print_slice()
         return True
+    if r in ("phase-board", "board-phase", "phase"):
+        from src.intelligence.phase_board import print_board
+        print_board()
+        return True
     if r in ("stress", "stress-window"):
         from src.intelligence.stress_window import print_window
         print_window()

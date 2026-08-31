@@ -45,6 +45,30 @@ def run_hook(rest: str) -> bool:
         from src.intelligence.t4_contracts import print_t4
         print_t4()
         return True
+    if r in ("findings",):
+        from src.intelligence.findings import print_findings
+        print_findings()
+        return True
+    if r in ("research", "exp", "experiments-ledger"):
+        from src.intelligence.research_exp import print_research
+        print_research()
+        return True
+    if r in ("episodes", "episode", "episode-tag"):
+        from src.intelligence.episode_tag import print_episodes
+        print_episodes()
+        return True
+    if r in ("slice", "episode-slice"):
+        from src.intelligence.episode_slice import print_slice
+        print_slice()
+        return True
+    if r in ("stress", "stress-window"):
+        from src.intelligence.stress_window import print_window
+        print_window()
+        return True
+    if r in ("objects", "lab-objects"):
+        from src.intelligence.lab_objects import print_objects
+        print_objects()
+        return True
     if r in ("universe eth", "universe replay-eth", "sru eth"):
         from src.intelligence.universe_book import print_universe_book
         print_universe_book("eth")

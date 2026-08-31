@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "EXP-REG-v0.1"
+VERSION = "EXP-REG-v0.2"
 OUT = Path("research_experiments.json")
 
 EXPERIMENTS: List[Dict[str, Any]] = [
@@ -85,15 +85,28 @@ EXPERIMENTS: List[Dict[str, Any]] = [
         "strategy_version": "Lab stock health_sweep",
         "method": "list strategies[] keys on latest DONE health_sweep",
         "result": "ROSTER_MISMATCH",
-        "detail": "Sweep=hunter,squeeze,continuation,ema-cross,supertrend,rsi-momentum. Missing Donchian/ATR/Keltner/Bollinger. Extra ema/supertrend/rsi vs obs_v0.",
-        "decision": "Do not ingest sweep as CFG evidence. Do not enable extras. Map schema next.",
+        "detail": "Sweep=hunter,squeeze,continuation,ema-cross,supertrend,rsi-momentum. Missing Donchian/ATR/Keltner/Bollinger.",
+        "decision": "Do not ingest sweep as CFG evidence.",
+        "promote": False,
+        "keep": False,
+    },
+    {
+        "id": "EXP-007",
+        "question": "Does the HAVE window contain lead-in + peak + drawdown phase mix?",
+        "data": "observation_replay.jsonl BTC 1h stride=4",
+        "period": "2025-06-28 → 2026-08-30",
+        "strategy_version": "n/a — date buckets only",
+        "method": "EPISODE-TAG-v0 cuts vs obs.ts",
+        "result": "YES_BUT_DRAWDOWN_HEAVY",
+        "detail": "PRE_LEAD=180 LEAD_IN=366 PEAK_BAND=90 DRAWDOWN=1878 / 2514. EP-2021-22 still ananta=False.",
+        "decision": "Research on HAVE only. Tag phases. Do not invent 2021 candles.",
         "promote": False,
         "keep": False,
     },
 ]
 
 LAYERS = {
-    "A_RAW": "Ananta rolling PIT warehouse. Append daily. Target 3-4y when candles exist.",
+    "A_RAW": "Ananta rolling PIT warehouse. Append daily. Target 2021-09-10 when candles exist.",
     "B_RESEARCH": "Versioned replay + Experiment ID. Not daily full-market re-score.",
     "C_KNOWLEDGE": "Compact query objects. Agent does not rescan millions of candles.",
 }
@@ -108,11 +121,11 @@ def registry() -> Dict[str, Any]:
         "layers": LAYERS,
         "experiments": EXPERIMENTS,
         "closed_no_promote": [e["id"] for e in EXPERIMENTS],
-        "next_id": "EXP-007",
+        "next_id": "EXP-008",
         "next_candidates": [
-            "EXP-007 map health_sweep card fields → CFG contract (still ingest=False until after-cost + sit-out exist)",
-            "EXP-008 4h replay once Ananta wires observation-replay",
-            "EXP-010 Donchian dc_entry budget after Lab exposes decl:dc_entry",
+            "EXP-008 strategy × EP-2025-26 phase TAKE vs SKIP on BTC 1h (episode_slice)",
+            "EXP-009 same slice on ETH/SOL if books exist — still HAVE only",
+            "EXP-010 Donchian dc_entry budget after Lab honors decl:dc_entry",
         ],
         "note": "S5-H* live experiment catalog stays in experiments.py. Do not merge.",
     }

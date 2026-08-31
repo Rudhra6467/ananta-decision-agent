@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "FINDINGS-v0.7"
+VERSION = "FINDINGS-v0.8"
 GRID = Path("knowledge_grid.json")
 
 
@@ -35,22 +35,23 @@ def findings() -> Dict[str, Any]:
         "suitable": 0,
         "unsuitable_or_hurt": hurt,
         "headline": [
-            "1h coverage set complete: 10 books.",
+            "1h coverage set complete: 10 books. SUITABLE=0. I5 blocked.",
             "Donchian UP hurt on AVAX LINK ARB RENDER. WASH on ETH SOL XRP AAVE PAXG. Thin BTC.",
             "ATR UP hurt on AAVE and RENDER. Hunter UP NO_TAKE on all 10.",
             "Bollinger COMPRESSION WASH wherever ADEQUATE.",
-            "4h observation-replay NOT_WIRED. Do not invent 4h from 1h.",
-            "15m replay window = 15.5d (2026-08-14→30). year_pass n=161 = slice, not a year.",
-            "usable_1y=False on 15m. max_bars=all will not invent 1.17y of 15m bars.",
-            "3-4y candles NOT on Ananta (1.17y). SUITABLE=0. I5 blocked.",
+            "4h observation-replay NOT_WIRED. 15m is a 15.5d window, not a year.",
+            "HAVE window tagged EP-2025-26: PRE_LEAD=180 LEAD_IN=366 PEAK_BAND=90 DRAWDOWN=1878/2514.",
+            "EP-2021-22 still missing on Ananta. Do not invent older candles.",
+            "EXP-010 Donchian lookbacks blocked until Lab honors dc_entry.",
         ],
         "do_not": [
             "rewrite Donchian or ATR",
             "enable TREND_UP",
             "KEEP any cell",
             "synthesize 4h from 1h",
-            "treat 15m year_pass as a year book",
-            "run 15m max_bars=all expecting 1.17y",
+            "treat 15m as a year book",
+            "dump fake 4y / 2021 bars",
+            "POST EXP-010 until parameter_honored",
         ],
     }
     Path("findings.json").write_text(json.dumps(out, indent=2, default=str))
@@ -66,7 +67,7 @@ def print_findings() -> Dict[str, Any]:
         print(f"  {r.get('reason')}")
         print("=" * 64)
         return r
-    print("10 × 1h + TF lock. 15m is a window, not a year. Not KEEP.")
+    print("10 × 1h + HAVE phases. Not KEEP.")
     print("-" * 64)
     for line in r.get("headline") or []:
         print(f"  • {line}")

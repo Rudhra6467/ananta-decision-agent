@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "EXP-REG-v0.2"
+VERSION = "EXP-REG-v0.3"
 OUT = Path("research_experiments.json")
 
 EXPERIMENTS: List[Dict[str, Any]] = [
@@ -85,7 +85,7 @@ EXPERIMENTS: List[Dict[str, Any]] = [
         "strategy_version": "Lab stock health_sweep",
         "method": "list strategies[] keys on latest DONE health_sweep",
         "result": "ROSTER_MISMATCH",
-        "detail": "Sweep=hunter,squeeze,continuation,ema-cross,supertrend,rsi-momentum. Missing Donchian/ATR/Keltner/Bollinger.",
+        "detail": "Sweep roster ≠ observation_v0 roster. Do not ingest as CFG.",
         "decision": "Do not ingest sweep as CFG evidence.",
         "promote": False,
         "keep": False,
@@ -98,8 +98,26 @@ EXPERIMENTS: List[Dict[str, Any]] = [
         "strategy_version": "n/a — date buckets only",
         "method": "EPISODE-TAG-v0 cuts vs obs.ts",
         "result": "YES_BUT_DRAWDOWN_HEAVY",
-        "detail": "PRE_LEAD=180 LEAD_IN=366 PEAK_BAND=90 DRAWDOWN=1878 / 2514. EP-2021-22 still ananta=False.",
-        "decision": "Research on HAVE only. Tag phases. Do not invent 2021 candles.",
+        "detail": "PRE_LEAD=180 LEAD_IN=366 PEAK_BAND=90 DRAWDOWN=1878 / 2514.",
+        "decision": "Research on HAVE only. Do not invent 2021 candles.",
+        "promote": False,
+        "keep": False,
+    },
+    {
+        "id": "EXP-008",
+        "question": "On BTC 1h HAVE window, do TAKE-eq setups beat SKIP_SETUP inside each EP-2025-26 phase?",
+        "data": "observation_replay.jsonl setups only",
+        "period": "2025-06-28 → 2026-08-30",
+        "strategy_version": "stock observation_v0 evaluators",
+        "method": "EPISODE-SLICE-v0 +1h TAKE vs SKIP by phase",
+        "result": "DRAWDOWN_DOMINATED_NO_PROMOTE",
+        "detail": (
+            "PEAK_BAND almost no TAKEs. Bollinger DRAWDOWN TAKE n=39 +1h=-0.0704 vs SKIP +0.0651. "
+            "Keltner DRAWDOWN TAKE n=13 +1h=-0.2918 vs SKIP +0.0406. "
+            "Donchian DRAWDOWN TAKE n=18 +1h=+0.0053 vs SKIP +0.0302. "
+            "Donchian LEAD_IN TAKE n=5 +1h=+0.2076 is THIN. Hunter TAKEs remain anecdotes."
+        ),
+        "decision": "Do not promote any cell. Phase tag ≠ KEEP. Do not rewrite families from DRAWDOWN-heavy BTC.",
         "promote": False,
         "keep": False,
     },
@@ -121,10 +139,9 @@ def registry() -> Dict[str, Any]:
         "layers": LAYERS,
         "experiments": EXPERIMENTS,
         "closed_no_promote": [e["id"] for e in EXPERIMENTS],
-        "next_id": "EXP-008",
+        "next_id": "EXP-009",
         "next_candidates": [
-            "EXP-008 strategy × EP-2025-26 phase TAKE vs SKIP on BTC 1h (episode_slice)",
-            "EXP-009 same slice on ETH/SOL if books exist — still HAVE only",
+            "EXP-009 ETH 1h strategy × EP-2025-26 phase (print_slice('eth'))",
             "EXP-010 Donchian dc_entry budget after Lab honors decl:dc_entry",
         ],
         "note": "S5-H* live experiment catalog stays in experiments.py. Do not merge.",

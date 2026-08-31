@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "EXP-REG-v0"
+VERSION = "EXP-REG-v0.1"
 OUT = Path("research_experiments.json")
 
 EXPERIMENTS: List[Dict[str, Any]] = [
@@ -77,6 +77,19 @@ EXPERIMENTS: List[Dict[str, Any]] = [
         "promote": False,
         "keep": False,
     },
+    {
+        "id": "EXP-006",
+        "question": "Does Ananta daily health_sweep score the same families as Agent observation books?",
+        "data": "lab run ef32846f-1937-457d-9043-d4520ad205a9",
+        "period": "3m daily BTC/ETH/SOL",
+        "strategy_version": "Lab stock health_sweep",
+        "method": "list strategies[] keys on latest DONE health_sweep",
+        "result": "ROSTER_MISMATCH",
+        "detail": "Sweep=hunter,squeeze,continuation,ema-cross,supertrend,rsi-momentum. Missing Donchian/ATR/Keltner/Bollinger. Extra ema/supertrend/rsi vs obs_v0.",
+        "decision": "Do not ingest sweep as CFG evidence. Do not enable extras. Map schema next.",
+        "promote": False,
+        "keep": False,
+    },
 ]
 
 LAYERS = {
@@ -95,11 +108,11 @@ def registry() -> Dict[str, Any]:
         "layers": LAYERS,
         "experiments": EXPERIMENTS,
         "closed_no_promote": [e["id"] for e in EXPERIMENTS],
-        "next_id": "EXP-006",
+        "next_id": "EXP-007",
         "next_candidates": [
-            "EXP-006 live WAIT vs COSTLY by fingerprint (consult-dq, not TAKE)",
-            "EXP-007 4h replay once Ananta wires observation-replay",
-            "EXP-008 any ADEQUATE cell beat sit-out on >=2 books?",
+            "EXP-007 map health_sweep card fields → CFG contract (still ingest=False until after-cost + sit-out exist)",
+            "EXP-008 4h replay once Ananta wires observation-replay",
+            "EXP-010 Donchian dc_entry budget after Lab exposes decl:dc_entry",
         ],
         "note": "S5-H* live experiment catalog stays in experiments.py. Do not merge.",
     }

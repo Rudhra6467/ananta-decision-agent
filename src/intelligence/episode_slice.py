@@ -3,15 +3,14 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
-from pathlib import Path
 from typing import Any, Dict
 
 from src.intelligence.attribution import _forward, population_role
-from src.intelligence.books import ledger_path
+from src.intelligence.books import artifact, ledger_path
 from src.intelligence.episode_tag import EPISODE, phase_for
 from src.tools.observation_log import _read_jsonl
 
-VERSION = "EPISODE-SLICE-v0"
+VERSION = "EPISODE-SLICE-v0.1"
 FOCUS = ("PRE_LEAD", "LEAD_IN", "PEAK_BAND", "DRAWDOWN")
 
 
@@ -45,7 +44,7 @@ def print_slice(source: str = "replay") -> Dict[str, Any]:
                 if fwd is not None:
                     acc[cid]["skip_sum"] += float(fwd)
                     acc[cid]["skip_n"] += 1
-    print(f"\nEPISODE SLICE  {VERSION}  {EPISODE}")
+    print(f"\nEPISODE SLICE  {VERSION}  {EPISODE}  book={source}")
     print("=" * 64)
     print("Setups only. Phase ≠ KEEP. Thin cells stay UNKNOWN.")
     print("-" * 64)
@@ -61,10 +60,18 @@ def print_slice(source: str = "replay") -> Dict[str, Any]:
             f"n={b['n']:<4} TAKE={b['take']:<3} SKIP={b['skip']:<3} "
             f"+1h_T={mt if mt is not None else '—'}  +1h_S={ms if ms is not None else '—'}"
         )
+    dest = artifact("episode_slice", source)
     print("-" * 64)
-    print("  DRAWDOWN-heavy book is expected. PEAK_BAND will be thin.")
+    print(f"  saved={dest}  DRAWDOWN-heavy expected. Do not add more 1h coins.")
     print("=" * 64)
     print()
-    out = {"ok": True, "version": VERSION, "episode": EPISODE, "cells": cells, "keep": False}
-    Path("episode_slice.json").write_text(json.dumps(out, indent=2, default=str))
+    out = {
+        "ok": True,
+        "version": VERSION,
+        "episode": EPISODE,
+        "source": source,
+        "cells": cells,
+        "keep": False,
+    }
+    dest.write_text(json.dumps(out, indent=2, default=str))
     return out

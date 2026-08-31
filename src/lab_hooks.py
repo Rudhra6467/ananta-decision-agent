@@ -4,6 +4,23 @@ from __future__ import annotations
 
 def run_hook(rest: str) -> bool:
     r = (rest or "").strip().lower()
+    table = {
+        "coverage": ("src.tools.coverage_client", None),
+        "tracks": ("src.intelligence.tracks", "print_tracks"),
+        "pipeline": ("src.intelligence.research_pipeline", "print_pipeline"),
+        "grid": ("src.intelligence.knowledge_grid", "print_grid"),
+        "t4": ("src.intelligence.t4_contracts", "print_t4"),
+        "findings": ("src.intelligence.findings", "print_findings"),
+        "research": ("src.intelligence.research_exp", "print_research"),
+        "episodes": ("src.intelligence.episode_tag", "print_episodes"),
+        "slice": ("src.intelligence.episode_slice", "print_slice"),
+        "phase": ("src.intelligence.phase_board", "print_board"),
+        "phase-board": ("src.intelligence.phase_board", "print_board"),
+        "stress": ("src.intelligence.stress_window", "print_window"),
+        "objects": ("src.intelligence.lab_objects", "print_objects"),
+        "roadmap": ("src.intelligence.roadmap_now", "print_roadmap"),
+        "years": ("src.intelligence.years_probe", "print_years"),
+    }
     if r in ("coverage", "cover"):
         from src.tools.coverage_client import get_lab_coverage_long
         cov = get_lab_coverage_long()
@@ -29,50 +46,14 @@ def run_hook(rest: str) -> bool:
         print(f"  usable_1y: {usable_n}/{len(rows)}")
         print()
         return True
-    if r in ("tracks", "track", "four-tracks"):
-        from src.intelligence.tracks import print_tracks
-        print_tracks()
-        return True
-    if r in ("pipeline", "pipe"):
-        from src.intelligence.research_pipeline import print_pipeline
-        print_pipeline()
-        return True
-    if r in ("grid", "knowledge-grid", "knowledge grid"):
-        from src.intelligence.knowledge_grid import print_grid
-        print_grid()
-        return True
-    if r in ("t4", "scanner-contract", "fv-contract"):
-        from src.intelligence.t4_contracts import print_t4
-        print_t4()
-        return True
-    if r in ("findings",):
-        from src.intelligence.findings import print_findings
-        print_findings()
-        return True
-    if r in ("research", "exp", "experiments-ledger"):
-        from src.intelligence.research_exp import print_research
-        print_research()
-        return True
-    if r in ("episodes", "episode", "episode-tag"):
-        from src.intelligence.episode_tag import print_episodes
-        print_episodes()
-        return True
-    if r in ("slice", "episode-slice"):
-        from src.intelligence.episode_slice import print_slice
-        print_slice()
-        return True
-    if r in ("phase-board", "board-phase", "phase"):
-        from src.intelligence.phase_board import print_board
-        print_board()
-        return True
-    if r in ("stress", "stress-window"):
-        from src.intelligence.stress_window import print_window
-        print_window()
-        return True
-    if r in ("objects", "lab-objects"):
-        from src.intelligence.lab_objects import print_objects
-        print_objects()
-        return True
+    key = r.split()[0] if r else ""
+    if key in table:
+        mod, fn = table[key]
+        if fn:
+            import importlib
+            m = importlib.import_module(mod)
+            getattr(m, fn)()
+            return True
     if r in ("universe eth", "universe replay-eth", "sru eth"):
         from src.intelligence.universe_book import print_universe_book
         print_universe_book("eth")
@@ -80,11 +61,6 @@ def run_hook(rest: str) -> bool:
     if r in ("universe sol", "universe replay-sol", "sru sol"):
         from src.intelligence.universe_book import print_universe_book
         print_universe_book("sol")
-        return True
-    if r in ("fingerprints eth", "fp eth", "fingerprint eth"):
-        from src.intelligence.fp_save import print_fp_book
-        print_fp_book("eth")
-        print("Re-run fingerprints replay after this if fingerprint_report.json must stay BTC.")
         return True
     if r in ("universe btc", "universe replay"):
         from src.intelligence.universe import print_universe

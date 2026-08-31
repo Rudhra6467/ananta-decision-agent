@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-VERSION = "PHASE-BOARD-v0"
-# Measured +1h TAKE vs SKIP on setups. Source = episode_slice pastes, not a new run.
+VERSION = "PHASE-BOARD-v0.1"
+COST_RT = 0.08  # cost-v0 round-trip %; TAKE pays it, SKIP sit-out does not
+
 ROWS: List[Dict[str, Any]] = [
     {"strategy": "bollinger-mr", "phase": "DRAWDOWN",
      "btc": {"take": 39, "t": -0.0704, "s": 0.0651, "exp": "EXP-008"},
@@ -27,38 +28,56 @@ ROWS: List[Dict[str, Any]] = [
 ]
 
 
-def _beat(cell: dict) -> str:
+def _beat(cell: dict, after_cost: bool) -> str:
     t, s, n = cell.get("t"), cell.get("s"), cell.get("take") or 0
     if n == 0 or t is None:
         return "NO_TAKE"
     if n < 13:
         return "THIN"
-    if t > s:
+    tt = t - COST_RT if after_cost else t
+    if tt > s:
         return "TAKE_GT_SKIP"
-    if t < s:
+    if tt < s:
         return "TAKE_LT_SKIP"
     return "WASH"
+
+
+def _t_ac(t: Optional[float]) -> Optional[float]:
+    if t is None:
+        return None
+    return round(t - COST_RT, 4)
 
 
 def print_board() -> Dict[str, Any]:
     print(f"\nPHASE BOARD  {VERSION}  EP-2025-26 DRAWDOWN")
     print("=" * 72)
-    print("Closed experiments. Not KEEP. ETH Bollinger ≠ BTC/SOL Bollinger.")
+    print(f"+1h TAKE vs SKIP. After-cost = TAKE - {COST_RT}% rt (cost-v0). SKIP uncosted.")
+    print("ETH Bollinger ≠ BTC/SOL. TAKE_GT_SKIP ≠ KEEP.")
     print("-" * 72)
     for row in ROWS:
         print(f"  {row['strategy']:<20} DRAWDOWN")
         for bk in ("btc", "eth", "sol"):
             c = row[bk]
-            flag = _beat(c)
+            raw = _beat(c, False)
+            ac = _beat(c, True)
             t = "—" if c["t"] is None else c["t"]
+            tac = "—" if c["t"] is None else _t_ac(c["t"])
             print(
-                f"    {bk.upper():<4} take={c['take']:<3} +1h_T={t:<8} +1h_S={c['s']:<8} "
-                f"{flag}  {c['exp']}"
+                f"    {bk.upper():<4} take={c['take']:<3} T={t:<8} T-cost={tac:<8} S={c['s']:<8} "
+                f"raw={raw:<13} ac={ac:<13} {c['exp']}"
             )
     print("-" * 72)
-    print("  TAKE_GT_SKIP ≠ KEEP. THIN ≠ rewrite. Hunter NO_TAKE ≠ TREND_UP enable.")
+    print("  After-cost does not flip ETH Bollinger. Donchian stays TAKE_LT_SKIP.")
+    print("  Ananta optimize still set:/prof: only — EXP-010 still blocked.")
     print("=" * 72)
     print()
-    out = {"ok": True, "version": VERSION, "rows": ROWS, "keep": False, "suitable": 0}
+    out = {
+        "ok": True,
+        "version": VERSION,
+        "cost_rt": COST_RT,
+        "rows": ROWS,
+        "keep": False,
+        "suitable": 0,
+    }
     Path("phase_board.json").write_text(json.dumps(out, indent=2))
     return out

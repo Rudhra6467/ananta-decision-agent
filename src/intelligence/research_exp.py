@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-VERSION = "EXP-REG-v0.3"
+VERSION = "EXP-REG-v0.4"
 OUT = Path("research_experiments.json")
 
 EXPERIMENTS: List[Dict[str, Any]] = [
@@ -111,13 +111,25 @@ EXPERIMENTS: List[Dict[str, Any]] = [
         "strategy_version": "stock observation_v0 evaluators",
         "method": "EPISODE-SLICE-v0 +1h TAKE vs SKIP by phase",
         "result": "DRAWDOWN_DOMINATED_NO_PROMOTE",
+        "detail": "Bollinger DRAWDOWN TAKE n=39 +1h=-0.0704 vs SKIP +0.0651. Donchian DRAWDOWN TAKE ≤ SKIP. PEAK TAKEs empty.",
+        "decision": "Do not promote. Do not rewrite from DRAWDOWN-heavy BTC.",
+        "promote": False,
+        "keep": False,
+    },
+    {
+        "id": "EXP-009",
+        "question": "Same phase slice on ETH 1h — does BTC ranking survive?",
+        "data": "observation_replay_ETHUSD.jsonl setups only",
+        "period": "2025-06-28 → 2026-08-30",
+        "strategy_version": "stock observation_v0 evaluators",
+        "method": "EPISODE-SLICE-v0 +1h TAKE vs SKIP by phase",
+        "result": "ASSET_X_PHASE_DISAGREES",
         "detail": (
-            "PEAK_BAND almost no TAKEs. Bollinger DRAWDOWN TAKE n=39 +1h=-0.0704 vs SKIP +0.0651. "
-            "Keltner DRAWDOWN TAKE n=13 +1h=-0.2918 vs SKIP +0.0406. "
-            "Donchian DRAWDOWN TAKE n=18 +1h=+0.0053 vs SKIP +0.0302. "
-            "Donchian LEAD_IN TAKE n=5 +1h=+0.2076 is THIN. Hunter TAKEs remain anecdotes."
+            "Bollinger DRAWDOWN ETH TAKE n=31 +1h=+0.1907 vs SKIP -0.0476 (opposite BTC). "
+            "Donchian DRAWDOWN ETH TAKE n=23 +1h=-0.1674 vs SKIP +0.048 (TAKE hurts). "
+            "ATR DRAWDOWN TAKE n=8 +1h=-0.357 vs SKIP +0.104. Hunter TAKEs still anecdotes."
         ),
-        "decision": "Do not promote any cell. Phase tag ≠ KEEP. Do not rewrite families from DRAWDOWN-heavy BTC.",
+        "decision": "Do not KEEP Bollinger from ETH DRAWDOWN alone. Do not kill Donchian from ETH DRAWDOWN alone. Conditional boards only.",
         "promote": False,
         "keep": False,
     },
@@ -139,10 +151,10 @@ def registry() -> Dict[str, Any]:
         "layers": LAYERS,
         "experiments": EXPERIMENTS,
         "closed_no_promote": [e["id"] for e in EXPERIMENTS],
-        "next_id": "EXP-009",
+        "next_id": "EXP-011",
         "next_candidates": [
-            "EXP-009 ETH 1h strategy × EP-2025-26 phase (print_slice('eth'))",
-            "EXP-010 Donchian dc_entry budget after Lab honors decl:dc_entry",
+            "EXP-011 SOL 1h strategy × EP-2025-26 phase (print_slice('sol'))",
+            "EXP-010 reserved — Donchian dc_entry after Lab honors parameter",
         ],
         "note": "S5-H* live experiment catalog stays in experiments.py. Do not merge.",
     }

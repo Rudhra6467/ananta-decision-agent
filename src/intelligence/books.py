@@ -9,7 +9,6 @@ from src.tools.observation_log import OBSERVATION_LOG, REPLAY_LOG, replay_path_f
 ALIASES: Dict[str, str] = {
     "live": "live",
     "replay": "replay",
-    "historical": "replay",
     "btc": "replay",
     "eth": "eth",
     "sol": "sol",
@@ -22,7 +21,8 @@ ALIASES: Dict[str, str] = {
     "render": "render",
     "btc15s": "btc15s",
     "btc4s": "btc4s",
-    "4h-smoke": "btc4s",
+    "btc15slice": "btc15slice",
+    "15m-slice": "btc15slice",
 }
 
 SYMBOL = {
@@ -52,6 +52,8 @@ def ledger_path(source: str = "replay") -> Path:
         return Path("observation_replay_smoke_15m.jsonl")
     if b == "btc4s":
         return Path("observation_replay_smoke_4h.jsonl")
+    if b == "btc15slice":
+        return Path("observation_replay_BTCUSD_15m_slice.jsonl")
     return REPLAY_LOG
 
 

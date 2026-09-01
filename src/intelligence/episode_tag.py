@@ -1,4 +1,4 @@
-"""Tag HAVE-window observations into EP-2025-26 phases. Not 2021. Not KEEP."""
+"""Tag 5y BTC/ETH books into both stress episodes. Not KEEP."""
 from __future__ import annotations
 
 import json
@@ -10,11 +10,16 @@ from typing import Any, Dict, Optional
 from src.intelligence.books import ledger_path
 from src.tools.observation_log import _read_jsonl
 
-VERSION = "EPISODE-TAG-v0"
-EPISODE = "EP-2025-26-DRAWDOWN"
+VERSION = "EPISODE-TAG-v1"
 
-# Inclusive date cuts (UTC date).
+# Inclusive UTC dates. 5y book starts 2021-08-01.
 PHASES = (
+    ("EP21_PRE", "2021-08-01", "2021-09-09"),
+    ("EP21_LEAD", "2021-09-10", "2021-11-09"),
+    ("EP21_PEAK", "2021-11-10", "2021-11-24"),
+    ("EP21_CRASH", "2021-11-25", "2022-11-21"),
+    ("EP21_AFTER", "2022-11-22", "2023-01-31"),
+    ("BETWEEN", "2023-02-01", "2025-06-27"),
     ("PRE_LEAD", "2025-06-28", "2025-08-05"),
     ("LEAD_IN", "2025-08-06", "2025-10-05"),
     ("PEAK_BAND", "2025-10-06", "2025-10-20"),
@@ -39,8 +44,8 @@ def phase_for(ts: str) -> str:
     for name, a, b in PHASES:
         if a <= d <= b:
             return name
-    if d < "2025-06-28":
-        return "BEFORE_HAVE"
+    if d < "2021-08-01":
+        return "BEFORE_BOOK"
     return "AFTER_WINDOW"
 
 
@@ -53,25 +58,24 @@ def print_episodes(source: str = "replay") -> Dict[str, Any]:
         st = obs.get("system_truth") or {}
         ts = str(obs.get("ts") or st.get("ts") or "")
         counts[phase_for(ts)] += 1
-    print(f"\nEPISODE TAG  {VERSION}  {EPISODE}")
+    print(f"\nEPISODE TAG  {VERSION}  book={source}")
     print("=" * 64)
-    print("HAVE window only. 2021-22 stays off-book until Ananta candles exist.")
+    print("5y book: EP-2021-22 + BETWEEN + EP-2025-26. Not KEEP.")
     print(f"  book={path}  exists={exists}  obs={len(rows)}  keep=False")
     print("-" * 64)
-    order = [p[0] for p in PHASES] + ["BEFORE_HAVE", "AFTER_WINDOW", "UNPARSED"]
+    order = [p[0] for p in PHASES] + ["BEFORE_BOOK", "AFTER_WINDOW", "UNPARSED"]
     for name in order:
         n = counts.get(name, 0)
         if n or name in {p[0] for p in PHASES}:
             print(f"  {name:<14} n={n}")
     print("-" * 64)
-    print("  Tag ≠ SUITABLE. Phase mix is the point of this window.")
+    print("  Tag ≠ SUITABLE. Dual-crash mix is the point of the 5y book.")
     print("=" * 64)
     print()
-    dest = Path("episode_tag.json")
+    dest = Path("episode_tag.json" if source in ("replay", "btc") else f"episode_tag_{source}.json")
     out = {
         "ok": True,
         "version": VERSION,
-        "episode": EPISODE,
         "book": str(path),
         "exists": exists,
         "n_obs": len(rows),

@@ -1,4 +1,4 @@
-"""Strategy × EP-2025-26 phase on HAVE book. Not KEEP. Not 2021."""
+"""Strategy × dual-episode phase on 5y book. Not KEEP."""
 from __future__ import annotations
 
 import json
@@ -7,11 +7,11 @@ from typing import Any, Dict
 
 from src.intelligence.attribution import _forward, population_role
 from src.intelligence.books import artifact, ledger_path
-from src.intelligence.episode_tag import EPISODE, phase_for
+from src.intelligence.episode_tag import PHASES, phase_for
 from src.tools.observation_log import _read_jsonl
 
-VERSION = "EPISODE-SLICE-v0.1"
-FOCUS = ("PRE_LEAD", "LEAD_IN", "PEAK_BAND", "DRAWDOWN")
+VERSION = "EPISODE-SLICE-v1"
+FOCUS = tuple(p[0] for p in PHASES)
 
 
 def print_slice(source: str = "replay") -> Dict[str, Any]:
@@ -44,7 +44,7 @@ def print_slice(source: str = "replay") -> Dict[str, Any]:
                 if fwd is not None:
                     acc[cid]["skip_sum"] += float(fwd)
                     acc[cid]["skip_n"] += 1
-    print(f"\nEPISODE SLICE  {VERSION}  {EPISODE}  book={source}")
+    print(f"\nEPISODE SLICE  {VERSION}  book={source}")
     print("=" * 64)
     print("Setups only. Phase ≠ KEEP. Thin cells stay UNKNOWN.")
     print("-" * 64)
@@ -62,13 +62,12 @@ def print_slice(source: str = "replay") -> Dict[str, Any]:
         )
     dest = artifact("episode_slice", source)
     print("-" * 64)
-    print(f"  saved={dest}  DRAWDOWN-heavy expected. Do not add more 1h coins.")
+    print(f"  saved={dest}  Dual crash on 5y book. Not KEEP.")
     print("=" * 64)
     print()
     out = {
         "ok": True,
         "version": VERSION,
-        "episode": EPISODE,
         "source": source,
         "cells": cells,
         "keep": False,

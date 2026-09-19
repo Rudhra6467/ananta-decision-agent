@@ -36,8 +36,7 @@ fingerprint_report.json
 typed_decision.jsonl
 experiments_ledger.jsonl
 user_context.json
-# Uncomment the lines below if you prefer ledgers only on disk, not in git:
-# decision_log.json
-# cycle_log.jsonl
-# opportunity_log.jsonl
-# agent_memory.json
+decision_log.json
+cycle_log.jsonl
+opportunity_log.jsonl
+agent_memory.json

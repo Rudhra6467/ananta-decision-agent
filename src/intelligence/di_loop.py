@@ -1,9 +1,8 @@
 """One DI pass on the latest live observation.
 
-M1-C: state -> named catalog retrieve -> context rank -> select/refuse.
+M1-C/M1-D: state -> catalog -> context rank -> select/refuse + G1-G7 attach.
 Memory may not TAKE. paper_take / keep / exec stay false.
 Issued may be NO_TRADE | WATCH | WAIT | SHADOW_PAPER | UNKNOWN.
-SHADOW_PAPER and WATCH are development evidence, never M2 school TAKEs.
 """
 from __future__ import annotations
 
@@ -19,47 +18,24 @@ from src.intelligence.l2_pathway import (
     run_pathway,
     state_from_observation,
 )
+from src.intelligence.hands_funnel import from_writer as funnel_from_writer
+from src.intelligence.coverage_matrix import matrix as coverage_matrix
+from src.intelligence.snapshot import build as build_snapshot
+from src.intelligence.exit_engine import plan as exit_plan
+from src.intelligence.counterfactual import open_case as open_counterfactual
+from src.intelligence.paper_ledger import refuse_fill
 from src.intelligence.rank_desk import rank_for
 from src.intelligence.scan_candidates import _fp_from_obs, build as build_scan
 from src.intelligence.state_card import card as state_card
 from src.tools.observation_log import OBSERVATION_LOG, _read_jsonl
 
-VERSION = "DI-LOOP-v1-l2"
+VERSION = "DI-LOOP-v1-l2-g1g7"
 OUT = Path("di_loop.json")
 FUNNEL_OUT = Path("hands_funnel_cycle.json")
 
 
 def _emit_funnel(obs: dict, st: dict, scan: dict, l2: dict, issued: str) -> dict[str, Any]:
-    """Partial G1 counters from this writer cycle. Missing counts stay 0, not invented."""
-    cand = scan.get("candidate") or {}
-    ranked = l2.get("ranked") or []
-    family_hits = [r for r in ranked if r.get("family_match") == "HIGH"]
-    assets_named = [st.get("asset") or "BTC/USD"]
-    evaluated = 1 if obs else 0
-    row = {
-        "cycle_id": (obs.get("system_truth") or {}).get("cycle_id") or obs.get("id") or st.get("obs_id"),
-        "bar_tf": l2.get("state", {}).get("tf"),
-        "last_bar_open": obs.get("ts") or obs.get("timestamp") or st.get("ts"),
-        "assets_named": assets_named,
-        "assets_evaluated": evaluated,
-        "timeframes": [l2.get("state", {}).get("tf") or "unknown"],
-        "bars_evaluated": evaluated,
-        "observations": 1 if obs else 0,
-        "partial_candidates": 1 if cand else 0,
-        "candidate_setups": 1 if cand else 0,
-        "qualified_setups": 1 if (l2.get("state") or {}).get("hunter_qualifying") or (l2.get("state") or {}).get("squeeze_qualifying") else 0,
-        "strategy_family_matches": len(family_hits),
-        "knowledge_retrievals": len(ranked),
-        "decisions": 1,
-        "paper_candidates": 1 if issued == "SHADOW_PAPER" else 0,
-        "issued_TAKE": 0,
-        "issued_WAIT": 1 if issued == "WAIT" else 0,
-        "issued_NO_TRADE": 1 if issued in ("NO_TRADE", "SHADOW_PAPER") else 0,
-        "issued_WATCH": 1 if issued == "WATCH" else 0,
-        "coverage_gaps": ["universe_not_fully_evaluated"] if evaluated < 10 else [],
-        "looked": bool(obs) and bool(ranked),
-        "note": "Partial writer-side funnel. Hands cycle still must emit the full spec.",
-    }
+    row = funnel_from_writer(obs, st, scan, l2, issued)
     FUNNEL_OUT.write_text(json.dumps(row, indent=2, default=str))
     return row
 
@@ -146,17 +122,19 @@ def run(obs: Dict[str, Any] | None = None) -> Dict[str, Any]:
                 if r.get("id") != decision.get("best_id") and r.get("family_match") == "HIGH"
             ],
             "why_not_alternatives": [
-                {
-                    "id": r.get("id"),
-                    "family_match": r.get("family_match"),
-                    "refuse_reasons": r.get("refuse_reasons"),
-                }
+                {"id": r.get("id"), "family_match": r.get("family_match"), "refuse_reasons": r.get("refuse_reasons")}
                 for r in (l2.get("ranked") or [])
                 if r.get("id") != decision.get("best_id")
             ][:6],
         },
     }
     out["funnel"] = _emit_funnel(obs, st, scan, l2, issued)
+    out["coverage"] = coverage_matrix((l2.get("state") or {}).get("regime"))
+    out["decision_snapshot"] = build_snapshot(state=l2_state, scan=scan, l2=l2, issued=issued, ts=out["ts"])
+    out["exit_plan"] = exit_plan(family=next((r.get("family") for r in (l2.get("ranked") or []) if r.get("id") == decision.get("best_id")), None))
+    out["counterfactual"] = open_counterfactual(out["decision_snapshot"])
+    out["paper_book"] = refuse_fill("PAPER_GATE_CLOSED")
+    Path("decision_snapshot.json").write_text(json.dumps(out["decision_snapshot"], indent=2, default=str))
     OUT.write_text(json.dumps(out, indent=2, default=str))
     out["saved"] = str(OUT)
     return out
@@ -171,14 +149,8 @@ def print_loop() -> Dict[str, Any]:
     print(f"  l2_regime={((r.get('l2_state') or {}).get('regime'))}  tf={((r.get('l2_state') or {}).get('tf'))}")
     print(f"  issued={r.get('issued')}  why={r.get('why')}  best={r.get('best_id')}")
     print(f"  cited={r.get('cited')}")
-    print(f"  naive={r.get('naive_issued')} / {r.get('naive_why')}")
     print(f"  paper_take={r.get('paper_take')} keep={r.get('keep')} exec={r.get('exec')} m2={r.get('counts_for_m2')}")
-    print("-" * 64)
-    for x in (r.get("rank_rows") or [])[:6]:
-        print(
-            f"  {str(x.get('id') or ''):<32} fam={x.get('family_match'):<4} "
-            f"score={x.get('score')} {x.get('result')} n={x.get('sample_n')}"
-        )
+    print(f"  look_class={(r.get('funnel') or {}).get('look_class')}  paper_book={(r.get('paper_book') or {}).get('status')}")
     print("-" * 64)
     print("  L2 cannot TAKE. Paper authority closed. Continuation stays BENCHED.")
     print(f"  saved={r.get('saved')}  versions={r.get('versions')}")

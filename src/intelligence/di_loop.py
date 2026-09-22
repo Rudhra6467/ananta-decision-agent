@@ -3,6 +3,7 @@
 M1-C/M1-D: state -> catalog -> context rank -> select/refuse + G1-G7 attach.
 Memory may not TAKE. paper_take / keep / exec stay false.
 Issued may be NO_TRADE | WATCH | WAIT | SHADOW_PAPER | UNKNOWN.
+G5 persists to agent_decisions.sqlite. Local JSON is a copy.
 """
 from __future__ import annotations
 
@@ -24,12 +25,13 @@ from src.intelligence.snapshot import build as build_snapshot
 from src.intelligence.exit_engine import plan as exit_plan
 from src.intelligence.counterfactual import open_case as open_counterfactual
 from src.intelligence.paper_ledger import refuse_fill
+from src.intelligence.decision_store import persist_snapshot
 from src.intelligence.rank_desk import rank_for
 from src.intelligence.scan_candidates import _fp_from_obs, build as build_scan
 from src.intelligence.state_card import card as state_card
 from src.tools.observation_log import OBSERVATION_LOG, _read_jsonl
 
-VERSION = "DI-LOOP-v1-l2-g1g7"
+VERSION = "DI-LOOP-v1-l2-g1g7-persist"
 OUT = Path("di_loop.json")
 FUNNEL_OUT = Path("hands_funnel_cycle.json")
 
@@ -135,6 +137,13 @@ def run(obs: Dict[str, Any] | None = None) -> Dict[str, Any]:
     out["counterfactual"] = open_counterfactual(out["decision_snapshot"])
     out["paper_book"] = refuse_fill("PAPER_GATE_CLOSED")
     Path("decision_snapshot.json").write_text(json.dumps(out["decision_snapshot"], indent=2, default=str))
+    out["decision_store"] = persist_snapshot(
+        out["decision_snapshot"],
+        funnel=out["funnel"],
+        exit_plan=out["exit_plan"],
+        counterfactual=out["counterfactual"],
+        paper_book=out["paper_book"],
+    )
     OUT.write_text(json.dumps(out, indent=2, default=str))
     out["saved"] = str(OUT)
     return out
@@ -150,7 +159,10 @@ def print_loop() -> Dict[str, Any]:
     print(f"  issued={r.get('issued')}  why={r.get('why')}  best={r.get('best_id')}")
     print(f"  cited={r.get('cited')}")
     print(f"  paper_take={r.get('paper_take')} keep={r.get('keep')} exec={r.get('exec')} m2={r.get('counts_for_m2')}")
-    print(f"  look_class={(r.get('funnel') or {}).get('look_class')}  paper_book={(r.get('paper_book') or {}).get('status')}")
+    funnel = r.get("funnel") or {}
+    print(f"  look_class={funnel.get('look_class')}  looked_n={funnel.get('looked_asset_n')}  counts={funnel.get('look_class_counts')}")
+    print(f"  paper_book={(r.get('paper_book') or {}).get('status')}  store={(r.get('decision_store') or {}).get('id')}")
+    print(f"  exit_open={(r.get('exit_plan') or {}).get('open')}  cf={(r.get('counterfactual') or {}).get('status')} fills=0")
     print("-" * 64)
     print("  L2 cannot TAKE. Paper authority closed. Continuation stays BENCHED.")
     print(f"  saved={r.get('saved')}  versions={r.get('versions')}")

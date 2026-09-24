@@ -14,10 +14,17 @@ from src.intelligence.di_loop import VERSION as LOOP_VERSION
 from src.intelligence.di_loop import run
 from src.intelligence.hands_funnel import UNIVERSE, emit, _norm_asset
 
-INGEST_VERSION = "cycle.ingest.v2"
+INGEST_VERSION = "cycle.ingest.v3"
 OUT = Path("cycle_ingest.json")
 FUNNEL_OUT = Path("hands_funnel_cycle.json")
 LAB10 = ["BTC", "ETH", "SOL", "ADA", "DOGE", "AVAX", "BCH", "LINK", "LTC", "XRP"]
+LOOK_PRIORITY = (
+    "LOOKED_ISSUED",
+    "LOOKED_SHADOW",
+    "LOOKED_WAIT",
+    "LOOKED_WATCH",
+    "LOOKED_NOTHING_VALID",
+)
 
 
 def _truthy_setup(v: Any) -> bool:
@@ -169,15 +176,19 @@ def rows_from_envelope(env: dict[str, Any]) -> list[dict[str, Any]]:
     return ordered
 
 
-def _cycle_look_class(counts: dict[str, int], looked_n: int) -> str:
-    if looked_n == 0:
-        return "NEVER_LOOKED"
-    if looked_n < len(UNIVERSE):
-        return "LOOKED_PARTIAL"
-    present = [k for k, n in counts.items() if n]
-    if len(present) == 1:
-        return present[0]
-    return "LOOKED_PARTIAL"
+def _cycle_look_class(counts: dict[str, int], looked_n: int) -> dict[str, Any]:
+    """LOOKED_PARTIAL means the universe was not fully looked. Mixed 10/10 is not PARTIAL."""
+    never = int(counts.get("NEVER_LOOKED") or 0)
+    if looked_n == 0 or never == len(UNIVERSE):
+        return {"look_class": "NEVER_LOOKED", "mixed": False, "majority": "NEVER_LOOKED"}
+    if looked_n < len(UNIVERSE) or never > 0:
+        return {"look_class": "LOOKED_PARTIAL", "mixed": True, "majority": None}
+    present = [k for k in LOOK_PRIORITY if int(counts.get(k) or 0) > 0]
+    if not present:
+        return {"look_class": "LOOKED_NOTHING_VALID", "mixed": False, "majority": "LOOKED_NOTHING_VALID"}
+    majority = max(present, key=lambda k: (int(counts.get(k) or 0), -LOOK_PRIORITY.index(k)))
+    mixed = len(present) > 1
+    return {"look_class": majority, "mixed": mixed, "majority": majority}
 
 
 def run_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
@@ -258,7 +269,12 @@ def run_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
         "coverage_gaps": gaps,
         "per_asset": per_asset,
     })
-    funnel["look_class"] = _cycle_look_class(funnel.get("look_class_counts") or {}, funnel.get("looked_asset_n") or 0)
+    agg = _cycle_look_class(funnel.get("look_class_counts") or {}, funnel.get("looked_asset_n") or 0)
+    funnel["look_class"] = agg["look_class"]
+    funnel["look_class_mixed"] = agg["mixed"]
+    funnel["look_class_majority"] = agg["majority"]
+    if agg["mixed"] and "mixed_issued_classes" not in funnel["coverage_gaps"]:
+        funnel["coverage_gaps"].append("mixed_issued_classes")
     FUNNEL_OUT.write_text(json.dumps(funnel, indent=2, default=str))
     report = {
         "ok": True,
@@ -271,6 +287,8 @@ def run_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
         "assets_evaluated": funnel.get("assets_evaluated"),
         "looked_asset_n": funnel.get("looked_asset_n"),
         "look_class": funnel.get("look_class"),
+        "look_class_mixed": funnel.get("look_class_mixed"),
+        "look_class_majority": funnel.get("look_class_majority"),
         "look_class_counts": funnel.get("look_class_counts"),
         "coverage_gaps": funnel.get("coverage_gaps"),
         "board": board,
@@ -292,7 +310,8 @@ def print_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
     print(f"  cycle_id={r.get('cycle_id')}  source={r.get('source')}")
     print(f"  label={r.get('universe_label')}  envelope_n={r.get('n_envelope')}")
     print(f"  evaluated={r.get('assets_evaluated')} looked_n={r.get('looked_asset_n')}")
-    print(f"  look_class={r.get('look_class')}  counts={r.get('look_class_counts')}")
+    print(f"  look_class={r.get('look_class')} mixed={r.get('look_class_mixed')} majority={r.get('look_class_majority')}")
+    print(f"  counts={r.get('look_class_counts')}")
     print(f"  gaps={r.get('coverage_gaps')}")
     print("-" * 64)
     print(f"  {'ASSET':<6} {'REGIME':<14} {'ISSUED':<14} BEST")

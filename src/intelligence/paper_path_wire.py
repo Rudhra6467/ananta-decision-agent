@@ -20,7 +20,9 @@ UNTOUCHED = ("bar_tf", "last_bar_open", "evidence_ids_json", "timeframe")
 def correct(out: dict[str, Any] | None, db_path: Path | None = None) -> dict[str, Any]:
     out = dict(out or {})
     state = dict(out.get("l2_state") or {})
-    if not state.get("source"):
+    if str(state.get("id") or "").startswith("fixture.") or state.get("fixture") is True:
+        state["source"] = "FIXTURE"
+    elif not state.get("source") or str(state.get("source")).lower() == "observation":
         state["source"] = "LIVE"
     paper = decide(state)
     issued = issued_from_paper(paper)
@@ -56,6 +58,8 @@ def rewrite_persisted(store: dict[str, Any], paper: dict[str, Any], fill: dict[s
     path = Path(saved)
     if not path.exists():
         return {"rewritten": False, "reason": "DB_MISSING"}
+    if paper.get("source") == "FIXTURE" and path.name == "agent_decisions.sqlite":
+        return {"rewritten": False, "reason": "FIXTURE_REFUSED_ON_LIVE_DB"}
     con = sqlite3.connect(str(path))
     try:
         before = con.execute("SELECT bar_tf, last_bar_open, evidence_ids_json, timeframe, payload_json FROM decisions WHERE id=?", (rid,)).fetchone()

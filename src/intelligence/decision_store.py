@@ -62,8 +62,16 @@ def persist_snapshot(
         issued = "NO_TRADE"
     ts = str((snapshot or {}).get("timestamp") or datetime.now(timezone.utc).isoformat())
     asset = str(state.get("asset") or "BOOK")
+    asset_key = asset.upper().replace("/USD", "").split("/")[0].split("-")[0]
     tf = str(state.get("tf") or "unknown")
-    rid = f"decision.g5.{asset.lower()}.{ts.replace(':', '').replace('-', '')[:15]}"
+    cycle_id = str(
+        state.get("cycle_id")
+        or (funnel or {}).get("cycle_id")
+        or (snapshot or {}).get("cycle_id")
+        or ""
+    )
+    cid = cycle_id.replace("cyc_", "")[:20] if cycle_id and cycle_id != "unknown" else ts.replace(":", "").replace("-", "")[:15]
+    rid = f"decision.g5.{asset_key.lower()}.{cid}"
     understanding = {
         "WATCH": "SETUP_PRESENT",
         "WAIT": "FORMING",
@@ -78,6 +86,7 @@ def persist_snapshot(
         "exit_plan": exit_plan,
         "counterfactual": counterfactual,
         "paper_book": paper_book,
+        "cycle_id": cycle_id or None,
         "counts_for_m2": False,
         "counts_for_paper": False,
         "paper_take": False,
@@ -89,7 +98,7 @@ def persist_snapshot(
         "id": rid,
         "ts_utc": ts,
         "camera": "hands_cycle",
-        "instrument": asset,
+        "instrument": asset_key,
         "timeframe": tf,
         "bar_tf": tf,
         "last_bar_open": str(state.get("fingerprint") or (funnel or {}).get("last_bar_open") or ""),
@@ -99,7 +108,7 @@ def persist_snapshot(
         "evidence_ids_json": json.dumps(cited),
         "authority_level": 0,
         "knowledge_maturity": "DOCUMENTED",
-        "source_ref": "g5.snapshot.v1",
+        "source_ref": cycle_id or "g5.snapshot.v1",
         "payload_json": json.dumps(payload, default=str),
     }
     con = sqlite3.connect(str(path))
@@ -122,4 +131,4 @@ def persist_snapshot(
         con.commit()
     finally:
         con.close()
-    return {"saved": str(path), "id": rid, "decision": issued, "paper_take": False, "fills": 0}
+    return {"saved": str(path), "id": rid, "decision": issued, "instrument": asset_key, "cycle_id": cycle_id or None, "paper_take": False, "fills": 0}

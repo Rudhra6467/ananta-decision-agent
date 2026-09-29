@@ -46,12 +46,17 @@ def run(obs: Dict[str, Any] | None = None) -> Dict[str, Any]:
     rows = _read_jsonl(OBSERVATION_LOG) if OBSERVATION_LOG.exists() else []
     if obs is None:
         obs = rows[-1] if rows else {}
-    st = state_card(obs)
+    asset = str(obs.get("asset") or "BTC/USD")
+    st = state_card(obs, asset=asset)
     fp = st.get("fingerprint") or (_fp_from_obs(obs) if obs else "UNKNOWN|UNKNOWN|UNKNOWN|UNCLEAR")
-    scan = build_scan()
+    scan = build_scan(asset=asset)
     rank = rank_for(fp)
     find = load_findings()
     l2_state = state_from_observation(obs, st, scan)
+    l2_state["asset"] = asset.split("/")[0].split("-")[0]
+    cyc = ((obs.get("system_truth") or {}).get("cycle_id") or obs.get("id") or "")
+    if cyc:
+        l2_state["cycle_id"] = str(cyc)
     l2 = run_pathway(l2_state)
     decision = l2["decision"]
     issued = issued_from_decision(decision)

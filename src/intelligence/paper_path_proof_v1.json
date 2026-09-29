@@ -1,0 +1,10 @@
+{
+  "id": "paper.path.proof.v1",
+  "status": "FIXTURE_PASS",
+  "not_a_market_trade": true,
+  "not_m2": true,
+  "exec": false,
+  "authority_granted": false,
+  "knowledge_authority": "NONE",
+  "note": "Arms the live paper path after checkout. A later live TAKE is paper only. It is not M2, not authority, not a found edge."
+}

@@ -201,6 +201,11 @@ def _print_tick(record: dict) -> None:
         print(f"  OUTCOME  backfill pending/error={bf.get('error') or 'n/a'}")
     print(f"  saved={record.get('_written')}  file=observation_log.jsonl")
     print("  (log only — no KEEP, no strategy mutation)")
+    try:
+        from fade_watch import attach_to_record, print_eval
+        print_eval(attach_to_record(record))
+    except Exception as _fade_err:
+        print(f"  FADE    error={_fade_err}")
 
 
 def run_lab_watch(interval_min: int = DEFAULT_INTERVAL_MIN) -> None:

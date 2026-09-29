@@ -12,9 +12,10 @@ from typing import Any
 
 from src.intelligence.di_loop import VERSION as LOOP_VERSION
 from src.intelligence.di_loop import run
+from src.intelligence.paper_path_wire import correct
 from src.intelligence.hands_funnel import UNIVERSE, emit, _norm_asset
 
-INGEST_VERSION = "cycle.ingest.v3"
+INGEST_VERSION = "cycle.ingest.v4"
 OUT = Path("cycle_ingest.json")
 FUNNEL_OUT = Path("hands_funnel_cycle.json")
 LAB10 = ["BTC", "ETH", "SOL", "ADA", "DOGE", "AVAX", "BCH", "LINK", "LTC", "XRP"]
@@ -205,7 +206,7 @@ def run_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
         if asset not in UNIVERSE:
             continue
         obs = observation_from_result(item, cycle_id=cycle_id, ts=ts, bar_tf=bar_tf)
-        out = run(obs)
+        out = correct(run(obs))
         issued = str(out.get("issued") or "NO_TRADE")
         l2s = out.get("l2_state") or {}
         regime = l2s.get("regime") or obs.get("regime")
@@ -297,7 +298,7 @@ def run_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
         "keep": False,
         "exec": False,
         "counts_for_m2": False,
-        "g8": "NOT_GRANTED",
+        "g8": "GRANT_READ", "paper_path": "ARMED_AFTER_FIXTURE_PROOF", "grant_read": True,
     }
     OUT.write_text(json.dumps(report, indent=2, default=str))
     return report
@@ -319,7 +320,8 @@ def print_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
         gap = f"  gap={row.get('data_gap')}" if row.get("data_gap") else ""
         print(f"  {row.get('asset',''):<6} {str(row.get('regime') or '-'):<14} {str(row.get('issued') or '-'):<14} {row.get('best')}{gap}")
     print("-" * 64)
-    print("  paper_take=False keep=False exec=False m2=False G8=NOT_GRANTED")
+    print("  paper_path=ARMED grant_read=True exec=False m2=False live=False")
+    print("  fixture fill is not a market trade. family match is not a take.")
     print(f"  saved={OUT} funnel={FUNNEL_OUT}")
     print("=" * 64)
     print()

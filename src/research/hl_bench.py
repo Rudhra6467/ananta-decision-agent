@@ -55,7 +55,7 @@ HFT_TURNOVER = 300.0  # monthly volume / account value above this = market maker
 _last = [0.0]
 
 
-def _pace(min_gap: float = 0.6) -> None:
+def _pace(min_gap: float = 1.2) -> None:
     gap = time.time() - _last[0]
     if gap < min_gap:
         time.sleep(min_gap - gap)
@@ -71,7 +71,7 @@ def post(body: dict, retries: int = 4) -> Any:
         except Exception:  # noqa: BLE001
             if i == retries - 1:
                 raise
-            time.sleep(3 * (i + 1))
+            time.sleep(10 * (i + 1))
 
 
 def get(url: str) -> Any:
@@ -206,6 +206,8 @@ def collect(out: Path, per_bucket: int = 10, tape_k: int = 20, vault_k: int = 15
         con.commit()
     since = int(time.time() * 1000 - years * 365.25 * DAY_MS)
     tape_kept = con.execute("SELECT count(*) FROM accounts WHERE source='TAPE' AND status='DONE'").fetchone()[0]
+    con.execute("UPDATE accounts SET status='PENDING' WHERE status LIKE 'ERROR:%'")  # retry rate-limited ones
+    con.commit()
     for a, src in con.execute("SELECT address, source FROM accounts WHERE status='PENDING' ORDER BY source, address").fetchall():
         if src == "TAPE" and tape_kept >= tape_k:
             con.execute("UPDATE accounts SET status='SKIPPED_QUOTA' WHERE address=?", (a,))
@@ -358,16 +360,60 @@ def analyze(out: Path) -> dict[str, Any]:
     return report
 
 
+def ananta_behaviour(replay_dir: Path) -> dict[str, Any]:
+    """Same metrics for Ananta's own replay trades (lab/mtf_replay output with per-trade rows)."""
+    groups: dict[str, list[dict]] = {}
+    for p in sorted(Path(replay_dir).glob("*_*.json")):
+        if p.name == "config_snapshot.json":
+            continue
+        c = json.loads(p.read_text())
+        for t in c.get("trades") or []:
+            if t.get("partial"):
+                continue
+            groups.setdefault(f"ananta_{t['strategy']}_{c['tf']}", []).append(t)
+    out = {}
+    for k, ts in groups.items():
+        net = [float(t["pnl"]) for t in ts]
+        wins = [x for x in net if x > 0]
+        losses = [-x for x in net if x <= 0]
+        holds = [float(t["hold_hours"]) for t in ts]
+        out[k] = {
+            "trips": len(ts),
+            "win_rate": round(len(wins) / len(ts), 3),
+            "payoff": round(st.mean(wins) / st.mean(losses), 2) if wins and losses else None,
+            "profit_factor": round(sum(wins) / sum(losses), 2) if losses and sum(losses) > 0 else None,
+            "hold_h_median": round(_pct(holds, 0.5), 2),
+            "hold_win_median": round(_pct([float(t["hold_hours"]) for t in ts if float(t["pnl"]) > 0], 0.5) or 0, 2),
+            "hold_loss_median": round(_pct([float(t["hold_hours"]) for t in ts if float(t["pnl"]) <= 0], 0.5) or 0, 2),
+            "avg_mfe_pct": round(st.mean(float(t["mfe_pct"] or 0) for t in ts), 2),
+            "avg_mae_pct": round(st.mean(float(t["mae_pct"] or 0) for t in ts), 2),
+            "exits": _count_list(t.get("exit_reason") for t in ts),
+            "regimes": _count_list(t.get("regime_at_entry") for t in ts),
+        }
+    return out
+
+
+def _count_list(xs) -> dict[str, int]:
+    d: dict[str, int] = {}
+    for x in xs:
+        d[str(x)] = d.get(str(x), 0) + 1
+    return dict(sorted(d.items(), key=lambda kv: -kv[1]))
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["collect", "analyze"])
     ap.add_argument("--out", default=str(Path.home() / "ananta_runs" / "hl_bench"))
+    ap.add_argument("--ananta", default=str(Path.home() / "ananta_runs" / "mtf_replay_v2"))
     a = ap.parse_args(argv)
     out = Path(a.out).expanduser()
     if a.cmd == "collect":
         print(json.dumps(collect(out), indent=2))
     else:
         r = analyze(out)
+        if Path(a.ananta).expanduser().exists():
+            r["ananta"] = ananta_behaviour(Path(a.ananta).expanduser())
+            (out / "hl_bench_report.json").write_text(json.dumps(r, indent=2, default=str))
         print(json.dumps({k: v for k, v in r.items() if k != "accounts_detail"}, indent=2))
 
 

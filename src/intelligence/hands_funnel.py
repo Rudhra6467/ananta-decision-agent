@@ -216,12 +216,12 @@ def from_writer(obs: dict, st: dict, scan: dict, l2: dict, issued: str) -> dict[
             "cycle_id": ((obs or {}).get("system_truth") or {}).get("cycle_id")
             or (obs or {}).get("id")
             or (st or {}).get("obs_id"),
-            "bar_tf": ((l2 or {}).get("state") or {}).get("tf"),
+            "bar_tf": (obs or {}).get("bar_tf") or ((obs or {}).get("system_truth") or {}).get("bar_tf") or ((l2 or {}).get("state") or {}).get("tf"),
             "last_bar_open": (obs or {}).get("ts") or (obs or {}).get("timestamp") or (st or {}).get("ts"),
             "assets_named": named,
             "assets_evaluated": 1 if obs and named else 0,
             "assets_scanned_ok": 1 if obs and named else 0,
-            "timeframes": [((l2 or {}).get("state") or {}).get("tf") or "unknown"],
+            "timeframes": [(obs or {}).get("bar_tf") or ((obs or {}).get("system_truth") or {}).get("bar_tf") or ((l2 or {}).get("state") or {}).get("tf") or "unknown"],
             "bars_evaluated": bars,
             "observations": 1 if obs else 0,
             "partial_matches": 1 if cand else 0,

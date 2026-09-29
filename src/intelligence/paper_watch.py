@@ -61,20 +61,40 @@ def notify(title: str, body: str, *, level: str = "INFO") -> None:
             pass
 
 
+TOKEN_FILE = Path(os.getenv("ANANTA_TOKEN_FILE", "/tmp/ananta_login.json"))
+
+
+def _token() -> tuple[str, str]:
+    """Owner token: .env login first, then the saved login file used by the manual cycle client."""
+    from src.tools import ananta_api
+
+    tok = ananta_api.login()
+    if tok.get("success") and tok.get("token"):
+        return tok["token"], "env_login"
+    try:
+        saved = json.loads(TOKEN_FILE.read_text()).get("token")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        saved = None
+    if saved:
+        return saved, "token_file"
+    raise RuntimeError(f"LOGIN_FAILED:{str(tok.get('error') or tok.get('status_code'))[:120]} and no {TOKEN_FILE}")
+
+
 def run_hands_cycle(timeout: int = 180) -> dict[str, Any]:
     import requests
 
     from src.tools import ananta_api
 
-    tok = ananta_api.login()
-    if not tok.get("success"):
-        raise RuntimeError(f"LOGIN_FAILED:{str(tok.get('error') or tok.get('status_code'))[:120]}")
+    token, how = _token()
     r = requests.post(f"{ananta_api.BASE_URL}/api/cycle/run", data=b"{}",
-                      headers={**ananta_api.get_headers(tok["token"])}, timeout=timeout)
+                      headers={**ananta_api.get_headers(token)}, timeout=timeout)
+    if r.status_code in (401, 403):
+        raise RuntimeError(f"AUTH_REJECTED_{r.status_code} via {how} (fix ANANTA_PASSWORD in .env, or refresh {TOKEN_FILE})")
     r.raise_for_status()
     env = r.json()
     if not isinstance(env, dict) or not env.get("results"):
         raise RuntimeError("EMPTY_ENVELOPE")
+    env["_auth"] = how
     return env
 
 
@@ -141,6 +161,7 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
         "last_bar_open": bar,
         "bar_open_utc": datetime.fromtimestamp(bar / 1000, timezone.utc).isoformat() if bar else None,
         "same_bar_as_previous": same_bar,
+        "auth": env.get("_auth"),
         "missed_bars_since_previous": missed,
         "look_class": report.get("look_class"),
         "regimes": {r.get("asset"): r.get("regime") for r in board},
@@ -156,6 +177,8 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
     with HEARTBEAT.open("a") as f:
         f.write(json.dumps(rec, default=str) + "\n")
 
+    if env.get("_auth") == "token_file" and not (prev or {}).get("auth") == "token_file":
+        notify("Ananta watch: using saved token", "The .env login failed. When the saved token expires the watch stops; fix ANANTA_PASSWORD in .env.", level="WARN")
     if missed:
         notify("Ananta watch: gap", f"{missed} closed 1h bar(s) were never looked at before {rec['bar_open_utc']}", level="WARN")
     if rec["takes"]:

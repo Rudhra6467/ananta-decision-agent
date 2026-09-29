@@ -14,6 +14,7 @@ from src.intelligence.di_loop import VERSION as LOOP_VERSION
 from src.intelligence.di_loop import run
 from src.intelligence.paper_path_wire import correct
 from src.intelligence.hands_funnel import UNIVERSE, emit, _norm_asset
+from src.intelligence import paper_exit
 
 INGEST_VERSION = "cycle.ingest.v4"
 OUT = Path("cycle_ingest.json")
@@ -192,7 +193,67 @@ def _cycle_look_class(counts: dict[str, int], looked_n: int) -> dict[str, Any]:
     return {"look_class": majority, "mixed": mixed, "majority": majority}
 
 
-def run_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
+def _structural_stop(item: dict, core: str | None):
+    for row in item.get("strategy_observations") or item.get("strategies") or []:
+        if isinstance(row, dict) and str(row.get("strategy") or row.get("strategy_id") or "").lower() == (core or ""):
+            for k in ("structural_stop", "stop"):
+                try:
+                    v = float(row.get(k))
+                except (TypeError, ValueError):
+                    continue
+                if v > 0:
+                    return v
+    return None
+
+
+def _decision_price(item: dict):
+    snap = item.get("snapshot") or {}
+    for k in ("ask", "price"):
+        try:
+            v = float(snap.get(k))
+        except (TypeError, ValueError):
+            continue
+        if v > 0:
+            return v
+    return None
+
+
+def _take_for_sd6(item: dict, out: dict[str, Any], asset: str, cycle_id: str, decision_ts: str | None = None) -> dict[str, Any] | None:
+    """Only a valid paper-path TAKE becomes an SD6 open request."""
+    if str(out.get("issued") or "") != "TAKE":
+        return None
+    paper = out.get("paper_path") or {}
+    l2s = out.get("l2_state") or {}
+    core = paper.get("core")
+    return {
+        "asset": asset,
+        "core": core,
+        "card": paper.get("best_id"),
+        "direction": l2s.get("direction") or "NONE",
+        "evidence_class": paper.get("evidence_class"),
+        "cycle_id": cycle_id,
+        "decision_id": (out.get("decision_store") or {}).get("id"),
+        "structural_stop": _structural_stop(item, core),
+        "decision_bar_open_ms": item.get("last_bar_open"),
+        "decision_price": _decision_price(item),
+        "decision_ts": (item.get("snapshot") or {}).get("timestamp") or decision_ts,
+    }
+
+
+def _manual_kill(item: dict) -> bool:
+    ks = item.get("kill_switches") or {}
+    return bool(isinstance(ks, dict) and ks.get("manual_kill"))
+
+
+def run_sd6(takes: list[dict], kills: dict[str, bool], **kw) -> dict[str, Any]:
+    """SD6 paper exit manager. Never breaks the cycle; a failure is reported, not hidden."""
+    try:
+        return paper_exit.manage_cycle(takes, emergency_by_asset=kills, **kw)
+    except Exception as exc:  # noqa: BLE001
+        return {"version": paper_exit.VERSION, "error": str(exc)[:300], "managed": [], "opened": [], "refused": []}
+
+
+def run_envelope(path: str | Path = "/tmp/cycle_all.json", *, sd6: bool = True, sd6_kw: dict | None = None) -> dict[str, Any]:
     env = load_envelope(path)
     cycle_id = str(env.get("cycle_id") or "unknown")
     ts = str(env.get("as_of_time") or env.get("ran_at") or "")
@@ -201,12 +262,18 @@ def run_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
     per_asset: dict[str, Any] = {}
     board: list[dict[str, Any]] = []
     stores: list[dict[str, Any]] = []
+    takes: list[dict[str, Any]] = []
+    kills: dict[str, bool] = {}
     for item in rows:
         asset = _norm_asset(item.get("symbol"))
         if asset not in UNIVERSE:
             continue
         obs = observation_from_result(item, cycle_id=cycle_id, ts=ts, bar_tf=bar_tf)
         out = correct(run(obs))
+        kills[asset] = _manual_kill(item)
+        take = _take_for_sd6(item, out, asset, cycle_id, ts)
+        if take:
+            takes.append(take)
         issued = str(out.get("issued") or "NO_TRADE")
         l2s = out.get("l2_state") or {}
         regime = l2s.get("regime") or obs.get("regime")
@@ -299,6 +366,7 @@ def run_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
         "exec": False,
         "counts_for_m2": False,
         "g8": "GRANT_READ", "paper_path": "ARMED_AFTER_FIXTURE_PROOF", "grant_read": True,
+        "sd6": run_sd6(takes, kills, **(sd6_kw or {})) if sd6 else {"version": paper_exit.VERSION, "skipped": True},
     }
     OUT.write_text(json.dumps(report, indent=2, default=str))
     return report
@@ -320,6 +388,13 @@ def print_envelope(path: str | Path = "/tmp/cycle_all.json") -> dict[str, Any]:
         gap = f"  gap={row.get('data_gap')}" if row.get("data_gap") else ""
         print(f"  {row.get('asset',''):<6} {str(row.get('regime') or '-'):<14} {str(row.get('issued') or '-'):<14} {row.get('best')}{gap}")
     print("-" * 64)
+    sd = r.get("sd6") or {}
+    led = sd.get("ledger") or {}
+    print(f"  SD6 {sd.get('version')}  opened={len(sd.get('opened') or [])} refused={[x.get('reason') for x in sd.get('refused') or []]} errors={sd.get('errors') or sd.get('error')}")
+    for m in sd.get("managed") or []:
+        print(f"    managed {m.get('id')} status={m.get('status')} events={[e.get('kind') for e in m.get('events') or []]}")
+    if led:
+        print(f"    book cash={led.get('cash')} open={len(led.get('open_positions') or [])} closed={led.get('trade_count')} W/L={led.get('wins')}/{led.get('losses')}")
     print("  paper_path=ARMED grant_read=True exec=False m2=False live=False")
     print("  fixture fill is not a market trade. family match is not a take.")
     print(f"  saved={OUT} funnel={FUNNEL_OUT}")

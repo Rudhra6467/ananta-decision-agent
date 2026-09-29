@@ -33,5 +33,5 @@ Operator sentence: "attach SD6 to paper fills". Code: `src/intelligence/paper_ex
 - exec=false, live=false, counts_for_m2=false. M2 credit still needs its own sentence.
 - Status: `python -m src.intelligence.paper_exit status`.
 
-Known Hands behaviour kept for parity: module F rounds the floor to 8 dp; when it rounds down,
-F re-fires TIGHTEN every tick and blocks S/D/C/E (~50% of trades past +1R). Operator decision.
+Profit-floor rounding bug (F re-firing TIGHTEN and blocking S/D/C/E in ~50% of trades past +1R):
+fixed in Hands PR #4 and in SD6 on 2026-09-29. Operator approved the fix.

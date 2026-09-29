@@ -31,15 +31,11 @@ single-pass priority arbitration are copied. Deviations, all deliberate:
   5. LONG only. Hands is spot; the App exit engine is long-only. A SHORT
      paper TAKE is refused and recorded, never silently flipped.
 
-Known Hands behaviour kept on purpose (parity, not endorsement)
----------------------------------------------------------------
-Module F rounds the floor to 8 dp. When that rounds DOWN, the stored floor is
-below the desired floor, so F re-fires TIGHTEN on every later bar, and TIGHTEN
-(P3) outranks B/S/D/C/E. In roughly half of trades that reach +1R, only A
-(hard stop / floor) can then close the trade. Found 2026-09-29 by a
-differential test against Hands; fixing it changes the live engine, so it is
-an operator decision. SD6 matches Hands until Hands is fixed, so paper
-evidence describes the engine that would go live.
+Profit-floor rounding (fixed 2026-09-29, Hands PR #4)
+-----------------------------------------------------
+Module F rounds the target floor to 8 dp BEFORE comparing it with the stored
+floor, matching the fixed Hands engine. Before the fix, rounding down made F
+re-fire TIGHTEN every bar and block B/S/D/C/E in ~50% of trades past +1R.
 
 Laws kept
 ---------
@@ -286,10 +282,11 @@ def evaluate_bar(pos: dict, history: list[list[float]], bar: list[float], *, eme
             cands.append((entry * (1.0 + PROFIT_FLOOR_PCT / 100.0), f"+{PROFIT_FLOOR_PCT}% floor"))
         if cands:
             floor, why = max(cands, key=lambda x: x[0])
+            floor = round(floor, 8)  # round BEFORE comparing (Hands PR #4)
             cur = pos.get("locked_floor")
             if cur is None or cur < floor - 1e-12:
                 signals.append({"priority": 3, "module": "F", "action": ACT_TIGHTEN, "exit_reason": "PROFIT_PROTECT",
-                                "reason": f"MFE {mfe_pct:.2f}% ({mfe_r:.2f}R) lock {why}", "new_floor": round(floor, 8)})  # 8 dp = Hands
+                                "reason": f"MFE {mfe_pct:.2f}% ({mfe_r:.2f}R) lock {why}", "new_floor": floor})
     # B — momentum exhaustion partial (once).
     if ind_now and not pos.get("momentum_partial_taken"):
         r = ind_now.get("rsi")

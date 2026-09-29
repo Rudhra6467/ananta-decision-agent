@@ -1,0 +1,77 @@
+{
+  "id": "paper.exit.proof.v1",
+  "version": "paper.exit.sd6.v1",
+  "port_of": "Ananta backend/exit_engine.py (A,KILL,F,B,S,D,C,E) @ 8cf4bcd",
+  "status": "FIXTURE_PASS",
+  "not_a_market_trade": true,
+  "exec": false,
+  "counts_for_m2": false,
+  "cases": {
+    "entry": {
+      "status": "OPENED",
+      "entry_fill": 100.08,
+      "ok": true
+    },
+    "stop": {
+      "exit_reason": "STOP_LOSS",
+      "module": "A",
+      "pnl": -2.27824,
+      "shadow": "STOP_LOSS",
+      "ok": true
+    },
+    "gap": {
+      "exit_ref": 95.0,
+      "ok": true
+    },
+    "protect": {
+      "events": [
+        "OPENED",
+        "TIGHTEN",
+        "CLOSED"
+      ],
+      "exit_reason": "PROFIT_FLOOR",
+      "ok": true
+    },
+    "trail": {
+      "exit_reason": "ATR_TRAIL",
+      "module": "C",
+      "shadow": "TARGET",
+      "pnl": 4.612174,
+      "shadow_pnl": 2.9176,
+      "ok": true
+    },
+    "time": {
+      "exit_reason": "TIME_EXIT",
+      "hold_hours": 72.0,
+      "ok": true
+    },
+    "stale": {
+      "status": "OPEN",
+      "events": [
+        "OPENED",
+        "DATA_STALE"
+      ],
+      "ok": true
+    },
+    "kill": {
+      "exit_reason": "EMERGENCY_STOP",
+      "ok": true
+    },
+    "gates": {
+      "second": "SLOT_FULL",
+      "short": "SHORT_NOT_SUPPORTED_SPOT",
+      "fixture_on_live": "FIXTURE_REFUSED_ON_LIVE_BOOK",
+      "live_no_proof": "SD6_FIXTURE_NOT_PROVEN",
+      "ok": true
+    },
+    "lookahead": {
+      "locked_floor": null,
+      "ok": true
+    },
+    "late": {
+      "entry_ref": 100.0,
+      "miss": "DECISION_BAR_NOT_IN_CANDLES",
+      "ok": true
+    }
+  }
+}

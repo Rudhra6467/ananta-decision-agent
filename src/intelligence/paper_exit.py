@@ -848,5 +848,7 @@ if __name__ == "__main__":  # python -m src.intelligence.paper_exit [fixture|sta
         res = run_fixtures(Path(tempfile.mkdtemp(prefix="sd6_fx_")))
         print(json.dumps({k: v["ok"] for k, v in res["cases"].items()}, indent=2))
         print(res["status"])
-    else:
+    elif cmd == "status":
         print_status()
+    else:
+        raise SystemExit(f"unknown command {cmd!r}: use fixture | status (the hourly loop is: python -m src.intelligence.paper_watch)")

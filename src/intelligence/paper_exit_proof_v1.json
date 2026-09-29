@@ -72,6 +72,12 @@
       "entry_ref": 100.0,
       "miss": "DECISION_BAR_NOT_IN_CANDLES",
       "ok": true
+    },
+    "forming": {
+      "entry_basis": "DECISION_PX",
+      "entry_fill": 100.5804,
+      "status": "OPEN",
+      "ok": true
     }
   }
 }

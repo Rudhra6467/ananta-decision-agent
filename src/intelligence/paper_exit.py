@@ -466,21 +466,44 @@ def open_from_take(book: Book, take: dict, bars: list[list[float]], *, s: Sd6Set
         return refuse("SHORT_NOT_SUPPORTED_SPOT")
     if len(book.open_positions()) >= s.max_open:
         return refuse("SLOT_FULL")
+    # Where does the entry price come from?
+    #  CLOSED_BAR   decision stamped on a closed bar -> that bar's close.
+    #  DECISION_PX  decision stamped on the still-forming bar (Hands evaluates the
+    #               forming Kraken candle) -> the ask Hands saw at decision time.
+    #               That bar is later judged by its close only (its high/low partly
+    #               happened before the entry).
     dbar = take.get("decision_bar_open_ms")
+    entry_basis = "CLOSED_BAR"
+    partial_bar = None
     if dbar is not None:
         try:
             dbar = float(dbar)
         except (TypeError, ValueError):
             return refuse("BAD_DECISION_BAR")
-        bars = [b for b in bars if b[_T] <= dbar]
-        if not bars or bars[-1][_T] != dbar:
+        closed_upto = [b for b in bars if b[_T] <= dbar]
+        if closed_upto and closed_upto[-1][_T] == dbar:
+            bars = closed_upto
+        elif bars and dbar == bars[-1][_T] + HOUR_MS and take.get("decision_price"):
+            entry_basis = "DECISION_PX"
+            partial_bar = dbar
+        else:
             return refuse("DECISION_BAR_NOT_IN_CANDLES")
     if not bars:
         return refuse("NO_CLOSED_BARS")
     last = bars[-1]
-    ref = float(last[_C])
+    ref = float(take["decision_price"]) if entry_basis == "DECISION_PX" else float(last[_C])
     if not (ref > 0 and math.isfinite(ref)):
         return refuse("BAD_PRICE")
+    if entry_basis == "DECISION_PX":
+        # the decision price must be a price the market actually printed near the last close
+        if abs(ref / float(last[_C]) - 1.0) > 0.15:
+            return refuse("DECISION_PRICE_IMPLAUSIBLE")
+    try:
+        entry_time_ms = datetime.fromisoformat(str(take.get("decision_ts")).replace("Z", "+00:00")).timestamp() * 1000.0 if entry_basis == "DECISION_PX" and take.get("decision_ts") else None
+    except ValueError:
+        entry_time_ms = None
+    if entry_basis == "DECISION_PX" and entry_time_ms is None:
+        entry_time_ms = partial_bar
     fill = _haircut(ref, "BUY", s)
     qty = s.notional_usd / fill
     ss = take.get("structural_stop")
@@ -499,9 +522,12 @@ def open_from_take(book: Book, take: dict, bars: list[list[float]], *, s: Sd6Set
         "decision_id": take.get("decision_id"),
         "evidence_class": evidence,
         "not_a_market_trade": evidence == "FIXTURE",
-        "opened_at": _iso(last[_T] + HOUR_MS),
-        "entry_bar_open_ms": last[_T],
-        "entry_bar_close_ms": last[_T] + HOUR_MS,
+        "opened_at": _iso(entry_time_ms if entry_basis == "DECISION_PX" else last[_T] + HOUR_MS),
+        "entry_basis": entry_basis,
+        "partial_bar_ms": partial_bar,
+        "entry_bar_open_ms": partial_bar if entry_basis == "DECISION_PX" else last[_T],
+        # entry time (age / time exits count from here)
+        "entry_bar_close_ms": entry_time_ms if entry_basis == "DECISION_PX" else last[_T] + HOUR_MS,
         "entry_ref": ref,
         "entry_fill": fill,
         "qty": qty,
@@ -524,8 +550,8 @@ def open_from_take(book: Book, take: dict, bars: list[list[float]], *, s: Sd6Set
         "exec": False, "live": False, "keep": False, "counts_for_m2": False, "authority_granted": False,
     }
     book.save(pos)
-    book.event(pos["id"], last[_T], "OPENED", {"entry_ref": ref, "entry_fill": fill, "qty": qty, "initial_stop": pos["initial_stop"], "core": pos["core"]})
-    return {**base, "status": "OPENED", "position_id": pos["id"], "entry_fill": fill, "initial_stop": pos["initial_stop"]}
+    book.event(pos["id"], last[_T], "OPENED", {"entry_ref": ref, "entry_fill": fill, "qty": qty, "initial_stop": pos["initial_stop"], "core": pos["core"], "entry_basis": entry_basis})
+    return {**base, "status": "OPENED", "position_id": pos["id"], "entry_fill": fill, "initial_stop": pos["initial_stop"], "entry_basis": entry_basis}
 
 
 def _close(book: Book, pos: dict, bar: list[float], win: dict, s: Sd6Settings) -> dict:
@@ -562,6 +588,10 @@ def step(book: Book, pos: dict, bars: list[list[float]], *, emergency: bool = Fa
             events.append({"kind": "DATA_STALE" if stale else "DATA_RESUMED"})
     for bar in new:
         history = [b for b in bars if b[_T] < bar[_T]]
+        if pos.get("partial_bar_ms") is not None and bar[_T] == pos["partial_bar_ms"]:
+            # entry happened inside this bar: its high/low are partly pre-entry, so judge it by its close only
+            c = bar[_C]
+            bar = [bar[_T], c, c, c, c, bar[_V]]
         win = evaluate_bar(pos, history, bar, emergency=emergency, s=s)
         pos["peak"] = max(pos["peak"], bar[_H])
         pos["trough"] = min(pos["trough"], bar[_L])
@@ -807,6 +837,20 @@ def run_fixtures(workdir: Path, proof_path: Path | None = None) -> dict[str, Any
     miss = open_from_take(fresh("late_miss"), take(decision_bar_open_ms=T0 - HOUR_MS * 500), late)
     cases["late"] = {"entry_ref": pos.get("entry_ref"), "miss": miss.get("reason"),
                      "ok": pos.get("entry_bar_open_ms") == hist[-1][_T] and pos.get("entry_ref") == 100.0 and miss.get("reason") == "DECISION_BAR_NOT_IN_CANDLES"}
+    b.close()
+
+    # 12. decision on the forming bar: entry = decision price, that bar judged by close only
+    b = fresh("forming")
+    dbar = hist[-1][_T] + HOUR_MS
+    r = open_from_take(b, take(core="hunter", decision_bar_open_ms=dbar, decision_price=100.5,
+                               decision_ts=_iso(dbar + 30 * 60_000)), hist)
+    pos = b.open_positions()[0] if r["status"] == "OPENED" else {}
+    # the forming bar closes with a pre-entry wick through the stop but a close above it
+    step(b, pos, hist + [[dbar, 100.0, 100.9, 97.0, 100.6, 10.0]])
+    p = b.all_positions()[0] if pos else {}
+    cases["forming"] = {"entry_basis": r.get("entry_basis"), "entry_fill": r.get("entry_fill"), "status": p.get("status"),
+                        "ok": r.get("entry_basis") == "DECISION_PX" and abs(r["entry_fill"] - 100.5 * 1.0008) < 1e-9
+                        and p.get("status") == "OPEN" and p.get("last_bar_open_ms") == dbar}
     b.close()
 
     ok = all(c["ok"] for c in cases.values())

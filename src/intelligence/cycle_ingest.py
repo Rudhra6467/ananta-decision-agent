@@ -206,7 +206,19 @@ def _structural_stop(item: dict, core: str | None):
     return None
 
 
-def _take_for_sd6(item: dict, out: dict[str, Any], asset: str, cycle_id: str) -> dict[str, Any] | None:
+def _decision_price(item: dict):
+    snap = item.get("snapshot") or {}
+    for k in ("ask", "price"):
+        try:
+            v = float(snap.get(k))
+        except (TypeError, ValueError):
+            continue
+        if v > 0:
+            return v
+    return None
+
+
+def _take_for_sd6(item: dict, out: dict[str, Any], asset: str, cycle_id: str, decision_ts: str | None = None) -> dict[str, Any] | None:
     """Only a valid paper-path TAKE becomes an SD6 open request."""
     if str(out.get("issued") or "") != "TAKE":
         return None
@@ -223,6 +235,8 @@ def _take_for_sd6(item: dict, out: dict[str, Any], asset: str, cycle_id: str) ->
         "decision_id": (out.get("decision_store") or {}).get("id"),
         "structural_stop": _structural_stop(item, core),
         "decision_bar_open_ms": item.get("last_bar_open"),
+        "decision_price": _decision_price(item),
+        "decision_ts": (item.get("snapshot") or {}).get("timestamp") or decision_ts,
     }
 
 
@@ -257,7 +271,7 @@ def run_envelope(path: str | Path = "/tmp/cycle_all.json", *, sd6: bool = True, 
         obs = observation_from_result(item, cycle_id=cycle_id, ts=ts, bar_tf=bar_tf)
         out = correct(run(obs))
         kills[asset] = _manual_kill(item)
-        take = _take_for_sd6(item, out, asset, cycle_id)
+        take = _take_for_sd6(item, out, asset, cycle_id, ts)
         if take:
             takes.append(take)
         issued = str(out.get("issued") or "NO_TRADE")

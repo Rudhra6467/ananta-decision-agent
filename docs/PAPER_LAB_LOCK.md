@@ -54,3 +54,13 @@ fixed in Hands PR #4 and in SD6 on 2026-09-29. Operator approved the fix.
 - Evidence class `CANDIDATE_PAPER`: never M2, never exec, never touches Hands positions.
 - It starts forward only (no back-trading) and uses Hands' closed 1d/4h/1h candles.
 - The one-time holdout FAILED (`docs/research/CANDIDATE_V3_HOLDOUT_RESULT.md`). That result travels with this evidence to the live gate.
+
+## Candidate V1_RIDE paper and V0 wind-down (2026-09-30)
+
+- Operator: "lets start and continue towards our milestone", following the proposal to paper-trade V1 ride in place of V0. This takes effect on merge.
+- **V1_RIDE**: same entry as V0; exit on a daily close below the daily EMA20, with a 2.5 × ATR4h stop and a 60-day cap.
+  - Book: `candidate_v1_book.sqlite`, $1,000, $100 per position, NDAX costs.
+  - It passed the fresh-coin test but is fragile (STUDY_V3_FRESH_RESULTS.md). This is paper evidence only.
+- **V0_TRAIL**: failed the holdout and the fresh coins. No new setups; its open positions finish under their own rules.
+  - Set `ANANTA_CANDIDATE_V0_NEW=1` to re-enable it.
+- Evidence class for both: `CANDIDATE_PAPER`. exec, live and M2 are all false.

@@ -132,6 +132,17 @@ def test_pending_market_exit_and_time_cap():
     assert tr.actual.exit_bell == "X5_TIME" and tr.actual.exit_px == 100.4 and tr.actual.exit_kind == "MARKET"
 
 
+def test_slot_frees_and_exit_is_reported_when_the_real_exit_happens():
+    events = []
+    eng, tr = _engine_with_trade(typ="SHORT_TERM")
+    eng.attach(on_event=events.append)
+    eng._execute((T0 + 300, 100, 100.5, 97.5, 98.2, 1))  # the real stop (98) hits; HOLD (no stop) keeps running
+    assert tr.actual.done and not tr.variants["HOLD"].done
+    assert not eng._busy("SHORT_TERM"), "a finished real trade must not block the slot"
+    assert [e["kind"] for e in events] == ["CLOSED"] and events[0]["bell"] == "X1_STOP"
+    assert eng.actual_closed == [tr] and eng.closed == []
+
+
 def test_costs_net():
     eng, tr = _engine_with_trade()
     v = tr.actual

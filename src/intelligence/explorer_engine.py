@@ -265,12 +265,47 @@ class CoinEngine:
         self.orders: list[Order] = []
         self.trades: list[Trade] = []          # open (real + shadow)
         self.closed: list[Trade] = []
+        self.actual_closed: list[Trade] = []     # real trades whose ACTUAL exit happened (shadows may still run)
         self.missed: list[Order] = []
         self.pivots: deque = deque()           # (t_close, price, kind) confirmed 1h swings
         self.day_open: float | None = None
         self.green_run = 0
         self.last_scan = None
         self._seq = 0
+
+    # ---- persistence (live): callbacks are re-attached by the runner after loading ----
+    def __getstate__(self):
+        d = dict(self.__dict__)
+        d["btc_ctx"] = d["slot_ok"] = d["on_event"] = None
+        return d
+
+    def attach(self, *, btc_ctx=None, slot_ok=None, on_event=None) -> None:
+        self.btc_ctx = btc_ctx or (lambda t: {})
+        self.slot_ok = slot_ok or (lambda coin, typ: True)
+        self.on_event = on_event or (lambda e: None)
+
+    def force_exit_all(self, bell: str) -> int:
+        """X2 kill switch: every real open trade exits at the next 5m open; resting real orders are cancelled."""
+        n = 0
+        for tr in self.trades:
+            if tr.shadow is None and not tr.actual.done:
+                for v in tr.variants.values():
+                    if not v.done and v.bells:
+                        v.pending_market = bell
+                        n += 1
+        self.orders = [o for o in self.orders if o.shadow is not None]
+        return n
+
+    def btc_view(self) -> dict:
+        """This engine's own 1h S1 / S2 and last 1h candle return (used as BTC context for the other coins)."""
+        h1 = self.tf["1h"]
+        if h1.n < 60:
+            return {}
+        c = h1.last[4]
+        e50, e50_5, e20, e20_3 = h1.e50h[-1], h1.ema_ago("50", 5), h1.e20h[-1], h1.ema_ago("20", 3)
+        return {"btc_S1": "BULL" if c > e50 and e50 > e50_5 else "BEAR" if c < e50 and e50 < e50_5 else "NEUTRAL",
+                "btc_S2": "UP" if c > e20 and e20 > e20_3 else "DOWN" if c < e20 and e20 < e20_3 else "FLAT",
+                "btc_1h_ret": c / h1.last[1] - 1, "btc_1h_close_t": h1.close_t}
 
     # ---- data in ----
     def on_bar(self, tf: str, bar) -> None:
@@ -433,7 +468,7 @@ class CoinEngine:
 
     def _busy(self, typ: str) -> bool:
         return any(o.typ == typ and o.shadow is None for o in self.orders) or any(
-            t.typ == typ and t.shadow is None for t in self.trades)
+            t.typ == typ and t.shadow is None and not t.actual.done for t in self.trades)
 
     def _id(self, T: int, tag: str) -> str:
         self._seq += 1
@@ -487,10 +522,11 @@ class CoinEngine:
         real = [c for c in cands if c[3] is not None and not self._busy(c[3])]
         if real:
             taken = max(real, key=lambda c: self.room(st, c[1]))
-            if self.slot_ok(self.coin, taken[3]):
+            ok = self.slot_ok(self.coin, taken[3])   # True, or the reason entries are blocked (CAP / KILL_SWITCH)
+            if ok is True:
                 self._place(T, taken[0], taken[3], taken[1], st, taken[2])
             else:
-                self._place(T, taken[0], taken[3], taken[1], st, taken[2], shadow="CAP")
+                self._place(T, taken[0], taken[3], taken[1], st, taken[2], shadow=ok if isinstance(ok, str) else "CAP")
         for c in cands:
             if taken is not None and c is taken:
                 continue
@@ -572,12 +608,9 @@ class CoinEngine:
                     continue
                 var.mfe = max(var.mfe, h / tr.entry - 1)
                 var.mae = min(var.mae, lo / tr.entry - 1)
+            self._report_actual(tr)
             if all(x.done for x in tr.variants.values()):
                 self.closed.append(tr)
-                if tr.shadow is None:
-                    a = tr.actual
-                    self.on_event({"kind": "CLOSED", "t": a.exit_t, "coin": self.coin, "id": tr.id, "setup": tr.setup,
-                                   "type": tr.typ, "bell": a.exit_bell, "net_usd": round(net_usd(tr, a), 4)})
             else:
                 still.append(tr)
         self.trades = still
@@ -624,6 +657,15 @@ class CoinEngine:
             elif var.target is not None and h >= var.target and not fill_bar:
                 self._exit(tr, var, max(o, var.target), t, "X4_TARGET", "LIMIT")
 
+    def _report_actual(self, tr: Trade) -> None:
+        """The real exit is reported (and the slot freed) as soon as ACTUAL closes; shadow variants keep running."""
+        if tr.shadow is None and tr.actual.done and not getattr(tr, "reported", False):
+            tr.reported = True
+            a = tr.actual
+            self.actual_closed.append(tr)
+            self.on_event({"kind": "CLOSED", "t": a.exit_t, "coin": self.coin, "id": tr.id, "setup": tr.setup,
+                           "type": tr.typ, "bell": a.exit_bell, "net_usd": round(net_usd(tr, a), 4)})
+
     def _execute_fill_bar(self, tr: Trade, bar) -> None:
         t, o, h, lo, c, v = bar
         for var in tr.variants.values():
@@ -631,6 +673,7 @@ class CoinEngine:
                 self._exit(tr, var, var.stop, t, "X1_STOP", "MARKET")
             elif var.target is not None and h >= var.target and not tr.fill_intrabar:
                 self._exit(tr, var, var.target, t, "X4_TARGET", "LIMIT")
+        self._report_actual(tr)
 
     def _open(self, od: Order, px: float, t: int, kind: str, intrabar: bool, shadow=None, register=True) -> Trade:
         tr = Trade(od.id if register else od.id + "-chase", self.coin, od.setup, od.typ, px, t, kind, intrabar, t,
@@ -648,16 +691,16 @@ class CoinEngine:
         v.pending_market = None
 
     # ---- output ----
-    def trade_rows(self) -> list[dict]:
+    def trade_rows(self, trades: list[Trade] | None = None) -> list[dict]:
         rows = []
-        for tr in self.closed:
+        for tr in (self.closed if trades is None else trades):
             row = {"id": tr.id, "coin": tr.coin, "setup": tr.setup, "type": tr.typ, "shadow": tr.shadow or "",
                    "entry": tr.entry, "entry_t": tr.entry_t, "entry_kind": tr.entry_kind, **{f"tag_{k}": v for k, v in tr.tags.items()}}
             for name, v in tr.variants.items():
-                row[f"{name}_net"] = round(net_usd(tr, v), 4)
+                row[f"{name}_net"] = round(net_usd(tr, v), 4) if v.done else None
                 row[f"{name}_bell"] = v.exit_bell
                 row[f"{name}_exit_t"] = v.exit_t
-                row[f"{name}_R"] = round((v.exit_px - tr.entry) / v.R, 3) if v.R > 0 else None
+                row[f"{name}_R"] = round((v.exit_px - tr.entry) / v.R, 3) if (v.done and v.R > 0) else None
             a = tr.actual
             row["mfe"], row["mae"] = round(a.mfe, 5), round(a.mae, 5)
             rows.append(row)

@@ -117,6 +117,59 @@ def test_unfilled_order_expires_after_24h(tmp_path):
     b.close()
 
 
+def test_v1_ride_exits_on_daily_close_below_ema20(tmp_path):
+    book = tmp_path / "v1.sqlite"
+    feed = _feed()
+    level = feed["4h"][-1][4]
+    feed["1h"] = _hours(level, 2)
+    cp.tick(fetch=_fetcher(feed, T0 + 1 * H), now_ms=T0 + 2 * H, book_path=book, rules="V1_RIDE")
+    s = _add_4h_at_T0(feed)
+    feed["1h"] = _hours(level, 30, dip=(6, s["limit"] * 0.999))
+    # the daily bar that opens at T0 closes at T0+24h far below its EMA20 (but the hourly prices stay above the stop)
+    feed["1d"].append([T0, level, level * 1.01, level * 0.5, level * 0.6, 1.0])
+    r = cp.tick(fetch=_fetcher(feed, T0 + 28 * H), now_ms=T0 + 29 * H, book_path=book, rules="V1_RIDE")
+    kinds = [(e["kind"], e.get("reason")) for e in r["events"]]
+    assert kinds == [("ARMED", None), ("FILLED", None), ("CLOSED", "DAILY_EMA20")], kinds
+    b = cp.Book(book)
+    t = b.trades()[0]
+    b.close()
+    assert t["rules"] == "V1_RIDE" and abs(t["exit"] - feed["1h"][24][1]) < 1e-9  # the open of the first hour after the daily close
+    assert t["exit_ms"] == T0 + 25 * H
+
+
+def test_v1_ride_stop_is_wider_than_v0(tmp_path):
+    book = tmp_path / "v1.sqlite"
+    feed = _feed()
+    level = feed["4h"][-1][4]
+    feed["1h"] = _hours(level, 2)
+    cp.tick(fetch=_fetcher(feed, T0 + 1 * H), now_ms=T0 + 2 * H, book_path=book, rules="V1_RIDE")
+    s = _add_4h_at_T0(feed)
+    hours = _hours(level, 20, dip=(6, s["limit"] * 0.999))
+    e = s["limit"]
+    hours[10][3] = e - 2.0 * s["A"]  # would stop V0 (1.5A), must NOT stop V1 (2.5A)
+    hours[14][3] = e - 2.6 * s["A"]  # stops V1
+    feed["1h"] = hours
+    r = cp.tick(fetch=_fetcher(feed, T0 + 18 * H), now_ms=T0 + 19 * H, book_path=book, rules="V1_RIDE")
+    closed = [e_ for e_ in r["events"] if e_["kind"] == "CLOSED"]
+    assert len(closed) == 1 and closed[0]["reason"] == "STOP"
+    b = cp.Book(book)
+    t = b.trades()[0]
+    b.close()
+    assert t["exit_ms"] == T0 + 15 * H and abs(t["exit"] - (e - 2.5 * s["A"])) < 1e-9
+
+
+def test_wind_down_never_opens_new_positions(tmp_path):
+    book = tmp_path / "v0.sqlite"
+    feed = _feed()
+    level = feed["4h"][-1][4]
+    feed["1h"] = _hours(level, 2)
+    cp.tick(fetch=_fetcher(feed, T0 + 1 * H), now_ms=T0 + 2 * H, book_path=book, new_entries=False)
+    s = _add_4h_at_T0(feed)
+    feed["1h"] = _hours(level, 30, dip=(6, s["limit"] * 0.999))
+    r = cp.tick(fetch=_fetcher(feed, T0 + 28 * H), now_ms=T0 + 29 * H, book_path=book, new_entries=False)
+    assert r["events"] == [] and r["ledger"]["closed"] == 0 and not r["ledger"]["open"]
+
+
 def test_no_setup_in_downtrend():
     daily = _series(200, D, T0 - 200 * D, lambda i: 100 * math.exp(-0.004 * i))
     h4 = _series(200, H4, T0 - 200 * H4, lambda i: 50 * math.exp(-0.0015 * i))

@@ -152,11 +152,21 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
     if candidate is None:
         candidate = os.getenv("ANANTA_CANDIDATE_PAPER", "1") != "0"
     cand: dict[str, Any] = {"enabled": bool(candidate)}
+    cand_v1: dict[str, Any] = {"enabled": bool(candidate)}
     if candidate:
+        v0_new = os.getenv("ANANTA_CANDIDATE_V0_NEW", "0") == "1"  # V0 failed twice: no new setups, open ones finish
         try:
-            cand = {"enabled": True, **candidate_paper.tick(**(cand_kw or {}))}
+            v0_kw = {k: v for k, v in (cand_kw or {}).items() if k != "v1_book_path"}
+            cand = {"enabled": True, **candidate_paper.tick(**{**v0_kw, "rules": "V0_TRAIL", "new_entries": v0_new})}
         except Exception as exc:  # noqa: BLE001  never breaks the watch
             cand = {"enabled": True, "errors": [{"error": str(exc)[:300]}], "events": []}
+        v1_kw = {**(cand_kw or {}), "book_path": (cand_kw or {}).get("v1_book_path", candidate_paper.BOOK_V1),
+                 "rules": "V1_RIDE", "new_entries": True}
+        v1_kw.pop("v1_book_path", None)
+        try:
+            cand_v1 = {"enabled": True, **candidate_paper.tick(**v1_kw)}
+        except Exception as exc:  # noqa: BLE001
+            cand_v1 = {"enabled": True, "errors": [{"error": str(exc)[:300]}], "events": []}
     board = report.get("board") or []
     issued = {}
     for row in board:
@@ -185,6 +195,9 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
         "candidate": {"events": cand.get("events"), "errors": cand.get("errors"),
                       "book": {k: (cand.get("ledger") or {}).get(k) for k in ("cash", "realized_usd", "closed", "wins", "losses")}}
         if cand.get("enabled") else {"enabled": False},
+        "candidate_v1": {"events": cand_v1.get("events"), "errors": cand_v1.get("errors"),
+                         "book": {k: (cand_v1.get("ledger") or {}).get(k) for k in ("cash", "realized_usd", "closed", "wins", "losses")}}
+        if cand_v1.get("enabled") else {"enabled": False},
         "exec": False, "live": False, "counts_for_m2": False,
     }
     with HEARTBEAT.open("a") as f:
@@ -202,11 +215,13 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
                 notify("Ananta: paper exit", f"{m.get('id')} {e.get('module')}/{e.get('exit_reason')} pnl {e.get('pnl')}", level="EVENT")
             elif e.get("kind") in ("TIGHTEN", "PARTIAL", "DATA_STALE"):
                 notify(f"Ananta SD6: {e.get('kind')}", str(m.get("id")), level="INFO" if e.get("kind") != "DATA_STALE" else "WARN")
-    for e in cand.get("events") or []:
+    for e in (cand.get("events") or []) + (cand_v1.get("events") or []):
         if e.get("kind") == "FILLED":
-            notify("Ananta candidate: paper buy", f"{e['coin']} limit filled at {e['entry']:.6g} (trend-dip, NDAX costs)", level="EVENT")
+            notify(f"Ananta {e.get('rules', 'candidate')}: paper buy", f"{e['coin']} limit filled at {e['entry']:.6g} (NDAX costs)", level="EVENT")
         elif e.get("kind") == "CLOSED":
-            notify("Ananta candidate: paper exit", f"{e['coin']} {e.get('reason')} net ${e.get('net_usd'):+.2f}", level="EVENT")
+            notify(f"Ananta {e.get('rules', 'candidate')}: paper exit", f"{e['coin']} {e.get('reason')} net ${e.get('net_usd'):+.2f}", level="EVENT")
+    if cand_v1.get("errors"):
+        notify("Ananta V1 candidate error", str(cand_v1["errors"])[:200], level="ERROR")
     if cand.get("errors"):
         notify("Ananta candidate error", str(cand["errors"])[:200], level="ERROR")
     if rec["sd6_errors"]:
@@ -247,6 +262,7 @@ def print_status(n: int = 12) -> None:
     print("=" * 64)
     paper_exit.print_status()
     candidate_paper.print_status()
+    candidate_paper.print_status(candidate_paper.BOOK_V1, "V1_RIDE")
 
 
 if __name__ == "__main__":

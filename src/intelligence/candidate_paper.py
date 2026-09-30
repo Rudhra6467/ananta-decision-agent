@@ -33,7 +33,13 @@ NDAX_FEE = 0.0020
 HALF_SPREAD = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
                "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
 _T, _O, _H, _L, _C, _V = 0, 1, 2, 3, 4, 5
-BOOK = "candidate_book.sqlite"
+BOOK = "candidate_book.sqlite"          # V0: frozen v2 trend-dip (failed holdout + fresh coins) -> wind-down
+BOOK_V1 = "candidate_v1_book.sqlite"    # V1: same entry, trend-ride exit (passed fresh coins; fragile, see STUDY_V3_FRESH_RESULTS)
+RULES = ("V0_TRAIL", "V1_RIDE")
+EVIDENCE_NOTE = {
+    "V0_TRAIL": "FAILED holdout (CANDIDATE_V3_HOLDOUT_RESULT.md) and fresh coins (STUDY_V3_FRESH_RESULTS.md); wind-down",
+    "V1_RIDE": "PASSED fresh coins by the rules; fragile: -61% from a 2025-01-01 fresh start (STUDY_V3_FRESH_RESULTS.md)",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +123,7 @@ class Book:
         self.con.commit()
         self.con.close()
 
-    def ledger(self) -> dict[str, Any]:
+    def ledger(self, evidence_note: str = "holdout FAIL (CANDIDATE_V3_HOLDOUT_RESULT.md)") -> dict[str, Any]:
         ts = self.trades()
         closed = [t for t in ts if t["status"] == "CLOSED"]
         open_ = [t for t in ts if t["status"] == "OPEN"]
@@ -127,7 +133,7 @@ class Book:
                 "open": [{"coin": t["coin"], "entry": t["entry"], "stop": t.get("stop")} for t in open_],
                 "closed": len(closed), "wins": sum(1 for t in closed if t["net_usd"] > 0),
                 "losses": sum(1 for t in closed if t["net_usd"] <= 0),
-                "evidence_class": "CANDIDATE_PAPER", "holdout": "FAIL (see CANDIDATE_V3_HOLDOUT_RESULT.md)",
+                "evidence_class": "CANDIDATE_PAPER", "prior_evidence": evidence_note,
                 "exec": False, "live": False, "counts_for_m2": False}
 
 
@@ -149,6 +155,23 @@ def _exit_check(pos: dict, bar: list[float], partial: bool) -> tuple[float, str]
     return None
 
 
+def _exit_check_ride(pos: dict, bar: list[float], partial: bool, dmap: dict) -> tuple[float, str] | None:
+    """V1 ride exit on one closed 1h bar, identical to study_v3.sim_ride:
+    daily close below the daily EMA20 (a daily close strictly after entry) -> exit at the next open;
+    else stop 2.5*A4 (gap -> open); else 60-day time stop at the close."""
+    e, A = pos["entry"], pos["A"]
+    stop = e - 2.5 * A
+    pos["stop"] = stop
+    d = dmap.get(bar[_T])  # the daily bar that closed exactly at this hour's open
+    if d is not None and bar[_T] > pos["entry_ms"] and not partial and d[0] < d[1]:
+        return bar[_O], "DAILY_EMA20"
+    if bar[_L] <= stop:
+        return (stop if partial else min(stop, bar[_O])), "STOP"
+    if bar[_T] + H_MS - pos["entry_ms"] >= 60 * D_MS:
+        return bar[_C], "TIME_60D"
+    return None
+
+
 def _close(book: Book, coin: str, pos: dict, px: float, reason: str, bar_ms: float) -> dict:
     qty = pos["qty"]
     exit_fee = qty * px * (NDAX_FEE + HALF_SPREAD[coin])
@@ -162,9 +185,20 @@ def _close(book: Book, coin: str, pos: dict, px: float, reason: str, bar_ms: flo
     return pos
 
 
-def step_coin(book: Book, coin: str, bars1d: list, bars4h: list, bars1h: list, now_ms: float) -> list[dict]:
-    """Advance one coin through every newly closed 1h bar. Returns events for alerts."""
+def step_coin(book: Book, coin: str, bars1d: list, bars4h: list, bars1h: list, now_ms: float,
+              rules: str = "V0_TRAIL", new_entries: bool = True) -> list[dict]:
+    """Advance one coin through every newly closed 1h bar. Returns events for alerts.
+    rules: V0_TRAIL (v2 trail exit) or V1_RIDE (trend-ride exit). new_entries=False: wind-down, no new setups."""
+    if rules not in RULES:
+        raise ValueError(f"unknown rules {rules!r}")
     ev: list[dict] = []
+    dcl = [b[_C] for b in bars1d]
+    de20 = ema(dcl, 20) if dcl else []
+    dmap = {b[_T] + D_MS: (dcl[i], de20[i]) for i, b in enumerate(bars1d)}
+
+    def exit_check(p, b, partial):
+        return _exit_check_ride(p, b, partial, dmap) if rules == "V1_RIDE" else _exit_check(p, b, partial)
+
     st = book.state(coin)
     if not bars1h or not bars4h:
         return ev
@@ -184,7 +218,7 @@ def step_coin(book: Book, coin: str, bars1d: list, bars4h: list, bars1h: list, n
         for k in [k for k in new_4h if bars4h[k][_T] + H4_MS <= bar[_T]]:
             new_4h.remove(k)
             st["last_4h"] = bars4h[k][_T]
-            if pos is None:
+            if pos is None and new_entries:
                 s = setup_at(bars4h, bars1d, k)
                 if s:
                     st["orders"].append(s)
@@ -200,12 +234,12 @@ def step_coin(book: Book, coin: str, bars1d: list, bars4h: list, bars1h: list, n
                 pos = {"id": f"cand.{coin}.{int(bar[_T])}.{uuid.uuid4().hex[:5]}", "coin": coin, "status": "OPEN",
                        "entry": px, "qty": qty, "A": o["A"], "best": px, "entry_ms": bar[_T], "setup_ms": o["setup_ms"],
                        "entry_fee_usd": round(qty * px * NDAX_FEE, 6), "evidence_class": "CANDIDATE_PAPER",
-                       "exec": False, "live": False, "counts_for_m2": False, "version": VERSION}
+                       "exec": False, "live": False, "counts_for_m2": False, "version": VERSION, "rules": rules}
                 st["orders"], st["open_id"] = [], pos["id"]
                 book.put_trade(pos)
                 book.event(coin, "FILLED", {"id": pos["id"], "entry": px})
                 ev.append({"kind": "FILLED", "coin": coin, "entry": px})
-                hit = _exit_check(pos, bar, partial)
+                hit = exit_check(pos, bar, partial)
                 if hit:
                     _close(book, coin, pos, hit[0], hit[1], bar[_T])
                     ev.append({"kind": "CLOSED", "coin": coin, "net_usd": pos["net_usd"], "reason": hit[1]})
@@ -215,7 +249,7 @@ def step_coin(book: Book, coin: str, bars1d: list, bars4h: list, bars1h: list, n
                 st["last_1h"] = bar[_T]
                 continue
         if pos is not None:
-            hit = _exit_check(pos, bar, False)
+            hit = exit_check(pos, bar, False)
             if hit:
                 _close(book, coin, pos, hit[0], hit[1], bar[_T])
                 ev.append({"kind": "CLOSED", "coin": coin, "net_usd": pos["net_usd"], "reason": hit[1]})
@@ -227,7 +261,7 @@ def step_coin(book: Book, coin: str, bars1d: list, bars4h: list, bars1h: list, n
     for k in new_4h:
         if bars4h[k][_T] + H4_MS <= (st["last_1h"] + H_MS):
             st["last_4h"] = bars4h[k][_T]
-            if pos is None:
+            if pos is None and new_entries:
                 s = setup_at(bars4h, bars1d, k)
                 if s:
                     st["orders"].append(s)
@@ -251,35 +285,35 @@ def fetch_http(asset: str, tf: str, limit: int) -> list[list[float]]:
 
 
 def tick(*, fetch: Callable[[str, str, int], list] = fetch_http, now_ms: float | None = None,
-         book_path: str | Path = BOOK) -> dict[str, Any]:
+         book_path: str | Path = BOOK, rules: str = "V0_TRAIL", new_entries: bool = True) -> dict[str, Any]:
     now_ms = now_ms if now_ms is not None else time.time() * 1000
     book = Book(book_path)
-    out: dict[str, Any] = {"version": VERSION, "events": [], "errors": []}
+    out: dict[str, Any] = {"version": VERSION, "rules": rules, "new_entries": new_entries, "events": [], "errors": []}
     try:
         for coin in COINS:
             try:
                 d = [b for b in fetch(coin, "1d", 200) if b[_T] + D_MS <= now_ms]
                 h4 = [b for b in fetch(coin, "4h", 200) if b[_T] + H4_MS <= now_ms]
                 h1 = [b for b in fetch(coin, "1h", 72) if b[_T] + H_MS <= now_ms]
-                out["events"] += step_coin(book, coin, d, h4, h1, now_ms)
+                out["events"] += [{**e, "rules": rules} for e in step_coin(book, coin, d, h4, h1, now_ms, rules, new_entries)]
             except Exception as exc:  # noqa: BLE001  one coin failing never stops the others
                 book.event(coin, "ERROR", {"error": str(exc)[:200]})
                 out["errors"].append({"coin": coin, "error": str(exc)[:200]})
-        out["ledger"] = book.ledger()
+        out["ledger"] = book.ledger(EVIDENCE_NOTE[rules])
     finally:
         book.close()
     return out
 
 
-def print_status(book_path: str | Path = BOOK) -> dict:
+def print_status(book_path: str | Path = BOOK, label: str = "V0_TRAIL (wind-down)") -> dict:
     b = Book(book_path)
     try:
-        led = b.ledger()
+        led = b.ledger(EVIDENCE_NOTE["V1_RIDE" if str(book_path).endswith(BOOK_V1) else "V0_TRAIL"])
         armed = {c: len((b.state(c) or {}).get("orders") or []) for c in COINS}
         closed = [t for t in b.trades() if t["status"] == "CLOSED"][-10:]
     finally:
         b.close()
-    print(f"\nCANDIDATE PAPER  {VERSION}  (NDAX costs, $100/position, one per coin)")
+    print(f"\nCANDIDATE PAPER  {label}  {VERSION}  (NDAX costs, $100/position, one per coin)")
     print("=" * 64)
     print(f"  cash={led['cash']:.2f} realized={led['realized_usd']:+.2f} open={len(led['open'])} closed={led['closed']} W/L={led['wins']}/{led['losses']}")
     print(f"  armed limit orders: {{{', '.join(f'{c}:{n}' for c, n in armed.items() if n)}}}")
@@ -287,7 +321,8 @@ def print_status(book_path: str | Path = BOOK) -> dict:
         print(f"  OPEN   {t['coin']:<5} entry={t['entry']:.6g} stop={t['stop']}")
     for t in closed:
         print(f"  CLOSED {t['coin']:<5} {t['exit_reason']:<14} net=${t['net_usd']:+.2f} hold={t['hold_h']}h")
-    print(f"  holdout: {led['holdout']}   exec=False live=False m2=False")
+    print(f"  evidence: {led['prior_evidence']}")
+    print("  exec=False live=False m2=False")
     print("=" * 64)
     return led
 
@@ -295,4 +330,8 @@ def print_status(book_path: str | Path = BOOK) -> dict:
 if __name__ == "__main__":
     import sys
 
-    print_status() if (sys.argv[1:] or ["status"])[0] == "status" else print(json.dumps(tick(), indent=1, default=str))
+    if (sys.argv[1:] or ["status"])[0] == "status":
+        print_status()
+        print_status(BOOK_V1, "V1_RIDE")
+    else:
+        print(json.dumps(tick(), indent=1, default=str))

@@ -62,9 +62,10 @@ def test_candidate_runs_inside_the_watch_and_errors_are_contained(tmp_path):
         raise RuntimeError("hands candles down")
 
     r = w.tick(cycle=lambda: _env(1_790_683_200_000.0, "c9"), sd6_kw={"fetch_bars": fetch, "book_path": tmp_path / "b.sqlite"},
-               candidate=True, cand_kw={"fetch": cand_fetch, "book_path": tmp_path / "cand.sqlite"})
+               candidate=True, cand_kw={"fetch": cand_fetch, "book_path": tmp_path / "cand.sqlite", "v1_book_path": tmp_path / "v1.sqlite"})
     assert r["ok"] is True  # the watch survives a candidate failure
     assert len(r["candidate"]["errors"]) == 10 and r["candidate"]["book"]["cash"] == 1000.0
+    assert len(r["candidate_v1"]["errors"]) == 10 and r["candidate_v1"]["book"]["cash"] == 1000.0
 
 
 def test_schedule_is_two_minutes_after_close():

@@ -35,3 +35,12 @@ Operator sentence: "attach SD6 to paper fills". Code: `src/intelligence/paper_ex
 
 Profit-floor rounding bug (F re-firing TIGHTEN and blocking S/D/C/E in ~50% of trades past +1R):
 fixed in Hands PR #4 and in SD6 on 2026-09-29. Operator approved the fix.
+
+## SD6 v2: real exchange costs (2026-09-29)
+
+- Operator: "check real charges and take them into consideration".
+- The 8bp G8 haircut understated real costs about 10×.
+- SD6 now puts slippage in the fill price and charges exchange fees in P&L, like Hands. Stop levels keep Hands parity.
+- Default `ANANTA_SD6_COST=KRAKEN_T1_TAKER`: 0.80% per side + 0.05% slippage, Kraken Pro Canada Tier 1 since 2026-07-09.
+- Other profiles: `KRAKEN_T2_TAKER`, `KRAKEN_T3_TAKER`, `NDAX` (0.20% flat + ~0.30% measured half-spread), `LEGACY_G8_8BP`.
+- Positions opened before v2 keep their old fill prices. The AVAX position is tagged PRE_FIX_NOT_EVIDENCE anyway.

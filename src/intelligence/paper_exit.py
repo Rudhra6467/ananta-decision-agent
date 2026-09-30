@@ -8,10 +8,10 @@ A paper position book plus an exit manager for the Agent's paper TAKEs.
 Before SD6 a paper TAKE recorded a $100 "position" with no entry price, no
 stop and no exit, so nothing could ever close it. SD6 gives every paper fill:
 
-  * a priced entry (close of the last closed 1h bar + 8bp haircut),
+  * a priced entry (close of the last closed 1h bar + slippage), with real exchange fees charged in P&L,
   * the Hands exit engine's modules, evaluated on closed 1h bars,
   * a shadow "Fixed % Target + Stop" exit on the same bars (never trades),
-  * MFE / MAE / exit module / exit reason / P&L after haircut on close.
+  * MFE / MAE / exit module / exit reason / P&L after fees and slippage on close.
 
 Parity
 ------
@@ -27,7 +27,11 @@ single-pass priority arbitration are copied. Deviations, all deliberate:
   2. Close-based modules (F, B, S, D, E, KILL) act at the bar close.
   3. A TIGHTEN from F takes effect from the next bar (Hands applies it on the
      next tick; within one bar we cannot know the order of high and low).
-  4. Costs are the G8 8bp haircut on entry and exit, not Hands' taker fee.
+  4. Costs (v2, 2026-09-29): the fill price carries slippage only; exchange fees are
+     charged in P&L (as Hands does), so stop levels stay at Hands parity. Default
+     profile KRAKEN_T1_TAKER = Kraken Pro Canada Tier 1 market orders (0.80% per side)
+     + 0.05% slippage. Override with env ANANTA_SD6_COST (see COST_PROFILES).
+     The old G8 8bp haircut understated real costs about 10x.
   5. LONG only. Hands is spot; the App exit engine is long-only. A SHORT
      paper TAKE is refused and recorded, never silently flipped.
 
@@ -49,6 +53,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sqlite3
 import uuid
 from dataclasses import dataclass, replace
@@ -56,7 +61,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-VERSION = "paper.exit.sd6.v1"
+VERSION = "paper.exit.sd6.v2"
 PORT_OF = "Ananta backend/exit_engine.py (A,KILL,F,B,S,D,C,E) @ 8cf4bcd"
 BOOK_NAME = "paper_book.sqlite"
 PROOF_NAME = "paper_exit_proof_v1.json"
@@ -86,14 +91,35 @@ class Sd6Settings:
     ema_trend_loss_enabled: bool = True
     structure_failure_enabled: bool = True
     fixed_target_pct: float = 3.0  # shadow "Fixed % Target + Stop"
-    haircut_bp: float = 8.0
+    cost_profile: str = "KRAKEN_T1_TAKER"
+    fee_entry_bp: float = 80.0   # SD6 enters and exits with market orders -> taker both ways
+    fee_exit_bp: float = 80.0
+    slippage_bp: float = 5.0
     notional_usd: float = 100.0
     starting_cash: float = 1000.0
     max_open: int = 1
     stale_after_bars: int = 3  # no new closed bar for > N hours = DATA_STALE
 
 
-SETTINGS = Sd6Settings()
+# Checked 2026-09-29. Kraken Pro Canada (since 2026-07-09): T1 0.40/0.80, T2 0.30/0.60, T3 0.22/0.38 maker/taker.
+# NDAX: flat 0.20%, but its CAD books are thin (measured spreads 0.17-0.74%), so slippage ~0.30% per side.
+COST_PROFILES: dict[str, dict[str, float]] = {
+    "KRAKEN_T1_TAKER": {"fee_entry_bp": 80.0, "fee_exit_bp": 80.0, "slippage_bp": 5.0},
+    "KRAKEN_T2_TAKER": {"fee_entry_bp": 60.0, "fee_exit_bp": 60.0, "slippage_bp": 5.0},
+    "KRAKEN_T3_TAKER": {"fee_entry_bp": 38.0, "fee_exit_bp": 38.0, "slippage_bp": 5.0},
+    "NDAX": {"fee_entry_bp": 20.0, "fee_exit_bp": 20.0, "slippage_bp": 30.0},
+    "LEGACY_G8_8BP": {"fee_entry_bp": 0.0, "fee_exit_bp": 0.0, "slippage_bp": 8.0},
+}
+
+
+def settings_for(profile: str | None = None) -> Sd6Settings:
+    name = (profile or os.environ.get("ANANTA_SD6_COST") or "KRAKEN_T1_TAKER").upper()
+    if name not in COST_PROFILES:
+        raise ValueError(f"unknown SD6 cost profile {name!r}; choose from {sorted(COST_PROFILES)}")
+    return Sd6Settings(cost_profile=name, **COST_PROFILES[name])
+
+
+SETTINGS = settings_for()
 
 
 @dataclass(frozen=True)
@@ -234,8 +260,14 @@ def _hard_stop_levels(pos: dict, prof: StrategyProfile, s: Sd6Settings) -> list[
 
 
 def _haircut(price: float, side: str, s: Sd6Settings) -> float:
-    k = s.haircut_bp / 10_000.0
+    """Slippage only. Exchange fees are charged separately in P&L (see _fee)."""
+    k = s.slippage_bp / 10_000.0
     return price * (1.0 + k) if side == "BUY" else price * (1.0 - k)
+
+
+def _fee(notional: float, side: str, s: Sd6Settings) -> float:
+    bp = s.fee_entry_bp if side == "BUY" else s.fee_exit_bp
+    return abs(notional) * bp / 10_000.0
 
 
 def _iso(ms: float) -> str:
@@ -354,7 +386,8 @@ def shadow_step(sh: dict, bar: list[float], s: Sd6Settings = SETTINGS) -> dict:
         fill = _haircut(sh["exit_ref"], "SELL", s)
         sh["exit_fill"] = fill
         sh["exit_bar_open_ms"] = bar[_T]
-        sh["pnl_usd"] = round(sh["qty"] * (fill - sh["entry_fill"]), 6)
+        fees = _fee(sh["qty"] * sh["entry_fill"], "BUY", s) + _fee(sh["qty"] * fill, "SELL", s)
+        sh["pnl_usd"] = round(sh["qty"] * (fill - sh["entry_fill"]) - fees, 6)
     return sh
 
 
@@ -416,6 +449,8 @@ class Book:
             "starting": s.starting_cash,
             "cash": round(s.starting_cash + realized - reserved, 6),
             "realized_pnl": round(realized, 6),
+            "fees_paid": round(sum(p.get("fees_usd") or 0.0 for p in pos), 6),
+            "cost_profile": s.cost_profile,
             "reserved_capital": round(reserved, 6),
             "open_positions": [{"id": p["id"], "asset": p["asset"], "core": p["core"], "entry_fill": p["entry_fill"],
                                 "locked_floor": p.get("locked_floor"), "stale": p.get("stale")} for p in open_],
@@ -539,7 +574,9 @@ def open_from_take(book: Book, take: dict, bars: list[list[float]], *, s: Sd6Set
         "momentum_partial_taken": False,
         "last_bar_open_ms": last[_T],
         "bars_managed": 0,
-        "realized_pnl_usd": 0.0,
+        "realized_pnl_usd": round(-_fee(qty * fill, "BUY", s), 6),  # entry fee is paid at the fill
+        "fees_usd": round(_fee(qty * fill, "BUY", s), 6),
+        "cost_profile": s.cost_profile,
         "stale": False,
         "profile": profile_for(take.get("core"), s).__dict__,
         "shadow": {"method": "FIXED_PCT_TARGET_STOP", "status": "OPEN", "entry_fill": fill, "qty": qty,
@@ -553,7 +590,9 @@ def open_from_take(book: Book, take: dict, bars: list[list[float]], *, s: Sd6Set
 
 def _close(book: Book, pos: dict, bar: list[float], win: dict, s: Sd6Settings) -> dict:
     fill = _haircut(float(win["price"]), "SELL", s)
-    pnl = pos["qty_open"] * (fill - pos["entry_fill"])
+    fee = _fee(pos["qty_open"] * fill, "SELL", s)
+    pnl = pos["qty_open"] * (fill - pos["entry_fill"]) - fee
+    pos["fees_usd"] = round((pos.get("fees_usd") or 0.0) + fee, 6)
     pos["realized_pnl_usd"] = round((pos.get("realized_pnl_usd") or 0.0) + pnl, 6)
     pos.update(status="CLOSED", qty_open=0.0, exit_fill=fill, exit_ref=float(win["price"]), exit_module=win["module"],
                exit_reason=win["exit_reason"], exit_detail=win.get("reason"), closed_at=_iso(bar[_T] + HOUR_MS),
@@ -603,7 +642,9 @@ def step(book: Book, pos: dict, bars: list[list[float]], *, emergency: bool = Fa
         elif act == ACT_EXIT_PARTIAL:
             q = pos["qty_open"] * win.get("fraction", PARTIAL_FRACTION)
             fill = _haircut(float(win["price"]), "SELL", s)
-            pos["realized_pnl_usd"] = round(pos["realized_pnl_usd"] + q * (fill - pos["entry_fill"]), 6)
+            fee = _fee(q * fill, "SELL", s)
+            pos["fees_usd"] = round((pos.get("fees_usd") or 0.0) + fee, 6)
+            pos["realized_pnl_usd"] = round(pos["realized_pnl_usd"] + q * (fill - pos["entry_fill"]) - fee, 6)
             pos["qty_open"] -= q
             pos["momentum_partial_taken"] = True
             book.event(pos["id"], bar[_T], "PARTIAL", {"qty": q, "fill": fill, "reason": win.get("reason")})
@@ -714,7 +755,7 @@ def run_fixtures(workdir: Path, proof_path: Path | None = None) -> dict[str, Any
     r = open_from_take(b, take(), hist)
     pos = b.open_positions()[0] if r["status"] == "OPENED" else {}
     cases["entry"] = {"status": r["status"], "entry_fill": round(pos.get("entry_fill", 0), 6),
-                      "ok": r["status"] == "OPENED" and abs(pos["entry_fill"] - 100.08) < 1e-9 and pos["counts_for_m2"] is False and pos["exec"] is False}
+                      "ok": r["status"] == "OPENED" and abs(pos["entry_fill"] - 100.0 * (1 + SETTINGS.slippage_bp / 1e4)) < 1e-9 and pos["counts_for_m2"] is False and pos["exec"] is False}
     b.close()
 
     # 2. hard stop hit (-2.2%) fills at the stop level, shadow also stops
@@ -727,7 +768,7 @@ def run_fixtures(workdir: Path, proof_path: Path | None = None) -> dict[str, Any
     cases["stop"] = {"exit_reason": p.get("exit_reason"), "module": p.get("exit_module"), "pnl": p.get("realized_pnl_usd"),
                      "shadow": p["shadow"].get("exit_reason"),
                      "ok": p["status"] == "CLOSED" and p["exit_reason"] == "STOP_LOSS" and p["exit_module"] == "A"
-                     and abs(p["exit_ref"] - 100.08 * 0.978) < 1e-9 and p["realized_pnl_usd"] < 0 and p["shadow"]["exit_reason"] == "STOP_LOSS"}
+                     and abs(p["exit_ref"] - 100.0 * (1 + SETTINGS.slippage_bp / 1e4) * 0.978) < 1e-9 and p["realized_pnl_usd"] < 0 and p["shadow"]["exit_reason"] == "STOP_LOSS"}
     b.close()
 
     # 3. gap through the stop fills at the open, not the stop (no free price)
@@ -846,12 +887,25 @@ def run_fixtures(workdir: Path, proof_path: Path | None = None) -> dict[str, Any
     step(b, pos, hist + [[dbar, 100.0, 100.9, 97.0, 100.6, 10.0]])
     p = b.all_positions()[0] if pos else {}
     cases["forming"] = {"entry_basis": r.get("entry_basis"), "entry_fill": r.get("entry_fill"), "status": p.get("status"),
-                        "ok": r.get("entry_basis") == "DECISION_PX" and abs(r["entry_fill"] - 100.5 * 1.0008) < 1e-9
+                        "ok": r.get("entry_basis") == "DECISION_PX" and abs(r["entry_fill"] - 100.5 * (1 + SETTINGS.slippage_bp / 1e4)) < 1e-9
                         and p.get("status") == "OPEN" and p.get("last_bar_open_ms") == dbar}
     b.close()
 
+    # 13. fees: entry fee is paid at the fill, exit fee at the close, both at the profile's rates
+    b = fresh("fees")
+    open_from_take(b, take(), hist)
+    pos = b.open_positions()[0]
+    fee_in = pos["qty"] * pos["entry_fill"] * SETTINGS.fee_entry_bp / 1e4
+    step(b, pos, hist + [_bar(n, 100.0, 100.1, 97.0, 97.5)])
+    p = b.all_positions()[0]
+    fee_out = p["qty"] * p["exit_fill"] * SETTINGS.fee_exit_bp / 1e4
+    expect = p["qty"] * (p["exit_fill"] - p["entry_fill"]) - fee_in - fee_out
+    cases["fees"] = {"profile": SETTINGS.cost_profile, "fees": p.get("fees_usd"), "pnl": p.get("realized_pnl_usd"),
+                     "ok": abs(p["realized_pnl_usd"] - expect) < 1e-6 and abs(p["fees_usd"] - (fee_in + fee_out)) < 1e-6}
+    b.close()
+
     ok = all(c["ok"] for c in cases.values())
-    proof = {"id": "paper.exit.proof.v1", "version": VERSION, "port_of": PORT_OF, "status": "FIXTURE_PASS" if ok else "FIXTURE_FAIL",
+    proof = {"id": "paper.exit.proof.v1", "version": VERSION, "cost_profile": SETTINGS.cost_profile, "port_of": PORT_OF, "status": "FIXTURE_PASS" if ok else "FIXTURE_FAIL",
              "not_a_market_trade": True, "exec": False, "counts_for_m2": False, "cases": cases}
     if ok:
         (proof_path or Path(__file__).with_name(PROOF_NAME)).write_text(json.dumps(proof, indent=2, default=str))
@@ -867,7 +921,7 @@ def print_status(book_path: str | Path | None = None) -> dict[str, Any]:
         book.close()
     print(f"\nSD6 PAPER BOOK  {VERSION}")
     print("=" * 64)
-    print(f"  proof={'FIXTURE_PASS' if fixture_proven() else 'NOT_PROVEN'}  cash={led['cash']:.2f}  realized={led['realized_pnl']:+.4f}")
+    print(f"  proof={'FIXTURE_PASS' if fixture_proven() else 'NOT_PROVEN'}  costs={led['cost_profile']}  cash={led['cash']:.2f}  realized={led['realized_pnl']:+.4f}  fees={led['fees_paid']:.4f}")
     print(f"  open={len(led['open_positions'])}  closed={led['trade_count']}  W/L={led['wins']}/{led['losses']}  shadow_realized={led['shadow_realized_pnl']:+.4f}")
     for p in led["open_positions"]:
         print(f"  OPEN   {p['asset']:<5} {p['core']:<8} entry={p['entry_fill']:.6g} floor={p['locked_floor']} stale={p['stale']}")

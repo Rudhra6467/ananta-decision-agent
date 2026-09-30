@@ -46,12 +46,13 @@ def _utc(t: float) -> str:
 def hash_password(pw: str, salt: bytes | None = None) -> str:
     salt = salt or secrets.token_bytes(16)
     h = hashlib.scrypt(pw.encode(), salt=salt, n=2 ** 14, r=8, p=1, dklen=32)
-    return "scrypt$" + base64.b64encode(salt).decode() + "$" + base64.b64encode(h).decode()
+    # ':' separators (not '$'), so a shell loading the .env file cannot mangle the value
+    return "scrypt:" + base64.b64encode(salt).decode() + ":" + base64.b64encode(h).decode()
 
 
 def verify_password(pw: str, stored: str) -> bool:
     try:
-        kind, s, h = stored.split("$")
+        kind, s, h = stored.replace("$", ":").split(":")
         if kind != "scrypt":
             return False
         cand = hashlib.scrypt(pw.encode(), salt=base64.b64decode(s), n=2 ** 14, r=8, p=1, dklen=32)

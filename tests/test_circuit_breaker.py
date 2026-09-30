@@ -57,6 +57,7 @@ def test_only_a_named_human_can_resume_and_the_count_restarts(tmp_path):
 def test_watch_blocks_new_v1_entries_when_tripped(tmp_path, monkeypatch=None):
     os.chdir(tmp_path)
     os.environ["ANANTA_WATCH_NOTIFY"] = "0"
+    os.environ["ANANTA_NTFY_TOPIC"] = ""
     w.ENVELOPE = tmp_path / "cycle_all.json"
     breaker = tmp_path / "breaker.json"
     cb.evaluate("v1.sqlite", [_t(i, -2.0) for i in range(4)], 1000.0, path=breaker)

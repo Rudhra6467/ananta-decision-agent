@@ -5,9 +5,13 @@ It works the same in paper today and live later; live-only steps are marked **LI
 
 ---
 
-## 1. Something looks wrong: stop NEW trades immediately (≈10 seconds)
+## 1. Something looks wrong: stop trading immediately (≈10 seconds)
 
-**Hands kill switch.** Halts every new entry in the App. Open positions are still protected by their stops.
+**Hands kill switch.** Two effects, both immediate:
+- Every new entry in the App is blocked (the cycle shows `BLOCKED / MANUAL_KILL`).
+- **Every open Hands position is closed at market** by the position watcher. This is a flatten, not a pause.
+
+It does not touch the Agent's own paper books (SD6, V0, V1); stop those with the watch command below.
 
 ```
 cd ~/code/ananta-decision-agent
@@ -136,7 +140,25 @@ print(requests.put(a.BASE_URL+'/api/settings', json={'manual_kill_switch': False
 
 ## 8. Before the first live dollar (checklist)
 
-- [ ] Rehearse sections 1, 2 and 6 once on paper, and record the date here.
+- [x] Rehearse sections 1 and 6 on paper. **Done 2026-09-30 ~08:54 UTC, passed:** engage → `manual_kill=True`, cycle 10/10 `BLOCKED / MANUAL_KILL`, 0 trades; off → `manual_kill=False`, `overall_safe=True`. (Hands had no open positions, so the flatten was not exercised.)
+- [ ] Rehearse section 2 (close one position) on paper while Hands holds a paper position.
+- [ ] Phone alerts: the ntfy test alert (section 9) arrives on the phone; the Ananta app push is set up.
 - [ ] Exchange API key: **trade-only, withdrawals disabled**, IP-restricted if the exchange allows it.
 - [ ] Live size fixed in writing, and the breaker limits confirmed for the live book.
 - [ ] You know how to do section 2 on the exchange website without any software.
+
+---
+
+## 9. Phone alerts (ntfy)
+
+Paper buys and exits, gaps, Hands being unreachable, errors and circuit-breaker trips are pushed to the phone.
+Routine notes (INFO) stay in `watch_alerts.jsonl` only.
+
+Send a test alert:
+
+```
+cd ~/code/ananta-decision-agent && .venv/bin/python -m src.intelligence.paper_watch test-alert
+```
+
+`phone push: sent` means the server took it. `off` means `ANANTA_NTFY_TOPIC` is missing from `.env`.
+The topic name works like a password: anyone who knows it can read the alerts. It lives only in the laptop `.env`.

@@ -1,6 +1,7 @@
 {
   "id": "paper.exit.proof.v1",
-  "version": "paper.exit.sd6.v1",
+  "version": "paper.exit.sd6.v2",
+  "cost_profile": "KRAKEN_T1_TAKER",
   "port_of": "Ananta backend/exit_engine.py (A,KILL,F,B,S,D,C,E) @ 8cf4bcd",
   "status": "FIXTURE_PASS",
   "not_a_market_trade": true,
@@ -9,13 +10,13 @@
   "cases": {
     "entry": {
       "status": "OPENED",
-      "entry_fill": 100.08,
+      "entry_fill": 100.05,
       "ok": true
     },
     "stop": {
       "exit_reason": "STOP_LOSS",
       "module": "A",
-      "pnl": -2.27824,
+      "pnl": -3.830909,
       "shadow": "STOP_LOSS",
       "ok": true
     },
@@ -36,8 +37,8 @@
       "exit_reason": "ATR_TRAIL",
       "module": "C",
       "shadow": "TARGET",
-      "pnl": 4.612174,
-      "shadow_pnl": 2.9176,
+      "pnl": 3.006282,
+      "shadow_pnl": 1.324912,
       "ok": true
     },
     "time": {
@@ -75,8 +76,14 @@
     },
     "forming": {
       "entry_basis": "DECISION_PX",
-      "entry_fill": 100.5804,
+      "entry_fill": 100.55024999999999,
       "status": "OPEN",
+      "ok": true
+    },
+    "fees": {
+      "profile": "KRAKEN_T1_TAKER",
+      "fees": 1.582009,
+      "pnl": -3.830909,
       "ok": true
     }
   }

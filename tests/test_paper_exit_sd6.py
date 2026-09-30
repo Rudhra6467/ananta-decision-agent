@@ -35,7 +35,8 @@ def test_manage_cycle_opens_then_manages_then_closes(tmp_path):
     now = hist[-1][0] + HOUR_MS + 60_000
     r1 = manage_cycle([_live_take(decision_bar_open_ms=hist[-1][0])], fetch_bars=fetch, now_ms=now, book_path=book, proof_path=proof)
     assert [o["status"] for o in r1["opened"]] == ["OPENED"]
-    assert r1["ledger"]["cash"] == 900.0 and r1["ledger"]["exec"] is False
+    fee_in = 100.0 * sd6.SETTINGS.fee_entry_bp / 1e4
+    assert abs(r1["ledger"]["cash"] - (900.0 - fee_in)) < 1e-6 and r1["ledger"]["exec"] is False
 
     # same cycle again: slot is full, nothing new opens, no bar is double-processed
     r1b = manage_cycle([_live_take(asset="ETH")], fetch_bars=lambda a: feed["BTC"], now_ms=now, book_path=book, proof_path=proof)
@@ -49,7 +50,12 @@ def test_manage_cycle_opens_then_manages_then_closes(tmp_path):
     assert ev and ev[-1]["kind"] == "CLOSED" and ev[-1]["exit_reason"] == "STOP_LOSS"
     led = r2["ledger"]
     assert led["trade_count"] == 1 and led["losses"] == 1 and led["open_positions"] == []
-    assert 997.0 < led["cash"] < 998.0  # -2.2% of $100 plus two 8bp haircuts
+    # -2.2% of $100, plus entry and exit fees at the profile rate, plus slippage both ways
+    s = sd6.SETTINGS
+    exit_mult = 0.978 * (1 - s.slippage_bp / 1e4)  # stop is 2.2% under the (slipped) entry fill, exit slips again
+    expect_loss = 100 * (1 - exit_mult) + 100 * s.fee_entry_bp / 1e4 + 100 * exit_mult * s.fee_exit_bp / 1e4
+    assert abs((1000.0 - led["cash"]) - expect_loss) < 1e-4, (led["cash"], expect_loss)
+    assert led["fees_paid"] > 0 and led["cost_profile"] == s.cost_profile
     assert led["counts_for_m2"] is False
 
 
@@ -61,7 +67,7 @@ def test_unclosed_bar_is_never_used(tmp_path):
     now = forming[0] + HOUR_MS / 2
     r = manage_cycle([_live_take()], fetch_bars=lambda a: hist + [forming], now_ms=now, book_path=tmp_path / "b.sqlite", proof_path=proof)
     assert r["opened"][0]["status"] == "OPENED"
-    assert abs(r["opened"][0]["entry_fill"] - 100.08) < 1e-9
+    assert abs(r["opened"][0]["entry_fill"] - 100.0 * (1 + sd6.SETTINGS.slippage_bp / 1e4)) < 1e-9
 
 
 def test_live_book_refuses_fixture_and_book_kind_is_sticky(tmp_path):
@@ -85,6 +91,17 @@ def test_fetch_error_is_reported_not_hidden(tmp_path):
 
     r = manage_cycle([_live_take()], fetch_bars=boom, now_ms=T0, book_path=tmp_path / "b.sqlite", proof_path=proof)
     assert r["opened"] == [] and "hands unreachable" in r["refused"][0]["reason"]
+
+
+def test_cost_profiles_are_real_and_selectable():
+    assert sd6.settings_for("KRAKEN_T1_TAKER").fee_entry_bp == 80.0  # Kraken Pro Canada Tier 1 taker since 2026-07-09
+    assert sd6.settings_for("NDAX").fee_exit_bp == 20.0
+    try:
+        sd6.settings_for("NOPE")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("unknown profile accepted")
 
 
 def test_ingest_maps_only_paper_path_takes():

@@ -56,14 +56,17 @@ This is **v0 as written**: loose on purpose. The scorecard's job is to show what
 - The **warning bells (X3)** exit at a loss almost every time: 0–14% winners, −$0.91 to −$3.12 per trade.
 - Winning exits come from **targets** (+$1.61 to +$1.98) and above all **LONG_TERM trailing stops** (+$8.65 to +$11.68 per trade).
 
-## Limit orders pick the worse trades
+## Limit orders and missed entries
+
+> **Correction (review #1):** the comparison below is **biased by hindsight**. An order only counts as "missed" when the price ran up before it could fill, so the chase shadow looks at the future. Review #1 tested real market entry and it was significantly **worse** (see `docs/repair_shop/REVIEW_1_RESULTS.md`). Kept here for the record.
+
 
 | | DISCOVERY | CONFIRM |
 |---|---|---|
 | Filled limit orders (real trades) | −$0.38, 33% winners | −$0.62, 29% winners |
 | **Missed** limit orders, bought at market instead ("chase") | **+$0.07, 57% winners** | **−$0.32, 51% winners** |
 
-A limit order below the price fills most often when the price keeps falling, and misses when it runs up. N1 saves the spread but **selects the losers**.
+~~N1 saves the spread but selects the losers.~~ Not supported: see the correction above.
 
 ## Crisis replays (R6): bells vs holding to the time cap
 

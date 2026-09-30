@@ -50,7 +50,13 @@ RULESETS = {  # repair-shop review #1 (docs/repair_shop/REVIEW_1.md)
     "P2": Rules("P2", x3=False),
     "P3": Rules("P3", setups=("E1", "E2", "E3", "E4")),
     "V1c": Rules("V1c", entry="MARKET", x3=False, setups=("E1", "E2", "E3", "E4")),
+    # review #3: buy weakness (docs/repair_shop/REVIEW_3.md)
+    "R3a": Rules("R3a", entry="LIMIT_CLOSE", x3=False, setups=("E6",)),
+    "R3b": Rules("R3b", entry="LIMIT_CLOSE", x3=False, setups=("E7",)),
+    "R3c": Rules("R3c", entry="LIMIT_CLOSE", x3=False, setups=("E8",)),
+    "R3all": Rules("R3all", entry="LIMIT_CLOSE", x3=False, setups=("E6", "E7", "E8")),
 }
+DIP_SETUPS = ("E6", "E7", "E8")
 
 
 # ---------------------------------------------------------------------------
@@ -472,6 +478,14 @@ class CoinEngine:
         if (st["h1_closed_now"] and st["contracted_prev"] and st["bb_upper_1h"] is not None
                 and st["c1h"] > st["bb_upper_1h"] and st["S2"] != "DOWN"):
             out.append(("E5", st["c1h"] - 0.25 * st["atr1h"], {}))
+        # review #3 dip setups (only when the active rules include them)
+        rs = getattr(self, "rules", RULES_V0).setups
+        if "E6" in rs and st["rsi15"] < 30:
+            out.append(("E6", st["c15"], {}))
+        if "E7" in rs and st["rsi1h"] < 40 and st["trend_4h"] == "DOWN":
+            out.append(("E7", st["c15"], {}))
+        if "E8" in rs and not st["daily_above_ema50"] and st["roc_pct"] is not None and st["roc_pct"] <= 0.30:
+            out.append(("E8", st["c15"], {}))
         return out
 
     # ---- trade type (G rules) ----
@@ -481,6 +495,8 @@ class CoinEngine:
         return (r - entry) / entry if (r is not None and r > entry) else 0.05  # no level above: "open sky" = 5%
 
     def trade_type(self, setup: str, st: dict, entry: float) -> tuple[str | None, str]:
+        if setup in DIP_SETUPS:
+            return "SHORT_TERM", "G2_DIP"
         room = self.room(st, entry)
         if st["S1"] == "BULL" and st["trend_4h"] == "UP" and st["daily_above_ema50"] and setup in ("E1", "E4", "E5", "RND"):
             return "LONG_TERM", "G1"

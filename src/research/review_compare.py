@@ -71,10 +71,6 @@ def main(argv=None) -> None:
     print(json.dumps(r, indent=1))
 
 
-if __name__ == "__main__":
-    main()
-
-
 # ---------------------------------------------------------------------------
 # Review #3 rule (docs/repair_shop/REVIEW_3.md)
 # ---------------------------------------------------------------------------
@@ -108,6 +104,9 @@ def review3(r3_dir: Path, c0_scorecard: Path, variants=("R3a", "R3b", "R3c", "R3
     return out
 
 
-if __name__ == "__main__" and os.getenv("REVIEW3"):
-    r = review3(Path(os.path.expanduser(os.environ["REVIEW3"])), Path(os.path.expanduser(os.environ["C0_SCORECARD"])))
-    print(json.dumps(r, indent=1))
+if __name__ == "__main__":
+    if os.getenv("REVIEW3"):
+        r = review3(Path(os.path.expanduser(os.environ["REVIEW3"])), Path(os.path.expanduser(os.environ["C0_SCORECARD"])))
+        print(json.dumps(r, indent=1))
+    else:
+        main()

@@ -1,0 +1,6 @@
+{
+ "rule": "Binance USDT spot pairs with 5m data in 2020-06 (listed by mid-2020, including later-delisted pairs); excluding lab-10 and fresh-10 coins, stablecoins/fiat, leveraged and wrapped tokens; random.Random(20260930).sample(eligible, 12)",
+ "eligible_count": 98,
+ "picked": ["EOS", "HOT", "MATIC", "NEO", "OMG", "TCT", "TFUEL", "THETA", "VITE", "WTC", "XMR", "XTZ"],
+ "selected_at": "2026-09-30, before any of their bars were downloaded"
+}

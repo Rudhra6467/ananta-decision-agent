@@ -47,3 +47,4 @@ watch_alerts.jsonl
 paper_book.sqlite
 candidate_book.sqlite
 candidate_v1_book.sqlite
+breaker_state.json

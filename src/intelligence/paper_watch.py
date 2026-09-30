@@ -302,7 +302,36 @@ def seconds_to_next_look(now: datetime | None = None) -> float:
     return wait if wait > 1 else wait + HOUR_S
 
 
+LOCK_FILE = Path(os.getenv("ANANTA_WATCH_LOCK", "watch.lock"))
+_LOCK_HANDLE = None
+
+
+def acquire_single_instance(path: Path | None = None):
+    """One watch at a time. Two watches double every Hands cycle and race on the paper books
+    ('database is locked'). Returns the open lock handle, or None if another watch holds it.
+    The OS releases the lock when the process ends, even after a crash or a closed window."""
+    import fcntl
+
+    fh = open(path or LOCK_FILE, "a+")
+    try:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        fh.close()
+        return None
+    fh.seek(0)
+    fh.truncate()
+    fh.write(f"{os.getpid()}\n")
+    fh.flush()
+    return fh
+
+
 def run_forever() -> None:
+    global _LOCK_HANDLE
+    _LOCK_HANDLE = acquire_single_instance()
+    if _LOCK_HANDLE is None:
+        held = (LOCK_FILE.read_text().strip() if LOCK_FILE.exists() else "?")
+        raise SystemExit(f"Another Ananta watch is already running (pid {held}). Not starting a second one. "
+                         f"Check with: pgrep -fl paper_watch")
     notify("Ananta watch started", f"{VERSION}: hourly look at HH:02 UTC, paper only", level="INFO")
     while True:
         rec = tick()

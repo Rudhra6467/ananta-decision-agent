@@ -109,6 +109,21 @@ def test_phone_push_levels_text_and_failure_are_safe():
         os.environ["ANANTA_NTFY_TOPIC"] = ""
 
 
+def test_only_one_watch_can_hold_the_lock(tmp_path):
+    lock = tmp_path / "watch.lock"
+    first = w.acquire_single_instance(lock)
+    assert first is not None and lock.read_text().strip() == str(os.getpid())
+    import subprocess
+    import sys
+    code = ("import sys; sys.path.insert(0, %r); from src.intelligence import paper_watch as w; "
+            "print('second' if w.acquire_single_instance(__import__('pathlib').Path(%r)) else 'refused')") % (str(Path(w.__file__).resolve().parents[2]), str(lock))
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=60).stdout.strip()
+    assert out == "refused", out
+    first.close()  # released (as when the process ends): a new watch may start
+    out2 = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=60).stdout.strip()
+    assert out2 == "second", out2
+
+
 if __name__ == "__main__":
     import inspect
     import tempfile

@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Jarvis",
+    "slug": "jarvis",
+    "version": "0.1.0",
+    "scheme": "jarvis",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0E17",
+    "ios": {
+      "bundleIdentifier": "com.rudhra.jarvis",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Jarvis asks for Face ID before approving changes or touching the kill switch.",
+        "NSAppTransportSecurity": { "NSAllowsLocalNetworking": true }
+      }
+    },
+    "plugins": ["expo-router", "expo-secure-store", "expo-local-authentication", "expo-notifications"],
+    "extra": { "defaultServer": "http://192.168.2.68:8100" }
+  }
+}

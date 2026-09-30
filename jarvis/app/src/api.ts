@@ -1,0 +1,40 @@
+// Talks to the Jarvis service (owner only). The token and server address live in the phone's secure storage.
+import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
+
+const DEFAULT_SERVER: string = (Constants.expoConfig?.extra as any)?.defaultServer ?? "http://192.168.2.68:8100";
+
+export async function server(): Promise<string> {
+  return (await SecureStore.getItemAsync("jarvis_server")) || DEFAULT_SERVER;
+}
+export async function setServer(url: string) {
+  await SecureStore.setItemAsync("jarvis_server", url.replace(/\/+$/, ""));
+}
+export async function token(): Promise<string | null> {
+  return SecureStore.getItemAsync("jarvis_token");
+}
+export async function logout() {
+  await SecureStore.deleteItemAsync("jarvis_token");
+}
+
+export class ApiError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
+export async function api<T = any>(path: string, body?: object): Promise<T> {
+  const [base, tok] = [await server(), await token()];
+  const r = await fetch(base + path, {
+    method: body ? "POST" : "GET",
+    headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const txt = await r.text();
+  const data = txt ? JSON.parse(txt) : {};
+  if (!r.ok) throw new ApiError(r.status, data?.detail || `HTTP ${r.status}`);
+  return data as T;
+}
+
+export async function login(email: string, password: string) {
+  const r = await api<{ token: string }>("/auth/login", { email, password });
+  await SecureStore.setItemAsync("jarvis_token", r.token);
+}

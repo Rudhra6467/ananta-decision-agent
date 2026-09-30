@@ -5,6 +5,7 @@
     .venv/bin/python -m src.intelligence.explorer_live report          # write + push today's daily report now
     .venv/bin/python -m src.intelligence.explorer_live reconstruct     # R1: rebuild every decision from stored bars
     .venv/bin/python -m src.intelligence.explorer_live weekly          # P4: the week's evidence for the repair shop
+    .venv/bin/python -m src.intelligence.explorer_live portfolio       # portfolio manager: status / approve / reject / mode
 
 Same engine as the history replay (explorer_engine). Paper only: no orders anywhere, never writes Hands' database.
 Files (in the Agent folder): explorer_state.pkl, explorer_book.sqlite, explorer_bars.sqlite,
@@ -23,6 +24,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from src.intelligence import explorer_engine as xe
+from src.intelligence import portfolio_layer as pl
 
 VERSION = "explorer.live.v0.1"
 START_CAPITAL = 2000.0
@@ -203,6 +205,7 @@ class Explorer:
                 scans += 1
                 if log and T >= eng.trade_from_t:
                     rec["catch_up"] = bool(self.now() - T > 1500)
+                    self._sightings(coin, T, rec)
                     with self.decisions.open("a") as f:
                         f.write(json.dumps(rec, default=str) + "\n")
         for row in eng.trade_rows(eng.actual_closed):   # the real exit, as soon as it happens
@@ -267,8 +270,73 @@ class Explorer:
                 out["errors"].append(f"{coin}: {str(exc)[:160]}")
         self.store.commit()
         self._save()
+        try:
+            out["portfolio"] = self._portfolio_step()
+        except Exception as exc:  # noqa: BLE001  the portfolio layer never stops the Explorer
+            out["errors"].append(f"portfolio: {str(exc)[:160]}")
         self._maybe_report()
         return out
+
+    # -- intraday atlas: every setup seen gets its historical odds; information only --
+    def _atlas(self) -> dict | None:
+        p = self.base / "intraday_atlas.json"
+        if not p.exists():
+            return None
+        mt = p.stat().st_mtime
+        if getattr(self, "_atlas_mt", None) != mt:
+            self._atlas_cache, self._atlas_mt = json.loads(p.read_text()), mt
+        return self._atlas_cache
+
+    def _sightings(self, coin: str, T: int, rec: dict) -> None:
+        at = self._atlas()
+        seen = rec.get("sightings") or []
+        if not at or not seen:
+            return
+        from src.research.intraday_atlas import lookup  # pure-Python part of the atlas module
+
+        st = rec.get("state") or {}
+        out = []
+        for s in seen:
+            hit = lookup(at, s, st.get("S1"), st.get("btc_S1"))
+            if not hit:
+                continue
+            r = hit["recent"] or {}
+            b = r.get("3/1.5_24h") or {}
+            e = {"kind": "SIGHTING", "t": T, "coin": coin, "setup": s, "S1": st.get("S1"), "btc_S1": st.get("btc_S1"), "atlas_level": hit["level"],
+                 "n_hist": r.get("n"), "p_target_3_before_1.5": b.get("p_target"), "net_pct_3_1.5_24h": b.get("net_pct"),
+                 "range_4h_p10_p50_p90": r.get("cl_4h_p10_p50_p90"), "stable_positive_after_costs": hit["stable_positive_after_costs"]}
+            self.store.event(e)
+            out.append(e)
+            if hit["stable_positive_after_costs"] and not rec.get("catch_up"):
+                self.alert(f"Ananta intraday: {coin} {s}", f"{s} in {st.get('S1')}/BTC {st.get('btc_S1')}: historically positive after costs "
+                           f"({', '.join(hit['stable_positive_after_costs'])}); 4h range {r.get('cl_4h_p10_p50_p90')}%. Information only.", "EVENT")
+        rec["atlas"] = out
+
+    # -- portfolio manager layer (daily, after each UTC daily close) --
+    def prices(self) -> dict[str, float]:
+        return {c: e.tf["5m"].last[4] for c, e in self.st["engines"].items() if e.tf["5m"].last}
+
+    def views(self) -> dict[str, dict]:
+        return {c: pl.daily_view(e.tf["1d"]) for c, e in self.st["engines"].items()}
+
+    def _portfolio_step(self) -> dict | None:
+        views = self.views()
+        btc = views.get("BTC")
+        if not btc or btc["day_close_t"] <= self.st.get("portfolio_day_t", 0):
+            return None
+        layer = pl.PortfolioLayer(self.base)
+        d = layer.decide(views, self.prices(), int(self.now()))
+        self.st["portfolio_day_t"] = btc["day_close_t"]
+        self._save()
+        if d.get("skip"):
+            return d
+        if d["proposals"]:
+            self.alert("Ananta portfolio: suggestions", "; ".join(f"{p['action']} {p['coin']} ({p['why'][0]})" for p in d["proposals"])[:220]
+                       + ". Approve: explorer_live portfolio approve all", "EVENT")
+        main_fills = [f for f in d["fills"] if f["book"] == "MAIN"]
+        if main_fills:
+            self.alert("Ananta portfolio: AUTO changes", "; ".join(f"{f['side']} {f['coin']} ${f['usd']:.0f}" for f in main_fills)[:220], "EVENT")
+        return {"day": d["day"], "proposals": len(d["proposals"]), "fills": len(d["fills"])}
 
     def _save(self) -> None:
         tmp = self.state_path.with_suffix(".tmp")
@@ -338,6 +406,35 @@ class Explorer:
         else:
             lines.append("None.")
         lines += ["", f"Pending limit orders: {len(s['pending_orders'])}."]
+        sights = [json.loads(j) for (j,) in self.store.book.execute(
+            "SELECT json FROM events WHERE kind='SIGHTING' AND t >= ? AND t < ?", (int(start), int(start + 86400)))]
+        if sights:
+            by: dict[str, list] = {}
+            for e in sights:
+                by.setdefault(e["setup"], []).append(e)
+            lines += ["", "## Intraday setups seen today (information only, not traded)", "",
+                      "| Setup | Times seen | Historical chance +3% before −1.5% (24h) | After costs | Reliably positive? |", "|---|---|---|---|---|"]
+            for k, v in sorted(by.items()):
+                p = [e["p_target_3_before_1.5"] for e in v if e.get("p_target_3_before_1.5") is not None]
+                n_ = [e["net_pct_3_1.5_24h"] for e in v if e.get("net_pct_3_1.5_24h") is not None]
+                lines.append(f"| {k} | {len(v)} | {sum(p) / len(p):.0%} | {sum(n_) / len(n_):+.2f}% | {'yes' if any(e['stable_positive_after_costs'] for e in v) else 'no'} |"
+                             if p and n_ else f"| {k} | {len(v)} | – | – | – |")
+        try:
+            ps = pl.PortfolioLayer(self.base).status(self.prices())
+            ld = ps.get("last_decision") or {}
+            lines += ["", f"## Portfolio manager ({ps['rule']}, mode {ps['mode']})", "",
+                      f"Main book ${ps['books']['MAIN']['equity']:,.2f} ({ps['books']['MAIN']['return_pct']:+.2f}%); "
+                      f"always-AUTO shadow ${ps['books']['SHADOW']['equity']:,.2f} ({ps['books']['SHADOW']['return_pct']:+.2f}%). "
+                      f"BTC market gate: {'ON' if ld.get('btc_gate') else 'OFF'}.", ""]
+            if ld.get("ratings"):
+                lines += ["| Coin | Rating | Why |", "|---|---|---|"]
+                order = {"STRONG": 0, "OK": 1, "WEAK": 2, "OUT": 3}
+                for c, r in sorted(ld["ratings"].items(), key=lambda kv: order.get(kv[1]["rating"], 9)):
+                    lines.append(f"| {c} | {r['rating']} | {'; '.join(r['why'])} |")
+            if ps["pending"]:
+                lines += ["", "Waiting for your approval: " + ", ".join(f"{p['id']} {p['action']} {p['coin']}" for p in ps["pending"])]
+        except Exception as exc:  # noqa: BLE001
+            lines += ["", f"Portfolio section unavailable: {exc}"]
         d = self.base / "explorer_daily"
         d.mkdir(exist_ok=True)
         p = d / f"{day}.md"
@@ -496,6 +593,31 @@ def run_forever() -> None:
             _phone("Ananta Explorer error", str(exc)[:200], "ERROR")
 
 
+def portfolio_cli(args: list[str]) -> None:
+    """portfolio [status] | approve ID..|all --by NAME | reject ID..|all --by NAME | mode suggest|auto --by NAME"""
+    by = ""
+    if "--by" in args:
+        i = args.index("--by")
+        by = " ".join(args[i + 1:i + 2])
+        args = args[:i] + args[i + 2:]
+    sub = args[0] if args else "status"
+    layer = pl.PortfolioLayer(".")
+    ex = Explorer()
+    px = ex.prices() if ex.st else {}
+    if sub == "status":
+        print(json.dumps(layer.status(px), indent=1, default=str))
+    elif sub == "approve":
+        ids = "all" if args[1:] == ["all"] else args[1:]
+        print(json.dumps(layer.approve(ids, px, int(time.time()), by), indent=1))
+    elif sub == "reject":
+        print(layer.reject("all" if args[1:] == ["all"] else args[1:], by), "rejected")
+    elif sub == "mode":
+        layer.set_mode(args[1], by)
+        print("mode:", layer.mode)
+    else:
+        raise SystemExit("portfolio [status] | approve ID..|all --by NAME | reject ID..|all --by NAME | mode suggest|auto --by NAME")
+
+
 def main(argv=None) -> None:
     cmd = (argv or sys.argv[1:] or ["status"])[0]
     if cmd == "run":
@@ -508,6 +630,8 @@ def main(argv=None) -> None:
         print(json.dumps(reconstruct(), indent=1, default=str))
     elif cmd == "weekly":
         print(weekly())
+    elif cmd == "portfolio":
+        portfolio_cli((argv or sys.argv[1:])[1:])
     else:
         raise SystemExit(f"unknown command {cmd!r}: use run | status | report | reconstruct | weekly")
 

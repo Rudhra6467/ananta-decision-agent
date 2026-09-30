@@ -49,3 +49,17 @@ candidate_book.sqlite
 candidate_v1_book.sqlite
 breaker_state.json
 watch.lock
+
+# Explorer / portfolio runtime files (local evidence, never committed)
+intraday_atlas.json
+explorer_state.pkl
+explorer_state.tmp
+explorer_book.sqlite
+explorer_bars.sqlite
+explorer_decisions.jsonl
+explorer_reconstruct.json
+explorer.lock
+explorer.log
+explorer_daily/
+explorer_weekly/
+portfolio_book.sqlite

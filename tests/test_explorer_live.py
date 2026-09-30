@@ -116,6 +116,36 @@ def test_weekly_evidence_report():
     assert "By setup" in txt and "Shadows" in txt and "Same real trades, other exits" in txt
 
 
+def test_portfolio_manager_runs_daily_inside_the_explorer():
+    import sqlite3
+    d, clock, hands, ex, alerts = _mk()
+    ex.start()
+    _advance(ex, clock, 4 * 24 * 2)
+    n = sqlite3.connect(d / "portfolio_book.sqlite").execute("SELECT count(*) FROM decisions").fetchone()[0]
+    assert n >= 1
+    txt = ex.report("2020-01-01").read_text()
+    assert "Portfolio manager (T3, mode SUGGEST)" in txt and "| Coin | Rating | Why |" in txt
+
+
+def test_intraday_sightings_get_atlas_odds_and_only_reliable_ones_alert():
+    import json as _j
+    d, clock, hands, ex, alerts = _mk()
+    entry = {"CONFIRM": {"n": 500, "3/1.5_24h": {"p_target": 0.3, "net_pct": -0.9}, "cl_4h_p10_p50_p90": [-2, 0, 2]}}
+    atlas = {"contexts": {}, "setups": {s: dict(entry, stable_positive_after_costs=(["2/1_24h"] if s == "E8" else []))
+                                         for s in ("E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8")}}
+    (d / "intraday_atlas.json").write_text(_j.dumps(atlas))
+    ex.start()
+    _advance(ex, clock, 4 * 24)
+    rows = [_j.loads(j) for (j,) in ex.store.book.execute("SELECT json FROM events WHERE kind='SIGHTING'")]
+    assert rows, "setups were seen but no sightings were logged"
+    intraday_alerts = [a for a in alerts if a[0].startswith("Ananta intraday")]
+    assert all(" E8" in a[0] for a in intraday_alerts)
+    if any(r["setup"] == "E8" for r in rows):
+        assert intraday_alerts
+    txt = ex.report(__import__("datetime").datetime.fromtimestamp(clock["now"] - 3600).strftime("%Y-%m-%d")).read_text()
+    assert "Intraday setups seen today" in txt
+
+
 if __name__ == "__main__":
     import inspect
 

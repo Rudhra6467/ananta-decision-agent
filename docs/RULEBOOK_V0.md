@@ -172,6 +172,34 @@ Every rule has a status that the next watch reads:
 - **SHADOW**: logged only.
 - **RETIRED**: logged only, and re-checked monthly in case the market changes.
 
+**R6. Crisis replays (monthly, and before any version is promoted).**
+- The rulebook and the whole paper portfolio are replayed through the real crypto disasters in our history.
+- The question is Aladdin's "what if", answered on crypto's own history: what did the disaster bells (X1, X2), the warning bell (X3), the caps (N4) and the kill switch save, and what was lost anyway?
+
+| Crisis | Window (UTC) |
+|---|---|
+| COVID crash | 2020-03-05 to 2020-03-20 |
+| May 2021 crash | 2021-05-10 to 2021-05-25 |
+| LUNA / 3AC | 2022-05-05 to 2022-06-20 |
+| FTX | 2022-11-05 to 2022-11-15 |
+| August 2024 carry-trade sell-off | 2024-08-01 to 2024-08-08 |
+| October 2025 liquidation cascade | 2025-10-09 to 2025-10-12 |
+
+For each crisis, the report shows:
+- the portfolio's worst drawdown;
+- the loss with the bells versus without them (the same trades held to the time cap);
+- how fast X2 fired after the first big candle;
+- the loss from price gaps (fills worse than the stop).
+
+A version whose crisis loss is worse than its predecessor's needs an explicit operator OK to be promoted.
+
+**R7. Event calendar (next, logged only).** Every decision is tagged with scheduled events within ±24 hours:
+- US Fed decisions;
+- US inflation (CPI) reports;
+- large token unlocks.
+
+The repair shop checks whether trades near events behave differently. Market-wide signals (funding rates, Bitcoin's market share, stablecoin flows) and news come later, each only after passing the same tests.
+
 **R5. Forwarding.**
 - **Explorer → the operator**: through the reports in section 9.
 - **The operator → the Agent**: by approving a new rulebook version, a file in this repository that the Agent reads at startup and stamps on every record.
@@ -191,6 +219,7 @@ Every rule has a status that the next watch reads:
 | NDAX half-spreads per coin | measured 2026-09-29; re-measured monthly |
 | Phone alerts | ntfy live; Ananta app push before live |
 | History replay engine for the rulebook | to build (reuses the green-run engine) |
+| Crisis replay windows (R6) | defined above; run with the history replay engine |
 
 ---
 

@@ -12,10 +12,20 @@
       "supportsTablet": false,
       "infoPlist": {
         "NSFaceIDUsageDescription": "Jarvis asks for Face ID before approving changes or touching the kill switch.",
-        "NSAppTransportSecurity": { "NSAllowsLocalNetworking": true }
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
       }
     },
-    "plugins": ["expo-router", "expo-secure-store", "expo-local-authentication", "expo-notifications"],
-    "extra": { "defaultServer": "http://192.168.2.68:8100" }
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-notifications",
+      "expo-status-bar"
+    ],
+    "extra": {
+      "defaultServer": "http://192.168.2.68:8100"
+    }
   }
 }

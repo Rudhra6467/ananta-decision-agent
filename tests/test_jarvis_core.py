@@ -85,6 +85,17 @@ def test_reads_agent_data_and_audits_actions():
     assert j.set_mode("o@x.com", "auto", confirm=True) == "AUTO"
     j.register_push("o@x.com", "ExponentPushToken[abc]", "iPhone")
     assert j.push_tokens() == ["ExponentPushToken[abc]"]
+    snap = j.record_snapshot()
+    assert snap and snap["explorer"] > 0 and j.history(1)["points"]
+    c = j.coin("BTC")
+    assert len(c["daily"]) > 20 and {"c", "ema20", "ema50"} <= set(c["daily"][-1]) and c["price"]
+    assert "by_setup" in j.evidence() or j.evidence()["recent_closed"] == []
+    try:
+        j.coin("NOPE")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("unknown coin accepted")
     actions = [a["action"] for a in j.safety()["recent_actions"]]
     assert "portfolio.mode" in actions and "push.register" in actions
 

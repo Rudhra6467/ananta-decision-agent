@@ -64,6 +64,33 @@ def _run(fn, *a) -> Any:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.on_event("startup")
+def _snapshots() -> None:
+    """Value history for the charts: one snapshot now and every 15 minutes."""
+    import threading
+    import time as _t
+
+    def loop():
+        while True:
+            try:
+                J().record_snapshot()
+            except Exception:  # noqa: BLE001  history is best-effort
+                pass
+            _t.sleep(900)
+
+    threading.Thread(target=loop, daemon=True).start()
+
+
+@app.get("/history")
+def history(days: float = 30, who: str = Depends(owner)) -> dict:
+    return J().history(days)
+
+
+@app.get("/coin/{sym}")
+def coin(sym: str, who: str = Depends(owner)) -> dict:
+    return _run(J().coin, sym)
+
+
 @app.get("/health")
 def health() -> dict:
     return {"ok": True, "version": core.VERSION}

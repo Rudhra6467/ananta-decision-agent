@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { api, logout } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
 import { registerPush } from "../../src/push";
-import { Btn, Busy, Card, Line, Screen, T } from "../../src/ui";
+import { Btn, Busy, Card, Chip, Line, Screen, T, Tile } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C } from "../../src/theme";
 
@@ -17,25 +17,35 @@ export default function Safety() {
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><T style={{ color: C.bad }}>{err}</T></Screen>;
   const kOn = d.kill_switch_on;
+  const allGood = kOn === false && d.hands_reachable && !d.explorer_stale;
   return (
     <Screen loading={loading} onRefresh={reload}>
-      <Card title="Kill switch" right={<T style={{ color: kOn ? C.bad : C.good, fontWeight: "800" }}>{kOn == null ? "UNKNOWN" : kOn ? "ON" : "off"}</T>}>
-        {kOn ? <Btn label="Turn OFF" kind="good" onPress={() => kill(false)} /> : <Btn label="Turn ON (stop everything)" kind="bad" onPress={() => kill(true)} />}
+      <Card>
+        <T dim>System status</T>
+        <T style={{ fontSize: 26, fontWeight: "800", color: allGood ? C.good : C.warn }}>{allGood ? "All normal" : "Needs a look"}</T>
+        <T dim>Paper only · no real money connected</T>
       </Card>
-      <Card title="System">
-        <Line label="Trading" value={d.paper_only ? "PAPER ONLY" : "LIVE"} color={C.warn} />
-        <Line label="Hands reachable" value={d.hands_reachable ? "yes" : "NO"} color={d.hands_reachable ? C.good : C.bad} />
-        <Line label="Explorer last scan" value={d.explorer_last_scan ?? "–"} color={d.explorer_stale ? C.bad : undefined} />
-        <Line label="Hourly watch last" value={String(d.hourly_watch_last ?? "–").slice(0, 16).replace("T", " ")} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+        <Tile label="Kill switch" value={kOn == null ? "?" : kOn ? "ON" : "off"} color={kOn ? C.bad : C.good} />
+        <Tile label="Hands" value={d.hands_reachable ? "up" : "DOWN"} color={d.hands_reachable ? C.good : C.bad} />
+        <Tile label="Explorer" value={d.explorer_stale ? "stale" : "live"} sub={d.explorer_last_scan ?? ""} color={d.explorer_stale ? C.bad : C.good} />
+        <Tile label="Hourly watch" value="live" sub={String(d.hourly_watch_last ?? "–").slice(0, 16).replace("T", " ")} color={C.good} />
+      </View>
+      <Card title="Kill switch" right={<Chip text={kOn ? "ON" : "off"} color={kOn ? C.bad : C.good} />}>
+        <T dim>{kOn ? "Everything is stopped." : "Use only if something looks wrong. It stops new entries and closes open Hands positions."}</T>
+        {kOn ? <Btn label="Turn OFF" kind="good" onPress={() => kill(false)} /> : <Btn label="Turn ON (stop everything)" kind="bad" onPress={() => kill(true)} />}
       </Card>
       <Card title="Circuit breakers">
         {Object.keys(d.circuit_breakers).length === 0 ? <T dim>None tripped.</T> : Object.entries(d.circuit_breakers).map(([k, v]: any) => (
-          <Line key={k} label={k} value={v.status ?? JSON.stringify(v).slice(0, 40)} color={v.status === "TRIPPED" ? C.bad : C.good} />
+          <Line key={k} label={k.replace(".sqlite", "")} value={v.status ?? "–"} color={v.status === "TRIPPED" ? C.bad : C.good} />
         ))}
       </Card>
-      <Card title="Recent actions (audit log)">
+      <Card title="Recent actions">
         {d.recent_actions.map((a: any, i: number) => (
-          <View key={i}><T>{a.action} {a.detail ? `· ${a.detail}` : ""}</T><T dim>{a.time} · {a.result}</T></View>
+          <View key={i} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: C.line, paddingTop: i ? 6 : 0 }}>
+            <T>{a.action}{a.detail ? ` · ${a.detail}` : ""}</T>
+            <T dim style={{ fontSize: 11 }}>{a.time} · {a.result}</T>
+          </View>
         ))}
       </Card>
       <View style={{ flexDirection: "row", gap: 8 }}>

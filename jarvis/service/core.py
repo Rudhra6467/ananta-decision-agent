@@ -104,6 +104,7 @@ class Jarvis:
             CREATE TABLE IF NOT EXISTS audit (seq INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER, who TEXT, action TEXT, detail TEXT, result TEXT);
             CREATE TABLE IF NOT EXISTS failed_logins (t INTEGER);
             CREATE TABLE IF NOT EXISTS push_tokens (token TEXT PRIMARY KEY, device TEXT, t INTEGER);
+            CREATE TABLE IF NOT EXISTS snapshots (t INTEGER PRIMARY KEY, explorer REAL, main REAL, shadow REAL, btc REAL);
         """)
 
     # -- auth --
@@ -190,6 +191,10 @@ class Jarvis:
         last = ps.get("last_decision") or {}
         order = {"STRONG": 0, "OK": 1, "WEAK": 2, "OUT": 3}
         ratings = sorted(({"coin": c, **r} for c, r in (last.get("ratings") or {}).items()), key=lambda r: (order.get(r["rating"], 9), r["coin"]))
+        ex = self._explorer()
+        for r in ratings:   # 60 daily closes per coin for the sparkline
+            eng = ex.st["engines"].get(r["coin"]) if ex else None
+            r["spark"] = [b[4] for b in list(eng.tf["1d"].bars)[-60:]] if eng else []
         return {"mode": ps["mode"], "rule": ps["rule"], "books": ps["books"], "pending": ps["pending"],
                 "decided": last.get("day"), "btc_gate": last.get("btc_gate"), "ratings": ratings}
 
@@ -212,6 +217,18 @@ class Jarvis:
                 if e.get("net_pct_3_1.5_24h") is not None:
                     s["net_pct"].append(e["net_pct_3_1.5_24h"])
                 s["reliable"] |= bool(e.get("stable_positive_after_costs"))
+            allc = [json.loads(j) for (j,) in ex.store.book.execute("SELECT json FROM trades WHERE shadow=''")]
+
+            def agg(key):
+                g: dict[str, list] = {}
+                for r in allc:
+                    if r.get("ACTUAL_net") is not None:
+                        g.setdefault(str(r.get(key)), []).append(r["ACTUAL_net"])
+                return [{"name": k, "n": len(v), "win_rate": round(sum(1 for x in v if x > 0) / len(v), 3), "net_usd": round(sum(v), 2)}
+                        for k, v in sorted(g.items())]
+            out["by_setup"], out["by_exit"], out["by_type"] = agg("setup"), agg("ACTUAL_bell"), agg("type")
+            out["closed_total"] = {"n": len(allc), "net_usd": round(sum(r.get("ACTUAL_net") or 0 for r in allc), 2),
+                                   "win_rate": round(sum(1 for r in allc if (r.get("ACTUAL_net") or 0) > 0) / len(allc), 3) if allc else None}
             for s in out["sightings_today"].values():
                 s["p_target"] = round(sum(s["p_target"]) / len(s["p_target"]), 3) if s["p_target"] else None
                 s["net_pct"] = round(sum(s["net_pct"]) / len(s["net_pct"]), 3) if s["net_pct"] else None
@@ -241,6 +258,53 @@ class Jarvis:
         out["recent_actions"] = [dict(zip(("time", "who", "action", "detail", "result"), (_utc(t), w, a, d, r)))
                                  for t, w, a, d, r in self.db.execute("SELECT t, who, action, detail, result FROM audit ORDER BY seq DESC LIMIT 15")]
         return out
+
+    # -- history and charts --
+    def record_snapshot(self) -> dict | None:
+        """One point of value history (run every 15 minutes by the service)."""
+        ex = self._explorer()
+        if not ex:
+            return None
+        px = ex.prices()
+        ps = self._layer().status(px)
+        row = (int(self.now()), ex.status()["equity"], ps["books"]["MAIN"]["equity"], ps["books"]["SHADOW"]["equity"], px.get("BTC"))
+        self.db.execute("INSERT OR REPLACE INTO snapshots VALUES (?,?,?,?,?)", row)
+        self.db.commit()
+        return dict(zip(("t", "explorer", "main", "shadow", "btc"), row))
+
+    def history(self, days: float = 30) -> dict:
+        lo = int(self.now() - days * 86400)
+        rows = self.db.execute("SELECT t, explorer, main, shadow, btc FROM snapshots WHERE t >= ? ORDER BY t", (lo,)).fetchall()
+        return {"points": [dict(zip(("t", "explorer", "main", "shadow", "btc"), r)) for r in rows]}
+
+    def coin(self, sym: str) -> dict:
+        sym = sym.upper()
+        ex = self._explorer()
+        if not ex or sym not in ex.st["engines"]:
+            raise ValueError(f"unknown coin {sym}")
+        eng = ex.st["engines"][sym]
+
+        def series(tf: str, n: int) -> list[dict]:
+            s = eng.tf[tf]
+            out, a20, a50 = [], None, None   # averages recomputed over the stored bars (up to 260) for the chart
+            k20, k50 = 2 / 21, 2 / 51
+            for b in list(s.bars):
+                a20 = b[4] if a20 is None else a20 + k20 * (b[4] - a20)
+                a50 = b[4] if a50 is None else a50 + k50 * (b[4] - a50)
+                out.append({"t": b[0], "c": b[4], "ema20": a20, "ema50": a50})
+            return out[-n:]
+
+        ps = self.portfolio()
+        rating = next((r for r in ps["ratings"] if r["coin"] == sym), None)
+        trades = [t for t in ex.status()["open"] if t["coin"] == sym]
+        closed = [json.loads(j) for (j,) in ex.store.book.execute(
+            "SELECT json FROM trades WHERE shadow='' AND coin=? ORDER BY exit_t DESC LIMIT 20", (sym,))]
+        return {"coin": sym, "price": eng.tf["5m"].last[4] if eng.tf["5m"].last else None, "rating": rating,
+                "held_usd": ps["books"]["MAIN"]["holdings"].get(sym, 0.0),
+                "daily": series("1d", 120), "hourly": series("1h", 96),
+                "open_trades": trades,
+                "closed_trades": [{"setup": r["setup"], "type": r["type"], "net_usd": r.get("ACTUAL_net"), "bell": r.get("ACTUAL_bell"),
+                                   "closed": _utc(r["ACTUAL_exit_t"]) if r.get("ACTUAL_exit_t") else None} for r in closed]}
 
     # -- actions --
     def approve(self, who: str, ids: list[str] | str) -> list[dict]:

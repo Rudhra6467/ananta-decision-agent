@@ -4,6 +4,7 @@
     .venv/bin/python -m src.intelligence.explorer_live status          # account, open trades, suggestions
     .venv/bin/python -m src.intelligence.explorer_live report          # write + push today's daily report now
     .venv/bin/python -m src.intelligence.explorer_live reconstruct     # R1: rebuild every decision from stored bars
+    .venv/bin/python -m src.intelligence.explorer_live weekly          # P4: the week's evidence for the repair shop
 
 Same engine as the history replay (explorer_engine). Paper only: no orders anywhere, never writes Hands' database.
 Files (in the Agent folder): explorer_state.pkl, explorer_book.sqlite, explorer_bars.sqlite,
@@ -358,6 +359,56 @@ class Explorer:
 
 
 # ---------------------------------------------------------------------------
+# P4 weekly repair-shop evidence (live paper)
+# ---------------------------------------------------------------------------
+def weekly(base: Path | str = ".", days: int = 7, now: float | None = None) -> Path:
+    base = Path(base)
+    store = Store(base)
+    now = now or time.time()
+    lo = int(now - days * 86400)
+    rows = [json.loads(j) for (j,) in store.book.execute("SELECT json FROM trades WHERE exit_t >= ?", (lo,))]
+
+    def agg(xs, col="ACTUAL_net"):
+        v = [r[col] for r in xs if r.get(col) is not None]
+        return (len(v), (sum(1 for x in v if x > 0) / len(v)) if v else 0.0, sum(v) / len(v) if v else 0.0, sum(v))
+
+    def table(title, key, xs):
+        g: dict[str, list] = {}
+        for r in xs:
+            g.setdefault(str(key(r)), []).append(r)
+        out = [f"### {title}", "", "| Group | Trades | Win rate | Mean net | Total |", "|---|---|---|---|---|"]
+        for k, v in sorted(g.items()):
+            n, w, m, t = agg(v)
+            out.append(f"| {k} | {n} | {w:.0%} | ${m:+.2f} | ${t:+.2f} |")
+        return out + [""]
+
+    real = [r for r in rows if not r["shadow"]]
+    shadows = [r for r in rows if r["shadow"]]
+    day = datetime.fromtimestamp(now, timezone.utc).strftime("%Y-%m-%d")
+    lines = [f"# Ananta Explorer weekly evidence, week ending {day}", "",
+             f"Rulebook {xe.RULEBOOK}, paper (evidence class {xe.EVIDENCE_CLASS}). Real trades closed: {len(real)}; shadow trades closed: {len(shadows)}.", ""]
+    lines += table("By setup", lambda r: r["setup"], real)
+    lines += table("By trade type", lambda r: r["type"], real)
+    lines += table("By exit bell", lambda r: r.get("ACTUAL_bell"), real)
+    lines += table("Shadows (random entries, missed-entry chases, rejected, no type)", lambda r: r["shadow"], shadows)
+    alt = ["### Same real trades, other exits", "", "| Exit set | Trades | Mean net |", "|---|---|---|"]
+    for col in ("ACTUAL_net", "AS_LONG_TERM_net", "AS_SHORT_TERM_net", "AS_INTRADAY_net", "HOLD_net"):
+        n, w, m, t = agg(real, col)
+        alt.append(f"| {col.replace('_net', '')} | {n} | ${m:+.2f} |")
+    lines += alt + ["", "Shadow exits are only counted once they have finished, so recent trades appear here later.", ""]
+    rc = base / "explorer_reconstruct.json"
+    if rc.exists():
+        r = json.loads(rc.read_text())
+        lines += [f"Last reconstruction (R1): {'MATCH' if r.get('match') else 'MISMATCH'} "
+                  f"({r.get('logged_real_events')} logged vs {r.get('rebuilt_real_events')} rebuilt decisions)."]
+    d = base / "explorer_weekly"
+    d.mkdir(exist_ok=True)
+    p = d / f"{day}.md"
+    p.write_text("\n".join(lines) + "\n")
+    return p
+
+
+# ---------------------------------------------------------------------------
 # R1 reconstruction: rebuild every decision from the stored bars with a fresh engine
 # ---------------------------------------------------------------------------
 def reconstruct(base: Path | str = ".") -> dict:
@@ -433,6 +484,9 @@ def run_forever() -> None:
                 _phone("Ananta Explorer error", "; ".join(r["errors"])[:200], "WARN")
             day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             if day != last_recon_day and datetime.now(timezone.utc).hour == 0:
+                if datetime.now(timezone.utc).weekday() == 0:   # Monday 00:xx UTC = Sunday evening in Toronto
+                    p = weekly()
+                    _phone("Ananta weekly evidence", f"Weekly repair-shop evidence written: {p.name}", "EVENT")
                 rc = reconstruct()
                 last_recon_day = day
                 if not rc["match"]:
@@ -452,8 +506,10 @@ def main(argv=None) -> None:
         print(Explorer().report())
     elif cmd == "reconstruct":
         print(json.dumps(reconstruct(), indent=1, default=str))
+    elif cmd == "weekly":
+        print(weekly())
     else:
-        raise SystemExit(f"unknown command {cmd!r}: use run | status | report | reconstruct")
+        raise SystemExit(f"unknown command {cmd!r}: use run | status | report | reconstruct | weekly")
 
 
 if __name__ == "__main__":

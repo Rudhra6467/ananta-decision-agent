@@ -44,3 +44,13 @@ fixed in Hands PR #4 and in SD6 on 2026-09-29. Operator approved the fix.
 - Default `ANANTA_SD6_COST=KRAKEN_T1_TAKER`: 0.80% per side + 0.05% slippage, Kraken Pro Canada Tier 1 since 2026-07-09.
 - Other profiles: `KRAKEN_T2_TAKER`, `KRAKEN_T3_TAKER`, `NDAX` (0.20% flat + ~0.30% measured half-spread), `LEGACY_G8_8BP`.
 - Positions opened before v2 keep their old fill prices. The AVAX position is tagged PRE_FIX_NOT_EVIDENCE anyway.
+
+## Candidate paper: frozen v2 trend-dip (2026-09-29)
+
+- Operator: venue = NDAX; "paper-trade it" = yes.
+- Code: `src/intelligence/candidate_paper.py`. It runs inside the hourly watch; disable with `ANANTA_CANDIDATE_PAPER=0`.
+- Book: separate `candidate_book.sqlite`, $1,000, $100 per position, one per coin.
+- Costs: NDAX (0.20% limit entry; 0.20% + measured half-spread on market exits).
+- Evidence class `CANDIDATE_PAPER`: never M2, never exec, never touches Hands positions.
+- It starts forward only (no back-trading) and uses Hands' closed 1d/4h/1h candles.
+- The one-time holdout FAILED (`docs/research/CANDIDATE_V3_HOLDOUT_RESULT.md`). That result travels with this evidence to the live gate.

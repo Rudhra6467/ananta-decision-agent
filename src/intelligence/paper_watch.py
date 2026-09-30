@@ -59,6 +59,58 @@ def notify(title: str, body: str, *, level: str = "INFO") -> None:
                            timeout=10, check=False, capture_output=True)
         except Exception:  # noqa: BLE001
             pass
+    rec["phone"] = push_phone(title, body, level=level)
+    if rec["phone"] not in ("off", "skipped"):
+        with ALERTS.open("a") as f:
+            f.write(json.dumps({"ts": rec["ts"], "level": "PHONE", "title": title, "body": rec["phone"]}) + "\n")
+
+
+NTFY_SERVER = "https://ntfy.sh"
+PHONE_LEVELS_DEFAULT = "EVENT,WARN,ERROR"
+_PRIORITY = {"ERROR": "5", "WARN": "4", "EVENT": "3", "INFO": "2", "TEST": "3"}
+
+
+def _ntfy_topic() -> str:
+    topic = os.getenv("ANANTA_NTFY_TOPIC", "").strip()
+    if not topic:
+        try:  # the watch may alert before anything else has loaded .env
+            from dotenv import load_dotenv
+
+            load_dotenv()
+            topic = os.getenv("ANANTA_NTFY_TOPIC", "").strip()
+        except Exception:  # noqa: BLE001
+            pass
+    return topic
+
+
+def push_phone(title: str, body: str, *, level: str = "INFO", post: Callable[..., Any] | None = None) -> str:
+    """Phone push through ntfy. Off unless ANANTA_NTFY_TOPIC is set (in the laptop .env, never committed).
+
+    Only EVENT/WARN/ERROR by default (ANANTA_NTFY_LEVELS overrides). Text is short and carries no
+    tokens, balances or keys: coin, action and paper P&L at most. Never raises: a failed push is
+    returned as text and logged, and the watch keeps going.
+    """
+    topic = _ntfy_topic()
+    if not topic:
+        return "off"
+    levels = {x.strip().upper() for x in os.getenv("ANANTA_NTFY_LEVELS", PHONE_LEVELS_DEFAULT).split(",") if x.strip()}
+    if level.upper() not in levels and level.upper() != "TEST":
+        return "skipped"
+    server = os.getenv("ANANTA_NTFY_SERVER", NTFY_SERVER).rstrip("/")
+    ascii_title = title.encode("ascii", "replace").decode()[:100]  # HTTP headers must be ASCII
+    headers = {"Title": ascii_title, "Priority": _PRIORITY.get(level.upper(), "3"), "Tags": level.lower()}
+    try:
+        if post is None:
+            import urllib.request
+
+            req = urllib.request.Request(f"{server}/{topic}", data=body[:500].encode(), headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=10) as r:  # noqa: S310 (fixed https server)
+                code = r.status
+        else:
+            code = post(f"{server}/{topic}", data=body[:500].encode(), headers=headers)
+        return "sent" if 200 <= int(code) < 300 else f"failed: HTTP {code}"
+    except Exception as e:  # noqa: BLE001
+        return f"failed: {type(e).__name__}: {str(e)[:120]}"
 
 
 TOKEN_FILE = Path(os.getenv("ANANTA_TOKEN_FILE", "/tmp/ananta_login.json"))
@@ -288,5 +340,10 @@ if __name__ == "__main__":
         print_status()
     elif cmd == "run":
         run_forever()
+    elif cmd == "test-alert":
+        res = push_phone("Ananta test alert", "If you can read this on your phone, Ananta alerts work.", level="TEST")
+        print(f"phone push: {res}")
+        if res == "off":
+            print("ANANTA_NTFY_TOPIC is not set in .env")
     else:
-        raise SystemExit(f"unknown command {cmd!r}: use run | once | status")
+        raise SystemExit(f"unknown command {cmd!r}: use run | once | status | test-alert")

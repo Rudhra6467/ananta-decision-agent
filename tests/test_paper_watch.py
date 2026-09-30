@@ -24,6 +24,7 @@ def _in(tmp_path):
     w.ENVELOPE = tmp_path / "cycle_all.json"
     os.environ["ANANTA_WATCH_NOTIFY"] = "0"
     os.environ["ANANTA_CANDIDATE_PAPER"] = "0"
+    os.environ["ANANTA_NTFY_TOPIC"] = ""  # tests never push to a real phone, even on the laptop
 
 
 def test_tick_heartbeat_and_gap(tmp_path):
@@ -73,6 +74,39 @@ def test_schedule_is_two_minutes_after_close():
     assert round(w.seconds_to_next_look(t)) == (60 - 26) * 60 - 54 + 120
     t2 = datetime(2026, 9, 29, 15, 1, 0, tzinfo=timezone.utc)
     assert round(w.seconds_to_next_look(t2)) == 60
+
+
+def test_phone_push_is_off_without_a_topic():
+    os.environ["ANANTA_NTFY_TOPIC"] = ""
+    assert w.push_phone("t", "b", level="ERROR", post=lambda *a, **k: 200) == "off"
+
+
+def test_phone_push_levels_text_and_failure_are_safe():
+    sent = []
+
+    def post(url, data, headers):
+        sent.append((url, data, headers))
+        return 200
+
+    os.environ["ANANTA_NTFY_TOPIC"] = "ananta-test-topic"
+    os.environ.pop("ANANTA_NTFY_LEVELS", None)
+    try:
+        assert w.push_phone("Ananta SD6: OPENED", "x", level="INFO", post=post) == "skipped"  # routine noise stays on the laptop
+        assert w.push_phone("Ananta V1_RIDE: paper exit", "SOL STOP net $-3.10 \u2014 " + "y" * 900, level="EVENT", post=post) == "sent"
+        url, data, headers = sent[-1]
+        assert url == "https://ntfy.sh/ananta-test-topic" and len(data.decode()) == 500
+        assert headers["Priority"] == "3" and headers["Title"].isascii()
+        assert w.push_phone("Ananta watch: Hands unreachable", "e", level="ERROR", post=post) == "sent"
+        assert sent[-1][2]["Priority"] == "5"
+        assert w.push_phone("t", "b", level="TEST", post=post) == "sent"  # the test-alert command always goes through
+
+        def broken(*a, **k):
+            raise OSError("network down")
+
+        assert w.push_phone("t", "b", level="ERROR", post=broken).startswith("failed: OSError")  # never raises
+        assert w.push_phone("t", "b", level="WARN", post=lambda *a, **k: 429) == "failed: HTTP 429"
+    finally:
+        os.environ["ANANTA_NTFY_TOPIC"] = ""
 
 
 if __name__ == "__main__":

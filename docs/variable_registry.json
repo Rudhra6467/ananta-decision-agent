@@ -1,0 +1,222 @@
+{
+ "version": "variable.registry.v1",
+ "updated": "2026-09-30",
+ "status_meaning": {
+  "KEEP": "carries information that survived our tests; carry forward to the large datasets",
+  "WATCH": "some information but not enough to use alone; retest with more data or other markets",
+  "DROP": "tested and found no usable information; do not carry forward",
+  "UNTESTED": "candidate; needs data first"
+ },
+ "variables": [
+  {
+   "id": "V01",
+   "name": "Coin daily trend: close vs 50-day and 20-day averages",
+   "family": "trend",
+   "horizon": "weeks",
+   "status": "KEEP",
+   "evidence": "Portfolio layer T3: halves drawdown vs buy-and-hold in 2017-23 and 2024-26; stable for 40/15 to 100/20 averages",
+   "source": "repair_shop/REVIEW_4_RESULTS.md",
+   "carry_forward": "Core variable for every market: per-instrument trend state"
+  },
+  {
+   "id": "V02",
+   "name": "Market gate: BTC daily close vs its 50-day average",
+   "family": "market regime",
+   "horizon": "weeks",
+   "status": "KEEP",
+   "evidence": "T2/T3 beat T1 on drawdown and MAR; LUNA crash 0% vs -56%; study v4 also found the BTC gate reduced losses",
+   "source": "repair_shop/REVIEW_4_RESULTS.md; research/STUDY_V4_RESULTS.md",
+   "carry_forward": "Generalise to 'market-wide gate' per market (index trend for stocks: Nifty, TSX, S&P 500)"
+  },
+  {
+   "id": "V03",
+   "name": "Exit bells in slow crashes (disaster stop, trend-break exit)",
+   "family": "risk",
+   "horizon": "days",
+   "status": "KEEP",
+   "evidence": "Saved $2,365 across May 2021, LUNA, FTX, Oct 2025; cost money in V-shaped rebounds (COVID, Aug 2024)",
+   "source": "research/EXPLORER_V0_SCORECARD.md; repair_shop/REVIEW_1_RESULTS.md",
+   "carry_forward": "Crash insurance: keep, and measure per market with crisis replays"
+  },
+  {
+   "id": "V04",
+   "name": "Trading costs: fee + half-spread per instrument",
+   "family": "costs",
+   "horizon": "all",
+   "status": "KEEP",
+   "evidence": "Every short-horizon rule failed on costs, not direction (round trip about 0.6-1.2% at NDAX); expensive coins lose more",
+   "source": "research/GREEN_RUNS_STUDY_V1_RESULTS.md; research/EXPLORER_V0_SCORECARD.md",
+   "carry_forward": "First-class variable: measured spreads per instrument and venue, refreshed monthly"
+  },
+  {
+   "id": "V05",
+   "name": "Entry order type: resting limit vs market",
+   "family": "execution",
+   "horizon": "minutes",
+   "status": "KEEP",
+   "evidence": "Market entry significantly worse than limits (t -3.6 / -3.0); limit saves about 0.26% per trade",
+   "source": "repair_shop/REVIEW_1_RESULTS.md; research/GREEN_RUNS_STUDY_V1_RESULTS.md",
+   "carry_forward": "Default to limits; never trust 'missed order' shadows as evidence (hindsight bias)"
+  },
+  {
+   "id": "V06",
+   "name": "Holding horizon (multi-week exposure)",
+   "family": "horizon",
+   "horizon": "weeks",
+   "status": "KEEP",
+   "evidence": "Random 60-day holds earned like our setups' holds (+$32 vs +$33 per $100 in 2017-23): return comes from being in up-trends",
+   "source": "repair_shop/REVIEW_1_RESULTS.md",
+   "carry_forward": "Horizon is a decision variable; compare every rule against random entries at the same horizon"
+  },
+  {
+   "id": "V07",
+   "name": "Dip in a coin while BTC is bullish (15m RSI < 30, coin BEAR, BTC BULL)",
+   "family": "mean reversion",
+   "horizon": "hours-days",
+   "status": "WATCH",
+   "evidence": "RSI15<30 beat random short-term entries by about $0.10 per trade in 2017-23 (t 3.9) but loses after costs; E6|BEAR|BTC BULL slightly positive gross in both periods (+0.17% / +0.07%)",
+   "source": "repair_shop/REVIEW_3_RESULTS.md; intraday atlas v1",
+   "carry_forward": "Retest on low-cost venues and on stocks (relative dips vs index)"
+  },
+  {
+   "id": "V08",
+   "name": "4h trend filter for intraday entries",
+   "family": "trend",
+   "horizon": "hours",
+   "status": "WATCH",
+   "evidence": "Largest gross improvement in MTF entry study v1 (-0.039% to +0.005% per trade) but far below costs",
+   "source": "research/MTF_ENTRY_STUDY_V1_RESULTS.md",
+   "carry_forward": "Useful as a context tag, not as an edge by itself"
+  },
+  {
+   "id": "V09",
+   "name": "Other traders' entry timing (Hyperliquid)",
+   "family": "external",
+   "horizon": "hours",
+   "status": "WATCH",
+   "evidence": "+0.06% excess in the first hour (t 2.9), nothing later; skill did not persist from first to second half",
+   "source": "repair_shop/REVIEW_2_RESULTS.md",
+   "carry_forward": "Reference only; revisit with order-flow data (who is aggressive, size)"
+  },
+  {
+   "id": "V10",
+   "name": "Buy strength vs buy weakness (traders' context)",
+   "family": "context",
+   "horizon": "days",
+   "status": "WATCH",
+   "evidence": "Traders' longs did better buying weakness (BEAR +0.67% vs BULL -0.41% 24h excess) but this did not survive being traded",
+   "source": "repair_shop/REVIEW_2_RESULTS.md; REVIEW_3_RESULTS.md",
+   "carry_forward": "Candidate for stocks, where mean reversion is better documented"
+  },
+  {
+   "id": "V11",
+   "name": "Consecutive green 5m candles (2-5)",
+   "family": "candle pattern",
+   "horizon": "minutes-hours",
+   "status": "DROP",
+   "evidence": "After green runs the next candle is slightly less likely green (46.5% to 44.8% vs 47.9%); 0 of 67,167 cells pass; 15-60 min moves smaller than costs",
+   "source": "research/GREEN_RUNS_STUDY_V1_RESULTS.md",
+   "carry_forward": "Do not carry forward"
+  },
+  {
+   "id": "V12",
+   "name": "15m/30m reversal crossings (S3)",
+   "family": "reversal",
+   "horizon": "minutes-hours",
+   "status": "DROP",
+   "evidence": "Confirmed vs early reversals flip sign between periods; confirmation does not help",
+   "source": "research/EXPLORER_V0_SCORECARD.md",
+   "carry_forward": "Do not carry forward as a signal; keep as a descriptive tag"
+  },
+  {
+   "id": "V13",
+   "name": "1h market bias S1 (EMA50) for intraday entries",
+   "family": "trend",
+   "horizon": "hours",
+   "status": "DROP",
+   "evidence": "No stable difference between BULL and BEAR entries in either period",
+   "source": "research/EXPLORER_V0_SCORECARD.md",
+   "carry_forward": "Use daily trend (V01) instead"
+  },
+  {
+   "id": "V14",
+   "name": "Volatility contraction (Bollinger width / ATR) and squeeze release",
+   "family": "volatility",
+   "horizon": "hours",
+   "status": "DROP",
+   "evidence": "Squeeze setup E5 worst in both periods; contraction tags carry no stable information",
+   "source": "research/EXPLORER_V0_SCORECARD.md; repair_shop/REVIEW_1_RESULTS.md",
+   "carry_forward": "Retest only with volume/order-flow context"
+  },
+  {
+   "id": "V15",
+   "name": "Volume ratio (candle volume vs 20-candle average)",
+   "family": "volume",
+   "horizon": "minutes-hours",
+   "status": "DROP",
+   "evidence": "No stable effect as a confirmation (green-run study, breakout setup)",
+   "source": "research/GREEN_RUNS_STUDY_V1_RESULTS.md",
+   "carry_forward": "Replace with better volume data (taker buy/sell split)"
+  },
+  {
+   "id": "V16",
+   "name": "Warning bells (X3) in normal times",
+   "family": "risk",
+   "horizon": "hours-days",
+   "status": "WATCH",
+   "evidence": "Neither help nor hurt on average; removing them worsened crisis losses",
+   "source": "repair_shop/REVIEW_1_RESULTS.md",
+   "carry_forward": "Keep as insurance; revisit sizing instead"
+  }
+ ],
+ "untested": [
+  {
+   "id": "U01",
+   "name": "Perpetual futures funding rates",
+   "family": "crowding / leverage",
+   "data_source": "Hyperliquid, Binance public APIs (free)"
+  },
+  {
+   "id": "U02",
+   "name": "Open interest and liquidations",
+   "family": "leverage",
+   "data_source": "exchange APIs (free / low cost)"
+  },
+  {
+   "id": "U03",
+   "name": "Order-book imbalance and taker buy/sell volume",
+   "family": "order flow",
+   "data_source": "exchange websockets (must be recorded live; history is expensive)"
+  },
+  {
+   "id": "U04",
+   "name": "Bitcoin dominance and stablecoin supply",
+   "family": "market-wide flows",
+   "data_source": "public APIs"
+  },
+  {
+   "id": "U05",
+   "name": "Scheduled events: US Fed, CPI, token unlocks",
+   "family": "calendar",
+   "data_source": "public calendars (Rulebook R7)"
+  },
+  {
+   "id": "U06",
+   "name": "Cross-asset: US dollar index, US 10-year yield, Nasdaq",
+   "family": "macro",
+   "data_source": "daily data (free for delayed)"
+  },
+  {
+   "id": "U07",
+   "name": "On-chain flows (exchange inflows/outflows)",
+   "family": "on-chain",
+   "data_source": "paid providers"
+  },
+  {
+   "id": "U08",
+   "name": "News and social sentiment",
+   "family": "sentiment",
+   "data_source": "paid / scraping; test last"
+  }
+ ]
+}

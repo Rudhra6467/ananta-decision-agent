@@ -73,3 +73,41 @@ def main(argv=None) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------
+# Review #3 rule (docs/repair_shop/REVIEW_3.md)
+# ---------------------------------------------------------------------------
+def _rows(run_dir: Path) -> list[dict]:
+    import pickle
+
+    rows = []
+    for p in sorted(run_dir.glob("trades_*.pkl")):
+        rows += pickle.loads(p.read_bytes())["rows"]
+    return rows
+
+
+def review3(r3_dir: Path, c0_scorecard: Path, variants=("R3a", "R3b", "R3c", "R3all")) -> dict:
+    disc_end = 1704067200
+    c0 = json.loads(c0_scorecard.read_text())["DISCOVERY"]["nets"]["real"]
+    out = {"rule": "DISCOVERY: mean > 0; beats random SHORT_TERM (same run) by Welch t>=2; beats C0 by Welch t>=2",
+           "c0_mean": round(sum(c0) / len(c0), 3), "variants": {}}
+    for v in variants:
+        rows = _rows(r3_dir / v)
+        res = {}
+        for sp, keep in (("DISCOVERY", lambda r: r["entry_t"] < disc_end), ("CONFIRM_in_sample", lambda r: r["entry_t"] >= disc_end)):
+            real = [r["ACTUAL_net"] for r in rows if not r["shadow"] and keep(r)]
+            rnd = [r["ACTUAL_net"] for r in rows if r["shadow"] == "RANDOM" and r["type"] == "SHORT_TERM" and keep(r)]
+            m = sum(real) / len(real) if real else float("nan")
+            res[sp] = {"n": len(real), "mean_usd": round(m, 3), "win_rate": round(sum(1 for x in real if x > 0) / len(real), 3) if real else None,
+                       "random_st_n": len(rnd), "random_st_mean_usd": round(sum(rnd) / len(rnd), 3) if rnd else None,
+                       "t_vs_random": round(welch_t(real, rnd), 2), "t_vs_c0": round(welch_t(real, c0), 2) if sp == "DISCOVERY" else None}
+        d = res["DISCOVERY"]
+        res["PASS"] = bool(d["n"] and d["mean_usd"] > 0 and d["t_vs_random"] >= 2 and d["t_vs_c0"] >= 2)
+        out["variants"][v] = res
+    return out
+
+
+if __name__ == "__main__" and os.getenv("REVIEW3"):
+    r = review3(Path(os.path.expanduser(os.environ["REVIEW3"])), Path(os.path.expanduser(os.environ["C0_SCORECARD"])))
+    print(json.dumps(r, indent=1))

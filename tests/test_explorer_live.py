@@ -116,6 +116,17 @@ def test_weekly_evidence_report():
     assert "By setup" in txt and "Shadows" in txt and "Same real trades, other exits" in txt
 
 
+def test_portfolio_manager_runs_daily_inside_the_explorer():
+    import sqlite3
+    d, clock, hands, ex, alerts = _mk()
+    ex.start()
+    _advance(ex, clock, 4 * 24 * 2)
+    n = sqlite3.connect(d / "portfolio_book.sqlite").execute("SELECT count(*) FROM decisions").fetchone()[0]
+    assert n >= 1
+    txt = ex.report("2020-01-01").read_text()
+    assert "Portfolio manager (T3, mode SUGGEST)" in txt and "| Coin | Rating | Why |" in txt
+
+
 if __name__ == "__main__":
     import inspect
 

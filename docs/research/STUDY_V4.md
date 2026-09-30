@@ -70,3 +70,13 @@ A variant PASSES if all of these hold:
 
 - Research only. Long only, spot.
 - A pass is a proposal, not authority.
+
+---
+
+## Amendment 1 (2026-09-30, engineering only, before any result was seen)
+
+The first `run` on fresh2 (09:35 UTC) crashed while saving the report: numpy booleans are not
+JSON-serializable. The crash happened before anything was printed or written (empty output folder,
+no `run_done.json` marker), so no fresh2 result was seen. Fix: checks are cast to plain `bool`, and
+numpy scalars are converted when saving. No rule, variant, threshold or data changed. The fresh2 set
+is then run once, as registered.

@@ -205,8 +205,15 @@ def passes(r: dict, bh: dict) -> dict[str, bool]:
         "score>BH": (r["score"] or -9) > (bh["score"] or -9),
         "2of3_eras_positive": sum(1 for v in r["eras_pct"].values() if v > 0) >= 2,
     }
+    ch = {k: bool(v) for k, v in ch.items()}  # numpy bools are not JSON-serializable
     ch["PASS"] = all(ch.values())
     return ch
+
+
+def _json_default(o):
+    if isinstance(o, np.generic):
+        return o.item()
+    raise TypeError(f"not JSON-serializable: {type(o).__name__}")
 
 
 def main(argv=None) -> None:
@@ -241,8 +248,8 @@ def main(argv=None) -> None:
         rep[venue] = rows
     rep["passing_ndax"] = [v for v in VARIANTS if rep["NDAX"][v]["checks"]["PASS"]]
     rep["exit_kinds"] = {v: s3._count(t["exit_kind"] for cd in coins for t in cd["trades"][v]) for v in VARIANTS}
-    (out / "report.json").write_text(json.dumps(rep, indent=1))
-    (out / "trades.json").write_text(json.dumps({c["coin"]: c["trades"] for c in coins}))
+    (out / "report.json").write_text(json.dumps(rep, indent=1, default=_json_default))
+    (out / "trades.json").write_text(json.dumps({c["coin"]: c["trades"] for c in coins}, default=_json_default))
     if a.set == "fresh2":
         marker.write_text(json.dumps({"ran_at": rep["ran_at"], "passing_ndax": rep["passing_ndax"]}))
     print(json.dumps({k: rep[k] for k in ("set", "coins", "skipped", "passing_ndax")}, indent=1))

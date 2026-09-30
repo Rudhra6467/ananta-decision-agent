@@ -34,7 +34,11 @@ def months(start=(2019, 1), end=(2026, 8)):
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.expanduser("~/ananta_runs/fresh10/fresh10_5m.sqlite"))
+    ap.add_argument("--coins", default=",".join(FRESH10), help="comma-separated base assets (USDT pairs)")
+    ap.add_argument("--start", default="2019-01")
     a = ap.parse_args(argv)
+    coins = [c.strip().upper() for c in a.coins.split(",") if c.strip()]
+    sy, sm = (int(x) for x in a.start.split("-"))
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     con = sqlite3.connect(a.out)
     con.execute("""CREATE TABLE IF NOT EXISTS bars (source_code TEXT, source_record_id TEXT PRIMARY KEY, instrument TEXT,
@@ -42,9 +46,9 @@ def main(argv=None) -> None:
                    fill_rule TEXT, quote TEXT)""")
     con.execute("CREATE TABLE IF NOT EXISTS fetched (coin TEXT, ym TEXT, status TEXT, PRIMARY KEY (coin, ym))")
     con.execute("CREATE INDEX IF NOT EXISTS ix_bars ON bars (instrument, event_unix)")
-    for coin in FRESH10:
+    for coin in coins:
         s = f"{coin}USDT"
-        for y, m in months():
+        for y, m in months((sy, sm)):
             ym = f"{y}-{m:02d}"
             if con.execute("SELECT 1 FROM fetched WHERE coin=? AND ym=?", (coin, ym)).fetchone():
                 continue

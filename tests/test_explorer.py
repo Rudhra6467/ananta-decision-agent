@@ -143,6 +143,47 @@ def test_slot_frees_and_exit_is_reported_when_the_real_exit_happens():
     assert eng.actual_closed == [tr] and eng.closed == []
 
 
+def test_market_entry_fills_at_next_open_with_market_costs():
+    eng = xe.CoinEngine("BTC", rules=xe.RULESETS["P1a"])
+    od = xe.Order("o5", "BTC", "E2", "SHORT_TERM", 100.0, T0, T0 + 7200, {}, 0.5, 1.0, 2.0, None, None)
+    od.kind = "MARKET"
+    eng.orders.append(od)
+    eng._execute((T0, 100.7, 101.0, 100.5, 100.9, 1))
+    tr = eng.trades[0]
+    assert tr.entry == 100.7 and tr.entry_kind == "MARKET" and not eng.orders
+
+
+def test_rules_switch_setups_and_warning_bells():
+    b5 = _series()
+    from src.research import explorer_replay as xr
+    counts = {}
+    for name in ("C0", "P3"):
+        eng = xe.CoinEngine("AAA", rules=xe.RULESETS[name])
+        eng.random_rate = 0.0
+        seen, ev, i = set(), xr.event_stream(b5), 0
+        eng.attach(on_event=lambda e: seen.add(e.get("setup")) if e["kind"] == "ORDER" else None)
+        while i < len(ev):
+            T = ev[i][0]
+            while i < len(ev) and ev[i][0] == T:
+                eng.on_bar(ev[i][2], ev[i][3])
+                i += 1
+            if T % 900 == 0:
+                eng.scan(T)
+        counts[name] = seen
+    assert "E5" in counts["C0"] and "E5" not in counts["P3"]
+    # X3 off: an INTRADAY trade ignores a 15m reversal-down warning
+    eng, tr = _engine_with_trade(typ="INTRADAY")
+    eng.rules = xe.RULESETS["P2"]
+    st = {"atr1h": 1.0, "h1_closed_now": False, "btc_1h_ret": None, "c15": 100.2, "S4_15m": "S4_EARLY", "S4_30m": False,
+          "d1_closed_now": False, "c1h": 100.0, "ema50_1h": 99.0, "ema20_d": 90.0, "atr4h": 2.0}
+    eng.tf["15m"].bars.append((T0, 100.0, 100.3, 99.9, 100.2, 1))
+    eng._bells(T0 + 900, st)
+    assert tr.actual.pending_market is None
+    eng.rules = xe.RULES_V0
+    eng._bells(T0 + 900, st)
+    assert tr.actual.pending_market == "X3_S4_15M"
+
+
 def test_costs_net():
     eng, tr = _engine_with_trade()
     v = tr.actual

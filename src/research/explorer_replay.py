@@ -92,7 +92,7 @@ def btc_context(db: str) -> tuple[list[int], list[dict]]:
     return ts, ctx
 
 
-def run_coin(db: str, coin: str, out: str) -> dict[str, Any]:
+def run_coin(db: str, coin: str, out: str, rules: str = "C0") -> dict[str, Any]:
     t0 = time.time()
     b5 = load_5m(db, coin)
     if not b5:
@@ -103,7 +103,7 @@ def run_coin(db: str, coin: str, out: str) -> dict[str, Any]:
         i = bisect.bisect_right(bts, T) - 1
         return bctx[i] if i >= 0 and T - bts[i] <= 2 * 3600 else {}
 
-    eng = xe.CoinEngine(coin, btc_ctx=ctx)
+    eng = xe.CoinEngine(coin, btc_ctx=ctx, rules=xe.RULESETS[rules])
     scans = skips = 0
     skip_kinds: dict[str, int] = {}
     ev = event_stream(b5)
@@ -123,7 +123,7 @@ def run_coin(db: str, coin: str, out: str) -> dict[str, Any]:
     rows = eng.trade_rows()
     missed = [{"id": o.id, "setup": o.setup, "type": o.typ, "placed_t": o.placed_t, "shadow": o.shadow or ""} for o in eng.missed]
     Path(out, f"trades_{coin}.pkl").write_bytes(pickle.dumps({"rows": rows, "missed": missed}))
-    return {"coin": coin, "bars_5m": len(b5), "scans": scans, "skips": skips, "skip_kinds": skip_kinds,
+    return {"coin": coin, "rules": rules, "bars_5m": len(b5), "scans": scans, "skips": skips, "skip_kinds": skip_kinds,
             "closed_rows": len(rows), "real": sum(1 for r in rows if not r["shadow"]), "secs": round(time.time() - t0, 1)}
 
 
@@ -215,6 +215,10 @@ def score(out: str) -> dict:
             "by_exit_bell": _group(real, lambda r: r["ACTUAL_bell"]),
             "random_baseline_by_type": _group(rnd, lambda r: r["type"]),
             "exit_comparison": {c: _agg(real, c) for c in ("ACTUAL_net", "AS_LONG_TERM_net", "AS_SHORT_TERM_net", "AS_INTRADAY_net", "HOLD_net")},
+            "random_exit_comparison": {c: _agg(rnd, c) for c in ("ACTUAL_net", "AS_LONG_TERM_net", "AS_SHORT_TERM_net", "AS_INTRADAY_net", "HOLD_net")},
+            "hold_by_type": {k: _agg([r for r in real if r["type"] == k], "HOLD_net") for k in xe.TYPES},
+            "random_hold_by_type": {k: _agg([r for r in rnd if r["type"] == k], "HOLD_net") for k in xe.TYPES},
+            "nets": {"real": [r["ACTUAL_net"] for r in real]},
             "by_S1": _group(real, lambda r: r.get("tag_S1")),
             "by_S3": _group(real, lambda r: r.get("tag_S3")),
             "by_btc_S1": _group(real, lambda r: r.get("tag_btc_S1")),
@@ -237,13 +241,14 @@ def main(argv=None) -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--coins", default=",".join(xe.COINS))
     ap.add_argument("--workers", type=int, default=5)
+    ap.add_argument("--rules", default="C0", choices=list(xe.RULESETS))
     a = ap.parse_args(argv)
     out = Path(os.path.expanduser(a.out))
     out.mkdir(parents=True, exist_ok=True)
     if a.cmd == "run":
         coins = a.coins.split(",")
         with ProcessPoolExecutor(max_workers=a.workers) as ex:
-            res = list(ex.map(run_coin, [a.db] * len(coins), coins, [str(out)] * len(coins)))
+            res = list(ex.map(run_coin, [a.db] * len(coins), coins, [str(out)] * len(coins), [a.rules] * len(coins)))
         (out / "run.json").write_text(json.dumps(res, indent=1))
         print(json.dumps(res, indent=1))
     else:

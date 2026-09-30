@@ -107,6 +107,15 @@ def test_daily_report_is_written_and_pushed():
     assert any(a[0] == "Ananta daily report" for a in alerts)
 
 
+def test_weekly_evidence_report():
+    d, clock, hands, ex, alerts = _mk()
+    ex.start()
+    _advance(ex, clock, 4 * 24 * 3)
+    p = xl.weekly(d, now=clock["now"])
+    txt = p.read_text()
+    assert "By setup" in txt and "Shadows" in txt and "Same real trades, other exits" in txt
+
+
 if __name__ == "__main__":
     import inspect
 

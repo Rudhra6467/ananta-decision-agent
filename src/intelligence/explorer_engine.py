@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 RULEBOOK = "rulebook.v0"
-ENGINE_VERSION = "explorer.engine.v0.1"
+ENGINE_VERSION = "explorer.engine.v0.2"
 EVIDENCE_CLASS = "PAPER_EXPLORER"
 TF_S = {"5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "4h": 14400, "1d": 86400}
 ORDER_TF = ("5m", "15m", "30m", "1h", "4h", "1d")  # same close time: execute 5m first, then higher states
@@ -31,6 +31,26 @@ TIME_CAP = {"LONG_TERM": 60 * 86400, "SHORT_TERM": 5 * 86400, "INTRADAY": 8 * 36
 ORDER_LIFE = {"LONG_TERM": 7200, "SHORT_TERM": 7200, "INTRADAY": 3600}   # N2
 RANDOM_RATE = 0.02          # share of scans that create a random-entry shadow (baseline)
 WARM = {"15m": 60, "30m": 40, "1h": 60, "4h": 55, "1d": 55}
+
+
+@dataclass(frozen=True)
+class Rules:
+    """Switchable parts of the rulebook, so a repair-shop proposal is one setting. v0 is the default."""
+    name: str = "v0"
+    entry: str = "LIMIT_ATR"     # LIMIT_ATR (v0: rule-specific limit) | LIMIT_CLOSE (limit at the scan close) | MARKET
+    x3: bool = True              # warning bells on/off
+    setups: tuple = ("E1", "E2", "E3", "E4", "E5")
+
+
+RULES_V0 = Rules()
+RULESETS = {  # repair-shop review #1 (docs/repair_shop/REVIEW_1.md)
+    "C0": RULES_V0,
+    "P1a": Rules("P1a", entry="MARKET"),
+    "P1b": Rules("P1b", entry="LIMIT_CLOSE"),
+    "P2": Rules("P2", x3=False),
+    "P3": Rules("P3", setups=("E1", "E2", "E3", "E4")),
+    "V1c": Rules("V1c", entry="MARKET", x3=False, setups=("E1", "E2", "E3", "E4")),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +202,7 @@ class Order:
     resistance_low: float | None
     shadow: str | None = None          # None = real; else RANDOM / NO_TYPE / REJECTED_SLOT / REJECTED_DUP / CAP
     chase: "Trade | None" = None       # MISSED shadow: bought at market at placement
+    kind: str = "LIMIT"                # LIMIT | MARKET (Rules.entry)
 
 
 @dataclass
@@ -254,8 +275,9 @@ def make_variants(typ: str, entry: float, o: Order, full: bool = True) -> dict[s
 class CoinEngine:
     def __init__(self, coin: str, *, trade_from_t: int = 0, btc_ctx: Callable[[int], dict] | None = None,
                  slot_ok: Callable[[str, str], bool] | None = None, on_event: Callable[[dict], None] | None = None,
-                 random_rate: float = RANDOM_RATE):
+                 random_rate: float = RANDOM_RATE, rules: Rules = RULES_V0):
         self.coin = coin
+        self.rules = rules
         self.tf = {k: TfState(k) for k in TF_S}
         self.trade_from_t = trade_from_t
         self.btc_ctx = btc_ctx or (lambda t: {})
@@ -280,6 +302,8 @@ class CoinEngine:
         return d
 
     def attach(self, *, btc_ctx=None, slot_ok=None, on_event=None) -> None:
+        if not hasattr(self, "rules"):   # state saved by engine v0.1
+            self.rules = RULES_V0
         self.btc_ctx = btc_ctx or (lambda t: {})
         self.slot_ok = slot_ok or (lambda coin, typ: True)
         self.on_event = on_event or (lambda e: None)
@@ -483,12 +507,19 @@ class CoinEngine:
 
     def _place(self, T, setup, typ, limit, st, extra, shadow=None) -> Order:
         z = st["zones"]
-        tags = self._tags(st) | extra | {"room": round(self.room(st, limit), 4), "type_rule": extra.get("type_rule")}
+        kind = "LIMIT"
+        if self.rules.entry == "MARKET":
+            kind, limit = "MARKET", st["c15"]          # reference price only; fills at the next 5m open
+        elif self.rules.entry == "LIMIT_CLOSE":
+            limit = st["c15"]
+        tags = self._tags(st) | extra | {"room": round(self.room(st, limit), 4), "type_rule": extra.get("type_rule"),
+                                         "rules": self.rules.name, "entry_mode": self.rules.entry}
         o = Order(self._id(T, setup), self.coin, setup, typ, limit, T, T + ORDER_LIFE[typ], tags, st["atr15"], st["atr1h"],
                   st["atr4h"], z["support_low"] if (setup in ("E1", "E3") and z["support"] is not None) else None,
                   z["resistance_low"], shadow)
-        # MISSED shadow (real orders only): the same trade bought at market at the next 5m open
-        o.chase = "PENDING" if shadow is None else None
+        o.kind = kind
+        # MISSED shadow (real limit orders only): the same trade bought at market at the next 5m open
+        o.chase = "PENDING" if (shadow is None and kind == "LIMIT") else None
         self.orders.append(o)
         self.on_event({"kind": "ORDER", "t": T, "coin": self.coin, "id": o.id, "setup": setup, "type": typ,
                        "limit": limit, "shadow": shadow, "tags": tags})
@@ -497,7 +528,8 @@ class CoinEngine:
     # ---- the scan ----
     def scan(self, T: int) -> dict:
         """Run at every 15m close T, after all bars closing at T were fed. Returns the decision record."""
-        rec: dict[str, Any] = {"t": T, "coin": self.coin, "rulebook": RULEBOOK, "engine": ENGINE_VERSION}
+        rec: dict[str, Any] = {"t": T, "coin": self.coin, "rulebook": RULEBOOK, "engine": ENGINE_VERSION,
+                               "rules": getattr(self, "rules", RULES_V0).name}
         if not self.ready():
             rec["skip"] = "WARMING_UP"
             return rec
@@ -512,7 +544,7 @@ class CoinEngine:
         if stale:
             rec["skip"] = f"STALE:{','.join(stale)}"   # U4: no new entries, trades still managed
             return rec
-        fired = self.setups(st)
+        fired = [f for f in self.setups(st) if f[0] in self.rules.setups]
         rec["setups"] = [f[0] for f in fired]
         cands = []
         for setup, limit, extra in fired:
@@ -559,12 +591,15 @@ class CoinEngine:
                 if drop15 or btc_crash:
                     v.pending_market = "X2_BTC_CRASH" if btc_crash else "X2_COIN_CRASH"
                     continue
+                x3 = self.rules.x3
                 if v.typ == "LONG_TERM":
-                    if st["d1_closed_now"] and self.tf["1d"].last[4] < st["ema20_d"]:
+                    if x3 and st["d1_closed_now"] and self.tf["1d"].last[4] < st["ema20_d"]:
                         v.pending_market = "X3_DAILY_EMA20"
                         continue
                     if v.hi_close >= tr.entry + 2 * v.R:
                         v.stop = max(v.stop, v.hi_close - 2.5 * st["atr4h"])
+                elif not x3:
+                    continue
                 elif v.typ == "SHORT_TERM":
                     if st["h1_closed_now"] and st["c1h"] < st["ema50_1h"]:
                         v.pending_market = "X3_1H_EMA50"
@@ -623,6 +658,10 @@ class CoinEngine:
             if od.chase == "PENDING":
                 od.chase = self._open(od, o, t, "MARKET", False, shadow="MISSED_CHASE", register=False)
             filled = None
+            if getattr(od, "kind", "LIMIT") == "MARKET":
+                tr = self._open(od, o, t, "MARKET", False, shadow=od.shadow)
+                self._execute_fill_bar(tr, bar)
+                continue
             if o <= od.limit:
                 filled = (o, False)
             elif lo <= od.limit:
@@ -678,7 +717,7 @@ class CoinEngine:
     def _open(self, od: Order, px: float, t: int, kind: str, intrabar: bool, shadow=None, register=True) -> Trade:
         tr = Trade(od.id if register else od.id + "-chase", self.coin, od.setup, od.typ, px, t, kind, intrabar, t,
                    dict(od.tags), shadow=shadow or None, order_id=od.id)
-        tr.variants = make_variants(od.typ, px, od, full=(shadow is None and register))
+        tr.variants = make_variants(od.typ, px, od, full=(shadow in (None, "RANDOM") and register))
         if register:
             self.trades.append(tr)
             if shadow is None:

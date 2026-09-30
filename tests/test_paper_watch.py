@@ -23,6 +23,7 @@ def _in(tmp_path):
     os.chdir(tmp_path)
     w.ENVELOPE = tmp_path / "cycle_all.json"
     os.environ["ANANTA_WATCH_NOTIFY"] = "0"
+    os.environ["ANANTA_CANDIDATE_PAPER"] = "0"
 
 
 def test_tick_heartbeat_and_gap(tmp_path):
@@ -51,6 +52,19 @@ def test_hands_down_is_recorded_not_guessed(tmp_path):
     assert w._last_heartbeat() is None  # a failed look never becomes the gap baseline
     alerts = (tmp_path / "watch_alerts.jsonl").read_text()
     assert "Hands unreachable" in alerts
+
+
+def test_candidate_runs_inside_the_watch_and_errors_are_contained(tmp_path):
+    _in(tmp_path)
+    fetch = lambda a: (_ for _ in ()).throw(AssertionError("no fetch without a position"))  # noqa: E731
+
+    def cand_fetch(coin, tf, limit):
+        raise RuntimeError("hands candles down")
+
+    r = w.tick(cycle=lambda: _env(1_790_683_200_000.0, "c9"), sd6_kw={"fetch_bars": fetch, "book_path": tmp_path / "b.sqlite"},
+               candidate=True, cand_kw={"fetch": cand_fetch, "book_path": tmp_path / "cand.sqlite"})
+    assert r["ok"] is True  # the watch survives a candidate failure
+    assert len(r["candidate"]["errors"]) == 10 and r["candidate"]["book"]["cash"] == 1000.0
 
 
 def test_schedule_is_two_minutes_after_close():

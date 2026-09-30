@@ -45,3 +45,4 @@ watch_runs/
 watch_heartbeat.jsonl
 watch_alerts.jsonl
 paper_book.sqlite
+candidate_book.sqlite

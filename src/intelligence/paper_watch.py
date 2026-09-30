@@ -31,7 +31,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from src.intelligence import cycle_ingest, paper_exit
+from src.intelligence import candidate_paper, cycle_ingest, paper_exit
 
 VERSION = "paper.watch.v1"
 HOUR_S = 3600
@@ -119,7 +119,8 @@ def _bar_ms(env: dict[str, Any]) -> float | None:
         return None
 
 
-def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = None) -> dict[str, Any]:
+def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = None,
+         candidate: bool | None = None, cand_kw: dict | None = None) -> dict[str, Any]:
     started = _now()
     try:
         env = cycle()
@@ -147,6 +148,15 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
     same_bar = bool(prev and bar and prev.get("last_bar_open") == bar)
 
     report = cycle_ingest.run_envelope(run_path, sd6_kw=sd6_kw)
+    # Candidate paper (operator 2026-09-29: "paper-trade it"): frozen v2 trend-dip, NDAX costs, own book.
+    if candidate is None:
+        candidate = os.getenv("ANANTA_CANDIDATE_PAPER", "1") != "0"
+    cand: dict[str, Any] = {"enabled": bool(candidate)}
+    if candidate:
+        try:
+            cand = {"enabled": True, **candidate_paper.tick(**(cand_kw or {}))}
+        except Exception as exc:  # noqa: BLE001  never breaks the watch
+            cand = {"enabled": True, "errors": [{"error": str(exc)[:300]}], "events": []}
     board = report.get("board") or []
     issued = {}
     for row in board:
@@ -172,6 +182,9 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
         "sd6_events": sd6_events,
         "sd6_errors": sd6.get("errors") or sd6.get("error"),
         "book": {k: (sd6.get("ledger") or {}).get(k) for k in ("cash", "realized_pnl", "trade_count", "wins", "losses")},
+        "candidate": {"events": cand.get("events"), "errors": cand.get("errors"),
+                      "book": {k: (cand.get("ledger") or {}).get(k) for k in ("cash", "realized_usd", "closed", "wins", "losses")}}
+        if cand.get("enabled") else {"enabled": False},
         "exec": False, "live": False, "counts_for_m2": False,
     }
     with HEARTBEAT.open("a") as f:
@@ -189,6 +202,13 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
                 notify("Ananta: paper exit", f"{m.get('id')} {e.get('module')}/{e.get('exit_reason')} pnl {e.get('pnl')}", level="EVENT")
             elif e.get("kind") in ("TIGHTEN", "PARTIAL", "DATA_STALE"):
                 notify(f"Ananta SD6: {e.get('kind')}", str(m.get("id")), level="INFO" if e.get("kind") != "DATA_STALE" else "WARN")
+    for e in cand.get("events") or []:
+        if e.get("kind") == "FILLED":
+            notify("Ananta candidate: paper buy", f"{e['coin']} limit filled at {e['entry']:.6g} (trend-dip, NDAX costs)", level="EVENT")
+        elif e.get("kind") == "CLOSED":
+            notify("Ananta candidate: paper exit", f"{e['coin']} {e.get('reason')} net ${e.get('net_usd'):+.2f}", level="EVENT")
+    if cand.get("errors"):
+        notify("Ananta candidate error", str(cand["errors"])[:200], level="ERROR")
     if rec["sd6_errors"]:
         notify("Ananta SD6 error", str(rec["sd6_errors"])[:200], level="ERROR")
     return rec
@@ -226,6 +246,7 @@ def print_status(n: int = 12) -> None:
         print(f"  {str(r.get('bar_open_utc'))[:16]}  {str(r.get('look_class')):<22} {r.get('issued')}  takes={r.get('takes')} sd6={r.get('sd6_events')} missed={r.get('missed_bars_since_previous')}")
     print("=" * 64)
     paper_exit.print_status()
+    candidate_paper.print_status()
 
 
 if __name__ == "__main__":

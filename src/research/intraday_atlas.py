@@ -16,10 +16,13 @@ import json
 import os
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+try:  # the research stack; the live Explorer only needs lookup(), which is pure Python
+    import numpy as np
+    import pandas as pd
 
-from src.research import explorer_replay as xr
+    from src.research import explorer_replay as xr
+except ImportError:  # pragma: no cover
+    np = pd = xr = None
 
 try:
     from numba import njit

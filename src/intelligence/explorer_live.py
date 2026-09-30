@@ -205,6 +205,7 @@ class Explorer:
                 scans += 1
                 if log and T >= eng.trade_from_t:
                     rec["catch_up"] = bool(self.now() - T > 1500)
+                    self._sightings(coin, T, rec)
                     with self.decisions.open("a") as f:
                         f.write(json.dumps(rec, default=str) + "\n")
         for row in eng.trade_rows(eng.actual_closed):   # the real exit, as soon as it happens
@@ -275,6 +276,41 @@ class Explorer:
             out["errors"].append(f"portfolio: {str(exc)[:160]}")
         self._maybe_report()
         return out
+
+    # -- intraday atlas: every setup seen gets its historical odds; information only --
+    def _atlas(self) -> dict | None:
+        p = self.base / "intraday_atlas.json"
+        if not p.exists():
+            return None
+        mt = p.stat().st_mtime
+        if getattr(self, "_atlas_mt", None) != mt:
+            self._atlas_cache, self._atlas_mt = json.loads(p.read_text()), mt
+        return self._atlas_cache
+
+    def _sightings(self, coin: str, T: int, rec: dict) -> None:
+        at = self._atlas()
+        seen = rec.get("sightings") or []
+        if not at or not seen:
+            return
+        from src.research.intraday_atlas import lookup  # pure-Python part of the atlas module
+
+        st = rec.get("state") or {}
+        out = []
+        for s in seen:
+            hit = lookup(at, s, st.get("S1"), st.get("btc_S1"))
+            if not hit:
+                continue
+            r = hit["recent"] or {}
+            b = r.get("3/1.5_24h") or {}
+            e = {"kind": "SIGHTING", "t": T, "coin": coin, "setup": s, "S1": st.get("S1"), "btc_S1": st.get("btc_S1"), "atlas_level": hit["level"],
+                 "n_hist": r.get("n"), "p_target_3_before_1.5": b.get("p_target"), "net_pct_3_1.5_24h": b.get("net_pct"),
+                 "range_4h_p10_p50_p90": r.get("cl_4h_p10_p50_p90"), "stable_positive_after_costs": hit["stable_positive_after_costs"]}
+            self.store.event(e)
+            out.append(e)
+            if hit["stable_positive_after_costs"] and not rec.get("catch_up"):
+                self.alert(f"Ananta intraday: {coin} {s}", f"{s} in {st.get('S1')}/BTC {st.get('btc_S1')}: historically positive after costs "
+                           f"({', '.join(hit['stable_positive_after_costs'])}); 4h range {r.get('cl_4h_p10_p50_p90')}%. Information only.", "EVENT")
+        rec["atlas"] = out
 
     # -- portfolio manager layer (daily, after each UTC daily close) --
     def prices(self) -> dict[str, float]:
@@ -370,6 +406,19 @@ class Explorer:
         else:
             lines.append("None.")
         lines += ["", f"Pending limit orders: {len(s['pending_orders'])}."]
+        sights = [json.loads(j) for (j,) in self.store.book.execute(
+            "SELECT json FROM events WHERE kind='SIGHTING' AND t >= ? AND t < ?", (int(start), int(start + 86400)))]
+        if sights:
+            by: dict[str, list] = {}
+            for e in sights:
+                by.setdefault(e["setup"], []).append(e)
+            lines += ["", "## Intraday setups seen today (information only, not traded)", "",
+                      "| Setup | Times seen | Historical chance +3% before −1.5% (24h) | After costs | Reliably positive? |", "|---|---|---|---|---|"]
+            for k, v in sorted(by.items()):
+                p = [e["p_target_3_before_1.5"] for e in v if e.get("p_target_3_before_1.5") is not None]
+                n_ = [e["net_pct_3_1.5_24h"] for e in v if e.get("net_pct_3_1.5_24h") is not None]
+                lines.append(f"| {k} | {len(v)} | {sum(p) / len(p):.0%} | {sum(n_) / len(n_):+.2f}% | {'yes' if any(e['stable_positive_after_costs'] for e in v) else 'no'} |"
+                             if p and n_ else f"| {k} | {len(v)} | – | – | – |")
         try:
             ps = pl.PortfolioLayer(self.base).status(self.prices())
             ld = ps.get("last_decision") or {}

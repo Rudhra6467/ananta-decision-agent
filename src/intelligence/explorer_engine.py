@@ -450,7 +450,7 @@ class CoinEngine:
         }
 
     # ---- setups (E rules) ----
-    def setups(self, st: dict) -> list[tuple[str, float, dict]]:
+    def setups(self, st: dict, all_: bool = False) -> list[tuple[str, float, dict]]:
         out = []
         m15 = self.tf["15m"]
         last4 = list(m15.bars)[-4:]
@@ -479,7 +479,7 @@ class CoinEngine:
                 and st["c1h"] > st["bb_upper_1h"] and st["S2"] != "DOWN"):
             out.append(("E5", st["c1h"] - 0.25 * st["atr1h"], {}))
         # review #3 dip setups (only when the active rules include them)
-        rs = getattr(self, "rules", RULES_V0).setups
+        rs = ("E6", "E7", "E8") if all_ else getattr(self, "rules", RULES_V0).setups
         if "E6" in rs and st["rsi15"] < 30:
             out.append(("E6", st["c15"], {}))
         if "E7" in rs and st["rsi1h"] < 40 and st["trend_4h"] == "DOWN":
@@ -560,7 +560,9 @@ class CoinEngine:
         if stale:
             rec["skip"] = f"STALE:{','.join(stale)}"   # U4: no new entries, trades still managed
             return rec
-        fired = [f for f in self.setups(st) if f[0] in self.rules.setups]
+        all_fired = self.setups(st, all_=True)
+        rec["sightings"] = [f[0] for f in all_fired]          # every setup seen (traded or not): the atlas lookups use these
+        fired = [f for f in all_fired if f[0] in self.rules.setups]
         rec["setups"] = [f[0] for f in fired]
         cands = []
         for setup, limit, extra in fired:

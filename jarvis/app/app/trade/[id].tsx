@@ -1,0 +1,80 @@
+import { View } from "react-native";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { LineChart } from "../../src/charts";
+import { Big, Btn, Bullet, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Screen, Section, Stat, T, pct, price, usd, usdSigned } from "../../src/ui";
+import { useData } from "../../src/useData";
+import { C, COIN_NAME, pnlColor } from "../../src/theme";
+
+export default function Trade() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { data: d, err, loading, reload } = useData(`/v3/trade/${id}`);
+  const head = <Stack.Screen options={{ headerShown: true, title: d ? `${d.coin} trade` : "Trade", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false, headerTintColor: C.text, headerBackTitle: "Back" }} />;
+  if (!d && loading) return <>{head}<Busy /></>;
+  if (!d) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "Not found"} /></Screen></>;
+  const pts = d.chart.points;
+  const ei = Math.max(0, pts.findIndex((p: any) => p.t >= d.chart.entry_t));
+  const xi = d.chart.exit_t ? pts.findIndex((p: any) => p.t >= d.chart.exit_t) : -1;
+  const refs = [{ value: d.entry, color: C.dim, label: "Bought" }];
+  if (d.stop) refs.push({ value: d.stop, color: C.bad, label: "Stop" });
+  if (d.target) refs.push({ value: d.target, color: C.good, label: "Target" });
+  return (
+    <>
+      {head}
+      <Screen loading={loading} onRefresh={reload}>
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <Pill text={d.open ? "OPEN" : "CLOSED"} color={d.open ? C.accent : C.dim} bg={d.open ? C.accentSoft : C.card2} />
+          <Pill text="PAPER" />
+          <T small>{COIN_NAME[d.coin]} · {d.type_name}</T>
+        </View>
+        <Big value={usdSigned(d.pnl_usd)} change={d.pnl_usd} changeLabel={`${pct(d.pnl_pct)} on $${d.invested} ${d.open ? "so far" : "after costs"}`} />
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <Stat label="Bought at" value={price(d.entry)} sub={d.entry_time} />
+          <Stat label={d.open ? "Price now" : "Sold at"} value={price(d.price)} sub={d.open ? "" : d.exit_time} />
+        </View>
+
+        <Card>
+          <LineChart height={200} series={[{ data: pts.map((p: any) => p.c), color: C.text, width: 1.8 }]} refs={refs}
+            markers={[{ index: ei, label: "buy", color: C.accent }, ...(xi >= 0 ? [{ index: xi, label: "sell", color: C.text }] : [])]}
+            xLabels={[`${d.chart.tf} candles`, d.open ? "now" : "after exit"]} />
+        </Card>
+
+        {d.open ? (
+          <Card title="Where it stands">
+            {d.stop ? <Line label={d.trailing ? "Stop (moves up after +2R)" : "Stop-loss"} value={`${price(d.stop)}  (${pct(d.to_stop_pct)})`} color={C.bad} /> : null}
+            {d.target ? <Line label="Target" value={`${price(d.target)}  (${pct(d.to_target_pct)})`} color={C.good} /> : <Line label="Target" value="none: rides the trend" />}
+            <Line label="Time limit" value={d.time_limit} />
+          </Card>
+        ) : (
+          <Card title="How it ended"><T>{d.exit}</T></Card>
+        )}
+
+        <Section title="Why we bought" />
+        <Card>
+          <T>{d.why_bought}</T>
+          {d.conditions_at_entry.map((c: string, i: number) => <Bullet key={i}>{c}</Bullet>)}
+        </Card>
+
+        <Section title="Exit plan" />
+        <Card><T>{d.plan}</T></Card>
+
+        <Section title="Timeline" />
+        <Card>
+          {d.timeline.map((x: any, i: number) => (
+            <View key={i}>{i ? <Divider /> : null}<Line label={x.time} value="" sub={x.text} /></View>
+          ))}
+        </Card>
+
+        <Card>
+          <Expand title="What if we had managed it differently?" sub="The same entry with other exit rules (evidence for the repair shop)">
+            {Object.entries(d.what_if).map(([k, v]: any) => (
+              <Line key={k} label={k === "HOLD" ? "Just hold (no stop, time limit only)" : `As ${k.replace("AS_", "").replace("_", "-").toLowerCase()} trade`}
+                value={v.net_usd == null ? "still open" : usdSigned(v.net_usd)} color={pnlColor(v.net_usd)} sub={v.net_usd == null ? undefined : v.exit} />
+            ))}
+          </Expand>
+        </Card>
+        <Btn label={`Ask Ananta about this ${d.coin} trade`} kind="secondary"
+          onPress={() => router.push({ pathname: "/(tabs)/ask", params: { q: `Explain my ${d.coin} trade ${d.id}: how is it doing and what are we waiting for?`, t: String(Date.now()) } })} />
+      </Screen>
+    </>
+  );
+}

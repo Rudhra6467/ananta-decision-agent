@@ -1,65 +1,144 @@
-import { Pressable, View } from "react-native";
-import { router } from "expo-router";
-import { HBars } from "../../src/charts";
-import { Busy, Card, Chip, Line, Screen, T, Tile, usd } from "../../src/ui";
+import { useState } from "react";
+import { Text, View } from "react-native";
+import { LineChart, Progress } from "../../src/charts";
+import { Bullet, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Screen, Section, Segmented, Stat, T, pct, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
-import { C } from "../../src/theme";
+import { C, pnlColor } from "../../src/theme";
 
-const SETUP_NAMES: Record<string, string> = {
-  E1: "E1 trend pullback", E2: "E2 breakout", E3: "E3 bounce", E4: "E4 momentum", E5: "E5 squeeze",
-  E6: "E6 RSI dip", E7: "E7 oversold in downtrend", E8: "E8 weak below 50-day",
-};
+const VERDICT: Record<string, [string, string]> = { PASS: [C.good, C.goodSoft], FAIL: [C.dim, C.card2] };
 
 export default function Evidence() {
-  const { data: d, err, loading, reload } = useData("/evidence");
+  const [tab, setTab] = useState("collected");
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
+        <Segmented value={tab} onChange={setTab} options={[{ key: "collected", label: "Being collected" }, { key: "forwarded", label: "Forwarded & in use" }]} />
+      </View>
+      {tab === "collected" ? <Collected /> : <Forwarded />}
+    </View>
+  );
+}
+
+function Collected() {
+  const { data: d, err, loading, reload } = useData("/v3/evidence/collected");
   if (!d && loading) return <Busy />;
-  if (!d) return <Screen loading={loading} onRefresh={reload}><T style={{ color: C.bad }}>{err}</T></Screen>;
-  const tot = d.closed_total ?? { n: 0, net_usd: 0, win_rate: null };
-  const openPnl = d.open_trades.reduce((a: number, t: any) => a + (t.pnl_usd ?? 0), 0);
-  const sight = Object.entries(d.sightings_today ?? {}) as [string, any][];
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   return (
     <Screen loading={loading} onRefresh={reload}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-        <Tile label="Closed trades" value={tot.n} sub={`win rate ${tot.win_rate == null ? "–" : Math.round(tot.win_rate * 100) + "%"}`} />
-        <Tile label="Closed P&L" value={usd(tot.net_usd)} color={tot.net_usd >= 0 ? C.good : C.bad} sub="after costs" />
-        <Tile label="Open trades" value={d.open_trades.length} sub={`open P&L ${usd(openPnl)}`} color={openPnl >= 0 ? C.good : C.bad} />
-        <Tile label="What Jarvis knows" value={`${d.registry?.counts?.KEEP ?? 0} keep`} sub={`${d.registry?.counts?.WATCH ?? 0} watch · ${d.registry?.counts?.DROP ?? 0} dropped`} color={C.accent} />
-      </View>
-      <Card title="Profit and loss by setup">
-        {(d.by_setup ?? []).length === 0 ? <T dim>No closed trades yet; this fills in as trades finish.</T> :
-          <HBars fmt={usd} items={d.by_setup.map((x: any) => ({ label: SETUP_NAMES[x.name] ?? x.name, value: x.net_usd, sub: `${x.n} trades · ${Math.round(x.win_rate * 100)}% won` }))} />}
-      </Card>
-      <Card title="Profit and loss by exit">
-        {(d.by_exit ?? []).length === 0 ? <T dim>Nothing yet.</T> :
-          <HBars fmt={usd} items={d.by_exit.map((x: any) => ({ label: x.name, value: x.net_usd, sub: `${x.n} trades` }))} />}
-      </Card>
-      <Card title="Open paper trades">
-        {d.open_trades.length === 0 ? <T dim>None open.</T> : d.open_trades.map((t: any) => (
-          <Pressable key={t.id} onPress={() => router.push(`/coin/${t.coin}`)}>
-            <Line label={`${t.coin} · ${SETUP_NAMES[t.setup] ?? t.setup} · ${t.type.replace("_", " ").toLowerCase()}`} value={`${usd(t.pnl_usd)}  ${t.suggestion}`} color={t.pnl_usd >= 0 ? C.good : C.bad} />
-          </Pressable>
+      <Section title="Evidence tracker" right={<T small>tap a row to see what it means</T>} />
+      <Card>
+        {d.tracker.map((x: any, i: number) => (
+          <View key={x.key}>
+            {i ? <Divider /> : null}
+            <Expand title={x.label} right={<Text style={{ color: C.text, fontWeight: "700", fontSize: 16 }}>{String(x.value)}{x.goal ? <Text style={{ color: C.faint, fontWeight: "400" }}> / {x.goal}</Text> : null}</Text>}>
+              {x.goal ? <Progress value={Number(x.value) || 0} of={x.goal} /> : null}
+              <T>{x.explain}</T>
+              {x.parts && Object.keys(x.parts).length ? Object.entries(x.parts).map(([k, v]: any) => <Line key={k} label={k.replace(/_/g, " ")} value={String(v)} />) : null}
+            </Expand>
+          </View>
         ))}
       </Card>
-      <Card title="Intraday setups seen (24h) · information only">
-        {sight.length === 0 ? <T dim>None in the last 24 hours.</T> :
-          <HBars fmt={(v) => `${Math.round(v * 100)}%`} items={sight.map(([k, v]) => ({
-            label: `${SETUP_NAMES[k] ?? k} × ${v.seen}`, value: v.p_target ?? 0, color: v.reliable ? C.good : C.dim,
-            sub: `chance of +3% before −1.5% in 24h · after costs ${v.net_pct ?? "–"}%${v.reliable ? " · reliably positive" : ""}`,
-          }))} />}
-      </Card>
-      {d.registry ? (
-        <Card title="What Jarvis knows">
-          {["KEEP", "WATCH", "DROP"].map((st) => (
-            <View key={st} style={{ gap: 4 }}>
-              <Chip text={st} color={st === "KEEP" ? C.good : st === "WATCH" ? C.warn : C.bad} />
-              {d.registry.variables.filter((v: any) => v.status === st).map((v: any) => (
-                <T key={v.id} dim style={{ fontSize: 12 }}>• {v.name}</T>
-              ))}
+
+      <Section title="What we collected" right={<T small>by setup</T>} />
+      <Card>
+        <View style={{ flexDirection: "row", paddingBottom: 6 }}>
+          <Text style={{ flex: 2.2, color: C.faint, fontSize: 11 }}>SETUP</Text>
+          {["SEEN", "ORDERS", "BOUGHT", "CLOSED", "NET"].map((h) => <Text key={h} style={{ flex: 1, color: C.faint, fontSize: 11, textAlign: "right" }}>{h}</Text>)}
+        </View>
+        {d.collected.map((r: any) => (
+          <View key={r.setup}>
+            <Divider />
+            <View style={{ flexDirection: "row", paddingVertical: 9, alignItems: "center" }}>
+              <View style={{ flex: 2.2 }}>
+                <Text style={{ color: C.text, fontSize: 13, fontWeight: "600" }}>{r.setup}</Text>
+                <Text style={{ color: C.dim, fontSize: 11 }} numberOfLines={1}>{r.name}</Text>
+              </View>
+              {[r.seen, r.orders, r.bought, r.closed].map((v: number, k: number) => <Text key={k} style={{ flex: 1, color: C.text, fontSize: 13, textAlign: "right" }}>{v}</Text>)}
+              <Text style={{ flex: 1, color: pnlColor(r.net_usd), fontSize: 13, textAlign: "right" }}>{r.closed ? usdSigned(r.net_usd) : "–"}</Text>
             </View>
-          ))}
-        </Card>
-      ) : null}
-      {d.weekly ? <Card title={`Weekly evidence · ${d.weekly.name}`}><T dim>{d.weekly.markdown}</T></Card> : null}
+          </View>
+        ))}
+        <T small>RND = random entries tracked as the baseline every setup must beat.</T>
+      </Card>
+
+      <Section title="Forwarded to the repair shop" />
+      <Card>
+        {d.forwarded.map((r: any, i: number) => (
+          <View key={r.id}>
+            {i ? <Divider /> : null}
+            <Expand title={`#${r.id.slice(1)} ${r.title}`} sub={r.date} right={<Pill text={r.verdict === "PASS" ? "PASSED" : "NO CHANGE"} color={VERDICT[r.verdict]?.[0]} bg={VERDICT[r.verdict]?.[1]} />}>
+              <Label>Why it was forwarded</Label><T>{r.why}</T>
+              <Label>Question tested</Label><T>{r.question}</T>
+              <Label>Result</Label><T>{r.result}</T>
+              <Label>What changed</Label><T>{r.changed}</T>
+            </Expand>
+          </View>
+        ))}
+      </Card>
+
+      <Section title="Repair shop status" />
+      <Card>
+        <T>{d.shop.summary}</T>
+        {d.shop.running.length ? d.shop.running.map((r: any) => <Bullet key={r.id}>Running now: {r.title}</Bullet>) : <T small>Nothing running right now.</T>}
+        {d.shop.waiting.map((q: any) => (
+          <View key={q.id}>
+            <Divider />
+            <Expand title={q.title} sub={`Waiting for ${q.waiting_for}`}>
+              <T>{q.why}</T>
+            </Expand>
+          </View>
+        ))}
+      </Card>
+    </Screen>
+  );
+}
+
+const Label = ({ children }: { children: React.ReactNode }) => (
+  <Text style={{ color: C.faint, fontSize: 11, fontWeight: "700", letterSpacing: 0.6, marginTop: 4 }}>{String(children).toUpperCase()}</Text>
+);
+
+function Forwarded() {
+  const { data: d, err, loading, reload } = useData("/v3/evidence/forwarded");
+  if (!d && loading) return <Busy />;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  return (
+    <Screen loading={loading} onRefresh={reload}>
+      {d.in_use.map((x: any) => {
+        const t = x.tracking ?? {};
+        return (
+          <View key={x.id} style={{ gap: 12 }}>
+            <Section title={`In use · ${x.id}`} right={<T small>since {x.since}</T>} />
+            <Card title={x.what}>
+              {t.series ? (
+                <LineChart height={150} series={[
+                  { data: t.series.map((p: any) => p.main), color: C.accent, label: "your book" },
+                  { data: t.series.map((p: any) => p.shadow), color: C.faint, dashed: true, label: "automatic copy" },
+                ]} />
+              ) : null}
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <Stat label="Your book" value={pct(t.main_return_pct)} color={pnlColor(t.main_return_pct)} />
+                <Stat label="Buy & hold" value={pct(t.buy_hold_return_pct)} color={pnlColor(t.buy_hold_return_pct)} />
+                <Stat label="Trades" value={t.trades ?? "–"} sub={`${t.days ?? 0} days`} />
+              </View>
+              <Divider />
+              <Label>Expected</Label><T>{x.expect}</T>
+              <Label>Watch out</Label><T>{x.watch_out}</T>
+              <Label>So far</Label><T>{x.verdict_so_far}</T>
+              {x.review ? (
+                <Expand title={`From review #${x.review.id.slice(1)}`} sub={x.review.title}>
+                  <T>{x.review.result}</T>
+                </Expand>
+              ) : null}
+            </Card>
+          </View>
+        );
+      })}
+      <Section title="Safety changes" />
+      <Card>
+        {d.safety_changes.map((s: any, i: number) => (
+          <View key={i}>{i ? <Divider /> : null}<Line label={s.date} value="" sub={s.what} /></View>
+        ))}
+      </Card>
     </Screen>
   );
 }

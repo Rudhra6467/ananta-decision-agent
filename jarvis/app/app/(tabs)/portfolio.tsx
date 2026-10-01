@@ -1,60 +1,172 @@
-import { Alert, Pressable, View } from "react-native";
+import { useState } from "react";
+import { Alert, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
 import { api } from "../../src/api";
-import { Spark, StackBar } from "../../src/charts";
 import { confirmWithFaceId } from "../../src/guard";
-import { Btn, Busy, Card, Chip, Screen, T, pct, usd } from "../../src/ui";
+import { LineChart, StackBar } from "../../src/charts";
+import { Big, Btn, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Row, Screen, Section, Segmented, Stat, T, pct, price, usd, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
-import { C, coinColor, ratingColor } from "../../src/theme";
+import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
+
+const RANGES = [{ key: "1", label: "1D" }, { key: "7", label: "1W" }, { key: "30", label: "1M" }, { key: "365", label: "All" }];
+const SHADES = ["#2952CC", "#4A6FD6", "#6B8BDF", "#8CA6E8", "#ADC1F0", "#C6D4F5", "#D7E1F8", "#E3EAFA", "#EDF2FC", "#F3F6FD"];
 
 export default function Portfolio() {
-  const { data: d, err, loading, reload } = useData("/portfolio");
-  const switchMode = async () => {
-    const next = d.mode === "SUGGEST" ? "AUTO" : "SUGGEST";
-    const msg = next === "AUTO" ? "Jarvis will change the paper portfolio by itself, without asking." : "Every change will wait for your approval.";
-    if (!(await confirmWithFaceId(`Switch to ${next}`, msg))) return;
-    try { await api("/portfolio/mode", { mode: next, confirm: true }); reload(); } catch (e: any) { Alert.alert("Failed", e.message); }
-  };
+  const [tab, setTab] = useState("portfolio");
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
+        <Segmented value={tab} onChange={setTab} options={[{ key: "portfolio", label: "Portfolio (T3)" }, { key: "explorer", label: "Explorer trades" }]} />
+      </View>
+      {tab === "portfolio" ? <Book /> : <Trades />}
+    </View>
+  );
+}
+
+function Book() {
+  const { data: d, err, loading, reload } = useData("/v3/holdings");
+  const [range, setRange] = useState("30");
+  const { data: h } = useData(`/history?days=${range}`);
   if (!d && loading) return <Busy />;
-  if (!d) return <Screen loading={loading} onRefresh={reload}><T style={{ color: C.bad }}>{err}</T></Screen>;
-  const main = d.books.MAIN;
-  const parts = [
-    ...Object.entries(main.holdings as Record<string, number>).sort((a, b) => b[1] - a[1]).map(([c, v]) => ({ label: c, value: v, color: coinColor[c] ?? C.ok })),
-    { label: "Cash", value: Math.max(0, main.cash), color: C.line },
-  ];
-  const counts = ["STRONG", "OK", "WEAK", "OUT"].map((r) => [r, d.ratings.filter((x: any) => x.rating === r).length] as const);
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  const auto = d.mode === "AUTO";
+  const gain = d.value - d.start;
+  const toggle = async (on: boolean) => {
+    if (on) {
+      const ok = await confirmWithFaceId("Turn on autopilot?", "The portfolio will buy and sell (paper) by itself at each daily check, without asking you.");
+      if (!ok) return;
+    }
+    try {
+      await api("/portfolio/mode", { mode: on ? "AUTO" : "SUGGEST", confirm: true });
+    } catch (e: any) {
+      Alert.alert("Could not change mode", e?.message ?? String(e));
+    }
+    reload();
+  };
+  const act = async (kind: "approve" | "reject") => {
+    if (kind === "approve" && !(await confirmWithFaceId("Approve changes", "Make these paper trades now?"))) return;
+    await api(`/portfolio/${kind}`, { ids: "all" });
+    reload();
+  };
+  const pts = (h?.points ?? []).map((p: any) => p.main);
   return (
     <Screen loading={loading} onRefresh={reload}>
+      <Big label="Portfolio value (paper)" value={usd(d.value)} change={gain}
+        changeLabel={`${usdSigned(gain)} (${pct(d.return_pct)}) since start`} />
+      <LineChart height={150} showAxis={false} series={[{ data: pts, color: gain >= 0 ? C.good : C.bad, fill: true }]} />
+      <Segmented value={range} onChange={setRange} options={RANGES} />
+
       <Card>
-        <T dim>Portfolio book (paper)</T>
-        <T style={{ fontSize: 30, fontWeight: "800" }}>{usd(main.equity)}</T>
-        <T style={{ color: main.return_pct >= 0 ? C.good : C.bad, fontWeight: "700" }}>{pct(main.return_pct)} · shadow (always automatic) {pct(d.books.SHADOW.return_pct)}</T>
-        <StackBar parts={parts} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>Autopilot</Text>
+            <T small>{auto ? "On: rebalances by itself" : "Off: suggests changes and waits for you"}</T>
+          </View>
+          <Switch value={auto} onValueChange={toggle} trackColor={{ true: C.accent, false: C.line }} />
+        </View>
       </Card>
-      <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-        {counts.map(([r, n]) => <Chip key={r} text={`${r} ${n}`} color={ratingColor[r]} />)}
-        <Chip text={`BTC gate ${d.btc_gate ? "ON" : "OFF"}`} color={d.btc_gate ? C.good : C.bad} />
-      </View>
-      {d.ratings.map((r: any) => (
-        <Pressable key={r.coin} onPress={() => router.push(`/coin/${r.coin}`)}>
+
+      {d.pending.length ? (
+        <Card title="Suggested changes" sub={`${d.pending.length} waiting for you`}>
+          {d.pending.map((p: any) => (
+            <T key={p.id}>• {p.action === "REBALANCE" ? "Rebalance to equal weights" : `${p.action === "ENTER" ? "Buy" : p.action === "EXIT" ? "Sell" : p.action} ${p.coin ?? ""}`} — {(p.why ?? []).join("; ")}</T>
+          ))}
+          <View style={{ flexDirection: "row", gap: 10, marginTop: 6 }}>
+            <View style={{ flex: 1 }}><Btn label="Reject" kind="secondary" onPress={() => act("reject")} /></View>
+            <View style={{ flex: 1 }}><Btn label="Approve" onPress={() => act("approve")} /></View>
+          </View>
+        </Card>
+      ) : null}
+
+      <Section title={`Holdings · ${d.holdings.length}`} right={<T small>value · total return</T>} />
+      <Card>
+        <StackBar parts={[...d.holdings.map((r: any, i: number) => ({ label: r.coin, value: r.value, color: SHADES[i] ?? C.line })),
+          { label: "Cash", value: d.cash, color: C.card2 }]} />
+        {d.holdings.map((r: any) => (
+          <View key={r.coin}>
+            <Divider />
+            <Row title={r.coin} sub={`${COIN_NAME[r.coin] ?? ""} · ${r.weight_pct}% · `} onPress={() => router.push(`/coin/${r.coin}`)}
+              value={usd(r.value)} valueSub={`${usdSigned(r.pnl)} (${pct(r.pnl_pct)})`} valueSubColor={pnlColor(r.pnl)}
+              left={<Pill text={ratingWord[r.rating] ?? r.rating} color={ratingColor[r.rating]} />} />
+          </View>
+        ))}
+        <Divider />
+        <Line label="Cash" value={usd(d.cash)} />
+        <Line label="Trading costs paid" value={usd(d.costs_paid)} />
+      </Card>
+
+      {d.not_held.length ? (
+        <>
+          <Section title="Watching (not held)" />
           <Card>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-              <View style={{ gap: 4, flex: 1 }}>
-                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-                  <T style={{ fontWeight: "800", fontSize: 16, color: coinColor[r.coin] ?? C.text }}>{r.coin}</T>
-                  <Chip text={r.rating} color={ratingColor[r.rating]} />
-                </View>
-                <T dim style={{ fontSize: 12 }}>{r.why?.[0]}</T>
-                <T dim style={{ fontSize: 12 }}>held {usd(main.holdings?.[r.coin] ?? 0)}</T>
-              </View>
-              <Spark data={r.spark ?? []} color={ratingColor[r.rating]} />
-            </View>
+            {d.not_held.map((r: any, i: number) => (
+              <View key={r.coin}>{i ? <Divider /> : null}<Row title={r.coin} sub={r.why} onPress={() => router.push(`/coin/${r.coin}`)} /></View>
+            ))}
           </Card>
-        </Pressable>
-      ))}
-      <Card title={`Mode: ${d.mode}`}>
-        <T dim>{d.mode === "SUGGEST" ? "Jarvis suggests; you approve on Today." : "Jarvis changes the paper portfolio by itself."} Rule {d.rule}: hold a coin while it is above its 20- and 50-day averages and Bitcoin is above its 50-day. Decided {d.decided}.</T>
-        <Btn label={d.mode === "SUGGEST" ? "Switch to AUTO" : "Back to SUGGEST"} onPress={switchMode} />
+        </>
+      ) : null}
+
+      <Card>
+        <Expand title="How this portfolio works" sub="The T3 rule from repair-shop review #4">
+          <T>{d.rule_plain}</T>
+          <T small>Ratings: Strong = leading the group; Steady = middle; Weak = lagging, first to go if the trend breaks.</T>
+        </Expand>
+        <Divider />
+        <Expand title="Compare" sub="Your book vs the automatic copy">
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <Stat label="Your book" value={pct(d.return_pct)} color={pnlColor(d.return_pct)} />
+            <Stat label="Automatic copy" value={pct(d.shadow.return_pct)} color={pnlColor(d.shadow.return_pct)} />
+          </View>
+          <T small>The automatic copy always follows the rule at once. A gap shows the cost of waiting for approvals.</T>
+        </Expand>
+      </Card>
+    </Screen>
+  );
+}
+
+function Trades() {
+  const { data: d, err, loading, reload } = useData("/v3/trades");
+  if (!d && loading) return <Busy />;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  const total = d.value - d.start;
+  return (
+    <Screen loading={loading} onRefresh={reload}>
+      <Big label="Explorer book (paper)" value={usd(d.value)} change={total} changeLabel={`${usdSigned(total)} since start`} />
+      <View style={{ flexDirection: "row", gap: 12 }}>
+        <Stat label="Open P&L" value={usdSigned(d.unrealized)} color={pnlColor(d.unrealized)} />
+        <Stat label="Closed P&L" value={usdSigned(d.realized)} color={pnlColor(d.realized)} />
+        <Stat label="Open trades" value={d.open.length} />
+      </View>
+      <Section title="Open trades" right={<T small>$100 each</T>} />
+      <Card>
+        {d.open.length === 0 ? <T dim>No open trades.</T> : null}
+        {d.open.map((t: any, i: number) => (
+          <View key={t.id}>
+            {i ? <Divider /> : null}
+            <Row title={t.coin} sub={`${t.setup_name} · ${t.type_name}\nBought ${price(t.entry)} · ${t.since}`} onPress={() => router.push(`/trade/${t.id}`)}
+              value={usdSigned(t.pnl_usd)} valueColor={pnlColor(t.pnl_usd)} valueSub={t.status} />
+          </View>
+        ))}
+      </Card>
+      {d.pending.length ? (
+        <>
+          <Section title="Waiting to fill" />
+          <Card>
+            {d.pending.map((o: any, i: number) => (
+              <View key={i}>{i ? <Divider /> : null}<Row title={o.coin} sub={`${o.setup_name} · limit ${price(o.limit)}`} valueSub={`until ${o.expires.slice(11, 16)} UTC`} /></View>
+            ))}
+          </Card>
+        </>
+      ) : null}
+      <Section title="Closed trades" />
+      <Card>
+        {d.closed.length === 0 ? <T dim>None yet. The first live-vs-history check needs 30.</T> : null}
+        {d.closed.map((t: any, i: number) => (
+          <View key={t.id}>
+            {i ? <Divider /> : null}
+            <Row title={t.coin} sub={`${t.exit} · ${t.time}`} onPress={() => router.push(`/trade/${t.id}`)} value={usdSigned(t.net_usd)} valueColor={pnlColor(t.net_usd)} />
+          </View>
+        ))}
       </Card>
     </Screen>
   );

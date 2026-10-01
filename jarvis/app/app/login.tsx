@@ -25,8 +25,8 @@ export default function Login() {
   };
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={s.wrap}>
-      <Text style={s.title}>Jarvis</Text>
-      <Text style={s.dim}>Owner sign-in. Paper trading only.</Text>
+      <Text style={s.title}>Ananta</Text>
+      <Text style={s.dim}>Owner sign-in · paper trading only</Text>
       <TextInput style={s.in} value={url} onChangeText={setUrl} autoCapitalize="none" placeholder="Server address" placeholderTextColor={C.dim} />
       <TextInput style={s.in} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Email" placeholderTextColor={C.dim} />
       <TextInput style={s.in} value={pw} onChangeText={setPw} secureTextEntry placeholder="Password" placeholderTextColor={C.dim} />

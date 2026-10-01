@@ -358,7 +358,7 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
             last[-1]["cache_control"] = {"type": "ephemeral"}
         r = post("https://api.anthropic.com/v1/messages",
                  {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                 {"model": model, "max_tokens": 2000, "system": sysb, "tools": tdefs, "messages": msgs,
+                 {"model": model, "max_tokens": 3000, "system": sysb, "tools": tdefs, "messages": msgs,
                   **({"tool_choice": {"type": "none"}} if rnd == MAX_TOOL_ROUNDS else {})})   # last round: answer with what you have
         u = r.get("usage") or {}
         usage["in"] += u.get("input_tokens", 0)
@@ -466,7 +466,13 @@ def parse(text: str) -> dict:
                 return d
         except json.JSONDecodeError:
             pass
-    return {"kind": "answer", "stage": "", "answer": t or "I could not form an answer.", "breakdown": [], "evidence": [],
+    a = re.search(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)"', t)          # cut-off JSON: keep the answer at least
+    if a:
+        return {"kind": "answer", "stage": "", "answer": json.loads('"' + a.group(1) + '"'), "breakdown": [], "evidence": [],
+                "assumption": "", "options": [], "follow_ups": []}
+    if not t:
+        raise RuntimeError("the model returned an empty answer; please ask again")
+    return {"kind": "answer", "stage": "", "answer": t, "breakdown": [], "evidence": [],
             "assumption": "", "options": [], "follow_ups": []}
 
 
@@ -529,8 +535,14 @@ class Ask:
         d0 = self._day_start()
         m0 = int(datetime.fromtimestamp(self.j.now(), tz).replace(day=1, hour=0, minute=0, second=0, microsecond=0).timestamp())
         def tot(since):
-            rows = self.j.db.execute("SELECT COALESCE(mode, provider), COUNT(*), COALESCE(SUM(cost_usd),0) FROM ask_messages WHERE role='assistant' AND t >= ? GROUP BY 1", (since,)).fetchall()
-            return {k: {"answers": n, "usd": round(c, 4)} for k, n, c in rows}
+            rows = self.j.db.execute("SELECT provider, COUNT(*), COALESCE(SUM(cost_usd),0) FROM ask_messages WHERE role='assistant' AND error IS NULL AND t >= ? GROUP BY 1", (since,)).fetchall()
+            out: dict = {}
+            for k, n, c in rows:
+                lab = MODELS.get(ALIASES.get(k, k), {}).get("label", k)
+                o = out.setdefault(lab, {"answers": 0, "usd": 0.0})
+                o["answers"] += n
+                o["usd"] = round(o["usd"] + c, 4)
+            return out
         today, month = tot(d0), tot(m0)
         spent = sum(v["usd"] for v in today.values())
         budget = float(self.setting("daily_budget_usd"))

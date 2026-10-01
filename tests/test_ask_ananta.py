@@ -119,6 +119,13 @@ def test_gemini_loop_and_clarify_limit():
 
 def test_parse_is_lenient():
     assert ask.parse("plain words")["answer"] == "plain words"
+    assert ask.parse('{"kind": "answer", "answer": "cut \\"here\\" ok", "breakdown": ["a", "b')["answer"] == 'cut "here" ok'
+    try:
+        ask.parse("")
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("empty answer accepted")
     d = ask.parse('Here: {"answer": "ok", "breakdown": "one"} thanks')
     assert d["answer"] == "ok" and d["breakdown"] == ["one"] and d["kind"] == "answer"
 

@@ -22,7 +22,7 @@ from typing import Any, Callable
 
 from jarvis.service import views
 
-MAX_TOOL_ROUNDS = 8
+MAX_TOOL_ROUNDS = 10
 HISTORY_TURNS = 8
 DAILY_LIMIT = int(os.getenv("ASK_DAILY_LIMIT", "150"))
 GEMINI_MODELS = [m.strip() for m in os.getenv("ASK_GEMINI_MODELS", "gemini-3.5-flash,gemini-3.1-flash-lite,gemini-flash-latest").split(",") if m.strip()]
@@ -42,7 +42,7 @@ WHAT ANANTA IS (use these words)
 - Lifecycle words, always say which stage a thing is in: observation -> candidate setup (some conditions met) -> setup (all conditions met) -> decision (order placed or skipped) -> execution (filled) -> position -> outcome (closed) -> evaluation -> learning. Never let "interesting" sound like "bought".
 
 RULES
-1. Facts only from lookups. Call the lookups you need (several if needed) before answering; use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
+1. Facts only from lookups. Call the lookups you need before answering (usually 1-4; ask for several in one round when you can); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
 2. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
 4. Scope: trading, markets, the economy and news that moves markets, and Ananta itself. Anything else: kind "out_of_scope" with a one-line polite reply ("That's outside my area - I'm built for trading and markets.").
@@ -351,14 +351,15 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
     tdefs[-1] = {**tdefs[-1], "cache_control": {"type": "ephemeral"}}          # cache: tools + system
     sysb = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
     usage = {"in": 0, "out": 0, "cache_read": 0, "cache_write": 0}
-    for _ in range(MAX_TOOL_ROUNDS + 1):
+    for rnd in range(MAX_TOOL_ROUNDS + 1):
         _strip_cache(msgs)                       # one moving breakpoint on the newest message (max 4 in total)
         last = msgs[-1]["content"]
         if isinstance(last, list) and last:
             last[-1]["cache_control"] = {"type": "ephemeral"}
         r = post("https://api.anthropic.com/v1/messages",
                  {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                 {"model": model, "max_tokens": 2000, "system": sysb, "tools": tdefs, "messages": msgs})
+                 {"model": model, "max_tokens": 2000, "system": sysb, "tools": tdefs, "messages": msgs,
+                  **({"tool_choice": {"type": "none"}} if rnd == MAX_TOOL_ROUNDS else {})})   # last round: answer with what you have
         u = r.get("usage") or {}
         usage["in"] += u.get("input_tokens", 0)
         usage["out"] += u.get("output_tokens", 0)
@@ -413,10 +414,11 @@ def _gemini_once(model: str, system: str, history: list[dict], user: str, tools:
         decls.append(x)
     usage = {"in": 0, "out": 0}
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    for _ in range(MAX_TOOL_ROUNDS + 1):
+    for rnd in range(MAX_TOOL_ROUNDS + 1):
         r = post(url, {"x-goog-api-key": key, "content-type": "application/json"},
                  {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
-                  "tools": [{"functionDeclarations": decls}], "generationConfig": {"temperature": 0.2, "maxOutputTokens": 4000}})
+                  "tools": [{"functionDeclarations": decls}], "generationConfig": {"temperature": 0.2, "maxOutputTokens": 4000},
+                  **({"toolConfig": {"functionCallingConfig": {"mode": "NONE"}}} if rnd == MAX_TOOL_ROUNDS else {})})
         u = r.get("usageMetadata") or {}
         usage["in"] += u.get("promptTokenCount", 0)
         usage["out"] += u.get("candidatesTokenCount", 0)

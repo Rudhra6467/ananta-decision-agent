@@ -401,8 +401,14 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
         content = r.get("content") or []
         calls = [c for c in content if c.get("type") == "tool_use"]
         if not calls:
+            text = "".join(c.get("text", "") for c in content if c.get("type") == "text")
+            if not text.strip() and not usage.get("nudged"):        # ended without words (only thinking): ask once for the answer
+                usage["nudged"] = 1
+                msgs.append({"role": "assistant", "content": content or [{"type": "text", "text": "(no answer)"}]})
+                msgs.append({"role": "user", "content": [{"type": "text", "text": "Please give your final answer now, as the JSON object."}]})
+                continue
             usage["model"] = model
-            return "".join(c.get("text", "") for c in content if c.get("type") == "text"), usage
+            return text, usage
         msgs.append({"role": "assistant", "content": content})
         results = []
         for c in calls:

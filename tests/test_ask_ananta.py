@@ -265,3 +265,20 @@ def test_mandate_and_pending_actions():
     A = ask.Ask(j, providers={"gemini": fake})
     res = A.ask("o", "add swing trades up to 2 weeks to my styles", mode="everyday")
     assert "Never more than $200 per trade." in seen["system"] and res["actions"][0]["kind"] == "mandate" and res["show"][0]["screen"] == "mandate"
+
+
+
+def test_claude_empty_final_answer_is_nudged_once():
+    j, ex = _jarvis()
+    import os
+    os.environ["ANTHROPIC_API_KEY"] = "test"
+    replies = [{"content": [{"type": "thinking", "thinking": "", "signature": "x"}], "stop_reason": "end_turn", "usage": {}},
+               {"content": [{"type": "text", "text": '{"answer": "here"}'}], "stop_reason": "end_turn", "usage": {}}]
+    bodies = []
+
+    def post(url, headers, body, timeout=60):
+        bodies.append(body)
+        return replies[len(bodies) - 1]
+
+    txt, u = ask.run_claude("sys", [], "hi", ask.Lookups(j), [], post=post, model="m")
+    assert ask.parse(txt)["answer"] == "here" and len(bodies) == 2

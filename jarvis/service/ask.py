@@ -661,7 +661,7 @@ class Ask:
         raise ValueError(f"unknown mode {mode}")
 
     def ask(self, who: str, text: str, thread: str | None = None, provider: str | None = None, mode: str | None = None,
-            second_of: str | None = None, context: dict | None = None) -> dict:
+            second_of: str | None = None, context: dict | None = None, voice: bool = False) -> dict:
         text = (text or "").strip()[:2000]
         if not text:
             raise ValueError("empty question")
@@ -682,13 +682,16 @@ class Ask:
         now = int(self.j.now())
         uid = uuid.uuid4().hex[:12]
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
-                          (uid, thread, now, "user", text, key, mode_label))
+                          (uid, thread, now, "user", text, key, ("voice:" if voice else "") + mode_label))
         self.j.db.commit()
         notes = []
         if tries:
             notes.append(f"[conversation note: clarification has failed {tries} time(s) in a row]")
         if second_of:
             notes.append("[conversation note: the owner asked for a second opinion on this question; answer it independently from the data]")
+        if voice:
+            notes.append("[voice session: the 'answer' is spoken aloud, so make it 1-3 short spoken sentences with no symbols, tables or abbreviations "
+                         "(say 'percent', 'dollars'); put numbers and detail in breakdown and evidence, and use 'show' to put the right chart or card on screen]")
         if context:
             notes.append("[screen context: the owner is looking at " + json.dumps(context, default=str)[:600] + "]")
         user_msg = f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}]" + ("\n" + "\n".join(notes) if notes else "") + f"\n{text}"
@@ -738,6 +741,39 @@ class Ask:
         self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
 
+    # ---- voice ----
+    def transcribe(self, audio_b64: str, mime: str = "audio/wav", post=_post) -> str:
+        """Speech to text with Gemini (free tier). Audio is not stored."""
+        if self.setting("voice_enabled") != "1":
+            raise ValueError("Voice is switched off in the Cockpit")
+        if not audio_b64 or len(audio_b64) > 12_000_000:
+            raise ValueError("audio missing or too long (about 2 minutes at most)")
+        key = os.getenv("GEMINI_API_KEY", "")
+        if not key:
+            raise RuntimeError("GEMINI_API_KEY is not set")
+        prompt = ("Transcribe this spoken message exactly, in English. It is the owner talking to Ananta, a crypto trading assistant "
+                  "(coins: BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP; words: Hunter, Squeeze, Explorer, setup, portfolio, mandate). "
+                  "Return only the words spoken. If there is no speech, return an empty string.")
+        err = None
+        for m in GEMINI_MODELS:
+            try:
+                r = post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent",
+                         {"x-goog-api-key": key, "content-type": "application/json"},
+                         {"contents": [{"role": "user", "parts": [{"inlineData": {"mimeType": mime, "data": audio_b64}}, {"text": prompt}]}],
+                          "generationConfig": {"temperature": 0.0, "maxOutputTokens": 600}})
+                parts = ((r.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
+                return "".join(p.get("text", "") for p in parts if not p.get("thought")).strip().strip('"')
+            except RuntimeError as exc:
+                err = exc
+        raise RuntimeError(f"could not transcribe right now ({str(err)[:80]})")
+
+    def voice_turn(self, who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None) -> dict:
+        heard = self.transcribe(audio_b64, mime)
+        if not heard:
+            return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone."}
+        out = self.ask(who, heard, thread=thread, mode=mode, context=context, voice=True)
+        return {"heard": heard, **out}
+
     def second(self, who: str, msg_id: str) -> dict:
         row = self.j.db.execute("SELECT thread, t, provider FROM ask_messages WHERE id=? AND role='assistant'", (msg_id,)).fetchone()
         if not row:
@@ -757,8 +793,9 @@ class Ask:
         rows = self.j.db.execute("""SELECT thread, MIN(t), MAX(t), COUNT(*) FROM ask_messages GROUP BY thread ORDER BY MAX(t) DESC LIMIT ?""", (n,)).fetchall()
         out = []
         for th, t0, t1, cnt in rows:
-            first = self.j.db.execute("SELECT text FROM ask_messages WHERE thread=? AND role='user' ORDER BY t LIMIT 1", (th,)).fetchone()
-            out.append({"thread": th, "title": (first[0] if first else "")[:80], "time": views._local(t1), "messages": cnt})
+            first = self.j.db.execute("SELECT text, mode FROM ask_messages WHERE thread=? AND role='user' ORDER BY t LIMIT 1", (th,)).fetchone()
+            out.append({"thread": th, "title": (first[0] if first else "")[:80], "time": views._local(t1), "messages": cnt,
+                        "voice": bool(first and (first[1] or "").startswith("voice:"))})
         return out
 
     def thread(self, thread: str) -> list[dict]:

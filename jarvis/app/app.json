@@ -2,7 +2,7 @@
   "expo": {
     "name": "Jarvis",
     "slug": "jarvis",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "scheme": "jarvis",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -22,7 +22,13 @@
       "expo-secure-store",
       "expo-local-authentication",
       "expo-notifications",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Ananta listens when you hold the mic button to talk to it."
+        }
+      ]
     ],
     "extra": {
       "defaultServer": "http://192.168.2.68:8100"

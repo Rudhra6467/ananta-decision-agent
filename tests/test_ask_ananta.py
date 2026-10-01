@@ -282,3 +282,36 @@ def test_claude_empty_final_answer_is_nudged_once():
 
     txt, u = ask.run_claude("sys", [], "hi", ask.Lookups(j), [], post=post, model="m")
     assert ask.parse(txt)["answer"] == "here" and len(bodies) == 2
+
+
+
+def test_voice_turn_transcribes_then_answers():
+    j, ex = _jarvis()
+    import os
+    os.environ["GEMINI_API_KEY"] = "test"
+    seen = {}
+
+    def fake(s, h, u, t, log):
+        seen["u"] = u
+        return json.dumps({"kind": "answer", "answer": "Bitcoin is up a little."}), {"in": 1, "out": 1}
+
+    A = ask.Ask(j, providers={"gemini": fake})
+    A.transcribe = lambda b64, mime="audio/wav": "how is bitcoin" if b64 == "AAAA" else ""
+    r = A.voice_turn("o", "AAAA", "audio/wav", None, "everyday", None)
+    assert r["heard"] == "how is bitcoin" and r["answer"] and "voice session" in seen["u"]
+    assert A.threads()[0]["voice"] is True
+    r2 = A.voice_turn("o", "BBBB", "audio/wav", r["thread"], "everyday", None)
+    assert r2["heard"] == "" and "didn't catch" in r2["error"]
+    A2 = ask.Ask(j, providers={"gemini": fake})
+    A2.set_setting("o", "voice_enabled", "0")
+    try:
+        A2.transcribe("AAAA")
+    except ValueError as e:
+        assert "switched off" in str(e)
+    else:
+        raise AssertionError("voice switch not enforced")
+    # real transcribe request shape (fake HTTP)
+    A2.set_setting("o", "voice_enabled", "1")
+    bodies = []
+    out = A2.transcribe("QUJD", "audio/wav", post=lambda url, h, b, timeout=60: bodies.append(b) or {"candidates": [{"content": {"parts": [{"text": " what is hunter doing "}]}}]})
+    assert out == "what is hunter doing" and bodies[0]["contents"][0]["parts"][0]["inlineData"]["mimeType"] == "audio/wav"

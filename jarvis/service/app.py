@@ -320,3 +320,17 @@ def action_decide(aid: str, b: Decide, who: str = Depends(owner)) -> dict:
     out = _run(M().decide, who, aid, b.confirm, executors())
     J().audit(who, f"action.{'confirm' if b.confirm else 'cancel'}", f"{aid} {out.get('kind')}", out.get("status"))
     return out
+
+
+
+class VoiceTurn(BaseModel):
+    audio_b64: str
+    mime: str = "audio/wav"
+    thread: str | None = None
+    mode: str | None = None
+    context: dict | None = None
+
+
+@app.post("/v3/voice/turn")
+def voice_turn(b: VoiceTurn, who: str = Depends(owner)) -> dict:
+    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, b.context))

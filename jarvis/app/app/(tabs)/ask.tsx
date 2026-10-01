@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useScreen } from "../../src/context";
+import Voice from "../../src/voice";
+import { useData } from "../../src/useData";
 import { confirmWithFaceId } from "../../src/guard";
 import { api } from "../../src/api";
 import { Bullet, Divider, Pill, Segmented, T } from "../../src/ui";
@@ -18,7 +20,7 @@ const STARTERS = ["How is the market right now?", "What setups are close to trig
 const STAGE: Record<string, string> = { observation: "Observation", candidate: "Candidate setup", "candidate setup": "Candidate setup", setup: "Setup",
   decision: "Decision", execution: "Executed", position: "Open position", outcome: "Outcome", evaluation: "Evaluation", learning: "Learning" };
 
-export default function Ask() {
+function Chat() {
   const params = useLocalSearchParams<{ q?: string; t?: string }>();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [thread, setThread] = useState<string | null>(null);
@@ -245,5 +247,47 @@ function ActionCard({ a }: { a: any }) {
       ) : <Text style={{ color: status === "DONE" ? C.good : C.dim, fontWeight: "600" }}>{status === "DONE" ? "✓ Done" : "Cancelled"}</Text>}
       {err ? <Text style={{ color: C.bad, fontSize: 12 }}>{err}</Text> : null}
     </View>
+  );
+}
+
+export default function Ananta() {
+  const [tab, setTab] = useState("chat");
+  const params = useLocalSearchParams<{ q?: string; t?: string }>();
+  useEffect(() => { if (params.q) setTab("chat"); }, [params.t]);
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+        <Segmented value={tab} onChange={setTab} options={[{ key: "chat", label: "Chat" }, { key: "voice", label: "Voice" }, { key: "history", label: "History" }]} />
+      </View>
+      <View style={{ flex: 1, display: tab === "chat" ? "flex" : "none" }}><Chat /></View>
+      {tab === "voice" ? <Voice ActionCard={ActionCard} openScreen={openScreen} /> : null}
+      {tab === "history" ? <History /> : null}
+    </View>
+  );
+}
+
+function History() {
+  const { data: d } = useData("/v3/ask/threads");
+  const [open, setOpen] = useState<string | null>(null);
+  const { data: t } = useData(open ? `/v3/ask/thread/${open}` : null, 0);
+  if (open && t) {
+    return (
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+        <Text onPress={() => setOpen(null)} style={{ color: C.accent, fontWeight: "600" }}>‹ All conversations</Text>
+        {t.messages.map((m: any, i: number) => (m.role === "user" ? <UserBubble key={i} text={m.text} /> :
+          <Answer key={i} m={m} onPick={() => {}} onRate={async (v) => { await api("/v3/ask/rate", { id: m.id, rating: v }); }} onSecond={() => {}} />))}
+      </ScrollView>
+    );
+  }
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
+      {(d?.threads ?? []).length === 0 ? <T dim>No conversations yet.</T> : null}
+      {(d?.threads ?? []).map((th: any) => (
+        <Pressable key={th.thread} onPress={() => setOpen(th.thread)} style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 12, padding: 12, gap: 2 }}>
+          <Text style={{ color: C.text, fontSize: 15 }} numberOfLines={2}>{th.voice ? "🎙 " : ""}{th.title}</Text>
+          <Text style={{ color: C.faint, fontSize: 12 }}>{th.time} · {Math.ceil(th.messages / 2)} question(s)</Text>
+        </Pressable>
+      ))}
+    </ScrollView>
   );
 }

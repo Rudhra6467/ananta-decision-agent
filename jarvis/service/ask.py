@@ -290,7 +290,11 @@ class Lookups:
 def _post(url: str, headers: dict, body: dict, timeout: int = 90) -> dict:
     import requests
 
-    r = requests.post(url, headers=headers, json=body, timeout=timeout)
+    for wait in (2, 6, 0):     # busy / rate-limited: retry twice
+        r = requests.post(url, headers=headers, json=body, timeout=timeout)
+        if r.status_code not in (429, 500, 502, 503, 529) or not wait:
+            break
+        time.sleep(wait)
     if r.status_code >= 400:
         raise RuntimeError(f"{r.status_code}: {r.text[:300]}")
     return r.json()

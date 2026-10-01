@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { askAbout, setScreen } from "../../src/context";
+import { ActionCard } from "../../src/actions";
 import { api } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
 import { Big, Btn, Busy, Card, Divider, Dot, ErrorBox, Row, Screen, Section, Stat, T, pct, usd } from "../../src/ui";
@@ -10,12 +12,17 @@ import { C, pnlColor } from "../../src/theme";
 const KIND: Record<string, { color: string; label: string }> = {
   buy: { color: C.accent, label: "BUY" }, sell: { color: C.text, label: "SELL" }, watch: { color: C.faint, label: "ORDER" },
   portfolio: { color: C.accent, label: "PORTFOLIO" }, warn: { color: C.warn, label: "WARNING" }, info: { color: C.faint, label: "YOU" },
+  alert: { color: C.warn, label: "ALERT" }, brief: { color: C.accent, label: "BRIEF" },
 };
 
 export default function Home() {
   const { data: d, err, loading, reload } = useData("/v3/home");
+  const { data: inbox, reload: reloadInbox } = useData("/v3/inbox");
+  const { data: br, reload: reloadBrief } = useData("/v3/brief", 300000);
+  const [briefing, setBriefing] = useState(false);
   const [q, setQ] = useState("");
   const [all, setAll] = useState(false);
+  useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home: today's summary and activity" }); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   const s = d.summary;
@@ -45,6 +52,19 @@ export default function Home() {
         <Text onPress={ask} style={{ color: C.accent, fontWeight: "700" }}>Ask</Text>
       </Pressable>
 
+      {(inbox?.actions ?? []).length ? (
+        <Card title="Waiting for your OK" sub="Things Ananta prepared. Nothing happens until you confirm.">
+          {inbox.actions.map((a: any) => <ActionCard key={a.id} a={a} onDone={() => { reloadInbox(); reload(); }} />)}
+        </Card>
+      ) : null}
+
+      <Card title={br?.brief ? `${br.brief.kind === "morning" ? "Morning" : "Evening"} brief` : "Daily brief"}
+        sub={br?.brief ? new Date(br.brief.t * 1000).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) : "Written at 8:00 and 21:30"}
+        right={<Text onPress={async () => { setBriefing(true); try { await api("/v3/brief/now", {}); reloadBrief(); } catch (e) { } setBriefing(false); }}
+          style={{ color: C.accent, fontWeight: "600" }}>{briefing ? "Writing…" : "Brief me now"}</Text>}>
+        {br?.brief ? <T>{br.brief.text}</T> : <T dim>No brief yet today.</T>}
+      </Card>
+
       {s.portfolio.pending ? (
         <Card title={`${s.portfolio.pending} change(s) waiting for you`} sub="The portfolio is in Suggest mode: nothing moves until you approve.">
           <View style={{ flexDirection: "row", gap: 10 }}>
@@ -71,7 +91,8 @@ export default function Home() {
         {feed.map((it: any, i: number) => (
           <View key={i}>
             {i ? <Divider /> : null}
-            <Pressable disabled={!it.trade_id} onPress={() => router.push(`/trade/${it.trade_id}`)} style={{ flexDirection: "row", gap: 12, paddingVertical: 11 }}>
+            <Pressable onPress={() => it.trade_id && router.push(`/trade/${it.trade_id}`)} delayLongPress={350}
+              onLongPress={() => askAbout({ screen: "activity", label: `${it.title} (${it.time})`, coin: it.coin, id: it.trade_id, item: it }, `Explain this: ${it.title}`)} style={{ flexDirection: "row", gap: 12, paddingVertical: 11 }}>
               <View style={{ paddingTop: 6 }}><Dot color={KIND[it.kind]?.color ?? C.faint} /></View>
               <View style={{ flex: 1, gap: 2 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>

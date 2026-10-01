@@ -76,6 +76,10 @@ def _snapshots() -> None:
                 J().record_snapshot()
             except Exception:  # noqa: BLE001  history is best-effort
                 pass
+            try:
+                background_jobs()
+            except Exception:  # noqa: BLE001
+                pass
             _t.sleep(900)
 
     threading.Thread(target=loop, daemon=True).start()
@@ -168,6 +172,17 @@ class Question(BaseModel):
     text: str
     thread: str | None = None
     provider: str | None = None
+    mode: str | None = None
+    context: dict | None = None
+
+
+class Second(BaseModel):
+    id: str
+
+
+class Setting(BaseModel):
+    key: str
+    value: str
 
 
 class Rating(BaseModel):
@@ -207,7 +222,22 @@ def cockpit(who: str = Depends(owner)) -> dict:
 
 @app.post("/v3/ask")
 def ask_q(b: Question, who: str = Depends(owner)) -> dict:
-    return _run(A().ask, who, b.text, b.thread, b.provider)
+    return _run(lambda: A().ask(who, b.text, b.thread, b.provider, b.mode, None, b.context))
+
+
+@app.post("/v3/ask/second")
+def ask_second(b: Second, who: str = Depends(owner)) -> dict:
+    return _run(A().second, who, b.id)
+
+
+@app.get("/v3/spend")
+def spend(who: str = Depends(owner)) -> dict:
+    return A().spend()
+
+
+@app.post("/v3/settings")
+def set_setting(b: Setting, who: str = Depends(owner)) -> dict:
+    return _run(A().set_setting, who, b.key, b.value)
 
 
 @app.post("/v3/ask/rate")
@@ -239,3 +269,160 @@ def coin_watch(sym: str, who: str = Depends(owner)) -> dict:
 @app.get("/v3/trades")
 def trades_list(who: str = Depends(owner)) -> dict:
     return views.trades_list(J())
+
+
+@app.get("/v3/markets")
+def markets(who: str = Depends(owner)) -> dict:
+    return views.markets(J())
+
+
+@app.get("/v3/chart/{sym}")
+def chart(sym: str, tf: str = "1h", who: str = Depends(owner)) -> dict:
+    return _run(views.chart, J(), sym, tf)
+
+
+# ---- mandate and pending actions ----
+from jarvis.service.mandate import Mandate  # noqa: E402
+
+
+def M() -> Mandate:
+    return Mandate(J().db, J().now)
+
+
+class MandateBody(BaseModel):
+    sections: dict
+    why: str = ""
+
+
+class Decide(BaseModel):
+    confirm: bool
+
+
+def AL():
+    from jarvis.service.alerts import Alerts
+
+    return Alerts(J().db, J().now)
+
+
+def MN():
+    from jarvis.service.manual import Manual
+
+    return Manual(J().db, J().now)
+
+
+def executors() -> dict:
+    return {"mandate": M().apply_mandate_change, "alert": AL().create,
+            "paper_order": lambda who, p: MN().execute(who, p, J().prices())}
+
+
+@app.get("/v3/mandate")
+def mandate_get(who: str = Depends(owner)) -> dict:
+    return {**M().get(), "history": M().history()}
+
+
+@app.post("/v3/mandate")
+def mandate_set(b: MandateBody, who: str = Depends(owner)) -> dict:
+    out = _run(M().set, who, b.sections, b.why or "edited in the app")
+    J().audit(who, "mandate.edit", b.why or "app", f"v{out['version']}")
+    return out
+
+
+@app.get("/v3/actions")
+def actions(who: str = Depends(owner)) -> dict:
+    return {"pending": M().pending()}
+
+
+@app.post("/v3/actions/{aid}")
+def action_decide(aid: str, b: Decide, who: str = Depends(owner)) -> dict:
+    out = _run(M().decide, who, aid, b.confirm, executors())
+    J().audit(who, f"action.{'confirm' if b.confirm else 'cancel'}", f"{aid} {out.get('kind')}", out.get("status"))
+    return out
+
+
+
+class VoiceTurn(BaseModel):
+    audio_b64: str
+    mime: str = "audio/wav"
+    thread: str | None = None
+    mode: str | None = None
+    context: dict | None = None
+
+
+@app.post("/v3/voice/turn")
+def voice_turn(b: VoiceTurn, who: str = Depends(owner)) -> dict:
+    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, b.context))
+
+
+
+def _push(title: str, body: str):
+    from src.intelligence.paper_watch import push_phone
+
+    return push_phone(title, body, level="EVENT")
+
+
+def background_jobs() -> dict:
+    """Every 15 minutes: check alerts (no AI cost); write the morning / evening brief once each (free model)."""
+    ex = J()._explorer()
+    out = {"fired": AL().check(ex, push=_push), "manual_stops": MN().check_stops(ex.prices() if ex else {}, push=_push)}
+    a = A()
+    if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
+        kind = AL().due_brief()
+        if kind:
+            out["brief"] = AL().write_brief(kind, lambda q: a.ask("ananta (scheduled)", q, mode="everyday"), push=_push)
+    return out
+
+
+@app.get("/v3/alerts")
+def alerts_list(who: str = Depends(owner)) -> dict:
+    return {"alerts": AL().list()}
+
+
+@app.post("/v3/alerts/{aid}/off")
+def alert_off(aid: str, who: str = Depends(owner)) -> dict:
+    AL().turn_off(who, aid)
+    J().audit(who, "alert.off", aid, "OK")
+    return {"ok": True}
+
+
+@app.get("/v3/brief")
+def brief(who: str = Depends(owner)) -> dict:
+    return {"brief": AL().latest_brief()}
+
+
+@app.post("/v3/brief/now")
+def brief_now(who: str = Depends(owner)) -> dict:
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    kind = "evening" if datetime.now(ZoneInfo("America/Toronto")).hour >= 17 else "morning"
+    r = AL().write_brief(kind, lambda q: A().ask(who, q, mode="everyday"))
+    if not r:
+        raise HTTPException(status_code=503, detail="Could not write the brief right now; try again in a minute.")
+    return {"brief": AL().latest_brief()}
+
+
+@app.get("/v3/inbox")
+def inbox(who: str = Depends(owner)) -> dict:
+    ps = J()._layer().pending()
+    return {"actions": M().pending(), "portfolio": ps, "alerts_active": len(AL().list(include_done=False)),
+            "count": len(M().pending()) + (1 if ps else 0)}
+
+
+
+class Note(BaseModel):
+    kind: str = "note"
+    ref: str = ""
+    text: str
+
+
+@app.get("/v3/manual")
+def manual(who: str = Depends(owner)) -> dict:
+    m = MN()
+    return {**m.state(J().prices()), "fills": m.fills(), "journal": m.journal(), "jobs": m.jobs()}
+
+
+@app.post("/v3/journal")
+def journal_note(b: Note, who: str = Depends(owner)) -> dict:
+    if not b.text.strip():
+        raise HTTPException(status_code=400, detail="empty note")
+    return MN().note(who, b.kind, b.ref, b.text)

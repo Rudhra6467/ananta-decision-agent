@@ -147,6 +147,13 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
         label = {"portfolio.mode": f"Portfolio mode set to {detail}", "safety.kill_switch": f"Kill switch {detail}",
                  "portfolio.approve": "You approved portfolio changes", "portfolio.reject": "You rejected portfolio changes"}.get(action, action)
         items.append({"t": t, "kind": "info", "title": label, "body": "From the Jarvis app."})
+    try:
+        for (t, coin, msg) in j.db.execute("SELECT fired_t, coin, message FROM alerts WHERE status='FIRED' AND fired_t >= ?", (since,)):
+            items.append({"t": t, "kind": "alert", "coin": coin, "title": f"Alert: {coin}", "body": msg})
+        for (t, kind, text) in j.db.execute("SELECT t, kind, text FROM briefings WHERE t >= ?", (since,)):
+            items.append({"t": t, "kind": "brief", "title": f"{kind.capitalize()} brief", "body": text})
+    except Exception:  # noqa: BLE001  tables appear on first use
+        pass
     items.sort(key=lambda x: x["t"], reverse=True)
     for it in items:
         it["time"] = _local(it["t"])
@@ -515,3 +522,90 @@ def trades_list(j) -> dict:
     pend = [{"coin": o["coin"], "setup_name": SETUP.get(o["setup"], o["setup"]), "limit": o["limit"], "expires": o["expires"]} for o in xs["pending_orders"]]
     return {"value": xs["equity"], "start": 2000.0, "realized": xs["realized_usd"], "unrealized": xs["unrealized_usd"],
             "open": op, "closed": cl, "pending": pend}
+
+
+# ---------------------------------------------------------------------------
+# Markets tab
+# ---------------------------------------------------------------------------
+TREND = {"BULL": "Up", "BEAR": "Down", "NEUTRAL": "Sideways"}
+
+
+def markets(j) -> dict:
+    """Watchlist: price, moves, trends, closest setup, rating, held."""
+    ex = j._explorer()
+    if not ex:
+        return {"coins": []}
+    ps = j._layer().status(ex.prices())
+    ratings = (ps.get("last_decision") or {}).get("ratings") or {}
+    held = ps["books"]["MAIN"]["holdings"]
+    open_by = {}
+    for t in ex.status()["open"]:
+        open_by[t["coin"]] = open_by.get(t["coin"], 0) + 1
+    rows = []
+    for c, eng in ex.st["engines"].items():
+        px = eng.tf["5m"].last[4] if eng.tf["5m"].last else None
+        d1 = list(eng.tf["1d"].bars)
+        h1 = list(eng.tf["1h"].bars)
+        row = {"coin": c, "price": px, "day_pct": round(100 * (px / d1[-1][4] - 1), 2) if (px and d1) else None,
+               "week_pct": round(100 * (px / d1[-7][4] - 1), 2) if (px and len(d1) >= 7) else None,
+               "spark": [b[4] for b in h1[-48:]], "rating": (ratings.get(c) or {}).get("rating"), "held_usd": held.get(c),
+               "open_trades": open_by.get(c, 0)}
+        if eng.last_scan is not None and eng.ready():
+            st = eng.state(eng.last_scan)
+            row["trend_1h"] = TREND[st["S1"]]
+            row["trend_4h"] = st["trend_4h"].capitalize()
+            row["daily"] = "Above 50-day" if st["daily_above_ema50"] else "Below 50-day"
+            best = max((r for r in sc.checklist(eng, st) if r["traded"]), key=lambda r: (r["met"] / r["of"], r["met"]))
+            row["closest"] = {"setup": best["setup"], "name": best["name"], "met": best["met"], "of": best["of"], "missing": best["missing"][:2]}
+        rows.append(row)
+    btc = next((r for r in rows if r["coin"] == "BTC"), {})
+    up = sum(1 for r in rows if r.get("trend_1h") == "Up")
+    return {"coins": rows, "breadth": {"up_1h": up, "of": len(rows)}, "btc_gate": (ps.get("last_decision") or {}).get("btc_gate"),
+            "summary": f"{up} of {len(rows)} coins in a 1-hour uptrend. BTC 1h trend: {btc.get('trend_1h', '?').lower()}."}
+
+
+def chart(j, sym: str, tf: str = "1h") -> dict:
+    """Candles + averages + levels + Ananta's own buys/sells and open-trade stops/targets, for the Markets chart."""
+    ex = j._explorer()
+    sym = sym.upper()
+    if not ex or sym not in ex.st["engines"]:
+        raise ValueError(f"unknown coin {sym}")
+    if tf not in ("15m", "1h", "4h", "1d"):
+        raise ValueError("tf must be 15m, 1h, 4h or 1d")
+    eng = ex.st["engines"][sym]
+    s = eng.tf[tf]
+    bars = list(s.bars)
+    a20 = a50 = None
+    k20, k50 = 2 / 21, 2 / 51
+    candles = []
+    for b in bars:
+        a20 = b[4] if a20 is None else a20 + k20 * (b[4] - a20)
+        a50 = b[4] if a50 is None else a50 + k50 * (b[4] - a50)
+        candles.append({"t": b[0], "o": b[1], "h": b[2], "l": b[3], "c": b[4], "ema20": a20, "ema50": a50})
+    n = {"15m": 120, "1h": 120, "4h": 120, "1d": 180}[tf]
+    candles = candles[-n:]
+    t0 = candles[0]["t"] if candles else 0
+    px = eng.tf["5m"].last[4] if eng.tf["5m"].last else None
+    lv = []
+    if px is not None and eng.tf["1h"].atrh:
+        z = eng.zones(px)
+        if z["support"] is not None:
+            lv.append({"kind": "support", "price": z["support"], "label": "Support"})
+        if z["resistance"] is not None:
+            lv.append({"kind": "resistance", "price": z["resistance"], "label": "Resistance"})
+    marks = []
+    for (js,) in ex.store.book.execute("SELECT json FROM events WHERE coin=? AND kind IN ('FILLED','CLOSED') AND t >= ? ORDER BY seq", (sym, t0)):
+        e = json.loads(js)
+        if e["kind"] == "FILLED":
+            marks.append({"t": e["t"], "price": e.get("entry"), "kind": "buy", "label": f"Bought ({e.get('setup')})", "trade_id": e.get("id")})
+        else:
+            marks.append({"t": e["t"], "price": None, "kind": "sell", "label": f"Sold {usd_signed(e.get('net_usd'))}", "trade_id": e.get("id")})
+    trades = []
+    for tr in eng.trades:
+        if tr.shadow is None and not tr.actual.done:
+            trades.append({"id": tr.id, "entry": tr.entry, "stop": tr.actual.stop, "target": tr.actual.target, "setup": tr.setup})
+    return {"coin": sym, "tf": tf, "price": px, "candles": candles, "levels": lv, "marks": marks, "open_trades": trades}
+
+
+def usd_signed(x) -> str:
+    return "" if x is None else f"{'+' if x >= 0 else '-'}${abs(x):.2f}"

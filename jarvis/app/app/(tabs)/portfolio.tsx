@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Alert, Switch, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { askAbout, setScreen } from "../../src/context";
 import { api } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
 import { LineChart, StackBar } from "../../src/charts";
@@ -13,12 +14,13 @@ const SHADES = ["#2952CC", "#4A6FD6", "#6B8BDF", "#8CA6E8", "#ADC1F0", "#C6D4F5"
 
 export default function Portfolio() {
   const [tab, setTab] = useState("portfolio");
+  useFocusEffect(useCallback(() => { setScreen({ screen: tab === "portfolio" ? "portfolio" : "explorer_trades", label: tab === "portfolio" ? "Portfolio (T3 book)" : "Explorer trades" }); }, [tab]));
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
-        <Segmented value={tab} onChange={setTab} options={[{ key: "portfolio", label: "Portfolio (T3)" }, { key: "explorer", label: "Explorer trades" }]} />
+        <Segmented value={tab} onChange={setTab} options={[{ key: "portfolio", label: "Portfolio" }, { key: "explorer", label: "Explorer" }, { key: "mine", label: "My trades" }]} />
       </View>
-      {tab === "portfolio" ? <Book /> : <Trades />}
+      {tab === "portfolio" ? <Book /> : tab === "explorer" ? <Trades /> : <Mine />}
     </View>
   );
 }
@@ -86,6 +88,7 @@ function Book() {
           <View key={r.coin}>
             <Divider />
             <Row title={r.coin} sub={`${COIN_NAME[r.coin] ?? ""} · ${r.weight_pct}% · `} onPress={() => router.push(`/coin/${r.coin}`)}
+              onLongPress={() => askAbout({ screen: "holding", coin: r.coin, label: `${r.coin} in the portfolio` }, `How is my ${r.coin} holding doing, and why is it rated ${ratingWord[r.rating] ?? r.rating}?`)}
               value={usd(r.value)} valueSub={`${usdSigned(r.pnl)} (${pct(r.pnl_pct)})`} valueSubColor={pnlColor(r.pnl)}
               left={<Pill text={ratingWord[r.rating] ?? r.rating} color={ratingColor[r.rating]} />} />
           </View>
@@ -144,6 +147,7 @@ function Trades() {
           <View key={t.id}>
             {i ? <Divider /> : null}
             <Row title={t.coin} sub={`${t.setup_name} · ${t.type_name}\nBought ${price(t.entry)} · ${t.since}`} onPress={() => router.push(`/trade/${t.id}`)}
+              onLongPress={() => askAbout({ screen: "trade", id: t.id, coin: t.coin, label: `${t.coin} trade ${t.id}` }, `How is this ${t.coin} trade doing and what are we waiting for?`)}
               value={usdSigned(t.pnl_usd)} valueColor={pnlColor(t.pnl_usd)} valueSub={t.status} />
           </View>
         ))}
@@ -168,6 +172,58 @@ function Trades() {
           </View>
         ))}
       </Card>
+    </Screen>
+  );
+}
+
+function Mine() {
+  const { data: d, err, loading, reload } = useData("/v3/manual");
+  if (!d && loading) return <Busy />;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  const gain = d.equity - d.start;
+  return (
+    <Screen loading={loading} onRefresh={reload}>
+      <Big label="My paper book" value={usd(d.equity)} change={gain} changeLabel={`${usdSigned(gain)} (${pct(d.return_pct)}) since start`} />
+      <T dim>Orders you ask Ananta for land here, separate from the agent's books, so your calls and the agent's can be compared. Paper only.</T>
+      <View style={{ flexDirection: "row", gap: 12 }}>
+        <Stat label="Cash" value={usd(d.cash)} />
+        <Stat label="Closed P&L" value={usdSigned(d.realized)} color={pnlColor(d.realized)} />
+        <Stat label="Costs" value={usd(d.costs)} />
+      </View>
+      <Section title="Positions" />
+      <Card>
+        {d.positions.length === 0 ? <T dim>None yet. Try asking Ananta: "buy $200 of ETH with a stop at 2,600".</T> : null}
+        {d.positions.map((p: any, i: number) => (
+          <View key={p.coin}>
+            {i ? <Divider /> : null}
+            <Row title={p.coin} sub={[p.stop ? `stop ${price(p.stop)}` : null, p.target ? `target ${price(p.target)}` : null].filter(Boolean).join(" · ") || "no stop set"}
+              value={usd(p.value)} valueSub={`${usdSigned(p.pnl)}`} valueSubColor={pnlColor(p.pnl)} onPress={() => router.push(`/coin/${p.coin}`)}
+              onLongPress={() => askAbout({ screen: "manual_position", coin: p.coin, label: `my ${p.coin} paper position` }, `How is my ${p.coin} paper position doing?`)} />
+          </View>
+        ))}
+      </Card>
+      <Section title="Orders and reasons" />
+      <Card>
+        {d.fills.length === 0 ? <T dim>No orders yet.</T> : null}
+        {d.fills.map((f: any, i: number) => (
+          <View key={f.id}>
+            {i ? <Divider /> : null}
+            <Line label={`${f.side === "BUY" ? "Bought" : "Sold"} ${f.coin} · ${new Date(f.t * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`}
+              value={`${usd(f.usd)} @ ${price(f.px)}`} sub={f.reason ? `“${f.reason}”` : f.trigger !== "owner" ? `automatic: ${f.trigger}` : undefined} />
+          </View>
+        ))}
+      </Card>
+      {d.jobs?.length ? (
+        <>
+          <Section title="Research jobs" />
+          <Card>
+            {d.jobs.map((jb: any) => (
+              <Line key={jb.id} label={`${jb.kind} · ${new Date(jb.t * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`}
+                value={jb.status === "DONE" && jb.result?.match !== undefined ? (jb.result.match ? "✓ matches" : "✗ differs") : jb.status.toLowerCase()} />
+            ))}
+          </Card>
+        </>
+      ) : null}
     </Screen>
   );
 }

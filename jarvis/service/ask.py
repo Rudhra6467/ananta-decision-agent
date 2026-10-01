@@ -42,7 +42,7 @@ WHAT ANANTA IS (use these words)
 - Lifecycle words, always say which stage a thing is in: observation -> candidate setup (some conditions met) -> setup (all conditions met) -> decision (order placed or skipped) -> execution (filled) -> position -> outcome (closed) -> evaluation -> learning. Never let "interesting" sound like "bought".
 
 RULES
-1. Facts only from lookups. Call the lookups you need (several if needed) before answering. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
+1. Facts only from lookups. Call the lookups you need (several if needed) before answering; use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
 2. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
 4. Scope: trading, markets, the economy and news that moves markets, and Ananta itself. Anything else: kind "out_of_scope" with a one-line polite reply ("That's outside my area - I'm built for trading and markets.").
@@ -307,30 +307,74 @@ def _post(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
     return r.json()
 
 
-def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:
+MODELS = {   # key: provider, API model, price per million tokens (input, output), cache-read multiplier
+    "gemini": {"label": "Gemini Flash", "provider": "gemini", "model": None, "price": (0.0, 0.0), "cache": 0.0},
+    "haiku": {"label": "Claude Haiku", "provider": "claude", "model": os.getenv("ASK_HAIKU_MODEL", "claude-haiku-4-5-20251001"), "price": (1.0, 5.0), "cache": 0.1},
+    "sonnet": {"label": "Claude Sonnet", "provider": "claude", "model": os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5"), "price": (2.0, 10.0), "cache": 0.1},
+    "opus": {"label": "Claude Opus", "provider": "claude", "model": os.getenv("ASK_OPUS_MODEL", "claude-opus-5-5"), "price": (4.0, 20.0), "cache": 0.05},
+}
+MODES = {"everyday": "gemini", "deep": "sonnet", "max": "opus"}
+ALIASES = {"claude": "sonnet", "gemini": "gemini", "haiku": "haiku", "sonnet": "sonnet", "opus": "opus"}
+DEEP_WORDS = re.compile(r"\b(why|explain|compare|evaluat|analy[sz]|should|prepare|review|learn|history|histor|reconstruct|what if|strategy|strateg|backtest|"
+                        r"evidence|break it down|reason|plan|risk|recommend|better|worse|improve|test)", re.I)
+
+
+def route(text: str) -> tuple[str, str]:
+    """Auto mode: everyday questions to free Gemini, investigations to Claude Sonnet."""
+    if len(text) > 160 or DEEP_WORDS.search(text):
+        return "sonnet", "Auto picked Claude: this needs investigation"
+    return "gemini", "Auto picked Gemini: everyday question"
+
+
+def cost_usd(key: str, usage: dict) -> float:
+    m = MODELS.get(key) or MODELS["gemini"]
+    pin, pout = m["price"]
+    return round((usage.get("in", 0) * pin + usage.get("cache_write", 0) * pin * 1.25 + usage.get("cache_read", 0) * pin * m["cache"]
+                  + usage.get("out", 0) * pout) / 1e6, 5)
+
+
+def _strip_cache(msgs: list) -> None:
+    for m in msgs:
+        if isinstance(m.get("content"), list):
+            for b in m["content"]:
+                if isinstance(b, dict):
+                    b.pop("cache_control", None)
+
+
+def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post, model: str | None = None) -> tuple[str, dict]:
     key = os.getenv("ANTHROPIC_API_KEY", "")
     if not key:
         raise RuntimeError("ANTHROPIC_API_KEY is not set")
-    msgs = [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": user}]
+    model = model or CLAUDE_MODEL
+    msgs = [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": [{"type": "text", "text": user}]}]
     tdefs = [{"name": n, "description": d, "input_schema": s} for n, d, s in TOOLS]
-    usage = {"in": 0, "out": 0}
+    tdefs[-1] = {**tdefs[-1], "cache_control": {"type": "ephemeral"}}          # cache: tools + system
+    sysb = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+    usage = {"in": 0, "out": 0, "cache_read": 0, "cache_write": 0}
     for _ in range(MAX_TOOL_ROUNDS + 1):
+        _strip_cache(msgs)                       # one moving breakpoint on the newest message (max 4 in total)
+        last = msgs[-1]["content"]
+        if isinstance(last, list) and last:
+            last[-1]["cache_control"] = {"type": "ephemeral"}
         r = post("https://api.anthropic.com/v1/messages",
                  {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                 {"model": CLAUDE_MODEL, "max_tokens": 2000, "system": system, "tools": tdefs, "messages": msgs})
+                 {"model": model, "max_tokens": 2000, "system": sysb, "tools": tdefs, "messages": msgs})
         u = r.get("usage") or {}
         usage["in"] += u.get("input_tokens", 0)
         usage["out"] += u.get("output_tokens", 0)
+        usage["cache_read"] += u.get("cache_read_input_tokens", 0) or 0
+        usage["cache_write"] += u.get("cache_creation_input_tokens", 0) or 0
         content = r.get("content") or []
         calls = [c for c in content if c.get("type") == "tool_use"]
         if not calls:
+            usage["model"] = model
             return "".join(c.get("text", "") for c in content if c.get("type") == "text"), usage
         msgs.append({"role": "assistant", "content": content})
         results = []
         for c in calls:
             out = tools.call(c["name"], c.get("input") or {})
             log.append({"tool": c["name"], "args": c.get("input")})
-            results.append({"type": "tool_result", "tool_use_id": c["id"], "content": json.dumps(out, default=str)[:30000]})
+            results.append({"type": "tool_result", "tool_use_id": c["id"], "content": json.dumps(out, default=str)[:20000]})
         msgs.append({"role": "user", "content": results})
     raise RuntimeError("too many lookup rounds")
 
@@ -388,13 +432,19 @@ def _gemini_once(model: str, system: str, history: list[dict], user: str, tools:
             out = tools.call(c["name"], c.get("args") or {})
             log.append({"tool": c["name"], "args": c.get("args")})
             js = json.dumps(out, default=str)
-            res = json.loads(js) if len(js) <= 30000 else {"truncated": js[:30000]}
+            res = json.loads(js) if len(js) <= 20000 else {"truncated": js[:20000]}
             resp.append({"functionResponse": {"name": c["name"], "response": {"result": res}}})
         contents.append({"role": "user", "parts": resp})
     raise RuntimeError("too many lookup rounds")
 
 
-PROVIDERS: dict[str, Callable] = {"gemini": run_gemini, "claude": run_claude}
+PROVIDERS: dict[str, Callable] = {
+    "gemini": run_gemini,
+    "haiku": lambda *a, **k: run_claude(*a, model=MODELS["haiku"]["model"], **k),
+    "sonnet": lambda *a, **k: run_claude(*a, model=MODELS["sonnet"]["model"], **k),
+    "opus": lambda *a, **k: run_claude(*a, model=MODELS["opus"]["model"], **k),
+}
+SETTINGS_DEFAULT = {"ask_enabled": "1", "voice_enabled": "1", "daily_budget_usd": "2", "over_budget": "gemini"}
 
 
 def parse(text: str) -> dict:
@@ -429,7 +479,61 @@ class Ask:
             CREATE TABLE IF NOT EXISTS ask_messages (id TEXT PRIMARY KEY, thread TEXT, t INTEGER, role TEXT, text TEXT, reply TEXT,
                 provider TEXT, model TEXT, ms INTEGER, tokens_in INTEGER, tokens_out INTEGER, tools TEXT, error TEXT, rating INTEGER);
             CREATE TABLE IF NOT EXISTS ask_misunderstood (t INTEGER, thread TEXT, question TEXT, kind TEXT, provider TEXT);
+            CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT);
         """)
+        cols = {r[1] for r in j.db.execute("PRAGMA table_info(ask_messages)")}
+        for c, typ in (("cost_usd", "REAL"), ("mode", "TEXT"), ("note", "TEXT")):
+            if c not in cols:
+                j.db.execute(f"ALTER TABLE ask_messages ADD COLUMN {c} {typ}")
+        j.db.commit()
+
+    # ---- settings and spend ----
+    def setting(self, k: str) -> str:
+        row = self.j.db.execute("SELECT v FROM settings WHERE k=?", (k,)).fetchone()
+        return row[0] if row else SETTINGS_DEFAULT.get(k, "")
+
+    def settings(self) -> dict:
+        return {k: self.setting(k) for k in SETTINGS_DEFAULT}
+
+    def set_setting(self, who: str, k: str, v: str) -> dict:
+        if k not in SETTINGS_DEFAULT:
+            raise ValueError(f"unknown setting {k}")
+        if k == "daily_budget_usd":
+            x = float(v)
+            if not 0 <= x <= 50:
+                raise ValueError("budget must be between $0 and $50 a day")
+            v = str(round(x, 2))
+        if k in ("ask_enabled", "voice_enabled"):
+            v = "1" if str(v).lower() in ("1", "true", "on", "yes") else "0"
+        if k == "over_budget" and v not in ("gemini", "stop"):
+            raise ValueError("over_budget is gemini or stop")
+        self.j.db.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", (k, v))
+        self.j.db.commit()
+        self.j.audit(who, "settings", f"{k}={v}", "OK")
+        return self.settings()
+
+    def _day_start(self) -> int:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("America/Toronto")
+        return int(datetime.fromtimestamp(self.j.now(), tz).replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+
+    def spend(self) -> dict:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("America/Toronto")
+        d0 = self._day_start()
+        m0 = int(datetime.fromtimestamp(self.j.now(), tz).replace(day=1, hour=0, minute=0, second=0, microsecond=0).timestamp())
+        def tot(since):
+            rows = self.j.db.execute("SELECT COALESCE(mode, provider), COUNT(*), COALESCE(SUM(cost_usd),0) FROM ask_messages WHERE role='assistant' AND t >= ? GROUP BY 1", (since,)).fetchall()
+            return {k: {"answers": n, "usd": round(c, 4)} for k, n, c in rows}
+        today, month = tot(d0), tot(m0)
+        spent = sum(v["usd"] for v in today.values())
+        budget = float(self.setting("daily_budget_usd"))
+        return {"today_usd": round(spent, 4), "month_usd": round(sum(v["usd"] for v in month.values()), 4), "budget_usd": budget,
+                "left_usd": round(max(0.0, budget - spent), 4), "today": today, "month": month, "settings": self.settings()}
 
     def _history(self, thread: str) -> list[dict]:
         rows = self.j.db.execute("SELECT role, text, reply FROM ask_messages WHERE thread=? AND error IS NULL ORDER BY t DESC, rowid DESC LIMIT ?",
@@ -437,13 +541,19 @@ class Ask:
         out = []
         for role, text, reply in rows:
             if role == "user":
+                if out and out[-1]["role"] == "user":
+                    out.pop()
                 out.append({"role": "user", "text": text})
             else:
                 r = json.loads(reply) if reply else {}
                 brief = {k: r.get(k) for k in ("kind", "answer", "breakdown", "evidence", "options") if r.get(k)}
+                if out and out[-1]["role"] == "assistant":
+                    out.pop()
                 out.append({"role": "assistant", "text": json.dumps(brief)[:4000]})
         while out and out[0]["role"] != "user":
             out.pop(0)
+        if out and out[-1]["role"] == "user":
+            out.pop()
         return out
 
     def _failed_clarifies(self, thread: str) -> int:
@@ -459,49 +569,104 @@ class Ask:
     def today_count(self) -> int:
         return self.j.db.execute("SELECT count(*) FROM ask_messages WHERE role='user' AND t >= ?", (int(self.j.now() - 86400),)).fetchone()[0]
 
-    def ask(self, who: str, text: str, thread: str | None = None, provider: str | None = None) -> dict:
+    def _pick(self, text: str, mode: str | None, provider: str | None) -> tuple[str, str, str]:
+        """-> (model key, mode label, note)."""
+        if provider:                                            # old clients: provider gemini / claude
+            key = ALIASES.get(provider.lower())
+            if not key:
+                raise ValueError(f"unknown provider {provider}")
+            return key, provider.lower(), ""
+        mode = (mode or "auto").lower()
+        if mode == "auto":
+            key, note = route(text)
+            return key, "auto", note
+        if mode in MODES:
+            return MODES[mode], mode, ""
+        if mode in MODELS:
+            return mode, mode, ""
+        raise ValueError(f"unknown mode {mode}")
+
+    def ask(self, who: str, text: str, thread: str | None = None, provider: str | None = None, mode: str | None = None,
+            second_of: str | None = None, context: dict | None = None) -> dict:
         text = (text or "").strip()[:2000]
         if not text:
             raise ValueError("empty question")
+        if self.setting("ask_enabled") != "1":
+            raise ValueError("Ask Ananta is switched off in the Cockpit")
         thread = thread or uuid.uuid4().hex[:12]
-        provider = (provider or os.getenv("ASK_PROVIDER", "gemini")).lower()
-        if provider not in self.providers:
-            raise ValueError(f"unknown provider {provider}")
+        key, mode_label, note = self._pick(text, mode, provider)
         if self.today_count() >= DAILY_LIMIT:
             raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
+        if MODELS[key]["provider"] == "claude":
+            sp = self.spend()
+            if sp["today_usd"] >= sp["budget_usd"]:
+                if self.setting("over_budget") == "stop":
+                    raise ValueError(f"today's Claude budget (${sp['budget_usd']:.2f}) is used up; raise it in the Cockpit or use Everyday")
+                key, note = "gemini", f"Claude budget for today (${sp['budget_usd']:.2f}) is used up, so Gemini answered"
         history = self._history(thread)
         tries = self._failed_clarifies(thread)
         now = int(self.j.now())
         uid = uuid.uuid4().hex[:12]
-        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider) VALUES (?,?,?,?,?,?)", (uid, thread, now, "user", text, provider))
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
+                          (uid, thread, now, "user", text, key, mode_label))
         self.j.db.commit()
-        note = f"\n\n[conversation note: clarification has failed {tries} time(s) in a row]" if tries else ""
-        user_msg = f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}]{note}\n{text}"
+        notes = []
+        if tries:
+            notes.append(f"[conversation note: clarification has failed {tries} time(s) in a row]")
+        if second_of:
+            notes.append("[conversation note: the owner asked for a second opinion on this question; answer it independently from the data]")
+        if context:
+            notes.append("[screen context: the owner is looking at " + json.dumps(context, default=str)[:600] + "]")
+        user_msg = f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}]" + ("\n" + "\n".join(notes) if notes else "") + f"\n{text}"
         log: list = []
         t0 = time.time()
         aid = uuid.uuid4().hex[:12]
-        model = GEMINI_MODEL if provider == "gemini" else CLAUDE_MODEL
+        used = key
         try:
-            raw, usage = self.providers[provider](SYSTEM, history, user_msg, Lookups(self.j), log)
+            try:
+                raw, usage = self.providers[key](SYSTEM, history, user_msg, Lookups(self.j), log)
+            except Exception as exc:  # noqa: BLE001
+                # free Gemini busy: escalate once to Claude Haiku if allowed and within budget
+                if key == "gemini" and "haiku" in self.providers and self.spend()["left_usd"] > 0.02 and os.getenv("ANTHROPIC_API_KEY"):
+                    used = "haiku"
+                    note = (note + "; " if note else "") + "Gemini was busy, so Claude Haiku answered"
+                    log.clear()
+                    raw, usage = self.providers["haiku"](SYSTEM, history, user_msg, Lookups(self.j), log)
+                else:
+                    raise exc
             reply = parse(raw)
-            model = usage.get("model", model)
         except Exception as exc:  # noqa: BLE001
             ms = int(1000 * (time.time() - t0))
-            self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, model, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",
-                              (aid, thread, now + 1, "assistant", provider, model, ms, json.dumps(log), str(exc)[:500]))
+            self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, mode, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",
+                              (aid, thread, now + 1, "assistant", used, mode_label, ms, json.dumps(log), str(exc)[:500]))
             self.j.db.commit()
-            return {"id": aid, "thread": thread, "provider": provider, "error": f"{provider} failed: {str(exc)[:200]}"}
+            return {"id": aid, "thread": thread, "provider": used, "error": str(exc)[:240]}
+        model = usage.get("model") or MODELS[used]["model"] or GEMINI_MODEL
+        cost = cost_usd(used, usage)
         if reply["kind"] == "clarify" and tries >= 2:
             reply = {**reply, "kind": "not_understood", "options": [],
                      "answer": "Sorry, I still don't understand what you're asking. Here are things I can answer:", "follow_ups": EXAMPLES[:3]}
         if reply["kind"] in ("clarify", "not_understood"):
-            self.j.db.execute("INSERT INTO ask_misunderstood VALUES (?,?,?,?,?)", (now, thread, text, reply["kind"], provider))
+            self.j.db.execute("INSERT INTO ask_misunderstood VALUES (?,?,?,?,?)", (now, thread, text, reply["kind"], used))
         ms = int(1000 * (time.time() - t0))
-        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                          (aid, thread, now + 1, "assistant", json.dumps(reply), provider, model, ms, usage["in"], usage["out"], json.dumps(log)))
+        meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of}
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                          (aid, thread, now + 1, "assistant", json.dumps({**reply, **meta}), used, model, ms,
+                           usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note))
         self.j.db.commit()
-        self.j.audit(who, "ask", text[:200], f"{provider} {reply['kind']} {ms}ms")
-        return {"id": aid, "thread": thread, "provider": provider, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply}
+        self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
+        return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
+
+    def second(self, who: str, msg_id: str) -> dict:
+        row = self.j.db.execute("SELECT thread, t, provider FROM ask_messages WHERE id=? AND role='assistant'", (msg_id,)).fetchone()
+        if not row:
+            raise ValueError("unknown answer")
+        thread, t, prov = row
+        q = self.j.db.execute("SELECT text FROM ask_messages WHERE thread=? AND role='user' AND t <= ? ORDER BY t DESC, rowid DESC LIMIT 1", (thread, t)).fetchone()
+        if not q:
+            raise ValueError("question not found")
+        other = "sonnet" if MODELS.get(prov, MODELS["gemini"])["provider"] == "gemini" else "gemini"
+        return self.ask(who, q[0], thread=thread, mode=other, second_of=msg_id)
 
     def rate(self, msg_id: str, rating: int) -> None:
         self.j.db.execute("UPDATE ask_messages SET rating=? WHERE id=? AND role='assistant'", (1 if rating > 0 else -1, msg_id))
@@ -528,11 +693,12 @@ class Ask:
 
     def stats(self) -> dict:
         out = {}
-        for prov, n, ms, tin, tout, up, down, errs in self.j.db.execute("""
-                SELECT provider, COUNT(*), AVG(ms), SUM(tokens_in), SUM(tokens_out), SUM(rating=1), SUM(rating=-1), SUM(error IS NOT NULL)
+        for prov, n, ms, tin, tout, up, down, errs, cost in self.j.db.execute("""
+                SELECT provider, COUNT(*), AVG(ms), SUM(tokens_in), SUM(tokens_out), SUM(rating=1), SUM(rating=-1), SUM(error IS NOT NULL), SUM(cost_usd)
                 FROM ask_messages WHERE role='assistant' GROUP BY provider"""):
             out[prov] = {"answers": n, "avg_seconds": round((ms or 0) / 1000, 1), "tokens_in": tin, "tokens_out": tout,
-                         "thumbs_up": up or 0, "thumbs_down": down or 0, "errors": errs or 0}
+                         "thumbs_up": up or 0, "thumbs_down": down or 0, "errors": errs or 0, "usd": round(cost or 0, 4),
+                         "usd_per_answer": round((cost or 0) / max(1, n - (errs or 0)), 4)}
         mis = [dict(zip(("t", "thread", "question", "kind", "provider"), r)) for r in
                self.j.db.execute("SELECT * FROM ask_misunderstood ORDER BY t DESC LIMIT 30")]
-        return {"providers": out, "misunderstood": mis, "today": self.today_count(), "daily_limit": DAILY_LIMIT}
+        return {"providers": out, "misunderstood": mis, "today": self.today_count(), "daily_limit": DAILY_LIMIT, "spend": self.spend()}

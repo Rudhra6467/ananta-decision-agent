@@ -69,20 +69,20 @@ def test_claude_loop_calls_lookups_then_answers():
     ])
     import os
     os.environ["ANTHROPIC_API_KEY"] = "test"
-    A = ask.Ask(j, providers={"claude": lambda s, h, u, t, log: ask.run_claude(s, h, u, t, log, post=post)})
+    A = ask.Ask(j, providers={"sonnet": lambda s, h, u, t, log: ask.run_claude(s, h, u, t, log, post=post)})
     r = A.ask("o@x.com", "how is btc?", provider="claude")
     assert r["answer"] == final["answer"] and r["lookups"] == ["market"] and r["stage"] == "observation"
     tool_result = calls[1]["messages"][-1]["content"][0]
     assert tool_result["type"] == "tool_result" and "trend_1h" in tool_result["content"]
     # follow-up carries history
     post2, calls2 = _fake_claude([{"content": [{"type": "text", "text": json.dumps(final)}], "usage": {}}])
-    A.providers["claude"] = lambda s, h, u, t, log: ask.run_claude(s, h, u, t, log, post=post2)
+    A.providers["sonnet"] = lambda s, h, u, t, log: ask.run_claude(s, h, u, t, log, post=post2)
     A.ask("o@x.com", "why?", thread=r["thread"], provider="claude")
     assert calls2[0]["messages"][0]["content"] == "how is btc?" and len(calls2[0]["messages"]) == 3
     st = A.stats()
-    assert st["providers"]["claude"]["answers"] == 2
+    assert st["providers"]["sonnet"]["answers"] == 2
     A.rate(r["id"], 1)
-    assert A.stats()["providers"]["claude"]["thumbs_up"] == 1
+    assert A.stats()["providers"]["sonnet"]["thumbs_up"] == 1
 
 
 def test_gemini_loop_and_clarify_limit():
@@ -134,3 +134,74 @@ def test_trades_list():
     j, ex = _jarvis()
     t = views.trades_list(j)
     assert "open" in t and "closed" in t and t["value"] > 0
+
+
+
+def test_modes_budget_second_opinion_and_cost():
+    j, ex = _jarvis()
+    import os
+    os.environ["ANTHROPIC_API_KEY"] = "test"
+    calls = []
+    ans = {"kind": "answer", "answer": "ok"}
+
+    def fake(key, usage):
+        def run(s, h, u, t, log):
+            calls.append((key, u))
+            if key == "gemini" and "busy" in u:
+                raise RuntimeError("503 busy")
+            return json.dumps(ans), dict(usage)
+        return run
+
+    big = {"in": 100_000, "out": 10_000, "cache_read": 0, "cache_write": 0}
+    A = ask.Ask(j, providers={"gemini": fake("gemini", {"in": 5, "out": 5}), "haiku": fake("haiku", big),
+                              "sonnet": fake("sonnet", big), "opus": fake("opus", big)})
+    r = A.ask("o", "how is btc")                       # auto -> gemini (free)
+    assert r["provider"] == "gemini" and r["cost_usd"] == 0 and "Gemini" in r["note"]
+    r = A.ask("o", "why did the portfolio lose money?")   # auto -> sonnet
+    assert r["provider"] == "sonnet" and abs(r["cost_usd"] - (0.2 + 0.1)) < 1e-6
+    r = A.ask("o", "x", mode="max")
+    assert r["provider"] == "opus"
+    r2 = A.second("o", r["id"])                        # Claude answer -> Gemini second opinion
+    assert r2["provider"] == "gemini" and r2["second_of"] == r["id"] and "second opinion" in calls[-1][1]
+    r = A.ask("o", "busy now", mode="everyday")        # Gemini busy -> Haiku within budget
+    assert r["provider"] == "haiku" and "Haiku" in r["note"]
+    sp = A.spend()
+    assert sp["today_usd"] > 0.5 and sp["budget_usd"] == 2.0
+    A.set_setting("o", "daily_budget_usd", "0.5")      # budget used up -> Gemini answers
+    r = A.ask("o", "x", mode="deep")
+    assert r["provider"] == "gemini" and "budget" in r["note"]
+    A.set_setting("o", "over_budget", "stop")
+    try:
+        A.ask("o", "x", mode="deep")
+    except ValueError as e:
+        assert "budget" in str(e)
+    else:
+        raise AssertionError("budget stop not enforced")
+    A.set_setting("o", "ask_enabled", "off")
+    try:
+        A.ask("o", "x")
+    except ValueError as e:
+        assert "switched off" in str(e)
+    else:
+        raise AssertionError("switch not enforced")
+    assert ask.cost_usd("sonnet", {"in": 0, "out": 0, "cache_read": 1_000_000}) == 0.2
+
+
+def test_claude_request_uses_prompt_caching():
+    j, ex = _jarvis()
+    import os
+    os.environ["ANTHROPIC_API_KEY"] = "test"
+    bodies = []
+
+    def post(url, headers, body, timeout=90):
+        bodies.append(json.loads(json.dumps(body)))
+        if len(bodies) == 1:
+            return {"content": [{"type": "tool_use", "id": "a", "name": "overview", "input": {}}], "usage": {"input_tokens": 9, "cache_creation_input_tokens": 100}}
+        return {"content": [{"type": "text", "text": '{"answer": "fine"}'}], "usage": {"input_tokens": 3, "cache_read_input_tokens": 100, "output_tokens": 5}}
+
+    txt, u = ask.run_claude("sys", [], "hi", ask.Lookups(j), [], post=post, model="m")
+    assert u["cache_read"] == 100 and u["cache_write"] == 100
+    b = bodies[1]
+    marks = sum("cache_control" in blk for m in b["messages"] if isinstance(m["content"], list) for blk in m["content"])
+    assert marks == 1 and "cache_control" in b["messages"][-1]["content"][-1]
+    assert "cache_control" in b["system"][0] and "cache_control" in b["tools"][-1]

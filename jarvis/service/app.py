@@ -168,6 +168,17 @@ class Question(BaseModel):
     text: str
     thread: str | None = None
     provider: str | None = None
+    mode: str | None = None
+    context: dict | None = None
+
+
+class Second(BaseModel):
+    id: str
+
+
+class Setting(BaseModel):
+    key: str
+    value: str
 
 
 class Rating(BaseModel):
@@ -207,7 +218,22 @@ def cockpit(who: str = Depends(owner)) -> dict:
 
 @app.post("/v3/ask")
 def ask_q(b: Question, who: str = Depends(owner)) -> dict:
-    return _run(A().ask, who, b.text, b.thread, b.provider)
+    return _run(lambda: A().ask(who, b.text, b.thread, b.provider, b.mode, None, b.context))
+
+
+@app.post("/v3/ask/second")
+def ask_second(b: Second, who: str = Depends(owner)) -> dict:
+    return _run(A().second, who, b.id)
+
+
+@app.get("/v3/spend")
+def spend(who: str = Depends(owner)) -> dict:
+    return A().spend()
+
+
+@app.post("/v3/settings")
+def set_setting(b: Setting, who: str = Depends(owner)) -> dict:
+    return _run(A().set_setting, who, b.key, b.value)
 
 
 @app.post("/v3/ask/rate")

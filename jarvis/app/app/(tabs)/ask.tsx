@@ -6,6 +6,11 @@ import { Bullet, Divider, Pill, Segmented, T } from "../../src/ui";
 import { C } from "../../src/theme";
 
 type Msg = { id?: string; role: "user" | "assistant"; text?: string; [k: string]: any };
+const MODES = [{ key: "auto", label: "Auto" }, { key: "everyday", label: "Everyday" }, { key: "deep", label: "Deep" }, { key: "max", label: "Max" }];
+const MODE_HINT: Record<string, string> = {
+  auto: "Auto: free Gemini for everyday questions, Claude Sonnet when it needs investigating.",
+  everyday: "Everyday: Gemini Flash, free.", deep: "Deep: Claude Sonnet, about 3-5¢ a question.", max: "Max: Claude Opus, for big research questions (about 10¢+).",
+};
 const STARTERS = ["How is the market right now?", "What setups are close to triggering?", "How are my trades doing?",
   "What has Hunter been doing today?", "What changed since yesterday?", "What did we learn from the repair shop?"];
 const STAGE: Record<string, string> = { observation: "Observation", candidate: "Candidate setup", "candidate setup": "Candidate setup", setup: "Setup",
@@ -17,7 +22,7 @@ export default function Ask() {
   const [thread, setThread] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [provider, setProvider] = useState("gemini");
+  const [mode, setMode] = useState("auto");
   const scroll = useRef<ScrollView>(null);
   const lastParam = useRef<string | undefined>(undefined);
 
@@ -28,7 +33,7 @@ export default function Ask() {
     setMsgs((m) => [...m, { role: "user", text: q }]);
     setBusy(true);
     try {
-      const r = await api("/v3/ask", { text: q, thread, provider });
+      const r = await api("/v3/ask", { text: q, thread, mode });
       setThread(r.thread);
       setMsgs((m) => [...m, { role: "assistant", ...r }]);
     } catch (e: any) {
@@ -51,15 +56,28 @@ export default function Ask() {
     setMsgs((all) => all.map((x) => (x.id === m.id ? { ...x, rating: v } : x)));
   };
   const reset = () => { setMsgs([]); setThread(null); };
+  const second = async (m: Msg) => {
+    if (!m.id || busy) return;
+    setBusy(true);
+    try {
+      const r = await api("/v3/ask/second", { id: m.id });
+      setMsgs((all) => [...all, { role: "assistant", ...r }]);
+    } catch (e: any) {
+      setMsgs((all) => [...all, { role: "assistant", error: e?.message ?? String(e) }]);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 8 }}>
         <View style={{ flex: 1 }}>
-          <Segmented value={provider} onChange={setProvider} options={[{ key: "gemini", label: "Gemini" }, { key: "claude", label: "Claude" }]} />
+          <Segmented value={mode} onChange={setMode} options={MODES} />
         </View>
         <Text onPress={reset} style={{ color: C.accent, fontWeight: "600" }}>New chat</Text>
       </View>
+      <Text style={{ color: C.faint, fontSize: 11, paddingHorizontal: 18, paddingTop: 4 }}>{MODE_HINT[mode]}</Text>
       <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         {msgs.length === 0 ? (
           <View style={{ gap: 10 }}>
@@ -72,7 +90,7 @@ export default function Ask() {
             ))}
           </View>
         ) : null}
-        {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} /> : <Answer key={i} m={m} onPick={send} onRate={(v) => rate(m, v)} />))}
+        {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} /> : <Answer key={i} m={m} onPick={send} onRate={(v) => rate(m, v)} onSecond={() => second(m)} />))}
         {busy ? (
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
             <ActivityIndicator color={C.dim} />
@@ -98,7 +116,7 @@ const UserBubble = ({ text }: { text: string }) => (
   </View>
 );
 
-function Answer({ m, onPick, onRate }: { m: Msg; onPick: (q: string) => void; onRate: (v: number) => void }) {
+function Answer({ m, onPick, onRate, onSecond }: { m: Msg; onPick: (q: string) => void; onRate: (v: number) => void; onSecond: () => void }) {
   const [layer, setLayer] = useState<"none" | "breakdown" | "evidence">("none");
   if (m.error) {
     return <View style={{ backgroundColor: C.badSoft, borderRadius: 12, padding: 12 }}><Text style={{ color: C.bad }}>{m.error}</Text></View>;
@@ -107,6 +125,7 @@ function Answer({ m, onPick, onRate }: { m: Msg; onPick: (q: string) => void; on
   return (
     <View style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 16, borderTopLeftRadius: 4, padding: 14, gap: 10, maxWidth: "96%" }}>
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+        {m.second_of ? <Pill text="SECOND OPINION" color={C.text} bg={C.card2} /> : null}
         {m.stage ? <Pill text={(STAGE[String(m.stage).toLowerCase()] ?? m.stage).toUpperCase()} color={C.accent} bg={C.accentSoft} /> : null}
         {m.kind === "clarify" ? <Pill text="DID YOU MEAN" color={C.warn} bg={C.warnSoft} /> : null}
         {m.kind === "out_of_scope" ? <Pill text="OUTSIDE MY AREA" /> : null}
@@ -148,10 +167,12 @@ function Answer({ m, onPick, onRate }: { m: Msg; onPick: (q: string) => void; on
           ))}
         </View>
       ) : null}
+      {m.note ? <Text style={{ color: C.faint, fontSize: 11 }}>{m.note}</Text> : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
         <Text style={{ color: C.faint, fontSize: 11, flex: 1 }}>
-          {m.provider === "claude" ? "Claude" : "Gemini"}{m.ms ? ` · ${(m.ms / 1000).toFixed(0)}s` : ""}{m.lookups?.length ? ` · looked at ${m.lookups.length} source(s)` : ""}
+          {m.model_label ?? (m.provider === "gemini" ? "Gemini" : "Claude")} · {m.cost_usd ? `${(m.cost_usd * 100).toFixed(1)}¢` : "free"}{m.ms ? ` · ${(m.ms / 1000).toFixed(0)}s` : ""}{m.lookups?.length ? ` · ${m.lookups.length} lookups` : ""}
         </Text>
+        {!m.second_of ? <Text onPress={onSecond} style={{ color: C.accent, fontSize: 12, fontWeight: "600" }}>Second opinion</Text> : null}
         <Text onPress={() => onRate(1)} style={{ fontSize: 16, opacity: m.rating === -1 ? 0.3 : 1 }}>{m.rating === 1 ? "👍" : "👍🏻"}</Text>
         <Text onPress={() => onRate(-1)} style={{ fontSize: 16, opacity: m.rating === 1 ? 0.3 : 1 }}>👎</Text>
       </View>

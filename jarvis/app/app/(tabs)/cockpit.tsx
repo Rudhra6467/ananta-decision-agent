@@ -3,13 +3,15 @@ import { Alert, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
 import { api, logout } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
-import { Btn, Busy, Card, Divider, Dot, ErrorBox, Line, Screen, Section, T } from "../../src/ui";
+import { Btn, Busy, Card, Divider, Dot, ErrorBox, Line, Screen, Section, Segmented, T } from "../../src/ui";
+import { Progress } from "../../src/charts";
 import { useData } from "../../src/useData";
 import { C } from "../../src/theme";
 
 export default function Cockpit() {
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
   const [showActions, setShowActions] = useState(false);
+  const { data: sp, reload: reloadSpend } = useData("/v3/spend");
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
 
@@ -48,6 +50,33 @@ export default function Cockpit() {
           </View>
         ))}
       </Card>
+
+      {sp ? (
+        <>
+          <Section title="Ananta AI" />
+          <Card>
+            <AiSwitch label="Ask Ananta" help="Off = no AI answers at all (nothing can cost money)." on={sp.settings.ask_enabled === "1"}
+              onChange={async (v) => { await api("/v3/settings", { key: "ask_enabled", value: v ? "1" : "0" }); reloadSpend(); }} />
+            <Divider />
+            <AiSwitch label="Voice and announcements" help="Off = Ananta never speaks or reaches out by itself." on={sp.settings.voice_enabled === "1"}
+              onChange={async (v) => { await api("/v3/settings", { key: "voice_enabled", value: v ? "1" : "0" }); reloadSpend(); }} />
+            <Divider />
+            <View style={{ paddingVertical: 10, gap: 8 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>Claude budget per day</Text>
+                <Text style={{ color: C.text, fontWeight: "700" }}>${sp.today_usd.toFixed(2)} of ${sp.budget_usd.toFixed(2)}</Text>
+              </View>
+              <Progress value={sp.today_usd} of={sp.budget_usd || 1} color={sp.today_usd >= sp.budget_usd ? C.bad : C.accent} />
+              <Segmented value={String(sp.budget_usd)} onChange={async (v) => { await api("/v3/settings", { key: "daily_budget_usd", value: v }); reloadSpend(); }}
+                options={["0", "1", "2", "5", "10"].map((x) => ({ key: x, label: `$${x}` }))} />
+              <T small>When today's budget is used up: {sp.settings.over_budget === "stop" ? "Claude stops until tomorrow." : "Gemini (free) answers instead."}
+                {"  "}<Text style={{ color: C.accent }} onPress={async () => { await api("/v3/settings", { key: "over_budget", value: sp.settings.over_budget === "stop" ? "gemini" : "stop" }); reloadSpend(); }}>Change</Text></T>
+              <Line label="This month" value={`$${sp.month_usd.toFixed(2)}`} />
+              {Object.entries(sp.month).map(([k, v]: any) => <Line key={k} label={`  ${k}`} value={`${v.answers} answers · $${v.usd.toFixed(2)}`} />)}
+            </View>
+          </Card>
+        </>
+      ) : null}
 
       <Section title="Systems" />
       <Card>
@@ -88,5 +117,17 @@ export default function Cockpit() {
       </Card>
       <Btn label="Sign out" kind="secondary" onPress={async () => { await logout(); router.replace("/login"); }} />
     </Screen>
+  );
+}
+
+function AiSwitch({ label, help, on, onChange }: { label: string; help: string; on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 }}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>{label}</Text>
+        <T small>{help}</T>
+      </View>
+      <Switch value={on} onValueChange={onChange} trackColor={{ true: C.accent, false: C.line }} />
+    </View>
   );
 }

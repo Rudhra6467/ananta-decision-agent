@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-VERSION = "jarvis.service.v0.1"
+VERSION = "jarvis.service.v0.3"
 TOKEN_TTL_S = 12 * 3600
 MAX_FAILED, FAIL_WINDOW_S = 5, 15 * 60
 

@@ -148,3 +148,84 @@ def kill(b: Kill, who: str = Depends(owner)) -> dict:
 def push_register(b: Push, who: str = Depends(owner)) -> dict:
     _run(J().register_push, who, b.token, b.device)
     return {"ok": True}
+
+
+# ---- v0.3: plain-language views, evidence, cockpit, Ask Ananta ----
+from jarvis.service import ask as _ask  # noqa: E402
+from jarvis.service import views  # noqa: E402
+
+_A: _ask.Ask | None = None
+
+
+def A() -> _ask.Ask:
+    global _A
+    if _A is None:
+        _A = _ask.Ask(J())
+    return _A
+
+
+class Question(BaseModel):
+    text: str
+    thread: str | None = None
+    provider: str | None = None
+
+
+class Rating(BaseModel):
+    id: str
+    rating: int
+
+
+@app.get("/v3/home")
+def home(who: str = Depends(owner)) -> dict:
+    return {"summary": views.day_summary(J()), "feed": views.feed(J(), hours=72, limit=40)}
+
+
+@app.get("/v3/holdings")
+def holdings(who: str = Depends(owner)) -> dict:
+    return views.holdings(J())
+
+
+@app.get("/v3/trade/{trade_id}")
+def trade(trade_id: str, who: str = Depends(owner)) -> dict:
+    return _run(views.trade_detail, J(), trade_id)
+
+
+@app.get("/v3/evidence/collected")
+def ev_collected(who: str = Depends(owner)) -> dict:
+    return views.evidence_collected(J())
+
+
+@app.get("/v3/evidence/forwarded")
+def ev_forwarded(who: str = Depends(owner)) -> dict:
+    return views.evidence_forwarded(J())
+
+
+@app.get("/v3/cockpit")
+def cockpit(who: str = Depends(owner)) -> dict:
+    return views.cockpit(J())
+
+
+@app.post("/v3/ask")
+def ask_q(b: Question, who: str = Depends(owner)) -> dict:
+    return _run(A().ask, who, b.text, b.thread, b.provider)
+
+
+@app.post("/v3/ask/rate")
+def ask_rate(b: Rating, who: str = Depends(owner)) -> dict:
+    A().rate(b.id, b.rating)
+    return {"ok": True}
+
+
+@app.get("/v3/ask/threads")
+def ask_threads(who: str = Depends(owner)) -> dict:
+    return {"threads": A().threads()}
+
+
+@app.get("/v3/ask/thread/{thread}")
+def ask_thread(thread: str, who: str = Depends(owner)) -> dict:
+    return {"messages": A().thread(thread)}
+
+
+@app.get("/v3/ask/stats")
+def ask_stats(who: str = Depends(owner)) -> dict:
+    return A().stats()

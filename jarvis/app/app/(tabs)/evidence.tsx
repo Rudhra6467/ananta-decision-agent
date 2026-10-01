@@ -33,7 +33,7 @@ function Collected() {
             <Expand title={x.label} right={<Text style={{ color: C.text, fontWeight: "700", fontSize: 16 }}>{String(x.value)}{x.goal ? <Text style={{ color: C.faint, fontWeight: "400" }}> / {x.goal}</Text> : null}</Text>}>
               {x.goal ? <Progress value={Number(x.value) || 0} of={x.goal} /> : null}
               <T>{x.explain}</T>
-              {x.parts && Object.keys(x.parts).length ? Object.entries(x.parts).map(([k, v]: any) => <Line key={k} label={k.replace(/_/g, " ").toLowerCase()} value={String(v)} />) : null}
+              {x.parts && Object.keys(x.parts).length ? Object.entries(x.parts).map(([k, v]: any) => <Line key={k} label={k.replace(/_/g, " ")} value={String(v)} />) : null}
             </Expand>
           </View>
         ))}

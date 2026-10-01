@@ -119,7 +119,7 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
         sells = [f["coin"] for f in fs if f["side"] == "SELL"]
         parts = ([f"bought {', '.join(buys)}"] if buys else []) + ([f"sold {', '.join(sells)}"] if sells else [])
         items.append({"t": fs[0]["t"], "kind": "portfolio", "title": "Portfolio rebalanced (paper)",
-                      "body": "; ".join(parts).capitalize() + f". ${sum(f['usd'] for f in fs):,.0f} moved, costs ${sum(f['cost'] for f in fs):.2f}."})
+                      "body": ("; ".join(parts)[:1].upper() + "; ".join(parts)[1:]) + f". ${sum(f['usd'] for f in fs):,.0f} moved, costs ${sum(f['cost'] for f in fs):.2f}."})
     hb = [h for h in _jsonl(j.dir / "watch_heartbeat.jsonl", 200) if _ts(h.get("ts")) >= since]
     for h in hb:
         t = _ts(h.get("ts"))
@@ -143,7 +143,7 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
                           "body": f"Strategy book (SD6). Reason: {why}."})
         elif a.get("level") in ("WARN", "ERROR"):
             items.append({"t": t, "kind": "warn", "title": title.replace("Ananta", "").strip(": "), "body": body[:200]})
-    for (t, who, action, detail, result) in j.db.execute("SELECT t, who, action, detail, result FROM audit WHERE t >= ? AND action NOT IN ('login') ORDER BY seq", (since,)):
+    for (t, who, action, detail, result) in j.db.execute("SELECT t, who, action, detail, result FROM audit WHERE t >= ? AND action NOT IN ('login', 'ask') ORDER BY seq", (since,)):
         label = {"portfolio.mode": f"Portfolio mode set to {detail}", "safety.kill_switch": f"Kill switch {detail}",
                  "portfolio.approve": "You approved portfolio changes", "portfolio.reject": "You rejected portfolio changes"}.get(action, action)
         items.append({"t": t, "kind": "info", "title": label, "body": "From the Jarvis app."})
@@ -375,9 +375,9 @@ def evidence_collected(j) -> dict:
          "explain": "Trades we did not take but track anyway: random entries (the baseline to beat), setups with no trade type, orders blocked by a full slot or the caps. They show what we would have got."},
         {"key": "hourly_looks", "label": "Hourly watch looks", "value": looks,
          "explain": "The hourly watch runs Hunter (reversals) and Squeeze (compression breakouts) on 10 coins. Hunter is rare: about 2-8 times per coin per year."},
-        {"key": "hunter", "label": "Hunter near-misses (last 24h)", "value": hunter.get("hunter", {}).get("detected_24h", 0),
-         "parts": hunter.get("hunter", {}).get("top_reasons", {}),
-         "explain": "Hours where Hunter saw a possible reversal but a condition failed. The reasons show what was missing."},
+        {"key": "hunter", "label": "Hunter checks, last 24h (fired)", "value": f"{hunter.get('hunter', {}).get('looks', 0)} ({hunter.get('hunter', {}).get('setups', 0)})",
+         "parts": {_reason(k): v for k, v in hunter.get("hunter", {}).get("top_reasons", {}).items()},
+         "explain": "Each hour Hunter checks 10 coins for a reversal at support. The list shows how often each condition blocked it (one check can fail several)."},
         {"key": "reconstruction", "label": "Nightly rebuild matches live", "value": ("yes" if recon and recon.get("match") else "no" if recon else "not yet"),
          "detail": recon, "explain": "Each night the day is rebuilt from raw candles. If the rebuild and the live log agree, the evidence can be trusted."},
     ]
@@ -388,6 +388,12 @@ def evidence_collected(j) -> dict:
             "summary": f"{sum(1 for r in led['reviews'] if r['status'] == 'DONE')} reviews done ({sum(1 for r in led['reviews'] if r['verdict'] == 'PASS')} passed). "
                        f"{len(led['queue'])} questions wait for more live evidence."}
     return {"collected": sorted(by_setup.values(), key=lambda d: d["setup"]), "tracker": tracker, "forwarded": forwarded, "shop": shop}
+
+
+def _reason(code: str) -> str:
+    from jarvis.service.ask import HUNTER_REASONS
+
+    return HUNTER_REASONS.get(code, code.replace("REJECTED_", "").replace("_", " ").lower())
 
 
 def _hourly_strategies(j, hours: float = 24) -> dict:

@@ -91,6 +91,9 @@ HUNTER_REASONS = {
     "REJECTED_NO_VCP_BASE": "no tight base (volatility contraction) under the price",
     "REJECTED_HTF_TREND_MISALIGNED": "the higher-timeframe trend points the other way",
     "REJECTED_NO_SUPPORT_ZONE": "no support zone nearby",
+    "REJECTED_VOLUME_NOT_EXHAUSTED": "selling volume has not dried up yet",
+    "REJECTED_CHASING_GREEN_CANDLE": "price already jumped (would be chasing a green candle)",
+    "REJECTED_OUTSIDE_ATR_ZONE": "price is not close enough to the entry zone",
     "REGIME_FILTERED": "the market regime does not suit this strategy",
     "no_qualifying_setup": "no qualifying setup",
 }

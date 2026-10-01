@@ -349,3 +349,34 @@ def test_alerts_by_talking_and_briefs():
     assert AB.due_brief() == "morning"
     b = AB.write_brief("morning", lambda q: {"answer": "Quiet night.", "kind": "answer"}, push=lambda t, x: None)
     assert b["text"] == "Quiet night." and AB.due_brief() is None and AB.latest_brief()["kind"] == "morning"
+
+
+
+def test_manual_paper_orders_journal_and_jobs():
+    from jarvis.service.manual import Manual
+    from jarvis.service.mandate import Mandate
+    j, ex = _jarvis()
+    px = ex.prices()
+    coin = next(iter(px))
+    L = ask.Lookups(j, "t")
+    r = L.call("propose_paper_order", {"side": "buy", "coin": coin, "usd": 300, "stop": px[coin] * 0.95, "reason": "testing the flow"})
+    assert r["prepared"]["kind"] == "paper_order" and "Paper BUY $300.00" in r["prepared"]["summary"]
+    Mn, M = Manual(j.db, j.now), Mandate(j.db, j.now)
+    assert Mn.state(px)["positions"] == []                                     # not executed before confirmation
+    M.decide("o", r["prepared"]["id"], True, {"paper_order": lambda who, p: Mn.execute(who, p, px)})
+    st = Mn.state(px)
+    assert st["positions"][0]["coin"] == coin and st["cash"] < 700 and st["positions"][0]["stop"] == px[coin] * 0.95
+    assert Mn.journal()[0]["text"] == "testing the flow"
+    for bad in ({"side": "buy", "coin": coin, "usd": 5000}, {"side": "buy", "coin": "NOPE", "usd": 10}, {"side": "hold", "coin": coin, "usd": 1},
+                {"side": "buy", "coin": coin, "usd": 10, "stop": px[coin] * 2}):
+        assert "error" in L.call("propose_paper_order", bad), bad
+    low = {c: (p * 0.9 if c == coin else p) for c, p in px.items()}             # price falls through the stop
+    sold = Mn.check_stops(low)
+    assert sold and sold[0]["side"] == "sell" and Mn.state(low)["positions"] == []
+    assert Mn.state(low)["realized"] < 0
+    # sell-all without an amount, and a research job
+    Mn.execute("o", {"side": "buy", "coin": coin, "usd": 100}, px)
+    pv = Mn.preview({"side": "sell", "coin": coin}, px)
+    assert abs(pv["order"]["usd"] - Mn.state(px)["positions"][0]["value"]) < 0.01
+    jb = Mn.start_job("o", "reconstruction", lambda: {"match": True, "logged_real_events": 3, "rebuilt_real_events": 3}, background=False)
+    assert Mn.job(jb["job"])["status"] == "DONE"

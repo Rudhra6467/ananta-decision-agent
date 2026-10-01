@@ -29,7 +29,9 @@ const VERB: Record<string, string> = {
   overview: "Checked what Ananta is doing", market: "Read the market", setups: "Checked setup conditions", strategy: "Looked at a strategy",
   trades: "Pulled the trades", trade: "Opened a trade", portfolio: "Checked the portfolio", history: "Looked up history",
   evidence: "Checked the evidence", knowledge: "Searched research notes", changes: "Read recent activity", report: "Read the report",
-  mandate: "Read your mandate", propose_mandate_change: "Prepared a mandate change",
+  mandate: "Read your mandate", propose_mandate_change: "Prepared a mandate change", alerts: "Checked your alerts",
+  propose_alert: "Prepared an alert", manual_book: "Checked your paper book", propose_paper_order: "Prepared a paper order",
+  start_research: "Started a research job",
 };
 
 type Turn = { heard: string; r: any };

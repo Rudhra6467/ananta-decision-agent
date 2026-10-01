@@ -46,7 +46,7 @@ RULES
 2. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
 4. Scope: trading, markets, the economy and news that moves markets, and Ananta itself. Anything else: kind "out_of_scope" with a one-line polite reply ("That's outside my area - I'm built for trading and markets.").
-5. Actions: in this version you cannot change anything (no orders, no switches, no approvals). If asked to act, use kind "cannot_do_yet". Be exact about what exists: manual orders cannot be placed anywhere yet (paper orders from chat, with a confirm step, come in the next phase; real orders only after an exchange is connected); the Cockpit has the kill switch and the portfolio autopilot switch; the Portfolio screen approves or rejects the portfolio's own suggestions. You may still describe what the order would look like (price now, size, exposure) from lookups.
+5. Actions you can PREPARE (the owner confirms each card in the app): paper orders in the owner's manual book (propose_paper_order), alerts (propose_alert), mandate changes (propose_mandate_change). You can START a read-only reconstruction (start_research). You cannot: place real orders (no exchange is connected; real orders come only after the live rules are approved), flip switches (kill switch and autopilot are in the Cockpit), or approve the portfolio's own suggestions (Portfolio screen). For those use kind "cannot_do_yet" and say exactly where to do it. If an order request is missing the amount, ask for it (clarify); check it against the mandate's limits and say if it conflicts.
 6. Unclear: if the question could mean different things that lead to different answers, use kind "clarify" with 2-4 short "Did you mean" options. If one reading is clearly most likely, answer it and state the assumption. Follow-ups ("why?", "and before that?") refer to the last topic.
 7. If the conversation note says clarification already failed twice, do not ask again: use kind "not_understood" with 3 example questions you can answer.
 8. Money: $ with 2 decimals; percentages with 1-2 decimals; times in Toronto time if given.
@@ -93,6 +93,15 @@ TOOLS = [
      "move_pct (value = percent move in a day), setup (setup = E1-E5 or ANY: tells when that setup's conditions are all met). "
      "This does NOT create it: the owner confirms a card in the app. Alerts are checked every 15 minutes and cost nothing.",
      _schema({"kind": {"type": "string"}, "coin": COIN, "value": {"type": "number"}, "setup": {"type": "string"}, "note": {"type": "string"}}, ["kind", "coin"])),
+    ("manual_book", "The owner's own manual paper book (orders the owner asked for, separate from the Explorer and the portfolio): cash, positions, P&L, recent fills with reasons, and the decision journal.", OFF),
+    ("propose_paper_order", "Prepare a PAPER order in the owner's manual book when the owner asks to buy or sell. side buy | sell, coin, usd amount "
+     "(for sell, omit usd to sell all), optional stop and target prices, and the owner's reason in their words. This does NOT trade: "
+     "it shows a confirmation card (price now, size, exposure, cash after) that the owner must approve with Face ID. Never for real money.",
+     _schema({"side": {"type": "string"}, "coin": COIN, "usd": {"type": "number"}, "stop": {"type": "number"}, "target": {"type": "number"},
+              "reason": {"type": "string"}}, ["side", "coin"])),
+    ("start_research", "Start a research job now (read-only, no cost): kind 'reconstruction' rebuilds every Explorer decision from raw candles "
+     "and checks it matches the live log. The owner gets a phone note when done. Also returns recent jobs.",
+     _schema({"kind": {"type": "string", "description": "reconstruction"}}, ["kind"])),
     ("mandate", "The owner's mandate in full: goals, markets, styles, setups, limits, how to talk. Also any actions waiting for the owner.", OFF),
     ("propose_mandate_change", "Prepare a change to the owner's mandate when the owner asks to change their goals, limits, styles or preferences. "
      "This does NOT change anything: it creates a confirmation card the owner must approve in the app.",
@@ -340,6 +349,42 @@ class Lookups:
         a = Mandate(self.j.db, self.j.now).propose("alert", summary, v, self.thread)
         self.created.append(a)
         return {"prepared": a, "note": "Not active yet. The owner confirms the card in the app."}
+
+    def t_manual_book(self) -> dict:
+        from jarvis.service.manual import Manual
+
+        Mn = Manual(self.j.db, self.j.now)
+        return {**Mn.state(self.j.prices()), "fills": Mn.fills(15), "journal": Mn.journal(15)}
+
+    def t_propose_paper_order(self, side: str, coin: str, usd: float | None = None, stop: float | None = None,
+                              target: float | None = None, reason: str = "") -> dict:
+        from jarvis.service.manual import Manual
+        from jarvis.service.mandate import Mandate
+
+        try:
+            pv = Manual(self.j.db, self.j.now).preview({"side": side, "coin": coin, "usd": usd, "stop": stop, "target": target, "reason": reason},
+                                                      self.j.prices())
+        except ValueError as exc:
+            return {"error": str(exc)}
+        a = Mandate(self.j.db, self.j.now).propose("paper_order", pv["summary"], pv["order"], self.thread)
+        self.created.append(a)
+        return {"prepared": a, "preview": pv, "note": "Not executed. The owner confirms the card (Face ID); it fills at the price at that moment."}
+
+    def t_start_research(self, kind: str) -> dict:
+        from jarvis.service.manual import Manual
+
+        Mn = Manual(self.j.db, self.j.now)
+        if kind != "reconstruction":
+            return {"error": "available research jobs: reconstruction", "recent": Mn.jobs(5)}
+        from src.intelligence import explorer_live as xl
+
+        def push(t, b):
+            from src.intelligence.paper_watch import push_phone
+
+            return push_phone(t, b, level="EVENT")
+        j = Mn.start_job("ananta (asked by owner)", "reconstruction", lambda: xl.reconstruct(self.j.dir), push=push,
+                         background=os.getenv("ASK_JOBS_INLINE") != "1")
+        return {"started": j, "note": "Running in the background; takes a minute or two. The owner gets a phone note when done.", "recent": Mn.jobs(5)}
 
     def t_report(self, kind: str = "daily") -> dict:
         r = self.j._latest("explorer_weekly" if kind.startswith("w") else "explorer_daily")

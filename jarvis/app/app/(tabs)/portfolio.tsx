@@ -18,9 +18,9 @@ export default function Portfolio() {
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
-        <Segmented value={tab} onChange={setTab} options={[{ key: "portfolio", label: "Portfolio (T3)" }, { key: "explorer", label: "Explorer trades" }]} />
+        <Segmented value={tab} onChange={setTab} options={[{ key: "portfolio", label: "Portfolio" }, { key: "explorer", label: "Explorer" }, { key: "mine", label: "My trades" }]} />
       </View>
-      {tab === "portfolio" ? <Book /> : <Trades />}
+      {tab === "portfolio" ? <Book /> : tab === "explorer" ? <Trades /> : <Mine />}
     </View>
   );
 }
@@ -172,6 +172,58 @@ function Trades() {
           </View>
         ))}
       </Card>
+    </Screen>
+  );
+}
+
+function Mine() {
+  const { data: d, err, loading, reload } = useData("/v3/manual");
+  if (!d && loading) return <Busy />;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  const gain = d.equity - d.start;
+  return (
+    <Screen loading={loading} onRefresh={reload}>
+      <Big label="My paper book" value={usd(d.equity)} change={gain} changeLabel={`${usdSigned(gain)} (${pct(d.return_pct)}) since start`} />
+      <T dim>Orders you ask Ananta for land here, separate from the agent's books, so your calls and the agent's can be compared. Paper only.</T>
+      <View style={{ flexDirection: "row", gap: 12 }}>
+        <Stat label="Cash" value={usd(d.cash)} />
+        <Stat label="Closed P&L" value={usdSigned(d.realized)} color={pnlColor(d.realized)} />
+        <Stat label="Costs" value={usd(d.costs)} />
+      </View>
+      <Section title="Positions" />
+      <Card>
+        {d.positions.length === 0 ? <T dim>None yet. Try asking Ananta: "buy $200 of ETH with a stop at 2,600".</T> : null}
+        {d.positions.map((p: any, i: number) => (
+          <View key={p.coin}>
+            {i ? <Divider /> : null}
+            <Row title={p.coin} sub={[p.stop ? `stop ${price(p.stop)}` : null, p.target ? `target ${price(p.target)}` : null].filter(Boolean).join(" · ") || "no stop set"}
+              value={usd(p.value)} valueSub={`${usdSigned(p.pnl)}`} valueSubColor={pnlColor(p.pnl)} onPress={() => router.push(`/coin/${p.coin}`)}
+              onLongPress={() => askAbout({ screen: "manual_position", coin: p.coin, label: `my ${p.coin} paper position` }, `How is my ${p.coin} paper position doing?`)} />
+          </View>
+        ))}
+      </Card>
+      <Section title="Orders and reasons" />
+      <Card>
+        {d.fills.length === 0 ? <T dim>No orders yet.</T> : null}
+        {d.fills.map((f: any, i: number) => (
+          <View key={f.id}>
+            {i ? <Divider /> : null}
+            <Line label={`${f.side === "BUY" ? "Bought" : "Sold"} ${f.coin} · ${new Date(f.t * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`}
+              value={`${usd(f.usd)} @ ${price(f.px)}`} sub={f.reason ? `“${f.reason}”` : f.trigger !== "owner" ? `automatic: ${f.trigger}` : undefined} />
+          </View>
+        ))}
+      </Card>
+      {d.jobs?.length ? (
+        <>
+          <Section title="Research jobs" />
+          <Card>
+            {d.jobs.map((jb: any) => (
+              <Line key={jb.id} label={`${jb.kind} · ${new Date(jb.t * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`}
+                value={jb.status === "DONE" && jb.result?.match !== undefined ? (jb.result.match ? "✓ matches" : "✗ differs") : jb.status.toLowerCase()} />
+            ))}
+          </Card>
+        </>
+      ) : null}
     </Screen>
   );
 }

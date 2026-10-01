@@ -304,8 +304,15 @@ def AL():
     return Alerts(J().db, J().now)
 
 
+def MN():
+    from jarvis.service.manual import Manual
+
+    return Manual(J().db, J().now)
+
+
 def executors() -> dict:
-    return {"mandate": M().apply_mandate_change, "alert": AL().create}
+    return {"mandate": M().apply_mandate_change, "alert": AL().create,
+            "paper_order": lambda who, p: MN().execute(who, p, J().prices())}
 
 
 @app.get("/v3/mandate")
@@ -355,7 +362,8 @@ def _push(title: str, body: str):
 
 def background_jobs() -> dict:
     """Every 15 minutes: check alerts (no AI cost); write the morning / evening brief once each (free model)."""
-    out = {"fired": AL().check(J()._explorer(), push=_push)}
+    ex = J()._explorer()
+    out = {"fired": AL().check(ex, push=_push), "manual_stops": MN().check_stops(ex.prices() if ex else {}, push=_push)}
     a = A()
     if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
         kind = AL().due_brief()
@@ -398,3 +406,23 @@ def inbox(who: str = Depends(owner)) -> dict:
     ps = J()._layer().pending()
     return {"actions": M().pending(), "portfolio": ps, "alerts_active": len(AL().list(include_done=False)),
             "count": len(M().pending()) + (1 if ps else 0)}
+
+
+
+class Note(BaseModel):
+    kind: str = "note"
+    ref: str = ""
+    text: str
+
+
+@app.get("/v3/manual")
+def manual(who: str = Depends(owner)) -> dict:
+    m = MN()
+    return {**m.state(J().prices()), "fills": m.fills(), "journal": m.journal(), "jobs": m.jobs()}
+
+
+@app.post("/v3/journal")
+def journal_note(b: Note, who: str = Depends(owner)) -> dict:
+    if not b.text.strip():
+        raise HTTPException(status_code=400, detail="empty note")
+    return MN().note(who, b.kind, b.ref, b.text)

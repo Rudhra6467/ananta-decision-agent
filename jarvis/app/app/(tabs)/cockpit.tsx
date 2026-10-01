@@ -78,6 +78,8 @@ export default function Cockpit() {
         </>
       ) : null}
 
+      <Card onPress={() => router.push("/mandate")} title="Your mandate" sub="Goals, markets, styles and limits Ananta follows" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
+
       <Section title="Systems" />
       <Card>
         {d.systems.map((s: any, i: number) => (

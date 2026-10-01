@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { askAbout, setScreen } from "../../src/context";
 import { api } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
 import { Big, Btn, Busy, Card, Divider, Dot, ErrorBox, Row, Screen, Section, Stat, T, pct, usd } from "../../src/ui";
@@ -16,6 +17,7 @@ export default function Home() {
   const { data: d, err, loading, reload } = useData("/v3/home");
   const [q, setQ] = useState("");
   const [all, setAll] = useState(false);
+  useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home: today's summary and activity" }); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   const s = d.summary;
@@ -71,7 +73,8 @@ export default function Home() {
         {feed.map((it: any, i: number) => (
           <View key={i}>
             {i ? <Divider /> : null}
-            <Pressable disabled={!it.trade_id} onPress={() => router.push(`/trade/${it.trade_id}`)} style={{ flexDirection: "row", gap: 12, paddingVertical: 11 }}>
+            <Pressable onPress={() => it.trade_id && router.push(`/trade/${it.trade_id}`)} delayLongPress={350}
+              onLongPress={() => askAbout({ screen: "activity", label: `${it.title} (${it.time})`, coin: it.coin, id: it.trade_id, item: it }, `Explain this: ${it.title}`)} style={{ flexDirection: "row", gap: 12, paddingVertical: 11 }}>
               <View style={{ paddingTop: 6 }}><Dot color={KIND[it.kind]?.color ?? C.faint} /></View>
               <View style={{ flex: 1, gap: 2 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>

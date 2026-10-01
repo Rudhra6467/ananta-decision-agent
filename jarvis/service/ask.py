@@ -51,6 +51,10 @@ RULES
 7. If the conversation note says clarification already failed twice, do not ask again: use kind "not_understood" with 3 example questions you can answer.
 8. Money: $ with 2 decimals; percentages with 1-2 decimals; times in Toronto time if given.
 
+9. Changes: you can only PREPARE changes (propose_* lookups). Say clearly that a confirmation card is waiting; never claim something was changed.
+10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
+11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
+
 OUTPUT: reply with ONE JSON object and nothing else:
 {"kind": "answer" | "clarify" | "not_understood" | "out_of_scope" | "cannot_do_yet",
  "stage": one lifecycle word or "" ,
@@ -59,7 +63,8 @@ OUTPUT: reply with ONE JSON object and nothing else:
  "evidence": [{"label": "...", "value": "...", "source": "which lookup / record", "time": "when, if known"}],
  "assumption": "the reading you assumed, or empty",
  "options": ["for clarify only: short options"],
- "follow_ups": ["2-3 natural next questions"]}"""
+ "follow_ups": ["2-3 natural next questions"],
+ "show": [{"screen": "...", "label": "..."}]}"""
 
 OFF = {"type": "object", "properties": {}}
 
@@ -83,6 +88,13 @@ TOOLS = [
     ("knowledge", "Search Ananta's research and knowledge: repair shop reviews, rulebook, variable registry, studies. Use for 'what did we learn', 'why do we do X', 'has this been tested'.", _schema({"query": {"type": "string"}}, ["query"])),
     ("changes", "What changed / happened in the last N hours: buys, sells, orders, portfolio moves, warnings, owner actions.", _schema({"hours": {"type": "number"}})),
     ("report", "The latest daily or weekly report text.", _schema({"kind": {"type": "string", "description": "daily | weekly"}})),
+    ("mandate", "The owner's mandate in full: goals, markets, styles, setups, limits, how to talk. Also any actions waiting for the owner.", OFF),
+    ("propose_mandate_change", "Prepare a change to the owner's mandate when the owner asks to change their goals, limits, styles or preferences. "
+     "This does NOT change anything: it creates a confirmation card the owner must approve in the app.",
+     _schema({"section": {"type": "string", "description": "goal | markets_now | markets_later | styles | setups | limits | how_to_talk"},
+              "op": {"type": "string", "description": "add | replace | remove"},
+              "text": {"type": "string", "description": "the new sentence (add / replace)"},
+              "old": {"type": "string", "description": "the existing sentence, exactly (replace / remove)"}}, ["section", "op"])),
 ]
 TOOL_DESC = {n: d for n, d, _ in TOOLS}
 
@@ -102,9 +114,11 @@ HUNTER_REASONS = {
 class Lookups:
     """Read-only functions over Ananta's data. Each returns plain JSON-able data."""
 
-    def __init__(self, j):
+    def __init__(self, j, thread: str | None = None):
         self.j = j
         self._ex = None
+        self.thread = thread
+        self.created: list[dict] = []          # pending actions prepared during this answer
 
     @property
     def ex(self):
@@ -282,6 +296,25 @@ class Lookups:
 
     def t_changes(self, hours: float = 24) -> dict:
         return {"hours": hours, "events": [{k: it.get(k) for k in ("time", "kind", "title", "body")} for it in views.feed(self.j, hours=hours, limit=40)]}
+
+    def t_mandate(self) -> dict:
+        from jarvis.service.mandate import Mandate
+
+        M = Mandate(self.j.db, self.j.now)
+        return {**M.get(), "pending_actions": M.pending()}
+
+    def t_propose_mandate_change(self, section: str, op: str, text: str = "", old: str = "") -> dict:
+        from jarvis.service.mandate import SECTION_NAMES, Mandate
+
+        if section not in SECTION_NAMES:
+            return {"error": f"section must be one of {', '.join(SECTION_NAMES)}"}
+        if op not in ("add", "replace", "remove") or (op != "remove" and not text.strip()):
+            return {"error": "op is add / replace / remove, and add or replace needs text"}
+        verb = {"add": "Add to", "replace": "Change in", "remove": "Remove from"}[op]
+        summary = f"{verb} \"{SECTION_NAMES[section]}\": {text or old}"
+        a = Mandate(self.j.db, self.j.now).propose("mandate", summary, {"section": section, "op": op, "text": text, "old": old}, self.thread)
+        self.created.append(a)
+        return {"prepared": a, "note": "Not applied. The owner sees a confirmation card and must approve it."}
 
     def t_report(self, kind: str = "daily") -> dict:
         r = self.j._latest("explorer_weekly" if kind.startswith("w") else "explorer_daily")
@@ -476,6 +509,27 @@ def parse(text: str) -> dict:
             "assumption": "", "options": [], "follow_ups": []}
 
 
+SCREENS = {"coin", "trade", "markets", "portfolio", "evidence", "cockpit", "mandate", "home"}
+
+
+def _clean_show(items) -> list[dict]:
+    out = []
+    for it in (items or [])[:4]:
+        if not isinstance(it, dict) or it.get("screen") not in SCREENS:
+            continue
+        x = {"screen": it["screen"], "label": str(it.get("label") or it["screen"].capitalize())[:40]}
+        if it["screen"] == "coin":
+            if not str(it.get("coin", "")).isalnum():
+                continue
+            x["coin"] = str(it["coin"]).upper()[:6]
+        if it["screen"] == "trade":
+            if not re.fullmatch(r"[A-Za-z0-9_\-]{3,80}", str(it.get("id", ""))):
+                continue
+            x["id"] = str(it["id"])
+        out.append(x)
+    return out
+
+
 EXAMPLES = ["How is the market right now?", "What setups are close on ETH?", "How is the portfolio doing?", "What has Hunter been doing today?", "What did we learn from the repair shop?"]
 
 
@@ -636,16 +690,21 @@ class Ask:
         t0 = time.time()
         aid = uuid.uuid4().hex[:12]
         used = key
+        from jarvis.service.mandate import Mandate
+
+        system = SYSTEM + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text()
         try:
             try:
-                raw, usage = self.providers[key](SYSTEM, history, user_msg, Lookups(self.j), log)
+                L = Lookups(self.j, thread)
+                raw, usage = self.providers[key](system, history, user_msg, L, log)
             except Exception as exc:  # noqa: BLE001
                 # free Gemini busy: escalate once to Claude Haiku if allowed and within budget
                 if key == "gemini" and "haiku" in self.providers and self.spend()["left_usd"] > 0.02 and os.getenv("ANTHROPIC_API_KEY"):
                     used = "haiku"
                     note = (note + "; " if note else "") + "Gemini was busy, so Claude Haiku answered"
                     log.clear()
-                    raw, usage = self.providers["haiku"](SYSTEM, history, user_msg, Lookups(self.j), log)
+                    L = Lookups(self.j, thread)
+                    raw, usage = self.providers["haiku"](system, history, user_msg, L, log)
                 else:
                     raise exc
             reply = parse(raw)
@@ -663,6 +722,8 @@ class Ask:
         if reply["kind"] in ("clarify", "not_understood"):
             self.j.db.execute("INSERT INTO ask_misunderstood VALUES (?,?,?,?,?)", (now, thread, text, reply["kind"], used))
         ms = int(1000 * (time.time() - t0))
+        reply["show"] = _clean_show(reply.get("show"))
+        reply["actions"] = L.created
         meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of}
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                           (aid, thread, now + 1, "assistant", json.dumps({**reply, **meta}), used, model, ms,

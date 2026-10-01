@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { askAbout, setScreen } from "../../src/context";
 import { Text, View } from "react-native";
 import { LineChart, Progress } from "../../src/charts";
 import { Bullet, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Screen, Section, Segmented, Stat, T, pct, usdSigned } from "../../src/ui";
@@ -9,6 +11,7 @@ const VERDICT: Record<string, [string, string]> = { PASS: [C.good, C.goodSoft], 
 
 export default function Evidence() {
   const [tab, setTab] = useState("collected");
+  useFocusEffect(useCallback(() => { setScreen({ screen: "evidence", label: tab === "collected" ? "Evidence being collected" : "Evidence forwarded and in use" }); }, [tab]));
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
@@ -30,7 +33,7 @@ function Collected() {
         {d.tracker.map((x: any, i: number) => (
           <View key={x.key}>
             {i ? <Divider /> : null}
-            <Expand title={x.label} right={<Text style={{ color: C.text, fontWeight: "700", fontSize: 16 }}>{String(x.value)}{x.goal ? <Text style={{ color: C.faint, fontWeight: "400" }}> / {x.goal}</Text> : null}</Text>}>
+            <Expand title={x.label} onLongPress={() => askAbout({ screen: "evidence", label: `Evidence tracker: ${x.label} = ${x.value}` }, `What does "${x.label}: ${x.value}" tell us?`)} right={<Text style={{ color: C.text, fontWeight: "700", fontSize: 16 }}>{String(x.value)}{x.goal ? <Text style={{ color: C.faint, fontWeight: "400" }}> / {x.goal}</Text> : null}</Text>}>
               {x.goal ? <Progress value={Number(x.value) || 0} of={x.goal} /> : null}
               <T>{x.explain}</T>
               {x.parts && Object.keys(x.parts).length ? Object.entries(x.parts).map(([k, v]: any) => <Line key={k} label={k.replace(/_/g, " ")} value={String(v)} />) : null}
@@ -66,7 +69,7 @@ function Collected() {
         {d.forwarded.map((r: any, i: number) => (
           <View key={r.id}>
             {i ? <Divider /> : null}
-            <Expand title={`#${r.id.slice(1)} ${r.title}`} sub={r.date} right={<Pill text={r.verdict === "PASS" ? "PASSED" : "NO CHANGE"} color={VERDICT[r.verdict]?.[0]} bg={VERDICT[r.verdict]?.[1]} />}>
+            <Expand title={`#${r.id.slice(1)} ${r.title}`} sub={r.date} onLongPress={() => askAbout({ screen: "review", id: r.id, label: `Repair-shop review ${r.id}: ${r.title}` }, `Explain review ${r.id} simply: why it was done and what it means for us.`)} right={<Pill text={r.verdict === "PASS" ? "PASSED" : "NO CHANGE"} color={VERDICT[r.verdict]?.[0]} bg={VERDICT[r.verdict]?.[1]} />}>
               <Label>Why it was forwarded</Label><T>{r.why}</T>
               <Label>Question tested</Label><T>{r.question}</T>
               <Label>Result</Label><T>{r.result}</T>

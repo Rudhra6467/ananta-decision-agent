@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { useScreen } from "../../src/context";
+import { confirmWithFaceId } from "../../src/guard";
 import { api } from "../../src/api";
 import { Bullet, Divider, Pill, Segmented, T } from "../../src/ui";
 import { C } from "../../src/theme";
@@ -23,6 +25,7 @@ export default function Ask() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState("auto");
+  const [ctx, setCtx] = useScreen();
   const scroll = useRef<ScrollView>(null);
   const lastParam = useRef<string | undefined>(undefined);
 
@@ -33,7 +36,7 @@ export default function Ask() {
     setMsgs((m) => [...m, { role: "user", text: q }]);
     setBusy(true);
     try {
-      const r = await api("/v3/ask", { text: q, thread, mode });
+      const r = await api("/v3/ask", { text: q, thread, mode, context: ctx ?? undefined });
       setThread(r.thread);
       setMsgs((m) => [...m, { role: "assistant", ...r }]);
     } catch (e: any) {
@@ -78,6 +81,16 @@ export default function Ask() {
         <Text onPress={reset} style={{ color: C.accent, fontWeight: "600" }}>New chat</Text>
       </View>
       <Text style={{ color: C.faint, fontSize: 11, paddingHorizontal: 18, paddingTop: 4 }}>{MODE_HINT[mode]}</Text>
+      <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingTop: 6, alignItems: "center" }}>
+        {ctx && ctx.screen !== "ask" ? (
+          <Pressable onPress={() => setCtx(null)} style={{ flexDirection: "row", gap: 6, alignItems: "center", backgroundColor: C.accentSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, flexShrink: 1 }}>
+            <Text style={{ color: C.accent, fontSize: 12 }} numberOfLines={1}>About: {ctx.label}</Text>
+            <Text style={{ color: C.accent, fontSize: 12, fontWeight: "700" }}>✕</Text>
+          </Pressable>
+        ) : <Text style={{ color: C.faint, fontSize: 12, flex: 1 }}>Tip: long-press anything in the app to ask about it.</Text>}
+        <View style={{ flex: ctx ? 1 : 0 }} />
+        <Text onPress={() => router.push("/mandate")} style={{ color: C.accent, fontSize: 12, fontWeight: "600" }}>Your mandate</Text>
+      </View>
       <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         {msgs.length === 0 ? (
           <View style={{ gap: 10 }}>
@@ -167,6 +180,16 @@ function Answer({ m, onPick, onRate, onSecond }: { m: Msg; onPick: (q: string) =
           ))}
         </View>
       ) : null}
+      {(m.actions ?? []).map((a: any) => <ActionCard key={a.id} a={a} />)}
+      {m.show?.length ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {m.show.map((sh: any, i: number) => (
+            <Pressable key={i} onPress={() => openScreen(sh)} style={{ backgroundColor: C.text, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 }}>
+              <Text style={{ color: "#FFF", fontSize: 13, fontWeight: "600" }}>{sh.label} ›</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       {m.note ? <Text style={{ color: C.faint, fontSize: 11 }}>{m.note}</Text> : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
         <Text style={{ color: C.faint, fontSize: 11, flex: 1 }}>
@@ -185,3 +208,42 @@ const Tab = ({ label, on, onPress }: { label: string; on: boolean; onPress: () =
     <Text style={{ color: on ? "#FFF" : C.text, fontWeight: "600", fontSize: 13 }}>{label}</Text>
   </Pressable>
 );
+
+export function openScreen(sh: any) {
+  const to: Record<string, string> = { markets: "/(tabs)/markets", portfolio: "/(tabs)/portfolio", evidence: "/(tabs)/evidence",
+    cockpit: "/(tabs)/cockpit", mandate: "/mandate", home: "/(tabs)/today" };
+  if (sh.screen === "coin" && sh.coin) router.push(`/coin/${sh.coin}`);
+  else if (sh.screen === "trade" && sh.id) router.push(`/trade/${sh.id}`);
+  else if (to[sh.screen]) router.push(to[sh.screen] as any);
+}
+
+function ActionCard({ a }: { a: any }) {
+  const [status, setStatus] = useState<string>(a.status ?? "PENDING");
+  const [err, setErr] = useState<string | null>(null);
+  const decide = async (confirm: boolean) => {
+    if (confirm && !(await confirmWithFaceId("Confirm", a.summary))) return;
+    try {
+      const r = await api(`/v3/actions/${a.id}`, { confirm });
+      setStatus(r.status);
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    }
+  };
+  return (
+    <View style={{ borderWidth: 1, borderColor: C.accent, borderRadius: 12, padding: 12, gap: 8, backgroundColor: C.accentSoft }}>
+      <Text style={{ color: C.accent, fontSize: 11, fontWeight: "700", letterSpacing: 0.6 }}>NEEDS YOUR OK</Text>
+      <Text style={{ color: C.text, fontSize: 14 }}>{a.summary}</Text>
+      {status === "PENDING" ? (
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Pressable onPress={() => decide(false)} style={{ flex: 1, borderWidth: 1, borderColor: C.line, backgroundColor: C.card, borderRadius: 8, padding: 9, alignItems: "center" }}>
+            <Text style={{ color: C.text, fontWeight: "600" }}>Cancel</Text>
+          </Pressable>
+          <Pressable onPress={() => decide(true)} style={{ flex: 1, backgroundColor: C.accent, borderRadius: 8, padding: 9, alignItems: "center" }}>
+            <Text style={{ color: "#FFF", fontWeight: "700" }}>Confirm</Text>
+          </Pressable>
+        </View>
+      ) : <Text style={{ color: status === "DONE" ? C.good : C.dim, fontWeight: "600" }}>{status === "DONE" ? "✓ Done" : "Cancelled"}</Text>}
+      {err ? <Text style={{ color: C.bad, fontSize: 12 }}>{err}</Text> : null}
+    </View>
+  );
+}

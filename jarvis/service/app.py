@@ -275,3 +275,48 @@ def markets(who: str = Depends(owner)) -> dict:
 @app.get("/v3/chart/{sym}")
 def chart(sym: str, tf: str = "1h", who: str = Depends(owner)) -> dict:
     return _run(views.chart, J(), sym, tf)
+
+
+# ---- mandate and pending actions ----
+from jarvis.service.mandate import Mandate  # noqa: E402
+
+
+def M() -> Mandate:
+    return Mandate(J().db, J().now)
+
+
+class MandateBody(BaseModel):
+    sections: dict
+    why: str = ""
+
+
+class Decide(BaseModel):
+    confirm: bool
+
+
+def executors() -> dict:
+    return {"mandate": M().apply_mandate_change}
+
+
+@app.get("/v3/mandate")
+def mandate_get(who: str = Depends(owner)) -> dict:
+    return {**M().get(), "history": M().history()}
+
+
+@app.post("/v3/mandate")
+def mandate_set(b: MandateBody, who: str = Depends(owner)) -> dict:
+    out = _run(M().set, who, b.sections, b.why or "edited in the app")
+    J().audit(who, "mandate.edit", b.why or "app", f"v{out['version']}")
+    return out
+
+
+@app.get("/v3/actions")
+def actions(who: str = Depends(owner)) -> dict:
+    return {"pending": M().pending()}
+
+
+@app.post("/v3/actions/{aid}")
+def action_decide(aid: str, b: Decide, who: str = Depends(owner)) -> dict:
+    out = _run(M().decide, who, aid, b.confirm, executors())
+    J().audit(who, f"action.{'confirm' if b.confirm else 'cancel'}", f"{aid} {out.get('kind')}", out.get("status"))
+    return out

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Alert, Switch, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { askAbout, setScreen } from "../../src/context";
 import { api } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
 import { LineChart, StackBar } from "../../src/charts";
@@ -13,6 +14,7 @@ const SHADES = ["#2952CC", "#4A6FD6", "#6B8BDF", "#8CA6E8", "#ADC1F0", "#C6D4F5"
 
 export default function Portfolio() {
   const [tab, setTab] = useState("portfolio");
+  useFocusEffect(useCallback(() => { setScreen({ screen: tab === "portfolio" ? "portfolio" : "explorer_trades", label: tab === "portfolio" ? "Portfolio (T3 book)" : "Explorer trades" }); }, [tab]));
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
@@ -86,6 +88,7 @@ function Book() {
           <View key={r.coin}>
             <Divider />
             <Row title={r.coin} sub={`${COIN_NAME[r.coin] ?? ""} · ${r.weight_pct}% · `} onPress={() => router.push(`/coin/${r.coin}`)}
+              onLongPress={() => askAbout({ screen: "holding", coin: r.coin, label: `${r.coin} in the portfolio` }, `How is my ${r.coin} holding doing, and why is it rated ${ratingWord[r.rating] ?? r.rating}?`)}
               value={usd(r.value)} valueSub={`${usdSigned(r.pnl)} (${pct(r.pnl_pct)})`} valueSubColor={pnlColor(r.pnl)}
               left={<Pill text={ratingWord[r.rating] ?? r.rating} color={ratingColor[r.rating]} />} />
           </View>
@@ -144,6 +147,7 @@ function Trades() {
           <View key={t.id}>
             {i ? <Divider /> : null}
             <Row title={t.coin} sub={`${t.setup_name} · ${t.type_name}\nBought ${price(t.entry)} · ${t.since}`} onPress={() => router.push(`/trade/${t.id}`)}
+              onLongPress={() => askAbout({ screen: "trade", id: t.id, coin: t.coin, label: `${t.coin} trade ${t.id}` }, `How is this ${t.coin} trade doing and what are we waiting for?`)}
               value={usdSigned(t.pnl_usd)} valueColor={pnlColor(t.pnl_usd)} valueSub={t.status} />
           </View>
         ))}

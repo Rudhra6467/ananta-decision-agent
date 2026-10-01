@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { View } from "react-native";
+import { setScreen } from "../../src/context";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { LineChart } from "../../src/charts";
 import { Big, Btn, Bullet, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Screen, Section, Stat, T, pct, price, usd, usdSigned } from "../../src/ui";
@@ -8,6 +10,7 @@ import { C, COIN_NAME, pnlColor } from "../../src/theme";
 export default function Trade() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: d, err, loading, reload } = useData(`/v3/trade/${id}`);
+  useEffect(() => { if (d) setScreen({ screen: "trade", id: d.id, coin: d.coin, label: `${d.coin} trade (${d.open ? "open" : "closed"}, ${d.setup_name})` }); }, [d?.id]);
   const head = <Stack.Screen options={{ headerShown: true, title: d ? `${d.coin} trade` : "Trade", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false, headerTintColor: C.text, headerBackTitle: "Back" }} />;
   if (!d && loading) return <>{head}<Busy /></>;
   if (!d) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "Not found"} /></Screen></>;

@@ -1,5 +1,7 @@
 import { Pressable, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+import { askAbout, setScreen } from "../../src/context";
 import { Progress, Spark } from "../../src/charts";
 import { Busy, Card, Divider, ErrorBox, Pill, Screen, Section, T, pct, price } from "../../src/ui";
 import { useData } from "../../src/useData";
@@ -7,6 +9,7 @@ import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme
 
 export default function Markets() {
   const { data: d, err, loading, reload } = useData("/v3/markets");
+  useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: "Markets watchlist (10 coins)" }); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   return (
@@ -21,7 +24,8 @@ export default function Markets() {
         {d.coins.map((c: any, i: number) => (
           <View key={c.coin}>
             {i ? <Divider /> : null}
-            <Pressable onPress={() => router.push(`/coin/${c.coin}`)} style={({ pressed }) => ({ paddingVertical: 12, gap: 8, opacity: pressed ? 0.6 : 1 })}>
+            <Pressable onPress={() => router.push(`/coin/${c.coin}`)} delayLongPress={350}
+              onLongPress={() => askAbout({ screen: "coin", coin: c.coin, label: `${c.coin} in the watchlist` }, `What is happening with ${c.coin}?`)} style={({ pressed }) => ({ paddingVertical: 12, gap: 8, opacity: pressed ? 0.6 : 1 })}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>

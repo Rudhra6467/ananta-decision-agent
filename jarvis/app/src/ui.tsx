@@ -49,11 +49,11 @@ export function Line({ label, value, color, sub }: { label: string; value: React
 }
 
 // A tappable list row (brokerage style): left title/sub, right value/sub, chevron.
-export function Row({ title, sub, value, valueSub, valueColor, valueSubColor, onPress, left }: {
-  title: string; sub?: string; value?: string; valueSub?: string; valueColor?: string; valueSubColor?: string; onPress?: () => void; left?: React.ReactNode;
+export function Row({ title, sub, value, valueSub, valueColor, valueSubColor, onPress, onLongPress, left }: {
+  title: string; sub?: string; value?: string; valueSub?: string; valueColor?: string; valueSubColor?: string; onPress?: () => void; onLongPress?: () => void; left?: React.ReactNode;
 }) {
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [s.rowItem, { opacity: pressed ? 0.6 : 1 }]}>
+    <Pressable onPress={onPress} onLongPress={onLongPress} delayLongPress={350} disabled={!onPress && !onLongPress} style={({ pressed }) => [s.rowItem, { opacity: pressed ? 0.6 : 1 }]}>
       {left}
       <View style={{ flex: 1 }}>
         <Text style={s.rowTitle}>{title}</Text>
@@ -127,11 +127,11 @@ export function Segmented({ options, value, onChange }: { options: { key: string
 }
 
 // Tap to open: keeps long explanations out of the way until asked for.
-export function Expand({ title, sub, right, children, start = false }: { title: string; sub?: string; right?: React.ReactNode; children: React.ReactNode; start?: boolean }) {
+export function Expand({ title, sub, right, children, start = false, onLongPress }: { title: string; sub?: string; right?: React.ReactNode; children: React.ReactNode; start?: boolean; onLongPress?: () => void }) {
   const [open, setOpen] = useState(start);
   return (
     <View>
-      <Pressable onPress={() => setOpen(!open)} style={[s.rowItem]}>
+      <Pressable onPress={() => setOpen(!open)} onLongPress={onLongPress} delayLongPress={350} style={[s.rowItem]}>
         <View style={{ flex: 1 }}>
           <Text style={s.rowTitle}>{title}</Text>
           {sub ? <Text style={s.small}>{sub}</Text> : null}

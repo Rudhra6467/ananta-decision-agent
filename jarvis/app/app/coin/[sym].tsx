@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { setScreen } from "../../src/context";
 import { Text, View } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { CandleChart, Progress } from "../../src/charts";
@@ -12,6 +13,7 @@ export default function Coin() {
   const { data: w } = useData(`/v3/coin/${sym}/watch`);
   const { data: hv } = useData("/v3/holdings", 0);
   const [tf, setTf] = useState("1h");
+  useEffect(() => { setScreen({ screen: "coin", coin: String(sym), label: `${sym} chart (${tf})` }); }, [sym, tf]);
   const [avg, setAvg] = useState(true);
   const { data: ch } = useData(`/v3/chart/${sym}?tf=${tf}`);
   const head = <Stack.Screen options={{ headerShown: true, title: `${sym}`, headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false, headerTintColor: C.text, headerBackTitle: "Back" }} />;

@@ -228,3 +228,40 @@ def test_markets_and_chart():
         pass
     else:
         raise AssertionError("bad tf accepted")
+
+
+def test_mandate_and_pending_actions():
+    from jarvis.service.mandate import Mandate
+    j, ex = _jarvis()
+    M = Mandate(j.db, j.now)
+    assert M.get()["version"] == 0 and "limits" in M.get()["sections"]
+    L = ask.Lookups(j, "th1")
+    r = L.call("propose_mandate_change", {"section": "limits", "op": "add", "text": "Never more than $200 per trade."})
+    assert r["prepared"]["status"] == "PENDING" and L.created
+    assert "Never more than $200" not in M.text()                        # nothing applied yet
+    aid = r["prepared"]["id"]
+    out = M.decide("o", aid, True, {"mandate": M.apply_mandate_change})
+    assert out["status"] == "DONE" and "Never more than $200 per trade." in M.text() and M.get()["version"] == 1
+    try:
+        M.decide("o", aid, True, {"mandate": M.apply_mandate_change})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("decided twice")
+    r2 = L.call("propose_mandate_change", {"section": "nope", "op": "add", "text": "x"})
+    assert "error" in r2
+    a2 = M.propose("mandate", "x", {"section": "goal", "op": "add", "text": "y"})
+    assert M.decide("o", a2["id"], False, {})["status"] == "CANCELLED"
+    assert ask._clean_show([{"screen": "coin", "coin": "eth", "label": "Open ETH"}, {"screen": "hack"}, {"screen": "trade", "id": "../x"}]) == \
+        [{"screen": "coin", "label": "Open ETH", "coin": "ETH"}]
+    # the mandate reaches the model's instructions, and prepared actions come back with the answer
+    seen = {}
+
+    def fake(s, h, u, t, log):
+        seen["system"] = s
+        t.call("propose_mandate_change", {"section": "styles", "op": "add", "text": "Swing trades up to 2 weeks."})
+        return json.dumps({"kind": "answer", "answer": "Prepared.", "show": [{"screen": "mandate", "label": "Open mandate"}]}), {"in": 1, "out": 1}
+
+    A = ask.Ask(j, providers={"gemini": fake})
+    res = A.ask("o", "add swing trades up to 2 weeks to my styles", mode="everyday")
+    assert "Never more than $200 per trade." in seen["system"] and res["actions"][0]["kind"] == "mandate" and res["show"][0]["screen"] == "mandate"

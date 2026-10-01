@@ -1,4 +1,4 @@
-import { Pressable } from "react-native";
+import { Pressable, Text } from "react-native";
 import { Tabs, router } from "expo-router";
 import { C } from "../../src/theme";
 import { ChartIcon, ChatIcon, FlaskIcon, GaugeIcon, HomeIcon, PieIcon } from "../../src/icons";
@@ -27,8 +27,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="cockpit" options={{
         title: "Cockpit", href: null,
         headerLeft: () => (
-          <Pressable onPress={() => router.back()} hitSlop={12} style={{ marginLeft: 16 }}>
-            <GaugeIcon color={C.accent} size={22} />
+          <Pressable onPress={() => router.navigate("/(tabs)/today")} hitSlop={12} style={{ marginLeft: 16 }}>
+            <Text style={{ color: C.accent, fontSize: 16, fontWeight: "600" }}>‹ Home</Text>
           </Pressable>
         ),
       }} />

@@ -25,7 +25,7 @@ from jarvis.service import views
 MAX_TOOL_ROUNDS = 8
 HISTORY_TURNS = 8
 DAILY_LIMIT = int(os.getenv("ASK_DAILY_LIMIT", "150"))
-GEMINI_MODELS = [m.strip() for m in os.getenv("ASK_GEMINI_MODELS", "gemini-3.5-flash,gemini-3.1-flash-lite").split(",") if m.strip()]
+GEMINI_MODELS = [m.strip() for m in os.getenv("ASK_GEMINI_MODELS", "gemini-3.5-flash,gemini-3.1-flash-lite,gemini-flash-latest").split(",") if m.strip()]
 GEMINI_MODEL = GEMINI_MODELS[0]       # free tier: when the first model is busy (503), the next one answers
 CLAUDE_MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
 
@@ -46,7 +46,7 @@ RULES
 2. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
 4. Scope: trading, markets, the economy and news that moves markets, and Ananta itself. Anything else: kind "out_of_scope" with a one-line polite reply ("That's outside my area - I'm built for trading and markets.").
-5. Actions: in this version you cannot change anything (no orders, no switches, no approvals). If asked to act, use kind "cannot_do_yet": say what you would need, and that the Cockpit or Portfolio screen can do switches and approvals now.
+5. Actions: in this version you cannot change anything (no orders, no switches, no approvals). If asked to act, use kind "cannot_do_yet". Be exact about what exists: manual orders cannot be placed anywhere yet (paper orders from chat, with a confirm step, come in the next phase; real orders only after an exchange is connected); the Cockpit has the kill switch and the portfolio autopilot switch; the Portfolio screen approves or rejects the portfolio's own suggestions. You may still describe what the order would look like (price now, size, exposure) from lookups.
 6. Unclear: if the question could mean different things that lead to different answers, use kind "clarify" with 2-4 short "Did you mean" options. If one reading is clearly most likely, answer it and state the assumption. Follow-ups ("why?", "and before that?") refer to the last topic.
 7. If the conversation note says clarification already failed twice, do not ask again: use kind "not_understood" with 3 example questions you can answer.
 8. Money: $ with 2 decimals; percentages with 1-2 decimals; times in Toronto time if given.
@@ -291,11 +291,14 @@ class Lookups:
 # ---------------------------------------------------------------------------
 # providers (plain HTTPS, no SDKs)
 # ---------------------------------------------------------------------------
-def _post(url: str, headers: dict, body: dict, timeout: int = 90) -> dict:
+def _post(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
     import requests
 
     for wait in (2, 6, 0):     # busy / rate-limited: retry twice
-        r = requests.post(url, headers=headers, json=body, timeout=timeout)
+        try:
+            r = requests.post(url, headers=headers, json=body, timeout=timeout)
+        except requests.RequestException as exc:
+            raise RuntimeError(f"503 network/timeout: {str(exc)[:120]}") from exc
         if r.status_code not in (429, 500, 502, 503, 529) or not wait:
             break
         time.sleep(wait)
@@ -349,7 +352,7 @@ def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log:
             err = exc
             if not str(exc)[:3] in ("503", "429", "500", "404"):
                 raise
-    raise err
+    raise RuntimeError(f"Gemini's free service is busy right now. Try again in a minute, or switch to Claude. ({str(err)[:80]})")
 
 
 def _gemini_once(model: str, system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:

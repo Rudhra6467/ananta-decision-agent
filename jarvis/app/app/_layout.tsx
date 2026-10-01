@@ -10,7 +10,7 @@ export default function Root() {
   }, []);
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} />
     </>
   );

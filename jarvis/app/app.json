@@ -2,11 +2,11 @@
   "expo": {
     "name": "Jarvis",
     "slug": "jarvis",
-    "version": "0.1.0",
+    "version": "0.3.0",
     "scheme": "jarvis",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#0A0E17",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F5F6F8",
     "ios": {
       "bundleIdentifier": "com.rudhra.jarvis",
       "supportsTablet": false,

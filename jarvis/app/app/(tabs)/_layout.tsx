@@ -1,18 +1,21 @@
 import { Tabs } from "expo-router";
 import { C } from "../../src/theme";
+import { ChatIcon, FlaskIcon, GaugeIcon, HomeIcon, PieIcon } from "../../src/icons";
 
 export default function TabsLayout() {
   return (
     <Tabs screenOptions={{
-      headerStyle: { backgroundColor: C.bg }, headerTintColor: C.text,
+      headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false, headerTintColor: C.text,
+      headerTitleStyle: { fontWeight: "700", fontSize: 17 },
       tabBarStyle: { backgroundColor: C.card, borderTopColor: C.line },
-      tabBarActiveTintColor: C.accent, tabBarInactiveTintColor: C.dim,
-      tabBarIconStyle: { display: "none" }, tabBarLabelStyle: { fontSize: 14, fontWeight: "600", paddingBottom: 12 },
+      tabBarActiveTintColor: C.accent, tabBarInactiveTintColor: C.faint,
+      tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
     }}>
-      <Tabs.Screen name="today" options={{ title: "Today" }} />
-      <Tabs.Screen name="portfolio" options={{ title: "Portfolio" }} />
-      <Tabs.Screen name="evidence" options={{ title: "Evidence" }} />
-      <Tabs.Screen name="safety" options={{ title: "Safety" }} />
+      <Tabs.Screen name="today" options={{ title: "Home", tabBarIcon: ({ color }) => <HomeIcon color={color} /> }} />
+      <Tabs.Screen name="portfolio" options={{ title: "Portfolio", tabBarIcon: ({ color }) => <PieIcon color={color} /> }} />
+      <Tabs.Screen name="ask" options={{ title: "Ask Ananta", tabBarLabel: "Ask", tabBarIcon: ({ color }) => <ChatIcon color={color} /> }} />
+      <Tabs.Screen name="evidence" options={{ title: "Evidence", tabBarIcon: ({ color }) => <FlaskIcon color={color} /> }} />
+      <Tabs.Screen name="cockpit" options={{ title: "Cockpit", tabBarIcon: ({ color }) => <GaugeIcon color={color} /> }} />
     </Tabs>
   );
 }

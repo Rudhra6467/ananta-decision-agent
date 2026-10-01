@@ -121,3 +121,16 @@ def test_parse_is_lenient():
     assert ask.parse("plain words")["answer"] == "plain words"
     d = ask.parse('Here: {"answer": "ok", "breakdown": "one"} thanks')
     assert d["answer"] == "ok" and d["breakdown"] == ["one"] and d["kind"] == "answer"
+
+
+def test_coin_watch():
+    j, ex = _jarvis()
+    coin = next(iter(ex.st["engines"]))
+    w = views.coin_watch(j, coin)
+    assert w["ready"] and len(w["setups"]) == 5 and w["market"]["trend_1h"]
+
+
+def test_trades_list():
+    j, ex = _jarvis()
+    t = views.trades_list(j)
+    assert "open" in t and "closed" in t and t["value"] > 0

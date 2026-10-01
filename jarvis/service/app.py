@@ -229,3 +229,13 @@ def ask_thread(thread: str, who: str = Depends(owner)) -> dict:
 @app.get("/v3/ask/stats")
 def ask_stats(who: str = Depends(owner)) -> dict:
     return A().stats()
+
+
+@app.get("/v3/coin/{sym}/watch")
+def coin_watch(sym: str, who: str = Depends(owner)) -> dict:
+    return _run(views.coin_watch, J(), sym)
+
+
+@app.get("/v3/trades")
+def trades_list(who: str = Depends(owner)) -> dict:
+    return views.trades_list(J())

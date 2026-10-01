@@ -466,3 +466,46 @@ def cockpit(j) -> dict:
         {"label": "Hourly watch", "ok": True, "last": s.get("hourly_watch_last")},
     ]
     return {"switches": switches, "systems": systems, "circuit_breakers": s.get("circuit_breakers"), "recent_actions": s.get("recent_actions")}
+
+
+def coin_watch(j, sym: str) -> dict:
+    """What Ananta is waiting for on one coin: market picture, each setup's met / missing conditions, hourly strategies."""
+    ex = j._explorer()
+    sym = sym.upper()
+    if not ex or sym not in ex.st["engines"]:
+        raise ValueError(f"unknown coin {sym}")
+    eng = ex.st["engines"][sym]
+    if eng.last_scan is None or not eng.ready():
+        return {"coin": sym, "ready": False}
+    st = eng.state(eng.last_scan)
+    rows = sc.checklist(eng, st)
+    hourly = _hourly_strategies(j, hours=3)
+    from jarvis.service.ask import HUNTER_REASONS
+
+    hs = []
+    for name, v in hourly.items():
+        lt = v["latest"].get(sym)
+        if lt and name in ("hunter", "squeeze"):
+            hs.append({"strategy": name.capitalize(), "decision": lt.get("decision"),
+                       "missing": [HUNTER_REASONS.get(x, x.replace("_", " ").lower()) for x in (lt.get("reasons") or []) if x]})
+    return {"coin": sym, "ready": True, "market": sc.describe_state(st), "as_of": _local(eng.last_scan),
+            "setups": [r for r in rows if r["traded"]], "watched_only": [r for r in rows if not r["traded"]], "hourly": hs}
+
+
+def trades_list(j) -> dict:
+    """Explorer paper trades: open (live P&L) and recently closed, in plain words."""
+    ex = j._explorer()
+    if not ex:
+        return {"open": [], "closed": [], "pending": []}
+    xs = ex.status()
+    op = [{"id": t["id"], "coin": t["coin"], "setup_name": SETUP.get(t["setup"], t["setup"]), "type_name": TYPE.get(t["type"]),
+           "entry": t["entry"], "price": t["price"], "pnl_usd": t["pnl_usd"], "since": t["since"],
+           "status": {"HOLD": "On track", "TIGHTEN": "Near target", "EXIT-SOON": "Near stop"}.get(t["suggestion"], t["suggestion"])} for t in xs["open"]]
+    cl = []
+    for (js,) in ex.store.book.execute("SELECT json FROM events WHERE kind='CLOSED' ORDER BY seq DESC LIMIT 30"):
+        e = json.loads(js)
+        cl.append({"id": e["id"], "coin": e["coin"], "setup_name": SETUP.get(e["setup"], e["setup"]), "type_name": TYPE.get(e["type"]),
+                   "net_usd": e.get("net_usd"), "exit": exit_text(e.get("bell")), "time": _local(e["t"])})
+    pend = [{"coin": o["coin"], "setup_name": SETUP.get(o["setup"], o["setup"]), "limit": o["limit"], "expires": o["expires"]} for o in xs["pending_orders"]]
+    return {"value": xs["equity"], "start": 2000.0, "realized": xs["realized_usd"], "unrealized": xs["unrealized_usd"],
+            "open": op, "closed": cl, "pending": pend}

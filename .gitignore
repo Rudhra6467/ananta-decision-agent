@@ -63,3 +63,8 @@ explorer.log
 explorer_daily/
 explorer_weekly/
 portfolio_book.sqlite
+jarvis.sqlite
+.venv-jarvis/
+jarvis/app/node_modules/
+jarvis/app/.expo/
+jarvis/app/dist/

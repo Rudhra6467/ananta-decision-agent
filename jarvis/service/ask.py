@@ -25,7 +25,8 @@ from jarvis.service import views
 MAX_TOOL_ROUNDS = 8
 HISTORY_TURNS = 8
 DAILY_LIMIT = int(os.getenv("ASK_DAILY_LIMIT", "150"))
-GEMINI_MODEL = os.getenv("ASK_GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODELS = [m.strip() for m in os.getenv("ASK_GEMINI_MODELS", "gemini-3.5-flash,gemini-3.1-flash-lite").split(",") if m.strip()]
+GEMINI_MODEL = GEMINI_MODELS[0]       # free tier: when the first model is busy (503), the next one answers
 CLAUDE_MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
 
 SYSTEM = """You are Ananta, the trading operator for one owner (Vamsi). You speak like a calm, knowledgeable trading desk operator: simple words first, numbers second, no hype.
@@ -335,6 +336,20 @@ def _gemini_schema(s: dict) -> dict:
 
 
 def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:
+    err = None
+    for m in GEMINI_MODELS:
+        try:
+            text, usage = _gemini_once(m, system, history, user, tools, log, post)
+            usage["model"] = m
+            return text, usage
+        except RuntimeError as exc:
+            err = exc
+            if not str(exc)[:3] in ("503", "429", "500", "404"):
+                raise
+    raise err
+
+
+def _gemini_once(model: str, system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:
     key = os.getenv("GEMINI_API_KEY", "")
     if not key:
         raise RuntimeError("GEMINI_API_KEY is not set")
@@ -347,7 +362,7 @@ def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log:
             x["parameters"] = s
         decls.append(x)
     usage = {"in": 0, "out": 0}
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     for _ in range(MAX_TOOL_ROUNDS + 1):
         r = post(url, {"x-goog-api-key": key, "content-type": "application/json"},
                  {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
@@ -463,6 +478,7 @@ class Ask:
         try:
             raw, usage = self.providers[provider](SYSTEM, history, user_msg, Lookups(self.j), log)
             reply = parse(raw)
+            model = usage.get("model", model)
         except Exception as exc:  # noqa: BLE001
             ms = int(1000 * (time.time() - t0))
             self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, model, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { LineChart, Progress } from "../../src/charts";
+import { CandleChart, Progress } from "../../src/charts";
 import { Big, Btn, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Row, Screen, Section, Segmented, T, pct, price, usd, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
@@ -11,26 +11,40 @@ export default function Coin() {
   const { data: d, err, loading, reload } = useData(`/coin/${sym}`);
   const { data: w } = useData(`/v3/coin/${sym}/watch`);
   const { data: hv } = useData("/v3/holdings", 0);
-  const [range, setRange] = useState("4m");
+  const [tf, setTf] = useState("1h");
+  const [avg, setAvg] = useState(true);
+  const { data: ch } = useData(`/v3/chart/${sym}?tf=${tf}`);
   const head = <Stack.Screen options={{ headerShown: true, title: `${sym}`, headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false, headerTintColor: C.text, headerBackTitle: "Back" }} />;
   if (!d && loading) return <>{head}<Busy /></>;
   if (!d) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen></>;
-  const series = range === "1d" ? d.hourly.slice(-24) : range === "4d" ? d.hourly : range === "1m" ? d.daily.slice(-30) : d.daily;
-  const first = series[0]?.c, last = series[series.length - 1]?.c;
-  const ch = first ? 100 * (last / first - 1) : null;
+  const cs = ch?.candles ?? [];
+  const first = cs[0]?.c, last = d.price;
+  const chg = first ? 100 * (last / first - 1) : null;
+  const span: Record<string, string> = { "15m": "30 hours", "1h": "5 days", "4h": "20 days", "1d": "6 months" };
+  const refs: any[] = [];
+  (ch?.levels ?? []).forEach((l: any) => refs.push({ value: l.price, color: l.kind === "support" ? "#5B7083" : "#8A6D3B", label: l.label === "Support" ? "Support" : "Resist." }));
+  (ch?.open_trades ?? []).forEach((t: any) => {
+    refs.push({ value: t.entry, color: C.accent, label: "Bought" });
+    if (t.stop) refs.push({ value: t.stop, color: C.bad, label: "Stop" });
+    if (t.target) refs.push({ value: t.target, color: C.good, label: "Target" });
+  });
   const hold = hv?.holdings?.find((h: any) => h.coin === d.coin);
   const r = d.rating;
   return (
     <>
       {head}
       <Screen loading={loading} onRefresh={reload}>
-        <Big label={COIN_NAME[d.coin] ?? d.coin} value={price(d.price)} change={ch} changeLabel={`${pct(ch)} over ${range === "1d" ? "1 day" : range === "4d" ? "4 days" : range === "1m" ? "1 month" : "4 months"}`} />
-        <LineChart height={190} series={[
-          { data: series.map((x: any) => x.c), color: (ch ?? 0) >= 0 ? C.good : C.bad, fill: true, label: "price" },
-          { data: series.map((x: any) => x.ema20), color: C.accent, width: 1.2, label: range.endsWith("d") ? "20-hour avg" : "20-day avg" },
-          { data: series.map((x: any) => x.ema50), color: C.faint, width: 1.2, dashed: true, label: range.endsWith("d") ? "50-hour avg" : "50-day avg" },
-        ]} />
-        <Segmented value={range} onChange={setRange} options={[{ key: "1d", label: "1D" }, { key: "4d", label: "4D" }, { key: "1m", label: "1M" }, { key: "4m", label: "4M" }]} />
+        <Big label={COIN_NAME[d.coin] ?? d.coin} value={price(d.price)} change={chg} changeLabel={`${pct(chg)} over ${span[tf]}`} />
+        <Card>
+          <CandleChart candles={cs} refs={refs} marks={ch?.marks ?? []} showAvg={avg} />
+          <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
+            <T small><Text style={{ color: C.accent }}>━</Text> 20-{tf === "1d" ? "day" : "bar"} avg</T>
+            <T small><Text style={{ color: C.faint }}>┅</Text> 50-{tf === "1d" ? "day" : "bar"} avg</T>
+            <T small><Text style={{ color: C.accent }}>▲</Text> Ananta bought  <Text style={{ color: C.text }}>▼</Text> sold</T>
+            <Text onPress={() => setAvg(!avg)} style={{ color: C.accent, fontSize: 12 }}>{avg ? "Hide averages" : "Show averages"}</Text>
+          </View>
+        </Card>
+        <Segmented value={tf} onChange={setTf} options={[{ key: "15m", label: "15m" }, { key: "1h", label: "1H" }, { key: "4h", label: "4H" }, { key: "1d", label: "1D" }]} />
 
         <Section title="Your position" />
         <Card>

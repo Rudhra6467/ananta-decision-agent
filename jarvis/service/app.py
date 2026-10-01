@@ -265,3 +265,13 @@ def coin_watch(sym: str, who: str = Depends(owner)) -> dict:
 @app.get("/v3/trades")
 def trades_list(who: str = Depends(owner)) -> dict:
     return views.trades_list(J())
+
+
+@app.get("/v3/markets")
+def markets(who: str = Depends(owner)) -> dict:
+    return views.markets(J())
+
+
+@app.get("/v3/chart/{sym}")
+def chart(sym: str, tf: str = "1h", who: str = Depends(owner)) -> dict:
+    return _run(views.chart, J(), sym, tf)

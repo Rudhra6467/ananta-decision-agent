@@ -205,3 +205,19 @@ def test_claude_request_uses_prompt_caching():
     marks = sum("cache_control" in blk for m in b["messages"] if isinstance(m["content"], list) for blk in m["content"])
     assert marks == 1 and "cache_control" in b["messages"][-1]["content"][-1]
     assert "cache_control" in b["system"][0] and "cache_control" in b["tools"][-1]
+
+
+def test_markets_and_chart():
+    j, ex = _jarvis()
+    m = views.markets(j)
+    assert m["coins"] and m["summary"] and "closest" in m["coins"][0]
+    coin = m["coins"][0]["coin"]
+    for tf in ("15m", "1h", "4h", "1d"):
+        c = views.chart(j, coin, tf)
+        assert c["candles"] and {"o", "h", "l", "c", "ema20"} <= set(c["candles"][0])
+    try:
+        views.chart(j, coin, "2m")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("bad tf accepted")

@@ -148,3 +148,63 @@ export function HBars({ items, fmt }: { items: { label: string; value: number; s
     </View>
   );
 }
+
+// Candles with 20/50 averages, horizontal levels (support / resistance / stop / target) and buy/sell marks.
+export type Candle = { t: number; o: number; h: number; l: number; c: number; ema20?: number; ema50?: number };
+export function CandleChart({ candles, height = 260, refs = [], marks = [], showAvg = true }: {
+  candles: Candle[]; height?: number; refs?: RefLine[]; marks?: { t: number; kind: "buy" | "sell"; price?: number | null }[]; showAvg?: boolean;
+}) {
+  const [w, onLayout] = useWidth();
+  if (candles.length < 2) return <View style={{ height: 60, justifyContent: "center" }} onLayout={onLayout}><Text style={{ color: C.dim }}>Not enough data yet.</Text></View>;
+  const vals = candles.flatMap((k) => [k.h, k.l]).concat(refs.map((r) => r.value));
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.06 || 1;
+  lo -= pad; hi += pad;
+  const right = 64;
+  const pw = Math.max(1, w - right);
+  const n = candles.length;
+  const step = pw / n;
+  const cw = Math.max(1, step * 0.62);
+  const x = (i: number) => i * step + step / 2;
+  const y = (v: number) => height - ((v - lo) / (hi - lo)) * height;
+  const line = (key: "ema20" | "ema50") => candles.map((k, i) => (k[key] == null ? "" : `${i ? "L" : "M"}${x(i).toFixed(1)},${y(k[key] as number).toFixed(1)}`)).join(" ");
+  const idxOf = (t: number) => { let best = 0; candles.forEach((k, i) => { if (k.t <= t) best = i; }); return best; };
+  return (
+    <View onLayout={onLayout}>
+      {w > 0 ? (
+        <Svg width={w} height={height + 14}>
+          {[0.25, 0.5, 0.75].map((f) => <Line key={f} x1={0} x2={pw} y1={height * f} y2={height * f} stroke={C.line} strokeWidth={0.6} />)}
+          {candles.map((k, i) => {
+            const up = k.c >= k.o;
+            const col = up ? C.good : C.bad;
+            const top = y(Math.max(k.o, k.c)), bot = y(Math.min(k.o, k.c));
+            return (
+              <React.Fragment key={i}>
+                <Line x1={x(i)} x2={x(i)} y1={y(k.h)} y2={y(k.l)} stroke={col} strokeWidth={1} />
+                <Rect x={x(i) - cw / 2} y={top} width={cw} height={Math.max(1, bot - top)} fill={up ? C.card : col} stroke={col} strokeWidth={1} />
+              </React.Fragment>
+            );
+          })}
+          {showAvg ? <Path d={line("ema20")} stroke={C.accent} strokeWidth={1.4} fill="none" /> : null}
+          {showAvg ? <Path d={line("ema50")} stroke={C.faint} strokeWidth={1.4} fill="none" strokeDasharray="4,3" /> : null}
+          {refs.map((r, i) => (
+            <React.Fragment key={`r${i}`}>
+              <Line x1={0} x2={pw} y1={y(r.value)} y2={y(r.value)} stroke={r.color} strokeWidth={1.1} strokeDasharray={r.dashed === false ? undefined : "5,4"} />
+              <Rect x={pw + 4} y={y(r.value) - 9} width={right - 6} height={18} rx={4} fill={r.color} />
+              <SvgText x={pw + 4 + (right - 6) / 2} y={y(r.value) + 4} fontSize={10} fontWeight="700" fill="#FFFFFF" textAnchor="middle">{r.label}</SvgText>
+            </React.Fragment>
+          ))}
+          {marks.map((m, i) => {
+            const k = idxOf(m.t);
+            const yy = m.kind === "buy" ? y(candles[k].l) + 12 : y(candles[k].h) - 6;
+            return (
+              <SvgText key={`m${i}`} x={x(k)} y={Math.min(height + 12, Math.max(10, yy))} fontSize={12} fontWeight="800" fill={m.kind === "buy" ? C.accent : C.text} textAnchor="middle">
+                {m.kind === "buy" ? "▲" : "▼"}
+              </SvgText>
+            );
+          })}
+        </Svg>
+      ) : <View style={{ height: height + 14 }} />}
+    </View>
+  );
+}

@@ -11,11 +11,11 @@ export default function TabsLayout() {
       tabBarActiveTintColor: C.accent, tabBarInactiveTintColor: C.faint,
       tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
     }}>
-      <Tabs.Screen name="today" options={{ title: "Home", tabBarIcon: ({ color }) => <HomeIcon color={color} /> }} />
-      <Tabs.Screen name="portfolio" options={{ title: "Portfolio", tabBarIcon: ({ color }) => <PieIcon color={color} /> }} />
-      <Tabs.Screen name="ask" options={{ title: "Ask Ananta", tabBarLabel: "Ask", tabBarIcon: ({ color }) => <ChatIcon color={color} /> }} />
-      <Tabs.Screen name="evidence" options={{ title: "Evidence", tabBarIcon: ({ color }) => <FlaskIcon color={color} /> }} />
-      <Tabs.Screen name="cockpit" options={{ title: "Cockpit", tabBarIcon: ({ color }) => <GaugeIcon color={color} /> }} />
+      <Tabs.Screen name="today" options={{ title: "Home", tabBarIcon: ({ color }) => <HomeIcon color={String(color)} /> }} />
+      <Tabs.Screen name="portfolio" options={{ title: "Portfolio", tabBarIcon: ({ color }) => <PieIcon color={String(color)} /> }} />
+      <Tabs.Screen name="ask" options={{ title: "Ask Ananta", tabBarLabel: "Ask", tabBarIcon: ({ color }) => <ChatIcon color={String(color)} /> }} />
+      <Tabs.Screen name="evidence" options={{ title: "Evidence", tabBarIcon: ({ color }) => <FlaskIcon color={String(color)} /> }} />
+      <Tabs.Screen name="cockpit" options={{ title: "Cockpit", tabBarIcon: ({ color }) => <GaugeIcon color={String(color)} /> }} />
     </Tabs>
   );
 }

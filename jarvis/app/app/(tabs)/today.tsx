@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { askAbout, setScreen } from "../../src/context";
+import { ActionCard } from "../../src/actions";
 import { api } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
 import { Big, Btn, Busy, Card, Divider, Dot, ErrorBox, Row, Screen, Section, Stat, T, pct, usd } from "../../src/ui";
@@ -11,10 +12,14 @@ import { C, pnlColor } from "../../src/theme";
 const KIND: Record<string, { color: string; label: string }> = {
   buy: { color: C.accent, label: "BUY" }, sell: { color: C.text, label: "SELL" }, watch: { color: C.faint, label: "ORDER" },
   portfolio: { color: C.accent, label: "PORTFOLIO" }, warn: { color: C.warn, label: "WARNING" }, info: { color: C.faint, label: "YOU" },
+  alert: { color: C.warn, label: "ALERT" }, brief: { color: C.accent, label: "BRIEF" },
 };
 
 export default function Home() {
   const { data: d, err, loading, reload } = useData("/v3/home");
+  const { data: inbox, reload: reloadInbox } = useData("/v3/inbox");
+  const { data: br, reload: reloadBrief } = useData("/v3/brief", 300000);
+  const [briefing, setBriefing] = useState(false);
   const [q, setQ] = useState("");
   const [all, setAll] = useState(false);
   useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home: today's summary and activity" }); }, []));
@@ -46,6 +51,19 @@ export default function Home() {
           placeholderTextColor={C.faint} style={{ flex: 1, paddingVertical: 13, fontSize: 15, color: C.text }} />
         <Text onPress={ask} style={{ color: C.accent, fontWeight: "700" }}>Ask</Text>
       </Pressable>
+
+      {(inbox?.actions ?? []).length ? (
+        <Card title="Waiting for your OK" sub="Things Ananta prepared. Nothing happens until you confirm.">
+          {inbox.actions.map((a: any) => <ActionCard key={a.id} a={a} onDone={() => { reloadInbox(); reload(); }} />)}
+        </Card>
+      ) : null}
+
+      <Card title={br?.brief ? `${br.brief.kind === "morning" ? "Morning" : "Evening"} brief` : "Daily brief"}
+        sub={br?.brief ? new Date(br.brief.t * 1000).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) : "Written at 8:00 and 21:30"}
+        right={<Text onPress={async () => { setBriefing(true); try { await api("/v3/brief/now", {}); reloadBrief(); } catch (e) { } setBriefing(false); }}
+          style={{ color: C.accent, fontWeight: "600" }}>{briefing ? "Writing…" : "Brief me now"}</Text>}>
+        {br?.brief ? <T>{br.brief.text}</T> : <T dim>No brief yet today.</T>}
+      </Card>
 
       {s.portfolio.pending ? (
         <Card title={`${s.portfolio.pending} change(s) waiting for you`} sub="The portfolio is in Suggest mode: nothing moves until you approve.">

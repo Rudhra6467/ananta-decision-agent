@@ -76,6 +76,10 @@ def _snapshots() -> None:
                 J().record_snapshot()
             except Exception:  # noqa: BLE001  history is best-effort
                 pass
+            try:
+                background_jobs()
+            except Exception:  # noqa: BLE001
+                pass
             _t.sleep(900)
 
     threading.Thread(target=loop, daemon=True).start()
@@ -294,8 +298,14 @@ class Decide(BaseModel):
     confirm: bool
 
 
+def AL():
+    from jarvis.service.alerts import Alerts
+
+    return Alerts(J().db, J().now)
+
+
 def executors() -> dict:
-    return {"mandate": M().apply_mandate_change}
+    return {"mandate": M().apply_mandate_change, "alert": AL().create}
 
 
 @app.get("/v3/mandate")
@@ -334,3 +344,57 @@ class VoiceTurn(BaseModel):
 @app.post("/v3/voice/turn")
 def voice_turn(b: VoiceTurn, who: str = Depends(owner)) -> dict:
     return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, b.context))
+
+
+
+def _push(title: str, body: str):
+    from src.intelligence.paper_watch import push_phone
+
+    return push_phone(title, body, level="EVENT")
+
+
+def background_jobs() -> dict:
+    """Every 15 minutes: check alerts (no AI cost); write the morning / evening brief once each (free model)."""
+    out = {"fired": AL().check(J()._explorer(), push=_push)}
+    a = A()
+    if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
+        kind = AL().due_brief()
+        if kind:
+            out["brief"] = AL().write_brief(kind, lambda q: a.ask("ananta (scheduled)", q, mode="everyday"), push=_push)
+    return out
+
+
+@app.get("/v3/alerts")
+def alerts_list(who: str = Depends(owner)) -> dict:
+    return {"alerts": AL().list()}
+
+
+@app.post("/v3/alerts/{aid}/off")
+def alert_off(aid: str, who: str = Depends(owner)) -> dict:
+    AL().turn_off(who, aid)
+    J().audit(who, "alert.off", aid, "OK")
+    return {"ok": True}
+
+
+@app.get("/v3/brief")
+def brief(who: str = Depends(owner)) -> dict:
+    return {"brief": AL().latest_brief()}
+
+
+@app.post("/v3/brief/now")
+def brief_now(who: str = Depends(owner)) -> dict:
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    kind = "evening" if datetime.now(ZoneInfo("America/Toronto")).hour >= 17 else "morning"
+    r = AL().write_brief(kind, lambda q: A().ask(who, q, mode="everyday"))
+    if not r:
+        raise HTTPException(status_code=503, detail="Could not write the brief right now; try again in a minute.")
+    return {"brief": AL().latest_brief()}
+
+
+@app.get("/v3/inbox")
+def inbox(who: str = Depends(owner)) -> dict:
+    ps = J()._layer().pending()
+    return {"actions": M().pending(), "portfolio": ps, "alerts_active": len(AL().list(include_done=False)),
+            "count": len(M().pending()) + (1 if ps else 0)}

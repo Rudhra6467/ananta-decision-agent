@@ -88,6 +88,11 @@ TOOLS = [
     ("knowledge", "Search Ananta's research and knowledge: repair shop reviews, rulebook, variable registry, studies. Use for 'what did we learn', 'why do we do X', 'has this been tested'.", _schema({"query": {"type": "string"}}, ["query"])),
     ("changes", "What changed / happened in the last N hours: buys, sells, orders, portfolio moves, warnings, owner actions.", _schema({"hours": {"type": "number"}})),
     ("report", "The latest daily or weekly report text.", _schema({"kind": {"type": "string", "description": "daily | weekly"}})),
+    ("alerts", "The owner's alerts: active ones, and recently fired ones with their messages.", OFF),
+    ("propose_alert", "Prepare an alert when the owner asks to be told about something: kind price_above / price_below (value = price), "
+     "move_pct (value = percent move in a day), setup (setup = E1-E5 or ANY: tells when that setup's conditions are all met). "
+     "This does NOT create it: the owner confirms a card in the app. Alerts are checked every 15 minutes and cost nothing.",
+     _schema({"kind": {"type": "string"}, "coin": COIN, "value": {"type": "number"}, "setup": {"type": "string"}, "note": {"type": "string"}}, ["kind", "coin"])),
     ("mandate", "The owner's mandate in full: goals, markets, styles, setups, limits, how to talk. Also any actions waiting for the owner.", OFF),
     ("propose_mandate_change", "Prepare a change to the owner's mandate when the owner asks to change their goals, limits, styles or preferences. "
      "This does NOT change anything: it creates a confirmation card the owner must approve in the app.",
@@ -315,6 +320,26 @@ class Lookups:
         a = Mandate(self.j.db, self.j.now).propose("mandate", summary, {"section": section, "op": op, "text": text, "old": old}, self.thread)
         self.created.append(a)
         return {"prepared": a, "note": "Not applied. The owner sees a confirmation card and must approve it."}
+
+    def t_alerts(self) -> dict:
+        from jarvis.service.alerts import Alerts
+
+        return {"alerts": Alerts(self.j.db, self.j.now).list()[:30]}
+
+    def t_propose_alert(self, kind: str, coin: str, value: float | None = None, setup: str | None = None, note: str = "") -> dict:
+        from jarvis.service.alerts import Alerts
+        from jarvis.service.mandate import Mandate
+
+        try:
+            v = Alerts.validate({"kind": kind, "coin": coin, "value": value, "setup": setup, "note": note})
+        except ValueError as exc:
+            return {"error": str(exc)}
+        if self.ex and v["coin"] not in self.ex.st["engines"]:
+            return {"error": f"Ananta only watches {', '.join(self.ex.st['engines'])}"}
+        summary = "Alert me when " + Alerts.describe(v["kind"], v["coin"], v["value"], v["setup"])
+        a = Mandate(self.j.db, self.j.now).propose("alert", summary, v, self.thread)
+        self.created.append(a)
+        return {"prepared": a, "note": "Not active yet. The owner confirms the card in the app."}
 
     def t_report(self, kind: str = "daily") -> dict:
         r = self.j._latest("explorer_weekly" if kind.startswith("w") else "explorer_daily")
@@ -755,7 +780,8 @@ class Ask:
                   "(coins: BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP; words: Hunter, Squeeze, Explorer, setup, portfolio, mandate). "
                   "Return only the words spoken. If there is no speech, return an empty string.")
         err = None
-        for m in GEMINI_MODELS:
+        order = ["gemini-3.1-flash-lite"] + [m for m in GEMINI_MODELS if m != "gemini-3.1-flash-lite"]     # fastest first for speech
+        for m in order:
             try:
                 r = post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent",
                          {"x-goog-api-key": key, "content-type": "application/json"},

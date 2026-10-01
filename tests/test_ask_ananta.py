@@ -315,3 +315,37 @@ def test_voice_turn_transcribes_then_answers():
     bodies = []
     out = A2.transcribe("QUJD", "audio/wav", post=lambda url, h, b, timeout=60: bodies.append(b) or {"candidates": [{"content": {"parts": [{"text": " what is hunter doing "}]}}]})
     assert out == "what is hunter doing" and bodies[0]["contents"][0]["parts"][0]["inlineData"]["mimeType"] == "audio/wav"
+
+
+
+def test_alerts_by_talking_and_briefs():
+    from jarvis.service.alerts import Alerts
+    from jarvis.service.mandate import Mandate
+    j, ex = _jarvis()
+    coin = next(iter(ex.st["engines"]))
+    px = ex.prices()[coin]
+    L = ask.Lookups(j, "t")
+    r = L.call("propose_alert", {"kind": "price_above", "coin": coin, "value": px * 0.5, "note": "test"})
+    assert r["prepared"]["kind"] == "alert"
+    assert "error" in L.call("propose_alert", {"kind": "price_above", "coin": coin})
+    assert "error" in L.call("propose_alert", {"kind": "nope", "coin": coin, "value": 1})
+    M, AL = Mandate(j.db, j.now), Alerts(j.db, j.now)
+    assert AL.list() == []                                         # nothing active before confirmation
+    M.decide("o", r["prepared"]["id"], True, {"alert": AL.create})
+    AL.create("o", {"kind": "price_below", "coin": coin, "value": px * 0.5})
+    AL.create("o", {"kind": "setup", "coin": coin, "setup": "ANY"})
+    pushed = []
+    fired = AL.check(ex, push=lambda t, b: pushed.append((t, b)))
+    kinds = {f["kind"] for f in fired}
+    assert "price_above" in kinds and "price_below" not in kinds and pushed
+    assert AL.check(ex) == [] or all(f["kind"] == "setup" for f in AL.check(ex))   # one-shot
+    feed = views.feed(j, hours=24 * 400)
+    assert any(it["kind"] == "alert" for it in feed)
+    # briefs: due once per slot, written by the given ask function
+    import datetime as dt
+    from zoneinfo import ZoneInfo
+    t9 = dt.datetime(2026, 10, 2, 9, 0, tzinfo=ZoneInfo("America/Toronto")).timestamp()
+    AB = Alerts(j.db, lambda: t9)
+    assert AB.due_brief() == "morning"
+    b = AB.write_brief("morning", lambda q: {"answer": "Quiet night.", "kind": "answer"}, push=lambda t, x: None)
+    assert b["text"] == "Quiet night." and AB.due_brief() is None and AB.latest_brief()["kind"] == "morning"

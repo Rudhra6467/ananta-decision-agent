@@ -147,6 +147,13 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
         label = {"portfolio.mode": f"Portfolio mode set to {detail}", "safety.kill_switch": f"Kill switch {detail}",
                  "portfolio.approve": "You approved portfolio changes", "portfolio.reject": "You rejected portfolio changes"}.get(action, action)
         items.append({"t": t, "kind": "info", "title": label, "body": "From the Jarvis app."})
+    try:
+        for (t, coin, msg) in j.db.execute("SELECT fired_t, coin, message FROM alerts WHERE status='FIRED' AND fired_t >= ?", (since,)):
+            items.append({"t": t, "kind": "alert", "coin": coin, "title": f"Alert: {coin}", "body": msg})
+        for (t, kind, text) in j.db.execute("SELECT t, kind, text FROM briefings WHERE t >= ?", (since,)):
+            items.append({"t": t, "kind": "brief", "title": f"{kind.capitalize()} brief", "body": text})
+    except Exception:  # noqa: BLE001  tables appear on first use
+        pass
     items.sort(key=lambda x: x["t"], reverse=True)
     for it in items:
         it["time"] = _local(it["t"])

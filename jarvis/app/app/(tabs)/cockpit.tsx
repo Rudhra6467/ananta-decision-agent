@@ -12,6 +12,7 @@ export default function Cockpit() {
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
   const [showActions, setShowActions] = useState(false);
   const { data: sp, reload: reloadSpend } = useData("/v3/spend");
+  const { data: al, reload: reloadAlerts } = useData("/v3/alerts");
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
 
@@ -79,6 +80,23 @@ export default function Cockpit() {
       ) : null}
 
       <Card onPress={() => router.push("/mandate")} title="Your mandate" sub="Goals, markets, styles and limits Ananta follows" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
+
+      <Section title="Alerts" right={<T small>checked every 15 min · free</T>} />
+      <Card>
+        {(al?.alerts ?? []).filter((a: any) => a.status === "ACTIVE").length === 0 ? <T dim>No active alerts. Ask Ananta: "tell me if BTC drops below 80k".</T> : null}
+        {(al?.alerts ?? []).filter((a: any) => a.status === "ACTIVE").map((a: any, i: number) => (
+          <View key={a.id}>
+            {i ? <Divider /> : null}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 }}>
+              <Text style={{ color: C.text, flex: 1 }}>{a.what}{a.note ? ` · ${a.note}` : ""}</Text>
+              <Text onPress={async () => { await api(`/v3/alerts/${a.id}/off`, {}); reloadAlerts(); }} style={{ color: C.bad, fontWeight: "600" }}>Turn off</Text>
+            </View>
+          </View>
+        ))}
+        {(al?.alerts ?? []).filter((a: any) => a.status === "FIRED").slice(0, 5).map((a: any) => (
+          <T key={a.id} small>Fired: {a.message}</T>
+        ))}
+      </Card>
 
       <Section title="Systems" />
       <Card>

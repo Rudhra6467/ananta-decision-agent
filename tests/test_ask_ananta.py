@@ -763,3 +763,15 @@ def test_voice_answers_carry_spoken_text_and_audio_id(monkeypatch):
     assert r["speak"] and len(r["speak"].split()) <= ask.VOICE_WORDS and r["voice_id"].endswith("-Calm-0.9")
     r2 = A.ask("o@x.com", "how is the market", mode="everyday", context={"here": {"screen": "ananta"}})      # typed: nothing spoken
     assert "speak" not in r2 and "voice_id" not in r2
+
+
+def test_instant_small_talk_and_repeat():
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": lambda *a, **k: (json.dumps({"kind": "answer", "answer": "Bitcoin is up two percent."}), {"in": 1, "out": 1})})
+    r = A.ask("o@x.com", "how is bitcoin", mode="everyday")
+    th = r["thread"]
+    again = A.ask("o@x.com", "Say that again.", thread=th, mode="everyday")
+    assert again["model"] == "instant" and again["answer"] == "Bitcoin is up two percent."
+    assert A.ask("o@x.com", "Thank you.", thread=th, mode="everyday")["answer"].startswith("You're welcome")
+    assert A.ask("o@x.com", "okay", thread=th, mode="everyday")["answer"] == "Okay."
+    assert A.ask("o@x.com", "okay so why is bitcoin up", thread=th, mode="everyday")["model"] != "instant"

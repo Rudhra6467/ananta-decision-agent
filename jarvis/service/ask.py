@@ -203,6 +203,9 @@ def _pre_voice(context, text):
 
 
 VOICE_WORDS = 60
+THANKS = re.compile(r"^\s*(thanks|thank you|thank you so much|thanks a lot|cheers)[\s.!,]*(madhav|ananta|jarvis)?[\s.!]*$", re.I)
+OKAY = re.compile(r"^\s*(ok|okay|cool|great|nice|got it|perfect|alright|all right|stop|cancel|never ?mind|that'?s all|that is all)[\s.!,]*(ananta|jarvis)?[\s.!]*$", re.I)
+REPEAT = re.compile(r"\b(say (that|it) again|repeat (that|it|please|yourself)|come again|pardon( me)?|what did you (just )?say|one more time)\b", re.I)
 
 
 def speak_text(reply: dict) -> str:
@@ -1251,12 +1254,27 @@ class Ask:
             reply["voice_id"] = vid                                  # its audio is already being made: the phone fetches it directly
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
 
+    def _small_talk(self, text: str, thread: str) -> dict | None:
+        """Instant replies that need no model: thanks / okay / stop, and "say that again"."""
+        t = (text or "").strip()
+        if REPEAT.search(t) and len(t.split()) <= 8:
+            row = self.j.db.execute("SELECT reply FROM ask_messages WHERE thread=? AND role='assistant' AND reply IS NOT NULL ORDER BY t DESC, rowid DESC LIMIT 1",
+                                    (thread,)).fetchone()
+            prev = json.loads(row[0]) if row and row[0] else {}
+            said = prev.get("speak") or prev.get("answer")
+            return {"ui": [], "say": said or "I haven't said anything yet in this conversation."}
+        if THANKS.match(t):
+            return {"ui": [], "say": "You're welcome, Madhav."}
+        if OKAY.match(t):
+            return {"ui": [], "say": "Okay."}
+        return None
+
     def _quick(self, who: str, text: str, thread: str, voice: bool, source: str, context=None) -> dict | None:
         """Plain navigation commands are done instantly, with no model call."""
         from jarvis.service import appmap
 
         try:
-            q = appmap.quick_command(self.j, text)
+            q = self._small_talk(text, thread) or appmap.quick_command(self.j, text)
         except Exception:  # noqa: BLE001
             q = None
         if not q:

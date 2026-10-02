@@ -615,6 +615,9 @@ def test_guest_can_look_and_ask_but_not_change(monkeypatch):
     assert j.check(tok) == "guest:friend@x.com"
     L = ask.Lookups(j, guest=True)
     assert "guest" in L.call("propose_alert", {"kind": "price_above", "coin": "BTC", "value": 1})["error"]
+    import pytest
+    pytest.importorskip("fastapi")
+    pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
     from jarvis.service import app as appmod
     monkeypatch.setattr(appmod, "_J", j)

@@ -489,11 +489,14 @@ def _post_opt(post, url, headers, body, opt_key: str, field_path: list[str]):
     except RuntimeError as exc:
         msg = str(exc)
         if msg.startswith("400") and any(f in msg for f in field_path):
-            FAST[opt_key] = ""
             d = body
-            for f in field_path[:-1]:
-                d = d.get(f, {})
-            d.pop(field_path[-1], None)
+            path = [f for f in field_path if f in json.dumps(body)][:2] or field_path
+            if opt_key == "claude_effort":
+                body.pop("output_config", None)
+            else:
+                for f in path[:-1]:
+                    d = d.get(f, {})
+                d.pop(path[-1], None)
             return post(url, headers, body)
         raise
 
@@ -517,11 +520,11 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
             last[-1]["cache_control"] = {"type": "ephemeral"}
         body = {"model": model, "max_tokens": 3000, "system": sysb, "tools": tdefs, "messages": msgs,
                 **({"tool_choice": {"type": "none"}} if rnd == MAX_TOOL_ROUNDS else {})}   # last round: answer with what you have
-        if FAST["claude_effort"]:
+        if FAST["claude_effort"] and "haiku" not in model:
             body["output_config"] = {"effort": FAST["claude_effort"]}               # less thinking = faster answers
         r = _post_opt(post, "https://api.anthropic.com/v1/messages",
                       {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body, "claude_effort",
-                      ["output_config"])
+                      ["output_config", "effort"])
         usage["rounds"] = usage.get("rounds", 0) + 1
         u = r.get("usage") or {}
         usage["in"] += u.get("input_tokens", 0)
@@ -573,8 +576,14 @@ def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log:
             err = exc
             if not str(exc)[:3] in ("503", "429", "500", "404"):
                 raise
-            _COOL[m] = time.time() + 300
+            _COOL[m] = time.time() + 90
             log.clear()
+    try:                                   # every model busy: one patient try on the main model before giving up
+        text, usage = _gemini_once(GEMINI_MODELS[0], system, history, user, tools, log, post)
+        usage["model"] = GEMINI_MODELS[0]
+        return text, usage
+    except RuntimeError as exc:
+        err = exc
     raise RuntimeError(f"Gemini's free service is busy right now. Try again in a minute, or switch to Claude. ({str(err)[:80]})")
 
 
@@ -600,7 +609,7 @@ def _gemini_once(model: str, system: str, history: list[dict], user: str, tools:
                       {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
                        "tools": [{"functionDeclarations": decls}], "generationConfig": gc,
                        **({"toolConfig": {"functionCallingConfig": {"mode": "NONE"}}} if rnd == MAX_TOOL_ROUNDS else {})},
-                      "gemini_thinking", ["generationConfig", "thinkingConfig"])
+                      "gemini_thinking", ["generationConfig", "thinkingConfig", "thinking"])
         usage["rounds"] = usage.get("rounds", 0) + 1
         u = r.get("usageMetadata") or {}
         usage["in"] += u.get("promptTokenCount", 0)

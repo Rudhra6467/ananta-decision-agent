@@ -448,7 +448,10 @@ class Mark(BaseModel):
 
 @app.get("/v3/ask/suggestions")
 def suggestions(who: str = Depends(owner)) -> dict:
-    return {"questions": [c["q"] for c in _cases()["cases"] if c.get("suggest")]}
+    cs = _cases()["cases"]
+    return {"questions": [c["q"] for c in cs if c.get("suggest")],
+            "portfolio": [c["q"] for c in cs if c.get("suggest") == "portfolio"],
+            "market": [c["q"] for c in cs if c.get("suggest") == "market"]}
 
 
 def _evdir():
@@ -495,3 +498,14 @@ def evals_mark(b: Mark, who: str = Depends(owner)) -> dict:
     J().db.execute("INSERT OR REPLACE INTO eval_marks VALUES (?,?,?,?,?,?)", (b.run, b.id, b.provider, b.verdict, b.note[:300], int(J().now())))
     J().db.commit()
     return {"ok": True}
+
+
+
+class Audio(BaseModel):
+    audio_b64: str
+    mime: str = "audio/wav"
+
+
+@app.post("/v3/voice/transcribe")
+def voice_transcribe(b: Audio, who: str = Depends(owner)) -> dict:
+    return {"text": _run(A().transcribe, b.audio_b64, b.mime)}

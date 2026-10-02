@@ -944,7 +944,9 @@ class Ask:
         self.j.db.commit()
 
     def threads(self, n: int = 20) -> list[dict]:
-        rows = self.j.db.execute("""SELECT thread, MIN(t), MAX(t), COUNT(*) FROM ask_messages GROUP BY thread ORDER BY MAX(t) DESC LIMIT ?""", (n,)).fetchall()
+        rows = self.j.db.execute("""SELECT thread, MIN(t), MAX(t), COUNT(*) FROM ask_messages WHERE thread NOT IN
+                (SELECT thread FROM ask_messages WHERE role='user' AND COALESCE(mode,'') LIKE 'eval:%')
+                GROUP BY thread ORDER BY MAX(t) DESC LIMIT ?""", (n,)).fetchall()
         out = []
         for th, t0, t1, cnt in rows:
             first = self.j.db.execute("SELECT text, mode FROM ask_messages WHERE thread=? AND role='user' ORDER BY t LIMIT 1", (th,)).fetchone()
@@ -954,10 +956,10 @@ class Ask:
 
     def thread(self, thread: str) -> list[dict]:
         out = []
-        for mid, t, role, text, reply, prov, ms, err, rating in self.j.db.execute(
-                "SELECT id, t, role, text, reply, provider, ms, error, rating FROM ask_messages WHERE thread=? ORDER BY t, rowid", (thread,)):
+        for mid, t, role, text, reply, prov, ms, err, rating, mode in self.j.db.execute(
+                "SELECT id, t, role, text, reply, provider, ms, error, rating, mode FROM ask_messages WHERE thread=? ORDER BY t, rowid", (thread,)):
             if role == "user":
-                out.append({"id": mid, "role": "user", "text": text})
+                out.append({"id": mid, "role": "user", "text": text, "voice": (mode or "").startswith("voice:")})
             else:
                 out.append({"id": mid, "role": "assistant", "provider": prov, "ms": ms, "rating": rating,
                             **({"error": err} if err else json.loads(reply or "{}"))})

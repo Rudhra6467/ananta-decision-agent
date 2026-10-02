@@ -380,3 +380,17 @@ def test_manual_paper_orders_journal_and_jobs():
     assert abs(pv["order"]["usd"] - Mn.state(px)["positions"][0]["value"]) < 0.01
     jb = Mn.start_job("o", "reconstruction", lambda: {"match": True, "logged_real_events": 3, "rebuilt_real_events": 3}, background=False)
     assert Mn.job(jb["job"])["status"] == "DONE"
+
+
+def test_shared_db_survives_many_threads():
+    import concurrent.futures as cf
+    from jarvis.service.manual import Manual
+    j, ex = _jarvis()
+    Mn = Manual(j.db, j.now)
+
+    def work(i):
+        Mn.note("o", "t", str(i), f"note {i}")
+        return len(Mn.journal(500)) + len(views.feed(j, hours=24))
+    with cf.ThreadPoolExecutor(16) as pool:
+        list(pool.map(work, range(200)))
+    assert len(Mn.journal(500)) == 200

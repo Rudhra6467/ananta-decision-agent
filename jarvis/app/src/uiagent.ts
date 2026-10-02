@@ -11,7 +11,7 @@ const TABS: Record<string, { path: string; tab?: string }> = {
   portfolio: { path: "/(tabs)/portfolio", tab: "portfolio" }, "portfolio:explorer": { path: "/(tabs)/portfolio", tab: "explorer" },
   "portfolio:mine": { path: "/(tabs)/portfolio", tab: "mine" }, ananta: { path: "/(tabs)/ask" },
   evidence: { path: "/(tabs)/evidence", tab: "collected" }, "evidence:forwarded": { path: "/(tabs)/evidence", tab: "forwarded" },
-  cockpit: { path: "/(tabs)/cockpit" }, mandate: { path: "/mandate" }, testlab: { path: "/testlab" },
+  cockpit: { path: "/cockpit" }, mandate: { path: "/mandate" }, testlab: { path: "/testlab" },
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

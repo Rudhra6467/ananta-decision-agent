@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getScreen, setScreen, setVoiceLive, useScreen } from "../../src/context";
 import * as UI from "../../src/uiagent";
@@ -36,10 +36,12 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak }: { m: Msg; onPick: (q: 
         {m.stage ? <Pill text={(STAGE[String(m.stage).toLowerCase()] ?? m.stage).toUpperCase()} color={C.accent} bg={C.accentSoft} /> : null}
         {m.kind === "clarify" ? <Pill text="DID YOU MEAN" color={C.warn} bg={C.warnSoft} /> : null}
         {m.kind === "out_of_scope" ? <Pill text="OUTSIDE MY AREA" /> : null}
+        {m.outside ? <Pill text={`FROM AI · ${m.outside.source ?? "outside our system"}`} color={C.warn} bg={C.warnSoft} /> : null}
         {m.kind === "cannot_do_yet" ? <Pill text="CAN'T DO THAT YET" color={C.warn} bg={C.warnSoft} /> : null}
       </View>
       <Text style={{ color: C.text, fontSize: 15, lineHeight: 22 }}>{m.answer}</Text>
       {m.assumption ? <T small>Assumed: {m.assumption}</T> : null}
+      {m.outside ? <Text style={{ color: C.faint, fontSize: 11 }}>{m.outside.note}</Text> : null}
 
       {m.kind === "answer" && (m.breakdown?.length || m.evidence?.length) ? (
         <View style={{ flexDirection: "row", gap: 8 }}>
@@ -132,8 +134,23 @@ export default function Ananta() {
   useEffect(() => { TTS.init(); }, []);
   const sst = useRef({ offset: { y: 0 }, height: { h: 0 }, content: { h: 0 } }).current;
   useFocusEffect(useCallback(() => { setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); setScroller({ ref: scroll, ...sst }); }, []));
-  const where = () => ({ here: getScreen() ?? undefined, about: ctx ?? undefined });
+  const where = () => ({ here: getScreen() ?? undefined, about: ctx ?? undefined,
+    tts: liveRef.current && TTS.engine === "natural" ? { voice: TTS.voice } : undefined });
   useEffect(() => { setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [msgs.length, busy]);
+  const [kb, setKb] = useState(false);
+  useEffect(() => {
+    const a = Keyboard.addListener("keyboardWillShow", () => setKb(true)), b = Keyboard.addListener("keyboardWillHide", () => setKb(false));
+    const c = Keyboard.addListener("keyboardDidShow", () => setKb(true)), d = Keyboard.addListener("keyboardDidHide", () => setKb(false));
+    return () => { a.remove(); b.remove(); c.remove(); d.remove(); };
+  }, []);
+  const [atEnd, setAtEnd] = useState(true);
+  const checkEnd = () => setAtEnd(sst.content.h - (sst.offset.y + sst.height.h) < 160);
+  const shareSession = async () => {
+    let txt = "";
+    try { if (thread) txt = (await api(`/v3/ask/thread/${thread}/export`)).text; } catch { /* use what is on screen */ }
+    if (!txt) txt = msgs.map((m) => (m.role === "user" ? `MADHAV${m.voice ? " (voice)" : ""}: ${m.text}` : `ANANTA (${m.model_label ?? ""}${m.ms ? `, ${(m.ms / 1000).toFixed(1)}s` : ""}): ${m.answer ?? m.error ?? ""}`)).join("\n\n");
+    if (txt) Share.share({ message: txt, title: "Ananta session" });
+  };
 
   const listenAgain = () => { if (liveRef.current) setTimeout(() => mic.start(), 250); };
   const speak = (t: string) => {
@@ -148,6 +165,7 @@ export default function Ananta() {
       const wasLive = liveRef.current;
       if (wasLive) mic.cancel();
       setSpeaking(true);
+      TTS.warm(r.tour.map((s: any) => s.say));
       await UI.playTour(r.tour, (t) => TTS.sayAsync(t));
       setSpeaking(false);
       if (wasLive) listenAgain();
@@ -276,6 +294,7 @@ export default function Ananta() {
         <Switch value={claude} onValueChange={setClaude} trackColor={{ true: C.accent, false: C.line }} />
         <Text style={{ color: claude ? C.text : C.faint, fontWeight: "700" }}>Claude</Text>
         <View style={{ flex: 1 }} />
+        {msgs.length ? <Text onPress={shareSession} style={{ color: C.accent, fontWeight: "600", marginRight: 12 }}>Share</Text> : null}
         <Text onPress={() => setSessions(true)} style={{ color: C.accent, fontWeight: "600" }}>Sessions</Text>
         <Text onPress={newSession} style={{ color: C.accent, fontWeight: "600", marginLeft: 12 }}>New</Text>
       </View>
@@ -285,9 +304,10 @@ export default function Ananta() {
         </Pressable>
       ) : null}
 
-      <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }} keyboardShouldPersistTaps="handled"
-        onScroll={(e) => { sst.offset.y = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={64}
-        onLayout={(e) => { sst.height.h = e.nativeEvent.layout.height; }} onContentSizeChange={(_, h) => { sst.content.h = h; }}>
+      <View style={{ flex: 1 }}>
+      <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive"
+        onScroll={(e) => { sst.offset.y = e.nativeEvent.contentOffset.y; checkEnd(); }} scrollEventThrottle={64}
+        onLayout={(e) => { sst.height.h = e.nativeEvent.layout.height; checkEnd(); }} onContentSizeChange={(_, h) => { sst.content.h = h; checkEnd(); }}>
         {msgs.length === 0 ? (
           <View style={{ gap: 8, paddingTop: 20 }}>
             <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>Hi Madhav</Text>
@@ -309,6 +329,19 @@ export default function Ananta() {
         ) : null}
         {err ? <Text style={{ color: C.bad }}>{err}</Text> : null}
       </ScrollView>
+      {!atEnd ? (
+        <Pressable onPress={() => scroll.current?.scrollToEnd({ animated: true })} accessibilityLabel="Jump to latest"
+          style={{ position: "absolute", right: 16, bottom: 12, width: 40, height: 40, borderRadius: 20, backgroundColor: C.text, alignItems: "center", justifyContent: "center", opacity: 0.9 }}>
+          <Text style={{ color: "#FFF", fontSize: 18, fontWeight: "700" }}>↓</Text>
+        </Pressable>
+      ) : null}
+      {kb ? (
+        <Pressable onPress={() => Keyboard.dismiss()} accessibilityLabel="Hide keyboard"
+          style={{ position: "absolute", left: 16, bottom: 12, flexDirection: "row", gap: 6, alignItems: "center", backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
+          <Text style={{ color: C.text, fontSize: 13, fontWeight: "600" }}>⌄ Hide keyboard</Text>
+        </Pressable>
+      ) : null}
+      </View>
 
       {!live ? (
         <View style={{ gap: 6, paddingBottom: 6 }}>
@@ -332,7 +365,7 @@ export default function Ananta() {
       {live ? (
         <LivePanel label={liveLabel} hearing={mic.status === "hearing"} speaking={speaking} level={mic.level}
           onOrb={() => { if (speaking) { TTS.stop(); } else if (mic.status === "hearing") mic.send(); }} onEnd={endLive}
-          rateLabel={TTS.rate} onRate={(r) => TTS.setRate(r)} voiceName={TTS.voiceLabel()} />
+          rateLabel={TTS.rate} onRate={(r) => TTS.setRate(r)} />
       ) : (
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
           <Pressable onPress={dictate} style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center",
@@ -358,12 +391,18 @@ export default function Ananta() {
   );
 }
 
-function LivePanel({ label, hearing, speaking, level, onOrb, onEnd, rateLabel, onRate, voiceName }: {
+function LivePanel({ label, hearing, speaking, level, onOrb, onEnd, rateLabel, onRate }: {
   label: string; hearing: boolean; speaking: boolean; level: number; onOrb: () => void; onEnd: () => void;
-  rateLabel: number; onRate: (r: number) => void; voiceName: string;
+  rateLabel: number; onRate: (r: number) => void;
 }) {
   const pulse = useRef(new Animated.Value(1)).current;
   const [r, setR] = useState(rateLabel);
+  const [vc, setVc] = useState(TTS.engine === "phone" ? "Phone" : TTS.voice);
+  const pickVoice = (v: string) => {
+    setVc(v);
+    if (v === "Phone") TTS.setEngine("phone"); else { TTS.setEngine("natural"); TTS.setVoice(v); }
+    TTS.say(v === "Phone" ? "This is the phone voice." : "Hi Madhav, this is how I sound now.");
+  };
   useEffect(() => {
     const a = Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: 1.1, duration: 700, useNativeDriver: true }),
       Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true })]));
@@ -380,13 +419,20 @@ function LivePanel({ label, hearing, speaking, level, onOrb, onEnd, rateLabel, o
       <Text style={{ color: C.text, fontWeight: "600" }}>{label}</Text>
       <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
         <Text style={{ color: C.dim, fontSize: 12 }}>Voice speed</Text>
-        {[0.9, 1.0, 1.1, 1.2].map((x) => (
+        {TTS.RATES.map((x) => (
           <Pressable key={x} onPress={() => { setR(x); onRate(x); }} style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: r === x ? C.text : C.card2 }}>
-            <Text style={{ color: r === x ? "#FFF" : C.text, fontSize: 12 }}>{x.toFixed(1)}×</Text>
+            <Text style={{ color: r === x ? "#FFF" : C.text, fontSize: 12 }}>{String(x)}×</Text>
           </Pressable>
         ))}
       </View>
-      <Text style={{ color: C.faint, fontSize: 11 }}>Voice: {voiceName}</Text>
+      <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+        <Text style={{ color: C.dim, fontSize: 12 }}>Voice</Text>
+        {[...TTS.VOICES, "Phone"].map((v) => (
+          <Pressable key={v} onPress={() => pickVoice(v)} style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: vc === v ? C.text : C.card2 }}>
+            <Text style={{ color: vc === v ? "#FFF" : C.text, fontSize: 12 }}>{v}</Text>
+          </Pressable>
+        ))}
+      </View>
       <Pressable onPress={onEnd} style={{ backgroundColor: C.text, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 9 }}>
         <Text style={{ color: "#FFF", fontWeight: "700" }}>End voice</Text>
       </Pressable>

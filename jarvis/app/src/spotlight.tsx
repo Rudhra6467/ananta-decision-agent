@@ -73,7 +73,7 @@ function measure(v: View | null): Promise<{ y: number; h: number } | null> {
 // Scroll the open screen so the spot is in view, then make it glow. Returns false if the spot is not on screen.
 export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
   let target: SpotRef | null = null;
-  for (let i = 0; i < 15 && !target; i++) {                   // the screen may still be opening
+  for (let i = 0; i < 30 && !target; i++) {                   // the screen (and its data) may still be loading: up to 3 s
     for (const s of spots.get(id) ?? []) {
       const m = await measure(s.view);
       if (m) { target = s; break; }

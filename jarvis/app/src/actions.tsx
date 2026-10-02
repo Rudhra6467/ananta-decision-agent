@@ -8,7 +8,7 @@ import { C } from "./theme";
 
 export function openScreen(sh: any) {
   const to: Record<string, string> = { markets: "/(tabs)/markets", portfolio: "/(tabs)/portfolio", evidence: "/(tabs)/evidence",
-    cockpit: "/(tabs)/cockpit", mandate: "/mandate", home: "/(tabs)/today" };
+    cockpit: "/cockpit", mandate: "/mandate", home: "/(tabs)/today" };
   if (sh.screen === "coin" && sh.coin) router.push(`/coin/${sh.coin}`);
   else if (sh.screen === "trade" && sh.id) router.push(`/trade/${sh.id}`);
   else if (to[sh.screen]) router.push(to[sh.screen] as any);

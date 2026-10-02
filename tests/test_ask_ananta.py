@@ -576,3 +576,62 @@ def test_where_am_i_never_moves_and_moves_dedupe():
     assert ui == []
     ui, _ = am.keep_honest(None, "Open the ETH trade", "Here it is.", [mv, mv, mv], here)
     assert ui == [mv]
+
+
+def test_highlights_follow_the_sentence_that_names_them():
+    from jarvis.service import appmap as am
+    ans = "Here is our Bitcoin trade. We bought it at 76,000. The stop is at 74,100. The target is at 80,200."
+    pts = am.anchor_points([{"spot": "trade.target", "sentence": 1}, {"spot": "trade.stop", "sentence": 1}], ans)
+    assert {p["spot"]: p["sentence"] for p in pts} == {"trade.stop": 2, "trade.target": 3}
+    assert [p["sentence"] for p in pts] == sorted(p["sentence"] for p in pts)
+    pts = am.anchor_points([{"spot": "portfolio.holding:LTC", "sentence": 0}], "The portfolio is up. Litecoin is strongest.")
+    assert pts == [{"spot": "portfolio.holding:LTC", "sentence": 1}]
+
+
+def test_outside_coin_is_labelled_and_unknown_coin_offers_names():
+    from jarvis.service import outside
+    fake = {"pepe": {"coins": [{"id": "pepe", "name": "Pepe", "symbol": "pepe", "market_cap_rank": 30}]}}
+    detail = {"name": "Pepe", "symbol": "pepe", "market_cap_rank": 30, "description": {"en": "A meme coin. Second line. Third."},
+              "market_data": {"current_price": {"usd": 0.00001}, "price_change_percentage_24h": 3.2, "market_cap": {"usd": 4e9}}}
+    get = lambda path, p: detail if path.startswith("/coins/") else fake.get(p.get("query", "").lower(), {"coins": []})  # noqa: E731
+    outside._cache.clear()
+    r = outside.coin("pepe", get=get)
+    assert r["found"] and r["symbol"] == "PEPE" and not r["in_our_basket"] and "CoinGecko" in r["source"]
+    miss = outside.coin("etherium", get=get)
+    assert not miss["found"] and "Ethereum" in miss["similar"]
+    reply = {"kind": "answer", "answer": "Here you go.", "evidence": [{"label": "Price", "value": "1"}], "options": []}
+    ask._label_outside(reply, [r])
+    assert reply["outside"]["source"].startswith("CoinGecko") and reply["evidence"][0]["source"] == "CoinGecko"
+    reply = {"kind": "answer", "answer": "Etherium is...", "options": []}
+    ask._label_outside(reply, [miss])
+    assert reply["kind"] == "clarify" and "couldn't find" in reply["answer"] and "Ethereum" in reply["options"]
+
+
+def test_guest_can_look_and_ask_but_not_change(monkeypatch):
+    monkeypatch.setenv("JARVIS_GUEST_EMAIL", "friend@x.com")
+    monkeypatch.setenv("JARVIS_GUEST_PASSWORD_HASH", core.hash_password("guest pass 123"))
+    j, ex = _jarvis()
+    tok = j.login("friend@x.com", "guest pass 123")
+    assert j.check(tok) == "guest:friend@x.com"
+    L = ask.Lookups(j, guest=True)
+    assert "guest" in L.call("propose_alert", {"kind": "price_above", "coin": "BTC", "value": 1})["error"]
+    from fastapi.testclient import TestClient
+    from jarvis.service import app as appmod
+    monkeypatch.setattr(appmod, "_J", j)
+    c = TestClient(appmod.app)
+    h = {"Authorization": f"Bearer {tok}"}
+    assert c.post("/v3/mandate", json={}, headers=h).status_code == 403
+    assert c.post("/safety/kill", json={"on": True, "confirm": True}, headers=h).status_code == 403
+    assert c.get("/v3/home", headers=h).status_code == 200
+
+
+def test_session_export_text():
+    j, ex = _jarvis()
+    a = ask.Ask(j, providers={})
+    th = "t-export"
+    j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES ('u1', ?, 1, 'user', 'how is BTC?', 'claude', 'voice:x')", (th,))
+    j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, ms) VALUES ('a1', ?, 2, 'assistant', ?, 'claude', 4200)",
+                 (th, json.dumps({"kind": "answer", "answer": "BTC is up.", "model_label": "Claude", "ui": [{"do": "open", "label": "BTC page"}],
+                                  "points": [{"spot": "coin.chart", "sentence": 0}], "evidence": [{"label": "Price", "value": "76k"}]})))
+    t = a.export(th)
+    assert "MADHAV (voice): how is BTC?" in t and "BTC is up." in t and "4.2s" in t and "BTC page" in t and "coin.chart" in t

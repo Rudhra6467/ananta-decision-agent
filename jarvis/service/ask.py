@@ -526,22 +526,58 @@ def _post(url: str, headers: dict, body: dict, timeout: int = 60, retry: bool = 
 
 
 MODELS = {   # key: provider, API model, price per million tokens (input, output), cache-read multiplier
+    "local": {"label": "Local (Mac)", "provider": "local", "model": os.getenv("ASK_LOCAL_MODEL", "qwen3.5:9b"), "price": (0.0, 0.0), "cache": 0.0},
     "gemini": {"label": "Gemini Flash", "provider": "gemini", "model": None, "price": (0.0, 0.0), "cache": 0.0},
     "haiku": {"label": "Claude Haiku", "provider": "claude", "model": os.getenv("ASK_HAIKU_MODEL", "claude-haiku-4-5-20251001"), "price": (1.0, 5.0), "cache": 0.1},
     "sonnet": {"label": "Claude Sonnet", "provider": "claude", "model": os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5"), "price": (2.0, 10.0), "cache": 0.1},
     "opus": {"label": "Claude Opus", "provider": "claude", "model": os.getenv("ASK_OPUS_MODEL", "claude-opus-5-5"), "price": (4.0, 20.0), "cache": 0.05},
 }
 MODES = {"everyday": "gemini", "deep": "sonnet", "max": "opus"}
-ALIASES = {"claude": "sonnet", "gemini": "gemini", "haiku": "haiku", "sonnet": "sonnet", "opus": "opus"}
+ALIASES = {"claude": "sonnet", "gemini": "gemini", "haiku": "haiku", "sonnet": "sonnet", "opus": "opus", "local": "local"}
 DEEP_WORDS = re.compile(r"\b(why|explain|compare|evaluat|analy[sz]|should|prepare|review|learn|history|histor|reconstruct|what if|strategy|strateg|backtest|"
                         r"evidence|break it down|reason|plan|risk|recommend|better|worse|improve|test)", re.I)
 
 
+_LOCAL_UP = {"t": 0.0, "ok": False}
+
+
+def local_up() -> bool:
+    """Is the Mac's model server running? (checked at most once a minute)"""
+    if os.getenv("ASK_LOCAL", "1") != "1":
+        return False
+    if time.time() - _LOCAL_UP["t"] > 60:
+        import requests
+
+        try:
+            _LOCAL_UP["ok"] = requests.get(LOCAL_URL + "/api/version", timeout=1.5).status_code == 200
+        except Exception:  # noqa: BLE001
+            _LOCAL_UP["ok"] = False
+        _LOCAL_UP["t"] = time.time()
+    return _LOCAL_UP["ok"]
+
+
 def route(text: str) -> tuple[str, str]:
-    """Auto mode: everyday questions to free Gemini, investigations to Claude Sonnet."""
+    """Auto mode, cheapest level that can do it: investigations to Claude Sonnet; routine questions to the Mac's model
+    (free; a weak answer is escalated automatically); free Gemini when the Mac's model is not running."""
     if len(text) > 160 or DEEP_WORDS.search(text):
         return "sonnet", "Auto picked Claude: this needs investigation"
+    if local_up():
+        return "local", "Auto picked the Mac's model: routine question"
     return "gemini", "Auto picked Gemini: everyday question"
+
+
+def _local_doubt(raw: str, context: str) -> str:
+    """Reasons not to trust a local answer: not valid JSON, empty, or numbers that appear nowhere in its data."""
+    try:
+        r = parse(raw)
+    except Exception:  # noqa: BLE001
+        return "no valid answer"
+    if r.get("kind") not in ("answer", "clarify", "not_understood", "out_of_scope", "cannot_do_yet") or not (r.get("answer") or "").strip():
+        return "empty answer"
+    miss = grounded(r.get("answer", "") + " " + " ".join(str(e.get("value", "")) for e in r.get("evidence") or [] if isinstance(e, dict)), context)
+    if miss:
+        return "numbers not in its data: " + ", ".join(miss[:3])
+    return ""
 
 
 def cost_usd(key: str, usage: dict) -> float:
@@ -712,7 +748,97 @@ def _gemini_once(model: str, system: str, history: list[dict], user: str, tools:
     raise RuntimeError("too many lookup rounds")
 
 
+LOCAL_URL = os.getenv("ASK_LOCAL_URL", "http://127.0.0.1:11434")
+LOCAL_ROUNDS = 3
+
+
+def run_local(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=None, model: str | None = None) -> tuple[str, dict]:
+    """A model running on this Mac (Ollama). Free and unlimited; used for routine questions. Same lookups as the cloud models."""
+    import requests
+
+    model = model or MODELS["local"]["model"]
+    msgs = [{"role": "system", "content": system}] + [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": user}]
+    defs = [{"type": "function", "function": {"name": n, "description": d, "parameters": s}} for n, d, s in TOOLS]
+    usage = {"in": 0, "out": 0, "rounds": 0, "model": model}
+
+    def chat(body):
+        if post:
+            return post(body)
+        r = requests.post(LOCAL_URL + "/api/chat", json=body, timeout=180)
+        if r.status_code >= 400:
+            raise RuntimeError(f"local model: HTTP {r.status_code} {r.text[:120]}")
+        return r.json()
+
+    for rnd in range(LOCAL_ROUNDS + 1):
+        last = rnd == LOCAL_ROUNDS
+        body = {"model": model, "messages": msgs, "stream": False, "think": False, "keep_alive": "60m",
+                "options": {"num_ctx": 24576, "temperature": 0.2}}
+        if last:
+            body["format"] = "json"
+        else:
+            body["tools"] = defs
+        r = chat(body)
+        usage["rounds"] += 1
+        usage["in"] += r.get("prompt_eval_count", 0)
+        usage["out"] += r.get("eval_count", 0)
+        m = r.get("message") or {}
+        calls = m.get("tool_calls") or []
+        if not calls:
+            text = m.get("content") or ""
+            if text.strip() or last:
+                return text, usage
+            msgs.append({"role": "user", "content": "Now write the answer as the JSON object."})
+            continue
+        msgs.append({"role": "assistant", "content": m.get("content") or "", "tool_calls": calls})
+        for c in calls[:6]:
+            f = c.get("function") or {}
+            args = f.get("arguments") or {}
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except ValueError:
+                    args = {}
+            out = tools.call(f.get("name", ""), args)
+            log.append({"tool": f.get("name"), "args": args})
+            js = json.dumps(out, default=str)
+            usage["seen"] = (usage.get("seen", "") + js)[:400000]
+            msgs.append({"role": "tool", "tool_name": f.get("name"), "content": js[:20000]})
+    raise RuntimeError("too many lookup rounds")
+
+
+_NUM = re.compile(r"(?<![\w.])\$?\d[\d,]*(?:\.\d+)?%?")
+
+
+def grounded(answer: str, context: str) -> list[str]:
+    """Numbers in the answer that appear nowhere in what the model was given (a sign it made them up). Small counts and years are ignored."""
+    ctx = re.sub(r"[,$]", "", context)
+    nums = set(re.findall(r"-?\d+(?:\.\d+)?", ctx))
+    vals = []
+    for x in nums:
+        try:
+            vals.append(float(x))
+        except ValueError:
+            pass
+    missing = []
+    for tok in _NUM.findall(answer or ""):
+        raw = tok.strip("$%").replace(",", "")
+        try:
+            v = float(raw)
+        except ValueError:
+            continue
+        if v <= 12 and "." not in raw or 2000 <= v <= 2100 and "." not in raw:
+            continue
+        if raw in nums:
+            continue
+        tol = max(abs(v) * 0.006, 0.051)                       # rounding: 76,412.37 -> 76,400 or 76.4k; 2.43% -> 2.4%
+        if any(abs(v - c) <= tol or abs(v - abs(c)) <= tol for c in vals):
+            continue
+        missing.append(tok)
+    return missing
+
+
 PROVIDERS: dict[str, Callable] = {
+    "local": run_local,
     "gemini": run_gemini,
     "haiku": lambda *a, **k: run_claude(*a, model=MODELS["haiku"]["model"], **k),
     "sonnet": lambda *a, **k: run_claude(*a, model=MODELS["sonnet"]["model"], **k),
@@ -885,6 +1011,12 @@ class Ask:
         return self.j.db.execute("SELECT count(*) FROM ask_messages WHERE role='user' AND COALESCE(mode,'') NOT LIKE 'eval:%' AND t >= ?",
                                  (int(self.j.now() - 86400),)).fetchone()[0]
 
+    def _next_level(self) -> str:
+        """Above the Mac: Claude Haiku while today's budget lasts, else free Gemini."""
+        if "haiku" in self.providers and os.getenv("ANTHROPIC_API_KEY") and self.spend()["left_usd"] > 0.02:
+            return "haiku"
+        return "gemini"
+
     def _pick(self, text: str, mode: str | None, provider: str | None) -> tuple[str, str, str]:
         """-> (model key, mode label, note)."""
         if provider:                                            # old clients: provider gemini / claude
@@ -983,12 +1115,23 @@ class Ask:
 
         system = SYSTEM + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text()
         try:
+            can_escalate = key == "local" and mode_label == "auto"      # the router picked the Mac: a weak answer goes one level up
             try:
                 L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
                 raw, usage = self.providers[key](system, history, user_msg, L, log)
+                if can_escalate:
+                    why = _local_doubt(raw, user_msg + " ".join(m["text"] for m in history) + usage.get("seen", ""))
+                    if why:
+                        raise RuntimeError("local doubt: " + why)
             except Exception as exc:  # noqa: BLE001
+                if can_escalate:
+                    used = self._next_level()
+                    note = (note + "; " if note else "") + f"The Mac's model wasn't sure ({str(exc)[:60]}), so {MODELS[used]['label']} answered"
+                    log.clear()
+                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
+                    raw, usage = self.providers[used](system, history, user_msg, L, log)
                 # free Gemini busy: escalate once to Claude Haiku if allowed and within budget
-                if key == "gemini" and "haiku" in self.providers and self.spend()["left_usd"] > 0.02 and os.getenv("ANTHROPIC_API_KEY"):
+                elif key == "gemini" and "haiku" in self.providers and self.spend()["left_usd"] > 0.02 and os.getenv("ANTHROPIC_API_KEY"):
                     used = "haiku"
                     note = (note + "; " if note else "") + "Gemini was busy, so Claude Haiku answered"
                     log.clear()

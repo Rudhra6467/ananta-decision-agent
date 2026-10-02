@@ -1,3 +1,4 @@
+import { Spot } from "../../src/spotlight";
 import { useCallback, useState } from "react";
 import { Alert, Switch, Text, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -56,11 +57,14 @@ function Book() {
   const pts = (h?.points ?? []).map((p: any) => p.main);
   return (
     <Screen loading={loading} onRefresh={reload}>
+      <Spot id="portfolio.value">
       <Big label="Portfolio value (paper)" value={usd(d.value)} change={gain}
         changeLabel={`${usdSigned(gain)} (${pct(d.return_pct)}) since start`} />
       <LineChart height={150} showAxis={false} series={[{ data: pts, color: gain >= 0 ? C.good : C.bad, fill: true }]} />
+      </Spot>
       <Segmented value={range} onChange={setRange} options={RANGES} />
 
+      <Spot id="portfolio.autopilot">
       <Card>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <View style={{ flex: 1 }}>
@@ -70,8 +74,10 @@ function Book() {
           <Switch value={auto} onValueChange={toggle} trackColor={{ true: C.accent, false: C.line }} />
         </View>
       </Card>
+      </Spot>
 
       {d.pending.length ? (
+        <Spot id="portfolio.suggested">
         <Card title="Suggested changes" sub={`${d.pending.length} waiting for you`}>
           {d.pending.map((p: any) => (
             <T key={p.id}>• {p.action === "REBALANCE" ? "Rebalance to equal weights" : `${p.action === "ENTER" ? "Buy" : p.action === "EXIT" ? "Sell" : p.action} ${p.coin ?? ""}`} — {(p.why ?? []).join("; ")}</T>
@@ -81,19 +87,24 @@ function Book() {
             <View style={{ flex: 1 }}><Btn label="Approve" onPress={() => act("approve")} /></View>
           </View>
         </Card>
+        </Spot>
       ) : null}
 
+      <Spot id="portfolio.holdings">
       <Section title={`Holdings · ${d.holdings.length}`} right={<T small>value · total return</T>} />
+      </Spot>
       <Card>
         <StackBar parts={[...d.holdings.map((r: any, i: number) => ({ label: r.coin, value: r.value, color: SHADES[i] ?? C.line })),
           { label: "Cash", value: d.cash, color: C.card2 }]} />
         {d.holdings.map((r: any) => (
           <View key={r.coin}>
             <Divider />
+            <Spot id={`portfolio.holding:${r.coin}`}>
             <Row title={r.coin} sub={`${COIN_NAME[r.coin] ?? ""} · ${r.weight_pct}% · `} onPress={() => router.push(`/coin/${r.coin}`)}
               onLongPress={() => askAbout({ screen: "holding", coin: r.coin, label: `${r.coin} in the portfolio` }, `How is my ${r.coin} holding doing, and why is it rated ${ratingWord[r.rating] ?? r.rating}?`)}
               value={usd(r.value)} valueSub={`${usdSigned(r.pnl)} (${pct(r.pnl_pct)})`} valueSubColor={pnlColor(r.pnl)}
               left={<Pill text={ratingWord[r.rating] ?? r.rating} color={ratingColor[r.rating]} />} />
+            </Spot>
           </View>
         ))}
         <Divider />
@@ -137,7 +148,9 @@ function Trades() {
   const total = d.value - d.start;
   return (
     <Screen loading={loading} onRefresh={reload}>
+      <Spot id="explorer.value">
       <Big label="Explorer book (paper)" value={usd(d.value)} change={total} changeLabel={`${usdSigned(total)} since start`} />
+      </Spot>
       <View style={{ flexDirection: "row", gap: 12 }}>
         <Stat label="Open P&L" value={usdSigned(d.unrealized)} color={pnlColor(d.unrealized)} />
         <Stat label="Closed P&L" value={usdSigned(d.realized)} color={pnlColor(d.realized)} />
@@ -149,9 +162,11 @@ function Trades() {
         {d.open.map((t: any, i: number) => (
           <View key={t.id}>
             {i ? <Divider /> : null}
+            <Spot id={`explorer.trade:${t.id}`}>
             <Row title={t.coin} sub={`${t.setup_name} · ${t.type_name}\nBought ${price(t.entry)} · ${t.since}`} onPress={() => router.push(`/trade/${t.id}`)}
               onLongPress={() => askAbout({ screen: "trade", id: t.id, coin: t.coin, label: `${t.coin} trade ${t.id}` }, `How is this ${t.coin} trade doing and what are we waiting for?`)}
               value={usdSigned(t.pnl_usd)} valueColor={pnlColor(t.pnl_usd)} valueSub={t.status} />
+            </Spot>
           </View>
         ))}
       </Card>
@@ -186,7 +201,9 @@ function Mine() {
   const gain = d.equity - d.start;
   return (
     <Screen loading={loading} onRefresh={reload}>
+      <Spot id="mine.value">
       <Big label="My paper book" value={usd(d.equity)} change={gain} changeLabel={`${usdSigned(gain)} (${pct(d.return_pct)}) since start`} />
+      </Spot>
       <T dim>Orders you ask Ananta for land here, separate from the agent's books, so your calls and the agent's can be compared. Paper only.</T>
       <View style={{ flexDirection: "row", gap: 12 }}>
         <Stat label="Cash" value={usd(d.cash)} />
@@ -199,9 +216,11 @@ function Mine() {
         {d.positions.map((p: any, i: number) => (
           <View key={p.coin}>
             {i ? <Divider /> : null}
+            <Spot id={`mine.position:${p.coin}`}>
             <Row title={p.coin} sub={[p.stop ? `stop ${price(p.stop)}` : null, p.target ? `target ${price(p.target)}` : null].filter(Boolean).join(" · ") || "no stop set"}
               value={usd(p.value)} valueSub={`${usdSigned(p.pnl)}`} valueSubColor={pnlColor(p.pnl)} onPress={() => router.push(`/coin/${p.coin}`)}
               onLongPress={() => askAbout({ screen: "manual_position", coin: p.coin, label: `my ${p.coin} paper position` }, `How is my ${p.coin} paper position doing?`)} />
+            </Spot>
           </View>
         ))}
       </Card>

@@ -1,3 +1,4 @@
+import { Spot } from "../../src/spotlight";
 import { useCallback, useState } from "react";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
@@ -31,6 +32,7 @@ function Collected() {
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   return (
     <Screen loading={loading} onRefresh={reload}>
+      <Spot id="evidence.tracker">
       <Section title="Evidence tracker" right={<T small>tap a row to see what it means</T>} />
       <Card>
         {d.tracker.map((x: any, i: number) => (
@@ -44,7 +46,9 @@ function Collected() {
           </View>
         ))}
       </Card>
+      </Spot>
 
+      <Spot id="evidence.collected">
       <Section title="What we collected" right={<T small>by setup</T>} />
       <Card>
         <View style={{ flexDirection: "row", paddingBottom: 6 }}>
@@ -66,7 +70,9 @@ function Collected() {
         ))}
         <T small>RND = random entries tracked as the baseline every setup must beat.</T>
       </Card>
+      </Spot>
 
+      <Spot id="evidence.forwarded">
       <Section title="Forwarded to the repair shop" />
       <Card>
         {d.forwarded.map((r: any, i: number) => (
@@ -81,7 +87,9 @@ function Collected() {
           </View>
         ))}
       </Card>
+      </Spot>
 
+      <Spot id="evidence.shop">
       <Section title="Repair shop status" />
       <Card>
         <T>{d.shop.summary}</T>
@@ -95,6 +103,7 @@ function Collected() {
           </View>
         ))}
       </Card>
+      </Spot>
     </Screen>
   );
 }
@@ -113,6 +122,7 @@ function Forwarded() {
         const t = x.tracking ?? {};
         return (
           <View key={x.id} style={{ gap: 12 }}>
+            <Spot id="evidence.in_use">
             <Section title={`In use · ${x.id}`} right={<T small>since {x.since}</T>} />
             <Card title={x.what}>
               {t.series ? (
@@ -136,15 +146,18 @@ function Forwarded() {
                 </Expand>
               ) : null}
             </Card>
+            </Spot>
           </View>
         );
       })}
+      <Spot id="evidence.safety">
       <Section title="Safety changes" />
       <Card>
         {d.safety_changes.map((s: any, i: number) => (
           <View key={i}>{i ? <Divider /> : null}<Line label={s.date} value="" sub={s.what} /></View>
         ))}
       </Card>
+      </Spot>
     </Screen>
   );
 }

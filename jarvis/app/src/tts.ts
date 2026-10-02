@@ -41,3 +41,22 @@ export function say(text: string, done?: () => void) {
 }
 
 export const stop = () => Speech.stop();
+
+// Speak sentence by sentence, calling onPart(i) as each one starts (used to point at things while talking).
+let seq = 0;
+export function sayParts(parts: string[], onPart: (i: number) => void, done?: () => void) {
+  Speech.stop();
+  const my = ++seq;
+  const next = (i: number) => {
+    if (my !== seq) return;                                 // interrupted or replaced
+    if (i >= parts.length) { done?.(); return; }
+    onPart(i);
+    Speech.speak(parts[i], {
+      voice: voiceId, rate, pitch: 1.0,
+      onDone: () => next(i + 1),
+      onStopped: () => { if (my === seq) { seq++; done?.(); } },
+      onError: () => next(i + 1),
+    });
+  };
+  next(0);
+}

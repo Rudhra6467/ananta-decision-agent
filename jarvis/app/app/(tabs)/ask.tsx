@@ -3,6 +3,7 @@ import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable,
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getScreen, setScreen, setVoiceLive, useScreen } from "../../src/context";
 import * as UI from "../../src/uiagent";
+import { clearSpot, setScroller } from "../../src/spotlight";
 import { StageCard } from "../../src/voice";
 import { ActionCard, openScreen } from "../../src/actions";
 import { useData } from "../../src/useData";
@@ -124,7 +125,8 @@ export default function Ananta() {
   const liveRef = useRef(false), threadRef = useRef<string | null>(null), claudeRef = useRef(false), dictating = useRef(false);
   liveRef.current = live; threadRef.current = thread; claudeRef.current = claude;
   useEffect(() => { TTS.init(); }, []);
-  useFocusEffect(useCallback(() => { setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); }, []));
+  const sst = useRef({ offset: { y: 0 }, height: { h: 0 }, content: { h: 0 } }).current;
+  useFocusEffect(useCallback(() => { setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); setScroller({ ref: scroll, ...sst }); }, []));
   const where = () => ({ here: getScreen() ?? undefined, about: ctx ?? undefined });
   useEffect(() => { setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [msgs.length, busy]);
 
@@ -148,7 +150,11 @@ export default function Ananta() {
     }
     if (spoken && liveRef.current) {
       const t = [r.error ?? r.answer, failNote].filter(Boolean).join(" ");
-      if (t) speak(t); else listenAgain();
+      if (!t) { listenAgain(); return; }
+      setSpeaking(true);
+      UI.pointAlong(t, r.points, (parts, onPart) => TTS.sayParts(parts, onPart, () => { setSpeaking(false); clearSpot(); listenAgain(); }));
+    } else if (r.points?.length) {
+      UI.pointAlong(r.answer ?? "", r.points);
     }
   };
 
@@ -265,7 +271,9 @@ export default function Ananta() {
         </Pressable>
       ) : null}
 
-      <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }} keyboardShouldPersistTaps="handled"
+        onScroll={(e) => { sst.offset.y = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={64}
+        onLayout={(e) => { sst.height.h = e.nativeEvent.layout.height; }} onContentSizeChange={(_, h) => { sst.content.h = h; }}>
         {msgs.length === 0 ? (
           <View style={{ gap: 8, paddingTop: 20 }}>
             <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>Hi Madhav</Text>
@@ -275,7 +283,7 @@ export default function Ananta() {
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
           <View key={i} style={{ gap: 8 }}>
             <Answer m={m} onPick={(q) => send(q)} onRate={(v) => rate(m, v)} onSecond={() => second(m)}
-              onSpeak={() => { TTS.stop(); speak(m.answer ?? ""); }} />
+              onSpeak={() => { TTS.stop(); setSpeaking(true); UI.pointAlong(m.answer ?? "", m.points, (parts, onPart) => TTS.sayParts(parts, onPart, () => { setSpeaking(false); clearSpot(); listenAgain(); })); }} />
             {m.voice && i === msgs.length - 1 ? (m.show ?? []).slice(0, 1).map((sh: any, k: number) => <StageCard key={k} sh={sh} open={() => openScreen(sh)} />) : null}
           </View>
         )))}

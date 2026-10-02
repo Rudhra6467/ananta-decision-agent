@@ -1,3 +1,4 @@
+import { Spot } from "../../src/spotlight";
 import { useEffect, useState } from "react";
 import { setScreen } from "../../src/context";
 import { Text, View } from "react-native";
@@ -39,7 +40,9 @@ export default function Coin() {
       <Screen loading={loading} onRefresh={reload}>
         <Big label={COIN_NAME[d.coin] ?? d.coin} value={price(d.price)} change={chg} changeLabel={`${pct(chg)} over ${span[tf]}`} />
         <Card>
+          <Spot id="coin.chart">
           <CandleChart candles={cs} refs={refs} marks={ch?.marks ?? []} showAvg={avg} />
+          </Spot>
           <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
             <T small><Text style={{ color: C.accent }}>━</Text> 20-{tf === "1d" ? "day" : "bar"} avg</T>
             <T small><Text style={{ color: C.faint }}>┅</Text> 50-{tf === "1d" ? "day" : "bar"} avg</T>
@@ -49,6 +52,7 @@ export default function Coin() {
         </Card>
         <Segmented value={tf} onChange={setTf} options={[{ key: "15m", label: "15m" }, { key: "1h", label: "1H" }, { key: "4h", label: "4H" }, { key: "1d", label: "1D" }]} />
 
+        <Spot id="coin.position">
         <Section title="Your position" />
         <Card>
           {hold ? (
@@ -65,15 +69,18 @@ export default function Coin() {
             </View>
           ) : null}
         </Card>
+        </Spot>
 
         {w?.ready ? (
           <>
+            <Spot id="coin.market">
             <Section title="What Ananta is waiting for" right={<T small>checked {w.as_of}</T>} />
             <Card sub={`1h trend: ${w.market.trend_1h} · 4h: ${w.market.trend_4h} · BTC: ${w.market.btc_trend_1h}`} title="Market picture">
               <Line label="RSI (1 hour)" value={String(w.market.rsi_1h)} />
               <Line label="Next support" value={price(w.market.next_support)} />
               <Line label="Next resistance" value={price(w.market.next_resistance)} />
             </Card>
+            </Spot>
             <Card>
               {w.setups.map((s: any, i: number) => (
                 <View key={s.setup}>
@@ -99,6 +106,7 @@ export default function Coin() {
           </>
         ) : null}
 
+        <Spot id="coin.trades">
         <Section title="Explorer trades" />
         <Card>
           {d.open_trades.length === 0 && d.closed_trades.length === 0 ? <T dim>No trades on {d.coin} yet.</T> : null}
@@ -111,6 +119,7 @@ export default function Coin() {
             <View key={i}><Divider /><Row title={`Closed · ${t.setup}`} sub={t.closed} value={usdSigned(t.net_usd)} valueColor={pnlColor(t.net_usd)} /></View>
           ))}
         </Card>
+        </Spot>
         <Btn label={`Ask Ananta about ${d.coin}`} kind="secondary"
           onPress={() => router.push({ pathname: "/(tabs)/ask", params: { q: `What is happening with ${d.coin}?`, t: String(Date.now()) } })} />
       </Screen>

@@ -1365,9 +1365,10 @@
    "cat": "App navigation",
    "q": "I'm new here. Show me around.",
    "expect": {
-    "max_s": 12,
+    "max_s": 15,
     "lookups_any": [
-     "app_map"
+     "app_map",
+     "ui_go"
     ]
    }
   },
@@ -1481,6 +1482,67 @@
     "ui_any": [
      "testlab"
     ]
+   }
+  },
+  {
+   "id": "N26",
+   "cat": "App navigation",
+   "q": "What's below this?",
+   "here": {
+    "screen": "markets",
+    "label": "Markets tab"
+   },
+   "expect": {
+    "max_s": 12,
+    "ui_do": "scroll"
+   }
+  },
+  {
+   "id": "N27",
+   "cat": "App navigation",
+   "q": "Scroll down.",
+   "expect": {
+    "ui_do": "scroll"
+   }
+  },
+  {
+   "id": "N28",
+   "cat": "App navigation",
+   "q": "Walk me through this screen.",
+   "here": {
+    "screen": "home",
+    "label": "Home tab"
+   },
+   "expect": {
+    "max_s": 15,
+    "points_min": 3
+   }
+  },
+  {
+   "id": "N29",
+   "cat": "App navigation",
+   "q": "Which holding is the weakest? Show me.",
+   "here": {
+    "screen": "portfolio",
+    "tab": "portfolio",
+    "label": "Portfolio tab"
+   },
+   "expect": {
+    "max_s": 12,
+    "points_min": 1
+   }
+  },
+  {
+   "id": "N30",
+   "cat": "App navigation",
+   "q": "Highlight the portfolio value.",
+   "here": {
+    "screen": "ananta",
+    "label": "Ananta tab"
+   },
+   "expect": {
+    "max_s": 12,
+    "points_spot": "portfolio.value"
    }
   }
  ],

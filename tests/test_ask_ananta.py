@@ -648,3 +648,14 @@ def test_evidence_rows_get_a_place_to_show():
     assert out[0]["screen"] == "portfolio" and out[0]["spot"] == "portfolio.value"
     assert out[1]["screen"] == "coin:BTC" and out[1]["spot"] == "coin.levels"
     assert "screen" not in out[2]
+
+
+def test_every_spot_ananta_can_point_at_exists_in_the_app():
+    import pathlib
+    import re as _re
+    from jarvis.service import appmap as am
+    root = pathlib.Path(__file__).resolve().parents[1] / "jarvis" / "app"
+    src = "\n".join(p.read_text() for p in list((root / "app").rglob("*.tsx")) + list((root / "src").rglob("*.tsx")))
+    in_app = {m.split(":")[0] for m in _re.findall(r'Spot id=\{?["`]([^"`]+)', src)}
+    wanted = {k.split(":")[0] for v in am.SPOTS.values() for k in v}
+    assert wanted <= in_app, sorted(wanted - in_app)

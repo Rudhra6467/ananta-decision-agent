@@ -1,8 +1,9 @@
 // The only way Ananta moves the app. Each action reports whether it really happened, so Ananta never claims a move it did not make.
 import { router } from "expo-router";
 import { getScreen } from "./context";
+import { clearSpot, focusSpot, scroll } from "./spotlight";
 
-export type UiAction = { do: "go_to" | "open" | "back"; target?: string; label?: string };
+export type UiAction = { do: "go_to" | "open" | "back" | "scroll"; target?: string; dir?: "up" | "down" | "top" | "bottom"; label?: string };
 export type UiResult = { action: UiAction; ok: boolean; landed?: string; error?: string };
 
 const TABS: Record<string, { path: string; tab?: string }> = {
@@ -36,6 +37,11 @@ export async function run(actions: UiAction[] = []): Promise<UiResult[]> {
   const out: UiResult[] = [];
   for (const a of actions) {
     try {
+      if (a.do === "scroll") {
+        const ok = scroll(a.dir ?? "down");
+        out.push({ action: a, ok, landed: getScreen()?.label, error: ok ? undefined : "this screen does not scroll" });
+        continue;
+      }
       if (a.do === "back") {
         if (router.canGoBack()) router.back(); else router.navigate("/(tabs)/today");
         await sleep(400);
@@ -59,4 +65,23 @@ export async function run(actions: UiAction[] = []): Promise<UiResult[]> {
     }
   }
   return out;
+}
+
+export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).filter((x) => x.trim());
+
+// Point at things in time with the words: spoken (voice) or paced by reading speed (text).
+export async function pointAlong(answer: string, points: { spot: string; sentence: number }[] = [], speak?: (parts: string[], onPart: (i: number) => void) => void) {
+  const parts = sentences(answer);
+  const at = (i: number) => points.find((p) => p.sentence === i)?.spot;
+  if (speak) {
+    speak(parts, (i) => { const s = at(i); if (s) focusSpot(s); });
+    return;
+  }
+  if (!points.length) return;
+  for (let i = 0; i < parts.length; i++) {
+    const s = at(i);
+    if (s) await focusSpot(s);
+    await new Promise((r) => setTimeout(r, Math.max(1600, parts[i].split(/\s+/).length * 280)));
+  }
+  setTimeout(clearSpot, 2500);
 }

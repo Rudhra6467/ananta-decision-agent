@@ -493,3 +493,31 @@ def test_screen_claims_are_kept_honest():
     assert not ui and "couldn't move the screen" in ans
     ui, ans = appmap.keep_honest(j, "where am I", "You're on the Ananta tab.", [{"do": "go_to", "target": "ananta", "label": "Ananta"}], {"screen": "ananta"})
     assert ui == [] and "couldn't" not in ans
+
+
+def test_spots_and_scroll():
+    from jarvis.service import appmap
+    j, ex = _jarvis()
+    coin = next(iter(ex.st["engines"]))
+    assert appmap.valid_spot(j, "home.value") and appmap.valid_spot(j, f"markets.coin:{coin}")
+    assert not appmap.valid_spot(j, "markets.coin:PEPE") and not appmap.valid_spot(j, "home.nothing") and not appmap.valid_spot(j, "<script>")
+    pts, ui = appmap.plan_points(j, [{"spot": "home.value", "sentence": 0}, {"spot": "bad.spot", "sentence": 1}], [], {"screen": "ananta"}, 2)
+    assert pts == [{"spot": "home.value", "sentence": 0}] and ui[0]["target"] == "home"          # app opens Home for the spot
+    pts, ui = appmap.plan_points(j, [{"spot": "home.value", "sentence": 5}], [], {"screen": "home"}, 2)
+    assert ui == [] and pts[0]["sentence"] == 1
+    pts, ui = appmap.plan_points(j, [{"spot": "coin.chart"}], [], {"screen": "home"}, 1)
+    assert pts == []                                                                         # coin spots only on a coin page
+    pts, ui = appmap.plan_points(j, [{"spot": "coin.chart"}], [{"do": "open", "target": f"coin:{coin}"}], {"screen": "home"}, 1)
+    assert pts and len(ui) == 1
+    A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: (json.dumps({"answer": "x"}), {"in": 1, "out": 1})})
+    for q, d in [("scroll down", "down"), ("show me the bottom of the page", "bottom"), ("go to the top", "top"), ("scroll up please", "up")]:
+        r = A.ask("o", q)
+        assert r["ui"] == [{"do": "scroll", "dir": d, "label": f"Scroll {d}"}], (q, r["ui"])
+    seen = {}
+
+    def fake(s, h, u, t, log):
+        seen["s"] = s
+        return json.dumps({"answer": "The value is up. The feed is quiet.", "points": [{"spot": "home.value", "sentence": 0}, {"spot": "home.activity", "sentence": 1}]}), {"in": 1, "out": 1}
+    A2 = ask.Ask(j, providers={"gemini": fake})
+    r = A2.ask("o", "how are we doing today", mode="everyday", context={"here": {"screen": "home", "label": "Home"}})
+    assert r["points"] == [{"spot": "home.value", "sentence": 0}, {"spot": "home.activity", "sentence": 1}] and r["ui"] == [] and "POINT AT" in seen["s"]

@@ -1,10 +1,17 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { setScroller } from "./spotlight";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { C, pnlColor } from "./theme";
 
 export function Screen({ children, loading, onRefresh, pad = true }: { children: React.ReactNode; loading: boolean; onRefresh: () => void; pad?: boolean }) {
+  const ref = useRef<ScrollView>(null);
+  const st = useRef({ offset: { y: 0 }, height: { h: 0 }, content: { h: 0 } }).current;
+  useFocusEffect(useCallback(() => { setScroller({ ref, ...st }); return () => {}; }, []));
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: pad ? 16 : 0, gap: 14, paddingBottom: 40 }}
+    <ScrollView ref={ref} style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: pad ? 16 : 0, gap: 14, paddingBottom: 40 }}
+      onScroll={(e) => { st.offset.y = e.nativeEvent.contentOffset.y; }} scrollEventThrottle={64}
+      onLayout={(e) => { st.height.h = e.nativeEvent.layout.height; }} onContentSizeChange={(_, h) => { st.content.h = h; }}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor={C.dim} />}>
       {children}
     </ScrollView>

@@ -52,7 +52,8 @@ COINS = {"bitcoin": "BTC", "btc": "BTC", "ethereum": "ETH", "eth": "ETH", "ether
 
 
 def describe() -> dict:
-    return {"places": [{"target": k, **v} for k, v in SCREENS.items()],
+    return {"places": [{"target": k, **v, "spots": SPOTS.get(k, {})} for k, v in SCREENS.items()],
+            "page_spots": {"coin page": SPOTS["coin"], "trade page": SPOTS["trade"]},
             "also": "coin:<SYM> opens a coin page (candle chart with averages, support/resistance, our trades, position, setup checklist); "
                     "trade:<id> opens a trade page (chart with bought/stop/target, why we bought, exit plan, timeline, what-if)."}
 
@@ -93,7 +94,10 @@ HOME = re.compile(r"^\s*(?:please\s+)?(?:can you\s+|could you\s+)?(?:take me|go|
 
 
 def quick_command(j, text: str) -> dict | None:
-    """Plain navigation ("take me home", "open Ethereum", "show me my bitcoin trade", "go back") without a model call."""
+    """Plain navigation ("take me home", "open Ethereum", "show me my bitcoin trade", "go back", "scroll down") without a model call."""
+    qs = quick_scroll(text)
+    if qs:
+        return qs
     if HOME.match(text):
         return {"ui": [{"do": "go_to", "target": "home", "label": "Home"}], "say": "Sure, Madhav. Taking you home."}
     if BACK.match(text):
@@ -175,3 +179,101 @@ def keep_honest(j, question: str, answer: str, ui: list[dict], here: dict | None
     if claims and not ui:
         answer = (answer or "").rstrip() + " (I couldn't move the screen for this one; it is still on the same page.)"
     return ui, answer
+
+
+# ---------------------------------------------------------------------------
+# Spots: things on screen Ananta can point at while it talks (they glow and scroll into view)
+# ---------------------------------------------------------------------------
+SPOTS = {
+    "home": {"home.value": "paper value and today's change", "home.inbox": "things waiting for your OK", "home.brief": "the morning / evening brief",
+             "home.books": "Explorer, Portfolio and Hourly-watch rows", "home.activity": "the activity feed"},
+    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.coin:<SYM>": "one coin's row: price, trend, closest setup"},
+    "portfolio": {"portfolio.value": "portfolio value and its chart", "portfolio.autopilot": "the Autopilot switch",
+                  "portfolio.suggested": "suggested changes waiting", "portfolio.holdings": "the holdings list header",
+                  "portfolio.holding:<SYM>": "one holding: value, return, rating"},
+    "portfolio:explorer": {"explorer.value": "Explorer book value", "explorer.trade:<trade id>": "one open Explorer trade", "explorer.closed": "closed trades"},
+    "portfolio:mine": {"mine.value": "my paper book value", "mine.position:<SYM>": "one of my positions"},
+    "evidence": {"evidence.tracker": "the evidence tracker", "evidence.collected": "what we collected by setup",
+                 "evidence.forwarded": "what was forwarded to the repair shop", "evidence.shop": "repair shop status and queue"},
+    "evidence:forwarded": {"evidence.in_use": "repairs running in paper (T3 vs buy-and-hold)", "evidence.safety": "safety changes"},
+    "cockpit": {"cockpit.controls": "kill switch, autopilot, live trading", "cockpit.ai": "Ask / Voice switches and the Claude budget",
+                "cockpit.alerts": "active alerts", "cockpit.systems": "system status"},
+    "coin": {"coin.chart": "the candle chart", "coin.position": "our position in this coin", "coin.market": "market picture and setup checklist",
+             "coin.trades": "Explorer trades on this coin"},
+    "trade": {"trade.pnl": "the trade's profit or loss", "trade.chart": "the chart with bought / stop / target lines",
+              "trade.levels": "stop, target and time limit", "trade.why": "why we bought", "trade.plan": "the exit plan", "trade.timeline": "timeline"},
+}
+
+
+def spot_screen(spot: str) -> str | None:
+    head = spot.split(":")[0]
+    pre = head.split(".")[0]
+    if pre == "explorer":
+        return "portfolio:explorer"
+    if pre == "mine":
+        return "portfolio:mine"
+    if head in ("evidence.in_use", "evidence.safety"):
+        return "evidence:forwarded"
+    return {"home": "home", "markets": "markets", "portfolio": "portfolio", "evidence": "evidence", "cockpit": "cockpit",
+            "coin": "coin", "trade": "trade"}.get(pre)
+
+
+def valid_spot(j, spot: str) -> bool:
+    if not re.fullmatch(r"[a-z_]+\.[a-z_]+(?::[A-Za-z0-9_\-]{1,80})?", spot or ""):
+        return False
+    head, _, arg = spot.partition(":")
+    scr = spot_screen(spot)
+    names = SPOTS.get("coin" if scr == "coin" else "trade" if scr == "trade" else scr or "", {})
+    if not any(k.split(":")[0] == head for k in names):
+        return False
+    ex = j._explorer()
+    if head in ("markets.coin", "portfolio.holding", "mine.position"):
+        return bool(ex and arg in ex.st["engines"])
+    if head == "explorer.trade":
+        return bool(ex and any(t["id"] == arg for t in ex.status()["open"]))
+    return not arg
+
+
+def plan_points(j, points, ui: list[dict], here: dict | None, n_sentences: int) -> tuple[list[dict], list[dict]]:
+    """Keep valid spots; add the screen move a spot needs when it is not on the open screen (and nothing else opens it)."""
+    out = []
+    cur = here_target(here)
+    opened = [u.get("target") for u in ui if u.get("do") != "back"]
+    land = opened[-1] if opened else cur
+    for p in (points or [])[:8]:
+        if not isinstance(p, dict):
+            continue
+        sp, k = str(p.get("spot", "")), p.get("sentence", 0)
+        if not valid_spot(j, sp):
+            continue
+        need = spot_screen(sp)
+        land_kind = (land or "").split(":")[0] if (land or "").startswith(("coin:", "trade:")) else land
+        if need in ("coin", "trade"):
+            if land_kind != need:
+                continue                                  # coin / trade spots only on that page
+        elif need != land:
+            if ui:                                        # don't move twice in one answer
+                continue
+            v, label = resolve(j, need)
+            if not v:
+                continue
+            ui = ui + [{"do": "go_to", "target": v, "label": label}]
+            land = v
+        try:
+            k = max(0, min(int(k), max(0, n_sentences - 1)))
+        except (TypeError, ValueError):
+            k = 0
+        out.append({"spot": sp, "sentence": k})
+    return out, ui
+
+
+SCROLL = re.compile(r"^\s*(?:please\s+)?(?:can you\s+)?(scroll|go|move|take me|show me)\s*(?:to\s+)?(?:the\s+)?(up|down|top|bottom)(?:\s+of (?:the |this )?(?:page|screen))?(?:\s+please)?[.!?]*\s*$", re.I)
+
+
+def quick_scroll(text: str) -> dict | None:
+    m = SCROLL.match(text)
+    if not m:
+        return None
+    d = m.group(2).lower()
+    return {"ui": [{"do": "scroll", "dir": d, "label": f"Scroll {d}"}], "say": {"up": "Scrolling up.", "down": "Scrolling down.",
+            "top": "Back to the top.", "bottom": "Here's the bottom of the page."}[d]}

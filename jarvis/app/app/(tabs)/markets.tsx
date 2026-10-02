@@ -1,3 +1,4 @@
+import { Spot } from "../../src/spotlight";
 import { Pressable, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
@@ -15,8 +16,10 @@ export default function Markets() {
   return (
     <Screen loading={loading} onRefresh={reload}>
       <Card>
+        <Spot id="markets.summary">
         <T>{d.summary}</T>
         <Progress value={d.breadth.up_1h} of={d.breadth.of} color={C.good} />
+        </Spot>
         <T small>{d.btc_gate ? "Portfolio gate open: BTC is above its 50-day average." : "Portfolio gate closed: BTC is below its 50-day average."}</T>
       </Card>
       <Section title="Watchlist" right={<T small>tap for chart and setups</T>} />
@@ -24,6 +27,7 @@ export default function Markets() {
         {d.coins.map((c: any, i: number) => (
           <View key={c.coin}>
             {i ? <Divider /> : null}
+            <Spot id={`markets.coin:${c.coin}`}>
             <Pressable onPress={() => router.push(`/coin/${c.coin}`)} delayLongPress={350}
               onLongPress={() => askAbout({ screen: "coin", coin: c.coin, label: `${c.coin} in the watchlist` }, `What is happening with ${c.coin}?`)} style={({ pressed }) => ({ paddingVertical: 12, gap: 8, opacity: pressed ? 0.6 : 1 })}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -52,6 +56,7 @@ export default function Markets() {
                 </View>
               ) : null}
             </Pressable>
+            </Spot>
           </View>
         ))}
       </Card>

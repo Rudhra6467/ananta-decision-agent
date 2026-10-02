@@ -1,3 +1,4 @@
+import { Spot } from "../../src/spotlight";
 import { setScreen } from "../../src/context";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
@@ -38,6 +39,7 @@ export default function Cockpit() {
 
   return (
     <Screen loading={loading} onRefresh={reload}>
+      <Spot id="cockpit.controls">
       <Section title="Controls" />
       <Card>
         {d.switches.map((w: any, i: number) => (
@@ -54,9 +56,11 @@ export default function Cockpit() {
           </View>
         ))}
       </Card>
+      </Spot>
 
       {sp ? (
         <>
+          <Spot id="cockpit.ai">
           <Section title="Ananta AI" />
           <Card>
             <AiSwitch label="Ask Ananta" help="Off = no AI answers at all (nothing can cost money)." on={sp.settings.ask_enabled === "1"}
@@ -79,12 +83,14 @@ export default function Cockpit() {
               {Object.entries(sp.month).map(([k, v]: any) => <Line key={k} label={`  ${k}`} value={`${v.answers} answers · $${v.usd.toFixed(2)}`} />)}
             </View>
           </Card>
+          </Spot>
         </>
       ) : null}
 
       <Card onPress={() => router.push("/testlab")} title="Test lab" sub="Recorded test runs of Ananta: answers from both models, voice, stability" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
       <Card onPress={() => router.push("/mandate")} title="Your mandate" sub="Goals, markets, styles and limits Ananta follows" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
 
+      <Spot id="cockpit.alerts">
       <Section title="Alerts" right={<T small>checked every 15 min · free</T>} />
       <Card>
         {(al?.alerts ?? []).filter((a: any) => a.status === "ACTIVE").length === 0 ? <T dim>No active alerts. Ask Ananta: "tell me if BTC drops below 80k".</T> : null}
@@ -101,7 +107,9 @@ export default function Cockpit() {
           <T key={a.id} small>Fired: {a.message}</T>
         ))}
       </Card>
+      </Spot>
 
+      <Spot id="cockpit.systems">
       <Section title="Systems" />
       <Card>
         {d.systems.map((s: any, i: number) => (
@@ -115,6 +123,7 @@ export default function Cockpit() {
           </View>
         ))}
       </Card>
+      </Spot>
 
       {d.circuit_breakers && Object.keys(d.circuit_breakers).length ? (
         <>

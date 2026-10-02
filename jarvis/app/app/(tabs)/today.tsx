@@ -1,3 +1,4 @@
+import { Spot } from "../../src/spotlight";
 import { useCallback, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -39,12 +40,14 @@ export default function Home() {
   const feed = all ? d.feed : d.feed.slice(0, 8);
   return (
     <Screen loading={loading} onRefresh={reload}>
+      <Spot id="home.value">
       <View style={{ gap: 4 }}>
         <T dim>{s.date} · paper money</T>
         <Big value={usd(s.paper_value)} changeLabel={s.today_change != null ? `${s.today_change >= 0 ? "+" : "-"}$${Math.abs(s.today_change).toFixed(2)} today` : undefined}
           change={s.today_change} />
         <T dim>{s.sentence}</T>
       </View>
+      </Spot>
 
       <Pressable onPress={() => router.push("/(tabs)/ask")} style={{ flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 12, borderWidth: 1, borderColor: C.line, paddingHorizontal: 14 }}>
         <TextInput value={q} onChangeText={setQ} onSubmitEditing={ask} returnKeyType="send" placeholder="Ask Ananta about trades or markets…"
@@ -53,17 +56,21 @@ export default function Home() {
       </Pressable>
 
       {(inbox?.actions ?? []).length ? (
+        <Spot id="home.inbox">
         <Card title="Waiting for your OK" sub="Things Ananta prepared. Nothing happens until you confirm.">
           {inbox.actions.map((a: any) => <ActionCard key={a.id} a={a} onDone={() => { reloadInbox(); reload(); }} />)}
         </Card>
+        </Spot>
       ) : null}
 
+      <Spot id="home.brief">
       <Card title={br?.brief ? `${br.brief.kind === "morning" ? "Morning" : "Evening"} brief` : "Daily brief"}
         sub={br?.brief ? new Date(br.brief.t * 1000).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) : "Written at 8:00 and 21:30"}
         right={<Text onPress={async () => { setBriefing(true); try { await api("/v3/brief/now", {}); reloadBrief(); } catch (e) { } setBriefing(false); }}
           style={{ color: C.accent, fontWeight: "600" }}>{briefing ? "Writing…" : "Brief me now"}</Text>}>
         {br?.brief ? <T>{br.brief.text}</T> : <T dim>No brief yet today.</T>}
       </Card>
+      </Spot>
 
       {s.portfolio.pending ? (
         <Card title={`${s.portfolio.pending} change(s) waiting for you`} sub="The portfolio is in Suggest mode: nothing moves until you approve.">
@@ -74,6 +81,7 @@ export default function Home() {
         </Card>
       ) : null}
 
+      <Spot id="home.books">
       <Card>
         <Row title="Explorer" sub={`${s.explorer.open} open trade(s) · checks 10 coins every 15 min`} value={usd(s.explorer.value)}
           valueSub={`${s.explorer.opened_today} bought · ${s.explorer.closed_today} sold today`} onPress={() => router.push("/(tabs)/portfolio")} />
@@ -84,7 +92,9 @@ export default function Home() {
         <Divider />
         <Row title="Hourly watch" sub="Hunter and Squeeze strategies" value={`${s.hourly_watch.looks_today}`} valueSub="looks today" />
       </Card>
+        </Spot>
 
+      <Spot id="home.activity">
       <Section title="Activity" right={<T small>last 3 days</T>} />
       <Card>
         {feed.length === 0 ? <T dim>Nothing happened yet.</T> : null}
@@ -107,6 +117,7 @@ export default function Home() {
         ))}
         {d.feed.length > 8 ? <Text onPress={() => setAll(!all)} style={{ color: C.accent, fontWeight: "600", paddingTop: 6 }}>{all ? "Show less" : `Show all ${d.feed.length}`}</Text> : null}
       </Card>
+      </Spot>
       <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 4 }}>
         <Stat label="Started with" value={usd(s.start_value, 0)} />
         <Stat label="Paper value now" value={usd(s.paper_value)} />

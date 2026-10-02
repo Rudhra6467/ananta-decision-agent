@@ -1,3 +1,4 @@
+import { Spot } from "../../src/spotlight";
 import { useEffect } from "react";
 import { View } from "react-native";
 import { setScreen } from "../../src/context";
@@ -30,43 +31,55 @@ export default function Trade() {
           <Pill text="PAPER" />
           <T small>{COIN_NAME[d.coin]} · {d.type_name}</T>
         </View>
+        <Spot id="trade.pnl">
         <Big value={usdSigned(d.pnl_usd)} change={d.pnl_usd} changeLabel={`${pct(d.pnl_pct)} on $${d.invested} ${d.open ? "so far" : "after costs"}`} />
+        </Spot>
         <View style={{ flexDirection: "row", gap: 12 }}>
           <Stat label="Bought at" value={price(d.entry)} sub={d.entry_time} />
           <Stat label={d.open ? "Price now" : "Sold at"} value={price(d.price)} sub={d.open ? "" : d.exit_time} />
         </View>
 
         <Card>
+          <Spot id="trade.chart">
           <LineChart height={200} series={[{ data: pts.map((p: any) => p.c), color: C.text, width: 1.8 }]} refs={refs}
             markers={[{ index: ei, label: "buy", color: C.accent }, ...(xi >= 0 ? [{ index: xi, label: "sell", color: C.text }] : [])]}
             xLabels={[`${d.chart.tf} candles`, d.open ? "now" : "after exit"]} />
+          </Spot>
         </Card>
 
         {d.open ? (
+          <Spot id="trade.levels">
           <Card title="Where it stands">
             {d.stop ? <Line label={d.trailing ? "Stop (moves up after +2R)" : "Stop-loss"} value={`${price(d.stop)}  (${pct(d.to_stop_pct)})`} color={C.bad} /> : null}
             {d.target ? <Line label="Target" value={`${price(d.target)}  (${pct(d.to_target_pct)})`} color={C.good} /> : <Line label="Target" value="none: rides the trend" />}
             <Line label="Time limit" value={d.time_limit} />
           </Card>
+          </Spot>
         ) : (
           <Card title="How it ended"><T>{d.exit}</T></Card>
         )}
 
+        <Spot id="trade.why">
         <Section title="Why we bought" />
         <Card>
           <T>{d.why_bought}</T>
           {d.conditions_at_entry.map((c: string, i: number) => <Bullet key={i}>{c}</Bullet>)}
         </Card>
+        </Spot>
 
+        <Spot id="trade.plan">
         <Section title="Exit plan" />
         <Card><T>{d.plan}</T></Card>
+        </Spot>
 
+        <Spot id="trade.timeline">
         <Section title="Timeline" />
         <Card>
           {d.timeline.map((x: any, i: number) => (
             <View key={i}>{i ? <Divider /> : null}<Line label={x.time} value="" sub={x.text} /></View>
           ))}
         </Card>
+        </Spot>
 
         <Card>
           <Expand title="What if we had managed it differently?" sub="The same entry with other exit rules (evidence for the repair shop)">

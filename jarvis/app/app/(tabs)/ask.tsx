@@ -242,8 +242,11 @@ export default function Ananta() {
           }
         }
         if (!current()) return;
-        const t = spokenText(r, failNote);
-        if (t) await UI.pointAlong(t, r.points, (parts, onPart) => TTS.speak(parts, onPart));
+        // the service already made the audio for r.speak (voice_id); a note about a screen that didn't open is added on top
+        const base = r.speak ?? spokenText(r, "");
+        const t = failNote ? `${base} ${failNote}`.trim() : base;
+        const id = failNote ? undefined : r.voice_id;
+        if (t) await UI.pointAlong(t, r.points, (parts, onPart) => TTS.speak(parts, onPart, id));
       },
       stopSpeaking: () => { TTS.stop(); clearSpot(); },
       onPhase: (p) => {

@@ -186,19 +186,42 @@ def _label_outside(reply: dict, found: list[dict]) -> None:
     reply["outside"] = {"source": "CoinGecko", "note": "Searched outside our system and found no exact match."}
 
 
-def _pre_voice(context, text) -> None:
+def _pre_voice(context, text):
     """When the app will speak this answer in the natural voice, start making its audio now, so it is usually ready
-    by the time the phone asks for it. A list (the tour) is one audio file per step."""
+    by the time the phone asks for it. A list (the tour) is one audio file per step. Returns the audio id(s), or None."""
     try:
         tts = context.get("tts") if isinstance(context, dict) else None
         if isinstance(tts, dict) and tts.get("voice") and text:
             from jarvis.service import speech
 
             speed = float(tts.get("speed") or 0.9)
-            for item in (text if isinstance(text, list) else [text]):
-                speech.prepare_answer(speech.sentences(item), str(tts["voice"]), speed)
+            ids = [speech.prepare_answer(speech.sentences(item), str(tts["voice"]), speed) for item in (text if isinstance(text, list) else [text])]
+            return ids if isinstance(text, list) else ids[0]
     except Exception:  # noqa: BLE001
         pass
+    return None
+
+
+VOICE_WORDS = 60
+
+
+def speak_text(reply: dict) -> str:
+    """What Ananta says aloud: the answer's first sentences (about 60 words at most; the rest stays on screen) and, for a
+    'did you mean', the choices, so he can just say which one."""
+    from jarvis.service import speech
+
+    out, n = [], 0
+    for x in speech.sentences(reply.get("answer") or ""):
+        w = len(x.split())
+        if out and n + w > VOICE_WORDS:
+            break
+        out.append(x)
+        n += w
+    t = " ".join(out)
+    opts = [str(o) for o in (reply.get("options") or [])][:4] if reply.get("kind") == "clarify" else []
+    if opts and not all(o.lower() in t.lower() for o in opts):
+        t += " Did you mean " + (", ".join(opts[:-1]) + ", or " if len(opts) > 1 else "") + opts[-1] + "?"
+    return t
 
 
 class Lookups:
@@ -1079,9 +1102,10 @@ class Ask:
         if second_of:
             notes.append("[conversation note: the owner asked for a second opinion on this question; answer it independently from the data]")
         if voice:
-            notes.append("[voice session: the 'answer' is spoken aloud. Make it sound like talking: a short lead-in, then 2-3 short sentences, rounded numbers, "
-                         "no symbols, tables or abbreviations (say 'percent', 'dollars', 'Bitcoin'). Keep the JSON small so it arrives fast: breakdown at most 2 bullets, "
-                         "evidence at most 2 items, follow_ups at most 2. Only move the screen (ui_go) when he asks to see something]")
+            notes.append("[voice session: the 'answer' is SPOKEN aloud, so keep it short like talking: at most 3 short sentences and about 40 words "
+                         "in total (a greeting counts), the most important thing first. Rounded numbers; no symbols, tables or abbreviations "
+                         "(say 'percent', 'dollars', 'Bitcoin'). Details go in 'breakdown' (shown on screen, not spoken). Keep the JSON small so it arrives "
+                         "fast: breakdown at most 2 bullets, evidence at most 2 items, follow_ups at most 2. Only move the screen (ui_go) when he asks to see something]")
         prev = self.j.db.execute("SELECT route FROM ask_messages WHERE thread=? AND role='assistant' AND route IS NOT NULL ORDER BY t DESC, rowid DESC LIMIT 1",
                                  (thread,)).fetchone()
         from jarvis.service import briefs as B
@@ -1220,7 +1244,11 @@ class Ask:
                            route_name, json.dumps(timing)))
         self.j.db.commit()
         self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
-        _pre_voice(context, reply.get("answer"))
+        if voice:
+            reply["speak"] = speak_text(reply)                       # what is said aloud (the full answer stays on screen)
+        vid = _pre_voice(context, reply.get("speak") or reply.get("answer"))
+        if vid:
+            reply["voice_id"] = vid                                  # its audio is already being made: the phone fetches it directly
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
 
     def _quick(self, who: str, text: str, thread: str, voice: bool, source: str, context=None) -> dict | None:
@@ -1243,7 +1271,9 @@ class Ask:
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
                           "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0, "[]", 0.0, "nav", "app"))
         self.j.db.commit()
-        _pre_voice(context, q["say"] if not q.get("tour") else [st["say"] for st in q["tour"]])
+        vid = _pre_voice(context, q["say"] if not q.get("tour") else [st["say"] for st in q["tour"]])
+        if vid and not q.get("tour"):
+            reply["speak"], reply["voice_id"] = q["say"], vid
         return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply}
 
     # ---- voice ----

@@ -563,6 +563,19 @@ def voice_answer(b: AnswerVoice, who: str = Depends(owner)) -> dict:
         raise HTTPException(status_code=503, detail=f"natural voice unavailable ({str(exc)[:80]})") from exc
 
 
+@app.get("/v3/voice/answer/{key}")
+def voice_answer_meta(key: str, who: str = Depends(owner)) -> dict:
+    """Sentence start times etc. for audio that is already being made (e.g. right after an answer); waits until it is ready."""
+    from jarvis.service import speech
+
+    try:
+        return speech.answer_meta(key, 30)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="unknown answer audio") from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=f"natural voice unavailable ({str(exc)[:80]})") from exc
+
+
 @app.get("/v3/voice/answer/{key}/audio")
 def voice_answer_audio(key: str, who: str = Depends(owner)):
     from fastapi.responses import Response

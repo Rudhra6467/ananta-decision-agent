@@ -86,7 +86,8 @@ export function stop() {
 // ---- natural voice: one file per answer --------------------------------------------------------
 type Meta = { id: string; offsets: number[]; duration: number };
 
-async function fetchMeta(parts: string[]): Promise<Meta> {
+async function fetchMeta(parts: string[], id?: string): Promise<Meta> {
+  if (id) return api<Meta>(`/v3/voice/answer/${id}`, undefined, 30000);       // already being made since the answer was written
   return api<Meta>("/v3/voice/answer", { sentences: parts, voice, speed: rate }, 30000);
 }
 
@@ -99,12 +100,11 @@ async function download(id: string): Promise<File> {
 }
 
 // "ok" | "stopped" | "failed" (could not start: caller falls back to the phone voice for the whole answer)
-async function playNatural(parts: string[], onPart: (i: number) => void, my: number): Promise<"ok" | "stopped" | "failed"> {
+async function playNatural(parts: string[], onPart: (i: number) => void, my: number, id?: string): Promise<"ok" | "stopped" | "failed"> {
   let meta: Meta, file: File;
   try {
-    meta = await fetchMeta(parts);
-    if (my !== seq) return "stopped";
-    file = await download(meta.id);
+    if (id) [meta, file] = await Promise.all([fetchMeta(parts, id), download(id)]);   // both at once: saves a round trip
+    else { meta = await fetchMeta(parts); file = await download(meta.id); }
     if (my !== seq) return "stopped";
   } catch {
     return "failed";
@@ -171,7 +171,7 @@ function playPhone(parts: string[], onPart: (i: number) => void, my: number): Pr
 
 // ---- public ------------------------------------------------------------------------------------
 // Speak these sentences; onPart(i) fires as sentence i starts. Always settles.
-export function speak(parts: string[], onPart: (i: number) => void = () => {}): Promise<SpeakResult> {
+export function speak(parts: string[], onPart: (i: number) => void = () => {}, id?: string): Promise<SpeakResult> {
   stop();
   const my = ++seq;
   parts = parts.map((x) => x.trim()).filter(Boolean);
@@ -183,7 +183,7 @@ export function speak(parts: string[], onPart: (i: number) => void = () => {}): 
     (async () => {
       const wantNatural = engine === "natural" && Date.now() > naturalDownUntil;
       if (wantNatural) {
-        const r = await playNatural(parts, onPart, my);
+        const r = await playNatural(parts, onPart, my, id);
         if (r === "ok") { lastEngine = "natural"; lastNote = ""; return settle("done"); }
         if (r === "stopped" || my !== seq) return settle("stopped");
         naturalDownUntil = Date.now() + 60000;              // the Mac's voice didn't answer: phone voice for a minute

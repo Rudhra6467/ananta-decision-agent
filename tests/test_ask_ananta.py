@@ -425,3 +425,71 @@ def test_wordless_claude_falls_back_to_gemini():
                               "gemini": lambda s, h, u, t, log: (json.dumps({"answer": "from gemini"}), {"in": 1, "out": 1})})
     r = A.ask("o", "why is btc up", mode="deep")
     assert r["answer"] == "from gemini" and r["provider"] == "gemini" and "Gemini answered" in r["note"]
+
+
+def test_router_and_briefs():
+    from jarvis.service import briefs as B
+    assert B.route("How is our portfolio doing?") == "portfolio"
+    assert B.route("Are we making money or losing money?") == "portfolio"
+    assert B.route("How is the market today?") == "market"
+    assert B.route("What did the latest scan find?") == "market"
+    assert B.route("If the market is bullish, why aren't we taking trades?") == "both"
+    assert B.route("Why?", "portfolio") == "portfolio"
+    assert B.route("hmm", None) == "both"
+    j, ex = _jarvis()
+    B.clear()
+    p, m = B.portfolio_brief(j), B.market_brief(j)
+    assert "explorer_book" in p and "t3_portfolio" in p and "watching" in p
+    assert len(m["coins"]) == len(ex.st["engines"]) and "evidence" in m
+    assert B.size(p) < 12000 and B.size(m) < 12000, (B.size(p), B.size(m))
+    seen = {}
+
+    def fake(s, h, u, t, log):
+        seen["u"] = u
+        return json.dumps({"answer": "ok"}), {"in": 1, "out": 1}
+    A = ask.Ask(j, providers={"gemini": fake})
+    r = A.ask("o", "How is our portfolio doing?", mode="everyday")
+    assert r["route"] == "portfolio" and "PORTFOLIO_BRIEF" in seen["u"] and "MARKET_BRIEF" not in seen["u"] and "greet" in seen["u"]
+    r2 = A.ask("o", "Why?", thread=r["thread"], mode="everyday")
+    assert r2["route"] == "portfolio" and "greet" not in seen["u"] and r2["timing"]["brief_ms"] >= 0
+
+
+def test_app_navigation_quick_and_tools():
+    from jarvis.service import appmap
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: (json.dumps({"answer": "x"}), {"in": 1, "out": 1})})
+    for q, want in [("Can you take me to home screen?", "home"), ("take me to markets", "markets"), ("Go to the cockpit", "cockpit"),
+                    ("open my trades", "portfolio:mine"), ("show me the evidence", "evidence"), ("open ethereum", None)]:
+        r = A.ask("o", q)
+        assert r["model_label"] == "Instant" and r["ui"], q
+        if want:
+            assert r["ui"][0]["target"] == want, (q, r["ui"])
+    coin = next(iter(ex.st["engines"]))
+    assert A.ask("o", "go back")["ui"][0]["do"] == "back"
+    assert appmap.resolve(j, f"coin:{coin}")[0] == f"coin:{coin}"
+    assert appmap.resolve(j, "coin:PEPE")[0] is None and appmap.resolve(j, "trade:../x")[0] is None and appmap.resolve(j, "nowhere")[0] is None
+    L = ask.Lookups(j, "t")
+    assert L.call("ui_go", {"target": "portfolio"})["ok"] and L.ui[-1]["target"] == "portfolio"
+    assert not L.call("ui_go", {"target": "coin:PEPE"})["ok"]
+    assert "places" in L.call("app_map", {})
+    # a model answer carries the screen moves, and the screen context reaches the prompt
+    seen = {}
+
+    def fake(s, h, u, t, log):
+        seen["u"] = u
+        t.call("ui_go", {"target": f"coin:{coin}"})
+        return json.dumps({"answer": "Here it is."}), {"in": 1, "out": 1}
+    A2 = ask.Ask(j, providers={"gemini": fake})
+    r = A2.ask("o", "why is this coin moving", mode="everyday", context={"here": {"screen": "ananta", "label": "Ananta tab"}, "about": None})
+    assert r["ui"] == [{"do": "open", "target": f"coin:{coin}", "label": f"{coin} coin page"}] and "Ananta tab" in seen["u"]
+
+
+def test_screen_claims_are_kept_honest():
+    from jarvis.service import appmap
+    j, ex = _jarvis()
+    ui, ans = appmap.keep_honest(j, "Show me where the evidence is.", "I've moved your screen to the Evidence tab.", [], {"screen": "ananta"})
+    assert ui and ui[0]["target"] == "evidence"
+    ui, ans = appmap.keep_honest(j, "how are we", "I'm taking you to the moon page.", [], {"screen": "ananta"})
+    assert not ui and "couldn't move the screen" in ans
+    ui, ans = appmap.keep_honest(j, "where am I", "You're on the Ananta tab.", [{"do": "go_to", "target": "ananta", "label": "Ananta"}], {"screen": "ananta"})
+    assert ui == [] and "couldn't" not in ans

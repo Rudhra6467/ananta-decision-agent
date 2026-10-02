@@ -281,7 +281,7 @@ export default function Voice({ ActionCard, openScreen, suggestions = [] }: { Ac
   );
 }
 
-function StageCard({ sh, open }: { sh: any; open: () => void }) {
+export function StageCard({ sh, open }: { sh: any; open: () => void }) {
   return (
     <Pressable onPress={open} style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 14, padding: 14, gap: 8 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>

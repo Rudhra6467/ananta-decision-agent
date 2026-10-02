@@ -22,7 +22,7 @@ export default function Home() {
   const [briefing, setBriefing] = useState(false);
   const [q, setQ] = useState("");
   const [all, setAll] = useState(false);
-  useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home: today's summary and activity" }); }, []));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home tab: today's summary, inbox, brief and activity" }); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   const s = d.summary;

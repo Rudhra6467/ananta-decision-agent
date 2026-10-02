@@ -29,7 +29,14 @@ GEMINI_MODELS = [m.strip() for m in os.getenv("ASK_GEMINI_MODELS", "gemini-3.5-f
 GEMINI_MODEL = GEMINI_MODELS[0]       # free tier: when the first model is busy (503), the next one answers
 CLAUDE_MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
 
-SYSTEM = """You are Ananta, the trading operator for one owner (Vamsi). You speak like a calm, knowledgeable trading desk operator: simple words first, numbers second, no hype.
+SYSTEM = """You are Ananta (also called Jarvis), the trading assistant of one owner, Madhav. You are his trusted partner who knows trading well and talks with him like a close friend: warm, calm, honest, never salesy.
+
+HOW TO TALK (most important)
+- Very simple, easy English. Short sentences. Everyday words. No jargon; if a trading word is needed, explain it in a few words ("RSI, a gauge of how stretched the price is").
+- Start "answer" with a short natural lead-in that shows you understood him, then the answer, then what it means for us. Example: "Sure, Madhav. You're asking whether we need to change anything. We don't: the portfolio is up about 2 percent and every coin is still in its uptrend, so nothing needs you right now."
+- Use his name now and then, not in every answer. Greet warmly only when the conversation starts (by time of day: "Morning, Madhav.").
+- Round numbers when talking ("about 2 percent", "around 86 thousand dollars"); exact figures go in breakdown and evidence.
+- Explain like a friend sitting next to him: what is happening, why, and whether he needs to do anything.
 
 WHAT ANANTA IS (use these words)
 - Paper only. No real money, no exchange connected. Market: crypto spot, 10 coins (BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP), buying only, NDAX costs (0.20% fee + spread per side).
@@ -42,7 +49,8 @@ WHAT ANANTA IS (use these words)
 - Lifecycle words, always say which stage a thing is in: observation -> candidate setup (some conditions met) -> setup (all conditions met) -> decision (order placed or skipped) -> execution (filled) -> position -> outcome (closed) -> evaluation -> learning. Never let "interesting" sound like "bought".
 
 RULES
-1. Facts only from lookups. Call the lookups you need before answering (usually 1-4, at most 6; ask for several in one round when you can; never call the same lookup twice; after a propose_* lookup succeeds, answer straight away); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
+0. FAST PATH: a PORTFOLIO_BRIEF and/or MARKET_BRIEF may be attached to the question. They are live data. Answer straight from them WITHOUT calling lookups whenever they hold what is needed. Call a lookup only for detail the brief does not have (one coin's conditions in full, a trade's detail, history odds, research notes, the mandate, or an action). Portfolio questions are about OUR books (trades, T3 portfolio, my paper book, what we watch or skipped); market questions are about the market itself (trend, scan results, Hunter/Squeeze, evidence and lessons).
+1. Facts only from the briefs and lookups. Call the lookups you need before answering (usually 1-4, at most 6; ask for several in one round when you can; never call the same lookup twice; after a propose_* lookup succeeds, answer straight away); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
 2. Setups: in the setups lookup, "complete" means all conditions were met at the last check. Report complete setups as complete even when no new trade was placed, and say why (already holding that coin's trade type, no trade type fits, caps). Never say "none are triggering" when the lookup shows complete ones.
 2b. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
@@ -54,17 +62,18 @@ RULES
 
 9. Changes: use a propose_* lookup only when the owner explicitly asks for that action in this message (an order, an alert, a mandate change); never offer one unasked. You can only PREPARE changes (propose_* lookups). Say clearly that a confirmation card is waiting; never claim something was changed.
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
+12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something ("show me...", "open...", "take me...", "where can I see..."), you MUST CALL ui_go for the most relevant place (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
 OUTPUT: reply with ONE JSON object and nothing else:
 {"kind": "answer" | "clarify" | "not_understood" | "out_of_scope" | "cannot_do_yet",
  "stage": one lifecycle word or "" ,
- "answer": "1-3 plain sentences: the direct answer",
- "breakdown": ["3-7 short bullet strings: the reasoning, plain words"],
- "evidence": [{"label": "...", "value": "...", "source": "which lookup / record", "time": "when, if known"}],
+ "answer": "lead-in + direct answer + what it means, 2-4 short sentences in easy English",
+ "breakdown": ["at most 4 short bullets (max 15 words each): the reasoning"],
+ "evidence": [{"label": "...", "value": "...", "source": "brief or lookup name", "time": "when, if known"}] (at most 4),
  "assumption": "the reading you assumed, or empty",
  "options": ["for clarify only: short options"],
- "follow_ups": ["2-3 natural next questions"],
+ "follow_ups": ["2 natural next questions he might ask"],
  "show": [{"screen": "...", "label": "..."}]}"""
 
 OFF = {"type": "object", "properties": {}}
@@ -103,6 +112,12 @@ TOOLS = [
     ("start_research", "Start a research job now (read-only, no cost): kind 'reconstruction' rebuilds every Explorer decision from raw candles "
      "and checks it matches the live log. The owner gets a phone note when done. Also returns recent jobs.",
      _schema({"kind": {"type": "string", "description": "reconstruction"}}, ["kind"])),
+    ("app_map", "The Jarvis app itself: every screen and tab, where it is, and what it shows. Use for 'where can I see X', 'what can I do here', 'show me around'.", OFF),
+    ("ui_go", "Move the owner's screen: open a place in the app. target = a place from app_map (home, markets, portfolio, portfolio:explorer, "
+     "portfolio:mine, ananta, evidence, evidence:forwarded, cockpit, mandate, testlab), coin:<SYM> for a coin page, or trade:<id> for a trade page. "
+     "Use whenever the owner asks to go to, open, show or see something on screen, or when showing it makes the answer clearer. "
+     "Returns ok or an error; the app then really opens it.", _schema({"target": {"type": "string"}}, ["target"])),
+    ("ui_back", "Move the owner's screen back to the previous page.", OFF),
     ("mandate", "The owner's mandate in full: goals, markets, styles, setups, limits, how to talk. Also any actions waiting for the owner.", OFF),
     ("propose_mandate_change", "Prepare a change to the owner's mandate when the owner asks to change their goals, limits, styles or preferences. "
      "This does NOT change anything: it creates a confirmation card the owner must approve in the app.",
@@ -134,6 +149,7 @@ class Lookups:
         self._ex = None
         self.thread = thread
         self.created: list[dict] = []          # pending actions prepared during this answer
+        self.ui: list[dict] = []               # screen moves the app performs after this answer
 
     @property
     def ex(self):
@@ -312,6 +328,24 @@ class Lookups:
     def t_changes(self, hours: float = 24) -> dict:
         return {"hours": hours, "events": [{k: it.get(k) for k in ("time", "kind", "title", "body")} for it in views.feed(self.j, hours=hours, limit=40)]}
 
+    def t_app_map(self) -> dict:
+        from jarvis.service import appmap
+
+        return appmap.describe()
+
+    def t_ui_go(self, target: str) -> dict:
+        from jarvis.service import appmap
+
+        t, label = appmap.resolve(self.j, target)
+        if not t:
+            return {"ok": False, "error": label}
+        self.ui.append({"do": "open" if ":" in t and t.split(":")[0] in ("coin", "trade") else "go_to", "target": t, "label": label})
+        return {"ok": True, "will_open": label, "note": "The app opens it as soon as you answer. Say 'here is ...' / 'taking you to ...'."}
+
+    def t_ui_back(self) -> dict:
+        self.ui.append({"do": "back", "label": "Back"})
+        return {"ok": True}
+
     def t_mandate(self) -> dict:
         from jarvis.service.mandate import Mandate
 
@@ -395,10 +429,10 @@ class Lookups:
 # ---------------------------------------------------------------------------
 # providers (plain HTTPS, no SDKs)
 # ---------------------------------------------------------------------------
-def _post(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
+def _post(url: str, headers: dict, body: dict, timeout: int = 60, retry: bool = True) -> dict:
     import requests
 
-    for wait in (2, 6, 0):     # busy / rate-limited: retry twice
+    for wait in ((2, 6, 0) if retry else (0,)):     # busy / rate-limited: retry twice
         try:
             r = requests.post(url, headers=headers, json=body, timeout=timeout)
         except requests.RequestException as exc:
@@ -445,6 +479,28 @@ def _strip_cache(msgs: list) -> None:
                     b.pop("cache_control", None)
 
 
+FAST = {"claude_effort": os.getenv("ASK_CLAUDE_EFFORT", "low"), "gemini_thinking": os.getenv("ASK_GEMINI_THINKING", "low")}
+
+
+def _post_opt(post, url, headers, body, opt_key: str, field_path: list[str]):
+    """Post with a speed option; if the API rejects that option (400 naming it), drop it for good and post again."""
+    try:
+        return post(url, headers, body)
+    except RuntimeError as exc:
+        msg = str(exc)
+        if msg.startswith("400") and any(f in msg for f in field_path):
+            d = body
+            path = [f for f in field_path if f in json.dumps(body)][:2] or field_path
+            if opt_key == "claude_effort":
+                body.pop("output_config", None)
+            else:
+                for f in path[:-1]:
+                    d = d.get(f, {})
+                d.pop(path[-1], None)
+            return post(url, headers, body)
+        raise
+
+
 def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post, model: str | None = None) -> tuple[str, dict]:
     key = os.getenv("ANTHROPIC_API_KEY", "")
     if not key:
@@ -462,10 +518,14 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
         last = msgs[-1]["content"]
         if isinstance(last, list) and last:
             last[-1]["cache_control"] = {"type": "ephemeral"}
-        r = post("https://api.anthropic.com/v1/messages",
-                 {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                 {"model": model, "max_tokens": 3000, "system": sysb, "tools": tdefs, "messages": msgs,
-                  **({"tool_choice": {"type": "none"}} if rnd == MAX_TOOL_ROUNDS else {})})   # last round: answer with what you have
+        body = {"model": model, "max_tokens": 3000, "system": sysb, "tools": tdefs, "messages": msgs,
+                **({"tool_choice": {"type": "none"}} if rnd == MAX_TOOL_ROUNDS else {})}   # last round: answer with what you have
+        if FAST["claude_effort"] and "haiku" not in model:
+            body["output_config"] = {"effort": FAST["claude_effort"]}               # less thinking = faster answers
+        r = _post_opt(post, "https://api.anthropic.com/v1/messages",
+                      {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body, "claude_effort",
+                      ["output_config", "effort"])
+        usage["rounds"] = usage.get("rounds", 0) + 1
         u = r.get("usage") or {}
         usage["in"] += u.get("input_tokens", 0)
         usage["out"] += u.get("output_tokens", 0)
@@ -499,17 +559,31 @@ def _gemini_schema(s: dict) -> dict:
     return s
 
 
+_COOL: dict[str, float] = {}      # Gemini model -> time until which it is skipped (busy)
+
+
 def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:
+    """Free tier: a busy model (503/429) is skipped for 5 minutes and the next one answers at once (no waiting)."""
     err = None
-    for m in GEMINI_MODELS:
+    fast = (lambda u, h, b, timeout=45: _post(u, h, b, timeout, retry=False)) if post is _post else post
+    models = [m for m in GEMINI_MODELS if _COOL.get(m, 0) < time.time()] or GEMINI_MODELS[-1:]
+    for m in models:
         try:
-            text, usage = _gemini_once(m, system, history, user, tools, log, post)
+            text, usage = _gemini_once(m, system, history, user, tools, log, fast)
             usage["model"] = m
             return text, usage
         except RuntimeError as exc:
             err = exc
             if not str(exc)[:3] in ("503", "429", "500", "404"):
                 raise
+            _COOL[m] = time.time() + (3600 if "quota" in str(exc).lower() else 90)   # daily free quota used up: skip for an hour
+            log.clear()
+    try:                                   # every model busy: one patient try on the main model before giving up
+        text, usage = _gemini_once(GEMINI_MODELS[0], system, history, user, tools, log, post)
+        usage["model"] = GEMINI_MODELS[0]
+        return text, usage
+    except RuntimeError as exc:
+        err = exc
     raise RuntimeError(f"Gemini's free service is busy right now. Try again in a minute, or switch to Claude. ({str(err)[:80]})")
 
 
@@ -528,10 +602,15 @@ def _gemini_once(model: str, system: str, history: list[dict], user: str, tools:
     usage = {"in": 0, "out": 0}
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     for rnd in range(MAX_TOOL_ROUNDS + 1):
-        r = post(url, {"x-goog-api-key": key, "content-type": "application/json"},
-                 {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
-                  "tools": [{"functionDeclarations": decls}], "generationConfig": {"temperature": 0.2, "maxOutputTokens": 4000},
-                  **({"toolConfig": {"functionCallingConfig": {"mode": "NONE"}}} if rnd == MAX_TOOL_ROUNDS else {})})
+        gc = {"temperature": 0.2, "maxOutputTokens": 4000}
+        if FAST["gemini_thinking"]:
+            gc["thinkingConfig"] = {"thinkingLevel": FAST["gemini_thinking"]}
+        r = _post_opt(post, url, {"x-goog-api-key": key, "content-type": "application/json"},
+                      {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
+                       "tools": [{"functionDeclarations": decls}], "generationConfig": gc,
+                       **({"toolConfig": {"functionCallingConfig": {"mode": "NONE"}}} if rnd == MAX_TOOL_ROUNDS else {})},
+                      "gemini_thinking", ["generationConfig", "thinkingConfig", "thinking"])
+        usage["rounds"] = usage.get("rounds", 0) + 1
         u = r.get("usageMetadata") or {}
         usage["in"] += u.get("promptTokenCount", 0)
         usage["out"] += u.get("candidatesTokenCount", 0)
@@ -624,7 +703,7 @@ class Ask:
             CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT);
         """)
         cols = {r[1] for r in j.db.execute("PRAGMA table_info(ask_messages)")}
-        for c, typ in (("cost_usd", "REAL"), ("mode", "TEXT"), ("note", "TEXT")):
+        for c, typ in (("cost_usd", "REAL"), ("mode", "TEXT"), ("note", "TEXT"), ("route", "TEXT"), ("timing", "TEXT")):
             if c not in cols:
                 j.db.execute(f"ALTER TABLE ask_messages ADD COLUMN {c} {typ}")
         j.db.commit()
@@ -743,6 +822,9 @@ class Ask:
         if self.setting("ask_enabled") != "1":
             raise ValueError("Ask Ananta is switched off in the Cockpit")
         thread = thread or uuid.uuid4().hex[:12]
+        quick = self._quick(who, text, thread, voice, source)
+        if quick:
+            return quick
         key, mode_label, note = self._pick(text, mode, provider)
         if source != "eval" and self.today_count() >= DAILY_LIMIT:
             raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
@@ -765,11 +847,37 @@ class Ask:
         if second_of:
             notes.append("[conversation note: the owner asked for a second opinion on this question; answer it independently from the data]")
         if voice:
-            notes.append("[voice session: the 'answer' is spoken aloud, so make it 1-3 short spoken sentences with no symbols, tables or abbreviations "
-                         "(say 'percent', 'dollars'); put numbers and detail in breakdown and evidence, and use 'show' to put the right chart or card on screen]")
+            notes.append("[voice session: the 'answer' is spoken aloud. Make it sound like talking: a short lead-in, then 2-3 short sentences, rounded numbers, "
+                         "no symbols, tables or abbreviations (say 'percent', 'dollars', 'Bitcoin'). Keep breakdown to 3 bullets; use 'show' to put the right chart on screen]")
+        prev = self.j.db.execute("SELECT route FROM ask_messages WHERE thread=? AND role='assistant' AND route IS NOT NULL ORDER BY t DESC, rowid DESC LIMIT 1",
+                                 (thread,)).fetchone()
+        from jarvis.service import briefs as B
+
+        tb = time.time()
+        route_name = B.route(text, prev[0] if prev else None)
+        brief = {}
+        try:
+            brief = B.briefs_for(self.j, route_name)
+        except Exception as exc:  # noqa: BLE001  the brief is a shortcut, never a blocker
+            brief = {"BRIEF_ERROR": str(exc)[:200]}
+        brief_ms = int(1000 * (time.time() - tb))
+        if not history:
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            hr = datetime.fromtimestamp(now, ZoneInfo("America/Toronto")).hour
+            part = "morning" if 4 <= hr < 12 else "afternoon" if hr < 17 else "evening"
+            notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet Madhav warmly in a few words first]")
         if context:
-            notes.append("[screen context: the owner is looking at " + json.dumps(context, default=str)[:600] + "]")
-        user_msg = f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}]" + ("\n" + "\n".join(notes) if notes else "") + f"\n{text}"
+            here = context.get("here") if isinstance(context, dict) and ("here" in context or "about" in context) else context
+            about = context.get("about") if isinstance(context, dict) and "about" in context else None
+            if here:
+                notes.append("[screen context: the screen open right now is " + json.dumps(here, default=str)[:300] + "]")
+            if about:
+                notes.append("[the owner pointed at this item (long-press): " + json.dumps(about, default=str)[:400] + "]")
+        user_msg = (f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}] [question type: {route_name}]" + ("\n" + "\n".join(notes) if notes else "")
+                    + ("\n" + "\n".join(f"{k} (live):\n" + json.dumps(v, default=str, separators=(",", ":")) for k, v in brief.items()) if brief else "")
+                    + f"\n\nQUESTION: {text}")
         log: list = []
         t0 = time.time()
         aid = uuid.uuid4().hex[:12]
@@ -824,13 +932,46 @@ class Ask:
         ms = int(1000 * (time.time() - t0))
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created
-        meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of}
-        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        try:
+            from jarvis.service import appmap as _am
+
+            _here = context.get("here") if isinstance(context, dict) and "here" in context else (context if isinstance(context, dict) else None)
+            reply["ui"], reply["answer"] = _am.keep_honest(self.j, text, reply.get("answer", ""), L.ui, _here)
+        except Exception:  # noqa: BLE001
+            reply["ui"] = L.ui
+        timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),
+                  "out_tokens": usage.get("out", 0)}
+        meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of,
+                "route": route_name, "timing": timing}
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, note, route, timing) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                           (aid, thread, now + 1, "assistant", json.dumps({**reply, **meta}), used, model, ms,
-                           usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note))
+                           usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note,
+                           route_name, json.dumps(timing)))
         self.j.db.commit()
         self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
+
+    def _quick(self, who: str, text: str, thread: str, voice: bool, source: str) -> dict | None:
+        """Plain navigation commands are done instantly, with no model call."""
+        from jarvis.service import appmap
+
+        try:
+            q = appmap.quick_command(self.j, text)
+        except Exception:  # noqa: BLE001
+            q = None
+        if not q:
+            return None
+        now = int(self.j.now())
+        uid, aid = uuid.uuid4().hex[:12], uuid.uuid4().hex[:12]
+        reply = {"kind": "answer", "stage": "", "answer": q["say"], "breakdown": [], "evidence": [], "assumption": "", "options": [],
+                 "follow_ups": [], "show": [], "actions": [], "ui": q["ui"], "model_label": "Instant", "mode": "nav", "cost_usd": 0.0,
+                 "note": "", "route": "app", "timing": {"brief_ms": 0, "model_ms": 0, "rounds": 0, "lookups": 0, "out_tokens": 0}}
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
+                          (uid, thread, now, "user", text, "local", ("eval:" if source == "eval" else "") + ("voice:" if voice else "") + "nav"))
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
+                          "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0, "[]", 0.0, "nav", "app"))
+        self.j.db.commit()
+        return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply}
 
     # ---- voice ----
     def transcribe(self, audio_b64: str, mime: str = "audio/wav", post=_post) -> str:
@@ -843,7 +984,8 @@ class Ask:
         if not key:
             raise RuntimeError("GEMINI_API_KEY is not set")
         prompt = ("Transcribe this spoken message exactly, in English. It is the owner talking to Ananta, a crypto trading assistant "
-                  "(coins: BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP; words: Hunter, Squeeze, Explorer, setup, portfolio, mandate). "
+                  "(the owner is Madhav; he may say 'hey there', 'hi Jarvis', 'Ananta'; coins: Bitcoin BTC, Ethereum ETH, Solana SOL, ADA, DOGE, AVAX, BCH, LINK, LTC, XRP; "
+                  "words: Hunter, Squeeze, Explorer, setup, scan, portfolio, mandate, evidence, repair shop). "
                   "Return only the words spoken. If there is no speech, return an empty string.")
         err = None
         order = ["gemini-3.1-flash-lite"] + [m for m in GEMINI_MODELS if m != "gemini-3.1-flash-lite"]     # fastest first for speech
@@ -882,7 +1024,9 @@ class Ask:
         self.j.db.commit()
 
     def threads(self, n: int = 20) -> list[dict]:
-        rows = self.j.db.execute("""SELECT thread, MIN(t), MAX(t), COUNT(*) FROM ask_messages GROUP BY thread ORDER BY MAX(t) DESC LIMIT ?""", (n,)).fetchall()
+        rows = self.j.db.execute("""SELECT thread, MIN(t), MAX(t), COUNT(*) FROM ask_messages WHERE thread NOT IN
+                (SELECT thread FROM ask_messages WHERE role='user' AND COALESCE(mode,'') LIKE 'eval:%')
+                GROUP BY thread ORDER BY MAX(t) DESC LIMIT ?""", (n,)).fetchall()
         out = []
         for th, t0, t1, cnt in rows:
             first = self.j.db.execute("SELECT text, mode FROM ask_messages WHERE thread=? AND role='user' ORDER BY t LIMIT 1", (th,)).fetchone()
@@ -892,10 +1036,10 @@ class Ask:
 
     def thread(self, thread: str) -> list[dict]:
         out = []
-        for mid, t, role, text, reply, prov, ms, err, rating in self.j.db.execute(
-                "SELECT id, t, role, text, reply, provider, ms, error, rating FROM ask_messages WHERE thread=? ORDER BY t, rowid", (thread,)):
+        for mid, t, role, text, reply, prov, ms, err, rating, mode in self.j.db.execute(
+                "SELECT id, t, role, text, reply, provider, ms, error, rating, mode FROM ask_messages WHERE thread=? ORDER BY t, rowid", (thread,)):
             if role == "user":
-                out.append({"id": mid, "role": "user", "text": text})
+                out.append({"id": mid, "role": "user", "text": text, "voice": (mode or "").startswith("voice:")})
             else:
                 out.append({"id": mid, "role": "assistant", "provider": prov, "ms": ms, "rating": rating,
                             **({"error": err} if err else json.loads(reply or "{}"))})

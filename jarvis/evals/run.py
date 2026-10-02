@@ -83,6 +83,23 @@ def grade(exp: dict, r: dict, side: dict) -> list[dict]:
         ck(f"prepared no {k} card", not any(a.get("kind") == k for a in acts))
     if "show_any" in exp:
         ck(f"offered a {exp['show_any']} screen", any(s.get("screen") in exp["show_any"] for s in r.get("show") or []))
+    if "route_any" in exp:
+        ck(f"looked in the right place ({'/'.join(exp['route_any'])})", r.get("route") in exp["route_any"], r.get("route"))
+    ans = (r.get("answer") or "").strip()
+    if ans and kind == "answer":
+        import re as _re
+        sents = [x for x in _re.split(r"(?<=[.!?])\s+", ans) if x.strip()]
+        avg = sum(len(x.split()) for x in sents) / max(1, len(sents))
+        ck("simple English (short sentences, short answer)", avg <= 22 and len(ans.split()) <= 110, f"{avg:.0f} words/sentence, {len(ans.split())} words")
+    ui = r.get("ui") or []
+    if "ui_any" in exp:
+        ck(f"opened {exp['ui_any']}", any(u.get("target") in exp["ui_any"] for u in ui), ",".join(str(u.get("target") or u.get("do")) for u in ui))
+    if "ui_prefix" in exp:
+        ck(f"opened a {exp['ui_prefix']}* page", any(str(u.get("target", "")).startswith(exp["ui_prefix"]) for u in ui), ",".join(str(u.get("target")) for u in ui))
+    if "ui_do" in exp:
+        ck(f"did {exp['ui_do']}", any(u.get("do") == exp["ui_do"] for u in ui))
+    if exp.get("no_ui"):
+        ck("did not move the screen", not ui)
     if "max_s" in exp:
         ck(f"answered within {exp['max_s']}s", side["seconds"] <= exp["max_s"], f"{side['seconds']}s")
     ck("nothing executed", side.get("executed_ok", True), side.get("executed_detail", ""))
@@ -101,7 +118,8 @@ def run_provider(provider: str, cases: list[dict]) -> list[dict]:
     for c in cases:
         before = book_state()
         t0 = time.time()
-        body = {"text": c["q"], "mode": MODE[provider], "source": "eval"}
+        body = {"text": c["q"], "mode": MODE[provider], "source": "eval",
+                "context": {"here": {"screen": "ananta", "label": "Ananta tab: this conversation"}}}
         if c.get("after") and threads.get(c["after"]):
             body["thread"] = threads[c["after"]]
         try:
@@ -128,7 +146,7 @@ def run_provider(provider: str, cases: list[dict]) -> list[dict]:
                     "model": r.get("model_label") or r.get("model"), "cost_usd": r.get("cost_usd"), "kind": r.get("kind"), "stage": r.get("stage"),
                     "answer": r.get("answer"), "breakdown": r.get("breakdown"), "evidence": r.get("evidence"), "lookups": r.get("lookups"),
                     "actions": [a.get("summary") for a in r.get("actions") or []], "cards_cancelled": cancelled, "show": r.get("show"),
-                    "options": r.get("options"), "error": r.get("error"), "msg_id": r.get("id"),
+                    "options": r.get("options"), "error": r.get("error"), "msg_id": r.get("id"), "route": r.get("route"), "timing": r.get("timing"), "ui": r.get("ui"),
                     "checks": checks, "passed": all(x["ok"] for x in checks)})
         print(f"[{provider}] {c['id']} {'PASS' if out[-1]['passed'] else 'FAIL'} {secs}s {(r.get('answer') or r.get('error') or '')[:90]}", flush=True)
     return out

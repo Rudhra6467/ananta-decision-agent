@@ -1,29 +1,53 @@
-// What the owner is looking at, so Ananta can answer "is this one OK?" without being told which one.
+// Where the owner is ("here": the screen actually open now) and what he pointed at ("about": an item he long-pressed).
+// Ananta gets both with every question, so it never guesses which screen is showing.
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import * as Haptics from "./haptics";
 
-export type ScreenCtx = { screen: string; label: string; coin?: string; id?: string; item?: any } | null;
-let current: ScreenCtx = null;
-const subs = new Set<(c: ScreenCtx) => void>();
+export type ScreenCtx = { screen: string; label: string; coin?: string; id?: string; tab?: string; item?: any } | null;
+let here: ScreenCtx = null;
+let about: ScreenCtx = null;
+let voiceLive = false;
+const subs = new Set<() => void>();
+const emit = () => subs.forEach((f) => f());
 
+// every screen calls this when it comes into view
 export function setScreen(c: ScreenCtx) {
-  current = c;
-  subs.forEach((f) => f(c));
+  here = c;
+  emit();
 }
-export const getScreen = () => current;
-export function useScreen(): [ScreenCtx, (c: ScreenCtx) => void] {
-  const [c, setC] = useState<ScreenCtx>(current);
+export const getScreen = () => here;
+export const getAbout = () => about;
+export function setAbout(c: ScreenCtx) {
+  about = c;
+  emit();
+}
+export function setVoiceLive(on: boolean) {
+  voiceLive = on;
+  emit();
+}
+export const isVoiceLive = () => voiceLive;
+
+function useStore<T>(read: () => T): T {
+  const [v, setV] = useState<T>(read());
   useEffect(() => {
-    subs.add(setC);
-    return () => { subs.delete(setC); };
+    const f = () => setV(read());
+    subs.add(f);
+    f();
+    return () => { subs.delete(f); };
   }, []);
-  return [c, setScreen];
+  return v;
 }
+export const useHere = () => useStore(() => here);
+export const useAbout = (): [ScreenCtx, (c: ScreenCtx) => void] => [useStore(() => about), setAbout];
+export const useVoiceLive = () => useStore(() => voiceLive);
+
+// kept for older screens: [about, setAbout]
+export const useScreen = useAbout;
 
 // Long-press anything: open Ananta with that item attached and a first question.
 export function askAbout(ctx: NonNullable<ScreenCtx>, question?: string) {
   Haptics.tap();
-  setScreen(ctx);
+  setAbout(ctx);
   router.push({ pathname: "/(tabs)/ask", params: { q: question ?? `Tell me about this: ${ctx.label}`, t: String(Date.now()) } });
 }

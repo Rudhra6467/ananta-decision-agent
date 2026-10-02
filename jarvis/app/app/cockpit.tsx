@@ -1,17 +1,27 @@
-import { Spot } from "../../src/spotlight";
-import { setScreen } from "../../src/context";
-import { useFocusEffect } from "expo-router";
+import { Spot } from "../src/spotlight";
+import { setScreen } from "../src/context";
+import { Stack, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
-import { api, logout } from "../../src/api";
-import { confirmWithFaceId } from "../../src/guard";
-import { Btn, Busy, Card, Divider, Dot, ErrorBox, Line, Screen, Section, Segmented, T } from "../../src/ui";
-import { Progress } from "../../src/charts";
-import { useData } from "../../src/useData";
-import { C } from "../../src/theme";
+import { api, logout } from "../src/api";
+import { confirmWithFaceId } from "../src/guard";
+import { Btn, Busy, Card, Divider, Dot, ErrorBox, Line, Screen, Section, Segmented, T } from "../src/ui";
+import { Progress } from "../src/charts";
+import { useData } from "../src/useData";
+import { C } from "../src/theme";
 
-export default function Cockpit() {
+export default function CockpitPage() {
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: true, title: "Cockpit", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
+        headerTintColor: C.text, headerBackTitle: "Home" }} />
+      <Cockpit />
+    </>
+  );
+}
+
+function Cockpit() {
   useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "Cockpit: switches, AI budget, alerts, systems" }); }, []));
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
   const [showActions, setShowActions] = useState(false);

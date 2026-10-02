@@ -1,6 +1,6 @@
-import { Spot } from "../../src/spotlight";
+import { Spot, useSpotActive } from "../../src/spotlight";
 import { useCallback, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { askAbout, setScreen } from "../../src/context";
 import { ActionCard } from "../../src/actions";
@@ -23,6 +23,9 @@ export default function Home() {
   const [briefing, setBriefing] = useState(false);
   const [q, setQ] = useState("");
   const [all, setAll] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
+  const activityLit = useSpotActive("home.activity");              // Ananta pointing at it opens it
   useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home tab: today's summary, inbox, brief and activity" }); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
@@ -68,9 +71,16 @@ export default function Home() {
         sub={br?.brief ? new Date(br.brief.t * 1000).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) : "Written at 8:00 and 21:30"}
         right={<Text onPress={async () => { setBriefing(true); try { await api("/v3/brief/now", {}); reloadBrief(); } catch (e) { } setBriefing(false); }}
           style={{ color: C.accent, fontWeight: "600" }}>{briefing ? "Writing…" : "Brief me now"}</Text>}>
-        {br?.brief ? <T>{br.brief.text}</T> : <T dim>No brief yet today.</T>}
+        {br?.brief ? (
+          <Pressable onPress={() => setBriefOpen(true)} accessibilityHint="Opens the full brief">
+            <Text numberOfLines={2} ellipsizeMode="tail" style={{ color: C.text, fontSize: 15, lineHeight: 21 }}>{br.brief.text}</Text>
+            <Text style={{ color: C.accent, fontSize: 13, fontWeight: "600", marginTop: 4 }}>Read the full brief ›</Text>
+          </Pressable>
+        ) : <T dim>No brief yet today.</T>}
       </Card>
       </Spot>
+      <BriefPopup open={briefOpen} onClose={() => setBriefOpen(false)} title={br?.brief ? `${br.brief.kind === "morning" ? "Morning" : "Evening"} brief` : "Brief"}
+        when={br?.brief ? new Date(br.brief.t * 1000).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) : ""} text={br?.brief?.text ?? ""} />
 
       {s.portfolio.pending ? (
         <Card title={`${s.portfolio.pending} change(s) waiting for you`} sub="The portfolio is in Suggest mode: nothing moves until you approve.">
@@ -81,6 +91,7 @@ export default function Home() {
         </Card>
       ) : null}
 
+      <Section title="Our market watches" right={<T small>what's running for us</T>} />
       <Spot id="home.books">
       <Card>
         <Row title="Explorer" sub={`${s.explorer.open} open trade(s) · checks 10 coins every 15 min`} value={usd(s.explorer.value)}
@@ -94,8 +105,20 @@ export default function Home() {
       </Card>
         </Spot>
 
+      <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 4 }}>
+        <Stat label="Started with" value={usd(s.start_value, 0)} />
+        <Stat label="Paper value now" value={usd(s.paper_value)} />
+        <Stat label="Change" value={pct(100 * (s.paper_value / s.start_value - 1))} color={pnlColor(s.paper_value - s.start_value)} />
+      </View>
+
       <Spot id="home.activity">
-      <Section title="Activity" right={<T small>last 3 days</T>} />
+      <Pressable onPress={() => setShowActivity(!showActivity)} style={{ flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderColor: C.line,
+        borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 }}>
+        <Text style={{ color: C.text, fontWeight: "700", fontSize: 15, flex: 1 }}>Activity</Text>
+        <T small>{d.feed.length} in the last 3 days</T>
+        <Text style={{ color: C.accent, fontWeight: "700", marginLeft: 10 }}>{showActivity || activityLit ? "Hide ⌃" : "Show ⌄"}</Text>
+      </Pressable>
+      {showActivity || activityLit ? (
       <Card>
         {feed.length === 0 ? <T dim>Nothing happened yet.</T> : null}
         {feed.map((it: any, i: number) => (
@@ -117,12 +140,33 @@ export default function Home() {
         ))}
         {d.feed.length > 8 ? <Text onPress={() => setAll(!all)} style={{ color: C.accent, fontWeight: "600", paddingTop: 6 }}>{all ? "Show less" : `Show all ${d.feed.length}`}</Text> : null}
       </Card>
+      ) : null}
       </Spot>
-      <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 4 }}>
-        <Stat label="Started with" value={usd(s.start_value, 0)} />
-        <Stat label="Paper value now" value={usd(s.paper_value)} />
-        <Stat label="Change" value={pct(100 * (s.paper_value / s.start_value - 1))} color={pnlColor(s.paper_value - s.start_value)} />
-      </View>
     </Screen>
+  );
+}
+
+// The full brief in a small window: closes with ✕ or a tap anywhere outside it.
+function BriefPopup({ open, onClose, title, when, text }: { open: boolean; onClose: () => void; title: string; when: string; text: string }) {
+  return (
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: "rgba(15,20,35,0.45)", justifyContent: "center", padding: 20 }}>
+        <Pressable onPress={() => {}} style={{ backgroundColor: C.card, borderRadius: 18, maxHeight: "75%", overflow: "hidden" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: C.text, fontWeight: "700", fontSize: 17 }}>{title}</Text>
+              {when ? <Text style={{ color: C.faint, fontSize: 12 }}>{when}</Text> : null}
+            </View>
+            <Pressable onPress={onClose} hitSlop={14} accessibilityLabel="Close"
+              style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: C.card2, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ color: C.text, fontSize: 15, fontWeight: "700" }}>✕</Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 18 }}>
+            <Text style={{ color: C.text, fontSize: 15, lineHeight: 23 }}>{text}</Text>
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }

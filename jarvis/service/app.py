@@ -31,6 +31,29 @@ def owner(authorization: str = Header(default="")) -> str:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
+# A guest (a friend checking what we built) can look at everything and ask Ananta questions, but cannot change anything.
+GUEST_POST_OK = ("/v3/ask", "/v3/ask/second", "/v3/voice/turn", "/v3/voice/transcribe", "/v3/voice/prepare")
+
+
+@app.middleware("http")
+async def guest_read_only(request, call_next):
+    from fastapi.responses import JSONResponse
+
+    auth = request.headers.get("authorization", "")
+    if request.method != "GET" and auth:
+        try:
+            who = J().check(auth.removeprefix("Bearer ").strip())
+        except core.AuthError:
+            who = ""
+        if who.startswith("guest:") and request.url.path not in GUEST_POST_OK:
+            return JSONResponse({"detail": "Guest view is read-only: only Madhav can change things."}, status_code=403)
+    return await call_next(request)
+
+
+def is_guest(who: str) -> bool:
+    return who.startswith("guest:")
+
+
 class Login(BaseModel):
     email: str
     password: str
@@ -250,6 +273,11 @@ def ask_rate(b: Rating, who: str = Depends(owner)) -> dict:
 @app.get("/v3/ask/threads")
 def ask_threads(who: str = Depends(owner)) -> dict:
     return {"threads": A().threads()}
+
+
+@app.get("/v3/ask/thread/{thread}/export")
+def ask_export(thread: str, who: str = Depends(owner)) -> dict:
+    return {"text": _run(A().export, thread)}
 
 
 @app.get("/v3/ask/thread/{thread}")
@@ -509,3 +537,32 @@ class Audio(BaseModel):
 @app.post("/v3/voice/transcribe")
 def voice_transcribe(b: Audio, who: str = Depends(owner)) -> dict:
     return {"text": _run(A().transcribe, b.audio_b64, b.mime)}
+
+
+class SpeakReq(BaseModel):
+    sentences: list[str]
+    voice: str = "Calm"
+
+
+@app.post("/v3/voice/prepare")
+def voice_prepare(b: SpeakReq, who: str = Depends(owner)) -> dict:
+    """Start making natural-voice clips for an answer's sentences; the app then plays /v3/voice/clip/{id} in order."""
+    from jarvis.service import speech
+
+    if A().setting("voice_enabled") != "1":
+        raise HTTPException(status_code=400, detail="Voice is switched off in the Cockpit")
+    return {"ids": speech.prepare(b.sentences, b.voice), "voices": list(speech.VOICES)}
+
+
+@app.get("/v3/voice/clip/{cid}")
+def voice_clip(cid: str, who: str = Depends(owner)):
+    from fastapi.responses import Response
+
+    from jarvis.service import speech
+
+    try:
+        return Response(content=speech.audio(cid), media_type="audio/wav", headers={"Cache-Control": "private, max-age=600"})
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="unknown clip") from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=f"natural voice unavailable ({str(exc)[:80]})") from exc

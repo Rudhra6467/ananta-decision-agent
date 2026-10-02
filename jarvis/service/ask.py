@@ -55,6 +55,7 @@ RULES
 2b. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
 4. Scope: trading, markets, the economy and news that moves markets, and Ananta itself. Anything else: kind "out_of_scope" with a one-line polite reply ("That's outside my area - I'm built for trading and markets.").
+4b. OUTSIDE OUR SYSTEM: questions about a coin or token outside our 10-coin basket (BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP), or about a coin's general facts (what it is, market cap, all-time high), are answered from outside our system: call outside_coin with the name he used, then answer from its live facts plus your general knowledge. Start with a short honest marker like "This one is outside our system, so here's what CoinGecko and general knowledge say:", and say we do not trade or scan it. Never mix these numbers into our portfolio or setups. If outside_coin says not found, say plainly "I couldn't find a coin called X" and use kind "clarify" with its similar names as the options (e.g. "Pepe (PEPE)"). Questions about OUR coins still come from our own data.
 5. Actions you can PREPARE (the owner confirms each card in the app): paper orders in the owner's manual book (propose_paper_order), alerts (propose_alert), mandate changes (propose_mandate_change). You can START a read-only reconstruction (start_research). You cannot: place real orders (no exchange is connected; real orders come only after the live rules are approved), flip switches (kill switch and autopilot are in the Cockpit), or approve the portfolio's own suggestions (Portfolio screen). For those use kind "cannot_do_yet" and say exactly where to do it. If an order request is missing the amount, ask for it (clarify); check it against the mandate's limits and say if it conflicts.
 6. Unclear: if the question could mean different things that lead to different answers, use kind "clarify" with 2-4 short "Did you mean" options. A message that does not say what it is about (e.g. "do the thing", "fix it", "that one") with no earlier topic in the conversation is unclear: clarify, never answer it with a status report. If one reading is clearly most likely, answer it and state the assumption. Follow-ups ("why?", "and before that?") refer to the last topic.
 7. If the conversation note says clarification already failed twice, do not ask again: use kind "not_understood" with 3 example questions you can answer.
@@ -116,6 +117,9 @@ TOOLS = [
     ("start_research", "Start a research job now (read-only, no cost): kind 'reconstruction' rebuilds every Explorer decision from raw candles "
      "and checks it matches the live log. The owner gets a phone note when done. Also returns recent jobs.",
      _schema({"kind": {"type": "string", "description": "reconstruction"}}, ["kind"])),
+    ("outside_coin", "OUTSIDE OUR SYSTEM: live facts about any coin or token from CoinGecko (price, 24h/7d/30d move, market cap and rank, volume, "
+     "all-time high, what it is). Use for coins outside our basket or general coin facts. Not found returns similar names to offer.",
+     _schema({"name": {"type": "string", "description": "the coin name or symbol as the owner said it"}}, ["name"])),
     ("app_map", "The Jarvis app itself: every screen and tab, where it is, and what it shows. Use for 'where can I see X', 'what can I do here', 'show me around'.", OFF),
     ("ui_go", "Move the owner's screen: open a place in the app. target = a place from app_map (home, markets, portfolio, portfolio:explorer, "
      "portfolio:mine, ananta, evidence, evidence:forwarded, cockpit, mandate, testlab), coin:<SYM> for a coin page, or trade:<id> for a trade page. "
@@ -146,16 +150,53 @@ HUNTER_REASONS = {
 }
 
 
+def _label_outside(reply: dict, found: list[dict]) -> None:
+    """Answers built on outside data always carry the 'From AI' label and source; a coin we could not find becomes a 'did you mean'."""
+    from jarvis.service import outside
+
+    if not found:
+        return
+    hits = [f for f in found if f.get("found")]
+    if hits:
+        reply["outside"] = {"source": "CoinGecko + AI", "note": outside.NOTE, "url": hits[0].get("source_url"),
+                            "coins": [h.get("symbol") for h in hits]}
+        for e in reply.get("evidence") or []:
+            e.setdefault("source", "CoinGecko")
+        return
+    miss = found[-1]
+    if reply.get("kind") not in ("clarify", "out_of_scope"):
+        reply["kind"] = "clarify"
+    if not reply.get("options"):
+        reply["options"] = [str(x) for x in (miss.get("similar") or [])[:4]]
+    if "couldn't find" not in (reply.get("answer") or "").lower():
+        reply["answer"] = f"I couldn't find a coin called '{miss.get('query', '')}'." + (" Did you mean one of these?" if reply["options"] else " Could you spell it another way?")
+    reply["outside"] = {"source": "CoinGecko", "note": "Searched outside our system and found no exact match."}
+
+
+def _pre_voice(context, text) -> None:
+    """When the app will speak this answer in the natural voice, start making the audio now (saves a round trip)."""
+    try:
+        tts = context.get("tts") if isinstance(context, dict) else None
+        if isinstance(tts, dict) and tts.get("voice") and text:
+            from jarvis.service import speech
+
+            speech.prepare(text if isinstance(text, list) else speech.sentences(text), str(tts["voice"]))
+    except Exception:  # noqa: BLE001
+        pass
+
+
 class Lookups:
     """Read-only functions over Ananta's data. Each returns plain JSON-able data."""
 
-    def __init__(self, j, thread: str | None = None, here_t: str | None = None):
+    def __init__(self, j, thread: str | None = None, here_t: str | None = None, guest: bool = False):
         self.j = j
+        self.guest = guest                    # a friend's read-only view: may ask, may not prepare anything
         self.here_t = here_t                  # the place open on his screen right now
         self._ex = None
         self.thread = thread
         self.created: list[dict] = []          # pending actions prepared during this answer
         self.ui: list[dict] = []               # screen moves the app performs after this answer
+        self.outside: list[dict] = []          # facts fetched from outside our system (CoinGecko) for this answer
 
     @property
     def ex(self):
@@ -179,8 +220,10 @@ class Lookups:
 
     def call(self, name: str, args: dict) -> Any:
         fn = getattr(self, "t_" + name, None)
+        if self.guest and (name.startswith("propose_") or name == "start_research"):
+            return {"error": "This is a guest view: only Madhav can prepare orders, alerts, changes or research. Explain that politely."}
         if fn is None:
-            return {"error": f"no lookup named {name}"}
+            return {"error": f"There is no lookup named '{name}'. Use only the listed lookups. To answer, write the JSON object as plain text, not as a tool call."}
         try:
             return fn(**(args or {}))
         except Exception as exc:  # noqa: BLE001
@@ -333,6 +376,13 @@ class Lookups:
 
     def t_changes(self, hours: float = 24) -> dict:
         return {"hours": hours, "events": [{k: it.get(k) for k in ("time", "kind", "title", "body")} for it in views.feed(self.j, hours=hours, limit=40)]}
+
+    def t_outside_coin(self, name: str) -> dict:
+        from jarvis.service import outside
+
+        r = outside.coin(name)
+        self.outside.append(r)
+        return r
 
     def t_app_map(self) -> dict:
         from jarvis.service import appmap
@@ -839,7 +889,7 @@ class Ask:
         if self.setting("ask_enabled") != "1":
             raise ValueError("Ask Ananta is switched off in the Cockpit")
         thread = thread or uuid.uuid4().hex[:12]
-        quick = self._quick(who, text, thread, voice, source)
+        quick = self._quick(who, text, thread, voice, source, context)
         if quick:
             return quick
         key, mode_label, note = self._pick(text, mode, provider)
@@ -885,6 +935,9 @@ class Ask:
             hr = datetime.fromtimestamp(now, ZoneInfo("America/Toronto")).hour
             part = "morning" if 4 <= hr < 12 else "afternoon" if hr < 17 else "evening"
             notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet Madhav warmly in a few words first]")
+        if str(who).startswith("guest:"):
+            notes.append("[GUEST: this is a friend of Madhav trying the app in a read-only guest view. Do not call them Madhav; greet them as a guest. "
+                         "Explain Madhav's system as 'Madhav's paper trading system'. They cannot change anything.]")
         if context:
             here = context.get("here") if isinstance(context, dict) and ("here" in context or "about" in context) else context
             about = context.get("about") if isinstance(context, dict) and "about" in context else None
@@ -906,7 +959,7 @@ class Ask:
         system = SYSTEM + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text()
         try:
             try:
-                L = Lookups(self.j, thread, _ht)
+                L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
                 raw, usage = self.providers[key](system, history, user_msg, L, log)
             except Exception as exc:  # noqa: BLE001
                 # free Gemini busy: escalate once to Claude Haiku if allowed and within budget
@@ -914,7 +967,7 @@ class Ask:
                     used = "haiku"
                     note = (note + "; " if note else "") + "Gemini was busy, so Claude Haiku answered"
                     log.clear()
-                    L = Lookups(self.j, thread, _ht)
+                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
                     raw, usage = self.providers["haiku"](system, history, user_msg, L, log)
                 else:
                     raise exc
@@ -926,7 +979,7 @@ class Ask:
                     note = (note + "; " if note else "") + "Claude gave no words this time, so Gemini answered"
                     used = "gemini"
                     log.clear()
-                    L = Lookups(self.j, thread, _ht)
+                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
                     raw, usage = self.providers["gemini"](system, history, user_msg, L, log)
                     reply = parse(raw)
                 elif not L.created:
@@ -937,6 +990,9 @@ class Ask:
                          "breakdown": []}
         except Exception as exc:  # noqa: BLE001
             ms = int(1000 * (time.time() - t0))
+            if "budget" in (note or "") and "429" in str(exc):          # say the real reason, not just "busy"
+                exc = RuntimeError(f"Today's Claude budget is used up and Gemini's free quota is used up too. Raise the daily budget in "
+                                   f"Cockpit → AI, or wait: the budget resets at midnight Toronto time.")
             self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, mode, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",
                               (aid, thread, now + 1, "assistant", used, mode_label, ms, json.dumps(log), str(exc)[:500]))
             self.j.db.commit()
@@ -958,7 +1014,9 @@ class Ask:
             reply["ui"], reply["answer"] = _am.keep_honest(self.j, text, reply.get("answer", ""), L.ui, _here)
             n_sent = len([x for x in re.split(r"(?<=[.!?])\s+", reply.get("answer") or "") if x.strip()])
             reply["points"], reply["ui"] = _am.plan_points(self.j, reply.get("points"), reply["ui"], _here, n_sent, text)
+            reply["points"] = _am.anchor_points(reply["points"], reply.get("answer") or "")
             reply["evidence"] = _am.clean_evidence(self.j, reply.get("evidence"))
+            _label_outside(reply, L.outside)
             if not reply["ui"] and _am.SHOW_INTENT.search(text):           # "show me / where did you get that": open where the proof is
                 prev = None
                 if history and history[-1]["role"] == "assistant":
@@ -985,9 +1043,10 @@ class Ask:
                            route_name, json.dumps(timing)))
         self.j.db.commit()
         self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
+        _pre_voice(context, reply.get("answer"))
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
 
-    def _quick(self, who: str, text: str, thread: str, voice: bool, source: str) -> dict | None:
+    def _quick(self, who: str, text: str, thread: str, voice: bool, source: str, context=None) -> dict | None:
         """Plain navigation commands are done instantly, with no model call."""
         from jarvis.service import appmap
 
@@ -1007,6 +1066,7 @@ class Ask:
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
                           "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0, "[]", 0.0, "nav", "app"))
         self.j.db.commit()
+        _pre_voice(context, q["say"] if not q.get("tour") else [st["say"] for st in q["tour"]])
         return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply}
 
     # ---- voice ----
@@ -1080,6 +1140,41 @@ class Ask:
                 out.append({"id": mid, "role": "assistant", "provider": prov, "ms": ms, "rating": rating,
                             **({"error": err} if err else json.loads(reply or "{}"))})
         return out
+
+    def export(self, thread: str) -> str:
+        """The whole session as plain text, for sharing and analysis: what was asked, what was answered, how fast,
+        which model, what was looked up, what the screen did and what was highlighted."""
+        rows = self.thread(thread)
+        if not rows:
+            raise ValueError("unknown session")
+        tm = self.j.db.execute("SELECT MIN(t) FROM ask_messages WHERE thread=?", (thread,)).fetchone()[0] or 0
+        lines = [f"ANANTA SESSION {thread} · started {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(tm))} · {sum(r['role'] == 'user' for r in rows)} question(s)", ""]
+        for n, r in enumerate(rows):
+            if r["role"] == "user":
+                lines.append(f"Q{sum(x['role'] == 'user' for x in rows[:n + 1])} MADHAV{' (voice)' if r.get('voice') else ''}: {r.get('text')}")
+                continue
+            if r.get("error"):
+                lines += [f"   ANANTA ERROR: {r['error']}", ""]
+                continue
+            head = " · ".join(x for x in [r.get("model_label") or r.get("provider") or "", f"{(r.get('ms') or 0) / 1000:.1f}s",
+                                          f"${r.get('cost_usd') or 0:.4f}", r.get("route") or "", r.get("kind") or ""] if x)
+            lines.append(f"   ANANTA [{head}]: {r.get('answer', '')}")
+            if r.get("outside"):
+                lines.append(f"   source: {r['outside'].get('source')} — {r['outside'].get('note')}")
+            for b in r.get("breakdown") or []:
+                lines.append(f"     - {b}")
+            for e in r.get("evidence") or []:
+                lines.append(f"     evidence: {e.get('label')} = {e.get('value')} ({e.get('source', '')}{' → ' + e['screen'] if e.get('screen') else ''})")
+            if r.get("ui"):
+                lines.append("     screen: " + " → ".join(u.get("label") or u.get("target") or u.get("do", "") for u in r["ui"]))
+            if r.get("points"):
+                lines.append("     highlighted: " + ", ".join(f"{p['spot']} @sentence {p['sentence']}" for p in r["points"]))
+            if r.get("rating"):
+                lines.append(f"     rated: {'good' if r['rating'] > 0 else 'bad'}")
+            if r.get("note"):
+                lines.append(f"     note: {r['note']}")
+            lines.append("")
+        return "\n".join(lines)
 
     def stats(self) -> dict:
         out = {}

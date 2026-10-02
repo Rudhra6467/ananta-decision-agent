@@ -180,6 +180,7 @@ function Trades() {
           </Card>
         </>
       ) : null}
+      <Spot id="explorer.closed">
       <Section title="Closed trades" />
       <Card>
         {d.closed.length === 0 ? <T dim>None yet. The first live-vs-history check needs 30.</T> : null}
@@ -190,6 +191,7 @@ function Trades() {
           </View>
         ))}
       </Card>
+      </Spot>
     </Screen>
   );
 }

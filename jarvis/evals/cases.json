@@ -1,5 +1,5 @@
 {
- "version": "ananta.evals.v4",
+ "version": 5,
  "how_graded": "Questions come from two places (plus app navigation): our PORTFOLIO (trades and watch) and the MARKET (conditions, scans, evidence). Each is asked to Gemini and Claude. Automatic checks: route (did Ananta look in the right place), speed (<= 12 s), answered, simple English (short sentences), follow-ups keep the topic, guardrails. You then mark every answer Good / OK / Bad in the Test lab against the 7 questions: understood me, right place, quick, correct, simple English, kept context, told me what matters.",
  "cases": [
   {
@@ -1660,6 +1660,224 @@
     "id": "X",
     "coin": "BTC",
     "label": "BTC trade page"
+   }
+  },
+  {
+   "id": "O01",
+   "cat": "Outside our system",
+   "q": "What is Pepe coin and how is it doing today?",
+   "expect": {
+    "outside": true,
+    "must_any": [
+     "CoinGecko",
+     "outside"
+    ],
+    "max_s": 15
+   }
+  },
+  {
+   "id": "O02",
+   "cat": "Outside our system",
+   "q": "Tell me about Polkadot. Is it a big coin?",
+   "expect": {
+    "outside": true,
+    "must_any": [
+     "CoinGecko",
+     "outside",
+     "rank"
+    ],
+    "max_s": 15
+   }
+  },
+  {
+   "id": "O03",
+   "cat": "Outside our system",
+   "q": "What's the price of Zorblaxcoin?",
+   "expect": {
+    "kind_any": [
+     "clarify",
+     "answer"
+    ],
+    "must_any": [
+     "couldn't find",
+     "could not find",
+     "can't find"
+    ],
+    "max_s": 15
+   }
+  },
+  {
+   "id": "O04",
+   "cat": "Outside our system",
+   "q": "How is Dogwifhatt doing?",
+   "expect": {
+    "kind_any": [
+     "clarify",
+     "answer"
+    ],
+    "outside": true,
+    "max_s": 15
+   }
+  },
+  {
+   "id": "O05",
+   "cat": "Outside our system",
+   "q": "How is Bitcoin doing right now?",
+   "expect": {
+    "outside": false,
+    "must_any": [
+     "BTC",
+     "Bitcoin"
+    ],
+    "max_s": 12
+   }
+  },
+  {
+   "id": "O06",
+   "cat": "Outside our system",
+   "q": "Should we add Sui to our basket?",
+   "expect": {
+    "outside": true,
+    "must_any": [
+     "outside",
+     "basket",
+     "not in"
+    ],
+    "no_actions": true,
+    "max_s": 15
+   }
+  },
+  {
+   "id": "O07",
+   "cat": "Outside our system",
+   "q": "Who won the football game last night?",
+   "expect": {
+    "kind": "out_of_scope",
+    "max_s": 10
+   }
+  },
+  {
+   "id": "S01",
+   "cat": "Highlight sync",
+   "q": "Walk me through this trade page.",
+   "here": {
+    "screen": "trade",
+    "id": "X",
+    "coin": "BTC",
+    "label": "BTC trade page"
+   },
+   "expect": {
+    "points_min": 3,
+    "no_ui": true,
+    "max_s": 12
+   }
+  },
+  {
+   "id": "S02",
+   "cat": "Highlight sync",
+   "q": "Show me our strongest holding.",
+   "expect": {
+    "ui_any": [
+     "portfolio"
+    ],
+    "points_min": 1,
+    "max_s": 12
+   }
+  },
+  {
+   "id": "S03",
+   "cat": "Highlight sync",
+   "q": "Show me the Explorer trades and point at the worst one.",
+   "expect": {
+    "ui_any": [
+     "portfolio:explorer"
+    ],
+    "points_min": 1,
+    "max_s": 12
+   }
+  },
+  {
+   "id": "S04",
+   "cat": "Highlight sync",
+   "q": "What's on the Evidence screen? Show me.",
+   "expect": {
+    "ui_any": [
+     "evidence"
+    ],
+    "points_min": 2,
+    "max_s": 12
+   }
+  },
+  {
+   "id": "S05",
+   "cat": "Highlight sync",
+   "q": "Highlight the stop on the Chainlink trade.",
+   "expect": {
+    "ui_prefix": "trade:LINK",
+    "points_spot": "trade.stop",
+    "max_s": 12
+   }
+  },
+  {
+   "id": "S06",
+   "cat": "Highlight sync",
+   "q": "Show me the morning brief.",
+   "expect": {
+    "ui_any": [
+     "home"
+    ],
+    "points_spot": "home.brief",
+    "max_s": 12
+   }
+  },
+  {
+   "id": "S07",
+   "cat": "Highlight sync",
+   "q": "What are we running for the market right now? Show me on home.",
+   "expect": {
+    "ui_any": [
+     "home"
+    ],
+    "points_spot": "home.books",
+    "max_s": 12
+   }
+  },
+  {
+   "id": "S08",
+   "cat": "Highlight sync",
+   "q": "Open the cockpit and show me the Claude budget.",
+   "expect": {
+    "ui_any": [
+     "cockpit"
+    ],
+    "points_spot": "cockpit.ai",
+    "max_s": 12
+   }
+  },
+  {
+   "id": "S09",
+   "cat": "Highlight sync",
+   "q": "Where is Bitcoin's support and resistance? Show me.",
+   "expect": {
+    "ui_prefix": "coin:BTC",
+    "points_spot": "coin.levels",
+    "max_s": 12
+   }
+  },
+  {
+   "id": "S10",
+   "cat": "Highlight sync",
+   "q": "Show me recent activity.",
+   "here": {
+    "screen": "markets",
+    "label": "Markets tab"
+   },
+   "expect": {
+    "ui_any": [
+     "home"
+    ],
+    "points_spot": "home.activity",
+    "max_s": 12
    }
   }
  ],

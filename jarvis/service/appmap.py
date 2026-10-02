@@ -306,6 +306,63 @@ def plan_points(j, points, ui: list[dict], here: dict | None, n_sentences: int, 
     return out, ui
 
 
+SPOT_WORDS = {
+    "trade.pnl": r"profit|loss|\bup\b|\bdown\b|p&l|\$", "trade.chart": r"chart|line", "trade.levels": r"stop|target|time limit|levels",
+    "trade.stop": r"stop", "trade.target": r"target|take.profit", "trade.why": r"why|because|bought|setup|signal",
+    "trade.plan": r"plan|exit|sell|trail", "trade.timeline": r"timeline|opened|history",
+    "coin.chart": r"chart|candle", "coin.position": r"position|we hold|our\b|bought", "coin.market": r"market|trend|checklist",
+    "coin.levels": r"support|resistance|level", "coin.trades": r"trades?",
+    "home.value": r"value|worth|today|\$", "home.inbox": r"inbox|waiting|approve|ok\b", "home.brief": r"brief|summary",
+    "home.books": r"explorer|hourly|portfolio|books?|watch", "home.activity": r"activity|recent|happened",
+    "markets.summary": r"trend|breadth|gate|coins? (?:are|is)|up\b", "portfolio.value": r"value|worth|\$|up\b|down\b",
+    "portfolio.autopilot": r"autopilot", "portfolio.suggested": r"suggest|change|waiting", "portfolio.holdings": r"holding|coins",
+    "explorer.value": r"value|worth|\$|explorer", "explorer.closed": r"closed", "mine.value": r"value|worth|\$",
+    "evidence.tracker": r"tracker|progress|milestone", "evidence.collected": r"collected|setups?|signals?",
+    "evidence.forwarded": r"forward|repair", "evidence.shop": r"repair|shop|queue", "evidence.in_use": r"running|in use|paper|buy.and.hold",
+    "evidence.safety": r"safety", "cockpit.controls": r"kill|autopilot|live|switch", "cockpit.ai": r"ask|voice|budget|claude|gemini",
+    "cockpit.alerts": r"alert", "cockpit.systems": r"system|status|running",
+}
+
+
+def _spot_rx(spot: str) -> str | None:
+    head, _, arg = spot.partition(":")
+    if arg and (head in ("markets.coin", "portfolio.holding", "mine.position") or head == "explorer.trade"):
+        sym = arg.split("-")[0].upper()
+        names = [k for k, v in COINS.items() if v == sym]
+        return r"\b(" + "|".join(re.escape(n) for n in names + [sym.lower()]) + r")\b"
+    if head == "coin.setup" and arg:
+        try:
+            from jarvis.service.views import SETUP
+            nm = SETUP.get(arg, "")
+        except Exception:  # noqa: BLE001
+            nm = ""
+        first = nm.split()[0].lower() if nm else ""
+        return r"\b" + re.escape(arg.lower()) + r"\b" + (r"|\b" + re.escape(first) if first else "")
+    return SPOT_WORDS.get(head)
+
+
+def anchor_points(points: list[dict], answer: str) -> list[dict]:
+    """Keep each highlight on the sentence that actually talks about it (models often count sentences wrong)."""
+    sents = [x for x in re.split(r"(?<=[.!?])\s+", answer or "") if x.strip()]
+    if not sents:
+        return points
+    used, out = set(), []
+    for p in points:
+        rx, k = _spot_rx(p["spot"]), p["sentence"]
+        if rx and not re.search(rx, sents[min(k, len(sents) - 1)], re.I):
+            hit = next((i for i, x in enumerate(sents) if i not in used and re.search(rx, x, re.I)), None)
+            if hit is not None:
+                k = hit
+        used.add(k)
+        out.append({**p, "sentence": k})
+    seen, final = set(), []
+    for p in sorted(out, key=lambda x: x["sentence"]):            # one highlight per sentence, in speaking order
+        if p["sentence"] not in seen:
+            seen.add(p["sentence"])
+            final.append(p)
+    return final
+
+
 SCROLL = re.compile(r"^\s*(?:please\s+)?(?:can you\s+)?(scroll|go|move|take me|show me)\s*(?:to\s+)?(?:the\s+)?(up|down|top|bottom)(?:\s+of (?:the |this )?(?:page|screen))?(?:\s+please)?[.!?]*\s*$", re.I)
 
 
@@ -373,6 +430,58 @@ def tour(j) -> list[dict]:
     return steps
 
 
+def _coin_in(text: str) -> str | None:
+    low = text.lower()
+    for k in sorted(COINS, key=len, reverse=True):
+        if re.search(r"\b" + re.escape(k) + r"\b", low):
+            return COINS[k]
+    return None
+
+
+def infer_link(j, e: dict) -> dict:
+    """Most evidence rows come without a place: work out where that number is shown in the app, so 'Show me' works for it."""
+    txt = f"{e.get('label', '')} {e.get('value', '')} {e.get('source', '')}"
+    low = txt.lower()
+    sym = _coin_in(txt)
+    ex = j._explorer() if hasattr(j, "_explorer") else None
+    trade = None
+    if sym and ex:
+        try:
+            trade = next((t for t in ex.status()["open"] if t.get("coin") == sym), None)
+        except Exception:  # noqa: BLE001
+            trade = None
+    setup = re.search(r"\b(E[1-5])\b", txt)
+    if sym and setup:
+        return {"screen": f"coin:{sym}", "spot": f"coin.setup:{setup.group(1)}"}
+    if sym and re.search(r"support|resistance", low):
+        return {"screen": f"coin:{sym}", "spot": "coin.levels"}
+    if trade and re.search(r"\bstop\b", low):
+        return {"screen": f"trade:{trade['id']}", "spot": "trade.stop"}
+    if trade and re.search(r"target", low):
+        return {"screen": f"trade:{trade['id']}", "spot": "trade.target"}
+    if trade and re.search(r"trade|p&l|profit|loss|entry|bought", low):
+        return {"screen": f"trade:{trade['id']}", "spot": "trade.pnl"}
+    if sym and re.search(r"holding|portfolio|t3|weight", low):
+        return {"screen": "portfolio", "spot": f"portfolio.holding:{sym}"}
+    if re.search(r"explorer", low):
+        return {"screen": "portfolio:explorer", "spot": "explorer.value"}
+    if re.search(r"portfolio|t3|buy.and.hold", low):
+        return {"screen": "portfolio", "spot": "portfolio.value"}
+    if re.search(r"my (paper )?book|manual", low):
+        return {"screen": "portfolio:mine", "spot": "mine.value"}
+    if re.search(r"repair|forwarded", low):
+        return {"screen": "evidence", "spot": "evidence.shop"}
+    if re.search(r"evidence|collected|milestone|signals? seen", low):
+        return {"screen": "evidence", "spot": "evidence.tracker"}
+    if re.search(r"trending|breadth|coins up|btc gate|uptrend", low) and not sym:
+        return {"screen": "markets", "spot": "markets.summary"}
+    if sym and re.search(r"price|trend|move|%|chart", low):
+        return {"screen": f"coin:{sym}", "spot": "coin.chart"}
+    if re.search(r"alert", low):
+        return {"screen": "cockpit", "spot": "cockpit.alerts"}
+    return {}
+
+
 def clean_evidence(j, items) -> list[dict]:
     """Evidence rows keep a 'spot' (and the place to open for it) only when both are real, so 'Show me' always works."""
     out = []
@@ -380,6 +489,11 @@ def clean_evidence(j, items) -> list[dict]:
         if not isinstance(e, dict):
             continue
         e = {k: e.get(k) for k in ("label", "value", "source", "time", "spot", "screen") if e.get(k) not in (None, "")}
+        if not e.get("spot") and not e.get("screen") and "coingecko" not in str(e.get("source", "")).lower():
+            try:
+                e.update(infer_link(j, e))
+            except Exception:  # noqa: BLE001
+                pass
         sp = str(e.get("spot", ""))
         if sp and valid_spot(j, sp):
             need = spot_screen(sp)

@@ -221,6 +221,7 @@ def main(argv=None) -> None:
         cases = [c for c in CASES["cases"] if c["id"] in need]
     provs = [p.strip() for p in a.providers.split(",") if p.strip()]
     old_budget = get("/v3/spend").json()["settings"]["daily_budget_usd"]
+    pending0 = {a["id"] for a in get("/v3/inbox").json().get("actions", [])}
     post("/v3/settings", {"key": "daily_budget_usd", "value": "5"})
     t0 = time.time()
     spend0 = get("/v3/spend").json()["today_usd"]
@@ -236,6 +237,9 @@ def main(argv=None) -> None:
                 results += run_voice(p)
     finally:
         post("/v3/settings", {"key": "daily_budget_usd", "value": old_budget})
+        for a in get("/v3/inbox").json().get("actions", []):          # anything a failed test left behind
+            if a["id"] not in pending0:
+                post(f"/v3/actions/{a['id']}", {"confirm": False})
     spend = round(get("/v3/spend").json()["today_usd"] - spend0, 4)
     summ: dict = {}
     for r in results:

@@ -475,8 +475,8 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
         calls = [c for c in content if c.get("type") == "tool_use"]
         if not calls:
             text = "".join(c.get("text", "") for c in content if c.get("type") == "text")
-            if not text.strip() and not usage.get("nudged"):        # ended without words (only thinking): ask once for the answer
-                usage["nudged"] = 1
+            if not text.strip() and usage.get("nudged", 0) < 2:      # ended without words (only thinking): ask for the answer
+                usage["nudged"] = usage.get("nudged", 0) + 1
                 rnd = MAX_TOOL_ROUNDS - 1                           # the next round must answer
                 msgs.append({"role": "assistant", "content": content or [{"type": "text", "text": "(no answer)"}]})
                 msgs.append({"role": "user", "content": [{"type": "text", "text": "Please give your final answer now, as the JSON object."}]})
@@ -790,7 +790,14 @@ class Ask:
                     raw, usage = self.providers["haiku"](system, history, user_msg, L, log)
                 else:
                     raise exc
-            reply = parse(raw)
+            try:
+                reply = parse(raw)
+            except RuntimeError:
+                if not L.created:
+                    raise
+                reply = {"kind": "answer", "stage": "decision", "evidence": [], "assumption": "", "options": [], "follow_ups": [],
+                         "answer": "I've prepared this for you; nothing happens until you confirm the card: " + "; ".join(a["summary"] for a in L.created),
+                         "breakdown": []}
         except Exception as exc:  # noqa: BLE001
             ms = int(1000 * (time.time() - t0))
             self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, mode, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",

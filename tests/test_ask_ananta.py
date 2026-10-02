@@ -566,3 +566,13 @@ def test_show_me_that_opens_the_proof():
     assert ui and ui[0]["target"] == "portfolio"
     ui, _ = appmap.keep_honest(j, "scroll down and show me the evidence", "ok", [{"do": "scroll", "dir": "down"}, {"do": "go_to", "target": "evidence"}], {"screen": "ananta"})
     assert [u["do"] for u in ui] == ["go_to", "scroll"]
+
+
+def test_where_am_i_never_moves_and_moves_dedupe():
+    from jarvis.service import appmap as am
+    here = {"screen": "trade", "id": "BTC-1", "coin": "BTC"}
+    mv = {"do": "open", "target": "trade:ETH-2", "label": "ETH trade"}
+    ui, _ = am.keep_honest(None, "What am I looking at?", "You're on the BTC trade page.", [mv, mv], here)
+    assert ui == []
+    ui, _ = am.keep_honest(None, "Open the ETH trade", "Here it is.", [mv, mv, mv], here)
+    assert ui == [mv]

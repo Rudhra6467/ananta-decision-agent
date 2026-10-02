@@ -125,8 +125,13 @@ def run_provider(provider: str, cases: list[dict]) -> list[dict]:
     for c in cases:
         before = book_state()
         t0 = time.time()
-        body = {"text": c["q"], "mode": MODE[provider], "source": "eval",
-                "context": {"here": c.get("here") or {"screen": "ananta", "label": "Ananta tab: this conversation"}}}
+        here = dict(c.get("here") or {"screen": "ananta", "label": "Ananta tab: this conversation"})
+        if here.get("screen") == "trade" and here.get("id") == "X":      # stand in the real open trade for that coin
+            try:
+                here["id"] = next(t["id"] for t in get("/v3/trades").json()["open"] if t["coin"] == here.get("coin"))
+            except Exception:  # noqa: BLE001
+                pass
+        body = {"text": c["q"], "mode": MODE[provider], "source": "eval", "context": {"here": here}}
         if c.get("after") and threads.get(c["after"]):
             body["thread"] = threads[c["after"]]
         try:

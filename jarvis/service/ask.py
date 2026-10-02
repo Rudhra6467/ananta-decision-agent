@@ -149,8 +149,9 @@ HUNTER_REASONS = {
 class Lookups:
     """Read-only functions over Ananta's data. Each returns plain JSON-able data."""
 
-    def __init__(self, j, thread: str | None = None):
+    def __init__(self, j, thread: str | None = None, here_t: str | None = None):
         self.j = j
+        self.here_t = here_t                  # the place open on his screen right now
         self._ex = None
         self.thread = thread
         self.created: list[dict] = []          # pending actions prepared during this answer
@@ -344,6 +345,10 @@ class Lookups:
         t, label = appmap.resolve(self.j, target)
         if not t:
             return {"ok": False, "error": label}
+        if t == self.here_t:
+            return {"ok": True, "already_open": True, "note": "He is already on this screen. Do not move; answer about what he sees now."}
+        if any(u.get("target") == t for u in self.ui):
+            return {"ok": True, "already_queued": True, "note": "Already opening. Do not call ui_go again; write your answer now."}
         self.ui.append({"do": "open" if ":" in t and t.split(":")[0] in ("coin", "trade") else "go_to", "target": t, "label": label})
         return {"ok": True, "will_open": label, "note": "The app opens it as soon as you answer. Say 'here is ...' / 'taking you to ...'."}
 
@@ -893,13 +898,15 @@ class Ask:
         log: list = []
         t0 = time.time()
         aid = uuid.uuid4().hex[:12]
+        from jarvis.service import appmap as _amh
+        _ht = _amh.here_target(here if context else None)
         used = key
         from jarvis.service.mandate import Mandate
 
         system = SYSTEM + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text()
         try:
             try:
-                L = Lookups(self.j, thread)
+                L = Lookups(self.j, thread, _ht)
                 raw, usage = self.providers[key](system, history, user_msg, L, log)
             except Exception as exc:  # noqa: BLE001
                 # free Gemini busy: escalate once to Claude Haiku if allowed and within budget
@@ -907,7 +914,7 @@ class Ask:
                     used = "haiku"
                     note = (note + "; " if note else "") + "Gemini was busy, so Claude Haiku answered"
                     log.clear()
-                    L = Lookups(self.j, thread)
+                    L = Lookups(self.j, thread, _ht)
                     raw, usage = self.providers["haiku"](system, history, user_msg, L, log)
                 else:
                     raise exc
@@ -919,7 +926,7 @@ class Ask:
                     note = (note + "; " if note else "") + "Claude gave no words this time, so Gemini answered"
                     used = "gemini"
                     log.clear()
-                    L = Lookups(self.j, thread)
+                    L = Lookups(self.j, thread, _ht)
                     raw, usage = self.providers["gemini"](system, history, user_msg, L, log)
                     reply = parse(raw)
                 elif not L.created:

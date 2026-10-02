@@ -166,13 +166,26 @@ def guess(text: str) -> str | None:
     return None
 
 
+WHERE_AM_I = re.compile(r"\b(what am i (?:looking at|seeing)|where am i|what(?:'s| is) (?:this|on this) (?:screen|page)|what is this|explain this (?:screen|page))\b", re.I)
+
+
+def dedupe(ui: list[dict]) -> list[dict]:
+    out = []
+    for u in ui:
+        if not out or (u.get("do"), u.get("target"), u.get("dir")) != (out[-1].get("do"), out[-1].get("target"), out[-1].get("dir")):
+            out.append(u)
+    return out
+
+
 def keep_honest(j, question: str, answer: str, ui: list[dict], here: dict | None) -> tuple[list[dict], str]:
     """Make what Ananta SAYS about the screen match what the app WILL do.
     - drop moves to the screen that is already open
     - a 'show me / take me' request, or an answer that claims a move, with no move: add the best-guess move if it resolves
     - still nothing to open but the answer claims a move: say plainly that the screen did not move."""
     cur = here_target(here)
-    ui = [u for u in ui if not (u.get("do") != "back" and u.get("target") == cur)]
+    ui = dedupe([u for u in ui if not (u.get("do") != "back" and u.get("target") == cur)])
+    if WHERE_AM_I.search(question or "") and not SHOW_INTENT.search(question or ""):
+        return [u for u in ui if u.get("do") == "scroll"], answer       # he asked about THIS screen: never move away from it
     claims = bool(CLAIM.search(answer or ""))
     scroll_claim = re.search(r"\b(i'?ve scrolled|scrolling (?:down|up|to)|i scrolled)", answer or "", re.I)
     scroll_ask = re.search(r"\b(below this|what'?s below|bottom of|at the bottom|scroll (?:down|up))\b", question or "", re.I)
@@ -188,7 +201,7 @@ def keep_honest(j, question: str, answer: str, ui: list[dict], here: dict | None
     if claims and not ui:
         answer = (answer or "").rstrip() + " (I couldn't move the screen for this one; it is still on the same page.)"
     ui = [u for u in ui if u.get("do") in ("go_to", "open", "back")] + [u for u in ui if u.get("do") == "scroll"]   # move first, then scroll
-    return ui, answer
+    return dedupe(ui), answer
 
 
 def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -> tuple[dict | None, str | None]:

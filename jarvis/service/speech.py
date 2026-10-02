@@ -20,11 +20,12 @@ import urllib.request
 from collections import OrderedDict
 from concurrent.futures import Future, ThreadPoolExecutor
 
-MODELS = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts", "gemini-2.5-flash-preview-tts"]
+# (model, takes a spoken style hint). Tested 2026-10-02: 2.5 follows "Say ...: <line>" and speaks only the line;
+# the 3.8 models read such a hint out loud, so they get the plain line.
+MODELS = [("gemini-2.5-flash-preview-tts", True), ("gemini-3.8-flash-tts", False), ("gemini-3.8-flash-lite-tts", False)]
 VOICES = {"Calm": "Sulafat", "Friendly": "Achird", "Deep": "Charon", "Bright": "Aoede"}
 DEFAULT_VOICE = "Calm"
-STYLE = ("Read the next line aloud as a calm, friendly personal assistant talking to a friend named Madhav: "
-         "relaxed and unhurried, warm, natural small pauses, every word clear. Say only the line, nothing else.\nLine: ")
+STYLE = "Say in a calm, warm, relaxed and unhurried voice, like a friendly assistant talking to a friend: "
 
 _pool = ThreadPoolExecutor(max_workers=6, thread_name_prefix="tts")
 _cache: "OrderedDict[str, Future]" = OrderedDict()
@@ -46,10 +47,10 @@ def _speak(text: str, voice: str, post=None) -> bytes:
     if not key:
         raise RuntimeError("GEMINI_API_KEY is not set")
     err = "no voice model available"
-    for m in MODELS:
+    for m, styled in MODELS:
         if _cool.get(m, 0) > time.time():
             continue
-        body = {"contents": [{"parts": [{"text": STYLE + text}]}],
+        body = {"contents": [{"parts": [{"text": (STYLE + text) if styled else text}]}],
                 "generationConfig": {"responseModalities": ["AUDIO"],
                                      "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": VOICES.get(voice, VOICES[DEFAULT_VOICE])}}}}}
         try:
@@ -63,9 +64,14 @@ def _speak(text: str, voice: str, post=None) -> bytes:
             raw = base64.b64decode(part["data"])
             mime = part.get("mimeType", "").lower()
             if "wav" in mime or raw[:4] == b"RIFF":
-                return raw
-            rate = int((re.search(r"rate=(\d+)", mime) or [None, 24000])[1])
-            return _wav(raw, rate)
+                wav = raw
+            else:
+                wav = _wav(raw, int((re.search(r"rate=(\d+)", mime) or [None, 24000])[1]))
+            if duration_s(wav) > 2.5 + 0.8 * len(text.split()):      # it read more than the line (e.g. the style hint): don't play it
+                _cool[m] = time.time() + 600
+                err = f"{m}: spoke extra words"
+                continue
+            return wav
         except urllib.error.HTTPError as e:
             err = f"{m}: HTTP {e.code}"
             _cool[m] = time.time() + (3600 if e.code == 429 else 60)

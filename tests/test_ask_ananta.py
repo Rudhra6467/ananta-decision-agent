@@ -659,3 +659,21 @@ def test_every_spot_ananta_can_point_at_exists_in_the_app():
     in_app = {m.split(":")[0] for m in _re.findall(r'Spot id=\{?["`]([^"`]+)', src)}
     wanted = {k.split(":")[0] for v in am.SPOTS.values() for k in v}
     assert wanted <= in_app, sorted(wanted - in_app)
+
+
+def test_natural_voice_skips_a_clip_that_says_extra_words(monkeypatch):
+    import base64
+    from jarvis.service import speech as sp
+    monkeypatch.setenv("GEMINI_API_KEY", "x")
+    sp._cool.clear()
+    calls = []
+
+    def post(m, body):
+        calls.append((m, body["contents"][0]["parts"][0]["text"]))
+        n = 48000 * (20 if m.startswith("gemini-2.5") else 1)       # the first model "reads the instructions": 20 s for 3 words
+        return {"candidates": [{"content": {"parts": [{"inlineData": {"mimeType": "audio/L16;rate=24000", "data": base64.b64encode(b"\0" * n).decode()}}]}}]}
+
+    w = sp._speak("Hello there Madhav.", "Calm", post=post)
+    assert sp.duration_s(w) == 1.0 and len(calls) == 2
+    assert calls[0][1].startswith("Say in a calm") and calls[1][1] == "Hello there Madhav."
+    sp._cool.clear()

@@ -1,6 +1,6 @@
 {
- "version": "ananta.evals.v2",
- "how_graded": "Questions come from two places: our PORTFOLIO (trades and watch) and the MARKET (conditions, scans, evidence). Each is asked to Gemini and Claude. Automatic checks: route (did Ananta look in the right place), speed (<= 12 s), answered, simple English (short sentences), follow-ups keep the topic, guardrails. You then mark every answer Good / OK / Bad in the Test lab against the 7 questions: understood me, right place, quick, correct, simple English, kept context, told me what matters.",
+ "version": "ananta.evals.v3",
+ "how_graded": "Questions come from two places (plus app navigation): our PORTFOLIO (trades and watch) and the MARKET (conditions, scans, evidence). Each is asked to Gemini and Claude. Automatic checks: route (did Ananta look in the right place), speed (<= 12 s), answered, simple English (short sentences), follow-ups keep the topic, guardrails. You then mark every answer Good / OK / Bad in the Test lab against the 7 questions: understood me, right place, quick, correct, simple English, kept context, told me what matters.",
  "cases": [
   {
    "id": "P01",
@@ -1198,6 +1198,288 @@
      "not",
      "don't",
      "only"
+    ]
+   }
+  },
+  {
+   "id": "N01",
+   "cat": "App navigation",
+   "q": "Take me home.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "home"
+    ]
+   }
+  },
+  {
+   "id": "N02",
+   "cat": "App navigation",
+   "q": "Take me to Markets.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "markets"
+    ]
+   }
+  },
+  {
+   "id": "N03",
+   "cat": "App navigation",
+   "q": "Take me to Portfolio.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "portfolio"
+    ]
+   }
+  },
+  {
+   "id": "N04",
+   "cat": "App navigation",
+   "q": "Show me my Bitcoin trade.",
+   "expect": {
+    "max_s": 12,
+    "ui_prefix": "trade:BTC"
+   }
+  },
+  {
+   "id": "N05",
+   "cat": "App navigation",
+   "q": "Open Ethereum.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "coin:ETH"
+    ]
+   }
+  },
+  {
+   "id": "N06",
+   "cat": "App navigation",
+   "q": "Show me the Bitcoin chart.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "coin:BTC"
+    ]
+   }
+  },
+  {
+   "id": "N07",
+   "cat": "App navigation",
+   "q": "Show me where I can see my open trades.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "portfolio:explorer",
+     "portfolio"
+    ]
+   }
+  },
+  {
+   "id": "N08",
+   "cat": "App navigation",
+   "q": "Show me where the evidence is.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "evidence"
+    ]
+   }
+  },
+  {
+   "id": "N09",
+   "cat": "App navigation",
+   "q": "Take me to the latest scan.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "markets"
+    ]
+   }
+  },
+  {
+   "id": "N10",
+   "cat": "App navigation",
+   "q": "Go back.",
+   "expect": {
+    "max_s": 12,
+    "ui_do": "back"
+   }
+  },
+  {
+   "id": "N11",
+   "cat": "App navigation",
+   "q": "Take me back to the market.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "markets"
+    ]
+   }
+  },
+  {
+   "id": "N12",
+   "cat": "App navigation",
+   "q": "Where am I?",
+   "expect": {
+    "max_s": 12,
+    "must_any": [
+     "Ananta",
+     "conversation"
+    ],
+    "no_ui": true
+   }
+  },
+  {
+   "id": "N13",
+   "cat": "App navigation",
+   "q": "What am I looking at?",
+   "expect": {
+    "max_s": 12,
+    "must_any": [
+     "Ananta",
+     "conversation"
+    ],
+    "no_ui": true
+   }
+  },
+  {
+   "id": "N14",
+   "cat": "App navigation",
+   "q": "Walk me through this screen.",
+   "expect": {
+    "max_s": 12,
+    "must_any": [
+     "type",
+     "mic",
+     "voice",
+     "Sessions",
+     "talk"
+    ]
+   }
+  },
+  {
+   "id": "N15",
+   "cat": "App navigation",
+   "q": "I'm new here. Show me around.",
+   "expect": {
+    "max_s": 12,
+    "lookups_any": [
+     "app_map"
+    ]
+   }
+  },
+  {
+   "id": "N16",
+   "cat": "App navigation",
+   "q": "What can I ask you to do?",
+   "expect": {
+    "max_s": 12,
+    "must_any": [
+     "portfolio",
+     "market",
+     "show",
+     "open"
+    ]
+   }
+  },
+  {
+   "id": "N17",
+   "cat": "App navigation",
+   "q": "Where do I turn off the kill switch?",
+   "expect": {
+    "max_s": 12,
+    "must_any": [
+     "Cockpit",
+     "cockpit"
+    ]
+   }
+  },
+  {
+   "id": "N18",
+   "cat": "App navigation",
+   "q": "Open my mandate.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "mandate"
+    ]
+   }
+  },
+  {
+   "id": "N19",
+   "cat": "App navigation",
+   "q": "Show me the coin that is closest to a new trade.",
+   "expect": {
+    "max_s": 12,
+    "ui_prefix": "coin:"
+   }
+  },
+  {
+   "id": "N20",
+   "cat": "App navigation",
+   "q": "Show me the trade that is doing the worst.",
+   "expect": {
+    "max_s": 12,
+    "ui_prefix": "trade:"
+   }
+  },
+  {
+   "id": "N21",
+   "cat": "App navigation",
+   "q": "Can you take me to the home screen?",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "home"
+    ]
+   }
+  },
+  {
+   "id": "N22",
+   "cat": "App navigation",
+   "q": "Show me my trades.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "portfolio:mine",
+     "portfolio:explorer"
+    ]
+   }
+  },
+  {
+   "id": "N23",
+   "cat": "App navigation",
+   "q": "Open the cockpit.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "cockpit"
+    ]
+   }
+  },
+  {
+   "id": "N24",
+   "cat": "App navigation",
+   "q": "Show me what has been forwarded to the repair shop.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "evidence",
+     "evidence:forwarded"
+    ]
+   }
+  },
+  {
+   "id": "N25",
+   "cat": "App navigation",
+   "q": "Show me the test results.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "testlab"
     ]
    }
   }

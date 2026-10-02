@@ -1,4 +1,4 @@
-"""Natural voice for Ananta: Gemini text-to-speech, one clip per sentence.
+"""Natural voice for Ananta: Kokoro on this Mac first (free, unlimited), Gemini text-to-speech as the backup; one clip per sentence.
 
 The app asks for all sentences of an answer at once (prepare), then plays them in order (audio).
 Each sentence is made in parallel, so the first one is ready quickly and the highlights can follow
@@ -42,7 +42,28 @@ def _wav(pcm: bytes, rate: int = 24000) -> bytes:
     return head + b"data" + struct.pack("<I", len(pcm)) + pcm
 
 
+LOCAL = os.getenv("ANANTA_VOICE_URL", "http://127.0.0.1:8200")
+
+
+def _local(text: str, voice: str) -> bytes | None:
+    """Kokoro on this Mac: free, unlimited, ~0.3 s a sentence. None when the local voice server is not running."""
+    if os.getenv("ANANTA_VOICE_LOCAL", "1") != "1":
+        return None
+    try:
+        req = urllib.request.Request(LOCAL + "/tts", data=json.dumps({"text": text, "voice": voice, "speed": 0.95}).encode(),
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            wav = r.read()
+        return wav if wav[:4] == b"RIFF" else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _speak(text: str, voice: str, post=None) -> bytes:
+    if post is None:
+        wav = _local(text, voice)
+        if wav:
+            return wav
     key = os.getenv("GEMINI_API_KEY", "")
     if not key:
         raise RuntimeError("GEMINI_API_KEY is not set")

@@ -5,6 +5,15 @@ from jarvis.service import ask, core, views
 from tests.test_jarvis_core import FakeHands
 
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _no_local_voice(monkeypatch):
+    monkeypatch.setenv("ANANTA_VOICE_LOCAL", "0")     # tests never call the Mac's voice server
+    monkeypatch.setenv("ASK_LOCAL", "0")              # ... or the Mac's model server
+
+
 def _jarvis():
     from tests.test_explorer_live import _advance, _mk
 
@@ -677,3 +686,28 @@ def test_natural_voice_skips_a_clip_that_says_extra_words(monkeypatch):
     assert sp.duration_s(w) == 1.0 and len(calls) == 2
     assert calls[0][1].startswith("Say in a calm") and calls[1][1] == "Hello there Madhav."
     sp._cool.clear()
+
+
+def test_local_model_answers_and_escalates_when_unsure():
+    j, ex = _jarvis()
+    good = json.dumps({"kind": "answer", "answer": "The portfolio is fine.", "evidence": []})
+    seen = []
+
+    def fake_local(body):
+        seen.append(body)
+        if len(seen) == 1:
+            return {"message": {"tool_calls": [{"function": {"name": "portfolio", "arguments": {}}}]}, "prompt_eval_count": 10, "eval_count": 2}
+        return {"message": {"content": good}, "prompt_eval_count": 20, "eval_count": 5}
+
+    A = ask.Ask(j, providers={"local": lambda s, h, u, t, log: ask.run_local(s, h, u, t, log, post=fake_local, model="m")})
+    r = A.ask("o@x.com", "how is the portfolio", provider="local")
+    assert r["answer"] == "The portfolio is fine." and r["lookups"] == ["portfolio"] and r["cost_usd"] == 0
+    assert "tools" in seen[0] and seen[1]["messages"][-1]["role"] == "tool"
+    # router picked the Mac and it made up a number: Haiku answers instead
+    bad = json.dumps({"kind": "answer", "answer": "Bitcoin is at $91,234.", "evidence": []})
+    fine = json.dumps({"kind": "answer", "answer": "Here is the real answer.", "evidence": []})
+    A = ask.Ask(j, providers={"local": lambda *a, **k: (bad, {"in": 1, "out": 1}), "haiku": lambda *a, **k: (fine, {"in": 1, "out": 1})})
+    A._pick = lambda text, mode, provider: ("local", "auto", "")
+    A._next_level = lambda: "haiku"
+    r = A.ask("o@x.com", "where is bitcoin")
+    assert r["provider"] == "haiku" and "wasn't sure" in r["note"] and "91,234" in r["note"]

@@ -415,3 +415,13 @@ def test_eval_questions_do_not_use_the_owner_daily_limit():
             raise AssertionError("owner limit not enforced")
     finally:
         ask.DAILY_LIMIT = old
+
+
+def test_wordless_claude_falls_back_to_gemini():
+    j, ex = _jarvis()
+    import os
+    os.environ["ANTHROPIC_API_KEY"] = "test"
+    A = ask.Ask(j, providers={"sonnet": lambda s, h, u, t, log: ("", {"in": 10, "out": 5}),
+                              "gemini": lambda s, h, u, t, log: (json.dumps({"answer": "from gemini"}), {"in": 1, "out": 1})})
+    r = A.ask("o", "why is btc up", mode="deep")
+    assert r["answer"] == "from gemini" and r["provider"] == "gemini" and "Gemini answered" in r["note"]

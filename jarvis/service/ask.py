@@ -794,9 +794,18 @@ class Ask:
             try:
                 reply = parse(raw)
             except RuntimeError:
-                if not L.created:
+                if not L.created and MODELS[used]["provider"] == "claude" and "gemini" in self.providers:
+                    # Claude occasionally ends with thinking only; answer this one with Gemini instead of failing
+                    note = (note + "; " if note else "") + "Claude gave no words this time, so Gemini answered"
+                    used = "gemini"
+                    log.clear()
+                    L = Lookups(self.j, thread)
+                    raw, usage = self.providers["gemini"](system, history, user_msg, L, log)
+                    reply = parse(raw)
+                elif not L.created:
                     raise
-                reply = {"kind": "answer", "stage": "decision", "evidence": [], "assumption": "", "options": [], "follow_ups": [],
+                else:
+                    reply = {"kind": "answer", "stage": "decision", "evidence": [], "assumption": "", "options": [], "follow_ups": [],
                          "answer": "I've prepared this for you; nothing happens until you confirm the card: " + "; ".join(a["summary"] for a in L.created),
                          "breakdown": []}
         except Exception as exc:  # noqa: BLE001

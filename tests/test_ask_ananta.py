@@ -394,3 +394,24 @@ def test_shared_db_survives_many_threads():
     with cf.ThreadPoolExecutor(16) as pool:
         list(pool.map(work, range(200)))
     assert len(Mn.journal(500)) == 200
+
+
+def test_eval_questions_do_not_use_the_owner_daily_limit():
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: (json.dumps({"answer": "ok"}), {"in": 1, "out": 1})})
+    old = ask.DAILY_LIMIT
+    ask.DAILY_LIMIT = 2
+    try:
+        for _ in range(3):
+            A.ask("o", "how is btc", mode="everyday", source="eval")
+        assert A.today_count() == 0
+        A.ask("o", "how is btc", mode="everyday")
+        A.ask("o", "how is btc", mode="everyday")
+        try:
+            A.ask("o", "how is btc", mode="everyday")
+        except ValueError as e:
+            assert "limit" in str(e)
+        else:
+            raise AssertionError("owner limit not enforced")
+    finally:
+        ask.DAILY_LIMIT = old

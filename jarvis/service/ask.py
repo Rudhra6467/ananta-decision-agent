@@ -715,7 +715,8 @@ class Ask:
         return n
 
     def today_count(self) -> int:
-        return self.j.db.execute("SELECT count(*) FROM ask_messages WHERE role='user' AND t >= ?", (int(self.j.now() - 86400),)).fetchone()[0]
+        return self.j.db.execute("SELECT count(*) FROM ask_messages WHERE role='user' AND COALESCE(mode,'') NOT LIKE 'eval:%' AND t >= ?",
+                                 (int(self.j.now() - 86400),)).fetchone()[0]
 
     def _pick(self, text: str, mode: str | None, provider: str | None) -> tuple[str, str, str]:
         """-> (model key, mode label, note)."""
@@ -735,7 +736,7 @@ class Ask:
         raise ValueError(f"unknown mode {mode}")
 
     def ask(self, who: str, text: str, thread: str | None = None, provider: str | None = None, mode: str | None = None,
-            second_of: str | None = None, context: dict | None = None, voice: bool = False) -> dict:
+            second_of: str | None = None, context: dict | None = None, voice: bool = False, source: str = "") -> dict:
         text = (text or "").strip()[:2000]
         if not text:
             raise ValueError("empty question")
@@ -743,7 +744,7 @@ class Ask:
             raise ValueError("Ask Ananta is switched off in the Cockpit")
         thread = thread or uuid.uuid4().hex[:12]
         key, mode_label, note = self._pick(text, mode, provider)
-        if self.today_count() >= DAILY_LIMIT:
+        if source != "eval" and self.today_count() >= DAILY_LIMIT:
             raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
         if MODELS[key]["provider"] == "claude":
             sp = self.spend()
@@ -756,7 +757,7 @@ class Ask:
         now = int(self.j.now())
         uid = uuid.uuid4().hex[:12]
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
-                          (uid, thread, now, "user", text, key, ("voice:" if voice else "") + mode_label))
+                          (uid, thread, now, "user", text, key, ("eval:" if source == "eval" else "") + ("voice:" if voice else "") + mode_label))
         self.j.db.commit()
         notes = []
         if tries:
@@ -849,11 +850,11 @@ class Ask:
                 err = exc
         raise RuntimeError(f"could not transcribe right now ({str(err)[:80]})")
 
-    def voice_turn(self, who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None) -> dict:
+    def voice_turn(self, who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None, source: str = "") -> dict:
         heard = self.transcribe(audio_b64, mime)
         if not heard:
             return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone."}
-        out = self.ask(who, heard, thread=thread, mode=mode, context=context, voice=True)
+        out = self.ask(who, heard, thread=thread, mode=mode, context=context, voice=True, source=source)
         return {"heard": heard, **out}
 
     def second(self, who: str, msg_id: str) -> dict:

@@ -174,6 +174,7 @@ class Question(BaseModel):
     provider: str | None = None
     mode: str | None = None
     context: dict | None = None
+    source: str = ""
 
 
 class Second(BaseModel):
@@ -222,7 +223,7 @@ def cockpit(who: str = Depends(owner)) -> dict:
 
 @app.post("/v3/ask")
 def ask_q(b: Question, who: str = Depends(owner)) -> dict:
-    return _run(lambda: A().ask(who, b.text, b.thread, b.provider, b.mode, None, b.context))
+    return _run(lambda: A().ask(who, b.text, b.thread, b.provider, b.mode, None, b.context, source="eval" if b.source == "eval" else ""))
 
 
 @app.post("/v3/ask/second")
@@ -346,11 +347,12 @@ class VoiceTurn(BaseModel):
     thread: str | None = None
     mode: str | None = None
     context: dict | None = None
+    source: str = ""
 
 
 @app.post("/v3/voice/turn")
 def voice_turn(b: VoiceTurn, who: str = Depends(owner)) -> dict:
-    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, b.context))
+    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, b.context, source="eval" if b.source == "eval" else ""))
 
 
 

@@ -101,7 +101,7 @@ def run_provider(provider: str, cases: list[dict]) -> list[dict]:
     for c in cases:
         before = book_state()
         t0 = time.time()
-        body = {"text": c["q"], "mode": MODE[provider]}
+        body = {"text": c["q"], "mode": MODE[provider], "source": "eval"}
         if c.get("after") and threads.get(c["after"]):
             body["thread"] = threads[c["after"]]
         try:
@@ -144,7 +144,7 @@ def run_voice(provider: str) -> list[dict]:
             out.append({"id": v["id"], "provider": provider, "passed": False, "error": f"could not synthesize speech: {exc}"})
             continue
         t0 = time.time()
-        r = post("/v3/voice/turn", {"audio_b64": base64.b64encode(f.read_bytes()).decode(), "mime": "audio/wav", "mode": MODE[provider]}).json()
+        r = post("/v3/voice/turn", {"audio_b64": base64.b64encode(f.read_bytes()).decode(), "mime": "audio/wav", "mode": MODE[provider], "source": "eval"}).json()
         secs = round(time.time() - t0, 1)
         heard = r.get("heard") or ""
         checks = [{"check": "transcribed", "ok": any(w in heard for w in v["expect"]["heard_any"]), "detail": heard},
@@ -198,7 +198,7 @@ def stability() -> list[dict]:
     ck("12 screens at once all succeed", all(c == 200 for c in codes), f"{codes} in {time.time() - t0:.1f}s")
     # two questions at once (free model)
     with cf.ThreadPoolExecutor(2) as ex:
-        rs = list(ex.map(lambda q: post("/v3/ask", {"text": q, "mode": "everyday"}).json(), ["How is BTC?", "How is SOL?"]))
+        rs = list(ex.map(lambda q: post("/v3/ask", {"text": q, "mode": "everyday", "source": "eval"}).json(), ["How is BTC?", "How is SOL?"]))
     ck("two questions at the same time both answer", all(r.get("answer") for r in rs), [r.get("error") for r in rs])
     return res
 

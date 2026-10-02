@@ -150,6 +150,19 @@ HUNTER_REASONS = {
 }
 
 
+def _local_stt(audio_b64: str, mime: str) -> str | None:
+    """Whisper on this Mac (free, ~1 s). None when the local voice server is not running, so Gemini is used instead."""
+    if os.getenv("ANANTA_VOICE_LOCAL", "1") != "1":
+        return None
+    import requests
+
+    try:
+        r = requests.post(os.getenv("ANANTA_VOICE_URL", "http://127.0.0.1:8200") + "/stt", json={"audio_b64": audio_b64, "mime": mime}, timeout=30)
+        return r.json()["text"] if r.status_code == 200 else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _label_outside(reply: dict, found: list[dict]) -> None:
     """Answers built on outside data always carry the 'From AI' label and source; a coin we could not find becomes a 'did you mean'."""
     from jarvis.service import outside
@@ -705,7 +718,7 @@ PROVIDERS: dict[str, Callable] = {
     "sonnet": lambda *a, **k: run_claude(*a, model=MODELS["sonnet"]["model"], **k),
     "opus": lambda *a, **k: run_claude(*a, model=MODELS["opus"]["model"], **k),
 }
-SETTINGS_DEFAULT = {"ask_enabled": "1", "voice_enabled": "1", "daily_budget_usd": "2", "over_budget": "gemini"}
+SETTINGS_DEFAULT = {"ask_enabled": "1", "voice_enabled": "1", "daily_budget_usd": "2", "over_budget": "gemini", "eval_budget_usd": "3"}
 
 
 def parse(text: str) -> dict:
@@ -786,7 +799,7 @@ class Ask:
     def set_setting(self, who: str, k: str, v: str) -> dict:
         if k not in SETTINGS_DEFAULT:
             raise ValueError(f"unknown setting {k}")
-        if k == "daily_budget_usd":
+        if k in ("daily_budget_usd", "eval_budget_usd"):
             x = float(v)
             if not 0 <= x <= 50:
                 raise ValueError("budget must be between $0 and $50 a day")
@@ -814,8 +827,10 @@ class Ask:
         tz = ZoneInfo("America/Toronto")
         d0 = self._day_start()
         m0 = int(datetime.fromtimestamp(self.j.now(), tz).replace(day=1, hour=0, minute=0, second=0, microsecond=0).timestamp())
-        def tot(since):
-            rows = self.j.db.execute("SELECT provider, COUNT(*), COALESCE(SUM(cost_usd),0) FROM ask_messages WHERE role='assistant' AND error IS NULL AND t >= ? GROUP BY 1", (since,)).fetchall()
+        evals = "SELECT thread FROM ask_messages WHERE role='user' AND mode LIKE 'eval:%'"
+        def tot(since, tests=False):
+            rows = self.j.db.execute("SELECT provider, COUNT(*), COALESCE(SUM(cost_usd),0) FROM ask_messages WHERE role='assistant' AND error IS NULL AND t >= ? "
+                                     f"AND thread {'IN' if tests else 'NOT IN'} ({evals}) GROUP BY 1", (since,)).fetchall()
             out: dict = {}
             for k, n, c in rows:
                 lab = MODELS.get(ALIASES.get(k, k), {}).get("label", k)
@@ -826,8 +841,14 @@ class Ask:
         today, month = tot(d0), tot(m0)
         spent = sum(v["usd"] for v in today.values())
         budget = float(self.setting("daily_budget_usd"))
+        t_today, t_month = tot(d0, True), tot(m0, True)            # Test Lab runs have their own budget, never eat the owner's
+        t_spent = sum(v["usd"] for v in t_today.values())
+        t_budget = float(self.setting("eval_budget_usd"))
         return {"today_usd": round(spent, 4), "month_usd": round(sum(v["usd"] for v in month.values()), 4), "budget_usd": budget,
-                "left_usd": round(max(0.0, budget - spent), 4), "today": today, "month": month, "settings": self.settings()}
+                "left_usd": round(max(0.0, budget - spent), 4), "today": today, "month": month,
+                "tests": {"today_usd": round(t_spent, 4), "month_usd": round(sum(v["usd"] for v in t_month.values()), 4),
+                          "budget_usd": t_budget, "left_usd": round(max(0.0, t_budget - t_spent), 4), "today": t_today},
+                "settings": self.settings()}
 
     def _history(self, thread: str) -> list[dict]:
         rows = self.j.db.execute("SELECT role, text, reply FROM ask_messages WHERE thread=? AND error IS NULL ORDER BY t DESC, rowid DESC LIMIT ?",
@@ -895,7 +916,11 @@ class Ask:
         key, mode_label, note = self._pick(text, mode, provider)
         if source != "eval" and self.today_count() >= DAILY_LIMIT:
             raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
-        if MODELS[key]["provider"] == "claude":
+        if MODELS[key]["provider"] == "claude" and source == "eval":
+            tb = self.spend()["tests"]
+            if tb["today_usd"] >= tb["budget_usd"]:
+                raise ValueError(f"today's Test Lab budget (${tb['budget_usd']:.2f}) is used up; tests stop here so your own budget is untouched")
+        elif MODELS[key]["provider"] == "claude":
             sp = self.spend()
             if sp["today_usd"] >= sp["budget_usd"]:
                 if self.setting("over_budget") == "stop":
@@ -1076,6 +1101,9 @@ class Ask:
             raise ValueError("Voice is switched off in the Cockpit")
         if not audio_b64 or len(audio_b64) > 12_000_000:
             raise ValueError("audio missing or too long (about 2 minutes at most)")
+        local = _local_stt(audio_b64, mime)
+        if local is not None:
+            return local
         key = os.getenv("GEMINI_API_KEY", "")
         if not key:
             raise RuntimeError("GEMINI_API_KEY is not set")

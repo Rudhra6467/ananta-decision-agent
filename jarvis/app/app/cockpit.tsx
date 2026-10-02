@@ -91,6 +91,13 @@ function Cockpit() {
                 {"  "}<Text style={{ color: C.accent }} onPress={async () => { await api("/v3/settings", { key: "over_budget", value: sp.settings.over_budget === "stop" ? "gemini" : "stop" }); reloadSpend(); }}>Change</Text></T>
               <Line label="This month" value={`$${sp.month_usd.toFixed(2)}`} />
               {Object.entries(sp.month).map(([k, v]: any) => <Line key={k} label={`  ${k}`} value={`${v.answers} answers · $${v.usd.toFixed(2)}`} />)}
+              {sp.tests ? (
+                <>
+                  <Divider />
+                  <Line label="Test Lab today (separate budget)" value={`$${sp.tests.today_usd.toFixed(2)} of $${sp.tests.budget_usd.toFixed(2)}`} />
+                  <Line label="Test Lab this month" value={`$${sp.tests.month_usd.toFixed(2)}`} />
+                </>
+              ) : null}
             </View>
           </Card>
           </Spot>

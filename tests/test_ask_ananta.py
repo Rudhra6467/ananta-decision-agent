@@ -5,6 +5,14 @@ from jarvis.service import ask, core, views
 from tests.test_jarvis_core import FakeHands
 
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _no_local_voice(monkeypatch):
+    monkeypatch.setenv("ANANTA_VOICE_LOCAL", "0")     # tests never call the Mac's voice server
+
+
 def _jarvis():
     from tests.test_explorer_live import _advance, _mk
 

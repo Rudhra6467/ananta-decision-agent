@@ -105,12 +105,33 @@ def grade(exp: dict, r: dict, side: dict) -> list[dict]:
         ck(f"highlighted {exp['points_spot']}", any(p.get("spot") == exp["points_spot"] for p in pts), ",".join(p.get("spot", "") for p in pts))
     if exp.get("tour"):
         ck("started the guided tour", len(r.get("tour") or []) >= 8)
+    if "outside" in exp:
+        ck("labelled 'from outside our system'" if exp["outside"] else "kept to our own data (no outside label)", bool(r.get("outside")) == exp["outside"], str(r.get("outside", ""))[:80])
+    # every answer: each highlight sits on the sentence that names it (the voice and the glow say the same thing)
+    if pts and ans:
+        from jarvis.service import appmap as _am
+        sents = [x for x in __import__("re").split(r"(?<=[.!?])\s+", ans) if x.strip()]
+        off = []
+        for p in pts:
+            rx = _am._spot_rx(str(p.get("spot", "")))
+            k = int(p.get("sentence", 0))
+            if rx and (k >= len(sents) or not __import__("re").search(rx, sents[k], __import__("re").I)):
+                off.append(f"{p.get('spot')}@{k}")
+        ck("highlights match the sentence being said", not off, ",".join(off))
+    # every answer: never claim a screen move that did not happen
+    if ans and _claims_move(ans):
+        ck("a screen move it talks about really happens", bool(ui) or "couldn't move the screen" in ans, ans[:80])
     if exp.get("no_ui"):
         ck("did not move the screen", not ui)
     if "max_s" in exp:
         ck(f"answered within {exp['max_s']}s", side["seconds"] <= exp["max_s"], f"{side['seconds']}s")
     ck("nothing executed", side.get("executed_ok", True), side.get("executed_detail", ""))
     return checks
+
+
+def _claims_move(ans: str) -> bool:
+    from jarvis.service import appmap as _am
+    return bool(_am.CLAIM.search(ans))
 
 
 def book_state() -> dict:

@@ -429,10 +429,10 @@ class Lookups:
 # ---------------------------------------------------------------------------
 # providers (plain HTTPS, no SDKs)
 # ---------------------------------------------------------------------------
-def _post(url: str, headers: dict, body: dict, timeout: int = 60) -> dict:
+def _post(url: str, headers: dict, body: dict, timeout: int = 60, retry: bool = True) -> dict:
     import requests
 
-    for wait in (2, 6, 0):     # busy / rate-limited: retry twice
+    for wait in ((2, 6, 0) if retry else (0,)):     # busy / rate-limited: retry twice
         try:
             r = requests.post(url, headers=headers, json=body, timeout=timeout)
         except requests.RequestException as exc:
@@ -556,17 +556,25 @@ def _gemini_schema(s: dict) -> dict:
     return s
 
 
+_COOL: dict[str, float] = {}      # Gemini model -> time until which it is skipped (busy)
+
+
 def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:
+    """Free tier: a busy model (503/429) is skipped for 5 minutes and the next one answers at once (no waiting)."""
     err = None
-    for m in GEMINI_MODELS:
+    fast = (lambda u, h, b, timeout=45: _post(u, h, b, timeout, retry=False)) if post is _post else post
+    models = [m for m in GEMINI_MODELS if _COOL.get(m, 0) < time.time()] or GEMINI_MODELS[-1:]
+    for m in models:
         try:
-            text, usage = _gemini_once(m, system, history, user, tools, log, post)
+            text, usage = _gemini_once(m, system, history, user, tools, log, fast)
             usage["model"] = m
             return text, usage
         except RuntimeError as exc:
             err = exc
             if not str(exc)[:3] in ("503", "429", "500", "404"):
                 raise
+            _COOL[m] = time.time() + 300
+            log.clear()
     raise RuntimeError(f"Gemini's free service is busy right now. Try again in a minute, or switch to Claude. ({str(err)[:80]})")
 
 

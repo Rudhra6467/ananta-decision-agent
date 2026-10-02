@@ -557,13 +557,14 @@ def local_up() -> bool:
 
 
 def route(text: str) -> tuple[str, str]:
-    """Auto mode, cheapest level that can do it: investigations to Claude Sonnet; routine questions to the Mac's model
-    (free; a weak answer is escalated automatically); free Gemini when the Mac's model is not running."""
+    """Auto mode, cheapest level that can do it well and fast: investigations to Claude Sonnet, routine questions to Claude Haiku
+    (about 0.5 cents). The Mac's model is too slow for live answers on a MacBook Air (20-80 s), so it does background jobs (mode
+    "worker"). Over budget, Haiku/Sonnet fall back to Gemini like before."""
     if len(text) > 160 or DEEP_WORDS.search(text):
-        return "sonnet", "Auto picked Claude: this needs investigation"
-    if local_up():
-        return "local", "Auto picked the Mac's model: routine question"
-    return "gemini", "Auto picked Gemini: everyday question"
+        return "sonnet", "Auto: Claude Sonnet, this needs investigation"
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return "haiku", "Auto: Claude Haiku, routine question"
+    return "gemini", "Auto: Gemini, everyday question"
 
 
 def _local_doubt(raw: str, context: str) -> str:

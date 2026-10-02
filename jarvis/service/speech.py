@@ -102,6 +102,28 @@ def _speak(text: str, voice: str, post=None) -> bytes:
     raise RuntimeError(err)
 
 
+FFMPEG = next((p for p in ("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg") if os.path.exists(p)), None)
+
+
+def to_mp3(wav: bytes) -> tuple[bytes, str]:
+    """Phones get small MP3s (about 10x smaller than WAV), so each sentence arrives quickly over the tunnel."""
+    if not FFMPEG:
+        return wav, "audio/wav"
+    import subprocess
+
+    try:
+        out = subprocess.run([FFMPEG, "-loglevel", "error", "-f", "wav", "-i", "pipe:0", "-ac", "1", "-codec:a", "libmp3lame", "-b:a", "64k", "-f", "mp3", "pipe:1"],
+                             input=wav, capture_output=True, timeout=15).stdout
+        return (out, "audio/mpeg") if len(out) > 200 else (wav, "audio/wav")
+    except Exception:  # noqa: BLE001
+        return wav, "audio/wav"
+
+
+def _speak_mp3(text: str, voice: str, post=None) -> tuple[bytes, str]:
+    wav = _speak(text, voice, post)
+    return to_mp3(wav) if post is None else (wav, "audio/wav")
+
+
 def clip_id(text: str, voice: str) -> str:
     return hashlib.sha1(f"{voice}|{text}".encode()).hexdigest()[:20]
 
@@ -116,7 +138,7 @@ def prepare(texts: list[str], voice: str = DEFAULT_VOICE, post=None) -> list[str
                 continue
             cid = clip_id(t, voice)
             if cid not in _cache:
-                _cache[cid] = _pool.submit(_speak, t, voice, post)
+                _cache[cid] = _pool.submit(_speak_mp3, t, voice, post)
             _cache.move_to_end(cid)
             ids.append(cid)
         while len(_cache) > 300:
@@ -124,7 +146,8 @@ def prepare(texts: list[str], voice: str = DEFAULT_VOICE, post=None) -> list[str
     return ids
 
 
-def audio(cid: str, wait_s: float = 25) -> bytes:
+def audio(cid: str, wait_s: float = 25) -> tuple[bytes, str]:
+    """-> (audio bytes, content type)"""
     with _lock:
         f = _cache.get(cid)
     if not f:

@@ -42,7 +42,7 @@ export async function init() {
 export const voiceLabel = () => (engine === "natural" ? `Natural · ${voice}` : `Phone · ${phoneVoiceName}`);
 
 async function save(k: string, v: string) { try { await SecureStore.setItemAsync(k, v); } catch { /* */ } }
-export async function setRate(r: number) { rate = r; player?.setPlaybackRate(r, "high"); await save("tts_rate", String(r)); }
+export async function setRate(r: number) { rate = r; try { current?.setPlaybackRate(r, "high"); } catch { /* */ } await save("tts_rate", String(r)); }
 export async function setEngine(e: "natural" | "phone") { engine = e; await save("tts_engine", e); }
 export async function setVoice(v: string) { voice = v; await save("tts_voice", v); }
 
@@ -54,32 +54,50 @@ function phoneSay(text: string, done: () => void) {
 }
 
 // ---- natural voice -----------------------------------------------------------------------------
-let player: AudioPlayer | null = null;
+// One player per sentence; the next sentence loads while the current one plays (no gaps). A sentence always ends:
+// on "finished", or when its time is up (watchdog), so Ananta can never get stuck "speaking" and stop listening.
 let seq = 0;
 let lastNaturalFail = 0;
+let current: AudioPlayer | null = null;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function getPlayer(): AudioPlayer {
-  if (!player) player = createAudioPlayer(null);
-  return player;
+function load(uri: string, headers: Record<string, string>): AudioPlayer {
+  const p = createAudioPlayer({ uri, headers });
+  try { p.setPlaybackRate(rate, "high"); } catch { /* */ }
+  return p;
 }
 
-// Play one clip; resolves "ok" when it ends, "fail" if it never starts, "stopped" if replaced.
-function playClip(uri: string, headers: Record<string, string>, my: number, onStart: () => void): Promise<"ok" | "fail" | "stopped"> {
-  return new Promise((res) => {
-    const p = getPlayer();
-    let started = false, finished = false;
-    const end = (r: "ok" | "fail" | "stopped") => { if (finished) return; finished = true; sub.remove(); clearTimeout(t); clearInterval(watch); res(r); };
-    const sub = p.addListener("playbackStatusUpdate", (s: any) => {
-      if (my !== seq) return end("stopped");
-      if (s.playing && !started) { started = true; onStart(); }
-      if (s.didJustFinish) end("ok");
-    });
-    const t = setTimeout(() => { if (!started) end("fail"); }, 15000);
-    const watch = setInterval(() => { if (my !== seq) { p.pause(); end("stopped"); } }, 150);
-    p.replace({ uri, headers });
-    p.setPlaybackRate(rate, "high");
+// resolves "ok" when it ends, "fail" if it never starts (8 s), "stopped" if Ananta was interrupted
+async function playOne(p: AudioPlayer, my: number, onStart: () => void): Promise<"ok" | "fail" | "stopped"> {
+  current = p;
+  let finished = false;
+  const sub = p.addListener("playbackStatusUpdate", (st: any) => { if (st.didJustFinish) finished = true; });
+  try {
+    try { p.setPlaybackRate(rate, "high"); } catch { /* */ }
     p.play();
-  });
+    const t0 = Date.now();
+    let started = 0;
+    while (true) {
+      await sleep(120);
+      if (my !== seq) { try { p.pause(); } catch { /* */ } return "stopped"; }
+      if (!started && (p.playing || p.currentTime > 0.05)) { started = Date.now(); onStart(); }
+      if (!started) {
+        if (Date.now() - t0 > 8000) return "fail";
+        if (p.isLoaded && !p.playing && Date.now() - t0 > 600) { try { p.play(); } catch { /* */ } }
+        continue;
+      }
+      const dur = p.duration || 0;
+      if (finished) return "ok";
+      if (dur > 0 && p.currentTime >= dur - 0.12) return "ok";
+      if (!p.playing && dur > 0 && p.currentTime >= dur - 0.4) return "ok";
+      const limit = dur > 0 ? (dur / Math.max(0.5, rate)) * 1000 + 2500 : 30000;
+      if (Date.now() - started > limit) return "ok";                     // watchdog: never hang
+    }
+  } finally {
+    sub.remove();
+    try { p.remove(); } catch { /* */ }
+    if (current === p) current = null;
+  }
 }
 
 async function naturalParts(parts: string[], onPart: (i: number) => void, my: number): Promise<number> {
@@ -89,11 +107,16 @@ async function naturalParts(parts: string[], onPart: (i: number) => void, my: nu
   const [base, tok] = [await server(), await token()];
   const headers: Record<string, string> = tok ? { Authorization: `Bearer ${tok}` } : {};
   try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
+  const url = (i: number) => `${base}/v3/voice/clip/${r.ids[i]}`;
+  let next: AudioPlayer | null = load(url(0), headers);
   for (let i = 0; i < parts.length; i++) {
-    if (my !== seq) return parts.length;
-    const res = await playClip(`${base}/v3/voice/clip/${r.ids[i]}`, headers, my, () => onPart(i));
-    if (res === "stopped") return parts.length;
-    if (res === "fail") return i;
+    const p = next!;
+    next = i + 1 < parts.length ? load(url(i + 1), headers) : null;     // the next sentence loads while this one plays
+    const res = await playOne(p, my, () => onPart(i));
+    if (res !== "ok") {
+      try { next?.remove(); } catch { /* */ }
+      return res === "stopped" ? parts.length : i;
+    }
   }
   return parts.length;
 }
@@ -102,7 +125,7 @@ async function naturalParts(parts: string[], onPart: (i: number) => void, my: nu
 export function stop() {
   seq++;
   Speech.stop();
-  try { player?.pause(); } catch { /* */ }
+  try { current?.pause(); } catch { /* */ }
 }
 
 export const say = (text: string, done?: () => void) => sayParts([text], () => {}, done);

@@ -198,7 +198,7 @@ export default function Ananta() {
     setMsgs((m) => [...m, { role: "user", text: q, voice: spoken }]);
     setBusy(true);
     try {
-      const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: claudeRef.current ? "deep" : "everyday", context: where() });
+      const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: claudeRef.current ? "deep" : "auto", context: where() });
       handleAnswer(r, spoken || liveRef.current);
     } catch (e: any) {
       handleAnswer({ error: e?.message ?? String(e) }, spoken || liveRef.current);
@@ -218,7 +218,7 @@ export default function Ananta() {
         return;
       }
       const r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
-        mode: claudeRef.current ? "deep" : "everyday", context: where() });
+        mode: claudeRef.current ? "deep" : "auto", context: where() });
       if (r.heard) setMsgs((m) => [...m, { role: "user", text: r.heard, voice: true }]);
       if (!r.heard && !r.answer) { setBusy(false); listenAgain(); return; }      // nothing said: keep listening quietly
       handleAnswer(r, true);
@@ -290,7 +290,7 @@ export default function Ananta() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingTop: 8 }}>
-        <Text style={{ color: claude ? C.faint : C.text, fontWeight: "700" }}>Gemini</Text>
+        <Text style={{ color: claude ? C.faint : C.text, fontWeight: "700" }}>Auto</Text>
         <Switch value={claude} onValueChange={setClaude} trackColor={{ true: C.accent, false: C.line }} />
         <Text style={{ color: claude ? C.text : C.faint, fontWeight: "700" }}>Claude</Text>
         <View style={{ flex: 1 }} />

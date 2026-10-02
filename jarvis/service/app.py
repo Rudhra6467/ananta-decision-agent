@@ -561,7 +561,8 @@ def voice_clip(cid: str, who: str = Depends(owner)):
     from jarvis.service import speech
 
     try:
-        return Response(content=speech.audio(cid), media_type="audio/wav", headers={"Cache-Control": "private, max-age=600"})
+        body, ctype = speech.audio(cid)
+        return Response(content=body, media_type=ctype, headers={"Cache-Control": "private, max-age=600"})
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="unknown clip") from exc
     except Exception as exc:  # noqa: BLE001

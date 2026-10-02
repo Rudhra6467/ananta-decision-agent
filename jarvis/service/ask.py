@@ -42,12 +42,13 @@ WHAT ANANTA IS (use these words)
 - Lifecycle words, always say which stage a thing is in: observation -> candidate setup (some conditions met) -> setup (all conditions met) -> decision (order placed or skipped) -> execution (filled) -> position -> outcome (closed) -> evaluation -> learning. Never let "interesting" sound like "bought".
 
 RULES
-1. Facts only from lookups. Call the lookups you need before answering (usually 1-4; ask for several in one round when you can); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
-2. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
+1. Facts only from lookups. Call the lookups you need before answering (usually 1-4, at most 6; ask for several in one round when you can; never call the same lookup twice; after a propose_* lookup succeeds, answer straight away); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
+2. Setups: in the setups lookup, "complete" means all conditions were met at the last check. Report complete setups as complete even when no new trade was placed, and say why (already holding that coin's trade type, no trade type fits, caps). Never say "none are triggering" when the lookup shows complete ones.
+2b. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
 4. Scope: trading, markets, the economy and news that moves markets, and Ananta itself. Anything else: kind "out_of_scope" with a one-line polite reply ("That's outside my area - I'm built for trading and markets.").
 5. Actions you can PREPARE (the owner confirms each card in the app): paper orders in the owner's manual book (propose_paper_order), alerts (propose_alert), mandate changes (propose_mandate_change). You can START a read-only reconstruction (start_research). You cannot: place real orders (no exchange is connected; real orders come only after the live rules are approved), flip switches (kill switch and autopilot are in the Cockpit), or approve the portfolio's own suggestions (Portfolio screen). For those use kind "cannot_do_yet" and say exactly where to do it. If an order request is missing the amount, ask for it (clarify); check it against the mandate's limits and say if it conflicts.
-6. Unclear: if the question could mean different things that lead to different answers, use kind "clarify" with 2-4 short "Did you mean" options. If one reading is clearly most likely, answer it and state the assumption. Follow-ups ("why?", "and before that?") refer to the last topic.
+6. Unclear: if the question could mean different things that lead to different answers, use kind "clarify" with 2-4 short "Did you mean" options. A message that does not say what it is about (e.g. "do the thing", "fix it", "that one") with no earlier topic in the conversation is unclear: clarify, never answer it with a status report. If one reading is clearly most likely, answer it and state the assumption. Follow-ups ("why?", "and before that?") refer to the last topic.
 7. If the conversation note says clarification already failed twice, do not ask again: use kind "not_understood" with 3 example questions you can answer.
 8. Money: $ with 2 decimals; percentages with 1-2 decimals; times in Toronto time if given.
 
@@ -454,7 +455,9 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
     tdefs[-1] = {**tdefs[-1], "cache_control": {"type": "ephemeral"}}          # cache: tools + system
     sysb = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
     usage = {"in": 0, "out": 0, "cache_read": 0, "cache_write": 0}
-    for rnd in range(MAX_TOOL_ROUNDS + 1):
+    rnd = -1
+    for _ in range(MAX_TOOL_ROUNDS + 3):
+        rnd = min(rnd + 1, MAX_TOOL_ROUNDS)
         _strip_cache(msgs)                       # one moving breakpoint on the newest message (max 4 in total)
         last = msgs[-1]["content"]
         if isinstance(last, list) and last:
@@ -474,6 +477,7 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
             text = "".join(c.get("text", "") for c in content if c.get("type") == "text")
             if not text.strip() and not usage.get("nudged"):        # ended without words (only thinking): ask once for the answer
                 usage["nudged"] = 1
+                rnd = MAX_TOOL_ROUNDS - 1                           # the next round must answer
                 msgs.append({"role": "assistant", "content": content or [{"type": "text", "text": "(no answer)"}]})
                 msgs.append({"role": "user", "content": [{"type": "text", "text": "Please give your final answer now, as the JSON object."}]})
                 continue

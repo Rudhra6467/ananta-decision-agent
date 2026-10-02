@@ -29,7 +29,14 @@ GEMINI_MODELS = [m.strip() for m in os.getenv("ASK_GEMINI_MODELS", "gemini-3.5-f
 GEMINI_MODEL = GEMINI_MODELS[0]       # free tier: when the first model is busy (503), the next one answers
 CLAUDE_MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
 
-SYSTEM = """You are Ananta, the trading operator for one owner (Vamsi). You speak like a calm, knowledgeable trading desk operator: simple words first, numbers second, no hype.
+SYSTEM = """You are Ananta (also called Jarvis), the trading assistant of one owner, Madhav. You are his trusted partner who knows trading well and talks with him like a close friend: warm, calm, honest, never salesy.
+
+HOW TO TALK (most important)
+- Very simple, easy English. Short sentences. Everyday words. No jargon; if a trading word is needed, explain it in a few words ("RSI, a gauge of how stretched the price is").
+- Start "answer" with a short natural lead-in that shows you understood him, then the answer, then what it means for us. Example: "Sure, Madhav. You're asking whether we need to change anything. We don't: the portfolio is up about 2 percent and every coin is still in its uptrend, so nothing needs you right now."
+- Use his name now and then, not in every answer. Greet warmly only when the conversation starts (by time of day: "Morning, Madhav.").
+- Round numbers when talking ("about 2 percent", "around 86 thousand dollars"); exact figures go in breakdown and evidence.
+- Explain like a friend sitting next to him: what is happening, why, and whether he needs to do anything.
 
 WHAT ANANTA IS (use these words)
 - Paper only. No real money, no exchange connected. Market: crypto spot, 10 coins (BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP), buying only, NDAX costs (0.20% fee + spread per side).
@@ -42,7 +49,8 @@ WHAT ANANTA IS (use these words)
 - Lifecycle words, always say which stage a thing is in: observation -> candidate setup (some conditions met) -> setup (all conditions met) -> decision (order placed or skipped) -> execution (filled) -> position -> outcome (closed) -> evaluation -> learning. Never let "interesting" sound like "bought".
 
 RULES
-1. Facts only from lookups. Call the lookups you need before answering (usually 1-4, at most 6; ask for several in one round when you can; never call the same lookup twice; after a propose_* lookup succeeds, answer straight away); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
+0. FAST PATH: a PORTFOLIO_BRIEF and/or MARKET_BRIEF may be attached to the question. They are live data. Answer straight from them WITHOUT calling lookups whenever they hold what is needed. Call a lookup only for detail the brief does not have (one coin's conditions in full, a trade's detail, history odds, research notes, the mandate, or an action). Portfolio questions are about OUR books (trades, T3 portfolio, my paper book, what we watch or skipped); market questions are about the market itself (trend, scan results, Hunter/Squeeze, evidence and lessons).
+1. Facts only from the briefs and lookups. Call the lookups you need before answering (usually 1-4, at most 6; ask for several in one round when you can; never call the same lookup twice; after a propose_* lookup succeeds, answer straight away); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
 2. Setups: in the setups lookup, "complete" means all conditions were met at the last check. Report complete setups as complete even when no new trade was placed, and say why (already holding that coin's trade type, no trade type fits, caps). Never say "none are triggering" when the lookup shows complete ones.
 2b. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
@@ -59,12 +67,12 @@ RULES
 OUTPUT: reply with ONE JSON object and nothing else:
 {"kind": "answer" | "clarify" | "not_understood" | "out_of_scope" | "cannot_do_yet",
  "stage": one lifecycle word or "" ,
- "answer": "1-3 plain sentences: the direct answer",
- "breakdown": ["3-7 short bullet strings: the reasoning, plain words"],
- "evidence": [{"label": "...", "value": "...", "source": "which lookup / record", "time": "when, if known"}],
+ "answer": "lead-in + direct answer + what it means, 2-4 short sentences in easy English",
+ "breakdown": ["at most 4 short bullets (max 15 words each): the reasoning"],
+ "evidence": [{"label": "...", "value": "...", "source": "brief or lookup name", "time": "when, if known"}] (at most 4),
  "assumption": "the reading you assumed, or empty",
  "options": ["for clarify only: short options"],
- "follow_ups": ["2-3 natural next questions"],
+ "follow_ups": ["2 natural next questions he might ask"],
  "show": [{"screen": "...", "label": "..."}]}"""
 
 OFF = {"type": "object", "properties": {}}
@@ -445,6 +453,25 @@ def _strip_cache(msgs: list) -> None:
                     b.pop("cache_control", None)
 
 
+FAST = {"claude_effort": os.getenv("ASK_CLAUDE_EFFORT", "low"), "gemini_thinking": os.getenv("ASK_GEMINI_THINKING", "low")}
+
+
+def _post_opt(post, url, headers, body, opt_key: str, field_path: list[str]):
+    """Post with a speed option; if the API rejects that option (400 naming it), drop it for good and post again."""
+    try:
+        return post(url, headers, body)
+    except RuntimeError as exc:
+        msg = str(exc)
+        if msg.startswith("400") and any(f in msg for f in field_path):
+            FAST[opt_key] = ""
+            d = body
+            for f in field_path[:-1]:
+                d = d.get(f, {})
+            d.pop(field_path[-1], None)
+            return post(url, headers, body)
+        raise
+
+
 def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post, model: str | None = None) -> tuple[str, dict]:
     key = os.getenv("ANTHROPIC_API_KEY", "")
     if not key:
@@ -462,10 +489,14 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
         last = msgs[-1]["content"]
         if isinstance(last, list) and last:
             last[-1]["cache_control"] = {"type": "ephemeral"}
-        r = post("https://api.anthropic.com/v1/messages",
-                 {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                 {"model": model, "max_tokens": 3000, "system": sysb, "tools": tdefs, "messages": msgs,
-                  **({"tool_choice": {"type": "none"}} if rnd == MAX_TOOL_ROUNDS else {})})   # last round: answer with what you have
+        body = {"model": model, "max_tokens": 3000, "system": sysb, "tools": tdefs, "messages": msgs,
+                **({"tool_choice": {"type": "none"}} if rnd == MAX_TOOL_ROUNDS else {})}   # last round: answer with what you have
+        if FAST["claude_effort"]:
+            body["output_config"] = {"effort": FAST["claude_effort"]}               # less thinking = faster answers
+        r = _post_opt(post, "https://api.anthropic.com/v1/messages",
+                      {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body, "claude_effort",
+                      ["output_config"])
+        usage["rounds"] = usage.get("rounds", 0) + 1
         u = r.get("usage") or {}
         usage["in"] += u.get("input_tokens", 0)
         usage["out"] += u.get("output_tokens", 0)
@@ -528,10 +559,15 @@ def _gemini_once(model: str, system: str, history: list[dict], user: str, tools:
     usage = {"in": 0, "out": 0}
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     for rnd in range(MAX_TOOL_ROUNDS + 1):
-        r = post(url, {"x-goog-api-key": key, "content-type": "application/json"},
-                 {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
-                  "tools": [{"functionDeclarations": decls}], "generationConfig": {"temperature": 0.2, "maxOutputTokens": 4000},
-                  **({"toolConfig": {"functionCallingConfig": {"mode": "NONE"}}} if rnd == MAX_TOOL_ROUNDS else {})})
+        gc = {"temperature": 0.2, "maxOutputTokens": 4000}
+        if FAST["gemini_thinking"]:
+            gc["thinkingConfig"] = {"thinkingLevel": FAST["gemini_thinking"]}
+        r = _post_opt(post, url, {"x-goog-api-key": key, "content-type": "application/json"},
+                      {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
+                       "tools": [{"functionDeclarations": decls}], "generationConfig": gc,
+                       **({"toolConfig": {"functionCallingConfig": {"mode": "NONE"}}} if rnd == MAX_TOOL_ROUNDS else {})},
+                      "gemini_thinking", ["generationConfig", "thinkingConfig"])
+        usage["rounds"] = usage.get("rounds", 0) + 1
         u = r.get("usageMetadata") or {}
         usage["in"] += u.get("promptTokenCount", 0)
         usage["out"] += u.get("candidatesTokenCount", 0)
@@ -624,7 +660,7 @@ class Ask:
             CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT);
         """)
         cols = {r[1] for r in j.db.execute("PRAGMA table_info(ask_messages)")}
-        for c, typ in (("cost_usd", "REAL"), ("mode", "TEXT"), ("note", "TEXT")):
+        for c, typ in (("cost_usd", "REAL"), ("mode", "TEXT"), ("note", "TEXT"), ("route", "TEXT"), ("timing", "TEXT")):
             if c not in cols:
                 j.db.execute(f"ALTER TABLE ask_messages ADD COLUMN {c} {typ}")
         j.db.commit()
@@ -765,11 +801,32 @@ class Ask:
         if second_of:
             notes.append("[conversation note: the owner asked for a second opinion on this question; answer it independently from the data]")
         if voice:
-            notes.append("[voice session: the 'answer' is spoken aloud, so make it 1-3 short spoken sentences with no symbols, tables or abbreviations "
-                         "(say 'percent', 'dollars'); put numbers and detail in breakdown and evidence, and use 'show' to put the right chart or card on screen]")
+            notes.append("[voice session: the 'answer' is spoken aloud. Make it sound like talking: a short lead-in, then 2-3 short sentences, rounded numbers, "
+                         "no symbols, tables or abbreviations (say 'percent', 'dollars', 'Bitcoin'). Keep breakdown to 3 bullets; use 'show' to put the right chart on screen]")
+        prev = self.j.db.execute("SELECT route FROM ask_messages WHERE thread=? AND role='assistant' AND route IS NOT NULL ORDER BY t DESC, rowid DESC LIMIT 1",
+                                 (thread,)).fetchone()
+        from jarvis.service import briefs as B
+
+        tb = time.time()
+        route_name = B.route(text, prev[0] if prev else None)
+        brief = {}
+        try:
+            brief = B.briefs_for(self.j, route_name)
+        except Exception as exc:  # noqa: BLE001  the brief is a shortcut, never a blocker
+            brief = {"BRIEF_ERROR": str(exc)[:200]}
+        brief_ms = int(1000 * (time.time() - tb))
+        if not history:
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+
+            hr = datetime.fromtimestamp(now, ZoneInfo("America/Toronto")).hour
+            part = "morning" if 4 <= hr < 12 else "afternoon" if hr < 17 else "evening"
+            notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet Madhav warmly in a few words first]")
         if context:
             notes.append("[screen context: the owner is looking at " + json.dumps(context, default=str)[:600] + "]")
-        user_msg = f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}]" + ("\n" + "\n".join(notes) if notes else "") + f"\n{text}"
+        user_msg = (f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}] [question type: {route_name}]" + ("\n" + "\n".join(notes) if notes else "")
+                    + ("\n" + "\n".join(f"{k} (live):\n" + json.dumps(v, default=str, separators=(",", ":")) for k, v in brief.items()) if brief else "")
+                    + f"\n\nQUESTION: {text}")
         log: list = []
         t0 = time.time()
         aid = uuid.uuid4().hex[:12]
@@ -824,10 +881,14 @@ class Ask:
         ms = int(1000 * (time.time() - t0))
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created
-        meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of}
-        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),
+                  "out_tokens": usage.get("out", 0)}
+        meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of,
+                "route": route_name, "timing": timing}
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, note, route, timing) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                           (aid, thread, now + 1, "assistant", json.dumps({**reply, **meta}), used, model, ms,
-                           usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note))
+                           usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note,
+                           route_name, json.dumps(timing)))
         self.j.db.commit()
         self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
@@ -843,7 +904,8 @@ class Ask:
         if not key:
             raise RuntimeError("GEMINI_API_KEY is not set")
         prompt = ("Transcribe this spoken message exactly, in English. It is the owner talking to Ananta, a crypto trading assistant "
-                  "(coins: BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP; words: Hunter, Squeeze, Explorer, setup, portfolio, mandate). "
+                  "(the owner is Madhav; he may say 'hey there', 'hi Jarvis', 'Ananta'; coins: Bitcoin BTC, Ethereum ETH, Solana SOL, ADA, DOGE, AVAX, BCH, LINK, LTC, XRP; "
+                  "words: Hunter, Squeeze, Explorer, setup, scan, portfolio, mandate, evidence, repair shop). "
                   "Return only the words spoken. If there is no speech, return an empty string.")
         err = None
         order = ["gemini-3.1-flash-lite"] + [m for m in GEMINI_MODELS if m != "gemini-3.1-flash-lite"]     # fastest first for speech

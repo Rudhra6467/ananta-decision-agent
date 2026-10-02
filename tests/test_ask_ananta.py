@@ -425,3 +425,30 @@ def test_wordless_claude_falls_back_to_gemini():
                               "gemini": lambda s, h, u, t, log: (json.dumps({"answer": "from gemini"}), {"in": 1, "out": 1})})
     r = A.ask("o", "why is btc up", mode="deep")
     assert r["answer"] == "from gemini" and r["provider"] == "gemini" and "Gemini answered" in r["note"]
+
+
+def test_router_and_briefs():
+    from jarvis.service import briefs as B
+    assert B.route("How is our portfolio doing?") == "portfolio"
+    assert B.route("Are we making money or losing money?") == "portfolio"
+    assert B.route("How is the market today?") == "market"
+    assert B.route("What did the latest scan find?") == "market"
+    assert B.route("If the market is bullish, why aren't we taking trades?") == "both"
+    assert B.route("Why?", "portfolio") == "portfolio"
+    assert B.route("hmm", None) == "both"
+    j, ex = _jarvis()
+    B.clear()
+    p, m = B.portfolio_brief(j), B.market_brief(j)
+    assert "explorer_book" in p and "t3_portfolio" in p and "watching" in p
+    assert len(m["coins"]) == len(ex.st["engines"]) and "evidence" in m
+    assert B.size(p) < 12000 and B.size(m) < 12000, (B.size(p), B.size(m))
+    seen = {}
+
+    def fake(s, h, u, t, log):
+        seen["u"] = u
+        return json.dumps({"answer": "ok"}), {"in": 1, "out": 1}
+    A = ask.Ask(j, providers={"gemini": fake})
+    r = A.ask("o", "How is our portfolio doing?", mode="everyday")
+    assert r["route"] == "portfolio" and "PORTFOLIO_BRIEF" in seen["u"] and "MARKET_BRIEF" not in seen["u"] and "greet" in seen["u"]
+    r2 = A.ask("o", "Why?", thread=r["thread"], mode="everyday")
+    assert r2["route"] == "portfolio" and "greet" not in seen["u"] and r2["timing"]["brief_ms"] >= 0

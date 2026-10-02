@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useScreen } from "../../src/context";
 import Voice from "../../src/voice";
@@ -11,23 +11,18 @@ import { Bullet, Divider, Pill, Segmented, T } from "../../src/ui";
 import { C } from "../../src/theme";
 
 type Msg = { id?: string; role: "user" | "assistant"; text?: string; [k: string]: any };
-const MODES = [{ key: "auto", label: "Auto" }, { key: "everyday", label: "Everyday" }, { key: "deep", label: "Deep" }, { key: "max", label: "Max" }];
-const MODE_HINT: Record<string, string> = {
-  auto: "Auto: free Gemini for everyday questions, Claude Sonnet when it needs investigating.",
-  everyday: "Everyday: Gemini Flash, free.", deep: "Deep: Claude Sonnet, about 3-5¢ a question.", max: "Max: Claude Opus, for big research questions (about 10¢+).",
-};
 const STARTERS = ["How is the market right now?", "What setups are close to triggering?", "How are my trades doing?",
   "What has Hunter been doing today?", "What changed since yesterday?", "What did we learn from the repair shop?"];
 const STAGE: Record<string, string> = { observation: "Observation", candidate: "Candidate setup", "candidate setup": "Candidate setup", setup: "Setup",
   decision: "Decision", execution: "Executed", position: "Open position", outcome: "Outcome", evaluation: "Evaluation", learning: "Learning" };
 
-function Chat() {
+function Chat({ suggestions }: { suggestions: string[] }) {
   const params = useLocalSearchParams<{ q?: string; t?: string }>();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [thread, setThread] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState("auto");
+  const [claude, setClaude] = useState(false);
   const [ctx, setCtx] = useScreen();
   const scroll = useRef<ScrollView>(null);
   const lastParam = useRef<string | undefined>(undefined);
@@ -39,7 +34,7 @@ function Chat() {
     setMsgs((m) => [...m, { role: "user", text: q }]);
     setBusy(true);
     try {
-      const r = await api("/v3/ask", { text: q, thread, mode, context: ctx ?? undefined });
+      const r = await api("/v3/ask", { text: q, thread, mode: claude ? "deep" : "everyday", context: ctx ?? undefined });
       setThread(r.thread);
       setMsgs((m) => [...m, { role: "assistant", ...r }]);
     } catch (e: any) {
@@ -78,12 +73,12 @@ function Chat() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Segmented value={mode} onChange={setMode} options={MODES} />
-        </View>
+        <Text style={{ color: claude ? C.faint : C.text, fontWeight: "700" }}>Gemini</Text>
+        <Switch value={claude} onValueChange={setClaude} trackColor={{ true: C.accent, false: C.line }} />
+        <Text style={{ color: claude ? C.text : C.faint, fontWeight: "700" }}>Claude</Text>
+        <Text style={{ color: C.faint, fontSize: 11, flex: 1 }}>{claude ? "~3-5¢ an answer" : "free"}</Text>
         <Text onPress={reset} style={{ color: C.accent, fontWeight: "600" }}>New chat</Text>
       </View>
-      <Text style={{ color: C.faint, fontSize: 11, paddingHorizontal: 18, paddingTop: 4 }}>{MODE_HINT[mode]}</Text>
       <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingTop: 6, alignItems: "center" }}>
         {ctx && ctx.screen !== "ask" ? (
           <Pressable onPress={() => setCtx(null)} style={{ flexDirection: "row", gap: 6, alignItems: "center", backgroundColor: C.accentSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, flexShrink: 1 }}>
@@ -99,7 +94,7 @@ function Chat() {
           <View style={{ gap: 10 }}>
             <Text style={{ color: C.text, fontSize: 22, fontWeight: "700" }}>Ask Ananta</Text>
             <T dim>Ask about the market, setups, trades, the portfolio or what the repair shop learned. Answers come only from Ananta's own data, and say when the evidence is thin.</T>
-            {STARTERS.map((q) => (
+            {(suggestions.length ? suggestions : STARTERS).map((q) => (
               <Pressable key={q} onPress={() => send(q)} style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 12, padding: 13 }}>
                 <Text style={{ color: C.text, fontSize: 15 }}>{q}</Text>
               </Pressable>
@@ -114,6 +109,15 @@ function Chat() {
           </View>
         ) : null}
       </ScrollView>
+      {msgs.length ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 12, paddingBottom: 8 }}>
+          {(suggestions.length ? suggestions : STARTERS).map((q) => (
+            <Pressable key={q} onPress={() => send(q)} style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}>
+              <Text style={{ color: C.text, fontSize: 13 }}>{q}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
         <TextInput value={text} onChangeText={setText} placeholder="Ask about trades or markets…" placeholderTextColor={C.faint} multiline
           style={{ flex: 1, maxHeight: 110, fontSize: 15, color: C.text, backgroundColor: C.bg, borderRadius: 18, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 }} />
@@ -216,13 +220,15 @@ export default function Ananta() {
   const [tab, setTab] = useState("chat");
   const params = useLocalSearchParams<{ q?: string; t?: string }>();
   useEffect(() => { if (params.q) setTab("chat"); }, [params.t]);
+  const { data: sg } = useData("/v3/ask/suggestions", 0);
+  const suggestions: string[] = sg?.questions ?? [];
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
         <Segmented value={tab} onChange={setTab} options={[{ key: "chat", label: "Chat" }, { key: "voice", label: "Voice" }, { key: "history", label: "History" }]} />
       </View>
-      <View style={{ flex: 1, display: tab === "chat" ? "flex" : "none" }}><Chat /></View>
-      {tab === "voice" ? <Voice ActionCard={ActionCard} openScreen={openScreen} /> : null}
+      <View style={{ flex: 1, display: tab === "chat" ? "flex" : "none" }}><Chat suggestions={suggestions} /></View>
+      {tab === "voice" ? <Voice ActionCard={ActionCard} openScreen={openScreen} suggestions={suggestions} /> : null}
       {tab === "history" ? <History /> : null}
     </View>
   );

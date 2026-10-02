@@ -68,3 +68,4 @@ jarvis.sqlite
 jarvis/app/node_modules/
 jarvis/app/.expo/
 jarvis/app/dist/
+eval_runs/

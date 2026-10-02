@@ -426,3 +426,70 @@ def journal_note(b: Note, who: str = Depends(owner)) -> dict:
     if not b.text.strip():
         raise HTTPException(status_code=400, detail="empty note")
     return MN().note(who, b.kind, b.ref, b.text)
+
+
+# ---- test lab (suggested questions come from the same test catalog) ----
+def _cases() -> dict:
+    from pathlib import Path as _P
+    import json as _json
+
+    return _json.loads((_P(__file__).resolve().parents[1] / "evals" / "cases.json").read_text())
+
+
+class Mark(BaseModel):
+    run: str
+    id: str
+    provider: str
+    verdict: str
+    note: str = ""
+
+
+@app.get("/v3/ask/suggestions")
+def suggestions(who: str = Depends(owner)) -> dict:
+    return {"questions": [c["q"] for c in _cases()["cases"] if c.get("suggest")]}
+
+
+def _evdir():
+    from pathlib import Path as _P
+
+    return _P(J().dir) / "eval_runs"
+
+
+@app.get("/v3/evals")
+def evals_list(who: str = Depends(owner)) -> dict:
+    import json as _json
+
+    out = []
+    for f in sorted(_evdir().glob("*.json"), reverse=True)[:20]:
+        d = _json.loads(f.read_text())
+        out.append({"run": d["run"], "minutes": d.get("minutes"), "spend_usd": d.get("spend_usd"), "summary": d.get("summary")})
+    return {"runs": out, "catalog": {"cases": len(_cases()["cases"]), "voice": len(_cases()["voice"])}}
+
+
+@app.get("/v3/evals/{run}")
+def evals_get(run: str, who: str = Depends(owner)) -> dict:
+    import json as _json
+
+    if not run.replace("T", "").replace("Z", "").isdigit():
+        raise HTTPException(status_code=400, detail="bad run id")
+    f = _evdir() / f"{run}.json"
+    if not f.exists():
+        raise HTTPException(status_code=404, detail="no such run")
+    d = _json.loads(f.read_text())
+    J().db.execute("CREATE TABLE IF NOT EXISTS eval_marks (run TEXT, id TEXT, provider TEXT, verdict TEXT, note TEXT, t INTEGER, PRIMARY KEY (run, id, provider))")
+    marks = {(i, p): (v, n) for i, p, v, n in J().db.execute("SELECT id, provider, verdict, note FROM eval_marks WHERE run=?", (run,))}
+    for r in d["results"]:
+        m = marks.get((r["id"], r.get("provider", "system")))
+        if m:
+            r["verdict"], r["note"] = m
+    return d
+
+
+@app.post("/v3/evals/mark")
+def evals_mark(b: Mark, who: str = Depends(owner)) -> dict:
+    if b.verdict not in ("good", "ok", "bad"):
+        raise HTTPException(status_code=400, detail="verdict is good, ok or bad")
+    J().db.execute("CREATE TABLE IF NOT EXISTS eval_marks (run TEXT, id TEXT, provider TEXT, verdict TEXT, note TEXT, t INTEGER, PRIMARY KEY (run, id, provider))")
+    J().db.execute("INSERT OR REPLACE INTO eval_marks VALUES (?,?,?,?,?,?)", (b.run, b.id, b.provider, b.verdict, b.note[:300], int(J().now())))
+    J().db.commit()
+    return {"ok": True}

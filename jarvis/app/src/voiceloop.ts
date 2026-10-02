@@ -10,13 +10,17 @@
 
 export type Phase = "off" | "listening" | "thinking" | "speaking";
 
+export type MicState = "idle" | "listening" | "hearing" | "sending";
+
 export type LoopFx = {
-  micStart: (force: boolean) => Promise<boolean>; // start recording; force = restart even if it seems to be running
-  micStop: () => Promise<void>;                   // stop recording and throw it away
+  // start recording; force = restart even if it seems to be running. The mic must check wanted() right before it
+  // starts (its operations are queued), so a start that is no longer wanted (voice ended, question sent) never records.
+  micStart: (force: boolean, wanted: () => boolean) => Promise<boolean>;
+  micStop: () => Promise<void>;                   // stop recording and throw it away (always, even if a start is queued)
   micSend: () => void;                            // stop recording now and deliver what was said (-> onAudio)
   micBusy: () => boolean;                         // really recording (or handing over what it heard)
-  micHearing: () => boolean;                      // he is talking right now
-  ask: (audioB64: string) => Promise<any>;        // transcribe + answer; never throws (returns {error})
+  micState: () => MicState;                       // hearing = he is talking; sending = handing over what he said
+  ask: (audioB64: string, current: () => boolean) => Promise<any>;   // transcribe + answer; never throws (returns {error})
   respond: (answer: any, current: () => boolean) => Promise<void>; // move the screen + speak; resolves when finished or stopped
   stopSpeaking: () => void;                       // cut the voice off (its respond() resolves)
   onPhase: (p: Phase) => void;
@@ -25,7 +29,7 @@ export type LoopFx = {
   sleep?: (ms: number) => Promise<void>;
 };
 
-export const LIMITS = { thinkingMs: 45000, speakingMs: 120000, micDeadMs: 2500, micRetries: 3 };
+export const LIMITS = { thinkingMs: 65000, speakingMs: 120000, micDeadMs: 2500, micRetries: 3 };   // thinking > the 60 s request timeout
 
 export class VoiceLoop {
   phase: Phase = "off";
@@ -75,10 +79,12 @@ export class VoiceLoop {
         this.fx.stopSpeaking();
         this.listen(this.turn, true);
         return;
-      case "listening":
-        if (this.fx.micHearing()) this.fx.micSend();
-        else this.listen(this.turn, true);
+      case "listening": {
+        const m = this.fx.micState();
+        if (m === "hearing") this.fx.micSend();
+        else if (m !== "sending") this.listen(this.turn, true);   // "sending": it is already handing over what he said
         return;
+      }
       default:
         return;
     }
@@ -89,24 +95,34 @@ export class VoiceLoop {
     if (this.phase === "listening") this.listen(this.turn, true);
   }
 
-  // Something else is about to use the speaker (e.g. a voice sample): pause listening, then resume.
-  async aside(fn: () => Promise<void>) {
-    if (this.phase === "off") { await fn(); return; }
+  // Something else is about to use the speaker (e.g. a voice sample): only while quietly listening; pauses the mic,
+  // plays, then listens again. Returns false (and does nothing) while he talks or Ananta thinks / speaks.
+  async aside(fn: () => Promise<void>): Promise<boolean> {
+    if (this.phase === "off") { await fn(); return true; }
+    if (this.phase !== "listening" || this.fx.micState() === "hearing" || this.fx.micState() === "sending") return false;
     const my = ++this.turn;
     this.set("speaking");
     await this.fx.micStop().catch(() => {});
+    if (my !== this.turn) return false;              // tapped or ended meanwhile
     try { await fn(); } catch { /* */ }
     if (my === this.turn) this.listen(my, true);
+    return true;
+  }
+
+  // Still busy on purpose (e.g. a long guided tour, one step at a time): keeps the watchdog from cutting it off.
+  touch() {
+    this.since = this.now();
   }
 
   private listen(turn: number, force: boolean) {
     if (turn !== this.turn) return;
     this.set("listening");
+    const wanted = () => turn === this.turn && this.phase === "listening";
     const run = async () => {
       for (let i = 0; i < LIMITS.micRetries; i++) {
-        if (turn !== this.turn || this.phase !== "listening") return;
+        if (!wanted()) return;
         let ok = false;
-        try { ok = await this.fx.micStart(force || i > 0); } catch { ok = false; }
+        try { ok = await this.fx.micStart(force || i > 0, wanted); } catch { ok = false; }
         if (ok) return;
         await this.wait(400 + 300 * i);
       }
@@ -125,7 +141,7 @@ export class VoiceLoop {
     const my = ++this.turn;
     this.set("thinking");
     let r: any;
-    try { r = await this.fx.ask(b64); } catch (e: any) { r = { error: e?.message ?? String(e) }; }
+    try { r = await this.fx.ask(b64, () => my === this.turn); } catch (e: any) { r = { error: e?.message ?? String(e) }; }
     if (my !== this.turn) return;                     // tapped or ended while thinking: this answer is not spoken
     if (!r || (!r.heard && !r.answer && !r.error && !r.tour?.length)) { this.listen(my, false); return; }   // nothing was said
     this.set("speaking");

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, AppState, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
 import { requestRecordingPermissionsAsync } from "expo-audio";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { getScreen, setScreen, setVoiceLive, useScreen } from "../../src/context";
+import { getScreen, setScreen, setVoiceLive, tourCommand, useScreen } from "../../src/context";
 import * as UI from "../../src/uiagent";
 import { clearSpot, setScroller } from "../../src/spotlight";
 import { StageCard } from "../../src/voice";
@@ -163,8 +163,8 @@ export default function Ananta() {
   const handleTextAnswer = async (r: any) => {
     if (r.thread) setThread(r.thread);
     setMsgs((m) => [...m, { role: "assistant", ...r }]);
-    if (r.tour?.length) {                                      // guided tour: talk + move + point, step by step
-      await UI.playTour(r.tour, (t) => TTS.speakText(t));
+    if (r.tour?.length) {                                      // guided tour: talk + move + point, step by step (stops if voice mode starts)
+      await UI.playTour(r.tour, (t) => TTS.speakText(t), () => !loopRef.current?.on);
       return;
     }
     if (r.ui?.length) {                                         // move the screen first (only what really happened counts)
@@ -211,27 +211,30 @@ export default function Ananta() {
   const lastActive = useRef(Date.now());
   if (!loopRef.current) {
     loopRef.current = new VoiceLoop({
-      micStart: (force) => micRef.current!.start(force),
+      micStart: (force, wanted) => micRef.current!.start(force, wanted),
       micStop: () => micRef.current!.cancel(),
       micSend: () => micRef.current!.send(),
       micBusy: () => micRef.current!.busy(),
-      micHearing: () => micRef.current!.hearing(),
-      ask: async (b64) => {
+      micState: () => micRef.current!.state(),
+      ask: async (b64, current) => {
+        let r: any;
         try {
-          const r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
+          r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
             mode: claudeRef.current ? "deep" : "auto", context: where(true) }, 60000);
-          if (r.thread) setThread(r.thread);
-          if (r.heard) setMsgs((m) => [...m, { role: "user", text: r.heard, voice: true }]);
-          if (r.answer || r.error || r.tour?.length) setMsgs((m) => [...m, { role: "assistant", voice: true, ...r }]);
-          return r;
         } catch (e: any) {
-          const r = { error: e?.message ?? String(e) };
-          setMsgs((m) => [...m, { role: "assistant", voice: true, ...r }]);
-          return r;
+          r = { error: e?.message ?? String(e) };
         }
+        if (!current()) return r;                              // cancelled, ended or a new session meanwhile: leave the screen alone
+        if (r.thread) setThread(r.thread);
+        if (r.heard) setMsgs((m) => [...m, { role: "user", text: r.heard, voice: true }]);
+        if (r.answer || r.error || r.tour?.length) setMsgs((m) => [...m, { role: "assistant", voice: true, ...r }]);
+        return r;
       },
       respond: async (r, current) => {
-        if (r.tour?.length) { await UI.playTour(r.tour, (t) => TTS.speakText(t), current); return; }
+        if (r.tour?.length) {                                  // one step at a time; each step tells the watchdog it is still busy
+          await UI.playTour(r.tour, (t) => { loopRef.current?.touch(); return TTS.speakText(t); }, current);
+          return;
+        }
         let failNote = "";
         if (r.ui?.length && current()) {                       // move the screen first, then talk about it
           const res = await UI.run(r.ui);
@@ -286,7 +289,9 @@ export default function Ananta() {
     if (loop.on) return;                                         // extra taps do nothing
     const p = await requestRecordingPermissionsAsync();
     if (!p.granted) { setErr("Microphone permission is off. Allow it for Expo Go in iPhone Settings."); return; }
+    if (loop.on) return;
     setErr(null);
+    tourCommand("stop");                                         // a tour that was talking stops
     TTS.stop();
     Keyboard.dismiss();
     loop.start();
@@ -301,7 +306,8 @@ export default function Ananta() {
   const pickVoice = (v: string) => {
     if (v === "Phone") TTS.setEngine("phone"); else { TTS.setEngine("natural"); TTS.setVoice(v); }
     const sample = () => TTS.speakText(v === "Phone" ? "This is the phone voice." : "Hi Madhav, this is how I sound now.").then(() => undefined);
-    if (loop.on) loop.aside(sample); else sample();
+    if (!loop.on) { sample(); return; }
+    loop.aside(sample).then((played) => { if (!played) setNote(`Voice set to ${v}. You'll hear it on the next answer.`); });
   };
 
   // voice mode: the watchdog (repairs anything stuck), coming back from the background, and auto-off after 5 quiet minutes

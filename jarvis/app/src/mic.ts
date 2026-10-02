@@ -52,16 +52,25 @@ export function useMic(onTurn: (b64: string) => void, onNoSpeech?: () => void) {
     return p;
   };
 
-  const start = (force = false): Promise<boolean> => serial(async () => {
+  // wanted(): checked right before recording starts (this runs queued, maybe later): a start nobody wants any more
+  // (voice ended, question already sent) never records.
+  const start = (force = false, wanted: () => boolean = () => true): Promise<boolean> => serial(async () => {
+    if (!wanted()) return false;
     const p = await requestRecordingPermissionsAsync();
-    if (!p.granted) return false;
+    if (!p.granted || !wanted()) return false;
     const live = statusRef.current === "listening" || statusRef.current === "hearing";
     if (live && !force && !v.current.done) return true;                    // already listening: nothing to do
     for (let attempt = 0; attempt < 3; attempt++) {                        // right after speaking, iOS may still be switching audio
       try {
         try { await rec.stop(); } catch { /* not recording */ }
+        if (!wanted()) { setStatus("idle"); return false; }
         await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
         await rec.prepareToRecordAsync();
+        if (!wanted()) {
+          try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
+          setStatus("idle");
+          return false;
+        }
         rec.record();
         v.current = { start: Date.now(), floor: -60, samples: [], spoke: false, lastLoud: 0, loudRun: 0, done: false, heardAny: false, gen: v.current.gen + 1 };
         setStatus("listening");
@@ -127,9 +136,22 @@ export function useMic(onTurn: (b64: string) => void, onNoSpeech?: () => void) {
 
   useEffect(() => () => { try { rec.stop(); } catch { /* */ } }, []);
 
+  // stop and throw away, ALWAYS (even if nothing is recording yet or a start is queued before it)
+  const cancel = (): Promise<void> => {
+    v.current.done = true;
+    setStatus("idle");
+    return serial(async () => {
+      try { await rec.stop(); } catch { /* not recording */ }
+      try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
+      v.current.done = true;
+      setStatus("idle");
+    });
+  };
+
   return {
     status, level: st.metering ?? -160,
-    start, send: () => { finish(true); }, cancel: () => finish(false),
+    start, send: () => { finish(true); }, cancel,
+    state: () => statusRef.current,
     // read live (not from a render) by the voice loop
     busy: () => statusRef.current === "sending" || statusRef.current === "hearing" || (statusRef.current === "listening" && !v.current.done && recordingRef.current),
     hearing: () => statusRef.current === "hearing",

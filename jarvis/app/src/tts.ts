@@ -91,10 +91,10 @@ async function fetchMeta(parts: string[], id?: string): Promise<Meta> {
   return api<Meta>("/v3/voice/answer", { sentences: parts, voice, speed: rate }, 30000);
 }
 
-async function download(id: string): Promise<File> {
+// each play gets its own file (two plays of the same words must not delete each other's audio)
+async function download(id: string, my: number): Promise<File> {
   const [base, tok] = [await server(), await token()];
-  const f = new File(Paths.cache, `ananta-voice-${id}.mp3`);
-  try { if (f.exists) return f; } catch { /* */ }
+  const f = new File(Paths.cache, `ananta-voice-${id}-${my}.mp3`);
   return File.downloadFileAsync(`${base}/v3/voice/answer/${id}/audio`, f,
     { headers: tok ? { Authorization: `Bearer ${tok}` } : {}, idempotent: true });
 }
@@ -103,8 +103,8 @@ async function download(id: string): Promise<File> {
 async function playNatural(parts: string[], onPart: (i: number) => void, my: number, id?: string): Promise<"ok" | "stopped" | "failed"> {
   let meta: Meta, file: File;
   try {
-    if (id) [meta, file] = await Promise.all([fetchMeta(parts, id), download(id)]);   // both at once: saves a round trip
-    else { meta = await fetchMeta(parts); file = await download(meta.id); }
+    if (id) [meta, file] = await Promise.all([fetchMeta(parts, id), download(id, my)]);   // both at once: saves a round trip
+    else { meta = await fetchMeta(parts); file = await download(meta.id, my); }
     if (my !== seq) return "stopped";
   } catch {
     return "failed";

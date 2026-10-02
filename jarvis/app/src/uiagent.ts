@@ -99,6 +99,9 @@ export async function playTour(steps: TourStep[], speakFn: (text: string) => Pro
     setTour({ active: true, i: i + 1, n: steps.length, text: st.say });
     if (st.ui) await run([st.ui]);
     if (st.spot) await focusSpot(st.spot);
+    const pending = takeTourCommand();                         // Skip / Stop pressed while the screen was moving
+    if (pending === "stop" || !keepGoing()) break;
+    if (pending === "next") continue;
     await speakFn(st.say);
     const c = takeTourCommand();
     if (c === "stop") break;

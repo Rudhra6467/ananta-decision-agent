@@ -171,8 +171,11 @@ def test_modes_budget_second_opinion_and_cost():
     big = {"in": 100_000, "out": 10_000, "cache_read": 0, "cache_write": 0}
     A = ask.Ask(j, providers={"gemini": fake("gemini", {"in": 5, "out": 5}), "haiku": fake("haiku", big),
                               "sonnet": fake("sonnet", big), "opus": fake("opus", big)})
-    r = A.ask("o", "how is btc")                       # auto -> gemini (free)
+    assert ask.route("how is btc")[0] == "haiku"         # auto: routine -> Haiku when Claude is set up ...
+    del os.environ["ANTHROPIC_API_KEY"]
+    r = A.ask("o", "how is btc")                       # ... else free Gemini
     assert r["provider"] == "gemini" and r["cost_usd"] == 0 and "Gemini" in r["note"]
+    os.environ["ANTHROPIC_API_KEY"] = "test"
     r = A.ask("o", "why did the portfolio lose money?")   # auto -> sonnet
     assert r["provider"] == "sonnet" and abs(r["cost_usd"] - (0.2 + 0.1)) < 1e-6
     r = A.ask("o", "x", mode="max")

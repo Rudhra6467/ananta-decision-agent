@@ -1049,6 +1049,8 @@ class Ask:
         if quick:
             return quick
         key, mode_label, note = self._pick(text, mode, provider)
+        if voice and mode_label == "auto" and key == "haiku":   # talking: speed matters most; Sonnet answers in ~5 s, Haiku took 10-15 s
+            key, note = "sonnet", "Auto: Claude Sonnet for voice (fastest to answer)"
         if source != "eval" and self.today_count() >= DAILY_LIMIT:
             raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
         if MODELS[key]["provider"] == "claude" and source == "eval":
@@ -1075,7 +1077,8 @@ class Ask:
             notes.append("[conversation note: the owner asked for a second opinion on this question; answer it independently from the data]")
         if voice:
             notes.append("[voice session: the 'answer' is spoken aloud. Make it sound like talking: a short lead-in, then 2-3 short sentences, rounded numbers, "
-                         "no symbols, tables or abbreviations (say 'percent', 'dollars', 'Bitcoin'). Keep breakdown to 3 bullets; use 'show' to put the right chart on screen]")
+                         "no symbols, tables or abbreviations (say 'percent', 'dollars', 'Bitcoin'). Keep the JSON small so it arrives fast: breakdown at most 2 bullets, "
+                         "evidence at most 2 items, follow_ups at most 2. Only move the screen (ui_go) when he asks to see something]")
         prev = self.j.db.execute("SELECT route FROM ask_messages WHERE thread=? AND role='assistant' AND route IS NOT NULL ORDER BY t DESC, rowid DESC LIMIT 1",
                                  (thread,)).fetchone()
         from jarvis.service import briefs as B

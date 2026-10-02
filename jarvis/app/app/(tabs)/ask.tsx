@@ -152,7 +152,10 @@ export default function Ananta() {
     if (txt) Share.share({ message: txt, title: "Ananta session" });
   };
 
-  const listenAgain = () => { if (liveRef.current) setTimeout(() => mic.start(), 250); };
+  const listenAgain = () => {
+    if (!liveRef.current) return;
+    setTimeout(async () => { if (liveRef.current && !(await mic.start())) setTimeout(() => { if (liveRef.current) mic.start(); }, 1200); }, 450);
+  };
   const speak = (t: string) => {
     setSpeaking(true);
     TTS.say(t, () => { setSpeaking(false); listenAgain(); });

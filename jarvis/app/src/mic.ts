@@ -42,12 +42,21 @@ export function useMic(onTurn: (b64: string) => void, onNoSpeech?: () => void) {
   const start = async (): Promise<boolean> => {
     const p = await requestRecordingPermissionsAsync();
     if (!p.granted) return false;
-    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-    await rec.prepareToRecordAsync();
-    rec.record();
-    v.current = { start: Date.now(), floor: -60, samples: [], spoke: false, lastLoud: 0, loudRun: 0, done: false };
-    setStatus("listening");
-    return true;
+    for (let attempt = 0; attempt < 3; attempt++) {          // right after speaking, iOS can still be switching the audio over: retry
+      try {
+        try { await rec.stop(); } catch { /* not recording */ }
+        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+        await rec.prepareToRecordAsync();
+        rec.record();
+        v.current = { start: Date.now(), floor: -60, samples: [], spoke: false, lastLoud: 0, loudRun: 0, done: false };
+        setStatus("listening");
+        return true;
+      } catch {
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    }
+    setStatus("idle");
+    return false;
   };
 
   const finish = async (send: boolean) => {
@@ -76,10 +85,10 @@ export function useMic(onTurn: (b64: string) => void, onNoSpeech?: () => void) {
     if (age < CALIBRATE_MS) { if (m > -160) x.samples.push(m); return; }
     if (x.samples.length) {
       const sorted = [...x.samples].sort((a, b) => a - b);
-      x.floor = Math.max(-75, Math.min(-25, sorted[Math.floor(sorted.length / 2)]));
+      x.floor = Math.max(-75, Math.min(-35, sorted[Math.floor(sorted.length / 2)]));   // a loud start (e.g. the end of Ananta's voice) can't set the bar too high
       x.samples = [];
     }
-    const thr = x.floor + 12;
+    const thr = Math.min(x.floor + 10, -30);
     if (m > thr) {
       x.loudRun += 1;
       x.lastLoud = now;

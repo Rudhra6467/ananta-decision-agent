@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useEffect } from "react";
 import { askAbout, setScreen } from "../../src/context";
 import { Text, View } from "react-native";
 import { LineChart, Progress } from "../../src/charts";
@@ -11,7 +12,9 @@ const VERDICT: Record<string, [string, string]> = { PASS: [C.good, C.goodSoft], 
 
 export default function Evidence() {
   const [tab, setTab] = useState("collected");
-  useFocusEffect(useCallback(() => { setScreen({ screen: "evidence", label: tab === "collected" ? "Evidence being collected" : "Evidence forwarded and in use" }); }, [tab]));
+  const p = useLocalSearchParams<{ tab?: string; t?: string }>();
+  useEffect(() => { if (p.tab) setTab(String(p.tab)); }, [p.tab, p.t]);
+  useFocusEffect(useCallback(() => { setScreen({ screen: "evidence", tab, label: tab === "collected" ? "Evidence being collected" : "Evidence forwarded and in use" }); }, [tab]));
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>

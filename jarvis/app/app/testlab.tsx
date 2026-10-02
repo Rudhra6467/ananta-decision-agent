@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { setScreen } from "../src/context";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { api } from "../src/api";
@@ -8,6 +10,7 @@ import { C } from "../src/theme";
 
 // Test lab: every recorded test run of Ananta (both models, voice, stability), with the answers and your verdicts.
 export default function TestLab() {
+  useFocusEffect(useCallback(() => { setScreen({ screen: "testlab", label: "Test lab (recorded test runs)" }); }, []));
   const { data: list, loading, reload } = useData("/v3/evals", 0);
   const [run, setRun] = useState<string | null>(null);
   const head = <Stack.Screen options={{ headerShown: true, title: "Test lab", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false, headerTintColor: C.text, headerBackTitle: "Back" }} />;

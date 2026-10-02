@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { useScreen } from "../../src/context";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { getScreen, setScreen, setVoiceLive, useScreen } from "../../src/context";
+import * as UI from "../../src/uiagent";
 import { StageCard } from "../../src/voice";
 import { ActionCard, openScreen } from "../../src/actions";
 import { useData } from "../../src/useData";
@@ -123,6 +124,8 @@ export default function Ananta() {
   const liveRef = useRef(false), threadRef = useRef<string | null>(null), claudeRef = useRef(false), dictating = useRef(false);
   liveRef.current = live; threadRef.current = thread; claudeRef.current = claude;
   useEffect(() => { TTS.init(); }, []);
+  useFocusEffect(useCallback(() => { setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); }, []));
+  const where = () => ({ here: getScreen() ?? undefined, about: ctx ?? undefined });
   useEffect(() => { setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [msgs.length, busy]);
 
   const listenAgain = () => { if (liveRef.current) setTimeout(() => mic.start(), 250); };
@@ -131,11 +134,20 @@ export default function Ananta() {
     TTS.say(t, () => { setSpeaking(false); listenAgain(); });
   };
 
-  const handleAnswer = (r: any, spoken: boolean) => {
+  const handleAnswer = async (r: any, spoken: boolean) => {
     if (r.thread) setThread(r.thread);
     setMsgs((m) => [...m, { role: "assistant", voice: spoken, ...r }]);
+    let failNote = "";
+    if (r.ui?.length) {                                         // move the screen first, then talk (only what really happened counts)
+      const res = await UI.run(r.ui);
+      const bad = res.filter((x) => !x.ok);
+      if (bad.length) {
+        failNote = `I couldn't open ${bad.map((b) => b.action.label ?? b.action.target).join(", ")}. You're still on ${getScreen()?.label ?? "the same screen"}.`;
+        setMsgs((m) => [...m, { role: "assistant", kind: "answer", answer: failNote, model_label: "App" }]);
+      }
+    }
     if (spoken && liveRef.current) {
-      const t = r.error ?? r.answer;
+      const t = [r.error ?? r.answer, failNote].filter(Boolean).join(" ");
       if (t) speak(t); else listenAgain();
     }
   };
@@ -148,7 +160,7 @@ export default function Ananta() {
     setMsgs((m) => [...m, { role: "user", text: q, voice: spoken }]);
     setBusy(true);
     try {
-      const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: claudeRef.current ? "deep" : "everyday", context: ctx ?? undefined });
+      const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: claudeRef.current ? "deep" : "everyday", context: where() });
       handleAnswer(r, spoken || liveRef.current);
     } catch (e: any) {
       handleAnswer({ error: e?.message ?? String(e) }, spoken || liveRef.current);
@@ -168,7 +180,7 @@ export default function Ananta() {
         return;
       }
       const r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
-        mode: claudeRef.current ? "deep" : "everyday", context: ctx ?? undefined });
+        mode: claudeRef.current ? "deep" : "everyday", context: where() });
       if (r.heard) setMsgs((m) => [...m, { role: "user", text: r.heard, voice: true }]);
       if (!r.heard && !r.answer) { setBusy(false); listenAgain(); return; }      // nothing said: keep listening quietly
       handleAnswer(r, true);
@@ -184,10 +196,11 @@ export default function Ananta() {
     TTS.stop();
     setLive(true);
     liveRef.current = true;
+    setVoiceLive(true);
     const ok = await mic.start();
     if (!ok) { setLive(false); setErr("Microphone permission is off. Allow it for Expo Go in iPhone Settings."); }
   };
-  const endLive = () => { setLive(false); liveRef.current = false; TTS.stop(); setSpeaking(false); mic.cancel(); };
+  const endLive = () => { setLive(false); liveRef.current = false; setVoiceLive(false); TTS.stop(); setSpeaking(false); mic.cancel(); };
   const dictate = async () => {
     if (mic.status !== "idle") { mic.send(); return; }
     dictating.current = true;

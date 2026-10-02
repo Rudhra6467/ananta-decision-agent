@@ -452,3 +452,33 @@ def test_router_and_briefs():
     assert r["route"] == "portfolio" and "PORTFOLIO_BRIEF" in seen["u"] and "MARKET_BRIEF" not in seen["u"] and "greet" in seen["u"]
     r2 = A.ask("o", "Why?", thread=r["thread"], mode="everyday")
     assert r2["route"] == "portfolio" and "greet" not in seen["u"] and r2["timing"]["brief_ms"] >= 0
+
+
+def test_app_navigation_quick_and_tools():
+    from jarvis.service import appmap
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: (json.dumps({"answer": "x"}), {"in": 1, "out": 1})})
+    for q, want in [("Can you take me to home screen?", "home"), ("take me to markets", "markets"), ("Go to the cockpit", "cockpit"),
+                    ("open my trades", "portfolio:mine"), ("show me the evidence", "evidence"), ("open ethereum", None)]:
+        r = A.ask("o", q)
+        assert r["model_label"] == "Instant" and r["ui"], q
+        if want:
+            assert r["ui"][0]["target"] == want, (q, r["ui"])
+    coin = next(iter(ex.st["engines"]))
+    assert A.ask("o", "go back")["ui"][0]["do"] == "back"
+    assert appmap.resolve(j, f"coin:{coin}")[0] == f"coin:{coin}"
+    assert appmap.resolve(j, "coin:PEPE")[0] is None and appmap.resolve(j, "trade:../x")[0] is None and appmap.resolve(j, "nowhere")[0] is None
+    L = ask.Lookups(j, "t")
+    assert L.call("ui_go", {"target": "portfolio"})["ok"] and L.ui[-1]["target"] == "portfolio"
+    assert not L.call("ui_go", {"target": "coin:PEPE"})["ok"]
+    assert "places" in L.call("app_map", {})
+    # a model answer carries the screen moves, and the screen context reaches the prompt
+    seen = {}
+
+    def fake(s, h, u, t, log):
+        seen["u"] = u
+        t.call("ui_go", {"target": f"coin:{coin}"})
+        return json.dumps({"answer": "Here it is."}), {"in": 1, "out": 1}
+    A2 = ask.Ask(j, providers={"gemini": fake})
+    r = A2.ask("o", "why is this coin moving", mode="everyday", context={"here": {"screen": "ananta", "label": "Ananta tab"}, "about": None})
+    assert r["ui"] == [{"do": "open", "target": f"coin:{coin}", "label": f"{coin} coin page"}] and "Ananta tab" in seen["u"]

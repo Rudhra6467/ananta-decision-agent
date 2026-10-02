@@ -62,6 +62,7 @@ RULES
 
 9. Changes: use a propose_* lookup only when the owner explicitly asks for that action in this message (an order, an alert, a mandate change); never offer one unasked. You can only PREPARE changes (propose_* lookups). Say clearly that a confirmation card is waiting; never claim something was changed.
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
+12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something, CALL ui_go (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
 OUTPUT: reply with ONE JSON object and nothing else:
@@ -111,6 +112,12 @@ TOOLS = [
     ("start_research", "Start a research job now (read-only, no cost): kind 'reconstruction' rebuilds every Explorer decision from raw candles "
      "and checks it matches the live log. The owner gets a phone note when done. Also returns recent jobs.",
      _schema({"kind": {"type": "string", "description": "reconstruction"}}, ["kind"])),
+    ("app_map", "The Jarvis app itself: every screen and tab, where it is, and what it shows. Use for 'where can I see X', 'what can I do here', 'show me around'.", OFF),
+    ("ui_go", "Move the owner's screen: open a place in the app. target = a place from app_map (home, markets, portfolio, portfolio:explorer, "
+     "portfolio:mine, ananta, evidence, evidence:forwarded, cockpit, mandate, testlab), coin:<SYM> for a coin page, or trade:<id> for a trade page. "
+     "Use whenever the owner asks to go to, open, show or see something on screen, or when showing it makes the answer clearer. "
+     "Returns ok or an error; the app then really opens it.", _schema({"target": {"type": "string"}}, ["target"])),
+    ("ui_back", "Move the owner's screen back to the previous page.", OFF),
     ("mandate", "The owner's mandate in full: goals, markets, styles, setups, limits, how to talk. Also any actions waiting for the owner.", OFF),
     ("propose_mandate_change", "Prepare a change to the owner's mandate when the owner asks to change their goals, limits, styles or preferences. "
      "This does NOT change anything: it creates a confirmation card the owner must approve in the app.",
@@ -142,6 +149,7 @@ class Lookups:
         self._ex = None
         self.thread = thread
         self.created: list[dict] = []          # pending actions prepared during this answer
+        self.ui: list[dict] = []               # screen moves the app performs after this answer
 
     @property
     def ex(self):
@@ -319,6 +327,24 @@ class Lookups:
 
     def t_changes(self, hours: float = 24) -> dict:
         return {"hours": hours, "events": [{k: it.get(k) for k in ("time", "kind", "title", "body")} for it in views.feed(self.j, hours=hours, limit=40)]}
+
+    def t_app_map(self) -> dict:
+        from jarvis.service import appmap
+
+        return appmap.describe()
+
+    def t_ui_go(self, target: str) -> dict:
+        from jarvis.service import appmap
+
+        t, label = appmap.resolve(self.j, target)
+        if not t:
+            return {"ok": False, "error": label}
+        self.ui.append({"do": "open" if ":" in t and t.split(":")[0] in ("coin", "trade") else "go_to", "target": t, "label": label})
+        return {"ok": True, "will_open": label, "note": "The app opens it as soon as you answer. Say 'here is ...' / 'taking you to ...'."}
+
+    def t_ui_back(self) -> dict:
+        self.ui.append({"do": "back", "label": "Back"})
+        return {"ok": True}
 
     def t_mandate(self) -> dict:
         from jarvis.service.mandate import Mandate
@@ -779,6 +805,9 @@ class Ask:
         if self.setting("ask_enabled") != "1":
             raise ValueError("Ask Ananta is switched off in the Cockpit")
         thread = thread or uuid.uuid4().hex[:12]
+        quick = self._quick(who, text, thread, voice, source)
+        if quick:
+            return quick
         key, mode_label, note = self._pick(text, mode, provider)
         if source != "eval" and self.today_count() >= DAILY_LIMIT:
             raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
@@ -823,7 +852,12 @@ class Ask:
             part = "morning" if 4 <= hr < 12 else "afternoon" if hr < 17 else "evening"
             notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet Madhav warmly in a few words first]")
         if context:
-            notes.append("[screen context: the owner is looking at " + json.dumps(context, default=str)[:600] + "]")
+            here = context.get("here") if isinstance(context, dict) and ("here" in context or "about" in context) else context
+            about = context.get("about") if isinstance(context, dict) and "about" in context else None
+            if here:
+                notes.append("[screen context: the screen open right now is " + json.dumps(here, default=str)[:300] + "]")
+            if about:
+                notes.append("[the owner pointed at this item (long-press): " + json.dumps(about, default=str)[:400] + "]")
         user_msg = (f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}] [question type: {route_name}]" + ("\n" + "\n".join(notes) if notes else "")
                     + ("\n" + "\n".join(f"{k} (live):\n" + json.dumps(v, default=str, separators=(",", ":")) for k, v in brief.items()) if brief else "")
                     + f"\n\nQUESTION: {text}")
@@ -881,6 +915,7 @@ class Ask:
         ms = int(1000 * (time.time() - t0))
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created
+        reply["ui"] = L.ui
         timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),
                   "out_tokens": usage.get("out", 0)}
         meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of,
@@ -892,6 +927,28 @@ class Ask:
         self.j.db.commit()
         self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
+
+    def _quick(self, who: str, text: str, thread: str, voice: bool, source: str) -> dict | None:
+        """Plain navigation commands are done instantly, with no model call."""
+        from jarvis.service import appmap
+
+        try:
+            q = appmap.quick_command(self.j, text)
+        except Exception:  # noqa: BLE001
+            q = None
+        if not q:
+            return None
+        now = int(self.j.now())
+        uid, aid = uuid.uuid4().hex[:12], uuid.uuid4().hex[:12]
+        reply = {"kind": "answer", "stage": "", "answer": q["say"], "breakdown": [], "evidence": [], "assumption": "", "options": [],
+                 "follow_ups": [], "show": [], "actions": [], "ui": q["ui"], "model_label": "Instant", "mode": "nav", "cost_usd": 0.0,
+                 "note": "", "route": "app", "timing": {"brief_ms": 0, "model_ms": 0, "rounds": 0, "lookups": 0, "out_tokens": 0}}
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
+                          (uid, thread, now, "user", text, "local", ("eval:" if source == "eval" else "") + ("voice:" if voice else "") + "nav"))
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
+                          "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0, "[]", 0.0, "nav", "app"))
+        self.j.db.commit()
+        return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply}
 
     # ---- voice ----
     def transcribe(self, audio_b64: str, mime: str = "audio/wav", post=_post) -> str:

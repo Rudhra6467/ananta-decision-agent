@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Alert, Switch, Text, View } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useEffect } from "react";
 import { askAbout, setScreen } from "../../src/context";
 import { api } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
@@ -14,7 +15,9 @@ const SHADES = ["#2952CC", "#4A6FD6", "#6B8BDF", "#8CA6E8", "#ADC1F0", "#C6D4F5"
 
 export default function Portfolio() {
   const [tab, setTab] = useState("portfolio");
-  useFocusEffect(useCallback(() => { setScreen({ screen: tab === "portfolio" ? "portfolio" : "explorer_trades", label: tab === "portfolio" ? "Portfolio (T3 book)" : "Explorer trades" }); }, [tab]));
+  const p = useLocalSearchParams<{ tab?: string; t?: string }>();
+  useEffect(() => { if (p.tab) setTab(String(p.tab)); }, [p.tab, p.t]);
+  useFocusEffect(useCallback(() => { setScreen({ screen: tab === "portfolio" ? "portfolio" : tab === "explorer" ? "explorer_trades" : "manual_book", tab, label: tab === "portfolio" ? "Portfolio tab: T3 portfolio" : tab === "explorer" ? "Portfolio tab: Explorer trades" : "Portfolio tab: My trades (manual paper book)" }); }, [tab]));
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>

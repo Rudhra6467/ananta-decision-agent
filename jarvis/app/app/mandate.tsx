@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { setScreen } from "../src/context";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
 import { Stack } from "expo-router";
 import { api } from "../src/api";
@@ -9,6 +11,7 @@ import { C } from "../src/theme";
 
 // The owner's standing brief for Ananta. Ananta reads it before every answer; only the owner changes it.
 export default function MandateScreen() {
+  useFocusEffect(useCallback(() => { setScreen({ screen: "mandate", label: "Your mandate (goals and limits)" }); }, []));
   const { data: d, err, loading, reload } = useData("/v3/mandate", 0);
   const [edit, setEdit] = useState<Record<string, string[]> | null>(null);
   useEffect(() => { if (d && !edit) setEdit(JSON.parse(JSON.stringify(d.sections))); }, [d]);

@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { setScreen } from "../../src/context";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Alert, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
 import { api, logout } from "../../src/api";
@@ -9,6 +11,7 @@ import { useData } from "../../src/useData";
 import { C } from "../../src/theme";
 
 export default function Cockpit() {
+  useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "Cockpit: switches, AI budget, alerts, systems" }); }, []));
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
   const [showActions, setShowActions] = useState(false);
   const { data: sp, reload: reloadSpend } = useData("/v3/spend");

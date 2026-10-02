@@ -9,7 +9,7 @@ import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme
 
 export default function Markets() {
   const { data: d, err, loading, reload } = useData("/v3/markets");
-  useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: "Markets watchlist (10 coins)" }); }, []));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: "Markets tab: watchlist of 10 coins" }); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   return (

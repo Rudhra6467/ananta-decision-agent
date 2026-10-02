@@ -187,13 +187,16 @@ def _label_outside(reply: dict, found: list[dict]) -> None:
 
 
 def _pre_voice(context, text) -> None:
-    """When the app will speak this answer in the natural voice, start making the audio now (saves a round trip)."""
+    """When the app will speak this answer in the natural voice, start making its audio now, so it is usually ready
+    by the time the phone asks for it. A list (the tour) is one audio file per step."""
     try:
         tts = context.get("tts") if isinstance(context, dict) else None
         if isinstance(tts, dict) and tts.get("voice") and text:
             from jarvis.service import speech
 
-            speech.prepare(text if isinstance(text, list) else speech.sentences(text), str(tts["voice"]))
+            speed = float(tts.get("speed") or 0.9)
+            for item in (text if isinstance(text, list) else [text]):
+                speech.prepare_answer(speech.sentences(item), str(tts["voice"]), speed)
     except Exception:  # noqa: BLE001
         pass
 

@@ -243,7 +243,7 @@ def plan_points(j, points, ui: list[dict], here: dict | None, n_sentences: int, 
     """Keep valid spots; add the screen move a spot needs when it is not on the open screen (and nothing else opens it)."""
     out = []
     cur = here_target(here)
-    opened = [u.get("target") for u in ui if u.get("do") != "back"]
+    opened = [u.get("target") for u in ui if u.get("do") in ("go_to", "open")]
     land = opened[-1] if opened else cur
     for p in (points or [])[:8]:
         if not isinstance(p, dict):
@@ -257,7 +257,7 @@ def plan_points(j, points, ui: list[dict], here: dict | None, n_sentences: int, 
             if land_kind != need:
                 continue                                  # coin / trade spots only on that page
         elif need != land:
-            if ui or not SHOW_INTENT.search(question or ""):   # move only when he asked to see something, and only once
+            if opened or not SHOW_INTENT.search(question or ""):   # move only when he asked to see something, and only once
                 continue
             v, label = resolve(j, need)
             if not v:

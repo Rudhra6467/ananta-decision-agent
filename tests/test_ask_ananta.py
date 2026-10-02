@@ -525,3 +525,10 @@ def test_spots_and_scroll():
     A2 = ask.Ask(j, providers={"gemini": fake})
     r = A2.ask("o", "how are we doing today", mode="everyday", context={"here": {"screen": "home", "label": "Home"}})
     assert r["points"] == [{"spot": "home.value", "sentence": 0}, {"spot": "home.activity", "sentence": 1}] and r["ui"] == [] and "POINT AT" in seen["s"]
+
+
+def test_points_survive_a_scroll():
+    from jarvis.service import appmap
+    j, ex = _jarvis()
+    pts, ui = appmap.plan_points(j, [{"spot": "home.value", "sentence": 0}], [{"do": "scroll", "dir": "top"}], {"screen": "home"}, 1, "walk me through this screen")
+    assert pts and ui == [{"do": "scroll", "dir": "top"}]

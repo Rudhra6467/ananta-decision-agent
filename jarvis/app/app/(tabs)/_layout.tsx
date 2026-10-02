@@ -1,18 +1,11 @@
 // The five main tabs, swipeable like YouTube: drag left / right and you see the next page slide in.
 // Tab bar stays at the bottom; the page header (title, Cockpit button) is drawn here because swipe tabs have no header of their own.
 import { Pressable, Text, View } from "react-native";
-import { router, usePathname, withLayoutContext } from "expo-router";
-import {
-  createMaterialTopTabNavigator, type MaterialTopTabNavigationEventMap, type MaterialTopTabNavigationOptions,
-} from "@react-navigation/material-top-tabs";
-import type { ParamListBase, TabNavigationState } from "@react-navigation/native";
+import { router, usePathname } from "expo-router";
+import SwipeTabs from "expo-router/js-top-tabs";        // Expo Router's swipeable tabs (react-native-tab-view + pager-view underneath)
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C } from "../../src/theme";
 import { ChartIcon, ChatIcon, FlaskIcon, GaugeIcon, HomeIcon, PieIcon } from "../../src/icons";
-
-const { Navigator } = createMaterialTopTabNavigator();
-const SwipeTabs = withLayoutContext<MaterialTopTabNavigationOptions, typeof Navigator, TabNavigationState<ParamListBase>,
-  MaterialTopTabNavigationEventMap>(Navigator);
 
 const TITLES: Record<string, string> = { today: "Home", markets: "Markets", portfolio: "Portfolio", ask: "Ananta", evidence: "Evidence" };
 

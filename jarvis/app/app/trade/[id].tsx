@@ -50,8 +50,8 @@ export default function Trade() {
         {d.open ? (
           <Spot id="trade.levels">
           <Card title="Where it stands">
-            {d.stop ? <Line label={d.trailing ? "Stop (moves up after +2R)" : "Stop-loss"} value={`${price(d.stop)}  (${pct(d.to_stop_pct)})`} color={C.bad} /> : null}
-            {d.target ? <Line label="Target" value={`${price(d.target)}  (${pct(d.to_target_pct)})`} color={C.good} /> : <Line label="Target" value="none: rides the trend" />}
+            <Spot id="trade.stop">{d.stop ? <Line label={d.trailing ? "Stop (moves up after +2R)" : "Stop-loss"} value={`${price(d.stop)}  (${pct(d.to_stop_pct)})`} color={C.bad} /> : <Line label="Stop-loss" value="none" />}</Spot>
+            <Spot id="trade.target">{d.target ? <Line label="Target" value={`${price(d.target)}  (${pct(d.to_target_pct)})`} color={C.good} /> : <Line label="Target" value="none: rides the trend" />}</Spot>
             <Line label="Time limit" value={d.time_limit} />
           </Card>
           </Spot>

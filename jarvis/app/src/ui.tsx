@@ -1,6 +1,6 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { setScroller } from "./spotlight";
+import { setScroller, useSpotActive } from "./spotlight";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { C, pnlColor } from "./theme";
 
@@ -134,8 +134,10 @@ export function Segmented({ options, value, onChange }: { options: { key: string
 }
 
 // Tap to open: keeps long explanations out of the way until asked for.
-export function Expand({ title, sub, right, children, start = false, onLongPress }: { title: string; sub?: string; right?: React.ReactNode; children: React.ReactNode; start?: boolean; onLongPress?: () => void }) {
+export function Expand({ title, sub, right, children, start = false, onLongPress, openWhen }: { title: string; sub?: string; right?: React.ReactNode; children: React.ReactNode; start?: boolean; onLongPress?: () => void; openWhen?: string }) {
   const [open, setOpen] = useState(start);
+  const lit = useSpotActive(openWhen);
+  useEffect(() => { if (lit) setOpen(true); }, [lit]);
   return (
     <View>
       <Pressable onPress={() => setOpen(!open)} onLongPress={onLongPress} delayLongPress={350} style={[s.rowItem]}>

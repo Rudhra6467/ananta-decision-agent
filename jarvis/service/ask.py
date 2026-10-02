@@ -64,7 +64,8 @@ RULES
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
 12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something ("show me...", "open...", "take me...", "where can I see..."), you MUST CALL ui_go for the most relevant place (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. Questions about the screen itself ("what's below this?", "what's at the bottom?", "what's above?") mean the parts of the open screen: call ui_scroll (down / bottom / up) and describe those parts using the spot list in order (not prices below). For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
 13. POINT AT WHAT YOU TALK ABOUT: add "points" so the app makes that thing glow (and scrolls to it) while that sentence is spoken: [{"spot": "<spot id>", "sentence": <index of the sentence in "answer", from 0>}]. Use spots of the screen that is open, or of the place you open with ui_go in this answer (if you point at a spot of another tab without ui_go, the app opens that tab for you). One spot per sentence at most; only point when it helps him find it. When you walk him through a screen or explain where something is, ALWAYS point at each part as you name it. Spot ids:
-home.value | home.inbox | home.brief | home.books | home.activity ; markets.summary | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.tracker | evidence.collected | evidence.forwarded | evidence.shop | evidence.in_use | evidence.safety ; cockpit.controls | cockpit.ai | cockpit.alerts | cockpit.systems ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.why | trade.plan | trade.timeline.
+home.value | home.inbox | home.brief | home.books | home.activity ; markets.summary | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.tracker | evidence.collected | evidence.forwarded | evidence.shop | evidence.in_use | evidence.safety ; cockpit.controls | cockpit.ai | cockpit.alerts | cockpit.systems ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5>.
+14. PROVE IT: every number you give should be checkable in the app. In "evidence" items add "spot" (and "screen" when it is on another screen) for where that number is shown. When he asks "where did you get that?", "show me", "prove it" or "show me the trade you just mentioned", open that place with ui_go and point at it (points) while you explain; use the previous answer's evidence to know what "that" is. For a single trade, open the trade page (trade:<id>) and point at trade.pnl / trade.stop / trade.target; for a coin's setup, open the coin page and point at coin.setup:<E#>.
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
 OUTPUT: reply with ONE JSON object and nothing else:
@@ -72,7 +73,7 @@ OUTPUT: reply with ONE JSON object and nothing else:
  "stage": one lifecycle word or "" ,
  "answer": "lead-in + direct answer + what it means, 2-4 short sentences in easy English",
  "breakdown": ["at most 4 short bullets (max 15 words each): the reasoning"],
- "evidence": [{"label": "...", "value": "...", "source": "brief or lookup name", "time": "when, if known"}] (at most 4),
+ "evidence": [{"label": "...", "value": "...", "source": "brief or lookup name", "time": "when, if known", "spot": "where it is shown, if anywhere", "screen": "place to open for it, if not the open screen"}] (at most 4),
  "assumption": "the reading you assumed, or empty",
  "options": ["for clarify only: short options"],
  "follow_ups": ["2 natural next questions he might ask"],
@@ -784,7 +785,7 @@ class Ask:
                 out.append({"role": "user", "text": text})
             else:
                 r = json.loads(reply) if reply else {}
-                brief = {k: r.get(k) for k in ("kind", "answer", "breakdown", "evidence", "options") if r.get(k)}
+                brief = {k: r.get(k) for k in ("kind", "answer", "breakdown", "evidence", "options", "ui", "points") if r.get(k)}
                 if out and out[-1]["role"] == "assistant":
                     out.pop()
                 out.append({"role": "assistant", "text": json.dumps(brief)[:4000]})
@@ -950,6 +951,7 @@ class Ask:
             reply["ui"], reply["answer"] = _am.keep_honest(self.j, text, reply.get("answer", ""), L.ui, _here)
             n_sent = len([x for x in re.split(r"(?<=[.!?])\s+", reply.get("answer") or "") if x.strip()])
             reply["points"], reply["ui"] = _am.plan_points(self.j, reply.get("points"), reply["ui"], _here, n_sent, text)
+            reply["evidence"] = _am.clean_evidence(self.j, reply.get("evidence"))
         except Exception:  # noqa: BLE001
             reply["ui"] = L.ui
         timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),
@@ -977,7 +979,7 @@ class Ask:
         now = int(self.j.now())
         uid, aid = uuid.uuid4().hex[:12], uuid.uuid4().hex[:12]
         reply = {"kind": "answer", "stage": "", "answer": q["say"], "breakdown": [], "evidence": [], "assumption": "", "options": [],
-                 "follow_ups": [], "show": [], "actions": [], "ui": q["ui"], "model_label": "Instant", "mode": "nav", "cost_usd": 0.0,
+                 "follow_ups": [], "show": [], "actions": [], "ui": q["ui"], "tour": q.get("tour"), "model_label": "Instant", "mode": "nav", "cost_usd": 0.0,
                  "note": "", "route": "app", "timing": {"brief_ms": 0, "model_ms": 0, "rounds": 0, "lookups": 0, "out_tokens": 0}}
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
                           (uid, thread, now, "user", text, "local", ("eval:" if source == "eval" else "") + ("voice:" if voice else "") + "nav"))

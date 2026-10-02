@@ -51,3 +51,12 @@ export function askAbout(ctx: NonNullable<ScreenCtx>, question?: string) {
   setAbout(ctx);
   router.push({ pathname: "/(tabs)/ask", params: { q: question ?? `Tell me about this: ${ctx.label}`, t: String(Date.now()) } });
 }
+
+// Tour state (shown as a caption bar over every screen while Ananta walks you through the app)
+export type TourState = { active: boolean; i: number; n: number; text: string };
+let tour: TourState = { active: false, i: 0, n: 0, text: "" };
+let tourCmd: "" | "stop" | "next" = "";
+export const setTour = (t: TourState) => { tour = t; emit(); };
+export const useTour = () => useStore(() => tour);
+export const tourCommand = (c: "" | "stop" | "next") => { tourCmd = c; };
+export const takeTourCommand = () => { const c = tourCmd; tourCmd = ""; return c; };

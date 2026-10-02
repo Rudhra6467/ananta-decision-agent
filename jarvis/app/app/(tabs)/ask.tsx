@@ -58,7 +58,12 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak }: { m: Msg; onPick: (q: 
                   <Text style={{ color: C.text, fontSize: 13 }}>{e.label}</Text>
                   <Text style={{ color: C.faint, fontSize: 11 }}>{[e.source, e.time].filter(Boolean).join(" · ")}</Text>
                 </View>
-                <Text style={{ color: C.text, fontSize: 13, fontWeight: "600", maxWidth: "50%", textAlign: "right" }}>{String(e.value)}</Text>
+                <View style={{ alignItems: "flex-end", maxWidth: "50%", gap: 4 }}>
+                  <Text style={{ color: C.text, fontSize: 13, fontWeight: "600", textAlign: "right" }}>{String(e.value)}</Text>
+                  {e.screen ? (
+                    <Text onPress={() => showEvidence(e)} style={{ color: C.accent, fontSize: 12, fontWeight: "700" }}>Show me ›</Text>
+                  ) : null}
+                </View>
               </View>
             </View>
           ))}
@@ -139,6 +144,15 @@ export default function Ananta() {
   const handleAnswer = async (r: any, spoken: boolean) => {
     if (r.thread) setThread(r.thread);
     setMsgs((m) => [...m, { role: "assistant", voice: spoken, ...r }]);
+    if (r.tour?.length) {                                      // guided tour: talk + move + point, step by step
+      const wasLive = liveRef.current;
+      if (wasLive) mic.cancel();
+      setSpeaking(true);
+      await UI.playTour(r.tour, (t) => TTS.sayAsync(t));
+      setSpeaking(false);
+      if (wasLive) listenAgain();
+      return;
+    }
     let failNote = "";
     if (r.ui?.length) {                                         // move the screen first, then talk (only what really happened counts)
       const res = await UI.run(r.ui);
@@ -403,4 +417,14 @@ function Sessions({ onOpen, onNew, onBack }: { onOpen: (t: string) => void; onNe
       ))}
     </ScrollView>
   );
+}
+
+// "Show me" on an evidence row: open where that number lives and make it glow.
+async function showEvidence(e: any) {
+  const t = String(e.screen);
+  const res = await UI.run([{ do: t.startsWith("coin:") || t.startsWith("trade:") ? "open" : "go_to", target: t, label: e.label }]);
+  if (res[0]?.ok && e.spot) {
+    const { focusSpot } = await import("../../src/spotlight");
+    focusSpot(String(e.spot), 4000);
+  }
 }

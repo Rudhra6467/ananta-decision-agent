@@ -77,21 +77,25 @@ export default function Coin() {
             <Section title="What Ananta is waiting for" right={<T small>checked {w.as_of}</T>} />
             <Card sub={`1h trend: ${w.market.trend_1h} · 4h: ${w.market.trend_4h} · BTC: ${w.market.btc_trend_1h}`} title="Market picture">
               <Line label="RSI (1 hour)" value={String(w.market.rsi_1h)} />
+              <Spot id="coin.levels">
               <Line label="Next support" value={price(w.market.next_support)} />
               <Line label="Next resistance" value={price(w.market.next_resistance)} />
+              </Spot>
             </Card>
             </Spot>
             <Card>
               {w.setups.map((s: any, i: number) => (
                 <View key={s.setup}>
                   {i ? <Divider /> : null}
-                  <Expand title={s.name} sub={s.complete ? "All conditions met" : `${s.met} of ${s.of} conditions met`}
+                  <Spot id={`coin.setup:${s.setup}`}>
+                  <Expand openWhen={`coin.setup:${s.setup}`} title={s.name} sub={s.complete ? "All conditions met" : `${s.met} of ${s.of} conditions met`}
                     right={s.complete ? <Pill text="READY" color={C.good} bg={C.goodSoft} /> : null}>
                     <Progress value={s.met} of={s.of} color={s.complete ? C.good : C.accent} />
                     {s.conditions.map((c: any, k: number) => (
                       <T key={k} style={{ color: c.met ? C.text : C.dim }}>{c.met ? "✓" : "○"}  {c.text}</T>
                     ))}
                   </Expand>
+                  </Spot>
                 </View>
               ))}
               {w.hourly.map((h: any) => (

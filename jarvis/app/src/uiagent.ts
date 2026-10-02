@@ -85,3 +85,21 @@ export async function pointAlong(answer: string, points: { spot: string; sentenc
   }
   setTimeout(clearSpot, 2500);
 }
+
+// Guided tour: move, point and talk, step by step. Stop / Skip come from the caption bar.
+export type TourStep = { ui?: UiAction; spot?: string; say: string };
+export async function playTour(steps: TourStep[], speakFn: (text: string) => Promise<void>) {
+  const { setTour, takeTourCommand } = await import("./context");
+  takeTourCommand();
+  for (let i = 0; i < steps.length; i++) {
+    const st = steps[i];
+    setTour({ active: true, i: i + 1, n: steps.length, text: st.say });
+    if (st.ui) await run([st.ui]);
+    if (st.spot) await focusSpot(st.spot);
+    await speakFn(st.say);
+    const c = takeTourCommand();
+    if (c === "stop") break;
+  }
+  clearSpot();
+  setTour({ active: false, i: 0, n: 0, text: "" });
+}

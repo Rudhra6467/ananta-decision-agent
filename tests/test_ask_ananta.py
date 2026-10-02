@@ -532,3 +532,18 @@ def test_points_survive_a_scroll():
     j, ex = _jarvis()
     pts, ui = appmap.plan_points(j, [{"spot": "home.value", "sentence": 0}], [{"do": "scroll", "dir": "top"}], {"screen": "home"}, 1, "walk me through this screen")
     assert pts and ui == [{"do": "scroll", "dir": "top"}]
+
+
+def test_tour_and_proof_links():
+    from jarvis.service import appmap
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: (json.dumps({"answer": "x"}), {"in": 1, "out": 1})})
+    r = A.ask("o", "I'm new here, show me around")
+    assert r["model_label"] == "Instant" and len(r["tour"]) >= 12
+    for st in r["tour"]:
+        assert st["say"] and (not st.get("spot") or appmap.valid_spot(j, st["spot"]) or st["spot"].startswith("markets.coin"))
+    coin = next(iter(ex.st["engines"]))
+    ev = appmap.clean_evidence(j, [{"label": "value", "value": "1", "spot": "portfolio.value"},
+                                   {"label": "chart", "value": "2", "spot": "coin.chart", "screen": f"coin:{coin}"},
+                                   {"label": "bad", "value": "3", "spot": "coin.chart"}, {"label": "x", "value": "4", "spot": "zzz.q", "screen": "nowhere"}])
+    assert ev[0]["screen"] == "portfolio" and ev[1]["screen"] == f"coin:{coin}" and "spot" not in ev[2] and "spot" not in ev[3] and "screen" not in ev[3]

@@ -576,7 +576,7 @@ def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log:
             err = exc
             if not str(exc)[:3] in ("503", "429", "500", "404"):
                 raise
-            _COOL[m] = time.time() + 90
+            _COOL[m] = time.time() + (3600 if "quota" in str(exc).lower() else 90)   # daily free quota used up: skip for an hour
             log.clear()
     try:                                   # every model busy: one patient try on the main model before giving up
         text, usage = _gemini_once(GEMINI_MODELS[0], system, history, user, tools, log, post)

@@ -501,8 +501,12 @@ def test_spots_and_scroll():
     coin = next(iter(ex.st["engines"]))
     assert appmap.valid_spot(j, "home.value") and appmap.valid_spot(j, f"markets.coin:{coin}")
     assert not appmap.valid_spot(j, "markets.coin:PEPE") and not appmap.valid_spot(j, "home.nothing") and not appmap.valid_spot(j, "<script>")
-    pts, ui = appmap.plan_points(j, [{"spot": "home.value", "sentence": 0}, {"spot": "bad.spot", "sentence": 1}], [], {"screen": "ananta"}, 2)
+    pts, ui = appmap.plan_points(j, [{"spot": "home.value", "sentence": 0}, {"spot": "bad.spot", "sentence": 1}], [], {"screen": "ananta"}, 2, "show me the value")
     assert pts == [{"spot": "home.value", "sentence": 0}] and ui[0]["target"] == "home"          # app opens Home for the spot
+    pts, ui = appmap.plan_points(j, [{"spot": "home.value", "sentence": 0}], [], {"screen": "ananta"}, 2, "where am I")
+    assert pts == [] and ui == []                                                               # no move unless he asked to see
+    ui, ans = appmap.keep_honest(j, "What's below this?", "I've scrolled to the bottom for you.", [], {"screen": "markets"})
+    assert ui and ui[0]["do"] == "scroll" and "couldn't" not in ans
     pts, ui = appmap.plan_points(j, [{"spot": "home.value", "sentence": 5}], [], {"screen": "home"}, 2)
     assert ui == [] and pts[0]["sentence"] == 1
     pts, ui = appmap.plan_points(j, [{"spot": "coin.chart"}], [], {"screen": "home"}, 1)

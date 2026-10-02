@@ -170,6 +170,11 @@ def keep_honest(j, question: str, answer: str, ui: list[dict], here: dict | None
     cur = here_target(here)
     ui = [u for u in ui if not (u.get("do") != "back" and u.get("target") == cur)]
     claims = bool(CLAIM.search(answer or ""))
+    scroll_claim = re.search(r"\b(i'?ve scrolled|scrolling (?:down|up|to)|i scrolled)", answer or "", re.I)
+    scroll_ask = re.search(r"\b(below this|what'?s below|bottom of|at the bottom|scroll (?:down|up))\b", question or "", re.I)
+    if (scroll_claim or scroll_ask) and not any(u.get("do") == "scroll" for u in ui):
+        d = "up" if re.search(r"\b(above|up|top)\b", question or "", re.I) and not scroll_ask else ("bottom" if re.search(r"bottom", (question or "") + (answer or ""), re.I) else "down")
+        ui = ui + [{"do": "scroll", "dir": d, "label": f"Scroll {d}"}]
     if not ui and (claims or SHOW_INTENT.search(question or "")):
         t = guess(question) or (guess(answer) if claims else None)
         if t and t != cur:
@@ -234,7 +239,7 @@ def valid_spot(j, spot: str) -> bool:
     return not arg
 
 
-def plan_points(j, points, ui: list[dict], here: dict | None, n_sentences: int) -> tuple[list[dict], list[dict]]:
+def plan_points(j, points, ui: list[dict], here: dict | None, n_sentences: int, question: str = "") -> tuple[list[dict], list[dict]]:
     """Keep valid spots; add the screen move a spot needs when it is not on the open screen (and nothing else opens it)."""
     out = []
     cur = here_target(here)
@@ -252,7 +257,7 @@ def plan_points(j, points, ui: list[dict], here: dict | None, n_sentences: int) 
             if land_kind != need:
                 continue                                  # coin / trade spots only on that page
         elif need != land:
-            if ui:                                        # don't move twice in one answer
+            if ui or not SHOW_INTENT.search(question or ""):   # move only when he asked to see something, and only once
                 continue
             v, label = resolve(j, need)
             if not v:

@@ -949,7 +949,7 @@ class Ask:
             _here = context.get("here") if isinstance(context, dict) and "here" in context else (context if isinstance(context, dict) else None)
             reply["ui"], reply["answer"] = _am.keep_honest(self.j, text, reply.get("answer", ""), L.ui, _here)
             n_sent = len([x for x in re.split(r"(?<=[.!?])\s+", reply.get("answer") or "") if x.strip()])
-            reply["points"], reply["ui"] = _am.plan_points(self.j, reply.get("points"), reply["ui"], _here, n_sent)
+            reply["points"], reply["ui"] = _am.plan_points(self.j, reply.get("points"), reply["ui"], _here, n_sent, text)
         except Exception:  # noqa: BLE001
             reply["ui"] = L.ui
         timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),

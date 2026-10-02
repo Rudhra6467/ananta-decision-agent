@@ -171,8 +171,11 @@ def test_modes_budget_second_opinion_and_cost():
     big = {"in": 100_000, "out": 10_000, "cache_read": 0, "cache_write": 0}
     A = ask.Ask(j, providers={"gemini": fake("gemini", {"in": 5, "out": 5}), "haiku": fake("haiku", big),
                               "sonnet": fake("sonnet", big), "opus": fake("opus", big)})
-    r = A.ask("o", "how is btc")                       # auto -> gemini (free)
+    assert ask.route("how is btc")[0] == "haiku"         # auto: routine -> Haiku when Claude is set up ...
+    del os.environ["ANTHROPIC_API_KEY"]
+    r = A.ask("o", "how is btc")                       # ... else free Gemini
     assert r["provider"] == "gemini" and r["cost_usd"] == 0 and "Gemini" in r["note"]
+    os.environ["ANTHROPIC_API_KEY"] = "test"
     r = A.ask("o", "why did the portfolio lose money?")   # auto -> sonnet
     assert r["provider"] == "sonnet" and abs(r["cost_usd"] - (0.2 + 0.1)) < 1e-6
     r = A.ask("o", "x", mode="max")
@@ -711,3 +714,64 @@ def test_local_model_answers_and_escalates_when_unsure():
     A._next_level = lambda: "haiku"
     r = A.ask("o@x.com", "where is bitcoin")
     assert r["provider"] == "haiku" and "wasn't sure" in r["note"] and "91,234" in r["note"]
+
+
+def test_spoken_answer_is_short_and_says_the_choices():
+    long = {"kind": "answer", "answer": " ".join(f"Sentence number {i} has exactly seven words here." for i in range(12))}
+    t = ask.speak_text(long)
+    assert 0 < len(t.split()) <= ask.VOICE_WORDS and t.startswith("Sentence number 0")
+    one_huge = {"kind": "answer", "answer": "word " * 90 + "end."}
+    assert ask.speak_text(one_huge).endswith("end.")                      # never empty: the first sentence is always said
+    c = ask.speak_text({"kind": "clarify", "answer": "Which one do you mean?", "options": ["Bitcoin trade", "Bitcoin coin page"]})
+    assert c.endswith("Did you mean Bitcoin trade, or Bitcoin coin page?")
+
+
+def test_answer_audio_is_one_file_per_answer_and_retries_after_a_failure():
+    from jarvis.service import speech
+    made = []
+
+    def make(s, v, sp):
+        made.append((tuple(s), v, sp))
+        return {"audio": b"ID3", "mime": "audio/mpeg", "offsets": [0.0, 1.2], "duration": 2.5, "engine": "kokoro"}
+
+    k1 = speech.prepare_answer(["Hello Madhav.", " Bitcoin is up. ", ""], "Calm", 0.9, make=make)
+    k2 = speech.prepare_answer(["Hello Madhav.", "Bitcoin is up."], "Calm", 0.9, make=make)
+    assert k1 == k2 and len(made) == 1                                      # same words, voice and speed: made once
+    assert speech.answer_meta(k1)["offsets"] == [0.0, 1.2] and speech.answer_audio(k1) == (b"ID3", "audio/mpeg")
+    assert speech.prepare_answer(["Hello Madhav.", "Bitcoin is up."], "Deep", 0.9, make=make) != k1
+
+    def down(s, v, sp):
+        raise RuntimeError("voice server down")
+
+    k3 = speech.prepare_answer(["Try again."], "Calm", 1.0, make=down)
+    try:
+        speech.answer_meta(k3)
+        assert False, "should fail"
+    except RuntimeError:
+        pass
+    assert speech.prepare_answer(["Try again."], "Calm", 1.0, make=make) == k3 and speech.answer_meta(k3)["engine"] == "kokoro"
+
+
+def test_voice_answers_carry_spoken_text_and_audio_id(monkeypatch):
+    from jarvis.service import speech
+    j, ex = _jarvis()
+    seen = {}
+    monkeypatch.setattr(speech, "prepare_answer", lambda s, v, sp, make=None: seen.setdefault("k", f"id-{len(s)}-{v}-{sp}"))
+    long = json.dumps({"kind": "answer", "answer": " ".join(f"Point {i} is about the market today." for i in range(15))})
+    A = ask.Ask(j, providers={"gemini": lambda *a, **k: (long, {"in": 1, "out": 1})})
+    r = A.ask("o@x.com", "how is the market", mode="everyday", voice=True, context={"here": {"screen": "ananta"}, "tts": {"voice": "Calm", "speed": 0.9}})
+    assert r["speak"] and len(r["speak"].split()) <= ask.VOICE_WORDS and r["voice_id"].endswith("-Calm-0.9")
+    r2 = A.ask("o@x.com", "how is the market", mode="everyday", context={"here": {"screen": "ananta"}})      # typed: nothing spoken
+    assert "speak" not in r2 and "voice_id" not in r2
+
+
+def test_instant_small_talk_and_repeat():
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": lambda *a, **k: (json.dumps({"kind": "answer", "answer": "Bitcoin is up two percent."}), {"in": 1, "out": 1})})
+    r = A.ask("o@x.com", "how is bitcoin", mode="everyday")
+    th = r["thread"]
+    again = A.ask("o@x.com", "Say that again.", thread=th, mode="everyday")
+    assert again["model"] == "instant" and again["answer"] == "Bitcoin is up two percent."
+    assert A.ask("o@x.com", "Thank you.", thread=th, mode="everyday")["answer"].startswith("You're welcome")
+    assert A.ask("o@x.com", "okay", thread=th, mode="everyday")["answer"] == "Okay."
+    assert A.ask("o@x.com", "okay so why is bitcoin up", thread=th, mode="everyday")["model"] != "instant"

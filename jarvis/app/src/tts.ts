@@ -1,11 +1,19 @@
-// Speaking answers.
-// "Natural" (default): Gemini's human-sounding voice, made on the Jarvis service one sentence at a time (all sentences in parallel),
-//   played in order. Each sentence calls onPart(i) the moment its audio starts, so highlights move exactly with the voice.
-// "Phone": the phone's built-in voice (instant, used automatically if the natural voice is unavailable).
+// Speaking answers, in ONE voice.
+//
+// Natural voice (default): the Jarvis service turns the whole answer into one audio file (Kokoro on the Mac) and tells us
+// when each sentence starts. We download it, play it, and call onPart(i) as playback reaches sentence i, so highlights
+// move exactly with the voice. One file = one voice: an answer can never switch voices halfway.
+// Phone voice: used for the whole answer only when the natural voice can't be reached (and the screen says so).
+//
+// Every speak() ALWAYS settles: "done" when it finished, "stopped" when stop() cut it off. Nothing can be left
+// waiting forever, which is what used to leave voice mode stuck after a tap.
 import * as SecureStore from "expo-secure-store";
 import * as Speech from "expo-speech";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
+import { File, Paths } from "expo-file-system";
 import { api, server, token } from "./api";
+
+export type SpeakResult = "done" | "stopped";
 
 let voiceId: string | undefined;
 let phoneVoiceName = "default";
@@ -13,8 +21,12 @@ let picked = false;
 export let rate = 0.9;
 export let engine: "natural" | "phone" = "natural";
 export let voice = "Calm";
-export const VOICES = ["Calm", "Friendly", "Deep", "Bright"];
+export const VOICES = ["Calm", "Friendly", "Deep", "British", "Bright"];
 export const RATES = [0.8, 0.9, 1.0, 1.15, 1.3];
+
+// what actually spoke last time (shown under the orb)
+export let lastEngine: "natural" | "phone" | null = null;
+export let lastNote = "";
 
 const PREFERRED = ["Ava", "Zoe", "Evan", "Nathan", "Joelle", "Noelle", "Samantha", "Allison", "Susan", "Tom", "Serena", "Daniel"];
 
@@ -23,7 +35,7 @@ export async function init() {
   picked = true;
   try {
     const [r, e, v] = await Promise.all(["tts_rate", "tts_engine", "tts_voice"].map((k) => SecureStore.getItemAsync(k)));
-    if (r) rate = Number(r) || rate;
+    if (r && RATES.includes(Number(r))) rate = Number(r);
     if (e === "phone" || e === "natural") engine = e;
     if (v && VOICES.includes(v)) voice = v;
   } catch { /* */ }
@@ -35,114 +47,166 @@ export async function init() {
       (PREFERRED.findIndex((n) => v.name.startsWith(n)) >= 0 ? 20 - PREFERRED.findIndex((n) => v.name.startsWith(n)) : 0) -
       (/compact|eloquence|novelty|bells|bubbles|zarvox|whisper|bad news|good news|organ|trinoids|jester|superstar|grandma|grandpa|rocko|shelley|flo|reed|eddy|sandy/i.test(v.name) ? 500 : 0);
     const best = vs.sort((a, b) => score(b) - score(a))[0];
-    if (best) { voiceId = best.identifier; phoneVoiceName = `${best.name} (${best.quality})`; }
+    if (best) { voiceId = best.identifier; phoneVoiceName = best.name; }
   } catch { /* */ }
 }
 
 export const voiceLabel = () => (engine === "natural" ? `Natural · ${voice}` : `Phone · ${phoneVoiceName}`);
 
 async function save(k: string, v: string) { try { await SecureStore.setItemAsync(k, v); } catch { /* */ } }
-export async function setRate(r: number) { rate = r; player?.setPlaybackRate(r, "high"); await save("tts_rate", String(r)); }
-export async function setEngine(e: "natural" | "phone") { engine = e; await save("tts_engine", e); }
+export async function setRate(r: number) { rate = r; await save("tts_rate", String(r)); }       // applies from the next answer
+export async function setEngine(e: "natural" | "phone") { engine = e; naturalDownUntil = 0; await save("tts_engine", e); }
 export async function setVoice(v: string) { voice = v; await save("tts_voice", v); }
 
-// ---- phone voice -----------------------------------------------------------------------------
-// expo-speech's 1.0 is already brisk on iOS; scale so 1.0 here sounds like a normal talking pace.
-const phoneRate = () => rate * 0.92;
-function phoneSay(text: string, done: () => void) {
-  Speech.speak(text, { voice: voiceId, rate: phoneRate(), pitch: 1.0, onDone: done, onStopped: done, onError: done });
-}
+// The same sentence split the Jarvis service uses (so the audio it prepared ahead matches exactly).
+export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
 
-// ---- natural voice -----------------------------------------------------------------------------
-let player: AudioPlayer | null = null;
+// What the service needs to prepare the natural voice ahead of time (sent with each voice question).
+export const prepHint = () => (engine === "natural" ? { voice, speed: rate } : undefined);
+
+// ---- one active utterance at a time ----------------------------------------------------------
 let seq = 0;
-let lastNaturalFail = 0;
+let active: { id: number; settle: (r: SpeakResult) => void } | null = null;
+let current: AudioPlayer | null = null;
+let naturalDownUntil = 0;              // after a failure, use the phone voice for a short while (no waiting on a dead server)
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function getPlayer(): AudioPlayer {
-  if (!player) player = createAudioPlayer(null);
-  return player;
-}
+export function isSpeaking() { return active !== null; }
 
-// Play one clip; resolves "ok" when it ends, "fail" if it never starts, "stopped" if replaced.
-function playClip(uri: string, headers: Record<string, string>, my: number, onStart: () => void): Promise<"ok" | "fail" | "stopped"> {
-  return new Promise((res) => {
-    const p = getPlayer();
-    let started = false, finished = false;
-    const end = (r: "ok" | "fail" | "stopped") => { if (finished) return; finished = true; sub.remove(); clearTimeout(t); clearInterval(watch); res(r); };
-    const sub = p.addListener("playbackStatusUpdate", (s: any) => {
-      if (my !== seq) return end("stopped");
-      if (s.playing && !started) { started = true; onStart(); }
-      if (s.didJustFinish) end("ok");
-    });
-    const t = setTimeout(() => { if (!started) end("fail"); }, 15000);
-    const watch = setInterval(() => { if (my !== seq) { p.pause(); end("stopped"); } }, 150);
-    p.replace({ uri, headers });
-    p.setPlaybackRate(rate, "high");
-    p.play();
-  });
-}
-
-async function naturalParts(parts: string[], onPart: (i: number) => void, my: number): Promise<number> {
-  // returns the index of the first sentence NOT spoken (parts.length when all were spoken)
-  const r = await api<{ ids: string[] }>("/v3/voice/prepare", { sentences: parts, voice });
-  if (my !== seq) return parts.length;
-  const [base, tok] = [await server(), await token()];
-  const headers: Record<string, string> = tok ? { Authorization: `Bearer ${tok}` } : {};
-  try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
-  for (let i = 0; i < parts.length; i++) {
-    if (my !== seq) return parts.length;
-    const res = await playClip(`${base}/v3/voice/clip/${r.ids[i]}`, headers, my, () => onPart(i));
-    if (res === "stopped") return parts.length;
-    if (res === "fail") return i;
-  }
-  return parts.length;
-}
-
-// ---- public -----------------------------------------------------------------------------------
+// Cut off whatever is speaking. Its speak() promise settles with "stopped".
 export function stop() {
   seq++;
-  Speech.stop();
-  try { player?.pause(); } catch { /* */ }
+  try { Speech.stop(); } catch { /* */ }
+  try { current?.pause(); } catch { /* */ }
+  const a = active;
+  active = null;
+  a?.settle("stopped");
 }
 
-export const say = (text: string, done?: () => void) => sayParts([text], () => {}, done);
+// ---- natural voice: one file per answer --------------------------------------------------------
+type Meta = { id: string; offsets: number[]; duration: number };
 
-// Speak sentence by sentence, calling onPart(i) as each one starts (used to point at things while talking).
-export function sayParts(parts: string[], onPart: (i: number) => void, done?: () => void) {
-  stop();
-  const my = seq;
-  const finish = () => { if (my === seq) done?.(); };
-  const phoneFrom = (i: number) => {
-    if (my !== seq) return;
-    if (i >= parts.length) return finish();
-    onPart(i);
-    Speech.speak(parts[i], {
-      voice: voiceId, rate: phoneRate(), pitch: 1.0,
-      onDone: () => phoneFrom(i + 1),
-      onStopped: () => { /* stop() already moved seq on */ },
-      onError: () => phoneFrom(i + 1),
-    });
-  };
-  const useNatural = engine === "natural" && Date.now() - lastNaturalFail > 120000;
-  if (!useNatural) return phoneFrom(0);
-  naturalParts(parts, onPart, my)
-    .then((next) => { if (next < parts.length) { lastNaturalFail = Date.now(); phoneFrom(next); } else finish(); })
-    .catch(() => { lastNaturalFail = Date.now(); phoneFrom(0); });
+async function fetchMeta(parts: string[], id?: string): Promise<Meta> {
+  if (id) return api<Meta>(`/v3/voice/answer/${id}`, undefined, 30000);       // already being made since the answer was written
+  return api<Meta>("/v3/voice/answer", { sentences: parts, voice, speed: rate }, 30000);
 }
 
-// Speak and wait; resolves early when stopped (used by the tour; the Skip button calls stop()).
-export function sayAsync(text: string): Promise<void> {
+// each play gets its own file (two plays of the same words must not delete each other's audio)
+async function download(id: string, my: number): Promise<File> {
+  const [base, tok] = [await server(), await token()];
+  const f = new File(Paths.cache, `ananta-voice-${id}-${my}.mp3`);
+  return File.downloadFileAsync(`${base}/v3/voice/answer/${id}/audio`, f,
+    { headers: tok ? { Authorization: `Bearer ${tok}` } : {}, idempotent: true });
+}
+
+// "ok" | "stopped" | "failed" (could not start: caller falls back to the phone voice for the whole answer)
+async function playNatural(parts: string[], onPart: (i: number) => void, my: number, id?: string): Promise<"ok" | "stopped" | "failed"> {
+  let meta: Meta, file: File;
+  try {
+    if (id) [meta, file] = await Promise.all([fetchMeta(parts, id), download(id, my)]);   // both at once: saves a round trip
+    else { meta = await fetchMeta(parts); file = await download(meta.id, my); }
+    if (my !== seq) return "stopped";
+  } catch {
+    return "failed";
+  }
+  try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
+  if (my !== seq) return "stopped";
+  const p = createAudioPlayer({ uri: file.uri });
+  current = p;
+  let finished = false;
+  const sub = p.addListener("playbackStatusUpdate", (st: any) => { if (st?.didJustFinish) finished = true; });
+  try {
+    p.play();
+    const t0 = Date.now();
+    let started = 0, part = -1;
+    const offs = meta.offsets?.length ? meta.offsets : [0];
+    while (true) {
+      await sleep(80);
+      if (my !== seq) { try { p.pause(); } catch { /* */ } return "stopped"; }
+      const t = p.currentTime || 0;
+      if (!started) {
+        if (p.playing || t > 0.02) started = Date.now();
+        else if (Date.now() - t0 > 6000) return "failed";
+        else { if (p.isLoaded && Date.now() - t0 > 500) { try { p.play(); } catch { /* */ } } continue; }
+      }
+      // highlight: the sentence whose start the playback has reached
+      let k = 0;
+      for (let i = 0; i < offs.length; i++) if (t + 0.05 >= offs[i]) k = i;
+      if (k > part) { for (let i = part + 1; i <= k; i++) onPart(i); part = k; }
+      const dur = meta.duration || p.duration || 0;
+      if (finished) return "ok";
+      if (dur > 0 && t >= dur - 0.08) return "ok";
+      if (dur > 0 && !p.playing && t >= dur - 0.4) return "ok";
+      if (Date.now() - started > (dur > 0 ? dur * 1000 + 2500 : 60000)) return "ok";     // watchdog: never hang
+    }
+  } finally {
+    sub.remove();
+    try { p.remove(); } catch { /* */ }
+    if (current === p) current = null;
+    try { file.delete(); } catch { /* */ }
+  }
+}
+
+// ---- phone voice -------------------------------------------------------------------------------
+// expo-speech's 1.0 is brisk on iOS; scale so 1.0 here sounds like a normal talking pace.
+function playPhone(parts: string[], onPart: (i: number) => void, my: number): Promise<"ok" | "stopped"> {
   return new Promise((res) => {
-    let done = false, w: any = null;
-    const end = () => { if (!done) { done = true; clearInterval(w); res(); } };
-    sayParts([text], () => {}, end);
-    const my = seq;
-    w = setInterval(() => { if (my !== seq) end(); }, 200);
+    let settled = false;
+    const end = (r: "ok" | "stopped") => { if (!settled) { settled = true; clearInterval(w); res(r); } };
+    const w = setInterval(() => { if (my !== seq) end("stopped"); }, 200);
+    const next = (i: number) => {
+      if (my !== seq) return end("stopped");
+      if (i >= parts.length) return end("ok");
+      onPart(i);
+      Speech.speak(parts[i], {
+        voice: voiceId, rate: rate * 0.92, pitch: 1.0,
+        onDone: () => next(i + 1),
+        onStopped: () => end("stopped"),
+        onError: () => next(i + 1),
+      });
+    };
+    setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {}).finally(() => next(0));
   });
 }
 
-// Make the first sentences of the next things to say ahead of time (the tour uses this).
+// ---- public ------------------------------------------------------------------------------------
+// Speak these sentences; onPart(i) fires as sentence i starts. Always settles.
+export function speak(parts: string[], onPart: (i: number) => void = () => {}, id?: string): Promise<SpeakResult> {
+  stop();
+  const my = ++seq;
+  parts = parts.map((x) => x.trim()).filter(Boolean);
+  return new Promise<SpeakResult>((resolve) => {
+    let settled = false;
+    const settle = (r: SpeakResult) => { if (settled) return; settled = true; if (active?.id === my) active = null; resolve(r); };
+    active = { id: my, settle };
+    if (!parts.length) return settle("done");
+    (async () => {
+      const wantNatural = engine === "natural" && Date.now() > naturalDownUntil;
+      if (wantNatural) {
+        const r = await playNatural(parts, onPart, my, id);
+        if (r === "ok") { lastEngine = "natural"; lastNote = ""; return settle("done"); }
+        if (r === "stopped" || my !== seq) return settle("stopped");
+        naturalDownUntil = Date.now() + 60000;              // the Mac's voice didn't answer: phone voice for a minute
+        lastNote = "The natural voice didn't answer, so the phone voice spoke.";
+      }
+      const r2 = await playPhone(parts, onPart, my);
+      lastEngine = "phone";
+      settle(r2 === "ok" ? "done" : "stopped");
+    })().catch(() => settle("done"));
+  });
+}
+
+export const speakText = (text: string) => speak(sentences(text));
+
+// Older callback style (kept for screens that use it).
+export function sayParts(parts: string[], onPart: (i: number) => void, done?: () => void) {
+  speak(parts, onPart).then(() => done?.());
+}
+export const say = (text: string, done?: () => void) => sayParts(sentences(text), () => {}, done);
+export const sayAsync = (text: string) => speakText(text).then(() => undefined);
+
+// Make the tour's audio ahead of time, step by step (each step is one file).
 export function warm(texts: string[]) {
-  if (engine !== "natural" || !texts.length) return;
-  api("/v3/voice/prepare", { sentences: texts.slice(0, 24), voice }).catch(() => {});
+  if (engine !== "natural" || Date.now() < naturalDownUntil) return;
+  texts.slice(0, 24).forEach((t) => api("/v3/voice/answer", { sentences: sentences(t), voice, speed: rate, wait: false }).catch(() => {}));
 }

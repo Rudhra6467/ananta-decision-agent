@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Animated, AppState, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
+import { requestRecordingPermissionsAsync } from "expo-audio";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { getScreen, setScreen, setVoiceLive, useScreen } from "../../src/context";
+import { getScreen, setScreen, setVoiceLive, tourCommand, useScreen } from "../../src/context";
 import * as UI from "../../src/uiagent";
 import { clearSpot, setScroller } from "../../src/spotlight";
 import { StageCard } from "../../src/voice";
@@ -10,6 +11,8 @@ import { useData } from "../../src/useData";
 import { api } from "../../src/api";
 import { useMic } from "../../src/mic";
 import * as TTS from "../../src/tts";
+import * as Haptics from "../../src/haptics";
+import { VoiceLoop, type Phase } from "../../src/voiceloop";
 import { Bullet, Divider, Pill, Segmented, T } from "../../src/ui";
 import { C } from "../../src/theme";
 
@@ -120,8 +123,9 @@ export default function Ananta() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [claude, setClaude] = useState(false);
-  const [live, setLive] = useState(false);                 // voice mode
-  const [speaking, setSpeaking] = useState(false);
+  const [phase, setPhase] = useState<Phase>("off");         // voice mode: off / listening / thinking / speaking
+  const live = phase !== "off";
+  const [note, setNote] = useState("");
   const [sessions, setSessions] = useState(false);
   const [qcat, setQcat] = useState("portfolio");
   const [err, setErr] = useState<string | null>(null);
@@ -129,13 +133,16 @@ export default function Ananta() {
   const { data: sg } = useData("/v3/ask/suggestions", 0);
   const scroll = useRef<ScrollView>(null);
   const lastParam = useRef<string | undefined>(undefined);
-  const liveRef = useRef(false), threadRef = useRef<string | null>(null), claudeRef = useRef(false), dictating = useRef(false);
-  liveRef.current = live; threadRef.current = thread; claudeRef.current = claude;
+  const threadRef = useRef<string | null>(null), claudeRef = useRef(false), dictating = useRef(false);
+  threadRef.current = thread; claudeRef.current = claude;
   useEffect(() => { TTS.init(); }, []);
   const sst = useRef({ offset: { y: 0 }, height: { h: 0 }, content: { h: 0 } }).current;
   useFocusEffect(useCallback(() => { setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); setScroller({ ref: scroll, ...sst }); }, []));
-  const where = () => ({ here: getScreen() ?? undefined, about: ctx ?? undefined,
-    tts: liveRef.current && TTS.engine === "natural" ? { voice: TTS.voice } : undefined });
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
+  // what is on screen (so Ananta knows where he is) + for spoken answers, which voice to prepare ahead
+  const where = (voice = false) => ({ here: getScreen() ?? undefined, about: ctxRef.current ?? undefined,
+    tts: voice ? TTS.prepHint() : undefined });
   useEffect(() => { setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [msgs.length, busy]);
   const [kb, setKb] = useState(false);
   useEffect(() => {
@@ -152,108 +159,169 @@ export default function Ananta() {
     if (txt) Share.share({ message: txt, title: "Ananta session" });
   };
 
-  const listenAgain = () => { if (liveRef.current) setTimeout(() => mic.start(), 250); };
-  const speak = (t: string) => {
-    setSpeaking(true);
-    TTS.say(t, () => { setSpeaking(false); listenAgain(); });
-  };
-
-  const handleAnswer = async (r: any, spoken: boolean) => {
+  // ---- typed (or dictated) questions: answers are shown, not spoken ----
+  const handleTextAnswer = async (r: any) => {
     if (r.thread) setThread(r.thread);
-    setMsgs((m) => [...m, { role: "assistant", voice: spoken, ...r }]);
-    if (r.tour?.length) {                                      // guided tour: talk + move + point, step by step
-      const wasLive = liveRef.current;
-      if (wasLive) mic.cancel();
-      setSpeaking(true);
-      TTS.warm(r.tour.map((s: any) => s.say));
-      await UI.playTour(r.tour, (t) => TTS.sayAsync(t));
-      setSpeaking(false);
-      if (wasLive) listenAgain();
+    setMsgs((m) => [...m, { role: "assistant", ...r }]);
+    if (r.tour?.length) {                                      // guided tour: talk + move + point, step by step (stops if voice mode starts)
+      await UI.playTour(r.tour, (t) => TTS.speakText(t), () => !loopRef.current?.on);
       return;
     }
-    let failNote = "";
-    if (r.ui?.length) {                                         // move the screen first, then talk (only what really happened counts)
+    if (r.ui?.length) {                                         // move the screen first (only what really happened counts)
       const res = await UI.run(r.ui);
       const bad = res.filter((x) => !x.ok);
       if (bad.length) {
-        failNote = `I couldn't open ${bad.map((b) => b.action.label ?? b.action.target).join(", ")}. You're still on ${getScreen()?.label ?? "the same screen"}.`;
+        const failNote = `I couldn't open ${bad.map((b) => b.action.label ?? b.action.target).join(", ")}. You're still on ${getScreen()?.label ?? "the same screen"}.`;
         setMsgs((m) => [...m, { role: "assistant", kind: "answer", answer: failNote, model_label: "App" }]);
       }
     }
-    if (spoken && liveRef.current) {
-      const t = [r.error ?? r.answer, failNote].filter(Boolean).join(" ");
-      if (!t) { listenAgain(); return; }
-      setSpeaking(true);
-      UI.pointAlong(t, r.points, (parts, onPart) => TTS.sayParts(parts, onPart, () => { setSpeaking(false); clearSpot(); listenAgain(); }));
-    } else if (r.points?.length) {
-      UI.pointAlong(r.answer ?? "", r.points);
-    }
+    if (r.points?.length) UI.pointAlong(r.answer ?? "", r.points);
   };
 
-  const send = async (q: string, spoken = false) => {
+  const send = async (q: string) => {
     q = q.trim();
     if (!q || busy) return;
     setText("");
     setErr(null);
-    setMsgs((m) => [...m, { role: "user", text: q, voice: spoken }]);
+    setMsgs((m) => [...m, { role: "user", text: q }]);
     setBusy(true);
     try {
-      const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: claudeRef.current ? "deep" : "everyday", context: where() });
-      handleAnswer(r, spoken || liveRef.current);
+      const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: claudeRef.current ? "deep" : "auto", context: where() });
+      handleTextAnswer(r);
     } catch (e: any) {
-      handleAnswer({ error: e?.message ?? String(e) }, spoken || liveRef.current);
+      handleTextAnswer({ error: e?.message ?? String(e) });
     } finally {
       setBusy(false);
     }
   };
+
+  // ---- voice mode: one state machine (src/voiceloop.ts) drives listen -> think -> speak -> listen ----
+  // What Ananta says aloud for an answer: the answer, the "did you mean" choices, and any screen it could not open.
+  const spokenText = (r: any, failNote: string) => {
+    let t = String(r.error ?? r.answer ?? "");
+    const opts: string[] = r.kind === "clarify" ? (r.options ?? []).slice(0, 4) : [];
+    if (opts.length && !opts.every((o) => t.toLowerCase().includes(String(o).toLowerCase()))) {
+      t += ` Did you mean ${opts.slice(0, -1).join(", ")}${opts.length > 1 ? ", or " : ""}${opts[opts.length - 1]}?`;
+    }
+    return [t, failNote].filter(Boolean).join(" ");
+  };
+
+  const micRef = useRef<ReturnType<typeof useMic> | null>(null);
+  const loopRef = useRef<VoiceLoop | null>(null);
+  const lastActive = useRef(Date.now());
+  if (!loopRef.current) {
+    loopRef.current = new VoiceLoop({
+      micStart: (force, wanted) => micRef.current!.start(force, wanted),
+      micStop: () => micRef.current!.cancel(),
+      micSend: () => micRef.current!.send(),
+      micBusy: () => micRef.current!.busy(),
+      micState: () => micRef.current!.state(),
+      ask: async (b64, current) => {
+        let r: any;
+        try {
+          r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
+            mode: claudeRef.current ? "deep" : "auto", context: where(true) }, 60000);
+        } catch (e: any) {
+          r = { error: e?.message ?? String(e) };
+        }
+        if (!current()) return r;                              // cancelled, ended or a new session meanwhile: leave the screen alone
+        if (r.thread) setThread(r.thread);
+        if (r.heard) setMsgs((m) => [...m, { role: "user", text: r.heard, voice: true }]);
+        if (r.answer || r.error || r.tour?.length) setMsgs((m) => [...m, { role: "assistant", voice: true, ...r }]);
+        return r;
+      },
+      respond: async (r, current) => {
+        if (r.tour?.length) {                                  // one step at a time; each step tells the watchdog it is still busy
+          await UI.playTour(r.tour, (t) => { loopRef.current?.touch(); return TTS.speakText(t); }, current);
+          return;
+        }
+        let failNote = "";
+        if (r.ui?.length && current()) {                       // move the screen first, then talk about it
+          const res = await UI.run(r.ui);
+          const bad = res.filter((x) => !x.ok);
+          if (bad.length) {
+            failNote = `I couldn't open ${bad.map((b) => b.action.label ?? b.action.target).join(", ")}. You're still on ${getScreen()?.label ?? "the same screen"}.`;
+            setMsgs((m) => [...m, { role: "assistant", kind: "answer", answer: failNote, model_label: "App" }]);
+          }
+        }
+        if (!current()) return;
+        // the service already made the audio for r.speak (voice_id); a note about a screen that didn't open is added on top
+        const base = r.speak ?? spokenText(r, "");
+        const t = failNote ? `${base} ${failNote}`.trim() : base;
+        const id = failNote ? undefined : r.voice_id;
+        if (t) await UI.pointAlong(t, r.points, (parts, onPart) => TTS.speak(parts, onPart, id));
+      },
+      stopSpeaking: () => { TTS.stop(); clearSpot(); },
+      onPhase: (p) => {
+        setPhase(p);
+        setVoiceLive(p !== "off");
+        lastActive.current = Date.now();
+        if (p === "thinking") Haptics.tap();                     // you feel it when Ananta got your question
+        if (p !== "listening") setNote("");
+      },
+      onNote: (m) => setNote(m),
+    });
+  }
+  const loop = loopRef.current;
 
   const onTurn = async (b64: string) => {
+    if (loop.on) { loop.onAudio(b64); return; }
+    if (!dictating.current) return;
+    dictating.current = false;                                   // mic button: the words become the question
     setBusy(true);
     try {
-      if (dictating.current) {                                     // mic button: words go into the question and are sent
-        dictating.current = false;
-        const r = await api("/v3/voice/transcribe", { audio_b64: b64, mime: "audio/wav" });
-        setBusy(false);
-        if (r.text) send(r.text, false); else setErr("I didn't catch that. Try again a little closer to the phone.");
-        return;
-      }
-      const r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
-        mode: claudeRef.current ? "deep" : "everyday", context: where() });
-      if (r.heard) setMsgs((m) => [...m, { role: "user", text: r.heard, voice: true }]);
-      if (!r.heard && !r.answer) { setBusy(false); listenAgain(); return; }      // nothing said: keep listening quietly
-      handleAnswer(r, true);
-    } catch (e: any) {
-      handleAnswer({ error: e?.message ?? String(e) }, true);
-    } finally {
+      const r = await api("/v3/voice/transcribe", { audio_b64: b64, mime: "audio/wav" });
       setBusy(false);
+      if (r.text) send(r.text); else setErr("I didn't catch that. Try again a little closer to the phone.");
+    } catch (e: any) {
+      setBusy(false);
+      setErr(e?.message ?? String(e));
     }
   };
-  const mic = useMic(onTurn, () => { if (liveRef.current) listenAgain(); });
+  const onNoSpeech = () => {
+    if (loop.on) { loop.onNoSpeech(); return; }
+    if (dictating.current) { dictating.current = false; setErr("I didn't hear anything. Tap the mic and try again."); }
+  };
+  const mic = useMic(onTurn, onNoSpeech);
+  micRef.current = mic;
 
   const startLive = async () => {
+    if (loop.on) return;                                         // extra taps do nothing
+    const p = await requestRecordingPermissionsAsync();
+    if (!p.granted) { setErr("Microphone permission is off. Allow it for Expo Go in iPhone Settings."); return; }
+    if (loop.on) return;
+    setErr(null);
+    tourCommand("stop");                                         // a tour that was talking stops
     TTS.stop();
-    setLive(true);
-    liveRef.current = true;
-    setVoiceLive(true);
-    const ok = await mic.start();
-    if (!ok) { setLive(false); setErr("Microphone permission is off. Allow it for Expo Go in iPhone Settings."); }
+    Keyboard.dismiss();
+    loop.start();
   };
-  const endLive = () => { setLive(false); liveRef.current = false; setVoiceLive(false); TTS.stop(); setSpeaking(false); mic.cancel(); };
+  const endLive = () => { loop.end(); clearSpot(); };
   const dictate = async () => {
     if (mic.status !== "idle") { mic.send(); return; }
     dictating.current = true;
     const ok = await mic.start();
     if (!ok) { dictating.current = false; setErr("Microphone permission is off. Allow it for Expo Go in iPhone Settings."); }
   };
+  const pickVoice = (v: string) => {
+    if (v === "Phone") TTS.setEngine("phone"); else { TTS.setEngine("natural"); TTS.setVoice(v); }
+    const sample = () => TTS.speakText(v === "Phone" ? "This is the phone voice." : "Hi Madhav, this is how I sound now.").then(() => undefined);
+    if (!loop.on) { sample(); return; }
+    loop.aside(sample).then((played) => { if (!played) setNote(`Voice set to ${v}. You'll hear it on the next answer.`); });
+  };
 
-  // live mode: auto-off after 5 quiet minutes
-  const lastActive = useRef(Date.now());
-  useEffect(() => { lastActive.current = Date.now(); }, [msgs.length]);
+  // voice mode: the watchdog (repairs anything stuck), coming back from the background, and auto-off after 5 quiet minutes
   useEffect(() => {
     if (!live) return;
-    const id = setInterval(() => { if (Date.now() - lastActive.current > 5 * 60000) { endLive(); setErr("Voice mode turned itself off after 5 quiet minutes."); } }, 10000);
-    return () => clearInterval(id);
+    const id = setInterval(() => {
+      loop.tick();
+      if (Date.now() - lastActive.current > 5 * 60000) { endLive(); setErr("Voice mode turned itself off after 5 quiet minutes."); }
+    }, 1000);
+    const sub = AppState.addEventListener("change", (s) => { if (s === "active") loop.resume(); });
+    return () => { clearInterval(id); sub.remove(); };
   }, [live]);
+  useEffect(() => { if (mic.status === "hearing") lastActive.current = Date.now(); }, [mic.status]);
+  useEffect(() => () => { loop.end(); }, []);
 
   useEffect(() => {
     if (params.q && params.t !== lastParam.current) {
@@ -270,7 +338,7 @@ export default function Ananta() {
   const second = async (m: Msg) => {
     if (!m.id || busy) return;
     setBusy(true);
-    try { handleAnswer(await api("/v3/ask/second", { id: m.id }), false); } catch (e: any) { handleAnswer({ error: e?.message }, false); } finally { setBusy(false); }
+    try { handleTextAnswer(await api("/v3/ask/second", { id: m.id })); } catch (e: any) { handleTextAnswer({ error: e?.message }); } finally { setBusy(false); }
   };
   const newSession = () => { endLive(); setMsgs([]); setThread(null); setSessions(false); };
   const openSession = async (th: string) => {
@@ -283,14 +351,17 @@ export default function Ananta() {
 
   const qs: string[] = (sg?.[qcat] as string[]) ?? sg?.questions ?? [];
   const micLabel = { idle: "", listening: "Listening…", hearing: "Hearing you…", sending: "Got it…" }[mic.status];
-  const liveLabel = busy ? "Thinking…" : speaking ? "Speaking · tap to interrupt" : mic.status === "hearing" ? "Hearing you…" : mic.status === "sending" ? "Got it…" : "Listening… just talk";
+  const hearing = live && phase === "listening" && mic.status === "hearing";
+  const liveLabel = phase === "thinking" ? "Thinking…  ·  tap to cancel" : phase === "speaking" ? "Speaking  ·  tap to stop and talk"
+    : hearing ? "Hearing you…  ·  tap when done" : mic.status === "sending" ? "Got it…" : "Listening…  just talk";
+  const voiceNote = note || (TTS.lastEngine === "phone" && TTS.engine === "natural" ? TTS.lastNote : "");
 
   if (sessions) return <Sessions onOpen={openSession} onNew={newSession} onBack={() => setSessions(false)} />;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingTop: 8 }}>
-        <Text style={{ color: claude ? C.faint : C.text, fontWeight: "700" }}>Gemini</Text>
+        <Text style={{ color: claude ? C.faint : C.text, fontWeight: "700" }}>Auto</Text>
         <Switch value={claude} onValueChange={setClaude} trackColor={{ true: C.accent, false: C.line }} />
         <Text style={{ color: claude ? C.text : C.faint, fontWeight: "700" }}>Claude</Text>
         <View style={{ flex: 1 }} />
@@ -317,7 +388,7 @@ export default function Ananta() {
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
           <View key={i} style={{ gap: 8 }}>
             <Answer m={m} onPick={(q) => send(q)} onRate={(v) => rate(m, v)} onSecond={() => second(m)}
-              onSpeak={() => { TTS.stop(); setSpeaking(true); UI.pointAlong(m.answer ?? "", m.points, (parts, onPart) => TTS.sayParts(parts, onPart, () => { setSpeaking(false); clearSpot(); listenAgain(); })); }} />
+              onSpeak={live ? undefined : () => { UI.pointAlong(m.answer ?? "", m.points, (parts, onPart) => TTS.speak(parts, onPart)); }} />
             {m.voice && i === msgs.length - 1 ? (m.show ?? []).slice(0, 1).map((sh: any, k: number) => <StageCard key={k} sh={sh} open={() => openScreen(sh)} />) : null}
           </View>
         )))}
@@ -363,8 +434,8 @@ export default function Ananta() {
       ) : null}
 
       {live ? (
-        <LivePanel label={liveLabel} hearing={mic.status === "hearing"} speaking={speaking} level={mic.level}
-          onOrb={() => { if (speaking) { TTS.stop(); } else if (mic.status === "hearing") mic.send(); }} onEnd={endLive}
+        <LivePanel label={liveLabel} phase={phase} hearing={hearing} level={mic.level} note={voiceNote}
+          onOrb={() => { Haptics.soft(); loop.tap(); }} onEnd={endLive} onVoice={pickVoice}
           rateLabel={TTS.rate} onRate={(r) => TTS.setRate(r)} />
       ) : (
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
@@ -391,44 +462,46 @@ export default function Ananta() {
   );
 }
 
-function LivePanel({ label, hearing, speaking, level, onOrb, onEnd, rateLabel, onRate }: {
-  label: string; hearing: boolean; speaking: boolean; level: number; onOrb: () => void; onEnd: () => void;
-  rateLabel: number; onRate: (r: number) => void;
+// Voice mode panel. The orb shows what Ananta is doing; one tap always does the obvious thing:
+// blue = listening (tap: restart the mic) · red = hearing you (tap: done talking) · amber = thinking (tap: cancel) ·
+// green = speaking (tap: stop and talk).
+function LivePanel({ label, phase, hearing, level, note, onOrb, onEnd, rateLabel, onRate, onVoice }: {
+  label: string; phase: Phase; hearing: boolean; level: number; note: string; onOrb: () => void; onEnd: () => void;
+  rateLabel: number; onRate: (r: number) => void; onVoice: (v: string) => void;
 }) {
   const pulse = useRef(new Animated.Value(1)).current;
   const [r, setR] = useState(rateLabel);
   const [vc, setVc] = useState(TTS.engine === "phone" ? "Phone" : TTS.voice);
-  const pickVoice = (v: string) => {
-    setVc(v);
-    if (v === "Phone") TTS.setEngine("phone"); else { TTS.setEngine("natural"); TTS.setVoice(v); }
-    TTS.say(v === "Phone" ? "This is the phone voice." : "Hi Madhav, this is how I sound now.");
-  };
+  const fast = phase === "thinking";
   useEffect(() => {
-    const a = Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: 1.1, duration: 700, useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true })]));
+    const d = fast ? 350 : 800;
+    const a = Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: fast ? 1.06 : 1.1, duration: d, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1, duration: d, useNativeDriver: true })]));
     a.start();
     return () => a.stop();
-  }, []);
+  }, [fast]);
   const lv = Math.max(0, Math.min(1, (level + 60) / 50));
+  const color = phase === "speaking" ? C.good : phase === "thinking" ? C.warn : hearing ? C.bad : C.accent;
   return (
     <View style={{ alignItems: "center", gap: 10, paddingVertical: 14, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
-      <Pressable onPress={onOrb}>
+      <Pressable onPress={onOrb} hitSlop={16} accessibilityLabel={label}>
         <Animated.View style={{ transform: [{ scale: hearing ? 1 + lv * 0.25 : pulse }], width: 92, height: 92, borderRadius: 46,
-          backgroundColor: speaking ? C.good : hearing ? C.bad : C.accent, opacity: 0.92 }} />
+          backgroundColor: color, opacity: 0.92 }} />
       </Pressable>
       <Text style={{ color: C.text, fontWeight: "600" }}>{label}</Text>
+      {note ? <Text style={{ color: C.dim, fontSize: 12, textAlign: "center", paddingHorizontal: 20 }}>{note}</Text> : null}
       <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-        <Text style={{ color: C.dim, fontSize: 12 }}>Voice speed</Text>
+        <Text style={{ color: C.dim, fontSize: 12 }}>Speed</Text>
         {TTS.RATES.map((x) => (
           <Pressable key={x} onPress={() => { setR(x); onRate(x); }} style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: r === x ? C.text : C.card2 }}>
             <Text style={{ color: r === x ? "#FFF" : C.text, fontSize: 12 }}>{String(x)}×</Text>
           </Pressable>
         ))}
       </View>
-      <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+      <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center", paddingHorizontal: 12 }}>
         <Text style={{ color: C.dim, fontSize: 12 }}>Voice</Text>
         {[...TTS.VOICES, "Phone"].map((v) => (
-          <Pressable key={v} onPress={() => pickVoice(v)} style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: vc === v ? C.text : C.card2 }}>
+          <Pressable key={v} onPress={() => { setVc(v); onVoice(v); }} style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: vc === v ? C.text : C.card2 }}>
             <Text style={{ color: vc === v ? "#FFF" : C.text, fontSize: 12 }}>{v}</Text>
           </Pressable>
         ))}

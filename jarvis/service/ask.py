@@ -186,16 +186,45 @@ def _label_outside(reply: dict, found: list[dict]) -> None:
     reply["outside"] = {"source": "CoinGecko", "note": "Searched outside our system and found no exact match."}
 
 
-def _pre_voice(context, text) -> None:
-    """When the app will speak this answer in the natural voice, start making the audio now (saves a round trip)."""
+def _pre_voice(context, text):
+    """When the app will speak this answer in the natural voice, start making its audio now, so it is usually ready
+    by the time the phone asks for it. A list (the tour) is one audio file per step. Returns the audio id(s), or None."""
     try:
         tts = context.get("tts") if isinstance(context, dict) else None
         if isinstance(tts, dict) and tts.get("voice") and text:
             from jarvis.service import speech
 
-            speech.prepare(text if isinstance(text, list) else speech.sentences(text), str(tts["voice"]))
+            speed = float(tts.get("speed") or 0.9)
+            ids = [speech.prepare_answer(speech.sentences(item), str(tts["voice"]), speed) for item in (text if isinstance(text, list) else [text])]
+            return ids if isinstance(text, list) else ids[0]
     except Exception:  # noqa: BLE001
         pass
+    return None
+
+
+VOICE_WORDS = 60
+THANKS = re.compile(r"^\s*(thanks|thank you|thank you so much|thanks a lot|cheers)[\s.!,]*(madhav|ananta|jarvis)?[\s.!]*$", re.I)
+OKAY = re.compile(r"^\s*(ok|okay|cool|great|nice|got it|perfect|alright|all right|stop|cancel|never ?mind|that'?s all|that is all)[\s.!,]*(ananta|jarvis)?[\s.!]*$", re.I)
+REPEAT = re.compile(r"\b(say (that|it) again|repeat (that|it|please|yourself)|come again|pardon( me)?|what did you (just )?say|one more time)\b", re.I)
+
+
+def speak_text(reply: dict) -> str:
+    """What Ananta says aloud: the answer's first sentences (about 60 words at most; the rest stays on screen) and, for a
+    'did you mean', the choices, so he can just say which one."""
+    from jarvis.service import speech
+
+    out, n = [], 0
+    for x in speech.sentences(reply.get("answer") or ""):
+        w = len(x.split())
+        if out and n + w > VOICE_WORDS:
+            break
+        out.append(x)
+        n += w
+    t = " ".join(out)
+    opts = [str(o) for o in (reply.get("options") or [])][:4] if reply.get("kind") == "clarify" else []
+    if opts and not all(o.lower() in t.lower() for o in opts):
+        t += " Did you mean " + (", ".join(opts[:-1]) + ", or " if len(opts) > 1 else "") + opts[-1] + "?"
+    return t
 
 
 class Lookups:
@@ -557,13 +586,14 @@ def local_up() -> bool:
 
 
 def route(text: str) -> tuple[str, str]:
-    """Auto mode, cheapest level that can do it: investigations to Claude Sonnet; routine questions to the Mac's model
-    (free; a weak answer is escalated automatically); free Gemini when the Mac's model is not running."""
+    """Auto mode, cheapest level that can do it well and fast: investigations to Claude Sonnet, routine questions to Claude Haiku
+    (about 0.5 cents). The Mac's model is too slow for live answers on a MacBook Air (20-80 s), so it does background jobs (mode
+    "worker"). Over budget, Haiku/Sonnet fall back to Gemini like before."""
     if len(text) > 160 or DEEP_WORDS.search(text):
-        return "sonnet", "Auto picked Claude: this needs investigation"
-    if local_up():
-        return "local", "Auto picked the Mac's model: routine question"
-    return "gemini", "Auto picked Gemini: everyday question"
+        return "sonnet", "Auto: Claude Sonnet, this needs investigation"
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return "haiku", "Auto: Claude Haiku, routine question"
+    return "gemini", "Auto: Gemini, everyday question"
 
 
 def _local_doubt(raw: str, context: str) -> str:
@@ -1048,6 +1078,8 @@ class Ask:
         if quick:
             return quick
         key, mode_label, note = self._pick(text, mode, provider)
+        if voice and mode_label == "auto" and key == "haiku":   # talking: speed matters most; Sonnet answers in ~5 s, Haiku took 10-15 s
+            key, note = "sonnet", "Auto: Claude Sonnet for voice (fastest to answer)"
         if source != "eval" and self.today_count() >= DAILY_LIMIT:
             raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
         if MODELS[key]["provider"] == "claude" and source == "eval":
@@ -1073,8 +1105,10 @@ class Ask:
         if second_of:
             notes.append("[conversation note: the owner asked for a second opinion on this question; answer it independently from the data]")
         if voice:
-            notes.append("[voice session: the 'answer' is spoken aloud. Make it sound like talking: a short lead-in, then 2-3 short sentences, rounded numbers, "
-                         "no symbols, tables or abbreviations (say 'percent', 'dollars', 'Bitcoin'). Keep breakdown to 3 bullets; use 'show' to put the right chart on screen]")
+            notes.append("[voice session: the 'answer' is SPOKEN aloud, so keep it short like talking: at most 3 short sentences and about 40 words "
+                         "in total (a greeting counts), the most important thing first. Rounded numbers; no symbols, tables or abbreviations "
+                         "(say 'percent', 'dollars', 'Bitcoin'). Details go in 'breakdown' (shown on screen, not spoken). Keep the JSON small so it arrives "
+                         "fast: breakdown at most 2 bullets, evidence at most 2 items, follow_ups at most 2. Only move the screen (ui_go) when he asks to see something]")
         prev = self.j.db.execute("SELECT route FROM ask_messages WHERE thread=? AND role='assistant' AND route IS NOT NULL ORDER BY t DESC, rowid DESC LIMIT 1",
                                  (thread,)).fetchone()
         from jarvis.service import briefs as B
@@ -1213,15 +1247,34 @@ class Ask:
                            route_name, json.dumps(timing)))
         self.j.db.commit()
         self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
-        _pre_voice(context, reply.get("answer"))
+        if voice:
+            reply["speak"] = speak_text(reply)                       # what is said aloud (the full answer stays on screen)
+        vid = _pre_voice(context, reply.get("speak") or reply.get("answer"))
+        if vid:
+            reply["voice_id"] = vid                                  # its audio is already being made: the phone fetches it directly
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
+
+    def _small_talk(self, text: str, thread: str) -> dict | None:
+        """Instant replies that need no model: thanks / okay / stop, and "say that again"."""
+        t = (text or "").strip()
+        if REPEAT.search(t) and len(t.split()) <= 8:
+            row = self.j.db.execute("SELECT reply FROM ask_messages WHERE thread=? AND role='assistant' AND reply IS NOT NULL ORDER BY t DESC, rowid DESC LIMIT 1",
+                                    (thread,)).fetchone()
+            prev = json.loads(row[0]) if row and row[0] else {}
+            said = prev.get("speak") or prev.get("answer")
+            return {"ui": [], "say": said or "I haven't said anything yet in this conversation."}
+        if THANKS.match(t):
+            return {"ui": [], "say": "You're welcome, Madhav."}
+        if OKAY.match(t):
+            return {"ui": [], "say": "Okay."}
+        return None
 
     def _quick(self, who: str, text: str, thread: str, voice: bool, source: str, context=None) -> dict | None:
         """Plain navigation commands are done instantly, with no model call."""
         from jarvis.service import appmap
 
         try:
-            q = appmap.quick_command(self.j, text)
+            q = self._small_talk(text, thread) or appmap.quick_command(self.j, text)
         except Exception:  # noqa: BLE001
             q = None
         if not q:
@@ -1236,7 +1289,9 @@ class Ask:
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
                           "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0, "[]", 0.0, "nav", "app"))
         self.j.db.commit()
-        _pre_voice(context, q["say"] if not q.get("tour") else [st["say"] for st in q["tour"]])
+        vid = _pre_voice(context, q["say"] if not q.get("tour") else [st["say"] for st in q["tour"]])
+        if vid and not q.get("tour"):
+            reply["speak"], reply["voice_id"] = q["say"], vid
         return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply}
 
     # ---- voice ----

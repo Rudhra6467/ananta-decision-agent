@@ -32,7 +32,7 @@ def owner(authorization: str = Header(default="")) -> str:
 
 
 # A guest (a friend checking what we built) can look at everything and ask Ananta questions, but cannot change anything.
-GUEST_POST_OK = ("/v3/ask", "/v3/ask/second", "/v3/voice/turn", "/v3/voice/transcribe", "/v3/voice/prepare")
+GUEST_POST_OK = ("/v3/ask", "/v3/ask/second", "/v3/voice/turn", "/v3/voice/transcribe", "/v3/voice/prepare", "/v3/voice/answer")
 
 
 @app.middleware("http")
@@ -539,6 +539,58 @@ def voice_transcribe(b: Audio, who: str = Depends(owner)) -> dict:
     return {"text": _run(A().transcribe, b.audio_b64, b.mime)}
 
 
+class AnswerVoice(BaseModel):
+    sentences: list[str]
+    voice: str = "Calm"
+    speed: float = 0.9
+    wait: bool = True
+
+
+@app.post("/v3/voice/answer")
+def voice_answer(b: AnswerVoice, who: str = Depends(owner)) -> dict:
+    """The whole answer as one audio file in one voice, with the start time of each sentence (for highlights).
+    wait=false only starts making it (used to get the tour ready ahead)."""
+    from jarvis.service import speech
+
+    if A().setting("voice_enabled") != "1":
+        raise HTTPException(status_code=400, detail="Voice is switched off in the Cockpit")
+    key = speech.prepare_answer(b.sentences, b.voice, b.speed)
+    if not b.wait:
+        return {"id": key}
+    try:
+        return speech.answer_meta(key, 30)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=f"natural voice unavailable ({str(exc)[:80]})") from exc
+
+
+@app.get("/v3/voice/answer/{key}")
+def voice_answer_meta(key: str, who: str = Depends(owner)) -> dict:
+    """Sentence start times etc. for audio that is already being made (e.g. right after an answer); waits until it is ready."""
+    from jarvis.service import speech
+
+    try:
+        return speech.answer_meta(key, 30)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="unknown answer audio") from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=f"natural voice unavailable ({str(exc)[:80]})") from exc
+
+
+@app.get("/v3/voice/answer/{key}/audio")
+def voice_answer_audio(key: str, who: str = Depends(owner)):
+    from fastapi.responses import Response
+
+    from jarvis.service import speech
+
+    try:
+        body, ctype = speech.answer_audio(key, 30)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="unknown answer audio") from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=f"natural voice unavailable ({str(exc)[:80]})") from exc
+    return Response(content=body, media_type=ctype, headers={"Cache-Control": "private, max-age=600", "Content-Length": str(len(body))})
+
+
 class SpeakReq(BaseModel):
     sentences: list[str]
     voice: str = "Calm"
@@ -561,7 +613,8 @@ def voice_clip(cid: str, who: str = Depends(owner)):
     from jarvis.service import speech
 
     try:
-        return Response(content=speech.audio(cid), media_type="audio/wav", headers={"Cache-Control": "private, max-age=600"})
+        body, ctype = speech.audio(cid)
+        return Response(content=body, media_type=ctype, headers={"Cache-Control": "private, max-age=600"})
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="unknown clip") from exc
     except Exception as exc:  # noqa: BLE001

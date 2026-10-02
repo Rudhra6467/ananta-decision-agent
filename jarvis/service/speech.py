@@ -1,8 +1,14 @@
-"""Natural voice for Ananta: Kokoro on this Mac first (free, unlimited), Gemini text-to-speech as the backup; one clip per sentence.
+"""Natural voice for Ananta.
 
-The app asks for all sentences of an answer at once (prepare), then plays them in order (audio).
-Each sentence is made in parallel, so the first one is ready quickly and the highlights can follow
-the voice exactly: the app points at a spot when that sentence's clip starts playing.
+Current path (the app uses this): ONE audio file per answer, in ONE voice, made by Kokoro on this Mac (free, unlimited),
+with the start time of every sentence, so the phone highlights things exactly as each sentence is spoken.
+  prepare_answer()  starts making it (also called the moment an answer is written, so it is usually ready before the phone asks)
+  answer_meta()     waits for it: id, sentence start times, length
+  answer_audio()    the MP3
+If the Mac's voice server is not running, this fails and the phone uses its own voice for the whole answer: never a mix of
+voices inside one answer.
+
+Older per-sentence clips (prepare / audio, with Gemini text-to-speech as a backup) are kept for compatibility only.
 Audio is kept in memory only (a short cache), never stored on disk.
 """
 from __future__ import annotations
@@ -102,6 +108,28 @@ def _speak(text: str, voice: str, post=None) -> bytes:
     raise RuntimeError(err)
 
 
+FFMPEG = next((p for p in ("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg") if os.path.exists(p)), None)
+
+
+def to_mp3(wav: bytes) -> tuple[bytes, str]:
+    """Phones get small MP3s (about 10x smaller than WAV), so each sentence arrives quickly over the tunnel."""
+    if not FFMPEG:
+        return wav, "audio/wav"
+    import subprocess
+
+    try:
+        out = subprocess.run([FFMPEG, "-loglevel", "error", "-f", "wav", "-i", "pipe:0", "-ac", "1", "-codec:a", "libmp3lame", "-b:a", "64k", "-f", "mp3", "pipe:1"],
+                             input=wav, capture_output=True, timeout=15).stdout
+        return (out, "audio/mpeg") if len(out) > 200 else (wav, "audio/wav")
+    except Exception:  # noqa: BLE001
+        return wav, "audio/wav"
+
+
+def _speak_mp3(text: str, voice: str, post=None) -> tuple[bytes, str]:
+    wav = _speak(text, voice, post)
+    return to_mp3(wav) if post is None else (wav, "audio/wav")
+
+
 def clip_id(text: str, voice: str) -> str:
     return hashlib.sha1(f"{voice}|{text}".encode()).hexdigest()[:20]
 
@@ -116,7 +144,7 @@ def prepare(texts: list[str], voice: str = DEFAULT_VOICE, post=None) -> list[str
                 continue
             cid = clip_id(t, voice)
             if cid not in _cache:
-                _cache[cid] = _pool.submit(_speak, t, voice, post)
+                _cache[cid] = _pool.submit(_speak_mp3, t, voice, post)
             _cache.move_to_end(cid)
             ids.append(cid)
         while len(_cache) > 300:
@@ -124,7 +152,8 @@ def prepare(texts: list[str], voice: str = DEFAULT_VOICE, post=None) -> list[str
     return ids
 
 
-def audio(cid: str, wait_s: float = 25) -> bytes:
+def audio(cid: str, wait_s: float = 25) -> tuple[bytes, str]:
+    """-> (audio bytes, content type)"""
     with _lock:
         f = _cache.get(cid)
     if not f:
@@ -138,3 +167,65 @@ def duration_s(wav: bytes) -> float:
         return round((len(wav) - 44) / (rate * 2), 2)
     except Exception:  # noqa: BLE001
         return 0.0
+
+
+# ---------------------------------------------------------------------------
+# One file per answer (current path)
+# ---------------------------------------------------------------------------
+_answers: "OrderedDict[str, Future]" = OrderedDict()
+
+
+def norm_sentences(texts: list[str]) -> list[str]:
+    return [t.strip()[:600] for t in (texts or []) if t and t.strip()][:40]
+
+
+def answer_key(sents: list[str], voice: str, speed: float) -> str:
+    return hashlib.sha1(f"{voice}|{float(speed):.2f}|".encode() + "\n".join(sents).encode()).hexdigest()[:24]
+
+
+def _make_answer(sents: list[str], voice: str, speed: float) -> dict:
+    if os.getenv("ANANTA_VOICE_LOCAL", "1") != "1":
+        raise RuntimeError("the Mac's voice is switched off")
+    req = urllib.request.Request(LOCAL + "/speak", data=json.dumps({"sentences": sents, "voice": voice, "speed": speed}).encode(),
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        d = json.load(r)
+    return {"audio": base64.b64decode(d["audio_b64"]), "mime": d.get("mime", "audio/mpeg"), "offsets": d["offsets"],
+            "duration": d["duration"], "engine": "kokoro", "voice": d.get("voice", voice), "ms": d.get("ms")}
+
+
+def prepare_answer(texts: list[str], voice: str = DEFAULT_VOICE, speed: float = 0.9, make=None) -> str:
+    """Start making the whole answer's audio (if not already made or being made); returns its id at once."""
+    sents = norm_sentences(texts)
+    speed = round(max(0.6, min(1.5, float(speed or 0.9))), 2)
+    key = answer_key(sents, voice, speed)
+    with _lock:
+        f = _answers.get(key)
+        if f is not None and f.done() and f.exception() is not None:
+            f = None                                  # an earlier try failed (voice server was down): try again
+        if f is None and sents:
+            _answers[key] = _pool.submit(make or _make_answer, sents, voice, speed)
+        if key in _answers:
+            _answers.move_to_end(key)
+        while len(_answers) > 120:
+            _answers.popitem(last=False)
+    return key
+
+
+def _answer(key: str, wait_s: float) -> dict:
+    with _lock:
+        f = _answers.get(key)
+    if f is None:
+        raise KeyError("unknown answer audio")
+    return f.result(timeout=wait_s)
+
+
+def answer_meta(key: str, wait_s: float = 25) -> dict:
+    a = _answer(key, wait_s)
+    return {"id": key, "offsets": a["offsets"], "duration": a["duration"], "engine": a["engine"], "voice": a.get("voice"),
+            "mime": a["mime"], "bytes": len(a["audio"]), "ms": a.get("ms")}
+
+
+def answer_audio(key: str, wait_s: float = 25) -> tuple[bytes, str]:
+    a = _answer(key, wait_s)
+    return a["audio"], a["mime"]

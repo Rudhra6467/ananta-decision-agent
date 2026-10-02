@@ -67,14 +67,16 @@ export async function run(actions: UiAction[] = []): Promise<UiResult[]> {
   return out;
 }
 
-export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).filter((x) => x.trim());
+export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
 
-// Point at things in time with the words: spoken (voice) or paced by reading speed (text).
-export async function pointAlong(answer: string, points: { spot: string; sentence: number }[] = [], speak?: (parts: string[], onPart: (i: number) => void) => void) {
+// Point at things in time with the words: spoken (voice: waits until the voice has finished or was stopped)
+// or paced by reading speed (text).
+export async function pointAlong(answer: string, points: { spot: string; sentence: number }[] = [],
+  speak?: (parts: string[], onPart: (i: number) => void) => Promise<unknown> | void) {
   const parts = sentences(answer);
   const at = (i: number) => points.find((p) => p.sentence === i)?.spot;
   if (speak) {
-    speak(parts, (i) => { const s = at(i); if (s) focusSpot(s); });
+    try { await speak(parts, (i) => { const s = at(i); if (s) focusSpot(s); }); } finally { if (points.length) setTimeout(clearSpot, 1500); }
     return;
   }
   if (!points.length) return;
@@ -88,14 +90,18 @@ export async function pointAlong(answer: string, points: { spot: string; sentenc
 
 // Guided tour: move, point and talk, step by step. Stop / Skip come from the caption bar.
 export type TourStep = { ui?: UiAction; spot?: string; say: string };
-export async function playTour(steps: TourStep[], speakFn: (text: string) => Promise<void>) {
+export async function playTour(steps: TourStep[], speakFn: (text: string) => Promise<unknown>, keepGoing: () => boolean = () => true) {
   const { setTour, takeTourCommand } = await import("./context");
   takeTourCommand();
   for (let i = 0; i < steps.length; i++) {
+    if (!keepGoing()) break;                                   // voice mode was interrupted or ended
     const st = steps[i];
     setTour({ active: true, i: i + 1, n: steps.length, text: st.say });
     if (st.ui) await run([st.ui]);
     if (st.spot) await focusSpot(st.spot);
+    const pending = takeTourCommand();                         // Skip / Stop pressed while the screen was moving
+    if (pending === "stop" || !keepGoing()) break;
+    if (pending === "next") continue;
     await speakFn(st.say);
     const c = takeTourCommand();
     if (c === "stop") break;

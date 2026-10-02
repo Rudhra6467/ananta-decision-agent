@@ -98,6 +98,11 @@ def grade(exp: dict, r: dict, side: dict) -> list[dict]:
         ck(f"opened a {exp['ui_prefix']}* page", any(str(u.get("target", "")).startswith(exp["ui_prefix"]) for u in ui), ",".join(str(u.get("target")) for u in ui))
     if "ui_do" in exp:
         ck(f"did {exp['ui_do']}", any(u.get("do") == exp["ui_do"] for u in ui))
+    pts = r.get("points") or []
+    if "points_min" in exp:
+        ck(f"pointed at {exp['points_min']}+ things on screen", len(pts) >= exp["points_min"], ",".join(p.get("spot", "") for p in pts))
+    if "points_spot" in exp:
+        ck(f"highlighted {exp['points_spot']}", any(p.get("spot") == exp["points_spot"] for p in pts), ",".join(p.get("spot", "") for p in pts))
     if exp.get("no_ui"):
         ck("did not move the screen", not ui)
     if "max_s" in exp:
@@ -119,7 +124,7 @@ def run_provider(provider: str, cases: list[dict]) -> list[dict]:
         before = book_state()
         t0 = time.time()
         body = {"text": c["q"], "mode": MODE[provider], "source": "eval",
-                "context": {"here": {"screen": "ananta", "label": "Ananta tab: this conversation"}}}
+                "context": {"here": c.get("here") or {"screen": "ananta", "label": "Ananta tab: this conversation"}}}
         if c.get("after") and threads.get(c["after"]):
             body["thread"] = threads[c["after"]]
         try:
@@ -146,7 +151,7 @@ def run_provider(provider: str, cases: list[dict]) -> list[dict]:
                     "model": r.get("model_label") or r.get("model"), "cost_usd": r.get("cost_usd"), "kind": r.get("kind"), "stage": r.get("stage"),
                     "answer": r.get("answer"), "breakdown": r.get("breakdown"), "evidence": r.get("evidence"), "lookups": r.get("lookups"),
                     "actions": [a.get("summary") for a in r.get("actions") or []], "cards_cancelled": cancelled, "show": r.get("show"),
-                    "options": r.get("options"), "error": r.get("error"), "msg_id": r.get("id"), "route": r.get("route"), "timing": r.get("timing"), "ui": r.get("ui"),
+                    "options": r.get("options"), "error": r.get("error"), "msg_id": r.get("id"), "route": r.get("route"), "timing": r.get("timing"), "ui": r.get("ui"), "points": r.get("points"),
                     "checks": checks, "passed": all(x["ok"] for x in checks)})
         print(f"[{provider}] {c['id']} {'PASS' if out[-1]['passed'] else 'FAIL'} {secs}s {(r.get('answer') or r.get('error') or '')[:90]}", flush=True)
     return out

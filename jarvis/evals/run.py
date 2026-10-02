@@ -152,7 +152,8 @@ def run_provider(provider: str, cases: list[dict]) -> list[dict]:
                 here["id"] = next(t["id"] for t in get("/v3/trades").json()["open"] if t["coin"] == here.get("coin"))
             except Exception:  # noqa: BLE001
                 pass
-        body = {"text": c["q"], "mode": MODE[provider], "source": "eval", "context": {"here": here}}
+        body = {"text": c["q"], "source": "eval", "context": {"here": here},
+                **({"mode": MODE[provider]} if provider in MODE else {"provider": provider})}     # local / haiku / sonnet: that model only
         if c.get("after") and threads.get(c["after"]):
             body["thread"] = threads[c["after"]]
         try:

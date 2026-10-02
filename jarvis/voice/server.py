@@ -135,6 +135,20 @@ def speak(b: SpeakReq) -> dict:
             "voice": vid, "ms": int(1000 * (time.time() - t0))}
 
 
+def voiced_seconds(path: str) -> float:
+    """Seconds of the clip that are clearly louder than near-silence (20 ms frames above about -35 dBFS)."""
+    try:
+        a, rate = sf.read(path, dtype="float32", always_2d=False)
+        if a.ndim > 1:
+            a = a.mean(axis=1)
+        n = max(1, int(rate * 0.02))
+        frames = a[: len(a) // n * n].reshape(-1, n)
+        rms = np.sqrt((frames ** 2).mean(axis=1) + 1e-12)
+        return float((rms > 0.0178).sum() * 0.02)
+    except Exception:  # noqa: BLE001
+        return 1.0                                       # can't tell: don't drop anything
+
+
 class TTSReq(BaseModel):
     text: str
     voice: str = "Calm"
@@ -172,10 +186,13 @@ def stt(b: STTReq) -> dict:
         p = f.name
     t0 = time.time()
     try:
+        voiced = voiced_seconds(p)
         text = stt_file(p)
     finally:
         os.unlink(p)
-    # Whisper sometimes "hears" its prompt or stock phrases in silence: treat those as nothing said
-    if text.lower().strip(" .") in ("", "thank you", "thanks for watching", "you") or text.startswith("Madhav talking to Ananta"):
+    # Whisper sometimes "hears" its prompt or stock phrases in near-silence. Drop those only when there was almost no
+    # real speech in the clip, so a real "thank you" from Madhav still gets an answer.
+    stock = text.lower().strip(" .!") in ("", "thank you", "thanks for watching", "you", "bye")
+    if text.startswith("Madhav talking to Ananta") or (stock and voiced < 0.35):
         text = ""
     return {"text": text, "ms": int(1000 * (time.time() - t0))}

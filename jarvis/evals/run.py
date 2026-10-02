@@ -103,6 +103,8 @@ def grade(exp: dict, r: dict, side: dict) -> list[dict]:
         ck(f"pointed at {exp['points_min']}+ things on screen", len(pts) >= exp["points_min"], ",".join(p.get("spot", "") for p in pts))
     if "points_spot" in exp:
         ck(f"highlighted {exp['points_spot']}", any(p.get("spot") == exp["points_spot"] for p in pts), ",".join(p.get("spot", "") for p in pts))
+    if exp.get("tour"):
+        ck("started the guided tour", len(r.get("tour") or []) >= 8)
     if exp.get("no_ui"):
         ck("did not move the screen", not ui)
     if "max_s" in exp:

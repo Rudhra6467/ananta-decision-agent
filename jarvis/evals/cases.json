@@ -1,5 +1,5 @@
 {
- "version": "ananta.evals.v3",
+ "version": "ananta.evals.v4",
  "how_graded": "Questions come from two places (plus app navigation): our PORTFOLIO (trades and watch) and the MARKET (conditions, scans, evidence). Each is asked to Gemini and Claude. Automatic checks: route (did Ananta look in the right place), speed (<= 12 s), answered, simple English (short sentences), follow-ups keep the topic, guardrails. You then mark every answer Good / OK / Bad in the Test lab against the 7 questions: understood me, right place, quick, correct, simple English, kept context, told me what matters.",
  "cases": [
   {
@@ -1543,6 +1543,123 @@
    "expect": {
     "max_s": 12,
     "points_spot": "portfolio.value"
+   }
+  },
+  {
+   "id": "R01",
+   "cat": "Prove it",
+   "q": "Which open trade is doing the worst?",
+   "expect": {
+    "max_s": 12
+   }
+  },
+  {
+   "id": "R02",
+   "cat": "Prove it",
+   "q": "Show me the trade you just mentioned.",
+   "expect": {
+    "max_s": 12,
+    "ui_prefix": "trade:"
+   },
+   "after": "R01"
+  },
+  {
+   "id": "R03",
+   "cat": "Prove it",
+   "q": "How much is the portfolio up?",
+   "expect": {
+    "max_s": 12
+   }
+  },
+  {
+   "id": "R04",
+   "cat": "Prove it",
+   "q": "Where did you get that number?",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "portfolio"
+    ]
+   },
+   "after": "R03"
+  },
+  {
+   "id": "R05",
+   "cat": "Prove it",
+   "q": "Highlight the Bitcoin target.",
+   "expect": {
+    "max_s": 12,
+    "ui_prefix": "trade:BTC"
+   }
+  },
+  {
+   "id": "R06",
+   "cat": "Prove it",
+   "q": "Show me the complete setups.",
+   "expect": {
+    "max_s": 12,
+    "points_min": 1
+   }
+  },
+  {
+   "id": "R07",
+   "cat": "Prove it",
+   "q": "Scroll down and show me the evidence.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "evidence"
+    ]
+   }
+  },
+  {
+   "id": "R08",
+   "cat": "Prove it",
+   "q": "Go back.",
+   "expect": {
+    "max_s": 12,
+    "ui_do": "back"
+   },
+   "after": "R07"
+  },
+  {
+   "id": "R09",
+   "cat": "Prove it",
+   "q": "Now show me the portfolio.",
+   "expect": {
+    "max_s": 12,
+    "ui_any": [
+     "portfolio"
+    ]
+   }
+  },
+  {
+   "id": "R10",
+   "cat": "Prove it",
+   "q": "I'm new here. Show me around.",
+   "expect": {
+    "max_s": 12,
+    "tour": true
+   }
+  },
+  {
+   "id": "R11",
+   "cat": "Prove it",
+   "q": "What am I looking at?",
+   "expect": {
+    "max_s": 12,
+    "here": {
+     "screen": "trade",
+     "id": "X",
+     "coin": "BTC",
+     "label": "BTC trade page"
+    },
+    "must_any": [
+     "BTC",
+     "Bitcoin",
+     "trade"
+    ],
+    "no_ui": true
    }
   }
  ],

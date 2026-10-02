@@ -398,7 +398,7 @@ def background_jobs() -> dict:
     if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
         kind = AL().due_brief()
         if kind:
-            out["brief"] = AL().write_brief(kind, lambda q: a.ask("ananta (scheduled)", q, mode="everyday"), push=_push)
+            out["brief"] = AL().write_brief(kind, lambda q: a.ask("ananta (scheduled)", q, mode="worker"), push=_push)
     return out
 
 
@@ -425,7 +425,7 @@ def brief_now(who: str = Depends(owner)) -> dict:
     from zoneinfo import ZoneInfo
 
     kind = "evening" if datetime.now(ZoneInfo("America/Toronto")).hour >= 17 else "morning"
-    r = AL().write_brief(kind, lambda q: A().ask(who, q, mode="everyday"))
+    r = AL().write_brief(kind, lambda q: A().ask(who, q, mode="worker"))
     if not r:
         raise HTTPException(status_code=503, detail="Could not write the brief right now; try again in a minute.")
     return {"brief": AL().latest_brief()}

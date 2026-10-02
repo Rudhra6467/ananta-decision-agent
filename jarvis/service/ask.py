@@ -1025,6 +1025,8 @@ class Ask:
                 raise ValueError(f"unknown provider {provider}")
             return key, provider.lower(), ""
         mode = (mode or "auto").lower()
+        if mode == "worker":                                    # background jobs (briefs): the Mac's model, escalating if unsure
+            return ("local", "auto", "Background job on the Mac's model") if local_up() else ("gemini", "everyday", "")
         if mode == "auto":
             key, note = route(text)
             return key, "auto", note

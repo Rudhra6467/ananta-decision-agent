@@ -42,16 +42,17 @@ WHAT ANANTA IS (use these words)
 - Lifecycle words, always say which stage a thing is in: observation -> candidate setup (some conditions met) -> setup (all conditions met) -> decision (order placed or skipped) -> execution (filled) -> position -> outcome (closed) -> evaluation -> learning. Never let "interesting" sound like "bought".
 
 RULES
-1. Facts only from lookups. Call the lookups you need before answering (usually 1-4; ask for several in one round when you can); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
-2. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
+1. Facts only from lookups. Call the lookups you need before answering (usually 1-4, at most 6; ask for several in one round when you can; never call the same lookup twice; after a propose_* lookup succeeds, answer straight away); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
+2. Setups: in the setups lookup, "complete" means all conditions were met at the last check. Report complete setups as complete even when no new trade was placed, and say why (already holding that coin's trade type, no trade type fits, caps). Never say "none are triggering" when the lookup shows complete ones.
+2b. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
 4. Scope: trading, markets, the economy and news that moves markets, and Ananta itself. Anything else: kind "out_of_scope" with a one-line polite reply ("That's outside my area - I'm built for trading and markets.").
 5. Actions you can PREPARE (the owner confirms each card in the app): paper orders in the owner's manual book (propose_paper_order), alerts (propose_alert), mandate changes (propose_mandate_change). You can START a read-only reconstruction (start_research). You cannot: place real orders (no exchange is connected; real orders come only after the live rules are approved), flip switches (kill switch and autopilot are in the Cockpit), or approve the portfolio's own suggestions (Portfolio screen). For those use kind "cannot_do_yet" and say exactly where to do it. If an order request is missing the amount, ask for it (clarify); check it against the mandate's limits and say if it conflicts.
-6. Unclear: if the question could mean different things that lead to different answers, use kind "clarify" with 2-4 short "Did you mean" options. If one reading is clearly most likely, answer it and state the assumption. Follow-ups ("why?", "and before that?") refer to the last topic.
+6. Unclear: if the question could mean different things that lead to different answers, use kind "clarify" with 2-4 short "Did you mean" options. A message that does not say what it is about (e.g. "do the thing", "fix it", "that one") with no earlier topic in the conversation is unclear: clarify, never answer it with a status report. If one reading is clearly most likely, answer it and state the assumption. Follow-ups ("why?", "and before that?") refer to the last topic.
 7. If the conversation note says clarification already failed twice, do not ask again: use kind "not_understood" with 3 example questions you can answer.
 8. Money: $ with 2 decimals; percentages with 1-2 decimals; times in Toronto time if given.
 
-9. Changes: you can only PREPARE changes (propose_* lookups). Say clearly that a confirmation card is waiting; never claim something was changed.
+9. Changes: use a propose_* lookup only when the owner explicitly asks for that action in this message (an order, an alert, a mandate change); never offer one unasked. You can only PREPARE changes (propose_* lookups). Say clearly that a confirmation card is waiting; never claim something was changed.
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
@@ -454,7 +455,9 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
     tdefs[-1] = {**tdefs[-1], "cache_control": {"type": "ephemeral"}}          # cache: tools + system
     sysb = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
     usage = {"in": 0, "out": 0, "cache_read": 0, "cache_write": 0}
-    for rnd in range(MAX_TOOL_ROUNDS + 1):
+    rnd = -1
+    for _ in range(MAX_TOOL_ROUNDS + 3):
+        rnd = min(rnd + 1, MAX_TOOL_ROUNDS)
         _strip_cache(msgs)                       # one moving breakpoint on the newest message (max 4 in total)
         last = msgs[-1]["content"]
         if isinstance(last, list) and last:
@@ -472,8 +475,9 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
         calls = [c for c in content if c.get("type") == "tool_use"]
         if not calls:
             text = "".join(c.get("text", "") for c in content if c.get("type") == "text")
-            if not text.strip() and not usage.get("nudged"):        # ended without words (only thinking): ask once for the answer
-                usage["nudged"] = 1
+            if not text.strip() and usage.get("nudged", 0) < 2:      # ended without words (only thinking): ask for the answer
+                usage["nudged"] = usage.get("nudged", 0) + 1
+                rnd = MAX_TOOL_ROUNDS - 1                           # the next round must answer
                 msgs.append({"role": "assistant", "content": content or [{"type": "text", "text": "(no answer)"}]})
                 msgs.append({"role": "user", "content": [{"type": "text", "text": "Please give your final answer now, as the JSON object."}]})
                 continue
@@ -711,7 +715,8 @@ class Ask:
         return n
 
     def today_count(self) -> int:
-        return self.j.db.execute("SELECT count(*) FROM ask_messages WHERE role='user' AND t >= ?", (int(self.j.now() - 86400),)).fetchone()[0]
+        return self.j.db.execute("SELECT count(*) FROM ask_messages WHERE role='user' AND COALESCE(mode,'') NOT LIKE 'eval:%' AND t >= ?",
+                                 (int(self.j.now() - 86400),)).fetchone()[0]
 
     def _pick(self, text: str, mode: str | None, provider: str | None) -> tuple[str, str, str]:
         """-> (model key, mode label, note)."""
@@ -731,7 +736,7 @@ class Ask:
         raise ValueError(f"unknown mode {mode}")
 
     def ask(self, who: str, text: str, thread: str | None = None, provider: str | None = None, mode: str | None = None,
-            second_of: str | None = None, context: dict | None = None, voice: bool = False) -> dict:
+            second_of: str | None = None, context: dict | None = None, voice: bool = False, source: str = "") -> dict:
         text = (text or "").strip()[:2000]
         if not text:
             raise ValueError("empty question")
@@ -739,7 +744,7 @@ class Ask:
             raise ValueError("Ask Ananta is switched off in the Cockpit")
         thread = thread or uuid.uuid4().hex[:12]
         key, mode_label, note = self._pick(text, mode, provider)
-        if self.today_count() >= DAILY_LIMIT:
+        if source != "eval" and self.today_count() >= DAILY_LIMIT:
             raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
         if MODELS[key]["provider"] == "claude":
             sp = self.spend()
@@ -752,7 +757,7 @@ class Ask:
         now = int(self.j.now())
         uid = uuid.uuid4().hex[:12]
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
-                          (uid, thread, now, "user", text, key, ("voice:" if voice else "") + mode_label))
+                          (uid, thread, now, "user", text, key, ("eval:" if source == "eval" else "") + ("voice:" if voice else "") + mode_label))
         self.j.db.commit()
         notes = []
         if tries:
@@ -786,7 +791,23 @@ class Ask:
                     raw, usage = self.providers["haiku"](system, history, user_msg, L, log)
                 else:
                     raise exc
-            reply = parse(raw)
+            try:
+                reply = parse(raw)
+            except RuntimeError:
+                if not L.created and MODELS[used]["provider"] == "claude" and "gemini" in self.providers:
+                    # Claude occasionally ends with thinking only; answer this one with Gemini instead of failing
+                    note = (note + "; " if note else "") + "Claude gave no words this time, so Gemini answered"
+                    used = "gemini"
+                    log.clear()
+                    L = Lookups(self.j, thread)
+                    raw, usage = self.providers["gemini"](system, history, user_msg, L, log)
+                    reply = parse(raw)
+                elif not L.created:
+                    raise
+                else:
+                    reply = {"kind": "answer", "stage": "decision", "evidence": [], "assumption": "", "options": [], "follow_ups": [],
+                         "answer": "I've prepared this for you; nothing happens until you confirm the card: " + "; ".join(a["summary"] for a in L.created),
+                         "breakdown": []}
         except Exception as exc:  # noqa: BLE001
             ms = int(1000 * (time.time() - t0))
             self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, mode, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",
@@ -838,11 +859,11 @@ class Ask:
                 err = exc
         raise RuntimeError(f"could not transcribe right now ({str(err)[:80]})")
 
-    def voice_turn(self, who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None) -> dict:
+    def voice_turn(self, who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None, source: str = "") -> dict:
         heard = self.transcribe(audio_b64, mime)
         if not heard:
             return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone."}
-        out = self.ask(who, heard, thread=thread, mode=mode, context=context, voice=True)
+        out = self.ask(who, heard, thread=thread, mode=mode, context=context, voice=True, source=source)
         return {"heard": heard, **out}
 
     def second(self, who: str, msg_id: str) -> dict:

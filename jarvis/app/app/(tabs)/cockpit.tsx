@@ -79,6 +79,7 @@ export default function Cockpit() {
         </>
       ) : null}
 
+      <Card onPress={() => router.push("/testlab")} title="Test lab" sub="Recorded test runs of Ananta: answers from both models, voice, stability" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
       <Card onPress={() => router.push("/mandate")} title="Your mandate" sub="Goals, markets, styles and limits Ananta follows" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
 
       <Section title="Alerts" right={<T small>checked every 15 min · free</T>} />

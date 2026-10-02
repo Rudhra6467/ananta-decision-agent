@@ -380,3 +380,48 @@ def test_manual_paper_orders_journal_and_jobs():
     assert abs(pv["order"]["usd"] - Mn.state(px)["positions"][0]["value"]) < 0.01
     jb = Mn.start_job("o", "reconstruction", lambda: {"match": True, "logged_real_events": 3, "rebuilt_real_events": 3}, background=False)
     assert Mn.job(jb["job"])["status"] == "DONE"
+
+
+def test_shared_db_survives_many_threads():
+    import concurrent.futures as cf
+    from jarvis.service.manual import Manual
+    j, ex = _jarvis()
+    Mn = Manual(j.db, j.now)
+
+    def work(i):
+        Mn.note("o", "t", str(i), f"note {i}")
+        return len(Mn.journal(500)) + len(views.feed(j, hours=24))
+    with cf.ThreadPoolExecutor(16) as pool:
+        list(pool.map(work, range(200)))
+    assert len(Mn.journal(500)) == 200
+
+
+def test_eval_questions_do_not_use_the_owner_daily_limit():
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: (json.dumps({"answer": "ok"}), {"in": 1, "out": 1})})
+    old = ask.DAILY_LIMIT
+    ask.DAILY_LIMIT = 2
+    try:
+        for _ in range(3):
+            A.ask("o", "how is btc", mode="everyday", source="eval")
+        assert A.today_count() == 0
+        A.ask("o", "how is btc", mode="everyday")
+        A.ask("o", "how is btc", mode="everyday")
+        try:
+            A.ask("o", "how is btc", mode="everyday")
+        except ValueError as e:
+            assert "limit" in str(e)
+        else:
+            raise AssertionError("owner limit not enforced")
+    finally:
+        ask.DAILY_LIMIT = old
+
+
+def test_wordless_claude_falls_back_to_gemini():
+    j, ex = _jarvis()
+    import os
+    os.environ["ANTHROPIC_API_KEY"] = "test"
+    A = ask.Ask(j, providers={"sonnet": lambda s, h, u, t, log: ("", {"in": 10, "out": 5}),
+                              "gemini": lambda s, h, u, t, log: (json.dumps({"answer": "from gemini"}), {"in": 1, "out": 1})})
+    r = A.ask("o", "why is btc up", mode="deep")
+    assert r["answer"] == "from gemini" and r["provider"] == "gemini" and "Gemini answered" in r["note"]

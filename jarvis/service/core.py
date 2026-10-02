@@ -28,6 +28,49 @@ TOKEN_TTL_S = 12 * 3600
 MAX_FAILED, FAIL_WINDOW_S = 5, 15 * 60
 
 
+class _Rows:
+    """A fully-read result (so the lock is never held while the caller iterates)."""
+
+    def __init__(self, rows: list, lastrowid=None):
+        self._rows, self.lastrowid = rows, lastrowid
+
+    def fetchone(self):
+        return self._rows[0] if self._rows else None
+
+    def fetchall(self):
+        return list(self._rows)
+
+    def __iter__(self):
+        return iter(self._rows)
+
+
+class SafeDB:
+    """One SQLite connection shared by the web threads, the 15-minute background job and Ask: every call is serialized.
+    (sqlite3 connections are not safe to use from two threads at the same moment: found by the stability tests.)"""
+
+    def __init__(self, con: sqlite3.Connection):
+        import threading
+
+        self.con, self.lock = con, threading.RLock()
+
+    def execute(self, sql: str, params=()):
+        with self.lock:
+            cur = self.con.execute(sql, params)
+            return _Rows(cur.fetchall(), cur.lastrowid)
+
+    def executemany(self, sql: str, seq):
+        with self.lock:
+            self.con.executemany(sql, seq)
+
+    def executescript(self, sql: str):
+        with self.lock:
+            self.con.executescript(sql)
+
+    def commit(self):
+        with self.lock:
+            self.con.commit()
+
+
 class AuthError(Exception):
     pass
 
@@ -99,7 +142,7 @@ class Jarvis:
         self.owner, self.pw_hash, self.secret = owner_email.strip().lower(), password_hash, secret
         self.now = now
         self._hands = hands
-        self.db = sqlite3.connect(str(self.dir / "jarvis.sqlite"), check_same_thread=False)
+        self.db = SafeDB(sqlite3.connect(str(self.dir / "jarvis.sqlite"), check_same_thread=False, timeout=30))
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS audit (seq INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER, who TEXT, action TEXT, detail TEXT, result TEXT);
             CREATE TABLE IF NOT EXISTS failed_logins (t INTEGER);

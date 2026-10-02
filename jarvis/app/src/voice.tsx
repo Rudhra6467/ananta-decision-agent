@@ -46,19 +46,22 @@ async function toBase64(uri: string): Promise<string> {
   });
 }
 
-export default function Voice({ ActionCard, openScreen }: { ActionCard: any; openScreen: (sh: any) => void }) {
+export default function Voice({ ActionCard, openScreen, suggestions = [] }: { ActionCard: any; openScreen: (sh: any) => void; suggestions?: string[] }) {
   const rec = useAudioRecorder(WAV);
   const st = useAudioRecorderState(rec, 150);
-  const [status, setStatus] = useState<"idle" | "listening" | "thinking" | "speaking">("idle");
+  const [status, setStatusS] = useState<"off" | "listening" | "thinking" | "speaking">("off");
+  const [on, setOnS] = useState(false);
+  const [claude, setClaude] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [thread, setThread] = useState<string | null>(null);
-  const [mode, setMode] = useState("auto");
-  const [handsFree, setHandsFree] = useState(false);
-  const [speak, setSpeak] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [ctx] = useScreen();
-  const loudAt = useRef(0), startedAt = useRef(0), heardVoice = useRef(false), stopping = useRef(false);
+  const statusRef = useRef("off"), onRef = useRef(false), threadRef = useRef<string | null>(null), claudeRef = useRef(false);
+  const loudAt = useRef(0), startedAt = useRef(0), lastSpeech = useRef(0), heardVoice = useRef(false), busy = useRef(false);
   const pulse = useRef(new Animated.Value(1)).current;
+  const setStatus = (x: any) => { statusRef.current = x; setStatusS(x); };
+  threadRef.current = thread;
+  claudeRef.current = claude;
 
   useEffect(() => {
     if (status !== "listening") { pulse.setValue(1); return; }
@@ -68,93 +71,160 @@ export default function Voice({ ActionCard, openScreen }: { ActionCard: any; ope
     return () => a.stop();
   }, [status]);
 
-  // hands-free: stop by itself after ~1.6 s of quiet once you have spoken
+  // While the voice bot is on: send after ~1.6 s of quiet once you have spoken; restart quietly when nothing is said;
+  // switch itself off after 5 minutes without speech (so it never runs up costs or battery unnoticed).
   useEffect(() => {
-    if (status !== "listening" || !handsFree) return;
+    if (statusRef.current !== "listening" || busy.current) return;
     const m = st.metering ?? -160;
     const now = Date.now();
-    if (m > -38) { loudAt.current = now; heardVoice.current = true; }
-    if (heardVoice.current && now - loudAt.current > 1600) stop();
-    if (!heardVoice.current && now - startedAt.current > 8000) stop();
+    if (m > -38) { loudAt.current = now; heardVoice.current = true; lastSpeech.current = now; }
+    if (heardVoice.current && now - loudAt.current > 1600) { send(); return; }
+    if (!heardVoice.current && now - startedAt.current > 12000) { restartQuietly(); return; }
+    if (now - lastSpeech.current > 5 * 60 * 1000) { turnOff("Voice turned itself off after 5 quiet minutes."); }
   }, [st.metering, st.durationMillis]);
 
-  useEffect(() => () => { Speech.stop(); }, []);
+  useEffect(() => () => { onRef.current = false; Speech.stop(); try { rec.stop(); } catch { /* */ } }, []);
 
-  const start = async () => {
-    setErr(null);
-    Speech.stop();
-    const p = await requestRecordingPermissionsAsync();
-    if (!p.granted) { setErr("Microphone permission is off. Allow it for Expo Go in iPhone Settings."); return; }
-    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-    await rec.prepareToRecordAsync();
-    rec.record();
-    startedAt.current = Date.now();
-    loudAt.current = Date.now();
-    heardVoice.current = false;
-    setStatus("listening");
+  const listen = async () => {
+    if (!onRef.current) return;
+    try {
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await rec.prepareToRecordAsync();
+      rec.record();
+      startedAt.current = Date.now();
+      loudAt.current = Date.now();
+      heardVoice.current = false;
+      setStatus("listening");
+    } catch (e: any) {
+      turnOff(`Could not start the microphone: ${e?.message ?? e}`);
+    }
   };
 
-  const stop = async () => {
-    if (status !== "listening" || stopping.current) return;
-    stopping.current = true;
+  const restartQuietly = async () => {
+    busy.current = true;
+    try { await rec.stop(); } catch { /* */ }
+    busy.current = false;
+    listen();
+  };
+
+  const turnOn = async () => {
+    setErr(null);
+    const p = await requestRecordingPermissionsAsync();
+    if (!p.granted) { setErr("Microphone permission is off. Allow it for Expo Go in iPhone Settings."); return; }
+    onRef.current = true;
+    setOnS(true);
+    lastSpeech.current = Date.now();
+    listen();
+  };
+
+  const turnOff = async (why?: string) => {
+    onRef.current = false;
+    setOnS(false);
+    Speech.stop();
+    if (statusRef.current === "listening") { try { await rec.stop(); } catch { /* */ } }
+    try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
+    setStatus("off");
+    if (why) setErr(why);
+  };
+
+  const speakThen = (text: string) => {
+    if (!onRef.current) { setStatus("off"); return; }
+    setStatus("speaking");
+    Speech.speak(text, {
+      rate: 1.0,
+      onDone: () => { if (onRef.current) setTimeout(listen, 300); else setStatus("off"); },
+      onStopped: () => { if (onRef.current) setTimeout(listen, 300); else setStatus("off"); },
+      onError: () => { if (onRef.current) listen(); },
+    });
+  };
+
+  const handle = (r: any) => {
+    if (r.thread) setThread(r.thread);
+    setTurns((t) => [{ heard: r.heard ?? r._q ?? "", r }, ...t]);
+    const say = r.error ? r.error : r.answer;
+    if (say && onRef.current) speakThen(say);
+    else if (onRef.current) listen();
+    else setStatus("off");
+  };
+
+  const send = async () => {
+    if (busy.current) return;
+    busy.current = true;
     setStatus("thinking");
     try {
       await rec.stop();
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
       const uri = rec.uri;
       if (!uri) throw new Error("no recording");
       const b64 = await toBase64(uri);
-      const r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread, mode, context: ctx ?? undefined });
-      if (r.thread) setThread(r.thread);
-      setTurns((t) => [{ heard: r.heard, r }, ...t]);
-      const say = r.error ? r.error : r.answer;
-      if (speak && say) {
-        setStatus("speaking");
-        Speech.speak(say, {
-          rate: 1.0,
-          onDone: () => { setStatus("idle"); if (handsFree && !r.error) setTimeout(start, 350); },
-          onStopped: () => setStatus("idle"),
-          onError: () => setStatus("idle"),
-        });
-      } else {
-        setStatus("idle");
-      }
+      const r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
+        mode: claudeRef.current ? "deep" : "everyday", context: ctx ?? undefined });
+      lastSpeech.current = Date.now();
+      handle(r);
     } catch (e: any) {
       setErr(e?.message ?? String(e));
-      setStatus("idle");
+      if (onRef.current) listen(); else setStatus("off");
     } finally {
-      stopping.current = false;
+      busy.current = false;
+    }
+  };
+
+  // Tap a predefined question: asked as text, answered aloud (if the bot is on) and on screen.
+  const askText = async (q: string) => {
+    if (busy.current) return;
+    busy.current = true;
+    Speech.stop();
+    if (statusRef.current === "listening") { try { await rec.stop(); } catch { /* */ } }
+    setStatus("thinking");
+    try {
+      const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: claudeRef.current ? "deep" : "everyday", context: ctx ?? undefined });
+      handle({ ...r, _q: q });
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+      if (onRef.current) listen(); else setStatus("off");
+    } finally {
+      busy.current = false;
     }
   };
 
   const onMic = () => {
-    if (status === "listening") stop();
-    else if (status === "speaking") { Speech.stop(); setStatus("idle"); }
-    else if (status === "idle") start();
+    if (!on) turnOn();
+    else if (status === "speaking") Speech.stop();          // interrupt: goes straight back to listening
+    else if (status === "listening" && heardVoice.current) send();
   };
 
   const cur = turns[0]?.r;
-  const label = { idle: handsFree ? "Tap to start talking" : "Tap to talk", listening: handsFree ? "Listening… (stops when you pause)" : "Listening… tap to send",
-    thinking: "Ananta is looking…", speaking: "Speaking… tap to stop" }[status];
+  const label = { off: "Voice is off", listening: "Listening… just talk, pause when done", thinking: "Ananta is looking…",
+    speaking: "Speaking… tap the circle to interrupt" }[status];
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}>
-      <Segmented value={mode} onChange={setMode} options={[{ key: "auto", label: "Auto" }, { key: "everyday", label: "Everyday" }, { key: "deep", label: "Deep" }, { key: "max", label: "Max" }]} />
+      <View style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14 }}>
+        <SwitchRow label="Voice bot" sub={on ? "On: keeps listening and answering until you turn it off" : "Off: not listening"}
+          value={on} onChange={(v) => (v ? turnOn() : turnOff())} />
+        <Divider />
+        <SwitchRow label={claude ? "Claude" : "Gemini"} sub={claude ? "Claude Sonnet · about 3-5¢ an answer, faster and deeper" : "Gemini Flash · free, can be slow when busy"}
+          value={claude} onChange={setClaude} />
+      </View>
       <View style={{ alignItems: "center", gap: 10, paddingVertical: 8 }}>
         <Pressable onPress={onMic} disabled={status === "thinking"}>
           <Animated.View style={{ transform: [{ scale: pulse }], width: 112, height: 112, borderRadius: 56, alignItems: "center", justifyContent: "center",
-            backgroundColor: status === "listening" ? C.bad : status === "speaking" ? C.good : C.accent }}>
+            backgroundColor: status === "listening" ? C.bad : status === "speaking" ? C.good : status === "off" ? C.faint : C.accent }}>
             {status === "thinking" ? <ActivityIndicator color="#FFF" size="large" /> : <MicGlyph />}
           </Animated.View>
         </Pressable>
         <Text style={{ color: C.text, fontWeight: "600" }}>{label}</Text>
         {status === "listening" ? <Level db={st.metering ?? -160} /> : null}
-        <View style={{ flexDirection: "row", gap: 18, alignItems: "center" }}>
-          <Toggle label="Hands-free" on={handsFree} set={setHandsFree} />
-          <Toggle label="Speak answers" on={speak} set={(v) => { setSpeak(v); if (!v) Speech.stop(); }} />
-        </View>
         {ctx ? <T small>Context: {ctx.label}</T> : null}
         {err ? <Text style={{ color: C.bad, textAlign: "center" }}>{err}</Text> : null}
       </View>
+      {suggestions.length ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {suggestions.map((q) => (
+            <Pressable key={q} onPress={() => askText(q)} style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}>
+              <Text style={{ color: C.text, fontSize: 13 }}>{q}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
 
       {cur ? (
         <View style={{ gap: 12 }}>
@@ -189,7 +259,7 @@ export default function Voice({ ActionCard, openScreen }: { ActionCard: any; ope
         </View>
       ) : (
         <View style={{ gap: 6 }}>
-          <T dim>Try: "How is the market?" · "What is Hunter doing?" · "Show me where ETH stands" · "How are my trades?"</T>
+          <T dim>Turn the voice bot on and just talk, or tap a question above.</T>
           <T small>Your voice is sent once to Google Gemini (free) to turn it into text; the recording is not kept.</T>
         </View>
       )}
@@ -204,7 +274,7 @@ export default function Voice({ ActionCard, openScreen }: { ActionCard: any; ope
               <Text style={{ color: C.text, fontSize: 14, paddingBottom: 6 }}>{t.r.error ?? t.r.answer}</Text>
             </View>
           ))}
-          <Text onPress={() => { setTurns([]); setThread(null); }} style={{ color: C.accent, fontWeight: "600", paddingTop: 6 }}>End session</Text>
+          <Text onPress={() => { turnOff(); setTurns([]); setThread(null); }} style={{ color: C.accent, fontWeight: "600", paddingTop: 6 }}>End session</Text>
         </View>
       ) : null}
     </ScrollView>
@@ -274,6 +344,16 @@ function MarketsStage() {
     </View>
   );
 }
+
+const SwitchRow = ({ label, sub, value, onChange }: { label: string; sub: string; value: boolean; onChange: (v: boolean) => void }) => (
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 }}>
+    <View style={{ flex: 1 }}>
+      <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>{label}</Text>
+      <Text style={{ color: C.dim, fontSize: 12 }}>{sub}</Text>
+    </View>
+    <Switch value={value} onValueChange={onChange} trackColor={{ true: C.accent, false: C.line }} />
+  </View>
+);
 
 const Toggle = ({ label, on, set }: { label: string; on: boolean; set: (v: boolean) => void }) => (
   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>

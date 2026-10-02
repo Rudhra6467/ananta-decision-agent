@@ -638,3 +638,13 @@ def test_session_export_text():
                                   "points": [{"spot": "coin.chart", "sentence": 0}], "evidence": [{"label": "Price", "value": "76k"}]})))
     t = a.export(th)
     assert "MADHAV (voice): how is BTC?" in t and "BTC is up." in t and "4.2s" in t and "BTC page" in t and "coin.chart" in t
+
+
+def test_evidence_rows_get_a_place_to_show():
+    from jarvis.service import appmap as am
+    j, ex = _jarvis()
+    out = am.clean_evidence(j, [{"label": "T3 portfolio return", "value": "2.4%"}, {"label": "BTC next resistance", "value": "78,000"},
+                                {"label": "Pepe price", "value": "$0.00001", "source": "CoinGecko"}])
+    assert out[0]["screen"] == "portfolio" and out[0]["spot"] == "portfolio.value"
+    assert out[1]["screen"] == "coin:BTC" and out[1]["spot"] == "coin.levels"
+    assert "screen" not in out[2]

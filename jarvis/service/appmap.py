@@ -430,6 +430,58 @@ def tour(j) -> list[dict]:
     return steps
 
 
+def _coin_in(text: str) -> str | None:
+    low = text.lower()
+    for k in sorted(COINS, key=len, reverse=True):
+        if re.search(r"\b" + re.escape(k) + r"\b", low):
+            return COINS[k]
+    return None
+
+
+def infer_link(j, e: dict) -> dict:
+    """Most evidence rows come without a place: work out where that number is shown in the app, so 'Show me' works for it."""
+    txt = f"{e.get('label', '')} {e.get('value', '')} {e.get('source', '')}"
+    low = txt.lower()
+    sym = _coin_in(txt)
+    ex = j._explorer() if hasattr(j, "_explorer") else None
+    trade = None
+    if sym and ex:
+        try:
+            trade = next((t for t in ex.status()["open"] if t.get("coin") == sym), None)
+        except Exception:  # noqa: BLE001
+            trade = None
+    setup = re.search(r"\b(E[1-5])\b", txt)
+    if sym and setup:
+        return {"screen": f"coin:{sym}", "spot": f"coin.setup:{setup.group(1)}"}
+    if sym and re.search(r"support|resistance", low):
+        return {"screen": f"coin:{sym}", "spot": "coin.levels"}
+    if trade and re.search(r"\bstop\b", low):
+        return {"screen": f"trade:{trade['id']}", "spot": "trade.stop"}
+    if trade and re.search(r"target", low):
+        return {"screen": f"trade:{trade['id']}", "spot": "trade.target"}
+    if trade and re.search(r"trade|p&l|profit|loss|entry|bought", low):
+        return {"screen": f"trade:{trade['id']}", "spot": "trade.pnl"}
+    if sym and re.search(r"holding|portfolio|t3|weight", low):
+        return {"screen": "portfolio", "spot": f"portfolio.holding:{sym}"}
+    if re.search(r"explorer", low):
+        return {"screen": "portfolio:explorer", "spot": "explorer.value"}
+    if re.search(r"portfolio|t3|buy.and.hold", low):
+        return {"screen": "portfolio", "spot": "portfolio.value"}
+    if re.search(r"my (paper )?book|manual", low):
+        return {"screen": "portfolio:mine", "spot": "mine.value"}
+    if re.search(r"repair|forwarded", low):
+        return {"screen": "evidence", "spot": "evidence.shop"}
+    if re.search(r"evidence|collected|milestone|signals? seen", low):
+        return {"screen": "evidence", "spot": "evidence.tracker"}
+    if re.search(r"trending|breadth|coins up|btc gate|uptrend", low) and not sym:
+        return {"screen": "markets", "spot": "markets.summary"}
+    if sym and re.search(r"price|trend|move|%|chart", low):
+        return {"screen": f"coin:{sym}", "spot": "coin.chart"}
+    if re.search(r"alert", low):
+        return {"screen": "cockpit", "spot": "cockpit.alerts"}
+    return {}
+
+
 def clean_evidence(j, items) -> list[dict]:
     """Evidence rows keep a 'spot' (and the place to open for it) only when both are real, so 'Show me' always works."""
     out = []
@@ -437,6 +489,11 @@ def clean_evidence(j, items) -> list[dict]:
         if not isinstance(e, dict):
             continue
         e = {k: e.get(k) for k in ("label", "value", "source", "time", "spot", "screen") if e.get(k) not in (None, "")}
+        if not e.get("spot") and not e.get("screen") and "coingecko" not in str(e.get("source", "")).lower():
+            try:
+                e.update(infer_link(j, e))
+            except Exception:  # noqa: BLE001
+                pass
         sp = str(e.get("spot", ""))
         if sp and valid_spot(j, sp):
             need = spot_screen(sp)

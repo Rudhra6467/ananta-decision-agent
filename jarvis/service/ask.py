@@ -223,7 +223,7 @@ class Lookups:
         if self.guest and (name.startswith("propose_") or name == "start_research"):
             return {"error": "This is a guest view: only Madhav can prepare orders, alerts, changes or research. Explain that politely."}
         if fn is None:
-            return {"error": f"no lookup named {name}"}
+            return {"error": f"There is no lookup named '{name}'. Use only the listed lookups. To answer, write the JSON object as plain text, not as a tool call."}
         try:
             return fn(**(args or {}))
         except Exception as exc:  # noqa: BLE001
@@ -990,6 +990,9 @@ class Ask:
                          "breakdown": []}
         except Exception as exc:  # noqa: BLE001
             ms = int(1000 * (time.time() - t0))
+            if "budget" in (note or "") and "429" in str(exc):          # say the real reason, not just "busy"
+                exc = RuntimeError(f"Today's Claude budget is used up and Gemini's free quota is used up too. Raise the daily budget in "
+                                   f"Cockpit → AI, or wait: the budget resets at midnight Toronto time.")
             self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, mode, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",
                               (aid, thread, now + 1, "assistant", used, mode_label, ms, json.dumps(log), str(exc)[:500]))
             self.j.db.commit()

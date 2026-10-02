@@ -1648,18 +1648,18 @@
    "q": "What am I looking at?",
    "expect": {
     "max_s": 12,
-    "here": {
-     "screen": "trade",
-     "id": "X",
-     "coin": "BTC",
-     "label": "BTC trade page"
-    },
     "must_any": [
      "BTC",
      "Bitcoin",
      "trade"
     ],
     "no_ui": true
+   },
+   "here": {
+    "screen": "trade",
+    "id": "X",
+    "coin": "BTC",
+    "label": "BTC trade page"
    }
   }
  ],

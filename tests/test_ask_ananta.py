@@ -547,3 +547,22 @@ def test_tour_and_proof_links():
                                    {"label": "chart", "value": "2", "spot": "coin.chart", "screen": f"coin:{coin}"},
                                    {"label": "bad", "value": "3", "spot": "coin.chart"}, {"label": "x", "value": "4", "spot": "zzz.q", "screen": "nowhere"}])
     assert ev[0]["screen"] == "portfolio" and ev[1]["screen"] == f"coin:{coin}" and "spot" not in ev[2] and "spot" not in ev[3] and "screen" not in ev[3]
+
+
+def test_show_me_that_opens_the_proof():
+    j, ex = _jarvis()
+    replies = [json.dumps({"answer": "The portfolio is up 2 percent.", "evidence": [{"label": "Portfolio return", "value": "+2%", "spot": "portfolio.value"}]}),
+               json.dumps({"answer": "It comes from the T3 portfolio."})]
+
+    def fake(s, h, u, t, log):
+        return replies.pop(0), {"in": 1, "out": 1}
+    A = ask.Ask(j, providers={"gemini": fake})
+    r1 = A.ask("o", "how much is the portfolio up?", mode="everyday", context={"here": {"screen": "ananta"}})
+    assert r1["evidence"][0]["screen"] == "portfolio" and r1["ui"] == []
+    r2 = A.ask("o", "Where did you get that number?", thread=r1["thread"], mode="everyday", context={"here": {"screen": "ananta"}})
+    assert r2["ui"][0]["target"] == "portfolio" and r2["points"] == [{"spot": "portfolio.value", "sentence": 0}]
+    from jarvis.service import appmap
+    ui, ans = appmap.keep_honest(j, "how are we", "I'm showing you the Portfolio screen now.", [], {"screen": "ananta"})
+    assert ui and ui[0]["target"] == "portfolio"
+    ui, _ = appmap.keep_honest(j, "scroll down and show me the evidence", "ok", [{"do": "scroll", "dir": "down"}, {"do": "go_to", "target": "evidence"}], {"screen": "ananta"})
+    assert [u["do"] for u in ui] == ["go_to", "scroll"]

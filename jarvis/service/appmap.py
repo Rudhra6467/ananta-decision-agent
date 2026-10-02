@@ -131,9 +131,10 @@ def quick_command(j, text: str) -> dict | None:
     return None
 
 
-CLAIM = re.compile(r"\b(taking you|take you|i'?ve (?:opened|moved|pulled up|taken you|brought)|i have (?:opened|moved|pulled up)|i'?m (?:opening|taking you|moving)|"
+CLAIM = re.compile(r"\b(showing you (?:the|our|your)|i'?m (?:now )?showing you|pulling up|here'?s the \w+ (?:screen|tab|page)|taking you|take you|i'?ve (?:opened|moved|pulled up|taken you|brought)|i have (?:opened|moved|pulled up)|i'?m (?:opening|taking you|moving)|"
                    r"let me (?:open|take you|show you)|opening (?:it|the|your|our|up)|i (?:opened|moved) )", re.I)
-SHOW_INTENT = re.compile(r"\b(show me|take me|open|go to|bring me|where (?:can|do) i (?:see|find)|let'?s (?:go|move) to|next page)\b", re.I)
+SHOW_INTENT = re.compile(r"\b(show me|take me|open|go to|bring me|where (?:can|do) i (?:see|find)|let'?s (?:go|move) to|next page|"
+                         r"where did you get|where does (?:that|this|it) come from|prove it|highlight|point (?:at|to)|where is (?:that|it|this))\b", re.I)
 
 
 def here_target(here: dict | None) -> str | None:
@@ -186,7 +187,21 @@ def keep_honest(j, question: str, answer: str, ui: list[dict], here: dict | None
                 ui = [{"do": "open" if v.split(":")[0] in ("coin", "trade") else "go_to", "target": v, "label": label}]
     if claims and not ui:
         answer = (answer or "").rstrip() + " (I couldn't move the screen for this one; it is still on the same page.)"
+    ui = [u for u in ui if u.get("do") in ("go_to", "open", "back")] + [u for u in ui if u.get("do") == "scroll"]   # move first, then scroll
     return ui, answer
+
+
+def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -> tuple[dict | None, str | None]:
+    """For 'show me / where did you get that': the place (and spot) behind this answer's evidence, else behind the previous answer."""
+    for src in (evidence or [], (previous or {}).get("evidence") or []):
+        for e in src:
+            if e.get("screen") and e["screen"] != cur:
+                v = e["screen"]
+                return {"do": "open" if v.split(":")[0] in ("coin", "trade") else "go_to", "target": v, "label": e.get("label") or v}, e.get("spot")
+    for u in (previous or {}).get("ui") or []:
+        if u.get("do") in ("go_to", "open") and u.get("target") != cur:
+            return u, None
+    return None, None
 
 
 # ---------------------------------------------------------------------------

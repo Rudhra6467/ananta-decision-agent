@@ -952,6 +952,20 @@ class Ask:
             n_sent = len([x for x in re.split(r"(?<=[.!?])\s+", reply.get("answer") or "") if x.strip()])
             reply["points"], reply["ui"] = _am.plan_points(self.j, reply.get("points"), reply["ui"], _here, n_sent, text)
             reply["evidence"] = _am.clean_evidence(self.j, reply.get("evidence"))
+            if not reply["ui"] and _am.SHOW_INTENT.search(text):           # "show me / where did you get that": open where the proof is
+                prev = None
+                if history and history[-1]["role"] == "assistant":
+                    try:
+                        prev = json.loads(history[-1]["text"])
+                    except (ValueError, TypeError):
+                        prev = None
+                u, sp = _am.proof_target(reply["evidence"], prev, _am.here_target(_here))
+                if u:
+                    v, label = _am.resolve(self.j, u["target"])
+                    if v:
+                        reply["ui"] = [{**u, "target": v, "label": label}]
+                        if sp and not reply["points"]:
+                            reply["points"] = [{"spot": sp, "sentence": 0}]
         except Exception:  # noqa: BLE001
             reply["ui"] = L.ui
         timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),

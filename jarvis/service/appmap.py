@@ -43,7 +43,8 @@ ALIASES = {
     "ananta": "ananta", "chat": "ananta", "voice": "ananta", "conversation": "ananta",
     "evidence": "evidence", "repair shop": "evidence", "evidence tracker": "evidence", "forwarded": "evidence:forwarded",
     "cockpit": "cockpit", "settings": "cockpit", "controls": "cockpit", "kill switch": "cockpit", "budget": "cockpit", "alerts": "cockpit",
-    "mandate": "mandate", "my mandate": "mandate", "goals": "mandate", "test lab": "testlab", "tests": "testlab",
+    "mandate": "mandate", "my mandate": "mandate", "goals": "mandate", "test lab": "testlab", "tests": "testlab", "test results": "testlab",
+    "test runs": "testlab", "app tests": "testlab",
 }
 COINS = {"bitcoin": "BTC", "btc": "BTC", "ethereum": "ETH", "eth": "ETH", "ether": "ETH", "solana": "SOL", "sol": "SOL", "cardano": "ADA", "ada": "ADA",
          "dogecoin": "DOGE", "doge": "DOGE", "avalanche": "AVAX", "avax": "AVAX", "bitcoin cash": "BCH", "bch": "BCH", "chainlink": "LINK",
@@ -88,8 +89,13 @@ NAV = re.compile(r"^\s*(?:hey\s+\w+[,.!]?\s*|ok(?:ay)?[,.!]?\s*|ananta[,.!]?\s*|
 BACK = re.compile(r"^\s*(?:ok(?:ay)?[,.!]?\s*)?(?:please\s+)?(?:go back|take me back|back|previous (?:page|screen))(?: please)?[.!?]*\s*$", re.I)
 
 
+HOME = re.compile(r"^\s*(?:please\s+)?(?:can you\s+|could you\s+)?(?:take me|go|bring me|head)\s+(?:back\s+)?home(?:\s+please)?[.!?]*\s*$", re.I)
+
+
 def quick_command(j, text: str) -> dict | None:
     """Plain navigation ("take me home", "open Ethereum", "show me my bitcoin trade", "go back") without a model call."""
+    if HOME.match(text):
+        return {"ui": [{"do": "go_to", "target": "home", "label": "Home"}], "say": "Sure, Madhav. Taking you home."}
     if BACK.match(text):
         return {"ui": [{"do": "back", "label": "Back"}], "say": "Sure, going back."}
     m = NAV.match(text)
@@ -116,3 +122,56 @@ def quick_command(j, text: str) -> dict | None:
         return {"ui": [{"do": "open", "target": f"coin:{sym}", "label": f"{sym} coin page"}], "say": f"Sure. Opening {sym}."}
     _ = trade
     return None
+
+
+CLAIM = re.compile(r"\b(taking you|take you|i'?ve (?:opened|moved|pulled up|taken you|brought)|i have (?:opened|moved|pulled up)|i'?m (?:opening|taking you|moving)|"
+                   r"let me (?:open|take you|show you)|opening (?:it|the|your|our|up)|i (?:opened|moved) )", re.I)
+SHOW_INTENT = re.compile(r"\b(show me|take me|open|go to|bring me|where (?:can|do) i (?:see|find)|let'?s (?:go|move) to|next page)\b", re.I)
+
+
+def here_target(here: dict | None) -> str | None:
+    if not here:
+        return None
+    sc = here.get("screen")
+    if sc == "coin" and here.get("coin"):
+        return f"coin:{here['coin']}"
+    if sc == "trade" and here.get("id"):
+        return f"trade:{here['id']}"
+    if sc == "explorer_trades":
+        return "portfolio:explorer"
+    if sc == "manual_book":
+        return "portfolio:mine"
+    if sc == "evidence":
+        return "evidence:forwarded" if here.get("tab") == "forwarded" else "evidence"
+    return sc
+
+
+def guess(text: str) -> str | None:
+    """Best place in the app for a question, from its words (longest alias first)."""
+    low = text.lower()
+    for k in sorted(ALIASES, key=len, reverse=True):
+        if re.search(r"\b" + re.escape(k) + r"\b", low):
+            return ALIASES[k]
+    for k in sorted(COINS, key=len, reverse=True):
+        if re.search(r"\b" + re.escape(k) + r"\b", low):
+            return f"coin:{COINS[k]}"
+    return None
+
+
+def keep_honest(j, question: str, answer: str, ui: list[dict], here: dict | None) -> tuple[list[dict], str]:
+    """Make what Ananta SAYS about the screen match what the app WILL do.
+    - drop moves to the screen that is already open
+    - a 'show me / take me' request, or an answer that claims a move, with no move: add the best-guess move if it resolves
+    - still nothing to open but the answer claims a move: say plainly that the screen did not move."""
+    cur = here_target(here)
+    ui = [u for u in ui if not (u.get("do") != "back" and u.get("target") == cur)]
+    claims = bool(CLAIM.search(answer or ""))
+    if not ui and (claims or SHOW_INTENT.search(question or "")):
+        t = guess(question) or (guess(answer) if claims else None)
+        if t and t != cur:
+            v, label = resolve(j, t)
+            if v:
+                ui = [{"do": "open" if v.split(":")[0] in ("coin", "trade") else "go_to", "target": v, "label": label}]
+    if claims and not ui:
+        answer = (answer or "").rstrip() + " (I couldn't move the screen for this one; it is still on the same page.)"
+    return ui, answer

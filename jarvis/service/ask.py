@@ -62,7 +62,7 @@ RULES
 
 9. Changes: use a propose_* lookup only when the owner explicitly asks for that action in this message (an order, an alert, a mandate change); never offer one unasked. You can only PREPARE changes (propose_* lookups). Say clearly that a confirmation card is waiting; never claim something was changed.
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
-12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something, CALL ui_go (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
+12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something ("show me...", "open...", "take me...", "where can I see..."), you MUST CALL ui_go for the most relevant place (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
 OUTPUT: reply with ONE JSON object and nothing else:
@@ -915,7 +915,13 @@ class Ask:
         ms = int(1000 * (time.time() - t0))
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created
-        reply["ui"] = L.ui
+        try:
+            from jarvis.service import appmap as _am
+
+            _here = context.get("here") if isinstance(context, dict) and "here" in context else (context if isinstance(context, dict) else None)
+            reply["ui"], reply["answer"] = _am.keep_honest(self.j, text, reply.get("answer", ""), L.ui, _here)
+        except Exception:  # noqa: BLE001
+            reply["ui"] = L.ui
         timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),
                   "out_tokens": usage.get("out", 0)}
         meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of,

@@ -482,3 +482,14 @@ def test_app_navigation_quick_and_tools():
     A2 = ask.Ask(j, providers={"gemini": fake})
     r = A2.ask("o", "why is this coin moving", mode="everyday", context={"here": {"screen": "ananta", "label": "Ananta tab"}, "about": None})
     assert r["ui"] == [{"do": "open", "target": f"coin:{coin}", "label": f"{coin} coin page"}] and "Ananta tab" in seen["u"]
+
+
+def test_screen_claims_are_kept_honest():
+    from jarvis.service import appmap
+    j, ex = _jarvis()
+    ui, ans = appmap.keep_honest(j, "Show me where the evidence is.", "I've moved your screen to the Evidence tab.", [], {"screen": "ananta"})
+    assert ui and ui[0]["target"] == "evidence"
+    ui, ans = appmap.keep_honest(j, "how are we", "I'm taking you to the moon page.", [], {"screen": "ananta"})
+    assert not ui and "couldn't move the screen" in ans
+    ui, ans = appmap.keep_honest(j, "where am I", "You're on the Ananta tab.", [{"do": "go_to", "target": "ananta", "label": "Ananta"}], {"screen": "ananta"})
+    assert ui == [] and "couldn't" not in ans

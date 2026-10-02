@@ -98,6 +98,9 @@ def quick_command(j, text: str) -> dict | None:
     qs = quick_scroll(text)
     if qs:
         return qs
+    if TOUR_ASK.search(text) and len(text.split()) <= 14:
+        steps = tour(j)
+        return {"ui": [], "tour": steps, "say": "Sure, Madhav. Let me show you around. I'll go tab by tab; say stop or tap Stop any time."}
     if HOME.match(text):
         return {"ui": [{"do": "go_to", "target": "home", "label": "Home"}], "say": "Sure, Madhav. Taking you home."}
     if BACK.match(text):
@@ -128,9 +131,10 @@ def quick_command(j, text: str) -> dict | None:
     return None
 
 
-CLAIM = re.compile(r"\b(taking you|take you|i'?ve (?:opened|moved|pulled up|taken you|brought)|i have (?:opened|moved|pulled up)|i'?m (?:opening|taking you|moving)|"
+CLAIM = re.compile(r"\b(showing you (?:the|our|your)|i'?m (?:now )?showing you|pulling up|here'?s the \w+ (?:screen|tab|page)|taking you|take you|i'?ve (?:opened|moved|pulled up|taken you|brought)|i have (?:opened|moved|pulled up)|i'?m (?:opening|taking you|moving)|"
                    r"let me (?:open|take you|show you)|opening (?:it|the|your|our|up)|i (?:opened|moved) )", re.I)
-SHOW_INTENT = re.compile(r"\b(show me|take me|open|go to|bring me|where (?:can|do) i (?:see|find)|let'?s (?:go|move) to|next page)\b", re.I)
+SHOW_INTENT = re.compile(r"\b(show me|take me|open|go to|bring me|where (?:can|do) i (?:see|find)|let'?s (?:go|move) to|next page|"
+                         r"where did you get|where does (?:that|this|it) come from|prove it|highlight|point (?:at|to)|where is (?:that|it|this))\b", re.I)
 
 
 def here_target(here: dict | None) -> str | None:
@@ -162,13 +166,26 @@ def guess(text: str) -> str | None:
     return None
 
 
+WHERE_AM_I = re.compile(r"\b(what am i (?:looking at|seeing)|where am i|what(?:'s| is) (?:this|on this) (?:screen|page)|what is this|explain this (?:screen|page))\b", re.I)
+
+
+def dedupe(ui: list[dict]) -> list[dict]:
+    out = []
+    for u in ui:
+        if not out or (u.get("do"), u.get("target"), u.get("dir")) != (out[-1].get("do"), out[-1].get("target"), out[-1].get("dir")):
+            out.append(u)
+    return out
+
+
 def keep_honest(j, question: str, answer: str, ui: list[dict], here: dict | None) -> tuple[list[dict], str]:
     """Make what Ananta SAYS about the screen match what the app WILL do.
     - drop moves to the screen that is already open
     - a 'show me / take me' request, or an answer that claims a move, with no move: add the best-guess move if it resolves
     - still nothing to open but the answer claims a move: say plainly that the screen did not move."""
     cur = here_target(here)
-    ui = [u for u in ui if not (u.get("do") != "back" and u.get("target") == cur)]
+    ui = dedupe([u for u in ui if not (u.get("do") != "back" and u.get("target") == cur)])
+    if WHERE_AM_I.search(question or "") and not SHOW_INTENT.search(question or ""):
+        return [u for u in ui if u.get("do") == "scroll"], answer       # he asked about THIS screen: never move away from it
     claims = bool(CLAIM.search(answer or ""))
     scroll_claim = re.search(r"\b(i'?ve scrolled|scrolling (?:down|up|to)|i scrolled)", answer or "", re.I)
     scroll_ask = re.search(r"\b(below this|what'?s below|bottom of|at the bottom|scroll (?:down|up))\b", question or "", re.I)
@@ -183,7 +200,21 @@ def keep_honest(j, question: str, answer: str, ui: list[dict], here: dict | None
                 ui = [{"do": "open" if v.split(":")[0] in ("coin", "trade") else "go_to", "target": v, "label": label}]
     if claims and not ui:
         answer = (answer or "").rstrip() + " (I couldn't move the screen for this one; it is still on the same page.)"
-    return ui, answer
+    ui = [u for u in ui if u.get("do") in ("go_to", "open", "back")] + [u for u in ui if u.get("do") == "scroll"]   # move first, then scroll
+    return dedupe(ui), answer
+
+
+def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -> tuple[dict | None, str | None]:
+    """For 'show me / where did you get that': the place (and spot) behind this answer's evidence, else behind the previous answer."""
+    for src in (evidence or [], (previous or {}).get("evidence") or []):
+        for e in src:
+            if e.get("screen") and e["screen"] != cur:
+                v = e["screen"]
+                return {"do": "open" if v.split(":")[0] in ("coin", "trade") else "go_to", "target": v, "label": e.get("label") or v}, e.get("spot")
+    for u in (previous or {}).get("ui") or []:
+        if u.get("do") in ("go_to", "open") and u.get("target") != cur:
+            return u, None
+    return None, None
 
 
 # ---------------------------------------------------------------------------
@@ -204,9 +235,10 @@ SPOTS = {
     "cockpit": {"cockpit.controls": "kill switch, autopilot, live trading", "cockpit.ai": "Ask / Voice switches and the Claude budget",
                 "cockpit.alerts": "active alerts", "cockpit.systems": "system status"},
     "coin": {"coin.chart": "the candle chart", "coin.position": "our position in this coin", "coin.market": "market picture and setup checklist",
+             "coin.levels": "next support and resistance", "coin.setup:<E1-E5>": "one setup's checklist (opens it)",
              "coin.trades": "Explorer trades on this coin"},
     "trade": {"trade.pnl": "the trade's profit or loss", "trade.chart": "the chart with bought / stop / target lines",
-              "trade.levels": "stop, target and time limit", "trade.why": "why we bought", "trade.plan": "the exit plan", "trade.timeline": "timeline"},
+              "trade.levels": "stop, target and time limit", "trade.stop": "the stop-loss line", "trade.target": "the target line", "trade.why": "why we bought", "trade.plan": "the exit plan", "trade.timeline": "timeline"},
 }
 
 
@@ -234,6 +266,8 @@ def valid_spot(j, spot: str) -> bool:
     ex = j._explorer()
     if head in ("markets.coin", "portfolio.holding", "mine.position"):
         return bool(ex and arg in ex.st["engines"])
+    if head == "coin.setup":
+        return arg in ("E1", "E2", "E3", "E4", "E5")
     if head == "explorer.trade":
         return bool(ex and any(t["id"] == arg for t in ex.status()["open"]))
     return not arg
@@ -282,3 +316,90 @@ def quick_scroll(text: str) -> dict | None:
     d = m.group(2).lower()
     return {"ui": [{"do": "scroll", "dir": d, "label": f"Scroll {d}"}], "say": {"up": "Scrolling up.", "down": "Scrolling down.",
             "top": "Back to the top.", "bottom": "Here's the bottom of the page."}[d]}
+
+
+# ---------------------------------------------------------------------------
+# Tour: a scripted walk through the app (no model call, free, instant), with a few live numbers
+# ---------------------------------------------------------------------------
+TOUR_ASK = re.compile(r"\b(show me around|give me a tour|take me on a tour|app tour|tour of the app|i'?m new( here)?|new user|"
+                      r"how does (this|the) app work|walk me through (the|this) app|explain (the|this) app)\b", re.I)
+
+
+def tour(j) -> list[dict]:
+    from jarvis.service import views
+
+    s = views.day_summary(j)
+    m = views.markets(j)
+    h = views.holdings(j)
+    t = views.trades_list(j)
+    up, n = m["breadth"]["up_1h"], m["breadth"]["of"]
+    inbox = 0
+    try:
+        from jarvis.service.mandate import Mandate
+
+        inbox = len(Mandate(j.db, j.now).pending())
+    except Exception:  # noqa: BLE001
+        pass
+    steps = [
+        {"ui": {"do": "go_to", "target": "home", "label": "Home"}, "spot": "home.value",
+         "say": f"Welcome, Madhav. This is Home, your one-page summary. At the top is all our paper money together: about {round(s['paper_value']):,} dollars today."},
+    ]
+    if inbox:
+        steps.append({"spot": "home.inbox", "say": "Here is the inbox. Anything I prepare for you, like an order or an alert, waits here until you confirm it."})
+    steps += [
+        {"spot": "home.brief", "say": "This is the daily brief. I write one in the morning and one in the evening, and you can ask for one any time."},
+        {"spot": "home.books", "say": "These rows are our three engines: the Explorer, the trend portfolio, and the hourly watch with Hunter and Squeeze."},
+        {"spot": "home.activity", "say": "And this is the activity feed: every buy, sell, alert and change, in plain words. Tap a trade to open it."},
+        {"ui": {"do": "go_to", "target": "markets", "label": "Markets"}, "spot": "markets.summary",
+         "say": f"This is Markets. Right now {up} of our {n} coins are in a one-hour uptrend."},
+        {"spot": "markets.coin:BTC", "say": "Each row is one coin: its price, its trend, and how close it is to one of our setups. Tap a coin for its chart."},
+        {"ui": {"do": "go_to", "target": "portfolio", "label": "Portfolio"}, "spot": "portfolio.value",
+         "say": f"This is the trend portfolio. It holds coins while they trend up and goes to cash when they fall. It is worth about {round(h['value']):,} dollars."},
+        {"spot": "portfolio.autopilot", "say": "This switch is Autopilot. Off means I suggest changes and wait for you. On means the portfolio rebalances by itself."},
+        {"spot": "portfolio.holdings", "say": "Below are the holdings, each with its value, return and rating: strong, steady or weak."},
+        {"ui": {"do": "go_to", "target": "portfolio:explorer", "label": "Explorer trades"}, "spot": "explorer.value",
+         "say": f"This is the Explorer. It checks ten coins every fifteen minutes and trades on paper, 100 dollars each. It has {len(t['open'])} trades open."},
+        {"ui": {"do": "go_to", "target": "portfolio:mine", "label": "My trades"}, "spot": "mine.value",
+         "say": "And this is your own paper book. Orders you ask me for land here, kept apart from the agent's trades."},
+        {"ui": {"do": "go_to", "target": "evidence", "label": "Evidence"}, "spot": "evidence.tracker",
+         "say": "This is Evidence: everything we collect to learn what works. Tap any row and it explains itself."},
+        {"spot": "evidence.forwarded", "say": "These are the questions we sent to the repair shop, why we sent them, and what we found."},
+        {"ui": {"do": "go_to", "target": "cockpit", "label": "Cockpit"}, "spot": "cockpit.controls",
+         "say": "This is the Cockpit, behind the gauge icon on Home. The kill switch and Autopilot live here, and live trading stays locked."},
+        {"spot": "cockpit.ai", "say": "Here you can switch me on or off and set a daily budget for Claude, so I never run up costs."},
+        {"ui": {"do": "go_to", "target": "ananta", "label": "Ananta"},
+         "say": "And this is me. Type, tap the mic, or tap the wave and just talk. Ask me anything about our portfolio or the market, or ask me to show you something. That's the tour."},
+    ]
+    return steps
+
+
+def clean_evidence(j, items) -> list[dict]:
+    """Evidence rows keep a 'spot' (and the place to open for it) only when both are real, so 'Show me' always works."""
+    out = []
+    for e in (items or [])[:6]:
+        if not isinstance(e, dict):
+            continue
+        e = {k: e.get(k) for k in ("label", "value", "source", "time", "spot", "screen") if e.get(k) not in (None, "")}
+        sp = str(e.get("spot", ""))
+        if sp and valid_spot(j, sp):
+            need = spot_screen(sp)
+            scr = e.get("screen")
+            if need in ("coin", "trade"):
+                v, _ = resolve(j, str(scr or "")) if scr else (None, "")
+                if not v or not v.startswith(need + ":"):
+                    e.pop("spot", None)
+                    e.pop("screen", None)
+                else:
+                    e["screen"] = v
+            else:
+                e["screen"] = need
+        else:
+            e.pop("spot", None)
+            if e.get("screen"):
+                v, _ = resolve(j, str(e["screen"]))
+                if v:
+                    e["screen"] = v
+                else:
+                    e.pop("screen", None)
+        out.append(e)
+    return out

@@ -18,6 +18,17 @@ export const setScroller = (s: Scroller | null) => { scroller = s; };
 
 export function activeSpot() { return active; }
 
+export function useSpotActive(id?: string): boolean {
+  const [on, setOn] = useState(!!id && active === id);
+  useEffect(() => {
+    if (!id) return;
+    const f = () => setOn(active === id);
+    subs.add(f);
+    return () => { subs.delete(f); };
+  }, [id]);
+  return on;
+}
+
 export function Spot({ id, children, style }: { id: string; children: React.ReactNode; style?: any }) {
   const ref = useRef<View>(null);
   const [on, setOn] = useState(active === id);

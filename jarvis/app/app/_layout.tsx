@@ -3,7 +3,8 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import { token } from "../src/api";
-import { useHere, useVoiceLive } from "../src/context";
+import { tourCommand, useHere, useTour, useVoiceLive } from "../src/context";
+import * as TTS from "../src/tts";
 import { C } from "../src/theme";
 
 export default function Root() {
@@ -15,6 +16,7 @@ export default function Root() {
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} />
       <VoicePill />
+      <TourBar />
     </>
   );
 }
@@ -31,6 +33,28 @@ function VoicePill() {
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.bad }} />
         <Text style={{ color: "#FFF", fontWeight: "600", fontSize: 13 }}>Ananta is listening · tap to return</Text>
       </Pressable>
+    </View>
+  );
+}
+
+// Caption bar during a tour: what Ananta is saying, with Skip and Stop.
+function TourBar() {
+  const t = useTour();
+  if (!t.active) return null;
+  return (
+    <View pointerEvents="box-none" style={{ position: "absolute", left: 12, right: 12, bottom: 96 }}>
+      <View style={{ backgroundColor: C.text, borderRadius: 16, padding: 14, gap: 10, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 10 }}>
+        <Text style={{ color: "#C9D3F5", fontSize: 11, fontWeight: "700", letterSpacing: 0.6 }}>TOUR · {t.i} OF {t.n}</Text>
+        <Text style={{ color: "#FFF", fontSize: 15, lineHeight: 21 }}>{t.text}</Text>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Pressable onPress={() => { tourCommand("next"); TTS.stop(); }} style={{ flex: 1, backgroundColor: "#33405E", borderRadius: 10, padding: 9, alignItems: "center" }}>
+            <Text style={{ color: "#FFF", fontWeight: "700" }}>Skip ›</Text>
+          </Pressable>
+          <Pressable onPress={() => { tourCommand("stop"); TTS.stop(); }} style={{ flex: 1, backgroundColor: C.accent, borderRadius: 10, padding: 9, alignItems: "center" }}>
+            <Text style={{ color: "#FFF", fontWeight: "700" }}>Stop tour</Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 }

@@ -60,3 +60,11 @@ export function sayParts(parts: string[], onPart: (i: number) => void, done?: ()
   };
   next(0);
 }
+
+// Speak and wait; resolves early when stopped (used by the tour; the Skip button calls stop()).
+export function sayAsync(text: string): Promise<void> {
+  return new Promise((res) => {
+    Speech.stop();
+    Speech.speak(text, { voice: voiceId, rate, pitch: 1.0, onDone: () => res(), onStopped: () => res(), onError: () => res() });
+  });
+}

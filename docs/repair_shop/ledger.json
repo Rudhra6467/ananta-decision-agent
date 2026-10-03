@@ -202,6 +202,21 @@
     "docs/research/REVIEW_13.md",
     "docs/research/REVIEW_13_RESULTS.md"
    ]
+  },
+  {
+   "id": "R14",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "INSUFFICIENT",
+   "title": "The short dip trade (H07) vs a fair baseline",
+   "forwarded_because": "Review #13: H07 made about +4% per trade with 70% wins in both periods, never compared with ordinary days traded the same way.",
+   "question": "Does H07 beat ordinary uptrend days traded with the same quick exit?",
+   "result": "Yes in both periods (+3.9% and +5.6% per trade) but 25 independent events in 2018-23 against 30 required. Most consistent result so far; it happens mostly when the market is shaken.",
+   "changed": "Recorded live as a teacher read; a paper shadow needs Madhav's sentence.",
+   "files": [
+    "docs/research/REVIEW_14.md",
+    "docs/research/REVIEW_14_RESULTS.md"
+   ]
   }
  ],
  "queue": [
@@ -247,6 +262,15 @@
    "title": "Your setups, live record",
    "waiting_for": "10 live fires of your setups",
    "why": "Live fires are clean evidence (nobody knows how they end). With 10, compare them with random days and with the history test.",
+   "metric": "read_fires",
+   "goal": 10
+  },
+  {
+   "id": "Q6",
+   "status": "WAITING_FOR_EVIDENCE",
+   "title": "H07 short dip trade, live record",
+   "waiting_for": "10 live H07 fires",
+   "why": "Review #14: strong in both periods but a few events short; live fires are clean evidence.",
    "metric": "read_fires",
    "goal": 10
   }

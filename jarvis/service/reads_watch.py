@@ -149,7 +149,8 @@ def watch(j, push=None, check_news=news_check) -> list[dict]:
         news = check_news(j, c) if loud else {"verdict": "NOT_CHECKED", "why": "Tap 'Check the news' on the coin page to run it."}
         msg = (f"{c}: {row['name']} ({row['like']}). All {row['of']} signs are there at the {b['day']} close. "
                + (f"News check: {news.get('verdict')}{' - ' + news['why'] if news.get('why') else ''} " if loud else "")
-               + f"History: {hist}. Stop if it fails: {row['stop_pct']:+.1f}%. Evidence, not an order.")
+               + f"History: {hist}. " + (f"Stop if it fails: {row['stop_pct']:+.1f}%. " if row.get("stop_pct") is not None else f"Exit: {row['like']}. ")
+               + "Evidence, not an order.")
         j.db.execute("INSERT INTO read_fires VALUES (?,?,?,?,?,?,?,?,?)",
                      (uuid.uuid4().hex, int(j.now()), b["day"], c, v, row["name"], status.get(v, "UNTESTED"), json.dumps(news), msg))
         j.db.commit()

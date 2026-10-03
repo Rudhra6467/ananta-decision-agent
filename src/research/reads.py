@@ -245,6 +245,16 @@ def read_coin(D: list[tuple], btcD: list[tuple], status: dict | None = None) -> 
                     "name": NAMES[variant[:2]] + (" with the market allowed" if variant.endswith("-G") else ""), "like": CASES[variant[:2]],
                     "state": state, "met": met, "of": of, "history": (status or {}).get(variant, "UNTESTED"),
                     "stop_pct": round(100 * (r["stop"] / S.c[i] - 1), 1)})
+    # review #14: the teacher's short dip trade (H07), the most consistent result found so far, recorded live like your setups
+    r10 = rsi(S.c, 10)
+    up = S.sma200[i] is not None and S.c[i] > S.sma200[i]
+    conds = [_c("In its own long uptrend", bool(up), f"close {_p(100 * (S.c[i] / S.sma200[i] - 1))} vs the 200-day average" if S.sma200[i] else "no 200-day yet",
+                "above the 200-day"),
+             _c("Sharp dip", r10[i] is not None and r10[i] < 30, f"RSI(10) {r10[i]:.0f}" if r10[i] is not None else "no RSI", "under 30")]
+    met = sum(c["ok"] for c in conds)
+    out.append({"read": "H07", "variant": "H07", "name": "RSI dip in an uptrend (teacher idea, Rayner)",
+                "like": "sell when RSI(10) is back over 40 or after 10 days", "conditions": conds, "state": "FIRED" if met == 2 else "CLOSE" if met == 1 and up else "NO",
+                "met": met, "of": 2, "history": (status or {}).get("H07", "INSUFFICIENT"), "stop": None, "stop_pct": None})
     return {"day": datetime.fromtimestamp(D[-1][0], timezone.utc).strftime("%Y-%m-%d"), "close": D[-1][4], "reads": out}
 
 

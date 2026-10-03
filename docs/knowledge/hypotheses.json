@@ -42,7 +42,7 @@
    "next": "Repair-shop question: pre-register on daily bars for 10 coins + the fresh 10, count variants (band 2.0/2.5, limit 0/3%)."},
   {"id": "H07", "family": "pullback / mean reversion", "claim": "Above the 200-day average, buy when RSI(10) drops below 30; sell when it crosses back above 40 or after 10 days (88.89% win rate, 36 trades on the S&P 500).",
    "sources": ["Rayner: This SIMPLE Trading Strategy Has A 88.89% Winning Rate"], "variable": "RSI(10) dip in an uptrend", "status": "PROMISING",
-   "evidence": "Not run yet. Same family as H06. Review #13: with its own exit (RSI back over 40 or 10 days) +4.1% per trade, 70% won (2018-23) and +4.2%, 68% (2024-26); held 20 days it was worse than an average uptrend day (-7.1%). The same-exit baseline test is next."},
+   "evidence": "Not run yet. Same family as H06. Review #13: with its own exit (RSI back over 40 or 10 days) +4.1% per trade, 70% won (2018-23) and +4.2%, 68% (2024-26); held 20 days it was worse than an average uptrend day (-7.1%). The same-exit baseline test is next. Review #14: against ordinary uptrend days traded with the same exit, +3.9% per trade (z 2.3, 25 market events) in 2018-23 and +5.6% (z 2.8, 16 events) since 2024: the most consistent result so far, 5 events short of the bar."},
   {"id": "H08", "family": "relative strength", "claim": "Buy what outperforms its benchmark: price and the relative-strength line (asset / index) both making higher highs; RS often turns before price.",
    "sources": ["TWT: How To Pick Stocks For Beginners Using Relative Strength Analysis (parts 1-3)", "TWT: FALSE BREAKOUT 3 RULES (RS must be rising)", "TWT: STAN WEINSTEIN Trading Method"],
    "variable": "coin / BTC ratio: 30-day change and vs its 50-day average", "status": "UNVERIFIED",

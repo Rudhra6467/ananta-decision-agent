@@ -217,3 +217,23 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn) and not inspect.signature(fn).parameters:
             fn()
             print("ok", name)
+
+
+def test_wide_rules_stack_trades_far_apart_and_switch_on_schedule():
+    from src.intelligence import explorer_engine as xe
+    eng = xe.CoinEngine("BTC")
+    w = xe.RULESETS["W1"]
+    assert "E6" in w.setups and w.stack == 3
+    eng.schedule = [(0, xe.RULES_V0), (1000, w)]
+    assert eng.rules_at(999).name == "v0" and eng.rules_at(1000).name == "W1"
+    # one real LONG_TERM trade open at 100
+    o = xe.Order("x", "BTC", "E4", "LONG_TERM", 100.0, 0, 10, {}, 1, 1, 1, None, None)
+    eng.orders.append(o)
+    eng.rules = xe.RULES_V0
+    assert eng._busy("LONG_TERM", 150.0, 5.0)                 # v0: one per type
+    eng.rules = w
+    assert eng._busy("LONG_TERM", 103.0, 5.0)                 # W1: too close to the open one
+    assert not eng._busy("LONG_TERM", 106.0, 5.0)             # W1: far enough apart
+    eng.orders += [xe.Order(f"y{i}", "BTC", "E4", "LONG_TERM", 120.0 + 10 * i, 0, 10, {}, 1, 1, 1, None, None) for i in range(2)]
+    assert eng._busy("LONG_TERM", 200.0, 5.0)                 # W1: stack of 3 is full
+    assert not eng._busy("SHORT_TERM", 100.0, 5.0)            # other types are independent

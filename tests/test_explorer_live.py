@@ -153,3 +153,26 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn) and not inspect.signature(fn).parameters:
             fn()
             print("ok", name)
+
+
+def test_widen_switches_rules_from_the_next_scan_and_rebuild_still_matches():
+    import json as _json
+    d, clock, hands, ex, alerts = _mk()
+    ex.start()
+    _advance(ex, clock, 4 * 12)
+    info = xl.widen("W1", d, now=clock["now"])
+    assert info["rules"] == "W1"
+    ex2 = xl.Explorer(d, hands=hands, now=lambda: clock["now"], alert=lambda *a: None)   # restart, as live
+    assert ex2.start()["resumed"]
+    _advance(ex2, clock, 4 * 36)
+    recs = [_json.loads(x) for x in open(d / "explorer_decisions.jsonl")]
+    assert {"v0", "W1"} <= {r.get("rules") for r in recs}
+    assert all(r.get("rules") == "v0" for r in recs if r["t"] < info_t(info))
+    rc = xl.reconstruct(d)
+    assert rc["logged_real_events"] > 0 and rc["match"], rc
+    assert ex2.status()["rules_log"][0]["rules"] == "W1"
+
+
+def info_t(info):
+    from datetime import datetime, timezone
+    return int(datetime.strptime(info["from"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc).timestamp()) if ":" in info["from"] else 0

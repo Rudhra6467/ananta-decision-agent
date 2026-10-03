@@ -40,6 +40,8 @@ class Rules:
     entry: str = "LIMIT_ATR"     # LIMIT_ATR (v0: rule-specific limit) | LIMIT_CLOSE (limit at the scan close) | MARKET
     x3: bool = True              # warning bells on/off
     setups: tuple = ("E1", "E2", "E3", "E4", "E5")
+    stack: int = 1               # real trades allowed at once per coin per trade type (v0: 1)
+    stack_gap: float = 2.0       # a stacked entry must be this many 4h ATRs (about a day's move) from every open one
 
 
 RULES_V0 = Rules()
@@ -55,6 +57,9 @@ RULESETS = {  # repair-shop review #1 (docs/repair_shop/REVIEW_1.md)
     "R3b": Rules("R3b", entry="LIMIT_CLOSE", x3=False, setups=("E7",)),
     "R3c": Rules("R3c", entry="LIMIT_CLOSE", x3=False, setups=("E8",)),
     "R3all": Rules("R3all", entry="LIMIT_CLOSE", x3=False, setups=("E6", "E7", "E8")),
+    # paper "wide" mode (owner, 2026-10-03): more paper evidence per day. Same sizes, exits and bells as v0;
+    # adds the E6 dip setup as real paper trades and allows up to 3 trades per coin per type when far enough apart.
+    "W1": Rules("W1", setups=("E1", "E2", "E3", "E4", "E5", "E6"), stack=3, stack_gap=2.0),
 }
 DIP_SETUPS = ("E6", "E7", "E8")
 
@@ -284,6 +289,7 @@ class CoinEngine:
                  random_rate: float = RANDOM_RATE, rules: Rules = RULES_V0):
         self.coin = coin
         self.rules = rules
+        self.schedule: list = [(0, rules)]    # (from_t, Rules): the rules in force from each time (history replays identically)
         self.tf = {k: TfState(k) for k in TF_S}
         self.trade_from_t = trade_from_t
         self.btc_ctx = btc_ctx or (lambda t: {})
@@ -310,6 +316,8 @@ class CoinEngine:
     def attach(self, *, btc_ctx=None, slot_ok=None, on_event=None) -> None:
         if not hasattr(self, "rules"):   # state saved by engine v0.1
             self.rules = RULES_V0
+        if not hasattr(self, "schedule"):  # state saved before rule schedules
+            self.schedule = [(0, self.rules)]
         self.btc_ctx = btc_ctx or (lambda t: {})
         self.slot_ok = slot_ok or (lambda coin, typ: True)
         self.on_event = on_event or (lambda e: None)
@@ -506,9 +514,24 @@ class CoinEngine:
             return "INTRADAY", "G3"
         return None, "NO_TYPE"
 
-    def _busy(self, typ: str) -> bool:
-        return any(o.typ == typ and o.shadow is None for o in self.orders) or any(
-            t.typ == typ and t.shadow is None and not t.actual.done for t in self.trades)
+    def rules_at(self, T: int) -> Rules:
+        r = self.rules
+        for t0, rr in getattr(self, "schedule", [(0, self.rules)]):
+            if T >= t0:
+                r = rr
+        return r
+
+    def _busy(self, typ: str, price: float | None = None, gap: float = 0.0) -> bool:
+        """No room for another real trade of this type: the stack is full, or (stacking) the new price is too close
+        to an open order / trade of the same type."""
+        live = [o.limit for o in self.orders if o.typ == typ and o.shadow is None] + [
+            t.entry for t in self.trades if t.typ == typ and t.shadow is None and not t.actual.done]
+        if not live:
+            return False
+        stack = getattr(self.rules, "stack", 1)
+        if len(live) >= stack or price is None:
+            return True
+        return any(abs(price - p) < gap for p in live)
 
     def _id(self, T: int, tag: str) -> str:
         self._seq += 1
@@ -544,6 +567,7 @@ class CoinEngine:
     # ---- the scan ----
     def scan(self, T: int) -> dict:
         """Run at every 15m close T, after all bars closing at T were fed. Returns the decision record."""
+        self.rules = self.rules_at(T)
         rec: dict[str, Any] = {"t": T, "coin": self.coin, "rulebook": RULEBOOK, "engine": ENGINE_VERSION,
                                "rules": getattr(self, "rules", RULES_V0).name}
         if not self.ready():
@@ -569,7 +593,8 @@ class CoinEngine:
             typ, grule = self.trade_type(setup, st, limit)
             cands.append((setup, limit, extra | {"type_rule": grule}, typ))
         taken = None
-        real = [c for c in cands if c[3] is not None and not self._busy(c[3])]
+        gap = getattr(self.rules, "stack_gap", 2.0) * st["atr4h"]
+        real = [c for c in cands if c[3] is not None and not self._busy(c[3], c[1], gap)]
         if real:
             taken = max(real, key=lambda c: self.room(st, c[1]))
             ok = self.slot_ok(self.coin, taken[3])   # True, or the reason entries are blocked (CAP / KILL_SWITCH)
@@ -580,7 +605,7 @@ class CoinEngine:
         for c in cands:
             if taken is not None and c is taken:
                 continue
-            why = "NO_TYPE" if c[3] is None else ("REJECTED_SLOT" if self._busy(c[3]) else "REJECTED_DUP")
+            why = "NO_TYPE" if c[3] is None else ("REJECTED_SLOT" if self._busy(c[3], c[1], gap) else "REJECTED_DUP")
             self._place(T, c[0], c[3] or "SHORT_TERM", c[1], st, c[2], shadow=why)
         rec["candidates"] = [{"setup": c[0], "type": c[3], "rule": c[2].get("type_rule")} for c in cands]
         # random-entry baseline (shadow, deterministic)

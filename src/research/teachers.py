@@ -49,6 +49,8 @@ def claude(model: str, system: str, user: str, max_tokens: int = 4000, tries: in
     body = {"model": model, "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": user}]}
     if "haiku" in model:
         body["temperature"] = 0                 # newer models reject the temperature setting
+    else:
+        body["thinking"] = {"type": "between_tools"}   # no silent thinking: the whole budget goes to the written answer
     for k in range(tries):
         req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
                                      headers={"Content-Type": "application/json", "x-api-key": os.environ["ANTHROPIC_API_KEY"],
@@ -191,7 +193,7 @@ def merge(rules: str, channel: str, out: str, max_notes_chars: int = 420000) -> 
         recs.append((order.get(r["id"], 9999), {"id": r["id"], "title": r["title"], "minutes": r["minutes"], **x}))
     recs.sort(key=lambda t: t[0])
     notes = "\n".join(json.dumps(r, separators=(",", ":")) for _, r in recs)[:max_notes_chars]
-    text, usage = claude(SONNET, MERGE_SYSTEM, MERGE_TASK.format(channel=CHANNELS[channel], n=len(recs), notes=notes), max_tokens=16000)
+    text, usage = claude(SONNET, MERGE_SYSTEM, MERGE_TASK.format(channel=CHANNELS[channel], n=len(recs), notes=notes), max_tokens=20000)
     Path(os.path.expanduser(out)).write_text(text)
     return {"channel": channel, "videos": len(recs), "usage": usage, "out": out}
 

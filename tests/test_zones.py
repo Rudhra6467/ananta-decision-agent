@@ -135,3 +135,18 @@ def test_review9_context_uses_only_earlier_days():
     t = D[600][0] + 3600                                  # an entry during day 600
     assert c1.at(t, D[600][4]) == c2.at(t, D[600][4])     # what happens after day 600 never matters
     assert ZS.welch([1.0, 2.0, 3.0], [0.0, 0.5, 1.0]) > 0
+
+
+def test_review10_exits_follow_their_rules():
+    # flat at 100, entry at 100; the zone 95-98; next zone above at 110; price rises to 112 on day 5
+    c = [100.0] * 450 + [100.0, 101, 103, 106, 112, 112] + [112.0] * 50
+    D = _bars(c, wick=0.002)
+    A = Z.Arr(R.Series(D))
+    e = {"i": 450, "bot": 95.0, "top": 98.0, "atr": 2.0, "next_up": 110.0}
+    x = Z.exits(A, e, 0.0)
+    assert x["X2"].get("target") and abs(x["X2"]["net"] - 0.10) < 0.02          # sold at the next zone (+10%)
+    assert not x["X4"]["stopped"] and x["X1"]["days"] == 20
+    # a fall through the zone stops X2 at the next open after the close below 94
+    c2 = [100.0] * 450 + [100.0, 97, 93, 90, 90] + [90.0] * 50
+    x2 = Z.exits(Z.Arr(R.Series(_bars(c2, wick=0.002))), e, 0.0)
+    assert x2["X2"]["stopped"] and x2["X4"]["stopped"] and x2["X2"]["net"] < 0

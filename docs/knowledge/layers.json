@@ -912,10 +912,11 @@
     "VARIABLES",
     "EXPLORER_SETUPS"
    ],
-   "evidence": "5 reviews done, 1 passed (T3)",
+   "evidence": "5 reviews done, 1 passed (T3); requests logged from Ask Ananta/voice (data, feature, bug, idea) from 2026-10-03",
    "files": [
     "docs/repair_shop/ledger.json",
-    "src/research/review_compare.py"
+    "src/research/review_compare.py",
+    "jarvis/service/requests_log.py"
    ]
   },
   {
@@ -962,7 +963,8 @@
    "files": [
     "jarvis/app/app.json",
     "jarvis/service/core.py",
-    "jarvis/service/app.py"
+    "jarvis/service/app.py",
+    "docs/GUEST_GUIDE.md"
    ]
   },
   {

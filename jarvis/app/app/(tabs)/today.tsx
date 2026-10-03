@@ -20,6 +20,7 @@ export default function Home() {
   const { data: d, err, loading, reload } = useData("/v3/home");
   const { data: inbox, reload: reloadInbox } = useData("/v3/inbox");
   const { data: br, reload: reloadBrief } = useData("/v3/brief", 300000);
+  const { data: me } = useData("/v3/me", 0);
   const [briefing, setBriefing] = useState(false);
   const [q, setQ] = useState("");
   const [all, setAll] = useState(false);
@@ -51,6 +52,20 @@ export default function Home() {
         <T dim>{s.sentence}</T>
       </View>
       </Spot>
+
+      {me?.guest ? (
+        <Card title="Welcome to Ananta" sub="Madhav's trading assistant, in practice mode">
+          <T small>Ananta watches 10 coins all day, explains what it sees and why it would or would not trade, and learns from its own record. Everything you do here goes to your own practice book.</T>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+            {["Show me around", "What are we doing here?", "How do I make a paper trade?"].map((q) => (
+              <Pressable key={q} onPress={() => router.push({ pathname: "/(tabs)/ask", params: { q, t: String(Date.now()) } })}
+                style={{ backgroundColor: C.accent, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}>
+                <Text style={{ color: "#FFF", fontWeight: "700", fontSize: 13 }}>{q}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Card>
+      ) : null}
 
       <Pressable onPress={() => router.push("/(tabs)/ask")} style={{ flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 12, borderWidth: 1, borderColor: C.line, paddingHorizontal: 14 }}>
         <TextInput value={q} onChangeText={setQ} onSubmitEditing={ask} returnKeyType="send" placeholder="Ask Ananta about trades or markets…"

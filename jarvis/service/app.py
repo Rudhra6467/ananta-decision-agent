@@ -378,6 +378,30 @@ def zones_coin(coin: str, who: str = Depends(owner)) -> dict:
     return r
 
 
+class ReqStatus(BaseModel):
+    status: str
+    note: str = ""
+
+
+@app.get("/v3/requests")
+def requests_list(who: str = Depends(owner)) -> dict:
+    """Requests logged for the repair shop from Ask Ananta / voice, newest first, with their status."""
+    from jarvis.service import requests_log
+
+    return {"requests": requests_log.list_(J())}
+
+
+@app.post("/v3/requests/{rid}")
+def requests_status(rid: str, b: ReqStatus, who: str = Depends(owner)) -> dict:
+    from jarvis.service import requests_log
+
+    if str(who).startswith("guest:"):
+        raise HTTPException(status_code=403, detail="Practice mode: only the owner updates the repair shop.")
+    requests_log.set_status(J(), rid, b.status, b.note)
+    J().audit(who, "request.status", f"{rid} {b.status}", "OK")
+    return {"ok": True}
+
+
 @app.get("/v3/shadow/h07")
 def shadow_h07_report(who: str = Depends(owner)) -> dict:
     """The short dip trade (H07) paper shadow: every signal since it started, its paper entry, exit and result."""

@@ -59,6 +59,13 @@ export default function Trade() {
           <Card title="How it ended"><T>{d.exit}</T></Card>
         )}
 
+        {d.highest_price != null ? (
+          <Card title="While it was open">
+            <Line label="Highest price" value={`${price(d.highest_price)} (${d.highest_pct >= 0 ? "+" : ""}${d.highest_pct}%)`} />
+            <Line label="Lowest price" value={`${price(d.lowest_price)} (${d.lowest_pct >= 0 ? "+" : ""}${d.lowest_pct}%)`} />
+          </Card>
+        ) : null}
+
         <Spot id="trade.why">
         <Section title="Why we bought" />
         <Card>

@@ -1246,6 +1246,11 @@ class Ask:
                          "in total (a greeting counts), the most important thing first. Rounded numbers; no symbols, tables or abbreviations "
                          "(say 'percent', 'dollars', 'Bitcoin'). Details go in 'breakdown' (shown on screen, not spoken). Keep the JSON small so it arrives "
                          "fast: breakdown at most 2 bullets, evidence at most 2 items, follow_ups at most 2. Only move the screen (ui_go) when he asks to see something]")
+        if not voice and source != "eval":
+            notes.append("[typed chat: the answer is READ, not heard, and the screen does NOT move by itself. Answer fully in text. You may still "
+                         "add ui_go / points / a tour as a plan; the app shows a 'Show me on screen' button and only walks him through it, "
+                         "with voice, if he taps it. So never write 'I opened', 'look at the highlighted', 'as you can see here': describe "
+                         "where things are instead (e.g. 'on the Markets tab, under Zones')]")
         prev = self.j.db.execute("SELECT route FROM ask_messages WHERE thread=? AND role='assistant' AND route IS NOT NULL ORDER BY t DESC, rowid DESC LIMIT 1",
                                  (thread,)).fetchone()
         from jarvis.service import briefs as B

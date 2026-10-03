@@ -8,11 +8,13 @@ import { CandleChart, Progress } from "../../src/charts";
 import { Big, Btn, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Row, Screen, Section, Segmented, T, pct, price, usd, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
+import { ChainLadder } from "../../src/chain";
 
 export default function Coin() {
   const { sym } = useLocalSearchParams<{ sym: string }>();
   const { data: d, err, loading, reload } = useData(`/coin/${sym}`);
   const { data: w } = useData(`/v3/coin/${sym}/watch`);
+  const { data: chb } = useData("/v3/chain");
   const { data: hv } = useData("/v3/holdings", 0);
   const [tf, setTf] = useState("1h");
   useFocusEffect(useCallback(() => { setScreen({ screen: "coin", coin: String(sym), label: `${sym} coin page (chart ${tf}, position, setups)` }); }, [sym, tf]));
@@ -73,6 +75,12 @@ export default function Coin() {
 
         {w?.ready ? (
           <>
+            {chb?.coins ? (
+              <Spot id="coin.chain">
+                <Section title="Decision chain" right={<T small>fail-closed</T>} />
+                <Card><ChainLadder row={chb.coins.find((r: any) => r.coin === String(sym).toUpperCase())} /></Card>
+              </Spot>
+            ) : null}
             <Spot id="coin.market">
             <Section title="What Ananta is waiting for" right={<T small>checked {w.as_of}</T>} />
             <Card sub={`1h trend: ${w.market.trend_1h} · 4h: ${w.market.trend_4h} · BTC: ${w.market.btc_trend_1h}`} title="Market picture">

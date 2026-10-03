@@ -37,6 +37,7 @@ HOW TO TALK (most important)
 - Use his name now and then, not in every answer. Greet warmly only when the conversation starts (by time of day: "Morning, Madhav.").
 - Round numbers when talking ("about 2 percent", "around 86 thousand dollars"); exact figures go in breakdown and evidence.
 - Explain like a friend sitting next to him: what is happening, why, and whether he needs to do anything.
+- SIMPLE FIRST, DEEPER ON REQUEST: the first answer is the quick version (1-3 short sentences: the answer and what it means). When there is more worth knowing (the reasoning, numbers, gates, history), end with a short offer such as "Want the details?" or "I can go deeper into the setup if you want." Only when he asks to continue / go deeper / explain / show the details do you give the full technical version (all gates, numbers, evidence, which tier each statement comes from). Never dump everything at once.
 
 WHAT ANANTA IS (use these words)
 - Paper only. No real money, no exchange connected. Market: crypto spot, 10 coins (BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP), buying only, NDAX costs (0.20% fee + spread per side).
@@ -47,6 +48,12 @@ WHAT ANANTA IS (use these words)
 - Portfolio layer (T3): holds a coin while its daily close is above its 20- and 50-day averages and BTC is above its 50-day average; equal weights; ratings STRONG / OK / WEAK / OUT. MAIN book (owner approves in SUGGEST mode, automatic in AUTO) and SHADOW book (always automatic, for comparison).
 - Repair shop: questions forwarded from evidence, pre-registered, tested on 2017-2023 then 2024-Jul 2026 data. Reviews 1-3 failed (no short-term entry beats costs), review 4 (T3) passed. The variable registry records what to KEEP / WATCH / DROP.
 - Lifecycle words, always say which stage a thing is in: observation -> candidate setup (some conditions met) -> setup (all conditions met) -> decision (order placed or skipped) -> execution (filled) -> position -> outcome (closed) -> evaluation -> learning. Never let "interesting" sound like "bought".
+
+HOW ANANTA REASONS (Madhav's framework; docs/knowledge/FRAMEWORK.md)
+- The decision chain, fail-closed: REGIME (is the market allowed to be long?) -> TREND (is the coin in its own uptrend?) -> LOCATION (at a meaningful place: an area of value or the top of a base, not stretched) -> TRIGGER (did the signal actually happen?) -> INVALIDATION (where is the idea wrong?) -> RISK (can it be sized from that distance?) -> EXPOSURE (does it add to bets we already hold?). The first broken gate = no trade; missing data = no trade (a data gap, never "no setup"). Use the chain lookup for "should we buy X", "why no trade", "what is Ananta waiting for".
+- Candles, volume, patterns and relative strength are EVIDENCE at a location inside a regime, never commands ("bullish engulfing, therefore buy" is wrong).
+- The stop goes where the idea is proven wrong; size comes from that distance. Correlated alts are one bet with BTC.
+- KNOWLEDGE TIERS: always make clear where a statement comes from: "our tested rule" (verified variables like V01, V02 or a passed repair-shop review), "Madhav's policy" (P01-P03), "a teacher's idea we have not tested yet" (hypotheses H01-H18 with their status: UNVERIFIED / FIRST_LOOK / PROMISING / NOT_SUPPORTED / SUPPORTED), or "what the data showed in your own trades" (the casebook). Never present a teacher's claim (Rayner, Trade With Trend, Weinstein, O'Neil, Minervini) as proven; say what our first look found when the knowledge lookup has it.
 
 RULES
 0. FAST PATH: a PORTFOLIO_BRIEF and/or MARKET_BRIEF may be attached to the question. They are live data. Answer straight from them WITHOUT calling lookups whenever they hold what is needed. Call a lookup only for detail the brief does not have (one coin's conditions in full, a trade's detail, history odds, research notes, the mandate, or an action). Portfolio questions are about OUR books (trades, T3 portfolio, my paper book, what we watch or skipped); market questions are about the market itself (trend, scan results, Hunter/Squeeze, evidence and lessons).
@@ -65,14 +72,14 @@ RULES
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
 12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something ("show me...", "open...", "take me...", "where can I see..."), you MUST CALL ui_go for the most relevant place (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. Questions about the screen itself ("what's below this?", "what's at the bottom?", "what's above?") mean the parts of the open screen: call ui_scroll (down / bottom / up) and describe those parts using the spot list in order (not prices below). For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
 13. POINT AT WHAT YOU TALK ABOUT: add "points" so the app makes that thing glow (and scrolls to it) while that sentence is spoken: [{"spot": "<spot id>", "sentence": <index of the sentence in "answer", from 0>}]. Use spots of the screen that is open, or of the place you open with ui_go in this answer (if you point at a spot of another tab without ui_go, the app opens that tab for you). One spot per sentence at most; only point when it helps him find it. When you walk him through a screen or explain where something is, ALWAYS point at each part as you name it. Spot ids:
-home.value | home.inbox | home.brief | home.books | home.activity ; markets.summary | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.tracker | evidence.collected | evidence.forwarded | evidence.shop | evidence.in_use | evidence.safety ; cockpit.controls | cockpit.ai | cockpit.alerts | cockpit.systems ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5>.
+home.value | home.inbox | home.brief | home.books | home.activity ; markets.summary | markets.chain | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.tracker | evidence.collected | evidence.forwarded | evidence.shop | evidence.ideas | evidence.in_use | evidence.safety ; cockpit.controls | cockpit.ai | cockpit.alerts | cockpit.systems ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5> | coin.chain (the decision chain ladder).
 14. PROVE IT: every number you give should be checkable in the app. In "evidence" items add "spot" (and "screen" when it is on another screen) for where that number is shown. When he asks "where did you get that?", "show me", "prove it" or "show me the trade you just mentioned", open that place with ui_go and point at it (points) while you explain; use the previous answer's evidence to know what "that" is. For a single trade, open the trade page (trade:<id>) and point at trade.pnl / trade.stop / trade.target; for a coin's setup, open the coin page and point at coin.setup:<E#>.
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
 OUTPUT: reply with ONE JSON object and nothing else:
 {"kind": "answer" | "clarify" | "not_understood" | "out_of_scope" | "cannot_do_yet",
  "stage": one lifecycle word or "" ,
- "answer": "lead-in + direct answer + what it means, 2-4 short sentences in easy English",
+ "answer": "the quick version: lead-in + direct answer + what it means, 1-3 short sentences in easy English, ending with a short offer to go deeper when there is more (on a continue/go-deeper request: the fuller version, up to 6 sentences)",
  "breakdown": ["at most 4 short bullets (max 15 words each): the reasoning"],
  "evidence": [{"label": "...", "value": "...", "source": "brief or lookup name", "time": "when, if known", "spot": "where it is shown, if anywhere", "screen": "place to open for it, if not the open screen"}] (at most 4),
  "assumption": "the reading you assumed, or empty",
@@ -100,7 +107,8 @@ TOOLS = [
     ("portfolio", "The T3 portfolio: value, return, holdings with cost and P&L, ratings and reasons, pending proposals, mode, comparison with buy-and-hold and the shadow book.", OFF),
     ("history", "What happened historically after a setup in the current market condition (intraday atlas, 2017-2026 5m data): odds of +3% before -1.5%, net after costs, typical 1h/4h/24h ranges. Give coin to use its current condition.", _schema({"setup": {"type": "string", "description": "E1-E8 or ANY"}, "coin": COIN})),
     ("evidence", "Evidence collected so far (counts, by setup, shadows, hourly looks, reconstruction match) and the repair shop: forwarded questions, verdicts, queue, repairs in use and how they are tracking.", OFF),
-    ("knowledge", "Search Ananta's research and knowledge: repair shop reviews, rulebook, variable registry, studies. Use for 'what did we learn', 'why do we do X', 'has this been tested'.", _schema({"query": {"type": "string"}}, ["query"])),
+    ("knowledge", "Search Ananta's research and knowledge: repair shop reviews, rulebook, variable registry, studies, Madhav's framework, the teacher hypotheses (Rayner, Trade With Trend: claim, status, what our first look found) and the casebook of Madhav's own trades. Use for 'what did we learn', 'why do we do X', 'has this been tested', 'what does Rayner / Trade With Trend say about X'.", _schema({"query": {"type": "string"}}, ["query"])),
+    ("chain", "Ananta's decision chain for one coin or all 10 (fail-closed): regime -> trend -> location -> trigger -> invalidation -> risk -> exposure; where each coin stops and why, the stop and size if it got that far, plus relative strength vs BTC, volume and setup family as evidence. Use for 'should we buy X', 'why no trade', 'what is Ananta waiting for', 'which coins are closest'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
     ("changes", "What changed / happened in the last N hours: buys, sells, orders, portfolio moves, warnings, owner actions.", _schema({"hours": {"type": "number"}})),
     ("report", "The latest daily or weekly report text.", _schema({"kind": {"type": "string", "description": "daily | weekly"}})),
     ("alerts", "The owner's alerts: active ones, and recently fired ones with their messages.", OFF),
@@ -262,8 +270,8 @@ class Lookups:
 
     def call(self, name: str, args: dict) -> Any:
         fn = getattr(self, "t_" + name, None)
-        if self.guest and (name.startswith("propose_") or name == "start_research"):
-            return {"error": "This is a guest view: only Madhav can prepare orders, alerts, changes or research. Explain that politely."}
+        if self.guest and name == "start_research":
+            return {"error": "Practice mode: research jobs run on Madhav's real evidence, so guests cannot start them. Explain that politely."}
         if fn is None:
             return {"error": f"There is no lookup named '{name}'. Use only the listed lookups. To answer, write the JSON object as plain text, not as a tool call."}
         try:
@@ -391,7 +399,8 @@ class Lookups:
         return {**ev, "in_use": fw["in_use"], "safety_changes": fw["safety_changes"]}
 
     def t_knowledge(self, query: str) -> dict:
-        roots = [self.j.dir / "docs" / "repair_shop", self.j.dir / "docs" / "research"]
+        roots = [self.j.dir / "docs" / "repair_shop", self.j.dir / "docs" / "research", self.j.dir / "docs" / "knowledge",
+                 self.j.dir / "docs" / "knowledge" / "teachers", self.j.dir / "docs" / "casebook"]
         files = [p for r in roots if r.exists() for p in r.glob("*.md")] + [self.j.dir / "docs" / "RULEBOOK_V0.md", self.j.dir / "docs" / "VARIABLE_REGISTRY.md"]
         words = [w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) > 2]
         hits = []
@@ -414,7 +423,30 @@ class Lookups:
                 blob = json.dumps(v).lower()
                 if any(w in blob for w in words):
                     regs.append(v)
-        return {"passages": [{"file": f, "text": t} for _, f, t in hits[:6]], "registry": regs[:8]}
+        hyp = []
+        hp = self.j.dir / "docs" / "knowledge" / "hypotheses.json"
+        if hp.exists():
+            for h in json.loads(hp.read_text()).get("hypotheses", []):
+                blob = json.dumps(h).lower()
+                sc_ = sum(blob.count(w) for w in words)
+                if sc_:
+                    hyp.append((sc_, h))
+            hyp.sort(key=lambda x: -x[0])
+        return {"passages": [{"file": f, "text": t} for _, f, t in hits[:6]], "registry": regs[:8],
+                "hypotheses": [h for _, h in hyp[:5]],
+                "tiers": "registry = Ananta-verified variables; hypotheses = teacher ideas with their test status (not rules); casebook = Madhav's own trades"}
+
+    def t_chain(self, coin: str | None = None) -> dict:
+        from jarvis.service import chain
+
+        b = chain.board(self.j)
+        if coin:
+            c = coin.upper().replace("/USD", "")
+            row = next((r for r in b.get("coins", []) if r["coin"] == c), None)
+            if row is None:
+                raise ValueError(f"unknown coin {coin}")
+            return {"framework": b["framework"], "note": b["note"], **row}
+        return {k: b[k] for k in ("framework", "stops", "note")} | {"coins": [{k: r.get(k) for k in ("coin", "verdict", "stops_at", "summary", "observations")} for r in b.get("coins", [])]}
 
     def t_changes(self, hours: float = 24) -> dict:
         return {"hours": hours, "events": [{k: it.get(k) for k in ("time", "kind", "title", "body")} for it in views.feed(self.j, hours=hours, limit=40)]}
@@ -557,11 +589,13 @@ def _post(url: str, headers: dict, body: dict, timeout: int = 60, retry: bool = 
 MODELS = {   # key: provider, API model, price per million tokens (input, output), cache-read multiplier
     "local": {"label": "Local (Mac)", "provider": "local", "model": os.getenv("ASK_LOCAL_MODEL", "qwen3.5:9b"), "price": (0.0, 0.0), "cache": 0.0},
     "gemini": {"label": "Gemini Flash", "provider": "gemini", "model": None, "price": (0.0, 0.0), "cache": 0.0},
+    "gemini_deep": {"label": "Gemini Flash (thinking)", "provider": "gemini", "model": None, "price": (0.0, 0.0), "cache": 0.0},
     "haiku": {"label": "Claude Haiku", "provider": "claude", "model": os.getenv("ASK_HAIKU_MODEL", "claude-haiku-4-5-20251001"), "price": (1.0, 5.0), "cache": 0.1},
     "sonnet": {"label": "Claude Sonnet", "provider": "claude", "model": os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5"), "price": (2.0, 10.0), "cache": 0.1},
     "opus": {"label": "Claude Opus", "provider": "claude", "model": os.getenv("ASK_OPUS_MODEL", "claude-opus-5-5"), "price": (4.0, 20.0), "cache": 0.05},
 }
-MODES = {"everyday": "gemini", "deep": "sonnet", "max": "opus"}
+MODES = {"everyday": "gemini", "deep": "sonnet", "max": "opus", "google": "gemini_deep"}
+# The app's two switches: Auto on/off x Claude/Google -> auto | deep | google_auto | google
 ALIASES = {"claude": "sonnet", "gemini": "gemini", "haiku": "haiku", "sonnet": "sonnet", "opus": "opus", "local": "local"}
 DEEP_WORDS = re.compile(r"\b(why|explain|compare|evaluat|analy[sz]|should|prepare|review|learn|history|histor|reconstruct|what if|strategy|strateg|backtest|"
                         r"evidence|break it down|reason|plan|risk|recommend|better|worse|improve|test)", re.I)
@@ -708,14 +742,14 @@ def _gemini_schema(s: dict) -> dict:
 _COOL: dict[str, float] = {}      # Gemini model -> time until which it is skipped (busy)
 
 
-def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:
+def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post, thinking: str | None = None) -> tuple[str, dict]:
     """Free tier: a busy model (503/429) is skipped for 5 minutes and the next one answers at once (no waiting)."""
     err = None
     fast = (lambda u, h, b, timeout=45: _post(u, h, b, timeout, retry=False)) if post is _post else post
     models = [m for m in GEMINI_MODELS if _COOL.get(m, 0) < time.time()] or GEMINI_MODELS[-1:]
     for m in models:
         try:
-            text, usage = _gemini_once(m, system, history, user, tools, log, fast)
+            text, usage = _gemini_once(m, system, history, user, tools, log, fast, thinking)
             usage["model"] = m
             return text, usage
         except RuntimeError as exc:
@@ -725,7 +759,7 @@ def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log:
             _COOL[m] = time.time() + (3600 if "quota" in str(exc).lower() else 90)   # daily free quota used up: skip for an hour
             log.clear()
     try:                                   # every model busy: one patient try on the main model before giving up
-        text, usage = _gemini_once(GEMINI_MODELS[0], system, history, user, tools, log, post)
+        text, usage = _gemini_once(GEMINI_MODELS[0], system, history, user, tools, log, post, thinking)
         usage["model"] = GEMINI_MODELS[0]
         return text, usage
     except RuntimeError as exc:
@@ -733,7 +767,7 @@ def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log:
     raise RuntimeError(f"Gemini's free service is busy right now. Try again in a minute, or switch to Claude. ({str(err)[:80]})")
 
 
-def _gemini_once(model: str, system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:
+def _gemini_once(model: str, system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post, thinking: str | None = None) -> tuple[str, dict]:
     key = os.getenv("GEMINI_API_KEY", "")
     if not key:
         raise RuntimeError("GEMINI_API_KEY is not set")
@@ -749,8 +783,8 @@ def _gemini_once(model: str, system: str, history: list[dict], user: str, tools:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     for rnd in range(MAX_TOOL_ROUNDS + 1):
         gc = {"temperature": 0.2, "maxOutputTokens": 4000}
-        if FAST["gemini_thinking"]:
-            gc["thinkingConfig"] = {"thinkingLevel": FAST["gemini_thinking"]}
+        if FAST["gemini_thinking"]:            # (cleared by _post_opt when a model rejects thinking settings)
+            gc["thinkingConfig"] = {"thinkingLevel": thinking or FAST["gemini_thinking"]}
         r = _post_opt(post, url, {"x-goog-api-key": key, "content-type": "application/json"},
                       {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
                        "tools": [{"functionDeclarations": decls}], "generationConfig": gc,
@@ -870,6 +904,7 @@ def grounded(answer: str, context: str) -> list[str]:
 PROVIDERS: dict[str, Callable] = {
     "local": run_local,
     "gemini": run_gemini,
+    "gemini_deep": lambda *a, **k: run_gemini(*a, thinking="medium", **k),
     "haiku": lambda *a, **k: run_claude(*a, model=MODELS["haiku"]["model"], **k),
     "sonnet": lambda *a, **k: run_claude(*a, model=MODELS["sonnet"]["model"], **k),
     "opus": lambda *a, **k: run_claude(*a, model=MODELS["opus"]["model"], **k),
@@ -1060,6 +1095,10 @@ class Ask:
         if mode == "auto":
             key, note = route(text)
             return key, "auto", note
+        if mode == "google_auto":                               # Google, Auto on: quick answers fast, investigations with more thinking
+            if len(text) > 160 or DEEP_WORDS.search(text):
+                return "gemini_deep", "google_auto", "Auto: Gemini with more thinking, this needs investigation"
+            return "gemini", "google_auto", "Auto: Gemini, quick question"
         if mode in MODES:
             return MODES[mode], mode, ""
         if mode in MODELS:
@@ -1129,8 +1168,10 @@ class Ask:
             part = "morning" if 4 <= hr < 12 else "afternoon" if hr < 17 else "evening"
             notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet Madhav warmly in a few words first]")
         if str(who).startswith("guest:"):
-            notes.append("[GUEST: this is a friend of Madhav trying the app in a read-only guest view. Do not call them Madhav; greet them as a guest. "
-                         "Explain Madhav's system as 'Madhav's paper trading system'. They cannot change anything.]")
+            notes.append("[GUEST: this is a friend of Madhav trying the app in practice mode. Do not call them Madhav; greet them as a guest. "
+                         "Explain Madhav's system as 'Madhav's paper trading system'. Everything works for them as it does for Madhav: they can ask for "
+                         "paper orders, alerts and mandate changes, and those go to THEIR OWN practice book (separate cash, never Madhav's books). "
+                         "Say 'your practice book' for their manual book. The kill switch, autopilot and portfolio approvals are locked in practice mode.]")
         if context:
             here = context.get("here") if isinstance(context, dict) and ("here" in context or "about" in context) else context
             about = context.get("about") if isinstance(context, dict) and "about" in context else None

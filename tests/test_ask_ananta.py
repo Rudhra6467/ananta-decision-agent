@@ -801,3 +801,39 @@ def test_instant_small_talk_and_repeat():
     assert A.ask("o@x.com", "Thank you.", thread=th, mode="everyday")["answer"].startswith("You're welcome")
     assert A.ask("o@x.com", "okay", thread=th, mode="everyday")["answer"] == "Okay."
     assert A.ask("o@x.com", "okay so why is bitcoin up", thread=th, mode="everyday")["model"] != "instant"
+
+
+def test_knowledge_map_is_complete_and_read_doc_stays_inside(tmp_path, monkeypatch):
+    """The knowledge map lists every document; read_doc opens only documents (docs or Madhav's notes), never other files;
+    his notes are searched for him and hidden from guests."""
+    import pathlib
+    import types
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    docs = root / "docs"
+    index = (docs / "KNOWLEDGE_INDEX.md").read_text()
+    folders = [docs, docs / "knowledge", docs / "knowledge" / "teachers", docs / "casebook", docs / "repair_shop", docs / "research"]
+    for f in folders:
+        for p in list(f.glob("*.md")) + list(f.glob("hypotheses.json")) + list(f.glob("cases.json")):
+            if p.name == "KNOWLEDGE_INDEX.md":
+                continue
+            assert f"`{p.relative_to(docs)}`" in index, f"{p.relative_to(docs)} is missing from docs/KNOWLEDGE_INDEX.md"
+    for ref in __import__("re").findall(r"`([A-Za-z_/0-9.]+\.(?:md|json))`", index):
+        assert (docs / ref).exists(), f"the map points at a missing document: {ref}"
+    notes = tmp_path / "My notes"
+    notes.mkdir()
+    (notes / "sol.md").write_text("# SOL\nI like buying SOL when the weekly base holds above 100 CAD.")
+    monkeypatch.setenv("ANANTA_NOTES_DIR", str(notes))
+    j = types.SimpleNamespace(dir=root)
+    L = ask.Lookups(j)
+    k = L.call("knowledge", {"query": "weekly base SOL capitulation"})
+    assert k["map"] and k["your_notes"] and k["your_notes"][0]["file"] == "your note: sol.md", k
+    assert "casebook" in json.dumps(k)
+    d = L.call("read_doc", {"file": "knowledge/FRAMEWORK.md", "section": "fail"})
+    assert "error" not in d and d["text"]
+    assert "weekly base" in L.call("read_doc", {"file": "your note: sol.md"})["text"]
+    for bad in ("../jarvis/service/ask.py", "/etc/passwd", "../../.env", "../pyproject.toml"):
+        assert "error" in L.call("read_doc", {"file": bad}), bad
+    g = ask.Lookups(j, guest=True)
+    assert not g.call("knowledge", {"query": "weekly base SOL"})["your_notes"]
+    assert "error" in g.call("read_doc", {"file": "sol.md"})

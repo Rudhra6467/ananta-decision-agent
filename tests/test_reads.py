@@ -111,3 +111,42 @@ def test_history_counts_events_not_coins_and_live_summary():
     assert [r["variant"] for r in live["reads"]] == ["M1a", "M2a", "M3a", "M3b"]
     assert all(r["state"] in ("FIRED", "CLOSE", "NO", "NO_DATA") for r in live["reads"])
     assert live["reads"][0]["history"] == "SUPPORTED"
+
+
+def _fake_jarvis(tmp_path, D_by_coin, status):
+    import json as _json
+    import sqlite3
+    import types
+
+    con = sqlite3.connect(tmp_path / "explorer_bars.sqlite")
+    con.execute("CREATE TABLE bars (coin TEXT, tf TEXT, t INTEGER, o REAL, h REAL, l REAL, c REAL, v REAL, PRIMARY KEY (coin, tf, t))")
+    for coin, D in D_by_coin.items():
+        con.executemany("INSERT INTO bars VALUES (?,?,?,?,?,?,?,?)", [(coin, "1d", *b) for b in D])
+    con.commit()
+    (tmp_path / "docs" / "knowledge").mkdir(parents=True)
+    (tmp_path / "docs" / "knowledge" / "reads_status.json").write_text(_json.dumps({"variants": {k: {"status": v} for k, v in status.items()}}))
+    last = max(D[-1][0] for D in D_by_coin.values())
+    return types.SimpleNamespace(dir=tmp_path, db=sqlite3.connect(":memory:"), now=lambda: last + 2 * DAY)
+
+
+def test_watch_records_each_fire_once_and_rings_only_supported_reads(tmp_path):
+    from jarvis.service import reads_watch as W
+
+    c = _bull_then_bear()
+    c += [c[-1] * 0.93, c[-1] * 0.85, c[-1] * 0.78]
+    D = _bars(c, [100.0] * (len(c) - 2) + [300.0, 400.0])
+    for st, rings in (("NOT_SUPPORTED", False), ("SUPPORTED", True)):
+        W._CACHE.clear()
+        sub = tmp_path / st
+        sub.mkdir()
+        j = _fake_jarvis(sub, {"BTC": D, "SOL": D}, {"M1a": st})
+        pushed, asked = [], []
+        news = lambda j_, coin: asked.append(coin) or {"verdict": "CLEAR", "why": "nothing about the coin itself"}   # noqa: E731
+        b = W.board(j)
+        assert {f["coin"] for f in b["fired"] if f["variant"] == "M1a"} == {"BTC", "SOL"}
+        out = W.watch(j, push=lambda t, m: pushed.append((t, m)), check_news=news)
+        assert {o["coin"] for o in out if o["variant"] == "M1a"} == {"BTC", "SOL"}
+        assert bool(pushed) == rings and bool(asked) == rings
+        assert all("Evidence, not an order" in o["message"] for o in out)
+        assert W.watch(j, push=lambda t, m: pushed.append((t, m)), check_news=news) == []      # same fire: not again
+        assert len(W.recent(j)) == len(out)

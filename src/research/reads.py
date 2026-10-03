@@ -416,9 +416,50 @@ def cases(D: dict[str, list[tuple]], days: dict[str, str]) -> dict:
     return out
 
 
+def news_history(D: dict[str, list[tuple]], variants=("M1a", "M2a"), model: str = "claude-haiku-4-5-20251001") -> dict:
+    """EXPLORATORY (decided after seeing review #5): would the blunder guard have changed the outcome? For every episode,
+    the news check on headlines dated before the signal day, then the 30-day result by verdict. Caveat: the AI model may
+    know how these stories ended, so this can flatter the check; only live use from now on is clean evidence."""
+    from jarvis.service.reads_watch import NAMES
+    from src.research import news_check as nc
+
+    SS = {c: Series(D[c]) for c in D}
+    B = SS["BTC"]
+    rows = []
+    for v in variants:
+        for c, S in SS.items():
+            for i in signals(S, B, v):
+                if S.t[i] >= CONF_END:
+                    continue
+                r = READERS[v[:2]](S, i, B, v)
+                o = outcome(S, i, r["stop"], c)
+                if o is None:
+                    continue
+                s_ = "DISCOVERY" if S.t[i] < DISC_END else "CONFIRM"
+                span = (0, DISC_END) if s_ == "DISCOVERY" else (DISC_END, CONF_END)
+                day = datetime.fromtimestamp(S.t[i], timezone.utc).strftime("%Y-%m-%d")
+                try:
+                    chk = nc.check(NAMES[c], f"{day} 19:00", days=4, model=model)
+                except Exception as exc:  # noqa: BLE001
+                    chk = {"verdict": "UNKNOWN", "why": str(exc)[:120]}
+                rows.append({"variant": v, "coin": c, "day": day, "split": s_, "r30": round(o["r30"], 4),
+                             "x30": round(o["r30"] - drift(S, c, span[0], span[1], 30), 4),
+                             "verdict": chk.get("verdict"), "why": chk.get("why"), "headlines": chk.get("headlines_used"),
+                             "damage": [d.get("headline") for d in chk.get("damage") or []][:3]})
+                print(v, c, day, chk.get("verdict"), round(100 * o["r30"], 1), file=sys.stderr)
+    by = {}
+    for v in variants:
+        for verdict in ("CLEAR", "CAUTION", "BLOCK", "UNKNOWN"):
+            xs = [r for r in rows if r["variant"] == v and r["verdict"] == verdict]
+            if xs:
+                by.setdefault(v, {})[verdict] = {"n": len(xs), "mean_net30_pct": round(100 * statistics.mean(r["r30"] for r in xs), 2),
+                                                  "mean_excess30_pct": round(100 * statistics.mean(r["x30"] for r in xs), 2)}
+    return {"exploratory": True, "rows": rows, "by_verdict": by}
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", nargs="?", default="history", choices=["history", "cases"])
+    ap.add_argument("mode", nargs="?", default="history", choices=["history", "cases", "news"])
     ap.add_argument("--db", required=True)
     ap.add_argument("--out", default="~/ananta_runs/reads")
     ap.add_argument("--until", default=None, help="cases only: last day of data to load (YYYY-MM-DD)")
@@ -436,6 +477,11 @@ def main(argv: list[str] | None = None) -> None:
             d, c = rep[v]["DISCOVERY"], rep[v]["CONFIRM"]
             print(f"{v:4} {rep[v]['status']:14} DISC ev {d.get('events', 0):3} ep {d.get('episodes', 0):3} x30 {d.get('mean_excess30_pct')} t {d.get('t_events')}"
                   f" | CONF ev {c.get('events', 0):3} ep {c.get('episodes', 0):3} x30 {c.get('mean_excess30_pct')}")
+    elif a.mode == "news":
+        D = {c: cached_daily(a.db, c, out, CONF_END) for c in COINS}
+        res = news_history(D)
+        (out / "review5_news_exploratory.json").write_text(json.dumps(res, indent=1))
+        print(json.dumps(res["by_verdict"], indent=1))
     else:
         until = int(datetime.strptime(a.until, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp()) + DAY
         D = {c: cached_daily(a.db, c, out, until) for c in ("SOL", "BTC")}

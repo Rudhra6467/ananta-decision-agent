@@ -145,7 +145,8 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
             items.append({"t": t, "kind": "warn", "title": title.replace("Ananta", "").strip(": "), "body": body[:200]})
     for (t, who, action, detail, result) in j.db.execute("SELECT t, who, action, detail, result FROM audit WHERE t >= ? AND action NOT IN ('login', 'ask') ORDER BY seq", (since,)):
         label = {"portfolio.mode": f"Portfolio mode set to {detail}", "safety.kill_switch": f"Kill switch {detail}",
-                 "portfolio.approve": "You approved portfolio changes", "portfolio.reject": "You rejected portfolio changes"}.get(action, action)
+                 "portfolio.approve": "You approved portfolio changes", "portfolio.reject": "You rejected portfolio changes",
+                 "reads.news": f"News check: {detail}"}.get(action, action)
         items.append({"t": t, "kind": "info", "title": label, "body": "From the Jarvis app."})
     try:
         for (t, coin, msg) in j.db.execute("SELECT fired_t, coin, message FROM alerts WHERE status='FIRED' AND fired_t >= ?", (since,)):
@@ -153,6 +154,11 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
         for (t, kind, text) in j.db.execute("SELECT t, kind, text FROM briefings WHERE t >= ?", (since,)):
             items.append({"t": t, "kind": "brief", "title": f"{kind.capitalize()} brief", "body": text})
     except Exception:  # noqa: BLE001  tables appear on first use
+        pass
+    try:
+        for (t, coin, name, msg) in j.db.execute("SELECT t, coin, name, message FROM read_fires WHERE t >= ?", (since,)):
+            items.append({"t": t, "kind": "setup", "coin": coin, "title": f"{coin}: your {name.lower()} setup", "body": msg})
+    except Exception:  # noqa: BLE001  appears with the first fire
         pass
     items.sort(key=lambda x: x["t"], reverse=True)
     for it in items:

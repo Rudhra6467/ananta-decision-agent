@@ -111,7 +111,9 @@ async function playNatural(parts: string[], onPart: (i: number) => void, my: num
   }
   try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
   if (my !== seq) return "stopped";
-  const p = createAudioPlayer({ uri: file.uri });
+  // keepAudioSessionActive: otherwise expo-audio switches the iPhone's audio session OFF ~0.1 s after playback ends
+  // (or on pause) - right when the mic has just started listening - and the mic then hears nothing for a long time.
+  const p = createAudioPlayer({ uri: file.uri }, { keepAudioSessionActive: true, updateInterval: 100 });
   current = p;
   let finished = false;
   const sub = p.addListener("playbackStatusUpdate", (st: any) => { if (st?.didJustFinish) finished = true; });

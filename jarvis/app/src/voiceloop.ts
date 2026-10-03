@@ -147,6 +147,8 @@ export class VoiceLoop {
     this.set("speaking");
     try { await this.fx.respond(r, () => my === this.turn); } catch { /* */ }
     if (my !== this.turn) return;                     // interrupted: the tap already started listening
+    await this.wait(250);                              // let the phone switch from speaker to microphone
+    if (my !== this.turn) return;
     this.listen(my, false);
   }
 

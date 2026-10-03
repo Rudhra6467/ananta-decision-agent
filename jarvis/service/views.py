@@ -693,7 +693,7 @@ def evidence_pipeline(j) -> dict:
     rec_p = j.dir / "explorer_reconstruct.json"
     recon = json.loads(rec_p.read_text()) if rec_p.exists() else None
     watching = [
-        {"name": "15-minute Explorer", "every": "every 15 minutes, 10 coins", "runs": int(days * 96),
+        {"name": "15-minute Explorer", "every": "every 15 minutes, 10 coins", "runs": int(days * 96 * 10),
          "detail": f"Rules {rules.name}: trades {', '.join(traded)}; $100 each; up to {getattr(rules, 'stack', 1)} per coin per kind; "
                    f"at most 20 open and 60 new a day",
          "since": _local(st["trade_from_t"])},
@@ -701,7 +701,8 @@ def evidence_pipeline(j) -> dict:
          "detail": f"Last 24h: Hunter checked {hunter.get('looks', 0)} times and fired {hunter.get('setups', 0)}; "
                    f"Squeeze checked {squeeze.get('looks', 0)} times and fired {squeeze.get('setups', 0)}"},
         {"name": "T3 portfolio layer", "every": "ratings daily, rebalance weekly", "runs": t3_weeks,
-         "detail": f"Mode {ps.get('mode')}; holding {len(ps.get('holdings') or [])} coins"},
+         "detail": f"Mode {ps.get('mode')}; holding {len(((ps.get('books') or {}).get('MAIN') or {}).get('holdings') or {})} coins; "
+                   f"{((ps.get('books') or {}).get('MAIN') or {}).get('trades', 0)} trades so far"},
         {"name": "Nightly rebuild", "every": "once a night", "runs": None,
          "detail": "Rebuilds every real decision from raw candles and compares it with the live log",
          "last": _local(rec_p.stat().st_mtime) if rec_p.exists() else None},
@@ -727,7 +728,8 @@ def evidence_pipeline(j) -> dict:
     # 4. results
     rows = _outcomes(ex)
     real = [r for r in rows if not r["shadow"]]
-    wouldbe = [r for r in rows if r["shadow"] in ("REJECTED_SLOT", "NO_TYPE", "CAP", "REJECTED_DUP")]
+    wouldbe = [r for r in rows if r["shadow"] in ("REJECTED_SLOT", "CAP", "REJECTED_DUP")]     # a trade type fitted; only a limit stopped it
+    notype = [r for r in rows if r["shadow"] == "NO_TYPE"]
     rnd = [r for r in rows if r["shadow"] == "RANDOM"]
     by_setup = []
     for s in sorted({r["setup"] for r in real + wouldbe if r["setup"]}):
@@ -735,7 +737,7 @@ def evidence_pipeline(j) -> dict:
                          "would_be": _summ([r for r in wouldbe if r["setup"] == s])})
     open_real = sum(1 for e in st["engines"].values() for t in e.trades if t.shadow is None and not t.actual.done)
     since_w1 = next((r["from_t"] for r in rules_log if r.get("rules") == "W1"), None)
-    results = {"real": _summ(real), "would_be": _summ(wouldbe), "random": _summ(rnd), "open_real": open_real, "by_setup": by_setup,
+    results = {"real": _summ(real), "would_be": _summ(wouldbe), "no_type": _summ(notype), "random": _summ(rnd), "open_real": open_real, "by_setup": by_setup,
                "since_wide": _summ([r for r in real if since_w1 and (r["exit_t"] or 0) >= since_w1]) if since_w1 else None,
                "read_this": "Compare the average per trade with the random entries: a setup is only useful if it beats random after costs. "
                             "'Events' counts market moves: trades closing within an hour of each other are one piece of evidence."}

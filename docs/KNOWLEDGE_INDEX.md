@@ -50,6 +50,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `BACKLOG.md`: everything still to do, in priority order (layers, zones, untested ideas, path to live). Open for 'what's next / what's pending'.
 - `research/ZONES_PROGRAM.md`: what a zone is, zone strength and states, review #6 pre-registration, and the list of studies to redo with zones.
 - `research/REVIEW_6_RESULTS.md`, `research/zones_status.json`: do zones hold? A little more often than random bands; the 200-day average, overlapping zones and new swing zones pass; entering a zone is not a trade by itself.
+- `research/REVIEW_7_RESULTS.md`, `research/lookout_status.json`: the lookout: inside a support zone, only the market regime (BTC above its 50-day) separated held from broken (68% vs 50%); wicks, closes back above, volume, divergence and relative strength added nothing beyond arithmetic.
 
 ## Safety and operations
 - `RUNBOOK_SAFETY.md`: stop, flatten, roll back, resume (copy-paste commands).

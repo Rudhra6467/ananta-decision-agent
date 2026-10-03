@@ -1,0 +1,31 @@
+{
+ "meaning": "Madhav's own trades, in his words, so Ananta can learn how he reads the market. Prices are what he paid on NDAX (CAD). The rebuild (src/research/casebook.py) pins each buy to the candles and checks every reason against the data, point in time.",
+ "cases": [
+  {
+   "id": "C1", "coin": "SOL", "side": "BUY", "date": "2026-06-05", "price_cad": 87.67, "venue": "NDAX",
+   "his_reasons": [
+    "Bitcoin, Ethereum and Solana were low and collapsing",
+    "Bought at the lowest as I saw it, after comparing support areas and resistance zones and how strong they are",
+    "The market had been bad for quite some time; the bear felt like it was weakening",
+    "No strong bad news continuing",
+    "Buying near the 52-week low",
+    "The coin itself is valuable, so a flexible stop loss to hold through noise"
+   ],
+   "context_he_gave": "Ethereum was about 2150 CAD at the time",
+   "told_on": "2026-10-03"
+  },
+  {
+   "id": "C2", "coin": "SOL", "side": "BUY", "date": "2026-06-25", "price_cad": 91.6, "venue": "NDAX",
+   "his_reasons": [
+    "Same read as C1: low after a long fall, at support he trusted, bear weakening, no fresh bad news, near the 52-week low",
+    "Flexible stop loss"
+   ],
+   "told_on": "2026-10-03"
+  },
+  {
+   "id": "C3", "coin": "SOL", "side": "BUY", "date": "2026-08-10", "price_cad": 109.0, "venue": "NDAX",
+   "his_reasons": ["Not given yet (ask Madhav)"],
+   "told_on": "2026-10-03"
+  }
+ ]
+}

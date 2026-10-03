@@ -244,3 +244,17 @@ def test_chain_location_needs_a_supported_zone():
     # the LOCATION block reads only these fields of a zone row
     row = {"inside": [{"bot": 1.0, "top": 2.0, "kinds": ["AVERAGE-200"], "history": "SUPPORTED"}], "tested": None, "atr": 0.1}
     assert ((row["inside"] or [None])[0] or row.get("tested"))["history"] == "SUPPORTED"
+
+
+def test_ananta_can_log_a_request_for_the_repair_shop(tmp_path):
+    from jarvis.service import ask
+    from jarvis.service import requests_log as RL
+    from tests.test_reads import _fake_jarvis
+
+    j = _fake_jarvis(tmp_path, {"BTC": _walk(300, seed=81)}, {})
+    out = ask.Lookups(j, "t1").call("log_request", {"kind": "data", "text": "Track the highest price while a trade is open", "about": "XRP trade"})
+    assert out["logged"] and "Evidence page" in out["note"]
+    rows = RL.list_(j)
+    assert rows[0]["status"] == "OPEN" and rows[0]["kind"] == "data" and rows[0]["about"] == "XRP trade"
+    RL.set_status(j, rows[0]["id"], "DONE", "shown on each trade page")
+    assert RL.list_(j, include_done=False) == []

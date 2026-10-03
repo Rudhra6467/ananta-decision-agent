@@ -26,6 +26,7 @@ export default function Evidence() {
   const { data: kh } = useData("/v3/knowledge/hypotheses");
   const { data: cr } = useData("/v3/credit", 600000);
   const { data: sh } = useData("/v3/shadow/h07", 600000);
+  const { data: rq } = useData("/v3/requests", 120000);
   if (!d && loading) return <Busy />;
   if (!d || d.error) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={d?.error ?? err ?? "No data"} /></Screen>;
   const R = d.results, D = d.decided;
@@ -168,6 +169,18 @@ export default function Evidence() {
         ))}
       </Card>
       </Spot>
+
+      {rq?.requests?.length ? (
+        <Card title="Your requests to the repair shop" sub="Logged from Ask Ananta or voice; picked up in the next work session">
+          {rq.requests.slice(0, 8).map((r: any) => (
+            <View key={r.id} style={{ paddingVertical: 4 }}>
+              <Text style={{ color: C.text, fontSize: 13 }}>{r.text}</Text>
+              <Text style={{ color: r.status === "DONE" ? C.good : r.status === "PLANNED" ? C.accent : C.faint, fontSize: 11 }}>
+                {r.kind.toUpperCase()} · {r.status}{r.about ? ` · ${r.about}` : ""}{r.note ? ` · ${r.note}` : ""}</Text>
+            </View>
+          ))}
+        </Card>
+      ) : null}
 
       {sh ? (
         <Card title="Paper shadow: short dip trade (H07)" sub={sh.history}>

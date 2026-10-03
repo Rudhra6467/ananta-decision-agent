@@ -321,6 +321,9 @@ def trade_detail(j, trade_id: str) -> dict:
         "why_bought": f"{SETUP.get(tr.setup, tr.setup)}: the 15-minute check found every condition of this setup met.",
         "conditions_at_entry": conds, "plan": TYPE_PLAN.get(tr.typ), "timeline": timeline,
         "what_if": shadows, "layers_that_day": _layers_that_day(j, coin, tr.entry_t),
+        # the best and worst prices while the trade was open (tracked by the engine on every candle)
+        "highest_price": round(tr.entry * (1 + a.mfe), 6), "highest_pct": round(100 * a.mfe, 2),
+        "lowest_price": round(tr.entry * (1 + a.mae), 6), "lowest_pct": round(100 * a.mae, 2),
         "chart": {"tf": "15m" if len(bars) >= 20 else "1h", "points": [{"t": b[0], "c": b[4]} for b in bars],
                   "entry_t": tr.entry_t, "exit_t": a.exit_t},
     }

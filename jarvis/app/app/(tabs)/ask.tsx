@@ -17,6 +17,10 @@ import { VoiceLoop, type Phase } from "../../src/voiceloop";
 import { Bullet, Divider, Pill, Segmented, T } from "../../src/ui";
 import { C } from "../../src/theme";
 
+// Starter questions on an empty conversation (Madhav: a new person should know what to ask)
+const STARTERS = ["What's happening here?", "What are we doing here?", "Show me around", "Which coins are we watching?",
+  "Show me the trades", "What are the rule gates?", "How do I make a paper trade?", "What should I watch today?"];
+
 type Msg = { id?: string; role: "user" | "assistant"; text?: string; voice?: boolean; [k: string]: any };
 const STAGE: Record<string, string> = { observation: "Observation", candidate: "Candidate setup", "candidate setup": "Candidate setup", setup: "Setup",
   decision: "Decision", execution: "Executed", position: "Open position", outcome: "Outcome", evaluation: "Evaluation", learning: "Learning" };
@@ -151,7 +155,7 @@ export default function Ananta() {
   const live = phase !== "off";
   const [note, setNote] = useState("");
   const [sessions, setSessions] = useState(false);
-  const [qcat, setQcat] = useState("portfolio");
+  const [qcat, setQcat] = useState("new");
   const [err, setErr] = useState<string | null>(null);
   const [ctx, setCtx] = useScreen();
   const { data: sg } = useData("/v3/ask/suggestions", 0);
@@ -260,6 +264,7 @@ export default function Ananta() {
   };
 
   const micRef = useRef<ReturnType<typeof useMic> | null>(null);
+  const { data: me } = useData("/v3/me", 0);
   const loopRef = useRef<VoiceLoop | null>(null);
   const lastActive = useRef(Date.now());
   if (!loopRef.current) {
@@ -402,7 +407,7 @@ export default function Ananta() {
     setSessions(false);
   };
 
-  const qs: string[] = (sg?.[qcat] as string[]) ?? sg?.questions ?? [];
+  const qs: string[] = qcat === "new" ? STARTERS : (sg?.[qcat] as string[]) ?? sg?.questions ?? [];
   const micLabel = { idle: "", listening: "Listening…", hearing: "Hearing you…", sending: "Got it…" }[mic.status];
   const hearing = live && phase === "listening" && mic.status === "hearing";
   const liveLabel = phase === "thinking" ? "Thinking…  ·  tap to cancel" : phase === "speaking" ? "Speaking  ·  tap to stop and talk"
@@ -437,8 +442,10 @@ export default function Ananta() {
         onLayout={(e) => { sst.height.h = e.nativeEvent.layout.height; checkEnd(); }} onContentSizeChange={(_, h) => { sst.content.h = h; checkEnd(); }}>
         {msgs.length === 0 ? (
           <View style={{ gap: 8, paddingTop: 20 }}>
-            <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>Hi Madhav</Text>
-            <T dim>Ask about our portfolio or the market. Type, tap the mic to dictate, or tap the wave to just talk.</T>
+            <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>{me?.guest ? "Hi there" : "Hi Madhav"}</Text>
+            <T dim>{me?.guest ? "This is Ananta, Madhav's trading assistant, in practice mode. Ask anything about the app, the market or the trades. Type, tap the mic to dictate, or tap the wave to just talk."
+              : "Ask about our portfolio or the market. Type, tap the mic to dictate, or tap the wave to just talk."}</T>
+            <T small>New here? Tap "New here" below for questions to start with.</T>
           </View>
         ) : null}
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
@@ -474,7 +481,7 @@ export default function Ananta() {
       {!live ? (
         <View style={{ gap: 6, paddingBottom: 6 }}>
           <View style={{ flexDirection: "row", gap: 6, paddingHorizontal: 12 }}>
-            {[["portfolio", "Our portfolio"], ["market", "Market & scans"]].map(([k, l]) => (
+            {[["new", "New here"], ["portfolio", "Our portfolio"], ["market", "Market & scans"]].map(([k, l]) => (
               <Pressable key={k} onPress={() => setQcat(k)} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: qcat === k ? C.text : "transparent" }}>
                 <Text style={{ color: qcat === k ? "#FFF" : C.dim, fontSize: 12, fontWeight: "600" }}>{l}</Text>
               </Pressable>

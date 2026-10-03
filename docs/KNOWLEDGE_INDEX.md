@@ -60,6 +60,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_14.md`, `research/REVIEW_14_RESULTS.md`: the short dip trade (H07) beat ordinary uptrend days traded the same way in both periods (+3.9%, +5.6% per trade, about 70% wins), a few events short of the bar; the most consistent result so far.
 
 ## Safety and operations
+- `GUEST_GUIDE.md`: a guide for a friend trying the app: how to open it, the tabs, the coins, first questions, the rule gates, making a paper trade, what practice mode locks.
 - `RUNBOOK_SAFETY.md`: stop, flatten, roll back, resume (copy-paste commands).
 - `SAFETY_GATES_LOCK.md`: safety gates that live outside the AI.
 - `JARVIS_TEST_PLAN.md`: how Jarvis / Ask Ananta is tested (automatic suite + hands-on checks).

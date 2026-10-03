@@ -244,6 +244,22 @@ def ev_pipeline(who: str = Depends(owner)) -> dict:
     return views.evidence_pipeline(J())
 
 
+@app.get("/v3/chain")
+def chain_board(who: str = Depends(owner)) -> dict:
+    """Madhav's decision chain for all 10 coins: where each one stops (fail-closed) and why."""
+    from jarvis.service import chain
+
+    return chain.board(J())
+
+
+@app.get("/v3/knowledge/hypotheses")
+def knowledge_hypotheses(who: str = Depends(owner)) -> dict:
+    import json as _json
+
+    p = J().dir / "docs" / "knowledge" / "hypotheses.json"
+    return _json.loads(p.read_text()) if p.exists() else {"hypotheses": []}
+
+
 @app.get("/v3/cockpit")
 def cockpit(who: str = Depends(owner)) -> dict:
     return views.cockpit(J())

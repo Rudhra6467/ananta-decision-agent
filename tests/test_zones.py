@@ -104,3 +104,34 @@ def test_lookout_reactions_have_a_frozen_noise_calibration_and_never_look_ahead(
     assert set(Z.lookout_bias()) == set(Z.REACTIONS)
     d = Z._corr({"diff_pts": 30.0, "z": 3.0}, 30.0)
     assert d["diff_corrected_pts"] == 0.0 and d["z_corrected"] == 0.0
+
+
+def test_news_recorder_checks_each_coin_once_a_day_and_stops_when_ai_is_off(tmp_path):
+    from jarvis.service import news_watch as N
+    from jarvis.service import zones_watch as W
+    from tests.test_reads import _fake_jarvis
+
+    W._CACHE.clear()
+    D = _walk(700, seed=31)
+    j = _fake_jarvis(tmp_path, {"BTC": D, "SOL": D, "ETH": D}, {})
+    calls = []
+    ok = lambda j_, c: calls.append(c) or {"verdict": "CLEAR", "why": "nothing about the coin itself"}          # noqa: E731
+    first = N.watch(j, check=ok, max_per_run=2)
+    second = N.watch(j, check=ok, max_per_run=20)
+    assert len(first) == 2 and {x["coin"] for x in first + second} >= {"BTC", "SOL", "ETH"}
+    assert len(calls) == len(set(calls))                                   # never the same coin twice a day
+    assert N.watch(j, check=ok) == []
+    off = lambda j_, c: {"verdict": "NOT_CHECKED", "why": "off"}            # noqa: E731
+    j.now = lambda: D[-1][0] + 5 * 86400                                   # a new day, AI switched off
+    assert N.watch(j, check=off) == [] and N.latest(j, "SOL", 30)[0]["verdict"] == "CLEAR"
+
+
+def test_review9_context_uses_only_earlier_days():
+    from src.research import zone_splits as ZS
+
+    D = _walk(700, seed=41)
+    c1 = ZS.Context(D, D)
+    c2 = ZS.Context(D[:601], D[:601])
+    t = D[600][0] + 3600                                  # an entry during day 600
+    assert c1.at(t, D[600][4]) == c2.at(t, D[600][4])     # what happens after day 600 never matters
+    assert ZS.welch([1.0, 2.0, 3.0], [0.0, 0.5, 1.0]) > 0

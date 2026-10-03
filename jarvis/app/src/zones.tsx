@@ -88,6 +88,7 @@ export function ZonesCoin({ d }: { d: any }) {
                 <Text style={{ color: x.history === "PASS" ? C.good : C.faint }}>{x.history === "PASS" ? "  · history: matters" : "  · history: adds nothing alone"}</Text></Text>
             </View>
           ))}
+          {look.news ? <T small>News ({look.news.day}): <Text style={{ color: look.news.verdict === "BLOCK" ? C.bad : look.news.verdict === "CAUTION" ? C.warn : C.good, fontWeight: "700" }}>{look.news.verdict}</Text> · {look.news.why}</T> : null}
           {look.chain ? <T small>Decision chain: {look.chain.summary}</T> : null}
           {(look.your_setups ?? []).filter((x: any) => x.state === "FIRED" || x.state === "CLOSE").map((x: any) => (
             <T key={x.variant} small>Your setup: {x.name} {x.met} of {x.of}</T>

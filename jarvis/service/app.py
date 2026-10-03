@@ -25,7 +25,7 @@ import threading as _threading  # noqa: E402
 _SANDBOX: contextvars.ContextVar[str | None] = contextvars.ContextVar("jarvis_sandbox", default=None)
 _JG: dict[str, core.Jarvis] = {}
 _JG_LOCK = _threading.Lock()
-SHARED_TABLES = ("snapshots", "briefings", "read_fires", "zone_visits")   # read-only system history the guest should see too (copied, never written back)
+SHARED_TABLES = ("snapshots", "briefings", "read_fires", "zone_visits", "news_log")   # read-only system history the guest should see too (copied, never written back)
 
 
 def _main() -> core.Jarvis:
@@ -47,6 +47,9 @@ def _sync_shared(g: core.Jarvis) -> None:
     from jarvis.service import zones_watch
 
     zones_watch._table(g)
+    from jarvis.service import news_watch
+
+    news_watch._table(g)
     md = Mandate(g.db, g.now)
     for tbl in SHARED_TABLES:
         try:
@@ -399,6 +402,15 @@ def reads_news(coin: str, who: str = Depends(owner)) -> dict:
         raise HTTPException(status_code=404, detail=f"{coin} is not one of our coins")
     res = reads_watch.news_check(J(), c)
     J().audit(who, "reads.news", f"{c} {res.get('verdict')}", "OK")
+    if res.get("verdict") != "NOT_CHECKED":
+        import json as _json
+
+        from jarvis.service import news_watch
+
+        news_watch._table(J())
+        J().db.execute("INSERT OR REPLACE INTO news_log VALUES (?,?,?,?,?,?)",
+                       (news_watch.today(J()), c, int(J().now()), res.get("verdict"), res.get("why"), _json.dumps(res)))
+        J().db.commit()
     return {"coin": c, **res}
 
 
@@ -577,6 +589,12 @@ def background_jobs() -> dict:
         out["zones"] = zones_watch.watch(J())
     except Exception as exc:  # noqa: BLE001
         out["zones_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import news_watch
+
+        out["news"] = news_watch.watch(J())
+    except Exception as exc:  # noqa: BLE001
+        out["news_error"] = str(exc)[:200]
     a = A()
     if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
         kind = AL().due_brief()

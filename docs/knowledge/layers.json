@@ -238,13 +238,15 @@
    "regime": "UNKNOWN",
    "depends_on": [],
    "feeds": [
-    "READS",
-    "ASK"
+    "ASK",
+    "LOOKOUT",
+    "READS"
    ],
-   "evidence": "review #5 exploratory: did not separate good from bad capitulations; flags asset-specific damage",
+   "evidence": "review #5 exploratory: did not separate good from bad capitulations; flags asset-specific damage Live from 2026-10-03: one check per coin per day, recorded the same day (clean point-in-time history).",
    "files": [
     "src/research/news_check.py",
-    "src/intelligence/catalysts.py"
+    "src/intelligence/catalysts.py",
+    "jarvis/service/news_watch.py"
    ]
   },
   {
@@ -584,7 +586,7 @@
     "ASK",
     "APP"
    ],
-   "evidence": "review #5: caught all 4 buys; not better than random 2018-23; better since 2024 on few events",
+   "evidence": "review #5: caught all 4 buys; not better than random 2018-23; better since 2024 on few events; review #8: zones did not help; the retest with the market allowed is the most promising (11 of 12 up, +20% in 30 days) but INSUFFICIENT",
    "files": [
     "src/research/reads.py",
     "jarvis/service/reads_watch.py"
@@ -604,7 +606,7 @@
    "feeds": [
     "EXPLORER"
    ],
-   "evidence": "replay scorecard; reviews #1, #3 found no better variant; Q1 waits for 30 live trades",
+   "evidence": "replay scorecard; reviews #1, #3 found no better variant; Q1 waits for 30 live trades; review #9: zones do not rescue its hours-long trades; the market gate helps (-$0.17 vs -$0.66 per $100) but they still lose",
    "files": [
     "docs/RULEBOOK_V0.md",
     "src/intelligence/explorer_engine.py",
@@ -865,7 +867,10 @@
     "src/research/teacher_systems.py",
     "src/research/teachers.py",
     "docs/research/REVIEW_6_RESULTS.md",
-    "docs/research/REVIEW_7_RESULTS.md"
+    "docs/research/REVIEW_7_RESULTS.md",
+    "src/research/zone_splits.py",
+    "docs/repair_shop/REVIEW_8.md",
+    "docs/repair_shop/REVIEW_9.md"
    ]
   },
   {

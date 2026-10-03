@@ -17,6 +17,7 @@ from pathlib import Path
 
 NAMES = {"BTC": "Bitcoin", "ETH": "Ethereum", "SOL": "Solana", "ADA": "Cardano", "DOGE": "Dogecoin", "AVAX": "Avalanche",
          "BCH": "Bitcoin Cash", "LINK": "Chainlink", "LTC": "Litecoin", "XRP": "XRP"}
+NEWS_NAMES = {"AVAX": "AVAX"}          # "Avalanche" alone finds the hockey team (seen 2026-10-03)
 STATUS_WORDS = {"SUPPORTED": "history supports it", "NOT_SUPPORTED": "history did not support it (2018-2023)",
                 "NOT_CONFIRMED": "worked 2018-2023, not since", "INSUFFICIENT": "too few cases in history to judge",
                 "UNTESTED": "not tested yet"}
@@ -112,7 +113,7 @@ def news_check(j, c: str) -> dict:
 
     t0 = time.time()
     try:
-        res = nc.live(NAMES.get(c, c), model=NEWS_MODEL)
+        res = nc.live(NEWS_NAMES.get(c, NAMES.get(c, c)), model=NEWS_MODEL)
     except Exception as exc:  # noqa: BLE001
         return {"verdict": "NOT_CHECKED", "why": f"The news search failed ({str(exc)[:80]})."}
     u = res.get("usage") or {}

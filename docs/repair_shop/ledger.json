@@ -83,6 +83,65 @@
     "docs/repair_shop/REVIEW_5_RESULTS.md",
     "docs/knowledge/READS.md"
    ]
+  },
+  {
+   "id": "R6",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "PASS",
+   "title": "Do zones hold?",
+   "forwarded_because": "Madhav: it is always a zone; every study had used single price points.",
+   "question": "Does price hold at zones more often than at random bands of the same width?",
+   "result": "A little: the 200-day average, overlapping zones and new swing zones pass; a level that held twice was not stronger; entering a zone gives no return by itself.",
+   "changed": "Zone map live on Markets and coin pages; zone entries recorded.",
+   "files": [
+    "docs/research/ZONES_PROGRAM.md",
+    "docs/research/REVIEW_6_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R7",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "PASS",
+   "title": "The lookout: reactions inside a zone",
+   "forwarded_because": "Review #6: entering a zone is not a trade; what happens inside decides.",
+   "question": "Which reactions at a support zone separate held from broken?",
+   "result": "Only the market regime (BTC above its 50-day): 68% held vs 50%. Wicks, closes back above, volume, divergence, relative strength added nothing beyond arithmetic.",
+   "changed": "Lookout and attention live; the playbook puts the market first.",
+   "files": [
+    "docs/research/REVIEW_7_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R8",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Your setups with zones and the market gate",
+   "forwarded_because": "Reviews #6-#7 found what matters at a support.",
+   "question": "Do your setups work at supported zones and/or with the market allowed?",
+   "result": "No pass. The higher-low retest with the market allowed is the most promising (12 episodes, 11 up after 30 days, +20%) but one event short of the bar; zones did not help.",
+   "changed": "The retest with the market allowed is recorded live as its own read.",
+   "files": [
+    "docs/repair_shop/REVIEW_8.md",
+    "docs/repair_shop/REVIEW_8_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R9",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Explorer setups with zones",
+   "forwarded_because": "The Explorer's support is recent 1-hour swings, not zones.",
+   "question": "Do the Explorer's entries do better at zones or with the market allowed?",
+   "result": "Zones did not help its hours-long trades; the market gate helped (-$0.17 vs -$0.66 per $100) but they still lose. Daily zones act over weeks.",
+   "changed": "Nothing in the Explorer; zone work continues on the weeks-long books.",
+   "files": [
+    "docs/repair_shop/REVIEW_9.md",
+    "docs/repair_shop/REVIEW_9_RESULTS.md"
+   ]
   }
  ],
  "queue": [

@@ -5,7 +5,10 @@ import Constants from "expo-constants";
 const DEFAULT_SERVER: string = (Constants.expoConfig?.extra as any)?.defaultServer ?? "http://192.168.2.68:8100";
 
 export async function server(): Promise<string> {
-  return (await SecureStore.getItemAsync("jarvis_server")) || DEFAULT_SERVER;
+  const saved = await SecureStore.getItemAsync("jarvis_server");
+  // Temporary public links (*.trycloudflare.com) change when they restart: a saved old one is replaced by the app's current one.
+  if (saved && /trycloudflare\.com/.test(saved) && /trycloudflare\.com/.test(DEFAULT_SERVER)) return DEFAULT_SERVER;
+  return saved || DEFAULT_SERVER;
 }
 export async function setServer(url: string) {
   await SecureStore.setItemAsync("jarvis_server", url.replace(/\/+$/, ""));

@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import email.utils
 import json
+import os
 import re
 import urllib.parse
 import urllib.request
@@ -85,16 +86,27 @@ def classify(name: str, at: datetime, headlines: list[dict], model: str = "gemma
     if not headlines:
         return {"verdict": "UNKNOWN", "why": "No dated headlines were found for this window (a data gap, not 'no bad news')."}
     lines = "\n".join(f"[{i}] {h['day']} | {h['title']} | {h['source']}" for i, h in enumerate(headlines[:90]))
-    body = {"model": model, "stream": False, "format": "json", "think": False, "options": {"temperature": 0, "num_ctx": 16384},
-            "messages": [{"role": "system", "content": SYSTEM},
-                         {"role": "user", "content": f"Asset: {name}. Moment: {at:%Y-%m-%d %H:%M} Toronto. Headlines from the days before "
-                                                     f"(day | title | source):\n{lines}\n\n" + TASK.format(name=name)}]}
-    req = urllib.request.Request(f"{url}/api/chat", data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
-    r = json.loads(urllib.request.urlopen(req, timeout=300).read())
+    prompt = (f"Asset: {name}. Moment: {at:%Y-%m-%d %H:%M} Toronto. Headlines from the days before (day | title | source):\n{lines}\n\n"
+              + TASK.format(name=name))
+    usage = None
+    if model.startswith("claude"):
+        # Claude (Haiku): seconds instead of minutes on the laptop; about half a cent per check. Key from the environment.
+        body = {"model": model, "max_tokens": 1500, "temperature": 0, "system": SYSTEM, "messages": [{"role": "user", "content": prompt}]}
+        req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
+                                     headers={"Content-Type": "application/json", "x-api-key": os.environ["ANTHROPIC_API_KEY"],
+                                              "anthropic-version": "2023-06-01"})
+        r = json.loads(urllib.request.urlopen(req, timeout=120).read())
+        text = "".join(c.get("text", "") for c in r.get("content", []))
+        usage = r.get("usage")
+    else:
+        body = {"model": model, "stream": False, "format": "json", "think": False, "options": {"temperature": 0, "num_ctx": 16384},
+                "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}]}
+        req = urllib.request.Request(f"{url}/api/chat", data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+        text = json.loads(urllib.request.urlopen(req, timeout=900).read()).get("message", {}).get("content", "")
     try:
-        v = json.loads(r["message"]["content"])
+        v = json.loads(text[text.index("{"):text.rindex("}") + 1])
     except Exception:  # noqa: BLE001
-        return {"verdict": "UNKNOWN", "why": "The model's answer was not readable.", "raw": r.get("message", {}).get("content", "")[:500]}
+        return {"verdict": "UNKNOWN", "why": "The model's answer was not readable.", "raw": text[:500]}
 
     def pick(xs):
         out = []
@@ -105,7 +117,7 @@ def classify(name: str, at: datetime, headlines: list[dict], model: str = "gemma
         return out
 
     return {"verdict": v.get("verdict", "UNKNOWN"), "why": v.get("why", ""), "damage": pick(v.get("damage")), "supply": pick(v.get("supply")),
-            "good": pick(v.get("good")), "market_count": len(v.get("market") or []), "model": model}
+            "good": pick(v.get("good")), "market_count": len(v.get("market") or []), "model": model, "usage": usage}
 
 
 def check(name: str, at_local: str, days: int = 4, model: str = "gemma4:12b", market: bool = True) -> dict:

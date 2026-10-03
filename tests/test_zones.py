@@ -66,3 +66,21 @@ def test_no_zone_group_passes_on_pure_noise():
     assert set(Z.rw_bias()) >= set(Z.GROUPS)
     d = Z.corrected({"edge_pts": 10.0, "z": 2.0}, -5.0)
     assert d["edge_corrected_pts"] == 15.0 and d["z_corrected"] == 3.0
+
+
+def test_live_zone_board_lookout_and_visit_record(tmp_path):
+    from jarvis.service import zones_watch as W
+    from tests.test_reads import _fake_jarvis
+
+    W._CACHE.clear()
+    D = _walk(700, seed=11)
+    j = _fake_jarvis(tmp_path, {"BTC": D, "SOL": D}, {})
+    b = W.board(j)
+    assert {r["coin"] for r in b["coins"]} == {"BTC", "SOL"}
+    for r in b["coins"]:
+        assert all(z["history"] in ("SUPPORTED", "NOT_SUPPORTED", "UNTESTED") for z in r["zones"])
+    c = W.coin(j, "SOL")
+    assert c["in_zone"] == bool(c["inside"]) and (c["lookout"] is not None) == c["in_zone"]
+    w1 = W.watch(j)
+    w2 = W.watch(j)
+    assert w2["new"] == [] and len(W.recent(j, 10 ** 5)) == len(w1["new"])           # each entry recorded once

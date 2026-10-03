@@ -1,0 +1,232 @@
+{
+ "review": "docs/research/ZONES_PROGRAM.md",
+ "results": "docs/research/REVIEW_6_RESULTS.md",
+ "run": "2026-10-03T15:30:21+00:00",
+ "random_bands": {
+  "DISCOVERY": {
+   "market_events": 315,
+   "held_rate": 0.618,
+   "net10_pct": 1.22,
+   "held_by_width_atr": {
+    "<0.75": 0.569,
+    "0.75-1.5": 0.649,
+    "1.5-3": 0.78,
+    "3+": 0.875
+   }
+  },
+  "CONFIRM": {
+   "market_events": 161,
+   "held_rate": 0.574,
+   "net10_pct": -0.37,
+   "held_by_width_atr": {
+    "<0.75": 0.528,
+    "0.75-1.5": 0.595,
+    "1.5-3": 0.742,
+    "3+": 0.893
+   }
+  }
+ },
+ "groups": {
+  "SWING-NEW": {
+   "status": "PASS",
+   "DISCOVERY": {
+    "market_events": 177,
+    "episodes": 332,
+    "held_rate": 0.582,
+    "random_held_rate": 0.588,
+    "edge_pts": 4.0,
+    "edge_corrected_pts": 8.6,
+    "z_corrected": 2.52,
+    "net10_pct": 1.07,
+    "median_width_atr": 0.51
+   },
+   "CONFIRM": {
+    "market_events": 70,
+    "episodes": 135,
+    "held_rate": 0.654,
+    "random_held_rate": 0.547,
+    "edge_pts": 10.0,
+    "edge_corrected_pts": 14.6,
+    "z_corrected": 2.92,
+    "net10_pct": 2.76,
+    "median_width_atr": 0.52
+   }
+  },
+  "SWING-TESTED": {
+   "status": "FAIL",
+   "DISCOVERY": {
+    "market_events": 144,
+    "episodes": 283,
+    "held_rate": 0.629,
+    "random_held_rate": 0.609,
+    "edge_pts": 4.3,
+    "edge_corrected_pts": 7.5,
+    "z_corrected": 2.13,
+    "net10_pct": 0.27,
+    "median_width_atr": 0.57
+   },
+   "CONFIRM": {
+    "market_events": 82,
+    "episodes": 156,
+    "held_rate": 0.541,
+    "random_held_rate": 0.557,
+    "edge_pts": 5.8,
+    "edge_corrected_pts": 9.0,
+    "z_corrected": 1.78,
+    "net10_pct": -0.29,
+    "median_width_atr": 0.53
+   }
+  },
+  "SWING-STRONG": {
+   "status": "FAIL",
+   "DISCOVERY": {
+    "market_events": 240,
+    "episodes": 705,
+    "held_rate": 0.599,
+    "random_held_rate": 0.646,
+    "edge_pts": 2.8,
+    "edge_corrected_pts": 5.9,
+    "z_corrected": 2.25,
+    "net10_pct": -0.89,
+    "median_width_atr": 0.9
+   },
+   "CONFIRM": {
+    "market_events": 143,
+    "episodes": 583,
+    "held_rate": 0.637,
+    "random_held_rate": 0.597,
+    "edge_pts": 13.7,
+    "edge_corrected_pts": 16.8,
+    "z_corrected": 6.24,
+    "net10_pct": -0.75,
+    "median_width_atr": 0.82
+   }
+  },
+  "EXTREME": {
+   "status": "FAIL",
+   "DISCOVERY": {
+    "market_events": 65,
+    "episodes": 114,
+    "held_rate": 0.694,
+    "random_held_rate": 0.727,
+    "edge_pts": 1.5,
+    "edge_corrected_pts": 5.5,
+    "z_corrected": 0.99,
+    "net10_pct": -1.76,
+    "median_width_atr": 1.49
+   },
+   "CONFIRM": {
+    "market_events": 53,
+    "episodes": 113,
+    "held_rate": 0.882,
+    "random_held_rate": 0.775,
+    "edge_pts": 13.5,
+    "edge_corrected_pts": 17.5,
+    "z_corrected": 6.09,
+    "net10_pct": 2.03,
+    "median_width_atr": 5.21
+   }
+  },
+  "AVERAGE-50": {
+   "status": "FAIL",
+   "DISCOVERY": {
+    "market_events": 125,
+    "episodes": 275,
+    "held_rate": 0.677,
+    "random_held_rate": 0.725,
+    "edge_pts": -0.1,
+    "edge_corrected_pts": 7.8,
+    "z_corrected": 1.56,
+    "net10_pct": 0.41,
+    "median_width_atr": 1.54
+   },
+   "CONFIRM": {
+    "market_events": 74,
+    "episodes": 178,
+    "held_rate": 0.648,
+    "random_held_rate": 0.669,
+    "edge_pts": -3.3,
+    "edge_corrected_pts": 4.6,
+    "z_corrected": 0.92,
+    "net10_pct": 0.69,
+    "median_width_atr": 1.43
+   }
+  },
+  "AVERAGE-200": {
+   "status": "PASS",
+   "DISCOVERY": {
+    "market_events": 101,
+    "episodes": 180,
+    "held_rate": 0.748,
+    "random_held_rate": 0.76,
+    "edge_pts": 2.5,
+    "edge_corrected_pts": 14.3,
+    "z_corrected": 3.49,
+    "net10_pct": -0.06,
+    "median_width_atr": 2.08
+   },
+   "CONFIRM": {
+    "market_events": 56,
+    "episodes": 114,
+    "held_rate": 0.747,
+    "random_held_rate": 0.731,
+    "edge_pts": 4.7,
+    "edge_corrected_pts": 16.5,
+    "z_corrected": 3.41,
+    "net10_pct": 1.0,
+    "median_width_atr": 2.11
+   }
+  },
+  "CONFLUENCE": {
+   "status": "PASS",
+   "DISCOVERY": {
+    "market_events": 189,
+    "episodes": 460,
+    "held_rate": 0.666,
+    "random_held_rate": 0.713,
+    "edge_pts": 3.2,
+    "edge_corrected_pts": 8.9,
+    "z_corrected": 3.12,
+    "net10_pct": -1.4,
+    "median_width_atr": 1.49
+   },
+   "CONFIRM": {
+    "market_events": 112,
+    "episodes": 319,
+    "held_rate": 0.689,
+    "random_held_rate": 0.679,
+    "edge_pts": 3.3,
+    "edge_corrected_pts": 9.0,
+    "z_corrected": 2.65,
+    "net10_pct": 0.59,
+    "median_width_atr": 1.46
+   }
+  },
+  "BASE": {
+   "status": "FAIL",
+   "DISCOVERY": {
+    "market_events": 45,
+    "episodes": 76,
+    "held_rate": 0.6,
+    "random_held_rate": 0.662,
+    "edge_pts": -7.4,
+    "edge_corrected_pts": -13.1,
+    "z_corrected": -1.88,
+    "net10_pct": -2.16,
+    "median_width_atr": 1.0
+   },
+   "CONFIRM": {
+    "market_events": 34,
+    "episodes": 45,
+    "held_rate": 0.564,
+    "random_held_rate": 0.608,
+    "edge_pts": -1.8,
+    "edge_corrected_pts": -7.5,
+    "z_corrected": -0.83,
+    "net10_pct": -0.04,
+    "median_width_atr": 1.0
+   }
+  }
+ },
+ "strength_matters": true
+}

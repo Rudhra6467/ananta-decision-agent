@@ -5,7 +5,7 @@ Order = priority. Status: TODO / DOING / WAITING (on evidence or on Madhav) / DO
 Last updated 2026-10-03.
 
 ## A. Layers and connections (Madhav, 2026-10-03: "how well are they connected... divide them into layers and give priority")
-1. DOING **Layer map the agent reads** (`docs/knowledge/layers.json`): every component with its layer (0 authority ... 8 interface),
+1. DONE v1, 2026-10-03 (switch step: the Explorer does not read it yet) **Layer map the agent reads** (`docs/knowledge/layers.json`): every component with its layer (0 authority ... 8 interface),
    what it depends on, what it feeds, its status, its evidence, the market it works in (regime), and the file that implements it.
    Statuses become switches: code asks the map whether a component is allowed before using it.
 2. TODO **Join the two brains**: the decision chain (how Ananta reasons) and the Explorer (what it paper-trades) share one
@@ -15,14 +15,15 @@ Last updated 2026-10-03.
 4. TODO Unused evidence gets a consumer: V09/V10 (other traders' timing), reconstruction cases, the news check.
 
 ## B. Zones (Madhav: "it's always a zone; once we enter the zone we track it and start the lookout process")
-1. DOING **Zone research program** (`docs/research/ZONES_PROGRAM.md`): what a zone is, how to measure its strength, and
+1. DONE 2026-10-03 **Zone research program** (`docs/research/ZONES_PROGRAM.md`): what a zone is, how to measure its strength, and
    pre-registered review #6 (do strong zones hold more often than weak ones and than random prices?).
-2. TODO **Zone engine** shared by history and live (one code path, lookahead-tested): static zones (swing clusters, 52-week
+2. DONE 2026-10-03, review #6 run: zones hold a little more often than random; 200-day, confluence, new swing zones pass (`research/REVIEW_6_RESULTS.md`). **Zone engine** shared by history and live (one code path, lookahead-tested): static zones (swing clusters, 52-week
    extremes, round numbers), moving zones (20/50/200-day averages as bands), range zones (bases); multi-timeframe; strength score.
-3. TODO **Zone state and attention, live**: far / approaching / inside / held / broken / flipped per coin and zone. Entering a zone
+3. DOING (zone map, states and lookout live on Markets and coin pages; every zone entry recorded with how it ended; attention budget not yet) **Zone state and attention, live**: far / approaching / inside / held / broken / flipped per coin and zone. Entering a zone
    starts the lookout: chain, your setups, news check, what the knowledge says about this zone type, a plan (confirm / wrong / size).
    Outside zones Ananta stays quiet and cheap.
-4. TODO **Redo every study that ignored zones** (list and order in the program document, section 5).
+4. TODO **Review #7, the lookout**: inside a zone, which reactions separate HELD from BROKEN (wick, volume, divergence, relative strength, regime, news).
+5. TODO **Redo every study that ignored zones** (list and order in the program document, section 5).
 
 ## C. Teacher ideas not yet tested
 1. TODO H07-H17 and P03 (RSI dips, relative strength, volume on breakouts, tight bases, pullbacks to the 50-day, first pullback after a

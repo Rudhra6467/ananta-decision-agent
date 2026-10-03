@@ -7,7 +7,7 @@ const DEFAULT_SERVER: string = (Constants.expoConfig?.extra as any)?.defaultServ
 export async function server(): Promise<string> {
   const saved = await SecureStore.getItemAsync("jarvis_server");
   // Temporary public links (*.trycloudflare.com) change when they restart: a saved old one is replaced by the app's current one.
-  if (saved && /trycloudflare\.com/.test(saved) && /trycloudflare\.com/.test(DEFAULT_SERVER)) return DEFAULT_SERVER;
+  if (saved && /trycloudflare\.com/.test(saved)) return DEFAULT_SERVER;        // an old temporary link: use the current one (or the fixed address)
   return saved || DEFAULT_SERVER;
 }
 export async function setServer(url: string) {

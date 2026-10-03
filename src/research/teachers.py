@@ -59,7 +59,7 @@ def claude(model: str, system: str, user: str, max_tokens: int = 4000, tries: in
                 wait = float(e.headers.get("retry-after") or 0) or min(60, 5 * 2 ** k)
                 time.sleep(wait)
                 continue
-            raise
+            raise RuntimeError(f"Claude API {e.code}: {e.read()[:400]!r}") from None
     raise RuntimeError("unreachable")
 
 
@@ -189,7 +189,7 @@ def merge(rules: str, channel: str, out: str, max_notes_chars: int = 420000) -> 
         recs.append((order.get(r["id"], 9999), {"id": r["id"], "title": r["title"], "minutes": r["minutes"], **x}))
     recs.sort(key=lambda t: t[0])
     notes = "\n".join(json.dumps(r, separators=(",", ":")) for _, r in recs)[:max_notes_chars]
-    text, usage = claude(SONNET, MERGE_SYSTEM, MERGE_TASK.format(channel=CHANNELS[channel], n=len(recs), notes=notes), max_tokens=20000)
+    text, usage = claude(SONNET, MERGE_SYSTEM, MERGE_TASK.format(channel=CHANNELS[channel], n=len(recs), notes=notes), max_tokens=16000)
     Path(os.path.expanduser(out)).write_text(text)
     return {"channel": channel, "videos": len(recs), "usage": usage, "out": out}
 

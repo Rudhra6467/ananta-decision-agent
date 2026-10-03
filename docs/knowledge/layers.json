@@ -332,7 +332,7 @@
     "CHAIN",
     "READS"
    ],
-   "evidence": "review #6: zones hold a little more often than random bands (raw +2 to +4 points before 2024); 200-day average, confluence and new swing zones pass; strong (held twice) ~ new; entering a zone gives no return by itself",
+   "evidence": "review #6: zones hold a little more often than random bands (raw +2 to +4 points before 2024); 200-day average, confluence and new swing zones pass; strong (held twice) ~ new; entering a zone gives no return by itself; review #10: selling at the next zone cuts winners (0% vs +5.8% holding 20 days); the stop goes beyond the zone, the next zone is a review point",
    "files": [
     "src/research/zones.py",
     "docs/research/ZONES_PROGRAM.md",
@@ -870,7 +870,9 @@
     "docs/research/REVIEW_7_RESULTS.md",
     "src/research/zone_splits.py",
     "docs/repair_shop/REVIEW_8.md",
-    "docs/repair_shop/REVIEW_9.md"
+    "docs/repair_shop/REVIEW_9.md",
+    "docs/research/REVIEW_10.md",
+    "docs/research/REVIEW_10_RESULTS.md"
    ]
   },
   {

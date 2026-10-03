@@ -27,7 +27,7 @@ const UserBubble = ({ text, voice }: { text: string; voice?: boolean }) => (
   </View>
 );
 
-function Answer({ m, onPick, onRate, onSecond, onSpeak }: { m: Msg; onPick: (q: string) => void; onRate: (v: number) => void; onSecond: () => void; onSpeak?: () => void }) {
+function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPick: (q: string) => void; onRate: (v: number) => void; onSecond: () => void; onSpeak?: () => void; onShow?: () => void }) {
   const [layer, setLayer] = useState<"none" | "breakdown" | "evidence">("none");
   if (m.error) {
     return <View style={{ backgroundColor: C.badSoft, borderRadius: 12, padding: 12 }}><Text style={{ color: C.bad }}>{m.error}</Text></View>;
@@ -96,6 +96,14 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak }: { m: Msg; onPick: (q: 
         </View>
       ) : null}
       {m.note ? <Text style={{ color: C.faint, fontSize: 11 }}>{m.note}</Text> : null}
+      {onShow && m.showable && !m.voice ? (
+        <View style={{ backgroundColor: C.accentSoft, borderRadius: 10, padding: 10, gap: 8 }}>
+          <Text style={{ color: C.text, fontSize: 13 }}>Want me to show you this on screen? I'll take you there and talk you through it, then keep listening.</Text>
+          <Pressable onPress={onShow} style={({ pressed }) => ({ alignSelf: "flex-start", backgroundColor: C.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
+            <Text style={{ color: "#FFF", fontWeight: "700" }}>Yes, show me</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
         <Text style={{ color: C.faint, fontSize: 11, flex: 1 }}>
           {m.model_label ?? (m.provider === "gemini" ? "Gemini" : "Claude")} · {m.cost_usd ? `${(m.cost_usd * 100).toFixed(1)}¢` : "free"}{m.ms ? ` · ${(m.ms / 1000).toFixed(1)}s` : ""}{m.lookups?.length ? ` · ${m.lookups.length} lookups` : ""}
@@ -175,23 +183,52 @@ export default function Ananta() {
     if (txt) Share.share({ message: txt, title: "Ananta session" });
   };
 
-  // ---- typed (or dictated) questions: answers are shown, not spoken ----
+  // ---- typed (or dictated) questions: answers are shown, not spoken, and the screen stays where it is ----
+  // Madhav (2026-10-03): a silent jump to another screen is confusing. A typed answer only offers "Show me on screen";
+  // tapping it walks him through with voice (move, highlight, speak) and then turns voice mode on for follow-ups.
+  // A plain navigation command ("open markets", answered instantly by the app) still moves straight away: he asked for that.
   const handleTextAnswer = async (r: any) => {
     if (r.thread) setThread(r.thread);
-    setMsgs((m) => [...m, { role: "assistant", ...r }]);
-    if (r.tour?.length) {                                      // guided tour: talk + move + point, step by step (stops if voice mode starts)
-      await UI.playTour(r.tour, (t) => TTS.speakText(t), () => !loopRef.current?.on);
-      return;
-    }
-    if (r.ui?.length) {                                         // move the screen first (only what really happened counts)
+    const plan = !!(r.tour?.length || r.ui?.length || r.points?.length);
+    if (r.mode === "nav" && r.ui?.length && !r.tour?.length) {
+      setMsgs((m) => [...m, { role: "assistant", ...r }]);
       const res = await UI.run(r.ui);
       const bad = res.filter((x) => !x.ok);
       if (bad.length) {
         const failNote = `I couldn't open ${bad.map((b) => b.action.label ?? b.action.target).join(", ")}. You're still on ${getScreen()?.label ?? "the same screen"}.`;
         setMsgs((m) => [...m, { role: "assistant", kind: "answer", answer: failNote, model_label: "App" }]);
       }
+      return;
     }
-    if (r.points?.length) UI.pointAlong(r.answer ?? "", r.points);
+    setMsgs((m) => [...m, { role: "assistant", ...r, showable: plan }]);
+  };
+
+  const walking = useRef(false);
+  const walkThrough = async (m: Msg) => {
+    if (walking.current || loopRef.current?.on) return;
+    walking.current = true;
+    tourCommand("stop");
+    TTS.stop();
+    Keyboard.dismiss();
+    setVoiceLive(true);                                          // the voice bar shows that Ananta is talking
+    try {
+      if (m.tour?.length) {
+        await UI.playTour(m.tour, (t) => TTS.speakText(t), () => walking.current);
+      } else {
+        let failNote = "";
+        if (m.ui?.length) {
+          const res = await UI.run(m.ui);
+          const bad = res.filter((x) => !x.ok);
+          if (bad.length) failNote = `I couldn't open ${bad.map((b) => b.action.label ?? b.action.target).join(", ")}.`;
+        }
+        const say = [m.speak ?? m.answer ?? "", failNote].filter(Boolean).join(" ");
+        if (say) await UI.pointAlong(say, m.points, (parts, onPart) => TTS.speak(parts, onPart));
+      }
+    } finally {
+      walking.current = false;
+      setVoiceLive(false);
+    }
+    startLive();                                                 // then listen: he can carry on by voice
   };
 
   const send = async (q: string) => {
@@ -407,7 +444,8 @@ export default function Ananta() {
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
           <View key={i} style={{ gap: 8 }}>
             <Answer m={m} onPick={(q) => send(q)} onRate={(v) => rate(m, v)} onSecond={() => second(m)}
-              onSpeak={live ? undefined : () => { UI.pointAlong(m.answer ?? "", m.points, (parts, onPart) => TTS.speak(parts, onPart)); }} />
+              onSpeak={live ? undefined : () => { TTS.speak(UI.sentences(m.answer ?? ""), () => {}); }}
+              onShow={live ? undefined : () => walkThrough(m)} />
             {m.voice && i === msgs.length - 1 ? (m.show ?? []).slice(0, 1).map((sh: any, k: number) => <StageCard key={k} sh={sh} open={() => openScreen(sh)} />) : null}
           </View>
         )))}

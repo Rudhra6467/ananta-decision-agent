@@ -76,7 +76,7 @@
    "used_as": "INVALIDATION gate (structure below price, 1 daily ATR buffer)"},
   {"id": "H15", "family": "exits", "claim": "Ride trends with a trailing stop (3x ATR medium-term, 5-6x ATR long-term, or a close below the 20/50-day average) instead of fixed targets.",
    "sources": ["Rayner: 5 Trailing Stop Loss Techniques", "Rayner: Average True Range Indicator Strategies", "Rayner: A Simple Trend Following Strategy (6 ATR chandelier)"],
-   "variable": "trailing-stop multiple", "status": "UNVERIFIED", "evidence": ""},
+   "variable": "trailing-stop multiple", "status": "NOT_SUPPORTED", "evidence": " Review #12: as T3's exit, a 3-ATR chandelier tripled 2018-23 returns but lost 22% in 2024-Jul 2026 (T3: +13%); MAR worse in the confirm period: not supported."},
   {"id": "H16", "family": "breadth", "claim": "A real recovery needs breadth: most of the market above its 50/200-day averages and making higher highs; bear-market rallies are narrow.",
    "sources": ["TWT: Is the Stock Market Rally for Real?", "TWT: How Strong Is This Market Bottom? (4-15 day rule)", "TWT: A SIMPLE Weekend Checklist"],
    "variable": "share of our coins (and the fresh 10) above their 50/200-day averages", "status": "UNVERIFIED", "evidence": ""},

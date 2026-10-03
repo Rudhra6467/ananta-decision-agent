@@ -172,6 +172,21 @@
     "docs/research/REVIEW_11.md",
     "docs/research/REVIEW_11_RESULTS.md"
    ]
+  },
+  {
+   "id": "R12",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "T3's exit vs trailing stops",
+   "forwarded_because": "Reviews #10-#11: gains come from a few big moves; would a looser exit keep more of them?",
+   "question": "Do a zone trail, a 3-ATR chandelier or a 50-day exit beat T3's 20-day exit in both periods?",
+   "result": "No. They tripled 2018-23 (trending) but lost 7-26% in 2024-26 (choppy) while T3 made +13%. T3's tight exit is the one that survives both.",
+   "changed": "Nothing; T3 stays. A regime-aware exit is a new idea.",
+   "files": [
+    "docs/research/REVIEW_12.md",
+    "docs/research/REVIEW_12_RESULTS.md"
+   ]
   }
  ],
  "queue": [

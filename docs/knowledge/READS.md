@@ -42,6 +42,6 @@ Evidence class: **casebook (his own trades)**, tested on history: not supported 
 
 ## Update: review #8 (with zones and the market gate)
 - The **higher-low retest with the market allowed** (BTC above its 50-day) is the most promising read so far: 12 episodes in 2018-23,
-  11 up after 30 days, +20% on average (+10.6% over the coin's drift), 2 more since 2024, both up. One market event short of the
+  11 up after 30 days, +20% on average (+10.6% over the coin's drift), 2 more since 2024 (one up strongly, one down; +25% on average). One market event short of the
   pre-registered bar, so INSUFFICIENT; it shows live as its own read and every fire is recorded.
 - Capitulation never happens with the market allowed; zones did not improve any of the three reads.

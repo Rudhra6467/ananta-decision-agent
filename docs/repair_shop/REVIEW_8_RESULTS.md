@@ -17,7 +17,7 @@ Output: `~/ananta_runs/reads/review8_results.json`.
 1. **Capitulation never happens with the market allowed**, as written down beforehand: when a coin capitulates, BTC is under its
    50-day average. The gate cannot help M1; its own record stays "too few cases" (review #5).
 2. **The higher-low retest with the market allowed is the most promising thing found so far**: 12 episodes in 2018-23, 11 of them
-   up after 30 days, +20% average, +10.6% over the coin's own drift; 2 more since 2024, both up. It misses the pre-registered bar by
+   up after 30 days, +20% average, +10.6% over the coin's own drift; 2 more since 2024 (one up strongly, one down; +25% on average). It misses the pre-registered bar by
    one market event (7 of 8) and confirm has only 2. So: INSUFFICIENT, but worth recording live.
    Note: your own June 25 buy (C2) is not in this group: BTC was under its 50-day then (it had just made a new 52-week low).
 3. **Zones did not improve your setups.** Requiring a supported zone kept or lowered the results; the base (M3a) already includes the

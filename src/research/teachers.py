@@ -181,7 +181,11 @@ def merge(rules: str, channel: str, out: str, max_notes_chars: int = 420000) -> 
         if r.get("channel") != channel:
             continue
         x = r.get("rules") or {}
-        x.pop("examples", None)
+        for k in ("examples", "concepts"):                 # keep the merge input inside one call
+            x.pop(k, None)
+        for st in x.get("setups") or []:
+            if isinstance(st, dict):
+                st.pop("how_to_code", None)
         recs.append((order.get(r["id"], 9999), {"id": r["id"], "title": r["title"], "minutes": r["minutes"], **x}))
     recs.sort(key=lambda t: t[0])
     notes = "\n".join(json.dumps(r, separators=(",", ":")) for _, r in recs)[:max_notes_chars]

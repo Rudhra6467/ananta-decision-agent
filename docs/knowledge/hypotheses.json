@@ -61,7 +61,7 @@
    "sources": ["Rayner: Do You Make This Pullback Trading Mistake?", "Rayner: The Only Moving Average Strategy You'll Ever Need", "TWT: 10 Charts To Help You Understand The Markets (8-10% extension rule)"],
    "variable": "distance from the 20/50-day averages in ATRs", "status": "NOT_SUPPORTED",
    "evidence": "Explorer E1 is the 1-hour version (lost after costs in the 7-year replay); the daily version is untested. Review #11: a dip into the 50-day zone in an uptrend did worse than an average uptrend day (-3.8% over 20 days, 2018-23; +1.5% since 2024): not supported on our coins.",
-   "used_as": "LOCATION gate thresholds (within 1 daily ATR of value; not more than 10% above the 50-day)"},
+   "used_as": "no longer used: the chain's LOCATION gate now asks for a zone history supports (Madhav, 2026-10-03)"},
   {"id": "H12", "family": "first pullback", "claim": "After a breakout, wait for the first shallow pullback (the 20-period average catches up), buy above its high.",
    "sources": ["Rayner: 3 Best Price Action Strategies I've Learned Over 10 Years", "Rayner: Sniper Trading Entries", "Rayner: Price Action: 4 Golden Rules"],
    "variable": "first pullback after a 20-day-high breakout", "status": "NOT_SUPPORTED", "evidence": " Review #13: +4.3% over the same-condition average in 2018-23 (z 1.1), 0.0% since 2024: not supported."},

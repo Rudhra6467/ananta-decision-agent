@@ -531,7 +531,11 @@ class Lookups:
                 return {"error": f"no reads for {coin}"}
             return {**row, "history": b.get("history"), "note": b.get("note")}
         slim = [{"coin": r["coin"], "best": r["best"]} for r in b.get("coins", [])]
+        from jarvis.service import shadow_h07
+
+        sh = shadow_h07.report(self.j)
         return {"day": b.get("day"), "fired": b.get("fired"), "close": b.get("close"), "coins": slim, "recent_fires": b.get("recent", [])[:5],
+                "h07_paper_shadow": {k: sh[k] for k in ("closed", "open", "waiting", "net_usd", "win_rate", "history")},
                 "history": b.get("history"), "note": b.get("note")}
 
     def t_chain(self, coin: str | None = None) -> dict:

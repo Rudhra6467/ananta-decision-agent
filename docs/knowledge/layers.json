@@ -557,18 +557,20 @@
    "acts": false,
    "regime": "ALL",
    "depends_on": [
-    "REGIME",
-    "TREND",
+    "EXPOSURE",
     "INDICATORS",
-    "TEACHERS",
+    "REGIME",
     "SIZING",
-    "EXPOSURE"
+    "TEACHERS",
+    "TREND",
+    "ZONES",
+    "ZONE_STATE"
    ],
    "feeds": [
     "ASK",
     "APP"
    ],
-   "evidence": "explains; not joined to the Explorer yet (BACKLOG A2)",
+   "evidence": "explains; not joined to the Explorer yet (BACKLOG A2); LOCATION and the stop now use zones history supports (Madhav's OK 2026-10-03)",
    "files": [
     "jarvis/service/chain.py"
    ]
@@ -648,7 +650,7 @@
     "INDICATORS"
    ],
    "feeds": [],
-   "evidence": "PROMISING first look; needs a pre-registered test",
+   "evidence": "PROMISING first look; needs a pre-registered test; the related H07 runs as a paper shadow (H07_SHADOW)",
    "files": [
     "src/research/teacher_systems.py"
    ]
@@ -1003,7 +1005,7 @@
    "feeds": [
     "MADHAV"
    ],
-   "evidence": "your setups ring only when history supports them",
+   "evidence": "your setups ring only when history supports them; rings for supported reads and, by Madhav's choice, the retest with the market allowed (M2a-G) and H07",
    "files": [
     "jarvis/service/alerts.py",
     "jarvis/service/briefs.py"
@@ -1203,6 +1205,28 @@
     "src/tools/market_tools.py",
     "src/tools/market_truth.py",
     "src/tools/outcome_truth.py"
+   ]
+  },
+  {
+   "id": "H07_SHADOW",
+   "name": "Short dip trade (H07) paper shadow",
+   "layer": 6,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "READS",
+    "LIVE_BARS",
+    "COSTS"
+   ],
+   "feeds": [
+    "EVIDENCE",
+    "ALERTS"
+   ],
+   "evidence": "review #14: beat ordinary uptrend days with the same exit in both periods, a few events short of the bar; paper only from 2026-10-03 (Madhav's OK)",
+   "files": [
+    "jarvis/service/shadow_h07.py",
+    "docs/research/REVIEW_14_RESULTS.md"
    ]
   }
  ],

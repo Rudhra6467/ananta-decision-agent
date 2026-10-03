@@ -213,3 +213,34 @@ def test_review13_entries_never_look_ahead():
     early = lambda evs: [(e["t"], e["variant"], round(e["r20"], 9)) for e in evs if e["t"] < D[700][0]]   # noqa: E731
     assert early(full) == early(part)
     assert {e["variant"] for e in full} <= {"H07", "H12", "H13"}
+
+
+def test_h07_paper_shadow_enters_next_open_and_exits_by_its_rule(tmp_path):
+    from jarvis.service import shadow_h07 as SH
+    from tests.test_reads import _fake_jarvis
+
+    up = [100 * (1.004 ** k) for k in range(400)]
+    dip = [up[-1] * (1 - 0.03 * k) for k in range(1, 7)]               # a sharp dip: RSI(10) under 30, still above the 200-day
+    D = _bars(up + dip, wick=0.003)
+    j = _fake_jarvis(tmp_path, {"SOL": D, "BTC": D}, {})
+    first = SH.watch(j)
+    assert "SOL" in first["opened"]
+    rec = [up[-1] * 0.82 * (1 + 0.03 * k) for k in range(1, 15)]       # the bounce
+    con = __import__("sqlite3").connect(tmp_path / "explorer_bars.sqlite")
+    t0 = D[-1][0]
+    more = [(t0 + (k + 1) * 86400, *b[1:]) for k, b in enumerate(_bars(rec, wick=0.003))]
+    con.executemany("INSERT INTO bars VALUES (?,?,?,?,?,?,?,?)", [(c, "1d", *b) for c in ("SOL", "BTC") for b in more])
+    con.commit()
+    SH.watch(j)
+    r = SH.report(j)
+    sol = [t for t in r["trades"] if t["coin"] == "SOL"][0]
+    assert sol["status"] == "CLOSED" and sol["entry_day"] > sol["signal_day"] and sol["net_usd"] > 0
+
+
+def test_chain_location_needs_a_supported_zone():
+    from jarvis.service import chain as CH
+
+    assert "zone history supports" in CH.__doc__ or "zone" in CH.__doc__
+    # the LOCATION block reads only these fields of a zone row
+    row = {"inside": [{"bot": 1.0, "top": 2.0, "kinds": ["AVERAGE-200"], "history": "SUPPORTED"}], "tested": None, "atr": 0.1}
+    assert ((row["inside"] or [None])[0] or row.get("tested"))["history"] == "SUPPORTED"

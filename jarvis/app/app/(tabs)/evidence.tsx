@@ -25,6 +25,7 @@ export default function Evidence() {
   const { data: fw } = useData("/v3/evidence/forwarded");
   const { data: kh } = useData("/v3/knowledge/hypotheses");
   const { data: cr } = useData("/v3/credit", 600000);
+  const { data: sh } = useData("/v3/shadow/h07", 600000);
   if (!d && loading) return <Busy />;
   if (!d || d.error) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={d?.error ?? err ?? "No data"} /></Screen>;
   const R = d.results, D = d.decided;
@@ -167,6 +168,16 @@ export default function Evidence() {
         ))}
       </Card>
       </Spot>
+
+      {sh ? (
+        <Card title="Paper shadow: short dip trade (H07)" sub={sh.history}>
+          <T small>{sh.closed ? `${sh.closed} closed: ${sh.net_usd >= 0 ? "+" : "-"}$${Math.abs(sh.net_usd).toFixed(2)} on $100 each, ${Math.round(100 * (sh.win_rate ?? 0))}% won` : "No closed trades yet."}{sh.open ? ` · ${sh.open} open` : ""}{sh.waiting ? ` · ${sh.waiting} waiting for the next open` : ""}</T>
+          {(sh.trades ?? []).slice(0, 5).map((t: any) => (
+            <T key={t.id} small>{t.coin} {t.signal_day}: {t.status === "CLOSED" ? `${t.net_usd >= 0 ? "+" : "-"}$${Math.abs(t.net_usd).toFixed(2)} (${t.why})` : t.status.toLowerCase()}</T>
+          ))}
+          <T small>{sh.note}</T>
+        </Card>
+      ) : null}
 
       {cr ? (
         <Spot id="evidence.credit">

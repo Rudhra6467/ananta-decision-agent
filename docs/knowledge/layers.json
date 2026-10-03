@@ -238,13 +238,15 @@
    "regime": "UNKNOWN",
    "depends_on": [],
    "feeds": [
-    "READS",
-    "ASK"
+    "ASK",
+    "LOOKOUT",
+    "READS"
    ],
-   "evidence": "review #5 exploratory: did not separate good from bad capitulations; flags asset-specific damage",
+   "evidence": "review #5 exploratory: did not separate good from bad capitulations; flags asset-specific damage Live from 2026-10-03: one check per coin per day, recorded the same day (clean point-in-time history).",
    "files": [
     "src/research/news_check.py",
-    "src/intelligence/catalysts.py"
+    "src/intelligence/catalysts.py",
+    "jarvis/service/news_watch.py"
    ]
   },
   {

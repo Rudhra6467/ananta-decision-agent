@@ -37,7 +37,7 @@ Last updated 2026-10-03.
 3. TODO Ask Madhav: phone alert for every fire, or only supported reads (current rule)?
 
 ## E. News (the blunder guard)
-1. TODO Point-in-time news recorder: one verdict per coin per day from now on (cheap model), so news builds its own clean history.
+1. DONE 2026-10-03 Point-in-time news recorder: one verdict per coin per day (Haiku, about 10 cents a day, HIGH-attention coins first), shown in the zone lookout and Ask.
 2. TODO More known disasters and ordinary dips as controls (LUNA May 2022, FTX/FTT Nov 2022, chain outages).
 
 ## F. App and Jarvis

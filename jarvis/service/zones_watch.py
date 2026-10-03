@@ -161,6 +161,13 @@ def coin(j, c: str) -> dict | None:
         except Exception:  # noqa: BLE001
             pass
         look["plan"] = _plan(row)
+        try:
+            from jarvis.service import news_watch
+
+            nl = news_watch.latest(j, row["coin"], 3)
+            look["news"] = nl[0] if nl else None
+        except Exception:  # noqa: BLE001
+            look["news"] = None
         look["reactions"] = row.get("reactions")
         look["attention"] = row.get("attention")
     return {**row, "lookout": look, "visits": [v for v in recent(j, 120) if v["coin"] == row["coin"]]}

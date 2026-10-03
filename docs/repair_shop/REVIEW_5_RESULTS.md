@@ -50,7 +50,23 @@ What the numbers say, in plain words:
 3. By the pre-registered rule, the reads show in the app and in Ask Ananta as evidence with their history; **none rings the phone**
    (only a SUPPORTED read may), and none changes the Explorer.
 
-## 4. Next (each one a new, counted test)
-- The blunder guard on the same episodes (exploratory, `reads.py news`): did the news check flag the capitulations that kept falling?
+## 4. Exploratory, decided after seeing section 2: would the news check have helped?
+
+`python -m src.research.reads news` ran the blunder guard (Claude Haiku, headlines dated before the signal day) on every M1a and M2a
+episode: 74 checks, under $1 in total. Output: `~/ananta_runs/reads/review5_news_exploratory.json`.
+
+| Read | CLEAR | CAUTION | BLOCK |
+|---|---|---|---|
+| M1a capitulation (31) | 14: −0.6% net, −4.7% excess | 14: +1.5% net, −1.6% excess | 3: +4.7% net, −2.1% excess |
+| M2a higher-low retest (43) | 25: +2.8% net, −3.5% excess | 17: +0.5% net, −2.3% excess | 1: −10.4% net, −10.0% excess |
+
+- The check did **not** separate the good capitulations from the bad ones: "CLEAR" episodes did no better than "CAUTION" ones.
+  The 2022 losers were market-wide (LUNA, Celsius, FTX), which the check rightly calls market fear, not damage to the coin.
+- It did flag asset-specific trouble: SOL on Nov 9 2022 (FTX/Alameda exposure, then −4.5% in 30 days), LTC on Jun 13 2022
+  (Korean exchange delistings; it went up 12.7% anyway), ADA in June 2026 (exchange delisting reports, then −10.4%).
+- Older windows had few dated headlines (9-25 before 2020), and the model may know how these stories ended, so this is a demo,
+  not evidence. It stays what Madhav designed it to be: a last look for a rare blunder, not an edge.
+
+## 5. Next (each one a new, counted test)
 - Combine a read with the decision chain's regime gate (V02) and the T3 portfolio timing, rather than buying the read alone.
 - Record every live fire from now on (the app does this); live fires are clean evidence because nobody knows how they end.

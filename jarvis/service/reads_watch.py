@@ -25,7 +25,9 @@ _CACHE: dict = {}
 
 
 def _status(j) -> dict:
-    p = Path(j.dir) / "docs" / "knowledge" / "reads_status.json"
+    from jarvis.service.core import docs_dir
+
+    p = docs_dir(j.dir) / "knowledge" / "reads_status.json"
     try:
         return {k: v["status"] for k, v in json.loads(p.read_text()).get("variants", {}).items()}
     except Exception:  # noqa: BLE001

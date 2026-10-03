@@ -406,7 +406,9 @@ class Lookups:
         return Path(os.path.expanduser(os.getenv("ANANTA_NOTES_DIR", "~/AnantaBrain/My notes")))
 
     def t_knowledge(self, query: str) -> dict:
-        docs = self.j.dir / "docs"
+        from jarvis.service.core import docs_dir
+
+        docs = docs_dir(self.j.dir)
         roots = [docs / "repair_shop", docs / "research", docs / "knowledge", docs / "knowledge" / "teachers", docs / "casebook"]
         files = [p for r in roots if r.exists() for p in r.glob("*.md")] + [docs / "RULEBOOK_V0.md", docs / "VARIABLE_REGISTRY.md"]
         notes = self._notes_dir()
@@ -439,7 +441,7 @@ class Lookups:
         idx = docs / "KNOWLEDGE_INDEX.md"
         index = [ln.strip("- ").strip() for ln in idx.read_text().splitlines() if ln.startswith("- ")
                  and any(w in ln.lower() for w in words)][:8] if idx.exists() else []
-        reg = self.j.dir / "docs" / "variable_registry.json"
+        reg = docs / "variable_registry.json"
         regs = []
         if reg.exists():
             r = json.loads(reg.read_text())
@@ -448,7 +450,7 @@ class Lookups:
                 if any(w in blob for w in words):
                     regs.append(v)
         hyp = []
-        hp = self.j.dir / "docs" / "knowledge" / "hypotheses.json"
+        hp = docs / "knowledge" / "hypotheses.json"
         if hp.exists():
             for h in json.loads(hp.read_text()).get("hypotheses", []):
                 blob = json.dumps(h).lower()
@@ -463,7 +465,9 @@ class Lookups:
                          "test status (not rules); 'your note' = Madhav's own notes (his view, not verified). read_doc opens a whole file from the map."}
 
     def t_read_doc(self, file: str, section: str | None = None) -> dict:
-        docs = (self.j.dir / "docs").resolve()
+        from jarvis.service.core import docs_dir
+
+        docs = docs_dir(self.j.dir).resolve()
         notes = self._notes_dir().resolve()
         rel = file.strip().removeprefix("docs/").removeprefix("your note: ")
         p = (docs / rel).resolve()

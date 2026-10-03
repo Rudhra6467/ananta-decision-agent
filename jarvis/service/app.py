@@ -377,7 +377,7 @@ def reads_news(coin: str, who: str = Depends(owner)) -> dict:
 def knowledge_hypotheses(who: str = Depends(owner)) -> dict:
     import json as _json
 
-    p = J().dir / "docs" / "knowledge" / "hypotheses.json"
+    p = core.docs_dir(J().dir) / "knowledge" / "hypotheses.json"
     return _json.loads(p.read_text()) if p.exists() else {"hypotheses": []}
 
 

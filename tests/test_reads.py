@@ -140,6 +140,7 @@ def test_watch_records_each_fire_once_and_rings_only_supported_reads(tmp_path):
         sub = tmp_path / st
         sub.mkdir()
         j = _fake_jarvis(sub, {"BTC": D, "SOL": D}, {"M1a": st})
+        orig, W._status = W._status, (lambda j_, st=st: {"M1a": st})      # the review's status for this run
         pushed, asked = [], []
         news = lambda j_, coin: asked.append(coin) or {"verdict": "CLEAR", "why": "nothing about the coin itself"}   # noqa: E731
         b = W.board(j)
@@ -150,3 +151,4 @@ def test_watch_records_each_fire_once_and_rings_only_supported_reads(tmp_path):
         assert all("Evidence, not an order" in o["message"] for o in out)
         assert W.watch(j, push=lambda t, m: pushed.append((t, m)), check_news=news) == []      # same fire: not again
         assert len(W.recent(j)) == len(out)
+        W._status = orig

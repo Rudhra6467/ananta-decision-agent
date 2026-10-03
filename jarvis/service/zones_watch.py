@@ -56,18 +56,20 @@ def _reactions(D: list[tuple], btc: list[tuple], z: dict, ls: dict) -> list[dict
 
 def attention(row: dict, reads_row: dict | None) -> dict:
     """Where Ananta spends its attention (a design rule built from reviews #5-#7, not itself a tested signal).
-    HIGH = look now (worth AI time and the news check), WATCH = keep an eye, LOW = quiet."""
+    Points: in a zone 1, a zone kind history supports 2, came down into it within 5 days 1, market allowed 2,
+    your setup showing 2 (one sign away 1). HIGH >= 6 = look now (worth AI time and the news check), WATCH >= 4, else LOW."""
     score, why = 0.0, []
     z = (row["inside"] or [None])[0] or row.get("tested")
     if z:
-        score += 2
+        score += 1                                       # price is almost always in some zone: on its own it is worth little
         why.append(f"price is {'inside' if row['inside'] else 'testing'} a zone ({'+'.join(z['kinds']).lower()})")
         if z.get("history") == "SUPPORTED":
-            score += 1
+            score += 2
             why.append("a kind of zone history supports (review #6)")
-        if z.get("recent"):
+        rec = z.get("recent")
+        if rec and row.get("day") and (datetime.strptime(row["day"], "%Y-%m-%d") - datetime.strptime(rec["entered"], "%Y-%m-%d")).days <= 5:
             score += 1
-            why.append(f"it came down into it on {z['recent']['entered']}")
+            why.append(f"it came down into it on {rec['entered']}")
     f6 = next((x for x in row.get("reactions") or [] if x["id"] == "F6"), None)
     if f6 and f6["present"]:
         score += 2
@@ -76,12 +78,12 @@ def attention(row: dict, reads_row: dict | None) -> dict:
         why.append("the market is not allowed (BTC under its 50-day): zones held about half the time then")
     for x in (reads_row or {}).get("reads", []):
         if x["state"] == "FIRED":
-            score += 1
+            score += 2
             why.append(f"your setup is showing: {x['name'].lower()}")
         elif x["state"] == "CLOSE":
-            score += 0.5
+            score += 1
             why.append(f"your setup is one sign away: {x['name'].lower()}")
-    level = "HIGH" if score >= 5 else "WATCH" if score >= 2 else "LOW"
+    level = "HIGH" if score >= 6 else "WATCH" if score >= 4 else "LOW"
     return {"score": score, "level": level, "why": why}
 
 

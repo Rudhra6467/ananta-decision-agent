@@ -537,7 +537,7 @@
     "ASK",
     "ALERTS"
    ],
-   "evidence": "design rule built from reviews #5-#7 (inside a zone +2, zone kind history supports +1, recent entry +1, market allowed +2, your setup +1 / +0.5); HIGH = worth AI time and the news check. Not itself a tested signal.",
+   "evidence": "design rule built from reviews #5-#7: in a zone 1, a zone kind history supports 2, came down into it within 5 days 1, market allowed 2, your setup showing 2 (one sign away 1); HIGH >= 6 = worth AI time and the news check, WATCH >= 4. Not itself a tested signal.",
    "files": [
     "jarvis/service/zones_watch.py"
    ]

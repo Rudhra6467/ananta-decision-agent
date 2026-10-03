@@ -24,6 +24,7 @@ export default function Evidence() {
   const { data: d, err, loading, reload } = useData("/v3/evidence/pipeline");
   const { data: fw } = useData("/v3/evidence/forwarded");
   const { data: kh } = useData("/v3/knowledge/hypotheses");
+  const { data: cr } = useData("/v3/credit", 600000);
   if (!d && loading) return <Busy />;
   if (!d || d.error) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={d?.error ?? err ?? "No data"} /></Screen>;
   const R = d.results, D = d.decided;
@@ -166,6 +167,23 @@ export default function Evidence() {
         ))}
       </Card>
       </Spot>
+
+      {cr ? (
+        <Spot id="evidence.credit">
+        <Card title="What each layer contributed" sub={cr.settled ? `${cr.settled} records scored (20 days after each close) since ${cr.since}` :
+          `Recording every coin at each daily close since ${cr.since ?? "today"}; the first scores come 20 days later.`}>
+          {(cr.by_signal ?? []).filter((x: any) => x.with_n || x.without_n).map((x: any) => (
+            <View key={x.signal} style={{ flexDirection: "row", paddingVertical: 4, gap: 8 }}>
+              <Text style={{ flex: 1, color: C.text, fontSize: 13 }}>{x.name}</Text>
+              <Text style={{ color: x.diff_pts == null ? C.faint : x.diff_pts >= 0 ? C.good : C.bad, fontSize: 12 }}>
+                {x.diff_pts == null ? `${x.with_n} / ${x.without_n} cases` : `${x.diff_pts > 0 ? "+" : ""}${x.diff_pts} pts (${x.with_n})`}</Text>
+            </View>
+          ))}
+          {cr.explorer?.joined ? <T small>Explorer: {cr.explorer.joined} closed paper trades joined to what each layer said that day.</T> : null}
+          <T small>{cr.note}</T>
+        </Card>
+        </Spot>
+      ) : null}
 
       {kh?.hypotheses?.length ? (
         <Spot id="evidence.ideas">

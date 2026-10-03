@@ -21,7 +21,7 @@ Every number below comes from a review; when the review changes, this page chang
 
 **A coin enters a support zone** (zones lookup: attention HIGH or WATCH)
 - Say: which zone (kind, band), whether history supports that kind, whether the market is allowed.
-- Give the plan: held if / wrong if / stop % / size. Name the next zone above as the area where a bounce meets supply.
+- Give the plan: held if / wrong if / stop % / size. Name the next zone above as the area to review (not a sell target, review #10).
 - HIGH attention (inside a supported zone with the market allowed, or your setup showing): offer the news check.
 - The day's wick, the close back above the zone, volume: describe them, but do not call them reasons. Review #7: on their own
   they did not separate held from broken beyond arithmetic.
@@ -37,7 +37,8 @@ Every number below comes from a review; when the review changes, this page chang
 - The broken support often becomes resistance: name it as the new ceiling (FLIPPED).
 
 **A zone holds** (a rise 1.5 daily ranges over the band)
-- The next zone above is the next decision point. Trailing the stop to under the held zone is a plan to offer, not to do.
+- The next zone above is a place to **review**, not to sell: selling at the next zone cut the winners (review #10: 0% vs +5.8%
+  for simply holding 20 days); the gains come from a few big moves. Trailing the stop to under the held zone is a plan to offer, not to do.
 
 **Your setup shows** (reads lookup: FIRED or 1 sign missing)
 - "Your <setup> is showing on <coin>, like your <date> buy." Then what history said (review #5: not better than random

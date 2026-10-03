@@ -359,12 +359,15 @@ def lookout_events(coin: str, S: R.Series, B: R.Series, until: int) -> list[dict
                 if z["top"] < prev_c and A.l[i] <= z["top"] and A.l[i - 1] > z["top"] and (A.c[i - 3:i] > z["top"]).all()]
         if not hits:
             continue
+        zm_all = zone_map(A, i, swing)
         z = max(hits, key=lambda x: (len(x["kinds"]), x["top"]))
         atr = float(A.atr[i - 1])
         res = touch_outcome(A, i, z["bot"], z["top"], atr, min(n, i + OUTCOME_DAYS))
         r10 = float((A.o[i + 11] / A.o[i + 1]) * (1 - R.cost(coin)) ** 2 - 1) if i + 11 < n else None
         last = S.t[i]
-        out.append({"coin": coin, "t": S.t[i], "result": res, "r10": r10, "groups": groups(z), **reactions(S, A, B, i, z)})
+        ups = [x["bot"] for x in zm_all if i + 1 < n and x["bot"] > A.o[i + 1]]
+        out.append({"coin": coin, "t": S.t[i], "i": i, "bot": float(z["bot"]), "top": float(z["top"]), "atr": atr,
+                    "next_up": float(min(ups)) if ups else None, "result": res, "r10": r10, "groups": groups(z), **reactions(S, A, B, i, z)})
     return out
 
 
@@ -447,6 +450,88 @@ def review7(D: dict[str, list[tuple]]) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# review #10: stops and exits at zones (docs/research/REVIEW_10.md)
+# ---------------------------------------------------------------------------
+def exits(A: Arr, e: dict, cost: float) -> dict | None:
+    """The four pre-registered exits for one entry (bought at the open after the zone entry day)."""
+    n = len(A.c)
+    k0 = e["i"] + 1
+    if k0 + 40 >= n:
+        return None
+    px = float(A.o[k0])
+    net = lambda x: (x / px) * (1 - cost) ** 2 - 1                         # noqa: E731
+    out = {"X1": {"net": net(float(A.o[k0 + 20])), "days": 20, "stopped": False}}
+    # X2 zone stop (close under bot - 0.5 ATR -> next open), target the next zone above, else 40 days
+    stop_c = e["bot"] - 0.5 * e["atr"]
+    res = None
+    for k in range(k0, k0 + 40):
+        if e["next_up"] is not None and A.h[k] >= e["next_up"]:
+            res = {"net": net(max(e["next_up"], float(A.o[k]))), "days": k - k0 + 1, "stopped": False, "target": True}
+            break
+        if A.c[k] < stop_c:
+            res = {"net": net(float(A.o[k + 1])), "days": k - k0 + 1, "stopped": True}
+            break
+    out["X2"] = res or {"net": net(float(A.o[k0 + 40])), "days": 40, "stopped": False}
+    for name, stop in (("X3", px - 2 * e["atr"]), ("X4", px * 0.98)):
+        r = None
+        for k in range(k0, k0 + 20):
+            if A.o[k] <= stop:
+                r = {"net": net(float(A.o[k])), "days": k - k0 + 1, "stopped": True}
+                break
+            if A.l[k] <= stop:
+                r = {"net": net(stop), "days": k - k0 + 1, "stopped": True}
+                break
+        out[name] = r or {"net": net(float(A.o[k0 + 20])), "days": 20, "stopped": False}
+    return out
+
+
+def _paired(rows: list[dict], a: str, b: str) -> dict:
+    mk = _market_events(rows)
+    d = [statistics.mean(r["x"][a]["net"] - r["x"][b]["net"] for r in m) for m in mk]
+    if len(d) < 3:
+        return {"diff_pct": None, "z": None, "market_events": len(d)}
+    sd = statistics.stdev(d)
+    return {"diff_pct": round(100 * statistics.mean(d), 2), "z": round(statistics.mean(d) / (sd / len(d) ** 0.5), 2) if sd > 0 else None,
+            "market_events": len(d)}
+
+
+def review10(D: dict[str, list[tuple]]) -> dict:
+    B = R.Series(D["BTC"])
+    rows = []
+    for c, bars in D.items():
+        S = B if c == "BTC" else R.Series(bars)
+        A = Arr(S)
+        for e in lookout_events(c, S, B, R.CONF_END):
+            if not e["F6"]:
+                continue
+            x = exits(A, e, R.cost(c))
+            if x:
+                rows.append({"coin": c, "t": e["t"], "x": x})
+        print(c, len(rows), file=sys.stderr)
+    out = {}
+    for sp, lo, hi in (("DISCOVERY", 0, R.DISC_END), ("CONFIRM", R.DISC_END, R.CONF_END)):
+        rr = [r for r in rows if lo <= r["t"] < hi]
+        o = {"trades": len(rr), "market_events": len(_market_events(rr))}
+        for k in ("X1", "X2", "X3", "X4"):
+            nets = [r["x"][k]["net"] for r in rr]
+            o[k] = {"mean_net_pct": round(100 * statistics.mean(nets), 2) if nets else None,
+                    "median_net_pct": round(100 * statistics.median(nets), 2) if nets else None,
+                    "win": round(sum(x > 0 for x in nets) / len(nets), 3) if nets else None,
+                    "worst_pct": round(100 * min(nets), 1) if nets else None,
+                    "stopped": round(sum(r["x"][k]["stopped"] for r in rr) / len(rr), 3) if rr else None,
+                    "avg_days": round(statistics.mean(r["x"][k]["days"] for r in rr), 1) if rr else None}
+        o["X2_target_hit"] = round(sum(bool(r["x"]["X2"].get("target")) for r in rr) / len(rr), 3) if rr else None
+        o["X2_vs"] = {k: _paired(rr, "X2", k) for k in ("X1", "X3", "X4")}
+        out[sp] = o
+    d, c = out["DISCOVERY"], out["CONFIRM"]
+    ok_d = (d["X2"]["mean_net_pct"] or -1) > 0 and all((d["X2_vs"][k]["z"] or 0) >= 2 for k in ("X1", "X3", "X4"))
+    ok_c = all(c["X2"]["mean_net_pct"] is not None and c[k]["mean_net_pct"] is not None and c["X2"]["mean_net_pct"] > c[k]["mean_net_pct"]
+               for k in ("X1", "X3", "X4"))
+    out["status"] = "PASS" if ok_d and ok_c else "NOT_CONFIRMED" if ok_d else "FAIL"
+    return out
+
+
+# ---------------------------------------------------------------------------
 # live
 # ---------------------------------------------------------------------------
 def live_zones(D: list[tuple], near_atr: float = 3.0) -> dict:
@@ -481,7 +566,7 @@ def live_zones(D: list[tuple], near_atr: float = 3.0) -> dict:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["review6", "review7"])
+    ap.add_argument("mode", choices=["review6", "review7", "review10"])
     ap.add_argument("--db", required=True)
     ap.add_argument("--out", default="~/ananta_runs/zones")
     a = ap.parse_args(argv)
@@ -489,6 +574,12 @@ def main(argv: list[str] | None = None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     cache = Path(os.path.expanduser("~/ananta_runs/reads"))
     D = {c: R.cached_daily(a.db, c, cache, R.CONF_END) for c in R.COINS}
+    if a.mode == "review10":
+        res = review10(D)
+        res["_meta"] = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"), "pre_registration": "docs/research/REVIEW_10.md"}
+        (out / "review10_results.json").write_text(json.dumps(res, indent=1))
+        print(json.dumps(res, indent=1))
+        return
     if a.mode == "review7":
         res = review7(D)
         res["_meta"] = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"), "pre_registration": "docs/research/ZONES_PROGRAM.md#6"}

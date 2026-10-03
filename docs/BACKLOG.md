@@ -8,9 +8,9 @@ Last updated 2026-10-03.
 1. DONE v1, 2026-10-03 (switch step: the Explorer does not read it yet) **Layer map the agent reads** (`docs/knowledge/layers.json`): every component with its layer (0 authority ... 8 interface),
    what it depends on, what it feeds, its status, its evidence, the market it works in (regime), and the file that implements it.
    Statuses become switches: code asks the map whether a component is allowed before using it.
-2. TODO **Join the two brains**: the decision chain (how Ananta reasons) and the Explorer (what it paper-trades) share one
+2. DOING (first step: Explorer trades are joined to the day's layer record in credit tracking) **Join the two brains**: the decision chain (how Ananta reasons) and the Explorer (what it paper-trades) share one
    decision record; every Explorer entry shows where it stood on the chain.
-3. TODO **Credit tracking**: each decision and paper trade records which layers moved it; the learning layer scores each
+3. DONE v1 2026-10-03 (records every coin at each close, scores 20 days later, joins Explorer trades; Evidence page and Ask) **Credit tracking**: each decision and paper trade records which layers moved it; the learning layer scores each
    component over time (which ones earn their keep, in which market).
 4. TODO Unused evidence gets a consumer: V09/V10 (other traders' timing), reconstruction cases, the news check.
 
@@ -23,7 +23,7 @@ Last updated 2026-10-03.
    starts the lookout: chain, your setups, news check, what the knowledge says about this zone type, a plan (confirm / wrong / size).
    Outside zones Ananta stays quiet and cheap.
 4. DONE 2026-10-03 **Review #7, the lookout**: only the market regime (BTC above its 50-day) separated held from broken (68% vs 50%); wick, close-back, volume, divergence, relative strength added nothing beyond arithmetic (`research/REVIEW_7_RESULTS.md`). Attention ranking (HIGH / WATCH / LOW) and the playbook (`knowledge/PLAYBOOK.md`) are live; every code file is on the layer map (test).
-5. DOING **Redo every study that ignored zones**: done so far: your setups (review #8: retest with the market allowed most promising, insufficient), Explorer setups (review #9: zones do not help hours-long trades). Next: stops and exits at zones on the weeks-long books (T3, your setups), H06 dip at the 50-day zone, breakouts through resistance zones. (list and order in the program document, section 5).
+5. DOING **Redo every study that ignored zones**: done so far: your setups (review #8: retest with the market allowed most promising, insufficient), Explorer setups (review #9: zones do not help hours-long trades). Exits (review #10: a target at the next zone cuts winners; FAIL). Next: trailing stop under each held zone vs T3's rule, H06 dip at the 50-day zone, breakouts through resistance zones. (list and order in the program document, section 5).
 
 ## C. Teacher ideas not yet tested
 1. TODO H07-H17 and P03 (RSI dips, relative strength, volume on breakouts, tight bases, pullbacks to the 50-day, first pullback after a

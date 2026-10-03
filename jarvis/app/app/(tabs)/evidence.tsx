@@ -14,11 +14,16 @@ import { C, pnlColor } from "../../src/theme";
 
 const VERDICT: Record<string, [string, string, string]> = { PASS: ["PASSED", C.good, C.goodSoft], FAIL: ["NO CHANGE", C.dim, C.card2] };
 const ask = (label: string, q: string) => askAbout({ screen: "evidence", label }, q);
+const IDEA: Record<string, [string, string]> = {
+  SUPPORTED: [C.good, C.goodSoft], PROMISING: [C.accent, C.accentSoft], POLICY: [C.text, C.card2],
+  NOT_SUPPORTED: [C.bad, C.badSoft], REJECTED: [C.bad, C.badSoft], INSUFFICIENT: [C.warn, C.warnSoft],
+};
 
 export default function Evidence() {
   useFocusEffect(useCallback(() => { setScreen({ screen: "evidence", label: "Evidence pipeline: watching, seen, decided, results, rebuild, repair shop, in use" }); }, []));
   const { data: d, err, loading, reload } = useData("/v3/evidence/pipeline");
   const { data: fw } = useData("/v3/evidence/forwarded");
+  const { data: kh } = useData("/v3/knowledge/hypotheses");
   if (!d && loading) return <Busy />;
   if (!d || d.error) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={d?.error ?? err ?? "No data"} /></Screen>;
   const R = d.results, D = d.decided;
@@ -161,6 +166,31 @@ export default function Evidence() {
         ))}
       </Card>
       </Spot>
+
+      {kh?.hypotheses?.length ? (
+        <Spot id="evidence.ideas">
+        <Card title="Ideas from the teachers" sub="Rayner, Trade With Trend, your own trades: ideas until our data backs them">
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+            {Object.entries(kh.hypotheses.reduce((a: any, h: any) => ({ ...a, [h.status]: (a[h.status] ?? 0) + 1 }), {})).map(([k, v]: any) => (
+              <Pill key={k} text={`${v} ${String(k).replace("_", " ").toLowerCase()}`} color={IDEA[k]?.[0] ?? C.dim} bg={IDEA[k]?.[1] ?? C.card2} />
+            ))}
+          </View>
+          {kh.hypotheses.map((h: any, i: number) => (
+            <View key={h.id}>
+              {i ? <Divider /> : null}
+              <Expand title={`${h.id} ${h.claim}`} sub={h.family}
+                onLongPress={() => ask(`Teacher idea ${h.id}: ${h.claim}`, `What is idea ${h.id} and what did our data say about it?`)}
+                right={<Pill text={String(h.status).replace("_", " ")} color={IDEA[h.status]?.[0] ?? C.dim} bg={IDEA[h.status]?.[1] ?? C.card2} />}>
+                {h.evidence ? <><Label>What our data says</Label><T>{h.evidence}</T></> : <T small>Not measured yet.</T>}
+                {h.used_as ? <><Label>Used as</Label><T>{h.used_as}</T></> : null}
+                {h.next ? <><Label>Next</Label><T>{h.next}</T></> : null}
+                <Label>From</Label><T small>{(h.sources ?? []).join(" · ")}</T>
+              </Expand>
+            </View>
+          ))}
+        </Card>
+        </Spot>
+      ) : null}
 
       {/* 7 */}
       <Spot id="evidence.in_use">

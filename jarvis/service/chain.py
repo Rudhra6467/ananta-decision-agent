@@ -88,10 +88,10 @@ def evaluate(ex, coin: str, open_trades: list[dict], equity: float, zone_row: di
         gates.append(_g("LOCATION", None, "no zone map for this coin yet (data gap)", "zones (reviews #6-#7)"))
     else:
         focus = (zone_row.get("inside") or [None])[0] or zone_row.get("tested")
-        kinds = "+".join(focus["kinds"]).lower() if focus else ""
+        kinds = ("new swing" if focus and focus["kinds"] == ["SWING"] and focus.get("tier") == "NEW" else "+".join(focus["kinds"]).lower()) if focus else ""
         ok = bool(focus and focus.get("history") == "SUPPORTED")
         if ok:
-            why = f"at a zone history supports: {kinds} ({focus['bot']:,.4g}-{focus['top']:,.4g})"
+            why = f"at a zone history supports: {kinds} ({focus['bot']:,.6g}-{focus['top']:,.6g})"
         elif focus:
             why = f"at a zone ({kinds}), but not a kind history supports; wait for a 200-day, overlapping or new swing zone"
         else:
@@ -126,7 +126,7 @@ def evaluate(ex, coin: str, open_trades: list[dict], equity: float, zone_row: di
         src = "H14 hypothesis (stop 1 ATR beyond structure)"
         what = f"under {'the swing low' if struct == support else 'the 50-day average'} with a 1-ATR buffer" if struct else ""
     stop_pct = (price - stop) / price if stop and stop < price else None
-    gates.append(_g("INVALIDATION", stop_pct is not None, f"{what}: stop {stop:,.4g} ({100 * stop_pct:.1f}% away)" if stop_pct else
+    gates.append(_g("INVALIDATION", stop_pct is not None, f"{what}: stop {stop:,.6g} ({100 * stop_pct:.1f}% away)" if stop_pct else
                     "no structure below the price to put a stop under", src,
                     {"stop": round(stop, 4) if stop else None, "stop_pct": round(100 * stop_pct, 1) if stop_pct else None}))
 

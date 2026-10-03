@@ -178,3 +178,50 @@ def test_layer_map_is_consistent_and_the_switch_works():
     assert "REGIME" in t3["everything_it_rests_on"] and "DATA_5M" in t3["everything_it_rests_on"]
     assert "CHAIN" in LY.component("REGIME", root)["everything_that_would_feel_a_failure"]
     assert [l["n"] for l in LY.board(root)["layers"]] == list(range(9))
+
+
+def test_every_code_file_is_on_the_layer_map_and_nothing_running_is_archived():
+    """Madhav: map them all. Every module belongs to a part of the layer map, and no module a running program imports
+    (Jarvis, voice, Explorer, hourly watch, portfolio layer) may sit only in the ARCHIVED part."""
+    import glob
+    import json as _json
+    import os
+    import pathlib
+    import re
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    os.chdir(root)
+    m = _json.loads((root / "docs" / "knowledge" / "layers.json").read_text())
+    where: dict = {}
+    for c in m["components"]:
+        for f in c["files"]:
+            where.setdefault(f, set()).add(c["status"])
+    code = [f for f in glob.glob("src/**/*.py", recursive=True) + glob.glob("jarvis/**/*.py", recursive=True) + ["main.py"]
+            if "__pycache__" not in f and "node_modules" not in f and not f.endswith(("__init__.py", "__main__.py"))]
+    missing = sorted(f for f in code if f not in where)
+    assert not missing, f"not on the layer map: {missing}"
+
+    def mod(mn: str):
+        p = mn.replace(".", "/")
+        return next((x for x in (p + ".py", p + "/__init__.py") if os.path.exists(x)), None)
+
+    def imports(f: str) -> set:
+        t, out = open(f).read(), set()
+        for line in t.splitlines():
+            a = re.match(r"\s*from\s+((?:src|jarvis)(?:\.\w+)*)\s+import\s+([\w, ]+)", line)
+            b = re.match(r"\s*import\s+((?:src|jarvis)(?:\.\w+)*)", line)
+            if a:
+                out |= {x for x in [mod(a.group(1))] + [mod(a.group(1) + "." + n.strip().split(" as ")[0]) for n in a.group(2).split(",")] if x}
+            elif b and mod(b.group(1)):
+                out.add(mod(b.group(1)))
+        return out
+
+    seen, todo = set(), ["jarvis/service/app.py", "jarvis/voice/server.py", "src/intelligence/explorer_live.py",
+                         "src/intelligence/paper_watch.py", "src/intelligence/portfolio_layer.py"]
+    while todo:
+        f = todo.pop()
+        if f not in seen:
+            seen.add(f)
+            todo += list(imports(f) - seen)
+    archived_only = sorted(f for f in seen if not f.endswith("__init__.py") and where.get(f) == {"ARCHIVED"})
+    assert not archived_only, f"running code marked ARCHIVED: {archived_only}"

@@ -19,10 +19,10 @@ Last updated 2026-10-03.
    pre-registered review #6 (do strong zones hold more often than weak ones and than random prices?).
 2. DONE 2026-10-03, review #6 run: zones hold a little more often than random; 200-day, confluence, new swing zones pass (`research/REVIEW_6_RESULTS.md`). **Zone engine** shared by history and live (one code path, lookahead-tested): static zones (swing clusters, 52-week
    extremes, round numbers), moving zones (20/50/200-day averages as bands), range zones (bases); multi-timeframe; strength score.
-3. DOING (zone map, states and lookout live on Markets and coin pages; every zone entry recorded with how it ended; attention budget not yet) **Zone state and attention, live**: far / approaching / inside / held / broken / flipped per coin and zone. Entering a zone
+3. DONE 2026-10-03 (zone map, states, lookout, attention live; AI spending is not yet tied to attention: next) **Zone state and attention, live**: far / approaching / inside / held / broken / flipped per coin and zone. Entering a zone
    starts the lookout: chain, your setups, news check, what the knowledge says about this zone type, a plan (confirm / wrong / size).
    Outside zones Ananta stays quiet and cheap.
-4. TODO **Review #7, the lookout**: inside a zone, which reactions separate HELD from BROKEN (wick, volume, divergence, relative strength, regime, news).
+4. DONE 2026-10-03 **Review #7, the lookout**: only the market regime (BTC above its 50-day) separated held from broken (68% vs 50%); wick, close-back, volume, divergence, relative strength added nothing beyond arithmetic (`research/REVIEW_7_RESULTS.md`). Attention ranking (HIGH / WATCH / LOW) and the playbook (`knowledge/PLAYBOOK.md`) are live; every code file is on the layer map (test).
 5. TODO **Redo every study that ignored zones** (list and order in the program document, section 5).
 
 ## C. Teacher ideas not yet tested

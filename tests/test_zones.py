@@ -82,7 +82,13 @@ def test_live_zone_board_lookout_and_visit_record(tmp_path):
     for r in b["coins"]:
         assert all(z["history"] in ("SUPPORTED", "NOT_SUPPORTED", "UNTESTED") for z in r["zones"])
     c = W.coin(j, "SOL")
-    assert c["in_zone"] == bool(c["inside"]) and (c["lookout"] is not None) == c["in_zone"]
+    assert c["in_zone"] == bool(c["inside"]) and (c["lookout"] is not None) == bool(c["in_zone"] or c["tested"])
+    assert c["attention"]["level"] in ("HIGH", "WATCH", "LOW") and isinstance(c["attention"]["why"], list)
+    if c["lookout"]:
+        assert {x["id"] for x in c["lookout"]["reactions"]} == set(Z.REACTIONS)
+        assert next(x for x in c["lookout"]["reactions"] if x["id"] == "F6")["history"] == "PASS"
+    import json as _json
+    _json.dumps(b)
     w1 = W.watch(j)
     w2 = W.watch(j)
     assert w2["new"] == [] and len(W.recent(j, 10 ** 5)) == len(w1["new"])           # each entry recorded once

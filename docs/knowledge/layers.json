@@ -9,7 +9,8 @@
    "EVIDENCE_ONLY": "shown to Madhav and to the chain as evidence; may not act",
    "WATCH": "some information, not enough to use alone",
    "DROPPED": "tested; no usable information; must not be used",
-   "PLANNED": "designed, not built"
+   "PLANNED": "designed, not built",
+   "ARCHIVED": "earlier research-lab code kept for reference; nothing running uses it; may not act"
   },
   "acts": "true = this component may change a decision or an order today (the switch). The code asks the map before acting.",
   "regime": "the market it worked in: ALL, UP (BTC above its 50-day), DOWN, or UNKNOWN (not measured yet)",
@@ -117,7 +118,12 @@
    ],
    "evidence": "docs/SAFETY_GATES_LOCK.md",
    "files": [
-    "docs/SAFETY_GATES_LOCK.md"
+    "docs/SAFETY_GATES_LOCK.md",
+    "src/intelligence/gates.py",
+    "src/intelligence/circuit_breaker.py",
+    "src/intelligence/profiles.py",
+    "src/intelligence/autonomy.py",
+    "src/intelligence/laws.py"
    ]
   },
   {
@@ -153,7 +159,8 @@
    ],
    "evidence": "edited only with Madhav's confirmation",
    "files": [
-    "jarvis/service/mandate.py"
+    "jarvis/service/mandate.py",
+    "src/intelligence/user_context.py"
    ]
   },
   {
@@ -174,7 +181,8 @@
    ],
    "evidence": "on-grid, gap-checked; holdout Aug-Sep 2026 sealed",
    "files": [
-    "src/research/explorer_replay.py"
+    "src/research/explorer_replay.py",
+    "src/research/fresh_data.py"
    ]
   },
   {
@@ -196,7 +204,10 @@
    ],
    "evidence": "closed bars only",
    "files": [
-    "src/intelligence/explorer_live.py"
+    "src/intelligence/explorer_live.py",
+    "src/intelligence/cycle_ingest.py",
+    "src/intelligence/cycle_contract_v01.py",
+    "src/intelligence/ingest_contract.py"
    ]
   },
   {
@@ -232,7 +243,8 @@
    ],
    "evidence": "review #5 exploratory: did not separate good from bad capitulations; flags asset-specific damage",
    "files": [
-    "src/research/news_check.py"
+    "src/research/news_check.py",
+    "src/intelligence/catalysts.py"
    ]
   },
   {
@@ -248,7 +260,9 @@
    ],
    "evidence": "review #2: V09, V10 WATCH",
    "files": [
-    "docs/repair_shop/REVIEW_2_RESULTS.md"
+    "docs/repair_shop/REVIEW_2_RESULTS.md",
+    "src/research/hl_bench.py",
+    "src/research/review2_traders.py"
    ]
   },
   {
@@ -321,7 +335,8 @@
     "src/research/zones.py",
     "docs/research/ZONES_PROGRAM.md",
     "docs/research/REVIEW_6_RESULTS.md",
-    "docs/research/zones_status.json"
+    "docs/research/zones_status.json",
+    "docs/research/zones_rw_calibration.json"
    ]
   },
   {
@@ -340,7 +355,8 @@
    ],
    "evidence": "his design; the parts are tested separately",
    "files": [
-    "docs/knowledge/FRAMEWORK.md"
+    "docs/knowledge/FRAMEWORK.md",
+    "docs/knowledge/PLAYBOOK.md"
    ]
   },
   {
@@ -382,7 +398,8 @@
    "evidence": "4 buys rebuilt from candles",
    "files": [
     "docs/casebook/cases.json",
-    "docs/casebook/REBUILD_2026-10-03.md"
+    "docs/casebook/REBUILD_2026-10-03.md",
+    "src/research/casebook.py"
    ]
   },
   {
@@ -403,7 +420,9 @@
    "files": [
     "docs/knowledge/hypotheses.json",
     "docs/knowledge/teachers/trade_with_trend.md",
-    "docs/knowledge/teachers/rayner_teo.md"
+    "docs/knowledge/teachers/rayner_teo.md",
+    "src/research/teachers.py",
+    "src/research/teacher_systems.py"
    ]
   },
   {
@@ -438,7 +457,9 @@
    "evidence": "kept complete by tests",
    "files": [
     "docs/KNOWLEDGE_INDEX.md",
-    "docs/knowledge/layers.json"
+    "docs/knowledge/layers.json",
+    "jarvis/service/layers.py",
+    "docs/BACKLOG.md"
    ]
   },
   {
@@ -505,7 +526,7 @@
    "id": "ATTENTION",
    "name": "Attention budget (where AI money and Madhav's time go)",
    "layer": 4,
-   "status": "PLANNED",
+   "status": "EVIDENCE_ONLY",
    "acts": false,
    "regime": "ALL",
    "depends_on": [
@@ -516,8 +537,10 @@
     "ASK",
     "ALERTS"
    ],
-   "evidence": "design: think hard only inside zones",
-   "files": []
+   "evidence": "design rule built from reviews #5-#7 (inside a zone +2, zone kind history supports +1, recent entry +1, market allowed +2, your setup +1 / +0.5); HIGH = worth AI time and the news check. Not itself a tested signal.",
+   "files": [
+    "jarvis/service/zones_watch.py"
+   ]
   },
   {
    "id": "CHAIN",
@@ -584,7 +607,8 @@
    "evidence": "replay scorecard; reviews #1, #3 found no better variant; Q1 waits for 30 live trades",
    "files": [
     "docs/RULEBOOK_V0.md",
-    "src/intelligence/explorer_engine.py"
+    "src/intelligence/explorer_engine.py",
+    "src/intelligence/setup_checklist.py"
    ]
   },
   {
@@ -601,7 +625,9 @@
     "ASK"
    ],
    "evidence": "Q4: no stable-positive cell after costs yet",
-   "files": []
+   "files": [
+    "src/research/intraday_atlas.py"
+   ]
   },
   {
    "id": "H06_DIP",
@@ -639,7 +665,8 @@
    ],
    "evidence": "paper only",
    "files": [
-    "src/intelligence/explorer_live.py"
+    "src/intelligence/explorer_live.py",
+    "src/research/explorer_replay.py"
    ]
   },
   {
@@ -661,7 +688,8 @@
    "evidence": "review #4 PASS: +13% vs buy-and-hold -22% (2024-26), half the drawdown",
    "files": [
     "src/intelligence/portfolio_layer.py",
-    "docs/repair_shop/REVIEW_4_RESULTS.md"
+    "docs/repair_shop/REVIEW_4_RESULTS.md",
+    "src/research/portfolio_trend.py"
    ]
   },
   {
@@ -678,7 +706,10 @@
     "EVIDENCE"
    ],
    "evidence": "V03 KEEP (exit bells in slow crashes); V16 WATCH in normal times",
-   "files": []
+   "files": [
+    "src/intelligence/paper_exit.py",
+    "src/intelligence/exit_engine.py"
+   ]
   },
   {
    "id": "SIZING",
@@ -732,7 +763,13 @@
     "EXPLORER"
    ],
    "evidence": "paper; live needs Madhav",
-   "files": []
+   "files": [
+    "src/tools/ananta_api.py",
+    "src/tools/_ananta_api_payload.py",
+    "src/tools/ananta_tools.py",
+    "src/cli_exec.py",
+    "src/intelligence/contract.py"
+   ]
   },
   {
    "id": "MANUAL_BOOK",
@@ -772,7 +809,11 @@
    ],
    "evidence": "counts market events, not trades",
    "files": [
-    "jarvis/service/views.py"
+    "jarvis/service/views.py",
+    "src/intelligence/attribution.py",
+    "src/intelligence/decision_quality.py",
+    "src/intelligence/system_status.py",
+    "src/intelligence/ledgers.py"
    ]
   },
   {
@@ -792,7 +833,9 @@
    ],
    "evidence": "review #2; casebook",
    "files": [
-    "src/research/casebook.py"
+    "src/research/casebook.py",
+    "src/research/hl_bench.py",
+    "src/research/review2_traders.py"
    ]
   },
   {
@@ -813,7 +856,16 @@
    ],
    "evidence": "every variant counted; holdout sealed",
    "files": [
-    "docs/research/ZONES_PROGRAM.md"
+    "docs/research/ZONES_PROGRAM.md",
+    "src/research/entry_v2.py",
+    "src/research/mtf_entry.py",
+    "src/research/green_runs.py",
+    "src/research/study_v3.py",
+    "src/research/study_v4.py",
+    "src/research/teacher_systems.py",
+    "src/research/teachers.py",
+    "docs/research/REVIEW_6_RESULTS.md",
+    "docs/research/REVIEW_7_RESULTS.md"
    ]
   },
   {
@@ -835,7 +887,8 @@
    ],
    "evidence": "5 reviews done, 1 passed (T3)",
    "files": [
-    "docs/repair_shop/ledger.json"
+    "docs/repair_shop/ledger.json",
+    "src/research/review_compare.py"
    ]
   },
   {
@@ -874,7 +927,9 @@
    ],
    "evidence": "owner + guest practice mode",
    "files": [
-    "jarvis/app/app.json"
+    "jarvis/app/app.json",
+    "jarvis/service/core.py",
+    "jarvis/service/app.py"
    ]
   },
   {
@@ -895,7 +950,12 @@
    ],
    "evidence": "prepares actions; Madhav confirms them",
    "files": [
-    "jarvis/service/ask.py"
+    "jarvis/service/ask.py",
+    "jarvis/service/outside.py",
+    "jarvis/service/appmap.py",
+    "jarvis/service/speech.py",
+    "jarvis/voice/server.py",
+    "jarvis/evals/run.py"
    ]
   },
   {
@@ -914,7 +974,204 @@
    ],
    "evidence": "your setups ring only when history supports them",
    "files": [
-    "jarvis/service/alerts.py"
+    "jarvis/service/alerts.py",
+    "jarvis/service/briefs.py"
+   ]
+  },
+  {
+   "id": "LOOKOUT",
+   "name": "The lookout: reactions inside a zone (review #7)",
+   "layer": 4,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UP",
+   "depends_on": [
+    "ZONE_STATE",
+    "REGIME",
+    "INDICATORS"
+   ],
+   "feeds": [
+    "ATTENTION",
+    "CHAIN",
+    "ASK",
+    "APP"
+   ],
+   "evidence": "review #7: only the market regime (BTC above its 50-day) separated held from broken (68% vs 50%, 2018-23; weaker since 2024); wick, close-back, volume, divergence, relative strength added nothing beyond arithmetic",
+   "files": [
+    "src/research/zones.py",
+    "docs/research/REVIEW_7_RESULTS.md",
+    "docs/research/lookout_status.json",
+    "docs/research/lookout_rw_calibration.json"
+   ]
+  },
+  {
+   "id": "HOURLY_WATCH",
+   "name": "Hourly watch (strategy book: L2 pathway, decision store, SD6 exits)",
+   "layer": 6,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "HANDS",
+    "LIVE_BARS",
+    "SD6",
+    "SAFETY_GATES",
+    "COSTS"
+   ],
+   "feeds": [
+    "EVIDENCE",
+    "ALERTS"
+   ],
+   "evidence": "paper; zero organic TAKEs for weeks (the 'car with no accelerator')",
+   "files": [
+    "src/intelligence/paper_watch.py",
+    "src/intelligence/di_loop.py",
+    "src/intelligence/l2_pathway.py",
+    "src/intelligence/decision_store.py",
+    "src/intelligence/snapshot.py",
+    "src/intelligence/schema.py",
+    "src/intelligence/paper_path.py",
+    "src/intelligence/paper_path_wire.py",
+    "src/intelligence/paper_ledger.py",
+    "src/intelligence/hands_funnel.py",
+    "src/intelligence/cite_allowlist.py",
+    "src/intelligence/counterfactual.py",
+    "src/intelligence/coverage_matrix.py",
+    "src/intelligence/findings.py",
+    "src/intelligence/rank_desk.py",
+    "src/intelligence/scan_candidates.py",
+    "src/intelligence/state_card.py",
+    "src/intelligence/t4_contracts.py",
+    "src/tools/observation_log.py",
+    "src/memory.py"
+   ]
+  },
+  {
+   "id": "CANDIDATE_BOOK",
+   "name": "Frozen trend-dip candidate paper book",
+   "layer": 6,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "HANDS",
+    "LIVE_BARS",
+    "COSTS"
+   ],
+   "feeds": [
+    "EVIDENCE"
+   ],
+   "evidence": "failed its one-time holdout (research/CANDIDATE_V3_HOLDOUT_RESULT.md); winding down, kept running in paper only",
+   "files": [
+    "src/intelligence/candidate_paper.py",
+    "src/research/candidate_v3.py"
+   ]
+  },
+  {
+   "id": "LEGACY_LAB",
+   "name": "Earlier research lab (Aug-Sep 2026): fingerprints, knowledge grid, consult, cards, universe, sweeps, old CLI and agents",
+   "layer": 7,
+   "status": "ARCHIVED",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [],
+   "feeds": [],
+   "evidence": "superseded by the variable registry, the repair shop and the studies; lessons kept in docs (registry rows, locks)",
+   "files": [
+    "main.py",
+    "src/agents/market_regime_agent.py",
+    "src/agents/portfolio_analysis_agent.py",
+    "src/agents/strategy_recommendation_agent.py",
+    "src/agents/supervisor_agent.py",
+    "src/agents/tool_execution_agent.py",
+    "src/agents/user_understanding_agent.py",
+    "src/cli_main.py",
+    "src/graph.py",
+    "src/intelligence/adjudicate.py",
+    "src/intelligence/boards.py",
+    "src/intelligence/books.py",
+    "src/intelligence/books_compare.py",
+    "src/intelligence/cfg_catalog.py",
+    "src/intelligence/cfg_contract.py",
+    "src/intelligence/cfg_replay.py",
+    "src/intelligence/cfg_spec.py",
+    "src/intelligence/cli.py",
+    "src/intelligence/comparison_abc.py",
+    "src/intelligence/consult.py",
+    "src/intelligence/consult_dq.py",
+    "src/intelligence/definition_cards.py",
+    "src/intelligence/donchian_keys.py",
+    "src/intelligence/episode_slice.py",
+    "src/intelligence/episode_tag.py",
+    "src/intelligence/evidence_cards.py",
+    "src/intelligence/evidence_desk.py",
+    "src/intelligence/evidence_engine.py",
+    "src/intelligence/excursion.py",
+    "src/intelligence/experiments.py",
+    "src/intelligence/fingerprint.py",
+    "src/intelligence/fingerprint_book.py",
+    "src/intelligence/fp_save.py",
+    "src/intelligence/fv_interface.py",
+    "src/intelligence/fv_now.py",
+    "src/intelligence/fv_sma.py",
+    "src/intelligence/fv_vwap.py",
+    "src/intelligence/grid_cite.py",
+    "src/intelligence/grid_from_index.py",
+    "src/intelligence/h2.py",
+    "src/intelligence/health_card.py",
+    "src/intelligence/hist_vs_live.py",
+    "src/intelligence/i2_baseline.py",
+    "src/intelligence/knowledge_grid.py",
+    "src/intelligence/knowledge_tables.py",
+    "src/intelligence/lab_bridge.py",
+    "src/intelligence/lab_objects.py",
+    "src/intelligence/lab_runs_inspect.py",
+    "src/intelligence/lookup.py",
+    "src/intelligence/opportunity_engine.py",
+    "src/intelligence/orchestrate.py",
+    "src/intelligence/paper.py",
+    "src/intelligence/paper_take.py",
+    "src/intelligence/phase_board.py",
+    "src/intelligence/phases.py",
+    "src/intelligence/policy_contract.py",
+    "src/intelligence/production_path_harness_v1.py",
+    "src/intelligence/protocol.py",
+    "src/intelligence/rank.py",
+    "src/intelligence/ranking_law.py",
+    "src/intelligence/replay_15m.py",
+    "src/intelligence/replay_tf.py",
+    "src/intelligence/research.py",
+    "src/intelligence/research_exp.py",
+    "src/intelligence/research_pipeline.py",
+    "src/intelligence/roadmap_now.py",
+    "src/intelligence/setup_memory.py",
+    "src/intelligence/sitout.py",
+    "src/intelligence/slice_15m.py",
+    "src/intelligence/stress_window.py",
+    "src/intelligence/sweep_map.py",
+    "src/intelligence/sweep_peek.py",
+    "src/intelligence/sweep_roster.py",
+    "src/intelligence/tracks.py",
+    "src/intelligence/universe.py",
+    "src/intelligence/universe_book.py",
+    "src/intelligence/universe_specs.py",
+    "src/intelligence/validation_now.py",
+    "src/intelligence/w1_gate.py",
+    "src/intelligence/years_probe.py",
+    "src/lab_cli.py",
+    "src/lab_hooks.py",
+    "src/lab_watch.py",
+    "src/phase4_cli.py",
+    "src/state/agent_state.py",
+    "src/tools/audit_truth.py",
+    "src/tools/coverage_client.py",
+    "src/tools/cycle_log.py",
+    "src/tools/decision_log.py",
+    "src/tools/lab_compare.py",
+    "src/tools/lab_replay.py",
+    "src/tools/market_tools.py",
+    "src/tools/market_truth.py",
+    "src/tools/outcome_truth.py"
    ]
   }
  ],

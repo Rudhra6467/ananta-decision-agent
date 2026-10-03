@@ -34,6 +34,57 @@ def _verdict(groups: list[str], st: dict) -> str:
     return "NOT_SUPPORTED" if any(g in st for g in groups) else "UNTESTED"
 
 
+def _lookout_status(j) -> dict:
+    from jarvis.service.core import docs_dir
+
+    try:
+        return json.loads((docs_dir(j.dir) / "research" / "lookout_status.json").read_text())["reactions"]
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _reactions(D: list[tuple], btc: list[tuple], z: dict, ls: dict) -> list[dict]:
+    """The seven lookout reactions on the last closed day, each with what review #7 said about it."""
+    from src.research import reads as R
+    from src.research import zones as Z
+
+    S = R.Series(D)
+    B = S if btc is D else R.Series(btc)
+    f = Z.reactions(S, Z.Arr(S), B, len(D) - 1, {"top": z["top"], "bot": z["bot"], "kinds": set(z["kinds"]), "tier": z.get("tier")})
+    return [{"id": k, "name": Z.REACTIONS[k], "present": bool(v), "history": ls.get(k, {}).get("status", "UNTESTED")} for k, v in f.items()]
+
+
+def attention(row: dict, reads_row: dict | None) -> dict:
+    """Where Ananta spends its attention (a design rule built from reviews #5-#7, not itself a tested signal).
+    HIGH = look now (worth AI time and the news check), WATCH = keep an eye, LOW = quiet."""
+    score, why = 0.0, []
+    z = (row["inside"] or [None])[0] or row.get("tested")
+    if z:
+        score += 2
+        why.append(f"price is {'inside' if row['inside'] else 'testing'} a zone ({'+'.join(z['kinds']).lower()})")
+        if z.get("history") == "SUPPORTED":
+            score += 1
+            why.append("a kind of zone history supports (review #6)")
+        if z.get("recent"):
+            score += 1
+            why.append(f"it came down into it on {z['recent']['entered']}")
+    f6 = next((x for x in row.get("reactions") or [] if x["id"] == "F6"), None)
+    if f6 and f6["present"]:
+        score += 2
+        why.append("the market is allowed (BTC above its 50-day): the one reaction history supports (review #7)")
+    elif z:
+        why.append("the market is not allowed (BTC under its 50-day): zones held about half the time then")
+    for x in (reads_row or {}).get("reads", []):
+        if x["state"] == "FIRED":
+            score += 1
+            why.append(f"your setup is showing: {x['name'].lower()}")
+        elif x["state"] == "CLOSE":
+            score += 0.5
+            why.append(f"your setup is one sign away: {x['name'].lower()}")
+    level = "HIGH" if score >= 5 else "WATCH" if score >= 2 else "LOW"
+    return {"score": score, "level": level, "why": why}
+
+
 def _coin_zones(j, c: str, st: dict) -> dict | None:
     from jarvis.service.reads_watch import _daily
     from src.research import zones as Z
@@ -45,10 +96,14 @@ def _coin_zones(j, c: str, st: dict) -> dict | None:
     for r in z["zones"]:
         r["history"] = _verdict(r["groups"], st)
     inside = [r for r in z["zones"] if r["state"] == "INSIDE"]
+    tested = next((r for r in z["zones"] if r["state"] == "TESTED" and r["side"] == "support"), None)
+    focus = inside[0] if inside else tested
+    reactions = _reactions(D, D if c == "BTC" else _daily(j, "BTC"), focus, _lookout_status(j)) if focus else []
     below = [r for r in z["zones"] if r["side"] == "support"]
     above = [r for r in z["zones"] if r["side"] == "resistance"]
     nearest = lambda xs: min(xs, key=lambda r: abs(r["distance_atr"])) if xs else None      # noqa: E731
-    return {"coin": c, **z, "inside": inside, "next_support": nearest(below), "next_resistance": nearest(above)}
+    return {"coin": c, **z, "inside": inside, "tested": tested, "reactions": reactions,
+            "next_support": nearest(below), "next_resistance": nearest(above)}
 
 
 def board(j) -> dict:
@@ -62,12 +117,22 @@ def board(j) -> dict:
         return _CACHE["board"]
     st = _status(j)
     rows = [r for r in (_coin_zones(j, c, st) for c in R.COINS) if r]
-    rows.sort(key=lambda r: (not r["in_zone"], min((abs(x["distance_atr"]) for x in r["zones"]), default=99)))
+    try:
+        from jarvis.service import reads_watch
+
+        rb = {r["coin"]: r for r in reads_watch.board(j).get("coins", [])}
+    except Exception:  # noqa: BLE001
+        rb = {}
+    for r in rows:
+        r["attention"] = attention(r, rb.get(r["coin"]))
+    rows.sort(key=lambda r: (-r["attention"]["score"], min((abs(x["distance_atr"]) for x in r["zones"]), default=99)))
     out = {"day": rows[0]["day"] if rows else None, "coins": rows, "in_zone": [r["coin"] for r in rows if r["in_zone"]],
+           "attention": [{"coin": r["coin"], **r["attention"]} for r in rows if r["attention"]["level"] != "LOW"],
            "groups": st, "recent": recent(j),
            "note": "Price is always in or near a zone (a band, not a line). Inside a zone Ananta starts its lookout. "
-                   "History (review #6): zones hold a little more often than random bands; the 200-day average and "
-                   "overlapping zones the most. Entering a zone is not a trade: what happens inside decides."}
+                   "History: zones hold a little more often than random bands, the 200-day average and overlapping zones the most "
+                   "(review #6); inside a zone the market regime decides most (BTC above its 50-day: 68% held vs 50%); wicks, "
+                   "volume and relative strength added nothing (review #7). Entering a zone is not a trade."}
     _CACHE.update(key=key, board=out)
     return out
 
@@ -77,7 +142,7 @@ def coin(j, c: str) -> dict | None:
     if row is None:
         return None
     look = None
-    if row["in_zone"]:                                  # the lookout: everything Ananta knows, gathered while price is in the zone
+    if row["in_zone"] or row.get("tested"):             # the lookout: everything Ananta knows, gathered while price is in the zone
         look = {}
         try:
             from jarvis.service import chain
@@ -94,12 +159,14 @@ def coin(j, c: str) -> dict | None:
         except Exception:  # noqa: BLE001
             pass
         look["plan"] = _plan(row)
+        look["reactions"] = row.get("reactions")
+        look["attention"] = row.get("attention")
     return {**row, "lookout": look, "visits": [v for v in recent(j, 120) if v["coin"] == row["coin"]]}
 
 
 def _plan(row: dict) -> dict:
     """What would confirm the zone and where the idea is wrong (structure, not a fixed percent)."""
-    z = row["inside"][0]
+    z = (row["inside"] or [row.get("tested")])[0]
     atr = row["atr"]
     return {"zone": f"{z['bot']:.6g} - {z['top']:.6g}", "held_if": f"a rise above {z['top'] + 1.5 * atr:.6g} (1.5 daily ranges over the band)",
             "wrong_if": f"a daily close below {z['bot'] - 0.5 * atr:.6g} (0.5 daily range under the band)",

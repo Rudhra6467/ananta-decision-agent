@@ -180,3 +180,24 @@ def test_review11_finds_a_breakout_through_a_zone_and_a_dip_into_the_50_day():
     evs = Z.review11_events("X", S, S, 10 ** 12)
     assert all(e["variant"] in ("A1", "B1", "B2", "B3") for e in evs)
     assert all(abs(e["r20"]) < 5 for e in evs)
+
+
+def test_review12_exits_never_look_ahead_and_only_hold_after_a_t3_entry():
+    import pandas as pd
+
+    from src.research import t3_exits as TE
+
+    def frames(D):
+        idx = pd.to_datetime([b[0] for b in D], unit="s")
+        return pd.DataFrame({"o": [b[1] for b in D], "c": [b[4] for b in D]}, index=idx)
+
+    full_b = _walk(800, seed=61)
+    full_x = _walk(800, seed=62)
+    cut = 650
+    days = pd.to_datetime([b[0] for b in full_b], unit="s")
+    a = TE.exit_signals({"BTC": frames(full_b), "X": frames(full_x)}, days, {"BTC": full_b, "X": full_x})
+    b = TE.exit_signals({"BTC": frames(full_b[:cut]), "X": frames(full_x[:cut])}, days[:cut], {"BTC": full_b[:cut], "X": full_x[:cut]})
+    for v in ("T3Z", "T3A", "T3W"):
+        assert (a[v].iloc[:cut].values == b[v].values).all(), v                 # later candles never change earlier decisions
+        held = a[v].values
+        assert not (held & ~a["_avail"].values).any()

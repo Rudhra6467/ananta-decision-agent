@@ -691,7 +691,9 @@
    "files": [
     "src/intelligence/portfolio_layer.py",
     "docs/repair_shop/REVIEW_4_RESULTS.md",
-    "src/research/portfolio_trend.py"
+    "src/research/portfolio_trend.py",
+    "src/research/t3_exits.py",
+    "docs/research/REVIEW_12.md"
    ]
   },
   {
@@ -874,7 +876,9 @@
     "docs/research/REVIEW_10.md",
     "docs/research/REVIEW_10_RESULTS.md",
     "docs/research/REVIEW_11.md",
-    "docs/research/REVIEW_11_RESULTS.md"
+    "docs/research/REVIEW_11_RESULTS.md",
+    "src/research/t3_exits.py",
+    "docs/research/REVIEW_12.md"
    ]
   },
   {

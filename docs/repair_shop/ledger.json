@@ -187,6 +187,21 @@
     "docs/research/REVIEW_12.md",
     "docs/research/REVIEW_12_RESULTS.md"
    ]
+  },
+  {
+   "id": "R13",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "The remaining teacher ideas",
+   "forwarded_because": "Madhav asked that every guru idea be tested on our data.",
+   "question": "Do H07, H12, H13, H16 and P03 add anything on our coins?",
+   "result": "No pass. H07's short dip trade made about +4% per trade with 70% wins in both periods (promising, needs a same-exit baseline); H12/H13 add nothing; breadth points the right way on too few samples; the book stop hurts T3.",
+   "changed": "Teacher idea statuses updated; H07 is the next counted test.",
+   "files": [
+    "docs/research/REVIEW_13.md",
+    "docs/research/REVIEW_13_RESULTS.md"
+   ]
   }
  ],
  "queue": [

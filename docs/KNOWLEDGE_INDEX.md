@@ -56,6 +56,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_10.md`, `research/REVIEW_10_RESULTS.md`: exits at zones: selling at the next zone cut the winners; gains come from a few big moves, so the stop goes beyond the zone and the next zone is a review point, not a target.
 - `research/REVIEW_11.md`, `research/REVIEW_11_RESULTS.md`: teacher ideas as zones: a dip into the 50-day zone did worse than an average uptrend day; breakouts through zones on volume were positive in both periods but not reliable; the market regime does the work.
 - `research/REVIEW_12.md`, `research/REVIEW_12_RESULTS.md`: T3's exit vs trailing stops: looser exits won big in 2018-23 and lost in 2024-26; T3's 20-day exit survives both.
+- `research/REVIEW_13.md`, `research/REVIEW_13_RESULTS.md`: the remaining teacher ideas: H07's short RSI dip trade promising (+4% per trade, 70% wins, both periods); first pullback, false break, book stop add nothing; breadth too few samples.
 
 ## Safety and operations
 - `RUNBOOK_SAFETY.md`: stop, flatten, roll back, resume (copy-paste commands).

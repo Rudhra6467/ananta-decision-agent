@@ -268,7 +268,65 @@ def read(b5: list[tuple], t: int, price: float) -> dict:
 
     F = [b for b in resample(past, 14400) if b[0] + 14400 <= t]
     weak = {"4h": divergence(F[-180:], 3, 90), "daily": divergence(D[-200:], 3, 90)}
-    return {"location": loc, "support": sup, "resistance": res, "trend": trend, "exhaustion": exhaust, "momentum": weak}
+    return {"location": loc, "support": sup, "resistance": res, "trend": trend, "exhaustion": exhaust, "momentum": weak,
+            "base": {f"band_{int(b * 100)}pct": base(D, price, b) for b in (0.06, 0.08, 0.10)}}
+
+
+def base(D: list[tuple], price: float, band: float = 0.08) -> dict | None:
+    """The 'stuck' phase right before the moment: the longest run of the latest daily closes that all stayed inside
+    one band (default 8% from lowest to highest close). Then: how it was built and what came before it."""
+    n = 0
+    for k in range(5, min(120, len(D)) + 1):
+        w = D[-k:]
+        if max(b[4] for b in w) / min(b[4] for b in w) - 1 <= band:
+            n = k
+        else:
+            break                                          # a longer window only gets wider
+    if not n:
+        return None
+    w, pre = D[-n:], D[-n - 20:-n]
+    floor, top = min(b[3] for b in w), max(b[2] for b in w)
+    half = n // 2
+    rng = lambda bars: statistics.mean((b[2] - b[3]) / b[4] for b in bars) if bars else None
+    # the move into the base: lowest low of the 90 days before it, then the highest high after that low
+    before = D[-n - 90:-n] or D[:1]
+    i0 = min(range(len(before)), key=lambda i: before[i][3])
+    j0 = max(range(i0, len(before)), key=lambda i: before[i][2])
+    run_lo, run_hi = before[i0], before[j0]
+    return {"days": n, "from": local(w[0][0], "%Y-%m-%d"), "close_low": r2(min(b[4] for b in w), 3), "close_high": r2(max(b[4] for b in w), 3),
+            "floor": r2(floor, 3), "top": r2(top, 3), "width_pct": pct(top, floor),
+            "floor_tests": sum(1 for b in w if b[3] <= floor * 1.02), "top_tests": sum(1 for b in w if b[2] >= top * 0.98),
+            "higher_lows": min(b[3] for b in w[half:]) > min(b[3] for b in w[:half]) if half else None,
+            "volume_vs_20d_before": r2(statistics.mean(b[5] for b in w) / statistics.mean(b[5] for b in pre), 2) if pre else None,
+            "daily_range_vs_20d_before": r2(rng(w) / rng(pre), 2) if pre else None,
+            "price_in_base_pct": round(100 * (price - floor) / (top - floor)) if top > floor else None,
+            "move_before": {"low": r2(run_lo[3], 3), "low_on": local(run_lo[0], "%Y-%m-%d"), "high": r2(run_hi[2], 3),
+                            "high_on": local(run_hi[0], "%Y-%m-%d"), "run_up_pct": pct(run_hi[2], run_lo[3]),
+                            "pullback_to_floor_pct": pct(floor, run_hi[2])}}
+
+
+def breakout_after(b5: list[tuple], t: int, bs: dict | None, entry: float) -> dict | None:
+    """Which way the base broke after the buy: the first daily close above its top or below its floor."""
+    if not bs:
+        return None
+    D = [b for b in resample([b for b in b5 if b[0] >= t - t % DAY], DAY)]
+    for k, b in enumerate(D):
+        side = "UP" if b[4] > bs["top"] else "DOWN" if b[4] < bs["floor"] else None
+        if side:
+            nxt = D[k:k + 30]
+            return {"first_break": side, "on": local(b[0], "%Y-%m-%d"), "days_after_buy": k,
+                    "best_30d_after_break_pct": pct(max(x[2] for x in nxt), b[4]), "worst_30d_after_break_pct": pct(min(x[3] for x in nxt), b[4]),
+                    "buy_vs_floor_pct": pct(entry, bs["floor"])}
+    return {"first_break": "NONE_YET"}
+
+
+def weekly_cad(b5: list[tuple], t: int, fx: "FX", weeks: int = 10) -> list[dict]:
+    W = [b for b in resample([b for b in b5 if t - weeks * 7 * DAY - 7 * DAY <= b[0] < t], 7 * DAY)]
+    out = []
+    for b in W[-weeks:]:
+        r = fx.at(b[0] + 3 * DAY)
+        out.append({"week_of": local(b[0], "%Y-%m-%d"), "high_cad": r2(b[2] * r, 1), "low_cad": r2(b[3] * r, 1), "close_cad": r2(b[4] * r, 1)})
+    return out
 
 
 def market(b5: list[tuple], t: int) -> dict:
@@ -385,10 +443,13 @@ def run(db: str, fx_path: str, cases_path: str, live_bars: str | None, out: str)
         b5 = data[c["coin"]]
         p = pin(b5, fx, c["date"], c["price_cad"])
         t, entry = p["t"], p["price_usd"]
-        row = {"case": c, "pin": p, "read": read(b5, t, entry),
+        rd = read(b5, t, entry)
+        row = {"case": c, "pin": p, "read": rd,
                "market": {k: market(data[k], t) for k in ("BTC", "ETH") if k != c["coin"]},
                "ananta": {r: ananta(db, c["coin"], t, r, b5, data["BTC"]) for r in ("C0", "W1")},
-               "after": after(b5, t, entry, live_daily(live_bars, c["coin"]), fx)}
+               "after": after(b5, t, entry, live_daily(live_bars, c["coin"]), fx),
+               "base_break": breakout_after(b5, t, rd["base"]["band_8pct"], entry),
+               "weeks_cad": weekly_cad(b5, t, fx)}
         eth = row["market"].get("ETH")
         if eth:
             eth["price_cad"] = r2(eth["price_usd"] * p["fx"], 0)

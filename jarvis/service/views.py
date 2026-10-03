@@ -758,9 +758,10 @@ def evidence_pipeline(j) -> dict:
     progress = {"closed_trades": len(real) + len(wouldbe), "weekly_rebalances": t3_weeks,
                 "e5_trades": sum(1 for r in real if r["setup"] == "E5"), "stable_positive_sightings": 0}
     try:
-        progress["read_fires"] = j.db.execute("SELECT COUNT(*) FROM read_fires").fetchone()[0]
+        progress["setup_fires"] = j.db.execute("SELECT COUNT(*) FROM read_fires WHERE variant != 'H07'").fetchone()[0]
+        progress["h07_fires"] = j.db.execute("SELECT COUNT(*) FROM read_fires WHERE variant = 'H07'").fetchone()[0]
     except Exception:  # noqa: BLE001  no fires yet
-        progress["read_fires"] = 0
+        progress["setup_fires"] = progress["h07_fires"] = 0
     ev = _events_count(real + wouldbe)
     queue = [{**q, "have": progress.get(q.get("metric")),
               "note": (f"real + would-be trades; they come from only {ev} independent market move{'s' if ev != 1 else ''}, "

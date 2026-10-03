@@ -262,7 +262,7 @@
    "title": "Your setups, live record",
    "waiting_for": "10 live fires of your setups",
    "why": "Live fires are clean evidence (nobody knows how they end). With 10, compare them with random days and with the history test.",
-   "metric": "read_fires",
+   "metric": "setup_fires",
    "goal": 10
   },
   {
@@ -271,7 +271,7 @@
    "title": "H07 short dip trade, live record",
    "waiting_for": "10 live H07 fires",
    "why": "Review #14: strong in both periods but a few events short; live fires are clean evidence.",
-   "metric": "read_fires",
+   "metric": "h07_fires",
    "goal": 10
   }
  ],

@@ -290,16 +290,86 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", required=True)
     ap.add_argument("--out", default="~/ananta_runs/teachers2")
+    ap.add_argument("--review", default="13", choices=["13", "14"])
     a = ap.parse_args(argv)
     out = Path(os.path.expanduser(a.out))
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    rep = review13(a.db, Path(os.path.expanduser("~/ananta_runs/reads")))
-    rep["_meta"] = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"), "pre_registration": "docs/research/REVIEW_13.md"}
-    (out / "review13_results.json").write_text(json.dumps(rep, indent=1, default=str))
+    cache = Path(os.path.expanduser("~/ananta_runs/reads"))
+    rep = review13(a.db, cache) if a.review == "13" else review14(a.db, cache)
+    rep["_meta"] = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"), "pre_registration": f"docs/research/REVIEW_{a.review}.md"}
+    (out / f"review{a.review}_results.json").write_text(json.dumps(rep, indent=1, default=str))
     print(json.dumps(rep, indent=1, default=str))
     print(f"{time.time() - t0:.0f}s")
 
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------
+# review #14: H07 against ordinary days traded with the same exit (docs/research/REVIEW_14.md)
+# ---------------------------------------------------------------------------
+def h07_trade(S: R.Series, A: Z.Arr, rsi10: list, k0: int, cost: float) -> float | None:
+    n = len(S.t)
+    if k0 + 11 >= n:
+        return None
+    for k in range(k0, k0 + 10):
+        if rsi10[k] is not None and rsi10[k] > 40:
+            return float(A.o[k + 1] / A.o[k0] * (1 - cost) ** 2 - 1)
+    return float(A.o[k0 + 10] / A.o[k0] * (1 - cost) ** 2 - 1)
+
+
+def review14(db: str, cache: Path) -> dict:
+    D = {c: R.cached_daily(db, c, cache, R.CONF_END) for c in R.COINS}
+    B = R.Series(D["BTC"])
+    evs = []
+    for c, bars in D.items():
+        S = B if c == "BTC" else R.Series(bars)
+        A = Z.Arr(S)
+        rsi10 = R.rsi(S.c, 10)
+        cost = R.cost(c)
+        base: dict = {}
+        last: dict = {}
+        sig = []
+        for i in range(400, len(S.t) - 12):
+            if S.t[i] >= R.CONF_END or S.sma200[i] is None or not A.c[i] > S.sma200[i]:
+                continue
+            sp = "DISCOVERY" if S.t[i] < R.DISC_END else "CONFIRM"
+            g = _gate(B, S.t[i])
+            r = h07_trade(S, A, rsi10, i + 1, cost)
+            if r is None:
+                continue
+            base.setdefault((sp, "H07"), []).append(r)
+            if g:
+                base.setdefault((sp, "H07-G"), []).append(r)
+            if rsi10[i] is not None and rsi10[i] < 30:
+                for v in (["H07", "H07-G"] if g else ["H07"]):
+                    if v in last and S.t[i] - last[v] <= 5 * DAY:
+                        continue
+                    last[v] = S.t[i]
+                    sig.append({"coin": c, "t": S.t[i], "variant": v, "split": sp, "r": r})
+        for e in sig:
+            b = base.get((e["split"], e["variant"]))
+            if b:
+                evs.append({**e, "x": e["r"] - statistics.mean(b), "base": statistics.mean(b)})
+        print(c, len(evs), file=sys.stderr)
+    out = {}
+    for v in ("H07", "H07-G"):
+        res = {}
+        for sp in ("DISCOVERY", "CONFIRM"):
+            rr = [e for e in evs if e["variant"] == v and e["split"] == sp]
+            mk = _mk(rr)
+            xs = [statistics.mean(x["x"] for x in m) for m in mk]
+            sd = statistics.stdev(xs) if len(xs) > 2 else None
+            res[sp] = {"trades": len(rr), "market_events": len(mk), "mean_net_pct": round(100 * statistics.mean(e["r"] for e in rr), 2) if rr else None,
+                       "win": round(sum(e["r"] > 0 for e in rr) / len(rr), 3) if rr else None,
+                       "baseline_mean_pct": round(100 * statistics.mean(e["base"] for e in rr), 2) if rr else None,
+                       "mean_excess_pct": round(100 * statistics.mean(xs), 2) if xs else None,
+                       "z": round(statistics.mean(xs) / (sd / len(xs) ** 0.5), 2) if sd else None}
+        d, cf = res["DISCOVERY"], res["CONFIRM"]
+        ok_d = d["market_events"] >= 30 and (d["mean_excess_pct"] or -1) > 0 and (d["z"] or 0) >= 2.5
+        res["status"] = "PASS" if ok_d and (cf["mean_excess_pct"] or -1) > 0 else "NOT_CONFIRMED" if ok_d else (
+            "INSUFFICIENT" if d["market_events"] < 30 else "FAIL")
+        out[v] = res
+    return out

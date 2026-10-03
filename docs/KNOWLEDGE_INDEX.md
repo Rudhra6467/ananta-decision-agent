@@ -9,6 +9,8 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 
 ## How Ananta reasons
 - `knowledge/FRAMEWORK.md`: Madhav's framework: decision chain Regime > Location > Trigger > Invalidation > Risk > Exposure, fail-closed, structural stops, signals as evidence, how to talk (simple first). Open for any "why no trade / how do you decide" question.
+- `knowledge/PLAYBOOK.md`: how Ananta reacts: the order of questions (data, market allowed, zone, plan, evidence, simple answer) and what to do when a coin enters a zone, a zone breaks or holds, your setup shows, or Madhav asks 'should I buy'. Open for 'what should we do now'.
+- `knowledge/layers.json`: the layer map: every part of Ananta in 9 layers (0 Madhav and safety ... 8 interface) with status, whether it may act, what it rests on and feeds, and the known gaps. Open for "how do the parts connect".
 - `knowledge/hypotheses.json`: every teacher idea (H01-H18) and policy (P01-P03) with its source, test status and what our data said. Open for "is X true / does X work".
 - `VARIABLE_REGISTRY.md`: variables Ananta tested itself (KEEP / WATCH / DROP / UNTESTED), the strongest evidence class. Open for "what do we know for sure".
 - `knowledge/READS.md`: Madhav's three buy setups (capitulation at the lows, higher-low retest, quiet base) as live reads, and what history said about each.
@@ -43,6 +45,12 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/CANDIDATE_V3.md`, `research/CANDIDATE_V3_HOLDOUT_RESULT.md`: frozen trend-dip candidate: failed the one-time holdout.
 - `research/STUDY_V3_FRESH.md`, `research/STUDY_V3_FRESH_RESULTS.md`: regime-adaptive exits on 10 fresh coins.
 - `research/STUDY_V4.md`, `research/STUDY_V4_RESULTS.md`: BTC market filter on fresh set #2: no variant passed.
+
+## Plans
+- `BACKLOG.md`: everything still to do, in priority order (layers, zones, untested ideas, path to live). Open for 'what's next / what's pending'.
+- `research/ZONES_PROGRAM.md`: what a zone is, zone strength and states, review #6 pre-registration, and the list of studies to redo with zones.
+- `research/REVIEW_6_RESULTS.md`, `research/zones_status.json`: do zones hold? A little more often than random bands; the 200-day average, overlapping zones and new swing zones pass; entering a zone is not a trade by itself.
+- `research/REVIEW_7_RESULTS.md`, `research/lookout_status.json`: the lookout: inside a support zone, only the market regime (BTC above its 50-day) separated held from broken (68% vs 50%); wicks, closes back above, volume, divergence and relative strength added nothing beyond arithmetic.
 
 ## Safety and operations
 - `RUNBOOK_SAFETY.md`: stop, flatten, roll back, resume (copy-paste commands).

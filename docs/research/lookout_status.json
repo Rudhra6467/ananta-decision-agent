@@ -1,0 +1,224 @@
+{
+ "review": "docs/research/ZONES_PROGRAM.md (section 6)",
+ "results": "docs/research/REVIEW_7_RESULTS.md",
+ "run": "2026-10-03T15:44:41+00:00",
+ "base": {
+  "DISCOVERY": {
+   "events": 1042,
+   "held_rate": 0.5858369098712446
+  },
+  "CONFIRM": {
+   "events": 733,
+   "held_rate": 0.5621212121212121
+  }
+ },
+ "score_uses": [
+  "F6"
+ ],
+ "score": {
+  "DISCOVERY": {
+   "0": {
+    "n": 505,
+    "held": 0.503
+   },
+   "1": {
+    "n": 427,
+    "held": 0.684
+   }
+  },
+  "CONFIRM": {
+   "0": {
+    "n": 346,
+    "held": 0.552
+   },
+   "1": {
+    "n": 314,
+    "held": 0.573
+   }
+  }
+ },
+ "reactions": {
+  "F1": {
+   "name": "Rejection (long lower wick)",
+   "status": "FAIL",
+   "DISCOVERY": {
+    "with": 256,
+    "market_events_with": 149,
+    "held_with": 0.719,
+    "held_without": 0.536,
+    "diff_pts": 18.3,
+    "diff_corrected_pts": -11.7,
+    "z_corrected": -3.09,
+    "net10_with_pct": 1.33,
+    "net10_without_pct": 0.91
+   },
+   "CONFIRM": {
+    "with": 193,
+    "market_events_with": 90,
+    "held_with": 0.668,
+    "held_without": 0.518,
+    "diff_pts": 15.0,
+    "diff_corrected_pts": -15.0,
+    "z_corrected": -2.75,
+    "net10_with_pct": -0.73,
+    "net10_without_pct": -0.35
+   }
+  },
+  "F2": {
+   "name": "Closed back above the zone",
+   "status": "FAIL",
+   "DISCOVERY": {
+    "with": 570,
+    "market_events_with": 236,
+    "held_with": 0.681,
+    "held_without": 0.436,
+    "diff_pts": 24.4,
+    "diff_corrected_pts": 1.9,
+    "z_corrected": 0.5,
+    "net10_with_pct": 1.78,
+    "net10_without_pct": -0.17
+   },
+   "CONFIRM": {
+    "with": 375,
+    "market_events_with": 134,
+    "held_with": 0.691,
+    "held_without": 0.393,
+    "diff_pts": 29.8,
+    "diff_corrected_pts": 7.3,
+    "z_corrected": 1.73,
+    "net10_with_pct": -0.07,
+    "net10_without_pct": -0.97
+   }
+  },
+  "F3": {
+   "name": "Volume 1.5x its 20-day average",
+   "status": "FAIL",
+   "DISCOVERY": {
+    "with": 235,
+    "market_events_with": 94,
+    "held_with": 0.549,
+    "held_without": 0.598,
+    "diff_pts": -4.9,
+    "diff_corrected_pts": -3.5,
+    "z_corrected": -0.7,
+    "net10_with_pct": 2.76,
+    "net10_without_pct": 0.44
+   },
+   "CONFIRM": {
+    "with": 176,
+    "market_events_with": 69,
+    "held_with": 0.506,
+    "held_without": 0.583,
+    "diff_pts": -7.7,
+    "diff_corrected_pts": -6.3,
+    "z_corrected": -0.98,
+    "net10_with_pct": -0.52,
+    "net10_without_pct": -0.44
+   }
+  },
+  "F4": {
+   "name": "Momentum divergence (lower close, higher RSI than 10 days ago)",
+   "status": "FAIL",
+   "DISCOVERY": {
+    "with": 70,
+    "market_events_with": 47,
+    "held_with": 0.543,
+    "held_without": 0.589,
+    "diff_pts": -4.6,
+    "diff_corrected_pts": -0.3,
+    "z_corrected": -0.04,
+    "net10_with_pct": -4.04,
+    "net10_without_pct": 1.44
+   },
+   "CONFIRM": {
+    "with": 50,
+    "market_events_with": 28,
+    "held_with": 0.6,
+    "held_without": 0.559,
+    "diff_pts": 4.1,
+    "diff_corrected_pts": 8.4,
+    "z_corrected": 0.98,
+    "net10_with_pct": -2.78,
+    "net10_without_pct": -0.27
+   }
+  },
+  "F5": {
+   "name": "Stronger than BTC (30 days)",
+   "status": "FAIL",
+   "DISCOVERY": {
+    "with": 299,
+    "market_events_with": 142,
+    "held_with": 0.585,
+    "held_without": 0.586,
+    "diff_pts": -0.1,
+    "diff_corrected_pts": -9.5,
+    "z_corrected": -1.9,
+    "net10_with_pct": 0.1,
+    "net10_without_pct": 1.46
+   },
+   "CONFIRM": {
+    "with": 181,
+    "market_events_with": 92,
+    "held_with": 0.564,
+    "held_without": 0.562,
+    "diff_pts": 0.2,
+    "diff_corrected_pts": -9.2,
+    "z_corrected": -1.84,
+    "net10_with_pct": -1.2,
+    "net10_without_pct": -0.18
+   }
+  },
+  "F6": {
+   "name": "Market allowed (BTC above its 50-day average)",
+   "status": "PASS",
+   "DISCOVERY": {
+    "with": 427,
+    "market_events_with": 135,
+    "held_with": 0.684,
+    "held_without": 0.503,
+    "diff_pts": 18.1,
+    "diff_corrected_pts": 23.5,
+    "z_corrected": 4.58,
+    "net10_with_pct": 3.69,
+    "net10_without_pct": -1.23
+   },
+   "CONFIRM": {
+    "with": 314,
+    "market_events_with": 76,
+    "held_with": 0.573,
+    "held_without": 0.552,
+    "diff_pts": 2.1,
+    "diff_corrected_pts": 7.5,
+    "z_corrected": 1.21,
+    "net10_with_pct": 0.02,
+    "net10_without_pct": -0.9
+   }
+  },
+  "F7": {
+   "name": "Good zone kind (200-day, confluence or new swing)",
+   "status": "FAIL",
+   "DISCOVERY": {
+    "with": 468,
+    "market_events_with": 194,
+    "held_with": 0.622,
+    "held_without": 0.55,
+    "diff_pts": 7.2,
+    "diff_corrected_pts": 1.2,
+    "z_corrected": 0.33,
+    "net10_with_pct": 1.76,
+    "net10_without_pct": 0.28
+   },
+   "CONFIRM": {
+    "with": 265,
+    "market_events_with": 108,
+    "held_with": 0.623,
+    "held_without": 0.522,
+    "diff_pts": 10.1,
+    "diff_corrected_pts": 4.1,
+    "z_corrected": 0.97,
+    "net10_with_pct": 1.0,
+    "net10_without_pct": -1.45
+   }
+  }
+ }
+}

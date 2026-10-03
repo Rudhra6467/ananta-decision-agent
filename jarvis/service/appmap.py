@@ -224,7 +224,7 @@ def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -
 SPOTS = {
     "home": {"home.value": "paper value and today's change", "home.inbox": "things waiting for your OK", "home.brief": "the morning / evening brief",
              "home.books": "Explorer, Portfolio and Hourly-watch rows", "home.activity": "the activity feed"},
-    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.chain": "Ananta's reasoning: where each coin stops on the decision chain", "markets.reads": "your setups: Madhav's three buy setups checked on every coin",
+    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.chain": "Ananta's reasoning: where each coin stops on the decision chain", "markets.reads": "your setups: Madhav's three buy setups checked on every coin", "markets.zones": "coins inside a zone now and recent zone entries",
                 "markets.coin:<SYM>": "one coin's row: price, trend, closest setup"},
     "portfolio": {"portfolio.value": "portfolio value and its chart", "portfolio.autopilot": "the Autopilot switch",
                   "portfolio.suggested": "suggested changes waiting", "portfolio.holdings": "the holdings list header",
@@ -241,6 +241,7 @@ SPOTS = {
              "coin.levels": "next support and resistance", "coin.setup:<E1-E5>": "one setup's checklist (opens it)",
              "coin.chain": "the decision chain ladder for this coin: each gate passed or where it stops, plus evidence",
              "coin.reads": "your setups on this coin: capitulation, higher-low retest, quiet base, with the news check",
+             "coin.zones": "zones around this coin's price: inside / next support / next resistance, the lookout and plan",
              "coin.trades": "Explorer trades on this coin"},
     "trade": {"trade.pnl": "the trade's profit or loss", "trade.chart": "the chart with bought / stop / target lines",
               "trade.levels": "stop, target and time limit", "trade.stop": "the stop-loss line", "trade.target": "the target line", "trade.why": "why we bought", "trade.plan": "the exit plan", "trade.timeline": "timeline"},

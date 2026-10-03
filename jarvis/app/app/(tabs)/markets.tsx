@@ -9,11 +9,13 @@ import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
 import { ChainBoard } from "../../src/chain";
 import { ReadsBoard } from "../../src/reads";
+import { ZonesBoard } from "../../src/zones";
 
 export default function Markets() {
   const { data: d, err, loading, reload } = useData("/v3/markets");
   const { data: ch } = useData("/v3/chain");
   const { data: rd } = useData("/v3/reads", 300000);
+  const { data: zn } = useData("/v3/zones", 300000);
   useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: "Markets tab: watchlist of 10 coins" }); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
@@ -26,6 +28,12 @@ export default function Markets() {
         </Spot>
         <T small>{d.btc_gate ? "Portfolio gate open: BTC is above its 50-day average." : "Portfolio gate closed: BTC is below its 50-day average."}</T>
       </Card>
+      {zn ? (
+        <Spot id="markets.zones">
+          <Section title="Zones" right={<T small>bands, not lines</T>} />
+          <Card><ZonesBoard d={zn} /></Card>
+        </Spot>
+      ) : null}
       {rd ? (
         <Spot id="markets.reads">
           <Section title="Your setups" right={<T small>from your own buys</T>} />

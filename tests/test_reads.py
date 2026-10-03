@@ -152,3 +152,76 @@ def test_watch_records_each_fire_once_and_rings_only_supported_reads(tmp_path):
         assert W.watch(j, push=lambda t, m: pushed.append((t, m)), check_news=news) == []      # same fire: not again
         assert len(W.recent(j)) == len(out)
         W._status = orig
+
+
+def test_layer_map_is_consistent_and_the_switch_works():
+    import json as _json
+    import pathlib
+
+    from jarvis.service import layers as LY
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    m = _json.loads((root / "docs" / "knowledge" / "layers.json").read_text())
+    ids = {c["id"] for c in m["components"]}
+    assert len(ids) == len(m["components"]), "duplicate ids"
+    status = set(m["meaning"]["status"])
+    for c in m["components"]:
+        assert 0 <= c["layer"] <= 8 and c["status"] in status, c["id"]
+        for k in ("depends_on", "feeds"):
+            assert set(c[k]) <= ids, (c["id"], k, set(c[k]) - ids)
+        for f in c["files"]:
+            assert (root / f).exists(), (c["id"], f)
+        if c["status"] in ("DROPPED", "PLANNED", "EVIDENCE_ONLY"):
+            assert not c["acts"], f"{c['id']} is {c['status']} but marked as acting"
+    assert LY.allowed("T3", root) and not LY.allowed("READS", root) and not LY.allowed("ZONES", root) and not LY.allowed("NOPE", root)
+    t3 = LY.component("T3", root)
+    assert "REGIME" in t3["everything_it_rests_on"] and "DATA_5M" in t3["everything_it_rests_on"]
+    assert "CHAIN" in LY.component("REGIME", root)["everything_that_would_feel_a_failure"]
+    assert [l["n"] for l in LY.board(root)["layers"]] == list(range(9))
+
+
+def test_every_code_file_is_on_the_layer_map_and_nothing_running_is_archived():
+    """Madhav: map them all. Every module belongs to a part of the layer map, and no module a running program imports
+    (Jarvis, voice, Explorer, hourly watch, portfolio layer) may sit only in the ARCHIVED part."""
+    import glob
+    import json as _json
+    import os
+    import pathlib
+    import re
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    os.chdir(root)
+    m = _json.loads((root / "docs" / "knowledge" / "layers.json").read_text())
+    where: dict = {}
+    for c in m["components"]:
+        for f in c["files"]:
+            where.setdefault(f, set()).add(c["status"])
+    code = [f for f in glob.glob("src/**/*.py", recursive=True) + glob.glob("jarvis/**/*.py", recursive=True) + ["main.py"]
+            if "__pycache__" not in f and "node_modules" not in f and not f.endswith(("__init__.py", "__main__.py"))]
+    missing = sorted(f for f in code if f not in where)
+    assert not missing, f"not on the layer map: {missing}"
+
+    def mod(mn: str):
+        p = mn.replace(".", "/")
+        return next((x for x in (p + ".py", p + "/__init__.py") if os.path.exists(x)), None)
+
+    def imports(f: str) -> set:
+        t, out = open(f).read(), set()
+        for line in t.splitlines():
+            a = re.match(r"\s*from\s+((?:src|jarvis)(?:\.\w+)*)\s+import\s+([\w, ]+)", line)
+            b = re.match(r"\s*import\s+((?:src|jarvis)(?:\.\w+)*)", line)
+            if a:
+                out |= {x for x in [mod(a.group(1))] + [mod(a.group(1) + "." + n.strip().split(" as ")[0]) for n in a.group(2).split(",")] if x}
+            elif b and mod(b.group(1)):
+                out.add(mod(b.group(1)))
+        return out
+
+    seen, todo = set(), ["jarvis/service/app.py", "jarvis/voice/server.py", "src/intelligence/explorer_live.py",
+                         "src/intelligence/paper_watch.py", "src/intelligence/portfolio_layer.py"]
+    while todo:
+        f = todo.pop()
+        if f not in seen:
+            seen.add(f)
+            todo += list(imports(f) - seen)
+    archived_only = sorted(f for f in seen if not f.endswith("__init__.py") and where.get(f) == {"ARCHIVED"})
+    assert not archived_only, f"running code marked ARCHIVED: {archived_only}"

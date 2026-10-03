@@ -10,6 +10,7 @@ import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
 import { ChainLadder } from "../../src/chain";
 import { ReadsCoin } from "../../src/reads";
+import { ZonesCoin } from "../../src/zones";
 
 export default function Coin() {
   const { sym } = useLocalSearchParams<{ sym: string }>();
@@ -17,6 +18,7 @@ export default function Coin() {
   const { data: w } = useData(`/v3/coin/${sym}/watch`);
   const { data: chb } = useData("/v3/chain");
   const { data: rdc } = useData(`/v3/reads/${sym}`, 300000);
+  const { data: znc } = useData(`/v3/zones/${sym}`, 300000);
   const { data: me } = useData("/v3/me", 0);
   const { data: hv } = useData("/v3/holdings", 0);
   const [tf, setTf] = useState("1h");
@@ -84,6 +86,10 @@ export default function Coin() {
                 <Card><ChainLadder row={chb.coins.find((r: any) => r.coin === String(sym).toUpperCase())} /></Card>
               </Spot>
             ) : null}
+            <Spot id="coin.zones">
+              <Section title="Zones" right={<T small>daily close</T>} />
+              <Card><ZonesCoin d={znc} /></Card>
+            </Spot>
             <Spot id="coin.reads">
               <Section title="Your setups" right={<T small>daily close</T>} />
               <Card><ReadsCoin row={rdc} coin={String(sym).toUpperCase()} guest={!!me?.guest} /></Card>

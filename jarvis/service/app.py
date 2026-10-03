@@ -25,7 +25,7 @@ import threading as _threading  # noqa: E402
 _SANDBOX: contextvars.ContextVar[str | None] = contextvars.ContextVar("jarvis_sandbox", default=None)
 _JG: dict[str, core.Jarvis] = {}
 _JG_LOCK = _threading.Lock()
-SHARED_TABLES = ("snapshots", "briefings", "read_fires")   # read-only system history the guest should see too (copied, never written back)
+SHARED_TABLES = ("snapshots", "briefings", "read_fires", "zone_visits")   # read-only system history the guest should see too (copied, never written back)
 
 
 def _main() -> core.Jarvis:
@@ -44,6 +44,9 @@ def _sync_shared(g: core.Jarvis) -> None:
 
     Alerts(g.db, g.now)
     reads_watch._table(g)
+    from jarvis.service import zones_watch
+
+    zones_watch._table(g)
     md = Mandate(g.db, g.now)
     for tbl in SHARED_TABLES:
         try:
@@ -340,6 +343,32 @@ def chain_board(who: str = Depends(owner)) -> dict:
     return chain.board(J())
 
 
+@app.get("/v3/layers")
+def layers_board(who: str = Depends(owner)) -> dict:
+    """The layer map: every part of Ananta, its layer, status, whether it may act, and the known gaps."""
+    from jarvis.service import layers
+
+    return layers.board(J().dir)
+
+
+@app.get("/v3/zones")
+def zones_board(who: str = Depends(owner)) -> dict:
+    """Zones around every coin's price, which coins are inside one, and recent zone entries with how they ended."""
+    from jarvis.service import zones_watch
+
+    return zones_watch.board(J())
+
+
+@app.get("/v3/zones/{coin}")
+def zones_coin(coin: str, who: str = Depends(owner)) -> dict:
+    from jarvis.service import zones_watch
+
+    r = zones_watch.coin(J(), coin)
+    if r is None:
+        raise HTTPException(status_code=404, detail=f"No zones for {coin}")
+    return r
+
+
 @app.get("/v3/reads")
 def reads_board(who: str = Depends(owner)) -> dict:
     """Madhav's three buy setups (capitulation, higher-low retest, quiet base) on every coin at the last daily close."""
@@ -542,6 +571,12 @@ def background_jobs() -> dict:
         out["your_setups"] = reads_watch.watch(J(), push=_push)
     except Exception as exc:  # noqa: BLE001  never let the reads stop the other jobs
         out["your_setups_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import zones_watch
+
+        out["zones"] = zones_watch.watch(J())
+    except Exception as exc:  # noqa: BLE001
+        out["zones_error"] = str(exc)[:200]
     a = A()
     if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
         kind = AL().due_brief()

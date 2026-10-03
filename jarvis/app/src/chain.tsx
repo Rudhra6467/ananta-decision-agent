@@ -41,6 +41,7 @@ export function ChainLadder({ row }: { row: any }) {
       <Text style={{ color: C.faint, fontSize: 11, fontWeight: "700", letterSpacing: 0.6 }}>EVIDENCE (NOT GATES)</Text>
       {o.relative_strength ? <T small>Relative strength vs BTC, 30 days: {o.relative_strength.vs_btc_30d_pct > 0 ? "+" : ""}{o.relative_strength.vs_btc_30d_pct}% ({o.relative_strength.state})</T> : null}
       {o.volume ? <T small>Volume: {o.volume.state}{o.volume.last_day_vs_20d ? ` (last day ${o.volume.last_day_vs_20d}x its 20-day average)` : ""}</T> : null}
+      {o.zone ? <T small>Zone: {o.zone.where}{o.zone.history === "SUPPORTED" ? " (a kind history supports)" : ""} · attention {String(o.zone.attention).toLowerCase()}</T> : null}
       {o.setup_family ? <T small>Setup family: {String(o.setup_family).replace("_", " ")} · daily range {o.daily_atr_pct}%</T> : null}
     </View>
   );

@@ -202,6 +202,21 @@ def board(j) -> dict[str, Any]:
                     {k: x.get(k) for k in ("variant", "name", "state", "met", "of", "history")} for x in rr["reads"] if x["state"] in ("FIRED", "CLOSE")]
     except Exception:  # noqa: BLE001  evidence is optional
         pass
+    try:                                                   # where price sits among zones, and how much attention it deserves (evidence)
+        from jarvis.service import zones_watch
+
+        zb = {r["coin"]: r for r in zones_watch.board(j).get("coins", [])}
+        for r in out:
+            z = zb.get(r["coin"])
+            if z:
+                f = (z["inside"] or [None])[0] or z.get("tested")
+                r.setdefault("observations", {})["zone"] = {
+                    "where": ("inside " if z["inside"] else "testing ") + "+".join(f["kinds"]).lower() if f else "between zones",
+                    "history": f.get("history") if f else None, "attention": z["attention"]["level"],
+                    "next_support_pct": (z.get("next_support") or {}).get("distance_pct"),
+                    "next_resistance_pct": (z.get("next_resistance") or {}).get("distance_pct")}
+    except Exception:  # noqa: BLE001
+        pass
     counts: dict[str, int] = {}
     for r in out:
         k = r["stops_at"] or "CANDIDATE"

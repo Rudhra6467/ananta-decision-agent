@@ -1,0 +1,1186 @@
+{
+ "version": "layers.v1",
+ "updated": "2026-10-03",
+ "meaning": {
+  "layer": "0 = highest authority. A lower number overrides a higher one; data errors (1) poison everything above them.",
+  "status": {
+   "ACTIVE": "in use and backed by our own evidence",
+   "ACTIVE_UNPROVEN": "in use (paper) while its evidence is collected",
+   "EVIDENCE_ONLY": "shown to Madhav and to the chain as evidence; may not act",
+   "WATCH": "some information, not enough to use alone",
+   "DROPPED": "tested; no usable information; must not be used",
+   "PLANNED": "designed, not built",
+   "ARCHIVED": "earlier research-lab code kept for reference; nothing running uses it; may not act"
+  },
+  "acts": "true = this component may change a decision or an order today (the switch). The code asks the map before acting.",
+  "regime": "the market it worked in: ALL, UP (BTC above its 50-day), DOWN, or UNKNOWN (not measured yet)",
+  "contribution": "what it added, measured by credit tracking (A3 in docs/BACKLOG.md); UNMEASURED until then"
+ },
+ "layers": [
+  {
+   "n": 0,
+   "name": "Authority and safety",
+   "job": "Madhav decides; safety overrides everything"
+  },
+  {
+   "n": 1,
+   "name": "Market truth",
+   "job": "the data everything else stands on"
+  },
+  {
+   "n": 2,
+   "name": "Measurements",
+   "job": "facts computed from the data"
+  },
+  {
+   "n": 3,
+   "name": "Knowledge",
+   "job": "what we believe and how sure we are, ranked by evidence class"
+  },
+  {
+   "n": 4,
+   "name": "Situation and attention",
+   "job": "where are we, and is it worth thinking about now?"
+  },
+  {
+   "n": 5,
+   "name": "Decision",
+   "job": "candidate or no trade, and why"
+  },
+  {
+   "n": 6,
+   "name": "Execution and risk",
+   "job": "doing it safely (paper today)"
+  },
+  {
+   "n": 7,
+   "name": "Learning",
+   "job": "measures everything and promotes or demotes knowledge"
+  },
+  {
+   "n": 8,
+   "name": "Interface",
+   "job": "explains and asks; never decides"
+  }
+ ],
+ "components": [
+  {
+   "id": "MADHAV",
+   "name": "Madhav (authority)",
+   "layer": 0,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [],
+   "feeds": [
+    "KILL",
+    "AUTOPILOT",
+    "MANDATE",
+    "CASEBOOK",
+    "NOTES"
+   ],
+   "evidence": "his sentences; live needs his explicit approval",
+   "files": []
+  },
+  {
+   "id": "KILL",
+   "name": "Kill switch",
+   "layer": 0,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "EXPLORER",
+    "HANDS",
+    "T3"
+   ],
+   "evidence": "docs/RUNBOOK_SAFETY.md",
+   "files": [
+    "docs/RUNBOOK_SAFETY.md"
+   ]
+  },
+  {
+   "id": "SAFETY_GATES",
+   "name": "Safety gates outside the AI",
+   "layer": 0,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "HANDS",
+    "EXPLORER"
+   ],
+   "evidence": "docs/SAFETY_GATES_LOCK.md",
+   "files": [
+    "docs/SAFETY_GATES_LOCK.md",
+    "src/intelligence/gates.py",
+    "src/intelligence/circuit_breaker.py",
+    "src/intelligence/profiles.py",
+    "src/intelligence/autonomy.py",
+    "src/intelligence/laws.py"
+   ]
+  },
+  {
+   "id": "AUTOPILOT",
+   "name": "Portfolio autopilot switch (suggest / auto)",
+   "layer": 0,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "T3"
+   ],
+   "evidence": "set by Madhav in the app",
+   "files": [
+    "jarvis/service/app.py"
+   ]
+  },
+  {
+   "id": "MANDATE",
+   "name": "Owner's mandate",
+   "layer": 0,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "ASK"
+   ],
+   "evidence": "edited only with Madhav's confirmation",
+   "files": [
+    "jarvis/service/mandate.py",
+    "src/intelligence/user_context.py"
+   ]
+  },
+  {
+   "id": "DATA_5M",
+   "name": "5-minute history (Binance, 10 coins, 2017-Sep 2026)",
+   "layer": 1,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [],
+   "feeds": [
+    "INDICATORS",
+    "VARIABLES",
+    "ZONES",
+    "READS",
+    "STUDIES",
+    "REPAIR_SHOP"
+   ],
+   "evidence": "on-grid, gap-checked; holdout Aug-Sep 2026 sealed",
+   "files": [
+    "src/research/explorer_replay.py",
+    "src/research/fresh_data.py"
+   ]
+  },
+  {
+   "id": "LIVE_BARS",
+   "name": "Live candles (Explorer, from Hands)",
+   "layer": 1,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "HANDS"
+   ],
+   "feeds": [
+    "INDICATORS",
+    "ZONES",
+    "READS",
+    "CHAIN",
+    "EXPLORER"
+   ],
+   "evidence": "closed bars only",
+   "files": [
+    "src/intelligence/explorer_live.py",
+    "src/intelligence/cycle_ingest.py",
+    "src/intelligence/cycle_contract_v01.py",
+    "src/intelligence/ingest_contract.py"
+   ]
+  },
+  {
+   "id": "COSTS",
+   "name": "Trading costs (V04: fee + half-spread)",
+   "layer": 1,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [],
+   "feeds": [
+    "STUDIES",
+    "EXPLORER",
+    "T3",
+    "REPAIR_SHOP"
+   ],
+   "evidence": "V04 KEEP; costs killed most strategies",
+   "files": [
+    "src/intelligence/explorer_engine.py"
+   ]
+  },
+  {
+   "id": "NEWS",
+   "name": "News headlines + AI blunder guard",
+   "layer": 1,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [],
+   "feeds": [
+    "READS",
+    "ASK"
+   ],
+   "evidence": "review #5 exploratory: did not separate good from bad capitulations; flags asset-specific damage",
+   "files": [
+    "src/research/news_check.py",
+    "src/intelligence/catalysts.py"
+   ]
+  },
+  {
+   "id": "OTHER_TRADERS",
+   "name": "Other traders' fills (Hyperliquid)",
+   "layer": 1,
+   "status": "WATCH",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [],
+   "feeds": [
+    "RECONSTRUCTION"
+   ],
+   "evidence": "review #2: V09, V10 WATCH",
+   "files": [
+    "docs/repair_shop/REVIEW_2_RESULTS.md",
+    "src/research/hl_bench.py",
+    "src/research/review2_traders.py"
+   ]
+  },
+  {
+   "id": "INDICATORS",
+   "name": "Indicators (averages, ATR, RSI)",
+   "layer": 2,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "DATA_5M",
+    "LIVE_BARS"
+   ],
+   "feeds": [
+    "VARIABLES",
+    "ZONES",
+    "READS",
+    "CHAIN",
+    "EXPLORER_SETUPS"
+   ],
+   "evidence": "lookahead-tested",
+   "files": [
+    "src/intelligence/explorer_engine.py",
+    "src/research/reads.py"
+   ]
+  },
+  {
+   "id": "VARIABLES",
+   "name": "Variable registry (V01-V16)",
+   "layer": 2,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "INDICATORS",
+    "STUDIES"
+   ],
+   "feeds": [
+    "REGIME",
+    "TREND",
+    "CHAIN",
+    "T3",
+    "EXPLORER"
+   ],
+   "evidence": "6 KEEP, 5 WATCH, 5 DROP",
+   "files": [
+    "docs/VARIABLE_REGISTRY.md",
+    "docs/variable_registry.json"
+   ]
+  },
+  {
+   "id": "ZONES",
+   "name": "Zone map (swing, 52-week, averages, bases; strength)",
+   "layer": 2,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "INDICATORS",
+    "DATA_5M",
+    "LIVE_BARS"
+   ],
+   "feeds": [
+    "ZONE_STATE",
+    "CHAIN",
+    "READS"
+   ],
+   "evidence": "review #6: zones hold a little more often than random bands (raw +2 to +4 points before 2024); 200-day average, confluence and new swing zones pass; strong (held twice) ~ new; entering a zone gives no return by itself",
+   "files": [
+    "src/research/zones.py",
+    "docs/research/ZONES_PROGRAM.md",
+    "docs/research/REVIEW_6_RESULTS.md",
+    "docs/research/zones_status.json",
+    "docs/research/zones_rw_calibration.json"
+   ]
+  },
+  {
+   "id": "FRAMEWORK",
+   "name": "Madhav's framework (decision hierarchy)",
+   "layer": 3,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "CHAIN",
+    "ASK"
+   ],
+   "evidence": "his design; the parts are tested separately",
+   "files": [
+    "docs/knowledge/FRAMEWORK.md",
+    "docs/knowledge/PLAYBOOK.md"
+   ]
+  },
+  {
+   "id": "VERIFIED",
+   "name": "Verified knowledge (KEEP variables, passed reviews)",
+   "layer": 3,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "VARIABLES",
+    "REPAIR_SHOP"
+   ],
+   "feeds": [
+    "CHAIN",
+    "T3",
+    "EXPLORER"
+   ],
+   "evidence": "strongest class",
+   "files": [
+    "docs/VARIABLE_REGISTRY.md"
+   ]
+  },
+  {
+   "id": "CASEBOOK",
+   "name": "Madhav's own trades (C1-C4, Yes Bank lesson)",
+   "layer": 3,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UP",
+   "depends_on": [
+    "MADHAV",
+    "DATA_5M"
+   ],
+   "feeds": [
+    "READS",
+    "ASK"
+   ],
+   "evidence": "4 buys rebuilt from candles",
+   "files": [
+    "docs/casebook/cases.json",
+    "docs/casebook/REBUILD_2026-10-03.md",
+    "src/research/casebook.py"
+   ]
+  },
+  {
+   "id": "TEACHERS",
+   "name": "Teacher ideas (H01-H18, P01-P03)",
+   "layer": 3,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "STUDIES"
+   ],
+   "feeds": [
+    "CHAIN",
+    "ASK"
+   ],
+   "evidence": "H01/H02 SUPPORTED (= V02/V01); H03-H05 NOT_SUPPORTED; H06 PROMISING; 11 untested",
+   "files": [
+    "docs/knowledge/hypotheses.json",
+    "docs/knowledge/teachers/trade_with_trend.md",
+    "docs/knowledge/teachers/rayner_teo.md",
+    "src/research/teachers.py",
+    "src/research/teacher_systems.py"
+   ]
+  },
+  {
+   "id": "NOTES",
+   "name": "Madhav's notes folder",
+   "layer": 3,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "ASK"
+   ],
+   "evidence": "his view, not verified",
+   "files": [
+    "jarvis/service/ask.py"
+   ]
+  },
+  {
+   "id": "KNOWLEDGE_MAP",
+   "name": "Knowledge map (index) and this layer map",
+   "layer": 3,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [],
+   "feeds": [
+    "ASK"
+   ],
+   "evidence": "kept complete by tests",
+   "files": [
+    "docs/KNOWLEDGE_INDEX.md",
+    "docs/knowledge/layers.json",
+    "jarvis/service/layers.py",
+    "docs/BACKLOG.md"
+   ]
+  },
+  {
+   "id": "REGIME",
+   "name": "Market regime (V02: BTC vs its 50-day)",
+   "layer": 4,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "VARIABLES"
+   ],
+   "feeds": [
+    "CHAIN",
+    "T3",
+    "READS"
+   ],
+   "evidence": "V02 KEEP, H01 SUPPORTED",
+   "files": [
+    "jarvis/service/chain.py",
+    "src/research/portfolio_trend.py"
+   ]
+  },
+  {
+   "id": "TREND",
+   "name": "Coin trend (V01)",
+   "layer": 4,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "VARIABLES"
+   ],
+   "feeds": [
+    "CHAIN",
+    "T3"
+   ],
+   "evidence": "V01 KEEP, H02 SUPPORTED",
+   "files": [
+    "jarvis/service/chain.py"
+   ]
+  },
+  {
+   "id": "ZONE_STATE",
+   "name": "Zone state and lookout (far / approaching / inside / held / broken)",
+   "layer": 4,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "ZONES"
+   ],
+   "feeds": [
+    "ATTENTION",
+    "CHAIN",
+    "ASK"
+   ],
+   "evidence": "live: zone entries recorded with how they ended (evidence for review #7)",
+   "files": [
+    "jarvis/service/zones_watch.py"
+   ]
+  },
+  {
+   "id": "ATTENTION",
+   "name": "Attention budget (where AI money and Madhav's time go)",
+   "layer": 4,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "ZONE_STATE"
+   ],
+   "feeds": [
+    "NEWS",
+    "ASK",
+    "ALERTS"
+   ],
+   "evidence": "design rule built from reviews #5-#7: in a zone 1, a zone kind history supports 2, came down into it within 5 days 1, market allowed 2, your setup showing 2 (one sign away 1); HIGH >= 6 = worth AI time and the news check, WATCH >= 4. Not itself a tested signal.",
+   "files": [
+    "jarvis/service/zones_watch.py"
+   ]
+  },
+  {
+   "id": "CHAIN",
+   "name": "Decision chain (fail-closed ladder)",
+   "layer": 5,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "REGIME",
+    "TREND",
+    "INDICATORS",
+    "TEACHERS",
+    "SIZING",
+    "EXPOSURE"
+   ],
+   "feeds": [
+    "ASK",
+    "APP"
+   ],
+   "evidence": "explains; not joined to the Explorer yet (BACKLOG A2)",
+   "files": [
+    "jarvis/service/chain.py"
+   ]
+  },
+  {
+   "id": "READS",
+   "name": "Your setups (M1-M3)",
+   "layer": 5,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UP",
+   "depends_on": [
+    "CASEBOOK",
+    "INDICATORS",
+    "LIVE_BARS"
+   ],
+   "feeds": [
+    "CHAIN",
+    "ALERTS",
+    "ASK",
+    "APP"
+   ],
+   "evidence": "review #5: caught all 4 buys; not better than random 2018-23; better since 2024 on few events",
+   "files": [
+    "src/research/reads.py",
+    "jarvis/service/reads_watch.py"
+   ]
+  },
+  {
+   "id": "EXPLORER_SETUPS",
+   "name": "Explorer setups E1-E5 (rulebook v0, wide mode W1)",
+   "layer": 5,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "INDICATORS",
+    "COSTS"
+   ],
+   "feeds": [
+    "EXPLORER"
+   ],
+   "evidence": "replay scorecard; reviews #1, #3 found no better variant; Q1 waits for 30 live trades",
+   "files": [
+    "docs/RULEBOOK_V0.md",
+    "src/intelligence/explorer_engine.py",
+    "src/intelligence/setup_checklist.py"
+   ]
+  },
+  {
+   "id": "ATLAS",
+   "name": "Intraday probability atlas",
+   "layer": 5,
+   "status": "WATCH",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "DATA_5M"
+   ],
+   "feeds": [
+    "ASK"
+   ],
+   "evidence": "Q4: no stable-positive cell after costs yet",
+   "files": [
+    "src/research/intraday_atlas.py"
+   ]
+  },
+  {
+   "id": "H06_DIP",
+   "name": "Dip in an uptrend (H06)",
+   "layer": 5,
+   "status": "WATCH",
+   "acts": false,
+   "regime": "UP",
+   "depends_on": [
+    "TEACHERS",
+    "INDICATORS"
+   ],
+   "feeds": [],
+   "evidence": "PROMISING first look; needs a pre-registered test",
+   "files": [
+    "src/research/teacher_systems.py"
+   ]
+  },
+  {
+   "id": "EXPLORER",
+   "name": "Explorer paper book",
+   "layer": 6,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "EXPLORER_SETUPS",
+    "LIVE_BARS",
+    "KILL",
+    "SAFETY_GATES",
+    "COSTS"
+   ],
+   "feeds": [
+    "EVIDENCE"
+   ],
+   "evidence": "paper only",
+   "files": [
+    "src/intelligence/explorer_live.py",
+    "src/research/explorer_replay.py"
+   ]
+  },
+  {
+   "id": "T3",
+   "name": "Portfolio trend layer T3",
+   "layer": 6,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "REGIME",
+    "TREND",
+    "AUTOPILOT",
+    "COSTS"
+   ],
+   "feeds": [
+    "EVIDENCE"
+   ],
+   "evidence": "review #4 PASS: +13% vs buy-and-hold -22% (2024-26), half the drawdown",
+   "files": [
+    "src/intelligence/portfolio_layer.py",
+    "docs/repair_shop/REVIEW_4_RESULTS.md",
+    "src/research/portfolio_trend.py"
+   ]
+  },
+  {
+   "id": "SD6",
+   "name": "Exit manager (disaster stop, warning bells)",
+   "layer": 6,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "VARIABLES"
+   ],
+   "feeds": [
+    "EVIDENCE"
+   ],
+   "evidence": "V03 KEEP (exit bells in slow crashes); V16 WATCH in normal times",
+   "files": [
+    "src/intelligence/paper_exit.py",
+    "src/intelligence/exit_engine.py"
+   ]
+  },
+  {
+   "id": "SIZING",
+   "name": "Risk per idea (P01)",
+   "layer": 6,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "CHAIN"
+   ],
+   "evidence": "policy",
+   "files": [
+    "jarvis/service/chain.py"
+   ]
+  },
+  {
+   "id": "EXPOSURE",
+   "name": "Correlated exposure budget (P02)",
+   "layer": 6,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "CHAIN"
+   ],
+   "evidence": "policy",
+   "files": [
+    "jarvis/service/chain.py"
+   ]
+  },
+  {
+   "id": "HANDS",
+   "name": "Hands (the App: orders, account, candles)",
+   "layer": 6,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "KILL",
+    "SAFETY_GATES"
+   ],
+   "feeds": [
+    "LIVE_BARS",
+    "EXPLORER"
+   ],
+   "evidence": "paper; live needs Madhav",
+   "files": [
+    "src/tools/ananta_api.py",
+    "src/tools/_ananta_api_payload.py",
+    "src/tools/ananta_tools.py",
+    "src/cli_exec.py",
+    "src/intelligence/contract.py"
+   ]
+  },
+  {
+   "id": "MANUAL_BOOK",
+   "name": "Madhav's paper book (orders by voice / app)",
+   "layer": 6,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "EVIDENCE"
+   ],
+   "evidence": "every order confirmed by Madhav",
+   "files": [
+    "jarvis/service/manual.py"
+   ]
+  },
+  {
+   "id": "EVIDENCE",
+   "name": "Evidence tracker (collected, forwarded, in use)",
+   "layer": 7,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "EXPLORER",
+    "T3",
+    "SD6",
+    "MANUAL_BOOK",
+    "READS"
+   ],
+   "feeds": [
+    "REPAIR_SHOP",
+    "APP"
+   ],
+   "evidence": "counts market events, not trades",
+   "files": [
+    "jarvis/service/views.py",
+    "src/intelligence/attribution.py",
+    "src/intelligence/decision_quality.py",
+    "src/intelligence/system_status.py",
+    "src/intelligence/ledgers.py"
+   ]
+  },
+  {
+   "id": "RECONSTRUCTION",
+   "name": "Reconstruction (others' trades, Madhav's trades)",
+   "layer": 7,
+   "status": "WATCH",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "OTHER_TRADERS",
+    "DATA_5M",
+    "CASEBOOK"
+   ],
+   "feeds": [
+    "REPAIR_SHOP"
+   ],
+   "evidence": "review #2; casebook",
+   "files": [
+    "src/research/casebook.py",
+    "src/research/hl_bench.py",
+    "src/research/review2_traders.py"
+   ]
+  },
+  {
+   "id": "STUDIES",
+   "name": "Pre-registered research studies",
+   "layer": 7,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "DATA_5M",
+    "COSTS"
+   ],
+   "feeds": [
+    "VARIABLES",
+    "TEACHERS",
+    "REPAIR_SHOP"
+   ],
+   "evidence": "every variant counted; holdout sealed",
+   "files": [
+    "docs/research/ZONES_PROGRAM.md",
+    "src/research/entry_v2.py",
+    "src/research/mtf_entry.py",
+    "src/research/green_runs.py",
+    "src/research/study_v3.py",
+    "src/research/study_v4.py",
+    "src/research/teacher_systems.py",
+    "src/research/teachers.py",
+    "docs/research/REVIEW_6_RESULTS.md",
+    "docs/research/REVIEW_7_RESULTS.md"
+   ]
+  },
+  {
+   "id": "REPAIR_SHOP",
+   "name": "Repair shop (reviews #1-#6)",
+   "layer": 7,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "EVIDENCE",
+    "STUDIES",
+    "RECONSTRUCTION"
+   ],
+   "feeds": [
+    "VERIFIED",
+    "VARIABLES",
+    "EXPLORER_SETUPS"
+   ],
+   "evidence": "5 reviews done, 1 passed (T3)",
+   "files": [
+    "docs/repair_shop/ledger.json",
+    "src/research/review_compare.py"
+   ]
+  },
+  {
+   "id": "CREDIT",
+   "name": "Credit tracking (which layer moved each decision, was it right)",
+   "layer": 7,
+   "status": "PLANNED",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "CHAIN",
+    "EXPLORER",
+    "EVIDENCE"
+   ],
+   "feeds": [
+    "REPAIR_SHOP",
+    "APP"
+   ],
+   "evidence": "BACKLOG A3",
+   "files": []
+  },
+  {
+   "id": "APP",
+   "name": "Jarvis app",
+   "layer": 8,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "EVIDENCE",
+    "CHAIN",
+    "READS"
+   ],
+   "feeds": [
+    "MADHAV"
+   ],
+   "evidence": "owner + guest practice mode",
+   "files": [
+    "jarvis/app/app.json",
+    "jarvis/service/core.py",
+    "jarvis/service/app.py"
+   ]
+  },
+  {
+   "id": "ASK",
+   "name": "Ask Ananta and voice",
+   "layer": 8,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "KNOWLEDGE_MAP",
+    "CHAIN",
+    "READS",
+    "MANDATE"
+   ],
+   "feeds": [
+    "MADHAV"
+   ],
+   "evidence": "prepares actions; Madhav confirms them",
+   "files": [
+    "jarvis/service/ask.py",
+    "jarvis/service/outside.py",
+    "jarvis/service/appmap.py",
+    "jarvis/service/speech.py",
+    "jarvis/voice/server.py",
+    "jarvis/evals/run.py"
+   ]
+  },
+  {
+   "id": "ALERTS",
+   "name": "Alerts, briefs and phone pushes",
+   "layer": 8,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "READS",
+    "EXPLORER"
+   ],
+   "feeds": [
+    "MADHAV"
+   ],
+   "evidence": "your setups ring only when history supports them",
+   "files": [
+    "jarvis/service/alerts.py",
+    "jarvis/service/briefs.py"
+   ]
+  },
+  {
+   "id": "LOOKOUT",
+   "name": "The lookout: reactions inside a zone (review #7)",
+   "layer": 4,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UP",
+   "depends_on": [
+    "ZONE_STATE",
+    "REGIME",
+    "INDICATORS"
+   ],
+   "feeds": [
+    "ATTENTION",
+    "CHAIN",
+    "ASK",
+    "APP"
+   ],
+   "evidence": "review #7: only the market regime (BTC above its 50-day) separated held from broken (68% vs 50%, 2018-23; weaker since 2024); wick, close-back, volume, divergence, relative strength added nothing beyond arithmetic",
+   "files": [
+    "src/research/zones.py",
+    "docs/research/REVIEW_7_RESULTS.md",
+    "docs/research/lookout_status.json",
+    "docs/research/lookout_rw_calibration.json"
+   ]
+  },
+  {
+   "id": "HOURLY_WATCH",
+   "name": "Hourly watch (strategy book: L2 pathway, decision store, SD6 exits)",
+   "layer": 6,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "HANDS",
+    "LIVE_BARS",
+    "SD6",
+    "SAFETY_GATES",
+    "COSTS"
+   ],
+   "feeds": [
+    "EVIDENCE",
+    "ALERTS"
+   ],
+   "evidence": "paper; zero organic TAKEs for weeks (the 'car with no accelerator')",
+   "files": [
+    "src/intelligence/paper_watch.py",
+    "src/intelligence/di_loop.py",
+    "src/intelligence/l2_pathway.py",
+    "src/intelligence/decision_store.py",
+    "src/intelligence/snapshot.py",
+    "src/intelligence/schema.py",
+    "src/intelligence/paper_path.py",
+    "src/intelligence/paper_path_wire.py",
+    "src/intelligence/paper_ledger.py",
+    "src/intelligence/hands_funnel.py",
+    "src/intelligence/cite_allowlist.py",
+    "src/intelligence/counterfactual.py",
+    "src/intelligence/coverage_matrix.py",
+    "src/intelligence/findings.py",
+    "src/intelligence/rank_desk.py",
+    "src/intelligence/scan_candidates.py",
+    "src/intelligence/state_card.py",
+    "src/intelligence/t4_contracts.py",
+    "src/tools/observation_log.py",
+    "src/memory.py"
+   ]
+  },
+  {
+   "id": "CANDIDATE_BOOK",
+   "name": "Frozen trend-dip candidate paper book",
+   "layer": 6,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "HANDS",
+    "LIVE_BARS",
+    "COSTS"
+   ],
+   "feeds": [
+    "EVIDENCE"
+   ],
+   "evidence": "failed its one-time holdout (research/CANDIDATE_V3_HOLDOUT_RESULT.md); winding down, kept running in paper only",
+   "files": [
+    "src/intelligence/candidate_paper.py",
+    "src/research/candidate_v3.py"
+   ]
+  },
+  {
+   "id": "LEGACY_LAB",
+   "name": "Earlier research lab (Aug-Sep 2026): fingerprints, knowledge grid, consult, cards, universe, sweeps, old CLI and agents",
+   "layer": 7,
+   "status": "ARCHIVED",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [],
+   "feeds": [],
+   "evidence": "superseded by the variable registry, the repair shop and the studies; lessons kept in docs (registry rows, locks)",
+   "files": [
+    "main.py",
+    "src/agents/market_regime_agent.py",
+    "src/agents/portfolio_analysis_agent.py",
+    "src/agents/strategy_recommendation_agent.py",
+    "src/agents/supervisor_agent.py",
+    "src/agents/tool_execution_agent.py",
+    "src/agents/user_understanding_agent.py",
+    "src/cli_main.py",
+    "src/graph.py",
+    "src/intelligence/adjudicate.py",
+    "src/intelligence/boards.py",
+    "src/intelligence/books.py",
+    "src/intelligence/books_compare.py",
+    "src/intelligence/cfg_catalog.py",
+    "src/intelligence/cfg_contract.py",
+    "src/intelligence/cfg_replay.py",
+    "src/intelligence/cfg_spec.py",
+    "src/intelligence/cli.py",
+    "src/intelligence/comparison_abc.py",
+    "src/intelligence/consult.py",
+    "src/intelligence/consult_dq.py",
+    "src/intelligence/definition_cards.py",
+    "src/intelligence/donchian_keys.py",
+    "src/intelligence/episode_slice.py",
+    "src/intelligence/episode_tag.py",
+    "src/intelligence/evidence_cards.py",
+    "src/intelligence/evidence_desk.py",
+    "src/intelligence/evidence_engine.py",
+    "src/intelligence/excursion.py",
+    "src/intelligence/experiments.py",
+    "src/intelligence/fingerprint.py",
+    "src/intelligence/fingerprint_book.py",
+    "src/intelligence/fp_save.py",
+    "src/intelligence/fv_interface.py",
+    "src/intelligence/fv_now.py",
+    "src/intelligence/fv_sma.py",
+    "src/intelligence/fv_vwap.py",
+    "src/intelligence/grid_cite.py",
+    "src/intelligence/grid_from_index.py",
+    "src/intelligence/h2.py",
+    "src/intelligence/health_card.py",
+    "src/intelligence/hist_vs_live.py",
+    "src/intelligence/i2_baseline.py",
+    "src/intelligence/knowledge_grid.py",
+    "src/intelligence/knowledge_tables.py",
+    "src/intelligence/lab_bridge.py",
+    "src/intelligence/lab_objects.py",
+    "src/intelligence/lab_runs_inspect.py",
+    "src/intelligence/lookup.py",
+    "src/intelligence/opportunity_engine.py",
+    "src/intelligence/orchestrate.py",
+    "src/intelligence/paper.py",
+    "src/intelligence/paper_take.py",
+    "src/intelligence/phase_board.py",
+    "src/intelligence/phases.py",
+    "src/intelligence/policy_contract.py",
+    "src/intelligence/production_path_harness_v1.py",
+    "src/intelligence/protocol.py",
+    "src/intelligence/rank.py",
+    "src/intelligence/ranking_law.py",
+    "src/intelligence/replay_15m.py",
+    "src/intelligence/replay_tf.py",
+    "src/intelligence/research.py",
+    "src/intelligence/research_exp.py",
+    "src/intelligence/research_pipeline.py",
+    "src/intelligence/roadmap_now.py",
+    "src/intelligence/setup_memory.py",
+    "src/intelligence/sitout.py",
+    "src/intelligence/slice_15m.py",
+    "src/intelligence/stress_window.py",
+    "src/intelligence/sweep_map.py",
+    "src/intelligence/sweep_peek.py",
+    "src/intelligence/sweep_roster.py",
+    "src/intelligence/tracks.py",
+    "src/intelligence/universe.py",
+    "src/intelligence/universe_book.py",
+    "src/intelligence/universe_specs.py",
+    "src/intelligence/validation_now.py",
+    "src/intelligence/w1_gate.py",
+    "src/intelligence/years_probe.py",
+    "src/lab_cli.py",
+    "src/lab_hooks.py",
+    "src/lab_watch.py",
+    "src/phase4_cli.py",
+    "src/state/agent_state.py",
+    "src/tools/audit_truth.py",
+    "src/tools/coverage_client.py",
+    "src/tools/cycle_log.py",
+    "src/tools/decision_log.py",
+    "src/tools/lab_compare.py",
+    "src/tools/lab_replay.py",
+    "src/tools/market_tools.py",
+    "src/tools/market_truth.py",
+    "src/tools/outcome_truth.py"
+   ]
+  }
+ ],
+ "gaps": [
+  "CHAIN and EXPLORER do not share a decision record (BACKLOG A2)",
+  "Statuses here are not yet read by the Explorer before it acts (BACKLOG A1, switch step)",
+  "No credit tracking (BACKLOG A3)",
+  "ZONES and ZONE_STATE are planned; review #6 decides how they are used",
+  "OTHER_TRADERS -> V09/V10 have no consumer",
+  "NEWS runs only on tap"
+ ]
+}

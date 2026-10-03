@@ -8,9 +8,9 @@ Last updated 2026-10-03.
 1. DONE v1, 2026-10-03 (switch step: the Explorer does not read it yet) **Layer map the agent reads** (`docs/knowledge/layers.json`): every component with its layer (0 authority ... 8 interface),
    what it depends on, what it feeds, its status, its evidence, the market it works in (regime), and the file that implements it.
    Statuses become switches: code asks the map whether a component is allowed before using it.
-2. TODO **Join the two brains**: the decision chain (how Ananta reasons) and the Explorer (what it paper-trades) share one
+2. DOING (first step: Explorer trades are joined to the day's layer record in credit tracking) **Join the two brains**: the decision chain (how Ananta reasons) and the Explorer (what it paper-trades) share one
    decision record; every Explorer entry shows where it stood on the chain.
-3. TODO **Credit tracking**: each decision and paper trade records which layers moved it; the learning layer scores each
+3. DONE v1 2026-10-03 (records every coin at each close, scores 20 days later, joins Explorer trades; Evidence page and Ask) **Credit tracking**: each decision and paper trade records which layers moved it; the learning layer scores each
    component over time (which ones earn their keep, in which market).
 4. TODO Unused evidence gets a consumer: V09/V10 (other traders' timing), reconstruction cases, the news check.
 

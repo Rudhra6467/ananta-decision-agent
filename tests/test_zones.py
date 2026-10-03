@@ -150,3 +150,21 @@ def test_review10_exits_follow_their_rules():
     c2 = [100.0] * 450 + [100.0, 97, 93, 90, 90] + [90.0] * 50
     x2 = Z.exits(Z.Arr(R.Series(_bars(c2, wick=0.002))), e, 0.0)
     assert x2["X2"]["stopped"] and x2["X4"]["stopped"] and x2["X2"]["net"] < 0
+
+
+def test_credit_records_once_a_day_and_scores_twenty_days_later(tmp_path):
+    from jarvis.service import credit as CR
+    from jarvis.service import zones_watch as W
+    from tests.test_reads import _fake_jarvis
+
+    W._CACHE.clear()
+    D = _walk(700, seed=51)
+    j = _fake_jarvis(tmp_path, {"BTC": D[:670], "SOL": D[:670]}, {})
+    assert CR.record(j) == 2 and CR.record(j) == 0                 # once per coin per day
+    assert CR.settle(j) == 0                                        # not 20 days old yet
+    con = __import__("sqlite3").connect(tmp_path / "explorer_bars.sqlite")
+    con.executemany("INSERT INTO bars VALUES (?,?,?,?,?,?,?,?)", [(c, "1d", *b) for c in ("BTC", "SOL") for b in D[670:]])
+    con.commit()
+    assert CR.settle(j) == 2
+    rep = CR.report(j)
+    assert rep["settled"] == 2 and {x["signal"] for x in rep["by_signal"]} == set(CR.SIGNALS)

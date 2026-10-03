@@ -78,6 +78,31 @@ With 8 groups compared, z ≥ 2 lets about one in six studies pass something by 
 | 9 | Reconstruction (HL 62 events, review #2 traders) | Were other traders' entries at zones? |
 | 10 | T3 portfolio exits | Exit at a zone break vs at the average |
 
-## 6. After that: the lookout itself (review #7)
+## 6. Review #7: the lookout (pre-registration, written 2026-10-03 after review #6 and before any lookout code or run)
+Question: once price has come down into a support zone, which **reactions**, visible at the close of the entry day, make HELD more
+likely than BROKEN? Same zone engine, data, splits, outcome rule (HELD / BROKEN within 20 days) and cost as review #6.
+
+- **Event:** the first entry from above into any support zone (3 closes above, low enters the band). One event per coin per 5 days
+  (the zone with the most kinds is the one judged). Events already BROKEN at the entry day's close are kept and count as BROKEN.
+- **Reactions** (all measured at the entry day's close, from earlier bars only):
+
+| ID | Reaction | Rule |
+|---|---|---|
+| F1 | Rejection | the close is in the upper half of the day's range (a long lower wick) |
+| F2 | Closed back above | the close is above the band's top (it only tested the zone) |
+| F3 | Volume | the day's volume ≥ 1.5× its 20-day average |
+| F4 | Momentum divergence | the close is lower than 10 days ago but RSI(14) is higher than 10 days ago |
+| F5 | Stronger than BTC | the coin's 30-day return beats BTC's |
+| F6 | Market allowed | BTC's close above its 50-day average (V02) |
+| F7 | Good zone kind | the zone is a 200-day average, a confluence or a new swing zone (review #6 passes) |
+
+- **Measure:** held rate with the reaction minus held rate without it, per market event (events of different coins within 3 days),
+  z over market events. **Pass:** DISCOVERY difference ≥ 8 points, z ≥ 2.5 (7 reactions tested), at least 30 market events with the
+  reaction; CONFIRM difference > 0. Also reported: the 10-day net return with and without.
+- **Lookout score:** the number of reactions present among those that pass DISCOVERY; its held rate by score is reported in CONFIRM.
+- Random-walk check before the real run: no reaction may pass on synthetic walks.
+
+## 7. After that
+
 Inside a zone, which reactions predict HELD vs BROKEN: rejection wick, volume (H09), RSI divergence, relative strength vs BTC (H08),
 market regime (V02), news verdict. This is where most teacher ideas get their real test.

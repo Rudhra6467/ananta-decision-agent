@@ -117,6 +117,7 @@ def swing_zones(A: Arr, i: int) -> list[dict]:
         last_low = max((x[1] for x in c if x[2] == "LOW"), default=-1)
         flips = int("HIGH" in kinds and "LOW" in kinds and min(x[1] for x in c if x[2] == "HIGH") < last_low)
         out.append({"bot": float(bot), "top": float(top), "kinds": {"SWING"}, "touches": len(visits), "held": held, "flips": flips,
+                    "highs": sum(1 for x in c if x[2] == "HIGH"),
                     "members": len(c), "first": first, "last_touch": int(visits[-1][-1]) if visits else max(last_high, last_low),
                     "tier": "STRONG" if held >= 2 else "TESTED" if held == 1 else "NEW"})
     return out
@@ -156,8 +157,8 @@ def merge(zones: list[dict]) -> list[dict]:
             m["top"] = max(m["top"], z["top"])
             m["kinds"] = m["kinds"] | z["kinds"]
             if "tier" in z and ("tier" not in m or rank[z["tier"]] > rank[m["tier"]]):
-                for k in ("tier", "touches", "held", "flips", "members", "first", "last_touch"):
-                    m[k] = z[k]
+                for k in ("tier", "touches", "held", "flips", "members", "first", "last_touch", "highs"):
+                    m[k] = z.get(k)
             m.setdefault("labels", []).extend([z.get("label")] if z.get("label") else [])
         else:
             out.append({**z, "kinds": set(z["kinds"]), "labels": [z["label"]] if z.get("label") else []})
@@ -532,6 +533,94 @@ def review10(D: dict[str, list[tuple]]) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# review #11: teacher ideas redone with zones (docs/research/REVIEW_11.md)
+# ---------------------------------------------------------------------------
+def review11_events(coin: str, S: R.Series, B: R.Series, until: int) -> list[dict]:
+    A = Arr(S)
+    n = len(S.t)
+    out, last = [], {}
+    swing, swing_at = None, -999
+    for i in range(400, n - 21):
+        if S.t[i] >= until or np.isnan(A.atr[i - 1]):
+            continue
+        bi = B.at(S.t[i - 1])
+        mkt = bool(bi is not None and B.ema50[bi] is not None and B.c[bi] > B.ema50[bi])
+        if not mkt:
+            continue
+        if i - swing_at >= REFRESH:
+            swing, swing_at = swing_zones(A, i), i
+        zm = zone_map(A, i, swing)
+        r20 = float((A.o[i + 21] / A.o[i + 1]) * (1 - R.cost(coin)) ** 2 - 1)
+        vol20 = statistics.mean(S.v[i - 20:i])
+        above200 = S.sma200[i - 1] is not None and A.c[i - 1] > S.sma200[i - 1]
+        found = set()
+        for z in zm:
+            if ("AVERAGE-50" in z["kinds"] and above200 and z["top"] < A.c[i - 1] and A.l[i] <= z["top"] and A.l[i - 1] > z["top"]
+                    and (A.c[i - 3:i] > z["top"]).all()):
+                found.add("A1")
+            if z["bot"] > A.c[i - 1] and A.c[i] > z["top"] and (A.c[i - 3:i] <= z["top"]).all():
+                found.add("B1")
+                if "SWING" in z["kinds"] and (z.get("highs") or 0) >= 2:
+                    found.add("B2")
+                if S.v[i] >= 1.5 * vol20:
+                    found.add("B3")
+        for v in found:
+            if v in last and S.t[i] - last[v] <= 5 * DAY:
+                continue
+            last[v] = S.t[i]
+            out.append({"coin": coin, "t": S.t[i], "variant": v, "r20": r20})
+    return out
+
+
+def _cond_drift(coin: str, S: R.Series, B: R.Series, A: Arr, lo: int, hi: int, need200: bool) -> float | None:
+    xs = []
+    for i in range(400, len(S.t) - 21):
+        if not (lo <= S.t[i] < hi):
+            continue
+        bi = B.at(S.t[i - 1])
+        if not (bi is not None and B.ema50[bi] is not None and B.c[bi] > B.ema50[bi]):
+            continue
+        if need200 and not (S.sma200[i - 1] is not None and A.c[i - 1] > S.sma200[i - 1]):
+            continue
+        xs.append(float((A.o[i + 21] / A.o[i + 1]) * (1 - R.cost(coin)) ** 2 - 1))
+    return statistics.mean(xs) if xs else None
+
+
+def review11(D: dict[str, list[tuple]]) -> dict:
+    B = R.Series(D["BTC"])
+    splits = {"DISCOVERY": (0, R.DISC_END), "CONFIRM": (R.DISC_END, R.CONF_END)}
+    evs = []
+    for c, bars in D.items():
+        S = B if c == "BTC" else R.Series(bars)
+        A = Arr(S)
+        base = {(sp, f): _cond_drift(c, S, B, A, lo, hi, f) for sp, (lo, hi) in splits.items() for f in (True, False)}
+        for e in review11_events(c, S, B, R.CONF_END):
+            sp = "DISCOVERY" if e["t"] < R.DISC_END else "CONFIRM"
+            b = base[(sp, e["variant"] == "A1")]
+            if b is not None:
+                evs.append({**e, "split": sp, "x20": e["r20"] - b})
+        print(c, len(evs), file=sys.stderr)
+    out = {}
+    for v in ("A1", "B1", "B2", "B3"):
+        res = {}
+        for sp in splits:
+            rr = [e for e in evs if e["variant"] == v and e["split"] == sp]
+            mk = _market_events(rr)
+            xs = [statistics.mean(x["x20"] for x in m) for m in mk]
+            sd = statistics.stdev(xs) if len(xs) > 2 else None
+            res[sp] = {"episodes": len(rr), "market_events": len(mk),
+                       "mean_excess20_pct": round(100 * statistics.mean(xs), 2) if xs else None,
+                       "z": round(statistics.mean(xs) / (sd / len(xs) ** 0.5), 2) if sd else None,
+                       "mean_net20_pct": round(100 * statistics.mean(e["r20"] for e in rr), 2) if rr else None,
+                       "win20": round(sum(e["r20"] > 0 for e in rr) / len(rr), 3) if rr else None}
+        d, c = res["DISCOVERY"], res["CONFIRM"]
+        ok_d = d["market_events"] >= 30 and (d["mean_excess20_pct"] or -1) > 0 and (d["z"] or 0) >= 2.5
+        ok_c = (c["mean_excess20_pct"] or -1) > 0
+        out[v] = {**res, "status": "PASS" if ok_d and ok_c else "NOT_CONFIRMED" if ok_d else "FAIL"}
+    return out
+
+
+# ---------------------------------------------------------------------------
 # live
 # ---------------------------------------------------------------------------
 def live_zones(D: list[tuple], near_atr: float = 3.0) -> dict:
@@ -566,7 +655,7 @@ def live_zones(D: list[tuple], near_atr: float = 3.0) -> dict:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["review6", "review7", "review10"])
+    ap.add_argument("mode", choices=["review6", "review7", "review10", "review11"])
     ap.add_argument("--db", required=True)
     ap.add_argument("--out", default="~/ananta_runs/zones")
     a = ap.parse_args(argv)
@@ -574,6 +663,12 @@ def main(argv: list[str] | None = None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     cache = Path(os.path.expanduser("~/ananta_runs/reads"))
     D = {c: R.cached_daily(a.db, c, cache, R.CONF_END) for c in R.COINS}
+    if a.mode == "review11":
+        res = review11(D)
+        res["_meta"] = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"), "pre_registration": "docs/research/REVIEW_11.md"}
+        (out / "review11_results.json").write_text(json.dumps(res, indent=1))
+        print(json.dumps(res, indent=1))
+        return
     if a.mode == "review10":
         res = review10(D)
         res["_meta"] = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"), "pre_registration": "docs/research/REVIEW_10.md"}

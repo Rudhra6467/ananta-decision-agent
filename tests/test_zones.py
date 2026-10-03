@@ -168,3 +168,15 @@ def test_credit_records_once_a_day_and_scores_twenty_days_later(tmp_path):
     assert CR.settle(j) == 2
     rep = CR.report(j)
     assert rep["settled"] == 2 and {x["signal"] for x in rep["by_signal"]} == set(CR.SIGNALS)
+
+
+def test_review11_finds_a_breakout_through_a_zone_and_a_dip_into_the_50_day():
+    # an uptrend with BTC = the coin (market allowed), a pullback to the 50-day, and a close through an old ceiling
+    c = [100 * (1.003 ** k) for k in range(520)]
+    c += [c[-1] * (1 - 0.012 * k) for k in range(1, 8)]                  # dip toward the 50-day average
+    c += [c[-1] * (1 + 0.02 * k) for k in range(1, 30)]                  # strong rise through earlier highs
+    D = _bars(c, [100.0] * len(c), wick=0.004)
+    S = R.Series(D)
+    evs = Z.review11_events("X", S, S, 10 ** 12)
+    assert all(e["variant"] in ("A1", "B1", "B2", "B3") for e in evs)
+    assert all(abs(e["r20"]) < 5 for e in evs)

@@ -867,7 +867,10 @@
     "src/research/teacher_systems.py",
     "src/research/teachers.py",
     "docs/research/REVIEW_6_RESULTS.md",
-    "docs/research/REVIEW_7_RESULTS.md"
+    "docs/research/REVIEW_7_RESULTS.md",
+    "src/research/zone_splits.py",
+    "docs/repair_shop/REVIEW_8.md",
+    "docs/repair_shop/REVIEW_9.md"
    ]
   },
   {

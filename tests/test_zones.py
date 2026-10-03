@@ -124,3 +124,14 @@ def test_news_recorder_checks_each_coin_once_a_day_and_stops_when_ai_is_off(tmp_
     off = lambda j_, c: {"verdict": "NOT_CHECKED", "why": "off"}            # noqa: E731
     j.now = lambda: D[-1][0] + 5 * 86400                                   # a new day, AI switched off
     assert N.watch(j, check=off) == [] and N.latest(j, "SOL", 30)[0]["verdict"] == "CLEAR"
+
+
+def test_review9_context_uses_only_earlier_days():
+    from src.research import zone_splits as ZS
+
+    D = _walk(700, seed=41)
+    c1 = ZS.Context(D, D)
+    c2 = ZS.Context(D[:601], D[:601])
+    t = D[600][0] + 3600                                  # an entry during day 600
+    assert c1.at(t, D[600][4]) == c2.at(t, D[600][4])     # what happens after day 600 never matters
+    assert ZS.welch([1.0, 2.0, 3.0], [0.0, 0.5, 1.0]) > 0

@@ -142,6 +142,36 @@
     "docs/repair_shop/REVIEW_9.md",
     "docs/repair_shop/REVIEW_9_RESULTS.md"
    ]
+  },
+  {
+   "id": "R10",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Stops and exits at zones",
+   "forwarded_because": "Zones work over weeks; the exit decides what a zone entry earns.",
+   "question": "Is a stop beyond the zone with a target at the next zone better than holding, an ATR stop or a tight stop?",
+   "result": "No: the next zone is near, so the target sold the few big moves early (0% vs +5.8% holding 20 days). Gains come from a few big moves.",
+   "changed": "The playbook treats the next zone as a review point, not a sell target.",
+   "files": [
+    "docs/research/REVIEW_10.md",
+    "docs/research/REVIEW_10_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R11",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Teacher ideas with zones: 50-day dip, breakouts",
+   "forwarded_because": "Every earlier study used points; the teachers' pullback and breakout ideas had never been tested as zones.",
+   "question": "Do a dip into the 50-day zone, or a close through a zone (strong resistance, volume), beat an average day in the same market?",
+   "result": "No. The market regime does the work; the dip was worse than average; breakouts on volume were positive in both periods but not reliable.",
+   "changed": "H11 marked not supported; H09 keeps its hypothesis status with these numbers.",
+   "files": [
+    "docs/research/REVIEW_11.md",
+    "docs/research/REVIEW_11_RESULTS.md"
+   ]
   }
  ],
  "queue": [

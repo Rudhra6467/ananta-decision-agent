@@ -64,7 +64,7 @@ episode: 74 checks, under $1 in total. Output: `~/ananta_runs/reads/review5_news
   The 2022 losers were market-wide (LUNA, Celsius, FTX), which the check rightly calls market fear, not damage to the coin.
 - It did flag asset-specific trouble: SOL on Nov 9 2022 (FTX/Alameda exposure, then −4.5% in 30 days), LTC on Jun 13 2022
   (Korean exchange delistings; it went up 12.7% anyway), ADA in June 2026 (exchange delisting reports, then −10.4%).
-- Older windows had few dated headlines (9-25 before 2020), and the model may know how these stories ended, so this is a demo,
+- Older windows had few dated headlines (9-21 before 2020), and the model may know how these stories ended, so this is a demo,
   not evidence. It stays what Madhav designed it to be: a last look for a rare blunder, not an edge.
 
 ## 5. Next (each one a new, counted test)

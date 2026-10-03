@@ -1,146 +1,187 @@
 {
-  "version": "repair_shop.ledger.v1",
-  "updated": "2026-10-01",
-  "meaning": {
-    "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
-    "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
-    "verdict": "PASS = may change the live paper system; FAIL = nothing changes; the lesson is kept",
-    "in_use": "a repair that passed and now runs in paper, tracked against its expectation"
+ "version": "repair_shop.ledger.v1",
+ "updated": "2026-10-03",
+ "meaning": {
+  "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
+  "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
+  "verdict": "PASS = may change the live paper system; FAIL = nothing changes; the lesson is kept",
+  "in_use": "a repair that passed and now runs in paper, tracked against its expectation"
+ },
+ "reviews": [
+  {
+   "id": "R1",
+   "date": "2026-09-30",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Explorer scorecard: entries, warning bells, weakest setup",
+   "forwarded_because": "The 7-year Explorer replay lost money after costs. Three things looked suspicious: limit orders that never filled seemed to do better, the warning-bell exits seemed to cut winners, and setup E5 was the worst.",
+   "question": "Do market entries, no warning bells, or dropping E5 make the Explorer better on data it was not tuned on?",
+   "result": "No change passed. Market entries were clearly worse. The 'missed orders did better' evidence was hindsight bias (our error). Bells neither help nor hurt normally but save money in crashes, so they stay. E5 is the weakest setup but not by enough to drop.",
+   "changed": "Nothing in the live rules. Scorecard wording corrected; the chase shadow no longer counts as evidence about entries.",
+   "files": [
+    "docs/repair_shop/REVIEW_1.md",
+    "docs/repair_shop/REVIEW_1_RESULTS.md"
+   ]
   },
-  "reviews": [
-    {
-      "id": "R1",
-      "date": "2026-09-30",
-      "status": "DONE",
-      "verdict": "FAIL",
-      "title": "Explorer scorecard: entries, warning bells, weakest setup",
-      "forwarded_because": "The 7-year Explorer replay lost money after costs. Three things looked suspicious: limit orders that never filled seemed to do better, the warning-bell exits seemed to cut winners, and setup E5 was the worst.",
-      "question": "Do market entries, no warning bells, or dropping E5 make the Explorer better on data it was not tuned on?",
-      "result": "No change passed. Market entries were clearly worse. The 'missed orders did better' evidence was hindsight bias (our error). Bells neither help nor hurt normally but save money in crashes, so they stay. E5 is the weakest setup but not by enough to drop.",
-      "changed": "Nothing in the live rules. Scorecard wording corrected; the chase shadow no longer counts as evidence about entries.",
-      "files": [
-        "docs/repair_shop/REVIEW_1.md",
-        "docs/repair_shop/REVIEW_1_RESULTS.md"
-      ]
-    },
-    {
-      "id": "R2",
-      "date": "2026-09-30",
-      "status": "DONE",
-      "verdict": "FAIL",
-      "title": "Learning from other traders (Hyperliquid, 65 accounts)",
-      "forwarded_because": "Our own setups showed no edge, so we checked where real traders entered and whether their timing carries information our rules miss.",
-      "question": "Is there usable information in when real traders buy, and does their skill persist?",
-      "result": "Their entry timing carried almost no information (a tiny 1-hour edge) and skill did not persist from one period to the next. One pattern stood out: they did better buying weakness than strength. That became review #3.",
-      "changed": "Nothing live. Traders stay reference only, never teachers.",
-      "files": [
-        "docs/repair_shop/REVIEW_2.md",
-        "docs/repair_shop/REVIEW_2_RESULTS.md"
-      ]
-    },
-    {
-      "id": "R3",
-      "date": "2026-09-30",
-      "status": "DONE",
-      "verdict": "FAIL",
-      "title": "Buying weakness (dip setups E6-E8)",
-      "forwarded_because": "Review #2 found traders did better buying dips.",
-      "question": "Do dip entries beat random entries and pay NDAX costs on 2017-2023 data?",
-      "result": "Buying when 15m RSI is under 30 beat random entries (first rule ever to beat chance on unseen data) but by far too little to pay fees and spread. Every variant lost after costs.",
-      "changed": "Dip setups E6-E8 are watched only (sightings for the atlas), never traded.",
-      "files": [
-        "docs/repair_shop/REVIEW_3.md",
-        "docs/repair_shop/REVIEW_3_RESULTS.md"
-      ]
-    },
-    {
-      "id": "R4",
-      "date": "2026-09-30",
-      "status": "DONE",
-      "verdict": "PASS",
-      "title": "Portfolio trend layer (T3) vs buy-and-hold",
-      "forwarded_because": "Reviews #1-#3 showed the only consistent return is being in the market during multi-week uptrends, and the only consistent protection is getting out in slow crashes.",
-      "question": "Can a simple daily trend rule (hold a coin above its 50- and 20-day averages while BTC is above its 50-day) beat buy-and-hold with less pain?",
-      "result": "T3 passed: +13% vs buy-and-hold -22% in 2024-26 with about half the drawdown, and it sat out most crashes. Weak spot: it fails if fees double, so it must trade rarely.",
-      "changed": "T3 runs as the portfolio layer (MAIN book you approve, SHADOW book always automatic) since 2026-09-30.",
-      "files": [
-        "docs/repair_shop/REVIEW_4.md",
-        "docs/repair_shop/REVIEW_4_RESULTS.md"
-      ]
-    }
-  ],
-  "queue": [
-    {
-      "id": "Q1",
-      "status": "WAITING_FOR_EVIDENCE",
-      "title": "Explorer live vs replay",
-      "waiting_for": "30 closed paper trades",
-      "why": "Check the live Explorer behaves like the 7-year replay (same win rate and cost drag)."
-    },
-    {
-      "id": "Q2",
-      "status": "WAITING_FOR_EVIDENCE",
-      "title": "T3 live tracking",
-      "waiting_for": "6-8 weekly rebalances",
-      "why": "Check the live portfolio book follows its backtest: in when trends are up, in cash in slides, few trades."
-    },
-    {
-      "id": "Q3",
-      "status": "WAITING_FOR_EVIDENCE",
-      "title": "E5 probation",
-      "waiting_for": "20 live E5 trades",
-      "why": "E5 was the weakest setup in review #1; live evidence decides whether it is dropped."
-    },
-    {
-      "id": "Q4",
-      "status": "WAITING_FOR_EVIDENCE",
-      "title": "Intraday atlas alerts",
-      "waiting_for": "a sighting the atlas marks stable-positive after costs",
-      "why": "Intraday is idle; only contexts that were positive after costs in both periods may earn a look."
-    }
-  ],
-  "in_use": [
-    {
-      "id": "T3",
-      "from": "R4",
-      "since": "2026-09-30",
-      "what": "Portfolio trend layer: daily ratings, weekly rebalance, MAIN (you approve) and SHADOW (automatic) books",
-      "expect": "Beat buy-and-hold over months mainly by losing less in slides; about half the drawdown; few trades",
-      "watch_out": "Fails at double fees; one month proves nothing"
-    }
-  ],
-  "safety_changes": [
-    {
-      "date": "2026-09-30",
-      "what": "Kill switch rehearsal passed: flattens every paper position and blocks new entries"
-    },
-    {
-      "date": "2026-09-30",
-      "what": "Single-watch lock: a second copy of a watch refuses to start (we once ran two by accident)"
-    },
-    {
-      "date": "2026-09-30",
-      "what": "Phone alerts (ntfy) for trades, warnings and errors"
-    },
-    {
-      "date": "2026-09-30",
-      "what": "Nightly reconstruction: the day is rebuilt from raw candles and must match the live log"
-    },
-    {
-      "date": "2026-10-01",
-      "what": "Jarvis app: Face ID before approve, mode change or kill switch; every action audited"
-    },
-    {
-      "date": "2026-10-01",
-      "what": "Ask Ananta can only PREPARE changes (paper orders, alerts, mandate edits); each waits for your Face ID confirmation"
-    },
-    {
-      "date": "2026-10-01",
-      "what": "Your manual paper orders live in their own book, never mixed with the agent's evidence"
-    },
-    {
-      "date": "2026-10-01",
-      "what": "AI cost controls: Ask and Voice switches, daily Claude budget with free fallback"
-    }
-  ]
+  {
+   "id": "R2",
+   "date": "2026-09-30",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Learning from other traders (Hyperliquid, 65 accounts)",
+   "forwarded_because": "Our own setups showed no edge, so we checked where real traders entered and whether their timing carries information our rules miss.",
+   "question": "Is there usable information in when real traders buy, and does their skill persist?",
+   "result": "Their entry timing carried almost no information (a tiny 1-hour edge) and skill did not persist from one period to the next. One pattern stood out: they did better buying weakness than strength. That became review #3.",
+   "changed": "Nothing live. Traders stay reference only, never teachers.",
+   "files": [
+    "docs/repair_shop/REVIEW_2.md",
+    "docs/repair_shop/REVIEW_2_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R3",
+   "date": "2026-09-30",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Buying weakness (dip setups E6-E8)",
+   "forwarded_because": "Review #2 found traders did better buying dips.",
+   "question": "Do dip entries beat random entries and pay NDAX costs on 2017-2023 data?",
+   "result": "Buying when 15m RSI is under 30 beat random entries (first rule ever to beat chance on unseen data) but by far too little to pay fees and spread. Every variant lost after costs.",
+   "changed": "Dip setups E6-E8 are watched only (sightings for the atlas), never traded.",
+   "files": [
+    "docs/repair_shop/REVIEW_3.md",
+    "docs/repair_shop/REVIEW_3_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R4",
+   "date": "2026-09-30",
+   "status": "DONE",
+   "verdict": "PASS",
+   "title": "Portfolio trend layer (T3) vs buy-and-hold",
+   "forwarded_because": "Reviews #1-#3 showed the only consistent return is being in the market during multi-week uptrends, and the only consistent protection is getting out in slow crashes.",
+   "question": "Can a simple daily trend rule (hold a coin above its 50- and 20-day averages while BTC is above its 50-day) beat buy-and-hold with less pain?",
+   "result": "T3 passed: +13% vs buy-and-hold -22% in 2024-26 with about half the drawdown, and it sat out most crashes. Weak spot: it fails if fees double, so it must trade rarely.",
+   "changed": "T3 runs as the portfolio layer (MAIN book you approve, SHADOW book always automatic) since 2026-09-30.",
+   "files": [
+    "docs/repair_shop/REVIEW_4.md",
+    "docs/repair_shop/REVIEW_4_RESULTS.md"
+   ]
+  }
+ ],
+ "queue": [
+  {
+   "id": "Q1",
+   "status": "WAITING_FOR_EVIDENCE",
+   "title": "Explorer live vs replay",
+   "waiting_for": "30 closed paper trades",
+   "why": "Check the live Explorer behaves like the 7-year replay (same win rate and cost drag).",
+   "metric": "closed_trades",
+   "goal": 30
+  },
+  {
+   "id": "Q2",
+   "status": "WAITING_FOR_EVIDENCE",
+   "title": "T3 live tracking",
+   "waiting_for": "6-8 weekly rebalances",
+   "why": "Check the live portfolio book follows its backtest: in when trends are up, in cash in slides, few trades.",
+   "metric": "weekly_rebalances",
+   "goal": 6
+  },
+  {
+   "id": "Q3",
+   "status": "WAITING_FOR_EVIDENCE",
+   "title": "E5 probation",
+   "waiting_for": "20 live E5 trades",
+   "why": "E5 was the weakest setup in review #1; live evidence decides whether it is dropped.",
+   "metric": "e5_trades",
+   "goal": 20
+  },
+  {
+   "id": "Q4",
+   "status": "WAITING_FOR_EVIDENCE",
+   "title": "Intraday atlas alerts",
+   "waiting_for": "a sighting the atlas marks stable-positive after costs",
+   "why": "Intraday is idle; only contexts that were positive after costs in both periods may earn a look.",
+   "metric": "stable_positive_sightings",
+   "goal": 1
+  }
+ ],
+ "in_use": [
+  {
+   "id": "T3",
+   "from": "R4",
+   "since": "2026-09-30",
+   "what": "Portfolio trend layer: daily ratings, weekly rebalance, MAIN (you approve) and SHADOW (automatic) books",
+   "expect": "Beat buy-and-hold over months mainly by losing less in slides; about half the drawdown; few trades",
+   "watch_out": "Fails at double fees; one month proves nothing"
+  }
+ ],
+ "safety_changes": [
+  {
+   "date": "2026-09-30",
+   "what": "Kill switch rehearsal passed: flattens every paper position and blocks new entries"
+  },
+  {
+   "date": "2026-09-30",
+   "what": "Single-watch lock: a second copy of a watch refuses to start (we once ran two by accident)"
+  },
+  {
+   "date": "2026-09-30",
+   "what": "Phone alerts (ntfy) for trades, warnings and errors"
+  },
+  {
+   "date": "2026-09-30",
+   "what": "Nightly reconstruction: the day is rebuilt from raw candles and must match the live log"
+  },
+  {
+   "date": "2026-10-01",
+   "what": "Jarvis app: Face ID before approve, mode change or kill switch; every action audited"
+  },
+  {
+   "date": "2026-10-01",
+   "what": "Ask Ananta can only PREPARE changes (paper orders, alerts, mandate edits); each waits for your Face ID confirmation"
+  },
+  {
+   "date": "2026-10-01",
+   "what": "Your manual paper orders live in their own book, never mixed with the agent's evidence"
+  },
+  {
+   "date": "2026-10-01",
+   "what": "AI cost controls: Ask and Voice switches, daily Claude budget with free fallback"
+  }
+ ],
+ "studies": [
+  {
+   "id": "R2",
+   "title": "Other traders' trades (Hyperliquid)",
+   "date": "2026-09-30",
+   "runs": "once (a study, not a daily job)",
+   "accounts_sampled": 65,
+   "excluded_bots": 6,
+   "accounts_trading_our_coins": 37,
+   "round_trips": 7441,
+   "long": 5815,
+   "short": 1626,
+   "period": "Sep 2024 - Jul 2026",
+   "our_setups_silent_before_their_buys_pct": 75,
+   "their_timing_edge": "+0.06% in the first hour (about a tenth of costs)",
+   "skill_persisted": false,
+   "what_we_did": "Nothing copied. Their one pattern (buying weakness did better) was tested in review #3 on 2017-2023 data.",
+   "files": [
+    "docs/repair_shop/REVIEW_2.md",
+    "docs/repair_shop/REVIEW_2_RESULTS.md"
+   ]
+  }
+ ],
+ "modes": [
+  {
+   "id": "W1",
+   "since": "2026-10-03",
+   "decided_by": "owner",
+   "what": "Paper wide mode: E6 dips traded on paper; up to 3 trades per coin per type when at least 2 four-hour ranges apart; 60 entries a day",
+   "why": "More paper evidence per day (Q1 needed ~2 weeks at the old pace). Same $100 size, exits and warning bells.",
+   "watch_out": "Trades on the same coin at the same moment repeat one result: read 'independent events', not just the trade count."
+  }
+ ]
 }

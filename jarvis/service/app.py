@@ -239,6 +239,11 @@ def ev_forwarded(who: str = Depends(owner)) -> dict:
     return views.evidence_forwarded(J())
 
 
+@app.get("/v3/evidence/pipeline")
+def ev_pipeline(who: str = Depends(owner)) -> dict:
+    return views.evidence_pipeline(J())
+
+
 @app.get("/v3/cockpit")
 def cockpit(who: str = Depends(owner)) -> dict:
     return views.cockpit(J())

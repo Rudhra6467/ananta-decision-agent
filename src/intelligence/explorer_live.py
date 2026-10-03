@@ -28,7 +28,7 @@ from src.intelligence import portfolio_layer as pl
 
 VERSION = "explorer.live.v0.1"
 START_CAPITAL = 2000.0
-MAX_OPEN, MAX_DAY = 20, 30            # N4
+MAX_OPEN, MAX_DAY = 20, 60            # N4 (20 open = the $2,000 account at $100 each; 60 entries a day since wide mode)
 WARM_LIMITS = {"1d": 540, "4h": 300, "1h": 750, "30m": 719, "15m": 719, "5m": 719}
 STEP_LIMITS = {"1d": 3, "4h": 4, "1h": 6, "30m": 8, "15m": 12, "5m": 36}
 REPORT_HOUR_LOCAL = 21
@@ -372,6 +372,7 @@ class Explorer:
                              "suggestion": sug, "why": "; ".join(why)})
         realized = self.store.book.execute("SELECT COALESCE(SUM(net),0), COUNT(*) FROM trades WHERE shadow=''").fetchone()
         return {"version": VERSION, "rulebook": xe.RULEBOOK, "trade_from": _utc(self.st["trade_from_t"]), "kill_switch": self.st.get("kill"),
+                "rules_log": [{**r, "from": _utc(r["from_t"])} for r in self.st.get("rules_log", [])],
                 "equity": round(START_CAPITAL + realized[0] + unreal, 2), "realized_usd": round(realized[0], 2), "closed_trades": realized[1],
                 "unrealized_usd": round(unreal, 2), "open": rows,
                 "pending_orders": [{"coin": o.coin, "setup": o.setup, "type": o.typ, "limit": o.limit, "expires": _utc(o.expires_t)}
@@ -525,6 +526,7 @@ def reconstruct(base: Path | str = ".") -> dict:
     for coin in ORDER:
         eng = xe.CoinEngine(coin, trade_from_t=live["trade_from_t"])
         eng.attach(btc_ctx=ctx, on_event=lambda e: rebuilt.append(e))
+        eng.schedule = list(getattr(live["engines"].get(coin), "schedule", None) or [(0, xe.RULES_V0)])   # the same rules at the same times
         bars = store.load_bars(coin)
         ev = events_of(bars)
         i = 0
@@ -618,6 +620,24 @@ def portfolio_cli(args: list[str]) -> None:
         raise SystemExit("portfolio [status] | approve ID..|all --by NAME | reject ID..|all --by NAME | mode suggest|auto --by NAME")
 
 
+def widen(ruleset: str = "W1", base: Path | str = ".", now: float | None = None) -> dict:
+    """Switch the live paper Explorer to another ruleset from the next 15-minute scan on (owner's decision).
+    Earlier decisions keep their old rules, so the nightly rebuild still replays history exactly.
+    The running Explorer must be stopped first (it would overwrite the saved state)."""
+    rules = xe.RULESETS[ruleset]
+    path = Path(base) / "explorer_state.pkl"
+    st = pickle.loads(path.read_bytes())
+    now = time.time() if now is None else now
+    t0 = int(now // 900) * 900 + 900
+    for eng in st["engines"].values():
+        sched = list(getattr(eng, "schedule", None) or [(0, getattr(eng, "rules", xe.RULES_V0))])
+        sched = [x for x in sched if x[0] < t0] + [(t0, rules)]
+        eng.schedule = sched
+    st.setdefault("rules_log", []).append({"from_t": t0, "rules": ruleset, "set_at": now})
+    path.write_bytes(pickle.dumps(st))
+    return {"rules": ruleset, "from": _utc(t0), "coins": len(st["engines"])}
+
+
 def main(argv=None) -> None:
     cmd = (argv or sys.argv[1:] or ["status"])[0]
     if cmd == "run":
@@ -632,8 +652,10 @@ def main(argv=None) -> None:
         print(weekly())
     elif cmd == "portfolio":
         portfolio_cli((argv or sys.argv[1:])[1:])
+    elif cmd == "widen":
+        print(json.dumps(widen(((argv or sys.argv[1:]) + ["W1"])[1]), indent=1))
     else:
-        raise SystemExit(f"unknown command {cmd!r}: use run | status | report | reconstruct | weekly")
+        raise SystemExit(f"unknown command {cmd!r}: use run | status | report | reconstruct | weekly | widen [RULESET]")
 
 
 if __name__ == "__main__":

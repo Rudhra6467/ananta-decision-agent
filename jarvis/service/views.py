@@ -750,7 +750,11 @@ def evidence_pipeline(j) -> dict:
     # 6. repair shop (with live progress for each waiting question)
     progress = {"closed_trades": len(real) + len(wouldbe), "weekly_rebalances": t3_weeks,
                 "e5_trades": sum(1 for r in real if r["setup"] == "E5"), "stable_positive_sightings": 0}
-    queue = [{**q, "have": progress.get(q.get("metric")), "note": "real + tracked would-be trades" if q.get("metric") == "closed_trades" else None}
+    ev = _events_count(real + wouldbe)
+    queue = [{**q, "have": progress.get(q.get("metric")),
+              "note": (f"real + would-be trades; they come from only {ev} independent market move{'s' if ev != 1 else ''}, "
+                       "so the test also waits for enough separate moves") if q.get("metric") == "closed_trades" else None,
+              "events": ev if q.get("metric") == "closed_trades" else None}
              for q in led.get("queue", [])]
     shop = {"reviews": [{k: r.get(k) for k in ("id", "date", "status", "verdict", "title", "forwarded_because", "question", "result", "changed")}
                         for r in led.get("reviews", [])],

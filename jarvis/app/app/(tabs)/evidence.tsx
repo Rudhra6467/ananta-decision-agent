@@ -154,6 +154,7 @@ export default function Evidence() {
               right={q.goal ? <Text style={{ color: C.text, fontWeight: "700" }}>{q.have ?? 0}<Text style={{ color: C.faint, fontWeight: "400" }}> / {q.goal}</Text></Text> : undefined}>
               <T>{q.why}</T>
               {q.note ? <T small>Counting {q.note}.</T> : null}
+              {q.events != null ? <Line label="Independent market moves" value={String(q.events)} /> : null}
             </Expand>
             {q.goal ? <Progress value={Math.min(q.have ?? 0, q.goal)} of={q.goal} /> : null}
           </View>

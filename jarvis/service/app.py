@@ -340,6 +340,14 @@ def chain_board(who: str = Depends(owner)) -> dict:
     return chain.board(J())
 
 
+@app.get("/v3/layers")
+def layers_board(who: str = Depends(owner)) -> dict:
+    """The layer map: every part of Ananta, its layer, status, whether it may act, and the known gaps."""
+    from jarvis.service import layers
+
+    return layers.board(J().dir)
+
+
 @app.get("/v3/reads")
 def reads_board(who: str = Depends(owner)) -> dict:
     """Madhav's three buy setups (capitulation, higher-low retest, quiet base) on every coin at the last daily close."""

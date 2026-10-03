@@ -152,3 +152,29 @@ def test_watch_records_each_fire_once_and_rings_only_supported_reads(tmp_path):
         assert W.watch(j, push=lambda t, m: pushed.append((t, m)), check_news=news) == []      # same fire: not again
         assert len(W.recent(j)) == len(out)
         W._status = orig
+
+
+def test_layer_map_is_consistent_and_the_switch_works():
+    import json as _json
+    import pathlib
+
+    from jarvis.service import layers as LY
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    m = _json.loads((root / "docs" / "knowledge" / "layers.json").read_text())
+    ids = {c["id"] for c in m["components"]}
+    assert len(ids) == len(m["components"]), "duplicate ids"
+    status = set(m["meaning"]["status"])
+    for c in m["components"]:
+        assert 0 <= c["layer"] <= 8 and c["status"] in status, c["id"]
+        for k in ("depends_on", "feeds"):
+            assert set(c[k]) <= ids, (c["id"], k, set(c[k]) - ids)
+        for f in c["files"]:
+            assert (root / f).exists(), (c["id"], f)
+        if c["status"] in ("DROPPED", "PLANNED", "EVIDENCE_ONLY"):
+            assert not c["acts"], f"{c['id']} is {c['status']} but marked as acting"
+    assert LY.allowed("T3", root) and not LY.allowed("READS", root) and not LY.allowed("ZONES", root) and not LY.allowed("NOPE", root)
+    t3 = LY.component("T3", root)
+    assert "REGIME" in t3["everything_it_rests_on"] and "DATA_5M" in t3["everything_it_rests_on"]
+    assert "CHAIN" in LY.component("REGIME", root)["everything_that_would_feel_a_failure"]
+    assert [l["n"] for l in LY.board(root)["layers"]] == list(range(9))

@@ -9,6 +9,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 
 ## How Ananta reasons
 - `knowledge/FRAMEWORK.md`: Madhav's framework: decision chain Regime > Location > Trigger > Invalidation > Risk > Exposure, fail-closed, structural stops, signals as evidence, how to talk (simple first). Open for any "why no trade / how do you decide" question.
+- `knowledge/layers.json`: the layer map: every part of Ananta in 9 layers (0 Madhav and safety ... 8 interface) with status, whether it may act, what it rests on and feeds, and the known gaps. Open for "how do the parts connect".
 - `knowledge/hypotheses.json`: every teacher idea (H01-H18) and policy (P01-P03) with its source, test status and what our data said. Open for "is X true / does X work".
 - `VARIABLE_REGISTRY.md`: variables Ananta tested itself (KEEP / WATCH / DROP / UNTESTED), the strongest evidence class. Open for "what do we know for sure".
 - `knowledge/READS.md`: Madhav's three buy setups (capitulation at the lows, higher-low retest, quiet base) as live reads, and what history said about each.

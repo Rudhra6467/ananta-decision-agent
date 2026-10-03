@@ -44,6 +44,26 @@ INSIDE starts the lookout; HELD / BROKEN end it. Live, the lookout is where Anan
   z-score of at least 2 over market events, and in CONFIRM by more than 0. **STRONG must beat NEW** for strength to count.
 - Every group is reported, pass or fail. Changes to thresholds are new, counted variants.
 
+### Amendment 1 (2026-10-03, before any run on real data): the random baseline
+A check on synthetic random walks (where no zone can have an edge) showed the baseline above was not neutral: random-walk
+"zones" scored up to −14 points against it, because the pseudo-zones were entered later and under different conditions.
+Replaced with: **RANDOM bands** of the same widths as the real zones, at random prices within ±35% of the price, refreshed with
+the zone map and run through the **identical** event rule (approach from above, 3 closes above, first entry). Because band width
+changes how easily a band holds, each event is compared with RANDOM bands of the **same width in ATR** (bins: under 0.75,
+0.75-1.5, 1.5-3, 3+). z is over market events (each one's held share minus its width-matched random rate). Thresholds unchanged.
+The random-walk check is kept as a test, and the real run happens only after it shows no edge for any group.
+
+### Amendment 2 (2026-10-03, before any run on real data): correct for the measurement's own bias
+The random-walk check (10 synthetic walks, `docs/research/zones_rw_calibration.json`) showed no group with a positive edge
+(none would falsely pass), but a **negative** bias: on pure noise the zone groups scored 3 to 12 points below the random bands
+(AVERAGE-200 −11.8, AVERAGE-50 −7.9, CONFLUENCE −5.7, SWING −3 to −5; BASE +5.7 on 33 events). A test that starts several
+points behind would wrongly fail real zones. So each group's DISCOVERY edge is judged **after subtracting its random-walk edge**:
+pass = corrected edge ≥ 8 points and corrected z ≥ 2 (corrected z = corrected edge / the real run's standard error).
+CONFIRM: corrected edge > 0. Raw and corrected numbers are both reported. The calibration file is frozen.
+A smaller noise check (3 walks) also showed that a small group can reach +20 points with z 2.07 by luck (EXTREME, 25 events).
+With 8 groups compared, z ≥ 2 lets about one in six studies pass something by chance. So the DISCOVERY bar becomes
+**at least 30 market events and corrected z ≥ 2.5** (about a 5% chance of any false pass across the 8 groups); 8 points unchanged.
+
 ## 5. Studies to redo with zones (after review #6, in this order)
 | # | Earlier study | Zone question |
 |---|---|---|

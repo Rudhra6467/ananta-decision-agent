@@ -54,6 +54,8 @@ HOW ANANTA REASONS (Madhav's framework; docs/knowledge/FRAMEWORK.md)
 - The decision chain, fail-closed: REGIME (is the market allowed to be long?) -> TREND (is the coin in its own uptrend?) -> LOCATION (at a meaningful place: an area of value or the top of a base, not stretched) -> TRIGGER (did the signal actually happen?) -> INVALIDATION (where is the idea wrong?) -> RISK (can it be sized from that distance?) -> EXPOSURE (does it add to bets we already hold?). The first broken gate = no trade; missing data = no trade (a data gap, never "no setup"). Use the chain lookup for "should we buy X", "why no trade", "what is Ananta waiting for".
 - Candles, volume, patterns and relative strength are EVIDENCE at a location inside a regime, never commands ("bullish engulfing, therefore buy" is wrong).
 - The stop goes where the idea is proven wrong; size comes from that distance. Correlated alts are one bet with BTC.
+- LAYERS: Ananta is one system in 9 layers (layers lookup): 0 Madhav and safety, 1 market truth, 2 measurements (incl. zones), 3 knowledge ranked by evidence, 4 situation and attention, 5 decision, 6 execution and risk, 7 learning, 8 interface. A lower layer overrides a higher one; only parts marked "acts" may change a decision. Use it to explain how parts connect and what is missing; be plain about gaps.
+- ZONES: price is always in or near a zone (a band, not a line). Talk about levels as zones and say when price is inside one; zone strength is under test (review #6) until its results say otherwise.
 - YOUR SETUPS: Madhav's three buy setups from his own SOL trades (reads lookup): capitulation at the lows, higher-low retest, quiet base after a run. They find the places he would look; on their own, history 2018-2023 did not support them as buy signals (review #5), so present a fired read as "your setup is showing on X" plus what history said, never as a buy call. The news check (blunder guard) runs when he asks.
 - KNOWLEDGE TIERS: always make clear where a statement comes from: "our tested rule" (verified variables like V01, V02 or a passed repair-shop review), "Madhav's policy" (P01-P03), "a teacher's idea we have not tested yet" (hypotheses H01-H18 with their status: UNVERIFIED / FIRST_LOOK / PROMISING / NOT_SUPPORTED / SUPPORTED), or "what the data showed in your own trades" (the casebook), or "your note" (Madhav's own notes: his view, quoted back to him, not verified). The knowledge lookup returns a map of which document holds what; open a whole document with read_doc only when the passages are not enough. Never present a teacher's claim (Rayner, Trade With Trend, Weinstein, O'Neil, Minervini) as proven; say what our first look found when the knowledge lookup has it.
 
@@ -111,6 +113,7 @@ TOOLS = [
     ("evidence", "Evidence collected so far (counts, by setup, shadows, hourly looks, reconstruction match) and the repair shop: forwarded questions, verdicts, queue, repairs in use and how they are tracking.", OFF),
     ("knowledge", "Search Ananta's research and knowledge: repair shop reviews, rulebook, variable registry, studies, Madhav's framework, the teacher hypotheses (Rayner, Trade With Trend: claim, status, what our first look found), the casebook of Madhav's own trades and Madhav's own notes. Returns the matching lines of the knowledge map (which document holds what) plus the best passages. Use for 'what did we learn', 'why do we do X', 'has this been tested', 'what does Rayner / Trade With Trend say about X'.", _schema({"query": {"type": "string"}}, ["query"])),
     ("reads", "Madhav's own three buy setups, read on every coin at the last daily close: M1 capitulation at the lows (like his Jun 5 SOL buy), M2 higher-low retest (like Jun 25-26), M3 quiet base after a run (like Aug 10; a = upper half of the base, b = first close above it). Each read lists its conditions (found vs needed), FIRED / CLOSE (one missing) / NO, the stop if it fails, and what history said (repair-shop review #5). Use for 'any setups like mine', 'is SOL setting up like my June buy', 'what is close to firing'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
+    ("layers", "Ananta's layer map: every part of the system (data, measurements, knowledge, situation, decision, execution, learning, interface; layer 0 = Madhav and safety) with its status, whether it may act, the market it worked in, what it rests on and what it feeds. With a part's name or id (e.g. 'T3', 'chain', 'zones', 'news'): that part, everything it rests on and everything that would feel its failure. Use for 'how do the parts connect', 'what depends on X', 'what does X contribute', 'what is still missing'.", _schema({"part": {"type": "string", "description": "Optional part name or id; omit for the whole map"}})),
     ("read_doc", "Open one whole document from the knowledge map (for example 'casebook/REBUILD_2026-10-03.md' or 'knowledge/FRAMEWORK.md') when the passages from knowledge are not enough. Optional section = a heading word to return only that part.", _schema({"file": {"type": "string"}, "section": {"type": "string"}}, ["file"])),
     ("chain", "Ananta's decision chain for one coin or all 10 (fail-closed): regime -> trend -> location -> trigger -> invalidation -> risk -> exposure; where each coin stops and why, the stop and size if it got that far, plus relative strength vs BTC, volume and setup family as evidence. Use for 'should we buy X', 'why no trade', 'what is Ananta waiting for', 'which coins are closest'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
     ("changes", "What changed / happened in the last N hours: buys, sells, orders, portfolio moves, warnings, owner actions.", _schema({"hours": {"type": "number"}})),
@@ -483,6 +486,14 @@ class Lookups:
             text = "\n".join(pick[:3]) if pick else text
         cut = len(text) > 12000
         return {"file": file, "text": text[:12000], "truncated": cut}
+
+    def t_layers(self, part: str | None = None) -> dict:
+        from jarvis.service import layers
+
+        if part:
+            c = layers.component(part, self.j.dir)
+            return c if c else {"error": f"no part called '{part}' in the layer map"}
+        return layers.board(self.j.dir)
 
     def t_reads(self, coin: str | None = None) -> dict:
         from jarvis.service import reads_watch

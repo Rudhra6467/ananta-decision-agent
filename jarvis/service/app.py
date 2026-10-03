@@ -25,7 +25,7 @@ import threading as _threading  # noqa: E402
 _SANDBOX: contextvars.ContextVar[str | None] = contextvars.ContextVar("jarvis_sandbox", default=None)
 _JG: dict[str, core.Jarvis] = {}
 _JG_LOCK = _threading.Lock()
-SHARED_TABLES = ("snapshots", "briefings", "read_fires", "zone_visits", "news_log", "credit_records")   # read-only system history the guest should see too (copied, never written back)
+SHARED_TABLES = ("snapshots", "briefings", "read_fires", "zone_visits", "news_log", "credit_records", "shadow_h07")   # read-only system history the guest should see too (copied, never written back)
 
 
 def _main() -> core.Jarvis:
@@ -53,6 +53,9 @@ def _sync_shared(g: core.Jarvis) -> None:
     from jarvis.service import credit
 
     credit._table(g)
+    from jarvis.service import shadow_h07
+
+    shadow_h07._table(g)
     md = Mandate(g.db, g.now)
     for tbl in SHARED_TABLES:
         try:
@@ -375,6 +378,14 @@ def zones_coin(coin: str, who: str = Depends(owner)) -> dict:
     return r
 
 
+@app.get("/v3/shadow/h07")
+def shadow_h07_report(who: str = Depends(owner)) -> dict:
+    """The short dip trade (H07) paper shadow: every signal since it started, its paper entry, exit and result."""
+    from jarvis.service import shadow_h07
+
+    return shadow_h07.report(J())
+
+
 @app.get("/v3/credit")
 def credit_report(who: str = Depends(owner)) -> dict:
     """Credit tracking: what each layer said at every daily close, and how the next 20 days went with and without it."""
@@ -606,6 +617,12 @@ def background_jobs() -> dict:
         out["news"] = news_watch.watch(J())
     except Exception as exc:  # noqa: BLE001
         out["news_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import shadow_h07
+
+        out["shadow_h07"] = shadow_h07.watch(J())
+    except Exception as exc:  # noqa: BLE001
+        out["shadow_h07_error"] = str(exc)[:200]
     try:
         from jarvis.service import credit
 

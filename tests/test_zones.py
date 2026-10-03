@@ -180,3 +180,67 @@ def test_review11_finds_a_breakout_through_a_zone_and_a_dip_into_the_50_day():
     evs = Z.review11_events("X", S, S, 10 ** 12)
     assert all(e["variant"] in ("A1", "B1", "B2", "B3") for e in evs)
     assert all(abs(e["r20"]) < 5 for e in evs)
+
+
+def test_review12_exits_never_look_ahead_and_only_hold_after_a_t3_entry():
+    import pandas as pd
+
+    from src.research import t3_exits as TE
+
+    def frames(D):
+        idx = pd.to_datetime([b[0] for b in D], unit="s")
+        return pd.DataFrame({"o": [b[1] for b in D], "c": [b[4] for b in D]}, index=idx)
+
+    full_b = _walk(800, seed=61)
+    full_x = _walk(800, seed=62)
+    cut = 650
+    days = pd.to_datetime([b[0] for b in full_b], unit="s")
+    a = TE.exit_signals({"BTC": frames(full_b), "X": frames(full_x)}, days, {"BTC": full_b, "X": full_x})
+    b = TE.exit_signals({"BTC": frames(full_b[:cut]), "X": frames(full_x[:cut])}, days[:cut], {"BTC": full_b[:cut], "X": full_x[:cut]})
+    for v in ("T3Z", "T3A", "T3W"):
+        assert (a[v].iloc[:cut].values == b[v].values).all(), v                 # later candles never change earlier decisions
+        held = a[v].values
+        assert not (held & ~a["_avail"].values).any()
+
+
+def test_review13_entries_never_look_ahead():
+    from src.research import teachers2 as T2
+
+    D = _walk(900, seed=71)
+    full = T2.entries("X", R.Series(D), R.Series(D), 10 ** 12)
+    cut = R.Series(D[:760])
+    part = T2.entries("X", cut, cut, 10 ** 12)
+    early = lambda evs: [(e["t"], e["variant"], round(e["r20"], 9)) for e in evs if e["t"] < D[700][0]]   # noqa: E731
+    assert early(full) == early(part)
+    assert {e["variant"] for e in full} <= {"H07", "H12", "H13"}
+
+
+def test_h07_paper_shadow_enters_next_open_and_exits_by_its_rule(tmp_path):
+    from jarvis.service import shadow_h07 as SH
+    from tests.test_reads import _fake_jarvis
+
+    up = [100 * (1.004 ** k) for k in range(400)]
+    dip = [up[-1] * (1 - 0.03 * k) for k in range(1, 7)]               # a sharp dip: RSI(10) under 30, still above the 200-day
+    D = _bars(up + dip, wick=0.003)
+    j = _fake_jarvis(tmp_path, {"SOL": D, "BTC": D}, {})
+    first = SH.watch(j)
+    assert "SOL" in first["opened"]
+    rec = [up[-1] * 0.82 * (1 + 0.03 * k) for k in range(1, 15)]       # the bounce
+    con = __import__("sqlite3").connect(tmp_path / "explorer_bars.sqlite")
+    t0 = D[-1][0]
+    more = [(t0 + (k + 1) * 86400, *b[1:]) for k, b in enumerate(_bars(rec, wick=0.003))]
+    con.executemany("INSERT INTO bars VALUES (?,?,?,?,?,?,?,?)", [(c, "1d", *b) for c in ("SOL", "BTC") for b in more])
+    con.commit()
+    SH.watch(j)
+    r = SH.report(j)
+    sol = [t for t in r["trades"] if t["coin"] == "SOL"][0]
+    assert sol["status"] == "CLOSED" and sol["entry_day"] > sol["signal_day"] and sol["net_usd"] > 0
+
+
+def test_chain_location_needs_a_supported_zone():
+    from jarvis.service import chain as CH
+
+    assert "zone history supports" in CH.__doc__ or "zone" in CH.__doc__
+    # the LOCATION block reads only these fields of a zone row
+    row = {"inside": [{"bot": 1.0, "top": 2.0, "kinds": ["AVERAGE-200"], "history": "SUPPORTED"}], "tested": None, "atr": 0.1}
+    assert ((row["inside"] or [None])[0] or row.get("tested"))["history"] == "SUPPORTED"

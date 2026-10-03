@@ -424,7 +424,12 @@
     "docs/knowledge/teachers/trade_with_trend.md",
     "docs/knowledge/teachers/rayner_teo.md",
     "src/research/teachers.py",
-    "src/research/teacher_systems.py"
+    "src/research/teacher_systems.py",
+    "src/research/teachers2.py",
+    "docs/research/REVIEW_13.md",
+    "docs/research/REVIEW_13_RESULTS.md",
+    "docs/research/REVIEW_14.md",
+    "docs/research/REVIEW_14_RESULTS.md"
    ]
   },
   {
@@ -552,18 +557,20 @@
    "acts": false,
    "regime": "ALL",
    "depends_on": [
-    "REGIME",
-    "TREND",
+    "EXPOSURE",
     "INDICATORS",
-    "TEACHERS",
+    "REGIME",
     "SIZING",
-    "EXPOSURE"
+    "TEACHERS",
+    "TREND",
+    "ZONES",
+    "ZONE_STATE"
    ],
    "feeds": [
     "ASK",
     "APP"
    ],
-   "evidence": "explains; not joined to the Explorer yet (BACKLOG A2)",
+   "evidence": "explains; not joined to the Explorer yet (BACKLOG A2); LOCATION and the stop now use zones history supports (Madhav's OK 2026-10-03)",
    "files": [
     "jarvis/service/chain.py"
    ]
@@ -643,7 +650,7 @@
     "INDICATORS"
    ],
    "feeds": [],
-   "evidence": "PROMISING first look; needs a pre-registered test",
+   "evidence": "PROMISING first look; needs a pre-registered test; the related H07 runs as a paper shadow (H07_SHADOW)",
    "files": [
     "src/research/teacher_systems.py"
    ]
@@ -687,11 +694,14 @@
    "feeds": [
     "EVIDENCE"
    ],
-   "evidence": "review #4 PASS: +13% vs buy-and-hold -22% (2024-26), half the drawdown",
+   "evidence": "review #4 PASS: +13% vs buy-and-hold -22% (2024-26), half the drawdown; review #12: its tight 20-day exit beat zone/ATR/50-day trails in 2024-26 (+13% vs -7% to -26%), though they won big in 2018-23",
    "files": [
     "src/intelligence/portfolio_layer.py",
     "docs/repair_shop/REVIEW_4_RESULTS.md",
-    "src/research/portfolio_trend.py"
+    "src/research/portfolio_trend.py",
+    "src/research/t3_exits.py",
+    "docs/research/REVIEW_12.md",
+    "docs/research/REVIEW_12_RESULTS.md"
    ]
   },
   {
@@ -874,7 +884,15 @@
     "docs/research/REVIEW_10.md",
     "docs/research/REVIEW_10_RESULTS.md",
     "docs/research/REVIEW_11.md",
-    "docs/research/REVIEW_11_RESULTS.md"
+    "docs/research/REVIEW_11_RESULTS.md",
+    "src/research/t3_exits.py",
+    "docs/research/REVIEW_12.md",
+    "docs/research/REVIEW_12_RESULTS.md",
+    "src/research/teachers2.py",
+    "docs/research/REVIEW_13.md",
+    "docs/research/REVIEW_13_RESULTS.md",
+    "docs/research/REVIEW_14.md",
+    "docs/research/REVIEW_14_RESULTS.md"
    ]
   },
   {
@@ -987,7 +1005,7 @@
    "feeds": [
     "MADHAV"
    ],
-   "evidence": "your setups ring only when history supports them",
+   "evidence": "your setups ring only when history supports them; rings for supported reads and, by Madhav's choice, the retest with the market allowed (M2a-G) and H07",
    "files": [
     "jarvis/service/alerts.py",
     "jarvis/service/briefs.py"
@@ -1187,6 +1205,28 @@
     "src/tools/market_tools.py",
     "src/tools/market_truth.py",
     "src/tools/outcome_truth.py"
+   ]
+  },
+  {
+   "id": "H07_SHADOW",
+   "name": "Short dip trade (H07) paper shadow",
+   "layer": 6,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "READS",
+    "LIVE_BARS",
+    "COSTS"
+   ],
+   "feeds": [
+    "EVIDENCE",
+    "ALERTS"
+   ],
+   "evidence": "review #14: beat ordinary uptrend days with the same exit in both periods, a few events short of the bar; paper only from 2026-10-03 (Madhav's OK)",
+   "files": [
+    "jarvis/service/shadow_h07.py",
+    "docs/research/REVIEW_14_RESULTS.md"
    ]
   }
  ],

@@ -53,3 +53,8 @@ words Ananta understands and can describe as observations, not reasons to buy.
   tested", or "what the data showed in your trades".
 - When a gate fails, say which one and why in one line ("SOL stops at LOCATION: it is 12% above its 50-day average, so it is
   stretched; we wait for it to come back to value").
+
+
+## Update 2026-10-03 (Madhav's OK)
+- LOCATION now means **price at a kind of zone history supports** (200-day average, overlapping zones, new swing zones; review #6), with the market gate first (review #7). The earlier rule (near the 20/50-day, not stretched; H11) was not supported in review #11.
+- The stop at a zone is a daily close 0.5 daily range under the zone (reviews #6, #10); elsewhere the structure rule (H14) remains.

@@ -108,7 +108,7 @@ def test_history_counts_events_not_coins_and_live_summary():
     assert abs(s["mean_excess30_pct"] - 5.0) < 1e-6                 # events: mean(0.1, 0.3) = 0.2 and -0.1
     assert R.verdict({"events": 3}, {"events": 5}) == "INSUFFICIENT"
     live = R.read_coin(D, D, {"M1a": "SUPPORTED"})
-    assert [r["variant"] for r in live["reads"]] == ["M1a", "M2a", "M2a-G", "M3a", "M3b"]
+    assert [r["variant"] for r in live["reads"]] == ["M1a", "M2a", "M2a-G", "M3a", "M3b", "H07"]
     assert all(r["state"] in ("FIRED", "CLOSE", "NO", "NO_DATA") for r in live["reads"])
     assert live["reads"][0]["history"] == "SUPPORTED"
 

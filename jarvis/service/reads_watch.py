@@ -17,6 +17,7 @@ from pathlib import Path
 
 NAMES = {"BTC": "Bitcoin", "ETH": "Ethereum", "SOL": "Solana", "ADA": "Cardano", "DOGE": "Dogecoin", "AVAX": "Avalanche",
          "BCH": "Bitcoin Cash", "LINK": "Chainlink", "LTC": "Litecoin", "XRP": "XRP"}
+ALERT_ALSO = {"M2a-G", "H07"}          # Madhav 2026-10-03: ring the phone for these too (most promising, still few cases)
 NEWS_NAMES = {"AVAX": "AVAX"}          # "Avalanche" alone finds the hockey team (seen 2026-10-03)
 STATUS_WORDS = {"SUPPORTED": "history supports it", "NOT_SUPPORTED": "history did not support it (2018-2023)",
                 "NOT_CONFIRMED": "worked 2018-2023, not since", "INSUFFICIENT": "too few cases in history to judge",
@@ -145,11 +146,12 @@ def watch(j, push=None, check_news=news_check) -> list[dict]:
         hist = STATUS_WORDS.get(st, "not tested yet")
         # Review #5's rule: only a read history SUPPORTS rings the phone (with the news check as the last look).
         # The others are recorded and shown in the app; the news check runs there when Madhav taps it.
-        loud = st == "SUPPORTED"
+        loud = st == "SUPPORTED" or v in ALERT_ALSO
         news = check_news(j, c) if loud else {"verdict": "NOT_CHECKED", "why": "Tap 'Check the news' on the coin page to run it."}
         msg = (f"{c}: {row['name']} ({row['like']}). All {row['of']} signs are there at the {b['day']} close. "
                + (f"News check: {news.get('verdict')}{' - ' + news['why'] if news.get('why') else ''} " if loud else "")
-               + f"History: {hist}. Stop if it fails: {row['stop_pct']:+.1f}%. Evidence, not an order.")
+               + f"History: {hist}. " + (f"Stop if it fails: {row['stop_pct']:+.1f}%. " if row.get("stop_pct") is not None else f"Exit: {row['like']}. ")
+               + "Evidence, not an order.")
         j.db.execute("INSERT INTO read_fires VALUES (?,?,?,?,?,?,?,?,?)",
                      (uuid.uuid4().hex, int(j.now()), b["day"], c, v, row["name"], status.get(v, "UNTESTED"), json.dumps(news), msg))
         j.db.commit()

@@ -8,7 +8,7 @@ Last updated 2026-10-03.
 1. DONE v1, 2026-10-03 (switch step: the Explorer does not read it yet) **Layer map the agent reads** (`docs/knowledge/layers.json`): every component with its layer (0 authority ... 8 interface),
    what it depends on, what it feeds, its status, its evidence, the market it works in (regime), and the file that implements it.
    Statuses become switches: code asks the map whether a component is allowed before using it.
-2. DOING (first step: Explorer trades are joined to the day's layer record in credit tracking) **Join the two brains**: the decision chain (how Ananta reasons) and the Explorer (what it paper-trades) share one
+2. DONE v1 2026-10-03 (each paper trade shows what the reasoning layers said at the close before the buy; credit tracking joins them) **Join the two brains**: the decision chain (how Ananta reasons) and the Explorer (what it paper-trades) share one
    decision record; every Explorer entry shows where it stood on the chain.
 3. DONE v1 2026-10-03 (records every coin at each close, scores 20 days later, joins Explorer trades; Evidence page and Ask) **Credit tracking**: each decision and paper trade records which layers moved it; the learning layer scores each
    component over time (which ones earn their keep, in which market).
@@ -23,23 +23,24 @@ Last updated 2026-10-03.
    starts the lookout: chain, your setups, news check, what the knowledge says about this zone type, a plan (confirm / wrong / size).
    Outside zones Ananta stays quiet and cheap.
 4. DONE 2026-10-03 **Review #7, the lookout**: only the market regime (BTC above its 50-day) separated held from broken (68% vs 50%); wick, close-back, volume, divergence, relative strength added nothing beyond arithmetic (`research/REVIEW_7_RESULTS.md`). Attention ranking (HIGH / WATCH / LOW) and the playbook (`knowledge/PLAYBOOK.md`) are live; every code file is on the layer map (test).
-5. DOING **Redo every study that ignored zones**: done so far: your setups (review #8: retest with the market allowed most promising, insufficient), Explorer setups (review #9: zones do not help hours-long trades). Exits (review #10: a target at the next zone cuts winners; FAIL). Teacher ideas as zones (review #11: 50-day dip worse than average; breakouts on volume positive but not reliable; FAIL). Next: trailing stop under each held zone vs T3's rule; zone context for the intraday atlas and the reconstruction of other traders. (list and order in the program document, section 5).
+5. DONE 2026-10-03 **Redo every study that ignored zones**: done so far: your setups (review #8: retest with the market allowed most promising, insufficient), Explorer setups (review #9: zones do not help hours-long trades). Exits (review #10: a target at the next zone cuts winners; FAIL). Teacher ideas as zones (review #11: 50-day dip worse than average; breakouts on volume positive but not reliable; FAIL). Trailing stops vs T3 (review #12: T3's exit stays). Intraday atlas and other traders' reconstruction with zones: closed without a run, because review #9 showed daily zones do not change hours-long trades and both are hours-long. (list and order in the program document, section 5).
 
 ## C0. Consequence to fix
-- TODO The decision chain's LOCATION gate uses H11 (near the 20/50-day average, not stretched), which review #11 did not support.
+- DONE 2026-10-03 (Madhav's OK): LOCATION now asks for a zone history supports; the stop at a zone is a close 0.5 daily range under it.
+  Was: the decision chain's LOCATION gate uses H11 (near the 20/50-day average, not stretched), which review #11 did not support.
   Proposal for Madhav: LOCATION = at a zone of a kind history supports (review #6), with the market gate first (review #7). Needs his OK
   because it changes how Ananta explains every coin.
 
 ## C. Teacher ideas not yet tested
-1. TODO H07-H17 and P03 (RSI dips, relative strength, volume on breakouts, tight bases, pullbacks to the 50-day, first pullback after a
+1. DONE 2026-10-03 (reviews #11-#14: H07 promising and recorded live; H10, H11, H12, H13, H15, P03 not supported; H16 insufficient; H14, H17 untested: H14 is the chain's stop rule, H17 waits for entries worth staging) H07-H17 and P03 (RSI dips, relative strength, volume on breakouts, tight bases, pullbacks to the 50-day, first pullback after a
    breakout, false breaks, ATR stops, trailing stops, breadth, scaling in, book-level stop). Most become zone questions (B4).
-2. TODO Resolve the conflict: Raunak's tight base with drying volume (H10) vs our dropped V14/V15, which were tested only on 5m-1h.
-3. WAITING H06 (dip in an uptrend) PROMISING: needs a pre-registered test with costs and a paper shadow.
+2. DONE 2026-10-03 (daily bases tested in reviews #5, #6, #8: not supported, so the conflict resolves the same way on daily data) Resolve the conflict: Raunak's tight base with drying volume (H10) vs our dropped V14/V15, which were tested only on 5m-1h.
+3. DOING H06/H07 (dip in an uptrend) PROMISING: review #14 found H07 beat a fair baseline in both periods but 5 events short; paper shadow running from 2026-10-03 (Madhav's OK), phone alert on each fire.
 
 ## D. Your setups (review #5)
 1. WAITING Q5: 10 live fires recorded, then compare with random days and with history.
 2. TODO Combine a read with V02 and T3 timing instead of the read alone (new counted test).
-3. TODO Ask Madhav: phone alert for every fire, or only supported reads (current rule)?
+3. DONE 2026-10-03 Madhav: ring for the retest with the market allowed (M2a-G) and H07 too.
 
 ## E. News (the blunder guard)
 1. DONE 2026-10-03 Point-in-time news recorder: one verdict per coin per day (Haiku, about 10 cents a day, HIGH-attention coins first), shown in the zone lookout and Ask.

@@ -5,7 +5,7 @@
 The first broken gate is the answer ("NO TRADE: stops at LOCATION ..."). Missing data is a gate failure, never "no setup".
 Relative strength vs BTC, volume and the setup family are shown as evidence along the way; they are not gates until the repair
 shop proves they help (docs/knowledge/hypotheses.json). Every threshold names its source: a verified Ananta variable (V01, V02),
-a policy Madhav chose (P01, P02) or a teacher hypothesis (H11, H14).
+a policy Madhav chose (P01, P02), a tested zone result (reviews #6, #7, #10: LOCATION and the stop) or a teacher hypothesis (H14).
 
 Read-only: this explains how Ananta reasons. The paper Explorer still trades by its own rulebook.
 """
@@ -17,8 +17,7 @@ from typing import Any
 RISK_PCT = 0.01            # P01: risk 1% of the paper account per idea
 MAX_STOP_PCT = 0.15        # P01: a stop farther than 15% cannot be sized sensibly
 MAX_CORRELATED_LONGS = 5   # P02: at most 5 open longs that move with BTC
-EXTENDED_PCT = 0.10        # H11: more than 10% above the 50-day average = stretched
-NEAR_ATR = 1.0             # H11: 'at value' = within 1 daily ATR of the 20/50-day average or a support
+NEAR_ATR = 1.0             # setup family only (pullback): within 1 daily ATR of the 20/50-day average
 STOP_BUFFER_ATR = 1.0      # H14: stop 1 daily ATR beyond the structure
 
 GATES = [
@@ -49,7 +48,7 @@ def _pct(a: float, b: float) -> float:
     return round(100 * (a / b - 1), 1) if b else 0.0
 
 
-def evaluate(ex, coin: str, open_trades: list[dict], equity: float) -> dict:
+def evaluate(ex, coin: str, open_trades: list[dict], equity: float, zone_row: dict | None = None) -> dict:
     eng = ex.st["engines"][coin]
     btc = ex.st["engines"]["BTC"]
     d1, b1 = eng.tf["1d"], btc.tf["1d"]
@@ -77,28 +76,30 @@ def evaluate(ex, coin: str, open_trades: list[dict], equity: float) -> dict:
            + ("" if e50 >= e50_ago else ", 50-day falling"))
     gates.append(_g("TREND", up, why, "V01 verified (KEEP)", {"close": round(c, 4), "ema20": round(e20, 4), "ema50": round(e50, 4)}))
 
-    # 3 LOCATION (H11): near an area of value or at the top of a base; not stretched
+    # 3 LOCATION (reviews #6-#7, Madhav 2026-10-03): price at a kind of zone history supports.
+    # (The earlier H11 rule, "near the 20/50-day average, not stretched", was not supported in review #11.)
     lows = [x for x in _swing_lows(bars[-60:]) if x < price]
     support = max(lows) if lows else None
     hi20 = max(b[2] for b in bars[-21:-1])
-    areas = {"20-day average": e20, "50-day average": e50}
-    if support:
-        areas["recent swing low"] = support
-    near = [n for n, lvl in areas.items() if abs(price - lvl) <= NEAR_ATR * atr]
+    near = [n for n, lvl in {"20-day average": e20, "50-day average": e50}.items() if abs(price - lvl) <= NEAR_ATR * atr]
     at_base_top = price >= hi20 - 0.5 * atr
-    stretched = price / e50 - 1 > EXTENDED_PCT
-    ok = (bool(near) or at_base_top) and not stretched
-    if stretched:
-        why = f"stretched: {_pct(price, e50):+.1f}% above its 50-day average (more than {int(EXTENDED_PCT * 100)}%); wait for it to come back to value"
-    elif near:
-        why = f"at value: within 1 daily range of its {', '.join(near)}"
-    elif at_base_top:
-        why = "at the top of its 20-day range (breakout location)"
+    focus = None
+    if zone_row is None:
+        gates.append(_g("LOCATION", None, "no zone map for this coin yet (data gap)", "zones (reviews #6-#7)"))
     else:
-        why = "in the middle: not near its averages, a support, or the top of its range"
-    gates.append(_g("LOCATION", ok, why, "H11 hypothesis (teachers: area of value, do not chase)",
-                    {"vs_50d_pct": _pct(price, e50), "vs_20d_pct": _pct(price, e20), "daily_atr_pct": round(100 * atr_pct, 1),
-                     "support": round(support, 4) if support else None, "high_20d": round(hi20, 4)}))
+        focus = (zone_row.get("inside") or [None])[0] or zone_row.get("tested")
+        kinds = ("new swing" if focus and focus["kinds"] == ["SWING"] and focus.get("tier") == "NEW" else "+".join(focus["kinds"]).lower()) if focus else ""
+        ok = bool(focus and focus.get("history") == "SUPPORTED")
+        if ok:
+            why = f"at a zone history supports: {kinds} ({focus['bot']:,.6g}-{focus['top']:,.6g})"
+        elif focus:
+            why = f"at a zone ({kinds}), but not a kind history supports; wait for a 200-day, overlapping or new swing zone"
+        else:
+            ns = zone_row.get("next_support")
+            why = "between zones" + (f"; the next support zone is {ns['distance_pct']:+.1f}% away" if ns else "")
+        gates.append(_g("LOCATION", ok, why, "zones: review #6 (which kinds hold) and review #7 (market first)",
+                        {"zone": [focus["bot"], focus["top"]] if focus else None, "zone_kinds": focus["kinds"] if focus else None,
+                         "vs_50d_pct": _pct(price, e50), "daily_atr_pct": round(100 * atr_pct, 1)}))
 
     # 4 TRIGGER: an Explorer setup complete at the last 15-minute scan, or a daily close above the previous day's high
     fired: list[str] = []
@@ -113,13 +114,20 @@ def evaluate(ex, coin: str, open_trades: list[dict], equity: float) -> dict:
     gates.append(_g("TRIGGER", bool(trig), ("seen: " + ", ".join(trig)) if trig else "no trigger yet (no setup complete at the last check)",
                     "Explorer setups E1-E6 / daily strength", {"setups": fired}))
 
-    # 5 INVALIDATION (H14): structure below price, 1 daily ATR buffer
-    struct = max([x for x in (support, e50 if e50 < price else None) if x], default=None)
-    stop = struct - STOP_BUFFER_ATR * atr if struct else None
-    stop_pct = (price - stop) / price if stop else None
-    gates.append(_g("INVALIDATION", stop is not None and stop > 0,
-                    f"below {('the swing low' if struct == support else 'the 50-day average')} with a 1-ATR buffer: stop {stop:,.4g} ({100 * stop_pct:.1f}% away)"
-                    if stop else "no structure below the price to put a stop under", "H14 hypothesis (stop 1 ATR beyond structure)",
+    # 5 INVALIDATION: where the idea is wrong. At a zone: a daily close 0.5 daily range under the zone (reviews #6, #7, #10);
+    # otherwise the structure below with a 1-ATR buffer (H14).
+    if focus:
+        zatr = zone_row.get("atr") or atr
+        stop = focus["bot"] - 0.5 * zatr
+        src, what = "zone stop (reviews #6, #10)", "a daily close under the zone with a half-range buffer"
+    else:
+        struct = max([x for x in (support, e50 if e50 < price else None) if x], default=None)
+        stop = struct - STOP_BUFFER_ATR * atr if struct else None
+        src = "H14 hypothesis (stop 1 ATR beyond structure)"
+        what = f"under {'the swing low' if struct == support else 'the 50-day average'} with a 1-ATR buffer" if struct else ""
+    stop_pct = (price - stop) / price if stop and stop < price else None
+    gates.append(_g("INVALIDATION", stop_pct is not None, f"{what}: stop {stop:,.6g} ({100 * stop_pct:.1f}% away)" if stop_pct else
+                    "no structure below the price to put a stop under", src,
                     {"stop": round(stop, 4) if stop else None, "stop_pct": round(100 * stop_pct, 1) if stop_pct else None}))
 
     # 6 RISK (P01): 1% of the account, size from the stop distance
@@ -185,9 +193,15 @@ def board(j) -> dict[str, Any]:
     s = ex.status()
     open_trades = [{"coin": t["coin"], "setup": t.get("setup")} for t in s.get("open", [])]
     out = []
+    try:
+        from jarvis.service import zones_watch
+
+        zb = {r["coin"]: r for r in zones_watch.board(j).get("coins", [])}
+    except Exception:  # noqa: BLE001
+        zb = {}
     for coin in ex.st["engines"]:
         try:
-            out.append(evaluate(ex, coin, open_trades, float(s.get("equity") or 2000)))
+            out.append(evaluate(ex, coin, open_trades, float(s.get("equity") or 2000), zb.get(coin)))
         except Exception as exc:  # noqa: BLE001
             out.append({"coin": coin, "verdict": "NO TRADE", "stops_at": "REGIME", "summary": f"{coin}: could not evaluate ({str(exc)[:80]}).",
                         "gates": [], "observations": {}})

@@ -306,6 +306,27 @@
     "mean_net30_pct": 20.4,
     "win_rate30": 0.73
    }
+  },
+  "H07": {
+   "status": "INSUFFICIENT",
+   "review": "REVIEW_14",
+   "DISCOVERY": {
+    "events": 25,
+    "episodes": 44,
+    "mean_excess_pct": 3.94,
+    "z": 2.29,
+    "mean_net_pct": 4.05,
+    "win": 0.705
+   },
+   "CONFIRM": {
+    "events": 16,
+    "episodes": 38,
+    "mean_excess_pct": 5.61,
+    "z": 2.79,
+    "mean_net_pct": 4.23,
+    "win": 0.684
+   },
+   "note": "its own exit (RSI(10) over 40 or 10 days) vs ordinary uptrend days traded the same way; strong in both periods, 5 events short of the bar"
   }
  }
 }

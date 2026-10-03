@@ -320,10 +320,30 @@ def trade_detail(j, trade_id: str) -> dict:
         "exit": exit_text(a.exit_bell) if a.done else None, "exit_time": _local(a.exit_t) if a.done else None,
         "why_bought": f"{SETUP.get(tr.setup, tr.setup)}: the 15-minute check found every condition of this setup met.",
         "conditions_at_entry": conds, "plan": TYPE_PLAN.get(tr.typ), "timeline": timeline,
-        "what_if": shadows,
+        "what_if": shadows, "layers_that_day": _layers_that_day(j, coin, tr.entry_t),
         "chart": {"tf": "15m" if len(bars) >= 20 else "1h", "points": [{"t": b[0], "c": b[4]} for b in bars],
                   "entry_t": tr.entry_t, "exit_t": a.exit_t},
     }
+
+
+def _layers_that_day(j, coin: str, t: int) -> dict | None:
+    """One decision record (BACKLOG A2): what Ananta's reasoning layers said about this coin at the daily close before the buy."""
+    try:
+        from jarvis.service import credit
+
+        credit._table(j)
+        day = datetime.fromtimestamp(t - 86400, timezone.utc).strftime("%Y-%m-%d")
+        row = j.db.execute("SELECT day, signals, detail FROM credit_records WHERE coin=? AND day<=? ORDER BY day DESC LIMIT 1", (coin, day)).fetchone()
+    except Exception:  # noqa: BLE001
+        return None
+    if not row:
+        return None
+    sig, det = json.loads(row[1]), json.loads(row[2])
+    words = {k: v for k, v in credit.SIGNALS.items()}
+    return {"day": row[0], "said": [{"name": words[k], "yes": bool(v)} for k, v in sig.items() if k in words],
+            "chain_stopped_at": det.get("stops_at"), "attention": det.get("attention"), "zone": det.get("zone"), "news": det.get("news"),
+            "note": "What the reasoning layers said at the daily close before this paper buy. The Explorer trades by its own rulebook; "
+                    "this shows where the two agreed or not."}
 
 
 # ---------------------------------------------------------------------------

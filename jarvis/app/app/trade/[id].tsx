@@ -67,6 +67,17 @@ export default function Trade() {
         </Card>
         </Spot>
 
+        {d.layers_that_day ? (
+          <>
+            <Section title="What Ananta's reasoning said that day" right={<T small>{d.layers_that_day.day}</T>} />
+            <Card>
+              {d.layers_that_day.said.map((x: any) => <Bullet key={x.name}>{x.yes ? "✓" : "·"} {x.name}</Bullet>)}
+              <T small>Decision chain stopped at {String(d.layers_that_day.chain_stopped_at ?? "—").toLowerCase()} · attention {String(d.layers_that_day.attention ?? "—").toLowerCase()}{d.layers_that_day.news ? ` · news ${d.layers_that_day.news}` : ""}</T>
+              <T small>{d.layers_that_day.note}</T>
+            </Card>
+          </>
+        ) : null}
+
         <Spot id="trade.plan">
         <Section title="Exit plan" />
         <Card><T>{d.plan}</T></Card>

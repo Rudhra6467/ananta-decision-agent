@@ -303,9 +303,6 @@ def main(argv=None) -> None:
     print(f"{time.time() - t0:.0f}s")
 
 
-if __name__ == "__main__":
-    main()
-
 
 # ---------------------------------------------------------------------------
 # review #14: H07 against ordinary days traded with the same exit (docs/research/REVIEW_14.md)
@@ -373,3 +370,7 @@ def review14(db: str, cache: Path) -> dict:
             "INSUFFICIENT" if d["market_events"] < 30 else "FAIL")
         out[v] = res
     return out
+
+
+if __name__ == "__main__":
+    main()

@@ -206,6 +206,106 @@
     "managed30_pct": 9.32,
     "stopped_rate": 0.33
    }
+  },
+  "M1a-Z": {
+   "status": "INSUFFICIENT",
+   "review": "REVIEW_8",
+   "DISCOVERY": {
+    "events": 6,
+    "episodes": 16,
+    "mean_excess30_pct": -7.16,
+    "t_events": -1.16,
+    "mean_net30_pct": -2.86,
+    "win_rate30": 0.44
+   },
+   "CONFIRM": {
+    "events": 2,
+    "episodes": 14,
+    "mean_excess30_pct": 3.65,
+    "t_events": null,
+    "mean_net30_pct": 4.79,
+    "win_rate30": null
+   }
+  },
+  "M2a-Z": {
+   "status": "INSUFFICIENT",
+   "review": "REVIEW_8",
+   "DISCOVERY": {
+    "events": 13,
+    "episodes": 14,
+    "mean_excess30_pct": -3.82,
+    "t_events": -0.87,
+    "mean_net30_pct": 2.07,
+    "win_rate30": null
+   },
+   "CONFIRM": {
+    "events": 2,
+    "episodes": 8,
+    "mean_excess30_pct": 6.43,
+    "t_events": null,
+    "mean_net30_pct": 4.82,
+    "win_rate30": null
+   }
+  },
+  "M2a-G": {
+   "status": "INSUFFICIENT",
+   "review": "REVIEW_8",
+   "DISCOVERY": {
+    "events": 7,
+    "episodes": 12,
+    "mean_excess30_pct": 10.56,
+    "t_events": 1.71,
+    "mean_net30_pct": 20.3,
+    "win_rate30": 0.92
+   },
+   "CONFIRM": {
+    "events": 2,
+    "episodes": 2,
+    "mean_excess30_pct": 24.74,
+    "t_events": 0.98,
+    "mean_net30_pct": 24.96,
+    "win_rate30": 0.5
+   }
+  },
+  "M2a-ZG": {
+   "status": "INSUFFICIENT",
+   "review": "REVIEW_8",
+   "DISCOVERY": {
+    "events": 4,
+    "episodes": 4,
+    "mean_excess30_pct": 7.1,
+    "t_events": 0.94,
+    "mean_net30_pct": 15.25,
+    "win_rate30": 1.0
+   },
+   "CONFIRM": {
+    "events": 0,
+    "episodes": 0,
+    "mean_excess30_pct": null,
+    "t_events": null,
+    "mean_net30_pct": null,
+    "win_rate30": null
+   }
+  },
+  "M3a-Z": {
+   "status": "NOT_SUPPORTED",
+   "review": "REVIEW_8",
+   "DISCOVERY": {
+    "events": 12,
+    "episodes": 16,
+    "mean_excess30_pct": -5.47,
+    "t_events": -1.46,
+    "mean_net30_pct": -1.77,
+    "win_rate30": 0.31
+   },
+   "CONFIRM": {
+    "events": 7,
+    "episodes": 11,
+    "mean_excess30_pct": 14.31,
+    "t_events": 1.26,
+    "mean_net30_pct": 20.4,
+    "win_rate30": 0.73
+   }
   }
  }
 }

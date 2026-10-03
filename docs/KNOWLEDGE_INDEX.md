@@ -37,6 +37,8 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `repair_shop/REVIEW_3.md`, `repair_shop/REVIEW_3_RESULTS.md`: "buy weakness" variants: all lost after costs.
 - `repair_shop/REVIEW_4.md`, `repair_shop/REVIEW_4_RESULTS.md`: portfolio trend exposure with crash protection: T3 passed.
 - `repair_shop/REVIEW_5.md`, `repair_shop/REVIEW_5_RESULTS.md`: Madhav's reads (capitulation, higher-low retest, quiet base): they caught all four of his buys, but none beat a random day on its own in 2018-2023.
+- `repair_shop/REVIEW_8.md`, `repair_shop/REVIEW_8_RESULTS.md`: your setups again with zones and the market gate: no pass; the higher-low retest with the market allowed is the most promising (11 of 12 up after 30 days, +20%) but one event short of the bar.
+- `repair_shop/REVIEW_9.md`, `repair_shop/REVIEW_9_RESULTS.md`: the Explorer's entries split by zone and market: zones do not rescue its hours-long trades; the market gate helps but they still lose.
 
 ## Research studies (pre-registered, then results)
 - `research/ENTRY_STUDY_V2.md`, `research/ENTRY_STUDY_V2_RESULTS.md`: 4h/1d setups with 5m timing: 0 of 36 passed.

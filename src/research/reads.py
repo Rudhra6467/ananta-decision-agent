@@ -228,8 +228,12 @@ def read_coin(D: list[tuple], btcD: list[tuple], status: dict | None = None) -> 
     S, B = Series(D), Series(btcD)
     i = len(D) - 1
     out = []
-    for variant in ("M1a", "M2a", "M3a", "M3b"):
-        r = READERS[variant[:2]](S, i, B, variant)
+    for variant in ("M1a", "M2a", "M2a-G", "M3a", "M3b"):
+        r = READERS[variant[:2]](S, i, B, variant.split("-")[0])
+        if r is not None and variant == "M2a-G":       # review #8: the retest with the market allowed (most promising, few cases)
+            bi = B.at(S.t[i])
+            ok = bool(bi is not None and B.ema50[bi] is not None and B.c[bi] > B.ema50[bi])
+            r = {**r, "conditions": r["conditions"] + [_c("Market allowed (BTC above its 50-day average)", ok, "yes" if ok else "no", "yes (V02)")]}
         if r is None:
             out.append({"read": variant[:2], "variant": variant, "name": NAMES[variant[:2]], "like": CASES[variant[:2]],
                         "state": "NO_DATA", "met": 0, "of": 0, "conditions": []})
@@ -237,7 +241,8 @@ def read_coin(D: list[tuple], btcD: list[tuple], status: dict | None = None) -> 
         met = sum(1 for c in r["conditions"] if c["ok"])
         of = len(r["conditions"])
         state = "FIRED" if met == of else "CLOSE" if met >= of - 1 else "NO"
-        out.append({**{k: v for k, v in r.items() if k not in ("first_low_t",)}, "name": NAMES[variant[:2]], "like": CASES[variant[:2]],
+        out.append({**{k: v for k, v in r.items() if k not in ("first_low_t",)}, "variant": variant,
+                    "name": NAMES[variant[:2]] + (" with the market allowed" if variant.endswith("-G") else ""), "like": CASES[variant[:2]],
                     "state": state, "met": met, "of": of, "history": (status or {}).get(variant, "UNTESTED"),
                     "stop_pct": round(100 * (r["stop"] / S.c[i] - 1), 1)})
     return {"day": datetime.fromtimestamp(D[-1][0], timezone.utc).strftime("%Y-%m-%d"), "close": D[-1][4], "reads": out}

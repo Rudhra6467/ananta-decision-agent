@@ -23,7 +23,7 @@ Last updated 2026-10-03.
    starts the lookout: chain, your setups, news check, what the knowledge says about this zone type, a plan (confirm / wrong / size).
    Outside zones Ananta stays quiet and cheap.
 4. DONE 2026-10-03 **Review #7, the lookout**: only the market regime (BTC above its 50-day) separated held from broken (68% vs 50%); wick, close-back, volume, divergence, relative strength added nothing beyond arithmetic (`research/REVIEW_7_RESULTS.md`). Attention ranking (HIGH / WATCH / LOW) and the playbook (`knowledge/PLAYBOOK.md`) are live; every code file is on the layer map (test).
-5. TODO **Redo every study that ignored zones** (list and order in the program document, section 5).
+5. DOING **Redo every study that ignored zones**: done so far: your setups (review #8: retest with the market allowed most promising, insufficient), Explorer setups (review #9: zones do not help hours-long trades). Next: stops and exits at zones on the weeks-long books (T3, your setups), H06 dip at the 50-day zone, breakouts through resistance zones. (list and order in the program document, section 5).
 
 ## C. Teacher ideas not yet tested
 1. TODO H07-H17 and P03 (RSI dips, relative strength, volume on breakouts, tight bases, pullbacks to the 50-day, first pullback after a

@@ -39,3 +39,9 @@ Evidence class: **casebook (his own trades)**, tested on history: not supported 
 - The Home feed records each new fire (once per coin and read every 20 days).
 - The phone rings only for a read history SUPPORTS (none yet). Madhav can ask to be told about every fire instead.
 - The news check (blunder guard) runs when he taps "Check the news" on a coin page: Claude Haiku, about a cent.
+
+## Update: review #8 (with zones and the market gate)
+- The **higher-low retest with the market allowed** (BTC above its 50-day) is the most promising read so far: 12 episodes in 2018-23,
+  11 up after 30 days, +20% on average (+10.6% over the coin's drift), 2 more since 2024, both up. One market event short of the
+  pre-registered bar, so INSUFFICIENT; it shows live as its own read and every fire is recorded.
+- Capitulation never happens with the market allowed; zones did not improve any of the three reads.

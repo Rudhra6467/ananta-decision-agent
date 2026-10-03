@@ -11,7 +11,8 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `knowledge/FRAMEWORK.md`: Madhav's framework: decision chain Regime > Location > Trigger > Invalidation > Risk > Exposure, fail-closed, structural stops, signals as evidence, how to talk (simple first). Open for any "why no trade / how do you decide" question.
 - `knowledge/hypotheses.json`: every teacher idea (H01-H18) and policy (P01-P03) with its source, test status and what our data said. Open for "is X true / does X work".
 - `VARIABLE_REGISTRY.md`: variables Ananta tested itself (KEEP / WATCH / DROP / UNTESTED), the strongest evidence class. Open for "what do we know for sure".
-- `knowledge/READS.md`: Madhav's three buy setups (capitulation at support, higher-low retest, base breakout) as live reads, and what history said about each.
+- `knowledge/READS.md`: Madhav's three buy setups (capitulation at the lows, higher-low retest, quiet base) as live reads, and what history said about each.
+- `knowledge/reads_status.json`: the review #5 numbers and status for every read variant (the app shows these).
 
 ## Madhav's own trades
 - `casebook/cases.json`: his SOL buys C1-C4 (prices, dates, his reasons, lots) and lesson L1 (Yes Bank: check news before buying).
@@ -33,7 +34,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `repair_shop/REVIEW_2.md`, `repair_shop/REVIEW_2_RESULTS.md`: learning from 37 other traders' 7,441 trades.
 - `repair_shop/REVIEW_3.md`, `repair_shop/REVIEW_3_RESULTS.md`: "buy weakness" variants: all lost after costs.
 - `repair_shop/REVIEW_4.md`, `repair_shop/REVIEW_4_RESULTS.md`: portfolio trend exposure with crash protection: T3 passed.
-- `repair_shop/REVIEW_5.md`: Madhav's reads (capitulation, higher-low retest, quiet base) written down before testing them on history.
+- `repair_shop/REVIEW_5.md`, `repair_shop/REVIEW_5_RESULTS.md`: Madhav's reads (capitulation, higher-low retest, quiet base): they caught all four of his buys, but none beat a random day on its own in 2018-2023.
 
 ## Research studies (pre-registered, then results)
 - `research/ENTRY_STUDY_V2.md`, `research/ENTRY_STUDY_V2_RESULTS.md`: 4h/1d setups with 5m timing: 0 of 36 passed.

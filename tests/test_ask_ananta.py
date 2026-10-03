@@ -32,10 +32,11 @@ def test_lookups_and_views_run_on_real_state():
     for name, args in [("overview", {}), ("market", {"coin": coin}), ("market", {}), ("setups", {"coin": coin}), ("setups", {}),
                        ("strategy", {"name": "hunter"}), ("strategy", {"name": "explorer"}), ("strategy", {"name": "t3"}),
                        ("trades", {"status": "all"}), ("portfolio", {}), ("evidence", {}), ("knowledge", {"query": "T3 drawdown"}),
-                       ("changes", {"hours": 72}), ("report", {"kind": "daily"}), ("history", {"setup": "E1"}), ("chain", {})]:
+                       ("changes", {"hours": 72}), ("report", {"kind": "daily"}), ("history", {"setup": "E1"}), ("chain", {}),
+                       ("reads", {}), ("reads", {"coin": coin})]:
         out = L.call(name, args)
         json.dumps(out, default=str)
-        assert not (isinstance(out, dict) and "error" in out and name not in ("history", "report")), (name, out)
+        assert not (isinstance(out, dict) and "error" in out and name not in ("history", "report", "reads")), (name, out)
     s = L.call("setups", {"coin": coin})["coins"][coin]["explorer"]
     assert {r["setup"] for r in s} >= {"E1", "E2", "E3", "E4", "E5"} and all("missing" in r for r in s)
     assert "error" in L.call("market", {"coin": "NOPE"})

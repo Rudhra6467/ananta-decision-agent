@@ -67,6 +67,22 @@
     "docs/repair_shop/REVIEW_4.md",
     "docs/repair_shop/REVIEW_4_RESULTS.md"
    ]
+  },
+  {
+   "id": "R5",
+   "date": "2026-10-03",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Madhav's reads: capitulation, higher-low retest, quiet base",
+   "forwarded_because": "Madhav's four SOL buys (Jun-Aug 2026) gained +56% to +94% while Ananta's dip buys were shaken out; the casebook rebuild showed what he saw at each buy.",
+   "question": "When the market shows what he saw at those buys, does buying beat buying a random day (2018-2023 tested, 2024-July 2026 confirm)?",
+   "result": "The reader caught all four of his buys on the right days. On their own the reads did not beat a random day in 2018-2023 (2022 capitulations kept falling); since 2024 all did better, on few events.",
+   "changed": "Nothing in the Explorer. The reads show live as 'Your setups' (Markets, coin pages, Ask Ananta) with their history; the phone rings only for a supported read.",
+   "files": [
+    "docs/repair_shop/REVIEW_5.md",
+    "docs/repair_shop/REVIEW_5_RESULTS.md",
+    "docs/knowledge/READS.md"
+   ]
   }
  ],
  "queue": [
@@ -105,6 +121,15 @@
    "why": "Intraday is idle; only contexts that were positive after costs in both periods may earn a look.",
    "metric": "stable_positive_sightings",
    "goal": 1
+  },
+  {
+   "id": "Q5",
+   "status": "WAITING_FOR_EVIDENCE",
+   "title": "Your setups, live record",
+   "waiting_for": "10 live fires of your setups",
+   "why": "Live fires are clean evidence (nobody knows how they end). With 10, compare them with random days and with the history test.",
+   "metric": "read_fires",
+   "goal": 10
   }
  ],
  "in_use": [

@@ -410,7 +410,8 @@ class Lookups:
         roots = [docs / "repair_shop", docs / "research", docs / "knowledge", docs / "knowledge" / "teachers", docs / "casebook"]
         files = [p for r in roots if r.exists() for p in r.glob("*.md")] + [docs / "RULEBOOK_V0.md", docs / "VARIABLE_REGISTRY.md"]
         notes = self._notes_dir()
-        note_files = sorted(notes.rglob("*.md"))[:300] if notes.exists() and not self.guest else []   # his private notes: owner only
+        note_files = ([p for p in sorted(notes.rglob("*.md")) if not p.name.lower().startswith("start here")][:300]
+                      if notes.exists() and not self.guest else [])                   # his private notes: owner only
         words = [w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) > 2]
         hits = []
         for p in files + note_files:

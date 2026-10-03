@@ -16,12 +16,65 @@ from jarvis.service import core
 app = FastAPI(title="Jarvis", version=core.VERSION, docs_url=None, redoc_url=None, openapi_url=None)
 _J: core.Jarvis | None = None
 
+# Guest practice sandbox: a guest sees the real system (markets, Explorer, portfolio, evidence) and can do everything Madhav can
+# in the app, but every change (paper orders, alerts, mandate edits, questions, settings) goes to the guest's own database.
+import contextvars  # noqa: E402
+import re as _re  # noqa: E402
+import threading as _threading  # noqa: E402
 
-def J() -> core.Jarvis:
+_SANDBOX: contextvars.ContextVar[str | None] = contextvars.ContextVar("jarvis_sandbox", default=None)
+_JG: dict[str, core.Jarvis] = {}
+_JG_LOCK = _threading.Lock()
+SHARED_TABLES = ("snapshots", "briefings")     # read-only system history the guest should see too (copied, never written back)
+
+
+def _main() -> core.Jarvis:
     global _J
     if _J is None:
         _J = core.from_env()
     return _J
+
+
+def _sync_shared(g: core.Jarvis) -> None:
+    from jarvis.service.alerts import Alerts
+    from jarvis.service.mandate import Mandate
+
+    m = _main()
+    Alerts(g.db, g.now)
+    md = Mandate(g.db, g.now)
+    for tbl in SHARED_TABLES:
+        try:
+            rows = m.db.execute(f"SELECT * FROM {tbl}").fetchall()
+        except Exception:  # noqa: BLE001  the owner has none yet
+            continue
+        if rows:
+            ph = ",".join("?" * len(rows[0]))
+            g.db.executemany(f"INSERT OR IGNORE INTO {tbl} VALUES ({ph})", [tuple(r) for r in rows])
+    try:
+        if not g.db.execute("SELECT 1 FROM mandate LIMIT 1").fetchone():      # start from Madhav's mandate; edits stay in the sandbox
+            for t, by, why, js in m.db.execute("SELECT t, by, why, json FROM mandate ORDER BY version DESC LIMIT 1").fetchall():
+                g.db.execute("INSERT INTO mandate (t, by, why, json) VALUES (?,?,?,?)", (t, by, "copied for the guest sandbox", js))
+    except Exception:  # noqa: BLE001
+        pass
+    g.db.commit()
+    del md
+
+
+def _sandbox(who: str) -> core.Jarvis:
+    name = _re.sub(r"[^a-z0-9]+", "_", who.split(":", 1)[1].lower()).strip("_")[:40] or "guest"
+    with _JG_LOCK:
+        if name not in _JG:
+            m = _main()
+            g = core.Jarvis(m.dir, owner_email=m.owner, password_hash=m.pw_hash, secret=m.secret, hands=m._hands, now=m.now,
+                            db_file=f"jarvis_guest_{name}.sqlite")
+            _sync_shared(g)
+            _JG[name] = g
+        return _JG[name]
+
+
+def J() -> core.Jarvis:
+    w = _SANDBOX.get()
+    return _sandbox(w) if w else _main()
 
 
 def owner(authorization: str = Header(default="")) -> str:
@@ -31,22 +84,31 @@ def owner(authorization: str = Header(default="")) -> str:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
-# A guest (a friend checking what we built) can look at everything and ask Ananta questions, but cannot change anything.
-GUEST_POST_OK = ("/v3/ask", "/v3/ask/second", "/v3/voice/turn", "/v3/voice/transcribe", "/v3/voice/prepare", "/v3/voice/answer")
+# Controls that change shared state (Madhav's real paper portfolio, the kill switch) stay locked for guests.
+GUEST_LOCKED = ("/portfolio/approve", "/portfolio/reject", "/portfolio/mode", "/safety/kill")
 
 
 @app.middleware("http")
-async def guest_read_only(request, call_next):
+async def guest_sandbox(request, call_next):
     from fastapi.responses import JSONResponse
 
     auth = request.headers.get("authorization", "")
-    if request.method != "GET" and auth:
+    who = ""
+    if auth:
         try:
-            who = J().check(auth.removeprefix("Bearer ").strip())
+            who = _main().check(auth.removeprefix("Bearer ").strip())
         except core.AuthError:
             who = ""
-        if who.startswith("guest:") and request.url.path not in GUEST_POST_OK:
-            return JSONResponse({"detail": "Guest view is read-only: only Madhav can change things."}, status_code=403)
+    if who.startswith("guest:"):
+        if request.method != "GET" and request.url.path in GUEST_LOCKED:
+            return JSONResponse({"detail": "Practice mode: the kill switch, autopilot and portfolio approvals belong to Madhav's real "
+                                           "paper books, so they are locked here. Everything else you do goes to your own practice book."},
+                                status_code=403)
+        tok = _SANDBOX.set(who)
+        try:
+            return await call_next(request)
+        finally:
+            _SANDBOX.reset(tok)
     return await call_next(request)
 
 
@@ -103,6 +165,17 @@ def _snapshots() -> None:
                 background_jobs()
             except Exception:  # noqa: BLE001
                 pass
+            for name, g in list(_JG.items()):             # guest sandboxes: their own alerts and stops, no phone pushes
+                tok = _SANDBOX.set("guest:" + name)
+                try:
+                    _sync_shared(g)
+                    ex = _main()._explorer()
+                    AL().check(ex, push=None)
+                    MN().check_stops(ex.prices() if ex else {}, push=None)
+                except Exception:  # noqa: BLE001
+                    pass
+                finally:
+                    _SANDBOX.reset(tok)
             _t.sleep(900)
 
     threading.Thread(target=loop, daemon=True).start()
@@ -181,14 +254,18 @@ def push_register(b: Push, who: str = Depends(owner)) -> dict:
 from jarvis.service import ask as _ask  # noqa: E402
 from jarvis.service import views  # noqa: E402
 
-_A: _ask.Ask | None = None
+_A: dict[int, _ask.Ask] = {}
+GUEST_CLAUDE_BUDGET = 0.5      # dollars a day of Madhav's Claude credit a guest can use; then Gemini answers
 
 
 def A() -> _ask.Ask:
-    global _A
-    if _A is None:
-        _A = _ask.Ask(J())
-    return _A
+    j = J()
+    if id(j) not in _A:
+        _A[id(j)] = _ask.Ask(j)
+    a = _A[id(j)]
+    if j.sandbox and float(a.setting("daily_budget_usd") or 0) > GUEST_CLAUDE_BUDGET:
+        a.set_setting("system", "daily_budget_usd", str(GUEST_CLAUDE_BUDGET))    # guests: a small Claude budget, then free Gemini
+    return a
 
 
 class Question(BaseModel):
@@ -242,6 +319,14 @@ def ev_forwarded(who: str = Depends(owner)) -> dict:
 @app.get("/v3/evidence/pipeline")
 def ev_pipeline(who: str = Depends(owner)) -> dict:
     return views.evidence_pipeline(J())
+
+
+@app.get("/v3/me")
+def me(who: str = Depends(owner)) -> dict:
+    g = who.startswith("guest:")
+    return {"who": who.split(":", 1)[-1], "guest": g,
+            "practice_note": "Practice mode: everything works like Madhav's app, but your orders, alerts and changes go to your own "
+                             "practice book. Kill switch, autopilot and portfolio approvals are locked." if g else ""}
 
 
 @app.get("/v3/chain")

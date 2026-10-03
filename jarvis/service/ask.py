@@ -270,8 +270,8 @@ class Lookups:
 
     def call(self, name: str, args: dict) -> Any:
         fn = getattr(self, "t_" + name, None)
-        if self.guest and (name.startswith("propose_") or name == "start_research"):
-            return {"error": "This is a guest view: only Madhav can prepare orders, alerts, changes or research. Explain that politely."}
+        if self.guest and name == "start_research":
+            return {"error": "Practice mode: research jobs run on Madhav's real evidence, so guests cannot start them. Explain that politely."}
         if fn is None:
             return {"error": f"There is no lookup named '{name}'. Use only the listed lookups. To answer, write the JSON object as plain text, not as a tool call."}
         try:
@@ -1168,8 +1168,10 @@ class Ask:
             part = "morning" if 4 <= hr < 12 else "afternoon" if hr < 17 else "evening"
             notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet Madhav warmly in a few words first]")
         if str(who).startswith("guest:"):
-            notes.append("[GUEST: this is a friend of Madhav trying the app in a read-only guest view. Do not call them Madhav; greet them as a guest. "
-                         "Explain Madhav's system as 'Madhav's paper trading system'. They cannot change anything.]")
+            notes.append("[GUEST: this is a friend of Madhav trying the app in practice mode. Do not call them Madhav; greet them as a guest. "
+                         "Explain Madhav's system as 'Madhav's paper trading system'. Everything works for them as it does for Madhav: they can ask for "
+                         "paper orders, alerts and mandate changes, and those go to THEIR OWN practice book (separate cash, never Madhav's books). "
+                         "Say 'your practice book' for their manual book. The kill switch, autopilot and portfolio approvals are locked in practice mode.]")
         if context:
             here = context.get("here") if isinstance(context, dict) and ("here" in context or "about" in context) else context
             about = context.get("about") if isinstance(context, dict) and "about" in context else None

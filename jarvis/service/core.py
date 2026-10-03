@@ -135,14 +135,17 @@ def read_token(secret: str, token: str, now: float) -> dict:
 # ---------------------------------------------------------------------------
 class Jarvis:
     def __init__(self, agent_dir: Path | str, *, owner_email: str, password_hash: str, secret: str,
-                 hands: Any = None, now: Callable[[], float] = time.time):
+                 hands: Any = None, now: Callable[[], float] = time.time, db_file: str = "jarvis.sqlite"):
         if not (owner_email and password_hash and secret and len(secret) >= 32):
             raise ValueError("owner email, password hash and a secret of at least 32 characters are required")
         self.dir = Path(agent_dir)
         self.owner, self.pw_hash, self.secret = owner_email.strip().lower(), password_hash, secret
         self.now = now
         self._hands = hands
-        self.db = SafeDB(sqlite3.connect(str(self.dir / "jarvis.sqlite"), check_same_thread=False, timeout=30))
+        # db_file: the owner's jarvis.sqlite, or a guest's own practice copy (jarvis_guest_<name>.sqlite): a guest's questions,
+        # paper orders, alerts and mandate edits live there and never touch the owner's books.
+        self.sandbox = db_file != "jarvis.sqlite"
+        self.db = SafeDB(sqlite3.connect(str(self.dir / db_file), check_same_thread=False, timeout=30))
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS audit (seq INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER, who TEXT, action TEXT, detail TEXT, result TEXT);
             CREATE TABLE IF NOT EXISTS failed_logins (t INTEGER);
@@ -401,12 +404,12 @@ class Jarvis:
         return [t for (t,) in self.db.execute("SELECT token FROM push_tokens")]
 
 
-def from_env() -> Jarvis:
+def from_env(db_file: str = "jarvis.sqlite") -> Jarvis:
     from dotenv import load_dotenv
 
     load_dotenv()
     return Jarvis(os.getenv("JARVIS_AGENT_DIR", "."), owner_email=os.getenv("JARVIS_OWNER_EMAIL", ""),
-                  password_hash=os.getenv("JARVIS_PASSWORD_HASH", ""), secret=os.getenv("JARVIS_SECRET", ""))
+                  password_hash=os.getenv("JARVIS_PASSWORD_HASH", ""), secret=os.getenv("JARVIS_SECRET", ""), db_file=db_file)
 
 
 if __name__ == "__main__":

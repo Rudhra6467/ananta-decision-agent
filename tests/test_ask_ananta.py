@@ -32,7 +32,7 @@ def test_lookups_and_views_run_on_real_state():
     for name, args in [("overview", {}), ("market", {"coin": coin}), ("market", {}), ("setups", {"coin": coin}), ("setups", {}),
                        ("strategy", {"name": "hunter"}), ("strategy", {"name": "explorer"}), ("strategy", {"name": "t3"}),
                        ("trades", {"status": "all"}), ("portfolio", {}), ("evidence", {}), ("knowledge", {"query": "T3 drawdown"}),
-                       ("changes", {"hours": 72}), ("report", {"kind": "daily"}), ("history", {"setup": "E1"})]:
+                       ("changes", {"hours": 72}), ("report", {"kind": "daily"}), ("history", {"setup": "E1"}), ("chain", {})]:
         out = L.call(name, args)
         json.dumps(out, default=str)
         assert not (isinstance(out, dict) and "error" in out and name not in ("history", "report")), (name, out)
@@ -619,25 +619,51 @@ def test_outside_coin_is_labelled_and_unknown_coin_offers_names():
     assert reply["kind"] == "clarify" and "couldn't find" in reply["answer"] and "Ethereum" in reply["options"]
 
 
-def test_guest_can_look_and_ask_but_not_change(monkeypatch):
+def test_guest_practice_sandbox_never_touches_the_owners_books(monkeypatch):
     monkeypatch.setenv("JARVIS_GUEST_EMAIL", "friend@x.com")
     monkeypatch.setenv("JARVIS_GUEST_PASSWORD_HASH", core.hash_password("guest pass 123"))
     j, ex = _jarvis()
     tok = j.login("friend@x.com", "guest pass 123")
     assert j.check(tok) == "guest:friend@x.com"
-    L = ask.Lookups(j, guest=True)
-    assert "guest" in L.call("propose_alert", {"kind": "price_above", "coin": "BTC", "value": 1})["error"]
+    assert "Practice mode" in ask.Lookups(j, guest=True).call("start_research", {"kind": "reconstruction"})["error"]
     import pytest
     pytest.importorskip("fastapi")
     pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
     from jarvis.service import app as appmod
     monkeypatch.setattr(appmod, "_J", j)
+    monkeypatch.setattr(appmod, "_JG", {})
+    monkeypatch.setattr(appmod, "_A", {})
     c = TestClient(appmod.app)
     h = {"Authorization": f"Bearer {tok}"}
-    assert c.post("/v3/mandate", json={}, headers=h).status_code == 403
+    # shared controls stay locked; looking works; the app knows it is practice mode
     assert c.post("/safety/kill", json={"on": True, "confirm": True}, headers=h).status_code == 403
+    assert c.post("/portfolio/mode", json={"mode": "auto", "confirm": True}, headers=h).status_code == 403
     assert c.get("/v3/home", headers=h).status_code == 200
+    assert c.get("/v3/me", headers=h).json()["guest"] is True
+    # a guest's paper order is prepared and confirmed in the guest's own book
+    g = appmod._sandbox("guest:friend@x.com")
+    assert g is not j and g.sandbox and not j.sandbox
+    coin = next(iter(ex.st["engines"]))
+    L = ask.Lookups(g, guest=True)
+    out = L.call("propose_paper_order", {"side": "buy", "coin": coin, "usd": 100, "reason": "testing"})
+    assert "prepared" in out, out
+    r = c.post(f"/v3/actions/{out['prepared']['id']}", json={"confirm": True}, headers=h)
+    assert r.status_code == 200, r.text
+    assert g.db.execute("SELECT count(*) FROM manual_fills").fetchone()[0] == 1
+    j.db.executescript("CREATE TABLE IF NOT EXISTS manual_fills (id TEXT PRIMARY KEY, t INTEGER, coin TEXT, side TEXT, usd REAL, units REAL, "
+                       "px REAL, cost REAL, reason TEXT, by TEXT, trigger TEXT)")
+    assert j.db.execute("SELECT count(*) FROM manual_fills").fetchone()[0] == 0          # Madhav's book untouched
+    # the owner's requests still use the owner's book
+    otok = j.login("o@x.com", "pw pw pw pw 1")
+    assert c.get("/v3/me", headers={"Authorization": f"Bearer {otok}"}).json()["guest"] is False
+    # guests get a small Claude budget even if they try to raise it
+    c.post("/v3/settings", json={"key": "daily_budget_usd", "value": "40"}, headers=h)
+    tok2 = appmod._SANDBOX.set("guest:friend@x.com")
+    try:
+        assert float(appmod.A().setting("daily_budget_usd")) <= appmod.GUEST_CLAUDE_BUDGET
+    finally:
+        appmod._SANDBOX.reset(tok2)
 
 
 def test_session_export_text():

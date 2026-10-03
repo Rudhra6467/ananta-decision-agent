@@ -331,7 +331,8 @@ def live_zones(D: list[tuple], near_atr: float = 3.0) -> dict:
     for z in zs:
         bot, top = z["bot"], z["top"]
         dist = 0.0 if bot <= px <= top else (px - top) / atr if px > top else (px - bot) / atr
-        state = ("INSIDE" if lo <= top and hi >= bot else "APPROACHING" if abs(dist) <= 2 else "FAR")
+        # INSIDE = the close sits in the band (price is here now); TESTED = the day traded into it but closed outside
+        state = ("INSIDE" if bot <= px <= top else "TESTED" if lo <= top and hi >= bot else "APPROACHING" if abs(dist) <= 2 else "FAR")
         # the last 20 days: did price visit this band, and how did that visit end so far?
         recent = None
         for k in range(max(1, n - OUTCOME_DAYS), n):
@@ -340,10 +341,10 @@ def live_zones(D: list[tuple], near_atr: float = 3.0) -> dict:
                           "so_far": touch_outcome(Arr(S), k, bot, top, float(A.atr[k - 1]), n)}
         if abs(dist) > near_atr and state == "FAR":
             continue
-        rows.append({"bot": round(bot, 6), "top": round(top, 6), "side": "support" if top < px else "resistance" if bot > px else "here",
-                     "distance_atr": round(dist, 2), "distance_pct": round(100 * ((top if px > top else bot) / px - 1), 2) if state != "INSIDE" else 0.0,
-                     "kinds": sorted(z["kinds"]), "labels": z.get("labels", []), "tier": z.get("tier"), "touches": z.get("touches"),
-                     "held": z.get("held"), "state": state, "recent": recent, "groups": groups(z)})
+        rows.append({"bot": round(float(bot), 6), "top": round(float(top), 6), "side": "support" if top < px else "resistance" if bot > px else "here",
+                     "distance_atr": round(float(dist), 2), "distance_pct": round(float(100 * ((top if px > top else bot) / px - 1)), 2) if state != "INSIDE" else 0.0,
+                     "kinds": sorted(z["kinds"]), "labels": z.get("labels", []), "tier": z.get("tier"),
+                     "held": None if z.get("held") is None else int(z["held"]), "touches": None if z.get("touches") is None else int(z["touches"]), "state": state, "recent": recent, "groups": groups(z)})
     rows.sort(key=lambda r: -r["top"])
     return {"price": px, "atr": round(atr, 6), "day": datetime.fromtimestamp(D[-1][0], timezone.utc).strftime("%Y-%m-%d"), "zones": rows,
             "in_zone": any(r["state"] == "INSIDE" for r in rows)}

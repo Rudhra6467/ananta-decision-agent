@@ -46,7 +46,9 @@ def test_a_level_that_held_twice_is_strong_and_outcomes_are_judged_in_order():
 def test_summary_counts_market_events_and_live_zones_run():
     D = _walk()
     live = Z.live_zones(D)
-    assert live["zones"] and all(r["state"] in ("INSIDE", "APPROACHING", "FAR") for r in live["zones"])
+    assert live["zones"] and all(r["state"] in ("INSIDE", "TESTED", "APPROACHING", "FAR") for r in live["zones"])
+    import json as _json
+    _json.dumps(live)                                                # plain numbers only (the API returns it)
     evs = [{"t": 0, "result": "HELD", "r10": 0.01, "w_atr": 1.0},
            {"t": 86400, "result": "HELD", "r10": 0.02, "w_atr": 1.0},
            {"t": 30 * 86400, "result": "BROKEN", "r10": -0.01, "w_atr": 1.0}]

@@ -45,8 +45,8 @@ def _coin_zones(j, c: str, st: dict) -> dict | None:
     for r in z["zones"]:
         r["history"] = _verdict(r["groups"], st)
     inside = [r for r in z["zones"] if r["state"] == "INSIDE"]
-    below = [r for r in z["zones"] if r["side"] == "support" and r["state"] != "INSIDE"]
-    above = [r for r in z["zones"] if r["side"] == "resistance" and r["state"] != "INSIDE"]
+    below = [r for r in z["zones"] if r["side"] == "support"]
+    above = [r for r in z["zones"] if r["side"] == "resistance"]
     nearest = lambda xs: min(xs, key=lambda r: abs(r["distance_atr"])) if xs else None      # noqa: E731
     return {"coin": c, **z, "inside": inside, "next_support": nearest(below), "next_resistance": nearest(above)}
 
@@ -135,8 +135,8 @@ def watch(j) -> dict:
     _table(j)
     new, settled = [], []
     for r in b["coins"]:
-        for z in r["inside"]:
-            if z["side"] == "resistance" or not z.get("recent"):
+        for z in r["zones"]:
+            if z["state"] not in ("INSIDE", "TESTED") or z["side"] == "resistance" or not z.get("recent"):
                 continue                                  # only entries from above (a support being tested), as in review #6
             day = z["recent"]["entered"]
             if j.db.execute("SELECT 1 FROM zone_visits WHERE coin=? AND day=? AND abs(bot-?) < 1e-9", (r["coin"], day, z["bot"])).fetchone():

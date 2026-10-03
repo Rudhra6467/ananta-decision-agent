@@ -330,11 +330,12 @@ def trade_detail(j, trade_id: str) -> dict:
 def _ledger(j) -> dict:
     """The repair-shop ledger: the newest copy (the live agent folder or this service's own checkout)."""
     best = None
-    for base in (j.dir, Path(__file__).resolve().parents[2]):
+    for base in (Path(__file__).resolve().parents[2], j.dir):          # same date: this service's checkout wins (it is never older)
         p = base / "docs" / "repair_shop" / "ledger.json"
         if p.exists():
             d = json.loads(p.read_text())
-            if best is None or str(d.get("updated", "")) > str(best.get("updated", "")):
+            key = (str(d.get("updated", "")), len(d.get("reviews", [])) + len(d.get("queue", [])))
+            if best is None or key > (str(best.get("updated", "")), len(best.get("reviews", [])) + len(best.get("queue", []))):
                 best = d
     return best or {"reviews": [], "queue": [], "in_use": [], "safety_changes": []}
 

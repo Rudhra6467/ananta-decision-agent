@@ -72,7 +72,7 @@ RULES
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
 12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something ("show me...", "open...", "take me...", "where can I see..."), you MUST CALL ui_go for the most relevant place (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. Questions about the screen itself ("what's below this?", "what's at the bottom?", "what's above?") mean the parts of the open screen: call ui_scroll (down / bottom / up) and describe those parts using the spot list in order (not prices below). For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
 13. POINT AT WHAT YOU TALK ABOUT: add "points" so the app makes that thing glow (and scrolls to it) while that sentence is spoken: [{"spot": "<spot id>", "sentence": <index of the sentence in "answer", from 0>}]. Use spots of the screen that is open, or of the place you open with ui_go in this answer (if you point at a spot of another tab without ui_go, the app opens that tab for you). One spot per sentence at most; only point when it helps him find it. When you walk him through a screen or explain where something is, ALWAYS point at each part as you name it. Spot ids:
-home.value | home.inbox | home.brief | home.books | home.activity ; markets.summary | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.tracker | evidence.collected | evidence.forwarded | evidence.shop | evidence.in_use | evidence.safety ; cockpit.controls | cockpit.ai | cockpit.alerts | cockpit.systems ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5>.
+home.value | home.inbox | home.brief | home.books | home.activity ; markets.summary | markets.chain | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.tracker | evidence.collected | evidence.forwarded | evidence.shop | evidence.in_use | evidence.safety ; cockpit.controls | cockpit.ai | cockpit.alerts | cockpit.systems ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5> | coin.chain (the decision chain ladder).
 14. PROVE IT: every number you give should be checkable in the app. In "evidence" items add "spot" (and "screen" when it is on another screen) for where that number is shown. When he asks "where did you get that?", "show me", "prove it" or "show me the trade you just mentioned", open that place with ui_go and point at it (points) while you explain; use the previous answer's evidence to know what "that" is. For a single trade, open the trade page (trade:<id>) and point at trade.pnl / trade.stop / trade.target; for a coin's setup, open the coin page and point at coin.setup:<E#>.
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
@@ -589,11 +589,13 @@ def _post(url: str, headers: dict, body: dict, timeout: int = 60, retry: bool = 
 MODELS = {   # key: provider, API model, price per million tokens (input, output), cache-read multiplier
     "local": {"label": "Local (Mac)", "provider": "local", "model": os.getenv("ASK_LOCAL_MODEL", "qwen3.5:9b"), "price": (0.0, 0.0), "cache": 0.0},
     "gemini": {"label": "Gemini Flash", "provider": "gemini", "model": None, "price": (0.0, 0.0), "cache": 0.0},
+    "gemini_deep": {"label": "Gemini Flash (thinking)", "provider": "gemini", "model": None, "price": (0.0, 0.0), "cache": 0.0},
     "haiku": {"label": "Claude Haiku", "provider": "claude", "model": os.getenv("ASK_HAIKU_MODEL", "claude-haiku-4-5-20251001"), "price": (1.0, 5.0), "cache": 0.1},
     "sonnet": {"label": "Claude Sonnet", "provider": "claude", "model": os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5"), "price": (2.0, 10.0), "cache": 0.1},
     "opus": {"label": "Claude Opus", "provider": "claude", "model": os.getenv("ASK_OPUS_MODEL", "claude-opus-5-5"), "price": (4.0, 20.0), "cache": 0.05},
 }
-MODES = {"everyday": "gemini", "deep": "sonnet", "max": "opus"}
+MODES = {"everyday": "gemini", "deep": "sonnet", "max": "opus", "google": "gemini_deep"}
+# The app's two switches: Auto on/off x Claude/Google -> auto | deep | google_auto | google
 ALIASES = {"claude": "sonnet", "gemini": "gemini", "haiku": "haiku", "sonnet": "sonnet", "opus": "opus", "local": "local"}
 DEEP_WORDS = re.compile(r"\b(why|explain|compare|evaluat|analy[sz]|should|prepare|review|learn|history|histor|reconstruct|what if|strategy|strateg|backtest|"
                         r"evidence|break it down|reason|plan|risk|recommend|better|worse|improve|test)", re.I)
@@ -740,14 +742,14 @@ def _gemini_schema(s: dict) -> dict:
 _COOL: dict[str, float] = {}      # Gemini model -> time until which it is skipped (busy)
 
 
-def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:
+def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post, thinking: str | None = None) -> tuple[str, dict]:
     """Free tier: a busy model (503/429) is skipped for 5 minutes and the next one answers at once (no waiting)."""
     err = None
     fast = (lambda u, h, b, timeout=45: _post(u, h, b, timeout, retry=False)) if post is _post else post
     models = [m for m in GEMINI_MODELS if _COOL.get(m, 0) < time.time()] or GEMINI_MODELS[-1:]
     for m in models:
         try:
-            text, usage = _gemini_once(m, system, history, user, tools, log, fast)
+            text, usage = _gemini_once(m, system, history, user, tools, log, fast, thinking)
             usage["model"] = m
             return text, usage
         except RuntimeError as exc:
@@ -757,7 +759,7 @@ def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log:
             _COOL[m] = time.time() + (3600 if "quota" in str(exc).lower() else 90)   # daily free quota used up: skip for an hour
             log.clear()
     try:                                   # every model busy: one patient try on the main model before giving up
-        text, usage = _gemini_once(GEMINI_MODELS[0], system, history, user, tools, log, post)
+        text, usage = _gemini_once(GEMINI_MODELS[0], system, history, user, tools, log, post, thinking)
         usage["model"] = GEMINI_MODELS[0]
         return text, usage
     except RuntimeError as exc:
@@ -765,7 +767,7 @@ def run_gemini(system: str, history: list[dict], user: str, tools: Lookups, log:
     raise RuntimeError(f"Gemini's free service is busy right now. Try again in a minute, or switch to Claude. ({str(err)[:80]})")
 
 
-def _gemini_once(model: str, system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post) -> tuple[str, dict]:
+def _gemini_once(model: str, system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post, thinking: str | None = None) -> tuple[str, dict]:
     key = os.getenv("GEMINI_API_KEY", "")
     if not key:
         raise RuntimeError("GEMINI_API_KEY is not set")
@@ -781,8 +783,8 @@ def _gemini_once(model: str, system: str, history: list[dict], user: str, tools:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     for rnd in range(MAX_TOOL_ROUNDS + 1):
         gc = {"temperature": 0.2, "maxOutputTokens": 4000}
-        if FAST["gemini_thinking"]:
-            gc["thinkingConfig"] = {"thinkingLevel": FAST["gemini_thinking"]}
+        if FAST["gemini_thinking"]:            # (cleared by _post_opt when a model rejects thinking settings)
+            gc["thinkingConfig"] = {"thinkingLevel": thinking or FAST["gemini_thinking"]}
         r = _post_opt(post, url, {"x-goog-api-key": key, "content-type": "application/json"},
                       {"systemInstruction": {"parts": [{"text": system}]}, "contents": contents,
                        "tools": [{"functionDeclarations": decls}], "generationConfig": gc,
@@ -902,6 +904,7 @@ def grounded(answer: str, context: str) -> list[str]:
 PROVIDERS: dict[str, Callable] = {
     "local": run_local,
     "gemini": run_gemini,
+    "gemini_deep": lambda *a, **k: run_gemini(*a, thinking="medium", **k),
     "haiku": lambda *a, **k: run_claude(*a, model=MODELS["haiku"]["model"], **k),
     "sonnet": lambda *a, **k: run_claude(*a, model=MODELS["sonnet"]["model"], **k),
     "opus": lambda *a, **k: run_claude(*a, model=MODELS["opus"]["model"], **k),
@@ -1092,6 +1095,10 @@ class Ask:
         if mode == "auto":
             key, note = route(text)
             return key, "auto", note
+        if mode == "google_auto":                               # Google, Auto on: quick answers fast, investigations with more thinking
+            if len(text) > 160 or DEEP_WORDS.search(text):
+                return "gemini_deep", "google_auto", "Auto: Gemini with more thinking, this needs investigation"
+            return "gemini", "google_auto", "Auto: Gemini, quick question"
         if mode in MODES:
             return MODES[mode], mode, ""
         if mode in MODELS:

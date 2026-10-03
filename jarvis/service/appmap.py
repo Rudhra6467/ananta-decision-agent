@@ -14,7 +14,8 @@ SCREENS = {
                       "the Explorer / Portfolio / Hourly-watch rows, and the activity feed of buys, sells, alerts and changes"},
     "markets": {"name": "Markets", "where": "Markets tab (candles icon)",
                 "shows": "how many coins are in an uptrend, the BTC gate, and the watchlist of 10 coins with price, today's move, "
-                         "1h/4h trend and how close each is to its nearest setup; tap a coin for its page"},
+                         "1h/4h trend and how close each is to its nearest setup; above it, Ananta's reasoning: where each coin stops on the "
+                         "decision chain (regime, trend, location, trigger, invalidation, risk, exposure); tap a coin for its page"},
     "portfolio": {"name": "Portfolio (T3)", "where": "Portfolio tab, first sub-tab",
                   "shows": "the T3 portfolio value chart, the Autopilot switch, suggested changes, holdings with value, return and rating, cash and costs"},
     "portfolio:explorer": {"name": "Explorer trades", "where": "Portfolio tab, Explorer sub-tab",
@@ -223,7 +224,8 @@ def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -
 SPOTS = {
     "home": {"home.value": "paper value and today's change", "home.inbox": "things waiting for your OK", "home.brief": "the morning / evening brief",
              "home.books": "Explorer, Portfolio and Hourly-watch rows", "home.activity": "the activity feed"},
-    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.coin:<SYM>": "one coin's row: price, trend, closest setup"},
+    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.chain": "Ananta's reasoning: where each coin stops on the decision chain",
+                "markets.coin:<SYM>": "one coin's row: price, trend, closest setup"},
     "portfolio": {"portfolio.value": "portfolio value and its chart", "portfolio.autopilot": "the Autopilot switch",
                   "portfolio.suggested": "suggested changes waiting", "portfolio.holdings": "the holdings list header",
                   "portfolio.holding:<SYM>": "one holding: value, return, rating"},
@@ -236,6 +238,7 @@ SPOTS = {
                 "cockpit.alerts": "active alerts", "cockpit.systems": "system status"},
     "coin": {"coin.chart": "the candle chart", "coin.position": "our position in this coin", "coin.market": "market picture and setup checklist",
              "coin.levels": "next support and resistance", "coin.setup:<E1-E5>": "one setup's checklist (opens it)",
+             "coin.chain": "the decision chain ladder for this coin: each gate passed or where it stops, plus evidence",
              "coin.trades": "Explorer trades on this coin"},
     "trade": {"trade.pnl": "the trade's profit or loss", "trade.chart": "the chart with bought / stop / target lines",
               "trade.levels": "stop, target and time limit", "trade.stop": "the stop-loss line", "trade.target": "the target line", "trade.why": "why we bought", "trade.plan": "the exit plan", "trade.timeline": "timeline"},

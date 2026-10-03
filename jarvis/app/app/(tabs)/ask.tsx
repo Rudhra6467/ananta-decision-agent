@@ -1,3 +1,4 @@
+import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, AppState, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
 import { requestRecordingPermissionsAsync } from "expo-audio";
@@ -122,7 +123,22 @@ export default function Ananta() {
   const [thread, setThread] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [claude, setClaude] = useState(false);
+  // Two switches: Auto on/off (Ananta picks a lighter or stronger model per question) and Claude / Google (who answers).
+  const [autoOn, setAutoOn] = useState(true);
+  const [google, setGoogle] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [a, g] = await Promise.all([SecureStore.getItemAsync("ask_auto"), SecureStore.getItemAsync("ask_google")]);
+        if (a) setAutoOn(a === "1");
+        if (g) setGoogle(g === "1");
+      } catch { /* */ }
+    })();
+  }, []);
+  const flip = (k: "ask_auto" | "ask_google", v: boolean) => {
+    (k === "ask_auto" ? setAutoOn : setGoogle)(v);
+    SecureStore.setItemAsync(k, v ? "1" : "0").catch(() => {});
+  };
   const [phase, setPhase] = useState<Phase>("off");         // voice mode: off / listening / thinking / speaking
   const live = phase !== "off";
   const [note, setNote] = useState("");
@@ -133,8 +149,8 @@ export default function Ananta() {
   const { data: sg } = useData("/v3/ask/suggestions", 0);
   const scroll = useRef<ScrollView>(null);
   const lastParam = useRef<string | undefined>(undefined);
-  const threadRef = useRef<string | null>(null), claudeRef = useRef(false), dictating = useRef(false);
-  threadRef.current = thread; claudeRef.current = claude;
+  const threadRef = useRef<string | null>(null), modeRef = useRef("auto"), dictating = useRef(false);
+  threadRef.current = thread; modeRef.current = google ? (autoOn ? "google_auto" : "google") : (autoOn ? "auto" : "deep");
   useEffect(() => { TTS.init(); }, []);
   const sst = useRef({ offset: { y: 0 }, height: { h: 0 }, content: { h: 0 } }).current;
   useFocusEffect(useCallback(() => { setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); setScroller({ ref: scroll, ...sst }); }, []));
@@ -186,7 +202,7 @@ export default function Ananta() {
     setMsgs((m) => [...m, { role: "user", text: q }]);
     setBusy(true);
     try {
-      const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: claudeRef.current ? "deep" : "auto", context: where() });
+      const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: modeRef.current, context: where() });
       handleTextAnswer(r);
     } catch (e: any) {
       handleTextAnswer({ error: e?.message ?? String(e) });
@@ -220,7 +236,7 @@ export default function Ananta() {
         let r: any;
         try {
           r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
-            mode: claudeRef.current ? "deep" : "auto", context: where(true) }, 60000);
+            mode: modeRef.current, context: where(true) }, 60000);
         } catch (e: any) {
           r = { error: e?.message ?? String(e) };
         }
@@ -360,10 +376,13 @@ export default function Ananta() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingTop: 8 }}>
-        <Text style={{ color: claude ? C.faint : C.text, fontWeight: "700" }}>Auto</Text>
-        <Switch value={claude} onValueChange={setClaude} trackColor={{ true: C.accent, false: C.line }} />
-        <Text style={{ color: claude ? C.text : C.faint, fontWeight: "700" }}>Claude</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", rowGap: 4, gap: 8, paddingHorizontal: 16, paddingTop: 8 }}>
+        <Text style={{ color: autoOn ? C.text : C.faint, fontWeight: "700" }}>Auto</Text>
+        <Switch value={autoOn} onValueChange={(v) => flip("ask_auto", v)} trackColor={{ true: C.accent, false: C.line }} />
+        <View style={{ width: 6 }} />
+        <Text style={{ color: google ? C.faint : C.text, fontWeight: "700" }}>Claude</Text>
+        <Switch value={google} onValueChange={(v) => flip("ask_google", v)} trackColor={{ true: C.accent, false: C.line }} />
+        <Text style={{ color: google ? C.text : C.faint, fontWeight: "700" }}>Google</Text>
         <View style={{ flex: 1 }} />
         {msgs.length ? <Text onPress={shareSession} style={{ color: C.accent, fontWeight: "600", marginRight: 12 }}>Share</Text> : null}
         <Text onPress={() => setSessions(true)} style={{ color: C.accent, fontWeight: "600" }}>Sessions</Text>

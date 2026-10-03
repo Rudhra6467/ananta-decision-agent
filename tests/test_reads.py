@@ -225,3 +225,15 @@ def test_every_code_file_is_on_the_layer_map_and_nothing_running_is_archived():
             todo += list(imports(f) - seen)
     archived_only = sorted(f for f in seen if not f.endswith("__init__.py") and where.get(f) == {"ARCHIVED"})
     assert not archived_only, f"running code marked ARCHIVED: {archived_only}"
+
+
+def test_review8_filters_only_remove_fires():
+    c = _bull_then_bear()
+    c += [c[-1] * 0.93, c[-1] * 0.85, c[-1] * 0.78] + [c[-1] * 0.8] * 40
+    D = _bars(c, [100.0] * (len(c) - 42) + [300.0, 400.0] + [100.0] * 40)
+    S = R.Series(D)
+    base = R.signals(S, S, "M1a")
+    for f in ("Z", "G", "ZG"):
+        keep = R.review8_filter(f"M1a-{f}", "X", S, S)
+        assert set(R.signals(S, S, "M1a", keep)) <= {i for i in range(len(D)) if R.fired(R.m1(S, i, S, "M1a"))}
+    assert R.signals(S, S, "M1a", lambda i: False) == [] and base

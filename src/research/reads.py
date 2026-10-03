@@ -252,13 +252,13 @@ def cost(coin: str) -> float:
     return NDAX_FEE + HALF_SPREAD.get(coin, 0.004)
 
 
-def signals(S: Series, B: Series, variant: str) -> list[int]:
-    """Signal days (first fire of each episode)."""
+def signals(S: Series, B: Series, variant: str, keep=None) -> list[int]:
+    """Signal days (first fire of each episode). `keep(i)` filters fires before episodes are formed (review #8)."""
     if variant == "M2b" and B is S:
         return []
     out, last = [], None
     for i in range(len(S.t) - 1):
-        if fired(READERS[variant[:2]](S, i, B, variant)):
+        if fired(READERS[variant[:2]](S, i, B, variant)) and (keep is None or keep(i)):
             if last is None or S.t[i] - S.t[last] > EPISODE_GAP:
                 out.append(i)
             last = i
@@ -333,16 +333,18 @@ def verdict(d: dict, c: dict) -> str:
     return "SUPPORTED" if c["mean_excess30_pct"] > 0 else "NOT_CONFIRMED"
 
 
-def history(D: dict[str, list[tuple]]) -> dict:
+def history(D: dict[str, list[tuple]], variants=None, keep_for=None) -> dict:
+    """variants: names like 'M1a' or 'M1a-ZG'; keep_for(name, coin, S, B) -> keep(i) filter or None."""
     SS = {c: Series(D[c]) for c in D}
     B = SS["BTC"]
     splits = {"DISCOVERY": (0, DISC_END), "CONFIRM": (DISC_END, CONF_END)}
     drifts = {(c, s, H): drift(SS[c], c, *splits[s], H) for c in SS for s in splits for H in (30, 90)}
     report = {}
-    for v in VARIANTS:
+    for name in variants or VARIANTS:
+        v = name.split("-")[0]
         rows = {s: [] for s in splits}
         for c, S in SS.items():
-            for i in signals(S, B, v):
+            for i in signals(S, B, v, keep_for(name, c, S, B) if keep_for else None):
                 if S.t[i] >= CONF_END:
                     continue
                 r = READERS[v[:2]](S, i, B, v)
@@ -355,8 +357,33 @@ def history(D: dict[str, list[tuple]]) -> dict:
                 o["x90"] = o["r90"] - drifts[(c, s, 90)] if o["r90"] is not None and drifts[(c, s, 90)] is not None else None
                 rows[s].append(o)
         d, cf = summarize(rows["DISCOVERY"]), summarize(rows["CONFIRM"])
-        report[v] = {"DISCOVERY": d, "CONFIRM": cf, "status": verdict(d, cf)}
+        report[name] = {"DISCOVERY": d, "CONFIRM": cf, "status": verdict(d, cf)}
     return report
+
+
+REVIEW8 = [f"{r}-{f}" for r in ("M1a", "M2a", "M3a") for f in ("Z", "G", "ZG")]
+SUPPORTED_ZONES = {"AVERAGE-200", "CONFLUENCE", "SWING-NEW"}            # review #6 passes
+
+
+def review8_filter(name: str, coin: str, S: Series, B: Series):
+    """Z: the fire day's range touches a support zone of a kind review #6 passed (zones built from earlier bars only).
+    G: BTC's close above its 50-day average (V02) that day."""
+    from src.research import zones as Z
+
+    f = name.split("-")[1]
+    A = Z.Arr(S)
+
+    def zone_ok(i: int) -> bool:
+        if i < 400:
+            return False
+        return any(z["bot"] <= S.c[i - 1] and A.l[i] <= z["top"] and A.h[i] >= z["bot"] and set(Z.groups(z)) & SUPPORTED_ZONES
+                   for z in Z.zone_map(A, i))          # a support (at or under yesterday's close) that today's range touched
+
+    def gate_ok(i: int) -> bool:
+        bi = B.at(S.t[i])
+        return bi is not None and B.ema50[bi] is not None and B.c[bi] > B.ema50[bi]
+
+    return {"Z": zone_ok, "G": gate_ok, "ZG": lambda i: gate_ok(i) and zone_ok(i)}[f]
 
 
 # ---------------------------------------------------------------------------
@@ -459,7 +486,7 @@ def news_history(D: dict[str, list[tuple]], variants=("M1a", "M2a"), model: str 
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", nargs="?", default="history", choices=["history", "cases", "news"])
+    ap.add_argument("mode", nargs="?", default="history", choices=["history", "cases", "news", "review8"])
     ap.add_argument("--db", required=True)
     ap.add_argument("--out", default="~/ananta_runs/reads")
     ap.add_argument("--until", default=None, help="cases only: last day of data to load (YYYY-MM-DD)")
@@ -477,6 +504,16 @@ def main(argv: list[str] | None = None) -> None:
             d, c = rep[v]["DISCOVERY"], rep[v]["CONFIRM"]
             print(f"{v:4} {rep[v]['status']:14} DISC ev {d.get('events', 0):3} ep {d.get('episodes', 0):3} x30 {d.get('mean_excess30_pct')} t {d.get('t_events')}"
                   f" | CONF ev {c.get('events', 0):3} ep {c.get('episodes', 0):3} x30 {c.get('mean_excess30_pct')}")
+    elif a.mode == "review8":
+        D = {c: cached_daily(a.db, c, out, CONF_END) for c in COINS}
+        rep = history(D, REVIEW8, review8_filter)
+        rep["_meta"] = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"), "pre_registration": "docs/repair_shop/REVIEW_8.md"}
+        (out / "review8_results.json").write_text(json.dumps(rep, indent=1))
+        for v in REVIEW8:
+            d, c = rep[v]["DISCOVERY"], rep[v]["CONFIRM"]
+            print(f"{v:7} {rep[v]['status']:14} DISC ev {d.get('events', 0):3} ep {d.get('episodes', 0):3} x30 {d.get('mean_excess30_pct')} t {d.get('t_events')} "
+                  f"net30 {d.get('mean_net30_pct')} managed {d.get('managed30_pct')} | CONF ev {c.get('events', 0):3} ep {c.get('episodes', 0):3} "
+                  f"x30 {c.get('mean_excess30_pct')} net30 {c.get('mean_net30_pct')} managed {c.get('managed30_pct')}")
     elif a.mode == "news":
         D = {c: cached_daily(a.db, c, out, CONF_END) for c in COINS}
         res = news_history(D)

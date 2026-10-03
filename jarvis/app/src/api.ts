@@ -2,12 +2,13 @@
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 
-const DEFAULT_SERVER: string = (Constants.expoConfig?.extra as any)?.defaultServer ?? "http://192.168.2.68:8100";
+const DEFAULT_SERVER: string = (Constants.expoConfig?.extra as any)?.defaultServer ?? "https://api.livetrading247.com";
 
 export async function server(): Promise<string> {
   const saved = await SecureStore.getItemAsync("jarvis_server");
-  // Temporary public links (*.trycloudflare.com) change when they restart: a saved old one is replaced by the app's current one.
-  if (saved && /trycloudflare\.com/.test(saved)) return DEFAULT_SERVER;        // an old temporary link: use the current one (or the fixed address)
+  // Old addresses give way to the fixed one (https://api.livetrading247.com): temporary *.trycloudflare.com links change on
+  // every restart, and the laptop's home-wifi address (192.168.x.x) only works at home.
+  if (saved && /trycloudflare\.com|192\.168\./.test(saved)) return DEFAULT_SERVER;
   return saved || DEFAULT_SERVER;
 }
 export async function setServer(url: string) {

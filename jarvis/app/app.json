@@ -31,7 +31,7 @@
       ]
     ],
     "extra": {
-      "defaultServer": "http://192.168.2.68:8100"
+      "defaultServer": "https://api.livetrading247.com"
     }
   }
 }

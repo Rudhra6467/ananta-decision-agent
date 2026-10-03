@@ -1,13 +1,31 @@
 // The five main tabs, swipeable like YouTube: drag left / right and you see the next page slide in.
 // Tab bar stays at the bottom; the page header (title, Cockpit button) is drawn here because swipe tabs have no header of their own.
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router, usePathname } from "expo-router";
 import SwipeTabs from "expo-router/js-top-tabs";        // Expo Router's swipeable tabs (react-native-tab-view + pager-view underneath)
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C } from "../../src/theme";
 import { ChartIcon, ChatIcon, FlaskIcon, GaugeIcon, HomeIcon, PieIcon } from "../../src/icons";
+import { useData } from "../../src/useData";
 
 const TITLES: Record<string, string> = { today: "Home", markets: "Markets", portfolio: "Portfolio", ask: "Ananta", evidence: "Evidence" };
+
+// Guests (a friend testing the app) get a practice book of their own. A thin strip under the title says so on every tab;
+// tap it for the full note. Madhav never sees it.
+function PracticeStrip() {
+  const { data: me } = useData("/v3/me", 0);
+  const [open, setOpen] = useState(false);
+  if (!me?.guest) return null;
+  return (
+    <Pressable onPress={() => setOpen(!open)} style={{ backgroundColor: C.card2, borderBottomWidth: 1, borderBottomColor: C.line, paddingHorizontal: 16, paddingVertical: 6 }}>
+      <Text style={{ color: C.warn, fontSize: 12, fontWeight: "700", textAlign: "center" }}>
+        PRACTICE MODE · your own dummy book{open ? "" : " · tap for details"}
+      </Text>
+      {open ? <Text style={{ color: C.dim, fontSize: 12, textAlign: "center", marginTop: 2 }}>{me.practice_note}</Text> : null}
+    </Pressable>
+  );
+}
 
 function Header() {
   const top = useSafeAreaInsets().top;
@@ -24,6 +42,7 @@ function Header() {
           </Pressable>
         ) : null}
       </View>
+      <PracticeStrip />
     </View>
   );
 }

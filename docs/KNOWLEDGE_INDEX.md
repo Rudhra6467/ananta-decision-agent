@@ -44,6 +44,10 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/STUDY_V3_FRESH.md`, `research/STUDY_V3_FRESH_RESULTS.md`: regime-adaptive exits on 10 fresh coins.
 - `research/STUDY_V4.md`, `research/STUDY_V4_RESULTS.md`: BTC market filter on fresh set #2: no variant passed.
 
+## Plans
+- `BACKLOG.md`: everything still to do, in priority order (layers, zones, untested ideas, path to live). Open for 'what's next / what's pending'.
+- `research/ZONES_PROGRAM.md`: what a zone is, zone strength and states, review #6 pre-registration, and the list of studies to redo with zones.
+
 ## Safety and operations
 - `RUNBOOK_SAFETY.md`: stop, flatten, roll back, resume (copy-paste commands).
 - `SAFETY_GATES_LOCK.md`: safety gates that live outside the AI.

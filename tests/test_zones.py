@@ -201,3 +201,15 @@ def test_review12_exits_never_look_ahead_and_only_hold_after_a_t3_entry():
         assert (a[v].iloc[:cut].values == b[v].values).all(), v                 # later candles never change earlier decisions
         held = a[v].values
         assert not (held & ~a["_avail"].values).any()
+
+
+def test_review13_entries_never_look_ahead():
+    from src.research import teachers2 as T2
+
+    D = _walk(900, seed=71)
+    full = T2.entries("X", R.Series(D), R.Series(D), 10 ** 12)
+    cut = R.Series(D[:760])
+    part = T2.entries("X", cut, cut, 10 ** 12)
+    early = lambda evs: [(e["t"], e["variant"], round(e["r20"], 9)) for e in evs if e["t"] < D[700][0]]   # noqa: E731
+    assert early(full) == early(part)
+    assert {e["variant"] for e in full} <= {"H07", "H12", "H13"}

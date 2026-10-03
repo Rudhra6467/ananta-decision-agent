@@ -46,7 +46,9 @@ def vtt_text(path: Path) -> str:
 
 
 def claude(model: str, system: str, user: str, max_tokens: int = 4000, tries: int = 8) -> tuple[str, dict]:
-    body = {"model": model, "max_tokens": max_tokens, "temperature": 0, "system": system, "messages": [{"role": "user", "content": user}]}
+    body = {"model": model, "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": user}]}
+    if "haiku" in model:
+        body["temperature"] = 0                 # newer models reject the temperature setting
     for k in range(tries):
         req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
                                      headers={"Content-Type": "application/json", "x-api-key": os.environ["ANTHROPIC_API_KEY"],

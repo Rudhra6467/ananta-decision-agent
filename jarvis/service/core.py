@@ -79,6 +79,13 @@ class ConfirmRequired(Exception):
     pass
 
 
+def docs_dir(base) -> Path:
+    """Ananta's knowledge documents. They ship with this service's code (the jarvis branch checkout), which is newer than the
+    agent folder's copy until a merge is pulled there; fall back to the agent folder's docs."""
+    own = Path(__file__).resolve().parents[2] / "docs"
+    return own if (own / "KNOWLEDGE_INDEX.md").exists() else Path(base) / "docs"
+
+
 def _utc(t: float) -> str:
     return datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -286,7 +293,7 @@ class Jarvis:
             for s in out["sightings_today"].values():
                 s["p_target"] = round(sum(s["p_target"]) / len(s["p_target"]), 3) if s["p_target"] else None
                 s["net_pct"] = round(sum(s["net_pct"]) / len(s["net_pct"]), 3) if s["net_pct"] else None
-        reg = self.dir / "docs" / "variable_registry.json"
+        reg = docs_dir(self.dir) / "variable_registry.json"
         if reg.exists():
             r = json.loads(reg.read_text())
             out["registry"] = {"counts": {st: sum(1 for v in r["variables"] if v["status"] == st) for st in ("KEEP", "WATCH", "DROP")},

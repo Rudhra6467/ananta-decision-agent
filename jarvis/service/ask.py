@@ -18,6 +18,7 @@ import os
 import re
 import time
 import uuid
+from pathlib import Path
 from typing import Any, Callable
 
 from jarvis.service import views
@@ -53,7 +54,8 @@ HOW ANANTA REASONS (Madhav's framework; docs/knowledge/FRAMEWORK.md)
 - The decision chain, fail-closed: REGIME (is the market allowed to be long?) -> TREND (is the coin in its own uptrend?) -> LOCATION (at a meaningful place: an area of value or the top of a base, not stretched) -> TRIGGER (did the signal actually happen?) -> INVALIDATION (where is the idea wrong?) -> RISK (can it be sized from that distance?) -> EXPOSURE (does it add to bets we already hold?). The first broken gate = no trade; missing data = no trade (a data gap, never "no setup"). Use the chain lookup for "should we buy X", "why no trade", "what is Ananta waiting for".
 - Candles, volume, patterns and relative strength are EVIDENCE at a location inside a regime, never commands ("bullish engulfing, therefore buy" is wrong).
 - The stop goes where the idea is proven wrong; size comes from that distance. Correlated alts are one bet with BTC.
-- KNOWLEDGE TIERS: always make clear where a statement comes from: "our tested rule" (verified variables like V01, V02 or a passed repair-shop review), "Madhav's policy" (P01-P03), "a teacher's idea we have not tested yet" (hypotheses H01-H18 with their status: UNVERIFIED / FIRST_LOOK / PROMISING / NOT_SUPPORTED / SUPPORTED), or "what the data showed in your own trades" (the casebook). Never present a teacher's claim (Rayner, Trade With Trend, Weinstein, O'Neil, Minervini) as proven; say what our first look found when the knowledge lookup has it.
+- YOUR SETUPS: Madhav's three buy setups from his own SOL trades (reads lookup): capitulation at the lows, higher-low retest, quiet base after a run. They find the places he would look; on their own, history 2018-2023 did not support them as buy signals (review #5), so present a fired read as "your setup is showing on X" plus what history said, never as a buy call. The news check (blunder guard) runs when he asks.
+- KNOWLEDGE TIERS: always make clear where a statement comes from: "our tested rule" (verified variables like V01, V02 or a passed repair-shop review), "Madhav's policy" (P01-P03), "a teacher's idea we have not tested yet" (hypotheses H01-H18 with their status: UNVERIFIED / FIRST_LOOK / PROMISING / NOT_SUPPORTED / SUPPORTED), or "what the data showed in your own trades" (the casebook), or "your note" (Madhav's own notes: his view, quoted back to him, not verified). The knowledge lookup returns a map of which document holds what; open a whole document with read_doc only when the passages are not enough. Never present a teacher's claim (Rayner, Trade With Trend, Weinstein, O'Neil, Minervini) as proven; say what our first look found when the knowledge lookup has it.
 
 RULES
 0. FAST PATH: a PORTFOLIO_BRIEF and/or MARKET_BRIEF may be attached to the question. They are live data. Answer straight from them WITHOUT calling lookups whenever they hold what is needed. Call a lookup only for detail the brief does not have (one coin's conditions in full, a trade's detail, history odds, research notes, the mandate, or an action). Portfolio questions are about OUR books (trades, T3 portfolio, my paper book, what we watch or skipped); market questions are about the market itself (trend, scan results, Hunter/Squeeze, evidence and lessons).
@@ -72,7 +74,7 @@ RULES
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
 12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something ("show me...", "open...", "take me...", "where can I see..."), you MUST CALL ui_go for the most relevant place (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. Questions about the screen itself ("what's below this?", "what's at the bottom?", "what's above?") mean the parts of the open screen: call ui_scroll (down / bottom / up) and describe those parts using the spot list in order (not prices below). For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
 13. POINT AT WHAT YOU TALK ABOUT: add "points" so the app makes that thing glow (and scrolls to it) while that sentence is spoken: [{"spot": "<spot id>", "sentence": <index of the sentence in "answer", from 0>}]. Use spots of the screen that is open, or of the place you open with ui_go in this answer (if you point at a spot of another tab without ui_go, the app opens that tab for you). One spot per sentence at most; only point when it helps him find it. When you walk him through a screen or explain where something is, ALWAYS point at each part as you name it. Spot ids:
-home.value | home.inbox | home.brief | home.books | home.activity ; markets.summary | markets.chain | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.tracker | evidence.collected | evidence.forwarded | evidence.shop | evidence.ideas | evidence.in_use | evidence.safety ; cockpit.controls | cockpit.ai | cockpit.alerts | cockpit.systems ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5> | coin.chain (the decision chain ladder).
+home.value | home.inbox | home.brief | home.books | home.activity ; markets.summary | markets.chain | markets.reads | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.tracker | evidence.collected | evidence.forwarded | evidence.shop | evidence.ideas | evidence.in_use | evidence.safety ; cockpit.controls | cockpit.ai | cockpit.alerts | cockpit.systems ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5> | coin.chain (the decision chain ladder) | coin.reads (your setups on this coin).
 14. PROVE IT: every number you give should be checkable in the app. In "evidence" items add "spot" (and "screen" when it is on another screen) for where that number is shown. When he asks "where did you get that?", "show me", "prove it" or "show me the trade you just mentioned", open that place with ui_go and point at it (points) while you explain; use the previous answer's evidence to know what "that" is. For a single trade, open the trade page (trade:<id>) and point at trade.pnl / trade.stop / trade.target; for a coin's setup, open the coin page and point at coin.setup:<E#>.
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
@@ -107,7 +109,9 @@ TOOLS = [
     ("portfolio", "The T3 portfolio: value, return, holdings with cost and P&L, ratings and reasons, pending proposals, mode, comparison with buy-and-hold and the shadow book.", OFF),
     ("history", "What happened historically after a setup in the current market condition (intraday atlas, 2017-2026 5m data): odds of +3% before -1.5%, net after costs, typical 1h/4h/24h ranges. Give coin to use its current condition.", _schema({"setup": {"type": "string", "description": "E1-E8 or ANY"}, "coin": COIN})),
     ("evidence", "Evidence collected so far (counts, by setup, shadows, hourly looks, reconstruction match) and the repair shop: forwarded questions, verdicts, queue, repairs in use and how they are tracking.", OFF),
-    ("knowledge", "Search Ananta's research and knowledge: repair shop reviews, rulebook, variable registry, studies, Madhav's framework, the teacher hypotheses (Rayner, Trade With Trend: claim, status, what our first look found) and the casebook of Madhav's own trades. Use for 'what did we learn', 'why do we do X', 'has this been tested', 'what does Rayner / Trade With Trend say about X'.", _schema({"query": {"type": "string"}}, ["query"])),
+    ("knowledge", "Search Ananta's research and knowledge: repair shop reviews, rulebook, variable registry, studies, Madhav's framework, the teacher hypotheses (Rayner, Trade With Trend: claim, status, what our first look found), the casebook of Madhav's own trades and Madhav's own notes. Returns the matching lines of the knowledge map (which document holds what) plus the best passages. Use for 'what did we learn', 'why do we do X', 'has this been tested', 'what does Rayner / Trade With Trend say about X'.", _schema({"query": {"type": "string"}}, ["query"])),
+    ("reads", "Madhav's own three buy setups, read on every coin at the last daily close: M1 capitulation at the lows (like his Jun 5 SOL buy), M2 higher-low retest (like Jun 25-26), M3 quiet base after a run (like Aug 10; a = upper half of the base, b = first close above it). Each read lists its conditions (found vs needed), FIRED / CLOSE (one missing) / NO, the stop if it fails, and what history said (repair-shop review #5). Use for 'any setups like mine', 'is SOL setting up like my June buy', 'what is close to firing'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
+    ("read_doc", "Open one whole document from the knowledge map (for example 'casebook/REBUILD_2026-10-03.md' or 'knowledge/FRAMEWORK.md') when the passages from knowledge are not enough. Optional section = a heading word to return only that part.", _schema({"file": {"type": "string"}, "section": {"type": "string"}}, ["file"])),
     ("chain", "Ananta's decision chain for one coin or all 10 (fail-closed): regime -> trend -> location -> trigger -> invalidation -> risk -> exposure; where each coin stops and why, the stop and size if it got that far, plus relative strength vs BTC, volume and setup family as evidence. Use for 'should we buy X', 'why no trade', 'what is Ananta waiting for', 'which coins are closest'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
     ("changes", "What changed / happened in the last N hours: buys, sells, orders, portfolio moves, warnings, owner actions.", _schema({"hours": {"type": "number"}})),
     ("report", "The latest daily or weekly report text.", _schema({"kind": {"type": "string", "description": "daily | weekly"}})),
@@ -398,24 +402,46 @@ class Lookups:
             (x.get("tracking") or {}).pop("series", None)
         return {**ev, "in_use": fw["in_use"], "safety_changes": fw["safety_changes"]}
 
+    def _notes_dir(self) -> Path:
+        return Path(os.path.expanduser(os.getenv("ANANTA_NOTES_DIR", "~/AnantaBrain/My notes")))
+
     def t_knowledge(self, query: str) -> dict:
-        roots = [self.j.dir / "docs" / "repair_shop", self.j.dir / "docs" / "research", self.j.dir / "docs" / "knowledge",
-                 self.j.dir / "docs" / "knowledge" / "teachers", self.j.dir / "docs" / "casebook"]
-        files = [p for r in roots if r.exists() for p in r.glob("*.md")] + [self.j.dir / "docs" / "RULEBOOK_V0.md", self.j.dir / "docs" / "VARIABLE_REGISTRY.md"]
+        from jarvis.service.core import docs_dir
+
+        docs = docs_dir(self.j.dir)
+        roots = [docs / "repair_shop", docs / "research", docs / "knowledge", docs / "knowledge" / "teachers", docs / "casebook"]
+        files = [p for r in roots if r.exists() for p in r.glob("*.md")] + [docs / "RULEBOOK_V0.md", docs / "VARIABLE_REGISTRY.md"]
+        notes = self._notes_dir()
+        note_files = ([p for p in sorted(notes.rglob("*.md")) if not p.name.lower().startswith("start here")][:300]
+                      if notes.exists() and not self.guest else [])                   # his private notes: owner only
         words = [w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) > 2]
         hits = []
-        for p in files:
+        for p in files + note_files:
             if not p.exists():
                 continue
-            text = p.read_text()
+            text = p.read_text(errors="ignore")
+            name = f"your note: {p.relative_to(notes)}" if p in note_files else str(p.relative_to(docs))
             paras = re.split(r"\n(?=#)|\n\n", text)
             for para in paras:
                 low = para.lower()
                 score = sum(low.count(w) for w in words)
                 if score:
-                    hits.append((score, p.name, para.strip()[:900]))
+                    hits.append((score, name, para.strip()[:900]))
+        cases = docs / "casebook" / "cases.json"
+        if cases.exists():                                   # Madhav's own trades, one case per passage
+            cb = json.loads(cases.read_text())
+            for c in cb.get("cases", []) + cb.get("lessons", []):
+                blob = json.dumps(c)
+                score = sum(blob.lower().count(w) for w in words)
+                if score:
+                    hits.append((score, "casebook/cases.json", blob[:900]))
         hits.sort(key=lambda h: -h[0])
-        reg = self.j.dir / "docs" / "variable_registry.json"
+        mine = [h for h in hits if h[1].startswith("your note")][:3]       # his own notes get their own slot
+        hits = [h for h in hits if not h[1].startswith("your note")]
+        idx = docs / "KNOWLEDGE_INDEX.md"
+        index = [ln.strip("- ").strip() for ln in idx.read_text().splitlines() if ln.startswith("- ")
+                 and any(w in ln.lower() for w in words)][:8] if idx.exists() else []
+        reg = docs / "variable_registry.json"
         regs = []
         if reg.exists():
             r = json.loads(reg.read_text())
@@ -424,7 +450,7 @@ class Lookups:
                 if any(w in blob for w in words):
                     regs.append(v)
         hyp = []
-        hp = self.j.dir / "docs" / "knowledge" / "hypotheses.json"
+        hp = docs / "knowledge" / "hypotheses.json"
         if hp.exists():
             for h in json.loads(hp.read_text()).get("hypotheses", []):
                 blob = json.dumps(h).lower()
@@ -432,9 +458,45 @@ class Lookups:
                 if sc_:
                     hyp.append((sc_, h))
             hyp.sort(key=lambda x: -x[0])
-        return {"passages": [{"file": f, "text": t} for _, f, t in hits[:6]], "registry": regs[:8],
+        return {"map": index, "passages": [{"file": f, "text": t} for _, f, t in hits[:6]],
+                "your_notes": [{"file": f, "text": t} for _, f, t in mine], "registry": regs[:8],
                 "hypotheses": [h for _, h in hyp[:5]],
-                "tiers": "registry = Ananta-verified variables; hypotheses = teacher ideas with their test status (not rules); casebook = Madhav's own trades"}
+                "tiers": "registry = Ananta-verified variables; casebook = Madhav's own trades; hypotheses = teacher ideas with their "
+                         "test status (not rules); 'your note' = Madhav's own notes (his view, not verified). read_doc opens a whole file from the map."}
+
+    def t_read_doc(self, file: str, section: str | None = None) -> dict:
+        from jarvis.service.core import docs_dir
+
+        docs = docs_dir(self.j.dir).resolve()
+        notes = self._notes_dir().resolve()
+        rel = file.strip().removeprefix("docs/").removeprefix("your note: ")
+        p = (docs / rel).resolve()
+        if not (p.is_relative_to(docs) and p.is_file()):
+            q = (notes / rel).resolve()
+            p = q if not self.guest and notes.exists() and q.is_relative_to(notes) and q.is_file() else None
+        if p is None or p.suffix not in (".md", ".json", ".txt"):
+            return {"error": f"no document '{file}' in the knowledge map", "hint": "call knowledge first; its map lists the files"}
+        text = p.read_text(errors="ignore")
+        if section:
+            parts = re.split(r"\n(?=#)", text)
+            pick = [x for x in parts if section.lower() in x.splitlines()[0].lower()] or [x for x in parts if section.lower() in x.lower()]
+            text = "\n".join(pick[:3]) if pick else text
+        cut = len(text) > 12000
+        return {"file": file, "text": text[:12000], "truncated": cut}
+
+    def t_reads(self, coin: str | None = None) -> dict:
+        from jarvis.service import reads_watch
+
+        b = reads_watch.board(self.j)
+        if coin:
+            c = coin.upper().replace("/USD", "")
+            row = next((r for r in b.get("coins", []) if r["coin"] == c), None)
+            if row is None:
+                return {"error": f"no reads for {coin}"}
+            return {**row, "history": b.get("history"), "note": b.get("note")}
+        slim = [{"coin": r["coin"], "best": r["best"]} for r in b.get("coins", [])]
+        return {"day": b.get("day"), "fired": b.get("fired"), "close": b.get("close"), "coins": slim, "recent_fires": b.get("recent", [])[:5],
+                "history": b.get("history"), "note": b.get("note")}
 
     def t_chain(self, coin: str | None = None) -> dict:
         from jarvis.service import chain

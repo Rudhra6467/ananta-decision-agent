@@ -13,7 +13,7 @@ import { C, pnlColor } from "../../src/theme";
 const KIND: Record<string, { color: string; label: string }> = {
   buy: { color: C.accent, label: "BUY" }, sell: { color: C.text, label: "SELL" }, watch: { color: C.faint, label: "ORDER" },
   portfolio: { color: C.accent, label: "PORTFOLIO" }, warn: { color: C.warn, label: "WARNING" }, info: { color: C.faint, label: "YOU" },
-  alert: { color: C.warn, label: "ALERT" }, brief: { color: C.accent, label: "BRIEF" },
+  alert: { color: C.warn, label: "ALERT" }, brief: { color: C.accent, label: "BRIEF" }, setup: { color: C.good, label: "YOUR SETUP" },
 };
 
 export default function Home() {

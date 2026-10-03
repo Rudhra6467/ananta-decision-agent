@@ -145,7 +145,8 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
             items.append({"t": t, "kind": "warn", "title": title.replace("Ananta", "").strip(": "), "body": body[:200]})
     for (t, who, action, detail, result) in j.db.execute("SELECT t, who, action, detail, result FROM audit WHERE t >= ? AND action NOT IN ('login', 'ask') ORDER BY seq", (since,)):
         label = {"portfolio.mode": f"Portfolio mode set to {detail}", "safety.kill_switch": f"Kill switch {detail}",
-                 "portfolio.approve": "You approved portfolio changes", "portfolio.reject": "You rejected portfolio changes"}.get(action, action)
+                 "portfolio.approve": "You approved portfolio changes", "portfolio.reject": "You rejected portfolio changes",
+                 "reads.news": f"News check: {detail}"}.get(action, action)
         items.append({"t": t, "kind": "info", "title": label, "body": "From the Jarvis app."})
     try:
         for (t, coin, msg) in j.db.execute("SELECT fired_t, coin, message FROM alerts WHERE status='FIRED' AND fired_t >= ?", (since,)):
@@ -153,6 +154,11 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
         for (t, kind, text) in j.db.execute("SELECT t, kind, text FROM briefings WHERE t >= ?", (since,)):
             items.append({"t": t, "kind": "brief", "title": f"{kind.capitalize()} brief", "body": text})
     except Exception:  # noqa: BLE001  tables appear on first use
+        pass
+    try:
+        for (t, coin, name, msg) in j.db.execute("SELECT t, coin, name, message FROM read_fires WHERE t >= ?", (since,)):
+            items.append({"t": t, "kind": "setup", "coin": coin, "title": f"{coin}: your {name.lower()} setup", "body": msg})
+    except Exception:  # noqa: BLE001  appears with the first fire
         pass
     items.sort(key=lambda x: x["t"], reverse=True)
     for it in items:
@@ -324,11 +330,12 @@ def trade_detail(j, trade_id: str) -> dict:
 def _ledger(j) -> dict:
     """The repair-shop ledger: the newest copy (the live agent folder or this service's own checkout)."""
     best = None
-    for base in (j.dir, Path(__file__).resolve().parents[2]):
+    for base in (Path(__file__).resolve().parents[2], j.dir):          # same date: this service's checkout wins (it is never older)
         p = base / "docs" / "repair_shop" / "ledger.json"
         if p.exists():
             d = json.loads(p.read_text())
-            if best is None or str(d.get("updated", "")) > str(best.get("updated", "")):
+            key = (str(d.get("updated", "")), len(d.get("reviews", [])) + len(d.get("queue", [])))
+            if best is None or key > (str(best.get("updated", "")), len(best.get("reviews", [])) + len(best.get("queue", []))):
                 best = d
     return best or {"reviews": [], "queue": [], "in_use": [], "safety_changes": []}
 
@@ -750,6 +757,10 @@ def evidence_pipeline(j) -> dict:
     # 6. repair shop (with live progress for each waiting question)
     progress = {"closed_trades": len(real) + len(wouldbe), "weekly_rebalances": t3_weeks,
                 "e5_trades": sum(1 for r in real if r["setup"] == "E5"), "stable_positive_sightings": 0}
+    try:
+        progress["read_fires"] = j.db.execute("SELECT COUNT(*) FROM read_fires").fetchone()[0]
+    except Exception:  # noqa: BLE001  no fires yet
+        progress["read_fires"] = 0
     ev = _events_count(real + wouldbe)
     queue = [{**q, "have": progress.get(q.get("metric")),
               "note": (f"real + would-be trades; they come from only {ev} independent market move{'s' if ev != 1 else ''}, "

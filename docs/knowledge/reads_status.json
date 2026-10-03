@@ -1,0 +1,211 @@
+{
+ "review": "docs/repair_shop/REVIEW_5.md",
+ "results": "docs/repair_shop/REVIEW_5_RESULTS.md",
+ "run": "2026-10-03T14:06:57+00:00",
+ "note": "Pre-registered statuses, by the rule committed before the run. Percentages are per 30-day hold, net of NDAX costs; excess = minus the same coin's average 30-day return in that split.",
+ "variants": {
+  "M1a": {
+   "status": "INSUFFICIENT",
+   "DISCOVERY": {
+    "events": 6,
+    "episodes": 16,
+    "mean_excess30_pct": -7.16,
+    "t_events": -1.16,
+    "mean_net30_pct": -2.86,
+    "median_net30_pct": -4.3,
+    "win_rate30": 0.44,
+    "mean_net90_pct": 11.13,
+    "mean_deepest_drop30_pct": -18.87,
+    "managed30_pct": -2.67,
+    "stopped_rate": 0.44
+   },
+   "CONFIRM": {
+    "events": 2,
+    "episodes": 15,
+    "mean_excess30_pct": 3.87,
+    "t_events": 5.81,
+    "mean_net30_pct": 4.86,
+    "median_net30_pct": 5.19,
+    "win_rate30": 0.8,
+    "mean_net90_pct": 15.99,
+    "mean_deepest_drop30_pct": -12.34,
+    "managed30_pct": 0.33,
+    "stopped_rate": 0.47
+   }
+  },
+  "M1b": {
+   "status": "INSUFFICIENT",
+   "DISCOVERY": {
+    "events": 8,
+    "episodes": 18,
+    "mean_excess30_pct": 11.82,
+    "t_events": 0.68,
+    "mean_net30_pct": 6.57,
+    "median_net30_pct": -0.61,
+    "win_rate30": 0.5,
+    "mean_net90_pct": 12.92,
+    "mean_deepest_drop30_pct": -18.61,
+    "managed30_pct": -3.83,
+    "stopped_rate": 0.5
+   },
+   "CONFIRM": {
+    "events": 2,
+    "episodes": 15,
+    "mean_excess30_pct": 3.87,
+    "t_events": 5.81,
+    "mean_net30_pct": 4.86,
+    "median_net30_pct": 5.19,
+    "win_rate30": 0.8,
+    "mean_net90_pct": 15.99,
+    "mean_deepest_drop30_pct": -12.34,
+    "managed30_pct": 0.33,
+    "stopped_rate": 0.47
+   }
+  },
+  "M1c": {
+   "status": "INSUFFICIENT",
+   "DISCOVERY": {
+    "events": 7,
+    "episodes": 17,
+    "mean_excess30_pct": -8.67,
+    "t_events": -1.6,
+    "mean_net30_pct": -3.52,
+    "median_net30_pct": -4.49,
+    "win_rate30": 0.41,
+    "mean_net90_pct": 12.19,
+    "mean_deepest_drop30_pct": -18.91,
+    "managed30_pct": -3.39,
+    "stopped_rate": 0.47
+   },
+   "CONFIRM": {
+    "events": 2,
+    "episodes": 17,
+    "mean_excess30_pct": 3.12,
+    "t_events": 2.21,
+    "mean_net30_pct": 4.14,
+    "median_net30_pct": 5.19,
+    "win_rate30": 0.82,
+    "mean_net90_pct": 17.56,
+    "mean_deepest_drop30_pct": -11.89,
+    "managed30_pct": 0.95,
+    "stopped_rate": 0.41
+   }
+  },
+  "M2a": {
+   "status": "NOT_SUPPORTED",
+   "DISCOVERY": {
+    "events": 17,
+    "episodes": 26,
+    "mean_excess30_pct": -3.55,
+    "t_events": -0.69,
+    "mean_net30_pct": 2.21,
+    "median_net30_pct": -1.19,
+    "win_rate30": 0.38,
+    "mean_net90_pct": 12.98,
+    "mean_deepest_drop30_pct": -15.29,
+    "managed30_pct": 1.64,
+    "stopped_rate": 0.42
+   },
+   "CONFIRM": {
+    "events": 5,
+    "episodes": 17,
+    "mean_excess30_pct": 4.8,
+    "t_events": 0.39,
+    "mean_net30_pct": 0.57,
+    "median_net30_pct": -2.24,
+    "win_rate30": 0.41,
+    "mean_net90_pct": 13.26,
+    "mean_deepest_drop30_pct": -13.09,
+    "managed30_pct": -0.33,
+    "stopped_rate": 0.18
+   }
+  },
+  "M2b": {
+   "status": "INSUFFICIENT",
+   "DISCOVERY": {
+    "events": 11,
+    "episodes": 12,
+    "mean_excess30_pct": -4.06,
+    "t_events": -0.53,
+    "mean_net30_pct": 7.94,
+    "median_net30_pct": -3.67,
+    "win_rate30": 0.42,
+    "mean_net90_pct": 41.23,
+    "mean_deepest_drop30_pct": -13.34,
+    "managed30_pct": 7.47,
+    "stopped_rate": 0.33
+   },
+   "CONFIRM": {
+    "events": 2,
+    "episodes": 10,
+    "mean_excess30_pct": 23.89,
+    "t_events": 0.91,
+    "mean_net30_pct": 3.87,
+    "median_net30_pct": -0.66,
+    "win_rate30": 0.5,
+    "mean_net90_pct": 113.01,
+    "mean_deepest_drop30_pct": -13.98,
+    "managed30_pct": 2.22,
+    "stopped_rate": 0.2
+   }
+  },
+  "M3a": {
+   "status": "NOT_SUPPORTED",
+   "DISCOVERY": {
+    "events": 16,
+    "episodes": 25,
+    "mean_excess30_pct": -4.23,
+    "t_events": -0.88,
+    "mean_net30_pct": -0.1,
+    "median_net30_pct": -2.66,
+    "win_rate30": 0.4,
+    "mean_net90_pct": 100.6,
+    "mean_deepest_drop30_pct": -15.48,
+    "managed30_pct": -1.12,
+    "stopped_rate": 0.52
+   },
+   "CONFIRM": {
+    "events": 8,
+    "episodes": 16,
+    "mean_excess30_pct": 12.12,
+    "t_events": 0.87,
+    "mean_net30_pct": 13.84,
+    "median_net30_pct": 3.97,
+    "win_rate30": 0.56,
+    "mean_net90_pct": -0.99,
+    "mean_deepest_drop30_pct": -11.4,
+    "managed30_pct": 14.63,
+    "stopped_rate": 0.31
+   }
+  },
+  "M3b": {
+   "status": "NOT_SUPPORTED",
+   "DISCOVERY": {
+    "events": 9,
+    "episodes": 10,
+    "mean_excess30_pct": 1.88,
+    "t_events": 0.23,
+    "mean_net30_pct": 6.72,
+    "median_net30_pct": -4.9,
+    "win_rate30": 0.4,
+    "mean_net90_pct": 44.52,
+    "mean_deepest_drop30_pct": -11.93,
+    "managed30_pct": 5.79,
+    "stopped_rate": 0.2
+   },
+   "CONFIRM": {
+    "events": 6,
+    "episodes": 9,
+    "mean_excess30_pct": 3.72,
+    "t_events": 0.27,
+    "mean_net30_pct": 7.34,
+    "median_net30_pct": -3.32,
+    "win_rate30": 0.33,
+    "mean_net90_pct": 0.52,
+    "mean_deepest_drop30_pct": -14.89,
+    "managed30_pct": 9.32,
+    "stopped_rate": 0.33
+   }
+  }
+ }
+}

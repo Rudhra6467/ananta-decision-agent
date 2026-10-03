@@ -128,6 +128,14 @@ def check(name: str, at_local: str, days: int = 4, model: str = "gemma4:12b", ma
             "same_day_not_used": [f"{h['day']} {h['title']}" for h in g["same_day_not_used"]][:15], **res}
 
 
+def live(name: str, days: int = 4, model: str = "claude-haiku-4-5-20251001", market: bool = True) -> dict:
+    """The check for right now: today's headlines count too (nothing after 'now' exists yet)."""
+    now = datetime.now(TZ)
+    g = gather(name, now + timedelta(days=1), days + 1, market)            # 'before tomorrow' = up to and including today
+    res = classify(name, now, g["used"], model)
+    return {"asset": name, "moment": f"{now:%Y-%m-%d %H:%M}", "window_days": days, "headlines_used": len(g["used"]), **res}
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", required=True)

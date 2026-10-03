@@ -25,7 +25,7 @@ import threading as _threading  # noqa: E402
 _SANDBOX: contextvars.ContextVar[str | None] = contextvars.ContextVar("jarvis_sandbox", default=None)
 _JG: dict[str, core.Jarvis] = {}
 _JG_LOCK = _threading.Lock()
-SHARED_TABLES = ("snapshots", "briefings")     # read-only system history the guest should see too (copied, never written back)
+SHARED_TABLES = ("snapshots", "briefings", "read_fires")   # read-only system history the guest should see too (copied, never written back)
 
 
 def _main() -> core.Jarvis:
@@ -40,7 +40,10 @@ def _sync_shared(g: core.Jarvis) -> None:
     from jarvis.service.mandate import Mandate
 
     m = _main()
+    from jarvis.service import reads_watch
+
     Alerts(g.db, g.now)
+    reads_watch._table(g)
     md = Mandate(g.db, g.now)
     for tbl in SHARED_TABLES:
         try:
@@ -337,11 +340,44 @@ def chain_board(who: str = Depends(owner)) -> dict:
     return chain.board(J())
 
 
+@app.get("/v3/reads")
+def reads_board(who: str = Depends(owner)) -> dict:
+    """Madhav's three buy setups (capitulation, higher-low retest, quiet base) on every coin at the last daily close."""
+    from jarvis.service import reads_watch
+
+    return reads_watch.board(J())
+
+
+@app.get("/v3/reads/{coin}")
+def reads_coin(coin: str, who: str = Depends(owner)) -> dict:
+    from jarvis.service import reads_watch
+
+    r = reads_watch.coin(J(), coin)
+    if r is None:
+        raise HTTPException(status_code=404, detail=f"No reads for {coin}")
+    return r
+
+
+@app.post("/v3/reads/{coin}/news")
+def reads_news(coin: str, who: str = Depends(owner)) -> dict:
+    """The blunder guard on demand: an AI look at the last few days of news about this coin (Claude Haiku, about a cent)."""
+    from jarvis.service import reads_watch
+
+    if str(who).startswith("guest:"):
+        raise HTTPException(status_code=403, detail="Practice mode: the news check uses Madhav's AI budget, so it is locked here.")
+    c = coin.upper()
+    if c not in reads_watch.NAMES:
+        raise HTTPException(status_code=404, detail=f"{coin} is not one of our coins")
+    res = reads_watch.news_check(J(), c)
+    J().audit(who, "reads.news", f"{c} {res.get('verdict')}", "OK")
+    return {"coin": c, **res}
+
+
 @app.get("/v3/knowledge/hypotheses")
 def knowledge_hypotheses(who: str = Depends(owner)) -> dict:
     import json as _json
 
-    p = J().dir / "docs" / "knowledge" / "hypotheses.json"
+    p = core.docs_dir(J().dir) / "knowledge" / "hypotheses.json"
     return _json.loads(p.read_text()) if p.exists() else {"hypotheses": []}
 
 
@@ -500,6 +536,12 @@ def background_jobs() -> dict:
     """Every 15 minutes: check alerts (no AI cost); write the morning / evening brief once each (free model)."""
     ex = J()._explorer()
     out = {"fired": AL().check(ex, push=_push), "manual_stops": MN().check_stops(ex.prices() if ex else {}, push=_push)}
+    try:
+        from jarvis.service import reads_watch
+
+        out["your_setups"] = reads_watch.watch(J(), push=_push)
+    except Exception as exc:  # noqa: BLE001  never let the reads stop the other jobs
+        out["your_setups_error"] = str(exc)[:200]
     a = A()
     if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
         kind = AL().due_brief()

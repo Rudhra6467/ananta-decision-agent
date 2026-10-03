@@ -191,6 +191,17 @@ def board(j) -> dict[str, Any]:
         except Exception as exc:  # noqa: BLE001
             out.append({"coin": coin, "verdict": "NO TRADE", "stops_at": "REGIME", "summary": f"{coin}: could not evaluate ({str(exc)[:80]}).",
                         "gates": [], "observations": {}})
+    try:                                                   # Madhav's three reads ride along as evidence (never a gate)
+        from jarvis.service import reads_watch
+
+        rb = {r["coin"]: r for r in reads_watch.board(j).get("coins", [])}
+        for r in out:
+            rr = rb.get(r["coin"])
+            if rr:
+                r.setdefault("observations", {})["your_setups"] = [
+                    {k: x.get(k) for k in ("variant", "name", "state", "met", "of", "history")} for x in rr["reads"] if x["state"] in ("FIRED", "CLOSE")]
+    except Exception:  # noqa: BLE001  evidence is optional
+        pass
     counts: dict[str, int] = {}
     for r in out:
         k = r["stops_at"] or "CANDIDATE"

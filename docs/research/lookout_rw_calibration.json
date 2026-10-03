@@ -1,0 +1,54 @@
+{
+ "what": "Lookout reactions on 10 synthetic random walks with random wicks and volume (no reaction can carry information): the measurement's own bias per reaction. Seeds 300-309, 2,400 days, daily sigma 3.5%. Frozen 2026-10-03 before the real run (review #7 Amendment 1).",
+ "reactions": {
+  "F1": {
+   "diff_pts": 30.0,
+   "z": 9.22,
+   "market_events_with": 164,
+   "held_with": 0.751,
+   "held_without": 0.451
+  },
+  "F2": {
+   "diff_pts": 22.5,
+   "z": 8.76,
+   "market_events_with": 288,
+   "held_with": 0.633,
+   "held_without": 0.408
+  },
+  "F3": {
+   "diff_pts": -1.4,
+   "z": -0.38,
+   "market_events_with": 151,
+   "held_with": 0.482,
+   "held_without": 0.496
+  },
+  "F4": {
+   "diff_pts": -4.3,
+   "z": -0.87,
+   "market_events_with": 98,
+   "held_with": 0.455,
+   "held_without": 0.498
+  },
+  "F5": {
+   "diff_pts": 9.4,
+   "z": 4.18,
+   "market_events_with": 287,
+   "held_with": 0.544,
+   "held_without": 0.45
+  },
+  "F6": {
+   "diff_pts": -5.4,
+   "z": -2.13,
+   "market_events_with": 178,
+   "held_with": 0.461,
+   "held_without": 0.515
+  },
+  "F7": {
+   "diff_pts": 6.0,
+   "z": 2.2,
+   "market_events_with": 325,
+   "held_with": 0.527,
+   "held_without": 0.467
+  }
+ }
+}

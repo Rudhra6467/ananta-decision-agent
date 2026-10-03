@@ -86,3 +86,15 @@ def test_live_zone_board_lookout_and_visit_record(tmp_path):
     w1 = W.watch(j)
     w2 = W.watch(j)
     assert w2["new"] == [] and len(W.recent(j, 10 ** 5)) == len(w1["new"])           # each entry recorded once
+
+
+def test_lookout_reactions_have_a_frozen_noise_calibration_and_never_look_ahead():
+    D = _walk(700, seed=21)
+    S = R.Series(D)
+    full = Z.Arr(S)
+    cut = Z.Arr(R.Series(D[:601]))
+    z = {"bot": 90.0, "top": 95.0, "kinds": {"SWING"}, "tier": "NEW"}
+    assert Z.reactions(S, full, S, 600, z) == Z.reactions(R.Series(D[:601]), cut, R.Series(D[:601]), 600, z)
+    assert set(Z.lookout_bias()) == set(Z.REACTIONS)
+    d = Z._corr({"diff_pts": 30.0, "z": 3.0}, 30.0)
+    assert d["diff_corrected_pts"] == 0.0 and d["z_corrected"] == 0.0

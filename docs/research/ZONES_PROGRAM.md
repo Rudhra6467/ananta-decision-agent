@@ -102,6 +102,14 @@ likely than BROKEN? Same zone engine, data, splits, outcome rule (HELD / BROKEN 
 - **Lookout score:** the number of reactions present among those that pass DISCOVERY; its held rate by score is reported in CONFIRM.
 - Random-walk check before the real run: no reaction may pass on synthetic walks.
 
+### Review #7, Amendment 1 (2026-10-03, after the random-walk check, before the real run)
+On 10 synthetic random walks with random wicks and volume (`docs/research/lookout_rw_calibration.json`), where no reaction can
+carry information, several reactions looked strong purely by arithmetic: a close in the upper half of the day (F1) +30 points,
+a close back above the zone (F2) +22.5, stronger than BTC (F5) +9.4, good zone kind (F7) +6.0, market allowed (F6) −5.4.
+A higher close simply starts nearer the HELD line and farther from the BROKEN line. So, as in review #6, each reaction is
+judged **after subtracting its random-walk difference**: pass = corrected difference ≥ 8 points, corrected z ≥ 2.5, at least 30
+market events with the reaction; CONFIRM corrected difference > 0. Raw and corrected numbers are both reported.
+
 ## 7. After that
 
 Inside a zone, which reactions predict HELD vs BROKEN: rejection wick, volume (H09), RSI divergence, relative strength vs BTC (H08),

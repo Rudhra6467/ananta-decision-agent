@@ -318,6 +318,135 @@ def review6(D: dict[str, list[tuple]], seed: int = 6) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# review #7: the lookout (which reactions inside a support zone make HELD more likely)
+# ---------------------------------------------------------------------------
+REACTIONS = {"F1": "Rejection (long lower wick)", "F2": "Closed back above the zone", "F3": "Volume 1.5x its 20-day average",
+             "F4": "Momentum divergence (lower close, higher RSI than 10 days ago)", "F5": "Stronger than BTC (30 days)",
+             "F6": "Market allowed (BTC above its 50-day average)", "F7": "Good zone kind (200-day, confluence or new swing)"}
+GOOD_GROUPS = {"AVERAGE-200", "CONFLUENCE", "SWING-NEW"}
+
+
+def reactions(S: R.Series, A: Arr, B: R.Series | None, i: int, z: dict) -> dict:
+    """The seven reactions at the close of day i (bars 0..i only)."""
+    h, l, c = A.h[i], A.l[i], A.c[i]
+    vol20 = statistics.mean(S.v[i - 20:i]) if i >= 20 else None
+    out = {"F1": bool(h > l and (c - l) / (h - l) >= 0.5), "F2": bool(c > z["top"]),
+           "F3": bool(vol20 and S.v[i] >= 1.5 * vol20),
+           "F4": bool(i >= 10 and S.rsi[i] is not None and S.rsi[i - 10] is not None and c < A.c[i - 10] and S.rsi[i] > S.rsi[i - 10])}
+    bi = B.at(S.t[i]) if B is not None else None
+    if bi is not None and bi >= 30 and i >= 30:
+        out["F5"] = bool(S.c[i] / S.c[i - 30] > B.c[bi] / B.c[bi - 30])
+        out["F6"] = bool(B.ema50[bi] is not None and B.c[bi] > B.ema50[bi])
+    else:
+        out["F5"] = out["F6"] = False
+    out["F7"] = bool(set(groups(z)) & GOOD_GROUPS)
+    return out
+
+
+def lookout_events(coin: str, S: R.Series, B: R.Series, until: int) -> list[dict]:
+    A = Arr(S)
+    out, last, swing, swing_at = [], None, None, -999
+    n = len(S.t)
+    for i in range(400, n - 1):
+        if S.t[i] >= until or np.isnan(A.atr[i - 1]) or S.sma200[i - 1] is None:
+            continue
+        if last is not None and S.t[i] - last <= 5 * DAY:
+            continue
+        if i - swing_at >= REFRESH:
+            swing, swing_at = swing_zones(A, i), i
+        prev_c = A.c[i - 1]
+        hits = [z for z in zone_map(A, i, swing)
+                if z["top"] < prev_c and A.l[i] <= z["top"] and A.l[i - 1] > z["top"] and (A.c[i - 3:i] > z["top"]).all()]
+        if not hits:
+            continue
+        z = max(hits, key=lambda x: (len(x["kinds"]), x["top"]))
+        atr = float(A.atr[i - 1])
+        res = touch_outcome(A, i, z["bot"], z["top"], atr, min(n, i + OUTCOME_DAYS))
+        r10 = float((A.o[i + 11] / A.o[i + 1]) * (1 - R.cost(coin)) ** 2 - 1) if i + 11 < n else None
+        last = S.t[i]
+        out.append({"coin": coin, "t": S.t[i], "result": res, "r10": r10, "groups": groups(z), **reactions(S, A, B, i, z)})
+    return out
+
+
+def _market_events(evs: list[dict]) -> list[list[dict]]:
+    mk: list[list[dict]] = []
+    for e in sorted(evs, key=lambda e: e["t"]):
+        if mk and e["t"] - mk[-1][0]["t"] <= 3 * DAY:
+            mk[-1].append(e)
+        else:
+            mk.append([e])
+    return mk
+
+
+def reaction_effect(evs: list[dict], f: str, seed: int = 7, boots: int = 400) -> dict:
+    """Held rate with the reaction minus without; z from a bootstrap over market events (crypto moves together)."""
+    ok = [e for e in evs if e["result"] in ("HELD", "BROKEN")]
+    mk = _market_events(ok)
+
+    def diff(groups_: list[list[dict]]):
+        w = [e for m in groups_ for e in m if e[f]]
+        wo = [e for m in groups_ for e in m if not e[f]]
+        if not w or not wo:
+            return None
+        return sum(e["result"] == "HELD" for e in w) / len(w) - sum(e["result"] == "HELD" for e in wo) / len(wo)
+    d = diff(mk)
+    rnd = random.Random(seed)
+    bs = [x for x in (diff([mk[rnd.randrange(len(mk))] for _ in mk]) for _ in range(boots)) if x is not None] if mk else []
+    sd = statistics.stdev(bs) if len(bs) > 2 else None
+    w = [e for e in ok if e[f]]
+    wo = [e for e in ok if not e[f]]
+    r = lambda xs: round(100 * statistics.mean(xs), 2) if xs else None                  # noqa: E731
+    return {"with": len(w), "without": len(wo), "market_events_with": len(_market_events(w)),
+            "held_with": round(sum(e["result"] == "HELD" for e in w) / len(w), 3) if w else None,
+            "held_without": round(sum(e["result"] == "HELD" for e in wo) / len(wo), 3) if wo else None,
+            "diff_pts": None if d is None else round(100 * d, 1), "z": round(d / sd, 2) if d is not None and sd else None,
+            "net10_with_pct": r([e["r10"] for e in w if e["r10"] is not None]), "net10_without_pct": r([e["r10"] for e in wo if e["r10"] is not None])}
+
+
+def lookout_bias() -> dict:
+    p = Path(__file__).resolve().parents[2] / "docs" / "research" / "lookout_rw_calibration.json"
+    return {f: v.get("diff_pts") or 0.0 for f, v in json.loads(p.read_text())["reactions"].items()} if p.exists() else {}
+
+
+def _corr(d: dict, bias: float) -> dict:
+    if d.get("diff_pts") is None:
+        return {**d, "diff_corrected_pts": None, "z_corrected": None}
+    e = d["diff_pts"] - bias
+    se = abs(d["diff_pts"] / d["z"]) if d.get("z") else None
+    return {**d, "rw_bias_pts": bias, "diff_corrected_pts": round(e, 1), "z_corrected": round(e / se, 2) if se else None}
+
+
+def review7(D: dict[str, list[tuple]]) -> dict:
+    B = R.Series(D["BTC"])
+    evs = []
+    for c, bars in D.items():
+        S = B if c == "BTC" else R.Series(bars)
+        evs += lookout_events(c, S, B, R.CONF_END)
+        print(c, len(evs), file=sys.stderr)
+    split = {"DISCOVERY": [e for e in evs if e["t"] < R.DISC_END], "CONFIRM": [e for e in evs if R.DISC_END <= e["t"] < R.CONF_END]}
+    out = {}
+    bias = lookout_bias()
+    for f in REACTIONS:
+        d, cf = _corr(reaction_effect(split["DISCOVERY"], f), bias.get(f, 0.0)), _corr(reaction_effect(split["CONFIRM"], f), bias.get(f, 0.0))
+        ok_d = (d["diff_corrected_pts"] is not None and d["diff_corrected_pts"] >= 8 and (d["z_corrected"] or 0) >= 2.5
+                and d["market_events_with"] >= 30)
+        ok_c = cf["diff_corrected_pts"] is not None and cf["diff_corrected_pts"] > 0
+        out[f] = {"name": REACTIONS[f], "DISCOVERY": d, "CONFIRM": cf, "status": "PASS" if ok_d and ok_c else "NOT_CONFIRMED" if ok_d else "FAIL"}
+    passing = [f for f in REACTIONS if out[f]["status"] in ("PASS", "NOT_CONFIRMED")]
+    score = {}
+    for k, evl in split.items():
+        rows = {}
+        for e in evl:
+            if e["result"] not in ("HELD", "BROKEN"):
+                continue
+            sc = sum(e[f] for f in passing)
+            rows.setdefault(sc, []).append(e["result"] == "HELD")
+        score[k] = {str(sc): {"n": len(v), "held": round(sum(v) / len(v), 3)} for sc, v in sorted(rows.items())}
+    base = {k: {"events": len(v), "held_rate": _rate([e["result"] for e in v])} for k, v in split.items()}
+    return {"reactions": out, "score_uses": passing, "score": score, "base": base, "events": evs}
+
+
+# ---------------------------------------------------------------------------
 # live
 # ---------------------------------------------------------------------------
 def live_zones(D: list[tuple], near_atr: float = 3.0) -> dict:
@@ -352,7 +481,7 @@ def live_zones(D: list[tuple], near_atr: float = 3.0) -> dict:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["review6"])
+    ap.add_argument("mode", choices=["review6", "review7"])
     ap.add_argument("--db", required=True)
     ap.add_argument("--out", default="~/ananta_runs/zones")
     a = ap.parse_args(argv)
@@ -360,6 +489,17 @@ def main(argv: list[str] | None = None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     cache = Path(os.path.expanduser("~/ananta_runs/reads"))
     D = {c: R.cached_daily(a.db, c, cache, R.CONF_END) for c in R.COINS}
+    if a.mode == "review7":
+        res = review7(D)
+        res["_meta"] = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"), "pre_registration": "docs/research/ZONES_PROGRAM.md#6"}
+        (out / "review7_results.json").write_text(json.dumps(res, indent=1, default=list))
+        print("base", res["base"])
+        for f, v in res["reactions"].items():
+            d, c = v["DISCOVERY"], v["CONFIRM"]
+            print(f, f"{v['status']:13}", v["name"][:34].ljust(34), f"DISC with {d['with']}/{d['market_events_with']}ev held {d['held_with']} vs {d['held_without']} diff {d['diff_pts']}->{d['diff_corrected_pts']} z {d['z_corrected']} r10 {d['net10_with_pct']}/{d['net10_without_pct']}",
+                  f"| CONF held {c['held_with']} vs {c['held_without']} diff {c['diff_pts']}->{c['diff_corrected_pts']} z {c['z_corrected']} r10 {c['net10_with_pct']}/{c['net10_without_pct']}")
+        print("score uses", res["score_uses"], res["score"])
+        return
     res = review6(D)
     res["_meta"] = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"), "pre_registration": "docs/research/ZONES_PROGRAM.md"}
     (out / "review6_results.json").write_text(json.dumps(res, indent=1, default=list))

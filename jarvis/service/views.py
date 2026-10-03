@@ -322,11 +322,15 @@ def trade_detail(j, trade_id: str) -> dict:
 
 # ---------------------------------------------------------------------------
 def _ledger(j) -> dict:
+    """The repair-shop ledger: the newest copy (the live agent folder or this service's own checkout)."""
+    best = None
     for base in (j.dir, Path(__file__).resolve().parents[2]):
         p = base / "docs" / "repair_shop" / "ledger.json"
         if p.exists():
-            return json.loads(p.read_text())
-    return {"reviews": [], "queue": [], "in_use": [], "safety_changes": []}
+            d = json.loads(p.read_text())
+            if best is None or str(d.get("updated", "")) > str(best.get("updated", "")):
+                best = d
+    return best or {"reviews": [], "queue": [], "in_use": [], "safety_changes": []}
 
 
 def evidence_collected(j) -> dict:
@@ -609,3 +613,150 @@ def chart(j, sym: str, tf: str = "1h") -> dict:
 
 def usd_signed(x) -> str:
     return "" if x is None else f"{'+' if x >= 0 else '-'}${abs(x):.2f}"
+
+
+# ---------------------------------------------------------------------------
+# Evidence pipeline: the whole repair loop on one page, in the order the owner asks about it
+# watching -> seen -> decided -> results -> rebuild & other traders -> repair shop -> in use
+# ---------------------------------------------------------------------------
+BLOCK_PLAIN = {
+    "REJECTED_SLOT": "the coin already had a trade of that kind open",
+    "NO_TYPE": "no trade type fitted (no room to a target)",
+    "CAP": "the account limit (open trades or entries per day) was full",
+    "REJECTED_DUP": "another setup on the same coin was taken in the same scan",
+    "KILL_SWITCH": "the kill switch was on",
+}
+
+
+def _outcomes(ex) -> list[dict]:
+    """Every closed trade, real and tracked-only: from the finished rows, plus ones whose real exit happened but whose
+    what-if variants still run."""
+    from src.intelligence import explorer_engine as xe
+
+    out, seen = [], set()
+    for tid, coin, shadow, exit_t, net, js in ex.store.book.execute("SELECT id, coin, shadow, exit_t, net, json FROM trades"):
+        d = json.loads(js) if js else {}
+        seen.add(tid)
+        out.append({"id": tid, "coin": coin, "setup": d.get("setup"), "type": d.get("type"), "shadow": shadow or None,
+                    "exit_t": exit_t or d.get("ACTUAL_exit_t"), "net": net if net is not None else d.get("ACTUAL_net")})
+    for eng in ex.st["engines"].values():
+        for t in list(eng.trades) + list(getattr(eng, "closed", [])):
+            if t.id in seen or not t.actual.done:
+                continue
+            seen.add(t.id)
+            out.append({"id": t.id, "coin": t.coin, "setup": t.setup, "type": t.typ, "shadow": t.shadow,
+                        "exit_t": t.actual.exit_t, "net": xe.net_usd(t, t.actual)})
+    return [o for o in out if o["net"] is not None]
+
+
+def _events_count(rows: list[dict], gap_s: int = 3600) -> int:
+    """Independent events: exits less than an hour apart (any coin) are one market move, not separate evidence."""
+    ts = sorted(int(r["exit_t"] or 0) for r in rows)
+    n, last = 0, None
+    for t in ts:
+        if last is None or t - last > gap_s:
+            n += 1
+        last = t
+    return n
+
+
+def _summ(rows: list[dict]) -> dict:
+    n = len(rows)
+    net = sum(r["net"] for r in rows)
+    return {"closed": n, "wins": sum(1 for r in rows if r["net"] > 0), "net_usd": round(net, 2), "avg_usd": round(net / n, 2) if n else None,
+            "events": _events_count(rows)}
+
+
+def evidence_pipeline(j) -> dict:
+    ex = j._explorer()
+    led = _ledger(j)
+    now = j.now()
+    if not ex:
+        return {"stages": [], "error": "the Explorer is not running"}
+    st = ex.st
+    B = ex.store.book
+    from src.intelligence import explorer_engine as xe
+
+    days = round((now - st["trade_from_t"]) / 86400, 1)
+    eng0 = next(iter(st["engines"].values()))
+    rules = eng0.rules_at(int(now)) if hasattr(eng0, "rules_at") else xe.RULES_V0
+    rules_log = st.get("rules_log", [])
+    traded = list(rules.setups)
+
+    # 1. watching
+    hb = _jsonl(j.dir / "watch_heartbeat.jsonl", 5000)
+    hourly = _hourly_strategies(j)
+    hunter, squeeze = hourly.get("hunter", {}), hourly.get("squeeze", {})
+    ps = j._layer().status(ex.prices())
+    first = j._layer().con.execute("SELECT min(day_t) FROM decisions").fetchone()[0]
+    t3_weeks = int((now - first) // (7 * 86400)) if first else 0
+    rec_p = j.dir / "explorer_reconstruct.json"
+    recon = json.loads(rec_p.read_text()) if rec_p.exists() else None
+    watching = [
+        {"name": "15-minute Explorer", "every": "every 15 minutes, 10 coins", "runs": int(days * 96),
+         "detail": f"Rules {rules.name}: trades {', '.join(traded)}; $100 each; up to {getattr(rules, 'stack', 1)} per coin per kind; "
+                   f"at most 20 open and 60 new a day",
+         "since": _local(st["trade_from_t"])},
+        {"name": "Hourly watch (Hunter, Squeeze)", "every": "every hour, 10 coins", "runs": sum(1 for h in hb if h.get("ok")),
+         "detail": f"Last 24h: Hunter checked {hunter.get('looks', 0)} times and fired {hunter.get('setups', 0)}; "
+                   f"Squeeze checked {squeeze.get('looks', 0)} times and fired {squeeze.get('setups', 0)}"},
+        {"name": "T3 portfolio layer", "every": "ratings daily, rebalance weekly", "runs": t3_weeks,
+         "detail": f"Mode {ps.get('mode')}; holding {len(ps.get('holdings') or [])} coins"},
+        {"name": "Nightly rebuild", "every": "once a night", "runs": None,
+         "detail": "Rebuilds every real decision from raw candles and compares it with the live log",
+         "last": _local(rec_p.stat().st_mtime) if rec_p.exists() else None},
+    ]
+
+    # 2. seen
+    seen: dict[str, int] = {}
+    for (s, n) in B.execute("SELECT json_extract(json,'$.setup'), count(*) FROM events WHERE kind='SIGHTING' GROUP BY 1"):
+        seen[s or "?"] = n
+    seen_rows = [{"setup": s, "name": SETUP.get(s, s), "seen": n, "traded": s in traded} for s, n in sorted(seen.items())]
+
+    # 3. decided
+    orders: dict[str, int] = {}
+    for (sh, n) in B.execute("SELECT coalesce(json_extract(json,'$.shadow'),'REAL'), count(*) FROM events WHERE kind='ORDER' GROUP BY 1"):
+        orders[sh] = n
+    filled = B.execute("SELECT count(*) FROM events WHERE kind='FILLED' AND json_extract(json,'$.shadow') IS NULL").fetchone()[0]
+    missed = B.execute("SELECT count(*) FROM events WHERE kind='MISSED'").fetchone()[0]
+    blocked = [{"why": BLOCK_PLAIN.get(k, k), "code": k, "n": n} for k, n in sorted(orders.items(), key=lambda kv: -kv[1])
+               if k not in ("REAL", "RANDOM", "MISSED_CHASE")]
+    decided = {"real_orders": orders.get("REAL", 0), "filled": filled, "missed": missed, "blocked": blocked,
+               "random_baseline": orders.get("RANDOM", 0)}
+
+    # 4. results
+    rows = _outcomes(ex)
+    real = [r for r in rows if not r["shadow"]]
+    wouldbe = [r for r in rows if r["shadow"] in ("REJECTED_SLOT", "NO_TYPE", "CAP", "REJECTED_DUP")]
+    rnd = [r for r in rows if r["shadow"] == "RANDOM"]
+    by_setup = []
+    for s in sorted({r["setup"] for r in real + wouldbe if r["setup"]}):
+        by_setup.append({"setup": s, "name": SETUP.get(s, s), "real": _summ([r for r in real if r["setup"] == s]),
+                         "would_be": _summ([r for r in wouldbe if r["setup"] == s])})
+    open_real = sum(1 for e in st["engines"].values() for t in e.trades if t.shadow is None and not t.actual.done)
+    since_w1 = next((r["from_t"] for r in rules_log if r.get("rules") == "W1"), None)
+    results = {"real": _summ(real), "would_be": _summ(wouldbe), "random": _summ(rnd), "open_real": open_real, "by_setup": by_setup,
+               "since_wide": _summ([r for r in real if since_w1 and (r["exit_t"] or 0) >= since_w1]) if since_w1 else None,
+               "read_this": "Compare the average per trade with the random entries: a setup is only useful if it beats random after costs. "
+                            "'Events' counts market moves: trades closing within an hour of each other are one piece of evidence."}
+
+    # 5. rebuild and other traders
+    rebuild = {"match": recon.get("match") if recon else None, "real_events": recon.get("logged_real_events") if recon else 0,
+               "mismatches": (len(recon.get("only_in_live") or []) + len(recon.get("only_in_rebuilt") or [])) if recon else 0,
+               "detail": recon, "studies": led.get("studies", [])}
+
+    # 6. repair shop (with live progress for each waiting question)
+    progress = {"closed_trades": len(real) + len(wouldbe), "weekly_rebalances": t3_weeks,
+                "e5_trades": sum(1 for r in real if r["setup"] == "E5"), "stable_positive_sightings": 0}
+    queue = [{**q, "have": progress.get(q.get("metric")), "note": "real + tracked would-be trades" if q.get("metric") == "closed_trades" else None}
+             for q in led.get("queue", [])]
+    shop = {"reviews": [{k: r.get(k) for k in ("id", "date", "status", "verdict", "title", "forwarded_because", "question", "result", "changed")}
+                        for r in led.get("reviews", [])],
+            "queue": queue}
+
+    # 7. in use
+    fw = evidence_forwarded(j)
+    in_use = {"repairs": fw.get("in_use", []), "modes": led.get("modes", []), "safety": led.get("safety_changes", [])}
+
+    return {"as_of": _local(now), "days": days, "rules": rules.name, "watching": watching, "seen": seen_rows, "decided": decided,
+            "results": results, "rebuild": rebuild, "shop": shop, "in_use": in_use}

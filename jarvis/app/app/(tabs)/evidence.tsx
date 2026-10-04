@@ -27,6 +27,7 @@ export default function Evidence() {
   const { data: cr } = useData("/v3/credit", 600000);
   const { data: sh } = useData("/v3/shadow/h07", 600000);
   const { data: rq } = useData("/v3/requests", 120000);
+  const { data: sb } = useData("/v3/scoreboard", 300000);
   if (!d && loading) return <Busy />;
   if (!d || d.error) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={d?.error ?? err ?? "No data"} /></Screen>;
   const R = d.results, D = d.decided;
@@ -107,6 +108,38 @@ export default function Evidence() {
         ) : null}
         <T small>{R.read_this}</T>
       </Card>
+
+      {/* 4b: every watch, its own evidence book */}
+      {sb?.watches?.length ? (
+        <Spot id="evidence.scoreboard">
+        <Card title="Scoreboard: every watch" sub={sb.headline}>
+          {SECTION_ORDER.filter((s) => sb.watches.some((w: any) => w.section === s)).map((s) => (
+            <View key={s} style={{ gap: 2 }}>
+              <Text style={{ color: C.dim, fontSize: 11, fontWeight: "700", letterSpacing: 0.6, paddingTop: 6 }}>{SECTION_NAME[s] ?? s}</Text>
+              {sb.watches.filter((w: any) => w.section === s).map((w: any) => (
+                <Expand key={w.id} title={w.name}
+                  sub={`${w.closed} closed · ${w.open} open${w.closed ? ` · ${Math.round(100 * (w.win_rate ?? 0))}% won` : ""} · ${w.events} event${w.events === 1 ? "" : "s"}`}
+                  right={<Text style={{ color: w.avg_usd == null ? C.faint : pnlColor(w.avg_usd), fontWeight: "700" }}>{w.avg_usd == null ? "–" : usdSigned(w.avg_usd)}</Text>}
+                  onLongPress={() => ask(`Watch: ${w.name}`, `How is the ${w.name} watch doing against random, and is that enough evidence yet?`)}>
+                  <Line label="Net, all closed" value={usdSigned(w.net_usd)} />
+                  <Line label={`Average vs random${w.baseline ? ` (${w.baseline.toLowerCase().replace("_", " ")})` : ""}`} value={w.vs_random_usd == null ? "–" : usdSigned(w.vs_random_usd)} />
+                  <Line label="Worst run" value={usdSigned(w.worst_run_usd)} />
+                  <Line label="Market allowed · risk-off" value={`${reg(w.by_regime?.ALLOWED)} · ${reg(w.by_regime?.RISK_OFF)}`} />
+                  {w.real_closed !== w.closed ? <T small>{w.real_closed} real trades; the rest are signals a limit blocked, tracked the same way.</T> : null}
+                  {w.costs ? <T small>Costs: {w.costs}</T> : null}
+                  <T small>{w.verdict} · since {w.since}</T>
+                </Expand>
+              ))}
+            </View>
+          ))}
+          {sb.trend_portfolio ? (
+            <Line label="Trend portfolio (T3)" sub={`${sb.trend_portfolio.days ?? "–"} days`}
+              value={`${pct(sb.trend_portfolio.return_pct)} vs buy-and-hold ${pct(sb.trend_portfolio.buy_hold_pct)}`} />
+          ) : null}
+          <T small>{sb.how_to_read}</T>
+        </Card>
+        </Spot>
+      ) : null}
 
       {/* 5 */}
       <Stage n={5} title="Rebuild and other traders" sub="does the live log match a replay from raw candles?" />
@@ -278,6 +311,10 @@ export default function Evidence() {
 }
 
 const fmt = (s: any) => (s?.closed ? `${s.closed}, ${usdSigned(s.avg_usd)}` : "–");
+const SECTION_ORDER = ["MARKET_WEATHER", "COIN_STRUCTURE", "SETUPS", "RISK_EXITS", "NEWS_EVENTS", "BASELINES"];
+const SECTION_NAME: Record<string, string> = { MARKET_WEATHER: "MARKET WEATHER", COIN_STRUCTURE: "COIN STRUCTURE AND ZONES", SETUPS: "SETUPS",
+  RISK_EXITS: "RISK AND EXITS", NEWS_EVENTS: "NEWS AND EVENTS", BASELINES: "BASELINES (RANDOM, THE BAR TO BEAT)" };
+const reg = (x: any) => (x?.closed ? `${x.closed}, ${usdSigned(x.avg_usd)}` : "–");
 
 function ResultRow({ label, s, extra }: { label: string; s: any; extra?: string }) {
   const n = s?.closed ?? 0;

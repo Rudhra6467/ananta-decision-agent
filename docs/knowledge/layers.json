@@ -1460,7 +1460,9 @@
     "src/lake/__init__.py",
     "src/lake/binance_vision.py",
     "src/lake/quality.py",
-    "src/lake/cli.py"
+    "src/lake/cli.py",
+    "src/lake/bars.py",
+    "src/lake/universe.py"
    ]
   }
  ],

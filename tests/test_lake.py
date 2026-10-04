@@ -68,3 +68,31 @@ def test_pull_build_and_check(tmp_path, monkeypatch):
     assert q["longest_gaps"][0]["from"].startswith("2024-01-01") and q["grade"] == "C"
     years = sorted(x.name for x in (tmp_path / "clean" / "binance" / "spot" / "1m" / "symbol=TESTUSDT").iterdir())
     assert years == ["year=2024", "year=2025"]
+
+
+def test_bars_from_the_one_minute_base(tmp_path, monkeypatch):
+    from src.lake import bars
+    from src.lake import binance_vision as bv
+
+    monkeypatch.setenv("ANANTA_LAKE", str(tmp_path))
+    jan = 1_704_067_200_000
+    months = {"data/spot/monthly/klines/TESTUSDT/1m/TESTUSDT-1m-2024-01.zip": _zip("x.zip", _rows(jan, 600, skip=(1, 2)))}
+    bv.pull("TESTUSDT", get=_fake_bucket(months), log=lambda *_: None)
+    bv.build("TESTUSDT")
+    r = bars.build("TESTUSDT", frames=("5m", "1h"))
+    assert r["candles"] == {"5m": 119, "1h": 10}               # the first 5 minutes miss 2 of 5: under 80%, dropped
+    import duckdb
+
+    o, h, l, c, share = duckdb.connect().execute(
+        f"SELECT o, h, l, c, share FROM read_parquet('{tmp_path}/clean/binance/spot/1h/symbol=TESTUSDT/**/*.parquet') ORDER BY t LIMIT 1").fetchone()
+    assert o == 100 and c == 100 + 59 * 0.01 + 0.1 and abs(share - 58 / 60) < 1e-9
+
+
+def test_universe_rule_excludes_stables_and_leveraged():
+    from src.lake import universe
+
+    xml = ("<ListBucketResult><IsTruncated>false</IsTruncated>" + "".join(
+        f"<CommonPrefixes><Prefix>data/spot/monthly/klines/{s}/</Prefix></CommonPrefixes>"
+        for s in ("BTCUSDT", "ETHBTC", "USDCUSDT", "BTCUPUSDT", "WBTCUSDT", "SOLUSDT", "FDUSDUSDT")) + "</ListBucketResult>")
+    got = universe.candidates(get=lambda url, params=None, timeout=60: R(text=xml))
+    assert got == ["BTCUSDT", "SOLUSDT"]

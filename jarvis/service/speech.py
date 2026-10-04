@@ -43,6 +43,93 @@ def sentences(text: str) -> list[str]:
     return [x.strip() for x in re.split(r"(?<=[.!?])\s+", text or "") if x.strip()]
 
 
+# ---------------------------------------------------------------------------
+# Written -> spoken (Madhav 2026-10-03: "it still feels like a robot"). The answer is written for the screen; before the voice
+# reads it, codes become names, tickers become coin names, long decimals are rounded and symbols are said as words. One
+# sentence in, one sentence out (so the highlight timing still lines up), never empty.
+# ---------------------------------------------------------------------------
+_CODES = {"T3": "trend portfolio", "SD6": "Hunter's book", "H07": "short dip trade", "E1": "pullback setup", "E2": "breakout setup",
+          "E3": "bounce setup", "E4": "momentum setup", "E5": "squeeze setup", "E6": "deep dip setup", "E7": "downtrend dip setup",
+          "E8": "dip setup", "V02": "Bitcoin 50-day rule", "V01": "trend rule", "M1a": "capitulation setup", "M2a-G": "retest setup",
+          "M2a": "retest setup", "M3a": "quiet base setup", "M3b": "quiet base setup"}
+_CODE_RE = re.compile(r"(\b(?:the|our|a|an|your|my|its|this|that|his)\s+)?\b(" + "|".join(sorted(map(re.escape, _CODES), key=len, reverse=True))
+                      + r")\b(\s+(?:setup|setups|book|portfolio|trade|trades|rule))?", re.I)
+
+
+def _code(m: re.Match) -> str:
+    art, code, noun = m.group(1), m.group(2), m.group(3) or ""
+    key = next((k for k in _CODES if k.lower() == code.lower()), code)
+    name = _CODES.get(key, code)
+    if noun and name.split()[-1].rstrip("s") == noun.strip().rstrip("s"):
+        name = name.rsplit(" ", 1)[0] + " " + noun.strip()      # "E4 setups" -> "momentum setups"
+        noun = ""
+    if key.startswith("M") and not art:
+        art = "your "
+    if "'s " in name and (art or "").strip().lower() in ("", "the"):
+        art = ""                                                # "the SD6" -> "Hunter's book", not "the Hunter's book"
+    return (art if art is not None else "the ") + name + noun
+
+
+_SAY = [
+    (r"\bBTC\b", "Bitcoin"), (r"\bETH\b", "Ethereum"), (r"\bSOL\b", "Solana"), (r"\bADA\b", "Cardano"), (r"\bDOGE\b", "Dogecoin"),
+    (r"\bAVAX\b", "Avalanche"), (r"\bBCH\b", "Bitcoin Cash"), (r"\bLINK\b", "Chainlink"), (r"\bLTC\b", "Litecoin"), (r"\bXRP\b", "X R P"),
+    (r"\bRSI\b", "R S I"), (r"\bATR\b", "A T R"), (r"\bEMA\b", "E M A"), (r"\bSMA\b", "average"), (r"\bP&L\b|\bPnL\b|\bP/L\b", "profit and loss"),
+    (r"\bUSD\b", "dollars"), (r"\bvs\.?(?=\s)", "versus"), (r"\be\.g\.", "for example"), (r"\bi\.e\.", "that is"), (r"\bapprox\.?", "about"),
+    (r"\betc\.", "and so on"), (r"&", " and "), (r"\bw/", "with "), (r"~\s*", "about "), (r"≈\s*", "about "), (r"→|->", " to "),
+    (r"\b(\d+(?:\.\d+)?)R\b", r"\1 times the risk"), (r"\b2 times the risk\b", "twice the risk"), (r"\b1 times the risk\b", "one times the risk"),
+    (r"\bUTC\b", "U T C"), (r"\b24/7\b", "around the clock"),
+]
+_EMOJI = re.compile("[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F000-\U0001F2FF️‍]+")
+
+
+def _round_num(m: re.Match) -> str:
+    s = m.group(0)
+    raw = s.replace("$", "").replace(",", "")
+    try:
+        v = float(raw)
+    except ValueError:
+        return s
+    dollar = s.startswith("$")
+    if abs(v) >= 1000:
+        out = f"{round(v):,}"
+    elif abs(v) >= 100:
+        out = f"{round(v)}"
+    elif abs(v) >= 1:
+        out = f"{v:.2f}".rstrip("0").rstrip(".")
+    elif v == 0:
+        out = "0"
+    else:
+        out = f"{v:.4g}"
+    return ("$" if dollar else "") + out
+
+
+def for_ear(text: str) -> str:
+    t0 = text or ""
+    t = re.sub(r"\*\*|__|`|^#+\s*|^[-*•]\s+", "", t0, flags=re.M)
+    t = _EMOJI.sub("", t)
+    t = t.replace("−", "-").replace("$-", "minus $")
+    t = re.sub(r"(\w)\((\d+)\)", r"\1 \2", t)                         # "RSI(10)" -> "RSI 10"
+    t = re.sub(r"\(([^()]{0,40})\)", r", \1,", t)                       # "(about a cent)" -> ", about a cent,"
+    t = _CODE_RE.sub(_code, t)
+    t = re.sub(r"[+](?=\d+(?:\.\d+)?R\b)", "", t)                       # "+2R" -> "2R" -> "twice the risk"
+    t = re.sub(r"[~≈]\s*(?=[$\d])", "about ", t)
+    t = re.sub(r"[~≈]", "", t)
+    for pat, rep in _SAY:
+        t = re.sub(pat, rep, t)
+    t = re.sub(r"\b(up|down|rose|fell|gained|lost)\s+[+-](?=\$?\d)", r"\1 ", t)   # "up +2.5%" -> "up 2.5%"
+    t = re.sub(r"(?<![\w.])\+(\d[\d,]*(?:\.\d+)?)\s*%", r"up \1 percent", t)
+    t = re.sub(r"(?<![\w.])-(\d[\d,]*(?:\.\d+)?)\s*%", r"down \1 percent", t)
+    t = re.sub(r"\$?\d[\d,]*\.\d{3,}|\$\d[\d,]*\.\d{1,2}(?=\D|$)", _round_num, t)   # long decimals, and cents on prices
+    t = re.sub(r"(\d)\s*%", r"\1 percent", t)
+    t = re.sub(r"\b(\d{1,2})/(\d{1,2})\b(?![/\d])", lambda m: f"{m.group(1)} of {m.group(2)}" if int(m.group(1)) <= int(m.group(2)) <= 20 else m.group(0), t)
+    t = re.sub(r"(?<![\w.])\+(\$?\d)", r"plus \1", t)
+    t = re.sub(r"\s+,", ",", t)
+    t = re.sub(r",\s*,", ",", t)
+    t = re.sub(r",\s*([.!?;:])", r"\1", t)
+    t = re.sub(r"\s{2,}", " ", t).strip(" ,")
+    return t or t0.strip()
+
+
 def _wav(pcm: bytes, rate: int = 24000) -> bytes:
     head = b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, rate, rate * 2, 2, 16)
     return head + b"data" + struct.pack("<I", len(pcm)) + pcm
@@ -176,7 +263,8 @@ _answers: "OrderedDict[str, Future]" = OrderedDict()
 
 
 def norm_sentences(texts: list[str]) -> list[str]:
-    return [t.strip()[:600] for t in (texts or []) if t and t.strip()][:40]
+    """The sentences as they will be SPOKEN (for_ear), one per written sentence, so sentence i's highlight still matches."""
+    return [for_ear(t.strip()[:600]) for t in (texts or []) if t and t.strip()][:40]
 
 
 def answer_key(sents: list[str], voice: str, speed: float) -> str:
@@ -194,10 +282,10 @@ def _make_answer(sents: list[str], voice: str, speed: float) -> dict:
             "duration": d["duration"], "engine": "kokoro", "voice": d.get("voice", voice), "ms": d.get("ms")}
 
 
-def prepare_answer(texts: list[str], voice: str = DEFAULT_VOICE, speed: float = 0.9, make=None) -> str:
+def prepare_answer(texts: list[str], voice: str = DEFAULT_VOICE, speed: float = 1.0, make=None) -> str:
     """Start making the whole answer's audio (if not already made or being made); returns its id at once."""
     sents = norm_sentences(texts)
-    speed = round(max(0.6, min(1.5, float(speed or 0.9))), 2)
+    speed = round(max(0.6, min(1.5, float(speed or 1.0))), 2)
     key = answer_key(sents, voice, speed)
     with _lock:
         f = _answers.get(key)

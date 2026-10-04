@@ -1,0 +1,56 @@
+{
+ "what": "The research history (5-minute candles, Binance spot in USDT, used by the repair shop): first and last candle per coin. Studies use DISCOVERY (before 2024-01-01) and CONFIRM (2024-01-01 to 2026-08-01); Aug-Sep 2026 is the sealed holdout.",
+ "measured": "2026-10-03",
+ "coins": {
+  "BTC": {
+   "first": "2017-08-17 04:00 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 952661
+  },
+  "ETH": {
+   "first": "2017-08-17 04:00 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 952661
+  },
+  "LTC": {
+   "first": "2017-12-13 03:30 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 918774
+  },
+  "ADA": {
+   "first": "2018-04-17 04:00 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 883216
+  },
+  "XRP": {
+   "first": "2018-05-04 08:10 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 878270
+  },
+  "LINK": {
+   "first": "2019-01-16 10:00 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 804590
+  },
+  "DOGE": {
+   "first": "2019-07-05 12:00 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 755810
+  },
+  "BCH": {
+   "first": "2019-11-28 10:00 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 713934
+  },
+  "SOL": {
+   "first": "2020-08-11 06:00 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 640145
+  },
+  "AVAX": {
+   "first": "2020-09-22 06:30 UTC",
+   "last": "2026-09-12 23:15 UTC",
+   "bars_5m": 628043
+  }
+ }
+}

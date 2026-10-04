@@ -171,12 +171,12 @@ export default function Evidence() {
       </Spot>
 
       {rq?.requests?.length ? (
-        <Card title="Your requests to the repair shop" sub="Logged from Ask Ananta or voice; picked up in the next work session">
-          {rq.requests.slice(0, 8).map((r: any) => (
+        <Card title="Your requests to the repair shop" sub={`${rq.requests.filter((r: any) => r.status === "OPEN" || r.status === "PLANNED").length} open · say "flag this" or "that was wrong" to Ananta; you get a phone note when one is fixed`}>
+          {rq.requests.slice(0, 10).map((r: any) => (
             <View key={r.id} style={{ paddingVertical: 4 }}>
-              <Text style={{ color: C.text, fontSize: 13 }}>{r.text}</Text>
+              <Text style={{ color: C.text, fontSize: 13 }}>{r.num ? <Text style={{ fontWeight: "700" }}>#{r.num} </Text> : null}{r.text}</Text>
               <Text style={{ color: r.status === "DONE" ? C.good : r.status === "PLANNED" ? C.accent : C.faint, fontSize: 11 }}>
-                {r.kind.toUpperCase()} · {r.status}{r.about ? ` · ${r.about}` : ""}{r.note ? ` · ${r.note}` : ""}</Text>
+                {r.kind.toUpperCase()} · {r.status === "DONE" ? "FIXED" : r.status}{r.about ? ` · ${r.about}` : ""}{r.note ? ` · ${r.note}` : ""}</Text>
             </View>
           ))}
         </Card>

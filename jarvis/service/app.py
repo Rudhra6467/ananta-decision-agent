@@ -397,9 +397,10 @@ def requests_status(rid: str, b: ReqStatus, who: str = Depends(owner)) -> dict:
 
     if str(who).startswith("guest:"):
         raise HTTPException(status_code=403, detail="Practice mode: only the owner updates the repair shop.")
-    requests_log.set_status(J(), rid, b.status, b.note)
+    r = _run(requests_log.set_status, J(), rid, b.status, b.note)
+    requests_log.notify(J(), push=_push)                               # tell the phone now, not in 15 minutes
     J().audit(who, "request.status", f"{rid} {b.status}", "OK")
-    return {"ok": True}
+    return {"ok": True, "request": r}
 
 
 @app.get("/v3/shadow/h07")
@@ -568,9 +569,44 @@ def MN():
     return Manual(J().db, J().now)
 
 
+def _locked_for_guests(who: str, what: str) -> None:
+    if is_guest(who):
+        raise ValueError(f"Practice mode: {what} belong to Madhav's real paper books, so they are locked here.")
+
+
+def _switch(who: str, p: dict) -> dict:
+    _locked_for_guests(who, "the kill switch and autopilot")
+    if p.get("switch") == "kill_switch":
+        return J().set_kill(who, bool(p.get("on")), True)
+    if p.get("switch") == "autopilot":
+        return {"mode": J().set_mode(who, "AUTO" if p.get("on") else "SUGGEST", True)}
+    raise ValueError("unknown switch")
+
+
+def _portfolio_decision(who: str, p: dict) -> dict:
+    _locked_for_guests(who, "portfolio approvals")
+    ids = p.get("ids") or "all"
+    if p.get("decision") == "approve":
+        return {"fills": J().approve(who, ids)}
+    return {"rejected": J().reject(who, ids)}
+
+
+def _alert_off(who: str, p: dict) -> dict:
+    AL().turn_off(who, p["id"])
+    return {"off": p["id"]}
+
+
+def _setting(who: str, p: dict) -> dict:
+    _locked_for_guests(who, "settings")
+    return A().set_setting(who, p["key"], p["value"])
+
+
 def executors() -> dict:
+    """What each kind of card does once the owner confirms it (Face ID / passcode in the app)."""
     return {"mandate": M().apply_mandate_change, "alert": AL().create,
-            "paper_order": lambda who, p: MN().execute(who, p, J().prices())}
+            "paper_order": lambda who, p: MN().execute(who, p, J().prices()),
+            "levels": lambda who, p: MN().set_levels(who, p["coin"], p.get("stop"), p.get("target"), J().prices()),
+            "switch": _switch, "portfolio_decision": _portfolio_decision, "alert_off": _alert_off, "setting": _setting}
 
 
 @app.get("/v3/mandate")
@@ -605,11 +641,13 @@ class VoiceTurn(BaseModel):
     mode: str | None = None
     context: dict | None = None
     source: str = ""
+    prefix: str = ""          # what he said just before, when he stopped mid-sentence (joined to this turn)
 
 
 @app.post("/v3/voice/turn")
 def voice_turn(b: VoiceTurn, who: str = Depends(owner)) -> dict:
-    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, b.context, source="eval" if b.source == "eval" else ""))
+    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, b.context, source="eval" if b.source == "eval" else "",
+                                       prefix=b.prefix))
 
 
 
@@ -653,6 +691,12 @@ def background_jobs() -> dict:
         out["credit"] = credit.watch(J())
     except Exception as exc:  # noqa: BLE001
         out["credit_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import requests_log
+
+        out["requests"] = requests_log.notify(J(), push=_push)       # "Fixed: request 4" on the phone
+    except Exception as exc:  # noqa: BLE001
+        out["requests_error"] = str(exc)[:200]
     a = A()
     if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
         kind = AL().due_brief()
@@ -801,7 +845,7 @@ def voice_transcribe(b: Audio, who: str = Depends(owner)) -> dict:
 class AnswerVoice(BaseModel):
     sentences: list[str]
     voice: str = "Calm"
-    speed: float = 0.9
+    speed: float = 1.0
     wait: bool = True
 
 

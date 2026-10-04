@@ -160,6 +160,12 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
             items.append({"t": t, "kind": "setup", "coin": coin, "title": f"{coin}: your {name.lower()} setup", "body": msg})
     except Exception:  # noqa: BLE001  appears with the first fire
         pass
+    try:
+        from jarvis.service import requests_log
+
+        items += requests_log.feed_items(j, since)              # flagged for the repair shop, and when they get fixed
+    except Exception:  # noqa: BLE001
+        pass
     items.sort(key=lambda x: x["t"], reverse=True)
     for it in items:
         it["time"] = _local(it["t"])

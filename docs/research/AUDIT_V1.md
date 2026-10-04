@@ -47,3 +47,12 @@ Rules that decide close calls:
 6. **Last:** E3 support bounce (1h) and the B3 volume breakout (daily), both thin and low priority.
 
 The ledger (`audit_v1.json`) holds every row with its rating, score and one-line reason.
+
+## 4. After review #15 (same day)
+
+- T3 stays KEEP: it passed on the 10 lab coins and the 30 most-traded coins; on all 120 it only cut losses (-13.8% vs -65.8%).
+- H07 stays RE-TEST: PASS on TOP30 (z 3.5 / 3.2), FAIL on all 120. It works on liquid coins only.
+- M1a stays RE-TEST: a pass on all 120 sits exactly on the bar (t 1.51 vs 1.5) with 3 confirm events.
+- M2a, M3a and M2a-G move to DUMP (not supported on any wider tier); review #8 goes with them.
+- Count now: KEEP 16, RE-TEST 15, CONTEXT 23, UNTESTED 8, DUMP 102.
+- Not decided by the rubric: what a TOP30-only pass earns. The pre-registration did not cover it, so it is Madhav's call.

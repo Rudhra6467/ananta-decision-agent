@@ -11,7 +11,7 @@
    "rating": "KEEP",
    "score": 8,
    "reason": "The one reaction that passed (z 4.6): the market gate, confirmed again; re-checked in review #16",
-   "result": "Disc held 68.4% vs 50.3%, diff +18.1 \u2192 corrected +23.5 (z 4.58); confirm +2.1 \u2192 +7.5.",
+   "result": "Disc held 68.4% vs 50.3%, diff +18.1 → corrected +23.5 (z 4.58); confirm +2.1 → +7.5.",
    "recorded_status": "PASS",
    "source_files": [
     "docs/research/lookout_status.json",
@@ -26,7 +26,7 @@
    "rating": "KEEP",
    "score": 8,
    "reason": "Only F6 (market allowed) separated held from broken zones (68% vs 50%, z 4.6): the market gate again",
-   "result": "Only F6 market allowed PASSES: 68% vs 50% held, corrected +23.5 (z 4.6); confirm +2.1 \u2192 +7.5. 10-day net +3.69% vs \u22121.23%. F1, F2, F3, F4, F5, F7 fail.",
+   "result": "Only F6 market allowed PASSES: 68% vs 50% held, corrected +23.5 (z 4.6); confirm +2.1 → +7.5. 10-day net +3.69% vs −1.23%. F1, F2, F3, F4, F5, F7 fail.",
    "recorded_status": "PASS (F6 only)",
    "source_files": [
     "docs/research/ZONES_PROGRAM.md",
@@ -70,8 +70,8 @@
    "rating": "KEEP",
    "score": 7,
    "reason": "Random 60-day holds earned like the setups: returns come from exposure, not entry skill -> V06",
-   "result": "LONG_TERM 60d: setups +$32.80 vs random +$31.99 (disc), +$7.40 vs +$5.30 (confirm); SHORT_TERM +$1.02 vs \u2212$0.15 / \u2212$1.38 vs \u2212$0.72.",
-   "recorded_status": "\u2192 V06 KEEP (horizon)",
+   "result": "LONG_TERM 60d: setups +$32.80 vs random +$31.99 (disc), +$7.40 vs +$5.30 (confirm); SHORT_TERM +$1.02 vs −$0.15 / −$1.38 vs −$0.72.",
+   "recorded_status": "→ V06 KEEP (horizon)",
    "source_files": [
     "docs/repair_shop/REVIEW_1_RESULTS.md"
    ]
@@ -84,27 +84,28 @@
    "rating": "KEEP",
    "score": 7,
    "reason": "Market entries significantly worse than limits in both periods (t -3.6 / -3.0) -> V05",
-   "result": "P1a significantly worse both periods (trades 7,329\u219211,054); P1b \u2212$0.42 (t \u22120.38) / \u2212$0.61 (t +0.08). Chase shadow was hindsight bias.",
-   "recorded_status": "FAIL \u2192 V05 KEEP (limits)",
+   "result": "P1a significantly worse both periods (trades 7,329→11,054); P1b −$0.42 (t −0.38) / −$0.61 (t +0.08). Chase shadow was hindsight bias.",
+   "recorded_status": "FAIL → V05 KEEP (limits)",
    "source_files": [
     "docs/repair_shop/REVIEW_1_RESULTS.md"
    ]
   },
   {
    "id": "R4",
-   "name": "Repair-shop review #4: portfolio trend layer (T1\u2013T4) vs buy-and-hold",
+   "name": "Repair-shop review #4: portfolio trend layer (T1–T4) vs buy-and-hold",
    "kind": "review",
    "date": "2026-09-30",
    "rating": "KEEP",
    "score": 7,
-   "reason": "T3 passed: about half the drawdown of buy-and-hold in both periods; re-tested on 120 coins in review #15",
-   "result": "T3 PASS: +3,558% / DD 50% / MAR 1.57 and +13% / DD 41% / MAR 0.12 vs BH +2,576%/88%/0.79 and \u221222%/71%/\u22120.13. T1, T2, T4 fail. LUNA \u221256% BH vs 0% T3.",
+   "reason": "Review #15 confirmed T3 on TOP30; on the long tail it only reduces losses",
+   "result": "T3 PASS: +3,558% / DD 50% / MAR 1.57 and +13% / DD 41% / MAR 0.12 vs BH +2,576%/88%/0.79 and −22%/71%/−0.13. T1, T2, T4 fail. LUNA −56% BH vs 0% T3.",
    "recorded_status": "PASS (T3)",
    "source_files": [
     "docs/repair_shop/REVIEW_4.md",
     "docs/repair_shop/REVIEW_4_RESULTS.md",
     "docs/repair_shop/ledger.json"
-   ]
+   ],
+   "rating_before_review15": "KEEP"
   },
   {
    "id": "STRAT:T3",
@@ -113,14 +114,15 @@
    "date": "2026-09-30",
    "rating": "KEEP",
    "score": 7,
-   "reason": "The only strategy that passed; live paper book and review #15",
-   "result": "R4 PASS (+13% vs BH \u221222% 2024\u201326, ~half drawdown); R12 exits FAIL vs T3; P03 hurts; fails at double fees.",
+   "reason": "Review #15: PASS on LAB10 and TOP30 (confirm +19.0% vs B&H -23.7%); on all 120 it cut a -65.8% hold to -13.8% but did not make money",
+   "result": "R4 PASS (+13% vs BH −22% 2024–26, ~half drawdown); R12 exits FAIL vs T3; P03 hurts; fails at double fees.",
    "recorded_status": "ACTIVE (in_use since 2026-09-30)",
    "source_files": [
     "docs/repair_shop/ledger.json",
     "docs/knowledge/watches.json",
     "docs/repair_shop/REVIEW_4_RESULTS.md"
-   ]
+   ],
+   "rating_before_review15": "KEEP"
   },
   {
    "id": "V01",
@@ -257,12 +259,13 @@
    "date": "2026-10-03",
    "rating": "RE-TEST",
    "score": 8,
-   "reason": "Strongest open idea: positive both periods (z 2.3 / 2.8), 25 events; review #15 decides",
+   "reason": "Review #15: PASS on the 30 most-traded coins, FAIL on 120 (discovery z 1.77). Liquid-coin edge; tier decision is Madhav's",
    "result": "Not run yet. Same family as H06. Review #13: with its own exit (RSI back over 40 or 10 days) +4.1% per trade, 70% won (2018-23) and +4.2%, 68% (2024-26); held 20 days it was worse than an average uptrend day (-7.1%). The same-exit baseline test is next. Review #14: against ordinary uptrend days traded with the same exit, +3.9% per trade (z 2.3, 25 market events) in 2018-23 and +5.6% (z 2.8, 16 events) since 2024: the most consistent result so far, 5 events short of the bar.",
    "recorded_status": "PROMISING",
    "source_files": [
     "docs/knowledge/hypotheses.json"
-   ]
+   ],
+   "rating_before_review15": "RE-TEST"
   },
   {
    "id": "R14",
@@ -271,14 +274,15 @@
    "date": "2026-10-03",
    "rating": "RE-TEST",
    "score": 8,
-   "reason": "H07 positive in both periods (z 2.3 / 2.8) but 5 events short of the bar; review #15 on 120 coins",
+   "reason": "Reproduced exactly in review #15; H07 now passes on TOP30 (z 3.5 / 3.2) but fails on all 120",
    "result": "INSUFFICIENT: H07 44 trades (25 events), net +4.1%, 70% won, excess +3.9% (z 2.3) disc; 38 (16) +5.6% (z 2.8) confirm. H07-G 6 (4) and 10 (5) trades.",
    "recorded_status": "INSUFFICIENT (5 events short)",
    "source_files": [
     "docs/research/REVIEW_14.md",
     "docs/research/REVIEW_14_RESULTS.md",
     "docs/knowledge/reads_status.json"
-   ]
+   ],
+   "rating_before_review15": "RE-TEST"
   },
   {
    "id": "R6",
@@ -288,7 +292,7 @@
    "rating": "RE-TEST",
    "score": 8,
    "reason": "3 of 8 zone kinds passed after random-walk correction, on 10 coins; review #16 on 120",
-   "result": "PASS: SWING-NEW (+8.6 corrected, z 2.5), AVERAGE-200 (+14.3, z 3.5), CONFLUENCE (+8.9, z 3.1). FAIL: TESTED, STRONG, EXTREME, AVERAGE-50, BASE. STRONG not > NEW. 10-day return after entry \u2248 0 after costs.",
+   "result": "PASS: SWING-NEW (+8.6 corrected, z 2.5), AVERAGE-200 (+14.3, z 3.5), CONFLUENCE (+8.9, z 3.1). FAIL: TESTED, STRONG, EXTREME, AVERAGE-50, BASE. STRONG not > NEW. 10-day return after entry ≈ 0 after costs.",
    "recorded_status": "PASS (ledger) for 3 groups",
    "source_files": [
     "docs/research/ZONES_PROGRAM.md",
@@ -305,7 +309,7 @@
    "rating": "RE-TEST",
    "score": 8,
    "reason": "Passed after random-walk correction on 10 coins; must hold on 120 (review #16)",
-   "result": "Disc held 74.8% vs random 76.0%, edge +2.5 \u2192 corrected +14.3 (z 3.49); confirm +4.7 \u2192 +16.5; net10 disc -0.06%.",
+   "result": "Disc held 74.8% vs random 76.0%, edge +2.5 → corrected +14.3 (z 3.49); confirm +4.7 → +16.5; net10 disc -0.06%.",
    "recorded_status": "PASS",
    "source_files": [
     "docs/research/zones_status.json",
@@ -320,7 +324,7 @@
    "rating": "RE-TEST",
    "score": 8,
    "reason": "Passed after random-walk correction on 10 coins; must hold on 120 (review #16)",
-   "result": "Disc held 66.6% vs random 71.3%, edge +3.2 \u2192 corrected +8.9 (z 3.12); confirm +3.3 \u2192 +9.0; net10 disc -1.40%.",
+   "result": "Disc held 66.6% vs random 71.3%, edge +3.2 → corrected +8.9 (z 3.12); confirm +3.3 → +9.0; net10 disc -1.40%.",
    "recorded_status": "PASS",
    "source_files": [
     "docs/research/zones_status.json",
@@ -335,7 +339,7 @@
    "rating": "RE-TEST",
    "score": 8,
    "reason": "Passed after random-walk correction on 10 coins; must hold on 120 (review #16)",
-   "result": "Disc held 58.2% vs random 58.8%, edge +4.0 \u2192 corrected +8.6 (z 2.52); confirm +10.0 \u2192 +14.6; net10 disc +1.07%.",
+   "result": "Disc held 58.2% vs random 58.8%, edge +4.0 → corrected +8.6 (z 2.52); confirm +10.0 → +14.6; net10 disc +1.07%.",
    "recorded_status": "PASS",
    "source_files": [
     "docs/research/zones_status.json",
@@ -371,50 +375,6 @@
    ]
   },
   {
-   "id": "R15",
-   "name": "Review #15: do T3, H07 and Madhav's setups survive the full universe? (pre-registered)",
-   "kind": "review",
-   "date": "2026-10-04",
-   "rating": "RE-TEST",
-   "score": 7,
-   "reason": "Pre-registered; runs as soon as the lake download completes",
-   "result": "Not run yet (pre-registration only).",
-   "recorded_status": "PRE-REGISTERED",
-   "source_files": [
-    "docs/research/REVIEW_15.md"
-   ]
-  },
-  {
-   "id": "SETUP:M2a",
-   "name": "Madhav's read M2a: Higher-low retest",
-   "kind": "setup",
-   "date": "2026-10-03",
-   "rating": "RE-TEST",
-   "score": 7,
-   "reason": "Pre-registered representatives of Madhav's reads; in review #15",
-   "result": "Disc 17 events (26 ep), excess30 -3.55%, t -0.69, net30 2.21%; confirm 5 events, excess30 4.8%.",
-   "recorded_status": "NOT_SUPPORTED",
-   "source_files": [
-    "docs/knowledge/reads_status.json",
-    "docs/knowledge/READS.md"
-   ]
-  },
-  {
-   "id": "SETUP:M3a",
-   "name": "Madhav's read M3a: Quiet base, upper half (his C3 entry)",
-   "kind": "setup",
-   "date": "2026-10-03",
-   "rating": "RE-TEST",
-   "score": 7,
-   "reason": "Pre-registered representatives of Madhav's reads; in review #15",
-   "result": "Disc 16 events (25 ep), excess30 -4.23%, t -0.88, net30 -0.1%; confirm 8 events, excess30 12.12%.",
-   "recorded_status": "NOT_SUPPORTED",
-   "source_files": [
-    "docs/knowledge/reads_status.json",
-    "docs/knowledge/READS.md"
-   ]
-  },
-  {
    "id": "H:H08",
    "name": "H08 relative strength",
    "kind": "hypothesis",
@@ -429,50 +389,20 @@
    ]
   },
   {
-   "id": "R8",
-   "name": "Repair-shop review #8: your setups with zones (Z) and the market gate (G)",
-   "kind": "review",
-   "date": "2026-10-03",
-   "rating": "RE-TEST",
-   "score": 6,
-   "reason": "M2a-G looked strong (+10.6% excess, 92% win) on only 7 events; in review #15",
-   "result": "No pass. M2a-G INSUFFICIENT: 7 events (12 episodes), +10.6% excess (t 1.7), net +20.3%, 92% win; confirm 2 events +24.7%. M1a-G 0 events. Zones did not help.",
-   "recorded_status": "FAIL",
-   "source_files": [
-    "docs/repair_shop/REVIEW_8.md",
-    "docs/repair_shop/REVIEW_8_RESULTS.md",
-    "docs/knowledge/reads_status.json"
-   ]
-  },
-  {
    "id": "SETUP:M1a",
    "name": "Madhav's read M1a: Capitulation at the lows (as written)",
    "kind": "setup",
    "date": "2026-10-03",
    "rating": "RE-TEST",
    "score": 6,
-   "reason": "Pre-registered representatives of Madhav's reads; in review #15",
+   "reason": "Review #15: SUPPORTED on ALL but right on the bar (t 1.51 vs 1.5, 10 events, 3 confirm); needs live fires",
    "result": "Disc 6 events (16 ep), excess30 -7.16%, t -1.16, net30 -2.86%; confirm 2 events, excess30 3.87%.",
    "recorded_status": "INSUFFICIENT",
    "source_files": [
     "docs/knowledge/reads_status.json",
     "docs/knowledge/READS.md"
-   ]
-  },
-  {
-   "id": "SETUP:M2a-G",
-   "name": "Madhav's read M2a-G: Retest with the market allowed",
-   "kind": "setup",
-   "date": "2026-10-03",
-   "rating": "RE-TEST",
-   "score": 6,
-   "reason": "Pre-registered representatives of Madhav's reads; in review #15",
-   "result": "Disc 7 events (12 ep), excess30 10.56%, t 1.71, net30 20.3%; confirm 2 events, excess30 24.74%.",
-   "recorded_status": "INSUFFICIENT",
-   "source_files": [
-    "docs/knowledge/reads_status.json",
-    "docs/knowledge/READS.md"
-   ]
+   ],
+   "rating_before_review15": "RE-TEST"
   },
   {
    "id": "SETUP:E3",
@@ -511,8 +441,8 @@
    "rating": "RE-TEST",
    "score": 5,
    "reason": "Bells saved money in 4 of 6 crashes, but 6 events on 10 coins; the 120 coins include LUNA, FTT and other coins that died",
-   "result": "Bells saved +$1,391 (May 2021), +$206 (LUNA), +$520 (FTX), +$248 (Oct 2025); cost \u2212$21 (COVID) and \u2212$43 (Aug 2024): $2,365 saved in four slow crashes.",
-   "recorded_status": "\u2192 V03 KEEP",
+   "result": "Bells saved +$1,391 (May 2021), +$206 (LUNA), +$520 (FTX), +$248 (Oct 2025); cost −$21 (COVID) and −$43 (Aug 2024): $2,365 saved in four slow crashes.",
+   "recorded_status": "→ V03 KEEP",
    "source_files": [
     "docs/research/EXPLORER_V0_SCORECARD.md"
    ]
@@ -524,12 +454,13 @@
    "date": "2026-10-03",
    "rating": "RE-TEST",
    "score": 4,
-   "reason": "Daily dip in an uptrend: 77% won, +4.5% per trade first look; merged with H07 in review #15",
+   "reason": "Same family as H07; follows H07's review #15 result (TOP30 yes, ALL no)",
    "result": "First look: 2017-2023 30 trades, 77% won, avg +4.5% per trade after costs vs random same-hold +0.35%; 2024-Jul 2026 20 trades, 60% won, avg +0.6% vs random -0.9%. Positive and above random in both periods, but only 50 trades. Matches Madhav's own instinct (buy weakness inside an uptrend) and repair-shop review 3. Review #11: the zone version (a dip into the 50-day zone in an uptrend) was worse than an average day under the same conditions (-3.8% over 20 days, 2018-23); the original deep-Bollinger form keeps its first-look status.",
    "recorded_status": "PROMISING",
    "source_files": [
     "docs/knowledge/hypotheses.json"
-   ]
+   ],
+   "rating_before_review15": "RE-TEST"
   },
   {
    "id": "H:H14",
@@ -553,11 +484,26 @@
    "rating": "CONTEXT",
    "score": 7,
    "reason": "Removing the bells did not help and worsened crash losses -> V16 stays as insurance",
-   "result": "\u2212$0.39 (t \u22120.05) / \u2212$0.66 (t \u22120.40); crisis total \u2212$598 vs C0 \u2212$515.",
-   "recorded_status": "FAIL \u2192 bells stay (V16 WATCH)",
+   "result": "−$0.39 (t −0.05) / −$0.66 (t −0.40); crisis total −$598 vs C0 −$515.",
+   "recorded_status": "FAIL → bells stay (V16 WATCH)",
    "source_files": [
     "docs/repair_shop/REVIEW_1_RESULTS.md"
    ]
+  },
+  {
+   "id": "R15",
+   "name": "Review #15: do T3, H07 and Madhav's setups survive the full universe? (pre-registered)",
+   "kind": "review",
+   "date": "2026-10-04",
+   "rating": "CONTEXT",
+   "score": 7,
+   "reason": "Run 2026-10-04: T3 and H07 pass on TOP30, fail on ALL; M1a thin pass on ALL; M2a/M3a/M2a-G not supported",
+   "result": "Not run yet (pre-registration only).",
+   "recorded_status": "PRE-REGISTERED",
+   "source_files": [
+    "docs/research/REVIEW_15.md"
+   ],
+   "rating_before_review15": "RE-TEST"
   },
   {
    "id": "V10",
@@ -650,13 +596,13 @@
   },
   {
    "id": "R6-RWCAL",
-   "name": "Zone random-walk calibration (bias check, Amendments 1\u20132)",
+   "name": "Zone random-walk calibration (bias check, Amendments 1–2)",
    "kind": "other",
    "date": "2026-10-03",
    "rating": "CONTEXT",
    "score": 5,
    "reason": "The random-walk correction itself; method, kept for review #16",
-   "result": "Negative bias: AVERAGE-200 \u221211.8, AVERAGE-50 \u22127.9, CONFLUENCE \u22125.7, SWING \u22123 to \u22125 (\u22124.6/\u22123.2/\u22123.1), EXTREME \u22124.0; BASE +5.7 (33 events).",
+   "result": "Negative bias: AVERAGE-200 −11.8, AVERAGE-50 −7.9, CONFLUENCE −5.7, SWING −3 to −5 (−4.6/−3.2/−3.1), EXTREME −4.0; BASE +5.7 (33 events).",
    "recorded_status": "frozen calibration",
    "source_files": [
     "docs/research/zones_rw_calibration.json",
@@ -686,7 +632,7 @@
    "rating": "CONTEXT",
    "score": 4,
    "reason": "Zone-stop 60-day holds ~= just holding 60 days: confirms V06",
-   "result": "+18.1% (2018\u201323) / +3.2% (since 2024) vs simply holding 60 days +20.8% / +4.5%.",
+   "result": "+18.1% (2018–23) / +3.2% (since 2024) vs simply holding 60 days +20.8% / +4.5%.",
    "recorded_status": "exploratory",
    "source_files": [
     "docs/research/REVIEW_10_RESULTS.md"
@@ -700,7 +646,7 @@
    "rating": "CONTEXT",
    "score": 4,
    "reason": "Holds across average lengths, but fails at double fees: the margin of safety on costs is thin",
-   "result": "EMA 40/15, 60/25, 100/20, 50/30, BTC EMA100 all PASS; fees doubled 0.40% \u2192 2024\u201326 \u22124.5% FAIL; without DOGE +0.1% (barely); without SOL +11%.",
+   "result": "EMA 40/15, 60/25, 100/20, 50/30, BTC EMA100 all PASS; fees doubled 0.40% → 2024–26 −4.5% FAIL; without DOGE +0.1% (barely); without SOL +11%.",
    "recorded_status": "PASS except double fees",
    "source_files": [
     "docs/repair_shop/REVIEW_4_RESULTS.md"
@@ -714,7 +660,7 @@
    "rating": "CONTEXT",
    "score": 4,
    "reason": "The baseline: Explorer setups lose ~$0.4-0.6 per $100 trade, the same as random; every later review measured against it",
-   "result": "Mean net \u2212$0.38 disc / \u2212$0.62 confirm per $100; win 33.4% / 29.3%; random ST/ID \u2212$0.58/\u2212$0.60 and \u2212$0.60/\u2212$0.68. HOLD +$7.43 / +$1.04. Bells saved $2,365 in four slow crashes.",
+   "result": "Mean net −$0.38 disc / −$0.62 confirm per $100; win 33.4% / 29.3%; random ST/ID −$0.58/−$0.60 and −$0.60/−$0.68. HOLD +$7.43 / +$1.04. Bells saved $2,365 in four slow crashes.",
    "recorded_status": "scorecard; proposals to R1",
    "source_files": [
     "docs/research/EXPLORER_V0_SCORECARD.md",
@@ -729,7 +675,7 @@
    "rating": "CONTEXT",
    "score": 4,
    "reason": "Screening pass that killed H03-H05 and surfaced H06; superseded by the pre-registered reviews",
-   "result": "H03 stage-2: 16 / 10 trades, 2024\u201326 \u221219% vs random +11%; H04 50/40-week: +152% vs random +435%, then 0/6 won \u221243%; H05 BB 200/4: \u22127.9% vs +7.6%; H06 BB 20/2.5 dip: 77% won +4.5% vs +0.35%, 60% +0.6% vs \u22120.9%.",
+   "result": "H03 stage-2: 16 / 10 trades, 2024–26 −19% vs random +11%; H04 50/40-week: +152% vs random +435%, then 0/6 won −43%; H05 BB 200/4: −7.9% vs +7.6%; H06 BB 20/2.5 dip: 77% won +4.5% vs +0.35%, 60% +0.6% vs −0.9%.",
    "recorded_status": "FIRST_LOOK",
    "source_files": [
     "docs/knowledge/teachers/rayner_teo.md",
@@ -745,7 +691,7 @@
    "rating": "CONTEXT",
    "score": 3,
    "reason": "Random-walk correction for the lookout reactions; method",
-   "result": "F1 +30.0 (z 9.22), F2 +22.5, F5 +9.4, F7 +6.0, F6 \u22125.4, F3 \u22121.4, F4 \u22124.3.",
+   "result": "F1 +30.0 (z 9.22), F2 +22.5, F5 +9.4, F7 +6.0, F6 −5.4, F3 −1.4, F4 −4.3.",
    "recorded_status": "frozen calibration",
    "source_files": [
     "docs/research/lookout_rw_calibration.json"
@@ -787,7 +733,7 @@
    "rating": "CONTEXT",
    "score": 2,
    "reason": "The lesson that trend-riding profit is a handful of outliers; why V1_RIDE is not a live candidate",
-   "result": "Top 10 of 707 trades = 106% of profit; win 23%. 2025 \u2212$521, 2026 YTD \u2212$88. Worst DD $1,123 (112% of start); fresh start 2025-01-01 \u2192 \u2212$609 (\u221261%).",
+   "result": "Top 10 of 707 trades = 106% of profit; win 23%. 2025 −$521, 2026 YTD −$88. Worst DD $1,123 (112% of start); fresh start 2025-01-01 → −$609 (−61%).",
    "recorded_status": "disclosed; 'not fit for live money now'",
    "source_files": [
     "docs/research/STUDY_V3_FRESH_RESULTS.md"
@@ -801,7 +747,7 @@
    "rating": "CONTEXT",
    "score": 2,
    "reason": "Confirms the outlier lesson: 10 trades = 85% of profit, 2021 = most of it",
-   "result": "10 best of ~650 trades = 85% of profit; 2021 \u2248 $5,700 of $6,500; 2025-01-01 start \u221219% (V4B) to \u221225% (control) fresh2, \u221239% to \u221261% fresh10.",
+   "result": "10 best of ~650 trades = 85% of profit; 2021 ≈ $5,700 of $6,500; 2025-01-01 start −19% (V4B) to −25% (control) fresh2, −39% to −61% fresh10.",
    "recorded_status": "explanatory",
    "source_files": [
     "docs/research/STUDY_V4_RESULTS.md"
@@ -844,7 +790,7 @@
    "rating": "CONTEXT",
    "score": 0,
    "reason": "Traders did better buying weakness; the seed of the H06/H07 dip idea, tested properly there",
-   "result": "24h excess BEAR +0.67% vs BULL \u22120.41%; 4h DOWN +0.63% vs UP \u22120.35%; 15m RSI<30 +1.25% vs >70 \u22120.06%.",
+   "result": "24h excess BEAR +0.67% vs BULL −0.41%; 4h DOWN +0.63% vs UP −0.35%; 15m RSI<30 +1.25% vs >70 −0.06%.",
    "recorded_status": "became review #3 hypothesis; V10 WATCH",
    "source_files": [
     "docs/repair_shop/REVIEW_2_RESULTS.md"
@@ -852,13 +798,13 @@
   },
   {
    "id": "STUDY:CASEBOOK",
-   "name": "Casebook rebuild of Madhav's SOL buys (C1\u2013C4)",
+   "name": "Casebook rebuild of Madhav's SOL buys (C1–C4)",
    "kind": "study",
    "date": "2026-10-03",
    "rating": "CONTEXT",
    "score": 0,
    "reason": "Madhav's real trades: anecdote that seeded H08, H13, H14, H17; not evidence on its own",
-   "result": "Buys now about +94% / +85% / +72% / +56%. Ananta v0 at C3: 3 buys all lost (\u2212$5.72 per $100); W1 dip buys net \u2212$3.85, \u2212$13.55, \u2212$8.26. 2% stops would have stopped him at C1 (\u22124.5%) and C3 (\u22125.2%).",
+   "result": "Buys now about +94% / +85% / +72% / +56%. Ananta v0 at C3: 3 buys all lost (−$5.72 per $100); W1 dip buys net −$3.85, −$13.55, −$8.26. 2% stops would have stopped him at C1 (−4.5%) and C3 (−5.2%).",
    "recorded_status": "USER_MARK evidence",
    "source_files": [
     "docs/casebook/REBUILD_2026-10-03.md",
@@ -1027,7 +973,7 @@
    "rating": "DUMP",
    "score": 9,
    "reason": "Targets at the next zone cut winners (X2 0.0% vs X1 +5.8%); exit idea rejected",
-   "result": "FAIL: X2 0.0% (win 64%) vs X1 +5.8%, X3 +5.3%, X4 +1.2% disc; X2 vs X1 \u22126.2 (z \u22123.4). Confirm X2 \u22121.3% vs X1 +0.3%.",
+   "result": "FAIL: X2 0.0% (win 64%) vs X1 +5.8%, X3 +5.3%, X4 +1.2% disc; X2 vs X1 −6.2 (z −3.4). Confirm X2 −1.3% vs X1 +0.3%.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/REVIEW_10.md",
@@ -1036,13 +982,13 @@
   },
   {
    "id": "R11",
-   "name": "Review #11: teacher ideas as zones (A1 50-day dip; B1\u2013B3 breakouts)",
+   "name": "Review #11: teacher ideas as zones (A1 50-day dip; B1–B3 breakouts)",
    "kind": "review",
    "date": "2026-10-03",
    "rating": "DUMP",
    "score": 9,
    "reason": "All failed; only B3 volume breakout had a hint (z 0.9) -> low-priority re-test",
-   "result": "All FAIL. A1 \u22123.8% excess (z \u22121.2, 79 events); B1 +1.0%; B2 +1.4%; B3 volume +5.2% (z 0.9) / +6.1% confirm.",
+   "result": "All FAIL. A1 −3.8% excess (z −1.2, 79 events); B1 +1.0%; B2 +1.4%; B3 volume +5.2% (z 0.9) / +6.1% confirm.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/REVIEW_11.md",
@@ -1057,7 +1003,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed after random-walk correction; F1 and F2 looked strong only because of the random-walk bias",
-   "result": "Disc held 71.9% vs 53.6%, diff +18.3 \u2192 corrected -11.7 (z -3.09); confirm +15.0 \u2192 -15.0.",
+   "result": "Disc held 71.9% vs 53.6%, diff +18.3 → corrected -11.7 (z -3.09); confirm +15.0 → -15.0.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/lookout_status.json",
@@ -1072,7 +1018,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed after random-walk correction; F1 and F2 looked strong only because of the random-walk bias",
-   "result": "Disc held 68.1% vs 43.6%, diff +24.4 \u2192 corrected +1.9 (z 0.50); confirm +29.8 \u2192 +7.3.",
+   "result": "Disc held 68.1% vs 43.6%, diff +24.4 → corrected +1.9 (z 0.50); confirm +29.8 → +7.3.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/lookout_status.json",
@@ -1087,7 +1033,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed after random-walk correction; F1 and F2 looked strong only because of the random-walk bias",
-   "result": "Disc held 54.9% vs 59.8%, diff -4.9 \u2192 corrected -3.5 (z -0.70); confirm -7.7 \u2192 -6.3.",
+   "result": "Disc held 54.9% vs 59.8%, diff -4.9 → corrected -3.5 (z -0.70); confirm -7.7 → -6.3.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/lookout_status.json",
@@ -1102,7 +1048,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed after random-walk correction; F1 and F2 looked strong only because of the random-walk bias",
-   "result": "Disc held 54.3% vs 58.9%, diff -4.6 \u2192 corrected -0.3 (z -0.04); confirm +4.1 \u2192 +8.4.",
+   "result": "Disc held 54.3% vs 58.9%, diff -4.6 → corrected -0.3 (z -0.04); confirm +4.1 → +8.4.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/lookout_status.json",
@@ -1117,7 +1063,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed after random-walk correction; F1 and F2 looked strong only because of the random-walk bias",
-   "result": "Disc held 58.5% vs 58.6%, diff -0.1 \u2192 corrected -9.5 (z -1.90); confirm +0.2 \u2192 -9.2.",
+   "result": "Disc held 58.5% vs 58.6%, diff -0.1 → corrected -9.5 (z -1.90); confirm +0.2 → -9.2.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/lookout_status.json",
@@ -1132,7 +1078,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed after random-walk correction; F1 and F2 looked strong only because of the random-walk bias",
-   "result": "Disc held 62.2% vs 55.0%, diff +7.2 \u2192 corrected +1.2 (z 0.33); confirm +10.1 \u2192 +4.1.",
+   "result": "Disc held 62.2% vs 55.0%, diff +7.2 → corrected +1.2 (z 0.33); confirm +10.1 → +4.1.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/lookout_status.json",
@@ -1147,7 +1093,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "H12/H13/H16 not supported; H07 moved on to review #14",
-   "result": "No pass. H07 20d excess \u22127.1% (z \u22122.0) but own exit +4.1%/70% and +4.2%/68%; H12 +4.3% (z 1.1)/0.0%; H13 +0.9%/+1.4%; H16 INSUFFICIENT 24 vs 22 samples (+15.5% vs +4.9%, z 1.6); P03 MAR 1.19 vs 1.57.",
+   "result": "No pass. H07 20d excess −7.1% (z −2.0) but own exit +4.1%/70% and +4.2%/68%; H12 +4.3% (z 1.1)/0.0%; H13 +0.9%/+1.4%; H16 INSUFFICIENT 24 vs 22 samples (+15.5% vs +4.9%, z 1.6); P03 MAR 1.19 vs 1.57.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/REVIEW_13.md",
@@ -1162,7 +1108,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed its pre-written test after random-walk correction",
-   "result": "Disc held 67.7% vs random 72.5%, edge -0.1 \u2192 corrected +7.8 (z 1.56); confirm -3.3 \u2192 +4.6; net10 disc +0.41%.",
+   "result": "Disc held 67.7% vs random 72.5%, edge -0.1 → corrected +7.8 (z 1.56); confirm -3.3 → +4.6; net10 disc +0.41%.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/zones_status.json",
@@ -1177,7 +1123,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed its pre-written test after random-walk correction",
-   "result": "Disc held 60.0% vs random 66.2%, edge -7.4 \u2192 corrected -13.1 (z -1.88); confirm -1.8 \u2192 -7.5; net10 disc -2.16%.",
+   "result": "Disc held 60.0% vs random 66.2%, edge -7.4 → corrected -13.1 (z -1.88); confirm -1.8 → -7.5; net10 disc -2.16%.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/zones_status.json",
@@ -1192,7 +1138,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed its pre-written test after random-walk correction",
-   "result": "Disc held 69.4% vs random 72.7%, edge +1.5 \u2192 corrected +5.5 (z 0.99); confirm +13.5 \u2192 +17.5; net10 disc -1.76%.",
+   "result": "Disc held 69.4% vs random 72.7%, edge +1.5 → corrected +5.5 (z 0.99); confirm +13.5 → +17.5; net10 disc -1.76%.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/zones_status.json",
@@ -1207,7 +1153,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed its pre-written test after random-walk correction",
-   "result": "Disc held 59.9% vs random 64.6%, edge +2.8 \u2192 corrected +5.9 (z 2.25); confirm +13.7 \u2192 +16.8; net10 disc -0.89%.",
+   "result": "Disc held 59.9% vs random 64.6%, edge +2.8 → corrected +5.9 (z 2.25); confirm +13.7 → +16.8; net10 disc -0.89%.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/zones_status.json",
@@ -1222,7 +1168,7 @@
    "rating": "DUMP",
    "score": 8,
    "reason": "Failed its pre-written test after random-walk correction",
-   "result": "Disc held 62.9% vs random 60.9%, edge +4.3 \u2192 corrected +7.5 (z 2.13); confirm +5.8 \u2192 +9.0; net10 disc +0.27%.",
+   "result": "Disc held 62.9% vs random 60.9%, edge +4.3 → corrected +7.5 (z 2.13); confirm +5.8 → +9.0; net10 disc +0.27%.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/zones_status.json",
@@ -1279,7 +1225,7 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "No variant beat the baseline; parts kept separately (R1-P1, R1-HOLD)",
-   "result": "No variant passes. P1a market entry \u2212$0.69 (t \u22123.56) / \u2212$0.90 (t \u22122.97); P2 no bells crises \u2212$598 vs \u2212$515; P3 drop E5 t +0.15. Random 60-day hold +$31.99 vs setups +$32.80.",
+   "result": "No variant passes. P1a market entry −$0.69 (t −3.56) / −$0.90 (t −2.97); P2 no bells crises −$598 vs −$515; P3 drop E5 t +0.15. Random 60-day hold +$31.99 vs setups +$32.80.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/repair_shop/REVIEW_1.md",
@@ -1295,8 +1241,8 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "Dropping E5 helped slightly, not significantly; E5 itself is dumped",
-   "result": "\u2212$0.37 (t +0.15) / \u2212$0.60 (t +0.16); crises \u2212$468. Slightly better, not significant.",
-   "recorded_status": "FAIL \u2192 E5 probation (Q3)",
+   "result": "−$0.37 (t +0.15) / −$0.60 (t +0.16); crises −$468. Slightly better, not significant.",
+   "recorded_status": "FAIL → E5 probation (Q3)",
    "source_files": [
     "docs/repair_shop/REVIEW_1_RESULTS.md"
    ]
@@ -1309,7 +1255,7 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "Looser T3 exits won in 2018-23 and lost in 2024-26; T3 unchanged",
-   "result": "All FAIL: T3Z +10,258% / \u221225.7%; T3A +10,156% / \u221222.3%; T3W +6,827% / \u22126.8%; T3 +3,558% / +13.1% (MAR 0.12). Oct 2025: T3 \u22124.4% vs \u221210% to \u221219%.",
+   "result": "All FAIL: T3Z +10,258% / −25.7%; T3A +10,156% / −22.3%; T3W +6,827% / −6.8%; T3 +3,558% / +13.1% (MAR 0.12). Oct 2025: T3 −4.4% vs −10% to −19%.",
    "recorded_status": "FAIL; T3 stays",
    "source_files": [
     "docs/research/REVIEW_12.md",
@@ -1324,7 +1270,7 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "A book-level loss cut halved returns; no gain in drawdown terms",
-   "result": "FAIL: 48 stops, return halved; MAR 1.19 vs 1.57 (2018\u201323), 0.11 vs 0.12 (2024\u201326).",
+   "result": "FAIL: 48 stops, return halved; MAR 1.19 vs 1.57 (2018–23), 0.11 vs 0.12 (2024–26).",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/research/REVIEW_13_RESULTS.md"
@@ -1332,13 +1278,13 @@
   },
   {
    "id": "R3",
-   "name": "Repair-shop review #3: buy weakness (dip setups E6\u2013E8)",
+   "name": "Repair-shop review #3: buy weakness (dip setups E6–E8)",
    "kind": "review",
    "date": "2026-09-30",
    "rating": "DUMP",
    "score": 7,
    "reason": "All dip setups lose after costs; E6 beats random (t 3.9) but not the cost",
-   "result": "No pass; all lose after costs. E6 15m RSI<30: \u2212$0.40 vs random \u2212$0.50 (t +3.88), vs v0 t \u22120.20. R3all \u2212$0.42 (t +4.21 vs random).",
+   "result": "No pass; all lose after costs. E6 15m RSI<30: −$0.40 vs random −$0.50 (t +3.88), vs v0 t −0.20. R3all −$0.42 (t +4.21 vs random).",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/repair_shop/REVIEW_3.md",
@@ -1354,7 +1300,7 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "Madhav's reads as first written: nothing supported; the best variants go to review #15",
-   "result": "No variant passes. M1a INSUFFICIENT 6 events, \u22127.2% (t \u22121.2); M2a NOT_SUPPORTED 17 events \u22123.6%; M3a NOT_SUPPORTED 16 events \u22124.2%, confirm +12.1% (8 events). Reader caught all four buys.",
+   "result": "No variant passes. M1a INSUFFICIENT 6 events, −7.2% (t −1.2); M2a NOT_SUPPORTED 17 events −3.6%; M3a NOT_SUPPORTED 16 events −4.2%, confirm +12.1% (8 events). Reader caught all four buys.",
    "recorded_status": "FAIL; nothing SUPPORTED",
    "source_files": [
     "docs/repair_shop/REVIEW_5.md",
@@ -1371,7 +1317,7 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "All failed; zones as Explorer filters made no difference vs random",
-   "result": "All FAIL. Z \u2212$0.51 vs outside \u2212$0.25; Zany \u2212$0.47; G \u2212$0.17 vs \u2212$0.66 (t 3.3 vs outside) but vs random t 0.9; Z&G \u2212$0.33.",
+   "result": "All FAIL. Z −$0.51 vs outside −$0.25; Zany −$0.47; G −$0.17 vs −$0.66 (t 3.3 vs outside) but vs random t 0.9; Z&G −$0.33.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/repair_shop/REVIEW_9.md",
@@ -1386,7 +1332,7 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "Failed review #3 after costs",
-   "result": "\u2212$0.40 vs random \u2212$0.50 (t +3.88); vs v0 t \u22120.20; 2024\u201326 \u2212$0.49.",
+   "result": "−$0.40 vs random −$0.50 (t +3.88); vs v0 t −0.20; 2024–26 −$0.49.",
    "recorded_status": "FAIL in R3; ACTIVE_UNPROVEN as W1 paper",
    "source_files": [
     "docs/repair_shop/REVIEW_3_RESULTS.md",
@@ -1401,7 +1347,7 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "Failed review #3 after costs",
-   "result": "\u2212$0.48, win 37%, t vs random +0.71.",
+   "result": "−$0.48, win 37%, t vs random +0.71.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/repair_shop/REVIEW_3_RESULTS.md"
@@ -1409,17 +1355,33 @@
   },
   {
    "id": "SETUP:E8",
-   "name": "Dip setup E8 (below daily EMA50, momentum \u2264 0.30)",
+   "name": "Dip setup E8 (below daily EMA50, momentum ≤ 0.30)",
    "kind": "setup",
    "date": "2026-09-30",
    "rating": "DUMP",
    "score": 7,
    "reason": "Failed review #3 after costs",
-   "result": "\u2212$0.45, win 30%, t vs random +2.63, vs v0 \u22120.89.",
+   "result": "−$0.45, win 30%, t vs random +2.63, vs v0 −0.89.",
    "recorded_status": "FAIL",
    "source_files": [
     "docs/repair_shop/REVIEW_3_RESULTS.md"
    ]
+  },
+  {
+   "id": "SETUP:M2a",
+   "name": "Madhav's read M2a: Higher-low retest",
+   "kind": "setup",
+   "date": "2026-10-03",
+   "rating": "DUMP",
+   "score": 7,
+   "reason": "Review #15: NOT SUPPORTED on every tier",
+   "result": "Disc 17 events (26 ep), excess30 -3.55%, t -0.69, net30 2.21%; confirm 5 events, excess30 4.8%.",
+   "recorded_status": "NOT_SUPPORTED",
+   "source_files": [
+    "docs/knowledge/reads_status.json",
+    "docs/knowledge/READS.md"
+   ],
+   "rating_before_review15": "RE-TEST"
   },
   {
    "id": "SETUP:M2a-Z",
@@ -1452,6 +1414,22 @@
    ]
   },
   {
+   "id": "SETUP:M3a",
+   "name": "Madhav's read M3a: Quiet base, upper half (his C3 entry)",
+   "kind": "setup",
+   "date": "2026-10-03",
+   "rating": "DUMP",
+   "score": 7,
+   "reason": "Review #15: NOT SUPPORTED on every tier",
+   "result": "Disc 16 events (25 ep), excess30 -4.23%, t -0.88, net30 -0.1%; confirm 8 events, excess30 12.12%.",
+   "recorded_status": "NOT_SUPPORTED",
+   "source_files": [
+    "docs/knowledge/reads_status.json",
+    "docs/knowledge/READS.md"
+   ],
+   "rating_before_review15": "RE-TEST"
+  },
+  {
    "id": "SETUP:M3a-Z",
    "name": "Madhav's read M3a-Z: Quiet base at a supported zone",
    "kind": "setup",
@@ -1474,7 +1452,7 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "Failed holdout and fresh coins",
-   "result": "Failed holdout (\u22120.48%/trade NDAX) and fresh coins (V0 FAIL).",
+   "result": "Failed holdout (−0.48%/trade NDAX) and fresh coins (V0 FAIL).",
    "recorded_status": "winding down (CANDIDATE_BOOK ACTIVE_UNPROVEN)",
    "source_files": [
     "docs/research/CANDIDATE_V3_HOLDOUT_RESULT.md",
@@ -1483,13 +1461,13 @@
   },
   {
    "id": "STUDY:ENTRY_V2",
-   "name": "Entry study v2 (4h setups, daily context, 5m timing, \u22653% targets)",
+   "name": "Entry study v2 (4h setups, daily context, 5m timing, ≥3% targets)",
    "kind": "study",
    "date": "2026-09-29",
    "rating": "DUMP",
    "score": 7,
    "reason": "0 of 36 passed after costs; the leader's gross edge was mostly market drift (V06)",
-   "result": "0 of 36 passed at Kraken T1. Leader S3_TREND_CONTROL|E_DIP|X_TRAIL|LONG: gross +1.97% (t 7.3) disc, +1.13% confirm; T1 net +0.67% (t 2.46 < 2.5) / \u22120.17%. Limit dip entries beat market by ~0.7\u20131.0 pp; edge partly beta.",
+   "result": "0 of 36 passed at Kraken T1. Leader S3_TREND_CONTROL|E_DIP|X_TRAIL|LONG: gross +1.97% (t 7.3) disc, +1.13% confirm; T1 net +0.67% (t 2.46 < 2.5) / −0.17%. Limit dip entries beat market by ~0.7–1.0 pp; edge partly beta.",
    "recorded_status": "0/36 pass",
    "source_files": [
     "docs/research/ENTRY_STUDY_V2.md",
@@ -1498,13 +1476,13 @@
   },
   {
    "id": "STUDY:GREEN_RUNS",
-   "name": "Green-run journal v1 (2\u20135 green 5m candles, entry regions, context)",
+   "name": "Green-run journal v1 (2–5 green 5m candles, entry regions, context)",
    "kind": "study",
    "date": "2026-09-30",
    "rating": "DUMP",
    "score": 7,
    "reason": "0 cells pass even at zero fees; green runs slightly predict red (V11)",
-   "result": "0 cells pass at any cost incl. zero fees. P(next green) 46.5%\u219244.8% vs 47.9% baseline. Limit pullback entry saves ~0.26%.",
+   "result": "0 cells pass at any cost incl. zero fees. P(next green) 46.5%→44.8% vs 47.9% baseline. Limit pullback entry saves ~0.26%.",
    "recorded_status": "0 pass",
    "source_files": [
     "docs/research/GREEN_RUNS_STUDY_V1.md",
@@ -1519,7 +1497,7 @@
    "rating": "DUMP",
    "score": 7,
    "reason": "0 of 108 passed; best gross edge +0.07% far below a ~1% round trip. Its lesson lives on in V04",
-   "result": "0 of 108 passed DISCOVERY. Best gross +0.073%/trade (t 2.4, a SHORT). Round trip T1 taker 1.70%, maker 0.90%, T3 0.54%, low-fee 0.19%. 4h gate \u22120.039% \u2192 +0.005%.",
+   "result": "0 of 108 passed DISCOVERY. Best gross +0.073%/trade (t 2.4, a SHORT). Round trip T1 taker 1.70%, maker 0.90%, T3 0.54%, low-fee 0.19%. 4h gate −0.039% → +0.005%.",
    "recorded_status": "0/108 pass",
    "source_files": [
     "docs/research/MTF_ENTRY_STUDY_V1.md",
@@ -1625,6 +1603,23 @@
    ]
   },
   {
+   "id": "R8",
+   "name": "Repair-shop review #8: your setups with zones (Z) and the market gate (G)",
+   "kind": "review",
+   "date": "2026-10-03",
+   "rating": "DUMP",
+   "score": 6,
+   "reason": "Its one hope (M2a-G) failed on more coins in review #15",
+   "result": "No pass. M2a-G INSUFFICIENT: 7 events (12 episodes), +10.6% excess (t 1.7), net +20.3%, 92% win; confirm 2 events +24.7%. M1a-G 0 events. Zones did not help.",
+   "recorded_status": "FAIL",
+   "source_files": [
+    "docs/repair_shop/REVIEW_8.md",
+    "docs/repair_shop/REVIEW_8_RESULTS.md",
+    "docs/knowledge/reads_status.json"
+   ],
+   "rating_before_review15": "RE-TEST"
+  },
+  {
    "id": "SETUP:M1a-Z",
    "name": "Madhav's read M1a-Z: Capitulation at a supported zone",
    "kind": "setup",
@@ -1656,7 +1651,7 @@
   },
   {
    "id": "SETUP:M1c",
-   "name": "Madhav's read M1c: Capitulation \u226550% under 52w high",
+   "name": "Madhav's read M1c: Capitulation ≥50% under 52w high",
    "kind": "setup",
    "date": "2026-10-03",
    "rating": "DUMP",
@@ -1668,6 +1663,22 @@
     "docs/knowledge/reads_status.json",
     "docs/knowledge/READS.md"
    ]
+  },
+  {
+   "id": "SETUP:M2a-G",
+   "name": "Madhav's read M2a-G: Retest with the market allowed",
+   "kind": "setup",
+   "date": "2026-10-03",
+   "rating": "DUMP",
+   "score": 6,
+   "reason": "Review #15: NOT SUPPORTED on TOP30 and ALL; the 7-event result did not survive more coins",
+   "result": "Disc 7 events (12 ep), excess30 10.56%, t 1.71, net30 20.3%; confirm 2 events, excess30 24.74%.",
+   "recorded_status": "INSUFFICIENT",
+   "source_files": [
+    "docs/knowledge/reads_status.json",
+    "docs/knowledge/READS.md"
+   ],
+   "rating_before_review15": "RE-TEST"
   },
   {
    "id": "SETUP:M2a-ZG",
@@ -1735,7 +1746,7 @@
    "rating": "DUMP",
    "score": 5,
    "reason": "Negative after costs in both periods of the 7-year replay",
-   "result": "\u2212$0.27 / \u2212$0.94 per $100 trade; 'falls apart in CONFIRM'.",
+   "result": "−$0.27 / −$0.94 per $100 trade; 'falls apart in CONFIRM'.",
    "recorded_status": "ACTIVE_UNPROVEN",
    "source_files": [
     "docs/research/EXPLORER_V0_SCORECARD.md",
@@ -1750,7 +1761,7 @@
    "rating": "DUMP",
    "score": 5,
    "reason": "Negative after costs in both periods of the 7-year replay",
-   "result": "\u2212$0.57 / \u2212$0.65; consistently negative.",
+   "result": "−$0.57 / −$0.65; consistently negative.",
    "recorded_status": "ACTIVE_UNPROVEN",
    "source_files": [
     "docs/research/EXPLORER_V0_SCORECARD.md",
@@ -1765,7 +1776,7 @@
    "rating": "DUMP",
    "score": 5,
    "reason": "Negative after costs in both periods of the 7-year replay",
-   "result": "\u2212$0.24 / \u2212$0.47; least bad large setup.",
+   "result": "−$0.24 / −$0.47; least bad large setup.",
    "recorded_status": "ACTIVE_UNPROVEN",
    "source_files": [
     "docs/research/EXPLORER_V0_SCORECARD.md",
@@ -1780,7 +1791,7 @@
    "rating": "DUMP",
    "score": 5,
    "reason": "Negative after costs in both periods of the 7-year replay",
-   "result": "\u2212$0.64 / \u2212$0.80; worst in both periods; R1 drop-E5 not significant.",
+   "result": "−$0.64 / −$0.80; worst in both periods; R1 drop-E5 not significant.",
    "recorded_status": "ACTIVE_UNPROVEN; probation Q3",
    "source_files": [
     "docs/research/EXPLORER_V0_SCORECARD.md",
@@ -1796,7 +1807,7 @@
    "rating": "DUMP",
    "score": 5,
    "reason": "Failed its sealed holdout: -0.48% per trade at NDAX, win 32%",
-   "result": "FAIL: NDAX mean \u22120.48%/trade (90% CI \u22121.66%\u2026+0.81%), win 32%, PF 0.81; B1 \u22121.83%; book \u22122.94% vs equal-weight buy-and-hold +24.69%. 59 of 62 exits stops/trail.",
+   "result": "FAIL: NDAX mean −0.48%/trade (90% CI −1.66%…+0.81%), win 32%, PF 0.81; B1 −1.83%; book −2.94% vs equal-weight buy-and-hold +24.69%. 59 of 62 exits stops/trail.",
    "recorded_status": "FAIL (holdout now used up)",
    "source_files": [
     "docs/research/CANDIDATE_V3.md",
@@ -1811,7 +1822,7 @@
    "rating": "DUMP",
    "score": 5,
    "reason": "No variant passed on fresh coins; drawdowns 75-88%",
-   "result": "No variant passes. V1_CONTROL +535%, DD 88%; V4A BTC gate +544%, DD 75%, worst 12m \u221226%; V4B +541%/87%; V4C +843%/335%. BTC gate lowers DD and worst-12m on both sets.",
+   "result": "No variant passes. V1_CONTROL +535%, DD 88%; V4A BTC gate +544%, DD 75%, worst 12m −26%; V4B +541%/87%; V4C +843%/335%. BTC gate lowers DD and worst-12m on both sets.",
    "recorded_status": "FAIL (fresh2 used up)",
    "source_files": [
     "docs/research/STUDY_V4.md",
@@ -1869,7 +1880,7 @@
    "rating": "DUMP",
    "score": 4,
    "reason": "News check did not separate good from bad buys",
-   "result": "Did not separate: M1a CLEAR 14 \u22124.7% excess vs CAUTION 14 \u22121.6%; M2a CLEAR 25 \u22123.5% vs CAUTION 17 \u22122.3%. Flagged asset-specific cases (SOL Nov 2022, LTC Jun 2022, ADA Jun 2026).",
+   "result": "Did not separate: M1a CLEAR 14 −4.7% excess vs CAUTION 14 −1.6%; M2a CLEAR 25 −3.5% vs CAUTION 17 −2.3%. Flagged asset-specific cases (SOL Nov 2022, LTC Jun 2022, ADA Jun 2026).",
    "recorded_status": "demo, not evidence",
    "source_files": [
     "docs/repair_shop/REVIEW_5_RESULTS.md"
@@ -1883,7 +1894,7 @@
    "rating": "DUMP",
    "score": 4,
    "reason": "Outlier-driven; -61% from a 2025 start",
-   "result": "Passed v3 rules (MAR 11.5) but \u221261% from 2025-01-01 fresh start; v4 V1_CONTROL fails drawdown.",
+   "result": "Passed v3 rules (MAR 11.5) but −61% from 2025-01-01 fresh start; v4 V1_CONTROL fails drawdown.",
    "recorded_status": "paper book (candidate runner) with loss-streak circuit breaker",
    "source_files": [
     "docs/research/STUDY_V3_FRESH_RESULTS.md",
@@ -1910,7 +1921,7 @@
   },
   {
    "id": "STUDY:V3_FRESH",
-   "name": "Study v3: regime-adaptive exits on fresh coins (V0\u2013V3)",
+   "name": "Study v3: regime-adaptive exits on fresh coins (V0–V3)",
    "kind": "study",
    "date": "2026-09-30",
    "rating": "DUMP",
@@ -1963,7 +1974,7 @@
    "rating": "DUMP",
    "score": 2,
    "reason": "Copying traders' timing: +0.06% in the first hour only, skill did not persist",
-   "result": "D1 all longs excess +0.06% at 1h (t 2.9), +0.10% 24h (t 0.8); random wallets \u22120.47% 24h (t \u22122.7). D1b skilled top 8 of 24: +0.05% (t 0.2), lost $1.45M. D3 coverage 25%. D4 0 of 823 cells.",
+   "result": "D1 all longs excess +0.06% at 1h (t 2.9), +0.10% 24h (t 0.8); random wallets −0.47% 24h (t −2.7). D1b skilled top 8 of 24: +0.05% (t 0.2), lost $1.45M. D3 coverage 25%. D4 0 of 823 cells.",
    "recorded_status": "FAIL; S5 not run",
    "source_files": [
     "docs/repair_shop/REVIEW_2.md",
@@ -1979,7 +1990,7 @@
    "rating": "DUMP",
    "score": 2,
    "reason": "4 historical takes, 0 in trend-up; live 5 closed at -$1.93: never had evidence",
-   "result": "Hist 4 TAKE-eq (insufficient); TREND_UP NO_TAKE on all 10 books; ~2\u20138 fires per coin per year; 39 TAKEs refused SLOT_FULL by 2026-10-03.",
+   "result": "Hist 4 TAKE-eq (insufficient); TREND_UP NO_TAKE on all 10 books; ~2–8 fires per coin per year; 39 TAKEs refused SLOT_FULL by 2026-10-03.",
    "recorded_status": "ACTIVE_UNPROVEN",
    "source_files": [
     "docs/knowledge/watches.json",
@@ -2040,7 +2051,7 @@
    "rating": "DUMP",
    "score": 1,
    "reason": "August legacy lab: 1-hour horizon, no written pass rule, superseded by the daily-horizon program",
-   "result": "ROSTER_MISMATCH: sweep roster \u2260 Agent books.",
+   "result": "ROSTER_MISMATCH: sweep roster ≠ Agent books.",
    "recorded_status": "closed: do not ingest as CFG",
    "source_files": [
     "src/intelligence/research_exp.py",
@@ -2100,7 +2111,7 @@
    "rating": "DUMP",
    "score": 1,
    "reason": "August legacy lab: 1-hour horizon, no written pass rule, superseded by the daily-horizon program",
-   "result": "Yes: mean +1h after TAKE (\u22120.056%) is almost entirely bollinger; per-strategy split now reported (lab attribution).",
+   "result": "Yes: mean +1h after TAKE (−0.056%) is almost entirely bollinger; per-strategy split now reported (lab attribution).",
    "recorded_status": "APPROVED_MEASUREMENT / done",
    "source_files": [
     "docs/S5_HYPOTHESES.md",
@@ -2143,7 +2154,7 @@
    "rating": "DUMP",
    "score": 1,
    "reason": "August legacy lab: 1-hour horizon, no written pass rule, superseded by the daily-horizon program",
-   "result": "43 obs, SKIP 19 / WAIT 24 / TAKE 0; regime SUPPORTED 6 / MISCLASSIFIED 9 / UNCERTAIN 28; decision PROTECTIVE 17 / COSTLY 4 / UNCERTAIN 22; mean BTC +1h after sit-out \u22120.2415%. Finding: market label may lag overnight transitions.",
+   "result": "43 obs, SKIP 19 / WAIT 24 / TAKE 0; regime SUPPORTED 6 / MISCLASSIFIED 9 / UNCERTAIN 28; decision PROTECTIVE 17 / COSTLY 4 / UNCERTAIN 22; mean BTC +1h after sit-out −0.2415%. Finding: market label may lag overnight transitions.",
    "recorded_status": "evidence, not a verdict",
    "source_files": [
     "docs/experiments/JOURNAL.md",
@@ -2203,7 +2214,7 @@
    "rating": "DUMP",
    "score": 0,
    "reason": "August legacy lab: 1-hour horizon, no written pass rule, superseded by the daily-horizon program",
-   "result": "DRAWDOWN_DOMINATED_NO_PROMOTE: Bollinger DRAWDOWN TAKE \u22120.07 vs SKIP +0.07. PEAK TAKEs empty.",
+   "result": "DRAWDOWN_DOMINATED_NO_PROMOTE: Bollinger DRAWDOWN TAKE −0.07 vs SKIP +0.07. PEAK TAKEs empty.",
    "recorded_status": "closed, do not promote",
    "source_files": [
     "src/intelligence/research_exp.py",
@@ -2218,7 +2229,7 @@
    "rating": "DUMP",
    "score": 0,
    "reason": "August legacy lab: 1-hour horizon, no written pass rule, superseded by the daily-horizon program",
-   "result": "ASSET_X_PHASE_DISAGREES: Bollinger DRAWDOWN ETH TAKE +0.19 vs SKIP \u22120.05. Donchian DRAWDOWN TAKE hurts.",
+   "result": "ASSET_X_PHASE_DISAGREES: Bollinger DRAWDOWN ETH TAKE +0.19 vs SKIP −0.05. Donchian DRAWDOWN TAKE hurts.",
    "recorded_status": "closed: conditional boards only",
    "source_files": [
     "src/intelligence/research_exp.py",
@@ -2248,7 +2259,7 @@
    "rating": "DUMP",
    "score": 0,
    "reason": "August legacy lab: 1-hour horizon, no written pass rule, superseded by the daily-horizon program; its one lesson (breakouts hurt in drawdowns) is repeated by later daily tests",
-   "result": "BREAKOUTS_HURT_IN_DRAWDOWN: Donchian DRAWDOWN TAKE n=18 +1h=\u22120.09 vs SKIP +0.12; Donchian LEAD_IN TAKE n=12 +1h=\u22120.35 vs SKIP +0.34; Bollinger DRAWDOWN TAKE n=44 +1h=\u22120.12 vs SKIP +0.06; Hunter PEAK n=1 +1h=\u22125.50.",
+   "result": "BREAKOUTS_HURT_IN_DRAWDOWN: Donchian DRAWDOWN TAKE n=18 +1h=−0.09 vs SKIP +0.12; Donchian LEAD_IN TAKE n=12 +1h=−0.35 vs SKIP +0.34; Bollinger DRAWDOWN TAKE n=44 +1h=−0.12 vs SKIP +0.06; Hunter PEAK n=1 +1h=−5.50.",
    "recorded_status": "closed: stop more 1h coins",
    "source_files": [
     "src/intelligence/research_exp.py",
@@ -2305,7 +2316,7 @@
    "rating": "DUMP",
    "score": 0,
    "reason": "August legacy lab: 1-hour horizon, no written pass rule, superseded by the daily-horizon program",
-   "result": "Live TAKE: NO_LIVE_TAKE all three. Hunter SKIP n=64 +1h +0.00% WASH, +4h \u22120.26% slight protective. Hist bollinger TAKE-eq n=47 +1h \u22120.07% WASH; hunter/squeeze TAKE-eq n=4 INSUFFICIENT. Readiness NOT EARNED.",
+   "result": "Live TAKE: NO_LIVE_TAKE all three. Hunter SKIP n=64 +1h +0.00% WASH, +4h −0.26% slight protective. Hist bollinger TAKE-eq n=47 +1h −0.07% WASH; hunter/squeeze TAKE-eq n=4 INSUFFICIENT. Readiness NOT EARNED.",
    "recorded_status": "DQ-v0.0 locked; KEEP forbidden",
    "source_files": [
     "docs/DECISION_QUALITY_V0.md"
@@ -2364,7 +2375,7 @@
    "rating": "DUMP",
    "score": 0,
    "reason": "August legacy lab: 1-hour horizon, no written pass rule, superseded by the daily-horizon program",
-   "result": "Live SKIP 19/WAIT 35/TAKE 0; hist WAIT 2206/SKIP 213/TAKE-eq 55 (47 bollinger). Mean BTC +1h after sit-out live \u22120.116%, hist \u22120.007%. Hunter hist 108 setups, 104 filtered, 4 TAKE-eq; 85/108 TREND_UP filtered.",
+   "result": "Live SKIP 19/WAIT 35/TAKE 0; hist WAIT 2206/SKIP 213/TAKE-eq 55 (47 bollinger). Mean BTC +1h after sit-out live −0.116%, hist −0.007%. Hunter hist 108 setups, 104 filtered, 4 TAKE-eq; 85/108 TREND_UP filtered.",
    "recorded_status": "Reviewed as evidence, not KEEP; S5 opened",
    "source_files": [
     "docs/LIVE_VS_HISTORICAL_COMPARE.md",
@@ -2464,7 +2475,7 @@
     "STUDY:MTF_ENTRY_V1",
     "V08"
    ],
-   "note": "Tested 7+ times in different forms; consistently helps (T2/T3, V4A, F6 68% vs 50%, R9 \u2212$0.17 vs \u2212$0.66) \u2014 the strongest repeated finding."
+   "note": "Tested 7+ times in different forms; consistently helps (T2/T3, V4A, F6 68% vs 50%, R9 −$0.17 vs −$0.66) — the strongest repeated finding."
   },
   {
    "theme": "Buy weakness / dip in an uptrend",
@@ -2501,7 +2512,7 @@
     "STRAT:T3",
     "STRAT:V1_RIDE"
    ],
-   "note": "V1_RIDE/V3 trend hold and T3 are the same family (daily EMA20/50 + BTC gate); looser exits win in 2018\u201323 and lose in 2024\u201326 (V3 post-hoc, R12, H04)."
+   "note": "V1_RIDE/V3 trend hold and T3 are the same family (daily EMA20/50 + BTC gate); looser exits win in 2018–23 and lose in 2024–26 (V3 post-hoc, R12, H04)."
   },
   {
    "theme": "Return is market drift / holding horizon",
@@ -2512,7 +2523,7 @@
     "STUDY:ENTRY_V2",
     "R10-NOTARGET"
    ],
-   "note": "Random 60-day holds \u2248 setups; v2 edge partly beta; zone-stop 60d \u2248 holding 60d."
+   "note": "Random 60-day holds ≈ setups; v2 edge partly beta; zone-stop 60d ≈ holding 60d."
   },
   {
    "theme": "Entry order type (limit vs market)",
@@ -2627,7 +2638,7 @@
     "R15",
     "Q6"
    ],
-   "note": "R13 (20-day hold FAIL; own exit promising) \u2192 R14 (fair baseline INSUFFICIENT) \u2192 R15 (full universe, pre-reg)."
+   "note": "R13 (20-day hold FAIL; own exit promising) → R14 (fair baseline INSUFFICIENT) → R15 (full universe, pre-reg)."
   },
   {
    "theme": "Zones redo of earlier studies",
@@ -2703,5 +2714,6 @@
    ],
    "note": "Same bias-correction method used twice."
   }
- ]
+ ],
+ "updated": "2026-10-04 after review #15"
 }

@@ -37,7 +37,7 @@ coin (now answered by the prices lookup, what='coverage': mark DONE after deploy
    TODO: test the lower-turnover T3 in the repair shop before live.
 6. TODO when the brain has evidence: let it see funding rates and open interest; let a PROMOTED pattern from the misses become a
    registered watch.
-7. DOING (Madhav's plan, 2026-10-04) the full crypto universe: lake built (src/lake), 5-coin test done and matching the old data;
+7. DOING (Madhav's plan, 2026-10-04) the full crypto universe: 120 coins downloaded and graded (92 A / 27 B / 1 C), review #15 done (T3 and H07 pass on TOP30, not on all 120; M2a/M3a dropped; see REVIEW_15_RESULTS.md), research audit v1 written (AUDIT_V1.md, next: reviews #16-#19 in its order); open: Madhav decides what a TOP30-only pass earns; quality check to flag x10+ day moves as redenominations; lake built (src/lake), 5-coin test done and matching the old data;
    next: universe rule v1 ranking, download of all chosen coins, review #15 (T3, H07, your setups on LAB10 / TOP30 / ALL), then
    the watches and the layer map updated from what passes; R2 bucket when Madhav creates it; nightly incremental update job.
 

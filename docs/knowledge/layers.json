@@ -1455,7 +1455,7 @@
     "STUDIES",
     "REPAIR_SHOP"
    ],
-   "evidence": "from 2026-10-04: every month checked against Binance's checksum; gaps, duplicates and broken candles reported per symbol before research uses it; the live system never reads it while deciding",
+   "evidence": "from 2026-10-04: every month checked against Binance's checksum; gaps, duplicates and broken candles reported per symbol before research uses it; the live system never reads it while deciding; 2026-10-04: 120 coins by universe rule v1 (30 delisted), 257M one-minute candles, 0 download errors, quality 92 A / 27 B / 1 C, 0 broken candles; review #15 run on it (REVIEW_15_RESULTS.md); first R2 copy started",
    "files": [
     "src/lake/__init__.py",
     "src/lake/binance_vision.py",

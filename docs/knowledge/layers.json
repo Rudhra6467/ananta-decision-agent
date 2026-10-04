@@ -1442,6 +1442,26 @@
    "files": [
     "jarvis/service/reviews.py"
    ]
+  },
+  {
+   "id": "LAKE",
+   "name": "Research lake: the full crypto universe (Binance Data Vision, checked, Parquet, quality reports)",
+   "layer": 1,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [],
+   "feeds": [
+    "STUDIES",
+    "REPAIR_SHOP"
+   ],
+   "evidence": "from 2026-10-04: every month checked against Binance's checksum; gaps, duplicates and broken candles reported per symbol before research uses it; the live system never reads it while deciding",
+   "files": [
+    "src/lake/__init__.py",
+    "src/lake/binance_vision.py",
+    "src/lake/quality.py",
+    "src/lake/cli.py"
+   ]
   }
  ],
  "gaps": [

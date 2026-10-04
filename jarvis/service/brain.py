@@ -211,6 +211,7 @@ def pack(j, coin: str, triggers: dict) -> dict:
     from jarvis.service.reads_watch import _daily
     from src.research import reads as R
 
+    _table(j)
     now = int(j.now())
     live = (eye.STATE.get("prices") or {}).get(coin)
     live_age = time.time() - eye.STATE["last_t"] if eye.STATE.get("last_t") else None

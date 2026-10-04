@@ -35,6 +35,7 @@ KIND_WORDS = {"rebound": "a rebound from a recent low", "breakout": "a breakout 
 def _table(j) -> None:
     j.db.execute("CREATE TABLE IF NOT EXISTS missed_moves (id TEXT PRIMARY KEY, day TEXT, coin TEXT, low_t INTEGER, high_t INTEGER, low REAL, high REAL, "
                  "move_pct REAL, move_atr REAL, label TEXT, saw TEXT, kind TEXT, at_zone TEXT, regime TEXT, pattern TEXT, why TEXT)")
+    j.db.execute("CREATE TABLE IF NOT EXISTS engine_state (k TEXT PRIMARY KEY, v TEXT)")
 
 
 def _bars(j, coin: str, tf: str, t0: int, t1: int) -> list[tuple]:
@@ -203,7 +204,6 @@ def run(j, day_t: int | None = None, log_request=None) -> dict:
              "regime": cx["regime"], "pattern": pattern, "why": why}
         j.db.execute("INSERT OR REPLACE INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", tuple(r.values()))
         rows.append(r)
-    j.db.execute("CREATE TABLE IF NOT EXISTS engine_state (k TEXT PRIMARY KEY, v TEXT)")
     j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (f"missed:{day}", str(len(rows))))
     j.db.commit()
     flagged = _repeats(j, log_request)

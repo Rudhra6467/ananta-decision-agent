@@ -197,7 +197,7 @@ def run(j, day_t: int | None = None, log_request=None, force: bool = False) -> d
         pattern = f"{cx['kind']}|{'zone' if cx['at_zone'] else 'no zone'}|{cx['regime'] or '?'}"
         why = ("in it: " + ", ".join(w["traded"]) if label == "CAUGHT" else
                "noticed by " + ", ".join(w["saw"][:3]) + ", but nothing traded" if label == "SEEN" else
-               f"nothing of ours looked: {KIND_WORDS[cx['kind']]}, " + (f"from a {cx['at_zone']} zone" if cx["at_zone"] else "not at a support zone")
+               f"nothing of ours looked: {KIND_WORDS[cx['kind']]}, " + (f"starting at a support zone ({cx['at_zone'].replace('+', ' + ').replace('-', ' ')})" if cx["at_zone"] else "not at a support zone")
                + f", market {(cx['regime'] or 'unknown').lower().replace('_', '-')}")
         r = {"id": f"{day}:{m['coin']}", "day": day, "coin": m["coin"], "low_t": m["low_t"], "high_t": m["high_t"], "low": m["low"], "high": m["high"],
              "move_pct": m["move_pct"], "move_atr": m["move_atr"], "label": label, "saw": json.dumps(w), "kind": cx["kind"], "at_zone": cx["at_zone"],

@@ -149,7 +149,7 @@ def compare(j, days: float | None = 7, start: str | None = None, end: str | None
     rows = []
     for c in COINS:
         try:
-            tf, b = _bars(con, c, t_start, t_end, finest=False)
+            tf, b = _bars(con, c, t_start, t_end)            # same candles as history(), so the two always agree
             rows.append(_summary(c, tf, b))
         except ValueError:
             continue

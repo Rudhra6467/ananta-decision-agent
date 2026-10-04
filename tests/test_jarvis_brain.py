@@ -194,7 +194,7 @@ def test_brain_red_flags_turn_a_take_into_a_pass_and_limits_hold(monkeypatch):
     done = brain.process(j, call=lambda u: (json.dumps(ok), {"in": 1, "out": 1}))
     assert done and done[0]["coin"] == other and done[0]["action"] == "PASS"
     monkeypatch.undo()                                                     # real can_decide: the daily limit counts decisions
-    monkeypatch.setattr(brain, "DAILY_MAX", 3)
+    monkeypatch.setattr(brain, "DAILY_MAX", 2)                             # two real decisions today (the unreadable reply does not count)
     assert brain.can_decide(j)[0] is False
 
 

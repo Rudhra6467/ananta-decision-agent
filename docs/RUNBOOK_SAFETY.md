@@ -171,7 +171,7 @@ The phone note names the part. One block each:
 
 **The 15-minute Explorer**
 ```
-cd ~/code/ananta-decision-agent && nohup caffeinate -i .venv/bin/python -u -m src.intelligence.explorer_live run >> ~/ananta_runs/explorer.log 2>&1 &
+cd ~/code/ananta-decision-agent && nohup caffeinate -i .venv/bin/python -u -m src.intelligence.explorer_live run >> ~/ananta_runs/explorer_live.log 2>&1 &
 ```
 
 **The hourly watch (Hunter's book)**

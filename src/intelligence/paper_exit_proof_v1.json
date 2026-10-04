@@ -1,6 +1,6 @@
 {
   "id": "paper.exit.proof.v1",
-  "version": "paper.exit.sd6.v2",
+  "version": "paper.exit.sd6.v3",
   "cost_profile": "KRAKEN_T1_TAKER",
   "port_of": "Ananta backend/exit_engine.py (A,KILL,F,B,S,D,C,E) @ 8cf4bcd",
   "status": "FIXTURE_PASS",
@@ -59,10 +59,19 @@
       "ok": true
     },
     "gates": {
-      "second": "SLOT_FULL",
+      "again": "ASSET_ALREADY_OPEN",
+      "eth": "OPENED",
+      "full": "SLOT_FULL",
+      "shadow": true,
       "short": "SHORT_NOT_SUPPORTED_SPOT",
       "fixture_on_live": "FIXTURE_REFUSED_ON_LIVE_BOOK",
       "live_no_proof": "SD6_FIXTURE_NOT_PROVEN",
+      "ok": true
+    },
+    "shadow": {
+      "status": "SHADOW_CLOSED",
+      "exit": "STOP_LOSS",
+      "cash_same": true,
       "ok": true
     },
     "lookahead": {

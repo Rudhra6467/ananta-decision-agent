@@ -250,6 +250,9 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
         "takes": [r.get("asset") for r in board if r.get("issued") == "TAKE"],
         "sd6_opened": [o.get("asset") for o in sd6.get("opened") or []],
         "sd6_refused": [o.get("reason") for o in sd6.get("refused") or []],
+        "sd6_shadow_opened": sd6.get("shadow_opened") or [],
+        "sd6_shadow_closed": [m.get("id") for m in sd6.get("shadows_managed") or [] for e in m.get("events") or [] if e.get("kind") == "SHADOW_CLOSED"],
+        "shadow_book": sd6.get("shadow_book"),
         "sd6_events": sd6_events,
         "sd6_errors": sd6.get("errors") or sd6.get("error"),
         "book": {k: (sd6.get("ledger") or {}).get(k) for k in ("cash", "realized_pnl", "trade_count", "wins", "losses")},
@@ -269,8 +272,9 @@ def tick(*, cycle: Callable[[], dict] = run_hands_cycle, sd6_kw: dict | None = N
         notify("Ananta watch: using saved token", "The .env login failed. When the saved token expires the watch stops; fix ANANTA_PASSWORD in .env.", level="WARN")
     if missed:
         notify("Ananta watch: gap", f"{missed} closed 1h bar(s) were never looked at before {rec['bar_open_utc']}", level="WARN")
-    if rec["takes"]:
-        notify("Ananta: paper TAKE", f"{', '.join(rec['takes'])} — SD6 opened {rec['sd6_opened'] or 'none'} refused {rec['sd6_refused'] or 'none'}", level="EVENT")
+    if rec["sd6_opened"]:                     # v3: a note when Hunter's book opens a trade (a repeat TAKE on an open coin is not news)
+        notify("Ananta: paper TAKE", f"{', '.join(rec['takes'])} — Hunter's book opened {', '.join(rec['sd6_opened'])}"
+               + (f"; kept as shadows (book full): {', '.join(rec['sd6_shadow_opened'])}" if rec["sd6_shadow_opened"] else ""), level="EVENT")
     for m in sd6.get("managed") or []:
         for e in m.get("events") or []:
             if e.get("kind") == "CLOSED":

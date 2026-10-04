@@ -44,8 +44,13 @@ re-fire TIGHTEN every bar and block B/S/D/C/E in ~50% of trades past +1R.
 Laws kept
 ---------
 Never writes Mongo. Never calls /api/orders/manual. exec=False, live=False,
-counts_for_m2=False (M2 credit needs its own operator sentence). One position,
-$100 notional, $1,000 paper book. A fixture position is never written to the
+counts_for_m2=False (M2 credit needs its own operator sentence). One position
+per coin (v3; v1-v2 held one position in total, which refused 39 Hunter TAKEs in
+four days), at most 10 open, $100 notional, $1,000 paper book. A TAKE refused
+because the book is full becomes a SHADOW position (one per coin at a time):
+managed with the same exits, never counted in the book's cash or ledger, so the
+evidence is not lost. A repeat TAKE on a coin that is already open is the same
+signal and is refused without a shadow. A fixture position is never written to the
 live book. Missing bars are a DATA_STALE state, never an invented exit.
 Live opening requires the fixture proof file (same rule as paper.path.v1).
 """
@@ -61,7 +66,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-VERSION = "paper.exit.sd6.v2"
+VERSION = "paper.exit.sd6.v3"   # v3 (2026-10-03, Madhav's OK): one open trade per coin (up to 10), shadows for capacity refusals
 PORT_OF = "Ananta backend/exit_engine.py (A,KILL,F,B,S,D,C,E) @ 8cf4bcd"
 BOOK_NAME = "paper_book.sqlite"
 PROOF_NAME = "paper_exit_proof_v1.json"
@@ -97,7 +102,8 @@ class Sd6Settings:
     slippage_bp: float = 5.0
     notional_usd: float = 100.0
     starting_cash: float = 1000.0
-    max_open: int = 1
+    max_open: int = 10            # v3: real positions open at once (one per coin: 10 coins x $100 = the $1,000 book)
+    max_open_per_asset: int = 1   # v3: a repeat TAKE on an open coin is the same signal, not a new trade
     stale_after_bars: int = 3  # no new closed bar for > N hours = DATA_STALE
 
 
@@ -429,7 +435,20 @@ class Book:
         return [json.loads(r[0]) for r in self.con.execute("SELECT payload_json FROM positions WHERE status='OPEN' ORDER BY opened_at")]
 
     def all_positions(self) -> list[dict]:
-        return [json.loads(r[0]) for r in self.con.execute("SELECT payload_json FROM positions ORDER BY opened_at")]
+        """Real positions only (the book's cash and ledger); shadows live beside them (shadow_positions)."""
+        return [json.loads(r[0]) for r in self.con.execute("SELECT payload_json FROM positions WHERE status IN ('OPEN','CLOSED') ORDER BY opened_at")]
+
+    def shadow_positions(self, open_only: bool = False) -> list[dict]:
+        q = "SELECT payload_json FROM positions WHERE status " + ("= 'SHADOW_OPEN'" if open_only else "IN ('SHADOW_OPEN','SHADOW_CLOSED')")
+        return [json.loads(r[0]) for r in self.con.execute(q + " ORDER BY opened_at")]
+
+    def shadow_ledger(self) -> dict[str, Any]:
+        sh = self.shadow_positions()
+        closed = [p for p in sh if p["status"] == "SHADOW_CLOSED"]
+        return {"what": "TAKEs refused because the book was full, managed with the same exits (evidence only, never cash)",
+                "open": sum(p["status"] == "SHADOW_OPEN" for p in sh), "closed": len(closed),
+                "wins": sum((p.get("realized_pnl_usd") or 0) > 0 for p in closed),
+                "realized_pnl": round(sum(p.get("realized_pnl_usd") or 0.0 for p in closed), 6)}
 
     def events(self, pos_id: str | None = None) -> list[dict]:
         q = "SELECT pos_id, bar_open_ms, kind, payload_json FROM events"
@@ -496,8 +515,12 @@ def open_from_take(book: Book, take: dict, bars: list[list[float]], *, s: Sd6Set
     direction = str(take.get("direction") or "NONE").upper()
     if direction == "SHORT":
         return refuse("SHORT_NOT_SUPPORTED_SPOT")
-    if len(book.open_positions()) >= s.max_open:
-        return refuse("SLOT_FULL")
+    open_now = book.open_positions()
+    if sum(1 for p in open_now if p["asset"] == asset) >= s.max_open_per_asset:
+        return refuse("ASSET_ALREADY_OPEN")             # the same signal again while that coin's trade runs: nothing new to learn
+    shadow_reason = "SLOT_FULL" if len(open_now) >= s.max_open else None
+    if shadow_reason and any(p["asset"] == asset for p in book.shadow_positions(open_only=True)):
+        return refuse(shadow_reason)                    # that coin already has a shadow running
     # Where does the entry price come from?
     #  CLOSED_BAR   decision stamped on a closed bar -> that bar's close.
     #  DECISION_PX  decision stamped on the still-forming bar (Hands evaluates the
@@ -583,6 +606,13 @@ def open_from_take(book: Book, take: dict, bars: list[list[float]], *, s: Sd6Set
                    "stop": fill * (1.0 - s.stop_loss_pct / 100.0), "target": fill * (1.0 + s.fixed_target_pct / 100.0)},
         "exec": False, "live": False, "keep": False, "counts_for_m2": False, "authority_granted": False,
     }
+    if shadow_reason:                                   # refused for room only: keep it as a shadow so the evidence is not lost
+        pos.update(id=pos["id"].replace("sd6.", "sd6s.", 1), status="SHADOW_OPEN", blocked_reason=shadow_reason)
+        book.save(pos)
+        book.event(pos["id"], last[_T], "SHADOW_OPENED", {"reason": shadow_reason, "entry_fill": fill, "core": pos["core"]})
+        out = {**base, "status": "REFUSED", "reason": shadow_reason, "shadow_id": pos["id"]}
+        book.event(None, last[_T], "OPEN_REFUSED", out)
+        return out
     book.save(pos)
     book.event(pos["id"], last[_T], "OPENED", {"entry_ref": ref, "entry_fill": fill, "qty": qty, "initial_stop": pos["initial_stop"], "core": pos["core"], "entry_basis": entry_basis})
     return {**base, "status": "OPENED", "position_id": pos["id"], "entry_fill": fill, "initial_stop": pos["initial_stop"], "entry_basis": entry_basis}
@@ -594,7 +624,7 @@ def _close(book: Book, pos: dict, bar: list[float], win: dict, s: Sd6Settings) -
     pnl = pos["qty_open"] * (fill - pos["entry_fill"]) - fee
     pos["fees_usd"] = round((pos.get("fees_usd") or 0.0) + fee, 6)
     pos["realized_pnl_usd"] = round((pos.get("realized_pnl_usd") or 0.0) + pnl, 6)
-    pos.update(status="CLOSED", qty_open=0.0, exit_fill=fill, exit_ref=float(win["price"]), exit_module=win["module"],
+    pos.update(status="SHADOW_CLOSED" if pos["status"] == "SHADOW_OPEN" else "CLOSED", qty_open=0.0, exit_fill=fill, exit_ref=float(win["price"]), exit_module=win["module"],
                exit_reason=win["exit_reason"], exit_detail=win.get("reason"), closed_at=_iso(bar[_T] + HOUR_MS),
                exit_bar_open_ms=bar[_T])
     pos["mfe_pct"] = round((pos["peak"] - pos["entry_fill"]) / pos["entry_fill"] * 100.0, 4)
@@ -603,14 +633,15 @@ def _close(book: Book, pos: dict, bar: list[float], win: dict, s: Sd6Settings) -
     pos["r_multiple"] = round(pos["realized_pnl_usd"] / R, 4) if R > 0 else None
     pos["hold_hours"] = round((bar[_T] + HOUR_MS - pos["entry_bar_close_ms"]) / HOUR_MS, 2)
     pos["outcome"] = "WIN" if pos["realized_pnl_usd"] > 0 else "LOSS"
-    book.event(pos["id"], bar[_T], "CLOSED", {k: pos.get(k) for k in ("exit_module", "exit_reason", "exit_fill", "realized_pnl_usd", "mfe_pct", "mae_pct", "r_multiple", "hold_hours", "outcome")})
+    book.event(pos["id"], bar[_T], "SHADOW_CLOSED" if pos["status"] == "SHADOW_CLOSED" else "CLOSED",
+               {k: pos.get(k) for k in ("exit_module", "exit_reason", "exit_fill", "realized_pnl_usd", "mfe_pct", "mae_pct", "r_multiple", "hold_hours", "outcome")})
     return pos
 
 
 def step(book: Book, pos: dict, bars: list[list[float]], *, emergency: bool = False, now_ms: float | None = None, s: Sd6Settings = SETTINGS) -> dict[str, Any]:
     """Process every closed bar newer than the last one this position has seen."""
     events: list[dict] = []
-    if pos["status"] != "OPEN":
+    if pos["status"] not in ("OPEN", "SHADOW_OPEN"):
         return {"id": pos["id"], "status": pos["status"], "events": events}
     new = [b for b in bars if b[_T] > pos["last_bar_open_ms"]]
     # Stale: no newer closed bar for too long. Never invent an exit.
@@ -651,7 +682,8 @@ def step(book: Book, pos: dict, bars: list[list[float]], *, emergency: bool = Fa
             events.append({"kind": "PARTIAL", "fill": fill})
         elif act == ACT_EXIT_FULL:
             _close(book, pos, bar, win, s)
-            events.append({"kind": "CLOSED", "module": win["module"], "exit_reason": win["exit_reason"], "pnl": pos["realized_pnl_usd"]})
+            events.append({"kind": "SHADOW_CLOSED" if pos["status"] == "SHADOW_CLOSED" else "CLOSED", "module": win["module"],
+                           "exit_reason": win["exit_reason"], "pnl": pos["realized_pnl_usd"]})
             break
     book.save(pos)
     return {"id": pos["id"], "status": pos["status"], "events": events}
@@ -690,7 +722,7 @@ def manage_cycle(takes: Iterable[dict], *, emergency_by_asset: dict[str, bool] |
     now_ms = now_ms if now_ms is not None else datetime.now(timezone.utc).timestamp() * 1000.0
     emergency_by_asset = emergency_by_asset or {}
     book = Book(book_path)
-    out: dict[str, Any] = {"version": VERSION, "managed": [], "opened": [], "refused": [], "errors": []}
+    out: dict[str, Any] = {"version": VERSION, "managed": [], "opened": [], "refused": [], "errors": [], "shadows_managed": [], "shadow_opened": []}
     cache: dict[str, list[list[float]]] = {}
 
     def bars_for(asset: str) -> list[list[float]]:
@@ -706,6 +738,11 @@ def manage_cycle(takes: Iterable[dict], *, emergency_by_asset: dict[str, bool] |
             except Exception as exc:  # never break the cycle; the gap is visible
                 book.event(pos["id"], None, "MANAGE_ERROR", {"error": str(exc)[:300]})
                 out["errors"].append({"id": pos["id"], "error": str(exc)[:300]})
+        for pos in book.shadow_positions(open_only=True):   # shadows: same exits, kept apart (no phone notes, no cash)
+            try:
+                out["shadows_managed"].append(step(book, pos, bars_for(pos["asset"]), emergency=bool(emergency_by_asset.get(pos["asset"])), now_ms=now_ms, s=s))
+            except Exception as exc:  # noqa: BLE001
+                book.event(pos["id"], None, "MANAGE_ERROR", {"error": str(exc)[:300]})
         for take in takes:
             try:
                 res = open_from_take(book, take, bars_for(take["asset"]), s=s, proof_path=proof_path)
@@ -713,7 +750,10 @@ def manage_cycle(takes: Iterable[dict], *, emergency_by_asset: dict[str, bool] |
                 res = {"status": "REFUSED", "reason": f"FETCH_OR_OPEN_ERROR:{str(exc)[:200]}", "asset": take.get("asset")}
                 book.event(None, None, "OPEN_REFUSED", res)
             (out["opened"] if res.get("status") == "OPENED" else out["refused"]).append(res)
+            if res.get("shadow_id"):
+                out["shadow_opened"].append(res.get("asset"))
         out["ledger"] = book.ledger(s)
+        out["shadow_book"] = book.shadow_ledger()
     finally:
         book.close()
     return out
@@ -839,11 +879,17 @@ def run_fixtures(workdir: Path, proof_path: Path | None = None) -> dict[str, Any
     cases["kill"] = {"exit_reason": p.get("exit_reason"), "ok": p["exit_reason"] == "EMERGENCY_STOP" and p["exit_ref"] == 100.2}
     b.close()
 
-    # 9. one position cap; SHORT refused; fixture never on the live book; live never before proof
+    # 9. one position per coin (v3), a full book turns a TAKE into a shadow (one per coin), SHORT refused;
+    #    fixture never on the live book; live never before proof
     b = fresh("gates")
-    first = open_from_take(b, take(), hist)
-    second = open_from_take(b, take(asset="ETH"), hist)
-    short = open_from_take(b, take(asset="SOL", core="hunter", direction="SHORT"), hist)
+    two = replace(SETTINGS, max_open=2)
+    first = open_from_take(b, take(), hist, s=two)
+    again = open_from_take(b, take(), hist, s=two)                       # BTC again: same signal, no new trade, no shadow
+    eth = open_from_take(b, take(asset="ETH"), hist, s=two)              # another coin opens
+    full = open_from_take(b, take(asset="LTC"), hist, s=two)             # the book is full: refused, kept as a shadow
+    full2 = open_from_take(b, take(asset="LTC"), hist, s=two)            # LTC already has a shadow: no second one
+    short = open_from_take(b, take(asset="SOL", core="hunter", direction="SHORT"), hist, s=two)
+    n_real, n_shadow, led = len(b.open_positions()), len(b.shadow_positions(open_only=True)), b.ledger(two)
     b.close()
     live_path = workdir / "fx_livebook.sqlite"
     if live_path.exists():
@@ -852,10 +898,28 @@ def run_fixtures(workdir: Path, proof_path: Path | None = None) -> dict[str, Any
     fx_on_live = open_from_take(lb, take(), hist)
     live_no_proof = open_from_take(lb, {**take(), "evidence_class": "LIVE_PAPER"}, hist, proof_path=workdir / "no_proof.json")
     lb.close()
-    cases["gates"] = {"second": second.get("reason"), "short": short.get("reason"), "fixture_on_live": fx_on_live.get("reason"),
-                      "live_no_proof": live_no_proof.get("reason"),
-                      "ok": first["status"] == "OPENED" and second.get("reason") == "SLOT_FULL" and short.get("reason") == "SHORT_NOT_SUPPORTED_SPOT"
+    cases["gates"] = {"again": again.get("reason"), "eth": eth.get("status"), "full": full.get("reason"), "shadow": bool(full.get("shadow_id")),
+                      "short": short.get("reason"), "fixture_on_live": fx_on_live.get("reason"), "live_no_proof": live_no_proof.get("reason"),
+                      "ok": first["status"] == "OPENED" and again.get("reason") == "ASSET_ALREADY_OPEN" and not again.get("shadow_id")
+                      and eth["status"] == "OPENED" and full.get("reason") == "SLOT_FULL" and bool(full.get("shadow_id"))
+                      and full2.get("reason") == "SLOT_FULL" and not full2.get("shadow_id") and n_real == 2 and n_shadow == 1
+                      and len(led["open_positions"]) == 2 and short.get("reason") == "SHORT_NOT_SUPPORTED_SPOT"
                       and fx_on_live.get("reason") == "FIXTURE_REFUSED_ON_LIVE_BOOK" and live_no_proof.get("reason") == "SD6_FIXTURE_NOT_PROVEN"}
+
+    # 14. a shadow is managed with the same exits and never touches the book's cash
+    b = fresh("shadow")
+    one = replace(SETTINGS, max_open=1)
+    open_from_take(b, take(), hist, s=one)
+    r = open_from_take(b, take(asset="ETH"), hist, s=one)
+    cash_before = b.ledger(one)["cash"]
+    sh = b.shadow_positions(open_only=True)[0]
+    step(b, sh, hist + [_bar(n, 100.0, 100.1, 97.0, 97.5)], s=one)
+    shc = b.shadow_positions()[0]
+    cases["shadow"] = {"status": shc["status"], "exit": shc.get("exit_reason"), "cash_same": b.ledger(one)["cash"] == cash_before,
+                       "ok": r.get("reason") == "SLOT_FULL" and shc["status"] == "SHADOW_CLOSED" and shc.get("exit_reason") == "STOP_LOSS"
+                       and b.ledger(one)["cash"] == cash_before and b.shadow_ledger()["closed"] == 1
+                       and "SHADOW_CLOSED" in [x["kind"] for x in b.events(shc["id"])]}
+    b.close()
 
     # 10. no lookahead: an entry-bar spike cannot move the stop or arm protection
     b = fresh("lookahead")

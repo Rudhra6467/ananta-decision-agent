@@ -38,9 +38,9 @@ def test_manage_cycle_opens_then_manages_then_closes(tmp_path):
     fee_in = 100.0 * sd6.SETTINGS.fee_entry_bp / 1e4
     assert abs(r1["ledger"]["cash"] - (900.0 - fee_in)) < 1e-6 and r1["ledger"]["exec"] is False
 
-    # same cycle again: slot is full, nothing new opens, no bar is double-processed
-    r1b = manage_cycle([_live_take(asset="ETH")], fetch_bars=lambda a: feed["BTC"], now_ms=now, book_path=book, proof_path=proof)
-    assert r1b["refused"][0]["reason"] == "SLOT_FULL"
+    # same cycle again, same coin: the same signal, nothing new opens (no shadow either), no bar is double-processed
+    r1b = manage_cycle([_live_take(asset="BTC")], fetch_bars=lambda a: feed["BTC"], now_ms=now, book_path=book, proof_path=proof)
+    assert r1b["refused"][0]["reason"] == "ASSET_ALREADY_OPEN" and r1b["shadow_opened"] == []
     assert r1b["managed"][0]["events"] == []
 
     # next bar breaks the hard stop -> closed by module A, cash returns net of the loss
@@ -57,6 +57,42 @@ def test_manage_cycle_opens_then_manages_then_closes(tmp_path):
     assert abs((1000.0 - led["cash"]) - expect_loss) < 1e-4, (led["cash"], expect_loss)
     assert led["fees_paid"] > 0 and led["cost_profile"] == s.cost_profile
     assert led["counts_for_m2"] is False
+
+
+def test_one_trade_per_coin_and_shadows_when_the_book_is_full(tmp_path):
+    """v3 (Madhav 2026-10-03): Hunter's book opens one trade per coin instead of one in total; when it is full, a refused
+    TAKE is kept as a shadow (same exits, no cash), so its evidence is not lost."""
+    from dataclasses import replace
+
+    proof = tmp_path / "proof.json"
+    run_fixtures(tmp_path / "fx", proof_path=proof)
+    book = tmp_path / "book.sqlite"
+    hist = _flat(60)
+    n = len(hist)
+    feed = {a: list(hist) for a in ("BTC", "ETH", "LTC")}
+    now = hist[-1][0] + HOUR_MS + 60_000
+    r = manage_cycle([_live_take(asset="BTC", core="hunter"), _live_take(asset="ETH", core="hunter")], fetch_bars=lambda a: feed[a],
+                     now_ms=now, book_path=book, proof_path=proof)
+    assert [o["asset"] for o in r["opened"]] == ["BTC", "ETH"] and len(r["ledger"]["open_positions"]) == 2   # one per coin
+    small = replace(sd6.SETTINGS, max_open=2)
+    r2 = manage_cycle([_live_take(asset="LTC", core="hunter")], fetch_bars=lambda a: feed[a], now_ms=now, book_path=book,
+                      proof_path=proof, s=small)
+    assert r2["refused"][0]["reason"] == "SLOT_FULL" and r2["shadow_opened"] == ["LTC"] and r2["shadow_book"]["open"] == 1
+    cash = r2["ledger"]["cash"]
+    for a in feed:                                                     # everything falls through its stop
+        feed[a] = hist + [_bar(n, 100.0, 100.1, 97.0, 97.5)]
+    r3 = manage_cycle([], fetch_bars=lambda a: feed[a], now_ms=now + HOUR_MS, book_path=book, proof_path=proof, s=small)
+    assert [e["kind"] for m in r3["shadows_managed"] for e in m["events"]] == ["SHADOW_CLOSED"]
+    assert r3["shadow_book"]["closed"] == 1 and r3["shadow_book"]["realized_pnl"] < 0
+    assert r3["ledger"]["trade_count"] == 2 and r3["ledger"]["losses"] == 2   # the shadow is not in the book's ledger
+    b = Book(book)
+    try:
+        real, shadow = b.all_positions(), b.shadow_positions()
+        assert len(real) == 2 and len(shadow) == 1
+        assert abs(r3["ledger"]["realized_pnl"] - sum(p["realized_pnl_usd"] for p in real)) < 1e-6   # cash moves only with real trades
+        assert abs(r3["ledger"]["cash"] - (1000.0 + sum(p["realized_pnl_usd"] for p in real))) < 1e-6 and cash < r3["ledger"]["cash"]
+    finally:
+        b.close()
 
 
 def test_unclosed_bar_is_never_used(tmp_path):

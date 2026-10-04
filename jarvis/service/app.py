@@ -25,7 +25,7 @@ import threading as _threading  # noqa: E402
 _SANDBOX: contextvars.ContextVar[str | None] = contextvars.ContextVar("jarvis_sandbox", default=None)
 _JG: dict[str, core.Jarvis] = {}
 _JG_LOCK = _threading.Lock()
-SHARED_TABLES = ("snapshots", "briefings", "read_fires", "zone_visits", "news_log", "credit_records", "shadow_h07")   # read-only system history the guest should see too (copied, never written back)
+SHARED_TABLES = ("snapshots", "briefings", "read_fires", "zone_visits", "news_log", "credit_records", "shadow_h07", "evidence_trades", "eye_events")   # read-only system history the guest should see too (copied, never written back)
 
 
 def _main() -> core.Jarvis:
@@ -56,6 +56,11 @@ def _sync_shared(g: core.Jarvis) -> None:
     from jarvis.service import shadow_h07
 
     shadow_h07._table(g)
+    from jarvis.service import eye as _eye
+    from jarvis.service import watch_engine
+
+    watch_engine._table(g)
+    _eye._table(g)
     md = Mandate(g.db, g.now)
     for tbl in SHARED_TABLES:
         try:
@@ -194,6 +199,18 @@ def _snapshots() -> None:
             _t.sleep(900)
 
     threading.Thread(target=loop, daemon=True).start()
+
+
+@app.on_event("startup")
+def _start_eye() -> None:
+    """The eye: live prices every 10 seconds against your stops, alerts, zones and a sudden Bitcoin drop (owner books only)."""
+    import os
+
+    if os.getenv("ANANTA_EYE", "1") != "1" or "PYTEST_CURRENT_TEST" in os.environ:
+        return
+    from jarvis.service import eye
+
+    eye.start(_main, push=lambda t, b: _push(t, b))
 
 
 @app.get("/history")
@@ -401,6 +418,29 @@ def requests_status(rid: str, b: ReqStatus, who: str = Depends(owner)) -> dict:
     requests_log.notify(J(), push=_push)                               # tell the phone now, not in 15 minutes
     J().audit(who, "request.status", f"{rid} {b.status}", "OK")
     return {"ok": True, "request": r}
+
+
+@app.get("/v3/scoreboard")
+def scoreboard_board(who: str = Depends(owner)) -> dict:
+    """Every watch's evidence book with the same columns, against its random baseline (docs/knowledge/watches.json)."""
+    from jarvis.service import scoreboard
+
+    return scoreboard.board(J())
+
+
+@app.get("/v3/watches")
+def watches_registry(who: str = Depends(owner)) -> dict:
+    """The watch registry: every watch by section, where it runs, its entry, exit and evidence status; plus the eye's state."""
+    from jarvis.service import eye, scoreboard
+
+    return {**scoreboard.registry(J()), "eye": eye.status(_main())}
+
+
+@app.get("/v3/eye")
+def eye_status(who: str = Depends(owner)) -> dict:
+    from jarvis.service import eye
+
+    return eye.status(_main())
 
 
 @app.get("/v3/shadow/h07")
@@ -680,11 +720,11 @@ def background_jobs() -> dict:
     except Exception as exc:  # noqa: BLE001
         out["news_error"] = str(exc)[:200]
     try:
-        from jarvis.service import shadow_h07
+        from jarvis.service import watch_engine
 
-        out["shadow_h07"] = shadow_h07.watch(J())
+        out["daily_watches"] = watch_engine.run(J())                  # your setups, the short dip trade, random baselines, zone-touch exits
     except Exception as exc:  # noqa: BLE001
-        out["shadow_h07_error"] = str(exc)[:200]
+        out["daily_watches_error"] = str(exc)[:200]
     try:
         from jarvis.service import credit
 

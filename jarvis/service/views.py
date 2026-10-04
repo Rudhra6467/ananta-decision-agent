@@ -166,6 +166,23 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
         items += requests_log.feed_items(j, since)              # flagged for the repair shop, and when they get fixed
     except Exception:  # noqa: BLE001
         pass
+    try:                                                       # the eye: zone entries, Bitcoin shocks, live stops and alerts
+        for (t, kind, coin, title, body) in j.db.execute("SELECT t, kind, coin, title, body FROM eye_events WHERE t >= ? AND kind NOT IN ('ALERT','MY_STOP')",
+                                                          (since,)):
+            items.append({"t": t, "kind": "warn" if kind == "BTC_SHOCK" else "watch", "coin": coin, "title": title, "body": body})
+    except Exception:  # noqa: BLE001  appears with the first look
+        pass
+    try:                                                       # daily watches' evidence trades (not the eye's, already above)
+        for (w, coin, st, et, xt, n, why, xwhy, src) in j.db.execute(
+                "SELECT watch, coin, status, entry_t, exit_t, net_usd, why, exit_why, source FROM evidence_trades WHERE (entry_t >= ? OR exit_t >= ?) "
+                "AND watch NOT LIKE 'RANDOM%'", (since, since)):
+            if src == "daily" and et and et >= since:
+                items.append({"t": et, "kind": "setup", "coin": coin, "title": f"Evidence trade: {coin} ({w})", "body": f"$100 paper at the open. {why}."})
+            if st == "CLOSED" and xt and xt >= since:
+                items.append({"t": xt, "kind": "sell", "coin": coin, "good": (n or 0) > 0,
+                              "title": f"Evidence trade closed: {coin} ({w}) {'+' if (n or 0) >= 0 else '-'}${abs(n or 0):.2f}", "body": xwhy or ""})
+    except Exception:  # noqa: BLE001
+        pass
     items.sort(key=lambda x: x["t"], reverse=True)
     for it in items:
         it["time"] = _local(it["t"])
@@ -703,6 +720,22 @@ def _summ(rows: list[dict]) -> dict:
             "events": _events_count(rows)}
 
 
+def _count(j, sql: str) -> int | None:
+    try:
+        return j.db.execute(sql).fetchone()[0]
+    except Exception:  # noqa: BLE001  the table appears with the first trade
+        return 0
+
+
+def _eye_looks() -> int | None:
+    try:
+        from jarvis.service import eye
+
+        return eye.STATE.get("ticks") if eye.STATE.get("running") else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def evidence_pipeline(j) -> dict:
     ex = j._explorer()
     led = _ledger(j)
@@ -739,6 +772,12 @@ def evidence_pipeline(j) -> dict:
         {"name": "T3 portfolio layer", "every": "ratings daily, rebalance weekly", "runs": t3_weeks,
          "detail": f"Mode {ps.get('mode')}; holding {len(((ps.get('books') or {}).get('MAIN') or {}).get('holdings') or {})} coins; "
                    f"{((ps.get('books') or {}).get('MAIN') or {}).get('trades', 0)} trades so far"},
+        {"name": "Daily watches (your setups, the short dip trade, random baselines)", "every": "each daily close, 10 coins",
+         "runs": _count(j, "SELECT COUNT(*) FROM evidence_trades WHERE source='daily'"),
+         "detail": "Every signal is a $100 paper trade with the rule the history test used (next open, its own stop and exit, NDAX costs); "
+                   "runs counts trades so far. See the scoreboard."},
+        {"name": "The eye (live prices)", "every": "every 10 seconds, 10 coins", "runs": _eye_looks(),
+         "detail": "Your stops and alerts, a sudden Bitcoin drop, price entering a support zone (and the zone-touch evidence trade)."},
         {"name": "Nightly rebuild", "every": "once a night", "runs": None,
          "detail": "Rebuilds every real decision from raw candles and compares it with the live log",
          "last": _local(rec_p.stat().st_mtime) if rec_p.exists() else None},

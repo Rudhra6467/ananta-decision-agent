@@ -131,6 +131,37 @@ class Alerts:
                         pass
         return fired
 
+    def check_prices(self, px: dict[str, float], prev_close: dict[str, float], push: Callable[[str, str], Any] | None = None) -> list[dict]:
+        """The price alerts only (above / below / moves X% since the last daily close), on live prices: called by the eye every
+        few seconds, so a line is caught when it is crossed, not at the next 15-minute check. Setup alerts stay on check()."""
+        fired = []
+        for a in self.list(include_done=False):
+            p = px.get(a["coin"])
+            if p is None or a["kind"] not in ("price_above", "price_below", "move_pct"):
+                continue
+            msg = None
+            if a["kind"] == "price_above" and p > a["value"]:
+                msg = f"{a['coin']} is at ${p:,.6g}, above your ${a['value']:,.6g} line."
+            elif a["kind"] == "price_below" and p < a["value"]:
+                msg = f"{a['coin']} is at ${p:,.6g}, below your ${a['value']:,.6g} line."
+            elif a["kind"] == "move_pct" and prev_close.get(a["coin"]):
+                ch = 100 * (p / prev_close[a["coin"]] - 1)
+                if abs(ch) >= a["value"]:
+                    msg = f"{a['coin']} has moved {ch:+.1f}% today (your line: {a['value']:g}%)."
+            if not msg:
+                continue
+            if not self.db.execute("SELECT 1 FROM alerts WHERE id=? AND status='ACTIVE'", (a["id"],)).fetchone():
+                continue                                   # the 15-minute check fired it a moment ago
+            self.db.execute("UPDATE alerts SET status='FIRED', fired_t=?, message=? WHERE id=? AND status='ACTIVE'", (int(self.now()), msg, a["id"]))
+            self.db.commit()
+            fired.append({**a, "message": msg})
+            if push:
+                try:
+                    push(f"Ananta alert: {a['coin']}", msg + (f" Note: {a['note']}" if a["note"] else ""))
+                except Exception:  # noqa: BLE001
+                    pass
+        return fired
+
     # ---- briefings ----
     def latest_brief(self) -> dict | None:
         r = self.db.execute("SELECT id, t, kind, day, text, reply FROM briefings ORDER BY t DESC LIMIT 1").fetchone()

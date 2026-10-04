@@ -5,7 +5,8 @@ Rule v1 (2026-10-04):
      make every strategy look better than it was: survivorship).
   2. Out: stablecoins and fiat (USDC, FDUSD, TUSD, DAI, EUR, ...), leveraged tokens (UP/DOWN/BULL/BEAR), wrapped copies (WBTC, WBETH).
   3. At least 12 months of monthly files.
-  4. Ranked by the median of each month's traded value (quote volume, from the daily candles); top N.
+  4. Ranked by the median of each month's traded value (quote volume, from the daily candles) over the coin's last 24 months of
+     trading (for a delisted coin, the 24 months before it stopped); top N.
 The ranking uses the small daily files only (one download per coin-month of about 2 KB), not the 1-minute data.
 The chosen list is written to reports/universe_v1.json with every coin's numbers, so the choice can be checked.
 """
@@ -48,36 +49,48 @@ def candidates(get: Callable = _get) -> list[str]:
     return sorted(set(out))
 
 
-def rank(symbols: list[str], top: int = 120, min_months: int = 12, get: Callable = _get, log: Callable = print) -> dict:
-    """Median monthly traded value from the daily files; top N with at least min_months of history."""
+def _month_value(key: str, get: Callable) -> float | None:
     import io
-    import statistics
     import zipfile
 
-    rows = []
-    for k, s in enumerate(symbols):
-        ms = [x for x in list_keys(f"data/spot/monthly/klines/{s}/1d/", get) if x[0].endswith(".zip")]
+    r = get(f"https://data.binance.vision/{key}")
+    if r.status_code != 200:
+        return None
+    with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+        txt = z.read(z.namelist()[0]).decode()
+    qv = 0.0
+    for line in txt.splitlines():
+        f = line.split(",")
+        if len(f) > 7 and f[0].isdigit():
+            qv += float(f[7])
+    return qv
+
+
+def rank(symbols: list[str], top: int = 120, min_months: int = 12, last_months: int = 24, get: Callable = _get, log: Callable = print,
+         workers: int = 8) -> dict:
+    """Median monthly traded value over each coin's last `last_months` months of daily files (a delisted coin is judged on the
+    months before it stopped); top N with at least min_months of history."""
+    import statistics
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(s: str) -> dict | None:
+        ms = sorted(k for k, _ in list_keys(f"data/spot/monthly/klines/{s}/1d/", get) if k.endswith(".zip"))
         if len(ms) < min_months:
-            continue
-        vols, first, last = [], None, None
-        for key, _ in ms:
-            r = get(f"https://data.binance.vision/{key}")
-            if r.status_code != 200:
-                continue
-            with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-                txt = z.read(z.namelist()[0]).decode()
-            qv = 0.0
-            for line in txt.splitlines():
-                f = line.split(",")
-                if len(f) > 7 and f[0].isdigit():
-                    qv += float(f[7])
-            vols.append(qv)
-            m = re.search(r"-(\d{4}-\d{2})\.zip$", key).group(1)
-            first, last = first or m, m
-        if vols:
-            rows.append({"symbol": s, "months": len(vols), "first": first, "last": last, "median_month_usd": round(statistics.median(vols))})
-        if k % 25 == 0:
-            log(f"ranked {k + 1} of {len(symbols)}")
+            return None
+        use = ms[-last_months:]
+        vols = [v for v in (_month_value(k, get) for k in use) if v is not None]
+        if not vols:
+            return None
+        mo = lambda k: re.search(r"-(\d{4}-\d{2})\.zip$", k).group(1)   # noqa: E731
+        return {"symbol": s, "months": len(ms), "first": mo(ms[0]), "last": mo(ms[-1]), "median_month_usd": round(statistics.median(vols))}
+
+    rows = []
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for k, r in enumerate(pool.map(one, symbols)):
+            if r:
+                rows.append(r)
+            if k % 50 == 0:
+                log(f"ranked {k + 1} of {len(symbols)}")
     rows.sort(key=lambda r: -r["median_month_usd"])
     chosen = rows[:top]
     out = {"rule": "v1", "candidates": len(symbols), "eligible": len(rows), "top": top, "chosen": [r["symbol"] for r in chosen], "table": rows}

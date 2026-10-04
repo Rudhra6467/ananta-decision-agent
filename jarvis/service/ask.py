@@ -45,12 +45,14 @@ HOW TO TALK (most important)
 
 WHAT ANANTA IS (use these words)
 - Paper only. No real money, no exchange connected. Market: crypto spot, 10 coins (BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP), buying only, NDAX costs (0.20% fee + spread per side).
-- OUR BOOKS (say these names): the Explorer (its own $100 paper trades, started with $2,000); the trend portfolio (T3, started with $2,000, plus an automatic copy for comparison); Hunter's book (the hourly watch's strategy book, SD6); your own paper book (orders Madhav asked for, $1,000); the short dip shadow (H07, $100 per signal). The two system books started with $4,000 together (Explorer $2,000 + trend portfolio $2,000). When he says "portfolio" or "how are we doing" without saying which, give ONE line for all books together first, then the book that moved most.
+- OUR BOOKS (say these names): the Explorer (its own $100 paper trades, started with $2,000); the trend portfolio (T3, started with $2,000, plus an automatic copy for comparison); Hunter's book (the hourly watch's strategy book, SD6); your own paper book (orders Madhav asked for, $1,000); the short dip shadow (H07, $100 per signal); MY OWN BOOK (Jarvis's book: the trades I decide myself, $100 each, every one with a random twin). The two system books started with $4,000 together (Explorer $2,000 + trend portfolio $2,000). When he says "portfolio" or "how are we doing" without saying which, give ONE line for all books together first, then the book that moved most.
 - Watches (processes that keep running):
   * The 15-minute Explorer: checks 10 coins every 15 minutes for setups E1-E6 (wide mode W1, since Oct 3: up to 3 trades per coin per kind when far enough apart, at most 20 open and 60 new a day) and trades them on paper ($100 each, own stop/target/warning bells). Trade types: Long-term (weeks), Short-term (days), Intraday (hours). Also records shadows (random entries = the baseline, blocked or untyped orders) and sightings of every setup, matched to the intraday atlas (history of that setup in that market condition). In 7 years of history its rulebook lost money after costs (costs are the whole loss), so live it collects evidence; it is not a proven money maker.
   * The hourly watch: runs the strategies Hunter (reversal at support) and Squeeze (compression breakout) in the backend. Hunter is rare: about 2-8 times per coin per year. Its strategy book (Hunter's book, SD6) holds one trade per coin from version v3 (before: one in total), and keeps refused TAKEs as shadows when it is full.
   * The daily watches (each daily close): your setups and the short dip trade, every signal a $100 evidence trade with the rule the history test used, plus random baselines.
   * The eye (live prices every 10 seconds): your stops and alerts, a sudden Bitcoin drop, price entering a support zone, and the zone-touch evidence trade.
+- MY OWN DECISIONS (jarvis_book lookup): when the eye or a watch flags a moment (price into a zone, a setup firing, a coin's attention turning high, the market turning allowed), I weigh everything we know and decide: a paper trade in my own book with the plan written first (entry, stop, target or trailing stop, days, size, confidence, the knowledge I used), or a pass. At most 20 decisions a day; strong points add confidence, weak ones lower the size, only red flags stop me. Each trade has a random twin (another coin, same moment, same plan): beating the twins is my real score. Talk about it in the first person ("I bought Solana at the 200-day zone", "I passed on XRP because...").
+- FINDINGS, NOT WATCHES: Madhav asks what I FOUND, not what I'm watching. "What did we miss / what moved today?" -> missed_moves (the day's biggest rises: caught, seen or missed, and why; misses that keep repeating). "How are your trades doing / are you beating random?" -> jarvis_book. "What did we learn from the trades?" -> trade_reviews (every closed trade reviewed, lessons, and my evening review). "Is everything running?" -> system_health. Lead with the finding, then the evidence behind it.
 - WATCHES AND THE SCOREBOARD: every watch is declared once in the registry (watches lookup), in sections: market weather, coin structure and zones, setups, risk and exits, news and events, baselines. Each watch that trades has its own evidence book; the scoreboard lookup compares them all against random with the same holding time. Never call a watch "working" with fewer than 10 independent events.
 - Strategies: Hunter and Squeeze (hourly watch); Continuation is benched (shadow only); Explorer setups E1 Pullback in an uptrend, E2 Breakout after a quiet period, E3 Bounce at support, E4 Momentum continuation, E5 Squeeze breakout, E6 Deep dip (15-minute RSI under 30); E7-E8 dip setups are watched, never traded; T3 is the trend portfolio.
 - Portfolio layer (T3): holds a coin while its daily close is above its 20- and 50-day averages and BTC is above its 50-day average; equal weights; ratings STRONG / OK / WEAK / OUT. MAIN book (owner approves in SUGGEST mode, automatic in AUTO) and SHADOW book (always automatic, for comparison).
@@ -131,6 +133,10 @@ TOOLS = [
     ("log_request", "Flag something for the repair shop when the owner asks ('flag this', 'add this to the repair shop', 'note this for next time', 'that was wrong', 'that's a bug') or agrees to your offer: kind = data (something not recorded), feature (something Ananta cannot do), bug (something wrong, including a wrong answer), idea (a trading idea to test). last_answer=true attaches your previous answer (use it for 'that was wrong'). Returns the request number: confirm with it ('Flagged as request number 6, I'll tell you when it's fixed'). He gets a phone note and you mention it when it is fixed.", _schema({"kind": {"type": "string", "enum": ["data", "feature", "bug", "idea"]}, "text": {"type": "string", "description": "What is missing, wrong or wanted, in one or two plain sentences, with the example that showed it"}, "about": {"type": "string", "description": "Optional: the coin, trade id or screen it came up on"}, "last_answer": {"type": "boolean", "description": "true when the request is about your previous answer being wrong"}}, ["kind", "text"])),
     ("scoreboard", "One scoreboard for every watch that trades (Explorer setups, Hunter, Squeeze, your setups, the short dip trade, zone touches, random baselines): closed and open trades, win rate, average per $100 after costs, independent events, worst run, by market regime, and the average against its random baseline with the same holding time; plus the trend portfolio against buy-and-hold. Use for 'which watch is working', 'how is X doing', 'is anything beating random', 'compare the strategies'.", OFF),
     ("watches", "The watch registry: every watch Ananta runs, by section (market weather, coin structure and zones, setups, risk and exits, news and events, baselines), with its timeframe, trigger (candle close or live price level), where it runs, its entry, exit, size, evidence status and alerts; plus the eye's state (live prices every 10 seconds, what it is armed with, last events). Use for 'what are we watching', 'how does the eye work', 'how do I add a setup', 'what runs every 15 seconds'.", _schema({"section": {"type": "string", "description": "optional section id"}})),
+    ("jarvis_book", "My own paper book (Jarvis's decisions): closed and open trades, average per $100 against the random twins, independent events and verdict, calibration (does higher confidence mean better results), which knowledge pieces earned their keep, today's decisions and the latest plans with their thesis, and passes that ran 5%+ afterwards. Use for 'how are your trades doing', 'what did you decide today', 'why did you buy X', 'are you beating random'.", OFF),
+    ("missed_moves", "The daily what-did-we-miss loop: each day's biggest up-moves (at least one daily range and 3%) with whether we caught them, saw them without trading, or missed them, and why (market regime, at a support zone or not, rebound / breakout / swing); plus the kinds of moves we keep missing. Use for 'what did we miss', 'what moved today', 'did we catch the SOL run'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
+    ("trade_reviews", "Reviews of every closed paper trade in every book (best and worst while open, what happened in the 3 days after, plain lessons like 'stopped then it ran' or 'sold too early'), the lesson counts, and my latest evening self-reviews. Use for 'what did we learn', 'review the last trades', 'how was your day'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
+    ("system_health", "Is every part running: the Explorer, the hourly watch, the eye, the 15-minute jobs, the daily candles, the voice server, Hands, the tunnel and disk space, checked every 2 minutes; plus outages in the last 3 days. Use for 'is everything running', 'anything down', 'why no updates'.", OFF),
     ("my_requests","The owner's requests to the repair shop with their numbers and status (open, planned, fixed, closed) and the work session's notes. Use for 'what's happening with my requests', 'did you fix X', 'what's on the list'.", OFF),
     ("prices", "Price history from our stored candles (10 coins). With coin: open/high/low/close and change over a window (days, default 7; or start/end as YYYY-MM-DD or 'YYYY-MM-DD HH:MM' Toronto), when the high and low happened, how far price is from them, best and worst day, day by day (hour by hour for 2 days or less). Without coin: all 10 coins ranked over the window with each one's change against Bitcoin (relative strength / momentum ranking). what='coverage': the first and last stored candle per coin. Use for 'what was the high this week', 'how did each coin do', 'which coin is strongest', 'good days to trade', 'where was BTC on Tuesday', 'how far are we from the top'.", _schema({"coin": {**COIN, "description": "Optional coin; omit to compare all 10"}, "days": {"type": "number"}, "start": {"type": "string"}, "end": {"type": "string"}, "what": {"type": "string", "description": "optional: coverage"}})),
     ("web_lookup", "OUTSIDE OUR SYSTEM: a quick web search (Google via Gemini, else Claude web search) for things our data does not cover: stocks and indexes, other coins' news, the economy, events (Fed, CPI), what moved the market today. Returns a short sourced answer. Label it 'from the web' and never mix it into our books or setups.", _schema({"query": {"type": "string"}}, ["query"])),
@@ -234,6 +240,41 @@ def _label_outside(reply: dict, found: list[dict]) -> None:
     if "couldn't find" not in (reply.get("answer") or "").lower():
         reply["answer"] = f"I couldn't find a coin called '{miss.get('query', '')}'." + (" Did you mean one of these?" if reply["options"] else " Could you spell it another way?")
     reply["outside"] = {"source": "CoinGecko", "note": "Searched outside our system and found no exact match."}
+
+
+GAP = re.compile(r"\b(I (do not|don't|didn't) have|we (do not|don't) (have|store|record|track|keep)|(is|are)n'?t (stored|recorded|tracked) "
+                 r"|not in (our|my) (data|records|stores)|no (data|record|records) (on|for|of|about)|I (cannot|can't|could not|couldn't) "
+                 r"(see|find|get|look up|access)|(our|my) data (does not|doesn't) (cover|include|go back))", re.I)
+
+
+def _self_flag(j, question: str, reply: dict, log: list, thread: str | None) -> dict | None:
+    """Self-flagging of gaps (Madhav's OK, 2026-10-04): when an answer admits we lack data or a tool, log it for the repair shop
+    by itself (unless the model already did) and say the number once at the end of the answer."""
+    ans = reply.get("answer") or ""
+    if reply.get("kind") not in ("answer", "cannot_do_yet") or any(x.get("tool") == "log_request" for x in log):
+        return None
+    m = GAP.search(ans)
+    if not m and reply.get("kind") != "cannot_do_yet":
+        return None
+    from jarvis.service import requests_log
+
+    try:
+        requests_log._table(j)
+        if j.db.execute("SELECT COUNT(*) FROM owner_requests WHERE about='auto-flag' AND t >= ?", (int(j.now()) - 86400,)).fetchone()[0] >= 5:
+            return None                                                  # at most 5 a day: a flood of gaps is one bug, not five
+    except Exception:  # noqa: BLE001
+        return None
+    s0 = max(0, ans.rfind(".", 0, m.start()) + 1) if m else 0
+    said = ans[s0:(ans.find(".", m.end()) + 1 if m and ans.find(".", m.end()) > 0 else s0 + 200)].strip()
+    try:
+        r = requests_log.add(j, "data", f"Gap found while answering: \"{question[:200]}\" Ananta said: \"{said[:240]}\"", "auto-flag",
+                             by="ananta-auto", thread=thread)
+    except Exception:  # noqa: BLE001
+        return None
+    reply["answer"] = ans.rstrip() + (f" I've logged that gap as request {r['num']} for the next work session." if not r.get("duplicate") else
+                                      f" That gap is already on the list as request {r['num']}.")
+    reply["self_flag"] = r.get("num")
+    return r
 
 
 def _pre_voice(context, text):
@@ -624,6 +665,28 @@ class Lookups:
         st.pop("prices", None)
         st["recent"] = st.get("recent", [])[:8]
         return {"sections": reg.get("sections"), "loops": reg.get("loops"), "how_to_add": reg.get("how_to_add"), "watches": ws, "eye": st}
+
+    def t_jarvis_book(self) -> dict:
+        from jarvis.service import brain
+
+        return brain.report(self.j, 30)
+
+    def t_missed_moves(self, days: float = 7) -> dict:
+        from jarvis.service import missed
+
+        return missed.recent(self.j, int(days or 7))
+
+    def t_trade_reviews(self, days: float = 7) -> dict:
+        from jarvis.service import reviews
+
+        r = reviews.recent_reviews(self.j, int(days or 7))
+        r["reviews"] = r["reviews"][:12]
+        return {**r, "evenings": reviews.latest(self.j, 2)}
+
+    def t_system_health(self) -> dict:
+        from jarvis.service import health
+
+        return health.status(self.j)
 
     def t_my_requests(self) -> dict:
         from jarvis.service import requests_log
@@ -1654,6 +1717,8 @@ class Ask:
         ms = int(1000 * (time.time() - t0))
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created
+        if source != "eval" and mode != "worker" and not str(who).startswith("guest:"):
+            _self_flag(self.j, text, reply, log, thread)                 # "I don't have that" -> a numbered request, said once
         try:
             from jarvis.service import appmap as _am
 

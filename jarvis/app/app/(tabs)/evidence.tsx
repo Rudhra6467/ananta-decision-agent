@@ -311,8 +311,8 @@ export default function Evidence() {
 }
 
 const fmt = (s: any) => (s?.closed ? `${s.closed}, ${usdSigned(s.avg_usd)}` : "–");
-const SECTION_ORDER = ["MARKET_WEATHER", "COIN_STRUCTURE", "SETUPS", "RISK_EXITS", "NEWS_EVENTS", "BASELINES"];
-const SECTION_NAME: Record<string, string> = { MARKET_WEATHER: "MARKET WEATHER", COIN_STRUCTURE: "COIN STRUCTURE AND ZONES", SETUPS: "SETUPS",
+const SECTION_ORDER = ["DECISIONS", "MARKET_WEATHER", "COIN_STRUCTURE", "SETUPS", "RISK_EXITS", "NEWS_EVENTS", "BASELINES"];
+const SECTION_NAME: Record<string, string> = { DECISIONS: "JARVIS'S OWN DECISIONS (VS ITS RANDOM TWINS)", MARKET_WEATHER: "MARKET WEATHER", COIN_STRUCTURE: "COIN STRUCTURE AND ZONES", SETUPS: "SETUPS",
   RISK_EXITS: "RISK AND EXITS", NEWS_EVENTS: "NEWS AND EVENTS", BASELINES: "BASELINES (RANDOM, THE BAR TO BEAT)" };
 const reg = (x: any) => (x?.closed ? `${x.closed}, ${usdSigned(x.avg_usd)}` : "–");
 

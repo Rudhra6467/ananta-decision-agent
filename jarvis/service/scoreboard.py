@@ -10,7 +10,7 @@ Every watch in the registry (docs/knowledge/watches.json) that trades has an evi
 Books read: the Explorer (real trades plus the signals a slot or cap blocked, the would-be trades, so each setup's every
 signal counts; random entries as the 15-minute baseline), Hunter's book (SD6: real trades plus shadows kept when the book was
 full; costs at Kraken's 0.80% a side), and the daily / live evidence book (watch_engine: your setups, the short dip trade,
-zone touches, and the daily random baselines). The trend portfolio is a portfolio, not single trades: it is shown with its
+zone touches, the daily random baselines, and Jarvis's own decisions with their random twins). The trend portfolio is a portfolio, not single trades: it is shown with its
 return against buy-and-hold.
 
 Small numbers are small: a watch is only "ahead of random" with at least 10 independent events.
@@ -159,6 +159,8 @@ BASELINE = {"15m": "RANDOM_15M", "1h": "RANDOM_15M"}
 def _baseline_for(w: dict) -> str | None:
     if w["section"] == "BASELINES":
         return None
+    if w.get("baseline"):
+        return w["baseline"]
     if w["timeframe"] in BASELINE:
         return BASELINE[w["timeframe"]]
     ex = (w.get("exit") or "").lower()

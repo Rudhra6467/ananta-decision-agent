@@ -1,6 +1,6 @@
 {
  "version": "layers.v1",
- "updated": "2026-10-03",
+ "updated": "2026-10-04",
  "meaning": {
   "layer": "0 = highest authority. A lower number overrides a higher one; data errors (1) poison everything above them.",
   "status": {
@@ -1313,6 +1313,134 @@
    "evidence": "same columns for every book; counts events, not trades; a watch needs 10 independent events before it can be called ahead of random",
    "files": [
     "jarvis/service/scoreboard.py"
+   ]
+  },
+  {
+   "id": "MARKET_SHIFT",
+   "name": "Market-shift alerts (Bitcoin crossing its 50-day)",
+   "layer": 4,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "REGIME",
+    "EYE",
+    "LIVE_BARS"
+   ],
+   "feeds": [
+    "ALERTS",
+    "APP"
+   ],
+   "evidence": "from 2026-10-04: a live warning when Bitcoin crosses its 50-day average and a note when a daily close flips the regime, with what changes",
+   "files": [
+    "jarvis/service/market_shift.py"
+   ]
+  },
+  {
+   "id": "HEALTH",
+   "name": "Health watchdog (every part every 2 minutes; outside watchdog for Jarvis itself)",
+   "layer": 0,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "EXPLORER",
+    "HOURLY_WATCH",
+    "EYE",
+    "LIVE_BARS",
+    "HANDS"
+   ],
+   "feeds": [
+    "ALERTS",
+    "APP",
+    "ASK"
+   ],
+   "evidence": "from 2026-10-04: phone note when a part goes quiet and when it is back; a must-have before live",
+   "files": [
+    "jarvis/service/health.py",
+    "scripts/jarvis_watchdog.py"
+   ]
+  },
+  {
+   "id": "BRAIN",
+   "name": "Jarvis's brain: one decision-maker with its own paper book",
+   "layer": 5,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "EYE",
+    "ZONES",
+    "ZONE_STATE",
+    "ATTENTION",
+    "REGIME",
+    "EXPLORER",
+    "HOURLY_WATCH",
+    "NEWS",
+    "VERIFIED",
+    "SCOREBOARD",
+    "MISSED"
+   ],
+   "feeds": [
+    "EVIDENCE",
+    "SCOREBOARD",
+    "CREDIT",
+    "ASK"
+   ],
+   "evidence": "from 2026-10-04: weighs every flagged moment (no all-filters-must-agree), writes the plan first, paper-trades it with a random twin; at most 20 decisions a day; judged against the twins by independent events",
+   "files": [
+    "jarvis/service/brain.py"
+   ]
+  },
+  {
+   "id": "MISSED",
+   "name": "What did we miss: the day's biggest moves, caught / seen / missed",
+   "layer": 7,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "LIVE_BARS",
+    "EXPLORER",
+    "HOURLY_WATCH",
+    "EYE",
+    "EVIDENCE",
+    "ZONES",
+    "REGIME"
+   ],
+   "feeds": [
+    "REPAIR_SHOP",
+    "BRAIN",
+    "ASK"
+   ],
+   "evidence": "from 2026-10-04: picked after the fact, so repeated misses become ideas to test (requests), never rules",
+   "files": [
+    "jarvis/service/missed.py"
+   ]
+  },
+  {
+   "id": "REVIEWS",
+   "name": "Trade reviews and the evening self-review",
+   "layer": 7,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "EVIDENCE",
+    "EXPLORER",
+    "SD6",
+    "BRAIN",
+    "MISSED",
+    "HEALTH"
+   ],
+   "feeds": [
+    "CASEBOOK",
+    "ASK",
+    "APP"
+   ],
+   "evidence": "from 2026-10-04: every closed paper trade reviewed 3 days after its exit with fixed-rule lessons; an evening summary of decisions, results, misses and outages",
+   "files": [
+    "jarvis/service/reviews.py"
    ]
   }
  ],

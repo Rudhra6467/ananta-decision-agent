@@ -169,18 +169,26 @@ def feed(j, hours: float = 72, limit: int = 60) -> list[dict]:
     try:                                                       # the eye: zone entries, Bitcoin shocks, live stops and alerts
         for (t, kind, coin, title, body) in j.db.execute("SELECT t, kind, coin, title, body FROM eye_events WHERE t >= ? AND kind NOT IN ('ALERT','MY_STOP')",
                                                           (since,)):
-            items.append({"t": t, "kind": "warn" if kind == "BTC_SHOCK" else "watch", "coin": coin, "title": title, "body": body})
+            items.append({"t": t, "kind": "warn" if kind in ("BTC_SHOCK", "HEALTH_DOWN", "MARKET_SHIFT", "MARKET_WARN") else
+                          "info" if kind == "HEALTH_UP" else "watch", "coin": coin, "title": title, "body": body})
     except Exception:  # noqa: BLE001  appears with the first look
         pass
     try:                                                       # daily watches' evidence trades (not the eye's, already above)
         for (w, coin, st, et, xt, n, why, xwhy, src) in j.db.execute(
                 "SELECT watch, coin, status, entry_t, exit_t, net_usd, why, exit_why, source FROM evidence_trades WHERE (entry_t >= ? OR exit_t >= ?) "
-                "AND watch NOT LIKE 'RANDOM%'", (since, since)):
+                "AND watch NOT LIKE 'RANDOM%' AND watch != 'JARVIS_RANDOM'", (since, since)):
             if src == "daily" and et and et >= since:
                 items.append({"t": et, "kind": "setup", "coin": coin, "title": f"Evidence trade: {coin} ({w})", "body": f"$100 paper at the open. {why}."})
+            if src == "brain" and et and et >= since:
+                items.append({"t": et, "kind": "buy", "coin": coin, "title": f"Jarvis bought {coin} (its paper book)", "body": why or ""})
             if st == "CLOSED" and xt and xt >= since:
                 items.append({"t": xt, "kind": "sell", "coin": coin, "good": (n or 0) > 0,
                               "title": f"Evidence trade closed: {coin} ({w}) {'+' if (n or 0) >= 0 else '-'}${abs(n or 0):.2f}", "body": xwhy or ""})
+    except Exception:  # noqa: BLE001
+        pass
+    try:                                                       # Jarvis's evening self-review
+        for (t, text) in j.db.execute("SELECT t, text FROM daily_reviews WHERE t >= ?", (since,)):
+            items.append({"t": t, "kind": "brief", "title": "Jarvis: my day in review", "body": text})
     except Exception:  # noqa: BLE001
         pass
     items.sort(key=lambda x: x["t"], reverse=True)

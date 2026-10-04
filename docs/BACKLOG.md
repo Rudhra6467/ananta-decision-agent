@@ -2,7 +2,7 @@
 
 The single list of remaining work, so nothing is forgotten between sessions. Kept in the repo (Ask Ananta reads it too).
 Order = priority. Status: TODO / DOING / WAITING (on evidence or on Madhav) / DONE (moved to the bottom with the date).
-Last updated 2026-10-03.
+Last updated 2026-10-04.
 
 ## 0. Start of every work session: Madhav's requests
 Read the OPEN and PLANNED requests first (on the Mac: `requests_log.list_(j, include_done=False)`, or GET /v3/requests), plan them,
@@ -22,6 +22,20 @@ coin (now answered by the prices lookup, what='coverage': mark DONE after deploy
 5. Portfolio book (the $500 rehearsal): picks among signals with real limits (a few open, 1% risk each, correlation budget).
 6. Then: Madhav's 20-40 setups through the repair shop on history; the ones that pass get a registry slot and trade on paper.
 7. Data for fast decisions: funding rates and open interest (free public feeds) first, order book later.
+
+## J. Jarvis's brain, findings and self-checks (Madhav, 2026-10-04: "one intelligent agent ... not filters") - OK'd 2026-10-04
+1. DONE in code 2026-10-04: the brain with its own paper book (JARVIS) and random twins, at most 20 decisions a day; passes
+   scored; knowledge credit and confidence calibration (jarvis_book). WAITING: 10 independent events, then the verdict vs twins.
+2. DONE 2026-10-04: the daily what-did-we-miss loop (missed_moves); repeated misses become requests and CANDIDATE patterns.
+3. DONE 2026-10-04: health watchdog (inside, every 2 minutes) and the outside watchdog for Jarvis (launchd); market-shift
+   alerts; self-flagging of gaps; a review of every closed trade; the evening self-review.
+4. WAITING (Madhav) the app screens: mock made 2026-10-04 (Home as mission control, Jarvis's book, one trade, what we missed, the Lab
+   switch); build after his OK.
+5. WAITING (Madhav) the live rules and code-review guide: draft doc 2026-10-04 ("Going live: rules and code review"): T3 only, $250 in
+   T3 + $250 cash, exchange at 0.25% a side or less (Kraken's 0.80% breaks T3), 20% shutdown; six open questions for him.
+6. TODO when the brain has evidence: let it see funding rates and open interest; let a PROMOTED pattern from the misses become a
+   registered watch.
+7. LATER the big-data pipeline (100-120 coins, all history, tiers 10 traded / 30-50 paper / 100-120 research).
 
 ## V. Voice and Jarvis (Madhav, 2026-10-03: "smooth, light, a human touch"; "straight: ask me, confirm me, correct me")
 1. DONE 2026-10-03: answer first, no stock openers, name once, spoken names not codes, rounded numbers, caveats once, a view when

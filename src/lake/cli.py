@@ -1,6 +1,6 @@
 """Run the lake steps from the Terminal (low priority, so the live system is never slowed):
 
-    taskpolicy -b python -m src.lake.cli all BTC ETH SOL ADA AVAX      download, build and check these coins
+    nice -n 10 python -m src.lake.cli all BTC ETH SOL ADA AVAX      download, build and check these coins
     python -m src.lake.cli pull BTC | build BTC | bars BTC | check BTC one step (bars = 5m, 15m, 1h, 4h, daily from the 1-minute base)
     python -m src.lake.cli universe 120                                choose the coins by the written rule (reports/universe_v1.json)
     python -m src.lake.cli status                                      what the lake holds

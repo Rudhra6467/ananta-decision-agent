@@ -83,7 +83,8 @@ def _sha(p: Path) -> str:
     return h.hexdigest()
 
 
-def pull(symbol: str, interval: str = "1m", market: str = "spot", get: Callable = _get, log: Callable = print, daily: bool = True) -> dict:
+def pull(symbol: str, interval: str = "1m", market: str = "spot", get: Callable = _get, log: Callable = print, daily: bool = True,
+         workers: int = 6) -> dict:
     """Download every published month not yet held and verified. Returns counts."""
     d = raw_dir(symbol, interval, market)
     d.mkdir(parents=True, exist_ok=True)
@@ -91,27 +92,41 @@ def pull(symbol: str, interval: str = "1m", market: str = "spot", get: Callable 
     man = json.loads(man_p.read_text()) if man_p.exists() else {}
     got = skipped = bad = 0
     ms = months(symbol, interval, market, get)
-    for m in ms:
+
+    def fetch(m: dict) -> tuple[str, str | None]:
+        """-> (file name, sha256) or (file name, None) on any failure; a mismatched file is deleted."""
         name = Path(m["key"]).name
         f = d / name
-        if man.get(name) and f.exists() and f.stat().st_size == m["size"]:
-            skipped += 1
-            continue
         r = get(f"{FILES}/{m['key']}", timeout=300)
         if r.status_code != 200:
-            bad += 1
-            continue
+            return name, None
         f.write_bytes(r.content)
         want = get(f"{FILES}/{m['key']}.CHECKSUM").text.split()[0].strip()
         have = _sha(f)
         if have != want:
             f.unlink()
-            bad += 1
             log(f"{name}: checksum mismatch, removed")
-            continue
-        man[name] = {"sha256": have, "bytes": f.stat().st_size, "at": int(time.time())}
-        man_p.write_text(json.dumps(man, indent=0, sort_keys=True))
-        got += 1
+            return name, None
+        return name, have
+
+    todo = []
+    for m in ms:
+        name = Path(m["key"]).name
+        f = d / name
+        if man.get(name) and f.exists() and f.stat().st_size == m["size"]:
+            skipped += 1
+        else:
+            todo.append(m)
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:          # a few files at once: Binance's file server is a CDN
+        for name, have in pool.map(fetch, todo):
+            if have is None:
+                bad += 1
+                continue
+            man[name] = {"sha256": have, "bytes": (d / name).stat().st_size, "at": int(time.time())}
+            got += 1
+    man_p.write_text(json.dumps(man, indent=0, sort_keys=True))
     # the days after the last monthly file (Binance publishes a month's file a few days after it ends)
     days = 0
     if ms and daily:

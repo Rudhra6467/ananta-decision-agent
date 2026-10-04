@@ -317,8 +317,9 @@ def h07_trade(S: R.Series, A: Z.Arr, rsi10: list, k0: int, cost: float) -> float
     return float(A.o[k0 + 10] / A.o[k0] * (1 - cost) ** 2 - 1)
 
 
-def review14(db: str, cache: Path) -> dict:
-    D = {c: R.cached_daily(db, c, cache, R.CONF_END) for c in R.COINS}
+def review14(db: str, cache: Path, D: dict | None = None) -> dict:
+    """D: daily bars per coin (default: the lab-10 from the research database; review #15 passes the full lake universe)."""
+    D = D or {c: R.cached_daily(db, c, cache, R.CONF_END) for c in R.COINS}
     B = R.Series(D["BTC"])
     evs = []
     for c, bars in D.items():

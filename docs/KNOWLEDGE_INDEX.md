@@ -63,6 +63,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_12.md`, `research/REVIEW_12_RESULTS.md`: T3's exit vs trailing stops: looser exits won big in 2018-23 and lost in 2024-26; T3's 20-day exit survives both.
 - `research/REVIEW_13.md`, `research/REVIEW_13_RESULTS.md`: the remaining teacher ideas: H07's short RSI dip trade promising (+4% per trade, 70% wins, both periods); first pullback, false break, book stop add nothing; breadth too few samples.
 - `research/REVIEW_14.md`, `research/REVIEW_14_RESULTS.md`: the short dip trade (H07) beat ordinary uptrend days traded the same way in both periods (+3.9%, +5.6% per trade, about 70% wins), a few events short of the bar; the most consistent result so far.
+- `research/REVIEW_15.md`: pre-registration for re-testing T3, H07 and your setups on the full crypto universe from the lake (tiers LAB10 as a data check, TOP30, ALL; original pass rules, pessimistic costs for thin coins).
 
 ## Safety and operations
 - `GUEST_GUIDE.md`: a guide for a friend trying the app: how to open it, the tabs, the coins, first questions, the rule gates, making a paper trade, what practice mode locks.

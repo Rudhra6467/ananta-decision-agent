@@ -939,7 +939,8 @@ def findings(j, days: int = 2, n: int = 5) -> list[dict]:
             tags = [t for t in r["tags"] if t in words]
             if tags:
                 items.append({"t": r["exit_t"], "kind": "LESSON", "coin": r["coin"], "link": "reviews",
-                              "title": f"{r['book']}'s {names.get(r['coin'], r['coin'])} trade", "body": f"{words[tags[0]]}. {r['text'][:180]}"})
+                              "title": f"{r['book']}'s {names.get(r['coin'], r['coin'])} trade: {words[tags[0]].lower()}",
+                              "body": r["text"].split(" Lesson:")[0][:220]})
     except Exception:  # noqa: BLE001
         pass
     try:

@@ -20,7 +20,7 @@ from src.lake import root
 from src.lake.binance_vision import _get, list_keys
 
 STABLE = {"USDC", "BUSD", "TUSD", "USDP", "DAI", "FDUSD", "PAX", "USDS", "USDSB", "SUSD", "UST", "USTC", "EUR", "GBP", "AUD", "TRY", "BRL",
-          "AEUR", "EURI", "PAXG", "XUSD", "USD1", "RLUSD", "BFUSD", "U"}
+          "AEUR", "EURI", "PAXG", "XUSD", "USD1", "RLUSD", "BFUSD", "U", "USDE", "PYUSD", "USD0", "EURC", "USDJ", "USTC"}
 WRAPPED = {"WBTC", "WBETH", "BETH", "BNSOL", "STETH"}
 LEVERAGED = re.compile(r"(UP|DOWN|BULL|BEAR)$")
 
@@ -98,3 +98,13 @@ def rank(symbols: list[str], top: int = 120, min_months: int = 12, last_months: 
     p.mkdir(parents=True, exist_ok=True)
     (p / "universe_v1.json").write_text(json.dumps(out, indent=1))
     return out
+
+
+def rechoose(top: int = 120) -> dict:
+    """Apply the exclusions again to an existing ranking (no download) and rewrite the chosen list."""
+    p = root() / "reports" / "universe_v1.json"
+    u = json.loads(p.read_text())
+    keep = [r for r in u["table"] if r["symbol"][:-4] not in STABLE | WRAPPED and not LEVERAGED.search(r["symbol"][:-4])]
+    u.update(table=keep, eligible=len(keep), chosen=[r["symbol"] for r in keep[:top]], top=top)
+    p.write_text(json.dumps(u, indent=1))
+    return u

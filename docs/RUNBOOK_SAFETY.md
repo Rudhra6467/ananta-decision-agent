@@ -162,3 +162,37 @@ cd ~/code/ananta-decision-agent && .venv/bin/python -m src.intelligence.paper_wa
 
 `phone push: sent` means the server took it. `off` means `ANANTA_NTFY_TOPIC` is missing from `.env`.
 The topic name works like a password: anyone who knows it can read the alerts. It lives only in the laptop `.env`.
+
+---
+
+## Restart a part the health watchdog says is down (added 2026-10-04)
+
+The phone note names the part. One block each:
+
+**The 15-minute Explorer**
+```
+cd ~/code/ananta-decision-agent && nohup caffeinate -i .venv/bin/python -u -m src.intelligence.explorer_live run >> ~/ananta_runs/explorer.log 2>&1 &
+```
+
+**The hourly watch (Hunter's book)**
+```
+cd ~/code/ananta-decision-agent && nohup caffeinate -i .venv/bin/python -u -m src.intelligence.paper_watch >> ~/ananta_runs/paper_watch.log 2>&1 &
+```
+
+**Jarvis (the app's server, the eye, the brain, the health checks)**
+```
+nohup zsh ~/ananta_runs/deploy_jarvis.sh > ~/ananta_runs/deploy_last.log 2>&1 &
+```
+
+**The voice server**
+```
+launchctl kickstart -k gui/$(id -u)/com.ananta.voice
+```
+
+**The outside watchdog** (checks Jarvis every 5 minutes; install once, again after moving the checkout)
+```
+cd ~/code/ananta-agent-research && zsh scripts/install_watchdog.sh
+```
+
+**Stop Jarvis's brain from deciding** (its paper book keeps managing open trades): set `BRAIN_ENABLED=0` in the .env and
+restart Jarvis. `BRAIN_DAILY_MAX` changes the daily limit (20).

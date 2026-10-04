@@ -2,7 +2,7 @@
 
 The plain-language map of the whole system: what runs, which database each part keeps, how a market scan becomes a paper
 trade and then evidence, and how the repair shop and Madhav's requests close the loop. Ask Ananta reads this file to answer
-"how is it built", "where does X live", "what happens after a setup fires". Last updated 2026-10-03.
+"how is it built", "where does X live", "what happens after a setup fires". Last updated 2026-10-04.
 
 ## The running parts (all on Madhav's Mac)
 
@@ -29,6 +29,7 @@ the repair shop (`owner_requests`).
 - **Hunter's book (SD6)**: the hourly watch's trades; holds one trade at a time today.
 - **Your own paper book**: orders Madhav asked for ($1,000 start); every order confirmed on screen.
 - **The short dip shadow (H07)**: $100 per signal, its own exit; started 2026-10-03.
+- **Jarvis's own book (JARVIS)**: the trades Jarvis decides itself, $100 each with a random twin per trade; started 2026-10-04.
 
 ## From a market scan to evidence
 
@@ -59,6 +60,40 @@ closed) -> a phone note, and Ananta mentions it once in the next conversation.
 - **Evidence books**: every signal is a $100 paper trade with its own exit. The daily engine (`watch_engine`, after each daily close) runs your setups (M1a, M2a, M2a-G, M3a, M3b), the short dip trade (H07) and three random baselines (one coin a day held 10, 20 or 30 days), with the same entry and exits the history tests used; one trade at a time per watch and coin. The Explorer's blocked signals count as its would-be trades. Hunter's book (SD6 v3) opens one trade per coin and keeps shadows when full (live after Madhav's merge and a restart of the hourly watch).
 - **The scoreboard** (`/v3/scoreboard`, Evidence page, the scoreboard lookup): every trading watch with the same columns against the random baseline with the same holding time, counted by independent events and split by market regime. A watch needs 10 events before it can be called ahead of random.
 - **The eye** (`eye`, inside Jarvis): Kraken's live prices every 10 seconds against your stops and targets (sold at the live price), your price alerts, a sudden Bitcoin drop (2% in 15 minutes), and price entering a support zone (feed; phone when attention is HIGH). A supported zone touched while the market is allowed opens the zone-touch evidence trade (stop half a daily range under the zone, else 20 days). Bar-close rules stay on their closes; the Explorer keeps its 5-minute execution so live and replay stay one engine.
+
+## Jarvis's brain, findings and self-checks (built 2026-10-04, Madhav's OK)
+
+Madhav: "one intelligent agent using all knowledge with an objective, not filters", "we will ask about findings", and "we have to
+make sure we are not making it dumb by asking it to trade only if every filter says good".
+
+- **The brain** (`brain.py`, its own thread in Jarvis): the eye (a zone entry), the Explorer and Hunter (new orders, blocked
+  ones too), the daily watches (a new signal), a coin turning HIGH attention and the market turning allowed all WAKE it. It builds
+  one evidence pack (price, trend, zones and their history, the regime, every signal on the coin with that watch's live record,
+  the news verdict, the knowledge list with each item's test status, the moves we keep missing, its own record) and the model
+  WEIGHS it: strong points add confidence, weak points lower the size, only red flags stop (enforced in code: no price, a bad
+  stop, AVOID news, already holding). It writes the plan first (entry, stop, target or trailing stop, days, size, confidence,
+  knowledge used). TAKE = a $100 paper trade in its own book plus a random twin (another coin, same moment, same plan in that
+  coin's daily ranges); the eye manages stops, targets and trailing stops live, the daily engine the time limit. PASS is scored
+  too (what the coin did over 1 and 5 days). At most 20 decisions a day (Claude Sonnet, about 2 cents each), one per coin
+  every 6 hours, 8 open. Credit per knowledge piece and confidence calibration come from the closed trades.
+- **What did we miss** (`missed.py`, half an hour after each daily close): the day's biggest rises (one daily range and 3%+),
+  what we saw at their start, CAUGHT / SEEN / MISSED and why (regime, zone, rebound / breakout / swing). The same kind of miss 5
+  times in 30 days becomes a repair-shop request and a CANDIDATE pattern the brain sees (picked after the fact: an idea, not proof).
+- **Trade reviews and the evening review** (`reviews.py`): every closed paper trade in every book reviewed 3 days after its exit
+  (best and worst while open, the 3 days after, fixed-rule lessons: stopped then ran, gave it back, never worked, sold too
+  early, too small for costs, clean); after 20:30 Toronto time Jarvis writes its day: decisions, results, lessons, misses,
+  outages, what it watches tomorrow (feed and a phone note).
+- **The health watchdog** (`health.py`, every 2 minutes): the Explorer, the hourly watch, the eye, the 15-minute jobs, the daily
+  candles, voice, Hands, the tunnel and disk space; a phone note when a part is down two checks in a row (reminder every 3
+  hours) and when it is back. Jarvis itself is watched from outside (`scripts/jarvis_watchdog.py`, launchd every 5 minutes,
+  installed with `scripts/install_watchdog.sh`).
+- **Market shift** (`market_shift.py`): a live warning when Bitcoin crosses its 50-day average and a note when a daily close
+  flips the regime, with what changes (the trend portfolio, the gated setups, Jarvis's sizing).
+- **Self-flagging of gaps**: when an answer admits we lack data or a tool, Ask logs a numbered request by itself (at most 5 a
+  day) and says the number once.
+- Ask lookups: jarvis_book, missed_moves, trade_reviews, system_health. Routes: /v3/brain, /v3/missed, /v3/reviews,
+  /v3/health/parts. Tables in `jarvis.sqlite`: brain_queue, brain_decisions, missed_moves, trade_reviews, daily_reviews,
+  health_state, health_log.
 
 ## Proposed next
 

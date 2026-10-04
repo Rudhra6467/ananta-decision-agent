@@ -4,8 +4,8 @@ next time").
 Every day after the daily close (00:00 UTC), for the day that just closed:
 
   1. the day's biggest up-moves: per coin, the largest rise from a low to a later high on 15-minute candles, in daily ranges
-     (ATR) so a 4% move in Bitcoin and a 4% move in Dogecoin are not treated the same; a move counts when it is at least one
-     daily range and 3%; at most 5 a day.
+     (ATR) so a 4% move in Bitcoin and a 4% move in Dogecoin are not treated the same; a move counts when it is at least half
+     a daily range and 3%; at most 5 a day.
   2. what we saw at its start (3 hours before the low to 2 hours after): the Explorer's sightings and orders (blocked ones
      too), Hunter's decisions, the eye's zone entries, the daily watches' evidence trades, and Jarvis's own decisions.
   3. a label: CAUGHT (a paper trade of ours was in it), SEEN (something noticed it but nothing traded) or MISSED (nothing
@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DAY = 86400
-MIN_PCT, MIN_ATR, MAX_MOVES = 3.0, 1.0, 5
+MIN_PCT, MIN_ATR, MAX_MOVES = 3.0, 0.5, 5
 BEFORE, AFTER = 3 * 3600, 2 * 3600
 REPEAT_N, REPEAT_DAYS = 5, 30
 KIND_WORDS = {"rebound": "a rebound from a recent low", "breakout": "a breakout over the recent high", "swing": "a swing up in the middle of the range"}
@@ -180,14 +180,14 @@ def _day_str(t: int) -> str:
     return datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d")
 
 
-def run(j, day_t: int | None = None, log_request=None) -> dict:
-    """Review one closed day (default: yesterday UTC) once."""
+def run(j, day_t: int | None = None, log_request=None, force: bool = False) -> dict:
+    """Review one closed day (default: yesterday UTC) once (force: again, replacing that day's rows)."""
     _table(j)
     now = int(j.now())
     day_t = day_t if day_t is not None else now - now % DAY - DAY
     day = _day_str(day_t)
-    if j.db.execute("SELECT 1 FROM missed_moves WHERE day=? LIMIT 1", (day,)).fetchone() or \
-            j.db.execute("SELECT 1 FROM engine_state WHERE k=?", (f"missed:{day}",)).fetchone():
+    if not force and (j.db.execute("SELECT 1 FROM missed_moves WHERE day=? LIMIT 1", (day,)).fetchone() or
+                      j.db.execute("SELECT 1 FROM engine_state WHERE k=?", (f"missed:{day}",)).fetchone()):
         return {"day": day, "done_before": True}
     rows = []
     for m in moves(j, day_t):

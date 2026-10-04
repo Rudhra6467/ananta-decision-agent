@@ -86,6 +86,8 @@ How to decide (this matters more than anything):
   prefer smaller size or pass unless the case is strong; in an allowed market, a reasonable case deserves a small trade.
 - This book is meant to be aggressive and learn: when the case is mixed but reasonable, TAKE it small (size 25-50) rather than
   pass. PASS when the case is weak, the plan cannot beat costs, or a red flag is present.
+- Exposure: my_record.open_coins are already held; our coins move together, so several open trades in one market move are one
+  bet. Size down (or pass) when a new trade would only add more of the same bet.
 - Plans: the stop sits where the idea is wrong (beyond the zone, about half a daily range under it), not a random percent.
   Big gains come from a few big moves: prefer a trailing stop or a time exit over a near target (review #10). Typical time limit
   2-20 days. Use daily ranges (ATR) for distances.
@@ -662,6 +664,7 @@ def record(j) -> dict:
     return {"closed": n, "open": j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND status='OPEN'", (WATCH,)).fetchone()[0],
             "avg_usd_per_100": round(sum(x["net"] for x in c) / n, 2) if n else None,
             "random_twin_avg_usd": round(sum(x["net"] for x in r) / len(r), 2) if r else None,
+            "open_coins": [r[0] for r in j.db.execute("SELECT coin FROM evidence_trades WHERE watch=? AND status='OPEN'", (WATCH,))],
             "wins": sum(1 for x in c if x["net"] > 0), "last_5": [{k: x[k] for k in ("coin", "net", "exit_why", "knowledge")} for x in
                                                                    sorted(c, key=lambda x: x["exit_t"] or 0)[-5:]]}
 

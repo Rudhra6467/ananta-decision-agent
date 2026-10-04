@@ -56,7 +56,7 @@ def _bars(j, coin: str, t0: int, t1: int) -> list[tuple]:
 def lessons(entry: float, exit_px: float, net: float, best: float | None, worst: float | None, after: float | None, why: str, cost_pct: float) -> list[str]:
     tags = []
     move = 100 * (exit_px / entry - 1)
-    stopped = "stop" in (why or "").lower()
+    stopped = any(w in (why or "").lower() for w in ("stop", "structure", "floor", "fail"))      # the exit that says "the idea is wrong"
     if stopped and after is not None and after >= 3:
         tags.append("STOPPED_THEN_RAN")
     if best is not None and best >= 3 and net < 0:

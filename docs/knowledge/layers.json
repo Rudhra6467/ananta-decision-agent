@@ -1463,7 +1463,8 @@
     "src/lake/cli.py",
     "src/lake/bars.py",
     "src/lake/universe.py",
-    "src/lake/research.py"
+    "src/lake/research.py",
+    "src/lake/r2.py"
    ]
   }
  ],

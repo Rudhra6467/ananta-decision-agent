@@ -4,6 +4,7 @@
     python -m src.lake.cli pull BTC | build BTC | bars BTC | check BTC one step (bars = 5m, 15m, 1h, 4h, daily from the 1-minute base)
     python -m src.lake.cli universe 120                                choose the coins by the written rule (reports/universe_v1.json)
     python -m src.lake.cli review15                                    re-test T3, H07 and the setups on LAB10 / TOP30 / ALL
+    python -m src.lake.cli sync | r2                                   copy clean + reports to R2 | what R2 holds
     python -m src.lake.cli status                                      what the lake holds
 
 Coins are given as BTC (traded against USDT on Binance) or as a full symbol (BTCUSDT).
@@ -43,6 +44,11 @@ def main(argv: list[str]) -> None:
     cmd, coins = (argv[0] if argv else "status"), [sym(c) for c in argv[1:]]
     if cmd == "status":
         print(json.dumps(status(), indent=1))
+        return
+    if cmd in ("sync", "r2"):                                 # python -m src.lake.cli sync   (clean + reports -> R2)
+        from src.lake import r2
+
+        print(json.dumps(r2.sync() if cmd == "sync" else r2.status()))
         return
     if cmd == "review15":                                     # python -m src.lake.cli review15   (docs/research/REVIEW_15.md)
         from src.lake import research

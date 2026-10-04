@@ -96,3 +96,34 @@ def test_universe_rule_excludes_stables_and_leveraged():
         for s in ("BTCUSDT", "ETHBTC", "USDCUSDT", "BTCUPUSDT", "WBTCUSDT", "SOLUSDT", "FDUSDUSDT")) + "</ListBucketResult>")
     got = universe.candidates(get=lambda url, params=None, timeout=60: R(text=xml))
     assert got == ["BTCUSDT", "SOLUSDT"]
+
+
+def test_r2_sync_uploads_only_what_changed(tmp_path, monkeypatch):
+    from src.lake import r2
+
+    monkeypatch.setenv("ANANTA_LAKE", str(tmp_path))
+    monkeypatch.setenv("R2_BUCKET_NAME", "b")
+    (tmp_path / "clean" / "x").mkdir(parents=True)
+    (tmp_path / "clean" / "x" / "a.parquet").write_bytes(b"aaa")
+    (tmp_path / "reports").mkdir()
+    (tmp_path / "reports" / "q.json").write_text("{}")
+    (tmp_path / "raw").mkdir()
+    (tmp_path / "raw" / "z.zip").write_bytes(b"zzz")                # raw is never uploaded
+    store = {}
+
+    class S3:
+        def get_paginator(self, _):
+            class P:
+                def paginate(self, **kw):
+                    return [{"Contents": [{"Key": k, "Size": len(v), "ETag": '"' + hashlib.md5(v).hexdigest() + '"'} for k, v in store.items()]}]
+            return P()
+
+        def upload_file(self, path, b, key, Config=None):
+            store[key] = open(path, "rb").read()
+
+    pytest.importorskip("boto3")
+    r = r2.sync(s3=S3(), log=lambda *_: None)
+    assert r["uploaded"] == 2 and set(store) == {"clean/x/a.parquet", "reports/q.json"}
+    assert r2.sync(s3=S3(), log=lambda *_: None)["uploaded"] == 0
+    (tmp_path / "reports" / "q.json").write_text('{"v": 2}')
+    assert r2.sync(s3=S3(), log=lambda *_: None)["uploaded"] == 1

@@ -69,8 +69,18 @@ def coverage(j) -> dict:
     for coin, tf, t0, t1, n in con.execute("SELECT coin, tf, MIN(t), MAX(t), COUNT(*) FROM bars GROUP BY coin, tf"):
         out.setdefault(coin, {})[tf] = {"first": datetime.fromtimestamp(t0, timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                                         "last": datetime.fromtimestamp(t1, timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "bars": n}
-    return {"live_candles": out, "note": "Live candles stored by the Explorer (from Hands). The research history (5-minute candles "
-            "from 2017) is a separate dataset on the Mac, used by the repair shop."}
+    res = {}
+    try:
+        import json as _json
+
+        from jarvis.service.core import docs_dir
+
+        res = _json.loads((docs_dir(j.dir) / "research" / "data_coverage.json").read_text())
+    except Exception:  # noqa: BLE001
+        pass
+    return {"live_candles": out, "research_history": res,
+            "note": "live_candles = what the Explorer stored from Hands (Kraken) for live trading; research_history = the 5-minute "
+                    "dataset the repair shop tests on (first candle per coin)."}
 
 
 def _bars(con, coin: str, start: float, end: float, finest: bool = True) -> tuple[str, list[tuple]]:

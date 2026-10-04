@@ -30,6 +30,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 ## The Explorer (paper trading engine)
 - `RULEBOOK_V0.md`: every Explorer rule with its ID (setups, entries, exits, guards). Open for "why did it buy/sell".
 - `research/EXPLORER_V0_SCORECARD.md`: history replay of rulebook v0, 2017-July 2026, vs random entries.
+- `research/data_coverage.json`: the research history's first and last 5-minute candle per coin (BTC and ETH from Aug 2017 ... AVAX from Sep 2020). Open for "how far back does our data go".
 - `SCOREBOARD.md`: strategy scoreboard summary.
 - `PAPER_LAB_LOCK.md`: paper lab rules ($1000 book, limits).
 - `RISK_PROFILES_LOCK.md`: SAFE / MODERATE / AGGRESSIVE profiles.

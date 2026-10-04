@@ -3,6 +3,7 @@
     nice -n 10 python -m src.lake.cli all BTC ETH SOL ADA AVAX      download, build and check these coins
     python -m src.lake.cli pull BTC | build BTC | bars BTC | check BTC one step (bars = 5m, 15m, 1h, 4h, daily from the 1-minute base)
     python -m src.lake.cli universe 120                                choose the coins by the written rule (reports/universe_v1.json)
+    python -m src.lake.cli review15                                    re-test T3, H07 and the setups on LAB10 / TOP30 / ALL
     python -m src.lake.cli status                                      what the lake holds
 
 Coins are given as BTC (traded against USDT on Binance) or as a full symbol (BTCUSDT).
@@ -42,6 +43,17 @@ def main(argv: list[str]) -> None:
     cmd, coins = (argv[0] if argv else "status"), [sym(c) for c in argv[1:]]
     if cmd == "status":
         print(json.dumps(status(), indent=1))
+        return
+    if cmd == "review15":                                     # python -m src.lake.cli review15   (docs/research/REVIEW_15.md)
+        from src.lake import research
+
+        u = json.loads((root() / "reports" / "universe_v1.json").read_text())
+        chosen = u["chosen"]
+        base = [research.base(s) for s in chosen]
+        tiers = {"LAB10": [c for c in research.LAB10], "TOP30": base[:30], "ALL": base}
+        rep = research.review15(chosen, tiers)
+        print(json.dumps({t: {"coins": len(v["coins"]), "T3": v["T3"]["PASS"], "H07": v["H07"]["H07"]["status"], "H07-G": v["H07"]["H07-G"]["status"],
+                              "setups": {k: x["status"] for k, x in v["setups"].items()}} for t, v in rep["tiers"].items()}, indent=1))
         return
     if cmd == "universe":                                     # python -m src.lake.cli universe [top]
         c = universe.candidates()

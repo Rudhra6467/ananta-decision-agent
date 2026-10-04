@@ -29,8 +29,10 @@ coin (now answered by the prices lookup, what='coverage': mark DONE after deploy
 2. DONE 2026-10-04: the daily what-did-we-miss loop (missed_moves); repeated misses become requests and CANDIDATE patterns.
 3. DONE 2026-10-04: health watchdog (inside, every 2 minutes) and the outside watchdog for Jarvis (launchd); market-shift
    alerts; self-flagging of gaps; a review of every closed trade; the evening self-review.
-4. TODO the app screens (mission-control Home, charts, three depths, a Lab toggle): mock first, Madhav approves, then build.
-5. TODO drafts for Madhav: the live rules (size, stop, daily loss limit, shutdown conditions) and a code-review guide.
+4. WAITING (Madhav) the app screens: mock made 2026-10-04 (Home as mission control, Jarvis's book, one trade, what we missed, the Lab
+   switch); build after his OK.
+5. WAITING (Madhav) the live rules and code-review guide: draft doc 2026-10-04 ("Going live: rules and code review"): T3 only, $250 in
+   T3 + $250 cash, exchange at 0.25% a side or less (Kraken's 0.80% breaks T3), 20% shutdown; six open questions for him.
 6. TODO when the brain has evidence: let it see funding rates and open interest; let a PROMOTED pattern from the misses become a
    registered watch.
 7. LATER the big-data pipeline (100-120 coins, all history, tiers 10 traded / 30-50 paper / 100-120 research).

@@ -322,3 +322,32 @@ def test_scoreboard_puts_jarvis_against_its_twins():
     jr = next(w for w in b["watches"] if w["id"] == "JARVIS")
     assert jr["baseline"] == "JARVIS_RANDOM" and jr["section"] == "DECISIONS"
     assert watch_engine  # the registry test (test_watches) keeps the engine and registry in step
+
+
+# ---------------------------------------------------------------------------
+# the app redesign's data: Home as mission control, one evidence trade in full, new places in the app map
+# ---------------------------------------------------------------------------
+def test_home_mission_and_trade_detail(monkeypatch):
+    from jarvis.service import appmap, brain, views
+
+    j, ex = _brain_j()
+    px = dict(j.prices())
+    coin = next(c for c in px if c != "BTC")
+    p = px[coin]
+    monkeypatch.setattr(brain, "pack", _fake_pack(p, atr=p * 0.04))
+    monkeypatch.setattr(brain, "_atr", lambda j_, c: px[c] * 0.04)
+    plan = {"action": "TAKE", "confidence": 60, "size_pct": 50, "stop": p * 0.95, "trail_atr": 2, "days": 10, "thesis": "test",
+            "for": ["a"], "against": ["b"], "change_mind": "c", "knowledge_used": ["ZONES"]}
+    r = brain.decide(j, coin, {"zone_entry": {"zone": [p * 0.97, p * 1.01]}}, call=lambda u: (json.dumps(plan), {"in": 1, "out": 1}))
+    m = views.mission(j)
+    json.dumps(m, default=str)
+    assert m["jarvis"]["open"][0]["coin"] == coin and m["jarvis"]["today"]["TAKE"] == 1 and m["jarvis"]["left"] == brain.DAILY_MAX - 1
+    assert "findings" in m and isinstance(m["findings"], list)
+    d = brain.trade_detail(j, r["trade"])
+    assert d["decision"]["plan"]["for"] == ["a"] and d["zone"] == [p * 0.97, p * 1.01] and d["twin"]["coin"] != coin
+    assert brain.open_trades(j)[0]["twin"] == d["twin"]["coin"]
+    with pytest.raises(ValueError):
+        brain.trade_detail(j, "nope")
+    assert appmap.resolve(j, f"jtrade:{r['trade']}")[0] == f"jtrade:{r['trade']}" and appmap.resolve(j, "jtrade:nope")[0] is None
+    assert appmap.resolve(j, "jarvis")[0] == "jarvis" and appmap.resolve(j, "missed moves")[0] == "missed"
+    assert appmap.valid_spot(j, "home.jarvis") and appmap.valid_spot(j, "missed.moves")

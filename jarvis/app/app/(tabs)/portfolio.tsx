@@ -1,6 +1,6 @@
 import { Spot } from "../../src/spotlight";
 import { useCallback, useState } from "react";
-import { Alert, Switch, Text, View } from "react-native";
+import { Alert, Pressable, Switch, Text, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { askAbout, setScreen } from "../../src/context";
@@ -21,11 +21,28 @@ export default function Portfolio() {
   useFocusEffect(useCallback(() => { setScreen({ screen: tab === "portfolio" ? "portfolio" : tab === "explorer" ? "explorer_trades" : "manual_book", tab, label: tab === "portfolio" ? "Portfolio tab: T3 portfolio" : tab === "explorer" ? "Portfolio tab: Explorer trades" : "Portfolio tab: My trades (manual paper book)" }); }, [tab]));
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <JarvisRow />
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
         <Segmented value={tab} onChange={setTab} options={[{ key: "portfolio", label: "Portfolio" }, { key: "explorer", label: "Explorer" }, { key: "mine", label: "My trades" }]} />
       </View>
       {tab === "portfolio" ? <Book /> : tab === "explorer" ? <Trades /> : <Mine />}
     </View>
+  );
+}
+
+// Jarvis's own book sits above the others: one line, tap for the full book.
+function JarvisRow() {
+  const { data: b } = useData("/v3/brain", 120000);
+  const open = b?.open ?? [];
+  return (
+    <Pressable onPress={() => router.push("/jarvis")} accessibilityRole="button"
+      style={{ marginHorizontal: 16, marginTop: 10, backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", alignItems: "center" }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ color: C.text, fontWeight: "700", fontSize: 15 }}>Jarvis's book</Text>
+        <Text style={{ color: C.dim, fontSize: 13 }}>{open.length} open · {b ? `${b.events} of 10 events · ${b.verdict}` : "loading"}</Text>
+      </View>
+      <Text style={{ color: C.accent, fontSize: 18 }}>›</Text>
+    </Pressable>
   );
 }
 

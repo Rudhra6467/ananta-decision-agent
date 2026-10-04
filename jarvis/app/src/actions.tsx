@@ -7,8 +7,8 @@ import { confirmWithFaceId } from "./guard";
 import { C } from "./theme";
 
 export function openScreen(sh: any) {
-  const to: Record<string, string> = { markets: "/(tabs)/markets", portfolio: "/(tabs)/portfolio", evidence: "/(tabs)/evidence",
-    cockpit: "/cockpit", mandate: "/mandate", home: "/(tabs)/today" };
+  const to: Record<string, string> = { markets: "/(tabs)/markets", portfolio: "/(tabs)/portfolio", evidence: "/lab",
+    cockpit: "/cockpit", mandate: "/mandate", home: "/(tabs)/today", jarvis: "/jarvis", missed: "/missed" };
   if (sh.screen === "coin" && sh.coin) router.push(`/coin/${sh.coin}`);
   else if (sh.screen === "trade" && sh.id) router.push(`/trade/${sh.id}`);
   else if (to[sh.screen]) router.push(to[sh.screen] as any);

@@ -2,15 +2,16 @@
 // 1 watching -> 2 seen -> 3 decided (or blocked, and why) -> 4 results vs random -> 5 rebuild and other traders
 // -> 6 repair shop (why / question / result / change / status / progress) -> 7 in use.
 // Everything comes from /v3/evidence/pipeline (live Explorer, ledger, nightly rebuild). Long-press any row to ask Ananta.
-import { Spot } from "../../src/spotlight";
+import { Spot } from "../src/spotlight";
 import { useCallback } from "react";
-import { useFocusEffect } from "expo-router";
-import { askAbout, setScreen } from "../../src/context";
+import { Stack, useFocusEffect } from "expo-router";
+import { useLab } from "../src/lab";
+import { askAbout, setScreen } from "../src/context";
 import { Text, View } from "react-native";
-import { LineChart, Progress } from "../../src/charts";
-import { Bullet, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Screen, Stat, T, pct, usdSigned } from "../../src/ui";
-import { useData } from "../../src/useData";
-import { C, pnlColor } from "../../src/theme";
+import { LineChart, Progress } from "../src/charts";
+import { Bullet, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Screen, Stat, T, pct, usdSigned } from "../src/ui";
+import { useData } from "../src/useData";
+import { C, pnlColor } from "../src/theme";
 
 const VERDICT: Record<string, [string, string, string]> = { PASS: ["PASSED", C.good, C.goodSoft], FAIL: ["NO CHANGE", C.dim, C.card2] };
 const ask = (label: string, q: string) => askAbout({ screen: "evidence", label }, q);
@@ -19,7 +20,11 @@ const IDEA: Record<string, [string, string]> = {
   NOT_SUPPORTED: [C.bad, C.badSoft], REJECTED: [C.bad, C.badSoft], INSUFFICIENT: [C.warn, C.warnSoft],
 };
 
+// The Lab page (was the Evidence tab): for building and checking, reached from the Lab switch on Home.
 export default function Evidence() {
+  const [lab, setLab] = useLab();
+  const head = <Stack.Screen options={{ headerShown: true, title: "Lab", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false, headerTintColor: C.text,
+    headerBackTitle: "Home" }} />;
   useFocusEffect(useCallback(() => { setScreen({ screen: "evidence", label: "Evidence pipeline: watching, seen, decided, results, rebuild, repair shop, in use" }); }, []));
   const { data: d, err, loading, reload } = useData("/v3/evidence/pipeline");
   const { data: fw } = useData("/v3/evidence/forwarded");
@@ -28,13 +33,19 @@ export default function Evidence() {
   const { data: sh } = useData("/v3/shadow/h07", 600000);
   const { data: rq } = useData("/v3/requests", 120000);
   const { data: sb } = useData("/v3/scoreboard", 300000);
-  if (!d && loading) return <Busy />;
-  if (!d || d.error) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={d?.error ?? err ?? "No data"} /></Screen>;
+  if (!d && loading) return <>{head}<Busy /></>;
+  if (!d || d.error) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={d?.error ?? err ?? "No data"} /></Screen></>;
   const R = d.results, D = d.decided;
   const seenTotal = d.seen.reduce((a: number, x: any) => a + x.seen, 0);
   const blockedTotal = D.blocked.reduce((a: number, x: any) => a + x.n, 0);
   return (
+    <>{head}
     <Screen loading={loading} onRefresh={reload}>
+      {!lab ? (
+        <Card title="Lab view is off" sub="Turn it on to keep the research rows on Home (activity, engines) as well.">
+          <Text onPress={() => setLab(true)} style={{ color: C.accent, fontWeight: "700" }}>Turn the Lab view on</Text>
+        </Card>
+      ) : null}
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <T small>Day {d.days} of paper trading · rules {d.rules}</T>
         <T small>as of {d.as_of}</T>
@@ -307,6 +318,7 @@ export default function Evidence() {
       </Card>
       </Spot>
     </Screen>
+    </>
   );
 }
 

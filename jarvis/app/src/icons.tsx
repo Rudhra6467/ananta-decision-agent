@@ -23,3 +23,6 @@ export const GaugeIcon = ({ color, size }: P) => (
 export const ChartIcon = ({ color, size }: P) => (
   <S size={size}><Path d="M4 19h16" stroke={color} strokeWidth={1.8} strokeLinecap="round" /><Path d="M7 15V9M7 7V5M12 16v-5M12 9V6M17 14V8M17 6V4" stroke={color} strokeWidth={1.8} strokeLinecap="round" /><Rect x={5.5} y={9} width={3} height={6} rx={0.6} stroke={color} strokeWidth={1.4} /><Rect x={10.5} y={9} width={3} height={2} rx={0.6} fill={color} /><Rect x={15.5} y={8} width={3} height={6} rx={0.6} stroke={color} strokeWidth={1.4} /></S>
 );
+export const BooksIcon = ({ color, size }: P) => (
+  <S size={size}><Rect x={4} y={4} width={6} height={16} rx={1} stroke={color} strokeWidth={1.8} /><Rect x={14} y={4} width={6} height={16} rx={1} stroke={color} strokeWidth={1.8} /></S>
+);

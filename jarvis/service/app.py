@@ -354,7 +354,7 @@ class Rating(BaseModel):
 
 @app.get("/v3/home")
 def home(who: str = Depends(owner)) -> dict:
-    return {"summary": views.day_summary(J()), "feed": views.feed(J(), hours=72, limit=40)}
+    return {"summary": views.day_summary(J()), "feed": views.feed(J(), hours=72, limit=40), "mission": views.mission(J())}
 
 
 @app.get("/v3/holdings")
@@ -484,6 +484,13 @@ def brain_report(days: int = 30, who: str = Depends(owner)) -> dict:
     from jarvis.service import brain
 
     return brain.report(J(), days)
+
+
+@app.get("/v3/brain/trade/{trade_id}")
+def brain_trade(trade_id: str, who: str = Depends(owner)) -> dict:
+    from jarvis.service import brain
+
+    return _run(brain.trade_detail, J(), trade_id)
 
 
 @app.get("/v3/missed")

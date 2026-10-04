@@ -690,6 +690,112 @@ def credit(rows: list[dict]) -> list[dict]:
                   key=lambda r: -r["trades"])
 
 
+def _px(j) -> dict:
+    from jarvis.service import eye
+
+    px = dict(eye.STATE.get("prices") or {})
+    if not px:
+        try:
+            px = j.prices() or {}
+        except Exception:  # noqa: BLE001
+            px = {}
+    return px
+
+
+def open_trades(j) -> list[dict]:
+    """Jarvis's open trades with the live price: P&L now, the stop's distance, the plan, its random twin."""
+    px = _px(j)
+    out = []
+    for tid, coin, entry, stop, et, dj in j.db.execute("SELECT id, coin, entry, stop, entry_t, detail FROM evidence_trades WHERE watch=? AND status='OPEN' "
+                                                       "ORDER BY entry_t", (WATCH,)).fetchall():
+        d = json.loads(dj or "{}")
+        now = px.get(coin)
+        twin = j.db.execute("SELECT coin FROM evidence_trades WHERE watch=? AND detail LIKE ?", (BASE, f'%"twin_of": "{tid}"%')).fetchone()
+        out.append({"id": tid, "coin": coin, "entry": entry, "stop": stop, "now": now, "entry_t": et,
+                    "pnl_pct": round(100 * (now / entry - 1), 2) if now and entry else None,
+                    "stop_pct": round(100 * (stop / entry - 1), 1) if stop and entry else None, "stop_raised": bool(stop and stop > d.get("stop0", stop)),
+                    "trail_atr": d.get("trail_atr"), "target": d.get("target"), "days": d.get("days"), "confidence": d.get("confidence"),
+                    "size_pct": d.get("size_pct"), "thesis": d.get("thesis"), "twin": twin[0] if twin else None})
+    return out
+
+
+def running(mine: list[dict], twins: list[dict]) -> dict:
+    """Running totals per $100 after costs, me against the twins, by exit time (the 'am I beating random' chart)."""
+    def run(rows):
+        tot, xs = 0.0, []
+        for x in sorted(rows, key=lambda x: x["exit_t"] or 0):
+            tot += x["net"]
+            xs.append({"t": x["exit_t"], "v": round(tot, 2)})
+        return xs
+    return {"me": run(mine), "twins": run(twins)}
+
+
+def trade_detail(j, trade_id: str) -> dict:
+    """One evidence trade in full (Jarvis's or any other watch's): the plan written before, what woke it, its twin, the price
+    around it (hourly), the zone it was about, and the review once it has one."""
+    import sqlite3
+    from pathlib import Path
+
+    from jarvis.service import watch_engine
+
+    _table(j)
+    row = j.db.execute(f"SELECT {', '.join(watch_engine.COLS)} FROM evidence_trades WHERE id=?", (trade_id,)).fetchone()
+    if not row:
+        raise ValueError("no such trade")
+    t = dict(zip(watch_engine.COLS, row))
+    d = json.loads(t.pop("detail") or "{}")
+    out: dict[str, Any] = {"trade": t, "detail": d}
+    now = _px(j).get(t["coin"])
+    if t["status"] == "OPEN" and now and t["entry"]:
+        out["now"] = now
+        out["pnl_pct"] = round(100 * (now / t["entry"] - 1), 2)
+        out["pnl_usd"] = round(100 * (now / t["entry"] - 1), 2)
+    dec = j.db.execute("SELECT t, triggers, action, confidence, size_pct, plan, thesis, knowledge, cost_usd FROM brain_decisions WHERE id=?",
+                       (d.get("decision"),)).fetchone() if d.get("decision") else None
+    if dec:
+        out["decision"] = {"t": dec[0], "triggers": json.loads(dec[1] or "{}"), "action": dec[2], "confidence": dec[3], "size_pct": dec[4],
+                           "plan": json.loads(dec[5] or "{}"), "thesis": dec[6], "knowledge": json.loads(dec[7] or "[]"), "cost_usd": dec[8]}
+        trig = out["decision"]["triggers"]
+        z = next((v.get("zone") for v in trig.values() if isinstance(v, dict) and v.get("zone")), None)
+        if z:
+            out["zone"] = z
+    if t["watch"] == WATCH:
+        tw = j.db.execute("SELECT id, coin, entry, stop, status, net_usd FROM evidence_trades WHERE watch=? AND detail LIKE ?",
+                          (BASE, f'%"twin_of": "{trade_id}"%')).fetchone()
+        if tw:
+            out["twin"] = dict(zip(("id", "coin", "entry", "stop", "status", "net_usd"), tw))
+    if "zone" not in out:
+        try:
+            from jarvis.service import zones_watch
+
+            row_z = next((r for r in zones_watch.board(j).get("coins", []) if r["coin"] == t["coin"]), None)
+            zz = (row_z or {}).get("inside") or []
+            if zz:
+                out["zone"] = [zz[0]["bot"], zz[0]["top"]]
+        except Exception:  # noqa: BLE001
+            pass
+    p = Path(j.dir) / "explorer_bars.sqlite"
+    if p.exists():
+        con = sqlite3.connect(f"file:{p}?mode=ro", uri=True, timeout=10)
+        try:
+            t0 = int((t["entry_t"] or t["signal_t"]) - 48 * 3600)
+            t1 = int((t["exit_t"] or j.now()) + 24 * 3600)
+            out["hourly"] = [{"t": a, "c": c} for a, c in con.execute("SELECT t, c FROM bars WHERE coin=? AND tf='1h' AND t >= ? AND t <= ? ORDER BY t",
+                                                                       (t["coin"], t0, t1))]
+        finally:
+            con.close()
+    try:
+        from jarvis.service import reviews
+
+        reviews._table(j)
+        rv = j.db.execute("SELECT text, tags FROM trade_reviews WHERE id=?", (f"ev:{trade_id}",)).fetchone()
+        if rv:
+            out["review"] = {"text": rv[0], "tags": json.loads(rv[1] or "[]")}
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 def report(j, days: int = 30) -> dict:
     """Jarvis's own book for the app and Ask: results against its random twins, calibration, knowledge credit, recent decisions."""
     _table(j)
@@ -707,8 +813,7 @@ def report(j, days: int = 30) -> dict:
     from jarvis.service import scoreboard
 
     ev = scoreboard._events([{"entry_t": x["entry_t"]} for x in c], daily=True) if c else 0
-    return {"closed": n, "open": [dict(zip(("coin", "entry", "stop", "detail"), x)) for x in
-                                  j.db.execute("SELECT coin, entry, stop, detail FROM evidence_trades WHERE watch=? AND status='OPEN'", (WATCH,))],
+    return {"closed": n, "open": open_trades(j), "running": running(c, r),
             "avg_usd_per_100": avg, "random_twin_avg_usd": ravg, "vs_random_usd": round(avg - ravg, 2) if avg is not None and ravg is not None else None,
             "sized_net_usd": round(sum(x["sized"] for x in c), 2), "events": ev,
             "verdict": ("too early" if ev < 10 else "ahead of its random twins" if (avg or 0) > (ravg or 0) else "not ahead of its random twins"),

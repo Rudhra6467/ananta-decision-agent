@@ -1,4 +1,4 @@
-// The five main tabs, swipeable like YouTube: drag left / right and you see the next page slide in.
+// The four main tabs (Home, Markets, Books, Ask Jarvis; the research views moved to the Lab page, 2026-10-04), swipeable like YouTube: drag left / right and you see the next page slide in.
 // Tab bar stays at the bottom; the page header (title, Cockpit button) is drawn here because swipe tabs have no header of their own.
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -6,10 +6,10 @@ import { router, usePathname } from "expo-router";
 import SwipeTabs from "expo-router/js-top-tabs";        // Expo Router's swipeable tabs (react-native-tab-view + pager-view underneath)
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C } from "../../src/theme";
-import { ChartIcon, ChatIcon, FlaskIcon, GaugeIcon, HomeIcon, PieIcon } from "../../src/icons";
+import { BooksIcon, ChartIcon, ChatIcon, GaugeIcon, HomeIcon } from "../../src/icons";
 import { useData } from "../../src/useData";
 
-const TITLES: Record<string, string> = { today: "Home", markets: "Markets", portfolio: "Portfolio", ask: "Ananta", evidence: "Evidence" };
+const TITLES: Record<string, string> = { today: "Home", markets: "Markets", portfolio: "Books", ask: "Ask Jarvis" };
 
 // Guests (a friend testing the app) get a practice book of their own. A thin strip under the title says so on every tab;
 // tap it for the full note. Madhav never sees it.
@@ -71,9 +71,8 @@ export default function TabsLayout() {
         }}>
         <SwipeTabs.Screen name="today" options={{ title: "Home", tabBarIcon: icon(HomeIcon) }} />
         <SwipeTabs.Screen name="markets" options={{ title: "Markets", tabBarIcon: icon(ChartIcon) }} />
-        <SwipeTabs.Screen name="portfolio" options={{ title: "Portfolio", tabBarIcon: icon(PieIcon) }} />
-        <SwipeTabs.Screen name="ask" options={{ title: "Ananta", tabBarIcon: icon(ChatIcon) }} />
-        <SwipeTabs.Screen name="evidence" options={{ title: "Evidence", tabBarIcon: icon(FlaskIcon) }} />
+        <SwipeTabs.Screen name="portfolio" options={{ title: "Books", tabBarIcon: icon(BooksIcon) }} />
+        <SwipeTabs.Screen name="ask" options={{ title: "Ask Jarvis", tabBarIcon: icon(ChatIcon) }} />
       </SwipeTabs>
     </View>
   );

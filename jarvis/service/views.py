@@ -854,3 +854,99 @@ def evidence_pipeline(j) -> dict:
 
     return {"as_of": _local(now), "days": days, "rules": rules.name, "watching": watching, "seen": seen_rows, "decided": decided,
             "results": results, "rebuild": rebuild, "shop": shop, "in_use": in_use}
+
+
+# ---------------------------------------------------------------------------
+# Home as mission control (Madhav approved the mock, 2026-10-04): three depths, glance first
+# ---------------------------------------------------------------------------
+def _sample(xs: list, n: int) -> list:
+    if len(xs) <= n:
+        return xs
+    step = (len(xs) - 1) / (n - 1)
+    return [xs[round(k * step)] for k in range(n)]
+
+
+def mission(j) -> dict:
+    """The glance: are all parts running, the paper value line, the market rule with Bitcoin's chart, Jarvis's day, the
+    findings (misses, lessons, shifts) and what needs Madhav. Every block is best-effort: one failing never hides the rest."""
+    out: dict[str, Any] = {}
+    try:
+        from jarvis.service import health
+
+        h = health.status(j)
+        parts = h["parts"]
+        out["health"] = {"all_ok": h["all_ok"], "down": h["down"], "ok": sum(1 for p in parts.values() if p["ok"]), "of": len(parts),
+                         "checked_s_ago": h["last_check_s_ago"]}
+    except Exception as exc:  # noqa: BLE001
+        out["health_error"] = str(exc)[:120]
+    try:
+        rows = j.db.execute("SELECT t, explorer, main FROM snapshots ORDER BY t").fetchall()
+        pts = _sample([(t, round(e + m, 2)) for t, e, m in rows if e is not None and m is not None], 60)
+        out["value"] = {"t": [p[0] for p in pts], "v": [p[1] for p in pts], "start": _starts(),
+                        "since": datetime.fromtimestamp(rows[0][0]).strftime("%b %d") if rows else None}
+    except Exception as exc:  # noqa: BLE001
+        out["value_error"] = str(exc)[:120]
+    try:
+        from jarvis.service import eye
+        from jarvis.service.reads_watch import _daily
+        from src.research import reads as R
+
+        D = _daily(j, "BTC")
+        S = R.Series(D)
+        live = (eye.STATE.get("prices") or {}).get("BTC") or S.c[-1]
+        ema = S.ema50[-1]
+        out["market"] = {"regime": "ALLOWED" if S.c[-1] > ema else "RISK_OFF", "btc": live, "ema50": ema, "vs_pct": round(100 * (live / ema - 1), 1),
+                         "closes": S.c[-90:], "ema": S.ema50[-90:],
+                         "live_side": "above" if live > ema else "below"}
+    except Exception as exc:  # noqa: BLE001
+        out["market_error"] = str(exc)[:120]
+    try:
+        from jarvis.service import brain
+
+        r = brain.report(j, 30)
+        out["jarvis"] = {"open": [{k: o.get(k) for k in ("id", "coin", "pnl_pct")} for o in r["open"]], "today": r["today"], "left": max(0, r["daily_limit"] - sum(
+            v for k, v in r["today"].items() if k in ("TAKE", "PASS"))), "events": r["events"], "verdict": r["verdict"], "closed": r["closed"],
+            "avg": r["avg_usd_per_100"], "twins_avg": r["random_twin_avg_usd"]}
+    except Exception as exc:  # noqa: BLE001
+        out["jarvis_error"] = str(exc)[:120]
+    out["findings"] = findings(j)
+    return out
+
+
+def findings(j, days: int = 2, n: int = 5) -> list[dict]:
+    """What we found, newest first: big moves we missed or only saw, lessons from closed trades, market shifts, outages."""
+    items: list[dict] = []
+    since = int(j.now()) - days * 86400
+    names = {"BTC": "Bitcoin", "ETH": "Ethereum", "SOL": "Solana", "ADA": "Cardano", "DOGE": "Dogecoin", "AVAX": "Avalanche",
+             "BCH": "Bitcoin Cash", "LINK": "Chainlink", "LTC": "Litecoin", "XRP": "XRP"}
+    try:
+        from jarvis.service import missed
+
+        for m in missed.recent(j, days)["moves"]:
+            if m["label"] == "CAUGHT":
+                continue
+            items.append({"t": m["low_t"] or since, "kind": m["label"], "coin": m["coin"], "link": "missed",
+                          "title": f"{names.get(m['coin'], m['coin'])} +{m['move_pct']:.1f}% on {datetime.strptime(m['day'], '%Y-%m-%d').strftime('%b %d')}",
+                          "body": m["why"][:1].upper() + m["why"][1:] + "."})
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from jarvis.service import reviews
+
+        words = {"STOPPED_THEN_RAN": "Stopped out, then the price ran", "GAVE_BACK": "Was up, then gave it back", "NEVER_WORKED": "Never worked",
+                 "LEFT_ON_TABLE": "Sold too early", "COSTS_ATE": "Too small to pay the costs"}
+        for r in reviews.recent_reviews(j, days + 3)["reviews"]:
+            tags = [t for t in r["tags"] if t in words]
+            if tags:
+                items.append({"t": r["exit_t"], "kind": "LESSON", "coin": r["coin"], "link": "reviews",
+                              "title": f"{r['book']}'s {names.get(r['coin'], r['coin'])} trade", "body": f"{words[tags[0]]}. {r['text'][:180]}"})
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        for (t, kind, title, body) in j.db.execute("SELECT t, kind, title, body FROM eye_events WHERE t >= ? AND kind IN ('MARKET_SHIFT','MARKET_WARN','HEALTH_DOWN')",
+                                                    (since,)):
+            items.append({"t": t, "kind": "SHIFT" if kind.startswith("MARKET") else "DOWN", "title": title, "body": body, "link": None})
+    except Exception:  # noqa: BLE001
+        pass
+    items.sort(key=lambda x: -(x["t"] or 0))
+    return items[:n]

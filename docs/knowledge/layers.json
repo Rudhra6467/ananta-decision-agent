@@ -200,13 +200,15 @@
     "ZONES",
     "READS",
     "CHAIN",
-    "EXPLORER"
+    "EXPLORER",
+    "ASK"
    ],
-   "evidence": "closed bars only",
+   "evidence": "closed bars only; from 2026-10-03 Ask Ananta reads them for price history (highs, lows, days, rankings)",
    "files": [
-    "src/intelligence/explorer_live.py",
-    "src/intelligence/cycle_ingest.py",
+    "jarvis/service/pricebook.py",
     "src/intelligence/cycle_contract_v01.py",
+    "src/intelligence/cycle_ingest.py",
+    "src/intelligence/explorer_live.py",
     "src/intelligence/ingest_contract.py"
    ]
   },
@@ -247,6 +249,22 @@
     "src/research/news_check.py",
     "src/intelligence/catalysts.py",
     "jarvis/service/news_watch.py"
+   ]
+  },
+  {
+   "id": "WEB_LOOKUP",
+   "name": "Web lookup (outside our data: stocks, news, the economy)",
+   "layer": 1,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [],
+   "feeds": [
+    "ASK"
+   ],
+   "evidence": "from 2026-10-03: Google Search via Gemini (free), else Claude web search; answers carry sources and the 'from the web' label, never mixed into our books",
+   "files": [
+    "jarvis/service/weblook.py"
    ]
   },
   {
@@ -897,7 +915,7 @@
   },
   {
    "id": "REPAIR_SHOP",
-   "name": "Repair shop (reviews #1-#6)",
+   "name": "Repair shop (reviews #1-#14) and your requests",
    "layer": 7,
    "status": "ACTIVE",
    "acts": false,
@@ -912,7 +930,7 @@
     "VARIABLES",
     "EXPLORER_SETUPS"
    ],
-   "evidence": "5 reviews done, 1 passed (T3); requests logged from Ask Ananta/voice (data, feature, bug, idea) from 2026-10-03",
+   "evidence": "14 reviews done: T3 passed, H07 promising, most short-term ideas failed on costs; requests flagged from Ask Ananta/voice (data, feature, bug, idea) since 2026-10-03, numbered, with a phone note and a mention in the next conversation when their status changes",
    "files": [
     "docs/repair_shop/ledger.json",
     "src/research/review_compare.py",
@@ -1057,7 +1075,7 @@
     "EVIDENCE",
     "ALERTS"
    ],
-   "evidence": "paper; zero organic TAKEs for weeks (the 'car with no accelerator')",
+   "evidence": "paper; zero organic TAKEs for weeks (the 'car with no accelerator'); its book (SD6) holds one trade at a time: 39 Hunter TAKEs refused SLOT_FULL by 2026-10-03 (proposal: one per coin)",
    "files": [
     "src/intelligence/paper_watch.py",
     "src/intelligence/di_loop.py",
@@ -1233,11 +1251,13 @@
   }
  ],
  "gaps": [
-  "CHAIN and EXPLORER do not share a decision record (BACKLOG A2)",
+  "Hunter's book (SD6) holds one trade at a time, so most hourly signals are refused and not measured (proposal: one per coin, shadows for refusals)",
+  "Watches compete for slots instead of each having its own evidence book; no single scoreboard per watch (proposal, docs/BACKLOG.md I)",
+  "No fast tracker (the eye): stops and entry levels are checked on 5-minute bars, not live prices (proposal, docs/BACKLOG.md I)",
+  "No watch registry yet: each watch has its own code path and cadence (proposal, docs/BACKLOG.md I)",
+  "CHAIN and EXPLORER share the trade record of the entry day but not one decision (BACKLOG A2 v1)",
   "Statuses here are not yet read by the Explorer before it acts (BACKLOG A1, switch step)",
-  "No credit tracking (BACKLOG A3)",
-  "ZONES and ZONE_STATE are planned; review #6 decides how they are used",
   "OTHER_TRADERS -> V09/V10 have no consumer",
-  "NEWS runs only on tap"
+  "Face ID needs our own app build: in Expo Go the confirmation card uses the phone passcode"
  ]
 }

@@ -108,6 +108,15 @@ def portfolio_brief(j) -> dict:
                        if c.get("closest") and c["closest"]["of"] - c["closest"]["met"] == 1],
             "skip_rule": "a complete setup is skipped when that coin already has an open trade of the same type, or no trade type fits"}
         try:
+            s = views.day_summary(j)
+            mine = (out.get("my_paper_book") or {}).get("value")
+            out["all_books"] = {"what": "one line for 'how are we doing' when he does not say which book",
+                                "explorer_plus_trend_portfolio_value": s.get("paper_value"), "their_start": s.get("start_value"),
+                                "change_usd": round((s.get("paper_value") or 0) - (s.get("start_value") or 0), 2),
+                                "today_change_usd": s.get("today_change"), "my_paper_book_value": mine, "my_paper_book_start": 1000.0}
+        except Exception:  # noqa: BLE001
+            pass
+        try:
             out["needs_owner"] = {"cards_waiting": len(__import__("jarvis.service.mandate", fromlist=["Mandate"]).Mandate(j.db, j.now).pending()),
                                   "portfolio_suggestions_waiting": len(h["pending"])}
             from jarvis.service.alerts import Alerts
@@ -130,11 +139,20 @@ def market_brief(j) -> dict:
                           "closest_setup": cl.get("name"), "met": f'{cl.get("met")}/{cl.get("of")}' if cl else None,
                           "missing": (cl.get("missing") or [])[:1], "we_hold_trade": bool(c["open_trades"])})
         up_day = sum(1 for c in m["coins"] if (c["day_pct"] or 0) > 0)
+        hb = [x for x in views._jsonl(j.dir / "watch_heartbeat.jsonl", 5) if x.get("ok")]
         out: dict[str, Any] = {"as_of_toronto": views._local(j.now()),
+                               "regime": {"market": ("ALLOWED: Bitcoin is above its 50-day average, so our tested rule (the Bitcoin 50-day rule) "
+                                                     "lets us hold and buy coins in uptrends") if m["btc_gate"] else
+                                                    ("RISK-OFF: Bitcoin is below its 50-day average, so our tested rule says stay out / in cash"),
+                                          "hourly_by_coin": (hb[-1].get("regimes") if hb else None),
+                                          "say": "When asked for status, name the market regime in one phrase from 'market' (this is the one "
+                                                 "regime we have tested). hourly_by_coin is the backend's hourly label per coin (e.g. COMPRESSION = "
+                                                 "quiet, tight range); use it only as colour."},
                                "breadth": {"up_today": up_day, "uptrend_1h": m["breadth"]["up_1h"], "of": m["breadth"]["of"]},
                                "btc_gate_open": m["btc_gate"], "coins": coins,
-                               "scanner": "Explorer checks 10 coins every 15 minutes for 5 setups: E1 pullback in an uptrend, E2 breakout after a quiet period, "
-                                          "E3 bounce at support, E4 momentum continuation, E5 squeeze breakout. A trade needs ALL conditions of one setup."}
+                               "scanner": "Explorer checks 10 coins every 15 minutes for 6 setups: E1 pullback in an uptrend, E2 breakout after a quiet period, "
+                                          "E3 bounce at support, E4 momentum continuation, E5 squeeze breakout, E6 deep dip (15-minute RSI under 30). "
+                                          "A trade needs ALL conditions of one setup. Wide mode (W1) since Oct 3: up to 3 trades per coin per kind."}
         hs = views._hourly_strategies(j, hours=3)
         out["hourly_watch"] = {k: {"setups_found_3h": v["setups"], "main_blockers": list(v["top_reasons_plain"].keys())[:3] if "top_reasons_plain" in v
                                    else [views._reason(r) for r in list(v["top_reasons"])[:3]]} for k, v in hs.items() if k in ("hunter", "squeeze")}

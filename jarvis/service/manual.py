@@ -132,6 +132,27 @@ class Manual:
             self.note(who, "manual_order", fid, v["reason"])
         return {"fill": fid, "side": v["side"], "coin": v["coin"], "usd": v["usd"], "price": price, "cost": round(cost, 2)}
 
+    def set_levels(self, who: str, coin: str, stop: float | None, target: float | None, px: dict[str, float]) -> dict:
+        """Set, move or remove (0) the stop / target of a position in this book. None leaves that level as it is."""
+        coin = (coin or "").upper()
+        if not any(x["coin"] == coin for x in self.state(px)["positions"]):
+            raise ValueError(f"no {coin} in the manual book")
+        row = self.db.execute("SELECT stop, target FROM manual_orders WHERE coin=?", (coin,)).fetchone() or (None, None)
+        new_stop = row[0] if stop is None else (float(stop) or None)
+        new_target = row[1] if target is None else (float(target) or None)
+        p = px.get(coin)
+        if p and new_stop and new_stop >= p:
+            raise ValueError("the stop must be below the current price")
+        if p and new_target and new_target <= p:
+            raise ValueError("the target must be above the current price")
+        if new_stop is None and new_target is None:
+            self.db.execute("DELETE FROM manual_orders WHERE coin=?", (coin,))
+        else:
+            self.db.execute("INSERT OR REPLACE INTO manual_orders VALUES (?,?,?,?)", (coin, new_stop, new_target, int(self.now())))
+        self.db.commit()
+        self.note(who, "levels", coin, f"stop {new_stop}, target {new_target}")
+        return {"coin": coin, "stop": new_stop, "target": new_target}
+
     def check_stops(self, px: dict[str, float], push: Callable[[str, str], Any] | None = None) -> list[dict]:
         out = []
         for coin, stop, target in list(self.db.execute("SELECT coin, stop, target FROM manual_orders")):

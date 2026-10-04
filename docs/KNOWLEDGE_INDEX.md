@@ -7,6 +7,9 @@ A test keeps this map complete: every document in these folders must have a line
 Evidence classes, strongest first: **verified variables** (Ananta's own tests) > **casebook** (Madhav's real trades) >
 **hypotheses** (teacher ideas, labelled with their test status) > **notes** (Madhav's own notes, opinions until tested).
 
+## How Ananta is built
+- `SYSTEM_MAP.md`: the whole system in plain words: what runs (Hands, Explorer, hourly watch, trend portfolio, Jarvis, voice), which database each part keeps, our paper books by name, the flow scan > setup > tracking > performance > repair shop > evidence use, what Ananta can do / prepare / cannot do, the requests loop, and the proposed next steps (evidence books per watch, watch registry, the eye). Open for "how is it built", "where does X live", "what happens after a setup fires", "what can you do".
+
 ## How Ananta reasons
 - `knowledge/FRAMEWORK.md`: Madhav's framework: decision chain Regime > Location > Trigger > Invalidation > Risk > Exposure, fail-closed, structural stops, signals as evidence, how to talk (simple first). Open for any "why no trade / how do you decide" question.
 - `knowledge/PLAYBOOK.md`: how Ananta reacts: the order of questions (data, market allowed, zone, plan, evidence, simple answer) and what to do when a coin enters a zone, a zone breaks or holds, your setup shows, or Madhav asks 'should I buy'. Open for 'what should we do now'.

@@ -267,6 +267,8 @@ export default function Ananta() {
   const { data: me } = useData("/v3/me", 0);
   const loopRef = useRef<VoiceLoop | null>(null);
   const lastActive = useRef(Date.now());
+  // He stopped mid-sentence ("I want to know…"): keep it and join it to what he says next (for 20 s)
+  const prefixRef = useRef<{ text: string; t: number } | null>(null);
   if (!loopRef.current) {
     loopRef.current = new VoiceLoop({
       micStart: (force, wanted) => micRef.current!.start(force, wanted),
@@ -276,13 +278,26 @@ export default function Ananta() {
       micState: () => micRef.current!.state(),
       ask: async (b64, current) => {
         let r: any;
+        const pre = prefixRef.current && Date.now() - prefixRef.current.t < 20000 ? prefixRef.current.text : "";
+        // a person says "one sec" when a look-up takes a moment; silence feels like a machine
+        const ack = setTimeout(() => { if (current()) TTS.playAck(); }, 1500);
         try {
           r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
-            mode: modeRef.current, context: where(true) }, 60000);
+            mode: modeRef.current, context: where(true), prefix: pre || undefined }, 60000);
         } catch (e: any) {
           r = { error: e?.message ?? String(e) };
+        } finally {
+          clearTimeout(ack);
         }
         if (!current()) return r;                              // cancelled, ended or a new session meanwhile: leave the screen alone
+        if (r.ignored) { TTS.stop(); return {}; }              // "hmm", "okay", or the mic hearing Ananta itself: just keep listening
+        if (r.partial) {                                       // cut off mid-sentence: wait for the rest
+          TTS.stop();
+          prefixRef.current = { text: r.heard, t: Date.now() };
+          setNote(`“${r.heard}…” go on, I'm listening.`);
+          return {};
+        }
+        prefixRef.current = null;
         if (r.thread) setThread(r.thread);
         if (r.heard) setMsgs((m) => [...m, { role: "user", text: r.heard, voice: true }]);
         if (r.answer || r.error || r.tour?.length) setMsgs((m) => [...m, { role: "assistant", voice: true, ...r }]);
@@ -352,6 +367,8 @@ export default function Ananta() {
     tourCommand("stop");                                         // a tour that was talking stops
     TTS.stop();
     Keyboard.dismiss();
+    prefixRef.current = null;
+    TTS.warmAcks().catch(() => {});                              // the "one sec" clips, ready on the phone
     loop.start();
   };
   const endLive = () => { loop.end(); clearSpot(); };
@@ -362,7 +379,7 @@ export default function Ananta() {
     if (!ok) { dictating.current = false; setErr("Microphone permission is off. Allow it for Expo Go in iPhone Settings."); }
   };
   const pickVoice = (v: string) => {
-    if (v === "Phone") TTS.setEngine("phone"); else { TTS.setEngine("natural"); TTS.setVoice(v); }
+    if (v === "Phone") TTS.setEngine("phone"); else { TTS.setEngine("natural"); TTS.setVoice(v).then(() => TTS.warmAcks()).catch(() => {}); }
     const sample = () => TTS.speakText(v === "Phone" ? "This is the phone voice." : "Hi Madhav, this is how I sound now.").then(() => undefined);
     if (!loop.on) { sample(); return; }
     loop.aside(sample).then((played) => { if (!played) setNote(`Voice set to ${v}. You'll hear it on the next answer.`); });

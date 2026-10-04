@@ -18,7 +18,7 @@ export type SpeakResult = "done" | "stopped";
 let voiceId: string | undefined;
 let phoneVoiceName = "default";
 let picked = false;
-export let rate = 0.9;
+export let rate = 1.0;          // 0.9 sounded slow and read-out (Madhav, Oct 3); 1.0 is a normal talking pace
 export let engine: "natural" | "phone" = "natural";
 export let voice = "Calm";
 export const VOICES = ["Calm", "Friendly", "Deep", "British", "Bright"];
@@ -211,4 +211,64 @@ export const sayAsync = (text: string) => speakText(text).then(() => undefined);
 export function warm(texts: string[]) {
   if (engine !== "natural" || Date.now() < naturalDownUntil) return;
   texts.slice(0, 24).forEach((t) => api("/v3/voice/answer", { sentences: sentences(t), voice, speed: rate, wait: false }).catch(() => {}));
+}
+
+// ---- a short "one sec" while Ananta looks something up ---------------------------------------------
+// People fill a pause; silence after a question feels like a machine. When an answer takes more than about 1.5 s, the voice
+// says one of these (in the same voice), kept on the phone so it plays at once. The answer cuts it off when it arrives.
+const ACKS = ["One sec.", "Let me check.", "Okay, looking.", "Mm-hm, one moment.", "Let me pull that up."];
+let ackFiles: Record<string, string> = {};
+let ackKey = "";
+let lastAck = "";
+
+export async function warmAcks() {
+  if (engine !== "natural" || Date.now() < naturalDownUntil) return;
+  const key = `${voice}|${rate}`;
+  if (ackKey === key && Object.keys(ackFiles).length >= 3) return;
+  ackKey = key;
+  ackFiles = {};
+  const [base, tok] = [await server(), await token()];
+  for (const t of ACKS) {
+    try {
+      const meta = await api<Meta>("/v3/voice/answer", { sentences: [t], voice, speed: rate }, 30000);
+      const f = new File(Paths.cache, `ananta-ack-${meta.id}.mp3`);
+      if (!f.exists) await File.downloadFileAsync(`${base}/v3/voice/answer/${meta.id}/audio`, f, { headers: tok ? { Authorization: `Bearer ${tok}` } : {}, idempotent: true });
+      if (ackKey !== key) return;                        // the voice changed meanwhile
+      ackFiles[t] = f.uri;
+    } catch { /* this one is skipped; the others still play */ }
+  }
+}
+
+// Plays a short filler (never the same one twice in a row). Settles like speak(); speak() or stop() cut it off.
+export function playAck(): Promise<SpeakResult> {
+  const pool = ACKS.filter((a) => a !== lastAck && ackFiles[a]);
+  if (!pool.length || engine !== "natural") return Promise.resolve("done");
+  const t = pool[Math.floor(Math.random() * pool.length)];
+  lastAck = t;
+  stop();
+  const my = ++seq;
+  return new Promise<SpeakResult>((resolve) => {
+    let settled = false;
+    const settle = (r: SpeakResult) => { if (settled) return; settled = true; if (active?.id === my) active = null; resolve(r); };
+    active = { id: my, settle };
+    (async () => {
+      try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
+      if (my !== seq) return settle("stopped");
+      const p = createAudioPlayer({ uri: ackFiles[t] }, { keepAudioSessionActive: true, updateInterval: 100 });
+      current = p;
+      let finished = false;
+      const sub = p.addListener("playbackStatusUpdate", (st: any) => { if (st?.didJustFinish) finished = true; });
+      try {
+        p.play();
+        const t0 = Date.now();
+        while (!finished && my === seq && Date.now() - t0 < 4000) await sleep(80);
+        if (my !== seq) { try { p.pause(); } catch { /* */ } }
+      } finally {
+        sub.remove();
+        try { p.remove(); } catch { /* */ }
+        if (current === p) current = null;
+      }
+      settle(my === seq ? "done" : "stopped");
+    })().catch(() => settle("done"));
+  });
 }

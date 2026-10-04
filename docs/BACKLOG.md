@@ -4,6 +4,39 @@ The single list of remaining work, so nothing is forgotten between sessions. Kep
 Order = priority. Status: TODO / DOING / WAITING (on evidence or on Madhav) / DONE (moved to the bottom with the date).
 Last updated 2026-10-03.
 
+## 0. Start of every work session: Madhav's requests
+Read the OPEN and PLANNED requests first (on the Mac: `requests_log.list_(j, include_done=False)`, or GET /v3/requests), plan them,
+and set each one's status with a short note when it moves (`requests_log.set_status(j, num, "PLANNED"|"DONE"|"WONT", note)`).
+The phone note and Ananta's mention in the next conversation follow by themselves. Open on 2026-10-03: #2 first candle date per
+coin (now answered by the prices lookup, what='coverage': mark DONE after deploy), #3 which timeframe built Hunter's support zone
+(needs the Hunter log in Hands to record the zone's source and edges).
+
+## I. Watches, evidence books and the eye (Madhav, 2026-10-03: "if every watch trades, only then we can measure it") - WAITING on his OK
+1. Hunter's book: one open trade per coin instead of one in total (39 Hunter TAKEs refused by Oct 3), and a shadow for anything refused.
+2. Evidence books per watch: every signal of every watch is a $100 paper trade with its own exits; watches stop competing for
+   slots; one scoreboard per watch (trades, events, win rate, average after costs vs random, worst run, by market regime).
+3. Watch registry: each watch declared once (section, timeframe, trigger: bar close or level cross, entry, exit, size, evidence
+   status, alerts); sections: market weather, coin structure and zones, setups, risk and exits, news and events. Same code for history and live.
+4. The eye: one fast tracker on live prices (every 5-15 s, public price feed) watching levels the slower sections arm (zone edges,
+   breakout levels, stops, a sudden Bitcoin drop). Separate processes only for a watch that needs other data (order book) or heavy compute.
+5. Portfolio book (the $500 rehearsal): picks among signals with real limits (a few open, 1% risk each, correlation budget).
+6. Then: Madhav's 20-40 setups through the repair shop on history; the ones that pass get a registry slot and trade on paper.
+7. Data for fast decisions: funding rates and open interest (free public feeds) first, order book later.
+
+## V. Voice and Jarvis (Madhav, 2026-10-03: "smooth, light, a human touch"; "straight: ask me, confirm me, correct me")
+1. DONE 2026-10-03: answer first, no stock openers, name once, spoken names not codes, rounded numbers, caveats once, a view when
+   asked, corrects him with the data and never caves without checking; written -> spoken text; natural pauses (trimmed silence,
+   longer after questions); normal pace by default; "one sec" while looking up; echo, "hmm" and noise never reach the model; a
+   sentence cut off mid-way waits for the rest; the fastest Gemini first in voice.
+2. DONE 2026-10-03: new abilities: price history (highs, lows, days, rankings), web lookup, news check, remember, numbered requests
+   that report back, and cards (Face ID) for stops/targets on his own positions, kill switch, autopilot, portfolio approvals, alerts off, budget and voice settings.
+3. TODO A better voice than Kokoro: options a cloud voice (OpenAI gpt-4o-mini-tts about 1.5 cents a minute: needs a real OpenAI
+   key, the one in .env is a placeholder; or ElevenLabs), or a newer local model (try Marvis / CSM on the Mac).
+4. TODO Our own app build (EAS development build / TestFlight, needs an Apple developer account): real Face ID, streaming voice
+   (talk over it, answers start in under a second, like ChatGPT's voice), background audio. Expo Go cannot do these.
+5. TODO Replay on request: "what would Hunter / the Explorer have done on BTC between these dates" (the engine can replay stored candles).
+6. TODO Sell / exit signals for coins Madhav holds in his own book (the trend portfolio's ratings and the exit rules, said per coin).
+
 ## A. Layers and connections (Madhav, 2026-10-03: "how well are they connected... divide them into layers and give priority")
 1. DONE v1, 2026-10-03 (switch step: the Explorer does not read it yet) **Layer map the agent reads** (`docs/knowledge/layers.json`): every component with its layer (0 authority ... 8 interface),
    what it depends on, what it feeds, its status, its evidence, the market it works in (regime), and the file that implements it.
@@ -63,6 +96,7 @@ Last updated 2026-10-03.
   forward is the layer map, the variables and the process, not the findings.
 
 ## Done
+- 2026-10-03 Voice and abilities pass (V1, V2), the system map (`SYSTEM_MAP.md`), numbered requests that report back.
 - 2026-10-03 Domain livetrading247.com, guest practice mode, two Ask switches, MongoDB archive job.
 - 2026-10-03 Knowledge layer (framework, hypotheses H01-H18), decision chain, teachers' channels analysed and first-look tested.
 - 2026-10-03 Review #5 (your setups) and live "Your setups"; knowledge map, read_doc, notes folder.

@@ -28,8 +28,9 @@ from pydantic import BaseModel
 TTS_MODEL = os.getenv("VOICE_TTS_MODEL", "mlx-community/Kokoro-82M-bf16")
 STT_MODEL = os.getenv("VOICE_STT_MODEL", "mlx-community/whisper-large-v3-turbo")
 VOICES = {"Calm": "af_heart", "Friendly": "af_bella", "Deep": "am_michael", "Bright": "bf_emma", "British": "bm_george"}
-STT_PROMPT = ("Madhav talking to Ananta, a crypto trading assistant. Bitcoin, Ethereum, Solana, Cardano, Dogecoin, Avalanche, "
-              "Bitcoin Cash, Chainlink, Litecoin, XRP. Hunter, Squeeze, Explorer, setup, scan, portfolio, mandate, evidence, repair shop.")
+STT_PROMPT = ("Madhav talking to Ananta, a crypto trading assistant. Hey there. Hey Jarvis. Walk me through it. Bitcoin, Ethereum, Solana, "
+              "Cardano, Dogecoin, Avalanche, Bitcoin Cash, Chainlink, Litecoin, XRP. Hunter, Squeeze, Explorer, trend portfolio, T3, zones, "
+              "stop loss, the short dip trade, setup, scan, portfolio, mandate, evidence, repair shop.")
 
 app = FastAPI(title="Ananta voice", docs_url=None, redoc_url=None, openapi_url=None)
 _lock = threading.Lock()          # MLX: one job at a time
@@ -98,8 +99,32 @@ def encode_mp3(audio: np.ndarray, rate: int = 24000) -> tuple[bytes, str]:
 class SpeakReq(BaseModel):
     sentences: list[str]
     voice: str = "Calm"
-    speed: float = 0.9
-    gap: float = 0.22
+    speed: float = 1.0
+    gap: float = 0.26
+
+
+def trim(a: np.ndarray, rate: int = 24000, lead: float = 0.03, tail: float = 0.06) -> np.ndarray:
+    """Cut the model's own silence at both ends of a sentence, keeping a breath of it, so the pauses between sentences are
+    the ones we choose (fixed padding made every answer sound like a list being read out)."""
+    if a.size == 0:
+        return a
+    loud = np.flatnonzero(np.abs(a) > 0.012)
+    if loud.size == 0:
+        return a
+    s = max(0, int(loud[0] - lead * rate))
+    e = min(a.size, int(loud[-1] + tail * rate))
+    return a[s:e]
+
+
+def pause_after(sentence: str, base: float) -> float:
+    """A person pauses longer after a question, shorter after a short phrase; a little variation so it never sounds metronomic."""
+    s = sentence.strip()
+    words = len(s.split())
+    f = 1.5 if s.endswith("?") else 1.15 if s.endswith("!") else 0.8 if s.endswith((":", ";", ",")) else 1.0
+    if words <= 4:
+        f *= 0.7
+    jitter = 0.9 + 0.2 * ((sum(map(ord, s)) % 97) / 96)            # deterministic per sentence: same text, same audio
+    return max(0.08, min(0.7, base * f * jitter))
 
 
 @app.post("/speak")
@@ -113,17 +138,18 @@ def speak(b: SpeakReq) -> dict:
     rate = 24000
     vid = VOICES.get(b.voice, b.voice if "_" in b.voice else "af_heart")
     speed = max(0.6, min(1.5, b.speed))
-    gap = np.zeros(int(rate * max(0.0, min(1.0, b.gap))), dtype=np.float32)
+    base_gap = max(0.0, min(1.0, b.gap))
     chunks, offsets, t = [], [], 0.0
     with _lock:
         m = tts_model()
         for i, x in enumerate(sents):
             parts = [np.array(r.audio, dtype=np.float32).reshape(-1) for r in m.generate(text=x, voice=vid, speed=speed, lang_code=vid[0])]
-            a = np.concatenate(parts) if parts else np.zeros(int(rate * 0.2), dtype=np.float32)
+            a = trim(np.concatenate(parts)) if parts else np.zeros(int(rate * 0.2), dtype=np.float32)
             offsets.append(round(t, 3))
             chunks.append(a)
             t += len(a) / rate
             if i < len(sents) - 1:
+                gap = np.zeros(int(rate * pause_after(x, base_gap)), dtype=np.float32)
                 chunks.append(gap)
                 t += len(gap) / rate
     audio = np.concatenate(chunks).astype(np.float32)

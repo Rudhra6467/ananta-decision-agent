@@ -60,7 +60,7 @@ def test_pull_build_and_check(tmp_path, monkeypatch):
     get = _fake_bucket(months, bad={p + "TESTUSDT-1m-2025-02.zip"})
     r = bv.pull("TESTUSDT", get=get, log=lambda *_: None)
     assert r["months"] == 3 and r["downloaded"] == 2 and r["errors"] == 1          # the bad checksum is removed, never used
-    assert bv.pull("TESTUSDT", get=_fake_bucket({k: v for k, v in months.items() if "02" not in k}), log=lambda *_: None)["already_held"] == 2
+    assert bv.pull("TESTUSDT", get=_fake_bucket({k: v for k, v in months.items() if "2025-02" not in k}), log=lambda *_: None)["already_held"] == 2
     b = bv.build("TESTUSDT")
     assert b["rows"] == 97 + 60 and b["first_t"] == jan // 1000 and b["last_t"] == jan25 // 1000 + 59 * 60   # header dropped, microseconds fixed
     q = quality.check("TESTUSDT")

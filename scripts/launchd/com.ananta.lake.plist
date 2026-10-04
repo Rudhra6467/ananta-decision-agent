@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Weekly research-lake update (scripts/lake_weekly.sh), Sundays 02:15. Installed by scripts/install_lake_job.sh. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.ananta.lake</string>
+  <key>ProgramArguments</key>
+  <array><string>/bin/zsh</string><string>__REPO__/scripts/lake_weekly.sh</string></array>
+  <key>StartCalendarInterval</key><dict><key>Weekday</key><integer>0</integer><key>Hour</key><integer>2</integer><key>Minute</key><integer>15</integer></dict>
+</dict>
+</plist>

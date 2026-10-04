@@ -126,6 +126,7 @@ def build(symbol: str, interval: str = "1m", market: str = "spot", con=None) -> 
     out = clean_dir(interval, market) / f"symbol={symbol}"
     tmp = Path(tempfile.mkdtemp(prefix=f"lake_{symbol}_"))
     con = con or duckdb.connect()
+    con.execute("SET TimeZone='UTC'")                            # years and days are UTC, whatever the Mac's zone
     try:
         for z in zips:
             with zipfile.ZipFile(z) as zf:

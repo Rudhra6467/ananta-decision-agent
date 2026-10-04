@@ -1,7 +1,8 @@
 """Binance Data Vision (data.binance.vision): free monthly candle files, no key, back to 2017.
 
   months(symbol)     what Binance publishes for a symbol (from the public bucket listing)
-  pull(symbol)       download every month not yet held, each checked against Binance's SHA-256 checksum file
+  pull(symbol)       download every month not yet held, then the daily files after the last month (to yesterday), each checked
+                     against Binance's SHA-256 checksum file
   build(symbol)      raw zips -> clean Parquet (symbol=X/year=Y), timestamps in UTC seconds, numbers as numbers
 
 Notes: from 2025 Binance writes spot timestamps in microseconds (before: milliseconds); both become seconds here. Some files
@@ -82,7 +83,7 @@ def _sha(p: Path) -> str:
     return h.hexdigest()
 
 
-def pull(symbol: str, interval: str = "1m", market: str = "spot", get: Callable = _get, log: Callable = print) -> dict:
+def pull(symbol: str, interval: str = "1m", market: str = "spot", get: Callable = _get, log: Callable = print, daily: bool = True) -> dict:
     """Download every published month not yet held and verified. Returns counts."""
     d = raw_dir(symbol, interval, market)
     d.mkdir(parents=True, exist_ok=True)
@@ -111,7 +112,32 @@ def pull(symbol: str, interval: str = "1m", market: str = "spot", get: Callable 
         man[name] = {"sha256": have, "bytes": f.stat().st_size, "at": int(time.time())}
         man_p.write_text(json.dumps(man, indent=0, sort_keys=True))
         got += 1
-    return {"symbol": symbol, "months": len(ms), "downloaded": got, "already_held": skipped, "errors": bad,
+    # the days after the last monthly file (Binance publishes a month's file a few days after it ends)
+    days = 0
+    if ms and daily:
+        last_m = ms[-1]["month"]
+        keys = dict(list_keys(f"data/{market}/daily/klines/{symbol}/{interval}/", get))
+        for k, size in sorted(keys.items()):
+            m = re.search(r"-(\d{4}-\d{2})-(\d{2})\.zip$", k)
+            if not m or m.group(1) <= last_m or k + ".CHECKSUM" not in keys:
+                continue
+            name = Path(k).name
+            f = d / name
+            if man.get(name) and f.exists() and f.stat().st_size == size:
+                continue
+            r = get(f"{FILES}/{k}", timeout=120)
+            if r.status_code != 200:
+                bad += 1
+                continue
+            f.write_bytes(r.content)
+            if _sha(f) != get(f"{FILES}/{k}.CHECKSUM").text.split()[0].strip():
+                f.unlink()
+                bad += 1
+                continue
+            man[name] = {"sha256": _sha(f), "bytes": f.stat().st_size, "at": int(time.time())}
+            days += 1
+        man_p.write_text(json.dumps(man, indent=0, sort_keys=True))
+    return {"symbol": symbol, "months": len(ms), "downloaded": got, "already_held": skipped, "errors": bad, "days": days,
             "first": ms[0]["month"] if ms else None, "last": ms[-1]["month"] if ms else None}
 
 

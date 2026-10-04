@@ -37,10 +37,14 @@ def daily(symbol: str, until: int | None = None, con=None) -> list[tuple]:
     return [tuple(r) for r in rows]
 
 
+# Token redenominations Binance did not back-adjust (found by review #15 run 1, 2026-10-04): only the history after the swap is used.
+BREAKS = {"COCOSUSDT": 1611446400, "BNXUSDT": 1677110400}   # 2021-01-24, 2023-02-23 (UTC day of the swap)
+
+
 def load(symbols: list[str]) -> dict[str, list[tuple]]:
     out = {}
     for s in symbols:
-        D = daily(s)
+        D = [r for r in daily(s) if r[0] >= BREAKS.get(s, 0)]
         if len(D) >= 120:
             out[base(s)] = D
     return out

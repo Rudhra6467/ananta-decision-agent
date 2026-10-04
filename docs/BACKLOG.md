@@ -11,14 +11,14 @@ The phone note and Ananta's mention in the next conversation follow by themselve
 coin (now answered by the prices lookup, what='coverage': mark DONE after deploy), #3 which timeframe built Hunter's support zone
 (needs the Hunter log in Hands to record the zone's source and edges).
 
-## I. Watches, evidence books and the eye (Madhav, 2026-10-03: "if every watch trades, only then we can measure it") - WAITING on his OK
-1. Hunter's book: one open trade per coin instead of one in total (39 Hunter TAKEs refused by Oct 3), and a shadow for anything refused.
-2. Evidence books per watch: every signal of every watch is a $100 paper trade with its own exits; watches stop competing for
-   slots; one scoreboard per watch (trades, events, win rate, average after costs vs random, worst run, by market regime).
-3. Watch registry: each watch declared once (section, timeframe, trigger: bar close or level cross, entry, exit, size, evidence
-   status, alerts); sections: market weather, coin structure and zones, setups, risk and exits, news and events. Same code for history and live.
-4. The eye: one fast tracker on live prices (every 5-15 s, public price feed) watching levels the slower sections arm (zone edges,
-   breakout levels, stops, a sudden Bitcoin drop). Separate processes only for a watch that needs other data (order book) or heavy compute.
+## I. Watches, evidence books and the eye (Madhav, 2026-10-03: "if every watch trades, only then we can measure it") - OK'd 2026-10-03
+1. DONE in code 2026-10-03, LIVE AFTER MERGE: Hunter's book SD6 v3: one open trade per coin (up to 10) instead of one in total; a
+   refused TAKE when full becomes a shadow. After Madhav merges: fast-forward the main checkout and restart the hourly watch
+   (paper_watch), then check the heartbeat shows paper.exit.sd6.v3.
+2. DONE 2026-10-03: evidence books (daily engine + Explorer would-be trades + SD6 shadows) and one scoreboard (Evidence page, Ask).
+3. DONE 2026-10-03: the watch registry (knowledge/watches.json) with sections; the daily engine runs its daily watches.
+4. DONE 2026-10-03: the eye (live Kraken prices every 10 s): your stops and alerts, Bitcoin shock, zone entries, zone-touch evidence trade.
+   TODO later: move the Explorer and Hunter into the shared engine; add funding rates / open interest.
 5. Portfolio book (the $500 rehearsal): picks among signals with real limits (a few open, 1% risk each, correlation budget).
 6. Then: Madhav's 20-40 setups through the repair shop on history; the ones that pass get a registry slot and trade on paper.
 7. Data for fast decisions: funding rates and open interest (free public feeds) first, order book later.

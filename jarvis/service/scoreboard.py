@@ -202,7 +202,7 @@ def board(j) -> dict:
         b = _baseline_for(w)
         r["baseline"] = b
         r["vs_random_usd"] = round(r["avg_usd"] - base_avg[b], 2) if b and r["avg_usd"] is not None and base_avg.get(b) is not None else None
-        r["verdict"] = ("too early" if r["events"] < MIN_EVENTS else
+        r["verdict"] = ("the bar to beat" if r["section"] == "BASELINES" else "too early" if r["events"] < MIN_EVENTS else
                         "ahead of random" if (r["vs_random_usd"] or 0) > 0 else "not ahead of random")
     out.sort(key=lambda r: (order.get(r["section"], 9), r["id"]))
     t3 = None

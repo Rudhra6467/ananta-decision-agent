@@ -53,9 +53,14 @@ the repair shop (`owner_requests`).
 and the Home feed -> the next work session reads the open ones first (docs/BACKLOG.md) -> its status changes (planned, fixed,
 closed) -> a phone note, and Ananta mentions it once in the next conversation.
 
-## Proposed next (not built yet; see docs/BACKLOG.md section I)
+## Watches, evidence books, the scoreboard and the eye (built 2026-10-03, Madhav's OK)
 
-- **Evidence books per watch**: every signal of every watch becomes a $100 paper trade; watches stop competing for slots; one scoreboard per watch against random, by events.
-- **Watch registry**: every watch declared once (section, timeframe, trigger, entry, exit, size, evidence status, alerts); the same code for history and live.
-- **The eye**: one fast tracker (every 5-15 seconds, live prices) that watches the levels the slower sections arm (zone edges, breakout levels, stops); bar-close rules stay on their bar closes.
+- **The watch registry** (`knowledge/watches.json`): every watch declared once, in sections (market weather, coin structure and zones, setups, risk and exits, news and events, baselines), with its candle, trigger, where it runs, entry, exit, size, evidence book and status. Writing a rule there before it trades is its pre-registration.
+- **Evidence books**: every signal is a $100 paper trade with its own exit. The daily engine (`watch_engine`, after each daily close) runs your setups (M1a, M2a, M2a-G, M3a, M3b), the short dip trade (H07) and three random baselines (one coin a day held 10, 20 or 30 days), with the same entry and exits the history tests used; one trade at a time per watch and coin. The Explorer's blocked signals count as its would-be trades. Hunter's book (SD6 v3) opens one trade per coin and keeps shadows when full (live after Madhav's merge and a restart of the hourly watch).
+- **The scoreboard** (`/v3/scoreboard`, Evidence page, the scoreboard lookup): every trading watch with the same columns against the random baseline with the same holding time, counted by independent events and split by market regime. A watch needs 10 events before it can be called ahead of random.
+- **The eye** (`eye`, inside Jarvis): Kraken's live prices every 10 seconds against your stops and targets (sold at the live price), your price alerts, a sudden Bitcoin drop (2% in 15 minutes), and price entering a support zone (feed; phone when attention is HIGH). A supported zone touched while the market is allowed opens the zone-touch evidence trade (stop half a daily range under the zone, else 20 days). Bar-close rules stay on their closes; the Explorer keeps its 5-minute execution so live and replay stay one engine.
+
+## Proposed next
+
 - **A portfolio book (the $500 rehearsal)** that picks among signals with real limits; this is what goes live later.
+- Move the Explorer setups and Hunter into the shared engine once their books are stable; funding rates and open interest for the eye.

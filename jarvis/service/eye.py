@@ -8,6 +8,8 @@ checks them against the levels the slower sections ARM (docs/knowledge/watches.j
   BTC_SHOCK     Bitcoin down 2% or more within 15 minutes            -> phone note (at most once an hour)
   ZONE_ENTRY    the live price comes down into a support zone        -> feed; phone when the coin's attention is HIGH
   ZONE_TOUCH    ...a zone kind history supports, market allowed      -> a $100 evidence trade (watch_engine), stop checked live
+  MARKET_WARN   Bitcoin's live price crosses its 50-day average      -> phone note (market_shift.live, 12 h per direction)
+  BRAIN         a zone entry wakes Jarvis's brain for a decision; its trades' stops, targets and trailing stops run here
 
 Bar-close rules are NOT checked here: a 15-minute rule cannot change between closes. The Explorer keeps its own execution on
 5-minute candles (so live and history replay stay the same engine). If the ticker cannot be reached, the eye falls back to
@@ -114,7 +116,9 @@ def arm(j) -> dict:
     try:
         btc = _daily(j, "BTC")
         if btc:
-            armed["regime"] = watch_engine.regime_at(R.Series(btc), int(j.now()))
+            B = R.Series(btc)
+            armed["regime"] = watch_engine.regime_at(B, int(j.now()))
+            armed["btc_ema50"] = B.ema50[-1]
         for c in R.COINS:
             D = btc if c == "BTC" else _daily(j, c)
             if D:
@@ -192,6 +196,12 @@ def tick(j, px: dict[str, float], push: Callable | None = None, armed: dict | No
             events.append(_event(j, "ZONE_ENTRY", c, p, f"{c} entered a zone ({kinds})",
                                  f"Price came down into ${bot:,.6g}-{top:,.6g}; history: {z.get('history', 'untested').lower()}. The lookout starts now.",
                                  push if loud else None, {"zone": [bot, top], "kinds": z.get("kinds"), "attention": att}))
+            try:                                                  # the lookout: Jarvis's brain weighs this moment
+                from jarvis.service import brain
+
+                brain.wake(j, c, "zone_entry", {"zone": [bot, top], "kinds": z.get("kinds"), "history": z.get("history"), "attention": att})
+            except Exception as exc:  # noqa: BLE001
+                STATE["last_error"] = f"brain wake: {str(exc)[:100]}"
             # ZONE_TOUCH (registered 2026-10-03): a supported kind, market allowed, one per coin, not the same zone within 20 days
             if z.get("history") == "SUPPORTED" and armed.get("regime") == "ALLOWED":
                 same = False
@@ -220,6 +230,25 @@ def tick(j, px: dict[str, float], push: Callable | None = None, armed: dict | No
                                          f"Stop reached at about ${p:,.6g}: {'+' if r['net_usd'] >= 0 else '-'}${abs(r['net_usd']):.2f} on $100.", None, r))
     except Exception as exc:  # noqa: BLE001
         STATE["last_error"] = f"evidence stops: {str(exc)[:100]}"
+
+    # Jarvis's brain: its trades' (and their random twins') stops, targets and trailing stops on the live price
+    try:
+        from jarvis.service import brain
+
+        for r in brain.manage_live(j, px):
+            if r["watch"] == "JARVIS":
+                events.append(_event(j, "EVIDENCE_EXIT", r["coin"], px.get(r["coin"]), f"Jarvis's trade closed: {r['coin']}",
+                                     f"{r['why'].capitalize()}: {'+' if r['net_usd'] >= 0 else '-'}${abs(r['net_usd']):.2f} on $100.", None, r))
+    except Exception as exc:  # noqa: BLE001
+        STATE["last_error"] = f"brain trades: {str(exc)[:100]}"
+
+    # market shift: Bitcoin's live price against its 50-day average
+    try:
+        from jarvis.service import market_shift
+
+        events += market_shift.live(j, px, armed, push)
+    except Exception as exc:  # noqa: BLE001
+        STATE["last_error"] = f"market shift: {str(exc)[:100]}"
 
     STATE.update(prices=dict(px), last_t=now, source=source, ticks=STATE.get("ticks", 0) + 1)
     return events
@@ -271,5 +300,6 @@ def status(j) -> dict:
             "errors": STATE.get("errors", 0), "last_error": STATE.get("last_error"), "prices": STATE.get("prices"),
             "armed": {"zones": n_zones, "regime": armed.get("regime"), "coins_with_zones": sorted(armed.get("zones") or {})},
             "watching": ["your stops and targets", "your price alerts", "a sudden Bitcoin drop (2% in 15 minutes)",
-                         "price entering a support zone (and the zone-touch evidence trade)"],
+                         "price entering a support zone (and the zone-touch evidence trade)", "Bitcoin crossing its 50-day average",
+                         "Jarvis's own trades: stops, targets and trailing stops"],
             "recent": recent(j, 72, 20)}

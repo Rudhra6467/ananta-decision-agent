@@ -7,8 +7,8 @@ per watch per coin, so a signal that repeats while its trade runs is the same si
 the history tests used (src/research/reads.py), with the same entry (next day's open) and exits, so live results can be put
 next to the repair shop's numbers. Two random baselines (one coin a day, held 10 or 30 days) give the live bar to beat.
 
-Trades from the eye (live level-cross watches, jarvis/service/eye.py) are stored in the same table; their time exits and a
-second check of their stop on daily lows happen here.
+Trades from the eye (live level-cross watches, jarvis/service/eye.py) and from Jarvis's brain (jarvis/service/brain.py) are stored
+in the same table; their time exits and a second check of their stop (and the brain's target) on daily candles happen here.
 
 Paper only: nothing here reaches Hands or an exchange.
 
@@ -144,7 +144,9 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
             out.append({"watch": r["watch"], "coin": coin, "event": "filled"})
         if r["status"] != "OPEN":
             continue
-        if r["source"] == "eye":                              # entered at a live price inside day k: daily checks start the next day
+        live = r["source"] in ("eye", "brain")
+        det = json.loads(r.get("detail") or "{}") if live else {}
+        if live:                                              # entered at a live price inside day k: daily checks start the next day
             k = next((m for m, b in enumerate(D) if b[0] > r["entry_t"]), None)
             if k is None:
                 continue
@@ -154,14 +156,14 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
             if k is None:
                 continue
             k0 = k
-        days = spec.get("days", 30)
+        days = int(det.get("days") or spec.get("days", 30))
         exit_px = exit_t = None
         why = ""
         for d in range(k, len(D)):
-            if r["source"] == "eye" and D[d][0] >= r["entry_t"] + days * DAY:
+            if live and D[d][0] >= r["entry_t"] + days * DAY:
                 exit_px, exit_t, why = D[d][1], D[d][0], f"{days} days"
                 break
-            if r["source"] != "eye" and d == k0 + days:
+            if not live and d == k0 + days:
                 exit_px, exit_t, why = D[d][1], D[d][0], f"{days} days"
                 break
             if r["stop"]:
@@ -171,6 +173,9 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
                 if D[d][3] <= r["stop"]:
                     exit_px, exit_t, why = r["stop"], D[d][0], "stop"
                     break
+            if det.get("target") and D[d][2] >= det["target"]:      # the brain's target, if the eye missed it (daily high)
+                exit_px, exit_t, why = (D[d][1] if D[d][1] >= det["target"] else det["target"]), D[d][0], "target"
+                break
             if spec.get("rsi_exit") and r10[d] is not None and r10[d] > spec["rsi_exit"] and d + 1 < len(D):
                 exit_px, exit_t, why = D[d + 1][1], D[d + 1][0], f"RSI(10) back over {spec['rsi_exit']} on {_day(D[d][0])}"
                 break
@@ -229,7 +234,7 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None) 
         j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (key, str(max(last_done, D[-1][0]))))
     for c, (D, S, r10) in data.items():
         rows = j.db.execute(f"SELECT {', '.join(COLS)} FROM evidence_trades WHERE coin=? AND status IN ('WAITING','OPEN') "
-                            f"AND (watch IN ({','.join('?' * len(names))}) OR source='eye')", (c, *names)).fetchall()
+                            f"AND (watch IN ({','.join('?' * len(names))}) OR source IN ('eye','brain'))", (c, *names)).fetchall()
         for ev in _manage(j, c, D, S, r10, rows):
             (filled if ev["event"] == "filled" else closed).append(ev)
     j.db.commit()

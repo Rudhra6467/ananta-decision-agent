@@ -25,7 +25,8 @@ import threading as _threading  # noqa: E402
 _SANDBOX: contextvars.ContextVar[str | None] = contextvars.ContextVar("jarvis_sandbox", default=None)
 _JG: dict[str, core.Jarvis] = {}
 _JG_LOCK = _threading.Lock()
-SHARED_TABLES = ("snapshots", "briefings", "read_fires", "zone_visits", "news_log", "credit_records", "shadow_h07", "evidence_trades", "eye_events")   # read-only system history the guest should see too (copied, never written back)
+SHARED_TABLES = ("snapshots", "briefings", "read_fires", "zone_visits", "news_log", "credit_records", "shadow_h07", "evidence_trades", "eye_events",
+                 "brain_decisions", "missed_moves", "trade_reviews", "daily_reviews")   # read-only system history the guest should see too (copied, never written back)
 
 
 def _main() -> core.Jarvis:
@@ -61,6 +62,13 @@ def _sync_shared(g: core.Jarvis) -> None:
 
     watch_engine._table(g)
     _eye._table(g)
+    from jarvis.service import brain as _brain
+    from jarvis.service import missed as _missed
+    from jarvis.service import reviews as _reviews
+
+    _brain._table(g)
+    _missed._table(g)
+    _reviews._table(g)
     md = Mandate(g.db, g.now)
     for tbl in SHARED_TABLES:
         try:
@@ -213,6 +221,22 @@ def _start_eye() -> None:
     eye.start(_main, push=lambda t, b: _push(t, b))
 
 
+@app.on_event("startup")
+def _start_watchdog_and_brain() -> None:
+    """The health watchdog (every part every 2 minutes, phone note when one goes quiet) and Jarvis's brain (decisions on the
+    moments the eye and the watches flag, its own paper book)."""
+    import os
+
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return
+    from jarvis.service import brain, health
+
+    if os.getenv("ANANTA_HEALTH", "1") == "1":
+        health.start(_main, push=_push_warn)
+    if os.getenv("BRAIN_ENABLED", "1") == "1":
+        brain.start(_main, push=lambda t, b: _push(t, b))
+
+
 @app.get("/history")
 def history(days: float = 30, who: str = Depends(owner)) -> dict:
     return J().history(days)
@@ -225,7 +249,12 @@ def coin(sym: str, who: str = Depends(owner)) -> dict:
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "version": core.VERSION}
+    import time as _t
+
+    from jarvis.service import health as _h
+
+    last = _h.STATE.get("last_run")
+    return {"ok": True, "version": core.VERSION, "health_checks_s_ago": round(_t.time() - last) if last else None}
 
 
 @app.post("/auth/login")
@@ -441,6 +470,34 @@ def eye_status(who: str = Depends(owner)) -> dict:
     from jarvis.service import eye
 
     return eye.status(_main())
+
+
+@app.get("/v3/health/parts")
+def health_parts(who: str = Depends(owner)) -> dict:
+    from jarvis.service import health as _h
+
+    return _h.status(_main())
+
+
+@app.get("/v3/brain")
+def brain_report(days: int = 30, who: str = Depends(owner)) -> dict:
+    from jarvis.service import brain
+
+    return brain.report(J(), days)
+
+
+@app.get("/v3/missed")
+def missed_moves(days: int = 7, who: str = Depends(owner)) -> dict:
+    from jarvis.service import missed
+
+    return missed.recent(J(), days)
+
+
+@app.get("/v3/reviews")
+def trade_reviews(days: int = 7, who: str = Depends(owner)) -> dict:
+    from jarvis.service import reviews
+
+    return {**reviews.recent_reviews(J(), days), "evenings": reviews.latest(J(), 3)}
 
 
 @app.get("/v3/shadow/h07")
@@ -697,8 +754,19 @@ def _push(title: str, body: str):
     return push_phone(title, body, level="EVENT")
 
 
+def _push_warn(title: str, body: str):
+    from src.intelligence.paper_watch import push_phone
+
+    return push_phone(title, body, level="WARN")
+
+
 def background_jobs() -> dict:
     """Every 15 minutes: check alerts (no AI cost); write the morning / evening brief once each (free model)."""
+    import time as _t
+
+    from jarvis.service import health as _health
+
+    _health.STATE["jobs_t"] = _t.time()
     ex = J()._explorer()
     out = {"fired": AL().check(ex, push=_push), "manual_stops": MN().check_stops(ex.prices() if ex else {}, push=_push)}
     try:
@@ -725,6 +793,33 @@ def background_jobs() -> dict:
         out["daily_watches"] = watch_engine.run(J())                  # your setups, the short dip trade, random baselines, zone-touch exits
     except Exception as exc:  # noqa: BLE001
         out["daily_watches_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import market_shift
+
+        out["market_shift"] = market_shift.close(J(), push=_push)    # did the daily close flip the market regime?
+    except Exception as exc:  # noqa: BLE001
+        out["market_shift_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import brain
+
+        out["brain_woke"] = brain.scan(J(), (out.get("daily_watches") or {}).get("opened"))   # moments for Jarvis's brain
+        out["brain_passes_scored"] = brain.settle_passes(J())
+    except Exception as exc:  # noqa: BLE001
+        out["brain_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import missed
+
+        if _t.time() % 86400 >= 1800:                                  # half an hour after the daily close: yesterday's biggest moves
+            out["missed"] = missed.run(J())
+    except Exception as exc:  # noqa: BLE001
+        out["missed_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import reviews
+
+        out["trade_reviews"] = reviews.review_closed(J())
+        out["evening_review"] = reviews.evening(J(), push=_push)
+    except Exception as exc:  # noqa: BLE001
+        out["reviews_error"] = str(exc)[:200]
     try:
         from jarvis.service import credit
 

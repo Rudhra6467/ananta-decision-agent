@@ -37,7 +37,9 @@ coin (now answered by the prices lookup, what='coverage': mark DONE after deploy
    TODO: test the lower-turnover T3 in the repair shop before live.
 6. TODO when the brain has evidence: let it see funding rates and open interest; let a PROMOTED pattern from the misses become a
    registered watch.
-7. LATER the big-data pipeline (100-120 coins, all history, tiers 10 traded / 30-50 paper / 100-120 research).
+7. DOING (Madhav's plan, 2026-10-04) the full crypto universe: lake built (src/lake), 5-coin test done and matching the old data;
+   next: universe rule v1 ranking, download of all chosen coins, review #15 (T3, H07, your setups on LAB10 / TOP30 / ALL), then
+   the watches and the layer map updated from what passes; R2 bucket when Madhav creates it; nightly incremental update job.
 
 ## V. Voice and Jarvis (Madhav, 2026-10-03: "smooth, light, a human touch"; "straight: ask me, confirm me, correct me")
 1. DONE 2026-10-03: answer first, no stock openers, name once, spoken names not codes, rounded numbers, caveats once, a view when

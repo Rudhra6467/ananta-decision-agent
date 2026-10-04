@@ -62,7 +62,7 @@ KNOWLEDGE = [
     ("M2A_G", "PROMISING", "Madhav's higher-low retest with the market allowed: 11 of 12 up after 30 days, +20% average, one event short of the bar (review #8)."),
     ("READS", "NOT_BETTER", "Madhav's three setups caught all four of his buys, but on their own were not better than a random day in 2018-23 (review #5)."),
     ("EXPLORER", "FAILED", "The 15-minute Explorer setups lost money after costs over 7 years; zones do not rescue hours-long trades (review #9); costs are the whole loss."),
-    ("COSTS", "FACT", "Paper costs: NDAX 0.20% plus half the spread each side, about 0.5% for a round trip. A plan whose likely move is a few tenths of a percent cannot pay."),
+    ("COSTS", "FACT", "Paper costs: NDAX 0.20% plus half the spread each side, so 0.5-1% for a round trip depending on the coin (costs_round_trip_pct in the pack). A plan whose likely move is a few tenths of a percent cannot pay."),
     ("TEACHER_50D", "FAILED", "A dip to the 50-day average did worse than an ordinary uptrend day (review #11)."),
     ("BREAKOUT_VOL", "WEAK", "Breakouts through zones on volume were positive in both periods but not reliable (review #11)."),
     ("STOP_ZONE", "RULE", "The stop for a zone trade: a daily close half a daily range under the zone (the decision chain)."),

@@ -1,13 +1,17 @@
 """The health watchdog (Madhav, 2026-10-04: a must-have before live): every part of Ananta checked every 2 minutes, a phone
 note when one goes quiet and another when it is back.
 
-  explorer      the 15-minute Explorer's state file was written in the last 35 minutes
+  explorer      the 15-minute Explorer made a real scan in the last 35 minutes (its decision log; a state write without a scan,
+                as during the Oct 4-5 night when Hands' login failed for 8.5 hours, no longer counts as healthy)
   hourly_watch  the hourly watch wrote a heartbeat in the last 80 minutes, and the last two were not errors
   eye           the eye looked at live prices in the last 2 minutes (and on Kraken, not the fallback)
   jobs          Jarvis's 15-minute jobs (alerts, daily watches, news, requests) ran in the last 25 minutes
   candles       the latest closed daily candle is in the Explorer's store (at most 2 days and 3 hours old)
   voice         the Mac's voice server answers and has its voice loaded
   hands         Hands (the App backend) answers /health
+  hands_login   Hands accepts the agent's login (what the Explorer and the hourly watch need to read the kill switch and trade);
+                skipped when no credentials are set
+  tier30        the 30-coin paper tier pulled its daily candles and decided after the last daily close (from 01:00 UTC)
   tunnel        the public address (api.livetrading247.com) reaches Jarvis
   disk          at least 5 GB free
 
@@ -33,7 +37,8 @@ REMIND_S = 3 * 3600
 MIN_FREE_GB = 5.0
 NAMES = {"explorer": "the 15-minute Explorer", "hourly_watch": "the hourly watch (Hunter's book)", "eye": "the eye (live prices)",
          "jobs": "Jarvis's 15-minute jobs", "candles": "the daily candles", "voice": "the voice server", "hands": "Hands (the App backend)",
-         "tunnel": "the public address (tunnel)", "disk": "disk space"}
+         "tunnel": "the public address (tunnel)", "disk": "disk space", "hands_login": "Hands login (the agent's access)",
+         "tier30": "the 30-coin paper tier"}
 FIX = {"explorer": "Restart it from the main checkout (RUNBOOK_SAFETY.md, 'Explorer').",
        "hourly_watch": "Restart paper_watch from the main checkout (RUNBOOK_SAFETY.md, 'hourly watch').",
        "eye": "Restart Jarvis (deploy_jarvis.sh) if it stays down.",
@@ -42,7 +47,10 @@ FIX = {"explorer": "Restart it from the main checkout (RUNBOOK_SAFETY.md, 'Explo
        "voice": "launchctl kickstart -k gui/$(id -u)/com.ananta.voice",
        "hands": "Check the App backend (Hands) on port 8001.",
        "tunnel": "Check cloudflared (the tunnel) on the Mac.",
-       "disk": "Free some disk space on the Mac."}
+       "disk": "Free some disk space on the Mac.",
+       "hands_login": "Hands answers but refuses the login: check its database connection (MongoDB) and the internet; the Explorer "
+                      "and the hourly watch stand still until it works (they cannot read the kill switch).",
+       "tier30": "Check Jarvis's daily jobs (tier30.run after the daily close) and the internet (Binance daily candles)."}
 STATE: dict[str, Any] = {"last_run": None, "jobs_t": None, "running": False, "parts": {}}
 _lock = threading.Lock()
 
@@ -56,6 +64,14 @@ def _get(url: str, timeout: float = 6.0) -> tuple[int, Any]:
     except ValueError:
         body = r.text[:200]
     return r.status_code, body
+
+
+def _login(base: str, email: str, pw: str) -> int:
+    """Status code of a real login to Hands (the token is never kept or shown)."""
+    import requests
+
+    r = requests.post(base.rstrip("/") + "/api/auth/login", json={"email": email, "password": pw}, timeout=10)
+    return r.status_code
 
 
 def _age(t: float | None, now: float) -> float | None:
@@ -74,9 +90,21 @@ def checks(j, get: Callable = _get, now: float | None = None) -> dict[str, dict]
     d = Path(j.dir)
     out: dict[str, dict] = {}
 
-    p = d / "explorer_state.pkl"
+    p = d / "explorer_decisions.jsonl"
     if p.exists():
-        a = _age(p.stat().st_mtime, now)
+        last_t = None
+        try:
+            with open(p, "rb") as f:                                   # the last line: the most recent scan
+                f.seek(0, 2)
+                f.seek(max(0, f.tell() - 4096))
+                tail = f.read().decode(errors="ignore").strip().splitlines()
+            last_t = json.loads(tail[-1]).get("t") if tail else None
+        except (OSError, ValueError):
+            last_t = None
+        a = _age(last_t, now)                                      # t = when the scan ran
+        out["explorer"] = {"ok": a is not None and a < 35 * 60, "detail": f"last real scan {_mins(a)} ago"}
+    elif (d / "explorer_state.pkl").exists():
+        a = _age((d / "explorer_state.pkl").stat().st_mtime, now)
         out["explorer"] = {"ok": a < 35 * 60, "detail": f"last write {_mins(a)} ago"}
 
     hb = d / "watch_heartbeat.jsonl"
@@ -130,6 +158,28 @@ def checks(j, get: Callable = _get, now: float | None = None) -> dict[str, dict]
             out[part] = {"ok": ok, "detail": "answers" if ok else f"HTTP {code}"}
         except Exception as exc:  # noqa: BLE001
             out[part] = {"ok": False, "detail": f"no answer ({type(exc).__name__})"}
+
+    email, pw = os.getenv("ANANTA_EMAIL"), os.getenv("ANANTA_PASSWORD")
+    if email and pw and os.getenv("ANANTA_HANDS_LOGIN_CHECK", "1") == "1":
+        try:
+            code = _login(os.getenv("ANANTA_BASE_URL", "http://127.0.0.1:8001"), email, pw)
+            out["hands_login"] = {"ok": code == 200, "detail": "login works" if code == 200 else f"login refused (HTTP {code})"}
+        except Exception as exc:  # noqa: BLE001
+            out["hands_login"] = {"ok": False, "detail": f"no answer to login ({type(exc).__name__})"}
+
+    t30 = d / "tier30_bars.sqlite"
+    if t30.exists() and time.gmtime(now).tm_hour >= 1:
+        import sqlite3
+
+        con = sqlite3.connect(f"file:{t30}?mode=ro", uri=True, timeout=10)
+        try:
+            row = con.execute("SELECT v FROM meta WHERE k='done_day'").fetchone()
+        finally:
+            con.close()
+        today = int(now // 86400 * 86400)
+        done = int(row[0]) if row else None
+        out["tier30"] = {"ok": done is not None and done >= today, "detail": "daily candles pulled today" if done and done >= today else
+                         ("daily candles last pulled " + (time.strftime("%Y-%m-%d", time.gmtime(done)) if done else "never"))}
 
     try:
         free = shutil.disk_usage(str(d)).free / 1e9

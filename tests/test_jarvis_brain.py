@@ -74,6 +74,30 @@ def test_health_goes_down_after_two_fails_reminds_and_comes_back(tmp_path):
     assert health.outages(j, now["t"] - 10)[0]["up_t"]
 
 
+def test_health_sees_a_silent_explorer_and_a_refused_login(tmp_path, monkeypatch):
+    """The night of Oct 4-5: Hands refused every login for 8.5 hours; the Explorer kept writing its state file but made no scan.
+    Both must show as DOWN (Madhav 2026-10-05)."""
+    from jarvis.service import health
+
+    now = {"t": 2_000_000_000}
+    j = _j(tmp_path, now)
+    st = tmp_path / "explorer_state.pkl"
+    st.write_text("x")
+    os.utime(st, (now["t"] - 60, now["t"] - 60))                            # state written a minute ago...
+    (tmp_path / "explorer_decisions.jsonl").write_text(json.dumps({"t": now["t"] - 3 * 3600, "coin": "BTC"}) + "\n")   # ...last scan 3h ago
+    monkeypatch.setenv("ANANTA_EMAIL", "a@b.c")
+    monkeypatch.setenv("ANANTA_PASSWORD", "x")
+    monkeypatch.setattr(health, "_login", lambda base, e, p: 500)
+    get = lambda url, timeout=5: (200, {"ok": True})                        # noqa: E731  Hands still "answers"
+    r = health.checks(j, get=get, now=now["t"])
+    assert not r["explorer"]["ok"] and "last real scan" in r["explorer"]["detail"]
+    assert r["hands"]["ok"] and not r["hands_login"]["ok"] and "500" in r["hands_login"]["detail"]
+    (tmp_path / "explorer_decisions.jsonl").write_text(json.dumps({"t": now["t"] - 600, "coin": "BTC"}) + "\n")
+    monkeypatch.setattr(health, "_login", lambda base, e, p: 200)
+    r = health.checks(j, get=get, now=now["t"])
+    assert r["explorer"]["ok"] and r["hands_login"]["ok"]
+
+
 def test_outside_watchdog_rings_when_jarvis_is_down(tmp_path, monkeypatch):
     import importlib.util
 
@@ -246,14 +270,15 @@ def test_missed_moves_label_and_repeats_become_a_request(tmp_path):
     assert missed.run(j)["done_before"]
     # the same kind of miss four more times in 30 days -> one request (once)
     for k in range(4):
-        j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                      (f"x{k}", r["day"], "ADA", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, j.db.execute(
-                         "SELECT pattern FROM missed_moves WHERE coin='SOL'").fetchone()[0], ""))
+                         "SELECT pattern FROM missed_moves WHERE coin='SOL'").fetchone()[0], "", "LIVE10"))
     logged = []
     f = missed._repeats(j, log_request=lambda t: logged.append(t) or {"num": 9})
     assert f and f[0]["request"] == 9 and "keep missing" in logged[0]
     assert missed._repeats(j, log_request=lambda t: logged.append(t) or {"num": 10}) == []
     assert missed.patterns(j)[0]["times"] == 5 and missed.recent(j, 3)["counts"]["MISSED"] == 5
+    assert missed.patterns(j, tier="T30") == [] and missed.recent(j, 3)["tier30"]["counts"]["MISSED"] == 0   # tiers counted apart
 
 
 # ---------------------------------------------------------------------------

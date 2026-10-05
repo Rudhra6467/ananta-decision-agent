@@ -120,18 +120,26 @@ def _engine(j) -> list[dict]:
 # ---------------------------------------------------------------------------
 # stats
 # ---------------------------------------------------------------------------
-def _events(rows: list[dict], daily: bool) -> int:
-    """Independent market moves: daily watches = entries within 3 days (any coin) are one event (the repair shop's rule);
-    15-minute / hourly watches = exits within an hour are one move."""
-    key = "entry_t" if daily else "exit_t"
-    gap = 3 * DAY if daily else 3600
-    ts = sorted(int(r.get(key) or 0) for r in rows)
+def independent_events(ts: list[int], daily: bool) -> int:
+    """Independent market moves, counted conservatively (Madhav, requests 5-6: correlated coins in one move are one bet):
+    daily watches = entries within 3 days of each other (any coin) are one event (the repair shop's rule);
+    15-minute / hourly watches = everything closing on the same UTC day is one event, and so are exits less than an hour apart
+    across midnight."""
+    ts = sorted(int(t or 0) for t in ts)
     n, last = 0, None
     for t in ts:
-        if last is None or t - last > gap:
+        if daily:
+            new = last is None or t - last > 3 * DAY
+        else:
+            new = last is None or (t // DAY != last // DAY and t - last > 3600)
+        if new:
             n += 1
         last = t
     return n
+
+
+def _events(rows: list[dict], daily: bool) -> int:
+    return independent_events([r.get("entry_t" if daily else "exit_t") for r in rows], daily)
 
 
 def stats(rows: list[dict], daily: bool) -> dict:

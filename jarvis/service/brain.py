@@ -629,6 +629,10 @@ def manage_live(j, px: dict[str, float]) -> list[dict]:
             new = stop
             if d.get("trail_atr") and d.get("atr"):
                 new = max(stop or 0, p - d["trail_atr"] * d["atr"])
+            if new != stop:            # the only change a plan allows after it is written: its own trailing rule, logged (request 12)
+                moves = d.setdefault("stop_moves", [])
+                if len(moves) < 200:
+                    moves.append({"t": int(j.now()), "from": stop, "to": round(new, 8), "rule": f"trail {d['trail_atr']} x ATR under the high"})
             j.db.execute("UPDATE evidence_trades SET stop=?, detail=? WHERE id=?", (new, json.dumps(d, default=str), tid))
     j.db.commit()
     return out

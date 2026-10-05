@@ -244,6 +244,12 @@ def build(j) -> dict:
             parts.append("Outages today: " + ", ".join(f"{o['name']} ({_dur(o)})" for o in outs[:4]) + ".")
     except Exception as exc:  # noqa: BLE001
         out["health_error"] = str(exc)[:120]
+    try:                                                     # the 30-coin paper tier, said separately (Madhav, request 9)
+        out["tier30"] = _tier30_line(j, d0)
+        if out["tier30"].get("text"):
+            parts.append(out["tier30"]["text"])
+    except Exception as exc:  # noqa: BLE001
+        out["tier30_error"] = str(exc)[:120]
     try:
         from jarvis.service import zones_watch
 
@@ -256,6 +262,35 @@ def build(j) -> dict:
         pass
     out["text"] = " ".join(parts)
     return out
+
+
+def _tier30_line(j, d0: int) -> dict:
+    """The 30-coin tier's day: its T3-B book, today's buys and sells, the H07-T30 dip trades."""
+    import sqlite3
+    from pathlib import Path
+
+    p = Path(j.dir) / "portfolio_book_t30.sqlite"
+    if not p.exists():
+        return {}
+    con = sqlite3.connect(f"file:{p}?mode=ro", uri=True, timeout=10)
+    try:
+        book = con.execute("SELECT json FROM books WHERE name='MAIN'").fetchone()
+        fills = [json.loads(x) for (x,) in con.execute("SELECT json FROM fills WHERE t >= ?", (d0,))]
+        last = con.execute("SELECT json FROM decisions ORDER BY day_t DESC LIMIT 1").fetchone()
+    finally:
+        con.close()
+    held = sorted(c for c, u in (json.loads(book[0]).get("units", {}) if book else {}).items() if u > 0)
+    buys = sorted({f["coin"] for f in fills if f["side"] == "BUY"})
+    sells = sorted({f["coin"] for f in fills if f["side"] == "SELL"})
+    h07 = j.db.execute("SELECT coin, status, net_usd FROM evidence_trades WHERE watch='H07-T30' AND (signal_t >= ? OR exit_t >= ?)", (d0, d0)).fetchall()
+    gate = (json.loads(last[0]).get("btc_gate") if last else None)
+    words = [f"30-coin tier: the trend book holds {len(held)} of 29 coins"]
+    if buys or sells:
+        words.append(f"today it bought {', '.join(buys[:5]) or 'nothing'} and sold {', '.join(sells[:5]) or 'nothing'}")
+    if gate is False:
+        words.append("the Bitcoin gate is closed, so it is in cash")
+    words.append(f"{len(h07)} short dip trade signal{'s' if len(h07) != 1 else ''} today" if h07 else "no short dip trade signal today")
+    return {"held": len(held), "buys": buys, "sells": sells, "h07_today": len(h07), "text": "; ".join(words) + "."}
 
 
 def evening(j, push=None, force: bool = False) -> dict | None:

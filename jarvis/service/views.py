@@ -711,14 +711,11 @@ def _outcomes(ex) -> list[dict]:
 
 
 def _events_count(rows: list[dict], gap_s: int = 3600) -> int:
-    """Independent events: exits less than an hour apart (any coin) are one market move, not separate evidence."""
-    ts = sorted(int(r["exit_t"] or 0) for r in rows)
-    n, last = 0, None
-    for t in ts:
-        if last is None or t - last > gap_s:
-            n += 1
-        last = t
-    return n
+    """Independent events: everything closing on the same UTC day (any coin) is one market move, not separate evidence
+    (the scoreboard's rule, scoreboard.independent_events)."""
+    from jarvis.service.scoreboard import independent_events
+
+    return independent_events([r["exit_t"] for r in rows], daily=False)
 
 
 def _summ(rows: list[dict]) -> dict:
@@ -823,7 +820,7 @@ def evidence_pipeline(j) -> dict:
     results = {"real": _summ(real), "would_be": _summ(wouldbe), "no_type": _summ(notype), "random": _summ(rnd), "open_real": open_real, "by_setup": by_setup,
                "since_wide": _summ([r for r in real if since_w1 and (r["exit_t"] or 0) >= since_w1]) if since_w1 else None,
                "read_this": "Compare the average per trade with the random entries: a setup is only useful if it beats random after costs. "
-                            "'Events' counts market moves: trades closing within an hour of each other are one piece of evidence."}
+                            "'Events' counts market moves: everything closing on the same day is one piece of evidence."}
 
     # 5. rebuild and other traders
     rebuild = {"match": recon.get("match") if recon else None, "real_events": recon.get("logged_real_events") if recon else 0,

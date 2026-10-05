@@ -127,3 +127,29 @@ def test_r2_sync_uploads_only_what_changed(tmp_path, monkeypatch):
     assert r2.sync(s3=S3(), log=lambda *_: None)["uploaded"] == 0
     (tmp_path / "reports" / "q.json").write_text('{"v": 2}')
     assert r2.sync(s3=S3(), log=lambda *_: None)["uploaded"] == 1
+
+
+def test_quality_flags_a_token_swap_and_research_refuses_it(tmp_path, monkeypatch):
+    """A x100 jump in one candle (a redenomination Binance did not back-adjust) grades C and blocks research (2026-10-05)."""
+    import pytest
+
+    from src.lake import binance_vision as bv
+    from src.lake import quality
+    from src.lake import research as L
+
+    monkeypatch.setenv("ANANTA_LAKE", str(tmp_path))
+    p = "data/spot/monthly/klines/SWAPUSDT/1m/"
+    jan = 1_704_067_200_000
+    rows = []
+    for i in range(100):
+        t, k = jan + 60_000 * i, (100 if i >= 60 else 1)              # from minute 60 every price is 100x: the swap
+        p0 = (100 + i * 0.01) * k
+        rows.append(f"{t},{p0},{p0 * 1.005},{p0 * 0.995},{p0 * 1.001},1.5,{t + 59_999},150,10,0.7,70,0")
+    bv.pull("SWAPUSDT", get=_fake_bucket({p + "SWAPUSDT-1m-2024-01.zip": _zip("SWAPUSDT-1m-2024-01.zip", rows)}), log=lambda *_: None)
+    bv.build("SWAPUSDT")
+    q = quality.check("SWAPUSDT")
+    assert q["grade"] == "C" and len(q["suspect_redenominations"]) == 1 and q["suspect_redenominations"][0]["ratio"] > 90
+    with pytest.raises(ValueError, match="token swap"):
+        L.load(["SWAPUSDT"])
+    monkeypatch.setitem(L.BREAKS, "SWAPUSDT", q["suspect_redenominations"][0]["t"] + 60)
+    assert L.unhandled_suspects("SWAPUSDT") == []

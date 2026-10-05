@@ -41,9 +41,22 @@ def daily(symbol: str, until: int | None = None, con=None) -> list[tuple]:
 BREAKS = {"COCOSUSDT": 1611446400, "BNXUSDT": 1677110400}   # 2021-01-24, 2023-02-23 (UTC day of the swap)
 
 
+def unhandled_suspects(symbol: str) -> list[dict]:
+    """Suspect redenominations in the coin's quality report that BREAKS does not already cut away."""
+    p = root() / "reports" / "quality" / f"spot_1m_{symbol}.json"
+    if not p.exists():
+        return []
+    sus = json.loads(p.read_text()).get("suspect_redenominations") or []
+    return [x for x in sus if x["t"] >= BREAKS.get(symbol, 0)]
+
+
 def load(symbols: list[str]) -> dict[str, list[tuple]]:
     out = {}
     for s in symbols:
+        bad = unhandled_suspects(s)
+        if bad:
+            raise ValueError(f"{s}: possible token swap(s) {[(x['at'], x['ratio']) for x in bad]} - check it, then add the swap day "
+                             f"to BREAKS (history after it only) or confirm the move is real, before any research uses this coin")
         D = [r for r in daily(s) if r[0] >= BREAKS.get(s, 0)]
         if len(D) >= 120:
             out[base(s)] = D

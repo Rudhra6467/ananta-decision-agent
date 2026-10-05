@@ -53,18 +53,20 @@ _lock = threading.Lock()
 # them. Kept in step with docs/KNOWLEDGE_INDEX.md and knowledge/PLAYBOOK.md (a test checks the ids are unique).
 KNOWLEDGE = [
     ("REGIME", "PASSED", "Bitcoin above its 50-day average = market allowed. Inside support zones 68% held when allowed vs 50% when not (review #7). The strongest single fact we have."),
-    ("T3", "PASSED", "Trend portfolio: coins in their own uptrend while Bitcoin is above its 50-day, 20-day exit: 2024-26 +13% while buy-and-hold lost 22%, half the drawdown (review #4)."),
-    ("ZONES", "PASSED", "Support zones hold a little more often than random price bands; the 200-day average, overlapping zones and new swing zones pass (review #6). Entering a zone is not a trade by itself."),
+    ("T3", "PASSED", "Trend portfolio: coins in their own uptrend while Bitcoin is above its 50-day, 20-day exit. Confirmed on the lake: 10 coins and the 30 most-traded coins pass (2024-26 +19% vs buy-and-hold -24% on the 30); on all 120 coins it only cut losses (-14% vs -66%) (reviews #4, #15). Re-sizing only coins far from their share (T3-B) is a little better (review #20). Its crash insurance is the Bitcoin gate: fully in cash through LUNA (review #18)."),
+    ("ZONES", "PASSED", "Support zones hold a little more often than random price bands. On 120 coins the 200-day average and new swing zones pass (z 4.4); overlapping zones no longer do (reviews #6, #16). Entering a zone is not a trade by itself."),
     ("LOOKOUT", "FAILED", "Inside a zone, the day's wick, a close back above, volume, divergence and relative strength added nothing beyond arithmetic (review #7)."),
     ("EXITS", "PASSED", "Selling at the next zone cut the winners (0% vs +5.8% for holding 20 days): gains come from a few big moves; the stop goes beyond the zone, the next zone is a review point, not a target (review #10)."),
     ("TRAIL", "MIXED", "Looser trailing exits won big in 2018-23 and lost in 2024-26; a 20-day time exit survived both (review #12)."),
-    ("H07", "PROMISING", "Short RSI dip: RSI(10) under 30 while above the 200-day, exit when RSI(10) is back over 40 or after 10 days: +3.9% / +5.6% per trade, about 70% wins in both periods, a few events short of the bar (reviews #13-14)."),
-    ("M2A_G", "PROMISING", "Madhav's higher-low retest with the market allowed: 11 of 12 up after 30 days, +20% average, one event short of the bar (review #8)."),
+    ("H07", "PASSED_LIQUID", "Short RSI dip: RSI(10) under 30 while above the 200-day, exit when RSI(10) is back over 40 or after 10 days. Passes on the 30 most-traded coins (+6.0% / +3.6% over ordinary uptrend days, z 3.5 / 3.2), fails on all 120: a liquid-coin edge (reviews #14, #15). Works best with no stop; if a stop is required use a structural one, never a tight 3% (review #18)."),
+    ("M2A_G", "DROPPED", "Madhav's higher-low retest with the market allowed looked promising on 10 coins (review #8) but was not supported on 30 or 120 coins (review #15). M1a capitulation passed on 120 coins right on the bar (3 recent events)."),
     ("READS", "NOT_BETTER", "Madhav's three setups caught all four of his buys, but on their own were not better than a random day in 2018-23 (review #5)."),
     ("EXPLORER", "FAILED", "The 15-minute Explorer setups lost money after costs over 7 years; zones do not rescue hours-long trades (review #9); costs are the whole loss."),
     ("COSTS", "FACT", "Paper costs: NDAX 0.20% plus half the spread each side, so 0.5-1% for a round trip depending on the coin (costs_round_trip_pct in the pack). A plan whose likely move is a few tenths of a percent cannot pay."),
     ("TEACHER_50D", "FAILED", "A dip to the 50-day average did worse than an ordinary uptrend day (review #11)."),
     ("BREAKOUT_VOL", "WEAK", "Breakouts through zones on volume were positive in both periods but not reliable (review #11)."),
+    ("STOPS", "SUPPORTED", "A stop 1 ATR under the structure beats a tight percent stop: a 3% stop was hit in 70-85% of dip trades (review #18, H14)."),
+    ("FILTERS", "FAILED", "Filtering coins by strength against Bitcoin hurt the trend portfolio in both periods; market breadth helped 2024-26 but hurt 2018-23 (review #17). Do not require a coin to beat Bitcoin."),
     ("STOP_ZONE", "RULE", "The stop for a zone trade: a daily close half a daily range under the zone (the decision chain)."),
     ("NEWS", "RULE", "Check the news before buying (Madhav's lesson L1, Yes Bank): real damage news on the coin itself is a red flag."),
     ("MISSED", "CANDIDATE", "Patterns from the moves we keep missing (the missed-move loop): picked after the fact, so they are ideas to test on paper, not proof."),
@@ -274,6 +276,19 @@ def pack(j, coin: str, triggers: dict) -> dict:
         p["moves_we_keep_missing"] = missed.patterns(j, 30)[:5]
     except Exception:  # noqa: BLE001
         pass
+    try:
+        from jarvis.service import universe
+
+        u = universe.card(j, coin)
+        if u.get("in_universe"):
+            p["universe"] = {"tiers": u["tiers"], "what_ananta_does": u["what_ananta_does"], "ndax": u["ndax"],
+                             "history_since": u["history"]["first"], "data_grade": u["history"]["quality_grade"],
+                             "from_all_time_high_pct": (u.get("now") or {}).get("from_ath_pct"),
+                             "volatility_1y_pct": (u.get("now") or {}).get("volatility_1y_pct"),
+                             "buying_pressure": u.get("buying_pressure"), "futures_context": u.get("futures_context"),
+                             "paper_tier_30": u.get("paper_tier_30")}
+    except Exception as exc:  # noqa: BLE001
+        p["universe_error"] = str(exc)[:100]
     p["knowledge"] = [{"id": k, "status": s, "what": w} for k, s, w in KNOWLEDGE]
     p["my_record"] = record(j)
     p["red_flags_enforced_by_code"] = RED_FLAGS

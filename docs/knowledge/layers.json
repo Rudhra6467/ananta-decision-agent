@@ -723,7 +723,8 @@
     "src/research/t3_turnover.py",
     "docs/research/REVIEW_20_RESULTS.md",
     "src/research/review17.py",
-    "src/research/review18.py"
+    "src/research/review18.py",
+    "src/research/review21.py"
    ]
   },
   {
@@ -1488,6 +1489,64 @@
     "src/lake/universe.py",
     "src/lake/research.py",
     "src/lake/r2.py"
+   ]
+  },
+  {
+   "id": "UNIVERSE_120",
+   "name": "The 120-coin universe the agent knows (lake agent pack + universe lookup)",
+   "layer": 1,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "LAKE"
+   ],
+   "feeds": [
+    "ASK",
+    "BRAIN"
+   ],
+   "evidence": "Madhav 2026-10-05: the agent must know the 120 coins like the 10. The lake writes ~/ananta_lake/agent (universe.json + daily.sqlite) after each update; Ask's universe and prices lookups and the brain's pack read it. Three levels: LIVE 10, PAPER TIER 30, RESEARCH 120.",
+   "files": [
+    "src/lake/agent_pack.py",
+    "jarvis/service/universe.py",
+    "tests/test_universe.py"
+   ]
+  },
+  {
+   "id": "FUTURES_CONTEXT",
+   "name": "Futures funding rates and open interest (Binance Data Vision)",
+   "layer": 2,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "UNIVERSE_120"
+   ],
+   "feeds": [
+    "ASK",
+    "BRAIN"
+   ],
+   "evidence": "Context only until review #19 decides.",
+   "files": [
+    "src/lake/futures.py"
+   ]
+  },
+  {
+   "id": "PIT_UNIVERSE",
+   "name": "Point-in-time top 30 (survivorship check, review #22)",
+   "layer": 7,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "LAKE"
+   ],
+   "feeds": [
+    "EVIDENCE"
+   ],
+   "evidence": "Month-by-month top 30 using only earlier months, so collapsed coins (LUNA, FTT) are not left out.",
+   "files": [
+    "src/lake/pit.py"
    ]
   }
  ],

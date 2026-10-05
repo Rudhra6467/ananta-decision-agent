@@ -55,11 +55,19 @@ def pull_funding(coin: str, get=bv._get) -> dict:
         return {"coin": coin, "symbol": None, "note": "no futures market"}
     keys = [k for k, _ in bv.list_keys(f"{PREFIX}/monthly/fundingRate/{sym}/", get=get) if k.endswith(".zip")]
     rows, errors = [], 0
-    for k in keys:
+
+    def one(k):
         try:
-            rows += [(int(r[0]) // 1000, float(r[2])) for r in _zip_rows(get(f"{bv.FILES}/{k}").content)]
+            return [(int(r[0]) // 1000, float(r[2])) for r in _zip_rows(get(f"{bv.FILES}/{k}").content)]
         except Exception:  # noqa: BLE001
-            errors += 1
+            return None
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        for got in pool.map(one, keys):
+            if got is None:
+                errors += 1
+            else:
+                rows += got
     df = pd.DataFrame(rows, columns=["t", "rate"]).drop_duplicates("t")
     df["day"] = df["t"] // 86400 * 86400
     daily = df.groupby("day").agg(funding=("rate", "mean"), n=("rate", "size")).reset_index().rename(columns={"day": "t"})

@@ -3,6 +3,11 @@
 Pre-registration: `REVIEW_18.md` (35a364a). Code: `src/research/review18.py`; the disaster stop is an option of
 `t3_turnover.simulate` (T3-B parity with the paper book unchanged). Output: `~/ananta_lake/reports/review18_results.json`.
 
+> **Correction (2026-10-05, same day).** The pre-registration said the 120-coin tier holds "the delisted crash coins - LUNA,
+> FTT and the rest". It does not hold LUNA or FTT: universe rule v1 ranks coins on their last 24 months, and both kept trading
+> thinly after their crashes (LUNA's symbol was reused for LUNA 2.0), so they rank 241st and 338th. The tier does hold the coins
+> delisted outright and other Terra coins (ANC, MIR). The point-in-time universe (review #22) adds the collapsed coins back.
+
 ## Part A: stops on the short dip trade (TOP30 judged; H07 rows: market events / mean excess % / z / % stopped)
 | | 2018-23 | 2024-26 | Verdict |
 |---|---|---|---|

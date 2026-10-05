@@ -61,6 +61,11 @@ def main(argv: list[str]) -> None:
         print(json.dumps({t: {"coins": len(v["coins"]), "T3": v["T3"]["PASS"], "H07": v["H07"]["H07"]["status"], "H07-G": v["H07"]["H07-G"]["status"],
                               "setups": {k: x["status"] for k, x in v["setups"].items()}} for t, v in rep["tiers"].items()}, indent=1))
         return
+    if cmd == "pack":                                         # python -m src.lake.cli pack   (the lake -> agent hand-off)
+        from src.lake import agent_pack
+
+        print(json.dumps(agent_pack.build()))
+        return
     if cmd == "review16":                                     # python -m src.lake.cli review16   (docs/research/REVIEW_16.md)
         from src.lake import research
 

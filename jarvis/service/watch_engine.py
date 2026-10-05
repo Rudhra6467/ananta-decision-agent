@@ -31,6 +31,9 @@ STAKE = 100.0
 # random = one random coin per daily close, exit after N days.
 DAILY = {
     "H07": {"kind": "h07", "days": 10, "rsi_exit": 40},
+    # the 30-coin paper tier (review #15 PASS on TOP30; Madhav 2026-10-04 "give paper slots in the 30-coin tier, separately"):
+    # same rule, its own book rows, Binance daily candles (jarvis/service/tier30.py), run only by tier30.run()
+    "H07-T30": {"kind": "h07", "days": 10, "rsi_exit": 40, "tier": "T30"},
     "M1a": {"kind": "read", "variant": "M1a", "days": 30},
     "M2a": {"kind": "read", "variant": "M2a", "days": 30},
     "M2a-G": {"kind": "read", "variant": "M2a", "days": 30, "market_gate": True},
@@ -187,13 +190,17 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
     return out
 
 
-def run(j, watches: tuple | list | None = None, coins: list[str] | None = None) -> dict:
-    """Catch up every closed daily candle not processed yet (at most the last 10 days), then manage open trades."""
+def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, daily_fn=None, live_trades: bool = True) -> dict:
+    """Catch up every closed daily candle not processed yet (at most the last 10 days), then manage open trades.
+
+    Tier watches (a "tier" in DAILY) run only when named, with their own candles (daily_fn) and coins; live_trades=False keeps
+    the eye's and the brain's trades out of a run on other candles."""
     from src.research import reads as R
 
     _table(j)
-    names = [w for w in (watches or DAILY) if w in DAILY]
-    btc = _daily(j, "BTC")
+    names = [w for w in (watches or [w for w, sp in DAILY.items() if not sp.get("tier")]) if w in DAILY]
+    _daily_of = daily_fn or _daily
+    btc = _daily_of(j, "BTC")
     if len(btc) < 60:
         return {"opened": [], "filled": [], "closed": [], "note": "not enough daily candles"}
     B = R.Series(btc)
@@ -202,7 +209,7 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None) 
     universe = coins or list(R.COINS)
     data = {}
     for c in universe:
-        D = btc if c == "BTC" else _daily(j, c)
+        D = btc if c == "BTC" else _daily_of(j, c)
         if len(D) < 60:
             continue
         S = B if c == "BTC" else R.Series(D)
@@ -233,8 +240,9 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None) 
                 opened.append({"watch": w, "coin": c, "day": _day(t)})
         j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (key, str(max(last_done, D[-1][0]))))
     for c, (D, S, r10) in data.items():
+        live_q = " OR source IN ('eye','brain')" if live_trades else ""
         rows = j.db.execute(f"SELECT {', '.join(COLS)} FROM evidence_trades WHERE coin=? AND status IN ('WAITING','OPEN') "
-                            f"AND (watch IN ({','.join('?' * len(names))}) OR source IN ('eye','brain'))", (c, *names)).fetchall()
+                            f"AND (watch IN ({','.join('?' * len(names))}){live_q})", (c, *names)).fetchall()
         for ev in _manage(j, c, D, S, r10, rows):
             (filled if ev["event"] == "filled" else closed).append(ev)
     j.db.commit()

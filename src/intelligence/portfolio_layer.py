@@ -107,9 +107,9 @@ class Book:
 
 
 class PortfolioLayer:
-    def __init__(self, base: Path | str = "."):
+    def __init__(self, base: Path | str = ".", db: str = "portfolio_book.sqlite"):
         self.base = Path(base)
-        self.con = sqlite3.connect(str(self.base / "portfolio_book.sqlite"))
+        self.con = sqlite3.connect(str(self.base / db))
         self.con.executescript("""
             CREATE TABLE IF NOT EXISTS books (name TEXT PRIMARY KEY, json TEXT);
             CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);

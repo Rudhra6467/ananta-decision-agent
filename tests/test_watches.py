@@ -132,3 +132,25 @@ def test_scoreboard_has_every_trading_watch():
     assert z["closed"] == 1 and z["net_usd"] > 0 and z["verdict"] == "too early" and z["baseline"] == "RANDOM_20D"
     assert not b["errors"], b["errors"]
     assert "No watch has" in b["headline"]
+
+
+def test_tier30_watch_is_separate_from_the_10_coin_run(tmp_path):
+    """H07-T30 never runs in the 10-coin run; tier30.run() runs it on its own candles (Madhav 2026-10-04)."""
+    from jarvis.service import tier30, watch_engine as W
+    from tests.test_reads import _fake_jarvis
+
+    assert W.DAILY["H07-T30"]["tier"] == "T30"
+    up = [100 * 1.003 ** k for k in range(260)] + [70.0, 68.0, 66.0]
+    D = [(1_700_000_000 + k * DAY, c, c * 1.01, c * 0.99, c, 1.0) for k, c in enumerate(up)]
+    j = _fake_jarvis(tmp_path, {"BTC": D, "ETH": D}, {})
+    W.run(j)
+    assert not W.trades(j, "H07-T30"), "the 10-coin run must not touch the 30-coin watch"
+    con = tier30._con(j)
+    con.executemany("INSERT INTO bars VALUES (?,?,?,?,?,?,?)", [(c, *b) for c in ("BTC", "SOL") for b in D])
+    con.execute("INSERT INTO meta VALUES ('done_day', ?)", (str(10 ** 12),))
+    con.commit()
+    out = tier30.run(j)
+    assert out["bars"] == {"skip": "already pulled today"}
+    assert "t3" in out and "h07" in out
+    assert (tmp_path / "portfolio_book_t30.sqlite").exists() and not (tmp_path / "portfolio_book.sqlite").exists()
+    assert tier30._layer(j).mode == "AUTO"

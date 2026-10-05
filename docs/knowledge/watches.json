@@ -111,6 +111,24 @@
    "since": "2026-09-30"
   },
   {
+   "id": "T3_TREND_T30",
+   "name": "Trend portfolio (T3), 30-coin paper tier",
+   "section": "COIN_STRUCTURE",
+   "timeframe": "1d",
+   "trigger": "bar_close",
+   "runs_in": "jarvis.tier30 (portfolio layer, own book)",
+   "entry": "hold a coin while its daily close is above its 20- and 50-day averages and Bitcoin is above its 50-day; equal weights",
+   "exit": "the coin or Bitcoin loses those averages; weekly rebalance",
+   "size_usd": null,
+   "book": "portfolio_book_t30.sqlite",
+   "status": "ACTIVE_UNPROVEN",
+   "evidence": "review #15 PASS on TOP30 (+19.0% vs buy-and-hold -23.7%, 2024-Jul 2026), FAIL on all 120; Madhav 2026-10-04: paper slot, separate",
+   "alerts": "feed",
+   "since": "2026-10-04",
+   "universe": "top 30 of universe rule v1 (29 coins after renames), Binance daily candles",
+   "mode": "AUTO (paper only)"
+  },
+  {
    "id": "ZONE_VISITS",
    "name": "Zone entries recorded with how they ended",
    "section": "COIN_STRUCTURE",
@@ -311,6 +329,25 @@
    "alerts": "phone on each signal",
    "since": "2026-10-03",
    "costs": "NDAX 0.20% + half-spread each side"
+  },
+  {
+   "id": "H07-T30",
+   "name": "Short dip trade (H07), 30-coin paper tier",
+   "section": "SETUPS",
+   "timeframe": "1d",
+   "trigger": "bar_close",
+   "runs_in": "jarvis.watch_engine",
+   "entry": "close above the 200-day average and RSI(10) under 30; buy $100 at the next day's open; one at a time per coin",
+   "exit": "the next open after a close with RSI(10) over 40, or the open 10 days after entry; no stop",
+   "size_usd": 100,
+   "book": "evidence_trades",
+   "status": "ACTIVE_UNPROVEN",
+   "evidence": "review #15 PASS on TOP30 (33 events, +6.0% excess, z 3.5; confirm +3.6%, z 3.2), FAIL on all 120; Madhav 2026-10-04: paper slot, separate",
+   "alerts": "feed",
+   "since": "2026-10-04",
+   "costs": "NDAX 0.20% + half-spread each side",
+   "universe": "top 30 of universe rule v1 (29 coins after renames), Binance daily candles",
+   "run_by": "jarvis.tier30.run (not the 10-coin run)"
   },
   {
    "id": "M1a",

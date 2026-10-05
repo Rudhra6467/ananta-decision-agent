@@ -8,6 +8,11 @@ Two books, same rules:
   * SHADOW : always AUTO. The gap between the two measures what waiting for approval costs.
 Ratings: STRONG / OK / WEAK / OUT with reasons, every day, for every coin.
 Paper only: no orders anywhere. Evidence class PAPER_PORTFOLIO.
+
+Sizing (review #20, Madhav 2026-10-05 "yes"): T3-B is the default. An entry buys the new coin to its equal share (never more
+than the cash on hand), an exit sells that coin, and on Mondays a held coin is re-sized only when it has drifted outside
+0.5x-1.5x of its share; nothing else trades. The original T3 sizing (reset every coin each Monday and on every change) stays
+available as sizing "T3" (meta key), so review #4 can still be reproduced.
 """
 from __future__ import annotations
 
@@ -20,6 +25,10 @@ from typing import Any
 
 VERSION = "portfolio.layer.v1"
 RULE = "T3"
+SIZINGS = ("T3", "T3-B")
+DEFAULT_SIZING = "T3-B"
+BAND = (0.5, 1.5)
+EST_COST = 0.006                     # cash kept back per $ bought, so entries never borrow (NDAX 0.20% + up to 0.40% spread)
 EVIDENCE_CLASS = "PAPER_PORTFOLIO"
 START = 2000.0
 FEE = 0.0020
@@ -124,6 +133,19 @@ class PortfolioLayer:
         return r[0] if r else default
 
     @property
+    def sizing(self) -> str:
+        return self._meta("sizing", DEFAULT_SIZING)
+
+    def set_sizing(self, sizing: str, by: str) -> None:
+        if sizing not in SIZINGS:
+            raise ValueError(f"sizing must be one of {SIZINGS}")
+        if not by.strip():
+            raise ValueError("record who changed the sizing")
+        self.con.execute("INSERT OR REPLACE INTO meta VALUES ('sizing', ?)", (sizing,))
+        self.con.execute("INSERT OR REPLACE INTO meta VALUES ('sizing_changed', ?)", (json.dumps({"by": by, "at": _utc(time.time()), "sizing": sizing}),))
+        self.con.commit()
+
+    @property
     def mode(self) -> str:
         return self._meta("mode", "SUGGEST")
 
@@ -155,13 +177,14 @@ class PortfolioLayer:
             ratings[coin] = {"rating": r, "hold": on, "why": why, "close": v["close"]}
         n = len(views)
         weekly = (datetime.fromtimestamp(day_t, timezone.utc).weekday() == 0) if weekly is None else weekly
-        out = {"day": _utc(day_t), "rule": RULE, "mode": self.mode, "btc_gate": btc_on, "ratings": ratings, "proposals": [], "fills": []}
+        sizing = self.sizing
+        out = {"day": _utc(day_t), "rule": RULE, "sizing": sizing, "mode": self.mode, "btc_gate": btc_on, "ratings": ratings, "proposals": [], "fills": []}
         for name in ("SHADOW", "MAIN"):
             book = Book(self.con, name)
             eq = book.equity(px)
             held = {c for c, u in book.s["units"].items() if u > 0}
             want = {c for c, r in ratings.items() if r["hold"]}
-            targets = {c: eq / n for c in want}
+            targets = {c: eq / n for c in want} if sizing == "T3" else self._band_targets(book, px, held, want, eq / n, weekly)
             if not (weekly or held != want):
                 continue
             if name == "SHADOW" or self.mode == "AUTO":
@@ -173,7 +196,14 @@ class PortfolioLayer:
                 for c in sorted(held - want):
                     out["proposals"].append(self._propose(day_t, "EXIT", c, n, ratings[c]["why"]))
                 if weekly and want and want == held:
-                    out["proposals"].append(self._propose(day_t, "REBALANCE", "ALL", n, ["weekly reset to equal shares"]))
+                    if sizing == "T3":
+                        out["proposals"].append(self._propose(day_t, "REBALANCE", "ALL", n, ["weekly reset to equal shares"]))
+                    else:
+                        val = {c: book.s["units"].get(c, 0.0) * px.get(c, 0.0) for c in held}
+                        off = sorted(c for c in held & want if not (BAND[0] * eq / n <= val[c] <= BAND[1] * eq / n))
+                        if off:
+                            out["proposals"].append(self._propose(day_t, "REBALANCE", ",".join(off), n,
+                                                                  ["drifted outside 0.5x-1.5x of its share (review #20)"]))
         # proposals from earlier days that were never approved expire: the rule has moved on
         self.con.execute("UPDATE proposals SET status='EXPIRED' WHERE status='PENDING' AND day_t < ?", (day_t,))
         for f in out["fills"]:
@@ -181,6 +211,22 @@ class PortfolioLayer:
         self.con.execute("INSERT INTO decisions VALUES (?,?)", (day_t, json.dumps(out, default=str)))
         self.con.commit()
         return out
+
+    @staticmethod
+    def _band_targets(book: "Book", px: dict, held: set, want: set, tgt: float, weekly: bool) -> dict:
+        """T3-B: keep held coins as they are (re-size only off-band ones on Mondays), sell exits, buy entries within the cash."""
+        val = {c: book.s["units"].get(c, 0.0) * px.get(c, 0.0) for c in held}
+        targets = {}
+        for c in held & want:
+            targets[c] = tgt if weekly and not (BAND[0] * tgt <= val[c] <= BAND[1] * tgt) else val[c]
+        free = book.s["cash"] + sum(val[c] for c in held - want) * (1 - EST_COST)
+        free -= sum(max(0.0, targets[c] - val[c]) * (1 + EST_COST) for c in targets)
+        free += sum(max(0.0, val[c] - targets[c]) * (1 - EST_COST) for c in targets)
+        for c in sorted(want - held):
+            buy = max(0.0, min(tgt, free / (1 + EST_COST)))
+            targets[c] = buy
+            free -= buy * (1 + EST_COST)
+        return targets
 
     def _propose(self, day_t: int, action: str, coin: str, n_slots: int, why: list[str]) -> dict:
         """Target size is decided at approval time: 1/n_slots of the MAIN book's equity then (0 for EXIT)."""
@@ -205,8 +251,12 @@ class PortfolioLayer:
             p = pend[pid]
             slot = eq / max(1, p["n_slots"])
             targets = {c: u * px.get(c, 0.0) for c, u in book.s["units"].items()}
-            if p["action"] == "REBALANCE":
+            if p["action"] == "REBALANCE" and p["coin"] == "ALL":
                 targets = {c: slot for c in targets}
+            elif p["action"] == "REBALANCE":
+                for c in p["coin"].split(","):
+                    if c in targets:
+                        targets[c] = slot
             elif p["action"] == "ENTER":
                 targets[p["coin"]] = slot
             else:
@@ -229,7 +279,7 @@ class PortfolioLayer:
 
     def status(self, px: dict[str, float]) -> dict:
         last = self.con.execute("SELECT json FROM decisions ORDER BY day_t DESC LIMIT 1").fetchone()
-        out = {"version": VERSION, "rule": RULE, "mode": self.mode, "evidence": EVIDENCE_CLASS, "books": {}, "pending": self.pending(),
+        out = {"version": VERSION, "rule": RULE, "sizing": self.sizing, "mode": self.mode, "evidence": EVIDENCE_CLASS, "books": {}, "pending": self.pending(),
                "last_decision": json.loads(last[0]) if last else None}
         for name in ("MAIN", "SHADOW"):
             b = Book(self.con, name)

@@ -57,7 +57,7 @@ def test_suggest_waits_for_approval_auto_acts_and_shadow_always_acts():
     assert not d4["proposals"] and any(f["book"] == "MAIN" and f["coin"] == "ETH" and f["side"] == "SELL" for f in d4["fills"])
 
 
-def test_parity_with_review4_simulator():
+def test_parity_with_review4_simulator(sizing: str = "T3"):
     try:
         import numpy as np
         import pandas as pd
@@ -75,8 +75,13 @@ def test_parity_with_review4_simulator():
         data[k] = pd.DataFrame({"o": o, "c": c}, index=days)
     sig = pt.signals(data, days)
     sim = pt.simulate(data, days, sig["T3"], sig["_avail"])
+    if sizing == "T3-B":
+        from src.research import t3_turnover as tt
+
+        sim = tt.simulate(data, days, sig["T3"], sig["_avail"], "T3-B")
     base = Path(tempfile.mkdtemp())
     L = pl.PortfolioLayer(base)
+    L.set_sizing(sizing, by="test")
     tfs = {k: xe.TfState("1d") for k in data}
     for d in range(n - 1):
         for k, df in data.items():
@@ -91,6 +96,24 @@ def test_parity_with_review4_simulator():
     ours = L.status(last_px)["books"]["SHADOW"]["equity"] / pl.START
     theirs = sim["equity"].iloc[n - 2] / sim["equity"].iloc[49]
     assert abs(ours / theirs - 1) < 0.01, (ours, theirs)
+
+
+
+def test_parity_t3b_with_review20_simulator():
+    """The default sizing since 2026-10-05 (review #20) matches the review's simulator."""
+    test_parity_with_review4_simulator("T3-B")
+
+
+def test_default_sizing_is_t3b_and_entries_never_borrow():
+    base = Path(tempfile.mkdtemp())
+    L = pl.PortfolioLayer(base)
+    assert L.sizing == "T3-B"
+    L.set_mode("AUTO", by="test")
+    views = {"BTC": _view(110, 100, 90), "ETH": _view(55, 50, 45), "SOL": _view(11, 10, 9)}
+    px = {"BTC": 110.0, "ETH": 55.0, "SOL": 11.0}
+    L.decide(views, px, T0 + 300)
+    st = L.status(px)["books"]["MAIN"]
+    assert len(st["holdings"]) == 3 and st["cash"] >= -0.01
 
 
 if __name__ == "__main__":

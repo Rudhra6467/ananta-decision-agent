@@ -50,6 +50,10 @@
     "z_corrected": 2.92,
     "net10_pct": 2.76,
     "median_width_atr": 0.52
+   },
+   "review16": {
+    "date": "2026-10-05",
+    "result": "PASS on TOP30 and ALL 120 (z 4.4); see REVIEW_16_RESULTS.md"
    }
   },
   "SWING-TESTED": {
@@ -175,10 +179,14 @@
     "z_corrected": 3.41,
     "net10_pct": 1.0,
     "median_width_atr": 2.11
+   },
+   "review16": {
+    "date": "2026-10-05",
+    "result": "PASS on TOP30 and ALL 120 (z 4.4); see REVIEW_16_RESULTS.md"
    }
   },
   "CONFLUENCE": {
-   "status": "PASS",
+   "status": "FAIL",
    "DISCOVERY": {
     "market_events": 189,
     "episodes": 460,
@@ -200,6 +208,14 @@
     "z_corrected": 2.65,
     "net10_pct": 0.59,
     "median_width_atr": 1.46
+   },
+   "status_review6": "PASS",
+   "review16": {
+    "date": "2026-10-05",
+    "LAB10": "FAIL (edge 7.3)",
+    "TOP30": "FAIL (edge 7.9, z 3.2)",
+    "ALL": "FAIL (edge 7.8, z 3.6)",
+    "note": "7-9 points better than random on every tier but under the pre-registered 8-point bar; Madhav 2026-10-05: drop to watched, not supported"
    }
   },
   "BASE": {
@@ -228,5 +244,6 @@
    }
   }
  },
- "strength_matters": true
+ "strength_matters": true,
+ "updated_by": "review #16 (2026-10-05): CONFLUENCE no longer supported; SWING-NEW and AVERAGE-200 confirmed on 120 coins"
 }

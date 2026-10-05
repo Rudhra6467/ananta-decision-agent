@@ -1,6 +1,6 @@
 {
  "version": "layers.v1",
- "updated": "2026-10-04",
+ "updated": "2026-10-05",
  "meaning": {
   "layer": "0 = highest authority. A lower number overrides a higher one; data errors (1) poison everything above them.",
   "status": {
@@ -712,14 +712,16 @@
    "feeds": [
     "EVIDENCE"
    ],
-   "evidence": "review #4 PASS: +13% vs buy-and-hold -22% (2024-26), half the drawdown; review #12: its tight 20-day exit beat zone/ATR/50-day trails in 2024-26 (+13% vs -7% to -26%), though they won big in 2018-23",
+   "evidence": "review #4 PASS: +13% vs buy-and-hold -22% (2024-26), half the drawdown; review #12: its tight 20-day exit beat zone/ATR/50-day trails in 2024-26 (+13% vs -7% to -26%), though they won big in 2018-23; review #20 (2026-10-05): sizing T3-B (re-size only coins outside 0.5x-1.5x of their share) passes on LAB10 and TOP30, the default since Madhav's yes 2026-10-05",
    "files": [
     "src/intelligence/portfolio_layer.py",
     "docs/repair_shop/REVIEW_4_RESULTS.md",
     "src/research/portfolio_trend.py",
     "src/research/t3_exits.py",
     "docs/research/REVIEW_12.md",
-    "docs/research/REVIEW_12_RESULTS.md"
+    "docs/research/REVIEW_12_RESULTS.md",
+    "src/research/t3_turnover.py",
+    "docs/research/REVIEW_20_RESULTS.md"
    ]
   },
   {

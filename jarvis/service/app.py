@@ -507,6 +507,14 @@ def trade_reviews(days: int = 7, who: str = Depends(owner)) -> dict:
     return {**reviews.recent_reviews(J(), days), "evenings": reviews.latest(J(), 3)}
 
 
+@app.get("/v3/tier30")
+def tier30_report(who: str = Depends(owner)) -> dict:
+    """The 30-coin paper tier (review #15): the T3 book and the H07-T30 watch, kept apart from the 10-coin books."""
+    from jarvis.service import tier30
+
+    return tier30.status(J())
+
+
 @app.get("/v3/shadow/h07")
 def shadow_h07_report(who: str = Depends(owner)) -> dict:
     """The short dip trade (H07) paper shadow: every signal since it started, its paper entry, exit and result."""
@@ -800,6 +808,12 @@ def background_jobs() -> dict:
         out["daily_watches"] = watch_engine.run(J())                  # your setups, the short dip trade, random baselines, zone-touch exits
     except Exception as exc:  # noqa: BLE001
         out["daily_watches_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import tier30
+
+        out["tier30"] = tier30.run(J())                                 # the 30-coin paper tier: T3 book + H07-T30 (review #15)
+    except Exception as exc:  # noqa: BLE001
+        out["tier30_error"] = str(exc)[:200]
     try:
         from jarvis.service import market_shift
 

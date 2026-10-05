@@ -1250,6 +1250,25 @@
    ]
   },
   {
+   "id": "TIER30_PAPER",
+   "name": "30-coin paper tier: T3 book and H07-T30 watch",
+   "layer": 6,
+   "status": "ACTIVE_UNPROVEN",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "READS",
+    "COSTS"
+   ],
+   "feeds": [
+    "EVIDENCE"
+   ],
+   "evidence": "review #15: T3 and H07 PASS on the top 30 coins, FAIL on all 120; paper only from 2026-10-04 (Madhav: 'give paper slots in the 30-coin tier, separately'); own book and own watch, never mixed with the 10-coin evidence",
+   "files": [
+    "jarvis/service/tier30.py"
+   ]
+  },
+  {
    "id": "EYE",
    "name": "The eye (live prices every 10 seconds against armed levels)",
    "layer": 4,

@@ -382,6 +382,14 @@ def ev_pipeline(who: str = Depends(owner)) -> dict:
     return views.evidence_pipeline(J())
 
 
+@app.get("/v3/evidence/live")
+def ev_live(who: str = Depends(owner)) -> dict:
+    """The Evidence page: inside the logic repair, live (Madhav, 2026-10-05)."""
+    from jarvis.service import evidence_live
+
+    return evidence_live.build(J())
+
+
 @app.get("/v3/me")
 def me(who: str = Depends(owner)) -> dict:
     g = who.startswith("guest:")
@@ -834,6 +842,12 @@ def background_jobs() -> dict:
             out["missed"] = missed.run(J())
     except Exception as exc:  # noqa: BLE001
         out["missed_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import evidence_live
+
+        out["rebuild_log"] = evidence_live.record_rebuild(J())          # keep every nightly rebuild (the file is overwritten)
+    except Exception as exc:  # noqa: BLE001
+        out["rebuild_log_error"] = str(exc)[:200]
     try:
         from jarvis.service import reviews
 

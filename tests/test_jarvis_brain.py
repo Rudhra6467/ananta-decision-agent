@@ -376,3 +376,12 @@ def test_home_mission_and_trade_detail(monkeypatch):
     assert appmap.resolve(j, f"jtrade:{r['trade']}")[0] == f"jtrade:{r['trade']}" and appmap.resolve(j, "jtrade:nope")[0] is None
     assert appmap.resolve(j, "jarvis")[0] == "jarvis" and appmap.resolve(j, "missed moves")[0] == "missed"
     assert appmap.valid_spot(j, "home.jarvis") and appmap.valid_spot(j, "missed.moves")
+
+
+def test_tk4_a_held_coin_can_get_one_more_trade_but_not_a_third():
+    from jarvis.service import brain
+
+    take = {"action": "TAKE", "stop": 95.0, "target": 110.0}
+    assert brain.check_plan(take, 100.0, 3.0, None, 1) == []
+    assert any("2 open trades" in f for f in brain.check_plan(take, 100.0, 3.0, None, 2))
+    assert brain.MAX_OPEN == 20 and brain.MAX_PER_COIN == 2

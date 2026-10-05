@@ -282,7 +282,7 @@
    "date": "2026-10-03",
    "rating": "RE-TEST",
    "score": 8,
-   "reason": "Reproduced exactly in review #15; H07 now passes on TOP30 (z 3.5 / 3.2) but fails on all 120",
+   "reason": "Reproduced exactly in review #15; H07 now passes on TOP30 (z 3.5 / 3.2) but fails on all 120. Review #22 (Oct 5): on the point-in-time top 30 H07 misses the bar by a hair (z 2.45; confirm +5.1%, z 4.8): today's top 30 flattered it",
    "result": "INSUFFICIENT: H07 44 trades (25 events), net +4.1%, 70% won, excess +3.9% (z 2.3) disc; 38 (16) +5.6% (z 2.8) confirm. H07-G 6 (4) and 10 (5) trades.",
    "recorded_status": "INSUFFICIENT (5 events short)",
    "source_files": [
@@ -904,10 +904,10 @@
    "name": "Perpetual futures funding rates",
    "kind": "variable",
    "date": "2026-09-30",
-   "rating": "UNTESTED",
-   "score": 0,
-   "reason": "Queue: funding and open interest are free in Binance futures files; review #19",
-   "result": "Untested.",
+   "rating": "DUMP",
+   "score": 1,
+   "reason": "Review #19 (Oct 5): crowded funding as a T3-B exit hurt both periods; as an H07 filter it missed by 0.01%. Kept as context only. As a filter: DUMP; the data stay in the lake as context for the agent.",
+   "result": "FAIL (review #19)",
    "recorded_status": "UNTESTED",
    "source_files": [
     "docs/variable_registry.json"
@@ -918,10 +918,10 @@
    "name": "Open interest and liquidations",
    "kind": "variable",
    "date": "2026-09-30",
-   "rating": "UNTESTED",
-   "score": 0,
-   "reason": "Queue: funding and open interest are free in Binance futures files; review #19",
-   "result": "Untested.",
+   "rating": "DUMP",
+   "score": 1,
+   "reason": "Review #19 (Oct 5): H07 only after a leverage flush: discovery excess +6.36% but confirm +3.48% vs +3.56% plain. Context only. As a filter: DUMP; the data stay in the lake as context for the agent.",
+   "result": "FAIL (review #19)",
    "recorded_status": "UNTESTED",
    "source_files": [
     "docs/variable_registry.json"
@@ -932,10 +932,10 @@
    "name": "Order-book imbalance and taker buy/sell volume",
    "kind": "variable",
    "date": "2026-09-30",
-   "rating": "UNTESTED",
-   "score": 0,
-   "reason": "Queue: taker buy share is already in the lake candles (tbv); review #19",
-   "result": "Untested.",
+   "rating": "DUMP",
+   "score": 1,
+   "reason": "Review #19 (Oct 5): buying pressure helped T3-B in 2024-26 (+49% vs +26%) but cost two thirds of its gain before 2024 (one-period filter). As a filter: DUMP; the data stay in the lake as context for the agent.",
+   "result": "FAIL (review #19)",
    "recorded_status": "UNTESTED",
    "source_files": [
     "docs/variable_registry.json"
@@ -2831,5 +2831,5 @@
    "note": "Same bias-correction method used twice."
   }
  ],
- "updated": "2026-10-05 after reviews #16-#18, #20, #21, #23 (#19 and #22 pending downloads)"
+ "updated": "2026-10-05"
 }

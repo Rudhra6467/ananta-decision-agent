@@ -253,7 +253,7 @@ def test_ananta_can_log_a_request_for_the_repair_shop(tmp_path):
 
     j = _fake_jarvis(tmp_path, {"BTC": _walk(300, seed=81)}, {})
     out = ask.Lookups(j, "t1").call("log_request", {"kind": "data", "text": "Track the highest price while a trade is open", "about": "XRP trade"})
-    assert out["id"] and out["num"] == 1 and "number 1" in out["say"] and "Lab page" in out["note"]
+    assert out["id"] and out["num"] == 1 and "number 1" in out["say"] and "Evidence page" in out["note"]
     rows = RL.list_(j)
     assert rows[0]["status"] == "OPEN" and rows[0]["kind"] == "data" and rows[0]["about"] == "XRP trade"
     RL.set_status(j, rows[0]["id"], "DONE", "shown on each trade page")

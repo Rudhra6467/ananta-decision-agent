@@ -38,7 +38,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 
 ## Repair shop (changes tested before they go in)
 - `repair_shop/REVIEW_1.md`, `repair_shop/REVIEW_1_RESULTS.md`: rule changes v0.2: none passed, rulebook v0 stays.
-- `repair_shop/REVIEW_2.md`, `repair_shop/REVIEW_2_RESULTS.md`: learning from 37 other traders' 7,441 trades.
+- `repair_shop/REVIEW_2.md`, `repair_shop/REVIEW_2_RESULTS.md`: reconstruction of other traders: 65 Hyperliquid accounts collected, 37 traders' 7,441 trades on our coins studied (Sep 30): a tiny first-hour edge, no persistent skill, better when they bought weakness (-> review #3, failed after costs). A one-time study, not a daily job.
 - `repair_shop/REVIEW_3.md`, `repair_shop/REVIEW_3_RESULTS.md`: "buy weakness" variants: all lost after costs.
 - `repair_shop/REVIEW_4.md`, `repair_shop/REVIEW_4_RESULTS.md`: portfolio trend exposure with crash protection: T3 passed.
 - `repair_shop/REVIEW_5.md`, `repair_shop/REVIEW_5_RESULTS.md`: Madhav's reads (capitulation, higher-low retest, quiet base): they caught all four of his buys, but none beat a random day on its own in 2018-2023.
@@ -63,15 +63,17 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_12.md`, `research/REVIEW_12_RESULTS.md`: T3's exit vs trailing stops: looser exits won big in 2018-23 and lost in 2024-26; T3's 20-day exit survives both.
 - `research/REVIEW_13.md`, `research/REVIEW_13_RESULTS.md`: the remaining teacher ideas: H07's short RSI dip trade promising (+4% per trade, 70% wins, both periods); first pullback, false break, book stop add nothing; breadth too few samples.
 - `research/REVIEW_14.md`, `research/REVIEW_14_RESULTS.md`: the short dip trade (H07) beat ordinary uptrend days traded the same way in both periods (+3.9%, +5.6% per trade, about 70% wins), a few events short of the bar; the most consistent result so far.
+- `research/AUDIT_V1.md`: research audit v1 (Oct 4): every analysis of the prototype rated and ranked on a fixed rubric (164 rows in `research/audit_v1.json`), with DUMP for what is not worth carrying forward and the re-test queue.
 - `research/REVIEW_15.md`: pre-registration for re-testing T3, H07 and your setups on the full crypto universe from the lake (tiers LAB10 as a data check, TOP30, ALL; original pass rules, pessimistic costs for thin coins).
 - `research/REVIEW_15_RESULTS.md`: on the lake: T3 and H07 pass on the 30 most-traded coins, fail on all 120; M2a/M3a/M2a-G not supported; COCOS and BNX token swaps cut.
 - `research/REVIEW_16_RESULTS.md`: zones on 120 coins: new swing zones and the 200-day average pass (z 4.4); overlapping zones fall under the bar; market allowed (F6) holds everywhere.
 - `research/REVIEW_17_RESULTS.md`: coin filters: relative strength vs BTC hurts T3; breadth helps 2024-26 but hurts 2018-23 (fail); H07 filters too few events.
 - `research/REVIEW_18_RESULTS.md`: stops: structural beats tight (H14 supported) but H07 is best without a stop; a 25% disaster stop adds nothing to T3 (kept as a live guard); the BTC gate is T3's crash insurance.
-- `research/REVIEW_19.md`: buying pressure, funding and open interest as filters (results when the open-interest download is complete).
+- `research/REVIEW_16.md`, `research/REVIEW_17.md`, `research/REVIEW_18.md`, `research/REVIEW_20.md`, `research/REVIEW_21.md`, `research/REVIEW_23.md`: the pre-registrations of reviews #16-#18, #20, #21 and #23 (the question, the data split and the pass rule, written before the test ran).
+- `research/REVIEW_19.md`, `research/REVIEW_19_RESULTS.md`: buying pressure, funding and open interest as filters for T3-B and H07: nothing passes in both periods; kept as context only.
 - `research/REVIEW_20_RESULTS.md`: T3-B sizing (re-size only coins far from their share): passes on 10 and 30 coins, a third of the trades, costs only 5-15% lower; nothing survives double costs. Now the default.
 - `research/REVIEW_21_RESULTS.md`: E3 support bounce passes on 30 coins by the rule but loses money since 2024 (not tradable); B3 volume breakout fails everywhere.
-- `research/REVIEW_22.md`: the survivorship check: T3-B and H07 on the point-in-time top 30 (results when the collapsed coins are downloaded).
+- `research/REVIEW_22.md`, `research/REVIEW_22_RESULTS.md`: the survivorship check on the top 30 as it was each month (191 coins): T3-B lost 22.5% in 2024-26 (holding lost 76%) and fails its rule; H07 misses by a hair (z 2.45); today's top-30 results were flattered.
 - `research/REVIEW_23_RESULTS.md`: the outside world: Nasdaq, US dollar, VIX and Fear & Greed filters all fail on T3-B; selling into extreme greed is the worst idea tested.
 
 ## Safety and operations

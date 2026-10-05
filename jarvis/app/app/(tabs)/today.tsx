@@ -90,7 +90,7 @@ export default function Home() {
       ) : null}
 
       {lab ? (
-        <Card onPress={() => router.push("/lab")} title="Lab" sub="Evidence pipeline, scoreboard, repair shop, requests"
+        <Card onPress={() => router.push("/lab")} title="Evidence" sub="Inside the logic repair, live: what we watch, what the limits stop, what we missed, the repair board"
           right={<Text style={{ color: C.accent, fontSize: 18 }}>›</Text>} />
       ) : null}
 

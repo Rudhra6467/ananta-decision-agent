@@ -18,6 +18,18 @@ export const setScroller = (s: Scroller | null) => { scroller = s; };
 
 export function activeSpot() { return active; }
 
+// A spot Ananta is looking for right now (focusSpot is waiting for it): a folded section can open itself to show it.
+let wanted: string | null = null;
+export function useSpotWanted(ids: string[]): boolean {
+  const [on, setOn] = useState(!!wanted && ids.includes(wanted));
+  useEffect(() => {
+    const f = () => setOn(!!wanted && ids.includes(wanted));
+    subs.add(f);
+    return () => { subs.delete(f); };
+  }, [ids.join("|")]);
+  return on;
+}
+
 export function useSpotActive(id?: string): boolean {
   const [on, setOn] = useState(!!id && active === id);
   useEffect(() => {
@@ -73,6 +85,8 @@ function measure(v: View | null): Promise<{ y: number; h: number } | null> {
 // Scroll the open screen so the spot is in view, then make it glow. Returns false if the spot is not on screen.
 export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
   let target: SpotRef | null = null;
+  wanted = id;
+  emit();
   for (let i = 0; i < 30 && !target; i++) {                   // the screen (and its data) may still be loading: up to 3 s
     for (const s of spots.get(id) ?? []) {
       const m = await measure(s.view);
@@ -80,7 +94,8 @@ export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
     }
     if (!target) await sleep(100);
   }
-  if (!target) return false;
+  wanted = null;
+  if (!target) { emit(); return false; }
   const m = await measure(target.view);
   if (m && scroller?.ref.current) {
     const sv = await measure(scroller.ref.current as any);

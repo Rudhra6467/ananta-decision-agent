@@ -26,10 +26,13 @@ SCREENS = {
                        "shows": "the owner's own paper book: positions, orders with reasons, research jobs"},
     "ananta": {"name": "Ask Jarvis", "where": "Ask Jarvis tab (speech bubble)",
                "shows": "this conversation: type, dictate with the mic, or talk hands-free with the wave button; Sessions holds past conversations"},
-    "evidence": {"name": "Lab: evidence being collected", "where": "the Lab page (Home's Lab switch, then the Lab row), first part",
-                 "shows": "the evidence tracker (days, checks, setups seen, buys, closed trades, shadows, Hunter checks, replay match), "
-                          "what we collected per setup, what was forwarded to the repair shop and why, and the repair shop status"},
-    "evidence:forwarded": {"name": "Evidence: forwarded and in use", "where": "the Lab page, lower part",
+    "evidence": {"name": "Evidence: inside the logic repair", "where": "the Evidence page (Home's Lab switch, then the Evidence row)",
+                 "shows": "the repair loop live, in Madhav's order: looked, spotted, decided, scored, misses checked, sent to the repair "
+                          "shop, changed; what is watching and how often; every limit with what it stopped and what those trades did; "
+                          "results against random in market events; reconstruction (nightly rebuilds, the ones he asked for, mismatches, "
+                          "the other-traders study and its chain); missed moves and patterns; the repair board (found, done, change, "
+                          "status); what changed; what we wait for with dates at this pace. The older research cards fold below."},
+    "evidence:forwarded": {"name": "Evidence: forwarded and in use", "where": "the Evidence page, lower part",
                            "shows": "repairs that passed and run in paper (T3 vs buy-and-hold) and the safety changes"},
     "jarvis": {"name": "Jarvis's book", "where": "Home > Jarvis today, or the top row of Books",
                "shows": "Jarvis's own paper trades: the score against its random twins (running line, events to a verdict), open trades with "
@@ -254,8 +257,11 @@ SPOTS = {
                   "portfolio.holding:<SYM>": "one holding: value, return, rating"},
     "portfolio:explorer": {"explorer.value": "Explorer book value", "explorer.trade:<trade id>": "one open Explorer trade", "explorer.closed": "closed trades"},
     "portfolio:mine": {"mine.value": "my paper book value", "mine.position:<SYM>": "one of my positions"},
-    "evidence": {"evidence.tracker": "the evidence tracker", "evidence.collected": "what we collected by setup",
-                 "evidence.forwarded": "what was forwarded to the repair shop", "evidence.shop": "repair shop status and queue",
+    "evidence": {"evidence.tracker": "the repair loop strip: looked, spotted, decided, scored, missed, sent, changed",
+                 "evidence.clocks": "what is watching and how often", "evidence.limits": "every limit and what it stopped",
+                 "evidence.collected": "results against random (and by setup)", "evidence.rebuild": "reconstruction: rebuilds and other traders",
+                 "evidence.misses": "missed moves and patterns", "evidence.forwarded": "the repair board: found, done, change, status",
+                 "evidence.shop": "what we wait for and when, at this pace",
                  "evidence.ideas": "ideas from the teachers (Rayner, Trade With Trend) with their test status",
                  "evidence.credit": "credit tracking: what each layer contributed, live"},
     "evidence:forwarded": {"evidence.in_use": "repairs running in paper (T3 vs buy-and-hold)", "evidence.safety": "safety changes"},
@@ -352,7 +358,9 @@ SPOT_WORDS = {
     "portfolio.autopilot": r"autopilot", "portfolio.suggested": r"suggest|change|waiting", "portfolio.holdings": r"holding|coins",
     "explorer.value": r"value|worth|\$|explorer", "explorer.closed": r"closed", "mine.value": r"value|worth|\$",
     "evidence.tracker": r"tracker|progress|milestone", "evidence.collected": r"collected|setups?|signals?",
-    "evidence.forwarded": r"forward|repair", "evidence.shop": r"repair|shop|queue", "evidence.in_use": r"running|in use|paper|buy.and.hold",
+    "evidence.forwarded": r"forward|repair|ticket|board", "evidence.shop": r"wait|queue|how long|when",
+    "evidence.clocks": r"watch|scan|how often|every", "evidence.limits": r"limit|gate|block|stopp|cap",
+    "evidence.rebuild": r"rebuild|reconstruct|mismatch|other traders|hyperliquid", "evidence.misses": r"miss|caught|seen", "evidence.in_use": r"running|in use|paper|buy.and.hold",
     "evidence.safety": r"safety", "cockpit.controls": r"kill|autopilot|live|switch", "cockpit.ai": r"ask|voice|budget|claude|gemini",
     "cockpit.alerts": r"alert", "cockpit.systems": r"system|status|running",
 }
@@ -456,9 +464,9 @@ def tour(j) -> list[dict]:
          "say": f"This is the Explorer. It checks ten coins every fifteen minutes and trades on paper, 100 dollars each. It has {len(t['open'])} trades open."},
         {"ui": {"do": "go_to", "target": "portfolio:mine", "label": "My trades"}, "spot": "mine.value",
          "say": "And this is your own paper book. Orders you ask me for land here, kept apart from the agent's trades."},
-        {"ui": {"do": "go_to", "target": "evidence", "label": "Lab"}, "spot": "evidence.tracker",
-         "say": "This is the Lab: everything we collect to learn what works. The Lab switch on Home keeps it close. Tap any row and it explains itself."},
-        {"spot": "evidence.forwarded", "say": "These are the questions we sent to the repair shop, why we sent them, and what we found."},
+        {"ui": {"do": "go_to", "target": "evidence", "label": "Evidence"}, "spot": "evidence.tracker",
+         "say": "This is the Evidence page: the repair loop, live. From what we looked at, to what we traded, to what we fixed. The Lab switch on Home keeps it close. Tap any row and it explains itself."},
+        {"spot": "evidence.forwarded", "say": "This is the repair board: everything sent to the repair shop, what we found, what we did, the change and its status."},
         {"ui": {"do": "go_to", "target": "cockpit", "label": "Cockpit"}, "spot": "cockpit.controls",
          "say": "This is the Cockpit, behind the gauge icon on Home. The kill switch and Autopilot live here, and live trading stays locked."},
         {"spot": "cockpit.ai", "say": "Here you can switch me on or off and set a daily budget for Claude, so I never run up costs."},

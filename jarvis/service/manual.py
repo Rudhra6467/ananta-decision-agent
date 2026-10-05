@@ -228,5 +228,5 @@ class Manual:
 def _job_line(kind: str, status: str, res: Any) -> str:
     if kind == "reconstruction" and isinstance(res, dict) and "match" in res:
         return (f"Rebuilt {res.get('rebuilt_real_events')} decisions from raw candles vs {res.get('logged_real_events')} logged: "
-                + ("they match." if res["match"] else "they DIFFER; check the Lab page."))
+                + ("they match." if res["match"] else "they DIFFER; check the Evidence page."))
     return f"{kind}: {status.lower()}"

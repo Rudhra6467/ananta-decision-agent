@@ -9,7 +9,7 @@ Every watch in the registry (docs/knowledge/watches.json) that trades has an evi
 
 Books read: the Explorer (real trades plus the signals a slot or cap blocked, the would-be trades, so each setup's every
 signal counts; random entries as the 15-minute baseline), Hunter's book (SD6: real trades plus shadows kept when the book was
-full; costs at Kraken's 0.80% a side), and the daily / live evidence book (watch_engine: your setups, the short dip trade,
+full; costs at NDAX's 0.20% plus 0.30% slippage a side since 2026-10-05, Kraken's 0.80% before), and the daily / live evidence book (watch_engine: your setups, the short dip trade,
 zone touches, the daily random baselines, and Jarvis's own decisions with their random twins). The trend portfolio is a portfolio, not single trades: it is shown with its
 return against buy-and-hold.
 
@@ -230,5 +230,5 @@ def board(j) -> dict:
                          f"No watch has {MIN_EVENTS} independent events yet, so none can be called ahead of random; the books keep filling."),
             "how_to_read": "Each row is one watch's evidence book: every signal it gave is a $100 paper trade (blocked signals included), "
                            "after costs. Compare the average with its random baseline (same holding time); count events, not trades: "
-                           "our coins move together, so trades closing in the same move are one piece of evidence. Hunter's book pays "
-                           "Kraken's 0.80% a side; the rest pay NDAX's 0.20% plus the spread."}
+                           "our coins move together, so trades closing in the same move are one piece of evidence. Every book pays NDAX's "
+                           "0.20% plus the spread (Hunter's book since Oct 5; Kraken's 0.80% before)."}

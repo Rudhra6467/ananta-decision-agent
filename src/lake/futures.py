@@ -10,6 +10,7 @@ new. Context only: these are not prices and never replace the spot candles.
 from __future__ import annotations
 
 import io
+import re
 import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
@@ -19,6 +20,7 @@ from src.lake import root
 from src.lake import binance_vision as bv
 
 PREFIX = "data/futures/um"
+DAY_RX = re.compile(r"(\d{4}-\d{2}-\d{2})\.zip$")    # <SYM>-metrics-YYYY-MM-DD.zip (a few listed files carry other names)
 
 
 def out_dir(kind: str):
@@ -101,7 +103,7 @@ def pull_metrics(coin: str, until: date | None = None, get=bv._get, workers: int
     path = out_dir("metrics_daily") / f"{coin}.parquet"
     old = pd.read_parquet(path) if path.exists() else None
     keys = [k for k, _ in bv.list_keys(f"{PREFIX}/daily/metrics/{sym}/", get=get) if k.endswith(".zip")]
-    days = sorted(date.fromisoformat(k[-14:-4]) for k in keys)
+    days = sorted({date.fromisoformat(m.group(1)) for k in keys if (m := DAY_RX.search(k))})   # odd file names are skipped
     if old is not None and len(old):
         have = set(pd.to_datetime(old["t"], unit="s").dt.date)
         days = [d for d in days if d not in have]

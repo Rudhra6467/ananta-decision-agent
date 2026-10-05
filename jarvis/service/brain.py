@@ -8,7 +8,7 @@ How it works
                            setup fires (the Explorer, the daily watches, Hunter), a coin's attention turns HIGH, the market
                            turns allowed again. Calls are queued; nothing waits on the model.
   process(j)               the worker takes the queue: at most DAILY_MAX decisions a day (about 2 cents each with Claude
-                           Sonnet), one per coin every 6 hours, not while it already holds the coin, only with AI budget left.
+                           Sonnet), one per coin every 6 hours, at most 2 open trades per coin and 20 open in all (TK4), only with AI budget left.
   decide(j, coin, ...)     builds the evidence pack (price, trend, zones and what history says about them, the market regime,
                            every signal on the coin today with that watch's live record, the news check, what the repair shop
                            found, the moves we keep missing, and its own record) and asks the model to WEIGH it: strong points
@@ -37,11 +37,12 @@ import time
 import uuid
 from typing import Any, Callable
 
-DAILY_MAX = int(os.getenv("BRAIN_DAILY_MAX", "20"))
+DAILY_MAX = int(os.getenv("BRAIN_DAILY_MAX", "40"))      # TK4 (Madhav, 2026-10-05): 20 -> 40
 COIN_COOLDOWN = 6 * 3600
 STALE_S = 45 * 60
 MIN_BUDGET = 0.10
-MAX_OPEN = 8
+MAX_OPEN = 20                                             # TK4: 8 -> 20
+MAX_PER_COIN = 2                                          # TK4: a wake on a held coin is decided (a TAKE adds a second trade)
 MODEL = os.getenv("BRAIN_MODEL", "claude-sonnet-5-5")
 PRICE = (2.0, 10.0)                                  # $ per million tokens in / out (Sonnet, as in ask.MODELS)
 EVERY = 20
@@ -53,12 +54,12 @@ _lock = threading.Lock()
 # them. Kept in step with docs/KNOWLEDGE_INDEX.md and knowledge/PLAYBOOK.md (a test checks the ids are unique).
 KNOWLEDGE = [
     ("REGIME", "PASSED", "Bitcoin above its 50-day average = market allowed. Inside support zones 68% held when allowed vs 50% when not (review #7). The strongest single fact we have."),
-    ("T3", "PASSED", "Trend portfolio: coins in their own uptrend while Bitcoin is above its 50-day, 20-day exit. Confirmed on the lake: 10 coins and the 30 most-traded coins pass (2024-26 +19% vs buy-and-hold -24% on the 30); on all 120 coins it only cut losses (-14% vs -66%) (reviews #4, #15). Re-sizing only coins far from their share (T3-B) is a little better (review #20). Its crash insurance is the Bitcoin gate: fully in cash through LUNA (review #18)."),
+    ("T3", "PASSED", "Trend portfolio: coins in their own uptrend while Bitcoin is above its 50-day, 20-day exit. Confirmed on the lake: 10 coins and the 30 most-traded coins pass (2024-26 +19% vs buy-and-hold -24% on the 30); on all 120 coins it only cut losses (-14% vs -66%) (reviews #4, #15). Re-sizing only coins far from their share (T3-B) is a little better (review #20). Its crash insurance is the Bitcoin gate: fully in cash through LUNA (review #18). Survivorship check (review #22): on the top 30 as it really was each month it lost 22.5% in 2024-26 while holding lost 76%: on altcoins it loses much less, it does not reliably make money."),
     ("ZONES", "PASSED", "Support zones hold a little more often than random price bands. On 120 coins the 200-day average and new swing zones pass (z 4.4); overlapping zones no longer do (reviews #6, #16). Entering a zone is not a trade by itself."),
     ("LOOKOUT", "FAILED", "Inside a zone, the day's wick, a close back above, volume, divergence and relative strength added nothing beyond arithmetic (review #7)."),
     ("EXITS", "PASSED", "Selling at the next zone cut the winners (0% vs +5.8% for holding 20 days): gains come from a few big moves; the stop goes beyond the zone, the next zone is a review point, not a target (review #10)."),
     ("TRAIL", "MIXED", "Looser trailing exits won big in 2018-23 and lost in 2024-26; a 20-day time exit survived both (review #12)."),
-    ("H07", "PASSED_LIQUID", "Short RSI dip: RSI(10) under 30 while above the 200-day, exit when RSI(10) is back over 40 or after 10 days. Passes on the 30 most-traded coins (+6.0% / +3.6% over ordinary uptrend days, z 3.5 / 3.2), fails on all 120: a liquid-coin edge (reviews #14, #15). Works best with no stop; if a stop is required use a structural one, never a tight 3% (review #18)."),
+    ("H07", "PASSED_LIQUID", "Short RSI dip: RSI(10) under 30 while above the 200-day, exit when RSI(10) is back over 40 or after 10 days. Passes on the 30 most-traded coins (+6.0% / +3.6% over ordinary uptrend days, z 3.5 / 3.2), fails on all 120: a liquid-coin edge (reviews #14, #15). Works best with no stop; if a stop is required use a structural one, never a tight 3% (review #18). On the top 30 as it really was each month it misses the bar by a hair (z 2.45 before 2024, strong after: +5.1%, z 4.8; review #22)."),
     ("M2A_G", "DROPPED", "Madhav's higher-low retest with the market allowed looked promising on 10 coins (review #8) but was not supported on 30 or 120 coins (review #15). M1a capitulation passed on 120 coins right on the bar (3 recent events)."),
     ("READS", "NOT_BETTER", "Madhav's three setups caught all four of his buys, but on their own were not better than a random day in 2018-23 (review #5)."),
     ("EXPLORER", "FAILED", "The 15-minute Explorer setups lost money after costs over 7 years; zones do not rescue hours-long trades (review #9); costs are the whole loss."),
@@ -73,7 +74,7 @@ KNOWLEDGE = [
     ("LIVE_BOOKS", "FORWARD", "The live evidence books (the scoreboard): every watch's paper results since early October 2026, against random; small numbers until 10 events."),
 ]
 RED_FLAGS = ["no live price or stale candles", "the stop is missing, above the entry, or more than 15% away", "news check says AVOID (damage news on the coin itself)",
-             "already holding this coin in this book", "the daily limit or AI budget is used up"]
+             "already 2 open trades on this coin in this book", "the daily limit or AI budget is used up"]
 
 SYSTEM = """You are Jarvis's decision brain for one paper trading book (crypto, long only, spot). Your objective: make money after
 costs on these trades, measured against a random coin traded with the same plan at the same moment. Paper evidence only: Madhav
@@ -324,7 +325,7 @@ def _parse(text: str) -> dict:
     return d
 
 
-def check_plan(d: dict, price: float | None, atr: float | None, news: str | None, holding: bool) -> list[str]:
+def check_plan(d: dict, price: float | None, atr: float | None, news: str | None, holding: int) -> list[str]:
     """The red flags code enforces whatever the model says."""
     flags = []
     if not price:
@@ -340,8 +341,8 @@ def check_plan(d: dict, price: float | None, atr: float | None, news: str | None
             flags.append("the target is not above the entry")
     if news == "AVOID":
         flags.append("the news check says AVOID")
-    if holding:
-        flags.append("already holding this coin in this book")
+    if holding >= MAX_PER_COIN:
+        flags.append(f"already {MAX_PER_COIN} open trades on this coin in this book")
     return flags
 
 
@@ -375,8 +376,11 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
     p = pack(j, coin, triggers)
     price = p.get("price")
     atr = (p.get("daily") or {}).get("atr")
-    holding = bool(j.db.execute("SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN'", (WATCH, coin)).fetchone())
+    holding = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN'", (WATCH, coin)).fetchone()[0]
     user = ("Decide on this moment. The evidence pack (JSON):\n" + json.dumps(p, default=str)[:24000])
+    if holding:
+        user += (f"\n\nYou already hold {holding} open trade(s) on this coin (my_record.open_coins). A TAKE adds another $100 trade "
+                 f"(at most {MAX_PER_COIN} per coin); take it only if this moment is a new, separate reason, not the same move again.")
     call = call or (lambda u: _call_claude(SYSTEM, u))
     t0 = time.time()
     text, usage = call(user)
@@ -484,8 +488,8 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
         why = ""
         if now - t > STALE_S:
             why = "stale (waited too long)"
-        elif j.db.execute("SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN'", (WATCH, coin)).fetchone():
-            why = "already holding it"
+        elif j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN'", (WATCH, coin)).fetchone()[0] >= MAX_PER_COIN:
+            why = f"already holding {MAX_PER_COIN} trades on it"
         elif j.db.execute("SELECT 1 FROM brain_decisions WHERE coin=? AND t >= ? AND action != 'ERROR'", (coin, now - COIN_COOLDOWN)).fetchone():
             why = "decided on this coin in the last 6 hours"
         elif j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND status='OPEN'", (WATCH,)).fetchone()[0] >= MAX_OPEN:

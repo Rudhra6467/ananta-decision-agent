@@ -138,5 +138,6 @@ def status(j) -> dict:
                     "waiting": sum(r["status"] == "WAITING" for r in rows), "closed": len(done),
                     "net_usd": round(sum(r["net_usd"] for r in done), 2) if done else 0.0, "trades": rows[:30]},
             "history": "review #15: T3 +19.0% vs buy-and-hold -23.7% (2024-Jul 2026) on the top 30; H07 33 events, +6.0% excess, z 3.5 "
-                       "(2018-23) and +3.6%, z 3.2 (2024-26). Both failed on all 120 coins.",
+                       "(2018-23) and +3.6%, z 3.2 (2024-26). Both failed on all 120 coins. Review #22 (the top 30 as it was each month): T3-B -22.5% vs "
+                       "holding -76% (fails its profit rule), H07 z 2.45 (just under the bar): today's top-30 numbers were flattered.",
             "note": "Paper only. Kept apart from the 10-coin books. Many of these coins are not on NDAX."}

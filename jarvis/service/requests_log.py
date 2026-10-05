@@ -5,7 +5,7 @@ work session fixes it. And it should REPORT BACK: "flagged as number 4, I'll tel
 mention in the next conversation when the work session changes its status.
 
 Each request has a number (#1, #2, ... easy to say), a kind (data, feature, bug, idea), the words, where it came up, and a status
-the work session updates (OPEN -> PLANNED -> DONE or WONT, with a note). Shown on the Lab page and in the Home feed;
+the work session updates (OPEN -> PLANNED -> DONE or WONT, with a note). Shown on the Evidence page's repair board and in the Home feed;
 readable at /v3/requests. The work session starts by reading the OPEN ones (docs/BACKLOG.md says so).
 
   add()          log one (returns its number and the sentence to say)
@@ -69,7 +69,7 @@ def add(j, kind: str, text: str, about: str | None = None, by: str = "owner", th
                  (rid, num, int(j.now()), by, kind, text, (about or "")[:120], thread, "OPEN", "", int(j.now()), 1, 1))
     j.db.commit()
     return {"id": rid, "num": num, "kind": kind, "status": "OPEN",
-            "say": f"Flagged as request number {num} for the repair shop. It's on the Lab page, and I'll tell you when it's fixed."}
+            "say": f"Flagged as request number {num} for the repair shop. It's on the Evidence page's repair board, and I'll tell you when it's fixed."}
 
 
 def list_(j, include_done: bool = True) -> list[dict]:

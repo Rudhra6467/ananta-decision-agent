@@ -39,6 +39,9 @@ def daily(symbol: str, until: int | None = None, con=None) -> list[tuple]:
 
 # Token redenominations Binance did not back-adjust (found by review #15 run 1, 2026-10-04): only the history after the swap is used.
 BREAKS = {"COCOSUSDT": 1611446400, "BNXUSDT": 1677110400}   # 2021-01-24, 2023-02-23 (UTC day of the swap)
+# A ticker Binance re-used for a different coin (found by review #22, 2026-10-05): only the history BEFORE the re-use is the
+# coin we mean. LUNA = Terra until its collapse (trading halted May 2022); LUNAUSDT from 2022-05-31 is the new "LUNA 2.0" chain.
+ENDS = {"LUNAUSDT": 1653955200}                               # 2022-05-31 00:00 UTC
 
 
 def unhandled_suspects(symbol: str) -> list[dict]:
@@ -47,7 +50,7 @@ def unhandled_suspects(symbol: str) -> list[dict]:
     if not p.exists():
         return []
     sus = json.loads(p.read_text()).get("suspect_redenominations") or []
-    return [x for x in sus if x["t"] >= BREAKS.get(symbol, 0)]
+    return [x for x in sus if BREAKS.get(symbol, 0) <= x["t"] < ENDS.get(symbol, 1 << 62)]
 
 
 def load(symbols: list[str]) -> dict[str, list[tuple]]:
@@ -57,7 +60,7 @@ def load(symbols: list[str]) -> dict[str, list[tuple]]:
         if bad:
             raise ValueError(f"{s}: possible token swap(s) {[(x['at'], x['ratio']) for x in bad]} - check it, then add the swap day "
                              f"to BREAKS (history after it only) or confirm the move is real, before any research uses this coin")
-        D = [r for r in daily(s) if r[0] >= BREAKS.get(s, 0)]
+        D = [r for r in daily(s) if BREAKS.get(s, 0) <= r[0] < ENDS.get(s, 1 << 62)]
         if len(D) >= 120:
             out[base(s)] = D
     return out

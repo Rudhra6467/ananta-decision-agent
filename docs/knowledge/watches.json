@@ -294,7 +294,7 @@
    "evidence": "rare: about 2-8 times per coin per year in history; live from 2026-09-29",
    "alerts": "phone when a trade opens or closes",
    "since": "2026-09-29",
-   "costs": "Kraken Pro Canada tier 1 market orders: 0.80% each side (four times the Explorer's NDAX fee)"
+   "costs": "NDAX: 0.20% plus 0.30% slippage each side since 2026-10-05 (TK3); Kraken tier 1 market orders, 0.80% each side, before"
   },
   {
    "id": "SQUEEZE",
@@ -311,7 +311,7 @@
    "evidence": "no live fires yet",
    "alerts": "phone when a trade opens or closes",
    "since": "2026-09-29",
-   "costs": "Kraken Pro Canada tier 1 market orders: 0.80% each side"
+   "costs": "NDAX: 0.20% plus 0.30% slippage each side since 2026-10-05 (TK3); Kraken 0.80% each side before"
   },
   {
    "id": "H07",

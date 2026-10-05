@@ -1,11 +1,12 @@
 {
  "version": "repair_shop.ledger.v1",
- "updated": "2026-10-03",
+ "updated": "2026-10-05",
  "meaning": {
   "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
   "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
   "verdict": "PASS = may change the live paper system; FAIL = nothing changes; the lesson is kept",
-  "in_use": "a repair that passed and now runs in paper, tracked against its expectation"
+  "in_use": "a repair that passed and now runs in paper, tracked against its expectation",
+  "tickets": "problems or opportunities found in the live system (by the watchdog, the logs, your chats or a check): what was found, what was done, the change, and its status (OPEN, IN_PROGRESS, WAITING_FOR_YOU, DONE, WONT)"
  },
  "reviews": [
   {
@@ -217,6 +218,141 @@
     "docs/research/REVIEW_14.md",
     "docs/research/REVIEW_14_RESULTS.md"
    ]
+  },
+  {
+   "id": "R15",
+   "date": "2026-10-04",
+   "verdict": "PASS",
+   "title": "The held-up ideas on the full crypto universe (120 coins)",
+   "forwarded_because": "Madhav's plan: the 10 coins are the proving ground, the full history is the laboratory; nothing goes near $500 without both agreeing.",
+   "question": "Do T3, H07 and your setups still hold on 120 coins, the 30 most traded and the lab 10 (original pass rules)?",
+   "result": "T3 and H07 pass on the 30 most-traded coins and fail on all 120; your retest and quiet base are not supported; capitulation passes on 120 right on the bar. COCOS and BNX token swaps found and cut.",
+   "changed": "Paper slots for T3 and H07 on the 30-coin tier, kept apart from the 10-coin books (Madhav, Oct 4).",
+   "files": [
+    "docs/research/REVIEW_15.md",
+    "docs/research/REVIEW_15_RESULTS.md"
+   ],
+   "status": "DONE"
+  },
+  {
+   "id": "R16",
+   "date": "2026-10-05",
+   "verdict": "PASS",
+   "title": "Zones on 120 coins",
+   "forwarded_because": "Audit v1: zones passed on 10 coins only (review #6); every live zone label rests on it.",
+   "question": "Do new swing zones, the 200-day average and overlapping zones still hold more than random on 120 coins, and does 'market allowed' still matter inside a zone?",
+   "result": "New swing zones and the 200-day average pass (z 4.4); overlapping zones fall under the 8-point bar; market allowed holds on every tier.",
+   "changed": "Overlapping (confluence) zones dropped from 'history supports' in the live map and the decision chain (Madhav's yes, Oct 5).",
+   "files": [
+    "docs/research/REVIEW_16.md",
+    "docs/research/REVIEW_16_RESULTS.md"
+   ],
+   "status": "DONE"
+  },
+  {
+   "id": "R17",
+   "date": "2026-10-05",
+   "verdict": "FAIL",
+   "title": "Coin choice: strength vs Bitcoin and market breadth",
+   "forwarded_because": "Teacher ideas H08 and H16 never tested as coin filters on the rules that work.",
+   "question": "Does holding only coins beating Bitcoin, or only when most of the market is strong, improve T3-B or H07?",
+   "result": "Strength vs Bitcoin hurt in both periods; breadth tripled 2024-26 but lost most of 2019-21; dip-trade filters had too few events.",
+   "changed": "Nothing; both stay observations.",
+   "files": [
+    "docs/research/REVIEW_17.md",
+    "docs/research/REVIEW_17_RESULTS.md"
+   ],
+   "status": "DONE"
+  },
+  {
+   "id": "R18",
+   "date": "2026-10-05",
+   "verdict": "PASS",
+   "title": "Stops and crash insurance",
+   "forwarded_because": "Casebook: Ananta's tight stops were shaken out where Madhav's structural stops held (H14 untested); live rules plan a 25% disaster stop.",
+   "question": "Structural vs tight stops on the dip trade; does a 25% disaster stop help the trend portfolio on 120 coins?",
+   "result": "Structural stops beat tight 3% stops (a 3% stop was hit 70-85% of the time), but the dip trade is best with no stop; the disaster stop adds nothing to T3 (the Bitcoin gate already keeps it in cash in crashes).",
+   "changed": "H14 marked supported (the decision chain's stop rule); the 25% stop stays in the live rules as a guard.",
+   "files": [
+    "docs/research/REVIEW_18.md",
+    "docs/research/REVIEW_18_RESULTS.md"
+   ],
+   "status": "DONE"
+  },
+  {
+   "id": "R19",
+   "date": "2026-10-05",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Buying pressure, funding rates, open interest",
+   "forwarded_because": "Audit v1: cheap new variables never tested (U01-U03); now free in Binance's files.",
+   "question": "Do buying pressure, crowded funding or a leverage flush improve T3-B or H07?",
+   "result": "Nothing passed. Buying pressure helped the trend book in 2024-26 (+49% vs +26%) but cost two thirds of its gain before 2024; crowded funding as an exit hurt it in both periods; the dip-trade filters changed almost nothing (one missed by 0.01%).",
+   "changed": "Nothing. Funding, open interest and buying pressure stay in the lake as context for the agent, never used to decide.",
+   "files": [
+    "docs/research/REVIEW_19.md",
+    "docs/research/REVIEW_19_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R20",
+   "date": "2026-10-05",
+   "verdict": "PASS",
+   "title": "A cheaper trend portfolio (re-sizing)",
+   "forwarded_because": "Review #4: T3's thin 2024-26 profit fails at double fees; the live rules asked for a lower-turnover version.",
+   "question": "Does re-sizing only when a coin drifts far from its share (or monthly) keep T3's results with fewer trades?",
+   "result": "T3-B passes on 10 and 30 coins with the best 2024-26 result and a third of the trades; costs only 5-15% lower; nothing survives double costs.",
+   "changed": "T3-B is the sizing of both trend books (Madhav's yes, Oct 5).",
+   "files": [
+    "docs/research/REVIEW_20.md",
+    "docs/research/REVIEW_20_RESULTS.md"
+   ],
+   "status": "DONE"
+  },
+  {
+   "id": "R21",
+   "date": "2026-10-05",
+   "verdict": "FAIL",
+   "title": "Last queue items: E3 support bounce, B3 volume breakout",
+   "forwarded_because": "Audit v1: both too thin on 10 coins to judge.",
+   "question": "Do E3 (through the Explorer's own engine) and B3 hold on 30 and 120 coins?",
+   "result": "E3 beats random on 30 coins but loses money since 2024 (not tradable); B3 positive but never reliable.",
+   "changed": "Nothing.",
+   "files": [
+    "docs/research/REVIEW_21.md",
+    "docs/research/REVIEW_21_RESULTS.md"
+   ],
+   "status": "DONE"
+  },
+  {
+   "id": "R22",
+   "date": "2026-10-05",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Survivorship check: the top 30 as it was at each moment",
+   "forwarded_because": "Found while connecting the agent: LUNA and FTT are missing from the 120 (ranked on their last 24 months), so 'today's top 30' may flatter T3 and H07.",
+   "question": "Do T3-B and H07 still pass on the month-by-month top 30 (191 coins over the years, collapsed ones included)?",
+   "result": "On the top 30 as it really was each month (191 coins, LUNA and FTT included): T3-B lost 22.5% in 2024-26 while holding lost 76% (worst fall 45% vs 84%), so it fails its own profit rule; H07 beat ordinary days by 4.2% (z 2.45, bar 2.5) and 5.1% (z 4.8). Today's top-30 results were flattered.",
+   "changed": "Both 30-coin paper books keep running as evidence; neither is promoted on history. LUNA's re-used ticker is cut (history before 2022-05-31 only). New question Q9: the same check for the live 10.",
+   "files": [
+    "docs/research/REVIEW_22.md",
+    "docs/research/REVIEW_22_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R23",
+   "date": "2026-10-05",
+   "verdict": "FAIL",
+   "title": "The outside world: Nasdaq, US dollar, VIX, Fear & Greed",
+   "forwarded_because": "Madhav's Aladdin-style goal; audit v1 parked U06/U08 for lack of data.",
+   "question": "Do US markets, the dollar, stress or crypto sentiment improve T3-B or H07 as gates?",
+   "result": "All fail; Bitcoin's own trend already does the job; selling in extreme greed was the worst idea tested. Run 1 had a date bug, found and recorded.",
+   "changed": "Nothing; the series stay as context.",
+   "files": [
+    "docs/research/REVIEW_23.md",
+    "docs/research/REVIEW_23_RESULTS.md"
+   ],
+   "status": "DONE"
   }
  ],
  "queue": [
@@ -273,6 +409,33 @@
    "why": "Review #14: strong in both periods but a few events short; live fires are clean evidence.",
    "metric": "h07_fires",
    "goal": 10
+  },
+  {
+   "id": "Q7",
+   "status": "WAITING_FOR_EVIDENCE",
+   "title": "Jarvis's own book vs its random twins",
+   "waiting_for": "10 independent market events",
+   "why": "Is one decision-maker using all the knowledge better than random coins traded with the same plan?",
+   "metric": "jarvis_events",
+   "goal": 10
+  },
+  {
+   "id": "Q8",
+   "status": "WAITING_FOR_EVIDENCE",
+   "title": "30-coin tier: trend book and dip trade",
+   "waiting_for": "6-8 weekly checks of the 30-coin trend book; 10 dip-trade events",
+   "why": "Review #15 found both work on liquid coins; live paper must agree before any promotion.",
+   "metric": "t30_weeks",
+   "goal": 6
+  },
+  {
+   "id": "Q9",
+   "status": "WAITING_FOR_EVIDENCE",
+   "title": "Survivorship check for the live 10",
+   "waiting_for": "a review slot (data are in the lake)",
+   "why": "Review #22: the lab 10 were also chosen with today's knowledge; re-test T3-B on the top 10 as it was each month.",
+   "metric": "review_slot",
+   "goal": 1
   }
  ],
  "in_use": [
@@ -283,6 +446,38 @@
    "what": "Portfolio trend layer: daily ratings, weekly rebalance, MAIN (you approve) and SHADOW (automatic) books",
    "expect": "Beat buy-and-hold over months mainly by losing less in slides; about half the drawdown; few trades",
    "watch_out": "Fails at double fees; one month proves nothing"
+  },
+  {
+   "id": "T3-B",
+   "from": "R20",
+   "since": "2026-10-05",
+   "what": "Trend books re-size a coin only when it drifts outside 0.5x-1.5x of its share",
+   "expect": "Same or better than T3 with a third of the trades",
+   "watch_out": "Costs only 5-15% lower; NDAX's 0.20% fee is still a must"
+  },
+  {
+   "id": "TIER30",
+   "from": "R15",
+   "since": "2026-10-04",
+   "what": "30-coin paper tier: trend book (T3-B, $2,000) and the dip trade H07-T30 ($100 per signal), apart from the 10-coin books",
+   "expect": "Both beat their baselines on the 30 most-traded coins, as in history",
+   "watch_out": "Review #22 checks whether 'today's top 30' flattered them"
+  },
+  {
+   "id": "ZONES-16",
+   "from": "R16",
+   "since": "2026-10-05",
+   "what": "Live zone labels: new swing zones and the 200-day average are 'history supports'; overlapping zones are watched only",
+   "expect": "Zone entries of supported kinds hold more often than others",
+   "watch_out": "Entering a zone is not a trade; the market gate matters most"
+  },
+  {
+   "id": "H07-SHADOW",
+   "from": "R14",
+   "since": "2026-10-03",
+   "what": "The short dip trade traded on paper on the 10 live coins ($100 per signal)",
+   "expect": "+3.6% to +6% per trade over ordinary uptrend days, about 70% wins",
+   "watch_out": "Works on liquid coins only (review #15); few signals"
   }
  ],
  "safety_changes": [
@@ -317,6 +512,22 @@
   {
    "date": "2026-10-01",
    "what": "AI cost controls: Ask and Voice switches, daily Claude budget with free fallback"
+  },
+  {
+   "date": "2026-10-05",
+   "what": "Watchdog sees a silent Explorer (its last real scan, not a log write) and a refused Hands login: the Oct 4-5 night outage (8.5 hours) was invisible before"
+  },
+  {
+   "date": "2026-10-05",
+   "what": "Evidence counts correlated coins as one bet: everything closing the same day is one market event"
+  },
+  {
+   "date": "2026-10-05",
+   "what": "Every trailing-stop move on Jarvis's trades is logged (a written plan can only change by its own rule)"
+  },
+  {
+   "date": "2026-10-05",
+   "what": "Every nightly rebuild is kept (rebuild log); before, each night overwrote the last"
   }
  ],
  "studies": [
@@ -350,6 +561,90 @@
    "what": "Paper wide mode: E6 dips traded on paper; up to 3 trades per coin per type when at least 2 four-hour ranges apart; 60 entries a day",
    "why": "More paper evidence per day (Q1 needed ~2 weeks at the old pace). Same $100 size, exits and warning bells.",
    "watch_out": "Trades on the same coin at the same moment repeat one result: read 'independent events', not just the trade count."
+  },
+  {
+   "id": "W2",
+   "since": "2026-10-05",
+   "decided_by": "owner",
+   "what": "Wide mode W1 plus: dip trades (E6) need at least 1.2% room to their target (TK2)",
+   "why": "Under W1, three dip trades hit a target 0.01% away the minute they filled and lost to costs.",
+   "watch_out": "Fewer E6 trades; the ones refused are still tracked as would-bes, so we can see what the rule cost."
+  }
+ ],
+ "tickets": [
+  {
+   "id": "TK1",
+   "date": "2026-10-05",
+   "from": "health watchdog / hourly watch log",
+   "what": "Night of Oct 4-5: Hands refused every login for 8.5 hours (tunnel down at the same time): the Explorer stood still (fail-closed) and the hourly watch missed about 8 looks; the watchdog showed the Explorer as healthy.",
+   "did": "Traced it: login errors 03:00-11:30 UTC, recovered by itself; likely the network or the cloud database.",
+   "change": "Watchdog checks the Explorer's last real scan and Hands' login (and the 30-coin tier).",
+   "status": "DONE",
+   "next": "Network and UPS before live (Madhav's plan)."
+  },
+  {
+   "id": "TK2",
+   "date": "2026-10-05",
+   "from": "trade check (targets hit at a loss)",
+   "what": "Dip trades (E6) skip the room-to-target check every other setup passes: 3 real trades on Oct 5 'hit their target' the minute they filled and lost to costs (target 0.01% away).",
+   "did": "Madhav said yes (Oct 5).",
+   "change": "Rules W2 from 2026-10-05 17:30 UTC: a dip trade needs at least 1.2% room to its target, else it is tracked as a would-be (NO_TYPE). Earlier trades keep W1, so the nightly rebuild still matches.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK3",
+   "date": "2026-10-05",
+   "from": "scoreboard",
+   "what": "Hunter's book pays Kraken's 0.80% a side; live will be NDAX at 0.20%.",
+   "did": "Madhav said yes (Oct 5).",
+   "change": "Hunter's book pays NDAX costs (0.20% plus 0.30% slippage a side) from Oct 5; trades before stay at Kraken's 0.80%.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK4",
+   "date": "2026-10-05",
+   "from": "brain queue",
+   "what": "Jarvis's brain was woken 102 times and decided 8: 79 wakes dropped because it already held the coin, 15 because 8 trades were open.",
+   "did": "Madhav said yes (Oct 5).",
+   "change": "Jarvis decides on a held coin too (at most 2 trades per coin), 20 open, 40 decisions a day. Waking on the 30-coin tier is the next step (its coins have no 15-minute data in the brain's pack yet).",
+   "status": "DONE",
+   "next": "Wake on the 30-coin tier; the random twins then need the 30-coin pool."
+  },
+  {
+   "id": "TK5",
+   "date": "2026-10-05",
+   "from": "your chats (Oct 3-5)",
+   "what": "Jarvis said 'Hyperliquid isn't in our system', did not know 'no trade' scoring or which clocks may trade, and could not confirm its own counting, twin pool or plan freezing.",
+   "did": "Read the three conversations; checked each mechanism in code.",
+   "change": "Jarvis now knows the clocks, the reconstruction work and its vocabulary cold; flags 5, 6, 9-12 fixed.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK6",
+   "date": "2026-10-05",
+   "from": "Evidence page",
+   "what": "The repair-shop ledger stopped at review #14 (Oct 3), so the Evidence page did not show reviews #15-#23.",
+   "did": "Updated the ledger.",
+   "change": "Reviews #15-#23, the new changes in use and these tickets are in the ledger.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK7",
+   "date": "2026-10-05",
+   "from": "agent integration",
+   "what": "LUNA and FTT are not in the 120-coin universe (ranked on their last 24 months), so 'today's top 30' may flatter the 30-coin results.",
+   "did": "Built the month-by-month top 30 (191 coins over the years).",
+   "change": "Review #22 ran: both 30-coin results were flattered (see R22).",
+   "status": "DONE"
+  },
+  {
+   "id": "TK8",
+   "date": "2026-10-05",
+   "from": "review #23 run 1",
+   "what": "A date bug put every macro value in 1970, so the first run's filters saw only the latest value.",
+   "did": "Found because the numbers were impossible; fixed the conversion, checked dates by hand.",
+   "change": "Run 2 is the result; run 1 kept and marked invalid.",
+   "status": "DONE"
   }
  ]
 }

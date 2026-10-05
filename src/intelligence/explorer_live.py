@@ -653,7 +653,7 @@ def main(argv=None) -> None:
     elif cmd == "portfolio":
         portfolio_cli((argv or sys.argv[1:])[1:])
     elif cmd == "widen":
-        print(json.dumps(widen(((argv or sys.argv[1:]) + ["W1"])[1]), indent=1))
+        print(json.dumps(widen(((argv or sys.argv[1:]) + ["W2"])[1]), indent=1))
     else:
         raise SystemExit(f"unknown command {cmd!r}: use run | status | report | reconstruct | weekly | widen [RULESET]")
 

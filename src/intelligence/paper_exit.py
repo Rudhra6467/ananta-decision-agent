@@ -119,7 +119,7 @@ COST_PROFILES: dict[str, dict[str, float]] = {
 
 
 def settings_for(profile: str | None = None) -> Sd6Settings:
-    name = (profile or os.environ.get("ANANTA_SD6_COST") or "KRAKEN_T1_TAKER").upper()
+    name = (profile or os.environ.get("ANANTA_SD6_COST") or "NDAX").upper()   # TK3 (Madhav, 2026-10-05): NDAX like every other book (was KRAKEN_T1_TAKER)
     if name not in COST_PROFILES:
         raise ValueError(f"unknown SD6 cost profile {name!r}; choose from {sorted(COST_PROFILES)}")
     return Sd6Settings(cost_profile=name, **COST_PROFILES[name])

@@ -237,3 +237,14 @@ def test_wide_rules_stack_trades_far_apart_and_switch_on_schedule():
     eng.orders += [xe.Order(f"y{i}", "BTC", "E4", "LONG_TERM", 120.0 + 10 * i, 0, 10, {}, 1, 1, 1, None, None) for i in range(2)]
     assert eng._busy("LONG_TERM", 200.0, 5.0)                 # W1: stack of 3 is full
     assert not eng._busy("SHORT_TERM", 100.0, 5.0)            # other types are independent
+
+
+def test_tk2_dip_trades_need_room_under_w2_but_old_rules_are_unchanged():
+    eng = xe.CoinEngine("BTC")
+    st = {"zones": {"resistance_low": 100.5}, "S1": "NEUTRAL", "trend_4h": "UP", "daily_above_ema50": True}
+    eng.rules = xe.RULESETS["W1"]
+    assert eng.trade_type("E6", st, 100.0) == ("SHORT_TERM", "G2_DIP")      # W1 (and every rebuilt past decision): no check
+    eng.rules = xe.RULESETS["W2"]
+    assert eng.trade_type("E6", st, 100.0) == (None, "NO_TYPE")             # 0.5% room < 1.2%: tracked as a would-be only
+    st["zones"]["resistance_low"] = 102.0
+    assert eng.trade_type("E6", st, 100.0) == ("SHORT_TERM", "G2_DIP")

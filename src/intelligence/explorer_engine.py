@@ -42,6 +42,7 @@ class Rules:
     setups: tuple = ("E1", "E2", "E3", "E4", "E5")
     stack: int = 1               # real trades allowed at once per coin per trade type (v0: 1)
     stack_gap: float = 2.0       # a stacked entry must be this many 4h ATRs (about a day's move) from every open one
+    dip_room: float = 0.0        # dip setups (E6-E8) need this much room to the next resistance (W2: 1.2%, ticket TK2)
 
 
 RULES_V0 = Rules()
@@ -60,6 +61,9 @@ RULESETS = {  # repair-shop review #1 (docs/repair_shop/REVIEW_1.md)
     # paper "wide" mode (owner, 2026-10-03): more paper evidence per day. Same sizes, exits and bells as v0;
     # adds the E6 dip setup as real paper trades and allows up to 3 trades per coin per type when far enough apart.
     "W1": Rules("W1", setups=("E1", "E2", "E3", "E4", "E5", "E6"), stack=3, stack_gap=2.0),
+    # TK2 (Madhav's yes, 2026-10-05): W1, but a dip trade needs at least 1.2% room to its target. Under W1 three E6 trades
+    # "hit their target" the minute they filled (target 0.01% away) and lost to costs; with no room it is a NO_TYPE shadow.
+    "W2": Rules("W2", setups=("E1", "E2", "E3", "E4", "E5", "E6"), stack=3, stack_gap=2.0, dip_room=0.012),
 }
 DIP_SETUPS = ("E6", "E7", "E8")
 
@@ -503,9 +507,11 @@ class CoinEngine:
         return (r - entry) / entry if (r is not None and r > entry) else 0.05  # no level above: "open sky" = 5%
 
     def trade_type(self, setup: str, st: dict, entry: float) -> tuple[str | None, str]:
-        if setup in DIP_SETUPS:
-            return "SHORT_TERM", "G2_DIP"
         room = self.room(st, entry)
+        if setup in DIP_SETUPS:
+            if room < getattr(self.rules, "dip_room", 0.0):      # rules saved before TK2 have no dip_room: no check, as then
+                return None, "NO_TYPE"
+            return "SHORT_TERM", "G2_DIP"
         if st["S1"] == "BULL" and st["trend_4h"] == "UP" and st["daily_above_ema50"] and setup in ("E1", "E4", "E5", "RND"):
             return "LONG_TERM", "G1"
         if st["S1"] in ("BULL", "NEUTRAL") and room >= 0.03:

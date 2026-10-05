@@ -64,6 +64,15 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_13.md`, `research/REVIEW_13_RESULTS.md`: the remaining teacher ideas: H07's short RSI dip trade promising (+4% per trade, 70% wins, both periods); first pullback, false break, book stop add nothing; breadth too few samples.
 - `research/REVIEW_14.md`, `research/REVIEW_14_RESULTS.md`: the short dip trade (H07) beat ordinary uptrend days traded the same way in both periods (+3.9%, +5.6% per trade, about 70% wins), a few events short of the bar; the most consistent result so far.
 - `research/REVIEW_15.md`: pre-registration for re-testing T3, H07 and your setups on the full crypto universe from the lake (tiers LAB10 as a data check, TOP30, ALL; original pass rules, pessimistic costs for thin coins).
+- `research/REVIEW_15_RESULTS.md`: on the lake: T3 and H07 pass on the 30 most-traded coins, fail on all 120; M2a/M3a/M2a-G not supported; COCOS and BNX token swaps cut.
+- `research/REVIEW_16_RESULTS.md`: zones on 120 coins: new swing zones and the 200-day average pass (z 4.4); overlapping zones fall under the bar; market allowed (F6) holds everywhere.
+- `research/REVIEW_17_RESULTS.md`: coin filters: relative strength vs BTC hurts T3; breadth helps 2024-26 but hurts 2018-23 (fail); H07 filters too few events.
+- `research/REVIEW_18_RESULTS.md`: stops: structural beats tight (H14 supported) but H07 is best without a stop; a 25% disaster stop adds nothing to T3 (kept as a live guard); the BTC gate is T3's crash insurance.
+- `research/REVIEW_19.md`: buying pressure, funding and open interest as filters (results when the open-interest download is complete).
+- `research/REVIEW_20_RESULTS.md`: T3-B sizing (re-size only coins far from their share): passes on 10 and 30 coins, a third of the trades, costs only 5-15% lower; nothing survives double costs. Now the default.
+- `research/REVIEW_21_RESULTS.md`: E3 support bounce passes on 30 coins by the rule but loses money since 2024 (not tradable); B3 volume breakout fails everywhere.
+- `research/REVIEW_22.md`: the survivorship check: T3-B and H07 on the point-in-time top 30 (results when the collapsed coins are downloaded).
+- `research/REVIEW_23_RESULTS.md`: the outside world: Nasdaq, US dollar, VIX and Fear & Greed filters all fail on T3-B; selling into extreme greed is the worst idea tested.
 
 ## Safety and operations
 - `GUEST_GUIDE.md`: a guide for a friend trying the app: how to open it, the tabs, the coins, first questions, the rule gates, making a paper trade, what practice mode locks.

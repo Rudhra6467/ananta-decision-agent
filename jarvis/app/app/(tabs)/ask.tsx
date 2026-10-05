@@ -80,6 +80,12 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
         </View>
       ) : null}
 
+      {m.kind === "answer" && m.next_action?.label ? (
+        <Pressable onPress={() => onPick(m.next_action.ask)} style={({ pressed }) => ({ backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 14,
+          paddingVertical: 9, alignSelf: "flex-start", opacity: pressed ? 0.75 : 1 })}>
+          <Text style={{ color: "#FFF", fontSize: 14, fontWeight: "700" }}>{m.next_action.label}</Text>
+        </Pressable>
+      ) : null}
       {chips.length ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {chips.map((c, i) => (

@@ -37,6 +37,7 @@ HOW TO TALK (most important)
 - ANSWER FIRST: your first sentence answers the question. Then the one reason that matters most, then what it means for us. Never start with "Sure", "Good question", "Great question", "Fair question", "Absolutely" or "Of course", and never repeat his question back to him ("You're asking whether...").
 - His name: in a greeting, or now and then for warmth; never in two answers in a row. Greet by time of day ("Morning, Madhav.") only at the start of a new conversation, never in the middle of one.
 - Say numbers the way people say them: rounded ("about 84 thousand 7 hundred dollars", "a dollar fifty-two", "up about two and a half percent"), at most two numbers in a sentence; exact figures go in breakdown and evidence. Use spoken names, not codes, in "answer": "the trend portfolio" (T3), "the momentum setup" (E4) and the other setup names, "the short dip trade" (H07), "Hunter's book" (SD6), "your retest setup" (M2a), "the Bitcoin 50-day rule" (V02), "twice the risk" (2R). Codes belong in breakdown and evidence only. If a trading word is needed, explain it once in a few words ("RSI, a gauge of how stretched the price is").
+- PLAIN WORDS (Madhav, 2026-10-05: "simplify the explanation, not the intelligence"): think with the technical terms, speak with their meaning. The first time a term appears in a conversation, say the plain name first, then the term ("Bitcoin's average price over the last 50 days, the 50-day average"); after that either is fine. Use OUR settings from the PLAIN WORDS list below, never a textbook definition that differs from how Ananta uses the term. Say whether it supports, works against or is neutral for the idea ("the 20-day average is above the 50-day: the recent trend is stronger than the longer one, which supports the trade"). Terms marked "not used by Ananta" may be explained when asked, never implied to be part of our system.
 - Say each standing caveat at most once in a conversation ("it's paper money", "nothing needs you", "the evidence is still thin", "a candidate isn't a trade"), and only when it changes what he should do.
 - HAVE A VIEW: when he asks "is it a good buy?", "what would you do?", "which one?", "your honest opinion?" or about the coming days, give a straight lean ("I'd wait", "If I had to pick one, Litecoin"), the one reason, what would change your mind, and how much evidence stands behind it. Never a flat "I can't tell you". It's a view, not a promise: he decides, and real money stays locked until his live rules are approved.
 - TALK STRAIGHT, ASK, CONFIRM, CORRECT: if he says something the data contradicts (a wrong price, count or date, or a claim about how our system works), say so kindly and give the real figure. Never agree with a claim about our system or our numbers without checking the briefs or lookups, even when he insists you were wrong: check first; if you were wrong, say so plainly and fix it; if you were right, hold your ground politely. When you're not sure what he means, ask one short question with your best guess ("You mean XRP's stop, about five cents under the entry?"), not a menu. Before any change, say exactly what will happen and that a card is waiting for his Face ID.
@@ -107,7 +108,8 @@ OUTPUT: reply with ONE JSON object and nothing else:
  "evidence": [{"label": "...", "value": "...", "source": "brief or lookup name", "time": "when, if known", "spot": "where it is shown, if anywhere", "screen": "place to open for it, if not the open screen"}] (at most 4),
  "assumption": "the reading you assumed, or empty",
  "options": ["for clarify only: short options"],
- "follow_ups": ["2 natural next questions he might ask"],
+ "next_action": {"label": "short button words, e.g. 'Yes, pull up the BTC setup'", "ask": "the exact question or command to run when chosen, e.g. 'Show me the BTC setup'", "say": "one short sentence offering it, e.g. 'Want me to pull up the Bitcoin setup? Just say yes.'"} or null,
+ "follow_ups": ["natural next questions he might ask (how many: see the NEXT STEP note)"],
  "show": [{"screen": "...", "label": "..."}],
  "points": [{"spot": "...", "sentence": 0}]}"""
 
@@ -341,6 +343,75 @@ OKAY = re.compile(r"^\s*(ok|okay|cool|great|nice|got it|perfect|alright|all righ
 REPEAT = re.compile(r"\b(say (that|it) again|repeat (that|it|please|yourself)|come again|pardon( me)?|what did you (just )?say|one more time)\b", re.I)
 
 
+NEXT_STEP_ANSWERS = 4      # Madhav: for the first 4 answers of every conversation, always offer the next step + 3 suggestions
+YES = re.compile(r"^\s*(yes|yeah|yep|yup|sure|ok(ay)?|do it|go ahead|please( do)?|yes please|sure thing|let'?s do it|show me|pull it up)[\s.!,]*(jarvis|ananta|sir)?[\s.!]*$", re.I)
+_PLAIN: dict = {}
+
+
+def _plain_words(j) -> str:
+    """The glossary (docs/knowledge/glossary.json) as a compact block for the system prompt."""
+    try:
+        from jarvis.service.core import docs_dir
+
+        p = docs_dir(j.dir) / "knowledge" / "glossary.json"
+        key = (str(p), p.stat().st_mtime)
+        if _PLAIN.get("key") != key:
+            g = json.loads(p.read_text())
+            lines = [f"- {t['term']}: {t['plain']}. {t['meaning']} Ours: {t['ours']}." + ("" if t.get("used", True) else " (not used by Ananta)")
+                     for t in g["terms"]]
+            _PLAIN.update(key=key, text="\n\nPLAIN WORDS (say the meaning, keep the term; our settings):\n" + "\n".join(lines))
+        return _PLAIN["text"]
+    except Exception:  # noqa: BLE001  the glossary helps; it never blocks an answer
+        return ""
+
+
+def _clean_next(reply: dict) -> None:
+    """A next step must be something we can run: a short label and a question or command; suggestions are short questions."""
+    na = reply.get("next_action")
+    if not (isinstance(na, dict) and str(na.get("label") or "").strip() and str(na.get("ask") or "").strip()):
+        reply["next_action"] = None
+    else:
+        reply["next_action"] = {"label": str(na["label"]).strip()[:60], "ask": str(na["ask"]).strip()[:200], "say": str(na.get("say") or "").strip()[:200]}
+    fu = [str(x).strip() for x in (reply.get("follow_ups") or []) if isinstance(x, str) and 3 <= len(str(x).strip()) <= 90]
+    ask_ = (reply["next_action"] or {}).get("ask", "").lower()
+    reply["follow_ups"] = [x for x in dict.fromkeys(fu) if x.lower() != ask_][:3]
+
+
+def guest_address(t: str) -> str:
+    """Only Madhav is 'sir' (and only Madhav is Madhav): a visitor's answer never addresses them that way."""
+    t = re.sub(r",\s*(sir|Madhav)(?=[.!?,])", "", t)
+    t = re.sub(r"^((?:Good )?(?:morning|afternoon|evening)|Morning|Hi|Hello|Hey|Sure|Yes|Okay|Right)[,]?\s+(sir|Madhav)\b[,.!]?", r"\1.", t, flags=re.I)
+    return t
+
+
+def _chip_table(j) -> None:
+    j.db.execute("CREATE TABLE IF NOT EXISTS ask_chips (reply_id TEXT, thread TEXT, t INTEGER, kind TEXT, text TEXT, ask TEXT, picked INTEGER DEFAULT 0, "
+                 "PRIMARY KEY (reply_id, kind, text))")
+
+
+def _log_chips(j, thread: str, reply_id: str, reply: dict) -> None:
+    """Every chip shown, so the weekly table can rank what people actually tap (Madhav: refine from what users select)."""
+    try:
+        _chip_table(j)
+        t = int(j.now())
+        na = reply.get("next_action")
+        rows = ([(reply_id, thread, t, "primary", na["label"], na["ask"])] if na else []) + \
+               [(reply_id, thread, t, "suggest", x, x) for x in reply.get("follow_ups") or []]
+        j.db.executemany("INSERT OR IGNORE INTO ask_chips (reply_id, thread, t, kind, text, ask) VALUES (?,?,?,?,?,?)", rows)
+        j.db.commit()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def chip_stats(j, days: int = 7) -> list[dict]:
+    """How often each chip was tapped when shown (the refinement loop)."""
+    _chip_table(j)
+    since = int(j.now()) - days * 86400
+    return [{"kind": k, "text": x, "shown": n, "picked": p, "rate": round(p / n, 2) if n else None} for k, x, n, p in
+            j.db.execute("SELECT kind, ask, COUNT(*), SUM(picked) FROM ask_chips WHERE t >= ? GROUP BY kind, ask ORDER BY SUM(picked) DESC, COUNT(*) DESC",
+                         (since,))]
+
+
 def speak_text(reply: dict) -> str:
     """What Ananta says aloud: the answer's first sentences (about 60 words at most; the rest stays on screen) and, for a
     'did you mean', the choices, so he can just say which one."""
@@ -354,6 +425,9 @@ def speak_text(reply: dict) -> str:
         out.append(x)
         n += w
     t = " ".join(out)
+    na = reply.get("next_action") if isinstance(reply.get("next_action"), dict) else None
+    if na and na.get("say") and reply.get("kind") == "answer":
+        t = (t + " " + str(na["say"]).strip()).strip()
     opts = [str(o) for o in (reply.get("options") or [])][:4] if reply.get("kind") == "clarify" else []
     if opts and not all(o.lower() in t.lower() for o in opts):
         t += " Did you mean " + (", ".join(opts[:-1]) + ", or " if len(opts) > 1 else "") + opts[-1] + "?"
@@ -1386,7 +1460,8 @@ def parse(text: str) -> dict:
             d = json.loads(m.group(0))
             if isinstance(d, dict) and d.get("answer"):
                 d.setdefault("kind", "answer")
-                for k, default in (("breakdown", []), ("evidence", []), ("options", []), ("follow_ups", []), ("stage", ""), ("assumption", "")):
+                for k, default in (("breakdown", []), ("evidence", []), ("options", []), ("follow_ups", []), ("stage", ""), ("assumption", ""),
+                                   ("next_action", None)):
                     d.setdefault(k, default)
                 if isinstance(d["breakdown"], str):
                     d["breakdown"] = [d["breakdown"]]
@@ -1577,6 +1652,7 @@ class Ask:
         if self.setting("ask_enabled") != "1":
             raise ValueError("Ask Ananta is switched off in the Cockpit")
         thread = thread or uuid.uuid4().hex[:12]
+        text = self._take_next_step(thread, text)                    # "yes" to "Want me to pull up BTC?" runs that step
         quick = self._quick(who, text, thread, voice, source, context)
         if quick:
             return quick
@@ -1653,8 +1729,18 @@ class Ask:
             hr = datetime.fromtimestamp(now, ZoneInfo("America/Toronto")).hour
             part = "morning" if 4 <= hr < 12 else "afternoon" if hr < 17 else "evening"
             notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet Madhav warmly in a few words first]")
+        n_answers = sum(1 for h in history if h.get("role") == "assistant")
+        if n_answers < NEXT_STEP_ANSWERS:
+            notes.append(f"[NEXT STEP: this is answer {n_answers + 1} of this conversation. Add next_action: the one obvious next step that follows "
+                         "from YOUR answer (open the thing you talked about, the deeper check, the related trade), with 'say' ending in 'Just say yes.' "
+                         "And exactly 3 follow_ups: questions people usually ask next here. Every chip must be something you can answer or do.]")
+        else:
+            notes.append("[next_action only when there is an obvious next step; follow_ups: 2]")
+        if not str(who).startswith("guest:") and source != "eval":
+            notes.append("[ADDRESS: you are talking with Madhav, the owner. Now and then call him 'sir' (when saying hello, a confirmation, a serious "
+                         "moment) and at other times 'Madhav'; never both in one answer, and no name in two answers in a row. Only Madhav is 'sir'.]")
         if str(who).startswith("guest:"):
-            notes.append("[GUEST: this is a friend of Madhav trying the app in practice mode. Do not call them Madhav; greet them as a guest. "
+            notes.append("[GUEST: this is a friend of Madhav trying the app in practice mode. Do not call them Madhav or 'sir'; greet them as a guest. "
                          "Explain Madhav's system as 'Madhav's paper trading system'. Everything works for them as it does for Madhav: they can ask for "
                          "paper orders, alerts and mandate changes, and those go to THEIR OWN practice book (separate cash, never Madhav's books). "
                          "Say 'your practice book' for their manual book. The kill switch, autopilot and portfolio approvals are locked in practice mode.]")
@@ -1676,7 +1762,7 @@ class Ask:
         used = key
         from jarvis.service.mandate import Mandate
 
-        system = SYSTEM + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text()
+        system = SYSTEM + _plain_words(self.j) + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text()
         try:
             can_escalate = key == "local" and mode_label == "auto"      # the router picked the Mac: a weak answer goes one level up
             try:
@@ -1745,6 +1831,9 @@ class Ask:
         ms = int(1000 * (time.time() - t0))
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created
+        _clean_next(reply)
+        if str(who).startswith("guest:"):
+            reply["answer"] = guest_address(reply.get("answer") or "")
         if source != "eval" and mode != "worker" and not str(who).startswith("guest:"):
             _self_flag(self.j, text, reply, log, thread)                 # "I don't have that" -> a numbered request, said once
         try:
@@ -1782,6 +1871,7 @@ class Ask:
                            usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note,
                            route_name, json.dumps(timing)))
         self.j.db.commit()
+        _log_chips(self.j, thread, aid, reply)
         self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
         if voice:
             reply["speak"] = speak_text(reply)                       # what is said aloud (the full answer stays on screen)
@@ -1789,6 +1879,26 @@ class Ask:
         if vid:
             reply["voice_id"] = vid                                  # its audio is already being made: the phone fetches it directly
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
+
+    def _take_next_step(self, thread: str, text: str) -> str:
+        """'Yes' right after an offered next step runs that step; a question that matches a chip just shown marks it picked."""
+        try:
+            _chip_table(self.j)
+            row = self.j.db.execute("SELECT id, reply, t FROM ask_messages WHERE thread=? AND role='assistant' AND reply IS NOT NULL "
+                                    "ORDER BY t DESC, rowid DESC LIMIT 1", (thread,)).fetchone()
+            if not row:
+                return text
+            rid, prev, t = row[0], json.loads(row[1] or "{}"), row[2]
+            na = prev.get("next_action") if isinstance(prev.get("next_action"), dict) else None
+            if na and YES.match(text) and int(self.j.now()) - int(t or 0) <= 600:
+                self.j.db.execute("UPDATE ask_chips SET picked=1 WHERE reply_id=? AND kind='primary'", (rid,))
+                self.j.db.commit()
+                return na["ask"]
+            self.j.db.execute("UPDATE ask_chips SET picked=1 WHERE reply_id=? AND lower(ask)=lower(?)", (rid, text.strip()))
+            self.j.db.commit()
+        except Exception:  # noqa: BLE001
+            pass
+        return text
 
     def _small_talk(self, text: str, thread: str) -> dict | None:
         """Instant replies that need no model: thanks / okay / stop, and "say that again"."""

@@ -77,7 +77,7 @@ def _sync_shared(g: core.Jarvis) -> None:
             continue
         if rows:
             ph = ",".join("?" * len(rows[0]))
-            g.db.executemany(f"INSERT OR IGNORE INTO {tbl} VALUES ({ph})", [tuple(r) for r in rows])
+            g.db.executemany(f"INSERT OR REPLACE INTO {tbl} VALUES ({ph})", [tuple(r) for r in rows])   # updates too (a trade that closed)
     try:
         if not g.db.execute("SELECT 1 FROM mandate LIMIT 1").fetchone():      # start from Madhav's mandate; edits stay in the sandbox
             for t, by, why, js in m.db.execute("SELECT t, by, why, json FROM mandate ORDER BY version DESC LIMIT 1").fetchall():

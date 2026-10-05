@@ -34,7 +34,8 @@ coin (now answered by the prices lookup, what='coverage': mark DONE after deploy
 5. WAITING (Madhav) the live rules and code-review guide: draft doc 2026-10-04 ("Going live: rules and code review"): T3 only, $250 in
    T3 + $250 cash, 20% shutdown. Decided 2026-10-04: NDAX (0.20% flat, minimum order $1-5 CAD); the other answers are the defaults
    (CAD 500, half in cash, 20% final stop, 25% disaster stop, approve weekly changes for 4 weeks, start when the checklist is done).
-   TODO: test the lower-turnover T3 in the repair shop before live.
+   DONE 2026-10-05 review #20: T3-B (re-size a coin only when it drifts outside 0.5x-1.5x of its share) PASSES on LAB10 and TOP30,
+   best 2024-26 MAR, a third of the trades, but costs only ~5-15% lower; nothing survives double costs. WAITING Madhav: switch to T3-B?
 6. TODO when the brain has evidence: let it see funding rates and open interest; let a PROMOTED pattern from the misses become a
    registered watch.
 7. DOING (Madhav's plan, 2026-10-04) the full crypto universe: 120 coins downloaded and graded (92 A / 27 B / 1 C), review #15 done (T3 and H07 pass on TOP30, not on all 120; M2a/M3a dropped; see REVIEW_15_RESULTS.md), research audit v1 written (AUDIT_V1.md, next: reviews #16-#19 in its order); open: Madhav decides what a TOP30-only pass earns; quality check to flag x10+ day moves as redenominations; lake built (src/lake), 5-coin test done and matching the old data;

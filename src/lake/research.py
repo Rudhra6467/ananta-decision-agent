@@ -122,3 +122,21 @@ def review15(symbols: list[str], tiers: dict[str, list[str]] | None = None, out:
     out.mkdir(parents=True, exist_ok=True)
     (out / "review15_results.json").write_text(json.dumps(rep, indent=1, default=str))
     return rep
+
+
+def review16(symbols: list[str], tiers: dict[str, list[str]], out: Path | None = None) -> dict:
+    """Reviews #6 (zones) and #7 (lookout) unchanged, on each tier of lake coins (docs/research/REVIEW_16.md)."""
+    from src.research import zones as Z
+
+    t0 = time.time()
+    D_all = load(symbols)
+    rep: dict = {"version": "review16.v1", "pre_registration": "docs/research/REVIEW_16.md", "coins_loaded": len(D_all), "tiers": {}}
+    for name, coins in tiers.items():
+        D = {c: D_all[c] for c in coins if c in D_all}
+        z6, z7 = Z.review6(D), Z.review7(D)
+        rep["tiers"][name] = {"coins": sorted(D), "zones": z6["groups"], "lookout": z7["reactions"], "lookout_base": z7["base"],
+                              "zone_events": len(z6["events"]), "lookout_events": len(z7["events"])}
+    rep["seconds"] = round(time.time() - t0)
+    out = out or root() / "reports"
+    (out / "review16_results.json").write_text(json.dumps(rep, indent=1, default=str))
+    return rep

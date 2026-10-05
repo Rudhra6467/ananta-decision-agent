@@ -724,7 +724,11 @@
     "docs/research/REVIEW_20_RESULTS.md",
     "src/research/review17.py",
     "src/research/review18.py",
-    "src/research/review21.py"
+    "src/research/review21.py",
+    "src/research/review19.py",
+    "src/research/review22.py",
+    "src/research/review23.py",
+    "src/lake/macro.py"
    ]
   },
   {

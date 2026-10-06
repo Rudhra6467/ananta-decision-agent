@@ -32,6 +32,11 @@
     ],
     "extra": {
       "defaultServer": "https://api.livetrading247.com"
+    },
+    "web": {
+      "output": "single",
+      "bundler": "metro",
+      "name": "Jarvis \u00b7 Ananta"
     }
   }
 }

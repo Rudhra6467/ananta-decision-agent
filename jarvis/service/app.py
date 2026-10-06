@@ -14,6 +14,14 @@ from pydantic import BaseModel
 from jarvis.service import core
 
 app = FastAPI(title="Jarvis", version=core.VERSION, docs_url=None, redoc_url=None, openapi_url=None)
+
+# The web app (livetrading247.com, Madhav 2026-10-06: "where i can access it through web") calls this API from the browser;
+# only our own sites may. Phones are not browsers and are unaffected. Every route still needs the login token.
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+
+app.add_middleware(CORSMiddleware, allow_origins=["https://livetrading247.com", "https://www.livetrading247.com",
+                                                  "http://localhost:8081"],
+                   allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type"])
 _J: core.Jarvis | None = None
 
 # Guest practice sandbox: a guest sees the real system (markets, Explorer, portfolio, evidence) and can do everything Madhav can

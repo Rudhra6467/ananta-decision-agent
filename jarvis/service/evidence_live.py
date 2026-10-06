@@ -154,6 +154,7 @@ def build(j) -> dict:
                     ("waiting", lambda: _waiting(j, P, ex))):
         out[key] = _try(fn, out, key)
     out["loop"] = _try(lambda: _loop(j, out, P, rows), out, "loop")
+    out["gate"] = _try(lambda: _gate(j, out), out, "gate")
     out["headline"] = _try(lambda: _headline(out), out, "headline")
     return out
 
@@ -431,13 +432,15 @@ def _misses(j) -> dict:
                  "forwarded": (f"missed:flag:{p['pattern']}" + ("" if tier == "LIVE10" else f":{tier}")) in flags} for p in ps]
 
     def mv(ms: list[dict]) -> list[dict]:
-        return [{"day": m["day"], "coin": m["coin"], "move_pct": m["move_pct"], "label": m["label"], "why": m["why"]} for m in ms[:8]]
+        return [{"day": m["day"], "coin": m["coin"], "move_pct": m["move_pct"], "label": m["label"], "why": m["why"],
+                 "miss_class": m.get("miss_class"), "class_why": m.get("class_why")} for m in ms[:8]]
 
     return {"days_reviewed": len(days), "since": _day(_date_t(days[0][7:])) if days else None,
             "live": {"counts": r["counts"], "moves": mv(r["moves"]), "patterns": pats(r["patterns"], "LIVE10")},
             "t30": {"counts": r["tier30"]["counts"], "moves": mv(r["tier30"]["moves"]), "patterns": pats(r["tier30"]["patterns"], "T30")},
-            "forwarded": len(flags),
-            "what_we_do": f"Every miss is filed with what we saw at its start. The same kind of miss {missed.REPEAT_N} times in "
+            "forwarded": len(flags), "classes": r.get("classes"), "class_meaning": r.get("class_meaning"),
+            "what_we_do": f"Every miss is filed with what we saw at its start and a class (data, intentional, execution, decision, detection, "
+                          f"knowledge): a move the market gate rightly refused is not a mistake. The same kind of detection or knowledge miss {missed.REPEAT_N} times in "
                           f"{missed.REPEAT_DAYS} days becomes a repair-shop request (an idea to test against the times the same start "
                           "led nowhere), and Jarvis's brain sees it as a candidate pattern. Picked after the fact, so never proof."}
 
@@ -597,6 +600,55 @@ def _loop(j, out: dict, P: dict, rows: list[dict]) -> list[dict]:
     ]
 
 
+PERMISSION_CHECK_FROM = 1791288000      # 2026-10-06 12:00 UTC: Jarvis's decisions are permission-checked from here on
+GATE_WORDS = {"PASS": "Pass", "FAIL": "Fail", "PARTLY": "Partly", "PENDING": "In progress", "NOT_MEASURED": "Not measured yet"}
+
+
+def _gate(j, out: dict) -> dict:
+    """The Engine Acceptance Gate (docs/knowledge/acceptance_gate.json): 27 checks; a few are computed live here."""
+    from jarvis.service.core import docs_dir
+
+    g = json.loads((docs_dir(j.dir) / "knowledge" / "acceptance_gate.json").read_text())
+    checks = [dict(c) for c in g["checks"]]
+    by = {c["id"]: c for c in checks}
+    _rebuild_table(j)
+    nights = [m for (m,) in j.db.execute("SELECT match FROM rebuild_log WHERE source LIKE 'nightly%' ORDER BY t DESC")]
+    run = 0
+    for m in nights:
+        if not m:
+            break
+        run += 1
+    c = by.get("engine_reproducible")
+    if c:
+        c["status"] = "PASS" if run >= 30 else "FAIL" if nights and not nights[0] else "PENDING"
+        c["note"] = f"{run} of 30 nights in a row match" + ("; the last night did NOT match" if nights and not nights[0] else "")
+    r = out.get("results") or {}
+    c = by.get("strategy_baselines")
+    if c and r:
+        real = next((x for x in r.get("items", []) if x["key"] == "real"), {})
+        ev = r.get("events") or 0
+        ahead = (real.get("avg_usd") or -9) > (r.get("random_avg_usd") or 0)
+        c["status"] = ("PASS" if ahead else "FAIL") if ev >= GOAL_EVENTS else "PENDING"
+        c["note"] = (f"{ev} of {GOAL_EVENTS} market events; real {_usd(real.get('avg_usd'))} vs random {_usd(r.get('random_avg_usd'))} per $100")
+    c = by.get("agent_no_failed_rules")
+    if c:
+        since = max(int(j.now()) - 7 * DAY, PERMISSION_CHECK_FROM)      # only decisions made since the check exists count
+        n = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action != 'ERROR'", (since,))
+        cited = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND note LIKE '%context-only%'", (since,))
+        c["status"] = "PENDING" if not n else "PASS" if not cited else "FAIL"
+        c["note"] = (f"{cited} of {n} decisions leaned on a context-only idea (last 7 days, checked since Oct 6)" if n
+                     else "no decisions since the check started (Oct 6)")
+    for c in checks:
+        c["status_words"] = GATE_WORDS.get(c["status"], c["status"])
+    passed = sum(1 for c in checks if c["status"] == "PASS")
+    areas = []
+    for c in checks:
+        if c["area"] not in areas:
+            areas.append(c["area"])
+    return {"passed": passed, "of": len(checks), "checks": checks, "areas": areas, "rule": g["rule"],
+            "counts": {k: sum(1 for c in checks if c["status"] == k) for k in GATE_WORDS}}
+
+
 def _headline(out: dict) -> str:
     r = out.get("results") or {}
     g = (out.get("board") or {}).get("groups") or {}
@@ -608,6 +660,9 @@ def _headline(out: dict) -> str:
         real = next((x for x in r.get("items", []) if x["key"] == "real"), None)
         if real and real.get("avg_usd") is not None and r.get("random_avg_usd") is not None:
             bits.append(f"So far real trades average {_usd(real['avg_usd'])} per $100, random entries {_usd(r['random_avg_usd'])}.")
+    gt = out.get("gate") or {}
+    if gt:
+        bits.append(f"Acceptance gate: {gt['passed']} of {gt['of']} checks pass.")
     if g.get("you"):
         bits.append(f"{_s(g['you'], 'change')} wait{'s' if g['you'] == 1 else ''} for your yes.")
     return " ".join(bits)
@@ -624,4 +679,8 @@ def summary(j) -> dict:
             "results": {k: (d.get("results") or {}).get(k) for k in ("items", "events", "goal_events", "books", "verdict")},
             "reconstruction": {k: rb.get(k) for k in ("nightly", "asked", "total", "mismatches", "last", "how", "if_mismatch", "others", "chain")},
             "misses": d.get("misses"), "board_counts": {"groups": b.get("groups"), "kinds": b.get("kinds"), "review_verdicts": b.get("verdicts")},
-            "open_work": active, "waiting": d.get("waiting"), "errors": d.get("errors")}
+            "open_work": active, "waiting": d.get("waiting"),
+            "acceptance_gate": {k: (d.get("gate") or {}).get(k) for k in ("passed", "of", "counts", "rule")} | {
+                "not_passing": [{x: c.get(x) for x in ("area", "check", "status_words", "pass_mark", "note")} for c in (d.get("gate") or {}).get("checks", [])
+                                if c["status"] != "PASS"]},
+            "errors": d.get("errors")}

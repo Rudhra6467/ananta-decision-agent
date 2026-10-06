@@ -44,9 +44,26 @@ def _table(j) -> None:
     cols = [r[1] for r in j.db.execute("PRAGMA table_info(missed_moves)")]
     if "tier" not in cols:
         j.db.execute("ALTER TABLE missed_moves ADD COLUMN tier TEXT DEFAULT 'LIVE10'")
+    if "miss_class" not in cols:
+        j.db.execute("ALTER TABLE missed_moves ADD COLUMN miss_class TEXT")
 
 
-COLS = ("id", "day", "coin", "low_t", "high_t", "low", "high", "move_pct", "move_atr", "label", "saw", "kind", "at_zone", "regime", "pattern", "why", "tier")
+COLS = ("id", "day", "coin", "low_t", "high_t", "low", "high", "move_pct", "move_atr", "label", "saw", "kind", "at_zone", "regime", "pattern", "why", "tier",
+        "miss_class")
+
+# Miss classes (Madhav's acceptance framework, Oct 6): not every move we did not catch was a mistake. Decided by code, in this
+# order (the first that fits); the class is also Jarvis's answer to "why didn't you buy?". Only DETECTION and KNOWLEDGE misses
+# count toward a repeat pattern (5 in 30 days -> a repair-shop request).
+MISS_CLASSES = {
+    "DATA": "we could not see it: a part was down or the data was stale at the start of the move",
+    "INTENTIONAL": "we saw it and a rule with supported evidence correctly said no (the market gate was shut)",
+    "EXECUTION": "a trade was wanted but a limit or an unfilled order stopped it",
+    "DECISION": "something noticed it and the decision was not to trade",
+    "DETECTION": "nothing of ours recognised a kind of move our setups are meant to catch",
+    "KNOWLEDGE": "a kind of move none of our setups covers",
+}
+REPEAT_CLASSES = ("DETECTION", "KNOWLEDGE")
+WATCHED_PARTS = ("explorer", "hands_login", "eye", "hourly_watch", "candles", "jobs")
 
 
 def _insert(j, r: dict) -> None:
@@ -191,6 +208,46 @@ def context(j, m: dict) -> dict:
     return {"regime": reg, "kind": kind, "at_zone": zone}
 
 
+def classify(j, label: str, saw: list[str], regime: str | None, kind: str | None, low_t: int | None, tier: str = "LIVE10") -> str | None:
+    """The miss class of one move (None for a move we caught)."""
+    if label == "CAUGHT":
+        return None
+    if low_t:
+        try:
+            q = ",".join("?" * len(WATCHED_PARTS))
+            if j.db.execute(f"SELECT 1 FROM health_log WHERE part IN ({q}) AND down_t <= ? AND (up_t IS NULL OR up_t >= ?) LIMIT 1",
+                            (*WATCHED_PARTS, low_t + AFTER, low_t - BEFORE)).fetchone():
+                return "DATA"
+        except sqlite3.Error:
+            pass
+    if (regime or "").upper() == "RISK_OFF":
+        return "INTENTIONAL"
+    if tier == "T30":
+        return "DECISION" if label == "SEEN" else "DETECTION"
+    low = " ".join(saw or []).lower()
+    if any(w in low for w in ("rejected slot", "blocked: cap", "missed chase")):
+        return "EXECUTION"
+    if saw:
+        return "DECISION"
+    return "KNOWLEDGE" if kind == "swing" else "DETECTION"
+
+
+def backfill_classes(j) -> int:
+    """Class every move filed before classes existed (from what was stored with it)."""
+    _table(j)
+    n = 0
+    for rid, label, saw, regime, kind, low_t, tier in j.db.execute(
+            "SELECT id, label, saw, regime, kind, low_t, coalesce(tier, 'LIVE10') FROM missed_moves WHERE miss_class IS NULL AND label != 'CAUGHT'").fetchall():
+        try:
+            w = json.loads(saw or "{}")
+        except (TypeError, ValueError):
+            w = {}
+        j.db.execute("UPDATE missed_moves SET miss_class=? WHERE id=?", (classify(j, label, w.get("saw") or [], regime, kind, low_t, tier), rid))
+        n += 1
+    j.db.commit()
+    return n
+
+
 def _day_str(t: int) -> str:
     return datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d")
 
@@ -216,7 +273,8 @@ def run(j, day_t: int | None = None, log_request=None, force: bool = False) -> d
                + f", market {(cx['regime'] or 'unknown').lower().replace('_', '-')}")
         r = {"id": f"{day}:{m['coin']}", "day": day, "coin": m["coin"], "low_t": m["low_t"], "high_t": m["high_t"], "low": m["low"], "high": m["high"],
              "move_pct": m["move_pct"], "move_atr": m["move_atr"], "label": label, "saw": json.dumps(w), "kind": cx["kind"], "at_zone": cx["at_zone"],
-             "regime": cx["regime"], "pattern": pattern, "why": why, "tier": "LIVE10"}
+             "regime": cx["regime"], "pattern": pattern, "why": why, "tier": "LIVE10",
+             "miss_class": classify(j, label, w["saw"], cx["regime"], cx["kind"], m["low_t"])}
         _insert(j, r)
         rows.append(r)
     try:
@@ -291,7 +349,8 @@ def run_t30(j, day_t: int) -> list[dict]:
         row = {"id": f"{day}:T30:{c}", "day": day, "coin": c, "low_t": day_t, "high_t": day_t + DAY, "low": bar[3], "high": bar[2],
                "move_pct": round(pct, 2), "move_atr": round((bar[4] - D[-1][4]) / atr, 2), "label": label,
                "saw": json.dumps({"traded": traded, "saw": [f"T3-B rated {r.get('rating')}"] if r and not traded else []}),
-               "kind": kind, "at_zone": zone, "regime": reg, "pattern": f"{kind}|{'zone' if zone else 'no zone'}|{reg or '?'}", "why": why, "tier": "T30"}
+               "kind": kind, "at_zone": zone, "regime": reg, "pattern": f"{kind}|{'zone' if zone else 'no zone'}|{reg or '?'}", "why": why, "tier": "T30",
+               "miss_class": classify(j, label, [], reg, kind, day_t, "T30")}
         _insert(j, row)
         out.append(row)
     j.db.commit()
@@ -304,7 +363,8 @@ def patterns(j, days: int = REPEAT_DAYS, tier: str = "LIVE10") -> list[dict]:
     since = _day_str(int(j.now()) - days * DAY)
     out = []
     for pat, n, avg, coins in j.db.execute("SELECT pattern, COUNT(*), AVG(move_pct), GROUP_CONCAT(DISTINCT coin) FROM missed_moves "
-                                           "WHERE day >= ? AND label != 'CAUGHT' AND coalesce(tier, 'LIVE10') = ? GROUP BY pattern ORDER BY 2 DESC",
+                                           "WHERE day >= ? AND label != 'CAUGHT' AND coalesce(tier, 'LIVE10') = ? AND coalesce(miss_class, 'DETECTION') IN ('DETECTION', 'KNOWLEDGE') "
+                                           "GROUP BY pattern ORDER BY 2 DESC",
                                            (since, tier)):
         kind, zone, reg = pat.split("|")
         out.append({"pattern": pat, "times": n, "avg_move_pct": round(avg, 1), "coins": coins,
@@ -348,13 +408,17 @@ def recent(j, days: int = 7) -> dict:
     """For the app, Ask and the evening review."""
     _table(j)
     since = _day_str(int(j.now()) - days * DAY)
-    rows = [dict(zip(("day", "coin", "move_pct", "move_atr", "label", "why", "kind", "at_zone", "regime", "low_t", "tier"), r)) for r in
-            j.db.execute("SELECT day, coin, move_pct, move_atr, label, why, kind, at_zone, regime, low_t, coalesce(tier, 'LIVE10') FROM missed_moves "
+    backfill_classes(j)
+    rows = [dict(zip(("day", "coin", "move_pct", "move_atr", "label", "why", "kind", "at_zone", "regime", "low_t", "tier", "miss_class"), r)) for r in
+            j.db.execute("SELECT day, coin, move_pct, move_atr, label, why, kind, at_zone, regime, low_t, coalesce(tier, 'LIVE10'), miss_class FROM missed_moves "
                          "WHERE day >= ? ORDER BY day DESC, move_atr DESC", (since,))]
     live = [r for r in rows if r["tier"] == "LIVE10"]
     counts = {k: sum(1 for r in live if r["label"] == k) for k in ("CAUGHT", "SEEN", "MISSED")}
     t30 = [r for r in rows if r["tier"] == "T30"]
-    return {"days": days, "counts": counts, "moves": live, "patterns": patterns(j),
+    for r in rows:
+        r["class_why"] = MISS_CLASSES.get(r["miss_class"] or "", "")
+    classes = {k: sum(1 for r in rows if r["miss_class"] == k) for k in MISS_CLASSES}
+    return {"days": days, "counts": counts, "classes": classes, "class_meaning": MISS_CLASSES, "moves": live, "patterns": patterns(j),
             "tier30": {"counts": {k: sum(1 for r in t30 if r["label"] == k) for k in ("CAUGHT", "SEEN", "MISSED")}, "moves": t30,
                        "patterns": patterns(j, tier="T30")},
             "how_to_read": "Each day's biggest rises (at least one daily range and 3%), and whether we were in them (caught), noticed them "

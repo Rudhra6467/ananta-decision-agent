@@ -1,0 +1,251 @@
+{
+ "version": "acceptance_gate.v1",
+ "updated": "2026-10-06",
+ "source": "Ananta Engine Acceptance Framework (Madhav, Oct 6)",
+ "rule": "The engine is ready to lock (and go to the App Store) only when every check passes at the same time. Read daily; a pass can turn back into a fail.",
+ "checks": [
+  {
+   "id": "data_correct",
+   "area": "Data",
+   "check": "Correct",
+   "measure": "Quality grade of every coin used; redenomination flags handled",
+   "pass_mark": "No unhandled flag; grade A or B",
+   "status": "PASS",
+   "note": "COCOS, BNX and LUNA cut"
+  },
+  {
+   "id": "data_complete",
+   "area": "Data",
+   "check": "Complete",
+   "measure": "Missing-data share; stale-candle detection",
+   "pass_mark": "Under 0.5% missing; stale data stops trading",
+   "status": "PASS",
+   "note": ""
+  },
+  {
+   "id": "data_pit",
+   "area": "Data",
+   "check": "Point-in-time",
+   "measure": "Every test uses only data known at that moment",
+   "pass_mark": "Code tests plus review rule",
+   "status": "PASS",
+   "note": ""
+  },
+  {
+   "id": "data_survivorship",
+   "area": "Data",
+   "check": "Survivorship controlled",
+   "measure": "Each traded idea re-tested on the point-in-time universe of its tier",
+   "pass_mark": "Done for every tier that trades",
+   "status": "PARTLY",
+   "note": "30-coin done (#22); live 10 waits (Q9)"
+  },
+  {
+   "id": "data_costs",
+   "area": "Data",
+   "check": "Cost-aware",
+   "measure": "Every book pays NDAX fee plus measured spread",
+   "pass_mark": "All books",
+   "status": "PASS",
+   "note": "Hunter's book fixed Oct 5"
+  },
+  {
+   "id": "engine_reproducible",
+   "area": "Engine",
+   "check": "Reproducible",
+   "measure": "Nightly rebuild of every decision",
+   "pass_mark": "30 nights in a row, 0 mismatches",
+   "status": "LIVE",
+   "note": ""
+  },
+  {
+   "id": "engine_lookahead",
+   "area": "Engine",
+   "check": "No lookahead",
+   "measure": "Tests that feed future bars and expect no change",
+   "pass_mark": "Tests pass",
+   "status": "PASS",
+   "note": ""
+  },
+  {
+   "id": "engine_sizing",
+   "area": "Engine",
+   "check": "Sizing correct",
+   "measure": "Every trade's size checked against its book's rule",
+   "pass_mark": "0 violations in the weekly audit",
+   "status": "NOT_MEASURED",
+   "note": "weekly audit not built"
+  },
+  {
+   "id": "engine_execution",
+   "area": "Engine",
+   "check": "Execution assumptions",
+   "measure": "Paper fills compared with what the real order book allowed",
+   "pass_mark": "Gap under the cost allowance",
+   "status": "NOT_MEASURED",
+   "note": ""
+  },
+  {
+   "id": "engine_risk",
+   "area": "Engine",
+   "check": "Risk controls",
+   "measure": "Kill switch, stops, caps rehearsed",
+   "pass_mark": "Rehearsal passes monthly",
+   "status": "PASS",
+   "note": "rehearsed Sep 30; next due Oct 30"
+  },
+  {
+   "id": "strategy_oos",
+   "area": "Strategy",
+   "check": "Out-of-sample",
+   "measure": "Pre-registered, discovery then confirm",
+   "pass_mark": "Pass in both periods",
+   "status": "PASS",
+   "note": "T3-B on 10 coins; the dip trade is weak"
+  },
+  {
+   "id": "strategy_universe",
+   "area": "Strategy",
+   "check": "Broader universe",
+   "measure": "Re-test on 30 and 120 coins",
+   "pass_mark": "Pass on its own tier",
+   "status": "PASS",
+   "note": "#15"
+  },
+  {
+   "id": "strategy_survivorship",
+   "area": "Strategy",
+   "check": "Survivorship",
+   "measure": "Re-test on the point-in-time tier",
+   "pass_mark": "Pass",
+   "status": "FAIL",
+   "note": "Fails on 30 (#22); live 10 pending (Q9)"
+  },
+  {
+   "id": "strategy_baselines",
+   "area": "Strategy",
+   "check": "Beats baselines",
+   "measure": "Live and history vs random, buy-and-hold and the simple versions",
+   "pass_mark": "Ahead after costs with 10+ market events",
+   "status": "LIVE",
+   "note": ""
+  },
+  {
+   "id": "strategy_regimes",
+   "area": "Strategy",
+   "check": "Failure regimes known",
+   "measure": "Results per regime written down",
+   "pass_mark": "Every traded idea has its regime table",
+   "status": "NOT_MEASURED",
+   "note": "build order step 5"
+  },
+  {
+   "id": "agent_knows",
+   "area": "Agent",
+   "check": "Knows what it knows",
+   "measure": "Fixed exam of about 50 questions",
+   "pass_mark": "90% correct, 3 runs in a row",
+   "status": "NOT_MEASURED",
+   "note": "exam not built (step 8)"
+  },
+  {
+   "id": "agent_unknowns",
+   "area": "Agent",
+   "check": "Knows what it doesn't",
+   "measure": "Exam questions with no data",
+   "pass_mark": "Says 'no evidence' every time",
+   "status": "NOT_MEASURED",
+   "note": "exam not built (step 8)"
+  },
+  {
+   "id": "agent_no_failed_rules",
+   "area": "Agent",
+   "check": "No failed research as rules",
+   "measure": "Decisions citing a context-only or switched-off idea as a reason",
+   "pass_mark": "0 in the weekly audit",
+   "status": "LIVE",
+   "note": ""
+  },
+  {
+   "id": "agent_explains",
+   "area": "Agent",
+   "check": "Explains decisions",
+   "measure": "Each decision has a plan and its reasons before the outcome",
+   "pass_mark": "100%",
+   "status": "PASS",
+   "note": "Jarvis's book"
+  },
+  {
+   "id": "agent_cites",
+   "area": "Agent",
+   "check": "Cites evidence",
+   "measure": "Answers carry evidence items that open on screen",
+   "pass_mark": "Spot check 20 answers a week",
+   "status": "PARTLY",
+   "note": ""
+  },
+  {
+   "id": "ops_outages",
+   "area": "Operations",
+   "check": "Outages detected",
+   "measure": "Watchdog on every part",
+   "pass_mark": "Every outage alerted within 5 minutes",
+   "status": "PASS",
+   "note": "since Oct 5 (the Oct 4 outage was missed)"
+  },
+  {
+   "id": "ops_stale",
+   "area": "Operations",
+   "check": "Stale data detected",
+   "measure": "Engine refuses to trade on stale data",
+   "pass_mark": "Tested",
+   "status": "PASS",
+   "note": "the Explorer stands still"
+  },
+  {
+   "id": "ops_no_trade_unhealthy",
+   "area": "Operations",
+   "check": "No trade when unhealthy",
+   "measure": "Same for every book",
+   "pass_mark": "All books",
+   "status": "PARTLY",
+   "note": "Explorer yes, others to check"
+  },
+  {
+   "id": "ops_reconstructable",
+   "area": "Operations",
+   "check": "Every decision reconstructable",
+   "measure": "Explorer rebuilt nightly; other books logged with inputs",
+   "pass_mark": "All books rebuilt",
+   "status": "PARTLY",
+   "note": "Explorer only"
+  },
+  {
+   "id": "ux_voice",
+   "area": "Experience",
+   "check": "Voice commands work",
+   "measure": "The command list run by voice",
+   "pass_mark": "Every command, end to end",
+   "status": "NOT_MEASURED",
+   "note": ""
+  },
+  {
+   "id": "ux_confirm",
+   "area": "Experience",
+   "check": "Actions visible, confirmed",
+   "measure": "Consequential actions need a confirm card",
+   "pass_mark": "100%",
+   "status": "PASS",
+   "note": "orders and switches"
+  },
+  {
+   "id": "ux_why",
+   "area": "Experience",
+   "check": "User understands why",
+   "measure": "Every trade and no-trade has a plain-words reason",
+   "pass_mark": "Exam questions on 'why' pass",
+   "status": "PARTLY",
+   "note": ""
+  }
+ ]
+}

@@ -1,0 +1,505 @@
+{
+ "version": "status_cards.v1",
+ "updated": "2026-10-06",
+ "meaning": {
+  "evidence": {
+   "SUPPORTED": "passed its pre-registered test in both periods after costs on its tier",
+   "WEAK": "passed thinly (few events, one tier, near the bar)",
+   "CONFLICTING": "helped in one period or tier and hurt in another",
+   "INSUFFICIENT": "not enough independent events yet",
+   "REJECTED": "failed its test",
+   "UNTESTED": "known, never measured"
+  },
+  "permission": {
+   "PAPER": "may be a reason in a paper decision (inside its tier)",
+   "CONTEXT": "shown and explained, never a reason to trade",
+   "LIVE_PROVEN": "enough live paper evidence to be considered for real money (none yet)",
+   "OFF": "switched off"
+  },
+  "unavailable": "a runtime flag: its data is missing or stale right now, which always means no trade"
+ },
+ "rule": "Jarvis acts only on PAPER (or LIVE_PROVEN) cards and says the evidence word whenever it uses an idea. A CONTEXT or OFF idea may be described, never given as a reason to buy.",
+ "cards": [
+  {
+   "id": "REGIME",
+   "name": "Bitcoin 50-day rule (market gate)",
+   "kind": "rule",
+   "evidence": "SUPPORTED",
+   "permission": "PAPER",
+   "reason": "Inside zones 68% held when the market was allowed vs 50% when not; the trend book's crash insurance",
+   "reviews": [
+    "#7",
+    "#18"
+   ],
+   "aliases": [
+    "market gate",
+    "V02",
+    "btc gate",
+    "risk-off"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "T3",
+   "name": "Trend book T3 on the 10 coins",
+   "kind": "strategy",
+   "evidence": "SUPPORTED",
+   "permission": "PAPER",
+   "reason": "Passed on 10 coins (#4) and the 30 most-traded (#15); on all 120 it only cut losses",
+   "reviews": [
+    "#4",
+    "#15"
+   ],
+   "aliases": [
+    "trend portfolio",
+    "portfolio layer"
+   ],
+   "tier": "LIVE10"
+  },
+  {
+   "id": "T3B",
+   "name": "T3-B sizing (re-size only when far off)",
+   "kind": "rule",
+   "evidence": "SUPPORTED",
+   "permission": "PAPER",
+   "reason": "Same or better with a third of the trades (#20)",
+   "reviews": [
+    "#20"
+   ],
+   "aliases": [
+    "T3-B",
+    "band re-sizing"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "T3_T30",
+   "name": "Trend book on the 30-coin tier",
+   "kind": "strategy",
+   "evidence": "CONFLICTING",
+   "permission": "PAPER",
+   "reason": "Passed on today's top 30 (#15) but failed the survivorship check (#22): -22.5% vs holding -76% in 2024-26; runs as evidence only",
+   "reviews": [
+    "#15",
+    "#22"
+   ],
+   "aliases": [
+    "30-coin trend book",
+    "TIER30 T3"
+   ],
+   "tier": "TOP30"
+  },
+  {
+   "id": "H07",
+   "name": "Short dip trade (H07)",
+   "kind": "strategy",
+   "evidence": "WEAK",
+   "permission": "PAPER",
+   "reason": "Strong in both periods, just under the bar once survivorship is removed (z 2.45 vs 2.5, #22); liquid coins only",
+   "reviews": [
+    "#13",
+    "#14",
+    "#15",
+    "#22"
+   ],
+   "aliases": [
+    "short dip trade",
+    "H07-T30",
+    "RSI dip"
+   ],
+   "tier": "TOP30"
+  },
+  {
+   "id": "ZONES",
+   "name": "Zones (new swing zones, 200-day average)",
+   "kind": "context",
+   "evidence": "SUPPORTED",
+   "permission": "PAPER",
+   "reason": "Hold more often than random bands (#6, #16); used as the location gate, never a trade by themselves",
+   "reviews": [
+    "#6",
+    "#16"
+   ],
+   "aliases": [
+    "support",
+    "resistance",
+    "zone"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "ZONES_OVERLAP",
+   "name": "Overlapping zones",
+   "kind": "context",
+   "evidence": "WEAK",
+   "permission": "CONTEXT",
+   "reason": "Fell under the bar on 120 coins (#16): watched only",
+   "reviews": [
+    "#16"
+   ],
+   "aliases": [
+    "overlapping zones"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "LOOKOUT",
+   "name": "The lookout inside a zone (wick, close back above, volume, divergence)",
+   "kind": "filter",
+   "evidence": "REJECTED",
+   "permission": "CONTEXT",
+   "reason": "Added nothing beyond arithmetic (#7)",
+   "reviews": [
+    "#7"
+   ],
+   "aliases": [
+    "wick",
+    "divergence"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "EXITS",
+   "name": "Hold past the next zone (no zone targets)",
+   "kind": "rule",
+   "evidence": "SUPPORTED",
+   "permission": "PAPER",
+   "reason": "Selling at the next zone cut the winners (#10)",
+   "reviews": [
+    "#10"
+   ],
+   "aliases": [
+    "exit at zone"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "TRAIL",
+   "name": "Looser trailing exits",
+   "kind": "rule",
+   "evidence": "CONFLICTING",
+   "permission": "CONTEXT",
+   "reason": "Won in 2018-23, lost in 2024-26; the 20-day exit survived both (#12)",
+   "reviews": [
+    "#12"
+   ],
+   "aliases": [
+    "trailing stop"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "STOPS",
+   "name": "Structural stops (1 daily range under the structure)",
+   "kind": "rule",
+   "evidence": "SUPPORTED",
+   "permission": "PAPER",
+   "reason": "Beat tight percent stops; the dip trade is best with no stop (#18)",
+   "reviews": [
+    "#18"
+   ],
+   "aliases": [
+    "stop",
+    "H14"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "STOP_ZONE",
+   "name": "Zone-trade stop (close half a range under the zone)",
+   "kind": "rule",
+   "evidence": "SUPPORTED",
+   "permission": "PAPER",
+   "reason": "From the stops-at-zones review (#10) and the decision chain",
+   "reviews": [
+    "#10"
+   ],
+   "aliases": [],
+   "tier": "ALL"
+  },
+  {
+   "id": "COSTS",
+   "name": "Costs: NDAX fee plus spread",
+   "kind": "fact",
+   "evidence": "SUPPORTED",
+   "permission": "PAPER",
+   "reason": "Every book pays them; most short-term ideas lost only because of them",
+   "reviews": [
+    "#1",
+    "#3"
+   ],
+   "aliases": [
+    "fees",
+    "spread"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "NEWS",
+   "name": "News check before buying",
+   "kind": "policy",
+   "evidence": "UNTESTED",
+   "permission": "PAPER",
+   "reason": "Madhav's lesson L1: damage news on the coin is a red flag (a reason NOT to trade only)",
+   "reviews": [],
+   "aliases": [
+    "news check",
+    "blunder guard"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "EXPLORER",
+   "name": "Explorer setups E1-E6",
+   "kind": "setup",
+   "evidence": "INSUFFICIENT",
+   "permission": "PAPER",
+   "reason": "Lost to costs over 7 years of history (#1, #9); live paper collects evidence (Q1)",
+   "reviews": [
+    "#1",
+    "#9"
+   ],
+   "aliases": [
+    "E1",
+    "E2",
+    "E4",
+    "E6",
+    "15-minute setups"
+   ],
+   "tier": "LIVE10"
+  },
+  {
+   "id": "E5",
+   "name": "E5 squeeze breakout",
+   "kind": "setup",
+   "evidence": "INSUFFICIENT",
+   "permission": "PAPER",
+   "reason": "Weakest setup in review #1; on probation until 20 live trades (Q3)",
+   "reviews": [
+    "#1"
+   ],
+   "aliases": [
+    "squeeze breakout"
+   ],
+   "tier": "LIVE10"
+  },
+  {
+   "id": "E3",
+   "name": "E3 support bounce",
+   "kind": "setup",
+   "evidence": "REJECTED",
+   "permission": "OFF",
+   "reason": "Passes the rule on 30 coins but loses money since 2024 (#21)",
+   "reviews": [
+    "#21"
+   ],
+   "aliases": [
+    "support bounce"
+   ],
+   "tier": "TOP30"
+  },
+  {
+   "id": "B3",
+   "name": "B3 volume breakout",
+   "kind": "setup",
+   "evidence": "REJECTED",
+   "permission": "OFF",
+   "reason": "Fails everywhere (#21)",
+   "reviews": [
+    "#21"
+   ],
+   "aliases": [
+    "volume breakout"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "BREAKOUT_VOL",
+   "name": "Breakouts through zones on volume",
+   "kind": "setup",
+   "evidence": "WEAK",
+   "permission": "CONTEXT",
+   "reason": "Positive in both periods but not reliable (#11)",
+   "reviews": [
+    "#11"
+   ],
+   "aliases": [],
+   "tier": "LIVE10"
+  },
+  {
+   "id": "READS",
+   "name": "Madhav's three setups (capitulation, higher-low retest, quiet base)",
+   "kind": "setup",
+   "evidence": "REJECTED",
+   "permission": "CONTEXT",
+   "reason": "Not better than a random day as buy signals (#5, #15): places to look, not reasons to buy",
+   "reviews": [
+    "#5",
+    "#15"
+   ],
+   "aliases": [
+    "your setups",
+    "M1",
+    "M2",
+    "M3"
+   ],
+   "tier": "LIVE10"
+  },
+  {
+   "id": "M2A_G",
+   "name": "Higher-low retest with the market allowed",
+   "kind": "setup",
+   "evidence": "REJECTED",
+   "permission": "CONTEXT",
+   "reason": "Promising on 10 coins (#8), not supported on 30 or 120 (#15)",
+   "reviews": [
+    "#8",
+    "#15"
+   ],
+   "aliases": [
+    "M2a"
+   ],
+   "tier": "LIVE10"
+  },
+  {
+   "id": "TEACHER_50D",
+   "name": "Buy the dip to the 50-day average",
+   "kind": "setup",
+   "evidence": "REJECTED",
+   "permission": "OFF",
+   "reason": "Did worse than an ordinary uptrend day (#11)",
+   "reviews": [
+    "#11"
+   ],
+   "aliases": [
+    "50-day dip"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "FILTERS",
+   "name": "Coin filters: strength vs Bitcoin, market breadth",
+   "kind": "filter",
+   "evidence": "REJECTED",
+   "permission": "CONTEXT",
+   "reason": "Strength vs Bitcoin hurt in both periods; breadth helped 2024-26, hurt before (#17)",
+   "reviews": [
+    "#17"
+   ],
+   "aliases": [
+    "relative strength",
+    "breadth"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "BUYING_PRESSURE",
+   "name": "Buying pressure (taker buy share)",
+   "kind": "filter",
+   "evidence": "CONFLICTING",
+   "permission": "CONTEXT",
+   "reason": "Helped the trend book 2024-26, cost two thirds of its gain before (#19)",
+   "reviews": [
+    "#19"
+   ],
+   "aliases": [
+    "taker buy",
+    "U03"
+   ],
+   "tier": "TOP30"
+  },
+  {
+   "id": "FUNDING",
+   "name": "Futures funding rate",
+   "kind": "filter",
+   "evidence": "REJECTED",
+   "permission": "CONTEXT",
+   "reason": "As an exit it hurt both periods (#19)",
+   "reviews": [
+    "#19"
+   ],
+   "aliases": [
+    "crowded long",
+    "U01"
+   ],
+   "tier": "TOP30"
+  },
+  {
+   "id": "OPEN_INTEREST",
+   "name": "Open interest / leverage flush",
+   "kind": "filter",
+   "evidence": "REJECTED",
+   "permission": "CONTEXT",
+   "reason": "Changed almost nothing for the dip trade (#19)",
+   "reviews": [
+    "#19"
+   ],
+   "aliases": [
+    "U02",
+    "leverage"
+   ],
+   "tier": "TOP30"
+  },
+  {
+   "id": "MACRO",
+   "name": "Outside world: Nasdaq, US dollar, VIX, Fear & Greed",
+   "kind": "filter",
+   "evidence": "REJECTED",
+   "permission": "CONTEXT",
+   "reason": "Every filter failed; selling into extreme greed was the worst idea tested (#23)",
+   "reviews": [
+    "#23"
+   ],
+   "aliases": [
+    "nasdaq",
+    "dollar",
+    "vix",
+    "fear and greed"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "OTHER_TRADERS",
+   "name": "Other traders' timing (Hyperliquid)",
+   "kind": "context",
+   "evidence": "REJECTED",
+   "permission": "CONTEXT",
+   "reason": "Tiny first-hour edge, skill did not last (#2); their buy-weakness pattern failed after costs (#3)",
+   "reviews": [
+    "#2",
+    "#3"
+   ],
+   "aliases": [
+    "hyperliquid",
+    "copy trading"
+   ],
+   "tier": "LIVE10"
+  },
+  {
+   "id": "MISSED",
+   "name": "Patterns from moves we keep missing",
+   "kind": "context",
+   "evidence": "INSUFFICIENT",
+   "permission": "CONTEXT",
+   "reason": "Picked after the fact: ideas to test, never proof",
+   "reviews": [],
+   "aliases": [
+    "missed moves"
+   ],
+   "tier": "ALL"
+  },
+  {
+   "id": "LIVE_BOOKS",
+   "name": "Live paper evidence books",
+   "kind": "context",
+   "evidence": "INSUFFICIENT",
+   "permission": "CONTEXT",
+   "reason": "Fewer than 10 independent market events so far",
+   "reviews": [],
+   "aliases": [
+    "scoreboard"
+   ],
+   "tier": "ALL"
+  }
+ ]
+}

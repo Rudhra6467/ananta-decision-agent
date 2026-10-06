@@ -270,15 +270,37 @@ def test_missed_moves_label_and_repeats_become_a_request(tmp_path):
     assert missed.run(j)["done_before"]
     # the same kind of miss four more times in 30 days -> one request (once)
     for k in range(4):
-        j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                      (f"x{k}", r["day"], "ADA", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, j.db.execute(
-                         "SELECT pattern FROM missed_moves WHERE coin='SOL'").fetchone()[0], "", "LIVE10"))
+                         "SELECT pattern FROM missed_moves WHERE coin='SOL'").fetchone()[0], "", "LIVE10", None))
     logged = []
     f = missed._repeats(j, log_request=lambda t: logged.append(t) or {"num": 9})
     assert f and f[0]["request"] == 9 and "keep missing" in logged[0]
     assert missed._repeats(j, log_request=lambda t: logged.append(t) or {"num": 10}) == []
     assert missed.patterns(j)[0]["times"] == 5 and missed.recent(j, 3)["counts"]["MISSED"] == 5
     assert missed.patterns(j, tier="T30") == [] and missed.recent(j, 3)["tier30"]["counts"]["MISSED"] == 0   # tiers counted apart
+
+
+def test_miss_classes_keep_rightful_no_trades_out_of_the_repair_shop(tmp_path):
+    import sqlite3
+    import types
+    from jarvis.service import missed
+
+    j = types.SimpleNamespace(dir=tmp_path, db=sqlite3.connect(":memory:"), now=lambda: 2_000_000_000)
+    j.db.execute("CREATE TABLE health_log (part TEXT, down_t INTEGER, up_t INTEGER, detail TEXT)")
+    j.db.execute("INSERT INTO health_log VALUES ('hands_login', 1000, 5000, 'x')")
+    assert missed.classify(j, "MISSED", [], "ALLOWED", "rebound", 2000) == "DATA"
+    assert missed.classify(j, "MISSED", [], "RISK_OFF", "rebound", 90000) == "INTENTIONAL"
+    assert missed.classify(j, "SEEN", ["Explorer E4 order (blocked: rejected slot)"], "ALLOWED", "breakout", 90000) == "EXECUTION"
+    assert missed.classify(j, "SEEN", ["Jarvis passed (confidence 40%)"], "ALLOWED", "breakout", 90000) == "DECISION"
+    assert missed.classify(j, "MISSED", [], "ALLOWED", "breakout", 90000) == "DETECTION"
+    assert missed.classify(j, "MISSED", [], "ALLOWED", "swing", 90000) == "KNOWLEDGE"
+    assert missed.classify(j, "CAUGHT", [], "RISK_OFF", "swing", 90000) is None
+    missed._table(j)
+    for k, cls in enumerate(("INTENTIONAL",) * 6):
+        missed._insert(j, {"id": f"i{k}", "day": "2033-05-17", "coin": "SOL", "label": "MISSED", "pattern": "rebound|zone|RISK_OFF", "tier": "LIVE10",
+                           "miss_class": cls, "move_pct": 5.0})
+    assert missed.patterns(j) == []                                        # six rightful no-trades are not a pattern to fix
 
 
 # ---------------------------------------------------------------------------

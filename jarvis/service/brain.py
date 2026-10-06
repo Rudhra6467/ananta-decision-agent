@@ -290,7 +290,9 @@ def pack(j, coin: str, triggers: dict) -> dict:
                              "paper_tier_30": u.get("paper_tier_30")}
     except Exception as exc:  # noqa: BLE001
         p["universe_error"] = str(exc)[:100]
-    p["knowledge"] = [{"id": k, "status": s, "what": w} for k, s, w in KNOWLEDGE]
+    cards = status_cards()
+    p["knowledge"] = [{"id": k, "status": s, "what": w, "evidence": (cards.get(k) or {}).get("evidence"),
+                       "permission": (cards.get(k) or {}).get("permission")} for k, s, w in KNOWLEDGE]
     p["my_record"] = record(j)
     p["red_flags_enforced_by_code"] = RED_FLAGS
     return p
@@ -323,6 +325,31 @@ def _parse(text: str) -> dict:
     if d.get("action") not in ("TAKE", "PASS"):
         raise ValueError("action must be TAKE or PASS")
     return d
+
+
+_CARDS: dict = {}
+
+
+def status_cards() -> dict:
+    """docs/knowledge/status_cards.json by id: each idea's evidence (how strong) and permission (what it may do)."""
+    try:
+        from pathlib import Path
+
+        f = Path(__file__).resolve().parents[2] / "docs" / "knowledge" / "status_cards.json"
+        key = f.stat().st_mtime
+        if _CARDS.get("key") != key:
+            _CARDS.update(key=key, cards={c["id"]: c for c in json.loads(f.read_text())["cards"]})
+        return _CARDS["cards"]
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def permission_check(ids: list[str]) -> tuple[list[str], list[str]]:
+    """(ids that may not be a reason to trade, ids that may)."""
+    cards = status_cards()
+    bad = [k for k in ids if (cards.get(k) or {}).get("permission") in ("CONTEXT", "OFF")]
+    ok = [k for k in ids if (cards.get(k) or {}).get("permission") in ("PAPER", "LIVE_PROVEN")]
+    return bad, ok
 
 
 def check_plan(d: dict, price: float | None, atr: float | None, news: str | None, holding: int) -> list[str]:
@@ -402,6 +429,11 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
     size = max(25.0, min(100.0, float(d.get("size_pct") or 50))) if action == "TAKE" else 0.0
     conf = max(0.0, min(100.0, float(d.get("confidence") or 0)))
     know = [k for k in (d.get("knowledge_used") or []) if isinstance(k, str)][:8]
+    bad, ok = permission_check(know)
+    if action == "TAKE" and bad and not ok:            # only context-only / switched-off ideas moved it: refused (acceptance gate)
+        action, note = "PASS", (note + "; " if note else "") + "permission: only context-only ideas supported it (" + ", ".join(bad) + ")"
+    elif bad:
+        note = (note + "; " if note else "") + "cited context-only ideas: " + ", ".join(bad)
     plan = {k: d.get(k) for k in ("stop", "target", "trail_atr", "days", "for", "against", "red_flags", "change_mind")}
     trade = rnd = None
     if action == "TAKE":

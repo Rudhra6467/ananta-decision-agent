@@ -53,6 +53,7 @@ export default function Evidence() {
         <Card><Text style={{ color: C.text, fontSize: 16, lineHeight: 23, fontWeight: "600" }}>{d.headline}</Text></Card>
       ) : null}
 
+      {d.gate ? <Spot id="evidence.gate"><Gate g={d.gate} /></Spot> : null}
       {d.loop ? <Spot id="evidence.tracker"><Loop loop={d.loop} /></Spot> : null}
       {d.clocks ? <Spot id="evidence.clocks"><Clocks clocks={d.clocks} /></Spot> : null}
       {d.limits ? <Spot id="evidence.limits"><Limits limits={d.limits} /></Spot> : null}
@@ -106,6 +107,55 @@ function Health({ h }: { h: any }) {
       {h.outages_3d?.length ? (
         <T small>Last 3 days: {h.outages_3d.map((o: any) => `${o.name} ${o.minutes >= 90 ? `${(o.minutes / 60).toFixed(1)} h` : `${o.minutes} min`}${o.still_down ? " (still down)" : ""}`).join(" · ")}</T>
       ) : <T small>No outage in the last 3 days.</T>}
+    </Card>
+  );
+}
+
+const GATE: Record<string, [string, string]> = {
+  PASS: [C.good, C.goodSoft], FAIL: [C.bad, C.badSoft], PARTLY: [C.warn, C.warnSoft], PENDING: [C.accent, C.accentSoft], NOT_MEASURED: [C.dim, C.card2],
+};
+
+// The Engine Acceptance Gate (Madhav, Oct 6): the build is locked only when every check passes at once.
+function Gate({ g }: { g: any }) {
+  const [area, setArea] = useState<string | null>(null);
+  return (
+    <Card title="Is the engine ready?" sub={g.rule}>
+      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+        <Text style={{ color: C.text, fontSize: 28, fontWeight: "800" }}>{g.passed}</Text>
+        <Text style={{ color: C.dim, fontSize: 15 }}>of {g.of} checks pass</Text>
+      </View>
+      <Progress value={g.passed} of={g.of} color={C.good} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+        {Object.entries(g.counts ?? {}).filter(([, v]: any) => v).map(([k, v]: any) => (
+          <Pill key={k} text={`${v} ${String(k).replace("_", " ").toLowerCase()}`} color={GATE[k]?.[0] ?? C.dim} bg={GATE[k]?.[1] ?? C.card2} />
+        ))}
+      </View>
+      {(g.areas ?? []).map((a: string) => {
+        const cs = g.checks.filter((c: any) => c.area === a);
+        const ok = cs.filter((c: any) => c.status === "PASS").length;
+        return (
+          <View key={a}>
+            <Divider />
+            <Pressable onPress={() => setArea(area === a ? null : a)} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 9, gap: 10 }}>
+              <Text style={{ color: C.text, fontWeight: "700", flex: 1 }}>{a}</Text>
+              <View style={{ flexDirection: "row", gap: 3 }}>
+                {cs.map((c: any) => <View key={c.id} style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: GATE[c.status]?.[0] ?? C.dim }} />)}
+              </View>
+              <Text style={{ color: C.dim, fontSize: 12, width: 34, textAlign: "right" }}>{ok}/{cs.length}</Text>
+              <Text style={{ color: C.faint }}>{area === a ? "▲" : "▼"}</Text>
+            </Pressable>
+            {area === a ? cs.map((c: any) => (
+              <View key={c.id} style={{ paddingVertical: 6, paddingLeft: 4, gap: 2 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+                  <Text style={{ color: C.text, fontWeight: "600", flex: 1 }}>{c.check}</Text>
+                  <Pill text={c.status_words.toUpperCase()} color={GATE[c.status]?.[0]} bg={GATE[c.status]?.[1]} />
+                </View>
+                <T small>Pass mark: {c.pass_mark}{c.note ? ` · ${c.note}` : ""}</T>
+              </View>
+            )) : null}
+          </View>
+        );
+      })}
     </Card>
   );
 }
@@ -332,6 +382,11 @@ function Misses({ m }: { m: any }) {
               <Text style={{ color: C.faint, fontSize: 12, flex: 1 }}>{x.day}</Text>
               <Pill text={(MISS[x.label]?.[0] ?? x.label).toUpperCase()} color={MISS[x.label]?.[1] ?? C.dim} />
             </View>
+            {x.miss_class ? (
+              <Text style={{ color: x.miss_class === "INTENTIONAL" ? C.good : x.miss_class === "DATA" ? C.warn : C.text, fontSize: 12, fontWeight: "700" }}>
+                {x.miss_class.charAt(0) + x.miss_class.slice(1).toLowerCase()} miss: <Text style={{ fontWeight: "400", color: C.dim }}>{x.class_why}</Text>
+              </Text>
+            ) : null}
             <Text style={{ color: C.dim, fontSize: 12 }}>{x.why}</Text>
           </View>
         ))}

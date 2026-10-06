@@ -1757,7 +1757,8 @@ class Ask:
 
             hr = datetime.fromtimestamp(now, ZoneInfo("America/Toronto")).hour
             part = "morning" if 4 <= hr < 12 else "afternoon" if hr < 17 else "evening"
-            notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet Madhav warmly in a few words first]")
+            hello = "Madhav" if not str(who).startswith("guest:") else (self.j.name_of(str(who)) or "them")
+            notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet {hello} warmly in a few words first]")
         n_answers = sum(1 for h in history if h.get("role") == "assistant")
         if n_answers < NEXT_STEP_ANSWERS:
             notes.append(f"[NEXT STEP: this is answer {n_answers + 1} of this conversation. Add next_action: the one obvious next step that follows "
@@ -1769,10 +1770,23 @@ class Ask:
             notes.append("[ADDRESS: you are talking with Madhav, the owner. Now and then call him 'sir' (when saying hello, a confirmation, a serious "
                          "moment) and at other times 'Madhav'; never both in one answer, and no name in two answers in a row. Only Madhav is 'sir'.]")
         if str(who).startswith("guest:"):
-            notes.append("[GUEST: this is a friend of Madhav trying the app in practice mode. Do not call them Madhav or 'sir'; greet them as a guest. "
+            try:
+                gname = self.j.name_of(str(who))
+            except Exception:  # noqa: BLE001
+                gname = ""
+            notes.append(f"[GUEST: this is {gname or 'a visitor'}, a friend of Madhav trying the app in practice mode. Call them {gname or 'nothing in particular'} "
+                         "now and then (never 'sir', never Madhav). "
                          "Explain Madhav's system as 'Madhav's paper trading system'. Everything works for them as it does for Madhav: they can ask for "
                          "paper orders, alerts and mandate changes, and those go to THEIR OWN practice book (separate cash, never Madhav's books). "
                          "Say 'your practice book' for their manual book. The kill switch, autopilot and portfolio approvals are locked in practice mode.]")
+            try:
+                from jarvis.service import visitor
+
+                vn = visitor.prompt_note(self.j, gname)
+                if vn:
+                    notes.append(vn)
+            except Exception:  # noqa: BLE001
+                pass
         if context:
             here = context.get("here") if isinstance(context, dict) and ("here" in context or "about" in context) else context
             about = context.get("about") if isinstance(context, dict) and "about" in context else None
@@ -1873,6 +1887,7 @@ class Ask:
             n_sent = len([x for x in re.split(r"(?<=[.!?])\s+", reply.get("answer") or "") if x.strip()])
             reply["points"], reply["ui"] = _am.plan_points(self.j, reply.get("points"), reply["ui"], _here, n_sent, text)
             reply["points"] = _am.anchor_points(reply["points"], reply.get("answer") or "")
+            reply["points"] = _am.fill_list_points(reply["points"], reply.get("answer") or "")
             reply["evidence"] = _am.clean_evidence(self.j, reply.get("evidence"))
             _label_outside(reply, L.outside)
             if not reply["ui"] and _am.SHOW_INTENT.search(text):           # "show me / where did you get that": open where the proof is

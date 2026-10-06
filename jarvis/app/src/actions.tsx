@@ -4,6 +4,8 @@ import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { api } from "./api";
 import { confirmWithFaceId } from "./guard";
+import { showToast } from "./visitor";
+import { goTab } from "./context";
 import { C } from "./theme";
 
 export function openScreen(sh: any) {
@@ -11,7 +13,7 @@ export function openScreen(sh: any) {
     cockpit: "/cockpit", mandate: "/mandate", home: "/(tabs)/today", jarvis: "/jarvis", missed: "/missed" };
   if (sh.screen === "coin" && sh.coin) router.push(`/coin/${sh.coin}`);
   else if (sh.screen === "trade" && sh.id) router.push(`/trade/${sh.id}`);
-  else if (to[sh.screen]) router.push(to[sh.screen] as any);
+  else if (to[sh.screen]) (to[sh.screen].startsWith("/(tabs)") ? goTab : router.push)(to[sh.screen] as any);   // a tab: switch to it, never stack a copy
 }
 
 export function ActionCard({ a, onDone }: { a: any; onDone?: () => void }) {
@@ -22,6 +24,7 @@ export function ActionCard({ a, onDone }: { a: any; onDone?: () => void }) {
     try {
       const r = await api(`/v3/actions/${a.id}`, { confirm });
       setStatus(r.status);
+      if (confirm && r.status === "DONE") showToast(a.kind === "paper_order" ? "Order placed ✓" : "Done ✓");
       onDone?.();
     } catch (e: any) {
       setErr(e?.message ?? String(e));

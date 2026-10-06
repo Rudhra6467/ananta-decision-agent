@@ -1,8 +1,9 @@
 // Face ID (or the phone passcode) before anything that changes money, mode or the kill switch.
 import * as LocalAuthentication from "expo-local-authentication";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 
 export async function confirmWithFaceId(title: string, message: string): Promise<boolean> {
+  if (Platform.OS === "web") return window.confirm(`${title}\n\n${message}`);   // the website: the browser's own OK / Cancel
   const ok = await new Promise<boolean>((res) =>
     Alert.alert(title, message, [
       { text: "Cancel", style: "cancel", onPress: () => res(false) },

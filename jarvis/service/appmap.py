@@ -406,6 +406,26 @@ def anchor_points(points: list[dict], answer: str) -> list[dict]:
     return final
 
 
+def fill_list_points(points: list[dict], answer: str) -> list[dict]:
+    """When Jarvis points at coins in a list ('Bitcoin is up... Solana is down...') but not at every one, each sentence that
+    names exactly one coin of the same list gets its own highlight, so the glow follows the item being read out."""
+    heads = {p["spot"].partition(":")[0] for p in points if ":" in p.get("spot", "")}
+    heads &= {"markets.coin", "portfolio.holding", "mine.position"}
+    if len(heads) != 1:
+        return points
+    head = heads.pop()
+    sents = [x for x in re.split(r"(?<=[.!?])\s+", answer or "") if x.strip()]
+    have = {p["sentence"] for p in points}
+    out = list(points)
+    for i, x in enumerate(sents):
+        if i in have:
+            continue
+        hits = {sym for name, sym in COINS.items() if re.search(r"\b" + re.escape(name) + r"\b", x, re.I)}
+        if len(hits) == 1:
+            out.append({"spot": f"{head}:{hits.pop()}", "sentence": i})
+    return sorted(out, key=lambda p: p["sentence"])
+
+
 SCROLL = re.compile(r"^\s*(?:please\s+)?(?:can you\s+)?(scroll|go|move|take me|show me)\s*(?:to\s+)?(?:the\s+)?(up|down|top|bottom)(?:\s+of (?:the |this )?(?:page|screen))?(?:\s+please)?[.!?]*\s*$", re.I)
 
 

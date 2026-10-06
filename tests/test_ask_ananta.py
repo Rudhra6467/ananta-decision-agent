@@ -621,9 +621,8 @@ def test_outside_coin_is_labelled_and_unknown_coin_offers_names():
 
 
 def test_guest_practice_sandbox_never_touches_the_owners_books(monkeypatch):
-    monkeypatch.setenv("JARVIS_GUEST_EMAIL", "friend@x.com")
-    monkeypatch.setenv("JARVIS_GUEST_PASSWORD_HASH", core.hash_password("guest pass 123"))
     j, ex = _jarvis()
+    j.join(j.invite("Friend", "friend@x.com")["code"], "Friend", "", "guest pass 123")
     tok = j.login("friend@x.com", "guest pass 123")
     assert j.check(tok) == "guest:friend@x.com"
     assert "Practice mode" in ask.Lookups(j, guest=True).call("start_research", {"kind": "reconstruction"})["error"]

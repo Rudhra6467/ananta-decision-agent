@@ -1,28 +1,43 @@
 // The four main tabs (Home, Markets, Books, Ask Jarvis; the research views moved to the Lab page, 2026-10-04), swipeable like YouTube: drag left / right and you see the next page slide in.
 // Tab bar stays at the bottom; the page header (title, Cockpit button) is drawn here because swipe tabs have no header of their own.
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Alert, Platform, Pressable, Text, View } from "react-native";
+import { api } from "../../src/api";
 import { router, usePathname } from "expo-router";
 import SwipeTabs from "expo-router/js-top-tabs";        // Expo Router's swipeable tabs (react-native-tab-view + pager-view underneath)
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C } from "../../src/theme";
 import { BooksIcon, ChartIcon, ChatIcon, GaugeIcon, HomeIcon } from "../../src/icons";
-import { useData } from "../../src/useData";
+import { OnboardTour, clearMe, useMe } from "../../src/visitor";
 
 const TITLES: Record<string, string> = { today: "Home", markets: "Markets", portfolio: "Books", ask: "Ask Jarvis" };
 
 // Guests (a friend testing the app) get a practice book of their own. A thin strip under the title says so on every tab;
 // tap it for the full note. Madhav never sees it.
 function PracticeStrip() {
-  const { data: me } = useData("/v3/me", 0);
+  const me = useMe();
   const [open, setOpen] = useState(false);
   if (!me?.guest) return null;
+  const startOver = async () => {
+    const ok = Platform.OS === "web" ? window.confirm("Start over? Your practice trades and history are cleared and you get $1,000 again.")
+      : await new Promise<boolean>((res) => Alert.alert("Start over?", "Your practice trades and history are cleared and you get $1,000 again.",
+        [{ text: "Cancel", onPress: () => res(false) }, { text: "Start over", style: "destructive", onPress: () => res(true) }]));
+    if (!ok) return;
+    await api("/v3/practice/reset", {});
+    clearMe();
+    router.replace("/welcome");                          // a fresh account: name, coins, tour, capital again
+  };
   return (
     <Pressable onPress={() => setOpen(!open)} style={{ backgroundColor: C.card2, borderBottomWidth: 1, borderBottomColor: C.line, paddingHorizontal: 16, paddingVertical: 6 }}>
       <Text style={{ color: C.warn, fontSize: 12, fontWeight: "700", textAlign: "center" }}>
-        PRACTICE MODE · your own dummy book{open ? "" : " · tap for details"}
+        PRACTICE ACCOUNT · paper money{open ? "" : " · tap for details"}
       </Text>
       {open ? <Text style={{ color: C.dim, fontSize: 12, textAlign: "center", marginTop: 2 }}>{me.practice_note}</Text> : null}
+      {open ? (
+        <Text onPress={startOver} style={{ color: C.accent, fontSize: 12, fontWeight: "700", textAlign: "center", marginTop: 6 }}>
+          Start over: a fresh account and an empty history
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -32,11 +47,12 @@ function Header() {
   const path = usePathname();
   const key = (path.split("/").filter(Boolean).pop() || "today");
   const title = TITLES[key] ?? (path === "/" ? "Home" : "");
+  const me = useMe();
   return (
     <View style={{ paddingTop: top, backgroundColor: C.bg }}>
       <View style={{ height: 44, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
         <Text style={{ color: C.text, fontWeight: "700", fontSize: 17 }}>{title}</Text>
-        {title === "Home" ? (
+        {title === "Home" && me && !me.guest ? (
           <Pressable onPress={() => router.push("/cockpit")} hitSlop={12} style={{ position: "absolute", right: 16 }}>
             <GaugeIcon color={C.text} size={24} />
           </Pressable>
@@ -74,6 +90,7 @@ export default function TabsLayout() {
         <SwipeTabs.Screen name="portfolio" options={{ title: "Books", tabBarIcon: icon(BooksIcon) }} />
         <SwipeTabs.Screen name="ask" options={{ title: "Ask Jarvis", tabBarIcon: icon(ChatIcon) }} />
       </SwipeTabs>
+      <OnboardTour />
     </View>
   );
 }

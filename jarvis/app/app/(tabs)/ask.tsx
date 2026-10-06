@@ -16,10 +16,13 @@ import * as Haptics from "../../src/haptics";
 import { VoiceLoop, type Phase } from "../../src/voiceloop";
 import { Bullet, Divider, Pill, Segmented, T } from "../../src/ui";
 import { C } from "../../src/theme";
+import { useMe } from "../../src/visitor";
 
 // Starter questions on an empty conversation (Madhav: a new person should know what to ask)
 const STARTERS = ["What's happening here?", "What are we doing here?", "Show me around", "Which coins are we watching?",
   "Show me the trades", "What are the rule gates?", "How do I make a paper trade?", "What should I watch today?"];
+// A visitor's own account: questions about their coins and their book
+const GUEST_STARTERS = ["Find me a trade", "How are my coins doing?", "How does my practice book work?", "What can you do?", "Show me around"];
 
 type Msg = { id?: string; role: "user" | "assistant"; text?: string; voice?: boolean; [k: string]: any };
 const STAGE: Record<string, string> = { observation: "Observation", candidate: "Candidate setup", "candidate setup": "Candidate setup", setup: "Setup",
@@ -119,7 +122,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
           {m.model_label ?? (m.provider === "gemini" ? "Gemini" : "Claude")} · {m.cost_usd ? `${(m.cost_usd * 100).toFixed(1)}¢` : "free"}{m.ms ? ` · ${(m.ms / 1000).toFixed(1)}s` : ""}{m.lookups?.length ? ` · ${m.lookups.length} lookups` : ""}
         </Text>
         {onSpeak && m.answer ? <Text onPress={onSpeak} style={{ fontSize: 15 }}>🔊</Text> : null}
-        {!m.second_of ? <Text onPress={onSecond} style={{ color: C.accent, fontSize: 12, fontWeight: "600" }}>Second opinion</Text> : null}
+        {!m.second_of && m.id ? <Text onPress={onSecond} style={{ color: C.accent, fontSize: 12, fontWeight: "600" }}>Second opinion</Text> : null}
         <Text onPress={() => onRate(1)} style={{ fontSize: 16, opacity: m.rating === -1 ? 0.3 : 1 }}>{m.rating === 1 ? "👍" : "👍🏻"}</Text>
         <Text onPress={() => onRate(-1)} style={{ fontSize: 16, opacity: m.rating === 1 ? 0.3 : 1 }}>👎</Text>
       </View>
@@ -134,11 +137,18 @@ const Tab = ({ label, on, onPress }: { label: string; on: boolean; onPress: () =
 );
 
 
+// The open conversation lives outside the page, so leaving Ask Jarvis and coming back (or the page being rebuilt by a
+// navigation) always shows the same conversation (Madhav, 2026-10-06: "inconsistency moving from ask Jarvis page to other and
+// coming back"). Another person signing in on the same phone or browser starts empty.
+const kept: { msgs: Msg[]; thread: string | null; who: string } = { msgs: [], thread: null, who: "" };
+
 // One conversation page (like ChatGPT): type, dictate with the mic, or switch on voice mode, all in the same session.
 export default function Ananta() {
-  const params = useLocalSearchParams<{ q?: string; t?: string }>();
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [thread, setThread] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ q?: string; t?: string; intro?: string }>();
+  const [msgs, setMsgs] = useState<Msg[]>(kept.msgs);
+  const [thread, setThread] = useState<string | null>(kept.thread);
+  useEffect(() => { kept.msgs = msgs; }, [msgs]);
+  useEffect(() => { kept.thread = thread; }, [thread]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   // Two switches: Auto on/off (Ananta picks a lighter or stronger model per question) and Claude / Google (who answers).
@@ -271,6 +281,13 @@ export default function Ananta() {
 
   const micRef = useRef<ReturnType<typeof useMic> | null>(null);
   const { data: me } = useData("/v3/me", 0);
+  const vme = useMe();
+  useEffect(() => {
+    const w = (vme as any)?.who;
+    if (!w) return;
+    if (kept.who && kept.who !== w) { setMsgs([]); setThread(null); }
+    kept.who = w;
+  }, [(vme as any)?.who]);
   const loopRef = useRef<VoiceLoop | null>(null);
   const lastActive = useRef(Date.now());
   // He stopped mid-sentence ("I want to know…"): keep it and join it to what he says next (for 20 s)
@@ -411,6 +428,19 @@ export default function Ananta() {
     }
   }, [params.q, params.t]);
 
+  // "Start trading -> Use Jarvis" (a visitor): Jarvis opens the conversation by asking whether to find a trade.
+  const lastIntro = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (params.intro !== "find_trade" || params.t === lastIntro.current) return;
+    lastIntro.current = params.t;
+    loopRef.current?.end();
+    setThread(null);
+    const nm = vme?.profile?.name || vme?.name || me?.profile?.name || me?.name || "";
+    setMsgs([{ role: "assistant", kind: "answer", model_label: "Jarvis", answer: `Hi${nm ? ` ${nm}` : ""}! Your practice book is ready. Do you want me to find a trade for you among your coins?`,
+      next_action: { label: "Yes, find me a trade", ask: "Yes, find me a trade among my coins." },
+      follow_ups: ["First, how are my coins doing?", "How do you pick a trade?", "Not now"] }]);
+  }, [params.intro, params.t, vme?.name]);
+
   const rate = async (m: Msg, v: number) => {
     if (!m.id) return;
     await api("/v3/ask/rate", { id: m.id, rating: v });
@@ -430,7 +460,7 @@ export default function Ananta() {
     setSessions(false);
   };
 
-  const qs: string[] = qcat === "new" ? STARTERS : (sg?.[qcat] as string[]) ?? sg?.questions ?? [];
+  const qs: string[] = me?.guest ? GUEST_STARTERS : qcat === "new" ? STARTERS : (sg?.[qcat] as string[]) ?? sg?.questions ?? [];
   const micLabel = { idle: "", listening: "Listening…", hearing: "Hearing you…", sending: "Got it…" }[mic.status];
   const hearing = live && phase === "listening" && mic.status === "hearing";
   const liveLabel = phase === "thinking" ? "Thinking…  ·  tap to cancel" : phase === "speaking" ? "Speaking  ·  tap to stop and talk"
@@ -465,10 +495,10 @@ export default function Ananta() {
         onLayout={(e) => { sst.height.h = e.nativeEvent.layout.height; checkEnd(); }} onContentSizeChange={(_, h) => { sst.content.h = h; checkEnd(); }}>
         {msgs.length === 0 ? (
           <View style={{ gap: 8, paddingTop: 20 }}>
-            <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>{me?.guest ? "Hi there" : "Hi Madhav"}</Text>
-            <T dim>{me?.guest ? "This is Ananta, Madhav's trading assistant, in practice mode. Ask anything about the app, the market or the trades. Type, tap the mic to dictate, or tap the wave to just talk."
+            <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>{me?.guest ? `Hi ${me?.name || "there"}` : "Hi Madhav"}</Text>
+            <T dim>{me?.guest ? "Ask me about your coins, your practice book, or the market. Type, tap the mic to dictate, or tap the wave and just talk."
               : "Ask about our portfolio or the market. Type, tap the mic to dictate, or tap the wave to just talk."}</T>
-            <T small>New here? Tap "New here" below for questions to start with.</T>
+            <T small>{me?.guest ? "Try one of the questions below to start." : 'New here? Tap "New here" below for questions to start with.'}</T>
           </View>
         ) : null}
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
@@ -482,7 +512,7 @@ export default function Ananta() {
         {busy && !live ? (
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
             <ActivityIndicator color={C.dim} />
-            <T dim>Ananta is looking…</T>
+            <T dim>Jarvis is looking…</T>
           </View>
         ) : null}
         {err ? <Text style={{ color: C.bad }}>{err}</Text> : null}
@@ -504,7 +534,7 @@ export default function Ananta() {
       {!live ? (
         <View style={{ gap: 6, paddingBottom: 6 }}>
           <View style={{ flexDirection: "row", gap: 6, paddingHorizontal: 12 }}>
-            {[["new", "New here"], ["portfolio", "Our portfolio"], ["market", "Market & scans"]].map(([k, l]) => (
+            {(me?.guest ? [] : [["new", "New here"], ["portfolio", "Our portfolio"], ["market", "Market & scans"]]).map(([k, l]) => (
               <Pressable key={k} onPress={() => setQcat(k)} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: qcat === k ? C.text : "transparent" }}>
                 <Text style={{ color: qcat === k ? "#FFF" : C.dim, fontSize: 12, fontWeight: "600" }}>{l}</Text>
               </Pressable>
@@ -531,7 +561,7 @@ export default function Ananta() {
             <Text style={{ fontSize: 18 }}>{mic.status !== "idle" ? "■" : "🎙"}</Text>
           </Pressable>
           <TextInput value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"} onChangeText={setText}
-            placeholder="Ask Ananta…" placeholderTextColor={C.faint} multiline
+            placeholder="Ask Jarvis…" placeholderTextColor={C.faint} multiline
             style={{ flex: 1, maxHeight: 110, fontSize: 15, color: C.text, backgroundColor: C.bg, borderRadius: 20, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 }} />
           {text.trim() ? (
             <Pressable onPress={() => send(text)} disabled={busy}

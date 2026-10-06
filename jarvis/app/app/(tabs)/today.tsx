@@ -14,6 +14,7 @@ import { Btn, Busy, Card, Divider, Dot, ErrorBox, Row, Screen, T, pct, usd } fro
 import { useData } from "../../src/useData";
 import { useLab } from "../../src/lab";
 import { C, pnlColor } from "../../src/theme";
+import { VisitorHome, useMe } from "../../src/visitor";
 
 const KIND: Record<string, { color: string; label: string }> = {
   buy: { color: C.accent, label: "BUY" }, sell: { color: C.text, label: "SELL" }, watch: { color: C.faint, label: "ORDER" },
@@ -33,10 +34,25 @@ function greeting(): string {
 }
 
 export default function Home() {
+  const me = useMe();
+  if (!me) return <Busy />;
+  if (me.guest) return <GuestHome />;
+  return <OwnerHome />;
+}
+
+// A visitor's Home: their name, their coins, their practice money and trades. Nothing of Madhav's.
+function GuestHome() {
+  const { data: d, err, loading, reload } = useData("/v3/home", 30000);
+  useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home tab: your coins, your practice money, your trades" }); reload(); }, []));
+  if (!d && loading) return <Busy />;
+  if (!d?.visitor) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  return <VisitorHome d={d} loading={loading} reload={reload} />;
+}
+
+function OwnerHome() {
   const { data: d, err, loading, reload } = useData("/v3/home");
   const { data: inbox, reload: reloadInbox } = useData("/v3/inbox");
   const { data: br, reload: reloadBrief } = useData("/v3/brief", 300000);
-  const { data: me } = useData("/v3/me", 0);
   const [lab, setLab] = useLab();
   const [briefing, setBriefing] = useState(false);
   const [all, setAll] = useState(false);
@@ -74,20 +90,6 @@ export default function Home() {
       <Spot id="home.status">
         <HealthStrip h={m.health} />
       </Spot>
-
-      {me?.guest ? (
-        <Card title="Welcome to Ananta" sub="Madhav's trading assistant, in practice mode">
-          <T small>Ananta watches 10 coins all day, explains what it sees and why it would or would not trade, and learns from its own record. Everything you do here goes to your own practice book.</T>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-            {["Show me around", "What are we doing here?", "How do I make a paper trade?"].map((q) => (
-              <Pressable key={q} onPress={() => router.push({ pathname: "/(tabs)/ask", params: { q, t: String(Date.now()) } })}
-                style={{ backgroundColor: C.accent, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}>
-                <Text style={{ color: "#FFF", fontWeight: "700", fontSize: 13 }}>{q}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </Card>
-      ) : null}
 
       {lab ? (
         <Card onPress={() => router.push("/lab")} title="Evidence" sub="Inside the logic repair, live: what we watch, what the limits stop, what we missed, the repair board"

@@ -10,15 +10,19 @@ import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme
 import { ChainBoard } from "../../src/chain";
 import { ReadsBoard } from "../../src/reads";
 import { ZonesBoard } from "../../src/zones";
+import { VisitorMarkets, useMe } from "../../src/visitor";
 
 export default function Markets() {
-  const { data: d, err, loading, reload } = useData("/v3/markets");
-  const { data: ch } = useData("/v3/chain");
-  const { data: rd } = useData("/v3/reads", 300000);
-  const { data: zn } = useData("/v3/zones", 300000);
-  useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: "Markets tab: watchlist of 10 coins" }); }, []));
+  const me = useMe();
+  const own = !!me && !me.guest;                         // a visitor sees only their own coins (no research boards)
+  const { data: d, err, loading, reload } = useData(me ? "/v3/markets" : null);
+  const { data: ch } = useData(own ? "/v3/chain" : null);
+  const { data: rd } = useData(own ? "/v3/reads" : null, 300000);
+  const { data: zn } = useData(own ? "/v3/zones" : null, 300000);
+  useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: me?.guest ? "Markets tab: your coins" : "Markets tab: watchlist of 10 coins" }); }, [me?.guest]));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  if (d.visitor) return <VisitorMarkets d={d} loading={loading} reload={reload} />;
   return (
     <Screen loading={loading} onRefresh={reload}>
       <Card>

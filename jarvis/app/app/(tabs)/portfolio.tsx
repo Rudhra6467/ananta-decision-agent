@@ -10,11 +10,28 @@ import { LineChart, StackBar } from "../../src/charts";
 import { Big, Btn, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Row, Screen, Section, Segmented, Stat, T, pct, price, usd, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
+import { VisitorBooks, useMe } from "../../src/visitor";
 
 const RANGES = [{ key: "1", label: "1D" }, { key: "7", label: "1W" }, { key: "30", label: "1M" }, { key: "365", label: "All" }];
 const SHADES = ["#2952CC", "#4A6FD6", "#6B8BDF", "#8CA6E8", "#ADC1F0", "#C6D4F5", "#D7E1F8", "#E3EAFA", "#EDF2FC", "#F3F6FD"];
 
 export default function Portfolio() {
+  const me = useMe();
+  if (!me) return <Busy />;
+  if (me.guest) return <GuestBooks />;
+  return <OwnerBooks />;
+}
+
+// A visitor's Books: their own practice book only (no Jarvis book, no Explorer, no trend portfolio).
+function GuestBooks() {
+  const { data: d, err, loading, reload } = useData("/v3/holdings", 30000);
+  useFocusEffect(useCallback(() => { setScreen({ screen: "manual_book", tab: "mine", label: "Books tab: your practice book" }); reload(); }, []));
+  if (!d && loading) return <Busy />;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  return <VisitorBooks d={d} loading={loading} reload={reload} />;
+}
+
+function OwnerBooks() {
   const [tab, setTab] = useState("portfolio");
   const p = useLocalSearchParams<{ tab?: string; t?: string }>();
   useEffect(() => { if (p.tab) setTab(String(p.tab)); }, [p.tab, p.t]);

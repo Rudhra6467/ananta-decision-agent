@@ -27,6 +27,7 @@ function Cockpit() {
   const [showActions, setShowActions] = useState(false);
   const { data: sp, reload: reloadSpend } = useData("/v3/spend");
   const { data: al, reload: reloadAlerts } = useData("/v3/alerts");
+  const { data: me } = useData("/v3/me", 0);
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
 
@@ -165,6 +166,9 @@ function Cockpit() {
           </View>
         )) : null}
       </Card>
+      {me && !me.guest ? (
+        <Card title="People" sub={`Signed in as ${me.name} (${me.who}). Invite visitors and remove their accounts.`} onPress={() => router.push("/people")} />
+      ) : null}
       <Btn label="Sign out" kind="secondary" onPress={async () => { await logout(); router.replace("/login"); }} />
     </Screen>
   );

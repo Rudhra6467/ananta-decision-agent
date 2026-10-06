@@ -20,7 +20,7 @@ app = FastAPI(title="Jarvis", version=core.VERSION, docs_url=None, redoc_url=Non
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 app.add_middleware(CORSMiddleware, allow_origins=["https://livetrading247.com", "https://www.livetrading247.com",
-                                                  "http://localhost:8081"],
+                                                  "http://localhost:8081", "http://127.0.0.1:8300", "http://localhost:8300"],   # local test copies
                    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type"])
 _J: core.Jarvis | None = None
 
@@ -103,9 +103,36 @@ def _sandbox(who: str) -> core.Jarvis:
             m = _main()
             g = core.Jarvis(m.dir, owner_email=m.owner, password_hash=m.pw_hash, secret=m.secret, hands=m._hands, now=m.now,
                             db_file=f"jarvis_guest_{name}.sqlite")
+            g.users_db = m.db                                   # accounts live in the owner's database
             _sync_shared(g)
             _JG[name] = g
         return _JG[name]
+
+
+def _sandbox_name(email: str) -> str:
+    return _re.sub(r"[^a-z0-9]+", "_", email.lower()).strip("_")[:40] or "guest"
+
+
+def _archive_sandbox(email: str) -> str | None:
+    """A removed visitor's (or a reset) practice book is moved to guest_archive/, never deleted; the next sign-in starts empty."""
+    import shutil
+    from pathlib import Path
+
+    name = _sandbox_name(email)
+    with _JG_LOCK:
+        g = _JG.pop(name, None)
+        if g is not None:
+            try:
+                g.db.con.close()
+            except Exception:  # noqa: BLE001
+                pass
+        src = Path(_main().dir) / f"jarvis_guest_{name}.sqlite"
+        if not src.exists():
+            return None
+        dst = Path(_main().dir) / "guest_archive" / f"jarvis_guest_{name}.{int(_main().now())}.sqlite"
+        dst.parent.mkdir(exist_ok=True)
+        shutil.move(str(src), str(dst))
+        return dst.name
 
 
 def J() -> core.Jarvis:
@@ -265,6 +292,45 @@ def health() -> dict:
     return {"ok": True, "version": core.VERSION, "health_checks_s_ago": round(_t.time() - last) if last else None}
 
 
+class Join(BaseModel):
+    code: str
+    name: str = ""
+    email: str = ""
+    password: str
+
+
+class Invite(BaseModel):
+    name: str = ""
+    email: str = ""
+
+
+class Person(BaseModel):
+    email: str
+
+
+@app.get("/auth/invite/{code}")
+def invite_info(code: str) -> dict:
+    """What the join page shows before the visitor signs up (no sign-in needed: the code is the key)."""
+    try:
+        return _main().invite_info(code)
+    except core.AuthError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/auth/join")
+def join(b: Join) -> dict:
+    """A visitor accepts Madhav's invite link: their own name and password, and a fresh $1,000 practice book."""
+    m = _main()
+    try:
+        info = m.invite_info(b.code)
+        _archive_sandbox(info.get("email") or b.email)           # never inherit an old practice book under the same email
+        return {"token": m.join(b.code, b.name, b.email, b.password), "expires_in_s": 7 * 86400}
+    except core.AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/auth/login")
 def login(b: Login) -> dict:
     try:
@@ -362,11 +428,19 @@ class Rating(BaseModel):
 
 @app.get("/v3/home")
 def home(who: str = Depends(owner)) -> dict:
+    if is_guest(who):                                   # a visitor's own Home: their coins, their book, their next step
+        from jarvis.service import visitor
+
+        return visitor.home(J())
     return {"summary": views.day_summary(J()), "feed": views.feed(J(), hours=72, limit=40), "mission": views.mission(J())}
 
 
 @app.get("/v3/holdings")
 def holdings(who: str = Depends(owner)) -> dict:
+    if is_guest(who):                                   # a visitor's Books: their own practice book only
+        from jarvis.service import visitor
+
+        return visitor.books(J())
     return views.holdings(J())
 
 
@@ -398,10 +472,99 @@ def ev_live(who: str = Depends(owner)) -> dict:
     return evidence_live.build(J())
 
 
+def _owner_only(who: str) -> None:
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav manages accounts.")
+
+
+@app.get("/v3/people")
+def people(who: str = Depends(owner)) -> dict:
+    """Madhav's account and the visitors he invited (owner only)."""
+    _owner_only(who)
+    return _main().people()
+
+
+@app.post("/v3/people/invite")
+def people_invite(b: Invite, who: str = Depends(owner)) -> dict:
+    _owner_only(who)
+    try:
+        inv = _main().invite(b.name, b.email)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    inv["link"] = f"https://livetrading247.com/join?code={inv['code']}"
+    return inv
+
+
+@app.post("/v3/people/remove")
+def people_remove(b: Person, who: str = Depends(owner)) -> dict:
+    """Removes a visitor (sign-in stops at once; their practice book is archived) or cancels an unused invite (by code)."""
+    _owner_only(who)
+    ok = _main().remove_person(b.email)
+    arch = _archive_sandbox(b.email) if "@" in b.email else None
+    return {"ok": ok, "archived": arch}
+
+
+@app.post("/v3/practice/reset")
+def practice_reset(who: str = Depends(owner)) -> dict:
+    """A visitor starts over: their practice book goes back to $1,000 and an empty history (the old one is archived)."""
+    if not who.startswith("guest:"):
+        raise HTTPException(status_code=400, detail="Reset is for practice accounts; Madhav's books are the real paper books.")
+    return {"ok": True, "archived": _archive_sandbox(who.split(":", 1)[1])}
+
+
+class Setup(BaseModel):
+    name: str | None = None
+    coins: list[str] | None = None
+    tour_done: bool = False
+    capital: int | None = None
+    start_trading: bool = False
+    method: str | None = None
+
+
+@app.post("/v3/me/setup")
+def me_setup(b: Setup, who: str = Depends(owner)) -> dict:
+    """A visitor's setup answers (name, coins, tour seen, practice capital, start trading)."""
+    if not is_guest(who):
+        raise HTTPException(status_code=400, detail="Setup is for visitor accounts.")
+    from jarvis.service import visitor
+
+    try:
+        return visitor.update(J(), b.model_dump(), who.split(":", 1)[1])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+class Order(BaseModel):
+    side: str = "buy"
+    coin: str
+    usd: float | None = None
+    stop: float | None = None
+    target: float | None = None
+    reason: str = ""
+    confirm: bool = False
+
+
+@app.post("/v3/manual/order")
+def manual_order(b: Order, who: str = Depends(owner)) -> dict:
+    """'Trade myself': a paper order in the caller's own book. Without confirm it only previews (nothing changes)."""
+    p = {"side": b.side, "coin": b.coin, "usd": b.usd, "stop": b.stop, "target": b.target, "reason": b.reason}
+    try:
+        px = J().prices()
+        return MN().execute(who, p, px, trigger="direct") if b.confirm else MN().preview(p, px)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/v3/me")
 def me(who: str = Depends(owner)) -> dict:
     g = who.startswith("guest:")
-    return {"who": who.split(":", 1)[-1], "guest": g,
+    if g:
+        from jarvis.service import visitor
+
+        v = visitor.me(J())
+        return {"who": who.split(":", 1)[-1], "guest": True, "name": v["profile"].get("name") or _main().name_of(who), **v,
+                "practice_note": "Your own practice account: paper money only, your coins, your trades. Nothing here is real money."}
+    return {"who": who.split(":", 1)[-1], "guest": g, "name": _main().name_of(who),
             "practice_note": "Practice mode: everything works like Madhav's app, but your orders, alerts and changes go to your own "
                              "practice book. Kill switch, autopilot and portfolio approvals are locked." if g else ""}
 
@@ -660,6 +823,10 @@ def trades_list(who: str = Depends(owner)) -> dict:
 
 @app.get("/v3/markets")
 def markets(who: str = Depends(owner)) -> dict:
+    if is_guest(who):                                   # a visitor's Markets: only the coins they picked
+        from jarvis.service import visitor
+
+        return visitor.markets(J())
     return views.markets(J())
 
 

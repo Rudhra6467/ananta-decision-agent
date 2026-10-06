@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, Text, TextInput, View, StyleSheet } fro
 import { router } from "expo-router";
 import { login, server, setServer } from "../src/api";
 import { registerPush } from "../src/push";
+import { clearMe, routeAfterSignIn } from "../src/visitor";
 import { Btn } from "../src/ui";
 import { C } from "../src/theme";
 
@@ -18,7 +19,8 @@ export default function Login() {
       await setServer(url.trim());
       await login(email.trim(), pw);
       registerPush().then((m) => console.log(m)).catch(() => {});
-      router.replace("/(tabs)/today");
+      clearMe();
+      await routeAfterSignIn();
     } catch (e: any) {
       setMsg(e?.message ?? "Could not sign in");
     }
@@ -26,12 +28,15 @@ export default function Login() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={s.wrap}>
       <Text style={s.title}>Ananta</Text>
-      <Text style={s.dim}>Owner sign-in · paper trading only</Text>
-      <TextInput style={s.in} value={url} onChangeText={setUrl} autoCapitalize="none" placeholder="Server address" placeholderTextColor={C.dim} />
+      <Text style={s.dim}>Sign in · paper trading only</Text>
+      {Platform.OS !== "web" ? (
+        <TextInput style={s.in} value={url} onChangeText={setUrl} autoCapitalize="none" placeholder="Server address" placeholderTextColor={C.dim} />
+      ) : null}
       <TextInput style={s.in} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Email" placeholderTextColor={C.dim} />
       <TextInput style={s.in} value={pw} onChangeText={setPw} secureTextEntry placeholder="Password" placeholderTextColor={C.dim} />
       <Btn label="Sign in" onPress={go} />
       <Text style={s.dim}>{msg}</Text>
+      <Text style={[s.dim, { fontSize: 12, marginTop: 8 }]}>New here? Open the invite link Madhav sent you to create your account.</Text>
     </KeyboardAvoidingView>
   );
 }

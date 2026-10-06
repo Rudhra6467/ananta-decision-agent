@@ -1,15 +1,22 @@
-import { Stack, router } from "expo-router";
+import { Stack, router, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import { token } from "../src/api";
-import { tourCommand, useHere, useTour, useVoiceLive } from "../src/context";
+import { Toast, loadMe } from "../src/visitor";
+import { goTab, tourCommand, useHere, useTour, useVoiceLive } from "../src/context";
 import * as TTS from "../src/tts";
 import { C } from "../src/theme";
 
 export default function Root() {
+  const path = usePathname();
   useEffect(() => {
-    token().then((t) => { if (!t) router.replace("/login"); });
+    if (path.startsWith("/join")) return;               // an invite link opens without a sign-in
+    token().then(async (t) => {
+      if (!t) { router.replace("/login"); return; }
+      const m = await loadMe();                          // a visitor who has not finished setup continues it
+      if (m?.guest && ["name", "coins", "capital"].includes(String(m.stage)) && !path.startsWith("/welcome")) router.replace("/welcome");
+    });
   }, []);
   return (
     <>
@@ -17,6 +24,7 @@ export default function Root() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} />
       <VoicePill />
       <TourBar />
+      <Toast />
     </>
   );
 }
@@ -28,7 +36,7 @@ function VoicePill() {
   if (!live || here?.screen === "ananta") return null;
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", top: 56, left: 0, right: 0, alignItems: "center" }}>
-      <Pressable onPress={() => router.navigate("/(tabs)/ask")} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.text,
+      <Pressable onPress={() => goTab("/(tabs)/ask")} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.text,
         borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 6 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.bad }} />
         <Text style={{ color: "#FFF", fontWeight: "600", fontSize: 13 }}>Ananta is listening · tap to return</Text>

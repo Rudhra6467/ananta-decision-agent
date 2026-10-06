@@ -102,7 +102,11 @@ function measure(v: View | null): Promise<{ y: number; h: number } | null> {
 }
 
 // Scroll the open screen so the spot is in view, then make it glow. Returns false if the spot is not on screen.
+// Only the newest call wins: finding and scrolling take time, and an older call that finishes late (the voice has moved on
+// to the next item) must not light up the item before it. That race was the "wrong item highlighted" Madhav saw.
+let gen = 0;
 export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
+  const my = ++gen;
   let target: SpotRef | null = null;
   wanted = id;
   emit();
@@ -112,6 +116,7 @@ export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
       if (m) { target = s; break; }
     }
     if (!target) await sleep(100);
+    if (my !== gen) return false;                              // a newer highlight (or a clear) took over
   }
   wanted = null;
   if (!target) { emit(); return false; }
@@ -125,6 +130,7 @@ export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
       await sleep(350);
     }
   }
+  if (my !== gen) return false;
   if (clearTimer) clearTimeout(clearTimer);
   active = id;
   emit();
@@ -133,6 +139,7 @@ export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
 }
 
 export function clearSpot() {
+  gen++;                                                       // any highlight still on its way is cancelled
   if (clearTimer) clearTimeout(clearTimer);
   active = null;
   emit();

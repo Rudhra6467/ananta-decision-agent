@@ -7,8 +7,9 @@ import { Platform } from "react-native";
 const web = Platform.OS === "web" && typeof window !== "undefined";
 let el: HTMLAudioElement | null = null;
 let unlocked = false;
-// 0.1 s of silence (a valid tiny WAV) to unlock the element
-const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
+let playing = false;                                      // an answer owns the element (set by webPlayer)
+// 0.1 s of real silence (8 kHz WAV) to unlock the element
+const SILENT = "data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YUAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
 export const isWeb = web;
 export const audioUnlocked = () => unlocked;
@@ -25,12 +26,17 @@ function element(): HTMLAudioElement {
 export function unlockAudio() {
   if (!web || unlocked) return;
   const a = element();
+  // NEVER touch the element while Ananta is speaking through it (Madhav, 2026-10-09: a tap anywhere cut the voice off,
+  // because each tap loaded the silent clip into the same element). Something is already playing, so sound is unlocked.
+  if (a.src && a.src !== SILENT && !a.paused && !a.ended) { unlocked = true; return; }
+  if (playing) return;
   try {
     a.muted = true;
     a.src = SILENT;
     const p = a.play();
     const done = () => { a.muted = false; unlocked = true; };
-    if (p && typeof p.then === "function") p.then(() => { a.pause(); done(); }).catch(() => { a.muted = false; });
+    // only pause the silent clip itself: if an answer took over the element meanwhile, leave it playing
+    if (p && typeof p.then === "function") p.then(() => { if (a.src === SILENT) a.pause(); done(); }).catch(() => { if (a.src === SILENT) a.muted = false; });
     else done();
   } catch { /* the next tap tries again */ }
   try {                                                   // Safari's built-in voice also wants its first phrase inside a tap
@@ -41,7 +47,7 @@ export function unlockAudio() {
 }
 
 if (web) {
-  const onTap = () => { unlockAudio(); if (unlocked) { ["pointerdown", "touchend", "keydown"].forEach((e) => document.removeEventListener(e, onTap, true)); } };
+  const onTap = () => { if (!unlocked) unlockAudio(); if (unlocked) { ["pointerdown", "touchend", "keydown"].forEach((e) => document.removeEventListener(e, onTap, true)); } };
   ["pointerdown", "touchend", "keydown"].forEach((e) => document.addEventListener(e, onTap, true));
 }
 
@@ -51,17 +57,18 @@ export function webPlayer(uri: string) {
   a.muted = false;
   a.src = uri;
   const subs: ((st: any) => void)[] = [];
+  playing = true;
   const ended = () => subs.forEach((f) => f({ didJustFinish: true }));
   a.addEventListener("ended", ended);
   return {
-    play: () => { a.play()?.catch?.(() => {}); },
+    play: () => { const p = a.play(); p?.then?.(() => { unlocked = true; }).catch?.(() => {}); },
     pause: () => { try { a.pause(); } catch { /* */ } },
     get currentTime() { return a.currentTime || 0; },
     get duration() { return Number.isFinite(a.duration) ? a.duration : 0; },
     get playing() { return !a.paused && !a.ended; },
     get isLoaded() { return a.readyState >= 2; },
     addListener: (_ev: string, f: (st: any) => void) => { subs.push(f); return { remove: () => { const i = subs.indexOf(f); if (i >= 0) subs.splice(i, 1); } }; },
-    remove: () => { a.removeEventListener("ended", ended); try { a.pause(); } catch { /* */ } },
+    remove: () => { a.removeEventListener("ended", ended); playing = false; try { a.pause(); } catch { /* */ } },
   };
 }
 

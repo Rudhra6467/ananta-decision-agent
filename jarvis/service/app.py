@@ -363,6 +363,26 @@ def universe_scoreboard(who: str = Depends(owner)) -> dict:
     return universe_watch.scoreboard(_main())
 
 
+@app.get("/v3/universe/ladder")
+def universe_ladder(who: str = Depends(owner)) -> dict:
+    from jarvis.service import universe_watch
+
+    return universe_watch.ladder(_main())
+
+
+@app.post("/v3/universe/ladder")
+def universe_ladder_set(body: dict, who: str = Depends(owner)) -> dict:
+    """Madhav's sign-off on the promotion ladder (one step up when the evidence allows it, or down)."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav signs off a promotion.")
+    from jarvis.service import universe_watch
+
+    try:
+        return universe_watch.set_step(_main(), str(body.get("watch") or ""), str(body.get("step") or ""), who)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/v3/universe/coins")
 def universe_coins(tier: str | None = None, q: str | None = None, sort: str = "trading", n: int = 60, who: str = Depends(owner)) -> dict:
     from jarvis.service import universe_watch

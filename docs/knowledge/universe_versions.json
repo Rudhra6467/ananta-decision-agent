@@ -1,0 +1,5 @@
+{
+ "what": "Engine plan U6.3: new versions of a universe rule that the repair shop passed. Each entry is written here, with its day, BEFORE it trades (pre-registration). It then runs on every coin, per tier, as its own book '<rule>.<version>-U<tier>' beside its parent until it has 10 market days; Madhav decides which one stays. A version may change only what the engine already understands: days (time exit), rsi_exit (H07's exit), market_gate (Bitcoin above its 50-day).",
+ "example": {"rule": "H07", "version": "v2", "changes": {"rsi_exit": 50}, "since": "YYYY-MM-DD", "why": "review #N: what passed, on which tiers, both periods"},
+ "versions": []
+}

@@ -157,3 +157,40 @@ def test_brain_budget_paces_and_logs_unreviewed(tmp_path, monkeypatch):
     st = dict(j.db.execute("SELECT coin, state FROM brain_queue").fetchall())
     assert st["LOW"].startswith("NOT_REVIEWED") and st["GOOD"] == "DONE"
     assert j.db.execute("SELECT COUNT(*) FROM brain_unreviewed").fetchone()[0] == 1
+
+
+def test_ladder_needs_evidence_and_moves_one_step(tmp_path, monkeypatch):
+    from jarvis.service import universe_watch as U
+
+    j = J(tmp_path)
+    board = {"watches": [{"watch": "H07-UA", "rule": "H07", "tier": "A", "verdict": "too early: 3 of 10 market days"},
+                         {"watch": "H07-UC", "rule": "H07", "tier": "C", "verdict": "watched only (tier C)"}]}
+    monkeypatch.setattr(U, "scoreboard", lambda jj: board)
+    rows = {r["watch"]: r for r in U.ladder(j)["rows"]}
+    assert rows["H07-UA"]["step"] == "EVIDENCE" and not rows["H07-UA"]["next_allowed"]
+    assert rows["H07-UC"]["step"] == "SHADOW"
+    with pytest.raises(ValueError):
+        U.set_step(j, "H07-UA", "PROMOTED", "madhav")              # the evidence is not there yet
+    board["watches"][0]["verdict"] = "ahead of random"
+    with pytest.raises(ValueError):
+        U.set_step(j, "H07-UA", "LIVE_CANDIDATE", "madhav")        # one step at a time
+    assert U.set_step(j, "H07-UA", "PROMOTED", "madhav")["to"] == "PROMOTED"
+    assert U.promoted(j) == {"H07-UA"}
+    assert U.set_step(j, "H07-UA", "EVIDENCE", "madhav")["to"] == "EVIDENCE"   # down is always allowed
+
+
+def test_a_registered_version_runs_beside_its_parent(monkeypatch):
+    from jarvis.service import universe_watch as U
+    from jarvis.service import watch_engine as W
+
+    monkeypatch.setattr(U, "versions", lambda: [{"rule": "H07", "version": "v2", "changes": {"rsi_exit": 50}, "since": "2026-10-09"},
+                                                {"rule": "H07", "version": "bad", "changes": {"stop": 1}}])      # unknown change: refused
+    U.register()
+    try:
+        assert W.DAILY["H07.v2-UB"]["rsi_exit"] == 50 and W.DAILY["H07.v2-UB"]["parent"] == "H07-UB"
+        assert "H07.bad-UB" not in W.DAILY and "H07.v2" in U.RULES_ALL and U.split("H07.v2-UB") == ("H07.v2", "B")
+    finally:
+        for t in "ABC":
+            W.DAILY.pop(f"H07.v2-U{t}", None)
+        monkeypatch.undo()
+        U.register()

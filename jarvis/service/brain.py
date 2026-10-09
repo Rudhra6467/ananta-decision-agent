@@ -688,9 +688,11 @@ def score(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
             key = "explorer"
         elif t.startswith("setup:"):
             sp = universe_watch.split(t[6:])
-            key = "setup:" + (sp[0] if sp else t[6:])
+            key = "setup:" + (sp[0] if sp else t[6:]).split(".")[0]      # a rule's new version ranks like its parent
         p = TRIGGER_POINTS.get(key, 1.0)
         if key == "zone_entry" and ((detail or {}).get("zone_entry") or {}).get("history") == "SUPPORTED":
+            p += 1.0
+        if t.startswith("setup:") and t[6:] in universe_watch.promoted(j):      # promoted on the ladder (Madhav's sign-off)
             p += 1.0
         pts.append(p)
     s = (max(pts) + 0.5 * (len(pts) - 1)) if pts else 0.0

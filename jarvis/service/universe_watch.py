@@ -46,18 +46,43 @@ def split(watch: str) -> tuple[str, str] | None:
     return None
 
 
+VERSIONS_FILE = "knowledge/universe_versions.json"
+VERSION_KEYS = {"days", "rsi_exit", "market_gate"}           # what a new version may change in a rule the engine already has
+
+
+def versions() -> list[dict]:
+    """Engine plan U6.3: rule versions the repair shop passed, each written down (with the day) before it trades. A version runs
+    beside its parent on every tier as its own book, '<rule>.<version>-U<tier>', until it has 10 market days."""
+    from jarvis.service.core import docs_dir
+
+    try:
+        p = docs_dir(Path(__file__).resolve().parents[2]) / VERSIONS_FILE
+        return json.loads(p.read_text()).get("versions", []) if p.exists() else []
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def register() -> None:
-    """Declare the universe watches in the watch engine (same rules, their own ids)."""
+    """Declare the universe watches in the watch engine (same rules, their own ids), plus any registered versions."""
     from jarvis.service import watch_engine as W
 
+    vers = [v for v in versions() if v.get("rule") in RULES and v.get("version") and set(v.get("changes") or {}) <= VERSION_KEYS]
     for tier in TIERS:
         for r in RULES + RANDOMS:
             spec = dict(W.DAILY[r])
             spec["tier"] = "U" + tier
             W.DAILY[wid(r, tier)] = spec
+        for v in vers:
+            spec = dict(W.DAILY[v["rule"]]) | dict(v["changes"])
+            spec.update(tier="U" + tier, parent=wid(v["rule"], tier), since=v.get("since"))
+            W.DAILY[wid(f"{v['rule']}.{v['version']}", tier)] = spec
         W.EYE[wid("ZONE_TOUCH", tier)] = {"days": 20}
+    RULES_ALL[:] = list(RULES) + [f"{v['rule']}.{v['version']}" for v in vers]
+    for v in vers:
+        BASELINE_OF[f"{v['rule']}.{v['version']}"] = BASELINE_OF.get(v["rule"], "RANDOM_30D")
 
 
+RULES_ALL: list[str] = list(RULES)
 register()
 
 
@@ -86,7 +111,7 @@ def run_rules(j) -> dict:
         coins = registry.members(j, tier)
         if "BTC" not in coins:
             coins = coins + ["BTC"] if tier == "A" else coins
-        names = [wid(r, tier) for r in RULES + RANDOMS]
+        names = [wid(r, tier) for r in RULES_ALL + list(RANDOMS)]
         r = watch_engine.run(j, watches=names, coins=coins, daily_fn=lambda jj, c: _daily(jj, c), live_trades=False)
         r["managed_live"] = manage_live_rows(j, tier, coins)
         out[tier] = {k: len(v) if isinstance(v, list) else v for k, v in r.items()}
@@ -249,9 +274,9 @@ def rebuild(j, days: int = 3) -> dict:
             for i in range(len(D)):
                 if D[i][0] < since:
                     continue
-                for rule in RULES:
-                    spec = watch_engine.DAILY[rule]
-                    if rule == "H07" and len(D) < 210:
+                for rule in RULES_ALL:
+                    spec = watch_engine.DAILY[wid(rule, tier)]
+                    if spec["kind"] == "h07" and len(D) < 210:
                         continue
                     ok, _, _ = watch_engine._fires(spec, S, B, i, r10)
                     if ok:
@@ -375,6 +400,68 @@ def scoreboard(j) -> dict:
     return {"watches": out, "min_events": MIN_EVENTS, "would_be_account": would_be(j),
             "rule": "A rule is promoted per tier only when it beats its random baseline of the same tier after costs over 10 independent "
                     "market days in both market regimes, with Madhav's sign-off (Universe Rule v2, section 8)."}
+
+
+# ---------------------------------------------------------------------------
+# the promotion ladder (engine plan U6.4, Universe Rule v2 section 8)
+# ---------------------------------------------------------------------------
+LADDER = ("SHADOW", "EVIDENCE", "PROMOTED", "LIVE_CANDIDATE")
+LADDER_WORDS = {"SHADOW": "watched and scored only", "EVIDENCE": "collecting forward evidence", "PROMOTED": "beat random; the brain ranks it higher",
+                "LIVE_CANDIDATE": "may be proposed for real money, with your approval each time"}
+
+
+def _ladder_table(j) -> None:
+    j.db.execute("CREATE TABLE IF NOT EXISTS universe_ladder (watch TEXT PRIMARY KEY, step TEXT, by TEXT, t INTEGER, note TEXT)")
+
+
+def ladder(j) -> dict:
+    """Every rule x tier with its step, and whether the evidence allows the next one. Nothing moves without Madhav's sign-off."""
+    _ladder_table(j)
+    saved = {w: (s, by, t, note) for w, s, by, t, note in j.db.execute("SELECT watch, step, by, t, note FROM universe_ladder")}
+    rows = []
+    for w in scoreboard(j)["watches"]:
+        if w["rule"].startswith("RANDOM"):
+            continue
+        step = saved.get(w["watch"], (None,))[0] or ("SHADOW" if w["tier"] == "C" else "EVIDENCE")
+        ok, why = False, ""
+        if w["tier"] == "C":
+            why = "tier C is never judged"
+        elif step == "EVIDENCE":
+            ok = w["verdict"] == "ahead of random"
+            why = "ahead of random over 10 market days in both regimes" if ok else w["verdict"]
+        elif step == "PROMOTED":
+            ok = w["verdict"] == "ahead of random"
+            why = "still ahead of random: may become a live candidate (your call)" if ok else f"no longer ahead: {w['verdict']}"
+        rows.append({"watch": w["watch"], "rule": w["rule"], "tier": w["tier"], "step": step, "meaning": LADDER_WORDS[step],
+                     "next_allowed": ok, "why": why, "signed_by": (saved.get(w["watch"]) or (None, None))[1]})
+    return {"rows": rows, "steps": LADDER, "rule": "One step at a time, each with Madhav's sign-off; a step down is always allowed."}
+
+
+def set_step(j, watch: str, step: str, by: str) -> dict:
+    """Madhav's sign-off: move one rule x tier one step up (only when the evidence allows it) or any steps down."""
+    _ladder_table(j)
+    step = (step or "").upper()
+    if step not in LADDER:
+        raise ValueError(f"step must be one of {', '.join(LADDER)}")
+    row = next((r for r in ladder(j)["rows"] if r["watch"] == watch), None)
+    if not row:
+        raise ValueError(f"{watch} is not a universe rule with a book")
+    cur, new = LADDER.index(row["step"]), LADDER.index(step)
+    if new == cur + 1 and not row["next_allowed"]:
+        raise ValueError(f"not yet: {row['why']}")
+    if new > cur + 1:
+        raise ValueError("one step at a time")
+    j.db.execute("INSERT OR REPLACE INTO universe_ladder VALUES (?,?,?,?,?)", (watch, step, by, int(j.now()), f"from {row['step']}"))
+    j.db.commit()
+    return {"watch": watch, "from": row["step"], "to": step, "by": by}
+
+
+def promoted(j) -> set[str]:
+    try:
+        _ladder_table(j)
+        return {w for (w,) in j.db.execute("SELECT watch FROM universe_ladder WHERE step IN ('PROMOTED', 'LIVE_CANDIDATE')")}
+    except Exception:  # noqa: BLE001
+        return set()
 
 
 # ---------------------------------------------------------------------------

@@ -40,7 +40,7 @@ def test_registry_matches_the_code():
     eye_trading = {w["id"] for w in reg["watches"] if w["runs_in"] == "jarvis.eye" and w.get("size_usd")}
     assert eye_trading == {w for w in W.EYE if not U.split(w)}
     assert {"UNIVERSE_DAILY", "ZONE_TOUCH_UNIVERSE"} <= set(ids)
-    assert all(U.split(w)[0] in U.RULES + U.RANDOMS for w in W.DAILY if U.split(w))
+    assert all(U.split(w)[0] in U.RULES_ALL + list(U.RANDOMS) for w in W.DAILY if U.split(w))
 
 
 def _with_more(tmp_path, coins, closes):

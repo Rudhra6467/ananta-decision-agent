@@ -1113,7 +1113,16 @@ class Lookups:
                 "SELECT watch, status, entry, entry_day, net_usd, why FROM evidence_trades WHERE coin=? AND (watch LIKE '%-U_' OR watch LIKE 'JARVIS%') "
                 "ORDER BY signal_t DESC LIMIT 6", (c,))]
             zs = (universe_watch._armed(j).get("zones") or {}).get(c) or []
-            return {"coin": c, "name": k.get("name"), "tier": k.get("tier"), "status": k.get("status"), "price": row.get("price"),
+            why_not = []                                   # "why didn't you take X?": every moment it was woken for, and what happened
+            try:
+                for t, trig, st in j.db.execute("SELECT t, trigger, state FROM brain_queue WHERE coin=? ORDER BY t DESC LIMIT 6", (c,)):
+                    d = j.db.execute("SELECT action, confidence, thesis, note FROM brain_decisions WHERE coin=? AND t >= ? ORDER BY t LIMIT 1",
+                                     (c, t)).fetchone() if st == "DONE" else None
+                    why_not.append({"when_utc": time.strftime("%Y-%m-%d %H:%M", time.gmtime(t)), "moment": trig,
+                                    "what_happened": (f"decided {d[0]} ({(d[1] or 0):.0f}% confidence): {d[2] or ''}" + (f" [{d[3]}]" if d[3] else "")) if d else st})
+            except Exception:  # noqa: BLE001
+                pass
+            return {"coin": c, "name": k.get("name"), "brain_moments": why_not, "tier": k.get("tier"), "status": k.get("status"), "price": row.get("price"),
                     "change_today_pct": row.get("change_today_pct"), "median_daily_usd_30d": k.get("median_usd_30d"),
                     "can_buy": {"ndax_cad": k.get("ndax"), "kraken_usd": k.get("kraken")}, "groups": k.get("groups"),
                     "support_zones": [{"bot": z["bot"], "top": z["top"], "history": z["history"]} for z in zs][:4],

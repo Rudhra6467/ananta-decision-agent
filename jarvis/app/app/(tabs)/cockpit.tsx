@@ -21,6 +21,7 @@ import { C } from "../../src/theme";
 import { ExplainSheet, showToast } from "../../src/blocks";
 import { clearMe, loadMe, useMe } from "../../src/visitor";
 import * as TTS from "../../src/tts";
+import { NotificationsCard } from "../../src/notifications";
 
 export default function CockpitPage() {
   const me = useMe();
@@ -127,6 +128,7 @@ function VisitorCockpit() {
         {p.capital ? <Line label="Starting money" value={`$${Number(p.capital).toLocaleString()}`} /> : null}
         {p.coins?.length ? <Line label="Your coins" value={String(p.coins.length)} sub={p.coins.join(", ")} /> : null}
       </Card>
+      <NotificationsCard />
       <Section title="Voice Assist Settings" />
       <Card><VoicePick /></Card>
       <Btn label="Sign out" kind="secondary" onPress={async () => { await logout(); clearMe(); router.replace("/login"); }} />
@@ -211,6 +213,8 @@ function Cockpit() {
           <Text onPress={() => router.push("/lab")} style={{ color: C.accent, fontWeight: "600", paddingTop: 8 }}>The repair loop, live ›</Text>
         </Card>
       </Spot>
+
+      <NotificationsCard />
 
       <Card onPress={() => router.push("/more")} title="Additional features" sub="Systems and circuit breakers · Recent activities · Invites · Mandate"
         right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />

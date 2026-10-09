@@ -466,6 +466,8 @@ def guest_address(t: str) -> str:
     return t
 
 
+AGENT_DOING = re.compile(r"\bwhat (are|r) (you|u) (doing|watching|up to|working on)\b|\bwhat('s| is) ananta doing\b", re.I)
+SINCE_Q = re.compile(r"\bwhat (has )?changed (since|today|this morning)\b", re.I)
 WHY = re.compile(r"^\s*(why|but why|why so|why that|why not|how come|why is that|explain why)\s*[?.!]*\s*$", re.I)
 
 
@@ -1895,6 +1897,11 @@ class Ask:
                           (uid, thread, now, "user", text, key, ("eval:" if source == "eval" else "") + ("voice:" if voice else "") + mode_label))
         self.j.db.commit()
         notes = []
+        # plan 4.3 / 6.1: the agent questions are answered from the agent's real state, never by moving the screen
+        if AGENT_DOING.search(text):
+            notes.append("[This asks what you are doing or watching: call agent_state (and my_watches) first and answer from it. Do not move the screen.]")
+        elif SINCE_Q.search(text):
+            notes.append("[This asks what changed: call account_activity with hours back to the start of the person's day, and answer from it.]")
         if tries:
             notes.append(f"[conversation note: clarification has failed {tries} time(s) in a row]")
         if second_of:

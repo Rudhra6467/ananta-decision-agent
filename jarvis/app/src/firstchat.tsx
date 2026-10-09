@@ -17,12 +17,18 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const tz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return undefined; } };
 
 // the one-minute look at what else Ananta does (plan 5.7), over the visitor's own screens
-const TOUR: { go: () => void; say: string }[] = [
+type Stop = { go: () => void; say: string; deeper?: { go: () => void; say: string } };
+const TOUR: Stop[] = [
   { go: () => goTab("/(tabs)/today"), say: "This is Home: your practice money on top, then what I'm doing for you today, and the market." },
+  { go: () => goTab("/(tabs)/today"), say: "Findings are what I notice: a market shift, a move we missed, a lesson from a closed trade. Each one has its details on a tap.",
+    deeper: { go: () => router.push("/missed"), say: "Every big move gets a label: caught, seen or missed, and the reason. Misses that keep coming back go to the repair shop." } },
   { go: () => goTab("/(tabs)/portfolio"), say: "Books holds every trade. Each one carries a stamp: your initials when you placed it, or my name and the setup when I did." },
   { go: () => goTab("/(tabs)/watchlists"), say: "Your watch lives in Watchlists, with its mode. When a coin gets close, it says so, and you can change the mode any time." },
-  { go: () => router.push("/evidence"), say: "This is the Evidence. Every rule I trade by was tested on history first. When a rule keeps losing, it goes to the repair shop to be fixed." },
-  { go: () => router.push("/coin/BTC"), say: "Want to trade yourself? Tap Buy on any coin's page, or the plus on a coin. Your trade gets your initials, and I watch it for you." },
+  { go: () => router.push("/evidence"), say: "This is the Evidence. Every rule I trade by was tested on history first. When a rule keeps losing, it goes to the repair shop to be fixed.",
+    deeper: { go: () => router.push("/evidence/R23"), say: "Each review asks one question, tests it on years of prices, and either changes a rule or leaves it. This one found that outside markets add nothing, so nothing changed." } },
+  { go: () => router.push("/coin/BTC"), say: "Want to trade yourself? Tap Buy on any coin's page, or the plus on a coin. Your trade gets your initials, and I watch it for you.",
+    deeper: { go: () => router.push({ pathname: "/coin/[sym]", params: { sym: "BTC", trade: "buy", t: String(Date.now()) } } as any),
+              say: "Here's the ticket: an amount in dollars or coins, an optional stop and target, then review before anything is placed. It's all paper money." } },
 ];
 
 export function FirstConversation({ onDone }: { onDone: () => void }) {
@@ -85,12 +91,23 @@ export function FirstConversation({ onDone }: { onDone: () => void }) {
       takeTourCommand();
       for (let i = 0; i < TOUR.length; i++) {
         const st = TOUR[i];
-        setTour({ active: true, i: i + 1, n: TOUR.length + 1, text: st.say });
+        setTour({ active: true, i: i + 1, n: TOUR.length, text: st.say, deeper: !!st.deeper });
         st.go();
         await sleep(700);
         if (takeTourCommand() === "stop") break;
         if (voice.current) await TTS.speakText(st.say); else await sleep(4200);
-        if (takeTourCommand() === "stop") break;
+        let c = takeTourCommand();
+        if (st.deeper && !c) {                                         // "go deeper?": a few seconds to choose
+          for (let k = 0; k < 30 && !c; k++) { await sleep(150); c = takeTourCommand(); }
+        }
+        if (c === "stop") break;
+        if (c === "deeper" && st.deeper) {
+          setTour({ active: true, i: i + 1, n: TOUR.length, text: st.deeper.say });
+          st.deeper.go();
+          await sleep(800);
+          if (voice.current) await TTS.speakText(st.deeper.say); else await sleep(5000);
+          if (takeTourCommand() === "stop") break;
+        }
       }
       setTour({ active: false, i: 0, n: 0, text: "" });
       goTab("/(tabs)/ask");

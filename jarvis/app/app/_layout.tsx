@@ -67,6 +67,11 @@ function TourBar() {
       <View style={{ backgroundColor: C.ink, borderRadius: 16, padding: 14, gap: 10, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 10 }}>
         <Text style={{ color: C.inkDim, fontSize: 11, fontWeight: "700", letterSpacing: 0.6 }}>TOUR · {t.i} OF {t.n}</Text>
         <Text style={{ color: C.onInk, fontSize: 15, lineHeight: 21 }}>{t.text}</Text>
+        {t.deeper ? (
+          <Pressable onPress={() => { tourCommand("deeper"); TTS.stop(); }} style={{ backgroundColor: C.onInk, borderRadius: 10, padding: 9, alignItems: "center" }}>
+            <Text style={{ color: C.ink, fontWeight: "800" }}>Go deeper ›</Text>
+          </Pressable>
+        ) : null}
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Pressable onPress={() => { tourCommand("next"); TTS.stop(); }} style={{ flex: 1, backgroundColor: C.inkBtn, borderRadius: 10, padding: 9, alignItems: "center" }}>
             <Text style={{ color: C.onInk, fontWeight: "700" }}>Skip ›</Text>

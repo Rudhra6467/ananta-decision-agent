@@ -6,6 +6,7 @@ Every route except /health needs "Authorization: Bearer <token>" from POST /auth
 """
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -268,8 +269,18 @@ def _snapshots() -> None:
             try:                                          # build plan 1.4b: every account's watches and positions, one shared snapshot
                 from jarvis.service import watches as _W
 
-                accts = [_main()] + [_sandbox("guest:" + em) for (em,) in _main().db.execute("SELECT email FROM users").fetchall()]
-                STATE_W["last"] = _W.check_all(_main(), accts, push_for=lambda a: (lambda t, b: _push(t, b)) if a is _main() else None)
+                from jarvis.service import notify as _N
+
+                ems = [em for (em,) in _main().db.execute("SELECT email FROM users").fetchall()]
+                accts = [_main()] + [_sandbox("guest:" + em) for em in ems]
+                mail = {id(_sandbox("guest:" + em)): em for em in ems}
+
+                def _reach(a):                            # plan 1.7: Madhav's phone + his web devices; a visitor's web devices and email
+                    if a is _main():
+                        return lambda t, b: (_push(t, b), _N.notify(a, t, b))
+                    return lambda t, b: _N.notify(a, t, b, email=mail.get(id(a), ""))
+
+                STATE_W["last"] = _W.check_all(_main(), accts, push_for=_reach)
             except Exception as exc:  # noqa: BLE001
                 STATE_W["error"] = str(exc)[:200]
             for name, g in list(_JG.items()):             # guest sandboxes: their own alerts and stops, no phone pushes
@@ -750,6 +761,43 @@ def onboard_restart(who: str = Depends(owner)) -> dict:
 
     onboard.start_over(J())
     return onboard.prompt(J())
+
+
+class WebSub(BaseModel):
+    sub: dict
+    device: str = ""
+
+
+@app.get("/v3/push/web")
+def web_push_info(who: str = Depends(owner)) -> dict:
+    """Plan 1.7: the key a browser needs to subscribe, how many of this account's devices are on, and whether email is set up."""
+    from jarvis.service import account, notify
+
+    return {"key": notify.public_key(), "devices": notify.devices(J()), "email_ready": notify.email_ready(),
+            "email_alerts": bool(account.profile(J().db).get("email_alerts"))}
+
+
+@app.post("/v3/push/web/subscribe")
+def web_push_subscribe(b: WebSub, who: str = Depends(owner)) -> dict:
+    from jarvis.service import notify
+
+    try:
+        r = notify.subscribe(J(), b.sub, b.device)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    notify.web_push(J(), "Notifications are on", "Ananta will tell you here when a watch fires or something needs you.")
+    return r
+
+
+@app.post("/v3/push/web/email")
+def web_push_email(b: dict, who: str = Depends(owner)) -> dict:
+    from jarvis.service import account, notify
+
+    if not notify.email_ready():
+        raise HTTPException(status_code=400, detail="Email is not set up on the service yet.")
+    J().db.execute("INSERT OR REPLACE INTO visitor_profile VALUES ('email_alerts', ?)", (json.dumps(bool(b.get("on"))),))
+    J().db.commit()
+    return {"email_alerts": bool(account.profile(J().db).get("email_alerts"))}
 
 
 _ACC = {"running": False}

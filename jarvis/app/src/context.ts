@@ -66,10 +66,10 @@ export function askAbout(ctx: NonNullable<ScreenCtx>, question?: string) {
 }
 
 // Tour state (shown as a caption bar over every screen while Ananta walks you through the app)
-export type TourState = { active: boolean; i: number; n: number; text: string };
+export type TourState = { active: boolean; i: number; n: number; text: string; deeper?: boolean };
 let tour: TourState = { active: false, i: 0, n: 0, text: "" };
-let tourCmd: "" | "stop" | "next" = "";
+let tourCmd: "" | "stop" | "next" | "deeper" = "";
 export const setTour = (t: TourState) => { tour = t; emit(); };
 export const useTour = () => useStore(() => tour);
-export const tourCommand = (c: "" | "stop" | "next") => { tourCmd = c; };
+export const tourCommand = (c: "" | "stop" | "next" | "deeper") => { tourCmd = c; };
 export const takeTourCommand = () => { const c = tourCmd; tourCmd = ""; return c; };

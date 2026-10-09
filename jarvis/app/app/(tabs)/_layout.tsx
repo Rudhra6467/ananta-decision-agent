@@ -11,6 +11,7 @@ import { C } from "../../src/theme";
 import { scroll } from "../../src/spotlight";
 import { ThemeToggle } from "../../src/themetoggle";
 import { AlertsBell } from "../../src/alerts";
+import { useData } from "../../src/useData";
 import { BooksIcon, ChartIcon, ChatIcon, GaugeIcon, HomeIcon } from "../../src/icons";
 import { clearMe, useMe } from "../../src/visitor";
 
@@ -66,6 +67,13 @@ function Header() {
 
 export default function TabsLayout() {
   const bottom = useSafeAreaInsets().bottom;
+  const { data: meNow } = useData("/v3/me", 60000);               // plan 1.7: a badge on Home while something needs you
+  const needs = Number(meNow?.needs_you ?? 0);
+  const badge = () => needs ? (
+    <View style={{ minWidth: 16, height: 16, borderRadius: 8, backgroundColor: C.bad, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, marginTop: 4, marginRight: 14 }}>
+      <Text style={{ color: C.onInk, fontSize: 10, fontWeight: "800" }}>{needs}</Text>
+    </View>
+  ) : null;
   const icon = (I: any) => ({ color }: { color: string }) => <I color={String(color)} />;
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -89,7 +97,7 @@ export default function TabsLayout() {
         screenListeners={({ navigation, route }: any) => ({
           tabPress: () => { if (navigation.isFocused()) scroll(route.name === "ask" ? "bottom" : "top"); },
         })}>
-        <SwipeTabs.Screen name="today" options={{ title: "Home", tabBarIcon: icon(HomeIcon) }} />
+        <SwipeTabs.Screen name="today" options={{ title: "Home", tabBarIcon: icon(HomeIcon), tabBarBadge: badge } as any} />
         <SwipeTabs.Screen name="portfolio" options={{ title: "Books", tabBarIcon: icon(BooksIcon) }} />
         <SwipeTabs.Screen name="ask" options={{ title: "Ask Ananta", tabBarIcon: icon(ChatIcon) }} />
         <SwipeTabs.Screen name="watchlists" options={{ title: "Watchlists", tabBarIcon: icon(ChartIcon) }} />

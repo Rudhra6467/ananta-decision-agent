@@ -133,7 +133,7 @@ TOOLS = [
     ("trade", "Full detail of one trade by its id (from trades): why it was bought, conditions at entry, exit plan, timeline, what-if variants.", _schema({"id": {"type": "string"}}, ["id"])),
     ("portfolio", "The T3 portfolio: value, return, holdings with cost and P&L, ratings and reasons, pending proposals, mode, comparison with buy-and-hold and the shadow book.", OFF),
     ("history", "What happened historically after a setup in the current market condition (intraday atlas, 2017-2026 5m data): odds of +3% before -1.5%, net after costs, typical 1h/4h/24h ranges. Give coin to use its current condition.", _schema({"setup": {"type": "string", "description": "E1-E8 or ANY"}, "coin": COIN})),
-    ("evidence", "The Evidence page (inside the logic repair, live): what is watching and how often; every limit, how often it stopped a trade and what the stopped trades did; results against random in market events; reconstruction (nightly rebuilds and the ones Madhav asked for, mismatches, the other-traders study and what came of it); missed moves and patterns on their way to the repair shop; the repair board (tickets, requests, reviews, waiting questions: found, done, change, status); what changed; what we wait for and when it should arrive at this pace. Also counts by setup, shadows and repairs in use.", OFF),
+    ("evidence", "The Evidence page (inside the logic repair, live): what is watching and how often; every limit, how often it stopped a trade and what the stopped trades did; results against random in market events; reconstruction (nightly rebuilds and the ones Madhav asked for, mismatches, the other-traders study and what came of it); missed moves and patterns on their way to the repair shop; the repair board (tickets, requests, reviews, waiting questions: found, done, change, status); what changed; what we wait for and when it should arrive at this pace. Also counts by setup, shadows and repairs in use. part = summary (default: the live repair loop and each review's title and verdict) | reviews (every review in full) | setups (counts by setup and shadows) | in_use (repairs running and safety changes) | full (everything, large).", _schema({"part": {"type": "string", "enum": ["summary", "reviews", "setups", "in_use", "full"]}})),
     ("knowledge", "Search Ananta's research and knowledge: repair shop reviews, rulebook, variable registry, studies, Madhav's framework, the teacher hypotheses (Rayner, Trade With Trend: claim, status, what our first look found), the casebook of Madhav's own trades and Madhav's own notes. Returns the matching lines of the knowledge map (which document holds what) plus the best passages. Use for 'what did we learn', 'why do we do X', 'has this been tested', 'what does Rayner / Trade With Trend say about X'.", _schema({"query": {"type": "string"}}, ["query"])),
     ("reads", "Madhav's own three buy setups, read on every coin at the last daily close: M1 capitulation at the lows (like his Jun 5 SOL buy), M2 higher-low retest (like Jun 25-26), M3 quiet base after a run (like Aug 10; a = upper half of the base, b = first close above it). Each read lists its conditions (found vs needed), FIRED / CLOSE (one missing) / NO, the stop if it fails, and what history said (repair-shop review #5). Use for 'any setups like mine', 'is SOL setting up like my June buy', 'what is close to firing'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
     ("zones", "Zones (price bands, not lines) around each coin's price: swing zones with how often they held, the 52-week low/high, the 50- and 200-day averages as bands, base floor/top; which coins are INSIDE a zone now, the next support and resistance zone, and what review #6 said about each kind (200-day average and overlapping zones held most). With a coin: its zones plus the lookout (decision chain, your setups, a plan: held if / wrong if) when it is inside one, and its recent zone entries. Use for 'where is support', 'is SOL in a zone', 'what levels matter', 'what should I watch'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
@@ -173,8 +173,10 @@ TOOLS = [
               "mode": {"type": "string"}})),
     ("my_watches", "The watches you keep for this person: coins, kind, mode, state (watching, close, fired, paused) and why.", OFF),
     ("change_watch", "Change one of this person's watches: mode tell | ask | auto ('keep watching that but don't trade without asking me' "
-     "= mode ask), or state PAUSED | WATCHING | DELETED. id from my_watches.",
-     _schema({"id": {"type": "string"}, "mode": {"type": "string"}, "state": {"type": "string"}}, ["id"])),
+     "= mode ask), or state PAUSED | WATCHING | DELETED. Give the watch id from my_watches, or the coin (e.g. SOL) when only one "
+     "watch covers it. If the result has no 'changed', nothing changed: say so, never say done.",
+     _schema({"id": {"type": "string"}, "coin": {"type": "string"}, "mode": {"type": "string", "enum": ["tell", "ask", "auto"]},
+              "state": {"type": "string", "enum": ["PAUSED", "WATCHING", "DELETED"]}})),
     ("best_setup", "The setup you like most right now for this person: every coin against every setup kind they may use (their risk "
      "comfort filters the kinds), ready ones first, then one condition away, each with a decision card (found, why, wrong if). Use for "
      "'show me the setup you like most', 'what's your best idea', 'anything worth taking'. Mention a risk filter ONLY when filtered_out is "
@@ -459,6 +461,13 @@ def _clean_next(reply: dict) -> None:
     reply["follow_ups"] = [x for x in dict.fromkeys(fu) if x.lower() != ask_][:3]
 
 
+def owner_address(t: str) -> str:
+    """D6 / 3.7: Ananta always calls Madhav "sir" (Oct 9: a greeting still said "Good morning, Madhav")."""
+    t = re.sub(r"^((?:Good )?(?:morning|afternoon|evening)|Hi|Hello|Hey)[,]?\s+Madhav\b", r"\1, sir", t, flags=re.I)
+    t = re.sub(r",\s*Madhav(?=[.!?,])", ", sir", t)
+    return t
+
+
 def guest_address(t: str) -> str:
     """Only Madhav is 'sir' (and only Madhav is Madhav): a visitor's answer never addresses them that way."""
     t = re.sub(r",\s*(sir|Madhav)(?=[.!?,])", "", t)
@@ -467,6 +476,7 @@ def guest_address(t: str) -> str:
 
 
 AGENT_DOING = re.compile(r"\bwhat (are|r) (you|u) (doing|watching|up to|working on)\b|\bwhat('s| is) ananta doing\b", re.I)
+SAFE_Q = re.compile(r"\b(safe|safer|low risk|less risk|conservative|careful|not too risky)\b", re.I)
 SINCE_Q = re.compile(r"\bwhat (has )?changed (since|today|this morning)\b", re.I)
 WHY = re.compile(r"^\s*(why|but why|why so|why that|why not|how come|why is that|explain why)\s*[?.!]*\s*$", re.I)
 
@@ -660,10 +670,26 @@ class Lookups:
 
         return {"watches": watches.list_(self.j), "kinds": watches.kinds()}
 
-    def t_change_watch(self, id: str, mode: str | None = None, state: str | None = None) -> dict:  # noqa: A002
-        from jarvis.service import watches
+    def t_change_watch(self, id: str | None = None, mode: str | None = None, state: str | None = None, coin: str | None = None) -> dict:  # noqa: A002
+        """Plan 4.3 / 6.1: the watch can be named by its id or by its coin; a miss says so (Ananta must not claim a change)."""
+        from jarvis.service import account, watches
 
-        return {"changed": watches.change(self.j, id, mode, state)}
+        ws = [w for w in watches.list_(self.j) if w["state"] != "DELETED"]
+        target = next((w for w in ws if w["id"] == id), None)
+        if not target:
+            want = (coin or id or "").upper()
+            names = {v.upper(): k for k, v in account.NAMES.items()}
+            sym = next((c for c in account.COINS if c in want.replace("_", " ").split() or want.startswith(c)), None) or next(
+                (k for n, k in names.items() if n in want), None)
+            hits = [w for w in ws if sym and sym in (w.get("coins") or [])]
+            if len(hits) == 1:
+                target = hits[0]
+            elif len(ws) == 1 and not sym:
+                target = ws[0]
+        if not target:
+            return {"changed": None, "error": "No watch matches that. Nothing was changed.",
+                    "watches": [{"id": w["id"], "coins": w["coins"], "mode": w["mode"]} for w in ws]}
+        return {"changed": watches.change(self.j, target["id"], mode, state)}
 
     def t_best_setup(self, coin: str | None = None) -> dict:
         from jarvis.service import account, watches
@@ -793,19 +819,31 @@ class Lookups:
                 "history_2024_2026": hit["recent"], "positive_after_costs_in_both_periods": hit["stable_positive_after_costs"],
                 "how_to_read": "p_target = share that reached the target before the stop; net_pct = average result after NDAX costs; ranges are 10th/50th/90th percentile moves in %. Brackets: e.g. '3/1.5_24h' = +3% target, -1.5% stop, 24 hours."}
 
-    def t_evidence(self) -> dict:
+    def t_evidence(self, part: str = "summary") -> dict:
+        """Cost layer (2026-10-09): the whole Evidence was ~14k tokens on every use; the summary is enough for most questions."""
         ev = views.evidence_collected(self.j)
         fw = views.evidence_forwarded(self.j)
         for x in fw["in_use"]:
             (x.get("tracking") or {}).pop("series", None)
-        out = {**ev, "in_use": fw["in_use"], "safety_changes": fw["safety_changes"]}
+        live = {}
         try:
             from jarvis.service import evidence_live
 
-            out["repair_loop_live"] = evidence_live.summary(self.j)     # the Evidence page's numbers, the same ones Madhav sees
+            live = {"repair_loop_live": evidence_live.summary(self.j)}     # the Evidence page's numbers, the same ones Madhav sees
         except Exception as exc:  # noqa: BLE001
-            out["repair_loop_live_error"] = str(exc)[:160]
-        return out
+            live = {"repair_loop_live_error": str(exc)[:160]}
+        if part == "full":
+            return {**ev, "in_use": fw["in_use"], "safety_changes": fw["safety_changes"], **live}
+        if part == "reviews":
+            return {"reviews": ev.get("forwarded") or []}
+        if part == "setups":
+            return {"collected": ev.get("collected"), "tracker": ev.get("tracker")}
+        if part == "in_use":
+            return {"in_use": fw["in_use"], "safety_changes": fw["safety_changes"]}
+        lv = live.get("repair_loop_live") or {}
+        core_ = {k: lv.get(k) for k in ("as_of", "headline", "loop", "results", "board_counts", "acceptance_gate") if k in lv}
+        return {"repair_loop_live": core_, "reviews": [{k: r.get(k) for k in ("id", "title", "verdict")} for r in (ev.get("forwarded") or [])[-12:]],
+                "more": "ask with part = reviews | setups | in_use | full for the details (clocks, limits, reconstruction, misses, waiting are in full)"}
 
     def _notes_dir(self) -> Path:
         return Path(os.path.expanduser(os.getenv("ANANTA_NOTES_DIR", "~/AnantaBrain/My notes")))
@@ -1340,8 +1378,10 @@ MODELS = {   # key: provider, API model, price per million tokens (input, output
 MODES = {"everyday": "gemini", "deep": "sonnet", "max": "opus", "google": "gemini_deep"}
 # The app's two switches: Auto on/off x Claude/Google -> auto | deep | google_auto | google
 ALIASES = {"claude": "sonnet", "gemini": "gemini", "haiku": "haiku", "sonnet": "sonnet", "opus": "opus", "local": "local"}
-DEEP_WORDS = re.compile(r"\b(why|explain|compare|evaluat|analy[sz]|should|prepare|review|learn|history|histor|reconstruct|what if|strategy|strateg|backtest|"
-                        r"evidence|break it down|reason|plan|risk|recommend|better|worse|improve|test)", re.I)
+# Cost layer (Madhav, 2026-10-09): Sonnet only for work that needs real analysis (comparing, evaluating, planning, choosing a trade,
+# reviewing); explanations, "why", status and look-ups go to Haiku, which reads the same data at about half the price per token.
+DEEP_WORDS = re.compile(r"\b(compare|evaluat|analy[sz]|should (i|we)|prepare|review|reconstruct|what if|strateg|backtest|plan\b|recommend|improve|"
+                        r"investigat|deep dive|find (me )?a trade|best (setup|trade|idea)|rate my|weakest|strongest|which (coin|trade) (to|should))", re.I)
 
 
 _LOCAL_UP = {"t": 0.0, "ok": False}
@@ -1390,8 +1430,8 @@ def _local_doubt(raw: str, context: str) -> str:
 def cost_usd(key: str, usage: dict) -> float:
     m = MODELS.get(key) or MODELS["gemini"]
     pin, pout = m["price"]
-    return round((usage.get("in", 0) * pin + usage.get("cache_write", 0) * pin * 1.25 + usage.get("cache_read", 0) * pin * m["cache"]
-                  + usage.get("out", 0) * pout) / 1e6, 5)
+    return round((usage.get("in", 0) * pin + usage.get("cache_write", 0) * pin * 1.25 + usage.get("cache_write_1h", 0) * pin * 2.0
+                  + usage.get("cache_read", 0) * pin * m["cache"] + usage.get("out", 0) * pout) / 1e6, 5)
 
 
 def _strip_cache(msgs: list) -> None:
@@ -1402,6 +1442,7 @@ def _strip_cache(msgs: list) -> None:
                     b.pop("cache_control", None)
 
 
+CACHE_1H = os.getenv("ASK_CACHE_1H", "1") == "1"
 FAST = {"claude_effort": os.getenv("ASK_CLAUDE_EFFORT", "low"), "gemini_thinking": os.getenv("ASK_GEMINI_THINKING", "low")}
 
 
@@ -1431,8 +1472,9 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
     model = model or CLAUDE_MODEL
     msgs = [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": [{"type": "text", "text": user}]}]
     tdefs = [{"name": n, "description": d, "input_schema": s} for n, d, s in TOOLS]
-    tdefs[-1] = {**tdefs[-1], "cache_control": {"type": "ephemeral"}}          # cache: tools + system
-    sysb = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+    cc = {"type": "ephemeral", "ttl": "1h"} if CACHE_1H else {"type": "ephemeral"}
+    tdefs[-1] = {**tdefs[-1], "cache_control": cc}          # cache: tools + system (an hour: questions minutes apart reuse it)
+    sysb = [{"type": "text", "text": system, "cache_control": cc}]
     usage = {"in": 0, "out": 0, "cache_read": 0, "cache_write": 0}
     rnd = -1
     for _ in range(MAX_TOOL_ROUNDS + 3):
@@ -1453,7 +1495,10 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
         usage["in"] += u.get("input_tokens", 0)
         usage["out"] += u.get("output_tokens", 0)
         usage["cache_read"] += u.get("cache_read_input_tokens", 0) or 0
-        usage["cache_write"] += u.get("cache_creation_input_tokens", 0) or 0
+        cw = u.get("cache_creation") or {}
+        w1h = cw.get("ephemeral_1h_input_tokens", 0) or 0
+        usage["cache_write_1h"] = usage.get("cache_write_1h", 0) + w1h
+        usage["cache_write"] += (u.get("cache_creation_input_tokens", 0) or 0) - w1h
         content = r.get("content") or []
         calls = [c for c in content if c.get("type") == "tool_use"]
         if not calls:
@@ -1898,8 +1943,23 @@ class Ask:
         self.j.db.commit()
         notes = []
         # plan 4.3 / 6.1: the agent questions are answered from the agent's real state, never by moving the screen
+        pre_log: list = []
         if AGENT_DOING.search(text):
-            notes.append("[This asks what you are doing or watching: call agent_state (and my_watches) first and answer from it. Do not move the screen.]")
+            # the agent's real state goes in with the question (no extra lookup round, so it is also cheaper)
+            try:
+                from jarvis.service import watches as _w
+
+                st = _w.state(self.j)
+                notes.append("[This asks what you are doing or watching. Answer from YOUR STATE NOW (watches, positions monitored, what you wait "
+                             "for, whether anything needs them). Do not move the screen. YOUR STATE NOW: "
+                             + json.dumps({"lines": st.get("lines"), "watches": [{k: w.get(k) for k in ("coins", "kind_name", "mode", "state")}
+                                                                                   for w in st.get("watches") or []], "needs_you": st.get("needs_you")}, default=str)[:3000] + "]")
+                pre_log.append({"tool": "agent_state", "args": {}, "pre": True})
+            except Exception:  # noqa: BLE001
+                notes.append("[This asks what you are doing or watching: call agent_state (and my_watches) first and answer from it. Do not move the screen.]")
+        elif SAFE_Q.search(text):
+            notes.append("[This asks for something safer: call best_setup (it applies the person's risk comfort) and say which filter it used only if "
+                         "filtered_out is in the result; otherwise say no setup was filtered.]")
         elif SINCE_Q.search(text):
             notes.append("[This asks what changed: call account_activity with hours back to the start of the person's day, and answer from it.]")
         if tries:
@@ -1997,7 +2057,7 @@ class Ask:
         user_msg = (f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}] [question type: {route_name}]" + ("\n" + "\n".join(notes) if notes else "")
                     + ("\n" + "\n".join(f"{k} (live):\n" + json.dumps(v, default=str, separators=(",", ":")) for k, v in brief.items()) if brief else "")
                     + f"\n\nQUESTION: {text}")
-        log: list = []
+        log: list = list(pre_log)
         t0 = time.time()
         aid = uuid.uuid4().hex[:12]
         from jarvis.service import appmap as _amh
@@ -2085,6 +2145,8 @@ class Ask:
         _clean_next(reply)
         if str(who).startswith("guest:"):
             reply["answer"] = guest_address(reply.get("answer") or "")
+        else:
+            reply["answer"] = owner_address(reply.get("answer") or "")
         if source != "eval" and mode != "worker" and not str(who).startswith("guest:"):
             _self_flag(self.j, text, reply, log, thread)                 # "I don't have that" -> a numbered request, said once
         try:
@@ -2115,12 +2177,13 @@ class Ask:
         except Exception:  # noqa: BLE001
             reply["ui"] = L.ui
         timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),
-                  "out_tokens": usage.get("out", 0)}
+                  "out_tokens": usage.get("out", 0), "in_fresh": usage.get("in", 0), "cache_read": usage.get("cache_read", 0),
+                  "cache_write": usage.get("cache_write", 0) + usage.get("cache_write_1h", 0)}
         meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of,
                 "route": route_name, "timing": timing}
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, note, route, timing) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                           (aid, thread, now + 1, "assistant", json.dumps({**reply, **meta}), used, model, ms,
-                           usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note,
+                           usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0) + usage.get("cache_write_1h", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note,
                            route_name, json.dumps(timing)))
         self.j.db.commit()
         _log_chips(self.j, thread, aid, reply)

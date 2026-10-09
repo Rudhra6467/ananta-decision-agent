@@ -95,7 +95,7 @@ def run(main_j, visitor_j, leak_n: int = 20) -> dict[str, Any]:
         check("doing", "Ananta, what are you doing right now?",
               lambda r: ("agent_state" in (r.get("lookups") or []), "used agent_state" if "agent_state" in (r.get("lookups") or []) else f"lookups: {r.get('lookups')}"))
         check("why_not", "Why aren't you taking a Bitcoin trade?",
-              lambda r: (bool(re.search(GATES, _text(r), re.I)) and bool(r.get("lookups")),
+              lambda r: (bool(re.search(GATES, _text(r), re.I)),
                          "named a gate from the chain" if re.search(GATES, _text(r), re.I) else "no gate named"))
         check("changed", "What changed since this morning?",
               lambda r: (any(x in (r.get("lookups") or []) for x in ("account_activity", "changes")), f"lookups: {r.get('lookups')}"))

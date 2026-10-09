@@ -13,6 +13,8 @@ export default function More() {
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
   const { data: ch } = useData("/v3/ask/chips", 0);
   const { data: acc, reload: reloadAcc } = useData("/v3/acceptance", 20000);
+  const [days, setDays] = useState("30");
+  const { data: cost } = useData(`/v3/costs?days=${days}`, 0);
   const runAcc = async () => { try { await api("/v3/acceptance/run", {}); showToast("Running the checks: a few minutes"); reloadAcc(); } catch (e: any) { showToast(e?.message ?? "Could not start"); } };
   const [all, setAll] = useState(false);
   useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "Cockpit › Additional features: systems, recent activities, invites, mandate" }); }, []));
@@ -55,6 +57,17 @@ export default function More() {
             </View>
           ))}
           {acts.length > 8 ? <Text onPress={() => setAll(!all)} style={{ color: C.accent, fontWeight: "600", paddingTop: 6 }}>{all ? "Show less" : `Show all ${acts.length}`}</Text> : null}
+        </Card>
+
+        <Section title="Where the AI money goes" right={<Text onPress={() => setDays(days === "30" ? "7" : "30")} style={{ color: C.accent, fontWeight: "700" }}>{days === "30" ? "30 days ⇄ 7" : "7 days ⇄ 30"}</Text>} />
+        <Card sub={cost ? `$${cost.usd.toFixed(2)} · ${(cost.tokens_in / 1e6).toFixed(1)}M tokens in, ${(cost.tokens_out / 1e6).toFixed(2)}M out` : undefined}>
+          {(cost?.rows ?? []).filter((r: any) => r.answers).slice(0, 8).map((r: any, i: number) => (
+            <View key={i}>
+              {i ? <Divider /> : null}
+              <Line label={`${r.job} · ${r.model}`} value={`$${r.usd.toFixed(2)}`} sub={`${r.answers} answers · ${Math.round(r.share * 100)}% of the cost · ${(r.avg_in / 1000).toFixed(1)}k tokens in each`} />
+            </View>
+          ))}
+          {cost?.input_split ? <T small dim>Input since measuring began ({cost.input_split.answers} answers): {cost.input_split.cached_pct}% read from the cache (a tenth of the price), {cost.input_split.written_pct}% written to it, {cost.input_split.fresh_pct}% fresh.</T> : <T small dim>From now on each answer also records how much of its input came from the cache.</T>}
         </Card>
 
         <Section title="Acceptance checks" right={<Text onPress={runAcc} style={{ color: C.accent, fontWeight: "700" }}>{acc?.running ? "Running…" : "Run now"}</Text>} />

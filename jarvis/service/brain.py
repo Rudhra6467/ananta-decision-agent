@@ -308,11 +308,20 @@ def _call_claude(system: str, user: str, post=None) -> tuple[str, dict]:
     if not key:
         raise RuntimeError("no Claude key")
     post = post or ask._post
+    # cost layer (2026-10-09): the brain's rules are the same on every wake, so they stay cached for an hour (read at a tenth of the price)
+    sysb = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral", "ttl": "1h"}}]
     r = post("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-             {"model": MODEL, "max_tokens": 2500, "system": system, "messages": [{"role": "user", "content": user}]})
+             {"model": MODEL, "max_tokens": 2500, "system": sysb, "messages": [{"role": "user", "content": user}]})
     u = r.get("usage") or {}
     text = "".join(c.get("text", "") for c in r.get("content") or [] if c.get("type") == "text")
-    return text, {"in": u.get("input_tokens", 0), "out": u.get("output_tokens", 0), "model": MODEL}
+    return text, {"in": u.get("input_tokens", 0), "out": u.get("output_tokens", 0), "model": MODEL,
+                  "cache_read": u.get("cache_read_input_tokens", 0) or 0, "cache_write": u.get("cache_creation_input_tokens", 0) or 0}
+
+
+def _price(u: dict) -> float:
+    """Dollars for one call: fresh input, cached reads (a tenth), cache writes (twice, for the hour-long cache) and output."""
+    return round((u.get("in", 0) * PRICE[0] + u.get("cache_read", 0) * PRICE[0] * 0.1 + u.get("cache_write", 0) * PRICE[0] * 2.0
+                  + u.get("out", 0) * PRICE[1]) / 1e6, 5)
 
 
 def _json_block(text: str) -> str | None:
@@ -437,7 +446,7 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
     call = call or (lambda u: _call_claude(SYSTEM, u))
     t0 = time.time()
     text, usage = call(user)
-    cost = round((usage.get("in", 0) * PRICE[0] + usage.get("out", 0) * PRICE[1]) / 1e6, 5)
+    cost = _price(usage)
     _log_cost(j, coin, usage, cost, int(1000 * (time.time() - t0)))
     did = uuid.uuid4().hex[:12]
     try:
@@ -447,7 +456,7 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
         try:
             text, u2 = call(user + "\n\nYour last reply could not be read. Reply with ONLY the JSON object, nothing before or after it, "
                                    "and keep every text field short (thesis under 60 words).")
-            c2 = round((u2.get("in", 0) * PRICE[0] + u2.get("out", 0) * PRICE[1]) / 1e6, 5)
+            c2 = _price(u2)
             _log_cost(j, coin, u2, c2, 0)
             cost += c2
         except Exception:  # noqa: BLE001
@@ -521,7 +530,7 @@ def _log_cost(j, coin: str, usage: dict, cost: float, ms: int) -> None:
         j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, reply, provider, model, ms, tokens_in, tokens_out, tools, error, cost_usd, "
                      "mode, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                      (uuid.uuid4().hex, "brain", int(j.now()), "assistant", f"brain decision {coin}", "", "sonnet", usage.get("model"), ms,
-                      usage.get("in", 0), usage.get("out", 0), "", None, cost, "worker", "decision brain"))
+                      usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0), usage.get("out", 0), "", None, cost, "worker", "decision brain"))
         j.db.commit()
     except Exception:  # noqa: BLE001  a test database may not have the table
         pass

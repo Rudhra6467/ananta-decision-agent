@@ -177,7 +177,7 @@ def test_modes_budget_second_opinion_and_cost():
     r = A.ask("o", "how is btc")                       # ... else free Gemini
     assert r["provider"] == "gemini" and r["cost_usd"] == 0 and "Gemini" in r["note"]
     os.environ["ANTHROPIC_API_KEY"] = "test"
-    r = A.ask("o", "why did the portfolio lose money?")   # auto -> sonnet
+    r = A.ask("o", "compare SOL and ETH: which should we trade?")   # auto -> sonnet (analysis)
     assert r["provider"] == "sonnet" and abs(r["cost_usd"] - (0.2 + 0.1)) < 1e-6
     r = A.ask("o", "x", mode="max")
     assert r["provider"] == "opus"

@@ -800,6 +800,18 @@ def web_push_email(b: dict, who: str = Depends(owner)) -> dict:
     return {"email_alerts": bool(account.profile(J().db).get("email_alerts"))}
 
 
+@app.get("/v3/costs")
+def costs_summary(days: int = 30, who: str = Depends(owner)) -> dict:
+    """Where the AI money goes, by job and model, for every account together (Madhav only)."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav sees the costs.")
+    from jarvis.service import costs
+
+    m = _main()
+    dbs = [m.db] + [_sandbox("guest:" + em).db for (em,) in m.db.execute("SELECT email FROM users").fetchall()]
+    return costs.summary(dbs, days)
+
+
 _ACC = {"running": False}
 
 

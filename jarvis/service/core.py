@@ -139,6 +139,15 @@ def read_token(secret: str, token: str, now: float) -> dict:
     return p
 
 
+def gmail_key(email: str) -> str:
+    """Gmail ignores dots and anything after + in the name part; so do we when matching a sign-in."""
+    e = (email or "").strip().lower()
+    name, _, dom = e.partition("@")
+    if dom in ("gmail.com", "googlemail.com"):
+        return name.split("+")[0].replace(".", "") + "@gmail.com"
+    return e
+
+
 # ---------------------------------------------------------------------------
 class Jarvis:
     def __init__(self, agent_dir: Path | str, *, owner_email: str, password_hash: str, secret: str,
@@ -202,10 +211,24 @@ class Jarvis:
         every = self.users_db.execute("SELECT count(*) FROM failed_logins WHERE t > ?", (since,)).fetchone()[0]
         return mine >= MAX_FAILED or every >= 6 * MAX_FAILED
 
+    def _resolve(self, typed: str) -> str:
+        """Who is signing in (build plan 1.9: 25 failed sign-ins in 3 days were names typed instead of emails, or Gmail dots):
+        an email as typed, the same Gmail address with or without dots, or an account's name."""
+        t = (typed or "").strip().lower()
+        accounts = [self.owner] + [e for (e,) in self.users_db.execute("SELECT email FROM users").fetchall()]
+        if "@" in t:
+            if t in accounts:
+                return t
+            return next((a for a in accounts if gmail_key(a) == gmail_key(t)), t)
+        names = {(self.owner_name or "").strip().lower(): self.owner}
+        for e, n in self.users_db.execute("SELECT email, name FROM users").fetchall():
+            names.setdefault((n or "").strip().lower(), e)
+        return names.get(" ".join(t.split()), t)
+
     def login(self, email: str, password: str) -> str:
         self._auth_tables()
         now = self.now()
-        em = (email or "").strip().lower()
+        em = self._resolve(email)
         if self._locked(em, now):
             self.audit("?", "login", em, "LOCKED")
             raise AuthError("too many wrong passwords for this account; wait 15 minutes")
@@ -218,7 +241,7 @@ class Jarvis:
             return make_token(self.secret, self.owner, now)
         row = self.users_db.execute("SELECT pw_hash FROM users WHERE email = ?", (em,)).fetchone()
         if not row or not verify_password(password or "", row[0]):
-            self._fail(em, now)
+            self._fail(em, now, "wrong email or password (sign in with the email you joined with, or your name)")
         self.users_db.execute("DELETE FROM failed_logins WHERE email = ?", (em,))
         self.users_db.commit()
         self.audit("guest:" + em, "login", "", "OK")

@@ -212,6 +212,9 @@ def _run(fn, *a) -> Any:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+STATE_W: dict = {}
+
+
 @app.on_event("startup")
 def _snapshots() -> None:
     """Value history for the charts: one snapshot now and every 15 minutes."""
@@ -228,6 +231,13 @@ def _snapshots() -> None:
                 background_jobs()
             except Exception:  # noqa: BLE001
                 pass
+            try:                                          # build plan 1.4b: every account's watches and positions, one shared snapshot
+                from jarvis.service import watches as _W
+
+                accts = [_main()] + [_sandbox("guest:" + em) for (em,) in _main().db.execute("SELECT email FROM users").fetchall()]
+                STATE_W["last"] = _W.check_all(_main(), accts, push_for=lambda a: (lambda t, b: _push(t, b)) if a is _main() else None)
+            except Exception as exc:  # noqa: BLE001
+                STATE_W["error"] = str(exc)[:200]
             for name, g in list(_JG.items()):             # guest sandboxes: their own alerts and stops, no phone pushes
                 tok = _SANDBOX.set("guest:" + name)
                 try:
@@ -429,16 +439,91 @@ class Rating(BaseModel):
 @app.get("/v3/home")
 def home(who: str = Depends(owner)) -> dict:
     if is_guest(who):                                   # a visitor's own Home: their coins, their book, their next step
-        from jarvis.service import visitor
+        from jarvis.service import account as visitor
 
         return visitor.home(J())
     return {"summary": views.day_summary(J()), "feed": views.feed(J(), hours=72, limit=40), "mission": views.mission(J())}
 
 
+class WatchIn(BaseModel):
+    coins: list[str] | None = None
+    group: str | None = None
+    kind: str | None = None
+    mode: str = "ask"
+
+
+class WatchChange(BaseModel):
+    mode: str | None = None
+    state: str | None = None
+
+
+@app.get("/v3/watches/mine")
+def my_watches(who: str = Depends(owner)) -> dict:
+    """This account's own watches (build plan 1.4a), the kinds it may pick (evidence-allowed only) and the modes."""
+    from jarvis.service import watches
+
+    return {"watches": watches.list_(J()), "kinds": watches.kinds(), "modes": watches.MODES, "groups": watches.GROUPS}
+
+
+@app.post("/v3/watches/mine")
+def my_watch_create(b: WatchIn, who: str = Depends(owner)) -> dict:
+    from jarvis.service import watches
+
+    try:
+        return watches.create(J(), b.coins, b.group, b.kind, b.mode, by=who)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v3/watches/mine/{wid}")
+def my_watch_change(wid: str, b: WatchChange, who: str = Depends(owner)) -> dict:
+    from jarvis.service import watches
+
+    try:
+        return watches.change(J(), wid, b.mode, b.state)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/v3/agent/state")
+def agent_state(who: str = Depends(owner)) -> dict:
+    """'What are you doing right now' for this account (build plan 1.8)."""
+    from jarvis.service import watches
+
+    return watches.state(J()) | {"last_check": STATE_W.get("last")}
+
+
+@app.get("/v3/agent/activity")
+def agent_activity(since_t: int = 0, who: str = Depends(owner)) -> dict:
+    """'What changed since ...' for this account (build plan 1.8)."""
+    from jarvis.service import watches
+
+    return watches.since(J(), since_t)
+
+
+@app.get("/v3/books")
+def books_view(who: str = Depends(owner)) -> dict:
+    """Books as one list (build plan 1.3): every trade this account holds, each stamped with who took it. The same shape for
+    Madhav and for a visitor; a visitor's holds only their own trades."""
+    from jarvis.service import books
+
+    return books.view(J(), J().name_of(who), owner=not is_guest(who))
+
+
+@app.get("/v3/watchlists")
+def watchlists(who: str = Depends(owner)) -> dict:
+    """Watchlists (was Markets), per account: a visitor's coins, or Madhav's 10."""
+    if is_guest(who):
+        from jarvis.service import account
+
+        return account.markets(J())
+    return views.markets(J())
+
+
 @app.get("/v3/holdings")
 def holdings(who: str = Depends(owner)) -> dict:
     if is_guest(who):                                   # a visitor's Books: their own practice book only
-        from jarvis.service import visitor
+        from jarvis.service import account as visitor
 
         return visitor.books(J())
     return views.holdings(J())
@@ -515,6 +600,12 @@ def practice_reset(who: str = Depends(owner)) -> dict:
 class Setup(BaseModel):
     name: str | None = None
     coins: list[str] | None = None
+    tz: str | None = None
+    experience: str | None = None
+    crypto: str | None = None
+    risk: str | None = None
+    voice: str | None = None
+    theme: str | None = None
     tour_done: bool = False
     capital: int | None = None
     start_trading: bool = False
@@ -523,13 +614,16 @@ class Setup(BaseModel):
 
 @app.post("/v3/me/setup")
 def me_setup(b: Setup, who: str = Depends(owner)) -> dict:
-    """A visitor's setup answers (name, coins, tour seen, practice capital, start trading)."""
-    if not is_guest(who):
-        raise HTTPException(status_code=400, detail="Setup is for visitor accounts.")
-    from jarvis.service import visitor
+    """Profile answers for any account (build plan 1.1): a visitor's setup steps, and everyone's time zone, voice, theme and
+    experience. The owner's account keeps no setup steps (name, coins, capital, start are visitor steps)."""
+    from jarvis.service import account
 
+    body = b.model_dump()
+    if not is_guest(who):
+        body = {k: body.get(k) for k in ("tz", "voice", "theme", "experience", "crypto", "risk")}
     try:
-        return visitor.update(J(), b.model_dump(), who.split(":", 1)[1])
+        r = account.update(J(), body, who.split(":", 1)[-1] if is_guest(who) else "")
+        return r if is_guest(who) else {"profile": account.owner_profile(J())}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -559,12 +653,16 @@ def manual_order(b: Order, who: str = Depends(owner)) -> dict:
 def me(who: str = Depends(owner)) -> dict:
     g = who.startswith("guest:")
     if g:
-        from jarvis.service import visitor
+        from jarvis.service import account as visitor
 
         v = visitor.me(J())
         return {"who": who.split(":", 1)[-1], "guest": True, "name": v["profile"].get("name") or _main().name_of(who), **v,
+                "needs_you": len(M().pending()),
                 "practice_note": "Your own practice account: paper money only, your coins, your trades. Nothing here is real money."}
-    return {"who": who.split(":", 1)[-1], "guest": g, "name": _main().name_of(who),
+    from jarvis.service import account
+
+    return {"who": who.split(":", 1)[-1], "guest": g, "name": _main().name_of(who), "profile": account.owner_profile(J()), "stage": "owner",
+            "needs_you": len(M().pending()) + (1 if J()._layer().pending() else 0),
             "practice_note": "Practice mode: everything works like Madhav's app, but your orders, alerts and changes go to your own "
                              "practice book. Kill switch, autopilot and portfolio approvals are locked." if g else ""}
 
@@ -824,7 +922,7 @@ def trades_list(who: str = Depends(owner)) -> dict:
 @app.get("/v3/markets")
 def markets(who: str = Depends(owner)) -> dict:
     if is_guest(who):                                   # a visitor's Markets: only the coins they picked
-        from jarvis.service import visitor
+        from jarvis.service import account as visitor
 
         return visitor.markets(J())
     return views.markets(J())
@@ -1081,7 +1179,7 @@ def brief_now(who: str = Depends(owner)) -> dict:
 
 @app.get("/v3/inbox")
 def inbox(who: str = Depends(owner)) -> dict:
-    ps = J()._layer().pending()
+    ps = [] if is_guest(who) else J()._layer().pending()     # the trend portfolio's suggestions are Madhav's, never a visitor's
     return {"actions": M().pending(), "portfolio": ps, "alerts_active": len(AL().list(include_done=False)),
             "count": len(M().pending()) + (1 if ps else 0)}
 

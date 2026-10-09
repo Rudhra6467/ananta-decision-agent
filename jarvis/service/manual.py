@@ -88,8 +88,9 @@ class Manual:
             usd = round(float(usd), 2)
         except (TypeError, ValueError) as exc:
             raise ValueError("an amount in dollars is required") from exc
-        if usd <= 0 or usd > MAX_ORDER_USD:
-            raise ValueError(f"amount must be between $1 and ${MAX_ORDER_USD:.0f} (paper)")
+        cap = max(MAX_ORDER_USD, 0.25 * st["start"])          # D2: with more capital, one order may be up to a quarter of it
+        if usd <= 0 or usd > cap:
+            raise ValueError(f"amount must be between $1 and ${cap:,.0f} (paper)")
         if side == "buy" and usd * (1 + FEE + HALF_SPREAD.get(coin, 0.004)) > st["cash"] + 0.01:
             raise ValueError(f"not enough paper cash: ${st['cash']:.2f} available")
         if side == "sell" and (not held or usd > (held["value"] or 0) + 0.01):

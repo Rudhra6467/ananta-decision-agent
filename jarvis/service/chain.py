@@ -186,12 +186,17 @@ def evaluate(ex, coin: str, open_trades: list[dict], equity: float, zone_row: di
             "observations": {"relative_strength": rs, "volume": vol, "setup_family": family, "daily_atr_pct": round(100 * atr_pct, 1)}}
 
 
-def board(j) -> dict[str, Any]:
+def board(j, book: tuple[list[dict], float] | None = None) -> dict[str, Any]:
+    """book = (open positions, equity) of the account asking; default: the Explorer's (Madhav's research book). A visitor's
+    chain counts only the visitor's own positions in the risk and exposure gates (build plan 1.2a)."""
     ex = j._explorer()
     if not ex:
         return {"error": "the Explorer is not running", "coins": []}
     s = ex.status()
     open_trades = [{"coin": t["coin"], "setup": t.get("setup")} for t in s.get("open", [])]
+    equity = float(s.get("equity") or 2000)
+    if book is not None:
+        open_trades, equity = book
     out = []
     try:
         from jarvis.service import zones_watch
@@ -201,11 +206,13 @@ def board(j) -> dict[str, Any]:
         zb = {}
     for coin in ex.st["engines"]:
         try:
-            out.append(evaluate(ex, coin, open_trades, float(s.get("equity") or 2000), zb.get(coin)))
+            out.append(evaluate(ex, coin, open_trades, equity, zb.get(coin)))
         except Exception as exc:  # noqa: BLE001
             out.append({"coin": coin, "verdict": "NO TRADE", "stops_at": "REGIME", "summary": f"{coin}: could not evaluate ({str(exc)[:80]}).",
                         "gates": [], "observations": {}})
     try:                                                   # Madhav's three reads ride along as evidence (never a gate)
+        if book is not None:
+            raise LookupError("a visitor's chain: Madhav's own setups are his")
         from jarvis.service import reads_watch
 
         rb = {r["coin"]: r for r in reads_watch.board(j).get("coins", [])}

@@ -826,6 +826,9 @@
    "evidence": "every order confirmed by Madhav",
    "files": [
     "jarvis/service/manual.py",
+    "jarvis/service/account.py",
+    "jarvis/service/books.py",
+    "jarvis/service/watches.py",
     "jarvis/service/visitor.py"
    ]
   },

@@ -162,6 +162,22 @@ TOOLS = [
     ("changes", "What changed / happened in the last N hours: buys, sells, orders, portfolio moves, warnings, owner actions.", _schema({"hours": {"type": "number"}})),
     ("report", "The latest daily or weekly report text.", _schema({"kind": {"type": "string", "description": "daily | weekly"}})),
     ("alerts", "The owner's alerts: active ones, and recently fired ones with their messages.", OFF),
+    ("watch", "CREATE a watch for the person you are talking to when they ask you to keep watching a coin or a group for a setup "
+     "('keep watching BTC for me', 'watch my coins for a pullback', 'tell me when SOL is ready'). It is created at once (no card) and "
+     "checked every 15 minutes. kind: zone_pullback (default, best evidence: a dip into a supported zone with the trend up and the "
+     "market rule open), setup_15m (any 15-minute setup completes; still being tested), trend_hold (the trend portfolio rates it "
+     "strong). mode: tell (tell me), ask (ask me first: a card that expires in 30 minutes; the default), auto (buy in their book "
+     "and tell them). group instead of coins: my_coins, all, large. Confirm in one sentence what you will watch and how you will act.",
+     _schema({"coins": {"type": "array", "items": {"type": "string"}}, "group": {"type": "string"}, "kind": {"type": "string"},
+              "mode": {"type": "string"}})),
+    ("my_watches", "The watches you keep for this person: coins, kind, mode, state (watching, close, fired, paused) and why.", OFF),
+    ("change_watch", "Change one of this person's watches: mode tell | ask | auto ('keep watching that but don't trade without asking me' "
+     "= mode ask), or state PAUSED | WATCHING | DELETED. id from my_watches.",
+     _schema({"id": {"type": "string"}, "mode": {"type": "string"}, "state": {"type": "string"}}, ["id"])),
+    ("agent_state", "What you (Ananta) are doing right now FOR THIS PERSON: watches, positions you monitor, what you are waiting for, "
+     "what needs them. Use for 'what are you doing', 'what are you watching', 'show me the setup you're most interested in'.", OFF),
+    ("account_activity", "What happened in this person's account since N hours ago: watches fired, trades, warnings, requests. Use for "
+     "'what changed since this morning'.", _schema({"hours": {"type": "number"}})),
     ("propose_alert", "Prepare an alert when the owner asks to be told about something: kind price_above / price_below (value = price), "
      "move_pct (value = percent move in a day), setup (setup = E1-E5 or ANY: tells when that setup's conditions are all met). "
      "This does NOT create it: the owner confirms a card in the app. Alerts are checked every 15 minutes and cost nothing.",
@@ -487,7 +503,16 @@ class Lookups:
             raise ValueError("this coin's engine is still warming up")
         return eng.state(T)
 
+    # Build plan 1.2a: a visitor's personal questions read only their own account; Ananta's research (Madhav's paper books) is
+    # summarised and labelled, never presented as theirs, and its open positions, ids and dollar amounts are never handed over.
+    GUEST_SCOPED = ("overview", "trades", "trade", "portfolio", "jarvis_book", "changes", "chain", "report", "mandate")
+
     def call(self, name: str, args: dict) -> Any:
+        if self.guest and name in self.GUEST_SCOPED:
+            try:
+                return getattr(self, "g_" + name)(**(args or {}))
+            except Exception as exc:  # noqa: BLE001
+                return {"error": str(exc)[:300]}
         fn = getattr(self, "t_" + name, None)
         if self.guest and name == "start_research":
             return {"error": "Practice mode: research jobs run on Madhav's real evidence, so guests cannot start them. Explain that politely."}
@@ -499,6 +524,105 @@ class Lookups:
             return {"error": str(exc)[:300]}
 
     # ---- lookups ----
+    RESEARCH = "ANANTA'S RESEARCH (Madhav's paper books, shared learning): NOT this visitor's trades; never say 'your' about it"
+
+    def g_portfolio(self) -> dict:
+        from jarvis.service import account
+
+        return account.brief(self.j)
+
+    def g_overview(self) -> dict:
+        from jarvis.service import account, health
+
+        h = health.status(self.j)
+        return {"your_account": account.brief(self.j),
+                "ananta": {"whose": self.RESEARCH, "running": h.get("summary"), "watching": "10 coins every 15 minutes, hourly and daily"}}
+
+    def g_trades(self, status: str = "open", coin: str | None = None) -> dict:
+        from jarvis.service import account
+
+        b = account.brief(self.j).get("book") or {}
+        t = views.trades_list(self.j)
+        closed = t.get("closed") or []
+        return {"your_trades": {"positions": b.get("positions", []), "orders": b.get("orders", []),
+                                "note": "These are the visitor's own paper trades: the only trades that are theirs."},
+                "ananta_research": {"whose": self.RESEARCH, "open_count": len(t.get("open") or []), "closed_count": len(closed),
+                                    "note": "Counts only. Never quote its positions or dollar amounts to a visitor."}}
+
+    def g_trade(self, id: str) -> dict:  # noqa: A002
+        from jarvis.service import account
+
+        for f in (account.brief(self.j).get("book") or {}).get("orders", []):
+            if str(id) in (str(f.get("t")), f.get("coin")):
+                return {"your_order": f}
+        return {"error": "That trade is not in this visitor's account. Only their own trades can be opened for them."}
+
+    def g_jarvis_book(self) -> dict:
+        from jarvis.service import brain
+
+        r = brain.report(self.j)
+        return {"whose": self.RESEARCH, "what": "Ananta's own research picks, $100 each, scored against random twins",
+                "closed": r.get("closed"), "avg_usd_per_100": r.get("avg_usd_per_100"), "random_twin_avg_usd": r.get("random_twin_avg_usd"),
+                "events": r.get("events"), "verdict": r.get("verdict")}
+
+    def g_changes(self, hours: float = 24) -> dict:
+        from jarvis.service import account
+
+        since = int(self.j.now() - float(hours) * 3600)
+        b = account.brief(self.j)
+        return {"hours": hours, "your_orders": [o for o in (b.get("book") or {}).get("orders", []) if o["t"] >= since],
+                "your_coins_now": b.get("their_coins_now"), "note": "Only this visitor's own events and coins."}
+
+    def g_chain(self, coin: str | None = None) -> dict:
+        from jarvis.service import account, chain
+
+        b = chain.board(self.j, book=account.chain_book(self.j))
+        if coin:
+            c = coin.upper().replace("/USD", "")
+            row = next((r for r in b.get("coins", []) if r["coin"] == c), None)
+            if row is None:
+                raise ValueError(f"unknown coin {coin}")
+            return {"framework": b["framework"], "note": "Risk and exposure use this visitor's own book.", **row}
+        return {k: b[k] for k in ("framework", "stops")} | {"note": "Risk and exposure use this visitor's own book.",
+                                                            "coins": [{k: r.get(k) for k in ("coin", "verdict", "stops_at", "summary", "observations")} for r in b.get("coins", [])]}
+
+    def g_report(self, kind: str = "daily") -> dict:
+        return {"error": "The daily and weekly reports cover Ananta's research books, not this account. Answer from the visitor's own book."}
+
+    def g_mandate(self) -> dict:
+        from jarvis.service import account
+
+        p = account.profile(self.j.db)
+        return {"note": "A practice account has no mandate of its own; Ananta follows what the visitor told it.",
+                "risk": p.get("risk"), "coins": p.get("coins"), "level": account.level(p)}
+
+    def t_watch(self, coins: list | None = None, group: str | None = None, kind: str | None = None, mode: str = "ask") -> dict:
+        from jarvis.service import watches
+
+        w = watches.create(self.j, coins, group, kind, mode, by="ananta (asked in chat)")
+        self.ui.append({"do": "go_to", "target": "markets", "label": "Watchlists"})
+        return {"created": w, "say": f"Watching {watches.describe(w)}; {watches.MODES[w['mode']]}."}
+
+    def t_my_watches(self) -> dict:
+        from jarvis.service import watches
+
+        return {"watches": watches.list_(self.j), "kinds": watches.kinds()}
+
+    def t_change_watch(self, id: str, mode: str | None = None, state: str | None = None) -> dict:  # noqa: A002
+        from jarvis.service import watches
+
+        return {"changed": watches.change(self.j, id, mode, state)}
+
+    def t_agent_state(self) -> dict:
+        from jarvis.service import watches
+
+        return watches.state(self.j)
+
+    def t_account_activity(self, hours: float = 24) -> dict:
+        from jarvis.service import watches
+
+        return watches.since(self.j, int(self.j.now() - float(hours) * 3600))
+
     def t_overview(self) -> dict:
         s = views.day_summary(self.j)
         c = views.cockpit(self.j)
@@ -1476,6 +1600,7 @@ PROVIDERS: dict[str, Callable] = {
     "sonnet": lambda *a, **k: run_claude(*a, model=MODELS["sonnet"]["model"], **k),
     "opus": lambda *a, **k: run_claude(*a, model=MODELS["opus"]["model"], **k),
 }
+GUEST_BUDGET_USD = 0.50
 SETTINGS_DEFAULT = {"ask_enabled": "1", "voice_enabled": "1", "daily_budget_usd": "2", "over_budget": "gemini", "eval_budget_usd": "3"}
 
 
@@ -1600,6 +1725,8 @@ class Ask:
         today, month = tot(d0), tot(m0)
         spent = sum(v["usd"] for v in today.values())
         budget = float(self.setting("daily_budget_usd"))
+        if getattr(self.j, "sandbox", False):                     # D5: each visitor gets $0.50 of Claude a day, then free Gemini
+            budget = min(budget, GUEST_BUDGET_USD)
         t_today, t_month = tot(d0, True), tot(m0, True)            # Test Lab runs have their own budget, never eat the owner's
         t_spent = sum(v["usd"] for v in t_today.values())
         t_budget = float(self.setting("eval_budget_usd"))
@@ -1747,7 +1874,7 @@ class Ask:
         route_name = B.route(text, prev[0] if prev else None)
         brief = {}
         try:
-            brief = B.briefs_for(self.j, route_name)
+            brief = B.briefs_for(self.j, route_name, guest=str(who).startswith("guest:"))
         except Exception as exc:  # noqa: BLE001  the brief is a shortcut, never a blocker
             brief = {"BRIEF_ERROR": str(exc)[:200]}
         brief_ms = int(1000 * (time.time() - tb))
@@ -1755,10 +1882,19 @@ class Ask:
             from datetime import datetime
             from zoneinfo import ZoneInfo
 
-            hr = datetime.fromtimestamp(now, ZoneInfo("America/Toronto")).hour
+            from jarvis.service import account as _acc
+
+            # their own local time (status check, Oct 8: Mahi said good evening and heard "Morning")
+            _p = _acc.profile(self.j.db)
+            tzname = _p.get("tz") or "America/Toronto"
+            try:
+                hr = datetime.fromtimestamp(now, ZoneInfo(tzname)).hour
+            except Exception:  # noqa: BLE001
+                tzname, hr = "America/Toronto", datetime.fromtimestamp(now, ZoneInfo("America/Toronto")).hour
             part = "morning" if 4 <= hr < 12 else "afternoon" if hr < 17 else "evening"
-            hello = "Madhav" if not str(who).startswith("guest:") else (self.j.name_of(str(who)) or "them")
-            notes.append(f"[this is the first message of a new conversation; it is {part} in Toronto: greet {hello} warmly in a few words first]")
+            hello = "sir" if not str(who).startswith("guest:") else (self.j.name_of(str(who)) or "them")
+            notes.append(f"[this is the first message of a new conversation; it is {part} where they are ({tzname}): greet {hello} warmly "
+                         "in a few words first; if they greet you with a time of day, follow theirs]")
         n_answers = sum(1 for h in history if h.get("role") == "assistant")
         if n_answers < NEXT_STEP_ANSWERS:
             notes.append(f"[NEXT STEP: this is answer {n_answers + 1} of this conversation. Add next_action: the one obvious next step that follows "
@@ -1767,8 +1903,8 @@ class Ask:
         else:
             notes.append("[next_action only when there is an obvious next step; follow_ups: 2]")
         if not str(who).startswith("guest:") and source != "eval":
-            notes.append("[ADDRESS: you are talking with Madhav, the owner. Now and then call him 'sir' (when saying hello, a confirmation, a serious "
-                         "moment) and at other times 'Madhav'; never both in one answer, and no name in two answers in a row. Only Madhav is 'sir'.]")
+            notes.append("[ADDRESS: you are talking with Madhav, the owner. Call him 'sir' (Madhav, 2026-10-08: always 'sir'); not 'Madhav'. "
+                         "Only Madhav is 'sir'.]")
         if str(who).startswith("guest:"):
             try:
                 gname = self.j.name_of(str(who))

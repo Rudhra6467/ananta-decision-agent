@@ -166,8 +166,25 @@ def market_brief(j) -> dict:
     return _cached("market", build)
 
 
-def briefs_for(j, route_name: str) -> dict:
+def briefs_for(j, route_name: str, guest: bool = False) -> dict:
+    """guest: a visitor's question (build plan 1.2a). Their PORTFOLIO_BRIEF is their own account; the market brief is shared but
+    says what THEY hold, never which coins Madhav's Explorer holds. The cache is only for Madhav's own brief."""
     out = {}
+    if guest:
+        from jarvis.service import account
+
+        if route_name in ("portfolio", "both"):
+            out["PORTFOLIO_BRIEF"] = account.brief(j)
+        if route_name in ("market", "both"):
+            mine = {p["coin"] for p in account.chain_book(j)[0]}
+            m = json.loads(json.dumps(market_brief(j), default=str))
+            for c in m.get("coins", []):
+                c.pop("we_hold_trade", None)
+                c["you_hold"] = c["coin"] in mine
+            m.pop("evidence", None)
+            m["note"] = "Market facts are shared; holdings shown are this visitor's own. Ananta's research books are not theirs."
+            out["MARKET_BRIEF"] = m
+        return out
     if route_name in ("portfolio", "both"):
         out["PORTFOLIO_BRIEF"] = portfolio_brief(j)
     if route_name in ("market", "both"):

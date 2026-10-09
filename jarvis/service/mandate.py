@@ -101,9 +101,18 @@ class Mandate:
         return {"id": aid, "kind": kind, "summary": summary, "status": "PENDING"}
 
     def pending(self) -> list[dict]:
-        return [{"id": i, "t": t, "kind": k, "summary": s, "payload": json.loads(p), "status": st}
-                for i, t, k, s, p, st in self.db.execute(
-                    "SELECT id, t, kind, summary, payload, status FROM pending_actions WHERE status='PENDING' ORDER BY t DESC")]
+        now = self.now()
+        out = []
+        for i, t, k, s, p, st in self.db.execute(
+                "SELECT id, t, kind, summary, payload, status FROM pending_actions WHERE status='PENDING' ORDER BY t DESC").fetchall():
+            pl = json.loads(p)
+            if pl.get("expires_t") and now > pl["expires_t"]:   # expired requests leave the Needs-you list by themselves
+                self.db.execute("UPDATE pending_actions SET status='EXPIRED' WHERE id=?", (i,))
+                self.db.commit()
+                continue
+            out.append({"id": i, "t": t, "kind": k, "summary": s, "payload": pl, "status": st, "card": pl.get("card"),
+                        "expires_t": pl.get("expires_t")})
+        return out
 
     def action(self, aid: str) -> dict | None:
         r = self.db.execute("SELECT id, t, kind, summary, payload, status, result FROM pending_actions WHERE id=?", (aid,)).fetchone()
@@ -115,6 +124,11 @@ class Mandate:
             raise ValueError("unknown action")
         if a["status"] != "PENDING":
             raise ValueError(f"already {a['status'].lower()}")
+        exp = (a.get("payload") or {}).get("expires_t")
+        if confirm and exp and self.now() > exp:              # build plan 1.5 (D3): a request that waited too long is refused
+            self.db.execute("UPDATE pending_actions SET status='EXPIRED', by=?, decided_t=? WHERE id=?", (who, int(self.now()), aid))
+            self.db.commit()
+            raise ValueError("this request expired: the price has moved since; ask me again")
         if not confirm:
             self.db.execute("UPDATE pending_actions SET status='CANCELLED', by=?, decided_t=? WHERE id=?", (who, int(self.now()), aid))
             self.db.commit()

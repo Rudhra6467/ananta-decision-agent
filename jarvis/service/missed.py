@@ -278,9 +278,14 @@ def run(j, day_t: int | None = None, log_request=None, force: bool = False) -> d
         _insert(j, r)
         rows.append(r)
     try:
-        rows += run_t30(j, day_t)
+        t30 = run_t30(j, day_t)
+        rows += t30
+        st = {"moves": len(t30)}
     except Exception as exc:  # noqa: BLE001  the live review never fails because of the tier
         rows.append({"coin": "-", "move_pct": 0, "label": "ERROR", "why": f"30-coin tier review failed: {str(exc)[:120]}", "tier": "T30"})
+        st = {"error": str(exc)[:160]}
+    # every 30-coin day leaves a trace, so an empty day (no qualifying up-move) is visible and a failing one is not silent (Oct 8)
+    j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (f"missed_t30:{day}", json.dumps(st)))
     j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (f"missed:{day}", str(len(rows))))
     j.db.commit()
     flagged = _repeats(j, log_request)

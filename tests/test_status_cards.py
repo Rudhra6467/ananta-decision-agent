@@ -26,6 +26,8 @@ def test_a_take_resting_only_on_context_ideas_is_refused():
     assert bad == ["READS", "FUNDING"] and ok == []
     bad, ok = brain.permission_check(["ZONES", "REGIME", "READS"])
     assert bad == ["READS"] and ok == ["ZONES", "REGIME"]
+    bad, ok = brain.permission_check(["LIVE_BOOKS", "MISSED", "ZONES"])      # evidence records are not ideas (Oct 8)
+    assert bad == [] and ok == ["ZONES"]
 
 
 def test_idea_status_lookup_finds_by_alias(tmp_path):

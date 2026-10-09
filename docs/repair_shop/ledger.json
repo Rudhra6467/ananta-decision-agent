@@ -1,6 +1,6 @@
 {
  "version": "repair_shop.ledger.v1",
- "updated": "2026-10-05",
+ "updated": "2026-10-08",
  "meaning": {
   "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
   "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
@@ -436,6 +436,16 @@
    "why": "Review #22: the lab 10 were also chosen with today's knowledge; re-test T3-B on the top 10 as it was each month.",
    "metric": "review_slot",
    "goal": 1
+  },
+  {
+   "id": "R24",
+   "status": "PLANNED",
+   "title": "Tuning the deep-dip buy (E6)",
+   "waiting_for": "a work session",
+   "why": "Request #15: E6 trades often but earns little; four entry/exit variants pre-registered.",
+   "files": [
+    "docs/research/REVIEW_24.md"
+   ]
   }
  ],
  "in_use": [
@@ -645,6 +655,51 @@
    "did": "Found because the numbers were impossible; fixed the conversion, checked dates by hand.",
    "change": "Run 2 is the result; run 1 kept and marked invalid.",
    "status": "DONE"
+  },
+  {
+   "id": "TK9",
+   "date": "2026-10-08",
+   "from": "status check",
+   "what": "Jarvis's brain could not read 21 of its 100 decisions ('no JSON in the reply'), 17 on Oct 8; those moments got no decision.",
+   "did": "Replies are read even when wrapped or chatty, a cut-off reply is asked for again once (JSON only), and the reply limit is higher.",
+   "change": "brain.py: _json_block, one retry, max_tokens 2500.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK10",
+   "date": "2026-10-08",
+   "from": "status check",
+   "what": "The gate check 'Jarvis uses no failed rules' failed on passes that only mentioned a context idea, and counted 'live books' as an idea.",
+   "did": "Only buys count; evidence records (live books, missed moves) are not ideas.",
+   "change": "evidence_live._gate, brain.NOT_IDEAS.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK11",
+   "date": "2026-10-08",
+   "from": "status check",
+   "what": "The 6-hour cooldown dropped 398 wakes and nobody knew what they would have done.",
+   "did": "Each wake's coin is followed for 24 hours by its fate; the Limits section compares dropped wakes with decided ones (a rough check: dropped wakes have no plan to score).",
+   "change": "evidence_live._wake_moves.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK12",
+   "date": "2026-10-08",
+   "from": "status check",
+   "what": "The 30-coin missed-move review left no trace on empty days, and the 30-coin trend book had no buy-and-hold comparison. TON's daily data stopped on Jun 30.",
+   "did": "Every 30-coin day is recorded (Oct 4-8: no tier coin closed 5% up; the market fell). The trend book is compared with buy-and-hold of 28 coins (TON left out and named).",
+   "change": "missed.run (missed_t30 trace), tier30.buy_hold.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK13",
+   "date": "2026-10-08",
+   "from": "status check",
+   "what": "TON has no daily data since Jun 30 (its source stopped), yet it is still one of the 30-coin tier's coins.",
+   "did": "",
+   "change": "",
+   "status": "OPEN"
   }
  ]
 }

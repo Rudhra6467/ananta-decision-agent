@@ -124,6 +124,36 @@ def run(j) -> dict:
     return out
 
 
+def buy_hold(j) -> dict:
+    """The fair comparison for the 30-coin trend book (status check, Oct 8: it had none): equal money in every tier coin at the
+    close before the book's first decision, held to the latest close. A coin whose daily data stopped (older than 3 days) is
+    left out and named."""
+    import sqlite3 as _sq
+    from pathlib import Path as _P
+
+    p = _P(j.dir) / "portfolio_book_t30.sqlite"
+    if not p.exists():
+        return {}
+    con = _sq.connect(f"file:{p}?mode=ro", uri=True, timeout=10)
+    try:
+        first = con.execute("SELECT min(day_t) FROM decisions").fetchone()[0]
+    finally:
+        con.close()
+    if not first:
+        return {}
+    newest = max((D[-1][0] for D in (daily(j, c) for c in COINS) if D), default=0)
+    chg, stale = [], []
+    for c in COINS:
+        D = daily(j, c)
+        if not D or D[-1][0] < newest - 3 * 86400:
+            stale.append(c)
+            continue
+        base = next((b[4] for b in reversed(D) if b[0] < first), None)
+        if base:
+            chg.append(100 * (D[-1][4] / base - 1))
+    return {"pct": round(sum(chg) / len(chg), 2) if chg else None, "coins": len(chg), "stale": stale, "since_t": first}
+
+
 def status(j) -> dict:
     from jarvis.service import watch_engine
 

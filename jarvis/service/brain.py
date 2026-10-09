@@ -309,25 +309,50 @@ def _call_claude(system: str, user: str, post=None) -> tuple[str, dict]:
         raise RuntimeError("no Claude key")
     post = post or ask._post
     r = post("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-             {"model": MODEL, "max_tokens": 1500, "system": system, "messages": [{"role": "user", "content": user}]})
+             {"model": MODEL, "max_tokens": 2500, "system": system, "messages": [{"role": "user", "content": user}]})
     u = r.get("usage") or {}
     text = "".join(c.get("text", "") for c in r.get("content") or [] if c.get("type") == "text")
     return text, {"in": u.get("input_tokens", 0), "out": u.get("output_tokens", 0), "model": MODEL}
 
 
-def _parse(text: str) -> dict:
-    import re
+def _json_block(text: str) -> str | None:
+    """The first complete {...} in a reply: fences and words around it are ignored, braces inside strings are respected."""
+    t = (text or "").strip()
+    i = t.find("{")
+    while i >= 0:
+        depth, inq, esc = 0, False, False
+        for k in range(i, len(t)):
+            ch = t[k]
+            if inq:
+                esc = (ch == "\\" and not esc)
+                if ch == '"' and not esc:
+                    inq = False
+                continue
+            if ch == '"':
+                inq = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return t[i:k + 1]
+        i = t.find("{", i + 1)
+    return None
 
-    m = re.search(r"\{.*\}", (text or "").strip(), re.S)
-    if not m:
-        raise ValueError("no JSON in the reply")
-    d = json.loads(m.group(0))
+
+def _parse(text: str) -> dict:
+    blk = _json_block(text)
+    if not blk:
+        raise ValueError("no JSON in the reply" + (" (it was cut off)" if "{" in (text or "") else ""))
+    d = json.loads(blk)
     if d.get("action") not in ("TAKE", "PASS"):
         raise ValueError("action must be TAKE or PASS")
     return d
 
 
 _CARDS: dict = {}
+# Evidence records, not ideas: citing the live books or the missed-move log is never "using a failed rule" (status check, Oct 8).
+NOT_IDEAS = {"LIVE_BOOKS", "MISSED"}
 
 
 def status_cards() -> dict:
@@ -347,6 +372,7 @@ def status_cards() -> dict:
 def permission_check(ids: list[str]) -> tuple[list[str], list[str]]:
     """(ids that may not be a reason to trade, ids that may)."""
     cards = status_cards()
+    ids = [k for k in ids if k not in NOT_IDEAS]
     bad = [k for k in ids if (cards.get(k) or {}).get("permission") in ("CONTEXT", "OFF")]
     ok = [k for k in ids if (cards.get(k) or {}).get("permission") in ("PAPER", "LIVE_PROVEN")]
     return bad, ok
@@ -414,6 +440,18 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
     cost = round((usage.get("in", 0) * PRICE[0] + usage.get("out", 0) * PRICE[1]) / 1e6, 5)
     _log_cost(j, coin, usage, cost, int(1000 * (time.time() - t0)))
     did = uuid.uuid4().hex[:12]
+    try:
+        d = _parse(text)
+    except (ValueError, json.JSONDecodeError):
+        # Status check, Oct 8: 21 of 100 decisions were lost to unreadable replies (mostly cut off). Ask once more, JSON only.
+        try:
+            text, u2 = call(user + "\n\nYour last reply could not be read. Reply with ONLY the JSON object, nothing before or after it, "
+                                   "and keep every text field short (thesis under 60 words).")
+            c2 = round((u2.get("in", 0) * PRICE[0] + u2.get("out", 0) * PRICE[1]) / 1e6, 5)
+            _log_cost(j, coin, u2, c2, 0)
+            cost += c2
+        except Exception:  # noqa: BLE001
+            pass
     try:
         d = _parse(text)
     except (ValueError, json.JSONDecodeError) as exc:

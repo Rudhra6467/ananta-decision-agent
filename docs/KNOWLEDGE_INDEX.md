@@ -78,6 +78,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_21_RESULTS.md`: E3 support bounce passes on 30 coins by the rule but loses money since 2024 (not tradable); B3 volume breakout fails everywhere.
 - `research/REVIEW_22.md`, `research/REVIEW_22_RESULTS.md`: the survivorship check on the top 30 as it was each month (191 coins): T3-B lost 22.5% in 2024-26 (holding lost 76%) and fails its rule; H07 misses by a hair (z 2.45); today's top-30 results were flattered.
 - `research/REVIEW_23_RESULTS.md`: the outside world: Nasdaq, US dollar, VIX and Fear & Greed filters all fail on T3-B; selling into extreme greed is the worst idea tested.
+- `research/REVIEW_24.md`: pre-registration of review #24, tuning the deep-dip buy (E6): four entry/exit variants against random entries, both periods, after costs (Madhav's request #15).
 
 ## Safety and operations
 - `GUEST_GUIDE.md`: a guide for a friend trying the app: how to open it, the tabs, the coins, first questions, the rule gates, making a paper trade, what practice mode locks.

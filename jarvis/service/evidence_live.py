@@ -151,12 +151,24 @@ def build(j) -> dict:
                     ("misses", lambda: _misses(j)),
                     ("board", lambda: _board(j, L, P)),
                     ("in_use", lambda: _in_use(L, P)),
-                    ("waiting", lambda: _waiting(j, P, ex))):
+                    ("waiting", lambda: _waiting(j, P, ex)),
+                    ("daily_review", lambda: _daily_review())):
         out[key] = _try(fn, out, key)
     out["loop"] = _try(lambda: _loop(j, out, P, rows), out, "loop")
     out["gate"] = _try(lambda: _gate(j, out), out, "gate")
     out["headline"] = _try(lambda: _headline(out), out, "headline")
     return out
+
+
+def _daily_review() -> dict | None:
+    """The morning review (step 0.6 of the build plan): a scheduled run works the repair board and writes one page per day to
+    docs/repair_shop/daily/YYYY-MM-DD.md. The Evidence page shows the newest one."""
+    d = Path(__file__).resolve().parents[2] / "docs" / "repair_shop" / "daily"
+    files = sorted(d.glob("????-??-??.md")) if d.exists() else []
+    if not files:
+        return None
+    text = files[-1].read_text()
+    return {"day": files[-1].stem, "text": text[:6000], "count": len(files)}
 
 
 def _health(j) -> dict:
@@ -168,6 +180,39 @@ def _health(j) -> dict:
             "checked_s_ago": h["last_check_s_ago"],
             "outages_3d": [{"name": o["name"], "minutes": o["minutes"], "from": _local(o["down_t"]), "still_down": not o["up_t"]}
                            for o in h["outages_3d"][:6]]}
+
+
+def _wake_moves(j) -> dict[str, list[float]]:
+    """What each brain wake's coin did in the next 24 hours (1-hour closes), by the wake's fate (status check, Oct 8: the 6-hour
+    cooldown had dropped 398 wakes and nobody knew what they would have done)."""
+    ex = j._explorer()
+    if not ex:
+        return {}
+    closes: dict[str, dict[int, float]] = {}
+    for c, eng in ex.st["engines"].items():
+        closes[c] = {int(b[0]) // 3600: b[4] for b in eng.tf["1h"].bars}
+    out: dict[str, list[float]] = {}
+    for t, coin, state in j.db.execute("SELECT t, coin, state FROM brain_queue"):
+        h = closes.get(coin) or {}
+        a, b = h.get(int(t) // 3600), h.get(int(t) // 3600 + 24)
+        if a and b:
+            k = "DONE" if state == "DONE" else state.split(":", 1)[-1].strip()
+            out.setdefault(k, []).append(100 * (b / a - 1))
+    return out
+
+
+def _t30_days(j) -> dict:
+    """30-coin missed-move review: days run, days with no qualifying up-move, days that failed (from Oct 8 on each day leaves a trace)."""
+    st = {k[11:]: json.loads(v) for k, v in j.db.execute("SELECT k, v FROM engine_state WHERE k LIKE 'missed_t30:%'")}
+    return {"reviewed": len(st), "empty": sum(1 for v in st.values() if v.get("moves") == 0),
+            "failed": sorted(k for k, v in st.items() if v.get("error")),
+            "note": "A day counts only when a coin closed at least 5% up and more than its normal daily range; Oct 6 to 8 every tier coin fell."}
+
+
+def _move_summary(xs: list[float]) -> dict | None:
+    if len(xs) < 3:
+        return None
+    return {"n": len(xs), "avg_pct": round(sum(xs) / len(xs), 2), "up_pct": round(100 * sum(1 for x in xs if x > 0) / len(xs))}
 
 
 def _clocks(j, P: dict, ex) -> list[dict]:
@@ -301,14 +346,20 @@ def _limits(j, P: dict, rows: list[dict], L: dict, ex) -> list[dict]:
         ("OFF", "switched off", "Switched off", "the brain or Ask is off"),
     ]
     used = set()
+    moves = _try(lambda: _wake_moves(j), {}, "wake_moves") or {}
     for key, needle, rule, setting in brain_rules:
         n = sum(v for k, v in drops.items() if needle in k)
         used |= {k for k in drops if needle in k}
         if not n and key not in ("HOLDING", "OPEN_MAX", "DAY_MAX"):
             continue
+        mv = _move_summary([x for k, xs in moves.items() if needle in k for x in xs])
+        base_mv = _move_summary(moves.get("DONE") or [])
         out.append({"id": f"BRAIN_{key}", "where": "Jarvis's brain", "rule": rule, "setting": setting, "stopped": n, "after": None,
-                    "tracked": False,
+                    "tracked": bool(mv), "moves_24h": mv, "decided_moves_24h": base_mv,
                     "verdict": ("Never reached so far." if not n else
+                                (f"After the wakes it dropped, the coin moved {mv['avg_pct']:+.2f}% on average in the next 24 hours "
+                                 f"({mv['n']} wakes, {mv['up_pct']}% up); after the wakes it decided on, {base_mv['avg_pct']:+.2f}%. "
+                                 "A rough check, not a trade result: there was no plan to score.") if mv and base_mv else
                                 "Dropped wakes are not followed, so what they would have done is unknown."),
                     "proposal": ({"id": "TK4", "status": tk4.get("status"), "change": tk4.get("change")}
                                  if tk4 and key in ("HOLDING", "OPEN_MAX", "DAY_MAX") and n else None)})
@@ -352,8 +403,11 @@ def _results(j, P: dict, rows: list[dict]) -> dict:
 
         s = tier30.status(j)
         m = s["t3"]["books"]["MAIN"]
-        books.append({"key": "t30", "label": "Trend book, 30-coin tier", "pct": m.get("return_pct"), "vs_label": None, "vs_pct": None,
-                      "days": None, "trades": m.get("trades")})
+        bh = tier30.buy_hold(j)
+        books.append({"key": "t30", "label": "Trend book, 30-coin tier", "pct": m.get("return_pct"),
+                      "vs_label": "buy and hold" if bh.get("pct") is not None else None, "vs_pct": bh.get("pct"),
+                      "days": round((j.now() - bh["since_t"]) / DAY, 1) if bh.get("since_t") else None, "trades": m.get("trades"),
+                      "stale_coins": bh.get("stale") or []})
         h = s["h07"]
         books.append({"key": "h07_t30", "label": "Dip trade (H07), 30-coin tier", "closed": h.get("closed"), "net_usd": h.get("net_usd"),
                       "open": h.get("open")})
@@ -437,7 +491,8 @@ def _misses(j) -> dict:
 
     return {"days_reviewed": len(days), "since": _day(_date_t(days[0][7:])) if days else None,
             "live": {"counts": r["counts"], "moves": mv(r["moves"]), "patterns": pats(r["patterns"], "LIVE10")},
-            "t30": {"counts": r["tier30"]["counts"], "moves": mv(r["tier30"]["moves"]), "patterns": pats(r["tier30"]["patterns"], "T30")},
+            "t30": {"counts": r["tier30"]["counts"], "moves": mv(r["tier30"]["moves"]), "patterns": pats(r["tier30"]["patterns"], "T30"),
+                    "days": _t30_days(j)},
             "forwarded": len(flags), "classes": r.get("classes"), "class_meaning": r.get("class_meaning"),
             "what_we_do": f"Every miss is filed with what we saw at its start and a class (data, intentional, execution, decision, detection, "
                           f"knowledge): a move the market gate rightly refused is not a mistake. The same kind of detection or knowledge miss {missed.REPEAT_N} times in "
@@ -634,10 +689,14 @@ def _gate(j, out: dict) -> dict:
     if c:
         since = max(int(j.now()) - 7 * DAY, PERMISSION_CHECK_FROM)      # only decisions made since the check exists count
         n = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action != 'ERROR'", (since,))
-        cited = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND note LIKE '%context-only%'", (since,))
+        # Only BUYS count (status check, Oct 8): a pass that mentions a context idea is not a trade on it. A buy that rested only on
+        # context-only ideas is turned into a pass by brain.permission_check ("permission:" notes = the check working).
+        n = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE'", (since,))
+        cited = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE' AND note LIKE '%cited context-only%'", (since,))
+        blocked = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND note LIKE 'permission:%'", (since,))
         c["status"] = "PENDING" if not n else "PASS" if not cited else "FAIL"
-        c["note"] = (f"{cited} of {n} decisions leaned on a context-only idea (last 7 days, checked since Oct 6)" if n
-                     else "no decisions since the check started (Oct 6)")
+        c["note"] = (f"{cited} of {n} buys leaned partly on a context-only idea; {blocked} buys that rested only on one were stopped "
+                     "(last 7 days, checked since Oct 6)" if n else "no buys since the check started (Oct 6)")
     for c in checks:
         c["status_words"] = GATE_WORDS.get(c["status"], c["status"])
     passed = sum(1 for c in checks if c["status"] == "PASS")

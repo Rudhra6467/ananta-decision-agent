@@ -53,6 +53,7 @@ export default function Evidence() {
         <Card><Text style={{ color: C.text, fontSize: 16, lineHeight: 23, fontWeight: "600" }}>{d.headline}</Text></Card>
       ) : null}
 
+      {d.daily_review ? <DailyReview r={d.daily_review} /> : null}
       {d.gate ? <Spot id="evidence.gate"><Gate g={d.gate} /></Spot> : null}
       {d.loop ? <Spot id="evidence.tracker"><Loop loop={d.loop} /></Spot> : null}
       {d.clocks ? <Spot id="evidence.clocks"><Clocks clocks={d.clocks} /></Spot> : null}
@@ -94,6 +95,22 @@ function Q({ n, q, a }: { n: number; q: string; a?: string }) {
 const Label = ({ children }: { children: React.ReactNode }) => (
   <Text style={{ color: C.faint, fontSize: 11, fontWeight: "700", letterSpacing: 0.6, marginTop: 4 }}>{String(children).toUpperCase()}</Text>
 );
+
+// The morning review (build plan step 0.6): one page a day, written by a scheduled run that works the repair board.
+function DailyReview({ r }: { r: any }) {
+  const [open, setOpen] = useState(false);
+  const lines = String(r.text || "").split("\n").filter((x: string) => x.trim() && !x.startsWith("# "));
+  return (
+    <Card title={`This morning's review · ${r.day}`} sub={`${r.count} so far · prepared for your yes; it never changes a trading rule`}>
+      {(open ? lines : lines.slice(0, 6)).map((x: string, i: number) => (
+        <Text key={i} style={{ color: x.startsWith("## ") ? C.text : C.dim, fontWeight: x.startsWith("## ") ? "700" : "400", fontSize: 13, lineHeight: 19 }}>
+          {x.replace(/^#+\s*/, "").replace(/\*\*/g, "")}
+        </Text>
+      ))}
+      {lines.length > 6 ? <Text onPress={() => setOpen(!open)} style={{ color: C.accent, fontWeight: "600" }}>{open ? "Show less" : "Read the whole review"}</Text> : null}
+    </Card>
+  );
+}
 
 function Health({ h }: { h: any }) {
   const ok = !h.down?.length;

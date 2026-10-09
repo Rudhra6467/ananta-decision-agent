@@ -407,3 +407,17 @@ def test_tk4_a_held_coin_can_get_one_more_trade_but_not_a_third():
     assert brain.check_plan(take, 100.0, 3.0, None, 1) == []
     assert any("2 open trades" in f for f in brain.check_plan(take, 100.0, 3.0, None, 2))
     assert brain.MAX_OPEN == 20 and brain.MAX_PER_COIN == 2
+
+
+def test_brain_reads_wrapped_or_chatty_replies():
+    """Status check, Oct 8: 21 of 100 decisions were lost to 'no JSON in the reply'. Fenced, chatty and brace-in-text replies
+    parse; a cut-off reply is named as cut off (decide() then asks once more for the JSON only)."""
+    from jarvis.service.brain import _parse
+    assert _parse('```json\n{"action":"PASS","thesis":"a {brace} in text"}\n```')["thesis"] == "a {brace} in text"
+    assert _parse('Here it is: {"action":"TAKE","stop":1} and {x}')["action"] == "TAKE"
+    try:
+        _parse('{"action":"PASS","thesis":"cut')
+    except ValueError as exc:
+        assert "cut off" in str(exc)
+    else:
+        raise AssertionError("a cut-off reply parsed")

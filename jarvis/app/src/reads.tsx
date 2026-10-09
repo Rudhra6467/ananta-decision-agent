@@ -7,19 +7,19 @@ import { router } from "expo-router";
 import { api } from "./api";
 import { askAbout } from "./context";
 import { Btn, Divider, Expand, Pill, T } from "./ui";
-import { C } from "./theme";
+import { C, live } from "./theme";
 
-const STATE: Record<string, { text: string; color: string; bg: string }> = {
+const STATE: Record<string, { text: string; color: string; bg: string }> = live(() => ({
   FIRED: { text: "SHOWING", color: C.good, bg: C.goodSoft },
   CLOSE: { text: "1 SIGN MISSING", color: C.warn, bg: C.warnSoft },
   NO: { text: "NOT NOW", color: C.dim, bg: C.card2 },
   NO_DATA: { text: "NO DATA", color: C.faint, bg: C.card2 },
-};
+}));
 const HISTORY: Record<string, string> = {
   SUPPORTED: "history supports it", NOT_SUPPORTED: "history 2018-23: no better than a random day", NOT_CONFIRMED: "worked 2018-23, not since",
   INSUFFICIENT: "too few cases in history to judge", UNTESTED: "not tested yet",
 };
-const NEWS: Record<string, string> = { CLEAR: C.good, CAUTION: C.warn, BLOCK: C.bad };
+const NEWS: Record<string, string> = live(() => ({ CLEAR: C.good, CAUTION: C.warn, BLOCK: C.bad }));
 
 function Check({ ok }: { ok: boolean }) {
   return <Text style={{ color: ok ? C.good : C.bad, width: 18, fontWeight: "800" }}>{ok ? "✓" : "✗"}</Text>;

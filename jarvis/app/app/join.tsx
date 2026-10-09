@@ -7,7 +7,7 @@ import * as SecureStore from "expo-secure-store";
 import { api } from "../src/api";
 import { clearMe } from "../src/visitor";
 import { Btn } from "../src/ui";
-import { C } from "../src/theme";
+import { C, live } from "../src/theme";
 
 export default function Join() {
   const { code } = useLocalSearchParams<{ code?: string }>();
@@ -66,10 +66,10 @@ export default function Join() {
   );
 }
 
-const s = StyleSheet.create({
+const s = live(() => StyleSheet.create({
   wrap: { flex: 1, backgroundColor: C.bg, padding: 24, justifyContent: "center", gap: 12, maxWidth: 480, width: "100%", alignSelf: "center" },
   title: { color: C.text, fontSize: 34, fontWeight: "800" },
   text: { color: C.text, fontSize: 15, lineHeight: 21 },
   dim: { color: C.dim },
   in: { backgroundColor: C.card, color: C.text, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: C.line },
-});
+}));

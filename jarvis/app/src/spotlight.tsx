@@ -58,7 +58,7 @@ export function Spot({ id, children, style }: { id: string; children: React.Reac
   const lift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (on) {
-      // the attention beat (Madhav, 2026-10-05): the thing Jarvis talks about comes forward in 3D for a moment, settles back,
+      // the attention beat (Madhav, 2026-10-05): the thing Ananta talks about comes forward in 3D for a moment, settles back,
       // then keeps its outline until the next answer starts. Reduce Motion on the phone: outline only.
       AccessibilityInfo.isReduceMotionEnabled().then((still) => {
         if (still) return;

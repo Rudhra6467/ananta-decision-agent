@@ -10,7 +10,7 @@ import { StageCard } from "../../src/voice";
 import { ActionCard, openScreen } from "../../src/actions";
 import { useData } from "../../src/useData";
 import { api } from "../../src/api";
-import { useMic } from "../../src/mic";
+import { micMime, useMic } from "../../src/mic";
 import * as TTS from "../../src/tts";
 import * as Haptics from "../../src/haptics";
 import { VoiceLoop, type Phase } from "../../src/voiceloop";
@@ -30,7 +30,7 @@ const STAGE: Record<string, string> = { observation: "Observation", candidate: "
 
 const UserBubble = ({ text, voice }: { text: string; voice?: boolean }) => (
   <View style={{ alignSelf: "flex-end", maxWidth: "85%", backgroundColor: C.accent, borderRadius: 16, borderBottomRightRadius: 4, paddingHorizontal: 14, paddingVertical: 10 }}>
-    <Text style={{ color: "#FFF", fontSize: 15, lineHeight: 21 }}>{voice ? "🎙 " : ""}{text}</Text>
+    <Text style={{ color: C.onInk, fontSize: 15, lineHeight: 21 }}>{voice ? "🎙 " : ""}{text}</Text>
   </View>
 );
 
@@ -86,7 +86,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
       {m.kind === "answer" && m.next_action?.label ? (
         <Pressable onPress={() => onPick(m.next_action.ask)} style={({ pressed }) => ({ backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 14,
           paddingVertical: 9, alignSelf: "flex-start", opacity: pressed ? 0.75 : 1 })}>
-          <Text style={{ color: "#FFF", fontSize: 14, fontWeight: "700" }}>{m.next_action.label}</Text>
+          <Text style={{ color: C.onInk, fontSize: 14, fontWeight: "700" }}>{m.next_action.label}</Text>
         </Pressable>
       ) : null}
       {chips.length ? (
@@ -103,7 +103,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {m.show.map((sh: any, i: number) => (
             <Pressable key={i} onPress={() => openScreen(sh)} style={{ backgroundColor: C.text, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 }}>
-              <Text style={{ color: "#FFF", fontSize: 13, fontWeight: "600" }}>{sh.label} ›</Text>
+              <Text style={{ color: C.onInk, fontSize: 13, fontWeight: "600" }}>{sh.label} ›</Text>
             </Pressable>
           ))}
         </View>
@@ -113,7 +113,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
         <View style={{ backgroundColor: C.accentSoft, borderRadius: 10, padding: 10, gap: 8 }}>
           <Text style={{ color: C.text, fontSize: 13 }}>Want me to show you this on screen? I'll take you there and talk you through it, then keep listening.</Text>
           <Pressable onPress={onShow} style={({ pressed }) => ({ alignSelf: "flex-start", backgroundColor: C.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
-            <Text style={{ color: "#FFF", fontWeight: "700" }}>Yes, show me</Text>
+            <Text style={{ color: C.onInk, fontWeight: "700" }}>Yes, show me</Text>
           </Pressable>
         </View>
       ) : null}
@@ -132,13 +132,13 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
 
 const Tab = ({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) => (
   <Pressable onPress={onPress} style={{ backgroundColor: on ? C.text : C.card2, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 }}>
-    <Text style={{ color: on ? "#FFF" : C.text, fontWeight: "600", fontSize: 13 }}>{label}</Text>
+    <Text style={{ color: on ? C.onInk : C.text, fontWeight: "600", fontSize: 13 }}>{label}</Text>
   </Pressable>
 );
 
 
-// The open conversation lives outside the page, so leaving Ask Jarvis and coming back (or the page being rebuilt by a
-// navigation) always shows the same conversation (Madhav, 2026-10-06: "inconsistency moving from ask Jarvis page to other and
+// The open conversation lives outside the page, so leaving Ask Ananta and coming back (or the page being rebuilt by a
+// navigation) always shows the same conversation (Madhav, 2026-10-06: "inconsistency moving from ask Ananta page to other and
 // coming back"). Another person signing in on the same phone or browser starts empty.
 const kept: { msgs: Msg[]; thread: string | null; who: string } = { msgs: [], thread: null, who: "" };
 
@@ -305,7 +305,7 @@ export default function Ananta() {
         // a person says "one sec" when a look-up takes a moment; silence feels like a machine
         const ack = setTimeout(() => { if (current()) TTS.playAck(); }, 1500);
         try {
-          r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
+          r = await api("/v3/voice/turn", { audio_b64: b64, mime: micMime(), thread: threadRef.current,
             mode: modeRef.current, context: where(true), prefix: pre || undefined }, 60000);
         } catch (e: any) {
           r = { error: e?.message ?? String(e) };
@@ -366,7 +366,7 @@ export default function Ananta() {
     dictating.current = false;                                   // mic button: the words become the question
     setBusy(true);
     try {
-      const r = await api("/v3/voice/transcribe", { audio_b64: b64, mime: "audio/wav" });
+      const r = await api("/v3/voice/transcribe", { audio_b64: b64, mime: micMime() });
       setBusy(false);
       if (r.text) send(r.text); else setErr("I didn't catch that. Try again a little closer to the phone.");
     } catch (e: any) {
@@ -428,7 +428,7 @@ export default function Ananta() {
     }
   }, [params.q, params.t]);
 
-  // "Start trading -> Use Jarvis" (a visitor): Jarvis opens the conversation by asking whether to find a trade.
+  // "Start trading -> Use Ananta" (a visitor): Ananta opens the conversation by asking whether to find a trade.
   const lastIntro = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (params.intro !== "find_trade" || params.t === lastIntro.current) return;
@@ -436,7 +436,7 @@ export default function Ananta() {
     loopRef.current?.end();
     setThread(null);
     const nm = vme?.profile?.name || vme?.name || me?.profile?.name || me?.name || "";
-    setMsgs([{ role: "assistant", kind: "answer", model_label: "Jarvis", answer: `Hi${nm ? ` ${nm}` : ""}! Your practice book is ready. Do you want me to find a trade for you among your coins?`,
+    setMsgs([{ role: "assistant", kind: "answer", model_label: "Ananta", answer: `Hi${nm ? ` ${nm}` : ""}! Your practice book is ready. Do you want me to find a trade for you among your coins?`,
       next_action: { label: "Yes, find me a trade", ask: "Yes, find me a trade among my coins." },
       follow_ups: ["First, how are my coins doing?", "How do you pick a trade?", "Not now"] }]);
   }, [params.intro, params.t, vme?.name]);
@@ -495,7 +495,7 @@ export default function Ananta() {
         onLayout={(e) => { sst.height.h = e.nativeEvent.layout.height; checkEnd(); }} onContentSizeChange={(_, h) => { sst.content.h = h; checkEnd(); }}>
         {msgs.length === 0 ? (
           <View style={{ gap: 8, paddingTop: 20 }}>
-            <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>{me?.guest ? `Hi ${me?.name || "there"}` : "Hi Madhav"}</Text>
+            <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>{me?.guest ? `Hi ${me?.name || "there"}` : "Hello, sir"}</Text>
             <T dim>{me?.guest ? "Ask me about your coins, your practice book, or the market. Type, tap the mic to dictate, or tap the wave and just talk."
               : "Ask about our portfolio or the market. Type, tap the mic to dictate, or tap the wave to just talk."}</T>
             <T small>{me?.guest ? "Try one of the questions below to start." : 'New here? Tap "New here" below for questions to start with.'}</T>
@@ -512,7 +512,7 @@ export default function Ananta() {
         {busy && !live ? (
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
             <ActivityIndicator color={C.dim} />
-            <T dim>Jarvis is looking…</T>
+            <T dim>Ananta is looking…</T>
           </View>
         ) : null}
         {err ? <Text style={{ color: C.bad }}>{err}</Text> : null}
@@ -520,7 +520,7 @@ export default function Ananta() {
       {!atEnd ? (
         <Pressable onPress={() => scroll.current?.scrollToEnd({ animated: true })} accessibilityLabel="Jump to latest"
           style={{ position: "absolute", right: 16, bottom: 12, width: 40, height: 40, borderRadius: 20, backgroundColor: C.text, alignItems: "center", justifyContent: "center", opacity: 0.9 }}>
-          <Text style={{ color: "#FFF", fontSize: 18, fontWeight: "700" }}>↓</Text>
+          <Text style={{ color: C.onInk, fontSize: 18, fontWeight: "700" }}>↓</Text>
         </Pressable>
       ) : null}
       {kb ? (
@@ -536,7 +536,7 @@ export default function Ananta() {
           <View style={{ flexDirection: "row", gap: 6, paddingHorizontal: 12 }}>
             {(me?.guest ? [] : [["new", "New here"], ["portfolio", "Our portfolio"], ["market", "Market & scans"]]).map(([k, l]) => (
               <Pressable key={k} onPress={() => setQcat(k)} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: qcat === k ? C.text : "transparent" }}>
-                <Text style={{ color: qcat === k ? "#FFF" : C.dim, fontSize: 12, fontWeight: "600" }}>{l}</Text>
+                <Text style={{ color: qcat === k ? C.onInk : C.dim, fontSize: 12, fontWeight: "600" }}>{l}</Text>
               </Pressable>
             ))}
           </View>
@@ -561,12 +561,12 @@ export default function Ananta() {
             <Text style={{ fontSize: 18 }}>{mic.status !== "idle" ? "■" : "🎙"}</Text>
           </Pressable>
           <TextInput value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"} onChangeText={setText}
-            placeholder="Ask Jarvis…" placeholderTextColor={C.faint} multiline
+            placeholder="Ask Ananta…" placeholderTextColor={C.faint} multiline
             style={{ flex: 1, maxHeight: 110, fontSize: 15, color: C.text, backgroundColor: C.bg, borderRadius: 20, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 }} />
           {text.trim() ? (
             <Pressable onPress={() => send(text)} disabled={busy}
               style={{ backgroundColor: busy ? C.line : C.accent, borderRadius: 20, paddingHorizontal: 16, height: 40, justifyContent: "center" }}>
-              <Text style={{ color: "#FFF", fontWeight: "700" }}>Send</Text>
+              <Text style={{ color: C.onInk, fontWeight: "700" }}>Send</Text>
             </Pressable>
           ) : (
             <Pressable onPress={startLive} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.accent, alignItems: "center", justifyContent: "center" }}>
@@ -611,7 +611,7 @@ function LivePanel({ label, phase, hearing, level, note, onOrb, onEnd, rateLabel
         <Text style={{ color: C.dim, fontSize: 12 }}>Speed</Text>
         {TTS.RATES.map((x) => (
           <Pressable key={x} onPress={() => { setR(x); onRate(x); }} style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: r === x ? C.text : C.card2 }}>
-            <Text style={{ color: r === x ? "#FFF" : C.text, fontSize: 12 }}>{String(x)}×</Text>
+            <Text style={{ color: r === x ? C.onInk : C.text, fontSize: 12 }}>{String(x)}×</Text>
           </Pressable>
         ))}
       </View>
@@ -619,12 +619,12 @@ function LivePanel({ label, phase, hearing, level, note, onOrb, onEnd, rateLabel
         <Text style={{ color: C.dim, fontSize: 12 }}>Voice</Text>
         {[...TTS.VOICES, "Phone"].map((v) => (
           <Pressable key={v} onPress={() => { setVc(v); onVoice(v); }} style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: vc === v ? C.text : C.card2 }}>
-            <Text style={{ color: vc === v ? "#FFF" : C.text, fontSize: 12 }}>{v}</Text>
+            <Text style={{ color: vc === v ? C.onInk : C.text, fontSize: 12 }}>{v}</Text>
           </Pressable>
         ))}
       </View>
       <Pressable onPress={onEnd} style={{ backgroundColor: C.text, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 9 }}>
-        <Text style={{ color: "#FFF", fontWeight: "700" }}>End voice</Text>
+        <Text style={{ color: C.onInk, fontWeight: "700" }}>End voice</Text>
       </Pressable>
     </View>
   );
@@ -632,7 +632,7 @@ function LivePanel({ label, phase, hearing, level, note, onOrb, onEnd, rateLabel
 
 const Wave = () => (
   <View style={{ flexDirection: "row", gap: 2, alignItems: "center" }}>
-    {[8, 14, 18, 14, 8].map((h, i) => <View key={i} style={{ width: 3, height: h, backgroundColor: "#FFF", borderRadius: 2 }} />)}
+    {[8, 14, 18, 14, 8].map((h, i) => <View key={i} style={{ width: 3, height: h, backgroundColor: C.onInk, borderRadius: 2 }} />)}
   </View>
 );
 

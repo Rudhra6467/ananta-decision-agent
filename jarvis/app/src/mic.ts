@@ -21,8 +21,13 @@ const WAV = {
 export type MicStatus = "idle" | "listening" | "hearing" | "sending";
 const CALIBRATE_MS = 400, END_SILENCE_MS = 1100, MAX_TURN_MS = 25000, NO_SPEECH_MS = 15000, DEAD_MS = 3000;
 
+// What the last recording really is: WAV on the phone; on the website the browser records WebM (Chrome) or MP4 (Safari).
+let lastMime = "audio/wav";
+export const micMime = () => lastMime;
+
 async function toBase64(uri: string): Promise<string> {
   const blob = await (await fetch(uri)).blob();
+  lastMime = (blob.type || "audio/wav").split(";")[0];
   return await new Promise((res, rej) => {
     const fr = new FileReader();
     fr.onerror = () => rej(new Error("could not read the recording"));

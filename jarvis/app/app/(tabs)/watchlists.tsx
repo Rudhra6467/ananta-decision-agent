@@ -19,7 +19,7 @@ export default function Markets() {
   const { data: ch } = useData(own ? "/v3/chain" : null);
   const { data: rd } = useData(own ? "/v3/reads" : null, 300000);
   const { data: zn } = useData(own ? "/v3/zones" : null, 300000);
-  useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: me?.guest ? "Markets tab: your coins" : "Markets tab: watchlist of 10 coins" }); }, [me?.guest]));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: me?.guest ? "Watchlists tab: your coins" : "Watchlists tab: watchlist of 10 coins" }); }, [me?.guest]));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   if (d.visitor) return <VisitorMarkets d={d} loading={loading} reload={reload} />;

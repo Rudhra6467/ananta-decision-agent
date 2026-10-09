@@ -45,24 +45,28 @@ export async function routeAfterSignIn() {
   else router.replace("/(tabs)/today");
 }
 
-// ---- a short note that closes by itself ("Order placed") ----
+// ---- the confirmation pop-up (plan 2.6): "Order placed ✓" closes by itself after 2 seconds, or with its ✕ ----
 type ToastT = { text: string; id: number } | null;
 let toast: ToastT = null;
 const tsubs = new Set<() => void>();
-export function showToast(text: string, ms = 1300) {
+const tset = (t: ToastT) => { toast = t; tsubs.forEach((f) => f()); };
+export function showToast(text: string, ms = 2000) {
   const id = Date.now();
-  toast = { text, id };
-  tsubs.forEach((f) => f());
-  setTimeout(() => { if (toast?.id === id) { toast = null; tsubs.forEach((f) => f()); } }, ms);
+  tset({ text, id });
+  setTimeout(() => { if (toast?.id === id) tset(null); }, ms);
 }
 export function Toast() {
   const [t, setT] = useState<ToastT>(toast);
   useEffect(() => { const f = () => setT(toast); tsubs.add(f); return () => { tsubs.delete(f); }; }, []);
   if (!t) return null;
   return (
-    <View pointerEvents="none" style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0, alignItems: "center", justifyContent: "center" }}>
-      <View style={{ backgroundColor: C.text, borderRadius: 16, paddingHorizontal: 22, paddingVertical: 16, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 12 }}>
-        <Text style={{ color: "#FFF", fontSize: 17, fontWeight: "700", textAlign: "center" }}>{t.text}</Text>
+    <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0, alignItems: "center", justifyContent: "center" }}>
+      <View accessibilityRole="alert" style={{ backgroundColor: C.ink, borderRadius: 16, paddingLeft: 22, paddingRight: 40, paddingVertical: 16, maxWidth: 320,
+        shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 12 }}>
+        <Text style={{ color: C.onInk, fontSize: 17, fontWeight: "700", textAlign: "center" }}>{t.text}</Text>
+        <Pressable onPress={() => tset(null)} hitSlop={10} accessibilityLabel="Close" style={{ position: "absolute", top: 6, right: 10, padding: 4 }}>
+          <Text style={{ color: C.onInk, fontSize: 15, opacity: 0.7 }}>✕</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -81,7 +85,7 @@ export function CoinPicker({ value, onChange, choices }: { value: string[]; onCh
               paddingVertical: 12, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: on ? C.accent : C.faint, backgroundColor: on ? C.accent : "transparent",
               alignItems: "center", justifyContent: "center" }}>
-              {on ? <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "800" }}>✓</Text> : null}
+              {on ? <Text style={{ color: C.onInk, fontSize: 12, fontWeight: "800" }}>✓</Text> : null}
             </View>
             <View>
               <Text style={{ color: C.text, fontWeight: "700", fontSize: 15 }}>{c.name}</Text>
@@ -97,19 +101,19 @@ export function CoinPicker({ value, onChange, choices }: { value: string[]; onCh
 // ---- the tour over their own tabs: Next / Skip; the last screen lists what they can do ----
 const TOUR = [
   { path: "/(tabs)/today", title: "Home", text: "This is your Home. Your coins, your practice money and your trades show up here. It's empty because it's all yours: nothing has happened yet." },
-  { path: "/(tabs)/markets", title: "Markets", text: "Markets shows only the coins you picked: live price, today's move and the trend. Tap a coin for its chart and what Jarvis sees in it." },
+  { path: "/(tabs)/watchlists", title: "Watchlists", text: "Watchlists shows the coins you picked: live price, today's move and the trend. Tap a coin for its chart and what Ananta sees in it." },
   { path: "/(tabs)/portfolio", title: "Books", text: "Books is your practice book. Next you add practice capital, then press Start trading. Until then nothing is bought or watched for you." },
-  { path: "/(tabs)/ask", title: "Ask Jarvis", text: "Ask Jarvis anything. Type, tap the mic to dictate, or tap the wave and just talk. Jarvis knows your coins and your book." },
+  { path: "/(tabs)/ask", title: "Ask Ananta", text: "Ask Ananta anything. Type, tap the mic to dictate, or tap the wave and just talk. Ananta knows your coins and your book." },
 ];
 export const CAN_DO = [
-  "“Find me a trade”: Jarvis looks at your coins and suggests one, with a plan",
+  "“Find me a trade”: Ananta looks at your coins and suggests one, with a plan",
   "“What's happening with Bitcoin today?”",
   "“Buy $100 of Solana with a stop 5% below”",
   "“Why would you buy, or not buy, Ethereum now?”",
   "“How is my book doing?”",
-  "“Show me around”: Jarvis walks you through any screen",
-  "Tap the wave in Ask Jarvis and talk instead of typing",
-  "Long-press any coin or trade to ask Jarvis about it",
+  "“Show me around”: Ananta walks you through any screen",
+  "Tap the wave in Ask Ananta and talk instead of typing",
+  "Long-press any coin or trade to ask Ananta about it",
 ];
 
 export function OnboardTour() {
@@ -147,16 +151,16 @@ export function OnboardTour() {
   const st = TOUR[i];
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", left: 12, right: 12, bottom: 96 }}>
-      <View style={{ backgroundColor: C.text, borderRadius: 16, padding: 14, gap: 10, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 10,
+      <View style={{ backgroundColor: C.ink, borderRadius: 16, padding: 14, gap: 10, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 10,
         maxWidth: 560, width: "100%", alignSelf: "center" }}>
-        <Text style={{ color: "#C9D3F5", fontSize: 11, fontWeight: "700", letterSpacing: 0.6 }}>TOUR · {i + 1} OF {TOUR.length + 1} · {st.title.toUpperCase()}</Text>
-        <Text style={{ color: "#FFF", fontSize: 15, lineHeight: 21 }}>{st.text}</Text>
+        <Text style={{ color: C.inkDim, fontSize: 11, fontWeight: "700", letterSpacing: 0.6 }}>TOUR · {i + 1} OF {TOUR.length + 1} · {st.title.toUpperCase()}</Text>
+        <Text style={{ color: C.onInk, fontSize: 15, lineHeight: 21 }}>{st.text}</Text>
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <Pressable onPress={() => setI(TOUR.length)} style={{ flex: 1, backgroundColor: "#33405E", borderRadius: 10, padding: 9, alignItems: "center" }}>
-            <Text style={{ color: "#FFF", fontWeight: "700" }}>Skip tour</Text>
+          <Pressable onPress={() => setI(TOUR.length)} style={{ flex: 1, backgroundColor: C.inkBtn, borderRadius: 10, padding: 9, alignItems: "center" }}>
+            <Text style={{ color: C.onInk, fontWeight: "700" }}>Skip tour</Text>
           </Pressable>
           <Pressable onPress={() => setI(i + 1)} style={{ flex: 1, backgroundColor: C.accent, borderRadius: 10, padding: 9, alignItems: "center" }}>
-            <Text style={{ color: "#FFF", fontWeight: "700" }}>Next ›</Text>
+            <Text style={{ color: C.onInk, fontWeight: "700" }}>Next ›</Text>
           </Pressable>
         </View>
       </View>
@@ -194,7 +198,7 @@ export function VisitorHome({ d, loading, reload }: { d: any; loading: boolean; 
           </>
         ) : <T>No capital added yet.</T>}
       </Card>
-      <Section title="Your coins" right={<Text onPress={() => goTab("/(tabs)/markets")} style={{ color: C.accent, fontWeight: "600" }}>Markets ›</Text>} />
+      <Section title="Your coins" right={<Text onPress={() => goTab("/(tabs)/watchlists")} style={{ color: C.accent, fontWeight: "600" }}>Watchlists ›</Text>} />
       <Card>
         {(d.coins ?? []).length === 0 ? <T dim>No coins picked yet.</T> : null}
         {(d.coins ?? []).map((c: any, i: number) => (
@@ -207,7 +211,7 @@ export function VisitorHome({ d, loading, reload }: { d: any; loading: boolean; 
       <Section title="Your trades" />
       <Card>
         {!b || b.fills.length === 0 ? (
-          <T dim>{d.started ? "No trades yet. Ask Jarvis to find one, or place one yourself in Books." : "Nothing yet. Trading starts when you press Start trading in Books."}</T>
+          <T dim>{d.started ? "No trades yet. Ask Ananta to find one, or place one yourself in Books." : "Nothing yet. Trading starts when you press Start trading in Books."}</T>
         ) : b.fills.slice(0, 6).map((f: any, i: number) => (
           <View key={f.id}>
             {i ? <Divider /> : null}
@@ -217,7 +221,7 @@ export function VisitorHome({ d, loading, reload }: { d: any; loading: boolean; 
         ))}
       </Card>
       {d.started ? (
-        <Btn label="Ask Jarvis to find me a trade" onPress={() => openJarvisTrade()} />
+        <Btn label="Ask Ananta to find me a trade" onPress={() => openJarvisTrade()} />
       ) : null}
     </Screen>
   );
@@ -301,7 +305,7 @@ export function VisitorBooks({ d, loading, reload }: { d: any; loading: boolean;
       {!d.started ? (
         <Card title="Ready when you are" sub="Nothing is bought or watched for you until you start.">
           <Pressable onPress={() => setChoose(true)} style={({ pressed }) => ({ backgroundColor: C.good, borderRadius: 12, paddingVertical: 16, alignItems: "center", opacity: pressed ? 0.8 : 1 })}>
-            <Text style={{ color: "#FFF", fontSize: 18, fontWeight: "800" }}>Start trading</Text>
+            <Text style={{ color: C.onInk, fontSize: 18, fontWeight: "800" }}>Start trading</Text>
           </Pressable>
         </Card>
       ) : (
@@ -312,7 +316,7 @@ export function VisitorBooks({ d, loading, reload }: { d: any; loading: boolean;
             <Stat label="Costs" value={usd(b.costs)} />
           </View>
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <View style={{ flex: 1 }}><Btn label="Jarvis, find a trade" onPress={openJarvisTrade} /></View>
+            <View style={{ flex: 1 }}><Btn label="Ananta, find a trade" onPress={openJarvisTrade} /></View>
             <View style={{ flex: 1 }}><Btn label="Trade myself" kind="secondary" onPress={() => setForm(!form)} /></View>
           </View>
           {form ? <TradeForm coins={d.coins} positions={b.positions} onDone={() => { setForm(false); reload(); }} /> : null}
@@ -335,7 +339,7 @@ export function VisitorBooks({ d, loading, reload }: { d: any; loading: boolean;
               <View key={f.id}>
                 {i ? <Divider /> : null}
                 <Line label={`${f.side === "BUY" ? "Bought" : "Sold"} ${COIN_NAME[f.coin] ?? f.coin} · ${new Date(f.t * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`}
-                  value={`${usd(f.usd)} @ ${price(f.px)}`} sub={f.reason ? `“${f.reason}”` : f.trigger === "direct" ? "placed by you" : f.trigger !== "owner" ? `automatic: ${f.trigger}` : "via Jarvis"} />
+                  value={`${usd(f.usd)} @ ${price(f.px)}`} sub={f.reason ? `“${f.reason}”` : f.trigger === "direct" ? "placed by you" : f.trigger !== "owner" ? `automatic: ${f.trigger}` : "via Ananta"} />
               </View>
             ))}
           </Card>
@@ -346,8 +350,8 @@ export function VisitorBooks({ d, loading, reload }: { d: any; loading: boolean;
           <Pressable onPress={() => {}} style={{ backgroundColor: C.card, borderRadius: 18, padding: 18, gap: 12, maxWidth: 480, width: "100%", alignSelf: "center" }}>
             <Text style={{ color: C.text, fontSize: 20, fontWeight: "700" }}>How do you want to trade?</Text>
             <Pressable onPress={() => start("jarvis")} style={({ pressed }) => ({ borderWidth: 2, borderColor: C.accent, backgroundColor: C.accentSoft, borderRadius: 14, padding: 14, gap: 4, opacity: pressed ? 0.8 : 1 })}>
-              <Text style={{ color: C.accent, fontWeight: "800", fontSize: 16 }}>Use Jarvis  ·  recommended</Text>
-              <Text style={{ color: C.text, fontSize: 13 }}>Jarvis looks at your coins, suggests a trade with a plan, and places it when you confirm.</Text>
+              <Text style={{ color: C.accent, fontWeight: "800", fontSize: 16 }}>Use Ananta  ·  recommended</Text>
+              <Text style={{ color: C.text, fontSize: 13 }}>Ananta looks at your coins, suggests a trade with a plan, and places it when you confirm.</Text>
             </Pressable>
             <Pressable onPress={() => start("myself")} style={({ pressed }) => ({ borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 14, gap: 4, opacity: pressed ? 0.8 : 1 })}>
               <Text style={{ color: C.text, fontWeight: "800", fontSize: 16 }}>Trade myself</Text>
@@ -401,7 +405,7 @@ export function TradeForm({ coins, positions, onDone }: { coins: string[]; posit
         {(["buy", "sell"] as const).map((s) => (
           <Pressable key={s} onPress={() => { setSide(s); setPv(null); if (s === "sell") { setCoin(held[0] ?? ""); setAmt("all"); } else { setCoin(coins[0] ?? "BTC"); setAmt("100"); } }}
             style={{ flex: 1, borderRadius: 8, paddingVertical: 8, alignItems: "center", backgroundColor: side === s ? C.text : C.card2 }}>
-            <Text style={{ color: side === s ? "#FFF" : C.text, fontWeight: "700" }}>{s === "buy" ? "Buy" : "Sell"}</Text>
+            <Text style={{ color: side === s ? C.onInk : C.text, fontWeight: "700" }}>{s === "buy" ? "Buy" : "Sell"}</Text>
           </Pressable>
         ))}
       </View>
@@ -418,7 +422,7 @@ export function TradeForm({ coins, positions, onDone }: { coins: string[]; posit
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
         {(side === "sell" ? ["all"] : AMOUNTS.map(String)).map((a) => (
           <Pressable key={a} onPress={() => { setAmt(a); setPv(null); }} style={{ borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: amt === a ? C.text : C.card2 }}>
-            <Text style={{ color: amt === a ? "#FFF" : C.text, fontWeight: "600" }}>{a === "all" ? "All of it" : `$${a}`}</Text>
+            <Text style={{ color: amt === a ? C.onInk : C.text, fontWeight: "600" }}>{a === "all" ? "All of it" : `$${a}`}</Text>
           </Pressable>
         ))}
         {side === "buy" ? (

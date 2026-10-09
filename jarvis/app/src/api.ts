@@ -1,4 +1,4 @@
-// Talks to the Jarvis service (owner only). The token and server address live in the phone's secure storage.
+// Talks to the Ananta service (owner only). The token and server address live in the phone's secure storage.
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 
@@ -40,13 +40,13 @@ export async function api<T = any>(path: string, body?: object, timeoutMs = 6000
     });
   } catch (e: any) {
     clearTimeout(timer);
-    if (e?.name === "AbortError") throw new ApiError(0, "No answer from Jarvis in time. Check the connection and try again.");
-    throw new ApiError(0, "Can't reach Jarvis right now. Check the connection and try again.");
+    if (e?.name === "AbortError") throw new ApiError(0, "No answer from Ananta in time. Check the connection and try again.");
+    throw new ApiError(0, "Can't reach Ananta right now. Check the connection and try again.");
   }
   clearTimeout(timer);
   const txt = await r.text();
   let data: any = {};
-  try { data = txt ? JSON.parse(txt) : {}; } catch { data = { detail: r.ok ? "Jarvis sent an unreadable reply." : `Jarvis is not reachable right now (HTTP ${r.status}).` }; }
+  try { data = txt ? JSON.parse(txt) : {}; } catch { data = { detail: r.ok ? "Ananta sent an unreadable reply." : `Ananta is not reachable right now (HTTP ${r.status}).` }; }
   if (r.ok && data?.detail && !txt.trim().startsWith("{")) throw new ApiError(r.status, data.detail);
   if (!r.ok) throw new ApiError(r.status, data?.detail || `HTTP ${r.status}`);
   return data as T;

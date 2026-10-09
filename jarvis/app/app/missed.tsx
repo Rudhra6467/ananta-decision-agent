@@ -8,11 +8,11 @@ import { Stack, useFocusEffect } from "expo-router";
 import { askAbout, setScreen } from "../src/context";
 import { Busy, Card, Divider, ErrorBox, Screen, Segmented, T } from "../src/ui";
 import { useData } from "../src/useData";
-import { C, COIN_NAME } from "../src/theme";
+import { C, live, COIN_NAME } from "../src/theme";
 
-const LABEL: Record<string, [string, string, string]> = {
-  CAUGHT: ["CAUGHT", "#05603A", C.goodSoft], SEEN: ["SEEN", C.accent, C.accentSoft], MISSED: ["MISSED", "#7A2E0E", C.warnSoft],
-};
+const LABEL: Record<string, [string, string, string]> = live(() => ({
+  CAUGHT: ["CAUGHT", C.goodDeep, C.goodSoft], SEEN: ["SEEN", C.accent, C.accentSoft], MISSED: ["MISSED", C.warnDeep, C.warnSoft],
+}));
 
 export default function Missed() {
   const [days, setDays] = useState("1");

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { setScroller, useSpotActive } from "./spotlight";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { C, pnlColor } from "./theme";
+import { C, live, pnlColor } from "./theme";
 
 export function Screen({ children, loading, onRefresh, pad = true }: { children: React.ReactNode; loading: boolean; onRefresh: () => void; pad?: boolean }) {
   const ref = useRef<ScrollView>(null);
@@ -79,7 +79,7 @@ export const Divider = () => <View style={{ height: 1, backgroundColor: C.line }
 
 export function Btn({ label, onPress, kind = "primary", small }: { label: string; onPress: () => void; kind?: "primary" | "secondary" | "danger"; small?: boolean }) {
   const bg = kind === "primary" ? C.accent : kind === "danger" ? C.bad : C.card;
-  const fg = kind === "secondary" ? C.text : "#FFFFFF";
+  const fg = kind === "secondary" ? C.text : C.onInk;
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [s.btn, small && { paddingVertical: 7, paddingHorizontal: 12 },
       { backgroundColor: bg, borderColor: kind === "secondary" ? C.line : bg, opacity: pressed ? 0.7 : 1 }]}>
@@ -174,7 +174,7 @@ export const pct = (x?: number | null) => (x == null ? "–" : `${x >= 0 ? "+" :
 export const price = (x?: number | null) =>
   x == null ? "–" : x >= 10 ? `$${x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : x >= 0.1 ? `$${x.toFixed(4)}` : `$${x.toFixed(5)}`;
 
-export const s = StyleSheet.create({
+export const s = live(() => StyleSheet.create({
   card: { backgroundColor: C.card, borderRadius: 14, padding: 16, gap: 8, borderWidth: 1, borderColor: C.line },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
   rowItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11 },
@@ -191,4 +191,4 @@ export const s = StyleSheet.create({
   seg: { flexDirection: "row", backgroundColor: C.card2, borderRadius: 10, padding: 3 },
   segI: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 8 },
   segOn: { backgroundColor: C.card, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
-});
+}));

@@ -7,6 +7,7 @@ import {
   useAudioRecorder, useAudioRecorderState,
 } from "expo-audio";
 import { api } from "./api";
+import { micMime } from "./mic";
 import { CandleChart } from "./charts";
 import { useScreen } from "./context";
 import { useData } from "./useData";
@@ -156,7 +157,7 @@ export default function Voice({ ActionCard, openScreen, suggestions = [] }: { Ac
       const uri = rec.uri;
       if (!uri) throw new Error("no recording");
       const b64 = await toBase64(uri);
-      const r = await api("/v3/voice/turn", { audio_b64: b64, mime: "audio/wav", thread: threadRef.current,
+      const r = await api("/v3/voice/turn", { audio_b64: b64, mime: micMime(), thread: threadRef.current,
         mode: claudeRef.current ? "deep" : "everyday", context: ctx ?? undefined });
       lastSpeech.current = Date.now();
       handle(r);
@@ -208,7 +209,7 @@ export default function Voice({ ActionCard, openScreen, suggestions = [] }: { Ac
         <Pressable onPress={onMic} disabled={status === "thinking"}>
           <Animated.View style={{ transform: [{ scale: pulse }], width: 112, height: 112, borderRadius: 56, alignItems: "center", justifyContent: "center",
             backgroundColor: status === "listening" ? C.bad : status === "speaking" ? C.good : status === "off" ? C.faint : C.accent }}>
-            {status === "thinking" ? <ActivityIndicator color="#FFF" size="large" /> : <MicGlyph />}
+            {status === "thinking" ? <ActivityIndicator color={C.onInk} size="large" /> : <MicGlyph />}
           </Animated.View>
         </Pressable>
         <Text style={{ color: C.text, fontWeight: "600" }}>{label}</Text>
@@ -300,7 +301,7 @@ function CoinStage({ coin }: { coin: string }) {
   const { data: ch } = useData(`/v3/chart/${coin}?tf=1h`, 0);
   const { data: w } = useData(`/v3/coin/${coin}/watch`, 0);
   if (!ch) return <ActivityIndicator color={C.dim} />;
-  const refs: any[] = (ch.levels ?? []).map((l: any) => ({ value: l.price, color: l.kind === "support" ? "#5B7083" : "#8A6D3B", label: l.kind === "support" ? "Support" : "Resist." }));
+  const refs: any[] = (ch.levels ?? []).map((l: any) => ({ value: l.price, color: l.kind === "support" ? C.level : C.level2, label: l.kind === "support" ? "Support" : "Resist." }));
   (ch.open_trades ?? []).forEach((t: any) => { if (t.stop) refs.push({ value: t.stop, color: C.bad, label: "Stop" }); });
   const best = w?.setups ? [...w.setups].sort((a: any, b: any) => b.met / b.of - a.met / a.of)[0] : null;
   return (
@@ -374,9 +375,9 @@ function Level({ db }: { db: number }) {
 function MicGlyph() {
   return (
     <View style={{ alignItems: "center" }}>
-      <View style={{ width: 26, height: 40, borderRadius: 13, borderWidth: 3, borderColor: "#FFF" }} />
-      <View style={{ width: 40, height: 16, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, borderWidth: 3, borderTopWidth: 0, borderColor: "#FFF", marginTop: -10 }} />
-      <View style={{ width: 3, height: 8, backgroundColor: "#FFF" }} />
+      <View style={{ width: 26, height: 40, borderRadius: 13, borderWidth: 3, borderColor: C.onInk }} />
+      <View style={{ width: 40, height: 16, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, borderWidth: 3, borderTopWidth: 0, borderColor: C.onInk, marginTop: -10 }} />
+      <View style={{ width: 3, height: 8, backgroundColor: C.onInk }} />
     </View>
   );
 }

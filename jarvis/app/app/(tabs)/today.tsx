@@ -1,5 +1,5 @@
 // Home as mission control (Madhav approved the mock, 2026-10-04). Three depths: this page is the glance (are all parts
-// running, the value, the market rule, Jarvis's day, what we found, what needs you); a tap goes one level deeper (Jarvis's
+// running, the value, the market rule, Ananta's day, what we found, what needs you); a tap goes one level deeper (Ananta's
 // book, what we missed, a coin or a trade); the Lab switch brings back the research views (the Lab page, the activity feed).
 import { Spot, useSpotActive } from "../../src/spotlight";
 import { useCallback, useState } from "react";
@@ -13,20 +13,20 @@ import { LineChart, Progress } from "../../src/charts";
 import { Btn, Busy, Card, Divider, Dot, ErrorBox, Row, Screen, T, pct, usd } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { useLab } from "../../src/lab";
-import { C, pnlColor } from "../../src/theme";
+import { C, live, pnlColor } from "../../src/theme";
 import { VisitorHome, useMe } from "../../src/visitor";
 
-const KIND: Record<string, { color: string; label: string }> = {
+const KIND: Record<string, { color: string; label: string }> = live(() => ({
   buy: { color: C.accent, label: "BUY" }, sell: { color: C.text, label: "SELL" }, watch: { color: C.faint, label: "ORDER" },
   portfolio: { color: C.accent, label: "PORTFOLIO" }, warn: { color: C.warn, label: "WARNING" }, info: { color: C.faint, label: "YOU" },
   alert: { color: C.warn, label: "ALERT" }, brief: { color: C.accent, label: "BRIEF" }, setup: { color: C.good, label: "YOUR SETUP" },
   request: { color: C.accent, label: "REPAIR SHOP" },
-};
+}));
 // Findings tags: words, plus a colour pair that differs in lightness, not hue alone.
-const TAG: Record<string, [string, string, string]> = {
+const TAG: Record<string, [string, string, string]> = live(() => ({
   MISSED: ["MISSED", C.warn, C.warnSoft], SEEN: ["SEEN", C.accent, C.accentSoft], LESSON: ["LESSON", C.text, C.card2],
   SHIFT: ["MARKET", C.warn, C.warnSoft], DOWN: ["DOWN", C.bad, C.badSoft],
-};
+}));
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -59,7 +59,7 @@ function OwnerHome() {
   const [briefOpen, setBriefOpen] = useState(false);
   const [showActivity, setShowActivity] = useState<boolean | null>(null);   // null = the default: open in Lab view
   const activityLit = useSpotActive("home.activity");              // Ananta pointing at it opens it
-  useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home tab: status, value, the market rule, Jarvis today, findings, what needs you" }); }, []));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home tab: status, value, the market rule, Ananta today, findings, what needs you" }); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   const s = d.summary;
@@ -150,7 +150,7 @@ function OwnerHome() {
 
       <Spot id="home.inbox">
         <Card title="Needs you" sub={needs ? "Nothing happens until you confirm." : undefined}>
-          {needs === 0 ? <T>Nothing right now. Jarvis's evening review comes at 8:30 pm.</T> : null}
+          {needs === 0 ? <T>Nothing right now. Ananta's evening review comes at 8:30 pm.</T> : null}
           {actions.map((a: any) => <ActionCard key={a.id} a={a} onDone={() => { reloadInbox(); reload(); }} />)}
           {s.portfolio.pending ? (
             <View style={{ gap: 8 }}>
@@ -182,7 +182,7 @@ function OwnerHome() {
 
       <Spot id="home.books">
         <Card title="Our books" sub="Tap a row for the full book">
-          <Row title="Jarvis's book" sub={`${m.jarvis?.open?.length ?? 0} open · against its random twins`} value={m.jarvis?.verdict ?? "–"}
+          <Row title="Ananta's book" sub={`${m.jarvis?.open?.length ?? 0} open · against its random twins`} value={m.jarvis?.verdict ?? "–"}
             onPress={() => router.push("/jarvis")} />
           <Divider />
           <Row title="Trend portfolio" sub={`${s.portfolio.holding} coins held · ${s.portfolio.mode === "AUTO" ? "Autopilot on" : "Suggests, you approve"}`}
@@ -240,10 +240,10 @@ function HealthStrip({ h }: { h: any }) {
     <Pressable onPress={() => askAbout({ screen: "home", label: "System health" }, "Is everything running?")} accessibilityRole="button"
       style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: ok ? C.goodSoft : C.badSoft, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 }}>
       <Dot color={ok ? C.good : C.bad} />
-      <Text style={{ color: ok ? "#05603A" : "#912018", fontWeight: "700", fontSize: 14 }}>
+      <Text style={{ color: ok ? C.goodDeep : C.badDeep, fontWeight: "700", fontSize: 14 }}>
         {ok ? `All ${h.of} parts running` : `${h.down.length} part${h.down.length === 1 ? "" : "s"} down`}
       </Text>
-      <Text style={{ color: ok ? "#05603A" : "#912018", fontSize: 13, flex: 1 }} numberOfLines={1}>{ok ? ago : `: ${h.down.join(", ")}`}</Text>
+      <Text style={{ color: ok ? C.goodDeep : C.badDeep, fontSize: 13, flex: 1 }} numberOfLines={1}>{ok ? ago : `: ${h.down.join(", ")}`}</Text>
     </Pressable>
   );
 }
@@ -258,7 +258,7 @@ function MarketCard({ mk }: { mk: any }) {
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <T dim small>The market</T>
         <View style={{ backgroundColor: allowed ? C.goodSoft : C.warnSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
-          <Text style={{ color: allowed ? "#05603A" : "#7A2E0E", fontWeight: "700", fontSize: 12 }}>{allowed ? "ALLOWED" : "RISK-OFF"}</Text>
+          <Text style={{ color: allowed ? C.goodDeep : C.warnDeep, fontWeight: "700", fontSize: 12 }}>{allowed ? "ALLOWED" : "RISK-OFF"}</Text>
         </View>
       </View>
       <Text style={{ color: C.text, fontSize: 17, fontWeight: "600", lineHeight: 23 }}>
@@ -274,7 +274,7 @@ function MarketCard({ mk }: { mk: any }) {
   );
 }
 
-// Jarvis's day: what it decided, what it holds, how far from a verdict against its random twins.
+// Ananta's day: what it decided, what it holds, how far from a verdict against its random twins.
 function JarvisCard({ jv }: { jv: any }) {
   if (!jv) return null;
   const take = jv.today?.TAKE ?? 0, pass = jv.today?.PASS ?? 0;
@@ -285,7 +285,7 @@ function JarvisCard({ jv }: { jv: any }) {
   return (
     <Card onPress={() => router.push("/jarvis")}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <T dim small>Jarvis today</T>
+        <T dim small>Ananta today</T>
         <Text style={{ color: C.accent, fontWeight: "600", fontSize: 13 }}>Open book ›</Text>
       </View>
       <Text style={{ color: C.text, fontSize: 17, fontWeight: "600", lineHeight: 23 }}>{sentence}</Text>

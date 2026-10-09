@@ -13,7 +13,6 @@ import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme
 import { VisitorBooks, useMe } from "../../src/visitor";
 
 const RANGES = [{ key: "1", label: "1D" }, { key: "7", label: "1W" }, { key: "30", label: "1M" }, { key: "365", label: "All" }];
-const SHADES = ["#2952CC", "#4A6FD6", "#6B8BDF", "#8CA6E8", "#ADC1F0", "#C6D4F5", "#D7E1F8", "#E3EAFA", "#EDF2FC", "#F3F6FD"];
 
 export default function Portfolio() {
   const me = useMe();
@@ -22,7 +21,7 @@ export default function Portfolio() {
   return <OwnerBooks />;
 }
 
-// A visitor's Books: their own practice book only (no Jarvis book, no Explorer, no trend portfolio).
+// A visitor's Books: their own practice book only (no Ananta book, no Explorer, no trend portfolio).
 function GuestBooks() {
   const { data: d, err, loading, reload } = useData("/v3/holdings", 30000);
   useFocusEffect(useCallback(() => { setScreen({ screen: "manual_book", tab: "mine", label: "Books tab: your practice book" }); reload(); }, []));
@@ -35,7 +34,7 @@ function OwnerBooks() {
   const [tab, setTab] = useState("portfolio");
   const p = useLocalSearchParams<{ tab?: string; t?: string }>();
   useEffect(() => { if (p.tab) setTab(String(p.tab)); }, [p.tab, p.t]);
-  useFocusEffect(useCallback(() => { setScreen({ screen: tab === "portfolio" ? "portfolio" : tab === "explorer" ? "explorer_trades" : "manual_book", tab, label: tab === "portfolio" ? "Portfolio tab: T3 portfolio" : tab === "explorer" ? "Portfolio tab: Explorer trades" : "Portfolio tab: My trades (manual paper book)" }); }, [tab]));
+  useFocusEffect(useCallback(() => { setScreen({ screen: tab === "portfolio" ? "portfolio" : tab === "explorer" ? "explorer_trades" : "manual_book", tab, label: tab === "portfolio" ? "Portfolio tab: trend portfolio" : tab === "explorer" ? "Portfolio tab: Explorer trades" : "Portfolio tab: My trades (manual paper book)" }); }, [tab]));
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <JarvisRow />
@@ -47,7 +46,7 @@ function OwnerBooks() {
   );
 }
 
-// Jarvis's own book sits above the others: one line, tap for the full book.
+// Ananta's own book sits above the others: one line, tap for the full book.
 function JarvisRow() {
   const { data: b } = useData("/v3/brain", 120000);
   const open = b?.open ?? [];
@@ -55,7 +54,7 @@ function JarvisRow() {
     <Pressable onPress={() => router.push("/jarvis")} accessibilityRole="button"
       style={{ marginHorizontal: 16, marginTop: 10, backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", alignItems: "center" }}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ color: C.text, fontWeight: "700", fontSize: 15 }}>Jarvis's book</Text>
+        <Text style={{ color: C.text, fontWeight: "700", fontSize: 15 }}>Ananta's book</Text>
         <Text style={{ color: C.dim, fontSize: 13 }}>{open.length} open · {b ? `${b.events} of 10 events · ${b.verdict}` : "loading"}</Text>
       </View>
       <Text style={{ color: C.accent, fontSize: 18 }}>›</Text>
@@ -128,7 +127,7 @@ function Book() {
       <Section title={`Holdings · ${d.holdings.length}`} right={<T small>value · total return</T>} />
       </Spot>
       <Card>
-        <StackBar parts={[...d.holdings.map((r: any, i: number) => ({ label: r.coin, value: r.value, color: SHADES[i] ?? C.line })),
+        <StackBar parts={[...d.holdings.map((r: any, i: number) => ({ label: r.coin, value: r.value, color: C.shades[i] ?? C.line })),
           { label: "Cash", value: d.cash, color: C.card2 }]} />
         {d.holdings.map((r: any) => (
           <View key={r.coin}>
@@ -158,7 +157,7 @@ function Book() {
       ) : null}
 
       <Card>
-        <Expand title="How this portfolio works" sub="The T3 rule from repair-shop review #4">
+        <Expand title="How this portfolio works" sub="The trend rule from repair-shop review #4">
           <T>{d.rule_plain}</T>
           <T small>Ratings: Strong = leading the group; Steady = middle; Weak = lagging, first to go if the trend breaks.</T>
         </Expand>

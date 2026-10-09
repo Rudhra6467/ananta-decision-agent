@@ -1020,6 +1020,8 @@
     "jarvis/service/ask.py",
     "jarvis/service/outside.py",
     "jarvis/service/appmap.py",
+    "jarvis/service/plain.py",
+    "jarvis/app/scripts/make_icons.py",
     "jarvis/service/speech.py",
     "jarvis/voice/server.py",
     "jarvis/evals/run.py"

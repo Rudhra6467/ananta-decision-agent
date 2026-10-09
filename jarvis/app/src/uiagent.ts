@@ -7,11 +7,11 @@ export type UiAction = { do: "go_to" | "open" | "back" | "scroll"; target?: stri
 export type UiResult = { action: UiAction; ok: boolean; landed?: string; error?: string };
 
 const TABS: Record<string, { path: string; tab?: string }> = {
-  home: { path: "/(tabs)/today" }, markets: { path: "/(tabs)/markets" },
+  home: { path: "/(tabs)/today" }, markets: { path: "/(tabs)/watchlists" },
   portfolio: { path: "/(tabs)/portfolio", tab: "portfolio" }, "portfolio:explorer": { path: "/(tabs)/portfolio", tab: "explorer" },
   "portfolio:mine": { path: "/(tabs)/portfolio", tab: "mine" }, ananta: { path: "/(tabs)/ask" },
   evidence: { path: "/lab", tab: "collected" }, "evidence:forwarded": { path: "/lab", tab: "forwarded" },
-  cockpit: { path: "/cockpit" }, mandate: { path: "/mandate" }, testlab: { path: "/testlab" },
+  cockpit: { path: "/(tabs)/cockpit" }, mandate: { path: "/mandate" }, testlab: { path: "/testlab" },
   jarvis: { path: "/jarvis" }, missed: { path: "/missed" },
 };
 

@@ -152,6 +152,33 @@ GUEST_LOCKED = ("/portfolio/approve", "/portfolio/reject", "/portfolio/mode", "/
 
 
 @app.middleware("http")
+async def plain_words(request, call_next):
+    """Plan 2.3: no internal code (E4, H07, T3, P02...) reaches a screen. Every /v3 answer's sentences and labels are rewritten
+    with display names; pure identifiers stay for the app, which names them with /v3/names."""
+    import json as _json
+    from fastapi.responses import Response
+    from jarvis.service import plain
+
+    resp = await call_next(request)
+    if not request.url.path.startswith("/v3/") or "application/json" not in resp.headers.get("content-type", ""):
+        return resp
+    body = b"".join([c async for c in resp.body_iterator])
+    try:
+        out = _json.dumps(plain.scrub(_json.loads(body)), ensure_ascii=False).encode()
+    except ValueError:
+        out = body
+    headers = {k: v for k, v in resp.headers.items() if k.lower() != "content-length"}
+    return Response(out, status_code=resp.status_code, headers=headers, media_type="application/json")
+
+
+@app.get("/v3/names")
+def display_names(who: str = Depends(owner)) -> dict:
+    """The one dictionary of display names (glossary.json names + the watch catalogue)."""
+    from jarvis.service import plain
+    return {"names": plain.names()}
+
+
+@app.middleware("http")
 async def guest_sandbox(request, call_next):
     from fastapi.responses import JSONResponse
 

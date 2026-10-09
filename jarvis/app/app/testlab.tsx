@@ -27,7 +27,7 @@ export default function TestLab() {
           <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
             {runs.map((r: any) => (
               <Pressable key={r.run} onPress={() => setRun(r.run)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: r.run === cur ? C.text : C.card, borderWidth: 1, borderColor: C.line }}>
-                <Text style={{ color: r.run === cur ? "#FFF" : C.text, fontSize: 12 }}>{r.run.slice(4, 6)}/{r.run.slice(6, 8)} {r.run.slice(9, 11)}:{r.run.slice(11, 13)}Z</Text>
+                <Text style={{ color: r.run === cur ? C.onInk : C.text, fontSize: 12 }}>{r.run.slice(4, 6)}/{r.run.slice(6, 8)} {r.run.slice(9, 11)}:{r.run.slice(11, 13)}Z</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -66,7 +66,7 @@ function Run({ run }: { run: string }) {
       <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
         {cats.map((c) => (
           <Pressable key={c} onPress={() => setCat(c)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: c === cat ? C.accent : C.card, borderWidth: 1, borderColor: C.line }}>
-            <Text style={{ color: c === cat ? "#FFF" : C.text, fontSize: 12 }}>{c}</Text>
+            <Text style={{ color: c === cat ? C.onInk : C.text, fontSize: 12 }}>{c}</Text>
           </Pressable>
         ))}
       </ScrollView>

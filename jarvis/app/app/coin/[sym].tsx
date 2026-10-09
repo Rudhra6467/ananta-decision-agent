@@ -8,6 +8,7 @@ import { CandleChart, Progress } from "../../src/charts";
 import { Big, Btn, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Row, Screen, Section, Segmented, T, pct, price, usd, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
+import { nm } from "../../src/names";
 import { ChainLadder } from "../../src/chain";
 import { ReadsCoin } from "../../src/reads";
 import { ZonesCoin } from "../../src/zones";
@@ -35,7 +36,7 @@ export default function Coin() {
   const chg = first ? 100 * (last / first - 1) : null;
   const span: Record<string, string> = { "15m": "30 hours", "1h": "5 days", "4h": "20 days", "1d": "6 months" };
   const refs: any[] = [];
-  (ch?.levels ?? []).forEach((l: any) => refs.push({ value: l.price, color: l.kind === "support" ? "#5B7083" : "#8A6D3B", label: l.label === "Support" ? "Support" : "Resist." }));
+  (ch?.levels ?? []).forEach((l: any) => refs.push({ value: l.price, color: l.kind === "support" ? C.level : C.level2, label: l.label === "Support" ? "Support" : "Resist." }));
   (guest ? [] : ch?.open_trades ?? []).forEach((t: any) => {
     refs.push({ value: t.entry, color: C.accent, label: "Bought" });
     if (t.stop) refs.push({ value: t.stop, color: C.bad, label: "Stop" });
@@ -140,22 +141,22 @@ export default function Coin() {
           </>
         ) : null}
 
-        {guest ? (hv?.started ? <Btn label={`Ask Jarvis for a ${COIN_NAME[d.coin] ?? d.coin} trade idea`} onPress={() =>
+        {guest ? (hv?.started ? <Btn label={`Ask Ananta for a ${COIN_NAME[d.coin] ?? d.coin} trade idea`} onPress={() =>
           goTab({ pathname: "/(tabs)/ask", params: { q: `Is there a good trade in ${COIN_NAME[d.coin] ?? d.coin} for my book right now?`, t: String(Date.now()) } })} /> : null) : <Spot id="coin.trades">
         <Section title="Explorer trades" />
         <Card>
           {d.open_trades.length === 0 && d.closed_trades.length === 0 ? <T dim>No trades on {d.coin} yet.</T> : null}
           {d.open_trades.map((t: any, i: number) => (
             <View key={t.id}>{i ? <Divider /> : null}
-              <Row title={`Open · ${t.setup}`} sub={`Bought ${price(t.entry)}`} value={usdSigned(t.pnl_usd)} valueColor={pnlColor(t.pnl_usd)} onPress={() => router.push(`/trade/${t.id}`)} />
+              <Row title={`Open · ${nm(t.setup)}`} sub={`Bought ${price(t.entry)}`} value={usdSigned(t.pnl_usd)} valueColor={pnlColor(t.pnl_usd)} onPress={() => router.push(`/trade/${t.id}`)} />
             </View>
           ))}
           {d.closed_trades.map((t: any, i: number) => (
-            <View key={i}><Divider /><Row title={`Closed · ${t.setup}`} sub={t.closed} value={usdSigned(t.net_usd)} valueColor={pnlColor(t.net_usd)} /></View>
+            <View key={i}><Divider /><Row title={`Closed · ${nm(t.setup)}`} sub={t.closed} value={usdSigned(t.net_usd)} valueColor={pnlColor(t.net_usd)} /></View>
           ))}
         </Card>
         </Spot>}
-        <Btn label={`Ask Jarvis about ${d.coin}`} kind="secondary"
+        <Btn label={`Ask Ananta about ${d.coin}`} kind="secondary"
           onPress={() => goTab({ pathname: "/(tabs)/ask", params: { q: `What is happening with ${d.coin}?`, t: String(Date.now()) } })} />
       </Screen>
     </>

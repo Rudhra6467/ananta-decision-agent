@@ -1,4 +1,4 @@
-// Jarvis's book (the "understand" depth): the trades Jarvis decides itself, $100 each on paper, each with a random twin.
+// Ananta's book (the "understand" depth): the trades Ananta decides itself, $100 each on paper, each with a random twin.
 // The honest score is against the twins, counted in independent events (10 before any verdict).
 import { Spot } from "../src/spotlight";
 import { useCallback } from "react";
@@ -9,6 +9,7 @@ import { LineChart, Progress } from "../src/charts";
 import { Busy, Card, Divider, ErrorBox, Screen, Stat, T, price, usdSigned } from "../src/ui";
 import { useData } from "../src/useData";
 import { C, COIN_NAME, pnlColor } from "../src/theme";
+import { nm } from "../src/names";
 
 const KNOW: Record<string, string> = {
   REGIME: "Market rule", T3: "Trend portfolio", ZONES: "Zones", LOOKOUT: "Zone reactions", EXITS: "Exits", TRAIL: "Trailing stops",
@@ -18,8 +19,8 @@ const KNOW: Record<string, string> = {
 
 export default function JarvisBook() {
   const { data: d, err, loading, reload } = useData("/v3/brain");
-  useFocusEffect(useCallback(() => { setScreen({ screen: "jarvis", label: "Jarvis's book: its own paper trades against random twins" }); }, []));
-  const head = <Stack.Screen options={{ headerShown: true, title: "Jarvis's book", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
+  useFocusEffect(useCallback(() => { setScreen({ screen: "jarvis", label: "Ananta's book: its own paper trades against random twins" }); }, []));
+  const head = <Stack.Screen options={{ headerShown: true, title: "Ananta's book", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
     headerTintColor: C.text, headerBackTitle: "Back" }} />;
   if (!d && loading) return <>{head}<Busy /></>;
   if (!d) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen></>;
@@ -55,7 +56,7 @@ export default function JarvisBook() {
 
       {sameMove ? (
         <View style={{ backgroundColor: C.warnSoft, borderRadius: 12, padding: 12 }}>
-          <Text style={{ color: "#7A2E0E", fontSize: 13, lineHeight: 19 }}>My open trades started on the same market move, so they count as one event. I size down when a new trade only adds more of the same bet.</Text>
+          <Text style={{ color: C.warnDeep, fontSize: 13, lineHeight: 19 }}>My open trades started on the same market move, so they count as one event. I size down when a new trade only adds more of the same bet.</Text>
         </View>
       ) : null}
 
@@ -68,7 +69,7 @@ export default function JarvisBook() {
               <View key={o.id}>
                 {i ? <Divider /> : null}
                 <Pressable onPress={() => router.push(`/jtrade/${o.id}`)} delayLongPress={350}
-                  onLongPress={() => askAbout({ screen: "jarvis", label: `Jarvis's ${o.coin} trade`, coin: o.coin, id: o.id }, `Why did you buy ${o.coin}, and how is it going?`)}
+                  onLongPress={() => askAbout({ screen: "jarvis", label: `Ananta's ${o.coin} trade`, coin: o.coin, id: o.id }, `Why did you buy ${o.coin}, and how is it going?`)}
                   style={{ paddingVertical: 11, gap: 7 }}>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
                     <Text style={{ color: C.text, fontSize: 16, fontWeight: "700" }}>{COIN_NAME[o.coin] ?? o.coin}
@@ -94,7 +95,7 @@ export default function JarvisBook() {
             <T dim small>No closed trades yet, so no credit or blame yet.</T>
           ) : (d.knowledge_credit ?? []).map((k: any, i: number) => (
             <View key={k.knowledge} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 5 }}>
-              <T>{KNOW[k.knowledge] ?? k.knowledge}</T>
+              <T>{KNOW[k.knowledge] ?? nm(k.knowledge)}</T>
               <T small>{k.trades} trades · <Text style={{ color: pnlColor(k.avg_usd) }}>{usdSigned(k.avg_usd)}</Text></T>
             </View>
           ))}
@@ -116,7 +117,7 @@ export default function JarvisBook() {
           {(d.decisions ?? []).map((x: any, i: number) => (
             <View key={x.id}>
               {i ? <Divider /> : null}
-              <Pressable onPress={() => x.trade_id ? router.push(`/jtrade/${x.trade_id}`) : askAbout({ screen: "jarvis", label: `Jarvis's ${x.coin} decision`, coin: x.coin }, `Why did you ${x.action === "PASS" ? "pass on" : "decide on"} ${x.coin}?`)}
+              <Pressable onPress={() => x.trade_id ? router.push(`/jtrade/${x.trade_id}`) : askAbout({ screen: "jarvis", label: `Ananta's ${x.coin} decision`, coin: x.coin }, `Why did you ${x.action === "PASS" ? "pass on" : "decide on"} ${x.coin}?`)}
                 style={{ paddingVertical: 9, gap: 3 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                   <Text style={{ color: C.text, fontWeight: "600" }}>{x.action === "TAKE" ? "Bought" : x.action === "PASS" ? "Passed" : "No decision"} {COIN_NAME[x.coin] ?? x.coin}</Text>

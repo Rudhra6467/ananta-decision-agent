@@ -46,7 +46,7 @@ export const useVoiceLive = () => useStore(() => voiceLive);
 export const useScreen = useAbout;
 
 // Open one of the four tabs. Expo Router's navigate() pushes a NEW copy of the tabs when you are on a page above them (a coin,
-// a trade): that was the second Ask Jarvis page that could not be closed and lost the conversation (Madhav, 2026-10-06). So:
+// a trade): that was the second Ask Ananta page that could not be closed and lost the conversation (Madhav, 2026-10-06). So:
 // first close the pages above the tabs, then switch tab. The one Ask page, with its conversation, is what comes back.
 export function goTab(href: any) {
   if (router.canDismiss()) {

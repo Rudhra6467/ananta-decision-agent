@@ -206,7 +206,8 @@ def stt(b: STTReq) -> dict:
     raw = base64.b64decode(b.audio_b64)
     if len(raw) > 12_000_000:
         raise HTTPException(400, "audio too long")
-    ext = ".m4a" if "m4a" in b.mime or "mp4" in b.mime else ".wav"
+    ext = (".m4a" if "m4a" in b.mime or "mp4" in b.mime else ".webm" if "webm" in b.mime else ".ogg" if "ogg" in b.mime
+           else ".wav")                                   # the website records WebM (Chrome) or MP4 (Safari); ffmpeg reads them all
     with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as f:
         f.write(raw)
         p = f.name

@@ -11,20 +11,20 @@ import re
 SCREENS = {
     "home": {"name": "Home", "where": "Home tab (house icon)",
              "shows": "mission control: whether every part is running, all paper money with its line since the start, the market rule "
-                      "(Bitcoin against its 50-day average, with the chart), Jarvis today (its open trades and the score against random "
+                      "(Bitcoin against its 50-day average, with the chart), Ananta today (its open trades and the score against random "
                       "twins), findings (moves we missed or only saw, lessons from closed trades, market shifts), what needs you, the brief, "
-                      "our books, and the activity feed; the Lab switch at the top right brings back the research views"},
-    "markets": {"name": "Markets", "where": "Markets tab (candles icon)",
+                      "our books, and the activity feed; the Cockpit tab holds the switches and settings"},
+    "markets": {"name": "Watchlists", "where": "Watchlists tab (candles icon, fourth tab)",
                 "shows": "how many coins are in an uptrend, the BTC gate, and the watchlist of 10 coins with price, today's move, "
                          "1h/4h trend and how close each is to its nearest setup; above it, Ananta's reasoning: where each coin stops on the "
                          "decision chain (regime, trend, location, trigger, invalidation, risk, exposure); tap a coin for its page"},
-    "portfolio": {"name": "Books: trend portfolio (T3)", "where": "Books tab, first sub-tab (Jarvis's book is the row above)",
+    "portfolio": {"name": "Books: trend portfolio (T3)", "where": "Books tab, first sub-tab (Ananta's book is the row above)",
                   "shows": "the T3 portfolio value chart, the Autopilot switch, suggested changes, holdings with value, return and rating, cash and costs"},
     "portfolio:explorer": {"name": "Explorer trades", "where": "Books tab, Explorer sub-tab",
                            "shows": "the Explorer's paper book: open trades with P&L, orders waiting to fill, closed trades"},
     "portfolio:mine": {"name": "My trades", "where": "Books tab, My trades sub-tab",
                        "shows": "the owner's own paper book: positions, orders with reasons, research jobs"},
-    "ananta": {"name": "Ask Jarvis", "where": "Ask Jarvis tab (speech bubble)",
+    "ananta": {"name": "Ask Ananta", "where": "Ask Ananta tab (speech bubble, middle tab)",
                "shows": "this conversation: type, dictate with the mic, or talk hands-free with the wave button; Sessions holds past conversations"},
     "evidence": {"name": "Evidence: inside the logic repair", "where": "the Evidence page (Home's Lab switch, then the Evidence row)",
                  "shows": "the repair loop live, in Madhav's order: looked, spotted, decided, scored, misses checked, sent to the repair "
@@ -34,12 +34,12 @@ SCREENS = {
                           "status); what changed; what we wait for with dates at this pace. The older research cards fold below."},
     "evidence:forwarded": {"name": "Evidence: forwarded and in use", "where": "the Evidence page, lower part",
                            "shows": "repairs that passed and run in paper (T3 vs buy-and-hold) and the safety changes"},
-    "jarvis": {"name": "Jarvis's book", "where": "Home > Jarvis today, or the top row of Books",
-               "shows": "Jarvis's own paper trades: the score against its random twins (running line, events to a verdict), open trades with "
+    "jarvis": {"name": "Ananta's book", "where": "Home > Ananta today, or the top row of Books",
+               "shows": "Ananta's own paper trades: the score against its random twins (running line, events to a verdict), open trades with "
                         "the room left to the stop, what its plans leaned on and the confidence check, and recent decisions with their thesis"},
     "missed": {"name": "What we missed", "where": "Home > Findings > Missed moves",
                "shows": "each day's biggest rises: caught, seen or missed, and why; and the misses that keep coming back"},
-    "cockpit": {"name": "Cockpit", "where": "gauge icon at the top right of Home",
+    "cockpit": {"name": "Cockpit", "where": "Cockpit tab (gauge icon, last tab)",
                 "shows": "kill switch, portfolio autopilot, locked live-trading switch, your mandate, the test lab, Ask and Voice switches, "
                          "the daily Claude budget and spend, active alerts, system status and recent actions"},
     "mandate": {"name": "Your mandate", "where": "Cockpit > Your mandate", "shows": "your goals, markets, styles, setups, limits and how Ananta should talk"},
@@ -47,7 +47,7 @@ SCREENS = {
 }
 ALIASES = {
     "home": "home", "home screen": "home", "main": "home", "start": "home", "dashboard": "home", "inbox": "home", "brief": "home", "activity": "home",
-    "market": "markets", "markets": "markets", "watchlist": "markets", "watch list": "markets", "scan": "markets", "scanner": "markets",
+    "market": "markets", "markets": "markets", "watchlists": "markets", "watchlist": "markets", "watch list": "markets", "scan": "markets", "scanner": "markets",
     "portfolio": "portfolio", "t3": "portfolio", "holdings": "portfolio",
     "explorer": "portfolio:explorer", "explorer trades": "portfolio:explorer", "open trades": "portfolio:explorer", "trades": "portfolio:explorer",
     "my trades": "portfolio:mine", "my book": "portfolio:mine", "my paper book": "portfolio:mine", "manual book": "portfolio:mine",
@@ -244,10 +244,10 @@ def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -
 # ---------------------------------------------------------------------------
 SPOTS = {
     "home": {"home.status": "whether every part is running (the health strip)", "home.value": "all paper money and its line since the start",
-             "home.market": "the market rule: Bitcoin against its 50-day average, with the chart", "home.jarvis": "Jarvis today: decisions, open trades, score vs random",
+             "home.market": "the market rule: Bitcoin against its 50-day average, with the chart", "home.jarvis": "Ananta today: decisions, open trades, score vs random",
              "home.findings": "findings: missed or seen moves, lessons, market shifts", "home.inbox": "what needs you (things waiting for your OK)",
-             "home.brief": "the morning / evening brief", "home.books": "our books: Jarvis, trend portfolio, Explorer", "home.activity": "the activity feed"},
-    "jarvis": {"jarvis.score": "the score against the random twins", "jarvis.open": "Jarvis's open trades", "jarvis.learning": "what its plans leaned on and the confidence check",
+             "home.brief": "the morning / evening brief", "home.books": "our books: Ananta, trend portfolio, Explorer", "home.activity": "the activity feed"},
+    "jarvis": {"jarvis.score": "the score against the random twins", "jarvis.open": "Ananta's open trades", "jarvis.learning": "what its plans leaned on and the confidence check",
                "jarvis.decisions": "recent decisions with their thesis"},
     "missed": {"missed.counts": "caught / seen / missed counts", "missed.moves": "the biggest moves and why", "missed.patterns": "misses that keep coming back"},
     "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.chain": "Ananta's reasoning: where each coin stops on the decision chain", "markets.reads": "your setups: Madhav's three buy setups checked on every coin", "markets.zones": "coins inside a zone now and recent zone entries",
@@ -474,8 +474,8 @@ def tour(j) -> list[dict]:
         {"spot": "home.brief", "say": "This is the daily brief. I write one in the morning and one in the evening, and you can ask for one any time."},
         {"spot": "home.books", "say": "These rows are our books: mine, the trend portfolio and the Explorer. Tap one to open it."},
         {"spot": "home.activity", "say": "And this is the activity feed: every buy, sell, alert and change, in plain words. Tap a trade to open it."},
-        {"ui": {"do": "go_to", "target": "markets", "label": "Markets"}, "spot": "markets.summary",
-         "say": f"This is Markets. Right now {up} of our {n} coins are in a one-hour uptrend."},
+        {"ui": {"do": "go_to", "target": "markets", "label": "Watchlists"}, "spot": "markets.summary",
+         "say": f"This is Watchlists. Right now {up} of our {n} coins are in a one-hour uptrend."},
         {"spot": "markets.coin:BTC", "say": "Each row is one coin: its price, its trend, and how close it is to one of our setups. Tap a coin for its chart."},
         {"ui": {"do": "go_to", "target": "portfolio", "label": "Portfolio"}, "spot": "portfolio.value",
          "say": f"This is the trend portfolio. It holds coins while they trend up and goes to cash when they fall. It is worth about {round(h['value']):,} dollars."},
@@ -489,9 +489,9 @@ def tour(j) -> list[dict]:
          "say": "This is the Evidence page: the repair loop, live. From what we looked at, to what we traded, to what we fixed. The Lab switch on Home keeps it close. Tap any row and it explains itself."},
         {"spot": "evidence.forwarded", "say": "This is the repair board: everything sent to the repair shop, what we found, what we did, the change and its status."},
         {"ui": {"do": "go_to", "target": "cockpit", "label": "Cockpit"}, "spot": "cockpit.controls",
-         "say": "This is the Cockpit, behind the gauge icon on Home. The kill switch and Autopilot live here, and live trading stays locked."},
+         "say": "This is the Cockpit, the last tab. The kill switch and Autopilot live here, and live trading stays locked."},
         {"spot": "cockpit.ai", "say": "Here you can switch me on or off and set a daily budget for Claude, so I never run up costs."},
-        {"ui": {"do": "go_to", "target": "ananta", "label": "Ask Jarvis"},
+        {"ui": {"do": "go_to", "target": "ananta", "label": "Ask Ananta"},
          "say": "And this is me. Type, tap the mic, or tap the wave and just talk. Ask me anything about our portfolio or the market, or ask me to show you something. That's the tour."},
     ]
     return steps

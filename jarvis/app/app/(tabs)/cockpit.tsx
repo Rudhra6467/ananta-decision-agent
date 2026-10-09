@@ -1,23 +1,50 @@
-import { Spot } from "../src/spotlight";
-import { setScreen } from "../src/context";
+import { Spot } from "../../src/spotlight";
+import { setScreen } from "../../src/context";
 import { Stack, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
-import { api, logout } from "../src/api";
-import { confirmWithFaceId } from "../src/guard";
-import { Btn, Busy, Card, Divider, Dot, ErrorBox, Line, Screen, Section, Segmented, T } from "../src/ui";
-import { Progress } from "../src/charts";
-import { useData } from "../src/useData";
-import { C } from "../src/theme";
+import { api, logout } from "../../src/api";
+import { confirmWithFaceId } from "../../src/guard";
+import { Btn, Busy, Card, Divider, Dot, ErrorBox, Line, Screen, Section, Segmented, T } from "../../src/ui";
+import { Progress } from "../../src/charts";
+import { useData } from "../../src/useData";
+import { C, themeName } from "../../src/theme";
+import { flipTheme } from "../../src/themetoggle";
+import { clearMe, useMe } from "../../src/visitor";
 
+// Cockpit is a tab now (plan 2.1). Madhav's Cockpit runs the whole system; a visitor's Cockpit controls only their own account.
 export default function CockpitPage() {
+  const me = useMe();
+  if (!me) return <Busy />;
+  return me.guest ? <VisitorCockpit /> : <Cockpit />;
+}
+
+function Appearance() {
+  const bat = themeName() === "bat";
   return (
-    <>
-      <Stack.Screen options={{ headerShown: true, title: "Cockpit", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
-        headerTintColor: C.text, headerBackTitle: "Home" }} />
-      <Cockpit />
-    </>
+    <Card title="Appearance" sub={bat ? "Bat Mode: dark charcoal with a soft yellow accent" : "Light"}>
+      <Segmented options={[{ key: "light", label: "☀︎  Light" }, { key: "bat", label: "☾  Bat Mode" }]} value={bat ? "bat" : "light"}
+        onChange={(k: string) => { if ((k === "bat") !== bat) flipTheme(); }} />
+    </Card>
+  );
+}
+
+function VisitorCockpit() {
+  useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "Cockpit: your account settings" }); }, []));
+  const me = useMe();
+  return (
+    <Screen loading={false} onRefresh={() => {}}>
+      <Spot id="cockpit.controls">
+        <Card title={me?.profile?.name ?? me?.name ?? "Your account"} sub="Practice account · paper money">
+          {me?.profile?.capital ? <Line label="Starting money" value={`$${Number(me.profile.capital).toLocaleString()}`} /> : null}
+          {me?.profile?.coins?.length ? <Line label="Your coins" value={String(me.profile.coins.length)} sub={me.profile.coins.join(", ")} /> : null}
+        </Card>
+      </Spot>
+      <Appearance />
+      <T small dim>Pausing Ananta for your account, Auto mode and voice settings arrive here next.</T>
+      <Btn label="Sign out" kind="secondary" onPress={async () => { await logout(); clearMe(); router.replace("/login"); }} />
+    </Screen>
   );
 }
 
@@ -169,6 +196,7 @@ function Cockpit() {
       {me && !me.guest ? (
         <Card title="People" sub={`Signed in as ${me.name} (${me.who}). Invite visitors and remove their accounts.`} onPress={() => router.push("/people")} />
       ) : null}
+      <Appearance />
       <Btn label="Sign out" kind="secondary" onPress={async () => { await logout(); router.replace("/login"); }} />
     </Screen>
   );

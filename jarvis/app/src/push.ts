@@ -1,4 +1,4 @@
-// Registers this phone for Jarvis push alerts. Needs an Expo project id (set once with `eas init`);
+// Registers this phone for Ananta push alerts. Needs an Expo project id (set once with `eas init`);
 // until then it quietly reports why it could not register.
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";

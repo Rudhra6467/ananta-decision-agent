@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!-- viewport-fit=cover: the Home Screen app uses the whole iPhone screen, under the notch (plan 2.5) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <title>Ananta</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ananta" />
+    <meta name="theme-color" content="#F5F6F8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141518" media="(prefers-color-scheme: dark)" />
+    <style id="expo-reset">
+      html, body { height: 100%; }
+      body { overflow: hidden; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+      #root { display: flex; height: 100%; flex: 1; }
+    </style>
+    <script>
+      // paint the page in the saved theme before the app loads, so Bat Mode never flashes white
+      try { if (localStorage.getItem("ananta_theme") === "bat") document.documentElement.style.background = "#141518"; } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run Ananta.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

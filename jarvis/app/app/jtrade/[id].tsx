@@ -1,4 +1,4 @@
-// One evidence trade in full (the "detail" depth): the price with its zone, entry and stop; the plan Jarvis wrote before the
+// One evidence trade in full (the "detail" depth): the price with its zone, entry and stop; the plan Ananta wrote before the
 // trade; what woke it; its random twin; and the review once it has closed. Works for any evidence book's trade.
 import { Spot } from "../../src/spotlight";
 import { useCallback } from "react";
@@ -9,6 +9,7 @@ import { LineChart } from "../../src/charts";
 import { Btn, Busy, Card, ErrorBox, Screen, Stat, T, price, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor } from "../../src/theme";
+import { nm } from "../../src/names";
 
 const TRIGGER: Record<string, string> = {
   zone_entry: "the price came down into a support zone", attention_high: "the coin turned high attention (a supported zone, the market allowed)",
@@ -29,13 +30,13 @@ export default function EvidenceTrade() {
   const t = d.trade, det = d.detail ?? {}, dec = d.decision, plan = dec?.plan ?? {};
   const open = t.status === "OPEN";
   const res = open ? d.pnl_usd : t.net_usd;
-  const book = t.watch === "JARVIS" ? "Jarvis's book" : t.watch === "JARVIS_RANDOM" ? "a random twin" : `${t.watch} evidence book`;
+  const book = t.watch === "JARVIS" ? "Ananta's book" : t.watch === "JARVIS_RANDOM" ? "a random twin" : `${nm(t.watch)} evidence book`;
   const closes = (d.hourly ?? []).map((x: any) => x.c);
   const entryIdx = (d.hourly ?? []).findIndex((x: any) => x.t >= (t.entry_t ?? 0));
   const refs: any[] = [{ value: t.entry, color: C.accent, label: "Bought" }];
   if (t.stop) refs.push({ value: t.stop, color: C.bad, label: open && det.stop0 && t.stop > det.stop0 ? "Trail" : "Stop" });
   if (det.target) refs.push({ value: det.target, color: C.good, label: "Target" });
-  if (d.zone) refs.push({ value: d.zone[0], color: "#5B7083", label: "Zone" }, { value: d.zone[1], color: "#5B7083", label: "Zone" });
+  if (d.zone) refs.push({ value: d.zone[0], color: C.level, label: "Zone" }, { value: d.zone[1], color: C.level, label: "Zone" });
   return (
     <>{head}
     <Screen loading={loading} onRefresh={reload}>
@@ -74,7 +75,7 @@ export default function EvidenceTrade() {
             {(plan.against ?? []).length ? (<View style={{ gap: 4, marginTop: 6 }}><Text style={{ color: C.bad, fontWeight: "700" }}>Against, and how the plan handles it</Text>
               {plan.against.map((x: string, i: number) => <T key={i} small>· {x}</T>)}</View>) : null}
             {plan.change_mind ? (<View style={{ gap: 4, marginTop: 6 }}><Text style={{ color: C.text, fontWeight: "700" }}>Wrong if</Text><T small>{plan.change_mind}</T></View>) : null}
-            {(dec.knowledge ?? []).length ? <T small dim>Knowledge used: {dec.knowledge.join(", ")}</T> : null}
+            {(dec.knowledge ?? []).length ? <T small dim>Knowledge used: {dec.knowledge.map((k: string) => nm(k)).join(", ")}</T> : null}
           </Card>
         </Spot>
       ) : null}
@@ -90,7 +91,7 @@ export default function EvidenceTrade() {
         </Card>
       </Spot>
 
-      <Btn label="Ask Jarvis about this trade" kind="secondary"
+      <Btn label="Ask Ananta about this trade" kind="secondary"
         onPress={() => askAbout({ screen: "jtrade", label: `${book}: ${coin} trade`, coin, id: String(id) }, `Walk me through your ${COIN_NAME[coin] ?? coin} trade: why, and how is it going?`)} />
     </Screen>
     </>

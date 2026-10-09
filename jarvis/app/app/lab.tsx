@@ -14,17 +14,18 @@ import { Pressable, Text, View } from "react-native";
 import { Donut, Progress, SignedBars } from "../src/charts";
 import { Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Screen, Segmented, Stat, T, pct, usdSigned } from "../src/ui";
 import { useData } from "../src/useData";
-import { C, pnlColor } from "../src/theme";
+import { C, live, pnlColor } from "../src/theme";
+import { nm } from "../src/names";
 
 const ask = (label: string, q: string) => askAbout({ screen: "evidence", label }, q);
-const GROUP: Record<string, { word: string; color: string; soft: string }> = {
+const GROUP: Record<string, { word: string; color: string; soft: string }> = live(() => ({
   you: { word: "Needs you", color: C.warn, soft: C.warnSoft }, us: { word: "In progress", color: C.accent, soft: C.accentSoft },
   evidence: { word: "Waiting for evidence", color: C.dim, soft: C.card2 }, done: { word: "Done", color: C.good, soft: C.goodSoft },
-};
-const MISS: Record<string, [string, string]> = { CAUGHT: ["Caught", C.good], SEEN: ["Seen", C.accent], MISSED: ["Missed", C.bad] };
-const VERDICT: Record<string, [string, string, string]> = {
+}));
+const MISS: Record<string, [string, string]> = live(() => ({ CAUGHT: ["Caught", C.good], SEEN: ["Seen", C.accent], MISSED: ["Missed", C.bad] }));
+const VERDICT: Record<string, [string, string, string]> = live(() => ({
   PASS: ["PASSED", C.good, C.goodSoft], FAIL: ["NO CHANGE", C.dim, C.card2], INSUFFICIENT: ["NOT ENOUGH DATA", C.warn, C.warnSoft],
-};
+}));
 const KIND: Record<string, string> = { ticket: "Ticket", request: "Request", review: "Review", question: "Question" };
 const LOOP_SPOT: Record<string, string> = { looked: "evidence.clocks", spotted: "evidence.collected", decided: "evidence.limits",
   scored: "evidence.collected", missed: "evidence.misses", forwarded: "evidence.forwarded", changed: "evidence.in_use" };
@@ -128,9 +129,9 @@ function Health({ h }: { h: any }) {
   );
 }
 
-const GATE: Record<string, [string, string]> = {
+const GATE: Record<string, [string, string]> = live(() => ({
   PASS: [C.good, C.goodSoft], FAIL: [C.bad, C.badSoft], PARTLY: [C.warn, C.warnSoft], PENDING: [C.accent, C.accentSoft], NOT_MEASURED: [C.dim, C.card2],
-};
+}));
 
 // The Engine Acceptance Gate (Madhav, Oct 6): the build is locked only when every check passes at once.
 function Gate({ g }: { g: any }) {
@@ -186,7 +187,7 @@ function Loop({ loop }: { loop: any[] }) {
           style={({ pressed }) => ({ flexDirection: "row", gap: 12, opacity: pressed ? 0.6 : 1 })}>
           <View style={{ alignItems: "center", width: 22 }}>
             <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: C.accent, alignItems: "center", justifyContent: "center", marginTop: 6 }}>
-              <Text style={{ color: "#FFF", fontSize: 11, fontWeight: "800" }}>{i + 1}</Text>
+              <Text style={{ color: C.onInk, fontSize: 11, fontWeight: "800" }}>{i + 1}</Text>
             </View>
             {i < loop.length - 1 ? <View style={{ flex: 1, width: 2, backgroundColor: C.accentSoft, minHeight: 14 }} /> : null}
           </View>
@@ -243,7 +244,7 @@ function Limits({ limits }: { limits: any[] }) {
   return (
     <View>
       <Q n={2} q="What did the limits stop, and did it matter?"
-        a={`${total.toLocaleString()} stops so far. The Explorer tracks every trade it stops, so we can see what it would have done; Jarvis's dropped wakes are not followed.`} />
+        a={`${total.toLocaleString()} stops so far. The Explorer tracks every trade it stops, so we can see what it would have done; Ananta's dropped wakes are not followed.`} />
       <Card>
         {limits.map((l: any, i: number) => {
           const t = limitTag(l);
@@ -305,7 +306,7 @@ function Results({ r }: { r: any }) {
         {r.by_setup?.length ? (
           <Expand title="By setup" sub="real trades · stopped trades (average per trade)">
             {r.by_setup.map((x: any) => (
-              <Line key={x.setup} label={`${x.setup} ${x.name}`}
+              <Line key={x.setup} label={x.name || nm(x.setup)}
                 value={`${x.real?.closed ? `${x.real.closed}, ${usdSigned(x.real.avg_usd)}` : "–"} · ${x.would_be?.closed ? `${x.would_be.closed}, ${usdSigned(x.would_be.avg_usd)}` : "–"}`} />
             ))}
           </Expand>
@@ -413,7 +414,7 @@ function Misses({ m }: { m: any }) {
             {pats.map((p: any, i: number) => (
               <View key={i} style={{ gap: 4 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-                  <Text style={{ color: C.text, fontSize: 13, flex: 1 }}>{p.said} <Text style={{ color: C.faint }}>({p.tier}; {p.coins})</Text></Text>
+                  <Text style={{ color: C.text, fontSize: 13, flex: 1 }}>{p.said} <Text style={{ color: C.faint }}>({nm(p.tier)}; {p.coins})</Text></Text>
                   <Text style={{ color: p.forwarded ? C.good : C.text, fontWeight: "700" }}>{p.forwarded ? "SENT" : `${p.times} of ${p.of}`}</Text>
                 </View>
                 <Progress value={Math.min(p.times, p.of)} of={p.of} color={p.forwarded ? C.good : C.warn} />
@@ -573,10 +574,10 @@ const SECTION_ORDER = ["DECISIONS", "MARKET_WEATHER", "COIN_STRUCTURE", "SETUPS"
 const SECTION_NAME: Record<string, string> = { DECISIONS: "JARVIS'S OWN DECISIONS (VS ITS RANDOM TWINS)", MARKET_WEATHER: "MARKET WEATHER", COIN_STRUCTURE: "COIN STRUCTURE AND ZONES", SETUPS: "SETUPS",
   RISK_EXITS: "RISK AND EXITS", NEWS_EVENTS: "NEWS AND EVENTS", BASELINES: "BASELINES (RANDOM, THE BAR TO BEAT)" };
 const reg = (x: any) => (x?.closed ? `${x.closed}, ${usdSigned(x.avg_usd)}` : "–");
-const IDEA: Record<string, [string, string]> = {
+const IDEA: Record<string, [string, string]> = live(() => ({
   SUPPORTED: [C.good, C.goodSoft], PROMISING: [C.accent, C.accentSoft], POLICY: [C.text, C.card2],
   NOT_SUPPORTED: [C.bad, C.badSoft], REJECTED: [C.bad, C.badSoft], INSUFFICIENT: [C.warn, C.warnSoft],
-};
+}));
 
 function Detail() {
   const { data: d } = useData("/v3/evidence/pipeline", 300000);
@@ -592,8 +593,7 @@ function Detail() {
             <View key={s.setup}>
               {i ? <Divider /> : null}
               <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8, gap: 8 }}>
-                <Text style={{ color: C.text, fontWeight: "700", width: 30 }}>{s.setup}</Text>
-                <Text style={{ color: C.dim, flex: 1, fontSize: 13 }} numberOfLines={1}>{s.name}</Text>
+                <Text style={{ color: C.text, flex: 1, fontSize: 14, fontWeight: "600" }} numberOfLines={1}>{s.name || nm(s.setup)}</Text>
                 {s.traded ? <Pill text="TRADED" color={C.accent} /> : <Pill text="WATCH ONLY" />}
                 <Text style={{ color: C.text, width: 40, textAlign: "right", fontWeight: "600" }}>{s.seen}</Text>
               </View>
@@ -630,7 +630,7 @@ function Detail() {
       ) : null}
 
       {sh ? (
-        <Card title="Paper shadow: short dip trade (H07)" sub={sh.history}>
+        <Card title="Paper shadow: short dip trade" sub={sh.history}>
           <T small>{sh.closed ? `${sh.closed} closed: ${sh.net_usd >= 0 ? "+" : "-"}$${Math.abs(sh.net_usd).toFixed(2)} on $100 each, ${Math.round(100 * (sh.win_rate ?? 0))}% won` : "No closed trades yet."}{sh.open ? ` · ${sh.open} open` : ""}{sh.waiting ? ` · ${sh.waiting} waiting for the next open` : ""}</T>
           {(sh.trades ?? []).slice(0, 5).map((t: any) => (
             <T key={t.id} small>{t.coin} {t.signal_day}: {t.status === "CLOSED" ? `${t.net_usd >= 0 ? "+" : "-"}$${Math.abs(t.net_usd).toFixed(2)} (${t.why})` : t.status.toLowerCase()}</T>

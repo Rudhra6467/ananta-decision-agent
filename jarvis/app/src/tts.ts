@@ -1,6 +1,6 @@
 // Speaking answers, in ONE voice.
 //
-// Natural voice (default): the Jarvis service turns the whole answer into one audio file (Kokoro on the Mac) and tells us
+// Natural voice (default): the Ananta service turns the whole answer into one audio file (Kokoro on the Mac) and tells us
 // when each sentence starts. We download it, play it, and call onPart(i) as playback reaches sentence i, so highlights
 // move exactly with the voice. One file = one voice: an answer can never switch voices halfway.
 // Phone voice: used for the whole answer only when the natural voice can't be reached (and the screen says so).
@@ -12,6 +12,11 @@ import * as Speech from "expo-speech";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import { File, Paths } from "expo-file-system";
 import { api, server, token } from "./api";
+import { fetchBlobUri, isWeb, webPlayer } from "./webaudio";
+
+// the phone plays through expo-audio; the website through one shared, tap-unlocked audio element (plan 2.7)
+const mkPlayer = (uri: string): AudioPlayer =>
+  (isWeb ? webPlayer(uri) : createAudioPlayer({ uri }, { keepAudioSessionActive: true, updateInterval: 100 })) as any;
 
 export type SpeakResult = "done" | "stopped";
 
@@ -58,7 +63,7 @@ export async function setRate(r: number) { rate = r; await save("tts_rate", Stri
 export async function setEngine(e: "natural" | "phone") { engine = e; naturalDownUntil = 0; await save("tts_engine", e); }
 export async function setVoice(v: string) { voice = v; await save("tts_voice", v); }
 
-// The same sentence split the Jarvis service uses (so the audio it prepared ahead matches exactly).
+// The same sentence split the Ananta service uses (so the audio it prepared ahead matches exactly).
 export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
 
 // What the service needs to prepare the natural voice ahead of time (sent with each voice question).
@@ -94,6 +99,7 @@ async function fetchMeta(parts: string[], id?: string): Promise<Meta> {
 // each play gets its own file (two plays of the same words must not delete each other's audio)
 async function download(id: string, my: number): Promise<File> {
   const [base, tok] = [await server(), await token()];
+  if (isWeb) return (await fetchBlobUri(`${base}/v3/voice/answer/${id}/audio`, tok)) as any;
   const f = new File(Paths.cache, `ananta-voice-${id}-${my}.mp3`);
   return File.downloadFileAsync(`${base}/v3/voice/answer/${id}/audio`, f,
     { headers: tok ? { Authorization: `Bearer ${tok}` } : {}, idempotent: true });
@@ -113,7 +119,7 @@ async function playNatural(parts: string[], onPart: (i: number) => void, my: num
   if (my !== seq) return "stopped";
   // keepAudioSessionActive: otherwise expo-audio switches the iPhone's audio session OFF ~0.1 s after playback ends
   // (or on pause) - right when the mic has just started listening - and the mic then hears nothing for a long time.
-  const p = createAudioPlayer({ uri: file.uri }, { keepAudioSessionActive: true, updateInterval: 100 });
+  const p = mkPlayer(file.uri);
   current = p;
   let finished = false;
   const sub = p.addListener("playbackStatusUpdate", (st: any) => { if (st?.didJustFinish) finished = true; });
@@ -231,6 +237,7 @@ export async function warmAcks() {
   for (const t of ACKS) {
     try {
       const meta = await api<Meta>("/v3/voice/answer", { sentences: [t], voice, speed: rate }, 30000);
+      if (isWeb) { ackFiles[t] = (await fetchBlobUri(`${base}/v3/voice/answer/${meta.id}/audio`, tok)).uri; continue; }
       const f = new File(Paths.cache, `ananta-ack-${meta.id}.mp3`);
       if (!f.exists) await File.downloadFileAsync(`${base}/v3/voice/answer/${meta.id}/audio`, f, { headers: tok ? { Authorization: `Bearer ${tok}` } : {}, idempotent: true });
       if (ackKey !== key) return;                        // the voice changed meanwhile
@@ -254,7 +261,7 @@ export function playAck(): Promise<SpeakResult> {
     (async () => {
       try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
       if (my !== seq) return settle("stopped");
-      const p = createAudioPlayer({ uri: ackFiles[t] }, { keepAudioSessionActive: true, updateInterval: 100 });
+      const p = mkPlayer(ackFiles[t]);
       current = p;
       let finished = false;
       const sub = p.addListener("playbackStatusUpdate", (st: any) => { if (st?.didJustFinish) finished = true; });

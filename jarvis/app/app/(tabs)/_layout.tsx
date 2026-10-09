@@ -1,4 +1,5 @@
-// The four main tabs (Home, Markets, Books, Ask Jarvis; the research views moved to the Lab page, 2026-10-04), swipeable like YouTube: drag left / right and you see the next page slide in.
+// The five main tabs (plan 2.1, D6): Home · Books · Ask Ananta · Watchlists · Cockpit, swipeable like YouTube: drag left / right and you see the next page slide in.
+// Tapping the tab you are already on goes back to the top (Ask Ananta: to the latest message), plan 2.2.
 // Tab bar stays at the bottom; the page header (title, Cockpit button) is drawn here because swipe tabs have no header of their own.
 import { useState } from "react";
 import { Alert, Platform, Pressable, Text, View } from "react-native";
@@ -7,10 +8,12 @@ import { router, usePathname } from "expo-router";
 import SwipeTabs from "expo-router/js-top-tabs";        // Expo Router's swipeable tabs (react-native-tab-view + pager-view underneath)
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C } from "../../src/theme";
+import { scroll } from "../../src/spotlight";
+import { ThemeToggle } from "../../src/themetoggle";
 import { BooksIcon, ChartIcon, ChatIcon, GaugeIcon, HomeIcon } from "../../src/icons";
 import { OnboardTour, clearMe, useMe } from "../../src/visitor";
 
-const TITLES: Record<string, string> = { today: "Home", markets: "Markets", portfolio: "Books", ask: "Ask Jarvis" };
+const TITLES: Record<string, string> = { today: "Home", portfolio: "Books", ask: "Ask Ananta", watchlists: "Watchlists", cockpit: "Cockpit" };
 
 // Guests (a friend testing the app) get a practice book of their own. A thin strip under the title says so on every tab;
 // tap it for the full note. Madhav never sees it.
@@ -47,15 +50,12 @@ function Header() {
   const path = usePathname();
   const key = (path.split("/").filter(Boolean).pop() || "today");
   const title = TITLES[key] ?? (path === "/" ? "Home" : "");
-  const me = useMe();
   return (
     <View style={{ paddingTop: top, backgroundColor: C.bg }}>
       <View style={{ height: 44, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
         <Text style={{ color: C.text, fontWeight: "700", fontSize: 17 }}>{title}</Text>
-        {title === "Home" && me && !me.guest ? (
-          <Pressable onPress={() => router.push("/cockpit")} hitSlop={12} style={{ position: "absolute", right: 16 }}>
-            <GaugeIcon color={C.text} size={24} />
-          </Pressable>
+        {title === "Cockpit" ? (
+          <View style={{ position: "absolute", right: 16 }}><ThemeToggle /></View>
         ) : null}
       </View>
       <PracticeStrip />
@@ -79,16 +79,20 @@ export default function TabsLayout() {
           tabBarShowIcon: true,
           tabBarActiveTintColor: C.accent, tabBarInactiveTintColor: C.faint,
           tabBarStyle: { backgroundColor: C.card, borderTopColor: C.line, borderTopWidth: 1, paddingBottom: bottom, elevation: 0, shadowOpacity: 0 },
-          tabBarLabelStyle: { fontSize: 11, fontWeight: "600", textTransform: "none", margin: 0 },
+          tabBarLabelStyle: { fontSize: 10, fontWeight: "600", textTransform: "none", margin: 0 },
           tabBarItemStyle: { paddingHorizontal: 0, paddingVertical: 6, minHeight: 52 },
           tabBarIndicatorStyle: { backgroundColor: C.accent, top: 0, height: 2 },
           tabBarPressColor: "transparent",
           sceneStyle: { backgroundColor: C.bg },
-        }}>
+        }}
+        screenListeners={({ navigation, route }: any) => ({
+          tabPress: () => { if (navigation.isFocused()) scroll(route.name === "ask" ? "bottom" : "top"); },
+        })}>
         <SwipeTabs.Screen name="today" options={{ title: "Home", tabBarIcon: icon(HomeIcon) }} />
-        <SwipeTabs.Screen name="markets" options={{ title: "Markets", tabBarIcon: icon(ChartIcon) }} />
         <SwipeTabs.Screen name="portfolio" options={{ title: "Books", tabBarIcon: icon(BooksIcon) }} />
-        <SwipeTabs.Screen name="ask" options={{ title: "Ask Jarvis", tabBarIcon: icon(ChatIcon) }} />
+        <SwipeTabs.Screen name="ask" options={{ title: "Ask Ananta", tabBarIcon: icon(ChatIcon) }} />
+        <SwipeTabs.Screen name="watchlists" options={{ title: "Watchlists", tabBarIcon: icon(ChartIcon) }} />
+        <SwipeTabs.Screen name="cockpit" options={{ title: "Cockpit", tabBarIcon: icon(GaugeIcon) }} />
       </SwipeTabs>
       <OnboardTour />
     </View>

@@ -38,8 +38,8 @@ export default function Welcome() {
   if (ready) {
     return (
       <View style={{ flex: 1, backgroundColor: C.accent, alignItems: "center", justifyContent: "center", padding: 24, gap: 10 }}>
-        <Text style={{ color: "#FFF", fontSize: 15, fontWeight: "600", opacity: 0.85 }}>${cap?.toLocaleString()} of practice money added</Text>
-        <Text style={{ color: "#FFF", fontSize: 30, fontWeight: "800", textAlign: "center" }}>Let's start trading</Text>
+        <Text style={{ color: C.onInk, fontSize: 15, fontWeight: "600", opacity: 0.85 }}>${cap?.toLocaleString()} of practice money added</Text>
+        <Text style={{ color: C.onInk, fontSize: 30, fontWeight: "800", textAlign: "center" }}>Let's start trading</Text>
       </View>
     );
   }
@@ -54,7 +54,7 @@ export default function Welcome() {
 
         {stage === "name" ? (
           <>
-            <Text style={{ color: C.text, fontSize: 28, fontWeight: "800" }}>Hi, I'm Jarvis.</Text>
+            <Text style={{ color: C.text, fontSize: 28, fontWeight: "800" }}>Hi, I'm Ananta.</Text>
             <Text style={{ color: C.text, fontSize: 17, lineHeight: 24 }}>I'll help you learn to trade crypto with practice money. What should I call you?</Text>
             <TextInput value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={C.faint} autoFocus
               onSubmitEditing={() => name.trim() && save({ name: name.trim() }).catch(() => {})}

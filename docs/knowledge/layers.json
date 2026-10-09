@@ -831,6 +831,7 @@
     "jarvis/service/watches.py",
     "jarvis/service/concepts.py",
     "jarvis/service/onboard.py",
+    "jarvis/service/acceptance.py",
     "jarvis/service/visitor.py"
    ]
   },

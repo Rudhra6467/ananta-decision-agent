@@ -5,11 +5,15 @@ import { Stack, router, useFocusEffect } from "expo-router";
 import { setScreen } from "../src/context";
 import { Busy, Card, Divider, Dot, ErrorBox, Line, Screen, Section, T } from "../src/ui";
 import { useData } from "../src/useData";
+import { api } from "../src/api";
+import { showToast } from "../src/blocks";
 import { C } from "../src/theme";
 
 export default function More() {
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
   const { data: ch } = useData("/v3/ask/chips", 0);
+  const { data: acc, reload: reloadAcc } = useData("/v3/acceptance", 20000);
+  const runAcc = async () => { try { await api("/v3/acceptance/run", {}); showToast("Running the checks: a few minutes"); reloadAcc(); } catch (e: any) { showToast(e?.message ?? "Could not start"); } };
   const [all, setAll] = useState(false);
   useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "Cockpit › Additional features: systems, recent activities, invites, mandate" }); }, []));
   const head = <Stack.Screen options={{ headerShown: true, title: "Additional features", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
@@ -51,6 +55,23 @@ export default function More() {
             </View>
           ))}
           {acts.length > 8 ? <Text onPress={() => setAll(!all)} style={{ color: C.accent, fontWeight: "600", paddingTop: 6 }}>{all ? "Show less" : `Show all ${acts.length}`}</Text> : null}
+        </Card>
+
+        <Section title="Acceptance checks" right={<Text onPress={runAcc} style={{ color: C.accent, fontWeight: "700" }}>{acc?.running ? "Running…" : "Run now"}</Text>} />
+        <Card sub={acc?.latest ? `${acc.latest.passed} of ${acc.latest.of} pass · ${new Date(acc.latest.t * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "Your 10-minute test, run for you and a test visitor, plus the no-leak test"}>
+          {(acc?.latest?.checks ?? []).map((c: any, i: number) => (
+            <View key={i}>
+              {i ? <Divider /> : null}
+              <View style={{ flexDirection: "row", gap: 10, paddingVertical: 7, alignItems: "flex-start" }}>
+                <Text style={{ color: c.ok ? C.good : C.bad, fontWeight: "800", width: 18 }}>{c.ok ? "✓" : "✗"}</Text>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ color: C.text, fontSize: 14 }}>“{c.question}” <Text style={{ color: C.faint }}>· {c.who}</Text></Text>
+                  <T small dim>{c.why}</T>
+                </View>
+              </View>
+            </View>
+          ))}
+          {!acc?.latest ? <T dim>Not run yet. Each run asks about 30 questions on the Test lab budget.</T> : null}
         </Card>
 
         <Section title="What people tap" right={<T small>last 7 days</T>} />

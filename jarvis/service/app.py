@@ -752,6 +752,40 @@ def onboard_restart(who: str = Depends(owner)) -> dict:
     return onboard.prompt(J())
 
 
+_ACC = {"running": False}
+
+
+@app.get("/v3/acceptance")
+def acceptance_latest(who: str = Depends(owner)) -> dict:
+    """Phase 6.1: the latest run of the ten automatic checks and the no-leak test."""
+    from jarvis.service import acceptance
+
+    return {"running": _ACC["running"], "latest": acceptance.latest() if not is_guest(who) else None}
+
+
+@app.post("/v3/acceptance/run")
+def acceptance_run(who: str = Depends(owner)) -> dict:
+    """Run the checks now, in the background (a few minutes; counted on the Test lab budget)."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav can run the acceptance checks.")
+    if _ACC["running"]:
+        return {"running": True}
+    from jarvis.service import acceptance
+
+    main = _main()
+    vis = _sandbox("guest:" + acceptance.TEST_VISITOR)
+
+    def go():
+        _ACC["running"] = True
+        try:
+            acceptance.run(main, vis)
+        finally:
+            _ACC["running"] = False
+
+    _threading.Thread(target=go, daemon=True).start()
+    return {"running": True}
+
+
 @app.get("/v3/concepts/next")
 def concept_next(who: str = Depends(owner)) -> dict:
     """Plan 4.5: the next idea to introduce to this account (once each, when it first matters), or none."""

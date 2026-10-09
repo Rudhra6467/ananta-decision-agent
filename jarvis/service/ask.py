@@ -2022,6 +2022,14 @@ class Ask:
                     log.clear()
                     L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
                     raw, usage = self.providers["haiku"](system, history, user_msg, L, log)
+                # Claude refused the call itself (no Anthropic credit left, overloaded, a bad key): free Gemini answers instead of nothing
+                elif MODELS[used]["provider"] == "claude" and "gemini" in self.providers and not L.created:
+                    why = ("no Anthropic credit left" if "credit balance" in str(exc).lower() else "Claude is unavailable right now")
+                    used = "gemini_voice" if voice and "gemini_voice" in self.providers else "gemini"
+                    note = (note + "; " if note else "") + f"{why}, so Gemini answered"
+                    log.clear()
+                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
+                    raw, usage = self.providers[used](system, history, user_msg, L, log)
                 else:
                     raise exc
             try:

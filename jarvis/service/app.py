@@ -800,6 +800,35 @@ def web_push_email(b: dict, who: str = Depends(owner)) -> dict:
     return {"email_alerts": bool(account.profile(J().db).get("email_alerts"))}
 
 
+_PUB = {"t": 0.0, "v": None}
+
+
+@app.get("/v3/public/status")
+def public_status() -> dict:
+    """The public front page (no sign-in): a few honest, live numbers about Ananta. Nothing personal, no trades, no accounts.
+    Cached for 10 minutes."""
+    import time as _t
+
+    if _PUB["v"] and _t.time() - _PUB["t"] < 600:
+        return _PUB["v"]
+    out: dict = {"paper_only": True}
+    try:
+        from jarvis.service import evidence_live, views
+
+        s = evidence_live.summary(_main())
+        res = {x["key"]: x for x in (s.get("results") or {}).get("items") or []}
+        out |= {"days": s.get("headline", "").split(" of paper")[0].replace("Day ", "") or None,
+                "events": (s.get("results") or {}).get("events"), "goal_events": (s.get("results") or {}).get("goal_events"),
+                "real_per_100": (res.get("real") or {}).get("avg_usd"), "random_per_100": (res.get("random") or {}).get("avg_usd"),
+                "trades_scored": sum((res.get(k) or {}).get("closed") or 0 for k in ("real", "would_be", "no_type", "random")),
+                "rebuilds": (s.get("reconstruction") or {}).get("total"), "mismatches": (s.get("reconstruction") or {}).get("mismatches"),
+                "reviews": len(views.evidence_collected(_main()).get("forwarded") or []), "coins_live": 10}
+    except Exception as exc:  # noqa: BLE001
+        out["error"] = str(exc)[:80]
+    _PUB.update(t=_t.time(), v=out)
+    return out
+
+
 @app.get("/v3/costs")
 def costs_summary(days: int = 30, who: str = Depends(owner)) -> dict:
     """Where the AI money goes, by job and model, for every account together (Madhav only)."""

@@ -9,7 +9,7 @@ from src.intelligence.research_pipeline import ADAPTERS, NEXT_SLICE, refuse_bulk
 class TestResearchPipeline(unittest.TestCase):
     def test_lock_is_process_not_dump(self):
         s = spec()
-        self.assertEqual(s["version"], "PIPELINE-v1.1")
+        self.assertEqual(s["version"], "PIPELINE-v1.2")
         self.assertFalse(s["keep"])
         self.assertFalse(s["run_everything"])
         self.assertTrue(s["acquire_years"])

@@ -541,7 +541,7 @@ class TestSetupMemory(unittest.TestCase):
         self.assertFalse(report["keep"])
         self.assertFalse(report["ranker"])
         self.assertFalse(report["similarity"])
-        self.assertEqual(report["version"], "SETUP-MEMORY-v0.1")
+        self.assertEqual(report["version"], "SETUP-MEMORY-v0.2")
 
     def test_refusal_stamp_is_not_a_rewrite_license(self):
         self.assertEqual(refusal_stamp(0.40), "COSTLY")

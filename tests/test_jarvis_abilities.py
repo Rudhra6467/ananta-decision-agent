@@ -74,7 +74,7 @@ def test_prices_from_stored_candles():
     assert all(c["coins"][i]["change_pct"] >= c["coins"][i + 1]["change_pct"] for i in range(len(c["coins"]) - 1))
     cov = L.call("prices", {"what": "coverage"})
     assert coin in cov["live_candles"] and "5m" in cov["live_candles"][coin]
-    assert "error" in L.call("prices", {"coin": "PEPE"})
+    assert "error" in L.call("prices", {"coin": "NOTACOIN"})          # PEPE joined the 120-coin lake; an unknown coin still errors
 
 
 def test_web_lookup_uses_google_then_claude(monkeypatch):

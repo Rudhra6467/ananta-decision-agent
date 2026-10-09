@@ -84,6 +84,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `GUEST_GUIDE.md`: a guide for a friend trying the app: how to open it, the tabs, the coins, first questions, the rule gates, making a paper trade, what practice mode locks.
 - `RUNBOOK_SAFETY.md`: stop, flatten, roll back, resume (copy-paste commands).
 - `SAFETY_GATES_LOCK.md`: safety gates that live outside the AI.
+- `UNIVERSE_RULE_V2.md`: the live universe (Oct 9, 2026): every Binance USDT coin Ananta watches, tiers A/B/C by daily trading, can-buy flags, paper costs, what runs on every coin, what earns promotion, the brain's daily budget.
 - `JARVIS_TEST_PLAN.md`: how Jarvis / Ask Ananta is tested (automatic suite + hands-on checks).
 - `LOCAL_LOOP.md`: running the agent locally without the website.
 

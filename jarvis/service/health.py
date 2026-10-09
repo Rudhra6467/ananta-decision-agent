@@ -38,7 +38,7 @@ MIN_FREE_GB = 5.0
 NAMES = {"explorer": "the 15-minute Explorer", "hourly_watch": "the hourly watch (Hunter's book)", "eye": "the eye (live prices)",
          "jobs": "Jarvis's 15-minute jobs", "candles": "the daily candles", "voice": "the voice server", "hands": "Hands (the App backend)",
          "tunnel": "the public address (tunnel)", "disk": "disk space", "hands_login": "Hands login (the agent's access)",
-         "tier30": "the 30-coin paper tier"}
+         "tier30": "the 30-coin paper tier", "universe_feed": "the universe feed (every coin's prices and candles)"}
 FIX = {"explorer": "Restart it from the main checkout (RUNBOOK_SAFETY.md, 'Explorer').",
        "hourly_watch": "Restart paper_watch from the main checkout (RUNBOOK_SAFETY.md, 'hourly watch').",
        "eye": "Restart Jarvis (deploy_jarvis.sh) if it stays down.",
@@ -50,7 +50,8 @@ FIX = {"explorer": "Restart it from the main checkout (RUNBOOK_SAFETY.md, 'Explo
        "disk": "Free some disk space on the Mac.",
        "hands_login": "Hands answers but refuses the login: check its database connection (MongoDB) and the internet; the Explorer "
                       "and the hourly watch stand still until it works (they cannot read the kill switch).",
-       "tier30": "Check Jarvis's daily jobs (tier30.run after the daily close) and the internet (Binance daily candles)."}
+       "tier30": "Check Jarvis's daily jobs (tier30.run after the daily close) and the internet (Binance daily candles).",
+       "universe_feed": "Restart Jarvis (deploy_jarvis.sh); if it stays down, check the internet and Binance's public API (api.binance.com)."}
 STATE: dict[str, Any] = {"last_run": None, "jobs_t": None, "running": False, "parts": {}}
 _lock = threading.Lock()
 
@@ -133,6 +134,20 @@ def checks(j, get: Callable = _get, now: float | None = None) -> dict[str, dict]
     if STATE.get("jobs_t") or STATE.get("check_jobs"):
         a = _age(STATE.get("jobs_t"), now)
         out["jobs"] = {"ok": a is not None and a < 25 * 60, "detail": f"last run {_mins(a)} ago"}
+
+    ub = d / "universe_bars.sqlite"
+    if ub.exists():                                                # engine plan U2.4: the universe feed (prices and 5-minute candles)
+        import sqlite3
+
+        con = sqlite3.connect(f"file:{ub}?mode=ro", uri=True, timeout=10)
+        try:
+            pt = con.execute("SELECT MAX(t) FROM px").fetchone()[0]
+            m5 = con.execute("SELECT v FROM meta WHERE k='m5_done'").fetchone()
+        finally:
+            con.close()
+        ap, am = _age(pt, now), _age(float(m5[0]) if m5 else None, now)
+        out["universe_feed"] = {"ok": ap is not None and ap < 120 and am is not None and am < 15 * 60,
+                                "detail": f"prices {_mins(ap) if (ap or 0) >= 60 else f'{ap or 0:.0f} s'} old, 5-minute candles {_mins(am)} ago"}
 
     bars = d / "explorer_bars.sqlite"
     if bars.exists():

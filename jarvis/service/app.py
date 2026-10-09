@@ -327,6 +327,49 @@ def _start_watchdog_and_brain() -> None:
         brain.start(_main, push=lambda t, b: _push(t, b))
 
 
+@app.on_event("startup")
+def _start_universe() -> None:
+    """Engine plan U2-U4: one feed for every coin (Binance public data), every rule on every coin, zone touches on live prices.
+    The 10-coin books are untouched (D7)."""
+    import os
+    import threading
+
+    if os.getenv("ANANTA_UNIVERSE", "1") != "1" or "PYTEST_CURRENT_TEST" in os.environ:
+        return
+    from jarvis.service import feed, universe_explorer, universe_watch
+
+    def first_arm():
+        try:
+            if not (universe_watch.Path(_main().dir) / "universe_zones.json").exists():
+                universe_watch.arm(_main())
+        except Exception:  # noqa: BLE001
+            pass
+
+    feed.start(_main, on_prices=universe_watch.tick, on_daily=universe_watch.run_daily, on_5m=universe_explorer.step_async)
+    threading.Timer(90, first_arm).start()
+
+
+@app.get("/v3/universe")
+def universe_live(who: str = Depends(owner)) -> dict:
+    from jarvis.service import universe_watch
+
+    return universe_watch.status(_main())
+
+
+@app.get("/v3/universe/scoreboard")
+def universe_scoreboard(who: str = Depends(owner)) -> dict:
+    from jarvis.service import universe_watch
+
+    return universe_watch.scoreboard(_main())
+
+
+@app.get("/v3/universe/coins")
+def universe_coins(tier: str | None = None, q: str | None = None, sort: str = "trading", n: int = 60, who: str = Depends(owner)) -> dict:
+    from jarvis.service import universe_watch
+
+    return universe_watch.coins(_main(), tier=tier, q=q, sort=sort, n=n)
+
+
 @app.get("/history")
 def history(days: float = 30, who: str = Depends(owner)) -> dict:
     return J().history(days)
@@ -823,6 +866,12 @@ def public_status() -> dict:
                 "trades_scored": sum((res.get(k) or {}).get("closed") or 0 for k in ("real", "would_be", "no_type", "random")),
                 "rebuilds": (s.get("reconstruction") or {}).get("total"), "mismatches": (s.get("reconstruction") or {}).get("mismatches"),
                 "reviews": len(views.evidence_collected(_main()).get("forwarded") or []), "coins_live": 10}
+        try:
+            from jarvis.service import registry as _reg
+
+            out["coins_watched"] = (_reg.load(_main()).get("counts") or {}).get("listed")
+        except Exception:  # noqa: BLE001
+            pass
     except Exception as exc:  # noqa: BLE001
         out["error"] = str(exc)[:80]
     _PUB.update(t=_t.time(), v=out)

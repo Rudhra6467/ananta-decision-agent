@@ -149,6 +149,7 @@ TOOLS = [
     ("my_requests","The owner's requests to the repair shop with their numbers and status (open, planned, fixed, closed) and the work session's notes. Use for 'what's happening with my requests', 'did you fix X', 'what's on the list'.", OFF),
     ("idea_status", "Status cards: for any idea, setup, filter, indicator or rule Ananta knows (e.g. buying pressure, funding, the short dip trade, zones, your setups, Fear & Greed): how strong its evidence is (SUPPORTED / WEAK / CONFLICTING / INSUFFICIENT / REJECTED / UNTESTED), what it may do (PAPER / CONTEXT / OFF), why, and which reviews. Without idea: all cards. Use for 'can we trade on X', 'is X proven', 'why don't we use X', 'what is allowed to make trades'.", _schema({"idea": {"type": "string", "description": "Optional: name, id or alias"}})),
     ("universe", "Our 120-coin universe (the research lake), at three levels: LIVE 10, PAPER TIER 30, RESEARCH 120. With coin (symbol or name, e.g. SUI, Pepe, POL): what Ananta does with it, history and data quality, trading costs, whether NDAX lists it against CAD, price now and 7/30/90/365-day change, distance from its all-time high, volatility, volume, buying pressure, futures funding and open interest (context), the 30-coin tier's T3-B rating and H07-T30 trades, and what each research review found on its tier; says plainly when a coin is not in the 120. Without coin: a tier's coins (tier LAB10 | TOP30 | ALL), optionally ranked (rank_by change | from_ath | volatility | volume | funding; days for change, default 30). Use for 'what do we know about X', 'is X in our data', 'which of the 30 is strongest', 'which coins are on NDAX', 'what is the 30-coin book holding'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for a tier view"}, "tier": {"type": "string"}, "rank_by": {"type": "string"}, "days": {"type": "number"}, "top": {"type": "number"}})),
+    ("whole_market", "Every coin Ananta watches live (Universe Rule v2: about 390 coins trading on Binance against USDT; tier A over $20M a day, B $1M-$20M, C under $1M, watched but never judged). view: movers_up | movers_down | near_zone (closest to a support zone history supports) | watched (counts, the feed's health) | scoreboard (each rule on every coin per tier against its random baseline, in market days) | coin (one coin's live card: tier, name, price, today's change, zones, can-buy on NDAX/Kraken, open paper trades on it). Optional tier (A, B, C, AB) and n. Use for 'what moved most today across the market', 'which coins are near support', 'how many coins do you watch', 'is the dip trade working on the bigger coins', 'what about <a coin outside the 120>'.", _schema({"view": {"type": "string"}, "tier": {"type": "string"}, "coin": {"type": "string"}, "n": {"type": "number"}})),
     ("prices", "Price history from our stored candles (10 live coins, intraday; any other coin of the 120-coin universe, daily). With coin: open/high/low/close and change over a window (days, default 7; or start/end as YYYY-MM-DD or 'YYYY-MM-DD HH:MM' Toronto), when the high and low happened, how far price is from them, best and worst day, day by day (hour by hour for 2 days or less). Without coin: all 10 coins ranked over the window with each one's change against Bitcoin (relative strength / momentum ranking). what='coverage': the first and last stored candle per coin. Use for 'what was the high this week', 'how did each coin do', 'which coin is strongest', 'good days to trade', 'where was BTC on Tuesday', 'how far are we from the top'.", _schema({"coin": {**COIN, "description": "Optional coin; omit to compare all 10"}, "days": {"type": "number"}, "start": {"type": "string"}, "end": {"type": "string"}, "what": {"type": "string", "description": "optional: coverage"}})),
     ("web_lookup", "OUTSIDE OUR SYSTEM: a quick web search (Google via Gemini, else Claude web search) for things our data does not cover: stocks and indexes, other coins' news, the economy, events (Fed, CPI), what moved the market today. Returns a short sourced answer. Label it 'from the web' and never mix it into our books or setups.", _schema({"query": {"type": "string"}}, ["query"])),
     ("news_check", "Run the AI news check (the blunder guard) on one of our coins now: CLEAR / CAUTION / BLOCK with why and the headlines used. About a cent. Use when he asks to check the news on a coin.", _schema({"coin": COIN}, ["coin"])),
@@ -1036,7 +1037,12 @@ class Lookups:
                     raise
                 from jarvis.service import universe
 
-                return universe.history(self.j, coin, days or 30, start, end)
+                try:
+                    return universe.history(self.j, coin, days or 30, start, end)
+                except ValueError as e2:
+                    if "120-coin" not in str(e2):
+                        raise
+                    return self._feed_history(coin, days or 30)
         return pricebook.compare(self.j, days or 7, start, end)
 
     def t_idea_status(self, idea: str | None = None) -> dict:
@@ -1054,8 +1060,81 @@ class Lookups:
         from jarvis.service import universe
 
         if coin:
-            return universe.card(self.j, coin)
+            out = universe.card(self.j, coin)
+            try:
+                live = self.t_whole_market("coin", coin=coin)
+                if not live.get("error"):
+                    out["watched_live"] = live
+                    if not out.get("in_universe"):
+                        out["note"] = (f"{coin.upper()} is not in the 120-coin research lake, but Ananta watches it live: see watched_live.")
+            except Exception:  # noqa: BLE001
+                pass
+            return out
         return universe.overview(self.j, tier, rank_by, days, int(top) if top else None)
+
+    def _feed_history(self, coin: str, days: float) -> dict:
+        """Daily history for any watched coin outside the 120 (the universe feed's candles)."""
+        from jarvis.service import app as _app
+        from jarvis.service import feed, registry
+
+        j = _app._main()
+        c = (coin or "").upper().replace("/USD", "").replace("USDT", "").strip()
+        if not registry.card(j, c):
+            raise ValueError(f"{coin} is not among the coins Ananta watches; use outside_coin or web_lookup")
+        D = feed.daily(j, c)[-int(max(2, min(365, days))):]
+        if not D:
+            raise ValueError(f"no daily candles for {c} yet")
+        hi, lo = max(D, key=lambda r: r[2]), min(D, key=lambda r: r[3])
+        day = lambda t: time.strftime("%Y-%m-%d", time.gmtime(t))  # noqa: E731
+        return {"coin": c, "timeframe_used": "1d", "from": day(D[0][0]), "to": day(D[-1][0]), "open": D[0][1], "high": hi[2], "high_day": day(hi[0]),
+                "low": lo[3], "low_day": day(lo[0]), "close": D[-1][4], "change_pct": round(100 * (D[-1][4] / D[0][1] - 1), 2),
+                "price_now": feed.prices(j).get(c), "source": "the universe feed (Binance daily candles)"}
+
+    def t_whole_market(self, view: str | None = None, tier: str | None = None, coin: str | None = None, n: float | None = None) -> dict:
+        from jarvis.service import feed, registry, universe_watch
+
+        j = self.j
+        try:
+            from jarvis.service import app as _app
+
+            j = _app._main()                               # the universe books live in the main account (visitors read them)
+        except Exception:  # noqa: BLE001
+            pass
+        v = (view or ("coin" if coin else "movers_up")).lower()
+        n = int(n or 10)
+        if v == "coin" or coin:
+            c = (coin or "").upper().replace("/USD", "").replace("USDT", "").strip()
+            k = registry.card(j, c)
+            if not k:
+                return {"error": f"{c} is not among the coins Ananta watches (Binance spot against USDT, minus stablecoins, wrapped, "
+                                 "leveraged and tokenized shares); use outside_coin or web_lookup, and say so."}
+            row = next((r for r in universe_watch.coins(j, q=c, n=600)["coins"] if r["coin"] == c), {})
+            trades = [dict(zip(("watch", "status", "entry", "entry_day", "net_usd", "why"), t)) for t in j.db.execute(
+                "SELECT watch, status, entry, entry_day, net_usd, why FROM evidence_trades WHERE coin=? AND (watch LIKE '%-U_' OR watch LIKE 'JARVIS%') "
+                "ORDER BY signal_t DESC LIMIT 6", (c,))]
+            zs = (universe_watch._armed(j).get("zones") or {}).get(c) or []
+            return {"coin": c, "name": k.get("name"), "tier": k.get("tier"), "status": k.get("status"), "price": row.get("price"),
+                    "change_today_pct": row.get("change_today_pct"), "median_daily_usd_30d": k.get("median_usd_30d"),
+                    "can_buy": {"ndax_cad": k.get("ndax"), "kraken_usd": k.get("kraken")}, "groups": k.get("groups"),
+                    "support_zones": [{"bot": z["bot"], "top": z["top"], "history": z["history"]} for z in zs][:4],
+                    "near_zone": row.get("near_zone"), "paper_trades_on_it": trades,
+                    "paper_cost_each_side_pct": round(100 * registry.cost(c), 2),
+                    "note": "Watched live: every rule runs on it after each daily close and the zone touch on its live price. "
+                            + ("Tier C: watched and scored, never judged (too thin to trust paper fills)." if k.get("tier") == "C" else "")}
+        if v.startswith("score"):
+            sb = universe_watch.scoreboard(j)
+            rows = [w for w in sb["watches"] if (not tier or w["tier"] in tier.upper())]
+            return {"watches": rows[:40], "rule": sb["rule"]}
+        if v.startswith("watch") or v.startswith("count") or v.startswith("health"):
+            st = universe_watch.status(j)
+            return {"counts": st["counts"], "feed": {k: st["feed"].get(k) for k in ("coins_with_5m", "price_age_s", "last_5m_pull", "weight_1m")},
+                    "zones_armed": st["zones_armed"], "paper_trades": st["trades"], "last_rebuild": st["last_rebuild"],
+                    "how": "One feed for every coin (Binance public data): 5-minute candles every 5 minutes, prices every 10 seconds, "
+                           "daily candles after each close. The 10 live coins keep their own books as before."}
+        sort = {"movers_up": "up", "movers_down": "down", "near_zone": "near"}.get(v, "up")
+        res = universe_watch.coins(j, tier=tier, sort=sort, n=n)
+        return {"view": v, "tier": tier or "all", "coins": res["coins"], "counts": res["counts"], "note": res["note"],
+                "price_age_s": feed.status(j).get("price_age_s")}
 
     def t_web_lookup(self, query: str) -> dict:
         from jarvis.service import weblook

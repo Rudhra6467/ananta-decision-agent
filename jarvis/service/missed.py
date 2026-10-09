@@ -383,7 +383,7 @@ def _repeats(j, log_request=None) -> list[dict]:
     from jarvis.service import requests_log
 
     out = []
-    for tier in ("LIVE10", "T30"):
+    for tier in ("LIVE10", "T30", "UNIV"):
         out += _repeats_tier(j, tier, log_request)
     j.db.commit()
     return out
@@ -399,7 +399,7 @@ def _repeats_tier(j, tier: str, log_request=None) -> list[dict]:
         key = f"missed:flag:{p['pattern']}" + ("" if tier == "LIVE10" else f":{tier}")
         if j.db.execute("SELECT 1 FROM engine_state WHERE k=?", (key,)).fetchone():
             continue
-        text = (("30-coin tier: " if tier == "T30" else "") +
+        text = ({"T30": "30-coin tier: ", "UNIV": "Whole universe (tier A and B coins): "}.get(tier, "") +
                 f"Moves we keep missing: {p['said']} ({p['times']} times in {REPEAT_DAYS} days, about +{p['avg_move_pct']}% each; {p['coins']}). "
                 "Idea: a paper rule for this start, tested against the times the same start led nowhere (picked after the fact, so not proof).")
         r = (log_request or (lambda t: requests_log.add(j, "idea", t, "missed moves", by="ananta-auto")))(text)
@@ -426,5 +426,8 @@ def recent(j, days: int = 7) -> dict:
     return {"days": days, "counts": counts, "classes": classes, "class_meaning": MISS_CLASSES, "moves": live, "patterns": patterns(j),
             "tier30": {"counts": {k: sum(1 for r in t30 if r["label"] == k) for k in ("CAUGHT", "SEEN", "MISSED")}, "moves": t30,
                        "patterns": patterns(j, tier="T30")},
+            "universe": {"counts": {k: sum(1 for r in rows if r["tier"] == "UNIV" and r["label"] == k) for k in ("CAUGHT", "SEEN", "MISSED")},
+                         "moves": [r for r in rows if r["tier"] == "UNIV"][:25], "patterns": patterns(j, tier="UNIV"),
+                         "meaning": "each day's biggest up-days across every tier A and B coin (at least 5% and one daily range), from the universe feed"},
             "how_to_read": "Each day's biggest rises (at least one daily range and 3%), and whether we were in them (caught), noticed them "
                            "without trading (seen) or never looked (missed). Patterns are picked after the fact: ideas to test, not proof."}

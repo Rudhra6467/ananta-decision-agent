@@ -22,3 +22,5 @@ for c in coins:                                   # futures context: funding for
 cli.main(['pack'])                                # the lake -> agent hand-off (universe.json + daily.sqlite)
 cli.main(['sync'])
 " >> "$HOME/ananta_runs/lake_weekly.log" 2>&1
+# engine plan U7.1: every other coin Ananta watches, at 15-minute to daily detail (new months only)
+nice -n 15 "$HOME/ananta_venvs/lake/bin/python" -u scripts/lake_extend.py >> "$HOME/ananta_runs/lake_extend.log" 2>&1

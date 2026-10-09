@@ -70,7 +70,7 @@ export default function Login() {
       </View>
 
       <View style={{ gap: 10 }}>
-        <Point title="Watches for you" text="Pick your coins. Ananta checks them every 15 minutes, day and night, and tells you, asks you first, or takes the paper trade: your choice, per watch." />
+        <Point title="Watches for you" text={`It watches the whole crypto market live (${n(st?.coins_watched, "about 390")} coins), every rule on every coin. Pick your coins: it tells you, asks you first, or takes the paper trade, your choice per watch.`} />
         <Point title="Shows its work" text="Every idea arrives as a decision card. Ask “why?” at any time and it answers from the same seven-step decision chain it trades by, by voice or text." />
         <Point title="Proves before it trades" text={`A rule is used only after a test on years of prices (${n(st?.reviews, "23")} tests so far). Every night the whole day is rebuilt from raw prices to check each decision (${n(st?.rebuilds)} rebuilds, ${n(st?.mismatches)} mismatches).`} />
       </View>

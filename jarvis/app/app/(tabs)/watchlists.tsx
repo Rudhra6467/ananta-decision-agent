@@ -18,6 +18,7 @@ import { ChainLadder } from "../../src/chain";
 import { ExplainSheet, showToast } from "../../src/blocks";
 import { CoinLine } from "../../src/home";
 import { useMe } from "../../src/visitor";
+import { WholeMarket } from "../../src/universe";
 
 const MODE: Record<string, string> = { tell: "Tell me", ask: "Ask me first", auto: "Auto" };
 const NEXT_MODE: Record<string, string> = { tell: "ask", ask: "auto", auto: "tell" };
@@ -54,6 +55,7 @@ export default function Watchlists() {
         <Card title={myCoins.length ? "Your coins" : "Coins Ananta watches"} sub="tap for the trading page · + to watch or trade">
           {coins.map((c: any, i: number) => <View key={c.coin}>{i ? <Divider /> : null}<Spot id={`markets.coin:${c.coin}`}><CoinLine c={c} /></Spot></View>)}
         </Card>
+        <WholeMarket />
       </Spot>
 
       {ch?.coins?.length ? (

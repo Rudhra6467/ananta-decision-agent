@@ -33,10 +33,14 @@ def test_registry_matches_the_code():
         assert w.get("since") and w.get("entry") and w.get("exit"), w["id"]
         if w.get("size_usd"):
             assert w.get("book"), w["id"]
+    from jarvis.service import universe_watch as U       # the universe family (-UA/-UB/-UC) is declared once, as UNIVERSE_DAILY / ZONE_TOUCH_UNIVERSE
+
     daily = {w["id"] for w in reg["watches"] if w["runs_in"] == "jarvis.watch_engine"}
-    assert daily == set(W.DAILY), "every daily watch in the registry needs a rule in the engine, and the reverse"
+    assert daily == {w for w in W.DAILY if not U.split(w)}, "every daily watch in the registry needs a rule in the engine, and the reverse"
     eye_trading = {w["id"] for w in reg["watches"] if w["runs_in"] == "jarvis.eye" and w.get("size_usd")}
-    assert eye_trading == set(W.EYE)
+    assert eye_trading == {w for w in W.EYE if not U.split(w)}
+    assert {"UNIVERSE_DAILY", "ZONE_TOUCH_UNIVERSE"} <= set(ids)
+    assert all(U.split(w)[0] in U.RULES + U.RANDOMS for w in W.DAILY if U.split(w))
 
 
 def _with_more(tmp_path, coins, closes):

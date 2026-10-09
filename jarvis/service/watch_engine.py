@@ -59,14 +59,20 @@ def _day(t: float) -> str:
     return datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d")
 
 
-def _cost(coin: str) -> float:
+def _cost(coin: str, watch: str | None = None) -> float:
+    """The 10 and every existing book keep their costs; universe books (-UA/-UB/-UC) and the brain's trades on coins outside
+    the 10 use Universe Rule v2 (registry.cost: fee where it can be bought plus a tier half-spread floor)."""
     from src.research import reads as R
 
+    if coin not in R.COINS and watch and (watch[-3:-1] == "-U" or watch.startswith("JARVIS")):
+        from jarvis.service import registry
+
+        return registry.cost(coin)
     return R.cost(coin)
 
 
-def net(coin: str, entry: float, exit_px: float) -> float:
-    k = _cost(coin)
+def net(coin: str, entry: float, exit_px: float, watch: str | None = None) -> float:
+    k = _cost(coin, watch)
     return round(STAKE * (exit_px / entry * (1 - k) ** 2 - 1), 2)
 
 
@@ -183,7 +189,7 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
                 exit_px, exit_t, why = D[d + 1][1], D[d + 1][0], f"RSI(10) back over {spec['rsi_exit']} on {_day(D[d][0])}"
                 break
         if exit_px is not None:
-            n = net(coin, r["entry"], exit_px)
+            n = net(coin, r["entry"], exit_px, r["watch"])
             j.db.execute("UPDATE evidence_trades SET exit_t=?, exit_day=?, exit=?, net_usd=?, status='CLOSED', exit_why=? WHERE id=?",
                          (exit_t, _day(exit_t), exit_px, n, why, r["id"]))
             out.append({"watch": r["watch"], "coin": coin, "event": "closed", "net_usd": n})
@@ -266,11 +272,11 @@ def open_eye_trade(j, watch: str, coin: str, price: float, stop: float | None, w
 
 def close_at(j, trade_id: str, price: float, why: str) -> dict | None:
     _table(j)
-    r = j.db.execute("SELECT coin, entry FROM evidence_trades WHERE id=? AND status='OPEN'", (trade_id,)).fetchone()
+    r = j.db.execute("SELECT coin, entry, watch FROM evidence_trades WHERE id=? AND status='OPEN'", (trade_id,)).fetchone()
     if not r:
         return None
     t = int(j.now())
-    n = net(r[0], r[1], float(price))
+    n = net(r[0], r[1], float(price), r[2])
     j.db.execute("UPDATE evidence_trades SET exit_t=?, exit_day=?, exit=?, net_usd=?, status='CLOSED', exit_why=? WHERE id=?",
                  (t, _day(t), float(price), n, why, trade_id))
     j.db.commit()

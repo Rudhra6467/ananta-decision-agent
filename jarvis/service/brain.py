@@ -37,7 +37,11 @@ import time
 import uuid
 from typing import Any, Callable
 
-DAILY_MAX = int(os.getenv("BRAIN_DAILY_MAX", "40"))      # TK4 (Madhav, 2026-10-05): 20 -> 40
+DAILY_MAX = int(os.getenv("BRAIN_DAILY_MAX", "80"))      # TK4 (Madhav, 2026-10-05): 20 -> 40; engine plan D2 (2026-10-09): a ceiling only
+DAILY_USD = float(os.getenv("BRAIN_DAILY_USD", "1.00"))  # engine plan D2: the day's AI budget for decisions, spent on the best-ranked wakes
+MIN_SCORE = 2.0                                           # below this a wake is logged as not reviewed (ranked too low), never sent
+TRIGGER_POINTS = {"zone_entry": 2.0, "attention_high": 2.0, "hunter": 1.0, "squeeze": 1.0, "explorer": 0.0,
+                  "setup:H07": 3.0, "setup:M1a": 2.0, "setup:M2a-G": 2.0}   # evidence behind each kind of moment (Universe Rule v2, D6)
 COIN_COOLDOWN = 6 * 3600
 STALE_S = 45 * 60
 MIN_BUDGET = 0.10
@@ -154,6 +158,56 @@ def _pct(a, b) -> float | None:
     return round(100 * (a / b - 1), 1) if a and b else None
 
 
+def _is_lab(coin: str) -> bool:
+    from src.research import reads as R
+
+    return coin in R.COINS
+
+
+def _coin_daily(j, coin: str) -> list[tuple]:
+    """The 10 use the Explorer's candles (as before); every other coin the universe feed's daily candles."""
+    if _is_lab(coin):
+        from jarvis.service.reads_watch import _daily
+
+        return _daily(j, coin)
+    from jarvis.service import feed
+
+    return feed.daily(j, coin)
+
+
+def _live_px(j, coin: str) -> float | None:
+    from jarvis.service import eye, feed
+
+    if _is_lab(coin):
+        p = (eye.STATE.get("prices") or {}).get(coin)
+        if p is not None:
+            return p
+    try:
+        return feed.prices(j).get(coin)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _feed_intraday(j, coin: str) -> dict:
+    """For coins outside the 10: hourly and 4-hour picture from the feed's 5-minute candles."""
+    from jarvis.service import feed
+    from src.research import reads as R
+
+    out = {}
+    try:
+        h1 = feed.bars(j, coin, "1h", 60)
+        h4 = feed.bars(j, coin, "4h", 30)
+        if len(h1) >= 25:
+            c = [b[4] for b in h1]
+            out.update(change_1h_pct=_pct(c[-1], c[-2]), change_24h_pct=_pct(c[-1], c[-25]), rsi1h=round((R.rsi(c, 14)[-1] or 0), 0))
+        if len(h4) >= 7:
+            c4 = [b[4] for b in h4]
+            out["trend_4h"] = "UP" if c4[-1] > sum(c4[-6:]) / 6 else "DOWN"
+    except Exception as exc:  # noqa: BLE001
+        out["error"] = str(exc)[:80]
+    return out
+
+
 def _explorer_state(j, coin: str) -> dict:
     """The Explorer's last 15-minute read of the coin (trend on 15m/1h/4h, RSI, volume, in support)."""
     from pathlib import Path
@@ -218,17 +272,28 @@ def pack(j, coin: str, triggers: dict) -> dict:
 
     _table(j)
     now = int(j.now())
-    live = (eye.STATE.get("prices") or {}).get(coin)
-    live_age = time.time() - eye.STATE["last_t"] if eye.STATE.get("last_t") else None
-    if live is None or (live_age is not None and live_age > 300):
-        try:
-            live = (j.prices() or {}).get(coin)
-            live_age = None
-        except Exception:  # noqa: BLE001
-            pass
-    D, btc = _daily(j, coin), _daily(j, "BTC")
+    lab = _is_lab(coin)
+    if lab:
+        live = (eye.STATE.get("prices") or {}).get(coin)
+        live_age = time.time() - eye.STATE["last_t"] if eye.STATE.get("last_t") else None
+        if live is None or (live_age is not None and live_age > 300):
+            try:
+                live = (j.prices() or {}).get(coin)
+                live_age = None
+            except Exception:  # noqa: BLE001
+                pass
+    else:
+        live = _live_px(j, coin)
+    D, btc = _coin_daily(j, coin), _daily(j, "BTC")
+    from jarvis.service import registry, watch_engine
+
     p: dict[str, Any] = {"coin": coin, "time_utc": time.strftime("%Y-%m-%d %H:%M", time.gmtime(now)), "price": live,
-                         "triggers": triggers, "costs_round_trip_pct": round(200 * R.cost(coin), 2)}
+                         "triggers": triggers, "costs_round_trip_pct": round(200 * (R.cost(coin) if lab else watch_engine._cost(coin, WATCH)), 2)}
+    if not lab:
+        k = registry.card(j, coin) or {}
+        p["universe_tier"] = {"tier": k.get("tier"), "median_daily_usd_30d": k.get("median_usd_30d"), "can_buy_ndax": k.get("ndax"),
+                              "can_buy_kraken": k.get("kraken"), "meaning": "A over $20M a day, B $1M-$20M (Universe Rule v2); one of the "
+                              "10 live coins it is not, so its intraday picture comes from the universe feed"}
     if len(D) >= 60 and len(btc) >= 60:
         S, B = R.Series(D), R.Series(btc)
         i = len(D) - 1
@@ -246,9 +311,20 @@ def pack(j, coin: str, triggers: dict) -> dict:
         p["market"] = {"regime": "ALLOWED" if bc > B.ema50[-1] else "RISK_OFF", "btc_vs_50d_pct": _pct(bc, B.ema50[-1]),
                        "btc_change_7d_pct": _pct(bc, B.c[-8]), "btc_live_vs_50d_pct": _pct((eye.STATE.get("prices") or {}).get("BTC"), B.ema50[-1])}
         p["data_age_h"] = round((now - S.t[i]) / 3600 - 24, 1)
-    p["intraday"] = _explorer_state(j, coin)
+    p["intraday"] = _explorer_state(j, coin) if lab else _feed_intraday(j, coin)
+    if not lab:
+        try:
+            from jarvis.service import universe_watch
+
+            zs = (universe_watch._armed(j).get("zones") or {}).get(coin) or []
+            px0 = live or (D[-1][4] if D else None)
+            if px0:
+                p["zones"] = {"inside": [z for z in zs if z["bot"] <= px0 <= z["top"]][:2],
+                              "next_support": max((z for z in zs if z["top"] < px0), key=lambda z: z["top"], default=None)}
+        except Exception as exc:  # noqa: BLE001
+            p["zones_error"] = str(exc)[:100]
     try:
-        row = next((r for r in zones_watch.board(j).get("coins", []) if r["coin"] == coin), None)
+        row = next((r for r in zones_watch.board(j).get("coins", []) if r["coin"] == coin), None) if lab else None
         if row:
             pick = lambda z: {k: z.get(k) for k in ("bot", "top", "kinds", "history", "state", "distance_pct", "touches", "held")}  # noqa: E731
             p["zones"] = {"inside": [pick(z) for z in row.get("inside") or []], "next_support": pick(row["next_support"]) if row.get("next_support") else None,
@@ -264,6 +340,15 @@ def pack(j, coin: str, triggers: dict) -> dict:
                            for w in b["watches"] if w["id"] in names]
     except Exception:  # noqa: BLE001
         pass
+    if not lab:
+        try:
+            from jarvis.service import universe_watch
+
+            tier = (p.get("universe_tier") or {}).get("tier")
+            p["universe_books"] = [{k: w.get(k) for k in ("watch", "closed", "events", "avg_usd", "vs_random_usd", "verdict")}
+                                   for w in universe_watch.scoreboard(j)["watches"] if w["tier"] == tier and w["closed"]]
+        except Exception:  # noqa: BLE001
+            pass
     try:
         from jarvis.service import news_watch
 
@@ -491,10 +576,17 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
         det = {"decision": did, "thesis": d.get("thesis", ""), "confidence": conf, "size_pct": size, "knowledge": know}
         trade = _open(j, WATCH, coin, price, float(d["stop"]), target, trail, days, atr or 0.0, det, regime)
         # the random twin: same moment, another coin, the same plan in its own daily ranges
-        px_all = dict(eye.STATE.get("prices") or {}) or (j.prices() or {})
-        rc = _random_coin(j, coin, int(j.now()), [c for c in R.COINS if c in px_all])
+        if _is_lab(coin):
+            px_all = dict(eye.STATE.get("prices") or {}) or (j.prices() or {})
+            pool = [c for c in R.COINS if c in px_all]
+        else:                                            # outside the 10: the twin comes from the same tier (Universe Rule v2)
+            from jarvis.service import feed, registry
+
+            px_all = feed.prices(j)
+            pool = [c for c in registry.members(j, registry.tier_of(j, coin) or "C") if c in px_all and not _is_lab(c)]
+        rc = _random_coin(j, coin, int(j.now()), pool)
         if rc and atr:
-            ratr = (eye.STATE.get("armed") or {}).get("atr", {}).get(rc) or _atr(j, rc)
+            ratr = ((eye.STATE.get("armed") or {}).get("atr", {}).get(rc) if _is_lab(rc) else None) or _atr(j, rc)
             if ratr:
                 rp = px_all[rc]
                 k_stop = (price - float(d["stop"])) / atr
@@ -517,10 +609,9 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
 
 
 def _atr(j, coin: str) -> float | None:
-    from jarvis.service.reads_watch import _daily
     from src.research import reads as R
 
-    D = _daily(j, coin)
+    D = _coin_daily(j, coin)
     return R.Series(D).atr[-1] if len(D) > 20 else None
 
 
@@ -558,15 +649,141 @@ def can_decide(j) -> tuple[bool, str]:
     return True, ""
 
 
+def spent_today(j) -> float:
+    return float(j.db.execute("SELECT COALESCE(SUM(cost_usd), 0) FROM brain_decisions WHERE t >= ?", (_today0(j),)).fetchone()[0] or 0.0)
+
+
+def paced_budget(j) -> float:
+    """The day's decision budget unlocks through the day (a quarter at midnight Toronto, the rest evenly), so a strong moment in
+    the evening still finds money left (engine plan D2)."""
+    frac = max(0.0, min(1.0, (j.now() - _today0(j)) / 86400))
+    return round(DAILY_USD * (0.25 + 0.75 * frac), 4)
+
+
+_REGIME: dict = {"t": 0, "v": None}
+
+
+def _regime_now(j) -> str | None:
+    if time.time() - _REGIME["t"] > 900:
+        try:
+            from jarvis.service import watch_engine
+            from src.research import reads as R
+
+            btc = _coin_daily(j, "BTC")
+            _REGIME.update(t=time.time(), v=watch_engine.regime_at(R.Series(btc), int(j.now())) if len(btc) >= 60 else None)
+        except Exception:  # noqa: BLE001
+            _REGIME.update(t=time.time(), v=None)
+    return _REGIME["v"]
+
+
+def score(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
+    """How much a wake deserves the AI (engine plan U4.3): the evidence behind its kind of moment, the coin's tier, the market
+    regime, room to beat costs, and how much of the same bet is already open. Rules, not AI; logged with every wake."""
+    from jarvis.service import registry, universe_watch
+
+    pts, why = [], []
+    for t in (trigger or "").split("|"):
+        key = t
+        if t.startswith("explorer"):
+            key = "explorer"
+        elif t.startswith("setup:"):
+            sp = universe_watch.split(t[6:])
+            key = "setup:" + (sp[0] if sp else t[6:])
+        p = TRIGGER_POINTS.get(key, 1.0)
+        if key == "zone_entry" and ((detail or {}).get("zone_entry") or {}).get("history") == "SUPPORTED":
+            p += 1.0
+        pts.append(p)
+    s = (max(pts) + 0.5 * (len(pts) - 1)) if pts else 0.0
+    why.append(f"moment {s:g}")
+    tier = "LAB10" if _is_lab(coin) else registry.tier_of(j, coin) or "C"
+    tp = {"LAB10": 2.0, "A": 2.0, "B": 1.0}.get(tier, -5.0)
+    s += tp
+    why.append(f"tier {tier} {tp:+g}")
+    if _regime_now(j) == "ALLOWED":
+        s += 1.0
+        why.append("market allowed +1")
+    try:
+        D = _coin_daily(j, coin)
+        if len(D) > 20:
+            from src.research import reads as R
+            from jarvis.service import watch_engine
+
+            atr_pct = R.Series(D).atr[-1] / D[-1][4]
+            cost = R.cost(coin) if _is_lab(coin) else watch_engine._cost(coin, WATCH)
+            if atr_pct >= 4 * 2 * cost:
+                s += 0.5
+                why.append("room to beat costs +0.5")
+    except Exception:  # noqa: BLE001
+        pass
+    n_open = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND status='OPEN'", (WATCH,)).fetchone()[0]
+    if n_open:
+        s -= 0.1 * n_open
+        why.append(f"{n_open} open already -{0.1 * n_open:g}")
+    return round(s, 2), why
+
+
+def _unreviewed(j, qid: str, t: int, coin: str, trig: str, sc: float | None, reason: str) -> None:
+    """A wake the AI never reviewed: logged with its price, scored later like a PASS (did the ranking throw away good ones?)."""
+    j.db.execute("CREATE TABLE IF NOT EXISTS brain_unreviewed (id TEXT PRIMARY KEY, t INTEGER, coin TEXT, trigger TEXT, score REAL, reason TEXT, "
+                 "price REAL, after_1d_pct REAL, after_5d_pct REAL)")
+    j.db.execute("INSERT OR REPLACE INTO brain_unreviewed VALUES (?,?,?,?,?,?,?,?,?)", (qid, t, coin, trig, sc, reason, _live_px(j, coin), None, None))
+    j.db.execute("UPDATE brain_queue SET state=? WHERE id=?", ("NOT_REVIEWED: " + reason, qid))
+    j.db.commit()
+
+
+def settle_unreviewed(j) -> int:
+    try:
+        rows = j.db.execute("SELECT id, t, coin, price FROM brain_unreviewed WHERE after_5d_pct IS NULL AND t <= ?", (int(j.now()) - 86400,)).fetchall()
+    except Exception:  # noqa: BLE001
+        return 0
+    n, now, cache = 0, int(j.now()), {}
+    for uid, t, coin, price in rows:
+        if not price:
+            continue
+        D = cache.setdefault(coin, _coin_daily(j, coin))
+        a1 = next((b[4] for b in D if b[0] >= t), None)
+        a5 = next((b[4] for b in D if b[0] + 86400 >= t + 5 * 86400), None) if now >= t + 5 * 86400 else None
+        if a1 is None:
+            continue
+        j.db.execute("UPDATE brain_unreviewed SET after_1d_pct=?, after_5d_pct=? WHERE id=?", (_pct(a1, price), _pct(a5, price) if a5 else None, uid))
+        n += 1
+    j.db.commit()
+    return n
+
+
+def ranking_audit(j, days: int = 30) -> dict:
+    """Decided against not reviewed: what the coins did over 5 days after each (engine plan U5.2)."""
+    since = int(j.now()) - days * 86400
+    out = {}
+    try:
+        u = [r[0] for r in j.db.execute("SELECT after_5d_pct FROM brain_unreviewed WHERE t >= ? AND after_5d_pct IS NOT NULL", (since,))]
+    except Exception:  # noqa: BLE001
+        u = []
+    d = [r[0] for r in j.db.execute("SELECT after_5d_pct FROM brain_decisions WHERE t >= ? AND after_5d_pct IS NOT NULL", (since,))]
+    for k, xs in (("not_reviewed", u), ("passed", d)):
+        out[k] = {"n": len(xs), "avg_5d_pct": round(sum(xs) / len(xs), 2) if xs else None, "ran_5pct": sum(1 for x in xs if x >= 5)}
+    try:
+        out["not_reviewed_today"] = j.db.execute("SELECT COUNT(*) FROM brain_unreviewed WHERE t >= ?", (_today0(j),)).fetchone()[0]
+    except Exception:  # noqa: BLE001
+        out["not_reviewed_today"] = 0
+    return out
+
+
 def process(j, call: Callable | None = None, push: Callable | None = None, max_n: int = 3) -> list[dict]:
-    """Take the queue: stale or blocked items are dropped with the reason; the rest get a decision."""
+    """Take the queue (engine plan D2): blocked items are dropped with the reason; the rest are ranked, and the best get a decision
+    while the paced daily budget allows. Low-ranked wakes, and wakes that waited past 45 minutes because better ones took the
+    budget, are logged as not reviewed and scored later."""
     _table(j)
     now = int(j.now())
     out = []
+    ranked = []
     for qid, t, coin, trig, det in j.db.execute("SELECT id, t, coin, trigger, detail FROM brain_queue WHERE state='NEW' ORDER BY t").fetchall():
         why = ""
+        detail = json.loads(det or "{}")
         if now - t > STALE_S:
-            why = "stale (waited too long)"
+            sc, _ = score(j, coin, trig, detail)
+            _unreviewed(j, qid, t, coin, trig, sc, "waited 45 minutes; the budget went to better-ranked moments")
+            continue
         elif j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN'", (WATCH, coin)).fetchone()[0] >= MAX_PER_COIN:
             why = f"already holding {MAX_PER_COIN} trades on it"
         elif j.db.execute("SELECT 1 FROM brain_decisions WHERE coin=? AND t >= ? AND action != 'ERROR'", (coin, now - COIN_COOLDOWN)).fetchone():
@@ -576,11 +793,28 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
         else:
             ok, why = can_decide(j)
             why = "" if ok else why
-        if why or len(out) >= max_n:
-            if why:
-                j.db.execute("UPDATE brain_queue SET state=? WHERE id=?", ("DROPPED: " + why, qid))
-                j.db.commit()
+        if why:
+            j.db.execute("UPDATE brain_queue SET state=? WHERE id=?", ("DROPPED: " + why, qid))
+            j.db.commit()
             continue
+        sc, sw = score(j, coin, trig, detail)
+        if sc < MIN_SCORE:
+            _unreviewed(j, qid, t, coin, trig, sc, f"ranked too low ({sc:g}: {', '.join(sw)})")
+            continue
+        ranked.append((sc, t, qid, coin, det, sw))
+    ranked.sort(key=lambda x: (-x[0], x[1]))
+    for sc, t, qid, coin, det, sw in ranked:
+        if len(out) >= max_n:
+            break
+        if spent_today(j) >= paced_budget(j):
+            break                                          # the rest wait for budget; past 45 minutes they are logged as not reviewed
+        if j.db.execute("SELECT 1 FROM brain_decisions WHERE coin=? AND t >= ? AND action != 'ERROR'", (coin, now - COIN_COOLDOWN)).fetchone():
+            j.db.execute("UPDATE brain_queue SET state=? WHERE id=?", ("DROPPED: decided on this coin in the last 6 hours", qid))
+            j.db.commit()
+            continue
+        d0 = json.loads(det or "{}")
+        d0["_rank"] = {"score": sc, "why": sw}
+        det = json.dumps(d0, default=str)
         j.db.execute("UPDATE brain_queue SET state='DECIDING' WHERE id=?", (qid,))
         j.db.commit()
         try:
@@ -725,8 +959,8 @@ def manage_live(j, px: dict[str, float]) -> list[dict]:
 # learning: passes scored, knowledge credit, calibration
 # ---------------------------------------------------------------------------
 def settle_passes(j) -> int:
-    """What each PASS's coin did over the next day and five days (from the Explorer's candles)."""
-    from jarvis.service.reads_watch import _daily
+    """What each PASS's coin did over the next day and five days (the Explorer's candles; the feed's for other coins)."""
+    _daily = _coin_daily
 
     _table(j)
     n = 0
@@ -744,6 +978,10 @@ def settle_passes(j) -> int:
         j.db.execute("UPDATE brain_decisions SET after_1d_pct=?, after_5d_pct=? WHERE id=?", (_pct(a1, price), _pct(a5, price) if a5 else None, did))
         n += 1
     j.db.commit()
+    try:
+        n += settle_unreviewed(j)
+    except Exception:  # noqa: BLE001
+        pass
     return n
 
 
@@ -907,7 +1145,7 @@ def report(j, days: int = 30) -> dict:
            for x in j.db.execute("SELECT id, t, coin, triggers, action, confidence, size_pct, price, thesis, trade_id, after_1d_pct, after_5d_pct, note "
                                  "FROM brain_decisions WHERE t >= ? ORDER BY t DESC LIMIT 40", (since,))]
     for d in dec:
-        d["triggers"] = list(json.loads(d["triggers"] or "{}"))
+        d["triggers"] = [k for k in json.loads(d["triggers"] or "{}") if not k.startswith("_")]
     today = j.db.execute("SELECT action, COUNT(*) FROM brain_decisions WHERE t >= ? GROUP BY 1", (_today0(j),)).fetchall()
     passes = [d for d in dec if d["action"] == "PASS" and d["after_5d_pct"] is not None]
     n = len(c)
@@ -923,6 +1161,10 @@ def report(j, days: int = 30) -> dict:
             "passes_scored": len(passes), "passes_that_ran_5pct": [{"coin": d["coin"], "after_5d_pct": d["after_5d_pct"], "thesis": d["thesis"]}
                                                                   for d in passes if d["after_5d_pct"] >= 5][:5],
             "today": {a: k for a, k in today}, "daily_limit": DAILY_MAX, "decisions": dec[:15],
+            "budget": {"daily_usd": DAILY_USD, "spent_today_usd": round(spent_today(j), 3), "unlocked_now_usd": paced_budget(j),
+                       "how": "The AI decides the best-ranked moments across every coin while the day's budget lasts; the rest are logged "
+                              "as not reviewed and scored the same way (engine plan D2)."},
+            "ranking_audit": ranking_audit(j),
             "how_to_read": "Jarvis weighs everything we know at each moment and writes its plan before the outcome. Each trade is $100 on "
                            "paper (its chosen size is kept as 'sized'); each one has a random twin (another coin, same moment, same plan), "
                            "so 'vs random' is the honest score. It needs 10 independent events before any verdict."}

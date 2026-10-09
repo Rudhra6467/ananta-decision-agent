@@ -247,7 +247,40 @@ def _clocks(j, P: dict, ex) -> list[dict]:
     _rebuild_table(j)
     nights = _one(j, "SELECT COUNT(*) FROM rebuild_log WHERE source LIKE 'nightly%'")
     ticks = eye.STATE.get("ticks") if eye.STATE.get("running") else None
-    return [
+    uni: list[dict] = []
+    try:                                                   # engine plan U2-U5: the whole universe, beside the 10
+        from jarvis.service import registry, universe_explorer, universe_watch
+
+        cnt = registry.load(j).get("counts") or {}
+        u_sig = _one(j, "SELECT COUNT(*) FROM evidence_trades WHERE watch LIKE '%-U_' AND watch NOT LIKE 'RANDOM%' AND watch NOT LIKE 'ZONE_TOUCH%'")
+        u_rnd = _one(j, "SELECT COUNT(*) FROM evidence_trades WHERE watch LIKE 'RANDOM%-U_'")
+        u_zt = _one(j, "SELECT COUNT(*) FROM evidence_trades WHERE watch LIKE 'ZONE_TOUCH-U_'")
+        u_rb = len(universe_watch.rebuilds(j, 1000))
+        unrev = _one(j, "SELECT COUNT(*) FROM brain_unreviewed") if j.db.execute(
+            "SELECT 1 FROM sqlite_master WHERE name='brain_unreviewed'").fetchone() else 0
+        ux = (universe_explorer.STATE.get("last") or {})
+        scope = f"{cnt.get('listed', 0)} coins"
+        uni = [
+            {"cadence": "10 s / 5 min", "name": "Universe feed", "scope": scope, "n": cnt.get("listed"), "unit": "coins",
+             "detail": f"Every coin's price every 10 seconds and its 5-minute candles every 5 minutes (Binance public data); tier A {cnt.get('A', 0)}, "
+                       f"B {cnt.get('B', 0)}, C {cnt.get('C', 0)} (C is watched, never judged)."},
+            {"cadence": "10 s", "name": "Zone touch, every coin", "scope": scope, "n": u_zt, "unit": "paper trades",
+             "detail": "The eye's zone-touch rule on every coin's live price, per tier, with its own stop and 20-day exit."},
+            {"cadence": "daily", "name": "Daily rules, every coin", "scope": scope, "n": u_sig + u_rnd, "unit": "paper trades",
+             "detail": f"The short dip trade and your setups on every coin after each daily close: {_s(u_sig, 'signal')}; random baselines "
+                       f"per tier took {u_rnd}."},
+            {"cadence": "15 min", "name": "Explorer setups, every coin (shadows)", "scope": scope, "n": ux.get("coins"), "unit": "coins checked",
+             "detail": "The 15-minute setups on every coin as shadow trades, scored by tier against the engine's random entries; they never "
+                       "wake the brain outside the 10 (they lost after costs in history)."},
+            {"cadence": "nightly", "name": "Universe rebuild", "scope": "every daily rule on every coin", "n": u_rb, "unit": "nights",
+             "detail": "Re-runs every daily rule on the stored candles and checks the ledger has exactly those signals."},
+            {"cadence": "on wake", "name": "Brain's ranking", "scope": scope, "n": unrev, "unit": "wakes not reviewed",
+             "detail": "Every wake is ranked first; the AI decides the best ones within the day's budget, and the rest are scored later "
+                       "to check the ranking."},
+        ]
+    except Exception:  # noqa: BLE001
+        uni = []
+    return uni + [
         {"cadence": "10 s", "name": "The eye", "scope": "10 coins", "n": ticks, "unit": "looks since the last restart",
          "detail": f"Your stops and alerts, a sudden Bitcoin drop, price entering a support zone ({_s(zone_touch, 'zone-touch trade')}); "
                    "it also manages Jarvis's open trades."},

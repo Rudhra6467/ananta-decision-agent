@@ -834,7 +834,10 @@
     "jarvis/service/acceptance.py",
     "jarvis/service/notify.py",
     "jarvis/service/costs.py",
-    "jarvis/service/visitor.py"
+    "jarvis/service/visitor.py",
+    "jarvis/service/registry.py",
+    "jarvis/service/feed.py",
+    "jarvis/service/universe_watch.py"
    ]
   },
   {

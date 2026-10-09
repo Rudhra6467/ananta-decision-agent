@@ -1,6 +1,6 @@
 {
  "version": "watches.v1",
- "updated": "2026-10-04",
+ "updated": "2026-10-09",
  "what": "The watch registry (Madhav, 2026-10-03: a set of rules watching plus an eye-like tracker, kept in sections; one scanner unless a watch needs a faster loop). Every watch Ananta runs is declared here once: its section, the candle it decides on, how it triggers, where it runs, its entry, exit and size, which evidence book its trades go to, its evidence status, and who hears about it. A rule written here before its trades happen is its pre-registration: the live trades that follow are clean forward evidence.",
  "how_to_add": "1) write the rule (entry, exit, size) here with today's date; 2) test it on history in the repair shop if it can be; 3) give it a rule function in the place named by runs_in (jarvis.watch_engine for daily bar-close rules, jarvis.eye for live price levels); 4) its trades appear on the scoreboard by themselves. A watch that needs other data (order book) or heavy compute gets its own process.",
  "loops": {
@@ -632,6 +632,54 @@
    "alerts": "none",
    "since": "2026-10-04",
    "costs": "NDAX 0.20% + half-spread each side"
+  },
+  {
+   "id": "UNIVERSE_DAILY",
+   "name": "Daily rules on every coin, per tier",
+   "section": "SETUPS",
+   "timeframe": "1d",
+   "trigger": "bar_close",
+   "runs_in": "jarvis.universe_watch",
+   "entry": "the same rule code as the history tests and the 10-coin watches (H07, M1a, M2a, M2a-G, M3a, M3b) on every coin of Universe Rule v2, after each daily close; buy $100 at the next day's open; one at a time per rule and coin",
+   "exit": "each rule's own exit (H07: RSI(10) back over 40 or 10 days; your setups: their stop or 30 days)",
+   "size_usd": 100,
+   "book": "evidence_trades (watch ids <rule>-UA / -UB / -UC)",
+   "status": "ACTIVE_UNPROVEN",
+   "status_by_tier": {
+    "A": "ACTIVE_UNPROVEN",
+    "B": "ACTIVE_UNPROVEN",
+    "C": "SHADOW (watched and scored, never judged)"
+   },
+   "evidence": "pre-registered 2026-10-09 before any universe trade (engine plan D1-D7); H07 passed only on the liquid top 30 (reviews #14, #15, #22), so tier B and C results are new evidence; random baselines per tier (RANDOM_10D/20D/30D-U<tier>) are the bar",
+   "alerts": "feed",
+   "since": "2026-10-09",
+   "costs": "Universe Rule v2: NDAX 0.20% (else 0.40%) plus the larger of 3x the Binance half spread and the tier floor (A 0.20%, B 0.40%, C 0.80%) each side",
+   "universe": "Universe Rule v2 (docs/UNIVERSE_RULE_V2.md): every Binance USDT spot coin, tiers A/B/C",
+   "run_by": "jarvis.universe_watch.run_daily (not the 10-coin run)"
+  },
+  {
+   "id": "ZONE_TOUCH_UNIVERSE",
+   "name": "Zone touch on every coin, per tier",
+   "section": "SETUPS",
+   "timeframe": "live",
+   "trigger": "level_cross",
+   "runs_in": "jarvis.universe_watch.tick (the feed's prices every 10 seconds)",
+   "entry": "the ZONE_TOUCH rule on every coin: live price comes down into a support zone of a kind history supports while Bitcoin is above its 50-day; not the same zone twice in 20 days; $100 at the live price",
+   "exit": "stop half a daily range under the zone (live and on daily lows), else 20 days",
+   "size_usd": 100,
+   "book": "evidence_trades (watch ids ZONE_TOUCH-UA / -UB / -UC)",
+   "status": "WATCH",
+   "status_by_tier": {
+    "A": "WATCH",
+    "B": "WATCH",
+    "C": "SHADOW (watched and scored, never judged)"
+   },
+   "evidence": "zones passed on all 120 coins (review #16): the broadest evidence we have; pre-registered 2026-10-09",
+   "alerts": "feed",
+   "since": "2026-10-09",
+   "costs": "Universe Rule v2",
+   "universe": "Universe Rule v2",
+   "run_by": "jarvis.universe_watch"
   }
  ]
 }

@@ -1,0 +1,1592 @@
+{
+ "taken_at": "2026-10-09 19:39 UTC",
+ "why": "U0.3: the before picture for the whole-universe build",
+ "evidence": {
+  "as_of": "Oct 9, 3:39 PM",
+  "headline": "Day 9.2 of paper. 924 trades scored from 7 market events; no verdict before 10. So far real trades average -$1.10 per $100, random entries -$1.43. Acceptance gate: 13 of 27 checks pass.",
+  "loop": [
+   {
+    "key": "looked",
+    "label": "Looked",
+    "n": 9073,
+    "sub": "8,832 Explorer coin checks and 241 hourly looks; the eye looks every 10 seconds; daily watches at each close"
+   },
+   {
+    "key": "spotted",
+    "label": "Spotted",
+    "n": 2183,
+    "sub": "setups whose every condition was met"
+   },
+   {
+    "key": "decided",
+    "label": "Decided",
+    "n": 895,
+    "sub": "155 real Explorer orders (144 filled); 651 stopped (a limit, or no room to a target) and tracked anyway; Jarvis decided 89 of 631 wakes; plus 181 random entries as the bar"
+   },
+   {
+    "key": "scored",
+    "label": "Scored",
+    "n": 924,
+    "sub": "closed trades scored after costs (real, stopped, random); 7 market events so far"
+   },
+   {
+    "key": "missed",
+    "label": "Misses checked",
+    "n": 19,
+    "sub": "big moves: 14 caught, 1 seen, 4 missed"
+   },
+   {
+    "key": "forwarded",
+    "label": "Sent to the repair shop",
+    "n": 61,
+    "sub": "23 reviews, 13 tickets, 15 requests, 10 waiting for evidence"
+   },
+   {
+    "key": "changed",
+    "label": "Changed",
+    "n": 19,
+    "sub": "5 repairs running in paper, 2 mode, 12 safety changes"
+   }
+  ],
+  "clocks": [
+   {
+    "cadence": "10 s",
+    "name": "The eye",
+    "scope": "10 coins",
+    "n": null,
+    "unit": "looks since the last restart",
+    "detail": "Your stops and alerts, a sudden Bitcoin drop, price entering a support zone (16 zone-touch trades); it also manages Jarvis's open trades."
+   },
+   {
+    "cadence": "2 min",
+    "name": "Health watchdog",
+    "scope": "every part",
+    "n": null,
+    "unit": "",
+    "detail": "Checks every 2 minutes that each part is alive and working (the Explorer's last real scan, Hands' login, the tunnel, the hourly watch); a part down twice in a row phones you."
+   },
+   {
+    "cadence": "15 min",
+    "name": "Explorer",
+    "scope": "10 coins",
+    "n": 8832,
+    "unit": "coin checks",
+    "detail": "2183 setups seen, 155 real paper orders, 651 stopped and tracked, 181 random entries."
+   },
+   {
+    "cadence": "1 h",
+    "name": "Hourly watch (Hunter, Squeeze)",
+    "scope": "10 coins",
+    "n": 241,
+    "unit": "looks",
+    "detail": "Last 24 hours: Hunter checked 240 times and fired 0; Squeeze checked 240 times and fired 0."
+   },
+   {
+    "cadence": "daily",
+    "name": "Daily watches",
+    "scope": "10 coins",
+    "n": 15,
+    "unit": "paper trades",
+    "detail": "At each daily close (8 PM Toronto): your setups and the short dip trade gave 1 signal; the random baselines took 14."
+   },
+   {
+    "cadence": "daily",
+    "name": "30-coin paper tier",
+    "scope": "29 coins",
+    "n": 5,
+    "unit": "daily decisions",
+    "detail": "The trend book holds 1 of 29 coins; the dip trade (H07-T30) has given 2 signals."
+   },
+   {
+    "cadence": "daily",
+    "name": "Trend portfolio (T3-B)",
+    "scope": "10 coins",
+    "n": 10,
+    "unit": "daily ratings",
+    "detail": "Rates every coin each day; re-sizes a coin only when it drifts outside 0.5x-1.5x of its share."
+   },
+   {
+    "cadence": "daily",
+    "name": "Missed-move review",
+    "scope": "10 + 29 coins",
+    "n": 6,
+    "unit": "days reviewed",
+    "detail": "Half an hour after the daily close: the day's biggest moves, and whether we caught, saw or missed them."
+   },
+   {
+    "cadence": "nightly",
+    "name": "Nightly rebuild",
+    "scope": "every Explorer decision",
+    "n": 9,
+    "unit": "nights",
+    "detail": "Replays the Explorer from raw candles and checks every real decision comes out the same."
+   },
+   {
+    "cadence": "on wake",
+    "name": "Jarvis's brain",
+    "scope": "10 coins",
+    "n": 631,
+    "unit": "wakes",
+    "detail": "Woken by the Explorer, Hunter, your setups, zone entries and coins needing attention: decided 89, dropped 520 (see the limits)."
+   }
+  ],
+  "limits": [
+   {
+    "where": "Explorer",
+    "rule": "One trade per coin per kind",
+    "setting": "up to 3 at once per coin and trade kind, at least 2 four-hour ranges apart",
+    "stopped": 415,
+    "verdict": "What it stopped averaged -$1.73 per $100 trade, worse than the trades taken (-$1.10), worse than random entries (-$1.43). So far it is not hiding winners. Only 6 market events, so too early to call."
+   },
+   {
+    "where": "Explorer",
+    "rule": "Room to a target",
+    "setting": "a setup trades only when one trade kind has room to its target",
+    "stopped": 234,
+    "verdict": "What it stopped averaged -$0.53 per $100 trade, better than the trades taken (-$1.10), better than random entries (-$1.43). So far the stopped trades did better: worth watching. Only 7 market events, so too early to call."
+   },
+   {
+    "where": "Explorer",
+    "rule": "Account limit",
+    "setting": "20 open at once, 60 new a day",
+    "stopped": 0,
+    "verdict": "Never reached so far."
+   },
+   {
+    "where": "Explorer",
+    "rule": "One setup per coin per scan",
+    "setting": "if two setups fire on one coin in the same scan, the first is taken",
+    "stopped": 2,
+    "verdict": "Nothing it stopped has finished yet."
+   },
+   {
+    "where": "Jarvis's brain",
+    "rule": "Trades per coin",
+    "setting": "at most 2 open on one coin; a wake on a coin at that limit is dropped",
+    "stopped": 87,
+    "verdict": "After the wakes it dropped, the coin moved -0.72% on average in the next 24 hours (87 wakes, 23% up); after the wakes it decided on, -1.41%. A rough check, not a trade result: there was no plan to score."
+   },
+   {
+    "where": "Jarvis's brain",
+    "rule": "Open trades",
+    "setting": "at most 20 open",
+    "stopped": 17,
+    "verdict": "After the wakes it dropped, the coin moved +2.79% on average in the next 24 hours (17 wakes, 76% up); after the wakes it decided on, -1.41%. A rough check, not a trade result: there was no plan to score."
+   },
+   {
+    "where": "Jarvis's brain",
+    "rule": "Decisions a day",
+    "setting": "40 a day",
+    "stopped": 0,
+    "verdict": "Never reached so far."
+   },
+   {
+    "where": "Jarvis's brain",
+    "rule": "One decision per coin per 6 hours",
+    "setting": "a coin decided less than 6 hours ago waits",
+    "stopped": 416,
+    "verdict": "After the wakes it dropped, the coin moved -1.59% on average in the next 24 hours (394 wakes, 21% up); after the wakes it decided on, -1.41%. A rough check, not a trade result: there was no plan to score."
+   },
+   {
+    "where": "Every book",
+    "rule": "Trade size",
+    "setting": "$100 per paper trade; $2,000 per trend book",
+    "stopped": null,
+    "verdict": "Size changes the dollars, not the evidence: a bigger paper size makes the same number of trades. Evidence grows with more trades from separate market moves."
+   }
+  ],
+  "results": {
+   "items": [
+    {
+     "key": "real",
+     "label": "Explorer: real paper trades",
+     "closed": 144,
+     "wins": 15,
+     "net_usd": -158.68,
+     "avg_usd": -1.1,
+     "events": 6,
+     "open": 0
+    },
+    {
+     "key": "would_be",
+     "label": "Explorer: stopped by a limit (tracked)",
+     "closed": 362,
+     "wins": 20,
+     "net_usd": -626.84,
+     "avg_usd": -1.73,
+     "events": 6
+    },
+    {
+     "key": "no_type",
+     "label": "Explorer: no room to a target (tracked)",
+     "closed": 211,
+     "wins": 25,
+     "net_usd": -112.56,
+     "avg_usd": -0.53,
+     "events": 7
+    },
+    {
+     "key": "random",
+     "label": "Random entries: the bar to beat",
+     "closed": 159,
+     "wins": 7,
+     "net_usd": -227.89,
+     "avg_usd": -1.43,
+     "events": 10
+    },
+    {
+     "key": "jarvis",
+     "label": "Jarvis's own trades",
+     "closed": 15,
+     "wins": null,
+     "avg_usd": -6.82,
+     "net_usd": null,
+     "events": 1,
+     "open": 8,
+     "twins_avg_usd": -5.92,
+     "vs_twins_usd": -0.9
+    }
+   ],
+   "events": 7,
+   "goal_events": 10,
+   "books": [
+    {
+     "key": "t3",
+     "label": "Trend portfolio, 10 coins",
+     "pct": -5.75,
+     "vs_label": "buy and hold",
+     "vs_pct": -7.7,
+     "days": 9.8,
+     "trades": 28
+    },
+    {
+     "key": "t30",
+     "label": "Trend book, 30-coin tier",
+     "pct": -7.94,
+     "vs_label": "buy and hold",
+     "vs_pct": -11.4,
+     "days": 4.8,
+     "trades": 51,
+     "stale_coins": [
+      "TON"
+     ]
+    },
+    {
+     "key": "h07_t30",
+     "label": "Dip trade (H07), 30-coin tier",
+     "closed": 0,
+     "net_usd": 0.0,
+     "open": 0
+    }
+   ],
+   "verdict": "Too early: 7 market events so far, and no verdict before 10. So far real trades average -$1.10 per $100 against -$1.43 for random entries."
+  },
+  "reconstruction": {
+   "nightly": {
+    "runs": 9,
+    "first": "Sep 30",
+    "mismatches": 0,
+    "every": "every night at the daily close (8 PM Toronto)"
+   },
+   "asked": {
+    "runs": 13,
+    "mismatches": 0,
+    "last": "Oct 1, 10:47 PM",
+    "how": "you ask Ananta: \"run the reconstruction\""
+   },
+   "total": 22,
+   "mismatches": 0,
+   "last": {
+    "when": "Oct 8, 8:02 PM",
+    "match": true,
+    "checked": 423,
+    "rebuilt": 423
+   },
+   "how": "The whole Explorer is replayed from the raw candles with a fresh engine; every real decision (order, fill, close) must come out the same, at the same time. The account limits are not re-applied.",
+   "if_mismatch": "Your phone gets an alert, the day's evidence is not trusted until the difference is explained, and it goes on the repair board as a ticket.",
+   "others": {
+    "id": "R2",
+    "title": "Other traders' trades (Hyperliquid)",
+    "date": "2026-09-30",
+    "runs": "once (a study, not a daily job)",
+    "accounts_sampled": 65,
+    "excluded_bots": 6,
+    "accounts_trading_our_coins": 37,
+    "round_trips": 7441,
+    "long": 5815,
+    "short": 1626,
+    "period": "Sep 2024 - Jul 2026",
+    "our_setups_silent_before_their_buys_pct": 75,
+    "their_timing_edge": "+0.06% in the first hour (about a tenth of costs)",
+    "skill_persisted": false,
+    "what_we_did": "Nothing copied. Their one pattern (buying weakness did better) was tested in review #3 on 2017-2023 data.",
+    "files": [
+     "docs/repair_shop/REVIEW_2.md",
+     "docs/repair_shop/REVIEW_2_RESULTS.md"
+    ]
+   },
+   "chain": [
+    {
+     "id": "R2",
+     "step": "Studied other traders' real trades",
+     "what": "Their entry timing carried almost no information (a tiny 1-hour edge) and skill did not persist from one period to the next. One pattern stood out: they did better buying weakness than strength. That became review #3.",
+     "status": "DONE",
+     "verdict": "FAIL",
+     "change": "Nothing live. Traders stay reference only, never teachers."
+    },
+    {
+     "id": "R3",
+     "step": "Tested their one pattern: buying weakness",
+     "what": "Buying when 15m RSI is under 30 beat random entries (first rule ever to beat chance on unseen data) but by far too little to pay fees and spread. Every variant lost after costs.",
+     "status": "DONE",
+     "verdict": "FAIL",
+     "change": "Dip setups E6-E8 are watched only (sightings for the atlas), never traded."
+    },
+    {
+     "id": "W1",
+     "step": "You put the dip setup (E6) on paper anyway, for evidence",
+     "what": "Paper wide mode: E6 dips traded on paper; up to 3 trades per coin per type when at least 2 four-hour ranges apart; 60 entries a day",
+     "status": "IN_USE",
+     "change": "More paper evidence per day (Q1 needed ~2 weeks at the old pace). Same $100 size, exits and warning bells."
+    },
+    {
+     "id": "TK2",
+     "step": "Live paper found a flaw in the dip trades",
+     "what": "Dip trades (E6) skip the room-to-target check every other setup passes: 3 real trades on Oct 5 'hit their target' the minute they filled and lost to costs (target 0.01% away).",
+     "status": "DONE",
+     "change": "Rules W2 from 2026-10-05 17:30 UTC: a dip trade needs at least 1.2% room to its target, else it is tracked as a would-be (NO_TYPE). Earlier trades keep W1, so the nightly rebuild still matches."
+    }
+   ]
+  },
+  "misses": {
+   "days_reviewed": 6,
+   "since": "Oct 2",
+   "live": {
+    "counts": {
+     "CAUGHT": 14,
+     "SEEN": 1,
+     "MISSED": 3
+    },
+    "moves": [
+     {
+      "day": "2026-10-08",
+      "coin": "SOL",
+      "move_pct": 4.93,
+      "label": "CAUGHT",
+      "why": "in it: Explorer E6, Explorer E6 (already open), Explorer E6 order, Jarvis evidence trade, ZONE_TOUCH evidence trade",
+      "miss_class": null,
+      "class_why": ""
+     },
+     {
+      "day": "2026-10-08",
+      "coin": "ETH",
+      "move_pct": 3.19,
+      "label": "CAUGHT",
+      "why": "in it: Explorer E6, Explorer E6 (already open), Explorer E6 order, Hunter take (hunter), Jarvis evidence trade",
+      "miss_class": null,
+      "class_why": ""
+     },
+     {
+      "day": "2026-10-08",
+      "coin": "XRP",
+      "move_pct": 5.25,
+      "label": "CAUGHT",
+      "why": "in it: Explorer E6, Explorer E6 (already open), Explorer E6 order, ZONE_TOUCH evidence trade",
+      "miss_class": null,
+      "class_why": ""
+     },
+     {
+      "day": "2026-10-08",
+      "coin": "BCH",
+      "move_pct": 5.66,
+      "label": "CAUGHT",
+      "why": "in it: Explorer E6, Explorer E6 order, Jarvis evidence trade, ZONE_TOUCH evidence trade",
+      "miss_class": null,
+      "class_why": ""
+     },
+     {
+      "day": "2026-10-08",
+      "coin": "LINK",
+      "move_pct": 5.98,
+      "label": "CAUGHT",
+      "why": "in it: Explorer E6, Explorer E6 (already open), Explorer E6 order, Jarvis evidence trade",
+      "miss_class": null,
+      "class_why": ""
+     },
+     {
+      "day": "2026-10-07",
+      "coin": "AVAX",
+      "move_pct": 5.6,
+      "label": "CAUGHT",
+      "why": "in it: Explorer E4, Explorer E4 (already open), Explorer E4 order, Hunter take (hunter), Jarvis evidence trade, ZONE_TOUCH evidence trade",
+      "miss_class": null,
+      "class_why": ""
+     },
+     {
+      "day": "2026-10-07",
+      "coin": "DOGE",
+      "move_pct": 4.11,
+      "label": "CAUGHT",
+      "why": "in it: Explorer E6, Explorer E6 (already open), Explorer E6 order, Jarvis evidence trade, ZONE_TOUCH evidence trade",
+      "miss_class": null,
+      "class_why": ""
+     },
+     {
+      "day": "2026-10-07",
+      "coin": "LINK",
+      "move_pct": 4.24,
+      "label": "CAUGHT",
+      "why": "in it: Explorer E6, Explorer E6 (already open), Explorer E6 order, Jarvis evidence trade",
+      "miss_class": null,
+      "class_why": ""
+     }
+    ],
+    "patterns": [
+     {
+      "said": "a rebound from a recent low, from a support zone, market allowed",
+      "times": 2,
+      "of": 5,
+      "avg_move_pct": 5.0,
+      "coins": "BCH,DOGE",
+      "forwarded": false
+     },
+     {
+      "said": "a breakout over the recent high, from a support zone, market allowed",
+      "times": 1,
+      "of": 5,
+      "avg_move_pct": 10.7,
+      "coins": "ADA",
+      "forwarded": false
+     }
+    ]
+   },
+   "t30": {
+    "counts": {
+     "CAUGHT": 0,
+     "SEEN": 0,
+     "MISSED": 1
+    },
+    "moves": [
+     {
+      "day": "2026-10-03",
+      "coin": "S",
+      "move_pct": 14.24,
+      "label": "MISSED",
+      "why": "30-coin tier: not running yet that day (started Oct 4)",
+      "miss_class": "DETECTION",
+      "class_why": "nothing of ours recognised a kind of move our setups are meant to catch"
+     }
+    ],
+    "patterns": [
+     {
+      "said": "a breakout over the recent high, from a support zone, market allowed",
+      "times": 1,
+      "of": 5,
+      "avg_move_pct": 14.2,
+      "coins": "S",
+      "forwarded": false
+     }
+    ],
+    "days": {
+     "reviewed": 5,
+     "empty": 5,
+     "failed": [],
+     "note": "A day counts only when a coin closed at least 5% up and more than its normal daily range; Oct 6 to 8 every tier coin fell."
+    }
+   },
+   "forwarded": 0,
+   "classes": {
+    "DATA": 0,
+    "INTENTIONAL": 0,
+    "EXECUTION": 0,
+    "DECISION": 1,
+    "DETECTION": 4,
+    "KNOWLEDGE": 0
+   },
+   "class_meaning": {
+    "DATA": "we could not see it: a part was down or the data was stale at the start of the move",
+    "INTENTIONAL": "we saw it and a rule with supported evidence correctly said no (the market gate was shut)",
+    "EXECUTION": "a trade was wanted but a limit or an unfilled order stopped it",
+    "DECISION": "something noticed it and the decision was not to trade",
+    "DETECTION": "nothing of ours recognised a kind of move our setups are meant to catch",
+    "KNOWLEDGE": "a kind of move none of our setups covers"
+   },
+   "what_we_do": "Every miss is filed with what we saw at its start and a class (data, intentional, execution, decision, detection, knowledge): a move the market gate rightly refused is not a mistake. The same kind of detection or knowledge miss 5 times in 30 days becomes a repair-shop request (an idea to test against the times the same start led nowhere), and Jarvis's brain sees it as a candidate pattern. Picked after the fact, so never proof."
+  },
+  "board_counts": {
+   "groups": {
+    "you": 0,
+    "us": 7,
+    "evidence": 10,
+    "done": 44
+   },
+   "kinds": {
+    "ticket": 13,
+    "request": 15,
+    "review": 23,
+    "question": 10
+   },
+   "review_verdicts": {
+    "FAIL": 15,
+    "PASS": 7,
+    "INSUFFICIENT": 1
+   }
+  },
+  "open_work": [
+   {
+    "id": "TK13",
+    "kind": "ticket",
+    "what": "TON has no daily data since Jun 30 (its source stopped), yet it is still one of the 30-coin tier's coins.",
+    "status_words": "Open",
+    "change": ""
+   },
+   {
+    "id": "#15",
+    "kind": "request",
+    "what": "Fine-tune the deep-dip buys (E6, 15m RSI under 30): they trigger often but earn little (8 closed Oct 8 for small losses via the hourly-under-50-hour-average bell). Test entry/exit tweaks and produce more reconstruction reports on them.",
+    "status_words": "Planned",
+    "change": ""
+   },
+   {
+    "id": "#14",
+    "kind": "request",
+    "what": "New user setup has several issues beyond request 13: no real onboarding (no questions about experience, goal, time frame, loss comfort), no staged lessons (basics, gates, first paper trade, review), and no simpler first screen or separate practice book for guests. Madhav wants a proper guided training flow adapted to each user's level.",
+    "status_words": "Planned",
+    "change": ""
+   },
+   {
+    "id": "#13",
+    "kind": "request",
+    "what": "New users added by Madhav see the same books page and markets page as the owner. A guest should get their own practice book and a simpler onboarding view, not the owner's books.",
+    "status_words": "Planned",
+    "change": ""
+   },
+   {
+    "id": "#8",
+    "kind": "request",
+    "what": "Promotion rule from 30-coin paper tier to the live 10: coin must beat random on its own trades, with at least 10 independent events, in both market regimes (uptrend and shaken). Add to request 7.",
+    "status_words": "Planned",
+    "change": ""
+   },
+   {
+    "id": "#7",
+    "kind": "request",
+    "what": "Gap found while answering: \"The tiered poll is smart. Full depth on the 10 live coins, thin daily data on the 30. But the unverified weighting across 100 coins is the real gap. A signal that fires on one coin in a 10 coin world \" Ananta said: \"I don't have a written promotion rule, and I won't invent one.\"",
+    "status_words": "Planned",
+    "change": ""
+   },
+   {
+    "id": "#3",
+    "kind": "request",
+    "what": "Hunter log only shows has_support_zone true/false. It does not record whether the zone came from closed daily or 4-hour levels, or the zone edges used. Needed to answer the question of which timeframe built the support zone on AVAX and LINK Hunter bars.",
+    "status_words": "Planned",
+    "change": ""
+   }
+  ],
+  "waiting": [
+   {
+    "id": "Q1",
+    "title": "Explorer live vs replay",
+    "waiting_for": "30 closed paper trades",
+    "why": "Check the live Explorer behaves like the 7-year replay (same win rate and cost drag).",
+    "have": 6,
+    "goal": 10,
+    "unit": "market events",
+    "speedup": "Trades are plenty; separate market moves are the wait. Everything closing on the same day counts once, so a busy day does not help; more days with moves do.",
+    "also": "506 trades closed: the 30-trade part is met",
+    "since": "Sep 30",
+    "pace_per_day": 0.65,
+    "eta_days": 7,
+    "eta_date": "Oct 16",
+    "done": false
+   },
+   {
+    "id": "Q2",
+    "title": "T3 live tracking",
+    "waiting_for": "6-8 weekly rebalances",
+    "why": "Check the live portfolio book follows its backtest: in when trends are up, in cash in slides, few trades.",
+    "have": 1,
+    "goal": 6,
+    "unit": "weeks",
+    "speedup": "Set by the calendar: one rebalance a week, by design.",
+    "since": "Sep 29",
+    "eta_date": "Nov 10",
+    "eta_days": 33,
+    "pace": "one a week",
+    "done": false
+   },
+   {
+    "id": "Q3",
+    "title": "E5 probation",
+    "waiting_for": "20 live E5 trades",
+    "why": "E5 was the weakest setup in review #1; live evidence decides whether it is dropped.",
+    "have": 4,
+    "goal": 20,
+    "unit": "E5 trades",
+    "speedup": "E5 trades only on the 10 live coins, so at this pace it takes weeks.",
+    "since": "Sep 30",
+    "pace_per_day": 0.43,
+    "eta_days": 37,
+    "eta_date": "Nov 15",
+    "done": false
+   },
+   {
+    "id": "Q4",
+    "title": "Intraday atlas alerts",
+    "waiting_for": "a sighting the atlas marks stable-positive after costs",
+    "why": "Intraday is idle; only contexts that were positive after costs in both periods may earn a look.",
+    "have": 0,
+    "goal": 1,
+    "unit": "sightings",
+    "speedup": "Waits for the market to reach a context the atlas marks positive after costs in both periods.",
+    "since": "Sep 30",
+    "pace_per_day": 0.0,
+    "eta_note": "none yet in 9 days",
+    "done": false
+   },
+   {
+    "id": "Q5",
+    "title": "Your setups, live record",
+    "waiting_for": "10 live fires of your setups",
+    "why": "Live fires are clean evidence (nobody knows how they end). With 10, compare them with random days and with the history test.",
+    "have": 0,
+    "goal": 10,
+    "unit": "signals",
+    "speedup": "Your setups are rare by design (a capitulation, a retest after a drop); nothing to speed up without changing the rule.",
+    "since": "Sep 30",
+    "pace_per_day": 0.0,
+    "eta_note": "none yet in 9 days",
+    "done": false
+   },
+   {
+    "id": "Q6",
+    "title": "H07 short dip trade, live record",
+    "waiting_for": "10 live H07 fires",
+    "why": "Review #14: strong in both periods but a few events short; live fires are clean evidence.",
+    "have": 1,
+    "goal": 10,
+    "unit": "signals",
+    "speedup": "Rare by design (a shaken market); the 30-coin tier's H07 watches 29 more coins and is counted apart.",
+    "since": "Sep 30",
+    "pace_per_day": 0.11,
+    "eta_days": 82,
+    "eta_date": "Dec 30",
+    "done": false
+   },
+   {
+    "id": "Q7",
+    "title": "Jarvis's own book vs its random twins",
+    "waiting_for": "10 independent market events",
+    "why": "Is one decision-maker using all the knowledge better than random coins traded with the same plan?",
+    "have": 1,
+    "goal": 10,
+    "unit": "market events",
+    "speedup": "Jarvis decided 89 of 631 wakes; ticket TK4 (decide on every wake, 20 open, 40 a day) is the biggest speed-up and waits for you.",
+    "since": "Oct 4",
+    "pace_per_day": 0.19,
+    "eta_days": 48,
+    "eta_date": "Nov 26",
+    "done": false
+   },
+   {
+    "id": "Q8",
+    "title": "30-coin tier: trend book and dip trade",
+    "waiting_for": "6-8 weekly checks of the 30-coin trend book; 10 dip-trade events",
+    "why": "Review #15 found both work on liquid coins; live paper must agree before any promotion.",
+    "have": 0,
+    "goal": 6,
+    "unit": "weeks",
+    "speedup": "Set by the calendar: one check a week, by design.",
+    "since": "Oct 4",
+    "eta_date": "Nov 15",
+    "eta_days": 38,
+    "pace": "one a week",
+    "done": false
+   },
+   {
+    "id": "Q9",
+    "title": "Survivorship check for the live 10",
+    "waiting_for": "a review slot (data are in the lake)",
+    "why": "Review #22: the lab 10 were also chosen with today's knowledge; re-test T3-B on the top 10 as it was each month.",
+    "have": 0,
+    "goal": 1,
+    "unit": "review",
+    "speedup": null,
+    "eta_note": "waits for a work session, not for the market",
+    "done": false
+   },
+   {
+    "id": "R24",
+    "title": "Tuning the deep-dip buy (E6)",
+    "waiting_for": "a work session",
+    "why": "Request #15: E6 trades often but earns little; four entry/exit variants pre-registered.",
+    "have": null,
+    "goal": null,
+    "unit": "sightings",
+    "speedup": null,
+    "since": "Sep 30",
+    "pace_per_day": 0.0,
+    "done": false
+   }
+  ],
+  "acceptance_gate": {
+   "passed": 13,
+   "of": 27,
+   "counts": {
+    "PASS": 13,
+    "FAIL": 1,
+    "PARTLY": 5,
+    "PENDING": 2,
+    "NOT_MEASURED": 6
+   },
+   "rule": "The engine is ready to lock (and go to the App Store) only when every check passes at the same time. Read daily; a pass can turn back into a fail.",
+   "not_passing": [
+    {
+     "area": "Data",
+     "check": "Survivorship controlled",
+     "status_words": "Partly",
+     "pass_mark": "Done for every tier that trades",
+     "note": "30-coin done (#22); live 10 waits (Q9)"
+    },
+    {
+     "area": "Engine",
+     "check": "Reproducible",
+     "status_words": "In progress",
+     "pass_mark": "30 nights in a row, 0 mismatches",
+     "note": "9 of 30 nights in a row match"
+    },
+    {
+     "area": "Engine",
+     "check": "Sizing correct",
+     "status_words": "Not measured yet",
+     "pass_mark": "0 violations in the weekly audit",
+     "note": "weekly audit not built"
+    },
+    {
+     "area": "Engine",
+     "check": "Execution assumptions",
+     "status_words": "Not measured yet",
+     "pass_mark": "Gap under the cost allowance",
+     "note": ""
+    },
+    {
+     "area": "Strategy",
+     "check": "Survivorship",
+     "status_words": "Fail",
+     "pass_mark": "Pass",
+     "note": "Fails on 30 (#22); live 10 pending (Q9)"
+    },
+    {
+     "area": "Strategy",
+     "check": "Beats baselines",
+     "status_words": "In progress",
+     "pass_mark": "Ahead after costs with 10+ market events",
+     "note": "7 of 10 market events; real -$1.10 vs random -$1.43 per $100"
+    },
+    {
+     "area": "Strategy",
+     "check": "Failure regimes known",
+     "status_words": "Not measured yet",
+     "pass_mark": "Every traded idea has its regime table",
+     "note": "build order step 5"
+    },
+    {
+     "area": "Agent",
+     "check": "Knows what it knows",
+     "status_words": "Not measured yet",
+     "pass_mark": "90% correct, 3 runs in a row",
+     "note": "exam not built (step 8)"
+    },
+    {
+     "area": "Agent",
+     "check": "Knows what it doesn't",
+     "status_words": "Not measured yet",
+     "pass_mark": "Says 'no evidence' every time",
+     "note": "exam not built (step 8)"
+    },
+    {
+     "area": "Agent",
+     "check": "Cites evidence",
+     "status_words": "Partly",
+     "pass_mark": "Spot check 20 answers a week",
+     "note": ""
+    },
+    {
+     "area": "Operations",
+     "check": "No trade when unhealthy",
+     "status_words": "Partly",
+     "pass_mark": "All books",
+     "note": "Explorer yes, others to check"
+    },
+    {
+     "area": "Operations",
+     "check": "Every decision reconstructable",
+     "status_words": "Partly",
+     "pass_mark": "All books rebuilt",
+     "note": "Explorer only"
+    },
+    {
+     "area": "Experience",
+     "check": "Voice commands work",
+     "status_words": "Not measured yet",
+     "pass_mark": "Every command, end to end",
+     "note": ""
+    },
+    {
+     "area": "Experience",
+     "check": "User understands why",
+     "status_words": "Partly",
+     "pass_mark": "Exam questions on 'why' pass",
+     "note": ""
+    }
+   ]
+  },
+  "errors": null
+ },
+ "brain": {
+  "closed": 15,
+  "open": [
+   {
+    "id": "873a367bd1c4",
+    "coin": "SOL",
+    "entry": 106.98,
+    "stop": 100.5,
+    "now": 109.05,
+    "entry_t": 1791480874,
+    "pnl_pct": 1.93,
+    "stop_pct": -6.1,
+    "stop_raised": false,
+    "trail_atr": null,
+    "target": null,
+    "days": 10,
+    "confidence": 45.0,
+    "size_pct": 25.0,
+    "thesis": "SOL fell about 8% intraday into a supported 50-day/swing zone (105.1-111.7) with the market allowed and clean news. A 15-minute RSI of 19 and a 1-hour RSI of 14 are washed-out readings, and a bounce toward the 116 area is plausible. The case is mixed, so I take it small and hold with a time exit.",
+    "twin": "LINK"
+   },
+   {
+    "id": "4e28c49214e8",
+    "coin": "LINK",
+    "entry": 12.22054,
+    "stop": 11.1,
+    "now": 12.80807,
+    "entry_t": 1791480929,
+    "pnl_pct": 4.81,
+    "stop_pct": -9.2,
+    "stop_raised": false,
+    "trail_atr": null,
+    "target": null,
+    "days": 10,
+    "confidence": 45.0,
+    "size_pct": 25.0,
+    "thesis": "LINK fell 8% below yesterday's close into the 50-day/swing support band (11.54-12.98) with the market allowed, news clear and the coin still well above its 200-day. 15-minute and hourly RSI are at extreme lows (22 and 16), so a snap-back is plausible. The case is mixed, so I take a small starter and use a time exit.",
+    "twin": "AVAX"
+   },
+   {
+    "id": "40e27ccd5e90",
+    "coin": "ETH",
+    "entry": 2420.7,
+    "stop": 2340.0,
+    "now": 2480.79,
+    "entry_t": 1791483555,
+    "pnl_pct": 2.48,
+    "stop_pct": -3.3,
+    "stop_raised": false,
+    "trail_atr": null,
+    "target": null,
+    "days": 10,
+    "confidence": 42.0,
+    "size_pct": 25.0,
+    "thesis": "ETH sold off about 6% since the last daily close and is now inside the 2385-2484 base/swing support zone with extreme oversold readings (15m RSI 22, 1h RSI 14). The market is allowed and the coin is far above its 200-day average, so a small bounce-or-time-exit trade is reasonable. The case is mixed, so the size is minimal.",
+    "twin": "DOGE"
+   },
+   {
+    "id": "b7373de2ff43",
+    "coin": "XRP",
+    "entry": 1.3777,
+    "stop": 1.31,
+    "now": 1.38468,
+    "entry_t": 1791494775,
+    "pnl_pct": 0.51,
+    "stop_pct": -4.9,
+    "stop_raised": false,
+    "trail_atr": null,
+    "target": null,
+    "days": 15,
+    "confidence": 45.0,
+    "size_pct": 25.0,
+    "thesis": "XRP has just dropped into a swing support zone (1.345-1.378) while Bitcoin is above its 50-day (market allowed) and XRP is still 11% above its 200-day. The news is clear and even positive. This is a small, reasonable zone-touch bet on a pullback in an uptrend, held on a time exit rather than a near target.",
+    "twin": "BTC"
+   },
+   {
+    "id": "49b297de97ae",
+    "coin": "BCH",
+    "entry": 276.56,
+    "stop": 256.0,
+    "now": 274.07,
+    "entry_t": 1791503470,
+    "pnl_pct": -0.9,
+    "stop_pct": -7.4,
+    "stop_raised": false,
+    "trail_atr": 3.0,
+    "target": null,
+    "days": 15,
+    "confidence": 45.0,
+    "size_pct": 25.0,
+    "thesis": "BCH has dropped about 8% into a supported AVERAGE-50 + SWING zone while Bitcoin is above its 50-day (market allowed), the one setup history backs. The case is mixed, so I take it at minimum size and hold for a time exit rather than a near target.",
+    "twin": "ETH"
+   },
+   {
+    "id": "7be6c6ab7d68",
+    "coin": "AVAX",
+    "entry": 10.052,
+    "stop": 9.15,
+    "now": 10.18,
+    "entry_t": 1791504342,
+    "pnl_pct": 1.27,
+    "stop_pct": -9.0,
+    "stop_raised": false,
+    "trail_atr": null,
+    "target": null,
+    "days": 10,
+    "confidence": 40.0,
+    "size_pct": 25.0,
+    "thesis": "AVAX fell 9.6% in a day into a supported swing zone (9.52-10.21) with the market ALLOWED, and it is still above its 50-day and 200-day averages. The case is mixed, so I take a small starter and use a time exit instead of a near target.",
+    "twin": "XRP"
+   },
+   {
+    "id": "fd2583a2ddf6",
+    "coin": "BTC",
+    "entry": 81762.2,
+    "stop": 78400.0,
+    "now": 82376.7,
+    "entry_t": 1791504372,
+    "pnl_pct": 0.75,
+    "stop_pct": -4.1,
+    "stop_raised": false,
+    "trail_atr": 3.0,
+    "target": null,
+    "days": 12,
+    "confidence": 45.0,
+    "size_pct": 25.0,
+    "thesis": "BTC is just above a supported average-50+swing support zone (79.5k-81.5k) after a one-day dip, with the market regime ALLOWED, the strongest single fact we have. The case is mixed and the book is meant to learn, so this is a small starter trade with a structural stop and a time exit.",
+    "twin": "SOL"
+   },
+   {
+    "id": "32a32637b2d4",
+    "coin": "LTC",
+    "entry": 63.19,
+    "stop": 54.5,
+    "now": 63.36,
+    "entry_t": 1791559243,
+    "pnl_pct": 0.27,
+    "stop_pct": -13.8,
+    "stop_raised": false,
+    "trail_atr": null,
+    "target": null,
+    "days": 10,
+    "confidence": 45.0,
+    "size_pct": 25.0,
+    "thesis": "LTC is a liquid coin in an allowed market, 22% above its 200-day, and it has just dipped 4.5% on the day with the 15-minute RSI at 29 (E6). News is clear, so this is a small, structurally stopped dip-in-uptrend bet with a time exit.",
+    "twin": "BTC"
+   }
+  ],
+  "running": {
+   "me": [
+    {
+     "t": 1791338481,
+     "v": -7.3
+    },
+    {
+     "t": 1791367660,
+     "v": -11.13
+    },
+    {
+     "t": 1791372633,
+     "v": -16.8
+    },
+    {
+     "t": 1791380403,
+     "v": -22.47
+    },
+    {
+     "t": 1791429690,
+     "v": -30.44
+    },
+    {
+     "t": 1791456187,
+     "v": -37.3
+    },
+    {
+     "t": 1791463607,
+     "v": -42.54
+    },
+    {
+     "t": 1791472410,
+     "v": -52.32
+    },
+    {
+     "t": 1791472860,
+     "v": -57.7
+    },
+    {
+     "t": 1791472990,
+     "v": -64.86
+    },
+    {
+     "t": 1791473001,
+     "v": -77.22
+    },
+    {
+     "t": 1791473001,
+     "v": -84.76
+    },
+    {
+     "t": 1791473741,
+     "v": -90.26
+    },
+    {
+     "t": 1791473741,
+     "v": -96.06
+    },
+    {
+     "t": 1791473741,
+     "v": -102.36
+    }
+   ],
+   "twins": [
+    {
+     "t": 1791338441,
+     "v": -5.62
+    },
+    {
+     "t": 1791338481,
+     "v": -10.77
+    },
+    {
+     "t": 1791380824,
+     "v": -18.07
+    },
+    {
+     "t": 1791409437,
+     "v": -24.55
+    },
+    {
+     "t": 1791466818,
+     "v": -27.08
+    },
+    {
+     "t": 1791466828,
+     "v": -31.64
+    },
+    {
+     "t": 1791466948,
+     "v": -36.23
+    },
+    {
+     "t": 1791472490,
+     "v": -41.7
+    },
+    {
+     "t": 1791472750,
+     "v": -50.58
+    },
+    {
+     "t": 1791472940,
+     "v": -54.58
+    },
+    {
+     "t": 1791472940,
+     "v": -62.17
+    },
+    {
+     "t": 1791479501,
+     "v": -65.98
+    },
+    {
+     "t": 1791480301,
+     "v": -76.94
+    }
+   ]
+  },
+  "avg_usd_per_100": -6.82,
+  "random_twin_avg_usd": -5.92,
+  "vs_random_usd": -0.9,
+  "sized_net_usd": -28.21,
+  "events": 1,
+  "verdict": "too early",
+  "calibration": [
+   {
+    "confidence": "0-50",
+    "trades": 4,
+    "win_rate": 0.0,
+    "avg_usd": -6.81
+   },
+   {
+    "confidence": "50-65",
+    "trades": 11,
+    "win_rate": 0.0,
+    "avg_usd": -6.83
+   }
+  ],
+  "knowledge_credit": [
+   {
+    "knowledge": "REGIME",
+    "trades": 15,
+    "avg_usd": -6.82,
+    "wins": 0
+   },
+   {
+    "knowledge": "ZONES",
+    "trades": 15,
+    "avg_usd": -6.82,
+    "wins": 0
+   },
+   {
+    "knowledge": "EXITS",
+    "trades": 15,
+    "avg_usd": -6.82,
+    "wins": 0
+   },
+   {
+    "knowledge": "STOP_ZONE",
+    "trades": 15,
+    "avg_usd": -6.82,
+    "wins": 0
+   },
+   {
+    "knowledge": "NEWS",
+    "trades": 15,
+    "avg_usd": -6.82,
+    "wins": 0
+   },
+   {
+    "knowledge": "COSTS",
+    "trades": 14,
+    "avg_usd": -6.82,
+    "wins": 0
+   },
+   {
+    "knowledge": "T3",
+    "trades": 13,
+    "avg_usd": -6.88,
+    "wins": 0
+   },
+   {
+    "knowledge": "STOPS",
+    "trades": 7,
+    "avg_usd": -6.54,
+    "wins": 0
+   },
+   {
+    "knowledge": "TRAIL",
+    "trades": 6,
+    "avg_usd": -7.16,
+    "wins": 0
+   },
+   {
+    "knowledge": "EXPLORER",
+    "trades": 3,
+    "avg_usd": -6.74,
+    "wins": 0
+   },
+   {
+    "knowledge": "M2A_G",
+    "trades": 1,
+    "avg_usd": -5.67,
+    "wins": 0
+   },
+   {
+    "knowledge": "H07",
+    "trades": 1,
+    "avg_usd": -7.54,
+    "wins": 0
+   }
+  ],
+  "passes_scored": 0,
+  "passes_that_ran_5pct": [],
+  "today": {
+   "PASS": 9,
+   "TAKE": 1
+  },
+  "daily_limit": 40,
+  "decisions": [
+   {
+    "id": "6ce02c91a0d5",
+    "t": 1791565843,
+    "coin": "ETH",
+    "triggers": [
+     "zone_entry"
+    ],
+    "action": "PASS",
+    "confidence": 35.0,
+    "size_pct": 0.0,
+    "price": 2486.03,
+    "thesis": "The setup is reasonable (ETH in a supported swing zone, RSI(10) 29 above the 200-day, market allowed), but I already hold ETH and 7 other correlated coins. A second ETH trade would be the same bet again, not a new reason.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "0500661f2824",
+    "t": 1791560132,
+    "coin": "BTC",
+    "triggers": [
+     "explorer:E4"
+    ],
+    "action": "PASS",
+    "confidence": 30.0,
+    "size_pct": 0.0,
+    "price": 82906.4,
+    "thesis": "The market is allowed, but this is not a new, separate reason to add to BTC. The only trigger is Explorer E4, which was blocked as NO_TYPE and whose setup family failed after costs. Price at 82,906 sits inside a resistance zone, not on support.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "c42f1a01aeb7",
+    "t": 1791559243,
+    "coin": "LTC",
+    "triggers": [
+     "explorer:E6"
+    ],
+    "action": "TAKE",
+    "confidence": 45.0,
+    "size_pct": 25.0,
+    "price": 63.19,
+    "thesis": "LTC is a liquid coin in an allowed market, 22% above its 200-day, and it has just dipped 4.5% on the day with the 15-minute RSI at 29 (E6). News is clear, so this is a small, structurally stopped dip-in-uptrend bet with a time exit.",
+    "trade_id": "32a32637b2d4",
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "017fd9cb234f",
+    "t": 1791553289,
+    "coin": "AVAX",
+    "triggers": [
+     "zone_entry"
+    ],
+    "action": "PASS",
+    "confidence": 35.0,
+    "size_pct": 0.0,
+    "price": 10.196,
+    "thesis": "AVAX is already held, and this zone entry is the same move as the open trade, not a new reason. Adding would only stack more of the same correlated bet while 7 coins are open and 0 of 15 closed trades have won.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "e1b92a113e56",
+    "t": 1791553042,
+    "coin": "XRP",
+    "triggers": [
+     "zone_entry"
+    ],
+    "action": "PASS",
+    "confidence": 30.0,
+    "size_pct": 0.0,
+    "price": 1.37969,
+    "thesis": "XRP is at the top of a swing zone that history marks NOT_SUPPORTED, with the next resistance zone starting 0.17% above price. We already hold an XRP trade, and this is the same dip, not a new reason.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "36bdd6e86d36",
+    "t": 1791546453,
+    "coin": "SOL",
+    "triggers": [
+     "zone_entry"
+    ],
+    "action": "PASS",
+    "confidence": 35.0,
+    "size_pct": 0.0,
+    "price": 111.92,
+    "thesis": "The zone entry is real: it is a supported zone, the market is allowed and the news is clear. But we already hold a SOL trade that almost certainly came from this same zone touch, so a second one would double the same bet rather than add a new reason.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "1a2ea509439e",
+    "t": 1791544642,
+    "coin": "DOGE",
+    "triggers": [
+     "explorer:E6"
+    ],
+    "action": "PASS",
+    "confidence": 35.0,
+    "size_pct": 0.0,
+    "price": 0.0842164,
+    "thesis": "The only trigger is an Explorer E6 deep-dip bounce, a setup that lost money after costs over 7 years. The coin is in a clear downtrend, below both its 50-day and 200-day averages. The case is too thin to add another correlated long.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "5d71f999b83f",
+    "t": 1791543032,
+    "coin": "ETH",
+    "triggers": [
+     "zone_entry"
+    ],
+    "action": "PASS",
+    "confidence": 35.0,
+    "size_pct": 0.0,
+    "price": 2485.85,
+    "thesis": "ETH is in a supported swing zone with the market allowed and RSI(10) at 29, which is a fair dip setup. But I already hold an ETH trade and six other coins that move with it, so a second ETH trade would be the same bet again, not a new reason.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "db73ab7cda5b",
+    "t": 1791542856,
+    "coin": "BCH",
+    "triggers": [
+     "explorer:E6"
+    ],
+    "action": "PASS",
+    "confidence": 30.0,
+    "size_pct": 0.0,
+    "price": 275.75,
+    "thesis": "This is the same BCH dip we already hold, not a new reason, and the extra $100 would only stack another bet on a market where 7 correlated coins are already open. The trigger is the E6 explorer setup, whose family failed over 7 years after costs.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "063b962f1cd6",
+    "t": 1791527307,
+    "coin": "ADA",
+    "triggers": [
+     "zone_entry"
+    ],
+    "action": "PASS",
+    "confidence": 38.0,
+    "size_pct": 0.0,
+    "price": 0.239489,
+    "thesis": "ADA is inside a supported zone in an allowed market, but it sits at the very top edge of a 15%-wide zone after a -9% day. A proper zone stop would be about 18% away, so the entry has poor risk/reward, and it would only add to a correlated book of 7 open trades.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "388ea7f199b9",
+    "t": 1791514087,
+    "coin": "ETH",
+    "triggers": [
+     "zone_entry"
+    ],
+    "action": "PASS",
+    "confidence": 40.0,
+    "size_pct": 0.0,
+    "price": 2486.14,
+    "thesis": "The setup is reasonable: ETH is in a supported swing zone, the market is allowed, and RSI(10) is 29 above the 200-day, which is the H07 dip. But I already hold an ETH trade from this same dip, so a second $100 would only double the same bet.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "6a23d7adbf32",
+    "t": 1791504372,
+    "coin": "BTC",
+    "triggers": [
+     "attention_high"
+    ],
+    "action": "TAKE",
+    "confidence": 45.0,
+    "size_pct": 25.0,
+    "price": 81762.2,
+    "thesis": "BTC is just above a supported average-50+swing support zone (79.5k-81.5k) after a one-day dip, with the market regime ALLOWED, the strongest single fact we have. The case is mixed and the book is meant to learn, so this is a small starter trade with a structural stop and a time exit.",
+    "trade_id": "fd2583a2ddf6",
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "568b74c02dd6",
+    "t": 1791504342,
+    "coin": "AVAX",
+    "triggers": [
+     "attention_high"
+    ],
+    "action": "TAKE",
+    "confidence": 40.0,
+    "size_pct": 25.0,
+    "price": 10.052,
+    "thesis": "AVAX fell 9.6% in a day into a supported swing zone (9.52-10.21) with the market ALLOWED, and it is still above its 50-day and 200-day averages. The case is mixed, so I take a small starter and use a time exit instead of a near target.",
+    "trade_id": "7be6c6ab7d68",
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   },
+   {
+    "id": "fd8d6dac5ba5",
+    "t": 1791504330,
+    "coin": "ADA",
+    "triggers": [
+     "attention_high"
+    ],
+    "action": "ERROR",
+    "confidence": null,
+    "size_pct": null,
+    "price": 0.232231,
+    "thesis": null,
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": "unreadable reply: no JSON in the reply"
+   },
+   {
+    "id": "51124a952c52",
+    "t": 1791504318,
+    "coin": "SOL",
+    "triggers": [
+     "attention_high"
+    ],
+    "action": "PASS",
+    "confidence": 35.0,
+    "size_pct": 0.0,
+    "price": 109.41,
+    "thesis": "We already hold a SOL trade from the same zone touch, so a second $100 would be the same move again, not a new reason. Four other correlated coins are also open, so this would stack one market bet further.",
+    "trade_id": null,
+    "after_1d_pct": null,
+    "after_5d_pct": null,
+    "note": null
+   }
+  ],
+  "how_to_read": "Jarvis weighs everything we know at each moment and writes its plan before the outcome. Each trade is $100 on paper (its chosen size is kept as 'sized'); each one has a random twin (another coin, same moment, same plan), so 'vs random' is the honest score. It needs 10 independent events before any verdict."
+ },
+ "tier30": {
+  "tier": "T30",
+  "coins": [
+   "BTC",
+   "ETH",
+   "SOL",
+   "XRP",
+   "DOGE",
+   "BNB",
+   "SUI",
+   "PEPE",
+   "TRX",
+   "ADA",
+   "POL",
+   "ENA",
+   "AVAX",
+   "LINK",
+   "LTC",
+   "TAO",
+   "TRUMP",
+   "NEAR",
+   "WIF",
+   "S",
+   "WLD",
+   "AAVE",
+   "UNI",
+   "RENDER",
+   "HBAR",
+   "ARB",
+   "TON",
+   "BONK",
+   "BCH"
+  ],
+  "renamed": {
+   "MATIC": "POL",
+   "FTM": "S",
+   "RNDR": "RENDER",
+   "BCHABC": null
+  },
+  "t3": {
+   "name": "Trend portfolio (T3), 30-coin paper book",
+   "mode": "AUTO",
+   "books": {
+    "MAIN": {
+     "equity": 1841.13,
+     "return_pct": -7.94,
+     "cash": 1777.15,
+     "costs": 18.73,
+     "trades": 51,
+     "holdings": {
+      "AAVE": 63.98
+     }
+    },
+    "SHADOW": {
+     "equity": 1841.13,
+     "return_pct": -7.94,
+     "cash": 1777.15,
+     "costs": 18.73,
+     "trades": 51,
+     "holdings": {
+      "AAVE": 63.98
+     }
+    }
+   },
+   "last_day": "2026-10-09 00:00"
+  },
+  "h07": {
+   "name": "Short dip trade (H07), 30-coin paper watch",
+   "open": 0,
+   "waiting": 2,
+   "closed": 0,
+   "net_usd": 0.0,
+   "trades": [
+    {
+     "id": "b23dc185c7e8",
+     "watch": "H07-T30",
+     "coin": "ETH",
+     "source": "daily",
+     "signal_t": 1791417600,
+     "signal_day": "2026-10-08",
+     "entry_t": null,
+     "entry_day": null,
+     "entry": null,
+     "stop": null,
+     "exit_t": null,
+     "exit_day": null,
+     "exit": null,
+     "net_usd": null,
+     "status": "WAITING",
+     "why": "RSI(10) 29, above the 200-day",
+     "exit_why": null,
+     "regime": "ALLOWED",
+     "detail": "{\"close\": 2474.8}"
+    },
+    {
+     "id": "f093a15892b5",
+     "watch": "H07-T30",
+     "coin": "UNI",
+     "source": "daily",
+     "signal_t": 1791417600,
+     "signal_day": "2026-10-08",
+     "entry_t": null,
+     "entry_day": null,
+     "entry": null,
+     "stop": null,
+     "exit_t": null,
+     "exit_day": null,
+     "exit": null,
+     "net_usd": null,
+     "status": "WAITING",
+     "why": "RSI(10) 29, above the 200-day",
+     "exit_why": null,
+     "regime": "ALLOWED",
+     "detail": "{\"close\": 7.12}"
+    }
+   ]
+  },
+  "history": "review #15: T3 +19.0% vs buy-and-hold -23.7% (2024-Jul 2026) on the top 30; H07 33 events, +6.0% excess, z 3.5 (2018-23) and +3.6%, z 3.2 (2024-26). Both failed on all 120 coins. Review #22 (the top 30 as it was each month): T3-B -22.5% vs holding -76% (fails its profit rule), H07 z 2.45 (just under the bar): today's top-30 numbers were flattered.",
+  "note": "Paper only. Kept apart from the 10-coin books. Many of these coins are not on NDAX."
+ }
+}

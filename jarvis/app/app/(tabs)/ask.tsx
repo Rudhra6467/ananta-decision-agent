@@ -1,9 +1,11 @@
 import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, AppState, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Animated, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
 import { requestRecordingPermissionsAsync } from "expo-audio";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { getScreen, setScreen, setVoiceLive, tourCommand, useScreen } from "../../src/context";
+import { getScreen, goTab, setScreen, setVoiceLive, tourCommand, useScreen } from "../../src/context";
+import { showToast } from "../../src/blocks";
+import { FirstConversation } from "../../src/firstchat";
 import * as UI from "../../src/uiagent";
 import { clearSpot, setScroller } from "../../src/spotlight";
 import { StageCard } from "../../src/voice";
@@ -39,7 +41,10 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
   if (m.error) {
     return <View style={{ backgroundColor: C.badSoft, borderRadius: 12, padding: 12 }}><Text style={{ color: C.bad }}>{m.error}</Text></View>;
   }
-  const chips: string[] = m.kind === "clarify" ? m.options ?? [] : m.follow_ups ?? [];
+  // plan 4.2: a recommendation always carries a "Why?" chip (it explains the answer from its decision card and the chain)
+  const recommends = m.kind === "answer" && !!(m.next_action || m.card || (m.actions ?? []).length);
+  const chips: string[] = m.kind === "clarify" ? m.options ?? []
+    : [...(recommends && !(m.follow_ups ?? []).some((f: string) => /^why\b/i.test(f)) ? ["Why?"] : []), ...(m.follow_ups ?? [])];
   return (
     <View style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 16, borderTopLeftRadius: 4, padding: 14, gap: 10, maxWidth: "96%" }}>
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
@@ -89,6 +94,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
           <Text style={{ color: C.onInk, fontSize: 14, fontWeight: "700" }}>{m.next_action.label}</Text>
         </Pressable>
       ) : null}
+      {m.kind === "answer" && m.next_action?.label && m.voice ? <Text style={{ color: C.faint, fontSize: 11, marginTop: -4 }}>Or just say “yes”.</Text> : null}
       {chips.length ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {chips.map((c, i) => (
@@ -144,7 +150,9 @@ const kept: { msgs: Msg[]; thread: string | null; who: string } = { msgs: [], th
 
 // One conversation page (like ChatGPT): type, dictate with the mic, or switch on voice mode, all in the same session.
 export default function Ananta() {
-  const params = useLocalSearchParams<{ q?: string; t?: string; intro?: string }>();
+  const params = useLocalSearchParams<{ q?: string; t?: string; intro?: string; tab?: string }>();
+  const [tabv, setTabv] = useState<"chat" | "now">(params.tab === "now" ? "now" : "chat");     // plan 3.6a: Chat | Ananta now
+  useEffect(() => { if (params.tab === "now" || params.tab === "chat") setTabv(params.tab); }, [params.tab, params.t]);
   const [msgs, setMsgs] = useState<Msg[]>(kept.msgs);
   const [thread, setThread] = useState<string | null>(kept.thread);
   useEffect(() => { kept.msgs = msgs; }, [msgs]);
@@ -185,8 +193,15 @@ export default function Ananta() {
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
   // what is on screen (so Ananta knows where he is) + for spoken answers, which voice to prepare ahead
+  const msgsRef = useRef(msgs);
+  msgsRef.current = msgs;
+  // plan 3.7: the chips on the last answer travel with a spoken question, so saying a chip's words acts like tapping it
+  const chipsNow = () => {
+    const a = [...msgsRef.current].reverse().find((m) => m.role === "assistant" && m.kind === "answer");
+    return a && (a.next_action || a.follow_ups?.length) ? { next: a.next_action, follow: a.follow_ups ?? [] } : undefined;
+  };
   const where = (voice = false) => ({ here: getScreen() ?? undefined, about: ctxRef.current ?? undefined,
-    tts: voice ? TTS.prepHint() : undefined });
+    tts: voice ? TTS.prepHint() : undefined, chips: voice ? chipsNow() : undefined });
   useEffect(() => { setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [msgs.length, busy]);
   const [kb, setKb] = useState(false);
   useEffect(() => {
@@ -244,11 +259,21 @@ export default function Ananta() {
         const say = [m.speak ?? m.answer ?? "", failNote].filter(Boolean).join(" ");
         if (say) await UI.pointAlong(say, m.points, (parts, onPart) => TTS.speak(parts, onPart));
       }
+      if (walking.current) await comeBack();
     } finally {
       walking.current = false;
       setVoiceLive(false);
     }
     startLive();                                                 // then listen: he can carry on by voice
+  };
+
+  // plan 3.7: after walking through another screen, Ananta comes back to Ask Ananta and says the closing line
+  const comeBack = async () => {
+    const away = getScreen()?.screen && getScreen()?.screen !== "ananta";
+    if (away) { goTab("/(tabs)/ask"); await new Promise((r) => setTimeout(r, 450)); }
+    const line = `That's the walk-through. Want me to pull anything else up? What's next${vmeRef.current?.guest ? "" : ", sir"}?`;
+    setMsgs((m) => [...m, { role: "assistant", kind: "answer", model_label: "Ananta", answer: line, voice: true }]);
+    await TTS.speakText(line);
   };
 
   const send = async (q: string) => {
@@ -282,6 +307,8 @@ export default function Ananta() {
   const micRef = useRef<ReturnType<typeof useMic> | null>(null);
   const { data: me } = useData("/v3/me", 0);
   const vme = useMe();
+  const vmeRef = useRef<any>(vme);
+  vmeRef.current = vme;
   useEffect(() => {
     const w = (vme as any)?.who;
     if (!w) return;
@@ -329,6 +356,7 @@ export default function Ananta() {
       respond: async (r, current) => {
         if (r.tour?.length) {                                  // one step at a time; each step tells the watchdog it is still busy
           await UI.playTour(r.tour, (t) => { loopRef.current?.touch(); return TTS.speakText(t); }, current);
+          if (current()) await comeBack();
           return;
         }
         let failNote = "";
@@ -346,6 +374,8 @@ export default function Ananta() {
         const t = failNote ? `${base} ${failNote}`.trim() : base;
         const id = failNote ? undefined : r.voice_id;
         if (t) await UI.pointAlong(t, r.points, (parts, onPart) => TTS.speak(parts, onPart, id));
+        // a walk-through of another screen (not a plain "open Watchlists") ends back here with the closing line
+        if (current() && r.ui?.length && r.mode !== "nav" && getScreen()?.screen !== "ananta") await comeBack();
       },
       stopSpeaking: () => { TTS.stop(); clearSpot(); },
       onPhase: (p) => {
@@ -452,6 +482,21 @@ export default function Ananta() {
     try { handleTextAnswer(await api("/v3/ask/second", { id: m.id })); } catch (e: any) { handleTextAnswer({ error: e?.message }); } finally { setBusy(false); }
   };
   const newSession = () => { endLive(); setMsgs([]); setThread(null); setSessions(false); };
+
+  // plan 3.6a: "Ask Ananta to trade / evaluate": voice on, a greeting, and two choices
+  const tradeEvaluate = async () => {
+    const sir = !me?.guest;
+    const h = new Date().getHours();
+    const part = h < 5 ? "Good evening" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+    const nm = me?.profile?.name || me?.name || "";
+    const greet = `${part}${sir ? ", sir" : nm ? `, ${nm}` : ""}. Shall I find you a trade, or rate your open positions from weakest to strongest?`;
+    setThread(null);
+    setMsgs([{ role: "assistant", kind: "answer", model_label: "Ananta", answer: greet,
+      next_action: { label: "Find me a trade", ask: "Find me a trade: look at the coins and tell me the best setup right now, with a plan." },
+      follow_ups: ["Rate my open positions from weakest to strongest", "What are you watching right now?"] }]);
+    await startLive();
+    loop.aside(() => TTS.speakText(greet).then(() => undefined)).catch(() => {});
+  };
   const openSession = async (th: string) => {
     endLive();
     const r = await api(`/v3/ask/thread/${th}`);
@@ -467,10 +512,29 @@ export default function Ananta() {
     : hearing ? "Hearing you…  ·  tap when done" : mic.status === "sending" ? "Got it…" : "Listening…  just talk";
   const voiceNote = note || (TTS.lastEngine === "phone" && TTS.engine === "natural" ? TTS.lastNote : "");
 
-  if (sessions) return <Sessions onOpen={openSession} onNew={newSession} onBack={() => setSessions(false)} />;
+  const top = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 8 }}>
+      <Pressable onPress={() => setSessions(true)} hitSlop={10} accessibilityLabel="Sessions"
+        style={{ width: 34, height: 34, borderRadius: 10, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ color: C.text, fontSize: 16 }}>☰</Text>
+      </Pressable>
+      <View style={{ flex: 1 }}>
+        <Segmented value={tabv} onChange={(k) => setTabv(k as any)} options={[{ key: "chat", label: "Chat" }, { key: "now", label: "Ananta now" }]} />
+      </View>
+    </View>
+  );
+  const drawer = <SessionsDrawer open={sessions} onClose={() => setSessions(false)} onOpen={openSession} onNew={newSession} current={thread} />;
+  // Phase 5: a visitor who has not finished the first conversation meets Ananta here first
+  if ((vme as any)?.guest && (vme as any)?.onboard && (vme as any).onboard !== "done") {
+    return <FirstConversation onDone={() => { setMsgs([{ role: "assistant", kind: "answer", model_label: "Ananta", answer: "That's it. Ask me anything, or tell me what to watch.",
+      follow_ups: ["What are you watching for me?", "Show me the setup you like most", "How does a stop work?"] }]); }} />;
+  }
+  if (tabv === "now") return <View style={{ flex: 1, backgroundColor: C.bg }}>{top}<AnantaNow />{drawer}</View>;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
+      {top}
+      {drawer}
       <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", rowGap: 4, gap: 8, paddingHorizontal: 16, paddingTop: 8 }}>
         <Text style={{ color: autoOn ? C.text : C.faint, fontWeight: "700" }}>Auto</Text>
         <Switch value={autoOn} onValueChange={(v) => flip("ask_auto", v)} trackColor={{ true: C.accent, false: C.line }} />
@@ -480,7 +544,6 @@ export default function Ananta() {
         <Text style={{ color: google ? C.text : C.faint, fontWeight: "700" }}>Google</Text>
         <View style={{ flex: 1 }} />
         {msgs.length ? <Text onPress={shareSession} style={{ color: C.accent, fontWeight: "600", marginRight: 12 }}>Share</Text> : null}
-        <Text onPress={() => setSessions(true)} style={{ color: C.accent, fontWeight: "600" }}>Sessions</Text>
         <Text onPress={newSession} style={{ color: C.accent, fontWeight: "600", marginLeft: 12 }}>New</Text>
       </View>
       {ctx && ctx.screen !== "ask" ? (
@@ -498,7 +561,15 @@ export default function Ananta() {
             <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>{me?.guest ? `Hi ${me?.name || "there"}` : "Hello, sir"}</Text>
             <T dim>{me?.guest ? "Ask me about your coins, your practice book, or the market. Type, tap the mic to dictate, or tap the wave and just talk."
               : "Ask about our portfolio or the market. Type, tap the mic to dictate, or tap the wave to just talk."}</T>
-            <T small>{me?.guest ? "Try one of the questions below to start." : 'New here? Tap "New here" below for questions to start with.'}</T>
+            <Pressable onPress={tradeEvaluate} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10,
+              backgroundColor: C.accent, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, marginTop: 6, opacity: pressed ? 0.85 : 1 })}>
+              <Wave />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: C.onInk, fontWeight: "800", fontSize: 16 }}>Ask Ananta to trade / evaluate</Text>
+                <Text style={{ color: C.onInk, fontSize: 12, opacity: 0.85 }}>Voice on: find a trade, or rate your open positions</Text>
+              </View>
+            </Pressable>
+            <T small>{me?.guest ? "Or try one of the questions below." : 'New here? Tap "New here" below for questions to start with.'}</T>
           </View>
         ) : null}
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
@@ -636,21 +707,91 @@ const Wave = () => (
   </View>
 );
 
-function Sessions({ onOpen, onNew, onBack }: { onOpen: (t: string) => void; onNew: () => void; onBack: () => void }) {
-  const { data: d } = useData("/v3/ask/threads", 0);
+// Sessions in a drawer (plan 3.6b, D10): automatic titles; copy and delete beside each. Deleting: a visitor's is gone for good,
+// Madhav's goes to an archive kept 30 days.
+function SessionsDrawer({ open, onClose, onOpen, onNew, current }: { open: boolean; onClose: () => void; onOpen: (t: string) => void; onNew: () => void; current: string | null }) {
+  const { data: d, reload } = useData(open ? "/v3/ask/threads" : null, 0);
+  const copy = async (th: string) => {
+    try {
+      const txt = (await api(`/v3/ask/thread/${th}/export`)).text;
+      if (Platform.OS === "web" && (navigator as any)?.clipboard) { await (navigator as any).clipboard.writeText(txt); showToast("Copied ✓"); }
+      else Share.share({ message: txt, title: "Ananta session" });
+    } catch { showToast("Could not copy it"); }
+  };
+  const del = async (th: string) => {
+    const ok = Platform.OS === "web" ? window.confirm("Delete this conversation?") : true;
+    if (!ok) return;
+    try { await api(`/v3/ask/thread/${th}/delete`, {}); showToast("Deleted ✓"); reload(); if (th === current) onNew(); } catch { showToast("Could not delete it"); }
+  };
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: 16, gap: 10 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <Text onPress={onBack} style={{ color: C.accent, fontWeight: "600" }}>‹ Back</Text>
-        <Text onPress={onNew} style={{ color: C.accent, fontWeight: "600" }}>+ New session</Text>
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, flexDirection: "row" }}>
+        <View style={{ width: "84%", maxWidth: 380, backgroundColor: C.bg, paddingTop: 54, borderRightWidth: 1, borderRightColor: C.line }}>
+          <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 10 }}>
+            <Text style={{ color: C.text, fontWeight: "800", fontSize: 18, flex: 1 }}>Sessions</Text>
+            <Text onPress={() => { onNew(); onClose(); }} style={{ color: C.accent, fontWeight: "700" }}>+ New</Text>
+          </View>
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 12, gap: 8, paddingBottom: 40 }}>
+            {(d?.threads ?? []).length === 0 ? <T dim>No sessions yet.</T> : null}
+            {(d?.threads ?? []).map((th: any) => (
+              <View key={th.thread} style={{ backgroundColor: th.thread === current ? C.accentSoft : C.card, borderColor: C.line, borderWidth: 1, borderRadius: 12, padding: 10, gap: 6 }}>
+                <Pressable onPress={() => onOpen(th.thread)}>
+                  <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }} numberOfLines={2}>{th.voice ? "🎙 " : ""}{th.title}</Text>
+                  <Text style={{ color: C.faint, fontSize: 12 }}>{th.time} · {Math.ceil(th.messages / 2)} question(s)</Text>
+                </Pressable>
+                <View style={{ flexDirection: "row", gap: 16 }}>
+                  <Text onPress={() => copy(th.thread)} style={{ color: C.accent, fontSize: 13, fontWeight: "600" }}>Copy</Text>
+                  <Text onPress={() => del(th.thread)} style={{ color: C.bad, fontSize: 13, fontWeight: "600" }}>Delete</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+        <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)" }} accessibilityLabel="Close sessions" />
       </View>
-      {(d?.threads ?? []).length === 0 ? <T dim>No sessions yet.</T> : null}
-      {(d?.threads ?? []).map((th: any) => (
-        <Pressable key={th.thread} onPress={() => onOpen(th.thread)} style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 12, padding: 12, gap: 2 }}>
-          <Text style={{ color: C.text, fontSize: 15 }} numberOfLines={2}>{th.voice ? "🎙 " : ""}{th.title}</Text>
-          <Text style={{ color: C.faint, fontSize: 12 }}>{th.time} · {Math.ceil(th.messages / 2)} question(s)</Text>
-        </Pressable>
-      ))}
+    </Modal>
+  );
+}
+
+// Ananta now (plan 3.6a): what Ananta is doing for this account right now, and what changed today. Each line opens its details.
+function AnantaNow() {
+  const { data: s, loading, reload } = useData("/v3/agent/state", 30000);
+  const since = Math.floor(new Date().setHours(0, 0, 0, 0) / 1000);
+  const { data: a } = useData(`/v3/agent/activity?since_t=${since}`, 60000);
+  const go = (l: any) => {
+    const t = String(l.text).toLowerCase();
+    if (t.includes("watch")) goTab("/(tabs)/watchlists");
+    else if (t.includes("position") || t.includes("monitor")) goTab("/(tabs)/portfolio");
+    else if (t.includes("need")) goTab("/(tabs)/today");
+  };
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+      <View style={{ backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 14, gap: 4 }}>
+        {!s && loading ? <ActivityIndicator color={C.dim} /> : null}
+        {(s?.lines ?? []).map((l: any, i: number) => (
+          <View key={i}>
+            {i ? <Divider /> : null}
+            <Pressable onPress={() => go(l)} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 }}>
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: l.tone === "act" ? C.warn : l.tone === "wait" ? C.accent : C.good }} />
+              <Text style={{ color: C.text, fontSize: 16, flex: 1 }}>{l.text}</Text>
+              <Text style={{ color: C.faint, fontSize: 18 }}>›</Text>
+            </Pressable>
+          </View>
+        ))}
+        {s?.waiting_for ? <T small dim>Waiting for: {s.waiting_for}</T> : null}
+      </View>
+      <Text style={{ color: C.text, fontWeight: "700", fontSize: 16 }}>What changed today</Text>
+      <View style={{ backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 14, gap: 8 }}>
+        {(a?.events ?? []).length === 0 ? <T dim>Nothing yet today.</T> : null}
+        {(a?.events ?? []).slice(0, 20).map((x: any) => (
+          <View key={x.id} style={{ gap: 2 }}>
+            <Text style={{ color: C.text, fontWeight: "600" }}>{x.title}</Text>
+            {x.body ? <Text style={{ color: C.dim, fontSize: 13 }}>{x.body}</Text> : null}
+            <Text style={{ color: C.faint, fontSize: 11 }}>{new Date(x.t * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</Text>
+          </View>
+        ))}
+      </View>
+      <Text onPress={reload} style={{ color: C.accent, fontWeight: "600", textAlign: "center" }}>Refresh</Text>
     </ScrollView>
   );
 }

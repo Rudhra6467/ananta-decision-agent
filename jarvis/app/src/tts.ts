@@ -62,6 +62,12 @@ async function save(k: string, v: string) { try { await SecureStore.setItemAsync
 export async function setRate(r: number) { rate = r; await save("tts_rate", String(r)); }       // applies from the next answer
 export async function setEngine(e: "natural" | "phone") { engine = e; naturalDownUntil = 0; await save("tts_engine", e); }
 export async function setVoice(v: string) { voice = v; await save("tts_voice", v); }
+// the account's own voice (Madhav: Deep, male) when this device has not chosen one
+export async function useAccountVoice(v?: string | null) {
+  if (!v || !VOICES.includes(v)) return;
+  try { if (await SecureStore.getItemAsync("tts_voice")) return; } catch { /* */ }
+  voice = v;
+}
 
 // The same sentence split the Ananta service uses (so the audio it prepared ahead matches exactly).
 export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);

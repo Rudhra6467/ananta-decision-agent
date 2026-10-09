@@ -246,11 +246,11 @@ SPOTS = {
     "home": {"home.status": "whether every part is running (the health strip)", "home.value": "all paper money and its line since the start",
              "home.market": "the market rule: Bitcoin against its 50-day average, with the chart", "home.jarvis": "Ananta today: decisions, open trades, score vs random",
              "home.findings": "findings: missed or seen moves, lessons, market shifts", "home.inbox": "what needs you (things waiting for your OK)",
-             "home.brief": "the morning / evening brief", "home.books": "our books: Ananta, trend portfolio, Explorer", "home.activity": "the activity feed"},
+             "home.books": "your books: Ananta, trend portfolio, Explorer", "home.activity": "the activity feed"},
     "jarvis": {"jarvis.score": "the score against the random twins", "jarvis.open": "Ananta's open trades", "jarvis.learning": "what its plans leaned on and the confidence check",
                "jarvis.decisions": "recent decisions with their thesis"},
     "missed": {"missed.counts": "caught / seen / missed counts", "missed.moves": "the biggest moves and why", "missed.patterns": "misses that keep coming back"},
-    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.chain": "Ananta's reasoning: where each coin stops on the decision chain", "markets.reads": "your setups: Madhav's three buy setups checked on every coin", "markets.zones": "coins inside a zone now and recent zone entries",
+    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.chain": "Ananta's reasoning: where each coin stops on the decision chain", "markets.near": "nearing a trade: coins closest to every condition, with what is missing", "markets.reconstruction": "reconstruction: rebuilds, mismatches, findings",
                 "markets.coin:<SYM>": "one coin's row: price, trend, closest setup"},
     "portfolio": {"portfolio.value": "portfolio value and its chart", "portfolio.autopilot": "the Autopilot switch",
                   "portfolio.suggested": "suggested changes waiting", "portfolio.holdings": "the holdings list header",
@@ -266,8 +266,8 @@ SPOTS = {
                  "evidence.ideas": "ideas from the teachers (Rayner, Trade With Trend) with their test status",
                  "evidence.credit": "credit tracking: what each layer contributed, live"},
     "evidence:forwarded": {"evidence.in_use": "repairs running in paper (T3 vs buy-and-hold)", "evidence.safety": "safety changes"},
-    "cockpit": {"cockpit.controls": "kill switch, autopilot, live trading", "cockpit.ai": "Ask / Voice switches and the Claude budget",
-                "cockpit.alerts": "active alerts", "cockpit.systems": "system status"},
+    "cockpit": {"cockpit.controls": "kill switch, autopilot, live trading", "cockpit.ai": "the Ask Ananta and Voice Assist switches",
+                "cockpit.evidence": "the Evidence: every repair-shop review with a human name", "cockpit.voice": "Voice Assist Settings: voice, Claude budget, test lab"},
     "coin": {"coin.chart": "the candle chart", "coin.position": "our position in this coin", "coin.market": "market picture and setup checklist",
              "coin.levels": "next support and resistance", "coin.setup:<E1-E5>": "one setup's checklist (opens it)",
              "coin.chain": "the decision chain ladder for this coin: each gate passed or where it stops, plus evidence",
@@ -349,7 +349,7 @@ SPOT_WORDS = {
     "trade.plan": r"plan|exit|sell|trail", "trade.timeline": r"timeline|opened|history",
     "coin.chart": r"chart|candle", "coin.position": r"position|we hold|our\b|bought", "coin.market": r"market|trend|checklist",
     "coin.levels": r"support|resistance|level", "coin.trades": r"trades?",
-    "home.value": r"value|worth|today|\$", "home.inbox": r"inbox|waiting|approve|ok\b", "home.brief": r"brief|summary",
+    "home.value": r"value|worth|today|\$", "home.inbox": r"inbox|waiting|approve|ok\b", 
     "home.books": r"explorer|hourly|portfolio|books?|watch", "home.activity": r"activity|recent|happened",
     "home.status": r"running|health|parts?|down\b", "home.market": r"market|bitcoin|50.day|allowed|risk.off", "home.jarvis": r"jarvis|my trades|i took|decision",
     "home.findings": r"miss|seen|lesson|finding", "jarvis.score": r"random|twins?|beat|score", "jarvis.open": r"open|holding|stop",
@@ -363,7 +363,8 @@ SPOT_WORDS = {
     "evidence.clocks": r"watch|scan|how often|every", "evidence.gate": r"gate|ready|accept|lock|checks? pass", "evidence.limits": r"limit|gate|block|stopp|cap",
     "evidence.rebuild": r"rebuild|reconstruct|mismatch|other traders|hyperliquid", "evidence.misses": r"miss|caught|seen", "evidence.in_use": r"running|in use|paper|buy.and.hold",
     "evidence.safety": r"safety", "cockpit.controls": r"kill|autopilot|live|switch", "cockpit.ai": r"ask|voice|budget|claude|gemini",
-    "cockpit.alerts": r"alert", "cockpit.systems": r"system|status|running",
+    "cockpit.evidence": r"evidence|review|repair", "cockpit.voice": r"voice|budget|claude|test lab",
+    "markets.near": r"near|close|almost|missing", "markets.reconstruction": r"rebuild|reconstruct|mismatch",
 }
 
 
@@ -471,7 +472,7 @@ def tour(j) -> list[dict]:
         {"spot": "home.market", "say": "This is the market rule that matters most: Bitcoin against its 50-day average. Above it, buying is allowed."},
         {"spot": "home.jarvis", "say": "This is my own book: the paper trades I decide myself, each with a random twin I have to beat."},
         {"spot": "home.findings", "say": "Findings are what I found: big moves we missed or only saw, and lessons from closed trades."},
-        {"spot": "home.brief", "say": "This is the daily brief. I write one in the morning and one in the evening, and you can ask for one any time."},
+        {"spot": "home.value", "say": "Your value card has a Brief button: ask for a market brief or a portfolio brief any time."},
         {"spot": "home.books", "say": "These rows are our books: mine, the trend portfolio and the Explorer. Tap one to open it."},
         {"spot": "home.activity", "say": "And this is the activity feed: every buy, sell, alert and change, in plain words. Tap a trade to open it."},
         {"ui": {"do": "go_to", "target": "markets", "label": "Watchlists"}, "spot": "markets.summary",
@@ -486,7 +487,7 @@ def tour(j) -> list[dict]:
         {"ui": {"do": "go_to", "target": "portfolio:mine", "label": "My trades"}, "spot": "mine.value",
          "say": "And this is your own paper book. Orders you ask me for land here, kept apart from the agent's trades."},
         {"ui": {"do": "go_to", "target": "evidence", "label": "Evidence"}, "spot": "evidence.tracker",
-         "say": "This is the Evidence page: the repair loop, live. From what we looked at, to what we traded, to what we fixed. The Lab switch on Home keeps it close. Tap any row and it explains itself."},
+         "say": "This is the Evidence page: the repair loop, live. From what we looked at, to what we traded, to what we fixed. It lives in Cockpit now. Tap any row and it explains itself."},
         {"spot": "evidence.forwarded", "say": "This is the repair board: everything sent to the repair shop, what we found, what we did, the change and its status."},
         {"ui": {"do": "go_to", "target": "cockpit", "label": "Cockpit"}, "spot": "cockpit.controls",
          "say": "This is the Cockpit, the last tab. The kill switch and Autopilot live here, and live trading stays locked."},
@@ -545,7 +546,7 @@ def infer_link(j, e: dict) -> dict:
     if sym and re.search(r"price|trend|move|%|chart", low):
         return {"screen": f"coin:{sym}", "spot": "coin.chart"}
     if re.search(r"alert", low):
-        return {"screen": "cockpit", "spot": "cockpit.alerts"}
+        return {"screen": "cockpit", "spot": "cockpit.controls"}
     return {}
 
 

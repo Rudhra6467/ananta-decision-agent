@@ -829,6 +829,8 @@
     "jarvis/service/account.py",
     "jarvis/service/books.py",
     "jarvis/service/watches.py",
+    "jarvis/service/concepts.py",
+    "jarvis/service/onboard.py",
     "jarvis/service/visitor.py"
    ]
   },

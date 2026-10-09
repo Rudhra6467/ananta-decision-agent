@@ -137,3 +137,67 @@ def view(j, name: str, owner: bool) -> dict[str, Any]:
             "initials": initials(name),
             "read": "Every trade held, from every watch; the stamp says who took it. Random comparison trades are evidence and are "
                     "not listed." if owner else "Your own practice trades."}
+
+
+def story(j, tid: str, name: str, owner: bool) -> dict[str, Any]:
+    """One trade's full story (plan 3.3b): who took it and why, the start, its stop and target, the highest and lowest prices
+    since it opened, how it ended, and its decision card. Works for every stamp; a visitor can only open their own trades."""
+    from datetime import datetime
+
+    from jarvis.service import views
+
+    v = view(j, name, owner)
+    t = next((x for x in v["trades"] if str(x["id"]) == tid), None)
+    closed = t is None
+    if t is None:
+        t = next((x for x in v["closed"] if str(x.get("id")) == tid), None)
+    if t is None:
+        raise ValueError("That trade is not in this account's books.")
+    out: dict[str, Any] = {"id": tid, "coin": t["coin"], "stamp": t["stamp"], "open": not closed, "entry": t.get("entry"), "now": t.get("now"),
+                           "stop": t.get("stop"), "target": t.get("target"), "result_usd": t.get("net_usd") if closed else t.get("pnl_usd"),
+                           "result_pct": t.get("pnl_pct"), "reasons": [], "exits": []}
+    entry_t = exit_t = None
+    row = j.db.execute("SELECT entry_t, entry, stop, exit_t, exit, net_usd, why, exit_why, regime, detail FROM evidence_trades WHERE id = ?",
+                       (tid,)).fetchone() if owner else None
+    if row:
+        entry_t, out["entry"], out["stop"], exit_t, ex, net, why, exit_why, regime, det = row
+        d = json.loads(det or "{}")
+        out["target"] = out["target"] or d.get("target")
+        if why:
+            out["reasons"].append(why[:1].upper() + why[1:] + ".")
+        if regime:
+            out["reasons"].append("The market rule was open (buying allowed)." if regime == "ALLOWED" else "The market rule was careful (risk-off).")
+        if d.get("zone"):
+            out["reasons"].append(f"The zone it bought into: {d['zone'][0]:,.6g} to {d['zone'][1]:,.6g}.")
+        if exit_t:
+            out["exits"].append({"t": exit_t, "price": ex, "why": exit_why, "usd": net})
+    elif t["stamp"]["source"] == "manual":
+        from jarvis.service.manual import Manual
+
+        fills = [f for f in Manual(j.db, j.now).fills(200) if f["coin"] == t["coin"]]
+        buys = [f for f in fills if f["side"] == "BUY"]
+        if buys:
+            entry_t = buys[-1]["t"]
+            if buys[0].get("reason"):
+                out["reasons"].append(f"“{buys[0]['reason']}”")
+        out["reasons"].append("Placed by you. Ananta watches it and warns you; it never closes it without your yes.")
+        out["exits"] = [{"t": f["t"], "price": f["px"], "why": "sold by you", "usd": f["usd"]} for f in fills if f["side"] == "SELL"][:5]
+    else:
+        out["reasons"].append(t.get("why") or t["stamp"]["label"])
+    out["entry_t"] = entry_t
+    out["entry_when"] = datetime.fromtimestamp(entry_t).strftime("%b %d, %-I:%M %p") if entry_t else None
+    try:                                                  # the highest and lowest price since it opened (hourly bars)
+        c = [x for x in views.chart(j, t["coin"], "1h")["candles"] if entry_t and x["t"] >= entry_t - 3600 and (not exit_t or x["t"] <= exit_t)]
+        if c:
+            out["peak"], out["low"] = max(x["h"] for x in c), min(x["l"] for x in c)
+            if not closed and out.get("now"):                # the live price can be past the last finished hour
+                out["peak"], out["low"] = max(out["peak"], out["now"]), min(out["low"], out["now"])
+            out["candles"] = c[-120:]
+    except Exception:  # noqa: BLE001
+        pass
+    who = "you" if t["stamp"]["who"] == "you" else "Ananta"
+    out["card"] = {"found": f"{t['coin']}: {t['stamp']['label']}", "why": " ".join(out["reasons"][:2]) or None,
+                   "wrong_if": f"a fall below {out['stop']:,.6g}" if out.get("stop") else "no stop was set",
+                   "doing": (f"Closed: {out['exits'][0]['why']}." if out["exits"] and out["exits"][0].get("why") else "Closed.") if closed
+                   else f"Holding. {'Ananta manages it by its plan.' if who == 'Ananta' else 'Ananta watches it for you.'}"}
+    return out

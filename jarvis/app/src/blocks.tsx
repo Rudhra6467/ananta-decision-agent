@@ -10,6 +10,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C } from "./theme";
 export { showToast } from "./visitor";
 
+// a review's verdict in words, with the colour token that goes with it (colour is never the only signal)
+export const VERDICT: Record<string, [string, string]> = { PASS: ["Passed", "good"], FAIL: ["No change", "dim"], INSUFFICIENT: ["Not enough data", "warn"] };
+
 export type Decision = { found?: string; why?: string; wrong_if?: string; doing?: string };
 
 export function DecisionCard({ card, title, time, children }: { card: Decision; title?: string; time?: string; children?: React.ReactNode }) {

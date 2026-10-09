@@ -25,7 +25,7 @@ def test_setup_stages_in_order_and_capital_is_the_books_start():
     assert r["profile"]["coins"] == ["SOL", "BTC"] and r["stage"] == "tour"
     assert visitor.update(g, {"tour_done": True})["stage"] == "capital"
     with pytest.raises(ValueError):
-        visitor.update(g, {"capital": 5000})
+        visitor.update(g, {"capital": 5500})
     assert visitor.update(g, {"capital": 2000})["stage"] == "ready"
     assert Manual(g.db, g.now).state({})["start"] == 2000 and Manual(g.db, g.now).state({})["cash"] == 2000
     b = visitor.books(g)

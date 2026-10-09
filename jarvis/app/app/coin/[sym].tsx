@@ -13,9 +13,12 @@ import { ChainLadder } from "../../src/chain";
 import { ReadsCoin } from "../../src/reads";
 import { ZonesCoin } from "../../src/zones";
 import { useMe } from "../../src/visitor";
+import { OrderTicket, TradeBar } from "../../src/ticket";
 
 export default function Coin() {
-  const { sym } = useLocalSearchParams<{ sym: string }>();
+  const { sym, trade } = useLocalSearchParams<{ sym: string; trade?: string }>();
+  const [ticket, setTicket] = useState<"buy" | "sell" | null>(null);
+  useEffect(() => { if (trade === "buy" || trade === "sell") setTicket(trade); }, [trade]);
   const { data: d, err, loading, reload } = useData(`/coin/${sym}`);
   const { data: w } = useData(`/v3/coin/${sym}/watch`);
   const { data: chb } = useData("/v3/chain");
@@ -23,7 +26,8 @@ export default function Coin() {
   const guest = !!me?.guest;                             // a visitor: their own position, no Madhav setups or Explorer trades
   const { data: rdc } = useData(me && !guest ? `/v3/reads/${sym}` : null, 300000);
   const { data: znc } = useData(`/v3/zones/${sym}`, 300000);
-  const { data: hv } = useData("/v3/holdings", 0);
+  const { data: hv, reload: reloadHv } = useData("/v3/holdings", 0);
+  const { data: mb, reload: reloadMb } = useData(me && !guest ? "/v3/manual" : null, 0);
   const [tf, setTf] = useState("1h");
   useFocusEffect(useCallback(() => { setScreen({ screen: "coin", coin: String(sym), label: `${sym} coin page (chart ${tf}, position, setups)` }); }, [sym, tf]));
   const [avg, setAvg] = useState(true);
@@ -43,7 +47,7 @@ export default function Coin() {
     if (t.target) refs.push({ value: t.target, color: C.good, label: "Target" });
   });
   const hold = hv?.holdings?.find((h: any) => h.coin === d.coin);
-  const mine = guest ? hv?.book?.positions?.find((p: any) => p.coin === d.coin) : null;
+  const mine = (guest ? hv?.book?.positions : mb?.positions)?.find((p: any) => p.coin === d.coin) ?? null;   // this account's own trade (stamped)
   const r = d.rating;
   return (
     <>
@@ -72,13 +76,24 @@ export default function Coin() {
               <Line label="Profit / loss" value={usdSigned(mine.pnl)} color={pnlColor(mine.pnl)} />
               {mine.stop ? <Line label="Stop" value={price(mine.stop)} /> : null}
             </>
-          ) : <T dim>You don't hold any {COIN_NAME[d.coin] ?? d.coin} yet.</T>) : hold ? (
+          ) : <T dim>You don't hold any {COIN_NAME[d.coin] ?? d.coin} yet.</T>) : mine || hold ? (
             <>
-              <Line label="Value" value={usd(hold.value)} />
+              {mine ? (
+                <>
+                  <Line label="Your trade" value={usd(mine.value)} sub="placed by you · Ananta watches it, never closes it alone" />
+                  <Line label="Profit / loss" value={usdSigned(mine.pnl)} color={pnlColor(mine.pnl)} />
+                  {mine.stop ? <Line label="Stop" value={price(mine.stop)} /> : null}
+                </>
+              ) : null}
+              {hold ? (
+                <>
+              <Line label="Trend portfolio" value={usd(hold.value)} />
               <Line label="Total return" value={`${usdSigned(hold.pnl)} (${pct(hold.pnl_pct)})`} color={pnlColor(hold.pnl)} />
               <Line label="Share of portfolio" value={`${hold.weight_pct}%`} />
+                </>
+              ) : null}
             </>
-          ) : <T dim>Not held in the portfolio.</T>}
+          ) : <T dim>Not held. Use Buy below to place a paper trade.</T>}
           {r && !guest ? (
             <View style={{ flexDirection: "row", gap: 8, alignItems: "center", marginTop: 4 }}>
               <Pill text={ratingWord[r.rating] ?? r.rating} color={ratingColor[r.rating]} />
@@ -159,6 +174,9 @@ export default function Coin() {
         <Btn label={`Ask Ananta about ${d.coin}`} kind="secondary"
           onPress={() => goTab({ pathname: "/(tabs)/ask", params: { q: `What is happening with ${d.coin}?`, t: String(Date.now()) } })} />
       </Screen>
+      <TradeBar onBuy={() => setTicket("buy")} onSell={() => setTicket("sell")} canSell={!!mine} />
+      <OrderTicket coin={d.coin} px={d.price} side={ticket ?? "buy"} held={mine?.units ?? mine?.qty} open={!!ticket} onClose={() => setTicket(null)}
+        onDone={() => { reloadHv(); reloadMb(); }} />
     </>
   );
 }

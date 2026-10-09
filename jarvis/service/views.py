@@ -883,20 +883,11 @@ def mission(j) -> dict:
                         "since": datetime.fromtimestamp(rows[0][0]).strftime("%b %d") if rows else None}
     except Exception as exc:  # noqa: BLE001
         out["value_error"] = str(exc)[:120]
-    try:
-        from jarvis.service import eye
-        from jarvis.service.reads_watch import _daily
-        from src.research import reads as R
-
-        D = _daily(j, "BTC")
-        S = R.Series(D)
-        live = (eye.STATE.get("prices") or {}).get("BTC") or S.c[-1]
-        ema = S.ema50[-1]
-        out["market"] = {"regime": "ALLOWED" if S.c[-1] > ema else "RISK_OFF", "btc": live, "ema50": ema, "vs_pct": round(100 * (live / ema - 1), 1),
-                         "closes": S.c[-90:], "ema": S.ema50[-90:],
-                         "live_side": "above" if live > ema else "below"}
-    except Exception as exc:  # noqa: BLE001
-        out["market_error"] = str(exc)[:120]
+    mk = market_rule(j)
+    if mk.get("error"):
+        out["market_error"] = mk["error"]
+    else:
+        out["market"] = mk
     try:
         from jarvis.service import brain
 
@@ -907,7 +898,43 @@ def mission(j) -> dict:
     except Exception as exc:  # noqa: BLE001
         out["jarvis_error"] = str(exc)[:120]
     out["findings"] = findings(j)
+    if (out.get("health") or {}).get("all_ok"):           # an outage that is over says so, in plain words
+        for f in out["findings"]:
+            if f["kind"] == "DOWN":
+                f["simple"] = f["simple"].rstrip(".").replace(" has gone quiet", " stopped for a while") + "; it is running again."
     return out
+
+
+def market_rule(j) -> dict:
+    """The market rule, shared by every account: Bitcoin against its 50-day average, with 90 days of the chart."""
+    try:
+        from jarvis.service import eye
+        from jarvis.service.reads_watch import _daily
+        from src.research import reads as R
+
+        D = _daily(j, "BTC")
+        S = R.Series(D)
+        live = (eye.STATE.get("prices") or {}).get("BTC") or S.c[-1]
+        ema = S.ema50[-1]
+        return {"regime": "ALLOWED" if S.c[-1] > ema else "RISK_OFF", "btc": live, "ema50": ema, "vs_pct": round(100 * (live / ema - 1), 1),
+                "closes": S.c[-90:], "ema": S.ema50[-90:], "live_side": "above" if live > ema else "below"}
+    except Exception as exc:  # noqa: BLE001
+        return {"error": str(exc)[:120]}
+
+
+def _simple(f: dict, names: dict) -> str:
+    """Findings in very simple words (plan 3.1); the full text stays as the details."""
+    coin = names.get(f.get("coin") or "", f.get("coin") or "")
+    pct = f.get("move_pct")
+    if f["kind"] == "MISSED":
+        return f"{coin} jumped {pct:.0f}% and we were not in it." if pct else f"We missed a move in {coin}."
+    if f["kind"] == "SEEN":
+        return f"We saw {coin}'s {pct:.0f}% rise coming but did not buy." if pct else f"We saw a move in {coin} but did not buy."
+    if f["kind"] == "LESSON":
+        return f["title"][:1].upper() + f["title"][1:] + "."
+    t = f["title"].split(": ", 1)[-1] if f["title"].startswith(("Ananta: ", "Jarvis: ")) else f["title"]
+    t = t.replace("Jarvis's", "Ananta's")
+    return t[:1].upper() + t[1:] + ("" if t.endswith(".") else ".")
 
 
 def findings(j, days: int = 2, n: int = 5) -> list[dict]:
@@ -922,7 +949,7 @@ def findings(j, days: int = 2, n: int = 5) -> list[dict]:
         for m in missed.recent(j, days)["moves"]:
             if m["label"] == "CAUGHT":
                 continue
-            items.append({"t": m["low_t"] or since, "kind": m["label"], "coin": m["coin"], "link": "missed",
+            items.append({"t": m["low_t"] or since, "kind": m["label"], "coin": m["coin"], "link": "missed", "move_pct": m["move_pct"],
                           "title": f"{names.get(m['coin'], m['coin'])} +{m['move_pct']:.1f}% on {datetime.strptime(m['day'], '%Y-%m-%d').strftime('%b %d')}",
                           "body": m["why"][:1].upper() + m["why"][1:] + "."})
     except Exception:  # noqa: BLE001
@@ -947,4 +974,10 @@ def findings(j, days: int = 2, n: int = 5) -> list[dict]:
     except Exception:  # noqa: BLE001
         pass
     items.sort(key=lambda x: -(x["t"] or 0))
-    return items[:n]
+    out, seen = [], set()
+    for f in items:                                     # the same outage reported twice shows once
+        f["simple"] = _simple(f, names)
+        if f["simple"] not in seen:
+            seen.add(f["simple"])
+            out.append(f)
+    return out[:n]

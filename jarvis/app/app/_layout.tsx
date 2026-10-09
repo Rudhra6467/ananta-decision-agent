@@ -24,7 +24,8 @@ export default function Root() {
       const m = await loadMe();                          // a visitor who has not finished setup continues it
       const th = m?.profile?.theme;                       // a new device takes the account's theme; this device's own choice wins after that
       if (!deviceTheme() && (th === "bat" || th === "light")) setTheme(th);
-      if (m?.guest && ["name", "coins", "capital"].includes(String(m.stage)) && !path.startsWith("/welcome")) router.replace("/welcome");
+      TTS.useAccountVoice(m?.profile?.voice);            // plan 3.7: Deep for Madhav unless this device picked another voice
+      if (m?.guest && m.onboard && m.onboard !== "done" && !path.startsWith("/ask")) goTab("/(tabs)/ask");   // Phase 5: the first conversation
     });
   }, [nav?.key]);
   const v = useThemeVersion();                           // a theme change redraws everything with the new colours

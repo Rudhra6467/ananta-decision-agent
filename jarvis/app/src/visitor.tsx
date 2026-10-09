@@ -8,11 +8,14 @@ import { api } from "./api";
 import { askAbout, goTab } from "./context";
 import { Spark } from "./charts";
 import { Spot } from "./spotlight";
-import { Big, Btn, Card, Divider, Line, Row, Screen, Section, Stat, T, pct, price, usd, usdSigned } from "./ui";
+import { Big, Btn, Card, Divider, Dot, Line, Row, Screen, Section, Stat, T, pct, price, usd, usdSigned } from "./ui";
 import { C, COIN_NAME, pnlColor } from "./theme";
+import { ConceptCard, Findings, MarketSlides, StartCard, ValueCard, hello } from "./home";
+import { ActionCard } from "./actions";
+import { useData } from "./useData";
 
 // ---- shared "me" (one fetch, every screen sees the same answer) ----
-type Me = { guest: boolean; name: string; stage?: string; profile?: any; coin_choices?: { coin: string; name: string }[]; capitals?: number[]; practice_note?: string } | null;
+type Me = { guest: boolean; name: string; stage?: string; onboard?: string; profile?: any; coin_choices?: { coin: string; name: string }[]; capitals?: number[]; practice_note?: string } | null;
 let me: Me = null;
 const subs = new Set<() => void>();
 export async function loadMe(): Promise<Me> {
@@ -40,7 +43,7 @@ export async function setup(body: object) {
 // Where a signed-in person should be: a visitor who has not finished setup goes to the welcome steps.
 export async function routeAfterSignIn() {
   const m = await loadMe();
-  if (m?.guest && ["name", "coins", "capital"].includes(String(m.stage))) router.replace("/welcome");
+  if (m?.guest && m.onboard && m.onboard !== "done") router.replace("/(tabs)/ask");          // Phase 5: the first conversation
   else if (m?.guest && m.stage === "tour") router.replace("/(tabs)/today");
   else router.replace("/(tabs)/today");
 }
@@ -168,50 +171,53 @@ export function OnboardTour() {
   );
 }
 
-// ---- Home ----
-function hello(name?: string) {
-  const h = new Date().getHours();
-  return `${h < 12 ? "Morning" : h < 17 ? "Afternoon" : "Evening"}${name ? `, ${name}` : ""}`;
-}
-
+// ---- Home (plan 3.1): the same order as Madhav's, built only from this visitor's own account ----
 export function VisitorHome({ d, loading, reload }: { d: any; loading: boolean; reload: () => void }) {
   const b = d.book;
-  const gain = b ? b.equity - b.start : 0;
+  const { data: inbox, reload: reloadInbox } = useData("/v3/inbox", 30000);
+  const actions = inbox?.actions ?? [];
+  const gain = b ? b.equity - b.start : null;
+  const begin = () => (d.capital || b ? openJarvisTrade() : router.replace("/welcome"));
+  const lines: any[] = d.agent?.lines ?? [];
   return (
     <Screen loading={loading} onRefresh={reload}>
       <View style={{ gap: 2 }}>
         <T dim small>Your practice account · paper money</T>
         <Text style={{ color: C.text, fontSize: 24, fontWeight: "700", letterSpacing: -0.3 }}>{hello(d.name)}</Text>
       </View>
-      {d.next && d.stage !== "tour" ? (
-        <Card title="Next step" sub={d.stage === "ready" ? "Your capital is in. Choose how you want to trade." : "Finish setting up your account."}>
-          <Btn label={d.next} onPress={() => (d.stage === "ready" ? goTab("/(tabs)/portfolio") : router.replace("/welcome"))} />
+      {d.next && d.stage !== "tour" && d.stage !== "ready" ? (
+        <Card title="Next step" sub="Finish setting up your account.">
+          <Btn label={d.next} onPress={() => router.replace("/welcome")} />
         </Card>
       ) : null}
-      <Card>
-        <T dim small>Your practice money</T>
-        {b ? (
-          <>
-            <Text style={{ color: C.text, fontSize: 32, fontWeight: "700", letterSpacing: -0.6 }}>{usd(b.equity)}</Text>
-            <Text style={{ color: pnlColor(gain), fontWeight: "600" }}>{usdSigned(gain)} ({pct(b.return_pct)}) since you started with {usd(b.start, 0)}</Text>
-            <T small>Cash {usd(b.cash)} · {b.positions.length} open position{b.positions.length === 1 ? "" : "s"} · {b.fills.length} order{b.fills.length === 1 ? "" : "s"}</T>
-          </>
-        ) : <T>No capital added yet.</T>}
-      </Card>
-      <Section title="Your coins" right={<Text onPress={() => goTab("/(tabs)/watchlists")} style={{ color: C.accent, fontWeight: "600" }}>Watchlists ›</Text>} />
-      <Card>
-        {(d.coins ?? []).length === 0 ? <T dim>No coins picked yet.</T> : null}
-        {(d.coins ?? []).map((c: any, i: number) => (
-          <View key={c.coin}>
-            {i ? <Divider /> : null}
-            <CoinRow c={c} />
-          </View>
-        ))}
-      </Card>
+      <ConceptCard />
+      <ValueCard label="Your practice money" value={b ? b.equity : 0} change={gain}
+        sub={b ? `Started with ${usd(b.start, 0)} · cash ${usd(b.cash)} · ${b.positions.length} open` : "No capital added yet: it shows here once you add it."} />
+      {d.started ? (
+        <Card title="Ananta today">
+          {lines.length === 0 ? <T dim>Nothing yet. Tell Ananta what to watch, or ask it to find a trade.</T> : null}
+          {lines.map((l, i) => (
+            <View key={i} style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+              <Dot color={l.tone === "act" ? C.warn : C.good} />
+              <Text style={{ color: C.text, fontSize: 15 }}>{l.text}</Text>
+            </View>
+          ))}
+          <Text onPress={() => goTab({ pathname: "/(tabs)/ask", params: { tab: "now", t: String(Date.now()) } } as any)} style={{ color: C.accent, fontWeight: "600" }}>What is Ananta doing? ›</Text>
+        </Card>
+      ) : <StartCard title="Ananta today" onPress={begin} />}
+      <MarketSlides coins={d.coins ?? []} market={d.market} />
+      {d.started ? <Findings items={d.findings ?? []} empty={<T dim>Nothing new. Findings appear when the market shifts or your watches learn something.</T>} />
+        : <StartCard title="Findings" onPress={begin} />}
+      {d.started ? (
+        <Card title="Needs you" sub={actions.length ? "Nothing happens until you confirm." : undefined}>
+          {actions.length === 0 ? <T dim>Nothing right now.</T> : null}
+          {actions.map((a: any) => <ActionCard key={a.id} a={a} onDone={() => { reloadInbox(); reload(); }} />)}
+        </Card>
+      ) : <StartCard title="Needs you" onPress={begin} />}
       <Section title="Your trades" />
       <Card>
         {!b || b.fills.length === 0 ? (
-          <T dim>{d.started ? "No trades yet. Ask Ananta to find one, or place one yourself in Books." : "Nothing yet. Trading starts when you press Start trading in Books."}</T>
+          <T dim>{d.started ? "No trades yet. Ask Ananta to find one, or tap + on a coin to trade it yourself." : "Nothing yet. Trading starts when you press Start trading in Books."}</T>
         ) : b.fills.slice(0, 6).map((f: any, i: number) => (
           <View key={f.id}>
             {i ? <Divider /> : null}
@@ -220,9 +226,6 @@ export function VisitorHome({ d, loading, reload }: { d: any; loading: boolean; 
           </View>
         ))}
       </Card>
-      {d.started ? (
-        <Btn label="Ask Ananta to find me a trade" onPress={() => openJarvisTrade()} />
-      ) : null}
     </Screen>
   );
 }

@@ -22,7 +22,7 @@ from typing import Any
 COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "AVAX", "LINK", "LTC", "BCH"]
 NAMES = {"BTC": "Bitcoin", "ETH": "Ethereum", "SOL": "Solana", "XRP": "XRP", "DOGE": "Dogecoin", "ADA": "Cardano",
          "AVAX": "Avalanche", "LINK": "Chainlink", "LTC": "Litecoin", "BCH": "Bitcoin Cash"}
-CAPITALS = (1000, 2000)
+CAPITALS = tuple(range(1000, 10001, 1000))          # plan 5.4: $1,000 to $10,000 in $1,000 steps
 STAGES = ("name", "coins", "tour", "capital", "ready", "trading")
 CHOICES = {"experience": ("never", "under_1y", "1_3y", "over_3y"), "crypto": ("new", "hold", "trade"),
            "risk": ("careful", "balanced", "bold"), "theme": ("light", "bat"),
@@ -98,10 +98,13 @@ def update(j, b: dict, email: str = "") -> dict:
         out["tz"] = tz
     if b.get("tour_done"):
         out["tour_done"] = now
+    for k in ("paused", "auto"):                         # plan 3.8 (D11): a visitor's own kill switch and autopilot
+        if b.get(k) is not None:
+            out[k] = bool(b[k])
     if b.get("capital") is not None:
         cap = int(float(b["capital"]))
         if cap not in CAPITALS:
-            raise ValueError("practice capital is $1,000 or $2,000")
+            raise ValueError("practice capital is $1,000 to $10,000, in steps of $1,000")
         p = profile(db)
         if p.get("capital") and p["capital"] != cap and _has_fills(db):
             raise ValueError("your practice capital is set once you have traded; use Start over to change it")
@@ -113,6 +116,12 @@ def update(j, b: dict, email: str = "") -> dict:
     for k, v in out.items():
         db.execute("INSERT OR REPLACE INTO visitor_profile VALUES (?,?)", (k, json.dumps(v)))
     db.commit()
+    if "auto" in out:                                   # Auto mode on: every watch takes its trades; off: every watch asks first
+        from jarvis.service import watches
+
+        for w in watches.list_(j):
+            if w["state"] != "DELETED" and w["mode"] != "tell":
+                watches.change(j, w["id"], "auto" if out["auto"] else "ask", None)
     if "name" in out:                                   # the account's name follows (Jarvis calls them by it)
         try:
             j.users_db.execute("UPDATE users SET name=? WHERE email=?", (out["name"], email))
@@ -156,8 +165,14 @@ def local_hour(p: dict, now: float) -> int:
 
 def me(j) -> dict:
     p = profile(j.db)
-    return {"profile": {k: p.get(k) for k in ("name", "coins", "capital", "tour_done", "started_t", "method", "tz", "experience", "crypto",
-                                                "risk", "voice", "theme")} | {"level": level(p)}, "stage": stage(p),
+    try:                                                  # Phase 5: has this visitor finished the first conversation?
+        from jarvis.service import onboard
+
+        ob = onboard.step(j)
+    except Exception:  # noqa: BLE001
+        ob = "done"
+    return {"onboard": ob, "profile": {k: p.get(k) for k in ("name", "coins", "capital", "tour_done", "started_t", "method", "tz", "experience", "crypto",
+                                                "risk", "voice", "theme", "paused", "auto")} | {"level": level(p)}, "stage": stage(p),
             "coin_choices": [{"coin": c, "name": NAMES[c]} for c in COINS], "capitals": list(CAPITALS)}
 
 
@@ -204,10 +219,25 @@ def home(j) -> dict:
     p = profile(j.db)
     rows = _watch(j, p.get("coins") or [])
     b = _book(j) if p.get("capital") else None
-    nxt = {"name": "Tell Jarvis your name", "coins": "Pick coins to watch", "tour": "Take the quick tour", "capital": "Add practice capital",
+    nxt = {"name": "Tell Ananta your name", "coins": "Pick coins to watch", "tour": "Take the quick tour", "capital": "Add practice capital",
            "ready": "Start trading", "trading": None}[stage(p)]
-    return {"visitor": True, "name": p.get("name"), "stage": stage(p), "next": nxt, "coins": rows, "book": b,
-            "started": bool(p.get("started_t"))}
+    out = {"visitor": True, "name": p.get("name"), "stage": stage(p), "next": nxt, "coins": rows, "book": b,
+           "started": bool(p.get("started_t"))}
+    # plan 3.1: the shared market rule, what Ananta is doing for this account, and what needs them (their own layer only)
+    from jarvis.service import views, watches
+    try:
+        out["market"] = views.market_rule(j)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        out["agent"] = watches.state(j)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        out["findings"] = [f for f in views.findings(j) if f["kind"] == "SHIFT"]     # market shifts are shared; nothing of Madhav's books
+    except Exception:  # noqa: BLE001
+        out["findings"] = []
+    return out
 
 
 def prompt_note(j, name: str) -> str:

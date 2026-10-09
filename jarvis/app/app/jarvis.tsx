@@ -1,10 +1,11 @@
 // Ananta's book (the "understand" depth): the trades Ananta decides itself, $100 each on paper, each with a random twin.
 // The honest score is against the twins, counted in independent events (10 before any verdict).
 import { Spot } from "../src/spotlight";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { askAbout, setScreen } from "../src/context";
+import { askAbout, goTab, setScreen } from "../src/context";
+import { ExplainLink } from "../src/blocks";
 import { LineChart, Progress } from "../src/charts";
 import { Busy, Card, Divider, ErrorBox, Screen, Stat, T, price, usdSigned } from "../src/ui";
 import { useData } from "../src/useData";
@@ -61,36 +62,18 @@ export default function JarvisBook() {
       ) : null}
 
       <Spot id="jarvis.open">
-        <Card title="Open" sub="Live price; the bar shows how much room is left before the stop">
-          {open.length === 0 ? <T dim>No open trades.</T> : null}
-          {open.map((o: any, i: number) => {
-            const room = o.now && o.stop && o.entry ? Math.max(0, Math.min(1, (o.now - o.stop) / (o.entry - o.stop))) : 1;
-            return (
-              <View key={o.id}>
-                {i ? <Divider /> : null}
-                <Pressable onPress={() => router.push(`/jtrade/${o.id}`)} delayLongPress={350}
-                  onLongPress={() => askAbout({ screen: "jarvis", label: `Ananta's ${o.coin} trade`, coin: o.coin, id: o.id }, `Why did you buy ${o.coin}, and how is it going?`)}
-                  style={{ paddingVertical: 11, gap: 7 }}>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <Text style={{ color: C.text, fontSize: 16, fontWeight: "700" }}>{COIN_NAME[o.coin] ?? o.coin}
-                      <Text style={{ color: C.dim, fontWeight: "400", fontSize: 13 }}>  {price(o.entry)} · conf {Math.round(o.confidence ?? 0)}% · size {Math.round(o.size_pct ?? 0)}%</Text></Text>
-                    <Text style={{ color: pnlColor(o.pnl_pct), fontSize: 15, fontWeight: "600" }}>{o.pnl_pct == null ? "–" : `${o.pnl_pct >= 0 ? "+" : ""}${o.pnl_pct.toFixed(1)}%`}</Text>
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={{ color: C.dim, fontSize: 12, width: 92 }}>{o.stop_raised ? "trail " : "stop "}{o.stop_pct}%</Text>
-                    <View style={{ flex: 1 }}><Progress value={room} of={1} color={room < 0.35 ? C.bad : C.accent} /></View>
-                    <Text style={{ color: C.dim, fontSize: 12, width: 104, textAlign: "right" }}>{o.trail_atr ? `trail ${o.trail_atr}` : o.target ? "target" : "time"} · {o.days} days</Text>
-                  </View>
-                  {o.twin ? <T small dim>Random twin: {COIN_NAME[o.twin] ?? o.twin}</T> : null}
-                </Pressable>
-              </View>
-            );
-          })}
-        </Card>
+        <Card onPress={() => goTab("/(tabs)/portfolio")} title={`${open.length} open trade${open.length === 1 ? "" : "s"}`}
+          sub="They are in Books › Trades with the stamp “Ananta's own pick”" right={<Text style={{ color: C.accent, fontSize: 18 }}>›</Text>} />
       </Spot>
 
       <Spot id="jarvis.learning">
-        <Card title="What I learn from" sub="Each knowledge piece my plans cited, scored by the trades that cited it once they close">
+        <Card title="Ananta's learnings" sub="What my plans leaned on, scored by how those trades ended"
+          right={<ExplainLink title="Ananta's learnings, explained" label="Explain">
+            <T>Every time I take a trade, my plan says which pieces of knowledge it leans on: the market rule, zones, the trend portfolio, exits, and so on.</T>
+            <T>When the trade closes, each piece it leaned on gets the result: the number of trades that used it, and the average dollars per $100 trade after costs.</T>
+            <T>A piece with many trades and a positive average is helping; a negative one is a candidate for the repair shop. Few trades mean nothing yet.</T>
+            <T>The confidence check below asks a second question: when I said I was more sure, did those trades really do better?</T>
+          </ExplainLink>}>
           {(d.knowledge_credit ?? []).length === 0 ? (
             <T dim small>No closed trades yet, so no credit or blame yet.</T>
           ) : (d.knowledge_credit ?? []).map((k: any, i: number) => (
@@ -113,24 +96,39 @@ export default function JarvisBook() {
       </Spot>
 
       <Spot id="jarvis.decisions">
-        <Card title="Recent decisions" sub={`Today: ${d.today?.TAKE ?? 0} taken, ${d.today?.PASS ?? 0} passed · at most ${d.daily_limit} a day`}>
-          {(d.decisions ?? []).map((x: any, i: number) => (
-            <View key={x.id}>
-              {i ? <Divider /> : null}
-              <Pressable onPress={() => x.trade_id ? router.push(`/jtrade/${x.trade_id}`) : askAbout({ screen: "jarvis", label: `Ananta's ${x.coin} decision`, coin: x.coin }, `Why did you ${x.action === "PASS" ? "pass on" : "decide on"} ${x.coin}?`)}
-                style={{ paddingVertical: 9, gap: 3 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ color: C.text, fontWeight: "600" }}>{x.action === "TAKE" ? "Bought" : x.action === "PASS" ? "Passed" : "No decision"} {COIN_NAME[x.coin] ?? x.coin}</Text>
-                  <T small dim>{new Date(x.t * 1000).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" })}</T>
-                </View>
-                {x.thesis ? <Text style={{ color: C.dim, fontSize: 13, lineHeight: 18 }} numberOfLines={3}>{x.thesis}</Text> : null}
-                {x.after_5d_pct != null ? <T small>Five days later: {x.after_5d_pct >= 0 ? "+" : ""}{x.after_5d_pct}%</T> : null}
-              </Pressable>
-            </View>
-          ))}
-        </Card>
+        <Decisions d={d} />
       </Spot>
     </Screen>
     </>
+  );
+}
+
+// Ananta's decisions (plan 3.4): today's counts in colour beside the title, titles only, 10 shown, then Show more.
+function Decisions({ d }: { d: any }) {
+  const [all, setAll] = useState(false);
+  const list: any[] = d.decisions ?? [];
+  const shown = all ? list : list.slice(0, 10);
+  const take = d.today?.TAKE ?? 0, pass = d.today?.PASS ?? 0;
+  return (
+    <Card title="Ananta's decisions" sub={`at most ${d.daily_limit} a day`}
+      right={<View style={{ flexDirection: "row", gap: 6 }}>
+        <View style={{ backgroundColor: C.goodSoft, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: C.goodDeep, fontSize: 12, fontWeight: "700" }}>{take} taken</Text></View>
+        <View style={{ backgroundColor: C.card2, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: C.dim, fontSize: 12, fontWeight: "700" }}>{pass} passed</Text></View>
+      </View>}>
+      {list.length === 0 ? <T dim>No decisions yet.</T> : null}
+      {shown.map((x: any, i: number) => (
+        <View key={x.id}>
+          {i ? <Divider /> : null}
+          <Pressable onPress={() => x.trade_id ? router.push(`/jtrade/${x.trade_id}`) : askAbout({ screen: "jarvis", label: `Ananta's ${x.coin} decision`, coin: x.coin }, `Why did you ${x.action === "PASS" ? "pass on" : "decide on"} ${x.coin}?`)}
+            style={{ paddingVertical: 9, flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: x.action === "TAKE" ? C.good : C.faint }} />
+            <Text style={{ color: C.text, fontWeight: "600", flex: 1 }}>{x.action === "TAKE" ? "Bought" : x.action === "PASS" ? "Passed" : "No decision"} {COIN_NAME[x.coin] ?? x.coin}</Text>
+            <T small dim>{new Date(x.t * 1000).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" })}</T>
+            <Text style={{ color: C.faint, fontSize: 16 }}>›</Text>
+          </Pressable>
+        </View>
+      ))}
+      {list.length > 10 ? <Text onPress={() => setAll(!all)} style={{ color: C.accent, fontWeight: "700", paddingTop: 6 }}>{all ? "Show less" : `Show more (${list.length - 10})`}</Text> : null}
+    </Card>
   );
 }

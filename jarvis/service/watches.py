@@ -207,6 +207,41 @@ def evaluate(kind: str, s: dict) -> tuple[str, str, dict]:
     return "WATCHING", "", plan
 
 
+def kinds_for(risk: str | None) -> tuple[list[dict], list[str]]:
+    """Plan 4.4: risk comfort is a real filter. Careful accounts get only kinds whose evidence is SUPPORTED; the others get every
+    paper-allowed kind. Returns (kinds, names filtered out), so Ananta mentions a filter only when it actually removed something."""
+    ks = kinds()
+    if (risk or "balanced") != "careful":
+        return ks, []
+    keep = [k for k in ks if k["evidence"] == "supported"]
+    return keep, [k["name"] for k in ks if k not in keep]
+
+
+def best_setups(main_j, risk: str | None = None, coins: list[str] | None = None, n: int = 3) -> dict:
+    """Plan 4.3: "show me the setup you like most". Every coin against every kind this account may use, ranked: setups that are
+    ready first, then the ones one condition away. Each comes as a decision card."""
+    ks, filtered = kinds_for(risk)
+    snap = snapshot(main_j)
+    rows = []
+    for coin, s in snap.items():
+        if coins and coin not in coins:
+            continue
+        for k in ks:
+            state, why, plan = evaluate(k["kind"], s)
+            if state == "WATCHING":
+                continue
+            rows.append({"coin": coin, "kind": k["kind"], "kind_name": k["name"], "state": state, "why": why, "plan": plan,
+                         "card": card(coin, k["kind"], why, plan, "Nothing bought: tell me to watch it or to place it."),
+                         "rank": (0 if state == "FIRED" else 1, 0 if k.get("default") else 1)})
+    rows.sort(key=lambda r: r["rank"])
+    out = {"best": [{k: v for k, v in r.items() if k != "rank"} for r in rows[:n]], "kinds_used": [k["name"] for k in ks]}
+    if filtered:
+        out["filtered_out"] = {"kinds": filtered, "why": "careful risk comfort: only setups with supported evidence"}
+    if not rows:
+        out["none"] = "No setup is ready or one condition away right now."
+    return out
+
+
 def size_usd(j, price: float, stop: float) -> float:
     """D2: risk a share of capital at the stop (careful 0.5%, balanced 1%, bold 1.5%), at most a quarter of capital, within cash."""
     from jarvis.service import account
@@ -267,6 +302,13 @@ def act(j, w: dict, coin: str, why: str, plan: dict, push: Callable[[str, str], 
 
 def check_account(j, snap: dict, push: Callable | None = None) -> list[dict]:
     _table(j.db)
+    try:                                                  # "Pause Ananta for me" (plan 3.8): no watch acts for this account
+        from jarvis.service import account
+
+        if account.profile(j.db).get("paused"):
+            return []
+    except Exception:  # noqa: BLE001
+        pass
     now = int(j.now())
     done = []
     for w in list_(j):
@@ -288,10 +330,10 @@ def check_account(j, snap: dict, push: Callable | None = None) -> list[dict]:
         state, why, plan, coin = best
         detail = {"coins": per, "best": coin, "why": why}
         if state == "FIRED" and coin:
-            act(j, w, coin, why, plan, push)
+            a = act(j, w, coin, why, plan, push)
             j.db.execute("UPDATE account_watches SET state='FIRED', fired_t=?, checked_t=?, detail=? WHERE id=?",
                          (now, now, json.dumps(detail), w["id"]))
-            done.append({"watch": w["id"], "coin": coin})
+            done.append({"watch": w["id"], "coin": coin, "kind": a.get("kind"), "body": a.get("body")})
         else:
             if state == "CLOSE" and w["state"] != "CLOSE" and coin:
                 log(j, "close", f"{coin} is getting close to your watch", why, ref=w["id"])
@@ -343,18 +385,52 @@ def state(j) -> dict:
 
     ws = [w for w in list_(j) if w["state"] != "DELETED"]
     pos = Manual(j.db, j.now).state(j.prices())["positions"]
+    held = len(pos)
+    if not getattr(j, "sandbox", False):                  # Madhav: every open trade across his books, not only his own calls
+        try:
+            from jarvis.service import books
+
+            held = len(books.view(j, getattr(j, "owner_name", "") or "", True)["trades"])
+        except Exception:  # noqa: BLE001
+            pass
     waiting = [f"{w['detail'].get('best')}: {w['detail'].get('why')}" for w in ws if w["state"] == "CLOSE" and w["detail"].get("best")]
     needs = Mandate(j.db, j.now).pending()
-    lines = [{"tone": "good", "text": f"Watching {len([w for w in ws if w['state'] != 'PAUSED'])} setup{'s' if len(ws) != 1 else ''}"},
-             {"tone": "good", "text": f"Monitoring {len(pos)} position{'s' if len(pos) != 1 else ''}"}]
+    n_w = len([w for w in ws if w["state"] != "PAUSED"])
+    watching = f"Watching {n_w} setup{'s' if n_w != 1 else ''}"
+    if not getattr(j, "sandbox", False):                  # Madhav: the brain's own watches run for his books every 15 minutes
+        watching = "Watching 10 coins: the 15-minute, hourly and daily setups" + (f", plus your {n_w} watch{'es' if n_w != 1 else ''}" if n_w else "")
+    lines = [{"tone": "good", "text": watching},
+             {"tone": "good", "text": f"Monitoring {held} position{'s' if held != 1 else ''}"}]
     lines += [{"tone": "wait", "text": f"Waiting for {x}"} for x in waiting[:3]]
+    try:                                                  # the shared market rule: is Ananta allowed to buy at all right now?
+        from jarvis.service import views
+
+        mk = views.market_rule(j)
+        if mk.get("regime") == "RISK_OFF":
+            lines.append({"tone": "wait", "text": "Waiting for Bitcoin to close back above its 50-day average"})
+        elif mk.get("regime") == "ALLOWED" and mk.get("live_side") == "below":
+            lines.append({"tone": "wait", "text": "Waiting for Bitcoin's daily close: it dipped under its 50-day average"})
+    except Exception:  # noqa: BLE001
+        pass
     lines.append({"tone": "act", "text": f"{len(needs)} need{'s' if len(needs) == 1 else ''} you"} if needs else {"tone": "none", "text": "Nothing needs you"})
     return {"lines": lines, "watches": ws, "positions": pos, "needs_you": len(needs)}
 
 
 def since(j, t: int) -> dict:
-    """1.8: 'what changed since this morning' for this account."""
-    return {"since_t": t, "events": activity(j, since=t, n=100)}
+    """1.8: 'what changed since this morning' for this account. Madhav's also carries his books' own feed (zone entries, trades,
+    warnings), since the brain acts for him directly."""
+    ev = activity(j, since=t, n=100)
+    if not getattr(j, "sandbox", False):
+        try:
+            from jarvis.service import views
+
+            for i, f in enumerate(views.feed(j, hours=max(1.0, (j.now() - t) / 3600), limit=60)):
+                if (f.get("t") or 0) >= t:
+                    ev.append({"id": f"feed{i}", "t": f["t"], "kind": f.get("kind"), "title": f.get("title"), "body": f.get("body"), "card": None, "ref": None})
+        except Exception:  # noqa: BLE001
+            pass
+        ev.sort(key=lambda x: -(x.get("t") or 0))
+    return {"since_t": t, "events": ev[:100]}
 
 
 def check_all(main_j, accounts: list, push_for: Callable[[Any], Callable | None] | None = None) -> dict:

@@ -10,8 +10,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C } from "../../src/theme";
 import { scroll } from "../../src/spotlight";
 import { ThemeToggle } from "../../src/themetoggle";
+import { AlertsBell } from "../../src/alerts";
 import { BooksIcon, ChartIcon, ChatIcon, GaugeIcon, HomeIcon } from "../../src/icons";
-import { OnboardTour, clearMe, useMe } from "../../src/visitor";
+import { clearMe, useMe } from "../../src/visitor";
 
 const TITLES: Record<string, string> = { today: "Home", portfolio: "Books", ask: "Ask Ananta", watchlists: "Watchlists", cockpit: "Cockpit" };
 
@@ -55,7 +56,7 @@ function Header() {
       <View style={{ height: 44, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
         <Text style={{ color: C.text, fontWeight: "700", fontSize: 17 }}>{title}</Text>
         {title === "Cockpit" ? (
-          <View style={{ position: "absolute", right: 16 }}><ThemeToggle /></View>
+          <View style={{ position: "absolute", right: 16, flexDirection: "row", gap: 10 }}><AlertsBell /><ThemeToggle /></View>
         ) : null}
       </View>
       <PracticeStrip />
@@ -94,7 +95,6 @@ export default function TabsLayout() {
         <SwipeTabs.Screen name="watchlists" options={{ title: "Watchlists", tabBarIcon: icon(ChartIcon) }} />
         <SwipeTabs.Screen name="cockpit" options={{ title: "Cockpit", tabBarIcon: icon(GaugeIcon) }} />
       </SwipeTabs>
-      <OnboardTour />
     </View>
   );
 }

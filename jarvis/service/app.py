@@ -171,6 +171,13 @@ async def plain_words(request, call_next):
     return Response(out, status_code=resp.status_code, headers=headers, media_type="application/json")
 
 
+@app.get("/v3/coins")
+def coins_all(who: str = Depends(owner)) -> dict:
+    """Home's "Load more" (plan 3.1): every live coin with its price and move. The market is shared by every account."""
+    from jarvis.service import views
+    return {"coins": views.markets(J()).get("coins") or []}
+
+
 @app.get("/v3/names")
 def display_names(who: str = Depends(owner)) -> dict:
     """The one dictionary of display names (glossary.json names + the watch catalogue)."""
@@ -537,6 +544,17 @@ def books_view(who: str = Depends(owner)) -> dict:
     return books.view(J(), J().name_of(who), owner=not is_guest(who))
 
 
+@app.get("/v3/books/trade/{tid}")
+def books_trade(tid: str, who: str = Depends(owner)) -> dict:
+    """One trade's story (plan 3.3b): reasons, start, stop, peak, low, exits and its decision card."""
+    from jarvis.service import books
+
+    try:
+        return books.story(J(), tid, J().name_of(who), owner=not is_guest(who))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/v3/watchlists")
 def watchlists(who: str = Depends(owner)) -> dict:
     """Watchlists (was Markets), per account: a visitor's coins, or Madhav's 10."""
@@ -637,6 +655,8 @@ class Setup(BaseModel):
     capital: int | None = None
     start_trading: bool = False
     method: str | None = None
+    paused: bool | None = None
+    auto: bool | None = None
 
 
 @app.post("/v3/me/setup")
@@ -694,11 +714,78 @@ def me(who: str = Depends(owner)) -> dict:
                              "practice book. Kill switch, autopilot and portfolio approvals are locked." if g else ""}
 
 
+class OnboardIn(BaseModel):
+    step: str
+    value: Any = None
+    tz: str | None = None
+
+
+@app.get("/v3/onboard")
+def onboard_get(who: str = Depends(owner)) -> dict:
+    """Plan Phase 5: the first conversation, where this visitor is in it (Madhav's account has none)."""
+    if not is_guest(who):
+        return {"step": "done", "done": True, "log": []}
+    from jarvis.service import onboard
+
+    return onboard.prompt(J())
+
+
+@app.post("/v3/onboard")
+def onboard_post(b: OnboardIn, who: str = Depends(owner)) -> dict:
+    if not is_guest(who):
+        return {"step": "done", "done": True, "log": []}
+    from jarvis.service import onboard
+
+    try:
+        return onboard.answer(J(), b.step, b.value, who.split(":", 1)[-1], b.tz)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v3/onboard/restart")
+def onboard_restart(who: str = Depends(owner)) -> dict:
+    if not is_guest(who):
+        return {"step": "done", "done": True, "log": []}
+    from jarvis.service import onboard
+
+    onboard.start_over(J())
+    return onboard.prompt(J())
+
+
+@app.get("/v3/concepts/next")
+def concept_next(who: str = Depends(owner)) -> dict:
+    """Plan 4.5: the next idea to introduce to this account (once each, when it first matters), or none."""
+    from jarvis.service import concepts
+
+    return {"concept": concepts.due(J())}
+
+
+@app.post("/v3/concepts/{cid}/seen")
+def concept_seen(cid: str, who: str = Depends(owner)) -> dict:
+    from jarvis.service import concepts
+
+    try:
+        return concepts.seen(J(), cid)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/v3/ask/chips")
+def ask_chips(days: int = 7, who: str = Depends(owner)) -> dict:
+    """Plan 4.1: the weekly table of chips shown and tapped, to refine them."""
+    from jarvis.service import ask as _a
+
+    return {"days": days, "chips": _a.chip_stats(J(), days)}
+
+
 @app.get("/v3/chain")
 def chain_board(who: str = Depends(owner)) -> dict:
     """Madhav's decision chain for all 10 coins: where each one stops (fail-closed) and why."""
     from jarvis.service import chain
 
+    if is_guest(who):                                   # a visitor's chain counts only their own trades (plan 1.2a, 3.5)
+        from jarvis.service import account
+        return chain.board(J(), book=account.chain_book(J()))
     return chain.board(J())
 
 
@@ -924,6 +1011,11 @@ def ask_threads(who: str = Depends(owner)) -> dict:
 @app.get("/v3/ask/thread/{thread}/export")
 def ask_export(thread: str, who: str = Depends(owner)) -> dict:
     return {"text": _run(A().export, thread)}
+
+
+@app.post("/v3/ask/thread/{thread}/delete")
+def ask_delete(thread: str, who: str = Depends(owner)) -> dict:
+    return A().delete_thread(thread)
 
 
 @app.get("/v3/ask/thread/{thread}")

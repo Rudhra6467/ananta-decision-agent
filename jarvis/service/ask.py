@@ -53,6 +53,7 @@ WHAT ANANTA IS (use these words)
   * The daily watches (each daily close): your setups and the short dip trade, every signal a $100 evidence trade with the rule the history test used, plus random baselines.
   * The eye (live prices every 10 seconds): your stops and alerts, a sudden Bitcoin drop, price entering a support zone, and the zone-touch evidence trade.
 - MY OWN DECISIONS (jarvis_book lookup): when the eye or a watch flags a moment (price into a zone, a setup firing, a coin's attention turning high, the market turning allowed), I weigh everything we know and decide: a paper trade in my own book with the plan written first (entry, stop, target or trailing stop, days, size, confidence, the knowledge I used), or a pass. At most 20 decisions a day; strong points add confidence, weak ones lower the size, only red flags stop me. Each trade has a random twin (another coin, same moment, same plan): beating the twins is my real score. Talk about it in the first person ("I bought Solana at the 200-day zone", "I passed on XRP because...").
+- AGENT QUESTIONS (plan 4.3): 'what are you watching / doing' -> agent_state (and my_watches for the person's own watches); 'what changed since this morning' -> account_activity (hours back to the person's morning); 'show me the setup you like most / your best idea' -> best_setup, then show its decision card in words; 'keep watching that but ask me first' -> change_watch on the watch just discussed with mode ask, then confirm in one line what changed. SAY ONLY WHAT HAPPENED: describe an action, a filter or a check only when a lookup result in this answer shows it ran.
 - FINDINGS, NOT WATCHES: Madhav asks what I FOUND, not what I'm watching. "What did we miss / what moved today?" -> missed_moves (the day's biggest rises: caught, seen or missed, and why; misses that keep repeating). "How are your trades doing / are you beating random?" -> jarvis_book. "What did we learn from the trades?" -> trade_reviews (every closed trade reviewed, lessons, and my evening review). "Is everything running?" -> system_health. Lead with the finding, then the evidence behind it.
 - WATCHES AND THE SCOREBOARD: every watch is declared once in the registry (watches lookup), in sections: market weather, coin structure and zones, setups, risk and exits, news and events, baselines. Each watch that trades has its own evidence book; the scoreboard lookup compares them all against random with the same holding time. Never call a watch "working" with fewer than 10 independent events.
 - Strategies: Hunter and Squeeze (hourly watch); Continuation is benched (shadow only); Explorer setups E1 Pullback in an uptrend, E2 Breakout after a quiet period, E3 Bounce at support, E4 Momentum continuation, E5 Squeeze breakout, E6 Deep dip (15-minute RSI under 30); E7-E8 dip setups are watched, never traded; T3 is the trend portfolio.
@@ -97,7 +98,7 @@ RULES
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
 12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something ("show me...", "open...", "take me...", "where can I see..."), you MUST CALL ui_go for the most relevant place (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. Questions about the screen itself ("what's below this?", "what's at the bottom?", "what's above?") mean the parts of the open screen: call ui_scroll (down / bottom / up) and describe those parts using the spot list in order (not prices below). For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
 13. POINT AT WHAT YOU TALK ABOUT: add "points" so the app makes that thing glow (and scrolls to it) while that sentence is spoken: [{"spot": "<spot id>", "sentence": <index of the sentence in "answer", from 0>}]. Use spots of the screen that is open, or of the place you open with ui_go in this answer (if you point at a spot of another tab without ui_go, the app opens that tab for you). One spot per sentence at most; only point when it helps him find it. When you walk him through a screen or explain where something is, ALWAYS point at each part as you name it. Spot ids:
-home.status | home.value | home.market | home.jarvis | home.findings | home.inbox | home.brief | home.books | home.activity ; jarvis.score | jarvis.open | jarvis.learning | jarvis.decisions ; missed.counts | missed.moves | missed.patterns ; markets.summary | markets.chain | markets.reads | markets.zones | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.gate (the acceptance gate: N of 27 checks) | evidence.tracker (the repair loop strip) | evidence.clocks | evidence.limits | evidence.collected (results vs random) | evidence.rebuild | evidence.misses | evidence.forwarded (the repair board) | evidence.in_use | evidence.safety | evidence.shop (what we wait for, with dates) | evidence.ideas | evidence.credit ; cockpit.controls | cockpit.ai | cockpit.alerts | cockpit.systems ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5> | coin.chain (the decision chain ladder) | coin.reads (your setups on this coin) | coin.zones (zones and the lookout).
+home.status | home.value | home.market | home.jarvis | home.findings | home.inbox | home.books | home.activity ; jarvis.score | jarvis.open | jarvis.learning | jarvis.decisions ; missed.counts | missed.moves | missed.patterns ; markets.summary | markets.chain | markets.near | markets.reconstruction | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.gate (the acceptance gate: N of 27 checks) | evidence.tracker (the repair loop strip) | evidence.clocks | evidence.limits | evidence.collected (results vs random) | evidence.rebuild | evidence.misses | evidence.forwarded (the repair board) | evidence.in_use | evidence.safety | evidence.shop (what we wait for, with dates) | evidence.ideas | evidence.credit ; cockpit.controls | cockpit.ai | cockpit.evidence | cockpit.voice ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5> | coin.chain (the decision chain ladder) | coin.reads (your setups on this coin) | coin.zones (zones and the lookout).
 14. PROVE IT: every number you give should be checkable in the app. In "evidence" items add "spot" (and "screen" when it is on another screen) for where that number is shown. When he asks "where did you get that?", "show me", "prove it" or "show me the trade you just mentioned", open that place with ui_go and point at it (points) while you explain; use the previous answer's evidence to know what "that" is. For a single trade, open the trade page (trade:<id>) and point at trade.pnl / trade.stop / trade.target; for a coin's setup, open the coin page and point at coin.setup:<E#>.
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} (the Evidence page) | {"screen": "jarvis"} (Jarvis's book) | {"screen": "missed"} (what we missed) | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
@@ -174,6 +175,10 @@ TOOLS = [
     ("change_watch", "Change one of this person's watches: mode tell | ask | auto ('keep watching that but don't trade without asking me' "
      "= mode ask), or state PAUSED | WATCHING | DELETED. id from my_watches.",
      _schema({"id": {"type": "string"}, "mode": {"type": "string"}, "state": {"type": "string"}}, ["id"])),
+    ("best_setup", "The setup you like most right now for this person: every coin against every setup kind they may use (their risk "
+     "comfort filters the kinds), ready ones first, then one condition away, each with a decision card (found, why, wrong if). Use for "
+     "'show me the setup you like most', 'what's your best idea', 'anything worth taking'. Mention a risk filter ONLY when filtered_out is "
+     "present.", _schema({"coin": {**COIN, "description": "Optional: one coin"}})),
     ("agent_state", "What you (Ananta) are doing right now FOR THIS PERSON: watches, positions you monitor, what you are waiting for, "
      "what needs them. Use for 'what are you doing', 'what are you watching', 'show me the setup you're most interested in'.", OFF),
     ("account_activity", "What happened in this person's account since N hours ago: watches fired, trades, warnings, requests. Use for "
@@ -235,6 +240,17 @@ def _local_stt(audio_b64: str, mime: str) -> str | None:
         return r.json()["text"] if r.status_code == 200 else None
     except Exception:  # noqa: BLE001
         return None
+
+
+def _title(q: str) -> str:
+    """A session's automatic title (plan 3.6b): its first question, cleaned and short."""
+    import re as _r
+
+    q = _r.sub(r"^(explain this finding simply|explain this|tell me about this|about):\s*", "", (q or "").strip(), flags=_r.I)
+    q = _r.split(r"(?<=[.?!])\s", q)[0].strip().rstrip(".")
+    if len(q) > 52:
+        q = q[:50].rsplit(" ", 1)[0] + "…"
+    return (q[:1].upper() + q[1:]) or "Conversation"
 
 
 def _label_outside(reply: dict, found: list[dict]) -> None:
@@ -330,6 +346,37 @@ DANGLING = re.compile(r"(\b(and|or|but|so|because|the|a|an|to|of|for|with|about|
 ACK_WORDS = {"one sec", "let me check", "okay looking", "ok looking", "mm hm one moment", "mm hmm one moment", "let me pull that up"}
 
 
+YES_WORDS = {"yes", "yeah", "yep", "yes please", "sure", "ok", "okay", "do it", "go ahead", "please do", "yes do it", "lets do it",
+             "let's do it", "go for it", "sounds good"}
+
+
+def _plain(t: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]", " ", str(t).lower().replace("'", ""))).strip()
+
+
+def spoken_chip(heard: str, chips: dict | None) -> str | None:
+    """Plan 3.7 / 4.1: the words of a chip, spoken, act like a tap. "Yes" (or "just say yes") takes the next action; a chip's
+    label, or its short spoken form ("pull BTC"), takes that chip. Returns the question to ask, or None."""
+    if not chips or not heard:
+        return None
+    h = _plain(heard)
+    h = re.sub(r"^(ananta|jarvis|hey ananta|hey jarvis|ok|okay|um|uh)\s+", "", h).strip()
+    nxt = chips.get("next") or None
+    if nxt and nxt.get("ask") and (h in YES_WORDS or h.rstrip(" please") in YES_WORDS):
+        return str(nxt["ask"])
+    cands = ([nxt] if nxt else []) + [{"label": f, "ask": f} for f in (chips.get("follow") or []) if isinstance(f, str)]
+    for c in cands:
+        if not c or not c.get("ask"):
+            continue
+        for form in (c.get("label"), c.get("say")):
+            f = _plain(form or "")
+            if not f:
+                continue
+            if h == f or (len(f.split()) >= 2 and h.startswith(f)) or (len(h.split()) >= 3 and h in f and len(h) >= 0.6 * len(f)):
+                return str(c["ask"])
+    return None
+
+
 def hearing_check(heard: str, last_spoken: str = "") -> str:
     """'echo' (the mic caught Ananta's own voice), 'filler' ('hmm', 'okay', '!'), 'partial' (he stopped mid-sentence: keep
     listening and join it to what he says next) or 'ok'. After a question from Ananta ('Want the details?'), a short 'yes' / 'okay'
@@ -417,6 +464,9 @@ def guest_address(t: str) -> str:
     t = re.sub(r",\s*(sir|Madhav)(?=[.!?,])", "", t)
     t = re.sub(r"^((?:Good )?(?:morning|afternoon|evening)|Morning|Hi|Hello|Hey|Sure|Yes|Okay|Right)[,]?\s+(sir|Madhav)\b[,.!]?", r"\1.", t, flags=re.I)
     return t
+
+
+WHY = re.compile(r"^\s*(why|but why|why so|why that|why not|how come|why is that|explain why)\s*[?.!]*\s*$", re.I)
 
 
 def _chip_table(j) -> None:
@@ -612,6 +662,13 @@ class Lookups:
         from jarvis.service import watches
 
         return {"changed": watches.change(self.j, id, mode, state)}
+
+    def t_best_setup(self, coin: str | None = None) -> dict:
+        from jarvis.service import account, watches
+        from jarvis.service.app import _main
+
+        p = account.profile(self.j.db) if getattr(self.j, "sandbox", False) else account.owner_profile(self.j)
+        return watches.best_setups(_main(), p.get("risk"), [coin.upper()] if coin else None)
 
     def t_agent_state(self) -> dict:
         from jarvis.service import watches
@@ -2070,6 +2127,12 @@ class Ask:
                 return text
             rid, prev, t = row[0], json.loads(row[1] or "{}"), row[2]
             na = prev.get("next_action") if isinstance(prev.get("next_action"), dict) else None
+            if WHY.match(text) and int(self.j.now()) - int(t or 0) <= 1800:      # plan 4.2: a one-word "why" explains the last answer
+                said = re.split(r"(?<=[.!?])\s+", str(prev.get("answer") or ""))[0][:300]
+                card = prev.get("card") if isinstance(prev.get("card"), dict) else None
+                return ("Why? Explain the reasoning behind your last answer" + (f" (\"{said}\")" if said else "") + ": what you found, why, "
+                        "what would make it wrong, and what you are doing about it; name the decision-chain gates it passed or failed, from the chain "
+                        "lookup, in plain words." + (f" Its decision card: {json.dumps(card)[:600]}" if card else ""))
             if na and YES.match(text) and int(self.j.now()) - int(t or 0) <= 600:
                 self.j.db.execute("UPDATE ask_chips SET picked=1 WHERE reply_id=? AND kind='primary'", (rid,))
                 self.j.db.commit()
@@ -2090,7 +2153,7 @@ class Ask:
             said = prev.get("speak") or prev.get("answer")
             return {"ui": [], "say": said or "I haven't said anything yet in this conversation."}
         if THANKS.match(t):
-            return {"ui": [], "say": "You're welcome, Madhav."}
+            return {"ui": [], "say": "You're welcome, sir." if not getattr(self.j, "sandbox", False) else "You're welcome."}
         if OKAY.match(t):
             if self._last_spoken(thread).strip().endswith("?") and not re.search(r"stop|cancel|never ?mind|that'?s all|that is all", t, re.I):
                 return None                                    # "okay" to my question ("Want the details?") is a yes: the model answers
@@ -2169,6 +2232,13 @@ class Ask:
         heard = self.transcribe(audio_b64, mime)
         if not heard:
             return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone."}
+        if WHY.match(heard):                                   # plan 4.2: "why?" on its own is a full question (it explains the last answer)
+            out = self.ask(who, heard, thread=thread, mode=mode, context=context, voice=True, source=source)
+            return {"heard": heard, **out}
+        chip = spoken_chip(heard, (context or {}).get("chips"))  # plan 3.7: saying a chip's words is the same as tapping it
+        if chip:
+            out = self.ask(who, chip, thread=thread, mode=mode, context=context, voice=True, source=source)
+            return {"heard": heard, "chip": chip, **out}
         last = self._last_spoken(thread)
         kind = hearing_check(heard, last)                      # what reaches the model is a real question (Oct 1-3: 1 turn in 6 was not)
         if kind == "echo":
@@ -2204,9 +2274,22 @@ class Ask:
         out = []
         for th, t0, t1, cnt in rows:
             first = self.j.db.execute("SELECT text, mode FROM ask_messages WHERE thread=? AND role='user' ORDER BY t LIMIT 1", (th,)).fetchone()
-            out.append({"thread": th, "title": (first[0] if first else "")[:80], "time": views._local(t1), "messages": cnt,
+            out.append({"thread": th, "title": _title(first[0] if first else ""), "time": views._local(t1), "messages": cnt, "t": t1,
                         "voice": bool(first and (first[1] or "").startswith("voice:"))})
         return out
+
+    def delete_thread(self, thread: str) -> dict:
+        """D10: a visitor's deleted conversation is gone for good; Madhav's goes to an archive kept 30 days."""
+        db = self.j.db
+        if not getattr(self.j, "sandbox", False):
+            db.execute("CREATE TABLE IF NOT EXISTS ask_archive AS SELECT *, 0 AS archived_t FROM ask_messages WHERE 0")
+            cols = [r[1] for r in db.execute("PRAGMA table_info(ask_messages)")]
+            db.execute(f"INSERT INTO ask_archive ({', '.join(cols)}, archived_t) SELECT {', '.join(cols)}, ? FROM ask_messages WHERE thread=?",
+                       (int(self.j.now()), thread))
+            db.execute("DELETE FROM ask_archive WHERE archived_t < ?", (int(self.j.now()) - 30 * 86400,))
+        n = db.execute("DELETE FROM ask_messages WHERE thread=?", (thread,)).rowcount
+        db.commit()
+        return {"deleted": n, "archived": not getattr(self.j, "sandbox", False)}
 
     def thread(self, thread: str) -> list[dict]:
         out = []

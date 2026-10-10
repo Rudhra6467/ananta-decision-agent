@@ -82,3 +82,12 @@ def test_limit_verdict_reads_what_the_stopped_trades_did():
     assert "not hiding winners" in v and "too early" in v
     assert "did better" in el._limit_verdict(114, {"closed": 93, "avg_usd": -0.48, "events": 4}, base)
     assert el._limit_verdict(0, {"closed": 0}, base) == "Never reached so far."
+
+
+def test_jarvis_speedup_follows_the_tk4_ticket():
+    from jarvis.service import evidence_live as el
+
+    assert "waits for you" in el._jarvis_speedup(8, 102, {"id": "TK4", "status": "OPEN"})
+    assert "waits for you" in el._jarvis_speedup(8, 102, None)
+    done = el._jarvis_speedup(120, 1270, {"id": "TK4", "status": "DONE"})
+    assert "waits for you" not in done and "in use" in done and done.startswith("Jarvis decided 120 of 1270 wakes")

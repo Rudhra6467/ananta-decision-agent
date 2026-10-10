@@ -151,7 +151,7 @@ def build(j) -> dict:
                     ("misses", lambda: _misses(j)),
                     ("board", lambda: _board(j, L, P)),
                     ("in_use", lambda: _in_use(L, P)),
-                    ("waiting", lambda: _waiting(j, P, ex)),
+                    ("waiting", lambda: _waiting(j, P, ex, L)),
                     ("daily_review", lambda: _daily_review())):
         out[key] = _try(fn, out, key)
     out["loop"] = _try(lambda: _loop(j, out, P, rows), out, "loop")
@@ -582,7 +582,16 @@ def _in_use(L: dict, P: dict) -> dict:
     return {"items": items, "modes": L.get("modes", []), "safety": safety[::-1], "safety_n": len(safety)}
 
 
-def _waiting(j, P: dict, ex) -> list[dict]:
+def _jarvis_speedup(decided, wakes, tk4: dict | None) -> str:
+    """Q7's speed-up line. It used to say TK4 'waits for you' even after Madhav's yes (TK4 DONE): read the ticket's status."""
+    head = f"Jarvis decided {decided} of {wakes} wakes; "
+    if (tk4 or {}).get("status") == "DONE":
+        return head + ("ticket TK4 (decide on a held coin too, 20 open) is in use; the wait now is separate market moves, "
+                       "which only the calendar brings.")
+    return head + "ticket TK4 (decide on every wake, 20 open, 40 a day) is the biggest speed-up and waits for you."
+
+
+def _waiting(j, P: dict, ex, L: dict | None = None) -> list[dict]:
     from jarvis.service import brain
 
     now = j.now()
@@ -624,8 +633,8 @@ def _waiting(j, P: dict, ex) -> list[dict]:
             continue
         elif m == "jarvis_events":
             row.update(have=rep.get("events", 0), unit="market events")
-            row["speedup"] = (f"Jarvis decided {decided} of {wakes} wakes; ticket TK4 (decide on every wake, 20 open, 40 a day) is the "
-                              "biggest speed-up and waits for you.")
+            tk4 = next((t for t in (L or {}).get("tickets", []) if t.get("id") == "TK4"), None)
+            row["speedup"] = _jarvis_speedup(decided, wakes, tk4)
             start = jarvis_first
         elif m == "review_slot":
             row.update(unit="review", have=0, eta_note="waits for a work session, not for the market", done=False)

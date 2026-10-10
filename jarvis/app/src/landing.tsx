@@ -2,12 +2,10 @@
 // (the Bat palette, fixed here so the page looks the same for everyone), one headline, two buttons, the app itself in a phone
 // frame with live numbers, four live figures, three short reasons, then sign-in. Numbers come from /v3/public/status.
 import { useRef } from "react";
+import { LANDING } from "./theme";
 import { Linking, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 
-const K = {
-  bg: "#08090B", surface: "#121418", surface2: "#1A1D22", line: "#262930", text: "#F2F0EA", dim: "#9A9DA4", faint: "#6E727A",
-  gold: "#F2CF66", goldSoft: "#2B2614", good: "#5CCB92", bad: "#F2796F",
-};
+const K = LANDING;
 export const LANDING_COLORS = K;
 
 const usd = (x?: number | null) => (x == null ? "–" : `${x >= 0 ? "+" : "−"}$${Math.abs(x).toFixed(2)}`);
@@ -15,7 +13,7 @@ const n = (x: any, d = "–") => (x == null ? d : String(x));
 
 function Phone({ st }: { st: any }) {
   return (
-    <View style={{ width: 300, alignSelf: "center", borderRadius: 44, padding: 10, backgroundColor: "#1B1D21", borderWidth: 1, borderColor: "#34373D",
+    <View style={{ width: 300, alignSelf: "center", borderRadius: 44, padding: 10, backgroundColor: K.phone, borderWidth: 1, borderColor: K.phoneLine,
       shadowColor: K.gold, shadowOpacity: 0.18, shadowRadius: 60, shadowOffset: { width: 0, height: 20 } }}>
       <View style={{ borderRadius: 36, backgroundColor: K.bg, overflow: "hidden", padding: 16, gap: 12 }}>
         <View style={{ alignSelf: "center", width: 90, height: 22, borderRadius: 12, backgroundColor: "#000", marginBottom: 4 }} />
@@ -64,8 +62,8 @@ function Phone({ st }: { st: any }) {
 function Btn({ label, onPress, ghost }: { label: string; onPress: () => void; ghost?: boolean }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => ({ backgroundColor: ghost ? "transparent" : K.gold,
-      borderWidth: 1, borderColor: ghost ? "#3A3D44" : K.gold, borderRadius: 12, paddingHorizontal: 22, paddingVertical: 14, opacity: pressed ? 0.75 : 1 })}>
-      <Text style={{ color: ghost ? K.text : "#141518", fontWeight: "800", fontSize: 16 }}>{label}</Text>
+      borderWidth: 1, borderColor: ghost ? K.line2 : K.gold, borderRadius: 12, paddingHorizontal: 22, paddingVertical: 14, opacity: pressed ? 0.75 : 1 })}>
+      <Text style={{ color: ghost ? K.text : K.onGold, fontWeight: "800", fontSize: 16 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -104,7 +102,7 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
       <View style={{ maxWidth: 1120, width: "100%", alignSelf: "center", paddingHorizontal: pad }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 22 }}>
           <Text style={{ color: K.text, fontSize: 18, fontWeight: "800", letterSpacing: 6 }}>ANANT<Text style={{ color: K.gold }}>A</Text></Text>
-          <Pressable onPress={toSignIn} accessibilityRole="button" style={{ borderWidth: 1, borderColor: "#3A3D44", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}>
+          <Pressable onPress={toSignIn} accessibilityRole="button" style={{ borderWidth: 1, borderColor: K.line2, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}>
             <Text style={{ color: K.text, fontWeight: "700" }}>Sign in</Text>
           </Pressable>
         </View>

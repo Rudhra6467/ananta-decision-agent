@@ -306,7 +306,8 @@
    "evidence": "lookahead-tested",
    "files": [
     "src/intelligence/explorer_engine.py",
-    "src/research/reads.py"
+    "src/research/reads.py",
+    "jarvis/service/universe_explorer.py"
    ]
   },
   {
@@ -837,7 +838,9 @@
     "jarvis/service/visitor.py",
     "jarvis/service/registry.py",
     "jarvis/service/feed.py",
-    "jarvis/service/universe_watch.py"
+    "jarvis/service/universe_watch.py",
+    "jarvis/service/exposure.py",
+    "jarvis/service/ev.py"
    ]
   },
   {
@@ -1141,7 +1144,9 @@
    "evidence": "failed its one-time holdout (research/CANDIDATE_V3_HOLDOUT_RESULT.md); winding down, kept running in paper only",
    "files": [
     "src/intelligence/candidate_paper.py",
-    "src/research/candidate_v3.py"
+    "src/research/candidate_v3.py",
+    "src/research/review25.py",
+    "src/research/review26.py"
    ]
   },
   {

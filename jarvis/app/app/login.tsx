@@ -59,7 +59,7 @@ export default function Login() {
       <TextInput style={field} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Name or email" placeholderTextColor={K.faint} />
       <TextInput style={field} value={pw} onChangeText={setPw} secureTextEntry placeholder="Password" placeholderTextColor={K.faint} onSubmitEditing={go} />
       <Pressable onPress={go} accessibilityRole="button" style={({ pressed }) => ({ backgroundColor: K.gold, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: pressed ? 0.75 : 1 })}>
-        <Text style={{ color: "#141518", fontWeight: "800", fontSize: 16 }}>Sign in</Text>
+        <Text style={{ color: K.onGold, fontWeight: "800", fontSize: 16 }}>Sign in</Text>
       </Pressable>
       {msg ? <Text style={{ color: K.dim }}>{msg}</Text> : null}
       <Text style={{ color: K.faint, fontSize: 12 }}>New here? Open the invite link you were sent to create your account.</Text>

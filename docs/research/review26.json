@@ -1,0 +1,838 @@
+{
+ "review": 26,
+ "coins": 120,
+ "trades": 1188,
+ "cells": [
+  {
+   "rule": "H07",
+   "state": "OPEN",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 13,
+    "market_days": 11,
+    "mean_net_pct": 0.82,
+    "mean_excess_pct": -3.47,
+    "z": -1.25,
+    "baseline_pct": 4.28
+   },
+   "CONFIRM": {
+    "trades": 57,
+    "market_days": 24,
+    "mean_net_pct": 2.47,
+    "mean_excess_pct": 5.68,
+    "z": 3.23,
+    "baseline_pct": -3.21
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "H07",
+   "state": "OPEN",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 15,
+    "market_days": 13,
+    "mean_net_pct": 0.95,
+    "mean_excess_pct": -5.36,
+    "z": -2.27,
+    "baseline_pct": 6.31
+   },
+   "CONFIRM": {
+    "trades": 20,
+    "market_days": 12,
+    "mean_net_pct": -2.1,
+    "mean_excess_pct": -3.17,
+    "z": -0.77,
+    "baseline_pct": 1.07
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "H07",
+   "state": "OPEN",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 4.16
+   },
+   "CONFIRM": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 2.81
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "H07",
+   "state": "CLOSED",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 92,
+    "market_days": 48,
+    "mean_net_pct": 7.14,
+    "mean_excess_pct": 9.29,
+    "z": 5.04,
+    "baseline_pct": -2.15
+   },
+   "CONFIRM": {
+    "trades": 83,
+    "market_days": 46,
+    "mean_net_pct": 5.28,
+    "mean_excess_pct": 6.28,
+    "z": 4.91,
+    "baseline_pct": -1.0
+   },
+   "passes": true,
+   "expected_excess_pct": 5.13
+  },
+  {
+   "rule": "H07",
+   "state": "CLOSED",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 31,
+    "market_days": 26,
+    "mean_net_pct": 1.41,
+    "mean_excess_pct": 1.32,
+    "z": 0.61,
+    "baseline_pct": 0.09
+   },
+   "CONFIRM": {
+    "trades": 24,
+    "market_days": 20,
+    "mean_net_pct": 3.11,
+    "mean_excess_pct": 4.18,
+    "z": 1.53,
+    "baseline_pct": -1.08
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "H07",
+   "state": "CLOSED",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 1,
+    "market_days": 1,
+    "mean_net_pct": 8.8,
+    "mean_excess_pct": 10.19,
+    "z": 0,
+    "baseline_pct": -1.38
+   },
+   "CONFIRM": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 1.3
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M1a",
+   "state": "OPEN",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 4.28
+   },
+   "CONFIRM": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": -3.21
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M1a",
+   "state": "OPEN",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 6.31
+   },
+   "CONFIRM": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 1.07
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M1a",
+   "state": "OPEN",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 4.16
+   },
+   "CONFIRM": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 2.81
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M1a",
+   "state": "CLOSED",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 23,
+    "market_days": 10,
+    "mean_net_pct": -4.77,
+    "mean_excess_pct": -0.23,
+    "z": -0.06,
+    "baseline_pct": -4.55
+   },
+   "CONFIRM": {
+    "trades": 18,
+    "market_days": 7,
+    "mean_net_pct": 0.38,
+    "mean_excess_pct": 3.13,
+    "z": 0.69,
+    "baseline_pct": -2.75
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M1a",
+   "state": "CLOSED",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 26,
+    "market_days": 14,
+    "mean_net_pct": 22.03,
+    "mean_excess_pct": 17.23,
+    "z": 0.93,
+    "baseline_pct": 4.81
+   },
+   "CONFIRM": {
+    "trades": 28,
+    "market_days": 9,
+    "mean_net_pct": -4.7,
+    "mean_excess_pct": -1.59,
+    "z": -0.38,
+    "baseline_pct": -3.11
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M1a",
+   "state": "CLOSED",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 3,
+    "market_days": 1,
+    "mean_net_pct": 6.49,
+    "mean_excess_pct": -4.73,
+    "z": -0.43,
+    "baseline_pct": 11.23
+   },
+   "CONFIRM": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 1.3
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a",
+   "state": "OPEN",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 1,
+    "market_days": 1,
+    "mean_net_pct": -1.75,
+    "mean_excess_pct": -14.46,
+    "z": 0,
+    "baseline_pct": 12.71
+   },
+   "CONFIRM": {
+    "trades": 6,
+    "market_days": 5,
+    "mean_net_pct": -0.52,
+    "mean_excess_pct": 5.9,
+    "z": 0.51,
+    "baseline_pct": -6.42
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a",
+   "state": "OPEN",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 12,
+    "market_days": 7,
+    "mean_net_pct": 13.69,
+    "mean_excess_pct": -3.33,
+    "z": -0.6,
+    "baseline_pct": 17.02
+   },
+   "CONFIRM": {
+    "trades": 28,
+    "market_days": 20,
+    "mean_net_pct": 8.84,
+    "mean_excess_pct": -3.55,
+    "z": -0.47,
+    "baseline_pct": 12.39
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a",
+   "state": "OPEN",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 4,
+    "market_days": 4,
+    "mean_net_pct": -3.24,
+    "mean_excess_pct": -28.51,
+    "z": -3.41,
+    "baseline_pct": 25.27
+   },
+   "CONFIRM": {
+    "trades": 3,
+    "market_days": 3,
+    "mean_net_pct": 23.11,
+    "mean_excess_pct": -8.1,
+    "z": -0.38,
+    "baseline_pct": 31.21
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a",
+   "state": "CLOSED",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 43,
+    "market_days": 33,
+    "mean_net_pct": -1.76,
+    "mean_excess_pct": 2.79,
+    "z": 0.72,
+    "baseline_pct": -4.55
+   },
+   "CONFIRM": {
+    "trades": 33,
+    "market_days": 26,
+    "mean_net_pct": -4.95,
+    "mean_excess_pct": -2.2,
+    "z": -0.65,
+    "baseline_pct": -2.75
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a",
+   "state": "CLOSED",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 97,
+    "market_days": 65,
+    "mean_net_pct": 10.45,
+    "mean_excess_pct": 5.65,
+    "z": 1.1,
+    "baseline_pct": 4.81
+   },
+   "CONFIRM": {
+    "trades": 111,
+    "market_days": 79,
+    "mean_net_pct": -0.18,
+    "mean_excess_pct": 2.94,
+    "z": 0.9,
+    "baseline_pct": -3.11
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a",
+   "state": "CLOSED",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 14,
+    "market_days": 13,
+    "mean_net_pct": 41.44,
+    "mean_excess_pct": 30.21,
+    "z": 1.26,
+    "baseline_pct": 11.23
+   },
+   "CONFIRM": {
+    "trades": 21,
+    "market_days": 16,
+    "mean_net_pct": 10.39,
+    "mean_excess_pct": 0.82,
+    "z": 0.16,
+    "baseline_pct": 9.57
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a-G",
+   "state": "OPEN",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 2,
+    "market_days": 2,
+    "mean_net_pct": 18.6,
+    "mean_excess_pct": 5.89,
+    "z": 0.53,
+    "baseline_pct": 12.71
+   },
+   "CONFIRM": {
+    "trades": 5,
+    "market_days": 4,
+    "mean_net_pct": -2.25,
+    "mean_excess_pct": 4.16,
+    "z": 0.3,
+    "baseline_pct": -6.42
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a-G",
+   "state": "OPEN",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 16,
+    "market_days": 10,
+    "mean_net_pct": 13.56,
+    "mean_excess_pct": -3.46,
+    "z": -0.71,
+    "baseline_pct": 17.02
+   },
+   "CONFIRM": {
+    "trades": 33,
+    "market_days": 24,
+    "mean_net_pct": 12.17,
+    "mean_excess_pct": -0.22,
+    "z": -0.03,
+    "baseline_pct": 12.39
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a-G",
+   "state": "OPEN",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 4,
+    "market_days": 4,
+    "mean_net_pct": -4.89,
+    "mean_excess_pct": -30.15,
+    "z": -4.23,
+    "baseline_pct": 25.27
+   },
+   "CONFIRM": {
+    "trades": 3,
+    "market_days": 3,
+    "mean_net_pct": 20.56,
+    "mean_excess_pct": -10.66,
+    "z": -0.49,
+    "baseline_pct": 31.21
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a-G",
+   "state": "CLOSED",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 11,
+    "market_days": 10,
+    "mean_net_pct": -2.19,
+    "mean_excess_pct": 2.36,
+    "z": 0.64,
+    "baseline_pct": -4.55
+   },
+   "CONFIRM": {
+    "trades": 6,
+    "market_days": 3,
+    "mean_net_pct": 11.01,
+    "mean_excess_pct": 13.76,
+    "z": 1.32,
+    "baseline_pct": -2.75
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a-G",
+   "state": "CLOSED",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 42,
+    "market_days": 21,
+    "mean_net_pct": 9.65,
+    "mean_excess_pct": 4.84,
+    "z": 0.66,
+    "baseline_pct": 4.81
+   },
+   "CONFIRM": {
+    "trades": 43,
+    "market_days": 28,
+    "mean_net_pct": 9.35,
+    "mean_excess_pct": 12.47,
+    "z": 1.9,
+    "baseline_pct": -3.11
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M2a-G",
+   "state": "CLOSED",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 8,
+    "market_days": 5,
+    "mean_net_pct": 28.21,
+    "mean_excess_pct": 16.98,
+    "z": 0.55,
+    "baseline_pct": 11.23
+   },
+   "CONFIRM": {
+    "trades": 13,
+    "market_days": 7,
+    "mean_net_pct": 12.07,
+    "mean_excess_pct": 2.5,
+    "z": 0.31,
+    "baseline_pct": 9.57
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3a",
+   "state": "OPEN",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 19,
+    "market_days": 16,
+    "mean_net_pct": -6.13,
+    "mean_excess_pct": -18.84,
+    "z": -5.37,
+    "baseline_pct": 12.71
+   },
+   "CONFIRM": {
+    "trades": 21,
+    "market_days": 19,
+    "mean_net_pct": 27.21,
+    "mean_excess_pct": 33.62,
+    "z": 2.61,
+    "baseline_pct": -6.42
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3a",
+   "state": "OPEN",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 27,
+    "market_days": 20,
+    "mean_net_pct": -2.37,
+    "mean_excess_pct": -19.39,
+    "z": -5.32,
+    "baseline_pct": 17.02
+   },
+   "CONFIRM": {
+    "trades": 19,
+    "market_days": 15,
+    "mean_net_pct": 17.48,
+    "mean_excess_pct": 5.09,
+    "z": 0.58,
+    "baseline_pct": 12.39
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3a",
+   "state": "OPEN",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 4,
+    "market_days": 4,
+    "mean_net_pct": -3.95,
+    "mean_excess_pct": -29.21,
+    "z": -4.49,
+    "baseline_pct": 25.27
+   },
+   "CONFIRM": {
+    "trades": 2,
+    "market_days": 2,
+    "mean_net_pct": 110.54,
+    "mean_excess_pct": 79.33,
+    "z": 2.04,
+    "baseline_pct": 31.21
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3a",
+   "state": "CLOSED",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 9,
+    "market_days": 9,
+    "mean_net_pct": 6.99,
+    "mean_excess_pct": 11.54,
+    "z": 2.16,
+    "baseline_pct": -4.55
+   },
+   "CONFIRM": {
+    "trades": 7,
+    "market_days": 7,
+    "mean_net_pct": 1.12,
+    "mean_excess_pct": 3.87,
+    "z": 0.78,
+    "baseline_pct": -2.75
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3a",
+   "state": "CLOSED",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 20,
+    "market_days": 13,
+    "mean_net_pct": -7.85,
+    "mean_excess_pct": -12.65,
+    "z": -4.44,
+    "baseline_pct": 4.81
+   },
+   "CONFIRM": {
+    "trades": 9,
+    "market_days": 8,
+    "mean_net_pct": -3.84,
+    "mean_excess_pct": -0.73,
+    "z": -0.18,
+    "baseline_pct": -3.11
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3a",
+   "state": "CLOSED",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 3,
+    "market_days": 2,
+    "mean_net_pct": 141.47,
+    "mean_excess_pct": 130.24,
+    "z": 1.1,
+    "baseline_pct": 11.23
+   },
+   "CONFIRM": {
+    "trades": 1,
+    "market_days": 1,
+    "mean_net_pct": -14.38,
+    "mean_excess_pct": -23.95,
+    "z": 0,
+    "baseline_pct": 9.57
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3b",
+   "state": "OPEN",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 6,
+    "market_days": 6,
+    "mean_net_pct": 1.23,
+    "mean_excess_pct": -11.48,
+    "z": -1.15,
+    "baseline_pct": 12.71
+   },
+   "CONFIRM": {
+    "trades": 11,
+    "market_days": 11,
+    "mean_net_pct": 17.04,
+    "mean_excess_pct": 23.46,
+    "z": 3.08,
+    "baseline_pct": -6.42
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3b",
+   "state": "OPEN",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 9,
+    "market_days": 8,
+    "mean_net_pct": 2.94,
+    "mean_excess_pct": -14.08,
+    "z": -1.82,
+    "baseline_pct": 17.02
+   },
+   "CONFIRM": {
+    "trades": 7,
+    "market_days": 6,
+    "mean_net_pct": 12.35,
+    "mean_excess_pct": -0.04,
+    "z": -0.0,
+    "baseline_pct": 12.39
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3b",
+   "state": "OPEN",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 2,
+    "market_days": 2,
+    "mean_net_pct": 35.77,
+    "mean_excess_pct": 10.51,
+    "z": 3.17,
+    "baseline_pct": 25.27
+   },
+   "CONFIRM": {
+    "trades": 1,
+    "market_days": 1,
+    "mean_net_pct": 141.57,
+    "mean_excess_pct": 110.36,
+    "z": 0,
+    "baseline_pct": 31.21
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3b",
+   "state": "CLOSED",
+   "tier": "A",
+   "DISCOVERY": {
+    "trades": 4,
+    "market_days": 4,
+    "mean_net_pct": 6.36,
+    "mean_excess_pct": 10.91,
+    "z": 1.3,
+    "baseline_pct": -4.55
+   },
+   "CONFIRM": {
+    "trades": 2,
+    "market_days": 2,
+    "mean_net_pct": -12.87,
+    "mean_excess_pct": -10.11,
+    "z": -6.01,
+    "baseline_pct": -2.75
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3b",
+   "state": "CLOSED",
+   "tier": "B",
+   "DISCOVERY": {
+    "trades": 6,
+    "market_days": 4,
+    "mean_net_pct": 15.85,
+    "mean_excess_pct": 11.04,
+    "z": 0.6,
+    "baseline_pct": 4.81
+   },
+   "CONFIRM": {
+    "trades": 4,
+    "market_days": 4,
+    "mean_net_pct": 11.04,
+    "mean_excess_pct": 14.15,
+    "z": 1.01,
+    "baseline_pct": -3.11
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  },
+  {
+   "rule": "M3b",
+   "state": "CLOSED",
+   "tier": "C",
+   "DISCOVERY": {
+    "trades": 2,
+    "market_days": 2,
+    "mean_net_pct": 48.77,
+    "mean_excess_pct": 37.54,
+    "z": 1.35,
+    "baseline_pct": 11.23
+   },
+   "CONFIRM": {
+    "trades": 0,
+    "market_days": 0,
+    "mean_net_pct": null,
+    "mean_excess_pct": null,
+    "z": 0,
+    "baseline_pct": 1.3
+   },
+   "passes": false,
+   "expected_excess_pct": 0.0
+  }
+ ],
+ "passing": [
+  "H07|CLOSED|A"
+ ]
+}

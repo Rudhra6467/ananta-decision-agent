@@ -172,10 +172,19 @@ def test_ladder_needs_evidence_and_moves_one_step(tmp_path, monkeypatch):
     with pytest.raises(ValueError):
         U.set_step(j, "H07-UA", "PROMOTED", "madhav")              # the evidence is not there yet
     board["watches"][0]["verdict"] = "ahead of random"
+    board["watches"][0]["avg_usd"] = -0.5
+    with pytest.raises(ValueError):
+        U.set_step(j, "H07-UA", "PROMOTED", "madhav")              # ahead of random but losing money: not an edge (engine fix 4)
+    board["watches"][0]["avg_usd"] = 1.2
     with pytest.raises(ValueError):
         U.set_step(j, "H07-UA", "LIVE_CANDIDATE", "madhav")        # one step at a time
     assert U.set_step(j, "H07-UA", "PROMOTED", "madhav")["to"] == "PROMOTED"
     assert U.promoted(j) == {"H07-UA"}
+    board["would_be_account"] = {"beats_hurdle": False, "positive_expectancy": True}
+    with pytest.raises(ValueError):
+        U.set_step(j, "H07-UA", "LIVE_CANDIDATE", "madhav")        # the account has not beaten the benchmark
+    board["would_be_account"] = {"beats_hurdle": True, "positive_expectancy": True}
+    assert U.ladder(j)["rows"][0]["next_allowed"]
     assert U.set_step(j, "H07-UA", "EVIDENCE", "madhav")["to"] == "EVIDENCE"   # down is always allowed
 
 

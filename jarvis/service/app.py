@@ -363,6 +363,16 @@ def universe_scoreboard(who: str = Depends(owner)) -> dict:
     return universe_watch.scoreboard(_main())
 
 
+@app.get("/v3/exposure")
+def exposure_live(who: str = Depends(owner)) -> dict:
+    """Engine fixes 1-4: the dial, the benchmark books, the measured-edge table, the would-be account in R against the hurdle."""
+    from jarvis.service import ev, exposure, universe_watch
+
+    j = _main()
+    return {"dial": exposure.state(j), "books": exposure.books(j), "measured_edges": ev.table(), "account": universe_watch.would_be(j),
+            "fidelity": ev.fidelity(j)}
+
+
 @app.get("/v3/universe/ladder")
 def universe_ladder(who: str = Depends(owner)) -> dict:
     from jarvis.service import universe_watch

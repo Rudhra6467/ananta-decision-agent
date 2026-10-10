@@ -42,6 +42,8 @@ DAILY_USD = float(os.getenv("BRAIN_DAILY_USD", "1.00"))  # engine plan D2: the d
 MIN_SCORE = 2.0                                           # below this a wake is logged as not reviewed (ranked too low), never sent
 TRIGGER_POINTS = {"zone_entry": 2.0, "attention_high": 2.0, "hunter": 1.0, "squeeze": 1.0, "explorer": 0.0,
                   "setup:H07": 3.0, "setup:M1a": 2.0, "setup:M2a-G": 2.0}   # evidence behind each kind of moment (Universe Rule v2, D6)
+EXIT_PLANS = {"DIP": {"days": 10, "trail_atr": None}, "ZONE": {"days": 20, "trail_atr": None},
+              "TREND": {"days": 20, "trail_atr": None}}      # engine fix 2: tested exits (H07, ZONE_TOUCH, review #12), not invented ones
 COIN_COOLDOWN = 6 * 3600
 STALE_S = 45 * 60
 MIN_BUDGET = 0.10
@@ -85,25 +87,30 @@ costs on these trades, measured against a random coin traded with the same plan 
 reads every decision later, so be honest and specific.
 
 How to decide (this matters more than anything):
-- WEIGH the evidence; it is not a checklist. Strong points add confidence, weak or contrary points lower the size, and only a
-  real red flag stops a trade. Never refuse just because one indicator disagrees or one filter is not perfect.
+- WEIGH the evidence; it is not a checklist. One indicator disagreeing is not a reason to refuse, and one agreeing is not a reason
+  to buy: what counts is whether this kind of moment, in this market, has paid after costs.
 - Use what the repair shop measured (the knowledge list, with status) above teacher ideas and pattern names. PASSED and PROMISING
   items carry weight; FAILED items should not be the reason for a trade.
-- Rules and teacher ideas are direction, not filters. The market regime is the strongest single fact: in a risk-off market,
-  prefer smaller size or pass unless the case is strong; in an allowed market, a reasonable case deserves a small trade.
-- This book is meant to be aggressive and learn: when the case is mixed but reasonable, TAKE it small (size 25-50) rather than
-  pass. PASS when the case is weak, the plan cannot beat costs, or a red flag is present.
+- Rules and teacher ideas are direction, not filters. The market state is the strongest single fact, and the code already
+  enforces it: you are only asked while the exposure dial is open (Bitcoin above its 50-day and 200-day averages, review #25).
+- Default PASS (engine fix, Oct 10: mixed cases lose their round-trip costs of 0.5-1%, slowly but surely). TAKE only when the
+  case is clearly better than an ordinary day for this coin: a kind of moment the repair shop measured as positive after costs
+  (expected_value in the pack, when present), in this market state, with room to move several times the costs. When in doubt, PASS:
+  in a buy-only book, cash is a position.
 - Exposure: my_record.open_coins are already held; our coins move together, so several open trades in one market move are one
   bet. Size down (or pass) when a new trade would only add more of the same bet.
-- Plans: the stop sits where the idea is wrong (beyond the zone, about half a daily range under it), not a random percent.
-  Big gains come from a few big moves: prefer a trailing stop or a time exit over a near target (review #10). Typical time limit
-  2-20 days. Use daily ranges (ATR) for distances.
+- Plans: you choose WHERE the idea is wrong (the stop: beyond the zone or the recent low, about half to one daily range under it,
+  never a random percent) and which TESTED exit plan fits the kind of trade; the code sets the rest of the exit from that plan:
+  DIP  (a short dip in an uptrend, H07-like): no target, no trail, out after 10 days.
+  ZONE (a bounce from a support zone): no target, no trail, out after 20 days (the zone-touch rule).
+  TREND (a coin in its own uptrend): no target, no trail, out after 20 days (the 20-day time exit survived both periods, review #12).
+  Big gains come from a few big moves (review #10): never cap a winner with a near target.
 
 Reply with ONE JSON object only:
 {"action": "TAKE" | "PASS",
  "confidence": 0-100 (chance this trade beats the random baseline after costs),
  "size_pct": 25-100 (of the $100 standard stake; 0 for PASS),
- "stop": price, "target": price or null, "trail_atr": number of daily ranges for a trailing stop or null, "days": 2-30,
+ "stop": price, "exit_plan": "DIP" | "ZONE" | "TREND",
  "thesis": "one or two sentences: why this trade, now",
  "for": ["the strongest points for"], "against": ["the points against, and how the plan handles them"],
  "red_flags": [], "knowledge_used": ["ids from the knowledge list that moved the decision"],
@@ -311,6 +318,17 @@ def pack(j, coin: str, triggers: dict) -> dict:
         p["market"] = {"regime": "ALLOWED" if bc > B.ema50[-1] else "RISK_OFF", "btc_vs_50d_pct": _pct(bc, B.ema50[-1]),
                        "btc_change_7d_pct": _pct(bc, B.c[-8]), "btc_live_vs_50d_pct": _pct((eye.STATE.get("prices") or {}).get("BTC"), B.ema50[-1])}
         p["data_age_h"] = round((now - S.t[i]) / 3600 - 24, 1)
+    try:
+        from jarvis.service import exposure
+
+        p["exposure_dial"] = {k: v for k, v in exposure.state(j).items() if k in ("dial_words", "why", "rule")}
+        from jarvis.service import ev
+
+        trig = "|".join(triggers) if isinstance(triggers, dict) else str(triggers)
+        p["expected_value"] = {**ev.for_trigger(j, coin, trig), "meaning": "review #26: average % per trade over random entries "
+                               "of the same tier and market state, after costs, both periods; 0 = no measured edge"}
+    except Exception:  # noqa: BLE001
+        pass
     p["intraday"] = _explorer_state(j, coin) if lab else _feed_intraday(j, coin)
     if not lab:
         try:
@@ -569,9 +587,15 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
     plan = {k: d.get(k) for k in ("stop", "target", "trail_atr", "days", "for", "against", "red_flags", "change_mind")}
     trade = rnd = None
     if action == "TAKE":
-        days = int(max(2, min(30, d.get("days") or 10)))
-        trail = float(d["trail_atr"]) if isinstance(d.get("trail_atr"), (int, float)) and d["trail_atr"] > 0 else None
-        target = float(d["target"]) if isinstance(d.get("target"), (int, float)) else None
+        plan_name = str(d.get("exit_plan") or "").upper()
+        if plan_name in EXIT_PLANS:                     # engine fix 2: the code sets the exit from a tested plan
+            ep = EXIT_PLANS[plan_name]
+            days, trail, target = ep["days"], ep["trail_atr"], None
+            plan["exit_plan"] = plan_name
+        else:                                           # an older-style reply: its own numbers, as before
+            days = int(max(2, min(30, d.get("days") or 10)))
+            trail = float(d["trail_atr"]) if isinstance(d.get("trail_atr"), (int, float)) and d["trail_atr"] > 0 else None
+            target = float(d["target"]) if isinstance(d.get("target"), (int, float)) else None
         regime = (p.get("market") or {}).get("regime")
         det = {"decision": did, "thesis": d.get("thesis", ""), "confidence": conf, "size_pct": size, "knowledge": know}
         trade = _open(j, WATCH, coin, price, float(d["stop"]), target, trail, days, atr or 0.0, det, regime)
@@ -649,6 +673,25 @@ def can_decide(j) -> tuple[bool, str]:
     return True, ""
 
 
+def _dial(j) -> float | None:
+    """The exposure dial (jarvis/service/exposure.py): 1 open, 0 closed, None when unknown (then nothing is blocked)."""
+    try:
+        from jarvis.service import exposure
+
+        return exposure.state(j).get("dial")
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _ev(j, coin: str, trigger: str) -> float:
+    try:
+        from jarvis.service import ev
+
+        return ev.for_trigger(j, coin, trigger)["expected_excess_pct"]
+    except Exception:  # noqa: BLE001
+        return 0.0
+
+
 def spent_today(j) -> float:
     return float(j.db.execute("SELECT COALESCE(SUM(cost_usd), 0) FROM brain_decisions WHERE t >= ?", (_today0(j),)).fetchone()[0] or 0.0)
 
@@ -690,6 +733,10 @@ def score(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
             sp = universe_watch.split(t[6:])
             key = "setup:" + (sp[0] if sp else t[6:]).split(".")[0]      # a rule's new version ranks like its parent
         p = TRIGGER_POINTS.get(key, 1.0)
+        if key.startswith("setup:"):                    # engine fix 3: a daily rule ranks by what history measured (review #26)
+            v = _ev(j, coin, t)
+            p = 2.0 + min(4.0, v / 2) if v > 0 else 0.5
+            why.append(f"{key[6:]}: measured edge {v:+.1f}% a trade" if v > 0 else f"{key[6:]}: no measured edge here")
         if key == "zone_entry" and ((detail or {}).get("zone_entry") or {}).get("history") == "SUPPORTED":
             p += 1.0
         if t.startswith("setup:") and t[6:] in universe_watch.promoted(j):      # promoted on the ladder (Madhav's sign-off)
@@ -779,9 +826,14 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
     now = int(j.now())
     out = []
     ranked = []
+    dial = _dial(j)
     for qid, t, coin, trig, det in j.db.execute("SELECT id, t, coin, trigger, detail FROM brain_queue WHERE state='NEW' ORDER BY t").fetchall():
         why = ""
         detail = json.loads(det or "{}")
+        if dial == 0 and _ev(j, coin, trig) <= 0:       # engine fix 1: dial closed; only moments with a measured edge there (review #26)
+            _unreviewed(j, qid, t, coin, trig, None, "the exposure dial is closed (Bitcoin under its 50-day or 200-day average) and this "
+                                                     "kind of moment has no measured edge in a closed market")
+            continue
         if now - t > STALE_S:
             sc, _ = score(j, coin, trig, detail)
             _unreviewed(j, qid, t, coin, trig, sc, "waited 45 minutes; the budget went to better-ranked moments")

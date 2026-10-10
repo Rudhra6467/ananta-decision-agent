@@ -87,3 +87,9 @@ export const COIN_NAME: Record<string, string> = {
   BTC: "Bitcoin", ETH: "Ethereum", SOL: "Solana", ADA: "Cardano", DOGE: "Dogecoin", AVAX: "Avalanche",
   BCH: "Bitcoin Cash", LINK: "Chainlink", LTC: "Litecoin", XRP: "XRP",
 };
+
+// The public front page (src/landing.tsx): black and gold, the Bat palette fixed so every visitor sees the same page.
+export const LANDING = {
+  bg: "#08090B", surface: "#121418", surface2: "#1A1D22", line: "#262930", line2: "#3A3D44", text: "#F2F0EA", dim: "#9A9DA4", faint: "#6E727A",
+  gold: "#F2CF66", goldSoft: "#2B2614", onGold: "#141518", good: "#5CCB92", bad: "#F2796F", phone: "#1B1D21", phoneLine: "#34373D",
+};

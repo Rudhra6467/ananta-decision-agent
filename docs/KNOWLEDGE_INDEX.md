@@ -78,6 +78,8 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_21_RESULTS.md`: E3 support bounce passes on 30 coins by the rule but loses money since 2024 (not tradable); B3 volume breakout fails everywhere.
 - `research/REVIEW_22.md`, `research/REVIEW_22_RESULTS.md`: the survivorship check on the top 30 as it was each month (191 coins): T3-B lost 22.5% in 2024-26 (holding lost 76%) and fails its rule; H07 misses by a hair (z 2.45); today's top-30 results were flattered.
 - `research/REVIEW_23_RESULTS.md`: the outside world: Nasdaq, US dollar, VIX and Fear & Greed filters all fail on T3-B; selling into extreme greed is the worst idea tested.
+- `research/REVIEW_25.md`, `research/REVIEW_25_RESULTS.md`: the exposure dial (Oct 10, 2026). On BTC with NDAX costs, Bitcoin above its 50-day AND 200-day averages (GATE50_200) beats the 50-day gate and holding in both periods (return per unit of fall 0.74 and 0.83); it becomes dial v1. GATE50 is the benchmark every strategy must beat.
+- `research/REVIEW_26.md`, `research/REVIEW_26_RESULTS.md`: six daily rules × dial state × tier on 120 coins, against random entries after costs. Only one cell passes in both periods: H07 on tier A while the dial is CLOSED (+5.1% a trade over random, shrunk). Everything else has no measured edge; the brain ranks by this table.
 - `research/REVIEW_24.md`: pre-registration of review #24, tuning the deep-dip buy (E6): four entry/exit variants against random entries, both periods, after costs (Madhav's request #15).
 
 ## Safety and operations
@@ -85,6 +87,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `RUNBOOK_SAFETY.md`: stop, flatten, roll back, resume (copy-paste commands).
 - `SAFETY_GATES_LOCK.md`: safety gates that live outside the AI.
 - `UNIVERSE_RULE_V2.md`: the live universe (Oct 9, 2026): every Binance USDT coin Ananta watches, tiers A/B/C by daily trading, can-buy flags, paper costs, what runs on every coin, what earns promotion, the brain's daily budget.
+- `GO_LIVE_CHECKLIST.md`: the engine in order since Oct 10 (exposure dial, measured edge, brain picks a tested exit plan, 0.5% risk per trade in R, the benchmark hurdle, paper-vs-backtest fidelity) and the boxes each stage toward real money needs.
 - `JARVIS_TEST_PLAN.md`: how Jarvis / Ask Ananta is tested (automatic suite + hands-on checks).
 - `LOCAL_LOOP.md`: running the agent locally without the website.
 

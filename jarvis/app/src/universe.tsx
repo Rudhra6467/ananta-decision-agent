@@ -62,3 +62,33 @@ export function WholeMarket() {
     </Card>
   );
 }
+
+
+// The exposure dial (engine fixes 1-4): market state first, then setups. Shows the dial, the benchmark books and the would-be account in R.
+export function ExposureDial() {
+  const { data } = useData("/v3/exposure", 300000);
+  const d = data?.dial;
+  const a = data?.account;
+  const open = d?.dial != null && d.dial > 0;
+  return (
+    <Card title="The exposure dial" sub="market state first; setups only fill what the dial allows">
+      <Pressable onPress={() => askAbout({ screen: "markets", label: "the exposure dial" }, "Can we buy today? Explain the exposure dial and the benchmark")}
+        accessibilityLabel="Ask Ananta about the exposure dial" style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <View style={{ borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: d?.dial == null ? C.card2 : open ? C.good : C.bad }}>
+          <Text style={{ color: d?.dial == null ? C.dim : C.onInk, fontWeight: "800" }}>{d?.dial == null ? "…" : open ? "OPEN" : "CLOSED"}</Text>
+        </View>
+        <Text style={{ color: C.text, flex: 1 }}>{d?.dial_words ?? "reading Bitcoin's daily close"}</Text>
+      </Pressable>
+      {(d?.why ?? []).map((w: string) => <T key={w} dim small>{w}</T>)}
+      <Divider />
+      {(data?.books?.books ?? []).map((b: any) => (
+        <View key={b.book} style={{ flexDirection: "row", paddingVertical: 4 }}>
+          <Text style={{ color: C.text, flex: 1 }}>{b.book} <Text style={{ color: C.dim }}>{b.role}</Text></Text>
+          <Text style={{ color: (b.return_pct ?? 0) >= 0 ? C.good : C.bad, fontWeight: "700" }}>{b.return_pct == null ? "–" : `${b.return_pct >= 0 ? "+" : ""}${b.return_pct}%`}</Text>
+        </View>
+      ))}
+      {a ? <T dim small>{`Would-be $2,000 account: ${a.taken} trades, ${a.closed} closed, ${a.return_pct}% (avg ${a.avg_R ?? "–"} R) vs benchmark ${a.hurdle_pct ?? "–"}% over the same days. ${a.skipped?.dial_closed ?? 0} buys skipped while the dial was closed.`}</T> : null}
+      <T dim small>Paper only. Every strategy must make money AND beat the benchmark (Bitcoin above its 50-day average) over the same days.</T>
+    </Card>
+  );
+}

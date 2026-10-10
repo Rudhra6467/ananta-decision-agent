@@ -419,19 +419,26 @@ def ladder(j) -> dict:
     _ladder_table(j)
     saved = {w: (s, by, t, note) for w, s, by, t, note in j.db.execute("SELECT watch, step, by, t, note FROM universe_ladder")}
     rows = []
-    for w in scoreboard(j)["watches"]:
+    sb = scoreboard(j)
+    acct = sb.get("would_be_account") or {}
+    for w in sb["watches"]:
         if w["rule"].startswith("RANDOM"):
             continue
         step = saved.get(w["watch"], (None,))[0] or ("SHADOW" if w["tier"] == "C" else "EVIDENCE")
         ok, why = False, ""
+        ahead = w["verdict"] == "ahead of random"
+        positive = (w.get("avg_usd") or 0) > 0                  # engine fix 4: beating random while losing money is not an edge
         if w["tier"] == "C":
             why = "tier C is never judged"
         elif step == "EVIDENCE":
-            ok = w["verdict"] == "ahead of random"
-            why = "ahead of random over 10 market days in both regimes" if ok else w["verdict"]
+            ok = ahead and positive
+            why = ("ahead of random over 10 market days in both regimes, and making money after costs" if ok else
+                   w["verdict"] if not ahead else "ahead of random but losing money after costs")
         elif step == "PROMOTED":
-            ok = w["verdict"] == "ahead of random"
-            why = "still ahead of random: may become a live candidate (your call)" if ok else f"no longer ahead: {w['verdict']}"
+            ok = ahead and positive and bool(acct.get("beats_hurdle")) and bool(acct.get("positive_expectancy"))
+            why = ("still ahead, and the account makes positive R and beats the benchmark: may become a live candidate (your call)" if ok else
+                   f"no longer ahead: {w['verdict']}" if not ahead else "losing money after costs" if not positive else
+                   f"the account has not beaten the benchmark yet ({acct.get('return_pct')}% vs {acct.get('hurdle_pct')}%, avg R {acct.get('avg_R')})")
         rows.append({"watch": w["watch"], "rule": w["rule"], "tier": w["tier"], "step": step, "meaning": LADDER_WORDS[step],
                      "next_allowed": ok, "why": why, "signed_by": (saved.get(w["watch"]) or (None, None))[1]})
     return {"rows": rows, "steps": LADDER, "rule": "One step at a time, each with Madhav's sign-off; a step down is always allowed."}
@@ -510,36 +517,69 @@ def forward(j, rb: dict | None = None, log_request: Callable | None = None) -> l
 # the daily round and status
 # ---------------------------------------------------------------------------
 MAX_OPEN_ACCOUNT, MAX_SAME_DAY, ACCOUNT_USD = 20, 5, 2000.0
+RISK_PCT, MAX_RISK_PCT, MAX_POS_PCT, DEFAULT_STOP = 0.5, 6.0, 20.0, 0.08     # engine fix 4: risk per trade, total open risk, one coin, stop if none
 
 
 def would_be(j) -> dict:
-    """Engine plan U4.2: the evidence ledger is uncapped; this is what a real $2,000 account would have done with the same signals:
-    tier A and B rule signals and zone touches in time order, at most 20 open, one per coin, and at most 5 entered on the same
-    day (coins move together, so a busy day is one bet, not twenty)."""
-    rows = j.db.execute("SELECT watch, coin, entry_t, exit_t, net_usd, status FROM evidence_trades WHERE watch LIKE '%-U_' AND watch NOT LIKE 'RANDOM%' "
-                        "AND entry_t IS NOT NULL ORDER BY entry_t").fetchall()
-    open_, taken, skipped, per_day = [], [], {"full": 0, "same_coin": 0, "same_day": 0}, {}
-    for w, c, et, xt, net, st in rows:
+    """What a real $2,000 account would have done with the same signals (engine plan U4.2, engine fixes 1 and 4):
+    tier A and B rule signals and zone touches in time order; no new buy on a day the exposure dial was closed unless that rule has
+    a measured edge in a closed market (review #26); at most 20 open, one per coin, 5 new a day; each trade risks 0.5% of the
+    account (size = risk / distance to its stop, 8% when it has none, at most 20% of the account in one coin) and all open trades
+    together at most 6%. Results in R (one R = the amount risked), compared with the benchmark (Bitcoin above its 50-day average)
+    over the same days: the hurdle."""
+    from jarvis.service import ev, exposure
+
+    rows = j.db.execute("SELECT watch, coin, entry_t, exit_t, net_usd, status, entry, stop FROM evidence_trades "
+                        "WHERE watch LIKE '%-U_' AND watch NOT LIKE 'RANDOM%' AND entry_t IS NOT NULL ORDER BY entry_t").fetchall()
+    try:
+        dial = exposure.dial_by_day(j)
+    except Exception:  # noqa: BLE001
+        dial = {}
+    open_, taken, per_day = [], [], {}
+    skipped = {"dial_closed": 0, "full": 0, "same_coin": 0, "same_day": 0, "risk_cap": 0}
+    for w, c, et, xt, net, st, entry, stop in rows:
         sp = split(w)
         if not sp or sp[1] == "C":
             continue
         open_ = [o for o in open_ if o[2] is None or o[2] > et]
         day = time.strftime("%Y-%m-%d", time.gmtime(et))
-        if len(open_) >= MAX_OPEN_ACCOUNT:
+        dist = (entry - stop) / entry if entry and stop and 0 < stop < entry else DEFAULT_STOP
+        risk = ACCOUNT_USD * RISK_PCT / 100
+        size = min(ACCOUNT_USD * MAX_POS_PCT / 100, risk / dist)
+        risk = size * dist
+        if dial.get(day) == 0 and ev.value(sp[0].split(".")[0], "CLOSED", sp[1]) <= 0:
+            skipped["dial_closed"] += 1
+        elif len(open_) >= MAX_OPEN_ACCOUNT:
             skipped["full"] += 1
         elif any(o[0] == c for o in open_):
             skipped["same_coin"] += 1
         elif per_day.get(day, 0) >= MAX_SAME_DAY:
             skipped["same_day"] += 1
+        elif sum(o[3] for o in open_) + risk > ACCOUNT_USD * MAX_RISK_PCT / 100:
+            skipped["risk_cap"] += 1
         else:
-            open_.append((c, et, xt))
+            open_.append((c, et, xt, risk))
             per_day[day] = per_day.get(day, 0) + 1
-            taken.append((w, c, net, st))
-    closed = [x for x in taken if x[3] == "CLOSED"]
-    pnl = round(sum(x[2] or 0 for x in closed), 2)
+            frac = (net or 0.0) / 100.0                 # the evidence ledger stakes $100 a trade
+            taken.append({"watch": w, "coin": c, "t": et, "status": st, "usd": size * frac, "R": frac / dist})
+    closed = [x for x in taken if x["status"] == "CLOSED"]
+    pnl = round(sum(x["usd"] for x in closed), 2)
+    ret = round(100 * pnl / ACCOUNT_USD, 2)
+    avg_r = round(sum(x["R"] for x in closed) / len(closed), 3) if closed else None
+    hurdle = None
+    if taken:
+        try:
+            hurdle = exposure.hurdle_since(j, taken[0]["t"])
+        except Exception:  # noqa: BLE001
+            hurdle = None
     return {"account_usd": ACCOUNT_USD, "taken": len(taken), "closed": len(closed), "open": len(taken) - len(closed), "skipped": skipped,
-            "net_usd": pnl, "return_pct": round(100 * pnl / ACCOUNT_USD, 2),
-            "rules": f"at most {MAX_OPEN_ACCOUNT} open, one per coin, at most {MAX_SAME_DAY} new a day, $100 each, tiers A and B only"}
+            "net_usd": pnl, "return_pct": ret, "avg_R": avg_r, "total_R": round(sum(x["R"] for x in closed), 2),
+            "hurdle_pct": hurdle, "beats_hurdle": (ret > hurdle) if hurdle is not None and closed else None,
+            "positive_expectancy": (avg_r > 0) if avg_r is not None else None,
+            "rules": f"no new buys while the exposure dial is closed (except measured edges), at most {MAX_OPEN_ACCOUNT} open, one per coin, "
+                     f"{MAX_SAME_DAY} new a day, {RISK_PCT}% of the account risked a trade, {MAX_RISK_PCT:g}% open risk in total, tiers A and B only",
+            "how_to_read": "R is the result in units of the amount risked. The account must show positive R AND beat the benchmark "
+                           "(Bitcoin above its 50-day average) over the same days before anything is proposed for real money."}
 
 
 def run_daily(j) -> dict:

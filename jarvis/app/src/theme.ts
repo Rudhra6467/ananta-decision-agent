@@ -30,10 +30,11 @@ const BAT: Palette = {
 
 export type ThemeName = "light" | "bat";
 export const PALETTES: Record<ThemeName, Palette> = { light: LIGHT, bat: BAT };
-export const C: Palette = { ...LIGHT, shades: [...LIGHT.shades] };
+// Bat (dark) is the default for everyone; light is one tap away and the device remembers the choice (Madhav, Oct 10).
+export const C: Palette = { ...BAT, shades: [...BAT.shades] };
 
 const KEY = "ananta_theme";
-let current: ThemeName = "light";
+let current: ThemeName = "bat";
 let version = 0;
 const subs = new Set<() => void>();
 

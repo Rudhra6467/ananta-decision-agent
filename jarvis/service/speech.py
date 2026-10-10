@@ -271,7 +271,96 @@ def answer_key(sents: list[str], voice: str, speed: float) -> str:
     return hashlib.sha1(f"{voice}|{float(speed):.2f}|".encode() + "\n".join(sents).encode()).hexdigest()[:24]
 
 
+# --- Telugu voice (Madhav, Oct 10: free, on the Mac) ------------------------------------------------------------------------
+# Answers to his parents and family are written in Telugu in English letters. Kokoro has no Telugu, so those answers are spoken by
+# macOS's own Telugu voice (Geeta, te_IN, free, no download): the text is first written in Telugu script for the ear only (Gemini,
+# free), each sentence is spoken and timed, and the clips are joined into one MP3 with sentence start times, like Kokoro's.
+TELUGU_VOICE = os.getenv("ANANTA_TELUGU_VOICE", "Geeta")
+_TE_WORDS = set("""andi garu nenu naa naaku meeru mee meeku miku chala ani kuda kooda cheppandi chepparu chepadu chestunnanu
+chestunnaru chestunnavu cheyyadam cheyyali cheyataniki nerchukoni nerchukovadam vinali maata amma nanna abbayi ammayi
+ammammaa ammamma mamayya mamaya annayya akka bava baaga manchiga manchidi namaskaram santosham anandam sahayam
+upayogapadatanu aasistunnanu baagunnara emi em enti ela ayite adagana avutava istam inkonni rojullo kosame
+ready chestunnaru goppa vaaru undadu tension cheyyamani naaku nuvvu nee neeku kadaa kada anta jagratha dhanyavadalu""".split())
+_TE_SCRIPT = re.compile(r"[\u0C00-\u0C7F]")
+_te_cache: "OrderedDict[str, str]" = OrderedDict()
+
+
+def is_telugu(sents: list[str]) -> bool:
+    """True when an answer is mostly Telugu (in Telugu script, or in English letters with enough Telugu words)."""
+    text = " ".join(sents)
+    if _TE_SCRIPT.search(text):
+        return True
+    words = re.findall(r"[a-z]+", text.lower())
+    hits = sum(1 for w in words if w in _TE_WORDS)
+    return len(words) >= 3 and hits >= 2 and hits / len(words) >= 0.12
+
+
+def _to_script(sents: list[str]) -> list[str]:
+    """Telugu in English letters -> Telugu script, sentence by sentence, for the voice only (the screen keeps English letters)."""
+    if all(_TE_SCRIPT.search(x) for x in sents):
+        return sents
+    key = hashlib.sha1("\n".join(sents).encode()).hexdigest()
+    if key in _te_cache:
+        return json.loads(_te_cache[key])
+    api = os.getenv("GEMINI_API_KEY", "")
+    if not api:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    prompt = ("Rewrite each line in Telugu script exactly as a Telugu speaker would say it aloud. The lines are Telugu written in "
+              "English letters, mixed with English words: write the English words too in Telugu script, as Telugu speakers write "
+              "them (e.g. trading -> ట్రేడింగ్). Keep the meaning, the order and the number of lines. Numbers as words. "
+              "Reply with a JSON list of strings only.\n" + json.dumps(sents, ensure_ascii=False))
+    err = None
+    for m in ("gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"):
+        try:
+            req = urllib.request.Request(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent",
+                                         data=json.dumps({"contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                                                          "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}}).encode(),
+                                         headers={"x-goog-api-key": api, "content-type": "application/json"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                d = json.load(r)
+            txt = "".join(x.get("text", "") for x in d["candidates"][0]["content"]["parts"] if not x.get("thought"))
+            out = json.loads(txt[txt.find("["):txt.rfind("]") + 1])
+            if isinstance(out, list) and len(out) == len(sents):
+                _te_cache[key] = json.dumps(out, ensure_ascii=False)
+                while len(_te_cache) > 200:
+                    _te_cache.popitem(last=False)
+                return [str(x) for x in out]
+            err = f"{m}: {len(out)} lines for {len(sents)}"
+        except Exception as exc:  # noqa: BLE001
+            err = f"{m}: {str(exc)[:80]}"
+    raise RuntimeError("Telugu script failed (" + str(err) + ")")
+
+
+def _make_telugu(sents: list[str], speed: float) -> dict:
+    import subprocess
+    import tempfile
+
+    t0 = time.time()
+    script = _to_script(sents)
+    rate = str(int(165 * speed))
+    offsets, pcm, total = [], b"", 0.0
+    with tempfile.TemporaryDirectory() as d:
+        for k, line in enumerate(script):
+            f = os.path.join(d, f"s{k}.wav")
+            subprocess.run(["/usr/bin/say", "-v", TELUGU_VOICE, "-r", rate, "--file-format=WAVE", "--data-format=LEI16@24000", "-o", f, line],
+                           check=True, capture_output=True, timeout=60)
+            w = open(f, "rb").read()
+            i = w.find(b"data")
+            data = w[i + 8:] if i >= 0 else w[44:]
+            offsets.append(round(total, 3))
+            pcm += data + b"\x00\x00" * int(24000 * 0.25)          # a short breath between sentences
+            total += len(data) / 2 / 24000 + 0.25
+    mp3, mime = to_mp3(_wav(pcm, 24000))
+    return {"audio": mp3, "mime": mime, "offsets": offsets, "duration": round(total, 3), "engine": "macos-telugu",
+            "voice": TELUGU_VOICE, "ms": int(1000 * (time.time() - t0))}
+
+
 def _make_answer(sents: list[str], voice: str, speed: float) -> dict:
+    if os.getenv("ANANTA_TELUGU", "1") == "1" and is_telugu(sents):
+        try:
+            return _make_telugu(sents, speed)
+        except Exception:  # noqa: BLE001  Telugu voice unavailable: Kokoro reads it as written
+            pass
     if os.getenv("ANANTA_VOICE_LOCAL", "1") != "1":
         raise RuntimeError("the Mac's voice is switched off")
     req = urllib.request.Request(LOCAL + "/speak", data=json.dumps({"sentences": sents, "voice": voice, "speed": speed}).encode(),

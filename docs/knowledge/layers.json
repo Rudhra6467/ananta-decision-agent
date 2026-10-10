@@ -840,7 +840,8 @@
     "jarvis/service/feed.py",
     "jarvis/service/universe_watch.py",
     "jarvis/service/exposure.py",
-    "jarvis/service/ev.py"
+    "jarvis/service/ev.py",
+    "jarvis/service/people.py"
    ]
   },
   {

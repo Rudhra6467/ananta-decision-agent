@@ -148,7 +148,7 @@ def level(p: dict) -> str:
 def owner_profile(j) -> dict:
     """The owner's profile: his saved choices over sensible defaults (D6: Ananta calls him sir; his default voice is male)."""
     p = profile(j.db)
-    return {"name": p.get("name") or j.owner_name, "call": "sir", "voice": p.get("voice") or "Deep", "theme": p.get("theme") or "light",
+    return {"name": p.get("name") or j.owner_name, "call": "sir", "voice": p.get("voice") or "Deep", "theme": p.get("theme") or "bat",
             "tz": p.get("tz") or "America/Toronto", "experience": p.get("experience") or "over_3y", "crypto": p.get("crypto") or "trade",
             "risk": p.get("risk") or "balanced", "coins": p.get("coins") or list(COINS)}
 

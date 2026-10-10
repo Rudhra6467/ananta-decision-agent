@@ -97,6 +97,9 @@ How to decide (this matters more than anything):
   case is clearly better than an ordinary day for this coin: a kind of moment the repair shop measured as positive after costs
   (expected_value in the pack, when present), in this market state, with room to move several times the costs. When in doubt, PASS:
   in a buy-only book, cash is a position.
+- web_check (when present): dated facts from the live web with sources. It can only make you more careful: a CAUTION verdict,
+  a token unlock in the next 30 days, a hack or legal trouble turns a TAKE into PASS or a smaller size. It never turns a PASS into
+  a TAKE; good news is not an edge. Name the fact and its date in your reason when it changed your answer.
 - Exposure: my_record.open_coins are already held; our coins move together, so several open trades in one market move are one
   bet. Size down (or pass) when a new trade would only add more of the same bet.
 - Plans: you choose WHERE the idea is wrong (the stop: beyond the zone or the recent low, about half to one daily range under it,
@@ -327,6 +330,14 @@ def pack(j, coin: str, triggers: dict) -> dict:
         trig = "|".join(triggers) if isinstance(triggers, dict) else str(triggers)
         p["expected_value"] = {**ev.for_trigger(j, coin, trig), "meaning": "review #26: average % per trade over random entries "
                                "of the same tier and market state, after costs, both periods; 0 = no measured edge"}
+    except Exception:  # noqa: BLE001
+        pass
+    try:                                                # the research desk (Oct 10): dated web facts; can only make the brain more careful
+        from jarvis.service import weblook
+
+        mc = weblook.market_check(j, coin)
+        if not mc.get("error"):
+            p["web_check"] = {k: mc.get(k) for k in ("facts", "unlock_next_30d", "mood", "verdict", "rule")}
     except Exception:  # noqa: BLE001
         pass
     p["intraday"] = _explorer_state(j, coin) if lab else _feed_intraday(j, coin)

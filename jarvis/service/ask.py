@@ -152,6 +152,9 @@ TOOLS = [
     ("exposure", "The exposure dial and the scoreboard every strategy is judged against (engine fixes 1-4, reviews #25 and #26). Returns: the dial now (OPEN = buying allowed, CLOSED = no new buys, cash is the position; v1 = Bitcoin above its 50-day AND 200-day averages) and why; the paper books since the dial started (HOLD, GATE50 = the benchmark/hurdle, GATE50_200 = the dial, GATE50_VOL = challenger); the measured-edge table (which daily rule has an edge in which market state and tier, % per trade over random after costs; anything missing has none); and the would-be $2,000 account in R against the hurdle. Use for 'can we buy today', 'why no trades', 'are we beating the benchmark', 'which setups actually have an edge', 'how much should one trade risk'.", _schema({})),
     ("whole_market", "Every coin Ananta watches live (Universe Rule v2: about 390 coins trading on Binance against USDT; tier A over $20M a day, B $1M-$20M, C under $1M, watched but never judged). view: movers_up | movers_down | near_zone (closest to a support zone history supports) | watched (counts, the feed's health) | scoreboard (each rule on every coin per tier against its random baseline, in market days) | coin (one coin's live card: tier, name, price, today's change, zones, can-buy on NDAX/Kraken, open paper trades on it). Optional tier (A, B, C, AB) and n. Use for 'what moved most today across the market', 'which coins are near support', 'how many coins do you watch', 'is the dip trade working on the bigger coins', 'what about <a coin outside the 120>'.", _schema({"view": {"type": "string"}, "tier": {"type": "string"}, "coin": {"type": "string"}, "n": {"type": "number"}})),
     ("prices", "Price history from our stored candles (10 live coins, intraday; any other coin of the 120-coin universe, daily). With coin: open/high/low/close and change over a window (days, default 7; or start/end as YYYY-MM-DD or 'YYYY-MM-DD HH:MM' Toronto), when the high and low happened, how far price is from them, best and worst day, day by day (hour by hour for 2 days or less). Without coin: all 10 coins ranked over the window with each one's change against Bitcoin (relative strength / momentum ranking). what='coverage': the first and last stored candle per coin. Use for 'what was the high this week', 'how did each coin do', 'which coin is strongest', 'good days to trade', 'where was BTC on Tuesday', 'how far are we from the top'.", _schema({"coin": {**COIN, "description": "Optional coin; omit to compare all 10"}, "days": {"type": "number"}, "start": {"type": "string"}, "end": {"type": "string"}, "what": {"type": "string", "description": "optional: coverage"}})),
+    ("introduce", "Madhav hands the conversation to one of his people. Call it IMMEDIATELY, in this same answer, whenever Madhav says someone is with him or asks you to talk to someone ('Ananta, this is Sam', 'my mom is here, say hi', 'talk to Anu'): never ask him to hand over first. Then your answer IS the greeting to that person (their opener, in their language). From then on you talk WITH that person directly. Only Madhav can introduce someone.", _schema({"name": {"type": "string"}})),
+    ("back_to_madhav", "Madhav is back in the conversation ('it's me again', 'thanks Ananta, I'm back'): stop talking to the introduced person and talk to Madhav (sir) again.", _schema({})),
+    ("market_check", "RESEARCH DESK for one coin (any coin): gathers dated facts from the live web (news, token unlocks in the next 30 days, exchange listings or delistings, hacks, legal trouble, the market mood), each with its source and whether it makes a buy riskier or safer; checks them against our own evidence (the exposure dial, the coin's tier and costs, the measured edges); and gives a verdict on what the web adds. The web can only make us more careful, never more aggressive. Use for 'should I buy X', 'what's going on with X', 'anything I should know before buying X', 'is X safe right now', and before explaining any trade decision on a coin. Cite the sources and dates.", _schema({"coin": {"type": "string"}})),
     ("web_lookup", "OUTSIDE OUR SYSTEM: a quick web search (Google via Gemini, else Claude web search) for things our data does not cover: stocks and indexes, other coins' news, the economy, events (Fed, CPI), what moved the market today. Returns a short sourced answer. Label it 'from the web' and never mix it into our books or setups.", _schema({"query": {"type": "string"}}, ["query"])),
     ("news_check", "Run the AI news check (the blunder guard) on one of our coins now: CLEAR / CAUTION / BLOCK with why and the headlines used. About a cent. Use when he asks to check the news on a coin.", _schema({"coin": COIN}, ["coin"])),
     ("remember", "Save something the owner asks you to remember or note down ('remember that I...', 'note that', 'keep this in mind'): it goes into his notes (found later by the knowledge lookup as 'your note') and the decision journal. Do it right away and confirm in a few words. Not for repair-shop requests (log_request) or alerts (propose_alert).", _schema({"text": {"type": "string", "description": "the note in his words, with the date context if relevant"}, "about": {"type": "string", "description": "optional: coin, trade or topic"}}, ["text"])),
@@ -321,6 +324,22 @@ def _self_flag(j, question: str, reply: dict, log: list, thread: str | None) -> 
                                       f" That gap is already on the list as request {r['num']}.")
     reply["self_flag"] = r.get("num")
     return r
+
+
+def _telugu_talk(j, thread, text) -> bool:
+    """A Telugu conversation: the person Madhav handed over to speaks Telugu, the message is in Telugu, or Madhav is about to
+    introduce someone Ananta speaks Telugu to (his parents, the family's kids, some friends)."""
+    try:
+        from jarvis.service import people, speech
+
+        if people.voice_language(j, thread) == "te" or speech.is_telugu([text]):
+            return True
+        low = (text or "").lower()
+        return any(people.find(w) and people.find(w).get("language") in ("telugu", "telugu_mix", "mix")
+                   for w in ("mom", "amma", "dad", "nanna") + tuple(n.lower() for p in people.load().get("people") or []
+                                                                  for n in p.get("names") or []) if re.search(r"\b" + re.escape(w) + r"\b", low))
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _pre_voice(context, text):
@@ -1159,6 +1178,28 @@ class Lookups:
         res = universe_watch.coins(j, tier=tier, sort=sort, n=n)
         return {"view": v, "tier": tier or "all", "coins": res["coins"], "counts": res["counts"], "note": res["note"],
                 "price_age_s": feed.status(j).get("price_age_s")}
+
+    def t_introduce(self, name: str) -> dict:
+        from jarvis.service import people
+
+        if self.guest:
+            return {"error": "Only Madhav can introduce people."}
+        return people.introduce(self.j, self.thread, name)
+
+    def t_back_to_madhav(self) -> dict:
+        from jarvis.service import people
+
+        return people.back(self.j, self.thread)
+
+    def t_market_check(self, coin: str) -> dict:
+        from jarvis.service import weblook
+
+        r = weblook.market_check(self.j, coin)
+        if not r.get("error"):
+            self.outside.append({"found": True, "source": r.get("engine", "web"), "source_url": (r.get("sources") or [{}])[0].get("url"),
+                                 "symbol": r.get("coin"), "web": True})
+            self.web_cost += float(r.get("cost_usd") or 0)
+        return r
 
     def t_web_lookup(self, query: str) -> dict:
         from jarvis.service import weblook
@@ -2020,6 +2061,8 @@ class Ask:
         if quick:
             return quick
         key, mode_label, note = self._pick(text, mode, provider)
+        if mode_label == "auto" and key in ("haiku", "gemini", "gemini_voice", "local") and _telugu_talk(self.j, thread, text):
+            key, note = "sonnet", "Auto: Claude Sonnet for a Telugu conversation (the lighter models mix in Hindi)"
         if voice and mode_label == "auto" and key == "haiku":   # talking: speed matters most; Sonnet answers in ~5 s, Haiku took 10-15 s
             key, note = "sonnet", "Auto: Claude Sonnet for voice (fastest to answer)"
         if voice and key in ("gemini", "gemini_deep") and "gemini_voice" in self.providers:
@@ -2129,7 +2172,19 @@ class Ask:
                          "And exactly 3 follow_ups: questions people usually ask next here. Every chip must be something you can answer or do.]")
         else:
             notes.append("[next_action only when there is an obvious next step; follow_ups: 2]")
-        if not str(who).startswith("guest:") and source != "eval":
+        pnote = ""
+        if not str(who).startswith("guest:"):
+            try:
+                from jarvis.service import people
+
+                pnote = people.prompt_note(self.j, thread)
+            except Exception:  # noqa: BLE001
+                pnote = ""
+        if pnote.startswith("[TALKING TO"):
+            notes.append(pnote)                            # introduce mode: someone Madhav handed over to, not sir
+        elif not str(who).startswith("guest:") and source != "eval":
+            if pnote:
+                notes.append(pnote)
             notes.append("[ADDRESS: you are talking with Madhav, the owner. Call him 'sir' (Madhav, 2026-10-08: always 'sir'); not 'Madhav'. "
                          "Only Madhav is 'sir'.]")
         if str(who).startswith("guest:"):

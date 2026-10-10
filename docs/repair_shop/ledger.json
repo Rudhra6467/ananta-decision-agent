@@ -697,9 +697,9 @@
    "date": "2026-10-08",
    "from": "status check",
    "what": "TON has no daily data since Jun 30 (its source stopped), yet it is still one of the 30-coin tier's coins.",
-   "did": "",
-   "change": "",
-   "status": "OPEN"
+   "did": "Oct 10 review: checked tier30_bars. TON's last daily candle is Jun 30 (Binance still answers with the old 692 candles, so the daily pull never fails and nothing warns). The 30-coin trend book still builds a view for TON from that frozen Jun 30 close: it rates TON (OUT today, never bought), counts it in the 30-day strength ranking, and divides the book into 29 slots instead of 28 (each slot about 3.5% smaller). Buy-and-hold already leaves TON out.",
+   "change": "Proposed, not merged (it changes the book's sizing and ranking): skip any coin whose last daily close is older than 3 days in tier30._views, the same rule buy_hold uses, and name it on the page; or swap TON for the next coin in the 30-coin list. Needs Madhav's yes.",
+   "status": "WAITING_FOR_YOU"
   }
  ]
 }

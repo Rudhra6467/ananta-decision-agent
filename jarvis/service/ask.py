@@ -420,6 +420,20 @@ def _speaker(j, thread) -> dict | None:
         return None
 
 
+def _degenerate(text: str | None) -> bool:
+    """Speech-to-text gibberish: the same word over and over (Whisper loops on noise or a language it isn't sure of)."""
+    w = re.findall(r"\w+", text or "")
+    if len(w) < 6:
+        return False
+    if len(set(w)) / len(w) < 0.35:
+        return True
+    run = best = 1
+    for a, b in zip(w, w[1:]):
+        run = run + 1 if a == b else 1
+        best = max(best, run)
+    return best >= 4
+
+
 def _telugu_talk(j, thread, text) -> bool:
     """A Telugu conversation: the person Madhav handed over to speaks Telugu, the message is in Telugu, or Madhav is about to
     introduce someone Ananta speaks Telugu to (his parents, the family's kids, some friends)."""
@@ -2527,7 +2541,8 @@ class Ask:
             return None
         if r["kind"] == "back":
             people.back(self.j, thread)
-            self._people_note = "[Madhav is back: talk to him again as sir. Answer anything else he said in this message; a bare 'I'm back' gets a short welcome.]"
+            self._people_note = ("[Madhav is back: talk to him again as sir, in ENGLISH (the Telugu above was with someone else). Answer anything "
+                                 "else he said in this message; a bare 'I'm back' gets a short welcome.]")
             return None
         p = r["person"]
         name = p["names"][0]
@@ -2604,12 +2619,13 @@ class Ask:
             try:
                 from jarvis.service import people
 
-                if en and people.route(self.j, thread, en):
+                if en and not _degenerate(en) and (people.route(self.j, thread, en)
+                                                    or people._madhav_in_english(people.talking_to(self.j, thread), en)):
                     return en
             except Exception:  # noqa: BLE001
                 pass
             te = _local_stt(audio_b64, mime, "te")
-            local = te if te else en
+            local = te if te and not _degenerate(te) else None    # Oct 11: the Mac's Telugu pass looped ("kaani kaani kaani..."): ask Gemini
         else:
             local = _local_stt(audio_b64, mime, "en")
         if local is not None:
@@ -2632,7 +2648,8 @@ class Ask:
                          {"contents": [{"role": "user", "parts": [{"inlineData": {"mimeType": mime, "data": audio_b64}}, {"text": prompt}]}],
                           "generationConfig": {"temperature": 0.0, "maxOutputTokens": 600}})
                 parts = ((r.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
-                return "".join(p.get("text", "") for p in parts if not p.get("thought")).strip().strip('"')
+                out = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip().strip('"')
+                return "" if _degenerate(out) else out           # gibberish is "didn't catch that", never a message
             except RuntimeError as exc:
                 err = exc
         raise RuntimeError(f"could not transcribe right now ({str(err)[:80]})")

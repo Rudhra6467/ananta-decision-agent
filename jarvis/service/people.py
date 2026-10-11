@@ -84,7 +84,66 @@ HANDOVER = [re.compile(x, re.I) for x in (
     r"\b" + _WHO + r"\s+tho\s+(?:matladu|maatladu|matladandi|maatladandi|matladu ra|matladava|maatladava)\b",
 )]
 RELAY = re.compile(r"\b" + _WHO + r"\s+(?:is asking|asks|asked|wants to know|is saying|says)\b", re.I)
-BACK = re.compile(r"\b(?:i'?m back|i am back|it'?s me|it is me|madhav here|vamsi here|this is (?:madhav|vamsi)|back to me)\b", re.I)
+BACK = re.compile(r"\b(?:i'?m back|i am back|it'?s me|it is me|it'?s madhav|madhav here|vamsi here|this is (?:madhav|vamsi|me)|back to me|"
+                  r"(?:i'?m|i am) madhav|talk to me|switch (?:back )?to me|not (?:my )?(?:mother|mom|mum|amma|mummy|father|dad|nanna)|"
+                  r"(?:she|he)'?s gone|she left|he left|nenu madhav|nenu vamsi)\b", re.I)
+# Oct 11: during a Telugu handover, Madhav's English question about the account is Madhav, not the person he handed over to
+_EN_WORDS = re.compile(r"^[\x00-\x7f]+$")
+_ACCOUNT = re.compile(r"\b(?:trades?|trading|portfolio|positions?|book|books|bitcoin|btc|ethereum|eth|solana|market|markets|buy|sell|stop|"
+                      r"setups?|dial|watch(?:ing|list)?|explorer|hunter|evidence|repair shop|mandate|p&l|profit|loss|coins?)\b", re.I)
+
+
+def _madhav_in_english(person: dict | None, text: str) -> bool:
+    if not person or person.get("language") not in ("telugu", "telugu_mix", "mix"):
+        return False
+    t = (text or "").strip()
+    return bool(_EN_WORDS.match(t)) and len(t.split()) >= 4 and bool(_ACCOUNT.search(t))
+
+
+# Oct 11: "Kamala Pinni is here... talk to her like my mother": a new person, modelled on the one named
+_LIKE = re.compile(r"\blike (?:you (?:talk|speak) (?:to|with) )?(?:my |our )?(?P<rel>mother|mom|mum|amma|mummy|father|dad|nanna|sister|brother|parents)\b", re.I)
+_NAMED = [re.compile(x) for x in (
+    r"\b(?:[Hh]er|[Hh]is) name is (?P<name>[A-Z][a-z]+(?: [A-Z][a-z]+)?)",
+    r"(?:^|[.!?]\s+)(?P<name>[A-Z][a-z]+(?: [A-Z][a-z]+)?) (?:is|are) (?:in the house|here|with me|visiting|on the line)",
+    r"\b(?:[Tt]his is|[Mm]eet|[Ss]ay (?:hi|hello) to|[Tt]alk to|[Ss]peak to) (?:my )?(?P<name>[A-Z][a-z]+(?: [A-Z][a-z]+)?)",
+)]
+_REL_OF = re.compile(r"\b(?:she'?s|he'?s|she is|he is|,)\s*(?P<rel>my [a-z' ]{3,40}?)(?=[.,!?]|$)", re.I)
+
+
+def new_person_like(text: str) -> dict | None:
+    """A person Madhav introduces by example ("talk to her like my mother"): a name we don't know + a known person to model on."""
+    m = _LIKE.search(text or "")
+    if not m:
+        return None
+    tmpl = resolve(m.group("rel")) or resolve("mother")
+    name = None
+    for rx in _NAMED:
+        for k in rx.finditer(text):
+            cand = k.group("name").strip()
+            if cand.lower() not in ("ananta", "jarvis", "madhav") and not resolve(cand):
+                name = cand
+                break
+        if name:
+            break
+    if not tmpl or not name:
+        return None
+    r = _REL_OF.search(text)
+    rel = ("Madhav's " + r.group("rel")[3:].strip()) if r else f"family, treated like {tmpl.get('relation', 'family')}"
+    te = tmpl.get("language") in ("telugu", "telugu_mix", "mix")
+    return {"id": re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_"), "names": [name, name + " garu"] if te else [name],
+            "relation": rel, "group": "family", "tz": tmpl.get("tz"), "language": tmpl.get("language"), "call": (name + " garu / andi") if te else name,
+            "style": tmpl.get("style"), "about": f"{rel}; introduced by Madhav (talk to them like {tmpl['names'][0]})",
+            "opener": (f"Namaskaram andi {name} garu. Nenu Ananta ni, Madhav build chesina trading assistant ni. Mimmalni kalavadam chala santosham andi. "
+                       f"Meeru ela unnaru?") if te else f"Hi {name}! I'm Ananta, the trading assistant Madhav built. Lovely to meet you.",
+            "talk_about": tmpl.get("talk_about") or [], "avoid": tmpl.get("avoid") or [], "relations": [name.lower()]}
+
+
+def add_person(p: dict) -> None:
+    """Save someone Madhav introduced to the private people note (never in git)."""
+    f = path()
+    d = json.loads(f.read_text()) if f.exists() else {"people": []}
+    d["people"] = [x for x in d.get("people") or [] if x.get("id") != p["id"]] + [p]
+    f.write_text(json.dumps(d, indent=1, ensure_ascii=False))
 
 
 def route(j, thread: str | None, text: str) -> dict | None:
@@ -92,13 +151,24 @@ def route(j, thread: str | None, text: str) -> dict | None:
     {"kind": "back"} | {"kind": "handover", "person"} | {"kind": "relay", "person"} | None."""
     t = (text or "").replace("’", "'")
     now = talking_to(j, thread)
-    if BACK.search(t):
+    if BACK.search(t) or _madhav_in_english(now, t):
         return {"kind": "back"} if now else None
+    newp = new_person_like(t)
+    if newp:
+        add_person(newp)
+        return {"kind": "handover", "person": newp, "same": False, "new": True}
+    like = _LIKE.search(t)                                   # "talk to her like my mother": the mother is the model, not the person
+    model = resolve(like.group("rel")) if like else None
+    found = []
     for rx in HANDOVER:
         for m in rx.finditer(t):
             p = resolve(m.group("who"))
-            if p:
-                return {"kind": "handover", "person": p, "same": bool(now and now["id"] == p["id"])}
+            if p and not (model and p["id"] == model["id"]):
+                by_name = any(f" {_norm(n)} " in f" {_norm(m.group('who'))} " for n in p.get("names") or [])
+                found.append((by_name, p))
+    if found:
+        p = next((x for named, x in found if named), found[0][1])       # someone named outright beats a relation word
+        return {"kind": "handover", "person": p, "same": bool(now and now["id"] == p["id"])}
     m = RELAY.search(t)
     if m:
         p = resolve(m.group("who"))

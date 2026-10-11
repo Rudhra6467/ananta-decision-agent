@@ -126,3 +126,33 @@ def test_my_sisters_son_is_not_my_sister(tmp_path, monkeypatch):
     assert people.resolve("my sister's son")["id"] == "kid"
     assert people.resolve("my sister")["id"] == "sis"
     assert people.resolve("Prasad")["id"] == "dad" and people.resolve("Ravi Kumar")["id"] == "bil"
+
+
+def test_coming_back_in_english_and_new_person_by_example(tmp_path, monkeypatch):
+    """Oct 11: Madhav said 'it's me' and asked about trades in English while Ananta kept talking Telugu to his mother; and 'Kamala Pinni,
+    talk to her like my mother' greeted his mother instead."""
+    from jarvis.service import people
+    from jarvis.service.ask import _degenerate
+
+    _file(tmp_path, monkeypatch)
+    j = J(tmp_path)
+    people.introduce(j, "t1", "mom")
+    assert people.route(j, "t1", "It's not my mother, it's me")["kind"] == "back"
+    people.introduce(j, "t1", "mom")
+    assert people.route(j, "t1", "How are my trades doing in the portfolio today?")["kind"] == "back"   # English, about the account
+    assert people.route(j, "t1", "ఈ రోజు మార్కెట్ ఎలా ఉంది") is None                                  # Telugu: still his mother
+    r = people.route(j, "t2", "Kamala Pinni is in the house. Talk to her like my mother. Her name is Kamala Pinni, my mother's sister.")
+    assert r["kind"] == "handover" and r["person"]["names"][0] == "Kamala Pinni" and r["person"]["language"] == "telugu"
+    assert "Kamala Pinni garu" in r["person"]["opener"] and people.find("Kamala Pinni")                 # remembered in the private note
+    assert _degenerate("కాని కాని కాని కాని కాని కాని కాని") and not _degenerate("Nenu baagunnanu andi meeru ela unnaru ee roju")
+
+
+def test_named_person_beats_the_model_relation(tmp_path, monkeypatch):
+    from jarvis.service import people
+
+    _file(tmp_path, monkeypatch)
+    j = J(tmp_path)
+    people.route(j, "t3", "Kamala Pinni is in the house. Talk to her like my mother. Her name is Kamala Pinni.")       # created once
+    r = people.route(j, "t4", "Kamala Pinni is here, talk to her like my mother.")
+    assert r["kind"] == "handover" and r["person"]["names"][0] == "Kamala Pinni"
+    assert people.route(j, "t5", "Talk to my mom")["person"]["id"] == "mom"

@@ -29,3 +29,12 @@ def test_guest_tone_and_india():
     account.update(g, {"tz": "Asia/Kolkata"}, "kim@x.com")
     a = ask._audience(g, "guest:kim@x.com")
     assert "This visitor is in India" in a and "Nifty 50" in a
+
+
+def test_who_is_speaking_from_another_country():
+    j = _j()
+    assert ask._who_is_here(j, "owner", {"country": "CA"}, "t1") == ""
+    assert ask._who_is_here(j, "owner", None, "t1") == ""
+    w = ask._who_is_here(j, "owner", {"country": "IN"}, "t1")
+    assert "WHO IS SPEAKING" in w and "India" in w
+    assert ask._who_is_here(j, "guest:kim@x.com", {"country": "IN"}, "t1") == ""

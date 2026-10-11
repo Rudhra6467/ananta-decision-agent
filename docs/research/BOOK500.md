@@ -67,6 +67,19 @@ day and week brakes only to the setup sleeves and let the dial alone run the cor
 In 2018-2023 the book returned +346% with no stop or a 6 × ATR stop, and +339% with 2 × ATR. Recommended: 6 × ATR, as outage
 insurance only (docs/LIVE_MONEY_SAFETY.md).
 
+## Retirement rule (requests #26 and #27, Oct 11; proposed, Madhav can change the numbers)
+
+A setup keeps its place only while its own results hold up:
+
+| Part | Rule |
+|---|---|
+| **The window** | Its last 20 closed trades (paper-forward or live), not its history alone |
+| **Retired when** | Its average result after costs is below zero over those 20, **or** it is more than 3 points a trade below its backtest (the fidelity rule in GO_LIVE_CHECKLIST.md) |
+| **What retiring does** | No new entries. Open trades finish on their own plan. The setup goes to the repair shop for a review. |
+| **Coming back** | Only through a new pre-registered review that passes in both periods, with Madhav's sign-off |
+| **Before 20 trades** | Nothing is decided. Small samples lie, and the brakes protect the money meanwhile. |
+| **Explorer setups** | They rank at 0 and do not trade, so they cannot be retired; they stay as a cheap source of data |
+
 ## Caveats
 
 - **Survivorship:** the coins are today's tier-A NDAX list. Coins that died since 2018 are not in it.

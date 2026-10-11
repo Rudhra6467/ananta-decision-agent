@@ -183,10 +183,14 @@ def prompt_note(j, thread: str | None) -> str:
         return ""
     p = talking_to(j, thread)
     if not p:
-        who = "; ".join(f"{x['names'][0]} ({x.get('relation', '')})" for x in d["people"])
-        return ("[PEOPLE: Madhav's important people: " + who + ". If Madhav introduces one of them or hands over ('this is Sam', "
-                "'talk to my mom'), call introduce with their name and say hello to them in their style. If Madhav asks you to write to one of them, "
-                "write it in their style and language. Never share one person's details with another.]")
+        who = "; ".join(f"{' / '.join(x['names'][:3])} ({x.get('relation', '')}"
+                        + (f": {x['about'][:200]}" if x.get("about") else f": {(x.get('style') or '').split('. ')[0][:140]}" if x.get("style") else "")
+                        + ")" for x in d["people"])
+        return ("[PEOPLE: Madhav's important people (every name they go by): " + who + ". When Madhav asks about one of them, tell him "
+                "what you know from this note (who they are, how you talk with them): they are his own people, so that is never out of scope. "
+                "If Madhav introduces one of them or hands over ('this is Sam', 'talk to my mom'), call introduce with their name and say hello "
+                "to them in their style. If Madhav asks you to write to one of them, write it in their style and language. Never share one "
+                "person's details with another person.]")
     part, tz = _part(p.get("tz"))
     lines = [f"[TALKING TO: you are now talking directly with {p['names'][0]}, {p.get('relation')}, NOT with Madhav. Do not call them sir "
              f"unless their profile says so; call them: {p.get('call')}. It is {part} where they are ({tz}).",
@@ -198,6 +202,9 @@ def prompt_note(j, thread: str | None) -> str:
              "Topics: " + "; ".join(p.get("talk_about") or []) + (". Avoid: " + "; ".join(p["avoid"]) if p.get("avoid") else ""),
              "Rules: " + " ".join(d.get("rules") or [])]
     if p.get("language") in ("telugu", "telugu_mix", "mix"):
+        lines.append('VOICE: also return a JSON field "speak_te": the same answer in Telugu script exactly as it should be spoken aloud '
+                     '(English words written in Telugu script, e.g. trading -> ట్రేడింగ్; numbers as words; same sentences, same order). '
+                     'The screen shows "answer"; the voice reads "speak_te".')
         g = d.get("telugu_guide") or {}
         lines.append("Telugu guide: " + g.get("respect", "") + " " + g.get("mix", "") + " Words: "
                      + ", ".join(f"{k} = {v}" for k, v in (g.get("words") or {}).items()))

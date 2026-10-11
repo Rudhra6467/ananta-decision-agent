@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel
 
 from jarvis.service import core
@@ -1252,8 +1252,15 @@ def cockpit(who: str = Depends(owner)) -> dict:
 
 
 @app.post("/v3/ask")
-def ask_q(b: Question, who: str = Depends(owner)) -> dict:
-    return _run(lambda: A().ask(who, b.text, b.thread, b.provider, b.mode, None, b.context, source="eval" if b.source == "eval" else ""))
+def _with_country(ctx, request: Request):
+    """The country Cloudflare saw the request come from (CF-IPCountry): who might be speaking on Madhav's account (Oct 11)."""
+    c = request.headers.get("cf-ipcountry")
+    return {**(ctx if isinstance(ctx, dict) else {}), "country": c} if c else ctx
+
+
+def ask_q(b: Question, request: Request, who: str = Depends(owner)) -> dict:
+    ctx = _with_country(b.context, request)
+    return _run(lambda: A().ask(who, b.text, b.thread, b.provider, b.mode, None, ctx, source="eval" if b.source == "eval" else ""))
 
 
 @app.post("/v3/ask/second")
@@ -1468,8 +1475,8 @@ class VoiceTurn(BaseModel):
 
 
 @app.post("/v3/voice/turn")
-def voice_turn(b: VoiceTurn, who: str = Depends(owner)) -> dict:
-    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, b.context, source="eval" if b.source == "eval" else "",
+def voice_turn(b: VoiceTurn, request: Request, who: str = Depends(owner)) -> dict:
+    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, _with_country(b.context, request), source="eval" if b.source == "eval" else "",
                                        prefix=b.prefix))
 
 

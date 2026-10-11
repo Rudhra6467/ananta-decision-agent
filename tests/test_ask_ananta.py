@@ -464,7 +464,7 @@ def test_router_and_briefs():
     r = A.ask("o", "How is our portfolio doing?", mode="everyday")
     assert r["route"] == "portfolio" and "PORTFOLIO_BRIEF" in seen["u"] and "MARKET_BRIEF" not in seen["u"] and "greet" in seen["u"]
     r2 = A.ask("o", "Why?", thread=r["thread"], mode="everyday")
-    assert r2["route"] == "portfolio" and "greet" not in seen["u"] and r2["timing"]["brief_ms"] >= 0
+    assert r2["route"] == "portfolio" and "first message of a new conversation" not in seen["u"] and r2["timing"]["brief_ms"] >= 0
 
 
 def test_app_navigation_quick_and_tools():

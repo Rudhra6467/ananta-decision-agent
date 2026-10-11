@@ -59,6 +59,29 @@ INDIA_VISITOR = ("\nThis visitor is in India. Alongside what Ananta does in cryp
                  "costs such as STT. Explain the Indian market agent plan. Say when a rule may have changed since mid-2026.")
 
 
+def _who_is_here(j, who: str, context, thread) -> str:
+    """Madhav lives in Canada. His account used from another country, with nobody introduced in this conversation, may be someone
+    else (family may log in from India): ask once, kindly, who is speaking, before anything about the account."""
+    if str(who).startswith("guest:") or not isinstance(context, dict):
+        return ""
+    c = str(context.get("country") or "").upper()
+    if not c or c in ("CA", "XX", "T1"):
+        return ""
+    try:
+        from jarvis.service import people
+
+        if people.talking_to(j, thread):
+            return ""
+    except Exception:  # noqa: BLE001
+        pass
+    guess = (" From India it may well be family who lives there or trades the Indian markets (see the people note): ask by name, "
+             "e.g. 'Is this <their name>?'.") if c == "IN" else ""
+    return (f"\n\nWHO IS SPEAKING: this message comes from {c}, and Madhav lives in Canada. If nobody has said who they are in this "
+            f"conversation yet, first ask in one short friendly line who you're talking to (Madhav may be travelling, or someone may be "
+            f"using his account).{guess} When they say, call introduce with their name (or carry on with Madhav). Never share account "
+            f"details or change anything before you know.")
+
+
 def _audience(j, who: str) -> str:
     """The audience block: brutal truth for Madhav; honest and hopeful during a showcase on his account; approved options for visitors."""
     import time as _t
@@ -2313,7 +2336,7 @@ class Ask:
         used = key
         from jarvis.service.mandate import Mandate
 
-        system = SYSTEM + _plain_words(self.j) + _status_block() + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text() + _audience(self.j, who)
+        system = SYSTEM + _plain_words(self.j) + _status_block() + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text() + _audience(self.j, who) + _who_is_here(self.j, who, context, thread)
         try:
             can_escalate = key == "local" and mode_label == "auto"      # the router picked the Mac: a weak answer goes one level up
             try:
@@ -2436,8 +2459,10 @@ class Ask:
         self.j.db.commit()
         _log_chips(self.j, thread, aid, reply)
         self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
-        if voice:
-            reply["speak"] = speak_text(reply)                       # what is said aloud (the full answer stays on screen)
+        te = reply.pop("speak_te", None)
+        te = te if isinstance(te, str) and re.search(r"[\u0C00-\u0C7F]", te) else None
+        if voice or te:
+            reply["speak"] = speak_text({**reply, "answer": te} if te else reply)   # Telugu: the script version, so no conversion wait
         vid = _pre_voice(context, reply.get("speak") or reply.get("answer"))
         if vid:
             reply["voice_id"] = vid                                  # its audio is already being made: the phone fetches it directly

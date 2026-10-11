@@ -316,7 +316,7 @@ def _to_script(sents: list[str]) -> list[str]:
                                          data=json.dumps({"contents": [{"role": "user", "parts": [{"text": prompt}]}],
                                                           "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}}).encode(),
                                          headers={"x-goog-api-key": api, "content-type": "application/json"})
-            with urllib.request.urlopen(req, timeout=30) as r:
+            with urllib.request.urlopen(req, timeout=12) as r:
                 d = json.load(r)
             txt = "".join(x.get("text", "") for x in d["candidates"][0]["content"]["parts"] if not x.get("thought"))
             out = json.loads(txt[txt.find("["):txt.rfind("]") + 1])
@@ -373,7 +373,7 @@ def _telugu_gemini(script: list[str], speed: float) -> dict:
         try:
             req = urllib.request.Request(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent",
                                          data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "x-goog-api-key": key})
-            r = json.load(urllib.request.urlopen(req, timeout=45))
+            r = json.load(urllib.request.urlopen(req, timeout=20))
             part = next(x["inlineData"] for x in r["candidates"][0]["content"]["parts"] if x.get("inlineData"))
             raw = base64.b64decode(part["data"])
             mime = part.get("mimeType", "").lower()
@@ -390,28 +390,55 @@ def _telugu_gemini(script: list[str], speed: float) -> dict:
     raise RuntimeError(err or "no Gemini voice available")
 
 
+MMS_PACE = 1.15                      # Meta's Telugu voice speaks slowly at 1.0 (23 s where Gemini takes 15 s for the same words)
+
+
 def _telugu_parler(script: list[str], speed: float) -> dict:
     """The Telugu voice on this Mac (Meta MMS, jarvis/voice/telugu_server.py, com.ananta.telugu; free, no account)."""
     req = urllib.request.Request(os.getenv("ANANTA_PARLER_URL", "http://127.0.0.1:8210") + "/speak",
-                                 data=json.dumps({"sentences": script, "speed": speed}).encode(), headers={"Content-Type": "application/json"})
+                                 data=json.dumps({"sentences": script, "speed": speed * MMS_PACE}).encode(), headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=120) as r:
         d = json.load(r)
     return {"audio": base64.b64decode(d["audio_b64"]), "mime": d.get("mime", "audio/mpeg"), "offsets": d["offsets"], "duration": d["duration"],
             "engine": "mms-telugu", "voice": d.get("voice"), "ms": d.get("ms")}
 
 
+_te_sticky: dict = {"engine": None, "until": 0.0}
+STICKY_S = 1800                      # Oct 11: the voice kept switching mid-conversation; once one works, it keeps speaking for 30 min
+
+
+def _speech_log(engine: str, ms, chars: int, text: str) -> None:
+    """Which voice spoke when (so Madhav's likes tell us which Telugu voice he prefers)."""
+    try:
+        from pathlib import Path
+
+        with (Path.home() / "ananta_runs" / "speech_log.jsonl").open("a") as f:
+            f.write(json.dumps({"t": int(time.time()), "engine": engine, "ms": ms, "chars": chars, "text": text[:80]}, ensure_ascii=False) + "\n")
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _make_telugu(sents: list[str], speed: float) -> dict:
+    t0 = time.time()
     script = _to_script(sents)
-    for eng in telugu_engines():
+    order = telugu_engines()
+    if _te_sticky["engine"] in order and _te_sticky["until"] > time.time():
+        order = [_te_sticky["engine"]] + [e for e in order if e != _te_sticky["engine"]]
+    for eng in order:
         try:
             if eng == "gemini":
-                return _telugu_gemini(script, speed)
-            if eng in ("mms", "parler"):
-                return _telugu_parler(script, speed)
-            if eng == "geeta":
-                return _telugu_geeta(sents, speed)
-        except Exception:  # noqa: BLE001  the next engine takes over
+                d = _telugu_gemini(script, speed)
+            elif eng in ("mms", "parler"):
+                d = _telugu_parler(script, speed)
+            elif eng == "geeta":
+                d = _telugu_geeta(sents, speed)
+            else:
+                continue
+        except Exception:  # noqa: BLE001  the next engine takes over (and then keeps the conversation)
             continue
+        _te_sticky.update(engine=eng, until=time.time() + STICKY_S)
+        _speech_log(d["engine"], int(1000 * (time.time() - t0)), sum(len(x) for x in sents), " ".join(sents))
+        return d
     return _telugu_geeta(sents, speed)
 
 

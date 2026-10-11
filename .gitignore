@@ -72,3 +72,4 @@ eval_runs/
 
 *.sqlite-shm
 *.sqlite-wal
+universe_bars.sqlite

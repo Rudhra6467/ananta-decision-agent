@@ -1,0 +1,199 @@
+{
+ "review": 27,
+ "coins": 120,
+ "rows": 7564,
+ "results": {
+  "H07": {
+   "TIGHT": {
+    "DISCOVERY": {
+     "trades": 147,
+     "market_days": 88,
+     "mean_net_pct": 0.54,
+     "win_pct": 38.1
+    },
+    "CONFIRM": {
+     "trades": 178,
+     "market_days": 84,
+     "mean_net_pct": 0.35,
+     "win_pct": 39.9
+    }
+   },
+   "STRUCT": {
+    "DISCOVERY": {
+     "trades": 147,
+     "market_days": 84,
+     "mean_net_pct": 0.35,
+     "win_pct": 34.7
+    },
+    "CONFIRM": {
+     "trades": 178,
+     "market_days": 81,
+     "mean_net_pct": -0.88,
+     "win_pct": 37.1
+    }
+   },
+   "DISASTER": {
+    "DISCOVERY": {
+     "trades": 147,
+     "market_days": 87,
+     "mean_net_pct": 1.19,
+     "win_pct": 45.6
+    },
+    "CONFIRM": {
+     "trades": 178,
+     "market_days": 78,
+     "mean_net_pct": -0.22,
+     "win_pct": 47.2
+    }
+   },
+   "NOSTOP": {
+    "DISCOVERY": {
+     "trades": 147,
+     "market_days": 76,
+     "mean_net_pct": 6.48,
+     "win_pct": 55.1
+    },
+    "CONFIRM": {
+     "trades": 178,
+     "market_days": 83,
+     "mean_net_pct": 2.38,
+     "win_pct": 57.9
+    }
+   }
+  },
+  "TOUCH200": {
+   "TIGHT": {
+    "DISCOVERY": {
+     "trades": 748,
+     "market_days": 403,
+     "mean_net_pct": -1.51,
+     "win_pct": 31.4
+    },
+    "CONFIRM": {
+     "trades": 778,
+     "market_days": 336,
+     "mean_net_pct": -2.86,
+     "win_pct": 24.9
+    }
+   },
+   "STRUCT": {
+    "DISCOVERY": {
+     "trades": 748,
+     "market_days": 410,
+     "mean_net_pct": -0.96,
+     "win_pct": 37.0
+    },
+    "CONFIRM": {
+     "trades": 778,
+     "market_days": 324,
+     "mean_net_pct": -3.43,
+     "win_pct": 29.4
+    }
+   },
+   "DISASTER": {
+    "DISCOVERY": {
+     "trades": 748,
+     "market_days": 408,
+     "mean_net_pct": -0.69,
+     "win_pct": 39.6
+    },
+    "CONFIRM": {
+     "trades": 778,
+     "market_days": 339,
+     "mean_net_pct": -3.35,
+     "win_pct": 32.5
+    }
+   },
+   "NOSTOP": {
+    "DISCOVERY": {
+     "trades": 748,
+     "market_days": 427,
+     "mean_net_pct": -0.07,
+     "win_pct": 42.5
+    },
+    "CONFIRM": {
+     "trades": 778,
+     "market_days": 352,
+     "mean_net_pct": -2.86,
+     "win_pct": 36.5
+    }
+   }
+  },
+  "ALL": {
+   "TIGHT": {
+    "DISCOVERY": {
+     "trades": 895,
+     "market_days": 435,
+     "mean_net_pct": -1.17,
+     "win_pct": 32.5
+    },
+    "CONFIRM": {
+     "trades": 956,
+     "market_days": 366,
+     "mean_net_pct": -2.26,
+     "win_pct": 27.7
+    }
+   },
+   "STRUCT": {
+    "DISCOVERY": {
+     "trades": 895,
+     "market_days": 438,
+     "mean_net_pct": -0.74,
+     "win_pct": 36.6
+    },
+    "CONFIRM": {
+     "trades": 956,
+     "market_days": 353,
+     "mean_net_pct": -2.96,
+     "win_pct": 30.9
+    }
+   },
+   "DISASTER": {
+    "DISCOVERY": {
+     "trades": 895,
+     "market_days": 437,
+     "mean_net_pct": -0.38,
+     "win_pct": 40.6
+    },
+    "CONFIRM": {
+     "trades": 956,
+     "market_days": 371,
+     "mean_net_pct": -2.77,
+     "win_pct": 35.3
+    }
+   },
+   "NOSTOP": {
+    "DISCOVERY": {
+     "trades": 895,
+     "market_days": 461,
+     "mean_net_pct": 1.01,
+     "win_pct": 44.6
+    },
+    "CONFIRM": {
+     "trades": 956,
+     "market_days": 386,
+     "mean_net_pct": -1.88,
+     "win_pct": 40.5
+    }
+   }
+  }
+ },
+ "verdict": {
+  "H07": {
+   "passing": [
+    "NOSTOP"
+   ],
+   "use": "NOSTOP"
+  },
+  "TOUCH200": {
+   "passing": [],
+   "use": "TIGHT (no change)"
+  },
+  "ALL": {
+   "passing": [
+    "NOSTOP"
+   ],
+   "use": "NOSTOP"
+  }
+ }
+}

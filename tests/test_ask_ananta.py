@@ -309,7 +309,7 @@ def test_voice_turn_transcribes_then_answers():
         return json.dumps({"kind": "answer", "answer": "Bitcoin is up a little."}), {"in": 1, "out": 1}
 
     A = ask.Ask(j, providers={"gemini": fake})
-    A.transcribe = lambda b64, mime="audio/wav": "how is bitcoin" if b64 == "AAAA" else ""
+    A.transcribe = lambda b64, mime="audio/wav", thread=None: "how is bitcoin" if b64 == "AAAA" else ""
     r = A.voice_turn("o", "AAAA", "audio/wav", None, "everyday", None)
     assert r["heard"] == "how is bitcoin" and r["answer"] and "voice session" in seen["u"]
     assert A.threads()[0]["voice"] is True

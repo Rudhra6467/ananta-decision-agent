@@ -391,10 +391,17 @@ def scoreboard(j) -> dict:
         bs = _stats(by.get((base, tier), {}).get("closed", [])) if base else None
         regs = {r: _stats(v) for r, v in b["regimes"].items()}
         vs = round(s["avg_usd"] - bs["avg_usd"], 2) if base and s["avg_usd"] is not None and bs and bs["avg_usd"] is not None else None
-        both = all(regs.get(r, {}).get("events", 0) >= 1 for r in ("ALLOWED", "RISK_OFF"))
+        # requests #7/#8 (Madhav's yes, Oct 11): ahead of random overall AND in each market regime, with 10 market days in each
+        bregs = {r: _stats(v) for r, v in (by.get((base, tier), {}).get("regimes") or {}).items()} if base else {}
+        short = [f"{r.lower().replace('_', '-')} {regs.get(r, {}).get('events', 0)} of {MIN_EVENTS}" for r in ("ALLOWED", "RISK_OFF")
+                 if regs.get(r, {}).get("events", 0) < MIN_EVENTS]
+        behind = [r.lower().replace("_", "-") for r in ("ALLOWED", "RISK_OFF") if not short and
+                  (regs[r].get("avg_usd") is None or bregs.get(r, {}).get("avg_usd") is None or regs[r]["avg_usd"] <= bregs[r]["avg_usd"])]
         verdict = ("baseline" if rule.startswith("RANDOM") else "watched only (tier C)" if tier == "C" else
                    f"too early: {s['events']} of {MIN_EVENTS} market days" if s["events"] < MIN_EVENTS else
-                   "ahead of random" if vs is not None and vs > 0 and both else "not ahead of random" if vs is not None else "no baseline yet")
+                   "no baseline yet" if vs is None else "not ahead of random" if vs <= 0 else
+                   f"too early in each regime: {', '.join(short)} market days" if short else
+                   f"not ahead of random in {' and '.join(behind)} markets" if behind else "ahead of random")
         out.append({"watch": wid(rule, tier), "rule": rule, "tier": tier, **s, "open": b["open"], "baseline": wid(base, tier) if base else None,
                     "vs_random_usd": vs, "regimes": regs, "verdict": verdict})
     return {"watches": out, "min_events": MIN_EVENTS, "would_be_account": would_be(j),
@@ -606,6 +613,20 @@ def run_daily(j) -> dict:
         out["forwarded"] = forward(j, out.get("rebuild") if isinstance(out.get("rebuild"), dict) else None)
     except Exception as exc:  # noqa: BLE001
         out["forward_error"] = str(exc)[:200]
+    try:  # the learning loop (plan Batch 4b): brain trades rebuilt nightly; the situation review on Sundays
+        from jarvis.service import learning
+
+        out["brain_rebuild"] = {k: v for k, v in learning.rebuild_brain(j).items() if k != "list"}
+        if time.gmtime(j.now()).tm_wday == 6:
+            out["weekly_review"] = learning.weekly_review(j).get("file")
+    except Exception as exc:  # noqa: BLE001
+        out["learning_error"] = str(exc)[:200]
+    try:  # the $500 NDAX paper book (D9, D12, D13): one step per daily close, filled at NDAX's live bid and ask
+        from jarvis.service import ndax_book
+
+        out["book500"] = ndax_book.step(j)
+    except Exception as exc:  # noqa: BLE001
+        out["book500_error"] = str(exc)[:200]
     try:
         _daily_file(j, out)
     except Exception:  # noqa: BLE001

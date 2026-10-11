@@ -169,7 +169,7 @@ def test_hearing_check_and_voice_turn_skip_noise():
     asked = []
     A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: asked.append(u) or (json.dumps({"kind": "answer", "answer": "Fine."}), {"in": 1, "out": 1})})
     heard = iter(["Hmm.", "I want to know", "how Bitcoin did this week?"])
-    A.transcribe = lambda b64, mime="audio/wav": next(heard)
+    A.transcribe = lambda b64, mime="audio/wav", thread=None: next(heard)
     assert A.voice_turn("o", "x", "audio/wav", None, "everyday", None)["ignored"] == "filler" and not asked
     p = A.voice_turn("o", "x", "audio/wav", None, "everyday", None)
     assert p["partial"] and not asked

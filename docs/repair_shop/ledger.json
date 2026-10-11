@@ -355,6 +355,21 @@
    "status": "DONE"
   },
   {
+   "id": "R24",
+   "date": "2026-10-11",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Tuning the deep-dip buy (E6)",
+   "forwarded_because": "Madhav's request #15: E6 is the Explorer's busiest setup and loses after costs.",
+   "question": "Does no warning bell, 2% room, or a zone filter turn E6 positive after costs in both periods?",
+   "result": "None passes: every variant loses after costs in both periods (live -$0.54/-$0.64, NOBELL -$0.39/-$0.50, ROOM -$0.52/-$0.63 per $100) and none beats random in CONFIRM. Zone variants not run: no 15m zone history.",
+   "changed": "Nothing in E6; Explorer trigger points set to 0 (R28).",
+   "files": [
+    "docs/research/REVIEW_24.md",
+    "docs/research/REVIEW_24_RESULTS.md"
+   ]
+  },
+  {
    "id": "R25",
    "date": "2026-10-10",
    "status": "DONE",
@@ -382,6 +397,35 @@
    "files": [
     "docs/research/REVIEW_26.md",
     "docs/research/REVIEW_26_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R27",
+   "date": "2026-10-11",
+   "status": "DONE",
+   "verdict": "PASS",
+   "title": "Stops on dip buys and zone touches",
+   "forwarded_because": "The brain's dip buys were stopped at the lows.",
+   "question": "Tight stop vs no stop (10-day exit) for H07 dips and 200-day touches, tiers A and B, both periods.",
+   "result": "H07 dip with no stop +6.48% (2018-2023) and +2.38% (2024-2026) vs tight stop +0.54% / +0.35%. A plain 200-day touch loses with every exit.",
+   "changed": "Brain DIP plan exits by time only; the invalidation level is recorded.",
+   "files": [
+    "docs/research/REVIEW_27.md",
+    "docs/research/REVIEW_27_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R28",
+   "date": "2026-10-11",
+   "status": "DONE",
+   "verdict": "CHANGE",
+   "title": "The brain's trigger points follow the evidence",
+   "forwarded_because": "Hand-set points let the Explorer, which has no edge, wake the brain most.",
+   "question": "Line trigger points up with reviews #1, #24, #26, #27.",
+   "result": "explorer 0, zone entry 0.5 (+1 when supported), hunter 0.5, squeeze 0.5, attention 1.0; daily rules by measured edge.",
+   "changed": "brain.TRIGGER_POINTS",
+   "files": [
+    "docs/research/REVIEW_28.md"
    ]
   }
  ],
@@ -623,7 +667,13 @@
    "files": [
     "docs/repair_shop/REVIEW_2.md",
     "docs/repair_shop/REVIEW_2_RESULTS.md"
-   ]
+   ],
+   "schedule": {
+    "every": "quarter",
+    "next_due": "2027-01-01",
+    "how": "pull fresh Hyperliquid fills into HL.sqlite, then python -m src.research.review2_traders analyze --db LAB5 --hl HL.sqlite --out DIR",
+    "decided": "2026-10-11 (D8): other traders are events and reference, never copy signals"
+   }
   }
  ],
  "modes": [
@@ -760,9 +810,9 @@
    "date": "2026-10-08",
    "from": "status check",
    "what": "TON has no daily data since Jun 30 (its source stopped), yet it is still one of the 30-coin tier's coins.",
-   "did": "Oct 10 review: checked tier30_bars. TON's last daily candle is Jun 30 (Binance still answers with the old 692 candles, so the daily pull never fails and nothing warns). The 30-coin trend book still builds a view for TON from that frozen Jun 30 close: it rates TON (OUT today, never bought), counts it in the 30-day strength ranking, and divides the book into 29 slots instead of 28 (each slot about 3.5% smaller). Buy-and-hold already leaves TON out.",
+   "did": "Oct 10 review: checked tier30_bars. TON's last daily candle is Jun 30 (Binance still answers with the old 692 candles, so the daily pull never fails and nothing warns). The 30-coin trend book still builds a view for TON from that frozen Jun 30 close: it rates TON (OUT today, never bought), counts it in the 30-day strength ranking, and divides the book into 29 slots instead of 28 (each slot about 3.5% smaller). Buy-and-hold already leaves TON out. Oct 11: Madhav said yes (D10). tier30._views now leaves out any coin more than 3 days behind the newest close (the buy-and-hold rule) and names it (left_out_stale); TON is out, the book divides among 28.",
    "change": "Proposed, not merged (it changes the book's sizing and ranking): skip any coin whose last daily close is older than 3 days in tier30._views, the same rule buy_hold uses, and name it on the page; or swap TON for the next coin in the 30-coin list. Needs Madhav's yes.",
-   "status": "WAITING_FOR_YOU"
+   "status": "DONE"
   },
   {
    "id": "TK14",
@@ -779,6 +829,57 @@
    "what": "Google's free search quota ran out, so the research desk fell back to paid Claude search.",
    "did": "Checked: a quota (429), not a bug.",
    "change": "Paid web searches capped at 25 a day (WEB_PAID_DAILY); after that the desk says the web is unavailable."
+  }
+ ],
+ "changes": [
+  {
+   "date": "2026-10-11",
+   "change": "Brain keeps deciding when the account is full (D7); those buys are recorded as no-room evidence",
+   "why": "MAX_OPEN 20 was throwing away decisions",
+   "metric": "brain_no_room",
+   "before": {
+    "no_room_buys": 0
+   }
+  },
+  {
+   "date": "2026-10-11",
+   "change": "Brain DIP exit plan: no stop (review #27); the invalidation level is recorded, not traded",
+   "why": "Review #27: H07 dip with no stop +6.48% (2018-2023) and +2.38% (2024-2026) vs tight stop +0.54% / +0.35%",
+   "metric": "brain_dip",
+   "before": {
+    "brain_trades_closed": 15,
+    "avg_usd": -6.82
+   }
+  },
+  {
+   "date": "2026-10-11",
+   "change": "Brain trigger points follow evidence (review #28): explorer 0, zone entry 0.5, hunter 0.5, squeeze 0.5, attention 1.0",
+   "why": "Review #1 found no Explorer edge; intraday atlas 0 of 55 contexts stable-positive",
+   "metric": "brain_decisions",
+   "before": {
+    "decisions_total": 127
+   }
+  },
+  {
+   "date": "2026-10-11",
+   "change": "TK13: stale coins left out of the 30-coin trend book (TON)",
+   "why": "a frozen Jun 30 close was still rated and took a slot",
+   "metric": null,
+   "before": {
+    "coins_in_book": 29
+   }
+  },
+  {
+   "date": "2026-10-11",
+   "change": "Requests #7/#8: the promotion ladder needs 10 market days in EACH regime and ahead of random in each",
+   "why": "before, one event per regime was enough",
+   "metric": null
+  },
+  {
+   "date": "2026-10-11",
+   "change": "The $500 NDAX paper book started (D9/D12/D13): core BTC $200 + ETH $100 at NDAX's ask",
+   "why": "the account that Stage 1 would use, on paper with real NDAX prices",
+   "metric": null
   }
  ]
 }

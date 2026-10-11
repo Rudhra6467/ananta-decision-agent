@@ -32,6 +32,7 @@ COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE", "BNB", "SUI", "PEPE", "TRX", "ADA",
 RENAMED = {"MATIC": "POL", "FTM": "S", "RNDR": "RENDER", "BCHABC": None}
 T3_DB = "portfolio_book_t30.sqlite"
 H07_WATCH = "H07-T30"
+STALE: list[str] = []                                  # coins left out of the trend book for stale data (TK13)
 DAY = 86400
 URL = "https://api.binance.com/api/v3/klines?symbol={s}USDT&interval=1d&limit=1000"
 
@@ -96,9 +97,15 @@ def _views(j) -> tuple[dict, dict]:
     from src.intelligence.explorer_engine import TfState
 
     views, px = {}, {}
+    allD = {c: daily(j, c) for c in COINS}
+    newest = max((D[-1][0] for D in allD.values() if D), default=0)
+    STALE.clear()
     for c in COINS:
-        D = daily(j, c)
+        D = allD[c]
         if len(D) < 60:
+            continue
+        if D[-1][0] < newest - 3 * 86400:              # TK13 (Madhav's yes, Oct 11): the buy-and-hold rule; a frozen coin is left out, named
+            STALE.append(c)
             continue
         tf = TfState("1d")
         for b in D:
@@ -117,6 +124,7 @@ def run(j) -> dict:
     if "BTC" in views:
         d = _layer(j).decide(views, px, int(j.now() if hasattr(j, "now") else time.time()))
         out["t3"] = {k: d[k] for k in ("skip", "day", "btc_gate") if k in d}
+        out["t3"]["left_out_stale"] = list(STALE)
         if "fills" in d:
             out["t3"]["fills"] = len(d["fills"])
             out["t3"]["holding"] = sorted(c for c, r in d["ratings"].items() if r["hold"])

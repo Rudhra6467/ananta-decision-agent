@@ -500,6 +500,24 @@
     "scoreboard"
    ],
    "tier": "ALL"
+  },
+  {
+   "id": "STOPS_DIP",
+   "name": "No stop on dip buys (time exit)",
+   "kind": "rule",
+   "evidence": "SUPPORTED",
+   "permission": "PAPER",
+   "reason": "H07 dips with no stop and a 10-day exit earned +6.5% / +2.4% a trade vs +0.5% / +0.4% with a tight stop, both periods, 120 coins; a plain 200-day touch loses with every exit",
+   "reviews": [
+    "#27"
+   ],
+   "aliases": [
+    "dip stop",
+    "no stop",
+    "time exit",
+    "stops on dips"
+   ],
+   "tier": "ALL"
   }
  ]
 }

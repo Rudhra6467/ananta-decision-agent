@@ -109,7 +109,9 @@ def checks(j, get: Callable = _get, now: float | None = None) -> dict[str, dict]
         out["explorer"] = {"ok": a < 35 * 60, "detail": f"last write {_mins(a)} ago"}
 
     hb = d / "watch_heartbeat.jsonl"
-    if hb.exists():
+    if (d / "hourly_watch.PARKED").exists():                    # D6 (Oct 11): parked on purpose (2 setups in 12 days); not an outage
+        out["hourly_watch"] = {"ok": True, "detail": "parked (Madhav, Oct 11): stopped on purpose, code kept"}
+    elif hb.exists():
         try:
             lines = [json.loads(x) for x in hb.read_text().strip().splitlines()[-2:] if x.strip()]
         except ValueError:

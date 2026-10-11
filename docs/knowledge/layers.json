@@ -843,6 +843,10 @@
     "jarvis/service/ev.py",
     "jarvis/service/people.py",
     "jarvis/service/status_words.py",
+    "jarvis/service/learning.py",
+    "jarvis/service/ndax_book.py",
+    "jarvis/service/live_guard.py",
+    "jarvis/service/exam.py",
     "jarvis/voice/telugu_server.py"
    ]
   },
@@ -1149,7 +1153,9 @@
     "src/intelligence/candidate_paper.py",
     "src/research/candidate_v3.py",
     "src/research/review25.py",
-    "src/research/review26.py"
+    "src/research/review26.py",
+    "src/research/review27.py",
+    "src/research/book500.py"
    ]
   },
   {

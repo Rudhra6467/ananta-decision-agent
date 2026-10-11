@@ -40,9 +40,12 @@ from typing import Any, Callable
 DAILY_MAX = int(os.getenv("BRAIN_DAILY_MAX", "80"))      # TK4 (Madhav, 2026-10-05): 20 -> 40; engine plan D2 (2026-10-09): a ceiling only
 DAILY_USD = float(os.getenv("BRAIN_DAILY_USD", "1.00"))  # engine plan D2: the day's AI budget for decisions, spent on the best-ranked wakes
 MIN_SCORE = 2.0                                           # below this a wake is logged as not reviewed (ranked too low), never sent
-TRIGGER_POINTS = {"zone_entry": 2.0, "attention_high": 2.0, "hunter": 1.0, "squeeze": 1.0, "explorer": 0.0,
-                  "setup:H07": 3.0, "setup:M1a": 2.0, "setup:M2a-G": 2.0}   # evidence behind each kind of moment (Universe Rule v2, D6)
-EXIT_PLANS = {"DIP": {"days": 10, "trail_atr": None}, "ZONE": {"days": 20, "trail_atr": None},
+# Review #28 (Oct 11): points follow measured evidence. Measured with no edge = 0.5 (zone touches: review #27; Explorer setups: review #1 and
+# the intraday atlas, 0 of 55 contexts positive; Hunter/Squeeze: 2 setups in 12 days); never measured = 1.0; daily rules use the EV table.
+TRIGGER_POINTS = {"zone_entry": 0.5, "attention_high": 1.0, "hunter": 0.5, "squeeze": 0.5, "explorer": 0.0,
+                  "setup:H07": 3.0, "setup:M1a": 2.0, "setup:M2a-G": 2.0}
+EXIT_PLANS = {"DIP": {"days": 10, "trail_atr": None, "no_stop": True},   # review #27: dips do best with no tight stop
+              "ZONE": {"days": 20, "trail_atr": None},
               "TREND": {"days": 20, "trail_atr": None}}      # engine fix 2: tested exits (H07, ZONE_TOUCH, review #12), not invented ones
 COIN_COOLDOWN = 6 * 3600
 STALE_S = 45 * 60
@@ -63,6 +66,7 @@ KNOWLEDGE = [
     ("T3", "PASSED", "Trend portfolio: coins in their own uptrend while Bitcoin is above its 50-day, 20-day exit. Confirmed on the lake: 10 coins and the 30 most-traded coins pass (2024-26 +19% vs buy-and-hold -24% on the 30); on all 120 coins it only cut losses (-14% vs -66%) (reviews #4, #15). Re-sizing only coins far from their share (T3-B) is a little better (review #20). Its crash insurance is the Bitcoin gate: fully in cash through LUNA (review #18). Survivorship check (review #22): on the top 30 as it really was each month it lost 22.5% in 2024-26 while holding lost 76%: on altcoins it loses much less, it does not reliably make money."),
     ("ZONES", "PASSED", "Support zones hold a little more often than random price bands. On 120 coins the 200-day average and new swing zones pass (z 4.4); overlapping zones no longer do (reviews #6, #16). Entering a zone is not a trade by itself."),
     ("LOOKOUT", "FAILED", "Inside a zone, the day's wick, a close back above, volume, divergence and relative strength added nothing beyond arithmetic (review #7)."),
+    ("STOPS_DIP", "PASSED", "Dip buys (the short dip trade H07) earned +6.5% / +2.4% a trade with no stop and a 10-day exit vs +0.5% / +0.4% with a tight stop one daily range under the entry, in both periods on 120 coins (review #27). The DIP plan now exits by time only. A plain touch of the 200-day average lost money with every stop tried (-1.5% / -2.9% a trade): a zone touch alone is not a reason to buy."),
     ("EXITS", "PASSED", "Selling at the next zone cut the winners (0% vs +5.8% for holding 20 days): gains come from a few big moves; the stop goes beyond the zone, the next zone is a review point, not a target (review #10)."),
     ("TRAIL", "MIXED", "Looser trailing exits won big in 2018-23 and lost in 2024-26; a 20-day time exit survived both (review #12)."),
     ("H07", "PASSED_LIQUID", "Short RSI dip: RSI(10) under 30 while above the 200-day, exit when RSI(10) is back over 40 or after 10 days. Passes on the 30 most-traded coins (+6.0% / +3.6% over ordinary uptrend days, z 3.5 / 3.2), fails on all 120: a liquid-coin edge (reviews #14, #15). Works best with no stop; if a stop is required use a structural one, never a tight 3% (review #18). On the top 30 as it really was each month it misses the bar by a hair (z 2.45 before 2024, strong after: +5.1%, z 4.8; review #22)."),
@@ -104,7 +108,8 @@ How to decide (this matters more than anything):
   bet. Size down (or pass) when a new trade would only add more of the same bet.
 - Plans: you choose WHERE the idea is wrong (the stop: beyond the zone or the recent low, about half to one daily range under it,
   never a random percent) and which TESTED exit plan fits the kind of trade; the code sets the rest of the exit from that plan:
-  DIP  (a short dip in an uptrend, H07-like): no target, no trail, out after 10 days.
+  DIP  (a short dip in an uptrend, H07-like): no stop (review #27), no target, no trail, out after 10 days; still write where the idea
+       would be wrong as the stop: it is recorded as the invalidation point.
   ZONE (a bounce from a support zone): no target, no trail, out after 20 days (the zone-touch rule).
   TREND (a coin in its own uptrend): no target, no trail, out after 20 days (the 20-day time exit survived both periods, review #12).
   Big gains come from a few big moves (review #10): never cap a winner with a near target.
@@ -330,6 +335,14 @@ def pack(j, coin: str, triggers: dict) -> dict:
         trig = "|".join(triggers) if isinstance(triggers, dict) else str(triggers)
         p["expected_value"] = {**ev.for_trigger(j, coin, trig), "meaning": "review #26: average % per trade over random entries "
                                "of the same tier and market state, after costs, both periods; 0 = no measured edge"}
+    except Exception:  # noqa: BLE001
+        pass
+    try:                                                # G30: Madhav's own buys as worked examples (his read, his reasons, what followed)
+        from jarvis.service import learning
+
+        ex = learning.worked_examples(4)
+        if ex:
+            p["madhav_worked_examples"] = {"cases": ex, "meaning": "how the owner read real bottoms and retests; examples to reason with, not rules or signals"}
     except Exception:  # noqa: BLE001
         pass
     try:                                                # the research desk (Oct 10): dated web facts; can only make the brain more careful
@@ -621,7 +634,10 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
         if noroom:                                      # D7: scored as evidence, outside the account (its 20 slots were full)
             det["no_room"] = True
             note = (note + "; " if note else "") + f"no room: the account already holds {MAX_OPEN}; kept as evidence only"
-        trade = _open(j, WATCH, coin, price, float(d["stop"]), target, trail, days, atr or 0.0, det, regime)
+        live_stop = float(d["stop"])
+        if (EXIT_PLANS.get(plan.get("exit_plan") or "") or {}).get("no_stop"):      # review #27: the DIP plan exits by time only
+            det["invalidation"], live_stop = float(d["stop"]), 0.0
+        trade = _open(j, WATCH, coin, price, live_stop, target, trail, days, atr or 0.0, det, regime)
         # the random twin: same moment, another coin, the same plan in its own daily ranges
         if _is_lab(coin):
             px_all = dict(eye.STATE.get("prices") or {}) or (j.prices() or {})
@@ -638,7 +654,7 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
                 rp = px_all[rc]
                 k_stop = (price - float(d["stop"])) / atr
                 rt = rp + (target - price) / atr * ratr if target else None
-                rnd = _open(j, BASE, rc, rp, rp - k_stop * ratr, rt, trail, days, ratr, {"decision": did, "twin_of": trade["id"], "thesis": f"random twin of {coin}", **({"no_room": True} if noroom else {})}, regime)
+                rnd = _open(j, BASE, rc, rp, (rp - k_stop * ratr) if live_stop else 0.0, rt, trail, days, ratr, {"decision": did, "twin_of": trade["id"], "thesis": f"random twin of {coin}", **({"no_room": True} if noroom else {})}, regime)
         if push:
             try:
                 push(f"Jarvis paper trade: {coin}", f"About ${price:,.6g}, stop ${float(d['stop']):,.6g}"

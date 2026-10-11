@@ -1,6 +1,6 @@
 {
  "version": "acceptance_gate.v1",
- "updated": "2026-10-06",
+ "updated": "2026-10-11",
  "source": "Ananta Engine Acceptance Framework (Madhav, Oct 6)",
  "rule": "The engine is ready to lock (and go to the App Store) only when every check passes at the same time. Read daily; a pass can turn back into a fail.",
  "checks": [
@@ -71,19 +71,19 @@
    "id": "engine_sizing",
    "area": "Engine",
    "check": "Sizing correct",
-   "measure": "Every trade's size checked against its book's rule",
-   "pass_mark": "0 violations in the weekly audit",
-   "status": "NOT_MEASURED",
-   "note": "weekly audit not built"
+   "measure": "Every entry of the $500 NDAX book checked against D9 (0.5% risk, 10% a trade, core weights), live and in the backtest",
+   "pass_mark": "0 violations, with at least 1 live entry",
+   "status": "PENDING",
+   "note": "measured live (Oct 11)"
   },
   {
    "id": "engine_execution",
    "area": "Engine",
    "check": "Execution assumptions",
-   "measure": "Paper fills compared with what the real order book allowed",
-   "pass_mark": "Gap under the cost allowance",
-   "status": "NOT_MEASURED",
-   "note": ""
+   "measure": "Every paper fill of the $500 book is priced at NDAX's own bid or ask at that moment, fee on top",
+   "pass_mark": "Every fill inside NDAX's bid and ask, at least 20 fills",
+   "status": "PENDING",
+   "note": "measured live (Oct 11)"
   },
   {
    "id": "engine_risk",
@@ -134,28 +134,28 @@
    "id": "strategy_regimes",
    "area": "Strategy",
    "check": "Failure regimes known",
-   "measure": "Results per regime written down",
-   "pass_mark": "Every traded idea has its regime table",
-   "status": "NOT_MEASURED",
-   "note": "build order step 5"
+   "measure": "Closed trades of each traded idea (H07 on tier A, Jarvis's book) split by the exposure dial at entry",
+   "pass_mark": "At least 10 market events with the dial open AND 10 with it closed, results written for both",
+   "status": "PENDING",
+   "note": "measured live (Oct 11)"
   },
   {
    "id": "agent_knows",
    "area": "Agent",
    "check": "Knows what it knows",
-   "measure": "Fixed exam of about 50 questions",
-   "pass_mark": "90% correct, 3 runs in a row",
-   "status": "NOT_MEASURED",
-   "note": "exam not built (step 8)"
+   "measure": "The agent exam: 20 questions about its own knowledge, each judged by facts (jarvis/service/exam.py)",
+   "pass_mark": "18 of 20 right",
+   "status": "PENDING",
+   "note": "measured live (Oct 11)"
   },
   {
    "id": "agent_unknowns",
    "area": "Agent",
    "check": "Knows what it doesn't",
-   "measure": "Exam questions with no data",
-   "pass_mark": "Says 'no evidence' every time",
-   "status": "NOT_MEASURED",
-   "note": "exam not built (step 8)"
+   "measure": "The agent exam: 10 questions nobody can answer from our data",
+   "pass_mark": "9 of 10 say plainly 'I don't know' or 'no evidence'",
+   "status": "PENDING",
+   "note": "measured live (Oct 11)"
   },
   {
    "id": "agent_no_failed_rules",
@@ -224,10 +224,10 @@
    "id": "ux_voice",
    "area": "Experience",
    "check": "Voice commands work",
-   "measure": "The command list run by voice",
-   "pass_mark": "Every command, end to end",
-   "status": "NOT_MEASURED",
-   "note": ""
+   "measure": "10 spoken commands made with the Mac's voice, heard by the app's speech-to-text",
+   "pass_mark": "9 of 10 heard with their key words",
+   "status": "PENDING",
+   "note": "measured live (Oct 11)"
   },
   {
    "id": "ux_confirm",

@@ -64,6 +64,10 @@ RULESETS = {  # repair-shop review #1 (docs/repair_shop/REVIEW_1.md)
     # TK2 (Madhav's yes, 2026-10-05): W1, but a dip trade needs at least 1.2% room to its target. Under W1 three E6 trades
     # "hit their target" the minute they filled (target 0.01% away) and lost to costs; with no room it is a NO_TYPE shadow.
     "W2": Rules("W2", setups=("E1", "E2", "E3", "E4", "E5", "E6"), stack=3, stack_gap=2.0, dip_room=0.012),
+    # review #24 (docs/research/REVIEW_24.md): the live deep-dip buy alone, and two of its pre-registered variants
+    "E6LIVE": Rules("E6LIVE", setups=("E6",), stack=3, stack_gap=2.0, dip_room=0.012),
+    "E6NOBELL": Rules("E6NOBELL", setups=("E6",), stack=3, stack_gap=2.0, dip_room=0.012, x3=False),
+    "E6ROOM": Rules("E6ROOM", setups=("E6",), stack=3, stack_gap=2.0, dip_room=0.02),
 }
 DIP_SETUPS = ("E6", "E7", "E8")
 

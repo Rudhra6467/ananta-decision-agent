@@ -81,13 +81,18 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_25.md`, `research/REVIEW_25_RESULTS.md`: the exposure dial (Oct 10, 2026). On BTC with NDAX costs, Bitcoin above its 50-day AND 200-day averages (GATE50_200) beats the 50-day gate and holding in both periods (return per unit of fall 0.74 and 0.83); it becomes dial v1. GATE50 is the benchmark every strategy must beat.
 - `research/REVIEW_26.md`, `research/REVIEW_26_RESULTS.md`: six daily rules × dial state × tier on 120 coins, against random entries after costs. Only one cell passes in both periods: H07 on tier A while the dial is CLOSED (+5.1% a trade over random, shrunk). Everything else has no measured edge; the brain ranks by this table.
 - `research/REVIEW_24.md`: pre-registration of review #24, tuning the deep-dip buy (E6): four entry/exit variants against random entries, both periods, after costs (Madhav's request #15).
+- `research/REVIEW_24_RESULTS.md`: review #24 results: no E6 variant passes (no bell, 2% room); every one loses after costs in both periods and none beats random in 2024-2026. The zone variants were not run (no 15-minute zone history).
+- `research/REVIEW_27.md`, `research/REVIEW_27_RESULTS.md`: stops on dip buys and zone touches. H07 dips with no stop and a 10-day exit earned +6.5% / +2.4% a trade vs +0.5% / +0.4% with a tight stop; a plain 200-day touch loses with every exit. The brain's DIP plan now exits by time only.
+- `research/REVIEW_28.md`: the brain's trigger points follow the evidence (Explorer 0, zone entry 0.5 or 1.5 when supported, Hunter and Squeeze 0.5, attention 1.0; daily rules by measured edge).
+- `research/BOOK500.md`: the $500 NDAX paper book (CAD, NDAX coins only): core 60% by the dial, measured edges 30%, judgment 10%, 0.5% risk a trade, the D12 brakes, and its 2018-2026 backtest against holding Bitcoin and the 50-day hurdle.
 
 ## Safety and operations
 - `GUEST_GUIDE.md`: a guide for a friend trying the app: how to open it, the tabs, the coins, first questions, the rule gates, making a paper trade, what practice mode locks.
 - `RUNBOOK_SAFETY.md`: stop, flatten, roll back, resume (copy-paste commands).
 - `SAFETY_GATES_LOCK.md`: safety gates that live outside the AI.
 - `UNIVERSE_RULE_V2.md`: the live universe (Oct 9, 2026): every Binance USDT coin Ananta watches, tiers A/B/C by daily trading, can-buy flags, paper costs, what runs on every coin, what earns promotion, the brain's daily budget.
-- `GO_LIVE_CHECKLIST.md`: the engine in order since Oct 10 (exposure dial, measured edge, brain picks a tested exit plan, 0.5% risk per trade in R, the benchmark hurdle, paper-vs-backtest fidelity) and the boxes each stage toward real money needs.
+- `GO_LIVE_CHECKLIST.md`: the engine in order since Oct 10 (exposure dial, measured edge, brain picks a tested exit plan, 0.5% risk per trade in R, the benchmark hurdle, paper-vs-backtest fidelity) and the boxes each stage toward real money needs. Since Oct 11 Stage 1 also needs every Acceptance Gate check at PASS and uses the $500 NDAX book.
+- `LIVE_MONEY_SAFETY.md`: the D12 brakes (2% day, 4% week, 4 losses in a row, 15% fall = paused until Madhav resumes), stops resting on NDAX at 6 × ATR (the backtest of 2, 4 and 6 × ATR), the NDAX kill switch plan, the incident runbook, API key and password rotation steps, and the monthly rehearsal checklist.
 - `JARVIS_TEST_PLAN.md`: how Jarvis / Ask Ananta is tested (automatic suite + hands-on checks).
 - `LOCAL_LOOP.md`: running the agent locally without the website.
 

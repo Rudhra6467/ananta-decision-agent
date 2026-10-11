@@ -23,7 +23,16 @@ Nothing on this list moves real money by itself. Each stage needs every box tick
 - [x] Would-be account in R, with the dial, the risk caps and the hurdle
 - [ ] 60 market days of paper with the dial in force (both dial states seen at least once)
 
+## The account (Oct 11, D9/D13): the $500 NDAX book
+Stage 1 uses the $500 NDAX book in CAD (docs/research/BOOK500.md): core up to 60% by the dial, measured edges up to 30%,
+judgment up to 10%, 0.5% risk a setup trade, at most 10% of the book in one trade, the D12 brakes and stops on NDAX
+(docs/LIVE_MONEY_SAFETY.md). It runs on paper now with real NDAX bid and ask prices.
+
 ## Stage 1: tiny live (needs every box)
+- [ ] **Every Acceptance Gate check at PASS** (Evidence page; docs/knowledge/acceptance_gate.json), or a written waiver from Madhav
+      for that check
+- [ ] The $500 paper book: 60 market days, every brake seen to work, every fill inside NDAX's bid and ask
+- [ ] LIVE_MONEY_SAFETY.md rehearsal checklist done, and the live guard wired after Madhav's review
 - [ ] The would-be account shows positive average R over at least 30 closed trades
 - [ ] The would-be account beats the benchmark over the same days
 - [ ] Fidelity: no cell with 10+ trades marked "BELOW BACKTEST"

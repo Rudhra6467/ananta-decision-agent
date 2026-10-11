@@ -739,6 +739,12 @@ def _gate(j, out: dict) -> dict:
         c["status"] = "PENDING" if not n else "PASS" if not cited else "FAIL"
         c["note"] = (f"{cited} of {n} buys leaned partly on a context-only idea; {blocked} buys that rested only on one were stopped "
                      "(last 7 days, checked since Oct 6)" if n else "no buys since the check started (Oct 6)")
+    try:
+        _gate_measured(j, by)
+    except Exception as exc:  # noqa: BLE001  a measurement failing never hides the gate
+        for k in ("engine_sizing", "engine_execution", "strategy_regimes"):
+            if by.get(k):
+                by[k]["note"] = f"could not measure: {str(exc)[:80]}"
     for c in checks:
         c["status_words"] = GATE_WORDS.get(c["status"], c["status"])
     passed = sum(1 for c in checks if c["status"] == "PASS")
@@ -748,6 +754,51 @@ def _gate(j, out: dict) -> dict:
             areas.append(c["area"])
     return {"passed": passed, "of": len(checks), "checks": checks, "areas": areas, "rule": g["rule"],
             "counts": {k: sum(1 for c in checks if c["status"] == k) for k in GATE_WORDS}}
+
+
+def _gate_measured(j, by: dict) -> None:
+    """The six checks that had no measure until Oct 11 (plan Batch 5): sizing, execution, regimes, the agent exam and the voice exam."""
+    from jarvis.service import exam, ndax_book
+
+    c = by.get("engine_sizing")
+    if c:
+        a = ndax_book.audit(j)
+        c["status"] = "PENDING" if not a["entries"] else "PASS" if not a["violations"] else "FAIL"
+        c["note"] = f"{a['violations']} violations in {a['entries']} entries of the $500 book; the 2018-2026 backtest: every size followed the rule"
+    c = by.get("engine_execution")
+    if c:
+        n, inside = j.db.execute("SELECT COUNT(*), SUM(px >= bid - 1e-9 AND px <= ask + 1e-9) FROM book500_fills").fetchone() \
+            if j.db.execute("SELECT 1 FROM sqlite_master WHERE name='book500_fills'").fetchone() else (0, 0)
+        inside = inside or 0
+        c["status"] = "FAIL" if inside < n else "PASS" if n >= 20 else "PENDING"
+        c["note"] = f"{inside} of {n} paper fills inside NDAX's bid and ask (needs 20)"
+    c = by.get("strategy_regimes")
+    if c:
+        from jarvis.service import exposure
+
+        dial = exposure.dial_by_day(j)
+        parts, ok = [], True
+        for watch, label in (("H07-UA", "H07 tier A"), ("JARVIS", "Jarvis's book")):
+            ev = {"OPEN": set(), "CLOSED": set()}
+            for day, xday in j.db.execute("SELECT entry_day, exit_day FROM evidence_trades WHERE watch=? AND status='CLOSED'", (watch,)):
+                d = dial.get(day)
+                if d is not None:
+                    ev["OPEN" if d else "CLOSED"].add(xday)
+            ok = ok and len(ev["OPEN"]) >= 10 and len(ev["CLOSED"]) >= 10
+            parts.append(f"{label}: {len(ev['OPEN'])} events dial open, {len(ev['CLOSED'])} dial closed")
+        c["status"] = "PASS" if ok else "PENDING"
+        c["note"] = "; ".join(parts) + " (needs 10 each; the backtest's split is in BOOK500.md and reviews #25-#27)"
+    e = exam.latest()
+    for k, field, n_key, of_key in (("agent_knows", "knows_pass", "known", "known_of"), ("agent_unknowns", "unknowns_pass", "unknown", "unknown_of")):
+        c = by.get(k)
+        if c:
+            c["status"] = "NOT_MEASURED" if not e else "PASS" if e.get(field) else "FAIL"
+            c["note"] = f"{e[n_key]} of {e[of_key]} on {e['day']}" if e else "exam not run yet"
+    v = exam.latest("voice_latest.json")
+    c = by.get("ux_voice")
+    if c:
+        c["status"] = "NOT_MEASURED" if not v else "PASS" if v.get("pass") else "FAIL"
+        c["note"] = f"{v['understood']} of {v['of']} heard on {v['day']}" if v else "voice exam not run yet"
 
 
 def _headline(out: dict) -> str:

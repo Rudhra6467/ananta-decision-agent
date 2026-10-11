@@ -1086,6 +1086,27 @@ def brain_trade(trade_id: str, who: str = Depends(owner)) -> dict:
     return _run(brain.trade_detail, J(), trade_id)
 
 
+@app.get("/v3/situations")
+def situations(days: int = 7, who: str = Depends(owner)) -> dict:
+    from jarvis.service import learning
+
+    return _run(learning.weekly_review, J(), days, False)
+
+
+@app.get("/v3/book500")
+def book500(who: str = Depends(owner)) -> dict:
+    from jarvis.service import ndax_book
+
+    return ndax_book.status(J())
+
+
+@app.post("/v3/book500/resume")
+def book500_resume(who: str = Depends(owner)) -> dict:
+    from jarvis.service import ndax_book
+
+    return ndax_book.resume(J())
+
+
 @app.get("/v3/missed")
 def missed_moves(days: int = 7, who: str = Depends(owner)) -> dict:
     from jarvis.service import missed

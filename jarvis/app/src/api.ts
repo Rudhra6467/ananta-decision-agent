@@ -18,6 +18,7 @@ export async function token(): Promise<string | null> {
   return SecureStore.getItemAsync("jarvis_token");
 }
 export async function logout() {
+  try { await api("/v3/onboard/demo/clear", {}, 5000); } catch { /* signed out anyway */ }   // a visitor's DEMO trade ends at the first sign-out
   await SecureStore.deleteItemAsync("jarvis_token");
 }
 

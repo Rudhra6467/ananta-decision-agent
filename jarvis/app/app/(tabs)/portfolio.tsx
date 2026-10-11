@@ -1,3 +1,4 @@
+import { DemoCard } from "../../src/firstchat";
 import { Spot } from "../../src/spotlight";
 import { useCallback, useState } from "react";
 import { Alert, Pressable, Switch, Text, View } from "react-native";
@@ -35,6 +36,7 @@ function GuestBooks() {
 function VisitorBooksTabs({ d, loading, reload }: { d: any; loading: boolean; reload: () => void }) {
   const [top, setTop] = useState("trades");
   const { data: bk, reload: reloadBk } = useData(d.started ? "/v3/books" : null, 60000);
+  const { data: dm } = useData("/v3/onboard/demo", 60000);                          // the first conversation's DEMO trade, if still shown
   if (!d.started) return <VisitorBooks d={d} loading={loading} reload={reload} />;     // Start trading first
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -43,6 +45,7 @@ function VisitorBooksTabs({ d, loading, reload }: { d: any; loading: boolean; re
       </View>
       {top === "trades" ? (
         <Screen loading={loading} onRefresh={() => { reload(); reloadBk(); }}>
+          {dm?.demo?.status ? <View style={{ marginBottom: 12 }}><DemoCard d={dm.demo} /></View> : null}
           {bk ? <BooksTrades d={bk} /> : <Busy />}
         </Screen>
       ) : <VisitorBooks d={d} loading={loading} reload={reload} />}

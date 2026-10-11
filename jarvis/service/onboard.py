@@ -5,7 +5,14 @@ Each step is saved as it is answered (step + transcript in the account's profile
 they stopped; Start over runs it again. Every line has a typed path and tappable answers; voice says the first sentence or two.
 Beginners get one extra plain sentence for words like zone, stop and paper.
 
-  permission -> can_do -> name -> experience -> crypto -> risk -> coins -> capital -> interest -> setup -> mode -> acts -> tour -> done
+  permission -> can_do -> name -> experience -> crypto -> risk -> coins -> capital -> interest -> setup -> mode -> acts -> demo -> demo_exit
+  -> explore -> done
+
+demo / demo_exit (Madhav, Oct 11): when nothing is ready, a DEMO trade at the live price shows how a trade is taken in the mode they
+chose (Ask me first: a request card to approve; Auto: it just happens) and how it is exited. It lives only in this profile, never
+in a book, scoreboard or the evidence, is labelled DEMO everywhere, and disappears at the first sign-out or after 24 hours.
+explore: 'How would you like to explore?' with questions about Ananta's setups and research; the one-minute app tour is one choice.
+Typing anything at any step (except the name) ends the first conversation and goes to Ananta as a normal question.
 
 The service decides the words and the next step (no AI call, free and instant); the app only shows them and sends the answers.
 """
@@ -16,7 +23,18 @@ from typing import Any
 
 from jarvis.service import account
 
-STEPS = ("permission", "can_do", "name", "experience", "crypto", "risk", "coins", "capital", "interest", "setup", "mode", "acts", "tour", "done")
+STEPS = ("permission", "can_do", "name", "experience", "crypto", "risk", "coins", "capital", "interest", "setup", "mode", "acts", "demo", "demo_exit",
+         "explore", "done")
+DEMO_HOURS = 24
+DEMO_FEE = 0.002                                     # NDAX fee a side, so the demo result looks like a real one
+TYPED = "__typed__"                                  # the person typed a question instead of answering: end here, go to Ask
+EXPLORE = [
+    "What trading setups does Ananta use right now?",
+    "What did the research find for each setup?",
+    "Which setup has a proven edge, and when does it trade?",
+    "Why does Ananta skip most days?",
+]
+NEXT_CHIPS = ["Give Ananta $500 paper capital and test it live", "Give Ananta $1,000 paper capital and test it live"]
 EXP = [["never", "Never"], ["under_1y", "Under a year"], ["1_3y", "1–3 years"], ["over_3y", "Over 3 years"]]
 CRYPTO = [["new", "New to it"], ["hold", "I hold some"], ["trade", "I trade it"]]
 RISK = [["careful", "Careful"], ["balanced", "Balanced"], ["bold", "Bold"]]
@@ -67,6 +85,8 @@ def _first_step(j) -> str:
 
 def step(j) -> str:
     s = _get(j.db, "onboard_step")
+    if s == "tour":                                    # the old last step (before Oct 11) now leads into the demo
+        return "demo"
     return s if s in STEPS else _first_step(j)
 
 
@@ -144,9 +164,23 @@ def prompt(j) -> dict:
     elif s == "acts":
         w = _get(j.db, "onboard_watch") or {}
         out |= {"say": w.get("said") or "Done.", "input": {"type": "choice", "options": [["seen", "Show me"]]}, "watch": w}
-    elif s == "tour":
-        out |= {"say": "Your first setup is ready. Want a one-minute look at what else I can do?",
-                "input": {"type": "choice", "options": [["yes", "Yes, show me"], ["later", "Later"]]}}
+    elif s == "demo":
+        mode = _get(j.db, "onboard_mode") or "ask"
+        d = _demo_plan(j)
+        if mode == "ask":
+            out |= {"say": f"Nothing is ready right now, so let me show you how I'll ask you. When a real setup appears, you get a request like this one. "
+                           f"This is a DEMO, not a signal.",
+                    "demo": d, "input": {"type": "choice", "options": [["approve", "Approve the demo buy"], ["skip", "Skip the demo"]]}}
+        else:
+            out |= {"say": "Nothing is ready right now, so let me show you how I take a trade by myself and tell you. This is a DEMO, not a signal.",
+                    "demo": d, "input": {"type": "choice", "options": [["go", "Show me the demo trade"], ["skip", "Skip the demo"]]}}
+    elif s == "demo_exit":
+        d = demo(j) or {}
+        out |= {"say": "The demo trade is open, with its stop below. Now the exit: I sell when the plan says so, or you can sell any time from Books.",
+                "demo": d, "input": {"type": "choice", "options": [["exit", "Exit the demo trade"]]}}
+    elif s == "explore":
+        out |= {"say": (f"That's how a trade works, {name}. " if name else "That's how a trade works. ") + "How would you like to explore Ananta?",
+                "input": {"type": "choice", "options": [[q, q] for q in EXPLORE] + [["tour", "Show me around the app"]]}}
     else:
         out |= {"say": "That's it. Ask me anything, or tell me what to watch.", "input": None}
     return out
@@ -162,6 +196,12 @@ def answer(j, s: str, value: Any, email: str = "", tz: str | None = None) -> dic
     from jarvis.service import watches
 
     cur = step(j)
+    if value == TYPED and cur != "done":             # they typed a question: the first conversation ends, Ask takes it
+        _put(j.db, "onboard_step", "done")
+        _put(j.db, "onboard_done", int(j.now()))
+        return {**prompt(j), "ask": True, "follow_ups": EXPLORE[:3]}
+    if s == "tour" and cur == "demo":               # an app from before Oct 11 answering the old last step
+        s = "demo"
     if s != cur:                                   # an old screen answering a step already done: just show where we are
         return prompt(j)
     p = account.profile(j.db)
@@ -225,12 +265,44 @@ def answer(j, s: str, value: Any, email: str = "", tz: str | None = None) -> dic
         elif requested:
             line += " It's ready now: your request is waiting in Needs you."
         _put(j.db, "onboard_watch", {"id": w["id"], "said": line, "order_placed": bool(traded)})
+        _put(j.db, "onboard_mode", str(value))
         said = "Auto" if value == "auto" else "Ask me first"
     elif s == "acts":
         said = None
-    elif s == "tour":
-        said = "Yes, show me" if value == "yes" else "Later"
+    elif s == "demo":
+        if value in ("skip", "later"):
+            said = "Skip the demo"
+            _say(j, "ananta", asked)
+            _say(j, "you", said)
+            _put(j.db, "onboard_step", "explore")
+            return prompt(j)
+        d = _demo_plan(j)
+        if not d.get("price"):
+            raise ValueError("no live price for the demo right now; try again in a minute, or skip it")
+        d.update(entry_t=int(j.now()), entry=d["price"], status="OPEN", mode=_get(j.db, "onboard_mode") or "ask")
+        _put(j.db, "demo_seen_mode", d["mode"])
+        _put(j.db, "demo_trade", d)
+        said = "Approve the demo buy" if value == "approve" else "Show me the demo trade"
+        extra = (f"DEMO: bought {d['qty']:g} {d['coin']} (${d['usd']:,.2f}) at ${d['price']:,.2f}. Stop at ${d['stop']:,.2f}. "
+                 "It's marked DEMO and isn't counted anywhere.")
+    elif s == "demo_exit":
+        d = demo(j)
+        if d and d.get("status") == "OPEN":
+            px = _live(d["coin"]) or d["entry"]
+            pnl = d["qty"] * px * (1 - DEMO_FEE) - d["qty"] * d["entry"] * (1 + DEMO_FEE)
+            d.update(exit=px, exit_t=int(j.now()), pnl=round(pnl, 2), status="CLOSED")
+            _put(j.db, "demo_trade", d)
+            extra = (f"DEMO: sold {d['coin']} at ${px:,.2f}. Result ${pnl:+,.2f} after fees, which is mostly the cost of buying and selling. "
+                     f"It stays in Books marked DEMO until you sign out, or {DEMO_HOURS} hours at most.")
+        said = "Exit the demo trade"
+    elif s == "explore":
+        said = "Show me around the app" if value == "tour" else str(value)
         _put(j.db, "onboard_done", int(j.now()))
+        _say(j, "ananta", asked)
+        _say(j, "you", said)
+        _next(j, s)
+        out = prompt(j)
+        return {**out, "explore": value, "follow_ups": [q for q in EXPLORE if q != value][:2] + NEXT_CHIPS}
     _say(j, "ananta", asked)
     if said:
         _say(j, "you", said)
@@ -240,7 +312,67 @@ def answer(j, s: str, value: Any, email: str = "", tz: str | None = None) -> dic
     return prompt(j)
 
 
+def _live(coin: str) -> float | None:
+    try:
+        from jarvis.service.app import _main
+
+        return (_main().prices() or {}).get(coin)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _demo_plan(j) -> dict:
+    """The demo's coin, size and stop: their first coin, 1% of their practice money (at least $10), a stop 3% below."""
+    p = account.profile(j.db)
+    coin = ((_get(j.db, "onboard_coins") or p.get("coins") or ["BTC"]) + ["BTC"])[0]
+    px = _live(coin)
+    usd = max(10.0, round(0.01 * float(p.get("capital") or 1000), 2))
+    return {"demo": True, "coin": coin, "name": account.NAMES.get(coin, coin), "price": px, "usd": usd,
+            "qty": round(usd / px, 6) if px else None, "stop": round(px * 0.97, 6) if px else None,
+            "why": "DEMO: not a signal. It only shows how a trade is taken and exited."}
+
+
+def demo(j) -> dict | None:
+    """The demo trade, while it may still be shown (until sign-out, or DEMO_HOURS at most)."""
+    d = _get(j.db, "demo_trade")
+    if d and int(j.now()) - int(d.get("entry_t") or 0) > DEMO_HOURS * 3600:
+        clear_demo(j)
+        return None
+    return d
+
+
+def clear_demo(j) -> None:
+    j.db.execute("DELETE FROM visitor_profile WHERE k='demo_trade'")
+    j.db.commit()
+
+
+def set_capital(j, amount: int, email: str = "") -> dict:
+    """The 'Give Ananta $500 / $1,000' chips after the first conversation: Ananta practises with that much, then asks how to take trades."""
+    account.update(j, {"capital": int(amount), "start_trading": True, "method": "jarvis"}, email)
+    return {"say": f"Done. Ananta now practises with ${int(amount):,} of paper money on the live market, with the same rules and costs as "
+                   "Madhav's own book. Nothing is bought until a setup is ready. How should it take each trade?",
+            "follow_ups": ["Ask me first for every setup", "Fully automatic"]}
+
+
+def set_mode(j, mode: str, email: str = "") -> dict:
+    """Semi-automatic (ask first) or fully automatic. Choosing 'ask' when the demo showed 'auto' runs the demo again in ask mode."""
+    if mode not in ("auto", "ask"):
+        raise ValueError("choose ask or auto")
+    account.update(j, {"auto": mode == "auto"}, email)
+    _put(j.db, "onboard_mode", mode)
+    seen = (_get(j.db, "demo_trade") or {}).get("mode") or _get(j.db, "demo_seen_mode")
+    if mode == "ask" and seen != "ask":
+        clear_demo(j)
+        _put(j.db, "onboard_step", "demo")
+        return {"demo_again": True, "say": "Semi-automatic: I'll ask you before every trade. Here's how that looks."}
+    if mode == "ask":
+        return {"say": "Semi-automatic: I'll ask you before every trade, the way the demo showed. Requests appear in Needs you and on your phone.",
+                "follow_ups": EXPLORE[:2] + ["What are you watching for me?"]}
+    return {"say": "Fully automatic: I take each setup myself, with its stop, and tell you right away. You can switch back any time in Watchlists.",
+            "follow_ups": EXPLORE[:2] + ["What are you watching for me?"]}
+
+
 def start_over(j) -> None:
-    for k in ("onboard_step", "onboard_log", "onboard_coins", "onboard_kind", "onboard_watch", "onboard_done"):
+    for k in ("onboard_step", "onboard_log", "onboard_coins", "onboard_kind", "onboard_watch", "onboard_done", "onboard_mode", "demo_trade"):
         j.db.execute("DELETE FROM visitor_profile WHERE k=?", (k,))
     j.db.commit()

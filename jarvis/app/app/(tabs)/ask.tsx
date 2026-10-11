@@ -18,7 +18,7 @@ import * as Haptics from "../../src/haptics";
 import { VoiceLoop, type Phase } from "../../src/voiceloop";
 import { Bullet, Divider, Pill, Segmented, T } from "../../src/ui";
 import { C } from "../../src/theme";
-import { useMe } from "../../src/visitor";
+import { loadMe, useMe } from "../../src/visitor";
 
 // Starter questions on an empty conversation (Madhav: a new person should know what to ask)
 const STARTERS = ["What's happening here?", "What are we doing here?", "Show me around", "Which coins are we watching?",
@@ -301,15 +301,37 @@ export default function Ananta() {
     await TTS.speakText(line);
   };
 
+  // After the first conversation (Madhav, Oct 11): the next answer carries these chips; the capital and mode chips act directly
+  const pendingChips = useRef<string[]>([]);
+  const guestStep = async (q: string): Promise<boolean> => {
+    if (!(vmeRef.current as any)?.guest) return false;
+    const cap = q.match(/^Give Ananta \$(500|1,000) paper capital/);
+    const mode = /^Ask me first for every setup$/.test(q) ? "ask" : /^Fully automatic$/.test(q) ? "auto" : null;
+    if (!cap && !mode) return false;
+    setMsgs((m) => [...m, { role: "user", text: q }]);
+    const r: any = cap ? await api("/v3/onboard/capital", { amount: cap[1] === "500" ? 500 : 1000 }) : await api("/v3/onboard/mode", { mode });
+    if (r.demo_again) { await loadMe(); return true; }           // semi-automatic: the demo again, in ask mode
+    setMsgs((m) => [...m, { role: "assistant", kind: "answer", model_label: "Ananta", answer: r.say, follow_ups: r.follow_ups ?? [] }]);
+    return true;
+  };
+
   const send = async (q: string) => {
     q = q.trim();
     if (!q || busy) return;
     setText("");
     setErr(null);
-    setMsgs((m) => [...m, { role: "user", text: q }]);
     setBusy(true);
     try {
+      if (await guestStep(q)) { setBusy(false); return; }
+    } catch (e: any) {
+      setBusy(false);
+      handleTextAnswer({ error: e?.message ?? String(e) });
+      return;
+    }
+    setMsgs((m) => [...m, { role: "user", text: q }]);
+    try {
       const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: modeRef.current, context: where() });
+      if (pendingChips.current.length && !r.error) { r.follow_ups = pendingChips.current; pendingChips.current = []; }
       handleTextAnswer(r);
     } catch (e: any) {
       handleTextAnswer({ error: e?.message ?? String(e) });
@@ -551,8 +573,11 @@ export default function Ananta() {
   const drawer = <SessionsDrawer open={sessions} onClose={() => setSessions(false)} onOpen={openSession} onNew={newSession} current={thread} />;
   // Phase 5: a visitor who has not finished the first conversation meets Ananta here first
   if ((vme as any)?.guest && (vme as any)?.onboard && (vme as any).onboard !== "done") {
-    return <FirstConversation onDone={() => { setMsgs([{ role: "assistant", kind: "answer", model_label: "Ananta", answer: "That's it. Ask me anything, or tell me what to watch.",
-      follow_ups: ["What are you watching for me?", "Show me the setup you like most", "How does a stop work?"] }]); }} />;
+    return <FirstConversation onDone={(o?: { ask?: string; followUps?: string[] }) => {
+      setMsgs([{ role: "assistant", kind: "answer", model_label: "Ananta", answer: o?.ask ? "Good question. Here's the answer." : "How would you like to explore Ananta?",
+        follow_ups: o?.ask ? [] : (o?.followUps ?? ["What trading setups does Ananta use right now?", "What did the research find for each setup?", "What are you watching for me?"]) }]);
+      if (o?.ask) { pendingChips.current = o.followUps ?? []; setTimeout(() => send(o.ask as string), 300); }
+    }} />;
   }
   if (tabv === "now") return <View style={{ flex: 1, backgroundColor: C.bg }}>{top}<AnantaNow />{drawer}</View>;
 

@@ -836,6 +836,57 @@ def onboard_restart(who: str = Depends(owner)) -> dict:
     return onboard.prompt(J())
 
 
+class OnboardCapital(BaseModel):
+    amount: int
+
+
+class OnboardMode(BaseModel):
+    mode: str
+
+
+@app.post("/v3/onboard/capital")
+def onboard_capital(b: OnboardCapital, who: str = Depends(owner)) -> dict:
+    if not is_guest(who):
+        raise HTTPException(status_code=400, detail="only practice accounts")
+    from jarvis.service import onboard
+
+    try:
+        return onboard.set_capital(J(), b.amount, who.split(":", 1)[-1])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v3/onboard/mode")
+def onboard_mode(b: OnboardMode, who: str = Depends(owner)) -> dict:
+    if not is_guest(who):
+        raise HTTPException(status_code=400, detail="only practice accounts")
+    from jarvis.service import onboard
+
+    try:
+        return onboard.set_mode(J(), b.mode, who.split(":", 1)[-1])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/v3/onboard/demo")
+def onboard_demo(who: str = Depends(owner)) -> dict:
+    """The DEMO trade from the first conversation (never in a book); gone at the first sign-out or after 24 hours."""
+    if not is_guest(who):
+        return {"demo": None}
+    from jarvis.service import onboard
+
+    return {"demo": onboard.demo(J())}
+
+
+@app.post("/v3/onboard/demo/clear")
+def onboard_demo_clear(who: str = Depends(owner)) -> dict:
+    if is_guest(who):
+        from jarvis.service import onboard
+
+        onboard.clear_demo(J())
+    return {"ok": True}
+
+
 class WebSub(BaseModel):
     sub: dict
     device: str = ""

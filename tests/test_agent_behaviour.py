@@ -38,7 +38,7 @@ def test_capital_up_to_ten_thousand():
     clock = {"t": 1_800_000_000}
     g = _g(clock)
     assert account.profile(g.db)["capital"] == 6000
-    for bad in (500, 6500, 11000):
+    for bad in (250, 6500, 11000):                       # $500 is allowed since Oct 11 (the NDAX book size)
         try:
             account.update(g, {"capital": bad})
         except ValueError:

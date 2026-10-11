@@ -31,7 +31,9 @@ const TOUR: Stop[] = [
               say: "Here's the ticket: an amount in dollars or coins, an optional stop and target, then review before anything is placed. It's all paper money." } },
 ];
 
-export function FirstConversation({ onDone }: { onDone: () => void }) {
+type DoneWith = { ask?: string; followUps?: string[] };
+
+export function FirstConversation({ onDone }: { onDone: (o?: DoneWith) => void }) {
   const [p, setP] = useState<any>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -64,7 +66,7 @@ export function FirstConversation({ onDone }: { onDone: () => void }) {
       }
       const r = await api("/v3/onboard", { step: p.step, value, tz: tz() });
       if (r.step === "acts") await itActs(r);
-      else if (p.step === "tour") await finish(value === "yes");
+      else if (p.step === "explore") await finish(value === "tour", value === "tour" ? undefined : String(value), r.follow_ups);
       else show(r);
     } catch (e: any) {
       setErr(e?.message ?? String(e));
@@ -86,7 +88,23 @@ export function FirstConversation({ onDone }: { onDone: () => void }) {
     show(n);
   };
 
-  const finish = async (tour: boolean) => {
+  // Typing instead of tapping (Madhav, Oct 11): the first conversation ends and Ananta answers it as a normal question
+  const typed = async (q: string) => {
+    q = q.trim();
+    if (!q || !p || busy) return;
+    setBusy(true);
+    try {
+      const r = await api("/v3/onboard", { step: p.step, value: "__typed__", tz: tz() });
+      await loadMe();
+      onDone({ ask: q, followUps: r.follow_ups });
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const finish = async (tour: boolean, ask?: string, followUps?: string[]) => {
     if (tour) {
       takeTourCommand();
       for (let i = 0; i < TOUR.length; i++) {
@@ -113,10 +131,8 @@ export function FirstConversation({ onDone }: { onDone: () => void }) {
       goTab("/(tabs)/ask");
       await sleep(400);
     }
-    const last = "That's it. Ask me anything, or tell me what to watch.";
-    if (voice.current) TTS.speakText(last);
     await loadMe();
-    onDone();
+    onDone(ask ? { ask, followUps } : { followUps });
   };
 
   const log: any[] = p?.log ?? [];
@@ -127,10 +143,46 @@ export function FirstConversation({ onDone }: { onDone: () => void }) {
         {p ? <Bubble who="ananta" text={p.say} live /> : <Text style={{ color: C.dim }}>One moment…</Text>}
         {p?.note ? <Text style={{ color: C.dim, fontSize: 13, lineHeight: 19, marginLeft: 4 }}>{p.note}</Text> : null}
         {p?.card ? <DecisionCard card={p.card} title="The setup" /> : null}
+        {p?.demo ? <DemoCard d={p.demo} ask={p.step === "demo" && p.input?.options?.[0]?.[0] === "approve"} /> : null}
         {p?.input ? <Answer input={p.input} busy={busy} onSend={send} /> : null}
         {err ? <Text style={{ color: C.bad }}>{err}</Text> : null}
       </ScrollView>
+      {p && p.input?.type !== "name" ? <TypeBox busy={busy} onSend={typed} /> : null}
     </KeyboardAvoidingView>
+  );
+}
+
+// The box at the bottom on every step: type anything and Ananta answers it (the taps stay as shortcuts)
+function TypeBox({ busy, onSend }: { busy: boolean; onSend: (q: string) => void }) {
+  const [t, setT] = useState("");
+  const go = () => { if (t.trim()) { onSend(t); setT(""); } };
+  return (
+    <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg }}>
+      <TextInput value={t} onChangeText={setT} placeholder="Or type anything to Ananta…" placeholderTextColor={C.faint} editable={!busy}
+        onSubmitEditing={go} returnKeyType="send"
+        style={{ flex: 1, backgroundColor: C.card, color: C.text, borderRadius: 12, borderWidth: 1, borderColor: C.line, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15 }} />
+      <Pressable onPress={go} style={{ backgroundColor: t.trim() ? C.accent : C.card2, borderRadius: 12, paddingHorizontal: 16, justifyContent: "center" }}>
+        <Text style={{ color: t.trim() ? C.onInk : C.faint, fontWeight: "800" }}>Send</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// The DEMO trade card: as a request to approve (Ask me first), or as the trade itself once taken
+export function DemoCard({ d, ask }: { d: any; ask?: boolean }) {
+  const money = (v: any) => (v == null ? "…" : `$${Number(v).toLocaleString(undefined, { maximumFractionDigits: Number(v) < 1 ? 6 : 2 })}`);
+  const open = d.status === "OPEN", closed = d.status === "CLOSED";
+  return (
+    <View style={{ backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.accent, borderStyle: "dashed", padding: 14, gap: 6 }}>
+      <Text style={{ color: C.accent, fontWeight: "800", letterSpacing: 1 }}>DEMO · not a signal · not counted anywhere</Text>
+      <Text style={{ color: C.text, fontSize: 16, fontWeight: "700" }}>
+        {ask && !open && !closed ? "Request: " : ""}Buy {d.name ?? d.coin} · {money(d.usd)}
+      </Text>
+      <Text style={{ color: C.dim }}>Price {money(d.entry ?? d.price)} · stop {money(d.stop)} (3% below)</Text>
+      {open ? <Text style={{ color: C.text }}>Open since {new Date(d.entry_t * 1000).toLocaleTimeString()}</Text> : null}
+      {closed ? <Text style={{ color: C.text }}>Sold at {money(d.exit)} · result {d.pnl >= 0 ? "+" : "−"}${Math.abs(d.pnl).toFixed(2)} after fees</Text> : null}
+      <Text style={{ color: C.faint, fontSize: 12 }}>{d.why ?? "DEMO: shows how a trade is taken and exited."}</Text>
+    </View>
   );
 }
 

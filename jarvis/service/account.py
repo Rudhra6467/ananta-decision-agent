@@ -22,7 +22,7 @@ from typing import Any
 COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "AVAX", "LINK", "LTC", "BCH"]
 NAMES = {"BTC": "Bitcoin", "ETH": "Ethereum", "SOL": "Solana", "XRP": "XRP", "DOGE": "Dogecoin", "ADA": "Cardano",
          "AVAX": "Avalanche", "LINK": "Chainlink", "LTC": "Litecoin", "BCH": "Bitcoin Cash"}
-CAPITALS = tuple(range(1000, 10001, 1000))          # plan 5.4: $1,000 to $10,000 in $1,000 steps
+CAPITALS = (500,) + tuple(range(1000, 10001, 1000))  # plan 5.4: $1,000 to $10,000 in $1,000 steps; $500 (Oct 11) like the NDAX book
 STAGES = ("name", "coins", "tour", "capital", "ready", "trading")
 CHOICES = {"experience": ("never", "under_1y", "1_3y", "over_3y"), "crypto": ("new", "hold", "trade"),
            "risk": ("careful", "balanced", "bold"), "theme": ("light", "bat"),
@@ -104,7 +104,7 @@ def update(j, b: dict, email: str = "") -> dict:
     if b.get("capital") is not None:
         cap = int(float(b["capital"]))
         if cap not in CAPITALS:
-            raise ValueError("practice capital is $1,000 to $10,000, in steps of $1,000")
+            raise ValueError("practice capital is $500, or $1,000 to $10,000 in steps of $1,000")
         p = profile(db)
         if p.get("capital") and p["capital"] != cap and _has_fills(db):
             raise ValueError("your practice capital is set once you have traded; use Start over to change it")

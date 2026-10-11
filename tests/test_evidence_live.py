@@ -91,3 +91,14 @@ def test_jarvis_speedup_follows_the_tk4_ticket():
     assert "waits for you" in el._jarvis_speedup(8, 102, None)
     done = el._jarvis_speedup(120, 1270, {"id": "TK4", "status": "DONE"})
     assert "waits for you" not in done and "in use" in done and done.startswith("Jarvis decided 120 of 1270 wakes")
+
+
+def test_missed_moves_list_never_drops_a_miss_for_newer_catches():
+    from jarvis.service import evidence_live as el
+
+    ms = [{"day": f"2026-10-{d:02d}", "coin": f"C{d}", "label": "CAUGHT"} for d in range(20, 10, -1)]
+    ms += [{"day": "2026-10-05", "coin": "BCH", "label": "MISSED"}, {"day": "2026-10-04", "coin": "ADA", "label": "SEEN"}]
+    shown = el._shown_moves(ms)
+    assert len(shown) == 8 and [m["coin"] for m in shown][-2:] == ["BCH", "ADA"]
+    assert [m["day"] for m in shown] == sorted((m["day"] for m in shown), reverse=True)      # still newest first
+    assert el._shown_moves(ms[:3]) == ms[:3]

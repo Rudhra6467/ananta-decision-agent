@@ -507,6 +507,14 @@ def _rebuild(j, L: dict) -> dict:
             "others": study, "chain": _chain(L)}
 
 
+def _shown_moves(ms: list[dict], n: int = 8) -> list[dict]:
+    """The moves listed on the page: every move we did not catch (the point of the section), then the newest catches up to n, in
+    the order given (newest first). Before Oct 11 only the newest 8 were listed, so a week of catches hid the 3 misses the counts named."""
+    keep = [i for i, m in enumerate(ms) if m.get("label") != "CAUGHT"]
+    keep += [i for i, m in enumerate(ms) if m.get("label") == "CAUGHT"][:max(0, n - len(keep))]
+    return [ms[i] for i in sorted(keep)]
+
+
 def _misses(j) -> dict:
     from jarvis.service import missed
 
@@ -520,7 +528,7 @@ def _misses(j) -> dict:
 
     def mv(ms: list[dict]) -> list[dict]:
         return [{"day": m["day"], "coin": m["coin"], "move_pct": m["move_pct"], "label": m["label"], "why": m["why"],
-                 "miss_class": m.get("miss_class"), "class_why": m.get("class_why")} for m in ms[:8]]
+                 "miss_class": m.get("miss_class"), "class_why": m.get("class_why")} for m in _shown_moves(ms)]
 
     return {"days_reviewed": len(days), "since": _day(_date_t(days[0][7:])) if days else None,
             "live": {"counts": r["counts"], "moves": mv(r["moves"]), "patterns": pats(r["patterns"], "LIVE10")},
@@ -542,7 +550,7 @@ def _board(j, L: dict, P: dict) -> dict:
                       "did": t.get("did"), "change": t.get("change"), "status": t.get("status") or "OPEN", "next": t.get("next")})
     for r in requests_log._select(j):
         items.append({"id": f"#{r['num']}", "kind": "request", "date": datetime.fromtimestamp(r["t"], timezone.utc).strftime("%Y-%m-%d") if r.get("t") else None,
-                      "from": "you" if r.get("by") == "owner" else "Ananta flagged it itself", "what": r.get("text"), "did": r.get("note") or "",
+                      "from": {"owner": "you", "exam": "the agent exam (a test)"}.get(r.get("by"), "Ananta flagged it itself"), "what": r.get("text"), "did": r.get("note") or "",
                       "change": "", "status": r.get("status") or "OPEN", "about": r.get("about")})
     for r in L.get("reviews", []):
         items.append({"id": r["id"], "kind": "review", "date": r.get("date"), "from": r.get("forwarded_because"), "what": r.get("title"),

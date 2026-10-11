@@ -38,6 +38,17 @@ def test_requests_report_back_once():
         requests_log.set_status(j, 99, "DONE")
 
 
+def test_requests_made_by_the_agent_exam_never_land_on_the_board_as_his():
+    j, ex = _jarvis()
+    r = requests_log.add(j, "idea", "Review Cardano staking rewards.", thread="exam-1791704974-109")
+    row = requests_log.get(j, r["num"])
+    assert row["by"] == "exam" and row["status"] == "WONT" and "agent exam" in row["note"]
+    assert requests_log.notify(j, push=lambda t, x: 1 / 0) == [] and requests_log.news(j) == []   # no phone note, nothing to tell
+    assert requests_log.feed_items(j, 0) == []
+    mine = requests_log.add(j, "idea", "Review Cardano staking rewards.", thread="abc123")       # his own words still open
+    assert requests_log.get(j, mine["num"])["status"] == "OPEN" and requests_log.get(j, mine["num"])["by"] == "owner"
+
+
 def test_ananta_mentions_fixed_requests_once_and_flags_wrong_answers():
     j, ex = _jarvis()
     seen = []

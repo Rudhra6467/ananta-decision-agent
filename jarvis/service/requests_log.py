@@ -17,6 +17,8 @@ from __future__ import annotations
 import uuid
 
 KINDS = ("data", "feature", "bug", "idea")
+EXAM_THREAD = "exam-"      # jarvis/service/exam.py names its threads exam-<time>-<n>; on Oct 11 its questions left #16-#25 as "from you"
+EXAM_NOTE = "Made by the agent exam (a test question), not by Madhav."
 STATUSES = ("OPEN", "PLANNED", "DONE", "WONT")
 STATUS_WORDS = {"OPEN": "on the list", "PLANNED": "planned for the next work session", "DONE": "fixed", "WONT": "closed without a change"}
 COLS = ("id", "num", "t", "by", "kind", "text", "about", "thread", "status", "note", "updated_t", "pushed", "told")
@@ -65,8 +67,10 @@ def add(j, kind: str, text: str, about: str | None = None, by: str = "owner", th
                 "say": f"That's already on the list as request number {dup[1]}. I'll tell you when it's fixed."}
     num = (j.db.execute("SELECT COALESCE(MAX(num), 0) FROM owner_requests").fetchone()[0] or 0) + 1
     rid = uuid.uuid4().hex[:8]
+    exam = str(thread or "").startswith(EXAM_THREAD)        # the agent exam asks through the live path: kept, but closed and labelled
     j.db.execute(f"INSERT INTO owner_requests ({', '.join(COLS)}) VALUES ({', '.join('?' * len(COLS))})",
-                 (rid, num, int(j.now()), by, kind, text, (about or "")[:120], thread, "OPEN", "", int(j.now()), 1, 1))
+                 (rid, num, int(j.now()), "exam" if exam else by, kind, text, (about or "")[:120], thread,
+                  "WONT" if exam else "OPEN", EXAM_NOTE if exam else "", int(j.now()), 1, 1))
     j.db.commit()
     return {"id": rid, "num": num, "kind": kind, "status": "OPEN",
             "say": f"Flagged as request number {num} for the repair shop. It's on the Evidence page's repair board, and I'll tell you when it's fixed."}
@@ -130,7 +134,7 @@ def mark_told(j, nums: list[int]) -> None:
 def feed_items(j, since: int) -> list[dict]:
     """Home feed: requests logged and requests that changed status."""
     items = []
-    for r in _select(j, "WHERE t >= ? OR COALESCE(updated_t, 0) >= ?", (since, since)):
+    for r in _select(j, "WHERE (t >= ? OR COALESCE(updated_t, 0) >= ?) AND COALESCE(by, '') != 'exam'", (since, since)):
         if r["t"] >= since:
             items.append({"t": r["t"], "kind": "request", "title": f"Flagged for the repair shop: request {r['num']}",
                           "body": r["text"][:200]})

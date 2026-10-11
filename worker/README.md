@@ -52,7 +52,7 @@ bash ~/code/ananta-agent-research/worker/install_worker.sh
 ## The one-line check (from the main Mac)
 
 ```
-ssh ananta-worker ~/ananta_worker/status
+ssh ananta-worker '~/ananta_worker/status'
 ```
 
 It prints `OK · … last good round 23 s ago · today: NDAX … rows …`. It exits 0 when the last round is under 3 minutes old,

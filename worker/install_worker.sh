@@ -39,4 +39,4 @@ sleep 5
 ssh "$H" "launchctl print gui/\$(id -u)/$LABEL 2>/dev/null | grep -E '^\s*(state|pid) =' || true"
 echo
 echo "Done. The one-line check from this Mac, any time:"
-echo "    ssh $H ~/ananta_worker/status"
+echo "    ssh $H '~/ananta_worker/status'"

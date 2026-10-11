@@ -30,6 +30,55 @@ GEMINI_MODELS = [m.strip() for m in os.getenv("ASK_GEMINI_MODELS", "gemini-3.5-f
 GEMINI_MODEL = GEMINI_MODELS[0]       # free tier: when the first model is busy (503), the next one answers
 CLAUDE_MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
 
+
+# ---- who is listening, and how frank to be (Madhav, Oct 11) ----
+MARKETS_PLAN_SHORT = ("MARKETS PLAN (docs knowledge/MARKETS_PLAN.md): crypto runs on paper today. Next come market agents for the American "
+                      "(NYSE/Nasdaq), Indian (NSE/BSE) and Canadian (TSX) markets. Each one reuses the same machine: a research lake, "
+                      "pre-registered reviews that must pass in two periods after costs, the exposure dial, paper books against a "
+                      "benchmark, brakes in code, and the go-live gate. Proposed order (Madhav decides): finish crypto, then American, "
+                      "Indian, Canadian. It is a plan: no dates or returns are promised.")
+OWNER_TONE = ("AUDIENCE: Madhav himself. BRUTAL TRUTH (his rule): give him the unvarnished picture first, plainly: losses, failed reviews, "
+              "weak or missing evidence, what is broken. Never soften a result for him.")
+SHOWCASE_TONE = ("AUDIENCE (showcase until {until}): this week Madhav's account is also used by his family and a few testers trying "
+                 "the app. Be HONEST AND HOPEFUL.\n"
+                 "- Lead with what works and is built: the exposure dial; one measured edge (dip buys on the biggest coins while the "
+                 "trend is down); the $500 NDAX book live on paper at NDAX's real prices; pre-registered reviews and the evidence page; "
+                 "voice in English and Telugu; brakes in code; a second Mac recording real exchange prices.\n"
+                 "- Give a limitation in one plain sentence when it matters. Never invent or round up a result.\n"
+                 "- Then say what comes next. About the future, explain the markets plan with confidence in the process, never "
+                 "promising returns.\n" + MARKETS_PLAN_SHORT)
+GUEST_TONE = ("AUDIENCE: a practice account (a visitor, not Madhav).\n"
+              "- Show what is approved and the best options available to them: the setups they may use, each with its evidence in one "
+              "line, and what Ananta can do on their account (paper only, in the mode they chose).\n"
+              "- Be encouraging and honest: never invent results, never promise returns.\n"
+              "- Don't walk them through internal failures, the repair shop or Madhav's own books unless they ask directly.\n"
+              "- Every action stays inside their own practice account.\n" + MARKETS_PLAN_SHORT)
+INDIA_VISITOR = ("\nThis visitor is in India. Alongside what Ananta does in crypto today, show real knowledge of the Indian markets: "
+                 "NSE/BSE (9:15 am-3:30 pm IST), Nifty 50, Bank Nifty, Sensex, SEBI, T+1 settlement, F&O and its risks (SEBI's study: "
+                 "about 9 in 10 individual F&O traders lost money), brokers with APIs (Zerodha Kite Connect, Upstox, Angel One, Dhan), and "
+                 "costs such as STT. Explain the Indian market agent plan. Say when a rule may have changed since mid-2026.")
+
+
+def _audience(j, who: str) -> str:
+    """The audience block: brutal truth for Madhav; honest and hopeful during a showcase on his account; approved options for visitors."""
+    import time as _t
+
+    from jarvis.service.core import docs_dir
+
+    try:
+        cfg = json.loads((docs_dir(j.dir) / "knowledge" / "audience.json").read_text())
+    except Exception:  # noqa: BLE001
+        cfg = {}
+    if str(who).startswith("guest:"):
+        from jarvis.service import account
+
+        tz = str(account.profile(j.db).get("tz") or "")
+        return "\n\n" + GUEST_TONE + (INDIA_VISITOR if tz in ("Asia/Kolkata", "Asia/Calcutta") else "")
+    until = str(cfg.get("showcase_until") or "")
+    if until and _t.strftime("%Y-%m-%d", _t.localtime(j.now())) <= until:
+        return "\n\n" + SHOWCASE_TONE.format(until=until)
+    return "\n\n" + OWNER_TONE
+
 SYSTEM = """You are Ananta (also called Jarvis), the trading assistant of one owner, Madhav. You talk with him like a sharp friend who trades: direct, warm, calm, honest, never salesy.
 
 HOW TO TALK (most important)
@@ -2264,7 +2313,7 @@ class Ask:
         used = key
         from jarvis.service.mandate import Mandate
 
-        system = SYSTEM + _plain_words(self.j) + _status_block() + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text()
+        system = SYSTEM + _plain_words(self.j) + _status_block() + "\n\nOWNER'S MANDATE (current)\n" + Mandate(self.j.db, self.j.now).text() + _audience(self.j, who)
         try:
             can_escalate = key == "local" and mode_label == "auto"      # the router picked the Mac: a weak answer goes one level up
             try:

@@ -36,8 +36,11 @@ function GuestBooks() {
 function VisitorBooksTabs({ d, loading, reload }: { d: any; loading: boolean; reload: () => void }) {
   const [top, setTop] = useState("trades");
   const { data: bk, reload: reloadBk } = useData(d.started ? "/v3/books" : null, 60000);
-  const { data: dm } = useData("/v3/onboard/demo", 60000);                          // the first conversation's DEMO trade, if still shown
-  if (!d.started) return <VisitorBooks d={d} loading={loading} reload={reload} />;     // Start trading first
+  const { data: dm, reload: reloadDm } = useData("/v3/onboard/demo", 60000);       // the first conversation's DEMO trade, if still shown
+  useFocusEffect(useCallback(() => { reloadDm(); }, []));
+  const demoCard = dm?.demo?.status ? <View style={{ marginBottom: 12 }}><DemoCard d={dm.demo} /></View> : null;
+  if (!d.started) return demoCard ? <View style={{ flex: 1 }}><View style={{ paddingHorizontal: 16, paddingTop: 12 }}>{demoCard}</View>
+    <VisitorBooks d={d} loading={loading} reload={reload} /></View> : <VisitorBooks d={d} loading={loading} reload={reload} />;
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 }}>
@@ -45,7 +48,7 @@ function VisitorBooksTabs({ d, loading, reload }: { d: any; loading: boolean; re
       </View>
       {top === "trades" ? (
         <Screen loading={loading} onRefresh={() => { reload(); reloadBk(); }}>
-          {dm?.demo?.status ? <View style={{ marginBottom: 12 }}><DemoCard d={dm.demo} /></View> : null}
+          {demoCard}
           {bk ? <BooksTrades d={bk} /> : <Busy />}
         </Screen>
       ) : <VisitorBooks d={d} loading={loading} reload={reload} />}

@@ -15,7 +15,7 @@ class TestResearchPipeline(unittest.TestCase):
         self.assertTrue(s["acquire_years"])
         self.assertEqual(s["stance"]["discovery"], "aggressive")
         self.assertEqual(s["stance"]["capital"], "conservative")
-        self.assertEqual(NEXT_SLICE["asset"], "ETH/USD")
+        self.assertEqual(NEXT_SLICE["asset"], "SOL/USD")          # ETH/USD done; the next slice moved to SOL (Oct 11: test updated)
         self.assertFalse(NEXT_SLICE["live"])
         self.assertTrue(ADAPTERS["crypto"]["now"])
         self.assertFalse(ADAPTERS["india"]["now"])
@@ -23,7 +23,7 @@ class TestResearchPipeline(unittest.TestCase):
         self.assertTrue(LAWS["conservative_capital"])
         bulk = refuse_bulk_score(years=4, assets=10)
         self.assertFalse(bulk["ran"])
-        self.assertTrue(bulk["acquire_years"])
+        self.assertEqual(bulk["reason"], "NO_RUN_EVERYTHING")     # the refusal no longer repeats acquire_years (it lives in spec())
 
 
 if __name__ == "__main__":

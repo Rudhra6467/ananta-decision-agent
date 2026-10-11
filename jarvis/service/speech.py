@@ -331,7 +331,91 @@ def _to_script(sents: list[str]) -> list[str]:
     raise RuntimeError("Telugu script failed (" + str(err) + ")")
 
 
+def telugu_engines() -> list[str]:
+    """Which Telugu voice speaks, best first (Oct 11, D2: Madhav picks by ear; ~/ananta_private/voice.json {"telugu": [...]}).
+    gemini = Google's Telugu voice in Ananta's Deep voice (free quota, cloud); mms = Meta's Telugu voice on the Mac (free);
+    geeta = macOS's built-in voice (always there, the last resort)."""
+    from pathlib import Path
+
+    try:
+        v = json.loads((Path.home() / "ananta_private" / "voice.json").read_text()).get("telugu")
+        if isinstance(v, list) and v:
+            return [str(x) for x in v] + (["geeta"] if "geeta" not in v else [])
+    except Exception:  # noqa: BLE001
+        pass
+    return [x.strip() for x in os.getenv("ANANTA_TELUGU_ENGINES", "gemini,mms,geeta").split(",") if x.strip()]
+
+
+def _offsets_by_length(sents: list[str], duration: float) -> list[float]:
+    total = sum(len(x) for x in sents) or 1
+    out, acc = [], 0.0
+    for x in sents:
+        out.append(round(duration * acc / total, 3))
+        acc += len(x)
+    return out
+
+
+def _telugu_gemini(script: list[str], speed: float) -> dict:
+    """One request for the whole answer (the free tier allows only a few a minute); sentence times estimated by length."""
+    key = os.getenv("GEMINI_API_KEY", "")
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    t0 = time.time()
+    text = " ".join(script)
+    pace = "" if abs(speed - 1.0) < 0.05 else (" a little slower" if speed < 1 else " a little faster")
+    err = None
+    for m in ("gemini-2.5-flash-preview-tts", "gemini-2.5-flash-tts", "gemini-3.1-flash-tts-preview"):
+        if _cool.get("te:" + m, 0) > time.time():
+            continue
+        body = {"contents": [{"parts": [{"text": f"Say this warmly and respectfully, in natural spoken Telugu{pace}: " + text}]}],
+                "generationConfig": {"responseModalities": ["AUDIO"],
+                                     "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": VOICES.get("Deep", "Charon")}}}}}
+        try:
+            req = urllib.request.Request(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent",
+                                         data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "x-goog-api-key": key})
+            r = json.load(urllib.request.urlopen(req, timeout=45))
+            part = next(x["inlineData"] for x in r["candidates"][0]["content"]["parts"] if x.get("inlineData"))
+            raw = base64.b64decode(part["data"])
+            mime = part.get("mimeType", "").lower()
+            wav = raw if raw[:4] == b"RIFF" else _wav(raw, int((re.search(r"rate=(\d+)", mime) or [None, 24000])[1]))
+            d = duration_s(wav)
+            mp3, mt = to_mp3(wav)
+            return {"audio": mp3, "mime": mt, "offsets": _offsets_by_length(script, d), "duration": round(d, 3), "engine": "gemini-telugu",
+                    "voice": "Deep", "ms": int(1000 * (time.time() - t0))}
+        except urllib.error.HTTPError as e:
+            err = f"{m}: HTTP {e.code}"
+            _cool["te:" + m] = time.time() + (3600 if e.code == 429 else 120)
+        except Exception as e:  # noqa: BLE001
+            err = f"{m}: {type(e).__name__}"
+    raise RuntimeError(err or "no Gemini voice available")
+
+
+def _telugu_parler(script: list[str], speed: float) -> dict:
+    """The Telugu voice on this Mac (Meta MMS, jarvis/voice/telugu_server.py, com.ananta.telugu; free, no account)."""
+    req = urllib.request.Request(os.getenv("ANANTA_PARLER_URL", "http://127.0.0.1:8210") + "/speak",
+                                 data=json.dumps({"sentences": script, "speed": speed}).encode(), headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        d = json.load(r)
+    return {"audio": base64.b64decode(d["audio_b64"]), "mime": d.get("mime", "audio/mpeg"), "offsets": d["offsets"], "duration": d["duration"],
+            "engine": "mms-telugu", "voice": d.get("voice"), "ms": d.get("ms")}
+
+
 def _make_telugu(sents: list[str], speed: float) -> dict:
+    script = _to_script(sents)
+    for eng in telugu_engines():
+        try:
+            if eng == "gemini":
+                return _telugu_gemini(script, speed)
+            if eng in ("mms", "parler"):
+                return _telugu_parler(script, speed)
+            if eng == "geeta":
+                return _telugu_geeta(sents, speed)
+        except Exception:  # noqa: BLE001  the next engine takes over
+            continue
+    return _telugu_geeta(sents, speed)
+
+
+def _telugu_geeta(sents: list[str], speed: float) -> dict:
     import subprocess
     import tempfile
 

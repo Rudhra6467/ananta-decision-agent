@@ -68,14 +68,15 @@ def synth(text: str, voice: str, speed: float) -> bytes:
     return buf.getvalue()
 
 
-def stt_file(path: str | None) -> str:
+def stt_file(path: str | None, language: str | None = "en") -> str:
+    """language "en" for Madhav; None lets Whisper detect it (Telugu conversations with his family, Oct 11)."""
     import mlx_whisper
 
     if path is None:                       # warm-up: load the model with a second of silence
         path = os.path.join(tempfile.gettempdir(), "ananta_silence.wav")
         sf.write(path, np.zeros(16000, dtype=np.float32), 16000)
     with _lock:
-        r = mlx_whisper.transcribe(path, path_or_hf_repo=STT_MODEL, language="en", initial_prompt=STT_PROMPT,
+        r = mlx_whisper.transcribe(path, path_or_hf_repo=STT_MODEL, language=language, initial_prompt=STT_PROMPT if language == "en" else None,
                                    condition_on_previous_text=False, temperature=0.0)
     return (r.get("text") or "").strip()
 
@@ -184,6 +185,7 @@ class TTSReq(BaseModel):
 class STTReq(BaseModel):
     audio_b64: str
     mime: str = "audio/wav"
+    language: str = "en"
 
 
 @app.get("/health")
@@ -214,7 +216,8 @@ def stt(b: STTReq) -> dict:
     t0 = time.time()
     try:
         voiced = voiced_seconds(p)
-        text = stt_file(p)
+        lang = getattr(b, 'language', 'en') or 'en'
+        text = stt_file(p, None if lang == 'auto' else lang)
     finally:
         os.unlink(p)
     # Whisper sometimes "hears" its prompt or stock phrases in near-silence. Drop those only when there was almost no

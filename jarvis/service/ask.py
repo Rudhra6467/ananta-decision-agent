@@ -8,7 +8,7 @@ How it works
   * Every answer comes in three layers at once: answer (just tell me), breakdown (break it down), evidence
     (show me the evidence), plus a stage label (observation ... learning).
   * Unclear question -> "Did you mean" options; after 2 failed tries -> says it did not understand + examples.
-    Off-topic -> polite "not my area". Misunderstandings are logged for review.
+    Off-topic -> answered through the web for Madhav and his people; polite "not my area" for guests. Misunderstandings are logged for review.
   * Phase 1 has NO actions: requests to act get "I can't do that from chat yet" and point to the Cockpit.
 """
 from __future__ import annotations
@@ -45,14 +45,14 @@ HOW TO TALK (most important)
 - Small talk ("hey", "you there?", "can you hear me?", "hmm", "okay") gets a few natural words back, never a status report. When he says "ask me something", ask him one real question about his trading or the system.
 
 WHAT ANANTA IS (use these words)
-- Paper only. No real money, no exchange connected. Market: crypto spot, 10 coins (BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP), buying only, NDAX costs (0.20% fee + spread per side).
+- Paper only. No real money, no exchange connected. Market: crypto spot, buying only, NDAX costs (0.20% fee + spread per side). Since Oct 9 Ananta watches the whole market live: about 393 coins on Binance against USDT (tier A big, B mid-size, C small and watched only), every rule on every coin; the 10 lab coins (BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP) also run the 15-minute Explorer and the hourly watch. When asked what you watch, say this, never "10 coins".
 - OUR BOOKS (say these names): the Explorer (its own $100 paper trades, started with $2,000); the trend portfolio (T3, started with $2,000, plus an automatic copy for comparison); Hunter's book (the hourly watch's strategy book, SD6); your own paper book (orders Madhav asked for, $1,000); the short dip shadow (H07, $100 per signal); MY OWN BOOK (Jarvis's book: the trades I decide myself, $100 each, every one with a random twin). The two system books started with $4,000 together (Explorer $2,000 + trend portfolio $2,000). When he says "portfolio" or "how are we doing" without saying which, give ONE line for all books together first, then the book that moved most.
 - Watches (processes that keep running):
   * The 15-minute Explorer: checks 10 coins every 15 minutes for setups E1-E6 (wide mode W1, since Oct 3: up to 3 trades per coin per kind when far enough apart, at most 20 open and 60 new a day) and trades them on paper ($100 each, own stop/target/warning bells). Trade types: Long-term (weeks), Short-term (days), Intraday (hours). Also records shadows (random entries = the baseline, blocked or untyped orders) and sightings of every setup, matched to the intraday atlas (history of that setup in that market condition). In 7 years of history its rulebook lost money after costs (costs are the whole loss), so live it collects evidence; it is not a proven money maker.
   * The hourly watch: runs the strategies Hunter (reversal at support) and Squeeze (compression breakout) in the backend. Hunter is rare: about 2-8 times per coin per year. Its strategy book (Hunter's book, SD6) holds one trade per coin from version v3 (before: one in total), and keeps refused TAKEs as shadows when it is full.
   * The daily watches (each daily close): your setups and the short dip trade, every signal a $100 evidence trade with the rule the history test used, plus random baselines.
   * The eye (live prices every 10 seconds): your stops and alerts, a sudden Bitcoin drop, price entering a support zone, and the zone-touch evidence trade.
-- MY OWN DECISIONS (jarvis_book lookup): when the eye or a watch flags a moment (price into a zone, a setup firing, a coin's attention turning high, the market turning allowed), I weigh everything we know and decide: a paper trade in my own book with the plan written first (entry, stop, target or trailing stop, days, size, confidence, the knowledge I used), or a pass. At most 20 decisions a day; strong points add confidence, weak ones lower the size, only red flags stop me. Each trade has a random twin (another coin, same moment, same plan): beating the twins is my real score. Talk about it in the first person ("I bought Solana at the 200-day zone", "I passed on XRP because...").
+- MY OWN DECISIONS (jarvis_book lookup): when the eye or a watch flags a moment (price into a zone, a setup firing, a coin's attention turning high, the market turning allowed), I weigh everything we know and decide: a paper trade in my own book with the plan written first (entry, stop, target or trailing stop, days, size, confidence, the knowledge I used), or a pass. As many decisions a day as the $1 AI budget allows; strong points add confidence, weak ones lower the size, only red flags stop me. Each trade has a random twin (another coin, same moment, same plan): beating the twins is my real score. Talk about it in the first person ("I bought Solana at the 200-day zone", "I passed on XRP because...").
 - AGENT QUESTIONS (plan 4.3): 'what are you watching / doing' -> agent_state (and my_watches for the person's own watches); 'what changed since this morning' -> account_activity (hours back to the person's morning); 'show me the setup you like most / your best idea' -> best_setup, then show its decision card in words; 'keep watching that but ask me first' -> change_watch on the watch just discussed with mode ask, then confirm in one line what changed. SAY ONLY WHAT HAPPENED: describe an action, a filter or a check only when a lookup result in this answer shows it ran.
 - FINDINGS, NOT WATCHES: Madhav asks what I FOUND, not what I'm watching. "What did we miss / what moved today?" -> missed_moves (the day's biggest rises: caught, seen or missed, and why; misses that keep repeating). "How are your trades doing / are you beating random?" -> jarvis_book. "What did we learn from the trades?" -> trade_reviews (every closed trade reviewed, lessons, and my evening review). "Is everything running?" -> system_health. Lead with the finding, then the evidence behind it.
 - WATCHES AND THE SCOREBOARD: every watch is declared once in the registry (watches lookup), in sections: market weather, coin structure and zones, setups, risk and exits, news and events, baselines. Each watch that trades has its own evidence book; the scoreboard lookup compares them all against random with the same holding time. Never call a watch "working" with fewer than 10 independent events.
@@ -87,7 +87,7 @@ RULES
 2. Setups: in the setups lookup, "complete" means all conditions were met at the last check. Report complete setups as complete even when no new trade was placed, and say why (already holding that coin's trade type, no trade type fits, caps). Never say "none are triggering" when the lookup shows complete ones.
 2b. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
 3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
-4. Scope: trading, markets, the economy and news that moves markets, and Ananta itself. Anything else: kind "out_of_scope" with a one-line polite reply ("That's outside my area - I'm built for trading and markets.").
+4. Scope (Madhav, Oct 11): in Madhav's account, and for the people he introduces, answer everyday questions too (weather, news, cricket, festivals, travel, general knowledge). For anything current, call web_lookup and say you checked the web ("I checked the web: ..."), naming the source. Places: Madhav lives in Toronto, Canada (his family's places are in the people note); "weather in Canada" from his family means Toronto. If you are not sure what someone is asking (voice can mishear), ask them back in one short question, in their language, instead of guessing or refusing. Guests (practice accounts) stay on trading and markets: anything else gets kind "out_of_scope" with a one-line polite reply.
 4b. OUTSIDE OUR SYSTEM: first check the universe lookup: a coin in our 120-coin universe is answered from our data (rule above). Only a coin or token outside the 120, or a coin's general facts we do not hold (what it is, market cap, live price right now for a non-live coin), is answered from outside our system: call outside_coin with the name he used, then answer from its live facts plus your general knowledge. Start with a short honest marker like "This one is outside our system, so here's what CoinGecko and general knowledge say:", and say we do not trade or scan it. Never mix these numbers into our portfolio or setups. If outside_coin says not found, say plainly "I couldn't find a coin called X" and use kind "clarify" with its similar names as the options (e.g. "Pepe (PEPE)"). Questions about OUR coins still come from our own data.
 5. Actions you can PREPARE (each becomes a card the owner confirms with Face ID or his phone passcode; nothing changes before that): paper orders in the owner's own book, buy or sell, including closing a position (propose_paper_order; no amount given for a buy -> $100, and say so); a stop or target on his own position (propose_levels); alerts (propose_alert) and switching one off (propose_alert_off); mandate changes (propose_mandate_change); the kill switch on or off and the trend portfolio's autopilot (propose_switch); approving or rejecting the trend portfolio's suggested changes (propose_portfolio_decision); the AI budget and voice settings (propose_setting). You can DO right away (no card): save a note he asks you to remember (remember), flag a request for the repair shop (log_request), run the news check on a coin (news_check, about a cent), start a read-only reconstruction (start_research). You cannot: place real orders (no exchange is connected; real orders come only after his live rules are approved), or change the Explorer's or the trend portfolio's own trades by hand (they are evidence; say so and offer his own book instead). For those use kind "cannot_do_yet" and say why. Check every order against the mandate's limits and say if it conflicts.
 6. Unclear: if the question could mean different things that lead to different answers, use kind "clarify" with 2-4 short "Did you mean" options. A message that does not say what it is about (e.g. "do the thing", "fix it", "that one") with no earlier topic in the conversation is unclear: clarify, never answer it with a status report. If one reading is clearly most likely, answer it and state the assumption. Follow-ups ("why?", "and before that?") refer to the last topic.
@@ -152,10 +152,10 @@ TOOLS = [
     ("exposure", "The exposure dial and the scoreboard every strategy is judged against (engine fixes 1-4, reviews #25 and #26). Returns: the dial now (OPEN = buying allowed, CLOSED = no new buys, cash is the position; v1 = Bitcoin above its 50-day AND 200-day averages) and why; the paper books since the dial started (HOLD, GATE50 = the benchmark/hurdle, GATE50_200 = the dial, GATE50_VOL = challenger); the measured-edge table (which daily rule has an edge in which market state and tier, % per trade over random after costs; anything missing has none); and the would-be $2,000 account in R against the hurdle. Use for 'can we buy today', 'why no trades', 'are we beating the benchmark', 'which setups actually have an edge', 'how much should one trade risk'.", _schema({})),
     ("whole_market", "Every coin Ananta watches live (Universe Rule v2: about 390 coins trading on Binance against USDT; tier A over $20M a day, B $1M-$20M, C under $1M, watched but never judged). view: movers_up | movers_down | near_zone (closest to a support zone history supports) | watched (counts, the feed's health) | scoreboard (each rule on every coin per tier against its random baseline, in market days) | coin (one coin's live card: tier, name, price, today's change, zones, can-buy on NDAX/Kraken, open paper trades on it). Optional tier (A, B, C, AB) and n. Use for 'what moved most today across the market', 'which coins are near support', 'how many coins do you watch', 'is the dip trade working on the bigger coins', 'what about <a coin outside the 120>'.", _schema({"view": {"type": "string"}, "tier": {"type": "string"}, "coin": {"type": "string"}, "n": {"type": "number"}})),
     ("prices", "Price history from our stored candles (10 live coins, intraday; any other coin of the 120-coin universe, daily). With coin: open/high/low/close and change over a window (days, default 7; or start/end as YYYY-MM-DD or 'YYYY-MM-DD HH:MM' Toronto), when the high and low happened, how far price is from them, best and worst day, day by day (hour by hour for 2 days or less). Without coin: all 10 coins ranked over the window with each one's change against Bitcoin (relative strength / momentum ranking). what='coverage': the first and last stored candle per coin. Use for 'what was the high this week', 'how did each coin do', 'which coin is strongest', 'good days to trade', 'where was BTC on Tuesday', 'how far are we from the top'.", _schema({"coin": {**COIN, "description": "Optional coin; omit to compare all 10"}, "days": {"type": "number"}, "start": {"type": "string"}, "end": {"type": "string"}, "what": {"type": "string", "description": "optional: coverage"}})),
-    ("introduce", "Madhav hands the conversation to one of his people. Call it IMMEDIATELY, in this same answer, whenever Madhav says someone is with him or asks you to talk to someone ('Ananta, this is Sam', 'my mom is here, say hi', 'talk to Anu'): never ask him to hand over first. Then your answer IS the greeting to that person (their opener, in their language). From then on you talk WITH that person directly. Only Madhav can introduce someone.", _schema({"name": {"type": "string"}})),
+    ("introduce", "Madhav hands the conversation to one of his people. Call it IMMEDIATELY, in this same answer, whenever Madhav says someone is with him or asks you to talk to someone ('Ananta, this is Sam', 'my mom is here, say hi', 'talk to Anu'): never ask him to hand over first. Then your answer IS the greeting to that person (their opener, in their language). From then on you talk WITH that person directly. A handover can come at any time, even while you are talking with someone else: it is Madhav on his phone; never refuse it.", _schema({"name": {"type": "string"}})),
     ("back_to_madhav", "Madhav is back in the conversation ('it's me again', 'thanks Ananta, I'm back'): stop talking to the introduced person and talk to Madhav (sir) again.", _schema({})),
     ("market_check", "RESEARCH DESK for one coin (any coin): gathers dated facts from the live web (news, token unlocks in the next 30 days, exchange listings or delistings, hacks, legal trouble, the market mood), each with its source and whether it makes a buy riskier or safer; checks them against our own evidence (the exposure dial, the coin's tier and costs, the measured edges); and gives a verdict on what the web adds. The web can only make us more careful, never more aggressive. Use for 'should I buy X', 'what's going on with X', 'anything I should know before buying X', 'is X safe right now', and before explaining any trade decision on a coin. Cite the sources and dates.", _schema({"coin": {"type": "string"}})),
-    ("web_lookup", "OUTSIDE OUR SYSTEM: a quick web search (Google via Gemini, else Claude web search) for things our data does not cover: stocks and indexes, other coins' news, the economy, events (Fed, CPI), what moved the market today. Returns a short sourced answer. Label it 'from the web' and never mix it into our books or setups.", _schema({"query": {"type": "string"}}, ["query"])),
+    ("web_lookup", "OUTSIDE OUR SYSTEM: a quick web search (Google via Gemini, else Claude web search) for anything current our data does not cover: stocks and indexes, other coins' news, the economy, events (Fed, CPI), what moved the market today, and in Madhav's account everyday questions too (weather, news, sports, festivals). Returns a short sourced answer. Label it 'from the web' and never mix it into our books or setups.", _schema({"query": {"type": "string"}}, ["query"])),
     ("news_check", "Run the AI news check (the blunder guard) on one of our coins now: CLEAR / CAUTION / BLOCK with why and the headlines used. About a cent. Use when he asks to check the news on a coin.", _schema({"coin": COIN}, ["coin"])),
     ("remember", "Save something the owner asks you to remember or note down ('remember that I...', 'note that', 'keep this in mind'): it goes into his notes (found later by the knowledge lookup as 'your note') and the decision journal. Do it right away and confirm in a few words. Not for repair-shop requests (log_request) or alerts (propose_alert).", _schema({"text": {"type": "string", "description": "the note in his words, with the date context if relevant"}, "about": {"type": "string", "description": "optional: coin, trade or topic"}}, ["text"])),
     ("propose_levels", "Prepare a stop and/or target on a position in the owner's OWN paper book (e.g. 'set a stop on my Dogecoin at 9 cents', 'move my stop up', 'remove the target'). stop/target are prices; use 0 to remove one. Creates a card he confirms with Face ID.", _schema({"coin": COIN, "stop": {"type": "number"}, "target": {"type": "number"}}, ["coin"])),
@@ -236,14 +236,14 @@ HUNTER_REASONS = {
 }
 
 
-def _local_stt(audio_b64: str, mime: str) -> str | None:
+def _local_stt(audio_b64: str, mime: str, language: str = "en") -> str | None:
     """Whisper on this Mac (free, ~1 s). None when the local voice server is not running, so Gemini is used instead."""
     if os.getenv("ANANTA_VOICE_LOCAL", "1") != "1":
         return None
     import requests
 
     try:
-        r = requests.post(os.getenv("ANANTA_VOICE_URL", "http://127.0.0.1:8200") + "/stt", json={"audio_b64": audio_b64, "mime": mime}, timeout=30)
+        r = requests.post(os.getenv("ANANTA_VOICE_URL", "http://127.0.0.1:8200") + "/stt", json={"audio_b64": audio_b64, "mime": mime, "language": language}, timeout=30)
         return r.json()["text"] if r.status_code == 200 else None
     except Exception:  # noqa: BLE001
         return None
@@ -326,13 +326,33 @@ def _self_flag(j, question: str, reply: dict, log: list, thread: str | None) -> 
     return r
 
 
+def _watching_words(j) -> str:
+    try:
+        from jarvis.service import status_words
+
+        return status_words.watching(j)
+    except Exception:  # noqa: BLE001
+        return "the whole crypto market (393 coins); the 10 lab coins also on 15-minute setups"
+
+
+def _speaker(j, thread) -> dict | None:
+    """Who Ananta is talking with in this conversation (None = Madhav): the app shows it as a chip with "I'm back"."""
+    try:
+        from jarvis.service import people
+
+        p = people.talking_to(j, thread)
+        return {"id": p["id"], "name": p["names"][0], "call": p.get("call")} if p else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _telugu_talk(j, thread, text) -> bool:
     """A Telugu conversation: the person Madhav handed over to speaks Telugu, the message is in Telugu, or Madhav is about to
     introduce someone Ananta speaks Telugu to (his parents, the family's kids, some friends)."""
     try:
         from jarvis.service import people, speech
 
-        if people.voice_language(j, thread) == "te" or speech.is_telugu([text]):
+        if people.talking_to(j, thread) or speech.is_telugu([text]):        # every introduced person gets the stronger model (D1)
             return True
         low = (text or "").lower()
         return any(people.find(w) and people.find(w).get("language") in ("telugu", "telugu_mix", "mix")
@@ -619,7 +639,7 @@ class Lookups:
 
         h = health.status(self.j)
         return {"your_account": account.brief(self.j),
-                "ananta": {"whose": self.RESEARCH, "running": h.get("summary"), "watching": "10 coins every 15 minutes, hourly and daily"}}
+                "ananta": {"whose": self.RESEARCH, "running": h.get("summary"), "watching": _watching_words(self.j)}}
 
     def g_trades(self, status: str = "open", coin: str | None = None) -> dict:
         from jarvis.service import account
@@ -1183,7 +1203,7 @@ class Lookups:
         from jarvis.service import people
 
         if self.guest:
-            return {"error": "Only Madhav can introduce people."}
+            return {"error": "Introductions work in Madhav's account only, not in a practice account."}
         return people.introduce(self.j, self.thread, name)
 
     def t_back_to_madhav(self) -> dict:
@@ -2055,14 +2075,18 @@ class Ask:
             raise ValueError("empty question")
         if self.setting("ask_enabled") != "1":
             raise ValueError("Ask Ananta is switched off in the Cockpit")
-        thread = thread or uuid.uuid4().hex[:12]
+        thread = thread or (("brief:" if str(who).startswith("ananta (scheduled)") else "") + uuid.uuid4().hex[:12])   # briefs never count as "your last conversation"
         text = self._take_next_step(thread, text)                    # "yes" to "Want me to pull up BTC?" runs that step
+        self._people_note = None
+        pr = self._people_route(who, text, thread, voice, source, context)   # Batch 2: handovers decided by code, before any AI
+        if pr is not None:
+            return pr
         quick = self._quick(who, text, thread, voice, source, context)
         if quick:
             return quick
         key, mode_label, note = self._pick(text, mode, provider)
         if mode_label == "auto" and key in ("haiku", "gemini", "gemini_voice", "local") and _telugu_talk(self.j, thread, text):
-            key, note = "sonnet", "Auto: Claude Sonnet for a Telugu conversation (the lighter models mix in Hindi)"
+            key, note = "sonnet", "Auto: Claude Sonnet for Madhav's people and Telugu (the lighter models mix in Hindi)"
         if voice and mode_label == "auto" and key == "haiku":   # talking: speed matters most; Sonnet answers in ~5 s, Haiku took 10-15 s
             key, note = "sonnet", "Auto: Claude Sonnet for voice (fastest to answer)"
         if voice and key in ("gemini", "gemini_deep") and "gemini_voice" in self.providers:
@@ -2180,6 +2204,8 @@ class Ask:
                 pnote = people.prompt_note(self.j, thread)
             except Exception:  # noqa: BLE001
                 pnote = ""
+        if getattr(self, "_people_note", None):
+            notes.append(self._people_note)
         if pnote.startswith("[TALKING TO"):
             notes.append(pnote)                            # introduce mode: someone Madhav handed over to, not sir
         elif not str(who).startswith("guest:") and source != "eval":
@@ -2351,7 +2377,8 @@ class Ask:
         vid = _pre_voice(context, reply.get("speak") or reply.get("answer"))
         if vid:
             reply["voice_id"] = vid                                  # its audio is already being made: the phone fetches it directly
-        return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta}
+        return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta,
+                "talking_to": _speaker(self.j, thread)}
 
     def _take_next_step(self, thread: str, text: str) -> str:
         """'Yes' right after an offered next step runs that step; a question that matches a chip just shown marks it picked."""
@@ -2396,6 +2423,51 @@ class Ask:
             return {"ui": [], "say": "Okay."}
         return None
 
+    def _people_route(self, who: str, text: str, thread: str, voice: bool, source: str, context=None) -> dict | None:
+        """Madhav hands the conversation to one of his people, relays their question, or comes back (Batch 2, Oct 11). A handover is
+        answered instantly with his opener, word for word; a relay or a return only adds a note for the AI."""
+        if str(who).startswith("guest:") or source == "eval":
+            return None
+        try:
+            from jarvis.service import people
+
+            r = people.route(self.j, thread, text)
+        except Exception:  # noqa: BLE001
+            return None
+        if not r:
+            return None
+        if r["kind"] == "back":
+            people.back(self.j, thread)
+            self._people_note = "[Madhav is back: talk to him again as sir. Answer anything else he said in this message; a bare 'I'm back' gets a short welcome.]"
+            return None
+        p = r["person"]
+        name = p["names"][0]
+        if r["kind"] == "relay":
+            people.set_speaker(self.j, thread, p)
+            self._people_note = (f"[RELAY: Madhav is passing on {name}'s question. Answer it to {name} directly ({p.get('call')}), in their "
+                                 "language and style; use web_lookup for anything current and say you checked the web.]")
+            return None
+        if r.get("same"):
+            return None
+        people.set_speaker(self.j, thread, p)
+        say = people.opener(p)
+        now = int(self.j.now())
+        uid, aid = uuid.uuid4().hex[:12], uuid.uuid4().hex[:12]
+        reply = {"kind": "answer", "stage": "", "answer": say, "breakdown": [], "evidence": [], "assumption": "", "options": [],
+                 "follow_ups": [], "show": [], "actions": [], "ui": [], "tour": None, "model_label": "Instant", "mode": "people", "cost_usd": 0.0,
+                 "note": f"Talking with {name} now", "route": "people", "timing": {"brief_ms": 0, "model_ms": 0, "rounds": 0, "lookups": 0, "out_tokens": 0}}
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
+                          (uid, thread, now, "user", text, "local", ("voice:" if voice else "") + "people"))
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
+                          "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0,
+                                                                   json.dumps([{"tool": "handover", "args": {"name": name}}]), 0.0, "people", "people"))
+        self.j.db.commit()
+        vid = _pre_voice(context, say)
+        if vid:
+            reply["speak"], reply["voice_id"] = say, vid
+        return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply,
+                "talking_to": _speaker(self.j, thread)}
+
     def _quick(self, who: str, text: str, thread: str, voice: bool, source: str, context=None) -> dict | None:
         """Plain navigation commands are done instantly, with no model call."""
         from jarvis.service import appmap
@@ -2425,19 +2497,40 @@ class Ask:
         return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply}
 
     # ---- voice ----
-    def transcribe(self, audio_b64: str, mime: str = "audio/wav", post=_post) -> str:
+    def transcribe(self, audio_b64: str, mime: str = "audio/wav", post=_post, thread: str | None = None) -> str:
         """Speech to text with Gemini (free tier). Audio is not stored."""
         if self.setting("voice_enabled") != "1":
             raise ValueError("Voice is switched off in the Cockpit")
         if not audio_b64 or len(audio_b64) > 12_000_000:
             raise ValueError("audio missing or too long (about 2 minutes at most)")
-        local = _local_stt(audio_b64, mime)
+        telugu = False
+        try:                                                    # Oct 11: with a Telugu speaker, never force English (her words came out as noise)
+            from jarvis.service import people
+
+            telugu = people.voice_language(self.j, thread) == "te"
+        except Exception:  # noqa: BLE001
+            pass
+        if telugu:                                              # English first: is it Madhav handing over or coming back? Else Telugu.
+            en = _local_stt(audio_b64, mime, "en")
+            try:
+                from jarvis.service import people
+
+                if en and people.route(self.j, thread, en):
+                    return en
+            except Exception:  # noqa: BLE001
+                pass
+            te = _local_stt(audio_b64, mime, "te")
+            local = te if te else en
+        else:
+            local = _local_stt(audio_b64, mime, "en")
         if local is not None:
             return local
         key = os.getenv("GEMINI_API_KEY", "")
         if not key:
             raise RuntimeError("GEMINI_API_KEY is not set")
-        prompt = ("Transcribe this spoken message exactly, in English. It is the owner talking to Ananta, a crypto trading assistant "
+        prompt = ("Transcribe this spoken message exactly as spoken. It may be Telugu, English or a Telugu-English mix: write Telugu words in Telugu "
+                  "script and English words in English. Return only the words spoken. If there is no speech, return an empty string.") if telugu else (
+                  "Transcribe this spoken message exactly, in English. It is the owner talking to Ananta, a crypto trading assistant "
                   "(the owner is Madhav; he may say 'hey there', 'hi Jarvis', 'Ananta'; coins: Bitcoin BTC, Ethereum ETH, Solana SOL, ADA, DOGE, AVAX, BCH, LINK, LTC, XRP; "
                   "words: Hunter, Squeeze, Explorer, setup, scan, portfolio, mandate, evidence, repair shop). "
                   "Return only the words spoken. If there is no speech, return an empty string.")
@@ -2465,7 +2558,7 @@ class Ask:
 
     def voice_turn(self, who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None, source: str = "",
                    prefix: str = "") -> dict:
-        heard = self.transcribe(audio_b64, mime)
+        heard = self.transcribe(audio_b64, mime, thread=thread)
         if not heard:
             return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone."}
         if WHY.match(heard):                                   # plan 4.2: "why?" on its own is a full question (it explains the last answer)
@@ -2513,6 +2606,19 @@ class Ask:
             out.append({"thread": th, "title": _title(first[0] if first else ""), "time": views._local(t1), "messages": cnt, "t": t1,
                         "voice": bool(first and (first[1] or "").startswith("voice:"))})
         return out
+
+    def last_conversation(self) -> dict | None:
+        """The newest conversation a person had (not a scheduled brief, a test or a background check), for the 6-minute rule and the
+        "Continue previous conversation" box (Madhav, Oct 11)."""
+        r = self.j.db.execute("""SELECT thread, MAX(t) FROM ask_messages WHERE thread NOT LIKE '%:%' AND thread IN
+                (SELECT thread FROM ask_messages WHERE role='user' AND COALESCE(mode,'') NOT LIKE 'eval:%' AND COALESCE(mode,'') NOT LIKE '%worker%')
+                GROUP BY thread ORDER BY MAX(t) DESC LIMIT 1""").fetchone()
+        if not r:
+            return None
+        th, t1 = r
+        first = self.j.db.execute("SELECT text FROM ask_messages WHERE thread=? AND role='user' ORDER BY t LIMIT 1", (th,)).fetchone()
+        return {"thread": th, "title": _title(first[0] if first else ""), "t": t1, "time": views._local(t1),
+                "minutes_ago": round((self.j.now() - t1) / 60, 1), "talking_to": _speaker(self.j, th)}
 
     def delete_thread(self, thread: str) -> dict:
         """D10: a visitor's deleted conversation is gone for good; Madhav's goes to an archive kept 30 days."""

@@ -76,6 +76,29 @@ def _claude(q: str, post=_post, prompt: str | None = None) -> dict:
     return {"answer": text.strip(), "sources": src, "engine": "Claude web search", "cost_usd": round(cost, 4)}
 
 
+PAID_DAILY = int(os.getenv("WEB_PAID_DAILY", "25"))      # Oct 11: Google's free search quota can run out; paid Claude search is capped a day
+
+
+def _paid_ok() -> bool:
+    """True while today's paid web searches (Claude) are under the cap; counts one when it says yes."""
+    from pathlib import Path
+
+    f = Path(os.path.expanduser(os.getenv("WEB_PAID_FILE", "~/ananta_runs/web_paid.json")))
+    day = time.strftime("%Y-%m-%d")
+    try:
+        d = json.loads(f.read_text())
+    except Exception:  # noqa: BLE001
+        d = {}
+    n = int(d.get(day, 0))
+    if n >= PAID_DAILY:
+        return False
+    try:
+        f.write_text(json.dumps({day: n + 1}))
+    except Exception:  # noqa: BLE001
+        pass
+    return True
+
+
 def lookup(q: str, post=_post) -> dict:
     q = (q or "").strip()[:300]
     if not q:
@@ -83,6 +106,9 @@ def lookup(q: str, post=_post) -> dict:
     t0 = time.time()
     errors = []
     for fn in (_gemini, _claude):
+        if fn is _claude and post is _post and not _paid_ok():
+            errors.append(f"free search quota used and today's {PAID_DAILY} paid searches are used")
+            continue
         try:
             out = fn(q, post)
             out["ms"] = int(1000 * (time.time() - t0))
@@ -134,6 +160,9 @@ def market_check(j, coin: str, post=_post, cache_s: int = 6 * 3600) -> dict:
     prompt = MARKET_PROMPT.format(today=time.strftime("%Y-%m-%d", time.gmtime()), coin=coin, name=name)
     raw, errors = None, []
     for fn in (_gemini, _claude):
+        if fn is _claude and post is _post and not _paid_ok():
+            errors.append(f"free search quota used and today's {PAID_DAILY} paid searches are used")
+            continue
         try:
             raw = fn(coin, post, prompt)
             break

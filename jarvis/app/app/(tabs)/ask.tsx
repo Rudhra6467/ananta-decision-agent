@@ -146,7 +146,10 @@ const Tab = ({ label, on, onPress }: { label: string; on: boolean; onPress: () =
 // The open conversation lives outside the page, so leaving Ask Ananta and coming back (or the page being rebuilt by a
 // navigation) always shows the same conversation (Madhav, 2026-10-06: "inconsistency moving from ask Ananta page to other and
 // coming back"). Another person signing in on the same phone or browser starts empty.
-const kept: { msgs: Msg[]; thread: string | null; who: string } = { msgs: [], thread: null, who: "" };
+// Oct 11 (Madhav): a conversation continues only when he is back within 6 minutes (logins included); otherwise a new one starts and
+// the old one waits in a "Continue previous conversation" box under the gold button.
+const CONTINUE_MS = 6 * 60 * 1000;
+const kept: { msgs: Msg[]; thread: string | null; who: string; t: number; manualNew: boolean } = { msgs: [], thread: null, who: "", t: 0, manualNew: false };
 
 // One conversation page (like ChatGPT): type, dictate with the mic, or switch on voice mode, all in the same session.
 export default function Ananta() {
@@ -155,7 +158,7 @@ export default function Ananta() {
   useEffect(() => { if (params.tab === "now" || params.tab === "chat") setTabv(params.tab); }, [params.tab, params.t]);
   const [msgs, setMsgs] = useState<Msg[]>(kept.msgs);
   const [thread, setThread] = useState<string | null>(kept.thread);
-  useEffect(() => { kept.msgs = msgs; }, [msgs]);
+  useEffect(() => { kept.msgs = msgs; if (msgs.length) { kept.t = Date.now(); kept.manualNew = false; } }, [msgs]);
   useEffect(() => { kept.thread = thread; }, [thread]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -189,7 +192,29 @@ export default function Ananta() {
   threadRef.current = thread; modeRef.current = google ? (autoOn ? "google_auto" : "google") : (autoOn ? "auto" : "deep");
   useEffect(() => { TTS.init(); }, []);
   const sst = useRef({ offset: { y: 0 }, height: { h: 0 }, content: { h: 0 } }).current;
-  useFocusEffect(useCallback(() => { setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); setScroller({ ref: scroll, ...sst }); }, []));
+  const [prev, setPrev] = useState<any>(null);
+  const checkFresh = useCallback(async () => {
+    const away = !!kept.t && Date.now() - kept.t > CONTINUE_MS;
+    if (kept.msgs.length && !away) return;                      // still the same conversation
+    if (away) { kept.msgs = []; kept.thread = null; kept.t = 0; setMsgs([]); setThread(null); }
+    try {
+      const r = await api("/v3/ask/last");
+      const last = r?.last;
+      if (last && !away && !kept.msgs.length && !kept.manualNew && last.minutes_ago < (r.continue_minutes ?? 6)) {
+        const t = await api(`/v3/ask/thread/${last.thread}`);   // back within 6 minutes (a login, a reload): carry on
+        setMsgs(t.messages); setThread(last.thread); setPrev(null);
+      } else {
+        setPrev(last ?? null);
+      }
+    } catch { /* the box is optional */ }
+  }, []);
+  useFocusEffect(useCallback(() => { setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); setScroller({ ref: scroll, ...sst }); checkFresh(); }, []));
+  // who Ananta is talking with right now (one of Madhav's people), from the latest answer; null = Madhav
+  const speaker = [...msgs].reverse().find((m) => m.role === "assistant" && m.talking_to !== undefined)?.talking_to ?? null;
+  const imBack = async () => {
+    try { if (threadRef.current) await api("/v3/ask/speaker", { thread: threadRef.current, person: null }); } catch { /* */ }
+    setMsgs((m) => [...m, { role: "assistant", kind: "answer", model_label: "Ananta", answer: "Welcome back, sir.", talking_to: null }]);
+  };
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
   // what is on screen (so Ananta knows where he is) + for spoken answers, which voice to prepare ahead
@@ -481,7 +506,7 @@ export default function Ananta() {
     setBusy(true);
     try { handleTextAnswer(await api("/v3/ask/second", { id: m.id })); } catch (e: any) { handleTextAnswer({ error: e?.message }); } finally { setBusy(false); }
   };
-  const newSession = () => { endLive(); setMsgs([]); setThread(null); setSessions(false); };
+  const newSession = () => { endLive(); kept.manualNew = true; setMsgs([]); setThread(null); setSessions(false); checkFresh(); };
 
   // plan 3.6a: "Ask Ananta to trade / evaluate": voice on, a greeting, and two choices
   const tradeEvaluate = async () => {
@@ -552,6 +577,16 @@ export default function Ananta() {
         </Pressable>
       ) : null}
 
+      {speaker && !me?.guest ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 6, alignSelf: "flex-start",
+          backgroundColor: C.accentSoft, borderRadius: 999, paddingLeft: 12, paddingRight: 4, paddingVertical: 4 }}>
+          <Text style={{ color: C.text, fontSize: 13, fontWeight: "700" }}>Talking with {speaker.call && /garu|sir/i.test(speaker.call) ? speaker.call.split("/")[0].trim() : speaker.name}</Text>
+          <Pressable onPress={imBack} accessibilityRole="button" accessibilityLabel="I'm back"
+            style={{ backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
+            <Text style={{ color: C.onInk, fontSize: 12, fontWeight: "800" }}>I'm back</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <View style={{ flex: 1 }}>
       <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive"
         onScroll={(e) => { sst.offset.y = e.nativeEvent.contentOffset.y; checkEnd(); }} scrollEventThrottle={64}
@@ -569,6 +604,17 @@ export default function Ananta() {
                 <Text style={{ color: C.onInk, fontSize: 12, opacity: 0.85 }}>Voice on: find a trade, or rate your open positions</Text>
               </View>
             </Pressable>
+            {prev?.thread ? (
+              <Pressable onPress={() => { setPrev(null); openSession(prev.thread); }} accessibilityRole="button" accessibilityLabel="Continue previous conversation"
+                style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: C.card, borderColor: C.accent, borderWidth: 1,
+                  borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, opacity: pressed ? 0.85 : 1 })}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: C.text, fontWeight: "800", fontSize: 15 }}>Continue previous conversation</Text>
+                  <Text style={{ color: C.dim, fontSize: 12 }} numberOfLines={1}>{prev.title || "Your last conversation"} · {prev.time}</Text>
+                </View>
+                <Text style={{ color: C.accent, fontWeight: "800", fontSize: 18 }}>›</Text>
+              </Pressable>
+            ) : null}
             <T small>{me?.guest ? "Or try one of the questions below." : 'New here? Tap "New here" below for questions to start with.'}</T>
           </View>
         ) : null}

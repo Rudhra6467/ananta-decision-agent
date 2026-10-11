@@ -1,6 +1,6 @@
 {
  "version": "repair_shop.ledger.v1",
- "updated": "2026-10-08",
+ "updated": "2026-10-11",
  "meaning": {
   "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
   "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
@@ -353,6 +353,36 @@
     "docs/research/REVIEW_23_RESULTS.md"
    ],
    "status": "DONE"
+  },
+  {
+   "id": "R25",
+   "date": "2026-10-10",
+   "status": "DONE",
+   "verdict": "PASS",
+   "title": "The exposure dial: how much to be in the market at all",
+   "forwarded_because": "Madhav, Oct 10: a piece of the engine was missing; a professional decides exposure from market state before any setup.",
+   "question": "Which Bitcoin rule decides best when to hold and when to be in cash, after NDAX costs, in both periods?",
+   "result": "Bitcoin above both its 50-day and 200-day averages (GATE50_200) beat the 50-day gate and holding in both periods (return per unit of fall 0.74 and 0.83). GATE50 stays the benchmark every strategy must beat.",
+   "changed": "Dial v1 live (exposure.py): a closed dial blocks new buys except measured edges; benchmark paper books from Oct 10.",
+   "files": [
+    "docs/research/REVIEW_25.md",
+    "docs/research/REVIEW_25_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R26",
+   "date": "2026-10-10",
+   "status": "DONE",
+   "verdict": "PASS",
+   "title": "Which daily rules have an edge, by market state and coin size",
+   "forwarded_because": "Hand-picked points ranked the brain's moments; Madhav asked for knowledge-based decisions.",
+   "question": "Six daily rules x dial state x tier on 120 coins against random entries after costs: which cells pass in both periods?",
+   "result": "One cell: H07 on tier A while the dial is closed (+5.1% a trade over random, shrunk). Everything else has no measured edge.",
+   "changed": "Measured-edge table (ev.py) ranks the brain's daily-rule moments; dial-closed wakes are kept only with a measured edge; would-be account in R against the hurdle.",
+   "files": [
+    "docs/research/REVIEW_26.md",
+    "docs/research/REVIEW_26_RESULTS.md"
+   ]
   }
  ],
  "queue": [
@@ -488,6 +518,27 @@
    "what": "The short dip trade traded on paper on the 10 live coins ($100 per signal)",
    "expect": "+3.6% to +6% per trade over ordinary uptrend days, about 70% wins",
    "watch_out": "Works on liquid coins only (review #15); few signals"
+  },
+  {
+   "id": "DIAL",
+   "from": "R25",
+   "since": "2026-10-10",
+   "what": "Exposure dial v1: Bitcoin above its 50-day and 200-day averages = open; closed blocks new buys except measured edges",
+   "expect": "Beat the GATE50 benchmark over the same days"
+  },
+  {
+   "id": "EV_TABLE",
+   "from": "R26",
+   "since": "2026-10-10",
+   "what": "Measured-edge table ranks daily-rule moments; the would-be account risks 0.5% a trade in R",
+   "expect": "Brain's ranked moments beat its random twins"
+  },
+  {
+   "id": "RESEARCH_DESK",
+   "from": "Madhav, Oct 10",
+   "since": "2026-10-10",
+   "what": "Dated web facts per coin checked against our evidence; the web can only add caution",
+   "expect": "Fewer buys into unlocks, hacks or legal trouble"
   }
  ],
  "safety_changes": [
@@ -538,6 +589,18 @@
   {
    "date": "2026-10-05",
    "what": "Every nightly rebuild is kept (rebuild log); before, each night overwrote the last"
+  },
+  {
+   "date": "2026-10-11",
+   "what": "The main service and the website run under launchd and restart themselves (tested: both back within 20 seconds)"
+  },
+  {
+   "date": "2026-10-11",
+   "what": "The watchdog also checks the website and the public addresses (the Oct 10 outages sent no alert)"
+  },
+  {
+   "date": "2026-10-11",
+   "what": "Nightly backup of every database (14 days kept) and a weekly copy to R2; restore checked"
   }
  ],
  "studies": [
@@ -700,6 +763,22 @@
    "did": "Oct 10 review: checked tier30_bars. TON's last daily candle is Jun 30 (Binance still answers with the old 692 candles, so the daily pull never fails and nothing warns). The 30-coin trend book still builds a view for TON from that frozen Jun 30 close: it rates TON (OUT today, never bought), counts it in the 30-day strength ranking, and divides the book into 29 slots instead of 28 (each slot about 3.5% smaller). Buy-and-hold already leaves TON out.",
    "change": "Proposed, not merged (it changes the book's sizing and ranking): skip any coin whose last daily close is older than 3 days in tier30._views, the same rule buy_hold uses, and name it on the page; or swap TON for the next coin in the 30-coin list. Needs Madhav's yes.",
    "status": "WAITING_FOR_YOU"
+  },
+  {
+   "id": "TK14",
+   "date": "2026-10-11",
+   "from": "plan audit (Oct 11)",
+   "what": "The brain's 20 slots filled on Oct 9 and 1,407 wakes were turned away: no evidence for two days.",
+   "did": "Madhav agreed (D7).",
+   "change": "A full account still decides within the AI budget; a buy becomes 'no room' evidence outside the account."
+  },
+  {
+   "id": "TK15",
+   "date": "2026-10-11",
+   "from": "plan audit (Oct 11)",
+   "what": "Google's free search quota ran out, so the research desk fell back to paid Claude search.",
+   "did": "Checked: a quota (429), not a bug.",
+   "change": "Paid web searches capped at 25 a day (WEB_PAID_DAILY); after that the desk says the web is unavailable."
   }
  ]
 }

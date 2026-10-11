@@ -149,7 +149,7 @@ def test_brain_budget_paces_and_logs_unreviewed(tmp_path, monkeypatch):
     monkeypatch.setattr(brain, "can_decide", lambda jj: (True, ""))
     monkeypatch.setattr(brain, "_live_px", lambda jj, c: 1.0)
     done = []
-    monkeypatch.setattr(brain, "decide", lambda jj, c, trig, call=None, push=None: done.append(c) or {"action": "PASS"})
+    monkeypatch.setattr(brain, "decide", lambda jj, c, trig, call=None, push=None, noroom=False: done.append(c) or {"action": "PASS"})
     brain.wake(j, "LOW", "explorer:E1")
     brain.wake(j, "GOOD", "zone_entry")
     brain.process(j)

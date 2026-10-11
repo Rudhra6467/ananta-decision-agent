@@ -529,6 +529,15 @@ def _random_coin(j, coin: str, t: int, coins: list[str]) -> str | None:
     return others[int(hashlib.sha1(f"{coin}|{t}".encode()).hexdigest(), 16) % len(others)]
 
 
+NOROOM = '%"no_room": true%'
+
+
+def _account_open(j) -> int:
+    """Open trades in the brain's account: its own book minus the "no room" evidence trades (Madhav D7, Oct 11)."""
+    return j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND status='OPEN' AND COALESCE(detail,'') NOT LIKE ?",
+                        (WATCH, NOROOM)).fetchone()[0]
+
+
 def _open(j, watch: str, coin: str, price: float, stop: float, target: float | None, trail_atr: float | None, days: int, atr: float,
           detail: dict, regime: str | None) -> dict:
     from jarvis.service import watch_engine
@@ -543,7 +552,7 @@ def _open(j, watch: str, coin: str, price: float, stop: float, target: float | N
     return row
 
 
-def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Callable | None = None) -> dict:
+def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Callable | None = None, noroom: bool = False) -> dict:
     """One decision: the pack, the model's weighing, the code's red flags, then a paper trade (and its random twin) or a PASS."""
     from jarvis.service import eye
     from src.research import reads as R
@@ -609,6 +618,9 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
             target = float(d["target"]) if isinstance(d.get("target"), (int, float)) else None
         regime = (p.get("market") or {}).get("regime")
         det = {"decision": did, "thesis": d.get("thesis", ""), "confidence": conf, "size_pct": size, "knowledge": know}
+        if noroom:                                      # D7: scored as evidence, outside the account (its 20 slots were full)
+            det["no_room"] = True
+            note = (note + "; " if note else "") + f"no room: the account already holds {MAX_OPEN}; kept as evidence only"
         trade = _open(j, WATCH, coin, price, float(d["stop"]), target, trail, days, atr or 0.0, det, regime)
         # the random twin: same moment, another coin, the same plan in its own daily ranges
         if _is_lab(coin):
@@ -626,7 +638,7 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
                 rp = px_all[rc]
                 k_stop = (price - float(d["stop"])) / atr
                 rt = rp + (target - price) / atr * ratr if target else None
-                rnd = _open(j, BASE, rc, rp, rp - k_stop * ratr, rt, trail, days, ratr, {"decision": did, "twin_of": trade["id"], "thesis": f"random twin of {coin}"}, regime)
+                rnd = _open(j, BASE, rc, rp, rp - k_stop * ratr, rt, trail, days, ratr, {"decision": did, "twin_of": trade["id"], "thesis": f"random twin of {coin}", **({"no_room": True} if noroom else {})}, regime)
         if push:
             try:
                 push(f"Jarvis paper trade: {coin}", f"About ${price:,.6g}, stop ${float(d['stop']):,.6g}"
@@ -775,7 +787,7 @@ def score(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
                 why.append("room to beat costs +0.5")
     except Exception:  # noqa: BLE001
         pass
-    n_open = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND status='OPEN'", (WATCH,)).fetchone()[0]
+    n_open = _account_open(j)
     if n_open:
         s -= 0.1 * n_open
         why.append(f"{n_open} open already -{0.1 * n_open:g}")
@@ -853,8 +865,6 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
             why = f"already holding {MAX_PER_COIN} trades on it"
         elif j.db.execute("SELECT 1 FROM brain_decisions WHERE coin=? AND t >= ? AND action != 'ERROR'", (coin, now - COIN_COOLDOWN)).fetchone():
             why = "decided on this coin in the last 6 hours"
-        elif j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND status='OPEN'", (WATCH,)).fetchone()[0] >= MAX_OPEN:
-            why = f"{MAX_OPEN} trades already open"
         else:
             ok, why = can_decide(j)
             why = "" if ok else why
@@ -866,7 +876,7 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
         if sc < MIN_SCORE:
             _unreviewed(j, qid, t, coin, trig, sc, f"ranked too low ({sc:g}: {', '.join(sw)})")
             continue
-        ranked.append((sc, t, qid, coin, det, sw))
+        ranked.append((sc, t, qid, coin, det, sw))           # D7: a full account still decides; a buy becomes "no room" evidence
     ranked.sort(key=lambda x: (-x[0], x[1]))
     for sc, t, qid, coin, det, sw in ranked:
         if len(out) >= max_n:
@@ -883,7 +893,7 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
         j.db.execute("UPDATE brain_queue SET state='DECIDING' WHERE id=?", (qid,))
         j.db.commit()
         try:
-            r = decide(j, coin, json.loads(det or "{}"), call=call, push=push)
+            r = decide(j, coin, json.loads(det or "{}"), call=call, push=push, noroom=_account_open(j) >= MAX_OPEN)
             state = "DONE"
         except Exception as exc:  # noqa: BLE001
             r, state = {"error": str(exc)[:160]}, "FAILED: " + str(exc)[:80]

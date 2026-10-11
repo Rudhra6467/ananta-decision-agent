@@ -5,9 +5,11 @@ from tests.test_universe_live import J
 
 PEOPLE = {"rules": ["Paper only."], "telugu_guide": {"respect": "meeru, andi, garu", "mix": "mix", "words": {"andi": "polite"}},
           "people": [{"id": "mom", "names": ["Lakshmi", "Mom"], "relation": "mother", "group": "family", "tz": "Asia/Kolkata",
-                      "language": "telugu", "call": "Lakshmi garu", "opener": "Hello andi Lakshmi garu.. namaskaram."},
-                     {"id": "dad", "names": ["Prasad", "Dad"], "relation": "father", "language": "telugu", "opener": "Good {part} sir."},
-                     {"id": "bil", "names": ["Ravi Kumar"], "relation": "brother-in-law", "language": "english", "opener": "Hello"},
+                      "language": "telugu", "call": "Lakshmi garu", "opener": "Hello andi Lakshmi garu.. namaskaram.", "relations": ["mother", "mom", "amma"]},
+                     {"id": "dad", "names": ["Prasad", "Dad"], "relation": "father", "language": "telugu", "opener": "Good {part} sir.", "relations": ["father", "nanna"]},
+                     {"id": "kid", "names": ["Chintu"], "relation": "nephew", "group": "family_kid", "language": "mix", "opener": "Hey Chintu", "relations": ["sister's son", "nephew"]},
+                     {"id": "sis", "names": ["Sita"], "relation": "sister", "language": "english", "opener": "Hello Sita", "relations": ["sister", "akka"]},
+                     {"id": "bil", "names": ["Ravi Kumar"], "relation": "brother-in-law", "language": "english", "opener": "Hello", "relations": ["bava", "brother-in-law"]},
                      {"id": "anu", "names": ["Anu", "Anuu"], "relation": "niece", "group": "family_kid", "language": "mix", "opener": "Hey cutie pie."},
                      {"id": "sam", "names": ["Sam", "Sammy"], "relation": "friend", "language": "english", "opener": "Hey Sam"}]}
 
@@ -90,3 +92,37 @@ def test_market_check_can_only_add_caution(monkeypatch):
     weblook._MC.clear()
     bad = weblook.market_check(J("/tmp"), "SOL", post=fake([], unlock="yes"), cache_s=0)
     assert bad["verdict"].startswith("CAUTION")
+
+
+def test_handovers_are_caught_by_code(tmp_path, monkeypatch):
+    """The Oct 10 log, replayed: each message goes to the right person, by code, before any AI."""
+    from jarvis.service import people
+
+    _file(tmp_path, monkeypatch)
+    j = J(tmp_path)
+    cases = [("Hey here my mom is talking. Can you talk to my mom? Kanesha on do.", "handover", "mom"),
+             ("Nah. Hey, talk to my dad.", "handover", "dad"),
+             ("Talk to Chintu. Talk to Chintu, my sister's son.", "handover", "kid"),
+             ("Hey Ananta, talk to my sister Sita. Like I'm introducing you to my Sita here.", "handover", "sis"),
+             ("My mother wants to ask you something.", "handover", "mom"),
+             ("Ananta, my mother is asking about Canada's weather.", "relay", "mom"),
+             ("amma tho matladu", "handover", "mom"),
+             ("say hi to bava", "handover", "bil")]
+    for text, kind, pid in cases:
+        r = people.route(j, "t1", text)
+        assert r and r["kind"] == kind and r["person"]["id"] == pid, (text, r)
+    assert people.route(j, "t1", "this is great") is None
+    assert people.route(j, "t1", "How is bitcoin today?") is None
+    assert people.route(j, "t1", "I'm back") is None                   # nobody introduced: nothing to come back from
+    people.set_speaker(j, "t1", people.find("Prasad"))
+    assert people.route(j, "t1", "it's me again, thanks")["kind"] == "back"
+    assert people.route(j, "t1", "talk to my dad")["same"] is True      # already talking with him: no second greeting
+
+
+def test_my_sisters_son_is_not_my_sister(tmp_path, monkeypatch):
+    from jarvis.service import people
+
+    _file(tmp_path, monkeypatch)
+    assert people.resolve("my sister's son")["id"] == "kid"
+    assert people.resolve("my sister")["id"] == "sis"
+    assert people.resolve("Prasad")["id"] == "dad" and people.resolve("Ravi Kumar")["id"] == "bil"

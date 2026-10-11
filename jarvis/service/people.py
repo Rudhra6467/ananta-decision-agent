@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 import time
+import re
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -58,6 +59,65 @@ def find(name: str) -> dict | None:
     return None
 
 
+def resolve(phrase: str) -> dict | None:
+    """A person from free words: a name ("Chintu") or a relation ("my sister's son", "amma"). Longest match wins, so "my sister's son"
+    is the nephew, not his mother; a first name alone means the person whose name it is exactly (plan Batch 2, Oct 11)."""
+    t = " " + _norm(phrase).replace("’", "'") + " "
+    best, size = None, 0
+    for p in load().get("people") or []:
+        for w in list(p.get("names") or []) + list(p.get("relations") or []):
+            k = _norm(w).replace("’", "'")
+            if k and f" {k} " in t and len(k) > size:
+                best, size = p, len(k)
+    return best
+
+
+_WHO = r"(?P<who>[a-z' ]{2,40}?)"
+_END = r"(?=[.,!?;]|\s+(?:please|now|here|ji|garu)\b|$)"
+HANDOVER = [re.compile(x, re.I) for x in (
+    r"\b(?:talk|speak|chat)\s+(?:to|with)\s+" + _WHO + _END,
+    r"\bsay\s+(?:hi|hello|namaskaram)\s+to\s+" + _WHO + _END,
+    r"\b(?:meet|greet|introduce yourself to)\s+" + _WHO + _END,
+    r"\bthis is\s+" + _WHO + _END,
+    r"\b" + _WHO + r"\s+(?:is|are)\s+(?:here|with me|on the line|talking)\b",
+    r"\b" + _WHO + r"\s+wants?\s+to\s+(?:talk|speak|ask|say|chat)\b",
+    r"\b" + _WHO + r"\s+tho\s+(?:matladu|maatladu|matladandi|maatladandi|matladu ra|matladava|maatladava)\b",
+)]
+RELAY = re.compile(r"\b" + _WHO + r"\s+(?:is asking|asks|asked|wants to know|is saying|says)\b", re.I)
+BACK = re.compile(r"\b(?:i'?m back|i am back|it'?s me|it is me|madhav here|vamsi here|this is (?:madhav|vamsi)|back to me)\b", re.I)
+
+
+def route(j, thread: str | None, text: str) -> dict | None:
+    """What Madhav's message means for who is speaking, decided by code, not the AI (the Oct 10 log: the AI guessed wrong):
+    {"kind": "back"} | {"kind": "handover", "person"} | {"kind": "relay", "person"} | None."""
+    t = (text or "").replace("’", "'")
+    now = talking_to(j, thread)
+    if BACK.search(t):
+        return {"kind": "back"} if now else None
+    for rx in HANDOVER:
+        for m in rx.finditer(t):
+            p = resolve(m.group("who"))
+            if p:
+                return {"kind": "handover", "person": p, "same": bool(now and now["id"] == p["id"])}
+    m = RELAY.search(t)
+    if m:
+        p = resolve(m.group("who"))
+        if p:
+            return {"kind": "relay", "person": p}
+    return None
+
+
+def set_speaker(j, thread: str, p: dict) -> None:
+    _table(j)
+    j.db.execute("INSERT OR REPLACE INTO people_session VALUES (?,?,?)", (thread, p["id"], int(j.now())))
+    j.db.commit()
+
+
+def opener(p: dict) -> str:
+    part, _ = _part(p.get("tz"))
+    return (p.get("opener") or "").replace("{part}", part)
+
+
 def _table(j) -> None:
     j.db.execute("CREATE TABLE IF NOT EXISTS people_session (thread TEXT PRIMARY KEY, person TEXT, t INTEGER)")
 
@@ -76,7 +136,7 @@ def talking_to(j, thread: str | None) -> dict | None:
 
 
 def introduce(j, thread: str | None, name: str) -> dict:
-    p = find(name)
+    p = find(name) or resolve(name)
     if not p:
         known = ", ".join(x["names"][0] for x in load().get("people") or [])
         return {"error": f"I don't have {name} in sir's list of people yet" + (f" (I know: {known})" if known else "")
@@ -109,7 +169,7 @@ def _part(tz: str | None) -> tuple[str, str]:
         h = datetime.now(ZoneInfo(tz)).hour
     except Exception:  # noqa: BLE001
         tz, h = "America/Toronto", datetime.now(ZoneInfo("America/Toronto")).hour
-    return ("morning" if 4 <= h < 12 else "afternoon" if h < 17 else "evening"), tz
+    return ("morning" if 4 <= h < 12 else "afternoon" if 12 <= h < 17 else "evening"), tz     # after midnight is still evening
 
 
 LANG = {"telugu": "Telugu in English letters, with English only for trading words (respect forms from the guide)",
@@ -143,7 +203,10 @@ def prompt_note(j, thread: str | None) -> str:
                      + ", ".join(f"{k} = {v}" for k, v in (g.get("words") or {}).items()))
     if p.get("group") == "family_kid":
         lines.append("This is a child: short, gentle, playful, age-appropriate; no money, trading or investing; never ask for personal details.")
-    lines.append("If Madhav comes back ('it's me', 'Ananta, thanks'), call back_to_madhav.]")
+    lines.append("Madhav may still type here: a message asking you to talk to another of his people is Madhav handing over, so call "
+                 "introduce with that person (never refuse it); a message that says what this person is asking is Madhav passing their "
+                 "question on: answer it to them, in their language. If you are not sure what they are asking, ask them back in one short "
+                 "question in their language. If Madhav comes back ('it's me', 'I'm back'), call back_to_madhav.]")
     return "\n".join(lines)
 
 

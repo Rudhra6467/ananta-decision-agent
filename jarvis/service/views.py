@@ -766,7 +766,16 @@ def evidence_pipeline(j) -> dict:
     t3_weeks = int((now - first) // (7 * 86400)) if first else 0
     rec_p = j.dir / "explorer_reconstruct.json"
     recon = json.loads(rec_p.read_text()) if rec_p.exists() else None
+    try:
+        from jarvis.service import status_words
+
+        uni = status_words.facts(j)
+    except Exception:  # noqa: BLE001
+        uni = {}
     watching = [
+        {"name": "The whole market (universe)", "every": f"every 10 seconds and each daily close, {uni.get('coins_total') or 393} coins",
+         "runs": None, "detail": "Every rule on every coin, by tier, against its own random baseline; zone touches on live prices; "
+                                 "the brain wakes on the moments that rank highest. Tier C is watched, never judged."},
         {"name": "15-minute Explorer", "every": "every 15 minutes, 10 coins", "runs": int(days * 96 * 10),
          "detail": f"Rules {rules.name}: trades {', '.join(traded)}; $100 each; up to {getattr(rules, 'stack', 1)} per coin per kind; "
                    f"at most 20 open and 60 new a day",

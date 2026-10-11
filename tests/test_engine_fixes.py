@@ -118,3 +118,25 @@ def test_would_be_caps_total_risk(tmp_path, monkeypatch):
     _trades(j, [("M1a-UA", f"C{k}", t + k, 100.0, 90.0, 1.0) for k in range(15)])
     a = universe_watch.would_be(j)
     assert a["taken"] == 12 and a["skipped"]["risk_cap"] == 3        # 6% total open risk / 0.5% a trade
+
+
+def test_a_full_brain_still_decides_as_no_room_evidence(tmp_path, monkeypatch):
+    """D7 (Oct 11): 20 open trades no longer turn wakes away; the decision is made and a buy is kept as evidence outside the account."""
+    from jarvis.service import brain
+
+    j = J(tmp_path)
+    brain._table(j)
+    _trades(j, [])
+    for k in range(brain.MAX_OPEN):
+        j.db.execute("INSERT INTO evidence_trades (id, watch, coin, status, detail) VALUES (?,?,?,?,?)", (f"o{k}", "JARVIS", f"C{k}", "OPEN", "{}"))
+    j.db.execute("INSERT INTO evidence_trades (id, watch, coin, status, detail) VALUES (?,?,?,?,?)", ("nr", "JARVIS", "X", "OPEN", '{"no_room": true}'))
+    j.db.commit()
+    assert brain._account_open(j) == brain.MAX_OPEN                 # the no-room trade sits outside the account
+    monkeypatch.setattr(brain, "score", lambda jj, c, t, d: (6.0, ["high"]))
+    monkeypatch.setattr(brain, "can_decide", lambda jj: (True, ""))
+    monkeypatch.setattr(brain, "paced_budget", lambda jj: 1.0)
+    seen = []
+    monkeypatch.setattr(brain, "decide", lambda jj, c, trig, call=None, push=None, noroom=False: seen.append((c, noroom)) or {"action": "PASS"})
+    brain.wake(j, "NEWCOIN", "zone_entry")
+    brain.process(j)
+    assert seen == [("NEWCOIN", True)]

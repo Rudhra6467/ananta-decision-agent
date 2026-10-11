@@ -398,7 +398,9 @@ def state(j) -> dict:
     n_w = len([w for w in ws if w["state"] != "PAUSED"])
     watching = f"Watching {n_w} setup{'s' if n_w != 1 else ''}"
     if not getattr(j, "sandbox", False):                  # Madhav: the brain's own watches run for his books every 15 minutes
-        watching = "Watching 10 coins: the 15-minute, hourly and daily setups" + (f", plus your {n_w} watch{'es' if n_w != 1 else ''}" if n_w else "")
+        from jarvis.service import status_words
+
+        watching = status_words.watching(j) + (f"; plus your {n_w} watch{'es' if n_w != 1 else ''}" if n_w else "")
     lines = [{"tone": "good", "text": watching},
              {"tone": "good", "text": f"Monitoring {held} position{'s' if held != 1 else ''}"}]
     lines += [{"tone": "wait", "text": f"Waiting for {x}"} for x in waiting[:3]]

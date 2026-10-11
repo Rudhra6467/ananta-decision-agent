@@ -1210,6 +1210,43 @@ def ask_threads(who: str = Depends(owner)) -> dict:
     return {"threads": A().threads()}
 
 
+@app.get("/v3/ask/last")
+def ask_last(who: str = Depends(owner)) -> dict:
+    """The newest real conversation: the app continues it when it is under 6 minutes old, else offers it in a box (Oct 11)."""
+    return {"last": A().last_conversation(), "continue_minutes": 6}
+
+
+@app.post("/v3/ask/speaker")
+def ask_speaker(body: dict, who: str = Depends(owner)) -> dict:
+    """Who Ananta talks with in a conversation: a person's id or name hands it over, null brings Madhav back (the chip's "I'm back")."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Introductions work in Madhav's account only.")
+    from jarvis.service import ask as askmod, people
+
+    th = str(body.get("thread") or "")
+    if not th:
+        raise HTTPException(status_code=400, detail="thread missing")
+    j = A().j
+    if body.get("person"):
+        p = people.find(str(body["person"])) or people.resolve(str(body["person"]))
+        if not p:
+            raise HTTPException(status_code=404, detail="not one of Madhav's people")
+        people.set_speaker(j, th, p)
+        return {"talking_to": askmod._speaker(j, th), "opener": people.opener(p)}
+    people.back(j, th)
+    return {"talking_to": None}
+
+
+@app.get("/v3/people")
+def people_list(who: str = Depends(owner)) -> dict:
+    """Madhav's people (names and relations only) for the app's "talking with" menu; never shown to guests."""
+    if is_guest(who):
+        return {"people": []}
+    from jarvis.service import people
+
+    return {"people": [{"id": p["id"], "name": p["names"][0], "relation": p.get("relation")} for p in people.load().get("people") or []]}
+
+
 @app.get("/v3/ask/thread/{thread}/export")
 def ask_export(thread: str, who: str = Depends(owner)) -> dict:
     return {"text": _run(A().export, thread)}

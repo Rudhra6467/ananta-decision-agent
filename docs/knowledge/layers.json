@@ -841,7 +841,9 @@
     "jarvis/service/universe_watch.py",
     "jarvis/service/exposure.py",
     "jarvis/service/ev.py",
-    "jarvis/service/people.py"
+    "jarvis/service/people.py",
+    "jarvis/service/status_words.py",
+    "jarvis/voice/telugu_server.py"
    ]
   },
   {

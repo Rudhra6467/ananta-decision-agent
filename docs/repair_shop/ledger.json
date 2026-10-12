@@ -819,8 +819,9 @@
    "date": "2026-10-11",
    "from": "plan audit (Oct 11)",
    "what": "The brain's 20 slots filled on Oct 9 and 1,407 wakes were turned away: no evidence for two days.",
-   "did": "Madhav agreed (D7). Oct 12 review: live and working as built. Since Oct 11 afternoon the full account (20 of 20) still decided 37 times, all PASS, so no 'no room' record yet (none expected without a BUY). Worth a look: the ranking subtracts 0.1 per open trade, so a full account costs every wake 2 points and most now land 'ranked too low' before the AI sees them; that ranking is a trading rule, left for Madhav.",
-   "change": "A full account still decides within the AI budget; a buy becomes 'no room' evidence outside the account."
+   "did": "Madhav agreed (D7). Oct 12 review: live and working as built. Since Oct 11 afternoon the full account (20 of 20) still decided 37 times, all PASS, so no 'no room' record yet (none expected without a BUY). Worth a look: the ranking subtracts 0.1 per open trade, so a full account costs every wake 2 points and most now land 'ranked too low' before the AI sees them; that ranking is a trading rule, left for Madhav. Oct 12: Madhav said go; 3a0c109 drops the open penalty while the account is full (live after the restart).",
+   "change": "A full account still decides within the AI budget; a buy becomes 'no room' evidence outside the account.",
+   "status": "DONE"
   },
   {
    "id": "TK15",

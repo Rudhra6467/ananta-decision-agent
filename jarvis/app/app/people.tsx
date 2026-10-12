@@ -67,7 +67,7 @@ function People() {
       </Card>
 
       <Section title="Invite someone" />
-      <Card sub="They open the link, choose their own name and password, and start with $1,000 of paper money in their own practice book.">
+      <Card sub="They open the link, choose their own name and password, and start with $1,000 of paper money in their own practice book. The account lasts 3 days; then signing in shows them a short feedback form.">
         <TextInput value={name} onChangeText={setName} placeholder="Their name (they can change it)" placeholderTextColor={C.dim}
           style={{ backgroundColor: C.card2, color: C.text, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: C.line, marginBottom: 8 }} />
         <TextInput value={email} onChangeText={setEmail} placeholder="Their email (optional: fixes the email for this link)" placeholderTextColor={C.dim}
@@ -93,7 +93,12 @@ function People() {
               <View style={{ flex: 1 }}>
                 <Text style={{ color: C.text, fontWeight: "600" }}>{v.name}</Text>
                 <T small>{v.email} · joined {when(v.joined_t)} · last in {when(v.last_login_t)}</T>
+                <T small style={{ color: v.expired ? C.bad : C.dim }}>
+                  {v.expires_t ? (v.expired ? `Ended ${when(v.expires_t)}` : `Ends ${when(v.expires_t)}`) : "No end date (joined before Oct 12)"}
+                  {v.feedback ? " · feedback in" : v.expired ? " · no feedback yet" : ""}
+                </T>
               </View>
+              <Btn small kind="secondary" label="+3 days" onPress={async () => { await api("/v3/people/extend", { email: v.email, days: 3 }); reload(); }} />
               <Btn small kind="danger" label="Remove" onPress={() => remove(v.email, v.name, false)} />
             </View>
           </View>

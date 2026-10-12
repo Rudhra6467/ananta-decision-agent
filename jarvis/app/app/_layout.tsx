@@ -17,7 +17,7 @@ export default function Root() {
   useEffect(() => {
     if (!nav?.key || checked.current) return;
     checked.current = true;
-    if (path.startsWith("/join") || path.startsWith("/login")) return;   // an invite link opens without a sign-in
+    if (path.startsWith("/join") || path.startsWith("/login") || path.startsWith("/feedback")) return;   // invite link, sign-in, feedback form
     token().then(async (t) => {
       if (!t) { router.replace("/login"); return; }
       loadNames();                                       // display names for internal codes (plan 2.3)

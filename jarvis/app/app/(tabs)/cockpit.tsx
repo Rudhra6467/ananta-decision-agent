@@ -216,7 +216,7 @@ function Cockpit() {
 
       <NotificationsCard />
 
-      <Card onPress={() => router.push("/more")} title="Additional features" sub="Systems and circuit breakers · Recent activities · Invites · Mandate"
+      <Card onPress={() => router.push("/more")} title="Additional features" sub="Systems and circuit breakers · Recent activities · Invites · Visitor feedback · Change password · Mandate"
         right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
 
       {sp ? (

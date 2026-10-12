@@ -30,7 +30,8 @@ MODE = {"gemini": "everyday", "claude": "deep"}
 
 
 def token(ttl: int = 3 * 3600) -> str:
-    return core.make_token(os.environ["JARVIS_SECRET"], os.environ["JARVIS_OWNER_EMAIL"].strip().lower(), time.time(), ttl=ttl)
+    # svc=1: a script on this Mac, signed with the service's secret; it has no app sign-in session (Oct 12)
+    return core.make_token(os.environ["JARVIS_SECRET"], os.environ["JARVIS_OWNER_EMAIL"].strip().lower(), time.time(), ttl=ttl, svc=1)
 
 
 H = {}

@@ -19,15 +19,22 @@ export async function token(): Promise<string | null> {
 }
 export async function logout() {
   try { await api("/v3/onboard/demo/clear", {}, 5000); } catch { /* signed out anyway */ }   // a visitor's DEMO trade ends at the first sign-out
+  try { await api("/auth/logout", {}, 5000); } catch { /* the server session ends by itself after 3 idle hours */ }
   await SecureStore.deleteItemAsync("jarvis_token");
 }
+
+// Oct 12: a visitor whose 3 practice days are over gets this from sign-in instead of a token; the feedback screen reads it.
+export type ExpiredForm = { expired: true; name: string; answered: boolean; form_token: string | null; questions: any[]; message: string };
+let expiredForm: ExpiredForm | null = null;
+export const getExpiredForm = () => expiredForm;
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
 // Every call gives up after timeoutMs (default 60 s), so a dropped connection can never leave a screen waiting forever.
-export async function api<T = any>(path: string, body?: object, timeoutMs = 60000): Promise<T> {
+// quiet = a background refresh the person did not ask for: it does not keep the sign-in alive (3 hours without use signs out).
+export async function api<T = any>(path: string, body?: object, timeoutMs = 60000, quiet = false): Promise<T> {
   const [base, tok] = [await server(), await token()];
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
@@ -35,7 +42,7 @@ export async function api<T = any>(path: string, body?: object, timeoutMs = 6000
   try {
     r = await fetch(base + path, {
       method: body ? "POST" : "GET",
-      headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
+      headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}), ...(quiet ? { "X-Ananta-Quiet": "1" } : {}) },
       body: body ? JSON.stringify(body) : undefined,
       signal: ctl.signal,
     });
@@ -53,7 +60,11 @@ export async function api<T = any>(path: string, body?: object, timeoutMs = 6000
   return data as T;
 }
 
-export async function login(email: string, password: string) {
-  const r = await api<{ token: string }>("/auth/login", { email, password });
+// Returns "expired" when a visitor's practice days are over (the feedback form follows), else "ok".
+export async function login(email: string, password: string): Promise<"ok" | "expired"> {
+  const r = await api<any>("/auth/login", { email, password });
+  if (r?.expired) { expiredForm = r as ExpiredForm; await SecureStore.deleteItemAsync("jarvis_token"); return "expired"; }
+  expiredForm = null;
   await SecureStore.setItemAsync("jarvis_token", r.token);
+  return "ok";
 }

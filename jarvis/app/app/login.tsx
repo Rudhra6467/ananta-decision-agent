@@ -2,6 +2,7 @@
 // the app in a phone frame, live numbers from /v3/public/status) with sign-in at the bottom. On the phone app it stays a plain
 // sign-in screen.
 import { useEffect, useState } from "react";
+import { router } from "expo-router";
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View, StyleSheet } from "react-native";
 import { login, server, setServer } from "../src/api";
 import { registerPush } from "../src/push";
@@ -28,7 +29,7 @@ export default function Login() {
     setMsg("Signing in…");
     try {
       await setServer(url.trim());
-      await login(email.trim(), pw);
+      if ((await login(email.trim(), pw)) === "expired") { setMsg(""); router.replace("/feedback"); return; }   // practice days over
       registerPush().then((m) => console.log(m)).catch(() => {});
       clearMe();
       await routeAfterSignIn();

@@ -99,7 +99,9 @@ export default function More() {
           <T small dim>★ = the next-action chip. Chips nobody taps get replaced; the ones people tap shape the next suggestions.</T>
         </Card>
 
-        <Card onPress={() => router.push("/people")} title="Invites" sub="Invite visitors, see who has joined, remove an account" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
+        <Card onPress={() => router.push("/people")} title="Invites" sub="Invite visitors (3 days each), see who has joined, give more days, remove an account" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
+        <Card onPress={() => router.push("/responses")} title="Visitor feedback" sub="What visitors answered when their 3 days ended" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
+        <Card onPress={() => router.push("/password")} title="Change password" sub="Your sign-in password; other devices are signed out" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
         <Card onPress={() => router.push("/mandate")} title="Your mandate" sub="Goals, markets, styles and limits Ananta follows" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
       </Screen>
     </>

@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 app.add_middleware(CORSMiddleware, allow_origins=["https://livetrading247.com", "https://www.livetrading247.com",
                                                   "http://localhost:8081", "http://127.0.0.1:8300", "http://localhost:8300"],   # local test copies
-                   allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type"])
+                   allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type", "X-Ananta-Quiet"])
 _J: core.Jarvis | None = None
 
 # Guest practice sandbox: a guest sees the real system (markets, Explorer, portfolio, evidence) and can do everything Madhav can
@@ -141,9 +141,11 @@ def J() -> core.Jarvis:
     return _sandbox(w) if w else _main()
 
 
-def owner(authorization: str = Header(default="")) -> str:
+def owner(authorization: str = Header(default=""), x_ananta_quiet: str = Header(default="")) -> str:
+    """The signed-in account. A request the person made keeps the sign-in alive; the app marks its quiet background refreshes
+    (X-Ananta-Quiet: 1) so an open but unused screen still signs out after 3 hours (Madhav, Oct 12)."""
     try:
-        return J().check(authorization.removeprefix("Bearer ").strip())
+        return J().check(authorization.removeprefix("Bearer ").strip(), touch=x_ananta_quiet != "1")
     except core.AuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
@@ -462,9 +464,62 @@ def join(b: Join) -> dict:
 @app.post("/auth/login")
 def login(b: Login) -> dict:
     try:
-        return {"token": J().login(b.email, b.password), "expires_in_s": core.TOKEN_TTL_S}
+        return {"token": J().login(b.email, b.password), "expires_in_s": core.TOKEN_TTL_S, "idle_s": core.IDLE_S}
+    except core.AccountExpired as exc:
+        # Oct 12: a visitor's practice days are over. No app token: the feedback form (once), then a thank-you.
+        return {"expired": True, "name": exc.name, "answered": exc.answered, "form_token": exc.form_token,
+                "questions": [] if exc.answered else core.FEEDBACK_QUESTIONS,
+                "message": (f"Thank you, {exc.name}. Your practice days with Ananta are over and Madhav has your answers." if exc.answered else
+                            f"Hi {exc.name}, your {core.GUEST_DAYS:g} practice days with Ananta are over. Before you go, please answer a few "
+                            "short questions: Madhav reads every answer.")}
     except core.AuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+class Feedback(BaseModel):
+    form_token: str
+    answers: dict[str, str]
+
+
+@app.post("/auth/feedback")
+def feedback_submit(b: Feedback) -> dict:
+    """A visitor whose practice days are over answers the feedback form (the form token from /auth/login is the key)."""
+    try:
+        return _main().submit_feedback(b.form_token, b.answers)
+    except core.AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/auth/logout")
+def logout_route(authorization: str = Header(default="")) -> dict:
+    """Ends this sign-in on the server too (the app forgets its token either way)."""
+    return {"ok": _main().logout(authorization.removeprefix("Bearer ").strip())}
+
+
+class Password(BaseModel):
+    current: str
+    new: str
+
+
+@app.post("/v3/account/password")
+def change_password(b: Password, who: str = Depends(owner), authorization: str = Header(default="")) -> dict:
+    """Madhav changes his own password (Cockpit › Additional features). Every other signed-in device is signed out."""
+    _owner_only(who)
+    try:
+        return _main().change_password(b.current, b.new, keep_token=authorization.removeprefix("Bearer ").strip())
+    except core.AuthError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/v3/feedback")
+def feedback_list(who: str = Depends(owner)) -> dict:
+    """Madhav reads what visitors answered when their practice days ended."""
+    _owner_only(who)
+    return _main().feedback()
 
 
 @app.get("/today")
@@ -724,6 +779,21 @@ def people_remove(b: Person, who: str = Depends(owner)) -> dict:
     ok = _main().remove_person(b.email)
     arch = _archive_sandbox(b.email) if "@" in b.email else None
     return {"ok": ok, "archived": arch}
+
+
+class Extend(BaseModel):
+    email: str
+    days: float = 3
+
+
+@app.post("/v3/people/extend")
+def people_extend(b: Extend, who: str = Depends(owner)) -> dict:
+    """Madhav gives a visitor more practice days, counted from now."""
+    _owner_only(who)
+    try:
+        return _main().extend(b.email, max(0.5, min(float(b.days), 90)))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/v3/practice/reset")

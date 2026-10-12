@@ -52,7 +52,8 @@ export default function Join() {
       ) : (
         <>
           <Text style={s.text}>Madhav invited you to try his paper-trading assistant. You get your own practice book with $1,000 of
-            paper money (not real money). Everything you do stays in your book.</Text>
+            paper money (not real money). Everything you do stays in your book. Your practice account lasts 3 days; after that
+            Madhav would love a few words on how it went.</Text>
           <TextInput style={s.in} value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={C.dim} />
           <TextInput style={[s.in, inv.email ? { color: C.dim } : null]} value={email} onChangeText={setEmail} editable={!inv.email}
             autoCapitalize="none" keyboardType="email-address" placeholder="Your email" placeholderTextColor={C.dim} />

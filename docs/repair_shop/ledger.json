@@ -819,7 +819,7 @@
    "date": "2026-10-11",
    "from": "plan audit (Oct 11)",
    "what": "The brain's 20 slots filled on Oct 9 and 1,407 wakes were turned away: no evidence for two days.",
-   "did": "Madhav agreed (D7).",
+   "did": "Madhav agreed (D7). Oct 12 review: live and working as built. Since Oct 11 afternoon the full account (20 of 20) still decided 37 times, all PASS, so no 'no room' record yet (none expected without a BUY). Worth a look: the ranking subtracts 0.1 per open trade, so a full account costs every wake 2 points and most now land 'ranked too low' before the AI sees them; that ranking is a trading rule, left for Madhav.",
    "change": "A full account still decides within the AI budget; a buy becomes 'no room' evidence outside the account."
   },
   {
@@ -827,8 +827,9 @@
    "date": "2026-10-11",
    "from": "plan audit (Oct 11)",
    "what": "Google's free search quota ran out, so the research desk fell back to paid Claude search.",
-   "did": "Checked: a quota (429), not a bug.",
-   "change": "Paid web searches capped at 25 a day (WEB_PAID_DAILY); after that the desk says the web is unavailable."
+   "did": "Checked: a quota (429), not a bug. Oct 12 review: the cap works (25 used Oct 11; 22 used by 2:17 AM Oct 12, all before the Mac slept). Done; what spends them overnight is a question for Madhav.",
+   "change": "Paid web searches capped at 25 a day (WEB_PAID_DAILY); after that the desk says the web is unavailable.",
+   "status": "DONE"
   }
  ],
  "changes": [

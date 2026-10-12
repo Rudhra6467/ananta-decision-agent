@@ -140,3 +140,23 @@ def test_a_full_brain_still_decides_as_no_room_evidence(tmp_path, monkeypatch):
     brain.wake(j, "NEWCOIN", "zone_entry")
     brain.process(j)
     assert seen == [("NEWCOIN", True)]
+
+
+def test_a_full_account_takes_no_open_penalty_in_the_ranking(tmp_path):
+    """Oct 12 (Madhav): with 20 of 20 open every wake lost 2 points and 336 in a day were 'ranked too low'; a full account's buys are
+    no-room evidence, so the open-count penalty applies only below the cap."""
+    from jarvis.service import brain
+
+    j = J(tmp_path)
+    brain._table(j)
+    _trades(j, [])
+    for k in range(brain.MAX_OPEN - 1):
+        j.db.execute("INSERT INTO evidence_trades (id, watch, coin, status, detail) VALUES (?,?,?,?,?)", (f"o{k}", "JARVIS", f"C{k}", "OPEN", "{}"))
+    j.db.commit()
+    s19, w19 = brain.score(j, "NEWCOIN", "zone_entry", {})
+    assert any("open already" in w for w in w19)
+    j.db.execute("INSERT INTO evidence_trades (id, watch, coin, status, detail) VALUES (?,?,?,?,?)", ("last", "JARVIS", "CL", "OPEN", "{}"))
+    j.db.commit()
+    s20, w20 = brain.score(j, "NEWCOIN", "zone_entry", {})
+    assert not any("open already" in w for w in w20) and any("account full" in w for w in w20)
+    assert round(s20 - s19, 2) == round(0.1 * (brain.MAX_OPEN - 1), 2)

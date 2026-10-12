@@ -68,7 +68,13 @@ def synth(text: str, voice: str, speed: float) -> bytes:
     return buf.getvalue()
 
 
-def stt_file(path: str | None, language: str | None = "en") -> str:
+def stt_prompt(names: str = "") -> str:
+    """The English prompt plus the names to expect (request #35: 'Madhav' came out as 'Mahider'); at most 12 names, letters only."""
+    ns = [n.strip() for n in (names or "").split(",") if n.strip() and all(c.isalpha() or c in " '-" for c in n.strip())][:12]
+    return STT_PROMPT + (" Names: " + ", ".join(ns) + "." if ns else "")
+
+
+def stt_file(path: str | None, language: str | None = "en", names: str = "") -> str:
     """language "en" for Madhav; None lets Whisper detect it (Telugu conversations with his family, Oct 11)."""
     import mlx_whisper
 
@@ -76,7 +82,7 @@ def stt_file(path: str | None, language: str | None = "en") -> str:
         path = os.path.join(tempfile.gettempdir(), "ananta_silence.wav")
         sf.write(path, np.zeros(16000, dtype=np.float32), 16000)
     with _lock:
-        r = mlx_whisper.transcribe(path, path_or_hf_repo=STT_MODEL, language=language, initial_prompt=STT_PROMPT if language == "en" else None,
+        r = mlx_whisper.transcribe(path, path_or_hf_repo=STT_MODEL, language=language, initial_prompt=stt_prompt(names) if language == "en" else None,
                                    condition_on_previous_text=False, temperature=0.0)
     return (r.get("text") or "").strip()
 
@@ -186,6 +192,7 @@ class STTReq(BaseModel):
     audio_b64: str
     mime: str = "audio/wav"
     language: str = "en"
+    names: str = ""
 
 
 @app.get("/health")
@@ -217,12 +224,12 @@ def stt(b: STTReq) -> dict:
     try:
         voiced = voiced_seconds(p)
         lang = getattr(b, 'language', 'en') or 'en'
-        text = stt_file(p, None if lang == 'auto' else lang)
+        text = stt_file(p, None if lang == 'auto' else lang, getattr(b, 'names', '') or '')
     finally:
         os.unlink(p)
     # Whisper sometimes "hears" its prompt or stock phrases in near-silence. Drop those only when there was almost no
     # real speech in the clip, so a real "thank you" from Madhav still gets an answer.
     stock = text.lower().strip(" .!") in ("", "thank you", "thanks for watching", "you", "bye")
-    if text.startswith("Madhav talking to Ananta") or (stock and voiced < 0.35):
+    if text.startswith("Madhav talking to Ananta") or text.startswith("Names:") or (stock and voiced < 0.35):
         text = ""
     return {"text": text, "ms": int(1000 * (time.time() - t0))}

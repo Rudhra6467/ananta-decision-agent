@@ -84,9 +84,30 @@ HANDOVER = [re.compile(x, re.I) for x in (
     r"\b" + _WHO + r"\s+tho\s+(?:matladu|maatladu|matladandi|maatladandi|matladu ra|matladava|maatladava)\b",
 )]
 RELAY = re.compile(r"\b" + _WHO + r"\s+(?:is asking|asks|asked|wants to know|is saying|says)\b", re.I)
-BACK = re.compile(r"\b(?:i'?m back|i am back|it'?s me|it is me|it'?s madhav|madhav here|vamsi here|this is (?:madhav|vamsi|me)|back to me|"
-                  r"(?:i'?m|i am) madhav|talk to me|switch (?:back )?to me|not (?:my )?(?:mother|mom|mum|amma|mummy|father|dad|nanna)|"
-                  r"(?:she|he)'?s gone|she left|he left|nenu madhav|nenu vamsi)\b", re.I)
+# Request #35 (Oct 11): speech-to-text heard Madhav as "Mahider" / "Maidhar". The ways his names have come out (or plausibly come
+# out) of speech-to-text all count as him; such a word is never saved as a new person.
+OWNER_HEARD = r"(?:madhav|maadhav|madhaav|madav|madhaw|madhab|madhov|mahdav|maidhar|mahider|maidhav|vamsi|vamshi|vamsee|vamsie)"
+BACK = re.compile(r"\b(?:i'?m back|i am back|it'?s me|it is me|it'?s " + OWNER_HEARD + r"|" + OWNER_HEARD + r" here|this is (?:" + OWNER_HEARD
+                  + r"|me)|back to me|(?:i'?m|i am) " + OWNER_HEARD + r"|talk to me|switch (?:back )?to me|"
+                  r"not (?:my )?(?:mother|mom|mum|amma|mummy|father|dad|nanna)|(?:she|he)'?s gone|she left|he left|nenu " + OWNER_HEARD + r")\b", re.I)
+
+
+def is_owner_name(word: str) -> bool:
+    """True for Madhav's own names as speech-to-text writes them (request #35)."""
+    return bool(re.fullmatch(OWNER_HEARD, _norm(word).split(" ")[0] if word else ""))
+
+
+def expected_names(n: int = 25) -> list[str]:
+    """Names speech-to-text should expect (request #35): the owner's, then everyone in the people note."""
+    out = ["Madhav", "Vamsi", "Ananta", "Jarvis"]
+    for p in load().get("people") or []:
+        for x in (p.get("names") or [])[:2]:
+            w = (x or "").strip()
+            if w and w.isascii() and w not in out:
+                out.append(w)
+    return out[:n]
+
+
 # Oct 11: during a Telugu handover, Madhav's English question about the account is Madhav, not the person he handed over to
 _EN_WORDS = re.compile(r"^[\x00-\x7f]+$")
 _ACCOUNT = re.compile(r"\b(?:trades?|trading|portfolio|positions?|book|books|bitcoin|btc|ethereum|eth|solana|market|markets|buy|sell|stop|"
@@ -120,7 +141,7 @@ def new_person_like(text: str) -> dict | None:
     for rx in _NAMED:
         for k in rx.finditer(text):
             cand = k.group("name").strip()
-            if cand.lower() not in ("ananta", "jarvis", "madhav") and not resolve(cand):
+            if cand.lower() not in ("ananta", "jarvis") and not is_owner_name(cand) and not resolve(cand):
                 name = cand
                 break
         if name:
@@ -134,8 +155,10 @@ def new_person_like(text: str) -> dict | None:
             "relation": rel, "group": "family", "tz": tmpl.get("tz"), "language": tmpl.get("language"), "call": (name + " garu / andi") if te else name,
             "style": tmpl.get("style"), "about": f"{rel}; introduced by Madhav (talk to them like {tmpl['names'][0]})",
             "opener": (f"Namaskaram andi {name} garu. Nenu Ananta ni, Madhav build chesina trading assistant ni. Mimmalni kalavadam chala santosham andi. "
-                       f"Meeru ela unnaru?") if te else f"Hi {name}! I'm Ananta, the trading assistant Madhav built. Lovely to meet you.",
-            "talk_about": tmpl.get("talk_about") or [], "avoid": tmpl.get("avoid") or [], "relations": [name.lower()]}
+                       f"Mee peru {name} ani sariga vinnana andi? Meeru ela unnaru?") if te else
+                      f"Hi {name}! I'm Ananta, the trading assistant Madhav built. Lovely to meet you. Did I get your name right, {name}?",
+            "talk_about": tmpl.get("talk_about") or [], "avoid": tmpl.get("avoid") or [], "relations": [name.lower()],
+            "confirmed": False}                     # request #35: a name heard by speech-to-text is checked with them first
 
 
 def add_person(p: dict) -> None:
@@ -280,6 +303,10 @@ def prompt_note(j, thread: str | None) -> str:
                      + ", ".join(f"{k} = {v}" for k, v in (g.get("words") or {}).items()))
     if p.get("group") == "family_kid":
         lines.append("This is a child: short, gentle, playful, age-appropriate; no money, trading or investing; never ask for personal details.")
+    if p.get("confirmed") is False:
+        lines.append(f"NAME CHECK: '{p['names'][0]}' came from speech-to-text and is not confirmed. If they say their name differently, use their "
+                     "version from now on, and tell Madhav when he is back so he can fix the people note. Never use this person's name for "
+                     "Madhav, and never call Madhav by it.")
     lines.append("Madhav may still type here: a message asking you to talk to another of his people is Madhav handing over, so call "
                  "introduce with that person (never refuse it); a message that says what this person is asking is Madhav passing their "
                  "question on: answer it to them, in their language. If you are not sure what they are asking, ask them back in one short "

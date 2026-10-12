@@ -79,8 +79,14 @@ def _claude(q: str, post=_post, prompt: str | None = None) -> dict:
 PAID_DAILY = int(os.getenv("WEB_PAID_DAILY", "25"))      # Oct 11: Google's free search quota can run out; paid Claude search is capped a day
 
 
-def _paid_ok() -> bool:
-    """True while today's paid web searches (Claude) are under the cap; counts one when it says yes."""
+PAID_BACKGROUND = int(os.getenv("WEB_PAID_BACKGROUND", "8"))   # Oct 12: the brain's market checks used 22 of 25 by 2 AM; they get at
+                                                                # most 8 a day, the rest stay for Madhav's own questions
+
+
+def _paid_ok(who: str = "ask", what: str = "", why: str = "") -> bool:
+    """True while today's paid web searches (Claude) are under the cap; counts one when it says yes.
+    who: 'ask' (a person asking) may use the whole daily cap; anything else (the brain's background checks) at most PAID_BACKGROUND.
+    Every paid search is logged with who, what and why the free search failed (WEB_PAID_LOG, one JSON line each)."""
     from pathlib import Path
 
     f = Path(os.path.expanduser(os.getenv("WEB_PAID_FILE", "~/ananta_runs/web_paid.json")))
@@ -90,23 +96,46 @@ def _paid_ok() -> bool:
     except Exception:  # noqa: BLE001
         d = {}
     n = int(d.get(day, 0))
-    if n >= PAID_DAILY:
+    by = (d.get("by") or {}) if d.get("by_day") == day else {}
+    who = who or "ask"
+    if n >= PAID_DAILY or (who != "ask" and int(by.get(who, 0)) >= PAID_BACKGROUND):
         return False
+    by[who] = int(by.get(who, 0)) + 1
     try:
-        f.write_text(json.dumps({day: n + 1}))
+        f.write_text(json.dumps({day: n + 1, "by_day": day, "by": by}))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        log = Path(os.path.expanduser(os.getenv("WEB_PAID_LOG", "~/ananta_runs/web_paid_log.jsonl")))
+        with open(log, "a") as fh:
+            fh.write(json.dumps({"t": time.strftime("%Y-%m-%d %H:%M:%S"), "who": who, "what": what[:120], "free_failed": why[:200],
+                                 "n_today": n + 1}) + "\n")
     except Exception:  # noqa: BLE001
         pass
     return True
 
 
-def lookup(q: str, post=_post) -> dict:
+def paid_today() -> dict:
+    """Today's paid web searches by caller, for the app and the morning review."""
+    from pathlib import Path
+
+    day = time.strftime("%Y-%m-%d")
+    try:
+        d = json.loads(Path(os.path.expanduser(os.getenv("WEB_PAID_FILE", "~/ananta_runs/web_paid.json"))).read_text())
+    except Exception:  # noqa: BLE001
+        d = {}
+    return {"day": day, "used": int(d.get(day, 0)), "cap": PAID_DAILY, "background_cap": PAID_BACKGROUND,
+            "by": (d.get("by") or {}) if d.get("by_day") == day else {}}
+
+
+def lookup(q: str, post=_post, who: str = "ask") -> dict:
     q = (q or "").strip()[:300]
     if not q:
         raise ValueError("what should I look up?")
     t0 = time.time()
     errors = []
     for fn in (_gemini, _claude):
-        if fn is _claude and post is _post and not _paid_ok():
+        if fn is _claude and post is _post and not _paid_ok(who, "lookup: " + q, " | ".join(errors)):
             errors.append(f"free search quota used and today's {PAID_DAILY} paid searches are used")
             continue
         try:
@@ -137,7 +166,7 @@ def _json_in(text: str) -> dict:
     return json.loads(text[a:b + 1]) if a >= 0 and b > a else {}
 
 
-def market_check(j, coin: str, post=_post, cache_s: int = 6 * 3600) -> dict:
+def market_check(j, coin: str, post=_post, cache_s: int = 6 * 3600, who: str = "ask") -> dict:
     """Ananta's research desk (Madhav, Oct 10): not just pages, a structured market check in three steps.
       gather    dated facts from the live web, each with a source and whether it makes a buy riskier or safer
       evaluate  against what we measured ourselves: the exposure dial, the coin's tier and costs, the measured edge (review #26)
@@ -160,8 +189,8 @@ def market_check(j, coin: str, post=_post, cache_s: int = 6 * 3600) -> dict:
     prompt = MARKET_PROMPT.format(today=time.strftime("%Y-%m-%d", time.gmtime()), coin=coin, name=name)
     raw, errors = None, []
     for fn in (_gemini, _claude):
-        if fn is _claude and post is _post and not _paid_ok():
-            errors.append(f"free search quota used and today's {PAID_DAILY} paid searches are used")
+        if fn is _claude and post is _post and not _paid_ok(who, "market_check: " + coin, " | ".join(errors)):
+            errors.append(f"free search quota used and today's paid searches for {'questions' if who == 'ask' else 'background checks'} are used")
             continue
         try:
             raw = fn(coin, post, prompt)

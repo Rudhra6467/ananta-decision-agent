@@ -875,7 +875,8 @@
     "src/intelligence/decision_quality.py",
     "src/intelligence/system_status.py",
     "src/intelligence/ledgers.py",
-    "jarvis/service/evidence_live.py"
+    "jarvis/service/evidence_live.py",
+    "jarvis/service/week.py"
    ]
   },
   {

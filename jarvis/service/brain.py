@@ -348,7 +348,7 @@ def pack(j, coin: str, triggers: dict) -> dict:
     try:                                                # the research desk (Oct 10): dated web facts; can only make the brain more careful
         from jarvis.service import weblook
 
-        mc = weblook.market_check(j, coin)
+        mc = weblook.market_check(j, coin, who="brain")       # background: at most WEB_PAID_BACKGROUND paid searches a day
         if not mc.get("error"):
             p["web_check"] = {k: mc.get(k) for k in ("facts", "unlock_next_30d", "mood", "verdict", "rule")}
     except Exception:  # noqa: BLE001
@@ -804,7 +804,9 @@ def score(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
     except Exception:  # noqa: BLE001
         pass
     n_open = _account_open(j)
-    if n_open:
+    if n_open >= MAX_OPEN:                           # Madhav, Oct 12: a full account's buys are "no room" evidence (D7), so no
+        why.append(f"account full ({n_open}): no open penalty, a buy is no-room evidence")   # penalty that keeps wakes from the AI
+    elif n_open:
         s -= 0.1 * n_open
         why.append(f"{n_open} open already -{0.1 * n_open:g}")
     return round(s, 2), why

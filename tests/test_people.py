@@ -156,3 +156,31 @@ def test_named_person_beats_the_model_relation(tmp_path, monkeypatch):
     r = people.route(j, "t4", "Kamala Pinni is here, talk to her like my mother.")
     assert r["kind"] == "handover" and r["person"]["names"][0] == "Kamala Pinni"
     assert people.route(j, "t5", "Talk to my mom")["person"]["id"] == "mom"
+
+
+def test_misheard_owner_name_is_madhav_and_never_a_new_person(tmp_path, monkeypatch):
+    """Request #35 (Oct 11): speech-to-text heard Madhav as 'Mahider' / 'Maidhar'."""
+    from jarvis.service import people
+
+    _file(tmp_path, monkeypatch)
+    j = J(tmp_path)
+    people.introduce(j, "t9", "Sam")
+    assert people.route(j, "t9", "Hey Ananta, this is Mahider") == {"kind": "back"}
+    people.introduce(j, "t9", "Sam")
+    assert people.route(j, "t9", "it's Maidhar again") == {"kind": "back"}
+    assert people.is_owner_name("Mahider") and people.is_owner_name("vamsi") and not people.is_owner_name("Sam")
+    assert people.new_person_like("Mahider is here, talk to him like my dad") is None
+
+
+def test_names_for_speech_to_text_and_a_new_name_is_checked(tmp_path, monkeypatch):
+    from jarvis.service import people
+
+    _file(tmp_path, monkeypatch)
+    names = people.expected_names()
+    assert names[0] == "Madhav" and "Lakshmi" in names and "Ravi Kumar" in names
+    p = people.new_person_like("Kamala is here, talk to her like my mother")
+    assert p and p["confirmed"] is False and ("name right" in p["opener"] or "sariga" in p["opener"])
+    j = J(tmp_path)
+    people.add_person(p)
+    people.set_speaker(j, "t8", p)
+    assert "NAME CHECK" in people.prompt_note(j, "t8")

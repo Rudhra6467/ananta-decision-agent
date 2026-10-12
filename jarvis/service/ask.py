@@ -218,6 +218,7 @@ TOOLS = [
     ("situations", "The learning loop: the week's brain decisions seen four ways (what we did, what if we had done the other thing, what the other signals did that day, what the random twin, Bitcoin and the benchmark did), the lessons counted, the tickets they raised (a pattern needs 3 cases), credit for each piece of knowledge the brain cited (its buys' average $ and the move after its passes), the change log's after-numbers and the two classic peer playbooks (BREAKOUT20, ROTATE5). Use for 'what did we learn this week', 'which knowledge is helping', 'how do we compare with simple playbooks'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
     ("book500", "The $500 NDAX paper book in CAD (Madhav's D9/D12/D13): value, cash, positions by sleeve (CORE up to 60% by the dial: BTC 40% + ETH 20%; EDGE up to 30%: H07 dips on tier-A NDAX coins while the dial is closed, no stop, 10-day exit; JUDGMENT up to 10%: my own buys on NDAX coins; each setup trade risks 0.5% of the book, at most 10% of the book in one trade, at most 6% at risk in total; when the dial is closed the core is cash), closed trades, the brakes (2% day, 4% week, 4 losses in a row, 15% fall = paused until Madhav resumes) and what fired, and the execution check (every paper fill inside NDAX's bid and ask). The 2018-2026 backtest is in docs research BOOK500.md. Use for 'how is the 500 book', 'what would the real account hold', 'did a brake fire'.", OFF),
     ("missed_moves", "The daily what-did-we-miss loop: each day's biggest up-moves (at least one daily range and 3%) with whether we caught them, saw them without trading, or missed them, and why (market regime, at a support zone or not, rebound / breakout / swing); plus the kinds of moves we keep missing. Use for 'what did we miss', 'what moved today', 'did we catch the SOL run'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
+    ("last_week", "Wins and losses of the last N days (default 7) across EVERY book: the Explorer, Jarvis's own trades and its random twins, the zone touch watch, the dip trade (H07), the other daily watches, random entries, and the owner's own paper book: trades closed, wins, losses, net and average per $100 after costs, best and worst, market events. Use for 'how did last week go', 'good vs bad trades this week', 'wins and losses in the last 7 days'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
     ("trade_reviews", "Reviews of every closed paper trade in every book (best and worst while open, what happened in the 3 days after, plain lessons like 'stopped then it ran' or 'sold too early'), the lesson counts, and my latest evening self-reviews. Use for 'what did we learn', 'review the last trades', 'how was your day'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
     ("system_health", "Is every part running: the Explorer (its last real scan), the hourly watch, the eye, the 15-minute jobs, the daily candles, the voice server, Hands (answers, and accepts the agent's login), the 30-coin tier's daily pull, the tunnel and disk space, checked every 2 minutes; plus outages in the last 3 days. Use for 'is everything running', 'anything down', 'why no updates'.", OFF),
     ("my_requests","The owner's requests to the repair shop with their numbers and status (open, planned, fixed, closed) and the work session's notes. Use for 'what's happening with my requests', 'did you fix X', 'what's on the list'.", OFF),
@@ -310,6 +311,16 @@ HUNTER_REASONS = {
 }
 
 
+def _stt_names() -> list[str]:
+    """Request #35: the names speech-to-text should expect (Madhav and his people), so 'Madhav' is not heard as 'Mahider'."""
+    try:
+        from jarvis.service import people
+
+        return people.expected_names()
+    except Exception:  # noqa: BLE001
+        return ["Madhav", "Ananta"]
+
+
 def _local_stt(audio_b64: str, mime: str, language: str = "en") -> str | None:
     """Whisper on this Mac (free, ~1 s). None when the local voice server is not running, so Gemini is used instead."""
     if os.getenv("ANANTA_VOICE_LOCAL", "1") != "1":
@@ -317,7 +328,8 @@ def _local_stt(audio_b64: str, mime: str, language: str = "en") -> str | None:
     import requests
 
     try:
-        r = requests.post(os.getenv("ANANTA_VOICE_URL", "http://127.0.0.1:8200") + "/stt", json={"audio_b64": audio_b64, "mime": mime, "language": language}, timeout=30)
+        r = requests.post(os.getenv("ANANTA_VOICE_URL", "http://127.0.0.1:8200") + "/stt",
+                          json={"audio_b64": audio_b64, "mime": mime, "language": language, "names": ", ".join(_stt_names())}, timeout=30)
         return r.json()["text"] if r.status_code == 200 else None
     except Exception:  # noqa: BLE001
         return None
@@ -605,6 +617,33 @@ def owner_address(t: str) -> str:
     t = re.sub(r"^((?:Good )?(?:morning|afternoon|evening)|Hi|Hello|Hey)[,]?\s+Madhav\b", r"\1, sir", t, flags=re.I)
     t = re.sub(r",\s*Madhav(?=[.!?,])", ", sir", t)
     return t
+
+
+CARD_CLAIM = re.compile(r"\bcard\b[^.!?]{0,20}\b(is|'s|are) (now )?(waiting|ready|prepared|up)\b|\b(waiting|ready) for your face ?id\b", re.I)
+PLAN_LEVELS = re.compile(r"\b(stop|target|entry|buy|at about|at around)\b[^.!?]{0,25}?\$?\d[\d,]*(\.\d+)?", re.I)
+PRICE_LOOKUPS = {"market", "prices", "best_setup", "trade", "trades", "zones", "outside_coin", "setups", "overview", "whole_market",
+                 "manual_book", "propose_paper_order", "propose_levels", "jarvis_book", "portfolio", "watch", "my_watches"}
+
+
+def keep_cards_honest(reply: dict, created: list, log: list, brief_keys=()) -> dict:
+    """Request #33 (Oct 11): an answer said 'a card is waiting for your Face ID' and quoted entry, stop and target, but no card was
+    made and no lookup gave those prices. A card claim with no card made this turn is replaced by a plain 'no card was made'; a trade
+    plan whose prices no lookup (or live brief) backed is marked as unchecked on screen. Wording only: nothing is traded."""
+    ans = str(reply.get("answer") or "")
+    checks = []
+    if not created and CARD_CLAIM.search(ans):
+        sents = re.split(r"(?<=[.!?])\s+", ans)
+        keep = [s for s in sents if not CARD_CLAIM.search(s)]
+        ans = " ".join(keep).strip() + (" " if keep else "") + "No card was made yet; say 'prepare it' if you want one to confirm."
+        checks.append("card claim removed: no card was made in this answer")
+    used = {x.get("tool") for x in log or [] if isinstance(x, dict)}
+    if len(PLAN_LEVELS.findall(ans)) >= 2 and not (used & PRICE_LOOKUPS) and not brief_keys:
+        checks.append("prices not checked: no live price lookup backed these levels")
+        reply["breakdown"] = list(reply.get("breakdown") or []) + ["These price levels were not checked against a live price lookup; ask me to check them."]
+    reply["answer"] = ans
+    if checks:
+        reply["checks"] = checks
+    return reply
 
 
 def guest_address(t: str) -> str:
@@ -1136,6 +1175,11 @@ class Lookups:
         from jarvis.service import brain
 
         return brain.report(self.j, 30)
+
+    def t_last_week(self, days: float = 7) -> dict:
+        from jarvis.service import week
+
+        return week.week(self.j, int(days or 7))
 
     def t_missed_moves(self, days: float = 7) -> dict:
         from jarvis.service import missed
@@ -2442,6 +2486,7 @@ class Ask:
             reply["answer"] = guest_address(reply.get("answer") or "")
         else:
             reply["answer"] = owner_address(reply.get("answer") or "")
+        keep_cards_honest(reply, L.created, log, [k for k in (brief or {}) if re.search(r"price|market|setup|zone|trade", str(k), re.I)])
         if source != "eval" and mode != "worker" and not str(who).startswith("guest:"):
             _self_flag(self.j, text, reply, log, thread)                 # "I don't have that" -> a numbered request, said once
         try:
@@ -2643,11 +2688,13 @@ class Ask:
         key = os.getenv("GEMINI_API_KEY", "")
         if not key:
             raise RuntimeError("GEMINI_API_KEY is not set")
+        names = ", ".join(_stt_names())
         prompt = ("Transcribe this spoken message exactly as spoken. It may be Telugu, English or a Telugu-English mix: write Telugu words in Telugu "
-                  "script and English words in English. Return only the words spoken. If there is no speech, return an empty string.") if telugu else (
+                  f"script and English words in English. Names you may hear: {names}. "
+                  "Return only the words spoken. If there is no speech, return an empty string.") if telugu else (
                   "Transcribe this spoken message exactly, in English. It is the owner talking to Ananta, a crypto trading assistant "
                   "(the owner is Madhav; he may say 'hey there', 'hi Jarvis', 'Ananta'; coins: Bitcoin BTC, Ethereum ETH, Solana SOL, ADA, DOGE, AVAX, BCH, LINK, LTC, XRP; "
-                  "words: Hunter, Squeeze, Explorer, setup, scan, portfolio, mandate, evidence, repair shop). "
+                  f"words: Hunter, Squeeze, Explorer, setup, scan, portfolio, mandate, evidence, repair shop; names you may hear: {names}). "
                   "Return only the words spoken. If there is no speech, return an empty string.")
         err = None
         order = ["gemini-3.1-flash-lite"] + [m for m in GEMINI_MODELS if m != "gemini-3.1-flash-lite"]     # fastest first for speech

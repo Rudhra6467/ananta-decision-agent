@@ -678,6 +678,14 @@ def ev_pipeline(who: str = Depends(owner)) -> dict:
     return views.evidence_pipeline(J())
 
 
+@app.get("/v3/evidence/week")
+def ev_week(days: int = 7, who: str = Depends(owner)) -> dict:
+    """Request #34: wins and losses of the last 7 days across every book."""
+    from jarvis.service import week
+
+    return week.week(J(), max(1, min(int(days or 7), 90)))
+
+
 @app.get("/v3/evidence/live")
 def ev_live(who: str = Depends(owner)) -> dict:
     """The Evidence page: inside the logic repair, live (Madhav, 2026-10-05)."""

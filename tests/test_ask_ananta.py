@@ -837,3 +837,18 @@ def test_knowledge_map_is_complete_and_read_doc_stays_inside(tmp_path, monkeypat
     g = ask.Lookups(j, guest=True)
     assert not g.call("knowledge", {"query": "weekly base SOL"})["your_notes"]
     assert "error" in g.call("read_doc", {"file": "sol.md"})
+
+
+def test_thread_view_survives_a_plain_word_reply():
+    """Oct 12 review: reads:news stores replies like CLEAR / CAUTION (not JSON); opening that thread gave a 500."""
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: (json.dumps({"answer": "ok"}), {"in": 1, "out": 1})})
+    A.ask("o", "how is btc", mode="everyday")
+    th = j.db.execute("SELECT thread FROM ask_messages WHERE role='assistant' LIMIT 1").fetchone()[0]
+    j.db.execute("UPDATE ask_messages SET reply='CLEAR', error=NULL WHERE role='assistant' AND thread=?", (th,))
+    rows = A.thread(th)
+    assert [r for r in rows if r["role"] == "assistant"][0]["answer"] == "CLEAR"
+    assert "CLEAR" in A.export(th)
+    assert ask._reply_dict('{"answer": "x"}') == {"answer": "x"}
+    assert ask._reply_dict("42") == {"answer": "42"}
+    assert ask._reply_dict(None) == {}

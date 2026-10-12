@@ -323,6 +323,16 @@ def _local_stt(audio_b64: str, mime: str, language: str = "en") -> str | None:
         return None
 
 
+def _reply_dict(reply: str | None) -> dict:
+    """A stored assistant reply as a dict. Most are JSON; some background threads (the news check, reads:news) store a plain
+    word such as CLEAR or CAUTION. Those show as the answer instead of breaking the whole conversation view (500, Oct 11)."""
+    try:
+        d = json.loads(reply or "{}")
+    except ValueError:
+        return {"answer": reply}
+    return d if isinstance(d, dict) else {"answer": reply}
+
+
 def _title(q: str) -> str:
     """A session's automatic title (plan 3.6b): its first question, cleaned and short."""
     import re as _r
@@ -2747,7 +2757,7 @@ class Ask:
                 out.append({"id": mid, "role": "user", "text": text, "voice": (mode or "").startswith("voice:")})
             else:
                 out.append({"id": mid, "role": "assistant", "provider": prov, "ms": ms, "rating": rating,
-                            **({"error": err} if err else json.loads(reply or "{}"))})
+                            **({"error": err} if err else _reply_dict(reply))})
         return out
 
     def export(self, thread: str) -> str:

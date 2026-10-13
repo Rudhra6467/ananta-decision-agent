@@ -541,6 +541,13 @@ def _misses(j) -> dict:
                           "led nowhere), and Jarvis's brain sees it as a candidate pattern. Picked after the fact, so never proof."}
 
 
+def _open_queue(queue, L: dict | None) -> list[dict]:
+    """Queue items still waiting: an item whose review is already DONE in the ledger is finished, not waiting (Oct 13: R24
+    finished Oct 11 but stayed on the board and the waiting list as 'waiting for a work session')."""
+    done = {r.get("id") for r in (L or {}).get("reviews", []) if r.get("status") == "DONE"}
+    return [q for q in (queue or []) if q.get("id") not in done]
+
+
 def _board(j, L: dict, P: dict) -> dict:
     from jarvis.service import requests_log
 
@@ -556,7 +563,7 @@ def _board(j, L: dict, P: dict) -> dict:
         items.append({"id": r["id"], "kind": "review", "date": r.get("date"), "from": r.get("forwarded_because"), "what": r.get("title"),
                       "question": r.get("question"), "did": r.get("result"), "change": r.get("changed"),
                       "status": "DONE" if r.get("status") == "DONE" else "IN_PROGRESS", "verdict": r.get("verdict") or None})
-    for q in (P.get("shop") or {}).get("queue") or L.get("queue", []):
+    for q in _open_queue((P.get("shop") or {}).get("queue") or L.get("queue", []), L):
         items.append({"id": q["id"], "kind": "question", "date": None, "from": q.get("why"), "what": q.get("title"),
                       "did": f"Waiting for {q.get('waiting_for')}.", "change": "", "status": "WAITING_FOR_EVIDENCE",
                       "have": q.get("have"), "goal": q.get("goal")})
@@ -619,7 +626,7 @@ def _waiting(j, P: dict, ex, L: dict | None = None) -> list[dict]:
     wakes = _one(j, "SELECT COUNT(*) FROM brain_queue")
     decided = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE action != 'ERROR'")
     out = []
-    for q in (P.get("shop") or {}).get("queue") or []:
+    for q in _open_queue((P.get("shop") or {}).get("queue") or [], L):
         m = q.get("metric")
         row = {"id": q["id"], "title": q.get("title"), "waiting_for": q.get("waiting_for"), "why": q.get("why"),
                "have": q.get("have"), "goal": q.get("goal"), "unit": "", "speedup": SPEEDUP.get(m)}

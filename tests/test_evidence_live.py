@@ -102,3 +102,13 @@ def test_missed_moves_list_never_drops_a_miss_for_newer_catches():
     assert len(shown) == 8 and [m["coin"] for m in shown][-2:] == ["BCH", "ADA"]
     assert [m["day"] for m in shown] == sorted((m["day"] for m in shown), reverse=True)      # still newest first
     assert el._shown_moves(ms[:3]) == ms[:3]
+
+
+def test_open_queue_drops_items_whose_review_is_done():
+    from jarvis.service import evidence_live as el
+
+    L = {"reviews": [{"id": "R24", "status": "DONE"}, {"id": "R29", "status": "IN_PROGRESS"}]}
+    queue = [{"id": "Q1"}, {"id": "R24"}, {"id": "R29"}]
+    assert [q["id"] for q in el._open_queue(queue, L)] == ["Q1", "R29"]
+    assert [q["id"] for q in el._open_queue(queue, None)] == ["Q1", "R24", "R29"]
+    assert el._open_queue(None, L) == []

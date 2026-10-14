@@ -17,14 +17,21 @@
    "status": "UNDER_REVIEW",
    "verdict": "will_try_again",
    "home_book": "Trend portfolio",
-   "why": "Passed both periods on history; a trend book loses in a sideways chop (Oct 4-13) and that cost is known. Measured forward against the $500 book's core, which carries the same idea with the dial."
+   "why": "Passed both periods on history; a trend book loses in a sideways chop (Oct 4-13) and that cost is known. Measured forward against the $500 book's core, which carries the same idea with the dial.",
+   "cards": [
+    "T3",
+    "T3B"
+   ]
   },
   "T3_T30": {
    "name": "30-coin trend book",
    "status": "EVIDENCE",
    "verdict": "will_try_again",
    "home_book": "30-coin trend book",
-   "why": "Conflicting: fails the survivorship test on the 30 (review #22). Keeps measuring in the background until that is settled."
+   "why": "Conflicting: fails the survivorship test on the 30 (review #22). Keeps measuring in the background until that is settled.",
+   "cards": [
+    "T3_T30"
+   ]
   },
   "H07": {
    "name": "Short dip trade (H07)",
@@ -36,7 +43,10 @@
     "H07-UB",
     "H07-T30"
    ],
-   "why": "The one measured edge (review #26: tier A while the dial is closed, +5.1% a trade over random, both periods) and the one book that won this period (8 closed, 8 won - but one signal day, Oct 8, all with the dial open, outside the measured cell; 1 independent event by the scoreboard's rule). It feeds the $500 book's edge sleeve; tiers B/C and the 30-coin version keep measuring."
+   "why": "The one measured edge (review #26: tier A while the dial is closed, +5.1% a trade over random, both periods) and the one book that won this period (8 closed, 8 won - but one signal day, Oct 8, all with the dial open, outside the measured cell; 1 independent event by the scoreboard's rule). It feeds the $500 book's edge sleeve; tiers B/C and the 30-coin version keep measuring.",
+   "cards": [
+    "H07"
+   ]
   },
   "JARVIS": {
    "name": "The brain's own $100 book",
@@ -67,7 +77,12 @@
    "verdict": "wont_take_again",
    "home_book": "15-minute Explorer",
    "wakes_brain": false,
-   "why": "No intraday setup has an edge after costs (reviews #1, #3, #24; 0 of 55 atlas contexts). 204 closed paper trades, 22 won (-$224). It keeps scanning as the intraday eyes and recording its paper book as evidence (Q1 live-vs-replay); it never wakes the brain and will not be pushed."
+   "why": "No intraday setup has an edge after costs (reviews #1, #3, #24; 0 of 55 atlas contexts). 204 closed paper trades, 22 won (-$224). It keeps scanning as the intraday eyes and recording its paper book as evidence (Q1 live-vs-replay); it never wakes the brain and will not be pushed.",
+   "cards": [
+    "EXPLORER",
+    "E5",
+    "E3"
+   ]
   },
   "HOURLY": {
    "name": "Hourly watch (Hunter, Squeeze)",
@@ -88,7 +103,10 @@
     "M3b"
    ],
    "wakes_brain": true,
-   "why": "Measured forward per tier against random; no measured edge yet (reviews #5, #26). Pushed only if a cell passes and the ladder agrees."
+   "why": "Measured forward per tier against random; no measured edge yet (reviews #5, #26). Pushed only if a cell passes and the ladder agrees.",
+   "cards": [
+    "READS"
+   ]
   },
   "RANDOM": {
    "name": "Random baselines",
@@ -111,5 +129,10 @@
    "home_book": "Your trades",
    "why": "His own paper trades, stamped with his initials; not a strategy Ananta judges."
   }
+ },
+ "evidence_window": {
+  "start": "2026-10-15",
+  "days": 60,
+  "rule": "No real money before 60 market days of paper operation, both market-dial states seen, and execution within 3 points of the backtest (Rule A). No new crypto strategies meanwhile (Rule B). Madhav, Oct 14."
  }
 }

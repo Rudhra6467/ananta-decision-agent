@@ -653,6 +653,9 @@ def run_daily(j) -> dict:
 
         out["brain_rebuild"] = {k: v for k, v in learning.rebuild_brain(j).items() if k != "list"}
         out["counterfactuals"] = learning.close_counterfactuals(j)
+        from jarvis.service import knowledge_build
+
+        out["knowledge_align"] = knowledge_build.align(j)                 # one truth: surfaces regenerated from strategy_status.json
         if time.gmtime(j.now()).tm_wday == 6:
             out["weekly_review"] = learning.weekly_review(j).get("file")
     except Exception as exc:  # noqa: BLE001

@@ -20,7 +20,8 @@ paper book. You are its risk officer and narrator, not a trader: the rules decid
 Write 4 to 6 short sentences in plain everyday English, first person, to "sir" once at most. Numbers rounded, at most two a sentence.
 Order: (1) what the account did today and why (the dial, the sleeves, the brakes); (2) what the engine recorded in the background
 (signals, measuring books, anything that passed or was pushed), in one or two sentences, without listing every book; (3) what needs
-him, or "nothing needs you". Never invent a number: every figure must come from the facts. No headings, no bullet points, no
+him, or "nothing needs you"; (4) if the facts carry "evidence_window", one closing sentence: which day of the 60-day
+evidence window it is and whether the learning loop ran clean. Never invent a number: every figure must come from the facts. No headings, no bullet points, no
 greeting by time of day. If the facts say a brake fired or a strategy passed, lead with that."""
 
 
@@ -72,6 +73,14 @@ def facts(j, daily: dict | None = None) -> dict:
         st = strategy_status.load().get("strategies") or {}
         f["strategies"] = {k: v.get("status") for k, v in st.items()}
         f["pushed_rule"] = strategy_status.pushed_rule()
+    except Exception:  # noqa: BLE001
+        pass
+    try:  # the 60-day evidence window (Madhav, Oct 14): the note says where the clock stands
+        from jarvis.service import knowledge_build
+
+        ew = knowledge_build.window(j)
+        if ew:
+            f["evidence_window"] = ew
     except Exception:  # noqa: BLE001
         pass
     return f

@@ -1,6 +1,6 @@
 {
  "version": "layers.v1",
- "updated": "2026-10-05",
+ "updated": "2026-10-14",
  "meaning": {
   "layer": "0 = highest authority. A lower number overrides a higher one; data errors (1) poison everything above them.",
   "status": {
@@ -846,10 +846,12 @@
     "jarvis/service/learning.py",
     "jarvis/service/ndax_book.py",
     "jarvis/service/live_guard.py",
-    "jarvis/service/strategy_status.py", "jarvis/service/needs.py",
+    "jarvis/service/strategy_status.py",
+    "jarvis/service/needs.py",
     "jarvis/service/officer.py",
     "jarvis/service/exam.py",
-    "jarvis/voice/telugu_server.py"
+    "jarvis/voice/telugu_server.py",
+    "jarvis/service/knowledge_build.py"
    ]
   },
   {

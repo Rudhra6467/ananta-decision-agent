@@ -301,6 +301,16 @@ def evening(j, push=None, force: bool = False) -> dict | None:
     if not force and ((now.hour, now.minute) < (EVENING_HOUR, EVENING_MIN) or j.db.execute("SELECT 1 FROM daily_reviews WHERE day=?", (day,)).fetchone()):
         return None
     r = build(j)
+    try:  # the 60-day evidence window (Madhav, Oct 14): every evening review says where the clock stands
+        from jarvis.service import knowledge_build
+
+        ew = knowledge_build.window(j)
+        if ew:
+            r["evidence_window"] = ew
+            r["text"] += (f" Evidence window: day {ew['day']} of {ew['of']}; brain rebuild {ew['loop'].get('brain_rebuild', '?')}; "
+                          f"last weekly review: {ew['loop'].get('weekly_review', '?')}.")
+    except Exception:  # noqa: BLE001
+        pass
     j.db.execute("INSERT OR REPLACE INTO daily_reviews VALUES (?,?,?,?)", (day, int(j.now()), r["text"], json.dumps(r, default=str)))
     j.db.commit()
     if push:

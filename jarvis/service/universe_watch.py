@@ -652,6 +652,7 @@ def run_daily(j) -> dict:
         from jarvis.service import learning
 
         out["brain_rebuild"] = {k: v for k, v in learning.rebuild_brain(j).items() if k != "list"}
+        out["counterfactuals"] = learning.close_counterfactuals(j)
         if time.gmtime(j.now()).tm_wday == 6:
             out["weekly_review"] = learning.weekly_review(j).get("file")
     except Exception as exc:  # noqa: BLE001

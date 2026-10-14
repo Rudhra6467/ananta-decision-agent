@@ -1079,15 +1079,44 @@ def manage_live(j, px: dict[str, float]) -> list[dict]:
 # ---------------------------------------------------------------------------
 # learning: passes scored, knowledge credit, calibration
 # ---------------------------------------------------------------------------
+def market_median_move(j, t0: int, days: int) -> float | None:
+    """The median move of every universe coin from its first daily close at or after t0 to its first at or after
+    t0 + days (percent). The benchmark a pass or a miss is judged against: in a falling week every pass looks right
+    against zero, so passes are scored against what the whole market did over the same days (audit 2026-10-14)."""
+    import statistics as _st
+
+    from jarvis.service import feed
+
+    lo, hi = int(t0), int(t0 + days * 86400)
+    con = feed._con(j)
+    try:
+        a = dict(con.execute("SELECT d.coin, d.c FROM d1 d JOIN (SELECT coin, MIN(t) t FROM d1 WHERE t >= ? AND t < ? GROUP BY coin) m "
+                             "ON d.coin = m.coin AND d.t = m.t", (lo, lo + 3 * 86400)))
+        b = dict(con.execute("SELECT d.coin, d.c FROM d1 d JOIN (SELECT coin, MIN(t) t FROM d1 WHERE t >= ? AND t < ? GROUP BY coin) m "
+                             "ON d.coin = m.coin AND d.t = m.t", (hi, hi + 3 * 86400)))
+    finally:
+        con.close()
+    moves = [100 * (b[c] / a[c] - 1) for c in a if c in b and a[c]]
+    return round(_st.median(moves), 1) if len(moves) >= 20 else None
+
+
 def settle_passes(j) -> int:
-    """What each PASS's coin did over the next day and five days (the Explorer's candles; the feed's for other coins)."""
+    """What each PASS's coin did over the next day and five days (the Explorer's candles; the feed's for other coins),
+    and the same move as an EXCESS over the universe median (after_*_ex), so a pass in a falling week is not called
+    right just because everything fell."""
     _daily = _coin_daily
 
     _table(j)
+    for col in ("after_1d_ex", "after_5d_ex"):
+        try:
+            j.db.execute(f"ALTER TABLE brain_decisions ADD COLUMN {col} REAL")
+        except Exception:  # noqa: BLE001 - column already there
+            pass
     n = 0
     now = int(j.now())
     rows = j.db.execute("SELECT id, t, coin, price FROM brain_decisions WHERE action='PASS' AND after_5d_pct IS NULL AND t <= ?", (now - 86400,)).fetchall()
     cache: dict[str, list] = {}
+    bench: dict[tuple, float | None] = {}
     for did, t, coin, price in rows:
         if not price:
             continue
@@ -1096,7 +1125,13 @@ def settle_passes(j) -> int:
         a5 = next((b[4] for b in D if b[0] + 86400 >= t + 5 * 86400), None) if now >= t + 5 * 86400 else None
         if a1 is None:
             continue
-        j.db.execute("UPDATE brain_decisions SET after_1d_pct=?, after_5d_pct=? WHERE id=?", (_pct(a1, price), _pct(a5, price) if a5 else None, did))
+        p1, p5 = _pct(a1, price), _pct(a5, price) if a5 else None
+        day = t - t % 86400
+        m1 = bench.setdefault((day, 1), market_median_move(j, day, 1))
+        m5 = bench.setdefault((day, 5), market_median_move(j, day, 5)) if p5 is not None else None
+        j.db.execute("UPDATE brain_decisions SET after_1d_pct=?, after_5d_pct=?, after_1d_ex=?, after_5d_ex=? WHERE id=?",
+                     (p1, p5, round(p1 - m1, 1) if p1 is not None and m1 is not None else None,
+                      round(p5 - m5, 1) if p5 is not None and m5 is not None else None, did))
         n += 1
     j.db.commit()
     try:

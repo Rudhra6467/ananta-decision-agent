@@ -205,7 +205,17 @@ def compare_lab10(j, hours: float = 24) -> dict:
         live = set()
     mine = {x for x in mine if x[2] != "RND"}
     both = mine & live
+    # Like for like: this engine replays the baseline rules while the live Explorer may run a wider scheduled mode
+    # (W1/W2 add setups such as E6), so the honest agreement figure only counts setups both sides actually trade
+    # (audit 2026-10-14: raw 35% was mostly that ruleset difference, not a divergence).
+    shared = {x[2] for x in mine} & {x[2] for x in live}
+    mine_s, live_s = {x for x in mine if x[2] in shared}, {x for x in live if x[2] in shared}
+    both_s = mine_s & live_s
     return {"hours": hours, "live_explorer": len(live), "universe_engine": len(mine), "same": len(both),
             "agreement_pct": round(100 * len(both) / max(1, len(mine | live)), 1),
-            "note": "Different candles (Binance against USDT vs Kraken against USD) move setups by a bar or a few cents; the same engine and "
-                    "rules, so most should agree. The 10-coin books keep using the live Explorer."}
+            "shared_setups": sorted(s for s in shared if s),
+            "same_like_for_like": len(both_s),
+            "agreement_like_for_like_pct": round(100 * len(both_s) / max(1, len(mine_s | live_s)), 1),
+            "note": "Different candles (Binance against USDT vs Kraken against USD) move setups by a bar or a few cents, and the live "
+                    "Explorer may run a wider scheduled ruleset than this engine's baseline, so judge by the like-for-like figure "
+                    "(shared setups only). The 10-coin books keep using the live Explorer."}

@@ -268,16 +268,22 @@ def test_missed_moves_label_and_repeats_become_a_request(tmp_path):
     r = missed.run(j)
     assert r["moves"] and r["moves"][0]["coin"] == "SOL" and r["moves"][0]["label"] == "MISSED" and "nothing of ours looked" in r["moves"][0]["why"]
     assert missed.run(j)["done_before"]
-    # the same kind of miss four more times in 30 days -> one request (once)
+    # the same kind of miss on four more SEPARATE days in 30 days -> one request (once); several coins missing
+    # together on one day count once (independent market days, audit 2026-10-14)
+    import time as _time
+    pat = j.db.execute("SELECT pattern FROM missed_moves WHERE coin='SOL'").fetchone()[0]
     for k in range(4):
+        day_k = _time.strftime("%Y-%m-%d", _time.gmtime(now["t"] - (k + 2) * DAY))
         j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                     (f"x{k}", r["day"], "ADA", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, j.db.execute(
-                         "SELECT pattern FROM missed_moves WHERE coin='SOL'").fetchone()[0], "", "LIVE10", None))
+                     (f"x{k}", day_k, "ADA", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, pat, "", "LIVE10", None))
+    j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                 ("same_day_twin", r["day"], "XRP", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, pat, "", "LIVE10", None))
     logged = []
     f = missed._repeats(j, log_request=lambda t: logged.append(t) or {"num": 9})
-    assert f and f[0]["request"] == 9 and "keep missing" in logged[0]
+    assert f and f[0]["request"] == 9 and "keep missing" in logged[0] and "5 separate days" in logged[0]
     assert missed._repeats(j, log_request=lambda t: logged.append(t) or {"num": 10}) == []
-    assert missed.patterns(j)[0]["times"] == 5 and missed.recent(j, 3)["counts"]["MISSED"] == 5
+    assert missed.patterns(j)[0]["times"] == 5 and missed.patterns(j)[0]["rows"] == 6
+    assert missed.recent(j, 7)["counts"]["MISSED"] == 6
     assert missed.patterns(j, tier="T30") == [] and missed.recent(j, 3)["tier30"]["counts"]["MISSED"] == 0   # tiers counted apart
 
 

@@ -6,6 +6,7 @@ classic playbooks as daily peers.
   weekly_review(j)        the week's situations -> docs/repair_shop/weekly/<day>.md, each ending in a ticket or "no change, because"
   credit(j)               knowledge id -> how the decisions that cited it turned out
   rebuild_brain(j)        closed brain trades re-checked against the daily candles (G28)
+  close_counterfactuals(j) every OPEN "what if we had traded" case in the hourly watch's store, scored and labelled (G7)
   worked_examples()       Madhav's casebook trades, short, for the brain's pack (G30)
   peers(j, start)         BREAKOUT20 and ROTATE5 paper books on tier-A coins since start (G14)
   changes_after(j)        the change log's after-metrics (ledger.json "changes")
@@ -193,11 +194,15 @@ def _due() -> str:
 
 def credit(j, since: int = 0) -> dict:
     """For each piece of knowledge the brain cited: its buys (closed, average $), its passes (average move 5 days later)."""
+    try:                                                           # excess over the universe median (columns exist once settle_passes has run)
+        ex5 = dict(j.db.execute("SELECT id, after_5d_ex FROM brain_decisions WHERE t >= ?", (since,)).fetchall())
+    except Exception:  # noqa: BLE001
+        ex5 = {}
     out: dict = {}
     for d in _decisions(j, since):
         tr = _trade(j, d.get("trade_id"))
         for k in json.loads(d.get("knowledge") or "[]"):
-            c = out.setdefault(k, {"buys": 0, "buys_closed": 0, "buy_usd": [], "passes": 0, "pass_5d": []})
+            c = out.setdefault(k, {"buys": 0, "buys_closed": 0, "buy_usd": [], "passes": 0, "pass_5d": [], "pass_5d_ex": []})
             if d["action"] == "TAKE":
                 c["buys"] += 1
                 if tr and tr["status"] == "CLOSED":
@@ -207,10 +212,15 @@ def credit(j, since: int = 0) -> dict:
                 c["passes"] += 1
                 if d.get("after_5d_pct") is not None:
                     c["pass_5d"].append(d["after_5d_pct"])
+                    if ex5.get(d["id"]) is not None:
+                        c["pass_5d_ex"].append(ex5[d["id"]])
     for c in out.values():
         c["avg_buy_usd"] = round(statistics.mean(c.pop("buy_usd")), 2) if c["buy_usd"] else None
         p = c.pop("pass_5d")
         c["avg_move_after_pass_pct"] = round(statistics.mean(p), 2) if p else None
+        e = c.pop("pass_5d_ex")
+        # against the whole market's move over the same days: negative = the passed coins did worse than the market (a good pass)
+        c["avg_excess_after_pass_pct"] = round(statistics.mean(e), 2) if e else None
     return dict(sorted(out.items(), key=lambda kv: -(kv[1]["buys"] + kv[1]["passes"])))
 
 
@@ -235,13 +245,89 @@ def rebuild_brain(j) -> dict:
         if not ok:
             bad.append({"id": t["id"], "coin": t["coin"], "exit": t["exit"], "day_low": b[3], "day_high": b[2], "why": t.get("exit_why")})
     out = {"checked": checked, "mismatches": len(bad), "list": bad[:20], "match": not bad}
-    try:
-        j.db.execute("CREATE TABLE IF NOT EXISTS rebuild_log (t INTEGER, source TEXT, match INTEGER, detail TEXT)")
-        j.db.execute("INSERT INTO rebuild_log VALUES (?,?,?,?)", (int(j.now()), "brain", int(not bad), json.dumps(out)[:4000]))
-        j.db.commit()
-    except Exception:  # noqa: BLE001
-        pass
+    # The live rebuild_log has 8 columns (evidence_live._rebuild_table); a 4-value insert used to fail silently here,
+    # so no brain run was ever logged (audit 2026-10-14). Write the real schema and let a failure surface to the
+    # caller's learning_error instead of vanishing.
+    from jarvis.service import evidence_live
+
+    evidence_live._rebuild_table(j)
+    t = int(j.now())
+    while j.db.execute("SELECT 1 FROM rebuild_log WHERE t=?", (t,)).fetchone():
+        t += 1                                                     # t is the primary key; step past an explorer row in the same second
+    j.db.execute("INSERT INTO rebuild_log VALUES (?,?,?,?,?,?,?,?)",
+                 (t, "brain", int(not bad), len(rows), checked, len(bad), 0, json.dumps(out)[:4000]))
+    j.db.commit()
     return out
+
+
+def _iso_t(s) -> int | None:
+    import datetime as _dt
+
+    try:
+        return int(_dt.datetime.fromisoformat(str(s).replace("Z", "+00:00")).timestamp())
+    except (ValueError, TypeError):
+        return None
+
+
+def close_counterfactuals(j, horizon_hours: float | None = None, limit: int = 5000) -> dict:
+    """G7, closed at last: every OPEN counterfactual ("what if we had traded this refusal") in the hourly watch's
+    decision store is scored at its horizon - forward return, best and worst excursion from the next bar's open -
+    and labelled by the original close_case rule. Cases had been opened on every refusal since Sep 19 and never
+    closed (audit 2026-10-14: 2,997 open, 0 closed; close_case was only ever called from tests)."""
+    import sqlite3
+
+    from src.intelligence.counterfactual import close_case
+
+    p, bp = Path(j.dir) / "agent_decisions.sqlite", Path(j.dir) / "explorer_bars.sqlite"
+    if not p.exists() or not bp.exists():
+        return {"closed": 0, "skipped": 0, "note": "decision store or bars missing"}
+    bars = sqlite3.connect(f"file:{bp}?mode=ro", uri=True, timeout=30)
+    cache: dict[str, list[tuple]] = {}
+
+    def series(coin: str) -> list[tuple]:
+        if coin not in cache:
+            cache[coin] = bars.execute("SELECT t, o, h, l, c FROM bars WHERE coin=? AND tf='1h' ORDER BY t", (coin,)).fetchall()
+        return cache[coin]
+
+    con = sqlite3.connect(str(p), timeout=30)
+    closed = skipped = 0
+    labels: dict[str, int] = {}
+    now = int(j.now())
+    try:
+        rows = con.execute("SELECT id, payload_json FROM decisions WHERE payload_json LIKE '%\"counterfactual\"%' "
+                           "AND payload_json LIKE '%\"status\": \"OPEN\"%' LIMIT ?", (limit,)).fetchall()
+        for did, pj in rows:
+            try:
+                pay = json.loads(pj or "{}")
+            except json.JSONDecodeError:
+                skipped += 1
+                continue
+            case = pay.get("counterfactual") or {}
+            coin = str(case.get("asset") or "").split("-")[0].split("/")[0]
+            t0 = _iso_t(case.get("issued_at"))
+            hz = float(horizon_hours or case.get("horizon_hours") or 4.0)
+            S = series(coin) if coin else []
+            if case.get("status") != "OPEN" or not S or not t0 or now < t0 + hz * 3600:
+                skipped += 1
+                continue
+            win = [b for b in S if t0 <= b[0] < t0 + hz * 3600]
+            if not win or win[-1][0] < t0 + (hz - 1.5) * 3600 or not win[0][1]:
+                skipped += 1                                       # bars missing around the case: left OPEN, tried again next night
+                continue
+            p0 = win[0][1]                                         # the next bar's open: what a trade then would have paid
+            fwd = 100 * (win[-1][4] / p0 - 1)
+            mfe = 100 * (max(b[2] for b in win) / p0 - 1)
+            mae = 100 * (min(b[3] for b in win) / p0 - 1)
+            pay["counterfactual"] = close_case(case, fwd_return_pct=round(fwd, 2), mfe_pct=round(mfe, 2), mae_pct=round(mae, 2))
+            con.execute("UPDATE decisions SET payload_json=? WHERE id=?", (json.dumps(pay, default=str), did))
+            lab = pay["counterfactual"].get("label") or "?"
+            labels[lab] = labels.get(lab, 0) + 1
+            closed += 1
+        con.commit()
+    finally:
+        con.close()
+        bars.close()
+    return {"closed": closed, "skipped": skipped, "labels": labels}
 
 
 def worked_examples(n: int = 4) -> list[dict]:

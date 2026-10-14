@@ -80,6 +80,38 @@ def test_rebuild_flags_impossible_exit(tmp_path, monkeypatch):
     assert j.db.execute("SELECT COUNT(*) FROM rebuild_log WHERE source='brain'").fetchone()[0] == 1
 
 
+def test_close_counterfactuals_scores_and_labels(tmp_path, monkeypatch):
+    import sqlite3
+
+    from jarvis.service import learning as L
+
+    j = _setup(tmp_path, monkeypatch)
+    now = int(time.time())
+    t0 = now - 2 * DAY
+    t0 -= t0 % 3600
+    bars = sqlite3.connect(tmp_path / "explorer_bars.sqlite")
+    bars.execute("CREATE TABLE bars (coin TEXT, tf TEXT, t INTEGER, o REAL, h REAL, l REAL, c REAL, v REAL)")
+    for k in range(8):                                             # BTC falls 1% an hour: a refusal was CORRECT
+        px = 100 * (1 - 0.01 * k)
+        bars.execute("INSERT INTO bars VALUES ('BTC','1h',?,?,?,?,?,1)", (t0 + k * 3600, px, px * 1.001, px * 0.985, px * 0.99))
+    bars.commit()
+    bars.close()
+    import datetime as dt
+    case = {"id": "counterfactual.v1", "status": "OPEN", "issued": "NO_TRADE", "asset": "BTC-USD-SPOT", "horizon_hours": 4.0,
+            "issued_at": dt.datetime.fromtimestamp(t0, dt.timezone.utc).isoformat()}
+    con = sqlite3.connect(tmp_path / "agent_decisions.sqlite")
+    con.execute("CREATE TABLE decisions (id TEXT PRIMARY KEY, payload_json TEXT)")
+    con.execute("INSERT INTO decisions VALUES ('d1', ?)", (json.dumps({"counterfactual": case}, indent=1),))
+    con.commit()
+    con.close()
+    r = L.close_counterfactuals(j)
+    assert r["closed"] == 1 and r["labels"] == {"CORRECT_REFUSE": 1}
+    con = sqlite3.connect(tmp_path / "agent_decisions.sqlite")
+    cf = json.loads(con.execute("SELECT payload_json FROM decisions").fetchone()[0])["counterfactual"]
+    assert cf["status"] == "CLOSED" and cf["fwd_return_pct"] < -2 and cf["mae_pct"] < cf["fwd_return_pct"] <= cf["mfe_pct"]
+    assert L.close_counterfactuals(j)["closed"] == 0               # nothing left open
+
+
 def test_worked_examples_are_his_cases():
     from jarvis.service import learning as L
 

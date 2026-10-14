@@ -367,12 +367,14 @@ def patterns(j, days: int = REPEAT_DAYS, tier: str = "LIVE10") -> list[dict]:
     _table(j)
     since = _day_str(int(j.now()) - days * DAY)
     out = []
-    for pat, n, avg, coins in j.db.execute("SELECT pattern, COUNT(*), AVG(move_pct), GROUP_CONCAT(DISTINCT coin) FROM missed_moves "
-                                           "WHERE day >= ? AND label != 'CAUGHT' AND coalesce(tier, 'LIVE10') = ? AND coalesce(miss_class, 'DETECTION') IN ('DETECTION', 'KNOWLEDGE') "
-                                           "GROUP BY pattern ORDER BY 2 DESC",
-                                           (since, tier)):
+    for pat, n, days_n, avg, coins in j.db.execute("SELECT pattern, COUNT(*), COUNT(DISTINCT day), AVG(move_pct), GROUP_CONCAT(DISTINCT coin) FROM missed_moves "
+                                                   "WHERE day >= ? AND label != 'CAUGHT' AND coalesce(tier, 'LIVE10') = ? AND coalesce(miss_class, 'DETECTION') IN ('DETECTION', 'KNOWLEDGE') "
+                                                   "GROUP BY pattern ORDER BY 3 DESC",
+                                                   (since, tier)):
         kind, zone, reg = pat.split("|")
-        out.append({"pattern": pat, "times": n, "avg_move_pct": round(avg, 1), "coins": coins,
+        # "times" counts independent market days, not rows: coins missing together on one day are one event
+        # (the GOAL_EVENTS rule; audit 2026-10-14 found request #38 filed on 10 rows that were 3 days).
+        out.append({"pattern": pat, "times": days_n, "rows": n, "avg_move_pct": round(avg, 1), "coins": coins,
                     "said": f"{KIND_WORDS.get(kind, kind)}, {'from a support zone' if zone == 'zone' else 'away from any support zone'}, "
                             f"market {reg.lower().replace('_', '-')}", "status": "CANDIDATE (picked after the fact; needs forward paper evidence)"})
     return out
@@ -400,7 +402,7 @@ def _repeats_tier(j, tier: str, log_request=None) -> list[dict]:
         if j.db.execute("SELECT 1 FROM engine_state WHERE k=?", (key,)).fetchone():
             continue
         text = ({"T30": "30-coin tier: ", "UNIV": "Whole universe (tier A and B coins): "}.get(tier, "") +
-                f"Moves we keep missing: {p['said']} ({p['times']} times in {REPEAT_DAYS} days, about +{p['avg_move_pct']}% each; {p['coins']}). "
+                f"Moves we keep missing: {p['said']} (on {p['times']} separate days in {REPEAT_DAYS} days, {p['rows']} coins in all, about +{p['avg_move_pct']}% each; {p['coins']}). "
                 "Idea: a paper rule for this start, tested against the times the same start led nowhere (picked after the fact, so not proof).")
         r = (log_request or (lambda t: requests_log.add(j, "idea", t, "missed moves", by="ananta-auto")))(text)
         j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (key, str(r.get("num") if isinstance(r, dict) else "")))

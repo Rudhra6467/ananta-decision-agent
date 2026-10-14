@@ -14,7 +14,7 @@ from typing import Any
 CONCEPTS: dict[str, dict[str, str]] = {
     "evidence": {"title": "New: the Evidence",
                  "text": "Ananta just recorded a finding. Every finding, and every question it raises, goes to the Evidence: a list of tests on "
-                         "history that decide whether a trading rule changes. It lives in Cockpit.",
+                         "history that decide whether a trading rule changes. It lives under More › Evidence.",
                  "open": "/evidence", "button": "Open the Evidence"},
     "learned": {"title": "New: learning from a loss",
                 "text": "A trade closed at a loss. Losses are not hidden: each one is reviewed, and if a rule keeps losing, it goes to the repair "

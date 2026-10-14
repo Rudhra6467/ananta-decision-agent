@@ -104,7 +104,7 @@ export function CoinPicker({ value, onChange, choices }: { value: string[]; onCh
 // ---- the tour over their own tabs: Next / Skip; the last screen lists what they can do ----
 const TOUR = [
   { path: "/(tabs)/today", title: "Home", text: "This is your Home. Your coins, your practice money and your trades show up here. It's empty because it's all yours: nothing has happened yet." },
-  { path: "/(tabs)/watchlists", title: "Watchlists", text: "Watchlists shows the coins you picked: live price, today's move and the trend. Tap a coin for its chart and what Ananta sees in it." },
+  { path: "/(tabs)/watchlists", title: "Markets", text: "Markets shows the coins you picked: live price, today's move and the trend. Tap a coin for its chart and what Ananta sees in it." },
   { path: "/(tabs)/portfolio", title: "Books", text: "Books is your practice book. Next you add practice capital, then press Start trading. Until then nothing is bought or watched for you." },
   { path: "/(tabs)/ask", title: "Ask Ananta", text: "Ask Ananta anything. Type, tap the mic to dictate, or tap the wave and just talk. Ananta knows your coins and your book." },
 ];

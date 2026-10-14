@@ -30,7 +30,8 @@ PAIRS = [("text", "bg", 4.5), ("text", "card", 4.5), ("text", "card2", 4.5), ("d
          ("dim", "card2", 4.5), ("accent", "card", 4.5), ("accent", "bg", 4.5), ("good", "card", 4.5), ("bad", "card", 4.5),
          ("warn", "card", 4.5), ("goodDeep", "goodSoft", 4.5), ("badDeep", "badSoft", 4.5), ("warnDeep", "warnSoft", 4.5),
          ("accent", "accentSoft", 4.5), ("onInk", "ink", 4.5), ("onInk", "accent", 4.5), ("onInk", "inkBtn", 4.5),
-         ("onInk", "good", 3.0), ("onInk", "bad", 3.0), ("inkDim", "ink", 4.5), ("faint", "card", 2.5)]
+         ("onInk", "good", 3.0), ("onInk", "bad", 3.0), ("inkDim", "ink", 4.5),
+         ("faint", "card", 4.5), ("faint", "bg", 4.5)]                     # Oct 14: footnotes are read at 13 px, so they are text too
 
 
 def test_both_palettes_have_every_token():

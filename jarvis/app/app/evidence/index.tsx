@@ -13,7 +13,7 @@ export default function Evidence() {
   const [f, setF] = useState("all");
   useFocusEffect(useCallback(() => { setScreen({ screen: "evidence", label: "Evidence: every review of the repair shop" }); }, []));
   const head = <Stack.Screen options={{ headerShown: true, title: "Evidence", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
-    headerTintColor: C.text, headerBackTitle: "Cockpit" }} />;
+    headerTintColor: C.text, headerBackTitle: "More" }} />;
   if (!d && loading) return <>{head}<Busy /></>;
   if (!d) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen></>;
   const all: any[] = [...(d.forwarded ?? [])].reverse();

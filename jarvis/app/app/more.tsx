@@ -18,9 +18,9 @@ export default function More() {
   const { data: cost } = useData(`/v3/costs?days=${days}`, 0);
   const runAcc = async () => { try { await api("/v3/acceptance/run", {}); showToast("Running the checks: a few minutes"); reloadAcc(); } catch (e: any) { showToast(e?.message ?? "Could not start"); } };
   const [all, setAll] = useState(false);
-  useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "Cockpit › Additional features: systems, recent activities, invites, mandate" }); }, []));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "More › Additional features: voice and model, systems, recent activities, costs, invites, mandate" }); }, []));
   const head = <Stack.Screen options={{ headerShown: true, title: "Additional features", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
-    headerTintColor: C.text, headerBackTitle: "Cockpit" }} />;
+    headerTintColor: C.text, headerBackTitle: "More" }} />;
   if (!d && loading) return <>{head}<Busy /></>;
   if (!d) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen></>;
   const acts: any[] = d.recent_actions ?? [];

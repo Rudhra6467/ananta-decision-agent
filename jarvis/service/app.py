@@ -408,6 +408,34 @@ def universe_ladder_set(body: dict, who: str = Depends(owner)) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.get("/v3/needs")
+def needs_list(who: str = Depends(owner)) -> dict:
+    """Home's "Needs you" (Oct 14): the decisions waiting for Madhav, today a rule that passed its forward test and may step up."""
+    if is_guest(who):
+        return {"items": []}
+    from jarvis.service import needs
+
+    return {"items": needs.list_(_main())}
+
+
+class NeedsIn(BaseModel):
+    id: str
+    decision: str = "later"
+
+
+@app.post("/v3/needs/decide")
+def needs_decide(b: NeedsIn, who: str = Depends(owner)) -> dict:
+    """Madhav's tap on the card: approve = one step up the ladder (paper); later = hide it for a week."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav decides.")
+    from jarvis.service import needs
+
+    try:
+        return needs.decide(_main(), b.id, b.decision, who)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/v3/universe/coins")
 def universe_coins(tier: str | None = None, q: str | None = None, sort: str = "trading", n: int = 60, who: str = Depends(owner)) -> dict:
     from jarvis.service import universe_watch
@@ -1842,7 +1870,7 @@ def voice_answer(b: AnswerVoice, who: str = Depends(owner)) -> dict:
     from jarvis.service import speech
 
     if A().setting("voice_enabled") != "1":
-        raise HTTPException(status_code=400, detail="Voice is switched off in the Cockpit")
+        raise HTTPException(status_code=400, detail="Voice is switched off under More › Controls")
     key = speech.prepare_answer(b.sentences, b.voice, b.speed)
     if not b.wait:
         return {"id": key}
@@ -1891,7 +1919,7 @@ def voice_prepare(b: SpeakReq, who: str = Depends(owner)) -> dict:
     from jarvis.service import speech
 
     if A().setting("voice_enabled") != "1":
-        raise HTTPException(status_code=400, detail="Voice is switched off in the Cockpit")
+        raise HTTPException(status_code=400, detail="Voice is switched off under More › Controls")
     return {"ids": speech.prepare(b.sentences, b.voice), "voices": list(speech.VOICES)}
 
 

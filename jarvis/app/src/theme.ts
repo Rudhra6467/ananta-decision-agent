@@ -5,7 +5,7 @@ import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 
 const LIGHT = {
-  bg: "#F5F6F8", card: "#FFFFFF", card2: "#F0F2F5", line: "#E4E7EC", text: "#101828", dim: "#5D6679", faint: "#98A2B3",
+  bg: "#F5F6F8", card: "#FFFFFF", card2: "#F0F2F5", line: "#E4E7EC", text: "#101828", dim: "#5D6679", faint: "#667085",
   accent: "#2952CC", accentSoft: "#E8EEFC",
   good: "#06804C", goodSoft: "#E6F4EC", bad: "#C8332B", badSoft: "#FBEAE9", warn: "#B54708", warnSoft: "#FEF4E6",
   goodDeep: "#05603A", badDeep: "#912018", warnDeep: "#7A2E0E",
@@ -18,7 +18,8 @@ const LIGHT = {
 export type Palette = typeof LIGHT;
 
 const BAT: Palette = {
-  bg: "#141518", card: "#1D1F23", card2: "#26292E", line: "#33363C", text: "#ECEAE6", dim: "#A9ACB2", faint: "#7E828A",
+  // faint was #7E828A (4.3:1 on a card): raised Oct 14 so footnotes read at 13 px without squinting
+  bg: "#141518", card: "#1D1F23", card2: "#26292E", line: "#33363C", text: "#ECEAE6", dim: "#A9ACB2", faint: "#8A8E96",
   accent: "#F2CF66", accentSoft: "#3A331C",
   good: "#5CCB92", goodSoft: "#183126", bad: "#F2796F", badSoft: "#3A1F1F", warn: "#F2A65A", warnSoft: "#3A2A18",
   goodDeep: "#8FE0B6", badDeep: "#F7A8A1", warnDeep: "#F7C48F",
@@ -84,6 +85,16 @@ export const ratingColor: Record<string, string> = {
 export const ratingWord: Record<string, string> = { STRONG: "Strong", OK: "Steady", WEAK: "Weak", OUT: "Out" };
 export const coinColor: Record<string, string> = {}; // kept for old imports: every coin uses the text colour
 export const pnlColor = (x?: number | null) => (x == null || Math.abs(x) < 0.005 ? C.dim : x > 0 ? C.good : C.bad);
+
+// The grammar (Madhav, Oct 14, "one grammar, five screens"): five type sizes, three spacings, two corner radii, one tap height.
+// 32 the one number · 24 screen title · 17 card title · 15 body · 13 meta and labels · 11 tab labels only.
+export const TYPE = { number: 32, title: 24, card: 17, body: 15, meta: 13, tab: 11 } as const;
+export const LINE = { number: 38, title: 30, card: 24, body: 22, meta: 18, tab: 14 } as const;
+export const SPACE = { screen: 16, card: 14, gap: 12, line: 8 } as const;
+export const RADIUS = { card: 16, button: 12, pill: 999 } as const;
+export const TAP = 44;
+// numbers line up in columns (tabular figures); works on iOS and the web, ignored where unsupported
+export const NUM = { fontVariant: ["tabular-nums"] as any };
 export const COIN_NAME: Record<string, string> = {
   BTC: "Bitcoin", ETH: "Ethereum", SOL: "Solana", ADA: "Cardano", DOGE: "Dogecoin", AVAX: "Avalanche",
   BCH: "Bitcoin Cash", LINK: "Chainlink", LTC: "Litecoin", XRP: "XRP",

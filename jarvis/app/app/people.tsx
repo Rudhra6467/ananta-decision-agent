@@ -29,7 +29,7 @@ export default function PeoplePage() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "People", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
-        headerTintColor: C.text, headerBackTitle: "Cockpit" }} />
+        headerTintColor: C.text, headerBackTitle: "More" }} />
       <People />
     </>
   );

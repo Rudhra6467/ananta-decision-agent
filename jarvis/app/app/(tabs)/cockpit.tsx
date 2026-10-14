@@ -1,24 +1,25 @@
-// Cockpit (plan 3.8, D11). Top to bottom:
+// More (was Cockpit; plan 3.8, D11), regrouped Oct 14 to one grammar: "settings, evidence, and is everything running?"
 //  · the title row (in the tabs header): the alerts bell and the sun/moon switch
-//  · the 3 + 2 controls: Kill switch, Autopilot, Live on the left; Ask Ananta, Ananta Voice Assist on the right
-//  · Evidence: the repair shop's reviews with human names, each with its own page
-//  · Additional features: Systems and circuit breakers, Recent activities, Invites, Mandate
-//  · Voice Assist Settings: the voice, the Claude budget and the Test lab
-//  · Sign out
-// A visitor's Cockpit controls only their own account: Pause Ananta for me, Auto mode, Live (coming soon), their voice.
+//  · who is signed in (one row)
+//  · Controls: Kill switch, Autopilot, Live (locked), Ask Ananta, Voice assist — one row each, a switch on the right
+//  · Voice and model: who answers, the voice and speed, the Claude budget (each row opens Additional features)
+//  · Evidence: the reviews, the repair loop, strategy status, lost trades
+//  · System: every part running, costs, live money (off), the rest of Additional features
+//  · notifications, Sign out
+// A visitor's More controls only their own account: Pause Ananta for me, Auto mode, Live (coming soon), their voice.
 import { Spot } from "../../src/spotlight";
-import { setScreen } from "../../src/context";
+import { askAbout, setScreen } from "../../src/context";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { api, logout } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
-import { Btn, Busy, Card, Divider, ErrorBox, Line, Screen, Section, Segmented, T } from "../../src/ui";
-import { Progress } from "../../src/charts";
+import { Btn, Busy, Card, Divider, ErrorBox, Line, ListState, Screen, Section, Segmented, T, s as st } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C } from "../../src/theme";
-import { ExplainSheet, showToast } from "../../src/blocks";
+import { ExplainSheet, VERDICT, showToast } from "../../src/blocks";
 import { clearMe, loadMe, useMe } from "../../src/visitor";
 import * as TTS from "../../src/tts";
 import { NotificationsCard } from "../../src/notifications";
@@ -29,28 +30,32 @@ export default function CockpitPage() {
   return me.guest ? <VisitorCockpit /> : <Cockpit />;
 }
 
-// ---- one control tile of the 3 + 2 grid ----
-function Tile({ label, help, on, onChange, danger, locked }: {
-  label: string; help: string; on: boolean; onChange: (v: boolean) => void; danger?: boolean; locked?: boolean;
+// ---- one control: label, one line of help, a switch; 44 tall at least ----
+function SwitchRow({ label, help, on, onChange, danger, locked, last }: {
+  label: string; help: string; on: boolean; onChange: (v: boolean) => void; danger?: boolean; locked?: boolean; last?: boolean;
 }) {
   return (
-    <View style={{ backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: on ? (danger ? C.bad : C.accent) : C.line, padding: 12, gap: 6, minHeight: 104 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <Text style={{ color: C.text, fontWeight: "700", fontSize: 14, flex: 1 }} numberOfLines={2}>{label}{locked ? " 🔒" : ""}</Text>
-        <Switch value={on} onValueChange={onChange} trackColor={{ true: danger ? C.bad : C.accent, false: C.line }} />
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, paddingVertical: 8, borderBottomWidth: last ? 0 : 1, borderBottomColor: C.line }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={st.rowTitle}>{label}{locked ? "  ·  locked" : ""}</Text>
+        <T small>{help}</T>
       </View>
-      <Text style={{ color: on ? (danger ? C.bad : C.accent) : C.dim, fontSize: 12, fontWeight: "700" }}>{on ? "ON" : "OFF"}</Text>
-      <Text style={{ color: C.dim, fontSize: 12, lineHeight: 16 }}>{help}</Text>
+      <Text style={{ color: on ? (danger ? C.bad : C.accent) : C.dim, fontSize: 13, fontWeight: "700" }}>{on ? "ON" : "OFF"}</Text>
+      <Switch value={on} onValueChange={onChange} trackColor={{ true: danger ? C.bad : C.accent, false: C.line }} accessibilityLabel={label} />
     </View>
   );
 }
 
-function Grid({ left, right }: { left: React.ReactNode[]; right: React.ReactNode[] }) {
+// ---- one row that opens something: label left, the current value right, a chevron ----
+function GoRow({ label, value, onPress, dot, last }: { label: string; value?: string; onPress: () => void; dot?: string; last?: boolean }) {
   return (
-    <View style={{ flexDirection: "row", gap: 10 }}>
-      <View style={{ flex: 1, gap: 10 }}>{left}</View>
-      <View style={{ flex: 1, gap: 10 }}>{right}</View>
-    </View>
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, paddingVertical: 6,
+      borderBottomWidth: last ? 0 : 1, borderBottomColor: C.line, opacity: pressed ? 0.6 : 1 })}>
+      <Text style={[st.rowTitle, { flex: 1 }]}>{label}</Text>
+      {dot ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dot }} /> : null}
+      {value ? <T small numberOfLines={1}>{value}</T> : null}
+      <Text style={{ color: C.dim, fontSize: 18 }}>›</Text>
+    </Pressable>
   );
 }
 
@@ -59,12 +64,12 @@ function LiveSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const Opt = ({ title, sub }: { title: string; sub: string }) => (
     <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 14, gap: 4, opacity: 0.85 }}>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={{ color: C.text, fontWeight: "700", fontSize: 15, flex: 1 }}>{title}</Text>
+        <Text style={[st.rowTitle, { flex: 1 }]}>{title}</Text>
         <View style={{ backgroundColor: C.card2, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
           <Text style={{ color: C.dim, fontSize: 11, fontWeight: "800" }}>COMING SOON</Text>
         </View>
       </View>
-      <Text style={{ color: C.dim, fontSize: 13 }}>{sub}</Text>
+      <T small>{sub}</T>
     </View>
   );
   return (
@@ -84,24 +89,24 @@ function VoicePick() {
   const LABEL: Record<string, string> = { Deep: "Deep · male", British: "British · male", Calm: "Calm · female", Friendly: "Friendly · female", Bright: "Bright · female" };
   return (
     <View style={{ gap: 8 }}>
-      <T dim small>Voice</T>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+      <T small>Voice</T>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {TTS.VOICES.map((x) => (
           <Pressable key={x} onPress={() => { setV(x); TTS.setVoice(x); api("/v3/me/setup", { voice: x }).catch(() => {}); TTS.speakText(`Hello. This is the ${x} voice.`); }}
-            style={{ borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, borderWidth: 1, borderColor: v === x ? C.accent : C.line, backgroundColor: v === x ? C.accentSoft : C.card }}>
+            style={{ borderRadius: 999, paddingHorizontal: 11, minHeight: 32, justifyContent: "center", borderWidth: 1, borderColor: v === x ? C.accent : C.card2, backgroundColor: v === x ? C.accentSoft : C.card2 }}>
             <Text style={{ color: v === x ? C.accent : C.text, fontSize: 13, fontWeight: "600" }}>{LABEL[x] ?? x}</Text>
           </Pressable>
         ))}
       </View>
-      <T dim small>Speed</T>
+      <T small>Speed</T>
       <Segmented value={r} onChange={(k) => { setR(k); TTS.setRate(Number(k)); }} options={TTS.RATES.map((x) => ({ key: String(x), label: `${x}×` }))} />
     </View>
   );
 }
 
-// ---- a visitor's Cockpit: their own account only ----
+// ---- a visitor's More: their own account only ----
 function VisitorCockpit() {
-  useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "Cockpit: your own controls, voice and account" }); }, []));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "More: your own controls, voice and account" }); }, []));
   const me = useMe();
   const [live, setLive] = useState(false);
   const p = me?.profile ?? {};
@@ -114,40 +119,53 @@ function VisitorCockpit() {
   };
   return (
     <Screen loading={false} onRefresh={() => loadMe()}>
-      <Spot id="cockpit.controls">
-        <Grid
-          left={[
-            <Tile key="p" label="Pause Ananta for me" help="On = no watch acts for you; nothing new is bought." on={!!p.paused} danger onChange={(v) => set("paused", v)} />,
-            <Tile key="l" label="Live" help="Real money: coming soon." on={false} locked onChange={() => setLive(true)} />,
-          ]}
-          right={[
-            <Tile key="a" label="Auto mode" help="On = your watches take their paper trades and tell you. Off = Ananta asks first." on={!!p.auto} onChange={(v) => set("auto", v)} />,
-          ]} />
-      </Spot>
-      <Card title={p.name ?? me?.name ?? "Your account"} sub="Practice account · paper money">
-        {p.capital ? <Line label="Starting money" value={`$${Number(p.capital).toLocaleString()}`} /> : null}
-        {p.coins?.length ? <Line label="Your coins" value={String(p.coins.length)} sub={p.coins.join(", ")} /> : null}
+      <Card>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.accentSoft, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: C.accent, fontSize: 17, fontWeight: "700" }}>{String(p.name ?? me?.name ?? "?").slice(0, 1).toUpperCase()}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>{p.name ?? me?.name ?? "Your account"}</Text>
+            <T small>Practice account · paper money{p.capital ? ` · started with $${Number(p.capital).toLocaleString()}` : ""}{p.coins?.length ? ` · ${p.coins.length} coins` : ""}</T>
+          </View>
+        </View>
       </Card>
-      <NotificationsCard />
-      <Section title="Voice Assist Settings" />
+      <Spot id="cockpit.controls">
+        <Section title="Controls" />
+        <Card>
+          <SwitchRow label="Pause Ananta for me" help="On: no watch acts for you; nothing new is bought." on={!!p.paused} danger onChange={(v) => set("paused", v)} />
+          <SwitchRow label="Auto mode" help="On: your watches take their paper trades and tell you. Off: Ananta asks first." on={!!p.auto} onChange={(v) => set("auto", v)} />
+          <SwitchRow label="Live" help="Real money: coming soon." on={false} locked onChange={() => setLive(true)} last />
+        </Card>
+      </Spot>
+      <Section title="Voice" />
       <Card><VoicePick /></Card>
+      <NotificationsCard />
       <Btn label="Sign out" kind="secondary" onPress={async () => { await logout(); clearMe(); router.replace("/login"); }} />
       <LiveSheet open={live} onClose={() => setLive(false)} />
     </Screen>
   );
 }
 
-// ---- Madhav's Cockpit ----
-const VERDICT: Record<string, [string, string]> = { PASS: ["Passed", "good"], FAIL: ["No change", "dim"], INSUFFICIENT: ["Not enough data", "warn"] };
-
+// ---- Madhav's More ----
 function Cockpit() {
-  useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "Cockpit: controls, evidence, additional features, voice settings" }); }, []));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "More: controls, voice and model, evidence, system" }); }, []));
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
   const { data: sp, reload: reloadSpend } = useData("/v3/spend");
   const { data: ev } = useData("/v3/evidence/collected", 600000);
+  const { data: ld } = useData("/v3/universe/ladder", 600000);
   const [live, setLive] = useState(false);
+  const [autoOn, setAutoOn] = useState(true);
+  const [google, setGoogle] = useState(false);
+  const [voice, setVoice] = useState({ v: TTS.voice, e: TTS.engine, r: TTS.rate });
+  useFocusEffect(useCallback(() => {
+    Promise.all([SecureStore.getItemAsync("ask_auto"), SecureStore.getItemAsync("ask_google")]).then(([a, g]) => {
+      if (a) setAutoOn(a === "1"); if (g) setGoogle(g === "1");
+    }).catch(() => {});
+    TTS.init().then(() => setVoice({ v: TTS.voice, e: TTS.engine, r: TTS.rate }));
+  }, []));
   if (!d && loading) return <Busy />;
-  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} onRetry={reload} /></Screen>;
   const sw = (k: string) => (d.switches ?? []).find((w: any) => w.key === k) ?? {};
 
   const flip = async (key: string, on: boolean) => {
@@ -168,57 +186,87 @@ function Cockpit() {
   };
   const setting = async (key: string, value: string) => { await api("/v3/settings", { key, value }); reloadSpend(); };
   const reviews: any[] = [...(ev?.forwarded ?? [])].reverse();
+  const passed = reviews.filter((r) => r.verdict === "PASS").length;
+  const systems: any[] = d.systems ?? [];
+  const down = systems.filter((x) => !x.ok);
+  const breakers = Object.values(d.circuit_breakers ?? {}) as any[];
+  const tripped = breakers.filter((b) => b?.status === "TRIPPED").length;
+  const rows: any[] = ld?.rows ?? [];
+  const steps = rows.length ? `${rows.filter((r) => r.step === "PROMOTED").length} promoted · ${rows.filter((r) => r.step === "EVIDENCE").length} measuring` : "";
+  const who = google ? (autoOn ? "Google · auto" : "Google") : (autoOn ? "Claude · auto" : "Claude · deep");
+  const more = () => router.push("/more");
 
   return (
     <Screen loading={loading} onRefresh={() => { reload(); reloadSpend(); }}>
-      <Spot id="cockpit.controls">
-        <Grid
-          left={[
-            <Tile key="k" label="Kill switch" help="On = close every paper position and block new trades." on={!!sw("kill_switch").on} danger onChange={(v) => flip("kill_switch", v)} />,
-            <Tile key="a" label="Autopilot" help="On = the trend portfolio rebalances by itself." on={!!sw("portfolio_auto").on} onChange={(v) => flip("portfolio_auto", v)} />,
-            <Tile key="l" label="Live" help="Real money: coming soon. Paper only." on={false} locked onChange={() => setLive(true)} />,
-          ]}
-          right={[
-            <Spot id="cockpit.ai" key="ai">
-              <View style={{ gap: 10 }}>
-                <Tile label="Ask Ananta" help="Off = no AI answers at all (nothing can cost money)." on={sp?.settings?.ask_enabled === "1"}
-                  onChange={(v) => setting("ask_enabled", v ? "1" : "0")} />
-                <Tile label="Ananta Voice Assist" help="Off = Ananta never speaks or reaches out by itself." on={sp?.settings?.voice_enabled === "1"}
-                  onChange={(v) => setting("voice_enabled", v ? "1" : "0")} />
-              </View>
-            </Spot>,
-          ]} />
-      </Spot>
+      <Card onPress={more}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.accentSoft, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: C.accent, fontSize: 17, fontWeight: "700" }}>M</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>Madhav · owner</Text>
+            <T small>Brutal truth on · paper only · additional features ›</T>
+          </View>
+          <Text style={{ color: C.dim, fontSize: 18 }}>›</Text>
+        </View>
+      </Card>
 
-      <Spot id="cockpit.evidence">
-        <Section title="Evidence" right={<Text onPress={() => router.push("/evidence")} style={{ color: C.accent, fontWeight: "600" }}>All {reviews.length} ›</Text>} />
+      <Spot id="cockpit.controls">
+        <Section title="Controls" />
         <Card>
-          {reviews.length === 0 ? <T dim>Loading the reviews…</T> : null}
-          {reviews.slice(0, 5).map((r: any, i: number) => {
-            const [word, tone] = VERDICT[r.verdict] ?? [r.verdict, "dim"];
-            return (
-              <View key={r.id}>
-                {i ? <Divider /> : null}
-                <Pressable onPress={() => router.push(`/evidence/${r.id}`)} style={({ pressed }) => ({ paddingVertical: 10, gap: 3, opacity: pressed ? 0.6 : 1 })}>
-                  <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-                    <Text style={{ color: C.text, fontWeight: "600", fontSize: 15, flex: 1 }} numberOfLines={2}>{r.title}</Text>
-                    <Text style={{ color: C.faint, fontSize: 18 }}>›</Text>
-                  </View>
-                  <Text style={{ color: (C as any)[tone], fontSize: 12, fontWeight: "700" }}>{word.toUpperCase()} <Text style={{ color: C.faint, fontWeight: "400" }}>· {r.date}</Text></Text>
-                </Pressable>
-              </View>
-            );
-          })}
-          <Divider />
-          <Text onPress={() => router.push("/lab")} style={{ color: C.accent, fontWeight: "600", paddingTop: 8 }}>The repair loop, live ›</Text>
+          <SwitchRow label="Kill switch" help="On: close every paper position and block new trades." on={!!sw("kill_switch").on} danger onChange={(v) => flip("kill_switch", v)} />
+          <SwitchRow label="Autopilot" help="On: the trend portfolio rebalances by itself." on={!!sw("portfolio_auto").on} onChange={(v) => flip("portfolio_auto", v)} />
+          <SwitchRow label="Live" help="Real money: coming soon. Paper only." on={false} locked onChange={() => setLive(true)} />
+          <Spot id="cockpit.ai">
+            <View>
+              <SwitchRow label="Ask Ananta" help="Off: no AI answers at all (nothing can cost money)." on={sp?.settings?.ask_enabled === "1"} onChange={(v) => setting("ask_enabled", v ? "1" : "0")} />
+              <SwitchRow label="Voice assist" help="Off: Ananta never speaks or reaches out by itself." on={sp?.settings?.voice_enabled === "1"} onChange={(v) => setting("voice_enabled", v ? "1" : "0")} last />
+            </View>
+          </Spot>
         </Card>
       </Spot>
 
+      <Section title="Voice and model" />
+      <Card>
+        <GoRow label="Who answers" value={who} onPress={more} />
+        <GoRow label="Voice" value={`${voice.e === "phone" ? "Phone" : voice.v} · ${voice.r}×`} onPress={more} />
+        <GoRow label="Claude budget" value={sp ? `$${sp.today_usd.toFixed(2)} of $${sp.budget_usd.toFixed(2)} today` : "…"} onPress={more} last />
+      </Card>
+
+      <Spot id="cockpit.evidence">
+        <Section title="Evidence" />
+        <Card>
+          {!ev ? <ListState state="loading" lines={1} /> : null}
+          {ev ? <GoRow label="Reviews" value={reviews.length ? `${reviews.length} · ${passed} passed` : "none yet"} onPress={() => router.push("/evidence")} /> : null}
+          <GoRow label="The repair loop, live" value="looked · traded · fixed" onPress={() => router.push("/lab")} />
+          <GoRow label="Strategy ladder" value={steps || "…"} onPress={() => router.push("/evidence")} />
+          <GoRow label="Lost trades" value="by verdict" onPress={() => askAbout({ screen: "cockpit", label: "lost trades" }, "Classify our lost trades: which we won't take again, which we will try again, and where the rules were modified. Use the lost_trades tool.")} last />
+        </Card>
+        {reviews.length ? (
+          <Card>
+            <T small>Latest review</T>
+            {reviews.slice(0, 1).map((r: any) => {
+              const [word, tone] = VERDICT[r.verdict] ?? [r.verdict, "dim"];
+              return (
+                <Pressable key={r.id} onPress={() => router.push(`/evidence/${r.id}`)} style={({ pressed }) => ({ gap: 3, opacity: pressed ? 0.6 : 1 })}>
+                  <Text style={st.rowTitle} numberOfLines={2}>{r.title}</Text>
+                  <Text style={{ color: (C as any)[tone], fontSize: 13, fontWeight: "600" }}>{word} <Text style={{ color: C.dim, fontWeight: "400" }}>· {r.date}</Text></Text>
+                </Pressable>
+              );
+            })}
+          </Card>
+        ) : null}
+      </Spot>
+
+      <Section title="System" />
+      <Card>
+        <GoRow label="Engine" dot={down.length ? C.bad : C.good} value={down.length ? `${down.length} part${down.length === 1 ? "" : "s"} down` : `all ${systems.length} parts running`} onPress={more} />
+        <GoRow label="Circuit breakers" value={breakers.length ? (tripped ? `${tripped} tripped` : "none tripped") : "…"} onPress={more} />
+        <GoRow label="Costs" value={sp ? `$${sp.today_usd.toFixed(2)} today · $${sp.month_usd.toFixed(2)} this month` : "…"} onPress={more} />
+        <GoRow label="Live money" value="off · paper only" onPress={() => setLive(true)} last />
+      </Card>
+
       <NotificationsCard />
-
-      <Card onPress={() => router.push("/more")} title="Additional features" sub="Voice and model · Systems and circuit breakers · Recent activities · Invites · Visitor feedback · Change password · Mandate"
-        right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
-
       <Btn label="Sign out" kind="secondary" onPress={async () => { await logout(); clearMe(); router.replace("/login"); }} />
       <LiveSheet open={live} onClose={() => setLive(false)} />
     </Screen>

@@ -368,7 +368,7 @@ def set_mode(j, mode: str, email: str = "") -> dict:
     if mode == "ask":
         return {"say": "Semi-automatic: I'll ask you before every trade, the way the demo showed. Requests appear in Needs you and on your phone.",
                 "follow_ups": EXPLORE[:2] + ["What are you watching for me?"]}
-    return {"say": "Fully automatic: I take each setup myself, with its stop, and tell you right away. You can switch back any time in Watchlists.",
+    return {"say": "Fully automatic: I take each setup myself, with its stop, and tell you right away. You can switch back any time in Markets.",
             "follow_ups": EXPLORE[:2] + ["What are you watching for me?"]}
 
 

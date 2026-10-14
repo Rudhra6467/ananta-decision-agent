@@ -98,7 +98,7 @@ function CoinsSlide({ coins, more }: { coins: any[]; more: boolean }) {
   const shown = coins.slice(0, 6);
   return (
     <Card>
-      {shown.length === 0 ? <T dim>No coins yet. Pick the coins you care about in Watchlists.</T> : null}
+      {shown.length === 0 ? <T dim>No coins yet. Pick the coins you care about in Markets.</T> : null}
       {shown.map((c, i) => (
         <View key={c.coin}>
           {i ? <Divider /> : null}

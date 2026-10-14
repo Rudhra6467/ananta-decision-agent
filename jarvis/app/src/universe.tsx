@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { askAbout } from "./context";
-import { Card, Divider, T } from "./ui";
+import { ExplainSheet } from "./blocks";
+import { Btn, Card, Divider, Dot, ListState, StatCard, T, Tag, dayOf, s as st } from "./ui";
 import { useData } from "./useData";
 import { C } from "./theme";
 
@@ -47,13 +48,8 @@ export function WholeMarket() {
       <TextInput value={q} onChangeText={setQ} placeholder="Search any coin (e.g. SUI, PEPE)" placeholderTextColor={C.faint} autoCapitalize="characters"
         style={{ backgroundColor: C.card2, color: C.text, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, marginBottom: 8 }} />
       {q.trim() ? null : (
-        <View style={{ flexDirection: "row", gap: 6, marginBottom: 4 }}>
-          {TABS.map(([id, label]) => (
-            <Pressable key={id} onPress={() => setTab(id)} accessibilityLabel={label}
-              style={{ borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, backgroundColor: tab === id ? C.accent : C.card2 }}>
-              <Text style={{ color: tab === id ? C.onInk : C.dim, fontWeight: "700", fontSize: 13 }}>{label}</Text>
-            </Pressable>
-          ))}
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 4 }}>
+          {TABS.map(([id, label]) => <Tag key={id} text={label} on={tab === id} onPress={() => setTab(id)} />)}
         </View>
       )}
       {(data?.coins ?? []).map((c: any, i: number) => <View key={c.coin}>{i ? <Divider /> : null}<Row c={c} /></View>)}
@@ -64,31 +60,52 @@ export function WholeMarket() {
 }
 
 
-// The exposure dial (engine fixes 1-4): market state first, then setups. Shows the dial, the benchmark books and the would-be account in R.
-export function ExposureDial() {
-  const { data } = useData("/v3/exposure", 300000);
+// The trend dial (engine fixes 1-4), first on Markets since Oct 14: market state first, setups only fill what the dial allows.
+// One grammar: title · OPEN or CLOSED · one line of why · the brakes · Why › opens the rest (every reason, the benchmark books, the
+// would-be account in R). Words first, the colour second: the dot is the only green or red.
+export function ExposureDial({ own }: { own?: boolean }) {
+  const { data, err, reload } = useData("/v3/exposure", 300000);
+  const { data: bk } = useData(own ? "/v3/book500" : null, 300000);           // the account's brakes (Madhav only)
+  const [why, setWhy] = useState(false);
   const d = data?.dial;
   const a = data?.account;
   const open = d?.dial != null && d.dial > 0;
+  const state = d?.dial == null ? "…" : open ? "OPEN" : "CLOSED";
+  const reasons: string[] = d?.why ?? [];
+  const br = bk?.brakes;
+  const fired = Object.entries(br?.fired ?? {}).filter(([, n]) => (n as number) > 0).map(([k]) => k.replace(/_/g, " "));
+  const brakes = !own ? "" : !bk ? "" : br?.paused ? "Brakes PAUSED after a 15% fall; only you can resume" : fired.length ? `Brakes fired: ${fired.join(", ")}` : "Brakes quiet";
+  if (!data && err) return <Card><ListState state="error" text="Couldn't read the dial." action={{ label: "Retry", onPress: reload }} /></Card>;
   return (
-    <Card title="The exposure dial" sub="market state first; setups only fill what the dial allows">
-      <Pressable onPress={() => askAbout({ screen: "markets", label: "the exposure dial" }, "Can we buy today? Explain the exposure dial and the benchmark")}
-        accessibilityLabel="Ask Ananta about the exposure dial" style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 }}>
-        <View style={{ borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: d?.dial == null ? C.card2 : open ? C.good : C.bad }}>
-          <Text style={{ color: d?.dial == null ? C.dim : C.onInk, fontWeight: "800" }}>{d?.dial == null ? "…" : open ? "OPEN" : "CLOSED"}</Text>
-        </View>
-        <Text style={{ color: C.text, flex: 1 }}>{d?.dial_words ?? "reading Bitcoin's daily close"}</Text>
-      </Pressable>
-      {(d?.why ?? []).map((w: string) => <T key={w} dim small>{w}</T>)}
-      <Divider />
-      {(data?.books?.books ?? []).map((b: any) => (
-        <View key={b.book} style={{ flexDirection: "row", paddingVertical: 4 }}>
-          <Text style={{ color: C.text, flex: 1 }}>{b.book} <Text style={{ color: C.dim }}>{b.role}</Text></Text>
-          <Text style={{ color: (b.return_pct ?? 0) >= 0 ? C.good : C.bad, fontWeight: "700" }}>{b.return_pct == null ? "–" : `${b.return_pct >= 0 ? "+" : ""}${b.return_pct}%`}</Text>
-        </View>
-      ))}
-      {a ? <T dim small>{`Would-be $2,000 account: ${a.taken} trades, ${a.closed} closed, ${a.return_pct}% (avg ${a.avg_R ?? "–"} R) vs benchmark ${a.hurdle_pct ?? "–"}% over the same days. ${a.skipped?.dial_closed ?? 0} buys skipped while the dial was closed.`}</T> : null}
-      <T dim small>Paper only. Every strategy must make money AND beat the benchmark (Bitcoin above its 50-day average) over the same days.</T>
-    </Card>
+    <>
+      <StatCard title={`Trend dial · crypto${d?.as_of_day ? ` · as of ${dayOf(d.as_of_day)}` : ""}`} label="The trend dial"
+        meta={[brakes, "Feeds the account's core and the edge sleeve"].filter(Boolean).join(" · ")} action={{ label: "Why ›", onPress: () => setWhy(true) }}>
+        {!data ? <ListState state="loading" lines={1} /> : (
+          <>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Dot color={d?.dial == null ? C.dim : open ? C.good : C.bad} />
+              <Text style={st.title}>{state}</Text>
+              <T small style={{ flex: 1 }} numberOfLines={1}>{d?.dial == null ? "" : open ? "buying allowed" : "no new buys; cash is the position"}</T>
+            </View>
+            <T>{reasons.slice(1, 3).map((w) => w.replace(/\s*\([^)]*\)/, "")).join(" · ") || d?.note || "Reading Bitcoin's daily close."}</T>
+          </>
+        )}
+      </StatCard>
+      <ExplainSheet open={why} onClose={() => setWhy(false)} title={`The dial is ${state}`}>
+        <T>{d?.dial_words ?? "Reading Bitcoin's daily close."}</T>
+        {reasons.map((w) => <T key={w} dim>· {w}</T>)}
+        {d?.rule ? <T small>{d.rule}</T> : null}
+        <Divider />
+        {(data?.books?.books ?? []).map((b: any) => (
+          <View key={b.book} style={[st.row, { paddingVertical: 4 }]}>
+            <Text style={[st.t, { flex: 1 }]}>{b.book} <Text style={{ color: C.dim }}>{b.role}</Text></Text>
+            <Text style={[st.rowTitle, st.num, { color: (b.return_pct ?? 0) >= 0 ? C.good : C.bad }]}>{b.return_pct == null ? "–" : `${b.return_pct >= 0 ? "+" : ""}${b.return_pct}%`}</Text>
+          </View>
+        ))}
+        {a ? <T small>{`Would-be $2,000 account: ${a.taken} trades, ${a.closed} closed, ${a.return_pct}% (avg ${a.avg_R ?? "–"} R) vs benchmark ${a.hurdle_pct ?? "–"}% over the same days. ${a.skipped?.dial_closed ?? 0} buys skipped while the dial was closed.`}</T> : null}
+        <T small>Paper only. Every strategy must make money AND beat the benchmark (Bitcoin above its 50-day average) over the same days.</T>
+        <Btn label="Ask Ananta about the dial" onPress={() => { setWhy(false); askAbout({ screen: "markets", label: "the trend dial" }, "Can we buy today? Explain the trend dial, the brakes and the benchmark."); }} />
+      </ExplainSheet>
+    </>
   );
 }

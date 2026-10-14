@@ -18,6 +18,7 @@ APP_POSTS = [
     ("/v3/onboard/mode", {"mode": "ask"}),
     ("/v3/onboard/demo/clear", {}),
     ("/v3/book500/resume", {}),
+    ("/v3/needs/decide", {"id": "push:H07-UA:EVIDENCE", "decision": "later"}),      # Home's Needs-you card (Oct 14); a 400 is fine here
 ]
 
 

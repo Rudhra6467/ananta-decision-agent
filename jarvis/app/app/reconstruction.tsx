@@ -13,7 +13,7 @@ export default function Reconstruction() {
   const { data: ev, err, loading, reload } = useData("/v3/evidence/live", 600000);
   useFocusEffect(useCallback(() => { setScreen({ screen: "reconstruction", label: "Reconstruction: nightly rebuilds, mismatches, findings" }); }, []));
   const head = <Stack.Screen options={{ headerShown: true, title: "Reconstruction", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
-    headerTintColor: C.text, headerBackTitle: "Watchlists" }} />;
+    headerTintColor: C.text, headerBackTitle: "Markets" }} />;
   if (!ev && loading) return <>{head}<Busy /></>;
   const rb = ev?.rebuild;
   if (!rb) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen></>;

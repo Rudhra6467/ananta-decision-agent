@@ -96,7 +96,7 @@ def send_email(to: str, title: str, body: str) -> bool:
     msg["Subject"] = f"Ananta: {title}"[:150]
     msg["From"] = os.getenv("JARVIS_SMTP_FROM") or unquote(u.username or "")
     msg["To"] = to
-    msg.set_content(f"{body}\n\nOpen Ananta: https://livetrading247.com\n\nPaper trading only. Turn these emails off in Cockpit.")
+    msg.set_content(f"{body}\n\nOpen Ananta: https://livetrading247.com\n\nPaper trading only. Turn these emails off under More.")
     try:
         cls = smtplib.SMTP_SSL if u.scheme == "smtps" else smtplib.SMTP
         with cls(u.hostname, u.port or (465 if u.scheme == "smtps" else 587), timeout=20) as s:

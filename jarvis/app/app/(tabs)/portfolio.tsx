@@ -44,7 +44,7 @@ function VisitorBooksTabs({ d, loading, reload }: { d: any; loading: boolean; re
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 }}>
-        <Segmented value={top} onChange={setTop} options={[{ key: "trades", label: "Trades" }, { key: "details", label: "Details" }]} />
+        <Segmented size="lg" value={top} onChange={setTop} options={[{ key: "trades", label: "Trades" }, { key: "details", label: "Details" }]} />
       </View>
       {top === "trades" ? (
         <Screen loading={loading} onRefresh={() => { reload(); reloadBk(); }}>
@@ -70,7 +70,7 @@ function OwnerBooks() {
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 }}>
-        <Segmented value={top} onChange={setTop} options={[{ key: "trades", label: "Trades" }, { key: "details", label: "Details" }]} />
+        <Segmented size="lg" value={top} onChange={setTop} options={[{ key: "trades", label: "Trades" }, { key: "details", label: "Details" }]} />
       </View>
       {top === "trades" ? <AllTrades /> : (
         <>
@@ -122,7 +122,7 @@ function LabTrades() {
     summary: { ...d.summary, open_count: (d.lab?.trades ?? d.trades ?? []).length }, books: (d.books ?? []).filter((b: any) => b.name !== "The $500 NDAX book") };
   return (
     <Screen loading={loading} onRefresh={reload}>
-      <BooksTrades d={lab} />
+      <BooksTrades d={lab} title="The lab's paper books · US$" />
     </Screen>
   );
 }

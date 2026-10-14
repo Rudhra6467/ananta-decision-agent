@@ -1,9 +1,9 @@
-// Watchlists (plan 3.5, D9), for Madhav and visitors alike:
-//  1. the watchlist: this account's watches (coins or a group, a setup kind, a mode, a state), with + to add one, and the coins
-//  2. Ananta's reasoning: one simple line per coin; a tap shows the whole decision chain
-//  3. Nearing a trade: coins closest to passing, with what is still missing
-//  4. Reconstruction (Madhav only): counts under the title; a tap opens the reconstruction pages
-// The Bitcoin box moved to Home (the market rule slide); zones and "Your setups" live on each coin's page and in Books › Details.
+// Markets (was Watchlists; plan 3.5, D9), for Madhav and visitors alike. "What is the market doing, and what are we watching?"
+//  1. the trend dial first (OPEN or CLOSED, one line of why, the brakes; Why › opens the rest) — Oct 14, one grammar
+//  2. the watches: this account's watches (coins or a group, a setup kind, a mode, a state), + Watch to add one; then the coins
+//  3. the whole market (every coin Ananta watches live), Ananta's reasoning (one line per coin; a tap shows the whole chain),
+//     nearing a trade (coins closest to passing, with what is still missing), reconstruction (Madhav only)
+// Zones and "Your setups" live on each coin's page and in Books › Details.
 import { Spot } from "../../src/spotlight";
 import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -11,7 +11,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { askAbout, setScreen } from "../../src/context";
 import { api } from "../../src/api";
 import { Progress } from "../../src/charts";
-import { Btn, Busy, Card, Divider, ErrorBox, Screen, Section, T } from "../../src/ui";
+import { Act, Btn, Busy, Card, Divider, ErrorBox, ListState, Screen, Section, T, Tag } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME } from "../../src/theme";
 import { ChainLadder } from "../../src/chain";
@@ -33,29 +33,29 @@ export default function Watchlists() {
   const { data: ev } = useData(own ? "/v3/evidence/live" : null, 600000);
   const [add, setAdd] = useState(false);
   const { glow } = useLocalSearchParams<{ glow?: string }>();          // Phase 5: the watch just made glows when Watchlists opens
-  useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: "Watchlists tab: your watches, Ananta's reasoning, nearing a trade" }); reloadW(); }, []));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: "Markets tab: the trend dial, your watches, the coins, Ananta's reasoning, nearing a trade" }); reloadW(); }, []));
   if (!d && loading) return <Busy />;
-  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} onRetry={reload} /></Screen>;
   const myCoins: string[] = me?.guest ? (me?.profile?.coins ?? []) : [];
   const coins = (d.coins ?? []).filter((c: any) => !myCoins.length || myCoins.includes(c.coin));
   const near = [...(d.coins ?? [])].filter((c: any) => c.closest).sort((a: any, b: any) => b.closest.met / b.closest.of - a.closest.met / a.closest.of).slice(0, 5);
   const rb = ev?.rebuild;
+  const watches: any[] = w?.watches ?? [];
   return (
     <Screen loading={loading} onRefresh={() => { reload(); reloadW(); }}>
       <Spot id="markets.summary">
-        <Section title="Watchlist" right={
-          <Pressable onPress={() => setAdd(true)} accessibilityLabel="Add a watch" style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: C.accent,
-            borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}>
-            <Text style={{ color: C.onInk, fontWeight: "800" }}>+ Watch</Text>
-          </Pressable>} />
+        <ExposureDial own={own} />
+        <Section title={w ? `Watches · ${watches.length}` : "Watches"} right={<Act tight label="+ Watch" onPress={() => setAdd(true)} />} />
         <Card>
-          {(w?.watches ?? []).length === 0 ? <T dim>No watches yet. Tap + Watch.</T> : null}
-          {(w?.watches ?? []).map((x: any, i: number) => <View key={x.id}>{i ? <Divider /> : null}<WatchRow w={x} reload={reloadW} glow={!!glow && glow === x.id} /></View>)}
+          {!w ? <ListState state="loading" lines={1} /> : null}
+          {w && watches.length === 0 ? <ListState state="empty" text="No watches yet." action={{ label: "+ Watch", onPress: () => setAdd(true) }} /> : null}
+          {watches.map((x: any, i: number) => <View key={x.id}>{i ? <Divider /> : null}<WatchRow w={x} reload={reloadW} glow={!!glow && glow === x.id} /></View>)}
         </Card>
-        <Card title={myCoins.length ? "Your coins" : "Coins Ananta watches"} sub="tap for the trading page · + to watch or trade">
+        <Section title={myCoins.length ? `Your coins · ${coins.length}` : `Coins Ananta watches · ${coins.length}`} right={<T small>tap for the page · + to watch</T>} />
+        <Card>
+          {coins.length === 0 ? <ListState state="empty" text="No coins yet." action={{ label: "+ Watch", onPress: () => setAdd(true) }} /> : null}
           {coins.map((c: any, i: number) => <View key={c.coin}>{i ? <Divider /> : null}<Spot id={`markets.coin:${c.coin}`}><CoinLine c={c} /></Spot></View>)}
         </Card>
-        <ExposureDial />
         <WholeMarket />
       </Spot>
 
@@ -107,20 +107,17 @@ function WatchRow({ w, reload, glow }: { w: any; reload: () => void; glow?: bool
   const mode = async () => { await api(`/v3/watches/mine/${w.id}`, { mode: NEXT_MODE[w.mode] }); showToast(`Now: ${MODE[NEXT_MODE[w.mode]]}`); reload(); };
   const stop = async () => { await api(`/v3/watches/mine/${w.id}`, { state: "DELETED" }); showToast("Watch removed ✓"); reload(); };
   return (
-    <View style={{ paddingVertical: 10, gap: 6, ...(glow ? { backgroundColor: C.accentSoft, borderRadius: 12, paddingHorizontal: 10, borderWidth: 2, borderColor: C.accent } : {}) }}>
+    <View style={{ paddingVertical: 10, gap: 4, ...(glow ? { backgroundColor: C.accentSoft, borderRadius: 12, paddingHorizontal: 10, borderWidth: 2, borderColor: C.accent } : {}) }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         {glow ? <Text style={{ color: C.accent, fontSize: 11, fontWeight: "800" }}>NEW</Text> : null}
-        <Text style={{ color: C.text, fontWeight: "700", fontSize: 15, flex: 1 }}>{who}</Text>
-        <Text style={{ color: (C as any)[st[1]], fontSize: 12, fontWeight: "700" }}>{st[0].toUpperCase()}{close}</Text>
+        <Text style={{ color: C.text, fontWeight: "600", fontSize: 15, flex: 1 }}>{who}</Text>
+        <Text style={{ color: (C as any)[st[1]] ?? C.dim, fontSize: 13, fontWeight: "600" }}>{st[0]}{close}</Text>
       </View>
-      <Text style={{ color: C.dim, fontSize: 13 }}>{w.kind_name}</Text>
+      <T small>{w.kind_name}</T>
       <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-        <Pressable onPress={mode} accessibilityLabel={`Mode ${MODE[w.mode]}; tap to change`} style={{ borderRadius: 999, borderWidth: 1, borderColor: C.accent,
-          backgroundColor: C.accentSoft, paddingHorizontal: 10, paddingVertical: 4 }}>
-          <Text style={{ color: C.accent, fontSize: 12, fontWeight: "700" }}>{MODE[w.mode] ?? w.mode} ⇄</Text>
-        </Pressable>
+        <Tag text={`${MODE[w.mode] ?? w.mode} ⇄`} on onPress={mode} />
         <View style={{ flex: 1 }} />
-        <Text onPress={stop} style={{ color: C.bad, fontSize: 13, fontWeight: "600" }}>Remove</Text>
+        <Act label="Remove" color={C.dim} onPress={stop} />
       </View>
     </View>
   );

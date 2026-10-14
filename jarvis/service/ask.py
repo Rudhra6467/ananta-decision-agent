@@ -170,7 +170,7 @@ RULES
 10. The owner's mandate (below) is the standing brief: follow its limits, use its goals to judge what matters, and point out when a request conflicts with it.
 12. THE APP: you live inside the Jarvis app and can move the owner's screen with ui_go / ui_back. When he asks to go to, open, show or see something ("show me...", "open...", "take me...", "where can I see..."), you MUST CALL ui_go for the most relevant place (do not just describe it) and then talk as you show it ("Here's our Bitcoin trade..."). The screen context tells you the screen that is open right now: never claim he is on another screen, and never claim you moved the screen unless ui_go returned ok in this answer. For "where am I / what am I looking at", describe the open screen using app_map. Questions about the screen itself ("what's below this?", "what's at the bottom?", "what's above?") mean the parts of the open screen: call ui_scroll (down / bottom / up) and describe those parts using the spot list in order (not prices below). For "show me around" or a new user, explain the app tab by tab in simple words using app_map (open the first place with ui_go).
 13. POINT AT WHAT YOU TALK ABOUT: add "points" so the app makes that thing glow (and scrolls to it) while that sentence is spoken: [{"spot": "<spot id>", "sentence": <index of the sentence in "answer", from 0>}]. Use spots of the screen that is open, or of the place you open with ui_go in this answer (if you point at a spot of another tab without ui_go, the app opens that tab for you). One spot per sentence at most; only point when it helps him find it. When you walk him through a screen or explain where something is, ALWAYS point at each part as you name it. Spot ids:
-home.status | home.value | home.market | home.jarvis | home.findings | home.inbox | home.books | home.activity ; jarvis.score | jarvis.open | jarvis.learning | jarvis.decisions ; missed.counts | missed.moves | missed.patterns ; markets.summary | markets.chain | markets.near | markets.reconstruction | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.gate (the acceptance gate: N of 27 checks) | evidence.tracker (the repair loop strip) | evidence.clocks | evidence.limits | evidence.collected (results vs random) | evidence.rebuild | evidence.misses | evidence.forwarded (the repair board) | evidence.in_use | evidence.safety | evidence.shop (what we wait for, with dates) | evidence.ideas | evidence.credit ; cockpit.controls | cockpit.ai | cockpit.evidence | cockpit.voice ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5> | coin.chain (the decision chain ladder) | coin.reads (your setups on this coin) | coin.zones (zones and the lookout).
+home.status | home.value | home.jarvis | home.findings | home.inbox | home.books | home.activity ; jarvis.score | jarvis.open | jarvis.learning | jarvis.decisions ; missed.counts | missed.moves | missed.patterns ; markets.summary | markets.chain | markets.near | markets.reconstruction | markets.coin:<SYM> ; portfolio.value | portfolio.autopilot | portfolio.suggested | portfolio.holdings | portfolio.holding:<SYM> ; explorer.value | explorer.trade:<trade id> | explorer.closed ; mine.value | mine.position:<SYM> ; evidence.gate (the acceptance gate: N of 27 checks) | evidence.tracker (the repair loop strip) | evidence.clocks | evidence.limits | evidence.collected (results vs random) | evidence.rebuild | evidence.misses | evidence.forwarded (the repair board) | evidence.in_use | evidence.safety | evidence.shop (what we wait for, with dates) | evidence.ideas | evidence.credit ; cockpit.controls | cockpit.ai | cockpit.evidence | cockpit.voice ; on a coin page: coin.chart | coin.position | coin.market | coin.trades ; on a trade page: trade.pnl | trade.chart | trade.levels | trade.stop | trade.target | trade.why | trade.plan | trade.timeline ; on a coin page also coin.levels | coin.setup:<E1-E5> | coin.chain (the decision chain ladder) | coin.reads (your setups on this coin) | coin.zones (zones and the lookout).
 14. PROVE IT: every number you give should be checkable in the app. In "evidence" items add "spot" (and "screen" when it is on another screen) for where that number is shown. When he asks "where did you get that?", "show me", "prove it" or "show me the trade you just mentioned", open that place with ui_go and point at it (points) while you explain; use the previous answer's evidence to know what "that" is. For a single trade, open the trade page (trade:<id>) and point at trade.pnl / trade.stop / trade.target; for a coin's setup, open the coin page and point at coin.setup:<E#>.
 11. Screens: when it helps, add "show" items so the app can open the right screen: {"screen": "coin", "coin": "ETH"} | {"screen": "trade", "id": "<trade id>"} | {"screen": "markets"} | {"screen": "portfolio"} | {"screen": "evidence"} (the Evidence page) | {"screen": "jarvis"} (Jarvis's book) | {"screen": "missed"} (what we missed) | {"screen": "cockpit"} | {"screen": "mandate"}, each with a short "label" like "Open ETH chart".
 
@@ -842,7 +842,7 @@ class Lookups:
         from jarvis.service import watches
 
         w = watches.create(self.j, coins, group, kind, mode, by="ananta (asked in chat)")
-        self.ui.append({"do": "go_to", "target": "markets", "label": "Watchlists"})
+        self.ui.append({"do": "go_to", "target": "markets", "label": "Markets"})
         return {"created": w, "say": f"Watching {watches.describe(w)}; {watches.MODES[w['mode']]}."}
 
     def t_my_watches(self) -> dict:
@@ -2245,7 +2245,7 @@ class Ask:
         if not text:
             raise ValueError("empty question")
         if self.setting("ask_enabled") != "1":
-            raise ValueError("Ask Ananta is switched off in the Cockpit")
+            raise ValueError("Ask Ananta is switched off under More › Controls")
         thread = thread or (("brief:" if str(who).startswith("ananta (scheduled)") else "") + uuid.uuid4().hex[:12])   # briefs never count as "your last conversation"
         text = self._take_next_step(thread, text)                    # "yes" to "Want me to pull up BTC?" runs that step
         self._people_note = None
@@ -2274,7 +2274,7 @@ class Ask:
             sp = self.spend()
             if sp["today_usd"] >= sp["budget_usd"]:
                 if self.setting("over_budget") == "stop":
-                    raise ValueError(f"today's Claude budget (${sp['budget_usd']:.2f}) is used up; raise it in the Cockpit or use Everyday")
+                    raise ValueError(f"today's Claude budget (${sp['budget_usd']:.2f}) is used up; raise it under More › Voice and model, or use Everyday")
                 key = "gemini_voice" if voice and "gemini_voice" in self.providers else "gemini"
                 note = f"Claude budget for today (${sp['budget_usd']:.2f}) is used up, so Gemini answered"
         history = self._history(thread)
@@ -2477,7 +2477,7 @@ class Ask:
             ms = int(1000 * (time.time() - t0))
             if "budget" in (note or "") and "429" in str(exc):          # say the real reason, not just "busy"
                 exc = RuntimeError(f"Today's Claude budget is used up and Gemini's free quota is used up too. Raise the daily budget in "
-                                   f"Cockpit → AI, or wait: the budget resets at midnight Toronto time.")
+                                   f"More › Voice and model, or wait: the budget resets at midnight Toronto time.")
             self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, mode, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",
                               (aid, thread, now + 1, "assistant", used, mode_label, ms, json.dumps(log), str(exc)[:500]))
             self.j.db.commit()
@@ -2553,8 +2553,12 @@ class Ask:
         vid = _pre_voice(context, reply.get("speak") or reply.get("answer"))
         if vid:
             reply["voice_id"] = vid                                  # its audio is already being made: the phone fetches it directly
+        # Oct 14: every answer names its language, so the app can label it (a Telugu/English switch is visible, never a surprise)
+        from jarvis.service import speech
+
+        lang = "te" if te or speech.is_telugu([str(reply.get("answer") or "")]) else "en"
         return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta,
-                "talking_to": _speaker(self.j, thread)}
+                "language": lang, "talking_to": _speaker(self.j, thread)}
 
     def _take_next_step(self, thread: str, text: str) -> str:
         """'Yes' right after an offered next step runs that step; a question that matches a chip just shown marks it picked."""
@@ -2677,7 +2681,7 @@ class Ask:
     def transcribe(self, audio_b64: str, mime: str = "audio/wav", post=_post, thread: str | None = None) -> str:
         """Speech to text with Gemini (free tier). Audio is not stored."""
         if self.setting("voice_enabled") != "1":
-            raise ValueError("Voice is switched off in the Cockpit")
+            raise ValueError("Voice is switched off under More › Controls")
         if not audio_b64 or len(audio_b64) > 12_000_000:
             raise ValueError("audio missing or too long (about 2 minutes at most)")
         telugu = False

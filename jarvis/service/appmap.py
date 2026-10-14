@@ -10,12 +10,12 @@ import re
 
 SCREENS = {
     "home": {"name": "Home", "where": "Home tab (house icon)",
-             "shows": "mission control: whether every part is running, all paper money with its line since the start, the market rule "
-                      "(Bitcoin against its 50-day average, with the chart), Ananta today (its open trades and the score against random "
-                      "twins), findings (moves we missed or only saw, lessons from closed trades, market shifts), what needs you, the brief, "
-                      "our books, and the activity feed; the Cockpit tab holds the switches and settings"},
-    "markets": {"name": "Watchlists", "where": "Watchlists tab (candles icon, fourth tab)",
-                "shows": "how many coins are in an uptrend, the BTC gate, and the watchlist of 10 coins with price, today's move, "
+             "shows": "how the account is doing and whether anything needs you: whether every part is running, the account card (the $500 "
+                      "NDAX book in Canadian dollars: value since the start, holdings, cash, the dial and brakes), Needs you (a rule that passed "
+                      "and may step up, portfolio changes, the mandate's actions), Ananta's note (the day in plain words), one line for the lab, "
+                      "findings (moves we missed or only saw, lessons), and the activity feed; the More tab holds the switches and settings"},
+    "markets": {"name": "Markets", "where": "Markets tab (trend-line icon, fourth tab; it was called Watchlists until Oct 14)",
+                "shows": "the trend dial first (OPEN or CLOSED, with why, and the brakes), then the watches, the coins with price, today's move, "
                          "1h/4h trend and how close each is to its nearest setup; above it, Ananta's reasoning: where each coin stops on the "
                          "decision chain (regime, trend, location, trigger, invalidation, risk, exposure); tap a coin for its page"},
     "portfolio": {"name": "Books: trend portfolio (T3)", "where": "Books tab, first sub-tab (Ananta's book is the row above)",
@@ -39,11 +39,12 @@ SCREENS = {
                         "the room left to the stop, what its plans leaned on and the confidence check, and recent decisions with their thesis"},
     "missed": {"name": "What we missed", "where": "Home > Findings > Missed moves",
                "shows": "each day's biggest rises: caught, seen or missed, and why; and the misses that keep coming back"},
-    "cockpit": {"name": "Cockpit", "where": "Cockpit tab (gauge icon, last tab)",
-                "shows": "kill switch, portfolio autopilot, locked live-trading switch, your mandate, the test lab, Ask and Voice switches, "
-                         "the daily Claude budget and spend, active alerts, system status and recent actions"},
-    "mandate": {"name": "Your mandate", "where": "Cockpit > Your mandate", "shows": "your goals, markets, styles, setups, limits and how Ananta should talk"},
-    "testlab": {"name": "Test lab", "where": "Cockpit > Test lab", "shows": "recorded test runs of Ananta with answers to mark Good / OK / Bad"},
+    "cockpit": {"name": "More", "where": "More tab (sliders icon, last tab; it was called Cockpit until Oct 14)",
+                "shows": "the controls (kill switch, portfolio autopilot, locked live-trading switch, Ask and Voice switches), Voice and model "
+                         "(who answers, the voice, the Claude budget), Evidence (the reviews, the repair loop, strategy status), System (every part "
+                         "running, recent actions, costs), your mandate, the test lab, active alerts"},
+    "mandate": {"name": "Your mandate", "where": "More > Additional features > Your mandate", "shows": "your goals, markets, styles, setups, limits and how Ananta should talk"},
+    "testlab": {"name": "Test lab", "where": "More > Voice and model > Test lab", "shows": "recorded test runs of Ananta with answers to mark Good / OK / Bad"},
 }
 ALIASES = {
     "home": "home", "home screen": "home", "main": "home", "start": "home", "dashboard": "home", "inbox": "home", "brief": "home", "activity": "home",
@@ -55,7 +56,8 @@ ALIASES = {
     "evidence": "evidence", "lab": "evidence", "repair shop": "evidence", "evidence tracker": "evidence", "forwarded": "evidence:forwarded",
     "jarvis": "jarvis", "jarvis's book": "jarvis", "jarvis book": "jarvis", "your book": "jarvis", "your trades": "jarvis", "books": "portfolio",
     "missed": "missed", "missed moves": "missed", "what we missed": "missed", "findings": "missed",
-    "cockpit": "cockpit", "settings": "cockpit", "controls": "cockpit", "kill switch": "cockpit", "budget": "cockpit", "alerts": "cockpit",
+    "cockpit": "cockpit", "more tab": "cockpit", "the more tab": "cockpit", "settings": "cockpit", "controls": "cockpit", "kill switch": "cockpit", "budget": "cockpit", "alerts": "cockpit",
+    "dial": "markets", "trend dial": "markets", "brakes": "markets",
     "mandate": "mandate", "my mandate": "mandate", "goals": "mandate", "test lab": "testlab", "tests": "testlab", "test results": "testlab",
     "test runs": "testlab", "app tests": "testlab",
 }
@@ -130,6 +132,8 @@ def quick_command(j, text: str) -> dict | None:
         return None
     what = m.group("what").strip().lower()
     what = re.sub(r"\b(screen|page|tab)\b", "", what).strip()
+    if what in ("more", "the more"):                 # "open More" is the last tab (Oct 14); "tell me more" never is, so no alias
+        what = "cockpit"
     if what not in ALIASES and what not in SCREENS:
         what = re.sub(r"^(my|our|the)\s+", "", what)
     if what in ALIASES or what in SCREENS:
@@ -243,10 +247,10 @@ def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -
 # Spots: things on screen Ananta can point at while it talks (they glow and scroll into view)
 # ---------------------------------------------------------------------------
 SPOTS = {
-    "home": {"home.status": "whether every part is running (the health strip)", "home.value": "all paper money and its line since the start",
-             "home.market": "the market rule: Bitcoin against its 50-day average, with the chart", "home.jarvis": "Ananta today: decisions, open trades, score vs random",
-             "home.findings": "findings: missed or seen moves, lessons, market shifts", "home.inbox": "what needs you (things waiting for your OK)",
-             "home.books": "your books: Ananta, trend portfolio, Explorer", "home.activity": "the activity feed"},
+    "home": {"home.status": "whether every part is running (the health strip)", "home.value": "the account: the $500 NDAX book, its value since the start, holdings, cash, the dial",
+             "home.jarvis": "Ananta's note on the day (or Ananta today before the account started)",
+             "home.findings": "findings: missed or seen moves, lessons, market shifts", "home.inbox": "Needs you: a rule that passed and may step up, things waiting for your OK",
+             "home.books": "one line for the lab: every other book measuring in the background", "home.activity": "the activity feed"},
     "jarvis": {"jarvis.score": "the score against the random twins", "jarvis.open": "Ananta's open trades", "jarvis.learning": "what its plans leaned on and the confidence check",
                "jarvis.decisions": "recent decisions with their thesis"},
     "missed": {"missed.counts": "caught / seen / missed counts", "missed.moves": "the biggest moves and why", "missed.patterns": "misses that keep coming back"},
@@ -267,7 +271,7 @@ SPOTS = {
                  "evidence.credit": "credit tracking: what each layer contributed, live"},
     "evidence:forwarded": {"evidence.in_use": "repairs running in paper (T3 vs buy-and-hold)", "evidence.safety": "safety changes"},
     "cockpit": {"cockpit.controls": "kill switch, autopilot, live trading", "cockpit.ai": "the Ask Ananta and Voice Assist switches",
-                "cockpit.evidence": "the Evidence: every repair-shop review with a human name", "cockpit.voice": "Voice Assist Settings: voice, Claude budget, test lab"},
+                "cockpit.evidence": "the Evidence: every repair-shop review with a human name"},
     "coin": {"coin.chart": "the candle chart", "coin.position": "our position in this coin", "coin.market": "market picture and setup checklist",
              "coin.levels": "next support and resistance", "coin.setup:<E1-E5>": "one setup's checklist (opens it)",
              "coin.chain": "the decision chain ladder for this coin: each gate passed or where it stops, plus evidence",
@@ -351,7 +355,7 @@ SPOT_WORDS = {
     "coin.levels": r"support|resistance|level", "coin.trades": r"trades?",
     "home.value": r"value|worth|today|\$", "home.inbox": r"inbox|waiting|approve|ok\b", 
     "home.books": r"explorer|hourly|portfolio|books?|watch", "home.activity": r"activity|recent|happened",
-    "home.status": r"running|health|parts?|down\b", "home.market": r"market|bitcoin|50.day|allowed|risk.off", "home.jarvis": r"jarvis|my trades|i took|decision",
+    "home.status": r"running|health|parts?|down\b", "home.jarvis": r"jarvis|my trades|i took|decision",
     "home.findings": r"miss|seen|lesson|finding", "jarvis.score": r"random|twins?|beat|score", "jarvis.open": r"open|holding|stop",
     "jarvis.learning": r"knowledge|learn|confidence", "jarvis.decisions": r"decid|pass|bought", "missed.moves": r"miss|move|rise",
     "missed.patterns": r"keep|again|pattern", "missed.counts": r"caught|seen|missed",
@@ -363,7 +367,7 @@ SPOT_WORDS = {
     "evidence.clocks": r"watch|scan|how often|every", "evidence.gate": r"gate|ready|accept|lock|checks? pass", "evidence.limits": r"limit|gate|block|stopp|cap",
     "evidence.rebuild": r"rebuild|reconstruct|mismatch|other traders|hyperliquid", "evidence.misses": r"miss|caught|seen", "evidence.in_use": r"running|in use|paper|buy.and.hold",
     "evidence.safety": r"safety", "cockpit.controls": r"kill|autopilot|live|switch", "cockpit.ai": r"ask|voice|budget|claude|gemini",
-    "cockpit.evidence": r"evidence|review|repair", "cockpit.voice": r"voice|budget|claude|test lab",
+    "cockpit.evidence": r"evidence|review|repair",
     "markets.near": r"near|close|almost|missing", "markets.reconstruction": r"rebuild|reconstruct|mismatch",
 }
 
@@ -449,7 +453,6 @@ TOUR_ASK = re.compile(r"\b(show me around|give me a tour|take me on a tour|app t
 def tour(j) -> list[dict]:
     from jarvis.service import views
 
-    s = views.day_summary(j)
     m = views.markets(j)
     h = views.holdings(j)
     t = views.trades_list(j)
@@ -463,20 +466,19 @@ def tour(j) -> list[dict]:
         pass
     steps = [
         {"ui": {"do": "go_to", "target": "home", "label": "Home"}, "spot": "home.value",
-         "say": f"Welcome, Madhav. This is Home, your one-page summary. At the top is all our paper money together: about {round(s['paper_value']):,} dollars today."},
+         "say": "Welcome, Madhav. This is Home: how the account is doing, and whether anything needs you. Three lines per card; More opens the rest."},
     ]
     if inbox:
         steps.append({"spot": "home.inbox", "say": "Here is the inbox. Anything I prepare for you, like an order or an alert, waits here until you confirm it."})
     steps += [
         {"spot": "home.status", "say": "This strip says whether every part of me is running. I check them every two minutes and ping your phone if one goes quiet."},
-        {"spot": "home.market", "say": "This is the market rule that matters most: Bitcoin against its 50-day average. Above it, buying is allowed."},
-        {"spot": "home.jarvis", "say": "This is my own book: the paper trades I decide myself, each with a random twin I have to beat."},
+        {"spot": "home.value", "say": "This is the account: the 500-dollar NDAX book, its value since the start, its holdings and cash, and the dial. Tap it for Books."},
+        {"spot": "home.jarvis", "say": "This is my note: once a day, after the close, I write what the account did and why, from the database."},
         {"spot": "home.findings", "say": "Findings are what I found: big moves we missed or only saw, and lessons from closed trades."},
-        {"spot": "home.value", "say": "Your value card has a Brief button: ask for a market brief or a portfolio brief any time."},
-        {"spot": "home.books", "say": "These rows are our books: mine, the trend portfolio and the Explorer. Tap one to open it."},
+        {"spot": "home.books", "say": "This line is the lab: every other book keeps measuring in the background. Only what passes its bar is pushed into the account."},
         {"spot": "home.activity", "say": "And this is the activity feed: every buy, sell, alert and change, in plain words. Tap a trade to open it."},
-        {"ui": {"do": "go_to", "target": "markets", "label": "Watchlists"}, "spot": "markets.summary",
-         "say": f"This is Watchlists. Right now {up} of our {n} coins are in a one-hour uptrend."},
+        {"ui": {"do": "go_to", "target": "markets", "label": "Markets"}, "spot": "markets.summary",
+         "say": f"This is Markets. The trend dial comes first, then our watches. Right now {up} of our {n} coins are in a one-hour uptrend."},
         {"spot": "markets.coin:BTC", "say": "Each row is one coin: its price, its trend, and how close it is to one of our setups. Tap a coin for its chart."},
         {"ui": {"do": "go_to", "target": "portfolio", "label": "Portfolio"}, "spot": "portfolio.value",
          "say": f"This is the trend portfolio. It holds coins while they trend up and goes to cash when they fall. It is worth about {round(h['value']):,} dollars."},
@@ -487,10 +489,10 @@ def tour(j) -> list[dict]:
         {"ui": {"do": "go_to", "target": "portfolio:mine", "label": "My trades"}, "spot": "mine.value",
          "say": "And this is your own paper book. Orders you ask me for land here, kept apart from the agent's trades."},
         {"ui": {"do": "go_to", "target": "evidence", "label": "Evidence"}, "spot": "evidence.tracker",
-         "say": "This is the Evidence page: the repair loop, live. From what we looked at, to what we traded, to what we fixed. It lives in Cockpit now. Tap any row and it explains itself."},
+         "say": "This is the Evidence page: the repair loop, live. From what we looked at, to what we traded, to what we fixed. It lives under More now. Tap any row and it explains itself."},
         {"spot": "evidence.forwarded", "say": "This is the repair board: everything sent to the repair shop, what we found, what we did, the change and its status."},
-        {"ui": {"do": "go_to", "target": "cockpit", "label": "Cockpit"}, "spot": "cockpit.controls",
-         "say": "This is the Cockpit, the last tab. The kill switch and Autopilot live here, and live trading stays locked."},
+        {"ui": {"do": "go_to", "target": "cockpit", "label": "More"}, "spot": "cockpit.controls",
+         "say": "This is More, the last tab. The kill switch and Autopilot live here, live trading stays locked, and below are voice and model, evidence and system."},
         {"spot": "cockpit.ai", "say": "Here you can switch me on or off and set a daily budget for Claude, so I never run up costs."},
         {"ui": {"do": "go_to", "target": "ananta", "label": "Ask Ananta"},
          "say": "And this is me. Type, tap the mic, or tap the wave and just talk. Ask me anything about our portfolio or the market, or ask me to show you something. That's the tour."},

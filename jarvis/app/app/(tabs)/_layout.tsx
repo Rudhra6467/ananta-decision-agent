@@ -1,6 +1,9 @@
-// The five main tabs (plan 2.1, D6): Home · Books · Ask Ananta · Watchlists · Cockpit, swipeable like YouTube: drag left / right and you see the next page slide in.
+// The five main tabs (plan 2.1, D6), each answering one question (Oct 14, one grammar): Home "how is my account, and does anything
+// need me?" · Books "what did the account trade?" · Ask Ananta "talk" · Markets (was Watchlists) "what is the market doing?" ·
+// More (was Cockpit) "settings, evidence, is everything running?". Swipeable like YouTube: drag left / right and the next page slides in.
 // Tapping the tab you are already on goes back to the top (Ask Ananta: to the latest message), plan 2.2.
-// Tab bar stays at the bottom; the page header (title, Cockpit button) is drawn here because swipe tabs have no header of their own.
+// Tab bar stays at the bottom; the page header (title, the bell and theme switch on More) is drawn here because swipe tabs have no header of their own.
+// The route names (watchlists, cockpit) stay as they were so every deep link and spoken command still lands.
 import { useState } from "react";
 import { Alert, Platform, Pressable, Text, View } from "react-native";
 import { api } from "../../src/api";
@@ -12,10 +15,10 @@ import { scroll } from "../../src/spotlight";
 import { ThemeToggle } from "../../src/themetoggle";
 import { AlertsBell } from "../../src/alerts";
 import { useData } from "../../src/useData";
-import { BooksIcon, ChartIcon, ChatIcon, GaugeIcon, HomeIcon } from "../../src/icons";
+import { BooksIcon, ChatIcon, HomeIcon, SlidersIcon, TrendIcon } from "../../src/icons";
 import { clearMe, useMe } from "../../src/visitor";
 
-const TITLES: Record<string, string> = { today: "Home", portfolio: "Books", ask: "Ask Ananta", watchlists: "Watchlists", cockpit: "Cockpit" };
+const TITLES: Record<string, string> = { today: "Home", portfolio: "Books", ask: "Ask Ananta", watchlists: "Markets", cockpit: "More" };
 
 // Guests (a friend testing the app) get a practice book of their own. A thin strip under the title says so on every tab;
 // tap it for the full note. Madhav never sees it.
@@ -56,7 +59,7 @@ function Header() {
     <View style={{ paddingTop: top, backgroundColor: C.bg }}>
       <View style={{ height: 44, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
         <Text style={{ color: C.text, fontWeight: "700", fontSize: 17 }}>{title}</Text>
-        {title === "Cockpit" ? (
+        {title === "More" ? (
           <View style={{ position: "absolute", right: 16, flexDirection: "row", gap: 10 }}><AlertsBell /><ThemeToggle /></View>
         ) : null}
       </View>
@@ -68,7 +71,8 @@ function Header() {
 export default function TabsLayout() {
   const bottom = useSafeAreaInsets().bottom;
   const { data: meNow } = useData("/v3/me", 60000);               // plan 1.7: a badge on Home while something needs you
-  const needs = Number(meNow?.needs_you ?? 0);
+  const { data: nd } = useData("/v3/needs", 300000);              // Oct 14: plus the decisions waiting on the Needs-you card
+  const needs = Number(meNow?.needs_you ?? 0) + (nd?.items?.length ?? 0);
   const badge = () => needs ? (
     <View style={{ minWidth: 16, height: 16, borderRadius: 8, backgroundColor: C.bad, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, marginTop: 4, marginRight: 14 }}>
       <Text style={{ color: C.onInk, fontSize: 10, fontWeight: "800" }}>{needs}</Text>
@@ -86,9 +90,9 @@ export default function TabsLayout() {
           swipeEnabled: true,
           animationEnabled: true,
           tabBarShowIcon: true,
-          tabBarActiveTintColor: C.accent, tabBarInactiveTintColor: C.faint,
+          tabBarActiveTintColor: C.accent, tabBarInactiveTintColor: C.dim,
           tabBarStyle: { backgroundColor: C.card, borderTopColor: C.line, borderTopWidth: 1, paddingBottom: bottom, elevation: 0, shadowOpacity: 0 },
-          tabBarLabelStyle: { fontSize: 10, fontWeight: "600", textTransform: "none", margin: 0 },
+          tabBarLabelStyle: { fontSize: 11, fontWeight: "600", textTransform: "none", margin: 0, letterSpacing: 0.2 },
           tabBarItemStyle: { paddingHorizontal: 0, paddingVertical: 6, minHeight: 52 },
           tabBarIndicatorStyle: { backgroundColor: C.accent, top: 0, height: 2 },
           tabBarPressColor: "transparent",
@@ -99,9 +103,9 @@ export default function TabsLayout() {
         })}>
         <SwipeTabs.Screen name="today" options={{ title: "Home", tabBarIcon: icon(HomeIcon), tabBarBadge: badge } as any} />
         <SwipeTabs.Screen name="portfolio" options={{ title: "Books", tabBarIcon: icon(BooksIcon) }} />
-        <SwipeTabs.Screen name="ask" options={{ title: "Ask Ananta", tabBarIcon: icon(ChatIcon) }} />
-        <SwipeTabs.Screen name="watchlists" options={{ title: "Watchlists", tabBarIcon: icon(ChartIcon) }} />
-        <SwipeTabs.Screen name="cockpit" options={{ title: "Cockpit", tabBarIcon: icon(GaugeIcon) }} />
+        <SwipeTabs.Screen name="ask" options={{ title: "Ask", tabBarIcon: icon(ChatIcon) }} />
+        <SwipeTabs.Screen name="watchlists" options={{ title: "Markets", tabBarIcon: icon(TrendIcon) }} />
+        <SwipeTabs.Screen name="cockpit" options={{ title: "More", tabBarIcon: icon(SlidersIcon) }} />
       </SwipeTabs>
     </View>
   );

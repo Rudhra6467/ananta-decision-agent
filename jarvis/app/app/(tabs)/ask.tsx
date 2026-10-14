@@ -16,8 +16,10 @@ import { micMime, useMic } from "../../src/mic";
 import * as TTS from "../../src/tts";
 import * as Haptics from "../../src/haptics";
 import { VoiceLoop, type Phase } from "../../src/voiceloop";
-import { Bullet, Divider, Pill, Segmented, T } from "../../src/ui";
+import { Act, Bullet, Divider, Pill, Segmented, T, Tag, s as st } from "../../src/ui";
 import { C } from "../../src/theme";
+import { router } from "expo-router";
+import { MicIcon, SendIcon, SpeakerIcon, StopIcon, ThumbDownIcon, ThumbUpIcon } from "../../src/icons";
 import { loadMe, useMe } from "../../src/visitor";
 
 // Starter questions on an empty conversation (Madhav: a new person should know what to ask)
@@ -31,10 +33,17 @@ const STAGE: Record<string, string> = { observation: "Observation", candidate: "
   decision: "Decision", execution: "Executed", position: "Open position", outcome: "Outcome", evaluation: "Evaluation", learning: "Learning" };
 
 const UserBubble = ({ text, voice }: { text: string; voice?: boolean }) => (
-  <View style={{ alignSelf: "flex-end", maxWidth: "85%", backgroundColor: C.accent, borderRadius: 16, borderBottomRightRadius: 4, paddingHorizontal: 14, paddingVertical: 10 }}>
-    <Text style={{ color: C.onInk, fontSize: 15, lineHeight: 21 }}>{voice ? "🎙 " : ""}{text}</Text>
+  <View style={{ alignSelf: "flex-end", maxWidth: "85%", backgroundColor: C.card2, borderRadius: 18, borderBottomRightRadius: 4, paddingHorizontal: 14, paddingVertical: 10,
+    flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+    {voice ? <View style={{ paddingTop: 3 }}><MicIcon color={C.dim} size={14} /></View> : null}
+    <Text style={{ color: C.text, fontSize: 15, lineHeight: 22, flexShrink: 1 }}>{text}</Text>
   </View>
 );
+
+// Oct 14: every answer is labelled with its language, model and (when spoken) voice, so a Telugu/English switch is visible, never a surprise
+const LANG: Record<string, string> = { te: "తెలుగు", en: "English" };
+const langOf = (m: Msg) => LANG[String(m.language ?? "")] ?? (/[\u0C00-\u0C7F]/.test(String(m.answer ?? "")) ? "తెలుగు" : "English");
+const voiceWords = (m?: Msg) => (m && langOf(m) === "తెలుగు" ? "Telugu voice" : TTS.engine === "phone" ? `Phone voice · ${TTS.rate}×` : `${TTS.voice} voice · ${TTS.rate}×`);
 
 function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPick: (q: string) => void; onRate: (v: number) => void; onSecond: () => void; onSpeak?: () => void; onShow?: () => void }) {
   const [layer, setLayer] = useState<"none" | "breakdown" | "evidence">("none");
@@ -98,8 +107,8 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
       {chips.length ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {chips.map((c, i) => (
-            <Pressable key={i} onPress={() => onPick(c)} style={{ borderColor: C.line, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}>
-              <Text style={{ color: C.accent, fontSize: 13 }}>{c}</Text>
+            <Pressable key={i} onPress={() => onPick(c)} style={({ pressed }) => ({ backgroundColor: C.card2, borderRadius: 999, paddingHorizontal: 12, minHeight: 34, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}>
+              <Text style={{ color: C.accent, fontSize: 13, fontWeight: "600" }}>{c}</Text>
             </Pressable>
           ))}
         </View>
@@ -108,9 +117,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
       {m.show?.length ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {m.show.map((sh: any, i: number) => (
-            <Pressable key={i} onPress={() => openScreen(sh)} style={{ backgroundColor: C.text, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 }}>
-              <Text style={{ color: C.onInk, fontSize: 13, fontWeight: "600" }}>{sh.label} ›</Text>
-            </Pressable>
+            <Tag key={i} text={`${sh.label} ›`} onPress={() => openScreen(sh)} />
           ))}
         </View>
       ) : null}
@@ -123,14 +130,20 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
           </Pressable>
         </View>
       ) : null}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        <Text style={{ color: C.faint, fontSize: 11, flex: 1 }}>
-          {m.model_label ?? (m.provider === "gemini" ? "Gemini" : "Claude")} · {m.cost_usd ? `${(m.cost_usd * 100).toFixed(1)}¢` : "free"}{m.ms ? ` · ${(m.ms / 1000).toFixed(1)}s` : ""}{m.lookups?.length ? ` · ${m.lookups.length} lookups` : ""}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Text style={[st.faint, { flex: 1 }]} numberOfLines={2}>
+          {m.model_label ?? (m.provider === "gemini" ? "Gemini" : "Claude")} · {langOf(m)}{m.voice ? ` · ${voiceWords(m)}` : ""}{m.ms ? ` · ${(m.ms / 1000).toFixed(1)} s` : ""}{m.cost_usd ? ` · ${(m.cost_usd * 100).toFixed(1)}¢` : ""}{m.lookups?.length ? ` · ${m.lookups.length} lookup${m.lookups.length === 1 ? "" : "s"}` : ""}
         </Text>
-        {onSpeak && m.answer ? <Text onPress={onSpeak} style={{ fontSize: 15 }}>🔊</Text> : null}
-        {!m.second_of && m.id ? <Text onPress={onSecond} style={{ color: C.accent, fontSize: 12, fontWeight: "600" }}>Second opinion</Text> : null}
-        <Text onPress={() => onRate(1)} style={{ fontSize: 16, opacity: m.rating === -1 ? 0.3 : 1 }}>{m.rating === 1 ? "👍" : "👍🏻"}</Text>
-        <Text onPress={() => onRate(-1)} style={{ fontSize: 16, opacity: m.rating === 1 ? 0.3 : 1 }}>👎</Text>
+        {onSpeak && m.answer ? (
+          <Pressable onPress={onSpeak} hitSlop={8} accessibilityLabel="Read it aloud" style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}><SpeakerIcon color={C.dim} /></Pressable>
+        ) : null}
+        {!m.second_of && m.id ? <Act tight label="Second opinion" onPress={onSecond} /> : null}
+        <Pressable onPress={() => onRate(1)} hitSlop={8} accessibilityLabel="Good answer" style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center", opacity: m.rating === -1 ? 0.35 : 1 }}>
+          <ThumbUpIcon color={m.rating === 1 ? C.accent : C.dim} />
+        </Pressable>
+        <Pressable onPress={() => onRate(-1)} hitSlop={8} accessibilityLabel="Poor answer" style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center", opacity: m.rating === 1 ? 0.35 : 1 }}>
+          <ThumbDownIcon color={m.rating === -1 ? C.accent : C.dim} />
+        </Pressable>
       </View>
     </View>
   );
@@ -591,7 +604,9 @@ export default function Ananta() {
       {top}
       {drawer}
       <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", rowGap: 4, gap: 8, paddingHorizontal: 16, paddingTop: 8 }}>
-        <Text style={{ color: C.dim, fontSize: 12 }}>{google ? (autoOn ? "Google · auto" : "Google") : (autoOn ? "Claude · auto" : "Claude deep")}</Text>
+        <Pressable onPress={() => router.push("/more")} hitSlop={8} accessibilityLabel="Voice and model settings">
+          <Text style={st.small}>{google ? (autoOn ? "Google · auto" : "Google") : (autoOn ? "Claude · auto" : "Claude · deep")} ›</Text>
+        </Pressable>
         <View style={{ flex: 1 }} />
         {msgs.length ? <Text onPress={shareSession} style={{ color: C.accent, fontWeight: "600", marginRight: 12 }}>Share</Text> : null}
         <Text onPress={newSession} style={{ color: C.accent, fontWeight: "600", marginLeft: 12 }}>New</Text>
@@ -698,20 +713,20 @@ export default function Ananta() {
           rateLabel={TTS.rate} onRate={(r) => TTS.setRate(r)} />
       ) : (
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
-          <Pressable onPress={dictate} style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center",
+          <Pressable onPress={dictate} accessibilityLabel={mic.status !== "idle" ? "Done dictating" : "Dictate"} style={{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center",
             backgroundColor: mic.status !== "idle" ? C.bad : C.card2 }}>
-            <Text style={{ fontSize: 18 }}>{mic.status !== "idle" ? "■" : "🎙"}</Text>
+            {mic.status !== "idle" ? <StopIcon color={C.onInk} /> : <MicIcon color={C.text} />}
           </Pressable>
           <TextInput value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"} onChangeText={setText}
-            placeholder="Ask Ananta…" placeholderTextColor={C.faint} multiline
-            style={{ flex: 1, maxHeight: 110, fontSize: 15, color: C.text, backgroundColor: C.bg, borderRadius: 20, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 }} />
+            placeholder="Ask Ananta…" placeholderTextColor={C.dim} multiline accessibilityLabel="Ask Ananta"
+            style={{ flex: 1, minHeight: 44, maxHeight: 110, fontSize: 15, color: C.text, backgroundColor: C.bg, borderRadius: 22, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 }} />
           {text.trim() ? (
-            <Pressable onPress={() => send(text)} disabled={busy}
-              style={{ backgroundColor: busy ? C.line : C.accent, borderRadius: 20, paddingHorizontal: 16, height: 40, justifyContent: "center" }}>
-              <Text style={{ color: C.onInk, fontWeight: "700" }}>Send</Text>
+            <Pressable onPress={() => send(text)} disabled={busy} accessibilityLabel="Send"
+              style={{ backgroundColor: busy ? C.line : C.accent, borderRadius: 22, width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+              <SendIcon color={C.onInk} />
             </Pressable>
           ) : (
-            <Pressable onPress={startLive} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.accent, alignItems: "center", justifyContent: "center" }}>
+            <Pressable onPress={startLive} accessibilityLabel="Talk to Ananta" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.accent, alignItems: "center", justifyContent: "center" }}>
               <Wave />
             </Pressable>
           )}
@@ -741,17 +756,33 @@ function LivePanel({ label, phase, hearing, level, note, onOrb, onEnd, rateLabel
   }, [fast]);
   const lv = Math.max(0, Math.min(1, (level + 60) / 50));
   const color = phase === "speaking" ? C.good : phase === "thinking" ? C.warn : hearing ? C.bad : C.accent;
+  // the state in words, and the one button that does the obvious thing (the orb does the same on a tap)
+  const [name, detail, button] = phase === "thinking" ? ["Thinking", "Claude is on it · about 4 seconds", "Stop"]
+    : phase === "speaking" ? ["Speaking", "tap Stop to interrupt and talk", "Stop"]
+    : hearing ? ["Hearing you", "tap Done when you finish; no waiting for silence", "Done"]
+    : ["Listening", "just talk", ""];
   return (
     <View style={{ alignItems: "center", gap: 10, paddingVertical: 14, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
       <Pressable onPress={onOrb} hitSlop={16} accessibilityLabel={label}>
-        <Animated.View style={{ transform: [{ scale: hearing ? 1 + lv * 0.25 : pulse }], width: 92, height: 92, borderRadius: 46,
+        <Animated.View style={{ transform: [{ scale: hearing ? 1 + lv * 0.25 : pulse }], width: 84, height: 84, borderRadius: 42,
           backgroundColor: color, opacity: 0.92 }} />
       </Pressable>
-      <Text style={{ color: C.text, fontWeight: "600" }}>{label}</Text>
-      {note ? <Text style={{ color: C.dim, fontSize: 12, textAlign: "center", paddingHorizontal: 20 }}>{note}</Text> : null}
-      <T small dim>{vc} voice · {r}× · change in Cockpit › Additional features</T>
-      <Pressable onPress={onEnd} style={{ backgroundColor: C.text, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 9 }}>
-        <Text style={{ color: C.onInk, fontWeight: "700" }}>End voice</Text>
+      <View style={{ alignItems: "center", gap: 2 }}>
+        <Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>{name}</Text>
+        <Text style={{ color: C.dim, fontSize: 13, textAlign: "center", paddingHorizontal: 20 }}>{note || detail}</Text>
+      </View>
+      <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+        {button ? (
+          <Pressable onPress={onOrb} accessibilityLabel={button} style={({ pressed }) => ({ backgroundColor: button === "Done" ? C.accent : C.card2, borderRadius: 12, minHeight: 44, paddingHorizontal: 22, justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
+            <Text style={{ color: button === "Done" ? C.onInk : C.text, fontWeight: "700", fontSize: 15 }}>{button}</Text>
+          </Pressable>
+        ) : null}
+        <Pressable onPress={onEnd} accessibilityLabel="End voice" style={({ pressed }) => ({ backgroundColor: C.card2, borderRadius: 12, minHeight: 44, paddingHorizontal: 22, justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
+          <Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>End voice</Text>
+        </Pressable>
+      </View>
+      <Pressable onPress={() => router.push("/more")} hitSlop={8} accessibilityLabel="Voice settings">
+        <Text style={st.faint}>{vc} voice · {r}× · change in More › Voice and model</Text>
       </Pressable>
     </View>
   );

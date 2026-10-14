@@ -906,6 +906,24 @@ def mission(j) -> dict:
             "avg": r["avg_usd_per_100"], "twins_avg": r["random_twin_avg_usd"]}
     except Exception as exc:  # noqa: BLE001
         out["jarvis_error"] = str(exc)[:120]
+    try:                                                   # Oct 13: the account (the $500 NDAX book) and the officer's note, first on Home
+        from jarvis.service import exposure, ndax_book, officer, strategy_status
+
+        st = ndax_book.status(j)
+        d = exposure.state(j)
+        notes = officer.latest(j, 1)
+        lab = []
+        for sid, sv in (strategy_status.load().get("strategies") or {}).items():
+            if sid in ("BOOK500", "MANUAL"):
+                continue
+            lab.append({"id": sid, "name": sv.get("name"), "status": sv.get("status"), "verdict": sv.get("verdict")})
+        out["account"] = {"started": st.get("started"), "value_cad": st.get("value_cad"), "start_cad": 500.0, "return_pct": st.get("return_pct"),
+                          "cash_cad": st.get("cash_cad"), "positions": st.get("positions") or {}, "brakes": st.get("brakes"),
+                          "dial": {"state": d.get("dial_words"), "why": d.get("why")}, "last_step": st.get("last_step"),
+                          "execution_check": st.get("execution_check"), "next": "the next decision comes at the daily close (8 pm Toronto)",
+                          "note": notes[0] if notes else None, "lab": lab, "pushed_rule": strategy_status.pushed_rule()}
+    except Exception as exc:  # noqa: BLE001
+        out["account_error"] = str(exc)[:120]
     out["findings"] = findings(j)
     if (out.get("health") or {}).get("all_ok"):           # an outage that is over says so, in plain words
         for f in out["findings"]:

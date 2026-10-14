@@ -1228,6 +1228,13 @@ def brain_trade(trade_id: str, who: str = Depends(owner)) -> dict:
     return _run(brain.trade_detail, J(), trade_id)
 
 
+@app.get("/v3/officer")
+def officer_notes(n: int = 7, who: str = Depends(owner)) -> dict:
+    from jarvis.service import officer
+
+    return {"notes": officer.latest(J(), n)}
+
+
 @app.get("/v3/verdicts")
 def verdicts(who: str = Depends(owner)) -> dict:
     """Every losing paper trade by its strategy's verdict, and the strategy list (Madhav, Oct 13)."""
@@ -1680,7 +1687,7 @@ def background_jobs() -> dict:
     if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
         kind = AL().due_brief()
         if kind:
-            out["brief"] = AL().write_brief(kind, lambda q: a.ask("ananta (scheduled)", q, mode="worker"), push=_push)
+            out["brief"] = AL().write_brief(kind, lambda q: a.ask("ananta (scheduled)", q, mode="deep"), push=_push)
     return out
 
 
@@ -1707,7 +1714,7 @@ def brief_now(who: str = Depends(owner)) -> dict:
     from zoneinfo import ZoneInfo
 
     kind = "evening" if datetime.now(ZoneInfo("America/Toronto")).hour >= 17 else "morning"
-    r = AL().write_brief(kind, lambda q: A().ask(who, q, mode="worker"))
+    r = AL().write_brief(kind, lambda q: A().ask(who, q, mode="deep"))
     if not r:
         raise HTTPException(status_code=503, detail="Could not write the brief right now; try again in a minute.")
     return {"brief": AL().latest_brief()}

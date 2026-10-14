@@ -3,7 +3,8 @@
   load()                the file
   of_watch(watch)       the strategy entry a watch id belongs to ("ZONE_TOUCH-UB" -> ZONE_TOUCH)
   of_book(home_book)    the entry a home-page book belongs to ("15-minute Explorer" -> EXPLORER)
-  trades(watch)         False for a RETIRED / PARKED watch: it takes no new paper trades (open ones finish on their own plan)
+  trades(watch)         False for a RETIRED / PARKED watch: it takes no new paper trades (EVIDENCE books keep recording)
+  wakes(watch)          False when the strategy's signals must never wake the brain (a failed idea is recorded, not decided on)
   counts(watch|book)    True when it belongs in the headline (ACTIVE or UNDER_REVIEW); evidence and retired books are shown apart
   losing_trades(j)      every closed losing trade classified: won't take again / will try again / rules modified, with the reason
 """
@@ -59,8 +60,25 @@ def of_book(home_book: str | None) -> tuple[str, dict] | None:
 
 
 def trades(watch: str) -> bool:
+    """May this watch open new paper trades? EVIDENCE books do (they measure in the background); RETIRED and PARKED do not."""
     e = of_watch(watch)
     return not e or e[1].get("status") not in ("RETIRED", "PARKED")
+
+
+def wakes(watch: str) -> bool:
+    """May this watch's signals wake the brain? A failed idea is recorded, never decided on (wakes_brain: false)."""
+    e = of_watch(watch)
+    if not e:
+        return True
+    return e[1].get("status") not in ("RETIRED", "PARKED") and e[1].get("wakes_brain", True)
+
+
+def account() -> str:
+    return str(load().get("account") or "BOOK500")
+
+
+def pushed_rule() -> str:
+    return str(load().get("pushed") or "")
 
 
 def counts_watch(watch: str) -> bool:
@@ -111,15 +129,16 @@ def losing_trades(j) -> dict:
     for sid, p in per.items():
         s = strats.get(sid) or {}
         verdict = s.get("verdict") or ("will_try_again" if sid.startswith("RANDOM") or sid == "JARVIS_RANDOM" else "will_try_again")
-        if s.get("status") == "EVIDENCE":
+        yardstick = sid == "RANDOM"
+        if yardstick:
             verdict_words = "evidence only (a yardstick, not a strategy)"
         else:
-            verdict_words = VERDICT_WORDS.get(verdict, verdict)
+            verdict_words = VERDICT_WORDS.get(verdict, verdict) + (" (measuring in the background)" if s.get("status") == "EVIDENCE" else "")
         row = {"strategy": sid, "name": s.get("name") or sid, "status": s.get("status") or "UNLISTED", "verdict": verdict, "verdict_words": verdict_words,
                "why": s.get("why") or "not on the strategy list yet", "closed": p["closed"], "lost": p["lost"], "net_usd": round(p["net_usd"], 2),
                "lost_usd": round(p["lost_usd"], 2), "trades": p["trades"]}
         out.append(row)
-        if s.get("status") != "EVIDENCE" and p["lost"]:
+        if not yardstick and p["lost"]:
             k = totals[verdict]
             k["strategies"] += 1
             k["lost_trades"] += p["lost"]
@@ -127,6 +146,7 @@ def losing_trades(j) -> dict:
     out.sort(key=lambda r: r["lost_usd"])
     return {"as_of": time.strftime("%Y-%m-%d %H:%M", time.gmtime(j.now())), "by_strategy": out,
             "totals": {VERDICT_WORDS.get(k, k): {**v, "lost_usd": round(v["lost_usd"], 2)} for k, v in totals.items()},
-            "meaning": "A losing trade is judged by its strategy's verdict, never one by one: a strategy is retired by evidence over hundreds of "
-                       "trades on history plus its paper record, not by a bad week. Retired strategies keep their records (they are the proof) "
-                       "but take no new trades and leave the headline."}
+            "meaning": "A losing trade is judged by its strategy's verdict, never one by one: a strategy is judged by evidence over hundreds of "
+                       "trades on history plus its paper record, not by a bad week. 'Won't take again' means THE ACCOUNT (the $500 book) will "
+                       "not trade it and it will not be pushed; a book with status EVIDENCE still records paper trades in the background as a "
+                       "yardstick (watching, scanning, recording), it is just never counted as holdings."}

@@ -72,6 +72,48 @@ def quote(coin: str, inst: dict, get=None) -> dict | None:
         return None
 
 
+def passed_rules(j, dial) -> list[str]:
+    """The rules allowed into the edge sleeve now (Madhav, Oct 13: "pushing whatever passed"): a measured cell for tier A in this dial
+    state that passed on history in both periods (review #26's table), AND the strategy ACTIVE or the rule PROMOTED on the ladder."""
+    from jarvis.service import ev, strategy_status, universe_watch
+
+    state = "OPEN" if dial else "CLOSED"
+    try:
+        prom = universe_watch.promoted(j)
+    except Exception:  # noqa: BLE001
+        prom = set()
+    out = []
+    for r in ev.table():
+        if r["state"] != state or r["tier"] != "A":
+            continue
+        e = strategy_status.of_watch(r["rule"])
+        active = bool(e and e[1].get("status") == "ACTIVE")
+        if active or f"{r['rule']}-UA" in prom:
+            out.append(r["rule"])
+    return sorted(set(out))
+
+
+def edge_signals(j, C: dict, tier_a: list[str], dial, bar_t: int) -> list[tuple[str, str, str]]:
+    """(coin, rule, why) for today's signals of the passed rules on tier-A NDAX coins. H07 is read from the candles here; any other
+    rule's signal is the universe book's row opened on this close (universe_watch runs before the book each night)."""
+    out = []
+    rules = passed_rules(j, dial)
+    if "H07" in rules:
+        for c in sorted(tier_a, key=lambda x: (C[x].rsi10[-1] if x in C and C[x].rsi10[-1] is not None else 99)):
+            if c in C and B.h07(C[c], len(C[c].t) - 1):
+                out.append((c, "H07", f"H07: RSI(10) {C[c].rsi10[-1]:.0f}, above the 200-day"))
+    others = [r for r in rules if r != "H07"]
+    if others:
+        day = B._day(bar_t)
+        marks = ",".join("?" for _ in others)
+        rows = j.db.execute(f"SELECT coin, watch FROM evidence_trades WHERE signal_day=? AND status IN ('OPEN','WAITING') AND watch IN ({marks})",
+                            (day, *[f"{r}-UA" for r in others])).fetchall()
+        for coin, watch in rows:
+            if coin in C and coin in tier_a:
+                out.append((coin, watch.split("-U")[0], f"{watch.split('-U')[0]}: passed on history and the ladder; signal on this close"))
+    return out
+
+
 def _coins(j, inst: dict, rate: float) -> tuple[dict, list[str]]:
     from jarvis.service import feed, registry
 
@@ -239,20 +281,19 @@ def step(j, get=None, now: float | None = None) -> dict:
         if dial and not any(p["sleeve"] == "CORE" for p in s["pos"].values()):
             for c, w in B.CORE.items():
                 buy(c, "CORE", w * value, "dial open")
-        if dial is False:
-            cands = sorted((C[c].rsi10[-1], c) for c in tier_a if c in C and c not in s["pos"] and B.h07(C[c], len(C[c].t) - 1))
-            for _, c in cands:
-                S = C[c]
-                k = q(c)
-                if not k:
-                    continue
-                v, risk, inv = B.size_setup(value, k["ask"], S.atr14[-1], used("EDGE"), B.EDGE_SLEEVE, risk_open())
-                twins = sum(1 for d, p in s["pos"].items() if p["sleeve"] == "EDGE" and d in C and (B.corr(S, C[d], bar_t) or 0) > B.CORR_LIMIT)
-                if not v or twins >= B.CORR_MAX_OPEN:
-                    out["skipped"].append(f"{c}: {'correlation limit' if v else 'risk or sleeve limit'}")
-                    continue
-                buy(c, "EDGE", v, f"H07: RSI(10) {S.rsi10[-1]:.0f}, above the 200-day", risk=round(risk, 2), inv=inv,
-                    stop_on_ndax=round(k["ask"] - B.NDAX_STOP_ATR * S.atr14[-1], 8))
+        for c, rule, why in edge_signals(j, C, tier_a, dial, bar_t):       # Oct 13: every rule that passed its bar, not H07 alone
+            if c in s["pos"]:
+                continue
+            S = C[c]
+            k = q(c)
+            if not k:
+                continue
+            v, risk, inv = B.size_setup(value, k["ask"], S.atr14[-1], used("EDGE"), B.EDGE_SLEEVE, risk_open())
+            twins = sum(1 for d, p in s["pos"].items() if p["sleeve"] == "EDGE" and d in C and (B.corr(S, C[d], bar_t) or 0) > B.CORR_LIMIT)
+            if not v or twins >= B.CORR_MAX_OPEN:
+                out["skipped"].append(f"{c}: {'correlation limit' if v else 'risk or sleeve limit'}")
+                continue
+            buy(c, "EDGE", v, why, risk=round(risk, 2), inv=inv, rule=rule, stop_on_ndax=round(k["ask"] - B.NDAX_STOP_ATR * S.atr14[-1], 8))
         # the judgment sleeve: the brain's new buys on NDAX coins since the last step
         since = s.get("last_step_t") or now - DAY
         for tid, c, trade_id in j.db.execute("SELECT id, coin, trade_id FROM brain_decisions WHERE action='TAKE' AND t > ? AND trade_id IS NOT NULL",

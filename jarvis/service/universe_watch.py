@@ -151,7 +151,7 @@ def wake_brain(j, opened: list[dict]) -> int:
 
     for o in opened:
         sp = split(o["watch"])
-        if not sp or sp[0].startswith("RANDOM") or sp[1] not in ("A", "B") or not strategy_status.trades(o["watch"]):
+        if not sp or sp[0].startswith("RANDOM") or sp[1] not in ("A", "B") or not strategy_status.wakes(o["watch"]):
             continue
         brain.wake(j, o["coin"], f"setup:{o['watch']}", {"day": o.get("day"), "tier": sp[1]})
         n += 1
@@ -474,6 +474,37 @@ def set_step(j, watch: str, step: str, by: str) -> dict:
     return {"watch": watch, "from": row["step"], "to": step, "by": by}
 
 
+def push_passed(j, push: Callable | None = None) -> list[dict]:
+    """Madhav, Oct 13: "pushing whatever passed". When the ladder says a rule may step up (ahead of random over 10 market days in
+    each regime, making money after costs), Ananta sends a phone note and opens a request, once per rule and step; Madhav's yes
+    moves it (set_step), and a PROMOTED rule with a passing measured cell enters the $500 book's edge sleeve. Nothing enters by itself."""
+    from jarvis.service import requests_log
+
+    j.db.execute("CREATE TABLE IF NOT EXISTS universe_pushes (watch TEXT, step TEXT, t INTEGER, PRIMARY KEY (watch, step))")
+    out = []
+    for r in ladder(j)["rows"]:
+        if not r.get("next_allowed") or r["step"] not in ("EVIDENCE", "PROMOTED"):
+            continue
+        if j.db.execute("SELECT 1 FROM universe_pushes WHERE watch=? AND step=?", (r["watch"], r["step"])).fetchone():
+            continue
+        nxt = LADDER[LADDER.index(r["step"]) + 1]
+        text = (f"{r['rule']} on tier {r['tier']} passed its forward test: {r['why']}. It may step up from {r['step']} to {nxt}. "
+                f"Your yes on the Evidence page's ladder moves it" + ("; a PROMOTED rule with a passing measured cell enters the $500 book's edge sleeve." if nxt == "PROMOTED" else "."))
+        try:
+            req = requests_log.add(j, "idea", text, about=r["watch"], by="ananta-auto")
+        except Exception:  # noqa: BLE001
+            req = None
+        if push:
+            try:
+                push("A strategy passed", f"{r['rule']} (tier {r['tier']}) may step up to {nxt}. Open Evidence to decide.")
+            except Exception:  # noqa: BLE001
+                pass
+        j.db.execute("INSERT OR REPLACE INTO universe_pushes VALUES (?,?,?)", (r["watch"], r["step"], int(j.now())))
+        j.db.commit()
+        out.append({"watch": r["watch"], "from": r["step"], "to": nxt, "request": (req or {}).get("num") if isinstance(req, dict) else None})
+    return out
+
+
 def promoted(j) -> set[str]:
     try:
         _ladder_table(j)
@@ -625,12 +656,22 @@ def run_daily(j) -> dict:
             out["weekly_review"] = learning.weekly_review(j).get("file")
     except Exception as exc:  # noqa: BLE001
         out["learning_error"] = str(exc)[:200]
+    try:  # Oct 13: whatever passed its forward test is pushed (a note and a request; Madhav decides)
+        out["pushed"] = push_passed(j, _phone_push())
+    except Exception as exc:  # noqa: BLE001
+        out["push_error"] = str(exc)[:200]
     try:  # the $500 NDAX paper book (D9, D12, D13): one step per daily close, filled at NDAX's live bid and ask
         from jarvis.service import ndax_book
 
         out["book500"] = ndax_book.step(j)
     except Exception as exc:  # noqa: BLE001
         out["book500_error"] = str(exc)[:200]
+    try:  # the officer's note (Oct 13): the brain narrates the account's day, once, after the close
+        from jarvis.service import officer
+
+        out["officer_note"] = (officer.write(j, out, push=_phone_push()) or {}).get("ok")
+    except Exception as exc:  # noqa: BLE001
+        out["officer_error"] = str(exc)[:200]
     try:
         _daily_file(j, out)
     except Exception:  # noqa: BLE001
@@ -639,6 +680,15 @@ def run_daily(j) -> dict:
         ((out.get("rules") or {}).get(t) or {}).pop("opened_list", None)
     STATE["last_daily"] = {"t": int(time.time()), **{k: v for k, v in out.items() if k != "missed"}}
     return out
+
+
+def _phone_push() -> Callable | None:
+    try:
+        from src.intelligence.paper_watch import push_phone
+
+        return lambda title, body: push_phone(title, body, level="EVENT")
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _daily_file(j, out: dict) -> None:

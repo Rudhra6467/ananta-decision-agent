@@ -81,13 +81,14 @@ function OwnerHome() {
       <ConceptCard />
 
       <Spot id="home.value">
-        <ValueCard label="Paper books that still trade" value={bk?.summary?.value ?? null} change={bk ? bk.summary.value - bk.summary.start : null}
-          sub={bk ? `Started with ${usd(bk.summary.start, 0)} · ${bk.summary.open_count} open trades · no real money`
-            + (bk.summary.retired_count ? ` · retired strategies ${bk.summary.retired_pnl >= 0 ? "+" : "-"}$${Math.abs(bk.summary.retired_pnl).toFixed(0)}, kept as evidence` : "") : "Adding up every book…"} />
+        {m.account?.started ? <AccountCard a={m.account} /> : (
+          <ValueCard label="Paper books that still trade" value={bk?.summary?.value ?? null} change={bk ? bk.summary.value - bk.summary.start : null}
+            sub={bk ? `Started with ${usd(bk.summary.start, 0)} · ${bk.summary.open_count} open trades · no real money` : "Adding up every book…"} />
+        )}
       </Spot>
 
       <Spot id="home.jarvis">
-        <JarvisCard jv={m.jarvis} />
+        {m.account?.note ? <OfficerNote note={m.account.note} /> : <JarvisCard jv={m.jarvis} />}
       </Spot>
 
       <Spot id="home.market">
@@ -115,19 +116,22 @@ function OwnerHome() {
       </Spot>
 
       <Spot id="home.books">
-        <Card title="Your books" sub="Tap a row for the full book">
-          <Row title="Ananta's book" sub={`${m.jarvis?.open?.length ?? 0} open · against its random twins`} value={m.jarvis?.verdict ?? "–"}
+        <Card title="The lab, measuring in the background" sub="Every book keeps recording; only what passes its bar is pushed into the account">
+          <Row title="Ananta's own $100 book" sub={`${m.jarvis?.open?.length ?? 0} open · against its random twins · evidence`} value={m.jarvis?.verdict ?? "–"}
             onPress={() => router.push("/jarvis")} />
           <Divider />
-          <Row title="Trend portfolio" sub={`${s.portfolio.holding} coins held · ${s.portfolio.mode === "AUTO" ? "Autopilot on" : "Suggests, you approve"}`}
+          <Row title="Trend portfolio" sub={`${s.portfolio.holding} coins held · under review against the account's core`}
             value={usd(s.portfolio.value)} valueSub={pct(s.portfolio.return_pct)} valueSubColor={pnlColor(s.portfolio.return_pct)}
             onPress={() => router.push("/(tabs)/portfolio")} />
           <Divider />
-          <Row title="Explorer" sub={`${s.explorer.open} open · checks 10 coins every 15 min`} value={usd(s.explorer.value)}
+          <Row title="15-minute Explorer" sub={`${s.explorer.open} open · the intraday eyes · evidence, no edge after costs`} value={usd(s.explorer.value)}
             valueSub={`${s.explorer.opened_today} bought · ${s.explorer.closed_today} sold today`}
             onPress={() => router.push({ pathname: "/(tabs)/portfolio", params: { tab: "explorer", t: String(Date.now()) } })} />
           <Divider />
-          <Row title="Hourly watch" sub="Hunter and Squeeze strategies" value={`${s.hourly_watch.looks_today}`} valueSub="looks today" />
+          <Row title="Universe rules, zone touches, random baselines" sub={`${(m.account?.lab ?? []).filter((x: any) => x.status === "EVIDENCE").length} measuring books · every coin, every night`}
+            value="Evidence ›" onPress={() => router.push("/evidence")} />
+          <Divider />
+          <Row title="Hourly watch" sub="Hunter and Squeeze · parked by you" value={`${s.hourly_watch.looks_today}`} valueSub="looks today" />
         </Card>
       </Spot>
 
@@ -163,6 +167,57 @@ function OwnerHome() {
         ) : null}
       </Spot>
     </Screen>
+  );
+}
+
+// The account (Madhav, Oct 13): the $500 NDAX book is what he and Ananta look at; everything else is the lab.
+function AccountCard({ a }: { a: any }) {
+  const change = (a.value_cad ?? 0) - (a.start_cad ?? 500);
+  const pos = Object.entries(a.positions ?? {}) as [string, any][];
+  const fired = Object.entries(a.brakes?.fired ?? {}).filter(([, n]) => (n as number) > 0);
+  const brakes = a.brakes?.paused ? "PAUSED: a 15% fall; only you can resume it" : fired.length ? `fired: ${fired.map(([k]) => k.replace("_", " ")).join(", ")}` : "none fired";
+  const cad = (v: number) => `C$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  return (
+    <Card onPress={() => router.push({ pathname: "/(tabs)/portfolio", params: { t: String(Date.now()) } })}>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Text style={{ color: C.dim, fontSize: 13, flex: 1 }}>The account · $500 NDAX book · paper, real NDAX prices</Text>
+        <Text style={{ color: C.accent, fontWeight: "600", fontSize: 13 }}>Books ›</Text>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+        <Text style={{ color: C.text, fontSize: 32, fontWeight: "700", letterSpacing: -0.6 }}>{a.value_cad == null ? "…" : cad(a.value_cad)}</Text>
+        <Text style={{ color: pnlColor(change), fontSize: 15, fontWeight: "600" }}>{change >= 0 ? "+" : "-"}{cad(change)} ({a.return_pct >= 0 ? "+" : ""}{Number(a.return_pct ?? 0).toFixed(2)}%) since {a.started}</Text>
+      </View>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+        {pos.map(([c, p]) => (
+          <View key={c} style={{ backgroundColor: C.card2, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10, alignItems: "center", minWidth: 70 }}>
+            <Text style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>{c}</Text>
+            <Text style={{ color: C.dim, fontSize: 11 }}>{String(p.sleeve ?? "").toLowerCase()} · {cad(p.paid ?? 0)}</Text>
+          </View>
+        ))}
+        <View style={{ backgroundColor: C.card2, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10, alignItems: "center", minWidth: 70 }}>
+          <Text style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>Cash</Text>
+          <Text style={{ color: C.dim, fontSize: 11 }}>{cad(a.cash_cad ?? 0)}</Text>
+        </View>
+      </View>
+      <View style={{ gap: 3 }}>
+        <T small><Text style={{ color: C.dim }}>Dial · </Text>{a.dial?.state ?? "…"}</T>
+        <T small><Text style={{ color: C.dim }}>Brakes · </Text>{brakes}</T>
+        <T small dim>{a.next}. Last step {a.last_step} UTC.</T>
+      </View>
+    </Card>
+  );
+}
+
+// The officer's note: the brain's plain account of the day, written once after the close.
+function OfficerNote({ note }: { note: any }) {
+  return (
+    <Card onPress={() => askAbout({ screen: "home", label: "The officer's note" }, "Tell me more about today's note on the account.")}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <T dim small>Ananta's note · {note.day}</T>
+        <Text style={{ color: C.accent, fontWeight: "600", fontSize: 13 }}>Ask ›</Text>
+      </View>
+      <Text style={{ color: C.text, fontSize: 16, lineHeight: 23 }}>{note.note}</Text>
+    </Card>
   );
 }
 

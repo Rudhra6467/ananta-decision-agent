@@ -847,6 +847,7 @@
     "jarvis/service/ndax_book.py",
     "jarvis/service/live_guard.py",
     "jarvis/service/strategy_status.py",
+    "jarvis/service/officer.py",
     "jarvis/service/exam.py",
     "jarvis/voice/telugu_server.py"
    ]

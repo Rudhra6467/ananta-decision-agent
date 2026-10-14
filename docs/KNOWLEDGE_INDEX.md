@@ -94,6 +94,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `GO_LIVE_CHECKLIST.md`: the engine in order since Oct 10 (exposure dial, measured edge, brain picks a tested exit plan, 0.5% risk per trade in R, the benchmark hurdle, paper-vs-backtest fidelity) and the boxes each stage toward real money needs. Since Oct 11 Stage 1 also needs every Acceptance Gate check at PASS and uses the $500 NDAX book.
 - `LIVE_MONEY_SAFETY.md`: the D12 brakes (2% day, 4% week, 4 losses in a row, 15% fall = paused until Madhav resumes), stops resting on NDAX at 6 × ATR (the backtest of 2, 4 and 6 × ATR), the NDAX kill switch plan, the incident runbook, API key and password rotation steps, and the monthly rehearsal checklist.
 - `knowledge/MARKETS_PLAN.md`: crypto today on paper; the American (NYSE/Nasdaq), Indian (NSE/BSE: hours, Nifty, SEBI, F&O risks, broker APIs, costs) and Canadian (TSX) market agents planned next, what each reuses, and the proposed order.
+- `knowledge/strategy_status.json`: one list of every strategy that holds or held paper money with its status (ACTIVE, UNDER_REVIEW, RETIRED, PARKED, EVIDENCE) and verdict (won't take again, will try again, rules modified) and why. Retired: the daily zone touch and the 15-minute Explorer (Oct 13). The headline counts only what still trades; retired records are kept as evidence.
 - `JARVIS_TEST_PLAN.md`: how Jarvis / Ask Ananta is tested (automatic suite + hands-on checks).
 - `LOCAL_LOOP.md`: running the agent locally without the website.
 

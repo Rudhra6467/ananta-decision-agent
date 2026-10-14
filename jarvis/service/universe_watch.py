@@ -111,7 +111,9 @@ def run_rules(j) -> dict:
         coins = registry.members(j, tier)
         if "BTC" not in coins:
             coins = coins + ["BTC"] if tier == "A" else coins
-        names = [wid(r, tier) for r in RULES_ALL + list(RANDOMS)]
+        from jarvis.service import strategy_status
+
+        names = [w for w in (wid(r, tier) for r in RULES_ALL + list(RANDOMS)) if strategy_status.trades(w)]   # Oct 13: retired rules sit out
         r = watch_engine.run(j, watches=names, coins=coins, daily_fn=lambda jj, c: _daily(jj, c), live_trades=False)
         r["managed_live"] = manage_live_rows(j, tier, coins)
         out[tier] = {k: len(v) if isinstance(v, list) else v for k, v in r.items()}
@@ -145,9 +147,11 @@ def wake_brain(j, opened: list[dict]) -> int:
     from jarvis.service import brain
 
     n = 0
+    from jarvis.service import strategy_status
+
     for o in opened:
         sp = split(o["watch"])
-        if not sp or sp[0].startswith("RANDOM") or sp[1] not in ("A", "B"):
+        if not sp or sp[0].startswith("RANDOM") or sp[1] not in ("A", "B") or not strategy_status.trades(o["watch"]):
             continue
         brain.wake(j, o["coin"], f"setup:{o['watch']}", {"day": o.get("day"), "tier": sp[1]})
         n += 1

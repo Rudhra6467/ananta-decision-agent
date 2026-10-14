@@ -1,0 +1,31 @@
+{
+ "version": 1,
+ "updated": "2026-10-13",
+ "meaning": "One list of every strategy that holds or held paper money, with its verdict. status: ACTIVE (trades, counts in the headline) | UNDER_REVIEW (trades, counts, under a review) | RETIRED (takes no new trades; its record is kept as evidence and shown apart) | PARKED (switched off by Madhav) | EVIDENCE (a measuring book: never counted as holdings). verdict: wont_take_again | will_try_again | modify_rules. Madhav, Oct 13: a useless strategy is marked, not deleted; the headline counts only what still trades.",
+ "strategies": {
+  "BOOK500": {"name": "The $500 NDAX book", "status": "ACTIVE", "verdict": "will_try_again", "home_book": "The $500 NDAX book",
+              "why": "The account Stage 1 would use: core by the dial, the one measured edge, the D12 brakes. Started Oct 11 at NDAX's real prices."},
+  "T3": {"name": "Trend portfolio (10 coins)", "status": "ACTIVE", "verdict": "will_try_again", "home_book": "Trend portfolio",
+         "why": "Passed both periods; a trend book loses in a sideways chop (Oct 4-13: Bitcoin flat, alts down) and that cost is known and accepted."},
+  "T3_T30": {"name": "30-coin trend book", "status": "UNDER_REVIEW", "verdict": "will_try_again", "home_book": "30-coin trend book",
+             "why": "Conflicting: fails the survivorship test on the 30 (review #22). Keeps running on paper until that is settled."},
+  "H07": {"name": "Short dip trade (H07)", "status": "ACTIVE", "verdict": "will_try_again", "watches": ["H07", "H07-UA", "H07-UB", "H07-T30"],
+          "why": "The one measured edge (review #26: tier A while the dial is closed) and the one book that won this period (8 closed, 8 won). Tier C stays evidence."},
+  "JARVIS": {"name": "Ananta's own picks (the brain)", "status": "ACTIVE", "verdict": "modify_rules", "watches": ["JARVIS"],
+             "why": "17 closed, all stopped out in the Oct chop, no better than its random twin (4 of 14). The rules changed on Oct 11: dip buys exit by time with no stop (review #27), triggers follow the evidence (review #28), no-room buys are recorded (D7). Judged again after 20 closed trades under the new rules."},
+  "ZONE_TOUCH": {"name": "Daily zone touch", "status": "RETIRED", "verdict": "wont_take_again", "watches": ["ZONE_TOUCH", "ZONE_TOUCH-UA", "ZONE_TOUCH-UB", "ZONE_TOUCH-UC"],
+                 "since": "2026-10-13",
+                 "why": "A plain touch of a zone is not a reason to buy: it lost with every exit tried on 8 years of data (review #27) and 56 of 56 closed paper trades lost (-$573). Zones stay as context for the brain; the traded book stops."},
+  "EXPLORER": {"name": "15-minute Explorer (E1-E8)", "status": "RETIRED", "verdict": "wont_take_again", "home_book": "15-minute Explorer",
+               "since": "2026-10-13",
+               "why": "No intraday setup has an edge after costs: reviews #1, #3 and #24, and 0 of 55 atlas contexts stable. 30 closed, 25 lost. It keeps scanning as the intraday eyes and keeps its paper book only as evidence (Q1 live-vs-replay); it no longer wakes the brain."},
+  "HOURLY": {"name": "Hourly watch (Hunter, Squeeze)", "status": "PARKED", "verdict": "wont_take_again", "home_book": "Hourly watch",
+             "why": "Parked by Madhav (D6, Oct 11); neither Hunter nor Squeeze showed an edge."},
+  "READS": {"name": "Madhav's setups M1-M3 (universe books)", "status": "EVIDENCE", "verdict": "will_try_again", "watches": ["M1a", "M2a", "M2a-G", "M3a", "M3b"],
+            "why": "Measured forward per tier against random; no measured edge yet (reviews #5, #26). Evidence only: never holdings."},
+  "RANDOM": {"name": "Random baselines", "status": "EVIDENCE", "verdict": "will_try_again", "watches": ["RANDOM", "JARVIS_RANDOM"],
+             "why": "The yardstick every book is measured against. Never holdings."},
+  "MANUAL": {"name": "Madhav's own trades", "status": "ACTIVE", "verdict": "will_try_again", "home_book": "Your trades",
+             "why": "His own paper trades, stamped with his initials; not a strategy Ananta judges."}
+ }
+}

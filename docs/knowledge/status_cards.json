@@ -1,6 +1,6 @@
 {
  "version": "status_cards.v1",
- "updated": "2026-10-06",
+ "updated": "2026-10-13",
  "meaning": {
   "evidence": {
    "SUPPORTED": "passed its pre-registered test in both periods after costs on its tier",
@@ -93,14 +93,16 @@
    "id": "H07",
    "name": "Short dip trade (H07)",
    "kind": "strategy",
-   "evidence": "WEAK",
+   "evidence": "SUPPORTED",
    "permission": "PAPER",
-   "reason": "Strong in both periods, just under the bar once survivorship is removed (z 2.45 vs 2.5, #22); liquid coins only",
+   "reason": "One measured cell: tier-A coins while the exposure dial is CLOSED, +5.1% a trade over random after costs in both periods (review #26); no stop, 10-day exit (review #27). Elsewhere no measured edge",
    "reviews": [
     "#13",
     "#14",
     "#15",
-    "#22"
+    "#22",
+    "#26",
+    "#27"
    ],
    "aliases": [
     "short dip trade",
@@ -252,11 +254,13 @@
    "id": "EXPLORER",
    "name": "Explorer setups E1-E6",
    "kind": "setup",
-   "evidence": "INSUFFICIENT",
+   "evidence": "REJECTED",
    "permission": "PAPER",
-   "reason": "Lost to costs over 7 years of history (#1, #9); live paper collects evidence (Q1)",
+   "reason": "No intraday setup has an edge after costs: reviews #1 and #3, review #24 (no E6 variant passes), the atlas (0 of 55 contexts stable). Retired as a trading book Oct 13; keeps scanning as the intraday eyes and keeps a paper record as evidence",
    "reviews": [
     "#1",
+    "#24",
+    "#3",
     "#9"
    ],
    "aliases": [

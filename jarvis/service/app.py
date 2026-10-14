@@ -1228,6 +1228,14 @@ def brain_trade(trade_id: str, who: str = Depends(owner)) -> dict:
     return _run(brain.trade_detail, J(), trade_id)
 
 
+@app.get("/v3/verdicts")
+def verdicts(who: str = Depends(owner)) -> dict:
+    """Every losing paper trade by its strategy's verdict, and the strategy list (Madhav, Oct 13)."""
+    from jarvis.service import strategy_status
+
+    return {**strategy_status.losing_trades(J()), "strategies": strategy_status.load().get("strategies") or {}}
+
+
 @app.get("/v3/situations")
 def situations(days: int = 7, who: str = Depends(owner)) -> dict:
     from jarvis.service import learning

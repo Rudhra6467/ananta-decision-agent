@@ -81,8 +81,9 @@ function OwnerHome() {
       <ConceptCard />
 
       <Spot id="home.value">
-        <ValueCard label="All paper books" value={bk?.summary?.value ?? null} change={bk ? bk.summary.value - bk.summary.start : null}
-          sub={bk ? `Started with ${usd(bk.summary.start, 0)} · ${bk.summary.open_count} open trades · no real money` : "Adding up every book…"} />
+        <ValueCard label="Paper books that still trade" value={bk?.summary?.value ?? null} change={bk ? bk.summary.value - bk.summary.start : null}
+          sub={bk ? `Started with ${usd(bk.summary.start, 0)} · ${bk.summary.open_count} open trades · no real money`
+            + (bk.summary.retired_count ? ` · retired strategies ${bk.summary.retired_pnl >= 0 ? "+" : "-"}$${Math.abs(bk.summary.retired_pnl).toFixed(0)}, kept as evidence` : "") : "Adding up every book…"} />
       </Spot>
 
       <Spot id="home.jarvis">

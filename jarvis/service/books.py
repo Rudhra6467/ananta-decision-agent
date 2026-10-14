@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from jarvis.service import strategy_status
+
 DAILY = {"ZONE_TOUCH": "Daily · zone touch", "H07": "Daily · short dip", "H07-T30": "30-coin tier · short dip"}
 RANDOM_PREFIX = ("RANDOM", "JARVIS_RANDOM")
 
@@ -55,6 +57,7 @@ def _research(j) -> tuple[list[dict], list[dict], list[dict], int]:
 
     px = j.prices()
     trades, closed, books = [], [], []
+    evidence_rows: dict = {}
     t = views.trades_list(j)
     books.append({"name": "15-minute Explorer", "value": t["value"], "start": t["start"]})
     for x in t["open"]:
@@ -71,6 +74,9 @@ def _research(j) -> tuple[list[dict], list[dict], list[dict], int]:
             "WHERE status IN ('OPEN', 'CLOSED') ORDER BY coalesce(exit_t, entry_t) DESC"):
         if watch.startswith(RANDOM_PREFIX):
             randoms += status == "OPEN"
+            continue
+        if not strategy_status.counts_watch(watch):                   # Oct 13: retired or evidence-only books are not holdings
+            evidence_rows[watch.split("-U")[0]] = evidence_rows.get(watch.split("-U")[0], 0) + (status == "OPEN")
             continue
         label = "Ananta's own pick" if watch == "JARVIS" else DAILY.get(watch, f"Daily · {watch.lower().replace('_', ' ')}")
         src = "jarvis" if watch == "JARVIS" else "daily"
@@ -116,24 +122,50 @@ def _research(j) -> tuple[list[dict], list[dict], list[dict], int]:
                            "pnl_usd": p.get("pnl")})
     except Exception:  # noqa: BLE001
         pass
-    return trades, closed, books, randoms
+    try:                                                   # the $500 NDAX book (Oct 11): the account Stage 1 would use
+        from jarvis.service import ndax_book
+
+        st = ndax_book.status(j)
+        if st.get("started"):
+            books.append({"name": "The $500 NDAX book", "value": st.get("value_cad"), "start": 500.0, "currency": "CAD"})
+            for c, p in (st.get("positions") or {}).items():
+                trades.append({"id": f"b500:{c}", "coin": c, "book": "book500", "stamp": _stamp("ananta", f"$500 book · {p.get('sleeve', '').lower()}", "book500"),
+                               "entry": p.get("paid") and p.get("qty") and p["paid"] / p["qty"], "now": p.get("last"),
+                               "pnl_usd": round(p["qty"] * p["last"] - p["paid"], 2) if p.get("last") and p.get("qty") else None})
+    except Exception:  # noqa: BLE001
+        pass
+    for b in books:                                        # Oct 13: which books still trade (the headline) and which are retired (shown apart)
+        e = strategy_status.of_book(b["name"])
+        b["status"] = e[1].get("status") if e else "ACTIVE"
+        b["why"] = (e[1].get("why") if e else "")
+    return trades, closed, books, randoms, evidence_rows
 
 
 def view(j, name: str, owner: bool) -> dict[str, Any]:
     mine, mine_closed, mine_book = _manual(j, name)
-    trades, closed, books, randoms = (_research(j) if owner else ([], [], [], 0))
+    trades, closed, books, randoms, evidence_rows = (_research(j) if owner else ([], [], [], 0, {}))
     trades = trades + mine
     closed = closed + mine_closed
+    mine_book["status"] = "ACTIVE"
     books = books + [mine_book]
+    retired = [b for b in books if b.get("status") not in strategy_status.COUNTS]
+    counted = [b for b in books if b.get("status") in strategy_status.COUNTS]
+    off_books = {"explorer" if b["name"].startswith("15-minute") else "hourly" if b["name"].startswith("Hourly") else b["name"] for b in retired}
+    trades = [t for t in trades if t.get("book") not in off_books]
     stamps: dict[str, int] = {}
     for t in trades:
         stamps[t["stamp"]["label"].split(" · ")[0]] = stamps.get(t["stamp"]["label"].split(" · ")[0], 0) + 1
     open_pnl = round(sum(t["pnl_usd"] for t in trades if isinstance(t.get("pnl_usd"), (int, float))), 2)
     closed_pnl = round(sum(c["net_usd"] for c in closed if isinstance(c.get("net_usd"), (int, float))), 2)
-    value = round(sum(b["value"] or 0 for b in books), 2)
-    start = round(sum(b["start"] or 0 for b in books), 2)
-    return {"summary": {"value": value, "start": start, "open_pnl": open_pnl, "closed_pnl_recent": closed_pnl, "open_count": len(trades)},
-            "trades": trades, "closed": closed[:40], "books": books, "stamps": stamps, "random_open": randoms,
+    usd_books = [b for b in counted if b.get("currency", "USD") == "USD"]          # the CAD book is shown on its own, never summed into dollars
+    value = round(sum(b["value"] or 0 for b in usd_books), 2)
+    start = round(sum(b["start"] or 0 for b in usd_books), 2)
+    retired_pnl = round(sum((b["value"] or 0) - (b["start"] or 0) for b in retired), 2)
+    return {"summary": {"value": value, "start": start, "open_pnl": open_pnl, "closed_pnl_recent": closed_pnl, "open_count": len(trades),
+                        "retired_pnl": retired_pnl, "retired_count": len(retired), "evidence_open": sum(evidence_rows.values())},
+            "retired": [{"name": b["name"], "value": b["value"], "start": b["start"], "status": b["status"], "why": b.get("why")} for b in retired],
+            "evidence_open_by": evidence_rows,
+            "trades": trades, "closed": closed[:40], "books": counted, "stamps": stamps, "random_open": randoms,
             "initials": initials(name),
             "read": "Every trade held, from every watch; the stamp says who took it. Random comparison trades are evidence and are "
                     "not listed." if owner else "Your own practice trades."}

@@ -24,7 +24,7 @@ export function BooksTrades({ d, explainers }: { d: any; explainers?: React.Reac
   return (
     <View style={{ gap: 14 }}>
       <Card>
-        <T dim small>All your paper books</T>
+        <T dim small>Paper books that still trade</T>
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
           <Text style={{ color: C.text, fontSize: 30, fontWeight: "700", letterSpacing: -0.5 }}>{usd(s.value, 0)}</Text>
           <Text style={{ color: pnlColor(gain), fontWeight: "600" }}>{usdSigned(gain)} since start</Text>
@@ -34,7 +34,26 @@ export function BooksTrades({ d, explainers }: { d: any; explainers?: React.Reac
           <Stat label="Closed (recent)" value={usdSigned(s.closed_pnl_recent)} color={pnlColor(s.closed_pnl_recent)} />
           <Stat label="Open" value={s.open_count ?? 0} />
         </View>
+        {(d.books ?? []).filter((b: any) => b.currency && b.currency !== "USD").map((b: any) => (
+          <T key={b.name} dim small>{b.name}: C${Number(b.value ?? 0).toFixed(2)} ({usdSigned(Number(b.value ?? 0) - Number(b.start ?? 0)).replace("$", "C$")} since start, kept apart: Canadian dollars)</T>
+        ))}
       </Card>
+      {d.retired?.length ? (
+        <Card>
+          <Expand title={`Retired strategies · ${usdSigned(s.retired_pnl)} since start · kept as evidence`}>
+            {d.retired.map((b: any) => (
+              <View key={b.name} style={{ gap: 2, paddingVertical: 6 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <T>{b.name} · {b.status === "PARKED" ? "parked" : "retired"}</T>
+                  <Text style={{ color: pnlColor((b.value ?? 0) - (b.start ?? 0)), fontWeight: "600" }}>{usdSigned((b.value ?? 0) - (b.start ?? 0))}</Text>
+                </View>
+                <T dim small>{b.why}</T>
+              </View>
+            ))}
+            {s.evidence_open ? <T dim small>Plus {s.evidence_open} measuring rows (zone touches, your setups on the universe, random baselines): evidence, never holdings. See Evidence.</T> : null}
+          </Expand>
+        </Card>
+      ) : null}
 
       <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
         <View style={{ flex: 1 }}>

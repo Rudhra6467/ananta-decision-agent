@@ -101,9 +101,9 @@ How to decide (this matters more than anything):
   case is clearly better than an ordinary day for this coin: a kind of moment the repair shop measured as positive after costs
   (expected_value in the pack, when present), in this market state, with room to move several times the costs. When in doubt, PASS:
   in a buy-only book, cash is a position.
-- web_check (when present): dated facts from the live web with sources. It can only make you more careful: a CAUTION verdict,
-  a token unlock in the next 30 days, a hack or legal trouble turns a TAKE into PASS or a smaller size. It never turns a PASS into
-  a TAKE; good news is not an edge. Name the fact and its date in your reason when it changed your answer.
+- The web: decide from our own evidence. After a TAKE the code runs the research desk (dated web facts: an unlock in the next 30
+  days, a hack, legal trouble) and may turn your TAKE into PASS or half size; it never turns a PASS into a TAKE. Good news is not
+  an edge.
 - Exposure: my_record.open_coins are already held; our coins move together, so several open trades in one market move are one
   bet. Size down (or pass) when a new trade would only add more of the same bet.
 - Plans: you choose WHERE the idea is wrong (the stop: beyond the zone or the recent low, about half to one daily range under it,
@@ -345,14 +345,9 @@ def pack(j, coin: str, triggers: dict) -> dict:
             p["madhav_worked_examples"] = {"cases": ex, "meaning": "how the owner read real bottoms and retests; examples to reason with, not rules or signals"}
     except Exception:  # noqa: BLE001
         pass
-    try:                                                # the research desk (Oct 10): dated web facts; can only make the brain more careful
-        from jarvis.service import weblook
-
-        mc = weblook.market_check(j, coin, who="brain")       # background: at most WEB_PAID_BACKGROUND paid searches a day
-        if not mc.get("error"):
-            p["web_check"] = {k: mc.get(k) for k in ("facts", "unlock_next_30d", "mood", "verdict", "rule")}
-    except Exception:  # noqa: BLE001
-        pass
+    # The research desk (Oct 10) no longer runs here. Oct 13: it ran on every wake, so the day's 8 paid searches were spent by
+    # 00:34 on passes of small coins (FIL, ICP, WLD, PUMP...). It now runs in decide(), only after a provisional BUY and only on
+    # tier A/B coins, as the veto it was designed to be (the web can turn a yes into a no or a smaller size, never a no into a yes).
     p["intraday"] = _explorer_state(j, coin) if lab else _feed_intraday(j, coin)
     if not lab:
         try:
@@ -565,6 +560,29 @@ def _open(j, watch: str, coin: str, price: float, stop: float, target: float | N
     return row
 
 
+def web_veto(j, coin: str, p: dict) -> dict | None:
+    """The research desk as a veto (Oct 13). None when the web has nothing against the buy or could not be reached; otherwise
+    {"kind": "skip" | "smaller", "why", "check"}. Only tier A and B coins: a paid search on a tier-C coin is never worth it."""
+    tier = ((p.get("universe_tier") or {}).get("tier")) or ("A" if _is_lab(coin) else None)
+    if tier not in ("A", "B"):
+        return None
+    try:
+        from jarvis.service import weblook
+
+        mc = weblook.market_check(j, coin, who="brain")
+    except Exception:  # noqa: BLE001
+        return None
+    if not mc or mc.get("error"):
+        return None
+    check = {k: mc.get(k) for k in ("facts", "unlock_next_30d", "mood", "verdict", "rule")}
+    v = str(mc.get("verdict") or "")
+    if v.startswith("CAUTION: the web shows a real risk"):
+        return {"kind": "skip", "why": v.split(":", 1)[1].strip(), "check": check}
+    if v.startswith("CAUTION"):
+        return {"kind": "smaller", "why": v.split(":", 1)[1].strip(), "check": check}
+    return {"kind": "none", "why": "", "check": check}
+
+
 def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Callable | None = None, noroom: bool = False) -> dict:
     """One decision: the pack, the model's weighing, the code's red flags, then a paper trade (and its random twin) or a PASS."""
     from jarvis.service import eye
@@ -610,6 +628,16 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
     if action == "TAKE" and flags:
         action, note = "PASS", "code red flag: " + "; ".join(flags)
     size = max(25.0, min(100.0, float(d.get("size_pct") or 50))) if action == "TAKE" else 0.0
+    if action == "TAKE" and not noroom:                 # Oct 13: the web check as a veto, after a provisional buy, tier A/B only
+        wv = web_veto(j, coin, p)
+        if wv:
+            p["web_check"] = wv["check"]
+            if wv["kind"] == "skip":
+                action, note = "PASS", (note + "; " if note else "") + "web veto: " + wv["why"]
+                size = 0.0
+            elif wv["kind"] == "smaller":
+                size = max(25.0, round(size / 2))
+                note = (note + "; " if note else "") + "web: half size, " + wv["why"]
     conf = max(0.0, min(100.0, float(d.get("confidence") or 0)))
     know = [k for k in (d.get("knowledge_used") or []) if isinstance(k, str)][:8]
     bad, ok = permission_check(know)

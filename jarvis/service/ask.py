@@ -2251,8 +2251,10 @@ class Ask:
         key, mode_label, note = self._pick(text, mode, provider)
         if mode_label == "auto" and key in ("haiku", "gemini", "gemini_voice", "local") and _telugu_talk(self.j, thread, text):
             key, note = "sonnet", "Auto: Claude Sonnet for Madhav's people and Telugu (the lighter models mix in Hindi)"
-        if voice and mode_label == "auto" and key == "haiku":   # talking: speed matters most; Sonnet answers in ~5 s, Haiku took 10-15 s
-            key, note = "sonnet", "Auto: Claude Sonnet for voice (fastest to answer)"
+        if mode_label == "auto" and key == "haiku" and not str(who).startswith("guest:"):
+            # Oct 13 (measured over 30 days): for Madhav's questions Sonnet was both faster (median 4-5 s vs 7-8 s) and better than Haiku;
+            # the saving was about $3 a week. Madhav and his people get Sonnet; practice accounts keep Haiku (their own budget).
+            key, note = "sonnet", "Auto: Claude Sonnet (faster and better here; Haiku stays for practice accounts)"
         if voice and key in ("gemini", "gemini_deep") and "gemini_voice" in self.providers:
             key, note = "gemini_voice", (note + "; " if note else "") + "voice: the fastest Gemini first"
         if source != "eval" and self.today_count() >= DAILY_LIMIT:

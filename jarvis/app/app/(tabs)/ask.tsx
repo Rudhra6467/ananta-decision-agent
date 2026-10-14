@@ -749,25 +749,43 @@ function LivePanel({ label, phase, hearing, level, note, onOrb, onEnd, rateLabel
       </Pressable>
       <Text style={{ color: C.text, fontWeight: "600" }}>{label}</Text>
       {note ? <Text style={{ color: C.dim, fontSize: 12, textAlign: "center", paddingHorizontal: 20 }}>{note}</Text> : null}
-      <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-        <Text style={{ color: C.dim, fontSize: 12 }}>Speed</Text>
-        {TTS.RATES.map((x) => (
-          <Pressable key={x} onPress={() => { setR(x); onRate(x); }} style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: r === x ? C.text : C.card2 }}>
-            <Text style={{ color: r === x ? C.onInk : C.text, fontSize: 12 }}>{String(x)}×</Text>
-          </Pressable>
-        ))}
-      </View>
-      <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center", paddingHorizontal: 12 }}>
-        <Text style={{ color: C.dim, fontSize: 12 }}>Voice</Text>
-        {[...TTS.VOICES, "Phone"].map((v) => (
-          <Pressable key={v} onPress={() => { setVc(v); onVoice(v); }} style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: vc === v ? C.text : C.card2 }}>
-            <Text style={{ color: vc === v ? C.onInk : C.text, fontSize: 12 }}>{v}</Text>
-          </Pressable>
-        ))}
+      <View style={{ flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" }}>
+        <Pick label="Speed" value={`${r}×`} options={TTS.RATES.map((x) => ({ key: String(x), label: `${x}×` }))} selected={String(r)}
+          onPick={(k) => { const x = Number(k); setR(x); onRate(x); }} />
+        <Pick label="Voice" value={vc} options={[...TTS.VOICES, "Phone"].map((v) => ({ key: v, label: v }))} selected={vc}
+          onPick={(v) => { setVc(v); onVoice(v); }} />
       </View>
       <Pressable onPress={onEnd} style={{ backgroundColor: C.text, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 9 }}>
         <Text style={{ color: C.onInk, fontWeight: "700" }}>End voice</Text>
       </Pressable>
+    </View>
+  );
+}
+
+// Two small dropdowns instead of ten pills on the voice panel (Madhav, Oct 13): tap to open, pick, it closes
+function Pick({ label, value, options, selected, onPick }: { label: string; value: string; options: { key: string; label: string }[]; selected: string; onPick: (k: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View>
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityLabel={`${label}: ${value}`}
+        style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: C.card2 }}>
+        <Text style={{ color: C.dim, fontSize: 12 }}>{label}</Text>
+        <Text style={{ color: C.text, fontSize: 13, fontWeight: "700" }}>{value}</Text>
+        <Text style={{ color: C.dim, fontSize: 11 }}>{open ? "▲" : "▼"}</Text>
+      </Pressable>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable onPress={() => setOpen(false)} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: C.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, paddingBottom: 32, gap: 4 }}>
+            <Text style={{ color: C.dim, fontSize: 12, marginBottom: 6 }}>{label}</Text>
+            {options.map((o) => (
+              <Pressable key={o.key} onPress={() => { onPick(o.key); setOpen(false); }}
+                style={{ paddingVertical: 12, paddingHorizontal: 10, borderRadius: 10, backgroundColor: o.key === selected ? C.accentSoft : "transparent" }}>
+                <Text style={{ color: o.key === selected ? C.accent : C.text, fontSize: 16, fontWeight: o.key === selected ? "700" : "500" }}>{o.label}{o.key === selected ? "  ✓" : ""}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

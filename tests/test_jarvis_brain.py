@@ -421,3 +421,25 @@ def test_brain_reads_wrapped_or_chatty_replies():
         assert "cut off" in str(exc)
     else:
         raise AssertionError("a cut-off reply parsed")
+
+
+def test_web_check_is_a_veto_after_a_buy_only(tmp_path, monkeypatch):
+    """Oct 13: the web check runs after a provisional TAKE on tier A/B, never in the pack for every wake; CAUTION halves or skips."""
+    from jarvis.service import brain, weblook
+
+    calls = []
+
+    def fake_mc(j, coin, who="ask", **kw):
+        calls.append(coin)
+        return {"verdict": "CAUTION: the web shows a real risk (an unlock, a hack, or legal trouble); skip or go smaller even if our rules say buy",
+                "facts": [], "unlock_next_30d": "yes", "mood": None, "rule": "r"}
+    monkeypatch.setattr(weblook, "market_check", fake_mc)
+    assert brain.web_veto(None, "XYZ", {"universe_tier": {"tier": "C"}}) is None and calls == []      # tier C: never a paid search
+    v = brain.web_veto(None, "SOL", {"universe_tier": {"tier": "A"}})
+    assert v["kind"] == "skip" and calls == ["SOL"]
+    monkeypatch.setattr(weblook, "market_check", lambda j, c, who="ask", **kw: {"verdict": "CAUTION: several recent things make a buy riskier; our rules decide, but lean to PASS or a smaller size", "facts": []})
+    assert brain.web_veto(None, "ETH", {"universe_tier": {"tier": "B"}})["kind"] == "smaller"
+    monkeypatch.setattr(weblook, "market_check", lambda j, c, who="ask", **kw: {"verdict": "NO RED FLAGS: nothing on the web argues against what our evidence says", "facts": [{"fact": "x"}]})
+    assert brain.web_veto(None, "ETH", {"universe_tier": {"tier": "A"}})["kind"] == "none"
+    import inspect
+    assert "market_check" not in inspect.getsource(brain.pack)                                          # not on every wake any more

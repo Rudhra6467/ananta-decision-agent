@@ -55,7 +55,7 @@ def test_books_stamp_manual_trades_with_initials():
     g.prices = lambda: {"SOL": 126.0}
     v = books.view(g, "Asha Rao", owner=False)
     assert v["summary"]["open_count"] == 1 and v["trades"][0]["stamp"] == {"who": "you", "label": "AR", "source": "manual"}
-    assert v["books"] == [{"name": "Your trades", "value": v["books"][0]["value"], "start": 2000}]
+    assert v["books"] == [{"name": "Your trades", "value": v["books"][0]["value"], "start": 2000, "status": "ACTIVE"}]   # Oct 13: books carry their status
 
 
 def test_sign_in_with_a_name_or_a_gmail_without_dots():

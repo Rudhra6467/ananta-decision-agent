@@ -6,14 +6,36 @@ Every route except /health needs "Authorization: Bearer <token>" from POST /auth
 """
 from __future__ import annotations
 
+import json
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel
 
 from jarvis.service import core
 
 app = FastAPI(title="Jarvis", version=core.VERSION, docs_url=None, redoc_url=None, openapi_url=None)
+
+# The web app (livetrading247.com, Madhav 2026-10-06: "where i can access it through web") calls this API from the browser;
+# only our own sites may. Phones are not browsers and are unaffected. Every route still needs the login token.
+from fastapi.exceptions import RequestValidationError  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+
+
+@app.exception_handler(RequestValidationError)
+async def _plain_422(request: Request, exc: RequestValidationError):
+    """A refused request says in one sentence what was missing (Oct 13: the phone showed the raw error list as "[object Object]")."""
+    bits = []
+    for e in exc.errors()[:3]:
+        loc = ".".join(str(x) for x in e.get("loc", []) if x not in ("body", "query"))
+        bits.append(f"{loc or 'the request'}: {e.get('msg', 'invalid')}")
+    return JSONResponse(status_code=422, content={"detail": "The app sent a request Ananta could not read (" + "; ".join(bits) +
+                                                            "). Please update the app or tell Madhav."})
+
+app.add_middleware(CORSMiddleware, allow_origins=["https://livetrading247.com", "https://www.livetrading247.com",
+                                                  "http://localhost:8081", "http://127.0.0.1:8300", "http://localhost:8300"],   # local test copies
+                   allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type", "X-Ananta-Quiet"])
 _J: core.Jarvis | None = None
 
 # Guest practice sandbox: a guest sees the real system (markets, Explorer, portfolio, evidence) and can do everything Madhav can
@@ -77,7 +99,7 @@ def _sync_shared(g: core.Jarvis) -> None:
             continue
         if rows:
             ph = ",".join("?" * len(rows[0]))
-            g.db.executemany(f"INSERT OR IGNORE INTO {tbl} VALUES ({ph})", [tuple(r) for r in rows])
+            g.db.executemany(f"INSERT OR REPLACE INTO {tbl} VALUES ({ph})", [tuple(r) for r in rows])   # updates too (a trade that closed)
     try:
         if not g.db.execute("SELECT 1 FROM mandate LIMIT 1").fetchone():      # start from Madhav's mandate; edits stay in the sandbox
             for t, by, why, js in m.db.execute("SELECT t, by, why, json FROM mandate ORDER BY version DESC LIMIT 1").fetchall():
@@ -95,9 +117,36 @@ def _sandbox(who: str) -> core.Jarvis:
             m = _main()
             g = core.Jarvis(m.dir, owner_email=m.owner, password_hash=m.pw_hash, secret=m.secret, hands=m._hands, now=m.now,
                             db_file=f"jarvis_guest_{name}.sqlite")
+            g.users_db = m.db                                   # accounts live in the owner's database
             _sync_shared(g)
             _JG[name] = g
         return _JG[name]
+
+
+def _sandbox_name(email: str) -> str:
+    return _re.sub(r"[^a-z0-9]+", "_", email.lower()).strip("_")[:40] or "guest"
+
+
+def _archive_sandbox(email: str) -> str | None:
+    """A removed visitor's (or a reset) practice book is moved to guest_archive/, never deleted; the next sign-in starts empty."""
+    import shutil
+    from pathlib import Path
+
+    name = _sandbox_name(email)
+    with _JG_LOCK:
+        g = _JG.pop(name, None)
+        if g is not None:
+            try:
+                g.db.con.close()
+            except Exception:  # noqa: BLE001
+                pass
+        src = Path(_main().dir) / f"jarvis_guest_{name}.sqlite"
+        if not src.exists():
+            return None
+        dst = Path(_main().dir) / "guest_archive" / f"jarvis_guest_{name}.{int(_main().now())}.sqlite"
+        dst.parent.mkdir(exist_ok=True)
+        shutil.move(str(src), str(dst))
+        return dst.name
 
 
 def J() -> core.Jarvis:
@@ -105,15 +154,51 @@ def J() -> core.Jarvis:
     return _sandbox(w) if w else _main()
 
 
-def owner(authorization: str = Header(default="")) -> str:
+def owner(authorization: str = Header(default=""), x_ananta_quiet: str = Header(default="")) -> str:
+    """The signed-in account. A request the person made keeps the sign-in alive; the app marks its quiet background refreshes
+    (X-Ananta-Quiet: 1) so an open but unused screen still signs out after 3 hours (Madhav, Oct 12)."""
     try:
-        return J().check(authorization.removeprefix("Bearer ").strip())
+        return J().check(authorization.removeprefix("Bearer ").strip(), touch=x_ananta_quiet != "1")
     except core.AuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
 # Controls that change shared state (Madhav's real paper portfolio, the kill switch) stay locked for guests.
 GUEST_LOCKED = ("/portfolio/approve", "/portfolio/reject", "/portfolio/mode", "/safety/kill")
+
+
+@app.middleware("http")
+async def plain_words(request, call_next):
+    """Plan 2.3: no internal code (E4, H07, T3, P02...) reaches a screen. Every /v3 answer's sentences and labels are rewritten
+    with display names; pure identifiers stay for the app, which names them with /v3/names."""
+    import json as _json
+    from fastapi.responses import Response
+    from jarvis.service import plain
+
+    resp = await call_next(request)
+    if not request.url.path.startswith("/v3/") or "application/json" not in resp.headers.get("content-type", ""):
+        return resp
+    body = b"".join([c async for c in resp.body_iterator])
+    try:
+        out = _json.dumps(plain.scrub(_json.loads(body)), ensure_ascii=False).encode()
+    except ValueError:
+        out = body
+    headers = {k: v for k, v in resp.headers.items() if k.lower() != "content-length"}
+    return Response(out, status_code=resp.status_code, headers=headers, media_type="application/json")
+
+
+@app.get("/v3/coins")
+def coins_all(who: str = Depends(owner)) -> dict:
+    """Home's "Load more" (plan 3.1): every live coin with its price and move. The market is shared by every account."""
+    from jarvis.service import views
+    return {"coins": views.markets(J()).get("coins") or []}
+
+
+@app.get("/v3/names")
+def display_names(who: str = Depends(owner)) -> dict:
+    """The one dictionary of display names (glossary.json names + the watch catalogue)."""
+    from jarvis.service import plain
+    return {"names": plain.names()}
 
 
 @app.middleware("http")
@@ -177,6 +262,9 @@ def _run(fn, *a) -> Any:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+STATE_W: dict = {}
+
+
 @app.on_event("startup")
 def _snapshots() -> None:
     """Value history for the charts: one snapshot now and every 15 minutes."""
@@ -193,6 +281,23 @@ def _snapshots() -> None:
                 background_jobs()
             except Exception:  # noqa: BLE001
                 pass
+            try:                                          # build plan 1.4b: every account's watches and positions, one shared snapshot
+                from jarvis.service import watches as _W
+
+                from jarvis.service import notify as _N
+
+                ems = [em for (em,) in _main().db.execute("SELECT email FROM users").fetchall()]
+                accts = [_main()] + [_sandbox("guest:" + em) for em in ems]
+                mail = {id(_sandbox("guest:" + em)): em for em in ems}
+
+                def _reach(a):                            # plan 1.7: Madhav's phone + his web devices; a visitor's web devices and email
+                    if a is _main():
+                        return lambda t, b: (_push(t, b), _N.notify(a, t, b))
+                    return lambda t, b: _N.notify(a, t, b, email=mail.get(id(a), ""))
+
+                STATE_W["last"] = _W.check_all(_main(), accts, push_for=_reach)
+            except Exception as exc:  # noqa: BLE001
+                STATE_W["error"] = str(exc)[:200]
             for name, g in list(_JG.items()):             # guest sandboxes: their own alerts and stops, no phone pushes
                 tok = _SANDBOX.set("guest:" + name)
                 try:
@@ -237,6 +342,107 @@ def _start_watchdog_and_brain() -> None:
         brain.start(_main, push=lambda t, b: _push(t, b))
 
 
+@app.on_event("startup")
+def _start_universe() -> None:
+    """Engine plan U2-U4: one feed for every coin (Binance public data), every rule on every coin, zone touches on live prices.
+    The 10-coin books are untouched (D7)."""
+    import os
+    import threading
+
+    if os.getenv("ANANTA_UNIVERSE", "1") != "1" or "PYTEST_CURRENT_TEST" in os.environ:
+        return
+    from jarvis.service import feed, universe_explorer, universe_watch
+
+    def first_arm():
+        try:
+            if not (universe_watch.Path(_main().dir) / "universe_zones.json").exists():
+                universe_watch.arm(_main())
+        except Exception:  # noqa: BLE001
+            pass
+
+    feed.start(_main, on_prices=universe_watch.tick, on_daily=universe_watch.run_daily, on_5m=universe_explorer.step_async)
+    threading.Timer(90, first_arm).start()
+
+
+@app.get("/v3/universe")
+def universe_live(who: str = Depends(owner)) -> dict:
+    from jarvis.service import universe_watch
+
+    return universe_watch.status(_main())
+
+
+@app.get("/v3/universe/scoreboard")
+def universe_scoreboard(who: str = Depends(owner)) -> dict:
+    from jarvis.service import universe_watch
+
+    return universe_watch.scoreboard(_main())
+
+
+@app.get("/v3/exposure")
+def exposure_live(who: str = Depends(owner)) -> dict:
+    """Engine fixes 1-4: the dial, the benchmark books, the measured-edge table, the would-be account in R against the hurdle."""
+    from jarvis.service import ev, exposure, universe_watch
+
+    j = _main()
+    return {"dial": exposure.state(j), "books": exposure.books(j), "measured_edges": ev.table(), "account": universe_watch.would_be(j),
+            "fidelity": ev.fidelity(j)}
+
+
+@app.get("/v3/universe/ladder")
+def universe_ladder(who: str = Depends(owner)) -> dict:
+    from jarvis.service import universe_watch
+
+    return universe_watch.ladder(_main())
+
+
+@app.post("/v3/universe/ladder")
+def universe_ladder_set(body: dict, who: str = Depends(owner)) -> dict:
+    """Madhav's sign-off on the promotion ladder (one step up when the evidence allows it, or down)."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav signs off a promotion.")
+    from jarvis.service import universe_watch
+
+    try:
+        return universe_watch.set_step(_main(), str(body.get("watch") or ""), str(body.get("step") or ""), who)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/v3/needs")
+def needs_list(who: str = Depends(owner)) -> dict:
+    """Home's "Needs you" (Oct 14): the decisions waiting for Madhav, today a rule that passed its forward test and may step up."""
+    if is_guest(who):
+        return {"items": []}
+    from jarvis.service import needs
+
+    return {"items": needs.list_(_main())}
+
+
+class NeedsIn(BaseModel):
+    id: str
+    decision: str = "later"
+
+
+@app.post("/v3/needs/decide")
+def needs_decide(b: NeedsIn, who: str = Depends(owner)) -> dict:
+    """Madhav's tap on the card: approve = one step up the ladder (paper); later = hide it for a week."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav decides.")
+    from jarvis.service import needs
+
+    try:
+        return needs.decide(_main(), b.id, b.decision, who)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/v3/universe/coins")
+def universe_coins(tier: str | None = None, q: str | None = None, sort: str = "trading", n: int = 60, who: str = Depends(owner)) -> dict:
+    from jarvis.service import universe_watch
+
+    return universe_watch.coins(_main(), tier=tier, q=q, sort=sort, n=n)
+
+
 @app.get("/history")
 def history(days: float = 30, who: str = Depends(owner)) -> dict:
     return J().history(days)
@@ -257,12 +463,104 @@ def health() -> dict:
     return {"ok": True, "version": core.VERSION, "health_checks_s_ago": round(_t.time() - last) if last else None}
 
 
+class Join(BaseModel):
+    code: str
+    name: str = ""
+    email: str = ""
+    password: str
+
+
+class Invite(BaseModel):
+    name: str = ""
+    email: str = ""
+
+
+class Person(BaseModel):
+    email: str
+
+
+@app.get("/auth/invite/{code}")
+def invite_info(code: str) -> dict:
+    """What the join page shows before the visitor signs up (no sign-in needed: the code is the key)."""
+    try:
+        return _main().invite_info(code)
+    except core.AuthError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/auth/join")
+def join(b: Join) -> dict:
+    """A visitor accepts Madhav's invite link: their own name and password, and a fresh $1,000 practice book."""
+    m = _main()
+    try:
+        info = m.invite_info(b.code)
+        _archive_sandbox(info.get("email") or b.email)           # never inherit an old practice book under the same email
+        return {"token": m.join(b.code, b.name, b.email, b.password), "expires_in_s": 7 * 86400}
+    except core.AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/auth/login")
 def login(b: Login) -> dict:
     try:
-        return {"token": J().login(b.email, b.password), "expires_in_s": core.TOKEN_TTL_S}
+        return {"token": J().login(b.email, b.password), "expires_in_s": core.TOKEN_TTL_S, "idle_s": core.IDLE_S}
+    except core.AccountExpired as exc:
+        # Oct 12: a visitor's practice days are over. No app token: the feedback form (once), then a thank-you.
+        return {"expired": True, "name": exc.name, "answered": exc.answered, "form_token": exc.form_token,
+                "questions": [] if exc.answered else core.FEEDBACK_QUESTIONS,
+                "message": (f"Thank you, {exc.name}. Your practice days with Ananta are over and Madhav has your answers." if exc.answered else
+                            f"Hi {exc.name}, your {core.GUEST_DAYS:g} practice days with Ananta are over. Before you go, please answer a few "
+                            "short questions: Madhav reads every answer.")}
     except core.AuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+class Feedback(BaseModel):
+    form_token: str
+    answers: dict[str, str]
+
+
+@app.post("/auth/feedback")
+def feedback_submit(b: Feedback) -> dict:
+    """A visitor whose practice days are over answers the feedback form (the form token from /auth/login is the key)."""
+    try:
+        return _main().submit_feedback(b.form_token, b.answers)
+    except core.AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/auth/logout")
+def logout_route(authorization: str = Header(default="")) -> dict:
+    """Ends this sign-in on the server too (the app forgets its token either way)."""
+    return {"ok": _main().logout(authorization.removeprefix("Bearer ").strip())}
+
+
+class Password(BaseModel):
+    current: str
+    new: str
+
+
+@app.post("/v3/account/password")
+def change_password(b: Password, who: str = Depends(owner), authorization: str = Header(default="")) -> dict:
+    """Madhav changes his own password (Cockpit › Additional features). Every other signed-in device is signed out."""
+    _owner_only(who)
+    try:
+        return _main().change_password(b.current, b.new, keep_token=authorization.removeprefix("Bearer ").strip())
+    except core.AuthError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/v3/feedback")
+def feedback_list(who: str = Depends(owner)) -> dict:
+    """Madhav reads what visitors answered when their practice days ended."""
+    _owner_only(who)
+    return _main().feedback()
 
 
 @app.get("/today")
@@ -354,11 +652,105 @@ class Rating(BaseModel):
 
 @app.get("/v3/home")
 def home(who: str = Depends(owner)) -> dict:
-    return {"summary": views.day_summary(J()), "feed": views.feed(J(), hours=72, limit=40)}
+    if is_guest(who):                                   # a visitor's own Home: their coins, their book, their next step
+        from jarvis.service import account as visitor
+
+        return visitor.home(J())
+    return {"summary": views.day_summary(J()), "feed": views.feed(J(), hours=72, limit=40), "mission": views.mission(J())}
+
+
+class WatchIn(BaseModel):
+    coins: list[str] | None = None
+    group: str | None = None
+    kind: str | None = None
+    mode: str = "ask"
+
+
+class WatchChange(BaseModel):
+    mode: str | None = None
+    state: str | None = None
+
+
+@app.get("/v3/watches/mine")
+def my_watches(who: str = Depends(owner)) -> dict:
+    """This account's own watches (build plan 1.4a), the kinds it may pick (evidence-allowed only) and the modes."""
+    from jarvis.service import watches
+
+    return {"watches": watches.list_(J()), "kinds": watches.kinds(), "modes": watches.MODES, "groups": watches.GROUPS}
+
+
+@app.post("/v3/watches/mine")
+def my_watch_create(b: WatchIn, who: str = Depends(owner)) -> dict:
+    from jarvis.service import watches
+
+    try:
+        return watches.create(J(), b.coins, b.group, b.kind, b.mode, by=who)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v3/watches/mine/{wid}")
+def my_watch_change(wid: str, b: WatchChange, who: str = Depends(owner)) -> dict:
+    from jarvis.service import watches
+
+    try:
+        return watches.change(J(), wid, b.mode, b.state)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/v3/agent/state")
+def agent_state(who: str = Depends(owner)) -> dict:
+    """'What are you doing right now' for this account (build plan 1.8)."""
+    from jarvis.service import watches
+
+    return watches.state(J()) | {"last_check": STATE_W.get("last")}
+
+
+@app.get("/v3/agent/activity")
+def agent_activity(since_t: int = 0, who: str = Depends(owner)) -> dict:
+    """'What changed since ...' for this account (build plan 1.8)."""
+    from jarvis.service import watches
+
+    return watches.since(J(), since_t)
+
+
+@app.get("/v3/books")
+def books_view(who: str = Depends(owner)) -> dict:
+    """Books as one list (build plan 1.3): every trade this account holds, each stamped with who took it. The same shape for
+    Madhav and for a visitor; a visitor's holds only their own trades."""
+    from jarvis.service import books
+
+    return books.view(J(), J().name_of(who), owner=not is_guest(who))
+
+
+@app.get("/v3/books/trade/{tid}")
+def books_trade(tid: str, who: str = Depends(owner)) -> dict:
+    """One trade's story (plan 3.3b): reasons, start, stop, peak, low, exits and its decision card."""
+    from jarvis.service import books
+
+    try:
+        return books.story(J(), tid, J().name_of(who), owner=not is_guest(who))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/v3/watchlists")
+def watchlists(who: str = Depends(owner)) -> dict:
+    """Watchlists (was Markets), per account: a visitor's coins, or Madhav's 10."""
+    if is_guest(who):
+        from jarvis.service import account
+
+        return account.markets(J())
+    return views.markets(J())
 
 
 @app.get("/v3/holdings")
 def holdings(who: str = Depends(owner)) -> dict:
+    if is_guest(who):                                   # a visitor's Books: their own practice book only
+        from jarvis.service import account as visitor
+
+        return visitor.books(J())
     return views.holdings(J())
 
 
@@ -382,12 +774,380 @@ def ev_pipeline(who: str = Depends(owner)) -> dict:
     return views.evidence_pipeline(J())
 
 
+@app.get("/v3/evidence/week")
+def ev_week(days: int = 7, who: str = Depends(owner)) -> dict:
+    """Request #34: wins and losses of the last 7 days across every book."""
+    from jarvis.service import week
+
+    return week.week(J(), max(1, min(int(days or 7), 90)))
+
+
+@app.get("/v3/evidence/live")
+def ev_live(who: str = Depends(owner)) -> dict:
+    """The Evidence page: inside the logic repair, live (Madhav, 2026-10-05)."""
+    from jarvis.service import evidence_live
+
+    return evidence_live.build(J())
+
+
+def _owner_only(who: str) -> None:
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav manages accounts.")
+
+
+@app.get("/v3/people")
+def people(who: str = Depends(owner)) -> dict:
+    """Madhav's account and the visitors he invited (owner only)."""
+    _owner_only(who)
+    return _main().people()
+
+
+@app.post("/v3/people/invite")
+def people_invite(b: Invite, who: str = Depends(owner)) -> dict:
+    _owner_only(who)
+    try:
+        inv = _main().invite(b.name, b.email)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    inv["link"] = f"https://livetrading247.com/join?code={inv['code']}"
+    return inv
+
+
+@app.post("/v3/people/remove")
+def people_remove(b: Person, who: str = Depends(owner)) -> dict:
+    """Removes a visitor (sign-in stops at once; their practice book is archived) or cancels an unused invite (by code)."""
+    _owner_only(who)
+    ok = _main().remove_person(b.email)
+    arch = _archive_sandbox(b.email) if "@" in b.email else None
+    return {"ok": ok, "archived": arch}
+
+
+class Extend(BaseModel):
+    email: str
+    days: float = 3
+
+
+@app.post("/v3/people/extend")
+def people_extend(b: Extend, who: str = Depends(owner)) -> dict:
+    """Madhav gives a visitor more practice days, counted from now."""
+    _owner_only(who)
+    try:
+        return _main().extend(b.email, max(0.5, min(float(b.days), 90)))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v3/practice/reset")
+def practice_reset(who: str = Depends(owner)) -> dict:
+    """A visitor starts over: their practice book goes back to $1,000 and an empty history (the old one is archived)."""
+    if not who.startswith("guest:"):
+        raise HTTPException(status_code=400, detail="Reset is for practice accounts; Madhav's books are the real paper books.")
+    return {"ok": True, "archived": _archive_sandbox(who.split(":", 1)[1])}
+
+
+class Setup(BaseModel):
+    name: str | None = None
+    coins: list[str] | None = None
+    tz: str | None = None
+    experience: str | None = None
+    crypto: str | None = None
+    risk: str | None = None
+    voice: str | None = None
+    theme: str | None = None
+    tour_done: bool = False
+    capital: int | None = None
+    start_trading: bool = False
+    method: str | None = None
+    paused: bool | None = None
+    auto: bool | None = None
+
+
+@app.post("/v3/me/setup")
+def me_setup(b: Setup, who: str = Depends(owner)) -> dict:
+    """Profile answers for any account (build plan 1.1): a visitor's setup steps, and everyone's time zone, voice, theme and
+    experience. The owner's account keeps no setup steps (name, coins, capital, start are visitor steps)."""
+    from jarvis.service import account
+
+    body = b.model_dump()
+    if not is_guest(who):
+        body = {k: body.get(k) for k in ("tz", "voice", "theme", "experience", "crypto", "risk")}
+    try:
+        r = account.update(J(), body, who.split(":", 1)[-1] if is_guest(who) else "")
+        return r if is_guest(who) else {"profile": account.owner_profile(J())}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+class Order(BaseModel):
+    side: str = "buy"
+    coin: str
+    usd: float | None = None
+    stop: float | None = None
+    target: float | None = None
+    reason: str = ""
+    confirm: bool = False
+
+
+@app.post("/v3/manual/order")
+def manual_order(b: Order, who: str = Depends(owner)) -> dict:
+    """'Trade myself': a paper order in the caller's own book. Without confirm it only previews (nothing changes)."""
+    p = {"side": b.side, "coin": b.coin, "usd": b.usd, "stop": b.stop, "target": b.target, "reason": b.reason}
+    try:
+        px = J().prices()
+        return MN().execute(who, p, px, trigger="direct") if b.confirm else MN().preview(p, px)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/v3/me")
 def me(who: str = Depends(owner)) -> dict:
     g = who.startswith("guest:")
-    return {"who": who.split(":", 1)[-1], "guest": g,
+    if g:
+        from jarvis.service import account as visitor
+
+        v = visitor.me(J())
+        return {"who": who.split(":", 1)[-1], "guest": True, "name": v["profile"].get("name") or _main().name_of(who), **v,
+                "needs_you": len(M().pending()),
+                "practice_note": "Your own practice account: paper money only, your coins, your trades. Nothing here is real money."}
+    from jarvis.service import account
+
+    return {"who": who.split(":", 1)[-1], "guest": g, "name": _main().name_of(who), "profile": account.owner_profile(J()), "stage": "owner",
+            "needs_you": len(M().pending()) + (1 if J()._layer().pending() else 0),
             "practice_note": "Practice mode: everything works like Madhav's app, but your orders, alerts and changes go to your own "
                              "practice book. Kill switch, autopilot and portfolio approvals are locked." if g else ""}
+
+
+class OnboardIn(BaseModel):
+    step: str
+    value: Any = None
+    tz: str | None = None
+
+
+@app.get("/v3/onboard")
+def onboard_get(who: str = Depends(owner)) -> dict:
+    """Plan Phase 5: the first conversation, where this visitor is in it (Madhav's account has none)."""
+    if not is_guest(who):
+        return {"step": "done", "done": True, "log": []}
+    from jarvis.service import onboard
+
+    return onboard.prompt(J())
+
+
+@app.post("/v3/onboard")
+def onboard_post(b: OnboardIn, who: str = Depends(owner)) -> dict:
+    if not is_guest(who):
+        return {"step": "done", "done": True, "log": []}
+    from jarvis.service import onboard
+
+    try:
+        return onboard.answer(J(), b.step, b.value, who.split(":", 1)[-1], b.tz)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v3/onboard/restart")
+def onboard_restart(who: str = Depends(owner)) -> dict:
+    if not is_guest(who):
+        return {"step": "done", "done": True, "log": []}
+    from jarvis.service import onboard
+
+    onboard.start_over(J())
+    return onboard.prompt(J())
+
+
+class OnboardCapital(BaseModel):
+    amount: int
+
+
+class OnboardMode(BaseModel):
+    mode: str
+
+
+@app.post("/v3/onboard/capital")
+def onboard_capital(b: OnboardCapital, who: str = Depends(owner)) -> dict:
+    if not is_guest(who):
+        raise HTTPException(status_code=400, detail="only practice accounts")
+    from jarvis.service import onboard
+
+    try:
+        return onboard.set_capital(J(), b.amount, who.split(":", 1)[-1])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v3/onboard/mode")
+def onboard_mode(b: OnboardMode, who: str = Depends(owner)) -> dict:
+    if not is_guest(who):
+        raise HTTPException(status_code=400, detail="only practice accounts")
+    from jarvis.service import onboard
+
+    try:
+        return onboard.set_mode(J(), b.mode, who.split(":", 1)[-1])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/v3/onboard/demo")
+def onboard_demo(who: str = Depends(owner)) -> dict:
+    """The DEMO trade from the first conversation (never in a book); gone at the first sign-out or after 24 hours."""
+    if not is_guest(who):
+        return {"demo": None}
+    from jarvis.service import onboard
+
+    return {"demo": onboard.demo(J())}
+
+
+@app.post("/v3/onboard/demo/clear")
+def onboard_demo_clear(who: str = Depends(owner)) -> dict:
+    if is_guest(who):
+        from jarvis.service import onboard
+
+        onboard.clear_demo(J())
+    return {"ok": True}
+
+
+class WebSub(BaseModel):
+    sub: dict
+    device: str = ""
+
+
+@app.get("/v3/push/web")
+def web_push_info(who: str = Depends(owner)) -> dict:
+    """Plan 1.7: the key a browser needs to subscribe, how many of this account's devices are on, and whether email is set up."""
+    from jarvis.service import account, notify
+
+    return {"key": notify.public_key(), "devices": notify.devices(J()), "email_ready": notify.email_ready(),
+            "email_alerts": bool(account.profile(J().db).get("email_alerts"))}
+
+
+@app.post("/v3/push/web/subscribe")
+def web_push_subscribe(b: WebSub, who: str = Depends(owner)) -> dict:
+    from jarvis.service import notify
+
+    try:
+        r = notify.subscribe(J(), b.sub, b.device)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    notify.web_push(J(), "Notifications are on", "Ananta will tell you here when a watch fires or something needs you.")
+    return r
+
+
+@app.post("/v3/push/web/email")
+def web_push_email(b: dict, who: str = Depends(owner)) -> dict:
+    from jarvis.service import account, notify
+
+    if not notify.email_ready():
+        raise HTTPException(status_code=400, detail="Email is not set up on the service yet.")
+    J().db.execute("INSERT OR REPLACE INTO visitor_profile VALUES ('email_alerts', ?)", (json.dumps(bool(b.get("on"))),))
+    J().db.commit()
+    return {"email_alerts": bool(account.profile(J().db).get("email_alerts"))}
+
+
+_PUB = {"t": 0.0, "v": None}
+
+
+@app.get("/v3/public/status")
+def public_status() -> dict:
+    """The public front page (no sign-in): a few honest, live numbers about Ananta. Nothing personal, no trades, no accounts.
+    Cached for 10 minutes."""
+    import time as _t
+
+    if _PUB["v"] and _t.time() - _PUB["t"] < 600:
+        return _PUB["v"]
+    out: dict = {"paper_only": True}
+    try:
+        from jarvis.service import evidence_live, views
+
+        s = evidence_live.summary(_main())
+        res = {x["key"]: x for x in (s.get("results") or {}).get("items") or []}
+        out |= {"days": s.get("headline", "").split(" of paper")[0].replace("Day ", "") or None,
+                "events": (s.get("results") or {}).get("events"), "goal_events": (s.get("results") or {}).get("goal_events"),
+                "real_per_100": (res.get("real") or {}).get("avg_usd"), "random_per_100": (res.get("random") or {}).get("avg_usd"),
+                "trades_scored": sum((res.get(k) or {}).get("closed") or 0 for k in ("real", "would_be", "no_type", "random")),
+                "rebuilds": (s.get("reconstruction") or {}).get("total"), "mismatches": (s.get("reconstruction") or {}).get("mismatches"),
+                "reviews": len(views.evidence_collected(_main()).get("forwarded") or []), "coins_live": 10}
+        try:
+            from jarvis.service import registry as _reg
+
+            out["coins_watched"] = (_reg.load(_main()).get("counts") or {}).get("listed")
+        except Exception:  # noqa: BLE001
+            pass
+    except Exception as exc:  # noqa: BLE001
+        out["error"] = str(exc)[:80]
+    _PUB.update(t=_t.time(), v=out)
+    return out
+
+
+@app.get("/v3/costs")
+def costs_summary(days: int = 30, who: str = Depends(owner)) -> dict:
+    """Where the AI money goes, by job and model, for every account together (Madhav only)."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav sees the costs.")
+    from jarvis.service import costs
+
+    m = _main()
+    dbs = [m.db] + [_sandbox("guest:" + em).db for (em,) in m.db.execute("SELECT email FROM users").fetchall()]
+    return costs.summary(dbs, days)
+
+
+_ACC = {"running": False}
+
+
+@app.get("/v3/acceptance")
+def acceptance_latest(who: str = Depends(owner)) -> dict:
+    """Phase 6.1: the latest run of the ten automatic checks and the no-leak test."""
+    from jarvis.service import acceptance
+
+    return {"running": _ACC["running"], "latest": acceptance.latest() if not is_guest(who) else None}
+
+
+@app.post("/v3/acceptance/run")
+def acceptance_run(who: str = Depends(owner)) -> dict:
+    """Run the checks now, in the background (a few minutes; counted on the Test lab budget)."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav can run the acceptance checks.")
+    if _ACC["running"]:
+        return {"running": True}
+    from jarvis.service import acceptance
+
+    main = _main()
+    vis = _sandbox("guest:" + acceptance.TEST_VISITOR)
+
+    def go():
+        _ACC["running"] = True
+        try:
+            acceptance.run(main, vis)
+        finally:
+            _ACC["running"] = False
+
+    _threading.Thread(target=go, daemon=True).start()
+    return {"running": True}
+
+
+@app.get("/v3/concepts/next")
+def concept_next(who: str = Depends(owner)) -> dict:
+    """Plan 4.5: the next idea to introduce to this account (once each, when it first matters), or none."""
+    from jarvis.service import concepts
+
+    return {"concept": concepts.due(J())}
+
+
+@app.post("/v3/concepts/{cid}/seen")
+def concept_seen(cid: str, who: str = Depends(owner)) -> dict:
+    from jarvis.service import concepts
+
+    try:
+        return concepts.seen(J(), cid)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/v3/ask/chips")
+def ask_chips(days: int = 7, who: str = Depends(owner)) -> dict:
+    """Plan 4.1: the weekly table of chips shown and tapped, to refine them."""
+    from jarvis.service import ask as _a
+
+    return {"days": days, "chips": _a.chip_stats(J(), days)}
 
 
 @app.get("/v3/chain")
@@ -395,6 +1155,9 @@ def chain_board(who: str = Depends(owner)) -> dict:
     """Madhav's decision chain for all 10 coins: where each one stops (fail-closed) and why."""
     from jarvis.service import chain
 
+    if is_guest(who):                                   # a visitor's chain counts only their own trades (plan 1.2a, 3.5)
+        from jarvis.service import account
+        return chain.board(J(), book=account.chain_book(J()))
     return chain.board(J())
 
 
@@ -484,6 +1247,49 @@ def brain_report(days: int = 30, who: str = Depends(owner)) -> dict:
     from jarvis.service import brain
 
     return brain.report(J(), days)
+
+
+@app.get("/v3/brain/trade/{trade_id}")
+def brain_trade(trade_id: str, who: str = Depends(owner)) -> dict:
+    from jarvis.service import brain
+
+    return _run(brain.trade_detail, J(), trade_id)
+
+
+@app.get("/v3/officer")
+def officer_notes(n: int = 7, who: str = Depends(owner)) -> dict:
+    from jarvis.service import officer
+
+    return {"notes": officer.latest(J(), n)}
+
+
+@app.get("/v3/verdicts")
+def verdicts(who: str = Depends(owner)) -> dict:
+    """Every losing paper trade by its strategy's verdict, and the strategy list (Madhav, Oct 13)."""
+    from jarvis.service import strategy_status
+
+    return {**strategy_status.losing_trades(J()), "strategies": strategy_status.load().get("strategies") or {}}
+
+
+@app.get("/v3/situations")
+def situations(days: int = 7, who: str = Depends(owner)) -> dict:
+    from jarvis.service import learning
+
+    return _run(learning.weekly_review, J(), days, False)
+
+
+@app.get("/v3/book500")
+def book500(who: str = Depends(owner)) -> dict:
+    from jarvis.service import ndax_book
+
+    return ndax_book.status(J())
+
+
+@app.post("/v3/book500/resume")
+def book500_resume(who: str = Depends(owner)) -> dict:
+    from jarvis.service import ndax_book
+
+    return ndax_book.resume(J())
 
 
 @app.get("/v3/missed")
@@ -579,9 +1385,16 @@ def cockpit(who: str = Depends(owner)) -> dict:
     return views.cockpit(J())
 
 
+def _with_country(ctx, request: Request):
+    """The country Cloudflare saw the request come from (CF-IPCountry): who might be speaking on Madhav's account (Oct 11)."""
+    c = request.headers.get("cf-ipcountry")
+    return {**(ctx if isinstance(ctx, dict) else {}), "country": c} if c else ctx
+
+
 @app.post("/v3/ask")
-def ask_q(b: Question, who: str = Depends(owner)) -> dict:
-    return _run(lambda: A().ask(who, b.text, b.thread, b.provider, b.mode, None, b.context, source="eval" if b.source == "eval" else ""))
+def ask_q(b: Question, request: Request, who: str = Depends(owner)) -> dict:
+    ctx = _with_country(b.context, request)
+    return _run(lambda: A().ask(who, b.text, b.thread, b.provider, b.mode, None, ctx, source="eval" if b.source == "eval" else ""))
 
 
 @app.post("/v3/ask/second")
@@ -610,9 +1423,51 @@ def ask_threads(who: str = Depends(owner)) -> dict:
     return {"threads": A().threads()}
 
 
+@app.get("/v3/ask/last")
+def ask_last(who: str = Depends(owner)) -> dict:
+    """The newest real conversation: the app continues it when it is under 6 minutes old, else offers it in a box (Oct 11)."""
+    return {"last": A().last_conversation(), "continue_minutes": 6}
+
+
+@app.post("/v3/ask/speaker")
+def ask_speaker(body: dict, who: str = Depends(owner)) -> dict:
+    """Who Ananta talks with in a conversation: a person's id or name hands it over, null brings Madhav back (the chip's "I'm back")."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Introductions work in Madhav's account only.")
+    from jarvis.service import ask as askmod, people
+
+    th = str(body.get("thread") or "")
+    if not th:
+        raise HTTPException(status_code=400, detail="thread missing")
+    j = A().j
+    if body.get("person"):
+        p = people.find(str(body["person"])) or people.resolve(str(body["person"]))
+        if not p:
+            raise HTTPException(status_code=404, detail="not one of Madhav's people")
+        people.set_speaker(j, th, p)
+        return {"talking_to": askmod._speaker(j, th), "opener": people.opener(p)}
+    people.back(j, th)
+    return {"talking_to": None}
+
+
+@app.get("/v3/people")
+def people_list(who: str = Depends(owner)) -> dict:
+    """Madhav's people (names and relations only) for the app's "talking with" menu; never shown to guests."""
+    if is_guest(who):
+        return {"people": []}
+    from jarvis.service import people
+
+    return {"people": [{"id": p["id"], "name": p["names"][0], "relation": p.get("relation")} for p in people.load().get("people") or []]}
+
+
 @app.get("/v3/ask/thread/{thread}/export")
 def ask_export(thread: str, who: str = Depends(owner)) -> dict:
     return {"text": _run(A().export, thread)}
+
+
+@app.post("/v3/ask/thread/{thread}/delete")
+def ask_delete(thread: str, who: str = Depends(owner)) -> dict:
+    return A().delete_thread(thread)
 
 
 @app.get("/v3/ask/thread/{thread}")
@@ -637,6 +1492,10 @@ def trades_list(who: str = Depends(owner)) -> dict:
 
 @app.get("/v3/markets")
 def markets(who: str = Depends(owner)) -> dict:
+    if is_guest(who):                                   # a visitor's Markets: only the coins they picked
+        from jarvis.service import account as visitor
+
+        return visitor.markets(J())
     return views.markets(J())
 
 
@@ -750,8 +1609,8 @@ class VoiceTurn(BaseModel):
 
 
 @app.post("/v3/voice/turn")
-def voice_turn(b: VoiceTurn, who: str = Depends(owner)) -> dict:
-    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, b.context, source="eval" if b.source == "eval" else "",
+def voice_turn(b: VoiceTurn, request: Request, who: str = Depends(owner)) -> dict:
+    return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, _with_country(b.context, request), source="eval" if b.source == "eval" else "",
                                        prefix=b.prefix))
 
 
@@ -828,6 +1687,12 @@ def background_jobs() -> dict:
     except Exception as exc:  # noqa: BLE001
         out["missed_error"] = str(exc)[:200]
     try:
+        from jarvis.service import evidence_live
+
+        out["rebuild_log"] = evidence_live.record_rebuild(J())          # keep every nightly rebuild (the file is overwritten)
+    except Exception as exc:  # noqa: BLE001
+        out["rebuild_log_error"] = str(exc)[:200]
+    try:
         from jarvis.service import reviews
 
         out["trade_reviews"] = reviews.review_closed(J())
@@ -850,7 +1715,7 @@ def background_jobs() -> dict:
     if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
         kind = AL().due_brief()
         if kind:
-            out["brief"] = AL().write_brief(kind, lambda q: a.ask("ananta (scheduled)", q, mode="worker"), push=_push)
+            out["brief"] = AL().write_brief(kind, lambda q: a.ask("ananta (scheduled)", q, mode="deep"), push=_push)
     return out
 
 
@@ -877,7 +1742,7 @@ def brief_now(who: str = Depends(owner)) -> dict:
     from zoneinfo import ZoneInfo
 
     kind = "evening" if datetime.now(ZoneInfo("America/Toronto")).hour >= 17 else "morning"
-    r = AL().write_brief(kind, lambda q: A().ask(who, q, mode="worker"))
+    r = AL().write_brief(kind, lambda q: A().ask(who, q, mode="deep"))
     if not r:
         raise HTTPException(status_code=503, detail="Could not write the brief right now; try again in a minute.")
     return {"brief": AL().latest_brief()}
@@ -885,7 +1750,7 @@ def brief_now(who: str = Depends(owner)) -> dict:
 
 @app.get("/v3/inbox")
 def inbox(who: str = Depends(owner)) -> dict:
-    ps = J()._layer().pending()
+    ps = [] if is_guest(who) else J()._layer().pending()     # the trend portfolio's suggestions are Madhav's, never a visitor's
     return {"actions": M().pending(), "portfolio": ps, "alerts_active": len(AL().list(include_done=False)),
             "count": len(M().pending()) + (1 if ps else 0)}
 
@@ -1005,7 +1870,7 @@ def voice_answer(b: AnswerVoice, who: str = Depends(owner)) -> dict:
     from jarvis.service import speech
 
     if A().setting("voice_enabled") != "1":
-        raise HTTPException(status_code=400, detail="Voice is switched off in the Cockpit")
+        raise HTTPException(status_code=400, detail="Voice is switched off under More › Controls")
     key = speech.prepare_answer(b.sentences, b.voice, b.speed)
     if not b.wait:
         return {"id": key}
@@ -1054,7 +1919,7 @@ def voice_prepare(b: SpeakReq, who: str = Depends(owner)) -> dict:
     from jarvis.service import speech
 
     if A().setting("voice_enabled") != "1":
-        raise HTTPException(status_code=400, detail="Voice is switched off in the Cockpit")
+        raise HTTPException(status_code=400, detail="Voice is switched off under More › Controls")
     return {"ids": speech.prepare(b.sentences, b.voice), "voices": list(speech.VOICES)}
 
 

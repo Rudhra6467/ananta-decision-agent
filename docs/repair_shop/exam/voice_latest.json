@@ -1,0 +1,70 @@
+{
+ "t": 1791704709,
+ "day": "2026-10-11",
+ "understood": 10,
+ "of": 10,
+ "pass": true,
+ "rows": [
+  {
+   "id": "btc",
+   "said": "How is Bitcoin doing?",
+   "heard": "How is Bitcoin doing?",
+   "ok": true
+  },
+  {
+   "id": "missed",
+   "said": "What did we miss today?",
+   "heard": "What did we miss today?",
+   "ok": true
+  },
+  {
+   "id": "book",
+   "said": "How is the five hundred dollar book?",
+   "heard": "How is the $500 book?",
+   "ok": true
+  },
+  {
+   "id": "health",
+   "said": "Is everything running?",
+   "heard": "Is everything running?",
+   "ok": true
+  },
+  {
+   "id": "watching",
+   "said": "What are you watching?",
+   "heard": "What are you watching?",
+   "ok": true
+  },
+  {
+   "id": "chart",
+   "said": "Open the Ethereum chart.",
+   "heard": "Open the Ethereum chart.",
+   "ok": true
+  },
+  {
+   "id": "trades",
+   "said": "How are your trades doing?",
+   "heard": "How are your trades doing?",
+   "ok": true
+  },
+  {
+   "id": "buy",
+   "said": "Can we buy today?",
+   "heard": "Can we buy today?",
+   "ok": true
+  },
+  {
+   "id": "changed",
+   "said": "What changed since this morning?",
+   "heard": "What changed since this morning?",
+   "ok": true
+  },
+  {
+   "id": "dial",
+   "said": "Is the dial open?",
+   "heard": "Is the dial open?",
+   "ok": true
+  }
+ ],
+ "note": "spoken by the Mac's voice (say), heard by the app's speech-to-text"
+}

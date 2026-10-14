@@ -14,6 +14,9 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `knowledge/FRAMEWORK.md`: Madhav's framework: decision chain Regime > Location > Trigger > Invalidation > Risk > Exposure, fail-closed, structural stops, signals as evidence, how to talk (simple first). Open for any "why no trade / how do you decide" question.
 - `knowledge/PLAYBOOK.md`: how Ananta reacts: the order of questions (data, market allowed, zone, plan, evidence, simple answer) and what to do when a coin enters a zone, a zone breaks or holds, your setup shows, or Madhav asks 'should I buy'. Open for 'what should we do now'.
 - `knowledge/watches.json`: the watch registry: every watch by section (market weather, coin structure and zones, setups, risk and exits, news and events, baselines), its timeframe and trigger (candle close or live price level), where it runs, entry, exit, size, evidence book and status. Open for "what are we watching", "how do I add a setup", "what does the eye do".
+- `knowledge/status_cards.json`: one status card per idea Ananta knows: evidence (SUPPORTED, WEAK, CONFLICTING, INSUFFICIENT, REJECTED, UNTESTED) and permission (PAPER, CONTEXT, OFF), with the reason and reviews. Open for "can we trade on X", "is X proven".
+- `knowledge/acceptance_gate.json`: the Engine Acceptance Gate: 27 checks (data, engine, strategy, agent, operations, experience) with how each is measured and its pass mark; the build is locked only when all pass. Open for "is the engine ready", "what is left before the App Store".
+- `knowledge/glossary.json`: plain words for every technical term Ananta uses (the 50-day average price, momentum, the daily range, zones, independent events...), with OUR exact setting and how to say it; MACD and VWAP marked "not used by Ananta". Open for "what does X mean" or "explain it simply".
 - `knowledge/layers.json`: the layer map: every part of Ananta in 9 layers (0 Madhav and safety ... 8 interface) with status, whether it may act, what it rests on and feeds, and the known gaps. Open for "how do the parts connect".
 - `knowledge/hypotheses.json`: every teacher idea (H01-H18) and policy (P01-P03) with its source, test status and what our data said. Open for "is X true / does X work".
 - `VARIABLE_REGISTRY.md`: variables Ananta tested itself (KEEP / WATCH / DROP / UNTESTED), the strongest evidence class. Open for "what do we know for sure".
@@ -38,7 +41,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 
 ## Repair shop (changes tested before they go in)
 - `repair_shop/REVIEW_1.md`, `repair_shop/REVIEW_1_RESULTS.md`: rule changes v0.2: none passed, rulebook v0 stays.
-- `repair_shop/REVIEW_2.md`, `repair_shop/REVIEW_2_RESULTS.md`: learning from 37 other traders' 7,441 trades.
+- `repair_shop/REVIEW_2.md`, `repair_shop/REVIEW_2_RESULTS.md`: reconstruction of other traders: 65 Hyperliquid accounts collected, 37 traders' 7,441 trades on our coins studied (Sep 30): a tiny first-hour edge, no persistent skill, better when they bought weakness (-> review #3, failed after costs). A one-time study, not a daily job.
 - `repair_shop/REVIEW_3.md`, `repair_shop/REVIEW_3_RESULTS.md`: "buy weakness" variants: all lost after costs.
 - `repair_shop/REVIEW_4.md`, `repair_shop/REVIEW_4_RESULTS.md`: portfolio trend exposure with crash protection: T3 passed.
 - `repair_shop/REVIEW_5.md`, `repair_shop/REVIEW_5_RESULTS.md`: Madhav's reads (capitulation, higher-low retest, quiet base): they caught all four of his buys, but none beat a random day on its own in 2018-2023.
@@ -63,11 +66,35 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_12.md`, `research/REVIEW_12_RESULTS.md`: T3's exit vs trailing stops: looser exits won big in 2018-23 and lost in 2024-26; T3's 20-day exit survives both.
 - `research/REVIEW_13.md`, `research/REVIEW_13_RESULTS.md`: the remaining teacher ideas: H07's short RSI dip trade promising (+4% per trade, 70% wins, both periods); first pullback, false break, book stop add nothing; breadth too few samples.
 - `research/REVIEW_14.md`, `research/REVIEW_14_RESULTS.md`: the short dip trade (H07) beat ordinary uptrend days traded the same way in both periods (+3.9%, +5.6% per trade, about 70% wins), a few events short of the bar; the most consistent result so far.
+- `research/AUDIT_V1.md`: research audit v1 (Oct 4): every analysis of the prototype rated and ranked on a fixed rubric (164 rows in `research/audit_v1.json`), with DUMP for what is not worth carrying forward and the re-test queue.
+- `research/REVIEW_15.md`: pre-registration for re-testing T3, H07 and your setups on the full crypto universe from the lake (tiers LAB10 as a data check, TOP30, ALL; original pass rules, pessimistic costs for thin coins).
+- `research/REVIEW_15_RESULTS.md`: on the lake: T3 and H07 pass on the 30 most-traded coins, fail on all 120; M2a/M3a/M2a-G not supported; COCOS and BNX token swaps cut.
+- `research/REVIEW_16_RESULTS.md`: zones on 120 coins: new swing zones and the 200-day average pass (z 4.4); overlapping zones fall under the bar; market allowed (F6) holds everywhere.
+- `research/REVIEW_17_RESULTS.md`: coin filters: relative strength vs BTC hurts T3; breadth helps 2024-26 but hurts 2018-23 (fail); H07 filters too few events.
+- `research/REVIEW_18_RESULTS.md`: stops: structural beats tight (H14 supported) but H07 is best without a stop; a 25% disaster stop adds nothing to T3 (kept as a live guard); the BTC gate is T3's crash insurance.
+- `research/REVIEW_16.md`, `research/REVIEW_17.md`, `research/REVIEW_18.md`, `research/REVIEW_20.md`, `research/REVIEW_21.md`, `research/REVIEW_23.md`: the pre-registrations of reviews #16-#18, #20, #21 and #23 (the question, the data split and the pass rule, written before the test ran).
+- `research/REVIEW_19.md`, `research/REVIEW_19_RESULTS.md`: buying pressure, funding and open interest as filters for T3-B and H07: nothing passes in both periods; kept as context only.
+- `research/REVIEW_20_RESULTS.md`: T3-B sizing (re-size only coins far from their share): passes on 10 and 30 coins, a third of the trades, costs only 5-15% lower; nothing survives double costs. Now the default.
+- `research/REVIEW_21_RESULTS.md`: E3 support bounce passes on 30 coins by the rule but loses money since 2024 (not tradable); B3 volume breakout fails everywhere.
+- `research/REVIEW_22.md`, `research/REVIEW_22_RESULTS.md`: the survivorship check on the top 30 as it was each month (191 coins): T3-B lost 22.5% in 2024-26 (holding lost 76%) and fails its rule; H07 misses by a hair (z 2.45); today's top-30 results were flattered.
+- `research/REVIEW_23_RESULTS.md`: the outside world: Nasdaq, US dollar, VIX and Fear & Greed filters all fail on T3-B; selling into extreme greed is the worst idea tested.
+- `research/REVIEW_25.md`, `research/REVIEW_25_RESULTS.md`: the exposure dial (Oct 10, 2026). On BTC with NDAX costs, Bitcoin above its 50-day AND 200-day averages (GATE50_200) beats the 50-day gate and holding in both periods (return per unit of fall 0.74 and 0.83); it becomes dial v1. GATE50 is the benchmark every strategy must beat.
+- `research/REVIEW_26.md`, `research/REVIEW_26_RESULTS.md`: six daily rules × dial state × tier on 120 coins, against random entries after costs. Only one cell passes in both periods: H07 on tier A while the dial is CLOSED (+5.1% a trade over random, shrunk). Everything else has no measured edge; the brain ranks by this table.
+- `research/REVIEW_24.md`: pre-registration of review #24, tuning the deep-dip buy (E6): four entry/exit variants against random entries, both periods, after costs (Madhav's request #15).
+- `research/REVIEW_24_RESULTS.md`: review #24 results: no E6 variant passes (no bell, 2% room); every one loses after costs in both periods and none beats random in 2024-2026. The zone variants were not run (no 15-minute zone history).
+- `research/REVIEW_27.md`, `research/REVIEW_27_RESULTS.md`: stops on dip buys and zone touches. H07 dips with no stop and a 10-day exit earned +6.5% / +2.4% a trade vs +0.5% / +0.4% with a tight stop; a plain 200-day touch loses with every exit. The brain's DIP plan now exits by time only.
+- `research/REVIEW_28.md`: the brain's trigger points follow the evidence (Explorer 0, zone entry 0.5 or 1.5 when supported, Hunter and Squeeze 0.5, attention 1.0; daily rules by measured edge).
+- `research/BOOK500.md`: the $500 NDAX paper book (CAD, NDAX coins only): core 60% by the dial, measured edges 30%, judgment 10%, 0.5% risk a trade, the D12 brakes, and its 2018-2026 backtest against holding Bitcoin and the 50-day hurdle. Also the retirement rule: a setup is retired when its last 20 closed trades average below zero after costs, or run more than 3 points a trade under its backtest.
 
 ## Safety and operations
 - `GUEST_GUIDE.md`: a guide for a friend trying the app: how to open it, the tabs, the coins, first questions, the rule gates, making a paper trade, what practice mode locks.
 - `RUNBOOK_SAFETY.md`: stop, flatten, roll back, resume (copy-paste commands).
 - `SAFETY_GATES_LOCK.md`: safety gates that live outside the AI.
+- `UNIVERSE_RULE_V2.md`: the live universe (Oct 9, 2026): every Binance USDT coin Ananta watches, tiers A/B/C by daily trading, can-buy flags, paper costs, what runs on every coin, what earns promotion, the brain's daily budget.
+- `GO_LIVE_CHECKLIST.md`: the engine in order since Oct 10 (exposure dial, measured edge, brain picks a tested exit plan, 0.5% risk per trade in R, the benchmark hurdle, paper-vs-backtest fidelity) and the boxes each stage toward real money needs. Since Oct 11 Stage 1 also needs every Acceptance Gate check at PASS and uses the $500 NDAX book.
+- `LIVE_MONEY_SAFETY.md`: the D12 brakes (2% day, 4% week, 4 losses in a row, 15% fall = paused until Madhav resumes), stops resting on NDAX at 6 × ATR (the backtest of 2, 4 and 6 × ATR), the NDAX kill switch plan, the incident runbook, API key and password rotation steps, and the monthly rehearsal checklist.
+- `knowledge/MARKETS_PLAN.md`: crypto today on paper; the American (NYSE/Nasdaq), Indian (NSE/BSE: hours, Nifty, SEBI, F&O risks, broker APIs, costs) and Canadian (TSX) market agents planned next, what each reuses, and the proposed order.
+- `knowledge/strategy_status.json`: one list of every strategy that holds or held paper money with its status (ACTIVE, UNDER_REVIEW, RETIRED, PARKED, EVIDENCE) and verdict (won't take again, will try again, rules modified) and why. Retired: the daily zone touch and the 15-minute Explorer (Oct 13). The headline counts only what still trades; retired records are kept as evidence.
 - `JARVIS_TEST_PLAN.md`: how Jarvis / Ask Ananta is tested (automatic suite + hands-on checks).
 - `LOCAL_LOOP.md`: running the agent locally without the website.
 

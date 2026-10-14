@@ -1,6 +1,8 @@
 // Microphone with automatic end-of-speech detection that adapts to the room.
-// It first listens ~0.4 s to learn the background level, then treats "clearly louder than the room" as speech and
-// ends the turn after ~1.1 s back at room level. Hard limit 25 s per turn. Used by dictation and by voice mode.
+// It first listens ~0.4 s to learn the background level, then treats "clearly louder than the room" as speech. The turn ends
+// after ~1 s of quiet, where quiet is measured against YOUR voice, not only the room (Madhav, Oct 11: it kept "hearing" for long
+// after he finished when the room got louder): well below the loudest part of what you said, or a steady hum with none of
+// speech's ups and downs. Hard limit 20 s per turn. Used by dictation and by voice mode.
 //
 // Every start / stop runs one after another (a small queue), so quick taps or overlapping restarts can never
 // tangle the recorder. start() is safe to call while it is already listening.
@@ -19,10 +21,16 @@ const WAV = {
 } as any;
 
 export type MicStatus = "idle" | "listening" | "hearing" | "sending";
-const CALIBRATE_MS = 400, END_SILENCE_MS = 1100, MAX_TURN_MS = 25000, NO_SPEECH_MS = 15000, DEAD_MS = 3000;
+const CALIBRATE_MS = 400, END_SILENCE_MS = 1000, MAX_TURN_MS = 20000, NO_SPEECH_MS = 15000, DEAD_MS = 3000;
+const BELOW_PEAK_DB = 18, STEADY_DB = 5, STEADY_N = 12, MIN_TURN_MS = 1200;   // quiet = 18 dB under your voice, or 1.2 s of flat hum
+
+// What the last recording really is: WAV on the phone; on the website the browser records WebM (Chrome) or MP4 (Safari).
+let lastMime = "audio/wav";
+export const micMime = () => lastMime;
 
 async function toBase64(uri: string): Promise<string> {
   const blob = await (await fetch(uri)).blob();
+  lastMime = (blob.type || "audio/wav").split(";")[0];
   return await new Promise((res, rej) => {
     const fr = new FileReader();
     fr.onerror = () => rej(new Error("could not read the recording"));
@@ -37,7 +45,8 @@ export function useMic(onTurn: (b64: string) => void, onNoSpeech?: () => void) {
   const [status, setStatusS] = useState<MicStatus>("idle");
   const statusRef = useRef<MicStatus>("idle");
   const recordingRef = useRef(false);
-  const v = useRef({ start: 0, floor: -60, samples: [] as number[], spoke: false, lastLoud: 0, loudRun: 0, done: true, heardAny: false, gen: 0 });
+  const v = useRef({ start: 0, floor: -60, samples: [] as number[], spoke: false, lastLoud: 0, loudRun: 0, done: true, heardAny: false, gen: 0,
+    peak: -160, spokeAt: 0, win: [] as number[] });
   const cb = useRef(onTurn), cbNo = useRef(onNoSpeech);
   cb.current = onTurn;
   cbNo.current = onNoSpeech;
@@ -72,7 +81,8 @@ export function useMic(onTurn: (b64: string) => void, onNoSpeech?: () => void) {
           return false;
         }
         rec.record();
-        v.current = { start: Date.now(), floor: -60, samples: [], spoke: false, lastLoud: 0, loudRun: 0, done: false, heardAny: false, gen: v.current.gen + 1 };
+        v.current = { start: Date.now(), floor: -60, samples: [], spoke: false, lastLoud: 0, loudRun: 0, done: false, heardAny: false, gen: v.current.gen + 1,
+          peak: -160, spokeAt: 0, win: [] };
         setStatus("listening");
         return true;
       } catch {
@@ -121,15 +131,21 @@ export function useMic(onTurn: (b64: string) => void, onNoSpeech?: () => void) {
       x.samples = [];
     }
     const thr = Math.min(x.floor + 10, -30);
-    if (m > thr) {
+    if (x.spoke) x.peak = Math.max(x.peak, m);
+    const bar = x.spoke ? Math.max(thr, x.peak - BELOW_PEAK_DB) : thr;     // after you start: "loud" means close to your own voice
+    x.win.push(m);
+    if (x.win.length > STEADY_N) x.win.shift();
+    if (m > bar) {
       x.loudRun += 1;
       x.lastLoud = now;
-      if (x.loudRun >= 2 && !x.spoke) { x.spoke = true; setStatus("hearing"); }
+      if (x.loudRun >= 2 && !x.spoke) { x.spoke = true; x.spokeAt = now; x.peak = m; setStatus("hearing"); }
     } else {
       x.loudRun = 0;
       if (!x.spoke) x.floor = 0.97 * x.floor + 0.03 * m;          // follow slow changes in room noise
     }
     if (x.spoke && now - x.lastLoud > END_SILENCE_MS) { finish(true); return; }
+    if (x.spoke && now - x.spokeAt > MIN_TURN_MS && x.win.length >= STEADY_N &&                 // a flat hum (fan, TV) is not speech
+        Math.max(...x.win) - Math.min(...x.win) < STEADY_DB) { finish(true); return; }
     if (age > MAX_TURN_MS) { const spoke = x.spoke; finish(spoke).then(() => { if (!spoke) cbNo.current?.(); }); return; }
     if (!x.spoke && age > NO_SPEECH_MS) { finish(false).then(() => cbNo.current?.()); }
   }, [st.metering, st.durationMillis]);

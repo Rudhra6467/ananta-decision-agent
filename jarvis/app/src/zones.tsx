@@ -4,22 +4,22 @@ import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { askAbout } from "./context";
 import { Divider, Pill, T, price } from "./ui";
-import { C } from "./theme";
+import { C, live } from "./theme";
 
 const KIND: Record<string, string> = {
   SWING: "swing level", EXTREME: "52-week extreme", "AVERAGE-50": "50-day average", "AVERAGE-200": "200-day average", BASE: "base edge",
 };
 const kinds = (z: any) => (z.kinds ?? []).map((k: string) => KIND[k] ?? k).join(" + ") + (z.tier ? ` (${z.tier.toLowerCase()})` : "");
 const band = (z: any) => `${price(z.bot)} – ${price(z.top)}`;
-const OUT: Record<string, string> = { HELD: C.good, BROKEN: C.bad, OPEN: C.dim };
+const OUT: Record<string, string> = live(() => ({ HELD: C.good, BROKEN: C.bad, OPEN: C.dim }));
 
 function History({ h }: { h: string }) {
   return h === "SUPPORTED" ? <Pill text="HISTORY ✓" color={C.good} bg={C.goodSoft} /> : <Pill text="UNPROVEN" color={C.dim} bg={C.card2} />;
 }
 
-const LEVEL: Record<string, { text: string; color: string; bg: string }> = {
+const LEVEL: Record<string, { text: string; color: string; bg: string }> = live(() => ({
   HIGH: { text: "LOOK NOW", color: C.good, bg: C.goodSoft }, WATCH: { text: "WATCH", color: C.warn, bg: C.warnSoft }, LOW: { text: "QUIET", color: C.dim, bg: C.card2 },
-};
+}));
 
 export function ZonesBoard({ d }: { d: any }) {
   if (!d?.coins?.length) return <T small>{d?.note ?? "Waiting for daily candles."}</T>;

@@ -26,13 +26,37 @@ from typing import Any, Callable
 VERSION = "jarvis.service.v0.3"
 TOKEN_TTL_S = 12 * 3600
 MAX_FAILED, FAIL_WINDOW_S = 5, 15 * 60
+# Madhav, Oct 12: every sign-in ends after 3 hours without use (quiet background refreshes do not count as use), and every
+# visitor account created from Oct 12 lasts 3 days; after that, signing in shows a short feedback form instead of the app.
+IDLE_S = int(os.getenv("JARVIS_IDLE_S", str(3 * 3600)))
+GUEST_DAYS = float(os.getenv("JARVIS_GUEST_DAYS", "3"))
+TOUCH_EVERY_S = 60
+FEEDBACK_QUESTIONS = [
+    {"id": "used_for", "q": "What did you use Ananta for in these 3 days?", "kind": "text", "required": True},
+    {"id": "easy", "q": "How easy was Ananta to use?", "kind": "scale", "low": "Hard", "high": "Very easy", "required": True},
+    {"id": "clear", "q": "Did Ananta's answers and explanations make sense to you?", "kind": "scale", "low": "Not at all", "high": "Completely",
+     "required": True},
+    {"id": "best", "q": "What was the most useful thing Ananta did for you?", "kind": "text"},
+    {"id": "worst", "q": "What confused you, felt wrong, or did not work?", "kind": "text"},
+    {"id": "trust", "q": "Would you trust Ananta's reasons for a trade? Why or why not?", "kind": "text"},
+    {"id": "again", "q": "Would you keep using Ananta if you could?", "kind": "choice", "options": ["Yes", "Maybe", "No"], "required": True},
+    {"id": "else", "q": "Anything else you want Madhav to know?", "kind": "text"},
+]
+
+
+class AccountExpired(Exception):
+    """A visitor's practice days are over: signing in gives a feedback form instead of the app."""
+
+    def __init__(self, email: str, name: str, form_token: str | None, answered: bool):
+        super().__init__("your practice days are over")
+        self.email, self.name, self.form_token, self.answered = email, name, form_token, answered
 
 
 class _Rows:
     """A fully-read result (so the lock is never held while the caller iterates)."""
 
-    def __init__(self, rows: list, lastrowid=None):
-        self._rows, self.lastrowid = rows, lastrowid
+    def __init__(self, rows: list, lastrowid=None, rowcount: int = -1):
+        self._rows, self.lastrowid, self.rowcount = rows, lastrowid, rowcount
 
     def fetchone(self):
         return self._rows[0] if self._rows else None
@@ -56,7 +80,7 @@ class SafeDB:
     def execute(self, sql: str, params=()):
         with self.lock:
             cur = self.con.execute(sql, params)
-            return _Rows(cur.fetchall(), cur.lastrowid)
+            return _Rows(cur.fetchall(), cur.lastrowid, cur.rowcount)
 
     def executemany(self, sql: str, seq):
         with self.lock:
@@ -119,8 +143,9 @@ def _unb64(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
 
-def make_token(secret: str, sub: str, now: float, ttl: int = TOKEN_TTL_S) -> str:
-    body = _b64(json.dumps({"sub": sub, "exp": int(now + ttl), "iat": int(now)}).encode())
+def make_token(secret: str, sub: str, now: float, ttl: int = TOKEN_TTL_S, **extra: Any) -> str:
+    """extra claims: sid (the sign-in session, required for the app's tokens) or svc=1 (a script on this Mac, no session)."""
+    body = _b64(json.dumps({"sub": sub, "exp": int(now + ttl), "iat": int(now), **extra}).encode())
     sig = _b64(hmac.new(secret.encode(), body.encode(), hashlib.sha256).digest())
     return f"{body}.{sig}"
 
@@ -137,6 +162,15 @@ def read_token(secret: str, token: str, now: float) -> dict:
     if p.get("exp", 0) < now:
         raise AuthError("token expired")
     return p
+
+
+def gmail_key(email: str) -> str:
+    """Gmail ignores dots and anything after + in the name part; so do we when matching a sign-in."""
+    e = (email or "").strip().lower()
+    name, _, dom = e.partition("@")
+    if dom in ("gmail.com", "googlemail.com"):
+        return name.split("+")[0].replace(".", "") + "@gmail.com"
+    return e
 
 
 # ---------------------------------------------------------------------------
@@ -161,34 +195,302 @@ class Jarvis:
         """)
 
     # -- auth --
-    def login(self, email: str, password: str) -> str:
-        now = self.now()
-        recent = self.db.execute("SELECT count(*) FROM failed_logins WHERE t > ?", (int(now - FAIL_WINDOW_S),)).fetchone()[0]
-        if recent >= MAX_FAILED:
-            self.audit("?", "login", email, "LOCKED")
-            raise AuthError("too many failed logins; wait 15 minutes")
-        em = (email or "").strip().lower()
-        g_email, g_hash = os.getenv("JARVIS_GUEST_EMAIL", "").strip().lower(), os.getenv("JARVIS_GUEST_PASSWORD_HASH", "")
-        if g_email and g_hash and em == g_email and em != self.owner and verify_password(password or "", g_hash):
-            self.audit("guest:" + em, "login", "", "OK")
-            return make_token(self.secret, "guest:" + em, now, ttl=7 * 86400)
-        if em != self.owner or not verify_password(password or "", self.pw_hash):
-            self.db.execute("INSERT INTO failed_logins VALUES (?)", (int(now),))
-            self.db.commit()
-            self.audit("?", "login", email, "FAILED")
-            raise AuthError("wrong email or password")
-        self.db.execute("DELETE FROM failed_logins")
-        self.audit(self.owner, "login", "", "OK")
-        return make_token(self.secret, self.owner, now)
+    # Accounts (Madhav, 2026-10-06): one main account (the owner: email, name and password in the .env) and visitor accounts
+    # he invites. An invite is a one-time link (livetrading247.com/join?code=...): the visitor picks their own name and
+    # password, and starts in their own empty practice book. The owner lists and removes visitors in the app (People).
+    # Accounts live in the owner's database; a sandbox (a visitor's copy) points users_db at it.
+    def _auth_tables(self) -> None:
+        d = self.users_db
+        if getattr(self, "_auth_done", None) is d:                  # once per database (check() runs on every request)
+            return
+        d.executescript("""
+            CREATE TABLE IF NOT EXISTS users (email TEXT PRIMARY KEY, name TEXT, pw_hash TEXT, created_t INTEGER, invite TEXT);
+            CREATE TABLE IF NOT EXISTS invites (code TEXT PRIMARY KEY, name TEXT, email TEXT, created_t INTEGER, expires_t INTEGER,
+                                                used_t INTEGER, used_by TEXT);
+        """)
+        if "email" not in [c[1] for c in d.execute("PRAGMA table_info(failed_logins)")]:
+            d.execute("ALTER TABLE failed_logins ADD COLUMN email TEXT")
+        if "expires_t" not in [c[1] for c in d.execute("PRAGMA table_info(users)")]:
+            d.execute("ALTER TABLE users ADD COLUMN expires_t INTEGER")          # NULL: no end (accounts made before Oct 12)
+        d.executescript("""
+            CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, sub TEXT, created_t INTEGER, last_t INTEGER);
+            CREATE TABLE IF NOT EXISTS owner_auth (k TEXT PRIMARY KEY, v TEXT);
+            CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, name TEXT, t INTEGER, answers TEXT);
+        """)
+        d.commit()
+        self._auth_done = d
 
-    def check(self, token: str) -> str:
-        p = read_token(self.secret, token or "", self.now())
-        g = os.getenv("JARVIS_GUEST_EMAIL", "").strip().lower()
-        if g and os.getenv("JARVIS_GUEST_PASSWORD_HASH") and p.get("sub") == "guest:" + g:
-            return p["sub"]
-        if p.get("sub") != self.owner:
-            raise AuthError("not the owner")
-        return p["sub"]
+    # -- sign-in sessions (Oct 12): a token carries a session id; 3 hours without use ends the session --
+    def _session(self, sub: str, ttl: int) -> str:
+        now = int(self.now())
+        sid = secrets.token_urlsafe(16)
+        self.users_db.execute("DELETE FROM sessions WHERE last_t < ?", (now - IDLE_S,))
+        self.users_db.execute("INSERT INTO sessions VALUES (?,?,?,?)", (sid, sub, now, now))
+        self.users_db.commit()
+        return make_token(self.secret, sub, now, ttl=ttl, sid=sid)
+
+    def logout(self, token: str) -> bool:
+        try:
+            p = read_token(self.secret, token or "", self.now())
+        except AuthError:
+            return False
+        self._auth_tables()
+        n = self.users_db.execute("DELETE FROM sessions WHERE sid = ?", (str(p.get("sid") or ""),)).rowcount
+        self.users_db.commit()
+        return bool(n)
+
+    def _owner_hash(self) -> str:
+        """The owner's password: the one changed in the app (Cockpit › Additional features) wins over the .env value."""
+        try:
+            r = self.users_db.execute("SELECT v FROM owner_auth WHERE k = 'pw_hash'").fetchone()
+        except Exception:  # noqa: BLE001  the table appears with the first sign-in
+            r = None
+        return r[0] if r and r[0] else self.pw_hash
+
+    def change_password(self, current: str, new: str, keep_token: str = "") -> dict:
+        """Owner only (app.py checks): the current password, then a new one of at least 10 characters. Every other signed-in
+        device is signed out."""
+        self._auth_tables()
+        now = int(self.now())
+        if self._locked(self.owner, now):
+            raise AuthError("too many wrong passwords; wait 15 minutes")
+        if not verify_password(current or "", self._owner_hash()):
+            self.users_db.execute("INSERT INTO failed_logins (t, email) VALUES (?,?)", (now, self.owner))
+            self.users_db.commit()
+            self.audit(self.owner, "password.change", "", "WRONG_CURRENT")
+            raise ValueError("the current password is not right")
+        new = new or ""
+        if len(new) < 10:
+            raise ValueError("the new password needs at least 10 characters")
+        if new == current:
+            raise ValueError("the new password is the same as the current one")
+        self.users_db.execute("INSERT OR REPLACE INTO owner_auth VALUES ('pw_hash', ?)", (hash_password(new),))
+        self.users_db.execute("INSERT OR REPLACE INTO owner_auth VALUES ('changed_t', ?)", (str(now),))
+        keep = ""
+        try:
+            keep = str(read_token(self.secret, keep_token, now).get("sid") or "")
+        except AuthError:
+            pass
+        n = self.users_db.execute("DELETE FROM sessions WHERE sub = ? AND sid != ?", (self.owner, keep)).rowcount
+        self.users_db.commit()
+        self.audit(self.owner, "password.change", f"{n} other sign-ins ended", "OK")
+        return {"ok": True, "signed_out_elsewhere": n, "changed_t": now}
+
+    # -- visitor feedback (Oct 12) --
+    def _expired(self, em: str) -> bool:
+        r = self.users_db.execute("SELECT expires_t FROM users WHERE email = ?", (em,)).fetchone()
+        return bool(r and r[0] and r[0] <= self.now())
+
+    def submit_feedback(self, form_token: str, answers: dict) -> dict:
+        p = read_token(self.secret, form_token or "", self.now())
+        sub = str(p.get("sub") or "")
+        if not sub.startswith("feedback:"):
+            raise AuthError("this form link is not valid; sign in again")
+        self._auth_tables()
+        em = sub[9:]
+        if self.users_db.execute("SELECT 1 FROM feedback WHERE email = ?", (em,)).fetchone():
+            return {"ok": True, "already": True}
+        ids = {q["id"]: q for q in FEEDBACK_QUESTIONS}
+        clean = {k: str(v).strip()[:2000] for k, v in (answers or {}).items() if k in ids and str(v or "").strip()}
+        missing = [ids[k]["q"] for k in ids if ids[k].get("required") and k not in clean]
+        if missing:
+            raise ValueError("please answer: " + missing[0])
+        self.users_db.execute("INSERT INTO feedback (email, name, t, answers) VALUES (?,?,?,?)",
+                              (em, self.name_of("guest:" + em), int(self.now()), json.dumps(clean, ensure_ascii=False)))
+        self.users_db.commit()
+        self.audit("guest:" + em, "feedback", f"{len(clean)} answers", "OK")
+        return {"ok": True}
+
+    def feedback(self) -> dict:
+        self._auth_tables()
+        rows = [{"id": i, "email": e, "name": n, "t": t, "answers": json.loads(a or "{}")} for i, e, n, t, a in
+                self.users_db.execute("SELECT id, email, name, t, answers FROM feedback ORDER BY t DESC")]
+        return {"questions": FEEDBACK_QUESTIONS, "responses": rows}
+
+    def extend(self, email: str, days: float = GUEST_DAYS) -> dict:
+        """Owner only: give a visitor more days from now."""
+        self._auth_tables()
+        em = (email or "").strip().lower()
+        until = int(self.now() + float(days) * 86400)
+        n = self.users_db.execute("UPDATE users SET expires_t = ? WHERE email = ?", (until, em)).rowcount
+        self.users_db.commit()
+        self.audit(self.owner, "people.extend", f"{em} {days}d", "OK" if n else "NONE")
+        if not n:
+            raise ValueError("no such visitor")
+        return {"email": em, "expires_t": until}
+
+    @property
+    def users_db(self):
+        return getattr(self, "_users_db", None) or self.db
+
+    @users_db.setter
+    def users_db(self, db) -> None:
+        self._users_db = db
+
+    @property
+    def owner_name(self) -> str:
+        return os.getenv("JARVIS_OWNER_NAME", "").strip() or "Madhav"
+
+    def _fail(self, em: str, now: float, why: str = "wrong email or password") -> None:
+        self.users_db.execute("INSERT INTO failed_logins (t, email) VALUES (?,?)", (int(now), em))
+        self.users_db.commit()
+        self.audit("?", "login", em, "FAILED")
+        raise AuthError(why)
+
+    def _locked(self, em: str, now: float) -> bool:
+        """Per account: 5 wrong passwords on one email lock that email for 15 minutes (a visitor's typos never lock the owner
+        out); 30 wrong tries across all emails lock everything (someone guessing)."""
+        since = int(now - FAIL_WINDOW_S)
+        mine = self.users_db.execute("SELECT count(*) FROM failed_logins WHERE t > ? AND email = ?", (since, em)).fetchone()[0]
+        every = self.users_db.execute("SELECT count(*) FROM failed_logins WHERE t > ?", (since,)).fetchone()[0]
+        return mine >= MAX_FAILED or every >= 6 * MAX_FAILED
+
+    def _resolve(self, typed: str) -> str:
+        """Who is signing in (build plan 1.9: 25 failed sign-ins in 3 days were names typed instead of emails, or Gmail dots):
+        an email as typed, the same Gmail address with or without dots, or an account's name."""
+        t = (typed or "").strip().lower()
+        accounts = [self.owner] + [e for (e,) in self.users_db.execute("SELECT email FROM users").fetchall()]
+        if "@" in t:
+            if t in accounts:
+                return t
+            return next((a for a in accounts if gmail_key(a) == gmail_key(t)), t)
+        names = {(self.owner_name or "").strip().lower(): self.owner}
+        for e, n in self.users_db.execute("SELECT email, name FROM users").fetchall():
+            names.setdefault((n or "").strip().lower(), e)
+        return names.get(" ".join(t.split()), t)
+
+    def login(self, email: str, password: str) -> str:
+        self._auth_tables()
+        now = self.now()
+        em = self._resolve(email)
+        if self._locked(em, now):
+            self.audit("?", "login", em, "LOCKED")
+            raise AuthError("too many wrong passwords for this account; wait 15 minutes")
+        if em == self.owner:
+            if not verify_password(password or "", self._owner_hash()):
+                self._fail(em, now)
+            self.users_db.execute("DELETE FROM failed_logins WHERE email = ?", (em,))
+            self.users_db.commit()
+            self.audit(self.owner, "login", "", "OK")
+            return self._session(self.owner, TOKEN_TTL_S)
+        row = self.users_db.execute("SELECT pw_hash FROM users WHERE email = ?", (em,)).fetchone()
+        if not row or not verify_password(password or "", row[0]):
+            self._fail(em, now, "wrong email or password (sign in with the email you joined with, or your name)")
+        self.users_db.execute("DELETE FROM failed_logins WHERE email = ?", (em,))
+        self.users_db.commit()
+        if self._expired(em):                                       # the practice days are over: the feedback form, not the app
+            answered = bool(self.users_db.execute("SELECT 1 FROM feedback WHERE email = ?", (em,)).fetchone())
+            self.audit("guest:" + em, "login", "", "EXPIRED")
+            raise AccountExpired(em, self.name_of("guest:" + em), None if answered else
+                                 make_token(self.secret, "feedback:" + em, now, ttl=86400), answered)
+        self.audit("guest:" + em, "login", "", "OK")
+        return self._session("guest:" + em, 7 * 86400)
+
+    def check(self, token: str, touch: bool = False) -> str:
+        """Who a token belongs to. touch=True (a request the person made, not a quiet background refresh) counts as use."""
+        now = self.now()
+        p = read_token(self.secret, token or "", now)
+        sub = str(p.get("sub") or "")
+        if p.get("svc") and sub == self.owner:                       # a script on this Mac (the evals), signed with the secret
+            return sub
+        if not (sub == self.owner or sub.startswith("guest:")):
+            raise AuthError("not signed in")
+        self._auth_tables()
+        if sub.startswith("guest:"):
+            if not self.users_db.execute("SELECT 1 FROM users WHERE email = ?", (sub[6:],)).fetchone():
+                raise AuthError("this account was removed")
+            if self._expired(sub[6:]):
+                raise AuthError("your practice days are over; sign in to share your feedback")
+        sid = str(p.get("sid") or "")
+        row = self.users_db.execute("SELECT sub, last_t FROM sessions WHERE sid = ?", (sid,)).fetchone() if sid else None
+        if not row or row[0] != sub:
+            raise AuthError("signed out; please sign in again")
+        if now - row[1] > IDLE_S:
+            self.users_db.execute("DELETE FROM sessions WHERE sid = ?", (sid,))
+            self.users_db.commit()
+            raise AuthError(f"signed out after {IDLE_S // 3600} hours without use; please sign in again")
+        if touch and now - row[1] >= TOUCH_EVERY_S:
+            self.users_db.execute("UPDATE sessions SET last_t = ? WHERE sid = ?", (int(now), sid))
+            self.users_db.commit()
+        return sub
+
+    def name_of(self, who: str) -> str:
+        if who == self.owner:
+            return self.owner_name
+        r = self.users_db.execute("SELECT name FROM users WHERE email = ?", (who.split(":", 1)[-1],)).fetchone()
+        return (r[0] if r else "") or who.split(":", 1)[-1].split("@")[0]
+
+    # -- visitors (owner only; app.py checks who is asking) --
+    def invite(self, name: str = "", email: str = "", days: int = 7) -> dict:
+        self._auth_tables()
+        now, code = int(self.now()), secrets.token_urlsafe(12)
+        em = (email or "").strip().lower()
+        if em and (em == self.owner or self.users_db.execute("SELECT 1 FROM users WHERE email = ?", (em,)).fetchone()):
+            raise ValueError("that email already has an account")
+        self.users_db.execute("INSERT INTO invites VALUES (?,?,?,?,?,NULL,NULL)", (code, (name or "").strip()[:60], em, now, now + days * 86400))
+        self.users_db.commit()
+        self.audit(self.owner, "people.invite", f"{name} {em}".strip(), "OK")
+        return {"code": code, "name": name, "email": em, "expires_t": now + days * 86400}
+
+    def invite_info(self, code: str) -> dict:
+        self._auth_tables()
+        r = self.users_db.execute("SELECT name, email, expires_t, used_t FROM invites WHERE code = ?", (code or "",)).fetchone()
+        if not r:
+            raise AuthError("this invite link is not valid")
+        if r[3]:
+            raise AuthError("this invite link was already used; sign in instead")
+        if r[2] < self.now():
+            raise AuthError("this invite link has expired; ask for a new one")
+        return {"name": r[0] or "", "email": r[1] or "", "expires_t": r[2]}
+
+    def join(self, code: str, name: str, email: str, password: str) -> str:
+        now = self.now()
+        if self._locked("join", now):
+            raise AuthError("too many tries; wait 15 minutes")
+        try:
+            inv = self.invite_info(code)
+        except AuthError as exc:
+            self._fail("join", now, str(exc))
+        em = (inv["email"] or email or "").strip().lower()
+        nm = (name or inv["name"] or "").strip()[:60]
+        if "@" not in em or "." not in em.split("@")[-1]:
+            raise ValueError("enter a valid email")
+        if not nm:
+            raise ValueError("enter your name")
+        if len(password or "") < 8:
+            raise ValueError("the password needs at least 8 characters")
+        if em == self.owner or self.users_db.execute("SELECT 1 FROM users WHERE email = ?", (em,)).fetchone():
+            raise ValueError("that email already has an account; sign in instead")
+        self.users_db.execute("INSERT INTO users (email, name, pw_hash, created_t, invite, expires_t) VALUES (?,?,?,?,?,?)",
+                              (em, nm, hash_password(password), int(now), code, int(now + GUEST_DAYS * 86400)))   # Oct 12: 3 days
+        self.users_db.execute("UPDATE invites SET used_t = ?, used_by = ? WHERE code = ?", (int(now), em, code))
+        self.users_db.commit()
+        self.audit("guest:" + em, "people.join", nm, "OK")
+        return self._session("guest:" + em, 7 * 86400)
+
+    def people(self) -> dict:
+        self._auth_tables()
+        users = []
+        answered = {e for (e,) in self.users_db.execute("SELECT email FROM feedback")}
+        for em, nm, t, x in self.users_db.execute("SELECT email, name, created_t, expires_t FROM users ORDER BY created_t"):
+            last = self.users_db.execute("SELECT max(t) FROM audit WHERE who = ? AND action = 'login' AND result = 'OK'",
+                                         ("guest:" + em,)).fetchone()[0]
+            users.append({"email": em, "name": nm, "joined_t": t, "last_login_t": last or t, "expires_t": x,
+                          "expired": bool(x and x <= self.now()), "feedback": em in answered})
+        inv = [{"code": c, "name": n, "email": e, "expires_t": x} for c, n, e, x in self.users_db.execute(
+            "SELECT code, name, email, expires_t FROM invites WHERE used_t IS NULL AND expires_t > ? ORDER BY created_t DESC",
+            (int(self.now()),))]
+        return {"owner": {"email": self.owner, "name": self.owner_name}, "visitors": users, "invites": inv}
+
+    def remove_person(self, email: str) -> bool:
+        """Removes a visitor (their sign-in stops working at once) or cancels an invite (by code)."""
+        self._auth_tables()
+        em = (email or "").strip().lower()
+        n = self.users_db.execute("DELETE FROM users WHERE email = ?", (em,)).rowcount
+        n += self.users_db.execute("DELETE FROM invites WHERE code = ? AND used_t IS NULL", (email or "",)).rowcount
+        self.users_db.commit()
+        self.audit(self.owner, "people.remove", em, "OK" if n else "NONE")
+        return bool(n)
 
     def audit(self, who: str, action: str, detail: str, result: str) -> None:
         self.db.execute("INSERT INTO audit (t, who, action, detail, result) VALUES (?,?,?,?,?)",

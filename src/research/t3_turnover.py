@@ -22,7 +22,10 @@ VARIANTS = ("T3", "T3-N", "T3-B", "T3-M")
 BAND = (0.5, 1.5)
 
 
-def simulate(data: dict, days: pd.DatetimeIndex, on: pd.DataFrame, avail: pd.DataFrame, mode: str, cost_mult: float = 1.0) -> dict:
+def simulate(data: dict, days: pd.DatetimeIndex, on: pd.DataFrame, avail: pd.DataFrame, mode: str, cost_mult: float = 1.0,
+             disaster: float | None = None) -> dict:
+    """disaster (review #18): a held coin closing this fraction or more under its average entry price is sold at the next open and
+    not bought again until the signal has turned it off and on again."""
     O = pd.DataFrame({k: v["o"] for k, v in data.items()}).reindex(days).ffill()
     C = pd.DataFrame({k: v["c"] for k, v in data.items()}).reindex(days).ffill()
     coins = list(C.columns)
@@ -33,10 +36,16 @@ def simulate(data: dict, days: pd.DatetimeIndex, on: pd.DataFrame, avail: pd.Dat
     exposure = np.zeros(len(days))
     costd = np.zeros(len(days))
     prev_on = np.zeros(len(coins), dtype=bool)
+    basis = np.full(len(coins), np.nan)
+    blocked = np.zeros(len(coins), dtype=bool)
+    stops = 0
     ON, AV, OP, CL = on.to_numpy(dtype=bool), avail.to_numpy(dtype=bool), O.to_numpy(), C.to_numpy()
     for d in range(len(days)):
         if d > 0:
             sig, av, px = ON[d - 1].copy(), AV[d - 1], OP[d]
+            if disaster is not None:
+                blocked &= ON[d - 1]                       # the signal turned the coin off: it may be bought again later
+                sig &= ~blocked
             ok = ~np.isnan(px)
             sig &= ok
             n_av = int((av & ok).sum())
@@ -68,13 +77,23 @@ def simulate(data: dict, days: pd.DatetimeIndex, on: pd.DataFrame, avail: pd.Dat
                     costs += c
                     costd[d] = c
                     cash -= delta.sum() + c
-                    units = np.where(ok, (value + delta) / np.where(ok, px, 1.0), units)
+                    new_units = np.where(ok, (value + delta) / np.where(ok, px, 1.0), units)
+                    if disaster is not None:
+                        buy = (delta > 1e-12) & ok
+                        old = np.where(np.isnan(basis), 0.0, basis) * units
+                        basis = np.where(buy, (old + delta) / np.where(new_units > 0, new_units, 1.0), basis)
+                        basis = np.where(new_units * np.nan_to_num(px) < 1e-9, np.nan, basis)
+                    units = new_units
             prev_on = sig
         val = units * np.nan_to_num(CL[d])
+        if disaster is not None:
+            hit = (units > 0) & ~np.isnan(basis) & ~np.isnan(CL[d]) & (CL[d] <= (1 - disaster) * np.nan_to_num(basis, nan=0.0)) & ~blocked
+            stops += int(hit.sum())
+            blocked |= hit
         eq[d] = cash + val.sum()
         exposure[d] = val.sum() / eq[d] if eq[d] > 0 else 0.0
     return {"equity": pd.Series(eq, index=days), "trades": trades, "costs": costs, "exposure": pd.Series(exposure, index=days),
-            "costs_by_day": pd.Series(costd, index=days)}
+            "costs_by_day": pd.Series(costd, index=days), "disaster_stops": stops}
 
 
 def frames(D: dict) -> tuple[dict, pd.DatetimeIndex]:

@@ -76,8 +76,9 @@ class CoverageLedgerTest(unittest.TestCase):
         self.assertEqual(m["paper_eligible_states"], [])
         self.assertFalse(m["paper_take"])
 
-    def test_ledger_closed(self):
-        self.assertEqual(empty_book()["status"], "CLOSED_UNTIL_G8")
+    def test_ledger_open_bounded_since_g8(self):
+        # G8 was granted on 2026-09-24 ($1000 paper, $100 max, one position): the ledger opened, bounded (Oct 11: test updated)
+        self.assertEqual(empty_book()["status"], "OPEN_BOUNDED")
         self.assertEqual(refuse_fill()["last_refuse"], "PAPER_GATE_CLOSED")
 
     def test_exit_does_not_open(self):

@@ -177,7 +177,7 @@ def test_modes_budget_second_opinion_and_cost():
     r = A.ask("o", "how is btc")                       # ... else free Gemini
     assert r["provider"] == "gemini" and r["cost_usd"] == 0 and "Gemini" in r["note"]
     os.environ["ANTHROPIC_API_KEY"] = "test"
-    r = A.ask("o", "why did the portfolio lose money?")   # auto -> sonnet
+    r = A.ask("o", "compare SOL and ETH: which should we trade?")   # auto -> sonnet (analysis)
     assert r["provider"] == "sonnet" and abs(r["cost_usd"] - (0.2 + 0.1)) < 1e-6
     r = A.ask("o", "x", mode="max")
     assert r["provider"] == "opus"
@@ -309,7 +309,7 @@ def test_voice_turn_transcribes_then_answers():
         return json.dumps({"kind": "answer", "answer": "Bitcoin is up a little."}), {"in": 1, "out": 1}
 
     A = ask.Ask(j, providers={"gemini": fake})
-    A.transcribe = lambda b64, mime="audio/wav": "how is bitcoin" if b64 == "AAAA" else ""
+    A.transcribe = lambda b64, mime="audio/wav", thread=None: "how is bitcoin" if b64 == "AAAA" else ""
     r = A.voice_turn("o", "AAAA", "audio/wav", None, "everyday", None)
     assert r["heard"] == "how is bitcoin" and r["answer"] and "voice session" in seen["u"]
     assert A.threads()[0]["voice"] is True
@@ -464,7 +464,7 @@ def test_router_and_briefs():
     r = A.ask("o", "How is our portfolio doing?", mode="everyday")
     assert r["route"] == "portfolio" and "PORTFOLIO_BRIEF" in seen["u"] and "MARKET_BRIEF" not in seen["u"] and "greet" in seen["u"]
     r2 = A.ask("o", "Why?", thread=r["thread"], mode="everyday")
-    assert r2["route"] == "portfolio" and "greet" not in seen["u"] and r2["timing"]["brief_ms"] >= 0
+    assert r2["route"] == "portfolio" and "first message of a new conversation" not in seen["u"] and r2["timing"]["brief_ms"] >= 0
 
 
 def test_app_navigation_quick_and_tools():
@@ -621,9 +621,8 @@ def test_outside_coin_is_labelled_and_unknown_coin_offers_names():
 
 
 def test_guest_practice_sandbox_never_touches_the_owners_books(monkeypatch):
-    monkeypatch.setenv("JARVIS_GUEST_EMAIL", "friend@x.com")
-    monkeypatch.setenv("JARVIS_GUEST_PASSWORD_HASH", core.hash_password("guest pass 123"))
     j, ex = _jarvis()
+    j.join(j.invite("Friend", "friend@x.com")["code"], "Friend", "", "guest pass 123")
     tok = j.login("friend@x.com", "guest pass 123")
     assert j.check(tok) == "guest:friend@x.com"
     assert "Practice mode" in ask.Lookups(j, guest=True).call("start_research", {"kind": "reconstruction"})["error"]
@@ -838,3 +837,18 @@ def test_knowledge_map_is_complete_and_read_doc_stays_inside(tmp_path, monkeypat
     g = ask.Lookups(j, guest=True)
     assert not g.call("knowledge", {"query": "weekly base SOL"})["your_notes"]
     assert "error" in g.call("read_doc", {"file": "sol.md"})
+
+
+def test_thread_view_survives_a_plain_word_reply():
+    """Oct 12 review: reads:news stores replies like CLEAR / CAUTION (not JSON); opening that thread gave a 500."""
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: (json.dumps({"answer": "ok"}), {"in": 1, "out": 1})})
+    A.ask("o", "how is btc", mode="everyday")
+    th = j.db.execute("SELECT thread FROM ask_messages WHERE role='assistant' LIMIT 1").fetchone()[0]
+    j.db.execute("UPDATE ask_messages SET reply='CLEAR', error=NULL WHERE role='assistant' AND thread=?", (th,))
+    rows = A.thread(th)
+    assert [r for r in rows if r["role"] == "assistant"][0]["answer"] == "CLEAR"
+    assert "CLEAR" in A.export(th)
+    assert ask._reply_dict('{"answer": "x"}') == {"answer": "x"}
+    assert ask._reply_dict("42") == {"answer": "42"}
+    assert ask._reply_dict(None) == {}

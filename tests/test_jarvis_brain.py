@@ -74,6 +74,30 @@ def test_health_goes_down_after_two_fails_reminds_and_comes_back(tmp_path):
     assert health.outages(j, now["t"] - 10)[0]["up_t"]
 
 
+def test_health_sees_a_silent_explorer_and_a_refused_login(tmp_path, monkeypatch):
+    """The night of Oct 4-5: Hands refused every login for 8.5 hours; the Explorer kept writing its state file but made no scan.
+    Both must show as DOWN (Madhav 2026-10-05)."""
+    from jarvis.service import health
+
+    now = {"t": 2_000_000_000}
+    j = _j(tmp_path, now)
+    st = tmp_path / "explorer_state.pkl"
+    st.write_text("x")
+    os.utime(st, (now["t"] - 60, now["t"] - 60))                            # state written a minute ago...
+    (tmp_path / "explorer_decisions.jsonl").write_text(json.dumps({"t": now["t"] - 3 * 3600, "coin": "BTC"}) + "\n")   # ...last scan 3h ago
+    monkeypatch.setenv("ANANTA_EMAIL", "a@b.c")
+    monkeypatch.setenv("ANANTA_PASSWORD", "x")
+    monkeypatch.setattr(health, "_login", lambda base, e, p: 500)
+    get = lambda url, timeout=5: (200, {"ok": True})                        # noqa: E731  Hands still "answers"
+    r = health.checks(j, get=get, now=now["t"])
+    assert not r["explorer"]["ok"] and "last real scan" in r["explorer"]["detail"]
+    assert r["hands"]["ok"] and not r["hands_login"]["ok"] and "500" in r["hands_login"]["detail"]
+    (tmp_path / "explorer_decisions.jsonl").write_text(json.dumps({"t": now["t"] - 600, "coin": "BTC"}) + "\n")
+    monkeypatch.setattr(health, "_login", lambda base, e, p: 200)
+    r = health.checks(j, get=get, now=now["t"])
+    assert r["explorer"]["ok"] and r["hands_login"]["ok"]
+
+
 def test_outside_watchdog_rings_when_jarvis_is_down(tmp_path, monkeypatch):
     import importlib.util
 
@@ -246,14 +270,37 @@ def test_missed_moves_label_and_repeats_become_a_request(tmp_path):
     assert missed.run(j)["done_before"]
     # the same kind of miss four more times in 30 days -> one request (once)
     for k in range(4):
-        j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                      (f"x{k}", r["day"], "ADA", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, j.db.execute(
-                         "SELECT pattern FROM missed_moves WHERE coin='SOL'").fetchone()[0], ""))
+                         "SELECT pattern FROM missed_moves WHERE coin='SOL'").fetchone()[0], "", "LIVE10", None))
     logged = []
     f = missed._repeats(j, log_request=lambda t: logged.append(t) or {"num": 9})
     assert f and f[0]["request"] == 9 and "keep missing" in logged[0]
     assert missed._repeats(j, log_request=lambda t: logged.append(t) or {"num": 10}) == []
     assert missed.patterns(j)[0]["times"] == 5 and missed.recent(j, 3)["counts"]["MISSED"] == 5
+    assert missed.patterns(j, tier="T30") == [] and missed.recent(j, 3)["tier30"]["counts"]["MISSED"] == 0   # tiers counted apart
+
+
+def test_miss_classes_keep_rightful_no_trades_out_of_the_repair_shop(tmp_path):
+    import sqlite3
+    import types
+    from jarvis.service import missed
+
+    j = types.SimpleNamespace(dir=tmp_path, db=sqlite3.connect(":memory:"), now=lambda: 2_000_000_000)
+    j.db.execute("CREATE TABLE health_log (part TEXT, down_t INTEGER, up_t INTEGER, detail TEXT)")
+    j.db.execute("INSERT INTO health_log VALUES ('hands_login', 1000, 5000, 'x')")
+    assert missed.classify(j, "MISSED", [], "ALLOWED", "rebound", 2000) == "DATA"
+    assert missed.classify(j, "MISSED", [], "RISK_OFF", "rebound", 90000) == "INTENTIONAL"
+    assert missed.classify(j, "SEEN", ["Explorer E4 order (blocked: rejected slot)"], "ALLOWED", "breakout", 90000) == "EXECUTION"
+    assert missed.classify(j, "SEEN", ["Jarvis passed (confidence 40%)"], "ALLOWED", "breakout", 90000) == "DECISION"
+    assert missed.classify(j, "MISSED", [], "ALLOWED", "breakout", 90000) == "DETECTION"
+    assert missed.classify(j, "MISSED", [], "ALLOWED", "swing", 90000) == "KNOWLEDGE"
+    assert missed.classify(j, "CAUGHT", [], "RISK_OFF", "swing", 90000) is None
+    missed._table(j)
+    for k, cls in enumerate(("INTENTIONAL",) * 6):
+        missed._insert(j, {"id": f"i{k}", "day": "2033-05-17", "coin": "SOL", "label": "MISSED", "pattern": "rebound|zone|RISK_OFF", "tier": "LIVE10",
+                           "miss_class": cls, "move_pct": 5.0})
+    assert missed.patterns(j) == []                                        # six rightful no-trades are not a pattern to fix
 
 
 # ---------------------------------------------------------------------------
@@ -322,3 +369,77 @@ def test_scoreboard_puts_jarvis_against_its_twins():
     jr = next(w for w in b["watches"] if w["id"] == "JARVIS")
     assert jr["baseline"] == "JARVIS_RANDOM" and jr["section"] == "DECISIONS"
     assert watch_engine  # the registry test (test_watches) keeps the engine and registry in step
+
+
+# ---------------------------------------------------------------------------
+# the app redesign's data: Home as mission control, one evidence trade in full, new places in the app map
+# ---------------------------------------------------------------------------
+def test_home_mission_and_trade_detail(monkeypatch):
+    from jarvis.service import appmap, brain, views
+
+    j, ex = _brain_j()
+    px = dict(j.prices())
+    coin = next(c for c in px if c != "BTC")
+    p = px[coin]
+    monkeypatch.setattr(brain, "pack", _fake_pack(p, atr=p * 0.04))
+    monkeypatch.setattr(brain, "_atr", lambda j_, c: px[c] * 0.04)
+    plan = {"action": "TAKE", "confidence": 60, "size_pct": 50, "stop": p * 0.95, "trail_atr": 2, "days": 10, "thesis": "test",
+            "for": ["a"], "against": ["b"], "change_mind": "c", "knowledge_used": ["ZONES"]}
+    r = brain.decide(j, coin, {"zone_entry": {"zone": [p * 0.97, p * 1.01]}}, call=lambda u: (json.dumps(plan), {"in": 1, "out": 1}))
+    m = views.mission(j)
+    json.dumps(m, default=str)
+    assert m["jarvis"]["open"][0]["coin"] == coin and m["jarvis"]["today"]["TAKE"] == 1 and m["jarvis"]["left"] == brain.DAILY_MAX - 1
+    assert "findings" in m and isinstance(m["findings"], list)
+    d = brain.trade_detail(j, r["trade"])
+    assert d["decision"]["plan"]["for"] == ["a"] and d["zone"] == [p * 0.97, p * 1.01] and d["twin"]["coin"] != coin
+    assert brain.open_trades(j)[0]["twin"] == d["twin"]["coin"]
+    with pytest.raises(ValueError):
+        brain.trade_detail(j, "nope")
+    assert appmap.resolve(j, f"jtrade:{r['trade']}")[0] == f"jtrade:{r['trade']}" and appmap.resolve(j, "jtrade:nope")[0] is None
+    assert appmap.resolve(j, "jarvis")[0] == "jarvis" and appmap.resolve(j, "missed moves")[0] == "missed"
+    assert appmap.valid_spot(j, "home.jarvis") and appmap.valid_spot(j, "missed.moves")
+
+
+def test_tk4_a_held_coin_can_get_one_more_trade_but_not_a_third():
+    from jarvis.service import brain
+
+    take = {"action": "TAKE", "stop": 95.0, "target": 110.0}
+    assert brain.check_plan(take, 100.0, 3.0, None, 1) == []
+    assert any("2 open trades" in f for f in brain.check_plan(take, 100.0, 3.0, None, 2))
+    assert brain.MAX_OPEN == 20 and brain.MAX_PER_COIN == 2
+
+
+def test_brain_reads_wrapped_or_chatty_replies():
+    """Status check, Oct 8: 21 of 100 decisions were lost to 'no JSON in the reply'. Fenced, chatty and brace-in-text replies
+    parse; a cut-off reply is named as cut off (decide() then asks once more for the JSON only)."""
+    from jarvis.service.brain import _parse
+    assert _parse('```json\n{"action":"PASS","thesis":"a {brace} in text"}\n```')["thesis"] == "a {brace} in text"
+    assert _parse('Here it is: {"action":"TAKE","stop":1} and {x}')["action"] == "TAKE"
+    try:
+        _parse('{"action":"PASS","thesis":"cut')
+    except ValueError as exc:
+        assert "cut off" in str(exc)
+    else:
+        raise AssertionError("a cut-off reply parsed")
+
+
+def test_web_check_is_a_veto_after_a_buy_only(tmp_path, monkeypatch):
+    """Oct 13: the web check runs after a provisional TAKE on tier A/B, never in the pack for every wake; CAUTION halves or skips."""
+    from jarvis.service import brain, weblook
+
+    calls = []
+
+    def fake_mc(j, coin, who="ask", **kw):
+        calls.append(coin)
+        return {"verdict": "CAUTION: the web shows a real risk (an unlock, a hack, or legal trouble); skip or go smaller even if our rules say buy",
+                "facts": [], "unlock_next_30d": "yes", "mood": None, "rule": "r"}
+    monkeypatch.setattr(weblook, "market_check", fake_mc)
+    assert brain.web_veto(None, "XYZ", {"universe_tier": {"tier": "C"}}) is None and calls == []      # tier C: never a paid search
+    v = brain.web_veto(None, "SOL", {"universe_tier": {"tier": "A"}})
+    assert v["kind"] == "skip" and calls == ["SOL"]
+    monkeypatch.setattr(weblook, "market_check", lambda j, c, who="ask", **kw: {"verdict": "CAUTION: several recent things make a buy riskier; our rules decide, but lean to PASS or a smaller size", "facts": []})
+    assert brain.web_veto(None, "ETH", {"universe_tier": {"tier": "B"}})["kind"] == "smaller"
+    monkeypatch.setattr(weblook, "market_check", lambda j, c, who="ask", **kw: {"verdict": "NO RED FLAGS: nothing on the web argues against what our evidence says", "facts": [{"fact": "x"}]})
+    assert brain.web_veto(None, "ETH", {"universe_tier": {"tier": "A"}})["kind"] == "none"
+    import inspect
+    assert "market_check" not in inspect.getsource(brain.pack)                                          # not on every wake any more

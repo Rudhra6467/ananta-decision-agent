@@ -11,6 +11,7 @@ ALIASES: Dict[str, str] = {
     "replay": "replay",
     "btc": "replay",
     "eth": "eth",
+    "replay-eth": "eth",
     "sol": "sol",
     "avax": "avax",
     "link": "link",

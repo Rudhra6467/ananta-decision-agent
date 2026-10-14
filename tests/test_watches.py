@@ -33,10 +33,14 @@ def test_registry_matches_the_code():
         assert w.get("since") and w.get("entry") and w.get("exit"), w["id"]
         if w.get("size_usd"):
             assert w.get("book"), w["id"]
+    from jarvis.service import universe_watch as U       # the universe family (-UA/-UB/-UC) is declared once, as UNIVERSE_DAILY / ZONE_TOUCH_UNIVERSE
+
     daily = {w["id"] for w in reg["watches"] if w["runs_in"] == "jarvis.watch_engine"}
-    assert daily == set(W.DAILY), "every daily watch in the registry needs a rule in the engine, and the reverse"
+    assert daily == {w for w in W.DAILY if not U.split(w)}, "every daily watch in the registry needs a rule in the engine, and the reverse"
     eye_trading = {w["id"] for w in reg["watches"] if w["runs_in"] == "jarvis.eye" and w.get("size_usd")}
-    assert eye_trading == set(W.EYE)
+    assert eye_trading == {w for w in W.EYE if not U.split(w)}
+    assert {"UNIVERSE_DAILY", "ZONE_TOUCH_UNIVERSE"} <= set(ids)
+    assert all(U.split(w)[0] in U.RULES_ALL + list(U.RANDOMS) for w in W.DAILY if U.split(w))
 
 
 def _with_more(tmp_path, coins, closes):
@@ -154,3 +158,17 @@ def test_tier30_watch_is_separate_from_the_10_coin_run(tmp_path):
     assert "t3" in out and "h07" in out
     assert (tmp_path / "portfolio_book_t30.sqlite").exists() and not (tmp_path / "portfolio_book.sqlite").exists()
     assert tier30._layer(j).mode == "AUTO"
+
+
+def test_independent_events_same_day_is_one_bet():
+    """Madhav, requests 5-6: correlated coins closing in the same day's move count once."""
+    from jarvis.service.scoreboard import independent_events
+
+    D = 86400
+    oct2 = 1790899200                                    # 2026-10-02 00:00 UTC
+    six_stops = [oct2 + 18 * 3600 + 60 * k for k in (15, 20, 35, 35, 40, 40)]     # the six stop-outs, 18:15-18:40
+    assert independent_events(six_stops, daily=False) == 1
+    assert independent_events(six_stops + [oct2 + 3 * 3600], daily=False) == 1   # same day, morning: still one
+    assert independent_events(six_stops + [oct2 + 3 * D + 3600], daily=False) == 2
+    assert independent_events([oct2 + D - 600, oct2 + D + 600], daily=False) == 1  # across midnight, 20 minutes apart
+    assert independent_events([oct2, oct2 + 2 * D, oct2 + 6 * D], daily=True) == 2

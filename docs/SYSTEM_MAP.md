@@ -95,6 +95,37 @@ make sure we are not making it dumb by asking it to trade only if every filter s
   /v3/health/parts. Tables in `jarvis.sqlite`: brain_queue, brain_decisions, missed_moves, trade_reviews, daily_reviews,
   health_state, health_log.
 
+## The research lake: the full crypto universe (started 2026-10-04, Madhav's plan)
+
+The 10-coin system is the proving ground, the full universe is the research laboratory, live paper is the exam; only what all three
+agree on goes near the $500 account.
+- **Where:** `~/ananta_lake` on the Mac (`$ANANTA_LAKE`): `raw/` the Binance Data Vision files exactly as downloaded (each checked
+  against Binance's SHA-256), `clean/` Parquet by symbol and year (1-minute base; 5m, 15m, 1h, 4h and daily built from it, a candle
+  kept only with 80%+ of its minutes), `reports/` quality per symbol (gaps, duplicates, broken candles, grade A/B/C) and the universe.
+  R2 (Cloudflare) later as the off-site copy.
+- **Code:** `src/lake/` (download, build, bars, quality, universe rule v1, research adapter). Run at low priority
+  (`nice -n 10 python -m src.lake.cli all BTC ...`), so the live system is never slowed.
+- **Checks so far:** BTC, ETH, SOL, ADA, AVAX downloaded in full (2017 or listing to yesterday), grades A/B (about 0.04-0.18% of
+  minutes missing, Binance's maintenance windows), no broken candles; the lake's daily closes match the old research database exactly.
+- **Research:** reviews #15-#23 (each pre-registered) on the lab 10 (a data check), the top 30, the whole universe and the
+  point-in-time top 30 (#22, the survivorship check), with the original pass rules and pessimistic costs for thin coins.
+- **Held now (2026-10-05):** 120 coins (rule v1) plus every coin that was ever in the month-by-month top 30 (about 190; LUNA, FTT
+  and the other 2021-22 names), 1-minute history checked for gaps, broken candles and token swaps (a coin with an uncut swap is
+  refused by research); futures funding (all 120) and open interest (top 30) from Binance Data Vision; the outside world from
+  FRED (Nasdaq, US dollar, 10-year yield, VIX) and the crypto Fear & Greed index. Off-site copy in R2 (`ananta-lake`).
+- **Weekly job** (Sundays 02:15): new candles, futures context, the agent pack, the R2 copy.
+
+## The lake -> agent hand-off (2026-10-05, Madhav: "the agent has to be sure of the added 120 coins")
+The Jarvis service has no Parquet tools and never queries research files while deciding, so after each lake update
+`src/lake/agent_pack.py` writes `~/ananta_lake/agent/`:
+- `universe.json`: one card per coin: its tiers, **what Ananta does with it** (LIVE_WATCH for the 10, PAPER_TIER_30 for the 30,
+  RESEARCH_ONLY otherwise), history and data grade, token swaps cut, costs (measured spread or the 0.40% assumption), whether NDAX
+  lists it against CAD, futures coverage, current numbers, and the research verdicts per tier.
+- `daily.sqlite`: complete UTC daily candles for every coin, funding and open interest.
+`jarvis/service/universe.py` reads them (standard library only) and joins the live 30-coin tier (its T3-B rating, holding and
+H07-T30 trades; fresher candles from `tier30_bars.sqlite`). Ask's **universe** lookup and **prices** (for non-live coins) use it, the
+brain's pack carries each coin's card, and Ask says which level a coin is at; only coins outside the pack go to the web.
+
 ## Proposed next
 
 - **A portfolio book (the $500 rehearsal)** that picks among signals with real limits; this is what goes live later.

@@ -1,17 +1,18 @@
 // The only way Ananta moves the app. Each action reports whether it really happened, so Ananta never claims a move it did not make.
 import { router } from "expo-router";
-import { getScreen } from "./context";
+import { getScreen, goTab } from "./context";
 import { clearSpot, focusSpot, scroll } from "./spotlight";
 
 export type UiAction = { do: "go_to" | "open" | "back" | "scroll"; target?: string; dir?: "up" | "down" | "top" | "bottom"; label?: string };
 export type UiResult = { action: UiAction; ok: boolean; landed?: string; error?: string };
 
 const TABS: Record<string, { path: string; tab?: string }> = {
-  home: { path: "/(tabs)/today" }, markets: { path: "/(tabs)/markets" },
+  home: { path: "/(tabs)/today" }, markets: { path: "/(tabs)/watchlists" },
   portfolio: { path: "/(tabs)/portfolio", tab: "portfolio" }, "portfolio:explorer": { path: "/(tabs)/portfolio", tab: "explorer" },
   "portfolio:mine": { path: "/(tabs)/portfolio", tab: "mine" }, ananta: { path: "/(tabs)/ask" },
-  evidence: { path: "/(tabs)/evidence", tab: "collected" }, "evidence:forwarded": { path: "/(tabs)/evidence", tab: "forwarded" },
-  cockpit: { path: "/cockpit" }, mandate: { path: "/mandate" }, testlab: { path: "/testlab" },
+  evidence: { path: "/lab", tab: "collected" }, "evidence:forwarded": { path: "/lab", tab: "forwarded" },
+  cockpit: { path: "/(tabs)/cockpit" }, mandate: { path: "/mandate" }, testlab: { path: "/testlab" },
+  jarvis: { path: "/jarvis" }, missed: { path: "/missed" },
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -19,6 +20,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function expected(t: string): (s: any) => boolean {
   if (t.startsWith("coin:")) return (s) => s?.screen === "coin" && s?.coin === t.slice(5);
   if (t.startsWith("trade:")) return (s) => s?.screen === "trade" && s?.id === t.slice(6);
+  if (t.startsWith("jtrade:")) return (s) => s?.screen === "jtrade" && s?.id === t.slice(7);
   const [screen, tab] = t.split(":");
   const name = screen === "portfolio" && tab === "explorer" ? "explorer_trades" : screen === "portfolio" && tab === "mine" ? "manual_book" : screen;
   return (s) => s?.screen === name || (screen === "evidence" && s?.screen === "evidence");
@@ -43,7 +45,7 @@ export async function run(actions: UiAction[] = []): Promise<UiResult[]> {
         continue;
       }
       if (a.do === "back") {
-        if (router.canGoBack()) router.back(); else router.navigate("/(tabs)/today");
+        if (router.canGoBack()) router.back(); else goTab("/(tabs)/today");
         await sleep(400);
         out.push({ action: a, ok: true, landed: getScreen()?.label });
         continue;
@@ -51,9 +53,10 @@ export async function run(actions: UiAction[] = []): Promise<UiResult[]> {
       const t = a.target ?? "";
       if (t.startsWith("coin:")) router.push(`/coin/${t.slice(5)}`);
       else if (t.startsWith("trade:")) router.push(`/trade/${t.slice(6)}`);
+      else if (t.startsWith("jtrade:")) router.push(`/jtrade/${t.slice(7)}`);
       else if (TABS[t]) {
         const d = TABS[t];
-        router.navigate(d.tab ? ({ pathname: d.path, params: { tab: d.tab, t: String(Date.now()) } } as any) : (d.path as any));
+        (d.path.startsWith("/(tabs)") ? goTab : router.navigate)(d.tab ? ({ pathname: d.path, params: { tab: d.tab, t: String(Date.now()) } } as any) : (d.path as any));
       } else {
         out.push({ action: a, ok: false, error: `unknown place ${t}` });
         continue;
@@ -76,13 +79,21 @@ export async function pointAlong(answer: string, points: { spot: string; sentenc
   const parts = sentences(answer);
   const at = (i: number) => points.find((p) => p.sentence === i)?.spot;
   if (speak) {
-    try { await speak(parts, (i) => { const s = at(i); if (s) focusSpot(s); }); } finally { if (points.length) setTimeout(clearSpot, 1500); }
+    // Each highlight belongs to its sentence: when the voice reaches a sentence with nothing to point at, the previous item
+    // stops glowing (it used to stay lit while the next items in a list were being read out).
+    let lit: string | null = null;
+    try {
+      await speak(parts, (i) => {
+        const s = at(i);
+        if (s && s !== lit) { lit = s; focusSpot(s); } else if (!s && lit) { lit = null; clearSpot(); }
+      });
+    } finally { if (points.length) setTimeout(clearSpot, 1500); }
     return;
   }
   if (!points.length) return;
   for (let i = 0; i < parts.length; i++) {
     const s = at(i);
-    if (s) await focusSpot(s);
+    if (s) await focusSpot(s); else clearSpot();
     await new Promise((r) => setTimeout(r, Math.max(1600, parts[i].split(/\s+/).length * 280)));
   }
   setTimeout(clearSpot, 2500);

@@ -14,7 +14,7 @@ export function useData<T = any>(path: string | null, refreshMs = 60000) {
     busy.current = true;
     if (!quiet) setLoading(true);
     try {
-      setData(await api<T>(path));
+      setData(await api<T>(path, undefined, 60000, quiet));    // a quiet refresh does not count as using the app
       setErr(null);
     } catch (e: any) {
       if (e instanceof ApiError && e.status === 401) {

@@ -1,7 +1,7 @@
 // Small, dependency-light charts on react-native-svg.
 import React, { useState } from "react";
 import { LayoutChangeEvent, Text, View } from "react-native";
-import Svg, { Defs, Line, LinearGradient, Path, Rect, Stop, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop, Text as SvgText } from "react-native-svg";
 import { C } from "./theme";
 
 export type Series = { data: (number | null)[]; color: string; width?: number; dashed?: boolean; label?: string; fill?: boolean };
@@ -103,6 +103,70 @@ export function Progress({ value, of, color = C.accent }: { value: number; of: n
   return (
     <View style={{ height: 6, backgroundColor: C.card2, borderRadius: 3, overflow: "hidden" }}>
       <View style={{ width: `${f * 100}%`, height: 6, backgroundColor: color, borderRadius: 3 }} />
+    </View>
+  );
+}
+
+// A ring split into parts (a pie with a hole), with a number in the middle: caught / seen / missed, the repair board.
+export function Donut({ parts, size = 92, stroke = 13, center, sub }: {
+  parts: { label: string; value: number; color: string }[]; size?: number; stroke?: number; center?: string; sub?: string;
+}) {
+  const r = (size - stroke) / 2, cx = size / 2, cy = size / 2;
+  const live = parts.filter((p) => p.value > 0);
+  const total = live.reduce((a, p) => a + p.value, 0);
+  const pt = (a: number) => [cx + r * Math.sin(a), cy - r * Math.cos(a)];
+  let a0 = 0;
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size} style={{ position: "absolute" }}>
+        <Circle cx={cx} cy={cy} r={r} stroke={C.card2} strokeWidth={stroke} fill="none" />
+        {live.length === 1 ? <Circle cx={cx} cy={cy} r={r} stroke={live[0].color} strokeWidth={stroke} fill="none" /> :
+          live.map((p, i) => {
+            const a1 = a0 + (p.value / total) * 2 * Math.PI;
+            const gap = Math.min(0.04, (a1 - a0) / 4);
+            const [x0, y0] = pt(a0 + gap), [x1, y1] = pt(a1 - gap);
+            const d = `M${x0.toFixed(2)},${y0.toFixed(2)} A${r},${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)}`;
+            a0 = a1;
+            return <Path key={i} d={d} stroke={p.color} strokeWidth={stroke} fill="none" />;
+          })}
+      </Svg>
+      {center != null ? <Text style={{ color: C.text, fontWeight: "800", fontSize: size > 80 ? 20 : 15 }}>{center}</Text> : null}
+      {sub ? <Text style={{ color: C.faint, fontSize: 10 }}>{sub}</Text> : null}
+    </View>
+  );
+}
+
+// Bars that can go below zero, around a centre line, with one reference value marked (e.g. random entries).
+export function SignedBars({ items, mark, fmt }: {
+  items: { label: string; value: number | null; sub?: string; strong?: boolean }[]; mark?: { value: number; label: string } | null; fmt: (v: number) => string;
+}) {
+  const vals = items.map((i) => Math.abs(i.value ?? 0)).concat(mark ? [Math.abs(mark.value)] : []);
+  const max = Math.max(1e-9, ...vals);
+  const pos = (v: number) => 50 + (v / max) * 48;
+  return (
+    <View style={{ gap: 12 }}>
+      {items.map((it, k) => {
+        const v = it.value;
+        const col = v == null ? C.faint : v >= 0 ? C.good : C.bad;
+        return (
+          <View key={k} style={{ gap: 4 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+              <Text style={{ color: C.text, fontSize: 13, fontWeight: it.strong ? "700" : "400", flex: 1 }}>{it.label}</Text>
+              <Text style={{ color: col, fontSize: 13, fontWeight: "700" }}>{v == null ? "–" : fmt(v)}</Text>
+            </View>
+            <View style={{ height: 8, backgroundColor: C.card2, borderRadius: 4 }}>
+              {v != null ? (
+                <View style={{ position: "absolute", top: 0, height: 8, borderRadius: 4, backgroundColor: col,
+                  left: `${Math.min(50, pos(v))}%`, width: `${Math.max(1, Math.abs(pos(v) - 50))}%` }} />
+              ) : null}
+              <View style={{ position: "absolute", left: "50%", top: -2, width: 1, height: 12, backgroundColor: C.faint }} />
+              {mark ? <View style={{ position: "absolute", left: `${pos(mark.value)}%`, top: -3, width: 2, height: 14, backgroundColor: C.text }} /> : null}
+            </View>
+            {it.sub ? <Text style={{ color: C.dim, fontSize: 11 }}>{it.sub}</Text> : null}
+          </View>
+        );
+      })}
+      {mark ? <Text style={{ color: C.dim, fontSize: 11 }}>▮ black mark = {mark.label} ({fmt(mark.value)}) · centre line = $0</Text> : null}
     </View>
   );
 }

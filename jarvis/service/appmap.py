@@ -10,40 +10,54 @@ import re
 
 SCREENS = {
     "home": {"name": "Home", "where": "Home tab (house icon)",
-             "shows": "today's paper value and change, the one-line status, things waiting for your OK, the morning/evening brief, "
-                      "the Explorer / Portfolio / Hourly-watch rows, and the activity feed of buys, sells, alerts and changes"},
-    "markets": {"name": "Markets", "where": "Markets tab (candles icon)",
-                "shows": "how many coins are in an uptrend, the BTC gate, and the watchlist of 10 coins with price, today's move, "
+             "shows": "how the account is doing and whether anything needs you: whether every part is running, the account card (the $500 "
+                      "NDAX book in Canadian dollars: value since the start, holdings, cash, the dial and brakes), Needs you (a rule that passed "
+                      "and may step up, portfolio changes, the mandate's actions), Ananta's note (the day in plain words), one line for the lab, "
+                      "findings (moves we missed or only saw, lessons), and the activity feed; the More tab holds the switches and settings"},
+    "markets": {"name": "Markets", "where": "Markets tab (trend-line icon, fourth tab; it was called Watchlists until Oct 14)",
+                "shows": "the trend dial first (OPEN or CLOSED, with why, and the brakes), then the watches, the coins with price, today's move, "
                          "1h/4h trend and how close each is to its nearest setup; above it, Ananta's reasoning: where each coin stops on the "
                          "decision chain (regime, trend, location, trigger, invalidation, risk, exposure); tap a coin for its page"},
-    "portfolio": {"name": "Portfolio (T3)", "where": "Portfolio tab, first sub-tab",
+    "portfolio": {"name": "Books: trend portfolio (T3)", "where": "Books tab, first sub-tab (Ananta's book is the row above)",
                   "shows": "the T3 portfolio value chart, the Autopilot switch, suggested changes, holdings with value, return and rating, cash and costs"},
-    "portfolio:explorer": {"name": "Explorer trades", "where": "Portfolio tab, Explorer sub-tab",
+    "portfolio:explorer": {"name": "Explorer trades", "where": "Books tab, Explorer sub-tab",
                            "shows": "the Explorer's paper book: open trades with P&L, orders waiting to fill, closed trades"},
-    "portfolio:mine": {"name": "My trades", "where": "Portfolio tab, My trades sub-tab",
+    "portfolio:mine": {"name": "My trades", "where": "Books tab, My trades sub-tab",
                        "shows": "the owner's own paper book: positions, orders with reasons, research jobs"},
-    "ananta": {"name": "Ananta", "where": "Ananta tab (speech bubble)",
+    "ananta": {"name": "Ask Ananta", "where": "Ask Ananta tab (speech bubble, middle tab)",
                "shows": "this conversation: type, dictate with the mic, or talk hands-free with the wave button; Sessions holds past conversations"},
-    "evidence": {"name": "Evidence: being collected", "where": "Evidence tab (flask), first sub-tab",
-                 "shows": "the evidence tracker (days, checks, setups seen, buys, closed trades, shadows, Hunter checks, replay match), "
-                          "what we collected per setup, what was forwarded to the repair shop and why, and the repair shop status"},
-    "evidence:forwarded": {"name": "Evidence: forwarded and in use", "where": "Evidence tab, second sub-tab",
+    "evidence": {"name": "Evidence: inside the logic repair", "where": "the Evidence page (Home's Lab switch, then the Evidence row)",
+                 "shows": "the repair loop live, in Madhav's order: looked, spotted, decided, scored, misses checked, sent to the repair "
+                          "shop, changed; what is watching and how often; every limit with what it stopped and what those trades did; "
+                          "results against random in market events; reconstruction (nightly rebuilds, the ones he asked for, mismatches, "
+                          "the other-traders study and its chain); missed moves and patterns; the repair board (found, done, change, "
+                          "status); what changed; what we wait for with dates at this pace. The older research cards fold below."},
+    "evidence:forwarded": {"name": "Evidence: forwarded and in use", "where": "the Evidence page, lower part",
                            "shows": "repairs that passed and run in paper (T3 vs buy-and-hold) and the safety changes"},
-    "cockpit": {"name": "Cockpit", "where": "gauge icon at the top right of Home",
-                "shows": "kill switch, portfolio autopilot, locked live-trading switch, your mandate, the test lab, Ask and Voice switches, "
-                         "the daily Claude budget and spend, active alerts, system status and recent actions"},
-    "mandate": {"name": "Your mandate", "where": "Cockpit > Your mandate", "shows": "your goals, markets, styles, setups, limits and how Ananta should talk"},
-    "testlab": {"name": "Test lab", "where": "Cockpit > Test lab", "shows": "recorded test runs of Ananta with answers to mark Good / OK / Bad"},
+    "jarvis": {"name": "Ananta's book", "where": "Home > Ananta today, or the top row of Books",
+               "shows": "Ananta's own paper trades: the score against its random twins (running line, events to a verdict), open trades with "
+                        "the room left to the stop, what its plans leaned on and the confidence check, and recent decisions with their thesis"},
+    "missed": {"name": "What we missed", "where": "Home > Findings > Missed moves",
+               "shows": "each day's biggest rises: caught, seen or missed, and why; and the misses that keep coming back"},
+    "cockpit": {"name": "More", "where": "More tab (sliders icon, last tab; it was called Cockpit until Oct 14)",
+                "shows": "the controls (kill switch, portfolio autopilot, locked live-trading switch, Ask and Voice switches), Voice and model "
+                         "(who answers, the voice, the Claude budget), Evidence (the reviews, the repair loop, strategy status), System (every part "
+                         "running, recent actions, costs), your mandate, the test lab, active alerts"},
+    "mandate": {"name": "Your mandate", "where": "More > Additional features > Your mandate", "shows": "your goals, markets, styles, setups, limits and how Ananta should talk"},
+    "testlab": {"name": "Test lab", "where": "More > Voice and model > Test lab", "shows": "recorded test runs of Ananta with answers to mark Good / OK / Bad"},
 }
 ALIASES = {
     "home": "home", "home screen": "home", "main": "home", "start": "home", "dashboard": "home", "inbox": "home", "brief": "home", "activity": "home",
-    "market": "markets", "markets": "markets", "watchlist": "markets", "watch list": "markets", "scan": "markets", "scanner": "markets",
+    "market": "markets", "markets": "markets", "watchlists": "markets", "watchlist": "markets", "watch list": "markets", "scan": "markets", "scanner": "markets",
     "portfolio": "portfolio", "t3": "portfolio", "holdings": "portfolio",
     "explorer": "portfolio:explorer", "explorer trades": "portfolio:explorer", "open trades": "portfolio:explorer", "trades": "portfolio:explorer",
     "my trades": "portfolio:mine", "my book": "portfolio:mine", "my paper book": "portfolio:mine", "manual book": "portfolio:mine",
     "ananta": "ananta", "chat": "ananta", "voice": "ananta", "conversation": "ananta",
-    "evidence": "evidence", "repair shop": "evidence", "evidence tracker": "evidence", "forwarded": "evidence:forwarded",
-    "cockpit": "cockpit", "settings": "cockpit", "controls": "cockpit", "kill switch": "cockpit", "budget": "cockpit", "alerts": "cockpit",
+    "evidence": "evidence", "lab": "evidence", "repair shop": "evidence", "evidence tracker": "evidence", "forwarded": "evidence:forwarded",
+    "jarvis": "jarvis", "jarvis's book": "jarvis", "jarvis book": "jarvis", "your book": "jarvis", "your trades": "jarvis", "books": "portfolio",
+    "missed": "missed", "missed moves": "missed", "what we missed": "missed", "findings": "missed",
+    "cockpit": "cockpit", "more tab": "cockpit", "the more tab": "cockpit", "settings": "cockpit", "controls": "cockpit", "kill switch": "cockpit", "budget": "cockpit", "alerts": "cockpit",
+    "dial": "markets", "trend dial": "markets", "brakes": "markets",
     "mandate": "mandate", "my mandate": "mandate", "goals": "mandate", "test lab": "testlab", "tests": "testlab", "test results": "testlab",
     "test runs": "testlab", "app tests": "testlab",
 }
@@ -74,6 +88,13 @@ def resolve(j, target: str) -> tuple[str | None, str]:
         if ex and sym in ex.st["engines"]:
             return f"coin:{sym}", f"{sym} coin page"
         return None, f"Ananta does not watch {sym}"
+    if low.startswith("jtrade:"):
+        tid = t[7:].strip()
+        try:
+            r = j.db.execute("SELECT coin FROM evidence_trades WHERE id=?", (tid,)).fetchone()
+        except Exception:  # noqa: BLE001
+            r = None
+        return (f"jtrade:{tid}", f"{r[0]} evidence trade") if r else (None, "no such trade")
     if low.startswith("trade:"):
         tid = t[6:].strip()
         if ex and re.fullmatch(r"[A-Za-z0-9_\-]{3,80}", tid):
@@ -111,6 +132,8 @@ def quick_command(j, text: str) -> dict | None:
         return None
     what = m.group("what").strip().lower()
     what = re.sub(r"\b(screen|page|tab)\b", "", what).strip()
+    if what in ("more", "the more"):                 # "open More" is the last tab (Oct 14); "tell me more" never is, so no alias
+        what = "cockpit"
     if what not in ALIASES and what not in SCREENS:
         what = re.sub(r"^(my|our|the)\s+", "", what)
     if what in ALIASES or what in SCREENS:
@@ -146,6 +169,8 @@ def here_target(here: dict | None) -> str | None:
         return f"coin:{here['coin']}"
     if sc == "trade" and here.get("id"):
         return f"trade:{here['id']}"
+    if sc == "jtrade" and here.get("id"):
+        return f"jtrade:{here['id']}"
     if sc == "explorer_trades":
         return "portfolio:explorer"
     if sc == "manual_book":
@@ -222,22 +247,31 @@ def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -
 # Spots: things on screen Ananta can point at while it talks (they glow and scroll into view)
 # ---------------------------------------------------------------------------
 SPOTS = {
-    "home": {"home.value": "paper value and today's change", "home.inbox": "things waiting for your OK", "home.brief": "the morning / evening brief",
-             "home.books": "Explorer, Portfolio and Hourly-watch rows", "home.activity": "the activity feed"},
-    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.chain": "Ananta's reasoning: where each coin stops on the decision chain", "markets.reads": "your setups: Madhav's three buy setups checked on every coin", "markets.zones": "coins inside a zone now and recent zone entries",
+    "home": {"home.status": "whether every part is running (the health strip)", "home.value": "the account: the $500 NDAX book, its value since the start, holdings, cash, the dial",
+             "home.jarvis": "Ananta's note on the day (or Ananta today before the account started)",
+             "home.findings": "findings: missed or seen moves, lessons, market shifts", "home.inbox": "Needs you: a rule that passed and may step up, things waiting for your OK",
+             "home.books": "one line for the lab: every other book measuring in the background", "home.activity": "the activity feed"},
+    "jarvis": {"jarvis.score": "the score against the random twins", "jarvis.open": "Ananta's open trades", "jarvis.learning": "what its plans leaned on and the confidence check",
+               "jarvis.decisions": "recent decisions with their thesis"},
+    "missed": {"missed.counts": "caught / seen / missed counts", "missed.moves": "the biggest moves and why", "missed.patterns": "misses that keep coming back"},
+    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.chain": "Ananta's reasoning: where each coin stops on the decision chain", "markets.near": "nearing a trade: coins closest to every condition, with what is missing", "markets.reconstruction": "reconstruction: rebuilds, mismatches, findings",
                 "markets.coin:<SYM>": "one coin's row: price, trend, closest setup"},
     "portfolio": {"portfolio.value": "portfolio value and its chart", "portfolio.autopilot": "the Autopilot switch",
                   "portfolio.suggested": "suggested changes waiting", "portfolio.holdings": "the holdings list header",
                   "portfolio.holding:<SYM>": "one holding: value, return, rating"},
     "portfolio:explorer": {"explorer.value": "Explorer book value", "explorer.trade:<trade id>": "one open Explorer trade", "explorer.closed": "closed trades"},
     "portfolio:mine": {"mine.value": "my paper book value", "mine.position:<SYM>": "one of my positions"},
-    "evidence": {"evidence.tracker": "the evidence tracker", "evidence.collected": "what we collected by setup",
-                 "evidence.forwarded": "what was forwarded to the repair shop", "evidence.shop": "repair shop status and queue",
+    "evidence": {"evidence.gate": "the Engine Acceptance Gate: how many of the 27 checks pass, by area",
+                 "evidence.tracker": "the repair loop strip: looked, spotted, decided, scored, missed, sent, changed",
+                 "evidence.clocks": "what is watching and how often", "evidence.limits": "every limit and what it stopped",
+                 "evidence.collected": "results against random (and by setup)", "evidence.rebuild": "reconstruction: rebuilds and other traders",
+                 "evidence.misses": "missed moves and patterns", "evidence.forwarded": "the repair board: found, done, change, status",
+                 "evidence.shop": "what we wait for and when, at this pace",
                  "evidence.ideas": "ideas from the teachers (Rayner, Trade With Trend) with their test status",
                  "evidence.credit": "credit tracking: what each layer contributed, live"},
     "evidence:forwarded": {"evidence.in_use": "repairs running in paper (T3 vs buy-and-hold)", "evidence.safety": "safety changes"},
-    "cockpit": {"cockpit.controls": "kill switch, autopilot, live trading", "cockpit.ai": "Ask / Voice switches and the Claude budget",
-                "cockpit.alerts": "active alerts", "cockpit.systems": "system status"},
+    "cockpit": {"cockpit.controls": "kill switch, autopilot, live trading", "cockpit.ai": "the Ask Ananta and Voice Assist switches",
+                "cockpit.evidence": "the Evidence: every repair-shop review with a human name"},
     "coin": {"coin.chart": "the candle chart", "coin.position": "our position in this coin", "coin.market": "market picture and setup checklist",
              "coin.levels": "next support and resistance", "coin.setup:<E1-E5>": "one setup's checklist (opens it)",
              "coin.chain": "the decision chain ladder for this coin: each gate passed or where it stops, plus evidence",
@@ -259,7 +293,7 @@ def spot_screen(spot: str) -> str | None:
     if head in ("evidence.in_use", "evidence.safety"):
         return "evidence:forwarded"
     return {"home": "home", "markets": "markets", "portfolio": "portfolio", "evidence": "evidence", "cockpit": "cockpit",
-            "coin": "coin", "trade": "trade"}.get(pre)
+            "coin": "coin", "trade": "trade", "jarvis": "jarvis", "missed": "missed"}.get(pre)
 
 
 def valid_spot(j, spot: str) -> bool:
@@ -319,15 +353,22 @@ SPOT_WORDS = {
     "trade.plan": r"plan|exit|sell|trail", "trade.timeline": r"timeline|opened|history",
     "coin.chart": r"chart|candle", "coin.position": r"position|we hold|our\b|bought", "coin.market": r"market|trend|checklist",
     "coin.levels": r"support|resistance|level", "coin.trades": r"trades?",
-    "home.value": r"value|worth|today|\$", "home.inbox": r"inbox|waiting|approve|ok\b", "home.brief": r"brief|summary",
+    "home.value": r"value|worth|today|\$", "home.inbox": r"inbox|waiting|approve|ok\b", 
     "home.books": r"explorer|hourly|portfolio|books?|watch", "home.activity": r"activity|recent|happened",
+    "home.status": r"running|health|parts?|down\b", "home.jarvis": r"jarvis|my trades|i took|decision",
+    "home.findings": r"miss|seen|lesson|finding", "jarvis.score": r"random|twins?|beat|score", "jarvis.open": r"open|holding|stop",
+    "jarvis.learning": r"knowledge|learn|confidence", "jarvis.decisions": r"decid|pass|bought", "missed.moves": r"miss|move|rise",
+    "missed.patterns": r"keep|again|pattern", "missed.counts": r"caught|seen|missed",
     "markets.summary": r"trend|breadth|gate|coins? (?:are|is)|up\b", "portfolio.value": r"value|worth|\$|up\b|down\b",
     "portfolio.autopilot": r"autopilot", "portfolio.suggested": r"suggest|change|waiting", "portfolio.holdings": r"holding|coins",
     "explorer.value": r"value|worth|\$|explorer", "explorer.closed": r"closed", "mine.value": r"value|worth|\$",
     "evidence.tracker": r"tracker|progress|milestone", "evidence.collected": r"collected|setups?|signals?",
-    "evidence.forwarded": r"forward|repair", "evidence.shop": r"repair|shop|queue", "evidence.in_use": r"running|in use|paper|buy.and.hold",
+    "evidence.forwarded": r"forward|repair|ticket|board", "evidence.shop": r"wait|queue|how long|when",
+    "evidence.clocks": r"watch|scan|how often|every", "evidence.gate": r"gate|ready|accept|lock|checks? pass", "evidence.limits": r"limit|gate|block|stopp|cap",
+    "evidence.rebuild": r"rebuild|reconstruct|mismatch|other traders|hyperliquid", "evidence.misses": r"miss|caught|seen", "evidence.in_use": r"running|in use|paper|buy.and.hold",
     "evidence.safety": r"safety", "cockpit.controls": r"kill|autopilot|live|switch", "cockpit.ai": r"ask|voice|budget|claude|gemini",
-    "cockpit.alerts": r"alert", "cockpit.systems": r"system|status|running",
+    "cockpit.evidence": r"evidence|review|repair",
+    "markets.near": r"near|close|almost|missing", "markets.reconstruction": r"rebuild|reconstruct|mismatch",
 }
 
 
@@ -370,6 +411,26 @@ def anchor_points(points: list[dict], answer: str) -> list[dict]:
     return final
 
 
+def fill_list_points(points: list[dict], answer: str) -> list[dict]:
+    """When Jarvis points at coins in a list ('Bitcoin is up... Solana is down...') but not at every one, each sentence that
+    names exactly one coin of the same list gets its own highlight, so the glow follows the item being read out."""
+    heads = {p["spot"].partition(":")[0] for p in points if ":" in p.get("spot", "")}
+    heads &= {"markets.coin", "portfolio.holding", "mine.position"}
+    if len(heads) != 1:
+        return points
+    head = heads.pop()
+    sents = [x for x in re.split(r"(?<=[.!?])\s+", answer or "") if x.strip()]
+    have = {p["sentence"] for p in points}
+    out = list(points)
+    for i, x in enumerate(sents):
+        if i in have:
+            continue
+        hits = {sym for name, sym in COINS.items() if re.search(r"\b" + re.escape(name) + r"\b", x, re.I)}
+        if len(hits) == 1:
+            out.append({"spot": f"{head}:{hits.pop()}", "sentence": i})
+    return sorted(out, key=lambda p: p["sentence"])
+
+
 SCROLL = re.compile(r"^\s*(?:please\s+)?(?:can you\s+)?(scroll|go|move|take me|show me)\s*(?:to\s+)?(?:the\s+)?(up|down|top|bottom)(?:\s+of (?:the |this )?(?:page|screen))?(?:\s+please)?[.!?]*\s*$", re.I)
 
 
@@ -392,7 +453,6 @@ TOUR_ASK = re.compile(r"\b(show me around|give me a tour|take me on a tour|app t
 def tour(j) -> list[dict]:
     from jarvis.service import views
 
-    s = views.day_summary(j)
     m = views.markets(j)
     h = views.holdings(j)
     t = views.trades_list(j)
@@ -406,16 +466,19 @@ def tour(j) -> list[dict]:
         pass
     steps = [
         {"ui": {"do": "go_to", "target": "home", "label": "Home"}, "spot": "home.value",
-         "say": f"Welcome, Madhav. This is Home, your one-page summary. At the top is all our paper money together: about {round(s['paper_value']):,} dollars today."},
+         "say": "Welcome, Madhav. This is Home: how the account is doing, and whether anything needs you. Three lines per card; More opens the rest."},
     ]
     if inbox:
         steps.append({"spot": "home.inbox", "say": "Here is the inbox. Anything I prepare for you, like an order or an alert, waits here until you confirm it."})
     steps += [
-        {"spot": "home.brief", "say": "This is the daily brief. I write one in the morning and one in the evening, and you can ask for one any time."},
-        {"spot": "home.books", "say": "These rows are our three engines: the Explorer, the trend portfolio, and the hourly watch with Hunter and Squeeze."},
+        {"spot": "home.status", "say": "This strip says whether every part of me is running. I check them every two minutes and ping your phone if one goes quiet."},
+        {"spot": "home.value", "say": "This is the account: the 500-dollar NDAX book, its value since the start, its holdings and cash, and the dial. Tap it for Books."},
+        {"spot": "home.jarvis", "say": "This is my note: once a day, after the close, I write what the account did and why, from the database."},
+        {"spot": "home.findings", "say": "Findings are what I found: big moves we missed or only saw, and lessons from closed trades."},
+        {"spot": "home.books", "say": "This line is the lab: every other book keeps measuring in the background. Only what passes its bar is pushed into the account."},
         {"spot": "home.activity", "say": "And this is the activity feed: every buy, sell, alert and change, in plain words. Tap a trade to open it."},
         {"ui": {"do": "go_to", "target": "markets", "label": "Markets"}, "spot": "markets.summary",
-         "say": f"This is Markets. Right now {up} of our {n} coins are in a one-hour uptrend."},
+         "say": f"This is Markets. The trend dial comes first, then our watches. Right now {up} of our {n} coins are in a one-hour uptrend."},
         {"spot": "markets.coin:BTC", "say": "Each row is one coin: its price, its trend, and how close it is to one of our setups. Tap a coin for its chart."},
         {"ui": {"do": "go_to", "target": "portfolio", "label": "Portfolio"}, "spot": "portfolio.value",
          "say": f"This is the trend portfolio. It holds coins while they trend up and goes to cash when they fall. It is worth about {round(h['value']):,} dollars."},
@@ -426,12 +489,12 @@ def tour(j) -> list[dict]:
         {"ui": {"do": "go_to", "target": "portfolio:mine", "label": "My trades"}, "spot": "mine.value",
          "say": "And this is your own paper book. Orders you ask me for land here, kept apart from the agent's trades."},
         {"ui": {"do": "go_to", "target": "evidence", "label": "Evidence"}, "spot": "evidence.tracker",
-         "say": "This is Evidence: everything we collect to learn what works. Tap any row and it explains itself."},
-        {"spot": "evidence.forwarded", "say": "These are the questions we sent to the repair shop, why we sent them, and what we found."},
-        {"ui": {"do": "go_to", "target": "cockpit", "label": "Cockpit"}, "spot": "cockpit.controls",
-         "say": "This is the Cockpit, behind the gauge icon on Home. The kill switch and Autopilot live here, and live trading stays locked."},
+         "say": "This is the Evidence page: the repair loop, live. From what we looked at, to what we traded, to what we fixed. It lives under More now. Tap any row and it explains itself."},
+        {"spot": "evidence.forwarded", "say": "This is the repair board: everything sent to the repair shop, what we found, what we did, the change and its status."},
+        {"ui": {"do": "go_to", "target": "cockpit", "label": "More"}, "spot": "cockpit.controls",
+         "say": "This is More, the last tab. The kill switch and Autopilot live here, live trading stays locked, and below are voice and model, evidence and system."},
         {"spot": "cockpit.ai", "say": "Here you can switch me on or off and set a daily budget for Claude, so I never run up costs."},
-        {"ui": {"do": "go_to", "target": "ananta", "label": "Ananta"},
+        {"ui": {"do": "go_to", "target": "ananta", "label": "Ask Ananta"},
          "say": "And this is me. Type, tap the mic, or tap the wave and just talk. Ask me anything about our portfolio or the market, or ask me to show you something. That's the tour."},
     ]
     return steps
@@ -485,7 +548,7 @@ def infer_link(j, e: dict) -> dict:
     if sym and re.search(r"price|trend|move|%|chart", low):
         return {"screen": f"coin:{sym}", "spot": "coin.chart"}
     if re.search(r"alert", low):
-        return {"screen": "cockpit", "spot": "cockpit.alerts"}
+        return {"screen": "cockpit", "spot": "cockpit.controls"}
     return {}
 
 

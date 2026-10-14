@@ -105,3 +105,50 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn):
             fn()
             print("ok", name)
+
+
+def test_visitor_accounts_invite_join_remove_and_per_account_lockout():
+    """Madhav, 2026-10-06: one main account; visitors join with a one-time invite link, choose their own name and password,
+    and can be removed (sign-in stops at once). A visitor's wrong passwords never lock the owner out."""
+    d = Path(tempfile.mkdtemp())
+    clock = {"t": 1_800_000_000}
+    j = _j(d, clock)
+    inv = j.invite("Asha")
+    assert j.invite_info(inv["code"])["name"] == "Asha"
+    tok = j.join(inv["code"], "Asha K", "Asha@Example.com", "guest pass 123")
+    assert j.check(tok) == "guest:asha@example.com" and j.name_of("guest:asha@example.com") == "Asha K"
+    for bad in (lambda: j.join(inv["code"], "X", "x@y.com", "another pass 1"),       # one use only
+                lambda: j.invite_info("nope")):
+        try:
+            bad()
+        except core.AuthError:
+            pass
+        else:
+            raise AssertionError("invite reused or unknown code accepted")
+    try:
+        j.join(j.invite()["code"], "Owner", "owner@x.com", "whatever 123")             # nobody can take the owner's email
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("owner email taken by a visitor")
+    assert j.login("asha@example.com", "guest pass 123")
+    for _ in range(6):
+        try:
+            j.login("asha@example.com", "wrong")
+        except core.AuthError:
+            pass
+    assert j.check(j.login("owner@x.com", "correct horse 1")) == "owner@x.com"       # the owner is not locked out
+    p = j.people()
+    assert p["owner"]["email"] == "owner@x.com" and [v["name"] for v in p["visitors"]] == ["Asha K"]
+    assert j.remove_person("asha@example.com")
+    try:
+        j.check(tok)
+    except core.AuthError as e:
+        assert "removed" in str(e)
+    else:
+        raise AssertionError("a removed visitor's token still works")
+    clock["t"] += 8 * 86400
+    try:
+        j.invite_info(j.people()["invites"][0]["code"] if j.people()["invites"] else j.invite(days=7)["code"])
+    except core.AuthError:
+        pass

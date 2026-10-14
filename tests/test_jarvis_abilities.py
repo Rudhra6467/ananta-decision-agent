@@ -38,6 +38,17 @@ def test_requests_report_back_once():
         requests_log.set_status(j, 99, "DONE")
 
 
+def test_requests_made_by_the_agent_exam_never_land_on_the_board_as_his():
+    j, ex = _jarvis()
+    r = requests_log.add(j, "idea", "Review Cardano staking rewards.", thread="exam-1791704974-109")
+    row = requests_log.get(j, r["num"])
+    assert row["by"] == "exam" and row["status"] == "WONT" and "agent exam" in row["note"]
+    assert requests_log.notify(j, push=lambda t, x: 1 / 0) == [] and requests_log.news(j) == []   # no phone note, nothing to tell
+    assert requests_log.feed_items(j, 0) == []
+    mine = requests_log.add(j, "idea", "Review Cardano staking rewards.", thread="abc123")       # his own words still open
+    assert requests_log.get(j, mine["num"])["status"] == "OPEN" and requests_log.get(j, mine["num"])["by"] == "owner"
+
+
 def test_ananta_mentions_fixed_requests_once_and_flags_wrong_answers():
     j, ex = _jarvis()
     seen = []
@@ -74,7 +85,7 @@ def test_prices_from_stored_candles():
     assert all(c["coins"][i]["change_pct"] >= c["coins"][i + 1]["change_pct"] for i in range(len(c["coins"]) - 1))
     cov = L.call("prices", {"what": "coverage"})
     assert coin in cov["live_candles"] and "5m" in cov["live_candles"][coin]
-    assert "error" in L.call("prices", {"coin": "PEPE"})
+    assert "error" in L.call("prices", {"coin": "NOTACOIN"})          # PEPE joined the 120-coin lake; an unknown coin still errors
 
 
 def test_web_lookup_uses_google_then_claude(monkeypatch):
@@ -169,7 +180,7 @@ def test_hearing_check_and_voice_turn_skip_noise():
     asked = []
     A = ask.Ask(j, providers={"gemini": lambda s, h, u, t, log: asked.append(u) or (json.dumps({"kind": "answer", "answer": "Fine."}), {"in": 1, "out": 1})})
     heard = iter(["Hmm.", "I want to know", "how Bitcoin did this week?"])
-    A.transcribe = lambda b64, mime="audio/wav": next(heard)
+    A.transcribe = lambda b64, mime="audio/wav", thread=None: next(heard)
     assert A.voice_turn("o", "x", "audio/wav", None, "everyday", None)["ignored"] == "filler" and not asked
     p = A.voice_turn("o", "x", "audio/wav", None, "everyday", None)
     assert p["partial"] and not asked

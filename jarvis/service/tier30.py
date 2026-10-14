@@ -32,6 +32,7 @@ COINS = ["BTC", "ETH", "SOL", "XRP", "DOGE", "BNB", "SUI", "PEPE", "TRX", "ADA",
 RENAMED = {"MATIC": "POL", "FTM": "S", "RNDR": "RENDER", "BCHABC": None}
 T3_DB = "portfolio_book_t30.sqlite"
 H07_WATCH = "H07-T30"
+STALE: list[str] = []                                  # coins left out of the trend book for stale data (TK13)
 DAY = 86400
 URL = "https://api.binance.com/api/v3/klines?symbol={s}USDT&interval=1d&limit=1000"
 
@@ -96,9 +97,15 @@ def _views(j) -> tuple[dict, dict]:
     from src.intelligence.explorer_engine import TfState
 
     views, px = {}, {}
+    allD = {c: daily(j, c) for c in COINS}
+    newest = max((D[-1][0] for D in allD.values() if D), default=0)
+    STALE.clear()
     for c in COINS:
-        D = daily(j, c)
+        D = allD[c]
         if len(D) < 60:
+            continue
+        if D[-1][0] < newest - 3 * 86400:              # TK13 (Madhav's yes, Oct 11): the buy-and-hold rule; a frozen coin is left out, named
+            STALE.append(c)
             continue
         tf = TfState("1d")
         for b in D:
@@ -117,11 +124,42 @@ def run(j) -> dict:
     if "BTC" in views:
         d = _layer(j).decide(views, px, int(j.now() if hasattr(j, "now") else time.time()))
         out["t3"] = {k: d[k] for k in ("skip", "day", "btc_gate") if k in d}
+        out["t3"]["left_out_stale"] = list(STALE)
         if "fills" in d:
             out["t3"]["fills"] = len(d["fills"])
             out["t3"]["holding"] = sorted(c for c, r in d["ratings"].items() if r["hold"])
     out["h07"] = watch_engine.run(j, watches=(H07_WATCH,), coins=COINS, daily_fn=daily, live_trades=False)
     return out
+
+
+def buy_hold(j) -> dict:
+    """The fair comparison for the 30-coin trend book (status check, Oct 8: it had none): equal money in every tier coin at the
+    close before the book's first decision, held to the latest close. A coin whose daily data stopped (older than 3 days) is
+    left out and named."""
+    import sqlite3 as _sq
+    from pathlib import Path as _P
+
+    p = _P(j.dir) / "portfolio_book_t30.sqlite"
+    if not p.exists():
+        return {}
+    con = _sq.connect(f"file:{p}?mode=ro", uri=True, timeout=10)
+    try:
+        first = con.execute("SELECT min(day_t) FROM decisions").fetchone()[0]
+    finally:
+        con.close()
+    if not first:
+        return {}
+    newest = max((D[-1][0] for D in (daily(j, c) for c in COINS) if D), default=0)
+    chg, stale = [], []
+    for c in COINS:
+        D = daily(j, c)
+        if not D or D[-1][0] < newest - 3 * 86400:
+            stale.append(c)
+            continue
+        base = next((b[4] for b in reversed(D) if b[0] < first), None)
+        if base:
+            chg.append(100 * (D[-1][4] / base - 1))
+    return {"pct": round(sum(chg) / len(chg), 2) if chg else None, "coins": len(chg), "stale": stale, "since_t": first}
 
 
 def status(j) -> dict:
@@ -138,5 +176,6 @@ def status(j) -> dict:
                     "waiting": sum(r["status"] == "WAITING" for r in rows), "closed": len(done),
                     "net_usd": round(sum(r["net_usd"] for r in done), 2) if done else 0.0, "trades": rows[:30]},
             "history": "review #15: T3 +19.0% vs buy-and-hold -23.7% (2024-Jul 2026) on the top 30; H07 33 events, +6.0% excess, z 3.5 "
-                       "(2018-23) and +3.6%, z 3.2 (2024-26). Both failed on all 120 coins.",
+                       "(2018-23) and +3.6%, z 3.2 (2024-26). Both failed on all 120 coins. Review #22 (the top 30 as it was each month): T3-B -22.5% vs "
+                       "holding -76% (fails its profit rule), H07 z 2.45 (just under the bar): today's top-30 numbers were flattered.",
             "note": "Paper only. Kept apart from the 10-coin books. Many of these coins are not on NDAX."}

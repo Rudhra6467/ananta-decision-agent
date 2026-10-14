@@ -38,7 +38,10 @@ class Manual:
     # ---- book ----
     def state(self, px: dict[str, float] | None = None) -> dict:
         px = px or {}
-        cash, units, cost_basis, costs, realized = START_CASH, {}, {}, 0.0, 0.0
+        from jarvis.service.visitor import capital
+
+        start = capital(self.db, START_CASH)                # a visitor's chosen practice capital ($1,000 or $2,000)
+        cash, units, cost_basis, costs, realized = start, {}, {}, 0.0, 0.0
         for coin, side, usd, u, p, c in self.db.execute("SELECT coin, side, usd, units, px, cost FROM manual_fills ORDER BY t, rowid"):
             costs += c
             if side == "BUY":
@@ -64,7 +67,7 @@ class Manual:
                         "pnl": round(val - cost_basis.get(c, 0.0), 2) if val is not None else None,
                         "stop": (stops.get(c) or (None, None))[0], "target": (stops.get(c) or (None, None))[1]})
         eq = cash + sum(p["value"] or 0 for p in pos)
-        return {"start": START_CASH, "cash": round(cash, 2), "equity": round(eq, 2), "return_pct": round(100 * (eq / START_CASH - 1), 2),
+        return {"start": start, "cash": round(cash, 2), "equity": round(eq, 2), "return_pct": round(100 * (eq / start - 1), 2),
                 "realized": round(realized, 2), "costs": round(costs, 2), "positions": pos}
 
     def validate(self, p: dict, px: dict[str, float]) -> dict:
@@ -85,8 +88,9 @@ class Manual:
             usd = round(float(usd), 2)
         except (TypeError, ValueError) as exc:
             raise ValueError("an amount in dollars is required") from exc
-        if usd <= 0 or usd > MAX_ORDER_USD:
-            raise ValueError(f"amount must be between $1 and ${MAX_ORDER_USD:.0f} (paper)")
+        cap = max(MAX_ORDER_USD, 0.25 * st["start"])          # D2: with more capital, one order may be up to a quarter of it
+        if usd <= 0 or usd > cap:
+            raise ValueError(f"amount must be between $1 and ${cap:,.0f} (paper)")
         if side == "buy" and usd * (1 + FEE + HALF_SPREAD.get(coin, 0.004)) > st["cash"] + 0.01:
             raise ValueError(f"not enough paper cash: ${st['cash']:.2f} available")
         if side == "sell" and (not held or usd > (held["value"] or 0) + 0.01):
@@ -228,5 +232,5 @@ class Manual:
 def _job_line(kind: str, status: str, res: Any) -> str:
     if kind == "reconstruction" and isinstance(res, dict) and "match" in res:
         return (f"Rebuilt {res.get('rebuilt_real_events')} decisions from raw candles vs {res.get('logged_real_events')} logged: "
-                + ("they match." if res["match"] else "they DIFFER; check the Evidence tab."))
+                + ("they match." if res["match"] else "they DIFFER; check the Evidence page."))
     return f"{kind}: {status.lower()}"

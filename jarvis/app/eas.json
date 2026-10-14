@@ -1,0 +1,18 @@
+{
+  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "build": {
+    "production": {
+      "autoIncrement": true,
+      "ios": { "resourceClass": "default" }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascApiKeyPath": "/Users/vamsie/.appstore/AuthKey_FNW3674Z43.p8",
+        "ascApiKeyId": "FNW3674Z43",
+        "ascApiKeyIssuerId": "92dcc33b-8776-4189-9f38-02bb6d896c45"
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { Spot } from "../../src/spotlight";
 import { useEffect } from "react";
 import { View } from "react-native";
-import { setScreen } from "../../src/context";
+import { goTab, setScreen } from "../../src/context";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { LineChart } from "../../src/charts";
@@ -108,7 +108,7 @@ export default function Trade() {
           </Expand>
         </Card>
         <Btn label={`Ask Ananta about this ${d.coin} trade`} kind="secondary"
-          onPress={() => router.push({ pathname: "/(tabs)/ask", params: { q: `Explain my ${d.coin} trade ${d.id}: how is it doing and what are we waiting for?`, t: String(Date.now()) } })} />
+          onPress={() => goTab({ pathname: "/(tabs)/ask", params: { q: `Explain my ${d.coin} trade ${d.id}: how is it doing and what are we waiting for?`, t: String(Date.now()) } })} />
       </Screen>
     </>
   );

@@ -2,7 +2,8 @@
 // <Spot id="home.value"> marks an element. focusSpot(id) scrolls the open screen to it and makes it glow.
 // The open screen's scroll view registers itself (Screen in ui.tsx), so scroll("down") etc. move what the owner sees.
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, ScrollView, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, ScrollView, View } from "react-native";
+import * as Haptics from "./haptics";
 import { C } from "./theme";
 
 type SpotRef = { view: View | null };
@@ -17,6 +18,18 @@ let scroller: Scroller | null = null;
 export const setScroller = (s: Scroller | null) => { scroller = s; };
 
 export function activeSpot() { return active; }
+
+// A spot Ananta is looking for right now (focusSpot is waiting for it): a folded section can open itself to show it.
+let wanted: string | null = null;
+export function useSpotWanted(ids: string[]): boolean {
+  const [on, setOn] = useState(!!wanted && ids.includes(wanted));
+  useEffect(() => {
+    const f = () => setOn(!!wanted && ids.includes(wanted));
+    subs.add(f);
+    return () => { subs.delete(f); };
+  }, [ids.join("|")]);
+  return on;
+}
 
 export function useSpotActive(id?: string): boolean {
   const [on, setOn] = useState(!!id && active === id);
@@ -42,19 +55,37 @@ export function Spot({ id, children, style }: { id: string; children: React.Reac
     subs.add(f);
     return () => { spots.get(id)?.delete(me); subs.delete(f); };
   }, [id]);
+  const lift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (on) {
+      // the attention beat (Madhav, 2026-10-05): the thing Ananta talks about comes forward in 3D for a moment, settles back,
+      // then keeps its outline until the next answer starts. Reduce Motion on the phone: outline only.
+      AccessibilityInfo.isReduceMotionEnabled().then((still) => {
+        if (still) return;
+        Haptics.soft();
+        Animated.sequence([
+          Animated.timing(lift, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+          Animated.delay(520),
+          Animated.timing(lift, { toValue: 0, duration: 300, easing: Easing.inOut(Easing.cubic), useNativeDriver: false }),
+        ]).start();
+      }).catch(() => {});
       Animated.loop(Animated.sequence([Animated.timing(glow, { toValue: 1, duration: 500, useNativeDriver: false }),
         Animated.timing(glow, { toValue: 0.55, duration: 500, useNativeDriver: false })])).start();
     } else {
       glow.stopAnimation();
       glow.setValue(0);
+      lift.stopAnimation();
+      lift.setValue(0);
     }
   }, [on]);
   return (
     <Animated.View ref={ref as any} collapsable={false} style={[{ borderRadius: 16, borderWidth: 2,
       borderColor: glow.interpolate({ inputRange: [0, 1], outputRange: ["rgba(41,82,204,0)", C.accent] }),
       backgroundColor: glow.interpolate({ inputRange: [0, 1], outputRange: ["rgba(41,82,204,0)", "rgba(41,82,204,0.06)"] }),
+      transform: [{ perspective: 800 }, { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] }) },
+        { rotateX: lift.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "-4deg"] }) }],
+      shadowColor: "#000", shadowOpacity: lift.interpolate({ inputRange: [0, 1], outputRange: [0, 0.22] }) as any,
+      shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: lift.interpolate({ inputRange: [0, 1], outputRange: [0, 12] }) as any, zIndex: on ? 5 : 0,
       margin: -2 }, style]}>
       {children}
     </Animated.View>
@@ -71,16 +102,24 @@ function measure(v: View | null): Promise<{ y: number; h: number } | null> {
 }
 
 // Scroll the open screen so the spot is in view, then make it glow. Returns false if the spot is not on screen.
+// Only the newest call wins: finding and scrolling take time, and an older call that finishes late (the voice has moved on
+// to the next item) must not light up the item before it. That race was the "wrong item highlighted" Madhav saw.
+let gen = 0;
 export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
+  const my = ++gen;
   let target: SpotRef | null = null;
+  wanted = id;
+  emit();
   for (let i = 0; i < 30 && !target; i++) {                   // the screen (and its data) may still be loading: up to 3 s
     for (const s of spots.get(id) ?? []) {
       const m = await measure(s.view);
       if (m) { target = s; break; }
     }
     if (!target) await sleep(100);
+    if (my !== gen) return false;                              // a newer highlight (or a clear) took over
   }
-  if (!target) return false;
+  wanted = null;
+  if (!target) { emit(); return false; }
   const m = await measure(target.view);
   if (m && scroller?.ref.current) {
     const sv = await measure(scroller.ref.current as any);
@@ -91,6 +130,7 @@ export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
       await sleep(350);
     }
   }
+  if (my !== gen) return false;
   if (clearTimer) clearTimeout(clearTimer);
   active = id;
   emit();
@@ -99,6 +139,7 @@ export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
 }
 
 export function clearSpot() {
+  gen++;                                                       // any highlight still on its way is cancelled
   if (clearTimer) clearTimeout(clearTimer);
   active = null;
   emit();

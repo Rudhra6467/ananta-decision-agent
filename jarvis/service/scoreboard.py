@@ -9,7 +9,7 @@ Every watch in the registry (docs/knowledge/watches.json) that trades has an evi
 
 Books read: the Explorer (real trades plus the signals a slot or cap blocked, the would-be trades, so each setup's every
 signal counts; random entries as the 15-minute baseline), Hunter's book (SD6: real trades plus shadows kept when the book was
-full; costs at Kraken's 0.80% a side), and the daily / live evidence book (watch_engine: your setups, the short dip trade,
+full; costs at NDAX's 0.20% plus 0.30% slippage a side since 2026-10-05, Kraken's 0.80% before), and the daily / live evidence book (watch_engine: your setups, the short dip trade,
 zone touches, the daily random baselines, and Jarvis's own decisions with their random twins). The trend portfolio is a portfolio, not single trades: it is shown with its
 return against buy-and-hold.
 
@@ -120,18 +120,26 @@ def _engine(j) -> list[dict]:
 # ---------------------------------------------------------------------------
 # stats
 # ---------------------------------------------------------------------------
-def _events(rows: list[dict], daily: bool) -> int:
-    """Independent market moves: daily watches = entries within 3 days (any coin) are one event (the repair shop's rule);
-    15-minute / hourly watches = exits within an hour are one move."""
-    key = "entry_t" if daily else "exit_t"
-    gap = 3 * DAY if daily else 3600
-    ts = sorted(int(r.get(key) or 0) for r in rows)
+def independent_events(ts: list[int], daily: bool) -> int:
+    """Independent market moves, counted conservatively (Madhav, requests 5-6: correlated coins in one move are one bet):
+    daily watches = entries within 3 days of each other (any coin) are one event (the repair shop's rule);
+    15-minute / hourly watches = everything closing on the same UTC day is one event, and so are exits less than an hour apart
+    across midnight."""
+    ts = sorted(int(t or 0) for t in ts)
     n, last = 0, None
     for t in ts:
-        if last is None or t - last > gap:
+        if daily:
+            new = last is None or t - last > 3 * DAY
+        else:
+            new = last is None or (t // DAY != last // DAY and t - last > 3600)
+        if new:
             n += 1
         last = t
     return n
+
+
+def _events(rows: list[dict], daily: bool) -> int:
+    return independent_events([r.get("entry_t" if daily else "exit_t") for r in rows], daily)
 
 
 def stats(rows: list[dict], daily: bool) -> dict:
@@ -222,5 +230,5 @@ def board(j) -> dict:
                          f"No watch has {MIN_EVENTS} independent events yet, so none can be called ahead of random; the books keep filling."),
             "how_to_read": "Each row is one watch's evidence book: every signal it gave is a $100 paper trade (blocked signals included), "
                            "after costs. Compare the average with its random baseline (same holding time); count events, not trades: "
-                           "our coins move together, so trades closing in the same move are one piece of evidence. Hunter's book pays "
-                           "Kraken's 0.80% a side; the rest pay NDAX's 0.20% plus the spread."}
+                           "our coins move together, so trades closing in the same move are one piece of evidence. Every book pays NDAX's "
+                           "0.20% plus the spread (Hunter's book since Oct 5; Kraken's 0.80% before)."}

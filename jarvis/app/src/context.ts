@@ -45,18 +45,31 @@ export const useVoiceLive = () => useStore(() => voiceLive);
 // kept for older screens: [about, setAbout]
 export const useScreen = useAbout;
 
+// Open one of the four tabs. Expo Router's navigate() pushes a NEW copy of the tabs when you are on a page above them (a coin,
+// a trade): that was the second Ask Ananta page that could not be closed and lost the conversation (Madhav, 2026-10-06). So:
+// first close the pages above the tabs, then switch tab. The one Ask page, with its conversation, is what comes back.
+export function goTab(href: any) {
+  if (router.canDismiss()) {
+    router.dismissAll();
+    setTimeout(() => router.navigate(href), 60);       // after the pop has landed, or navigate() would still see the page above
+    return;
+  }
+  router.navigate(href);
+}
+
 // Long-press anything: open Ananta with that item attached and a first question.
 export function askAbout(ctx: NonNullable<ScreenCtx>, question?: string) {
   Haptics.tap();
   setAbout(ctx);
-  router.push({ pathname: "/(tabs)/ask", params: { q: question ?? `Tell me about this: ${ctx.label}`, t: String(Date.now()) } });
+  // navigate (not push): back to the one Ask page that already exists, never a second copy stacked on top
+  goTab({ pathname: "/(tabs)/ask", params: { q: question ?? `Tell me about this: ${ctx.label}`, t: String(Date.now()) } });
 }
 
 // Tour state (shown as a caption bar over every screen while Ananta walks you through the app)
-export type TourState = { active: boolean; i: number; n: number; text: string };
+export type TourState = { active: boolean; i: number; n: number; text: string; deeper?: boolean };
 let tour: TourState = { active: false, i: 0, n: 0, text: "" };
-let tourCmd: "" | "stop" | "next" = "";
+let tourCmd: "" | "stop" | "next" | "deeper" = "";
 export const setTour = (t: TourState) => { tour = t; emit(); };
 export const useTour = () => useStore(() => tour);
-export const tourCommand = (c: "" | "stop" | "next") => { tourCmd = c; };
+export const tourCommand = (c: "" | "stop" | "next" | "deeper") => { tourCmd = c; };
 export const takeTourCommand = () => { const c = tourCmd; tourCmd = ""; return c; };

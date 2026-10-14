@@ -23,3 +23,32 @@ export const GaugeIcon = ({ color, size }: P) => (
 export const ChartIcon = ({ color, size }: P) => (
   <S size={size}><Path d="M4 19h16" stroke={color} strokeWidth={1.8} strokeLinecap="round" /><Path d="M7 15V9M7 7V5M12 16v-5M12 9V6M17 14V8M17 6V4" stroke={color} strokeWidth={1.8} strokeLinecap="round" /><Rect x={5.5} y={9} width={3} height={6} rx={0.6} stroke={color} strokeWidth={1.4} /><Rect x={10.5} y={9} width={3} height={2} rx={0.6} fill={color} /><Rect x={15.5} y={8} width={3} height={6} rx={0.6} stroke={color} strokeWidth={1.4} /></S>
 );
+export const BooksIcon = ({ color, size }: P) => (
+  <S size={size}><Rect x={4} y={4} width={6} height={16} rx={1} stroke={color} strokeWidth={1.8} /><Rect x={14} y={4} width={6} height={16} rx={1} stroke={color} strokeWidth={1.8} /></S>
+);
+
+// Oct 14 (one grammar): Markets is a trend line, More is three sliders; the Ask screen's small controls are icons, not emoji.
+export const TrendIcon = ({ color, size }: P) => (
+  <S size={size}><Path d="M3 17l5-6 4 3 5-7 4 4" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /><Path d="M3 21h18" stroke={color} strokeWidth={1.8} strokeLinecap="round" /></S>
+);
+export const SlidersIcon = ({ color, size }: P) => (
+  <S size={size}><Path d="M4 7h16M4 12h16M4 17h16" stroke={color} strokeWidth={1.8} strokeLinecap="round" /><Circle cx={9} cy={7} r={2.2} fill={color} /><Circle cx={15} cy={12} r={2.2} fill={color} /><Circle cx={10} cy={17} r={2.2} fill={color} /></S>
+);
+export const MicIcon = ({ color, size = 20 }: P) => (
+  <S size={size}><Rect x={9} y={3} width={6} height={11} rx={3} stroke={color} strokeWidth={1.8} /><Path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke={color} strokeWidth={1.8} strokeLinecap="round" /></S>
+);
+export const SpeakerIcon = ({ color, size = 20 }: P) => (
+  <S size={size}><Path d="M4 9v6h3l5 4V5L7 9H4Z" stroke={color} strokeWidth={1.8} strokeLinejoin="round" /><Path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10" stroke={color} strokeWidth={1.8} strokeLinecap="round" /></S>
+);
+export const ThumbUpIcon = ({ color, size = 20 }: P) => (
+  <S size={size}><Path d="M7 11v9H4v-9h3Zm0 0 4-7a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2.3l-1 6A2 2 0 0 1 17 20H7" stroke={color} strokeWidth={1.8} strokeLinejoin="round" /></S>
+);
+export const ThumbDownIcon = ({ color, size = 20 }: P) => (
+  <S size={size}><Path d="M17 13V4h3v9h-3Zm0 0-4 7a2 2 0 0 1-2-2v-4H6a2 2 0 0 1-2-2.3l1-6A2 2 0 0 1 7 4h10" stroke={color} strokeWidth={1.8} strokeLinejoin="round" /></S>
+);
+export const StopIcon = ({ color, size = 20 }: P) => (
+  <S size={size}><Rect x={6} y={6} width={12} height={12} rx={2} fill={color} /></S>
+);
+export const SendIcon = ({ color, size = 20 }: P) => (
+  <S size={size}><Path d="M4 12 20 4l-4 16-4-7-8-1Z" stroke={color} strokeWidth={1.8} strokeLinejoin="round" /></S>
+);

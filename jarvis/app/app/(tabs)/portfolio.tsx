@@ -1,6 +1,7 @@
+import { DemoCard } from "../../src/firstchat";
 import { Spot } from "../../src/spotlight";
 import { useCallback, useState } from "react";
-import { Alert, Switch, Text, View } from "react-native";
+import { Alert, Pressable, Switch, Text, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { askAbout, setScreen } from "../../src/context";
@@ -10,22 +11,135 @@ import { LineChart, StackBar } from "../../src/charts";
 import { Big, Btn, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Row, Screen, Section, Segmented, Stat, T, pct, price, usd, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
+import { VisitorBooks, useMe } from "../../src/visitor";
+import { BooksTrades, Explainers } from "../../src/bookstrades";
+import { ReadsBoard } from "../../src/reads";
 
 const RANGES = [{ key: "1", label: "1D" }, { key: "7", label: "1W" }, { key: "30", label: "1M" }, { key: "365", label: "All" }];
-const SHADES = ["#2952CC", "#4A6FD6", "#6B8BDF", "#8CA6E8", "#ADC1F0", "#C6D4F5", "#D7E1F8", "#E3EAFA", "#EDF2FC", "#F3F6FD"];
 
 export default function Portfolio() {
-  const [tab, setTab] = useState("portfolio");
-  const p = useLocalSearchParams<{ tab?: string; t?: string }>();
-  useEffect(() => { if (p.tab) setTab(String(p.tab)); }, [p.tab, p.t]);
-  useFocusEffect(useCallback(() => { setScreen({ screen: tab === "portfolio" ? "portfolio" : tab === "explorer" ? "explorer_trades" : "manual_book", tab, label: tab === "portfolio" ? "Portfolio tab: T3 portfolio" : tab === "explorer" ? "Portfolio tab: Explorer trades" : "Portfolio tab: My trades (manual paper book)" }); }, [tab]));
+  const me = useMe();
+  if (!me) return <Busy />;
+  if (me.guest) return <GuestBooks />;
+  return <OwnerBooks />;
+}
+
+// A visitor's Books: their own practice book only (no Ananta book, no Explorer, no trend portfolio).
+function GuestBooks() {
+  const { data: d, err, loading, reload } = useData("/v3/holdings", 30000);
+  useFocusEffect(useCallback(() => { setScreen({ screen: "manual_book", tab: "mine", label: "Books tab: your practice book" }); reload(); }, []));
+  if (!d && loading) return <Busy />;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  return <VisitorBooksTabs d={d} loading={loading} reload={reload} />;
+}
+
+function VisitorBooksTabs({ d, loading, reload }: { d: any; loading: boolean; reload: () => void }) {
+  const [top, setTop] = useState("trades");
+  const { data: bk, reload: reloadBk } = useData(d.started ? "/v3/books" : null, 60000);
+  const { data: dm, reload: reloadDm } = useData("/v3/onboard/demo", 60000);       // the first conversation's DEMO trade, if still shown
+  useFocusEffect(useCallback(() => { reloadDm(); }, []));
+  const demoCard = dm?.demo?.status ? <View style={{ marginBottom: 12 }}><DemoCard d={dm.demo} /></View> : null;
+  if (!d.started) return demoCard ? <View style={{ flex: 1 }}><View style={{ paddingHorizontal: 16, paddingTop: 12 }}>{demoCard}</View>
+    <VisitorBooks d={d} loading={loading} reload={reload} /></View> : <VisitorBooks d={d} loading={loading} reload={reload} />;
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
-        <Segmented value={tab} onChange={setTab} options={[{ key: "portfolio", label: "Portfolio" }, { key: "explorer", label: "Explorer" }, { key: "mine", label: "My trades" }]} />
+      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 }}>
+        <Segmented size="lg" value={top} onChange={setTop} options={[{ key: "trades", label: "Trades" }, { key: "details", label: "Details" }]} />
       </View>
-      {tab === "portfolio" ? <Book /> : tab === "explorer" ? <Trades /> : <Mine />}
+      {top === "trades" ? (
+        <Screen loading={loading} onRefresh={() => { reload(); reloadBk(); }}>
+          {demoCard}
+          {bk ? <BooksTrades d={bk} /> : <Busy />}
+        </Screen>
+      ) : <VisitorBooks d={d} loading={loading} reload={reload} />}
     </View>
+  );
+}
+
+// Books (plan 3.3): Trades (default) is one stamped list of everything this account holds; Details keeps the rest (Ananta's
+// book, the trend portfolio, the Explorer, your own trades and research jobs, your setups).
+function OwnerBooks() {
+  const [top, setTop] = useState("trades");
+  const [tab, setTab] = useState("portfolio");
+  const p = useLocalSearchParams<{ tab?: string; t?: string }>();
+  useEffect(() => { if (p.tab) { setTop("details"); setTab(String(p.tab)); } }, [p.tab, p.t]);
+  useFocusEffect(useCallback(() => {
+    if (top === "trades") { setScreen({ screen: "books", tab: "trades", label: "Books tab: Trades, every open trade with who took it" }); return; }
+    setScreen({ screen: tab === "portfolio" ? "portfolio" : tab === "explorer" ? "explorer_trades" : "manual_book", tab, label: tab === "portfolio" ? "Books › Details: trend portfolio" : tab === "explorer" ? "Books › Details: Explorer trades" : "Books › Details: My trades (manual paper book)" });
+  }, [tab, top]));
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 }}>
+        <Segmented size="lg" value={top} onChange={setTop} options={[{ key: "trades", label: "Trades" }, { key: "details", label: "Details" }]} />
+      </View>
+      {top === "trades" ? <AllTrades /> : (
+        <>
+          <JarvisRow />
+          <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
+            <Segmented value={tab} onChange={setTab} options={[{ key: "lab", label: "Lab" }, { key: "portfolio", label: "Trend" }, { key: "explorer", label: "Explorer" }, { key: "mine", label: "Mine" }, { key: "setups", label: "Setups" }]} />
+          </View>
+          {tab === "lab" ? <LabTrades /> : tab === "portfolio" ? <Book /> : tab === "explorer" ? <Trades /> : tab === "setups" ? <Setups /> : <Mine />}
+        </>
+      )}
+    </View>
+  );
+}
+
+// "Your setups" (D9): the setups read from Madhav's own buys, also shown on each coin's page
+function Setups() {
+  const { data: rd, err, loading, reload } = useData("/v3/reads", 300000);
+  if (!rd && loading) return <Busy />;
+  if (!rd) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  return (
+    <Screen loading={loading} onRefresh={reload}>
+      <T dim>Setups read from your own buys, checked at each daily close. Each coin's page shows its own checklist.</T>
+      <Card><ReadsBoard d={rd} /></Card>
+    </Screen>
+  );
+}
+
+function AllTrades() {
+  const { data: d, err, loading, reload } = useData("/v3/books", 60000);
+  const { data: h } = useData("/v3/holdings", 300000);
+  if (!d && loading) return <Busy />;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  // Oct 13 (Madhav): Trades is the account alone (the $500 NDAX book); everything else is under Details > Lab
+  const acct = d.account ? { ...d, summary: d.account.summary, trades: d.account.trades, closed: d.account.closed, books: [d.account.book], currency: "CAD",
+    retired: [], stamps: {} } : d;
+  return (
+    <Screen loading={loading} onRefresh={reload}>
+      <Spot id="books.trades"><BooksTrades d={acct} explainers={<Explainers h={h} />} /></Spot>
+    </Screen>
+  );
+}
+
+// Details > Lab: every other book's trades (the trend portfolios, Madhav's own), with the retired strategies apart
+function LabTrades() {
+  const { data: d, err, loading, reload } = useData("/v3/books", 60000);
+  if (!d && loading) return <Busy />;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  const lab = { ...d, trades: d.lab?.trades ?? d.trades, closed: d.lab?.closed ?? d.closed, account: null,
+    summary: { ...d.summary, open_count: (d.lab?.trades ?? d.trades ?? []).length }, books: (d.books ?? []).filter((b: any) => b.name !== "The $500 NDAX book") };
+  return (
+    <Screen loading={loading} onRefresh={reload}>
+      <BooksTrades d={lab} title="The lab's paper books · US$" />
+    </Screen>
+  );
+}
+
+// Ananta's own book sits above the others: one line, tap for the full book.
+function JarvisRow() {
+  const { data: b } = useData("/v3/brain", 120000);
+  const open = b?.open ?? [];
+  return (
+    <Pressable onPress={() => router.push("/jarvis")} accessibilityRole="button"
+      style={{ marginHorizontal: 16, marginTop: 10, backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", alignItems: "center" }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ color: C.text, fontWeight: "700", fontSize: 15 }}>Ananta's book</Text>
+        <Text style={{ color: C.dim, fontSize: 13 }}>{open.length} open · {b ? `${b.events} of 10 events · ${b.verdict}` : "loading"}</Text>
+      </View>
+      <Text style={{ color: C.accent, fontSize: 18 }}>›</Text>
+    </Pressable>
   );
 }
 
@@ -94,7 +208,7 @@ function Book() {
       <Section title={`Holdings · ${d.holdings.length}`} right={<T small>value · total return</T>} />
       </Spot>
       <Card>
-        <StackBar parts={[...d.holdings.map((r: any, i: number) => ({ label: r.coin, value: r.value, color: SHADES[i] ?? C.line })),
+        <StackBar parts={[...d.holdings.map((r: any, i: number) => ({ label: r.coin, value: r.value, color: C.shades[i] ?? C.line })),
           { label: "Cash", value: d.cash, color: C.card2 }]} />
         {d.holdings.map((r: any) => (
           <View key={r.coin}>
@@ -123,20 +237,6 @@ function Book() {
         </>
       ) : null}
 
-      <Card>
-        <Expand title="How this portfolio works" sub="The T3 rule from repair-shop review #4">
-          <T>{d.rule_plain}</T>
-          <T small>Ratings: Strong = leading the group; Steady = middle; Weak = lagging, first to go if the trend breaks.</T>
-        </Expand>
-        <Divider />
-        <Expand title="Compare" sub="Your book vs the automatic copy">
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <Stat label="Your book" value={pct(d.return_pct)} color={pnlColor(d.return_pct)} />
-            <Stat label="Automatic copy" value={pct(d.shadow.return_pct)} color={pnlColor(d.shadow.return_pct)} />
-          </View>
-          <T small>The automatic copy always follows the rule at once. A gap shows the cost of waiting for approvals.</T>
-        </Expand>
-      </Card>
     </Screen>
   );
 }

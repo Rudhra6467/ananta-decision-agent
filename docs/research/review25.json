@@ -1,0 +1,151 @@
+{
+ "review": 25,
+ "splits": {
+  "DISCOVERY": [
+   "2018-01-01",
+   "2023-12-31"
+  ],
+  "CONFIRM": [
+   "2024-01-01",
+   "2099-01-01"
+  ]
+ },
+ "results": {
+  "DISCOVERY": {
+   "HOLD": {
+    "total_pct": 207.1,
+    "cagr_pct": 20.9,
+    "max_drawdown_pct": -81.2,
+    "return_over_drawdown": 0.26,
+    "sharpe": 0.63,
+    "time_in_market_pct": 100.0,
+    "trades": 1,
+    "days": 2162
+   },
+   "GATE50": {
+    "total_pct": 338.5,
+    "cagr_pct": 28.3,
+    "max_drawdown_pct": -64.5,
+    "return_over_drawdown": 0.44,
+    "sharpe": 0.76,
+    "time_in_market_pct": 49.6,
+    "trades": 141,
+    "days": 2162
+   },
+   "GATE50_200": {
+    "total_pct": 591.3,
+    "cagr_pct": 38.6,
+    "max_drawdown_pct": -52.2,
+    "return_over_drawdown": 0.74,
+    "sharpe": 1.01,
+    "time_in_market_pct": 37.3,
+    "trades": 81,
+    "days": 2162
+   },
+   "GATE50_VOL": {
+    "total_pct": 348.3,
+    "cagr_pct": 28.8,
+    "max_drawdown_pct": -48.4,
+    "return_over_drawdown": 0.6,
+    "sharpe": 0.96,
+    "time_in_market_pct": 49.6,
+    "trades": 152,
+    "days": 2162
+   },
+   "PAIR_GATE50": {
+    "total_pct": 734.8,
+    "note": "average of the two gated halves (no rebalancing between them); drawdown not combined",
+    "btc": {
+     "total_pct": 338.5,
+     "cagr_pct": 28.3,
+     "max_drawdown_pct": -64.5,
+     "return_over_drawdown": 0.44,
+     "sharpe": 0.76,
+     "time_in_market_pct": null,
+     "trades": 141,
+     "days": 2162
+    },
+    "eth": {
+     "total_pct": 1131.0,
+     "cagr_pct": 52.8,
+     "max_drawdown_pct": -63.9,
+     "return_over_drawdown": 0.83,
+     "sharpe": 0.98,
+     "time_in_market_pct": null,
+     "trades": 125,
+     "days": 2162
+    }
+   }
+  },
+  "CONFIRM": {
+   "HOLD": {
+    "total_pct": 99.7,
+    "cagr_pct": 28.5,
+    "max_drawdown_pct": -53.0,
+    "return_over_drawdown": 0.54,
+    "sharpe": 0.77,
+    "time_in_market_pct": 100.0,
+    "trades": 1,
+    "days": 1007
+   },
+   "GATE50": {
+    "total_pct": 72.8,
+    "cagr_pct": 21.9,
+    "max_drawdown_pct": -34.2,
+    "return_over_drawdown": 0.64,
+    "sharpe": 0.76,
+    "time_in_market_pct": 54.2,
+    "trades": 67,
+    "days": 1007
+   },
+   "GATE50_200": {
+    "total_pct": 85.3,
+    "cagr_pct": 25.1,
+    "max_drawdown_pct": -30.4,
+    "return_over_drawdown": 0.83,
+    "sharpe": 0.88,
+    "time_in_market_pct": 45.3,
+    "trades": 47,
+    "days": 1007
+   },
+   "GATE50_VOL": {
+    "total_pct": 77.0,
+    "cagr_pct": 23.0,
+    "max_drawdown_pct": -32.5,
+    "return_over_drawdown": 0.71,
+    "sharpe": 0.85,
+    "time_in_market_pct": 54.2,
+    "trades": 70,
+    "days": 1007
+   },
+   "PAIR_GATE50": {
+    "total_pct": 46.6,
+    "note": "average of the two gated halves (no rebalancing between them); drawdown not combined",
+    "btc": {
+     "total_pct": 72.8,
+     "cagr_pct": 21.9,
+     "max_drawdown_pct": -34.2,
+     "return_over_drawdown": 0.64,
+     "sharpe": 0.76,
+     "time_in_market_pct": null,
+     "trades": 67,
+     "days": 1007
+    },
+    "eth": {
+     "total_pct": 20.4,
+     "cagr_pct": 7.0,
+     "max_drawdown_pct": -51.3,
+     "return_over_drawdown": 0.14,
+     "sharpe": 0.37,
+     "time_in_market_pct": null,
+     "trades": 77,
+     "days": 1007
+    }
+   }
+  }
+ },
+ "verdict": {
+  "GATE50_200": "PASS",
+  "GATE50_VOL": "PASS"
+ }
+}

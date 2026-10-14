@@ -45,7 +45,7 @@
    "kind": "strategy",
    "evidence": "SUPPORTED",
    "permission": "PAPER",
-   "reason": "Passed on 10 coins (#4) and the 30 most-traded (#15); on all 120 it only cut losses",
+   "reason": "Passed both periods after costs on the liquid top-30 tier (#15); on all 120 coins it did not beat random, it only cut losses. The earlier 10-coin pass (#4) is the basic-lab era, rated legacy in the Oct 14 audit: never cite it as evidence.",
    "reviews": [
     "#4",
     "#15"
@@ -95,7 +95,7 @@
    "kind": "strategy",
    "evidence": "SUPPORTED",
    "permission": "PAPER",
-   "reason": "One measured cell: tier-A coins while the exposure dial is CLOSED, +5.1% a trade over random after costs in both periods (review #26); no stop, 10-day exit (review #27). Elsewhere no measured edge",
+   "reason": "One measured cell: tier-A (liquid top-30) coins while the exposure dial is CLOSED, +5.1% a trade over random after costs in both periods (review #26); no stop, 10-day exit (#27). On the broad 120, in other tiers, or with the dial open: no measured edge. Its live book's 8-for-8 was one signal day (Oct 8), dial open, outside the measured cell: 1 independent event.",
    "reviews": [
     "#13",
     "#14",

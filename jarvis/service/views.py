@@ -580,13 +580,15 @@ def trades_list(j) -> dict:
            "entry": t["entry"], "price": t["price"], "pnl_usd": t["pnl_usd"], "since": t["since"],
            "status": {"HOLD": "On track", "TIGHTEN": "Near target", "EXIT-SOON": "Near stop"}.get(t["suggestion"], t["suggestion"])} for t in xs["open"]]
     cl = []
+    closed_total = ex.store.book.execute("SELECT COUNT(*) FROM events WHERE kind='CLOSED'").fetchone()[0]  # request #43: the screen shows 30, the truth is the total
     for (js,) in ex.store.book.execute("SELECT json FROM events WHERE kind='CLOSED' ORDER BY seq DESC LIMIT 30"):
         e = json.loads(js)
         cl.append({"id": e["id"], "coin": e["coin"], "setup_name": SETUP.get(e["setup"], e["setup"]), "type_name": TYPE.get(e["type"]),
                    "net_usd": e.get("net_usd"), "exit": exit_text(e.get("bell")), "time": _local(e["t"])})
     pend = [{"coin": o["coin"], "setup_name": SETUP.get(o["setup"], o["setup"]), "limit": o["limit"], "expires": o["expires"]} for o in xs["pending_orders"]]
     return {"value": xs["equity"], "start": 2000.0, "realized": xs["realized_usd"], "unrealized": xs["unrealized_usd"],
-            "open": op, "closed": cl, "pending": pend}
+            "open": op, "closed": cl, "closed_total": closed_total,
+            "closed_note": f"showing the last {min(30, closed_total)} of {closed_total} closed trades", "pending": pend}
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 {
  "version": "glossary.v1",
- "updated": "2026-10-05",
+ "updated": "2026-10-14",
  "rule": "Simplify the words, not the intelligence (Madhav, 2026-10-05). Jarvis reasons with the technical terms; when it speaks, the plain name comes first the first time a term appears in a conversation ('the 50-day average price, the EMA50'), then either. 'ours' is OUR exact setting: never describe a term differently from how Ananta uses it. Terms with used=false are explained when asked, never implied to be part of Ananta.",
  "terms": [
   {
@@ -388,6 +388,81 @@
    "ours": "not used by Ananta",
    "say": "We don't use VWAP; our day-scale tools are the 15-minute setups.",
    "used": false
+  },
+  {
+   "id": "basic_lab_era",
+   "term": "Basic lab era (research phase 1)",
+   "aliases": [
+    "lab era",
+    "10-coin era",
+    "era 1"
+   ],
+   "plain": "our first research phase: 10 coins, daily bars",
+   "meaning": "The first pass of research, on 10 coins and daily bars. Its passes, including T3's 10-coin pass (#4), are rated legacy in the Oct 14 audit: process lessons only, never evidence.",
+   "ours": "Our first research phase; its passes are process lessons, never cited as evidence.",
+   "say": "the basic lab era, our first research phase"
+  },
+  {
+   "id": "grok_era",
+   "term": "Grok era (research phase 2, Mar-Sep 2026)",
+   "aliases": [
+    "grok",
+    "set campaigns",
+    "sixteen campaigns",
+    "era 2"
+   ],
+   "plain": "the middle research phase, run with the Grok model on 5- and 15-minute data",
+   "meaning": "16 set campaigns on short-timeframe data. Verdict (Oct 14 audit): zero validated strategies, zero authority-eligible, one alarm kept (H1 volume shock, alert-only), one frozen slice (set 16). Its 'survives fees' claims used about a tenth of real costs, and its ETH 15-minute tape has a verified hole (Apr-Sep 2026), so era results are suspect unless re-run.",
+   "ours": "Our middle research phase on short timeframes; verdict: nothing validated, one alarm kept, results suspect on costs and the ETH tape.",
+   "say": "the Grok era, our middle research phase"
+  },
+  {
+   "id": "claude_era",
+   "term": "Claude era (research phase 3, Sep 2026-now)",
+   "aliases": [
+    "lake era",
+    "era 3"
+   ],
+   "plain": "the current research phase: the 120-coin lake and pre-registered reviews",
+   "meaning": "The 120-coin data lake, tiers, the exposure dial, and pre-registered reviews (#1-#28). The only era whose numbers current cards may cite as evidence.",
+   "ours": "Our current phase; the only era whose numbers we cite as evidence.",
+   "say": "the Claude era, the current one"
+  },
+  {
+   "id": "set_16",
+   "term": "Set 16 (frozen slice)",
+   "aliases": [
+    "set sixteen",
+    "frozen slice"
+   ],
+   "plain": "a saved, untouched slice of Grok-era test data",
+   "meaning": "A Grok-era out-of-sample slice of 76 events, kept frozen as a record. Too thin to use: not usable evidence.",
+   "ours": "A frozen Grok-era slice we keep as a record; 76 events, too thin to use.",
+   "say": "set sixteen, a frozen slice"
+  },
+  {
+   "id": "risk_officer",
+   "term": "Risk officer (the brain's role since Oct 13)",
+   "aliases": [
+    "demoted to risk officer",
+    "officer role"
+   ],
+   "plain": "the brain watches and explains the account; the rules trade it",
+   "meaning": "Oct 13 change: written rules decide the $500 account's trades; the brain watches, explains, and writes the daily officer's note. What it lost: picking that account's trades. What it keeps: its own paper judgment book, measured against a random twin.",
+   "ours": "Since Oct 13 the rules trade the $500 account; the brain watches, explains and writes the officer's note.",
+   "say": "the risk officer role"
+  },
+  {
+   "id": "hunter_falsify",
+   "term": "Hunter (zone hunter) - what would falsify it",
+   "aliases": [
+    "hunter card",
+    "falsify hunter"
+   ],
+   "plain": "Hunter is parked; here is what would revive or bury it",
+   "meaning": "Hunter is PARKED with no falsification rule ever written. The standing rule now: it stays parked unless a pre-registered test (criteria frozen before any results) revives it; failing that registered test buries it for good.",
+   "ours": "Hunter stays parked unless a pre-registered test revives it; failing that test buries it.",
+   "say": "what would falsify Hunter"
   }
  ],
  "names": {

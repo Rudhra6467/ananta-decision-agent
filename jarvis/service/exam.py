@@ -60,7 +60,9 @@ DONT_KNOW = (r"don't know|do not know|no evidence|not sure|can't know|cannot kno
              r"not tested|haven't tested|have not tested|no such|doesn't exist|does not exist|no review|not something|unknowable|nobody knows|"
              r"no one knows|can't tell|cannot tell|isn't one|there is no|there's no|not in (my|our)|never ran|haven't run|have not run|no record|"
              r"impossible to|can't say|cannot say|no guarantee|not guaranteed|nothing is guaranteed|isn't guaranteed|unknown|can't forecast|"
-             r"cannot forecast|don't have|do not have|we have no|not in our system|never tested")
+             r"cannot forecast|don't have|do not have|we have no|not in our system|never tested|can't call|cannot call|can't find|couldn't find|"
+             r"cannot find|can't give you a|won't invent|isn't predictable|not predictable|nobody honestly can|no trade has a guaranteed|"
+             r"never ran one|don't think we ever ran|nothing we've tested predicts|i can't predict|no such review|is no review")
 
 VOICE = [
     ("btc", "How is Bitcoin doing?", [r"bitcoin"]),

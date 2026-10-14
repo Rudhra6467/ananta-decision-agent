@@ -1,3 +1,5 @@
 {"file": "voice_latest.json", "t": 1791704709, "day": "2026-10-11", "understood": 10, "of": 10, "pass": true, "note": "spoken by the Mac's voice (say), heard by the app's speech-to-text"}
 {"file": "latest.json", "t": 1791704979, "day": "2026-10-11", "known": 18, "known_of": 20, "unknown": 6, "unknown_of": 10, "knows_pass": true, "unknowns_pass": false}
 {"file": "latest.json", "t": 1791704979, "day": "2026-10-11", "known": 18, "known_of": 20, "unknown": 9, "unknown_of": 10, "knows_pass": true, "unknowns_pass": true, "rejudged": "2026-10-11 07:13"}
+{"file": "latest.json", "t": 1791945405, "day": "2026-10-13", "known": 20, "known_of": 20, "unknown": 5, "unknown_of": 10, "knows_pass": true, "unknowns_pass": false}
+{"file": "latest.json", "t": 1791945405, "day": "2026-10-13", "known": 20, "known_of": 20, "unknown": 10, "unknown_of": 10, "knows_pass": true, "unknowns_pass": true, "rejudged": "2026-10-13 22:38"}

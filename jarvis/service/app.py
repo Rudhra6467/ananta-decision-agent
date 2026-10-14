@@ -18,7 +18,20 @@ app = FastAPI(title="Jarvis", version=core.VERSION, docs_url=None, redoc_url=Non
 
 # The web app (livetrading247.com, Madhav 2026-10-06: "where i can access it through web") calls this API from the browser;
 # only our own sites may. Phones are not browsers and are unaffected. Every route still needs the login token.
+from fastapi.exceptions import RequestValidationError  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+
+
+@app.exception_handler(RequestValidationError)
+async def _plain_422(request: Request, exc: RequestValidationError):
+    """A refused request says in one sentence what was missing (Oct 13: the phone showed the raw error list as "[object Object]")."""
+    bits = []
+    for e in exc.errors()[:3]:
+        loc = ".".join(str(x) for x in e.get("loc", []) if x not in ("body", "query"))
+        bits.append(f"{loc or 'the request'}: {e.get('msg', 'invalid')}")
+    return JSONResponse(status_code=422, content={"detail": "The app sent a request Ananta could not read (" + "; ".join(bits) +
+                                                            "). Please update the app or tell Madhav."})
 
 app.add_middleware(CORSMiddleware, allow_origins=["https://livetrading247.com", "https://www.livetrading247.com",
                                                   "http://localhost:8081", "http://127.0.0.1:8300", "http://localhost:8300"],   # local test copies
@@ -1329,13 +1342,13 @@ def cockpit(who: str = Depends(owner)) -> dict:
     return views.cockpit(J())
 
 
-@app.post("/v3/ask")
 def _with_country(ctx, request: Request):
     """The country Cloudflare saw the request come from (CF-IPCountry): who might be speaking on Madhav's account (Oct 11)."""
     c = request.headers.get("cf-ipcountry")
     return {**(ctx if isinstance(ctx, dict) else {}), "country": c} if c else ctx
 
 
+@app.post("/v3/ask")
 def ask_q(b: Question, request: Request, who: str = Depends(owner)) -> dict:
     ctx = _with_country(b.context, request)
     return _run(lambda: A().ask(who, b.text, b.thread, b.provider, b.mode, None, ctx, source="eval" if b.source == "eval" else ""))

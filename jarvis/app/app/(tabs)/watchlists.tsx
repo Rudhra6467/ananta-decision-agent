@@ -49,7 +49,7 @@ export default function Watchlists() {
             <Text style={{ color: C.onInk, fontWeight: "800" }}>+ Watch</Text>
           </Pressable>} />
         <Card>
-          {(w?.watches ?? []).length === 0 ? <T dim>No watches yet. Tap + Watch to have Ananta watch a coin or a group, and choose whether it tells you, asks you first or trades by itself.</T> : null}
+          {(w?.watches ?? []).length === 0 ? <T dim>No watches yet. Tap + Watch.</T> : null}
           {(w?.watches ?? []).map((x: any, i: number) => <View key={x.id}>{i ? <Divider /> : null}<WatchRow w={x} reload={reloadW} glow={!!glow && glow === x.id} /></View>)}
         </Card>
         <Card title={myCoins.length ? "Your coins" : "Coins Ananta watches"} sub="tap for the trading page · + to watch or trade">

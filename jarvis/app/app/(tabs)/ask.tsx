@@ -208,7 +208,12 @@ export default function Ananta() {
       }
     } catch { /* the box is optional */ }
   }, []);
-  useFocusEffect(useCallback(() => { setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); setScroller({ ref: scroll, ...sst }); checkFresh(); }, []));
+  useFocusEffect(useCallback(() => {
+    setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); setScroller({ ref: scroll, ...sst }); checkFresh();
+    Promise.all([SecureStore.getItemAsync("ask_auto"), SecureStore.getItemAsync("ask_google")]).then(([a, g]) => {
+      if (a) setAutoOn(a === "1"); if (g) setGoogle(g === "1");                       // set in Additional features (Oct 13)
+    }).catch(() => {});
+  }, []));
   // who Ananta is talking with right now (one of Madhav's people), from the latest answer; null = Madhav
   const speaker = [...msgs].reverse().find((m) => m.role === "assistant" && m.talking_to !== undefined)?.talking_to ?? null;
   const imBack = async () => {
@@ -586,12 +591,7 @@ export default function Ananta() {
       {top}
       {drawer}
       <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", rowGap: 4, gap: 8, paddingHorizontal: 16, paddingTop: 8 }}>
-        <Text style={{ color: autoOn ? C.text : C.faint, fontWeight: "700" }}>Auto</Text>
-        <Switch value={autoOn} onValueChange={(v) => flip("ask_auto", v)} trackColor={{ true: C.accent, false: C.line }} />
-        <View style={{ width: 6 }} />
-        <Text style={{ color: google ? C.faint : C.text, fontWeight: "700" }}>Claude</Text>
-        <Switch value={google} onValueChange={(v) => flip("ask_google", v)} trackColor={{ true: C.accent, false: C.line }} />
-        <Text style={{ color: google ? C.text : C.faint, fontWeight: "700" }}>Google</Text>
+        <Text style={{ color: C.dim, fontSize: 12 }}>{google ? (autoOn ? "Google · auto" : "Google") : (autoOn ? "Claude · auto" : "Claude deep")}</Text>
         <View style={{ flex: 1 }} />
         {msgs.length ? <Text onPress={shareSession} style={{ color: C.accent, fontWeight: "600", marginRight: 12 }}>Share</Text> : null}
         <Text onPress={newSession} style={{ color: C.accent, fontWeight: "600", marginLeft: 12 }}>New</Text>
@@ -749,12 +749,7 @@ function LivePanel({ label, phase, hearing, level, note, onOrb, onEnd, rateLabel
       </Pressable>
       <Text style={{ color: C.text, fontWeight: "600" }}>{label}</Text>
       {note ? <Text style={{ color: C.dim, fontSize: 12, textAlign: "center", paddingHorizontal: 20 }}>{note}</Text> : null}
-      <View style={{ flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" }}>
-        <Pick label="Speed" value={`${r}×`} options={TTS.RATES.map((x) => ({ key: String(x), label: `${x}×` }))} selected={String(r)}
-          onPick={(k) => { const x = Number(k); setR(x); onRate(x); }} />
-        <Pick label="Voice" value={vc} options={[...TTS.VOICES, "Phone"].map((v) => ({ key: v, label: v }))} selected={vc}
-          onPick={(v) => { setVc(v); onVoice(v); }} />
-      </View>
+      <T small dim>{vc} voice · {r}× · change in Cockpit › Additional features</T>
       <Pressable onPress={onEnd} style={{ backgroundColor: C.text, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 9 }}>
         <Text style={{ color: C.onInk, fontWeight: "700" }}>End voice</Text>
       </Pressable>

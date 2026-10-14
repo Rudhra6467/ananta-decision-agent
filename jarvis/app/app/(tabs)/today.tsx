@@ -172,6 +172,7 @@ function OwnerHome() {
 
 // The account (Madhav, Oct 13): the $500 NDAX book is what he and Ananta look at; everything else is the lab.
 function AccountCard({ a }: { a: any }) {
+  const [more, setMore] = useState(false);
   const change = (a.value_cad ?? 0) - (a.start_cad ?? 500);
   const pos = Object.entries(a.positions ?? {}) as [string, any][];
   const fired = Object.entries(a.brakes?.fired ?? {}).filter(([, n]) => (n as number) > 0);
@@ -199,24 +200,30 @@ function AccountCard({ a }: { a: any }) {
           <Text style={{ color: C.dim, fontSize: 11 }}>{cad(a.cash_cad ?? 0)}</Text>
         </View>
       </View>
-      <View style={{ gap: 3 }}>
-        <T small><Text style={{ color: C.dim }}>Dial · </Text>{a.dial?.state ?? "…"}</T>
-        <T small><Text style={{ color: C.dim }}>Brakes · </Text>{brakes}</T>
-        <T small dim>{a.next}. Last step {a.last_step} UTC.</T>
-      </View>
+      <T small><Text style={{ color: C.dim }}>Dial </Text>{String(a.dial?.state ?? "…").split(":")[0]}<Text style={{ color: C.dim }}> · brakes </Text>{brakes}
+        <Text style={{ color: C.accent, fontWeight: "700" }} onPress={() => setMore(!more)}>{more ? "  Show less" : "  More"}</Text></T>
+      {more ? (
+        <View style={{ gap: 3 }}>
+          {(a.dial?.why ?? []).map((w: string, i: number) => <T key={i} small dim>· {w}</T>)}
+          <T small dim>{a.next}. Last step {a.last_step} UTC. Fills inside NDAX's bid and ask: {a.execution_check?.inside_bid_ask ?? 0} of {a.execution_check?.fills ?? 0}.</T>
+        </View>
+      ) : null}
     </Card>
   );
 }
 
 // The officer's note: the brain's plain account of the day, written once after the close.
 function OfficerNote({ note }: { note: any }) {
+  const [more, setMore] = useState(false);
   return (
-    <Card onPress={() => askAbout({ screen: "home", label: "The officer's note" }, "Tell me more about today's note on the account.")}>
+    <Card>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <T dim small>Ananta's note · {note.day}</T>
-        <Text style={{ color: C.accent, fontWeight: "600", fontSize: 13 }}>Ask ›</Text>
+        <Text onPress={() => askAbout({ screen: "home", label: "The officer's note" }, "Tell me more about today's note on the account.")}
+          style={{ color: C.accent, fontWeight: "600", fontSize: 13 }}>Ask ›</Text>
       </View>
-      <Text style={{ color: C.text, fontSize: 16, lineHeight: 23 }}>{note.note}</Text>
+      <Text style={{ color: C.text, fontSize: 16, lineHeight: 23 }} numberOfLines={more ? undefined : 3}>{note.note}</Text>
+      <Text onPress={() => setMore(!more)} style={{ color: C.accent, fontWeight: "700", fontSize: 13 }}>{more ? "Show less" : "More"}</Text>
     </Card>
   );
 }

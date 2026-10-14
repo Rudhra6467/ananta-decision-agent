@@ -8,6 +8,7 @@ import { useData } from "../src/useData";
 import { api } from "../src/api";
 import { showToast } from "../src/blocks";
 import { C } from "../src/theme";
+import { VoiceSettings } from "../src/voicesettings";
 
 export default function More() {
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
@@ -27,6 +28,8 @@ export default function More() {
   return (
     <>{head}
       <Screen loading={loading} onRefresh={reload}>
+        <Section title="Voice and model" />
+        <Card><VoiceSettings /></Card>
         <Section title="Systems and circuit breakers" />
         <Card>
           {(d.systems ?? []).map((s: any, i: number) => (

@@ -216,39 +216,8 @@ function Cockpit() {
 
       <NotificationsCard />
 
-      <Card onPress={() => router.push("/more")} title="Additional features" sub="Systems and circuit breakers · Recent activities · Invites · Visitor feedback · Change password · Mandate"
+      <Card onPress={() => router.push("/more")} title="Additional features" sub="Voice and model · Systems and circuit breakers · Recent activities · Invites · Visitor feedback · Change password · Mandate"
         right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
-
-      {sp ? (
-        <Spot id="cockpit.voice">
-          <Section title="Voice Assist Settings" />
-          <Card>
-            <VoicePick />
-            <Divider />
-            <View style={{ paddingVertical: 4, gap: 8 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>Claude budget per day</Text>
-                <Text style={{ color: C.text, fontWeight: "700" }}>${sp.today_usd.toFixed(2)} of ${sp.budget_usd.toFixed(2)}</Text>
-              </View>
-              <Progress value={sp.today_usd} of={sp.budget_usd || 1} color={sp.today_usd >= sp.budget_usd ? C.bad : C.accent} />
-              <Segmented value={String(sp.budget_usd)} onChange={(v) => setting("daily_budget_usd", v)}
-                options={["0", "1", "2", "5", "10"].map((x) => ({ key: x, label: `$${x}` }))} />
-              <T small>When today's budget is used up: {sp.settings.over_budget === "stop" ? "Claude stops until tomorrow." : "Gemini (free) answers instead."}
-                {"  "}<Text style={{ color: C.accent }} onPress={() => setting("over_budget", sp.settings.over_budget === "stop" ? "gemini" : "stop")}>Change</Text></T>
-              <Line label="This month" value={`$${sp.month_usd.toFixed(2)}`} />
-              {Object.entries(sp.month).map(([k, v]: any) => <Line key={k} label={`  ${k}`} value={`${v.answers} answers · $${v.usd.toFixed(2)}`} />)}
-            </View>
-            <Divider />
-            <Pressable onPress={() => router.push("/testlab")} style={{ flexDirection: "row", alignItems: "center", paddingTop: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>Test lab</Text>
-                <T small>Recorded test runs of Ananta: answers from both models, voice, stability{sp.tests ? ` · today $${sp.tests.today_usd.toFixed(2)} of $${sp.tests.budget_usd.toFixed(2)}` : ""}</T>
-              </View>
-              <Text style={{ color: C.faint, fontSize: 18 }}>›</Text>
-            </Pressable>
-          </Card>
-        </Spot>
-      ) : null}
 
       <Btn label="Sign out" kind="secondary" onPress={async () => { await logout(); clearMe(); router.replace("/login"); }} />
       <LiveSheet open={live} onClose={() => setLive(false)} />

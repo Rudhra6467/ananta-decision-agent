@@ -130,8 +130,13 @@ def _research(j) -> tuple[list[dict], list[dict], list[dict], int]:
             books.append({"name": "The $500 NDAX book", "value": st.get("value_cad"), "start": 500.0, "currency": "CAD"})
             for c, p in (st.get("positions") or {}).items():
                 trades.append({"id": f"b500:{c}", "coin": c, "book": "book500", "stamp": _stamp("ananta", f"$500 book · {p.get('sleeve', '').lower()}", "book500"),
-                               "entry": p.get("paid") and p.get("qty") and p["paid"] / p["qty"], "now": p.get("last"),
-                               "pnl_usd": round(p["qty"] * p["last"] - p["paid"], 2) if p.get("last") and p.get("qty") else None})
+                               "entry": p.get("paid") and p.get("qty") and p["paid"] / p["qty"], "now": p.get("last"), "currency": "CAD",
+                               "pnl_usd": round(p["qty"] * p["last"] - p["paid"], 2) if p.get("last") and p.get("qty") else None,
+                               "pnl_pct": round(100 * (p["qty"] * p["last"] / p["paid"] - 1), 2) if p.get("last") and p.get("qty") and p.get("paid") else None,
+                               "since": p.get("day"), "why": p.get("why")})
+            for x in (st.get("closed") or [])[-40:][::-1]:
+                closed.append({"id": f"b500:{x.get('coin')}:{x.get('out')}", "coin": x.get("coin"), "stamp": _stamp("ananta", f"$500 book · {str(x.get('sleeve', '')).lower()}", "book500"),
+                               "net_usd": x.get("pnl_cad"), "why": x.get("why"), "time": x.get("out"), "currency": "CAD"})
     except Exception:  # noqa: BLE001
         pass
     for b in books:                                        # Oct 13: which books still trade (the headline) and which are retired (shown apart)
@@ -161,8 +166,21 @@ def view(j, name: str, owner: bool) -> dict[str, Any]:
     value = round(sum(b["value"] or 0 for b in usd_books), 2)
     start = round(sum(b["start"] or 0 for b in usd_books), 2)
     retired_pnl = round(sum((b["value"] or 0) - (b["start"] or 0) for b in retired), 2)
+    # Oct 13 (Madhav): Books > Trades is the account alone; the lab's trades sit under Details
+    acct_book = next((b for b in counted if b["name"] == "The $500 NDAX book"), None)
+    account = None
+    if acct_book:
+        at = [t for t in trades if t.get("book") == "book500"]
+        ac = [c for c in closed if str(c.get("id", "")).startswith("b500:")]
+        account = {"book": acct_book, "trades": at, "closed": ac, "currency": "CAD",
+                   "summary": {"value": acct_book["value"], "start": acct_book["start"], "open_count": len(at),
+                               "open_pnl": round(sum(t["pnl_usd"] for t in at if isinstance(t.get("pnl_usd"), (int, float))), 2),
+                               "closed_pnl_recent": round(sum(c["net_usd"] for c in ac if isinstance(c.get("net_usd"), (int, float))), 2)}}
+    lab_trades = [t for t in trades if t.get("book") != "book500"]
+    lab_closed = [c for c in closed if not str(c.get("id", "")).startswith("b500:")]
     return {"summary": {"value": value, "start": start, "open_pnl": open_pnl, "closed_pnl_recent": closed_pnl, "open_count": len(trades),
                         "retired_pnl": retired_pnl, "retired_count": len(retired), "evidence_open": sum(evidence_rows.values())},
+            "account": account, "lab": {"trades": lab_trades, "closed": lab_closed[:40]},
             "retired": [{"name": b["name"], "value": b["value"], "start": b["start"], "status": b["status"], "why": b.get("why")} for b in retired],
             "evidence_open_by": evidence_rows,
             "trades": trades, "closed": closed[:40], "books": counted, "stamps": stamps, "random_open": randoms,

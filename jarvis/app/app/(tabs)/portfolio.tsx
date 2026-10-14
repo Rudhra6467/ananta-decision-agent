@@ -76,9 +76,9 @@ function OwnerBooks() {
         <>
           <JarvisRow />
           <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
-            <Segmented value={tab} onChange={setTab} options={[{ key: "portfolio", label: "Trend" }, { key: "explorer", label: "Explorer" }, { key: "mine", label: "Mine" }, { key: "setups", label: "Setups" }]} />
+            <Segmented value={tab} onChange={setTab} options={[{ key: "lab", label: "Lab" }, { key: "portfolio", label: "Trend" }, { key: "explorer", label: "Explorer" }, { key: "mine", label: "Mine" }, { key: "setups", label: "Setups" }]} />
           </View>
-          {tab === "portfolio" ? <Book /> : tab === "explorer" ? <Trades /> : tab === "setups" ? <Setups /> : <Mine />}
+          {tab === "lab" ? <LabTrades /> : tab === "portfolio" ? <Book /> : tab === "explorer" ? <Trades /> : tab === "setups" ? <Setups /> : <Mine />}
         </>
       )}
     </View>
@@ -103,9 +103,26 @@ function AllTrades() {
   const { data: h } = useData("/v3/holdings", 300000);
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  // Oct 13 (Madhav): Trades is the account alone (the $500 NDAX book); everything else is under Details > Lab
+  const acct = d.account ? { ...d, summary: d.account.summary, trades: d.account.trades, closed: d.account.closed, books: [d.account.book], currency: "CAD",
+    retired: [], stamps: {} } : d;
   return (
     <Screen loading={loading} onRefresh={reload}>
-      <Spot id="books.trades"><BooksTrades d={d} explainers={<Explainers h={h} />} /></Spot>
+      <Spot id="books.trades"><BooksTrades d={acct} explainers={<Explainers h={h} />} /></Spot>
+    </Screen>
+  );
+}
+
+// Details > Lab: every other book's trades (the trend portfolios, Madhav's own), with the retired strategies apart
+function LabTrades() {
+  const { data: d, err, loading, reload } = useData("/v3/books", 60000);
+  if (!d && loading) return <Busy />;
+  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
+  const lab = { ...d, trades: d.lab?.trades ?? d.trades, closed: d.lab?.closed ?? d.closed, account: null,
+    summary: { ...d.summary, open_count: (d.lab?.trades ?? d.trades ?? []).length }, books: (d.books ?? []).filter((b: any) => b.name !== "The $500 NDAX book") };
+  return (
+    <Screen loading={loading} onRefresh={reload}>
+      <BooksTrades d={lab} />
     </Screen>
   );
 }

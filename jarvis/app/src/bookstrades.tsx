@@ -21,22 +21,22 @@ export function BooksTrades({ d, explainers }: { d: any; explainers?: React.Reac
   const shown = list.filter((t) => only === "all" || (only === "mine" ? t.stamp?.who === "you" : only === "ananta" ? t.stamp?.who === "ananta"
     : t.stamp?.label?.startsWith(only)));
   const gain = (s.value ?? 0) - (s.start ?? 0);
+  const cad = d.currency === "CAD";
+  const money = (v: number) => (cad ? `C$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : usd(v, 0));
+  const signed = (v: number) => (cad ? `${v >= 0 ? "+" : "-"}C$${Math.abs(v).toFixed(2)}` : usdSigned(v));
   return (
     <View style={{ gap: 14 }}>
       <Card>
-        <T dim small>Paper books that still trade</T>
+        <T dim small>{cad ? "The account · $500 NDAX book · paper, real NDAX prices" : "The lab's paper books"}</T>
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-          <Text style={{ color: C.text, fontSize: 30, fontWeight: "700", letterSpacing: -0.5 }}>{usd(s.value, 0)}</Text>
-          <Text style={{ color: pnlColor(gain), fontWeight: "600" }}>{usdSigned(gain)} since start</Text>
+          <Text style={{ color: C.text, fontSize: 30, fontWeight: "700", letterSpacing: -0.5 }}>{s.value == null ? "…" : money(s.value)}</Text>
+          <Text style={{ color: pnlColor(gain), fontWeight: "600" }}>{signed(gain)} since start</Text>
         </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <Stat label="Open result" value={usdSigned(s.open_pnl)} color={pnlColor(s.open_pnl)} />
-          <Stat label="Closed (recent)" value={usdSigned(s.closed_pnl_recent)} color={pnlColor(s.closed_pnl_recent)} />
+          <Stat label="Open result" value={signed(s.open_pnl ?? 0)} color={pnlColor(s.open_pnl)} />
+          <Stat label="Closed (recent)" value={signed(s.closed_pnl_recent ?? 0)} color={pnlColor(s.closed_pnl_recent)} />
           <Stat label="Open" value={s.open_count ?? 0} />
         </View>
-        {(d.books ?? []).filter((b: any) => b.currency && b.currency !== "USD").map((b: any) => (
-          <T key={b.name} dim small>{b.name}: C${Number(b.value ?? 0).toFixed(2)} ({usdSigned(Number(b.value ?? 0) - Number(b.start ?? 0)).replace("$", "C$")} since start, kept apart: Canadian dollars)</T>
-        ))}
       </Card>
       {d.retired?.length ? (
         <Card>

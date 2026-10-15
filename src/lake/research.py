@@ -33,7 +33,13 @@ def daily(symbol: str, until: int | None = None, con=None) -> list[tuple]:
     until = until or R.CONF_END
     p = clean_dir("1d") / f"symbol={symbol}" / "**" / "*.parquet"
     con = con or duckdb.connect()
-    rows = con.execute(f"SELECT t, o, h, l, c, v FROM read_parquet('{p}', hive_partitioning=true) WHERE share >= {MIN_SHARE} AND t < {until} ORDER BY t").fetchall()
+    src = f"read_parquet('{p}', hive_partitioning=true, union_by_name=true)"
+    # Coins built from minute data carry `share` (the minutes present) and drop incomplete days. The lake extension of Oct 9-11
+    # (lake_extend, 303 coins outside the 120) holds Binance's own daily candles, which have no share column and are complete
+    # by construction; until Oct 15 this query failed on them ("share" not found). Same rule as review #29's loader.
+    has_share = "share" in {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM {src}").fetchall()}
+    keep = f"COALESCE(share, 1.0) >= {MIN_SHARE}" if has_share else "TRUE"
+    rows = con.execute(f"SELECT t, o, h, l, c, v FROM {src} WHERE {keep} AND t < {until} ORDER BY t").fetchall()
     return [tuple(r) for r in rows]
 
 

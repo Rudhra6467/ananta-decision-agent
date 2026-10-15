@@ -153,3 +153,22 @@ def test_quality_flags_a_token_swap_and_research_refuses_it(tmp_path, monkeypatc
         L.load(["SWAPUSDT"])
     monkeypatch.setitem(L.BREAKS, "SWAPUSDT", q["suspect_redenominations"][0]["t"] + 60)
     assert L.unhandled_suspects("SWAPUSDT") == []
+
+
+def test_daily_loads_binance_daily_candles_that_have_no_share_column(tmp_path, monkeypatch):
+    """Oct 15 (review #30's first run): the lake extension of Oct 9-11 holds 303 coins as Binance's own daily candles, with no
+    minute-coverage column `share`; research.daily failed on them ("share" not found). Such files load as complete days (review
+    #29's rule); files built from minute data still drop days under MIN_SHARE."""
+    from src.lake import research as L
+
+    monkeypatch.setenv("ANANTA_LAKE", str(tmp_path))
+    day = 86400
+    t0 = 1_704_067_200                                              # 2024-01-01
+    for sym, with_share in (("DAYUSDT", False), ("MINUSDT", True)):
+        d = tmp_path / "clean" / "binance" / "spot" / "1d" / f"symbol={sym}" / "year=2024"
+        d.mkdir(parents=True)
+        share = ", CASE WHEN i = 1 THEN 0.5 ELSE 1.0 END AS share" if with_share else ""
+        duckdb.sql(f"COPY (SELECT {t0} + i * {day} AS t, 1.0 AS o, 1.1 AS h, 0.9 AS l, 1.05 AS c, 10.0 AS v, 10.5 AS qv{share} "
+                   f"FROM range(3) r(i)) TO '{d / 'data_0.parquet'}' (FORMAT PARQUET)")
+    assert [r[0] for r in L.daily("DAYUSDT", until=t0 + 10 * day)] == [t0, t0 + day, t0 + 2 * day]
+    assert [r[0] for r in L.daily("MINUSDT", until=t0 + 10 * day)] == [t0, t0 + 2 * day]      # the half-covered day is dropped

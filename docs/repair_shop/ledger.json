@@ -443,6 +443,21 @@
     "docs/research/REVIEW_29_RESULTS.md",
     "docs/research/review29.json"
    ]
+  },
+  {
+   "id": "R30",
+   "date": "2026-10-15",
+   "status": "DONE",
+   "verdict": "PASS",
+   "title": "Survivorship check for the live 10: T3-B on the point-in-time top 10",
+   "forwarded_because": "Review #22 (queue Q9): the lab 10 were chosen with today's knowledge, as the top 30 were.",
+   "question": "Does T3-B still pass on the 10 most-traded coins as they really were each month (64 coins over the years, LUNA included)?",
+   "result": "PASS, much weaker than on today's 10: +589% / +3.7% (2018-23 / 2024-Jul 2026) vs holding the same coins +29.6% / -31.9%; worst fall 63.9% / 39.0% vs 91.2% / 68.5%. On today's 10 (review #20) it was +6,162% / +15.1%.",
+   "changed": "Gate: data_survivorship PASS; strategy_survivorship PASS, counting only the tiers that could trade real money (Madhav's scope b, decided before the run); the 30-coin books are labelled evidence only. T3's knowledge line, status card and strategy status cite #30. Loader fix before any result: daily files without the share column load as complete days (TK16).",
+   "files": [
+    "docs/research/REVIEW_30.md",
+    "docs/research/REVIEW_30_RESULTS.md"
+   ]
   }
  ],
  "queue": [
@@ -517,15 +532,6 @@
    "why": "Review #15 found both work on liquid coins; live paper must agree before any promotion.",
    "metric": "t30_weeks",
    "goal": 6
-  },
-  {
-   "id": "Q9",
-   "status": "WAITING_FOR_EVIDENCE",
-   "title": "Survivorship check for the live 10",
-   "waiting_for": "a review slot (data are in the lake)",
-   "why": "Review #22: the lab 10 were also chosen with today's knowledge; re-test T3-B on the top 10 as it was each month.",
-   "metric": "review_slot",
-   "goal": 1
   }
  ],
  "in_use": [
@@ -718,7 +724,8 @@
    "what": "Dip trades (E6) skip the room-to-target check every other setup passes: 3 real trades on Oct 5 'hit their target' the minute they filled and lost to costs (target 0.01% away).",
    "did": "Madhav said yes (Oct 5).",
    "change": "Rules W2 from 2026-10-05 17:30 UTC: a dip trade needs at least 1.2% room to its target, else it is tracked as a would-be (NO_TYPE). Earlier trades keep W1, so the nightly rebuild still matches.",
-   "status": "DONE"
+   "status": "DONE",
+   "next": "Closed without a review (Madhav, Oct 15 09:10 Toronto: \"room yes\"): the Explorer is retired as a trading book and every E6 version loses after costs (review #24), so a review of the 1.2% room cannot change a decision. W2 stays in the record so the nightly rebuild still matches."
   },
   {
    "id": "TK3",
@@ -836,6 +843,15 @@
    "what": "Google's free search quota ran out, so the research desk fell back to paid Claude search.",
    "did": "Checked: a quota (429), not a bug. Oct 12 review: the cap works (25 used Oct 11; 22 used by 2:17 AM Oct 12, all before the Mac slept). Done; what spends them overnight is a question for Madhav.",
    "change": "Paid web searches capped at 25 a day (WEB_PAID_DAILY); after that the desk says the web is unavailable.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK16",
+   "date": "2026-10-15",
+   "from": "review #30's first run",
+   "what": "The lake extension of Oct 9-11 (lake_extend, 303 coins outside the 120) wrote Binance's own daily candles without the minute-coverage column 'share', re-writing the daily files of 78 coins review #22 had built from minute data. src/lake/research.daily failed on all 303 ('share' not found), so review #22 could not be re-run as written.",
+   "did": "Found when review #30 stopped while loading, before any result.",
+   "change": "research.daily loads a daily file without 'share' as complete days (Binance's own candles; review #29's rule); minute-built files still drop days under 97% coverage. Test in tests/test_lake.py. Review #22's 78 coins now load from Binance's daily candles.",
    "status": "DONE"
   }
  ],

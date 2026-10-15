@@ -45,10 +45,11 @@
    "kind": "strategy",
    "evidence": "SUPPORTED",
    "permission": "PAPER",
-   "reason": "Passed both periods after costs on the liquid top-30 tier (#15); on all 120 coins it did not beat random, it only cut losses. The earlier 10-coin pass (#4) is the basic-lab era, rated legacy in the Oct 14 audit: never cite it as evidence.",
+   "reason": "Passed both periods after costs on the liquid top-30 tier (#15); on all 120 coins it did not beat random, it only cut losses. The earlier 10-coin pass (#4) is the basic-lab era, rated legacy in the Oct 14 audit: never cite it as evidence. Point-in-time check on the 10 (#30): passes both periods but much weaker, +3.7% in 2024-26 (today's 10: +15.1%; holding lost 31.9%).",
    "reviews": [
     "#4",
-    "#15"
+    "#15",
+    "#30"
    ],
    "aliases": [
     "trend portfolio",
@@ -78,7 +79,7 @@
    "kind": "strategy",
    "evidence": "CONFLICTING",
    "permission": "PAPER",
-   "reason": "Passed on today's top 30 (#15) but failed the survivorship check (#22): -22.5% vs holding -76% in 2024-26; runs as evidence only",
+   "reason": "Evidence only, never a candidate for real money (Madhav, Oct 15). Passed on today's top 30 (#15) but failed the survivorship check (#22): -22.5% vs holding -76% in 2024-26",
    "reviews": [
     "#15",
     "#22"

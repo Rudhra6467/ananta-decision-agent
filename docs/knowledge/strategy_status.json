@@ -17,7 +17,7 @@
    "status": "UNDER_REVIEW",
    "verdict": "will_try_again",
    "home_book": "Trend portfolio",
-   "why": "Passed both periods on history on the liquid top-30 tier; on all 120 it only cut losses, and the 10-coin-era pass is legacy lab, not evidence (Oct 14 audit). A trend book loses in a sideways chop (Oct 4-13) and that cost is known. Measured forward against the $500 book's core, which carries the same idea with the dial.",
+   "why": "Passed both periods on history on the liquid top-30 tier; on all 120 it only cut losses, and the 10-coin-era pass is legacy lab, not evidence (Oct 14 audit). On the 10 most-traded coins as they really were each month it passes both periods but much weaker: +3.7% in 2024-26 vs +15.1% on today's 10, holding lost 31.9% (review #30). A trend book loses in a sideways chop (Oct 4-13) and that cost is known. Measured forward against the $500 book's core, which carries the same idea with the dial.",
    "cards": [
     "T3",
     "T3B"
@@ -28,7 +28,7 @@
    "status": "EVIDENCE",
    "verdict": "will_try_again",
    "home_book": "30-coin trend book",
-   "why": "Conflicting: fails the survivorship test on the 30 (review #22). Keeps measuring in the background until that is settled.",
+   "why": "Evidence only, never a candidate for real money (Madhav, Oct 15): it fails the survivorship test on the 30 (review #22). Keeps measuring in the background as evidence.",
    "cards": [
     "T3_T30"
    ]

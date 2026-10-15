@@ -98,8 +98,18 @@ def _sync_shared(g: core.Jarvis) -> None:
         except Exception:  # noqa: BLE001  the owner has none yet
             continue
         if rows:
-            ph = ",".join("?" * len(rows[0]))
-            g.db.executemany(f"INSERT OR REPLACE INTO {tbl} VALUES ({ph})", [tuple(r) for r in rows])   # updates too (a trade that closed)
+            names = [c[1] for c in m.db.execute(f"PRAGMA table_info({tbl})").fetchall()]
+            have = {c[1] for c in g.db.execute(f"PRAGMA table_info({tbl})").fetchall()}
+            if not have:                                    # the guest never had this table: make it from the owner's own definition
+                sql = m.db.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (tbl,)).fetchone()
+                g.db.execute(sql[0])
+            else:                                           # the owner's table grew a column after the guest's copy was made (Oct 14)
+                for c in names:
+                    if c not in have:
+                        g.db.execute(f"ALTER TABLE {tbl} ADD COLUMN {c}")
+            ph = ",".join("?" * len(names))
+            g.db.executemany(f"INSERT OR REPLACE INTO {tbl} ({','.join(names)}) VALUES ({ph})",
+                             [tuple(r) for r in rows])      # by column name; updates too (a trade that closed)
     try:
         if not g.db.execute("SELECT 1 FROM mandate LIMIT 1").fetchone():      # start from Madhav's mandate; edits stay in the sandbox
             for t, by, why, js in m.db.execute("SELECT t, by, why, json FROM mandate ORDER BY version DESC LIMIT 1").fetchall():

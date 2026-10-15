@@ -852,3 +852,37 @@ def test_thread_view_survives_a_plain_word_reply():
     assert ask._reply_dict('{"answer": "x"}') == {"answer": "x"}
     assert ask._reply_dict("42") == {"answer": "42"}
     assert ask._reply_dict(None) == {}
+
+
+def test_guest_sandbox_opens_after_the_owners_table_grew_a_column(monkeypatch):
+    """Oct 14 (e32b668) brain_decisions grew after_1d_ex/after_5d_ex on the owner's side only. Every guest sandbox made
+    before that then failed to open ("18 columns but 20 values"): a 500 on the Costs page and on every guest request.
+    The copy now matches columns by name and adds the ones the guest's older table lacks."""
+    pytest.importorskip("fastapi")
+    from jarvis.service import app as appmod
+    from jarvis.service import brain
+
+    j, ex = _jarvis()
+    brain._table(j)
+    for col in ("after_1d_ex", "after_5d_ex"):
+        j.db.execute(f"ALTER TABLE brain_decisions ADD COLUMN {col} REAL")
+    j.db.execute("INSERT INTO brain_decisions (id, t, coin, action, after_5d_pct, after_5d_ex) VALUES ('d1', 1, 'BTC', 'PASS', -4.0, -1.5)")
+    j.db.commit()
+    old = core.Jarvis(j.dir, owner_email=j.owner, password_hash=j.pw_hash, secret=j.secret, hands=j._hands, now=j.now,
+                      db_file="jarvis_guest_old_x_com.sqlite")
+    brain._table(old)                                         # the guest's copy as it was made before Oct 14: 18 columns
+    old.db.commit()
+    assert len(old.db.execute("PRAGMA table_info(brain_decisions)").fetchall()) == 18
+    monkeypatch.setattr(appmod, "_J", j)
+    monkeypatch.setattr(appmod, "_JG", {})
+    g = appmod._sandbox("guest:old@x.com")
+    cols = [c[1] for c in g.db.execute("PRAGMA table_info(brain_decisions)").fetchall()]
+    assert {"after_1d_ex", "after_5d_ex"} <= set(cols)
+    assert g.db.execute("SELECT after_5d_pct, after_5d_ex FROM brain_decisions WHERE id='d1'").fetchone() == (-4.0, -1.5)
+    # a table the guest never had at all is made from the owner's own definition
+    j.db.execute("CREATE TABLE IF NOT EXISTS daily_reviews (day TEXT PRIMARY KEY, t INTEGER, text TEXT, json TEXT)")
+    j.db.execute("INSERT OR REPLACE INTO daily_reviews VALUES ('2026-10-15', 1, 'ok', '{}')")
+    j.db.commit()
+    g.db.execute("DROP TABLE IF EXISTS daily_reviews")
+    appmod._sync_shared(g)
+    assert g.db.execute("SELECT text FROM daily_reviews WHERE day='2026-10-15'").fetchone() == ("ok",)

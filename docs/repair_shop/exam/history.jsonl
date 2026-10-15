@@ -3,3 +3,5 @@
 {"file": "latest.json", "t": 1791704979, "day": "2026-10-11", "known": 18, "known_of": 20, "unknown": 9, "unknown_of": 10, "knows_pass": true, "unknowns_pass": true, "rejudged": "2026-10-11 07:13"}
 {"file": "latest.json", "t": 1791945405, "day": "2026-10-13", "known": 20, "known_of": 20, "unknown": 5, "unknown_of": 10, "knows_pass": true, "unknowns_pass": false}
 {"file": "latest.json", "t": 1791945405, "day": "2026-10-13", "known": 20, "known_of": 20, "unknown": 10, "unknown_of": 10, "knows_pass": true, "unknowns_pass": true, "rejudged": "2026-10-13 22:38"}
+{"file": "latest.json", "t": 1792060754, "day": "2026-10-15", "known": 20, "known_of": 20, "unknown": 9, "unknown_of": 10, "knows_pass": true, "unknowns_pass": true, "consistent": 2, "consistent_of": 2, "flipped": 0, "consistency_pass": true, "exam_pass": true}
+{"file": "latest.json", "t": 1792060754, "day": "2026-10-15", "known": 20, "known_of": 20, "unknown": 10, "unknown_of": 10, "knows_pass": true, "unknowns_pass": true, "consistent": 2, "consistent_of": 2, "flipped": 0, "consistency_pass": true, "exam_pass": true, "rejudged": "2026-10-15 06:51"}

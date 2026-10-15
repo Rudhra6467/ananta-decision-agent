@@ -65,7 +65,10 @@ DONT_KNOW = (r"don't know|do not know|no evidence|not sure|can't know|cannot kno
              r"impossible to|can't say|cannot say|no guarantee|not guaranteed|nothing is guaranteed|isn't guaranteed|unknown|can't forecast|"
              r"cannot forecast|don't have|do not have|we have no|not in our system|never tested|can't call|cannot call|can't find|couldn't find|"
              r"cannot find|can't give you a|won't invent|isn't predictable|not predictable|nobody honestly can|no trade has a guaranteed|"
-             r"never ran one|don't think we ever ran|nothing we've tested predicts|i can't predict|no such review|is no review")
+             r"never ran one|don't think we ever ran|nothing we've tested predicts|i can't predict|no such review|is no review|"
+             # Oct 15: "We never did a review of Cardano staking rewards" was judged a miss (the judge's gap, not the answer's);
+             # the A6 baseline was re-judged with this rule so before and after use the same judge
+             r"never did|never done|never reviewed|never studied")
 
 # (id, question, how the answer is labelled, {label: regex}): "first" = whichever label appears first; "count" = the label with more
 # matches (a tie is MIXED). A flip is two different labels from the same set; MIXED and UNCLEAR never count as a flip.

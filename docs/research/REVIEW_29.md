@@ -1,7 +1,8 @@
-# Review #29 (DRAFT pre-registration): H07 on a point-in-time tier A, both dial states
+# Review #29 (pre-registration): H07 on a point-in-time tier A, both dial states
 
-**Status: DRAFT, written 2026-10-15. Not approved, not run, no result exists.** Nothing below may be changed after Madhav
-approves it and before the run; any later change is a new review. Written before any code or data for it was touched.
+**Status: APPROVED and frozen.** Written 2026-10-15 before any code or data for it was touched; approved by Madhav in chat on
+2026-10-15 at 06:33 Toronto ("1. approved"). Nothing below changes from here; any later change is a new review. Not yet run
+when frozen: until REVIEW_29_RESULTS.md exists there is no result.
 
 ## Why
 Review #26 found one cell of 36 with an edge: H07 (the short dip) on tier A while the exposure dial is CLOSED (discovery 92

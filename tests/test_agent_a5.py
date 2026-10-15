@@ -96,3 +96,16 @@ def test_the_last_slots_are_kept_for_priority_moments(tmp_path, monkeypatch):
     got = dict(seen)
     assert isinstance(got["SOL"], str) and "kept for priority moments" in got["SOL"]
     assert got["ETH"] is False
+
+
+def test_the_brain_is_told_the_closed_dial_cell_is_a_reason():
+    """Oct 15: the brain's rules said it is only asked with the dial open, and its H07 line said H07 is never a reason by itself.
+    With the dial closed the code wakes it only for the measured cell (H07 on tier A), so that text argued against the one
+    measured edge; and its REGIME line still called the 50-day alone 'market allowed'."""
+    from jarvis.service import brain
+
+    assert "only asked while the exposure dial is open" not in brain.SYSTEM and "With the dial CLOSED" in brain.SYSTEM
+    h07 = next(w for k, _, w in brain.KNOWLEDGE if k == "H07")
+    assert "With the dial CLOSED on a tier-A coin it IS the measured cell" in h07
+    reg = next(w for k, _, w in brain.KNOWLEDGE if k == "REGIME")
+    assert "200-day" in reg and "= market allowed" not in reg

@@ -3,7 +3,7 @@
   blocked(j, book, coin, price_t, max_age_s, daily_t) -> None when the position may open, else the reason in plain words.
   In this order:
     1. the kill switch, read where the Explorer reads it (Hands /api/risk/status, manual_kill). A read that fails BLOCKS.
-    2. the price's age, when its time is given: at most 5 minutes for a live quote (the eye, the universe feed), 15 minutes for
+    2. the price's age, when its time is given: at most 5 minutes for a live quote (the eye, the universe feed), 20 minutes for
        the Explorer's last 5-minute close (its time is the bar's close: open + 5 minutes). health.py's thresholds.
     3. the daily candle's age, when its open time is given: yesterday's or today's candle only (at most 2 days 3 hours old,
        health.py's daily threshold).
@@ -22,7 +22,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 LIVE_PRICE_S = 5 * 60                 # a live quote: the eye's Kraken look, the universe feed's ticker
-BAR_PRICE_S = 15 * 60                 # the Explorer's last 5-minute close
+BAR_PRICE_S = 20 * 60                 # the Explorer's last 5-minute close: it refreshes about a minute after each quarter hour, so
+                                      # just before a refresh its close is ~16 minutes old; 15 refused a minute in every 15 (Oct 15)
 DAILY_S = 2 * 86400 + 3 * 3600        # yesterday's or today's daily candle (the health watchdog's daily threshold)
 FAIL_MEMORY_S = 60                    # a failed kill-switch read is remembered this long (every entry meanwhile is blocked)
 

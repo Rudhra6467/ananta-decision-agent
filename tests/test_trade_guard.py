@@ -47,7 +47,7 @@ def test_kill_switch_then_price_then_candle_and_each_block_logged_once_a_day():
     assert tg.blocked(j, "X", "BTC", price_t=now - 60, max_age_s=tg.LIVE_PRICE_S, daily_t=now - DAY) is None
     assert tg.blocked(j, "X", "BTC", price_t=now - 6 * 60, max_age_s=tg.LIVE_PRICE_S) == "the price is more than 5 minutes old"
     assert tg.blocked(j, "X", "BTC", price_t=now - 14 * 60, max_age_s=tg.BAR_PRICE_S) is None
-    assert tg.blocked(j, "X", "BTC", price_t=now - 16 * 60, max_age_s=tg.BAR_PRICE_S) == "the price is more than 15 minutes old"
+    assert tg.blocked(j, "X", "BTC", price_t=now - 21 * 60, max_age_s=tg.BAR_PRICE_S) == "the price is more than 20 minutes old"
     assert tg.blocked(j, "X", "BTC", daily_t=now - 2 * DAY - 2 * 3600) is None                 # yesterday's candle, late in the day
     assert tg.blocked(j, "X", "BTC", daily_t=now - 2 * DAY - 4 * 3600) == tg.DAILY_OLD
     assert tg.blocked(j, "X", "BTC", daily_t=0) == tg.NO_DAILY
@@ -115,6 +115,12 @@ def test_t3_books_buy_nothing_while_the_kill_switch_is_on_and_still_sell(monkeyp
 def test_t3_books_do_not_buy_a_coin_whose_price_stopped(monkeypatch):
     from tests.test_explorer_live import _advance
 
+    from jarvis.service import trade_guard as tg
+
+    # This fixture steps every 15 minutes, so a coin whose candles stop is one step (15 min) old at the next decision: under the
+    # live 20-minute threshold (Oct 15: the Explorer's close is up to ~16 minutes old in normal running). The T3 path itself is
+    # what this test checks, with a 10-minute threshold; the threshold's value is checked in the first test.
+    monkeypatch.setattr(tg, "BAR_PRICE_S", 10 * 60)
     d, clock, hands, ex, alerts, rule = _t3(monkeypatch)
     real = hands.candles
 
@@ -126,7 +132,7 @@ def test_t3_books_do_not_buy_a_coin_whose_price_stopped(monkeypatch):
     _advance(ex, clock, 4 * 24 * 2)
     fills, con = _t3_fills(d)
     assert fills and "ETH" not in {f["coin"] for f in fills}                     # every other coin is bought, ETH is not
-    assert ("T3-MAIN", "ETH", "the price is more than 15 minutes old") in _log(con)
+    assert ("T3-MAIN", "ETH", "the price is more than 10 minutes old") in _log(con)
 
 
 def test_t3_approval_is_held_back_while_unhealthy_and_the_suggestion_stays_open(monkeypatch):
@@ -144,12 +150,12 @@ def test_t3_approval_is_held_back_while_unhealthy_and_the_suggestion_stays_open(
         j.approve("o@x.com", "all")
     assert j.portfolio()["pending"]                                              # still open
     j.hands.kill = False
-    clock["now"] += 20 * 60                                                     # the Explorer's last prices are 20 minutes old
-    with pytest.raises(ValueError, match="more than 15 minutes old"):
+    clock["now"] += 25 * 60                                                     # the Explorer's last prices are 25 minutes old
+    with pytest.raises(ValueError, match="more than 20 minutes old"):
         j.approve("o@x.com", "all")
-    clock["now"] -= 20 * 60
+    clock["now"] -= 25 * 60
     assert j.approve("o@x.com", "all") and not j.portfolio()["pending"]           # fresh: approved and bought
-    assert {r[2] for r in _log(j.db, "T3-MAIN")} == {tg.KILL_ON, "the price is more than 15 minutes old"}
+    assert {r[2] for r in _log(j.db, "T3-MAIN")} == {tg.KILL_ON, "the price is more than 20 minutes old"}
 
 
 # ---------------------------------------------------------------------------
@@ -271,10 +277,10 @@ def test_brain_opens_only_on_healthy_inputs_its_twin_needs_its_own_fresh_price_a
     r = brain.decide(j, coin, {}, call=call)                                    # healthy: the trade and its twin
     assert r["action"] == "TAKE" and r["trade"] and r["random_twin"] and len(mine()) == 2
     clock_now = j.now
-    j.now = lambda: clock_now() + 20 * 60                                       # the twin's price (the Explorer's close) is now old
+    j.now = lambda: clock_now() + 25 * 60                                       # the twin's price (the Explorer's close) is now old
     r = brain.decide(j, coin, {}, call=call)
     assert r["action"] == "TAKE" and r["trade"] and r["random_twin"] is None
-    assert [x[2] for x in _log(j.db, "JARVIS_RANDOM")] == ["the price is more than 15 minutes old"]
+    assert [x[2] for x in _log(j.db, "JARVIS_RANDOM")] == ["the price is more than 20 minutes old"]
     j.hands.kill = True                                                         # exits never ask: the stop still sells
     closed = brain.manage_live(j, {coin: p * 0.5})
     assert closed and all(x["coin"] == coin for x in closed)
@@ -294,6 +300,35 @@ def test_an_ai_switch_or_budget_check_that_errors_is_a_no_for_the_brain_and_the_
     assert not ok and "could not be read" in why
     ok, why = bold._ai_ok(j)
     assert not ok and "could not be read" in why
+
+
+def test_the_brain_pays_for_no_decision_while_the_kill_switch_is_on_or_cannot_be_read(tmp_path, monkeypatch):
+    """Oct 15: with the kill switch on no trade can open, so a paid decision would be money for nothing. Everything else is open:
+    the AI switch on, the day's budget left, the limit not reached."""
+    import jarvis.service.ask as ask_mod
+    from jarvis.service import brain
+    from tests.test_universe_live import J
+
+    class Open:
+        def __init__(self, j):
+            pass
+
+        def setting(self, key):
+            return "1"
+
+        def spend(self):
+            return {"left_usd": 5.0}
+    monkeypatch.setattr(ask_mod, "Ask", Open)
+    j = J(tmp_path)
+    brain._table(j)
+    j.hands = Hands()
+    assert brain.can_decide(j) == (True, "")
+    j.hands = Hands(kill=True)
+    ok, why = brain.can_decide(j)
+    assert not ok and "kill switch is on" in why
+    j.hands = Hands(fail=True)
+    ok, why = brain.can_decide(j)
+    assert not ok and "kill switch could not be read" in why
 
 
 # ---------------------------------------------------------------------------
@@ -356,10 +391,10 @@ def test_eye_zone_touch_needs_a_healthy_look_and_its_stops_always_work(monkeypat
     j.hands.kill = True
     assert "ZONE_ENTRY" in cross(inside) and not opened()
     j.hands.kill = False
-    stale = tg.Prices(inside, {c: now - 20 * 60 for c in inside})                 # Kraken down: the Explorer's closes, 20 minutes old
+    stale = tg.Prices(inside, {c: now - 25 * 60 for c in inside})                 # Kraken down: the Explorer's closes, 25 minutes old
     assert "ZONE_ENTRY" in cross(stale, source="explorer 5m (ticker down)") and not opened()
     assert "ZONE_ENTRY" in cross(inside, arm={**armed, "daily_t": {coin: now - 3 * DAY}}) and not opened()
-    assert {r[2] for r in _log(j.db, "ZONE_TOUCH")} == {tg.KILL_ON, "the price is more than 15 minutes old", tg.DAILY_OLD}
+    assert {r[2] for r in _log(j.db, "ZONE_TOUCH")} == {tg.KILL_ON, "the price is more than 20 minutes old", tg.DAILY_OLD}
     assert "ZONE_TOUCH" in cross(inside) and len(opened()) == 1                   # healthy: it opens
     Manual(j.db, j.now).execute("o", {"side": "buy", "coin": coin, "usd": 100, "stop": round(px[coin] * 0.95, 8)}, px)
     j.hands.kill = True                                                         # the kill switch on everywhere ...
@@ -435,15 +470,15 @@ def test_manual_and_auto_watch_buys_need_the_guard_and_sells_never_do(monkeypatc
     g = _g(clock)
     now = clock["t"]
     fresh = tg.Prices({"BTC": 100.0, "SOL": 50.0}, {"BTC": now - 60, "SOL": now - 60})
-    stale = tg.Prices({"BTC": 100.0, "SOL": 50.0}, {"BTC": now - 20 * 60, "SOL": now - 20 * 60})
+    stale = tg.Prices({"BTC": 100.0, "SOL": 50.0}, {"BTC": now - 25 * 60, "SOL": now - 25 * 60})
     M = Manual(g.db, g.now)
-    with pytest.raises(ValueError, match="more than 15 minutes old"):
+    with pytest.raises(ValueError, match="more than 20 minutes old"):
         M.execute("guest:asha@x.com", {"side": "buy", "coin": "BTC", "usd": 100}, stale)
     assert M.execute("guest:asha@x.com", {"side": "buy", "coin": "BTC", "usd": 100}, fresh)["side"] == "buy"
     g.prices = lambda: stale                                                     # an auto watch on stale prices buys nothing
     w = watches.create(g, ["BTC"], mode="auto")
     watches.check_account(g, _snap(fire=True))
-    assert "more than 15 minutes old" in watches.activity(g)[0]["body"]
+    assert "more than 20 minutes old" in watches.activity(g)[0]["body"]
     monkeypatch.setattr(explorer_live.Hands, "kill_switch_on", lambda self: True)   # the kill switch is on
     with pytest.raises(ValueError, match="kill switch is on"):
         M.execute("guest:asha@x.com", {"side": "buy", "coin": "SOL", "usd": 100}, fresh)
@@ -454,5 +489,5 @@ def test_manual_and_auto_watch_buys_need_the_guard_and_sells_never_do(monkeypatc
     g.db.commit()
     watches.check_account(g, _snap(fire=True))
     assert "kill switch is on" in watches.activity(g)[0]["body"] and not M.state(fresh)["positions"]
-    assert {(r[0], r[2]) for r in _log(g.db)} == {("MANUAL", "the price is more than 15 minutes old"), ("MANUAL", tg.KILL_ON),
-                                                 ("ACCOUNT_WATCH", "the price is more than 15 minutes old"), ("ACCOUNT_WATCH", tg.KILL_ON)}
+    assert {(r[0], r[2]) for r in _log(g.db)} == {("MANUAL", "the price is more than 20 minutes old"), ("MANUAL", tg.KILL_ON),
+                                                 ("ACCOUNT_WATCH", "the price is more than 20 minutes old"), ("ACCOUNT_WATCH", tg.KILL_ON)}

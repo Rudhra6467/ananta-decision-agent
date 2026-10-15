@@ -786,6 +786,13 @@ def can_decide(j) -> tuple[bool, str]:
             return False, "today's AI budget is used up"
     except Exception as exc:  # noqa: BLE001  fail closed (Oct 15): a switch or budget that cannot be read is not a yes
         return False, f"the AI switch or budget could not be read ({str(exc)[:80]})"
+    try:  # Oct 15 (the trade guard): with the kill switch on no trade can open, so no paid decision is made either
+        from jarvis.service import trade_guard as tg
+
+        if tg.kill_switch_on(j):
+            return False, "the kill switch is on (no new trades, so no paid decision)"
+    except Exception as exc:  # noqa: BLE001
+        return False, f"the kill switch could not be read ({str(exc)[:80]})"
     return True, ""
 
 

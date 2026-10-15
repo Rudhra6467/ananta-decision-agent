@@ -28,7 +28,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-VERSION = "1.0 (2026-10-11)"
+VERSION = "1.1 (2026-10-15)"
 HOME = Path(os.environ.get("ANANTA_WORKER_HOME", str(Path.home() / "ananta_worker")))
 DATA, LOGS = HOME / "data", HOME / "logs"
 HEARTBEAT = HOME / "heartbeat.json"
@@ -43,7 +43,13 @@ SITE = "https://api.livetrading247.com/v3/public/status"
 DAY = 86400
 
 STATE: dict = {"inst": {}, "inst_t": 0.0, "syms": [], "syms_t": 0.0, "fx_t": 0.0, "errors": [], "last_ok": {}, "last_error": None,
-               "site_last_ok": None, "prune_t": 0.0}
+               "site_last_ok": None, "prune_t": 0.0, "down_since": None, "alerted_t": None}
+# The outside alert (Madhav's yes, Oct 15): when the public page has not answered for 10 minutes (the main Mac asleep, frozen or
+# offline, or its tunnel down), one phone note through the same ntfy topic the main Mac uses, a reminder every 3 hours, and a note
+# when it answers again. alert.json ({"server", "topic"}) is written by the main Mac (scripts/worker_alert_setup.py), mode 600;
+# without it there is no alert. It can only send notes to Madhav's phone: it opens nothing and reads nothing.
+ALERT_FILE = HOME / "alert.json"
+ALERT_AFTER_S, REMIND_S = 10 * 60, 3 * 3600
 
 
 def log(msg: str) -> None:
@@ -146,6 +152,53 @@ def fx(con: sqlite3.Connection, t: int) -> int:
     return 1
 
 
+def alert(title: str, body: str) -> str:
+    """One phone note through ntfy; 'off' without alert.json. Never raises."""
+    try:
+        cfg = json.loads(ALERT_FILE.read_text())
+        url = str(cfg["server"]).rstrip("/") + "/" + str(cfg["topic"])
+    except (OSError, ValueError, KeyError):
+        return "off"
+    head = {"Title": title.encode("ascii", "replace").decode()[:100], "Priority": "4", "Tags": "warning"}
+    try:
+        req = urllib.request.Request(url, data=body[:500].encode(), headers=head, method="POST")
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return "sent" if 200 <= r.status < 300 else f"failed: HTTP {r.status}"
+    except Exception as exc:  # noqa: BLE001  old Pythons that cannot verify certificates: the system curl
+        if "CERTIFICATE" not in str(exc).upper() and "SSL" not in str(exc).upper():
+            return f"failed: {type(exc).__name__}"
+    args = ["/usr/bin/curl", "-sS", "--fail", "--max-time", "15", "-d", body[:500]]
+    for k, v in head.items():
+        args += ["-H", f"{k}: {v}"]
+    out = subprocess.run(args + [url], capture_output=True, text=True, timeout=20)
+    return "sent" if out.returncode == 0 else "failed: curl"
+
+
+def watch_site(t: int, ok: bool, detail: str) -> str | None:
+    """The outside alert's state: down for 10 minutes -> a note, every 3 hours a reminder, back -> a note (only after a note)."""
+    if ok:
+        was, alerted = STATE["down_since"], STATE["alerted_t"]
+        STATE["down_since"], STATE["alerted_t"] = None, None
+        if alerted and was:
+            return alert("Ananta is reachable again", f"Seen from the worker Mac: the public page answers again after about "
+                                                      f"{int((t - was) / 60)} minutes.")
+        return None
+    if STATE["down_since"] is None:
+        STATE["down_since"] = t
+        return None
+    down = t - STATE["down_since"]
+    if down >= ALERT_AFTER_S and (STATE["alerted_t"] is None or t - STATE["alerted_t"] >= REMIND_S):
+        first = STATE["alerted_t"] is None
+        r = alert("Ananta: the main Mac or the site is down" if first else "Ananta: still down",
+                  f"Seen from the worker Mac: the public page has not answered for {int(down / 60)} minutes ({detail[:80] or 'no answer'}). "
+                  "Every paper book stands still meanwhile. If the Mac is asleep, plug it in and open the lid.")
+        if r == "sent":
+            STATE["alerted_t"] = t
+        log(f"outside alert ({'first' if first else 'reminder'}): {r}")
+        return r
+    return None
+
+
 def site(con: sqlite3.Connection, t: int) -> int:
     t0 = time.time()
     try:
@@ -155,6 +208,10 @@ def site(con: sqlite3.Connection, t: int) -> int:
     except Exception as exc:  # noqa: BLE001
         ok, detail = 0, str(exc)[:160]
     con.execute("INSERT INTO site VALUES (?,?,?,?)", (t, ok, int(1000 * (time.time() - t0)), detail))
+    try:
+        watch_site(t, bool(ok), detail)
+    except Exception as exc:  # noqa: BLE001  the alert never stops the recording
+        log(f"outside alert error: {exc}")
     return ok
 
 
@@ -242,7 +299,7 @@ def status() -> int:
     print(f"{'OK' if ok else 'STALE'} · {hb.get('host')} · last good round {age if age is not None else '?'} s ago · today: "
           f"NDAX {td.get('ndax', 0):,} rows, Binance {td.get('binance', 0):,}, site checks {td.get('site', 0):,} "
           f"({td.get('site_failed', 0)} failed) · {site_txt} · {hb.get('errors_last_hour', 0)} errors in the last hour · "
-          f"{hb.get('free_gb')} GB free · v{hb.get('version')}")
+          f"{hb.get('free_gb')} GB free · outside alert {'on' if ALERT_FILE.exists() else 'off'} · v{hb.get('version')}")
     return 0 if ok else 1
 
 

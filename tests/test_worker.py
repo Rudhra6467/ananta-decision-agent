@@ -96,3 +96,32 @@ def test_health_calls_the_worker_quiet_only_after_15_minutes(tmp_path, monkeypat
     w = health.checks(j, get=get, now=t0 + 16 * 60)["worker"]
     assert w["ok"] is False and "unreachable for 16 min" in w["detail"]
     health.STATE.pop("worker_bad_t", None)
+
+
+def test_the_worker_alerts_after_10_minutes_reminds_and_says_when_back(tmp_path, monkeypatch):
+    """Madhav's yes (Oct 15): the worker tells his phone when the public page has not answered for 10 minutes (the main Mac
+    asleep or frozen, as on Oct 12 and 13), reminds every 3 hours, and says when it is back; never for a one-minute blip."""
+    import importlib.util
+    import pathlib
+
+    monkeypatch.setenv("ANANTA_WORKER_HOME", str(tmp_path))
+    p = pathlib.Path(__file__).resolve().parents[1] / "worker" / "collector.py"
+    spec = importlib.util.spec_from_file_location("collector_under_test", p)
+    c = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(c)
+    assert c.alert("x", "y") == "off"                                     # no alert.json: no note
+    sent = []
+    monkeypatch.setattr(c, "alert", lambda title, body: sent.append(title) or "sent")
+    t = 2_000_000_000
+    c.watch_site(t, False, "502")
+    c.watch_site(t + 60, True, "")                                        # a blip: nothing
+    assert sent == []
+    for k in range(12):
+        c.watch_site(t + 120 + 60 * k, False, "HTTP Error 502")
+    assert sent == ["Ananta: the main Mac or the site is down"]            # at t + 720: 10 minutes after t + 120
+    c.watch_site(t + 720 + 3 * 3600 - 60, False, "HTTP Error 502")
+    assert len(sent) == 1
+    c.watch_site(t + 720 + 3 * 3600, False, "HTTP Error 502")
+    assert sent[-1] == "Ananta: still down"
+    c.watch_site(t + 720 + 3 * 3600 + 60, True, "")
+    assert sent[-1] == "Ananta is reachable again" and len(sent) == 3

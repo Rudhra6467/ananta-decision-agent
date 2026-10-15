@@ -3,7 +3,7 @@
 // frame with live numbers, four live figures, three short reasons, then sign-in. Numbers come from /v3/public/status.
 import { useRef } from "react";
 import { LANDING } from "./theme";
-import { Image, Linking, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { Linking, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { AnantaMark } from "./logo";
 
 const K = LANDING;
@@ -103,7 +103,7 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
       <View style={{ maxWidth: 1120, width: "100%", alignSelf: "center", paddingHorizontal: pad }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 22 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <AnantaMark color={K.gold} size={34} />
+            <AnantaMark color={K.gold} size={46} grey={K.line2} ink={K.bg} />
             <Text style={{ color: K.text, fontSize: 18, fontWeight: "800", letterSpacing: 6 }}>ANANT<Text style={{ color: K.gold }}>A</Text></Text>
           </View>
           <Pressable onPress={toSignIn} accessibilityRole="button" style={{ borderWidth: 1, borderColor: K.line2, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}>
@@ -127,9 +127,7 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
               <Btn label="Sign in" onPress={toSignIn} ghost />
             </View>
           </View>
-          <View style={{ flex: wide ? 1 : undefined, alignItems: "center", gap: 24 }}>
-            {/* Madhav's mark (Oct 15): the ring and the lattice A, in the site's gold; the picture is jarvis/app/public/logo-hero-800.png */}
-            <Image source={{ uri: "/logo-hero-800.png" }} style={{ width: wide ? 260 : 200, height: wide ? 260 : 200, borderRadius: 130 }} accessibilityLabel="Ananta" />
+          <View style={{ flex: wide ? 1 : undefined, alignItems: "center" }}>
             <Phone st={st} />
           </View>
         </View>

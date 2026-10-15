@@ -1,32 +1,31 @@
-// Ananta's mark (Madhav's own design, Oct 15): the letter A inside a double ring, its lattice of lines and nodes, and the faint
-// trident behind it. Drawn here in the tab bar's line style (thin strokes, one colour) so it sits beside the tab icons; the full
-// textured picture (jarvis/app/public/logo-hero-800.png and the Home Screen icons in public/icons) is the same design recoloured
-// from copper to the Bat palette's yellow, used on the website's front page.
+// Ananta's mark (Madhav's own design; the Oct 15 evening version after his review): a bold, flat letter A in Ananta's yellow, the
+// trident standing behind it, a faint lattice of nodes at the sides, everything inside the double ring (nothing pokes out of the
+// circle). The ring and the trident are grey so the A carries the colour. Used by the Ananta button on Home, the drawer, the
+// website's header and, rendered to PNG, the Home Screen icons in public/icons (scripts/make_icons.py).
 import Svg, { Circle, G, Line, Path } from "react-native-svg";
 
-type P = { color: string; size?: number };
+type P = { color: string; size?: number; grey?: string; ink?: string };
 
-// lattice nodes in a 100 x 100 box: down each leg, along the bar, and the spine
-const NODES: [number, number][] = [[44, 27], [38, 41], [32, 55], [26, 70], [20, 84], [56, 27], [62, 41], [68, 55], [74, 70], [80, 84],
-  [34, 60], [42, 60], [50, 60], [58, 60], [66, 60], [50, 14], [50, 36], [50, 48]];
-const EDGES: [number, number][] = [[0, 5], [1, 6], [1, 16], [6, 16], [16, 17], [2, 17], [7, 17], [2, 11], [7, 13], [17, 12], [3, 10], [8, 14], [3, 11], [8, 13], [0, 16], [5, 16]];
+const NODES: [number, number][] = [[20, 46], [25, 38], [29, 52], [22, 60], [31, 64], [80, 46], [75, 38], [71, 52], [78, 60], [69, 64]];
+const EDGES: [number, number][] = [[0, 1], [0, 2], [2, 3], [2, 4], [5, 6], [5, 7], [7, 8], [7, 9]];
 
-export function AnantaMark({ color, size = 24 }: P) {
+export function AnantaMark({ color, size = 24, grey = "#5A5E66", ink = "#141518" }: P) {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      <Circle cx={50} cy={50} r={46} stroke={color} strokeWidth={4} opacity={0.9} />
-      <Circle cx={50} cy={50} r={40.5} stroke={color} strokeWidth={1.4} opacity={0.5} />
-      <G opacity={0.3} stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M50 90 L50 66" />
-        <Path d="M33 30 C25 40 27 54 38 62" />
-        <Path d="M67 30 C75 40 73 54 62 62" />
-        <Path d="M40 68 C44 75 56 75 60 68" />
+      <Circle cx={50} cy={50} r={47} stroke={grey} strokeWidth={4} />
+      <Circle cx={50} cy={50} r={42.5} stroke={color} strokeWidth={1.2} opacity={0.55} />
+      <G fill={grey}>
+        <Path d="M47 66 L53 66 L52 24 L48 24 Z" />
+        <Path d="M50 12 L55 24 L45 24 Z" />
+        <Path d="M44 60 C32 52 30 36 37 20 L30 19 C24 36 27 56 41 66 Z" />
+        <Path d="M56 60 C68 52 70 36 63 20 L70 19 C76 36 73 56 59 66 Z" />
+        <Path d="M40 66 C44 72 56 72 60 66 L58 62 C55 66 45 66 42 62 Z" />
       </G>
-      <G opacity={0.55} stroke={color} strokeWidth={1.1} strokeLinecap="round">
+      <G stroke={color} strokeWidth={0.9} opacity={0.6} fill={color}>
         {EDGES.map(([a, b], i) => <Line key={i} x1={NODES[a][0]} y1={NODES[a][1]} x2={NODES[b][0]} y2={NODES[b][1]} />)}
+        {NODES.map(([x, y], i) => <Circle key={i} cx={x} cy={y} r={1.7} />)}
       </G>
-      <Path d="M50 14 L20 84 M50 14 L80 84 M34 60 L66 60" stroke={color} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round" />
-      {NODES.map(([x, y], i) => <Circle key={i} cx={x} cy={y} r={2.1} fill={color} />)}
+      <Path fillRule="evenodd" d="M50 20 L79 82 L66 82 L60 68 L40 68 L34 82 L21 82 Z M50 41 L56 57 L44 57 Z" fill={color} stroke={ink} strokeWidth={2.2} strokeLinejoin="round" />
     </Svg>
   );
 }

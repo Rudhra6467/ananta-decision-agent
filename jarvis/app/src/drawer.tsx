@@ -67,7 +67,7 @@ export function AppDrawer({ open, onClose }: { open: boolean; onClose: () => voi
       <View style={{ flex: 1, flexDirection: "row" }}>
         <View style={{ width: "82%", maxWidth: 360, backgroundColor: C.bg, paddingTop: top + 12, borderRightWidth: 1, borderRightColor: C.line }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingBottom: 12 }}>
-            <AnantaMark color={C.accent} size={30} />
+            <AnantaMark color={C.accent} size={40} grey={C.faint} ink={C.bg} />
             <Text style={{ color: C.text, fontWeight: "800", fontSize: 18, flex: 1 }}>Ananta</Text>
             <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close the menu"><Text style={{ color: C.dim, fontSize: 18 }}>✕</Text></Pressable>
           </View>

@@ -154,6 +154,28 @@ def test_watch_records_each_fire_once_and_rings_only_supported_reads(tmp_path):
         W._status = orig
 
 
+def test_a_dropped_read_is_recorded_and_shown_but_does_not_ring_the_phone_while_the_dip_still_does(tmp_path, monkeypatch):
+    """Oct 15 (Madhav: yes): review #15 dropped M2a-G, so its fire is kept in the app and the phone stays quiet; H07 still rings."""
+    import sqlite3
+    import types
+
+    from jarvis.service import reads_watch as W
+
+    def row(v, name):
+        return {"variant": v, "name": name, "like": "a setup", "of": 4, "stop_pct": -5.0}
+    board = {"day": "2026-10-14", "fired": [{"coin": "BTC", "variant": "M2a-G"}, {"coin": "ETH", "variant": "H07"}],
+             "coins": [{"coin": "BTC", "reads": [row("M2a-G", "Higher-low retest")]}, {"coin": "ETH", "reads": [row("H07", "Short dip")]}]}
+    j = types.SimpleNamespace(dir=tmp_path, db=sqlite3.connect(":memory:"), now=lambda: 1_800_000_000)
+    monkeypatch.setattr(W, "board", lambda j_: board)
+    monkeypatch.setattr(W, "_status", lambda j_: {"M2a-G": "NOT_SUPPORTED", "H07": "NOT_CONFIRMED"})
+    pushed, asked = [], []
+    news = lambda j_, coin: asked.append(coin) or {"verdict": "CLEAR", "why": ""}   # noqa: E731
+    out = W.watch(j, push=lambda t, m: pushed.append((t, m)), check_news=news)
+    assert {(o["coin"], o["variant"]) for o in out} == {("BTC", "M2a-G"), ("ETH", "H07")}      # both are recorded
+    assert len(W.recent(j)) == 2
+    assert [t.split(":")[0] for t, m in pushed] == ["ETH"] and asked == ["ETH"]                  # only the dip rings (and gets the news look)
+
+
 def test_layer_map_is_consistent_and_the_switch_works():
     import json as _json
     import pathlib

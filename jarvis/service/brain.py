@@ -43,7 +43,7 @@ MIN_SCORE = 2.0                                           # below this a wake is
 # Review #28 (Oct 11): points follow measured evidence. Measured with no edge = 0.5 (zone touches: review #27; Explorer setups: review #1 and
 # the intraday atlas, 0 of 55 contexts positive; Hunter/Squeeze: 2 setups in 12 days); never measured = 1.0; daily rules use the EV table.
 TRIGGER_POINTS = {"zone_entry": 0.5, "attention_high": 1.0, "hunter": 0.5, "squeeze": 0.5, "explorer": 0.0,
-                  "setup:H07": 3.0, "setup:M1a": 2.0, "setup:M2a-G": 2.0,
+                  "setup:H07": 3.0, "setup:M1a": 2.0, "setup:M2a-G": 0.5,     # Oct 15: measured with no edge (review #15) = 0.5, this rule
                   # fix A5 (Oct 15): never measured as kinds, so no evidence points; they rank with the measured rules because they
                   # are the brain's own plan written before the move (stance.py, A3) and the exposure dial opening (review #25)
                   "expectation": 2.0, "dial_open": 2.0}

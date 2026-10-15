@@ -17,7 +17,7 @@ from pathlib import Path
 
 NAMES = {"BTC": "Bitcoin", "ETH": "Ethereum", "SOL": "Solana", "ADA": "Cardano", "DOGE": "Dogecoin", "AVAX": "Avalanche",
          "BCH": "Bitcoin Cash", "LINK": "Chainlink", "LTC": "Litecoin", "XRP": "XRP"}
-ALERT_ALSO = {"M2a-G", "H07"}          # Madhav 2026-10-03: ring the phone for these too (most promising, still few cases)
+ALERT_ALSO = {"H07"}                   # Madhav 2026-10-03: ring the phone for these too; Oct 15 ("yes"): M2a-G no longer (review #15 dropped it)
 NEWS_NAMES = {"AVAX": "AVAX"}          # "Avalanche" alone finds the hockey team (seen 2026-10-03)
 STATUS_WORDS = {"SUPPORTED": "history supports it", "NOT_SUPPORTED": "history did not support it (2018-2023)",
                 "NOT_CONFIRMED": "worked 2018-2023, not since", "INSUFFICIENT": "too few cases in history to judge",

@@ -59,6 +59,9 @@ def test_ananta_mentions_fixed_requests_once_and_flags_wrong_answers():
 
     A = ask.Ask(j, providers={"gemini": fake})
     r = A.ask("o@x.com", "how is bitcoin", mode="everyday")
+    # his next message says it was wrong (Oct 15: a request is filed only when the message asks for it)
+    j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
+                  ("u2", r["thread"], int(j.now()) + 2, "user", "That answer was wrong, flag it", "gemini", "everyday"))
     L = ask.Lookups(j, thread=r["thread"])
     out = L.call("log_request", {"kind": "bug", "text": "That answer was wrong about the stop.", "last_answer": True})
     assert out["num"] == 1 and "Bitcoin is up a little" in requests_log.get(j, 1)["text"]

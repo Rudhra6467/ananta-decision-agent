@@ -564,6 +564,9 @@ REPEAT = re.compile(r"\b(say (that|it) again|repeat (that|it|please|yourself)|co
 
 
 NEXT_STEP_ANSWERS = 4      # Madhav: for the first 4 answers of every conversation, always offer the next step + 3 suggestions
+# a message that asks to flag something for the repair shop, or says yes to the offer (log_request files only then)
+FLAG_ASK = re.compile(r"\b(flag|log (it|this|that)|repair shop|bug|wrong|fix (it|this|that)|note (it|this|that)|for next time|"
+                      r"add (it|this|that) to|report (it|this|that)|request|yes|yeah|yep|sure|ok|okay|please do|go ahead|do it)\b", re.I)
 YES = re.compile(r"^\s*(yes|yeah|yep|yup|sure|ok(ay)?|do it|go ahead|please( do)?|yes please|sure thing|let'?s do it|show me|pull it up)[\s.!,]*(jarvis|ananta|sir)?[\s.!]*$", re.I)
 _PLAIN: dict = {}
 
@@ -1144,9 +1147,25 @@ class Lookups:
                 break
         return aid, q, ans
 
+    def _question(self) -> str | None:
+        """The person's message this answer is for (the newest user row of this conversation); None outside a conversation."""
+        try:
+            r = self.j.db.execute("SELECT text FROM ask_messages WHERE thread=? AND role='user' ORDER BY t DESC, rowid DESC LIMIT 1",
+                                  (self.thread,)).fetchone()
+            return str(r[0] or "") if r else None
+        except Exception:  # noqa: BLE001
+            return None
+
     def t_log_request(self, kind: str, text: str, about: str | None = None, last_answer: bool = False) -> dict:
         from jarvis.service import requests_log
 
+        # Oct 15: the agent exams showed requests filed unasked (#53-#69: placeholders, "duplicate check", flags on questions nobody
+        # asked to flag), though the rules say "when the owner asks". Now code holds it: in a conversation, no flag words, no request
+        # (every answer runs inside one; a direct call from code has no conversation and is not held).
+        q = self._question()
+        if q is not None and not FLAG_ASK.search(q):
+            return {"error": "Not filed: nobody asked to flag anything in this message. Offer it in one sentence ('Want me to flag that "
+                             "for the repair shop?') and file it only when he says yes."}
         if last_answer:
             aid, q, ans = self._last_answer()
             if ans:

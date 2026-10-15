@@ -1286,7 +1286,8 @@ def verdicts(who: str = Depends(owner)) -> dict:
     """Every losing paper trade by its strategy's verdict, and the strategy list (Madhav, Oct 13)."""
     from jarvis.service import strategy_status
 
-    return {**strategy_status.losing_trades(J()), "strategies": strategy_status.load().get("strategies") or {}}
+    r = strategy_status.losing_trades(J())
+    return {**r, "strategies": strategy_status.strategies_live(r["by_strategy"])}
 
 
 @app.get("/v3/situations")
@@ -1654,6 +1655,12 @@ def background_jobs() -> dict:
     _health.STATE["jobs_t"] = _t.time()
     ex = J()._explorer()
     out = {"fired": AL().check(ex, push=_push), "manual_stops": MN().check_stops(ex.prices() if ex else {}, push=_push)}
+    try:                                                                # Oct 15 (research audit): a verdict Madhav changes is on record within 15 minutes
+        from jarvis.service import strategy_status
+
+        out["verdicts_recorded"] = strategy_status.record_verdicts(J())
+    except Exception as exc:  # noqa: BLE001
+        out["verdicts_error"] = str(exc)[:200]
     try:
         from jarvis.service import reads_watch
 

@@ -43,7 +43,7 @@
     "H07-UB",
     "H07-T30"
    ],
-   "why": "The one measured edge (review #26: tier A while the dial is closed, +5.1% a trade over random, both periods; review #29 confirmed it point-in-time on all 530 Binance pairs with live costs, +6.3% a trade expected) and the one book that won this period (8 closed, 8 won - but one signal day, Oct 8, all with the dial open, outside the measured cell; 1 independent event by the scoreboard's rule). It feeds the $500 book's edge sleeve; tiers B/C and the 30-coin version keep measuring.",
+   "why": "The one measured edge (review #26: tier A while the dial is closed, +5.1% a trade over random, both periods; review #29 confirmed it point-in-time on all 530 Binance pairs with live costs, +6.3% a trade expected) Its live paper record is read from the database: {closed} closed, {won} won ({net}); the scoreboard counts independent market events, not trades (Evidence page). It feeds the $500 book's edge sleeve; tiers B/C and the 30-coin version keep measuring.",
    "cards": [
     "H07"
    ]
@@ -56,7 +56,7 @@
     "JARVIS"
    ],
    "wakes_brain": true,
-   "why": "How the brain is measured against its random twin (as of Oct 15: 21 closed, all lost, every one stopped out in the Oct chop; ahead of its twin in 5 of the 16 pairs closed on both sides). It records in the background; the brain's buys reach the account only through the $500 book's judgment sleeve (at most 10%). Rules changed Oct 11 (reviews #27, #28, D7); judged again after 20 closed trades under the new rules (none closed yet as of Oct 15)."
+   "why": "How the brain is measured against its random twin (live paper record: {closed} closed, {won} won, {net}; the twin comparison is on the Jarvis page). It records in the background; the brain's buys reach the account only through the $500 book's judgment sleeve (at most 10%). Rules changed Oct 11 (reviews #27, #28, D7); judged again after 20 closed trades under the new rules."
   },
   "BOLD": {
    "name": "The bold book: the brain's one idea a day, taken whenever the dial is open",
@@ -79,7 +79,7 @@
     "ZONE_TOUCH-UC"
    ],
    "wakes_brain": false,
-   "why": "A plain touch of a zone is not a reason to buy: it lost with every exit on 8 years of data (review #27) and, as of Oct 15, 115 of 115 closed paper trades lost (-$1,318). It keeps recording in the background as the yardstick for zones, never wakes the brain, and will not be pushed."
+   "why": "A plain touch of a zone is not a reason to buy: it lost with every exit on 8 years of data (review #27) and, live, {lost} of {closed} closed paper trades lost ({lost_usd}). It keeps recording in the background as the yardstick for zones, never wakes the brain, and will not be pushed."
   },
   "EXPLORER": {
    "name": "15-minute Explorer (E1-E8)",
@@ -87,7 +87,7 @@
    "verdict": "wont_take_again",
    "home_book": "15-minute Explorer",
    "wakes_brain": false,
-   "why": "No intraday setup has an edge after costs (reviews #1, #3, #24; 0 of 55 atlas contexts). As of Oct 15, 230 closed paper trades, 33 won (-$225). It keeps scanning as the intraday eyes and recording its paper book as evidence (Q1 live-vs-replay); it never wakes the brain and will not be pushed.",
+   "why": "No intraday setup has an edge after costs (reviews #1, #3, #24; 0 of 55 atlas contexts). Live paper record: {closed} closed, {won} won ({net}). It keeps scanning as the intraday eyes and recording its paper book as evidence (Q1 live-vs-replay); it never wakes the brain and will not be pushed.",
    "cards": [
     "EXPLORER",
     "E5",
@@ -137,7 +137,7 @@
     "RANDOM_BOLD"
    ],
    "wakes_brain": false,
-   "why": "The yardstick every book is measured against (10-, 20- and 30-day twins per tier). Never holdings. As of Oct 15 one daily twin had closed a trade (a 10-day twin, -$13.89) and the brain's twins 21 (all lost), so every 'vs random' verdict is still open."
+   "why": "The yardstick every book is measured against (10-, 20- and 30-day twins per tier). Never holdings. Live: {closed} closed twin trades, {won} won ({net}); every 'vs random' verdict waits for independent market events, not trades."
   },
   "MANUAL": {
    "name": "Madhav's own trades",

@@ -9,6 +9,7 @@ both before the run).
   periods, shrunk by n/(n+50)), up from review #26's +5.1%.
 - **Secondary cell, the dial OPEN: INSUFFICIENT** (17 market days in 2018-2023, under 30). Nothing changes: still no measured edge
   with the dial open.
+- **Madhav's decision on the two coverage-counting fixes (Oct 15, 08:32 Toronto): "1. keep".** The result and its effects stand.
 
 ## Data and the coverage gate
 - Point-in-time tier A from all 530 eligible Binance USDT pairs (rule v1's list), not the lake's 120: a coin is tier A on a day when

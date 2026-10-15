@@ -154,10 +154,33 @@ def build(j) -> dict:
                     ("waiting", lambda: _waiting(j, P, ex, L)),
                     ("daily_review", lambda: _daily_review())):
         out[key] = _try(fn, out, key)
+    _one_event_count(out)
     out["loop"] = _try(lambda: _loop(j, out, P, rows), out, "loop")
     out["gate"] = _try(lambda: _gate(j, out), out, "gate")
     out["headline"] = _try(lambda: _headline(out), out, "headline")
     return out
+
+
+EXPLORER_GROUPS = ("real", "would_be", "no_type", "random")
+
+
+def _one_event_count(out: dict) -> None:
+    """Madhav, Oct 15 ("show one event count"): the page counts the Explorer's market events ONCE, the conservative way: every
+    Explorer trade together (real, stopped, untyped and random), as the headline does. Before, the headline said 9 ("no verdict
+    before 10") while Q1 counted real and stopped trades only and said 11 ("done"), and each results row showed its own count.
+    Each group's own count stays in the data as events_own; Jarvis's book is a different book and keeps its own count."""
+    r = out.get("results") or {}
+    ev = r.get("events")
+    if ev is None:
+        return
+    for it in r.get("items") or []:
+        if it.get("key") in EXPLORER_GROUPS:
+            it["events_own"] = it.get("events")
+            it["events"] = ev
+    for w in out.get("waiting") or []:
+        if w.get("id") == "Q1" and w.get("unit") == "market events":
+            w["have"] = ev
+            w["done"] = ev >= (w.get("goal") or GOAL_EVENTS)
 
 
 def _daily_review() -> dict | None:

@@ -112,3 +112,14 @@ def test_open_queue_drops_items_whose_review_is_done():
     assert [q["id"] for q in el._open_queue(queue, L)] == ["Q1", "R29"]
     assert [q["id"] for q in el._open_queue(queue, None)] == ["Q1", "R24", "R29"]
     assert el._open_queue(None, L) == []
+
+
+def test_the_page_counts_market_events_once():
+    """Madhav, Oct 15: one event count. The headline said 9 ('no verdict before 10') while Q1 said 11 ('done')."""
+    from jarvis.service import evidence_live as E
+
+    out = {"results": {"events": 9, "items": [{"key": "real", "events": 11}, {"key": "random", "events": 15}, {"key": "jarvis", "events": 1}]},
+           "waiting": [{"id": "Q1", "unit": "market events", "have": 11, "goal": 10, "done": True}, {"id": "Q2", "unit": "weeks", "have": 2}]}
+    E._one_event_count(out)
+    assert [i["events"] for i in out["results"]["items"]] == [9, 9, 1] and out["results"]["items"][0]["events_own"] == 11
+    assert out["waiting"][0]["have"] == 9 and out["waiting"][0]["done"] is False and out["waiting"][1]["have"] == 2

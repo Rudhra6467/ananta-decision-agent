@@ -846,10 +846,10 @@ def evidence_pipeline(j) -> dict:
         progress["h07_fires"] = j.db.execute("SELECT COUNT(*) FROM read_fires WHERE variant = 'H07'").fetchone()[0]
     except Exception:  # noqa: BLE001  no fires yet
         progress["setup_fires"] = progress["h07_fires"] = 0
-    ev = _events_count(real + wouldbe)
+    ev = _events_count(rows)        # Oct 15, Madhav: ONE count of market events, every Explorer trade together, as the Evidence headline
     queue = [{**q, "have": progress.get(q.get("metric")),
-              "note": (f"real + would-be trades; they come from only {ev} independent market move{'s' if ev != 1 else ''}, "
-                       "so the test also waits for enough separate moves") if q.get("metric") == "closed_trades" else None,
+              "note": (f"every Explorer trade (real, stopped, untyped and random) comes from only {ev} independent market "
+                       f"move{'s' if ev != 1 else ''}, so the test also waits for enough separate moves") if q.get("metric") == "closed_trades" else None,
               "events": ev if q.get("metric") == "closed_trades" else None}
              for q in led.get("queue", [])]
     shop = {"reviews": [{k: r.get(k) for k in ("id", "date", "status", "verdict", "title", "forwarded_because", "question", "result", "changed")}

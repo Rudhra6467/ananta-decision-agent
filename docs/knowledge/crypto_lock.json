@@ -114,17 +114,23 @@
    ]
   },
   "exam_judges": {
-   "what": "How the agent exam marks the agent: the 'knows' and 'why' question lists and the 'why' pass mark, the 'don't know' and reasoning patterns, the voice rules and the four judging functions (jarvis/service/exam.py).",
+   "what": "How the agent exam marks the agent: the 'knows' and 'why' question lists and the 'why' pass mark, the 'don't know', certainty, forecast and hedge patterns, the voice rules and the five judging functions (jarvis/service/exam.py). The pass marks of the three exams are in `live_logic`.",
    "files": [
     "jarvis/service/exam.py"
    ],
-   "sha256": "662f8a3516274317791395f6d596fc4ca8e7428acbefed41fbda3a5bb7ec44d1",
+   "sha256": "4b63e75f36b3c2458f90b055f95370a7400632a221e7b658b307ce153c7adc28",
    "history": [
     {
      "date": "2026-10-15",
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
      "sha256": "662f8a3516274317791395f6d596fc4ca8e7428acbefed41fbda3a5bb7ec44d1"
+    },
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "sha256": "4b63e75f36b3c2458f90b055f95370a7400632a221e7b658b307ce153c7adc28",
+     "note": "Asked after the independent lock check: \"(a) re-pin exam_judges with the stricter judge, before any exam run\". Madhav, 18:02 Toronto: \"yes a , yes b\". The change: an answer that states a forecast as certain (\"there is no doubt it will reach 150k\") no longer passes as 'I don't know'; why_pause no longer accepts the question's own words; the pass marks are named constants. Before any new exam run."
     }
    ]
   },
@@ -140,6 +146,28 @@
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
      "sha256": "eb57d6bc66df4c6b1f9cb183ab440d96ba2c7dda02338d5d48c35bfbdc5c19a4"
+    }
+   ]
+  },
+  "live_logic": {
+   "what": "The logic that decides money or the success verdict and sat outside the first nine pins (found by the independent check of Oct 15): how the dial is read (exposure.state, dial_by_day); what may enter the $500 book's edge sleeve (ndax_book.passed_rules, edge_signals); the trade guard's staleness limits and its list of paths; the exams' pass marks and run/rejudge/voice (exam.py); the gate's constants (EXAM_FRESH_DAYS, _exam_age, SIZING_ENTRIES, CITES_N, CITES_PASS, OUTAGE_MIN, ALERT_WITHIN_S, GOAL_EVENTS); Rule A's fidelity bar (ev.fidelity); the default cost profile (paper_exit.settings_for); and the hand-written status of every gate check.",
+   "files": [
+    "jarvis/service/exposure.py",
+    "jarvis/service/ndax_book.py",
+    "jarvis/service/trade_guard.py",
+    "jarvis/service/exam.py",
+    "jarvis/service/evidence_live.py",
+    "jarvis/service/ev.py",
+    "src/intelligence/paper_exit.py",
+    "docs/knowledge/acceptance_gate.json"
+   ],
+   "sha256": "c2fb83366f1567cd265e17af911f713906e67721869b723c671ecb9e036e3db7",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "sha256": "c2fb83366f1567cd265e17af911f713906e67721869b723c671ecb9e036e3db7",
+     "note": "Asked after the independent lock check: \"(b) add one new pin live_logic covering those unpinned rules\". Madhav, 18:02 Toronto: \"yes a , yes b\"."
     }
    ]
   }

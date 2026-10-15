@@ -974,6 +974,16 @@ def _exam_age(c: dict, day: str | None) -> None:
         c["note"] = f"{c.get('note', '')}; the last run is {age} days old (a pass counts for {EXAM_FRESH_DAYS} days; the exam needs running again)".lstrip("; ")
 
 
+def _due_done(j, item_id: str) -> bool:
+    """Is a due-list item recorded as finished? (docs/knowledge/due_list.json is the plan; the record of finished work is in the database.)"""
+    try:
+        from jarvis.service import due_list
+
+        return item_id in due_list.check(j)["done"]
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _gate_why(c: dict, e: dict | None) -> None:
     """ux_why (the Oct 15 lock): the check had no measure; five 'why' questions now sit in the exam (jarvis/service/exam.py WHY)."""
     from jarvis.service import exam
@@ -1027,18 +1037,34 @@ def _gate_measured(j, by: dict) -> None:
             dear = [x for x in s["dearer_than_assumed"] if x in set(registry.lab10())]
             c = by.get("data_costs")
             if c:
-                c["status"] = "PARTLY" if dear else c["status"]
-                c["note"] = (f"{s['line']}" + (f"; the 10 books' own coins costlier than assumed: {', '.join(dear)} (stage S2, about Oct 25, "
-                             "re-runs the $500 backtest with measured costs; Madhav decides)" if dear else "") + (f"; {c['note']}" if c.get("note") else ""))
+                s2_done = _due_done(j, "S2-SPREADS")
+                c["status"] = "PARTLY" if dear or not s2_done else c["status"]
+                lab = ", ".join(f"{x} {(s.get('dear_detail') or {}).get(x, ['?', '?'])[0]}% a side measured against {(s.get('dear_detail') or {}).get(x, ['?', '?'])[1]}% in our table"
+                                for x in dear)
+                c["note"] = ((f"the 10 books' own coins costlier than assumed: {lab}; " if dear else "") + f"{s['line']}"
+                             + ("" if s2_done else "; stage S2 (due Oct 26) has not re-run the $500 backtest with measured costs yet; Madhav decides about any coin whose edge it erases")
+                             + (f"; {c['note']}" if c.get("note") else ""))
             c = by.get("engine_execution")
             if c:
-                c["note"] += f"; spreads measured by the worker on {s['days_measured']} full days"
+                c["note"] += (f"; spreads measured by the worker on {s['full_days']} full day{'s' if s['full_days'] != 1 else ''}"
+                              + (f" and {s['part_days']} part day{'s' if s['part_days'] != 1 else ''}" if s["part_days"] else ""))
         o = worker.outside_view(7)
         c = by.get("ops_outages")
         if c and o["checks"]:
             c.update(outages_seen_from_outside(j, o, worker.alert_armed_now()))
     except Exception:  # noqa: BLE001  no worker data on this machine
         pass
+    c = by.get("engine_risk")                  # a hand-written pass: after the monthly rehearsal date it reads PARTLY until the rehearsal is recorded
+    if c and c.get("status") == "PASS":
+        try:
+            from jarvis.service import due_list
+
+            r = next((x for x in due_list.rows(j) if x["id"] == "ENGINE-RISK-REHEARSAL"), None)
+            if r and r["state"] == "overdue":
+                c["status"] = "PARTLY"
+                c["note"] = f"{c.get('note', '')}; the monthly rehearsal due {r['due']} is not recorded".lstrip("; ")
+        except Exception:  # noqa: BLE001
+            pass
     c = by.get("ops_no_trade_unhealthy")
     if c:
         try:
@@ -1064,16 +1090,19 @@ def _gate_measured(j, by: dict) -> None:
         c["note"] = (f"{ok} of the last {n} answers with numbers carry evidence that opens on screen (needs {CITES_PASS} of {CITES_N}); "
                      f"{sourced} of {n} name a source for every item (last 7 days, checked by code)")
     e = exam.latest()
+    raw = exam.as_run(e)                       # the gate counts the run as first saved; a later change of judge is shown, never counted
     for k, field, n_key, of_key in (("agent_knows", "knows_pass", "known", "known_of"), ("agent_unknowns", "unknowns_pass", "unknown", "unknown_of")):
         c = by.get(k)
         if c:
-            c["status"] = "NOT_MEASURED" if not e else "PASS" if e.get(field) else "FAIL"
-            c["note"] = (f"{e[n_key]} of {e[of_key]} on {e['day']}" + (f" (re-judged on {e['rejudged']} with a judge widened after the run; "
-                         "the next run confirms it)" if e.get("rejudged") else "")) if e else "exam not run yet"
-            _exam_age(c, e and e.get("day"))
+            c["status"] = "NOT_MEASURED" if not raw else "PASS" if raw.get(field) else "FAIL"
+            c["note"] = (f"{raw[n_key]} of {raw[of_key]} on {raw['day']}" + (
+                f" as run; {e[n_key]} of {e[of_key]} when re-judged on {e['rejudged']} with a judge changed after the run (not counted; only a new run confirms it)"
+                if e.get("rejudged") and e[n_key] != raw[n_key] else
+                f" (re-judged on {e['rejudged']}, same score)" if e.get("rejudged") else "")) if raw else "exam not run yet"
+            _exam_age(c, raw and raw.get("day"))
     c = by.get("ux_why")
     if c:
-        _gate_why(c, e)
+        _gate_why(c, raw)
     v = exam.latest("voice_latest.json")
     c = by.get("ux_voice")
     if c:

@@ -21,10 +21,10 @@
   {
    "id": "S2-SPREADS",
    "what": "Worker stage S2: rerun the $500 backtest with the half-spreads the worker Mac measured on NDAX (each coin's 75th percentile, after 14 days of clean data).",
-   "how": "python3 ~/ananta_runs/svc_env_run.py \"from src.research import book500_s2 as S; S.main(['run','--request'])\". It files one request with the result and ticks this item. Nothing is changed; a coin whose real cost erases its edge leaves the list only if Madhav decides.",
+   "how": "python3 ~/ananta_runs/svc_env_run.py \"from src.research import book500_s2 as S; S.main(['run','--request'])\". Nothing runs it by itself: Claude runs it (a scheduled task checks on Oct 27 that it landed). It files one request with the result and ticks this item. Nothing is changed; a coin whose real cost erases its edge leaves the list only if Madhav decides.",
    "due": "2026-10-26",
    "cadence": "once",
-   "owner": "automatic"
+   "owner": "Claude"
   },
   {
    "id": "SPREAD-REFRESH",
@@ -174,7 +174,7 @@
   {
    "id": "OD-EXAM-CADENCE",
    "what": "The agent exam (jarvis/service/exam.py: 20 'knows' questions, 10 'doesn't know', 5 'why', 2 consistency pairs) is run by hand; nothing schedules it. Gate checks agent_knows, agent_unknowns and ux_why read the newest run, and since the Oct 15 lock a PASS older than 8 days reads PARTLY. A run costs about $1.30 in paid AI answers.",
-   "how": "Madhav chooses: (a) a scheduled task runs the exam every Sunday (about $1.30 a week, about $10 over the window) and one run now so ux_why is measured; (b) only at the day-30 and day-60 checkpoints (about $2.60; the three checks read PARTLY between runs); (c) not at all (the three checks stay PARTLY and the gate cannot pass). No spending without his yes.",
+   "how": "Madhav chooses: (a) a scheduled task runs the exam every Sunday (about $1.30 a week, about $13 over the window: one run now and nine Sundays) and one run now so ux_why is measured; (b) only at the day-30 and day-60 checkpoints (about $2.60; the three checks read PARTLY between runs); (c) not at all (the three checks stay PARTLY and the gate cannot pass). No spending without his yes.",
    "due": "2026-10-22",
    "cadence": "once",
    "owner": "Madhav",
@@ -209,7 +209,7 @@
   },
   {
    "id": "OD-READS-WAKES",
-   "what": "The READS entry (M1a, M2a, M2a-G, M3a, M3b) still has wakes_brain true, although its own line says no measured edge yet (reviews #5 and #26).",
+   "what": "The READS entry (M1a, M2a, M2a-G, M3a, M3b) still has wakes_brain true, although its own line says no measured edge yet (reviews #5 and #26). M1a's own evidence is thin: review #15 supported it by 0.01 of t on 3 confirm events and review #26 was mixed, so (b) is not a measured edge either.",
    "how": "Madhav chooses: (a) set wakes_brain false for READS; (b) let only M1a wake; (c) keep it as it is.",
    "due": "2026-10-31",
    "cadence": "once",
@@ -255,7 +255,7 @@
   {
    "id": "OD-GEMINI-KEY",
    "what": "The free web-search key was rejected ('API key not valid') on 2026-10-15, so the news veto relied on the paid search path.",
-   "how": "First check web_paid_log.jsonl (the free_failed field) to see whether 'key done' fixed it; never print keys. If checks still fail, Madhav chooses: (a) type a fresh free key into .env himself, never in chat; (b) accept paid-only checks. If they pass, tick this done.",
+   "how": "First check ~/ananta_runs/web_free_log.jsonl (one line per free search that worked, from Oct 15 evening) against web_paid_log.jsonl (one line per free search that failed and was paid for); never print keys. A free line after 'key done' proves the key. If the free search still fails, Madhav chooses: (a) type a fresh free key into .env himself, never in chat; (b) accept paid-only checks. The voice exam's speech-to-text uses the same free key, so check the Monday voice run too. If they pass, tick this done.",
    "due": "2026-10-22",
    "cadence": "once",
    "owner": "Madhav",
@@ -458,6 +458,14 @@
    "what": "Before the hourly watch (Hunter, Squeeze; parked Oct 11, D6) is ever resumed: re-decide cite_allowlist LIVE_5 and the statuses in knowledge_catalog_v1.json.",
    "how": "Nothing reads them while the watch is parked. Make the decision, with Madhav, before the first resumed hour.",
    "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "ENGINE-RISK-REHEARSAL",
+   "what": "Gate check engine_risk ('Kill switch, stops, caps rehearsed', pass mark 'Rehearsal passes monthly') is a hand-written PASS from the Sep 30 rehearsal. Nothing re-checked it until Oct 15; from then the gate reads PARTLY when this item is overdue.",
+   "how": "Rehearse docs/LIVE_MONEY_SAFETY.md section 6 on paper (kill switch on: no new entries, every paper position flattened; off: trading resumes), write the result in docs/repair_shop/, then mark this done: python3 ~/ananta_runs/svc_env_run.py \"from jarvis.service import core, due_list; j=core.from_env(); print(due_list.mark_done(j,'ENGINE-RISK-REHEARSAL','rehearsed, passed'))\". A failed rehearsal is a FAIL on the gate and a repair-board request.",
+   "due": "2026-10-30",
+   "cadence": "monthly",
    "owner": "Claude"
   }
  ]

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Ananta's main service (Jarvis): launchd starts it at log-in and restarts it after a crash. ~/ananta_runs/jarvis_run.py rebuilds the
+     environment from the agent's .env and starts the API on port 8100. Installed by scripts/install_jarvis_job.sh.
+     Never inspect this file with `plutil -extract ... json` without `-o -`: it overwrites the file in place (that broke it on 2026-10-15). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.ananta.jarvis</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>__HOME__/ananta_runs/jarvis_run.py</string>
+  </array>
+  <key>KeepAlive</key><true/>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>__HOME__/ananta_runs/jarvis_service.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/ananta_runs/jarvis_service.log</string>
+</dict>
+</plist>

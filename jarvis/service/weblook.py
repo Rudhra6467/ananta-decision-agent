@@ -115,6 +115,18 @@ def _paid_ok(who: str = "ask", what: str = "", why: str = "") -> bool:
     return True
 
 
+def _free_ok(who: str, what: str) -> None:
+    """Oct 15: a free (Gemini) search that worked is logged too (WEB_FREE_LOG, one JSON line), so the key can be proven from a file."""
+    from pathlib import Path
+
+    try:
+        log = Path(os.path.expanduser(os.getenv("WEB_FREE_LOG", "~/ananta_runs/web_free_log.jsonl")))
+        with open(log, "a") as fh:
+            fh.write(json.dumps({"t": time.strftime("%Y-%m-%d %H:%M:%S"), "who": who, "what": what[:120]}) + "\n")
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def paid_today() -> dict:
     """Today's paid web searches by caller, for the app and the morning review."""
     from pathlib import Path
@@ -154,6 +166,8 @@ def lookup(q: str, post=None, who: str = "ask") -> dict:
             continue
         try:
             out = fn(q, post)
+            if real and fn is _gemini:
+                _free_ok(who, "lookup: " + q)
             out["ms"] = int(1000 * (time.time() - t0))
             out["query"] = q
             out["label"] = "From the web, not from our system"
@@ -210,6 +224,8 @@ def market_check(j, coin: str, post=None, cache_s: int = 6 * 3600, who: str = "a
             continue
         try:
             raw = fn(coin, post, prompt)
+            if real and fn is _gemini:
+                _free_ok(who, "market_check: " + coin)
             break
         except Exception as exc:  # noqa: BLE001
             errors.append(str(exc)[:160])

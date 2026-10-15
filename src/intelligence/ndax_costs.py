@@ -18,7 +18,7 @@ from __future__ import annotations
 SNAPSHOT = {"taken": "2026-09-29", "what": "median of 5 NDAX order-book snapshots per lab coin (raw readings not kept)", "samples": 5,
             "fee_checked": "2026-09-29 (NDAX flat 0.20%, see paper_exit.py)",
             "applied_to": "every backtest since 2017 and every paper book since 2026-09-29",
-            "next": "worker stage S2, about 2026-10-25 (jarvis/service/ndax_spreads.py)"}
+            "next": "worker stage S2, about 2026-10-26 (jarvis/service/ndax_spreads.py)"}
 
 NDAX_FEE = 0.0020
 HALF_SPREAD = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,

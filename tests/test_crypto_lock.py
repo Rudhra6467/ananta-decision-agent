@@ -115,6 +115,18 @@ def current() -> dict[str, str]:
         "exam_judges": _sha(_top("jarvis/service/exam.py", ["KNOWS", "WHY", "WHY_PASS", "UNKNOWNS", "DONT_KNOW", "CONSISTENCY",
                                                            "REASON", "VOICE", "judge_known", "judge_unknown", "label", "judge_pair"])),
         "research_rules": _sha(_headings("docs/research/RESEARCH_RULES.md")),
+        # Oct 15, after the independent check: the logic that decides money or the verdict and sat outside the nine pins
+        "live_logic": _sha("\n#--\n".join([
+            _top("jarvis/service/exposure.py", ["state", "dial_by_day"]),                       # how the dial is read and used
+            _top("jarvis/service/ndax_book.py", ["passed_rules", "edge_signals"]),               # what may enter the $500 book's edge sleeve
+            _top("jarvis/service/trade_guard.py", ["LIVE_PRICE_S", "BAR_PRICE_S", "DAILY_S", "FAIL_MEMORY_S", "PATHS"]),
+            _top("jarvis/service/exam.py", ["KNOWS_PASS", "UNKNOWNS_PASS", "VOICE_PASS", "run", "rejudge", "voice"]),  # the pass marks
+            _top("jarvis/service/evidence_live.py", ["EXAM_FRESH_DAYS", "_exam_age", "SIZING_ENTRIES", "CITES_N", "CITES_PASS",
+                                                      "OUTAGE_MIN", "ALERT_WITHIN_S", "GOAL_EVENTS"]),
+            _top("jarvis/service/ev.py", ["fidelity"]),                                          # Rule A's "within 3 points"
+            _top("src/intelligence/paper_exit.py", ["settings_for"]),                            # which cost profile a book gets by default
+            _json("docs/knowledge/acceptance_gate.json", lambda d: [{x: c.get(x) for x in ("id", "status")} for c in d["checks"]]),
+        ])),
     }
 
 
@@ -129,8 +141,9 @@ def test_every_pin_matches_the_files_and_its_recorded_approval():
         hist = pin["history"]
         assert hist, f"{name}: no recorded approval"
         for h in hist:
-            assert h["approved_by"].startswith("Madhav") and len(h["note"]) >= 20 and re.fullmatch(r"\d{4}-\d{2}-\d{2}", h["date"]), \
-                f"{name}: every history entry needs the date, 'Madhav' as approver and a note quoting what he decided"
+            assert h["approved_by"] == "Madhav (in chat)" and len(h["note"]) >= 20 and '"' in h["note"] \
+                and re.fullmatch(r"\d{4}-\d{2}-\d{2}", h["date"]), \
+                f"{name}: every history entry needs the date, approved_by exactly 'Madhav (in chat)' and a note quoting his words"
         assert pin["sha256"] == hist[-1]["sha256"], f"{name}: the pin and its newest recorded approval differ"
         assert now[name] == pin["sha256"], (
             f"FROZEN: {name} changed ({pin['what']}). The evidence window is running. If Madhav decided this, add a history entry to "

@@ -32,8 +32,7 @@ EST_COST = 0.006                     # cash kept back per $ bought, so entries n
 EVIDENCE_CLASS = "PAPER_PORTFOLIO"
 START = 2000.0
 FEE = 0.0020
-HALF_SPREAD = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
-               "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
+from src.intelligence.ndax_costs import HALF_SPREAD  # noqa: E402  one dated table, src/intelligence/ndax_costs.py
 
 
 def _utc(t: float) -> str:

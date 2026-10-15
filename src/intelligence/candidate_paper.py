@@ -30,8 +30,7 @@ H_MS, H4_MS, D_MS = 3_600_000, 14_400_000, 86_400_000
 NOTIONAL = 100.0
 STARTING = 1000.0
 NDAX_FEE = 0.0020
-HALF_SPREAD = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
-               "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
+from src.intelligence.ndax_costs import HALF_SPREAD  # noqa: E402  one dated table, src/intelligence/ndax_costs.py
 _T, _O, _H, _L, _C, _V = 0, 1, 2, 3, 4, 5
 BOOK = "candidate_book.sqlite"          # V0: frozen v2 trend-dip (failed holdout + fresh coins) -> wind-down
 BOOK_V1 = "candidate_v1_book.sqlite"    # V1: same entry, trend-ride exit (passed fresh coins; fragile, see STUDY_V3_FRESH_RESULTS)

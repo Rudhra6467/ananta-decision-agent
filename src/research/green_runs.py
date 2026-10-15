@@ -41,8 +41,7 @@ KS = (0, 2, 3, 4, 5)
 ENTRIES = ("NOW", "PB25", "PB50")
 EXITS = ("B1", "B2", "B3", "B4")
 EXIT_PARAMS = {"B1": (0.015, 0.010, 48), "B2": (0.03, 0.015, 288), "B3": (0.05, 0.025, 864), "B4": (0.0, 0.0, 288)}
-HALF_SPREAD = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
-               "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
+from src.intelligence.ndax_costs import HALF_SPREAD  # noqa: E402  one dated table, src/intelligence/ndax_costs.py
 FRESH_HS = 0.0040
 COSTS = ("NDAX_NOW", "ZERO_FEE", "KRAKEN_T1")
 FEATURES = {  # name -> value labels (codes are the index)

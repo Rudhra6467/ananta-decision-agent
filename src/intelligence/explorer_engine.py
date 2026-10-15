@@ -20,11 +20,7 @@ EVIDENCE_CLASS = "PAPER_EXPLORER"
 TF_S = {"5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "4h": 14400, "1d": 86400}
 ORDER_TF = ("5m", "15m", "30m", "1h", "4h", "1d")  # same close time: execute 5m first, then higher states
 COINS = ["BTC", "ETH", "SOL", "ADA", "DOGE", "AVAX", "BCH", "LINK", "LTC", "XRP"]
-NDAX_FEE = 0.0020
-HALF_SPREAD = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
-               "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
-DEFAULT_HS = 0.0040
-EXPENSIVE_HS = 0.0030
+from src.intelligence.ndax_costs import DEFAULT_HS, EXPENSIVE_HS, HALF_SPREAD, NDAX_FEE  # noqa: E402,F401  one dated table (ndax_costs.py)
 NOTIONAL = 100.0
 TYPES = ("LONG_TERM", "SHORT_TERM", "INTRADAY")
 TIME_CAP = {"LONG_TERM": 60 * 86400, "SHORT_TERM": 5 * 86400, "INTRADAY": 8 * 3600}

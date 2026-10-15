@@ -117,6 +117,13 @@ Soft rule: prefer **PARK** over CUT if evidence is thin (less than 1 week).
 
 ## 7. Promotion criteria
 
+> **Amended 2026-10-15 (research audit, card LAB-CHARTER).** The day counts below are minimums for the old paper lab, not proof of
+> anything: they count days and marks, not profit, costs or trade counts. Today a strategy is promoted only on a **written pass rule fixed
+> before the run** (a minimum number of independent market events, costs counted at NDAX's fee plus the measured spread, the same sign in two
+> separate periods, a random-entry baseline beaten), through a pre-registered review (`docs/research/RESEARCH_RULES.md`), and then the
+> Acceptance Gate (`docs/knowledge/acceptance_gate.json`); real money additionally needs Rule A (`docs/LOCK.md`). The human gate stays: nothing is
+> promoted, enabled or kept automatically, and the agent never sets KEEP. Any future grant of authority is written down in `docs/GRANTS.md`.
+
 ### TEST → WATCH
 - At least **5 lab days** enabled in relevant regimes
 - No charter breaches caused by this strategy alone

@@ -149,3 +149,79 @@ def review16(symbols: list[str], tiers: dict[str, list[str]], out: Path | None =
     out = out or root() / "reports"
     (out / "review16_results.json").write_text(json.dumps(rep, indent=1, default=str))
     return rep
+
+
+# ---------------------------------------------------------------------------
+# The header every review prints (research audit LAKE-1, LAKE-3, LAKE-4; docs/research/RESEARCH_RULES.md section 4)
+# ---------------------------------------------------------------------------
+def coins_alive_per_year(D: dict[str, list[tuple]]) -> dict[int, int]:
+    """How many of the loaded coins have at least one complete day in each calendar year (the universe the result is really about)."""
+    out: dict[int, int] = {}
+    for rows in D.values():
+        for y in {time.gmtime(r[0]).tm_year for r in rows}:
+            out[y] = out.get(y, 0) + 1
+    return dict(sorted(out.items()))
+
+
+def dropped_days(symbol: str, until: int | None = None, con=None) -> tuple[int, int]:
+    """(days left out by the 97%-of-minutes rule, days in the file) before `until`. A file with no `share` column drops nothing."""
+    import duckdb
+
+    from src.research import reads as R
+
+    until = until or R.CONF_END
+    p = clean_dir("1d") / f"symbol={symbol}" / "**" / "*.parquet"
+    con = con or duckdb.connect()
+    src = f"read_parquet('{p}', hive_partitioning=true, union_by_name=true)"
+    total = con.execute(f"SELECT count(*) FROM {src} WHERE t < {until}").fetchone()[0]
+    if "share" not in {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM {src}").fetchall()}:
+        return 0, total
+    dropped = con.execute(f"SELECT count(*) FROM {src} WHERE t < {until} AND COALESCE(share, 1.0) < {MIN_SHARE}").fetchone()[0]
+    return dropped, total
+
+
+def grades(symbols: list[str]) -> dict[str, int]:
+    """Counts of the quality grades (A, B, C) from each coin's minute-data report; coins with no report are counted as 'none'."""
+    out = {"A": 0, "B": 0, "C": 0, "none": 0}
+    for s in symbols:
+        p = root() / "reports" / "quality" / f"spot_1m_{s}.json"
+        g = json.loads(p.read_text()).get("grade") if p.exists() else None
+        out[g if g in ("A", "B", "C") else "none"] += 1
+    return out
+
+
+def lake_header(D: dict[str, list[tuple]], symbols: list[str] | None = None, until: int | None = None, con=None) -> dict:
+    """What a reader must see before any lake result: the coins alive per year, the days dropped, the swaps cut, the grades.
+    `symbols` are the Binance symbols behind D (default: base + USDT)."""
+    from src.research import reads as R
+
+    until = until or R.CONF_END
+    symbols = symbols or [f"{b}USDT" for b in D]
+    dropped = total = 0
+    for s in symbols:
+        try:
+            d, n = dropped_days(s, until, con)
+        except Exception:  # noqa: BLE001  a coin with no 1d file adds nothing to the count
+            continue
+        dropped += d
+        total += n
+    day = lambda t: time.strftime("%Y-%m-%d", time.gmtime(t))  # noqa: E731
+    return {"until": day(until), "coins": len(D), "alive_per_year": coins_alive_per_year(D),
+            "dropped_days": dropped, "days_in_files": total, "dropped_pct": round(100 * dropped / total, 2) if total else None,
+            "min_share": MIN_SHARE,
+            "breaks": {s: f"history from {day(t)}" for s, t in BREAKS.items()}, "ends": {s: f"history before {day(t)}" for s, t in ENDS.items()},
+            "grades": grades(symbols)}
+
+
+def format_header(h: dict) -> str:
+    """The header as the lines a review file prints under its title."""
+    alive = ", ".join(f"{y}: {n}" for y, n in h["alive_per_year"].items())
+    g = h["grades"]
+    return "\n".join([
+        f"Lake header (data to {h['until']}, complete days only): {h['coins']} coins loaded.",
+        f"Coins alive per year: {alive}.",
+        f"Days dropped under the {int(100 * h['min_share'])}%-of-minutes rule: {h['dropped_days']} of {h['days_in_files']}"
+        + (f" ({h['dropped_pct']}%)." if h["dropped_pct"] is not None else "."),
+        "Token swaps cut: " + "; ".join(f"{s} ({v})" for s, v in {**h["breaks"], **h["ends"]}.items()) + ".",
+        f"Quality grades: A {g['A']}, B {g['B']}, C {g['C']}" + (f", none {g['none']}" if g["none"] else "") + ".",
+    ])

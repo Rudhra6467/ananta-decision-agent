@@ -29,8 +29,7 @@ VARIANTS = ("V0_CANDIDATE", "V1_RIDE", "V2_ADAPTIVE", "V3_TREND_HOLD")
 BPD = 288  # 5m bars per day
 DAY = 86400
 ERAS = (("E1_to_2021", 0, 1640995200), ("E2_2022_2023", 1640995200, 1704067200), ("E3_2024_on", 1704067200, 10**11))
-NDAX_HS_LAB = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
-               "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
+from src.intelligence.ndax_costs import HALF_SPREAD as NDAX_HS_LAB  # noqa: E402  one dated table (ndax_costs.py)
 FRESH_HS = 0.0040
 
 

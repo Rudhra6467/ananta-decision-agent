@@ -26,8 +26,7 @@ from src.lake import root
 
 LAB10 = ["BTC", "ETH", "SOL", "ADA", "DOGE", "AVAX", "BCH", "LINK", "LTC", "XRP"]
 T30_RENAMED = {"MATIC": "POL", "FTM": "S", "RNDR": "RENDER"}
-MEASURED_HALF_SPREAD = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
-                        "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
+from src.intelligence.ndax_costs import HALF_SPREAD as MEASURED_HALF_SPREAD  # noqa: E402  one dated table (ndax_costs.py)
 NDAX_FEE = 0.002
 DAY = 86400
 

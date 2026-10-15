@@ -87,6 +87,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_29.md`, `research/REVIEW_29_RESULTS.md`: H07 re-tested on a point-in-time tier A of all 530 Binance pairs (dead coins included, 76 downloaded) at each coin's live cost, holdout sealed (approved by Madhav Oct 15). Dial CLOSED: PASS (+10.4% / +6.8% a trade over random, z 4.9 / 5.5; +6.3% expected, the measured-edge value since Oct 15). Dial OPEN: INSUFFICIENT (17 market days in 2018-2023), still no measured edge.
 - `research/REVIEW_30.md`, `research/REVIEW_30_RESULTS.md`: the survivorship check for the live 10 (Oct 15): T3-B on the top 10 as it really was each month (64 coins, LUNA included) passes both periods but much weaker than on today's 10: +3.7% in 2024-26 (today's 10: +15.1%; holding lost 31.9%). The gate's survivorship check counts only tiers that could trade real money; the 30-coin books are evidence only.
 - `research/BOOK500.md`: the $500 NDAX paper book (CAD, NDAX coins only): core 60% by the dial, measured edges 30%, judgment 10%, 0.5% risk a trade, the D12 brakes, and its 2018-2026 backtest against holding Bitcoin and the 50-day hurdle. Also the retirement rule: a setup is retired when its last 20 closed trades average below zero after costs, or run more than 3 points a trade under its backtest.
+- `research/RESEARCH_RULES.md`: how a crypto review is asked, run and read, from review #31 on (Oct 15): the pre-registration headings and the pushed commit as the outside timestamp, one count of independent market events, the parameter-discovery law, the lake header and the point-in-time default list, one dated cost table and what is only an assumption, citation is not influence, the casebook, and what carries to new markets. A review that breaks a rule here is a draft, not a result.
 
 ## Safety and operations
 - `GUEST_GUIDE.md`: a guide for a friend trying the app: how to open it, the tabs, the coins, first questions, the rule gates, making a paper trade, what practice mode locks.
@@ -103,6 +104,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 ## Project history and locks (background; rarely needed in answers)
 - `README.md`: list of lab documents.
 - `ROADMAP.md`, `NORTH_STAR_LOCK.md`, `LABORATORY_CHARTER.md`: goals, roadmap, lab charter.
+- `GRANTS.md`: the register of every grant of authority to Ananta (what it may do on its own, who granted it, when, and where the grant is recorded) and the rules for making or changing one. A grant that is not written here does not exist.
 - `AGENT_CONTRACT_V0.md`: what the Agent (brain) may ask the App (hands).
 - `MARKET_TRUTH_LOCK.md`, `STAGE4_REPLAY_LOCK.md`, `LIVE_VS_HISTORICAL_COMPARE.md`: evidence engine, replay and live-vs-history comparison.
 - `DECISION_INTELLIGENCE_LOCK.md`, `DECISION_QUALITY_V0.md`, `S5_HYPOTHESES.md`: decision quality baseline and early hypotheses.

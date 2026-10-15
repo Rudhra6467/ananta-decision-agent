@@ -226,9 +226,10 @@
     "T3",
     "REPAIR_SHOP"
    ],
-   "evidence": "V04 KEEP; costs killed most strategies",
+   "evidence": "V04 KEEP; costs killed most strategies; the ten lab coins' half-spreads are one NDAX snapshot (2026-09-29) kept in one file, and every other coin's cost is an assumption until the worker Mac's measurement (stage S2, about Oct 25) is judged",
    "files": [
-    "src/intelligence/explorer_engine.py"
+    "src/intelligence/explorer_engine.py",
+    "src/intelligence/ndax_costs.py"
    ]
   },
   {

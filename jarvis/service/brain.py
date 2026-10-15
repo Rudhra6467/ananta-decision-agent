@@ -82,7 +82,7 @@ KNOWLEDGE = [
     ("M2A_G", "DROPPED", "Madhav's higher-low retest with the market allowed looked promising on 10 coins (review #8) but was not supported on 30 or 120 coins (review #15). M1a capitulation passed on 120 coins right on the bar (3 recent events)."),
     ("READS", "NOT_BETTER", "Madhav's three setups caught all four of his buys, but on their own were not better than a random day in 2018-23 (review #5)."),
     ("EXPLORER", "FAILED", "The 15-minute Explorer setups lost money after costs over 7 years; zones do not rescue hours-long trades (review #9); costs are the whole loss."),
-    ("COSTS", "FACT", "Paper costs: NDAX 0.20% plus half the spread each side, so 0.5-1% for a round trip depending on the coin (costs_round_trip_pct in the pack). A plan whose likely move is a few tenths of a percent cannot pay."),
+    ("COSTS", "FACT", "Paper costs: NDAX 0.20% plus half the spread each side, so 0.5-1% for a round trip depending on the coin (costs_round_trip_pct in the pack). The spreads are estimates, not a long measurement: one NDAX snapshot (2026-09-29) for the ten lab coins and a tier assumption for the rest; the real ones are being measured minute by minute (from Oct 12) and nothing changes until Madhav decides. A plan whose likely move is a few tenths of a percent cannot pay."),
     ("TEACHER_50D", "FAILED", "A dip to the 50-day average did worse than an ordinary uptrend day (review #11)."),
     ("BREAKOUT_VOL", "FAILED", "Breakouts through zones on volume looked positive on 10 coins (review #11) but failed on every tier in review #21, which replaces it: not a reason to buy."),
     ("STOPS", "SUPPORTED", "A stop 1 ATR under the structure beats a tight percent stop: a 3% stop was hit in 70-85% of dip trades (review #18, H14)."),

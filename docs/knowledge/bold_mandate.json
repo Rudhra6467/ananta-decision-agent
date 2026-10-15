@@ -1,9 +1,9 @@
 {
  "version": "bold_mandate.v1",
  "id": "JUDGMENT_BOLD",
- "status": "PROPOSED",
- "approved": null,
- "approved_by": null,
+ "status": "APPROVED",
+ "approved": "Madhav in chat, 2026-10-15 06:33 Toronto: '2. approved' (the bold book's mandate, as written here)",
+ "approved_by": "Madhav",
  "written": "2026-10-15",
  "source": "Agent fix A8 in 'Ananta, the next phase: the agent itself' (Oct 14); Madhav: 'let's start with this fixing steps you suggested' (Oct 14, 19:30); the bold book needs his own review before its first paper trade",
  "purpose": "A registered experiment: does the brain's judgment add anything when it is made to act? The safe book (JARVIS) keeps its default-PASS constitution; this second paper book has a brave one, so 'be bold' stops being a conflict with the safe book's rules.",

@@ -89,3 +89,19 @@ def test_the_bold_twin_pays_the_bold_books_costs(monkeypatch):
     monkeypatch.setattr(registry, "cost", lambda c, reg=None: 0.0123)
     assert watch_engine._cost("NEWCOIN", "RANDOM_BOLD") == 0.0123 == watch_engine._cost("NEWCOIN", "JARVIS_BOLD")
     assert watch_engine._cost("NEWCOIN", "RANDOM_10D") != 0.0123
+
+
+def test_the_switches_the_brain_obeys_stop_the_bold_book_too(tmp_path, monkeypatch):
+    """BRAIN_ENABLED=0 (or Ask switched off, or the day's AI budget used up) means no model call: an open day is a recorded miss
+    with the reason, never a silent skip."""
+    from jarvis.service import bold
+
+    j = _ready(tmp_path, monkeypatch, dial=1.0)
+    monkeypatch.setenv("BRAIN_ENABLED", "0")
+
+    def never(u):
+        raise AssertionError("no model call with the brain switched off")
+    r = bold.run(j, call=never)
+    assert r["action"] == "MISS" and "BRAIN_ENABLED" in r["note"] and r["cost_usd"] == 0
+    assert j.db.execute("SELECT action, note FROM bold_decisions").fetchone() == ("MISS", r["note"])
+    assert not j.db.execute("SELECT 1 FROM evidence_trades").fetchone()

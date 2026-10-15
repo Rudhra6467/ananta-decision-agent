@@ -58,6 +58,16 @@
    "wakes_brain": true,
    "why": "How the brain is measured against its random twin (4 of 14 so far; every trade stopped in the Oct chop). It records in the background; the brain's buys reach the account only through the $500 book's judgment sleeve (at most 10%). Rules changed Oct 11 (reviews #27, #28, D7); judged again after 20 closed trades."
   },
+  "BOLD": {
+   "name": "The bold book: the brain's one idea a day, taken whenever the dial is open",
+   "status": "EVIDENCE",
+   "verdict": "will_try_again",
+   "watches": [
+    "JARVIS_BOLD"
+   ],
+   "wakes_brain": false,
+   "why": "A registered experiment (fix A8, approved by Madhav Oct 15): does the brain's judgment add anything when it must act? $100 of paper a day on dial-open days against a random tier-A twin (RANDOM_BOLD), under docs/knowledge/bold_mandate.json. Expected to lose at first at measured costs; reviewed after 30 closed trades or 60 days, whichever is later. Never the account."
+  },
   "ZONE_TOUCH": {
    "name": "Daily zone touch",
    "status": "EVIDENCE",
@@ -117,7 +127,8 @@
     "JARVIS_RANDOM",
     "RANDOM_10D",
     "RANDOM_20D",
-    "RANDOM_30D"
+    "RANDOM_30D",
+    "RANDOM_BOLD"
    ],
    "wakes_brain": false,
    "why": "The yardstick every book is measured against (10-, 20- and 30-day twins per tier). Never holdings. No twin had closed a trade as of Oct 14, so every 'vs random' verdict is still open."

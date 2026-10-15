@@ -60,6 +60,24 @@ def enabled() -> tuple[bool, str]:
     return True, ""
 
 
+def _ai_ok(j) -> tuple[bool, str]:
+    """The same switches the brain obeys: BRAIN_ENABLED, Ask switched on, and the day's whole AI budget not used up."""
+    if os.getenv("BRAIN_ENABLED", "1") != "1":
+        return False, "the brain is switched off (BRAIN_ENABLED)"
+    try:
+        from jarvis.service import brain
+        from jarvis.service.ask import Ask
+
+        a = Ask(j)
+        if a.setting("ask_enabled") != "1":
+            return False, "Ask Ananta (the AI) is switched off"
+        if a.spend().get("left_usd", 1) < brain.MIN_BUDGET:
+            return False, "today's AI budget is used up"
+    except Exception:  # noqa: BLE001
+        pass
+    return True, ""
+
+
 def _table(j) -> None:
     j.db.execute("CREATE TABLE IF NOT EXISTS bold_decisions (id TEXT PRIMARY KEY, day TEXT, t INTEGER, dial REAL, action TEXT, coin TEXT, "
                  "plan TEXT, price REAL, stop REAL, thesis TEXT, why TEXT, model TEXT, cost_usd REAL, trade_id TEXT, random_id TEXT, note TEXT)")
@@ -184,8 +202,9 @@ def run(j, call: Callable | None = None) -> dict | None:
     budget = float((mandate().get("parameters") or {}).get("budget_usd_per_day") or 0.05)
     did = uuid.uuid4().hex[:12]
     res: dict[str, Any] = {"id": did, "day": day, "dial": dial, "action": None, "cost_usd": 0.0, "note": ""}
-    if spent_today(j) >= budget:
-        res.update(action="MISS" if must else "SIT", note=f"the bold book's ${budget:.2f} for today is used")
+    ai_ok, ai_why = _ai_ok(j)
+    if spent_today(j) >= budget or not ai_ok:
+        res.update(action="MISS" if must else "SIT", note=ai_why or f"the bold book's ${budget:.2f} for today is used")
     else:
         know = [{"id": k, "status": s, "what": w} for k, s, w in brain.KNOWLEDGE]
         user = ("Tonight's facts (JSON):\n" + json.dumps(f, default=str, separators=(",", ":")) + "\n\nThe knowledge list:\n"

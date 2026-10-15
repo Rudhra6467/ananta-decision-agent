@@ -590,8 +590,10 @@ def _open(j, watch: str, coin: str, price: float, stop: float, target: float | N
 
 
 def web_veto(j, coin: str, p: dict) -> dict | None:
-    """The research desk as a veto (Oct 13). None when the web has nothing against the buy or could not be reached; otherwise
-    {"kind": "skip" | "smaller", "why", "check"}. Only tier A and B coins: a paid search on a tier-C coin is never worth it."""
+    """The research desk as a veto (Oct 13). None for a coin that is never checked (tier C: a paid search is never worth it).
+    Otherwise {"kind": "skip" | "smaller" | "none" | "unavailable", "why", "check"}. "unavailable" means the web could not be reached:
+    the buy still goes ahead (the check only ever adds caution), but decide() says so in the decision's note (Oct 15, research audit),
+    so how often the veto really ran can be counted instead of a silent pass."""
     tier = ((p.get("universe_tier") or {}).get("tier")) or ("A" if _is_lab(coin) else None)
     if tier not in ("A", "B"):
         return None
@@ -599,10 +601,11 @@ def web_veto(j, coin: str, p: dict) -> dict | None:
         from jarvis.service import weblook
 
         mc = weblook.market_check(j, coin, who="brain")
-    except Exception:  # noqa: BLE001
-        return None
+    except Exception as exc:  # noqa: BLE001
+        return {"kind": "unavailable", "why": f"the web check could not run ({str(exc)[:80]})", "check": {}}
     if not mc or mc.get("error"):
-        return None
+        return {"kind": "unavailable", "why": "the web check returned nothing" + (f" ({str(mc['error'])[:80]})" if mc and mc.get("error") else ""),
+                "check": {}}
     check = {k: mc.get(k) for k in ("facts", "unlock_next_30d", "mood", "verdict", "rule")}
     v = str(mc.get("verdict") or "")
     if v.startswith("CAUTION: the web shows a real risk"):
@@ -670,6 +673,8 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
             elif wv["kind"] == "smaller":
                 size = max(25.0, round(size / 2))
                 note = (note + "; " if note else "") + "web: half size, " + wv["why"]
+            elif wv["kind"] == "unavailable":           # fails open by design (it can only add caution); the note says the check did not run
+                note = (note + "; " if note else "") + "web check unavailable: " + wv["why"]
     conf = max(0.0, min(100.0, float(d.get("confidence") or 0)))
     know = [k for k in (d.get("knowledge_used") or []) if isinstance(k, str)][:8]
     bad, ok = permission_check(know)

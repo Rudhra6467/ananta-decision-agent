@@ -478,3 +478,32 @@ def test_web_check_is_a_veto_after_a_buy_only(tmp_path, monkeypatch):
     assert brain.web_veto(None, "ETH", {"universe_tier": {"tier": "A"}})["kind"] == "none"
     import inspect
     assert "market_check" not in inspect.getsource(brain.pack)                                          # not on every wake any more
+
+    def down(j, c, who="ask", **kw):                                                                    # Oct 15 (research audit): not reached
+        raise ConnectionError("no route to the web")
+    monkeypatch.setattr(weblook, "market_check", down)
+    v = brain.web_veto(None, "ETH", {"universe_tier": {"tier": "A"}})
+    assert v["kind"] == "unavailable" and "no route" in v["why"] and v["check"] == {}
+    monkeypatch.setattr(weblook, "market_check", lambda j, c, who="ask", **kw: {"error": "quota used"})
+    assert brain.web_veto(None, "ETH", {"universe_tier": {"tier": "A"}})["why"].endswith("(quota used)")
+    monkeypatch.setattr(weblook, "market_check", lambda j, c, who="ask", **kw: None)
+    assert brain.web_veto(None, "ETH", {"universe_tier": {"tier": "A"}})["kind"] == "unavailable"
+
+
+def test_a_web_check_that_cannot_run_is_written_into_the_decision_and_does_not_stop_the_buy(monkeypatch):
+    """Oct 15 (research audit): the web veto fails open by design (it can only add caution), but a silent pass hid how often it really ran.
+    The tests' web never answers, so a tier-A buy here is the case."""
+    from jarvis.service import brain
+
+    j, ex = _brain_j()
+    px = dict(j.prices())
+    coin = next(c for c in px if c != "BTC")
+    p = px[coin]
+    monkeypatch.setattr(brain, "pack", _fake_pack(p, atr=p * 0.04))
+    monkeypatch.setattr(brain, "_atr", lambda j_, c: px[c] * 0.04)
+    plan = {"action": "TAKE", "confidence": 62, "size_pct": 40, "stop": p * 0.94, "target": None, "trail_atr": 1.5, "days": 10,
+            "thesis": "at a 200-day zone with the market allowed", "knowledge_used": ["REGIME", "ZONES"]}
+    r = brain.decide(j, coin, {"zone_entry": {}}, call=lambda u: (json.dumps(plan), {"in": 5000, "out": 400, "model": "fake"}))
+    assert r["action"] == "TAKE" and r["trade"]                                          # fails open: the buy goes ahead
+    note = j.db.execute("SELECT note FROM brain_decisions WHERE id=?", (r["id"],)).fetchone()[0]
+    assert note and "web check unavailable" in note                                      # and the decision says the check did not run

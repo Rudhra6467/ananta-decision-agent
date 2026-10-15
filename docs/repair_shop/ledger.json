@@ -526,16 +526,6 @@
    "why": "Review #22: the lab 10 were also chosen with today's knowledge; re-test T3-B on the top 10 as it was each month.",
    "metric": "review_slot",
    "goal": 1
-  },
-  {
-   "id": "R24",
-   "status": "PLANNED",
-   "title": "Tuning the deep-dip buy (E6)",
-   "waiting_for": "a work session",
-   "why": "Request #15: E6 trades often but earns little; four entry/exit variants pre-registered.",
-   "files": [
-    "docs/research/REVIEW_24.md"
-   ]
   }
  ],
  "in_use": [

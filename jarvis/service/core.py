@@ -671,8 +671,18 @@ class Jarvis:
 
     # -- actions --
     def approve(self, who: str, ids: list[str] | str) -> list[dict]:
-        fills = self._layer().approve(ids, self.prices(), int(self.now()), by=f"{who} (Jarvis app)")
-        self.audit(who, "portfolio.approve", ids, f"{len(fills)} paper fills")
+        """The trend portfolio's suggestions, approved. Buys pass the trade guard (the kill switch, the Explorer's price at most
+        15 minutes old); a suggestion it holds back stays open."""
+        from jarvis.service import trade_guard as tg
+
+        px = self.prices()
+        seen, L = tg.times(px) or {}, self._layer()
+        fills = L.approve(ids, px, int(self.now()), by=f"{who} (Jarvis app)", guard=lambda book, coin: tg.blocked(
+            self, f"T3-{book}", coin, price_t=seen.get(coin, 0), max_age_s=tg.BAR_PRICE_S))
+        held = L.blocked
+        self.audit(who, "portfolio.approve", ids, f"{len(fills)} paper fills" + (f"; held back: {held[0]['why']}" if held else ""))
+        if held and not fills:
+            raise ValueError(f"Nothing was bought: {held[0]['why']}. The suggestion stays open.")
         return fills
 
     def reject(self, who: str, ids: list[str] | str) -> int:

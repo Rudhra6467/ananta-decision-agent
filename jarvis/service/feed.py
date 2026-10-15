@@ -225,15 +225,21 @@ def pull_prices(j, coins: list[str]) -> dict[str, float]:
             con.commit()
     finally:
         con.close()
-    return px
+    from jarvis.service.trade_guard import Prices
+
+    return Prices(px, {c: t for c in px})                 # .t: when each price was pulled (the trade guard checks its age)
 
 
 def prices(j) -> dict[str, float]:
+    """Every coin's recent price (at most 10 minutes old); .t keeps when each was pulled."""
+    from jarvis.service.trade_guard import Prices
+
     if _PX["px"] and time.time() - _PX["t"] < 60:
-        return dict(_PX["px"])
+        return Prices(_PX["px"], {c: _PX["t"] for c in _PX["px"]})
     con = _ro(j)
     try:
-        return {c: p for c, p, t in con.execute("SELECT coin, price, t FROM px") if time.time() - t < 600}
+        rows = [(c, p, t) for c, p, t in con.execute("SELECT coin, price, t FROM px") if time.time() - t < 600]
+        return Prices({c: p for c, p, _ in rows}, {c: t for c, _, t in rows})
     finally:
         con.close()
 

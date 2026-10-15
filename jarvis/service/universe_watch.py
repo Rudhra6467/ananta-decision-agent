@@ -169,7 +169,7 @@ def arm(j) -> dict:
     from src.research import zones as Z
 
     st = zones_watch._status(j)
-    armed: dict = {"zones": {}, "atr": {}, "tier": {}, "regime": _regime(j), "t": int(time.time())}
+    armed: dict = {"zones": {}, "atr": {}, "tier": {}, "daily_t": {}, "regime": _regime(j), "t": int(time.time())}
     for c in registry.members(j):
         D = _daily(j, c)
         if len(D) < 260:
@@ -185,6 +185,7 @@ def arm(j) -> dict:
         armed["zones"][c] = sup
         armed["atr"][c] = R.Series(D).atr[-1]
         armed["tier"][c] = registry.tier_of(j, c)
+        armed["daily_t"][c] = D[-1][0]                       # the newest daily candle (the trade guard checks its age)
     STATE.update(armed=armed, armed_t=time.time())
     try:
         (Path(j.dir) / "universe_zones.json").write_text(json.dumps(armed))
@@ -203,10 +204,13 @@ def _armed(j) -> dict:
 
 def tick(j, px: dict[str, float]) -> dict:
     from jarvis.service import brain, registry, watch_engine
+    from jarvis.service import trade_guard as tg
 
     now = int(j.now())
     armed = _armed(j)
     prev = STATE.get("prev") or {}
+    seen = tg.times(px)                                       # the feed's prices carry the time they were pulled
+    zones_old = now - float(armed.get("t") or 0) > tg.DAILY_S  # the zones and the regime come from an arm over 2 days old
     labs = set(registry.lab10())
     opened, closed = [], []
     for c, zones in (armed.get("zones") or {}).items():
@@ -227,10 +231,16 @@ def tick(j, px: dict[str, float]) -> dict:
                        j.db.execute("SELECT detail FROM evidence_trades WHERE watch=? AND coin=? AND signal_t >= ?", (w, c, now - ZONE_GAP)))
             if same:
                 continue
+            if zones_old:
+                if not j.db.execute("SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN'", (w, c)).fetchone():
+                    tg.refuse(j, w, c, tg.ZONES_OLD)
+                continue
             atr = (armed.get("atr") or {}).get(c) or 0.0
             stop = round(bot - 0.5 * atr, 12) if atr else None
             t = watch_engine.open_eye_trade(j, w, c, p, stop, f"entered a {'+'.join(z.get('kinds') or []).lower() or 'support'} zone, market allowed",
-                                            {"zone": [bot, top], "kinds": z.get("kinds"), "atr": atr, "tier": tier}, armed.get("regime"))
+                                            {"zone": [bot, top], "kinds": z.get("kinds"), "atr": atr, "tier": tier}, armed.get("regime"),
+                                            price_t=(seen.get(c, 0) if seen is not None else None), max_age_s=tg.LIVE_PRICE_S,
+                                            daily_t=(armed.get("daily_t") or {}).get(c))
             if t:
                 opened.append({"watch": w, "coin": c})
     # live stops of universe zone touches outside the 10 (the eye checks the 10 on its own prices)
@@ -290,20 +300,30 @@ def rebuild(j, days: int = 3) -> dict:
                                                   "AND watch LIKE '%-U_' AND watch NOT LIKE 'RANDOM%'", (since,))}
     only_live = sorted(live - rebuilt)
     only_rebuilt = []
+    from jarvis.service import trade_guard
+
+    trade_guard._table(j.db)
+    held_back = 0
     for w, c, t in sorted(rebuilt - live):
         busy = j.db.execute("SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND signal_t < ? AND (exit_t IS NULL OR exit_t >= ?)",
                             (w, c, t, t)).fetchone()
         ep = watch_engine.DAILY.get(w, {}).get("kind") == "read" and j.db.execute(
             "SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND signal_t < ? AND signal_t >= ?", (w, c, t, t - watch_engine.EPISODE_DAYS * DAY)).fetchone()
+        guarded = j.db.execute("SELECT 1 FROM trade_guard_log WHERE book=? AND coin=? AND t >= ? AND t < ?",
+                               (w, c, t, t + 11 * DAY)).fetchone()       # the trade guard refused it (kill switch on or unread)
         tier_now = registry.tier_of(j, c)
         if busy or ep:
             explained += 1
+        elif guarded:
+            explained += 1
+            held_back += 1
         elif t < started or w[-1] != (tier_now or "C"):
             explained += 1                                  # before the universe books started, or the coin changed tier
         else:
             only_rebuilt.append((w, c, t))
     res = {"t": now, "days": days, "since_day": time.strftime("%Y-%m-%d", time.gmtime(since)), "rebuilt_signals": len(rebuilt),
-           "ledger_signals": len(live), "explained_by_rules": explained, "only_in_ledger": [list(x) for x in only_live[:20]],
+           "ledger_signals": len(live), "explained_by_rules": explained, "held_back_by_trade_guard": held_back,
+           "only_in_ledger": [list(x) for x in only_live[:20]],
            "only_in_rebuild": [list(x) for x in only_rebuilt[:20]], "match": not only_live and not only_rebuilt,
            "note": "Daily rules only; zone touches happen on live prices and are checked by their own stops."}
     j.db.execute("CREATE TABLE IF NOT EXISTS universe_rebuilds (t INTEGER PRIMARY KEY, json TEXT)")

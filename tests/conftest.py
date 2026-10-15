@@ -22,3 +22,15 @@ def _no_live_web(tmp_path, monkeypatch):
 
     monkeypatch.setattr(weblook, "_post", _no_web)
     weblook._MC.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_live_kill_switch(monkeypatch):
+    """Oct 15 (the trade guard): every new paper position asks Hands for the kill switch, and a read that fails blocks. Tests never
+    reach Hands: a real Hands object reads "off" here, without the network (a test's own fake Hands still decides for itself), and
+    the guard's memory of a failed read starts empty."""
+    from jarvis.service import trade_guard
+    from src.intelligence import explorer_live
+
+    monkeypatch.setattr(explorer_live.Hands, "kill_switch_on", lambda self: False)
+    trade_guard.reset()

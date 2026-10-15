@@ -73,8 +73,8 @@ def _ai_ok(j) -> tuple[bool, str]:
             return False, "Ask Ananta (the AI) is switched off"
         if a.spend().get("left_usd", 1) < brain.MIN_BUDGET:
             return False, "today's AI budget is used up"
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as exc:  # noqa: BLE001  fail closed (Oct 15): a switch or budget that cannot be read is not a yes
+        return False, f"the AI switch or budget could not be read ({str(exc)[:80]})"
     return True, ""
 
 
@@ -173,7 +173,13 @@ def _open_pair(j, did: str, pick: dict) -> tuple[dict, dict | None]:
     rc = brain._random_coin(j, pick["coin"], int(j.now()), pool)
     rnd = None
     if rc and atr:
+        from jarvis.service import trade_guard as tg
+
         ratr, rp = brain._atr(j, rc), brain._live_px(j, rc)
+        if ratr and rp:                                  # the twin opens only on its own fresh price (the trade guard)
+            _, t_seen, lim = brain._live_quote(j, rc)
+            if tg.blocked(j, TWIN, rc, price_t=t_seen, max_age_s=lim):
+                ratr = None
         if ratr and rp:
             k = (pick["price"] - pick["stop"]) / atr
             rnd = brain._open(j, TWIN, rc, rp, (rp - k * ratr) if live_stop else 0.0, None, None, ep["days"], ratr,
@@ -182,8 +188,10 @@ def _open_pair(j, did: str, pick: dict) -> tuple[dict, dict | None]:
 
 
 def run(j, call: Callable | None = None) -> dict | None:
-    """Once per UTC day, after tonight's stance. Off unless both locks are open."""
+    """Once per UTC day, after tonight's stance. Off unless both locks are open. While the trade guard's kill switch is on (or
+    cannot be read) it waits without a model call and tries again at the next run; a pick whose price is too old is BLOCKED."""
     from jarvis.service import brain, stance
+    from jarvis.service import trade_guard as tg
 
     ok, why = enabled()
     if not ok:
@@ -196,6 +204,9 @@ def run(j, call: Callable | None = None) -> dict | None:
     srow = stance._row(j)
     if not srow or srow["day"] != day:
         return {"waiting": "for tonight's stance"}
+    kill_why = tg.blocked(j, WATCH)
+    if kill_why:
+        return {"blocked": kill_why}
     f = json.loads(srow["facts"] or "{}")
     dial = (f.get("dial") or {}).get("dial")
     must = bool(dial and dial > 0)
@@ -211,6 +222,7 @@ def run(j, call: Callable | None = None) -> dict | None:
                 + json.dumps(know, separators=(",", ":")) + "\n\nYour bold record so far: " + json.dumps(record(j), default=str)
                 + ("\n\nThe dial is OPEN: you must take one." if must else "\n\nThe dial is CLOSED: take one or sit, and say why."))
         live = {c["coin"]: brain._live_px(j, c["coin"]) for c in f.get("candidates") or []}
+        seen = {c: brain._live_quote(j, c)[1:] for c in live}          # when each price was seen, for the trade guard
         call = call or (lambda u: stance._call(SYSTEM, u))
         pick, d, reason = None, {}, ""
         for attempt in range(2):
@@ -235,7 +247,14 @@ def run(j, call: Callable | None = None) -> dict | None:
             pick, reason = check(d, f, live)
             if pick:
                 break
-        if pick:
+        gwhy = None
+        if pick:                                     # the trade guard: the kill switch again, and the pick's price age
+            t_seen, lim = seen.get(pick["coin"], (None, None))
+            gwhy = tg.blocked(j, WATCH, pick["coin"], price_t=t_seen, max_age_s=lim)
+        if pick and gwhy:
+            res.update(action="BLOCKED", coin=pick["coin"], plan=pick["plan"], price=pick["price"], stop=pick["stop"], thesis=pick["thesis"],
+                       note="trade guard: " + gwhy)
+        elif pick:
             trade, rnd = _open_pair(j, did, pick)
             res.update(action="TAKE", coin=pick["coin"], plan=pick["plan"], price=pick["price"], stop=pick["stop"], thesis=pick["thesis"],
                        why=str(d.get("why_not_others") or "")[:300], trade_id=trade["id"], random_id=rnd["id"] if rnd else None)

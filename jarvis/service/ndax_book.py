@@ -142,7 +142,13 @@ def status(j) -> dict:
     fills = [dict(zip(("t", "coin", "side", "sleeve", "qty", "px", "bid", "ask", "fee", "why"), r))
              for r in j.db.execute("SELECT * FROM book500_fills ORDER BY t DESC LIMIT 20")]
     inside = j.db.execute("SELECT COUNT(*), SUM(px >= bid - 1e-9 AND px <= ask + 1e-9) FROM book500_fills").fetchone()
-    return {"started": s["started"], "value_cad": s.get("value"), "cash_cad": round(s["cash"], 2), "return_pct": round(100 * ((s.get("value") or B.START_CAD) / B.START_CAD - 1), 2),
+    try:  # Oct 15 (research audit APP-GRAD): the old app's ten graduation gates on this book, a second view beside Rule A
+        from jarvis.service import graduation
+
+        grad = graduation.book500_card(j)
+    except Exception:  # noqa: BLE001
+        grad = None
+    return {"graduation": grad, "started": s["started"], "value_cad": s.get("value"), "cash_cad": round(s["cash"], 2), "return_pct": round(100 * ((s.get("value") or B.START_CAD) / B.START_CAD - 1), 2),
             "positions": s["pos"], "closed": s.get("closed", [])[-20:], "brakes": {k: s["brakes"].get(k) for k in ("paused", "block_until", "fired", "streak")},
             "brake_log": s["brakes"].get("log", [])[-10:], "dial_open": s.get("dial"), "last_step": s.get("last_step"),
             "execution_check": {"fills": inside[0], "inside_bid_ask": inside[1] or 0}, "recent_fills": fills,

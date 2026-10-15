@@ -80,6 +80,79 @@ def align(j) -> dict:
     return out
 
 
+def ledger(j) -> dict:
+    """Fix 10 of the reconstruction audit (Oct 15): the repair ledger cannot drift quietly. Read-only; it writes nothing. It checks the
+    ledger against the files that are the record: every file a row names exists, ids are unique, a finished review is not still in the
+    queue, every review document on disk has a ledger row, and the `updated` date is not older than the newest dated row. (The 65-versus-105
+    accounts and the 'never traded' lines the audit found were prose that no check could catch; what a check can catch is below.)"""
+    import re
+
+    docs = docs_dir(j.dir)
+    out: dict = {"problems": [], "checked": 0}
+    try:
+        led = json.loads((docs / "repair_shop" / "ledger.json").read_text())
+    except Exception as exc:  # noqa: BLE001
+        return {"problems": [f"ledger.json cannot be read: {str(exc)[:120]}"], "checked": 0}
+
+    def add(msg: str) -> None:
+        out["problems"].append(msg)
+
+    rows = {k: led.get(k) or [] for k in ("reviews", "queue", "tickets", "in_use", "studies")}
+    for k in ("reviews", "queue", "tickets"):
+        ids = [r.get("id") for r in rows[k]]
+        out["checked"] += len(ids)
+        dup = sorted({i for i in ids if ids.count(i) > 1})
+        if dup:
+            add(f"{k}: id used twice: {', '.join(map(str, dup))}")
+    root = docs.parent
+    for k in ("reviews", "queue", "studies", "in_use"):
+        for r in rows[k]:
+            for f in r.get("files") or []:
+                out["checked"] += 1
+                if not (root / f).exists():
+                    add(f"{k} {r.get('id')}: the file {f} does not exist")
+    done = {r.get("id") for r in rows["reviews"] if r.get("status") == "DONE"}
+    for q in rows["queue"]:
+        if q.get("id") in done:
+            add(f"queue {q.get('id')} is also a DONE review: it should have left the queue")
+    have = {str(r.get("id")) for r in rows["reviews"]}
+    nums = set()
+    for sub in ("research", "repair_shop"):
+        for p in (docs / sub).glob("REVIEW_*.md"):
+            m = re.match(r"REVIEW_(\d+)(?:_RESULTS)?\.md$", p.name)
+            if m:
+                nums.add(int(m.group(1)))
+    for n in sorted(nums):
+        out["checked"] += 1
+        if f"R{n}" not in have:
+            add(f"review {n} has a document on disk but no row in the ledger")
+    dates = [str(r.get("date")) for k in ("reviews", "tickets", "changes") for r in (rows.get(k) or led.get(k) or []) if r.get("date")]
+    if dates and str(led.get("updated") or "") < max(dates):
+        add(f"updated is {led.get('updated')}, older than the newest row ({max(dates)})")
+    out["ok"] = not out["problems"]
+    return out
+
+
+def ledger_nightly(j) -> dict:
+    """The nightly run of ledger(): a problem it has not reported before becomes one repair-board request (by ananta-auto), once for each
+    distinct set of problems, so a standing problem is not repeated every night and a check nobody reads is not the only trace."""
+    import hashlib
+
+    r = ledger(j)
+    if r["problems"]:
+        key = "kb:ledger_flag:" + hashlib.sha1("\n".join(sorted(r["problems"])).encode()).hexdigest()[:12]
+        j.db.execute("CREATE TABLE IF NOT EXISTS engine_state (k TEXT PRIMARY KEY, v TEXT)")
+        if not j.db.execute("SELECT 1 FROM engine_state WHERE k=?", (key,)).fetchone():
+            from jarvis.service import requests_log
+
+            requests_log.add(j, "data", "The repair ledger disagrees with its own files (the nightly check): " + "; ".join(r["problems"][:6])
+                             + (f"; and {len(r['problems']) - 6} more" if len(r["problems"]) > 6 else "") + ".", about="ledger check", by="ananta-auto")
+            j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?, ?)", (key, str(int(j.now()))))
+            j.db.commit()
+            r["flagged"] = True
+    return r
+
+
 def window(j) -> dict | None:
     """Day N of the 60-day evidence window, with the learning loop's health; None until a window is declared."""
     from jarvis.service import strategy_status

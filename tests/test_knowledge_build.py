@@ -64,3 +64,43 @@ def test_the_brains_own_knowledge_list_agrees_with_the_registry():
     h07_status, h07 = k["H07"]
     assert h07_status == "MEASURED_CELL_ONLY" and "#26" in h07 and "CLOSED" in h07
     assert "#26" in cards["H07"]["reason"] and "CLOSED" in cards["H07"]["reason"]
+
+
+def _ledger_tree(tmp_path, monkeypatch, **over):
+    docs = tmp_path / "docs"
+    (docs / "repair_shop").mkdir(parents=True)
+    (docs / "research").mkdir()
+    (docs / "research" / "REVIEW_1.md").write_text("x")
+    led = {"updated": "2026-10-15", "reviews": [{"id": "R1", "date": "2026-10-15", "status": "DONE", "files": ["docs/research/REVIEW_1.md"]}],
+           "queue": [{"id": "Q1"}], "tickets": [{"id": "TK1", "date": "2026-10-15"}], "in_use": [], "studies": [], "changes": []}
+    led.update(over)
+    (docs / "repair_shop" / "ledger.json").write_text(json.dumps(led))
+    monkeypatch.setattr(knowledge_build, "docs_dir", lambda base: Path(base) / "docs")
+    return docs
+
+
+def test_ledger_check_is_clean_on_a_consistent_ledger(tmp_path, monkeypatch):
+    """Reconstruction Fix 10 (Oct 15): the repair ledger is checked against its own files every night."""
+    _ledger_tree(tmp_path, monkeypatch)
+    r = knowledge_build.ledger(_j(tmp_path))
+    assert r["ok"] and r["problems"] == [] and r["checked"] >= 4
+
+
+def test_ledger_check_finds_each_kind_of_drift(tmp_path, monkeypatch):
+    docs = _ledger_tree(tmp_path, monkeypatch, updated="2026-10-01",
+                        reviews=[{"id": "R1", "date": "2026-10-15", "status": "DONE", "files": ["docs/research/REVIEW_1.md", "docs/research/GONE.md"]},
+                                 {"id": "R1", "date": "2026-10-14", "status": "DONE"}],
+                        queue=[{"id": "R1"}])
+    (docs / "research" / "REVIEW_7_RESULTS.md").write_text("a review nobody wrote into the ledger")
+    text = " | ".join(knowledge_build.ledger(_j(tmp_path))["problems"])
+    assert "id used twice: R1" in text and "GONE.md does not exist" in text and "queue R1 is also a DONE review" in text
+    assert "review 7 has a document on disk but no row" in text and "older than the newest row (2026-10-15)" in text
+
+
+def test_ledger_nightly_files_one_request_for_one_set_of_problems(tmp_path, monkeypatch):
+    _ledger_tree(tmp_path, monkeypatch, updated="2026-10-01")
+    j = _j(tmp_path)
+    first = knowledge_build.ledger_nightly(j)
+    again = knowledge_build.ledger_nightly(j)
+    rows = j.db.execute("SELECT by, kind, about FROM owner_requests").fetchall()
+    assert first.get("flagged") is True and "flagged" not in again and rows == [("ananta-auto", "data", "ledger check")]

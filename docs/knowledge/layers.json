@@ -846,6 +846,7 @@
     "jarvis/service/status_words.py",
     "jarvis/service/learning.py",
     "jarvis/service/ndax_book.py",
+    "jarvis/service/graduation.py",
     "jarvis/service/live_guard.py",
     "jarvis/service/trade_guard.py",
     "jarvis/service/strategy_status.py",

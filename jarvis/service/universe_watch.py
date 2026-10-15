@@ -706,6 +706,7 @@ def run_daily(j) -> dict:
         from jarvis.service import knowledge_build
 
         out["knowledge_align"] = knowledge_build.align(j)                 # one truth: surfaces regenerated from strategy_status.json
+        out["ledger_check"] = knowledge_build.ledger_nightly(j)           # Oct 15 (reconstruction Fix 10): the repair ledger against its own files
         if time.gmtime(j.now()).tm_wday == 6:
             out["weekly_review"] = learning.weekly_review(j).get("file")
     except Exception as exc:  # noqa: BLE001
@@ -742,6 +743,12 @@ def run_daily(j) -> dict:
         out["retirement_watch"] = ev.retirement_watch(j, _phone_push())
     except Exception as exc:  # noqa: BLE001
         out["retirement_error"] = str(exc)[:200]
+    try:  # Oct 15 (research audit APP-GRAD): the old app's ten graduation gates, unchanged, on the $500 book; a second view beside Rule A
+        from jarvis.service import graduation
+
+        out["graduation"] = graduation.book500_card(j)
+    except Exception as exc:  # noqa: BLE001
+        out["graduation_error"] = str(exc)[:200]
     try:  # the officer's note (Oct 13): the brain narrates the account's day, once, after the close
         from jarvis.service import officer
 
@@ -782,7 +789,10 @@ def _daily_file(j, out: dict) -> None:
              f"- the {rb.get('explained_by_rules')} not in the ledger, explained by: {', '.join(f'{k.replace(chr(95), chr(32))} {v}' for k, v in (rb.get('explained_by_reason') or {}).items() if v) or 'nothing to explain'}",
              f"- 10-coin side-by-side check (this engine against the live Explorer, setups both run): {((out.get('explorer_compare') or {}).get('72h') or {}).get('agreement_like_for_like_pct')}% over 72 hours "
              f"({((out.get('explorer_compare') or {}).get('72h') or {}).get('same_like_for_like')} of {((out.get('explorer_compare') or {}).get('72h') or {}).get('events_like_for_like')} events; bar 60%)",
-             "- setup retirement watch (last 20 closed trades, BOOK500.md): " + ("; ".join(f"{r['rule']} {r['state'].lower()} tier {r['tier']}: {r['closed']} of 20" + (f", average {r['window_avg_pct']:+.2f}%" if r['window_avg_pct'] is not None else "") for r in (out.get('retirement_watch') or []) if isinstance(r, dict)) or "no rule in the edge sleeve yet"), "",
+             "- setup retirement watch (last 20 closed trades, BOOK500.md): " + ("; ".join(f"{r['rule']} {r['state'].lower()} tier {r['tier']}: {r['closed']} of 20" + (f", average {r['window_avg_pct']:+.2f}%" if r['window_avg_pct'] is not None else "") for r in (out.get('retirement_watch') or []) if isinstance(r, dict)) or "no rule in the edge sleeve yet"),
+             "- graduation gates (the old app's ten, unchanged; Rule A still decides real money): " + str((out.get("graduation") or {}).get("sentence") or "not scored yet"),
+             "- repair ledger against its own files: " + (("ok, " + str((out.get("ledger_check") or {}).get("checked")) + " checks") if (out.get("ledger_check") or {}).get("ok")
+                                                          else ("; ".join((out.get("ledger_check") or {}).get("problems") or ["not checked"]))[:400]), "",
              "## Biggest up-days (tier A and B)", ""] + [f"- {m}" for m in (out.get("missed") or [])] + [
              "", "## Scoreboard (rule x tier, market days)", "", "| watch | closed | market days | avg $/100 | vs random | open | verdict |", "|---|---|---|---|---|---|---|"] + [
              f"| {w['watch']} | {w['closed']} | {w['events']} | {w['avg_usd']} | {w['vs_random_usd']} | {w['open']} | {w['verdict']} |" for w in sb] + [

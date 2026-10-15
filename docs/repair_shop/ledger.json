@@ -48,7 +48,7 @@
    "forwarded_because": "Review #2 found traders did better buying dips.",
    "question": "Do dip entries beat random entries and pay NDAX costs on 2017-2023 data?",
    "result": "Buying when 15m RSI is under 30 beat random entries (first rule ever to beat chance on unseen data) but by far too little to pay fees and spread. Every variant lost after costs.",
-   "changed": "Dip setups E6-E8 are watched only (sightings for the atlas), never traded.",
+   "changed": "Dip setups E6-E8 were watched only (sightings for the atlas). Corrected Oct 15: on Oct 3 the paper wide mode made E6 a real paper trade (199 closed by Oct 15, 30 of them wins; review #24 found no E6 variant that pays after costs); E7 and E8 stay watched only.",
    "files": [
     "docs/repair_shop/REVIEW_3.md",
     "docs/repair_shop/REVIEW_3_RESULTS.md"
@@ -521,7 +521,7 @@
    "id": "T3",
    "from": "R4",
    "since": "2026-09-30",
-   "what": "Portfolio trend layer: daily ratings, weekly rebalance, MAIN (you approve) and SHADOW (automatic) books",
+   "what": "Portfolio trend layer: daily ratings, weekly rebalance, MAIN (automatic since 2026-10-02 06:06, Madhav's grant in the app; docs/GRANTS.md) and SHADOW (automatic) books",
    "expect": "Beat buy-and-hold over months mainly by losing less in slides; about half the drawdown; few trades",
    "watch_out": "Fails at double fees; one month proves nothing"
   },
@@ -647,7 +647,6 @@
    "title": "Other traders' trades (Hyperliquid)",
    "date": "2026-09-30",
    "runs": "once (a study, not a daily job)",
-   "accounts_sampled": 65,
    "excluded_bots": 6,
    "accounts_trading_our_coins": 37,
    "round_trips": 7441,
@@ -667,7 +666,10 @@
     "next_due": "2027-01-01",
     "how": "pull fresh Hyperliquid fills into HL.sqlite, then python -m src.research.review2_traders analyze --db LAB5 --hl HL.sqlite --out DIR",
     "decided": "2026-10-11 (D8): other traders are events and reference, never copy signals"
-   }
+   },
+   "accounts_in_sample_file": 105,
+   "accounts_collected": 65,
+   "accounts_sampled_note": "Corrected Oct 15: 65 is the number collected, not sampled. The sample file (hl_bench.sqlite, seed 20260929) lists 105 accounts: 10 leaderboard winners, 10 middle and 10 losers by one-year result, 60 wallets seen on the trade tape and 15 vaults. 39 were skipped when the API quota ran out (tape 39, vaults 0) and 1 had no fills. 26 of the 65 were scored (at least 10 round trips in the design period and a one-year result; 13 profitable, 13 not)."
   }
  ],
  "modes": [
@@ -843,6 +845,15 @@
    "what": "Two waiting questions could no longer be answered or acted on, and two counted signals instead of market events.",
    "did": "Lock phase: Madhav asked that no crypto item be left pending.",
    "change": "Q3 (E5 probation) and Q4 (intraday atlas alerts) leave the queue: the Explorer is retired as a trading book (Oct 13) and the hourly watch is parked (D6), so neither answer could change a decision. Q5 and Q6 now count market days with a signal, not fires (eight coins firing on one day are one market event). Q1 stays: it is answered at the 10th market event (the 30-trade part is met).",
+   "status": "DONE"
+  },
+  {
+   "id": "TK18",
+   "date": "2026-10-15",
+   "from": "research audit (Oct 14), the ledger's own doubts",
+   "what": "Three statements in the ledger were contradicted by the data: review #3 said the dip setups E6-E8 were never traded (E6 trades live), the trend layer's main book said 'you approve' (it has been automatic since Oct 2), and the Hyperliquid study said 65 accounts sampled (65 were collected of 105).",
+   "did": "Checked each against the live book, the app's grant record and the benchmark's own database (counts quoted in the corrected rows).",
+   "change": "The three rows are corrected in place. Every night the ledger is now checked against its own files (ids, named files, a finished review still in the queue, a review document with no row, a stale updated date) and a new problem becomes one repair-board request (knowledge_build.ledger_nightly).",
    "status": "DONE"
   }
  ],

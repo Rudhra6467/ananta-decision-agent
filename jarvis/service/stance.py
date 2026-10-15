@@ -70,9 +70,8 @@ Reply with ONE JSON object only:
                    "horizon_days": 3, "size_pct": 50, "why": "...", "knowledge_used": ["H07"]}],
  "no_expectation_reason": ""}"""
 
-SAY = ("Ananta's own written stance: the brain writes it once a day after the daily close (fix A2). Start a market answer from "
-       "its view and its expectations. If what you say now differs from it, say what changed since it was written. When source is "
-       "'facts only' there is no written view today: say so and answer from the facts; never invent a stance.")
+SAY = ("Ananta's own written view (the brain writes it after each daily close). Start a market answer from it; if you now differ, "
+       "say what changed since it was written. Source 'facts only' = no written view today: say so; never invent one.")
 
 
 # ---------------------------------------------------------------------------

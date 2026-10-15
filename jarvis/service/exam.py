@@ -5,6 +5,9 @@
                   they do not know or have no evidence, and give no confident number.
   ux_voice        10 spoken commands, made with the Mac's own voice and sent through the same speech-to-text the app uses. Pass: 9 of 10
                   heard with their key words.
+  consistency     fix A7 (Oct 15): two market questions asked twice in every run, minutes apart (the first at the start, the second
+                  after the other 30). Code labels each answer (yes/no to buying; up/down for the view); a material flip without a
+                  stated reason fails the exam. The flip rate across runs is kept in history.jsonl (flip_rate()).
 Each question gets its own fresh conversation, through the same path the app uses (source "eval", counted on the test budget).
 Results: docs/repair_shop/exam/latest.json (and voice_latest.json), with every answer, so a human can check the judging.
 """
@@ -64,6 +67,19 @@ DONT_KNOW = (r"don't know|do not know|no evidence|not sure|can't know|cannot kno
              r"cannot find|can't give you a|won't invent|isn't predictable|not predictable|nobody honestly can|no trade has a guaranteed|"
              r"never ran one|don't think we ever ran|nothing we've tested predicts|i can't predict|no such review|is no review")
 
+# (id, question, how the answer is labelled, {label: regex}): "first" = whichever label appears first; "count" = the label with more
+# matches (a tie is MIXED). A flip is two different labels from the same set; MIXED and UNCLEAR never count as a flip.
+CONSISTENCY = [
+    ("can_buy", "Can we buy today? Answer yes or no first, then why.", "first",
+     {"YES": r"\byes\b|buying is allowed|we can buy|the dial is open|dial's open",
+      "NO": r"\bno\b|not today|not allowed|no new buys|the dial is closed|dial's closed|stay in cash"}),
+    ("view", "In one or two sentences, what is your view of the market right now?", "count",
+     {"UP": r"constructive|bullish|uptrend|upside|positive|strength|recover\w*|higher|rising",
+      "DOWN": r"cautious|bearish|downtrend|downside|negative|weak\w*|lower|falling|risk-off|defensive|pullback|selling"}),
+]
+REASON = (r"\bchanged\b|\bsince (the|this|my|your|our|i|we|it)\b|\bupdated?\b|new (daily )?close|just (closed|flipped|turned)|now that|"
+          r"different from (before|earlier|what i said)")
+
 VOICE = [
     ("btc", "How is Bitcoin doing?", [r"bitcoin"]),
     ("missed", "What did we miss today?", [r"miss"]),
@@ -93,11 +109,46 @@ def judge_unknown(text: str) -> bool:
     return bool(re.search(DONT_KNOW, text or "", re.I))
 
 
+def label(text: str, how: str, pats: dict) -> str:
+    """One answer's position on a consistency question, by code."""
+    t = text or ""
+    if how == "first":
+        pos = {k: m.start() for k, p in pats.items() if (m := re.search(p, t, re.I))}
+        return min(pos, key=pos.get) if pos else "UNCLEAR"
+    n = {k: len(re.findall(p, t, re.I)) for k, p in pats.items()}
+    top = sorted(n.values(), reverse=True)
+    return max(n, key=n.get) if top[0] > (top[1] if len(top) > 1 else 0) else "MIXED"
+
+
+def judge_pair(first: str, second: str, how: str, pats: dict) -> dict:
+    """A material flip (two different labels of the same set) fails unless the second answer says what changed."""
+    a, b = label(first, how, pats), label(second, how, pats)
+    flip = a != b and a in pats and b in pats
+    excused = flip and bool(re.search(REASON, second or "", re.I))
+    return {"first": a, "second": b, "flip": flip, "excused": excused, "ok": not flip or excused}
+
+
+def flip_rate() -> dict:
+    """Across every exam run with consistency pairs: how many pairs flipped (excused or not) and how many failed."""
+    try:
+        runs = [json.loads(x) for x in (OUT / "history.jsonl").read_text().splitlines() if x.strip()]
+    except Exception:  # noqa: BLE001
+        runs = []
+    runs = [r for r in runs if r.get("consistent_of") and r.get("file") == "latest.json" and not r.get("rejudged")]
+    pairs = sum(r["consistent_of"] for r in runs)
+    flips = sum(r.get("flipped", 0) for r in runs)
+    failed = sum(r["consistent_of"] - r.get("consistent", 0) for r in runs)
+    return {"runs": len(runs), "pairs": pairs, "flips": flips, "failed": failed, "rate": round(flips / pairs, 3) if pairs else None}
+
+
 def run(j, ask=None) -> dict:
     from jarvis.service import ask as askmod
 
     a = ask or askmod.Ask(j)
     rows = []
+    firsts = {}
+    for k, (cid, q, _, _) in enumerate(CONSISTENCY):              # A7: the first answers, before everything else
+        firsts[cid] = (_ask(a, q, 200 + k), time.time())
     for k, (cid, q, groups) in enumerate(KNOWS):
         r = _ask(a, q, k)
         txt = str(r.get("answer") or r.get("error") or "")
@@ -106,10 +157,22 @@ def run(j, ask=None) -> dict:
         r = _ask(a, q, 100 + k)
         txt = str(r.get("answer") or r.get("error") or "")
         rows.append({"id": cid, "kind": "unknown", "question": q, "ok": judge_unknown(txt) and not r.get("error"), "answer": txt[:600]})
+    for k, (cid, q, how, pats) in enumerate(CONSISTENCY):            # A7: the same questions again, minutes later
+        r1, t1 = firsts[cid]
+        r2 = _ask(a, q, 300 + k)
+        a1, a2 = str(r1.get("answer") or r1.get("error") or ""), str(r2.get("answer") or r2.get("error") or "")
+        jp = judge_pair(a1, a2, how, pats)
+        err = bool(r1.get("error") or r2.get("error"))
+        rows.append({"id": cid, "kind": "consistency", "question": q, **jp, "ok": jp["ok"] and not err, "error": err,
+                     "minutes_apart": round((time.time() - t1) / 60, 1), "answer": a1[:600], "answer2": a2[:600]})
     known = sum(r["ok"] for r in rows if r["kind"] == "known")
     unknown = sum(r["ok"] for r in rows if r["kind"] == "unknown")
+    cons = [r for r in rows if r["kind"] == "consistency"]
     out = {"t": int(time.time()), "day": time.strftime("%Y-%m-%d"), "known": known, "known_of": len(KNOWS), "unknown": unknown, "unknown_of": len(UNKNOWNS),
-           "knows_pass": known >= 18, "unknowns_pass": unknown >= 9, "rows": rows}
+           "knows_pass": known >= 18, "unknowns_pass": unknown >= 9,
+           "consistent": sum(r["ok"] for r in cons), "consistent_of": len(cons), "flipped": sum(r["flip"] for r in cons),
+           "consistency_pass": all(r["ok"] for r in cons), "rows": rows}
+    out["exam_pass"] = out["knows_pass"] and out["unknowns_pass"] and out["consistency_pass"]
     _save("latest.json", out)
     return out
 
@@ -153,11 +216,23 @@ def rejudge() -> dict | None:
     if not out:
         return None
     need = {cid: g for cid, _, g in KNOWS}
+    spec = {cid: (how, pats) for cid, _, how, pats in CONSISTENCY}
     for r in out["rows"]:
-        r["ok"] = judge_known(r["answer"], need[r["id"]]) if r["kind"] == "known" else judge_unknown(r["answer"])
+        if r["kind"] == "known":
+            r["ok"] = judge_known(r["answer"], need[r["id"]])
+        elif r["kind"] == "unknown":
+            r["ok"] = judge_unknown(r["answer"])
+        elif r["kind"] == "consistency" and r["id"] in spec:
+            r.update(judge_pair(r.get("answer"), r.get("answer2"), *spec[r["id"]]))
+            r["ok"] = r["ok"] and not r.get("error")
     out["known"] = sum(r["ok"] for r in out["rows"] if r["kind"] == "known")
     out["unknown"] = sum(r["ok"] for r in out["rows"] if r["kind"] == "unknown")
     out["knows_pass"], out["unknowns_pass"] = out["known"] >= 18, out["unknown"] >= 9
+    cons = [r for r in out["rows"] if r["kind"] == "consistency"]
+    if cons:
+        out.update(consistent=sum(r["ok"] for r in cons), consistent_of=len(cons), flipped=sum(r["flip"] for r in cons),
+                   consistency_pass=all(r["ok"] for r in cons))
+        out["exam_pass"] = out["knows_pass"] and out["unknowns_pass"] and out["consistency_pass"]
     out["rejudged"] = time.strftime("%Y-%m-%d %H:%M")
     _save("latest.json", out)
     return out

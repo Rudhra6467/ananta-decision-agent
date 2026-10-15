@@ -126,6 +126,7 @@ class PortfolioLayer:
             CREATE TABLE IF NOT EXISTS proposals (id TEXT PRIMARY KEY, day_t INTEGER, status TEXT, json TEXT);
             CREATE TABLE IF NOT EXISTS fills (seq INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER, json TEXT);
         """)
+        self.blocked: list[dict] = []          # the last approve()'s buys the trade guard held back
 
     # -- settings --
     def _meta(self, k: str, default: str) -> str:
@@ -160,8 +161,10 @@ class PortfolioLayer:
         self.con.commit()
 
     # -- the daily decision --
-    def decide(self, views: dict[str, dict], px: dict[str, float], t_now: int, weekly: bool | None = None) -> dict:
-        """Run once per new UTC daily close. views: coin -> daily_view(); px: coin -> current price (paper fills)."""
+    def decide(self, views: dict[str, dict], px: dict[str, float], t_now: int, weekly: bool | None = None, guard=None) -> dict:
+        """Run once per new UTC daily close. views: coin -> daily_view(); px: coin -> current price (paper fills).
+        guard(book, coin) -> None or the reason a buy may not happen now (the trade guard, Oct 15): a blocked entry or top-up
+        stays where it is; sells and holds always go through."""
         views = {k: v for k, v in views.items() if v}
         if "BTC" not in views:
             return {"skip": "BTC daily view not ready"}
@@ -188,6 +191,8 @@ class PortfolioLayer:
             if not (weekly or held != want):
                 continue
             if name == "SHADOW" or self.mode == "AUTO":
+                if guard:
+                    targets = self._guarded(guard, name, book, targets, px, out.setdefault("blocked", []))
                 out["fills"] += book.apply(targets, px, t_now)
             else:
                 # SUGGEST: one proposal per change (ENTER / EXIT) + a rebalance proposal; nothing moves until approved
@@ -210,6 +215,21 @@ class PortfolioLayer:
             self.con.execute("INSERT INTO fills (t, json) VALUES (?,?)", (f["t"], json.dumps(f)))
         self.con.execute("INSERT INTO decisions VALUES (?,?)", (day_t, json.dumps(out, default=str)))
         self.con.commit()
+        return out
+
+    @staticmethod
+    def _guarded(guard, name: str, book: "Book", targets: dict, px: dict, blocked: list) -> dict:
+        """Targets with every buy the trade guard refuses held where it is (entries and top-ups); sells and holds unchanged."""
+        out = dict(targets)
+        for c, tgt in targets.items():
+            if c not in px:
+                continue
+            cur = book.s["units"].get(c, 0.0) * px[c]
+            if tgt - cur >= 1.0:
+                why = guard(name, c)
+                if why:
+                    out[c] = cur
+                    blocked.append({"book": name, "coin": c, "why": why})
         return out
 
     @staticmethod
@@ -238,8 +258,10 @@ class PortfolioLayer:
     def pending(self) -> list[dict]:
         return [json.loads(j) for (j,) in self.con.execute("SELECT json FROM proposals WHERE status='PENDING' ORDER BY id")]
 
-    def approve(self, ids: list[str] | str, px: dict[str, float], t_now: int, by: str) -> list[dict]:
-        """Operator approval (command today; the app's approve button later). Executes on the MAIN book at px."""
+    def approve(self, ids: list[str] | str, px: dict[str, float], t_now: int, by: str, guard=None) -> list[dict]:
+        """Operator approval (command today; the app's approve button later). Executes on the MAIN book at px.
+        guard: as in decide(). A suggestion whose buy the guard refuses stays PENDING (approve it again later); the refusals
+        are in self.blocked."""
         if not by.strip():
             raise ValueError("record who approved")
         pend = {p["id"]: p for p in self.pending()}
@@ -247,6 +269,7 @@ class PortfolioLayer:
         book = Book(self.con, "MAIN")
         eq = book.equity(px)
         fills = []
+        self.blocked = []
         for pid in chosen:
             p = pend[pid]
             slot = eq / max(1, p["n_slots"])
@@ -261,7 +284,13 @@ class PortfolioLayer:
                 targets[p["coin"]] = slot
             else:
                 targets[p["coin"]] = 0.0
+            held_back: list = []
+            if guard:
+                targets = self._guarded(guard, "MAIN", book, targets, px, held_back)
             fills += book.apply(targets, px, t_now)
+            if held_back:
+                self.blocked += [{**b, "id": pid} for b in held_back]
+                continue
             self.con.execute("UPDATE proposals SET status=?, json=? WHERE id=?",
                              ("APPROVED", json.dumps({**p, "approved_by": by, "approved_at": _utc(t_now)}), pid))
         for f in fills:

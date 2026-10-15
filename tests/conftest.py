@@ -24,7 +24,6 @@ def _no_live_web(tmp_path, monkeypatch):
     weblook._MC.clear()
 
 
-
 @pytest.fixture(autouse=True)
 def _no_live_worker(tmp_path, monkeypatch):
     """Oct 15 (worker S1): tests never read the worker days pulled onto this Mac or SSH to the worker; each test starts empty."""
@@ -34,3 +33,19 @@ def _no_live_worker(tmp_path, monkeypatch):
     monkeypatch.setattr(ndax_spreads, "DEST", tmp_path / "worker_data")
     monkeypatch.setattr(worker, "_ssh", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("tests never reach the worker")))
     worker._CACHE.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_live_kill_switch(monkeypatch):
+    """Oct 15 (the trade guard): every new paper position asks Hands for the kill switch, and a read that fails blocks. Tests never
+    reach Hands: a real Hands object reads "off" here, without the network (a test's own fake Hands still decides for itself), and
+    the guard's memory of a failed read starts empty."""
+    from jarvis.service import trade_guard
+    from src.intelligence import explorer_live
+
+    monkeypatch.setattr(explorer_live.Hands, "kill_switch_on", lambda self: False)
+    trade_guard.reset()
+    from jarvis.service import eye
+
+    for k in ("prices", "prices_t", "prices_lim"):            # the eye's last look (with its times) never leaks into the next test
+        monkeypatch.delitem(eye.STATE, k, raising=False)

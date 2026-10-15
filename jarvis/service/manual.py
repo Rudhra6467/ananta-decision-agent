@@ -122,6 +122,14 @@ class Manual:
 
     def execute(self, who: str, p: dict, px: dict[str, float], trigger: str = "owner") -> dict:
         v = self.validate(p, px)
+        if v["side"] == "buy":          # the trade guard (Oct 15): a new position only on healthy inputs; sells always go through
+            from jarvis.service import trade_guard as tg
+
+            seen = tg.times(px)                         # the Explorer's 5-minute closes carry their time
+            why = tg.blocked(self, "ACCOUNT_WATCH" if str(trigger).startswith("ananta-auto") else "MANUAL", v["coin"],
+                             price_t=(seen.get(v["coin"], 0) if seen is not None else None), max_age_s=tg.BAR_PRICE_S)
+            if why:
+                raise ValueError(f"the trade guard stopped it: {why}")
         price = px[v["coin"]]
         cost = v["usd"] * (FEE + HALF_SPREAD.get(v["coin"], 0.004))
         fid = "M" + uuid.uuid4().hex[:9]

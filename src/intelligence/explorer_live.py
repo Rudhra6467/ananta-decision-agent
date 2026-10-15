@@ -314,7 +314,11 @@ class Explorer:
 
     # -- portfolio manager layer (daily, after each UTC daily close) --
     def prices(self) -> dict[str, float]:
-        return {c: e.tf["5m"].last[4] for c, e in self.st["engines"].items() if e.tf["5m"].last}
+        """Each coin's last 5-minute close; .t keeps when it closed (bar open + 5 minutes) for the trade guard's age check."""
+        from jarvis.service.trade_guard import Prices
+
+        tf5 = {c: e.tf["5m"] for c, e in self.st["engines"].items() if e.tf["5m"].last}
+        return Prices({c: s.last[4] for c, s in tf5.items()}, {c: s.close_t for c, s in tf5.items()})
 
     def views(self) -> dict[str, dict]:
         return {c: pl.daily_view(e.tf["1d"]) for c, e in self.st["engines"].items()}
@@ -325,18 +329,34 @@ class Explorer:
         if not btc or btc["day_close_t"] <= self.st.get("portfolio_day_t", 0):
             return None
         layer = pl.PortfolioLayer(self.base)
-        d = layer.decide(views, self.prices(), int(self.now()))
+        px = self.prices()
+        d = layer.decide(views, px, int(self.now()), guard=self._trade_guard(layer, px, views))
         self.st["portfolio_day_t"] = btc["day_close_t"]
         self._save()
         if d.get("skip"):
             return d
+        if d.get("blocked"):
+            self.alert("Ananta portfolio: buys held back", "; ".join(f"{b['book']} {b['coin']}: {b['why']}" for b in d["blocked"])[:220], "WARN")
         if d["proposals"]:
             self.alert("Ananta portfolio: suggestions", "; ".join(f"{p['action']} {p['coin']} ({p['why'][0]})" for p in d["proposals"])[:220]
                        + ". Approve: explorer_live portfolio approve all", "EVENT")
         main_fills = [f for f in d["fills"] if f["book"] == "MAIN"]
         if main_fills:
             self.alert("Ananta portfolio: AUTO changes", "; ".join(f"{f['side']} {f['coin']} ${f['usd']:.0f}" for f in main_fills)[:220], "EVENT")
-        return {"day": d["day"], "proposals": len(d["proposals"]), "fills": len(d["fills"])}
+        return {"day": d["day"], "proposals": len(d["proposals"]), "fills": len(d["fills"]), "blocked": len(d.get("blocked") or [])}
+
+    def _trade_guard(self, layer, px: dict, views: dict):
+        """The trade guard on the trend books' buys (jarvis/service/trade_guard.py): the kill switch (a failed read blocks), the
+        Explorer's price at most 15 minutes old, the coin's daily candle yesterday's or today's. Blocks go to portfolio_book.sqlite."""
+        from jarvis.service import trade_guard as tg
+
+        ctx, seen = tg.Ctx(layer.con, self.now, self.hands), tg.times(px) or {}
+
+        def guard(book: str, coin: str) -> str | None:
+            v = views.get(coin) or {}
+            return tg.blocked(ctx, f"T3-{book}", coin, price_t=seen.get(coin, 0), max_age_s=tg.BAR_PRICE_S,
+                              daily_t=(v["day_close_t"] - 86400) if v.get("day_close_t") else 0)
+        return guard
 
     def _save(self) -> None:
         tmp = self.state_path.with_suffix(".tmp")
@@ -609,8 +629,14 @@ def portfolio_cli(args: list[str]) -> None:
     if sub == "status":
         print(json.dumps(layer.status(px), indent=1, default=str))
     elif sub == "approve":
+        from jarvis.service import trade_guard as tg
+
         ids = "all" if args[1:] == ["all"] else args[1:]
-        print(json.dumps(layer.approve(ids, px, int(time.time()), by), indent=1))
+        ctx, seen = tg.Ctx(layer.con, time.time, ex.hands), tg.times(px) or {}
+        print(json.dumps(layer.approve(ids, px, int(time.time()), by, guard=lambda book, coin: tg.blocked(
+            ctx, f"T3-{book}", coin, price_t=seen.get(coin, 0), max_age_s=tg.BAR_PRICE_S)), indent=1))
+        for b in layer.blocked:
+            print(f"held back by the trade guard: {b['id']} {b['coin']}: {b['why']} (the suggestion stays open)")
     elif sub == "reject":
         print(layer.reject("all" if args[1:] == ["all"] else args[1:], by), "rejected")
     elif sub == "mode":

@@ -180,6 +180,8 @@ def resume(j) -> dict:
 
 
 def step(j, get=None, now: float | None = None) -> dict:
+    from jarvis.service import trade_guard
+
     _table(j)
     now = int(now or time.time())
     inst = instruments(get)
@@ -260,6 +262,11 @@ def step(j, get=None, now: float | None = None) -> dict:
     risk_open = lambda: sum(p.get("risk", 0) for p in s["pos"].values() if p["sleeve"] != "CORE")  # noqa: E731
 
     def buy(c, sleeve, value_cad, why, **extra):
+        S = C.get(c)                                  # the trade guard: the kill switch and this coin's daily candle (the fill
+        gwhy = trade_guard.blocked(j, "BOOK500", c, daily_t=S.t[-1] if S and S.t else 0)   # already needs a live NDAX quote)
+        if gwhy:
+            out["skipped"].append(f"{c}: {gwhy}")
+            return False
         k = q(c)
         if not k:
             out["skipped"].append(f"{c}: no NDAX quote")

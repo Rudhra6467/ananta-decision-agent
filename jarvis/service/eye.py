@@ -103,7 +103,7 @@ def arm(j) -> dict:
     from jarvis.service.reads_watch import _daily
     from src.research import reads as R
 
-    armed: dict[str, Any] = {"zones": {}, "prev_close": {}, "atr": {}, "attention": {}, "regime": None}
+    armed: dict[str, Any] = {"zones": {}, "prev_close": {}, "atr": {}, "attention": {}, "regime": None, "daily_t": {}}
     try:
         b = zones_watch.board(j)
         for r in b.get("coins", []):
@@ -123,6 +123,7 @@ def arm(j) -> dict:
             D = btc if c == "BTC" else _daily(j, c)
             if D:
                 armed["prev_close"][c] = D[-1][4]
+                armed["daily_t"][c] = D[-1][0]                   # the newest daily candle (the trade guard checks its age)
     except Exception as exc:  # noqa: BLE001
         armed["daily_error"] = str(exc)[:120]
     return armed
@@ -139,6 +140,7 @@ def _cool_ok(key: str, gap: float, now: float) -> bool:
 # one look
 # ---------------------------------------------------------------------------
 def tick(j, px: dict[str, float], push: Callable | None = None, armed: dict | None = None, source: str = "kraken") -> list[dict]:
+    from jarvis.service import trade_guard as tg
     from jarvis.service import watch_engine
     from jarvis.service.alerts import Alerts
     from jarvis.service.manual import Manual
@@ -149,6 +151,9 @@ def tick(j, px: dict[str, float], push: Callable | None = None, armed: dict | No
     armed = armed if armed is not None else STATE.get("armed") or {}
     prev = dict(STATE.get("prices") or {})
     events: list[dict] = []
+    seen = tg.times(px)                   # the Explorer's 5-minute closes (Kraken down) carry their time; a Kraken look is now
+    px_t = {c: (seen.get(c, 0) if seen is not None else now) for c in px}
+    px_lim = tg.BAR_PRICE_S if seen is not None else tg.LIVE_PRICE_S
     for c, p in px.items():
         _hist.setdefault(c, deque(maxlen=200)).append((now, p))
 
@@ -213,7 +218,8 @@ def tick(j, px: dict[str, float], push: Callable | None = None, armed: dict | No
                 stop = round(bot - 0.5 * atr, 10) if atr else None
                 if not same:
                     t = watch_engine.open_eye_trade(j, "ZONE_TOUCH", c, p, stop, f"entered a {kinds} zone ({z.get('history', '').lower()}), market allowed",
-                                                    {"zone": [bot, top], "kinds": z.get("kinds"), "atr": atr}, armed.get("regime"))
+                                                    {"zone": [bot, top], "kinds": z.get("kinds"), "atr": atr}, armed.get("regime"),
+                                                    price_t=px_t.get(c, 0), max_age_s=px_lim, daily_t=(armed.get("daily_t") or {}).get(c))
                     if t:
                         events.append(_event(j, "ZONE_TOUCH", c, p, f"Evidence trade: {c} zone touch",
                                              f"$100 paper at about ${p:,.6g}; stop ${stop:,.6g} (half a daily range under the zone), else 20 days." if stop else
@@ -250,7 +256,7 @@ def tick(j, px: dict[str, float], push: Callable | None = None, armed: dict | No
     except Exception as exc:  # noqa: BLE001
         STATE["last_error"] = f"market shift: {str(exc)[:100]}"
 
-    STATE.update(prices=dict(px), last_t=now, source=source, ticks=STATE.get("ticks", 0) + 1)
+    STATE.update(prices=dict(px), prices_t=px_t, prices_lim=px_lim, last_t=now, source=source, ticks=STATE.get("ticks", 0) + 1)
     return events
 
 

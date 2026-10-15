@@ -116,15 +116,28 @@ def _views(j) -> tuple[dict, dict]:
     return views, px
 
 
+def _guard(j, views: dict):
+    """The trade guard on the 30-coin trend book's buys: the kill switch, and each coin's OWN newest daily candle yesterday's or
+    today's (an absolute age; TK13 above only compares the coins with each other, so a feed stopped for all of them passed)."""
+    from jarvis.service import trade_guard as tg
+
+    def guard(book: str, coin: str) -> str | None:
+        v = views.get(coin) or {}
+        return tg.blocked(j, f"T30-{book}", coin, daily_t=(v["day_close_t"] - DAY) if v.get("day_close_t") else 0)
+    return guard
+
+
 def run(j) -> dict:
     from jarvis.service import watch_engine
 
     out = {"bars": refresh(j)}
     views, px = _views(j)
     if "BTC" in views:
-        d = _layer(j).decide(views, px, int(j.now() if hasattr(j, "now") else time.time()))
+        d = _layer(j).decide(views, px, int(j.now() if hasattr(j, "now") else time.time()), guard=_guard(j, views))
         out["t3"] = {k: d[k] for k in ("skip", "day", "btc_gate") if k in d}
         out["t3"]["left_out_stale"] = list(STALE)
+        if d.get("blocked"):
+            out["t3"]["held_back"] = [f"{b['book']} {b['coin']}: {b['why']}" for b in d["blocked"]]
         if "fills" in d:
             out["t3"]["fills"] = len(d["fills"])
             out["t3"]["holding"] = sorted(c for c, r in d["ratings"].items() if r["hold"])

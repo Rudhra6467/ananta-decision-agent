@@ -200,7 +200,8 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, 
     """Catch up every closed daily candle not processed yet (at most the last 10 days), then manage open trades.
 
     Tier watches (a "tier" in DAILY) run only when named, with their own candles (daily_fn) and coins; live_trades=False keeps
-    the eye's and the brain's trades out of a run on other candles."""
+    the eye's and the brain's trades out of a run on other candles. A new signal opens only if the trade guard allows it."""
+    from jarvis.service import trade_guard
     from src.research import reads as R
 
     _table(j)
@@ -241,6 +242,8 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, 
                     ok, stop, why = _fires(spec, S, B, i, r10)
                 if not ok or _busy(j, w, c, t):
                     continue
+                if trade_guard.blocked(j, w, c):                # the kill switch (a new closed candle is required already)
+                    continue
                 _insert(j, {"id": uuid.uuid4().hex[:12], "watch": w, "coin": c, "source": "daily", "signal_t": t, "signal_day": _day(t),
                             "stop": stop, "status": "WAITING", "why": why, "regime": regime_at(B, t), "detail": json.dumps({"close": D[i][4]})})
                 opened.append({"watch": w, "coin": c, "day": _day(t)})
@@ -258,9 +261,16 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, 
 # ---------------------------------------------------------------------------
 # the eye's trades (level-cross watches)
 # ---------------------------------------------------------------------------
-def open_eye_trade(j, watch: str, coin: str, price: float, stop: float | None, why: str, detail: dict, regime: str | None) -> dict | None:
+def open_eye_trade(j, watch: str, coin: str, price: float, stop: float | None, why: str, detail: dict, regime: str | None,
+                   price_t: float | None = None, max_age_s: float | None = None, daily_t: float | None = None) -> dict | None:
+    """A zone-touch entry at the live price, if the trade guard allows it (the kill switch; the price's and the zones' daily
+    candle's age when the caller gives them)."""
+    from jarvis.service import trade_guard
+
     _table(j)
     if j.db.execute("SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN'", (watch, coin)).fetchone():
+        return None
+    if trade_guard.blocked(j, watch, coin, price_t=price_t, max_age_s=max_age_s, daily_t=daily_t):
         return None
     t = int(j.now())
     row = {"id": uuid.uuid4().hex[:12], "watch": watch, "coin": coin, "source": "eye", "signal_t": t, "signal_day": _day(t), "entry_t": t,

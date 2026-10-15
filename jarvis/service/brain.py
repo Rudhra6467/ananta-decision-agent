@@ -213,6 +213,23 @@ def _live_px(j, coin: str) -> float | None:
         return None
 
 
+def _live_quote(j, coin: str) -> tuple[float | None, float | None, int]:
+    """(price, when it was seen, the age the trade guard allows for it), from the same places as _live_px: the eye's look for
+    the 10 (a Kraken look: 5 minutes; the Explorer's 5-minute close while Kraken is down: 15 minutes), else the universe feed."""
+    from jarvis.service import eye, feed
+    from jarvis.service import trade_guard as tg
+
+    if _is_lab(coin):
+        p = (eye.STATE.get("prices") or {}).get(coin)
+        if p is not None:
+            return p, (eye.STATE.get("prices_t") or {}).get(coin), int(eye.STATE.get("prices_lim") or tg.LIVE_PRICE_S)
+    try:
+        px = feed.prices(j)
+        return px.get(coin), (tg.times(px) or {}).get(coin), tg.LIVE_PRICE_S
+    except Exception:  # noqa: BLE001
+        return None, None, tg.LIVE_PRICE_S
+
+
 def _feed_intraday(j, coin: str) -> dict:
     """For coins outside the 10: hourly and 4-hour picture from the feed's 5-minute candles."""
     from jarvis.service import feed
@@ -298,22 +315,24 @@ def pack(j, coin: str, triggers: dict) -> dict:
     _table(j)
     now = int(j.now())
     lab = _is_lab(coin)
-    if lab:
-        live = (eye.STATE.get("prices") or {}).get(coin)
-        live_age = time.time() - eye.STATE["last_t"] if eye.STATE.get("last_t") else None
-        if live is None or (live_age is not None and live_age > 300):
-            try:
-                live = (j.prices() or {}).get(coin)
-                live_age = None
-            except Exception:  # noqa: BLE001
-                pass
-    else:
-        live = _live_px(j, coin)
+    from jarvis.service import trade_guard as tg
+
+    live, live_t, live_lim = _live_quote(j, coin)
+    if lab and (live is None or (live_t is not None and now - live_t > live_lim)):   # the eye is quiet: the Explorer's 5-minute close
+        try:
+            ex_px = j.prices() or {}
+            if coin in ex_px:
+                live, live_t, live_lim = ex_px[coin], (tg.times(ex_px) or {}).get(coin, 0), tg.BAR_PRICE_S
+        except Exception:  # noqa: BLE001
+            pass
     D, btc = _coin_daily(j, coin), _daily(j, "BTC")
     from jarvis.service import registry, watch_engine
 
     p: dict[str, Any] = {"coin": coin, "time_utc": time.strftime("%Y-%m-%d %H:%M", time.gmtime(now)), "price": live,
-                         "triggers": triggers, "costs_round_trip_pct": round(200 * (R.cost(coin) if lab else watch_engine._cost(coin, WATCH)), 2)}
+                         "triggers": triggers, "costs_round_trip_pct": round(200 * (R.cost(coin) if lab else watch_engine._cost(coin, WATCH)), 2),
+                         # for the trade guard, taken out before the model sees the pack: when the price was seen, the age it may
+                         # have, and the newest daily candle's open time
+                         "price_t": live_t, "price_max_age_s": live_lim, "daily_t": D[-1][0] if D else 0}
     if not lab:
         k = registry.card(j, coin) or {}
         p["universe_tier"] = {"tier": k.get("tier"), "median_daily_usd_30d": k.get("median_usd_30d"), "can_buy_ndax": k.get("ndax"),
@@ -597,10 +616,12 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
     """One decision: the pack, the model's weighing, the code's red flags, then a paper trade (and its random twin) or a PASS.
     noroom: True when the account is full (D7); a sentence when the last free slots are kept for priority moments (A5)."""
     from jarvis.service import eye
+    from jarvis.service import trade_guard as tg
     from src.research import reads as R
 
     _table(j)
     p = pack(j, coin, triggers)
+    seen = {k: p.pop(k, None) for k in ("price_t", "price_max_age_s", "daily_t")}     # the trade guard's, not the model's
     price = p.get("price")
     atr = (p.get("daily") or {}).get("atr")
     holding = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN'", (WATCH, coin)).fetchone()[0]
@@ -656,6 +677,11 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
         action, note = "PASS", (note + "; " if note else "") + "permission: only context-only ideas supported it (" + ", ".join(bad) + ")"
     elif bad:
         note = (note + "; " if note else "") + "cited context-only ideas: " + ", ".join(bad)
+    if action == "TAKE":                                # the trade guard (Oct 15): the kill switch, the price's and the candle's age
+        gwhy = tg.blocked(j, WATCH, coin, price_t=seen["price_t"], max_age_s=seen["price_max_age_s"], daily_t=seen["daily_t"])
+        if gwhy:
+            action, size = "PASS", 0.0
+            note = (note + "; " if note else "") + "trade guard: " + gwhy
     plan = {k: d.get(k) for k in ("stop", "target", "trail_atr", "days", "for", "against", "red_flags", "change_mind")}
     trade = rnd = None
     if action == "TAKE":
@@ -680,16 +706,24 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
         trade = _open(j, WATCH, coin, price, live_stop, target, trail, days, atr or 0.0, det, regime)
         # the random twin: same moment, another coin, the same plan in its own daily ranges
         if _is_lab(coin):
-            px_all = dict(eye.STATE.get("prices") or {}) or (j.prices() or {})
+            px_all = dict(eye.STATE.get("prices") or {})
+            if px_all:                                   # the eye's look, with when each price was seen
+                seen_all, lim_all = dict(eye.STATE.get("prices_t") or {}), int(eye.STATE.get("prices_lim") or tg.LIVE_PRICE_S)
+            else:                                        # the eye is quiet: the Explorer's 5-minute closes
+                px_all = j.prices() or {}
+                seen_all, lim_all = dict(tg.times(px_all) or {}), tg.BAR_PRICE_S
             pool = [c for c in R.COINS if c in px_all]
         else:                                            # outside the 10: the twin comes from the same tier (Universe Rule v2)
             from jarvis.service import feed, registry
 
             px_all = feed.prices(j)
+            seen_all, lim_all = dict(tg.times(px_all) or {}), tg.LIVE_PRICE_S
             pool = [c for c in registry.members(j, registry.tier_of(j, coin) or "C") if c in px_all and not _is_lab(c)]
         rc = _random_coin(j, coin, int(j.now()), pool)
         if rc and atr:
             ratr = ((eye.STATE.get("armed") or {}).get("atr", {}).get(rc) if _is_lab(rc) else None) or _atr(j, rc)
+            if ratr and tg.blocked(j, BASE, rc, price_t=(seen_all.get(rc, 0) if seen_all else None), max_age_s=lim_all):
+                ratr = None                              # the twin opens only on its own fresh price (and never without its trade)
             if ratr:
                 rp = px_all[rc]
                 k_stop = (price - float(d["stop"])) / atr
@@ -750,8 +784,8 @@ def can_decide(j) -> tuple[bool, str]:
             return False, "Ask Ananta (the AI) is switched off"
         if a.spend().get("left_usd", 1) < MIN_BUDGET:
             return False, "today's AI budget is used up"
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as exc:  # noqa: BLE001  fail closed (Oct 15): a switch or budget that cannot be read is not a yes
+        return False, f"the AI switch or budget could not be read ({str(exc)[:80]})"
     return True, ""
 
 

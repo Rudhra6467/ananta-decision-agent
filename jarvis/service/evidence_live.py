@@ -831,6 +831,31 @@ def reconstructable(j) -> dict:
     return {"status": status, "note": note}
 
 
+OUTAGE_MIN, ALERT_WITHIN_S = 10, 5 * 60  # ops_outages (Oct 15): an outside-seen outage of 10+ minutes must have a phone note within 5 minutes
+
+
+def outages_seen_from_outside(j, o: dict) -> dict:
+    """Gate ops_outages, measured from the outside (worker S1, Oct 15). The main Mac cannot report its own sleep or freeze: the
+    worker checks the public page every minute, and every outage it saw (10 minutes or more) must have a HEALTH_DOWN note from the
+    main Mac within 5 minutes of its start. Outages it saw without one are listed with their Toronto time."""
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo("America/Toronto")
+    missed, long_ = [], [w for w in o["windows"] if w["minutes"] >= OUTAGE_MIN]
+    for w in long_:
+        t0 = int(datetime.strptime(w["from"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc).timestamp())
+        try:
+            hit = j.db.execute("SELECT 1 FROM eye_events WHERE kind='HEALTH_DOWN' AND t BETWEEN ? AND ?", (t0, t0 + ALERT_WITHIN_S)).fetchone()
+        except sqlite3.OperationalError:
+            hit = None
+        if not hit:
+            missed.append(f"{datetime.fromtimestamp(t0, tz).strftime('%b %d %H:%M')} Toronto, {w['minutes']} min")
+    note = (f"outside view (worker, 7 days): {len(long_)} outage{'s' if len(long_) != 1 else ''} of 10+ minutes"
+            + (f"; NOT alerted in time: {'; '.join(missed)} (the main Mac was asleep or frozen and cannot report itself; "
+               "a worker-side alert needs Madhav's OK)" if missed else "; every one alerted within 5 minutes"))
+    return {"status": "FAIL" if missed else "PASS", "note": note}
+
+
 CITES_N, CITES_PASS = 20, 18             # agent_cites (Oct 15): the weekly spot check of 20 answers, done by code; 18 of 20 like agent_knows
 SIZING_ENTRIES = 20                      # engine_sizing (Oct 15, the Oct 14 audit): 0 violations in at least 20 entries, as engine_execution
 
@@ -913,8 +938,7 @@ def _gate_measured(j, by: dict) -> None:
         o = worker.outside_view(7)
         c = by.get("ops_outages")
         if c and o["checks"]:
-            c["note"] = (f"outside view (worker, 7 days): {o['failed']} of {o['checks']} minute checks of the public page failed"
-                         + (f", longest {max(w['minutes'] for w in o['windows'])} min" if o["windows"] else "") + (f"; {c['note']}" if c.get("note") else ""))
+            c.update(outages_seen_from_outside(j, o))
     except Exception:  # noqa: BLE001  no worker data on this machine
         pass
     c = by.get("agent_cites")

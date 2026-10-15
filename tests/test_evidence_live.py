@@ -158,3 +158,22 @@ def test_agent_cites_is_the_weekly_spot_check_done_by_code(tmp_path):
     except Exception:  # noqa: BLE001  a later measure (exam files) may be missing here; cites has already been written
         pass
     assert by["agent_cites"]["status"] == "PASS" and "18 of the last 20" in by["agent_cites"]["note"]
+
+
+def test_an_outage_seen_from_outside_must_have_been_alerted(tmp_path):
+    """Oct 15 (worker S1): the worker saw the public page down 312 minutes from Oct 12 06:18 UTC while the main Mac slept and sent
+    nothing; that fails ops_outages until a note within 5 minutes exists. Short blips (under 10 minutes) do not count."""
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path)
+    o = {"windows": [{"from": "2026-10-12 06:18", "minutes": 312}, {"from": "2026-10-12 14:03", "minutes": 1}]}
+    r = el.outages_seen_from_outside(j, o)
+    assert r["status"] == "FAIL" and "Oct 12 02:18 Toronto, 312 min" in r["note"] and "1 outage of 10+" in r["note"]
+    from datetime import datetime, timezone
+
+    t0 = int(datetime(2026, 10, 12, 6, 18, tzinfo=timezone.utc).timestamp())
+    j.db.execute("CREATE TABLE eye_events (id TEXT, t INTEGER, kind TEXT, coin TEXT, price REAL, title TEXT, body TEXT, pushed INTEGER, detail TEXT)")
+    j.db.execute("INSERT INTO eye_events (id, t, kind) VALUES ('e', ?, 'HEALTH_DOWN')", (t0 + 10 * 60,))   # 10 minutes late: still missed
+    assert el.outages_seen_from_outside(j, o)["status"] == "FAIL"
+    j.db.execute("UPDATE eye_events SET t=?", (t0 + 120,))
+    assert el.outages_seen_from_outside(j, o)["status"] == "PASS"

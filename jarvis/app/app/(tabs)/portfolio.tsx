@@ -281,7 +281,7 @@ function Trades() {
         </>
       ) : null}
       <Spot id="explorer.closed">
-      <Section title="Closed trades" />
+      <Section title="Closed trades" right={d.closed_note ? <T small>{d.closed_note}</T> : undefined} />
       <Card>
         {d.closed.length === 0 ? <T dim>None yet. The first live-vs-history check needs 30.</T> : null}
         {d.closed.map((t: any, i: number) => (

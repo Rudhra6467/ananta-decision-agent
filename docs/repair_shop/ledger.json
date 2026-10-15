@@ -1,6 +1,6 @@
 {
  "version": "repair_shop.ledger.v1",
- "updated": "2026-10-11",
+ "updated": "2026-10-15",
  "meaning": {
   "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
   "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
@@ -426,6 +426,22 @@
    "changed": "brain.TRIGGER_POINTS",
    "files": [
     "docs/research/REVIEW_28.md"
+   ]
+  },
+  {
+   "id": "R29",
+   "date": "2026-10-15",
+   "status": "DONE",
+   "verdict": "PASS",
+   "title": "H07 on a point-in-time tier A, both dial states",
+   "forwarded_because": "Research audit, Oct 14: the 120 lake coins were chosen by their last 24 months (dead coins missing) and costs were tier floors; Madhav: register H07 tests for both dial states before running them.",
+   "question": "Does H07's one measured cell (tier A, dial closed) survive a point-in-time tier A of all 530 Binance pairs with dead coins and each coin's live cost? And is there an edge with the dial open?",
+   "result": "Dial CLOSED: PASS, +10.4% (2018-2023) and +6.8% (2024-Jul 2026) a trade over random, z 4.9 / 5.5, net +6.5% / +5.3%, positive at double cost and without the two largest bursts; +6.3% expected. Dial OPEN: INSUFFICIENT (17 market days in 2018-2023). 76 coins downloaded for it; coverage at least 99% in every month.",
+   "changed": "ev.py: the H07 / CLOSED / tier A value is +6.34% (was +5.13%, #26); H07's knowledge line, status card and strategy status cite #29. The $500 book's edge sleeve stays as built; the holdout stays sealed.",
+   "files": [
+    "docs/research/REVIEW_29.md",
+    "docs/research/REVIEW_29_RESULTS.md",
+    "docs/research/review29.json"
    ]
   }
  ],

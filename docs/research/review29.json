@@ -1,0 +1,847 @@
+{
+ "review": 29,
+ "registration_sha256": "c7b52bb866fe0d82acfcfb529b79c8f28fb2a3d9c63209f6a7501b2a62a8ebd8",
+ "approved": "Madhav in chat, 2026-10-15 06:33 Toronto: '1. approved'",
+ "coverage": {
+  "coins_ever_tier_a": 418,
+  "min_covered": 0.9917,
+  "pass": true,
+  "rule": "every month 2018-01..2026-07 needs >= 99% of tier A's traded value with clean, swap-checked candles"
+ },
+ "coverage_months": {
+  "2018-01": {
+   "tier_a_coins": 4,
+   "value_usd": 17153667215,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-02": {
+   "tier_a_coins": 5,
+   "value_usd": 19210940450,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-03": {
+   "tier_a_coins": 5,
+   "value_usd": 15640667862,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-04": {
+   "tier_a_coins": 5,
+   "value_usd": 14053183826,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-05": {
+   "tier_a_coins": 5,
+   "value_usd": 13314062854,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-06": {
+   "tier_a_coins": 5,
+   "value_usd": 12620439985,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-07": {
+   "tier_a_coins": 8,
+   "value_usd": 16426301488,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-08": {
+   "tier_a_coins": 7,
+   "value_usd": 17276845274,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-09": {
+   "tier_a_coins": 5,
+   "value_usd": 15576965930,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-10": {
+   "tier_a_coins": 4,
+   "value_usd": 8185277248,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-11": {
+   "tier_a_coins": 4,
+   "value_usd": 9608824202,
+   "covered": 1.0,
+   "short": []
+  },
+  "2018-12": {
+   "tier_a_coins": 5,
+   "value_usd": 10867297770,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-01": {
+   "tier_a_coins": 4,
+   "value_usd": 6635905014,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-02": {
+   "tier_a_coins": 6,
+   "value_usd": 8539896091,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-03": {
+   "tier_a_coins": 4,
+   "value_usd": 6767346833,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-04": {
+   "tier_a_coins": 8,
+   "value_usd": 15496825204,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-05": {
+   "tier_a_coins": 10,
+   "value_usd": 28450968117,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-06": {
+   "tier_a_coins": 10,
+   "value_usd": 33065185621,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-07": {
+   "tier_a_coins": 8,
+   "value_usd": 29978800097,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-08": {
+   "tier_a_coins": 3,
+   "value_usd": 15498606766,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-09": {
+   "tier_a_coins": 6,
+   "value_usd": 16455453032,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-10": {
+   "tier_a_coins": 7,
+   "value_usd": 19243086357,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-11": {
+   "tier_a_coins": 6,
+   "value_usd": 16872507093,
+   "covered": 1.0,
+   "short": []
+  },
+  "2019-12": {
+   "tier_a_coins": 2,
+   "value_usd": 10650829171,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-01": {
+   "tier_a_coins": 9,
+   "value_usd": 24315810021,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-02": {
+   "tier_a_coins": 11,
+   "value_usd": 33691318430,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-03": {
+   "tier_a_coins": 10,
+   "value_usd": 41190735114,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-04": {
+   "tier_a_coins": 9,
+   "value_usd": 31857666609,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-05": {
+   "tier_a_coins": 9,
+   "value_usd": 36108264590,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-06": {
+   "tier_a_coins": 6,
+   "value_usd": 21176469276,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-07": {
+   "tier_a_coins": 12,
+   "value_usd": 33191851002,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-08": {
+   "tier_a_coins": 23,
+   "value_usd": 67365575199,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-09": {
+   "tier_a_coins": 21,
+   "value_usd": 64020321020,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-10": {
+   "tier_a_coins": 14,
+   "value_usd": 41468992652,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-11": {
+   "tier_a_coins": 21,
+   "value_usd": 106415486302,
+   "covered": 1.0,
+   "short": []
+  },
+  "2020-12": {
+   "tier_a_coins": 23,
+   "value_usd": 129756114155,
+   "covered": 1.0,
+   "short": []
+  },
+  "2021-01": {
+   "tier_a_coins": 46,
+   "value_usd": 321427228758,
+   "covered": 1.0,
+   "short": []
+  },
+  "2021-02": {
+   "tier_a_coins": 85,
+   "value_usd": 465262688250,
+   "covered": 1.0,
+   "short": []
+  },
+  "2021-03": {
+   "tier_a_coins": 103,
+   "value_usd": 465187636811,
+   "covered": 0.9917,
+   "short": [
+    {
+     "symbol": "SUNUSDT",
+     "value_usd": 2213642286,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    },
+    {
+     "symbol": "DEGOUSDT",
+     "value_usd": 1657153049,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2021-04": {
+   "tier_a_coins": 128,
+   "value_usd": 795127967686,
+   "covered": 0.9973,
+   "short": [
+    {
+     "symbol": "SUNUSDT",
+     "value_usd": 1507096513,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    },
+    {
+     "symbol": "DEGOUSDT",
+     "value_usd": 675166122,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2021-05": {
+   "tier_a_coins": 119,
+   "value_usd": 1037641830961,
+   "covered": 1.0,
+   "short": []
+  },
+  "2021-06": {
+   "tier_a_coins": 66,
+   "value_usd": 393976298558,
+   "covered": 1.0,
+   "short": []
+  },
+  "2021-07": {
+   "tier_a_coins": 53,
+   "value_usd": 251796652917,
+   "covered": 0.9975,
+   "short": [
+    {
+     "symbol": "DEGOUSDT",
+     "value_usd": 638930131,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2021-08": {
+   "tier_a_coins": 106,
+   "value_usd": 462160993218,
+   "covered": 0.998,
+   "short": [
+    {
+     "symbol": "DEGOUSDT",
+     "value_usd": 913579741,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2021-09": {
+   "tier_a_coins": 104,
+   "value_usd": 512239457737,
+   "covered": 1.0,
+   "short": []
+  },
+  "2021-10": {
+   "tier_a_coins": 110,
+   "value_usd": 554555433596,
+   "covered": 0.9985,
+   "short": [
+    {
+     "symbol": "SUNUSDT",
+     "value_usd": 829233621,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2021-11": {
+   "tier_a_coins": 137,
+   "value_usd": 632921759929,
+   "covered": 0.9972,
+   "short": [
+    {
+     "symbol": "SUNUSDT",
+     "value_usd": 1017287630,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    },
+    {
+     "symbol": "DREPUSDT",
+     "value_usd": 747308597,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2021-12": {
+   "tier_a_coins": 100,
+   "value_usd": 405604946330,
+   "covered": 0.9946,
+   "short": [
+    {
+     "symbol": "OOKIUSDT",
+     "value_usd": 1178438598,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    },
+    {
+     "symbol": "SUNUSDT",
+     "value_usd": 1000237453,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2022-01": {
+   "tier_a_coins": 76,
+   "value_usd": 298247835325,
+   "covered": 0.9969,
+   "short": [
+    {
+     "symbol": "SUNUSDT",
+     "value_usd": 924240706,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2022-02": {
+   "tier_a_coins": 63,
+   "value_usd": 241607405123,
+   "covered": 0.9976,
+   "short": [
+    {
+     "symbol": "OOKIUSDT",
+     "value_usd": 584645907,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2022-03": {
+   "tier_a_coins": 79,
+   "value_usd": 301575672761,
+   "covered": 1.0,
+   "short": []
+  },
+  "2022-04": {
+   "tier_a_coins": 81,
+   "value_usd": 290225423262,
+   "covered": 0.9966,
+   "short": [
+    {
+     "symbol": "BNXUSDT",
+     "value_usd": 1001139519,
+     "complete_days_share": 0.0,
+     "swap_unchecked": false
+    }
+   ]
+  },
+  "2022-05": {
+   "tier_a_coins": 57,
+   "value_usd": 294167233948,
+   "covered": 1.0,
+   "short": []
+  },
+  "2022-06": {
+   "tier_a_coins": 41,
+   "value_usd": 193347807549,
+   "covered": 1.0,
+   "short": []
+  },
+  "2022-07": {
+   "tier_a_coins": 38,
+   "value_usd": 222521307962,
+   "covered": 1.0,
+   "short": []
+  },
+  "2022-08": {
+   "tier_a_coins": 36,
+   "value_usd": 232696341586,
+   "covered": 1.0,
+   "short": []
+  },
+  "2022-09": {
+   "tier_a_coins": 33,
+   "value_usd": 280358470278,
+   "covered": 1.0,
+   "short": []
+  },
+  "2022-10": {
+   "tier_a_coins": 20,
+   "value_usd": 203691305124,
+   "covered": 1.0,
+   "short": []
+  },
+  "2022-11": {
+   "tier_a_coins": 38,
+   "value_usd": 262154756124,
+   "covered": 1.0,
+   "short": []
+  },
+  "2022-12": {
+   "tier_a_coins": 13,
+   "value_usd": 128749366989,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-01": {
+   "tier_a_coins": 36,
+   "value_usd": 242197937893,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-02": {
+   "tier_a_coins": 50,
+   "value_usd": 295430586280,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-03": {
+   "tier_a_coins": 42,
+   "value_usd": 341296932217,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-04": {
+   "tier_a_coins": 37,
+   "value_usd": 134176860857,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-05": {
+   "tier_a_coins": 26,
+   "value_usd": 92970405581,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-06": {
+   "tier_a_coins": 25,
+   "value_usd": 94134916177,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-07": {
+   "tier_a_coins": 25,
+   "value_usd": 83902187417,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-08": {
+   "tier_a_coins": 23,
+   "value_usd": 70637089079,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-09": {
+   "tier_a_coins": 18,
+   "value_usd": 49854664389,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-10": {
+   "tier_a_coins": 20,
+   "value_usd": 75863414340,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-11": {
+   "tier_a_coins": 55,
+   "value_usd": 162599338402,
+   "covered": 1.0,
+   "short": []
+  },
+  "2023-12": {
+   "tier_a_coins": 73,
+   "value_usd": 247693906303,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-01": {
+   "tier_a_coins": 71,
+   "value_usd": 235146575462,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-02": {
+   "tier_a_coins": 78,
+   "value_usd": 237458697283,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-03": {
+   "tier_a_coins": 131,
+   "value_usd": 587748915495,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-04": {
+   "tier_a_coins": 82,
+   "value_usd": 332735783056,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-05": {
+   "tier_a_coins": 65,
+   "value_usd": 258120066760,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-06": {
+   "tier_a_coins": 61,
+   "value_usd": 193379399988,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-07": {
+   "tier_a_coins": 49,
+   "value_usd": 184634884301,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-08": {
+   "tier_a_coins": 48,
+   "value_usd": 189326973612,
+   "covered": 0.9942,
+   "short": [
+    {
+     "symbol": "SUNUSDT",
+     "value_usd": 1107052979,
+     "complete_days_share": 0.0,
+     "swap_unchecked": true
+    }
+   ]
+  },
+  "2024-09": {
+   "tier_a_coins": 49,
+   "value_usd": 147692877521,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-10": {
+   "tier_a_coins": 54,
+   "value_usd": 185050230198,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-11": {
+   "tier_a_coins": 103,
+   "value_usd": 555816058637,
+   "covered": 1.0,
+   "short": []
+  },
+  "2024-12": {
+   "tier_a_coins": 127,
+   "value_usd": 591913581160,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-01": {
+   "tier_a_coins": 83,
+   "value_usd": 416264460407,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-02": {
+   "tier_a_coins": 67,
+   "value_usd": 313533036143,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-03": {
+   "tier_a_coins": 47,
+   "value_usd": 231843913433,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-04": {
+   "tier_a_coins": 42,
+   "value_usd": 192693294523,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-05": {
+   "tier_a_coins": 56,
+   "value_usd": 251989912108,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-06": {
+   "tier_a_coins": 35,
+   "value_usd": 154691160128,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-07": {
+   "tier_a_coins": 57,
+   "value_usd": 279376414683,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-08": {
+   "tier_a_coins": 53,
+   "value_usd": 281894666376,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-09": {
+   "tier_a_coins": 53,
+   "value_usd": 240902993469,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-10": {
+   "tier_a_coins": 56,
+   "value_usd": 326888612415,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-11": {
+   "tier_a_coins": 39,
+   "value_usd": 249684569160,
+   "covered": 1.0,
+   "short": []
+  },
+  "2025-12": {
+   "tier_a_coins": 22,
+   "value_usd": 128142070178,
+   "covered": 1.0,
+   "short": []
+  },
+  "2026-01": {
+   "tier_a_coins": 25,
+   "value_usd": 129205363780,
+   "covered": 1.0,
+   "short": []
+  },
+  "2026-02": {
+   "tier_a_coins": 19,
+   "value_usd": 136156637284,
+   "covered": 1.0,
+   "short": []
+  },
+  "2026-03": {
+   "tier_a_coins": 16,
+   "value_usd": 106399378598,
+   "covered": 1.0,
+   "short": []
+  },
+  "2026-04": {
+   "tier_a_coins": 18,
+   "value_usd": 81665180646,
+   "covered": 1.0,
+   "short": []
+  },
+  "2026-05": {
+   "tier_a_coins": 19,
+   "value_usd": 84949911503,
+   "covered": 1.0,
+   "short": []
+  },
+  "2026-06": {
+   "tier_a_coins": 18,
+   "value_usd": 93981604795,
+   "covered": 1.0,
+   "short": []
+  },
+  "2026-07": {
+   "tier_a_coins": 13,
+   "value_usd": 61050607348,
+   "covered": 1.0,
+   "short": []
+  }
+ },
+ "seed": 29,
+ "coins_loaded": 472,
+ "coins_skipped_swap_unchecked": [
+  "DEGOUSDT",
+  "SUNUSDT",
+  "OOKIUSDT",
+  "DREPUSDT",
+  "QUICKUSDT"
+ ],
+ "tier_a_h07_trades": 363,
+ "cells": [
+  {
+   "rule": "H07",
+   "tier": "A",
+   "state": "CLOSED",
+   "role": "primary",
+   "DISCOVERY": {
+    "trades": 173,
+    "market_days": 66,
+    "mean_net_pct": 6.45,
+    "baseline_pct": -3.93,
+    "mean_excess_pct": 10.38,
+    "z": 4.85,
+    "stress_mean_net_pct": 4.78,
+    "stress_baseline_pct": -5.32,
+    "excess_without_two_largest_bursts_pct": 4.85,
+    "paired_twin": {
+     "pairs": 173,
+     "mean_minus_twin_pct": 3.5,
+     "z": 2.98
+    }
+   },
+   "CONFIRM": {
+    "trades": 94,
+    "market_days": 49,
+    "mean_net_pct": 5.27,
+    "baseline_pct": -1.47,
+    "mean_excess_pct": 6.75,
+    "z": 5.54,
+    "stress_mean_net_pct": 3.96,
+    "stress_baseline_pct": -2.67,
+    "excess_without_two_largest_bursts_pct": 5.21,
+    "paired_twin": {
+     "pairs": 94,
+     "mean_minus_twin_pct": 1.9,
+     "z": 1.65
+    }
+   },
+   "verdict": "PASS",
+   "expected_excess_pct": 6.34
+  },
+  {
+   "rule": "H07",
+   "tier": "A",
+   "state": "OPEN",
+   "role": "secondary",
+   "DISCOVERY": {
+    "trades": 22,
+    "market_days": 17,
+    "mean_net_pct": 3.17,
+    "baseline_pct": 2.62,
+    "mean_excess_pct": 0.56,
+    "z": 0.25,
+    "stress_mean_net_pct": 1.61,
+    "stress_baseline_pct": 1.13,
+    "excess_without_two_largest_bursts_pct": 3.44,
+    "paired_twin": {
+     "pairs": 22,
+     "mean_minus_twin_pct": 1.57,
+     "z": 0.8
+    }
+   },
+   "CONFIRM": {
+    "trades": 74,
+    "market_days": 29,
+    "mean_net_pct": 1.55,
+    "baseline_pct": -4.24,
+    "mean_excess_pct": 5.78,
+    "z": 3.34,
+    "stress_mean_net_pct": 0.21,
+    "stress_baseline_pct": -5.53,
+    "excess_without_two_largest_bursts_pct": 6.25,
+    "paired_twin": {
+     "pairs": 74,
+     "mean_minus_twin_pct": 0.39,
+     "z": 0.27
+    }
+   },
+   "verdict": "INSUFFICIENT",
+   "expected_excess_pct": 0.0
+  }
+ ],
+ "baseline": {
+  "CLOSED|CONFIRM": {
+   "mean_net_pct": -1.473,
+   "n": 4000,
+   "pool": 17650
+  },
+  "CLOSED|DISCOVERY": {
+   "mean_net_pct": -3.931,
+   "n": 4000,
+   "pool": 33223
+  },
+  "OPEN|CONFIRM": {
+   "mean_net_pct": -4.238,
+   "n": 4000,
+   "pool": 22911
+  },
+  "OPEN|DISCOVERY": {
+   "mean_net_pct": 2.617,
+   "n": 4000,
+   "pool": 25335
+  }
+ },
+ "holdout": "2026-08-01 to 2026-12-14: not loaded (every candle read is before 2026-08-01)"
+}

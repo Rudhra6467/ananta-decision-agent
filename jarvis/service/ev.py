@@ -12,16 +12,38 @@ import json
 from pathlib import Path
 
 _CACHE: dict = {"m": None, "cells": {}}
+# A cell re-tested by a later pre-registered review takes that review's verdict and value (REVIEW_29.md, approved Oct 15: on PASS
+# the closed-dial value becomes the new pooled excess shrunk by n/(n+50); on FAIL it goes to 0; INSUFFICIENT changes nothing).
+LATER = {("H07", "CLOSED", "A"): ("review29.json", "review #29")}
+
+
+def _later(path: Path, key: tuple, src: str) -> dict | None:
+    try:
+        d = json.loads(path.read_text())
+    except Exception:  # noqa: BLE001
+        return None
+    if d.get("stopped"):
+        return None
+    for c in d.get("cells") or []:
+        if (c.get("rule"), c.get("state"), c.get("tier")) == key and c.get("verdict") in ("PASS", "WEAKENED", "FAIL"):
+            return {**c, "passes": c["verdict"] in ("PASS", "WEAKENED"), "source": src}
+    return None
 
 
 def _cells() -> dict:
-    p = Path(__file__).resolve().parents[2] / "docs" / "research" / "review26.json"
+    d = Path(__file__).resolve().parents[2] / "docs" / "research"
+    p = d / "review26.json"
     if not p.exists():
         return {}
-    m = p.stat().st_mtime
+    m = (p.stat().st_mtime,) + tuple((d / f).stat().st_mtime if (d / f).exists() else 0 for f, _ in LATER.values())
     if _CACHE["m"] != m:
         rows = json.loads(p.read_text()).get("cells", [])
-        _CACHE.update(m=m, cells={(r["rule"], r["state"], r["tier"]): r for r in rows})
+        cells = {(r["rule"], r["state"], r["tier"]): {**r, "source": "review #26"} for r in rows}
+        for key, (f, src) in LATER.items():
+            c = _later(d / f, key, src)
+            if c:
+                cells[key] = c
+        _CACHE.update(m=m, cells=cells)
     return _CACHE["cells"]
 
 
@@ -32,7 +54,7 @@ def value(rule: str, state: str, tier: str) -> float:
 
 def table() -> list[dict]:
     return [{"rule": r["rule"], "state": r["state"], "tier": r["tier"], "expected_excess_pct": r["expected_excess_pct"],
-             "discovery": r["DISCOVERY"], "confirm": r["CONFIRM"]} for r in _cells().values() if r.get("passes")]
+             "discovery": r["DISCOVERY"], "confirm": r["CONFIRM"], "source": r.get("source")} for r in _cells().values() if r.get("passes")]
 
 
 def for_trigger(j, coin: str, trigger: str) -> dict:

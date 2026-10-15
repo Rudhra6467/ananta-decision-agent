@@ -95,14 +95,15 @@
    "kind": "strategy",
    "evidence": "SUPPORTED",
    "permission": "PAPER",
-   "reason": "One measured cell: tier-A (liquid top-30) coins while the exposure dial is CLOSED, +5.1% a trade over random after costs in both periods (review #26); no stop, 10-day exit (#27). On the broad 120, in other tiers, or with the dial open: no measured edge. Its live book's 8-for-8 was one signal day (Oct 8), dial open, outside the measured cell: 1 independent event.",
+   "reason": "One measured cell: tier-A coins while the exposure dial is CLOSED, +5.1% a trade over random after costs in both periods (review #26), confirmed point-in-time on all 530 Binance pairs with dead coins and live costs, +6.3% a trade expected (review #29); no stop, 10-day exit (#27). On the broad 120, in other tiers, or with the dial open: no measured edge. Its live book's 8-for-8 was one signal day (Oct 8), dial open, outside the measured cell: 1 independent event.",
    "reviews": [
     "#13",
     "#14",
     "#15",
     "#22",
     "#26",
-    "#27"
+    "#27",
+    "#29"
    ],
    "aliases": [
     "short dip trade",

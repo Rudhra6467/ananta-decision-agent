@@ -130,7 +130,8 @@ def manage_live_rows(j, tier: str, coins: list[str]) -> int:
     n = 0
     for c in coins:
         rows = j.db.execute(f"SELECT {', '.join(watch_engine.COLS)} FROM evidence_trades WHERE coin=? AND status='OPEN' AND "
-                            "(watch=? OR (watch IN ('JARVIS','JARVIS_RANDOM') AND ?))", (c, wid("ZONE_TOUCH", tier), c not in labs)).fetchall()
+                            "(watch=? OR (watch IN ('JARVIS','JARVIS_RANDOM','JARVIS_BOLD','RANDOM_BOLD') AND ?))",   # A8: the bold book too
+                            (c, wid("ZONE_TOUCH", tier), c not in labs)).fetchall()
         if not rows:
             continue
         D = _daily(j, c)

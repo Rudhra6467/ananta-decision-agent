@@ -1695,6 +1695,12 @@ def background_jobs() -> dict:
     except Exception as exc:  # noqa: BLE001
         out["stance_error"] = str(exc)[:200]
     try:
+        from jarvis.service import bold
+
+        out["bold"] = bold.run(J())                                     # fix A8: off until Madhav approves (two locks)
+    except Exception as exc:  # noqa: BLE001
+        out["bold_error"] = str(exc)[:200]
+    try:
         from jarvis.service import missed
 
         if _t.time() % 86400 >= 1800:                                  # half an hour after the daily close: yesterday's biggest moves

@@ -64,7 +64,7 @@ def _cost(coin: str, watch: str | None = None) -> float:
     the 10 use Universe Rule v2 (registry.cost: fee where it can be bought plus a tier half-spread floor)."""
     from src.research import reads as R
 
-    if coin not in R.COINS and watch and (watch[-3:-1] == "-U" or watch.startswith("JARVIS")):
+    if coin not in R.COINS and watch and (watch[-3:-1] == "-U" or watch.startswith(("JARVIS", "RANDOM_BOLD"))):   # A8: the bold twin pays the bold book's costs
         from jarvis.service import registry
 
         return registry.cost(coin)

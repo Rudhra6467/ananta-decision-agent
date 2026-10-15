@@ -1449,10 +1449,11 @@
     "CREDIT",
     "ASK"
    ],
-   "evidence": "from 2026-10-04: weighs every flagged moment (no all-filters-must-agree), writes the plan first, paper-trades it with a random twin; at most 20 decisions a day; judged against the twins by independent events. From 2026-10-15 (fixes A2/A3/A5): a written stance after each daily close with at most 5 expectations written before the move, each scored against a random twin; zone touches and Explorer setups are logged, not decided",
+   "evidence": "from 2026-10-04: weighs every flagged moment (no all-filters-must-agree), writes the plan first, paper-trades it with a random twin; at most 20 decisions a day; judged against the twins by independent events. From 2026-10-15 (fixes A2/A3/A5): a written stance after each daily close with at most 5 expectations written before the move, each scored against a random twin; zone touches and Explorer setups are logged, not decided. The bold book (fix A8, bold.py) is written and OFF: it needs BOLD_BOOK=1 and Madhav's approval in docs/knowledge/bold_mandate.json",
    "files": [
     "jarvis/service/brain.py",
-    "jarvis/service/stance.py"
+    "jarvis/service/stance.py",
+    "jarvis/service/bold.py"
    ]
   },
   {

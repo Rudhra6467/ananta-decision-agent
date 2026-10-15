@@ -75,13 +75,51 @@ def freeze_bundle(registrations: dict[str, str], document: str, approved: str, d
     return bundle
 
 
+def propose_amendment(rel: str, reason: str, criteria_changed: bool, day: str) -> dict:
+    """Record a change to a frozen file as PENDING; it counts only once Madhav approves it (approve_amendment).
+    The original bundle hash is never rewritten; amendments sit beside it, each with old and new hashes."""
+    d = load()
+    b = d.get("bundle") or {}
+    if rel not in (b.get("files") or {}):
+        raise ValueError(f"{rel} is not in the frozen bundle")
+    am = d.setdefault("amendments", [])
+    a = {"id": f"A{len(am) + 1}", "file": rel, "old_sha256": _current_expected(d, rel),
+         "new_sha256": sha256_text((REPO / rel).read_text()), "reason": reason,
+         "criteria_changed": criteria_changed, "proposed_on": day, "approved": None, "approved_on": None}
+    am.append(a)
+    save(d)
+    return a
+
+
+def approve_amendment(aid: str, approved: str, day: str) -> dict:
+    if not approved or not approved.strip():
+        raise PermissionError("approval refused: no approval note (who approved, where)")
+    d = load()
+    a = next(x for x in d.get("amendments", []) if x["id"] == aid)
+    if sha256_text((REPO / a["file"]).read_text()) != a["new_sha256"]:
+        raise PermissionError(f"{a['file']} changed again after {aid} was proposed; propose a new amendment")
+    a.update(approved=approved, approved_on=day)
+    save(d)
+    return a
+
+
+def _current_expected(d: dict, rel: str) -> str:
+    """The hash a frozen file must have now: the bundle's, or the latest APPROVED amendment's."""
+    h = d["bundle"]["files"][rel]
+    for a in d.get("amendments", []):
+        if a["file"] == rel and a.get("approved"):
+            h = a["new_sha256"]
+    return h
+
+
 def verify() -> list[str]:
-    """[] while nothing frozen has changed; otherwise the changed or missing files."""
-    b = load().get("bundle")
+    """[] while every frozen file matches its bundle hash or its latest approved amendment."""
+    d = load()
+    b = d.get("bundle")
     if not b:
         return []
-    bad = [rel for rel, h in b["files"].items()
-           if not (REPO / rel).exists() or sha256_text((REPO / rel).read_text()) != h]
+    bad = [rel for rel in b["files"]
+           if not (REPO / rel).exists() or sha256_text((REPO / rel).read_text()) != _current_expected(d, rel)]
     if not bad and _bundle_sha(b["files"]) != b["sha256"]:
         bad.append("bundle record")
     return bad

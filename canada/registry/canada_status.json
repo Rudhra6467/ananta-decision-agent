@@ -115,5 +115,18 @@
    ],
    "bundle_sha256": "7172fac385e1db128df62139dfc00f0c3a3638b11fa18a4594e73175a5c539f2"
   }
- }
+ },
+ "amendments": [
+  {
+   "id": "A1",
+   "file": "tests/test_canada_isolation.py",
+   "old_sha256": "ecc281b2571cff79ee58cc356e32c23caf7ea6273564b9b46ff48630425fb183",
+   "new_sha256": "85a52de2275c92b45c3097f941a5e0b195d8df4534b76e8cacd9ba243d6e7377",
+   "reason": "Test-only fix found minutes after the freeze: the freeze test made its practice freeze on a copy of the LIVE registry, which the real freeze had just frozen, so it could never pass again. The fix gives the test a never-frozen copy and adds a check of the new amendment mechanism. No criterion, threshold, rule or registration text changed.",
+   "criteria_changed": false,
+   "proposed_on": "2026-10-15",
+   "approved": null,
+   "approved_on": null
+  }
+ ]
 }

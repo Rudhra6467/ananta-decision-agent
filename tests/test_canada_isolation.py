@@ -69,7 +69,11 @@ def test_freeze_needs_approval_and_detects_tampering(tmp_path, monkeypatch):
     repo = tmp_path
     reg = repo / "canada" / "registry" / "canada_status.json"
     reg.parent.mkdir(parents=True)
-    reg.write_text(registry.REG_PATH.read_text())
+    fresh = json.loads(registry.REG_PATH.read_text())           # a never-frozen copy: independent of the live freeze
+    fresh["bundle"], fresh["amendments"] = None, []
+    for r in fresh["reviews"].values():
+        r.update(status="DRAFT_AWAITING_APPROVAL", registration=None, sha256=None)
+    reg.write_text(json.dumps(fresh))
     for rel in registry.RULE_CODE:                                            # a private copy of the rule code
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         (repo / rel).write_text((registry.REPO / rel).read_text())
@@ -91,6 +95,14 @@ def test_freeze_needs_approval_and_detects_tampering(tmp_path, monkeypatch):
     (repo / "canada" / "registrations" / "CA1.md").write_text("CA1 quietly edited")
     (repo / "canada" / "costs.py").write_text("FLOOR = 0.0  # a cheaper cost, quietly")
     assert set(registry.verify()) == {"canada/registrations/CA1.md", "canada/costs.py"}
+    # an amendment counts only once approved, and only for the exact text that was proposed
+    a = registry.propose_amendment("canada/costs.py", "test", criteria_changed=True, day="2026-10-16")
+    assert "canada/costs.py" in registry.verify()
+    with pytest.raises(PermissionError):
+        registry.approve_amendment(a["id"], approved="", day="2026-10-16")
+    registry.approve_amendment(a["id"], approved="Madhav", day="2026-10-16")
+    assert registry.verify() == ["canada/registrations/CA1.md"]
+    assert registry.load()["bundle"]["sha256"] == b                          # the original bundle is never rewritten
 
 
 def test_schema_creates_lake_and_sealed_holdout(tmp_path):

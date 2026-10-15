@@ -19,6 +19,9 @@ now exits by time only; the stop it writes is kept as the invalidation point. 20
 money in 2024-2026: touching the zone is not by itself a reason to buy (consistent with review #7). Zone-touch stops stay as they are;
 the zone-touch watch's own scoreboard decides its future.
 
+The pooled row of both entries (`ALL` in `review27.json`) also passes with NOSTOP by this rule while losing -1.88% a trade in
+2024-2026 (CONFIRM; the tight stop lost -2.26%; 2018-2023 +1.01% vs -1.17%): it passes only because the tight stop lost more.
+
 **Why it matters live.** All 26 closed brain and zone-touch paper trades ended at their stop in one dip (Oct 7-8). For dips, a tight
 stop sells at the low. For live money the account-level brakes (D12) replace the per-trade stop on dip buys.
 

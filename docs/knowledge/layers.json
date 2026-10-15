@@ -1,6 +1,6 @@
 {
  "version": "layers.v1",
- "updated": "2026-10-14",
+ "updated": "2026-10-15",
  "meaning": {
   "layer": "0 = highest authority. A lower number overrides a higher one; data errors (1) poison everything above them.",
   "status": {
@@ -437,7 +437,7 @@
     "CHAIN",
     "ASK"
    ],
-   "evidence": "H01/H02 SUPPORTED (= V02/V01); H03-H05 NOT_SUPPORTED; H06 PROMISING; 11 untested",
+   "evidence": "H01/H02 (= V02/V01) and H14 SUPPORTED; H07 SUPPORTED in one measured cell only (tier A while the exposure dial is closed, reviews #26 and #29); H06 PROMISING and H03-H05 NOT_SUPPORTED (first looks); H08-H13, H15, H16 and P03 REJECTED by repair-shop reviews; H17 UNVERIFIED; H18 INSUFFICIENT; P01-P02 POLICY",
    "files": [
     "docs/knowledge/hypotheses.json",
     "docs/knowledge/teachers/trade_with_trend.md",
@@ -1568,7 +1568,7 @@
     "ASK",
     "BRAIN"
    ],
-   "evidence": "Context only until review #19 decides.",
+   "evidence": "Context only: review #19 (Oct 5) tested buying pressure, crowded funding and open interest on T3-B and H07 and nothing passed; they stay in the lake as context for the agent, never used to decide.",
    "files": [
     "src/lake/futures.py"
    ]

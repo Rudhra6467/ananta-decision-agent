@@ -84,6 +84,7 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `research/REVIEW_24_RESULTS.md`: review #24 results: no E6 variant passes (no bell, 2% room); every one loses after costs in both periods and none beats random in 2024-2026. The zone variants were not run (no 15-minute zone history).
 - `research/REVIEW_27.md`, `research/REVIEW_27_RESULTS.md`: stops on dip buys and zone touches. H07 dips with no stop and a 10-day exit earned +6.5% / +2.4% a trade vs +0.5% / +0.4% with a tight stop; a plain 200-day touch loses with every exit. The brain's DIP plan now exits by time only.
 - `research/REVIEW_28.md`: the brain's trigger points follow the evidence (Explorer 0, zone entry 0.5 or 1.5 when supported, Hunter and Squeeze 0.5, attention 1.0; daily rules by measured edge).
+- `research/REVIEW_29.md`: a DRAFT pre-registration only (Oct 15): re-test H07 on a point-in-time tier A in both dial states with measured costs, holdout sealed. Not approved and not run: there is no result; never quote one.
 - `research/BOOK500.md`: the $500 NDAX paper book (CAD, NDAX coins only): core 60% by the dial, measured edges 30%, judgment 10%, 0.5% risk a trade, the D12 brakes, and its 2018-2026 backtest against holding Bitcoin and the 50-day hurdle. Also the retirement rule: a setup is retired when its last 20 closed trades average below zero after costs, or run more than 3 points a trade under its backtest.
 
 ## Safety and operations

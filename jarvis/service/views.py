@@ -693,6 +693,7 @@ BLOCK_PLAIN = {
     "CAP": "the account limit (open trades or entries per day) was full",
     "REJECTED_DUP": "another setup on the same coin was taken in the same scan",
     "KILL_SWITCH": "the kill switch was on",
+    "KILL_SWITCH_UNREAD": "the kill switch could not be read (new entries paused, exits unaffected)",
 }
 
 

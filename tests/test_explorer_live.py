@@ -176,3 +176,27 @@ def test_widen_switches_rules_from_the_next_scan_and_rebuild_still_matches():
 def info_t(info):
     from datetime import datetime, timezone
     return int(datetime.strptime(info["from"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc).timestamp()) if ":" in info["from"] else 0
+
+
+def test_a_kill_switch_that_cannot_be_read_pauses_new_entries_but_never_forces_an_exit():
+    """Oct 15 (the trade guard): a failed read used to keep the last known state (off) and trade on. Now new entries become shadow
+    orders (KILL_SWITCH_UNREAD) until a read works again; exits are untouched, because a protective exit must always work."""
+    d, clock, hands, ex, alerts = _mk()
+    ex.start()
+    _advance(ex, clock, 2)
+    assert ex._slot_ok("BTC", "SHORT_TERM") is True
+    fails = {"on": True}
+
+    def read():
+        if fails["on"]:
+            raise ConnectionError("Hands is not answering")
+        return False
+    hands.kill_switch_on = read
+    _advance(ex, clock, 1)
+    assert ex.st["kill_unread"] is True and ex.st["kill"] is False
+    assert ex._slot_ok("BTC", "SHORT_TERM") == "KILL_SWITCH_UNREAD"
+    bells = [json.loads(j)["bell"] for (j,) in ex.store.book.execute("SELECT json FROM events WHERE kind='CLOSED'")]
+    assert "X2_KILL_SWITCH" not in bells and not any(a[0].endswith("KILL SWITCH") for a in alerts)          # nothing was sold
+    fails["on"] = False
+    _advance(ex, clock, 1)
+    assert ex.st["kill_unread"] is False and ex._slot_ok("BTC", "SHORT_TERM") is True

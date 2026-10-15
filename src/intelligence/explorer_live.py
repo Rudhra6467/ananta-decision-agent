@@ -159,6 +159,8 @@ class Explorer:
     def _slot_ok(self, coin: str, typ: str):
         if self.st.get("kill"):
             return "KILL_SWITCH"
+        if self.st.get("kill_unread"):                    # Oct 15 (the trade guard): a switch that cannot be read is not a yes
+            return "KILL_SWITCH_UNREAD"
         engines = self.st["engines"].values()
         open_n = sum(1 for e in engines for t in e.trades if t.shadow is None and not t.actual.done) + sum(
             1 for e in engines for o in e.orders if o.shadow is None)
@@ -242,8 +244,10 @@ class Explorer:
         out: dict[str, Any] = {"t": _utc(now), "errors": [], "scans": 0}
         try:
             kill = self.hands.kill_switch_on()
+            self.st["kill_unread"] = False
         except Exception as exc:  # noqa: BLE001
-            kill = self.st.get("kill", False)
+            kill = self.st.get("kill", False)            # exits keep the last known state; NEW entries pause (Oct 15, the trade guard)
+            self.st["kill_unread"] = True
             out["errors"].append(f"kill-switch read failed: {str(exc)[:120]}")
         if kill and not self.st.get("kill"):
             n = sum(e.force_exit_all("X2_KILL_SWITCH") for e in self.st["engines"].values())

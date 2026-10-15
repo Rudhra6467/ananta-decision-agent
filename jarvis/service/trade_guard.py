@@ -139,6 +139,46 @@ def refuse(j, book: str, coin: str | None, why: str) -> str:
     return why
 
 
+# Every path that opens a paper position: its name, the file that runs it, where that file runs from ("service" = this service's own
+# checkout; "explorer" = the Explorer's checkout, the data folder, which only changes when main is merged and the Explorer is
+# restarted) and the mark in the file that shows the check is there. coverage() reads those files, so the gate fails the day a
+# module stops asking. tests/test_trade_guard.py fails when a module that opens positions is missing from this list.
+PATHS = [
+    ("JARVIS and its random twin (the brain)", "jarvis/service/brain.py", "service", "trade_guard"),
+    ("JARVIS_BOLD and its random twin", "jarvis/service/bold.py", "service", "trade_guard"),
+    ("zone touches in the 10 books (the eye)", "jarvis/service/eye.py", "service", "trade_guard"),
+    ("universe zone touches and daily signals", "jarvis/service/universe_watch.py", "service", "trade_guard"),
+    ("the automatic watches", "jarvis/service/watch_engine.py", "service", "trade_guard"),
+    ("manual orders and the account's own watches", "jarvis/service/manual.py", "service", "trade_guard"),
+    ("the $500 book", "jarvis/service/ndax_book.py", "service", "trade_guard"),
+    ("the 30-coin trend books", "jarvis/service/tier30.py", "service", "trade_guard"),
+    ("approving a trend-book suggestion in the app", "jarvis/service/core.py", "service", "trade_guard"),
+    ("the trend books T3 (they run inside the Explorer)", "src/intelligence/explorer_live.py", "explorer", "trade_guard"),
+    ("the Explorer's own setups (a switch that cannot be read pauses new entries)", "src/intelligence/explorer_live.py", "explorer",
+     "KILL_SWITCH_UNREAD"),
+]
+
+
+def coverage(j) -> dict:
+    """Which position-opening paths still call the guard, read from the code that runs: the service's own checkout, and the Explorer's
+    (j.dir). {"paths": n, "ok": [names], "missing": [{"path", "file", "why"}]}."""
+    root = Path(__file__).resolve().parents[2]
+    ok, missing = [], []
+    for name, rel, where, mark in PATHS:
+        base = root if where == "service" else Path(getattr(j, "dir", root))
+        try:
+            text = (base / rel).read_text(errors="replace")
+        except OSError:
+            missing.append({"path": name, "file": rel, "why": "the file is not there"})
+            continue
+        if mark in text:
+            ok.append(name)
+        else:
+            missing.append({"path": name, "file": rel, "why": "the running code does not ask the guard yet"
+                            + (" (the Explorer's folder changes when main is merged and the Explorer restarts)" if where == "explorer" else "")})
+    return {"paths": len(PATHS), "ok": ok, "missing": missing}
+
+
 def recent(j, days: float = 7) -> list[dict]:
     """The blocks of the last N days, newest first: Jarvis's own books, and the T3 books' decisions inside the Explorer."""
     since = int(_now(j) - days * 86400)

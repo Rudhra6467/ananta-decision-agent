@@ -491,3 +491,39 @@ def test_manual_and_auto_watch_buys_need_the_guard_and_sells_never_do(monkeypatc
     assert "kill switch is on" in watches.activity(g)[0]["body"] and not M.state(fresh)["positions"]
     assert {(r[0], r[2]) for r in _log(g.db)} == {("MANUAL", "the price is more than 20 minutes old"), ("MANUAL", tg.KILL_ON),
                                                  ("ACCOUNT_WATCH", "the price is more than 20 minutes old"), ("ACCOUNT_WATCH", tg.KILL_ON)}
+
+
+# ---------------------------------------------------------------------------
+# coverage: the gate reads the code that runs
+# ---------------------------------------------------------------------------
+def test_every_module_that_opens_a_paper_position_is_on_the_guard_list_and_asks_the_guard():
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    listed = {rel for _, rel, _, _ in tg.PATHS}
+    sinks = ("INSERT INTO evidence_trades", "INSERT INTO book500_fills", "INSERT INTO fills", 'kind": "ORDER"')
+    opens = {str(p.relative_to(root)) for base in ("jarvis", "src") for p in (root / base).rglob("*.py") if any(s in p.read_text(errors="replace") for s in sinks)}
+    asks = {str(p.relative_to(root)) for base in ("jarvis", "src") for p in (root / base).rglob("*.py")
+            if "trade_guard" in p.read_text(errors="replace") and p.name != "trade_guard.py"}
+    delegates = {"jarvis/service/feed.py": "builds the guard's Prices for its callers; opens nothing",
+                 "jarvis/service/evidence_live.py": "the gate reads the guard's log and coverage; opens nothing",
+                 "src/intelligence/portfolio_layer.py": "the trend books take the guard as a callable from explorer_live (T3) and core (approval)",
+                 "src/intelligence/explorer_engine.py": "the Explorer's engine asks slot_ok, which explorer_live answers (KILL_SWITCH_UNREAD)"}
+    # a module that opens positions is on the list (or is a known delegate); a module that asks the guard is on the list (or a delegate)
+    assert not [m for m in sorted(opens) if m not in listed and m not in delegates], "a position-opening module is not on the guard list"
+    assert not [m for m in sorted(asks) if m not in listed and m not in delegates], "a module asks the guard but is not on the list"
+    result = tg.coverage(types.SimpleNamespace(dir=root))
+    assert result["paths"] == len(tg.PATHS) and not result["missing"], result["missing"]
+
+
+def test_coverage_reports_a_path_whose_code_no_longer_asks_the_guard(tmp_path):
+    """The Explorer runs from its own folder, which only changes when main is merged: until then its paths are listed as missing."""
+    folder = tmp_path / "src" / "intelligence"
+    folder.mkdir(parents=True)
+    (folder / "explorer_live.py").write_text("# an Explorer from before the guard\n")
+    cov = tg.coverage(types.SimpleNamespace(dir=tmp_path))
+    assert [m["file"] for m in cov["missing"]] == ["src/intelligence/explorer_live.py"] * 2
+    assert all("merged" in m["why"] for m in cov["missing"]) and len(cov["ok"]) == len(tg.PATHS) - 2
+    (folder / "explorer_live.py").write_text("from jarvis.service import trade_guard\nKILL_SWITCH_UNREAD = 1\n")
+    assert not tg.coverage(types.SimpleNamespace(dir=tmp_path))["missing"]
+    assert [m["why"] for m in tg.coverage(types.SimpleNamespace(dir=tmp_path / "nowhere"))["missing"]].count("the file is not there") == 2

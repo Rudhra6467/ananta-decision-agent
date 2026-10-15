@@ -49,6 +49,18 @@ KNOWS = [
     ("hourly", "Is the hourly watch running?", [r"park"]),
 ]
 
+# Gate check ux_why (Oct 15, the crypto lock): "Every trade and no-trade has a plain-words reason", pass mark "Exam questions on 'why' pass".
+# The check had no measure. These five questions ask for the reason behind five live rules; each is judged by facts (every group must match),
+# and the check passes at WHY_PASS of 5. Written before any run. The bar is the same one KNOWS uses (18 of 20 = 90%): 4 of 5 = 80%.
+WHY = [
+    ("why_dial", "Why is the exposure dial open or closed right now?", [r"bitcoin|btc", r"50|200|average"]),
+    ("why_h07", "Why do we buy the H07 dip only when the dial is closed?", [r"closed", r"measured|edge|review|tested|evidence|backtest|history|positive|works?"]),
+    ("why_cash", "Why does the 500 dollar book sit in cash when the dial is closed?", [r"cash", r"dial|trend|average|bitcoin|btc|protect|fall|drop|loss"]),
+    ("why_pause", "Why does the 500 dollar book stop buying after four losing trades in a row?", [r"\b4\b|four|streak|losing", r"pause|stop|protect|risk|brake|limit|loss"]),
+    ("why_nostop", "Why do the dip buys have no stop loss?", [r"stop", r"time exit|exit by time|time only|hurt|worse|cut|lower|tested|measured|review 27"]),
+]
+WHY_PASS = 4
+
 UNKNOWNS = [
     ("btc_dec", "What will Bitcoin's price be on December 31, 2026?"),
     ("eth_sol", "Will Ethereum beat Solana next month?"),
@@ -162,6 +174,10 @@ def run(j, ask=None) -> dict:
         r = _ask(a, q, 100 + k)
         txt = str(r.get("answer") or r.get("error") or "")
         rows.append({"id": cid, "kind": "unknown", "question": q, "ok": judge_unknown(txt) and not r.get("error"), "answer": txt[:600]})
+    for k, (cid, q, groups) in enumerate(WHY):                      # gate ux_why (Oct 15): the reason behind five live rules
+        r = _ask(a, q, 400 + k)
+        txt = str(r.get("answer") or r.get("error") or "")
+        rows.append({"id": cid, "kind": "why", "question": q, "ok": judge_known(txt, groups) and not r.get("error"), "need": groups, "answer": txt[:600]})
     for k, (cid, q, how, pats) in enumerate(CONSISTENCY):            # A7: the same questions again, minutes later
         r1, t1 = firsts[cid]
         r2 = _ask(a, q, 300 + k)
@@ -172,9 +188,10 @@ def run(j, ask=None) -> dict:
                      "minutes_apart": round((time.time() - t1) / 60, 1), "answer": a1[:600], "answer2": a2[:600]})
     known = sum(r["ok"] for r in rows if r["kind"] == "known")
     unknown = sum(r["ok"] for r in rows if r["kind"] == "unknown")
+    why = sum(r["ok"] for r in rows if r["kind"] == "why")
     cons = [r for r in rows if r["kind"] == "consistency"]
     out = {"t": int(time.time()), "day": time.strftime("%Y-%m-%d"), "known": known, "known_of": len(KNOWS), "unknown": unknown, "unknown_of": len(UNKNOWNS),
-           "knows_pass": known >= 18, "unknowns_pass": unknown >= 9,
+           "knows_pass": known >= 18, "unknowns_pass": unknown >= 9, "why": why, "why_of": len(WHY), "why_pass": why >= WHY_PASS,
            "consistent": sum(r["ok"] for r in cons), "consistent_of": len(cons), "flipped": sum(r["flip"] for r in cons),
            "consistency_pass": all(r["ok"] for r in cons), "rows": rows}
     out["exam_pass"] = out["knows_pass"] and out["unknowns_pass"] and out["consistency_pass"]
@@ -221,10 +238,13 @@ def rejudge() -> dict | None:
     if not out:
         return None
     need = {cid: g for cid, _, g in KNOWS}
+    need_why = {cid: g for cid, _, g in WHY}
     spec = {cid: (how, pats) for cid, _, how, pats in CONSISTENCY}
     for r in out["rows"]:
         if r["kind"] == "known":
             r["ok"] = judge_known(r["answer"], need[r["id"]])
+        elif r["kind"] == "why" and r["id"] in need_why:
+            r["ok"] = judge_known(r["answer"], need_why[r["id"]])
         elif r["kind"] == "unknown":
             r["ok"] = judge_unknown(r["answer"])
         elif r["kind"] == "consistency" and r["id"] in spec:
@@ -233,6 +253,9 @@ def rejudge() -> dict | None:
     out["known"] = sum(r["ok"] for r in out["rows"] if r["kind"] == "known")
     out["unknown"] = sum(r["ok"] for r in out["rows"] if r["kind"] == "unknown")
     out["knows_pass"], out["unknowns_pass"] = out["known"] >= 18, out["unknown"] >= 9
+    if any(r["kind"] == "why" for r in out["rows"]):
+        out["why"] = sum(r["ok"] for r in out["rows"] if r["kind"] == "why")
+        out["why_pass"] = out["why"] >= WHY_PASS
     cons = [r for r in out["rows"] if r["kind"] == "consistency"]
     if cons:
         out.update(consistent=sum(r["ok"] for r in cons), consistent_of=len(cons), flipped=sum(r["flip"] for r in cons),

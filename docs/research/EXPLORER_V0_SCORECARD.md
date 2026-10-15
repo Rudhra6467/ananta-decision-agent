@@ -30,7 +30,7 @@ This is **v0 as written**: loose on purpose. The scorecard's job is to show what
 |---|---|---|---|
 | E1 trend pullback | −$0.27 (n 785) | −$0.94 (n 337) | falls apart in CONFIRM |
 | E2 breakout | −$0.57 (n 2,120) | −$0.65 (n 998) | consistently negative |
-| E3 bounce from support | +$0.36 (n 30) | none | fires too rarely to judge |
+| E3 bounce from support | +$0.36 (n 30) | −$0.28 (n 9) | fires too rarely to judge |
 | E4 momentum continuation | −$0.24 (n 3,498) | −$0.47 (n 1,448) | least bad large setup |
 | E5 squeeze release | −$0.64 (n 896) | −$0.80 (n 429) | worst in both |
 | G1 LONG_TERM | **+$0.35** (n 1,678) | −$0.45 (n 762) | positive only in the bull years; random LONG_TERM was +$0.32 there too |

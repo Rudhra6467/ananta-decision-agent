@@ -151,14 +151,14 @@ def weekly_review(j, days: int = 7, write: bool = True) -> dict:
         try:
             f = ROOT / "docs" / "repair_shop" / "weekly" / f"{out['to']}.md"
             f.parent.mkdir(parents=True, exist_ok=True)
-            f.write_text(_markdown(out))
+            f.write_text(_markdown(out, j))
             out["file"] = str(f.relative_to(ROOT))
         except Exception as exc:  # noqa: BLE001
             out["file_error"] = str(exc)[:120]
     return out
 
 
-def _markdown(r: dict) -> str:
+def _markdown(r: dict, j=None) -> str:
     L = [f"# Weekly situation review, {r['from']} to {r['to']}", "",
          f"{r['decisions']} brain decisions ({r['takes']} buys). Lessons counted: " + (", ".join(f"{k} x{n}" for k, n in r["lessons"].items()) or "none") + ".", ""]
     for c in r["situations"]:
@@ -174,22 +174,45 @@ def _markdown(r: dict) -> str:
     L += ["## Tickets", ""] + ([f"- {t}" for t in r["tickets"]] or ["- None this week: no pattern reached 3 cases."]) + [""]
     L += ["## Credit (which knowledge moved decisions)", ""] + [f"- {k}: {json.dumps(v)}" for k, v in list(r["credit"].items())[:12]] + [""]
     L += ["## Change log, after", ""] + [f"- {c['change']}: {c.get('after')}" for c in r["changes"]] + [""]
-    L += ["## Due", "", "- " + _due(), ""]
+    L += ["## Due", ""] + [f"- {x}" for x in _due(j)] + [""]
     L += ["## Peers since the brain started", "", f"```\n{json.dumps(r['peers'], indent=1)[:1500]}\n```", ""]
     return "\n".join(L)
 
 
-def _due() -> str:
+def _due(j=None) -> list[str]:
+    """What the review says is owed. Oct 15 (research audit): it used to stop at the first study with a schedule, so only R2 could ever show.
+    Now every ledger study with a schedule is listed, then the due list (docs/knowledge/due_list.json): overdue, due this week, the decisions
+    waiting for Madhav, what waits for evidence, and how many items wait for the end of the window."""
+    out: list[str] = []
+    today = time.strftime("%Y-%m-%d", time.gmtime(j.now() if j is not None else time.time()))
     try:
         led = json.loads((ROOT / "docs" / "repair_shop" / "ledger.json").read_text())
         for st in led.get("studies", []):
             sc = st.get("schedule") or {}
             if sc.get("next_due"):
-                late = time.strftime("%Y-%m-%d") >= sc["next_due"]
-                return f"Quarterly other-traders study ({st.get('id')}): next due {sc['next_due']}" + (" -- DUE NOW" if late else "")
-    except Exception:  # noqa: BLE001
-        pass
-    return "nothing scheduled"
+                out.append(f"Study {st.get('id')} ({st.get('title', 'no title')}), every {sc.get('every', 'period')}: next due {sc['next_due']}"
+                           + (" -- DUE NOW" if today >= sc["next_due"] else ""))
+    except Exception as exc:  # noqa: BLE001
+        out.append(f"(the ledger's schedules could not be read: {str(exc)[:80]})")
+    if j is not None:
+        try:
+            from jarvis.service import due_list
+
+            r = due_list.check(j)
+            by = {x["id"]: x for x in r["rows"]}
+            out += [f"OVERDUE {i} (was due {by[i]['due']}): {by[i]['what']}" for i in r["overdue"]]
+            out += [f"due {by[i]['due']}: {i} ({by[i]['owner'] or 'Claude'}) - {by[i]['what']}" for i in r["soon"]]
+            waiting = [x["id"] for x in r["rows"] if x["owner_decision"] and x["state"] in ("later", "soon", "overdue")]
+            if waiting:
+                out.append(f"decisions waiting for Madhav: {', '.join(waiting)}")
+            if r["waiting_for_evidence"]:
+                out.append(f"waiting for evidence: {', '.join(r['waiting_for_evidence'])}")
+            out.append(f"after the window ({r['window_end']}): {len(r['post_window'])} items" + (" -- THE WINDOW IS OVER, decide their order" if r["window_over"] else ""))
+            if r["problems"]:
+                out.append("the due list disagrees with its own rules: " + "; ".join(r["problems"][:3]))
+        except Exception as exc:  # noqa: BLE001
+            out.append(f"(the due list could not be read: {str(exc)[:80]})")
+    return out or ["nothing scheduled"]
 
 
 def credit(j, since: int = 0) -> dict:

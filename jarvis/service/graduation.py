@@ -2,9 +2,10 @@
 
 The old app's "Graduation Readiness scorecard" (Ananta repo, analytics.graduation_readiness, 2026-05-29) was an objective paper-to-live
 checklist: it asks for a repeatable edge that survives costs and different market states, not just a profit. The audit asked for it to be
-turned into code and run unchanged on every paper book. This is that code. The ten definitions and thresholds are the old app's, ported as
-written. A threshold changes only with a written reason in THRESHOLD_LOG, and tests/test_graduation.py pins the numbers so an edit cannot be
-a drive-by.
+turned into code and run unchanged on every paper book. This is that code. The ten definitions and thresholds are the old app's and the numbers
+are unchanged. One rule is stricter (gate 7, below): the old app passed it when no trade was labelled sideways; this port reports it "not
+measured" and fails it, so a book that labels no market sideways (the $500 book today) cannot read READY. A threshold changes only with a
+written reason in THRESHOLD_LOG, and tests/test_graduation.py pins the numbers so an edit cannot be a drive-by.
 
 Read-only: it scores a list of closed trades and changes nothing. It is a second view beside Rule A (60 market days, both dial states seen,
 execution fidelity within 3 points) and the Acceptance Gate, never a replacement for either.
@@ -36,7 +37,7 @@ THRESHOLDS = {
 }
 THRESHOLD_LOG = [
     {"date": "2026-05-29", "what": "all ten, as the old app wrote them", "reason": "origin (Ananta repo, analytics.graduation_readiness)"},
-    {"date": "2026-10-15", "what": "none changed", "reason": "ported unchanged (research audit card APP-GRAD)"},
+    {"date": "2026-10-15", "what": "none changed", "reason": "all ten numbers ported unchanged (research audit card APP-GRAD); gate 7 is stricter than the old app when a book has no sideways label (the old app passed it)"},
 ]
 DAY = 86400
 

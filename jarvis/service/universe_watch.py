@@ -685,6 +685,7 @@ def run_daily(j) -> dict:
             out[name] = fn()
         except Exception as exc:  # noqa: BLE001  one step failing never stops the others
             out[name] = {"error": str(exc)[:200]}
+            out.setdefault("steps_failed", []).append(name)
         out[name + "_s"] = round(time.time() - t0, 1)
     try:
         opened = [o for t in TIERS for o in ((out.get("rules") or {}).get(t) or {}).get("opened_list", [])]
@@ -698,19 +699,18 @@ def run_daily(j) -> dict:
                                    compare=out.get("explorer_compare") if isinstance(out.get("explorer_compare"), dict) else None)
     except Exception as exc:  # noqa: BLE001
         out["forward_error"] = str(exc)[:200]
-    try:  # the learning loop (plan Batch 4b): brain trades rebuilt nightly; the situation review on Sundays
-        from jarvis.service import learning
+    # The learning loop (plan Batch 4b): brain trades rebuilt nightly; the situation review on Sundays. One step each (Oct 15 audit): they
+    # used to share one try, so a failing rebuild silently skipped the Sunday review and everything after it.
+    from jarvis.service import due_list, knowledge_build, learning
 
-        out["brain_rebuild"] = {k: v for k, v in learning.rebuild_brain(j).items() if k != "list"}
-        out["counterfactuals"] = learning.close_counterfactuals(j)
-        from jarvis.service import knowledge_build
-
-        out["knowledge_align"] = knowledge_build.align(j)                 # one truth: surfaces regenerated from strategy_status.json
-        out["ledger_check"] = knowledge_build.ledger_nightly(j)           # Oct 15 (reconstruction Fix 10): the repair ledger against its own files
-        if time.gmtime(j.now()).tm_wday == 6:
-            out["weekly_review"] = learning.weekly_review(j).get("file")
-    except Exception as exc:  # noqa: BLE001
-        out["learning_error"] = str(exc)[:200]
+    _step(out, "brain_rebuild", lambda: {k: v for k, v in learning.rebuild_brain(j).items() if k != "list"})
+    _step(out, "counterfactuals", lambda: learning.close_counterfactuals(j))
+    _step(out, "knowledge_align", lambda: knowledge_build.align(j))        # one truth: surfaces regenerated from strategy_status.json
+    _step(out, "ledger_check", lambda: knowledge_build.ledger_nightly(j))  # Oct 15 (reconstruction Fix 10): the repair ledger against its own files
+    if time.gmtime(j.now()).tm_wday == 6:                                   # Sundays: the situation review, a step of its own
+        if _step(out, "weekly_review", lambda: learning.weekly_review(j).get("file")) and out.get("weekly_review"):
+            _step(out, "sunday_review_ticked", lambda: due_list.mark_done_through(j, "SUNDAY-REVIEW", str(out["weekly_review"])))
+    _step(out, "due_list", lambda: {k: v for k, v in due_list.nightly(j).items() if k != "rows"})   # the lock's due list: overdue items become requests
     try:  # Oct 15 (gate ops_reconstructable): every evidence trade's entry and exit re-checked on the day's candles
         from jarvis.service import learning
 
@@ -755,6 +755,7 @@ def run_daily(j) -> dict:
         out["officer_note"] = (officer.write(j, out, push=_phone_push()) or {}).get("ok")
     except Exception as exc:  # noqa: BLE001
         out["officer_error"] = str(exc)[:200]
+    out["steps_failed"] = sorted(set(out.get("steps_failed") or []) | {k[:-len("_error")] for k, v in out.items() if k.endswith("_error") and v})
     try:
         _daily_file(j, out)
     except Exception:  # noqa: BLE001
@@ -763,6 +764,18 @@ def run_daily(j) -> dict:
         ((out.get("rules") or {}).get(t) or {}).pop("opened_list", None)
     STATE["last_daily"] = {"t": int(time.time()), **{k: v for k, v in out.items() if k != "missed"}}
     return out
+
+
+def _step(out: dict, name: str, fn) -> bool:
+    """One nightly step: its result goes to out[name]; an exception goes to out[name + '_error'] and the name to out['steps_failed'].
+    True when the step ran clean, so a step that needs the one before it can say so."""
+    try:
+        out[name] = fn()
+        return True
+    except Exception as exc:  # noqa: BLE001  one step failing never stops the others
+        out[name + "_error"] = str(exc)[:200]
+        out.setdefault("steps_failed", []).append(name)
+        return False
 
 
 def _phone_push() -> Callable | None:
@@ -776,6 +789,7 @@ def _phone_push() -> Callable | None:
 
 def _daily_file(j, out: dict) -> None:
     """The night's universe round in plain words, beside the daily review the 7:25 am task writes (engine plan U5.4)."""
+    from jarvis.service import due_list
     from jarvis.service.core import docs_dir
 
     day = time.strftime("%Y-%m-%d", time.gmtime(j.now()))
@@ -791,6 +805,8 @@ def _daily_file(j, out: dict) -> None:
              f"({((out.get('explorer_compare') or {}).get('72h') or {}).get('same_like_for_like')} of {((out.get('explorer_compare') or {}).get('72h') or {}).get('events_like_for_like')} events; bar 60%)",
              "- setup retirement watch (last 20 closed trades, BOOK500.md): " + ("; ".join(f"{r['rule']} {r['state'].lower()} tier {r['tier']}: {r['closed']} of 20" + (f", average {r['window_avg_pct']:+.2f}%" if r['window_avg_pct'] is not None else "") for r in (out.get('retirement_watch') or []) if isinstance(r, dict)) or "no rule in the edge sleeve yet"),
              "- graduation gates (the old app's ten, unchanged; Rule A still decides real money): " + str((out.get("graduation") or {}).get("sentence") or "not scored yet"),
+             "- " + (due_list.line(out["due_list"]) if isinstance(out.get("due_list"), dict) and "overdue" in out["due_list"] else "due list: not checked tonight"),
+             "- steps that failed tonight: " + (", ".join(out.get("steps_failed") or []) or "none"),
              "- repair ledger against its own files: " + (("ok, " + str((out.get("ledger_check") or {}).get("checked")) + " checks") if (out.get("ledger_check") or {}).get("ok")
                                                           else ("; ".join((out.get("ledger_check") or {}).get("problems") or ["not checked"]))[:400]), "",
              "## Biggest up-days (tier A and B)", ""] + [f"- {m}" for m in (out.get("missed") or [])] + [

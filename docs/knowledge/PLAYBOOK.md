@@ -10,7 +10,7 @@ Every number below comes from a review; when the review changes, this page chang
 2. **Is the market allowed?** BTC above its 50-day average (V02). The strongest thing we know: at support zones it decided
    68% held vs 50% (review #7), and it is the regime gate of the chain and of T3.
 3. **Where is price?** Always in or near a zone (a band, not a line). Which kind, and does history support that kind
-   (200-day average, overlapping zones, new swing zones; review #6)?
+   (200-day average or new swing zones; reviews #6 and #16)?
 4. **What is the plan?** Where the idea is wrong (a daily close 0.5 daily range under the zone), what would confirm it (a rise
    1.5 daily ranges over the zone), the stop distance and the size from it (1% risk, P01), and what it adds to bets already held (P02).
 5. **What else is there?** Madhav's setups (reads), the chain's verdict, relative strength, volume, the news check: evidence, said

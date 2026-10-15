@@ -251,6 +251,33 @@ def test_a_decision_still_saves_after_columns_are_added_and_its_cost_counts(monk
     assert brain.spent_today(j) >= 0.50
 
 
+def test_not_reviewed_wakes_are_scored_against_the_market_like_passes(tmp_path, monkeypatch):
+    """Reconstruction Fix 7 (Oct 15): a wake the brain never reviewed gets the same excess-over-market numbers as a PASS, and the
+    ranking audit shows both averages, so the two sides are compared like with like."""
+    from jarvis.service import brain
+
+    t0 = 1_700_006_400 - 1_700_006_400 % 86400
+    now = {"t": t0 + 8 * 86400}
+    j = _j(tmp_path, now)
+    brain._table(j)
+    brain._unrev_table(j)                                                   # the table as it was before the excess columns existed
+    j.db.execute("INSERT INTO brain_unreviewed (id, t, coin, trigger, score, reason, price) VALUES ('u1', ?, 'BTC', 'x', 1.0, 'low rank', 100.0)", (t0,))
+    j.db.execute("INSERT INTO brain_unreviewed (id, t, coin, trigger, score, reason, price) VALUES ('u2', ?, 'BTC', 'x', 1.0, 'low rank', 100.0)", (now["t"] - 3600,))
+    closes = [101, 102, 103, 104, 106, 107, 108, 109]
+    monkeypatch.setattr(brain, "_coin_daily", lambda j_, coin: [(t0 + k * 86400, 100, 100, 100, c, 1.0) for k, c in enumerate(closes)])
+    monkeypatch.setattr(brain, "market_median_move", lambda j_, d, days: {1: 2.0, 5: 5.0}[days])
+    assert brain.settle_unreviewed(j) == 1                                  # u2 is under a day old: left for tomorrow
+    row = j.db.execute("SELECT after_1d_pct, after_5d_pct, after_1d_ex, after_5d_ex FROM brain_unreviewed WHERE id='u1'").fetchone()
+    assert row == (1.0, 6.0, -1.0, 1.0)
+    assert brain.settle_unreviewed(j) == 0                                  # settled once, not again
+    j.db.execute("UPDATE brain_unreviewed SET after_5d_ex=NULL WHERE id='u1'")   # a row settled before the excess existed is filled in
+    assert brain.settle_unreviewed(j) == 1
+    assert j.db.execute("SELECT after_5d_ex FROM brain_unreviewed WHERE id='u1'").fetchone()[0] == 1.0
+    a = brain.ranking_audit(j)["not_reviewed"]
+    assert a["n"] == 1 and a["avg_5d_pct"] == 6.0 and a["n_ex"] == 1 and a["avg_5d_ex_pct"] == 1.0 and a["ran_5pct"] == 1
+    assert brain.ranking_audit(j)["passed"]["avg_5d_ex_pct"] is None
+
+
 def test_brain_pack_runs_on_real_state():
     from jarvis.service import brain
 

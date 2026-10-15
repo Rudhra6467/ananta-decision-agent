@@ -32,3 +32,8 @@ The same verdicts on LAB10 and on all 120 coins.
    a trend system.
 3. **Dips in fear** were about as good as all dips but too few to judge.
 4. These series stay as **context** for the agent (what the wider world is doing), labelled "tested, does not improve our rules".
+
+## Notes (2026-10-15, research audit)
+
+- Unanchored: the pre-registration was not pushed before this run (`RESEARCH_RULES.md`, section 1).
+- Judging tier: TOP30 was chosen after review #15; no tier rule was written then (`RESEARCH_RULES.md`, section 1, item 2).

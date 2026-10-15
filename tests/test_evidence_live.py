@@ -40,6 +40,14 @@ def test_every_rebuild_is_kept_once_and_mismatches_are_counted(tmp_path):
     r = el._rebuild(j, {"studies": [], "reviews": [], "modes": [], "tickets": []})
     assert r["nightly"]["runs"] == 1 and r["asked"]["runs"] == 1 and r["total"] == 2 and r["mismatches"] == 1
     assert r["last"]["match"] is False and r["last"]["checked"] == 45
+    names = [b["book"] for b in r["books"]]                              # Fix 9: every book the nightly check covers has a row, even unrun
+    assert names[0] == "the Explorer replayed from raw candles" and names[-1] == "the daily rules re-run on every tier"
+    assert len(names) == len(el.REBUILD_PARTS) + 1
+    assert r["books"][0]["runs"] == 1 and r["books"][1]["runs"] == 0 and r["books"][1]["last"] is None
+    j.db.execute("INSERT INTO rebuild_log (t, source, match) VALUES (1999999000, 'trend30', 0)")
+    j.db.execute("INSERT INTO rebuild_log (t, source, match) VALUES (1999999100, 'trend', 1)")
+    t30 = next(b for b in el._rebuild(j, {})["books"] if "30-coin" in b["book"])
+    assert t30["runs"] == 1 and t30["mismatches"] == 1 and t30["last_match"] is False   # 'trend' rows are not counted as 'trend30'
 
 
 def test_board_puts_what_waits_for_madhav_first_and_counts_groups(tmp_path):

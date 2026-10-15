@@ -69,6 +69,45 @@ def test_trend_book_decisions_follow_the_rule_on_their_candles(tmp_path, monkeyp
     assert [r[0] for r in j.db.execute("SELECT source FROM rebuild_log ORDER BY t")] == ["trend", "trend"]
 
 
+def _stream(tmp_path, times):
+    """An explorer_decisions.jsonl with one row per 15-minute bar time (the `t` field is the bar time)."""
+    (tmp_path / "explorer_decisions.jsonl").write_text("".join(json.dumps({"t": t, "coin": "BTC"}) + "\n" for t in times))
+
+
+def test_the_15_minute_stream_must_have_no_hole_over_35_minutes(tmp_path):
+    """Reconstruction Fix 4: a book can rebuild perfectly and still miss the hours the Explorer was down."""
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path)
+    assert not el._stream_ok(j, NOW)                                                  # no file at all
+    _stream(tmp_path, [NOW - 2 * DAY + 900 * k for k in range(0, 2 * 96 + 1)])
+    assert el._stream_ok(j, NOW)                                                      # every 15 minutes
+    _stream(tmp_path, [NOW - 2 * DAY + 900 * k for k in range(0, 2 * 96 + 1) if not 40 <= k <= 43])
+    assert not el._stream_ok(j, NOW)                                                  # a one-hour hole
+    _stream(tmp_path, [NOW - 2 * DAY + 900 * k for k in range(0, 2 * 96 + 1) if k != 40])
+    assert el._stream_ok(j, NOW)                                                      # one missed bar (30 min) is inside the 35-minute bar
+    _stream(tmp_path, [NOW - 2 * DAY + 900 * k for k in range(0, 2 * 96 - 8)])
+    assert not el._stream_ok(j, NOW)                                                  # the stream stopped two hours ago
+    _stream(tmp_path, [NOW - 5 * DAY + 900 * k for k in range(0, 2 * 96)] + [NOW - 2 * DAY + 900 * k for k in range(0, 2 * 96 + 1)])
+    assert el._stream_ok(j, NOW)                                                      # an old hole outside the last 2 days does not count
+
+
+def test_the_gate_goes_partly_when_the_stream_has_a_hole(tmp_path):
+    from jarvis.service import evidence_live as el
+    from jarvis.service import ndax_book
+
+    j = _j(tmp_path)
+    el._rebuild_table(j)
+    ndax_book._table(j)
+    for k, (src, _) in enumerate(el.REBUILD_PARTS):
+        j.db.execute("INSERT INTO rebuild_log (t, source, match) VALUES (?,?,1)", (NOW - 3600 + k, src))
+    j.db.execute("CREATE TABLE universe_rebuilds (t INTEGER PRIMARY KEY, json TEXT)")
+    j.db.execute("INSERT INTO universe_rebuilds VALUES (?,?)", (NOW - 3600, json.dumps({"t": NOW - 3600, "match": True})))
+    _stream(tmp_path, [NOW - 2 * DAY + 900 * k for k in range(0, 2 * 96 + 1) if not 40 <= k <= 43])
+    r = el.reconstructable(j)
+    assert r["status"] == "PARTLY" and "15-minute snapshot stream" in r["note"]
+
+
 def test_the_gate_check_passes_only_when_every_part_is_fresh_and_matching(tmp_path):
     from jarvis.service import evidence_live as el
     from jarvis.service import ndax_book
@@ -81,6 +120,7 @@ def test_the_gate_check_passes_only_when_every_part_is_fresh_and_matching(tmp_pa
     j.db.execute("CREATE TABLE universe_rebuilds (t INTEGER PRIMARY KEY, json TEXT)")
     j.db.execute("INSERT INTO universe_rebuilds VALUES (?,?)", (NOW - 3600, json.dumps({"t": NOW - 3600, "match": True})))
     j.db.execute("INSERT INTO book500_fills (t, coin, side, px, bid, ask) VALUES (?, 'BTC', 'BUY', 100.0, 99.9, 100.1)", (NOW - 7200,))
+    _stream(tmp_path, [NOW - 2 * DAY + 900 * k for k in range(0, 2 * 96 + 1)])
     assert el.reconstructable(j)["status"] == "PASS"
     j.db.execute("INSERT INTO rebuild_log (t, source, match) VALUES (?, 'trades', 0)", (NOW - 60,))
     r = el.reconstructable(j)

@@ -3,14 +3,14 @@
  "updated": "2026-10-15",
  "meaning": "One list of every strategy that holds or held paper money, with its status and verdict. Madhav, Oct 13: the $500 NDAX book is THE account (what he and Ananta look at); the engine keeps every measuring book running in the background (watching, scanning, recording, tracking), and only what passes its bar is pushed into the account. status: ACTIVE (trades, counts as holdings) | UNDER_REVIEW (trades, counts, under a review) | EVIDENCE (measures in the background: records paper trades, never holdings, never in the headline) | PARKED (switched off by Madhav) | RETIRED (takes no new trades; its record is kept). verdict: wont_take_again | will_try_again | modify_rules. wakes_brain: false = its signals never wake the brain (a failed idea is recorded, not decided on). pushed: how a strategy enters the account.",
  "account": "BOOK500",
- "pushed": "A rule enters the $500 book's measured-edge sleeve when BOTH hold: its cell (rule x dial state x tier) passed on history in both periods after costs (the measured-edge table, review #26), AND its forward paper book is ahead of its random baseline over 10 market days in each regime (the promotion ladder), with Madhav's sign-off. When the ladder says a rule may step up, Ananta sends a phone note and opens a request; nothing enters the account by itself.",
+ "pushed": "A rule enters the $500 book's measured-edge sleeve when BOTH hold: its cell (rule x dial state x tier) passed on history in both periods after costs (the measured-edge table, review #26), AND its forward paper book is ahead of its random baseline over 10 market days in each regime (the promotion ladder), with Madhav's sign-off. When the ladder says a rule may step up, Ananta sends a phone note and opens a request; nothing enters the account by itself. Expect the first promotion to take a while: the one measured edge (H07 on tier A) counts only while the dial is closed, and the ladder needs 10 market days in each regime.",
  "strategies": {
   "BOOK500": {
    "name": "The $500 NDAX book",
    "status": "ACTIVE",
    "verdict": "will_try_again",
    "home_book": "The $500 NDAX book",
-   "why": "The account: core by the dial (BTC 40%, ETH 20%), the measured edges (today: H07 on tier A while the dial is closed), a judgment sleeve for the brain's buys, the D12 brakes. Started Oct 11 at NDAX's real prices."
+   "why": "The account: core by the dial (BTC 40%, ETH 20%), the measured edges (today: H07 on tier A, which buys only while the dial is closed, so this sleeve sits idle while the dial is open), a judgment sleeve for the brain's buys, the D12 brakes. Started Oct 11 at NDAX's real prices."
   },
   "T3": {
    "name": "Trend portfolio (10 coins)",

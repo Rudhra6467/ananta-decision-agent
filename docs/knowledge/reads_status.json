@@ -248,7 +248,8 @@
    }
   },
   "M2a-G": {
-   "status": "INSUFFICIENT",
+   "status": "NOT_SUPPORTED",
+   "status_note": "review #15 (2026-10-04): not supported on the 30 or the 120 coins; review #5 said INSUFFICIENT",
    "review": "REVIEW_8",
    "DISCOVERY": {
     "events": 7,

@@ -60,7 +60,7 @@ Rules:
   is within 10% of the price; invalidation: a price under the trigger and at most 15% under it (a daily close below it cancels the
   expectation; after a fill it is the stop, or for DIP the point where the idea is wrong); horizon_days 1-5 (how long it waits
   for the trigger); size_pct 25-100; why: one sentence citing the numbers; knowledge_used: ids from the knowledge list.
-  An empty list is a fine answer: then say why in no_expectation_reason. Round-trip costs are 0.5-1% (cost_rt_pct): a trigger
+  An empty list is a fine answer: then say why in no_expectation_reason. Round-trip costs are 0.6-2.4% (cost_rt_pct is this coin's own): a trigger
   whose likely move is a few tenths of a percent cannot pay.
 
 Reply with ONE JSON object only:

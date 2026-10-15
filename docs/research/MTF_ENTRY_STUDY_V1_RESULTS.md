@@ -3,7 +3,7 @@
 Pre-registration: `MTF_ENTRY_STUDY_V1.md` (commit a7c5801, before any result).
 Run 2026-09-30 on the laptop.
 - Data: 10 coins, about 8.1M 5m bars.
-- Variants: 108, all reported in `~/ananta_runs/mtf_entry_v1/report_setA.json`.
+- Variants: 108, all reported in `~/ananta_runs/mtf_entry_v1/report_setA.json`; 18 are exact copies (under gate G1 the X2 and X3 exits give identical results), so 90 are distinct.
 
 ## Verdict
 

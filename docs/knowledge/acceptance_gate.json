@@ -215,7 +215,7 @@
    "id": "ops_reconstructable",
    "area": "Operations",
    "check": "Every decision reconstructable",
-   "measure": "Every book re-checked nightly against its candles or its exchange quotes: the Explorer replayed, the daily rules re-run, every evidence trade's entry and exit, Jarvis's trades, both trend books' decisions and fills, the $500 book's fills and sizes (measured Oct 15)",
+   "measure": "Every book re-checked nightly against its candles or its exchange quotes: the Explorer replayed, the daily rules re-run, every evidence trade's entry and exit, Jarvis's trades, both trend books' decisions and fills, the $500 book's fills and sizes, and the 15-minute snapshot stream with no gap over 35 minutes in the last 2 days (measured Oct 15)",
    "pass_mark": "All books rebuilt",
    "status": "PARTLY",
    "note": "Explorer only"

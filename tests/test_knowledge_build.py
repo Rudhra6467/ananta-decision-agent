@@ -104,3 +104,21 @@ def test_ledger_nightly_files_one_request_for_one_set_of_problems(tmp_path, monk
     again = knowledge_build.ledger_nightly(j)
     rows = j.db.execute("SELECT by, kind, about FROM owner_requests").fetchall()
     assert first.get("flagged") is True and "flagged" not in again and rows == [("ananta-auto", "data", "ledger check")]
+
+
+BRAIN_WORD = {"PASSED": "SUPPORTED", "SUPPORTED": "SUPPORTED", "FACT": "SUPPORTED", "MEASURED_CELL_ONLY": "SUPPORTED",
+              "FAILED": "REJECTED", "DROPPED": "REJECTED", "NOT_BETTER": "REJECTED", "LESSON": "WEAK", "MIXED": "CONFLICTING",
+              "RULE": "UNTESTED", "CANDIDATE": "INSUFFICIENT", "FORWARD": "INSUFFICIENT"}
+
+
+def test_the_brains_status_words_say_what_the_status_cards_say():
+    """Research audit FRAMEWORK (Oct 15): brain.KNOWLEDGE keeps plain labels; each must mean its card's evidence word."""
+    from jarvis.service import brain
+
+    root = Path(__file__).resolve().parents[1] / "docs" / "knowledge"
+    cards = {c["id"]: c for c in json.loads((root / "status_cards.json").read_text())["cards"]}
+    for kid, word, _ in brain.KNOWLEDGE:
+        assert kid in cards, f"brain item {kid} has no status card"
+        assert BRAIN_WORD.get(word) == cards[kid]["evidence"], f"{kid}: brain {word}, card {cards[kid]['evidence']}"
+    hyp = {h["id"]: h["status"] for h in json.loads((root / "hypotheses.json").read_text())["hypotheses"]}
+    assert hyp["H07"] == cards["H07"]["evidence"] and hyp["H14"] == cards["STOPS"]["evidence"]

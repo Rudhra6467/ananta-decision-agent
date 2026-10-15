@@ -1,0 +1,147 @@
+{
+ "version": 1,
+ "locked": "2026-10-15",
+ "what": "The crypto lock. Each pin is a hash of something that must not change during the 60-market-day evidence window without Madhav's recorded yes. docs/LOCK.md explains each one; tests/test_crypto_lock.py checks them.",
+ "how_to_change_a_pin": "Only on Madhav's decision: append an entry to that pin's history (date, approved_by starting with Madhav, a note quoting his words, the new sha256) and set the pin's sha256 to the same value. Run `python tests/test_crypto_lock.py` for the current hashes.",
+ "pins": {
+  "book500_rules": {
+   "what": "The $500 book's rules as coded: coins, filters, sizing, stops, exits, brakes and fills (code of src/research/book500.py; comments and docstrings are not counted).",
+   "files": [
+    "src/research/book500.py"
+   ],
+   "sha256": "9f2fc1c8b52168305af946de4a77f9a218f5a9c6ddef92707741a81f8d408a1c",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
+     "sha256": "9f2fc1c8b52168305af946de4a77f9a218f5a9c6ddef92707741a81f8d408a1c"
+    }
+   ]
+  },
+  "exposure_dial": {
+   "what": "The exposure dial and its four measuring books: review #25's rules (code of src/research/review25.py) and the start date, book list and roles in jarvis/service/exposure.py.",
+   "files": [
+    "src/research/review25.py",
+    "jarvis/service/exposure.py"
+   ],
+   "sha256": "990e523e1b3ccc9f78f9191840e4f87c2bfd45084859f51b06b0ce263390fd3c",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
+     "sha256": "990e523e1b3ccc9f78f9191840e4f87c2bfd45084859f51b06b0ce263390fd3c"
+    }
+   ]
+  },
+  "measured_edges": {
+   "what": "The measured results the live rules rest on: the result files of review #26 and review #29, whole.",
+   "files": [
+    "docs/research/review26.json",
+    "docs/research/review29.json"
+   ],
+   "sha256": "28fa78e05e3c7cfec0e7cea5a364bf05adc7be772e60e1b1b398f533b39e7692",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
+     "sha256": "28fa78e05e3c7cfec0e7cea5a364bf05adc7be772e60e1b1b398f533b39e7692"
+    }
+   ]
+  },
+  "paper_costs": {
+   "what": "What the paper books charge: NDAX fee and half-spread table with its defaults (ndax_costs.py), the tier floors, fee literals and cost formula (registry.py), and SD6's cost profiles (paper_exit.py).",
+   "files": [
+    "src/intelligence/ndax_costs.py",
+    "jarvis/service/registry.py",
+    "src/intelligence/paper_exit.py"
+   ],
+   "sha256": "e267fcc357a6db4841c8206344510006956d77609fd8c3224e277008df060c0b",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
+     "sha256": "e267fcc357a6db4841c8206344510006956d77609fd8c3224e277008df060c0b"
+    }
+   ]
+  },
+  "t3_rule": {
+   "what": "The T3 portfolio rule (code of src/intelligence/portfolio_layer.py).",
+   "files": [
+    "src/intelligence/portfolio_layer.py"
+   ],
+   "sha256": "1e4a577a1152e724d9a76fb838a1874d82dbdeb3a722862c552d9925fe4e523a",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
+     "sha256": "1e4a577a1152e724d9a76fb838a1874d82dbdeb3a722862c552d9925fe4e523a"
+    }
+   ]
+  },
+  "strategy_verdicts": {
+   "what": "Each strategy's status, verdict and whether it wakes the brain, plus the evidence window and the account (docs/knowledge/strategy_status.json). Evidence counts are not pinned.",
+   "files": [
+    "docs/knowledge/strategy_status.json"
+   ],
+   "sha256": "fc333735a1b2e0939cf3f16bb17793515161f1e6974b89d53403ec4770a30d2b",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
+     "sha256": "fc333735a1b2e0939cf3f16bb17793515161f1e6974b89d53403ec4770a30d2b"
+    }
+   ]
+  },
+  "gate_definition": {
+   "what": "The Acceptance Gate's 27 checks: id, area, check, measure and pass mark (docs/knowledge/acceptance_gate.json). The daily readings are not pinned.",
+   "files": [
+    "docs/knowledge/acceptance_gate.json"
+   ],
+   "sha256": "6200c24a692ee6e8529aa187cd22b69a0670c66fca549891a2a121f61c6d51fd",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
+     "sha256": "6200c24a692ee6e8529aa187cd22b69a0670c66fca549891a2a121f61c6d51fd"
+    }
+   ]
+  },
+  "exam_judges": {
+   "what": "How the agent exam marks the agent: the 'knows' and 'why' question lists and the 'why' pass mark, the 'don't know' and reasoning patterns, the voice rules and the four judging functions (jarvis/service/exam.py).",
+   "files": [
+    "jarvis/service/exam.py"
+   ],
+   "sha256": "662f8a3516274317791395f6d596fc4ca8e7428acbefed41fbda3a5bb7ec44d1",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
+     "sha256": "662f8a3516274317791395f6d596fc4ca8e7428acbefed41fbda3a5bb7ec44d1"
+    }
+   ]
+  },
+  "research_rules": {
+   "what": "The research rules by their headings (docs/research/RESEARCH_RULES.md): pre-registration, counting looks, real costs, lake header, status from one file.",
+   "files": [
+    "docs/research/RESEARCH_RULES.md"
+   ],
+   "sha256": "eb57d6bc66df4c6b1f9cb183ab440d96ba2c7dda02338d5d48c35bfbdc5c19a4",
+   "history": [
+    {
+     "date": "2026-10-15",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
+     "sha256": "eb57d6bc66df4c6b1f9cb183ab440d96ba2c7dda02338d5d48c35bfbdc5c19a4"
+    }
+   ]
+  }
+ }
+}

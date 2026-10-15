@@ -1,0 +1,464 @@
+{
+ "version": 1,
+ "meaning": "Everything owed after the crypto lock, each with the date, the count or the moment it falls due. The plan is this file; finishing is a record in the database (jarvis/service/due_list.py: mark_done). Overdue items become one repair-board request each. Nothing here trades or changes a setting.",
+ "items": [
+  {
+   "id": "SUNDAY-REVIEW",
+   "what": "The weekly situation review (docs/repair_shop/weekly/) is written by the Sunday night run, which ticks this item itself.",
+   "how": "If it is overdue on a Monday the Sunday run failed: read the 'steps that failed tonight' line in the newest daily/universe note and grep the service log for 'weekly', fix the cause, run learning.weekly_review once by hand, then mark this done.",
+   "due": "2026-10-18",
+   "cadence": "weekly",
+   "owner": "automatic"
+  },
+  {
+   "id": "STANCE-CHECK",
+   "what": "Check the first brain-written stance after the Oct 16 close (about 20:10 Toronto); a scheduled check also runs at 2026-10-17 00:45 UTC.",
+   "how": "Read the stance row for 2026-10-16 in the database (through svc_env_run.py), confirm it persisted, read its text and what the call cost, and tell Madhav. The stance prompt now says round-trip costs are 0.6-2.4%, the coin's own figure.",
+   "due": "2026-10-17",
+   "cadence": "once",
+   "owner": "Claude"
+  },
+  {
+   "id": "S2-SPREADS",
+   "what": "Worker stage S2: rerun the $500 backtest with the half-spreads the worker Mac measured on NDAX (each coin's 75th percentile, after 14 days of clean data).",
+   "how": "python3 ~/ananta_runs/svc_env_run.py \"from src.research import book500_s2 as S; S.main(['run','--request'])\". It files one request with the result and ticks this item. Nothing is changed; a coin whose real cost erases its edge leaves the list only if Madhav decides.",
+   "due": "2026-10-26",
+   "cadence": "once",
+   "owner": "automatic"
+  },
+  {
+   "id": "SPREAD-REFRESH",
+   "what": "Cost table check (V04): once a month compare the worker Mac's measured NDAX spreads with the table in src/intelligence/ndax_costs.py.",
+   "how": "Read ndax_spreads.table() beside the cost table and report the gaps to Madhav. The table changes only with his yes and a dated line in ndax_costs.py (tests/test_ndax_costs.py pins it). Mark this done with 'no change' or what he decided.",
+   "due": "2026-11-01",
+   "cadence": "monthly",
+   "owner": "Claude"
+  },
+  {
+   "id": "CHECKPOINT-30",
+   "what": "Day-30 checkpoint of the 60-market-day evidence window: read every evidence count and confirm nothing is silently stuck.",
+   "how": "Open the Evidence page and docs/LOCK.md (section Checkpoints): the counts for Q1, Q2 and Q5-Q8, whether both dial states have been seen, execution fidelity so far, the Acceptance Gate (27 checks) and that every nightly step ran. Write a short day-30 note in docs/repair_shop/ and tell Madhav.",
+   "due": "2026-11-14",
+   "cadence": "once",
+   "owner": "Claude"
+  },
+  {
+   "id": "CHECKPOINT-60",
+   "what": "Day-60 checkpoint: the evidence window ends and Rule A (60 market days, both dial states seen, fidelity within 3 points) is judged for Madhav.",
+   "how": "Run the Acceptance Gate and the graduation scorecard, write the result in docs/repair_shop/, list what passed and what did not, and put the real-money decision to Madhav. Real money is his decision alone and never starts by itself. Then open the after-the-window list.",
+   "due": "2026-12-14",
+   "cadence": "once",
+   "owner": "Claude"
+  },
+  {
+   "id": "ZONES-JUDGE",
+   "what": "Judge the live zone visits (audit cards R6 and SWING-NEW): zones stay a location label, never a trade. Nothing counts zone-visit market events yet.",
+   "how": "At day 60 read the live zone visits by kind (held, broken, open), count independent market events among them, and write the result beside zones_status.json. Entering a zone is not a trade by itself.",
+   "due": "2026-12-14",
+   "cadence": "once",
+   "owner": "Claude"
+  },
+  {
+   "id": "Q-R2-HL",
+   "what": "Quarterly refresh of the other-traders study (R2, Hyperliquid). Reference only; nobody is copied (D8).",
+   "how": "Per ledger.json study R2: pull fresh Hyperliquid fills into HL.sqlite, then python -m src.research.review2_traders analyze --db LAB5 --hl HL.sqlite --out DIR. The after-window HL-RX question (PW-HL-RX) can share the same pull.",
+   "due": "2027-01-01",
+   "cadence": "quarterly",
+   "owner": "Claude"
+  },
+  {
+   "id": "Q-ME1",
+   "what": "Quarterly refresh of ME1, the base-rate sheet of how often coins move 0.5%, 1% or 2% within 5 minutes to 4 hours, used to size stops and targets.",
+   "how": "The Grok-era script me1_move_freq_v0.py lives only in the frozen folder. Rebuild the table from the 5-minute bars as a small counted script with the same horizons and thresholds, log the full date range it read (RESEARCH_RULES.md section 2), and compare with the Sep 13 table. Frequencies only; no rule changes.",
+   "due": "2027-01-01",
+   "cadence": "quarterly",
+   "owner": "Claude"
+  },
+  {
+   "id": "Q-F6",
+   "what": "Quarterly re-measure of 'market allowed' (Bitcoin above its 50-day average; audit cards R7:F6 and R16-F6): 2024-26 shows little.",
+   "how": "Re-run the comparison on data after the earlier tests, counted as one variant, with the pass rule written first. Report the numbers; the gate stays as it is unless Madhav decides otherwise.",
+   "due": "2027-01-01",
+   "cadence": "quarterly",
+   "owner": "Claude"
+  },
+  {
+   "id": "Q-H01",
+   "what": "Quarterly re-measure of H01, the regime gate 'buy only when the whole market is in an uptrend'; the confirm period shows a thin edge.",
+   "how": "Re-measure the gate's edge on data after the earlier tests, pre-registration first (RESEARCH_RULES.md section 1). Report; the gate stays unless Madhav decides otherwise.",
+   "due": "2027-01-01",
+   "cadence": "quarterly",
+   "owner": "Claude"
+  },
+  {
+   "id": "Q-T3",
+   "what": "Quarterly re-judge of the 10-coin trend portfolio (T3): its exit stays (audit card R12); the book itself is judged on its live record.",
+   "how": "Read the live book against its backtest (Q2) and the 30-coin tier (Q8), then write one line: keep, change or stop, with numbers. Madhav decides; nothing changes by itself.",
+   "due": "2027-01-01",
+   "cadence": "quarterly",
+   "owner": "Claude"
+  },
+  {
+   "id": "Q-NEWS-CREDIT",
+   "what": "Quarterly update review: score the daily news check and the seven layer signals once, exactly as docs/research/STUDY_NEWS_CREDIT.md fixed.",
+   "how": "Count coin-days and weeks with outcomes first (counts only). When every flag has 10 weeks with both sides and an outcome, compute the eight comparisons once and put the result in the repair shop. A pass is a proposal for after the window, never a live change.",
+   "due": "2027-01-01",
+   "cadence": "quarterly",
+   "owner": "Claude"
+  },
+  {
+   "id": "EV-Q1",
+   "what": "Ledger Q1: does the live Explorer behave like its 7-year replay (same win rate and cost drag)? The Evidence page answers at its 10th independent market event.",
+   "how": "When the Evidence page shows 10 of 10, write the one-line result with the numbers into ledger.json (Q1 done, live against replay), then mark this done.",
+   "cadence": "evidence",
+   "goal": "10 independent market events of Explorer trades (one count)",
+   "owner": "Claude"
+  },
+  {
+   "id": "EV-Q2",
+   "what": "Ledger Q2: does the live 10-coin trend book follow its backtest (in when trends are up, in cash in slides, few trades)?",
+   "how": "After 6 weekly rebalances (first decision 2026-09-30, so about 2026-11-11) read portfolio_book.sqlite against the backtest, write the one-line result in ledger.json and mark this done. It feeds Q-T3 and CHECKPOINT-30.",
+   "cadence": "evidence",
+   "goal": "6 weekly rebalances of the 10-coin trend book",
+   "owner": "Claude"
+  },
+  {
+   "id": "EV-Q5",
+   "what": "Ledger Q5: the live record of Madhav's setups (M1a, M2a, M2a-G, M3a, M3b). Live fires are clean evidence.",
+   "how": "Count market days with a live fire, not fires. At 10, compare them with random days and with the history test (reads_status.json) and write the result in ledger.json. M1a has never fired in any tier; if it still has not by CHECKPOINT-60, say so plainly.",
+   "cadence": "evidence",
+   "goal": "10 market days with a live signal from the setups",
+   "owner": "Claude"
+  },
+  {
+   "id": "EV-Q6",
+   "what": "Ledger Q6: the live record of H07, the short dip trade in an uptrend (review #14: strong in both periods but a few events short).",
+   "how": "Count market days with a live H07 signal. At 10, write the result in ledger.json and tell Madhav. H07 fires on paper in either dial state; the $500 book's edge sleeve takes it only while the dial is closed.",
+   "cadence": "evidence",
+   "goal": "10 market days with a live H07 signal",
+   "owner": "Claude"
+  },
+  {
+   "id": "EV-Q7",
+   "what": "Ledger Q7: is Jarvis's own book (one decision-maker with all the knowledge) better than random coins traded with the same plan?",
+   "how": "At 10 independent market events compare the book with its random twins per $100, write the result in ledger.json and tell Madhav. It decides nothing by itself.",
+   "cadence": "evidence",
+   "goal": "10 independent market events of Jarvis's book",
+   "owner": "Claude"
+  },
+  {
+   "id": "EV-Q8",
+   "what": "Ledger Q8: the 30-coin tier, trend book and dip trade. Review #15 found both work on liquid coins; live paper must agree before any promotion.",
+   "how": "After 6 weekly checks of the 30-coin trend book and 10 dip-trade events read both books and write the result in ledger.json. Promotion needs the pass rule, the Acceptance Gate and Rule A; Madhav decides.",
+   "cadence": "evidence",
+   "goal": "6 weekly checks of the 30-coin trend book and 10 dip-trade events",
+   "owner": "Claude"
+  },
+  {
+   "id": "EV-DIAL-CLOSED",
+   "what": "The first dial-closed spell: Rule A needs both dial states seen, and the dial has been open since August 2026.",
+   "how": "When the dial closes and later reopens, re-read every universe scoreboard per regime (universe_watch) and the wording on H07 read alerts, which was written while only the dial-open state had live data. Tick this when both states have a live record.",
+   "cadence": "evidence",
+   "goal": "the dial has closed once and reopened (both states seen)",
+   "owner": "Claude"
+  },
+  {
+   "id": "OD-A6-EXAM",
+   "what": "A6 (shorter prompts per kind of question): the first try cut the prompt to 45% but failed the keep rule (one flip, $1.37 against $1.31), so it was not deployed (branch a6-prompt).",
+   "how": "Madhav chooses: approve one more exam (about $1.30) for a revised design that keeps one shared cached core, with the same judge and keep rule written before the run, or park A6 for good. No spending without his yes.",
+   "due": "2026-10-22",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-EXAM-CADENCE",
+   "what": "The agent exam (jarvis/service/exam.py: 20 'knows' questions, 10 'doesn't know', 5 'why', 2 consistency pairs) is run by hand; nothing schedules it. Gate checks agent_knows, agent_unknowns and ux_why read the newest run, and since the Oct 15 lock a PASS older than 8 days reads PARTLY. A run costs about $1.30 in paid AI answers.",
+   "how": "Madhav chooses: (a) a scheduled task runs the exam every Sunday (about $1.30 a week, about $10 over the window) and one run now so ux_why is measured; (b) only at the day-30 and day-60 checkpoints (about $2.60; the three checks read PARTLY between runs); (c) not at all (the three checks stay PARTLY and the gate cannot pass). No spending without his yes.",
+   "due": "2026-10-22",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-PLAYBOOK-ATTENTION",
+   "what": "The attention score (zones_watch.attention) gives points for zone position, a supported zone kind, a recent visit, market allowed and Madhav's setups showing. It is a design rule, never a tested signal, yet HIGH reaches the AI (10 TAKE and 13 PASS decisions from Oct 4 to 14), and zone entries ring the phone.",
+   "how": "Madhav chooses: (a) keep the weights and let the credit study judge attention_high (about Jan 2027); (b) drop the points failed setups add, now; (c) run a weights study after the window (PW-ATTENTION-TABLE). Also say whether zone entries keep ringing the phone.",
+   "due": "2026-10-31",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-BOOK500-BRAKES",
+   "what": "The D12 brakes (2% day, 4% week, 4 losses in a row, 15% fall from the peak) apply to the whole $500 book. The day brake fired 97 times in 2018-2023 and 34 times in 2024-2026 in the backtest (BOOK500.md).",
+   "how": "Madhav chooses: (1) keep the brakes on the whole book, as decided; (2) apply the day and week brakes only to the setup sleeves and let the dial alone run the core. Paper only; no change until he answers.",
+   "due": "2026-10-31",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-CANDIDATE-BOOKS",
+   "what": "The two candidate books have not traded since 2026-10-08. V1's loss-streak breaker is TRIPPED (10 closed trades, none won) and needs a human; no file says retired or resumed. The audit says retire V1 and keep the breaker.",
+   "how": "Madhav chooses: (a) retire both candidate books: write 'retired, Madhav <date>' in their entries and in docs/GRANTS.md, leaving the breaker as history; (b) resume V1 by resetting the breaker, after checking whether that also restarts the hourly watch (parked Oct 11, D6).",
+   "due": "2026-10-31",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-READS-WAKES",
+   "what": "The READS entry (M1a, M2a, M2a-G, M3a, M3b) still has wakes_brain true, although its own line says no measured edge yet (reviews #5 and #26).",
+   "how": "Madhav chooses: (a) set wakes_brain false for READS; (b) let only M1a wake; (c) keep it as it is.",
+   "due": "2026-10-31",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-E5-PERMISSION",
+   "what": "The status cards EXPLORER and E5 still say permission PAPER (tier LIVE10), which the brain counts as support, while the Explorer's losing trades are classed 'won't take again'.",
+   "how": "Madhav chooses: (a) set the permission to CONTEXT on both cards; (b) keep PAPER. The nightly align demotes only retired or parked strategies.",
+   "due": "2026-10-31",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-C3-PRICE",
+   "what": "Casebook buy C3 (SOL, 2026-08-10, 109 CAD) matches no candle: it is about 0.4% above the week's high (108.5 CAD on Aug 9), so it was left 'not matched'.",
+   "how": "Madhav chooses: (a) read the fill (date, time, price) from his NDAX history so the case is re-pinned; (b) keep C3 'not matched' (nothing downstream uses its price).",
+   "due": "2026-11-14",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-MULTITEST",
+   "what": "Multiple-testing rule: reviews #15 to #23 judged about 97 cells on Oct 4-5 and no family-wide correction exists (RESEARCH_RULES.md section 1).",
+   "how": "Madhav chooses: (a) a Bonferroni bar per family (z of about 3.28 at 97 looks); (b) keep the per-test bar but require a point-in-time or forward re-test before any promotion. Needed before any after-window promotion.",
+   "due": "2026-11-30",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-GRAD-GATE7",
+   "what": "Graduation gate 7 (no overtrading in sideways markets) cannot be measured for the $500 book because it labels no market sideways, so the scorecard can never read READY.",
+   "how": "Madhav chooses: (a) define a sideways label for the $500 book and say so in graduation.py; (b) leave gate 7 strict and rely on Rule A and the Acceptance Gate. The scorecard is a second view, never a replacement for either.",
+   "due": "2026-11-14",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-GEMINI-KEY",
+   "what": "The free web-search key was rejected ('API key not valid') on 2026-10-15, so the news veto relied on the paid search path.",
+   "how": "First check web_paid_log.jsonl (the free_failed field) to see whether 'key done' fixed it; never print keys. If checks still fail, Madhav chooses: (a) type a fresh free key into .env himself, never in chat; (b) accept paid-only checks. If they pass, tick this done.",
+   "due": "2026-10-22",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-HL-FILLS",
+   "what": "Optional (worker stage S3): capture Hyperliquid fills continuously, data only, so the HL-RX question (docs/research/HL_RX_RESULT.md) can be asked again and the quarterly other-traders study has the fills.",
+   "how": "Madhav chooses: (a) yes, data-only capture, no signals, pre-registration first; (b) no, rely on the quarterly pull (Q-R2-HL).",
+   "due": "2026-11-14",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-WORKER-HARDENING",
+   "what": "Worker Mac, two small items: confirm the worker's test phone note from the morning of Oct 15 reached his phone, and decide the optional step of turning off password SSH login on the worker (worker plan, stage S2).",
+   "how": "Madhav confirms the note and says yes or no to the hardening. Claude changes nothing on his accounts or machines without an explicit OK.",
+   "due": "2026-10-22",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-RULEBOOK-S1S3",
+   "what": "The variable registry says not to use S3 and S1 as signals (V12, V13), yet E1, E3, E4 and the LONG_TERM type still require them (audit doubt 19).",
+   "how": "Madhav chooses: (a) a rulebook v1 without S1 and S3 after the window; (b) keep them and edit the registry. Either way the registry and the rules must agree.",
+   "due": "2026-11-30",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-CARD-INFLUENCE",
+   "what": "No log can show that a knowledge card changed a brain decision. A decision records which cards it cited (agent_decisions.evidence_ids_json; brain_decisions.knowledge), and credit() groups results by cited card, but nothing re-runs a decision without the card. A random twin compares a decision with random entries, not with and without a card.",
+   "how": "Madhav chooses: (a) after the window, re-run a sample of brain decisions with one card removed and log both answers (this costs AI budget, so it needs his yes on the amount first); (b) build nothing, keep 'citation is not influence' and never claim a card influenced a decision.",
+   "due": "2026-11-30",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "OD-MERGE-MAIN",
+   "what": "Merge branch jarvis-4 into main after Madhav has looked at the live site. The Explorer side (trade guard, kill-switch-unread check) goes live only after the merge and a restart of com.ananta.explorer.",
+   "how": "On Madhav's word only: fast-forward main to jarvis-4, then launchctl kickstart com.ananta.explorer, then check that ops_no_trade_unhealthy turns PASS.",
+   "due": "2026-10-20",
+   "cadence": "once",
+   "owner": "Madhav",
+   "owner_decision": true
+  },
+  {
+   "id": "PW-LIBRARY",
+   "what": "Old-app re-test queue: APP-LIBRARY (13 outside ideas, each needs a written pass rule), APP-REGVAL (re-run the regime validation on the daily horizon with NDAX-type costs, the baseline for any new cost model) and STRAT:CONTINUATION (pullback in an uptrend, parked until one daily-horizon re-test).",
+   "how": "One pre-registered batch (RESEARCH_RULES.md section 1): daily bars, NDAX costs, each idea's pass rule written first. The old library's placeholder numbers are never cited.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-H1",
+   "what": "H1 volume shock, used only as a risk flag (skip or shrink the entry on the bar after a burst), never an entry. Covers P3-H1CI, H1-AGENT, PD-1 and OOS-1.",
+   "how": "Pre-register first. Recompute the error bars with day-level blocks and add a sealed window (P3-H1CI); count events per coin-day; for the agent, compute vz on each closed 15m bar, store it in the decision snapshot, cite H1 only at 2 or more, and run h1_watch for a month against the 2.2% hit rate (H1-AGENT).",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-FEE-SCREEN",
+   "what": "SET8 (volume spike by time of day), SET12 (breadth: isolated against crowd shock) and SET16 (move-lag fee) were screened with the Grok-era fee tables. Re-test them cheaply on the lake as descriptions only.",
+   "how": "One lake re-test with the real NDAX cost table (ndax_costs.py), events counted per coin-day, pass rule written first. See GROK_ERA_ERRATA.md for the old fee tables.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-HL-RX",
+   "what": "HL-RX camera: ask again whether any trader's entries were visible in our snapshot stream before they happened (first try: 62 eligible episodes, none matched, no snapshot at that moment).",
+   "how": "Needs Hyperliquid fills inside a snapshot-covered period (Q-R2-HL pull or OD-HL-FILLS). Write the join rule first (docs/research/HL_RX_RESULT.md). Reference only; nobody is copied (D8).",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-MSM",
+   "what": "msm_v1_stamp_v1: restamp the market states on the lake and cap how long COOLING can run on, before any use.",
+   "how": "Do not start unless a pre-registration proposes using market states. It is new analysis (Rule B).",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-H06",
+   "what": "H06 deep Bollinger dip in an uptrend (still PROMISING, never pre-registered on the lake), and the TEACHER_FIRST_LOOK S3 re-test.",
+   "how": "Write the pre-registration, then re-test on 120 coins with the review #14 design, counted as one variant beside H07.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-P02",
+   "what": "P02 correlated coins are one bet: the cap of 5 open longs (chain.py) was never set from a measured correlation, and the $500 book uses a different rule (2 open coins with 90-day correlation over 0.8).",
+   "how": "Measure the actual correlation once to set the number (a new study). Changing a cap is a rule change, which is Madhav's decision.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-M1A",
+   "what": "M1a capitulation at the lows has never fired live and was not re-run after reviews #15 and #26.",
+   "how": "Re-run when a longer history or new data gives 30 events; the watch keeps recording meanwhile. A new market's data never feeds crypto (Canada boundary C0).",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-ZONE-BASELINES",
+   "what": "Zone baselines: carry the calibration's own noise into z and re-estimate the bias from real-return shuffles (R6-RWCAL); check the invented wick model against real data (R7-RWCAL); run a better baseline for AVERAGE-200, still a live supported kind.",
+   "how": "One pre-registered batch after the window. Dropping AVERAGE-200 from the live supported list before then is Madhav's call.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-R17-H16",
+   "what": "H16 market breadth as a trend filter: re-test once on new data, counted as one variant (parked).",
+   "how": "Pre-register first, with the pass rule written before the run.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-R20",
+   "what": "T3 buffered exit (T3-B on paper): run the buffered-exit test review #20 proposed.",
+   "how": "A new counted T3 variant, pre-registered, judged after the window.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-BREAKOUT-38",
+   "what": "Repair-board request #38: does a breakout away from support work? History test only; the evidence is 3 market days, not '10 times'.",
+   "how": "Pre-register on daily bars with NDAX costs and a point-in-time list before running it.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-ATTENTION-TABLE",
+   "what": "R28: give attention spikes and zone entries their own measured trigger table, as the daily rules got in review #26.",
+   "how": "Build the table after the window, then set the brain's trigger points from it. Related: OD-PLAYBOOK-ATTENTION.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-BOOK500-PIT",
+   "what": "BOOK500-BT: re-test the $500 book's edge sleeve on point-in-time data.",
+   "how": "Pre-register first. S2 (a cost re-run) is separate and does not replace it.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-LEDGER-GENERATE",
+   "what": "Audit Fix 10: the repair-shop ledger is still written by hand; generate it from the databases.",
+   "how": "Post-window build, with a test that the generated counts match the databases.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-VARREG-EVENTS",
+   "what": "Variable registry: fill each row's sample size and independent market events (most rows counted overlapping trades).",
+   "how": "Re-count per row from the source study after the window (docs/VARIABLE_REGISTRY.md rule 5).",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-PREREG-GUARD",
+   "what": "A possible code check that refuses a review script whose pre-registration is not pushed (today RESEARCH_RULES.md section 1 is a rule, not a check).",
+   "how": "Build after the window, with a test that a script without a pushed pre-registration refuses to run.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-RENAMES",
+   "what": "Join renamed tickers in the lake (the BCC and BCHABC chain to BCH) so point-in-time lists stop dropping Bitcoin Cash at its ticker changes.",
+   "how": "Fix the rename chain in src/lake, then rerun the point-in-time list of review #30 and note the change.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-QUALITY-GAPS",
+   "what": "The lake quality check lists only the first 10 gaps per coin (quality.py LIMIT 10).",
+   "how": "Remove the limit and keep every gap in the report; a small change after the window.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-FREE-SEARCH-LOG",
+   "what": "Free web-search counts and answers are not recorded anywhere (audit live-outcomes), so a rejected key shows only in web_paid_log.jsonl.",
+   "how": "Log every free search attempt, its result and the reason it failed; a small change after the window.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-ALIGN-WATCHES",
+   "what": "24 of 39 watches belong to no strategy (UNIVERSE_DAILY, HUNTER, SQUEEZE, E1-E6, T3_TREND and others), so the nightly align does not repair their words.",
+   "how": "Link each watch to a strategy in strategy_status.json. Linking changes trade counting (trades, wakes), so do it as a reviewed change after the window.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-HOURLY-RESUME",
+   "what": "Before the hourly watch (Hunter, Squeeze; parked Oct 11, D6) is ever resumed: re-decide cite_allowlist LIVE_5 and the statuses in knowledge_catalog_v1.json.",
+   "how": "Nothing reads them while the watch is parked. Make the decision, with Madhav, before the first resumed hour.",
+   "after_window": true,
+   "owner": "Claude"
+  }
+ ]
+}

@@ -343,7 +343,7 @@ def _limit_verdict(stopped: int, after: dict, base: dict) -> str:
     if r is not None:
         bits.append(f"{'worse than' if a < r else 'better than'} the trades taken ({_usd(r)})")
     if x is not None:
-        bits.append(f"{'worse than' if a < x else 'better than'} random entries ({_usd(x)})")
+        bits.append(f"{'worse than' if a < x else 'better than'} the Explorer's random entries ({_usd(x)})")
     ev = after.get("events") or 0
     tail = f"Only {_s(ev, 'market event')}, so too early to call." if ev < GOAL_EVENTS else f"{ev} market events: enough to read."
     lean = (" So far it is not hiding winners." if (r is not None and a < r) and (x is None or a < x) else
@@ -436,7 +436,7 @@ def _results(j, P: dict, rows: list[dict]) -> dict:
     groups = (("real", "Explorer: real paper trades", lambda r: not r["shadow"]),
               ("would_be", "Explorer: stopped by a limit (tracked)", lambda r: r["shadow"] in ("REJECTED_SLOT", "CAP", "REJECTED_DUP")),
               ("no_type", "Explorer: no room to a target (tracked)", lambda r: r["shadow"] == "NO_TYPE"),
-              ("random", "Random entries: the bar to beat", lambda r: r["shadow"] == "RANDOM"))
+              ("random", "Explorer random entries: the bar to beat", lambda r: r["shadow"] == "RANDOM"))
     items = [{"key": k, "label": label, **views._summ([r for r in rows if f(r)])} for k, label, f in groups]
     items[0]["open"] = (P.get("results") or {}).get("open_real")
     rep = _try(lambda: brain.report(j), {}, "brain") or {}
@@ -471,7 +471,7 @@ def _results(j, P: dict, rows: list[dict]) -> dict:
     _try(t30, {}, "t30")
     if events < GOAL_EVENTS:
         verdict = (f"Too early: {_s(events, 'market event')} so far, and no verdict before {GOAL_EVENTS}. "
-                   f"So far real trades average {_usd(real['avg_usd'])} per $100 against {_usd(rnd['avg_usd'])} for random entries.")
+                   f"So far real trades average {_usd(real['avg_usd'])} per $100 against {_usd(rnd['avg_usd'])} for the Explorer's random entries.")
     else:
         verdict = ("Real trades are ahead of random entries." if (real["avg_usd"] or 0) > (rnd["avg_usd"] or 0) else
                    "Real trades are not ahead of random entries.")
@@ -501,6 +501,22 @@ def _chain(L: dict) -> list[dict]:
     return out
 
 
+def _books(j, logged: list) -> list[dict]:
+    """Reconstruction Fix 9: one row per book the nightly re-check covers, so the page shows which books are covered, how many times
+    each was re-checked, and when it last matched (the page used to count only the Explorer's own rebuilds)."""
+    from jarvis.service import universe_watch
+
+    out = []
+    for src, label in REBUILD_PARTS:
+        rows = [r for r in logged if r[1] == src or (src == "nightly" and (r[1] or "").startswith("nightly"))]
+        out.append({"book": label, "runs": len(rows), "mismatches": sum(1 for r in rows if not r[2]),
+                    "last": _local(rows[-1][0]) if rows else None, "last_match": bool(rows[-1][2]) if rows else None})
+    u = universe_watch.rebuilds(j, 1000)
+    out.append({"book": "the daily rules re-run on every tier", "runs": len(u), "mismatches": sum(1 for x in u if not x.get("match")),
+                "last": _local(u[0].get("t")) if u else None, "last_match": bool(u[0].get("match")) if u else None})
+    return out
+
+
 def _rebuild(j, L: dict) -> dict:
     _rebuild_table(j)
     logged = j.db.execute("SELECT t, source, match, logged, rebuilt FROM rebuild_log ORDER BY t").fetchall()
@@ -516,7 +532,8 @@ def _rebuild(j, L: dict) -> dict:
     p = Path(j.dir) / "explorer_reconstruct.json"
     cur = json.loads(p.read_text()) if p.exists() else {}
     study = next((s for s in L.get("studies", []) if s.get("id") == "R2"), None)
-    return {"nightly": {"runs": len(nightly), "first": _day(nightly[0][0]) if nightly else None, "mismatches": n_mis,
+    return {"books": _books(j, logged),
+            "nightly": {"runs": len(nightly), "first": _day(nightly[0][0]) if nightly else None, "mismatches": n_mis,
                         "every": "every night at the daily close (8 PM Toronto)"},
             "asked": {"runs": len(asked), "mismatches": a_mis, "last": _local(asked[-1][0]) if asked else None,
                       "how": "you ask Ananta: \"run the reconstruction\""},
@@ -724,7 +741,8 @@ def _loop(j, out: dict, P: dict, rows: list[dict]) -> list[dict]:
          "sub": f"{D.get('real_orders', 0)} real Explorer orders ({D.get('filled', 0)} filled); {blocked} stopped (a limit, or no room to "
                 f"a target) and tracked anyway; Jarvis decided {decided} of {wakes} wakes; plus {D.get('random_baseline', 0)} random entries as the bar"},
         {"key": "scored", "label": "Scored", "n": len(rows) + daily_closed,
-         "sub": f"closed trades scored after costs (real, stopped, random); {_s(events, 'market event')} so far"},
+         "sub": f"closed trades scored after costs: {len(rows):,} Explorer trades (real, stopped, random; some exits not yet saved to its book) and "
+                f"{daily_closed} from the evidence book (brain, daily, eye); {_s(events, 'market event')} so far"},
         {"key": "missed", "label": "Misses checked", "n": sum(mc.values()),
          "sub": f"big moves: {mc['CAUGHT']} caught, {mc['SEEN']} seen, {mc['MISSED']} missed"},
         {"key": "forwarded", "label": "Sent to the repair shop", "n": sum(b.values()),
@@ -805,6 +823,29 @@ REBUILD_PARTS = (("nightly", "the Explorer replayed from raw candles"), ("trades
                  ("trend30", "the 30-coin trend book's decisions and fills"))
 
 
+STREAM_GAP_S = 35 * 60                      # health.py's own bar for a scan gone quiet
+
+
+def _stream_ok(j, now: int, days: int = 2) -> bool:
+    """The Explorer's 15-minute snapshot stream (explorer_decisions.jsonl) has no hole over 35 minutes in the last `days` days. The bar
+    times are read, not the write times: after an outage the Explorer back-fills the missed bars (catch_up rows), and those count."""
+    p = Path(j.dir) / "explorer_decisions.jsonl"
+    if not p.exists():
+        return False
+    ts = []
+    with open(p, "rb") as f:
+        f.seek(0, 2)
+        start = max(0, f.tell() - 4_000_000)
+        f.seek(start)
+        for line in f.read().decode(errors="ignore").splitlines()[1 if start else 0:]:           # a cut first line is dropped, a whole one is kept
+            try:
+                ts.append(int(json.loads(line)["t"]))
+            except (ValueError, KeyError, TypeError):
+                pass
+    ts = sorted({t for t in ts if t >= now - days * DAY}) + [now]
+    return len(ts) >= 3 and max(b - a for a, b in zip(ts, ts[1:])) <= STREAM_GAP_S
+
+
 def reconstructable(j) -> dict:
     """Gate ops_reconstructable, measured (Oct 15): every book has a nightly re-check, the newest at most 2 days old, and it matched.
     Parts: the rebuild_log sources above, the daily rules re-run on every tier (universe_rebuilds), and the $500 book (every fill
@@ -825,6 +866,8 @@ def reconstructable(j) -> dict:
         if j.db.execute("SELECT 1 FROM sqlite_master WHERE name='book500_fills'").fetchone() else (0, 0)
     label = "the $500 book's fills and sizes"
     (bad if a["violations"] or (inside or 0) < n else ok).append(label)
+    label = "the 15-minute snapshot stream (no gap over 35 minutes)"             # reconstruction Fix 4: alive means no hole over 35 minutes
+    (stale if not _stream_ok(j, now) else ok).append(label)
     status = "FAIL" if bad else "PARTLY" if stale else "PASS"
     note = (f"{len(ok)} of {len(ok) + len(stale) + len(bad)} parts re-checked and matching"
             + (f"; MISMATCH: {', '.join(bad)}" if bad else "") + (f"; not re-checked in the last 2 days: {', '.join(stale)}" if stale else ""))
@@ -917,6 +960,32 @@ def cites(j, days: int = 7) -> tuple[int, int, int]:
     return len(picked), ok, sourced
 
 
+EXAM_FRESH_DAYS = 8                      # the exam checks (Oct 15 lock): a pass counts for 8 days, so a weekly run keeps it; older reads PARTLY
+
+
+def _exam_age(c: dict, day: str | None) -> None:
+    """A PASS from an exam run older than EXAM_FRESH_DAYS reads PARTLY until the exam is run again ("a pass can turn back into a fail")."""
+    try:
+        age = (datetime.now().date() - datetime.strptime(day, "%Y-%m-%d").date()).days
+    except Exception:  # noqa: BLE001
+        return
+    if c.get("status") == "PASS" and age > EXAM_FRESH_DAYS:
+        c["status"] = "PARTLY"
+        c["note"] = f"{c.get('note', '')}; the last run is {age} days old (a pass counts for {EXAM_FRESH_DAYS} days; the exam needs running again)".lstrip("; ")
+
+
+def _gate_why(c: dict, e: dict | None) -> None:
+    """ux_why (the Oct 15 lock): the check had no measure; five 'why' questions now sit in the exam (jarvis/service/exam.py WHY)."""
+    from jarvis.service import exam
+
+    if not e or not e.get("why_of"):
+        c["status"], c["note"] = "NOT_MEASURED", "the exam has not asked its 'why' questions yet (added at the Oct 15 lock; the next exam run measures them)"
+        return
+    c["status"] = "PASS" if e.get("why_pass") else "FAIL"
+    c["note"] = f"{e['why']} of {e['why_of']} 'why' answers gave the real reason on {e['day']} (needs {exam.WHY_PASS})"
+    _exam_age(c, e.get("day"))
+
+
 def _gate_measured(j, by: dict) -> None:
     """The six checks that had no measure until Oct 11 (plan Batch 5): sizing, execution, regimes, the agent exam and the voice exam."""
     from jarvis.service import exam, ndax_book
@@ -1001,11 +1070,16 @@ def _gate_measured(j, by: dict) -> None:
             c["status"] = "NOT_MEASURED" if not e else "PASS" if e.get(field) else "FAIL"
             c["note"] = (f"{e[n_key]} of {e[of_key]} on {e['day']}" + (f" (re-judged on {e['rejudged']} with a judge widened after the run; "
                          "the next run confirms it)" if e.get("rejudged") else "")) if e else "exam not run yet"
+            _exam_age(c, e and e.get("day"))
+    c = by.get("ux_why")
+    if c:
+        _gate_why(c, e)
     v = exam.latest("voice_latest.json")
     c = by.get("ux_voice")
     if c:
         c["status"] = "NOT_MEASURED" if not v else "PASS" if v.get("pass") else "FAIL"
         c["note"] = f"{v['understood']} of {v['of']} heard on {v['day']}" if v else "voice exam not run yet"
+        _exam_age(c, v and v.get("day"))
 
 
 def _headline(out: dict) -> str:
@@ -1018,7 +1092,7 @@ def _headline(out: dict) -> str:
                     f"no verdict before {GOAL_EVENTS}.")
         real = next((x for x in r.get("items", []) if x["key"] == "real"), None)
         if real and real.get("avg_usd") is not None and r.get("random_avg_usd") is not None:
-            bits.append(f"So far real trades average {_usd(real['avg_usd'])} per $100, random entries {_usd(r['random_avg_usd'])}.")
+            bits.append(f"So far real trades average {_usd(real['avg_usd'])} per $100, the Explorer's random entries {_usd(r['random_avg_usd'])}.")
     gt = out.get("gate") or {}
     if gt:
         bits.append(f"Acceptance gate: {gt['passed']} of {gt['of']} checks pass.")

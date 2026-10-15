@@ -1,4 +1,4 @@
-"""The ten graduation gates, ported unchanged from the old app (research audit card APP-GRAD, Oct 15)."""
+"""The ten graduation gates from the old app: the numbers unchanged, gate 7 stricter when a book has no sideways label (research audit card APP-GRAD, Oct 15)."""
 import sqlite3
 import time
 from types import SimpleNamespace

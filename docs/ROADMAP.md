@@ -97,7 +97,7 @@ See [LOCAL_LOOP.md](./LOCAL_LOOP.md).
 4. ~~S4 1y historical Observation replay~~ **Done** (`lab replay` + `lab audit replay`; TAKE-eq ≠ KEEP)
 5. Live watcher continues (`lab watch 15`) as a parallel evidence stream
 6. ~~live vs historical compare~~ **Done** (`lab compare` 2026-08-23)
-7. **H3 done** (`lab attribution`). **DQ-v0.0 locked** (`lab quality`). **H2 done** (`lab h2`). H1 live enable rejected. Wave A WATCH **frozen**.
+7. **H3 done** (`lab attribution`). **DQ-v0.0 locked** (`lab quality`). **H2 tool built** (`lab h2`, print only; no histogram was saved, so there are no H2 numbers). H1 live enable rejected. Wave A WATCH **frozen**.
 8. **Universe v1.2** — continuation hist shadow. **Setup Memory v0** — `lab memory`. Wave A frozen.
 
 Next meaningful milestone:

@@ -35,3 +35,8 @@ T3 passes as in review #4 (confirm +13.1% vs buy-and-hold -21.6%, matching revie
 - Decide what a TOP30-only pass earns (paper slot for the 30-coin tier, not live).
 - Quality check should flag x10+ day moves as possible redenominations (it graded COCOS and BNX B).
 - R2 copy waits for the bucket.
+
+## Erratum (2026-10-15, research audit)
+
+- Grades: on Oct 5 the token-swap check regraded BNX and COCOS to C, so the 120 now grade 92 A / 25 B / 3 C (C: BCC, BNX, COCOS), not 92 A / 27 B / 1 C as written above.
+- Look count: reviews #15 to #23 together judged about 97 cells on Oct 4-5 (`RESEARCH_RULES.md`, section 1).

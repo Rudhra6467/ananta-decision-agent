@@ -682,7 +682,7 @@
    "status": "ACTIVE_UNPROVEN",
    "status_by_tier": {
     "A": "ACTIVE_UNPROVEN",
-    "B": "ACTIVE_UNPROVEN",
+    "B": "EVIDENCE_ONLY (no measured edge: reviews #26 and #29)",
     "C": "SHADOW (watched and scored, never judged)"
    },
    "evidence": "pre-registered 2026-10-09 before any universe trade (engine plan D1-D7); measured since: only H07 on tier A while the dial is closed has an edge (reviews #26, #29, point in time), every other rule x tier x dial cell shows none (review #26), so the tier B and C books are evidence only; random baselines per tier (RANDOM_10D/20D/30D-U<tier>) are the bar",

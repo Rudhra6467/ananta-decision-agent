@@ -1,7 +1,12 @@
-# Research audit v1: every analysis of the prototype, rated and ranked
+# Research audit v1 (frozen 2026-10-05): the basic-lab and Claude-era analyses, rated and ranked
+
+> Not complete: the Grok-era research of September 2026 (H1-H6, SET1-SET16, MSM, MRD, N3, N4, the fade, exit maps, PD cards, the packs) and
+> reviews #16-#30 have no rows here. `AUDIT_V2.md` and `docs/knowledge/audit_register.json` supersede it; this file and `audit_v1.json` are not
+> edited further, and the live status of a strategy, card or hypothesis is in `docs/knowledge/strategy_status.json`, `status_cards.json` and
+> `hypotheses.json`, not in this snapshot.
 
 Written 2026-10-04, before any new test was run on the 120-coin lake. The rubric below was fixed first; the ratings were then
-applied to the inventory (`audit_v1.json`, 164 rows: reviews, studies, variables, hypotheses, setups, strategies, policies, queue).
+applied to the inventory (`audit_v1.json`, 165 rows: reviews, studies, variables, hypotheses, setups, strategies, policies, queue).
 Rows are rated on what their own records say, quoting their own numbers. No new numbers were produced for this audit.
 
 ## 1. Evidence score (0-10, one point table for every row)
@@ -54,5 +59,5 @@ The ledger (`audit_v1.json`) holds every row with its rating, score and one-line
 - H07 stays RE-TEST: PASS on TOP30 (z 3.5 / 3.2), FAIL on all 120. It works on liquid coins only.
 - M1a stays RE-TEST: a pass on all 120 sits exactly on the bar (t 1.51 vs 1.5) with 3 confirm events.
 - M2a, M3a and M2a-G move to DUMP (not supported on any wider tier); review #8 goes with them.
-- Count now: KEEP 16, RE-TEST 15, CONTEXT 23, UNTESTED 8, DUMP 102.
+- Count after review #15 (164 rows): KEEP 16, RE-TEST 15, CONTEXT 23, UNTESTED 8, DUMP 102. Final, 2026-10-05 (165 rows): KEEP 22, RE-TEST 5, CONTEXT 28, UNTESTED 3, DUMP 107.
 - Not decided by the rubric: what a TOP30-only pass earns. The pre-registration did not cover it, so it is Madhav's call.

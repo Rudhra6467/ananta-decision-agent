@@ -132,8 +132,8 @@ def board(j) -> dict:
            "attention": [{"coin": r["coin"], **r["attention"]} for r in rows if r["attention"]["level"] != "LOW"],
            "groups": st, "recent": recent(j),
            "note": "Price is always in or near a zone (a band, not a line). Inside a zone Ananta starts its lookout. "
-                   "History: zones hold a little more often than random bands, the 200-day average and overlapping zones the most "
-                   "(review #6); inside a zone the market regime decides most (BTC above its 50-day: 68% held vs 50%); wicks, "
+                   "History: zones hold a little more often than random bands, the 200-day average and new swing zones the most "
+                   "(reviews #6 and #16); inside a zone the market regime decides most (BTC above its 50-day: 68% held vs 50%); wicks, "
                    "volume and relative strength added nothing (review #7). Entering a zone is not a trade."}
     _CACHE.update(key=key, board=out)
     return out

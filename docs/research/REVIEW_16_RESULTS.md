@@ -40,3 +40,8 @@ BTC/ETH); the one difference is that the lake leaves out incomplete days (exchan
 ## Open (Madhav)
 - Update the live zone map and the decision chain's LOCATION gate: keep SWING-NEW and AVERAGE-200 as "history supports",
   drop CONFLUENCE to "watched, not supported" (yes / no). Nothing is changed in the running system until then.
+
+## Erratum and notes (2026-10-15, research audit)
+
+- Data check: re-measured before 2026-08-01, the old 5-minute build kept 11 to 26 days per coin that the lake leaves out (not 11-54). Closes are identical on 7 of 10 coins (not 8): DOGE differs on 1 day (0.03%), BTC on 10 days (up to 0.40%), ETH on 13 days (up to 0.60%).
+- Unanchored: the pre-registration was not pushed before this run (`RESEARCH_RULES.md`, section 1).

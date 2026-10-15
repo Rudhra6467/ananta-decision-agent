@@ -106,7 +106,7 @@ agree on goes near the $500 account.
 - **Code:** `src/lake/` (download, build, bars, quality, universe rule v1, research adapter). Run at low priority
   (`nice -n 10 python -m src.lake.cli all BTC ...`), so the live system is never slowed.
 - **Checks so far:** BTC, ETH, SOL, ADA, AVAX downloaded in full (2017 or listing to yesterday), grades A/B (about 0.04-0.18% of
-  minutes missing, Binance's maintenance windows), no broken candles; the lake's daily closes match the old research database exactly.
+  minutes missing, Binance's maintenance windows), no broken candles; the lake's daily closes equal the old research database's on every shared day for SOL, ADA and AVAX; BTC and ETH differ on 10 and 13 days, by at most 0.40% and 0.60% (review #16 data check).
 - **Research:** reviews #15-#23 (each pre-registered) on the lab 10 (a data check), the top 30, the whole universe and the
   point-in-time top 30 (#22, the survivorship check), with the original pass rules and pessimistic costs for thin coins.
 - **Held now (2026-10-05):** 120 coins (rule v1) plus every coin that was ever in the month-by-month top 30 (about 190; LUNA, FTT

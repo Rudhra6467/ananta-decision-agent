@@ -93,7 +93,7 @@ def evaluate(ex, coin: str, open_trades: list[dict], equity: float, zone_row: di
         if ok:
             why = f"at a zone history supports: {kinds} ({focus['bot']:,.6g}-{focus['top']:,.6g})"
         elif focus:
-            why = f"at a zone ({kinds}), but not a kind history supports; wait for a 200-day, overlapping or new swing zone"
+            why = f"at a zone ({kinds}), but not a kind history supports; wait for a 200-day or new swing zone"
         else:
             ns = zone_row.get("next_support")
             why = "between zones" + (f"; the next support zone is {ns['distance_pct']:+.1f}% away" if ns else "")

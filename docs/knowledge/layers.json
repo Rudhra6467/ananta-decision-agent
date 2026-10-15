@@ -226,7 +226,7 @@
     "T3",
     "REPAIR_SHOP"
    ],
-   "evidence": "V04 KEEP; costs killed most strategies; the ten lab coins' half-spreads are one NDAX snapshot (2026-09-29) kept in one file, and every other coin's cost is an assumption until the worker Mac's measurement (stage S2, about Oct 25) is judged",
+   "evidence": "V04 KEEP; costs killed most strategies; the ten lab coins' half-spreads are the median of 5 NDAX snapshots (2026-09-29) kept in one file, and every other coin's cost is an assumption until the worker Mac's measurement (stage S2, about Oct 25) is judged",
    "files": [
     "src/intelligence/explorer_engine.py",
     "src/intelligence/ndax_costs.py"
@@ -845,6 +845,7 @@
     "jarvis/service/people.py",
     "jarvis/service/status_words.py",
     "jarvis/service/learning.py",
+    "jarvis/service/due_list.py",
     "jarvis/service/ndax_book.py",
     "jarvis/service/graduation.py",
     "jarvis/service/live_guard.py",
@@ -1165,7 +1166,8 @@
     "src/research/review27.py",
     "src/research/review29.py",
     "src/research/review30.py",
-    "src/research/book500.py"
+    "src/research/book500.py",
+    "src/research/book500_s2.py"
    ]
   },
   {

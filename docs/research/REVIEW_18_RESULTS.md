@@ -43,3 +43,8 @@ LUNA-3AC 2022 -51.3 / 0.0 / 0.0; FTX 2022 -27.5 / -14.2 / -14.2; Aug 2024 -10.5 
 ## Changes
 None to the running system. The decision chain's INVALIDATION gate already uses H14; its status moves from UNVERIFIED to
 SUPPORTED (structural beats tight), with the note that H07 itself works best without a stop.
+
+## Notes (2026-10-15, research audit)
+
+- Unanchored: the pre-registration was not pushed before this run (`RESEARCH_RULES.md`, section 1).
+- Judging tier: TOP30 was chosen after review #15; no tier rule was written then (`RESEARCH_RULES.md`, section 1, item 2).

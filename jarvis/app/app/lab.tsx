@@ -287,7 +287,7 @@ function Results({ r }: { r: any }) {
     <View>
       <Q n={3} q="Is any of it working?" a={r.verdict} />
       <Card title="Average per $100 trade, after costs">
-        <SignedBars items={items} mark={r.random_avg_usd != null ? { value: r.random_avg_usd, label: "random entries" } : null} fmt={usdSigned} />
+        <SignedBars items={items} mark={r.random_avg_usd != null ? { value: r.random_avg_usd, label: "Explorer random entries" } : null} fmt={usdSigned} />
         <View style={{ gap: 4, marginTop: 6 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
             <T small>Separate market moves so far</T><T small>{r.events} of {r.goal_events} for a verdict</T>

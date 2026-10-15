@@ -46,7 +46,7 @@ GENERATION = {
 # --- win after costs ---
 COST = {
     "version": "cost-v0",
-    "default_round_trip_pct": 0.08,  # placeholder; replace with venue schedule
+    "default_round_trip_pct": 0.08,  # SUPERSEDED placeholder, never a decision cost; real costs: src/intelligence/ndax_costs.py
     "win_definition": (
         "A TAKE-eq is a WIN iff forward horizon return - round_trip_cost > 0. "
         "Win rate = wins / n_take_eq. n_take_eq=0 → NO_TAKE, not 0% win rate."

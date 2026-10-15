@@ -73,3 +73,7 @@ The primary cell's frozen pass marks, each met:
 ## Reproduce
 `cd ~/code/ananta-agent-research && ~/ananta_venvs/lake/bin/python -m src.research.review29 coverage`, then
 `~/ananta_venvs/lake/bin/python -m src.research.review29`. The seed is 29, and the run writes `docs/research/review29.json`.
+
+## Erratum (2026-10-15, research audit)
+
+- "The holdout stays sealed" (under "What changed") means that no lake review loaded the window from 2026-08-01. It is not fresh: Candidate v3 spent 2026-08-01 to 2026-09-12 once on the lab 10 (`CANDIDATE_V3_HOLDOUT_RESULT.md`), and live paper has run on these coins since 2026-09-29 (H07 since 2026-10-09). The next holdout is live data after a stated date, written in the pre-registration (`RESEARCH_RULES.md`, section 4).

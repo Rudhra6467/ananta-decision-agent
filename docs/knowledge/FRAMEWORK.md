@@ -58,3 +58,4 @@ words Ananta understands and can describe as observations, not reasons to buy.
 ## Update 2026-10-03 (Madhav's OK)
 - LOCATION now means **price at a kind of zone history supports** (200-day average, overlapping zones, new swing zones; review #6), with the market gate first (review #7). The earlier rule (near the 20/50-day, not stretched; H11) was not supported in review #11.
 - The stop at a zone is a daily close 0.5 daily range under the zone (reviews #6, #10); elsewhere the structure rule (H14) remains.
+- Update 2026-10-05 (review #16, Madhav's yes): overlapping zones are watched, not supported. LOCATION is the 200-day average or a new swing zone (`zones.GOOD_GROUPS`). The 2026-10-03 bullets above stay as written.

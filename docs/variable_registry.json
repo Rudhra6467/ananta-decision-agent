@@ -74,7 +74,7 @@
    "family": "mean reversion",
    "horizon": "hours-days",
    "status": "WATCH",
-   "evidence": "RSI15<30 beat random short-term entries by about $0.10 per trade in 2017-23 (t 3.9) but loses after costs; E6|BEAR|BTC BULL slightly positive gross in both periods (+0.17% / +0.07%)",
+   "evidence": "RSI15<30 beat random short-term entries by about $0.10 per trade in 2017-23 (t 3.9) but loses after costs; E6|BEAR|BTC BULL slightly positive gross in both periods (+0.07% discovery / +0.17% confirm, 3% target / 1.5% stop / 24h; -0.91% / -0.86% after costs)",
    "source": "repair_shop/REVIEW_3_RESULTS.md; intraday atlas v1",
    "carry_forward": "Retest on low-cost venues and on stocks (relative dips vs index)"
   },
@@ -86,7 +86,7 @@
    "status": "WATCH",
    "evidence": "Largest gross improvement in MTF entry study v1 (-0.039% to +0.005% per trade) but far below costs",
    "source": "research/MTF_ENTRY_STUDY_V1_RESULTS.md",
-   "carry_forward": "Useful as a context tag, not as an edge by itself"
+   "carry_forward": "Useful as a context tag, not as an edge by itself; also a gate for the Explorer's LONG_TERM type (RULEBOOK_V0.md, G1)"
   },
   {
    "id": "V09",
@@ -126,7 +126,7 @@
    "status": "DROP",
    "evidence": "Confirmed vs early reversals flip sign between periods; confirmation does not help",
    "source": "research/EXPLORER_V0_SCORECARD.md",
-   "carry_forward": "Do not carry forward as a signal; keep as a descriptive tag"
+   "carry_forward": "Do not carry forward as a signal; keep as a descriptive tag. Still an entry condition of the frozen Explorer rulebook v0 (E1 and E3 in RULEBOOK_V0.md), unchanged while the Explorer runs as evidence (Rule B)"
   },
   {
    "id": "V13",
@@ -136,7 +136,7 @@
    "status": "DROP",
    "evidence": "No stable difference between BULL and BEAR entries in either period",
    "source": "research/EXPLORER_V0_SCORECARD.md",
-   "carry_forward": "Use daily trend (V01) instead"
+   "carry_forward": "Use daily trend (V01) instead. Still required by E1, E4 and the LONG_TERM type in the frozen Explorer rulebook v0 (RULEBOOK_V0.md), unchanged while the Explorer runs as evidence (Rule B)"
   },
   {
    "id": "V14",

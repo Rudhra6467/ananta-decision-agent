@@ -7,6 +7,8 @@ That catalog includes SET14, HOT-birth, SEQ2, continuation, and closed S2 rows.
 This module is the gate. It does not TAKE, does not fill, does not credit M2,
 and does not backfill old rows. Context cites stay off until a new-row inspect
 passes. Continuation may remain the setup column. It is not an evidence id.
+(Research audit, Oct 15: the flag below is a label only. Ids outside LIVE_5, that is set16 and runtime.guardrails, stay off; the three
+context cards inside LIVE_5 are citable. Only the hourly watch's path reads this module, and that watch is parked, D6.)
 
 Laptop wire, new inserts only. Do not replace decision_store.py from this
 branch. The laptop bar-open repair is not on p1-cycle-ingest.
@@ -24,7 +26,7 @@ from typing import Any
 FILTER_VERSION = "cite.allowlist.v1"
 SCHEMA_VERSION = "persist.hygiene.v1"
 
-# Dump-fix surface. The 3 context cites are not in this tuple.
+# Dump-fix surface: Hunter, Squeeze and the three context cards (h1, mrd.size, mrd.sync) are citable; set16 and runtime.guardrails are not.
 LIVE_5 = (
     "card.hunter.r3.v1",
     "card.squeeze.r3.v1",
@@ -63,7 +65,7 @@ DENY_PREFIXES = (
     "card.s2.",
 )
 
-# Flip only after a new G5 row inspect passes. Not this commit.
+# A label only: copied into each new row's record; it gates nothing (LIVE_5 alone decides what is kept).
 CONTEXT_CITES_DEPLOYED = False
 
 ABSENCE = ("NOT_MEASURED", "NOT_AVAILABLE", "NOT_APPLICABLE", "MISSING")

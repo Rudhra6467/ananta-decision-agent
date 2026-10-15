@@ -121,6 +121,8 @@ Depth: `NONE` 0 · `ANECDOTE` 1–9 · `THIN` 10–29 · `ADEQUATE` 30–99 · `
 
 Hist TAKE-eq is **almost entirely bollinger**. Wave A “TAKE quality” without a split was a Bollinger number wearing a Wave A badge.
 
+> **Sep 1 re-run (added Oct 15, research audit; the frozen table above stays as it was).** Lab quality on the 5-year book (`decision_quality_report.json`, 2026-09-01 13:34 UTC) kept every verdict but not the counts: historical TAKE-eq Hunter 1, Squeeze 14, Bollinger 247 (+1h -0.04%, +4h -0.10%, WASH); live Hunter SKIP_SETUP 221 setups, n 214 at +1h (+0.01%, WASH) and n 210 at +4h (+0.00%, WASH: the +4h "slight protective" read did not hold). Quote these, not 4 / 4 / 47 and n 64.
+
 ---
 
 ## Rollup (DQ-v0.0)

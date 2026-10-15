@@ -29,3 +29,7 @@ Binance Data Vision: funding for every coin with a futures market, open interest
 ## What follows
 Funding, open interest and taker buy share stay in the lake and in the agent's context (shown as information, never used to
 decide). Audit rows U01-U03: tested, FAIL.
+
+## Notes (2026-10-15, research audit)
+
+- Judging tier: TOP30 was chosen after review #15; no tier rule was written then (`RESEARCH_RULES.md`, section 1, item 2).

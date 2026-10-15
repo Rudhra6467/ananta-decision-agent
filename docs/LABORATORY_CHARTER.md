@@ -203,3 +203,4 @@ Change this charter only by:
 |------|--------|
 | 2026-08-14 | v1.0 initial charter |
 | 2026-08-22 | v1.1 continuous observer ritual; Market Truth; human-gated strategy experiments |
+| 2026-10-15 | Section 7 amended (research audit, card LAB-CHARTER): day counts are minimums only; promotion needs a written pass rule fixed before the run (independent events, NDAX costs, two periods, random baseline), then the Acceptance Gate and Rule A; the human gate and no automatic KEEP stay; grants are written in docs/GRANTS.md |

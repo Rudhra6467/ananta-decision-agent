@@ -16,6 +16,7 @@ def test_status_file_is_consistent():
         assert s["verdict"] in S.VERDICT_WORDS, sid
         assert s.get("why"), sid
     assert S.of_watch("ZONE_TOUCH-UB")[0] == "ZONE_TOUCH" and S.of_watch("H07-T30")[0] == "H07" and S.of_watch("JARVIS_RANDOM")[0] == "RANDOM"
+    assert all(S.of_watch(w)[0] == "RANDOM" for w in ("RANDOM_10D", "RANDOM_20D-UB", "RANDOM_30D-UC", "RANDOM_BOLD"))
     assert S.trades("ZONE_TOUCH-UC") and S.trades("H07-UA") and S.trades("JARVIS") and not S.trades("HOURLY-UA") if S.of_watch("HOURLY-UA") else True
     assert not S.counts_book("15-minute Explorer") and S.counts_book("Trend portfolio") and not S.counts_watch("JARVIS") and not S.counts_watch("M2a-UC")
 

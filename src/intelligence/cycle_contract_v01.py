@@ -6,7 +6,8 @@ Drop into ananta-decision-agent as src/intelligence/cycle_contract_v01.py
 Law: Agent → API → Ananta → Mongo. No silent strategies.
 WAIT/SKIP ≠ KEEP. Missing fields → UNKNOWN, not a fake SKIP.
 bb_bandwidth is not an enabled strategy on this contract.
-Outcome +15m/+1h/+4h is v0.2.
+Outcome +15m/+1h/+4h was planned as v0.2 and never shipped (src/tools/outcome_truth.py fills those outcomes agent-side, called
+from src/lab_watch.py). No code imports this module (research audit, Oct 15); it records the Sep 6 contract shape.
 """
 from __future__ import annotations
 

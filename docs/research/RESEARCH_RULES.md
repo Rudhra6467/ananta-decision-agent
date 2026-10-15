@@ -14,7 +14,7 @@ Every review starts as `docs/research/REVIEW_N.md`, written before the data is t
 2. **The tier that decides**: one of LAB10, TOP30, ALL120 or a point-in-time list (PIT10, PIT30, tier A). Say which one decides; the others are
    reported beside it and never rescue a failed one (LAKE-5). Judge on a month-by-month list wherever the list can change over time.
 3. **The test**: one rule, parameters from the data's own distribution (section 3), nothing tuned afterwards, the periods (discovery, confirm; the
-   old holdout is spent, section 4), the baseline (random entries with the same exit and the same coins), and the costs (section 5).
+   old holdout is no longer fresh, section 4), the baseline (random entries with the same exit and the same coins), and the costs (section 5).
 4. **Pass marks (frozen)**: numbers. A minimum count of independent events (section 2), the same sign in both periods, a z-score bar, the
    after-cost figure, and the 2x-cost and no-burst checks where they apply.
 5. **What each outcome changes (decided now)**: the files, cards, gate checks and books a pass or a fail touches. Decided before the result so the
@@ -26,7 +26,7 @@ depend on the session that wrote it. The result file records that commit's hash.
 push in between is marked "unanchored" in the result.
 
 **One question at a time.** Reviews run one after another in the numbered queue (`docs/repair_shop/ledger.json`, `queue`), never as a sweep.
-Every review adds its cell count to the family's running look count (REVIEW_15 judged about 97 cells in one day; the 660 looks of the first
+Every review adds its cell count to the family's running look count (reviews #15 to #23 judged about 97 cells on Oct 4-5; the 660 looks of the first
 relationship hunt are carried by anything born from it). A pass found after many looks is read against that count, not on its own.
 
 **Rule B.** Inside the evidence window no review creates a new crypto strategy. A re-test of an existing idea is queued for the period
@@ -39,7 +39,7 @@ after the window (the list is in `docs/LOCK.md`, section "After the window") and
 - One definition and one count per object. When two files disagree, the later review wins and the older text gets an erratum
   (`docs/research/GROK_ERA_ERRATA.md`), never a silent edit of a frozen result.
 - Every script logs the date range it read and the number of days it dropped (section 4).
-- Say "sample size" and "independent events" side by side in every table that quotes a result (`docs/VARIABLE_REGISTRY.md` does).
+- Say "sample size" and "independent events" side by side in every table that quotes a result (`docs/VARIABLE_REGISTRY.md` does not yet: its rows predate this rule; see its rule 5).
 
 ## 3. Parameters: the parameter-discovery law (PDLAW, BESTPF)
 
@@ -57,8 +57,11 @@ after the window (the list is in `docs/LOCK.md`, section "After the window") and
   today's knowledge flatters a rule (review #22: T3-B +26.1% on today's 30, -22.5% on the coins that really were the 30).
 - **Renames** (MATIC to POL, FTM to S, RNDR to RENDER): join Binance and NDAX symbols by the rename table (`RENAMED` in `jarvis/service/tier30.py`) before
   counting coins, so one coin is never two.
-- **The holdout is spent.** The lake's holdout (from 2026-08-01) has been looked at (reviews #22 to #30); it is no longer fresh. The next holdout is
-  live data after a stated date, written in the pre-registration. An untouched holdout is never inspected early.
+- **The holdout is not fresh.** The lake loader cuts at 2026-08-01 (`CONF_END`, `src/research/reads.py`) and no lake review loaded anything from that
+  date on. But the same window (2026-08-01 to 2026-09-12) was spent once by the Candidate v3 one-time holdout
+  (`CANDIDATE_V3_HOLDOUT_RESULT.md`), and live paper has run since 2026-09-29, so it is no longer a fresh test for ideas built on these coins.
+  Reviews #29 and #30 call it "sealed": read that as "not loaded", never as "fresh". The next holdout is live data after a stated date, written
+  in the pre-registration. An untouched holdout is never inspected early.
 - **One source per number.** The old 15-minute tape (`lab10_15m_merged`, outside git) joins two sources with no conversion and no venue column:
   Kraken USD to 2026-03-31, Binance USDT from 2026-04-01, and ETH has no bars from 2026-04-01 to 2026-09-03. The lake (`src/lake`) is Binance
   USDT only. A study that joins sources adds a source and quote column to every bar and reports before and after the join separately; a result
@@ -67,8 +70,8 @@ after the window (the list is in `docs/LOCK.md`, section "After the window") and
 
 ## 5. Costs
 
-- The venue's own all-in cost: NDAX's 0.20% fee a side plus the coin's half-spread. For the ten lab coins the half-spreads are one NDAX snapshot
-  (2026-09-29, one sample each) in `src/intelligence/ndax_costs.py`, the only copy; the dated sample count sits beside the numbers. Every other
+- The venue's own all-in cost: NDAX's 0.20% fee a side plus the coin's half-spread. For the ten lab coins the half-spreads are the median of 5 NDAX
+  snapshots (2026-09-29; the raw readings were not kept) in `src/intelligence/ndax_costs.py`, the only copy; the dated sample count sits beside the numbers. Every other
   coin is an assumption, labelled as one: `jarvis/service/registry.cost()` charges the larger of three times its Binance half-spread and its
   tier's floor. The worker Mac's minute-by-minute NDAX bid and ask (`jarvis/service/ndax_spreads.py`) is evidence, not yet a setting: stage S2
   (about 2026-10-25) reruns the $500 backtest with each coin's 75th-percentile half-spread, and Madhav decides what changes.
@@ -79,12 +82,19 @@ after the window (the list is in `docs/LOCK.md`, section "After the window") and
 ## 6. Reading a result
 
 - Evidence is what the pre-registered rule says it is. A card that was cited is not a card that mattered: before claiming a card changed a
-  decision, log the decision with and without it (the exam and the counterfactual log are the tools); citation is not influence.
+  decision, log the decision with and without it (no tool does this yet: the exam asks questions and the counterfactual log scores refused trades; neither re-runs a decision without the card); citation is not influence.
 - A strategy's status comes from one file, `docs/knowledge/strategy_status.json`; the nightly build step (`jarvis/service/knowledge_build.py`,
-  `align`) makes `watches.json` and the cards' permissions in `status_cards.json` agree with it and reports any drift it will not decide. A card's
+  `align`) makes the entries of `watches.json` that belong to a strategy, and the cards' permissions in `status_cards.json` (a retired or parked
+  strategy's cards are not PAPER), agree with it, and lists the conflicts it will not decide. It does not reach the 24 of 39 watches that belong to
+  no strategy (2026-10-15: UNIVERSE_DAILY, HUNTER, SQUEEZE, E1 to E6, T3_TREND and others): their words are typed by hand, and linking them is on
+  the after-the-window list (`docs/LOCK.md`). A card's
   evidence word (SUPPORTED, WEAK, CONFLICTING, INSUFFICIENT, REJECTED, UNTESTED; defined in `status_cards.json`) changes only when a
-  pre-registered review decides it. Brain text and docs quote these words, they do not coin their own.
+  pre-registered review decides it. Brain text and docs quote these words. The brain's own labels (`brain.KNOWLEDGE`: PASSED, FAILED, LESSON, ...)
+  are pinned to them by `tests/test_knowledge_build.py`; `hypotheses.json` keeps the teacher register's words (`FRAMEWORK.md`) and agrees with the
+  card wherever one exists (H07; H14 is the STOPS card).
 - A failed review is kept as a lesson with its numbers (EXITS, STOP_ZONE), never quietly deleted.
+- Drawdown is the largest percentage fall from the running peak of equity (start capital plus profit and loss). A dollar fall measured against the
+  starting capital may be shown beside it, never alone: it can exceed 100%.
 - Other traders are reference and event generators, never teachers or signals (D8).
 
 ## 7. The casebook

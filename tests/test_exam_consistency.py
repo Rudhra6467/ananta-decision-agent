@@ -38,7 +38,7 @@ def test_each_pair_is_asked_first_and_last_and_an_unexplained_flip_fails(tmp_pat
                 return {"answer": "Constructive: an uptrend."}
             return {"answer": "I don't know."}
     out = exam.run(None, ask=FakeAsk())
-    assert len(asked) == 2 + len(exam.KNOWS) + len(exam.UNKNOWNS) + 2
+    assert len(asked) == 2 + len(exam.KNOWS) + len(exam.UNKNOWNS) + len(exam.WHY) + 2
     assert asked[0].startswith("Can we buy") and asked[-1].startswith("In one or two sentences")
     assert out["consistent_of"] == 2 and out["consistent"] == 1 and out["flipped"] == 1
     assert out["consistency_pass"] is False and out["exam_pass"] is False

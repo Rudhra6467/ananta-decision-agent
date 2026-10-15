@@ -15,7 +15,7 @@ so what was tested is what runs.
 - **Sizing:** 0.5% of the book at risk per setup trade, measured to an invalidation level 2 × ATR(14) under the entry.
 - **Limits:** at most 10% of the book in one trade, at most 6% at risk across open setup trades, and at most 2 open in coins
   whose 90-day correlation is over 0.8.
-- **NDAX:** CAD pairs only (68 coins, 19 of them tier A). Each instrument's minimum quantity and quantity step apply. Costs
+- **NDAX:** CAD pairs only (68 of the 394 coins Ananta watches; 19 of them tier A on 2026-10-11, 21 in week 2026-W42; tiers are re-ranked weekly). Each instrument's minimum quantity and quantity step apply. Costs
   are the 0.20% fee a side plus the spread.
 - **Brakes (D12, enforced in code, outside the AI; they stop new buys, exits always run):**
   - a day's loss of 2% (about $10): no buys the next day

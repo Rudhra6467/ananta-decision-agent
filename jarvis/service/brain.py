@@ -82,7 +82,7 @@ KNOWLEDGE = [
     ("M2A_G", "DROPPED", "Madhav's higher-low retest with the market allowed looked promising on 10 coins (review #8) but was not supported on 30 or 120 coins (review #15). M1a capitulation passed on 120 coins right on the bar (3 recent events)."),
     ("READS", "NOT_BETTER", "Madhav's three setups caught all four of his buys, but on their own were not better than a random day in 2018-23 (review #5)."),
     ("EXPLORER", "FAILED", "The 15-minute Explorer setups lost money after costs over 7 years; zones do not rescue hours-long trades (review #9); costs are the whole loss."),
-    ("COSTS", "FACT", "Paper costs: NDAX 0.20% plus half the spread each side, so 0.5-1% for a round trip depending on the coin (costs_round_trip_pct in the pack). The spreads are estimates, not a long measurement: one NDAX snapshot (2026-09-29) for the ten lab coins and a tier assumption for the rest; the real ones are being measured minute by minute (from Oct 12) and nothing changes until Madhav decides. A plan whose likely move is a few tenths of a percent cannot pay."),
+    ("COSTS", "FACT", "Paper costs: NDAX 0.20% plus half the spread each side, so about 0.6-1.2% for a round trip on the ten lab coins and 0.8-2.4% on the others (costs_round_trip_pct in the pack is this coin's own figure). The spreads are estimates, not a long measurement: the median of 5 NDAX snapshots (2026-09-29) for the ten lab coins and a tier assumption for the rest; the real ones are being measured minute by minute (from Oct 12) and nothing changes until Madhav decides. A plan whose likely move is a few tenths of a percent cannot pay."),
     ("TEACHER_50D", "FAILED", "A dip to the 50-day average did worse than an ordinary uptrend day (review #11)."),
     ("BREAKOUT_VOL", "FAILED", "Breakouts through zones on volume looked positive on 10 coins (review #11) but failed on every tier in review #21, which replaces it: not a reason to buy."),
     ("STOPS", "SUPPORTED", "A stop 1 ATR under the structure beats a tight percent stop: a 3% stop was hit in 70-85% of dip trades (review #18, H14)."),
@@ -107,7 +107,7 @@ How to decide (this matters more than anything):
 - Rules and teacher ideas are direction, not filters. The market state is the strongest single fact, and the code already
   enforces it: the exposure dial (Bitcoin above its 50-day and 200-day averages, review #25) decides. With the dial CLOSED you
   are only asked about a moment with a measured edge in a closed market (today: H07 on tier A, review #26).
-- Default PASS (engine fix, Oct 10: mixed cases lose their round-trip costs of 0.5-1%, slowly but surely). TAKE only when the
+- Default PASS (engine fix, Oct 10: mixed cases lose their round-trip costs of 0.6-2.4%, slowly but surely). TAKE only when the
   case is clearly better than an ordinary day for this coin: a kind of moment the repair shop measured as positive after costs
   (expected_value in the pack, when present), in this market state, with room to move several times the costs. When in doubt, PASS:
   in a buy-only book, cash is a position.
@@ -966,9 +966,19 @@ def _monitor_only(trig: str) -> str:
             "(no measured edge); logged and scored, not decided")
 
 
-def settle_unreviewed(j) -> int:
+def settle_unreviewed(j, bench: dict | None = None) -> int:
+    """Scores the wakes the brain never reviewed like a PASS: the move after 1 and 5 days, and the same move as an excess over
+    the universe median (after_*_ex). Fix 7 (Oct 15): they were scored raw only, so the ranking audit compared an excess figure
+    for PASSes with a raw one for not-reviewed wakes, which in a rising or falling week favours one side by itself."""
+    bench = {} if bench is None else bench
     try:
-        rows = j.db.execute("SELECT id, t, coin, price FROM brain_unreviewed WHERE after_5d_pct IS NULL AND t <= ?", (int(j.now()) - 86400,)).fetchall()
+        for col in ("after_1d_ex", "after_5d_ex"):
+            try:
+                j.db.execute(f"ALTER TABLE brain_unreviewed ADD COLUMN {col} REAL")
+            except Exception:  # noqa: BLE001 - column already there (or no table yet: the select below returns 0)
+                pass
+        rows = j.db.execute("SELECT id, t, coin, price FROM brain_unreviewed WHERE (after_5d_pct IS NULL OR after_5d_ex IS NULL) AND t <= ?",
+                            (int(j.now()) - 86400,)).fetchall()
     except Exception:  # noqa: BLE001
         return 0
     n, now, cache = 0, int(j.now()), {}
@@ -980,7 +990,13 @@ def settle_unreviewed(j) -> int:
         a5 = next((b[4] for b in D if b[0] + 86400 >= t + 5 * 86400), None) if now >= t + 5 * 86400 else None
         if a1 is None:
             continue
-        j.db.execute("UPDATE brain_unreviewed SET after_1d_pct=?, after_5d_pct=? WHERE id=?", (_pct(a1, price), _pct(a5, price) if a5 else None, uid))
+        p1, p5 = _pct(a1, price), _pct(a5, price) if a5 else None
+        day = t - t % 86400
+        m1 = bench.setdefault((day, 1), market_median_move(j, day, 1))
+        m5 = bench.setdefault((day, 5), market_median_move(j, day, 5)) if p5 is not None else None
+        j.db.execute("UPDATE brain_unreviewed SET after_1d_pct=?, after_5d_pct=?, after_1d_ex=?, after_5d_ex=? WHERE id=?",
+                     (p1, p5, round(p1 - m1, 1) if p1 is not None and m1 is not None else None,
+                      round(p5 - m5, 1) if p5 is not None and m5 is not None else None, uid))
         n += 1
     j.db.commit()
     return n
@@ -990,13 +1006,19 @@ def ranking_audit(j, days: int = 30) -> dict:
     """Decided against not reviewed: what the coins did over 5 days after each (engine plan U5.2)."""
     since = int(j.now()) - days * 86400
     out = {}
-    try:
-        u = [r[0] for r in j.db.execute("SELECT after_5d_pct FROM brain_unreviewed WHERE t >= ? AND after_5d_pct IS NOT NULL", (since,))]
-    except Exception:  # noqa: BLE001
-        u = []
-    d = [r[0] for r in j.db.execute("SELECT after_5d_pct FROM brain_decisions WHERE t >= ? AND after_5d_pct IS NOT NULL", (since,))]
-    for k, xs in (("not_reviewed", u), ("passed", d)):
-        out[k] = {"n": len(xs), "avg_5d_pct": round(sum(xs) / len(xs), 2) if xs else None, "ran_5pct": sum(1 for x in xs if x >= 5)}
+    def _five_day(table: str) -> list[tuple]:                                # (raw 5-day move, excess over the market median or None)
+        try:
+            return j.db.execute(f"SELECT after_5d_pct, after_5d_ex FROM {table} WHERE t >= ? AND after_5d_pct IS NOT NULL", (since,)).fetchall()
+        except Exception:  # noqa: BLE001 - the excess column is added by the first settling run
+            try:
+                return [(r[0], None) for r in j.db.execute(f"SELECT after_5d_pct FROM {table} WHERE t >= ? AND after_5d_pct IS NOT NULL", (since,))]
+            except Exception:  # noqa: BLE001
+                return []
+
+    for k, rows in (("not_reviewed", _five_day("brain_unreviewed")), ("passed", _five_day("brain_decisions"))):
+        xs, ex = [r[0] for r in rows], [r[1] for r in rows if r[1] is not None]
+        out[k] = {"n": len(xs), "avg_5d_pct": round(sum(xs) / len(xs), 2) if xs else None, "ran_5pct": sum(1 for x in xs if x >= 5),
+                  "n_ex": len(ex), "avg_5d_ex_pct": round(sum(ex) / len(ex), 2) if ex else None}
     try:
         out["not_reviewed_today"] = j.db.execute("SELECT COUNT(*) FROM brain_unreviewed WHERE t >= ?", (_today0(j),)).fetchone()[0]
     except Exception:  # noqa: BLE001
@@ -1251,7 +1273,8 @@ def settle_passes(j) -> int:
             pass
     n = 0
     now = int(j.now())
-    rows = j.db.execute("SELECT id, t, coin, price FROM brain_decisions WHERE action='PASS' AND after_5d_pct IS NULL AND t <= ?", (now - 86400,)).fetchall()
+    rows = j.db.execute("SELECT id, t, coin, price FROM brain_decisions WHERE action='PASS' AND (after_5d_pct IS NULL OR after_5d_ex IS NULL) AND t <= ?",
+                        (now - 86400,)).fetchall()
     cache: dict[str, list] = {}
     bench: dict[tuple, float | None] = {}
     for did, t, coin, price in rows:
@@ -1272,7 +1295,7 @@ def settle_passes(j) -> int:
         n += 1
     j.db.commit()
     try:
-        n += settle_unreviewed(j)
+        n += settle_unreviewed(j, bench)
     except Exception:  # noqa: BLE001
         pass
     return n

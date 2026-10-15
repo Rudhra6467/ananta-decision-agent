@@ -39,3 +39,7 @@ version loses at double costs; NDAX's 0.20% fee stays a must.
   than on today's 10". The 30-coin books' cards say evidence only, never a candidate for real money.
 - Q9 leaves the queue. Rule A is unchanged: no real money until 60 market days, both dial states and execution within 3 points.
 - Reading for the agent: on the live 10, T3-B is "lose much less in slides, make a little"; do not quote +15.1% as its edge.
+
+## Erratum (2026-10-15, research audit)
+
+- The 64 tickers in PIT10 are 62 coins: BCC and BCHABC are Bitcoin Cash's earlier tickers (BCH today). So 52 of the 62, not 54 of the 64, are not in today's 10. PIT10 drops Bitcoin Cash in January 2019 and January 2020, at its ticker changes, because a ticker needs 3 months of its own history (`src/lake/pit.py`). Joining renamed tickers is on the after-the-window list (`docs/LOCK.md`).

@@ -9,7 +9,7 @@ from src.intelligence import ndax_costs as N
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# The numbers as they stood in every copy before the merge (one NDAX snapshot, 2026-09-29). This is the independent reference:
+# The numbers as they stood in every copy before the merge (the median of 5 NDAX snapshots, 2026-09-29). This is the independent reference:
 # if someone edits the shared table, this test says so, and the edit has to be a dated decision, not a drive-by.
 FROZEN = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
           "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
@@ -25,7 +25,7 @@ OLD_NAMES = [("src.intelligence.explorer_engine", "HALF_SPREAD"), ("src.research
 def test_the_shared_table_is_the_dated_snapshot():
     assert N.HALF_SPREAD == FROZEN
     assert N.NDAX_FEE == 0.0020 and N.DEFAULT_HS == 0.0040 and N.EXPENSIVE_HS == 0.0030
-    assert N.SNAPSHOT["taken"] == "2026-09-29" and N.SNAPSHOT["samples"] == 1
+    assert N.SNAPSHOT["taken"] == "2026-09-29" and N.SNAPSHOT["samples"] == 5
 
 
 def test_no_second_copy_of_the_table_exists():

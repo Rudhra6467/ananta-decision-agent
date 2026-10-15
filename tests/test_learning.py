@@ -117,3 +117,36 @@ def test_worked_examples_are_his_cases():
 
     ex = L.worked_examples(2)
     assert ex and all(e["his_reasons"] for e in ex)
+
+
+def test_the_weekly_due_lines_list_every_scheduled_study_and_the_due_list(tmp_path, monkeypatch):
+    import calendar
+    from pathlib import Path
+
+    from jarvis.service import core, strategy_status
+    from jarvis.service import learning as L
+
+    (tmp_path / "docs" / "knowledge").mkdir(parents=True)
+    (tmp_path / "docs" / "repair_shop").mkdir(parents=True)
+    studies = [{"id": "R2", "title": "Other traders", "schedule": {"every": "quarter", "next_due": "2027-01-01"}},
+               {"id": "X9", "title": "A second study", "schedule": {"every": "month", "next_due": "2026-10-01"}}, {"id": "NOSCHED", "title": "never"}]
+    (tmp_path / "docs" / "repair_shop" / "ledger.json").write_text(json.dumps({"studies": studies}))
+    items = [{"id": "A-OVERDUE", "what": "check the first Sunday review", "how": "open docs/repair_shop/weekly", "due": "2026-10-10"},
+             {"id": "OD-X", "what": "a decision for Madhav", "how": "he chooses a or b", "due": "2026-10-31", "owner": "Madhav", "owner_decision": True},
+             {"id": "E-1", "what": "Q1 answer", "how": "the ledger counts", "cadence": "evidence", "goal": "10 events"},
+             {"id": "PW-1", "what": "a re-test", "how": "write the pre-registration first", "after_window": True}]
+    (tmp_path / "docs" / "knowledge" / "due_list.json").write_text(json.dumps({"version": 1, "items": items}))
+    monkeypatch.setattr(L, "ROOT", tmp_path)
+    monkeypatch.setattr(core, "docs_dir", lambda base: Path(base) / "docs")
+    monkeypatch.setattr(strategy_status, "load", lambda *a, **k: {"evidence_window": {"start": "2026-10-15", "days": 60}})
+    j = J(tmp_path, now=calendar.timegm(time.strptime("2026-10-20", "%Y-%m-%d")) + 3600)
+    lines = L._due(j)
+    text = "\n".join(lines)
+    assert "Study R2 (Other traders), every quarter: next due 2027-01-01" in text and "DUE NOW" in text.split("Study X9")[1].split("\n")[0]
+    assert "NOSCHED" not in text and "R2" in lines[0] and "DUE NOW" not in lines[0]
+    assert any(x.startswith("OVERDUE A-OVERDUE (was due 2026-10-10)") for x in lines)
+    assert "decisions waiting for Madhav: OD-X" in lines and "waiting for evidence: E-1" in lines
+    assert "after the window (2026-12-14): 1 items" in text and "THE WINDOW IS OVER" not in text
+    assert L._due(None) == [x for x in lines if x.startswith("Study ")]                 # without a service handle only the ledger is read
+    assert "Study X9" in L._markdown({"from": "a", "to": "b", "decisions": 0, "takes": 0, "lessons": {}, "situations": [], "tickets": [], "credit": {},
+                                       "changes": [], "peers": {}}, j)

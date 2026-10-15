@@ -9,7 +9,7 @@ Judged on TOP30. Columns: total return % / worst fall % / MAR per period; H07 ro
 | T3-B (control) | +7,163% / 53.2% / 1.86 | +26.1% / 44.3% / 0.21 | control |
 | T3B-RS (relative strength vs BTC) | +2,261% / 43.4% / 1.52 | -1.8% / 40.7% / -0.02 | FAIL: worse in both periods |
 | T3B-BR (breadth strong) | +3,356% / 53.2% / 1.44 | **+74.8% / 29.0% / 0.84** | FAIL: worse 2018-23, much better 2024-26 |
-Breadth was strong on about a third of days (31% LAB10, 23% ALL).
+Breadth was strong on about a quarter of days on TOP30, the judged tier (26.4%; 31% LAB10, 23% ALL).
 
 Reported, not judged: LAB10 (T3-B 2024-26 +15.1%; RS -3.1%; breadth +29.9%, worst fall 32% vs 41%) and ALL 120 (T3-B -7.0%;
 RS -28.9%; breadth +35.0%, worst fall 38% vs 54%). The same shape on every tier.
@@ -32,3 +32,10 @@ RS -28.9%; breadth +35.0%, worst fall 38% vs 54%). The same shape on every tier.
 3. **The dip trade cannot be filtered this way.** Dips under RSI 30 rarely happen while a coin is beating Bitcoin or while the
    whole market is strong, so the filtered versions have too few events to judge.
 4. H08 and H16 stay observations in the decision chain, as now. Nothing changes in the running system.
+
+## Notes (2026-10-15, research audit)
+
+- Unanchored: the pre-registration was not pushed before this run (`RESEARCH_RULES.md`, section 1).
+- Judging tier: TOP30 was chosen after review #15; no tier rule was written then (`RESEARCH_RULES.md`, section 1, item 2).
+- The H07 control differs from review #15 (+6.0%, z 3.5) only in its baseline. #15 subtracts each coin's own uptrend-day average; #17 to #23 subtract one pooled average for the tier (`src/research/review17.py`). The 73 trades and 33 events are the same.
+- "The holdout, untouched since Aug 2026, is the only clean third look" (reading item 2) is true of the lake reviews only. The window is not a clean look any more (`RESEARCH_RULES.md`, section 4).

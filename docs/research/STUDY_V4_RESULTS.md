@@ -36,3 +36,7 @@ A live start today would most likely begin in a losing stretch. This study does 
 The V1_RIDE paper book keeps running. It is cheap evidence about the current market, and it shows whether live behaviour matches the backtest.
 
 Every variant is counted. With v4, 4 variants were tested on fresh set #2, and fresh set #2 is now used up.
+
+## Reading note (2026-10-15, research audit)
+
+"Max drawdown vs start" is the largest dollar fall of the profit-and-loss curve divided by the starting capital. A book that first grew large shows falls above 100% (V4C 335%; buy-and-hold 8,574%). It is not a percentage fall from the peak (`RESEARCH_RULES.md`, section 6). The verdict stands.

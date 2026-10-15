@@ -3,6 +3,7 @@
 Pre-registration: `REVIEW_2.md` (commit 0712842). Code c68273f. Run 2026-09-30.
 - Data: 7,441 round trips on the 10 coins (5,815 long, 1,626 short) from 37 accounts, September 2024 to July 2026.
 - 6 market-maker / HFT accounts were excluded; entries after 2026-08-01 were dropped.
+- Sample (added Oct 15, research audit): the benchmark file lists 105 accounts drawn by stratum (seed 20260929): 30 leaderboard accounts (10 per third of all-time profit), 60 tape wallets (spares for a quota of 20) and 15 vaults; 65 were collected (39 spare tape wallets were never fetched, 1 vault had no fills). "65 accounts, sampled at random" in `REVIEW_2.md` means these 65.
 - **Excess** = the signed price move after the entry minus the same coin's average move over that calendar month (drift removed). t-statistics cluster by account-day.
 
 ## D1: is there information in their entry timing? Hardly.

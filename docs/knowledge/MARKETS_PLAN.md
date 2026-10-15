@@ -22,8 +22,8 @@ Written 2026-10-11 for Madhav, his family and the people testing the app.
 
 - **What it does:**
   - Watches about 390 coins, every day and night.
-  - Pre-registered reviews #1-#28.
-  - One measured daily edge: dip buys on the biggest coins while the market trend is down (review #26).
+  - Pre-registered reviews #1-#30 (#28 was a change review, not a study).
+  - One measured daily edge: dip buys on the biggest coins while the market trend is down (review #26, confirmed point in time by #29).
 - **The $500 NDAX book:**
   - Started Oct 11, in Canadian dollars, at NDAX's real prices.
   - Its 2018-2026 backtest fell about half as far as its benchmark.

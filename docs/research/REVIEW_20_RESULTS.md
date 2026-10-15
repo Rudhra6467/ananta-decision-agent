@@ -41,3 +41,7 @@ TOP30: T3 -25.4%, T3-B -20.6%; buy-and-hold -23.7% / -27.4%).
 - Madhav: switch the paper and live T3 to T3-B (yes / no).
 - The real cost driver is the 20-day exit's churn; a test of a buffered exit (e.g. close under the 20-day by a margin) would be
   a new counted review, after #16-#19.
+
+## Notes (2026-10-15, research audit)
+
+- Unanchored: the pre-registration was not pushed before this run (`RESEARCH_RULES.md`, section 1).

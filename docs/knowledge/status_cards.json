@@ -73,7 +73,7 @@
     "T3-B",
     "band re-sizing"
    ],
-   "tier": "ALL"
+   "tier": "LIVE10"
   },
   {
    "id": "T3_T30",
@@ -282,7 +282,7 @@
    "kind": "setup",
    "evidence": "INSUFFICIENT",
    "permission": "PAPER",
-   "reason": "Weakest setup in review #1; on probation until 20 live trades (Q3)",
+   "reason": "Weakest setup in review #1. Its probation (Q3) ended on Oct 15 without a verdict: the Explorer was retired as a trading book on Oct 13 (ledger TK17); E5 stays evidence only.",
    "reviews": [
     "#1"
    ],

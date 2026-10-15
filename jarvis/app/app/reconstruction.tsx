@@ -18,17 +18,29 @@ export default function Reconstruction() {
   const rb = ev?.rebuild;
   if (!rb) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen></>;
   const chain: any[] = rb.chain ?? [];
+  const books: any[] = rb.books ?? [];
   return (
     <>{head}
       <Screen loading={loading} onRefresh={reload}>
         <DetailLayout
           facts={[
-            { label: "Rebuilds", value: rb.total },
-            { label: "Mismatches", value: rb.mismatches, color: rb.mismatches ? C.bad : C.good },
+            { label: "Explorer rebuilds", value: rb.total },
+            { label: "Explorer mismatches", value: rb.mismatches, color: rb.mismatches ? C.bad : C.good },
             { label: "Last rebuild", value: rb.last?.when ?? "–" },
             { label: "Decisions checked", value: rb.last ? `${rb.last.rebuilt} of ${rb.last.checked}` : "–" },
           ]}
           technical={<Card title="How it works"><T>{rb.how}</T><T small dim>{rb.if_mismatch}</T></Card>}>
+          {books.length ? (
+            <Card title="Coverage per book" sub="every book the nightly check re-runs">
+              {books.map((b: any, i: number) => (
+                <View key={i}>
+                  {i ? <Divider /> : null}
+                  <Line label={b.book} value={b.runs ? `${b.runs} runs` : "not yet run"}
+                    sub={b.runs ? `last ${b.last} · ${b.last_match ? "matched" : "MISMATCH"}${b.mismatches ? ` · ${b.mismatches} mismatches in all` : ""}` : "waiting for the first nightly run"} />
+                </View>
+              ))}
+            </Card>
+          ) : null}
           <Card title="When it runs">
             {rb.nightly ? <Line label="Nightly" value={`${rb.nightly.runs} runs`} sub={`${rb.nightly.every} · since ${rb.nightly.first}`} /> : null}
             {rb.asked ? <><Divider /><Line label="When you ask" value={`${rb.asked.runs} runs`} sub={`${rb.asked.how} · last ${rb.asked.last}`} /></> : null}

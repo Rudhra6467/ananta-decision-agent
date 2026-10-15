@@ -180,3 +180,29 @@ def test_a_full_account_takes_no_open_penalty_in_the_ranking(tmp_path):
     s20, w20 = brain.score(j, "NEWCOIN", "zone_entry", {})
     assert not any("open already" in w for w in w20) and any("account full" in w for w in w20)
     assert round(s20 - s19, 2) == round(0.1 * (brain.MAX_OPEN - 1), 2)
+
+
+def test_the_ledger_shown_is_the_one_with_the_later_date_then_more_reviews_not_more_waiting_questions(tmp_path, monkeypatch):
+    """Oct 15: the service's checkout held 30 reviews and 6 waiting questions, the agent folder 29 and 10 (four questions had been
+    answered in the checkout). Counting reviews plus questions made the older copy win: the page said 29 reviews, review #30 was
+    missing and four answered questions still waited. Reviews only grow; questions shrink when they are answered."""
+    import json
+    import types
+
+    from jarvis.service import views
+
+    def put(name, n_reviews, n_queue, updated="2026-10-15"):
+        d = tmp_path / name / "docs" / "repair_shop"
+        d.mkdir(parents=True)
+        (d / "ledger.json").write_text(json.dumps({"updated": updated, "reviews": [{"id": f"R{k}"} for k in range(1, n_reviews + 1)],
+                                                   "queue": [{"id": f"Q{k}"} for k in range(n_queue)]}))
+        return tmp_path / name
+
+    monkeypatch.setattr(views, "CHECKOUT", put("checkout", 30, 6))
+    j = types.SimpleNamespace(dir=put("folder", 29, 10))
+    led = views._ledger(j)
+    assert (len(led["reviews"]), len(led["queue"])) == (30, 6)                         # same date: more reviews wins
+    monkeypatch.setattr(views, "CHECKOUT", put("checkout2", 29, 6))
+    assert len(views._ledger(types.SimpleNamespace(dir=put("folder2", 29, 10)))["queue"]) == 6      # a tie: this checkout wins
+    monkeypatch.setattr(views, "CHECKOUT", put("checkout3", 30, 6))
+    assert len(views._ledger(types.SimpleNamespace(dir=put("folder3", 29, 10, "2026-10-16")))["reviews"]) == 29    # a later date wins

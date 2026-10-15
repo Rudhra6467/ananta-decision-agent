@@ -381,16 +381,21 @@ def _layers_that_day(j, coin: str, t: int) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
+CHECKOUT = Path(__file__).resolve().parents[2]
+
+
 def _ledger(j) -> dict:
-    """The repair-shop ledger: the newest copy (the live agent folder or this service's own checkout)."""
-    best = None
-    for base in (Path(__file__).resolve().parents[2], j.dir):          # same date: this service's checkout wins (it is never older)
+    """The repair-shop ledger: the newest copy (the live agent folder or this service's own checkout). Newest = the later 'updated'
+    date; the same date: more reviews (they only ever grow; the waiting questions shrink as they are answered, and counting them
+    made an older copy win on Oct 15: 29 reviews shown, review #30 missing); still equal: this service's checkout (never older)."""
+    best, best_key = None, None
+    for base in (CHECKOUT, j.dir):
         p = base / "docs" / "repair_shop" / "ledger.json"
         if p.exists():
             d = json.loads(p.read_text())
-            key = (str(d.get("updated", "")), len(d.get("reviews", [])) + len(d.get("queue", [])))
-            if best is None or key > (str(best.get("updated", "")), len(best.get("reviews", [])) + len(best.get("queue", []))):
-                best = d
+            key = (str(d.get("updated", "")), len(d.get("reviews", [])))
+            if best is None or key > best_key:
+                best, best_key = d, key
     return best or {"reviews": [], "queue": [], "in_use": [], "safety_changes": []}
 
 

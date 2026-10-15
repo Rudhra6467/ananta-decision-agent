@@ -50,3 +50,17 @@ def test_align_repairs_surfaces_and_window_counts(tmp_path, monkeypatch):
     assert ew and ew["day"] == 2 and ew["of"] == 60 and ew["started"] == start
     assert "clean" in ew["loop"]["brain_rebuild"] and ew["loop"]["daily_review"] == "2026-10-14"
     strategy_status._CACHE.update(m=None, v={})
+
+
+def test_the_brains_own_knowledge_list_agrees_with_the_registry():
+    """Oct 15: brain.KNOWLEDGE is a second truth surface the nightly align step does not regenerate; it had kept the legacy
+    10-coin T3 pass and lacked review #26's dial-closed cell for H07 after the status cards were corrected (request #50)."""
+    from jarvis.service import brain
+
+    k = {i: (s, t) for i, s, t in brain.KNOWLEDGE}
+    cards = {c["id"]: c for c in json.loads((Path(__file__).resolve().parents[1] / "docs" / "knowledge" / "status_cards.json").read_text())["cards"]}
+    t3 = k["T3"][1]
+    assert "10 coins and the 30" not in t3 and "legacy" in t3 and "#15" in t3 and "#15" in cards["T3"]["reason"]
+    h07_status, h07 = k["H07"]
+    assert h07_status == "MEASURED_CELL_ONLY" and "#26" in h07 and "CLOSED" in h07
+    assert "#26" in cards["H07"]["reason"] and "CLOSED" in cards["H07"]["reason"]

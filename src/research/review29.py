@@ -14,7 +14,9 @@ trading days have a complete candle (>= 97% of the minutes; Binance's own daily 
 token-swap check (see COIN_MONTH_MIN for the one change made after the first coverage pass); the token-swap check is the lake's
 own minute-level report (cut at BREAKS / ENDS) for a coin with minute data, and the same 10x rule on daily closes for a coin held
 only as Binance's daily candles (fixed after the third coverage pass, still before any trade: the daily rule had been applied to
-minute coins too and flagged LUNA's real May 2022 collapse, which the minute-level check already handles); "the two largest bursts" = the two
+minute coins too and flagged LUNA's real May 2022 collapse, which the minute-level check already handles); a re-used ticker's new
+token is its own coin and a listing day's partial candle does not count against its month (both fixed after the 4th coverage pass,
+before any trade: see SUCCESSORS and LISTING_DAY); "the two largest bursts" = the two
 bursts with the most trades (ties: the larger total excess); the paired twin exits on the same day as its trade; a coin that no
 longer trades (not LISTED in today's registry) pays Kraken's 0.40% fee plus twice its tier's half-spread floor at the signal.
 """
@@ -45,6 +47,16 @@ COVERAGE_MIN = 0.99
 # whole months at 96.7%, which measures exchange uptime, not whether the coins have data. The gate is per coin, as REVIEW_29.md
 # words it ("the coins with clean daily candles"): a coin-month counts when at least 90% of its trading days have a complete candle.
 COIN_MONTH_MIN = 0.90
+# Fixed after the 4th coverage pass (after downloading the 76 missing coins), still before any trade was simulated. That pass fell
+# short in two months only, both from how this code counted, not from missing data:
+#  - 2022-09 (98.69%): LUNA 2.0, the new token Binance listed under the re-used ticker LUNAUSDT on 2022-05-31, was tier A, but the
+#    ENDS cut (review #22) keeps only Terra classic under that ticker. A re-used ticker's rows from the swap on are their own coin
+#    (SUCCESSORS), checked on their own with the same 10x rule (1,523 complete days, no suspect).
+#  - 2023-03 (98.89%): ARB listed on 2023-03-24 and its first candle held 94.4% of the minutes (< 97%): a listing day is partial
+#    by construction, so an incomplete FIRST candle of a coin is left out of its month's count (LISTING_DAY).
+SUCCESSORS = {"LUNAUSDT": "LUNA2"}
+COST_AS = {"LUNA": "LUNC", "LUNA2": "LUNA"}   # the live coin each name pays: Terra classic trades today as LUNC, LUNA 2.0 as LUNA
+LISTING_DAY = True
 MIN_DAYS, Z_DISC, Z_CONF, SHRINK = 30, 2.5, 2.0, 50
 BURST_GAP = 10 * DAY
 REG_SHA = "c7b52bb866fe0d82acfcfb529b79c8f28fb2a3d9c63209f6a7501b2a62a8ebd8"
@@ -81,8 +93,9 @@ def _month(t: int) -> str:
     return time.strftime("%Y-%m", time.gmtime(t))
 
 
-def _rows(symbol: str, con) -> list[tuple]:
-    """Every daily row before the holdout (complete or not): (t, o, h, l, c, v, qv, share), inside the coin's safe window."""
+def _rows(symbol: str, con, after_end: bool = False) -> list[tuple]:
+    """Every daily row before the holdout (complete or not): (t, o, h, l, c, v, qv, share), inside the coin's safe window
+    (after_end: the rows of a re-used ticker from its swap on, the successor coin of SUCCESSORS)."""
     from src.lake import research as L
     from src.lake.binance_vision import clean_dir
 
@@ -91,10 +104,12 @@ def _rows(symbol: str, con) -> list[tuple]:
         return []
     src = f"read_parquet('{d}/**/*.parquet', hive_partitioning=true, union_by_name=true)"
     cols = {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM {src}").fetchall()}
-    # 140 coins were built from minute data (share = minutes present); the 303 added on Oct 12 are Binance's own daily candles,
-    # complete by construction (share 1.0)
+    # coins built from minute data carry share (the minutes present); coins held as Binance's own daily candles (lake_extend)
+    # are complete by construction (share 1.0)
     share = "COALESCE(share, 1.0)" if "share" in cols else "1.0"
     rows = con.execute(f"SELECT t, o, h, l, c, v, qv, {share} FROM {src} WHERE t < {END_T} ORDER BY t").fetchall()
+    if after_end:
+        return [tuple(r) for r in rows if r[0] >= L.ENDS.get(symbol, 1 << 62)] if symbol in SUCCESSORS else []
     return [tuple(r) for r in rows if L.BREAKS.get(symbol, 0) <= r[0] < L.ENDS.get(symbol, 1 << 62)]
 
 
@@ -153,12 +168,18 @@ def coverage(con=None) -> dict:
     for s in ever:
         rows = _rows(s, con)
         bad = swap_unchecked(s, rows)
-        rows = [] if bad else rows
+        segs = [] if bad else [rows]
+        nxt = _rows(s, con, after_end=True)                     # a re-used ticker's new token (SUCCESSORS), checked on its own
+        if nxt and not daily_suspects(nxt):
+            segs.append(nxt)
         by: dict = {}
-        for r in rows:
-            mm = by.setdefault(_month(r[0]), [0, 0])
-            mm[0] += 1
-            mm[1] += 1 if (r[7] or 0) >= L.MIN_SHARE else 0
+        for seg in segs:
+            for k, r in enumerate(seg):
+                if LISTING_DAY and k == 0 and (r[7] or 0) < L.MIN_SHARE:
+                    continue                                    # the listing day: partial by construction
+                mm = by.setdefault(_month(r[0]), [0, 0])
+                mm[0] += 1
+                mm[1] += 1 if (r[7] or 0) >= L.MIN_SHARE else 0
         per[s] = {"swap_unchecked": bool(bad), "months": by}
     out = {}
     for m in ms:
@@ -195,6 +216,7 @@ def _cost_fn(reg: dict):
     coins = reg.get("coins") or {}
 
     def cost(coin: str, tier_sig: str) -> float:
+        coin = COST_AS.get(coin, coin)
         if coin in HALF_SPREAD or (coins.get(coin) or {}).get("status") == "LISTED":
             return registry.cost(coin, reg)
         return KRAKEN_FEE + 2 * FLOOR[tier_sig]
@@ -346,6 +368,12 @@ def main() -> dict:
         rows = [r[:7] for r in allrows if (r[7] or 0) >= L.MIN_SHARE]
         if len(rows) >= 240:
             data[L.base(s)] = rows
+        nxt = _rows(s, con, after_end=True)                     # a re-used ticker's new token (SUCCESSORS), its own coin
+        if nxt:
+            if daily_suspects(nxt):
+                skipped.append(SUCCESSORS[s])
+            elif sum(1 for r in nxt if (r[7] or 0) >= L.MIN_SHARE) >= 240:
+                data[SUCCESSORS[s]] = [r[:7] for r in nxt if (r[7] or 0) >= L.MIN_SHARE]
     if "BTC" not in data:
         raise SystemExit("BTC missing")
     reg = json.loads((Path.home() / "code" / "ananta-decision-agent" / "universe_live.json").read_text())

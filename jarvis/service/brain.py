@@ -690,7 +690,10 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
                      + f", {days} days max. Confidence {conf:.0f}%, size {size:.0f}%. {d.get('thesis', '')}"[:480])
             except Exception:  # noqa: BLE001
                 pass
-    j.db.execute("INSERT INTO brain_decisions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    # Oct 15: columns named, so a later ALTER TABLE (after_1d_ex, after_5d_ex) can never break the save again (206 decisions
+    # were lost on Oct 14-15 when an 18-value INSERT met a 20-column table)
+    j.db.execute("INSERT INTO brain_decisions (id, t, coin, triggers, action, confidence, size_pct, price, plan, thesis, knowledge, model, "
+                 "cost_usd, trade_id, random_id, after_1d_pct, after_5d_pct, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                  (did, int(j.now()), coin, json.dumps(triggers, default=str), action, conf, size, price, json.dumps(plan, default=str),
                   (d.get("thesis") or "")[:600], json.dumps(know), usage.get("model"), cost, trade["id"] if trade else None, rnd["id"] if rnd else None,
                   None, None, note or None))
@@ -760,7 +763,16 @@ def _ev(j, coin: str, trigger: str) -> float:
 
 
 def spent_today(j) -> float:
-    return float(j.db.execute("SELECT COALESCE(SUM(cost_usd), 0) FROM brain_decisions WHERE t >= ?", (_today0(j),)).fetchone()[0] or 0.0)
+    """What the brain's model calls really cost today: every call is logged in ask_messages (thread 'brain') before its decision is
+    saved, so a decision that fails to save still counts (Oct 15: counting saved decisions only let a failing save spend $4.24 unseen).
+    Falls back to the saved decisions where there is no ask_messages table (tests)."""
+    t0 = _today0(j)
+    saved = float(j.db.execute("SELECT COALESCE(SUM(cost_usd), 0) FROM brain_decisions WHERE t >= ?", (t0,)).fetchone()[0] or 0.0)
+    try:
+        calls = float(j.db.execute("SELECT COALESCE(SUM(cost_usd), 0) FROM ask_messages WHERE thread='brain' AND t >= ?", (t0,)).fetchone()[0] or 0.0)
+    except Exception:  # noqa: BLE001
+        return saved
+    return max(saved, calls)
 
 
 def paced_budget(j) -> float:

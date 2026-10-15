@@ -222,6 +222,31 @@ def test_brain_red_flags_turn_a_take_into_a_pass_and_limits_hold(monkeypatch):
     assert brain.can_decide(j)[0] is False
 
 
+def test_a_decision_still_saves_after_columns_are_added_and_its_cost_counts(monkeypatch):
+    """Oct 15 regression: settle_passes added two columns to brain_decisions; the 18-value INSERT then failed on every decision
+    (206 lost, $4.24 spent) and the pacer, counting saved rows only, never saw the spend."""
+    from jarvis.service import brain
+
+    j, ex = _brain_j()
+    px = dict(j.prices())
+    coin = next(c for c in px if c != "BTC")
+    monkeypatch.setattr(brain, "pack", _fake_pack(px[coin]))
+    brain._table(j)
+    for col in ("after_1d_ex", "after_5d_ex"):                              # exactly what settle_passes does
+        try:
+            j.db.execute(f"ALTER TABLE brain_decisions ADD COLUMN {col} REAL")
+        except Exception:  # noqa: BLE001
+            pass
+    ok = {"action": "PASS", "confidence": 30, "thesis": "weak case", "knowledge_used": ["COSTS"]}
+    r = brain.decide(j, coin, {}, call=lambda u: (json.dumps(ok), {"in": 1000, "out": 100, "model": "fake"}))
+    assert r["action"] == "PASS"
+    assert j.db.execute("SELECT COUNT(*) FROM brain_decisions WHERE id=?", (r["id"],)).fetchone()[0] == 1
+    # a model call whose decision never got saved still counts against the brain's budget
+    j.db.execute("CREATE TABLE IF NOT EXISTS ask_messages (id TEXT, thread TEXT, t INTEGER, cost_usd REAL)")
+    j.db.execute("INSERT INTO ask_messages VALUES ('x', 'brain', ?, 0.50)", (int(j.now()),))
+    assert brain.spent_today(j) >= 0.50
+
+
 def test_brain_pack_runs_on_real_state():
     from jarvis.service import brain
 

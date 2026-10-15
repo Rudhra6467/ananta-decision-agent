@@ -1249,6 +1249,14 @@ def brain_report(days: int = 30, who: str = Depends(owner)) -> dict:
     return brain.report(J(), days)
 
 
+@app.get("/v3/stance")
+def stance_now(who: str = Depends(owner)) -> dict:
+    """Fixes A2/A3: the brain's newest written stance, its expectations, and the morning scan's record."""
+    from jarvis.service import stance
+
+    return {"stance": stance.latest(J()), "record": stance.record(J())}
+
+
 @app.get("/v3/brain/trade/{trade_id}")
 def brain_trade(trade_id: str, who: str = Depends(owner)) -> dict:
     from jarvis.service import brain
@@ -1679,6 +1687,13 @@ def background_jobs() -> dict:
         out["brain_passes_scored"] = brain.settle_passes(J())
     except Exception as exc:  # noqa: BLE001
         out["brain_error"] = str(exc)[:200]
+    try:
+        from jarvis.service import stance
+
+        out["stance"] = stance.plan(J())                               # fixes A2/A3: once a day after the daily close
+        out["expectations"] = stance.watch(J())                         # the brain's own written plans against the market
+    except Exception as exc:  # noqa: BLE001
+        out["stance_error"] = str(exc)[:200]
     try:
         from jarvis.service import missed
 

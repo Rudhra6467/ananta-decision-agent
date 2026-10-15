@@ -137,7 +137,7 @@ def test_a_full_brain_still_decides_as_no_room_evidence(tmp_path, monkeypatch):
     monkeypatch.setattr(brain, "paced_budget", lambda jj: 1.0)
     seen = []
     monkeypatch.setattr(brain, "decide", lambda jj, c, trig, call=None, push=None, noroom=False: seen.append((c, noroom)) or {"action": "PASS"})
-    brain.wake(j, "NEWCOIN", "zone_entry")
+    brain.wake(j, "NEWCOIN", "attention_high")                     # (a zone touch alone is only logged since fix A5)
     brain.process(j)
     assert seen == [("NEWCOIN", True)]
 

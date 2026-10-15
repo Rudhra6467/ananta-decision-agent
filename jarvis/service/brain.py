@@ -43,7 +43,16 @@ MIN_SCORE = 2.0                                           # below this a wake is
 # Review #28 (Oct 11): points follow measured evidence. Measured with no edge = 0.5 (zone touches: review #27; Explorer setups: review #1 and
 # the intraday atlas, 0 of 55 contexts positive; Hunter/Squeeze: 2 setups in 12 days); never measured = 1.0; daily rules use the EV table.
 TRIGGER_POINTS = {"zone_entry": 0.5, "attention_high": 1.0, "hunter": 0.5, "squeeze": 0.5, "explorer": 0.0,
-                  "setup:H07": 3.0, "setup:M1a": 2.0, "setup:M2a-G": 2.0}
+                  "setup:H07": 3.0, "setup:M1a": 2.0, "setup:M2a-G": 2.0,
+                  # fix A5 (Oct 15): never measured as kinds, so no evidence points; they rank with the measured rules because they
+                  # are the brain's own plan written before the move (stance.py, A3) and the exposure dial opening (review #25)
+                  "expectation": 2.0, "dial_open": 2.0}
+PRIORITY = ("expectation:", "dial_open")                  # A5: these skip the 6-hour coin wait and the pacing (never the day's $1)
+PRIORITY_POINTS = 2.0                                     # a moment at or above this is a priority moment for the reserved slots
+RESERVED = 5                                              # A5: the last 5 of the 20 slots are kept for priority moments
+# A5: a kind of moment whose strategy the registry keeps from waking the brain (docs/knowledge/strategy_status.json: wakes_brain
+# false, or RETIRED / PARKED) is logged and scored as a moment, never sent to the AI. Daily setups are looked up by their watch.
+MONITOR = {"zone_entry": "ZONE_TOUCH", "explorer": "EXPLORER", "hunter": "HOURLY", "squeeze": "HOURLY"}
 EXIT_PLANS = {"DIP": {"days": 10, "trail_atr": None, "no_stop": True},   # review #27: dips do best with no tight stop
               "ZONE": {"days": 20, "trail_atr": None},
               "TREND": {"days": 20, "trail_atr": None}}      # engine fix 2: tested exits (H07, ZONE_TOUCH, review #12), not invented ones
@@ -583,8 +592,9 @@ def web_veto(j, coin: str, p: dict) -> dict | None:
     return {"kind": "none", "why": "", "check": check}
 
 
-def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Callable | None = None, noroom: bool = False) -> dict:
-    """One decision: the pack, the model's weighing, the code's red flags, then a paper trade (and its random twin) or a PASS."""
+def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Callable | None = None, noroom: bool | str = False) -> dict:
+    """One decision: the pack, the model's weighing, the code's red flags, then a paper trade (and its random twin) or a PASS.
+    noroom: True when the account is full (D7); a sentence when the last free slots are kept for priority moments (A5)."""
     from jarvis.service import eye
     from src.research import reads as R
 
@@ -661,7 +671,8 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
         det = {"decision": did, "thesis": d.get("thesis", ""), "confidence": conf, "size_pct": size, "knowledge": know}
         if noroom:                                      # D7: scored as evidence, outside the account (its 20 slots were full)
             det["no_room"] = True
-            note = (note + "; " if note else "") + f"no room: the account already holds {MAX_OPEN}; kept as evidence only"
+            note = (note + "; " if note else "") + (noroom if isinstance(noroom, str) else
+                                                    f"no room: the account already holds {MAX_OPEN}; kept as evidence only")
         live_stop = float(d["stop"])
         if (EXIT_PLANS.get(plan.get("exit_plan") or "") or {}).get("no_stop"):      # review #27: the DIP plan exits by time only
             det["invalidation"], live_stop = float(d["stop"]), 0.0
@@ -798,16 +809,17 @@ def _regime_now(j) -> str | None:
     return _REGIME["v"]
 
 
-def score(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
-    """How much a wake deserves the AI (engine plan U4.3): the evidence behind its kind of moment, the coin's tier, the market
-    regime, room to beat costs, and how much of the same bet is already open. Rules, not AI; logged with every wake."""
-    from jarvis.service import registry, universe_watch
+def moment(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
+    """The moment's own points: the evidence behind its kind (review #28), before tier, market, room and open trades."""
+    from jarvis.service import universe_watch
 
     pts, why = [], []
     for t in (trigger or "").split("|"):
         key = t
         if t.startswith("explorer"):
             key = "explorer"
+        elif t.startswith("expectation:"):
+            key = "expectation"
         elif t.startswith("setup:"):
             sp = universe_watch.split(t[6:])
             key = "setup:" + (sp[0] if sp else t[6:]).split(".")[0]      # a rule's new version ranks like its parent
@@ -823,6 +835,15 @@ def score(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
         pts.append(p)
     s = (max(pts) + 0.5 * (len(pts) - 1)) if pts else 0.0
     why.append(f"moment {s:g}")
+    return s, why
+
+
+def score(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
+    """How much a wake deserves the AI (engine plan U4.3): the evidence behind its kind of moment, the coin's tier, the market
+    regime, room to beat costs, and how much of the same bet is already open. Rules, not AI; logged with every wake."""
+    from jarvis.service import registry
+
+    s, why = moment(j, coin, trigger, detail)
     tier = "LAB10" if _is_lab(coin) else registry.tier_of(j, coin) or "C"
     tp = {"LAB10": 2.0, "A": 2.0, "B": 1.0}.get(tier, -5.0)
     s += tp
@@ -854,11 +875,48 @@ def score(j, coin: str, trigger: str, detail: dict) -> tuple[float, list[str]]:
 
 def _unreviewed(j, qid: str, t: int, coin: str, trig: str, sc: float | None, reason: str) -> None:
     """A wake the AI never reviewed: logged with its price, scored later like a PASS (did the ranking throw away good ones?)."""
-    j.db.execute("CREATE TABLE IF NOT EXISTS brain_unreviewed (id TEXT PRIMARY KEY, t INTEGER, coin TEXT, trigger TEXT, score REAL, reason TEXT, "
-                 "price REAL, after_1d_pct REAL, after_5d_pct REAL)")
-    j.db.execute("INSERT OR REPLACE INTO brain_unreviewed VALUES (?,?,?,?,?,?,?,?,?)", (qid, t, coin, trig, sc, reason, _live_px(j, coin), None, None))
+    _unrev_table(j)
+    j.db.execute("INSERT OR REPLACE INTO brain_unreviewed (id, t, coin, trigger, score, reason, price, after_1d_pct, after_5d_pct) "
+                 "VALUES (?,?,?,?,?,?,?,?,?)", (qid, t, coin, trig, sc, reason, _live_px(j, coin), None, None))
     j.db.execute("UPDATE brain_queue SET state=? WHERE id=?", ("NOT_REVIEWED: " + reason, qid))
     j.db.commit()
+
+
+def _unrev_table(j) -> None:
+    j.db.execute("CREATE TABLE IF NOT EXISTS brain_unreviewed (id TEXT PRIMARY KEY, t INTEGER, coin TEXT, trigger TEXT, score REAL, reason TEXT, "
+                 "price REAL, after_1d_pct REAL, after_5d_pct REAL)")
+    j.db.execute("CREATE INDEX IF NOT EXISTS brain_unreviewed_coin_t ON brain_unreviewed (coin, t)")
+
+
+def _priority(trig: str) -> bool:
+    """A5: the brain's own plan triggering (an expectation) or the exposure dial opening."""
+    return any(t.startswith(PRIORITY) for t in (trig or "").split("|"))
+
+
+def _monitor_only(trig: str) -> str:
+    """'' when the wake may be decided; otherwise the reason it is only logged (fix A5, one truth with the registry): every kind in
+    the wake belongs to a strategy that docs/knowledge/strategy_status.json keeps from waking the brain. Such a moment is still
+    recorded with its price and scored a day and five days later (retirement monitoring), but never costs an AI decision."""
+    from jarvis.service import strategy_status
+
+    names = []
+    for t in (trig or "").split("|"):
+        if t.startswith("setup:"):
+            if strategy_status.wakes(t[6:]):
+                return ""
+            names.append(t[6:])
+            continue
+        sid = MONITOR.get("explorer" if t.startswith("explorer") else t)
+        if not sid:
+            return ""
+        e = (strategy_status.load().get("strategies") or {}).get(sid) or {}
+        if e.get("status") not in ("RETIRED", "PARKED") and e.get("wakes_brain", True):
+            return ""
+        names.append(sid)
+    if not names:
+        return ""
+    return ("monitoring only: the registry keeps " + ", ".join(dict.fromkeys(names)) + " from waking the brain "
+            "(no measured edge); logged and scored, not decided")
 
 
 def settle_unreviewed(j) -> int:
@@ -902,7 +960,10 @@ def ranking_audit(j, days: int = 30) -> dict:
 def process(j, call: Callable | None = None, push: Callable | None = None, max_n: int = 3) -> list[dict]:
     """Take the queue (engine plan D2): blocked items are dropped with the reason; the rest are ranked, and the best get a decision
     while the paced daily budget allows. Low-ranked wakes, and wakes that waited past 45 minutes because better ones took the
-    budget, are logged as not reviewed and scored later."""
+    budget, are logged as not reviewed and scored later.
+    Fix A5 (Oct 15): kinds the registry keeps from waking the brain (zone touches, Explorer setups, the parked hourly watch) are
+    logged and scored, never decided; the brain's own plan triggering and the dial opening skip the 6-hour wait and the pacing
+    (never the day's dollar); the last RESERVED slots of the account are kept for priority moments."""
     _table(j)
     now = int(j.now())
     out = []
@@ -911,6 +972,17 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
     for qid, t, coin, trig, det in j.db.execute("SELECT id, t, coin, trigger, detail FROM brain_queue WHERE state='NEW' ORDER BY t").fetchall():
         why = ""
         detail = json.loads(det or "{}")
+        prio = _priority(trig)
+        mon = _monitor_only(trig)
+        if mon:                                         # A5: logged once per coin every 6 hours, scored later, never an AI call
+            _unrev_table(j)
+            if j.db.execute("SELECT 1 FROM brain_unreviewed WHERE coin=? AND t >= ? AND reason LIKE 'monitoring only%'",
+                            (coin, t - COIN_COOLDOWN)).fetchone():
+                j.db.execute("UPDATE brain_queue SET state=? WHERE id=?", ("DROPPED: monitoring only; this coin was logged in the last 6 hours", qid))
+                j.db.commit()
+            else:
+                _unreviewed(j, qid, t, coin, trig, None, mon)
+            continue
         if dial == 0 and _ev(j, coin, trig) <= 0:       # engine fix 1: dial closed; only moments with a measured edge there (review #26)
             _unreviewed(j, qid, t, coin, trig, None, "the exposure dial is closed (Bitcoin under its 50-day or 200-day average) and this "
                                                      "kind of moment has no measured edge in a closed market")
@@ -921,7 +993,7 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
             continue
         elif j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN'", (WATCH, coin)).fetchone()[0] >= MAX_PER_COIN:
             why = f"already holding {MAX_PER_COIN} trades on it"
-        elif j.db.execute("SELECT 1 FROM brain_decisions WHERE coin=? AND t >= ? AND action != 'ERROR'", (coin, now - COIN_COOLDOWN)).fetchone():
+        elif not prio and j.db.execute("SELECT 1 FROM brain_decisions WHERE coin=? AND t >= ? AND action != 'ERROR'", (coin, now - COIN_COOLDOWN)).fetchone():
             why = "decided on this coin in the last 6 hours"
         else:
             ok, why = can_decide(j)
@@ -934,24 +1006,30 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
         if sc < MIN_SCORE:
             _unreviewed(j, qid, t, coin, trig, sc, f"ranked too low ({sc:g}: {', '.join(sw)})")
             continue
-        ranked.append((sc, t, qid, coin, det, sw))           # D7: a full account still decides; a buy becomes "no room" evidence
+        ranked.append((sc, t, qid, coin, det, sw, trig, prio))   # D7: a full account still decides; a buy becomes "no room" evidence
     ranked.sort(key=lambda x: (-x[0], x[1]))
-    for sc, t, qid, coin, det, sw in ranked:
+    for sc, t, qid, coin, det, sw, trig, prio in ranked:
         if len(out) >= max_n:
             break
-        if spent_today(j) >= paced_budget(j):
-            break                                          # the rest wait for budget; past 45 minutes they are logged as not reviewed
-        if j.db.execute("SELECT 1 FROM brain_decisions WHERE coin=? AND t >= ? AND action != 'ERROR'", (coin, now - COIN_COOLDOWN)).fetchone():
+        spent = spent_today(j)
+        if spent >= paced_budget(j) and not (prio and spent < DAILY_USD):
+            continue                                       # waits for budget; past 45 minutes it is logged as not reviewed
+        if not prio and j.db.execute("SELECT 1 FROM brain_decisions WHERE coin=? AND t >= ? AND action != 'ERROR'", (coin, now - COIN_COOLDOWN)).fetchone():
             j.db.execute("UPDATE brain_queue SET state=? WHERE id=?", ("DROPPED: decided on this coin in the last 6 hours", qid))
             j.db.commit()
             continue
         d0 = json.loads(det or "{}")
         d0["_rank"] = {"score": sc, "why": sw}
         det = json.dumps(d0, default=str)
+        n_open = _account_open(j)
+        noroom: bool | str = n_open >= MAX_OPEN
+        if not noroom and n_open >= MAX_OPEN - RESERVED and moment(j, coin, trig, d0)[0] < PRIORITY_POINTS:
+            noroom = (f"no room: {n_open} of {MAX_OPEN} slots are taken and the last {RESERVED} are kept for priority moments "
+                      "(measured rules, the brain's own plan, the dial opening); kept as evidence only")
         j.db.execute("UPDATE brain_queue SET state='DECIDING' WHERE id=?", (qid,))
         j.db.commit()
         try:
-            r = decide(j, coin, json.loads(det or "{}"), call=call, push=push, noroom=_account_open(j) >= MAX_OPEN)
+            r = decide(j, coin, json.loads(det or "{}"), call=call, push=push, noroom=noroom)
             state = "DONE"
         except Exception as exc:  # noqa: BLE001
             r, state = {"error": str(exc)[:160]}, "FAILED: " + str(exc)[:80]

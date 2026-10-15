@@ -140,14 +140,27 @@ def market_brief(j) -> dict:
                           "missing": (cl.get("missing") or [])[:1], "we_hold_trade": bool(c["open_trades"])})
         up_day = sum(1 for c in m["coins"] if (c["day_pct"] or 0) > 0)
         hb = [x for x in views._jsonl(j.dir / "watch_heartbeat.jsonl", 5) if x.get("ok")]
+        try:                                    # fix A2/A7 (Oct 15): one market state everywhere, the exposure dial (review #25)
+            from jarvis.service import exposure
+
+            ds = exposure.state(j) or {}
+        except Exception:  # noqa: BLE001
+            ds = {}
+        if ds.get("dial_words"):
+            market = (f"{ds['dial_words']} ({'; '.join(ds.get('why') or [])}). The exposure dial (review #25): Bitcoin above BOTH its "
+                      "50-day and 200-day averages = buying allowed; otherwise no new buys and cash is the position.")
+        else:
+            market = ("UNKNOWN: the exposure dial could not be read; the trend portfolio's own 50-day rule says "
+                      + ("IN" if m["btc_gate"] else "OUT (cash)"))
         out: dict[str, Any] = {"as_of_toronto": views._local(j.now()),
-                               "regime": {"market": ("ALLOWED: Bitcoin is above its 50-day average, so our tested rule (the Bitcoin 50-day rule) "
-                                                     "lets us hold and buy coins in uptrends") if m["btc_gate"] else
-                                                    ("RISK-OFF: Bitcoin is below its 50-day average, so our tested rule says stay out / in cash"),
+                               "regime": {"market": market,
+                                          "t3_gate": ("the trend portfolio's own rule (Bitcoin above its 50-day average): "
+                                                      + ("IN, it may hold coins in uptrends" if m["btc_gate"] else "OUT, it holds cash")),
                                           "hourly_by_coin": (hb[-1].get("regimes") if hb else None),
-                                          "say": "When asked for status, name the market regime in one phrase from 'market' (this is the one "
-                                                 "regime we have tested). hourly_by_coin is the backend's hourly label per coin (e.g. COMPRESSION = "
-                                                 "quiet, tight range); use it only as colour."},
+                                          "say": "When asked for status, name the market state in one phrase from 'market' (the exposure dial, "
+                                                 "the one market state the brain and the account use). t3_gate is only the trend portfolio's own "
+                                                 "rule; never call it the market. hourly_by_coin is the backend's hourly label per coin (e.g. "
+                                                 "COMPRESSION = quiet, tight range); use it only as colour."},
                                "breadth": {"up_today": up_day, "uptrend_1h": m["breadth"]["up_1h"], "of": m["breadth"]["of"]},
                                "btc_gate_open": m["btc_gate"], "coins": coins,
                                "scanner": "Explorer checks 10 coins every 15 minutes for 6 setups: E1 pullback in an uptrend, E2 breakout after a quiet period, "
@@ -162,6 +175,14 @@ def market_brief(j) -> dict:
                            "closed_needed_for_first_check": 30, "setups_seen": tk.get("sightings"), "replay_matches_live": tk.get("reconstruction"),
                            "repair_shop": ev["shop"]["summary"],
                            "lessons": [f'{r["title"]}: {r["verdict"]}. {r["result"][:220]}' for r in ev["forwarded"]]}
+        try:                                    # fix A2: every market answer reads the brain's written stance first
+            from jarvis.service import stance
+
+            sb = stance.brief(j)
+            if sb:
+                out["stance"] = sb
+        except Exception:  # noqa: BLE001
+            pass
         return out
     return _cached("market", build)
 
@@ -182,6 +203,7 @@ def briefs_for(j, route_name: str, guest: bool = False) -> dict:
                 c.pop("we_hold_trade", None)
                 c["you_hold"] = c["coin"] in mine
             m.pop("evidence", None)
+            m.pop("stance", None)                       # the brain's own view, plans and positions are Madhav's research, not shared
             m["note"] = "Market facts are shared; holdings shown are this visitor's own. Ananta's research books are not theirs."
             out["MARKET_BRIEF"] = m
         return out

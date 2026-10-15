@@ -206,12 +206,16 @@ def test_brain_red_flags_turn_a_take_into_a_pass_and_limits_hold(monkeypatch):
     r = brain.decide(j, coin, {}, call=lambda u: (json.dumps(bad), {"in": 1, "out": 1}))
     assert r["action"] == "PASS" and r["trade"] is None and "stop" in " ".join(r["flags"])
     assert brain.decide(j, coin, {}, call=lambda u: ("no json here", {"in": 1, "out": 1}))["action"] == "ERROR"
-    # the queue: a second trigger joins the same item; a coin decided in the last 6 hours is dropped with the reason
+    # the queue: a second trigger joins the same item; zone touches and Explorer setups are only logged (fix A5: the registry keeps
+    # them from waking the brain); a coin decided in the last 6 hours is dropped with the reason
     brain.wake(j, coin, "zone_entry")
     brain.wake(j, coin, "explorer:E4")
     assert j.db.execute("SELECT trigger FROM brain_queue WHERE state='NEW'").fetchone()[0] == "zone_entry|explorer:E4"
     assert brain.process(j, call=lambda u: ("{}", {})) == []
-    assert "6 hours" in j.db.execute("SELECT state FROM brain_queue").fetchone()[0]
+    assert j.db.execute("SELECT state FROM brain_queue").fetchone()[0].startswith("NOT_REVIEWED: monitoring only")
+    brain.wake(j, coin, "attention_high")
+    assert brain.process(j, call=lambda u: ("{}", {})) == []
+    assert "6 hours" in j.db.execute("SELECT state FROM brain_queue WHERE trigger='attention_high'").fetchone()[0]
     other = next(c for c in px if c not in ("BTC", coin))
     ok = {"action": "PASS", "confidence": 30, "thesis": "weak case", "knowledge_used": ["COSTS"]}
     brain.wake(j, other, "attention_high")

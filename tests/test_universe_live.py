@@ -150,8 +150,8 @@ def test_brain_budget_paces_and_logs_unreviewed(tmp_path, monkeypatch):
     monkeypatch.setattr(brain, "_live_px", lambda jj, c: 1.0)
     done = []
     monkeypatch.setattr(brain, "decide", lambda jj, c, trig, call=None, push=None, noroom=False: done.append(c) or {"action": "PASS"})
-    brain.wake(j, "LOW", "explorer:E1")
-    brain.wake(j, "GOOD", "zone_entry")
+    brain.wake(j, "LOW", "attention_high")                                  # (zone and Explorer wakes are only logged since fix A5)
+    brain.wake(j, "GOOD", "attention_high")
     brain.process(j)
     assert done == ["GOOD"]
     st = dict(j.db.execute("SELECT coin, state FROM brain_queue").fetchall())

@@ -254,10 +254,10 @@ def build(j) -> dict:
         from jarvis.service import zones_watch
 
         hi = [r["coin"] for r in zones_watch.board(j).get("coins", []) if (r.get("attention") or {}).get("level") == "HIGH"]
-        from jarvis.service import eye
+        from jarvis.service import exposure
 
-        reg = (eye.STATE.get("armed") or {}).get("regime")
-        parts.append((f"Market {reg.lower().replace('_', '-')}. " if reg else "") + (f"Tomorrow I'm watching {', '.join(hi[:4])} closely." if hi else "No coin is at a high-attention zone tonight."))
+        dw = (exposure.state(j) or {}).get("dial_words")       # fix A7: the one market state, the exposure dial (not the 50-day alone)
+        parts.append((f"The exposure dial is {dw}. " if dw else "") + (f"Coins at a high-attention zone: {', '.join(hi[:4])}." if hi else "No coin is at a high-attention zone tonight."))
     except Exception:  # noqa: BLE001
         pass
     out["text"] = " ".join(parts)
@@ -301,6 +301,15 @@ def evening(j, push=None, force: bool = False) -> dict | None:
     if not force and ((now.hour, now.minute) < (EVENING_HOUR, EVENING_MIN) or j.db.execute("SELECT 1 FROM daily_reviews WHERE day=?", (day,)).fetchone()):
         return None
     r = build(j)
+    try:  # fixes A2/A3: tonight's written stance and what the brain's expectations did today
+        from jarvis.service import stance
+
+        sl = stance.evening_line(j, _day0(j))
+        if sl:
+            r["stance"] = sl
+            r["text"] += " " + sl
+    except Exception:  # noqa: BLE001
+        pass
     try:  # the 60-day evidence window (Madhav, Oct 14): every evening review says where the clock stands
         from jarvis.service import knowledge_build
 

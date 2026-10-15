@@ -125,8 +125,8 @@
    "reason": "Test-only fix found minutes after the freeze: the freeze test made its practice freeze on a copy of the LIVE registry, which the real freeze had just frozen, so it could never pass again. The fix gives the test a never-frozen copy and adds a check of the new amendment mechanism. No criterion, threshold, rule or registration text changed.",
    "criteria_changed": false,
    "proposed_on": "2026-10-15",
-   "approved": null,
-   "approved_on": null
+   "approved": "Madhav in chat, 2026-10-15 03:06 ET: 'Approve a1'",
+   "approved_on": "2026-10-15"
   }
  ]
 }

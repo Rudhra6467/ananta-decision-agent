@@ -34,3 +34,17 @@ def test_old_file_format_still_counts(tmp_path, monkeypatch):
     (tmp_path / "paid.json").write_text(json.dumps({time.strftime("%Y-%m-%d"): 4}))
     assert weblook._paid_ok("ask")
     assert not weblook._paid_ok("ask")
+
+
+def test_no_paid_key_never_counts_and_tests_never_reach_the_web(tmp_path, monkeypatch):
+    """Oct 15: runs without an Anthropic key (tests, scripts) used to count against the live cap before failing."""
+    _setup(tmp_path, monkeypatch)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    r = weblook.market_check(None, "ETH", who="brain")
+    assert "error" in r and "ANTHROPIC_API_KEY is not set" in r["error"]
+    assert weblook.paid_today()["used"] == 0 and not (tmp_path / "paid.jsonl").exists()
+    monkeypatch.setenv("GEMINI_API_KEY", "fake")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fake")
+    r = weblook.lookup("what moved crypto today")
+    assert "tests never reach the web" in r["error"] and weblook.paid_today()["used"] == 1     # counted in the test's own file only

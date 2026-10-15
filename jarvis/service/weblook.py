@@ -128,15 +128,29 @@ def paid_today() -> dict:
             "by": (d.get("by") or {}) if d.get("by_day") == day else {}}
 
 
-def lookup(q: str, post=_post, who: str = "ask") -> dict:
+def _paid_blocked(real: bool, who: str, what: str, errors: list) -> str | None:
+    """Why the paid search may not run now (None = it may). Oct 15: a search with no Anthropic key cannot be paid for, so it never
+    counts; before, test runs counted against the live cap (the brain's 8 background searches of Oct 15 were gone by 04:32)."""
+    if not real:
+        return None
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        return "paid search: ANTHROPIC_API_KEY is not set"
+    if not _paid_ok(who, what, " | ".join(errors)):
+        return f"free search quota used and today's paid searches for {'questions' if who == 'ask' else 'background checks'} are used"
+    return None
+
+
+def lookup(q: str, post=None, who: str = "ask") -> dict:
     q = (q or "").strip()[:300]
     if not q:
         raise ValueError("what should I look up?")
+    real, post = post is None, post or _post              # late-bound: tests replace _post, and never reach the web
     t0 = time.time()
     errors = []
     for fn in (_gemini, _claude):
-        if fn is _claude and post is _post and not _paid_ok(who, "lookup: " + q, " | ".join(errors)):
-            errors.append(f"free search quota used and today's {PAID_DAILY} paid searches are used")
+        why = _paid_blocked(real, who, "lookup: " + q, errors) if fn is _claude else None
+        if why:
+            errors.append(why)
             continue
         try:
             out = fn(q, post)
@@ -166,7 +180,7 @@ def _json_in(text: str) -> dict:
     return json.loads(text[a:b + 1]) if a >= 0 and b > a else {}
 
 
-def market_check(j, coin: str, post=_post, cache_s: int = 6 * 3600, who: str = "ask") -> dict:
+def market_check(j, coin: str, post=None, cache_s: int = 6 * 3600, who: str = "ask") -> dict:
     """Ananta's research desk (Madhav, Oct 10): not just pages, a structured market check in three steps.
       gather    dated facts from the live web, each with a source and whether it makes a buy riskier or safer
       evaluate  against what we measured ourselves: the exposure dial, the coin's tier and costs, the measured edge (review #26)
@@ -188,9 +202,11 @@ def market_check(j, coin: str, post=_post, cache_s: int = 6 * 3600, who: str = "
         pass
     prompt = MARKET_PROMPT.format(today=time.strftime("%Y-%m-%d", time.gmtime()), coin=coin, name=name)
     raw, errors = None, []
+    real, post = post is None, post or _post              # late-bound: tests replace _post, and never reach the web
     for fn in (_gemini, _claude):
-        if fn is _claude and post is _post and not _paid_ok(who, "market_check: " + coin, " | ".join(errors)):
-            errors.append(f"free search quota used and today's paid searches for {'questions' if who == 'ask' else 'background checks'} are used")
+        why = _paid_blocked(real, who, "market_check: " + coin, errors) if fn is _claude else None
+        if why:
+            errors.append(why)
             continue
         try:
             raw = fn(coin, post, prompt)

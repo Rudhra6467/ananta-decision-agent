@@ -244,6 +244,6 @@
    }
   }
  },
- "strength_matters": true,
- "updated_by": "review #16 (2026-10-05): CONFLUENCE no longer supported; SWING-NEW and AVERAGE-200 confirmed on 120 coins"
+ "strength_matters": false,
+ "updated_by": "review #16 (2026-10-05): CONFLUENCE no longer supported; SWING-NEW and AVERAGE-200 confirmed on 120 coins; 2026-10-15: strength_matters false, as reviews #6 and #16 found (a zone that held twice did not beat a new one by a meaningful amount, 60% vs 58% held, corrected edge +5.9 vs +8.6 points; SWING-STRONG fails on every tier)"
 }

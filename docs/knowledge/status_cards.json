@@ -63,9 +63,11 @@
    "kind": "rule",
    "evidence": "SUPPORTED",
    "permission": "PAPER",
-   "reason": "Same or better with a third of the trades (#20)",
+   "reason": "Same or better with a third of the trades on today's 10 and 30 (#20). On the coins as they really were each month: fails its profit rule on the 30 (#22: -22.5% in 2024-26 while holding lost 76%); passes on the 10 but much weaker (#30: +3.7% in 2024-26 vs +15.1% on today's 10; holding the same coins lost 31.9%). Do not quote +15.1% as its edge.",
    "reviews": [
-    "#20"
+    "#20",
+    "#22",
+    "#30"
    ],
    "aliases": [
     "T3-B",
@@ -166,9 +168,9 @@
    "id": "EXITS",
    "name": "Hold past the next zone (no zone targets)",
    "kind": "rule",
-   "evidence": "SUPPORTED",
+   "evidence": "WEAK",
    "permission": "PAPER",
-   "reason": "Selling at the next zone cut the winners (#10)",
+   "reason": "A lesson kept from a failed test. Review #10 tested a stop under the zone with a sell target at the next zone and it FAILED: the next zone is near, so the target sold the few big moves early. Holding instead did better in both periods (target 0.0% a trade vs +5.8% for holding 20 days in 2018-23, z 3.4; -1.3% vs +0.3% in 2024-26), on the 10 coins only, never re-tested on more. Kept: no zone targets; the next zone is a review point, not a sell.",
    "reviews": [
     "#10"
    ],
@@ -212,9 +214,9 @@
    "id": "STOP_ZONE",
    "name": "Zone-trade stop (close half a range under the zone)",
    "kind": "rule",
-   "evidence": "SUPPORTED",
+   "evidence": "UNTESTED",
    "permission": "PAPER",
-   "reason": "From the stops-at-zones review (#10) and the decision chain",
+   "reason": "Never passed a test of its own. Review #10 tested this stop together with a sell target at the next zone and that FAILED (the target cut the winners). A look decided after that run (exploratory, not a test) found the stop without a target, held up to 60 days, did about as well as just holding (+18.1% vs +20.8% in 2018-23, +3.2% vs +4.5% since 2024): it rarely saved much. Kept by design as the point where a zone trade's idea is wrong (the decision chain), not as a measured edge.",
    "reviews": [
     "#10"
    ],
@@ -310,8 +312,9 @@
    "kind": "setup",
    "evidence": "REJECTED",
    "permission": "OFF",
-   "reason": "Fails everywhere (#21)",
+   "reason": "Fails its bar on every tier in review #21 (10, 30 and 120 coins): positive on average in both periods, never reliable (z under 2.5). #21 is the later test and replaces review #11's 10-coin reading; card BREAKOUT_VOL is the same idea.",
    "reviews": [
+    "#11",
     "#21"
    ],
    "aliases": [
@@ -323,11 +326,12 @@
    "id": "BREAKOUT_VOL",
    "name": "Breakouts through zones on volume",
    "kind": "setup",
-   "evidence": "WEAK",
+   "evidence": "REJECTED",
    "permission": "CONTEXT",
-   "reason": "Positive in both periods but not reliable (#11)",
+   "reason": "Same idea as card B3 (a daily close through a resistance zone on 1.5x volume). Review #11 (10 coins) found it positive in both periods but not reliable (z 0.9 / 1.3); the later review #21 re-tested it on 10, 30 and 120 coins and it failed on every tier (positive on average, never reliable). The later review wins: rejected as a setup; volume on a breakout stays context (H09), never a reason to buy.",
    "reviews": [
-    "#11"
+    "#11",
+    "#21"
    ],
    "aliases": [],
    "tier": "LIVE10"

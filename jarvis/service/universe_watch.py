@@ -661,6 +661,16 @@ def run_daily(j) -> dict:
             out["weekly_review"] = learning.weekly_review(j).get("file")
     except Exception as exc:  # noqa: BLE001
         out["learning_error"] = str(exc)[:200]
+    try:  # Oct 15 (gate ops_reconstructable): every evidence trade's entry and exit re-checked on the day's candles
+        from jarvis.service import learning
+
+        out["trades_rebuild"] = {k: v for k, v in learning.rebuild_trades(j).items() if k not in ("list", "by_watch")}
+        from jarvis.service import tier30
+
+        out["trend_rebuild"] = {k: v for k, v in learning.rebuild_t3(j).items() if k != "list"}
+        out["trend30_rebuild"] = {k: v for k, v in learning.rebuild_t3(j, tier30.T3_DB, tier30.daily, "trend30").items() if k != "list"}
+    except Exception as exc:  # noqa: BLE001
+        out["trades_rebuild_error"] = str(exc)[:200]
     try:  # Oct 13: whatever passed its forward test is pushed (a note and a request; Madhav decides)
         out["pushed"] = push_passed(j, _phone_push())
     except Exception as exc:  # noqa: BLE001

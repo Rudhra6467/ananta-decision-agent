@@ -123,3 +123,38 @@ def test_the_page_counts_market_events_once():
     E._one_event_count(out)
     assert [i["events"] for i in out["results"]["items"]] == [9, 9, 1] and out["results"]["items"][0]["events_own"] == 11
     assert out["waiting"][0]["have"] == 9 and out["waiting"][0]["done"] is False and out["waiting"][1]["have"] == 2
+
+
+def test_agent_cites_is_the_weekly_spot_check_done_by_code(tmp_path):
+    """Gate agent_cites (Oct 15): the newest 20 answers to Madhav that state a number; an item opens on screen when it names a
+    spot or a screen. Background jobs, family questions and exam conversations never count; no conversations = pending."""
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path)
+    assert el.cites(j) == (0, 0, 0)
+    j.db.execute("CREATE TABLE ask_messages (id TEXT PRIMARY KEY, thread TEXT, t INTEGER, role TEXT, text TEXT, reply TEXT, mode TEXT, route TEXT)")
+    now = j.now()
+
+    def add(i, reply, thread="th", mode="auto", route="market"):
+        j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, mode, route) VALUES (?,?,?,?,?,?,?)",
+                     (f"m{i}", thread, now - 100 - i, "assistant", json.dumps(reply), mode, route))
+
+    good = {"kind": "answer", "answer": "Bitcoin is 80,900.", "evidence": [{"label": "BTC", "value": "80,900", "source": "MARKET_BRIEF", "spot": "markets.btc"}]}
+    for i in range(17):
+        add(i, good)
+    add(17, {"kind": "answer", "answer": "Dial open since Oct 10.", "evidence": [{"label": "Dial", "value": "OPEN", "source": "MARKET_BRIEF"}]})
+    add(18, {"kind": "answer", "answer": "Zone 9.54 to 10.19.", "evidence": []})
+    add(19, {"kind": "answer", "answer": "No numbers here, sir."})                      # no number: not a fact answer, skipped
+    add(20, good, mode="worker")
+    add(21, good, thread="exam-1-2")
+    add(22, good, route="people")
+    add(23, {"kind": "clarify", "answer": "Which 2 coins?"})
+    assert el.cites(j) == (19, 17, 18)                                       # 19 fact answers so far: pending
+    add(24, {"kind": "answer", "answer": "ETH 2.3% down.", "evidence": [{"label": "ETH", "value": "-2.3%", "source": "MARKET_BRIEF", "screen": "coin"}]})
+    assert el.cites(j) == (20, 18, 19)
+    by = {"agent_cites": {"id": "agent_cites"}, "agent_knows": {}, "agent_unknowns": {}, "ux_voice": {}}
+    try:
+        el._gate_measured(j, by)
+    except Exception:  # noqa: BLE001  a later measure (exam files) may be missing here; cites has already been written
+        pass
+    assert by["agent_cites"]["status"] == "PASS" and "18 of the last 20" in by["agent_cites"]["note"]

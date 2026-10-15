@@ -1,6 +1,6 @@
 {
  "version": "acceptance_gate.v1",
- "updated": "2026-10-11",
+ "updated": "2026-10-15",
  "source": "Ananta Engine Acceptance Framework (Madhav, Oct 6)",
  "rule": "The engine is ready to lock (and go to the App Store) only when every check passes at the same time. Read daily; a pass can turn back into a fail.",
  "checks": [
@@ -37,8 +37,8 @@
    "check": "Survivorship controlled",
    "measure": "Each traded idea re-tested on the point-in-time universe of its tier",
    "pass_mark": "Done for every tier that trades",
-   "status": "PARTLY",
-   "note": "30-coin done (#22); live 10 waits (Q9)"
+   "status": "PASS",
+   "note": "30-coin tier (#22) and live 10 (#30, Oct 15) re-tested on their point-in-time tiers"
   },
   {
    "id": "data_costs",
@@ -72,7 +72,7 @@
    "area": "Engine",
    "check": "Sizing correct",
    "measure": "Every entry of the $500 NDAX book checked against D9 (0.5% risk, 10% a trade, core weights), live and in the backtest",
-   "pass_mark": "0 violations, with at least 1 live entry",
+   "pass_mark": "0 violations in at least 20 live entries (raised from 1 on Oct 15, as the Oct 14 audit asked: 1 entry proves little)",
    "status": "PENDING",
    "note": "measured live (Oct 11)"
   },
@@ -116,10 +116,10 @@
    "id": "strategy_survivorship",
    "area": "Strategy",
    "check": "Survivorship",
-   "measure": "Re-test on the point-in-time tier",
+   "measure": "Re-test on the point-in-time tier, for every tier that could trade real money (Madhav, Oct 15: the live 10; the 30-coin tier is evidence only)",
    "pass_mark": "Pass",
-   "status": "FAIL",
-   "note": "Fails on 30 (#22); live 10 pending (Q9)"
+   "status": "PASS",
+   "note": "Live 10 passes (#30): +3.7% in 2024-26 vs holding -31.9%, much weaker than on today's 10 (+15.1%); the 30-coin tier failed (#22) and is evidence only"
   },
   {
    "id": "strategy_baselines",
@@ -179,8 +179,8 @@
    "id": "agent_cites",
    "area": "Agent",
    "check": "Cites evidence",
-   "measure": "Answers carry evidence items that open on screen",
-   "pass_mark": "Spot check 20 answers a week",
+   "measure": "Answers carry evidence items that open on screen (checked by code on the newest 20 answers with numbers, Oct 15)",
+   "pass_mark": "Spot check 20 answers a week: at least 18 of 20",
    "status": "PARTLY",
    "note": ""
   },
@@ -215,7 +215,7 @@
    "id": "ops_reconstructable",
    "area": "Operations",
    "check": "Every decision reconstructable",
-   "measure": "Explorer rebuilt nightly; other books logged with inputs",
+   "measure": "Every book re-checked nightly against its candles or its exchange quotes: the Explorer replayed, the daily rules re-run, every evidence trade's entry and exit, Jarvis's trades, both trend books' decisions and fills, the $500 book's fills and sizes (measured Oct 15)",
    "pass_mark": "All books rebuilt",
    "status": "PARTLY",
    "note": "Explorer only"

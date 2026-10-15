@@ -224,26 +224,52 @@ def credit(j, since: int = 0) -> dict:
     return dict(sorted(out.items(), key=lambda kv: -(kv[1]["buys"] + kv[1]["passes"])))
 
 
+def _day_bars(j, cache: dict, coin: str, when: int) -> list[tuple[str, tuple]]:
+    """The candle of `when`'s UTC day from each source a book decides on: the feed's Binance daily candles, and the Explorer's own
+    candles (watch_engine's daily exits of the brain's, the eye's and the 10-coin trades read those). Oct 15: XRP's Oct 14 low was
+    1.302 in the Explorer's candles and 1.319 on Binance, so a twin stopped at 1.303 was right by the candles it was judged on;
+    a check on Binance alone would call it a mismatch. Only complete days count (today's candle is still moving)."""
+    if when - when % DAY >= int(j.now()) // DAY * DAY:
+        return []
+    if coin not in cache:
+        from jarvis.service import watch_engine as W
+
+        try:
+            ex = W._daily(j, coin)
+        except Exception:  # noqa: BLE001
+            ex = []
+        cache[coin] = (("binance", _daily(j, coin)), ("explorer", ex))
+    out = []
+    for name, D in cache[coin]:
+        b = _close_on_or_after(D, when)
+        if b and b[0] == when - when % DAY:
+            out.append((name, b))
+    return out
+
+
+def _leg_ok(bars: list[tuple[str, tuple]], px, stop=None) -> bool:
+    """A price inside the day's range (0.5% leeway) of at least one source, and for a stop exit that source's low at or under the stop."""
+    return any(b[3] * 0.995 <= (px or 0) <= b[2] * 1.005 and (stop is None or b[3] <= stop * 1.005) for _, b in bars)
+
+
 def rebuild_brain(j) -> dict:
     """G28: each closed brain trade (and its random twin) re-checked on the daily candles: the exit day's range must contain the exit
     price, and a stop exit needs the day's low at or under the stop. Mismatches are listed, never fixed silently."""
     from jarvis.service import watch_engine as W
 
     rows = j.db.execute(f"SELECT {', '.join(W.COLS)} FROM evidence_trades WHERE watch IN ('JARVIS','JARVIS_RANDOM') AND status='CLOSED'").fetchall()
-    bad, checked = [], 0
+    bad, checked, cache = [], 0, {}
     for r in rows:
         t = dict(zip(W.COLS, r))
-        D = _daily(j, t["coin"])
-        b = _close_on_or_after(D, int(t["exit_t"] or 0))
-        if not b or b[0] > (t["exit_t"] or 0) + DAY:
+        bars = _day_bars(j, cache, t["coin"], int(t["exit_t"] or 0))
+        if not bars:
             continue
         checked += 1
-        lo, hi = b[3] * 0.995, b[2] * 1.005
-        ok = lo <= (t["exit"] or 0) <= hi
-        if "stop" in (t.get("exit_why") or "") and t.get("stop"):
-            ok = ok and b[3] <= t["stop"] * 1.005
-        if not ok:
-            bad.append({"id": t["id"], "coin": t["coin"], "exit": t["exit"], "day_low": b[3], "day_high": b[2], "why": t.get("exit_why")})
+        stop = t["stop"] if "stop" in (t.get("exit_why") or "") and t.get("stop") else None
+        if not _leg_ok(bars, t["exit"], stop):
+            b = bars[0][1]
+            bad.append({"id": t["id"], "coin": t["coin"], "exit": t["exit"], "day_low": b[3], "day_high": b[2], "why": t.get("exit_why"),
+                        "sources": {n: [x[3], x[2]] for n, x in bars}})
     out = {"checked": checked, "mismatches": len(bad), "list": bad[:20], "match": not bad}
     # The live rebuild_log has 8 columns (evidence_live._rebuild_table); a 4-value insert used to fail silently here,
     # so no brain run was ever logged (audit 2026-10-14). Write the real schema and let a failure surface to the
@@ -256,6 +282,132 @@ def rebuild_brain(j) -> dict:
         t += 1                                                     # t is the primary key; step past an explorer row in the same second
     j.db.execute("INSERT INTO rebuild_log VALUES (?,?,?,?,?,?,?,?)",
                  (t, "brain", int(not bad), len(rows), checked, len(bad), 0, json.dumps(out)[:4000]))
+    j.db.commit()
+    return out
+
+
+def rebuild_trades(j) -> dict:
+    """Gate ops_reconstructable (Oct 15): EVERY paper trade of every evidence book (daily rules, zone touches, H07, the 30-coin dip
+    trade, Jarvis's and the bold book with their random twins) re-checked on the daily candles: the entry price must lie inside its
+    day's range, a closed trade's exit inside the exit day's range, and a stop exit needs the day's low at or under the stop (0.5%
+    leeway; Binance's or the Explorer's candles, as _day_bars). Only complete days are checked; a coin without candles is counted,
+    never guessed. Mismatches are listed, never fixed silently. Written to rebuild_log as source 'trades'."""
+    from jarvis.service import watch_engine as W
+
+    today0 = int(j.now()) // DAY * DAY
+    rows = [dict(zip(W.COLS, r)) for r in j.db.execute(f"SELECT {', '.join(W.COLS)} FROM evidence_trades WHERE entry_t IS NOT NULL")]
+    cache: dict = {}
+    bad, checked, no_candles, not_yet = [], 0, 0, 0
+    by_watch: dict = {}
+    for t in rows:
+        legs = [("entry", int(t["entry_t"]), t["entry"])]
+        if t["status"] == "CLOSED" and t.get("exit_t"):
+            legs.append(("exit", int(t["exit_t"]), t["exit"]))
+        for leg, when, px in legs:
+            if when - when % DAY >= today0:
+                not_yet += 1
+                continue
+            bars = _day_bars(j, cache, t["coin"], when)
+            if not bars:
+                no_candles += 1
+                continue
+            checked += 1
+            w = by_watch.setdefault(t["watch"], [0, 0])
+            w[0] += 1
+            stop = t["stop"] if leg == "exit" and "stop" in (t.get("exit_why") or "") and t.get("stop") else None
+            if not _leg_ok(bars, px, stop):
+                w[1] += 1
+                bad.append({"id": t["id"], "watch": t["watch"], "coin": t["coin"], "leg": leg, "price": px,
+                            "sources": {n: [b[3], b[2]] for n, b in bars}, "why": t.get("exit_why") if leg == "exit" else t.get("why")})
+    out = {"trades": len(rows), "checked": checked, "mismatches": len(bad), "no_candles": no_candles, "today_not_checked": not_yet,
+           "by_watch": {k: {"checked": v[0], "mismatches": v[1]} for k, v in sorted(by_watch.items())}, "list": bad[:20], "match": not bad}
+    from jarvis.service import evidence_live
+
+    evidence_live._rebuild_table(j)
+    t = int(j.now())
+    while j.db.execute("SELECT 1 FROM rebuild_log WHERE t=?", (t,)).fetchone():
+        t += 1
+    j.db.execute("INSERT INTO rebuild_log VALUES (?,?,?,?,?,?,?,?)",
+                 (t, "trades", int(not bad), len(rows), checked, len(bad), 0, json.dumps(out)[:4000]))
+    j.db.commit()
+    return out
+
+
+def rebuild_t3(j, db: str = "portfolio_book.sqlite", daily_fn=None, source: str = "trend") -> dict:
+    """Gate ops_reconstructable (Oct 15): the trend books re-derived from the candles they decide on: the 10-coin books (T3 MAIN
+    and SHADOW, portfolio_book.sqlite) on the Explorer's own daily candles; the 30-coin book (portfolio_book_t30.sqlite, source
+    'trend30') on its own Binance daily candles (tier30.daily). For every logged daily decision each rated coin's close must equal
+    that day's candle (0.05%), and its hold flag must follow T3's rule (close above its 20- and 50-day averages while Bitcoin is
+    above its 50-day), recomputed with the Explorer's own average. A flag within 0.1% of a threshold counts as matched at the
+    edge, not a mismatch (the averages are re-seeded from older candles). Every fill's price must lie inside its day's range."""
+    import sqlite3
+
+    from jarvis.service import watch_engine as W
+    from src.intelligence.explorer_engine import Ema
+
+    daily_fn = daily_fn or W._daily
+    p = Path(j.dir) / db
+    if not p.exists():
+        return {"note": "no trend book", "match": True, "checked": 0}
+    con = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+    try:
+        decisions = [(int(t), json.loads(js)) for t, js in con.execute("SELECT day_t, json FROM decisions ORDER BY day_t")]
+        fills = [json.loads(js) for (js,) in con.execute("SELECT json FROM fills ORDER BY seq")]
+    finally:
+        con.close()
+    series: dict = {}
+
+    def view(coin: str, day_t: int):
+        if coin not in series:
+            e20, e50, out = Ema(20), Ema(50), {}
+            for b in daily_fn(j, coin):
+                out[int(b[0])] = (b[4], e20.up(b[4]), e50.up(b[4]))
+            series[coin] = out
+        return series[coin].get(day_t - DAY)              # the last closed day before the decision
+
+    bad, edge, checked = [], 0, 0
+    for day_t, d in decisions:
+        btc = view("BTC", day_t)
+        if not btc:
+            continue
+        btc_on = btc[0] > btc[2]
+        for coin, r in (d.get("ratings") or {}).items():
+            v = view(coin, day_t)
+            if not v:
+                continue
+            checked += 1
+            close, e20, e50 = v
+            hold = close > e50 and close > e20 and btc_on
+            ok_close = not r.get("close") or abs(close / r["close"] - 1) < 5e-4
+            if ok_close and hold == bool(r.get("hold")):
+                continue
+            if ok_close and min(abs(close / e20 - 1), abs(close / e50 - 1), abs(btc[0] / btc[2] - 1)) < 1e-3:
+                edge += 1
+                continue
+            bad.append({"day": time.strftime("%Y-%m-%d", time.gmtime(day_t - DAY)), "coin": coin, "logged_hold": r.get("hold"), "rebuilt_hold": hold,
+                        "logged_close": r.get("close"), "candle_close": close})
+    cache: dict = {}
+    f_checked, f_bad = 0, []
+    for f in fills:
+        bars = _day_bars(j, cache, f["coin"], int(f["t"]))
+        if not bars and int(f["t"]) // DAY * DAY < int(j.now()) // DAY * DAY:   # a coin only the book's own candles hold
+            own = _close_on_or_after(daily_fn(j, f["coin"]), int(f["t"]))
+            bars = [("own", own)] if own and own[0] == int(f["t"]) // DAY * DAY else []
+        if not bars:
+            continue
+        f_checked += 1
+        if not _leg_ok(bars, f.get("px")):
+            f_bad.append({"t": f["t"], "book": f.get("book"), "coin": f["coin"], "px": f.get("px"), "sources": {n: [b[3], b[2]] for n, b in bars}})
+    out = {"decisions": len(decisions), "checked": checked, "at_the_edge": edge, "mismatches": len(bad) + len(f_bad), "fills": len(fills),
+           "fills_checked": f_checked, "list": (bad + f_bad)[:20], "match": not bad and not f_bad}
+    from jarvis.service import evidence_live
+
+    evidence_live._rebuild_table(j)
+    t = int(j.now())
+    while j.db.execute("SELECT 1 FROM rebuild_log WHERE t=?", (t,)).fetchone():
+        t += 1
+    j.db.execute("INSERT INTO rebuild_log VALUES (?,?,?,?,?,?,?,?)",
+                 (t, source, int(out["match"]), len(decisions), checked + f_checked, out["mismatches"], 0, json.dumps(out)[:4000]))
     j.db.commit()
     return out
 

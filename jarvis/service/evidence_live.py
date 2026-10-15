@@ -757,6 +757,12 @@ def _gate(j, out: dict) -> dict:
     if c:
         c["status"] = "PASS" if run >= 30 else "FAIL" if nights and not nights[0] else "PENDING"
         c["note"] = f"{run} of 30 nights in a row match" + ("; the last night did NOT match" if nights and not nights[0] else "")
+    c = by.get("ops_reconstructable")
+    if c:
+        try:
+            c.update(reconstructable(j))
+        except Exception as exc:  # noqa: BLE001
+            c["note"] = f"could not measure: {str(exc)[:80]}"
     r = out.get("results") or {}
     c = by.get("strategy_baselines")
     if c and r:
@@ -794,6 +800,69 @@ def _gate(j, out: dict) -> dict:
             "counts": {k: sum(1 for c in checks if c["status"] == k) for k in GATE_WORDS}}
 
 
+REBUILD_PARTS = (("nightly", "the Explorer replayed from raw candles"), ("trades", "every evidence trade's entry and exit on the day's candles"),
+                 ("brain", "Jarvis's closed trades"), ("trend", "the 10-coin trend books' decisions and fills"),
+                 ("trend30", "the 30-coin trend book's decisions and fills"))
+
+
+def reconstructable(j) -> dict:
+    """Gate ops_reconstructable, measured (Oct 15): every book has a nightly re-check, the newest at most 2 days old, and it matched.
+    Parts: the rebuild_log sources above, the daily rules re-run on every tier (universe_rebuilds), and the $500 book (every fill
+    inside NDAX's logged bid and ask, every size inside the rule). Any mismatch = FAIL; a part missing or older = PARTLY."""
+    from jarvis.service import ndax_book, universe_watch
+
+    _rebuild_table(j)
+    now = int(j.now())
+    ok, stale, bad = [], [], []
+    for src, label in REBUILD_PARTS:
+        r = j.db.execute("SELECT t, match FROM rebuild_log WHERE source=? ORDER BY t DESC LIMIT 1", (src,)).fetchone()
+        (stale if not r or now - r[0] > 2 * DAY else ok if r[1] else bad).append(label)
+    u = (universe_watch.rebuilds(j, 1) or [None])[0]
+    label = "the daily rules re-run on every tier"
+    (stale if not u or now - int(u.get("t") or 0) > 2 * DAY else ok if u.get("match") else bad).append(label)
+    a = ndax_book.audit(j)
+    n, inside = j.db.execute("SELECT COUNT(*), SUM(px >= bid - 1e-9 AND px <= ask + 1e-9) FROM book500_fills").fetchone() \
+        if j.db.execute("SELECT 1 FROM sqlite_master WHERE name='book500_fills'").fetchone() else (0, 0)
+    label = "the $500 book's fills and sizes"
+    (bad if a["violations"] or (inside or 0) < n else ok).append(label)
+    status = "FAIL" if bad else "PARTLY" if stale else "PASS"
+    note = (f"{len(ok)} of {len(ok) + len(stale) + len(bad)} parts re-checked and matching"
+            + (f"; MISMATCH: {', '.join(bad)}" if bad else "") + (f"; not re-checked in the last 2 days: {', '.join(stale)}" if stale else ""))
+    return {"status": status, "note": note}
+
+
+CITES_N, CITES_PASS = 20, 18             # agent_cites (Oct 15): the weekly spot check of 20 answers, done by code; 18 of 20 like agent_knows
+SIZING_ENTRIES = 20                      # engine_sizing (Oct 15, the Oct 14 audit): 0 violations in at least 20 entries, as engine_execution
+
+
+def cites(j, days: int = 7) -> tuple[int, int, int]:
+    """agent_cites, measured: the newest 20 answers to Madhav that state a number (background jobs, family questions and exam
+    conversations left out). An evidence item 'opens on screen' when it names the spot that shows it on the open screen or the
+    screen to open for it (Ask's rule 14: "spot", and "screen" when it is on another screen); the app points at it or opens it.
+    Returns (answers checked, answers with at least one item that opens on screen, answers whose every item names a source)."""
+    import re
+
+    try:
+        rows = j.db.execute("SELECT reply FROM ask_messages WHERE role='assistant' AND t >= ? AND COALESCE(mode, '') NOT IN ('worker', 'people') "
+                            "AND COALESCE(route, '') != 'people' AND COALESCE(thread, '') NOT LIKE 'exam-%' ORDER BY t DESC LIMIT 500",
+                            (int(j.now()) - days * DAY,)).fetchall()
+    except sqlite3.OperationalError:                       # no conversations yet
+        return 0, 0, 0
+    picked = []
+    for (rp,) in rows:
+        try:
+            d = json.loads(rp or "")
+        except Exception:  # noqa: BLE001
+            continue
+        if isinstance(d, dict) and d.get("kind") == "answer" and re.search(r"\d", str(d.get("answer") or "")):
+            picked.append([e for e in (d.get("evidence") or []) if isinstance(e, dict)])
+            if len(picked) == CITES_N:
+                break
+    ok = sum(1 for items in picked if any(e.get("screen") or e.get("spot") for e in items))
+    sourced = sum(1 for items in picked if items and all(e.get("source") for e in items))
+    return len(picked), ok, sourced
+
+
 def _gate_measured(j, by: dict) -> None:
     """The six checks that had no measure until Oct 11 (plan Batch 5): sizing, execution, regimes, the agent exam and the voice exam."""
     from jarvis.service import exam, ndax_book
@@ -801,8 +870,9 @@ def _gate_measured(j, by: dict) -> None:
     c = by.get("engine_sizing")
     if c:
         a = ndax_book.audit(j)
-        c["status"] = "PENDING" if not a["entries"] else "PASS" if not a["violations"] else "FAIL"
-        c["note"] = f"{a['violations']} violations in {a['entries']} entries of the $500 book; the 2018-2026 backtest: every size followed the rule"
+        c["status"] = "FAIL" if a["violations"] else "PASS" if a["entries"] >= SIZING_ENTRIES else "PENDING"
+        c["note"] = (f"{a['violations']} violations in {a['entries']} entries of the $500 book (needs {SIZING_ENTRIES}); "
+                     "the 2018-2026 backtest: every size followed the rule")
     c = by.get("engine_execution")
     if c:
         n, inside = j.db.execute("SELECT COUNT(*), SUM(px >= bid - 1e-9 AND px <= ask + 1e-9) FROM book500_fills").fetchone() \
@@ -826,6 +896,12 @@ def _gate_measured(j, by: dict) -> None:
             parts.append(f"{label}: {len(ev['OPEN'])} events dial open, {len(ev['CLOSED'])} dial closed")
         c["status"] = "PASS" if ok else "PENDING"
         c["note"] = "; ".join(parts) + " (needs 10 each; the backtest's split is in BOOK500.md and reviews #25-#27)"
+    c = by.get("agent_cites")
+    if c:
+        n, ok, sourced = cites(j)
+        c["status"] = "PENDING" if n < CITES_N else "PASS" if ok >= CITES_PASS else "FAIL"
+        c["note"] = (f"{ok} of the last {n} answers with numbers carry evidence that opens on screen (needs {CITES_PASS} of {CITES_N}); "
+                     f"{sourced} of {n} name a source for every item (last 7 days, checked by code)")
     e = exam.latest()
     for k, field, n_key, of_key in (("agent_knows", "knows_pass", "known", "known_of"), ("agent_unknowns", "unknowns_pass", "unknown", "unknown_of")):
         c = by.get(k)

@@ -64,3 +64,14 @@ if __name__ == "__main__":
     mb = sum(p.stat().st_size for p in d.glob("*.sqlite")) / 1e6
     sent = to_r2(d) if ("--r2" in sys.argv or time.localtime().tm_wday == 6) else None
     print({"folder": str(d), "files": files, "mb": round(mb, 1), "r2": sent})
+    # worker S1 (Oct 15): the worker's finished days come here, and a copy of the newest backups (without logins, sessions, push
+    # tokens, people or conversations) goes to the worker; each step on its own, a failure is printed, never fatal
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    if (Path.home() / ".ssh" / "ananta_worker").exists():
+        from jarvis.service import worker
+
+        for name, step in (("worker_pull", worker.pull), ("worker_copy", worker.push_backups)):
+            try:
+                print({name: step()})
+            except Exception as exc:  # noqa: BLE001
+                print({name + "_error": str(exc)[:200]})

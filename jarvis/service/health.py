@@ -38,7 +38,8 @@ MIN_FREE_GB = 5.0
 NAMES = {"explorer": "the 15-minute Explorer", "hourly_watch": "the hourly watch (Hunter's book)", "eye": "the eye (live prices)",
          "jobs": "Jarvis's 15-minute jobs", "candles": "the daily candles", "voice": "the voice server", "hands": "Hands (the App backend)",
          "tunnel": "the public address (tunnel)", "disk": "disk space", "hands_login": "Hands login (the agent's access)",
-         "tier30": "the 30-coin paper tier", "universe_feed": "the universe feed (every coin's prices and candles)"}
+         "tier30": "the 30-coin paper tier", "universe_feed": "the universe feed (every coin's prices and candles)",
+         "worker": "the worker Mac (NDAX spreads and the outside view)"}
 FIX = {"explorer": "Restart it from the main checkout (RUNBOOK_SAFETY.md, 'Explorer').",
        "hourly_watch": "Restart paper_watch from the main checkout (RUNBOOK_SAFETY.md, 'hourly watch').",
        "eye": "Restart Jarvis (deploy_jarvis.sh) if it stays down.",
@@ -51,7 +52,8 @@ FIX = {"explorer": "Restart it from the main checkout (RUNBOOK_SAFETY.md, 'Explo
        "hands_login": "Hands answers but refuses the login: check its database connection (MongoDB) and the internet; the Explorer "
                       "and the hourly watch stand still until it works (they cannot read the kill switch).",
        "tier30": "Check Jarvis's daily jobs (tier30.run after the daily close) and the internet (Binance daily candles).",
-       "universe_feed": "Restart Jarvis (deploy_jarvis.sh); if it stays down, check the internet and Binance's public API (api.binance.com)."}
+       "universe_feed": "Restart Jarvis (deploy_jarvis.sh); if it stays down, check the internet and Binance's public API (api.binance.com).",
+       "worker": "Check that the old MacBook Air is plugged in, awake and on the home network, then run: ssh ananta-worker '~/ananta_worker/status'"}
 STATE: dict[str, Any] = {"last_run": None, "jobs_t": None, "running": False, "parts": {}}
 _lock = threading.Lock()
 
@@ -203,6 +205,21 @@ def checks(j, get: Callable = _get, now: float | None = None) -> dict[str, dict]
         out["disk"] = {"ok": free >= MIN_FREE_GB, "detail": f"{free:.0f} GB free"}
     except OSError:
         pass
+
+    # worker S1 (Oct 15): the old MacBook Air that records NDAX's spreads and the outside view. Asked over SSH at most every
+    # 5 minutes; it counts as quiet only after 15 minutes of failed answers (the plan's rule), then the usual two checks apply.
+    if (Path.home() / ".ssh" / "ananta_worker").exists() and (os.getenv("ANANTA_WORKER", "1") == "1" and "PYTEST_CURRENT_TEST" not in os.environ
+                                                              or STATE.get("check_worker")):
+        from jarvis.service import worker
+
+        w = worker.status()
+        if w["ok"]:
+            STATE.pop("worker_bad_t", None)
+        else:
+            STATE.setdefault("worker_bad_t", now)
+        quiet = now - STATE.get("worker_bad_t", now)
+        out["worker"] = {"ok": w["ok"] or quiet < 15 * 60,
+                         "detail": (w["line"][:120] if w["ok"] else f"{w['state'].lower()} for {_mins(quiet)}: {w['line'][:80]}")}
     return out
 
 

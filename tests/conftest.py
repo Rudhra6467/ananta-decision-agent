@@ -22,3 +22,15 @@ def _no_live_web(tmp_path, monkeypatch):
 
     monkeypatch.setattr(weblook, "_post", _no_web)
     weblook._MC.clear()
+
+
+
+@pytest.fixture(autouse=True)
+def _no_live_worker(tmp_path, monkeypatch):
+    """Oct 15 (worker S1): tests never read the worker days pulled onto this Mac or SSH to the worker; each test starts empty."""
+    from jarvis.service import ndax_spreads, worker
+
+    monkeypatch.setattr(worker, "DEST", tmp_path / "worker_data")
+    monkeypatch.setattr(ndax_spreads, "DEST", tmp_path / "worker_data")
+    monkeypatch.setattr(worker, "_ssh", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("tests never reach the worker")))
+    worker._CACHE.clear()

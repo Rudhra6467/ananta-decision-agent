@@ -1,0 +1,166 @@
+"""The worker Mac, stage S1 (Oct 15; plan: Project note plan-2026-10-11-worker-mac.md). A read-only second machine on the home
+network that records, once a minute, what cannot be fetched again later (NDAX's and Binance's bid and ask, USD/CAD, whether
+Ananta's public page answers). The main Mac pulls from it; it never connects to the main Mac and holds no secrets.
+
+  status()              its one-line status over SSH, cached 5 minutes: {"ok", "state", "line", "checked_t"} (a part of system health)
+  pull()                every finished UTC day the main Mac does not hold yet copied into ~/ananta_worker_data, checked, never twice
+  push_backups(n=3)     the newest n nightly backups to the worker, WITHOUT the tables that hold logins, sessions, push tokens,
+                        people or conversations and without the guests' practice books (the worker is an old, unpatched Mac: no
+                        secrets on it), only while it has more than 20 GB free; the copy is integrity-checked there
+  outside_view(days)    the worker's site checks: minutes the public page did not answer, as outage windows (the outside view)
+Run by scripts/backup_db.py at 03:40 (pull and push) and by health.py (status).
+"""
+from __future__ import annotations
+
+import json
+import shlex
+import sqlite3
+import subprocess
+import time
+from pathlib import Path
+
+HOST = "ananta-worker"
+DEST = Path.home() / "ananta_worker_data"
+REMOTE_DATA = "~/ananta_worker/data"
+REMOTE_BACKUPS = "~/ananta_backup_copy"
+MIN_FREE_GB = 20
+SECRET_TABLES = ("users", "sessions", "owner_auth", "push_tokens", "web_push_subs", "failed_logins", "invites", "people_session",
+                 "visitor_profile", "ask_messages", "ask_chips", "ask_misunderstood", "feedback", "account_activity")
+_CACHE: dict = {}
+
+
+def _ssh(cmd: str, timeout: int = 20) -> subprocess.CompletedProcess:
+    return subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", HOST, cmd], capture_output=True, text=True, timeout=timeout)
+
+
+def status(max_age_s: int = 300) -> dict:
+    """The worker's own check: exit 0 = its last round is under 3 minutes old, 1 = stale, 2 = never; unreachable = no answer."""
+    now = time.time()
+    if _CACHE.get("status") and now - _CACHE["status"]["checked_t"] < max_age_s:
+        return _CACHE["status"]
+    try:
+        r = _ssh("~/ananta_worker/status", timeout=20)
+        state = {0: "OK", 1: "STALE", 2: "NEVER"}.get(r.returncode, "ERROR")
+        out = {"ok": r.returncode == 0, "state": state, "line": (r.stdout or r.stderr).strip()[:300], "checked_t": now}
+    except Exception as exc:  # noqa: BLE001
+        out = {"ok": False, "state": "UNREACHABLE", "line": str(exc)[:200], "checked_t": now}
+    _CACHE["status"] = out
+    return out
+
+
+def _remote_files() -> dict[str, int]:
+    r = _ssh(f"cd {REMOTE_DATA} && for f in l1_*.sqlite; do echo \"$f $(stat -f %z \"$f\")\"; done", timeout=30)
+    out = {}
+    for line in (r.stdout or "").splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1].isdigit():
+            out[parts[0]] = int(parts[1])
+    return out
+
+
+def pull(dest: Path | None = None) -> dict:
+    """Copy each finished UTC day (its file name's day before today, UTC) the main Mac does not hold yet; a file is kept only when
+    it opens and its tables have rows. Never overwrites a day already pulled."""
+    dest = dest or DEST
+    dest.mkdir(parents=True, exist_ok=True)
+    today = time.strftime("%Y-%m-%d", time.gmtime())
+    got, skipped, bad = [], [], []
+    for name, size in sorted(_remote_files().items()):
+        day = name[3:13]
+        if day >= today:
+            continue
+        if (dest / name).exists():
+            skipped.append(day)
+            continue
+        part = dest / (name + ".part")
+        r = subprocess.run(["scp", "-q", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", f"{HOST}:{REMOTE_DATA}/{name}", str(part)],
+                           capture_output=True, text=True, timeout=600)
+        if r.returncode != 0 or not part.exists() or part.stat().st_size != size:
+            bad.append({"day": day, "why": (r.stderr or "size differs").strip()[:120]})
+            part.unlink(missing_ok=True)
+            continue
+        try:
+            con = sqlite3.connect(f"file:{part}?mode=ro", uri=True)
+            n = {t: con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("ndax", "binance", "fx", "site")}
+            con.close()
+        except sqlite3.Error as exc:
+            bad.append({"day": day, "why": str(exc)[:120]})
+            part.unlink(missing_ok=True)
+            continue
+        part.rename(dest / name)
+        got.append({"day": day, **n})
+    return {"pulled": got, "already_here": len(skipped), "failed": bad, "dest": str(dest)}
+
+
+def _free_gb() -> float | None:
+    r = _ssh("df -k ~ | tail -1", timeout=20)
+    try:
+        return int(r.stdout.split()[3]) / 1e6
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def push_backups(n: int = 3, src: Path | None = None) -> dict:
+    src = src or Path.home() / "ananta_backups"
+    free = _free_gb()
+    if free is None or free < MIN_FREE_GB:
+        return {"pushed": [], "note": f"not pushed: the worker has {free if free is None else round(free, 1)} GB free (needs {MIN_FREE_GB})"}
+    days = sorted(p for p in src.iterdir() if p.is_dir())[-n:]
+    _ssh(f"mkdir -p {REMOTE_BACKUPS}")
+    pushed = []
+    for d in days:
+        stage = Path.home() / "ananta_runs" / "worker_copy" / d.name
+        stage.mkdir(parents=True, exist_ok=True)
+        for f in sorted(d.glob("*.sqlite")):
+            if f.name.startswith("jarvis_guest_"):          # guests' practice books stay off the worker (their file names are emails)
+                continue
+            out = stage / f.name
+            out.unlink(missing_ok=True)
+            with sqlite3.connect(f"file:{f}?mode=ro", uri=True) as a, sqlite3.connect(out) as b:
+                a.backup(b)
+            with sqlite3.connect(out) as b:
+                for t in SECRET_TABLES:
+                    b.execute(f"DROP TABLE IF EXISTS {t}")
+                b.commit()
+                b.execute("VACUUM")
+        _ssh(f"rm -rf {REMOTE_BACKUPS}/{shlex.quote(d.name)}")          # each day's copy is replaced whole, never merged
+        r = subprocess.run(["scp", "-q", "-r", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", str(stage), f"{HOST}:{REMOTE_BACKUPS}/"],
+                           capture_output=True, text=True, timeout=1800)
+        ok = r.returncode == 0
+        chk = _ssh(f"sqlite3 {REMOTE_BACKUPS}/{d.name}/jarvis.sqlite 'PRAGMA integrity_check'", timeout=120).stdout.strip() if ok else ""
+        pushed.append({"day": d.name, "ok": ok and chk == "ok", "check": chk[:40]})
+        for f in stage.glob("*.sqlite"):
+            f.unlink(missing_ok=True)
+        stage.rmdir()
+    keep = {d.name for d in days}
+    _ssh(f"cd {REMOTE_BACKUPS} && for d in */; do d=${{d%/}}; case \" {' '.join(sorted(keep))} \" in *\" $d \"*) ;; *) rm -rf -- \"$d\";; esac; done")
+    return {"pushed": pushed, "free_gb": round(free, 1), "kept_on_worker": sorted(keep)}
+
+
+def outside_view(days: int = 7, dest: Path | None = None) -> dict:
+    """From the pulled days: minutes the public page did not answer, grouped into outage windows (consecutive failed minutes)."""
+    dest = dest or DEST
+    since = time.strftime("%Y-%m-%d", time.gmtime(time.time() - days * 86400))
+    checks = fails = 0
+    windows: list[list[int]] = []
+    for f in sorted(dest.glob("l1_*.sqlite")):
+        if f.name[3:13] < since:
+            continue
+        con = sqlite3.connect(f"file:{f}?mode=ro", uri=True)
+        try:
+            for t, ok in con.execute("SELECT t, ok FROM site ORDER BY t"):
+                checks += 1
+                if not ok:
+                    fails += 1
+                    if windows and t - windows[-1][1] <= 120:
+                        windows[-1][1] = t
+                    else:
+                        windows.append([t, t])
+        finally:
+            con.close()
+    return {"days": days, "checks": checks, "failed": fails,
+            "windows": [{"from": time.strftime("%Y-%m-%d %H:%M", time.gmtime(a)), "minutes": round((b - a) / 60) + 1} for a, b in windows][-20:]}
+
+
+if __name__ == "__main__":
+    print(json.dumps({"status": status(0), "pull": pull()}, indent=1))

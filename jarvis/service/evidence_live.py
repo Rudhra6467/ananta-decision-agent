@@ -896,6 +896,27 @@ def _gate_measured(j, by: dict) -> None:
             parts.append(f"{label}: {len(ev['OPEN'])} events dial open, {len(ev['CLOSED'])} dial closed")
         c["status"] = "PASS" if ok else "PENDING"
         c["note"] = "; ".join(parts) + " (needs 10 each; the backtest's split is in BOOK500.md and reviews #25-#27)"
+    try:                                   # worker S1 (Oct 15): measured NDAX costs and the outside view, from the pulled worker days
+        from jarvis.service import ndax_spreads, registry, worker
+
+        s = ndax_spreads.summary(14, cost_fn=registry.cost)
+        if s["days_measured"]:
+            dear = [x for x in s["dearer_than_assumed"] if x in set(registry.lab10())]
+            c = by.get("data_costs")
+            if c:
+                c["status"] = "PARTLY" if dear else c["status"]
+                c["note"] = (f"{s['line']}" + (f"; the 10 books' own coins costlier than assumed: {', '.join(dear)} (stage S2, about Oct 25, "
+                             "re-runs the $500 backtest with measured costs; Madhav decides)" if dear else "") + (f"; {c['note']}" if c.get("note") else ""))
+            c = by.get("engine_execution")
+            if c:
+                c["note"] += f"; spreads measured by the worker on {s['days_measured']} full days"
+        o = worker.outside_view(7)
+        c = by.get("ops_outages")
+        if c and o["checks"]:
+            c["note"] = (f"outside view (worker, 7 days): {o['failed']} of {o['checks']} minute checks of the public page failed"
+                         + (f", longest {max(w['minutes'] for w in o['windows'])} min" if o["windows"] else "") + (f"; {c['note']}" if c.get("note") else ""))
+    except Exception:  # noqa: BLE001  no worker data on this machine
+        pass
     c = by.get("agent_cites")
     if c:
         n, ok, sourced = cites(j)

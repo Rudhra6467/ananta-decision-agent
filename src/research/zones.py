@@ -323,12 +323,17 @@ def review6(D: dict[str, list[tuple]], seed: int = 6) -> dict:
 # ---------------------------------------------------------------------------
 REACTIONS = {"F1": "Rejection (long lower wick)", "F2": "Closed back above the zone", "F3": "Volume 1.5x its 20-day average",
              "F4": "Momentum divergence (lower close, higher RSI than 10 days ago)", "F5": "Stronger than BTC (30 days)",
-             "F6": "Market allowed (BTC above its 50-day average)", "F7": "Good zone kind (200-day, confluence or new swing)"}
-GOOD_GROUPS = {"AVERAGE-200", "CONFLUENCE", "SWING-NEW"}
+             "F6": "Market allowed (BTC above its 50-day average)", "F7": "Good zone kind (200-day average or new swing zone)"}
+# The zone kinds history supports. Review #6 (Oct 3) passed AVERAGE-200, CONFLUENCE and SWING-NEW; review #16 (Oct 5, 30 and 120 coins)
+# no longer supported CONFLUENCE, and Madhav dropped overlapping zones from "history supports" in the live map and the decision chain
+# (zones_status.json). GOOD_GROUPS is what the live lookout shows today. REVIEW6_PASSED keeps the kinds that reviews #7-#9 used as
+# "good" when they were pre-registered, so those tests can be re-run exactly (lookout_events, zone_splits, reads.review8_filter).
+REVIEW6_PASSED = {"AVERAGE-200", "CONFLUENCE", "SWING-NEW"}
+GOOD_GROUPS = {"AVERAGE-200", "SWING-NEW"}
 
 
-def reactions(S: R.Series, A: Arr, B: R.Series | None, i: int, z: dict) -> dict:
-    """The seven reactions at the close of day i (bars 0..i only)."""
+def reactions(S: R.Series, A: Arr, B: R.Series | None, i: int, z: dict, good: set | None = None) -> dict:
+    """The seven reactions at the close of day i (bars 0..i only). F7 uses `good` (default: the kinds history supports today)."""
     h, l, c = A.h[i], A.l[i], A.c[i]
     vol20 = statistics.mean(S.v[i - 20:i]) if i >= 20 else None
     out = {"F1": bool(h > l and (c - l) / (h - l) >= 0.5), "F2": bool(c > z["top"]),
@@ -340,7 +345,7 @@ def reactions(S: R.Series, A: Arr, B: R.Series | None, i: int, z: dict) -> dict:
         out["F6"] = bool(B.ema50[bi] is not None and B.c[bi] > B.ema50[bi])
     else:
         out["F5"] = out["F6"] = False
-    out["F7"] = bool(set(groups(z)) & GOOD_GROUPS)
+    out["F7"] = bool(set(groups(z)) & (GOOD_GROUPS if good is None else good))
     return out
 
 
@@ -368,7 +373,7 @@ def lookout_events(coin: str, S: R.Series, B: R.Series, until: int) -> list[dict
         last = S.t[i]
         ups = [x["bot"] for x in zm_all if i + 1 < n and x["bot"] > A.o[i + 1]]
         out.append({"coin": coin, "t": S.t[i], "i": i, "bot": float(z["bot"]), "top": float(z["top"]), "atr": atr,
-                    "next_up": float(min(ups)) if ups else None, "result": res, "r10": r10, "groups": groups(z), **reactions(S, A, B, i, z)})
+                    "next_up": float(min(ups)) if ups else None, "result": res, "r10": r10, "groups": groups(z), **reactions(S, A, B, i, z, good=REVIEW6_PASSED)})      # review #7 as pre-registered
     return out
 
 

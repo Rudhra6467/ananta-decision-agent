@@ -377,7 +377,7 @@ def history(D: dict[str, list[tuple]], variants=None, keep_for=None) -> dict:
 
 
 REVIEW8 = [f"{r}-{f}" for r in ("M1a", "M2a", "M3a") for f in ("Z", "G", "ZG")]
-SUPPORTED_ZONES = {"AVERAGE-200", "CONFLUENCE", "SWING-NEW"}            # review #6 passes
+# review #8 filters by the zone kinds review #6 passed (zones.REVIEW6_PASSED, frozen as pre-registered; the live lists are zones.GOOD_GROUPS)
 
 
 def review8_filter(name: str, coin: str, S: Series, B: Series):
@@ -391,7 +391,7 @@ def review8_filter(name: str, coin: str, S: Series, B: Series):
     def zone_ok(i: int) -> bool:
         if i < 400:
             return False
-        return any(z["bot"] <= S.c[i - 1] and A.l[i] <= z["top"] and A.h[i] >= z["bot"] and set(Z.groups(z)) & SUPPORTED_ZONES
+        return any(z["bot"] <= S.c[i - 1] and A.l[i] <= z["top"] and A.h[i] >= z["bot"] and set(Z.groups(z)) & Z.REVIEW6_PASSED
                    for z in Z.zone_map(A, i))          # a support (at or under yesterday's close) that today's range touched
 
     def gate_ok(i: int) -> bool:

@@ -106,6 +106,24 @@ def test_lookout_reactions_have_a_frozen_noise_calibration_and_never_look_ahead(
     assert d["diff_corrected_pts"] == 0.0 and d["z_corrected"] == 0.0
 
 
+def test_the_live_lookout_follows_the_zone_verdicts_and_review_7_keeps_its_own_definition():
+    """Oct 15 (research audit R6): review #16 no longer supports CONFLUENCE and Madhav dropped it from "history supports" (Oct 5). The live
+    lookout's F7 follows zones_status.json; the kinds review #6 passed stay frozen for re-running reviews #7-#9 exactly."""
+    import json
+    import pathlib
+
+    D = _walk(700, seed=21)
+    S = R.Series(D)
+    A = Z.Arr(S)
+    z = {"bot": 90.0, "top": 95.0, "kinds": {"EXTREME", "AVERAGE-50"}}          # neither kind is supported alone: only CONFLUENCE could make it "good"
+    assert Z.groups(z) == ["EXTREME", "AVERAGE-50", "CONFLUENCE"]
+    assert Z.reactions(S, A, S, 600, z)["F7"] is False                              # the live lookout
+    assert Z.reactions(S, A, S, 600, z, good=Z.REVIEW6_PASSED)["F7"] is True        # review #7 as pre-registered
+    status = json.loads((pathlib.Path(__file__).resolve().parents[1] / "docs" / "research" / "zones_status.json").read_text())["groups"]
+    assert Z.GOOD_GROUPS == {g for g, v in status.items() if v["status"] == "PASS"}, "the live lookout and zones_status.json disagree"
+    assert "CONFLUENCE" in Z.REVIEW6_PASSED and "CONFLUENCE" not in Z.GOOD_GROUPS
+
+
 def test_news_recorder_checks_each_coin_once_a_day_and_stops_when_ai_is_off(tmp_path):
     from jarvis.service import news_watch as N
     from jarvis.service import zones_watch as W

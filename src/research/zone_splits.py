@@ -21,7 +21,7 @@ from src.research import reads as R
 from src.research import zones as Z
 
 DAY = 86400
-SUPPORTED = {"AVERAGE-200", "CONFLUENCE", "SWING-NEW"}
+# review #9 splits by the zone kinds review #6 passed (zones.REVIEW6_PASSED, frozen as pre-registered; the live lists are zones.GOOD_GROUPS)
 
 
 class Context:
@@ -49,7 +49,7 @@ class Context:
         sup = [z for z in self.zones(i) if z["bot"] <= price <= z["top"] + 0.5 * atr]
         bi = self.B.at(self.S.t[i - 1])
         g = bool(bi is not None and self.B.ema50[bi] is not None and self.B.c[bi] > self.B.ema50[bi])
-        return {"Z": any(set(Z.groups(z)) & SUPPORTED for z in sup), "Zany": bool(sup), "G": g}
+        return {"Z": any(set(Z.groups(z)) & Z.REVIEW6_PASSED for z in sup), "Zany": bool(sup), "G": g}
 
 
 def welch(a: list[float], b: list[float]) -> float | None:

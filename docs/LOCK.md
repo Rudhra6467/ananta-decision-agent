@@ -51,7 +51,7 @@ Not frozen, but guarded: the Acceptance Gate's *results* move every day by desig
 
 The gate has 27 checks that must all pass at the same time. It is read daily on the Evidence page, and a pass can turn back into a fail. Its definition (`gate_definition`) is frozen; its readings are not.
 
-At the lock (Oct 15, read from the live service): **16 of 27 pass**; 3 FAIL, 3 PARTLY, 5 PENDING.
+At the lock (Oct 15, read from the live service): **16 of 27 pass**; 3 FAIL, 2 PARTLY, 5 PENDING, 1 NOT_MEASURED.
 
 | Check | What | At the lock | Reading | What it waits for |
 |---|---|---|---|---|
@@ -81,9 +81,9 @@ At the lock (Oct 15, read from the live service): **16 of 27 pass**; 3 FAIL, 3 P
 | `ops_reconstructable` | Operations: Every decision reconstructable | PASS | 8 of 8 parts re-checked and matching | - |
 | `ux_voice` | Experience: Voice commands work | PASS | 10 of 10 heard on 2026-10-11 | - |
 | `ux_confirm` | Experience: Actions visible, confirmed | PASS | orders and switches | - |
-| `ux_why` | Experience: User understands why | **PARTLY** | - | One exam run with the five new 'why' questions (about $1.30 for the whole exam, `OD-EXAM-CADENCE`); it passes at 4 of 5 answers that give the real reason. |
+| `ux_why` | Experience: User understands why | **NOT_MEASURED** | the exam has not asked its 'why' questions yet (added at the Oct 15 lock; the next exam run measures them) | One exam run with the five new 'why' questions (about $1.30 for the whole exam, `OD-EXAM-CADENCE`); it passes at 4 of 5 answers that give the real reason. |
 
-**The exam checks.** `agent_knows`, `agent_unknowns`, `ux_why` and `ux_voice` read the newest run of the agent exam and the voice exam (`jarvis/service/exam.py`). Nothing schedules either: they are run by hand, and the agent exam costs about $1.30 in paid AI answers. Since the lock, a pass from a run older than 8 days reads PARTLY, so an exam that is never run again cannot hold a green check (`OD-EXAM-CADENCE` asks Madhav how often to run it). The five 'why' questions were added at the lock, before any run; they pass at 4 of 5.
+**The exam checks.** `agent_knows`, `agent_unknowns`, `ux_why` and `ux_voice` read the newest run of the agent exam and the voice exam (`jarvis/service/exam.py`). Nothing schedules either: they are run by hand. The agent exam costs about $1.30 in paid AI answers; the voice exam uses the Mac's own speech tools and Gemini's free tier, so the morning review runs it on Mondays. Since the lock, a pass from a run older than 8 days reads PARTLY, so an exam that is never run again cannot hold a green check (`OD-EXAM-CADENCE` asks Madhav how often to run it). The five 'why' questions were added at the lock, before any run; they pass at 4 of 5.
 
 ## 5. Checkpoints
 

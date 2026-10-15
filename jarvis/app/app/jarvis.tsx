@@ -62,8 +62,8 @@ export default function JarvisBook() {
       ) : null}
 
       <Spot id="jarvis.open">
-        <Card onPress={() => goTab("/(tabs)/portfolio")} title={`${open.length} open trade${open.length === 1 ? "" : "s"}`}
-          sub="They are in Books › Trades with the stamp “Ananta's own pick”" right={<Text style={{ color: C.accent, fontSize: 18 }}>›</Text>} />
+        <Card onPress={() => goTab({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", sub: "lab", t: String(Date.now()) } } as any)} title={`${open.length} open trade${open.length === 1 ? "" : "s"}`}
+          sub="They are in Markets › Ananta market › Lab with the stamp “Ananta's own pick”" right={<Text style={{ color: C.accent, fontSize: 18 }}>›</Text>} />
       </Spot>
 
       <Spot id="jarvis.learning">

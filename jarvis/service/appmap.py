@@ -9,22 +9,24 @@ from __future__ import annotations
 import re
 
 SCREENS = {
-    "home": {"name": "Home", "where": "Home tab (house icon)",
-             "shows": "how the account is doing and whether anything needs you: whether every part is running, the account card (the $500 "
-                      "NDAX book in Canadian dollars: value since the start, holdings, cash, the dial and brakes), Needs you (a rule that passed "
-                      "and may step up, portfolio changes, the mandate's actions), Ananta's note (the day in plain words), one line for the lab, "
-                      "findings (moves we missed or only saw, lessons), and the activity feed; the More tab holds the switches and settings"},
-    "markets": {"name": "Markets", "where": "Markets tab (trend-line icon, fourth tab; it was called Watchlists until Oct 14)",
+    "home": {"name": "Home", "where": "Home tab (house icon, first of four tabs since Oct 15)",
+             "shows": "how the account is doing, what it traded, and whether anything needs you: the greeting with the Ananta button at the top "
+                      "right (Ananta's mark; it shows a number when something waits), whether every part is running, the account card (the $500 "
+                      "NDAX book in Canadian dollars: value since the start, holdings, cash, the dial and brakes), the account's trades (the old "
+                      "Books tab), and the activity feed. The Ananta button opens Ananta's space: Needs you (a rule that passed and may step up, "
+                      "portfolio changes, the mandate's actions), Ananta's note (the day in plain words), one line for the lab, and findings "
+                      "(moves we missed or only saw, lessons), each as a row that opens to the full item; the More tab holds the switches and settings"},
+    "markets": {"name": "Markets", "where": "Markets tab (trend-line icon, third tab; it was called Watchlists until Oct 14); its first page",
                 "shows": "the trend dial first (OPEN or CLOSED, with why, and the brakes), then the watches, the coins with price, today's move, "
                          "1h/4h trend and how close each is to its nearest setup; above it, Ananta's reasoning: where each coin stops on the "
                          "decision chain (regime, trend, location, trigger, invalidation, risk, exposure); tap a coin for its page"},
-    "portfolio": {"name": "Books: trend portfolio (T3)", "where": "Books tab, first sub-tab (Ananta's book is the row above)",
+    "portfolio": {"name": "Ananta market: trend portfolio (T3)", "where": "Markets tab, second page 'Ananta market', Trend sub-tab (Ananta's book is the row above; the Books tab folded in here on Oct 15)",
                   "shows": "the T3 portfolio value chart, the Autopilot switch, suggested changes, holdings with value, return and rating, cash and costs"},
-    "portfolio:explorer": {"name": "Explorer trades", "where": "Books tab, Explorer sub-tab",
+    "portfolio:explorer": {"name": "Explorer trades", "where": "Markets tab, second page 'Ananta market', Explorer sub-tab",
                            "shows": "the Explorer's paper book: open trades with P&L, orders waiting to fill, closed trades"},
-    "portfolio:mine": {"name": "My trades", "where": "Books tab, My trades sub-tab",
+    "portfolio:mine": {"name": "My trades", "where": "Markets tab, second page 'Ananta market', Mine sub-tab",
                        "shows": "the owner's own paper book: positions, orders with reasons, research jobs"},
-    "ananta": {"name": "Ask Ananta", "where": "Ask Ananta tab (speech bubble, middle tab)",
+    "ananta": {"name": "Ask Ananta", "where": "Ask Ananta tab (the yellow voice wave, second tab)",
                "shows": "this conversation: type, dictate with the mic, or talk hands-free with the wave button; Sessions holds past conversations"},
     "evidence": {"name": "Evidence: inside the logic repair", "where": "the Evidence page (Home's Lab switch, then the Evidence row)",
                  "shows": "the repair loop live, in Madhav's order: looked, spotted, decided, scored, misses checked, sent to the repair "
@@ -34,12 +36,12 @@ SCREENS = {
                           "status); what changed; what we wait for with dates at this pace. The older research cards fold below."},
     "evidence:forwarded": {"name": "Evidence: forwarded and in use", "where": "the Evidence page, lower part",
                            "shows": "repairs that passed and run in paper (T3 vs buy-and-hold) and the safety changes"},
-    "jarvis": {"name": "Ananta's book", "where": "Home > Ananta today, or the top row of Books",
+    "jarvis": {"name": "Ananta's book", "where": "the Ananta button on Home, or the top row of Markets > Ananta market",
                "shows": "Ananta's own paper trades: the score against its random twins (running line, events to a verdict), open trades with "
                         "the room left to the stop, what its plans leaned on and the confidence check, and recent decisions with their thesis"},
-    "missed": {"name": "What we missed", "where": "Home > Findings > Missed moves",
+    "missed": {"name": "What we missed", "where": "Home > the Ananta button > Findings > Missed moves",
                "shows": "each day's biggest rises: caught, seen or missed, and why; and the misses that keep coming back"},
-    "cockpit": {"name": "More", "where": "More tab (sliders icon, last tab; it was called Cockpit until Oct 14)",
+    "cockpit": {"name": "More", "where": "More tab (sliders icon, fourth and last tab; it was called Cockpit until Oct 14). The menu button at the top left of every tab opens the side drawer with every tab and its parts",
                 "shows": "the controls (kill switch, portfolio autopilot, locked live-trading switch, Ask and Voice switches), Voice and model "
                          "(who answers, the voice, the Claude budget), Evidence (the reviews, the repair loop, strategy status), System (every part "
                          "running, recent actions, costs), your mandate, the test lab, active alerts"},
@@ -54,7 +56,8 @@ ALIASES = {
     "my trades": "portfolio:mine", "my book": "portfolio:mine", "my paper book": "portfolio:mine", "manual book": "portfolio:mine",
     "ananta": "ananta", "chat": "ananta", "voice": "ananta", "conversation": "ananta",
     "evidence": "evidence", "lab": "evidence", "repair shop": "evidence", "evidence tracker": "evidence", "forwarded": "evidence:forwarded",
-    "jarvis": "jarvis", "jarvis's book": "jarvis", "jarvis book": "jarvis", "your book": "jarvis", "your trades": "jarvis", "books": "portfolio",
+    "jarvis": "jarvis", "jarvis's book": "jarvis", "jarvis book": "jarvis", "your book": "jarvis", "your trades": "jarvis", "books": "home",
+    "ananta market": "portfolio", "the lab": "portfolio", "lab books": "portfolio", "needs you": "home", "your note": "home", "ananta's note": "home", "the note": "home",
     "missed": "missed", "missed moves": "missed", "what we missed": "missed", "findings": "missed",
     "cockpit": "cockpit", "more tab": "cockpit", "the more tab": "cockpit", "settings": "cockpit", "controls": "cockpit", "kill switch": "cockpit", "budget": "cockpit", "alerts": "cockpit",
     "dial": "markets", "trend dial": "markets", "brakes": "markets",
@@ -248,9 +251,8 @@ def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -
 # ---------------------------------------------------------------------------
 SPOTS = {
     "home": {"home.status": "whether every part is running (the health strip)", "home.value": "the account: the $500 NDAX book, its value since the start, holdings, cash, the dial",
-             "home.jarvis": "Ananta's note on the day (or Ananta today before the account started)",
-             "home.findings": "findings: missed or seen moves, lessons, market shifts", "home.inbox": "Needs you: a rule that passed and may step up, things waiting for your OK",
-             "home.books": "one line for the lab: every other book measuring in the background", "home.activity": "the activity feed"},
+             "home.books": "the account's trades (Ananta today before the account started); since Oct 15 Needs you, Ananta's note, the lab and findings are inside the Ananta button, not spots on the page",
+             "books.trades": "the account's trades with their stamps", "home.activity": "the activity feed"},
     "jarvis": {"jarvis.score": "the score against the random twins", "jarvis.open": "Ananta's open trades", "jarvis.learning": "what its plans leaned on and the confidence check",
                "jarvis.decisions": "recent decisions with their thesis"},
     "missed": {"missed.counts": "caught / seen / missed counts", "missed.moves": "the biggest moves and why", "missed.patterns": "misses that keep coming back"},
@@ -290,6 +292,8 @@ def spot_screen(spot: str) -> str | None:
         return "portfolio:explorer"
     if pre == "mine":
         return "portfolio:mine"
+    if pre == "books":                       # Oct 15: the account's trades sit on Home
+        return "home"
     if head in ("evidence.in_use", "evidence.safety"):
         return "evidence:forwarded"
     return {"home": "home", "markets": "markets", "portfolio": "portfolio", "evidence": "evidence", "cockpit": "cockpit",
@@ -353,10 +357,8 @@ SPOT_WORDS = {
     "trade.plan": r"plan|exit|sell|trail", "trade.timeline": r"timeline|opened|history",
     "coin.chart": r"chart|candle", "coin.position": r"position|we hold|our\b|bought", "coin.market": r"market|trend|checklist",
     "coin.levels": r"support|resistance|level", "coin.trades": r"trades?",
-    "home.value": r"value|worth|today|\$", "home.inbox": r"inbox|waiting|approve|ok\b", 
-    "home.books": r"explorer|hourly|portfolio|books?|watch", "home.activity": r"activity|recent|happened",
-    "home.status": r"running|health|parts?|down\b", "home.jarvis": r"jarvis|my trades|i took|decision",
-    "home.findings": r"miss|seen|lesson|finding", "jarvis.score": r"random|twins?|beat|score", "jarvis.open": r"open|holding|stop",
+    "home.value": r"value|worth|today|\$|inbox|waiting|approve|ok\b|jarvis|decision|miss|seen|lesson|finding|note", "home.books": r"explorer|hourly|portfolio|books?|watch|my trades|i took",
+    "home.activity": r"activity|recent|happened", "home.status": r"running|health|parts?|down\b", "jarvis.score": r"random|twins?|beat|score", "jarvis.open": r"open|holding|stop",
     "jarvis.learning": r"knowledge|learn|confidence", "jarvis.decisions": r"decid|pass|bought", "missed.moves": r"miss|move|rise",
     "missed.patterns": r"keep|again|pattern", "missed.counts": r"caught|seen|missed",
     "markets.summary": r"trend|breadth|gate|coins? (?:are|is)|up\b", "portfolio.value": r"value|worth|\$|up\b|down\b",
@@ -466,17 +468,15 @@ def tour(j) -> list[dict]:
         pass
     steps = [
         {"ui": {"do": "go_to", "target": "home", "label": "Home"}, "spot": "home.value",
-         "say": "Welcome, Madhav. This is Home: how the account is doing, and whether anything needs you. Three lines per card; More opens the rest."},
+         "say": "Welcome, Madhav. This is Home: how the account is doing, what it traded, and whether anything needs you. Three lines per card; More opens the rest."},
     ]
-    if inbox:
-        steps.append({"spot": "home.inbox", "say": "Here is the inbox. Anything I prepare for you, like an order or an alert, waits here until you confirm it."})
     steps += [
         {"spot": "home.status", "say": "This strip says whether every part of me is running. I check them every two minutes and ping your phone if one goes quiet."},
-        {"spot": "home.value", "say": "This is the account: the 500-dollar NDAX book, its value since the start, its holdings and cash, and the dial. Tap it for Books."},
-        {"spot": "home.jarvis", "say": "This is my note: once a day, after the close, I write what the account did and why, from the database."},
-        {"spot": "home.findings", "say": "Findings are what I found: big moves we missed or only saw, and lessons from closed trades."},
-        {"spot": "home.books", "say": "This line is the lab: every other book keeps measuring in the background. Only what passes its bar is pushed into the account."},
+        {"spot": "home.value", "say": "This is the account: the 500-dollar NDAX book, its value since the start, its holdings and cash, and the dial."},
+        {"spot": "books.trades", "say": "Below it are the account's trades, every one with its stamp. The lab's books live under Markets, on the Ananta market page."},
         {"spot": "home.activity", "say": "And this is the activity feed: every buy, sell, alert and change, in plain words. Tap a trade to open it."},
+        {"spot": "home.value", "say": ("My mark at the top right is the Ananta button. It shows a number when something waits for you" + (f": {inbox} right now" if inbox else "")
+                                       + ". Inside are what needs you, my note of the day, the lab in one line, and findings: moves we missed and lessons.")},
         {"ui": {"do": "go_to", "target": "markets", "label": "Markets"}, "spot": "markets.summary",
          "say": f"This is Markets. The trend dial comes first, then our watches. Right now {up} of our {n} coins are in a one-hour uptrend."},
         {"spot": "markets.coin:BTC", "say": "Each row is one coin: its price, its trend, and how close it is to one of our setups. Tap a coin for its chart."},

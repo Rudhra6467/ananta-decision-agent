@@ -1,6 +1,8 @@
-// The five main tabs (plan 2.1, D6), each answering one question (Oct 14, one grammar): Home "how is my account, and does anything
-// need me?" · Books "what did the account trade?" · Ask Ananta "talk" · Markets (was Watchlists) "what is the market doing?" ·
+// The four main tabs (plan 2.1, D6; five until Oct 15), each answering one question (Oct 14, one grammar): Home "how is my account,
+// what did it trade, and does anything need me?" (the Books tab folded into it on Oct 15, Madhav) · Ask Ananta "talk" ·
+// Markets (was Watchlists) "what is the market doing?", with Ananta market (the lab's books) as its second page ·
 // More (was Cockpit) "settings, evidence, is everything running?". Swipeable like YouTube: drag left / right and the next page slides in.
+// The menu button at the top left of every tab opens the side drawer (src/drawer.tsx): every tab and what it holds, like Gmail.
 // Tapping the tab you are already on goes back to the top (Ask Ananta: to the latest message), plan 2.2.
 // Tab bar stays at the bottom; the page header (title, the bell and theme switch on More) is drawn here because swipe tabs have no header of their own.
 // The route names (watchlists, cockpit) stay as they were so every deep link and spoken command still lands.
@@ -15,10 +17,11 @@ import { scroll } from "../../src/spotlight";
 import { ThemeToggle } from "../../src/themetoggle";
 import { AlertsBell } from "../../src/alerts";
 import { useData } from "../../src/useData";
-import { BooksIcon, ChatIcon, HomeIcon, SlidersIcon, TrendIcon } from "../../src/icons";
+import { HomeIcon, MenuIcon, SlidersIcon, TrendIcon, VoiceIcon } from "../../src/icons";
+import { AppDrawer } from "../../src/drawer";
 import { clearMe, useMe } from "../../src/visitor";
 
-const TITLES: Record<string, string> = { today: "Home", portfolio: "Books", ask: "Ask Ananta", watchlists: "Markets", cockpit: "More" };
+const TITLES: Record<string, string> = { today: "Home", ask: "Ask Ananta", watchlists: "Markets", cockpit: "More", portfolio: "Home" };
 
 // Guests (a friend testing the app) get a practice book of their own. A thin strip under the title says so on every tab;
 // tap it for the full note. Madhav never sees it.
@@ -53,11 +56,17 @@ function PracticeStrip() {
 function Header() {
   const top = useSafeAreaInsets().top;
   const path = usePathname();
+  const [menu, setMenu] = useState(false);
   const key = (path.split("/").filter(Boolean).pop() || "today");
   const title = TITLES[key] ?? (path === "/" ? "Home" : "");
   return (
     <View style={{ paddingTop: top, backgroundColor: C.bg }}>
       <View style={{ height: 44, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+        <Pressable onPress={() => setMenu(true)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Menu"
+          style={{ position: "absolute", left: 12, width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" }}>
+          <MenuIcon color={C.text} />
+        </Pressable>
+        <AppDrawer open={menu} onClose={() => setMenu(false)} />
         <Text style={{ color: C.text, fontWeight: "700", fontSize: 17 }}>{title}</Text>
         {title === "More" ? (
           <View style={{ position: "absolute", right: 16, flexDirection: "row", gap: 10 }}><AlertsBell /><ThemeToggle /></View>
@@ -102,8 +111,7 @@ export default function TabsLayout() {
           tabPress: () => { if (navigation.isFocused()) scroll(route.name === "ask" ? "bottom" : "top"); },
         })}>
         <SwipeTabs.Screen name="today" options={{ title: "Home", tabBarIcon: icon(HomeIcon), tabBarBadge: badge } as any} />
-        <SwipeTabs.Screen name="portfolio" options={{ title: "Books", tabBarIcon: icon(BooksIcon) }} />
-        <SwipeTabs.Screen name="ask" options={{ title: "Ask", tabBarIcon: icon(ChatIcon) }} />
+        <SwipeTabs.Screen name="ask" options={{ title: "Ask Ananta", tabBarIcon: icon(VoiceIcon) }} />
         <SwipeTabs.Screen name="watchlists" options={{ title: "Markets", tabBarIcon: icon(TrendIcon) }} />
         <SwipeTabs.Screen name="cockpit" options={{ title: "More", tabBarIcon: icon(SlidersIcon) }} />
       </SwipeTabs>

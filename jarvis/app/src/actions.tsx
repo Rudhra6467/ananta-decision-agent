@@ -10,8 +10,9 @@ import { C } from "./theme";
 import { DecisionCard } from "./blocks";
 
 export function openScreen(sh: any) {
-  const to: Record<string, string> = { markets: "/(tabs)/watchlists", portfolio: "/(tabs)/portfolio", evidence: "/lab",
+  const to: Record<string, string> = { markets: "/(tabs)/watchlists", portfolio: "/(tabs)/watchlists", evidence: "/lab",
     cockpit: "/(tabs)/cockpit", mandate: "/mandate", home: "/(tabs)/today", jarvis: "/jarvis", missed: "/missed" };
+  if (sh.screen === "portfolio") { goTab({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", sub: "portfolio", t: String(Date.now()) } } as any); return; }   // Oct 15: Markets › Ananta market › Trend
   if (sh.screen === "coin" && sh.coin) router.push(`/coin/${sh.coin}`);
   else if (sh.screen === "trade" && sh.id) router.push(`/trade/${sh.id}`);
   else if (to[sh.screen]) (to[sh.screen].startsWith("/(tabs)") ? goTab : router.push)(to[sh.screen] as any);   // a tab: switch to it, never stack a copy

@@ -6,10 +6,12 @@ import { clearSpot, focusSpot, scroll } from "./spotlight";
 export type UiAction = { do: "go_to" | "open" | "back" | "scroll"; target?: string; dir?: "up" | "down" | "top" | "bottom"; label?: string };
 export type UiResult = { action: UiAction; ok: boolean; landed?: string; error?: string };
 
-const TABS: Record<string, { path: string; tab?: string }> = {
+const TABS: Record<string, { path: string; tab?: string; sub?: string }> = {
   home: { path: "/(tabs)/today" }, markets: { path: "/(tabs)/watchlists" },
-  portfolio: { path: "/(tabs)/portfolio", tab: "portfolio" }, "portfolio:explorer": { path: "/(tabs)/portfolio", tab: "explorer" },
-  "portfolio:mine": { path: "/(tabs)/portfolio", tab: "mine" }, ananta: { path: "/(tabs)/ask" },
+  // Oct 15: the Books tab folded into Home (the account's trades) and Markets › Ananta market (the rest)
+  books: { path: "/(tabs)/today" }, portfolio: { path: "/(tabs)/watchlists", tab: "ananta", sub: "portfolio" },
+  "portfolio:explorer": { path: "/(tabs)/watchlists", tab: "ananta", sub: "explorer" }, "portfolio:mine": { path: "/(tabs)/watchlists", tab: "ananta", sub: "mine" },
+  "portfolio:lab": { path: "/(tabs)/watchlists", tab: "ananta", sub: "lab" }, ananta: { path: "/(tabs)/ask" },
   evidence: { path: "/lab", tab: "collected" }, "evidence:forwarded": { path: "/lab", tab: "forwarded" },
   cockpit: { path: "/(tabs)/cockpit" }, mandate: { path: "/mandate" }, testlab: { path: "/testlab" },
   jarvis: { path: "/jarvis" }, missed: { path: "/missed" },
@@ -22,7 +24,8 @@ function expected(t: string): (s: any) => boolean {
   if (t.startsWith("trade:")) return (s) => s?.screen === "trade" && s?.id === t.slice(6);
   if (t.startsWith("jtrade:")) return (s) => s?.screen === "jtrade" && s?.id === t.slice(7);
   const [screen, tab] = t.split(":");
-  const name = screen === "portfolio" && tab === "explorer" ? "explorer_trades" : screen === "portfolio" && tab === "mine" ? "manual_book" : screen;
+  const name = screen === "portfolio" && tab === "explorer" ? "explorer_trades" : screen === "portfolio" && tab === "mine" ? "manual_book"
+    : screen === "portfolio" && tab === "lab" ? "ananta_market" : screen === "books" ? "home" : screen;
   return (s) => s?.screen === name || (screen === "evidence" && s?.screen === "evidence");
 }
 
@@ -56,7 +59,7 @@ export async function run(actions: UiAction[] = []): Promise<UiResult[]> {
       else if (t.startsWith("jtrade:")) router.push(`/jtrade/${t.slice(7)}`);
       else if (TABS[t]) {
         const d = TABS[t];
-        (d.path.startsWith("/(tabs)") ? goTab : router.navigate)(d.tab ? ({ pathname: d.path, params: { tab: d.tab, t: String(Date.now()) } } as any) : (d.path as any));
+        (d.path.startsWith("/(tabs)") ? goTab : router.navigate)(d.tab ? ({ pathname: d.path, params: { tab: d.tab, ...(d.sub ? { sub: d.sub } : {}), t: String(Date.now()) } } as any) : (d.path as any));
       } else {
         out.push({ action: a, ok: false, error: `unknown place ${t}` });
         continue;

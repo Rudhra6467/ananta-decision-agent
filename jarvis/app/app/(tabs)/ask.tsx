@@ -166,7 +166,7 @@ const kept: { msgs: Msg[]; thread: string | null; who: string; t: number; manual
 
 // One conversation page (like ChatGPT): type, dictate with the mic, or switch on voice mode, all in the same session.
 export default function Ananta() {
-  const params = useLocalSearchParams<{ q?: string; t?: string; intro?: string; tab?: string }>();
+  const params = useLocalSearchParams<{ q?: string; t?: string; intro?: string; tab?: string; sessions?: string }>();
   const [tabv, setTabv] = useState<"chat" | "now">(params.tab === "now" ? "now" : "chat");     // plan 3.6a: Chat | Ananta now
   useEffect(() => { if (params.tab === "now" || params.tab === "chat") setTabv(params.tab); }, [params.tab, params.t]);
   const [msgs, setMsgs] = useState<Msg[]>(kept.msgs);
@@ -195,6 +195,7 @@ export default function Ananta() {
   const live = phase !== "off";
   const [note, setNote] = useState("");
   const [sessions, setSessions] = useState(false);
+  useEffect(() => { if (params.sessions) setSessions(true); }, [params.sessions, params.t]);          // Oct 15: the side drawer's "Sessions"
   const [qcat, setQcat] = useState("new");
   const [err, setErr] = useState<string | null>(null);
   const [ctx, setCtx] = useScreen();
@@ -580,8 +581,8 @@ export default function Ananta() {
   const top = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 8 }}>
       <Pressable onPress={() => setSessions(true)} hitSlop={10} accessibilityLabel="Sessions"
-        style={{ width: 34, height: 34, borderRadius: 10, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: C.text, fontSize: 16 }}>☰</Text>
+        style={{ height: 34, borderRadius: 10, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 }}>
+        <Text style={{ color: C.text, fontSize: 13, fontWeight: "600" }}>Sessions</Text>
       </Pressable>
       <View style={{ flex: 1 }}>
         <Segmented value={tabv} onChange={(k) => setTabv(k as any)} options={[{ key: "chat", label: "Chat" }, { key: "now", label: "Ananta now" }]} />
@@ -876,7 +877,7 @@ function AnantaNow() {
   const go = (l: any) => {
     const t = String(l.text).toLowerCase();
     if (t.includes("watch")) goTab("/(tabs)/watchlists");
-    else if (t.includes("position") || t.includes("monitor")) goTab("/(tabs)/portfolio");
+    else if (t.includes("position") || t.includes("monitor")) goTab("/(tabs)/today");
     else if (t.includes("need")) goTab("/(tabs)/today");
   };
   return (

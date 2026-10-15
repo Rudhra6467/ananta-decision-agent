@@ -34,6 +34,13 @@ export const TrendIcon = ({ color, size }: P) => (
 export const SlidersIcon = ({ color, size }: P) => (
   <S size={size}><Path d="M4 7h16M4 12h16M4 17h16" stroke={color} strokeWidth={1.8} strokeLinecap="round" /><Circle cx={9} cy={7} r={2.2} fill={color} /><Circle cx={15} cy={12} r={2.2} fill={color} /><Circle cx={10} cy={17} r={2.2} fill={color} /></S>
 );
+// Oct 15 (Madhav): the Ask Ananta tab wears the voice wave the Ask screen already uses; the header's menu opens the side drawer.
+export const VoiceIcon = ({ color, size }: P) => (
+  <S size={size}><Path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" stroke={color} strokeWidth={2.2} strokeLinecap="round" /></S>
+);
+export const MenuIcon = ({ color, size }: P) => (
+  <S size={size}><Path d="M4 7h16M4 12h16M4 17h10" stroke={color} strokeWidth={1.8} strokeLinecap="round" /></S>
+);
 export const MicIcon = ({ color, size = 20 }: P) => (
   <S size={size}><Rect x={9} y={3} width={6} height={11} rx={3} stroke={color} strokeWidth={1.8} /><Path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke={color} strokeWidth={1.8} strokeLinecap="round" /></S>
 );

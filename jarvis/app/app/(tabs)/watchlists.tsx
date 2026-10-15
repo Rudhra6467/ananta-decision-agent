@@ -3,9 +3,12 @@
 //  2. the watches: this account's watches (coins or a group, a setup kind, a mode, a state), + Watch to add one; then the coins
 //  3. the whole market (every coin Ananta watches live), Ananta's reasoning (one line per coin; a tap shows the whole chain),
 //     nearing a trade (coins closest to passing, with what is still missing), reconstruction (Madhav only)
-// Zones and "Your setups" live on each coin's page and in Books › Details.
+// Zones and "Your setups" live on each coin's page and in Ananta market.
+// Oct 15 (Madhav): two pages under one top switch. "Markets" is the market as before; "Ananta market" is what the old Books ›
+// Details held (Ananta's book, the lab's books, the trend portfolio, the Explorer, your trades, your setups; src/books.tsx).
+// A visitor's second page is "My book". The `tab` param (markets | ananta) and `sub` pick the page, for the drawer and deep links.
 import { Spot } from "../../src/spotlight";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { askAbout, setScreen } from "../../src/context";
@@ -19,6 +22,8 @@ import { ExplainSheet, showToast } from "../../src/blocks";
 import { CoinLine } from "../../src/home";
 import { useMe } from "../../src/visitor";
 import { ExposureDial, WholeMarket } from "../../src/universe";
+import { AnantaMarket, GuestBook } from "../../src/books";
+import { Segmented } from "../../src/ui";
 
 const MODE: Record<string, string> = { tell: "Tell me", ask: "Ask me first", auto: "Auto" };
 const NEXT_MODE: Record<string, string> = { tell: "ask", ask: "auto", auto: "tell" };
@@ -27,6 +32,19 @@ const STATE: Record<string, [string, string]> = { WATCHING: ["Watching", "dim"],
 export default function Watchlists() {
   const me = useMe();
   const own = !!me && !me.guest;
+  const p = useLocalSearchParams<{ tab?: string; sub?: string; t?: string }>();
+  const [top, setTop] = useState(p.tab === "ananta" ? "ananta" : "markets");
+  useEffect(() => { if (p.tab === "ananta" || p.tab === "markets") setTop(p.tab); }, [p.tab, p.t]);
+  const header = (
+    <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 }}>
+      <Segmented size="lg" value={top} onChange={setTop} options={[{ key: "markets", label: "Markets" }, { key: "ananta", label: me?.guest ? "My book" : "Ananta market" }]} />
+    </View>
+  );
+  if (top === "ananta") return <View style={{ flex: 1, backgroundColor: C.bg }}>{header}{me?.guest ? <GuestBook /> : <AnantaMarket sub={p.sub} t={p.t} />}</View>;
+  return <View style={{ flex: 1, backgroundColor: C.bg }}>{header}<MarketPage me={me} own={own} /></View>;
+}
+
+function MarketPage({ me, own }: { me: any; own: boolean }) {
   const { data: d, err, loading, reload } = useData(me ? "/v3/coins" : null, 60000);
   const { data: w, reload: reloadW } = useData(me ? "/v3/watches/mine" : null, 60000);
   const { data: ch } = useData(me ? "/v3/chain" : null, 300000);

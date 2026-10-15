@@ -15,7 +15,7 @@ export default function Story() {
   const { data: d, err, loading, reload } = useData(`/v3/books/trade/${encodeURIComponent(String(id))}`, 60000);
   useFocusEffect(useCallback(() => { setScreen({ screen: "trade", id: String(id), coin: d?.coin, label: `Trade story: ${d?.coin ?? ""} ${d?.stamp?.label ?? ""}` }); }, [id, d?.coin]));
   const head = <Stack.Screen options={{ headerShown: true, title: d ? `${COIN_NAME[d.coin] ?? d.coin} trade` : "Trade", headerStyle: { backgroundColor: C.bg },
-    headerShadowVisible: false, headerTintColor: C.text, headerBackTitle: "Books" }} />;
+    headerShadowVisible: false, headerTintColor: C.text, headerBackTitle: "Back" }} />;
   if (!d && loading) return <>{head}<Busy /></>;
   if (!d) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen></>;
   const refs: any[] = [];

@@ -1,33 +1,28 @@
-import { DemoCard } from "../../src/firstchat";
-import { Spot } from "../../src/spotlight";
-import { useCallback, useState } from "react";
+// The books, moved on Oct 15 (Madhav): the account's own trades now sit on Home, under the account card, and everything else
+// (Ananta's book, the lab's books, the trend portfolio, the Explorer, your own trades, your setups) is Markets › Ananta market.
+// A visitor's practice book is Markets › My book. The parts below are what the old Books tab held, unchanged inside.
+import { DemoCard } from "./firstchat";
+import { Spot } from "./spotlight";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, Switch, Text, View } from "react-native";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
-import { askAbout, setScreen } from "../../src/context";
-import { api } from "../../src/api";
-import { confirmWithFaceId } from "../../src/guard";
-import { LineChart, StackBar } from "../../src/charts";
-import { Big, Btn, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Row, Screen, Section, Segmented, Stat, T, pct, price, usd, usdSigned } from "../../src/ui";
-import { useData } from "../../src/useData";
-import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
-import { VisitorBooks, useMe } from "../../src/visitor";
-import { BooksTrades, Explainers } from "../../src/bookstrades";
-import { ReadsBoard } from "../../src/reads";
+import { router, useFocusEffect } from "expo-router";
+import { askAbout, setScreen } from "./context";
+import { api } from "./api";
+import { confirmWithFaceId } from "./guard";
+import { LineChart, StackBar } from "./charts";
+import { Big, Btn, Busy, Card, Divider, ErrorBox, Line, Pill, Row, Screen, Section, Segmented, Stat, T, pct, price, usd, usdSigned } from "./ui";
+import { useData } from "./useData";
+import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "./theme";
+import { VisitorBooks } from "./visitor";
+import { BooksTrades, Explainers } from "./bookstrades";
+import { ReadsBoard } from "./reads";
 
 const RANGES = [{ key: "1", label: "1D" }, { key: "7", label: "1W" }, { key: "30", label: "1M" }, { key: "365", label: "All" }];
 
-export default function Portfolio() {
-  const me = useMe();
-  if (!me) return <Busy />;
-  if (me.guest) return <GuestBooks />;
-  return <OwnerBooks />;
-}
-
-// A visitor's Books: their own practice book only (no Ananta book, no Explorer, no trend portfolio).
-function GuestBooks() {
+// A visitor's book (Markets › My book): their own practice book only (no Ananta book, no Explorer, no trend portfolio).
+export function GuestBook() {
   const { data: d, err, loading, reload } = useData("/v3/holdings", 30000);
-  useFocusEffect(useCallback(() => { setScreen({ screen: "manual_book", tab: "mine", label: "Books tab: your practice book" }); reload(); }, []));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "manual_book", tab: "mine", label: "Markets › My book: your practice book" }); reload(); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   return <VisitorBooksTabs d={d} loading={loading} reload={reload} />;
@@ -56,31 +51,34 @@ function VisitorBooksTabs({ d, loading, reload }: { d: any; loading: boolean; re
   );
 }
 
-// Books (plan 3.3): Trades (default) is one stamped list of everything this account holds; Details keeps the rest (Ananta's
-// book, the trend portfolio, the Explorer, your own trades and research jobs, your setups).
-function OwnerBooks() {
-  const [top, setTop] = useState("trades");
-  const [tab, setTab] = useState("portfolio");
-  const p = useLocalSearchParams<{ tab?: string; t?: string }>();
-  useEffect(() => { if (p.tab) { setTop("details"); setTab(String(p.tab)); } }, [p.tab, p.t]);
+// The account's trades, on Home under the account card (Oct 13, Madhav: the $500 NDAX book is what he and Ananta look at).
+export function AccountTrades() {
+  const { data: d, err, loading } = useData("/v3/books", 60000);
+  const { data: h } = useData("/v3/holdings", 300000);
+  if (!d && loading) return <Busy />;
+  if (!d) return <ErrorBox err={err ?? "No data"} />;
+  const acct = d.account ? { ...d, summary: d.account.summary, trades: d.account.trades, closed: d.account.closed, books: [d.account.book], currency: "CAD",
+    retired: [], stamps: {} } : d;
+  return <Spot id="books.trades"><BooksTrades d={acct} explainers={<Explainers h={h} />} /></Spot>;
+}
+
+// Markets › Ananta market: Ananta's own book on top, then the lab's books, the trend portfolio, the Explorer, your trades, your setups.
+// `sub` picks the part (lab | portfolio | explorer | mine | setups), as the drawer, Ananta's moves and the old links ask for it.
+export function AnantaMarket({ sub, t }: { sub?: string; t?: string }) {
+  const [tab, setTab] = useState("lab");
+  useEffect(() => { if (sub) setTab(String(sub)); }, [sub, t]);
   useFocusEffect(useCallback(() => {
-    if (top === "trades") { setScreen({ screen: "books", tab: "trades", label: "Books tab: Trades, every open trade with who took it" }); return; }
-    setScreen({ screen: tab === "portfolio" ? "portfolio" : tab === "explorer" ? "explorer_trades" : "manual_book", tab, label: tab === "portfolio" ? "Books › Details: trend portfolio" : tab === "explorer" ? "Books › Details: Explorer trades" : "Books › Details: My trades (manual paper book)" });
-  }, [tab, top]));
+    setScreen({ screen: tab === "portfolio" ? "portfolio" : tab === "explorer" ? "explorer_trades" : tab === "mine" ? "manual_book" : "ananta_market", tab,
+      label: tab === "portfolio" ? "Markets › Ananta market: trend portfolio" : tab === "explorer" ? "Markets › Ananta market: Explorer trades"
+        : tab === "mine" ? "Markets › Ananta market: My trades (manual paper book)" : tab === "setups" ? "Markets › Ananta market: your setups" : "Markets › Ananta market: the lab's books" });
+  }, [tab]));
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 }}>
-        <Segmented size="lg" value={top} onChange={setTop} options={[{ key: "trades", label: "Trades" }, { key: "details", label: "Details" }]} />
+      <JarvisRow />
+      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
+        <Segmented value={tab} onChange={setTab} options={[{ key: "lab", label: "Lab" }, { key: "portfolio", label: "Trend" }, { key: "explorer", label: "Explorer" }, { key: "mine", label: "Mine" }, { key: "setups", label: "Setups" }]} />
       </View>
-      {top === "trades" ? <AllTrades /> : (
-        <>
-          <JarvisRow />
-          <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
-            <Segmented value={tab} onChange={setTab} options={[{ key: "lab", label: "Lab" }, { key: "portfolio", label: "Trend" }, { key: "explorer", label: "Explorer" }, { key: "mine", label: "Mine" }, { key: "setups", label: "Setups" }]} />
-          </View>
-          {tab === "lab" ? <LabTrades /> : tab === "portfolio" ? <Book /> : tab === "explorer" ? <Trades /> : tab === "setups" ? <Setups /> : <Mine />}
-        </>
-      )}
+      {tab === "lab" ? <LabTrades /> : tab === "portfolio" ? <Book /> : tab === "explorer" ? <Trades /> : tab === "setups" ? <Setups /> : <Mine />}
     </View>
   );
 }
@@ -98,22 +96,7 @@ function Setups() {
   );
 }
 
-function AllTrades() {
-  const { data: d, err, loading, reload } = useData("/v3/books", 60000);
-  const { data: h } = useData("/v3/holdings", 300000);
-  if (!d && loading) return <Busy />;
-  if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
-  // Oct 13 (Madhav): Trades is the account alone (the $500 NDAX book); everything else is under Details > Lab
-  const acct = d.account ? { ...d, summary: d.account.summary, trades: d.account.trades, closed: d.account.closed, books: [d.account.book], currency: "CAD",
-    retired: [], stamps: {} } : d;
-  return (
-    <Screen loading={loading} onRefresh={reload}>
-      <Spot id="books.trades"><BooksTrades d={acct} explainers={<Explainers h={h} />} /></Spot>
-    </Screen>
-  );
-}
-
-// Details > Lab: every other book's trades (the trend portfolios, Madhav's own), with the retired strategies apart
+// Lab: every other book's trades (the trend portfolios, Madhav's own), with the retired strategies apart
 function LabTrades() {
   const { data: d, err, loading, reload } = useData("/v3/books", 60000);
   if (!d && loading) return <Busy />;

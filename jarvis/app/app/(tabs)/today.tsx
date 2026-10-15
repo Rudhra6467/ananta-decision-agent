@@ -1,23 +1,21 @@
-// Home (plan 3.1), redrawn Oct 14 to one grammar: "how is my account, and does anything need me?"
-//  the greeting and the health strip · the account (one number, one line, the holdings, the dial; More opens the rest) ·
-//  Needs you (a rule that passed and may step up, portfolio changes, the mandate's actions; one line when empty) ·
-//  Ananta's note (three lines, More) · one line for the lab · findings · the activity feed, folded.
-// The coins and the market rule live on Markets; the lab's books under Books › Details › Lab.
-import { Spot, useSpotActive } from "../../src/spotlight";
-import { useCallback, useState } from "react";
+// Home (plan 3.1), redrawn Oct 14 to one grammar and again on Oct 15 (Madhav): "how is my account, and does anything need me?"
+//  the greeting with the Ananta button (the mark; a number when something waits) · the health strip · the account (one number,
+//  one line, the holdings, the dial; More opens the rest) · the account's trades (the old Books tab) · the activity feed, folded.
+// Needs you, Ananta's note, the lab and findings moved into the Ananta button (src/ananta.tsx). The coins and the market rule live
+// on Markets; the lab's books under Markets › Ananta market.
+import { Spot, focusSpot, useSpotActive } from "../../src/spotlight";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { askAbout, setScreen } from "../../src/context";
-import { ActionCard } from "../../src/actions";
-import { api } from "../../src/api";
-import { confirmWithFaceId } from "../../src/guard";
 import { Progress } from "../../src/charts";
-import { ExplainSheet, showToast } from "../../src/blocks";
-import { Act, Btn, Busy, Card, Divider, Dot, ErrorBox, ListState, Screen, StatCard, T, Tag, cad, cadSigned, dayOf, pct, s as st, usd } from "../../src/ui";
+import { Act, Busy, Card, Divider, Dot, ErrorBox, ListState, Screen, StatCard, T, Tag, cad, cadSigned, dayOf, pct, s as st, usd } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, live, pnlColor } from "../../src/theme";
 import { VisitorHome, useMe } from "../../src/visitor";
-import { ConceptCard, Findings, ValueCard, hello } from "../../src/home";
+import { ConceptCard, ValueCard, hello } from "../../src/home";
+import { AnantaButton, AnantaSheet, useAnantaCount } from "../../src/ananta";
+import { AccountTrades } from "../../src/books";
 
 const KIND: Record<string, { color: string; label: string }> = live(() => ({
   buy: { color: C.accent, label: "BUY" }, sell: { color: C.text, label: "SELL" }, watch: { color: C.faint, label: "ORDER" },
@@ -44,31 +42,31 @@ function GuestHome() {
 
 function OwnerHome() {
   const { data: d, err, loading, reload } = useData("/v3/home");
-  const { data: inbox, reload: reloadInbox } = useData("/v3/inbox");
-  const { data: nd, reload: reloadNeeds } = useData("/v3/needs", 300000);      // Oct 14: the decisions waiting for Madhav
   const { data: bk } = useData("/v3/books", 120000);                           // the fallback value card before the account started
   const [all, setAll] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [ananta, setAnanta] = useState(false);                                 // Oct 15: the Ananta button's space
+  const p = useLocalSearchParams<{ ananta?: string; t?: string }>();
+  useEffect(() => { if (p.ananta) setAnanta(true); }, [p.ananta, p.t]);
   const activityLit = useSpotActive("home.activity");              // Ananta pointing at it opens it
-  useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home tab: the account, what needs you, Ananta's note, the lab, findings" }); }, []));
+  const count = useAnantaCount(d?.summary?.portfolio?.pending ?? 0, (d?.mission?.findings ?? []).slice(0, 5));
+  useFocusEffect(useCallback(() => { setScreen({ screen: "home", label: "Home tab: the account and its trades; the Ananta button holds what needs you, Ananta's note, the lab and findings" }); }, []));
   if (!d && loading) return <Busy />;
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} onRetry={reload} /></Screen>;
   const s = d.summary;
   const m = d.mission ?? {};
-  const approveAll = async () => {
-    if (!(await confirmWithFaceId("Approve portfolio changes", `${s.portfolio.pending} paper change(s) will be made now.`))) return;
-    await api("/portfolio/approve", { ids: "all" });
-    reload();
-  };
   const feed = all ? d.feed : d.feed.slice(0, 8);
   const actOpen = showActivity || activityLit;
-  const refreshNeeds = () => { reloadInbox(); reloadNeeds(); reload(); };
   return (
-    <Screen loading={loading} onRefresh={() => { reload(); reloadNeeds(); }}>
-      <View style={{ gap: 2 }}>
-        <T small>{s.date} · paper money</T>
-        <Text style={st.title}>{hello(undefined, true)}</Text>
+    <Screen loading={loading} onRefresh={reload}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View style={{ gap: 2, flex: 1 }}>
+          <T small>{s.date} · paper money</T>
+          <Text style={st.title}>{hello(undefined, true)}</Text>
+        </View>
+        <AnantaButton count={count.total} onPress={() => setAnanta(true)} />
       </View>
+      <AnantaSheet open={ananta} onClose={() => setAnanta(false)} home={d} onChanged={reload} />
 
       <Spot id="home.status">
         <HealthStrip h={m.health} />
@@ -82,20 +80,8 @@ function OwnerHome() {
         )}
       </Spot>
 
-      <Spot id="home.inbox">
-        <NeedsYou items={nd?.items ?? []} actions={inbox?.actions ?? []} pending={s.portfolio.pending} onDone={refreshNeeds} approveAll={approveAll} />
-      </Spot>
-
-      <Spot id="home.jarvis">
-        {m.account?.note ? <OfficerNote note={m.account.note} /> : <JarvisCard jv={m.jarvis} />}
-      </Spot>
-
       <Spot id="home.books">
-        <LabLine lab={m.account?.lab ?? []} s={s} />
-      </Spot>
-
-      <Spot id="home.findings">
-        <Findings items={(m.findings ?? []).slice(0, 3)} />
+        {m.account?.started ? <AccountTrades /> : <JarvisCard jv={m.jarvis} />}
       </Spot>
 
       <Spot id="home.activity">
@@ -145,7 +131,7 @@ function AccountCard({ a }: { a: any }) {
   const ex = a.execution_check;
   return (
     <StatCard title="The account · $500 NDAX book · paper, real NDAX prices" label="The account"
-      right={<Act tight label="Books ›" onPress={() => router.push({ pathname: "/(tabs)/portfolio", params: { t: String(Date.now()) } })} />}
+      right={<Act tight label="Trades ›" onPress={() => { focusSpot("books.trades", 2000); }} />}
       value={a.value_cad == null ? "…" : cad(a.value_cad)} aside={`${cadSigned(change)} · ${pct(a.return_pct)} since ${dayOf(a.started)}`} asideColor={pnlColor(change)}
       line={`${pos.length} holding${pos.length === 1 ? "" : "s"} · ${cad(a.cash_cad, 0)} cash · next decision at the daily close`}
       meta={`Dial ${dial} · ${brakes}`}
@@ -163,96 +149,6 @@ function AccountCard({ a }: { a: any }) {
         </View>
       ) : null}
     </StatCard>
-  );
-}
-
-// Needs you: the decisions waiting for Madhav. A rule that passed its forward test (Review opens the evidence; Step up or Keep measuring),
-// the mandate's actions, the trend portfolio's suggested changes. One line when nothing waits.
-function NeedsYou({ items, actions, pending, onDone, approveAll }: { items: any[]; actions: any[]; pending: number; onDone: () => void; approveAll: () => void }) {
-  const [open, setOpen] = useState<any>(null);
-  const n = items.length + actions.length + (pending ? 1 : 0);
-  const word = (step: string) => String(step).toLowerCase().replace(/_/g, " ");
-  const decide = async (it: any, decision: "approve" | "later") => {
-    try {
-      await api("/v3/needs/decide", { id: it.id, decision });
-      showToast(decision === "approve" ? `${it.rule} steps up to ${word(it.to)} ✓` : "Hidden for a week ✓");
-    } catch (e: any) { showToast(e?.message ?? "Not changed"); }
-    setOpen(null);
-    onDone();
-  };
-  return (
-    <Card>
-      <View style={st.row}>
-        <T small>Needs you{n ? ` · ${n}` : ""}</T>
-        {n ? <T small>Nothing happens until you confirm</T> : null}
-      </View>
-      {n === 0 ? <ListState state="empty" text="Nothing right now. The next review comes at the daily close." /> : null}
-      {items.map((it: any) => (
-        <View key={it.id} style={{ gap: 6 }}>
-          <Text style={st.h}>{it.title}</Text>
-          <T>{it.line}</T>
-          <View style={{ flexDirection: "row", gap: 8, paddingTop: 2 }}>
-            <Btn label="Review" onPress={() => setOpen(it)} />
-            <Btn label="Later" kind="secondary" onPress={() => decide(it, "later")} />
-          </View>
-        </View>
-      ))}
-      {actions.map((a: any) => <ActionCard key={a.id} a={a} onDone={onDone} />)}
-      {pending ? (
-        <View style={{ gap: 8 }}>
-          <T>{pending} trend-portfolio change{pending === 1 ? "" : "s"} wait{pending === 1 ? "s" : ""} for your approval.</T>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Btn label="Review" kind="secondary" onPress={() => router.push({ pathname: "/(tabs)/portfolio", params: { tab: "portfolio", t: String(Date.now()) } })} />
-            <Btn label="Approve all" onPress={approveAll} />
-          </View>
-        </View>
-      ) : null}
-      <ExplainSheet open={!!open} onClose={() => setOpen(null)} title={open?.title ?? ""}>
-        {open ? (
-          <>
-            <T>{open.why}.</T>
-            <T dim>{open.to === "PROMOTED" ? "Promoted" : "Live candidate"} means: {open.meaning}.</T>
-            <T small>{open.note}</T>
-            <Btn label={`Step up to ${word(open.to)}`} onPress={() => decide(open, "approve")} />
-            <Btn label="Keep measuring · ask me again in a week" kind="secondary" onPress={() => decide(open, "later")} />
-          </>
-        ) : null}
-      </ExplainSheet>
-    </Card>
-  );
-}
-
-// The officer's note: the brain's plain account of the day, written once after the close. Three lines, then More.
-function OfficerNote({ note }: { note: any }) {
-  const [more, setMore] = useState(false);
-  return (
-    <Card>
-      <View style={st.row}>
-        <T small>Ananta's note · {dayOf(note.day) || note.day}</T>
-        <Act tight label="Ask ›" onPress={() => askAbout({ screen: "home", label: "The officer's note" }, "Tell me more about today's note on the account.")} />
-      </View>
-      <Text style={[st.t, { fontSize: 16, lineHeight: 23 }]} numberOfLines={more ? undefined : 3}>{note.note}</Text>
-      <View style={[st.row, { marginTop: -4 }]}>
-        <T faint>From the database, not from memory</T>
-        <Act label={more ? "Show less" : "More"} onPress={() => setMore(!more)} />
-      </View>
-    </Card>
-  );
-}
-
-// One line for the lab: every other book keeps measuring in the background; Details opens Books › Details › Lab.
-function LabLine({ lab, s }: { lab: any[]; s: any }) {
-  const measuring = lab.filter((x) => x.status === "EVIDENCE").length;
-  const counted = lab.filter((x) => x.status === "ACTIVE" || x.status === "UNDER_REVIEW").length;
-  const go = () => router.push({ pathname: "/(tabs)/portfolio", params: { tab: "lab", t: String(Date.now()) } });
-  return (
-    <Card onPress={go}>
-      <View style={st.row}>
-        <T small>The lab · measuring in the background</T>
-        <Act tight label="Details ›" onPress={go} />
-      </View>
-      <T>{lab.length} strategies · {measuring} measuring · {counted} counted · Explorer {s.explorer?.opened_today ?? 0} bought, {s.explorer?.closed_today ?? 0} sold today</T>
-    </Card>
   );
 }
 

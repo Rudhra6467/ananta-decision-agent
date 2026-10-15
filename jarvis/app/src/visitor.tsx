@@ -105,7 +105,7 @@ export function CoinPicker({ value, onChange, choices }: { value: string[]; onCh
 const TOUR = [
   { path: "/(tabs)/today", title: "Home", text: "This is your Home. Your coins, your practice money and your trades show up here. It's empty because it's all yours: nothing has happened yet." },
   { path: "/(tabs)/watchlists", title: "Markets", text: "Markets shows the coins you picked: live price, today's move and the trend. Tap a coin for its chart and what Ananta sees in it." },
-  { path: "/(tabs)/portfolio", title: "Books", text: "Books is your practice book. Next you add practice capital, then press Start trading. Until then nothing is bought or watched for you." },
+  { path: "/(tabs)/watchlists", params: { tab: "ananta" }, title: "My book", text: "Markets › My book is your practice book. Next you add practice capital, then press Start trading. Until then nothing is bought or watched for you." },
   { path: "/(tabs)/ask", title: "Ask Ananta", text: "Ask Ananta anything. Type, tap the mic to dictate, or tap the wave and just talk. Ananta knows your coins and your book." },
 ];
 export const CAN_DO = [
@@ -123,7 +123,7 @@ export function OnboardTour() {
   const m = useMe();
   const [i, setI] = useState(0);
   const active = !!m?.guest && m.stage === "tour";
-  useEffect(() => { if (active && i < TOUR.length) goTab(TOUR[i].path as any); }, [active, i]);
+  useEffect(() => { if (active && i < TOUR.length) { const st: any = TOUR[i]; goTab(st.params ? { pathname: st.path, params: { ...st.params, t: String(Date.now()) } } : st.path); } }, [active, i]);
   if (!active) return null;
   const finish = async () => {
     await setup({ tour_done: true }).catch(() => {});
@@ -217,7 +217,7 @@ export function VisitorHome({ d, loading, reload }: { d: any; loading: boolean; 
       <Section title="Your trades" />
       <Card>
         {!b || b.fills.length === 0 ? (
-          <T dim>{d.started ? "No trades yet. Ask Ananta to find one, or tap + on a coin to trade it yourself." : "Nothing yet. Trading starts when you press Start trading in Books."}</T>
+          <T dim>{d.started ? "No trades yet. Ask Ananta to find one, or tap + on a coin to trade it yourself." : "Nothing yet. Trading starts when you press Start trading in Markets › My book."}</T>
         ) : b.fills.slice(0, 6).map((f: any, i: number) => (
           <View key={f.id}>
             {i ? <Divider /> : null}

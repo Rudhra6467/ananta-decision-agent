@@ -22,8 +22,9 @@ const TOUR: Stop[] = [
   { go: () => goTab("/(tabs)/today"), say: "This is Home: your practice money on top, then what I'm doing for you today, and the market." },
   { go: () => goTab("/(tabs)/today"), say: "Findings are what I notice: a market shift, a move we missed, a lesson from a closed trade. Each one has its details on a tap.",
     deeper: { go: () => router.push("/missed"), say: "Every big move gets a label: caught, seen or missed, and the reason. Misses that keep coming back go to the repair shop." } },
-  { go: () => goTab("/(tabs)/portfolio"), say: "Books holds every trade. Each one carries a stamp: your initials when you placed it, or my name and the setup when I did." },
-  { go: () => goTab("/(tabs)/watchlists"), say: "Your watch lives in Markets, with its mode. When a coin gets close, it says so, and you can change the mode any time." },
+  { go: () => goTab({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", t: String(Date.now()) } } as any),
+    say: "My book, the second page of Markets, holds every trade. Each one carries a stamp: your initials when you placed it, or my name and the setup when I did." },
+  { go: () => goTab({ pathname: "/(tabs)/watchlists", params: { tab: "markets", t: String(Date.now()) } } as any), say: "Your watch lives in Markets, with its mode. When a coin gets close, it says so, and you can change the mode any time." },
   { go: () => router.push("/evidence"), say: "This is the Evidence. Every rule I trade by was tested on history first. When a rule keeps losing, it goes to the repair shop to be fixed.",
     deeper: { go: () => router.push("/evidence/R23"), say: "Each review asks one question, tests it on years of prices, and either changes a rule or leaves it. This one found that outside markets add nothing, so nothing changed." } },
   { go: () => router.push("/coin/BTC"), say: "Want to trade yourself? Tap Buy on any coin's page, or the plus on a coin. Your trade gets your initials, and I watch it for you.",
@@ -67,8 +68,8 @@ export function FirstConversation({ onDone }: { onDone: (o?: DoneWith) => void }
       const r = await api("/v3/onboard", { step: p.step, value, tz: tz() });
       if (r.step === "acts") await itActs(r);
       else if (p.step === "demo" && value !== "skip" && value !== "later")
-        await showBooks(r, "Watch: I'm placing the demo trade and opening your Books, so you can see exactly what I did.");
-      else if (p.step === "demo_exit") await showBooks(r, "Now I'm selling it. Here it is in Books, closed, with its result.");
+        await showBooks(r, "Watch: I'm placing the demo trade and opening your book, so you can see exactly what I did.");
+      else if (p.step === "demo_exit") await showBooks(r, "Now I'm selling it. Here it is in your book, closed, with its result.");
       else if (p.step === "explore") await finish(value === "tour", value === "tour" ? undefined : String(value), r.follow_ups);
       else show(r);
     } catch (e: any) {
@@ -91,11 +92,12 @@ export function FirstConversation({ onDone }: { onDone: (o?: DoneWith) => void }
     show(n);
   };
 
-  // The demo, seen on the real screens (Madhav, Oct 11): Ananta says what it does, opens Books with the DEMO trade, then comes back
+  // The demo, seen on the real screens (Madhav, Oct 11): Ananta says what it does, opens the visitor's book (Markets › My book since
+  // Oct 15) with the DEMO trade, then comes back
   const showBooks = async (r: any, line: string) => {
     showToast(line);
     if (voice.current) await TTS.speakText(line); else await sleep(1500);
-    goTab({ pathname: "/(tabs)/portfolio", params: { t: String(Date.now()) } } as any);
+    goTab({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", t: String(Date.now()) } } as any);
     await sleep(5500);
     goTab("/(tabs)/ask");
     await sleep(400);

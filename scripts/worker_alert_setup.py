@@ -21,11 +21,6 @@ cfg = json.dumps({"server": os.getenv("ANANTA_NTFY_SERVER", NTFY_SERVER), "topic
 w = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", HOST, "umask 077; cat > ~/ananta_worker/alert.json"],
                    input=cfg, text=True, capture_output=True, timeout=30)
 print("alert.json written on the worker" if w.returncode == 0 else f"failed to write: {w.stderr.strip()[:120]}")
-if w.returncode == 0 and os.getenv("ANANTA_WORKER_ALERT_TEST") == "1":
-    code = ("import sys; sys.path.insert(0, '/Users/' + __import__('getpass').getuser() + '/ananta_worker'); import collector as c; "
-            "print(c.alert('Ananta: worker alert test', 'The worker Mac can now tell you when the main Mac or the site has been down for "
-            "10 minutes. Nothing to do.'))")
-    py = subprocess.run(["ssh", "-o", "BatchMode=yes", HOST, "cat ~/ananta_worker/status"], capture_output=True, text=True, timeout=20).stdout
-    exe = py.split("exec ", 1)[1].split(" ", 1)[0] if "exec " in py else "python3"
-    t = subprocess.run(["ssh", "-o", "BatchMode=yes", HOST, f"{exe} -c {json.dumps(code)}"], capture_output=True, text=True, timeout=60)
+if w.returncode == 0 and os.getenv("ANANTA_WORKER_ALERT_TEST") == "1":       # one test note, also recorded in the worker's day file
+    t = subprocess.run(["ssh", "-o", "BatchMode=yes", HOST, "~/ananta_worker/alert-test"], capture_output=True, text=True, timeout=60)
     print("test note:", (t.stdout or t.stderr).strip()[-60:])

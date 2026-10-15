@@ -831,29 +831,58 @@ def reconstructable(j) -> dict:
     return {"status": status, "note": note}
 
 
-OUTAGE_MIN, ALERT_WITHIN_S = 10, 5 * 60  # ops_outages (Oct 15): an outside-seen outage of 10+ minutes must have a phone note within 5 minutes
+OUTAGE_MIN, ALERT_WITHIN_S = 10, 5 * 60  # ops_outages (Oct 15): the worker's note fires at minute 10 of an outage (Madhav's choice); it must have arrived by minute 15
+ALERT_BY_S = OUTAGE_MIN * 60 + ALERT_WITHIN_S
 
 
-def outages_seen_from_outside(j, o: dict) -> dict:
-    """Gate ops_outages, measured from the outside (worker S1, Oct 15). The main Mac cannot report its own sleep or freeze: the
-    worker checks the public page every minute, and every outage it saw (10 minutes or more) must have a HEALTH_DOWN note from the
-    main Mac within 5 minutes of its start. Outages it saw without one are listed with their Toronto time."""
+def outages_seen_from_outside(j, o: dict, armed_live: bool | None = None) -> dict:
+    """Gate ops_outages, measured from the outside (worker S1, Oct 15). The main Mac cannot report its own sleep or freeze, so the
+    worker checks the public page every minute and, from the day its alert is armed (Madhav's yes, Oct 15), sends a phone note when
+    the page has been down 10 minutes. Every outage of 10+ minutes seen from the outside needs a phone note by minute 15 of it: the
+    worker's note, or the main Mac's own HEALTH_DOWN within 5 minutes of its start. Outages before the alert was armed are listed
+    and not counted against it (they are the reason it exists). PASS needs the alert armed and one note proven to arrive (the
+    test note or a real one); a day's record reaches the main Mac with the nightly pull, so today's arrival shows tomorrow."""
     from zoneinfo import ZoneInfo
 
     tz = ZoneInfo("America/Toronto")
-    missed, long_ = [], [w for w in o["windows"] if w["minutes"] >= OUTAGE_MIN]
+    alerts = o.get("alerts") or []
+    armed = [a["t"] for a in alerts if a["kind"] == "armed"]
+    armed_t = min(armed) if armed else None
+    sent = [a["t"] for a in alerts if a["kind"] in ("down", "still_down") and a["result"] == "sent"]
+    proven = [a["t"] for a in alerts if a["kind"] in ("test", "down", "still_down") and a["result"] == "sent"]
+    long_ = [w for w in o["windows"] if w["minutes"] >= OUTAGE_MIN]
+    before, missed, covered = [], [], 0
     for w in long_:
-        t0 = int(datetime.strptime(w["from"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc).timestamp())
+        t0 = w.get("t0") or int(datetime.strptime(w["from"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc).timestamp())
+        label = f"{datetime.fromtimestamp(t0, tz).strftime('%b %d %H:%M')} Toronto, {w['minutes']} min"
         try:
-            hit = j.db.execute("SELECT 1 FROM eye_events WHERE kind='HEALTH_DOWN' AND t BETWEEN ? AND ?", (t0, t0 + ALERT_WITHIN_S)).fetchone()
+            own = j.db.execute("SELECT 1 FROM eye_events WHERE kind='HEALTH_DOWN' AND t BETWEEN ? AND ?", (t0, t0 + ALERT_WITHIN_S)).fetchone()
         except sqlite3.OperationalError:
-            hit = None
-        if not hit:
-            missed.append(f"{datetime.fromtimestamp(t0, tz).strftime('%b %d %H:%M')} Toronto, {w['minutes']} min")
-    note = (f"outside view (worker, 7 days): {len(long_)} outage{'s' if len(long_) != 1 else ''} of 10+ minutes"
-            + (f"; NOT alerted in time: {'; '.join(missed)} (the main Mac was asleep or frozen and cannot report itself; "
-               "a worker-side alert needs Madhav's OK)" if missed else "; every one alerted within 5 minutes"))
-    return {"status": "FAIL" if missed else "PASS", "note": note}
+            own = None
+        on = armed_t is not None and t0 >= armed_t
+        if own or (on and any(t0 <= s <= t0 + ALERT_BY_S for s in sent)):
+            covered += 1
+        elif on:
+            missed.append(label)
+        else:
+            before.append(label)
+    n = len(long_)
+    head = f"outside view (worker, 7 days): {n} outage{'s' if n != 1 else ''} of 10+ minutes"
+    gone = (f"; unalerted before the worker's alert was armed: {'; '.join(before)} (the main Mac was asleep or frozen and cannot report "
+            "itself: the reason the alert exists)") if before else ""
+    if missed:
+        return {"status": "FAIL", "note": f"{head}; NOT alerted by minute 15 although the alert was armed: {'; '.join(missed)}{gone}"}
+    if armed_t is None and armed_live is not True:
+        if before:
+            return {"status": "FAIL", "note": f"{head}{gone}; the worker's alert is not armed yet (nothing else can report the main Mac's sleep)"}
+        return {"status": "PARTLY", "note": f"{head}; the worker's alert is not armed yet (nothing else can report the main Mac's sleep)"}
+    since = (f"armed since {datetime.fromtimestamp(armed_t, tz).strftime('%b %d %H:%M')} Toronto" if armed_t is not None
+             else "armed today (its record reaches the main Mac with the nightly pull)")
+    if not proven:
+        return {"status": "PARTLY", "note": f"worker alert {since}, but no note is on record yet (the test note proves the path); {head}{gone}"}
+    last = datetime.fromtimestamp(max(proven), tz).strftime("%b %d %H:%M")
+    return {"status": "PASS", "note": f"worker alert {since}; a note reached the phone ({last} Toronto); {head}"
+                                      + ("; every one alerted by minute 15" if n and not before else "") + gone}
 
 
 CITES_N, CITES_PASS = 20, 18             # agent_cites (Oct 15): the weekly spot check of 20 answers, done by code; 18 of 20 like agent_knows
@@ -938,9 +967,27 @@ def _gate_measured(j, by: dict) -> None:
         o = worker.outside_view(7)
         c = by.get("ops_outages")
         if c and o["checks"]:
-            c.update(outages_seen_from_outside(j, o))
+            c.update(outages_seen_from_outside(j, o, worker.alert_armed_now()))
     except Exception:  # noqa: BLE001  no worker data on this machine
         pass
+    c = by.get("ops_no_trade_unhealthy")
+    if c:
+        try:
+            from jarvis.service import trade_guard as tg
+
+            cov, blocks = tg.coverage(j), tg.recent(j, 7)
+            why: dict[str, int] = {}
+            for b in blocks:
+                why[b["why"]] = why.get(b["why"], 0) + 1
+            top = ", ".join(f"{n} x {w}" for w, n in sorted(why.items(), key=lambda x: -x[1])[:3])
+            c["status"] = "PASS" if not cov["missing"] else "PARTLY"
+            c["note"] = (f"{len(cov['ok'])} of {cov['paths']} paths that open a paper position ask the guard first (kill switch on or "
+                         "unreadable, price older than 5 minutes live or 20 for the Explorer's close, daily candle older than yesterday's; "
+                         "exits and stops never ask; the paid AI decisions wait too)"
+                         + (f"; not live yet: {'; '.join(m['path'] for m in cov['missing'])}" if cov["missing"] else "")
+                         + (f"; {len(blocks)} refusal{'s' if len(blocks) != 1 else ''} in 7 days ({top})" if blocks else "; no refusal in 7 days (nothing was unhealthy)"))
+        except Exception:  # noqa: BLE001
+            pass
     c = by.get("agent_cites")
     if c:
         n, ok, sourced = cites(j)

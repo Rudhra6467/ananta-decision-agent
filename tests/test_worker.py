@@ -125,3 +125,65 @@ def test_the_worker_alerts_after_10_minutes_reminds_and_says_when_back(tmp_path,
     assert sent[-1] == "Ananta: still down"
     c.watch_site(t + 720 + 3 * 3600 + 60, True, "")
     assert sent[-1] == "Ananta is reachable again" and len(sent) == 3
+
+
+def test_the_collector_records_its_alerts_in_the_day_file_and_the_main_mac_reads_them(tmp_path, monkeypatch):
+    """The gate (ops_outages) needs proof that the alert was on and that notes were sent: each day's file gets an 'armed' row when
+    alert.json exists, every note tried is a row (down, still_down, back), and `alert-test` adds a 'test' row. outside_view reads them;
+    a day recorded by the v1.0 collector has no such table and still reads."""
+    import importlib.util
+    import pathlib
+    import sqlite3
+
+    from jarvis.service import worker
+
+    monkeypatch.setenv("ANANTA_WORKER_HOME", str(tmp_path))
+    p = pathlib.Path(__file__).resolve().parents[1] / "worker" / "collector.py"
+    spec = importlib.util.spec_from_file_location("collector_alerts", p)
+    c = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(c)
+    notes = []
+    down = {"on": True}
+
+    def get(url, timeout=0):
+        if down["on"]:
+            raise OSError("HTTP Error 502")
+        return {}
+    monkeypatch.setattr(c, "get", get)
+    t = 2_000_000_000 - 2_000_000_000 % 86400 + 3600
+    con = c.db(t)
+    for k in range(12):                                                                # 12 failed minutes, no alert.json yet
+        c.site(con, t + 60 * k)
+    assert con.execute("SELECT COUNT(*) FROM alerts").fetchone()[0] == 0                          # no file: nothing armed, nothing tried
+    monkeypatch.setattr(c, "alert", lambda title, body: notes.append(title) or "sent")
+    c.STATE.update(down_since=None, alerted_t=None)
+    (tmp_path / "alert.json").write_text('{"server": "https://x.invalid", "topic": "t"}')
+    t2 = t + 3600
+    for k in range(12):
+        c.site(con, t2 + 60 * k)
+    down["on"] = False
+    c.site(con, t2 + 60 * 12)                                                           # back
+    con.commit()
+    rows = [tuple(r) for r in con.execute("SELECT t, kind, result FROM alerts ORDER BY t")]
+    assert [r[1:] for r in rows] == [("armed", "on"), ("down", "sent"), ("back", "sent")]
+    assert rows[1][0] == t2 + 600                                                       # minute 10 of the outage
+    day = time.strftime("%Y-%m-%d", time.gmtime(t))
+    con.close()
+    dest = tmp_path / "pulled"
+    dest.mkdir()
+    (dest / f"l1_{day}.sqlite").write_bytes((tmp_path / "data" / f"l1_{day}.sqlite").read_bytes())
+    old = sqlite3.connect(dest / "l1_2020-01-01.sqlite")                               # a v1.0 day: no alerts table
+    old.execute("CREATE TABLE site (t INTEGER, ok INTEGER, ms INTEGER, detail TEXT)")
+    old.execute("INSERT INTO site VALUES (1, 1, 5, '')")
+    old.commit()
+    old.close()
+    monkeypatch.setattr(worker.time, "time", lambda: t + 86400)
+    v = worker.outside_view(30, dest)
+    assert [a["kind"] for a in v["alerts"]] == ["armed", "down", "back"]
+    assert v["windows"][0]["t0"] == t and v["windows"][0]["minutes"] == 12 and v["windows"][1]["t0"] == t2
+    assert worker.alert_armed_now() is None                                              # no status read yet
+    worker._CACHE["status"] = {"ok": True, "state": "OK", "line": "OK · x · outside alert on · v1.1", "checked_t": 0}
+    assert worker.alert_armed_now() is True
+    worker._CACHE["status"] = {"ok": True, "state": "OK", "line": "OK · x · outside alert off · v1.1", "checked_t": 0}
+    assert worker.alert_armed_now() is False
+    worker._CACHE.pop("status", None)

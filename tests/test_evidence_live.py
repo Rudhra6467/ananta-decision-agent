@@ -162,13 +162,15 @@ def test_agent_cites_is_the_weekly_spot_check_done_by_code(tmp_path):
 
 def test_an_outage_seen_from_outside_must_have_been_alerted(tmp_path):
     """Oct 15 (worker S1): the worker saw the public page down 312 minutes from Oct 12 06:18 UTC while the main Mac slept and sent
-    nothing; that fails ops_outages until a note within 5 minutes exists. Short blips (under 10 minutes) do not count."""
+    nothing; with no alert armed that fails ops_outages, and the main Mac's own note within 5 minutes only helps to PARTLY (nothing
+    can report its sleep). Short blips (under 10 minutes) do not count."""
     from jarvis.service import evidence_live as el
 
     j = _j(tmp_path)
     o = {"windows": [{"from": "2026-10-12 06:18", "minutes": 312}, {"from": "2026-10-12 14:03", "minutes": 1}]}
     r = el.outages_seen_from_outside(j, o)
     assert r["status"] == "FAIL" and "Oct 12 02:18 Toronto, 312 min" in r["note"] and "1 outage of 10+" in r["note"]
+    assert "not armed yet" in r["note"]
     from datetime import datetime, timezone
 
     t0 = int(datetime(2026, 10, 12, 6, 18, tzinfo=timezone.utc).timestamp())
@@ -176,4 +178,66 @@ def test_an_outage_seen_from_outside_must_have_been_alerted(tmp_path):
     j.db.execute("INSERT INTO eye_events (id, t, kind) VALUES ('e', ?, 'HEALTH_DOWN')", (t0 + 10 * 60,))   # 10 minutes late: still missed
     assert el.outages_seen_from_outside(j, o)["status"] == "FAIL"
     j.db.execute("UPDATE eye_events SET t=?", (t0 + 120,))
-    assert el.outages_seen_from_outside(j, o)["status"] == "PASS"
+    assert el.outages_seen_from_outside(j, o)["status"] == "PARTLY"            # alerted by the main Mac itself, but no outside alert yet
+    assert el.outages_seen_from_outside(j, {"windows": []})["status"] == "PARTLY"
+
+
+def test_the_worker_alert_is_judged_from_the_day_it_is_armed_and_must_be_proven(tmp_path):
+    """Madhav's yes (Oct 15): the worker sends a note when the page has been down 10 minutes. From the day it is armed every outage of
+    10+ minutes needs that note by minute 15; earlier outages are listed, not counted against it; PASS needs a note on record."""
+    from datetime import datetime, timezone
+
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path)
+
+    def ts(*a):
+        return int(datetime(*a, tzinfo=timezone.utc).timestamp())
+    old = {"from": "2026-10-12 06:18", "t0": ts(2026, 10, 12, 6, 18), "minutes": 312}
+    armed = ts(2026, 10, 15, 20, 0)
+    new_t0 = ts(2026, 10, 16, 6, 0)
+    new = {"from": "2026-10-16 06:00", "t0": new_t0, "minutes": 40}
+    base = [{"t": armed, "kind": "armed", "result": "on"}]
+    # armed, a test note sent, one earlier outage listed, no outage since
+    r = el.outages_seen_from_outside(j, {"windows": [old], "alerts": base + [{"t": armed + 60, "kind": "test", "result": "sent"}]})
+    assert r["status"] == "PASS" and "armed since Oct 15 16:00 Toronto" in r["note"] and "Oct 12 02:18 Toronto, 312 min" in r["note"]
+    # armed but nothing was ever sent
+    r = el.outages_seen_from_outside(j, {"windows": [], "alerts": base})
+    assert r["status"] == "PARTLY" and "no note is on record" in r["note"]
+    # a note that failed to send is not proof
+    r = el.outages_seen_from_outside(j, {"windows": [], "alerts": base + [{"t": armed + 60, "kind": "test", "result": "failed: HTTP 403"}]})
+    assert r["status"] == "PARTLY"
+    # armed today according to the worker's status, its record not pulled yet
+    r = el.outages_seen_from_outside(j, {"windows": [old]}, armed_live=True)
+    assert r["status"] == "PARTLY" and "armed today" in r["note"]
+    # an outage after arming: the note at minute 10 is in time (minute 15 at the latest), a later one is missed
+    ok = base + [{"t": armed + 60, "kind": "test", "result": "sent"}, {"t": new_t0 + 10 * 60, "kind": "down", "result": "sent"}]
+    r = el.outages_seen_from_outside(j, {"windows": [old, new], "alerts": ok})
+    assert r["status"] == "PASS" and "every one alerted by minute 15" not in r["note"]            # the older one is listed, not alerted
+    r = el.outages_seen_from_outside(j, {"windows": [new], "alerts": ok})
+    assert r["status"] == "PASS" and "every one alerted by minute 15" in r["note"]
+    late = base + [{"t": armed + 60, "kind": "test", "result": "sent"}, {"t": new_t0 + 16 * 60, "kind": "down", "result": "sent"}]
+    r = el.outages_seen_from_outside(j, {"windows": [new], "alerts": late})
+    assert r["status"] == "FAIL" and "NOT alerted by minute 15 although the alert was armed: Oct 16 02:00 Toronto, 40 min" in r["note"]
+    failed = base + [{"t": armed + 60, "kind": "test", "result": "sent"}, {"t": new_t0 + 10 * 60, "kind": "down", "result": "failed: URLError"}]
+    assert el.outages_seen_from_outside(j, {"windows": [new], "alerts": failed})["status"] == "FAIL"
+
+
+def test_the_gate_item_no_trade_when_unhealthy_reads_the_code_that_runs_and_counts_the_refusals(tmp_path):
+    """Oct 15: PASS only when every path that opens a paper position asks the trade guard, judged from the files the service and the
+    Explorer actually run (the Explorer's folder changes when main is merged and it restarts); the refusals of 7 days are counted."""
+    from jarvis.service import evidence_live as el
+    from jarvis.service import trade_guard as tg
+
+    j = _j(tmp_path)
+    by = {"ops_no_trade_unhealthy": {"id": "ops_no_trade_unhealthy", "status": "PARTLY", "note": "Explorer yes, others to check"}}
+    el._gate_measured(j, by)
+    c = by["ops_no_trade_unhealthy"]
+    assert c["status"] == "PARTLY" and "9 of 11 paths" in c["note"] and "not live yet" in c["note"] and "no refusal in 7 days" in c["note"]
+    folder = tmp_path / "src" / "intelligence"
+    folder.mkdir(parents=True)
+    (folder / "explorer_live.py").write_text("from jarvis.service import trade_guard\nKILL_SWITCH_UNREAD = 1\n")
+    tg.refuse(j, "JARVIS", "BTC", tg.KILL_ON)
+    el._gate_measured(j, by)
+    c = by["ops_no_trade_unhealthy"]
+    assert c["status"] == "PASS" and "11 of 11 paths" in c["note"] and "1 refusal in 7 days (1 x the kill switch is on)" in c["note"]

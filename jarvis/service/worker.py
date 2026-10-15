@@ -1,13 +1,16 @@
 """The worker Mac, stage S1 (Oct 15; plan: Project note plan-2026-10-11-worker-mac.md). A read-only second machine on the home
 network that records, once a minute, what cannot be fetched again later (NDAX's and Binance's bid and ask, USD/CAD, whether
-Ananta's public page answers). The main Mac pulls from it; it never connects to the main Mac and holds no secrets.
+Ananta's public page answers). The main Mac pulls from it; it never connects to the main Mac and holds one secret only: the phone
+note topic (alert.json, mode 600, Oct 15), which can do nothing but send notes to Madhav's phone when the public page is down.
 
   status()              its one-line status over SSH, cached 5 minutes: {"ok", "state", "line", "checked_t"} (a part of system health)
   pull()                every finished UTC day the main Mac does not hold yet copied into ~/ananta_worker_data, checked, never twice
   push_backups(n=3)     the newest n nightly backups to the worker, WITHOUT the tables that hold logins, sessions, push tokens,
                         people or conversations and without the guests' practice books (the worker is an old, unpatched Mac: no
                         secrets on it), only while it has more than 20 GB free; the copy is integrity-checked there
-  outside_view(days)    the worker's site checks: minutes the public page did not answer, as outage windows (the outside view)
+  outside_view(days)    the worker's site checks: minutes the public page did not answer, as outage windows (the outside view),
+                        and the alerts it recorded (armed each day, test, down, still_down, back)
+  alert_armed_now()     whether its status line says the outside alert is on (cached status only)
 Run by scripts/backup_db.py at 03:40 (pull and push) and by health.py (status).
 """
 from __future__ import annotations
@@ -143,6 +146,7 @@ def outside_view(days: int = 7, dest: Path | None = None) -> dict:
     since = time.strftime("%Y-%m-%d", time.gmtime(time.time() - days * 86400))
     checks = fails = 0
     windows: list[list[int]] = []
+    alerts: list[dict] = []
     for f in sorted(dest.glob("l1_*.sqlite")):
         if f.name[3:13] < since:
             continue
@@ -156,10 +160,25 @@ def outside_view(days: int = 7, dest: Path | None = None) -> dict:
                         windows[-1][1] = t
                     else:
                         windows.append([t, t])
+            try:                               # collector v1.1 (Oct 15) records its alerts: armed (each day), test, down, still_down, back
+                alerts += [{"t": t, "kind": k, "result": r} for t, k, r in con.execute("SELECT t, kind, result FROM alerts ORDER BY t")]
+            except sqlite3.OperationalError:    # a day recorded by v1.0: no alert existed
+                pass
         finally:
             con.close()
-    return {"days": days, "checks": checks, "failed": fails,
-            "windows": [{"from": time.strftime("%Y-%m-%d %H:%M", time.gmtime(a)), "minutes": round((b - a) / 60) + 1} for a, b in windows][-20:]}
+    return {"days": days, "checks": checks, "failed": fails, "alerts": alerts,
+            "windows": [{"from": time.strftime("%Y-%m-%d %H:%M", time.gmtime(a)), "t0": a, "minutes": round((b - a) / 60) + 1}
+                        for a, b in windows][-20:]}
+
+
+def alert_armed_now() -> bool | None:
+    """Whether the worker says its outside alert is on, from the cached status line (never a new SSH call): True, False, or None
+    when the status has not been read."""
+    s = _CACHE.get("status")
+    if not s or s.get("state") in ("UNREACHABLE", "ERROR"):
+        return None
+    line = str(s.get("line") or "")
+    return True if "outside alert on" in line else False if "outside alert off" in line else None
 
 
 if __name__ == "__main__":

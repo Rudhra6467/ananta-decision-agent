@@ -28,6 +28,7 @@ sed -e "s#__PY__#$PY#g" -e "s#__HOME__#$RHOME#g" "$HERE/$LABEL.plist" > "$TMP"
 scp -q "$TMP" "$H:Library/LaunchAgents/$LABEL.plist"
 rm -f "$TMP"
 printf '#!/bin/sh\nexec %s "$HOME/ananta_worker/collector.py" status\n' "$PY" | ssh "$H" 'cat > ~/ananta_worker/status && chmod +x ~/ananta_worker/status'
+printf '#!/bin/sh\nexec %s "$HOME/ananta_worker/collector.py" alert-test\n' "$PY" | ssh "$H" 'cat > ~/ananta_worker/alert-test && chmod +x ~/ananta_worker/alert-test'
 
 echo "4/5 One test round ..."
 ssh "$H" "$PY ~/ananta_worker/collector.py once >/dev/null && ~/ananta_worker/status" || { echo "    The test round failed; see ~/ananta_worker/logs/collector.log on the worker."; exit 1; }

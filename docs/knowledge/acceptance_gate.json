@@ -188,10 +188,10 @@
    "id": "ops_outages",
    "area": "Operations",
    "check": "Outages detected",
-   "measure": "Watchdog on every part",
-   "pass_mark": "Every outage alerted within 5 minutes",
-   "status": "PASS",
-   "note": "since Oct 5 (the Oct 4 outage was missed)"
+   "measure": "Watchdog on every part, and the worker Mac's outside check of the public page every minute (a sleeping or frozen main Mac cannot report itself); its phone note fires at minute 10 of an outage (Madhav, Oct 15)",
+   "pass_mark": "Every outage of 10+ minutes alerted by minute 15, from the day the worker's alert is armed; the alert armed and one note proven to arrive (was: within 5 minutes, before the worker alert was chosen at 10 minutes)",
+   "status": "PARTLY",
+   "note": "needs the worker Mac's outside view (Oct 4, Oct 12 and Oct 13 went unalerted: the reason the alert exists)"
   },
   {
    "id": "ops_stale",

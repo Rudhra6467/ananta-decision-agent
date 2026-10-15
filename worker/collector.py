@@ -101,6 +101,7 @@ def db(t: float) -> sqlite3.Connection:
         "CREATE TABLE IF NOT EXISTS binance (t INTEGER, coin TEXT, bid REAL, ask REAL, bid_qty REAL, ask_qty REAL);"
         "CREATE TABLE IF NOT EXISTS fx (t INTEGER, usdcad REAL, obs_day TEXT);"
         "CREATE TABLE IF NOT EXISTS site (t INTEGER, ok INTEGER, ms INTEGER, detail TEXT);"
+        "CREATE TABLE IF NOT EXISTS alerts (t INTEGER, kind TEXT, result TEXT);"
         "CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);")
     con.execute("INSERT OR REPLACE INTO meta VALUES ('version', ?)", (VERSION,))
     return con
@@ -174,14 +175,17 @@ def alert(title: str, body: str) -> str:
     return "sent" if out.returncode == 0 else "failed: curl"
 
 
-def watch_site(t: int, ok: bool, detail: str) -> str | None:
-    """The outside alert's state: down for 10 minutes -> a note, every 3 hours a reminder, back -> a note (only after a note)."""
+def watch_site(t: int, ok: bool, detail: str) -> tuple[str, str] | None:
+    """The outside alert's state: down for 10 minutes -> a note, every 3 hours a reminder, back -> a note (only after a note).
+    Returns (kind, result) when a note was tried ('down', 'still_down', 'back'; result 'sent' or why not), else None. With no
+    alert.json there is nothing to try and nothing is recorded."""
     if ok:
         was, alerted = STATE["down_since"], STATE["alerted_t"]
         STATE["down_since"], STATE["alerted_t"] = None, None
         if alerted and was:
-            return alert("Ananta is reachable again", f"Seen from the worker Mac: the public page answers again after about "
-                                                      f"{int((t - was) / 60)} minutes.")
+            r = alert("Ananta is reachable again", f"Seen from the worker Mac: the public page answers again after about "
+                                                   f"{int((t - was) / 60)} minutes.")
+            return None if r == "off" else ("back", r)
         return None
     if STATE["down_since"] is None:
         STATE["down_since"] = t
@@ -192,10 +196,12 @@ def watch_site(t: int, ok: bool, detail: str) -> str | None:
         r = alert("Ananta: the main Mac or the site is down" if first else "Ananta: still down",
                   f"Seen from the worker Mac: the public page has not answered for {int(down / 60)} minutes ({detail[:80] or 'no answer'}). "
                   "Every paper book stands still meanwhile. If the Mac is asleep, plug it in and open the lid.")
+        if r == "off":
+            return None
         if r == "sent":
             STATE["alerted_t"] = t
         log(f"outside alert ({'first' if first else 'reminder'}): {r}")
-        return r
+        return ("down" if first else "still_down"), r
     return None
 
 
@@ -209,7 +215,12 @@ def site(con: sqlite3.Connection, t: int) -> int:
         ok, detail = 0, str(exc)[:160]
     con.execute("INSERT INTO site VALUES (?,?,?,?)", (t, ok, int(1000 * (time.time() - t0)), detail))
     try:
-        watch_site(t, bool(ok), detail)
+        if ALERT_FILE.exists() and STATE.get("armed_day") != _day(t):          # each day's file says whether the alert was on that day
+            con.execute("INSERT INTO alerts VALUES (?,?,?)", (t, "armed", "on"))
+            STATE["armed_day"] = _day(t)
+        a = watch_site(t, bool(ok), detail)
+        if a:
+            con.execute("INSERT INTO alerts VALUES (?,?,?)", (t, a[0], a[1]))
     except Exception as exc:  # noqa: BLE001  the alert never stops the recording
         log(f"outside alert error: {exc}")
     return ok
@@ -309,5 +320,15 @@ if __name__ == "__main__":
         run()
     elif cmd == "once":
         print(json.dumps(round_once(), indent=1))
+    elif cmd == "alert-test":                       # one test note to the phone, recorded in today's file (the main Mac's gate reads it)
+        now = int(time.time())
+        res = alert("Ananta: worker alert test", "The worker Mac can now tell you when the main Mac or the site has been down for "
+                                                 "10 minutes. Nothing to do.")
+        c = db(now)
+        c.execute("INSERT INTO alerts VALUES (?,?,?)", (now, "test", res))
+        c.commit()
+        c.close()
+        print(res)
+        sys.exit(0 if res == "sent" else 1)
     else:
         sys.exit(status())

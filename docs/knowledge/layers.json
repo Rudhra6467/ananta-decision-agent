@@ -1041,6 +1041,7 @@
    "evidence": "prepares actions; Madhav confirms them",
    "files": [
     "jarvis/service/ask.py",
+    "jarvis/service/ask_prompt.py",
     "jarvis/service/outside.py",
     "jarvis/service/appmap.py",
     "jarvis/service/plain.py",

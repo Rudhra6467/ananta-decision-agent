@@ -1,0 +1,35 @@
+{
+ "namespace": "CA",
+ "version": "canada_status.v1",
+ "updated": "2026-10-14",
+ "rule": "Research only. Nothing here may wake the agent, trigger a trade, or be read by the crypto service. Every finding starts as a hypothesis and stays RESEARCH until independently validated. No parameter sweeps, no reviews beyond CA1-CA5, no early look at the holdout, no criterion changed after a result.",
+ "doc": "https://claude.ai/code/artifact/5c0cfa72-d128-46d4-b053-f9c4e564c1b4",
+ "decisions_2026_10_14": {
+  "data_source": "Norgate Canada Platinum, primary; verify Mac compatibility and trial access before purchase",
+  "scope": "S&P/TSX Composite and TSX 60 only; no TSX Venture, CSE or US-listed twins",
+  "history": "2000 to present; development 2000-2017, validation 2018-2023, 2024+ sealed holdout",
+  "spreads": "daily high-low estimates labelled ESTIMATE; no paid account; measured-spread upgrade presented before any purchase",
+  "budget": "target C$55/month, Norgate alone; no EODHD, sector data or other recurring cost without approval; free Bank of Canada data",
+  "sector_data": "test Norgate for complete point-in-time membership of all 11 sector indices; no TMX purchase without approval"
+ },
+ "phase": {
+  "current": "C0",
+  "gates": {
+   "C0": "Madhav approves the pre-registration doc; registrations frozen with hashes",
+   "C1": "full history for every stock ever in the Composite, delisted included, manifests complete",
+   "C2": "validation checks V1-V9 pass on stored data (cross-vendor test dormant: single vendor)",
+   "C3": "baselines reproducible from the lake in one command; costs labelled ESTIMATE",
+   "C4": "each review has a written verdict and registry entry",
+   "C5": "integration plan only if a finding is ENOUGH and the crypto Rule A gate has passed"
+  }
+ },
+ "holdout": {"start": "2024-01-01", "sealed": true, "broken_on": null, "approved_by": null},
+ "budget": {"target_cad_month": 55, "approved_recurring": [], "approved_one_time": []},
+ "reviews": {
+  "CA1": {"name": "Market dial", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH"},
+  "CA2": {"name": "Trend book", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH"},
+  "CA3": {"name": "Sharp dip", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH"},
+  "CA4": {"name": "Cost law", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH", "verdict_cap": "WEAK until spreads are measured"},
+  "CA5": {"name": "Sector-breadth dial", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH", "requires": "point-in-time membership of all 11 sector indices"}
+ }
+}

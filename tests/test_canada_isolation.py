@@ -66,20 +66,31 @@ def test_holdout_dates_refused_while_sealed():
 def test_freeze_needs_approval_and_detects_tampering(tmp_path, monkeypatch):
     from canada import registry
 
-    reg = tmp_path / "registry" / "canada_status.json"
-    reg.parent.mkdir()
+    repo = tmp_path
+    reg = repo / "canada" / "registry" / "canada_status.json"
+    reg.parent.mkdir(parents=True)
     reg.write_text(registry.REG_PATH.read_text())
-    monkeypatch.setattr(registry, "ROOT", tmp_path)
+    for rel in registry.RULE_CODE:                                            # a private copy of the rule code
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text((registry.REPO / rel).read_text())
+    monkeypatch.setattr(registry, "ROOT", repo / "canada")
+    monkeypatch.setattr(registry, "REPO", repo)
     monkeypatch.setattr(registry, "REG_PATH", reg)
-    monkeypatch.setattr(registry, "REG_DIR", tmp_path / "registrations")
+    monkeypatch.setattr(registry, "REG_DIR", repo / "canada" / "registrations")
+    regs = {rid: f"{rid} frozen text" for rid in registry.REVIEWS}
     with pytest.raises(PermissionError):
-        registry.freeze("CA1", "text", approved="", day="2026-10-15")
-    h = registry.freeze("CA1", "CA1 frozen text", approved="Madhav, in the C0 doc", day="2026-10-15")
-    assert h == registry.sha256_text("CA1 frozen text") and registry.verify() == []
+        registry.freeze_bundle(regs, "doc", approved="", day="2026-10-15")
+    with pytest.raises(ValueError):
+        registry.freeze_bundle({"CA1": "x"}, "doc", approved="Madhav", day="2026-10-15")
+    b = registry.freeze_bundle(regs, "the whole C0 document", approved="Madhav, in the C0 doc", day="2026-10-15")
+    d = registry.load()
+    assert d["bundle"]["sha256"] == b and len(d["bundle"]["files"]) == 9 and registry.verify() == []
+    assert all(r["status"] == "FROZEN" and r["bundle_sha256"] == b for r in d["reviews"].values())
     with pytest.raises(PermissionError):
-        registry.freeze("CA1", "edited", approved="Madhav", day="2026-10-16")
-    (tmp_path / "registrations" / "CA1.md").write_text("CA1 quietly edited")
-    assert registry.verify() == ["CA1"]
+        registry.freeze_bundle(regs, "edited doc", approved="Madhav", day="2026-10-16")
+    (repo / "canada" / "registrations" / "CA1.md").write_text("CA1 quietly edited")
+    (repo / "canada" / "costs.py").write_text("FLOOR = 0.0  # a cheaper cost, quietly")
+    assert set(registry.verify()) == {"canada/registrations/CA1.md", "canada/costs.py"}
 
 
 def test_schema_creates_lake_and_sealed_holdout(tmp_path):
@@ -98,7 +109,12 @@ def test_thresholds_match_the_preregistration():
 
     assert T["XV_agree_min"] == 0.995 and T["XV_tol_pct"] == 0.005 and T["XV_tol_abs_cad"] == 0.01
     assert T["V3_missing_member_days_max_frac"] == 0.005 and T["V8_sector_partition_min"] == 0.995
-    assert T["gap_short_max_days"] == 5 and T["gap_exclusion_days"] == 60 and T["V9_spot_checks"] == 30
+    assert T["gap_short_max_days"] == 5 and T["gap_exclusion_days"] == 60
+    assert T["V9_spot_checks"] == 300 and T["V9_min_match"] == 297 and T["V9_tolerance"] == 0.005
+    assert T["V4_second_record_tol"] == 0.05 and T["V6_reconcile_min"] == 0.95 and T["V6_sample_years"] == 5
+    from canada.validation import sector_count
+
+    assert sector_count("2016-08-31") == 10 and sector_count("2016-09-01") == 11
 
 
 def test_cross_vendor_test_and_gap_rules():
@@ -114,7 +130,7 @@ def test_cross_vendor_test_and_gap_rules():
     assert cross_vendor(lone)["passed"]                                      # B at exactly 95.0%: allowed
     worse = [("A", 10.0, 10.0)] * 960 + [("B", 10.0, 10.0)] * 36 + [("B", 11.0, 10.0)] * 4
     assert cross_vendor(worse)["stocks_below_95pct"] == ["B"] and not cross_vendor(worse)["passed"]
-    assert gap_rule(0) == "none" and gap_rule(5) == "keep_unfilled" and gap_rule(6) == "exclude_60_days"
+    assert gap_rule(0) == "none" and gap_rule(5) == "keep_unfilled" and gap_rule(6) == "no_new_signals_60_days"
     assert ohlc_ok(10, 11, 9, 10.5, 0) and not ohlc_ok(10, 9.5, 9, 10.5, 100)
 
 
@@ -127,4 +143,15 @@ def test_cost_estimate_is_labelled_and_never_negative():
     assert 0.0 <= s < 0.05
     assert costs.one_way_cost([0.0] * 21) == pytest.approx(0.001)            # floor 0.05% + slippage 0.05%
     assert costs.one_way_cost([0.004] * 21) == pytest.approx(0.0025)         # half of 0.4% + 0.05%
-    assert costs.one_way_cost([0.004] * 21, stress=2.0) == pytest.approx(0.005)
+    assert costs.one_way_cost([0.004] * 21, stress=2.0) == pytest.approx(0.005)  # 2x doubles floor and slippage too
+    assert costs.one_way_cost([0.0] * 21, stress=2.0) == pytest.approx(0.002)
+    # overnight adjustment: a day-2 range wholly above day 1's close is shifted down by the gap
+    gapped = costs.corwin_schultz(10.10, 9.90, 11.10, 10.90)
+    adjusted = costs.corwin_schultz(10.10, 9.90, 11.10, 10.90, c0=10.0)
+    assert adjusted == pytest.approx(costs.corwin_schultz(10.10, 9.90, 10.20, 10.0)) and adjusted >= gapped
+    # the window for a fill on day f ends on f-5: the dip's own days never set its cost
+    est = list(range(40))
+    w = costs.fill_window(est, 30)
+    assert len(w) == 21 and w[-1] == 25 and w[0] == 5
+    with pytest.raises(ValueError):
+        costs.fill_window(est, 24)

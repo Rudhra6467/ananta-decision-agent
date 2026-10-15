@@ -23,13 +23,15 @@
    "C5": "integration plan only if a finding is ENOUGH and the crypto Rule A gate has passed"
   }
  },
- "holdout": {"start": "2024-01-01", "sealed": true, "broken_on": null, "approved_by": null},
+ "holdout": {"start": "2024-01-01", "sealed": true, "broken_on": null, "approved_by": null, "end": null},
+ "bundle": null,
+ "revisions_before_approval": ["2026-10-14: 15 findings of an independent review folded in before approval (sector eras, uncosted CA#4 twins, crashes kept, bundle hash, ordered verdicts, holdout statistic per review, distribution days, cost window f-5, cluster definition, period walls, CA#4 permutation test, twin ranking, sector index without the signal stock, stronger V6/V9, CA#5 variants renamed CA5-A/CA5-B)"],
  "budget": {"target_cad_month": 55, "approved_recurring": [], "approved_one_time": []},
  "reviews": {
   "CA1": {"name": "Market dial", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH"},
   "CA2": {"name": "Trend book", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH"},
   "CA3": {"name": "Sharp dip", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH"},
   "CA4": {"name": "Cost law", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH", "verdict_cap": "WEAK until spreads are measured"},
-  "CA5": {"name": "Sector-breadth dial", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH", "requires": "point-in-time membership of all 11 sector indices"}
+  "CA5": {"name": "Sector-breadth dial", "status": "DRAFT_AWAITING_APPROVAL", "registration": null, "sha256": null, "verdict": null, "finding_status": "RESEARCH", "requires": "continuous point-in-time membership of the sector indices existing each day (10 before 2016-09-01, 11 after)", "variants": ["CA5-A", "CA5-B"]}
  }
 }

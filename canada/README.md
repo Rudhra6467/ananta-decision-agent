@@ -12,7 +12,7 @@ files with the crypto lab, and nothing here may wake the agent, trigger a trade 
 | --- | --- |
 | Code | `canada/` (this folder; never under `docs/`, which the agent reads) |
 | Registry (namespace CA) | `canada/registry/canada_status.json` |
-| Frozen registrations | `canada/registrations/CA1.md` ... `CA5.md`, written only at approval, each with its SHA-256 in the registry |
+| Frozen registrations | `canada/registrations/CA1.md` ... `CA5.md` + `C0_document.md`, written only at approval; bundle hash in the registry |
 | Data lake (2000-2023) | `~/ananta_data/canada/canada_lake.sqlite` (outside every crypto folder; `CANADA_DATA_DIR` overrides) |
 | Sealed holdout (2024+) | `~/ananta_data/canada/sealed/canada_holdout.sqlite` |
 | Raw pulls and manifests | `~/ananta_data/canada/raw/`, `~/ananta_data/canada/manifests/` |
@@ -22,7 +22,9 @@ files with the crypto lab, and nothing here may wake the agent, trigger a trade 
 
 1. `jarvis/` and `src/` never import `canada`; `canada` never imports them.
 2. Research code calls `registry.assert_research_dates()` first; 2024+ is refused while the holdout is sealed.
-3. `registry.freeze()` refuses without an approval note and refuses to re-freeze; a change is a new registration.
+3. `registry.freeze_bundle()` freezes CA1-CA5, the whole C0 document and the rule code (`validation.py`,
+   `costs.py`, their tests) as ONE hashed bundle; it refuses without an approval note and refuses to re-freeze.
+   `registry.verify()` names any changed file; a change is a new, separately approved registration.
 4. Costs are labelled ESTIMATE until measured spreads replace them.
 5. Validation thresholds live once in `validation.py`; the cross-vendor test is dormant with a single vendor.
 

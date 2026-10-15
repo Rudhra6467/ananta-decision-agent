@@ -263,6 +263,30 @@ def tick(j, px: dict[str, float]) -> dict:
 # ---------------------------------------------------------------------------
 # reconstruction: the rules re-run on the stored candles, compared with the ledger
 # ---------------------------------------------------------------------------
+EXPLAINED_BY = ("busy", "same_episode", "held_back_by_trade_guard", "before_books_started", "tier_changed")
+
+
+def explain_unlogged(j, w: str, c: str, t: int, started: int) -> str | None:
+    """Why a signal the rebuild finds is not in the ledger: one of EXPLAINED_BY, or None when nothing explains it (a mismatch).
+    busy = a trade on that rule and coin was already open; same_episode = a read fired again inside its episode;
+    held_back_by_trade_guard = the guard refused the buy (kill switch on or unread); before_books_started; tier_changed = the coin
+    moved tier since. Checked in this order."""
+    from jarvis.service import registry, watch_engine
+
+    if j.db.execute("SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND signal_t < ? AND (exit_t IS NULL OR exit_t >= ?)", (w, c, t, t)).fetchone():
+        return "busy"
+    if watch_engine.DAILY.get(w, {}).get("kind") == "read" and j.db.execute(
+            "SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND signal_t < ? AND signal_t >= ?", (w, c, t, t - watch_engine.EPISODE_DAYS * DAY)).fetchone():
+        return "same_episode"
+    if j.db.execute("SELECT 1 FROM trade_guard_log WHERE book=? AND coin=? AND t >= ? AND t < ?", (w, c, t, t + 11 * DAY)).fetchone():
+        return "held_back_by_trade_guard"
+    if t < started:
+        return "before_books_started"
+    if w[-1] != (registry.tier_of(j, c) or "C"):
+        return "tier_changed"
+    return None
+
+
 def rebuild(j, days: int = 3) -> dict:
     """Every daily rule on every coin over the last N closed days, from the feed's stored candles, against the ledger.
     A rebuilt signal missing from the ledger is fine when the rule was busy (a trade already open, or the same episode);
@@ -303,26 +327,17 @@ def rebuild(j, days: int = 3) -> dict:
     from jarvis.service import trade_guard
 
     trade_guard._table(j.db)
-    held_back = 0
+    by_reason = {k: 0 for k in EXPLAINED_BY}
     for w, c, t in sorted(rebuilt - live):
-        busy = j.db.execute("SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND signal_t < ? AND (exit_t IS NULL OR exit_t >= ?)",
-                            (w, c, t, t)).fetchone()
-        ep = watch_engine.DAILY.get(w, {}).get("kind") == "read" and j.db.execute(
-            "SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND signal_t < ? AND signal_t >= ?", (w, c, t, t - watch_engine.EPISODE_DAYS * DAY)).fetchone()
-        guarded = j.db.execute("SELECT 1 FROM trade_guard_log WHERE book=? AND coin=? AND t >= ? AND t < ?",
-                               (w, c, t, t + 11 * DAY)).fetchone()       # the trade guard refused it (kill switch on or unread)
-        tier_now = registry.tier_of(j, c)
-        if busy or ep:
+        why = explain_unlogged(j, w, c, t, started)
+        if why:
             explained += 1
-        elif guarded:
-            explained += 1
-            held_back += 1
-        elif t < started or w[-1] != (tier_now or "C"):
-            explained += 1                                  # before the universe books started, or the coin changed tier
+            by_reason[why] += 1
         else:
             only_rebuilt.append((w, c, t))
+    held_back = by_reason["held_back_by_trade_guard"]
     res = {"t": now, "days": days, "since_day": time.strftime("%Y-%m-%d", time.gmtime(since)), "rebuilt_signals": len(rebuilt),
-           "ledger_signals": len(live), "explained_by_rules": explained, "held_back_by_trade_guard": held_back,
+           "ledger_signals": len(live), "explained_by_rules": explained, "explained_by_reason": by_reason, "held_back_by_trade_guard": held_back,
            "only_in_ledger": [list(x) for x in only_live[:20]],
            "only_in_rebuild": [list(x) for x in only_rebuilt[:20]], "match": not only_live and not only_rebuilt,
            "note": "Daily rules only; zone touches happen on live prices and are checked by their own stops."}
@@ -537,9 +552,10 @@ def promoted(j) -> set[str]:
 # ---------------------------------------------------------------------------
 # forwarding to the repair shop by rule (engine plan U6.1)
 # ---------------------------------------------------------------------------
-def forward(j, rb: dict | None = None, log_request: Callable | None = None) -> list[dict]:
+def forward(j, rb: dict | None = None, log_request: Callable | None = None, compare: dict | None = None) -> list[dict]:
     """Findings that go to the repair board on their own, each once: a rebuild mismatch (data, code or timing), the ranking
-    throwing away moves that ran, and feed trouble. Missed-move repeats are forwarded by the missed-move loop (tier UNIV)."""
+    throwing away moves that ran, feed trouble, and (once a week) the 10-coin side-by-side check falling under 60% (research audit
+    U-15M). Missed-move repeats are forwarded by the missed-move loop (tier UNIV)."""
     from jarvis.service import brain, feed, requests_log
 
     add = log_request or (lambda kind, text, about: requests_log.add(j, kind, text, about, by="ananta-auto"))
@@ -569,6 +585,13 @@ def forward(j, rb: dict | None = None, log_request: Callable | None = None) -> l
                  "brain ranking")
     except Exception:  # noqa: BLE001
         pass
+    if compare and compare.get("alert"):
+        r72 = compare.get("72h") or {}
+        week = time.strftime("%G-W%V", time.gmtime(j.now()))
+        once(f"compare:{week}", "data", f"The 10-coin side-by-side check is under its bar: this engine (Binance candles) and the live Explorer (Kraken candles) agree on "
+             f"{r72.get('agreement_like_for_like_pct')}% of the setups both run ({r72.get('same_like_for_like')} of {r72.get('events_like_for_like')} events in 72 hours; "
+             f"setups {', '.join(r72.get('shared_setups') or [])}; the bar is 60%). Different candles move a setup by a bar, so some gap is expected; a "
+             "growing one means the universe results cannot be trusted like the live Explorer's.", "explorer comparison")
     last = (feed.STATE.get("last") or {}).get("m5") or {}
     if last.get("coins") and last.get("on_time", 0) < 0.95 * last["coins"]:
         once(f"feed:{day}", "data", f"The universe feed was late on {day}: {last.get('on_time')} of {last.get('coins')} coins had their last "
@@ -652,7 +675,10 @@ def run_daily(j) -> dict:
     The rebuild covers the last 3 days each night and everything since the start on Mondays (the weekly full rebuild)."""
     out: dict = {}
     full = time.gmtime(j.now()).tm_wday == 0
+    from jarvis.service import universe_explorer
+
     for name, fn in (("rules", lambda: run_rules(j)), ("arm", lambda: arm(j)), ("rebuild", lambda: rebuild(j, 400 if full else 3)),
+                     ("explorer_compare", lambda: universe_explorer.compare_nightly(j)),
                      ("missed", lambda: [r["coin"] + " " + r["label"] for r in missed(j)])):
         t0 = time.time()
         try:
@@ -668,7 +694,8 @@ def run_daily(j) -> dict:
     for t in TIERS:
         ((out.get("rules") or {}).get(t) or {}).pop("opened_list", None)
     try:
-        out["forwarded"] = forward(j, out.get("rebuild") if isinstance(out.get("rebuild"), dict) else None)
+        out["forwarded"] = forward(j, out.get("rebuild") if isinstance(out.get("rebuild"), dict) else None,
+                                   compare=out.get("explorer_compare") if isinstance(out.get("explorer_compare"), dict) else None)
     except Exception as exc:  # noqa: BLE001
         out["forward_error"] = str(exc)[:200]
     try:  # the learning loop (plan Batch 4b): brain trades rebuilt nightly; the situation review on Sundays
@@ -709,6 +736,12 @@ def run_daily(j) -> dict:
         out["fidelity_flags"] = ev.fidelity_alert(j, _phone_push())
     except Exception as exc:  # noqa: BLE001
         out["fidelity_error"] = str(exc)[:200]
+    try:  # Oct 15 (research audit BOOK500-BRAKES): the retirement rule's detection leg; it flags, Madhav decides
+        from jarvis.service import ev
+
+        out["retirement_watch"] = ev.retirement_watch(j, _phone_push())
+    except Exception as exc:  # noqa: BLE001
+        out["retirement_error"] = str(exc)[:200]
     try:  # the officer's note (Oct 13): the brain narrates the account's day, once, after the close
         from jarvis.service import officer
 
@@ -745,7 +778,11 @@ def _daily_file(j, out: dict) -> None:
     rb = out.get("rebuild") if isinstance(out.get("rebuild"), dict) else {}
     lines = [f"# Universe round, {day}", "", f"Coins: {status(j).get('counts')}", "",
              "## Rules on every coin", ""] + [f"- tier {t}: {(out.get('rules') or {}).get(t)}" for t in TIERS] + [
-             "", "## Rebuild", "", f"- {rb.get('rebuilt_signals')} signals rebuilt, {rb.get('ledger_signals')} in the ledger, match: {rb.get('match')}", "",
+             "", "## Rebuild", "", f"- {rb.get('rebuilt_signals')} signals rebuilt, {rb.get('ledger_signals')} in the ledger, match: {rb.get('match')}",
+             f"- the {rb.get('explained_by_rules')} not in the ledger, explained by: {', '.join(f'{k.replace(chr(95), chr(32))} {v}' for k, v in (rb.get('explained_by_reason') or {}).items() if v) or 'nothing to explain'}",
+             f"- 10-coin side-by-side check (this engine against the live Explorer, setups both run): {((out.get('explorer_compare') or {}).get('72h') or {}).get('agreement_like_for_like_pct')}% over 72 hours "
+             f"({((out.get('explorer_compare') or {}).get('72h') or {}).get('same_like_for_like')} of {((out.get('explorer_compare') or {}).get('72h') or {}).get('events_like_for_like')} events; bar 60%)",
+             "- setup retirement watch (last 20 closed trades, BOOK500.md): " + ("; ".join(f"{r['rule']} {r['state'].lower()} tier {r['tier']}: {r['closed']} of 20" + (f", average {r['window_avg_pct']:+.2f}%" if r['window_avg_pct'] is not None else "") for r in (out.get('retirement_watch') or []) if isinstance(r, dict)) or "no rule in the edge sleeve yet"), "",
              "## Biggest up-days (tier A and B)", ""] + [f"- {m}" for m in (out.get("missed") or [])] + [
              "", "## Scoreboard (rule x tier, market days)", "", "| watch | closed | market days | avg $/100 | vs random | open | verdict |", "|---|---|---|---|---|---|---|"] + [
              f"| {w['watch']} | {w['closed']} | {w['events']} | {w['avg_usd']} | {w['vs_random_usd']} | {w['open']} | {w['verdict']} |" for w in sb] + [

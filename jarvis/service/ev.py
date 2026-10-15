@@ -142,3 +142,64 @@ def fidelity_alert(j, push=None) -> list[str]:
         out.append(key.split(":", 2)[2])
     j.db.commit()
     return out
+
+
+RETIRE_N = 20
+
+
+def retirement_watch(j, push=None) -> list[dict]:
+    """BOOK500.md's retirement rule, its detection leg (requests #26 and #27; research audit BOOK500-BRAKES, Oct 15). For each setup the
+    $500 book can trade (a measured tier-A cell in review #26's table whose strategy is ACTIVE or whose rule is PROMOTED), the last 20
+    closed paper trades in that cell; with all 20 in, an average below zero after costs flags it. It only FLAGS: one request and one phone
+    note per setup, saying nothing was switched off. Retiring (no new entries, open trades finish on their own plan, review in the repair
+    shop) waits for Madhav's yes. The rule's second leg, 3+ points a trade under the backtest, is fidelity_alert. Before 20 trades nothing is
+    decided. Returns one row per watched cell: rule, state, tier, closed (of 20), window_avg_pct, retire."""
+    import time
+
+    from jarvis.service import exposure, requests_log, strategy_status, universe_watch
+
+    try:
+        prom = universe_watch.promoted(j)
+    except Exception:  # noqa: BLE001
+        prom = set()
+    try:
+        dial = exposure.dial_by_day(j)
+    except Exception:  # noqa: BLE001
+        dial = {}
+    cells = set()
+    for r in table():
+        if r["tier"] != "A":
+            continue
+        e = strategy_status.of_watch(r["rule"])
+        if (e and e[1].get("status") == "ACTIVE") or f"{r['rule']}-UA" in prom:
+            cells.add((r["rule"], r["state"]))
+    j.db.execute("CREATE TABLE IF NOT EXISTS engine_state (k TEXT PRIMARY KEY, v TEXT)")
+    out = []
+    for rule, state in sorted(cells):
+        rows = j.db.execute("SELECT net_usd, entry_t FROM evidence_trades WHERE (watch=? OR watch LIKE ?) AND status='CLOSED' AND entry_t IS NOT NULL "
+                            "ORDER BY exit_t", (f"{rule}-UA", f"{rule}.%-UA")).fetchall()
+        mine = []
+        for net, et in rows:
+            d = dial.get(time.strftime("%Y-%m-%d", time.gmtime(et)))
+            if ("?" if d is None else "OPEN" if d > 0 else "CLOSED") == state:
+                mine.append(net or 0.0)
+        win = mine[-RETIRE_N:]
+        avg = round(sum(win) / len(win), 2) if win else None
+        row = {"rule": rule, "state": state, "tier": "A", "closed": len(win), "of": RETIRE_N, "window_avg_pct": avg,
+               "retire": bool(len(win) >= RETIRE_N and avg is not None and avg < 0)}
+        out.append(row)
+        key = f"ev:retire_flag:{rule}|{state}|A"
+        if row["retire"] and not j.db.execute("SELECT 1 FROM engine_state WHERE k=?", (key,)).fetchone():
+            text = (f"Retirement rule (BOOK500.md): {rule} on tier A with the dial {state.lower()} averages {avg:+.2f}% a trade over its last "
+                    f"{RETIRE_N} closed paper trades, below zero after costs. The rule says: no new entries, open trades finish on their own plan, a "
+                    "review in the repair shop. Nothing was switched off; Madhav decides whether to retire it.")
+            requests_log.add(j, "data", text, about=f"retirement {rule}", by="ananta-auto")
+            if push:
+                try:
+                    push(f"Retirement rule met: {rule}", text[:220])
+                except Exception:  # noqa: BLE001
+                    pass
+            j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?, ?)", (key, str(int(j.now()))))
+            row["flagged"] = True
+    j.db.commit()
+    return out

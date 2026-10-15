@@ -43,7 +43,7 @@
     "H07-UB",
     "H07-T30"
    ],
-   "why": "The one measured edge (review #26: tier A while the dial is closed, +5.1% a trade over random, both periods; review #29 confirmed it point-in-time on all 530 Binance pairs with live costs, +6.3% a trade expected) Its live paper record is read from the database: {closed} closed, {won} won ({net}); the scoreboard counts independent market events, not trades (Evidence page). It feeds the $500 book's edge sleeve; tiers B/C and the 30-coin version keep measuring.",
+   "why": "The one measured edge (review #26: tier A while the dial is closed, +5.1% a trade over random, both periods; review #29 confirmed it point-in-time on all 530 Binance pairs with live costs, +6.3% a trade expected). Its live paper record is read from the database: {closed} closed, {won} won ({net}); the scoreboard counts independent market events, not trades (Evidence page). It feeds the $500 book's edge sleeve; tiers B/C and the 30-coin version keep measuring.",
    "cards": [
     "H07"
    ]

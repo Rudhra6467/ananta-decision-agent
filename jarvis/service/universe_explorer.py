@@ -10,6 +10,7 @@ so they never wake the brain outside the 10; they are evidence, by tier.
   step(j)            one 15-minute round over every registry coin (BTC first: the others' context)
   scoreboard(j)      setups x tier: closed shadows, average per $100 after costs, against the random entries of the same tier
   compare_lab10(j)   the side-by-side check on the 10 (U3.5): this engine on Binance candles against the live Explorer on Kraken's
+  compare_nightly(j) that check logged every night, with an alert under 60% like for like (research audit U-15M)
 Paper only.
 """
 from __future__ import annotations
@@ -189,7 +190,7 @@ def compare_lab10(j, hours: float = 24) -> dict:
     """U3.5: on the 10, does this engine (Binance candles) see the same setups as the live Explorer (Kraken candles)?"""
     from src.research import reads as R
 
-    since = int(time.time() - hours * 3600)
+    since = int(j.now() - hours * 3600)
     con = _con(j)
     try:
         mine = {(c, int(t), json.loads(js).get("setup")) for t, c, js in
@@ -214,8 +215,31 @@ def compare_lab10(j, hours: float = 24) -> dict:
     return {"hours": hours, "live_explorer": len(live), "universe_engine": len(mine), "same": len(both),
             "agreement_pct": round(100 * len(both) / max(1, len(mine | live)), 1),
             "shared_setups": sorted(s for s in shared if s),
-            "same_like_for_like": len(both_s),
+            "same_like_for_like": len(both_s), "events_like_for_like": len(mine_s | live_s),
             "agreement_like_for_like_pct": round(100 * len(both_s) / max(1, len(mine_s | live_s)), 1),
             "note": "Different candles (Binance against USDT vs Kraken against USD) move setups by a bar or a few cents, and the live "
                     "Explorer may run a wider scheduled ruleset than this engine's baseline, so judge by the like-for-like figure "
                     "(shared setups only). The 10-coin books keep using the live Explorer."}
+
+
+COMPARE_BAR_PCT, COMPARE_MIN_EVENTS = 60.0, 20
+
+
+def compare_nightly(j) -> dict:
+    """U-15M (research audit, Oct 15): the side-by-side check on the 10 was read by nobody. It is now logged every night (24 and 72 hours,
+    explorer_compare) and `alert` is true when, over 72 hours, the setups BOTH engines run agree on under 60% with at least 20 events
+    between them (a quiet stretch says nothing). universe_watch.forward() turns an alert into a repair-board request, once a week."""
+    j.db.execute("CREATE TABLE IF NOT EXISTS explorer_compare (t INTEGER, hours REAL, live_n INTEGER, mine_n INTEGER, same INTEGER, "
+                 "agreement_pct REAL, like_n INTEGER, like_pct REAL, shared TEXT, PRIMARY KEY (t, hours))")
+    now, out = int(j.now()), {}
+    for h in (24, 72):
+        r = compare_lab10(j, h)
+        j.db.execute("INSERT OR REPLACE INTO explorer_compare VALUES (?,?,?,?,?,?,?,?,?)",
+                     (now, h, r["live_explorer"], r["universe_engine"], r["same"], r["agreement_pct"], r["events_like_for_like"],
+                      r["agreement_like_for_like_pct"], json.dumps(r["shared_setups"])))
+        out[f"{h}h"] = {k: r[k] for k in ("live_explorer", "universe_engine", "same", "events_like_for_like", "same_like_for_like",
+                                          "agreement_like_for_like_pct", "shared_setups")}
+    j.db.commit()
+    r72 = out["72h"]
+    out["alert"] = bool(r72["events_like_for_like"] >= COMPARE_MIN_EVENTS and r72["agreement_like_for_like_pct"] < COMPARE_BAR_PCT)
+    return out

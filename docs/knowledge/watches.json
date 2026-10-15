@@ -1,6 +1,6 @@
 {
  "version": "watches.v1",
- "updated": "2026-10-14",
+ "updated": "2026-10-15",
  "what": "The watch registry (Madhav, 2026-10-03: a set of rules watching plus an eye-like tracker, kept in sections; one scanner unless a watch needs a faster loop). Every watch Ananta runs is declared here once: its section, the candle it decides on, how it triggers, where it runs, its entry, exit and size, which evidence book its trades go to, its evidence status, and who hears about it. A rule written here before its trades happen is its pre-registration: the live trades that follow are clean forward evidence.",
  "how_to_add": "1) write the rule (entry, exit, size) here with today's date; 2) test it on history in the repair shop if it can be; 3) give it a rule function in the place named by runs_in (jarvis.watch_engine for daily bar-close rules, jarvis.eye for live price levels); 4) its trades appear on the scoreboard by themselves. A watch that needs other data (order book) or heavy compute gets its own process.",
  "loops": {

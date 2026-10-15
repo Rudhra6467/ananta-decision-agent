@@ -97,6 +97,9 @@ def test_would_be_skips_closed_dial_and_measures_r(tmp_path, monkeypatch):
     day = lambda x: time.strftime("%Y-%m-%d", time.gmtime(x))  # noqa: E731
     monkeypatch.setattr(exposure, "dial_by_day", lambda j: {day(t): 0.0, day(t + 86400 * 3): 1.0})
     monkeypatch.setattr(exposure, "hurdle_since", lambda j, t0: 0.1)
+    from jarvis.service import strategy_status
+
+    monkeypatch.setattr(strategy_status, "counts_watch", lambda w: True)   # the mechanics; which rules count is tested below
     j = J(tmp_path)
     _trades(j, [("M1a-UA", "SOL", t + 60, 100.0, 90.0, 5.0),        # dial closed, no edge there: skipped
                 ("H07-UA", "ETH", t + 120, 100.0, 95.0, 2.0),       # dial closed but H07 tier A has an edge: taken
@@ -113,11 +116,28 @@ def test_would_be_caps_total_risk(tmp_path, monkeypatch):
     monkeypatch.setattr(exposure, "dial_by_day", lambda j: {})
     monkeypatch.setattr(exposure, "hurdle_since", lambda j, t0: None)
     monkeypatch.setattr(universe_watch, "MAX_SAME_DAY", 99)
+    from jarvis.service import strategy_status
+
+    monkeypatch.setattr(strategy_status, "counts_watch", lambda w: True)
     j = J(tmp_path)
     t = 1_700_000_000
     _trades(j, [("M1a-UA", f"C{k}", t + k, 100.0, 90.0, 1.0) for k in range(15)])
     a = universe_watch.would_be(j)
     assert a["taken"] == 12 and a["skipped"]["risk_cap"] == 3        # 6% total open risk / 0.5% a trade
+
+
+def test_would_be_trades_only_rules_that_count_as_holdings(tmp_path, monkeypatch):
+    """Oct 15 (audit U-ACCOUNT): the would-be account is what Ananta would trade: ACTIVE / UNDER_REVIEW rules in
+    strategy_status.json (H07 today), not the evidence books (zone touch, Madhav's M-setups)."""
+    from jarvis.service import exposure, universe_watch
+
+    monkeypatch.setattr(exposure, "dial_by_day", lambda j: {})
+    monkeypatch.setattr(exposure, "hurdle_since", lambda j, t0: None)
+    j = J(tmp_path)
+    t = 1_700_000_000
+    _trades(j, [("ZONE_TOUCH-UA", "SOL", t + 1, 100.0, 90.0, 1.0), ("M1a-UB", "ADA", t + 2, 100.0, 90.0, 1.0),
+                ("H07-UA", "ETH", t + 3, 100.0, 95.0, 1.0), ("H07-UB", "LINK", t + 4, 100.0, 95.0, 1.0)])
+    assert universe_watch.would_be(j)["taken"] == 2
 
 
 def test_a_full_brain_still_decides_as_no_room_evidence(tmp_path, monkeypatch):

@@ -842,8 +842,9 @@ def evidence_pipeline(j) -> dict:
     progress = {"closed_trades": len(real) + len(wouldbe), "weekly_rebalances": t3_weeks,
                 "e5_trades": sum(1 for r in real if r["setup"] == "E5"), "stable_positive_sightings": 0}
     try:
-        progress["setup_fires"] = j.db.execute("SELECT COUNT(*) FROM read_fires WHERE variant != 'H07'").fetchone()[0]
-        progress["h07_fires"] = j.db.execute("SELECT COUNT(*) FROM read_fires WHERE variant = 'H07'").fetchone()[0]
+        # Oct 15 (audit Q6): market days, not fires: eight coins firing on one day are one market event (the scoreboard's rule)
+        progress["setup_fires"] = j.db.execute("SELECT COUNT(DISTINCT day) FROM read_fires WHERE variant != 'H07'").fetchone()[0]
+        progress["h07_fires"] = j.db.execute("SELECT COUNT(DISTINCT day) FROM read_fires WHERE variant = 'H07'").fetchone()[0]
     except Exception:  # noqa: BLE001  no fires yet
         progress["setup_fires"] = progress["h07_fires"] = 0
     ev = _events_count(rows)        # Oct 15, Madhav: ONE count of market events, every Explorer trade together, as the Evidence headline

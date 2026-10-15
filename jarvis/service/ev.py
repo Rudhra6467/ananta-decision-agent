@@ -114,3 +114,31 @@ def fidelity(j, min_n: int = 10) -> dict:
         rows.append({"rule": rule, "state": state, "tier": tier, "paper_trades": len(xs), "paper_avg_pct": m, "backtest_avg_pct": bt, "verdict": flag})
     return {"cells": rows, "min_trades": min_n,
             "rule": "Paper must track the backtest within 3 points a trade over at least 10 trades; a cell below it goes to the repair shop."}
+
+
+def fidelity_alert(j, push=None) -> list[str]:
+    """Oct 15 (audit FIX1-5): the fidelity check was only displayed. A cell that turns BELOW BACKTEST now goes to the repair shop
+    by itself, once per cell: a phone note and a request (by 'ananta-auto'); Rule A's 'execution within 3 points' depends on it."""
+    from jarvis.service import requests_log
+
+    j.db.execute("CREATE TABLE IF NOT EXISTS engine_state (k TEXT PRIMARY KEY, v TEXT)")
+    out = []
+    for c in fidelity(j)["cells"]:
+        if not c["verdict"].startswith("BELOW BACKTEST"):
+            continue
+        key = f"ev:fidelity_flag:{c['rule']}|{c['state']}|{c['tier']}"
+        if j.db.execute("SELECT 1 FROM engine_state WHERE k=?", (key,)).fetchone():
+            continue
+        text = (f"Paper vs backtest: {c['rule']} on tier {c['tier']} with the dial {c['state']} averages {c['paper_avg_pct']:+.2f}% a trade over "
+                f"{c['paper_trades']} paper trades against {c['backtest_avg_pct']:+.2f}% in the backtest (more than 3 points under). "
+                "Check costs, fills and timing before trusting its number.")
+        requests_log.add(j, "data", text, about=f"fidelity {c['rule']}", by="ananta-auto")
+        if push:
+            try:
+                push(f"Fidelity: {c['rule']} tier {c['tier']} below its backtest", text[:220])
+            except Exception:  # noqa: BLE001
+                pass
+        j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?, ?)", (key, str(int(j.now()))))
+        out.append(key.split(":", 2)[2])
+    j.db.commit()
+    return out

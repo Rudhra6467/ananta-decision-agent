@@ -580,10 +580,12 @@ def would_be(j) -> dict:
         dial = {}
     open_, taken, per_day = [], [], {}
     skipped = {"dial_closed": 0, "full": 0, "same_coin": 0, "same_day": 0, "risk_cap": 0}
+    from jarvis.service import strategy_status as SS
+
     for w, c, et, xt, net, st, entry, stop in rows:
         sp = split(w)
-        if not sp or sp[1] == "C":
-            continue
+        if not sp or sp[1] == "C" or not SS.counts_watch(w):     # Oct 15 (audit U-ACCOUNT): only rules Ananta would trade, not the
+            continue                                             # evidence books (zone touch, Madhav's M-setups: EVIDENCE)
         open_ = [o for o in open_ if o[2] is None or o[2] > et]
         day = time.strftime("%Y-%m-%d", time.gmtime(et))
         dist = (entry - stop) / entry if entry and stop and 0 < stop < entry else DEFAULT_STOP
@@ -681,6 +683,12 @@ def run_daily(j) -> dict:
         out["book500"] = ndax_book.step(j)
     except Exception as exc:  # noqa: BLE001
         out["book500_error"] = str(exc)[:200]
+    try:  # Oct 15 (audit FIX1-5): a rule whose paper runs 3+ points a trade under its backtest is forwarded by itself, once
+        from jarvis.service import ev
+
+        out["fidelity_flags"] = ev.fidelity_alert(j, _phone_push())
+    except Exception as exc:  # noqa: BLE001
+        out["fidelity_error"] = str(exc)[:200]
     try:  # the officer's note (Oct 13): the brain narrates the account's day, once, after the close
         from jarvis.service import officer
 

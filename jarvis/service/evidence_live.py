@@ -681,7 +681,7 @@ def _waiting(j, P: dict, ex, L: dict | None = None) -> list[dict]:
         elif m == "e5_trades":
             row["unit"], start = "E5 trades", start_ex
         elif m in ("setup_fires", "h07_fires"):
-            row["unit"], start = "signals", reads_first
+            row["unit"], start = "market days with a signal", reads_first
         else:
             row["unit"], start = "sightings", start_ex
         have = row["have"] or 0
@@ -907,7 +907,8 @@ def _gate_measured(j, by: dict) -> None:
         c = by.get(k)
         if c:
             c["status"] = "NOT_MEASURED" if not e else "PASS" if e.get(field) else "FAIL"
-            c["note"] = f"{e[n_key]} of {e[of_key]} on {e['day']}" if e else "exam not run yet"
+            c["note"] = (f"{e[n_key]} of {e[of_key]} on {e['day']}" + (f" (re-judged on {e['rejudged']} with a judge widened after the run; "
+                         "the next run confirms it)" if e.get("rejudged") else "")) if e else "exam not run yet"
     v = exam.latest("voice_latest.json")
     c = by.get("ux_voice")
     if c:

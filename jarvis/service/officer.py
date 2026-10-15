@@ -86,6 +86,36 @@ def facts(j, daily: dict | None = None) -> dict:
     return f
 
 
+def _numbers(x) -> list[float]:
+    if isinstance(x, bool):
+        return []
+    if isinstance(x, (int, float)):
+        return [float(x)]
+    if isinstance(x, dict):
+        return [n for v in x.values() for n in _numbers(v)]
+    if isinstance(x, (list, tuple)):
+        return [n for v in x for n in _numbers(v)]
+    return []
+
+
+def cad_labels(note: str, f: dict) -> str:
+    """Oct 15 (audit OFFICER): an account figure written as "$498" becomes "C$498" by code, not by the prompt alone (the Oct 14
+    note said "$498" for a CAD value). Only a figure that matches one of the account's CAD numbers (within 0.5%) is relabelled,
+    and never when it also matches another number in the facts (a coin's US-dollar price can sit near the account's value);
+    "US$" and "C$" are left alone."""
+    import re
+
+    cad = [n for n in _numbers(f.get("account") or {}) if n >= 1]
+    other = [n for k, v in f.items() if k != "account" for n in _numbers(v) if n >= 1]
+
+    def fix(m):
+        x = float(m.group(2).replace(",", ""))
+        near = lambda xs: any(abs(x - c) <= max(0.5, 0.005 * c) for c in xs)  # noqa: E731
+        return m.group(1) + "C$" + m.group(2) if near(cad) and not near(other) else m.group(0)
+
+    return re.sub(r"(^|[^A-Za-z$])\$(\d[\d,]*(?:\.\d+)?)", fix, note)
+
+
 def write(j, daily: dict | None = None, push: Callable | None = None, call: Callable | None = None) -> dict:
     from jarvis.service import brain
 
@@ -100,7 +130,7 @@ def write(j, daily: dict | None = None, push: Callable | None = None, call: Call
         cost = brain._price(usage)
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "error": str(exc)[:200], "facts": f}
-    note = " ".join(text.strip().split())
+    note = cad_labels(" ".join(text.strip().split()), f)
     if not note:
         return {"ok": False, "error": "empty note", "facts": f}
     j.db.execute("INSERT OR REPLACE INTO officer_notes VALUES (?,?,?,?,?)", (day, int(j.now()), note, json.dumps(f, default=str)[:20000], cost))

@@ -9,6 +9,8 @@
                   after the other 30). Code labels each answer (yes/no to buying; up/down for the view); a material flip without a
                   stated reason fails the exam. The flip rate across runs is kept in history.jsonl (flip_rate()).
 Each question gets its own fresh conversation, through the same path the app uses (source "eval", counted on the test budget).
+Judging rule (Oct 15, the research audit's CONV-9): a judge is changed only BEFORE a run. rejudge() re-reads saved answers for the
+record and is marked ("rejudged"); the gate shows that mark, and only the next full run counts as confirmation.
 Results: docs/repair_shop/exam/latest.json (and voice_latest.json), with every answer, so a human can check the judging.
 """
 from __future__ import annotations

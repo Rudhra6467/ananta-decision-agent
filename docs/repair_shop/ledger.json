@@ -480,28 +480,10 @@
    "goal": 6
   },
   {
-   "id": "Q3",
-   "status": "WAITING_FOR_EVIDENCE",
-   "title": "E5 probation",
-   "waiting_for": "20 live E5 trades",
-   "why": "E5 was the weakest setup in review #1; live evidence decides whether it is dropped.",
-   "metric": "e5_trades",
-   "goal": 20
-  },
-  {
-   "id": "Q4",
-   "status": "WAITING_FOR_EVIDENCE",
-   "title": "Intraday atlas alerts",
-   "waiting_for": "a sighting the atlas marks stable-positive after costs",
-   "why": "Intraday is idle; only contexts that were positive after costs in both periods may earn a look.",
-   "metric": "stable_positive_sightings",
-   "goal": 1
-  },
-  {
    "id": "Q5",
    "status": "WAITING_FOR_EVIDENCE",
    "title": "Your setups, live record",
-   "waiting_for": "10 live fires of your setups",
+   "waiting_for": "10 market days with a live signal from your setups",
    "why": "Live fires are clean evidence (nobody knows how they end). With 10, compare them with random days and with the history test.",
    "metric": "setup_fires",
    "goal": 10
@@ -510,7 +492,7 @@
    "id": "Q6",
    "status": "WAITING_FOR_EVIDENCE",
    "title": "H07 short dip trade, live record",
-   "waiting_for": "10 live H07 fires",
+   "waiting_for": "10 market days with a live H07 signal",
    "why": "Review #14: strong in both periods but a few events short; live fires are clean evidence.",
    "metric": "h07_fires",
    "goal": 10
@@ -852,6 +834,15 @@
    "what": "The lake extension of Oct 9-11 (lake_extend, 303 coins outside the 120) wrote Binance's own daily candles without the minute-coverage column 'share', re-writing the daily files of 78 coins review #22 had built from minute data. src/lake/research.daily failed on all 303 ('share' not found), so review #22 could not be re-run as written.",
    "did": "Found when review #30 stopped while loading, before any result.",
    "change": "research.daily loads a daily file without 'share' as complete days (Binance's own candles; review #29's rule); minute-built files still drop days under 97% coverage. Test in tests/test_lake.py. Review #22's 78 coins now load from Binance's daily candles.",
+   "status": "DONE"
+  },
+  {
+   "id": "TK17",
+   "date": "2026-10-15",
+   "from": "research audit (Oct 14), queue items Q1-Q6",
+   "what": "Two waiting questions could no longer be answered or acted on, and two counted signals instead of market events.",
+   "did": "Lock phase: Madhav asked that no crypto item be left pending.",
+   "change": "Q3 (E5 probation) and Q4 (intraday atlas alerts) leave the queue: the Explorer is retired as a trading book (Oct 13) and the hourly watch is parked (D6), so neither answer could change a decision. Q5 and Q6 now count market days with a signal, not fires (eight coins firing on one day are one market event). Q1 stays: it is answered at the 10th market event (the 30-trade part is met).",
    "status": "DONE"
   }
  ],

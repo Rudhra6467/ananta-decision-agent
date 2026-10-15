@@ -44,3 +44,7 @@ The gate's `strategy_survivorship` check today counts the 30-coin tier, which fa
 
 Recommendation: **(b)**. Review #22 already ruled the 30-coin tier out of promotion, and the gate exists to decide what may
 trade real money. Whichever he picks is written here before the run.
+
+**Madhav's decision (Oct 15, 09:10 Toronto, before the run): "30 yes b".** Run review #30 as written; scope **(b)**: the gate's
+`strategy_survivorship` counts only the tiers that could ever trade real money (the live 10), and the 30-coin books are
+labelled "evidence only" wherever they are shown.

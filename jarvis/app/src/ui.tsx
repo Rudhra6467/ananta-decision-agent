@@ -9,6 +9,11 @@ import { useFocusEffect } from "expo-router";
 import { setScroller, useSpotActive } from "./spotlight";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { C, LINE, NUM, RADIUS, SPACE, TAP, TYPE, live, pnlColor } from "./theme";
+import { VoiceBtn, VoiceStrip, type VoiceSpec } from "./sectionvoice";
+
+// a card's title-row end: the section voice button (Oct 16) before the card's own action
+const Ends = ({ voice, right }: { voice?: VoiceSpec; right?: React.ReactNode }) =>
+  voice ? <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><VoiceBtn v={voice} />{right}</View> : <>{right}</>;
 
 export function Screen({ children, loading, onRefresh, pad = true }: { children: React.ReactNode; loading: boolean; onRefresh: () => void; pad?: boolean }) {
   const ref = useRef<ScrollView>(null);
@@ -24,7 +29,7 @@ export function Screen({ children, loading, onRefresh, pad = true }: { children:
   );
 }
 
-export function Card({ title, children, right, sub, onPress }: { title?: string; sub?: string; children?: React.ReactNode; right?: React.ReactNode; onPress?: () => void }) {
+export function Card({ title, children, right, sub, onPress, voice }: { title?: string; sub?: string; children?: React.ReactNode; right?: React.ReactNode; onPress?: () => void; voice?: VoiceSpec }) {
   const body = (
     <View style={s.card}>
       {title ? (
@@ -33,10 +38,11 @@ export function Card({ title, children, right, sub, onPress }: { title?: string;
             <Text style={s.h}>{title}</Text>
             {sub ? <Text style={s.small}>{sub}</Text> : null}
           </View>
-          {right}
+          <Ends voice={voice} right={right} />
         </View>
       ) : null}
       {children}
+      {voice ? <VoiceStrip id={voice.id} /> : null}
     </View>
   );
   return onPress ? <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}>{body}</Pressable> : body;
@@ -71,16 +77,17 @@ export const dayOf = (iso?: string | null) => {
 
 // The card grammar: title · one number · one line · one action. Three lines above the fold; `more` opens the rest in place.
 // `right` is the title row's action (e.g. "Books ›"); `meta` is the one-line footnote on the left of the action row.
-export function StatCard({ title, right, value, valueColor, aside, asideColor, line, meta, action, children, more, onPress, label }: {
+export function StatCard({ title, right, value, valueColor, aside, asideColor, line, meta, action, children, more, onPress, label, voice }: {
   title: string; right?: React.ReactNode; value?: string; valueColor?: string; aside?: string; asideColor?: string; line?: React.ReactNode;
   meta?: string; action?: { label: string; onPress: () => void }; children?: React.ReactNode; more?: React.ReactNode; onPress?: () => void; label?: string;
+  voice?: VoiceSpec;
 }) {
   const [open, setOpen] = useState(false);
   const body = (
     <View style={s.card} accessibilityLabel={label}>
       <View style={s.row}>
         <Text style={[s.small, { flex: 1 }]} numberOfLines={1}>{title}</Text>
-        {right}
+        <Ends voice={voice} right={right} />
       </View>
       {value != null ? (
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
@@ -97,6 +104,7 @@ export function StatCard({ title, right, value, valueColor, aside, asideColor, l
         </View>
       ) : null}
       {open ? <View style={{ gap: 6 }}>{more}</View> : null}
+      {voice ? <VoiceStrip id={voice.id} /> : null}
     </View>
   );
   return onPress ? <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}>{body}</Pressable> : body;

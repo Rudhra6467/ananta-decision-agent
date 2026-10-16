@@ -11,6 +11,7 @@ import { Busy, Card, Divider, ErrorBox, Screen, Stat, T, price, usdSigned } from
 import { useData } from "../src/useData";
 import { C, COIN_NAME, pnlColor } from "../src/theme";
 import { nm } from "../src/names";
+import { VoiceBtn, VoiceStrip, sayMoney, type VoiceSpec } from "../src/sectionvoice";
 
 const KNOW: Record<string, string> = {
   REGIME: "Market rule", T3: "Trend portfolio", ZONES: "Zones", LOOKOUT: "Zone reactions", EXITS: "Exits", TRAIL: "Trailing stops",
@@ -21,8 +22,15 @@ const KNOW: Record<string, string> = {
 export default function JarvisBook() {
   const { data: d, err, loading, reload } = useData("/v3/brain");
   useFocusEffect(useCallback(() => { setScreen({ screen: "jarvis", label: "Ananta's book: its own paper trades against random twins" }); }, []));
+  const per = (v: any) => (v == null ? "nothing yet" : `${v < 0 ? "a loss of" : "a gain of"} ${sayMoney(v)}`);
+  const voice: VoiceSpec = { id: "jarvis.book", label: "Ananta's book", back: "jarvis", spot: "jarvis.score", screen: "jarvis",
+    questions: ["Am I beating random yet?", "Why no new trades lately?", "Which open trade is weakest?", "What have you learned so far?"],
+    say: () => !d ? "This is Ananta's own book: the trades I decide myself." : `This is Ananta's own book: trades I decide myself, 100 dollars each on paper, each with a random twin that copies the plan on another coin at the same moment.`
+      + ` ${d.closed} closed so far. Per trade I average ${per(d.avg_usd_per_100)}; the twins, ${per(d.random_twin_avg_usd)}.`
+      + (d.avg_usd_per_100 != null && d.random_twin_avg_usd != null ? (d.avg_usd_per_100 < d.random_twin_avg_usd ? " So far I'm behind the twins." : " So far I'm ahead of the twins.") : "")
+      + ` ${(d.open ?? []).length} trades are open. That's ${d.events} of the 10 independent events a verdict needs, so it's ${String(d.verdict ?? "too early").toLowerCase()}.` };
   const head = <Stack.Screen options={{ headerShown: true, title: "Ananta's book", headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false,
-    headerTintColor: C.text, headerBackTitle: "Back" }} />;
+    headerTintColor: C.text, headerBackTitle: "Back", headerRight: () => <View style={{ marginRight: 4 }}><VoiceBtn v={voice} /></View> }} />;
   if (!d && loading) return <>{head}<Busy /></>;
   if (!d) return <>{head}<Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen></>;
   const me = (d.running?.me ?? []).map((x: any) => x.v), tw = (d.running?.twins ?? []).map((x: any) => x.v);
@@ -52,6 +60,7 @@ export default function JarvisBook() {
             </View>
             <Progress value={d.events} of={10} />
           </View>
+          <VoiceStrip id="jarvis.book" />
         </Card>
       </Spot>
 

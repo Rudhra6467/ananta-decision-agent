@@ -16,7 +16,10 @@ import { VisitorHome, useMe } from "../../src/visitor";
 import { ConceptCard, ValueCard, hello } from "../../src/home";
 import { AnantaButton, AnantaSheet, useAnantaCount } from "../../src/ananta";
 import { AccountTrades } from "../../src/books";
+import { sayMoney, upDown, type VoiceSpec } from "../../src/sectionvoice";
 
+const COIN_WORD: Record<string, string> = { BTC: "Bitcoin", ETH: "Ethereum", SOL: "Solana", XRP: "XRP", ADA: "Cardano", DOGE: "Dogecoin",
+  AVAX: "Avalanche", LINK: "Chainlink", LTC: "Litecoin", BCH: "Bitcoin Cash" };
 const KIND: Record<string, { color: string; label: string }> = live(() => ({
   buy: { color: C.accent, label: "BUY" }, sell: { color: C.text, label: "SELL" }, watch: { color: C.faint, label: "ORDER" },
   portfolio: { color: C.accent, label: "PORTFOLIO" }, warn: { color: C.warn, label: "WARNING" }, info: { color: C.faint, label: "YOU" },
@@ -129,8 +132,14 @@ function AccountCard({ a }: { a: any }) {
   const dial = String(a.dial?.state ?? "…").split(":")[0];
   const pnlPct = (p: any) => (p.qty && p.last && p.paid ? 100 * ((p.qty * p.last) / p.paid - 1) : null);
   const ex = a.execution_check;
+  const voice: VoiceSpec = { id: "home.account", label: "the account", back: "home", spot: "home.value", screen: "home",
+    questions: [change < 0 ? "Why is the account down?" : "Why is the account up?", "When does it buy or sell next?", "What are the brakes?", "Show me the trades"],
+    say: () => `This is the account: the 500 dollar NDAX book, paper money at real NDAX prices, in Canadian dollars. It is worth ${sayMoney(a.value_cad, "CAD")},`
+      + ` ${upDown(change)} ${sayMoney(change, "CAD")} since ${dayOf(a.started)}.`
+      + (pos.length ? ` It holds ${pos.map(([c, p]) => { const q = pnlPct(p); return `${COIN_WORD[c] ?? c}${q == null ? "" : `, ${q >= 0 ? "up" : "down"} ${Math.abs(q).toFixed(1)} percent`}`; }).join(", and ")},` : " It holds no coins,")
+      + ` with ${sayMoney(a.cash_cad, "CAD")} in cash. The dial is ${dial.toLowerCase()}, and ${brakes}. The next decision comes at the daily close.` };
   return (
-    <StatCard title="The account · $500 NDAX book · paper, real NDAX prices" label="The account"
+    <StatCard voice={voice} title="The account · $500 NDAX book · paper, real NDAX prices" label="The account"
       right={<Act tight label="Trades ›" onPress={() => { focusSpot("books.trades", 2000); }} />}
       value={a.value_cad == null ? "…" : cad(a.value_cad)} aside={`${cadSigned(change)} · ${pct(a.return_pct)} since ${dayOf(a.started)}`} asideColor={pnlColor(change)}
       line={`${pos.length} holding${pos.length === 1 ? "" : "s"} · ${cad(a.cash_cad, 0)} cash · next decision at the daily close`}

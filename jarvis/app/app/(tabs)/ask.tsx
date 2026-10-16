@@ -3,11 +3,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
 import { requestRecordingPermissionsAsync } from "expo-audio";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { getScreen, goTab, setScreen, setVoiceLive, tourCommand, useScreen } from "../../src/context";
+import { getScreen, getVoiceOrigin, goTab, setScreen, setVoiceApi, setVoiceFeed, setVoiceLive, setVoiceOrigin, setVoicePhase, takeSection,
+  tourCommand, useScreen, type SectionReq } from "../../src/context";
 import { showToast } from "../../src/blocks";
 import { FirstConversation } from "../../src/firstchat";
 import * as UI from "../../src/uiagent";
-import { clearSpot, setScroller } from "../../src/spotlight";
+import { Spot, clearSpot, focusSpot, setScroller } from "../../src/spotlight";
+import { VoiceBtn, VoiceStrip, type VoiceSpec } from "../../src/sectionvoice";
 import { StageCard } from "../../src/voice";
 import { ActionCard, openScreen } from "../../src/actions";
 import { useData } from "../../src/useData";
@@ -166,7 +168,7 @@ const kept: { msgs: Msg[]; thread: string | null; who: string; t: number; manual
 
 // One conversation page (like ChatGPT): type, dictate with the mic, or switch on voice mode, all in the same session.
 export default function Ananta() {
-  const params = useLocalSearchParams<{ q?: string; t?: string; intro?: string; tab?: string; sessions?: string }>();
+  const params = useLocalSearchParams<{ q?: string; t?: string; intro?: string; tab?: string; sessions?: string; section?: string }>();
   const [tabv, setTabv] = useState<"chat" | "now">(params.tab === "now" ? "now" : "chat");     // plan 3.6a: Chat | Ananta now
   useEffect(() => { if (params.tab === "now" || params.tab === "chat") setTabv(params.tab); }, [params.tab, params.t]);
   const [msgs, setMsgs] = useState<Msg[]>(kept.msgs);
@@ -312,13 +314,58 @@ export default function Ananta() {
   };
 
   // plan 3.7: after walking through another screen, Ananta comes back to Ask Ananta and says the closing line
+  // Oct 16: when voice was started from a section (the section voice button), the walk-through ends back at that section instead
   const comeBack = async () => {
-    const away = getScreen()?.screen && getScreen()?.screen !== "ananta";
-    if (away) { goTab("/(tabs)/ask"); await new Promise((r) => setTimeout(r, 450)); }
+    const o = getVoiceOrigin();
+    if (o) await backTo(o);
+    else {
+      const away = getScreen()?.screen && getScreen()?.screen !== "ananta";
+      if (away) { goTab("/(tabs)/ask"); await new Promise((r) => setTimeout(r, 450)); }
+    }
     const line = `That's the walk-through. Want me to pull anything else up? What's next${vmeRef.current?.guest ? "" : ", sir"}?`;
     setMsgs((m) => [...m, { role: "assistant", kind: "answer", model_label: "Ananta", answer: line, voice: true }]);
+    if (o) setVoiceFeed({ section: o.id, answer: line, chips: o.questions ?? [] });
     await TTS.speakText(line);
   };
+
+  // ---- the section voice button (Madhav, Oct 16) ----
+  // Back to the section: open its tab (or page) and let the section glow for a moment.
+  const backTo = async (o: SectionReq) => {
+    const res = await UI.run([{ do: "go_to", target: o.back, label: o.label }]);
+    if (res[0]?.ok && o.spot) await focusSpot(o.spot, 2500);
+  };
+  // What the section is, as a question and its answer in this conversation, plus the section's questions as chips
+  const sectionMsgs = (o: SectionReq) => {
+    setCtx({ screen: o.screen ?? "section", label: o.label, item: { section: o.id } });
+    setMsgs((m) => [...m, { role: "user", text: `What's this? ${o.label.charAt(0).toUpperCase()}${o.label.slice(1)}`, voice: true },
+      { role: "assistant", kind: "answer", model_label: "Ananta", answer: o.say, follow_ups: o.questions ?? [], voice: true }]);
+    setVoiceOrigin(o);
+    setVoiceFeed({ section: o.id, answer: o.say, chips: o.questions ?? [] });
+  };
+  // Voice off: here in Ask Ananta, show it and say it with voice on, then take him back to the section, still listening.
+  const runSection = async (o: SectionReq) => {
+    setTabv("chat");
+    sectionMsgs(o);
+    if (!loopRef.current?.on) await startLive();
+    const lp = loopRef.current!;
+    if (!lp.on) {                                                // no microphone: he still hears it and goes back; voice stays off
+      setVoiceOrigin(null);
+      await TTS.speakText(o.say);
+      await backTo(o);
+      return;
+    }
+    await lp.interject(() => TTS.speakText(o.say));
+    if (lp.on && getVoiceOrigin()?.id === o.id) await backTo(o);
+  };
+  // Voice already on: talk about that section right where he is.
+  const sectionLive = async (o: SectionReq) => {
+    sectionMsgs(o);
+    if (o.spot) focusSpot(o.spot, 2500);
+    await loopRef.current?.interject(() => TTS.speakText(o.say));
+  };
+  // what the section shows while voice is on: the last question, the last answer, its follow-ups
+  const feedFrom = (heard: string | undefined, r: any) =>
+    setVoiceFeed({ section: getVoiceOrigin()?.id, heard, answer: r?.answer ?? r?.error, chips: (r?.follow_ups ?? []).slice(0, 4) });
 
   // After the first conversation (Madhav, Oct 11): the next answer carries these chips; the capital and mode chips act directly
   const pendingChips = useRef<string[]>([]);
@@ -417,6 +464,24 @@ export default function Ananta() {
         if (r.thread) setThread(r.thread);
         if (r.heard) setMsgs((m) => [...m, { role: "user", text: r.heard, voice: true }]);
         if (r.answer || r.error || r.tour?.length) setMsgs((m) => [...m, { role: "assistant", voice: true, ...r }]);
+        if (r.answer || r.error) feedFrom(r.heard, r);
+        return r;
+      },
+      // a question tapped while voice is on (a chip here, or a section's question anywhere in the app): answered aloud
+      askText: async (q, current) => {
+        setMsgs((m) => [...m, { role: "user", text: q, voice: true }]);
+        const o = getVoiceOrigin();
+        setVoiceFeed({ section: o?.id, heard: q, chips: o?.questions ?? [] });
+        let r: any;
+        try {
+          r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: modeRef.current, context: where(true) }, 60000);
+        } catch (e: any) {
+          r = { error: e?.message ?? String(e) };
+        }
+        if (!current()) return r;
+        if (r.thread) setThread(r.thread);
+        setMsgs((m) => [...m, { role: "assistant", voice: true, ...r }]);
+        feedFrom(q, r);
         return r;
       },
       respond: async (r, current) => {
@@ -447,6 +512,8 @@ export default function Ananta() {
       onPhase: (p) => {
         setPhase(p);
         setVoiceLive(p !== "off");
+        setVoicePhase(p);
+        if (p === "off") { setVoiceOrigin(null); setVoiceFeed(null); }      // the section buttons go back to "Ask Ananta"
         lastActive.current = Date.now();
         if (p === "thinking") Haptics.tap();                     // you feel it when Ananta got your question
         if (p !== "listening") setNote("");
@@ -515,7 +582,13 @@ export default function Ananta() {
     return () => { clearInterval(id); sub.remove(); };
   }, [live]);
   useEffect(() => { if (mic.status === "hearing") lastActive.current = Date.now(); }, [mic.status]);
-  useEffect(() => () => { loop.end(); }, []);
+  useEffect(() => () => { loop.end(); setVoiceApi(null); }, []);
+  setVoiceApi({ end: () => endLive(), ask: (q) => { loop.onText(q); }, section: (o) => { sectionLive(o); } });
+  useEffect(() => {
+    if (!params.section) return;
+    const o = takeSection(String(params.section));
+    if (o) runSection(o);
+  }, [params.section, params.t]);
 
   useEffect(() => {
     if (params.q && params.t !== lastParam.current) {
@@ -661,7 +734,7 @@ export default function Ananta() {
         ) : null}
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
           <View key={i} style={{ gap: 8 }}>
-            <Answer m={m} onPick={(q) => send(q)} onRate={(v) => rate(m, v)} onSecond={() => second(m)}
+            <Answer m={m} onPick={(q) => (live ? loop.onText(q) : send(q))} onRate={(v) => rate(m, v)} onSecond={() => second(m)}
               onSpeak={live ? undefined : () => { TTS.speak(UI.sentences(m.answer ?? ""), () => {}); }}
               onShow={live ? undefined : () => walkThrough(m)} />
             {m.voice && i === msgs.length - 1 ? (m.show ?? []).slice(0, 1).map((sh: any, k: number) => <StageCard key={k} sh={sh} open={() => openScreen(sh)} />) : null}
@@ -880,9 +953,25 @@ function AnantaNow() {
     else if (t.includes("position") || t.includes("monitor")) goTab("/(tabs)/today");
     else if (t.includes("need")) goTab("/(tabs)/today");
   };
+  const lines: string[] = (s?.lines ?? []).map((l: any) => String(l.text));
+  const ev: any[] = a?.events ?? [];
+  const nowVoice: VoiceSpec = { id: "now.state", label: "Ananta now", back: "ananta:now", spot: "now.state", screen: "ananta_now",
+    questions: ["What are you watching right now?", "Rate my open positions from weakest to strongest", "Does anything need me?"],
+    say: () => `This is Ananta now: what I'm doing for this account at this moment. ${lines.slice(0, 3).map((x) => x.replace(/;\s*/g, ". ")).join(". ")}.`
+      + `${s?.waiting_for ? ` I'm waiting for ${s.waiting_for}.` : ""} Ask me about any of it.` };
+  const changedVoice: VoiceSpec = { id: "now.changes", label: "what changed today", back: "ananta:now", spot: "now.changes", screen: "ananta_now",
+    questions: ["What was the biggest change today?", "Read me the morning brief", "What is close to triggering?"],
+    say: () => ev.length
+      ? `This is what changed today: ${ev.length} thing${ev.length === 1 ? "" : "s"} so far. The latest, at ${new Date(ev[0].t * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}: ${ev[0].title}. ${String(ev[0].body ?? "").split(/(?<=[.!?])\s/)[0]} Ask me about any of them.`
+      : "This is what changed today. Nothing yet: the first things usually come with the morning brief and the hourly checks." };
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+      <Spot id="now.state">
       <View style={{ backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 14, gap: 4 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <T small style={{ flex: 1 }}>Right now</T>
+          <VoiceBtn v={nowVoice} />
+        </View>
         {!s && loading ? <ActivityIndicator color={C.dim} /> : null}
         {(s?.lines ?? []).map((l: any, i: number) => (
           <View key={i}>
@@ -895,9 +984,16 @@ function AnantaNow() {
           </View>
         ))}
         {s?.waiting_for ? <T small dim>Waiting for: {s.waiting_for}</T> : null}
+        <VoiceStrip id="now.state" />
       </View>
-      <Text style={{ color: C.text, fontWeight: "700", fontSize: 16 }}>What changed today</Text>
+      </Spot>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Text style={{ color: C.text, fontWeight: "700", fontSize: 16, flex: 1 }}>What changed today</Text>
+        <VoiceBtn v={changedVoice} />
+      </View>
+      <Spot id="now.changes">
       <View style={{ backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 14, gap: 8 }}>
+        <VoiceStrip id="now.changes" />
         {(a?.events ?? []).length === 0 ? <T dim>Nothing yet today.</T> : null}
         {(a?.events ?? []).slice(0, 20).map((x: any) => (
           <View key={x.id} style={{ gap: 2 }}>
@@ -907,6 +1003,7 @@ function AnantaNow() {
           </View>
         ))}
       </View>
+      </Spot>
       <Text onPress={reload} style={{ color: C.accent, fontWeight: "600", textAlign: "center" }}>Refresh</Text>
     </ScrollView>
   );

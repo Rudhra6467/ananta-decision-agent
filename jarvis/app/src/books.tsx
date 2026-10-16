@@ -59,7 +59,8 @@ export function AccountTrades() {
   if (!d) return <ErrorBox err={err ?? "No data"} />;
   const acct = d.account ? { ...d, summary: d.account.summary, trades: d.account.trades, closed: d.account.closed, books: [d.account.book], currency: "CAD",
     retired: [], stamps: {} } : d;
-  return <Spot id="books.trades"><BooksTrades d={acct} explainers={<Explainers h={h} />} /></Spot>;
+  return <Spot id="books.trades"><BooksTrades d={acct} explainers={<Explainers h={h} />}
+    voice={d.account ? { id: "home.record", label: "the account's record", back: "home", spot: "books.trades", screen: "home" } : undefined} /></Spot>;
 }
 
 // Markets › Ananta market: Ananta's own book on top, then the lab's books, the trend portfolio, the Explorer, your trades, your setups.
@@ -105,7 +106,9 @@ function LabTrades() {
     summary: { ...d.summary, open_count: (d.lab?.trades ?? d.trades ?? []).length }, books: (d.books ?? []).filter((b: any) => b.name !== "The $500 NDAX book") };
   return (
     <Screen loading={loading} onRefresh={reload}>
-      <BooksTrades d={lab} title="The lab's paper books · US$" />
+      <Spot id="lab.books">
+        <BooksTrades d={lab} title="The lab's paper books · US$" voice={{ id: "lab.books", label: "the lab's paper books", back: "portfolio:lab", spot: "lab.books", screen: "ananta_market" }} />
+      </Spot>
     </Screen>
   );
 }

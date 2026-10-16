@@ -6,7 +6,7 @@ import { token } from "../src/api";
 import { Toast, loadMe } from "../src/visitor";
 import { loadNames } from "../src/names";
 import { HomeScreenHint } from "../src/homescreen";
-import { goTab, tourCommand, useHere, useTour, useVoiceLive } from "../src/context";
+import { getVoiceApi, goTab, tourCommand, useHere, useTour, useVoiceLive, useVoicePhase } from "../src/context";
 import * as TTS from "../src/tts";
 import { C, deviceTheme, setTheme, useThemeVersion } from "../src/theme";
 
@@ -42,18 +42,29 @@ export default function Root() {
   );
 }
 
-// While voice mode is on and Ananta has moved you to another screen, this pill shows it is still listening.
+// While voice mode is on and you are on another screen, this pill shows what Ananta is doing; tap it to return to the
+// conversation, or End to stop voice right here (Oct 16: voice can be handled from anywhere in the app).
 function VoicePill() {
   const live = useVoiceLive();
   const here = useHere();
+  const phase = useVoicePhase();
   if (!live || here?.screen === "ananta") return null;
+  const word = phase === "thinking" ? "Ananta is thinking" : phase === "speaking" ? "Ananta is speaking" : "Ananta is listening";
+  const dot = phase === "speaking" ? C.good : phase === "thinking" ? C.warn : C.bad;
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", top: 56, left: 0, right: 0, alignItems: "center" }}>
-      <Pressable onPress={() => goTab("/(tabs)/ask")} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.text,
-        borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 6 }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.bad }} />
-        <Text style={{ color: C.onInk, fontWeight: "600", fontSize: 13 }}>Ananta is listening · tap to return</Text>
-      </Pressable>
+      <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: C.text, borderRadius: 999, paddingLeft: 14, paddingRight: 4,
+        shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 6 }}>
+        <Pressable onPress={() => goTab("/(tabs)/ask")} accessibilityRole="button" accessibilityLabel={`${word}, tap to return`}
+          style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dot }} />
+          <Text style={{ color: C.onInk, fontWeight: "600", fontSize: 13 }}>{word} · tap to return</Text>
+        </Pressable>
+        <Pressable onPress={() => getVoiceApi()?.end()} accessibilityRole="button" accessibilityLabel="End voice" hitSlop={6}
+          style={{ marginLeft: 10, backgroundColor: C.bad, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}>
+          <Text style={{ color: C.onInk, fontWeight: "800", fontSize: 12 }}>End</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }

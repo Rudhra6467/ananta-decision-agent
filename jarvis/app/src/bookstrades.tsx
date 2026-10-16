@@ -9,11 +9,13 @@ import { askAbout } from "./context";
 import { ExplainSheet } from "./blocks";
 import { C, pnlColor } from "./theme";
 import { Act, Btn, Card, Divider, Expand, ListState, Section, Stat, StatCard, T, Tag, dayOf, money, moneySigned, pct, price, s as st, usdSigned, when } from "./ui";
+import { sayMoney, upDown, type VoiceSpec } from "./sectionvoice";
 
 const openTrade = (t: any) => router.push(t.link ?? `/story/${encodeURIComponent(t.id)}`);
 const tm = (v: any) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? dayOf(String(v)) : when(v));
 
-export function BooksTrades({ d, explainers, title }: { d: any; explainers?: React.ReactNode; title?: string }) {
+// `voice` (Oct 16): the section voice button on the top card; what Ananta says is built here from the same numbers the card shows
+export function BooksTrades({ d, explainers, title, voice }: { d: any; explainers?: React.ReactNode; title?: string; voice?: Omit<VoiceSpec, "say"> }) {
   const [showAll, setShowAll] = useState(false);
   const [only, setOnly] = useState<string>("all");
   const [rules, setRules] = useState(false);
@@ -28,15 +30,28 @@ export function BooksTrades({ d, explainers, title }: { d: any; explainers?: Rea
   const ex = s.execution_check;
   const fo = filt(open), fc = filt(closed);
   const shownClosed = showAll ? fc : fc.slice(0, 3);
+  const ccy = acct ? "CAD" : "USD";
+  const vs: VoiceSpec | undefined = !voice ? undefined : acct ? {
+    questions: [gain < 0 ? "Why is the account down?" : "Why is the account up?", "What does inside the bid and ask mean?", "How many fills until a verdict?", "What are the account's rules?"],
+    ...voice,
+    say: () => `This is the account's record: the 500 dollar NDAX book, in Canadian dollars. Net since ${dayOf(s.since) || "the start"}: ${upDown(gain)} ${sayMoney(gain, ccy)}.`
+      + ` ${s.closed_count ?? closed.length} closed trade${(s.closed_count ?? closed.length) === 1 ? "" : "s"}, ${s.won_count ?? 0} won, ${open.length} open.`
+      + (ex ? ` ${ex.inside_bid_ask} of ${ex.fills} paper fills were inside NDAX's real bid and ask, the check that the paper fills are honest.` : "")
+      + " Tap Rules to see how it trades." } : {
+    questions: ["Why are the lab's books down since the start?", "Which book is doing best?", "What does measuring in the background mean?"],
+    ...voice,
+    say: () => `These are the lab's paper books, in US dollars. Together they are worth ${sayMoney(s.value, ccy)}, ${upDown(gain)} ${sayMoney(gain, ccy)} since they started,`
+      + ` with ${open.length} open trade${open.length === 1 ? "" : "s"}${s.open_pnl != null ? `, ${upDown(s.open_pnl)} ${sayMoney(s.open_pnl, ccy)} on those` : ""}.`
+      + " They measure every strategy in the background, and they never touch the account." };
   return (
     <View style={{ gap: 12 }}>
       {acct ? (
-        <StatCard title="The account · $500 NDAX book · paper, real NDAX prices" label="Account summary"
+        <StatCard voice={vs} title="The account · $500 NDAX book · paper, real NDAX prices" label="Account summary"
           value={s.value == null ? "…" : S(gain)} valueColor={pnlColor(gain)} aside={`net since ${dayOf(s.since) || "the start"}`}
           line={`${s.closed_count ?? closed.length} closed · ${s.won_count ?? 0} won · ${open.length} open${ex ? ` · ${ex.inside_bid_ask} of ${ex.fills} fills inside the bid/ask` : ""}`}
           meta={`Worth ${M(s.value)} · started with ${M(s.start, 0)}`} action={{ label: "Rules ›", onPress: () => setRules(true) }} />
       ) : (
-        <StatCard title={title ?? (d.read === "Your own practice trades." ? "Your practice book · paper money" : "The lab's paper books · US$")} label="Books summary"
+        <StatCard voice={vs} title={title ?? (d.read === "Your own practice trades." ? "Your practice book · paper money" : "The lab's paper books · US$")} label="Books summary"
           value={s.value == null ? "…" : M(s.value)} aside={`${S(gain)} since start`} asideColor={pnlColor(gain)}
           line={`${open.length} open · open result ${S(s.open_pnl ?? 0)} · closed recently ${S(s.closed_pnl_recent ?? 0)}`}
           meta={d.read === "Your own practice trades." ? "Paper money; nothing here is real" : "Measuring in the background; never the account"} />

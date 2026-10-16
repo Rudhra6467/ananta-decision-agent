@@ -7,6 +7,8 @@ import { ExplainSheet } from "./blocks";
 import { Btn, Card, Divider, Dot, ListState, StatCard, T, Tag, dayOf, s as st } from "./ui";
 import { useData } from "./useData";
 import { C } from "./theme";
+import { Spot } from "./spotlight";
+import { spoken, type VoiceSpec } from "./sectionvoice";
 
 const TABS: [string, string][] = [["up", "Up today"], ["down", "Down today"], ["near", "Near support"]];
 const TIER_WORDS: Record<string, string> = { A: "A", B: "B", C: "C" };
@@ -43,8 +45,15 @@ export function WholeMarket() {
   const path = q.trim() ? `/v3/universe/coins?q=${encodeURIComponent(q.trim().toUpperCase())}&n=12` : `/v3/universe/coins?sort=${tab}&tier=AB&n=8`;
   const { data } = useData(path, 60000);
   const k = data?.counts;
+  const top = (data?.coins ?? []).slice(0, 3);
+  const voice: VoiceSpec = { id: "markets.whole", label: "the whole market", back: "markets:markets", spot: "markets.whole", screen: "markets",
+    questions: ["What is moving most today?", "Which coins are near a support zone?", "What do tiers A, B and C mean?"],
+    say: () => `This is the whole market: every coin I watch live${k ? `, ${k.listed} of them: ${k.A} in tier A, ${k.B} in tier B, and ${k.C} in tier C, which I watch but never judge` : ""}.`
+      + (top.length && !q.trim() ? ` ${tab === "down" ? "Down" : tab === "near" ? "Nearest a support zone" : "Up"} the most today: ${top.map((c: any) => `${c.coin}${c.change_today_pct == null ? "" : ` ${c.change_today_pct >= 0 ? "up" : "down"} ${Math.abs(c.change_today_pct)} percent`}`).join(", ")}.` : "")
+      + " Tap any coin and I'll tell you about it." };
   return (
-    <Card title="The whole market" sub={k ? `${k.listed} coins watched live · tier A ${k.A} · B ${k.B} · C ${k.C} (watched, never judged)` : "every coin Ananta watches"}>
+    <Spot id="markets.whole">
+    <Card voice={voice} title="The whole market" sub={k ? `${k.listed} coins watched live · tier A ${k.A} · B ${k.B} · C ${k.C} (watched, never judged)` : "every coin Ananta watches"}>
       <TextInput value={q} onChangeText={setQ} placeholder="Search any coin (e.g. SUI, PEPE)" placeholderTextColor={C.faint} autoCapitalize="characters"
         style={{ backgroundColor: C.card2, color: C.text, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, marginBottom: 8 }} />
       {q.trim() ? null : (
@@ -56,6 +65,7 @@ export function WholeMarket() {
       {data && !(data.coins ?? []).length ? <T dim>{q.trim() ? "No watched coin matches that." : "Nothing here right now."}</T> : null}
       <T dim small>Tier A trades over $20M a day, B $1M–$20M. Every rule runs on every coin on paper; a rule is promoted per tier only when it beats random.</T>
     </Card>
+    </Spot>
   );
 }
 
@@ -76,9 +86,16 @@ export function ExposureDial({ own }: { own?: boolean }) {
   const fired = Object.entries(br?.fired ?? {}).filter(([, n]) => (n as number) > 0).map(([k]) => k.replace(/_/g, " "));
   const brakes = !own ? "" : !bk ? "" : br?.paused ? "Brakes PAUSED after a 15% fall; only you can resume" : fired.length ? `Brakes fired: ${fired.join(", ")}` : "Brakes quiet";
   if (!data && err) return <Card><ListState state="error" text="Couldn't read the dial." action={{ label: "Retry", onPress: reload }} /></Card>;
+  const voice: VoiceSpec = { id: "markets.dial", label: "the trend dial", back: "markets:markets", spot: "markets.dial", screen: "markets",
+    questions: [open ? "Why is the dial open?" : "Why is the dial closed?", "What happens when the dial changes?", "How far is Bitcoin from its 50-day average?", "Which books does the dial feed?"],
+    say: () => `This is the trend dial, Ananta's market rule for crypto. Right now it is ${state}${d?.dial == null ? "" : open ? ": buying is allowed" : ": no new buys, cash is the position"}.`
+      + (reasons.length ? ` ${spoken(reasons.slice(0, 3).join(", "))}.` : "")
+      + (brakes ? ` ${brakes}.` : "")
+      + " Every book may buy only what the dial allows. Ask me anything about it." };
   return (
     <>
-      <StatCard title={`Trend dial · crypto${d?.as_of_day ? ` · as of ${dayOf(d.as_of_day)}` : ""}`} label="The trend dial"
+      <Spot id="markets.dial">
+      <StatCard voice={voice} title={`Trend dial · crypto${d?.as_of_day ? ` · as of ${dayOf(d.as_of_day)}` : ""}`} label="The trend dial"
         meta={[brakes, "Feeds the account's core and the edge sleeve"].filter(Boolean).join(" · ")} action={{ label: "Why ›", onPress: () => setWhy(true) }}>
         {!data ? <ListState state="loading" lines={1} /> : (
           <>
@@ -91,6 +108,7 @@ export function ExposureDial({ own }: { own?: boolean }) {
           </>
         )}
       </StatCard>
+      </Spot>
       <ExplainSheet open={why} onClose={() => setWhy(false)} title={`The dial is ${state}`}>
         <T>{d?.dial_words ?? "Reading Bitcoin's daily close."}</T>
         {reasons.map((w) => <T key={w} dim>· {w}</T>)}

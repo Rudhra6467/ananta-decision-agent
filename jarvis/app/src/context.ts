@@ -73,3 +73,36 @@ export const setTour = (t: TourState) => { tour = t; emit(); };
 export const useTour = () => useStore(() => tour);
 export const tourCommand = (c: "" | "stop" | "next" | "deeper") => { tourCmd = c; };
 export const takeTourCommand = () => { const c = tourCmd; tourCmd = ""; return c; };
+
+// ---- the section voice button (Madhav, Oct 16): "handle voice from anywhere in the app" ----
+// A section asks Ananta about itself: what it is (from the numbers on it), the questions that fit, and where it lives (back: a
+// uiagent target, spot: the part that glows on the way back). Voice mode itself stays in the Ask Ananta tab (one VoiceLoop);
+// the tab registers these handlers so any section can end it, ask aloud, or switch the talk to itself.
+export type SectionReq = { id: string; label: string; say: string; questions?: string[]; back: string; spot?: string; screen?: string };
+export type VoiceFeed = { section?: string; heard?: string; answer?: string; chips?: string[] };
+type VoiceApi = { end: () => void; ask: (q: string) => void; section: (r: SectionReq) => void };
+let origin: SectionReq | null = null;                     // the section voice was started from (or last switched to)
+let phase: "off" | "listening" | "thinking" | "speaking" = "off";
+let feed: VoiceFeed | null = null;
+let vapi: VoiceApi | null = null;
+let pendingSection: SectionReq | null = null;
+export function setVoiceOrigin(o: SectionReq | null) { origin = o; emit(); }
+export const getVoiceOrigin = () => origin;
+export const useVoiceOrigin = () => useStore(() => origin);
+export function setVoicePhase(p: typeof phase) { if (phase !== p) { phase = p; emit(); } }
+export const useVoicePhase = () => useStore(() => phase);
+export function setVoiceFeed(f: VoiceFeed | null) { feed = f; emit(); }
+export const useVoiceFeed = () => useStore(() => feed);
+export const setVoiceApi = (a: VoiceApi | null) => { vapi = a; };
+export const getVoiceApi = () => vapi;
+// Voice off: open Ask Ananta with this section; the tab says what it is, then brings him back here with voice on.
+export function askSection(r: SectionReq) {
+  pendingSection = r;
+  goTab({ pathname: "/(tabs)/ask", params: { section: r.id, t: String(Date.now()) } });
+}
+export function takeSection(id?: string): SectionReq | null {
+  const r = pendingSection;
+  if (!r || (id && r.id !== id)) return null;
+  pendingSection = null;
+  return r;
+}

@@ -46,6 +46,7 @@ function rig(opts = {}) {
     micStart: (f, w) => mic.start(f, w), micStop: () => mic.cancel(), micSend: () => { mic.finish(true); },
     micBusy: () => mic.busy(), micState: () => mic.status,
     ask: (b64, current) => new Promise((res) => { log.push(`ask:${b64}`); answerFns.push(res); }),
+    askText: (q, current) => new Promise((res) => { log.push(`askText:${q}`); answerFns.push(res); }),
     respond: (r) => new Promise((res) => { log.push(`speak:${r.answer ?? r.error}`); speakDone = () => { speakDone = null; res(); }; }),
     stopSpeaking: () => { log.push("voice:stop"); if (speakDone) speakDone(); },
     onPhase: (p) => log.push(`phase:${p}`), onNote: (m) => log.push(`note:${m}`),
@@ -176,5 +177,37 @@ const ok = (t) => { assert.deepEqual(t.bad, [], "mic must never record while thi
   for (let i = 0; i < 6; i++) { t.adv(60000); t.loop.touch(); t.loop.tick(); }
   assert.equal(t.loop.phase, "speaking"); t.finishSpeaking(); await flush(); assert.equal(t.loop.phase, "listening"); ok(t); }
 
-console.log("voice loop: all 19 checks passed (mic never recorded while thinking, speaking or off)");
+// 19. (Oct 16) A tapped question while listening: mic off, asked as text, answered aloud, then listening again.
+{ const t = rig(); t.loop.start(); await flush();
+  t.loop.onText("Why is the dial open?"); await flush();
+  assert.equal(t.loop.phase, "thinking"); assert.ok(!t.mic.recording); assert.ok(t.log.includes("askText:Why is the dial open?"));
+  t.answer({ answer: "Bitcoin is above both averages." }); await flush();
+  assert.equal(t.loop.phase, "speaking"); t.finishSpeaking(); await flush();
+  assert.equal(t.loop.phase, "listening"); assert.ok(t.mic.recording); ok(t); }
+// ... while Ananta is speaking: the voice stops and the new question is asked; the old answer's end changes nothing.
+{ const t = rig(); t.loop.start(); await flush(); await t.say(); t.answer({ answer: "Old" }); await flush();
+  assert.equal(t.loop.phase, "speaking");
+  t.loop.onText("Next one"); await flush();
+  assert.equal(t.loop.phase, "thinking"); assert.ok(t.log.includes("voice:stop"));
+  t.answer({ answer: "New" }); await flush(); t.finishSpeaking(); await flush();
+  assert.equal(t.loop.phase, "listening"); ok(t); }
+// ... with voice off it does nothing.
+{ const t = rig(); t.loop.onText("hello"); await flush(); assert.equal(t.loop.phase, "off"); assert.ok(!t.log.some((l) => l.startsWith("askText"))); ok(t); }
+
+// 20. (Oct 16) interject: the section button's explanation is spoken with the mic off, then it listens; a tap while it speaks wins.
+{ const t = rig(); t.loop.start(); await flush();
+  let done; const p = t.loop.interject(() => new Promise((r) => { done = r; })); await flush();
+  assert.equal(t.loop.phase, "speaking"); assert.ok(!t.mic.recording);
+  done(); assert.equal(await p, true); await flush();
+  assert.equal(t.loop.phase, "listening"); assert.ok(t.mic.recording); ok(t); }
+{ const t = rig(); t.loop.start(); await flush();
+  let done; const p = t.loop.interject(() => new Promise((r) => { done = r; })); await flush();
+  t.loop.tap(); await flush(); assert.equal(t.loop.phase, "listening");
+  done(); assert.equal(await p, false); await flush(); assert.equal(t.loop.phase, "listening"); ok(t); }
+{ const t = rig(); let called = false; assert.equal(await t.loop.interject(async () => { called = true; }), false); assert.ok(!called); ok(t); }
+{ const t = rig(); t.loop.start(); await flush();
+  let done; t.loop.interject(() => new Promise((r) => { done = r; })); await flush();
+  t.loop.end(); done(); await flush(); assert.equal(t.loop.phase, "off"); assert.ok(!t.mic.recording); ok(t); }
+
+console.log("voice loop: all 27 checks passed (mic never recorded while thinking, speaking or off)");
 process.exit(0);

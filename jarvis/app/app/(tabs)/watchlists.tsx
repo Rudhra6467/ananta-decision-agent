@@ -24,6 +24,10 @@ import { useMe } from "../../src/visitor";
 import { ExposureDial, WholeMarket } from "../../src/universe";
 import { AnantaMarket, GuestBook } from "../../src/books";
 import { Segmented } from "../../src/ui";
+import { VoiceBtn, VoiceStrip, type VoiceSpec } from "../../src/sectionvoice";
+
+const GROUP: Record<string, string> = { my_coins: "My coins", all: "All 10 coins", large: "The large coins" };
+const watchWho = (w: any) => (w.group ? GROUP[w.group] ?? w.group : (w.coins ?? []).map((c: string) => COIN_NAME[c] ?? c).join(", "));
 
 const MODE: Record<string, string> = { tell: "Tell me", ask: "Ask me first", auto: "Auto" };
 const NEXT_MODE: Record<string, string> = { tell: "ask", ask: "auto", auto: "tell" };
@@ -59,21 +63,41 @@ function MarketPage({ me, own }: { me: any; own: boolean }) {
   const near = [...(d.coins ?? [])].filter((c: any) => c.closest).sort((a: any, b: any) => b.closest.met / b.closest.of - a.closest.met / a.closest.of).slice(0, 5);
   const rb = ev?.rebuild;
   const watches: any[] = w?.watches ?? [];
+  const watchVoice: VoiceSpec = { id: "markets.watches", label: "your watches", back: "markets:markets", spot: "markets.watches", screen: "markets",
+    questions: watches.length ? ["Which of my watches is closest to firing?", "What does each watch mode do?", "What should I watch today?"]
+      : ["What is a watch?", "Which setups can I watch for?", "What should I watch today?"],
+    say: () => "These are your watches: coins or a group you asked me to keep an eye on, for a kind of setup."
+      + (watches.length
+        ? ` You have ${watches.length}: ${watches.slice(0, 3).map((x) => `${watchWho(x)}, ${(STATE[x.state] ?? [String(x.state).toLowerCase()])[0].toLowerCase()}`).join("; ")}${watches.length > 3 ? `, and ${watches.length - 3} more` : ""}.`
+        : " You have none yet. Tap plus Watch to add one: the coins, the setup, and whether I just tell you, ask you first, or act on paper.")
+      + " A watch tells you when its setup gets close, and when it fires." };
+  const coinsVoice: VoiceSpec = { id: "markets.coins", label: "the coins Ananta watches", back: "markets:markets", spot: "markets.coins", screen: "markets",
+    questions: ["Which coin looks strongest right now?", "Which coins are near support?", "Why these ten coins?"],
+    say: () => `These are the ${coins.length} coins Ananta watches most closely: ${coins.slice(0, 10).map((c: any) => COIN_NAME[c.coin] ?? c.coin).join(", ")}.`
+      + " Each line shows the price, today's change and the one-hour trend. Tap a coin for its page, or plus to watch it." };
   return (
     <Screen loading={loading} onRefresh={() => { reload(); reloadW(); }}>
       <Spot id="markets.summary">
         <ExposureDial own={own} />
-        <Section title={w ? `Watches · ${watches.length}` : "Watches"} right={<Act tight label="+ Watch" onPress={() => setAdd(true)} />} />
+        <Spot id="markets.watches">
+        <Section title={w ? `Watches · ${watches.length}` : "Watches"} right={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}><VoiceBtn v={watchVoice} /><Act tight label="+ Watch" onPress={() => setAdd(true)} /></View>} />
         <Card>
           {!w ? <ListState state="loading" lines={1} /> : null}
           {w && watches.length === 0 ? <ListState state="empty" text="No watches yet." action={{ label: "+ Watch", onPress: () => setAdd(true) }} /> : null}
           {watches.map((x: any, i: number) => <View key={x.id}>{i ? <Divider /> : null}<WatchRow w={x} reload={reloadW} glow={!!glow && glow === x.id} /></View>)}
+          <VoiceStrip id="markets.watches" />
         </Card>
-        <Section title={myCoins.length ? `Your coins · ${coins.length}` : `Coins Ananta watches · ${coins.length}`} right={<T small>tap for the page · + to watch</T>} />
+        </Spot>
+        <Spot id="markets.coins">
+        <Section title={myCoins.length ? `Your coins · ${coins.length}` : `Coins Ananta watches · ${coins.length}`} right={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><T small>tap for the page · + to watch</T><VoiceBtn v={coinsVoice} /></View>} />
         <Card>
+          <VoiceStrip id="markets.coins" />
           {coins.length === 0 ? <ListState state="empty" text="No coins yet." action={{ label: "+ Watch", onPress: () => setAdd(true) }} /> : null}
           {coins.map((c: any, i: number) => <View key={c.coin}>{i ? <Divider /> : null}<Spot id={`markets.coin:${c.coin}`}><CoinLine c={c} /></Spot></View>)}
         </Card>
+        </Spot>
         <WholeMarket />
       </Spot>
 
@@ -86,8 +110,14 @@ function MarketPage({ me, own }: { me: any; own: boolean }) {
 
       {near.length ? (
         <Spot id="markets.near">
-          <Section title="Nearing a trade" right={<T small>closest to all conditions</T>} />
+          <Section title="Nearing a trade" right={<View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><T small>closest to all conditions</T><VoiceBtn v={{
+            id: "markets.near", label: "nearing a trade", back: "markets:markets", spot: "markets.near", screen: "markets",
+            questions: [`What is ${COIN_NAME[near[0].coin] ?? near[0].coin} still missing?`, "Would you take any of these today?", "How do the conditions work?"],
+            say: () => "These are the coins closest to a trade: how many of a setup's conditions each one meets right now. "
+              + near.slice(0, 3).map((c: any) => `${COIN_NAME[c.coin] ?? c.coin}, ${c.closest.name}: ${c.closest.met} of ${c.closest.of}${c.closest.missing?.[0] ? `, still missing ${c.closest.missing[0]}` : ""}`).join(". ")
+              + ". Close is not a trade: every condition has to pass, and the dial has to allow it." }} /></View>} />
           <Card>
+            <VoiceStrip id="markets.near" />
             {near.map((c: any, i: number) => (
               <View key={c.coin}>
                 {i ? <Divider /> : null}

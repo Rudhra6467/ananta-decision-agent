@@ -8,6 +8,7 @@ export type UiResult = { action: UiAction; ok: boolean; landed?: string; error?:
 
 const TABS: Record<string, { path: string; tab?: string; sub?: string }> = {
   home: { path: "/(tabs)/today" }, markets: { path: "/(tabs)/watchlists" },
+  "markets:markets": { path: "/(tabs)/watchlists", tab: "markets" }, "ananta:now": { path: "/(tabs)/ask", tab: "now" },   // Oct 16: section voice
   // Oct 15: the Books tab folded into Home (the account's trades) and Markets › Ananta market (the rest)
   books: { path: "/(tabs)/today" }, portfolio: { path: "/(tabs)/watchlists", tab: "ananta", sub: "portfolio" },
   "portfolio:explorer": { path: "/(tabs)/watchlists", tab: "ananta", sub: "explorer" }, "portfolio:mine": { path: "/(tabs)/watchlists", tab: "ananta", sub: "mine" },

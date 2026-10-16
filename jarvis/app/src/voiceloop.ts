@@ -21,6 +21,7 @@ export type LoopFx = {
   micBusy: () => boolean;                         // really recording (or handing over what it heard)
   micState: () => MicState;                       // hearing = he is talking; sending = handing over what he said
   ask: (audioB64: string, current: () => boolean) => Promise<any>;   // transcribe + answer; never throws (returns {error})
+  askText?: (q: string, current: () => boolean) => Promise<any>;     // a tapped question while voice is on (Oct 16): answer it aloud
   respond: (answer: any, current: () => boolean) => Promise<void>; // move the screen + speak; resolves when finished or stopped
   stopSpeaking: () => void;                       // cut the voice off (its respond() resolves)
   onPhase: (p: Phase) => void;
@@ -142,6 +143,41 @@ export class VoiceLoop {
     this.set("thinking");
     let r: any;
     try { r = await this.fx.ask(b64, () => my === this.turn); } catch (e: any) { r = { error: e?.message ?? String(e) }; }
+    await this.answer(my, r);
+  }
+
+  // A question tapped while voice is on (a chip on an answer, a section's question; Madhav, Oct 16): the mic stops, the
+  // question is asked as text, the answer is spoken, then it listens again. Same turn rules as a spoken question.
+  async onText(q: string) {
+    if (this.phase === "off" || !this.fx.askText) return;
+    const my = ++this.turn;
+    this.fx.stopSpeaking();
+    await this.fx.micStop().catch(() => {});
+    if (my !== this.turn) return;                     // tapped or ended meanwhile
+    this.set("thinking");
+    let r: any;
+    try { r = await this.fx.askText(q, () => my === this.turn); } catch (e: any) { r = { error: e?.message ?? String(e) }; }
+    await this.answer(my, r);
+  }
+
+  // Ananta says something of its own while voice is on (the section voice button: what this section is). Whatever it was doing
+  // stops, it speaks, then listens again. A tap or End while it speaks wins, as always. Returns true if it finished speaking.
+  async interject(fn: () => Promise<unknown>): Promise<boolean> {
+    if (this.phase === "off") return false;
+    const my = ++this.turn;
+    this.fx.stopSpeaking();
+    await this.fx.micStop().catch(() => {});
+    if (my !== this.turn) return false;
+    this.set("speaking");
+    try { await fn(); } catch { /* */ }
+    if (my !== this.turn) return false;
+    await this.wait(250);
+    if (my !== this.turn) return false;
+    this.listen(my, false);
+    return true;
+  }
+
+  private async answer(my: number, r: any) {
     if (my !== this.turn) return;                     // tapped or ended while thinking: this answer is not spoken
     if (!r || (!r.heard && !r.answer && !r.error && !r.tour?.length)) { this.listen(my, false); return; }   // nothing was said
     this.set("speaking");

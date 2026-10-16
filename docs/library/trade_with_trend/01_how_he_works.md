@@ -1,570 +1,595 @@
-<!-- Trading Knowledge Library · Trade With Trend (Raunak A, India). Built 2026-10-16 from 158 public videos with captions (of 287 on the channel; members-only videos were not used): one structured note per video (Claude Sonnet 5.5) -> this chapter (Claude Opus 5.5), src/research/library.py. Paraphrased; the transcripts stay on the laptop. Evidence class: external teaching = hypotheses to test, never Ananta rules; nothing in the agent reads docs/library/. -->
+<!-- Trading Knowledge Library · Trade With Trend (Raunak A, Trade With Trend, India). Built 2026-10-16 from 161 public videos with captions (of 289 on the channel; members-only videos were not used): one structured note per video (Claude Sonnet 5.5) -> this chapter (Claude Opus 5.5), src/research/library.py. Paraphrased; the transcripts stay on the laptop. Evidence class: external teaching = hypotheses to test, never Ananta rules; nothing in the agent reads docs/library/. -->
 
 # How he works
 
-## 1. What he teaches here and how it fits
+## 1. What he teaches here
 
-This chapter covers the operating system around his setups. It treats trend as the only truth. He reacts to price and volume rather than predicting, and he filters out news, social media and derivatives data. He works in a fixed order: market, then sectors, then stocks, then entry. He keeps a small watchlist and does homework during corrections so he is ready when the market turns. He accumulates gradually and holds while structure stays valid. He reviews weekly, keeps a journal and a written plan, and backtests before risking money. Around this sits a large body of mindset, health and personal-finance advice.
+Raunak A presents trading as a slow, structured process built around one belief: trend structure on higher timeframes is the only thing worth acting on. News, predictions and short-timeframe moves are noise to be shut out.
 
-His emphasis has shifted over the years:
+His operating loop has these steps:
+- review global macro, breadth, sectors and then stocks, mostly at the weekend;
+- keep a small watchlist of stocks with higher-high/higher-low structure and rising relative strength (RS) in strong sectors;
+- prepare during corrections and enter gradually when structure appears;
+- size small at first;
+- hold for many months while the structure stays valid, and act only when pre-marked levels break;
+- journal, measure results in R, and feed lessons back into the process.
 
-- **Older videos (about 5–8 years ago):** high-beta swing trading on daily and 60-minute charts. Also earlier Market Profile and Elliott Wave material (12–15 years ago).
-- **Recent videos (last ~2 years):** O'Neil/Weinstein-style relative strength and stage analysis on weekly charts, with holding horizons of 8–24 months.
+Around this he wraps a large body of mindset, lifestyle and personal-finance advice. He credits the framework to O'Neil, Weinstein, Minervini, Ryan, Lynch, Wyckoff and Druckenmiller [1jsLESmVLVU, rbSj4pOg3_I, ywccnKeWXNo, Jpu536_AmGc, mR0HMssJek8].
 
-Everything below is his claim or method, to be treated as hypothesis.
+His teaching has moved over roughly 15 years:
+- **Oldest videos:** market profile, Elliott wave, and indicator setups on 1–60 minute charts, with shorting and F&O.
+- **Recent videos:** weekly-chart, long-only, cash-equity and ETF positioning over 8–24 months.
+
+Everything below is his claim or method, to be treated as a hypothesis.
 
 ## 2. The ideas
 
-### 2.1 Trend is truth: react, don't predict
+### 2.1 Trend is the truth: react, don't predict
 
-**What it is**
-- Follow what price is doing (higher highs and higher lows, or the reverse) and hold until the trend ends.
-- Do not call tops or bottoms.
-- Avoid mean reversion and counter-trend trading. He calls it costlier and harder, and it is one of his declared weaknesses. [kkJ4m9JQ4pM, jlpd-YpqwiQ, JJEB-UZgK4E, NYWbbvaJnPc, 1klATqC7oks, tNACzhThprk]
-- Inputs should be few and simple: candles or bars plus volume. Moving averages and momentum tools are acceptable for judging trend direction. [eeKRfAbbvZA, kkJ4m9JQ4pM, yYwiSDVwgyA, hKnYYRpd63s, BhQ_YnaRqa0]
-- His frameworks tell you who is in control, not what will happen. Always wait for a trigger and confirmation. [uFFAAZNSozg, Nkp_wwGZFNQ]
+**What he says**
+- The trader's job is to follow what price is doing and hold until the trend ends, not to forecast turns [kkJ4m9JQ4pM, JJEB-UZgK4E, tNACzhThprk].
+- Higher highs and higher lows (uptrend) and lower highs and lower lows (downtrend) are the foundation, and simple methods beat complex ones [1klATqC7oks, eeKRfAbbvZA].
+- Money is made in reaction, not prediction. Bearishness felt during a bull market is mostly the observer's bias [NUDjIohACWs].
+- Markets are probability, not certainty. Form a view from the technicals, and when price breaks against it, drop the view and adjust positions [g3mcqf6rqoc, WI0tdUjH_Vg, NtpyZH5cfaE].
+- Follow upside pivot breaks even if your view was bearish [Y4TewQHVhvc].
 
-**Opinion versus price**
-- Form a view from technicals, but drop it when price disagrees. If pivots break upward while you are bearish, take longs. [g3mcqf6rqoc, Y4TewQHVhvc, NtpyZH5cfaE, r11n7ztY2YY, JcxWhCO0hqI]
-- A bullish view does not oblige you to deploy money. Sitting out is a valid position when no usable structure exists. [JcxWhCO0hqI]
+**Checking an opinion against the chart.** Before acting on a view such as "a correction is due," he checks:
+- price relative to the 50 DMA;
+- what kind of bases are forming;
+- whether leadership exists;
+- whether breakdowns are appearing [r11n7ztY2YY].
 
-**Probability framing**
-- No strategy is loss-free; even textbook breakouts fail. [p6pwKWQgxUw, arFNgAPisHU, VET4JHrc2vU, uw5QQOenJnQ]
-- Top traders are right only about 30–35% of the time. [rhiXs5Kh_0g]
-- He admits hindsight bias in his own case studies. [YVGWKmpHStM, uFFAAZNSozg, Ux_uuOj-gKs]
+**Holding a view is not the same as committing money.** He can stay bullish yet hold no new positions because no usable structure exists, and he treats sitting out as a valid trade [JcxWhCO0hqI].
 
-**How it changed**
-- In a 15-year-old Elliott Wave video he classified Elliott as predictive and claimed it has some forecasting value. [JMZFlzfNOCQ]
-- From about 8 years ago onward his stated stance is purely reactive.
+**Win rates he admits.**
+- Top traders are right only about 30–35% of the time [rhiXs5Kh_0g].
+- No strategy works every time [p6pwKWQgxUw, Ux_uuOj-gKs].
 
-**Coverage:** taught very often and clearly.
+**Avoid mean reversion and top/bottom calling.** Aim to capture the middle of the trend [kkJ4m9JQ4pM, jlpd-YpqwiQ]. On gaps, he says you must choose to be either a trend trader or a mean-reversion trader, not both [HHkcCy5LrCM].
 
-### 2.2 Shut out news and noise
+**Where this conflicts with his other material**
+- An old Elliott-wave video calls that theory predictive and useful for locating your place in the cycle [JMZFlzfNOCQ].
+- He teaches RSI bullish divergence, which is a counter-trend entry [cQpU-EnhdSw].
+- In 2024 he favoured undervalued underperformers [BhQ_YnaRqa0, Pm_1kb8Fku0]. That conflicts with his advice elsewhere not to chase laggards [jkga2zdA9dY].
 
-**What to ignore**
-- News, TV, Twitter/X, Telegram and WhatsApp groups, and tips.
-- Overnight indicators: GIFT/SGX Nifty, US futures, Dow moves.
-- Option chain, open interest and put-call ratio. He says these are relevant only to 1–5 day trading.
-- He says prepare after the 3:30 pm close, not from overnight cues.
+**How often taught:** stated with high clarity across many videos from every era.
 
-[mim7ylyaN74, MXXsv0RSek8, lRUDp336l7Q, Yxo-rYOCuAo, JJEB-UZgK4E, 1jsLESmVLVU, mR0HMssJek8, hKnYYRpd63s, NUDjIohACWs, jlpd-YpqwiQ]
+### 2.2 Structure over news
 
-**Why he says this matters**
-- Good prices come with bad news; buying dips means buying while headlines are negative.
-- Waiting for comfort leads to buying gaps near highs.
-- Headlines shake people out just before trends resume. He cites the V-shaped recovery after the 7 April tariff event.
-- He also cites the S&P 500 going from a 26-week low to an all-time high in about 12 days.
-- He separates structure from news: look for higher highs/higher lows and relative strength that hold despite bad headlines.
+**Three questions for any market pocket** [0nbQs92kYuY]:
+1. Is there higher-high/higher-low structure?
+2. Is there relative strength?
+3. Does the structure hold regardless of the headlines?
 
-[0nbQs92kYuY, Sb6KTt64YKE, Jpu536_AmGc, jkga2zdA9dY, g3mcqf6rqoc, c-0bHPew1fg, NtpyZH5cfaE, fFUPLUEhzVo, butE8gDPXxw]
+**Why news should not drive decisions**
+- Good prices and good news rarely arrive together. Dips come with bad news, and waiting for comfort means buying after a gap up [0nbQs92kYuY, Sb6KTt64YKE, c-0bHPew1fg, rxqOUxO_vP4].
+- Short-term news often shakes people out just before the trend resumes. Examples he cites:
+  - the 7 April tariff-driven V-recovery [Jpu536_AmGc];
+  - repeated FII-selling scares that the market absorbed [butE8gDPXxw];
+  - the S&P 500 going from a 26-week low to an all-time high in about 12 days [NtpyZH5cfaE].
+- Media narratives swing with price. In one week headlines went from calling for another 20–30% fall to bullish [20BxPDdAZAE].
 
-**Your own research instead**
-- Do not seek confirmation from groups; group opinion causes paralysis. [6fowSBDs3eY]
-- Avoid tips for at least 3–5 years. [arFNgAPisHU]
-- Follow a source only if it tracks its own past calls, and do not follow his videos blindly either. [SNrzU-z3RkE, Sb6KTt64YKE]
-- Media narrative flips with price; he gives an example of a one-week flip from "another 20–30% fall" to bullish. [20BxPDdAZAE, rocXNq3_1Zw, S--7ta4FmbY]
+**The operational form of the rule**
+- Once a position is profitable, mark the key pivot or support.
+- Touch the position only if that level breaks [yEKNcJ4EH0U, U7YrYjIS9B8].
+- The stop loss dictates the next step, not news [Jpu536_AmGc].
 
-**Exceptions within his own teaching**
-- For the bullish kicker pattern, he says to track news on watchlist stocks. [QWcb7yxYAxk]
-- Do not trade the budget event; wait until after the budget plus the following Fed and RBI meetings. [JcxWhCO0hqI]
-- Avoid sectors exposed to heavy global news flow, such as crude-linked tourism. [6K1LOJqZYEg]
-- His recent weekly order of work starts with global macros (crude, US yields). [sIo5XQqZ0b0, YFsvQXZZt1g, zHzq3uAFJFs]
+**Exceptions he makes himself**
+- **Scheduled events:** wait out the budget, Fed and RBI meetings rather than trade them [JcxWhCO0hqI].
+- **Commodity-sensitive sectors:** avoid sectors exposed to heavy global news flow such as crude, to keep account volatility down [6K1LOJqZYEg].
+- **Hot-news sectors:** take at most a starter of about 20% of intended size [VCNsjVuGoWQ].
+- **Hype rallies:** don't chase them when structure is broken and breadth is poor [yYwiSDVwgyA].
+- **Macro backdrop:** good technique gives average results if policy, liquidity and leadership are against you [zHzq3uAFJFs].
+- **Kicker patterns:** an older setup video says to track news on watchlist stocks when a kicker appears [QWcb7yxYAxk].
 
-Macro is therefore not ignored; his position is that headlines must not drive entries and exits.
+### 2.3 Timeframes, and how his preference changed
 
-**Coverage:** among the most repeated themes across all eras.
+**Current teaching (about 3 years old to recent)**
+- Daily chart is the base for entry timing; weekly is for analysis. He does not go below daily unless the daily is unclear [mim7ylyaN74].
+- Positional traders should analyse end-of-day data in the evening only. He says this does not apply to BTST or F&O traders [S--7ta4FmbY].
+- Judge positions on weekly and monthly charts, not 15- or 60-minute charts [DCG1GO9TGFU, L-PGsMh2vHw, 6K1LOJqZYEg].
+- Judge the market on weekly rather than daily data, a point he attributes to O'Neil [r63sarc_qV8].
 
-### 2.3 Order of work (the funnel)
+**His screen layout** [CFJNeCPMQ1o, lRUDp336l7Q]:
+- weekly chart with a 30-week MA and an RS line against Nifty;
+- daily chart with a 50-day SMA.
 
-Several versions appear. They share the direction market → sector → stock → entry, but the details changed.
+**About 5 years ago**
+- Part-timers: daily chart for trend, 60-minute only to time entries; avoid 5/10/15-minute charts [kkJ4m9JQ4pM, jBYC0t30fz8, eeKRfAbbvZA].
+- Separately, a three-timeframe stack for stock selection [1klATqC7oks, mRAndF9wyaA, Tkx2xIboYsw, dV4MiNaAenI]:
+  - monthly for pattern and trend;
+  - daily for price/volume and supply/demand zones;
+  - 30-minute for entry.
+- Working professionals should use monthly and daily only [mRAndF9wyaA].
 
-| Era | Steps | Numbers | Videos |
-|---|---|---|---|
-| ~8 yrs | Sector RS → stock RS within sector → broad market trend → entry → fundamental checklist | ~700–800 stocks narrowed to ~2; hold ~6–7 months; enter only if price is above the 200 DMA or the 200 DMA slopes up | 488FDla8kuc, BxY2ofigO8I, RVbze1duD-U |
-| ~8 yrs | Nifty trend → sector index trend → stock → choose strategy for conditions | Same trend tool at each level (the 200-day average in his example) | jlpd-YpqwiQ, 2Yv0E57_bs4 |
-| ~8 yrs | Fundamental screen ROE/ROCE > 20% → liquidity → beta > 1.2 → institutional ownership and sector theme | Leaves ~10 stocks; 15–18 of the Nifty 50 passed the beta filter | zWYCYySQVNc |
-| ~8 yrs | High ROE/ROC, low debt, profit growth (~6–7%) → post-accumulation stage → falling volatility → RS | — | Bqp9jKQCs30 |
-| ~7 yrs | Stage 2 for longs / Stage 4 for shorts → 150-day average → RS line → broad-market direction (smaller size if against it) → volume expansion | — | G2gjQUJRfJM |
-| ~4–5 yrs | Read market trend → strong sectors → strong stocks. "Negotiator" framing: plan, find a bargain (~50 candidates → ~2), execute without hesitation | — | arFNgAPisHU, 6fowSBDs3eY |
-| ~1–2 yrs | Weekend routine: sector strength → stock technical leadership → growth vs market-share matrix → basic fundamentals → government spending → breadth decides exposure | — | Jpu536_AmGc |
-| ~1–2 yrs | Lagging-but-turning sectors → their leading stocks → entry/exit and sizing | — | Lw6h6T30VvE |
-| recent | Track sectors with strong structure and rising RS → enter on a base near the 50 DMA in a leading sector → accept failure | — | Oq4FjWEDbd0 |
-| recent | Weekly screen of sector and thematic indices: index/Nifty 500 ratio rising, price above a rising 30-week MA; then repeat on constituents | Nifty 500 preferred as benchmark, though he says Nifty 50 differs little | lRUDp336l7Q, CFJNeCPMQ1o |
-| latest | Global macros → Indian breadth → (Indian macros) → Bank Nifty and sectors → stock structure | — | sIo5XQqZ0b0, YFsvQXZZt1g |
+**About 6–8 years ago**
+- Daily for trend with 60-minute entries, or 60-minute trend with 5-minute entries for very short-term trading [FtxgOtPYqVA].
+- Most coil-spring trades taken on 60-minute charts [VqoLpEvre04].
+- Ichimoku presented as working from 1-minute to weekly, with Kumo longs on 5- and 15-minute charts and a 15-minute cloud-breakout trigger [2crnCCz4Y3s, xzR6bwNgb18, 59vJPo6oiNA].
+- Avoid anything below 30 minutes [cQpU-EnhdSw].
 
-**"Bottom-up" in the 2025 market**
-- He says to pick stocks showing their own trending RS and price rather than relying on indices.
-- Only about half of stocks are in good structure, so headline indices mislead.
-- He still builds the stock basket inside sectors.
-- His use of "top-down" versus "bottom-up" is not consistent across videos.
+**Matching timeframe to holding style**
+- Monthly/weekly for investing and positional trades; weekly/daily plus intraday for short-term trades.
+- Short-term trading only after about 2–3 years of experience [arFNgAPisHU].
+- At least 18 months of daily-chart practice first [jBYC0t30fz8].
 
-[elpQ8wyLZLQ, s1ZCPQI5894, rocXNq3_1Zw, VCNsjVuGoWQ, BxY2ofigO8I]
+**Why higher timeframes.** Institutions work on longer timeframes [kkJ4m9JQ4pM, arFNgAPisHU, mRAndF9wyaA]. Lower-timeframe bearish signals inside a daily uptrend are used to exit longs, not to open shorts [FtxgOtPYqVA].
 
-**Market-bottom sequence**
-1. Decide whether the market is still correcting or starting a rally.
-2. Mark a probable bottom on a broad index only (Nifty 500, Nifty Total Market, S&P 500, Nasdaq 100).
-3. Apply follow-through rules from day 0 to day 15.
-4. Assess leadership after the follow-through day is confirmed.
+**India note.** After the closing-auction change distorted daily index candles, he uses weekly closes or futures candles instead [kwbfXjRtEkk, CFJNeCPMQ1o, 6K1LOJqZYEg].
 
-[B1ynZNvqesE]
+### 2.4 Order of work: the weekly top-down routine and stock funnels
 
-**Stock selection matters most**
-- In the older stochastic material he says stock selection matters more than entry, exit or the indicator itself. [2Yv0E57_bs4]
-- He says homework is about 80% of results, and buying right (not extended) solves most selling problems. [mR0HMssJek8]
+**Current weekly order**
+1. Global macro: dollar index, crude, gold, emerging markets, Nasdaq.
+2. Indian breadth.
+3. Indian macros (included in one version).
+4. Bank Nifty and small/micro caps.
+5. Which sector pockets are holding up.
+6. Individual stock structures.
 
-### 2.4 Timeframes
+Sources: [jcWYGNInYg8, sIo5XQqZ0b0, YFsvQXZZt1g]. He frames decisions over the next 12–18 months, not 2–3 weeks [sIo5XQqZ0b0].
 
-**Dominant teaching**
-- Daily chart for trend and decisions; 60-minute only to time entries.
-- Nothing below 60 or 30 minutes. He says 5/10/15/30-minute bearish candles are normal noise within the daily trend and cause premature exits.
+**Weekend routine, fixed order** [Jpu536_AmGc]:
+1. Sector strength.
+2. Technical leadership of stocks.
+3. Growth vs market-share matrix.
+4. Basic fundamentals.
+5. Where the government is spending.
+6. Then market breadth, to set exposure.
 
-[eeKRfAbbvZA, kkJ4m9JQ4pM, FtxgOtPYqVA, jBYC0t30fz8, zWYCYySQVNc, cQpU-EnhdSw, JJEB-UZgK4E]
+**Sector screen, once a week** [lRUDp336l7Q]:
+- Use weekly charts of sector and thematic indices.
+- Look for a rising ratio against Nifty 500 (he says Nifty 50 differs little).
+- Price should be above a rising 30-week MA.
+- Then run the same screen on the constituents of the strong indices.
 
-**Variants**
+**Sector questions for positional traders** [Yxo-rYOCuAo]:
+- Which sectors rallied most from the lows?
+- Is their RS rising?
+- On sentiment pullbacks, do they hold the 50 DMA?
 
-| Variant | Detail | Videos |
+Then repeat those basics at stock level and add fundamental checks.
+
+**Older stock funnels**
+- **Five-step bottom-up funnel** [488FDla8kuc, BxY2ofigO8I, RVbze1duD-U]:
+  1. Sector RS.
+  2. Stock RS within the sector.
+  3. Broad-market trend.
+  4. Entry criteria.
+  5. Fundamentals checklist.
+
+  It narrows about 700–800 stocks to about 2, held 6–7 months. His personal gate is to buy only if price is above the 200 DMA or the 200 DMA slopes up.
+- **Top-down chain** [jlpd-YpqwiQ, 2Yv0E57_bs4, arFNgAPisHU]: market trend, then sector trend, then stock trend, then pick the strategy. One version uses the same simple trend tool at each level.
+- **Stage checklist** [G2gjQUJRfJM]:
+  1. Stage 2 for longs, Stage 4 for shorts.
+  2. 150-day average for direction.
+  3. RS line rising for longs, falling for shorts.
+  4. Trade with the broad market; use smaller size if trading against it.
+  5. Volume expanding in the trade's direction.
+
+**Short workflow framings**
+- Track, enter, embrace failure [Oq4FjWEDbd0].
+- Watchlist, then sizing method, then act on structure [mR0HMssJek8].
+- Plan, find a bargain, execute without hesitation, picking about 2 from about 50 candidates [6fowSBDs3eY].
+- Lagging-but-turning sectors, then neglected or breaking-out leaders, then entry/exit/sizing [Lw6h6T30VvE].
+
+**Inconsistencies**
+- *Bottom-up vs top-down.* He called 2025 a "bottom-up" year in which stocks with trending RS should be picked rather than indices read [s1ZCPQI5894, elpQ8wyLZLQ, rocXNq3_1Zw], even though most routines start top-down.
+- *Where fundamentals sit:*
+  - first, as a hard screen: ROE/ROCE above 20%, then liquidity, then beta above 1.2, leaving about 10 stocks [zWYCYySQVNc]; or high ROE/ROC, low debt and about 6–7% profit growth [Bqp9jKQCs30];
+  - last, only after a chart pick starts working [uw5QQOenJnQ];
+  - largely unnecessary for holds of a few weeks to 2 months [jlpd-YpqwiQ].
+- For small/micro caps he judges three trends together: price, RS against Nifty 500, and earnings/margins [DU5Y5AsCMZM].
+
+### 2.5 Watchlist discipline
+
+**Principles**
+- Keep a small, fixed list and track the same names daily or weekly, so you learn how each one behaves [mim7ylyaN74, -SC5vcQ1NuE].
+- Shut out tips and hot sectors [mim7ylyaN74].
+- Stay inside a universe of sectors you understand (Lynch) [LWoEC9OjajE, hpbDmEK-FvM].
+- Keep past winners and proven structures on the list permanently. Don't drop a leader just because it is already up 100% or more [uw5QQOenJnQ, VET4JHrc2vU].
+- Rescan leadership about every 3 months [Ux_uuOj-gKs].
+- Build lists from the first stocks that break out while the index is still weak [mR0HMssJek8].
+
+**Size varies widely by video**
+
+| List size | Context | Source |
 |---|---|---|
-| Three-timeframe (~5 yrs) | Monthly for trend and pattern, daily for price/volume and supply/demand zones, 30-minute for entry | 1klATqC7oks, mRAndF9wyaA, Tkx2xIboYsw, dV4MiNaAenI |
-| Working professionals | Monthly + daily only | mRAndF9wyaA |
-| Analysis and entry split | Weekly for analysis, daily for entry; drop lower only if the daily gives no clarity | mim7ylyaN74 |
-| Recent | Weekly and monthly for judging positions; end-of-day only for positional traders | DCG1GO9TGFU, L-PGsMh2vHw, S--7ta4FmbY, 6K1LOJqZYEg, SuYHqw5zA8U |
-| Matching horizon | Investing/positional → monthly + weekly; swing → weekly + daily | arFNgAPisHU |
-| Short-term pair | 60-minute for trend, 5-minute for entry | FtxgOtPYqVA |
+| 30–50 | tracked 1–3 quarters | [mim7ylyaN74] |
+| 14–16 | adding 4 a week, 3–4 month horizon | [CXJZMbE_d5o] |
+| 15–20 | top 20-day volume within ~180 F&O stocks | [Tkx2xIboYsw] |
+| ~30 | Ichimoku workflow | [59vJPo6oiNA] |
+| ~40 | from ~100 breakouts | [mR0HMssJek8] |
+| ~70 | from ~700 | [SNrzU-z3RkE] |
+| 5–10 | during a fall | [hpbDmEK-FvM] |
+| 10–15 | coil-spring watchlist | [VqoLpEvre04] |
 
-**Rationale**
-- Institutions trade longer horizons, so higher-timeframe trends dominate.
-- Trade lower-timeframe signals only in the higher-timeframe direction.
-- In a daily uptrend, lower-timeframe bearish signals are for exiting longs, not for shorting.
+**Universe restrictions in setup videos**
+- Top 200–300 stocks by market cap [Ux_uuOj-gKs].
+- Top 50 by market cap with beta above 1.2 over 90 days [xzR6bwNgb18].
 
-[kkJ4m9JQ4pM, arFNgAPisHU, FtxgOtPYqVA, e34G88-BKI4]
+**Distrust of tools**
+- He dislikes daily breakout-alert scanners. His estimate is that about 70% of the time stocks are drifting or consolidating [VET4JHrc2vU].
+- RS-ranking software should not replace judgment [488FDla8kuc].
+- Apps and AI can't reliably label structure, so he ranks structure by hand weekly [N2dUTcb9CzQ].
 
-**Contradictions inside the notes**
-- Ichimoku Kumo is claimed to work from 1-minute to weekly, with 5- and 15-minute recommended for long stock trades. [2crnCCz4Y3s, xzR6bwNgb18]
-- An Ichimoku workflow uses a daily trend with a 15-minute cloud-breakout entry. [59vJPo6oiNA]
-- The coil-spring setup is mostly traded on 60-minute charts, with 15-minute allowed for 2–3 day holds. [VqoLpEvre04]
-- Elsewhere, the kicker is daily-only [QWcb7yxYAxk] and the outside bar works best weekly [_AiSzhs67J4].
+### 2.6 Cycle "work ethic": prepare in corrections, deploy on the turn, then sit
 
-These are setup-specific exceptions from the ~6–7-year-old era. Since then his general advice has moved steadily upward in timeframe.
+**Three phases** [Lw6h6T30VvE, YVGWKmpHStM, VET4JHrc2vU, M4Z-Gi4gGag, zHzq3uAFJFs]:
+1. During corrections and bad news: do homework and build the watchlist.
+2. When the market turns: enter with allocation, sizing and stops.
+3. Afterwards: trail rather than keep adjusting.
 
-**India-specific change**
-- The new closing-auction mechanism distorts daily Nifty and Bank Nifty closes, which pin at the day's high or low and skew moving averages.
-- He now uses weekly candles or futures charts for index technicals. [kwbfXjRtEkk, CFJNeCPMQ1o, 6K1LOJqZYEg]
+He contrasts this with a "desperation" cycle that ends in buying gaps near highs. Buying during weakness builds a cushion of roughly 8–15%, so a later pullback to the 50 DMA does not force exits [bhTEw6wD_CU].
 
-### 2.5 Watchlist and universe discipline
+**Tension within this idea**
+- One version says don't buy immediately in a falling market: watchlist strong-RS names and wait until price action below the 200 DMA shows how things settle [hKnYYRpd63s].
+- Others say buy slowly through the correction [YVGWKmpHStM, KDSbZ0oW2U0, KUlNy1_Rk9M].
+- The test portfolio below is how he bridges the two.
 
-**Keep the list small and fixed; learn each stock's behaviour.** His stated sizes:
-
-| Size | Context | Videos |
-|---|---|---|
-| 30–50 stocks tracked 1–3 quarters | Best movers emerge over time | mim7ylyaN74 |
-| 14–16 stocks, 4 new per week, 3–4-month horizon | Daily price-action watchlist | CXJZMbE_d5o |
-| ~16 stocks over 3–4 months, 8 per weekly batch | Daily end-of-day tracking | -SC5vcQ1NuE |
-| 4–5 new names per week | Same-pattern scan | 4CzLWJxP4UM |
-| About 30 | Ichimoku workflow | 59vJPo6oiNA |
-| 10–15 | Coil spring | VqoLpEvre04 |
-| 5–10 businesses you understand | During a fall | hpbDmEK-FvM |
-
-**Funnels he describes**
-- ~180 NSE F&O stocks → highest 20-session average volume (40 acceptable if used consistently) → 15–20 stocks reviewed by hand. [Tkx2xIboYsw]
-- ~2,500 NSE stocks → ~100 breaking out while the index is still weak → ~40 shortlisted. [mR0HMssJek8]
-- ~700 → ~70 with good structure → sales growth largely independent of the global economy. [SNrzU-z3RkE]
-- Daily: from the 30–50 stocks showing patterns, shortlist a few, take notes, and review months later. [1jsLESmVLVU]
-
-**Universe limits**
-- Top 200–300 by market cap; he says the method fails on junk stocks. [Ux_uuOj-gKs]
-- Older intraday Ichimoku: top 50 by market cap with 90-day beta > 1.2. [xzR6bwNgb18]
-- Liquid derivatives-segment stocks. [VqoLpEvre04]
-- Stay inside sectors you understand. His own are banks, finance, metals, defence, hospitals and some new-age businesses (Peter Lynch's "own what you know"). [LWoEC9OjajE, 0Hnffbj5pgE, rbSj4pOg3_I]
-
-**Maintenance**
-- Keep past winners and proven structures on the list permanently. A stock already up 100%+ can double again. [uw5QQOenJnQ, VET4JHrc2vU]
-- Rescan for leadership about every 3 months. [Ux_uuOj-gKs]
-- Chart first; study fundamentals only after the stock starts moving his way. [uw5QQOenJnQ]
-
-**Manual over scanners**
-- No secret scanner. RS software is for shortlisting, not judgment.
-- Do the structure ranking by hand weekly; he says apps and AI cannot reliably read higher-high/higher-low structure.
-- He dislikes daily breakout-alert scanners and estimates stocks drift or consolidate about 70% of the time.
-
-[mR0HMssJek8, 488FDla8kuc, N2dUTcb9CzQ, VET4JHrc2vU, Tkx2xIboYsw]
-
-### 2.6 The cycle of work: prepare in weakness, act on the turn, then sit
-
-**The three phases** [Lw6h6T30VvE]
-1. During corrections and poor news, do the homework and build the watchlist.
-2. When the market turns, enter with allocation, position sizing and stops.
-3. Then sit and trail rather than keep adjusting.
-
-He contrasts this with a "desperation" cycle: boredom, disbelief, then frantic buying near highs. Those who prepare late chase gaps. [Lw6h6T30VvE, VET4JHrc2vU, NUDjIohACWs, YVGWKmpHStM, M4Z-Gi4gGag, KDSbZ0oW2U0, 6fowSBDs3eY, zHzq3uAFJFs]
-
-**Buying in weakness**
-- He says positions bought during the weak or stabilising phase carry a cushion of about 8–15%. A later pullback to the 50 DMA then does not force exits. [bhTEw6wD_CU]
-
-**Test portfolio (recent, repeated)**
-- *Size:* sized to a tolerable loss. His own is about 10–15% of capital; others might use 2–4%. Roughly 10–15 names, chosen from a weekend scan of 100–200 stocks. [20BxPDdAZAE, dERi8MUU5es]
-- *Selection:* strongest RS, strong-RS sectors, and stocks that fell least. [20BxPDdAZAE]
-- *Variant:* buy 30–40 stocks slowly during the correction. As it ends, find the ~5–6 deviating upward from the basket average. Narrow to 3–4 for heavy exposure, and add on pullbacks rather than chasing new breakouts. [YLAIkbRSnsA]
-- *Confirmation order for scaling in* [dERi8MUU5es]:
+**Test portfolio**
+- **Size and contents** — versions differ:
+  - about 10–15% of intended capital, in the strongest, least-fallen stocks from strong-RS sectors [20BxPDdAZAE];
+  - sized at a tolerable loss, 2–15% of the account, about 10–15 names from a weekend scan of 100–200 stocks [dERi8MUU5es];
+  - a 30–40 stock basket bought slowly, then the 5–6 that pull ahead of the basket average, narrowed to 3–4 for heavy exposure, added to on pullbacks [YLAIkbRSnsA].
+- **Scaling-in confirmation order** [dERi8MUU5es]:
   1. The test portfolio stops falling and some names reach double-digit gains.
   2. Most sectors are above their 50 DMA.
-  3. Higher-high/higher-low structure returns in the market.
-  4. Then buy sector leaders breaking out before the indices.
-- *His general claim:* your own portfolio is the best market indicator. [KRoie4cj5TQ, KUlNy1_Rk9M, YLAIkbRSnsA]
+  3. Market higher-high/higher-low structure returns.
+  4. Then find sector leaders breaking out before the indices.
+- **Expectation:** returns may take 16–18 months [dERi8MUU5es].
+- **Portfolio as indicator:** he calls his own portfolio, or a watchlist's behaviour, the best market indicator [KRoie4cj5TQ, KUlNy1_Rk9M, YLAIkbRSnsA].
 
-**Disagreement on when to buy in a fall**
-- Some videos say buy slowly during the decline. [YLAIkbRSnsA, 20BxPDdAZAE, KUlNy1_Rk9M, YVGWKmpHStM]
-- Another says do not buy immediately in a falling market: watchlist only, and wait to see how price settles below the 200 DMA. [hKnYYRpd63s]
-- Another says buy-the-dip calls below the 200 DMA are wrong for short-term traders when breadth is poor. [yYwiSDVwgyA]
+**Bottom process** [B1ynZNvqesE], run only on broad indices (Nifty 500, Nifty Total Market, S&P 500, Nasdaq 100):
+1. Correction or rally?
+2. Mark a probable bottom.
+3. Apply the day 0–15 follow-through rules.
+4. Assess leadership after follow-through.
 
-A reconciliation consistent with the notes: small test money early, and real size only after confirmation. He does not state this himself.
+**Re-entry after an exit** [8QeR8FmYYg4]:
+- If the index convincingly clears its prior swing high, quickly look for stocks with breakout structures.
+- If it ranges instead, stay cautious.
+- Exit or trim when the 50 DMA pivot breaks.
 
-**Managing chop**
-- Cut losers, especially names that fall below average cost. Keep the top 4–5 names that refuse to go into loss; he says they lead the next advance. [fFUPLUEhzVo]
-- Be nimble and rebuild after wide-range up candles return; whipsaws in volatile phases are normal. [Y4TewQHVhvc]
+**Breadth regime**
+- When Nifty 500 breadth was about 32%, he used sector ETFs instead of stocks, planning to return to stocks above about 50% [6qExRlD11sE].
+- He describes the sequence as structure first, then breadth improvement, then momentum. Late arrivals join only at momentum [lRUDp336l7Q].
 
-**Re-entry after an index 50 DMA break** [8QeR8FmYYg4]
-- A convincing break above the prior swing high: quickly buy stocks showing breakout structures.
-- Failure to clear it and ranging: stay cautious.
-- He says to remain in the market in some form, with small size and low churn.
+### 2.7 Entry style: gradual accumulation and small starters
 
-### 2.7 Accumulate gradually, hold while structure is valid
+**Staggering entries**
+- Split positions over time, e.g. 500 shares bought 50 at a time over 7–8 weeks. Or deploy fixed capital every week, which he calls an "STP," the trader's version of a SIP [DCG1GO9TGFU].
+- Hold 8–20 months minimum and accumulate gradually with lower return expectations [hwOw2HaLUcQ].
 
-**What "buy and hold" means to him**
-- Enter at the right moment, hold while the original structure is valid, and add to the original structures rather than jumping to newer setups. [mim7ylyaN74]
-- Long term means until structures stop being valid. [Lw6h6T30VvE]
-- Mark a pivot or reference level and touch the position only when it breaks. [yEKNcJ4EH0U, U7YrYjIS9B8, jkga2zdA9dY]
+**ETF ladder** [6GqBBVt6fUs]:
+- Start deploying long-term money after a 7–8% correction.
+- Add 20–40% more at the next support.
+- Double up on a deeper fall.
 
-**Horizons he states (lengthening over time)**
+Related: small ETF buys of 5–10% of the account on gap-down days [KUlNy1_Rk9M].
 
-| Horizon | Context | Videos |
-|---|---|---|
-| 2–20 days | Swing trading | 9dbnXEEHgsc |
-| A few weeks to ~2 months | Swing trades needing no deep macro study | jlpd-YpqwiQ |
-| 4–5 months | Window of uncertainty after entry that you must tolerate | NYWbbvaJnPc |
-| 6–7 months | Funnel picks | 488FDla8kuc |
-| 6–8 months | Sector positional trend | JJEB-UZgK4E |
-| 2–3 years | Investing-type trend | JJEB-UZgK4E |
-| ~9 months | Time his batch of gains took | uw5QQOenJnQ |
-| At least 9–10 months | Portfolio patience | SuYHqw5zA8U |
-| 8–20 months minimum | In the 2025 market | hwOw2HaLUcQ |
-| 12–18 months | Decision horizon | sIo5XQqZ0b0 |
-| 15+ months | Long-term investor | 0Hnffbj5pgE |
-| 18–24 months | Hold with conviction | NUDjIohACWs |
-| 100–300% over 2–4 years | Target trend-phase capture, rather than chasing 1000%+ winners | Bqp9jKQCs30 |
+**Starter sizes and allocation**
+- Starter of 10% of intended size when the short term is dicey [mR0HMssJek8]; 20% in a news-hot sector [VCNsjVuGoWQ].
+- Put small amounts into 3–4 pockets and add only to those that start working. He admits only 2 of 4 ETFs he named worked [rocXNq3_1Zw].
 
-**Staggered entry**
+**Avoiding chasing**
+- Don't buy the whole position at the breakout out of FOMO. Add after the post-breakout pullback confirms [C8IZozIkPJY].
+- After a vertical spike, wait for a cool-off toward the 50 DMA and a proper range [rocXNq3_1Zw].
+- Avoid stocks extended after about 6 months of outsized gains [BhQ_YnaRqa0].
 
-| Method | Numbers | Videos |
-|---|---|---|
-| Systematic trading plan (STP) | 500 shares bought as 50 at a time over 7–8 weeks, or fixed capital weekly | DCG1GO9TGFU |
-| Periodic buying of individual stocks | Assume a 30–50% fall after starting (L&T example: first buy ~1100, later fall ~1500→~800) | Q-uCkMMTh5Q |
-| ETF ladder | Start after a 7–8% correction; add 20–40% at the next support; double on a deeper fall | 6GqBBVt6fUs |
-| Gap-down tranches | 5–10% of account in ETFs on gap-down days during corrections | KUlNy1_Rk9M |
-| Starter size in a dicey market | 10% of intended size | mR0HMssJek8 |
-| Starter in a news-hot sector | 20% of intended size (autos/consumption after GST) | VCNsjVuGoWQ |
-| Adding after breakouts | Avoid FOMO buying of the full position at the breakout; add on confirmed pullbacks | C8IZozIkPJY |
+**Systematic buying of single stocks** [Q-uCkMMTh5Q]:
+- Assume a 30–50% fall after you start buying.
+- His L&T example: first bought around 1,100, fell about 45% from ~1,500 to ~800, and still showed no meaningful return when he spoke.
 
-**Against churning**
-- Fees and taxes enrich brokers and government.
-- The short-term ecosystem of brokers, educators and apps profits at the trader's expense.
+**Mechanics**
+- Prepare a position-size spreadsheet in advance [aUgaUeCmSOQ].
+- Mark the stop and the 1R/2R/3R levels on the chart [Wk4NVr226t8].
 
-[r63sarc_qV8, SbtFCxbIB1w, YLAIkbRSnsA, KUlNy1_Rk9M, WI0tdUjH_Vg, 8QeR8FmYYg4]
+### 2.8 Holding and managing positions
 
-### 2.8 ETFs as the default vehicle in weak breadth, or for non-stock-pickers
+**His definition of buy-and-hold.** Enter at the right moment, hold while the structure stays valid, keep adding to the original structures, and don't jump to newer setups [mim7ylyaN74, Lw6h6T30VvE].
 
-- **Weak breadth:** use sector ETFs instead of stocks. Return to stocks when the share of Nifty 500 stocks above the 200 DMA (implied by the notes' framing) rises from ~32% to 50%+. [6qExRlD11sE]
-- **Large caps:** he says they move only ~25–35% in about 18 months, which an ETF delivers more cheaply. Seek alpha in mid and small caps. [SbtFCxbIB1w]
-- **Ladder for beginners:** mutual funds if unsure, ETFs if somewhat confident, stocks after that. [SNrzU-z3RkE]
-- **Defaults:** a Nifty ETF or Nifty 500 ETF via SIP/STP, adding on sharp corrections. [rxqOUxO_vP4, WI0tdUjH_Vg]
-- **Choosing ETFs:** by relative strength and simple Weinstein/O'Neil-type structure. Small cap 50, small cap 100 and momentum small cap 100 ETFs are named. [0Hnffbj5pgE, lRUDp336l7Q, YVGWKmpHStM]
-- **First leg of a rally:** broad ETFs first. [-qQntPmfe-s]
-- **Weak sectors** (IT, flat ~3 years since Jan 2022): long-horizon SIP, not trades. [VCNsjVuGoWQ]
-- **Results:** only 2 of the 4 ETFs he named worked. Add only to the pockets that start performing. [rocXNq3_1Zw]
+An 8-year-old video argued the opposite way: classic buy-and-hold suits only rare future giants. It suggested capturing uptrend phases of ordinary stocks, roughly 100–300% over 2–4 years [Bqp9jKQCs30].
 
-### 2.9 Routines and reviews
+**Stated horizons drift over time**
 
-**Daily**
-- Review each position on the daily chart. [eeKRfAbbvZA]
-- Full routine [MXXsv0RSek8]:
-  - Wake 4–6 am: meditation, visualisation, exercise.
-  - 6–8 am: to-do list and chart review with no news or futures.
-  - 9:15–3:30: reactive mindset, standing every hour.
-  - 5:30–6:30 pm: exercise and daily review. Work ends about 5 pm.
-- Check the long-term portfolio only twice a day, about 10:15 am and evening. Do not open it on sharply down days. [DCG1GO9TGFU]
-- Positional traders: end-of-day data only. [S--7ta4FmbY, lRUDp336l7Q]
-- Nightly scan of Nifty 500 charts (about 150–200 viewed): price versus the 50-day average, candle tails and closes, RS structure. [x2RbjJp1eCI]
-- Each morning before the open, rehearse worst cases (visualisation). [jlpd-YpqwiQ]
-- Older Market Profile homework:
-  - Before the open: prior high/low-volume areas [su1cu2Y3AXA]; value-area trend and who is in control [kbiKPEmqpm0].
-  - After the first 60 minutes: write down the profile type forming. [4kP0_EuS_EY]
-
-**Weekly**
-- Review written goals. [NYWbbvaJnPc]
-- Sector RS charts, published every week. [r63sarc_qV8, rbSj4pOg3_I, SuYHqw5zA8U]
-- Judge the market on weekly data, not daily, which he attributes to O'Neil. [r63sarc_qV8]
-- Holdings: mark the nearest pivots, review breadth and global data, note which stocks and sub-industries move. [KRoie4cj5TQ]
-- Weekly chart of every holding, plus a fundamental review each quarter. [Q-uCkMMTh5Q]
-- Two-pass notes: take notes Friday or Saturday, revisit Sunday with fresh notes. [uFFAAZNSozg]
-- Breadth is updated periodically, not daily. [WI0tdUjH_Vg]
-
-**How much weekly effort (inconsistent)**
-
-| Stated effort | Videos |
+| Horizon | Source (age) |
 |---|---|
-| 45–50 minutes | iWa7MbGawvU |
-| 45–60 minutes | 20BxPDdAZAE |
-| At least 100 charts | 1klATqC7oks |
-| 500–800 charts in about 2 hours | mR0HMssJek8 |
+| a few weeks to 2 months (swing) | [jlpd-YpqwiQ] (8y) |
+| 6–7 months | [488FDla8kuc] (8y) |
+| 6–8 months positional, 2–3 years investing | [JJEB-UZgK4E] (5y) |
+| 18–24 months | [NUDjIohACWs] (3y) |
+| ~9 months for gains to develop | [uw5QQOenJnQ] (2y) |
+| 8–20 months | [hwOw2HaLUcQ] (1y) |
+| 12–18 months | [sIo5XQqZ0b0] (recent) |
+| 15+ months | [0Hnffbj5pgE] (4mo) |
+| at least 9–10 months for a portfolio | [SuYHqw5zA8U] (1mo) |
 
-**Tools and data**
-- Sources: NSE India, Nifty Indices and screener.in; he builds his own breadth charts. [c-0bHPew1fg]
-- Breadth can be computed in Excel, Sheets, Chartink or TradingView. [WI0tdUjH_Vg]
-- AI agents: use them to research annual reports, but verify, and supply your own framework. [0Hnffbj5pgE, p5O_uspLu9k, 6K1LOJqZYEg]
-- A pre-built position-sizing spreadsheet. [aUgaUeCmSOQ]
-- Start with the cheapest software; pay for expensive tools only after the method makes money. [ESVo3wifA7g]
+He also says you must tolerate 4–5 months of not knowing after entry [NYWbbvaJnPc] and hold through 10–20% adverse swings [1jsLESmVLVU].
 
-### 2.10 Plan, journal, backtest, measure in R
+**Management rules**
+- In choppy markets [fFUPLUEhzVo]:
+  - cut losers, including winners that fall below average cost;
+  - keep the top 4–5 names that refuse to go into loss, which he expects to lead the next leg.
+- Hold leading stocks that are consolidating instead of rotating into hot themes [DU5Y5AsCMZM].
+- Pre-decide partial booking, e.g. 50% or more, instead of an all-or-nothing top call [r11n7ztY2YY].
 
-**Written plan**
-- Entry, exit, risk and stop; print it and read it at least weekly. [jlpd-YpqwiQ, KRoie4cj5TQ]
-- He claims over 90% of traders have none. [L-PGsMh2vHw]
+**Monitoring**
+- Don't watch mark-to-market P&L [MXXsv0RSek8].
+- Check the long-term portfolio only twice a day, about 10:15 am and in the evening, and not at all on sharply down days [DCG1GO9TGFU].
+- Weekly chart check of each holding; fundamentals reviewed quarterly [Q-uCkMMTh5Q].
 
-**Journal**
-- Fields: entry, exit, risk per trade, position size, P&L in points and %, R multiple, and whether rules were followed. [jlpd-YpqwiQ]
-- Start in a spreadsheet; review weekly or every few months. [jlpd-YpqwiQ]
-- Without a journal you cannot compute win rate, drawdown or risk of ruin. [_Gy6ZltWxPw]
-- Also log the emotions felt during market moves. [L-PGsMh2vHw]
-- Run it as a feedback loop: process → journal → lessons → back into the process. [NYWbbvaJnPc]
+### 2.9 Shielding from noise and the daily schedule
 
-**Backtesting before real money (the stated length varies)**
+**What he avoids**
+- GIFT/SGX Nifty, US futures and Dow moves.
+- TV, Twitter/X, Telegram, WhatsApp groups and online arguments.
+- Option chain, open interest and put-call ratio.
+- Group confirmation of trade ideas.
 
-| Length | Videos |
+Sources: [mim7ylyaN74, MXXsv0RSek8, lRUDp336l7Q, mR0HMssJek8, 1jsLESmVLVU, JJEB-UZgK4E, hKnYYRpd63s, Yxo-rYOCuAo, ywccnKeWXNo, hpbDmEK-FvM, 6fowSBDs3eY, NUDjIohACWs].
+
+He explains why: social-media crash calls are driven by the incentive to get attention [yEKNcJ4EH0U], and brokers, scanners and educators profit from short-termism [YLAIkbRSnsA, KUlNy1_Rk9M, SbtFCxbIB1w].
+
+**Timing of preparation**
+- Prepare for the next day after the 3:30 pm close [lRUDp336l7Q].
+- Rehearse worst cases each morning before the open; switch off after the close [jlpd-YpqwiQ].
+
+**Daily schedule** (5y video) [MXXsv0RSek8]:
+- 4–6 am: meditation, visualization, exercise, affirmations.
+- 6–8 am: to-do list and charts, with no news.
+- 9:15 am–3:30 pm: a reactive mindset, standing up hourly.
+- 5:30–6:30 pm: exercise and daily review.
+- About 12-hour working days, free from about 5 pm.
+- Weekends free of market noise.
+
+### 2.10 Review, journaling, and testing before trading
+
+**Review cadence**
+- Daily review of each position on the daily chart [eeKRfAbbvZA].
+- Weekly review of written goals and of a strength/weakness matrix: were trades in strong stocks, strong sectors and with the trend? [NYWbbvaJnPc]
+
+**Weekend time budget** (differs a lot by video):
+
+| Budget | Source |
 |---|---|
-| ~10 years in his example; 15+ years for successful traders | NYWbbvaJnPc |
-| Manual, at least 5–10 years | 6fowSBDs3eY |
-| Eye-backtest of long trades on at least 10 stocks over 5 years | LahSe1vu1kY |
+| 45–50 minutes | [iWa7MbGawvU] |
+| 45–60 minutes | [20BxPDdAZAE] |
+| at least 100 charts | [1klATqC7oks] |
+| 500–800 charts in about 2 hours | [mR0HMssJek8] |
+| nightly flips through 150–200 Nifty 500 charts | [x2RbjJp1eCI] |
 
-Hopping between systems without studying their results is a common failure. [KRoie4cj5TQ]
+**Weekend review methods**
+- Two-pass notes: Friday/Saturday, then fresh notes on the same charts on Sunday [uFFAAZNSozg].
+- For each holding: mark the nearest pivots, check breadth and global data, and study portfolio behaviour by sub-industry [KRoie4cj5TQ].
 
-**R metrics** [Wk4NVr226t8]
-- Sum the R multiples over at least 100 trades. His example: 20 trades = 12R; 100 trades = 67R.
-- He says the total is what to expect over the next 100 trades.
-- Choose between systems by highest total R and lowest drawdown. His pick: 7% drawdown with 41R.
-- Mark 1R, 2R and 3R levels on every chart.
+**Journal** [jlpd-YpqwiQ, _Gy6ZltWxPw]:
+- Fields: entry, exit, risk, size, P&L in points and %, R multiple, and whether rules were followed.
+- Review weekly or every few months.
+- Without a journal you can't compute win rate, drawdown or risk of ruin.
+- Also log emotions felt [L-PGsMh2vHw] and keep shortlist notes to review months later [1jsLESmVLVU].
+- He calls the plan → journal → improvement feedback loop the most underrated concept [NYWbbvaJnPc].
 
-**Strength/weakness matrix** [NYWbbvaJnPc]
-- Strengths: trend trading, strongest sectors and stocks, equities.
-- Weaknesses he avoids: scalping, HFT, F&O, counter-trend.
-- Check weekly that trades sit in strong stocks and sectors and go with the trend.
+**Written plan.** Print it and read it at least weekly [jlpd-YpqwiQ, KRoie4cj5TQ]. He claims over 90% of traders have none [L-PGsMh2vHw].
 
-**Discretion versus systems**
-- He prefers discretionary trading and warns against automating his stochastic strategy. [9dbnXEEHgsc, 2Yv0E57_bs4]
-- Yet he urges historical testing and R statistics.
+**R accounting** [Wk4NVr226t8]:
+- Sum R over at least 100 trades to estimate the next 100. His examples: 12R over 20 trades, 67R over 100.
+- Choose between strategies on low drawdown plus high total R. In his example, System B (7% drawdown, 33R) beats System A (10% drawdown, 35R).
 
-A research program should note this tension. His rules are often stated as judgment calls.
+**Backtest before live money** (lengths differ):
+- 10 years, with successful traders doing 15+ [NYWbbvaJnPc];
+- at least 5–10 years, manual, no excuses [6fowSBDs3eY];
+- at least 10 stocks over 5 years, long-only equities, simple system [LahSe1vu1kY].
 
-### 2.11 Mindset and expectations
+Don't hop between systems without studying results [KRoie4cj5TQ].
 
-**Weight of mindset**
-- He says mindset is more than 80% of success [NYWbbvaJnPc].
-- An older video says confidence and self-knowledge are 90% and the system 10% [Nkp_wwGZFNQ].
-- He frames success as three pillars: technique, money management, psychology. [_--GkDAomPk]
-- These percentages are rhetorical; he offers no evidence.
+**Pre-open routines from the old market-profile series**
+- Write down the prior day's high- and low-volume areas [su1cu2Y3AXA].
+- Write the expected profile after the first hour [4kP0_EuS_EY].
 
-**Losing less**
-- Capital preservation comes first. If you keep losing, cut risk per trade. [_Gy6ZltWxPw, H0XAVFBdbzw]
-- Judge yourself by what you make when right versus lose when wrong. [C8IZozIkPJY, YLAIkbRSnsA]
+### 2.11 Risk, expectations, and instruments
+
+**Capital preservation first** [_Gy6ZltWxPw, H0XAVFBdbzw, C8IZozIkPJY]:
+- If you keep losing, cut risk per trade immediately.
+- Take only high-probability, low-risk setups and accept missed moves.
+- Losing less when wrong is what grows an account.
 
 **Return targets**
+- Older videos: 25% compounded [NYWbbvaJnPc]; 18–25% [wtWoGmPsvTY, 2Yv0E57_bs4]; 15–25% typical [MXXsv0RSek8].
+- His doubling arithmetic: about 2.8 years at 20%, about 9 years at 8% [wtWoGmPsvTY].
+- Recent videos: lower expectations and 2–3 years of grind after September 2024 [Oq4FjWEDbd0, hwOw2HaLUcQ]. He calls 2021–24 an easy-money era that is over [kwbfXjRtEkk, elpQ8wyLZLQ, Jpu536_AmGc].
+- Think of income as an average over 6+ months, not a monthly paycheque [arFNgAPisHU].
 
-| Target | Videos |
-|---|---|
-| About 25% compounded; he calls 50–100% unrealistic | NYWbbvaJnPc |
-| 18–25% | wtWoGmPsvTY, 2Yv0E57_bs4 |
-| Typical 15–25%, plus about 10 points more from "peak performance" habits | MXXsv0RSek8 |
+**Instruments**
+- Cash equities, for tax, splits/dividends and sizing flexibility [JJEB-UZgK4E, arFNgAPisHU].
+- His listed weaknesses, which he avoids: scalping, HFT, F&O, counter-trend [NYWbbvaJnPc]. Recent videos say F&O and shorting damage account and mind [SbtFCxbIB1w, DCG1GO9TGFU].
+- Beginner progressions:
+  - stocks for 18–24 months, then futures, then options [zWYCYySQVNc, 9dbnXEEHgsc];
+  - large caps in year 1, add mid caps in year 2, small/micro from year 3 [sbHzNd2iA8k];
+  - mutual funds, then ETFs, then stocks [SNrzU-z3RkE].
+- ETFs for non-pickers [YVGWKmpHStM, 0Hnffbj5pgE, rxqOUxO_vP4, WI0tdUjH_Vg]. For large-cap exposure use ETFs, since a large cap may move only 25–35% in 18 months [SbtFCxbIB1w].
+- **Change over time:** older videos include short sides (Stage 4, F&O stocks, kickers on futures) and an options series [G2gjQUJRfJM, QWcb7yxYAxk, _AiSzhs67J4, mNHXZlKSUgo]. Recent teaching is long-only.
 
-**Win rates he claims:** 30–35% for top traders [rhiXs5Kh_0g]; 35–45% for divergence trades [cQpU-EnhdSw].
+**Long vs short sides.** Almost everything here is LONG.
+- Shorts appear only in old videos:
+  - Stage 4 with a falling RS line [G2gjQUJRfJM];
+  - Renko only, not Heikin Ashi, for shorts [TivTx9jwjqA].
+- Lower-timeframe bearish signals are for exiting longs, not shorting [FtxgOtPYqVA].
 
-**Time to skill**
-- 12–24 months to develop; consistent earners have 3–4 years of effort. [JJEB-UZgK4E]
-- Growing 10 lakh into crores takes at least 10 years. [1jsLESmVLVU]
-- Think of monthly income as an average over 6+ months; the "monthly income" pitch is a beginner trap. [arFNgAPisHU, UVuqS0p3eLk]
+### 2.12 Mindset, lifestyle, and career
 
-**Recent expectation-setting**
-- The 2021 to September 2024 run was easy money. Expect 2–3 years of grind. [Oq4FjWEDbd0, kwbfXjRtEkk]
-- A test portfolio may not pay off for 16–18 months. [dERi8MUU5es]
-- Lower your return expectations. [hwOw2HaLUcQ]
-- A smoother trend is expected only in 2026. [butE8gDPXxw]
+**How much mindset matters**
+- More than 80% of success [NYWbbvaJnPc]; 90% confidence vs 10% system [Nkp_wwGZFNQ].
+- Yet homework is about 80% of results [mR0HMssJek8].
+- The gap between losers and profitable trend traders is a mental barrier, not knowledge. His own turning point was learning to tolerate pain mid-trend [U7YrYjIS9B8].
 
-**Psychological tools**
-- *Embracing uncertainty:* the 4–5 months after entry are unknowable. [NYWbbvaJnPc]
-- *Mental barriers:* holding through mid-trend pain was his own turning point. [U7YrYjIS9B8]
-- *Character:* grit, adaptability ("like water") and optimism. [6fowSBDs3eY, NtpyZH5cfaE, N2dUTcb9CzQ]
-- *Visualisation:* rehearse entries, exits, sizing and trailing; rehearse all positions winning and all losing, staying neutral in both. [MXXsv0RSek8]
-- *P&L:* do not watch mark-to-market P&L or post P&L publicly. [MXXsv0RSek8, 2Yv0E57_bs4]
-- *Self-projection:* he used the handle "super trader" in his twenties. [NYWbbvaJnPc]
-- *Resistance:* the inner voice that postpones work such as a backtest. [6fowSBDs3eY]
-- *Recency bias:* newcomers who only saw the 2020–24 uptrend are especially exposed. [L-PGsMh2vHw, hpbDmEK-FvM]
-- *Revenge trading:* avoid it. [hpbDmEK-FvM]
-- *Choosing a mentor:* humble, answers questions within 10–15 days, no "god complex". [6fowSBDs3eY]
+**Practices he recommends**
+- *Visualization and self-belief:*
+  - daily visualization of entry, exit, sizing and trailing;
+  - rehearse both an all-up and an all-down scenario, aiming for emotional neutrality [MXXsv0RSek8];
+  - self-projection as a successful trader [NYWbbvaJnPc].
+- *Character:*
+  - grit, adaptability and optimism [6fowSBDs3eY];
+  - spotting "resistance," the inner voice that postpones work [6fowSBDs3eY].
+- *Information diet and people:*
+  - avoid group think [6fowSBDs3eY];
+  - choose a humble mentor who answers within 10–15 days [6fowSBDs3eY];
+  - prune complaining people from your circle [6fowSBDs3eY, NtpyZH5cfaE];
+  - beware recency bias [L-PGsMh2vHw, hpbDmEK-FvM].
+- *Public conduct and expectations:*
+  - don't post P&L [MXXsv0RSek8, 2Yv0E57_bs4];
+  - expect 12–24 months to build skill and 3–4 years before consistent income [JJEB-UZgK4E].
 
-### 2.12 Lifestyle, personal finance, full-time readiness
+**Lifestyle**
+- Sleep 7–8 hours.
+- Eat within a 5-hour window, fasting about 19 hours, with a note to consult a doctor.
+- Exercise.
+- His claim: these add about 10 percentage points to a 15–25% annual return [MXXsv0RSek8].
 
-**Health** [MXXsv0RSek8]
-- Sleep 7–8 hours, cut junk food and sugar, exercise.
-- He personally eats in a 5-hour window (19-hour fast) and advises seeing a doctor first.
-- Keep work and life separate.
+**Career and money**
+- Before going full time [6ZKLrl0z8jY]:
+  - 3–4 years without losing money;
+  - no loans or EMIs;
+  - an emergency fund.
+- Keep multiple income streams [UVuqS0p3eLk].
+- Log expenses daily and save as soon as salary arrives [wtWoGmPsvTY].
+- **Contradiction:** one video says trading is a full-time profession and part-timers usually lose [arFNgAPisHU]. Others give part-time and working-professional workflows and tell people to keep their job until liabilities clear [kkJ4m9JQ4pM, mRAndF9wyaA, 6ZKLrl0z8jY].
 
-**Before going full time** [6ZKLrl0z8jY]
-- No loans or EMIs.
-- An emergency fund.
-- About 3–4 years without losing money. Bull-market returns are not proof of skill.
-- He rejects claims that 5–10 lakh is enough capital.
+### 2.13 Tools and learning
 
-**Income and saving**
-- Keep multiple income streams. Spend at least 10 minutes a day on a monetisable skill. [UVuqS0p3eLk, wtWoGmPsvTY]
-- Save immediately on payday and log expenses daily. [wtWoGmPsvTY]
-- His doubling table: about 18 years at 4%, 9 at 8%, 6 at 12%, 4 at 18%, ~2.8 at 20%. [wtWoGmPsvTY]
-- Skill compounds alongside money. [wtWoGmPsvTY]
+**Inputs and tools**
+- Keep inputs simple: price and volume, relative to the 50/200 DMA [eeKRfAbbvZA, hKnYYRpd63s, BhQ_YnaRqa0, VqoLpEvre04].
+- Market profile, Heikin Ashi and Renko are layers that confirm an existing system, not standalone triggers [z-ae7tLVdoo, cDcvc9esnwo, tNACzhThprk, IHqkSPVCxko, TivTx9jwjqA].
+- Don't trade every signal; filter divergences, gaps and colour changes [R6QjIoYHoFE, cQpU-EnhdSw, HHkcCy5LrCM, IHqkSPVCxko].
+- He prefers discretion over automated systems, and once warned against coding his stochastic strategy [9dbnXEEHgsc, 2Yv0E57_bs4].
+- Data sources: NSE, niftyindices and screener.in, with breadth computed in a spreadsheet or charting tool [c-0bHPew1fg, WI0tdUjH_Vg].
+- Use AI for research, but verify the output yourself [0Hnffbj5pgE, p5O_uspLu9k, 6K1LOJqZYEg].
+- Buy the cheapest software until a method proves itself [ESVo3wifA7g].
 
-**Who counts as a trader (contradiction)**
-- One video says trading is a full-time profession and part-timers usually lose. [arFNgAPisHU]
-- Others give part-timers and working professionals specific workflows. [kkJ4m9JQ4pM, mRAndF9wyaA, -SC5vcQ1NuE]
-- Another advises keeping a job until liabilities are cleared. [6ZKLrl0z8jY]
-
-### 2.13 Instruments, progression and influences
-
-**Progression for beginners**
-- Cash equities first, where size is flexible. Stocks for 18–24 months, then futures, then options. [zWYCYySQVNc, 9dbnXEEHgsc]
-- Market-cap progression: year 1 large caps, year 2 add quality mid caps, year 3+ small and micro caps. [sbHzNd2iA8k]
-- At least 18 months on daily charts before lower timeframes. [jBYC0t30fz8]
-- Short-term trading only after 2–3 years of experience. [arFNgAPisHU]
-
-**His shift on F&O**
-- Recent videos are strongly anti-F&O. He cites SEBI's ~91% loser figure and stresses tax inefficiency. [DCG1GO9TGFU, SbtFCxbIB1w, JJEB-UZgK4E, mR0HMssJek8]
-- Earlier he said 20–30% a month was plausible for very experienced option sellers. [6ZKLrl0z8jY]
-- He listed option selling among side-income ideas. [UVuqS0p3eLk]
-- Swing trading was described as applying to F&O too. [9dbnXEEHgsc]
-
-**Home market**
-- Keep capital in India, which he believes will be the best equity market over 20–30 years. [kwbfXjRtEkk, rbSj4pOg3_I, VCNsjVuGoWQ, rxqOUxO_vP4]
-
-**Influences**
-- O'Neil, Weinstein, Minervini, David Ryan, Lynch, Wyckoff, Druckenmiller (from interviews).
-- Blend them and refine your own rules. [1jsLESmVLVU, rbSj4pOg3_I, mR0HMssJek8, ywccnKeWXNo]
-- Book list in a fixed order, read slowly with notes, for psychology rather than systems: Murphy, Livermore/Smitten, Nison, The Complete Turtle Trader, Trading in the Zone, Market Wizards. [_--GkDAomPk]
+**Learning**
+- Read books slowly, in his suggested order, taking notes, and look for psychology rather than systems [_--GkDAomPk].
+- Blend the legends' rules into your own [mR0HMssJek8].
+- He admits his case studies are picked with hindsight [uFFAAZNSozg, YVGWKmpHStM].
 
 ## 3. How a program would test it
 
-1. **Daily versus intraday management.**
-   - *Statement:* identical long entries on liquid NSE stocks, exited on a daily-close trend signal, give higher average net R per trade and higher trend capture than exits on the same rule applied to 5-, 15- and 30-minute bars.
-   - *Data:* 5–10 years of NSE daily and intraday bars, plus brokerage, STT and slippage.
-   - *Sources:* eeKRfAbbvZA, kkJ4m9JQ4pM, mim7ylyaN74, JJEB-UZgK4E.
+**1. Exit timeframe.**
+- *Hypothesis:* the same long entries managed with daily-close exits beat the same entries managed with 60-minute or 15-minute exits, net of costs.
+- *Entries:* e.g. a close at a 50-day high, in Nifty 500 names above a rising 200 DMA.
+- *Exits to compare:*
+  - close below the 50 DMA or the last daily swing low;
+  - equivalent swing-low exits on 60-minute bars;
+  - equivalent swing-low exits on 15-minute bars.
+- *Measures:* return per trade, holding period, share of the trend captured.
+- *Data:* point-in-time Nifty 500 constituents with daily and intraday OHLCV; Indian costs (STT, brokerage, slippage).
+- *Sources:* [eeKRfAbbvZA, kkJ4m9JQ4pM, mim7ylyaN74]
 
-2. **Top-down alignment filter.**
-   - *Statement:* long stock signals taken only when (a) Nifty 500 is above its 200 DMA and (b) the stock's sector index is above a rising 30-week MA with a rising ratio to Nifty 500 outperform the same signals unfiltered over 3–12 months.
-   - *Data:* NSE sector and thematic index history; point-in-time constituent mapping.
-   - *Sources:* 2Yv0E57_bs4, jlpd-YpqwiQ, lRUDp336l7Q, 488FDla8kuc.
+**2. Three-level alignment filter.**
+- *Hypothesis:* stock long signals outperform when all three levels agree:
+  - market: Nifty 500 above its 200 DMA;
+  - sector: index above a rising 30-week MA, with its ratio to Nifty 500 above its 13-week average;
+  - stock: above a rising 200 DMA with an RS line at a 26-week high.
+- *Measures:* forward 3/6/12-month excess return and drawdown, vs the same signals without the filter.
+- *Data:* sector index histories, sector membership, survivorship-free stock data.
+- *Sources:* [488FDla8kuc, 2Yv0E57_bs4, lRUDp336l7Q, jlpd-YpqwiQ]
 
-3. **Sector screen as a leading indicator.**
-   - *Statement:* sector indices meeting the weekly screen (price above a rising 30-week MA and a rising index/Nifty 500 ratio) beat Nifty 500 over the next 13–52 weeks, more often than sectors failing it.
-   - *Data:* weekly sector index closes.
-   - *Sources:* lRUDp336l7Q, Yxo-rYOCuAo.
+**3. Breadth regime switch.**
+- *Hypothesis A:* when % of Nifty 500 above its 200 DMA is below about 35–40%, a basket of sector ETFs/indices passing the trend+RS filter beats a basket of stocks passing the same filter on a risk-adjusted basis. The edge flips when breadth is above 50%.
+- *Hypothesis B:* index dips bought while the index is below its 200 DMA with breadth under 30% have worse 3–6 month returns than dips bought above the 200 DMA.
+- *Data:* breadth series and sector ETF or total-return index series.
+- *Sources:* [6qExRlD11sE, yYwiSDVwgyA]
 
-4. **Test-portfolio leadership.**
-   - *Statement:* in a fixed basket of 30–40 top-RS stocks formed during an index drawdown of at least 10%, the 5–6 names with the highest basket-relative return as the index stops making new lows continue to beat the basket and the index over the next 6 months.
-   - *Second statement:* the basket's aggregate return turning positive precedes the index regaining its 50 DMA.
-   - *Data:* survivorship-free daily NSE prices.
-   - *Sources:* YLAIkbRSnsA, dERi8MUU5es, 20BxPDdAZAE, KUlNy1_Rk9M.
+**4. Test portfolio as an early signal.**
+- *Setup:* in every index correction of at least 10% from peak, form a basket of the 10–15 Nifty 500 stocks with the smallest drawdown or best 3-month RS, in sectors above their 50 DMA.
+- *Signal:* the basket stops making new lows and its median gain reaches 10% or more.
+- *Hypothesis:* the signal precedes the index reclaiming its 50 DMA or making a new swing high, and the basket outperforms the index over the next 6 months.
+- *Sources:* [20BxPDdAZAE, dERi8MUU5es, YLAIkbRSnsA]
 
-5. **Breadth regime and vehicle.**
-   - *Statement:* when the share of Nifty 500 stocks above their 200 DMA is below 40%, an RS-filtered basket of sector ETFs or indices has a better return-to-drawdown ratio than an RS-filtered stock basket. Buying index dips below the 200 DMA with breadth under 30% gives worse 3–6 month returns than dips above the 200 DMA.
-   - *Data:* reconstructed breadth series, sector ETF/index returns.
-   - *Sources:* 6qExRlD11sE, yYwiSDVwgyA.
+**5. Staged accumulation vs lump sum.**
+- *Rule to test:*
+  - buy a broad or sector ETF after a 7–8% drawdown from peak;
+  - add 30% at the next lower swing low;
+  - double the position at a 15%+ drawdown.
+- *Variant:* 7–8 weekly tranches.
+- *Compare with:* lump sum at the first trigger, and a monthly SIP.
+- *Measures:* 3- and 5-year IRR and maximum drawdown.
+- *Sources:* [6GqBBVt6fUs, DCG1GO9TGFU, KUlNy1_Rk9M]
 
-6. **Staged accumulation.**
-   - *Statement:* buying an index ETF after a 7–8% drawdown, adding 20–40% at the next lower swing low and doubling on a deeper fall, beats both lump-sum entry at the first trigger and fixed monthly SIP over 3–5 year windows on return and maximum drawdown. A weekly 7–8 week tranche entry into strong-sector stocks can be tested the same way.
-   - *Data:* Nifty and Nifty 500 total-return series.
-   - *Sources:* 6GqBBVt6fUs, DCG1GO9TGFU, Q-uCkMMTh5Q.
+**6. Pivot-hold vs shock exits.**
+- *Hypothesis:* for open profitable positions, holding until a pre-marked swing low or 50 DMA pivot breaks beats exiting on shock days. Shock days are proxied by index down 2% or more, or a VIX spike in the top decile.
+- *Measures:* return and drawdown over the full sample.
+- *Sources:* [yEKNcJ4EH0U, Jpu536_AmGc, U7YrYjIS9B8, 8QeR8FmYYg4]
 
-7. **Pivot-break exits versus shock exits.**
-   - *Statement:* holding trend positions until a pre-marked swing-low pivot or a 50 DMA pivot breaks captures more return than exiting on large single-day index drops. A proxy for news shocks is index days of −2% or worse.
-   - *Data:* daily prices; definitions of the shock days.
-   - *Sources:* yEKNcJ4EH0U, U7YrYjIS9B8, 8QeR8FmYYg4, Jpu536_AmGc.
+**7. Stability of total R.**
+- *Hypothesis:* for a fixed rule set, total R over consecutive non-overlapping 100-trade windows is positively correlated.
+- *Second question:* does ranking candidate systems on low max drawdown plus high total R pick better out-of-sample performers than ranking on raw return?
+- *Source:* [Wk4NVr226t8]
 
-8. **R-total stability.**
-   - *Statement:* for a fixed rule set, total R over trades 1–100 predicts total R over trades 101–200 within a stated tolerance. Win rate for his trend-breakout style sits near 30–45% with positive expectancy.
-   - *Data:* simulated trade logs.
-   - *Sources:* Wk4NVr226t8, rhiXs5Kh_0g, cQpU-EnhdSw.
+**8. Structure → breadth → momentum ordering.**
+- *Hypothesis:* a rise in the count of sector indices in uptrend (above a rising 30-week MA) leads a rise in % of stocks above their 30-week MA, which in turn leads strong index momentum. Measure the lead-lag in weeks.
+- *Source:* [lRUDp336l7Q]
 
 ## 4. Transfer to TSX and US markets
 
-**Applies as is**
-- Reactive trend-following and the noise filter.
-- The market → sector → stock order of work.
-- Daily/weekly timeframes and higher-timeframe alignment.
-- Small fixed watchlists; keeping past winners.
-- The prepare-in-corrections cycle and the test-portfolio idea.
-- Staged accumulation and holding while structure is valid.
-- Journal fields, R metrics, written plan, backtest-first.
-- Mindset and personal-finance advice.
-- His own bottom framework already names the S&P 500 and Nasdaq 100. [B1ynZNvqesE]
+**Usable as is**
+- The philosophy (trend over prediction, structure over news), the weekly review cadence, journaling, written plans, R accounting and backtest-first discipline.
+- Gradual accumulation, the test-portfolio idea, cut-losers/keep-resilient-winners, and the 50/200 DMA and 30-week MA references.
+- The higher-timeframe bias, noise shielding and mindset material.
 
 **Needs adapting**
-- *Benchmark:* Nifty 500 becomes the S&P/TSX Composite or S&P 500/Russell 1000.
-- *Sectors:* NSE sector and thematic indices become TSX GICS sub-indices or US sector SPDRs and industry groups.
-  - TSX sector concentration (financials, energy, materials) makes "rotate to the strongest pocket" a much narrower choice.
-  - TSX sector ETFs are fewer, which matters for his ETF-in-weak-breadth rule.
-- *Universe filters:* the NSE F&O list (~180 names) becomes optionable large caps; the 252-day volume above 5 lakh shares becomes a dollar-volume threshold.
-- *Breadth thresholds:* the 32%/50% switch level should be re-estimated locally.
-- *Costs and tax:* his anti-churn argument rests partly on Indian STT, short-term capital gains tax and F&O taxation. Commission-free US brokers and TFSA/RRSP accounts change the arithmetic.
-- *Clock:* his schedule and GIFT/SGX references are Indian-session specific; the principle of ignoring overnight cues transfers.
-- *Return anchors:* his Nifty 13–14% and Bank Nifty 18% figures are Indian; return expectations should come from local history.
+
+| Item | US / Canadian adaptation |
+|---|---|
+| Benchmark | Nifty 500 → S&P 500 / Russell 1000 (US) or S&P/TSX Composite (Canada) |
+| Sector screen | GICS sector and industry indices with SPDR/iShares ETFs. US sector ETFs are liquid; Canadian sector ETFs are fewer and thin. The TSX is concentrated in financials, energy and materials, so sector rotation there has few legs, and Canadian traders may need to run the sector layer on US data. |
+| Liquidity screens | ~180 F&O stocks → optionable or top-dollar-volume names; 5 lakh shares → a dollar-volume threshold |
+| Beta and cap tiers | Beta above 1.2 over 90 days, the "top 50/200–300 by market cap" universes and the large → mid → small progression all need local calibration |
+| Tax and cost arguments | His case for cash equities over F&O is India-specific. In Canada, TFSA/RRSP rules change the trade-off; US costs are lower. |
+| Event list | Budget/RBI → FOMC, CPI, Bank of Canada |
+| Session times | 9:15–3:30 IST in his routine → local hours |
 
 **India-only**
-- The closing-auction distortion workaround (futures or weekly candles). [kwbfXjRtEkk, CFJNeCPMQ1o, 6K1LOJqZYEg]
-- Budget, RBI and FII-flow specifics. [JcxWhCO0hqI, butE8gDPXxw]
-- The SEBI 91% F&O-loser statistic.
-- His long-run India-first thesis and home-market bias, which is a Canadian investor's question to answer for their own market.
-- His named Indian ETFs.
-- His political budget commentary. [q26J58h5Qt8]
+- GIFT/SGX Nifty advice and the NSE closing-auction workaround.
+- NSE/niftyindices data sources and the SEBI 91% F&O-loss figure.
+- Specific NSE ETFs, FII-dip observations, and his "India is the best market for 20–30 years" home-market thesis.
+- The general "focus on your home market" principle does transfer.
 
 ## 5. Gaps and doubts
 
-**Undefined or unspecified items**
-- "Structure valid", "decent structure", "convincing" breakout and "proper base" are rarely defined numerically in these notes.
-- The test portfolio's selection rules are loose: "fell least", "strongest".
-- The confirmation order in dERi8MUU5es has no thresholds beyond "most sectors above 50 DMA".
-- The market-profile scoring cheat sheet is never specified. [Nkp_wwGZFNQ]
-- The day 0–15 follow-through rules are not detailed in this chapter's notes. [B1ynZNvqesE]
-- He promises the full timing method in later parts but this chapter's notes do not contain it. [jlpd-YpqwiQ]
+**No statistics.** Nearly every routine element is unmeasured. The 7-of-10 outperformance batch [uw5QQOenJnQ] and the pick reviews [VET4JHrc2vU, -SC5vcQ1NuE] are self-selected. He admits hindsight bias [uFFAAZNSozg, YVGWKmpHStM].
 
-**Inconsistent numbers**
-- Watchlist sizes run from 5 to 50.
-- Weekly effort runs from 45 minutes to 500–800 charts.
-- Backtest length runs from 5 to 15+ years.
-- Holding horizons lengthen over time.
-- Return targets run from 15% to 25%.
-- Support/resistance zone width is given as both 5–10% and 1–3% within one video. [d7cwBnW78XI]
+**Numbers that shift between videos**
+- watchlist size, from 5 to 70;
+- weekend review time, from 45 minutes to 2+ hours;
+- backtest length, from 5 to 15+ years;
+- holding horizon, from weeks to 24 months;
+- test-portfolio size, from 2% to 15% of capital, or 30–40 names;
+- mindset share, 80% vs 90%.
+
+**Undefined terms**
+- "decent structure," "proven trend," "market turns," "convincingly clears" and "deeper fall";
+- the test portfolio's own entry/exit rules;
+- the breadth thresholds beyond the single 32% → 50% example;
+- how the day 0–15 follow-through rules work (not in these notes).
 
 **Contradictions**
-- Very short Ichimoku and coil-spring timeframes versus "nothing below 60/30 minutes".
-- Buy during the decline versus wait until the market settles.
-- Trading is a full-time job versus his part-time workflows.
-- His older acceptance of option selling and F&O swing trading versus his recent anti-F&O stance.
-- Ignore news versus starting with global macro and avoiding event weeks.
-- Discretion and "don't automate" versus his insistence on testing.
+- Ignore news vs wait out events, track news for kickers, and avoid news-heavy sectors.
+- Avoid counter-trend trading vs teaching RSI divergence and favouring undervalued laggards in 2024.
+- Avoid range-bound charts [2crnCCz4Y3s] vs participate in ranges [su1cu2Y3AXA].
+- Trading as a full-time profession vs part-time workflows.
+- Fundamentals screened first vs checked only after the chart works.
+- Buy through corrections vs don't buy in a falling market.
+- Elliott wave as predictive vs "react, don't predict."
 
-**Unsupported claims**
-- Mindset 80%/90%, the ~70% consolidation time, the 30–35% win rate, the "+10% from peak performance" uplift and the ~90% intraday-loser figure are stated without evidence.
-- Performance reports are small, hand-picked batches: 7 of 10 beat Nifty [uw5QQOenJnQ]; mixed results across 10 names [VET4JHrc2vU]; 3 of 4 movers in a week [-SC5vcQ1NuE].
-- He claims consistent results on Nifty futures, Bank Nifty, S&P 500 and some stocks with no data shown. [K06GqbJwEv4]
+**Evolution.** Short-timeframe, shorting and F&O content comes from videos 5–15 years old. Recent teaching is long-only on weekly/daily charts with 12+ month holds. A researcher should weight recent videos as his current method.
 
-**Caption doubts**
-- Some names are garbled in the captions: "other time frame" trader, Dalton/Steidlmayer, stock names in VET4JHrc2vU and BhQ_YnaRqa0.
-- The Wyckoff rule-to-law mapping is inconsistent. [tTdy5srpW9Q]
+**Unclear captions**
+- The market-profile terms "other time frame" and the Dalton/Steidlmayer names [z-ae7tLVdoo].
+- Stock names in the quadrant and pick videos [BhQ_YnaRqa0, VET4JHrc2vU].
 
-**Not covered in this chapter's notes**
-- Concrete stop-loss and position-sizing formulas, beyond starter fractions and the spreadsheet.
-- Portfolio-level risk caps and exposure-by-breadth percentages.
-- Short-side process in recent years; nearly all recent material is long-only.
+**Promised but not in these notes**
+- The market-profile cheat-sheet scoring [Nkp_wwGZFNQ].
+- Several "part 2/3/5" follow-ups.
+- The fourth stage of personal finance [wtWoGmPsvTY].
+
+**Out of scope for this chapter.** Setup mechanics (Heikin Ashi, Renko, Ichimoku, Elliott wave rules, kicker, coil spring) appear in these notes only where they bear on process. They belong in their own chapters.

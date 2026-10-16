@@ -1,393 +1,423 @@
-<!-- Trading Knowledge Library · Trade With Trend (Raunak A, India). Built 2026-10-16 from 158 public videos with captions (of 287 on the channel; members-only videos were not used): one structured note per video (Claude Sonnet 5.5) -> this chapter (Claude Opus 5.5), src/research/library.py. Paraphrased; the transcripts stay on the laptop. Evidence class: external teaching = hypotheses to test, never Ananta rules; nothing in the agent reads docs/library/. -->
+<!-- Trading Knowledge Library · Trade With Trend (Raunak A, Trade With Trend, India). Built 2026-10-16 from 161 public videos with captions (of 289 on the channel; members-only videos were not used): one structured note per video (Claude Sonnet 5.5) -> this chapter (Claude Opus 5.5), src/research/library.py. Paraphrased; the transcripts stay on the laptop. Evidence class: external teaching = hypotheses to test, never Ananta rules; nothing in the agent reads docs/library/. -->
 
 # Pullbacks and averages
 
 ## 1. What he teaches here and how it fits
 
-The core of this chapter is simple. Find the leaders first, through sector strength, relative strength (RS) and a higher-high/higher-low structure. Then do not chase them. Wait for the price to come back to a reference level, usually a rising 50-day moving average (DMA) or a former breakout level, on quiet volume. Buy there in stages.
+Raunak A's position is that the money in a trend is made by buying pullbacks inside an established uptrend, not by chasing extension. In one video he says the only two technical things he wants a trader to focus on are long-term trend direction and how to trade pullbacks within it [sbHzNd2iA8k].
 
-This idea is the "how to enter" layer that sits on top of his trend, sector and RS selection. In one older video he says the only two technical things he cares about are the long-term trend direction and how to trade pullbacks inside it [sbHzNd2iA8k].
+His tools for this changed over time:
 
-His tools changed over time:
-- **Seven to eight years ago** he timed pullbacks with oscillators and candle types: Stochastic, Heikin Ashi, ADX with the 20-day EMA, and RSI hidden divergence. He used a 100-day or 200-day average as the trend filter.
-- **Around five years ago** he leaned on demand zones: breakout retests, Fibonacci levels and confluence.
-- **In the last one to two years** he speaks almost entirely about the 50 DMA. That includes:
-  - extension measured in percent from it;
-  - a "50 DMA pivot";
-  - volume dry-up ("tennis ball" action);
-  - market breadth as the context for whether dips are buyable at all.
+- **Older videos (5–8+ years ago):**
+  - Oscillator timing: Stochastic, plus Heiken Ashi candle range.
+  - ADX with a 20 EMA.
+  - Hidden RSI divergence.
+  - Fibonacci retracements.
+  - Trend filters on the 100- or 200-day average.
+- **Last ~2 years:** almost all of it centres on one template, credited to O'Neil, Minervini and Weinstein:
+  - a leader in a leading sector;
+  - above a rising 50 DMA and 200 DMA/EMA;
+  - rising relative strength (RS);
+  - pulls back to the 50 DMA on drying volume, bases, then resumes.
+  - Distance from the 50 DMA, in percent, is his measure of "extended."
 
-Everything below is his claim or method. None of it has been verified.
+The pullback sits downstream of his sector/RS work: RS picks what to buy, and the pullback to an average picks when. Breadth decides how aggressively to buy dips. Everything below is his claim or method, a hypothesis to test, not established fact.
 
 ## 2. The ideas
 
-### 2.1 Buy leaders on a pullback to a rising 50 DMA (main recent setup)
+### 2.1 The core setup: leaders pulling back to a rising 50 DMA (long)
 
-**What it is.** A stock or sector in a strong uptrend comes back to its rising 50 DMA. It consolidates or forms a base there, then turns up. He treats this as the better-risk entry compared with buying the run itself.
+**What it is.** A stock or sector index in a higher-high/higher-low uptrend pulls back to its rising 50-day average. It holds there, often moves sideways into a new base, and then resumes. He calls it a cycle that repeats: rise, pull back to the 50 DMA, base, rise again. His examples include gold over three years, metals, defence, capital markets and power [DCG1GO9TGFU, 6K1LOJqZYEg, jkga2zdA9dY].
 
-His stated reasoning:
-- Participation comes in legs. People get bored and exit, then chase again [Oq4FjWEDbd0].
-- Pullbacks shake out short-term holders [Yxo-rYOCuAo, g3mcqf6rqoc].
+**Conditions (fullest version)** [Qu49zHwEGwo]:
+1. The stock is in one of the strongest sectors.
+2. Price is above both the 50 DMA and the 200 EMA, and both are rising.
+3. RS versus Nifty 500 is rising.
+4. Price is near its all-time high, so there is little overhead supply.
+5. The retracement comes on contracting volume.
+6. Entry is on a fresh strong candle forming around the 50 DMA.
 
-**Conditions.** His fullest template is in [Qu49zHwEGwo], which he attributes to O'Neil, Minervini and Weinstein:
-- The stock is in one of the strongest sectors.
-- Price is above both the 50 DMA and the 200 EMA, and both are rising.
-- RS against the Nifty 500 is rising.
-- Price is near its all-time high, so there is little overhead supply.
-- The pullback happens on contracting volume.
-- **Trigger:** a fresh strong candle around the 50 DMA.
+Other videos repeat subsets of these:
+- rising 50 DMA, low volume on the pullback, rising RS line [jkga2zdA9dY];
+- clear uptrend, rising 50 DMA, "good candles," a clean base [sIo5XQqZ0b0];
+- higher-high/higher-low structure with repeated touches of a rising 50 DMA in the small-, micro- and mid-cap indices, managed with stops [0nbQs92kYuY];
+- index/sector versions: Bank Nifty at its 50 DMA with a bullish engulfing candle [q26J58h5Qt8]; the IPO index with long-tailed candles at the 50 DMA [jcWYGNInYg8]; bank index reclaiming its 50 DMA on wide-range candles after a bottom [butE8gDPXxw].
 
-Other versions add or swap conditions:
-- Price contracting on the pullback, plus a rising RS line [jkga2zdA9dY].
-- Good candles and a clean base, preferably while news and sentiment are poor [sIo5XQqZ0b0].
-- A new base forming at the 50 DMA, not just a touch [DCG1GO9TGFU, VCNsjVuGoWQ, 6K1LOJqZYEg].
-- A bullish engulfing candle at the 50 DMA on a sector index, used as a watch-list condition [q26J58h5Qt8].
+**Three-structure classification** [S--7ta4FmbY]:
 
-**Three-stage view** [S--7ta4FmbY]:
-1. A stock far above its 50 DMA: avoid it.
-2. A stock that ran up and is back at the 50 DMA, consolidating: put it on the watchlist.
-3. A stock that came back to the 50 DMA, consolidated, then broke out again: this is the immediate buy.
-
-So in this version the actual trigger is a breakout from a base built at the 50 DMA. The same idea appears in his test-portfolio template: a contraction base at the 50 DMA, a breakout, then a retest with RS still rising [dERi8MUU5es].
-
-**Universe.**
-- Indices: Microcap 250, Smallcap 250 and Midcap 150 [0nbQs92kYuY].
-- Strong-RS sectors he names at various times:
-  - banks, capital markets, insurance and asset management [azzUmy2l_0U];
-  - pharma, metals, defence and power [c-0bHPew1fg, 6K1LOJqZYEg];
-  - IT and FMCG when they were in stage two [B8HZvUkY5sA];
-  - gold [DCG1GO9TGFU].
-- He says the pattern works in good companies with real revenue and profits, not in speculative names. He treats repeated past bounces off the 50 DMA as a sign of quality [T4849hhdwTo].
-- He rejects the claim that the 50 and 200 DMAs do not work [Oq4FjWEDbd0, T4849hhdwTo].
-
-**Numbers given.**
-- A 3–4% retracement in banks as an accumulation zone [c-0bHPew1fg].
-- A 10–15% pullback in stocks after a vertical sector run (defence) as the time to start buying gradually [DCG1GO9TGFU].
-- Exits: only "use stop losses" and a stop below the recent low. No target, stop distance or holding period is given for this setup [0nbQs92kYuY].
-
-**When not to use it.**
-- Stocks outside the leadership group, or below the 200 DMA [N2dUTcb9CzQ, Jpu536_AmGc].
-- A pullback to the 50 DMA on high volume. Avoid the stock short term [N5bb0Cu8RAs].
-- Sectors in a lower-high/lower-low structure with a falling 50 DMA [Yxo-rYOCuAo].
-- He admits the template can fail [6K1LOJqZYEg].
-
-**How often and how clearly.** This is his most repeated idea in the notes: about 25 videos, nearly all from the last two years. It is taught clearly but discretionarily. "Touch," "strong candle" and "base" are never defined numerically.
-
-**Short side.** None in this form.
-
-### 2.2 Extension: do not chase, measure distance in percent
-
-**What it is.** He judges entries by how far price sits from the 50 DMA, expressed in percent rather than points [r63sarc_qV8].
-
-**Numbers. His thresholds vary by instrument:**
-
-| Instrument | Threshold he uses | Source |
-|---|---|---|
-| Stocks | About 8–10% above the 50 DMA: no reward-to-risk left | [Oq4FjWEDbd0] |
-| PSU bank index | About 10% above the 50 DMA: too extended; he would have preferred buying near the average or at the retest | [6GqBBVt6fUs] |
-| Stocks with media buzz | 40–45% above the 50 DMA: avoid, since one 10–30% candle can hurt | [S--7ta4FmbY] |
-| Small-cap index | Retraced last time from 6–7% above; now 4.4% above, so a pullback may be near | [CFJNeCPMQ1o] |
-| Nifty Bank (below the average) | 1.58% below at the time, about 2.8% at the low; he presents this as modest | [r63sarc_qV8] |
-| Long-term reference | If a stock is well above its 200 DMA, start with 20–30% of the position and add the remaining 60–70% on a consolidation or retracement | [488FDla8kuc] |
-
-**Context: breadth.** Extension matters most when market breadth is poor. Then even leaders such as metals get sharp, random pullbacks, so you buy:
-- near the 50 DMA if you are a positional trader;
-- near the 200 DMA if you are a long-term investor.
-
-This is cited from O'Neil [N2dUTcb9CzQ, 6GqBBVt6fUs, x2RbjJp1eCI]. He contrasts it with the 2022–23 bull market, when leaders could be bought "at any level" [x2RbjJp1eCI]. If you missed the move, wait for a sideways phase or a return to the 50 DMA [SuYHqw5zA8U, L-PGsMh2vHw, Yxo-rYOCuAo].
-
-**How clearly and how often.** Clear, recent and repeated in about 8 videos. The cut-off is not one number. It shifts with the instrument and its volatility.
-
-### 2.3 Which averages: the trend filter versus the entry average
-
-| Average | Role | Videos |
-|---|---|---|
-| 50 DMA and 200 DMA | Stock filter: price above both, ideally the 50 above the 200. Always avoid stocks below the 200 DMA and build this into scanners. | [Jpu536_AmGc, Oq4FjWEDbd0] |
-| 200 EMA (paired with the 50 DMA) | Trend filter in the full template | [Qu49zHwEGwo] |
-| 100-day | Sector holding filter: exit when an RS-leading sector starts violating it. Also the long-only filter for the Stochastic setup, with shorts only below it. | [BxY2ofigO8I, H0XAVFBdbzw] |
-| 200-day | Trend filter for the Stochastic swing setup; mean-reversion example; deployment zone for the Nifty 500 | [2Yv0E57_bs4, jlpd-YpqwiQ, fFUPLUEhzVo, KDSbZ0oW2U0] |
-| 30-week | Retest support after breakouts in weak markets | [V41BUpPK3E4] |
-| 20-day EMA (21 or 34 also acceptable) | Pullback entry average in the Raschke ADX setup | [LahSe1vu1kY] |
-| 50-day, optional | Trend reference only; the pattern can be traded on bare price | [QWcb7yxYAxk] |
-| Tenkan (9) and Kijun (26), Ichimoku cloud | He claims they hold as support better than 9/26 moving averages, and the cloud acts as support in uptrends | [153pJZk-ixo, 59vJPo6oiNA] |
-
-**Contradiction to flag.** In [LahSe1vu1kY], seven years ago, he strongly advised against a 50 or 100 EMA for pullback entries because price returns to them too rarely. His recent teaching makes the 50 DMA the main pullback level. The two are different setups (a short-term swing with ADX versus a positional leader entry), but the advice clearly shifted.
-
-He also mixes SMA and EMA, for example "200 EMA" in [Qu49zHwEGwo] versus "200 DMA" elsewhere, without saying it matters.
-
-He explicitly does **not** trade mean reversion to an average [jlpd-YpqwiQ].
-
-### 2.4 The 50 DMA pivot and how to read violations
-
-**Rule** [Qu49zHwEGwo]:
-- The 50 DMA itself can be breached many times inside a trend. Breaches of a day or two that resume are normal (he cites O'Neil).
-- The swing pivot just below the 50 DMA is different. For the Nifty 500 at the time this was about 22,400–22,600. Its violation should not be ignored, because the break often accelerates the downside.
-
-**Applications and nuances.**
-- He applies the pivot to segment health. In one video the IPO index held its 50 DMA pivot while small, micro and large caps broke theirs. Index exposure is judged by whether the pivot holds [rhiXs5Kh_0g].
-- **Undercut:** price dips below the average or support, then reverses and takes off. He says Nifty Bank might do this, admits he does not know whether it will, and notes silver did it several times [r63sarc_qV8].
-- Falling below the 50 DMA after a big run is not necessarily a trend break; read it against the prior run [VCNsjVuGoWQ].
-- A sector near or below its 50 DMA is not weak if its weekly or monthly chart is strong [6K1LOJqZYEg].
-- Judge deep pullbacks on the weekly chart. Nifty Bank had 13%, 18% and 23% retracements inside a weekly uptrend [fFUPLUEhzVo].
-- He admits his bearish reads of three Nifty Bank breakdowns below the 50 DMA were wrong. He still made money by acting only on upside pivot breakouts [Y4TewQHVhvc].
-
-**Tension.** The 50 DMA is called both breachable noise and a meaningful line. Elsewhere he says sectors that violate it and head lower are weak [Yxo-rYOCuAo]. The pivot concept is how he reconciles the two, but the pivot is subjective.
-
-**Short side.** He implies a pivot break is a reason to cut exposure. No short entry is described.
-
-### 2.5 Quality of the pullback: volume and candle range ("tennis ball" versus "egg")
-
-**What it is.** A healthy pullback is narrow-range and quiet; a dangerous one is wide-range and heavy.
-- **Tennis ball (hold):** after a breakout, the stock pulls back on contracting volume and bounces back to the recent highs on expanding volume. This typically takes 2–5 days or 1–2 weeks [NUDjIohACWs].
-- **Egg (sell):** a stock that does not behave this way [NUDjIohACWs].
-- In true leaders, pullbacks drift sideways or down gently on narrow candles with no volume. Large-range, high-volume down candles mean a real correction [VET4JHrc2vU, T4849hhdwTo].
-- Volume during a consolidation near the all-time high should be flat or falling versus its 50-day average [N5bb0Cu8RAs].
-
-**Supporting claims.**
-- An Investor's Business Daily article he quotes says about 40% of successful stocks return to or just below their buy point. Healthy pullbacks take days, not weeks, are gradual and come on declining volume [mR0HMssJek8].
-- **Last point of support (Wyckoff):** a low-volume, narrow-spread pullback into the old resistance zone after a breakout. He treats it as a low-risk entry and later as a pivot [K06GqbJwEv4].
-
-**Older Heikin Ashi version** [L99LgSdCDD8, H0XAVFBdbzw, FtxgOtPYqVA]:
-- Narrow-range bearish HA candles in a pullback mean little supply.
-- He tolerates at most one wide-range counter-trend candle.
-- He rejected a pullback with two wide-range candles out of four.
-- Beginners should accept zero.
-
-**Rebounds as well as pullbacks.** Rebounds made of wide expansion candles are a poor sign that the market needs time to repair [M4Z-Gi4gGag].
-
-**How clearly.** Clear and consistent across both eras, in about 10 videos. No numeric volume threshold is given; "below average" is the closest he gets.
-
-### 2.6 Pullback to the breakout level: former resistance as support
-
-**What it is.** Buy the retest of an old resistance level that has been broken, not the breakout candle [-SC5vcQ1NuE, 1klATqC7oks, U7YrYjIS9B8, mRAndF9wyaA, 8QeR8FmYYg4].
-
-**Supporting details.**
-- Hammer or pin-bar candles that form repeatedly at a prior breakout or gap zone show buying interest. In ICICI Bank he marked 460–470 with price at 481 [CXJZMbE_d5o].
-- A breakout can retrace to the midpoint of its prior range or to the 30-week average. He says this is especially likely in weak markets, so there he prefers buying the retest [V41BUpPK3E4].
-- He uses it only in leading sectors and stocks [eeKRfAbbvZA].
-- Some stocks pull back after almost every breakout. For those he waits for the pullback and lets the trade go if it never comes [mim7ylyaN74].
-- Low-beta stocks retest and fake down more often than high-beta stocks, which tend to trend straight up in bull markets [eeKRfAbbvZA].
-
-**Entry mechanics.**
-- Put 25% on at the breakout. Add the remaining 75% on a wide-range bullish candle with higher volume during the pullback [C8IZozIkPJY].
-- Or drop to a 60- or 15-minute chart and use VWAP to time the entry [4CzLWJxP4UM].
-
-**Larger time frames.** For sector ETFs he buys dips while the prior consolidation range holds, even below interim support. He takes corrective action only if price falls below that broader range [rxqOUxO_vP4].
-
-**Short side.** For shorts, the mirror idea is selling near a prior supply region. He tells beginners to avoid shorting [-SC5vcQ1NuE].
-
-**How clearly and how often.** Clear, in about 12 videos, mostly from five years ago, with recent echoes.
-
-### 2.7 Oscillator-timed pullbacks (older, seven to eight years ago)
-
-All four methods below are on the daily chart and long-biased, with shorts as mirror images.
-
-**(a) Stochastic swing setup** [2Yv0E57_bs4]
-
-| Element | Rule |
+| Structure | His action |
 |---|---|
-| Trend filter | Price above the 200-day average; market and sector bullish |
-| Stochastic | 8,3,3, at or below 20; the buy is the signal-line cross up |
-| Conservative entry | Full size on the cross; stop at the recent swing low; target 8–12% |
-| Aggressive entry | Scale in while the oscillator is at or below 20; target 15–18%; partial profits after 10–12% |
-| Holding period | A few weeks to two months |
+| Stock 40–45% above its 50 DMA, outperforming hugely, buzzing in media | Avoid; one 10–30% candle can hurt |
+| Stock that ran up and has come back to the 50 DMA, consolidating | Watchlist |
+| Stock that came back to the 50 DMA, consolidated, then broke out | Immediate buy |
 
-He uses the Stochastic only for timing, not as the reason to buy. In the aggressive version the stop is a matter of judgment, and beginners should not use that version.
+The template portfolio in [dERi8MUU5es] is a variant: a contraction base formed at the 50 DMA, a recent breakout, and now a retest of the base while RS stays rising.
 
-**(b) Stochastic plus Heikin Ashi** [H0XAVFBdbzw, FtxgOtPYqVA]
+**Rationale he gives.** Participation comes in legs. People get bored and exit, then chase again. The pullback shakes out short-term holders and reduces net longs, which lets the market make new highs [Oq4FjWEDbd0, g3mcqf6rqoc, Yxo-rYOCuAo]. At the 50 DMA the reward-to-risk is better and you have time to build a position [SuYHqw5zA8U]. He prefers these setups when the pullback happens amid poor news and sentiment [sIo5XQqZ0b0].
 
-| Element | Rule |
-|---|---|
-| Stochastic | 15,3,3, below 30, preferably both lines |
-| Pullback candles | Narrow-range Heikin Ashi candles |
-| Trend filter | Price above the 100-day average |
-| Exception | Below the 100-day but still in a higher-high/higher-low structure: very small size |
+**Where it applies:**
+- He says the 50 DMA bounce works in good companies with real revenue and profits, not in speculative names [T4849hhdwTo].
+- Repeated prior bounces off the 50 DMA are, in his view, a mark of strength [T4849hhdwTo].
+- Only buy dips in leadership-group stocks that hold above the 200 DMA. Do not buy names that have already fallen a lot or sit outside leadership [N2dUTcb9CzQ].
 
-He says buying every dip below 30 causes whipsaws. He also says his own back-testing showed the narrow-range filter excellent, but showed no numbers. His case studies (AT&T, AmEx, Grasim, USDINR) were chosen after the fact.
+**Entry trigger.** Mostly loose:
+- a "strong candle" [Qu49zHwEGwo];
+- a bullish engulfing candle [q26J58h5Qt8];
+- long tails [jcWYGNInYg8];
+- a base then breakout [S--7ta4FmbY].
 
-Other entries from [FtxgOtPYqVA]:
-- Two bullish initiation candles plus one confirmation candle on the 60-minute chart, with the daily trend up.
-- A double bottom where the second low forms on narrower candles than the first.
+In [jcWYGNInYg8] he gives no exact trigger at all.
 
-[e34G88-BKI4] adds: accumulate on unconfirmed bearish Heikin Ashi initiation candles while the higher time frame is up.
+**Sizing.** Small allocations, scaling in [Oq4FjWEDbd0].
 
-**(c) Raschke ADX / 20 EMA** [LahSe1vu1kY]
+**How often and how clearly.** This is his most repeated idea in this chapter, appearing in roughly 25 videos, nearly all from the last 2 years. Clarity is high on the location (the 50 DMA) and low on the exact trigger and stop.
 
-| Element | Rule |
-|---|---|
-| Trend strength | ADX(14) above 30 and rising; a dip during the pullback is fine if it stays above 30 |
-| Pullback | Price touches the 20-day EMA, which slopes in the trade direction |
-| Entry | Buy when the touching candle's high is crossed |
-| Stop | Recent swing low |
-| ADX zones | Target 30–50; above 80 = no new entries |
-| Avoid | Range-bound stocks; the best time is just after a breakout from consolidation |
+Videos: [0nbQs92kYuY, Qu49zHwEGwo, q26J58h5Qt8, Oq4FjWEDbd0, jkga2zdA9dY, jcWYGNInYg8, DCG1GO9TGFU, B8HZvUkY5sA, CFJNeCPMQ1o, S--7ta4FmbY, sIo5XQqZ0b0, L-PGsMh2vHw, dERi8MUU5es, VCNsjVuGoWQ, azzUmy2l_0U, SuYHqw5zA8U, 6K1LOJqZYEg, T4849hhdwTo, NtpyZH5cfaE, N2dUTcb9CzQ, x2RbjJp1eCI, 8QeR8FmYYg4, butE8gDPXxw, c-0bHPew1fg, 6GqBBVt6fUs].
 
-This setup is explicitly for both directions.
+### 2.2 Which averages, and as what
 
-**(d) Hidden bullish divergence, RSI(14)** [R6QjIoYHoFE]
+**Trend filters (gate before any pullback buy):**
+- Price above the 50 DMA and 200 DMA, ideally with the 50 DMA above the 200 DMA. Always avoid stocks below the 200 DMA, and build this into scanners [Jpu536_AmGc].
+- Above a rising 50 DMA and 200 EMA [Qu49zHwEGwo].
+- Above the 200-day average for his Stochastic swing setup [2Yv0E57_bs4].
+- Above the 100-day average:
+  - Longs only above it; focus on shorts below it [H0XAVFBdbzw].
+  - Exception: below the 100-day but with higher highs and higher lows intact, a long is allowed with very small size (gold example) [H0XAVFBdbzw].
+  - At the sector level, a falling-through of the 100-day means the RS-peaking cycle is probably playing out, so exit. Chopping around it and then breaking out means RS continuation. Sometimes he uses only a higher-high pattern instead [BxY2ofigO8I].
+- Sector structure: lower highs, lower lows and a falling 50 DMA mark a sector as weak [Yxo-rYOCuAo].
 
-| Element | Rule |
-|---|---|
-| Pattern | Price makes a higher low while RSI makes a lower low |
-| Prior structure | Clear higher highs and higher lows; bullish conditions only |
-| RSI at the second low | Preferably 30–35, stronger below 30; ignore if above 35 |
-| Decline into the second low | Preferably sharp |
-| Instrument and time frame | Stocks only; daily chart |
-| Aggressive entry | Scale in as RSI nears 30, provided the first swing low holds |
-| Conservative entry | Buy after one completed bullish candle |
+**Entry location.**
+- The 50 DMA dominates recent teaching (§2.1).
+- Positional traders buy near the 50 DMA; long-term investors buy near the 200 DMA (citing O'Neil) [N2dUTcb9CzQ].
+- For Nifty 500 he held 36–38% cash to deploy near or slightly below the 200-day average [fFUPLUEhzVo].
+- The 30-week average is a retest level after breakouts in weak markets [V41BUpPK3E4].
 
-He claims a 55–65% success rate with no sample size or backtest.
+**Short averages (older Raschke-style setup)** [LahSe1vu1kY]:
+- Uses a 20 EMA (21 or 34 acceptable), sloping in the trade direction.
+- He strongly advises against the 50 or 100 EMA here, because price pulls back to them too rarely, giving too few trades.
+- Daily chart only.
+- This directly conflicts with his later 50 DMA centrepiece (see §5).
 
-**Internal inconsistencies.**
-- Stochastic settings: [2Yv0E57_bs4] recommends 8,3,3 over the default. [H0XAVFBdbzw] makes 15,3,3 the default and says 8,3,3 gives more whipsaws.
-- Oversold level: 20 versus 30.
-- Trend filter: 200-day versus 100-day.
+**Other "averages":**
+- Ichimoku: Tenkan (9-period high/low midpoint) and Kijun (26-period). He claims they act as support in trends and are pierced less often than 9- and 26-period moving averages of closes [153pJZk-ixo]. Pullbacks into the cloud held in ICICI Bank examples [59vJPo6oiNA].
+- Moving averages combined with Heikin-Ashi or Renko: mentioned, with details deferred to later parts that are not in these notes [uqEFppHC4Jw, TivTx9jwjqA].
+- Optional: a 50-day average as trend reference for a price-action pattern, but not required [QWcb7yxYAxk].
 
-### 2.8 How deep: Fibonacci and retracement depth
+**General claim.** The 50 and 200 DMA "work," which he calls timeless (citing Livermore, O'Neil, Weinstein), rejecting arguments to the contrary [Oq4FjWEDbd0, T4849hhdwTo].
 
-- **Fibonacci zones:**
-  - The 50% retracement band is high-probability support after a rally from a bottom; 38.2% holding is fine too. Nifty went from 10,000 to about 11,000 in 2018 and held the 50% level [d7cwBnW78XI].
-  - Overlapping 38.2% and 50% levels from different swings form a demand zone, daily chart only. Escorts example: 1,299–1,335, matching a breakout-retest zone [1klATqC7oks].
-  - Renko plus a 38.2% retracement, and Renko trendlines [TivTx9jwjqA].
-  - The Nifty 500 had not reached the 38.2% zone (about 22,092–21,596), which sat near the 200-day average [KDSbZ0oW2U0].
-- **Strength test** [tTdy5srpW9Q]: after a run of at least 3–5%, the first retracement should be negligible. If it exceeds 38.2%, skip the stock, which he calls non-negotiable.
-- **Shallower and shallower pullbacks** mean heavy demand underneath [mRAndF9wyaA].
-- **Other support types:**
-  - a high-volume node in a confirmed uptrend [Nkp_wwGZFNQ];
-  - repeated long-lower-shadow Heikin Ashi candles [uqEFppHC4Jw].
+**SMA or EMA?** Rarely specified. The "DMA" is presumably simple, but the 200 appears as both DMA and EMA [Qu49zHwEGwo vs Jpu536_AmGc].
 
-**Tension.** The 38.2% "first pullback" filter conflicts with his acceptance of 10–23% pullbacks in strong sectors on weekly charts [fFUPLUEhzVo, DCG1GO9TGFU]. The filter applies to the first pullback after a fresh breakout; the large pullbacks come in mature trends.
+### 2.3 Extension: how far is too far
 
-### 2.9 Position handling during dips
+**Measure.** Distance from the 50 DMA in percent, not points [r63sarc_qV8]. Example: Nifty Bank was about 1.58% below the 50 DMA at 56,764, with a maximum of about 2.8% at the low. A 2.5% fall looks big in points on a high-priced index but is modest in percent.
 
-**Scaling in.**
-- Small allocations, scaled in, at the 50 DMA [Oq4FjWEDbd0].
-- 50–100 shares a day on a 1,000-share position during a 10–20 day pullback, or double up after confirmation. His exact method was promised for a later video [YLAIkbRSnsA].
-- The 20–30% / 60–70% split for extended stocks [488FDla8kuc].
-- The 25% / 75% split around breakouts [C8IZozIkPJY].
+**Thresholds he has given:**
 
-**During pullbacks.**
-- Hold winners (accepting some giveback), trim what is not working, add to what is [g3mcqf6rqoc].
-- During corrections, build positions in what falls least [rocXNq3_1Zw].
-- During an index consolidation, skip already-extended breakouts and favour earlier leaders now basing [Lw6h6T30VvE].
+| Instrument | Extension | His reading | Video |
+|---|---|---|---|
+| Stocks | ~8–10% above 50 DMA | No reward-to-risk; don't chase | [Oq4FjWEDbd0] |
+| PSU bank index, poor breadth | ~10% above 50 DMA | Too extended; would rather buy near the 50 DMA or at a retest | [6GqBBVt6fUs] |
+| Small cap index | Last pullback came at 6–7% above; now 4.4% | Pullback may be near; every retracement is an opportunity | [CFJNeCPMQ1o] |
+| Stocks | 40–45% above 50 DMA | Avoid | [S--7ta4FmbY] |
+| Leaders | "Well above" 50 DMA | Prone to pullback; leaders can't be bought at any level as in 2022–23 | [x2RbjJp1eCI] |
 
-**Breadth as the dip-buy gate** [WI0tdUjH_Vg].
-- An index drop of 4–5% while the percent of stocks above their 50 DMA falls only from about 90% to about 60% is a cue to buy the dip.
-- With only about half of stocks above the 200 DMA, expect continued volatility, so buy dips rather than chase.
+**Staged entry when extended from the 200 DMA** [488FDla8kuc]:
+- Strong stock already well above its 200 DMA: enter 20–30% at the signal.
+- Add the remaining 60–70% on a time/price consolidation or retracement (Fibonacci, or breakout re-entry).
 
-**Cash and toe-holds.**
-- He held 36–38% cash to deploy near or slightly below the Nifty 500's 200-day average [fFUPLUEhzVo].
-- He puts about ₹10,000 into large caps down 30–45% while waiting for a base [mim7ylyaN74].
+**Missed moves.** Wait for the stock to go sideways or come back to the 50 DMA rather than chase [SuYHqw5zA8U, L-PGsMh2vHw, Yxo-rYOCuAo]. He illustrates the desperation of chasing with Bank Nifty gapping from 50,000 to 55,000 [Yxo-rYOCuAo].
+
+**Note.** The thresholds are scattered and context-specific (index vs stock, breadth regime). There is no single rule.
+
+### 2.4 Breaches of the 50 DMA: pivot, undercut, "not a trend break"
+
+**50 DMA pivot** [Qu49zHwEGwo]:
+- Definition: the closest swing low just below the 50 DMA (Nifty 500 roughly 22,400–22,600 at the time).
+- The average itself can be breached many times inside a trend; a 1–2 day violation followed by resumption is normal (citing O'Neil).
+- A break of the pivot should not be ignored, because it often accelerates the decline.
+- Recent use: the IPO index has not violated its 50 DMA pivot, while small-, micro- and large-cap structures have; exposure is judged by whether the pivot holds [rhiXs5Kh_0g]. Here "pivot" is used loosely for the 50 DMA itself.
+
+**Undercut** [r63sarc_qV8]:
+- Price dips below support or the average, then reverses and takes off.
+- He cites silver doing this several times in two years.
+- He admits he does not know whether it will work for Nifty Bank.
+
+**Context over a single breach:**
+- Stocks falling below the 50 DMA after a big March–June run should be read against that run; it is not necessarily a trend break [VCNsjVuGoWQ].
+- A sector near or below its 50 DMA is not weak if the higher-timeframe chart is strong [6K1LOJqZYEg].
+- Daily pullbacks can look like downtrends. Nifty Bank weekly showed retracements of ~13%, 18% and 23% inside a weekly higher-high/higher-low uptrend, so judge on the weekly chart [fFUPLUEhzVo].
+- Nifty Bank breached the 50 DMA, spent time below it, and recovered while the 200 DMA flattened. He admits three earlier bearish reads were wrong but says he profited by acting on upside pivot breakouts rather than opinion [Y4TewQHVhvc].
+
+**Retest after V-rallies.** After a vertical rally, a retest of the 50 DMA is very common, sometimes fast and sometimes delayed, and the timing cannot be known. Small/mid-cap index retests are scaling-in points [NtpyZH5cfaE].
+
+**Tension.** He also says he checks whether a sector violates the 50 DMA and heads lower during pullbacks, treating that as weakness [Yxo-rYOCuAo]. So the 50 DMA is both "breachable many times" and a health check. The pivot concept is his attempt to reconcile the two.
+
+### 2.5 Character of the pullback: volume and candle range ("tennis ball")
+
+**Healthy pullback:**
+- Narrow-range candles with sharply lower volume.
+- Price drifts sideways or gently down [VET4JHrc2vU, N5bb0Cu8RAs].
+- Volume expands when price turns back up [T4849hhdwTo, NUDjIohACWs].
+
+**Unhealthy pullback:**
+- Large-volume, large-range down candles signal a real correction [VET4JHrc2vU].
+- High volume on a pullback to the 50 DMA means avoid the stock short-term [N5bb0Cu8RAs].
+- Volume condition: volume falling or flat versus its 50-day average during the consolidation [N5bb0Cu8RAs].
+
+**Tennis ball vs egg** [NUDjIohACWs]:
+- After a breakout, a pullback on contracting volume and a bounce to retake recent highs on expanding volume means hold.
+- Otherwise it is an egg: sell.
+- Typical timing: 2–5 days or 1–2 weeks.
+
+**Supporting statistic.** Quoting an IBD article: roughly 40% of successful stocks return to or just below the buy point before advancing. A healthy pullback comes within days rather than weeks, is gradual, and has declining volume [mR0HMssJek8]. This number is IBD's, not his.
+
+**Older Heiken Ashi version:**
+- In uptrends, weak (narrow) bearish candles on pullbacks are acceptable; strong bullish candles need not be consistent [L99LgSdCDD8].
+- Rebounds made of wide expansion candles are a poor sign even when price bounces [M4Z-Gi4gGag].
+
+**Wyckoff version.** The last point of support (LPS) is a low-volume, narrow-spread pullback into the old resistance after a breakout. A second LPS may form, and he uses these as continuation pivots [K06GqbJwEv4].
+
+### 2.6 Pullbacks to structure: breakout retests and demand zones (long; short mirror only mentioned)
+
+**What it is.** Buy the retest of former resistance that is now support, instead of the breakout itself [-SC5vcQ1NuE, U7YrYjIS9B8, 1klATqC7oks, mRAndF9wyaA].
+
+**Examples:**
+- Escorts ~1,300–1,340, confluent with a Fibonacci zone [1klATqC7oks].
+- A stock at 412 with old resistance at 370–380 retested (390 acceptable), wanting a pullback toward it before entry (30-minute chart) [mRAndF9wyaA].
+- ICICI Bank: repeated long-tailed candles at the ~460–470 breakout/gap zone with price at 481, so one more dip there qualifies [CXJZMbE_d5o].
+- ACC: daily demand zone ~1,520–1,580 with price at 1,608, but the weekly chart showed sellers strong, so wait for a lower-timeframe reversal [dV4MiNaAenI].
+- Cadila: return to a prior demand region after a breakout, only in leading sectors/stocks [eeKRfAbbvZA].
+
+**Weak markets.** Most breakouts retrace. Buy the retest of either:
+- the midpoint of the prior base, or
+- the 30-week average [V41BUpPK3E4].
+
+**Stocks that habitually pull back.** Some stocks (a Rattan India-style name) pull back after almost every breakout. Don't buy their breakouts; wait for the pullback, and skip the trade if it never comes [mim7ylyaN74].
+
+**Low-beta vs high-beta.** Low-beta stocks retest, chop and fake breakdowns before moving, so they need more patience. High-beta breakouts in bull markets tend to go straight up [eeKRfAbbvZA].
+
+**Entry refinements:**
+- Add the remaining 75% (after a 25% breakout entry) on a wide-range bullish candle with higher volume during the pullback [C8IZozIkPJY].
+- Drop to a 60- or 15-minute chart and use a VWAP reclaim for timing [4CzLWJxP4UM].
+- Prior swing high acting as new demand, especially the level whose failure broke the index's 50 DMA [8QeR8FmYYg4].
+
+**Sector ETFs** [rxqOUxO_vP4]:
+- Keep buying dips while the prior consolidation range ("trending pivot") holds, even below interim supports.
+- Act only if the broad range breaks, which he expects only in a global crash.
+
+**Short side.** Mentioned as a mirror (sell near prior supply). He advises beginners to avoid shorting and buy only in equities [-SC5vcQ1NuE].
+
+### 2.7 Oscillator-timed pullbacks (older teaching, 7–8 years ago)
+
+**Stochastic + Heiken Ashi** [H0XAVFBdbzw, FtxgOtPYqVA]:
+1. Daily chart; price above the 100-day average.
+2. Stochastic(15,3,3) below 30, preferably both lines.
+3. The pullback is made of narrow-range Heiken Ashi candles.
+4. Skip if the decline came on wide-range candles.
+5. Tolerance for wide-range candles: beginners accept 0; experienced traders accept 1–2. He rejected a case with 2 out of 4 and accepted USDINR with 1.
+
+Supporting points:
+- Plain Stochastic <30/>70 gives whipsaws [H0XAVFBdbzw].
+- He claims his own backtests showed the narrow-range filter cut whipsaws and raised average profit per trade. No numbers were shown, and the case studies were picked after the fact [H0XAVFBdbzw].
+- 8,3,3 gives more signals and more whipsaws, so start with 15,3,3 [H0XAVFBdbzw].
+- Shorts: only below the 100-day average [H0XAVFBdbzw].
+
+Other Heiken Ashi entries [FtxgOtPYqVA]:
+- Daily trend up; on a 60-minute chart after a corrective decline, enter on 2 bullish initiation candles plus 1 confirmation candle.
+- A double bottom whose second low forms on clearly narrower candles than the first.
+
+**Stochastic swing setup** [2Yv0E57_bs4]:
+- Conditions: above the 200-day average, with market and sector bullish.
+- Signal: Stochastic 8,3,3 drops to or below 20, then crosses up.
+- Hold a few weeks to 1–2 months.
+- Conservative version: full size on the cross, stop at the recent swing low, target 8–12%.
+- Aggressive version: scale in daily while ≤20, final lot on the cross, target 15–18%, partial exit past 10–12%. The stop here is a "judgment call," so beginners should not start with this version.
+- Example: ICICI Bank 2009, with rallies of 10–15% within days, though some signals sat flat for a month.
+- Mirror short: sell temporary strength in a downtrend.
+- The Stochastic is for timing only; the reason to buy is trend plus quality.
+
+**Unconfirmed bearish Heikin Ashi initiation.** In a higher-timeframe uptrend, accumulate on dips rather than exit, ignoring news and earnings noise [e34G88-BKI4]. A long-lower-shadow Heikin Ashi candle marks buying interest, to be judged by what follows [uqEFppHC4Jw].
+
+**Hidden bullish divergence** [R6QjIoYHoFE]:
+- Pattern: price makes a higher low while RSI(14) makes a lower low.
+- Use only after a clear higher-high/higher-low structure; stocks only, not F&O; daily chart for both signal and entry.
+- RSI at the second low: preferred 30–35, stronger below 30, ignore above 35.
+- Preferred but not required: a sharp drop into the second low.
+- Aggressive entry: scale in as RSI nears 30, invalidated below the first swing low.
+- Conservative entry: after one completed bullish candle (beginners).
+- Claimed 55–65% success, with no sample or backtest.
+- Standard divergence only in bearish conditions.
+
+**ADX + 20 EMA (credited to Linda Raschke)** [LahSe1vu1kY]:
+1. ADX(14) above 30 and rising; a dip during the pullback is allowed if ADX stays above 30.
+2. A candle touches the 20 EMA; mark its high.
+3. Buy when that high is crossed, the next day or later.
+4. Stop at the recent swing.
+
+ADX bands:
+- under 30 weak;
+- 30–50 strong (his target zone);
+- 50–80 very strong;
+- over 80: no new entries.
+
+Best right after a breakout from consolidation; avoid range-bound stocks. A short mirror is implied by the EMA-slope rule.
+
+**Status.** None of these appear in the recent videos in the notes. Treat them as an earlier method, not abandoned on record but superseded in emphasis.
+
+### 2.8 Retracement depth
+
+**Fibonacci:**
+- After a rally from a bottom, the 50% retracement is high-probability support; mark a band, not a line. 38.2% holding is fine; 61.8% is also listed [d7cwBnW78XI].
+- Nifty 2018 example: a bounce from 10,000 to ~11,000, then support at 50% [d7cwBnW78XI].
+- Overlapping 38.2% and 50% levels from different swings form a demand zone. Escorts example: 1,299–1,335, low near 1,300. Daily chart only [1klATqC7oks].
+- Renko plus Fibonacci: a pullback held at 38.2% [TivTx9jwjqA].
+- Nifty 500: after six weekly declines, the 38.2% zone (~22,092–21,596) sat near the 200-day average, and he allowed a dip below it and a base [KDSbZ0oW2U0].
+
+**Strength test** [tTdy5srpW9Q]:
+- In the strongest trends, the first retracement after a run of at least 3–5% is shallow or sideways.
+- If it exceeds 38.2%, skip the instrument; he calls this non-negotiable.
+- This conflicts in spirit with 50% being "high-probability support" [d7cwBnW78XI]. The two likely apply to different situations: a fresh breakout leg versus a rebound from a bottom. He does not reconcile them.
+
+**Other depth cues:**
+- Successively shallower pullbacks mean heavy demand underneath [mRAndF9wyaA].
+- A 10–15% pullback after a vertical sector run (defence) is a shakeout and a time to buy gradually [DCG1GO9TGFU].
+- Bank retracements of 3–4% in leading pockets are accumulation points [c-0bHPew1fg].
+- High-volume nodes as pullback support (very old video) [Nkp_wwGZFNQ].
+
+### 2.9 Regime and position management around pullbacks
+
+**Breadth:**
+- An index pullback of 4–5% with breadth only slipping (% above the 50 DMA from ~90% to ~60%) means buy the dip [WI0tdUjH_Vg].
+- With only ~half of stocks above the 200 DMA, expect continued volatility; dips are the opportunity, not chasing [WI0tdUjH_Vg].
+- In poor breadth, even the strongest groups (metals) pull back sharply. Use those pullbacks; don't buy strength [6GqBBVt6fUs, N2dUTcb9CzQ].
+
+**Index consolidation after a run:**
+- Skip fresh breakouts of stocks that already ran.
+- Watch prior leaders pulling back or basing [Lw6h6T30VvE].
+
+**Corrections:**
+- Cut losses early.
+- Find what falls least.
+- Re-engage when higher highs, higher lows and breadth return [rocXNq3_1Zw].
+
+**During a pullback:**
+- Hold winners, accepting some giveback while a base forms.
+- Trim what isn't working; add to what is [g3mcqf6rqoc].
+- Add in small daily tranches (e.g. 50–100 shares on a 1,000-share position over a 10–20 day consolidation), or double up after confirmation. His exact method was promised for a later video [YLAIkbRSnsA].
+
+**Token positions.** About ₹10,000 in fallen large caps (IT names down 30–45%) to force study while waiting for a base [mim7ylyaN74].
+
+**Mean reversion.** Fading moves away from the 200 DMA is something others do; he does not [jlpd-YpqwiQ]. His pullback buying is trend continuation, not mean reversion.
 
 ## 3. How a program would test it
 
-1. **Distance from the 50 DMA.**
-   - *Universe:* stocks in an uptrend, defined as close above a rising 50-day SMA, the 50 above a rising 200, and RS (ratio to the benchmark) rising over 50 days.
-   - *Buckets by entry-day distance from the 50 DMA:* within ±2%, 2–5%, 5–8%, 8–15%, and above 40%.
-   - *Measure:* 20-, 40- and 60-day forward return, maximum adverse excursion, and hit rate.
-   - *Hypothesis:* the 0–2% bucket beats the 8%+ buckets on risk-adjusted return, and the 40%+ bucket is worst. Test separately for stocks and sector indices.
-   - Repeat with a percent-above-the-50-DMA breadth split at 50%, to check his claim that this matters most in weak breadth.
-   - [Oq4FjWEDbd0, S--7ta4FmbY, 6GqBBVt6fUs, N2dUTcb9CzQ, SuYHqw5zA8U]
+**Common data:**
+- Daily OHLCV with survivorship-free constituent histories.
+- Sector/industry index series.
+- A broad benchmark for RS.
+- Breadth series: % of stocks above the 50 and 200 DMA.
+- Costs and slippage per market.
+- Fixed definitions:
+  - "Touch": low within X% of the average, X ∈ {0, 1, 2, 3}.
+  - RS: ratio to benchmark, slope over 50 days.
+  - "Rising average": positive 20-day slope.
 
-2. **Volume dry-up.** Within test 1's 0–2% bucket, compare:
-   - pullbacks where mean volume over the pullback is below the 50-day average volume, followed by a close in the top 25% of the day's range on above-average volume;
-   - all other touches of the average.
-   - [Qu49zHwEGwo, N5bb0Cu8RAs, jkga2zdA9dY, NUDjIohACWs]
+**1. 50 DMA pullback in leaders vs extension (§2.1, §2.3).**
+- Universe: stocks with close > rising 50 DMA > rising 200 DMA (or 200 EMA), RS ratio rising over 50 days, and close within 15% of the 52-week or all-time high.
+- Signal: low within 2% of the 50 DMA.
+- Compare against buying the same stocks when 8–10%, >10% and ≥40% above the 50 DMA.
+- Outputs: 20/40/60-day forward returns, MAE, and hit rate with a stop below the pullback low.
+- Also test entry at touch vs entry on the first bullish engulfing or strong close above the prior day's high.
 
-3. **50 DMA pivot versus 50 DMA breach.** Define the pivot as the most recent swing low (5 bars each side) that lies within 3% below the 50 DMA. Compare the 20–40 day drawdown after:
-   - a first close below the pivot;
-   - a close below the 50 DMA that never breaks the pivot.
-   - Also test the undercut: a close back above the 50 DMA within 3 days, measured by the 10-day forward return.
-   - [Qu49zHwEGwo, r63sarc_qV8, rhiXs5Kh_0g]
+**2. Volume dry-up filter (§2.5).**
+- Within the signals from test 1, split by average volume over the pullback days (prior swing high to touch) relative to the 50-day average volume: <0.8×, 0.8–1.2×, >1.2×.
+- Also split by the share of wide-range down candles (range > 1.5× ATR20).
+- Hypothesis: the low-volume, narrow-range bucket outperforms.
 
-4. **Breakout retest versus breakout bar.**
-   - *Breakout:* close above a resistance level touched at least twice over 60 or more days.
-   - *Compare:* buying the breakout close versus buying the first return to within 2% of that level within 20 days, with a stop 3% below the level.
-   - *Also measure:* how often the retest happens at all. He cites about 40% of winners [mR0HMssJek8].
-   - [-SC5vcQ1NuE, V41BUpPK3E4, K06GqbJwEv4]
+**3. Extension and reversion on indices (§2.3).**
+- For broad and sector indices, bucket the daily % distance above the 50 SMA: 0–3, 3–6, 6–8, 8–10, >10%.
+- Measure the probability of touching the 50 SMA within 10/20/40 days, and forward returns by bucket.
+- Run separately in high-breadth (>60% above 50 DMA) and low-breadth (<40%) regimes.
+- This tests his 6–7% small-cap and 10% PSU-bank calls.
 
-5. **The two Stochastic variants, run head to head.**
-   - (a) Close above the 200-day SMA, Stochastic(8,3,3) crosses up from at or below 20; stop at the swing low; target 10%; 40-day time stop.
-   - (b) Close above the 100-day SMA, Stochastic(15,3,3) %K and %D below 30, at most one Heikin Ashi down candle with range above 1.5× its 10-bar median range during the pullback.
-   - *Measure:* expectancy and whipsaw count, against unfiltered entries below 30.
-   - [2Yv0E57_bs4, H0XAVFBdbzw]
+**4. 50 DMA pivot vs plain 50 DMA break (§2.4).**
+- Define the pivot as the most recent swing low (5-bar fractal) within 3% below the 50 DMA.
+- Compare 20/40-day drawdown after (a) a close below the 50 DMA that holds the pivot, vs (b) a close below the pivot.
+- Add the undercut variant: a close back above the 50 DMA within 3 days of a close below it, measured on 10-day returns.
 
-6. **Raschke ADX / 20 EMA.**
-   - *Rule:* ADX(14) above 30 and above its value 5 days earlier; a candle's low at or below the 20-day EMA; entry on a break above that candle's high within 3 days; stop at the 10-day low.
-   - *Compare:* all 20-EMA touches, plus variants with 21 or 34 periods versus 50 or 100.
-   - [LahSe1vu1kY]
+**5. Stochastic + narrow-range Heiken Ashi + 100-day filter (§2.7).**
+- Daily Stochastic(15,3,3) %K and %D < 30, close > 100 SMA.
+- Pullback Heiken Ashi candles: count of wide-range bearish candles (body > 1.5× the 20-day average Heiken Ashi body) = 0, 1, or ≥2.
+- Compare expectancy and whipsaw rate against Stochastic <30 alone.
+- Repeat with 8,3,3 at ≤20 and a cross-up entry (the [2Yv0E57_bs4] variant), stop at the swing low, 8–12% target.
 
-7. **Breadth-gated index dip.**
-   - *Condition:* the index is 4–5% below its 20-day high.
-   - *Split by:* percent of members above their 50 DMA, at or above 55% versus below 40%.
-   - *Measure:* 20- and 60-day forward returns.
-   - [WI0tdUjH_Vg]
+**6. Raschke ADX/20 EMA (§2.7).**
+- ADX(14) > 30 and rising over 5 days, low touches the 20 EMA, buy on a break of that bar's high within 5 sessions, stop at the 10-day low.
+- Compare with the 50/100 EMA (trade count and expectancy) and with ADX buckets <30, 30–50, >80.
 
-8. **First-retracement filter.** After a breakout followed by a 5% or larger run, classify the first pullback as below or above 38.2% of that run, and compare 60-day returns.
-   - [tTdy5srpW9Q]
+**7. Breakout retest vs breakout day (§2.6).**
+- Breakout: close above a ≥40-day range high on volume > 1.5× average.
+- Compare (a) entry at the breakout close vs (b) entry on a first retest within 15 days that holds above the range midpoint (or above the 30-week SMA), conditioned on weak vs strong breadth.
+- Also measure the fraction of eventual +30% winners that retest the breakout level, to check the IBD ~40% figure.
 
-**Data needed.**
-- Daily OHLCV with survivorship-free constituents.
-- Sector or industry indices and benchmark series for RS.
-- Constituent-level breadth (percent above the 50 and 200 DMA).
-- Realistic costs and slippage, especially for small and micro caps.
-- Optionally, weekly bars for the weekly-chart claims.
+**8. Breadth-conditioned dip buying (§2.9).**
+- Index pullbacks of 4–6% from a 50-day high.
+- Split by the minimum of the % above 50 DMA during the dip: >55% vs <40%.
+- Measure 1–3 month forward index returns.
 
-## 4. Transfer to TSX and US markets
+## 4. Transfer
 
-**Should apply as is.** The rules are pure price, volume and indicator logic, so they can be coded directly on TSX and US data:
-- 50/200 DMA filters and percent-distance extension;
-- volume dry-up and narrow candles on pullbacks;
-- breakout-retest entries;
-- the 50 DMA pivot;
-- Stochastic, Heikin Ashi, ADX/20 EMA and RSI divergence rules;
-- Fibonacci zones;
-- breadth-gated dip buying.
+**Usable as is in US and TSX markets.** All the mechanics are price/volume and market-agnostic:
+- 50/200 DMA filters;
+- % extension from the 50 DMA;
+- volume dry-up on pullbacks;
+- breakout retests;
+- Stochastic, Heiken Ashi, ADX/20 EMA, RSI hidden divergence;
+- Fibonacci bands.
 
-Several ideas come from US sources anyway (O'Neil, Minervini, Weinstein, Raschke, IBD), and some of his own examples were US stocks (AT&T, AmEx).
+Much of the recent template is itself American (O'Neil, Minervini, Weinstein, IBD, Raschke), so the US is close to its native ground.
 
-**Needs adapting.**
-- **Benchmarks:**
-  - RS against the Nifty 500 becomes RS against the S&P/TSX Composite or the S&P 500 / Russell 3000.
-  - The Smallcap 250 and Microcap 250 become the TSX SmallCap or Russell 2000/Microcap.
-- **Sectors:**
-  - Indian sector indices become S&P/TSX capped sector indices or the SPDR/GICS sector funds.
-  - The TSX has few names per sector and is concentrated in financials, energy and materials, so sector RS and breadth samples will be thin. Use industry groups or a combined North American universe.
-- **Extension thresholds:**
-  - His 6–10% (indices) and 8–10% (stocks) were set on Indian volatility. Express them in ATR multiples or volatility-scaled units before porting.
-- **Costs and liquidity:**
-  - TSX venture-type small caps have wide spreads, so the scaling-in tranches (e.g. 50–100 shares a day) may cost more than they save.
-  - Canadian account types (TFSA/RRSP) and US wash-sale rules affect the trimming and re-entry habits.
-- **Instruments:**
-  - His theme ETFs (capital markets, PSU banks, defence) map only loosely to Canadian- or US-listed ETFs.
+**Needs adapting:**
+- **Benchmark for RS:** Nifty 500 → S&P 500 or Russell 3000 (US), S&P/TSX Composite (Canada).
+- **Size segments:** Smallcap 250 / Microcap 250 / Midcap 150 → Russell 2000 / S&P 400 / S&P 600; in Canada, the TSX SmallCap or TSX Venture, which are much less liquid.
+- **Sectors:** India's thematic indices (capital markets, PSU banks, defence, IPO, internet) have no direct TSX equivalents. The TSX is concentrated in financials, energy and materials, so "leading sector" rotation is narrower. Use US SPDR/industry-group ETFs or GICS industry groups instead. Canadian sector ETFs exist but are fewer and thinner.
+- **Extension thresholds:** his 6–10% figures were for Indian indices and stocks. They should be recalibrated per index volatility; a %-of-ATR version is probably better.
+- **Breadth inputs:** need US/Canadian constituent-level data.
+- **Costs:** India has STT and its own cost structure. US costs are low; small-cap TSX spreads can eat the edge on 8–12% targets.
+- **Instruments:** his "stocks only, not F&O" and "beginners don't short" partly reflect Indian constraints on cash shorting. In the US/Canada, the short mirrors (below the 100-day, sell rallies to the 20 EMA) are tradable but barely specified by him.
 
-**India-only.**
-- All specific price levels and zones: Nifty 500 at 22,400–22,600 and 22,092–21,596, Escorts, ICICI, ACC, Bank Nifty, PSU bank.
-- The ₹10,000 token amount.
-- His named Indian leadership themes and the March-to-June 2024 run context.
-- The 2022–23 Indian bull-market framing.
+**India-only:** specific levels and examples:
+- Nifty 500 22,400–22,600 and 22,092–21,596;
+- Bank Nifty 56,764 and 50k→55k;
+- Escorts, ICICI, ACC rupee zones;
+- named Indian themes;
+- the ₹10,000 token size.
+
+These illustrate the method, not the rules.
 
 ## 5. Gaps and doubts
 
-- **No tested evidence.** No backtest results appear anywhere. The 55–65% divergence hit rate [R6QjIoYHoFE] and the "excellent filter" claim [H0XAVFBdbzw] are unsupported. The 40% retest figure is quoted from IBD, not measured [mR0HMssJek8]. Case studies were picked after the fact.
-- **Undefined terms.** "Touch" or "near" the 50 DMA, a "strong candle," a "base," a "consolidation," and "volume drying" have no numbers. The pivot is discretionary [Qu49zHwEGwo, rhiXs5Kh_0g].
-- **Exits for the main setup are almost absent.** For the recent 50 DMA setup he gives a stop below the recent low and nothing on targets, trailing or holding period. Only the older Stochastic setup gives targets (8–12% or 15–18%) [2Yv0E57_bs4].
-- **Contradictions and drift.**
-  - A 20 EMA preferred and 50/100 EMA discouraged [LahSe1vu1kY], versus the 50 DMA as the main level now.
-  - Stochastic 8,3,3 at 20 versus 15,3,3 at 30.
-  - 100-day versus 200-day versus 200 EMA as the trend filter.
-  - The 50 DMA treated as both "breached many times" and a weakness signal when violated.
-  - Pullbacks preferred over breakouts, while the three-stage view triggers on a breakout from the 50 DMA base [S--7ta4FmbY].
-- **Extension thresholds are inconsistent.** 4.4%, 6–7%, 8–10%, about 10% and 40–45% each appear for different instruments, with no unifying rule.
-- **Short side is thin.** It appears only as mirror statements: the Stochastic and Raschke setups, shorts below the 100-day [H0XAVFBdbzw], and supply zones [-SC5vcQ1NuE]. Beginners are told not to short.
-- **Deferred material.** He promised details he does not give here:
-  - his pullback-add method [YLAIkbRSnsA];
-  - moving averages with Renko [TivTx9jwjqA];
-  - Heikin Ashi with moving averages [uqEFppHC4Jw];
-  - Tenkan entries [153pJZk-ixo].
-- **Admitted uncertainty.** He does not know whether the Bank Nifty undercut will work [r63sarc_qV8]. He says the template can fail [6K1LOJqZYEg]. He was wrong three times on Nifty Bank breakdowns [Y4TewQHVhvc].
-- **Not covered here:**
-  - how to size the scale-in tranches beyond the examples;
-  - what to do when a 50 DMA pullback turns into a pivot break after entry;
-  - how to rank several pullback candidates against each other;
-  - how pullback depth should vary with market cap or beta, beyond the low-beta retest observation [eeKRfAbbvZA].
+- **Entry trigger and stop at the 50 DMA are vague.** "Strong candle," "good candles," "holds," "near" are never quantified. The touch distance is undefined. A stop is mentioned once without placement [0nbQs92kYuY]. Exits and targets for the 50 DMA setup are absent; only the older Stochastic setup gives targets (8–12%, 15–18%) [2Yv0E57_bs4].
+- **No evidence shown.** His only performance numbers are:
+  - the 55–65% divergence hit rate, unbacked [R6QjIoYHoFE];
+  - the narrow-range filter "backtest," without figures [H0XAVFBdbzw];
+  - IBD's ~40% retest figure, second-hand [mR0HMssJek8].
+
+  All examples are chosen in hindsight. He himself says the template can fail [6K1LOJqZYEg] and admits wrong reads [Y4TewQHVhvc, r63sarc_qV8].
+- **Which average:**
+  - The trend filter shifts between 100-day, 200-day, 200 EMA and 50>200.
+  - SMA vs EMA is mostly unstated.
+  - The older ADX video says avoid the 50 EMA because pullbacks to it are too rare [LahSe1vu1kY]; the recent teaching makes the 50 DMA the main pullback level. This is a real change over time, never addressed.
+- **Stochastic parameters:** 15,3,3 below 30, with a warning that 8,3,3 whipsaws [H0XAVFBdbzw], versus 8,3,3 at ≤20 as his core swing setting [2Yv0E57_bs4].
+- **Retracement depth:**
+  - Skip if the first pullback exceeds 38.2% [tTdy5srpW9Q] vs 50% as high-probability support [d7cwBnW78XI].
+  - Accepting 13–23% weekly pullbacks [fFUPLUEhzVo] vs calling 8–10% extension already too far, which is a different axis.
+  - Context presumably differs but is not specified.
+- **50 DMA breach:** described as both normal [Qu49zHwEGwo, VCNsjVuGoWQ] and a warning [Yxo-rYOCuAo]. The swing-pivot definition is subjective. In [rhiXs5Kh_0g] "pivot" seems to mean the average itself.
+- **Extension thresholds:** given ad hoc per instrument and regime (6–7%, 8–10%, 10%, 40–45%). There is no stated rule for scaling them by volatility.
+- **Short side:** almost untreated. Only one-line mirrors exist [2Yv0E57_bs4, -SC5vcQ1NuE, H0XAVFBdbzw, LahSe1vu1kY].
+- **Deferred material never seen in these notes:**
+  - moving averages with Renko and Heikin-Ashi [TivTx9jwjqA, uqEFppHC4Jw];
+  - Tenkan entries [153pJZk-ixo];
+  - his exact pullback-adding method [YLAIkbRSnsA].
+- **Quality filter:** "good companies with real revenue and profits" [T4849hhdwTo] is a fundamental condition he does not define.

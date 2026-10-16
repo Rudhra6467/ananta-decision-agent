@@ -1,459 +1,423 @@
-<!-- Trading Knowledge Library · Trade With Trend (Raunak A, India). Built 2026-10-16 from 158 public videos with captions (of 287 on the channel; members-only videos were not used): one structured note per video (Claude Sonnet 5.5) -> this chapter (Claude Opus 5.5), src/research/library.py. Paraphrased; the transcripts stay on the laptop. Evidence class: external teaching = hypotheses to test, never Ananta rules; nothing in the agent reads docs/library/. -->
+<!-- Trading Knowledge Library · Trade With Trend (Raunak A, Trade With Trend, India). Built 2026-10-16 from 161 public videos with captions (of 289 on the channel; members-only videos were not used): one structured note per video (Claude Sonnet 5.5) -> this chapter (Claude Opus 5.5), src/research/library.py. Paraphrased; the transcripts stay on the laptop. Evidence class: external teaching = hypotheses to test, never Ananta rules; nothing in the agent reads docs/library/. -->
 
 # Volume and market profile
 
 ## 1. What he teaches here and how it fits
 
-Two bodies of teaching sit in this chapter, and they come from different periods of his work.
+In this area Raunak A teaches three separate toolsets, from different periods of his teaching.
 
-**The older material (about 13 years ago)** is a Market Profile course. It covers:
-- TPOs, initial balance, value area, POC and tails;
-- opening types measured against the prior value area and the prior range;
-- day types and value-area migration;
-- rotation factor, range extension, excess, and initiative versus responsive activity.
+- **Market profile (oldest material).** A tutorial series from about 13 years ago covers TPO-based market profile. It deals with opening types, day types, value-area migration, initial balance, range extension, tails, rotation factor and high/low volume areas. The aim throughout is to infer whether the longer-term "other-time-frame" (OTF) trader is present, and then trade alongside him.
+- **Volume profile (middle period).** Videos from about 7-8 years ago treat volume profile (HVN, LVN, POC) as horizontal support and resistance. The swing he wants to capture is the move from one high-volume node to the next.
+- **Daily-chart volume reading (recent material).** Across his 1-7-year-old swing and positional material, the dominant use of volume is simple bar-chart reading. Volume should expand on up-moves and on breakouts and dry up on pullbacks (his "tennis ball" action). Volume confirms breakouts and breakdowns, judged against roughly a 50-day average. He adds VSA-style readings of absorption and follow-through.
 
-The course is built around one idea: find out whether the "other-time-frame" (OTF, longer-term) trader is present, and trade only with that trader. A shorter volume-profile set from about 7–8 years ago adds high and low volume nodes and POC as support and resistance.
-
-**The more recent material (about 1–7 years ago)** is daily-chart price-volume reading for his trend and breakout swing trading:
-- Volume should expand on up-legs and dry up on pullbacks. He calls this the "tennis ball" pattern.
-- Breakout bars need clearly higher volume than recent bars.
-- VSA-style reading of absorption and weak follow-through.
-- Delivery volume, which is specific to India.
-
-In his overall method, volume is mainly a **filter and confirmation layer** on setups taught elsewhere: stage analysis, ORB, cloud breakouts, coil, gaps, reversal candles, and stops. It is not a standalone signal.
-
-The Market Profile tools do not appear in the recent videos in these notes. Whether he still uses them is unknown.
-
-Everything below is his claim or method, to be treated as a hypothesis to test.
-
----
+This daily-chart reading is a filter on his trend, stage-analysis and leader-selection setups, not a standalone system. The notes do not show the market-profile framework being carried into his recent stock-selection videos. Treat everything below as his claims, to be tested.
 
 ## 2. The ideas
 
-### 2.1 The "normal" price-volume relationship in an uptrend (tennis ball)
+### 2.1 Normal price-volume relationship in an uptrend ("tennis ball")
 
-**What it is.** In a healthy uptrend or leader:
-- volume expands as price rises, with wide-range up candles on above-average volume;
-- volume contracts as price pulls back or consolidates.
+**What it is.** In a healthy uptrend:
+- Volume expands as price rises.
+- Volume dries up over several days as price falls or consolidates.
+- Up-candles are wider than pullback candles.
 
-He reads up-leg volume as stronger players entering. He reads low pullback volume as holders not unwinding and institutions not being shaken out. Leaders show a repeated rhythm: contraction (low range, low volume), then expansion (wide range, volume spikes). Their up-candles are larger than their pullback candles.
+He reads this as stronger players entering on advances while holders do not unwind on dips [eeKRfAbbvZA, tTdy5srpW9Q, Jpu536_AmGc, q26J58h5Qt8, N5bb0Cu8RAs]. Bull-market leaders show a rhythm of contraction (low range, low volume) followed by expansion (wide range, volume spikes) [VET4JHrc2vU]. He also wants wide-range up candles to coincide with volume above average, because that is what gives the later consolidation its meaning [jBYC0t30fz8].
 
-**Conditions and numbers**
-- **Reference.** Compare volume to its 50-period average. He says anything from 20 to 200 periods works if used consistently [N5bb0Cu8RAs].
-- **Pullback location.** Pullbacks ideally come near the 50 and 200 DMA [Jpu536_AmGc]. One version tests pullbacks to the 50 DMA on below-average volume [Qu49zHwEGwo].
-- **Seller strength.** Sellers count as strong only when there are consecutive wide-range, strong-closing bearish candles with clear volume expansion. If that is absent during a pullback, it is treated as consolidation within the uptrend [1klATqC7oks].
-- **Leader traits.** He lists three [VET4JHrc2vU]:
-  1. follow-through after the breakout;
-  2. lighter-volume pullbacks;
-  3. up-candles larger than pullback candles.
-  
-  From the video description he also adds strong relative strength and many range-expansion days.
-- **Visual aid.** Candle-volume charts, where candle width is proportional to volume, are available in Amibroker and on StockCharts [1klATqC7oks].
+**Conditions and numbers.**
+- Volume is judged against a 50-period volume average. He says 20 to 200 also works if used consistently [N5bb0Cu8RAs].
+- Pullbacks to the 50 DMA should come on volume below its 50-day average [Qu49zHwEGwo, NUDjIohACWs].
+- Ideal pullbacks sit near the 50 and 200 DMA [Jpu536_AmGc].
+- His listed traits of leaders are follow-through after the breakout, lighter pullback volume, and larger up-candles than down-candles. The notes add strong relative strength and many range-expansion days (from a video description) [VET4JHrc2vU].
 
-**When not to use it / what to avoid.** Skip stocks with "abnormal" behaviour, even if they trade above the 50-day average [N5bb0Cu8RAs]:
-- volume expands but price does not move;
-- wide-range candles come on average or below-average volume;
-- volume spikes randomly above and below the 50-day average.
+**Seller strength.** Sellers count as strong only if consecutive wide-range, strong-closing bearish candles come with clear volume expansion. Without that, a dip is consolidation within the uptrend [1klATqC7oks]. He suggests candle-volume charts, where candle width is proportional to volume (Amibroker, StockCharts), to see this [1klATqC7oks, LahSe1vu1kY].
 
-He credits this idea to O'Neil and to VSA.
+**Avoid list** (from O'Neil and VSA, holds even above the 50-day average) [N5bb0Cu8RAs]:
+- Volume expands but price does not move.
+- Wide-range candles come on volume at or below average.
+- Volume spikes randomly above and below the 50-day average with no pattern.
 
-Low volume while the stock is below its 50-day average is acceptable. Even so, he wants a range to form, volume to dry up further, and then a breakout before he selects the stock [N5bb0Cu8RAs].
+A stock below its 50-day average with contracting volume is acceptable. He would still wait for a range, further dry-up, and a breakout [N5bb0Cu8RAs].
 
-The pattern also appears intraday, but he says it fails more often there, so daily charts are preferred [jBYC0t30fz8].
+**Timeframe.** He says the pattern also appears intraday but fails more often, so daily charts are the place to use it [jBYC0t30fz8].
 
-**Short side.** The mirror image appears once. In the JSW example, heavy volume on down candles and light volume on up candles confirmed that sellers were in control [LahSe1vu1kY].
+**Clarity and frequency.** High. This is his most repeated volume idea, across at least nine videos spanning 1-7 years.
 
-**Market level.** He applies the same reading to the broad market:
-- Bear-market rallies come on lower volume than real recoveries. Without volume, price "rolls over." He noted volume returning in the Nifty 500 over roughly 34 days [20BxPDdAZAE].
-- Liquid-stock volume shrank in the Jan–Mar 2025 decline, then rose from April. By 1 June it was about 67% above January, which he read as positive [WI0tdUjH_Vg].
+### 2.2 Breakout and breakdown volume
 
-**How often taught.** This is his most repeated volume idea, with high clarity in several places: [eeKRfAbbvZA, Qu49zHwEGwo, Jpu536_AmGc, q26J58h5Qt8, 1klATqC7oks, NUDjIohACWs, N5bb0Cu8RAs, VET4JHrc2vU, jBYC0t30fz8, tTdy5srpW9Q, H0XAVFBdbzw, kkJ4m9JQ4pM]. The same reading is used as a whipsaw filter for pullback entries, with no numeric threshold [H0XAVFBdbzw].
+**Long side.**
+- The breakout bar's volume should be clearly above recent bars on the same timeframe. His examples include the highest in about 3 months [p6pwKWQgxUw] and well above the prior 3-4 month average, or the last 20-25 sessions [4CzLWJxP4UM].
+- A strong candle on weak volume is skipped [p6pwKWQgxUw].
+- **Repeated approaches to resistance.** If earlier approaches came on weak volume and the current approach shows a clear spike (over about two months), he expects a breakout [mRAndF9wyaA].
+- **Coil pattern volume signature** [VqoLpEvre04]:
+  - Volume rises on leg A-B, is flat or falling on C-D, and rises on the up legs.
+  - It drops notably on the final down leg E-F.
+  - It must pick up notably on the breakout. He calls this last rule crucial.
+- **Ichimoku cloud breakouts** require volume expanding in the direction of the move [xzR6bwNgb18].
 
-### 2.2 Volume on breakouts and signal bars
+**Short side.** Volume must expand right as price breaks below the range and the moving average (150-day in the testable note). He says this matters more for shorts than for longs [G2gjQUJRfJM].
 
-**Longs**
-- The breakout bar's volume should be clearly above recent bars on the same timeframe. One example was the highest in about 3 months [p6pwKWQgxUw].
-- Baseline is the average of the prior 3–4 months, or the last 20–25 sessions:
-  - L&T, HDFC Life and Info Edge broke out on volume clearly above that baseline;
-  - Escorts lacked it, which he called a disappointment [4CzLWJxP4UM].
-- A strong-looking candle on weak volume is skipped [p6pwKWQgxUw]. He admits breakouts do not always come with volume.
-- Approach to resistance: if earlier approaches to the same level had weak volume, and the current approach shows a clear spike (over about 2 months in his example), he expects a breakout [mRAndF9wyaA].
+**Long/short asymmetry.** For longs, volume "can take some time" to arrive, so do not judge too early. For shorts it must come immediately [G2gjQUJRfJM].
 
-**Long/short asymmetry** [G2gjQUJRfJM]
-- **Shorts:** volume must expand immediately as price breaks below the range and the moving average. He says this matters more for shorts than for longs.
-- **Longs:** volume can arrive some days late, so do not judge a long too early.
-- Alongside stage analysis, note which side the volume is expanding on to judge demand versus supply.
+**Optional versus mandatory: his teaching is inconsistent.**
 
-**Setup-specific use**
-
-| Setup | Volume rule | Mandatory? | Source |
-|---|---|---|---|
-| ORB | Volume is his "first filter": breakout candle clearly above recent volume, and volume keeps rising after the opening-range candle | Yes; skip if absent | [hk4d8AxbQ3A] |
-| Cloud breakout | Volume expands in the breakout direction as price leaves the cloud | Yes (threshold unstated) | [xzR6bwNgb18] |
-| Coil pattern | Specific profile across the legs (see below) | Breakout volume "crucial" | [VqoLpEvre04] |
-| Gap candle | Higher than usual volume | Optional; use stocks, since index volume is unreliable | [HHkcCy5LrCM] |
-| Weekly outside-bar reversal | Volume spike, e.g. Godrej Consumer, Sep 2018, highest weekly volume in about a year | No; Havells worked without it | [_AiSzhs67J4] |
-| Hidden divergence | Higher volume at the second low than the first | Optional; stated verbally, no chart shown | [R6QjIoYHoFE] |
-
-The coil volume profile [VqoLpEvre04]:
-- rising on the first down leg (A-B);
-- flat or falling on C-D;
-- somewhat rising on the up legs B-C and D-E;
-- dropping notably on the final down leg E-F;
-- picking up notably on the breakout above the A-C-E line. He calls this last condition crucial.
-
-**Sector research.** A volume pickup after a long quiet period in a sector ETF (CPSE, PSE, oil CPSE examples), or huge volume in gold or silver, is a reason to research the sector. It is not a trade signal [6qExRlD11sE].
-
-### 2.3 VSA-style reading: absorption, follow-through, and volume-based stop overrides
-
-- **Weak sellers.** A bearish candle, even one with a long wick, that gets little downside follow-through means sellers are weak. Bearish candles repeatedly met by wide-range bullish candles mean buyers are in control. He points to Tom Williams' VSA material [4CzLWJxP4UM].
-- **Absorption (Nestle India)** [CXJZMbE_d5o]:
-  - a wide-range bearish candle on expanded volume;
-  - then several long-tailed candles near its low;
-  - read as selling absorbed;
-  - once price expands upward and the zone holds (about 16,900–17,000), he expects consolidation and then the prior uptrend to resume.
-- **Strong sellers giving way (TCS)** [Tkx2xIboYsw]:
-  - wide-range down candles with volume during the decline;
-  - then only long-tailed candles and no strong bearish candles after the low;
-  - read as demand overpowering supply, valid while the low holds (about 2625–2650).
-- **Weekly supply.** A long upper wick with a close near the week's low suggests more consolidation or short-term downside. Long lower tails suggest demand [dV4MiNaAenI]. This is close-location reading, not volume.
-- **Stop override** [mR0HMssJek8]. When a stock falls 3–5% below the buy price:
-  - hold if the fall is on light, contracting volume;
-  - cut if the fall comes on rising volume with wide-range down candles.
-  
-  He cut a bank stock at −3%, −5% and −7% for this reason, and he calls the decision subjective.
-
-### 2.4 Delivery volume (India only)
-
-On daily charts he checks NSE delivery data. It matters most inside consolidations. Low delivery on down closes, and above-average delivery on long-tail support candles and on the breakout day, suggest supply is being absorbed. His example: delivery averaged 0.6–0.8 million shares in the consolidation and 1.7 million on the breakout day.
-
-He says delivery runs high anyway during uptrends, so traders over-read it there [jBYC0t30fz8]. This comes from a single video, with high clarity.
-
-### 2.5 Liquidity filters
-
-- **Swing trading.** Use only liquid stocks, with a minimum 252-day average volume. The threshold was on a slide and is not in the captions. Avoid penny stocks that can gap into circuit limits [zWYCYySQVNc].
-- **Kicker pattern.** Beginners should stay within F&O-segment stocks, because illiquid names produce artefact gaps [QWcb7yxYAxk].
-
-### 2.6 VWAP (thin)
-
-VWAP appears only as context for intraday trades:
-- **ORB.** A long ORB is higher quality when sellers fail to push price below VWAP on volume, candles near VWAP show rejection tails, and the breakout happens above VWAP with volume expansion. He says a moving average can replace VWAP [hk4d8AxbQ3A].
-- **Volume plus candle shape.** High volume on a wide strong candle holding at VWAP is significant. Low-volume candles rejected at VWAP show weak conviction on the other side [hk4d8AxbQ3A].
-- **Bank Nifty example.** After a consolidation breakout, a long-tailed, high-volume candle at VWAP and at the prior range level preceded a move up. He cites Info Edge rising about 3–4% the next day on the same pattern [CXJZMbE_d5o].
-
-There is no standalone VWAP strategy in these notes.
-
-### 2.7 Market Profile building blocks
-
-**Definitions**
-- **TPO.** One letter per price visited in a time slice. The standard slice is 30 minutes (A = first 30 minutes); 60 or 120 minutes can be used for longer profiles [z-ae7tLVdoo]. He says a typical profile print needs 30 minutes, hence his 30-minute setting [ESVo3wifA7g].
-- **Wider TPOs for positional work.** Use weekly or multi-day profiles with 180–240-minute TPO blocks. The exact setting is left to experiment [cDcvc9esnwo].
-- **Initial balance (IB).** The range of the opening period, usually the first 60 minutes (A+B). It is adjustable: 30 minutes, 3 hours, or multi-day [z-ae7tLVdoo, 4kP0_EuS_EY].
-- **Value area (VA).** The zone holding about 70% of activity. He calls it the "heart" of Market Profile [z-ae7tLVdoo, p03ho_Rhc_E].
-- **POC.** The price with the most TPOs, the "fairest" price. He says it is used in strategies taught later [z-ae7tLVdoo].
-
-**Tails** [z-ae7tLVdoo, cDcvc9esnwo]
-- Single prints at the bottom are a buying tail; at the top, a selling tail.
-- Longer tails mean a more aggressive OTF participant, who will defend the level. One example compared a 5-TPO buying tail against a 2-TPO selling tail.
-- No tails means no aggressive OTF participant.
-- Count tails across a series of profiles rather than reading one profile alone [cDcvc9esnwo].
-
-**Close location** [z-ae7tLVdoo]
-- Mid-range: neither side confident.
-- Near the high or low: that side more confident.
-- He says this is "not very important by itself."
-
-**Software and data, India c. 2018** [ESVo3wifA7g]
-- eSignal: Rs 14–16k/month.
-- Linnsoft: about Rs 11–12k/month.
-- NinjaTrader: about Rs 8–9k/month.
-- Amibroker: Rs 19.7–23k one-time. Free community AFL profiles were "not very accurate."
-- TradingView Pro: volume profile only, no TPO.
-- His cheapest route: Sierra Chart package 5 (about $33) plus an Excel data feed (about Rs 1,500), roughly Rs 3,800/month. Data is not live; it must be re-imported manually every 5–20 minutes.
-- Import format:
-  - columns: symbol, date (YYMMDD), time (hhmmss), O, H, L, C, V;
-  - Bank Nifty settings: tick 1, 90 days loaded, TPO period 30.
-
-### 2.8 Opening types relative to the prior value area and range
-
-**Purpose.** To judge whether the OTF trader is initiating, as opposed to making responsive trades [dUeQOEU6FlQ].
-
-**Location of the open (three types), ranked by imbalance** [CVNE93D1IDk, dUeQOEU6FlQ]:
-
-1. **Inside the prior VA.** Balanced, low risk and low opportunity, lowest priority.
-   - *Accepted* (no exit after the first 3–4 half-hours, about 1–1.5 h): expect a range like the prior day's. Stay out.
-   - *Rejected* (few TPOs built in the old VA, price drives out within 30–60 min): a profile "to bet on."
-2. **Outside the prior VA but inside the prior range.** Medium priority.
-   - *Accepted* (price overlaps back into the old profile): hard to trade without a tail. A VA that has shifted higher is still bullish to him.
-   - *Rejected* (price breaks the prior day's high or low within the first 30 min): a stronger signal. He adds that most trend days start from the opening bell, not after midday.
-3. **Outside the prior range.** Most imbalanced, highest priority.
-   - *Accepted (gap up):* the first-TPO low usually holds, so a stop under it on a later rotation gives very good reward-to-risk. He describes this as the opening traders should love.
-   - *Rejected (gap up that fails):* typical in bearish, high-volatility phases after a retracement rally. The first warning is a breach of the first-TPO low (in the 3rd period in his example). Then go short with a stop at the prior-day high or the current-day high. For positional trades, use the prior and current profile highs.
-
-**Dalton-style names** [dUeQOEU6FlQ, kbiKPEmqpm0, Nkp_wwGZFNQ]
-
-- **Open drive** (highest conviction)
-  - Opens outside the prior range and keeps going.
-  - Ideally the first-30-minute low is never breached; for a weekly profile, Monday's opening low.
-  - Signs of confidence: the first 30-minute interval closes near its extreme and the next interval opens near it [kbiKPEmqpm0].
-  - Trade: if price opens above the prior VA with an open drive, go long with a stop around the prior VA high (example: prior VA about 75, open at 78–79) [Nkp_wwGZFNQ].
-- **Open test drive.** Defined two different ways; see Section 5.
-- **Open rejection reverse**
-  - Gaps beyond the range, meets aggressive sellers, then falls back through the prior VA. Below the prior VA it counts as initiative selling.
-  - Clues: gap size, sell surges on time-and-sales, a bear backdrop. He calls it the most confusing opening [dUeQOEU6FlQ].
-  - In a true open drive, earlier interval extremes are broken only once or twice. Consistent breaches mean reject reverse [kbiKPEmqpm0].
-- **Open auction**
-  - Opens inside the prior VA and range. Listless, with intervals closing mid-range.
-  - Found in low-volatility bull consolidations, at tops or distribution, or when a market is tired after a run.
-  - It is the hardest type to identify because of false breaks [dUeQOEU6FlQ, kbiKPEmqpm0].
-  - A later range break near the end of the first interval behaves like an open drive without the gap [dUeQOEU6FlQ].
-
-**Real-time process** [kbiKPEmqpm0]. Over the first 1–2 hours, eliminate types:
-- a rally that fades and closes its interval near the low rules out an up open drive;
-- two-way auctions rule out an open drive;
-- if no interval breaks the first interval's range, prefer open auction over test drive.
-
-Then add context. Overlapping VAs point to auction; trending VAs favour test drive. After a strong trend with rising VAs and a gap in the trend direction, an open auction is "very unlikely."
-
-**OTF reading** [CVNE93D1IDk]
-- Opens outside the VA: OTF present.
-- Opens well outside the range: OTF present and aggressive.
-- Opens inside both: avoid.
-
-### 2.9 Day types from initial-balance width
-
-**IB width as a hint**
-- A very wide IB means a likely range day. His illustration: about 3% of price [z-ae7tLVdoo]; about 80 Nifty points [4kP0_EuS_EY].
-- A narrow IB leaves room for a trend. His chart example had an IB of about 24 points (about 1%) and then rallied [z-ae7tLVdoo].
-
-**Day types** [4kP0_EuS_EY]
-
-| Type | IB | What happens | His read |
-|---|---|---|---|
-| Normal | Very wide | Rotation stays inside the IB | Low opportunity; stay out |
-| Normal variation | Somewhat smaller | Breach later in the session (in India, around the European open) | Close near the extension extreme = directional for next day; close back in or near the IB = weak |
-| Trend | — | Thin, elongated (about 3 TPO columns vs about 7 on a normal day) | "Dream profile" if caught early; later periods may dip below earlier lows, do not be rigid |
-| Double-distribution trend | Narrow | Two balance areas separated by single prints | Weaker than a single-distribution trend; price usually does not return through the single prints, and re-entry into them means something changed |
-| Non-trend | Narrow | Failed breach, rotation around value | Frustrating; often a pause after a big run, with the move resuming in 2–3 days; linked to low VIX |
-| Neutral | Neither | Extensions on both sides | Usually high VIX; split into neutral-extreme (close at an end) and neutral-center (close mid-range) |
-
-### 2.10 Value-area migration and closes relative to value
-
-**Price versus value**
-- In ranges, price reverts to value.
-- In trends, price runs ahead and value "catches up."
-- He prefers trading situations where value is chasing price [CVNE93D1IDk, Nkp_wwGZFNQ, kbiKPEmqpm0, cDcvc9esnwo].
-
-**Migration**
-- Rising, non-overlapping VAs mean OTF buyers; falling ones mean OTF sellers. His illustration: VAs around 2020, then 2040, then 2060–2080 [z-ae7tLVdoo].
-- Overlapping VAs mean range behaviour or slowing trend [z-ae7tLVdoo, Nkp_wwGZFNQ, cDcvc9esnwo]. He calls VA placement the "central clue" [cDcvc9esnwo].
-- A wider VA means a stronger support/resistance band [Nkp_wwGZFNQ]. A very wide VA means many rotations and a range [tNACzhThprk].
-
-**Close tests** [kbiKPEmqpm0]
-- **Uptrend:** the close sits near or above its own VA high. It is above the prior day's VA high on about 7 of 10 days. He literally says "always," then defines that as 7 of 10.
-- **Downtrend:** the mirror image, with closes below the prior VA low and near or below the day's own VA low.
-- **Warning sign:** repeated closes inside or overlapping the prior VA. This leads to a rounding or range phase.
-- **Two-factor check:** score each close against both the day's own VA and the prior day's VA. He says the books do not cover this.
-
-**Bullish, bearish and neutral profiles** [uFFAAZNSozg]
-- **Neutral:** opens and closes inside the prior VA.
-- **Bullish:** opens inside or above the prior VA and closes above it.
-  - Super-bullish: gaps up and closes above several prior VAs (4 in his example), with range extension and a close near the high.
-- **Bearish:** opens inside or above the prior VA and closes below it.
-  - Stronger: opens below the prior VA, extends down, and closes near the low.
-- **Range extension but close inside its own VA:** only mildly directional.
-
-**Counting profiles** [uFFAAZNSozg]
-- Count bullish versus bearish profiles over a window of about 13–14 even when price is flat. Examples: about 7 bullish vs 3 bearish in a stage-1 base before an upside breakout; 8 of 13 bearish in a slow decline.
-- Merging adjacent profiles can reveal the true character of the market.
-
-**Initiative versus responsive** [cDcvc9esnwo]
-
-| Activity | Where it happens | Meaning |
+| Context | His position | Videos |
 |---|---|---|
-| Initiative buying | Within or above the prior VA | Conviction |
-| Responsive buying | Below the prior VA | Dip-buying |
-| Initiative selling | Within or below the prior VA | Conviction |
-| Responsive selling | Above the prior VA | Fading strength |
+| Reversal candles | Volume adds conviction but is not mandatory (Havells worked without it) | _AiSzhs67J4 |
+| Gap candles | Optional extra | HHkcCy5LrCM |
+| Second low of a hidden divergence | Optional | R6QjIoYHoFE |
+| Standard breakouts and coils | Required | p6pwKWQgxUw, VqoLpEvre04 |
 
-Accumulation inside a range shows up as trend profiles and repeated upward VA attempts [cDcvc9esnwo]. This point has low clarity.
+**Thresholds.** None is numeric. It is always "clearly above."
 
-### 2.11 OTF control clues: rotation factor, range extension, excess, TPO count
+### 2.3 Volume-based stop override
 
-**Rotation factor** [tNACzhThprk]
-- Scoring, each bar against the previous one:
-  - high above the previous high: +1; high below: −1;
-  - low above the previous low: +1; low below: −1;
-  - equal: 0.
-- Sum the scores over the session.
-- Positive means OTF buyers; negative means OTF sellers.
-- Size matters: ±1 is a narrow win; about ±5–6 or ±10–15 shows strong OTF participation.
-- Read it across several sessions. His example series was +14, +2, +14, −4, +10, where the −4 is not a reversal. In ranges the sign flips day to day.
-- Combined setup: 2–3 positive-rotation days that take out a low-volume node, with a rising VA. Also check close location, open location, and whether a high-volume node sits just above as resistance.
+After a breakout, a fall of 3-5% below the buy price on light, contracting volume is held. A fall on rising volume with wide-range down candles is cut. He cut one bank stock at -3%, -5% and -7% for this reason, and calls the decision subjective [mR0HMssJek8]. Low-volume pullbacks are also his whipsaw filter for pullback entries, but he gives no thresholds [H0XAVFBdbzw].
 
-**Range extension (a break of the IB)** [cDcvc9esnwo, tNACzhThprk]
-- Counts as OTF presence, except a single TPO that pokes out and returns. One or two such pokes per period are normal.
-- Count up versus down extensions over about 10 profiles.
-- Strength depends on the size of the extension and a close in the extreme quartile.
-- In ranges, extensions are random. In trends they mostly follow the trend, and counter-trend extensions stay small.
+### 2.4 VSA-style readings: absorption and follow-through
 
-**Uptrend confirmation cluster** [tNACzhThprk]
-- high positive rotation factor;
-- rising VAs;
-- mostly upside extensions;
-- closes near the highs with buying tails.
+- **No follow-through.** Bearish candles with little downside follow-through, or repeatedly met by wide-range bullish candles, mean sellers are weak. He points to Tom Williams' VSA material [4CzLWJxP4UM].
+- **Absorption.** A wide-range bearish candle on high volume, followed by several long-lower-tail candles near its low, means selling is being absorbed. Once the low holds and price expands upward, he expects consolidation and then a move in the prior trend's direction. Example: Nestle, defended zone about 16,900-17,000 [CXJZMbE_d5o].
+- **Transition from strong to weak sellers.** Wide-range down candles on volume, then only long-tailed candles after the low, valid while the low holds. Example: TCS, about 2,625-2,650 [Tkx2xIboYsw].
+- **Weekly upper wick.** A long upper wick with a close near the weekly low reads as supply [dV4MiNaAenI].
 
-A neutral day does not break the trend.
+**Clarity.** Medium. All examples are single cases.
 
-**Excess** [tNACzhThprk]
-- A blow-off over one or several days, then a sharp island-like reversal. He treats it as the end of the trend.
-- Bearish example: overlapping VAs with closes near the lows, then an open entirely below the accepted range, then a drift lower to close in the bottom 25–30% of the range.
-- He claims excess zones are rarely breached. His evidence is loose recollection of Indian index zones from 2000–2003, 2008 and 2011; he is unsure of one month and checked no data.
+### 2.5 Delivery volume (India)
 
-**TPO count** [cDcvc9esnwo]
-- More TPOs above the POC reads as selling; more below reads as buying. Example: 50 above vs 28 below, read as sellers.
-- Only meaningful if the IB was broken.
-- He rates it the least reliable clue and says not to base decisions on it.
+On daily charts he checks NSE delivery volume, and only during consolidations. He wants low delivery on down-closes and above-average delivery on long-tail support candles and on the breakout day. Example: consolidation average 0.6-0.8 million shares versus 1.7 million on the breakout. He says delivery runs high anyway in trending phases, and that traders over-read it there [jBYC0t30fz8].
 
-### 2.12 Volume profile: HVN, LVN, POC
+**Clarity.** High, but from one video.
 
-**Definitions** [p03ho_Rhc_E]
-- Volume is plotted against price rather than time.
-- **POC:** the highest-volume price. It acts as support or resistance on a retest and is used for stops and entries.
-- **Value area:** about 70% of volume. Price tends to move with momentum after leaving it, but only prominent value areas are worth trading.
+### 2.6 Market-level and sector volume
 
-**High volume nodes (HVN)**
-- Heavy two-sided trade and slow movement; break-even zones for longer-term traders; support or resistance [p03ho_Rhc_E, su1cu2Y3AXA, d7cwBnW78XI].
-- In ranges, price is attracted back to HVNs [su1cu2Y3AXA].
-- Treat an HVN as a zone: about 20–30 index points either side at Nifty scale, not a precise price [su1cu2Y3AXA].
-- A gap away from an HVN with no return signals a shift from range to trend [su1cu2Y3AXA].
-- Role reversal: resistance before a break, support after it, and vice versa [d7cwBnW78XI].
+- **Bear-market rallies.** These come on lower volume than genuine recoveries. A real recovery needs rising volume and sustained breakouts. He noted volume returning in the Nifty 500 over about 34 days [20BxPDdAZAE].
+- **Liquid-stock aggregate volume.** It shrank in the Jan-Mar 2025 decline, then rose from April. By 1 June it was about 67% above January, which he read as positive [WI0tdUjH_Vg].
+- **Sector ETFs.** A volume pickup after a long quiet stretch (CPSE, PSE, oil CPSE) is a reason to research the sector, not a trade signal. Huge gold/silver volume means interest that will not fade quickly [6qExRlD11sE].
+- **Contradiction.** Elsewhere he says index volume is unreliable and to use stocks instead [HHkcCy5LrCM].
 
-**Low volume nodes (LVN)**
-- Price crossed them fast. Examples: thin tails, gaps, a 50-point move from 5900 to 5950 in 10 minutes.
-- They mark rejection and strong support or resistance [su1cu2Y3AXA, d7cwBnW78XI, p03ho_Rhc_E].
-- A rotating HVN means a bracket; a thin trail means a trend. Taking out an LVN is significant [Nkp_wwGZFNQ].
-- **Rejection confirmation:** several consecutive bars (3 in his example) fail to close through a prior LVN. Rejection of both an LVN and an HVN together is strong confirmation [su1cu2Y3AXA].
+### 2.7 Liquidity filters
 
-**HVN-to-HVN swing** [d7cwBnW78XI, p03ho_Rhc_E]
-1. Anchor the profile on a swing of at least about 8–10%.
-2. Take the dominant HVN as a range.
-3. Do nothing while price is inside the HVN.
-4. Wait for strong demand candles to close it out of the range.
-5. Target the next HVN, and expect a pause there.
+- Swing trade only liquid stocks, using a minimum 252-day average volume. The threshold was on a slide and is not in the captions [zWYCYySQVNc].
+- Avoid penny stocks that can gap into circuit limits [zWYCYySQVNc].
+- Beginners should stick to F&O-segment stocks, so that low-volume gaps do not fake patterns [QWcb7yxYAxk].
 
-After leaving an HVN, price either builds a new HVN or returns to the old one.
+### 2.8 Market profile building blocks
 
-**Interpretation.** Long-lasting ranges are participants building positions. Volume spikes, low-volume selling and high-volume selling each "mean something," but this is not elaborated [su1cu2Y3AXA].
+These definitions come from the 13-year-old series [z-ae7tLVdoo] unless noted.
 
----
+- **TPO.** One letter per price visited per time slice.
+  - Standard slice is 30 minutes. He says a meaningful print forms after 30 minutes of activity [ESVo3wifA7g].
+  - 60 or 120 minutes can be used for longer profiles.
+  - For positional use, weekly or multi-day profiles with 180-240-minute blocks, left to experiment [cDcvc9esnwo].
+- **Initial balance (IB).** The range of the opening period. Usually the first 60 minutes (A+B) [z-ae7tLVdoo, 4kP0_EuS_EY], but adjustable: 30 minutes, 3 hours, or multi-day.
+- **Value area (VA).** The zone holding about 70% of activity. He calls it "the heart" of market profile [z-ae7tLVdoo]. In the volume-profile videos it is 70% of volume rather than TPOs [p03ho_Rhc_E].
+- **POC.** The price with the most TPOs, i.e. the "fairest" price [z-ae7tLVdoo].
+- **Tails.**
+  - Single prints at an extreme show aggressive rejection. A buying tail sits at the low, a selling tail at the high.
+  - Longer means more aggressive: 5 TPOs versus 2 in his example. No threshold is given [z-ae7tLVdoo, cDcvc9esnwo].
+  - No tails means no aggressive OTF participant [cDcvc9esnwo].
+- **Close location.** A mid-range close means no conviction; a close near an extreme shows the confident side. He says this matters little alone [z-ae7tLVdoo].
+
+### 2.9 Opening location and acceptance/rejection
+
+**Three opening locations relative to the prior session** [CVNE93D1IDk], ranked by imbalance:
+
+| Type | Location of the open | Imbalance | Risk/opportunity | Priority |
+|---|---|---|---|---|
+| (1) | Inside the prior VA | Balanced | Low | Lowest |
+| (2) | Outside the prior VA but inside the prior high-low range | Moderate | Medium | Medium |
+| (3) | Outside the prior range | Most imbalanced; OTF present and aggressive | Highest | Highest |
+
+Opening outside the VA means the OTF trader is present; well outside the range means present and aggressive [CVNE93D1IDk, dUeQOEU6FlQ].
+
+**Each type can then be accepted or rejected** [CVNE93D1IDk]:
+
+- **(1) Accepted.** Price rotates in the prior VA. Expect a range like the prior day's, with overlapping profiles; stay out.
+  - Real-time rule: if nothing happens in the first 3-4 half-hour periods (about 1-1.5 h), treat the day as acceptance and stay out.
+- **(1) Rejected.** Price builds few TPOs in the prior VA and drives out within 30-60 minutes. He calls this "a profile to bet on," better still if it also leaves the prior range.
+- **(2) Accepted.** Price overlaps back into the prior profile and the range is similar to the prior day's. Hard to trade without a clear tail. A VA that has moved higher is still bullish even if price dips into the old profile.
+- **(2) Rejected.** Price breaks out of the prior day's range within the first 30 minutes. He says most trend days move from the opening bell, not after midday.
+- **(3) Accepted (long case: gap above the prior high).** The first-TPO low usually holds. On a later rotation back, a stop just below the first-period low gives very good risk-reward. He calls this "the opening traders should love."
+- **(3) Rejected (short case).** A gap above the prior range fails. This is typical of bearish, high-volatility phases after a retracement rally.
+  - First warning: the first-TPO low is breached (in the third period in his example).
+  - Short with a stop at the prior-day high or the current-day high.
+  - For positional trades, use the prior and current profile highs.
+
+**Related rule.** Open above the prior VA with an open drive: get long, stop around the prior VA high. Example: prior VA about 75, open at 78-79 [Nkp_wwGZFNQ].
+
+### 2.10 Opening styles (Dalton-type)
+
+**Open drive** [dUeQOEU6FlQ, kbiKPEmqpm0]
+- Opens outside the prior range and keeps going.
+- Ideally the first-30-minute extreme opposite the move is not breached. For a weekly profile, that is Monday's opening low.
+- Tolerance differs between videos:
+  - [dUeQOEU6FlQ] still calls it an open drive if price re-enters the opening range.
+  - [kbiKPEmqpm0] allows earlier interval extremes to be broken only once or twice.
+- Confidence sign: the first 30-minute interval closes near its extreme and the next opens near it [kbiKPEmqpm0].
+- Rated the highest conviction.
+
+**Open test drive: defined differently in the two videos.**
+- [dUeQOEU6FlQ]: gap beyond the prior VA and range, retrace to test a reference level, find no activity, then resume in the gap direction. The level is most often the prior VA high or prior-day high, otherwise a pivot. Less conviction than open drive.
+- [kbiKPEmqpm0]: test a reference level, break the first interval's extreme, then reverse and run the other way. Second-best confidence.
+- These are not the same pattern and must be resolved before coding.
+
+**Open rejection reverse** [dUeQOEU6FlQ, kbiKPEmqpm0]
+- Gaps beyond the prior range, aggressive sellers appear, price falls back through the prior VA and keeps going.
+- Below the prior VA it counts as initiative selling, not responsive selling.
+- Early clues: gap size, sell surges on time-and-sales, a bear-market backdrop.
+- He calls it the most confusing opening, because early on it mimics an open drive.
+
+**Open auction** [dUeQOEU6FlQ, kbiKPEmqpm0]
+- Opens inside the prior VA and range, with listless rotation and intervals closing mid-range.
+- Appears in low-volatility bull consolidations, at tops/distribution, when the market is tired after a run, or after a gap that needs new value.
+- A breakout around the end of the first interval behaves like an open drive without the gap.
+- He calls it the hardest to identify because of false breakout prints.
+
+**Classification by elimination** in the first 1-2 hours [kbiKPEmqpm0]:
+- A rally that closes its interval near the low rules out an up open drive.
+- Two-way trade rules out open drive.
+- No break of the first interval's range points to auction over test drive.
+- Overlapping VAs favour auction; trending VAs favour test drive.
+
+He also says that after rising VAs and a gap in the trend direction, an open auction is very unlikely [kbiKPEmqpm0].
+
+### 2.11 Day types and initial-balance width [4kP0_EuS_EY, z-ae7tLVdoo]
+
+- **Normal.** Very wide IB (about 80 Nifty points; about 3% of price in another illustration). Rotation stays inside it. Low opportunity; stay out.
+- **Normal variation.** Somewhat smaller IB. A later breach on one side, which in India coincides with the European open. Closing location then matters for the next day: a close near the extension extreme is directional; a close back inside or near the IB is weak.
+- **Trend.** Thin, elongated profile, about 3 TPO columns wide versus about 7 on a normal day.
+  - Do not insist that every period's low is higher. Steady one-way movement is enough.
+  - Example: an IB of about 24 points (about 1%) that then rallied [z-ae7tLVdoo].
+- **Double distribution.** Narrow IB, a drive away, and a second balance area with single prints between the two.
+  - Less bullish than a pure trend day.
+  - Single prints usually are not revisited. If price re-enters them in the same session, review the view.
+- **Non-trend.** Narrow IB but no follow-through after a breach attempt. Seen as a pause after a run, with resumption in 2-3 days. Linked to low VIX.
+- **Neutral.** Extensions on both sides of the IB, usually with high VIX.
+  - Neutral-extreme: closes near one end.
+  - Neutral-center: closes mid-range.
+- **Wide IB: two framings.**
+  - Elsewhere, a wide IB signals a range day [4kP0_EuS_EY, z-ae7tLVdoo].
+  - [kbiKPEmqpm0] says a wide IB shows more confidence but makes a trend day less easy.
+
+### 2.12 Value-area migration and close location
+
+- **Price versus value** [CVNE93D1IDk, Nkp_wwGZFNQ, kbiKPEmqpm0, cDcvc9esnwo]
+  - In ranges, price is drawn back to value.
+  - In trends, price runs ahead and value catches up.
+  - He prefers trading when value chases price, and looks for a rising VA when buying calls [CVNE93D1IDk].
+- **Trend versus range** [z-ae7tLVdoo, Nkp_wwGZFNQ, cDcvc9esnwo]
+  - Consecutive non-overlapping higher VAs mean uptrend and OTF buyers; lower VAs mean OTF sellers.
+  - Overlapping VAs mean a range or a weakening trend.
+  - Example: VAs near 2020, then 2040, then 2060-2080 [z-ae7tLVdoo].
+  - A wider VA is stronger support/resistance [Nkp_wwGZFNQ].
+- **Close location versus value areas** [kbiKPEmqpm0]
+  - In an uptrend the close sits at or above the day's own VA high.
+  - The close is above the prior day's VA high "always, meaning 7 out of 10."
+  - In a downtrend the mirror applies, again about 7 of 10.
+  - Repeated closes inside the prior VA warn of a rounding/range phase.
+  - He scores each close against both the current and the prior VA, and says the books do not cover this.
+- **Profile classification** [uFFAAZNSozg]
+  - Neutral: opens and closes inside the prior VA.
+  - Bullish: opens inside or above the prior VA and closes above it. Super-bullish example: a gap-up that closed above four prior VAs, with range extension and a close near the high.
+  - Bearish: the mirror. Stronger bearish: opens below, extends down, closes near the lows.
+  - A profile that extends but closes inside its own VA is only mildly directional.
+  - Counting profiles in a window reveals bias before a breakout. Examples: about 7 bullish versus 3 bearish in a stage-1 range; 8 of 13 bearish in a slow decline.
+  - Merging adjacent profiles can change the read.
+
+### 2.13 OTF control clues: extension, tails, TPO count, rotation factor, initiative/responsive
+
+- **Range extension** [cDcvc9esnwo, tNACzhThprk]
+  - A break beyond the IB means the OTF trader is present. A single-TPO poke that returns inside is ignored; one or two per period are normal.
+  - Count up versus down extensions over about 10 profiles.
+  - Strong extensions are large and close in the extreme quartile.
+  - In ranges, extensions are random. In trends they run mostly with the trend, and counter-extensions are only a few TPOs.
+- **Tail counts.** Count buying and selling tails, and their length, across a series [cDcvc9esnwo].
+- **TPO count above/below POC.**
+  - More TPOs above the POC means selling; more below means buying. Example: 50 above versus 28 below.
+  - It only reflects OTF activity if the IB was broken.
+  - He rates it the least reliable clue and says not to decide on it [cDcvc9esnwo].
+- **Rotation factor** [tNACzhThprk]
+  - Per bar versus the prior bar: higher high +1, higher low +1, lower high -1, lower low -1, equal 0. Summed over the session.
+  - ±1 means a narrow win only. ±5-6 or ±10-15 means strong OTF participation.
+  - Use it across several sessions. Ranges flip it (for example +5 then -6). One -4 inside +14, +2, +14, +10 is not a reversal.
+  - Bullish combination: positive rotation factor for 2-3 days that takes out a low-volume node, with a rising VA. Check close and open location, and whether a high-volume node sits just above as resistance.
+  - Uptrend confirmation cluster: rising VAs, high rotation factor, mostly upside extensions, closes near highs, buying tails.
+- **Initiative versus responsive** [cDcvc9esnwo]
+  - Buying within or above the prior VA is initiative; buying below it is responsive.
+  - Selling within or below the prior VA is initiative; selling above it is responsive.
+  - A trending VA implies initiative activity.
+  - Inside ranges, trend profiles and repeated upward VA attempts hint at accumulation (low clarity, detail deferred).
+
+### 2.14 Price excess [tNACzhThprk]
+
+**What it is.** A blow-off of a day or a few days near a swing top or bottom, then a sharp island-like reversal. He treats it as the end of the trend.
+
+**Bearish example sequence.**
+1. A prior uptrend.
+2. The VA stalls and overlaps, with closes near the lows.
+3. An open entirely below the accepted range.
+4. A drift down to a close in the bottom 25-30% of the range.
+
+**His claim.** Excess zones are very hard to breach. He cites Indian index cases from 2000-2003, 2008 and 2011 from memory, with no data check and some uncertainty about dates.
+
+### 2.15 High- and low-volume areas; volume profile
+
+**Market-profile treatment** [su1cu2Y3AXA, Nkp_wwGZFNQ]
+- High-volume areas (HVA):
+  - Fair-price balance. Price is drawn back to them in non-trending markets, and they act as support/resistance.
+  - Treat them as a zone of about ±20-30 index points, not one tick.
+  - A gap away from the HVA without a return signals range turning to trend.
+- Low-volume areas (LVA):
+  - Fast transit, for example 5900 to 5950 in 10 minutes. They read as rejection and as strong support/resistance.
+  - Rejection is confirmed when price probes back in and several bars (3 in his example) fail to close through.
+  - Rejection of both an LVA and an HVA is strong confirmation.
+  - Taking out an LVA is a significant event.
+
+**Volume-profile videos** [d7cwBnW78XI, p03ho_Rhc_E]
+- The profile is volume against price.
+- **POC.** The most-traded price. It acts as support/resistance on retest and is used for stops and entries.
+- **Value area.** 70% of volume. Price moves with momentum once it exits, but only prominent VAs are worth trading.
+- **HVN.** Slow two-sided trade. Strong support/resistance, and a break-even zone for longer-term holders.
+- **LVN.** Crossed fast; either passed through or rejected.
+- **Method** [d7cwBnW78XI]:
+  1. Anchor the profile on a swing of at least about 8-10%.
+  2. Take the most relevant HVN as a range.
+  3. Wait for a decisive break out of it rather than acting inside it.
+  4. Target the next HVN.
+- **Role reversal.** An HVN acts as resistance before a break and support after [d7cwBnW78XI].
+- **After leaving an HVN through an LVN,** price either builds a new HVN or returns to the old one [p03ho_Rhc_E].
+
+### 2.16 VWAP (intraday, thin)
+
+- **ORB volume filter.** The breakout candle needs clearly higher volume than recent bars, and volume should keep rising. No volume expansion means skip [hk4d8AxbQ3A].
+- **VWAP read.** A breakout above the opening range with price above VWAP is higher quality, especially after failed sell attempts below VWAP on volume (rejection tails). A moving average can substitute [hk4d8AxbQ3A].
+- **Pin bar at VWAP.** After a consolidation breakout, a long-tail high-volume candle at VWAP and the prior range level preceded a rise. Info Edge rose about 3-4% the next day [CXJZMbE_d5o].
+- VWAP never appears as a standalone method, and anchored VWAP is absent.
+
+### 2.17 Tooling (dated, India) [ESVo3wifA7g]
+
+Approximate monthly costs around 2018:
+- eSignal plus profile add-on: Rs 14-16k.
+- Linnsoft plus data: Rs 11-12k.
+- NinjaTrader plus vendor indicators and data: about Rs 8-9k.
+- TradingView Pro: about Rs 2.5k, volume profile only, no TPO.
+- Amibroker: Rs 19,700-23,000 one-time; the free profile AFL was not accurate.
+
+His cheapest route: Sierra Chart package 5 (about $33) plus an Excel feed (about Rs 1,500), roughly Rs 3,800 in total. The data is not live and must be re-imported every 5-20 minutes. Import format:
+- Columns: symbol, date (YYMMDD), time (hhmmss), OHLC, volume.
+- Settings: tick size 1, 90 days loaded, 30-minute TPO.
 
 ## 3. How a program would test it
 
-**1. Pullback volume and the daily "tennis ball" filter**
-- *Hypothesis:* in stocks above a rising 50 DMA, pullbacks of 3–10 bars from a 20-day high to near the 50 DMA perform better when average pullback volume is below the 50-day average volume, and below the average volume of the prior up-leg. They should outperform pullbacks on above-average volume.
-- *Outcome:* forward 20- and 60-day returns, and the chance of a new high within 60 days.
-- *Data:* daily OHLCV, a survivorship-free universe with a liquidity filter.
-- *Sources:* [Qu49zHwEGwo, Jpu536_AmGc, NUDjIohACWs, tTdy5srpW9Q, H0XAVFBdbzw]
+1. **Pullback volume dry-up** [Qu49zHwEGwo, NUDjIohACWs, Jpu536_AmGc, q26J58h5Qt8, tTdy5srpW9Q, H0XAVFBdbzw, mR0HMssJek8]
+   - Universe: stocks above a rising 50-day MA within some % of a 52-week high.
+   - Event: a pullback that touches the 50-day MA, or retraces to a breakout pivot.
+   - Measure:
+     - Mean pullback-day volume / 50-day average volume.
+     - Pullback volume / mean volume of the preceding up-leg.
+   - Hypothesis: a ratio below 1 gives better 1-3-month returns and a higher probability of a new high than a ratio above 1.
+   - Data: daily OHLCV, survivorship-free.
 
-**2. Breakout relative volume, and the long/short asymmetry**
-- *Hypothesis:* for closes above a 60-day range high (and, separately, closes below a range low and the 150-day MA), follow-through and failure rates differ by breakout-bar volume relative to the 50-day average (≥1.5×, ≥2×, or the 3-month maximum).
-- *Asymmetry check:* do longs whose volume expansion arrives 1–5 days late still perform, while shorts do not?
-- *Data:* daily OHLCV.
-- *Sources:* [p6pwKWQgxUw, 4CzLWJxP4UM, G2gjQUJRfJM]
+2. **Breakout relative volume and the long/short asymmetry** [p6pwKWQgxUw, 4CzLWJxP4UM, G2gjQUJRfJM, VqoLpEvre04]
+   - Event: a close above an N-day range high (long) or below a range low and the 150-day MA (short).
+   - Bucket by:
+     - Breakout-bar volume / 50-day average volume (1.0, 1.5, 2.0×).
+     - Whether it is the 63-day maximum.
+   - Compare forward returns and failure rates (close back inside the range within 10 days).
+   - Asymmetry test: for longs, does volume expansion arriving 1-5 days late still deliver; for shorts, does it not?
+   - Data: daily OHLCV.
 
-**3. Volume-based stop override**
-- *Hypothesis:* after a breakout entry, a drawdown of 3–5% on volume below the breakout-day volume (hold case) recovers to above entry more often than one with a wide-range down bar on above-average volume (cut case).
-- *Data:* daily OHLCV and an entry rule.
-- *Source:* [mR0HMssJek8]
+3. **Opening location → day range and trend-day frequency** [CVNE93D1IDk, dUeQOEU6FlQ]
+   - Classify each session by open location: inside the prior VA, outside the VA but inside the range, or outside the range.
+   - Outcomes:
+     - Day range / prior range.
+     - Trend-day frequency (close in the top/bottom 20% and range at least 2× the IB).
+   - Add the 90-minute acceptance rule: an open inside the VA that is still inside it at 90 minutes, versus all other days.
+   - Data: 30-minute bars with volume. VA computed as 70% of TPOs or of volume, both versions reported.
 
-**4. Opening-location classification**
-- *Hypothesis:* sort days into three groups: open inside the prior VA; outside the VA but inside the prior range; outside the prior range. Range expansion and trend-day frequency should rise in that order.
-- *Sub-tests:*
-  - Open inside the VA with no exit after 90 minutes: is the day's range at or below the prior day's?
-  - Gap above the prior high: does the first-30-minute low hold? What is the expectancy of a long with a stop below it?
-- *Data:* 1- to 30-minute bars with volume for the index future or ETF, and a fixed VA method (TPO or volume, 70%), recorded explicitly.
-- *Source:* [CVNE93D1IDk, dUeQOEU6FlQ]
+4. **Gap beyond the prior range: first-30-minute extreme holds** [CVNE93D1IDk, dUeQOEU6FlQ]
+   - Measure the frequency with which the first-30-minute low (for gap-ups) holds to the close.
+   - Test the expectancy of a long on a later rotation toward that low, stop one tick below, exit at the close.
+   - Mirror test: on a gap-up that re-enters the prior range and breaks the first-30-minute low, short with a stop at the day high.
+   - Condition on a VIX regime split (high/low).
+   - Data: intraday bars, VIX history.
 
-**5. Closes versus the prior value area as a trend gauge**
-- *Hypothesis:* when price is above a rising 50-day MA, the share of days closing above the prior VA high is about 70% and higher than in non-trending periods.
-- *Follow-on:* after N consecutive closes inside the prior VA, trend continuation odds fall.
-- *Two-factor score:* close vs own VA plus close vs prior VA; does it beat either factor alone for next-day direction?
-- *Source:* [kbiKPEmqpm0]
+5. **Value-area migration and close location** [kbiKPEmqpm0, cDcvc9esnwo, z-ae7tLVdoo, Nkp_wwGZFNQ]
+   - Check whether the close is above the prior day's VA high on about 70% of days in uptrends (price above a rising 50-day MA), versus a lower share in non-trending periods.
+   - Check whether N consecutive non-overlapping higher VAs (N = 2, 3, 4) predict positive 1-5-day returns versus overlapping VAs.
+   - Check whether a two-factor score (close versus own VA, close versus prior VA) beats either factor alone.
+   - Data: daily VA from intraday volume-at-price.
 
-**6. VA migration and rotation factor**
-- *Hypothesis:* 3+ consecutive non-overlapping higher (lower) VAs, or a 5-session rotation-factor sum of ≥ +10 (≤ −10), predict 1- to 5-day continuation better than overlapping VAs or |sum| ≤ 2.
-- *Data:* intraday bars to compute VAs and per-bar rotation factor. His bar basis was unclear; test 30-minute bars.
-- *Sources:* [z-ae7tLVdoo, Nkp_wwGZFNQ, cDcvc9esnwo, tNACzhThprk]
+6. **IB width → range extension** [4kP0_EuS_EY, z-ae7tLVdoo]
+   - Compute the 60-minute IB width as % of price and rank it into percentiles (trailing 1 year).
+   - Hypothesis: the top tercile has a lower probability of breaking the IB and a day range closer to the IB; the bottom tercile has more trend days.
+   - Also test whether a later IB breach (in India, the 12:30-1:30 IST window) predicts close direction.
 
-**7. IB width**
-- *Hypothesis:* days whose first-60-minute range falls in the bottom tercile of its 1-year distribution (per instrument) extend beyond the IB more often and have a larger range-to-IB ratio than top-tercile days.
-- *Source:* [z-ae7tLVdoo, 4kP0_EuS_EY]
+7. **Rotation factor and extension counts** [tNACzhThprk, cDcvc9esnwo]
+   - Compute the daily rotation factor on 30-minute bars.
+   - Compare a 5-day sum with a single day as a predictor of next-day/next-week direction.
+   - Compare magnitude ≥10 with ≤2.
+   - Compute the net up-minus-down IB extensions (more than one TPO beyond) over 10 sessions as a predictor of the next session.
 
-**8. HVN/LVN behaviour**
-- *Hypothesis:* using a profile anchored on swings of ≥8%:
-  - price crosses LVN zones in fewer bars per percent than HVN zones;
-  - retests of the POC or HVN band hold more often than retests of random levels at matched distance.
-- *Zone width:* express it as % or ATR rather than index points.
-- *Data:* intraday or daily volume-at-price.
-- *Sources:* [d7cwBnW78XI, p03ho_Rhc_E, su1cu2Y3AXA]
+8. **HVN/LVN behaviour and POC retests** [d7cwBnW78XI, p03ho_Rhc_E, su1cu2Y3AXA]
+   - Build volume profiles anchored on swings of at least 8% on daily data, or session profiles intraday.
+   - Measure:
+     - Bars per 1% travelled inside LVNs versus HVNs.
+     - Hold rate of POC/HVN retests (bounce within a ±0.3-0.5% or ATR-based band) versus random levels at equal distance.
+     - Frequency with which price reaches the next HVN after a decisive close beyond the anchor HVN.
+   - Data: intraday volume-at-price, or minute bars to reconstruct it.
 
----
+## 4. Transfer
 
-## 4. Transfer to TSX and US markets
+**Applies as is (TSX and US).**
+- All daily price-volume rules: tennis ball, pullback dry-up, breakout relative volume, short-breakdown volume, the abnormal-behaviour avoid list, the volume stop override, and VSA absorption reads.
+- Volume-profile HVN/LVN/POC logic.
+- The rotation factor (pure price).
+- The opening-location taxonomy, value-area migration, close-versus-VA scoring, and the trend/neutral/double-distribution day types, given intraday data.
+- VWAP plus ORB filters.
 
-**Usable largely as is**
-- The daily price-volume rules: tennis ball pullbacks, breakout relative volume, abnormal-volume avoidance, the stop override, and the VSA absorption read.
-- They need only daily OHLCV, and US data is abundant. On the TSX, use consolidated volume. Interlisted names trade heavily on US venues, so TSX-only volume understates activity.
+**Needs adapting.**
+- **Absolute-point thresholds.** About 80 Nifty points for a wide IB, a ±20-30-point HVA zone, and 24-point and 50-point examples should become % of price or ATR multiples.
+- **Session timing.** TSX and NYSE run 9:30-16:00 ET. A 60-minute IB and 30-minute TPOs map directly. The normal-variation link to the European open does not: in North America Europe is already open, so use a midday or a 14:00 ET (US data/Fed time) window instead, as an untested substitute.
+- **VIX regime cut (about 20).** Use VIX for the US and VIXC/realised volatility for the TSX.
+- **Liquidity universe.** Replace "F&O-segment stocks" with an average dollar-volume filter. On the TSX, many names are thin, so the minimum must be meaningful. The 252-day average-volume lookback carries over; his threshold is unknown.
+- **Circuit-limit risk.** Becomes LULD halts (US) and single-stock circuit breakers (Canada). Thin TSX-V and OTC names carry the same gap-trap risk.
+- **Sector ETFs.** CPSE/PSE become TSX sector ETFs (e.g. XEG, ZEB) and US SPDR sector ETFs.
+- **Index and aggregate volume.** US index volume is fragmented across venues and ETFs; aggregate constituent volume is better. This also resolves his own conflict about index volume.
+- **Costs.** His 2018 rupee software prices are irrelevant. Volume profile is widely available; TPO charts still need specific platforms.
 
-**Profile concepts**
-Market Profile and volume profile are instrument-agnostic: VA, POC, IB, opening types, rotation factor, range extension, and HVN/LVN. Natural candidates are ES or SPY, NQ, and liquid single stocks. For Canada, the SXF future and the XIU ETF are thinner. Expect noisier profiles on lower-volume TSX names.
-
-**Needs adapting**
-- **Session timing.** US 9:30–16:00 ET. The 30-minute TPO and 60-minute IB carry over, but futures have overnight sessions; decide whether to use RTH only.
-- **Fixed-point numbers.** The Nifty-scale figures (80-point IB, 20–30-point HVN band, 50-point LVN move) must become % or ATR multiples or instrument percentiles.
-- **VIX links.** Map the non-trend and neutral day links to VIX (US) or VIXC (Canada) and recalibrate thresholds.
-- **Index volume.** He says index volume is unreliable [HHkcCy5LrCM]. Use ETF or futures volume, or the aggregate volume of index constituents.
-- **Universe filters.** Replace "F&O-segment stocks" with optionable stocks or an ADV threshold. Replace "252-day average volume above X" with a dollar-volume floor.
-- **Sector ETFs.** The CPSE and PSE examples map to US sector SPDRs or Canadian sector ETFs.
-- **Software and costs.** US tooling (Sierra Chart with live feeds, TradingView, which now has more profile tools than in his 2018 survey) differs.
-
-**India-only**
-- Delivery-volume analysis [jBYC0t30fz8]: no North American equivalent.
-- Circuit-limit risk: North American markets use halts instead.
-- The European-open timing in the normal-variation day [4kP0_EuS_EY].
-- The rupee software price list and the manual Excel-import workflow [ESVo3wifA7g].
-
----
+**India-only.**
+- NSE/BSE delivery volume. There is no direct US/Canadian equivalent; short-volume or off-exchange share data are not the same thing.
+- The Sierra Chart Excel-import workaround.
+- The Nifty excess-zone history.
+- The F&O list.
 
 ## 5. Gaps and doubts
 
-**Thresholds are mostly unstated.** "Clearly higher," "expansion," "dry up" and "abnormal" have no multiples in most videos. Only the 50-day reference [N5bb0Cu8RAs] and the 3–4-month baseline [4CzLWJxP4UM] are concrete. A tester must choose thresholds and report them as researcher choices.
-
-**Open test drive is defined two different ways.**
-- [dUeQOEU6FlQ]: price retraces to test a reference (prior VA high or prior day high), then resumes in the gap direction.
-- [kbiKPEmqpm0]: price tests a reference, breaks the first interval's extreme, then reverses and runs the other way.
-
-These are different patterns. A program must test both or pick one explicitly.
-
-**Open-drive tolerance is loose.** It ranges from "ideally the first-30-minute low is not breached," to re-entry into the opening range still being acceptable [dUeQOEU6FlQ], to one or two breaches of earlier interval extremes [kbiKPEmqpm0].
-
-**Value-area construction is not specified.** He uses TPO-based (30-minute) and volume-based VAs interchangeably, at 70%. The two can differ materially.
-
-**POC is underused in these notes.** It is "for strategies covered later" [z-ae7tLVdoo] and a stop or entry reference [p03ho_Rhc_E], but no concrete POC strategy is given. TPO count around the POC is self-declared unreliable [cDcvc9esnwo].
-
-**VWAP is thin.** It appears only as ORB context and in one pin-bar example, and he says a moving average can substitute.
-
-**The evidence is anecdotal.** It consists of single-chart examples (Coforge, Nestle, TCS, JSW, Godrej, Info Edge, Escorts) and loose historical recollection for excess zones. The "7 of 10" closes claim and the "most trend days start at the bell" claim are asserted, not measured.
-
-**Shorts are thinly covered.** The short side of the daily volume rules is limited to the immediate-volume rule for breakdowns [G2gjQUJRfJM] and one candle-volume example [LahSe1vu1kY]. Short profile setups exist (failed gap, bearish profile) but have few parameters.
-
-**Rotation factor's bar basis is unclear.** He shows OHLC bars "within the session," so the timeframe is unknown. Multi-day smoothing is "across several profiles," with no window given.
-
-**His teaching has shifted over time.** All Market Profile material is about 13 years old, and the volume-profile material 7–8 years old. The recent videos (1–2 years) use only daily volume patterns. Nothing in these notes says whether he abandoned profiles or simply stopped teaching them.
-
-**There are minor tensions.**
-- A wide IB is called a sign of more confidence in open drive [kbiKPEmqpm0], but also a mark of range-bound normal days [4kP0_EuS_EY, z-ae7tLVdoo].
-- Volume confirmation is mandatory for ORB, cloud and coil breakouts, but optional for reversals, gaps and divergences, with Havells cited as working without it.
-
-**Not covered here:** cumulative delta and order flow (time-and-sales is mentioned only once, as a clue), OBV or other volume indicators, anchored VWAP, intraday volume-profile trade management, and composite or merged profiles beyond a brief mention.
+- **No numeric volume thresholds.** "Clearly above," "expand," "dry up" and "light" are never quantified, apart from the 50-day reference. Every multiple in Section 3 is the tester's choice.
+- **Conflicting definitions.**
+  - Open test drive means resume in the gap direction [dUeQOEU6FlQ] versus break the first interval and reverse [kbiKPEmqpm0].
+  - Open-drive tolerance for re-entering the opening range differs between the same two videos.
+  - Wide IB is a range signal in one video and "more confidence" in another.
+- **Optional versus mandatory volume.** Volume is optional for reversals, gaps and divergences but required for breakouts and coils. It is required immediately for shorts but may be delayed for longs. No reason is given for the split beyond his experience.
+- **Index volume.** Called unreliable in one video [HHkcCy5LrCM], used as a signal in others [20BxPDdAZAE, WI0tdUjH_Vg].
+- **Age and continuity.**
+  - The market-profile framework is about 13 years old (the profile-classification video about 8).
+  - The notes contain no recent video that revisits it or reports results.
+  - The recent material is entirely daily-chart volume. Whether he still uses profiles is unclear.
+- **TPO versus volume value area.** He uses both (70% of TPOs in profile videos, 70% of volume in volume-profile videos) without saying whether the choice matters.
+- **No stated evidence.**
+  - The "7 of 10" closes claim is unquantified beyond that phrase.
+  - The trend-day width (3 versus 7 columns), excess-zone history and rotation-factor thresholds are illustrations, not tested values.
+  - The excess-zone dates are explicitly loose.
+- **Deferred or unseen content.**
+  - Several points are deferred to "next tutorial" or an earlier video [cDcvc9esnwo, kkJ4m9JQ4pM, z-ae7tLVdoo on POC strategies].
+  - The 252-day volume minimum was on a slide only.
+  - The divergence volume point was verbal, with no chart shown.
+- **Thin topics.**
+  - VWAP: two videos, no standalone rules, no anchored VWAP.
+  - Exits and targets for profile setups: only stops are given (first-TPO low, prior VA high, prior-day high).
+  - Position sizing, costs and slippage: not covered.
+  - Composite or multi-week profiles: only suggested (180-240-minute blocks, "experiment").
+  - Tail length, "prominent" value area and "decisive" break: undefined.
+- **Single-example claims.** Absorption (Nestle), weak-seller transition (TCS), delivery numbers, the Coforge pullback and the +67% aggregate volume are each one case.

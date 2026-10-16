@@ -1,503 +1,456 @@
-<!-- Trading Knowledge Library · Trade With Trend (Raunak A, India). Built 2026-10-16 from 158 public videos with captions (of 287 on the channel; members-only videos were not used): one structured note per video (Claude Sonnet 5.5) -> this chapter (Claude Opus 5.5), src/research/library.py. Paraphrased; the transcripts stay on the laptop. Evidence class: external teaching = hypotheses to test, never Ananta rules; nothing in the agent reads docs/library/. -->
+<!-- Trading Knowledge Library · Trade With Trend (Raunak A, Trade With Trend, India). Built 2026-10-16 from 161 public videos with captions (of 289 on the channel; members-only videos were not used): one structured note per video (Claude Sonnet 5.5) -> this chapter (Claude Opus 5.5), src/research/library.py. Paraphrased; the transcripts stay on the laptop. Evidence class: external teaching = hypotheses to test, never Ananta rules; nothing in the agent reads docs/library/. -->
 
 # Stage and relative strength
 
-## 1. What he teaches and where it fits
+## 1. What he teaches here and where it fits
 
-This is the filter layer of Raunak A's top-down method. Before any setup is looked at, he asks two questions. The first is what stage the instrument is in, using Stan Weinstein's four-stage cycle, which he equates with the Wyckoff cycle: accumulation, markup, distribution, markdown. The second is whether it is outperforming its benchmark, measured with a price-ratio relative strength (RS) line.
+Raunak A's selection method rests on two filters, and he applies both before looking at any entry pattern.
 
-He applies both questions at every level:
+- **Stage.** He uses Stan Weinstein's four-stage cycle, which he also frames as Wyckoff accumulation, markup, distribution and markdown. It tells him whether an instrument, sector or the whole market is in a phase worth trading at all.
+- **Relative strength (RS).** He uses a plain ratio line of price divided by a benchmark. It tells him where demand is concentrated.
 
-- the whole market (Nifty 500),
-- market-cap segments (micro, small, mid, large),
-- sectors,
-- individual stocks, compared with both the sector and the broad index.
+He applies the two filters top-down:
+1. The broad market's stage.
+2. The relative strength of cap segments and sectors.
+3. Stocks that beat both their sector and the broad index.
+4. Only then a base breakout or pullback entry.
 
-The working rules that follow from this:
+Two rules repeat across almost a decade of videos. First, RS is a supporting tool and never an entry trigger by itself; price must confirm. Second, in corrections the stocks and sectors that fall least, or whose RS rises while price falls, are the next leaders. Everything below is his method and his claims. None of it is established fact.
 
-- Longs go only in stage 2 names whose RS line is rising.
-- Shorts, where he discusses them, go in stage 4 names with a falling RS line.
-- RS without price confirmation is a watch-list signal, not an entry.
-- During corrections, the stocks and sectors that fall least are the candidates to lead next.
-
-He credits Weinstein, O'Neil and Wyckoff throughout. The material spans about 13 years of videos. The core has stayed stable. What changed over time is the moving-average reference, the benchmark, and how much weight he puts on market-cap segments and index-level stage calls.
-
-Everything below is his claim or method. None of it is established fact.
+---
 
 ## 2. The ideas
 
-### 2.1 The four-stage cycle and which stages to trade
+### 2.1 The four stages: definitions
 
-**What it is.** Four stages, each with its own character [Nkp_wwGZFNQ, jlpd-YpqwiQ, JJEB-UZgK4E, Bqp9jKQCs30, su1cu2Y3AXA, sbHzNd2iA8k, Ux_uuOj-gKs, rxqOUxO_vP4]:
+**What it is.** He uses a four-stage cycle [Nkp_wwGZFNQ, jlpd-YpqwiQ, JJEB-UZgK4E, Bqp9jKQCs30, sbHzNd2iA8k, Ux_uuOj-gKs, rxqOUxO_vP4, uFFAAZNSozg]:
 
-| Stage | Name | Price | Volume |
-|---|---|---|---|
-| 1 | Accumulation / base | Sideways range, often around or below the average | Low |
-| 2 | Markup / advance | Higher highs and higher lows, leaves the range upward | Expanding |
-| 3 | Distribution / top | Sideways range after an advance | Dries up |
-| 4 | Markdown / decline | Range breaks downward | Rises |
-
-- In one video he defines stage 3 specifically as a fresh 52-week high that fails, with price falling back into the range [rxqOUxO_vP4].
-- In his 13-year-old market-profile videos the same four stages are read through overlapping value areas (stages 1 and 3) versus directionally moving value areas (stages 2 and 4) [su1cu2Y3AXA, tNACzhThprk].
-- In those videos he says distribution is sometimes skipped entirely [su1cu2Y3AXA].
-- He also describes the sentiment that goes with each stage: bad news in accumulation, disbelief that fuels early stage 2, late entrants in distribution [su1cu2Y3AXA].
-
-**Exact conditions.**
-
-- *Long side.* Buy only stocks in stage 2 or entering it from stage 1. Watch stage 1 bases but do not chase them. Skip stocks making lower highs and lower lows, even if they look undervalued [mim7ylyaN74, BhQ_YnaRqa0, Ux_uuOj-gKs, JJEB-UZgK4E, kwbfXjRtEkk, S--7ta4FmbY].
-  - Do not buy mid-range in a sideways stock. Enter at the breakout from accumulation [Bqp9jKQCs30, uFFAAZNSozg].
-  - Re-entries after an exit use a fresh stage 2 structure with RS turning up [LWoEC9OjajE].
-  - "Stage upon stage", meaning a series of higher bases, is the winner profile [T4849hhdwTo, mR0HMssJek8].
-- *Swing traders.* Trade only stages 2 (long) and 4 (short). Avoid stages 1 and 3, which he says pay little and cause psychological damage [jlpd-YpqwiQ, G2gjQUJRfJM].
-  - Keep separate stage-2 and stage-4 watchlists.
-  - Use the stage-2 list when the top-down view is bullish and the stage-4 list when it is bearish [jlpd-YpqwiQ].
-- *Sizing by stage (investor framing).* Take maximum risk early in markup, reduce risk as the cycle matures, hold minimum risk in distribution, and sit out markdown [sbHzNd2iA8k, Nkp_wwGZFNQ].
-- *Requirement on the sector.* Both the sector and the stock should be in the matching stage [jlpd-YpqwiQ].
-- *Stage 4 sectors.* Sectors such as FMCG and IT in stage 4 are left to value buyers. He mentions value buyers accumulating after roughly a 30% fall (FMCG) or a 35–45% drawdown (IT) [SuYHqw5zA8U].
-
-**Numbers he gives.**
-
-- Average swing move: about 28% in stages 2 and 4 versus about 4–8% in stages 1 and 3. Sample, method and definitions are not shown [jlpd-YpqwiQ].
-- He says over 80% of traders buy stocks in markdown. This is anecdotal with no source [JJEB-UZgK4E].
-
-**Exception he teaches.** Very strong companies often skip stage 4. A stage-3-like range resolves upward into a new stage 1 and then breaks out again. His example is IndusInd Bank from 2009 [Bqp9jKQCs30]. He links this to fundamentals and strong sectors: weak companies fall sharply after breaking their averages, while strong ones consolidate. He cites 2013, 2015 and 2016 in India [Bqp9jKQCs30].
-
-**How he marks stage 2.**
-
-- Stage 2 means higher highs and higher lows plus a rising RS line [c-0bHPew1fg, VCNsjVuGoWQ].
-- He marks stages manually. He estimates software stage percentages carry about 15–20% error [c-0bHPew1fg].
-
-**How often and how clearly.** This is very frequent and taught clearly across his whole history, from about 13 years ago to recent videos.
-
-### 2.2 The trend reference: which moving average
-
-His moving-average reference has moved around. A program will have to choose or test variants.
-
-| Reference | Where / when he uses it | Videos |
+| Stage | Name | His description |
 |---|---|---|
-| 30-week SMA, weekly chart (Weinstein original) | Stage 1 is a horizontal base around or below it. Stage 2 is the break above the base. Pullbacks holding the 30-week are treated as structure holding. In recent videos he waits on structures below the 30-week with weak RS. | NUDjIohACWs, KDSbZ0oW2U0, Y4TewQHVhvc, T4849hhdwTo, lRUDp336l7Q, rbSj4pOg3_I |
-| 150-day SMA | His stated daily equivalent of the 30-week. Longs only above it, shorts only below it. | G2gjQUJRfJM (7 yrs ago) |
-| 50-week MA | He preferred it over the 30-week "for current conditions" to catch trends better. | Ux_uuOj-gKs (7 yrs ago) |
-| 52-week MA | Used in the strong-companies-skip-stage-4 discussion. | Bqp9jKQCs30 |
-| 200-day MA | Called the "ultimate" long-term trend indicator. No shorting above it. Main price filter in his 8-year-old sector/stock matrix. Later described as a sentiment gauge, not a buy/sell trigger. | 488FDla8kuc, sbHzNd2iA8k, RVbze1duD-U, 6K1LOJqZYEg |
-| 50-day MA | Used for sector-level stage calls (e.g. IT stage 4 confirmed on breaching a 50 DMA pivot; defence breakout after months above the 50 DMA). Also as a base location for ETF breakouts. | Yxo-rYOCuAo, yYwiSDVwgyA, 6qExRlD11sE, 20BxPDdAZAE |
+| 1 | Accumulation / base | Sideways range, low volume, often around or below the average. |
+| 2 | Advance / markup | Leaves the range upward; higher highs and higher lows; rising volume. |
+| 3 | Distribution / top | A range after an advance; volume dries up. |
+| 4 | Decline / markdown | Leaves the range downward, with rising volume. |
 
-**Stocks to ignore.** Stocks deeply below both the 50 and 200 DMA are a waste of time [S--7ta4FmbY]. The 100 and 200 DMA are his medium-term markers for groups that "sustain" [N2dUTcb9CzQ].
+**How the definition shifts over time.**
+- **Oldest videos (about 13 years).** The same four stages are defined with market-profile language: overlapping value areas in accumulation and distribution, directional value areas in trends [su1cu2Y3AXA, tNACzhThprk]. He also notes that real markets sometimes skip distribution [su1cu2Y3AXA].
+- **Later videos.** He gives a working stage-2 definition: higher highs and higher lows **plus a rising RS line** [c-0bHPew1fg, VCNsjVuGoWQ, DU5Y5AsCMZM].
+- **Stage 3 trigger.** He labels a chart stage 3 when a fresh 52-week high fails and price falls back into the range [rxqOUxO_vP4].
+- **Manual marking.** He marks stage 2 by hand and says software percentages carry roughly 15–20% error [c-0bHPew1fg]. That error figure is his estimate; no method is given.
 
-**Review routine.** Each weekend he spends about 45–60 minutes on weekly and daily charts to classify the market as stage 2 or stage 4. He avoids hourly charts [ywccnKeWXNo].
+**Strong companies can skip stage 4.** He says a stage-3-like range in a strong company can resolve upward into a new base and then break out again. He calls this typical of future multibaggers and cites IndusInd Bank since 2009 [Bqp9jKQCs30]. Weak companies, he says, fall hard after breaking their averages; he names 2013, 2015 and 2016 in India [Bqp9jKQCs30].
 
-**Holding rule tied to structure.** A volatile stock remains valid while its last weekly pivot low holds [mim7ylyaN74].
+**Sentiment by stage.** He describes it this way [su1cu2Y3AXA]:
+- Accumulation: bad news and high uncertainty.
+- Early trend: disbelief, which fuels the move.
+- Distribution: late entrants who think the trend is permanent.
 
-### 2.3 Stage analysis of the market and its segments
+### 2.2 The moving-average reference for stage
 
-This is a recent emphasis, mostly in videos from the last year.
+His reference average is not consistent across videos:
 
-**The broad market.**
+| Average | Where | What he says |
+|---|---|---|
+| **30-week SMA, weekly chart** | [NUDjIohACWs, KDSbZ0oW2U0, T4849hhdwTo, Y4TewQHVhvc, rbSj4pOg3_I, lRUDp336l7Q] | The Weinstein original and his most frequent reference in recent videos. Stage 1 is a horizontal base around or below it; stage 2 starts when price breaks above the base. Example: the IT index needed to clear about 32,000 at the time [NUDjIohACWs]. |
+| **150-day SMA, daily chart** | [G2gjQUJRfJM] | Chosen as the daily equivalent of 30 weeks. Longs only above it, shorts only below. |
+| **50-week MA** | [Ux_uuOj-gKs] | He preferred this over 30 weeks "for current market conditions" in a 7-year-old video. |
+| **52-week MA** | [Bqp9jKQCs30] | Used as the break level for strong versus weak companies. |
+| **200-day MA** | [488FDla8kuc, sbHzNd2iA8k, RVbze1duD-U, 6K1LOJqZYEg] | Called the ultimate trend indicator: do not think about shorting above it; most bull trends happen above and most bear trends below. In a recent video he calls it a sentiment gauge, not a buy/sell trigger, with more volatility below it [6K1LOJqZYEg]. |
+| **50-day MA** | [6qExRlD11sE, yYwiSDVwgyA, Yxo-rYOCuAo, 20BxPDdAZAE] | Used for sector-level stage reads. Examples: IT's stage 4 confirmed when it lost the 50-DMA pivot in January 2025 [Yxo-rYOCuAo]; defence as a stage-2 breakout after months of consolidation above the 50 DMA [yYwiSDVwgyA]. |
+| **100/200-day pair** | [N2dUTcb9CzQ] | Called medium-term markers; pay attention to groups that hold above both. |
 
-- He repeatedly calls the Nifty 500 a Weinstein stage 3 market: a wide range, "resilient and sluggish", not a pure stage 2 [r63sarc_qV8, CFJNeCPMQ1o, YFsvQXZZt1g, 8QeR8FmYYg4, rhiXs5Kh_0g].
-- At the same time, pockets inside it are in stage 2. He names micro cap, small cap 250, IPO, defence, capital markets, metals, pharma, healthcare, two-wheelers and autos [r63sarc_qV8, CFJNeCPMQ1o, kwbfXjRtEkk].
-- He says the Nifty 500 would become stage 2 on a breakout from long-term resistance [CFJNeCPMQ1o].
-- He cites a possible retest of about 21,000–21,500 [rhiXs5Kh_0g, 8QeR8FmYYg4].
-- In another recent video he calls the market a "stage 2-type consolidation" digesting post-Covid gains. This is a slightly different label for the same range [lRUDp336l7Q].
-- Two years ago he called Nifty Bank stage 3 ("yo-yo") [U7YrYjIS9B8].
+A related screen: ignore stocks deeply below both the 50 DMA and 200 DMA [S--7ta4FmbY].
 
-**Implications he draws from the stage 3 call.**
+### 2.3 Trade only the stage that matches your direction
 
-- The headline index should stay range-bound while sectors and pockets move [lRUDp336l7Q].
-- Any bull move will be selective: specific market-cap bands (₹10,000–30,000 crore), IPOs, and some sectors [8QeR8FmYYg4].
-- He compares the current phase to the July 2021 to July 2023 range [8QeR8FmYYg4].
+**Long side.**
+- Longs only in stage 2, entered as price comes out of stage 1 [G2gjQUJRfJM, JJEB-UZgK4E, Ux_uuOj-gKs, mim7ylyaN74, BhQ_YnaRqa0, kwbfXjRtEkk].
+- Stage-1 stocks are watched, not chased. His examples were Hindustan Copper and Tech Mahindra [mim7ylyaN74].
+- He buys at the breakout from accumulation, not mid-range [Bqp9jKQCs30].
+- He skips a lower-high/lower-low stock however cheap it looks [BhQ_YnaRqa0, mim7ylyaN74].
 
-**His historical pattern (India only).** Over the last 10–15 years, India has had roughly 2–2.5 years of range or correction followed by a stage 2 breakout in which trading works more easily [rhiXs5Kh_0g].
+**Short side.**
+- Shorts only in stage 4, coming out of stage 3 [G2gjQUJRfJM, jlpd-YpqwiQ].
+- The stage 3→4 transition is marked by a close below the topping range **and** below the average. Before the break, the RS line is flat or already falling below its own average. Volume expands on the breakdown [G2gjQUJRfJM].
+- His case studies: Apple 2015 (RS falling versus the S&P 500) and Maruti in Q4 2018, where RS weakened before the break and the auto sector also lagged [G2gjQUJRfJM].
+- He keeps separate stage-2 and stage-4 watchlists and uses whichever matches the top-down view [jlpd-YpqwiQ].
+- All of the short-side material comes from videos 5–8 years old.
 
-**Breadth as a stage-breakdown signal.** When most small, mid and micro-cap indices break below and stay below their 200 DMA, he reads it as a stage breakdown with broad selling pressure [JcxWhCO0hqI].
+**Why skip stages 1 and 3.**
+- He presents a table: average swings of about 4–8% in stages 1 and 3 versus about 28% in stages 2 and 4. Sample, method and definitions are not shown [jlpd-YpqwiQ].
+- He says stages 1 and 3 earn little and cause more psychological damage [jlpd-YpqwiQ].
+- He claims over 80% of traders buy markdown-phase stocks, and suggests checking your own journal for this. No source is given [JJEB-UZgK4E].
 
-**His bull-market template (one Indian cycle only).** Each phase lasts about a year [Pm_1kb8Fku0]:
+**Risk by stage.** Take maximum risk in early markup, cut risk as the cycle matures, carry minimum risk in distribution, and sit out markdown [sbHzNd2iA8k]. Early stage 2 carries low risk and high reward; stage 3 carries high risk and low reward [Nkp_wwGZFNQ].
 
-1. Momentum phase: almost everything rises and the leaders get defined.
-2. Continuation: leaders strengthen and retail crowds in.
-3. Money chases value while leaders consolidate, with scary shakeouts.
-4. A final broad rally including micro and small caps, then the top.
+**Fallen stocks are not bottoms.**
+- Citing O'Neil and Weinstein, he says a stock down 40–50% can fall another 40–50% [Sb6KTt64YKE, x2RbjJp1eCI].
+- He warns against "down 50%, order book bigger than market cap" stories and claims fewer than about 10% of such stocks recover [Sb6KTt64YKE].
+- Stage-4 sectors (FMCG down about 30%, IT down 35–45%) suit long-term value buyers, not his approach [SuYHqw5zA8U].
+
+**Exception.** He describes a corrected IT sector with contraction and bottoming RS as a stage-1 candidate and starts small weekly SIP-style purchases [rxqOUxO_vP4]. This conflicts with "watch, don't chase stage 1"; see section 5.
+
+**Re-entry.** After a scale-out exit, he re-enters a leader on a fresh stage-2 structure with RS turning up and breaking out [LWoEC9OjajE]. This note is low clarity.
+
+### 2.4 Stage at the index and sector level: market regime
+
+**The market versus its pockets.** In about eight recent videos (6 days to 3 months old) he reads the Nifty 500 as stage 3: a wide range, resilient and sluggish, not a pure stage 2 [r63sarc_qV8, jcWYGNInYg8, CFJNeCPMQ1o, YFsvQXZZt1g, 8QeR8FmYYg4, rhiXs5Kh_0g, lRUDp336l7Q]. At the same time he names sub-segments in stage 2:
+- micro cap, small cap 250, IPO, defence, capital markets, metals, pharma, healthcare, two-wheelers, auto [r63sarc_qV8, CFJNeCPMQ1o, kwbfXjRtEkk].
+
+He credits Weinstein and O'Neil for the idea of staying in pockets of strength and holding rather than churning [r63sarc_qV8].
+
+**Specific index calls (India-only, dated).**
+- The Nifty 500 could test about 21,000–21,500 [rhiXs5Kh_0g, 8QeR8FmYYg4].
+- Stage 2 would likely begin on a breakout above long-term resistance [CFJNeCPMQ1o].
+- Any bull trend would be selective: IPOs, some sectors, and a market-cap band of roughly ₹10,000–30,000 crore. He compares the current range to July 2021–July 2023 [8QeR8FmYYg4].
+- He claims an Indian pattern over 10–15 years: about 2–2.5 years of range or correction, then a stage-2 breakout [rhiXs5Kh_0g].
+
+**Phase template.** He describes a multi-year bull market [Pm_1kb8Fku0]:
+1. Momentum year; leaders are defined.
+2. Continuation; leaders strengthen and retail crowds in.
+3. Value chase while leaders correct.
+4. Final broad rally into a top.
 
 He placed India in year 3 in early 2024.
 
-### 2.4 Building the RS line
+**Breadth by stage.**
+- The share of stocks in stage 2 is a health gauge [DU5Y5AsCMZM]. Example: 18 Nifty 50 stocks in confirmed stage 2, with breadth rising as you go down the cap ladder [c-0bHPew1fg].
+- When most small, mid and micro-cap indices close below their 200 DMA, he reads a stage breakdown [JcxWhCO0hqI].
 
-**What it is.** RS is the stock or index price divided by a benchmark price, plotted as a ratio line [RVbze1duD-U, G2gjQUJRfJM, p6pwKWQgxUw]. A rising line means outperformance and a falling line means underperformance.
+**Routine.** Each weekend, spend about 45–60 minutes on weekly and daily charts to classify market and sector stage. Avoid hourly noise [ywccnKeWXNo, kwbfXjRtEkk].
 
-- He stresses repeatedly that this is not the RSI oscillator [RVbze1duD-U, G2gjQUJRfJM, mR0HMssJek8, LahSe1vu1kY].
-- He says the plain ratio line works better for him than Weinstein's Mansfield RS. This is personal experience, not a test [Ux_uuOj-gKs].
-- He uses a free TradingView indicator or Pine script for it [kkJ4m9JQ4pM, 59vJPo6oiNA, T4849hhdwTo].
+### 2.5 How he builds the RS line
 
-**Benchmark choice.**
+**Definition.** RS is stock (or index) price divided by benchmark price, plotted as a line. A rising line means outperformance [RVbze1duD-U, G2gjQUJRfJM, p6pwKWQgxUw, mR0HMssJek8].
+- He repeatedly separates it from the RSI oscillator [RVbze1duD-U, G2gjQUJRfJM, LahSe1vu1kY].
+- He finds the plain ratio works better than Weinstein's Mansfield RS. This is personal experience, not a tested result [Ux_uuOj-gKs].
 
-- *India.* The Nifty 500 is his most common benchmark. He prefers it over the Nifty 50 because small and mid caps are lagging [G2gjQUJRfJM, azzUmy2l_0U, mR0HMssJek8].
-  - Older videos often use the Nifty or Nifty 50 [488FDla8kuc, Ux_uuOj-gKs, jBYC0t30fz8, T4849hhdwTo].
-  - The Total Market index is also acceptable [sIo5XQqZ0b0].
-- *Other assets.* S&P 500 for US stocks, Reuters CRB for gold and silver [G2gjQUJRfJM].
-- *Second filter.* RS against a sector or style index, for example Nasdaq for Apple [G2gjQUJRfJM].
-- *Small caps.* For small-cap stocks, measure RS against a small-cap index (e.g. Smallcap 250), not the Nifty 50 [rocXNq3_1Zw].
+**Benchmarks.**
+- Nifty 500 is most common [G2gjQUJRfJM, uw5QQOenJnQ, kwbfXjRtEkk, x2RbjJp1eCI]. He prefers it over Nifty 50 when small and mid caps are lagging [azzUmy2l_0U].
+- Nifty 50 also appears often [488FDla8kuc, T4849hhdwTo, CFJNeCPMQ1o, d3-OMTGOGx8, JcxWhCO0hqI].
+- Nifty Total Market is another option [sIo5XQqZ0b0].
+- For small-cap stocks, measure against a small-cap index such as the small cap 250 [rocXNq3_1Zw].
+- Abroad: the S&P 500 for US stocks, the Reuters CRB index for commodities, and the Nasdaq as a second filter for a tech stock [G2gjQUJRfJM].
 
-**Lookback and timeframe.**
+**Smoothing and lookback.** These vary by video:
 
-| Use | Lookback / timeframe | Videos |
-|---|---|---|
-| Sector RS | One year, sometimes two | Yxo-rYOCuAo |
-| Stock example | About 12 months | 488FDla8kuc |
-| Swing trades | Weekly charts, about 2–3 months | Tkx2xIboYsw, NUDjIohACWs |
-| Swing trades | Daily, "a couple of months" | 59vJPo6oiNA |
-| Intraday | The next few sessions or hours at a breakout | xzR6bwNgb18 |
+| Setting | Where |
+|---|---|
+| 50-period MA on the RS line; buy when RS is above it and rising | [Ux_uuOj-gKs] |
+| Segment ratio judged against its 50-day average | [yEKNcJ4EH0U, VCNsjVuGoWQ] |
+| About 12 months shown | [488FDla8kuc] |
+| 1–2 years for sector RS | [Yxo-rYOCuAo] |
+| "A couple of months" for swing stocks | [59vJPo6oiNA] |
+| Weekly charts for stock and sector RS | [Tkx2xIboYsw, NUDjIohACWs, zHzq3uAFJFs] |
+| Intraday: RS trend over the next few bars at a breakout | [xzR6bwNgb18] |
 
-- He has used a 50-period moving average on the RS line [Ux_uuOj-gKs].
-- He has used a 50 DMA on index ratio lines such as Nifty/Nifty 500 and Midcap 100/Nifty 50 [VCNsjVuGoWQ, yEKNcJ4EH0U].
+**Rankings versus charts.**
+- He distrusts app RS ranks built only on past performance. If a rank is used, choose a 4- or 10-week rank, with caution [Jpu536_AmGc].
+- He says no software replaces human reading of RS [_--GkDAomPk].
+- Yet one video lists "high RS ratings" as a rule [H0XAVFBdbzw].
 
-**Rankings versus charts.** He distrusts app RS ranks built on historical performance alone. If a rank is used at all, he says a 4-week or 10-week rank, used with caution [Jpu536_AmGc]. He holds that no software replaces human judgement in spotting out- and underperformers [_--GkDAomPk]. Yet in one older video he says to prefer high RS ratings [H0XAVFBdbzw].
+**Other forms he uses.**
+- Percentage-return comparison from a common start (the market bottom). Example: ACC ~70%, Nifty ~64%, Ambuja ~58.5%, UltraTech ~58% [dV4MiNaAenI].
+- RRG-style quadrants [Pm_1kb8Fku0].
+- Index RS as the share of its constituents beating the Nifty 500. About 60% of micro, small and mid-cap members were outperforming at the time [c-0bHPew1fg].
 
-**Alternative measures he uses.**
+### 2.6 Reading the RS line
 
-- The share of an index's constituents outperforming the Nifty 500. He cites about 60% in micro, small and mid-cap indices [c-0bHPew1fg].
-- Percentage return from a common start point, such as the market bottom. His example: ACC ~70%, Nifty ~64%, Ambuja ~58.5%, UltraTech ~58% [dV4MiNaAenI].
-- A relative rotation graph (RRG) style quadrant view [Pm_1kb8Fku0].
+**Long side.**
+- **Wanted:** RS making higher highs and higher lows, clean and rising [488FDla8kuc, x2RbjJp1eCI, CFJNeCPMQ1o, rocXNq3_1Zw, sIo5XQqZ0b0, T4849hhdwTo].
+- **Double confirmation:** price at a new high above its 100/200-day MA **and** RS at a new high. He calls this one of the strongest accumulation confirmations [RVbze1duD-U].
+- **RS breakout with the price breakout:**
+  - RS should break out together with price, or ideally before it [jBYC0t30fz8, p6pwKWQgxUw, kwbfXjRtEkk, rocXNq3_1Zw].
+  - Wipro example: price broke a 4-year resistance but RS did not clear its own 4-year resistance, so he would not buy [Ux_uuOj-gKs].
+  - RS should be near a new swing high when the pattern is picked. He says this held for nearly all his selections, including failures [uw5QQOenJnQ].
+  - Citing O'Neil: an RS new high before price signals unusual strength [uw5QQOenJnQ].
+- **Avoid:** price rising while RS is flat or falling. Such a stock only moves with the market [RVbze1duD-U]. Also avoid persistently weak RS, because capital is limited [rocXNq3_1Zw].
+- **Early accumulation (watchlist only):** RS rising or flattening while price makes lower lows or ranges [RVbze1duD-U, zHzq3uAFJFs]. Also a sector RS that stops falling and goes sideways, which he ranks second behind clear higher-high RS (energy example) [BxY2ofigO8I].
+- **Recovery sequence** [RVbze1duD-U]:
+  1. RS goes flat while price is still falling.
+  2. Price closes above the 200 DMA.
+  3. RS starts rising.
 
-### 2.5 Reading the RS line
+  An aggressive trader may buy the 200-DMA cross once RS turns up. A newer trader should wait for higher highs in both price and RS.
+- **Patterns on the RS line itself:** consolidation-then-breakout, with a retest of the RS consolidation zone as a good spot for 2–3 months of further outperformance [Tkx2xIboYsw]. A double bottom in RS, with price attempting to rise, as early leadership (PSE/CPSE and an oil ETF) [rocXNq3_1Zw].
+- **Two RS cycles.** Either RS peaks, distributes and leadership rotates away, or RS consolidates and breaks out again. He says you cannot tell which during the sideways phase, hence the price filter [BxY2ofigO8I].
+- **Lead time.** He claims RS often leads price. In his examples RS broke down about 15 days before price lost the 100 DMA, and flattened before price bottomed [RVbze1duD-U].
 
-**Structure.**
+**Short side.**
+- **Distribution:** price ranging or mildly up while RS declines steadily. A price breakdown below the range confirms [RVbze1duD-U].
+- **Rules:** for shorts, RS must be falling [G2gjQUJRfJM, p6pwKWQgxUw, xzR6bwNgb18, LahSe1vu1kY]. His JSW pullback-short example had RS falling with price [LahSe1vu1kY].
+- **Risk claim:** stocks with downward-sloping RS fall more than the index in corrections [x2RbjJp1eCI].
 
-- Favour higher-high, higher-low RS structure [488FDla8kuc, x2RbjJp1eCI, SbtFCxbIB1w, d3-OMTGOGx8].
-- Avoid lower-high, lower-low RS. He expects such stocks to fall more than the index in a correction [x2RbjJp1eCI, CFJNeCPMQ1o, VCNsjVuGoWQ].
-- Avoid price rising with RS falling or flat. Such a stock merely rides the market, and a stronger-RS name would pay more [RVbze1duD-U].
-- A stock with 3–4 years of overlapping price and flat RS is "not favoured". Skip it [Ux_uuOj-gKs].
-- He prefers a smooth, uniformly rising RS line over a sideways RS range that later breaks out. Example: HUL ranked above ITC [488FDla8kuc].
+### 2.7 Price confirmation is mandatory
 
-**RS breakouts.**
+This is his most consistent caveat, repeated from 8-year-old to 1-year-old videos [BxY2ofigO8I, 488FDla8kuc, RVbze1duD-U, s1ZCPQI5894, zHzq3uAFJFs].
 
-- He wants a fresh RS breakout at the same time as the price breakout [jBYC0t30fz8, kwbfXjRtEkk, rocXNq3_1Zw].
-- Better still, RS already trending up or breaking out before price does [p6pwKWQgxUw, uw5QQOenJnQ].
-- He says the RS line was near a new swing high in nearly all his selections, including failures [uw5QQOenJnQ].
-- Wipro example: price broke a four-year resistance but RS had not broken its own four-year resistance, so no buy [Ux_uuOj-gKs].
-- Following O'Neil, an RS new high before price is a sign of unusual strength and of a future leader at a market bottom [uw5QQOenJnQ, L-PGsMh2vHw].
-
-**Patterns on the RS line itself.**
-
-- He treats RS consolidations and breakouts like price patterns. A ratio retesting its consolidation zone is a favourable spot for outperformance to resume over 2–3 months [Tkx2xIboYsw].
-- A double bottom in the RS line, with price also attempting to rise, is an early leadership sign. Examples: CPSE, an oil ETF [rocXNq3_1Zw].
-
-**Divergences** [RVbze1duD-U]. These are watch-list signals only.
-
-- *Accumulation.* Price is flat or making lower lows while RS rises.
-- *Distribution.* Price is ranging or mildly bullish while RS declines steadily. It is confirmed only when price breaks the range.
-- *RS as a leading indicator.* In his examples, RS broke down about 15 days before price broke its 100 DMA, and RS flattened before price bottomed.
-
-**Two RS cycles** [BxY2ofigO8I].
-
-- Cycle one: RS rises, peaks, distributes, and rotates out.
-- Cycle two: RS rises, consolidates, and breaks out again.
-
-He says they cannot be told apart in real time without experience, which is why he adds a price filter. A sector whose RS fell sharply and then goes sideways is early accumulation. It is a second choice behind clear higher-high RS [BxY2ofigO8I]. A similar RS base can form while the market falls, as in core housing [Yxo-rYOCuAo].
-
-**Long underperformance followed by an RS breakout.** A sector whose RS has lagged for a long time and then breaks out deserves extra importance [488FDla8kuc].
-
-### 2.6 RS must be confirmed by price
-
-This is taught clearly and repeatedly. RS alone is not an entry. An RS line can rise simply because the benchmark is falling faster than the stock. A group that "falls less" can keep drifting lower [488FDla8kuc, BxY2ofigO8I, RVbze1duD-U, s1ZCPQI5894].
+**Why.** A stock's RS can rise only because the benchmark falls faster. A group that merely falls less can keep drifting lower while its RS rises and falls with market swings [488FDla8kuc, s1ZCPQI5894].
 
 **What counts as confirmation:**
+- price above the 200 DMA with no lower-high/lower-low structure [488FDla8kuc]; or
+- price clearing a congestion zone [s1ZCPQI5894].
 
-- price above the 200 DMA with no lower-high/lower-low structure [488FDla8kuc],
-- price clearing a congestion zone [s1ZCPQI5894],
-- a price breakout [RVbze1duD-U].
+**Stock matrix** [488FDla8kuc]. Two columns per stock: "RS outperforming" and "price above 200 DMA."
+- Both met: top candidate.
+- Partial: secondary. Britannia ranked below HUL and ITC in his roughly 2011–12 example.
+- Below 200 DMA or sideways: rejected, even with acceptable RS. M&M, Asian Paints, Bharti, Hero and Titan were rejected.
 
-Price is the primary indicator and RS is supporting [RVbze1duD-U].
+**RS can simply fail.** Metals showed strong RS improvement and then did not work in the following weeks [Yxo-rYOCuAo]. Consumer durables and FMCG looked fine on price above the 50 DMA, but RS was unproven, so he waited [Yxo-rYOCuAo].
 
-**Recovery sequence** [RVbze1duD-U]:
+### 2.8 Top-down: sector first, then stock
 
-1. RS goes flat while price still falls. Put it on the watch list.
-2. Price closes above the 200 DMA.
-3. RS starts rising.
+**Step 1: choose sectors.**
+- Use a ratio chart of the sector index divided by Nifty 500 (or Nifty 50). Look for a trend of rising pivots, a higher-high/higher-low RS, or a ratio coming out of a base [Jpu536_AmGc, S--7ta4FmbY, azzUmy2l_0U, 488FDla8kuc, d3-OMTGOGx8, zHzq3uAFJFs]. Examples: Nifty Infrastructure / Nifty 500 [S--7ta4FmbY]; infrastructure RS in lower highs and lower lows, so avoid [d3-OMTGOGx8].
+- Reject a sector that underperformed consistently over 1–2 years. Media was his example [Yxo-rYOCuAo].
+- A sector whose RS breaks out after a long underperformance base should "almost always" get extra weight [488FDla8kuc].
+- A sector with RS at multi-year lows is not confirmed even if price improves. IT was his example [NUDjIohACWs].
+- When choosing between sectors, take the cleaner rising RS: capital markets versus transport, private versus PSU banks [Yxo-rYOCuAo]. Within banking, private-bank RS was far stronger than PSU-bank RS, so allocate to private banks with only the major PSU banks as exceptions [azzUmy2l_0U].
+- He dates RS turns on the chart. Capital-market RS bottomed in March 2025 and was confirmed in mid-April 2025 [azzUmy2l_0U].
+- Watch whether a sector's RS holds above a prior RS base [DCG1GO9TGFU].
 
-An aggressive trader may buy the 200 DMA cross once RS is rising. A newer trader should wait for higher highs in both price and RS.
-
-**Admitted failures.**
-
-- Metals had strong RS improvement but did not work in the following weeks [Yxo-rYOCuAo].
-- Sectors can look fine on price, consolidating above the 50 DMA, while RS is still unproven. Examples: consumer durables, FMCG. He waits for evidence in that case [Yxo-rYOCuAo].
-- His FMCG and IT position-building failed; FMCG broke out and then retraced [U7YrYjIS9B8].
-
-### 2.7 Top-down selection: segment, then sector, then stock
-
-**Step 1. Market-cap segments by ratio chart.**
-
-- Participate in a segment while its ratio to the broad market is rising [SbtFCxbIB1w].
-- For a weak segment, wait for clear higher-high, higher-low structure in the ratio before returning [SbtFCxbIB1w].
-- Midcap 100/Nifty 50 rising and above its 50 DMA means mid caps deserve attention [yEKNcJ4EH0U].
-- Nifty 500/Nifty 50 flat or falling (about −5% since July in one video) means breadth is thin even while the headline index rallies [rocXNq3_1Zw, KDSbZ0oW2U0].
-- A small-cap RS line at record lows means the broad market is thinning [rxqOUxO_vP4].
-- Mid cap flat against the Nifty for about 6–7 months, plus a flattening micro-cap RS, is a warning, not a neutral signal [JcxWhCO0hqI].
-
-His dated segment readings:
-
-| When (approx.) | Reading | Videos |
-|---|---|---|
-| ~8 months ago | Micro caps lagging since September 2024. Midcap 50 and LargeMidcap 250 ratios at all-time highs, which he calls the "sweet spot". | SbtFCxbIB1w |
-| Within the last few months | Ranking from strongest to weakest: IPO index, micro, small, mid, large. | rhiXs5Kh_0g |
-| Within the last few months | Small and micro-cap RS holding up despite a pullback. | 8QeR8FmYYg4 |
-| Within the last few months | Large caps (HDFC Bank, ICICI, Axis, SBI, Reliance, Infosys, TCS) weak against the Nifty 500. | 0nbQs92kYuY |
-
-He links the large-cap weakness to FII selling in large caps, with domestic money in small caps [0nbQs92kYuY, M4Z-Gi4gGag]. Another reading of the same kind: large caps outperformed during one week's retracement because their RS rose as price dipped [s1ZCPQI5894].
-
-**Step 2. Sector RS.**
-
-- Use a ratio chart of the sector index against the Nifty 500 or Nifty 50, and read its trend (rising pivots, a base breakout) rather than an app rank [Jpu536_AmGc, S--7ta4FmbY, azzUmy2l_0U, 488FDla8kuc, d3-OMTGOGx8, CFJNeCPMQ1o].
-- Reject a sector that has consistently underperformed over 1–2 years (media) [Yxo-rYOCuAo].
-- Compare candidate RS charts side by side and pick the cleaner one. Examples: capital markets versus transport; private versus PSU banks [Yxo-rYOCuAo, azzUmy2l_0U].
-- Allocation should scale with RS strength. Within banks he favoured private banks, with only the major PSU banks as exceptions [azzUmy2l_0U].
-- An IT RS line at multi-year lows means any improvement will take time [NUDjIohACWs].
-- A sector with rising RS while price still makes lower highs and lower lows is a "green shoot", not confirmation. Example: financial services [zHzq3uAFJFs].
-- RS holding above a prior RS base during a market pullback is a sign of strength [DCG1GO9TGFU].
-
-**Breadth by leadership group** [N2dUTcb9CzQ]. He compares the share of stocks above their moving averages in a basket of leading sectors with the rest of the market:
-
-| Moving average | Leading basket above it | Rest of market above it |
-|---|---|---|
-| 50 DMA | 75% | not stated |
-| 100 DMA | 81% | 39% |
-| 200 DMA | 85% | 38% |
-
-His conclusion: trade the leaders and ignore the rest.
-
-**Step 3. Stocks within the sector.**
-
-- Two tiers [Jpu536_AmGc, 488FDla8kuc, JJEB-UZgK4E]:
-  - beating the sector index makes a stock an outperformer;
-  - beating both the sector and the Nifty 500 makes it a true leader and the focus.
-- The 8-year-old version is a matrix with two columns: RS against the benchmark outperforming, and price above the 200 DMA [488FDla8kuc].
-  - Both met: top candidate.
-  - Partially better: secondary option (Britannia).
-  - Rejected names: M&M, Asian Paints, Bharti, Hero, Titan.
-- A simple routine for weak stock-pickers: take a strong sector index's constituent list from the provider's website and keep the names whose RS beats the sector [rbSj4pOg3_I].
-- Inside a pulled-back sector [q26J58h5Qt8]:
-  1. Keep the stocks that fell least from their 52-week high.
-  2. Look for "tennis-ball" action: volume contracting as price falls.
-  3. Require RS better than both the sector and the Nifty 50.
+**Step 2: choose stocks within the sector.**
+- **Two tiers of RS** [Jpu536_AmGc, 488FDla8kuc, JJEB-UZgK4E, G2gjQUJRfJM]:
+  - beats its sector index = outperformer;
+  - beats sector **and** Nifty 500 = true leader, the focus.
+- **Simple version for weak stock-pickers:** list sector constituents from the index provider's site and keep those with RS better than the sector [rbSj4pOg3_I].
+- **Pulled-back sector template** [q26J58h5Qt8]:
+  1. Smallest fall from the 52-week high.
+  2. "Tennis ball" action, with volume contracting as price falls.
+  3. RS better than both the sector and Nifty 50.
 
   He says this usually leaves 3–4 stocks per sector.
-- Stocks that break out before their sector index are potential leaders. Examples: Coforge and Tech Mahindra ahead of IT [NUDjIohACWs].
-- His weekly universe is unlikely to exceed about 150 stocks [kwbfXjRtEkk].
-- He limits a test portfolio to the top ~10 names [dERi8MUU5es].
+- Stocks that break out **before** their sector index are potential leaders (Coforge and Tech Mahindra ahead of IT) [NUDjIohACWs]. Stocks that make new highs while their sector or the market is weak also qualify (Persistent) [mim7ylyaN74].
+- Require both the stock and its sector in stage 2 for longs, or stage 4 for shorts [jlpd-YpqwiQ].
+- Favour the strongest-RS names within a leading sector (realty and FMCG examples) [Y4TewQHVhvc]. Pick the fastest grower within a sector (2009–10 banks: Yes > Axis > ICICI > SBI) [2Yv0E57_bs4].
 
-**Small versus large inside a sector (contradiction).**
+**Cap size (he contradicts himself):**
+- **Small first:** if you like a sector, look at its smaller stocks first, because that is where the theme is [c-0bHPew1fg].
+- **Large only:** take only the top 2–3 leaders per sector, almost always large caps, because small-cap holders sell into rebounds [Q-uCkMMTh5Q]. This came in a systematic-investing context, five years ago.
+- **Middle ground:** a small or micro cap is acceptable even when its segment is weak, if it belongs to a strong sector such as metals, banks, autos and ancillaries, or rare earths [SbtFCxbIB1w].
 
-- A 5-year-old video says to invest only in the top 2–3 leaders, almost always large caps. His reason: small and mid caps get capped by trapped sellers on rebounds [Q-uCkMMTh5Q]. That was a systematic-investing context.
-- Recent videos say the opposite for trading:
-  - if you like a sector, look first at its smaller stocks [c-0bHPew1fg];
-  - small and micro caps are acceptable in a weak segment if their sector is strong (metals, banks, autos and ancillaries, rare earth) [SbtFCxbIB1w].
-- His supporting count: only 18 Nifty 50 stocks were in confirmed stage 2, and more stocks sit above their averages as you move down the cap ladder [c-0bHPew1fg].
+**ETF and sector template (credited to Weinstein).** Strong RS, a base near the 50 DMA, a clean breakout, after a long flat period, with no consensus yet [6qExRlD11sE]. Example: energy contracting at the 30-week MA and then breaking out with improving RS [rbSj4pOg3_I].
 
-### 2.8 Leaders emerge from the correction: the "fell least" rule
+### 2.9 Leaders emerge from corrections
 
-**Conditions.** During an index correction, especially when the index makes lower highs and lower lows, build the list from:
+**The rule.** In a correction, the stocks and sectors that fell least, or whose RS kept rising while price fell, are next-cycle leaders. List them weekly and buy as the market stabilises or as each breaks out [B1ynZNvqesE, iWa7MbGawvU, N5bb0Cu8RAs, 20BxPDdAZAE, SbtFCxbIB1w, KDSbZ0oW2U0, hpbDmEK-FvM, YLAIkbRSnsA, elpQ8wyLZLQ, dERi8MUU5es, rbSj4pOg3_I, hKnYYRpd63s, NtpyZH5cfaE, L-PGsMh2vHw, jkga2zdA9dY]. He credits O'Neil for this [SbtFCxbIB1w, uw5QQOenJnQ].
 
-- stocks and sectors with the smallest drawdown, or with an RS line rising while price falls [B1ynZNvqesE, 20BxPDdAZAE, iWa7MbGawvU, SbtFCxbIB1w, elpQ8wyLZLQ, dERi8MUU5es, hKnYYRpd63s, NtpyZH5cfaE, s1ZCPQI5894];
-- stocks holding up or building tight bases while the Nifty and Nifty 500 decline [KDSbZ0oW2U0, hpbDmEK-FvM, jkga2zdA9dY];
-- stocks near all-time highs while RS holds up [rbSj4pOg3_I, N5bb0Cu8RAs].
+**Specifics he gives.**
+- About 35 Nifty 500 stocks were down less than 6%; treat these as candidates [iWa7MbGawvU].
+- Smallest drawdown from the all-time high, mainly in the Nifty 50–200 range [N5bb0Cu8RAs].
+- Cap the test portfolio at the top ~10 names [dERi8MUU5es].
+- Breakout on high volume, then accumulate gradually. He showed a February chart where such stocks broke out while the index kept falling [KDSbZ0oW2U0].
+- He prefers these to scanner-driven breakouts after the market turns [YLAIkbRSnsA].
+- Tight ranges and flags with rising RS during indecision signal institutional accumulation. He argues big players accumulate in uncertain phases, not during rallies [jkga2zdA9dY].
+- Sectors making new lows after the tariff shock already had poor RS before it. New-high sectors (banks, finance, defence, tourism) already had strong RS [L-PGsMh2vHw].
+- A stock above its 52-week or all-time high while its index is below its own high counts as a leader. Example: SBI rising in February while Nifty fell [Pm_1kb8Fku0].
+- After a V-shaped fall in a former outperformer, wait for a range and buy its breakout. Only true leaders reclaim their highs [Pm_1kb8Fku0].
 
-He calls RS "your best friend" in the choppy phase [elpQ8wyLZLQ]. He reads RS that keeps rising in Bank Nifty and finance while prices fell as accumulation [L-PGsMh2vHw].
+**Judging a rally.**
+- The rally is more likely genuine when the sectors that resisted the fall lead and hold above their 50 DMA.
+- It is more likely a bear-market rally when the most beaten-down sectors lead.
+- Do not chase the biggest fallers bouncing hardest. His reasons: possibly weak fundamentals, trapped sellers, and V-shapes without bases [20BxPDdAZAE].
 
-**Entry.** Buy and scale in when these names break out, often before the index turns [YLAIkbRSnsA, KDSbZ0oW2U0]. A volume breakout with gradual accumulation is the trigger [KDSbZ0oW2U0]. He prefers these to scanner breakouts that appear only after the market recovers [YLAIkbRSnsA].
+**Old leaders rarely lead again.** He cites the 2003–07 leaders (Aban, ABB, Unitech, DLF, L&T) taking about 10 years to regain their highs. He concludes the 2021–23 leaders are unlikely to lead next [V41BUpPK3E4].
 
-**Numbers and lists.**
+**Bank Nifty as a sentiment gauge.** A rising Bank Nifty/Nifty RS during a fall is an early sign financials may lead. He stresses that nothing changes unless breadth improves [jcWYGNInYg8, r63sarc_qV8, zHzq3uAFJFs].
 
-- About 35 Nifty 500 stocks had fallen less than 6% in one correction [iWa7MbGawvU].
-- Focus mainly on the Nifty 50 to Nifty 200 range [N5bb0Cu8RAs].
-- Review weekly [20BxPDdAZAE].
+**Tension with laggard and value ideas** [iWa7MbGawvU, Y4TewQHVhvc, Pm_1kb8Fku0]:
+- He also teaches adding Nifty 50/100 laggards with low 3–4 year returns, comfortable valuations and a constructive chart [iWa7MbGawvU].
+- He uses a valuation-versus-performance quadrant, favouring undervalued underperformers (SBI, ICICI, Axis, Tata Steel) after overvalued leaders fell 25–35% [Y4TewQHVhvc].
+- He showed cheap names (SBI, BoB, PNB, Reliance, HPCL, BPCL) rotating into the leading quadrant [Pm_1kb8Fku0].
 
-**Rally-quality test** [20BxPDdAZAE]. A rally is more likely genuine when the sectors that resisted the fall lead and hold above their 50 DMA. He named banks, finance, metals, chemicals, fertilizers and hotels. It is more likely a bear-market rally when the most beaten-down sectors lead.
+He resolves this only loosely: the laggard still needs a constructive structure.
 
-**Pre-shock RS.** Sectors with strong RS before the tariff shock made new highs after it, while weak-RS sectors made new lows [L-PGsMh2vHw]. The three leading groups (banks, metals, finance) stayed ahead of an "ex-leaders" total-market line, which fell more steeply and recovered less [B1ynZNvqesE].
+### 2.10 Proximity to highs
 
-**What not to do.**
+- Focus on stocks near 52-week or all-time highs, for trading and for investing [kkJ4m9JQ4pM, mim7ylyaN74, N5bb0Cu8RAs, rbSj4pOg3_I, NtpyZH5cfaE].
+- Stocks at 52-week lows in a bull market are cheap for a reason [kkJ4m9JQ4pM].
+- If no good structure exists near the high, he will consider stocks further away that show multiple contractions and then a breakout [mim7ylyaN74].
+- He prefers charts that have already broken out over those stuck under heavy resistance. HDFC Bank, flat for about 3 years, can fall back if the cycle turns [BhQ_YnaRqa0].
+- A stock can swing widely and stay valid as long as the last weekly pivot holds. If your time frame is too short for its swings, the time frame is wrong (ICICI Bank weekly) [mim7ylyaN74].
 
-- Do not chase the most beaten-down names bouncing hardest. His reasons: trapped holders, possibly no fundamental support, V-shapes without bases [20BxPDdAZAE].
-- A stock down 40–50% can fall another 40–50%. He says fewer than about 10% of such fallen stocks recover. He cites O'Neil and Weinstein for this; his own source is not given [Sb6KTt64YKE, x2RbjJp1eCI].
-- Leaders of the prior bull cycle rarely regain their highs soon after a major correction [V41BUpPK3E4].
-  - His examples: 2003–07 leaders such as Aban, ABB, Unitech, DLF and L&T took about 10 years.
-  - So the 2021–23 leaders are unlikely to lead again.
-- After a V-shaped fall in a former outperformer, wait for a range and buy only its breakout. Only true leaders reclaim their 52-week or all-time highs [Pm_1kb8Fku0].
+### 2.11 Segment and index ratios: where to look
 
-**Tension with the "fell least" rule.** In some videos he also endorses names that lagged:
+- **Midcap 100 / Nifty 50** above its 50-day MA and rising means mid caps are trying to lead [yEKNcJ4EH0U].
+- **Cap-segment ratios** (micro, small, mid, large-mid 250 versus the market):
+  - Participate when the ratio rises.
+  - For a weak ratio, wait for a clear higher-high/higher-low sequence before looking again [SbtFCxbIB1w].
+  - His reading 8 months ago: microcaps lagging since September 2024, small cap erratic, mid cap 50 and large-mid 250 ratios at all-time highs, which he called the sweet spot [SbtFCxbIB1w].
+- **Nifty 500 / Nifty 50** as a breadth line.
+  - A flat or falling line while Nifty rallies means the broad market is thinning. It was down about 5% since July in one video [KDSbZ0oW2U0, rocXNq3_1Zw, rxqOUxO_vP4].
+  - The small-cap ETF's RS at a record low was another thinning signal [rxqOUxO_vP4].
+  - He also read Nifty / Nifty 500 against its 50 DMA [VCNsjVuGoWQ].
+- **Flat segment ratios are a warning.** Mid cap flat versus Nifty for about 6–7 months, and micro-cap RS flattening, are warnings, not neutral readings [JcxWhCO0hqI].
+- **Large caps lag, and he links it to FII ownership.**
+  - The largest names (HDFC Bank, ICICI, Axis, SBI, Reliance, Infosys, TCS) have weak RS versus the Nifty 500, so he does not expect a fast index rally.
+  - Returns fall as you climb the cap ladder, which he ties to FII ownership in large caps versus domestic money in small caps [0nbQs92kYuY, M4Z-Gi4gGag].
+- **Recent strength ranking:** IPO index > microcap > smallcap > midcap > largecap. Trade IPO names; trade small and micro caps with reduced size [rhiXs5Kh_0g]. He says IPOs and micro caps hold up because they are the "new-age" economy and large caps the old economy [jcWYGNInYg8].
+- **Leadership-group breadth** [N2dUTcb9CzQ]:
 
-- Nifty 50/100 large caps with poor 3–4 year returns, comfortable valuations and a constructive chart [iWa7MbGawvU];
-- "undervalued underperformers" (SBI, ICICI, Axis, Tata Steel) after overvalued outperformers corrected 25–35% [Y4TewQHVhvc];
-- an RRG view in which cheap PSU and oil names rotated into leadership within about 15 days [Pm_1kb8Fku0].
+  | Group | Above 50 DMA | Above 100 DMA | Above 200 DMA |
+  |---|---|---|---|
+  | Leadership basket | 75% | 81% | 85% |
+  | Rest of market | — | 39% | 38% |
 
-He reconciles these only through his requirement for a chart structure. The notes do not show an explicit rule for when the laggard rotation idea takes precedence over the "fell least" rule.
+  He reads the gap as: trade the leaders, ignore the rest. A related check is leaders versus a "total market ex-leaders" index [B1ynZNvqesE].
+- **US:** the Nasdaq must outperform the S&P 500 for the US market to do well [jcWYGNInYg8].
 
-### 2.9 Proximity to 52-week and all-time highs
+### 2.12 Beta (he contradicts himself)
 
-- Focus on stocks near their 52-week high, for both trading and investing. He calls proximity to the high the market signalling something is going on [kkJ4m9JQ4pM, mim7ylyaN74].
-- Stocks at 52-week lows in an index uptrend are "cheap for a reason" [kkJ4m9JQ4pM].
-- A leader is a stock above its 52-week or all-time high while its index is still below its own high. Examples: SBI in February while the Nifty fell; PNB above its high while Bank Nifty lagged [Pm_1kb8Fku0].
-- New highs while the sector or market is weak mark an outperformer. Example: Persistent [mim7ylyaN74].
-- If nothing good exists near the highs, he will consider names further away that show multiple contractions and then a breakout [mim7ylyaN74].
-- In ETFs and sectors, a 52-week high reached despite negative news means silent accumulation [6qExRlD11sE].
+| Claim | Where | Context |
+|---|---|---|
+| Prefers **low-beta** stocks for positional use | [uFFAAZNSozg] | Self-described feeling, ~8 years ago |
+| Wants beta **>1.2** over 252 days versus Nifty 50 / S&P 500 | [zWYCYySQVNc] | Swing trades targeting 5–15% moves |
+| Wants beta **>1.3** | [LahSe1vu1kY] | Pullback swing setups |
 
-### 2.10 Short side
+His supporting table: with the index moving about 3.5%, low-beta stocks moved about 2.7% and high-beta stocks about 7.8–8% [zWYCYySQVNc]. The split appears to be swing (high beta) versus positional (low beta), but he never reconciles the two.
 
-This is taught mainly 5–7 years ago and is thinner than the long side.
+### 2.13 Self-reported evidence
 
-- Short only in stage 4, which comes out of stage 3 [G2gjQUJRfJM, jlpd-YpqwiQ].
-- The transition is a break below the stage 3 range and below the 150-day average [G2gjQUJRfJM].
-- The RS line should be trending lower. Before the breakdown it is often flat or already below its own average [G2gjQUJRfJM].
-- Volume should expand on the decline [G2gjQUJRfJM].
-- His cases: Apple 2015 against the S&P 500, and Maruti Q4 2018, where RS warned before the breakdown and autos were also lagging [G2gjQUJRfJM].
-- For downside breakouts, the stock must be underperforming the benchmark [p6pwKWQgxUw, LahSe1vu1kY (JSW example), xzR6bwNgb18 (intraday)].
-- No short sales while price is above the 200 DMA [sbHzNd2iA8k].
-- His RS distribution signal (RS falling in a range, confirmed by a price breakdown) is the early warning [RVbze1duD-U].
-- He claims the stage + RS + volume method works across stocks, commodities, currencies and ETFs, on daily and shorter timeframes [G2gjQUJRfJM]. This is untested.
+- A list of about 40 stocks, mostly large and mid caps, identified March–April and shared in real time. He says roughly 80–85% outperformed while Nifty rose about 13–14% [mim7ylyaN74]. This is unaudited.
+- The stage swing-size table (28% versus 4–8%) [jlpd-YpqwiQ] and the beta table [zWYCYySQVNc] have no shown method.
 
-**Contradiction in framing.** The investor framing says to "sit out" stage 4 [sbHzNd2iA8k], while the trader framing says to short it [G2gjQUJRfJM, jlpd-YpqwiQ]. Recent videos discuss stage 4 only as something to avoid [SuYHqw5zA8U, kwbfXjRtEkk].
-
-### 2.11 Adjacent filters that appear alongside RS
-
-These are not stage or RS ideas, but they show up in the same selection steps.
-
-- **Beta.**
-  - For swing trades: beta above 1.2 over 252 days against the Nifty 50 or S&P 500, aimed at 5–15% moves [zWYCYySQVNc], or beta above 1.3 [LahSe1vu1kY].
-  - His own table: on a ~3.5% index move, low-beta stocks moved ~2.7% and high-beta stocks ~7.8–8% [zWYCYySQVNc].
-  - Conversely, he prefers low beta for positional trading, stated as "a feeling" [uFFAAZNSozg]. This contradicts the swing preference across holding periods.
-- **RSI ranges.** RSI 40–80 is bullish and 20–60 is bearish [HHkcCy5LrCM]. This is a different tool from RS and is noted only to avoid confusion.
-- **Earnings growth.** Faster earnings growth ranked banks in 2009–10 (Yes > Axis > ICICI > SBI) [2Yv0E57_bs4].
-
-### 2.12 His self-reported evidence
-
-None of this is audited.
-
-- About 40 large and mid caps flagged in March–April. He says about 80–85% outperformed a Nifty that rose about 13–14%, and about 15 lagged or matched. These two figures are inconsistent with each other [mim7ylyaN74].
-- The 28% versus 4–8% stage swing figures [jlpd-YpqwiQ].
-- The beta move table [zWYCYySQVNc].
-- The breadth percentages for the leadership group [N2dUTcb9CzQ].
+---
 
 ## 3. How a program would test it
 
 **Data needed for all tests:**
+- Daily OHLCV with **point-in-time index constituents**, to avoid survivorship bias. For India: Nifty 500, sector and segment indices. For the US/Canada: CRSP or Norgate-type data with delisted names, S&P 500 / Russell 3000 / TSX Composite and sector indices or ETFs.
+- Corporate-action-adjusted prices.
+- Realistic costs.
 
-- survivorship-free daily OHLCV for the Nifty 500 universe, with point-in-time constituents;
-- NSE sector, thematic and cap-segment index histories (Nifty 50, 500, Midcap 100/150, Smallcap 250, Microcap 250, sector indices);
-- point-in-time sector membership;
-- realistic Indian costs (STT, impact cost for small caps);
-- for transfer, the same for S&P 500, Russell 2000/S&P 600, SPDR sectors, the S&P/TSX Composite and TSX SmallCap.
+1. **Stage classification → forward returns.**
+   - **Definition:** weekly close against a 30-week SMA plus the SMA's 10-week slope:
+     - Stage 2: above, rising.
+     - Stage 4: below, falling.
+     - Stage 1 or 3: flat SMA, with prior trend down or up respectively.
+   - **Variants:** 150-day, 50-week and 200-day equivalents.
+   - **Measure:** forward 1/3/6/12-month excess return and max drawdown by stage, for stocks and sector indices.
+   - **Also check:** his claim that swing magnitudes average about 28% in stages 2/4 versus 4–8% in stages 1/3 [jlpd-YpqwiQ, G2gjQUJRfJM, Ux_uuOj-gKs].
 
-Use weekly bars where he does.
+2. **The RS × price confirmation matrix [488FDla8kuc, RVbze1duD-U, s1ZCPQI5894].**
+   - Build a 2×2 on (a) RS line (price / Nifty 500 or S&P 500) above its rising 50-period MA, and (b) price above the 200 DMA.
+   - **Hypothesis:** both-met beats RS-only beats neither on 6-month excess return.
+   - **Key sub-test:** RS-rising-but-price-below-200-DMA should underperform. This is his "falls less" trap.
 
-1. **Stage classification and forward returns.**
-   - Define the stages:
-     - Stage 2: weekly close above a rising 30-week SMA (slope above 0 over 4–10 weeks) plus a higher-high/higher-low pivot sequence.
-     - Stage 4: close below a falling SMA.
-     - Stages 1 and 3: flat SMA, distinguished by whether the prior 6–12 months trended down or up.
-   - Measure forward 1, 3, 6 and 12-month returns relative to the Nifty 500, and drawdowns, by stage.
-   - Run variants with the 150-day, 50-week and 200-day averages.
-   - Separately, test his swing-size claim: median trough-to-peak or peak-to-trough swing magnitude by stage. His figures are about 28% versus 4–8%.
-2. **RS confirmation of price breakouts.**
-   - Event: weekly close above a base high of at least 8 weeks, with price above the 30-week SMA.
-   - Split by whether the stock/Nifty 500 ratio is at a new 26-week (or multi-year) high at the breakout, versus flat or falling.
-   - Compare 3–6 month excess return and the failure rate (close back below the breakout within 4 weeks).
-   - Add the "RS new high before price" subgroup.
-3. **Rising RS without price confirmation.**
-   - Among stocks whose ratio is above its rising 50-week MA, compare those below their 200 DMA (or making lower lows) with those above it.
-   - This directly tests his claim that RS alone misleads.
-4. **Sector RS structure.**
-   - Each week, classify each sector's ratio to the Nifty 500 as higher-high/higher-low, as above or below its rising 50-period MA, or as breaking out of a 3-month RS base.
-   - Measure forward 1–3 and 3–6 month sector excess return.
-   - Compare the plain ratio with Mansfield RS, and the 4-week and 10-week ranks with 6–12 month ranks.
-5. **Two-tier stock RS.**
-   - Within the top-RS sectors, compare stocks beating both their sector and the Nifty 500 over a trailing 3–6 months with those beating only one.
-   - Measure forward 1–6 month return.
-6. **Correction resilience.**
-   - Define corrections as Nifty 500 drawdowns of at least 10%.
-   - At the index low, take the top decile by smallest drawdown from the pre-correction high. Use his <6% cutoff as one variant.
-   - Compare with the bottom decile and with "biggest bounce in the first 15 days".
-   - Measure forward 3–12 month returns and the share of names that reach new highs first.
-   - Also test his rally-quality rule: index follow-through when resilient sectors lead the first 15 days, versus when the worst decliners lead.
-7. **Cap-segment ratio regime.**
-   - Signal: the Midcap 100/Nifty 50 ratio (and Smallcap 250/Nifty 50, Nifty 500/Nifty 50) crosses above its 50 DMA, or makes higher highs and higher lows.
-   - Measure forward 3–6 month segment relative return and hit rate.
-8. **Short side.**
-   - Event: first close below both a stage 3 range low and a falling 150-day SMA.
-   - Split by RS falling versus flat or rising, and by volume expansion.
-   - Measure forward 1–3 month returns against the benchmark.
-   - India constraints: in India the cash short can't be held overnight (as the notes put it), so this needs futures data and is limited to F&O names.
+3. **RS confirmation of breakouts [Ux_uuOj-gKs, jBYC0t30fz8, uw5QQOenJnQ, p6pwKWQgxUw, kwbfXjRtEkk].**
+   - **Event:** close above a ≥6-month base high.
+   - **Split by:**
+     - RS at a new 6-month high on or before the breakout day;
+     - RS new high before price (lead);
+     - RS lagging.
+   - **Measure:** failure rate (close back inside the base within 20 days) and 3–6 month excess return.
+   - **Short mirror:** breakdown below a stage-3 range and the 150-day SMA with RS falling [G2gjQUJRfJM].
 
-## 4. Transfer to TSX and US markets
+4. **Two-tier RS within leading sectors [Jpu536_AmGc, 488FDla8kuc, q26J58h5Qt8, rbSj4pOg3_I].**
+   - **Step 1:** rank sectors by whether the sector/benchmark ratio is in a higher-pivot structure, operationalised as 13-week ratio above 26-week ratio with a rising 50-day ratio MA.
+   - **Step 2:** within the top sectors, compare stocks beating both sector and benchmark over 3–6 months against those beating only one.
+   - **Needs:** a sector mapping for every stock.
 
-**Applies as is, with only a benchmark swap.**
+5. **Correction leaders versus beaten-down bouncers [iWa7MbGawvU, 20BxPDdAZAE, SbtFCxbIB1w, L-PGsMh2vHw].**
+   - **Event:** benchmark drawdowns of 10% or more.
+   - **Groups:** the quintile with the smallest drawdown or highest RS change during the drawdown, against the largest-drawdown quintile that bounces most in the first 15 trading days off the low.
+   - **Measure:** forward 3–12 month returns.
+   - **Also test:** whether index follow-through depends on which group leads the first leg.
 
-- The four-stage definitions and the 30-week / 150-day reference.
-- The RS ratio line and its structure, breakouts, divergences and price-confirmation rule.
-- The two-tier stock-versus-sector-and-benchmark filter.
-- 52-week-high proximity.
-- The "fell least in the correction" watch list.
-- Not chasing the biggest bouncers.
-- Segment ratio charts. He himself names S&P 500, Nasdaq and CRB benchmarks [G2gjQUJRfJM, Ux_uuOj-gKs, p6pwKWQgxUw].
+6. **Segment ratio regime [yEKNcJ4EH0U, SbtFCxbIB1w, JcxWhCO0hqI, rocXNq3_1Zw].**
+   - **India:** when Midcap 100/Nifty 50 (or Smallcap 250/Nifty 50) crosses above its 50-day MA after being below, measure the frequency of outperformance over 3–6 months, and the result after 6 months of a flat ratio.
+   - **US/Canada:** replicate with Russell 2000/S&P 500 and TSX SmallCap/TSX 60.
 
-Suggested substitutions:
+7. **RS lead time [RVbze1duD-U].**
+   - Measure the distribution of lags between an RS 50-day low and a price close below the 100-day MA (and the reverse for highs).
+   - **Hypothesis:** his roughly 15-day lead is positive on average.
 
-| His India input | US equivalent | Canada equivalent |
-|---|---|---|
-| Nifty 500 | S&P 1500 or Russell 3000 | S&P/TSX Composite |
-| Nifty 50 | S&P 500 | S&P/TSX 60 |
-| Midcap 100 / Smallcap 250 | S&P 400 / S&P 600 or Russell 2000 | TSX Completion / SmallCap |
-| Sector indices | SPDR / GICS sectors | GICS sector indices |
+8. **Leadership-group breadth gap [N2dUTcb9CzQ].**
+   - Condition: market breadth below 40%.
+   - Compare stocks in sectors with over 75% of members above their 50 DMA against sectors under 40%, over 1–3 months.
 
-**Needs adapting.**
+---
 
-- *Canadian concentration.* The TSX is concentrated in financials, energy and materials. Sector RS there has few independent groups, and some sector indices hold only a handful of names. The stock-beats-sector tier may be noisy, so consider using US sector peers or industry groups.
-- *Moving-average choice.* The MA "for current conditions" is his own discretion and should be optimised out-of-sample, not copied.
-- *Costs and instruments.* Small-cap liquidity and costs differ. US and Canadian shorts are feasible in cash with borrow costs, whereas his Indian shorting context implies futures.
-- *Leadership by RS.* The leadership-group breadth idea needs sector tagging.
-- *ETF selection.* The ETF version [6qExRlD11sE] maps directly to sector ETFs.
+## 4. Transfer to Canadian (TSX) and US markets
 
-**India-only.**
+**Usable as is (swap the benchmark):**
+- Stage classification by weekly average.
+- The price/benchmark RS line.
+- Stock-versus-sector-versus-broad two-tier RS.
+- RS plus 200-DMA confirmation.
+- RS-confirmed breakouts.
+- Correction-leaders screens.
+- Nearness to 52-week highs.
+- Percentage of constituents above their MAs.
 
-- The FII-versus-domestic explanation of cap-ladder performance [0nbQs92kYuY, M4Z-Gi4gGag].
-- The Nifty IPO index as a strength pocket [rhiXs5Kh_0g].
-- The ₹10,000–30,000 crore band [8QeR8FmYYg4].
-- The 2–2.5 year range-then-stage-2 rhythm [rhiXs5Kh_0g].
-- The one-cycle bull-market phase template [Pm_1kb8Fku0].
-- All dated market calls, index levels (21,000–22,600, IT ~32,000) and named-stock examples.
+He himself names the S&P 500, Nasdaq and CRB index as benchmarks [G2gjQUJRfJM, p6pwKWQgxUw].
+
+**Benchmarks:**
+- US: S&P 500 or Russell 3000.
+- Canada: S&P/TSX Composite.
+
+**Needs adapting:**
+- **Sectors.**
+  - US: SPDR/GICS sector ETFs and industry groups give a rich universe.
+  - Canada: the TSX is concentrated in financials, energy and materials, so sector RS rankings carry fewer independent bets, and many sectors have few liquid members. Consider using US-listed peers or GICS industry level.
+- **Cap-segment ratios.**
+  - US: Russell 2000 / S&P 500, S&P 400 / S&P 500, Russell Microcap.
+  - Canada: TSX SmallCap / TSX 60.
+- **IPO index:** the Renaissance IPO ETF (US) is the closest analogue. Canada has no equivalent.
+- **Bank Nifty as a sentiment gauge:** KBW Bank Index or XLF in the US; S&P/TSX banks in Canada. Whether bank RS leads rallies there is untested.
+- **Shorting:** easier in US/Canada cash markets, but borrow cost and availability matter for small caps. In India, overnight shorts in his examples imply F&O stocks.
+- **Costs:** India's STT/stamp duty profile differs from US commission-free trading with spread costs, and from Canadian spreads on smaller names.
+- **Beta thresholds** (1.2/1.3, 252 days) are portable but must be re-estimated per market.
+
+**India-only:**
+- The FII-versus-domestic explanation of the cap-ladder effect [0nbQs92kYuY, M4Z-Gi4gGag].
+- All dated market calls: Nifty 500 stage 3, the 21,000 levels, the ₹10,000–30,000 crore band, microcap weakness since September 2024 [8QeR8FmYYg4, rhiXs5Kh_0g, SbtFCxbIB1w].
+- The 2–2.5 year Indian range cycle [rhiXs5Kh_0g].
+- The year-1-to-4 bull template drawn from the post-Covid Indian cycle [Pm_1kb8Fku0].
+- The specific stock lists and his 40-stock track record [mim7ylyaN74, 488FDla8kuc].
+
+---
 
 ## 5. Gaps and doubts
 
-**Not operationally defined.**
+**Definitions are not precise.**
+- No numeric stage algorithm is given: no slope threshold, no base length, no breakout margin.
+- "Higher highs and higher lows" is never defined by pivot size or lookback.
+- He says he marks stages manually and distrusts software [c-0bHPew1fg, _--GkDAomPk]. Any coded version is the program's reconstruction, not his rule.
 
-- Stage boundaries are never given in numbers: no slope threshold, no base length, no range width.
-- He marks stages by eye and distrusts software [c-0bHPew1fg].
-- "Higher highs/lower lows" in the RS line has no pivot definition.
-- RS lookbacks range from hours to two years with no stated rule for which applies when.
-
-**Moving-average drift.** He has used the 30-week, 150-day, 50-week, 52-week, 200-day and 50-day averages as the stage reference in different videos. Sector stage calls now often use the 50 DMA, which is not Weinstein's reference.
-
-**Benchmark drift.** Nifty/Nifty 50 dominates in older videos and the Nifty 500 in recent ones. The small-cap benchmark appears for small-cap stocks [rocXNq3_1Zw]. This is not reconciled.
+**Parameters drift across videos.**
+- The stage average moves between 30-week, 150-day, 50-week, 52-week, 200-day and 50-day (section 2.2).
+- RS lookback ranges from intraday to 2 years.
+- RS smoothing is a 50-period MA in some videos and none in others.
 
 **Contradictions.**
+- Low versus high beta [uFFAAZNSozg vs zWYCYySQVNc, LahSe1vu1kY].
+- Large-cap-only sector leaders [Q-uCkMMTh5Q] versus small caps first [c-0bHPew1fg].
+- Never chase stage 1 [mim7ylyaN74] versus SIP buying of a stage-1 IT base [rxqOUxO_vP4].
+- Leaders and fell-least [many] versus laggard and undervalued large caps [iWa7MbGawvU, Y4TewQHVhvc].
+- App RS ranks distrusted [Jpu536_AmGc] versus "high RS ratings" as a rule [H0XAVFBdbzw].
 
-- Large-caps-only [Q-uCkMMTh5Q] versus look-at-smaller-names-first [c-0bHPew1fg, SbtFCxbIB1w].
-- High beta for swings [zWYCYySQVNc, LahSe1vu1kY] versus low beta for positional trades [uFFAAZNSozg].
-- "Fell least" leadership versus buying laggard or undervalued large caps and RRG rotation [iWa7MbGawvU, Y4TewQHVhvc, Pm_1kb8Fku0].
-- Shorting stage 4 versus sitting it out [G2gjQUJRfJM, sbHzNd2iA8k].
-- Market called "stage 3" in several recent videos but "stage 2-type consolidation" in another [lRUDp336l7Q].
-- Distrust of RS ratings [Jpu536_AmGc] versus "prefer high RS ratings" [H0XAVFBdbzw].
+**How the teaching changed.**
+- Stage framing moved from market-profile stages (~13 years ago) [su1cu2Y3AXA, Nkp_wwGZFNQ, tNACzhThprk], to Wyckoff/Weinstein with the 150-day or 50-week average and a 200-DMA-centred RS matrix (5–8 years ago), to index- and segment-level stage reads with the 30-week average, cap-segment ratios and IPO/micro-cap focus (last ~1 year).
+- The short side is taught only in older videos [G2gjQUJRfJM, p6pwKWQgxUw, jlpd-YpqwiQ, LahSe1vu1kY]. The recent material is long-only.
 
-**Evidence quality.**
+**Evidence quality.** These figures are all self-reported or anecdotal, with no shown sample:
+- 28% versus 4–8% swing sizes [jlpd-YpqwiQ];
+- the 80% of traders buying markdown stocks [JJEB-UZgK4E];
+- 15–20% software error [c-0bHPew1fg];
+- under 10% recovery of fallen stocks [Sb6KTt64YKE];
+- the ~15-day RS lead [RVbze1duD-U];
+- the 40-stock list result [mim7ylyaN74].
 
-- All performance figures are self-reported or anecdotal: 80–85% of 40 stocks, 28% versus 4–8%, over 80% of traders, fewer than 10% of fallen stocks recover.
-- The 40-stock figures are internally inconsistent.
-- The 15-day RS lead comes from a few examples.
-- His one stated RS failure (metals) and the FMCG/IT failures show the filter misfires, but he gives no failure rate.
+The "strong companies skip markdown" idea [Bqp9jKQCs30] relies on fundamentals he does not define here.
 
-**Not covered in these notes.**
+**Admitted failures.**
+- RS can fail: metals [Yxo-rYOCuAo].
+- FMCG and IT position-building did not work and large-cap trades underperformed [U7YrYjIS9B8].
 
-- Exit rules tied to stage changes. There is only the weekly pivot-low hold rule [mim7ylyaN74].
-- How to size across stages, beyond the qualitative scale.
-- How to handle a stage 2 stock in a stage 3 market, other than "be selective".
-- Volume criteria for stage transitions beyond qualitative mentions.
-- Stage analysis on intraday timeframes, except one RS condition [xzR6bwNgb18].
-- Any test of Mansfield RS versus the plain ratio.
+**Not covered in these notes:**
+- exits and stop rules tied to stage 3 or a stage-2 failure;
+- position sizing beyond qualitative stage-based risk [sbHzNd2iA8k];
+- how volume is quantified in stage transitions;
+- how often to rebalance a sector ranking;
+- how to handle a stock in stage 2 inside a stage-4 sector;
+- holding through stage 3 of the index.
+
+The Mansfield RS comparison [Ux_uuOj-gKs] and the RRG usage [Pm_1kb8Fku0] are mentioned without method.

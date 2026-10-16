@@ -32,11 +32,37 @@ from pathlib import Path
 
 SONNET = "claude-sonnet-5-5"
 OPUS = "claude-opus-5-5"
-TX = Path("~/ananta_runs/channels/tx").expanduser()
-VIDEOS = Path("~/ananta_runs/channels/TradeWithTrend_videos.json").expanduser()
-WORK = Path("~/ananta_runs/library/twt").expanduser()
+# one library per teacher (Oct 16: Optionables added); use("opt") switches every path and name below
+CHANNELS = {
+    "twt": {"tx": "~/ananta_runs/channels/tx", "videos": ["~/ananta_runs/channels/TradeWithTrend_videos.json", "~/ananta_runs/channels/tradewithtrend_streams.json"],
+            "work": "~/ananta_runs/library/twt", "out": "trade_with_trend", "prefix": "TWT", "name": "Trade With Trend", "teacher": "Raunak A, Trade With Trend",
+            "about": "Indian stocks and indices; positional and swing trading"},
+    "opt": {"tx": "~/ananta_runs/channels/tx_opt", "videos": ["~/ananta_runs/channels/optionables_videos.json", "~/ananta_runs/channels/optionables_streams.json"],
+            "work": "~/ananta_runs/library/opt", "out": "optionables", "prefix": "OPT", "name": "Optionables", "teacher": "Optionables",
+            "about": "Indian index and stock options: strategies, Greeks, volatility, adjustments and risk"},
+}
+CH = CHANNELS["twt"]
+TX = Path(CH["tx"]).expanduser()
+WORK = Path(CH["work"]).expanduser()
 REPO = Path(__file__).resolve().parents[2]
-OUT = REPO / "docs" / "library" / "trade_with_trend"
+OUT = REPO / "docs" / "library" / CH["out"]
+
+
+def use(key: str) -> None:
+    """Switch the library to another teacher's channel (paths, names, prompts)."""
+    global CH, TX, WORK, OUT, TOPICS, FILES
+    CH = CHANNELS[key]
+    TOPICS, FILES = (OPT_TOPICS, OPT_FILES) if key == "opt" else (TWT_TOPICS, TWT_FILES)
+    TX, WORK, OUT = Path(CH["tx"]).expanduser(), Path(CH["work"]).expanduser(), REPO / "docs" / "library" / CH["out"]
+
+
+def _videos() -> dict:
+    out = {}
+    for f in CH["videos"]:
+        p = Path(f).expanduser()
+        if p.exists():
+            out.update({v["id"]: v for v in json.loads(p.read_text())})
+    return out
 API = "https://api.anthropic.com/v1/messages/batches"
 # batch prices, US$ per million tokens (half the standard price; platform.claude.com pricing, Oct 16 2026)
 PRICE = {SONNET: (1.0, 5.0), OPUS: (2.0, 10.0)}
@@ -67,13 +93,39 @@ FILES = [  # concept file -> topics it gathers
     ("11_risk_sizing_exposure", ["RISK"]), ("12_exits_and_selling", ["EXIT"]),
 ]
 
+OPT_TOPICS = {
+    "PROCESS": "how they work: philosophy, routine, checklists, mindset, mistakes to avoid",
+    "BASICS": "option basics: calls, puts, premium, intrinsic and time value, moneyness, expiry, settlement, lot sizes",
+    "GREEKS": "the Greeks: delta, gamma, theta, vega, rho, and how they move with price, time and volatility",
+    "VOLATILITY": "volatility: implied vs historical, IV rank/percentile, VIX, skew, volatility crush around events",
+    "BUYING": "option buying strategies: directional calls/puts, debit spreads, when buying works and when it does not",
+    "SELLING": "option selling and income: naked and covered writing, credit spreads, iron condors, strangles, straddles",
+    "SPREADS": "multi-leg structures: verticals, calendars, diagonals, butterflies, ratio spreads, their payoff and choice",
+    "ADJUSTMENT": "adjusting and repairing positions: rolling, converting, hedging a losing leg, when to exit instead",
+    "HEDGING": "hedging a stock or portfolio with options or futures: protective puts, collars, index hedges",
+    "FUTURES": "futures: basis, margin, rollover, futures vs options, hedging with futures",
+    "OI_FLOW": "open interest, PCR, max pain, option chain reading, OI build-up and unwinding",
+    "EVENTS": "expiry day, results, budget, policy events and how they change option prices and strategy",
+    "RISK": "risk, margin, position sizing, capital allocation, max loss, black-swan protection",
+    "EXIT": "exits: targets, stop rules on premium or underlying, time exits, managing winners",
+    "MARKET": "reading the underlying: trend, support/resistance, regime, and choosing a strategy to fit it",
+}
+OPT_FILES = [
+    ("01_how_they_work", ["PROCESS"]), ("02_option_basics", ["BASICS"]), ("03_greeks", ["GREEKS"]), ("04_volatility_and_vix", ["VOLATILITY"]),
+    ("05_buying_strategies", ["BUYING"]), ("06_selling_and_income", ["SELLING"]), ("07_spreads_and_structures", ["SPREADS"]),
+    ("08_adjustments", ["ADJUSTMENT"]), ("09_hedging", ["HEDGING"]), ("10_futures", ["FUTURES"]), ("11_open_interest_and_chain", ["OI_FLOW"]),
+    ("12_events_and_expiry", ["EVENTS"]), ("13_risk_and_margin", ["RISK"]), ("14_exits", ["EXIT"]), ("15_reading_the_underlying", ["MARKET"]),
+]
+TWT_TOPICS, TWT_FILES = TOPICS, FILES
+
+
 EXTRACT_SYSTEM = (
     "You build a trading knowledge library from the video transcripts of one teacher, for a research program that will test "
     "his ideas on Indian, Canadian and US markets. Paraphrase in plain English; never copy more than 10 consecutive words. "
     "Record only what this video actually says; automatic captions mishear words, so keep a term only when the context makes "
     "it clear. A teacher's idea is a hypothesis, never a fact: write it as what he teaches, not as truth. Answer only JSON.")
 
-EXTRACT_TASK = """Teacher: Raunak A, Trade With Trend (Indian stocks and indices; positional and swing trading)
+EXTRACT_TASK = """Teacher: {teacher} ({about})
 Video: "{title}" · {length} · published about {age} (before October 2026)
 Description (first lines): {desc}
 Transcript (automatic captions):
@@ -103,13 +155,14 @@ Up to 25 items; merge repeats; skip greetings, promotions and course sales. A MA
 
 MERGE_SYSTEM = (
     "You write one chapter of a trading knowledge library from structured notes taken on many videos of one teacher "
-    "(Raunak A, Trade With Trend, India). The reader is the trader who learned from him and the research program that will test "
+    "(named in the chapter request). The reader is the trader who learned from him and the research program that will test "
     "the ideas. Paraphrase; no quotes over 10 words. Be concrete: conditions, order of operations, numbers with units. Tie every "
     "point to the video ids it came from, like [id1, id2]. Never invent: if the notes are thin on something, say so plainly. "
     "Everything is the teacher's claim or method, a hypothesis to test, never established fact. Where videos disagree or his "
     "teaching changed over time, say so.")
 
-MERGE_TASK = """Chapter: {name} — {about}
+MERGE_TASK = """Teacher: {teacher}
+Chapter: {name} — {about}
 Notes ({n} items from {v} videos; each line: [video id · published about ...] kind · direction · clarity · codable · transfer | text | parameters | testable):
 {notes}
 
@@ -124,7 +177,8 @@ Write the chapter in Markdown:
 5. Gaps and doubts: what is thin, unclear in the captions, or contradicted; what he does not cover here.
 Keep it to the substance; no padding."""
 
-CALLS_TASK = """Chapter: Market calls over time — what he said about the market, sector by sector, in his reviews.
+CALLS_TASK = """Teacher: {teacher}
+Chapter: Market calls over time — what he said about the market, sector by sector, in his reviews.
 Notes ({n} calls; each line: [video id · published about ...] call | horizon):
 {notes}
 
@@ -136,7 +190,8 @@ Write the chapter in Markdown:
 3. For a later point-in-time check: which calls are specific enough to score against what the market then did, and how.
 No verdicts on whether he was right: the program will check that against data."""
 
-HYP_TASK = """Chapter: the register of testable hypotheses, from all his teaching.
+HYP_TASK = """Teacher: {teacher}
+Chapter: the register of testable hypotheses, from all his teaching.
 Candidates ({n}; each line: [video id] topic · direction · codable · transfer | hypothesis | data needed):
 {notes}
 
@@ -145,7 +200,7 @@ Write the chapter in Markdown:
 A short intro: these are the teacher's ideas restated as hypotheses; none is validated; the research rules (pre-registration,
 counting looks, real costs, a sealed holdout) apply before any of them could become a rule anywhere.
 Then a table with one row per distinct hypothesis (merge duplicates; keep the clearest wording), at most 60 rows, ordered by how
-central and how codable it is: id (TWT-H01...), topic, the hypothesis (precise), direction, data needed, markets it could be
+central and how codable it is: id ({prefix}-H01...), topic, the hypothesis (precise), direction, data needed, markets it could be
 tested on (India / Canada / US), codable (YES/PARTLY), source videos.
 Then: the 10 to test first, and why (central to his method, precise enough, data available).
 Then: what is not testable as taught, and what it would need."""
@@ -194,6 +249,9 @@ def _params(model: str, system: str, user: str, max_tokens: int) -> dict:
     p = {"model": model, "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": user}]}
     if "sonnet" in model:
         p["thinking"] = {"type": "between_tools"}
+    else:                                   # Opus thinks by default and can spend the whole budget on it (the first chapter run did):
+        p["thinking"] = {"type": "adaptive"}
+        p["output_config"] = {"effort": "medium"}                    # the API's way to bound the think (checked Oct 16)
     return p
 
 
@@ -202,7 +260,7 @@ def _cid(vid: str) -> str:
 
 
 def prepare() -> dict:
-    vids = {v["id"]: v for v in json.loads(VIDEOS.read_text())}
+    vids = _videos()
     reqs, skipped = [], []
     for f in sorted(TX.glob("*.json")):
         d = json.loads(f.read_text())
@@ -213,7 +271,7 @@ def prepare() -> dict:
         if len(words) < 150:
             skipped.append(vid)
             continue
-        user = EXTRACT_TASK.format(title=d.get("title", ""), length=d.get("length", ""), age=d.get("age", "unknown"),
+        user = EXTRACT_TASK.format(teacher=CH["teacher"], about=CH["about"], title=d.get("title", ""), length=d.get("length", ""), age=d.get("age", "unknown"),
                                    desc=" ".join((d.get("desc") or "").split()[:60]), text=" ".join(words[:26000]),
                                    topics=" | ".join(TOPICS), topic_help="; ".join(f"{k} = {v}" for k, v in TOPICS.items()))
         reqs.append({"custom_id": _cid(vid), "params": _params(SONNET, EXTRACT_SYSTEM, user, 9000)})
@@ -298,7 +356,7 @@ def collect(max_s: int = 0) -> dict:
 
 
 def _notes() -> tuple[dict, dict]:
-    vids = {v["id"]: v for v in json.loads(VIDEOS.read_text())}
+    vids = _videos()
     out = {}
     for f in (WORK / "notes").glob("*.json"):
         d = json.loads(f.read_text())
@@ -322,23 +380,23 @@ def merge_submit() -> dict:
         title = name.split("_", 1)[1].replace("_", " ").capitalize()
         about = "; ".join(TOPICS[t] for t in tops)
         body = "\n".join(lines) if lines else "(no notes on this topic in any video)"
-        reqs.append({"custom_id": f"f_{name}", "params": _params(OPUS, MERGE_SYSTEM, MERGE_TASK.format(
-            name=name, about=about, n=len(lines), v=len(used), notes=body, title=title), 12000)})
+        reqs.append({"custom_id": f"f_{name}", "params": _params(OPUS, MERGE_SYSTEM, MERGE_TASK.format(teacher=CH["teacher"],
+            name=name, about=about, n=len(lines), v=len(used), notes=body, title=title), 30000)})
     calls = [f"[{vid} · {vids.get(vid, {}).get('age', '?')}] {c.get('what')} | {c.get('horizon') or ''}"
              for vid, n in notes.items() for c in (n.get("market_calls") or [])]
-    reqs.append({"custom_id": "f_13_market_calls_over_time", "params": _params(OPUS, MERGE_SYSTEM, CALLS_TASK.format(
-        n=len(calls), notes="\n".join(calls) or "(none)"), 12000)})
+    reqs.append({"custom_id": f"f_{len(FILES) + 1:02d}_market_calls_over_time", "params": _params(OPUS, MERGE_SYSTEM, CALLS_TASK.format(teacher=CH["teacher"], 
+        n=len(calls), notes="\n".join(calls) or "(none)"), 30000)})
     hyps = [f"[{vid}] {it.get('topic')} · {it.get('direction')} · {it.get('codable')} · {it.get('transfer')} | {it.get('testable')} | {it.get('data_needed') or ''}"
             for vid, n in notes.items() for it in (n.get("items") or []) if (it.get("testable") or "").strip()]
-    reqs.append({"custom_id": "f_14_testable_hypotheses", "params": _params(OPUS, MERGE_SYSTEM, HYP_TASK.format(
-        n=len(hyps), notes="\n".join(hyps) or "(none)"), 16000)})
+    reqs.append({"custom_id": f"f_{len(FILES) + 2:02d}_testable_hypotheses", "params": _params(OPUS, MERGE_SYSTEM, HYP_TASK.format(teacher=CH["teacher"], prefix=CH.get("prefix", "TWT"), 
+        n=len(hyps), notes="\n".join(hyps) or "(none)"), 40000)})
     (WORK / "merge_requests.jsonl").write_text("\n".join(json.dumps(r) for r in reqs) + "\n")
     r = _submit(WORK / "merge_requests.jsonl", "merge")
     r.update(videos_with_notes=len(notes), market_calls=len(calls), hypotheses=len(hyps))
     return r
 
 
-HEADER = ("<!-- Trading Knowledge Library · Trade With Trend (Raunak A, India). Built {day} from {n} public videos with captions "
+HEADER = ("<!-- Trading Knowledge Library · {name} ({teacher}, India). Built {day} from {n} public videos with captions "
           "(of {total} on the channel; members-only videos were not used): one structured note per video (Claude Sonnet 5.5) -> this "
           "chapter (Claude Opus 5.5), src/research/library.py. Paraphrased; the transcripts stay on the laptop. Evidence class: "
           "external teaching = hypotheses to test, never Ananta rules; nothing in the agent reads docs/library/. -->\n\n")
@@ -352,7 +410,7 @@ def merge_collect(max_s: int = 0) -> dict:
     notes, vids = _notes()
     OUT.mkdir(parents=True, exist_ok=True)
     written, cost, failed = [], 0.0, []
-    hdr = HEADER.format(day=time.strftime("%Y-%m-%d"), n=len(notes), total=len(vids))
+    hdr = HEADER.format(name=CH["name"], teacher=CH["teacher"], day=time.strftime("%Y-%m-%d"), n=len(notes), total=len(vids))
     for res in _results(b):
         text, usage, model = _text_usage(res)
         if text is None:
@@ -375,8 +433,8 @@ def _index(names: list[str], notes: dict, vids: dict) -> None:
         quality[n.get("quality", "?")] += 1
         for it in n.get("items") or []:
             topics[str(it.get("topic", "?")).upper()] += 1
-    lines = ["# Trading Knowledge Library · Trade With Trend", "",
-             "Raunak A's public teaching, organised by topic, for Ananta's research across India, Canada and the US.",
+    lines = [f"# Trading Knowledge Library · {CH['name']}", "",
+             f"{CH['teacher']}: public teaching, organised by topic, for Ananta's research across India, Canada and the US.",
              "Every chapter is the teacher's method restated as hypotheses; none of it is validated, and nothing in the crypto agent,",
              "its books or its gate reads this folder. The path to use: concept -> formal spec -> pre-registered test -> independent",
              "validation -> agent knowledge (Canada plan, section 11).", "",

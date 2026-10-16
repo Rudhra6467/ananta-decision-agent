@@ -247,11 +247,19 @@ def run(j, call: Callable | None = None) -> dict | None:
             pick, reason = check(d, f, live)
             if pick:
                 break
+        held = None
+        if pick:                                     # no stacking (Madhav, Oct 16): a coin the book already holds is not bought again
+            held = j.db.execute("SELECT id FROM evidence_trades WHERE watch=? AND coin=? AND status='OPEN' LIMIT 1",
+                                (WATCH, pick["coin"])).fetchone()
         gwhy = None
-        if pick:                                     # the trade guard: the kill switch again, and the pick's price age
+        if pick and not held:                        # the trade guard: the kill switch again, and the pick's price age
             t_seen, lim = seen.get(pick["coin"], (None, None))
             gwhy = tg.blocked(j, WATCH, pick["coin"], price_t=t_seen, max_age_s=lim)
-        if pick and gwhy:
+        if pick and held:
+            res.update(action="WOULD_ADD", coin=pick["coin"], plan=pick["plan"], price=pick["price"], stop=pick["stop"], thesis=pick["thesis"],
+                       why=str(d.get("why_not_others") or "")[:300],
+                       note=f"no stacking: the book already holds an open {pick['coin']} trade ({held[0]}); the pick is recorded, nothing opened")
+        elif pick and gwhy:
             res.update(action="BLOCKED", coin=pick["coin"], plan=pick["plan"], price=pick["price"], stop=pick["stop"], thesis=pick["thesis"],
                        note="trade guard: " + gwhy)
         elif pick:

@@ -105,3 +105,26 @@ def test_the_switches_the_brain_obeys_stop_the_bold_book_too(tmp_path, monkeypat
     assert r["action"] == "MISS" and "BRAIN_ENABLED" in r["note"] and r["cost_usd"] == 0
     assert j.db.execute("SELECT action, note FROM bold_decisions").fetchone() == ("MISS", r["note"])
     assert not j.db.execute("SELECT 1 FROM evidence_trades").fetchone()
+
+
+def test_no_stacking_a_held_coin_is_recorded_not_bought_again(tmp_path, monkeypatch):
+    """Madhav, Oct 16: the bold book may not stack the same coin. A pick of a coin it already holds open is WOULD_ADD:
+    recorded with its plan and price, no trade and no twin opened, and the day still counts as decided."""
+    from jarvis.service import bold
+
+    j = _ready(tmp_path, monkeypatch, dial=1.0)
+    first = bold.run(j, call=lambda u: _reply())
+    assert first["action"] == "TAKE"
+    n_trades = j.db.execute("SELECT COUNT(*) FROM evidence_trades").fetchone()[0]
+    j.now = lambda: NOW + DAY                                   # next UTC day, same pick
+    from jarvis.service import stance
+    j.db.execute("INSERT INTO stance (day, t, dial, facts, source) VALUES (?,?,?,?,?)",
+                 (stance._day(NOW + DAY), NOW + DAY - 300, 1.0,
+                  json.dumps({"dial": {"dial": 1.0}, "candidates": [{"coin": c, "close": p, "live": p} for c, p in PX.items()]}), "brain"))
+    j.db.commit()
+    second = bold.run(j, call=lambda u: _reply())
+    assert second["action"] == "WOULD_ADD" and second["coin"] == "SOL" and "no stacking" in second["note"]
+    assert j.db.execute("SELECT COUNT(*) FROM evidence_trades").fetchone()[0] == n_trades    # nothing opened, no twin
+    row = j.db.execute("SELECT action, trade_id, random_id FROM bold_decisions WHERE day=?", (bold._day(NOW + DAY),)).fetchone()
+    assert row == ("WOULD_ADD", None, None)
+    assert bold.run(j, call=lambda u: _reply()) is None                                    # the day is decided once

@@ -12,6 +12,7 @@
   "On every UTC day the exposure dial is OPEN it must pick its single best idea among the tier-A coins and take it: no PASS is available. A pick the code rejects (no fresh candle, a stop over 15% away, an unknown exit plan) is recorded as a mandate miss, never quietly skipped.",
   "On a day the dial is CLOSED it may act or sit, and must write why either way.",
   "Fixed size: $100 of paper a trade, at most one new trade a day.",
+  "No stacking: a pick of a coin the book already holds open is recorded as WOULD_ADD (coin, plan, price, stop, thesis) and nothing is opened, neither the trade nor its twin; the day counts as decided. The prompt is not changed, so the book keeps measuring the brain's first pick.",
   "The exit plan is written before entry: one of the tested plans (DIP: out after 10 days, no stop; ZONE or TREND: out after 20 days with the written stop). No near target: review #10 showed targets cut the winners. The invalidation price is always recorded.",
   "Every trade opens a random tier-A twin at the same moment with the same plan in its own daily ranges (RANDOM_BOLD).",
   "Scored like everything else: against its twin, against doing nothing, and against the market median over the same days; closed trades feed the same weekly review.",
@@ -22,11 +23,24 @@
   "twin_watch": "RANDOM_BOLD",
   "stake_usd": 100,
   "max_new_per_day": 1,
-  "exit_plans": ["DIP", "ZONE", "TREND"],
+  "exit_plans": [
+   "DIP",
+   "ZONE",
+   "TREND"
+  ],
   "stop_max_pct": 15,
   "budget_usd_per_day": 0.05,
-  "runs_after": "the stance (fix A2), once per UTC day after the daily close"
+  "runs_after": "the stance (fix A2), once per UTC day after the daily close",
+  "stacking": "no (WOULD_ADD), Madhav Oct 16"
  },
  "switch": "Two locks, both needed: BOLD_BOOK=1 in the service's environment AND 'approved' filled in this file by Madhav. Either one missing = off; nothing is called, nothing trades, nothing is spent.",
- "expected": "At measured costs it will probably lose at first. Either its picks beat the twin (first evidence its judgment is worth something) or they do not (caution is measured to be correct). Review after 30 closed trades or 60 days, whichever is later, against the twin, nothing, and the market median."
+ "expected": "At measured costs it will probably lose at first. Either its picks beat the twin (first evidence its judgment is worth something) or they do not (caution is measured to be correct). Review after 30 closed trades or 60 days, whichever is later, against the twin, nothing, and the market median.",
+ "amendments": [
+  {
+   "date": "2026-10-16",
+   "approved_by": "Madhav (in chat)",
+   "what": "no stacking (WOULD_ADD)",
+   "note": "Asked after BTC was picked on Oct 15 and Oct 16: may the bold book stack the same coin? Recommendation: no, a repeat pick is logged as 'would add' without a new position. Madhav, Oct 16 10:02 Toronto: \"And for the bold book stacking question. No as you said.\" Applies from the Oct 17 UTC pick; the two open BTC trades (Oct 15, Oct 16) and their twins stay as opened."
+  }
+ ]
 }

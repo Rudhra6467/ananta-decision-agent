@@ -51,8 +51,17 @@ def status(max_age_s: int = 300) -> dict:
     return out
 
 
+_LAST_SSH_ERROR = ""
+
+
 def _remote_files() -> dict[str, int]:
-    r = _ssh(f"cd {REMOTE_DATA} && for f in l1_*.sqlite; do echo \"$f $(stat -f %z \"$f\")\"; done", timeout=30)
+    global _LAST_SSH_ERROR
+    try:
+        r = _ssh(f"cd {REMOTE_DATA} && for f in l1_*.sqlite; do echo \"$f $(stat -f %z \"$f\")\"; done", timeout=30)
+    except Exception as exc:  # noqa: BLE001  (a timeout is the usual one)
+        _LAST_SSH_ERROR = f"ssh: {str(exc)[:160]}"
+        return {}
+    _LAST_SSH_ERROR = "" if r.returncode == 0 else f"ssh rc {r.returncode}: {(r.stderr or '').strip()[:160]}"
     out = {}
     for line in (r.stdout or "").splitlines():
         parts = line.split()
@@ -92,12 +101,15 @@ def pull(dest: Path | None = None) -> dict:
             continue
         part.rename(dest / name)
         got.append({"day": day, **n})
-    return {"pulled": got, "already_here": len(skipped), "failed": bad, "dest": str(dest)}
+    out = {"pulled": got, "already_here": len(skipped), "failed": bad, "dest": str(dest)}
+    if _LAST_SSH_ERROR:                      # Oct 16: the first night's pull found nothing and said nothing; now it says why
+        out["error"] = _LAST_SSH_ERROR
+    return out
 
 
 def _free_gb() -> float | None:
-    r = _ssh("df -k ~ | tail -1", timeout=20)
     try:
+        r = _ssh("df -k ~ | tail -1", timeout=20)
         return int(r.stdout.split()[3]) / 1e6
     except Exception:  # noqa: BLE001
         return None
@@ -107,7 +119,8 @@ def push_backups(n: int = 3, src: Path | None = None) -> dict:
     src = src or Path.home() / "ananta_backups"
     free = _free_gb()
     if free is None or free < MIN_FREE_GB:
-        return {"pushed": [], "note": f"not pushed: the worker has {free if free is None else round(free, 1)} GB free (needs {MIN_FREE_GB})"}
+        return {"pushed": [], "note": (f"not pushed: the worker has {round(free, 1)} GB free (needs {MIN_FREE_GB})" if free is not None
+                                        else "not pushed: the worker could not be reached to read its free space")}
     days = sorted(p for p in src.iterdir() if p.is_dir())[-n:]
     _ssh(f"mkdir -p {REMOTE_BACKUPS}")
     pushed = []

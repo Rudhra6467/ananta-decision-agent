@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
 import { requestRecordingPermissionsAsync } from "expo-audio";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { getScreen, getVoiceOrigin, goTab, setScreen, setVoiceApi, setVoiceFeed, setVoiceLive, setVoiceOrigin, setVoicePhase, takeSection,
-  tourCommand, useScreen, type SectionReq } from "../../src/context";
+import { getScreen, getVoiceOrigin, goTab, setNarrating, setScreen, setVoiceApi, setVoiceFeed, setVoiceLive, setVoiceOrigin, setVoicePhase, takeSection,
+  tourCommand, useNarrating, useScreen, type SectionReq } from "../../src/context";
 import { showToast } from "../../src/blocks";
 import { FirstConversation } from "../../src/firstchat";
 import * as UI from "../../src/uiagent";
@@ -342,26 +342,50 @@ export default function Ananta() {
     setVoiceOrigin(o);
     setVoiceFeed({ section: o.id, answer: o.say, chips: o.questions ?? [] });
   };
+  // The explanation being spoken: a number per explanation, so an End (or a newer section) cancels the older one cleanly.
+  const narr = useRef<{ o: SectionReq; n: number } | null>(null);
+  const narrN = useRef(0);
+  const startNarr = (o: SectionReq) => { const n = ++narrN.current; narr.current = { o, n }; setNarrating(o); return n; };
+  const stillNarr = (n: number) => narr.current?.n === n;
+  const doneNarr = (n: number) => { if (stillNarr(n)) { narr.current = null; setNarrating(null); } };
+  // End while Ananta explains a section (Madhav, Oct 16: an accidental tap): quiet at once, voice off, back to the section
+  const stopSection = () => {
+    const cur = narr.current;
+    narr.current = null;
+    setNarrating(null);
+    TTS.stop();
+    loopRef.current?.end();
+    clearSpot();
+    if (cur) backTo(cur.o);
+  };
   // Voice off: here in Ask Ananta, show it and say it with voice on, then take him back to the section, still listening.
   const runSection = async (o: SectionReq) => {
     setTabv("chat");
     sectionMsgs(o);
+    const n = startNarr(o);
     if (!loopRef.current?.on) await startLive();
+    if (!stillNarr(n)) return;                                   // ended while the microphone was being asked for
     const lp = loopRef.current!;
     if (!lp.on) {                                                // no microphone: he still hears it and goes back; voice stays off
       setVoiceOrigin(null);
       await TTS.speakText(o.say);
+      if (!stillNarr(n)) return;                                 // End: stopSection already took him back
+      doneNarr(n);
       await backTo(o);
       return;
     }
     await lp.interject(() => TTS.speakText(o.say));
+    if (!stillNarr(n)) return;
+    doneNarr(n);
     if (lp.on && getVoiceOrigin()?.id === o.id) await backTo(o);
   };
   // Voice already on: talk about that section right where he is.
   const sectionLive = async (o: SectionReq) => {
     sectionMsgs(o);
+    const n = startNarr(o);
     if (o.spot) focusSpot(o.spot, 2500);
     await loopRef.current?.interject(() => TTS.speakText(o.say));
+    doneNarr(n);
   };
   // what the section shows while voice is on: the last question, the last answer, its follow-ups
   const feedFrom = (heard: string | undefined, r: any) =>
@@ -547,7 +571,8 @@ export default function Ananta() {
   const startLive = async () => {
     if (loop.on) return;                                         // extra taps do nothing
     const p = await requestRecordingPermissionsAsync();
-    if (!p.granted) { setErr("Microphone permission is off. Allow it for Expo Go in iPhone Settings."); return; }
+    if (!p.granted) { setErr(Platform.OS === "web" ? "The microphone is blocked for this site. Allow it in the browser's site settings, then tap the wave again."
+      : "Microphone permission is off. Allow it for Expo Go in iPhone Settings."); return; }
     if (loop.on) return;
     setErr(null);
     tourCommand("stop");                                         // a tour that was talking stops
@@ -557,7 +582,7 @@ export default function Ananta() {
     TTS.warmAcks().catch(() => {});                              // the "one sec" clips, ready on the phone
     loop.start();
   };
-  const endLive = () => { loop.end(); clearSpot(); };
+  const endLive = () => { if (narr.current) { stopSection(); return; } loop.end(); clearSpot(); };
   const dictate = async () => {
     if (mic.status !== "idle") { mic.send(); return; }
     dictating.current = true;
@@ -644,6 +669,7 @@ export default function Ananta() {
     setSessions(false);
   };
 
+  const narrNow = useNarrating();
   const qs: string[] = me?.guest ? GUEST_STARTERS : qcat === "new" ? STARTERS : (sg?.[qcat] as string[]) ?? sg?.questions ?? [];
   const micLabel = { idle: "", listening: "Listening…", hearing: "Hearing you…", sending: "Got it…" }[mic.status];
   const hearing = live && phase === "listening" && mic.status === "hearing";
@@ -781,6 +807,16 @@ export default function Ananta() {
         </View>
       ) : null}
 
+      {narrNow && !live ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
+          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: C.good }} />
+          <Text style={{ color: C.text, fontWeight: "600", fontSize: 14, flex: 1 }} numberOfLines={1}>Explaining {narrNow.label}…</Text>
+          <Pressable onPress={stopSection} accessibilityRole="button" accessibilityLabel="End and go back"
+            style={({ pressed }) => ({ backgroundColor: C.bad, borderRadius: 12, minHeight: 40, paddingHorizontal: 18, justifyContent: "center", opacity: pressed ? 0.75 : 1 })}>
+            <Text style={{ color: C.onInk, fontWeight: "800", fontSize: 14 }}>End</Text>
+          </Pressable>
+        </View>
+      ) : null}
       {live ? (
         <LivePanel label={liveLabel} phase={phase} hearing={hearing} level={mic.level} note={voiceNote}
           onOrb={() => { Haptics.soft(); loop.tap(); }} onEnd={endLive} onVoice={pickVoice}

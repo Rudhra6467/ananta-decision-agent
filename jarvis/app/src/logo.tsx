@@ -3,13 +3,14 @@
 // circle). The ring and the trident are grey so the A carries the colour. Used by the Ananta button on Home, the drawer, the
 // website's header and, rendered to PNG, the Home Screen icons in public/icons (scripts/make_icons.py).
 import Svg, { Circle, G, Line, Path } from "react-native-svg";
+import { C } from "./theme";
 
 type P = { color: string; size?: number; grey?: string; ink?: string };
 
 const NODES: [number, number][] = [[20, 46], [25, 38], [29, 52], [22, 60], [31, 64], [80, 46], [75, 38], [71, 52], [78, 60], [69, 64]];
 const EDGES: [number, number][] = [[0, 1], [0, 2], [2, 3], [2, 4], [5, 6], [5, 7], [7, 8], [7, 9]];
 
-export function AnantaMark({ color, size = 24, grey = "#5A5E66", ink = "#141518" }: P) {
+export function AnantaMark({ color, size = 24, grey = C.faint, ink = C.bg }: P) {        // every caller passes its theme's colours
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       <Circle cx={50} cy={50} r={47} stroke={grey} strokeWidth={4} />

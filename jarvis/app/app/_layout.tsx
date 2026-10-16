@@ -6,7 +6,7 @@ import { token } from "../src/api";
 import { Toast, loadMe } from "../src/visitor";
 import { loadNames } from "../src/names";
 import { HomeScreenHint } from "../src/homescreen";
-import { getVoiceApi, goTab, tourCommand, useHere, useTour, useVoiceLive, useVoicePhase } from "../src/context";
+import { getVoiceApi, goTab, tourCommand, useHere, useNarrating, useTour, useVoiceLive, useVoicePhase } from "../src/context";
 import * as TTS from "../src/tts";
 import { C, deviceTheme, setTheme, useThemeVersion } from "../src/theme";
 
@@ -48,8 +48,9 @@ function VoicePill() {
   const live = useVoiceLive();
   const here = useHere();
   const phase = useVoicePhase();
-  if (!live || here?.screen === "ananta") return null;
-  const word = phase === "thinking" ? "Ananta is thinking" : phase === "speaking" ? "Ananta is speaking" : "Ananta is listening";
+  const narr = useNarrating();
+  if ((!live && !narr) || here?.screen === "ananta") return null;
+  const word = narr ? `Explaining ${narr.label}` : phase === "thinking" ? "Ananta is thinking" : phase === "speaking" ? "Ananta is speaking" : "Ananta is listening";
   const dot = phase === "speaking" ? C.good : phase === "thinking" ? C.warn : C.bad;
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", top: 56, left: 0, right: 0, alignItems: "center" }}>

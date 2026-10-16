@@ -91,7 +91,7 @@ function MarketPage({ me, own }: { me: any; own: boolean }) {
         </Spot>
         <Spot id="markets.coins">
         <Section title={myCoins.length ? `Your coins · ${coins.length}` : `Coins Ananta watches · ${coins.length}`} right={
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><T small>tap for the page · + to watch</T><VoiceBtn v={coinsVoice} /></View>} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><T small>+ to watch</T><VoiceBtn v={coinsVoice} /></View>} />
         <Card>
           <VoiceStrip id="markets.coins" />
           {coins.length === 0 ? <ListState state="empty" text="No coins yet." action={{ label: "+ Watch", onPress: () => setAdd(true) }} /> : null}

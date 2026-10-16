@@ -453,6 +453,23 @@
    ]
   },
   {
+   "id": "LIBRARY",
+   "name": "Trading Knowledge Library (Trade With Trend, Oct 16)",
+   "layer": 3,
+   "status": "EVIDENCE_ONLY",
+   "acts": false,
+   "regime": "UNKNOWN",
+   "depends_on": [
+    "TEACHERS"
+   ],
+   "feeds": [],
+   "evidence": "external teaching restated as hypotheses, none validated; one note per public video (Sonnet 5.5) -> chapters by topic and a register of testable hypotheses (Opus 5.5); research material for Canada, India and the US; nothing in the agent reads it (tests/test_library.py)",
+   "files": [
+    "src/research/library.py",
+    "tests/test_library.py"
+   ]
+  },
+  {
    "id": "NOTES",
    "name": "Madhav's notes folder",
    "layer": 3,

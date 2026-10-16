@@ -96,6 +96,12 @@ export const useVoiceFeed = () => useStore(() => feed);
 export const setVoiceApi = (a: VoiceApi | null) => { vapi = a; };
 export const getVoiceApi = () => vapi;
 // Voice off: open Ask Ananta with this section; the tab says what it is, then brings him back here with voice on.
+// The explanation being spoken right now (Oct 16, Madhav: an accidental tap must not mean listening to all of it): while it
+// plays, that section's button and the voice pill say End, and End stops it at once and goes back to the section.
+let narrating: SectionReq | null = null;
+export function setNarrating(o: SectionReq | null) { narrating = o; emit(); }
+export const getNarrating = () => narrating;
+export const useNarrating = () => useStore(() => narrating);
 export function askSection(r: SectionReq) {
   pendingSection = r;
   goTab({ pathname: "/(tabs)/ask", params: { section: r.id, t: String(Date.now()) } });

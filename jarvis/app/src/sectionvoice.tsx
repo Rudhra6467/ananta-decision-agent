@@ -8,7 +8,7 @@
 // and the follow-ups go through the one voice conversation in the Ask Ananta tab.
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
-import { askSection, getVoiceApi, goTab, useVoiceFeed, useVoiceLive, useVoiceOrigin, useVoicePhase, type SectionReq } from "./context";
+import { askSection, getVoiceApi, goTab, useNarrating, useVoiceFeed, useVoiceLive, useVoiceOrigin, useVoicePhase, type SectionReq } from "./context";
 import * as Haptics from "./haptics";
 import { C } from "./theme";
 
@@ -19,7 +19,8 @@ const asReq = (v: VoiceSpec): SectionReq => ({ ...v, say: typeof v.say === "func
 export function VoiceBtn({ v }: { v: VoiceSpec }) {
   const live = useVoiceLive();
   const origin = useVoiceOrigin();
-  const mine = live && origin?.id === v.id;
+  const narr = useNarrating();
+  const mine = (live && origin?.id === v.id) || narr?.id === v.id;       // End from the moment Ananta starts explaining it
   const tap = () => {
     Haptics.tap();
     const api = getVoiceApi();
@@ -106,7 +107,7 @@ export function Bars({ color, h = 1 }: { color: string; h?: number }) {
 export function sayMoney(v: number | null | undefined, ccy: "USD" | "CAD" = "USD") {
   if (v == null || !isFinite(v)) return "unknown";
   const a = Math.abs(v), unit = ccy === "CAD" ? "Canadian dollars" : "dollars";
-  if (a >= 100) return `${Math.round(a).toLocaleString("en-US")} ${unit}`;
+  if (a >= 1000) return `${Math.round(a).toLocaleString("en-US")} ${unit}`;
   const d = Math.floor(a), c = Math.round((a - d) * 100);
   return c ? `${d} ${unit} ${c}` : `${d} ${unit}`;
 }

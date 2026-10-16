@@ -459,7 +459,9 @@ def test_home_mission_and_trade_detail(monkeypatch):
         brain.trade_detail(j, "nope")
     assert appmap.resolve(j, f"jtrade:{r['trade']}")[0] == f"jtrade:{r['trade']}" and appmap.resolve(j, "jtrade:nope")[0] is None
     assert appmap.resolve(j, "jarvis")[0] == "jarvis" and appmap.resolve(j, "missed moves")[0] == "missed"
-    assert appmap.valid_spot(j, "home.jarvis") and appmap.valid_spot(j, "missed.moves")
+    # Oct 15: "Ananta today" left Home (the account's trades took its place, home.books); its spot went with it
+    assert appmap.valid_spot(j, "home.books") and appmap.valid_spot(j, "missed.moves") and not appmap.valid_spot(j, "home.jarvis")
+    assert appmap.valid_spot(j, "markets.dial") and appmap.valid_spot(j, "markets.watches")      # Oct 16: the section voice spots
 
 
 def test_tk4_a_held_coin_can_get_one_more_trade_but_not_a_third():

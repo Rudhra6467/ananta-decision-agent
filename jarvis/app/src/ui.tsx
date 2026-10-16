@@ -6,7 +6,7 @@
 //  · gold is for actions only; green and red for numbers and health dots only; every tappable row is 44 tall; numbers are tabular
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { setScroller, useSpotActive } from "./spotlight";
+import { Spot, setScroller, useSpotActive } from "./spotlight";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { C, LINE, NUM, RADIUS, SPACE, TAP, TYPE, live, pnlColor } from "./theme";
 import { VoiceBtn, VoiceStrip, type VoiceSpec } from "./sectionvoice";
@@ -46,6 +46,26 @@ export function Card({ title, children, right, sub, onPress, voice }: { title?: 
     </View>
   );
   return onPress ? <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}>{body}</Pressable> : body;
+}
+
+// The decision line (Oct 16, Madhav: "every screen makes the agent's decision obvious in under three seconds"). The first thing
+// on a screen, on the ground and not in a card: what Ananta is doing here, as one sentence. The verb and its object at the title
+// size, the one reason at body size in dim, one action. It is read by size and position, never by colour: colour stays with
+// numbers, health dots and actions (grammar rule 2). Every number on the screen is detail under this line.
+export function Decision({ verb, rest, why, action, spot }: {
+  verb: string; rest?: string; why?: string; action?: { label: string; onPress: () => void }; spot?: string;
+}) {
+  const body = (
+    <View style={{ gap: 4, paddingHorizontal: 2, paddingTop: 2 }} accessibilityRole="header" accessibilityLabel={`${verb}${rest ? ` ${rest}` : ""}. ${why ?? ""}`}>
+      <Text style={s.title}>
+        {verb}
+        {rest ? <Text style={{ fontWeight: "400", color: C.dim, letterSpacing: 0 }}> {rest}</Text> : null}
+      </Text>
+      {why ? <Text style={[s.t, { color: C.dim }]}>{why}</Text> : null}
+      {action ? <Act label={action.label} onPress={action.onPress} tight /> : null}
+    </View>
+  );
+  return spot ? <Spot id={spot} style={{ margin: 0, borderRadius: 12 }}>{body}</Spot> : body;
 }
 
 // A section label: 13, dim, sentence case ("Open · 2"), never shouting

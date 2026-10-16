@@ -36,6 +36,15 @@ Labels are nouns (Holdings, Cash, Dial); actions are verbs (Review, Approve, Sho
 account, US$ only inside the lab. Status in words first (OPEN, quiet, measuring), colour second. Anything technical gets a Why ›
 beside it. Dates read "13 Oct 09:30": no seconds, no time zones. Ananta says "sir"; the interface never does.
 
+## 7. The decision line (Oct 16)
+Madhav: "every screen makes the agent's decision obvious in under three seconds." So the first thing on a screen, on the ground and
+not in a card, is one sentence of what Ananta is doing there: the verb and its object at the title size (Holding Bitcoin and
+Ethereum · Buying allowed · Not buying Bitcoin · Too early for a verdict · Sold LTC for a loss), the one reason at body size in
+dim, and one action (`Decision` in ui.tsx). It is read by size and position, never by colour (rule 2 stands). Every number on the
+screen is detail under that line; the greeting on Home steps down to the card-title size. Rows follow the same idea: a coin's row
+on Markets says Ananta's stance (Needs an uptrend · Needs a zone · Ready to buy) before its price. Nothing in the trading logic
+changed for this; the line is composed from what the screen already fetches.
+
 ## Where everything lives
 | Tab | The question it answers | What lives here | What moved |
 |---|---|---|---|

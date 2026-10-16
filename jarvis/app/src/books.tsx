@@ -10,7 +10,7 @@ import { askAbout, setScreen } from "./context";
 import { api } from "./api";
 import { confirmWithFaceId } from "./guard";
 import { LineChart, StackBar } from "./charts";
-import { Big, Btn, Busy, Card, Divider, ErrorBox, Line, Pill, Row, Screen, Section, Segmented, Stat, T, pct, price, usd, usdSigned } from "./ui";
+import { Big, Btn, Busy, Card, Decision, Divider, ErrorBox, Line, Pill, Row, Screen, Section, Segmented, Stat, T, pct, price, usd, usdSigned } from "./ui";
 import { useData } from "./useData";
 import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "./theme";
 import { VisitorBooks } from "./visitor";
@@ -104,8 +104,17 @@ function LabTrades() {
   if (!d) return <Screen loading={loading} onRefresh={reload}><ErrorBox err={err ?? "No data"} /></Screen>;
   const lab = { ...d, trades: d.lab?.trades ?? d.trades, closed: d.lab?.closed ?? d.closed, account: null,
     summary: { ...d.summary, open_count: (d.lab?.trades ?? d.trades ?? []).length }, books: (d.books ?? []).filter((b: any) => b.name !== "The $500 NDAX book") };
+  const open: any[] = lab.trades ?? [];
+  const books: any[] = lab.books ?? [];
+  const ahead = books.filter((b) => (b.value ?? 0) >= (b.start ?? 0)).length;
+  const who = Object.entries(open.reduce((m: Record<string, number>, t: any) => { const k = String(t.stamp?.label ?? "").split(" · ")[0] || "other"; m[k] = (m[k] ?? 0) + 1; return m; }, {}))
+    .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k} ${n}`);
   return (
     <Screen loading={loading} onRefresh={reload}>
+      <Decision spot="lab.decision" verb={open.length ? `Measuring ${open.length} open paper trade${open.length === 1 ? "" : "s"}` : "Measuring, nothing open"}
+        rest={books.length ? `across ${books.length} books` : undefined}
+        why={`${who.length ? who.join(" · ") + ". " : ""}${books.length ? `${ahead} of ${books.length} books above their start. ` : ""}None of this touches the account.`}
+        action={{ label: "Ananta's book ›", onPress: () => router.push("/jarvis") }} />
       <Spot id="lab.books">
         <BooksTrades d={lab} title="The lab's paper books · US$" voice={{ id: "lab.books", label: "the lab's paper books", back: "portfolio:lab", spot: "lab.books", screen: "ananta_market" }} />
       </Spot>

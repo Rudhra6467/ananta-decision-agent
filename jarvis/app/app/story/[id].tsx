@@ -6,7 +6,7 @@ import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { goTab, setScreen } from "../../src/context";
 import { DecisionCard, DetailLayout, StampChip } from "../../src/blocks";
 import { CandleChart } from "../../src/charts";
-import { Btn, Busy, Card, ErrorBox, Screen, T, price, usdSigned } from "../../src/ui";
+import { Btn, Busy, Card, Decision, ErrorBox, Screen, T, pct, price, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor } from "../../src/theme";
 
@@ -22,9 +22,18 @@ export default function Story() {
   if (d.entry) refs.push({ value: d.entry, color: C.accent, label: "Start" });
   if (d.stop) refs.push({ value: d.stop, color: C.bad, label: "Stop" });
   if (d.target) refs.push({ value: d.target, color: C.good, label: "Target" });
+  const nm = COIN_NAME[d.coin] ?? d.coin;
+  const r = d.result_usd ?? 0;
+  const lastExit = d.exits?.[0];
+  const dec = d.open
+    ? { verb: `Holding ${nm}`, rest: r === 0 ? undefined : `· ${r > 0 ? "up" : "down"} $${Math.abs(r).toFixed(2)}`,
+        why: `${d.stop ? `Out if it closes under ${price(d.stop)}` : "No stop set"}${d.target ? `; target ${price(d.target)}` : ""}. ${d.stamp?.label ? `Taken by ${String(d.stamp.label).toLowerCase()}.` : ""}` }
+    : { verb: r >= 0 ? `Sold ${nm} for a gain` : `Sold ${nm} for a loss`, rest: `· ${usdSigned(r)}`,
+        why: lastExit ? `${String(lastExit.why ?? "closed").replace(/^\w/, (c: string) => c.toUpperCase())}${lastExit.price ? ` at ${price(lastExit.price)}` : ""}.` : "" };
   return (
     <>{head}
       <Screen loading={loading} onRefresh={reload}>
+        <Decision spot="trade.decision" verb={dec.verb} rest={dec.rest} why={dec.why} />
         <StampChip stamp={d.stamp} />
         <DetailLayout
           facts={[

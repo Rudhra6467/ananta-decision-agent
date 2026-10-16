@@ -250,13 +250,13 @@ def proof_target(evidence: list[dict], previous: dict | None, cur: str | None) -
 # Spots: things on screen Ananta can point at while it talks (they glow and scroll into view)
 # ---------------------------------------------------------------------------
 SPOTS = {
-    "home": {"home.status": "whether every part is running (the health strip)", "home.value": "the account: the $500 NDAX book, its value since the start, holdings, cash, the dial",
+    "home": {"home.decision": "the decision line: what Ananta is doing with the account, in one sentence", "home.status": "whether every part is running (the health strip)", "home.value": "the account: the $500 NDAX book, its value since the start, holdings, cash, the dial",
              "home.books": "the account's trades (Ananta today before the account started); since Oct 15 Needs you, Ananta's note, the lab and findings are inside the Ananta button, not spots on the page",
              "books.trades": "the account's trades with their stamps", "home.activity": "the activity feed"},
-    "jarvis": {"jarvis.score": "the score against the random twins", "jarvis.open": "Ananta's open trades", "jarvis.learning": "what its plans leaned on and the confidence check",
+    "jarvis": {"jarvis.decision": "the decision line: the verdict so far against the twins", "jarvis.score": "the score against the random twins", "jarvis.open": "Ananta's open trades", "jarvis.learning": "what its plans leaned on and the confidence check",
                "jarvis.decisions": "recent decisions with their thesis"},
     "missed": {"missed.counts": "caught / seen / missed counts", "missed.moves": "the biggest moves and why", "missed.patterns": "misses that keep coming back"},
-    "markets": {"markets.summary": "how many coins are trending up and the BTC gate", "markets.dial": "the trend dial: OPEN or CLOSED, why, the brakes",
+    "markets": {"markets.decision": "the decision line: buying allowed or not, and how many coins are ready", "markets.summary": "how many coins are trending up and the BTC gate", "markets.dial": "the trend dial: OPEN or CLOSED, why, the brakes",
                 "markets.watches": "his watches: coins or a group, the setup, the mode, how close", "markets.coins": "the coins Ananta watches: price, change, 1h trend",
                 "markets.whole": "the whole market: every coin watched live by tier, movers, near support", "markets.chain": "Ananta's reasoning: where each coin stops on the decision chain", "markets.near": "nearing a trade: coins closest to every condition, with what is missing", "markets.reconstruction": "reconstruction: rebuilds, mismatches, findings",
                 "markets.coin:<SYM>": "one coin's row: price, trend, closest setup"},

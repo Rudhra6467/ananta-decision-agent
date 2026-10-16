@@ -14,7 +14,8 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { askAbout, setScreen } from "../../src/context";
 import { api } from "../../src/api";
 import { Progress } from "../../src/charts";
-import { Act, Btn, Busy, Card, Divider, ErrorBox, ListState, Screen, Section, T, Tag } from "../../src/ui";
+import { Act, Btn, Busy, Card, Decision, Divider, ErrorBox, ListState, Screen, Section, T, Tag } from "../../src/ui";
+import { focusSpot } from "../../src/spotlight";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME } from "../../src/theme";
 import { ChainLadder } from "../../src/chain";
@@ -53,6 +54,7 @@ function MarketPage({ me, own }: { me: any; own: boolean }) {
   const { data: w, reload: reloadW } = useData(me ? "/v3/watches/mine" : null, 60000);
   const { data: ch } = useData(me ? "/v3/chain" : null, 300000);
   const { data: ev } = useData(own ? "/v3/evidence/live" : null, 600000);
+  const { data: ex } = useData(me ? "/v3/exposure" : null, 300000);           // the dial, for the decision line (the card below reads it too)
   const [add, setAdd] = useState(false);
   const { glow } = useLocalSearchParams<{ glow?: string }>();          // Phase 5: the watch just made glows when Watchlists opens
   useFocusEffect(useCallback(() => { setScreen({ screen: "markets", label: "Markets tab: the trend dial, your watches, the coins, Ananta's reasoning, nearing a trade" }); reloadW(); }, []));
@@ -63,6 +65,9 @@ function MarketPage({ me, own }: { me: any; own: boolean }) {
   const near = [...(d.coins ?? [])].filter((c: any) => c.closest).sort((a: any, b: any) => b.closest.met / b.closest.of - a.closest.met / a.closest.of).slice(0, 5);
   const rb = ev?.rebuild;
   const watches: any[] = w?.watches ?? [];
+  const stance: Record<string, string> = {};
+  (ch?.coins ?? []).forEach((r: any) => { stance[r.coin] = stanceShort(r); });
+  const dec = marketDecision(ex?.dial, ch?.coins ?? [], coins.length);
   const watchVoice: VoiceSpec = { id: "markets.watches", label: "your watches", back: "markets:markets", spot: "markets.watches", screen: "markets",
     questions: watches.length ? ["Which of my watches is closest to firing?", "What does each watch mode do?", "What should I watch today?"]
       : ["What is a watch?", "Which setups can I watch for?", "What should I watch today?"],
@@ -77,8 +82,10 @@ function MarketPage({ me, own }: { me: any; own: boolean }) {
       + " Each line shows the price, today's change and the one-hour trend. Tap a coin for its page, or plus to watch it." };
   return (
     <Screen loading={loading} onRefresh={() => { reload(); reloadW(); }}>
+      <Decision spot="markets.decision" verb={dec.verb} rest={dec.rest} why={dec.why}
+        action={ch?.coins?.length ? { label: "Reasoning ›", onPress: () => focusSpot("markets.chain", 2500) } : undefined} />
       <Spot id="markets.summary">
-        <ExposureDial own={own} />
+        <ExposureDial own={own} compact />
         <Spot id="markets.watches">
         <Section title={w ? `Watches · ${watches.length}` : "Watches"} right={
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}><VoiceBtn v={watchVoice} /><Act tight label="+ Watch" onPress={() => setAdd(true)} /></View>} />
@@ -95,7 +102,7 @@ function MarketPage({ me, own }: { me: any; own: boolean }) {
         <Card>
           <VoiceStrip id="markets.coins" />
           {coins.length === 0 ? <ListState state="empty" text="No coins yet." action={{ label: "+ Watch", onPress: () => setAdd(true) }} /> : null}
-          {coins.map((c: any, i: number) => <View key={c.coin}>{i ? <Divider /> : null}<Spot id={`markets.coin:${c.coin}`}><CoinLine c={c} /></Spot></View>)}
+          {coins.map((c: any, i: number) => <View key={c.coin}>{i ? <Divider /> : null}<Spot id={`markets.coin:${c.coin}`}><CoinLine c={c} stance={stance[c.coin]} /></Spot></View>)}
         </Card>
         </Spot>
         <WholeMarket />
@@ -201,6 +208,35 @@ const WAIT: Record<string, string> = {
   TRIGGER: "Waiting for a setup to complete", INVALIDATION: "No clear place it would be wrong yet", RISK: "Can't be sized sensibly yet",
   EXPOSURE: "Would add to bets already held",
 };
+// the stance in a few words, for a coin's row (the whole chain is one tap away)
+const WAIT_SHORT: Record<string, string> = {
+  REGIME: "Market rule closed", TREND: "Needs an uptrend", LOCATION: "Needs a zone", TRIGGER: "Needs a setup",
+  INVALIDATION: "Needs a clear stop", RISK: "Can't be sized", EXPOSURE: "Would double a bet",
+};
+const WAIT_MANY: Record<string, string> = {
+  REGIME: "wait for the market rule", TREND: "need their own uptrend", LOCATION: "wait for a zone", TRIGGER: "wait for a setup",
+  INVALIDATION: "have no clear stop", RISK: "can't be sized", EXPOSURE: "would double a bet",
+};
+function stanceShort(r: any): string {
+  const g = (r.gates ?? []).find((x: any) => x.status === "FAIL");
+  if (!g) return r.verdict === "NO TRADE" ? "Not buying" : "Ready to buy";
+  return WAIT_SHORT[g.gate] ?? "Waiting";
+}
+// the market in one sentence: the dial, then how many coins are ready and what the rest wait for
+function marketDecision(dial: any, rows: any[], n: number): { verb: string; rest?: string; why: string } {
+  const open = dial?.dial != null && dial.dial > 0;
+  if (dial?.dial == null) return { verb: "Reading the market", why: "Bitcoin's daily close decides whether buying is allowed." };
+  const ready = rows.filter((r: any) => r.verdict !== "NO TRADE").length;
+  const stops: Record<string, number> = {};
+  rows.forEach((r: any) => { const g = (r.gates ?? []).find((x: any) => x.status === "FAIL"); if (g) stops[g.gate] = (stops[g.gate] ?? 0) + 1; });
+  const top = Object.entries(stops).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([g, k]) => `${k} ${WAIT_MANY[g] ?? String(g).toLowerCase()}`);
+  const verb = open ? "Buying allowed" : "No new buys";
+  const rest = rows.length ? `· ${ready} of ${rows.length || n} coins ready` : undefined;
+  const why = open
+    ? (rows.length ? (ready ? `${ready} pass every step.` : `None passes every step yet: ${top.join(", ")}.`) : "Bitcoin is above its 50- and 200-day averages.")
+    : "Bitcoin closed below its averages: cash is the position until it crosses back.";
+  return { verb, rest, why };
+}
 function plainLine(r: any): string {
   const g = (r.gates ?? []).find((x: any) => x.status === "FAIL");
   if (!g) return r.verdict === "NO TRADE" ? r.summary : "Every step passes: a trade is possible.";

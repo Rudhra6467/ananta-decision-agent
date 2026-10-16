@@ -5,11 +5,12 @@ import { Text, View } from "react-native";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { CandleChart, Progress } from "../../src/charts";
-import { Big, Btn, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Row, Screen, Section, Segmented, T, pct, price, usd, usdSigned } from "../../src/ui";
+import { Big, Btn, Busy, Card, Decision, Divider, ErrorBox, Expand, Line, Pill, Row, Screen, Section, Segmented, T, pct, price, usd, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "../../src/theme";
 import { nm } from "../../src/names";
 import { ChainLadder } from "../../src/chain";
+import { focusSpot } from "../../src/spotlight";
 import { ReadsCoin } from "../../src/reads";
 import { ZonesCoin } from "../../src/zones";
 import { useMe } from "../../src/visitor";
@@ -49,10 +50,14 @@ export default function Coin() {
   const hold = hv?.holdings?.find((h: any) => h.coin === d.coin);
   const mine = (guest ? hv?.book?.positions : mb?.positions)?.find((p: any) => p.coin === d.coin) ?? null;   // this account's own trade (stamped)
   const r = d.rating;
+  const row = guest ? null : chb?.coins?.find((x: any) => x.coin === String(sym).toUpperCase());
+  const dec = coinDecision(COIN_NAME[d.coin] ?? d.coin, row, !!(mine || hold), mine, hold);
   return (
     <>
       {head}
       <Screen loading={loading} onRefresh={reload}>
+        {dec ? <Decision spot="coin.decision" verb={dec.verb} rest={dec.rest} why={dec.why}
+          action={row ? { label: "Every step ›", onPress: () => focusSpot("coin.chain", 2500) } : undefined} /> : null}
         <Big label={COIN_NAME[d.coin] ?? d.coin} value={price(d.price)} change={chg} changeLabel={`${pct(chg)} over ${span[tf]}`} />
         <Card>
           <Spot id="coin.chart">
@@ -179,4 +184,21 @@ export default function Coin() {
         onDone={() => { reloadHv(); reloadMb(); }} />
     </>
   );
+}
+
+
+// What Ananta is doing with this coin, in one sentence: held (and how it stands), ready, or waiting at the first step that fails
+const GATE_WORD: Record<string, string> = { REGIME: "the market rule", TREND: "its own uptrend", LOCATION: "a price at a zone", TRIGGER: "a setup to complete",
+  INVALIDATION: "a clear stop", RISK: "a size that makes sense", EXPOSURE: "room: it would double a bet" };
+function coinDecision(name: string, row: any, held: boolean, mine: any, hold: any): { verb: string; rest?: string; why: string } | null {
+  if (held) {
+    const pnl = mine?.pnl ?? hold?.pnl;
+    const stop = mine?.stop;
+    return { verb: `Holding ${name}`, rest: pnl == null ? undefined : `· ${pnl >= 0 ? "up" : "down"} ${usdSigned(Math.abs(pnl)).replace("+", "")}`,
+      why: stop ? `Out if it closes under ${price(stop)}.` : hold ? "In the trend portfolio: held while the trend holds." : "Placed by you; Ananta watches it and never closes it alone." };
+  }
+  if (!row) return null;
+  const g = (row.gates ?? []).find((x: any) => x.status === "FAIL");
+  if (!g) return { verb: `Ready to buy ${name}`, why: row.verdict === "NO TRADE" ? String(row.summary ?? "") : "Every step of the decision chain passes." };
+  return { verb: `Not buying ${name}`, rest: `· waiting for ${GATE_WORD[g.gate] ?? String(g.gate).toLowerCase()}`, why: String(g.why ?? "").replace(/^\w/, (c: string) => c.toUpperCase()) + "." };
 }

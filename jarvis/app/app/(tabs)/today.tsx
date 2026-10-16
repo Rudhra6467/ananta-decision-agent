@@ -9,7 +9,7 @@ import { Pressable, Text, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { askAbout, setScreen } from "../../src/context";
 import { Progress } from "../../src/charts";
-import { Act, Busy, Card, Divider, Dot, ErrorBox, ListState, Screen, StatCard, T, Tag, cad, cadSigned, dayOf, pct, s as st, usd } from "../../src/ui";
+import { Act, Busy, Card, Decision, Divider, Dot, ErrorBox, ListState, Screen, StatCard, T, Tag, cad, cadSigned, dayOf, pct, s as st, usd } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, live, pnlColor } from "../../src/theme";
 import { VisitorHome, useMe } from "../../src/visitor";
@@ -60,16 +60,21 @@ function OwnerHome() {
   const m = d.mission ?? {};
   const feed = all ? d.feed : d.feed.slice(0, 8);
   const actOpen = showActivity || activityLit;
+  const dec = homeDecision(m, count.total);
   return (
     <Screen loading={loading} onRefresh={reload}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <View style={{ gap: 2, flex: 1 }}>
           <T small>{s.date} · paper money</T>
-          <Text style={st.title}>{hello(undefined, true)}</Text>
+          <Text style={st.h}>{hello(undefined, true)}</Text>
         </View>
         <AnantaButton count={count.total} onPress={() => setAnanta(true)} />
       </View>
       <AnantaSheet open={ananta} onClose={() => setAnanta(false)} home={d} onChanged={reload} />
+
+      <Decision spot="home.decision" verb={dec.verb} rest={dec.rest} why={dec.why}
+        action={count.total ? { label: `${count.total} thing${count.total === 1 ? "" : "s"} need${count.total === 1 ? "s" : ""} you ›`, onPress: () => setAnanta(true) }
+          : { label: "Trades ›", onPress: () => focusSpot("books.trades", 2000) }} />
 
       <Spot id="home.status">
         <HealthStrip h={m.health} />
@@ -120,6 +125,28 @@ function OwnerHome() {
       </Spot>
     </Screen>
   );
+}
+
+// What Ananta is doing with the account, in one sentence (the decision line on Home)
+function homeDecision(m: any, needs: number): { verb: string; rest?: string; why: string } {
+  const a = m.account;
+  if (!a?.started) {
+    const jv = m.jarvis;
+    const open = jv?.open?.length ?? 0;
+    return { verb: open ? `Holding ${open} paper trade${open === 1 ? "" : "s"}` : "Holding nothing", rest: "in the lab",
+      why: "The account starts at the next daily close." };
+  }
+  const pos = Object.keys(a.positions ?? {});
+  const names = pos.map((c) => COIN_WORD[c] ?? c);
+  const dialOpen = /open/i.test(String(a.dial?.state ?? ""));
+  const fired = Object.entries(a.brakes?.fired ?? {}).filter(([, n]) => (n as number) > 0).map(([k]) => k.replace(/_/g, " "));
+  const verb = pos.length ? `Holding ${names.length <= 3 ? names.join(" and ") : `${names.length} coins`}` : dialOpen ? "Holding nothing yet" : "In cash";
+  const rest = pos.length ? "in the account" : undefined;
+  const why = a.brakes?.paused ? "Brakes paused it after a 15% fall; only you can resume."
+    : fired.length ? `Brakes fired (${fired.join(", ")}): no new buys for now.`
+    : dialOpen ? "Dial open: buys only what crosses its averages. Next decision at the close."
+    : "Dial closed: no new buys, cash is the position. Next decision at the close.";
+  return { verb, rest, why: needs ? why : `${why} Nothing needs you.` };
 }
 
 // The account (Madhav, Oct 13): the $500 NDAX book is what he and Ananta look at; everything else is the lab.

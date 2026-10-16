@@ -7,7 +7,8 @@ import { Stack, router, useFocusEffect } from "expo-router";
 import { askAbout, goTab, setScreen } from "../src/context";
 import { ExplainLink } from "../src/blocks";
 import { LineChart, Progress } from "../src/charts";
-import { Busy, Card, Divider, ErrorBox, Screen, Stat, T, price, usdSigned } from "../src/ui";
+import { Busy, Card, Decision, Divider, ErrorBox, Screen, Stat, T, price, usdSigned } from "../src/ui";
+import { focusSpot } from "../src/spotlight";
 import { useData } from "../src/useData";
 import { C, COIN_NAME, pnlColor } from "../src/theme";
 import { nm } from "../src/names";
@@ -38,9 +39,16 @@ export default function JarvisBook() {
   const pad = (a: number[]) => a.concat(Array(Math.max(0, n - a.length)).fill(null));
   const open = d.open ?? [];
   const sameMove = open.length > 1 && Math.max(...open.map((o: any) => o.entry_t)) - Math.min(...open.map((o: any) => o.entry_t)) < 6 * 3600;
+  const gap = d.avg_usd_per_100 != null && d.random_twin_avg_usd != null ? d.avg_usd_per_100 - d.random_twin_avg_usd : null;
+  const verdict = String(d.verdict ?? "too early");
   return (
     <>{head}
     <Screen loading={loading} onRefresh={reload}>
+      <Decision spot="jarvis.decision"
+        verb={/early/i.test(verdict) ? "Too early for a verdict" : verdict.charAt(0).toUpperCase() + verdict.slice(1)}
+        rest={`· ${d.events} of 10 events`}
+        why={`${d.closed} closed, ${open.length} open. ${gap == null ? "The score against the twins starts when trades close." : gap >= 0 ? `Ahead of the random twins by $${gap.toFixed(2)} a trade so far.` : `Behind the random twins by $${Math.abs(gap).toFixed(2)} a trade so far.`}`}
+        action={{ label: "Score ›", onPress: () => focusSpot("jarvis.score", 2500) }} />
       <T dim>Trades I decide myself: $100 each on paper, each with a random twin that copies the plan on another coin at the same moment.</T>
 
       <Spot id="jarvis.score">

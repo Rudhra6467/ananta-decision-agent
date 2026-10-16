@@ -6,7 +6,7 @@ import { Text, View } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { askAbout, setScreen } from "../../src/context";
 import { LineChart } from "../../src/charts";
-import { Btn, Busy, Card, ErrorBox, Screen, Stat, T, price, usdSigned } from "../../src/ui";
+import { Btn, Busy, Card, Decision, ErrorBox, Screen, Stat, T, price, usdSigned } from "../../src/ui";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor } from "../../src/theme";
 import { nm } from "../../src/names";
@@ -37,9 +37,16 @@ export default function EvidenceTrade() {
   if (t.stop) refs.push({ value: t.stop, color: C.bad, label: open && det.stop0 && t.stop > det.stop0 ? "Trail" : "Stop" });
   if (det.target) refs.push({ value: det.target, color: C.good, label: "Target" });
   if (d.zone) refs.push({ value: d.zone[0], color: C.level, label: "Zone" }, { value: d.zone[1], color: C.level, label: "Zone" });
+  const nmc = COIN_NAME[coin] ?? coin;
+  const line = open
+    ? { verb: `Holding ${nmc}`, rest: res == null ? undefined : `· ${res >= 0 ? "up" : "down"} $${Math.abs(res).toFixed(2)}`,
+        why: `${t.stop ? `Out if it closes under ${price(t.stop)}` : "No stop: a time exit"}${plan.days ? `, or after ${plan.days} days` : ""}. ${t.watch === "JARVIS" ? "Ananta's own pick" : t.watch === "JARVIS_RANDOM" ? "A random twin" : "An evidence trade"}; its twin runs beside it.` }
+    : { verb: res != null && res >= 0 ? `Sold ${nmc} for a gain` : `Sold ${nmc} for a loss`, rest: res == null ? undefined : `· ${usdSigned(res)} after costs`,
+        why: `${String(t.exit_why ?? "closed").replace(/^\w/, (c: string) => c.toUpperCase())}${t.exit ? ` at ${price(t.exit)}` : ""}.` };
   return (
     <>{head}
     <Screen loading={loading} onRefresh={reload}>
+      <Decision spot="jtrade.decision" verb={line.verb} rest={line.rest} why={line.why} />
       <Spot id="jtrade.result">
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
           <View style={{ gap: 2, flex: 1 }}>

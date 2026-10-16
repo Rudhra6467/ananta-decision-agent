@@ -73,7 +73,7 @@ export function WholeMarket() {
 // The trend dial (engine fixes 1-4), first on Markets since Oct 14: market state first, setups only fill what the dial allows.
 // One grammar: title · OPEN or CLOSED · one line of why · the brakes · Why › opens the rest (every reason, the benchmark books, the
 // would-be account in R). Words first, the colour second: the dot is the only green or red.
-export function ExposureDial({ own }: { own?: boolean }) {
+export function ExposureDial({ own, compact }: { own?: boolean; compact?: boolean }) {
   const { data, err, reload } = useData("/v3/exposure", 300000);
   const { data: bk } = useData(own ? "/v3/book500" : null, 300000);           // the account's brakes (Madhav only)
   const [why, setWhy] = useState(false);
@@ -97,7 +97,13 @@ export function ExposureDial({ own }: { own?: boolean }) {
       <Spot id="markets.dial">
       <StatCard voice={voice} title={`Trend dial · crypto${d?.as_of_day ? ` · as of ${dayOf(d.as_of_day)}` : ""}`} label="The trend dial"
         meta={[brakes, "Feeds the account's core and the edge sleeve"].filter(Boolean).join(" · ")} action={{ label: "Why ›", onPress: () => setWhy(true) }}>
-        {!data ? <ListState state="loading" lines={1} /> : (
+        {!data ? <ListState state="loading" lines={1} /> : compact ? (
+          // under the decision line (Oct 16) the state is already said; this card keeps the facts and the Why
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Dot color={d?.dial == null ? C.dim : open ? C.good : C.bad} />
+            <T style={{ flex: 1 }}>{state} · {reasons.slice(1, 3).map((w) => w.replace(/\s*\([^)]*\)/, "")).join(" · ") || d?.note || "Reading Bitcoin's daily close."}</T>
+          </View>
+        ) : (
           <>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <Dot color={d?.dial == null ? C.dim : open ? C.good : C.bad} />

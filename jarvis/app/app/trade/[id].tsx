@@ -5,7 +5,8 @@ import { goTab, setScreen } from "../../src/context";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { LineChart } from "../../src/charts";
-import { Big, Btn, Bullet, Busy, Card, Divider, ErrorBox, Expand, Line, Pill, Screen, Section, Stat, T, pct, price, usd, usdSigned } from "../../src/ui";
+import { Big, Btn, Bullet, Busy, Card, Decision, Divider, ErrorBox, Expand, Line, Pill, Screen, Section, Stat, T, pct, price, usd, usdSigned } from "../../src/ui";
+import { focusSpot } from "../../src/spotlight";
 import { useData } from "../../src/useData";
 import { C, COIN_NAME, pnlColor } from "../../src/theme";
 
@@ -22,10 +23,16 @@ export default function Trade() {
   const refs = [{ value: d.entry, color: C.dim, label: "Bought" }];
   if (d.stop) refs.push({ value: d.stop, color: C.bad, label: "Stop" });
   if (d.target) refs.push({ value: d.target, color: C.good, label: "Target" });
+  const nm = COIN_NAME[d.coin] ?? d.coin;
+  const dec = d.open
+    ? { verb: `Holding ${nm}`, rest: `· ${d.pnl_usd >= 0 ? "up" : "down"} ${pct(Math.abs(d.pnl_pct))}`,
+        why: `${d.stop ? `Out if it closes under ${price(d.stop)} (${pct(d.to_stop_pct)})` : "No stop: rides the trend"}${d.time_limit ? `, or ${String(d.time_limit).toLowerCase()}` : ""}.` }
+    : { verb: d.pnl_usd >= 0 ? `Sold ${nm} for a gain` : `Sold ${nm} for a loss`, rest: `· ${usdSigned(d.pnl_usd)} on $${d.invested}`, why: String(d.exit ?? "") };
   return (
     <>
       {head}
       <Screen loading={loading} onRefresh={reload}>
+        <Decision spot="trade.decision" verb={dec.verb} rest={dec.rest} why={dec.why} action={{ label: "Why we bought ›", onPress: () => focusSpot("trade.why", 2500) }} />
         <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
           <Pill text={d.open ? "OPEN" : "CLOSED"} color={d.open ? C.accent : C.dim} bg={d.open ? C.accentSoft : C.card2} />
           <Pill text="PAPER" />

@@ -113,7 +113,7 @@ function CoinsSlide({ coins, more }: { coins: any[]; more: boolean }) {
 }
 
 // one coin: tap for its trading page, + to watch it or trade it
-export function CoinLine({ c }: { c: any }) {
+export function CoinLine({ c, stance }: { c: any; stance?: string }) {
   const [plus, setPlus] = useState(false);
   const name = c.name ?? COIN_NAME[c.coin] ?? c.coin;
   return (
@@ -123,7 +123,7 @@ export function CoinLine({ c }: { c: any }) {
         style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: C.text, fontSize: 15, fontWeight: "700" }}>{name}</Text>
-          <Text style={{ color: C.dim, fontSize: 12 }}>{c.coin}{c.trend_1h ? ` · 1h ${String(c.trend_1h).toLowerCase()}` : ""}</Text>
+          <Text style={{ color: C.dim, fontSize: 12 }} numberOfLines={1}>{stance ?? `${c.coin}${c.trend_1h ? ` · 1h ${String(c.trend_1h).toLowerCase()}` : ""}`}</Text>
         </View>
         {c.spark?.length ? <Spark data={c.spark} color={pnlColor(c.day_pct)} /> : null}
         <View style={{ alignItems: "flex-end", minWidth: 82 }}>

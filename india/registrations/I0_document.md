@@ -28,7 +28,7 @@ Plan this registration implements: *Ananta — India First: Data Platform and Ag
 | First F&O bhavcopy | 2001-07-02 reachable (index futures began June 2000; the backfill starts 2000-06-12); 37,866 rows on 2026-10-15 |
 | Delivery files | MTO format at least from 2016-01-04; sec_bhavdata_full (with OHLC and delivery %) from 2020 or earlier; the backfill from 2003 finds the first day |
 | Index lists | Nifty 50 (50), Nifty 100 (100), Nifty 500 (501 rows) downloaded to bronze/indices |
-| Kite intraday depth | Not yet measured: needs Madhav's first sign-in; `python -m india.probe kite` writes manifests/probe_kite_<date>.json |
+| Kite intraday depth (11:52 Toronto, after Madhav's first sign-in) | 5-minute candles from 2015-02-02 for 45 of the Nifty 50; the other five start at listing (INDIGO 2016, BSE 2017, MAXHEALTH 2021, ETERNAL 2022, JIOFIN 2024). Daily candles from 2003-01-01 for most names, so Kite is the second record for spot checks from 2003 on; 2000 to 2002 rests on the bhavcopy alone. One oddity to watch: HDFCLIFE answers 5-minute bars from 2015 but daily only from its 2017 listing (a token quirk the quality gate will catch). 599 requests, no refusals |
 
 The three bronze backfills (cash 1994 to now, delivery 2003 to now, F&O 2000 to now) started the same morning at one request a second each.
 

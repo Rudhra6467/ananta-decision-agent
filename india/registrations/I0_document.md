@@ -38,11 +38,17 @@ On each trading day the research universe is the top N names by 60-trading-day m
 
 ## 4. Adjustments: two records
 
-Record A is derived from the files themselves: on an ex-date NSE sets the day's previous-close column to the adjusted value, so the factor is prior close divided by the day's previous close, kept when it differs from 1 by more than 0.5%. Record B is NSE's corporate-action file. Adjusted prices are a view over unadjusted rows and factors; a disagreement between the records is a row in the quality table, never a silent choice.
+Record A is derived from the prices themselves (the ex-date gap and the five-day gap, both snapped to a clean ratio). Record B is NSE's corporate-actions feed. Adjusted prices are a table over unadjusted rows and the agreed factors; a disagreement between the records is a row in the quality table, never a silent choice. (As written on 17 Oct morning this section assumed NSE adjusts its previous-close column on ex-dates; section 4a records that it does not.)
+
+## 4a. What the first silver build found (17 Oct 2026, afternoon)
+
+- NSE does not adjust the previous-close column on an ex-date (INFY 2015-06-15: previous close 1975.05, open 976.95), so Record A is the price gap, not that column. Record B is NSE's corporate-actions API, one call per year for every symbol, 42,819 rows 2000 to 2026 (659 bonuses, 699 splits, 30 combined on one date, 1 consolidation). Where both records exist for 2010 to 2023 they agree on 685 of 691 ex-dates (99.1%); the 6 disagreements and the 237 gaps with no announcement are the review list. Before 2010 Record B is thin (2005 lists one bonus), so pre-2010 factors rest on Record A until a third source is added.
+- Kite's historical candles, daily and 5-minute alike, come back adjusted for splits, bonuses, dividends and demergers (COALINDIA 2022-12-20: NSE close 226.10, Kite 210.65; RELIANCE 2009 carries the 2023 Jio Financial demerger). They are therefore not a raw second record. They become Record C, a total-return adjustment series, and the intraday bars are rescaled to raw prices day by day with the NSE close over Kite's own daily close before any research reads them.
+- The raw second record for the spot checks is therefore NSE's security-wise delivery report (same exchange, separate report, carries OHLC from 2020) as the parse check, and the BSE bhavcopy (a different exchange) as the independent check at 1% for cross-listed names; both are I-2 items.
 
 ## 5. The I-1 quality gate (daily spine)
 
-- 300 random (symbol, day) pairs from 2000 onward compared with Kite daily candles: at least 297 closes within 0.5%.
+- 300 random (symbol, day) pairs from 2020 onward compared with the NSE delivery report's close: at least 297 within 0.5%; and 300 pairs from 2003 onward compared with the BSE close for cross-listed names: at least 285 within 1%.
 - Every weekday from 1994-11-03 to now has a manifest line: a file or a recorded no-file (holiday); the holiday calendar is derived from those gaps and cross-checked with NSE's published list for 2015 onward.
 - Record A and Record B agree on at least 95% of ex-dates where both exist for 2010 onward; every disagreement listed.
 - 30 consecutive nightly runs with zero quality failures before the database gate.

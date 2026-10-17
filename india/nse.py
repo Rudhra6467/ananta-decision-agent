@@ -63,7 +63,7 @@ def fo_urls(d: dt.date) -> list[str]:
 def delivery_urls(d: dt.date) -> list[str]:
     full = f"{ARCH}/products/content/sec_bhavdata_full_{_dmy(d)}.csv"
     mto = f"{ARCH}/archives/equities/mto/MTO_{_dmy(d)}.DAT"
-    return [full, mto]
+    return [full, mto] if d >= dt.date(2020, 1, 1) else [mto, full]
 
 
 URLS = {"cm_bhavcopy": cm_urls, "fo_bhavcopy": fo_urls, "delivery": delivery_urls}

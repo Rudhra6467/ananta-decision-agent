@@ -67,14 +67,23 @@ class Kite:
         wait = self.gap - (time.time() - self._last)
         if wait > 0:
             time.sleep(wait)
-        for k in range(4):
-            r = self.s.get(BASE + path, params=params, timeout=40)
+        r = None
+        for k in range(5):
+            try:
+                r = self.s.get(BASE + path, params=params, timeout=40)
+            except requests.RequestException:          # a timeout or a dropped connection: wait and ask again
+                self._last = time.time()
+                self.calls += 1
+                time.sleep(3 * (k + 1))
+                continue
             self._last = time.time()
             self.calls += 1
             if r.status_code == 429 or r.status_code >= 500:
                 time.sleep(2 * (k + 1))
                 continue
             break
+        if r is None:
+            raise RuntimeError(f"Kite did not answer {path} after 5 tries")
         if r.status_code == 403:
             try:
                 err = r.json().get("error_type", "")

@@ -1,8 +1,7 @@
-"""Silver: typed point-in-time tables from bronze, one Parquet file per year, plus the calendar and Record A factors.
+"""Silver: typed point-in-time tables from bronze, one Parquet file per year, plus the trading calendar (corporate actions: india/actions.py).
 
   python -m india.silver cm            every complete year of cash bhavcopy (old and UDiFF files share one schema)
   python -m india.silver calendar      trading days from the cash manifest: a file = a trading day, no file = holiday
-  python -m india.silver factors       Record A ex-date factors: prior close / the day's previous-close field
   python -m india.silver all
 Rows dated 2024-01-01 or later are holdout: they go under sealed/silver/, never under silver/, and the catalog's views
 read silver/ only (india/catalog.py). Every row carries source (the bronze file's sha256) and ingested_at.
@@ -34,6 +33,13 @@ SCHEMA = pa.schema([("date", pa.date32()), ("symbol", pa.string()), ("series", p
                     ("source", pa.string()), ("ingested_at", pa.timestamp("s", tz="UTC"))])
 
 
+def _old_date(s: str) -> dt.date:
+    """Old files write 3-NOV-1994 or 05-JUL-2024; a few 2020 files write 13-Jul-20."""
+    d, m, y = s.split("-")
+    y = int(y)
+    return dt.datetime.strptime(f"{d}-{m}-{y + 2000 if y < 100 else y}", "%d-%b-%Y").date()
+
+
 def parse_cm(path: Path) -> pd.DataFrame:
     """One bronze cash file (old or UDiFF) to the common schema. Rows with no trade (volume 0 and no close) are kept as they came."""
     raw = path.read_bytes()
@@ -48,7 +54,7 @@ def parse_cm(path: Path) -> pd.DataFrame:
         df["date"] = pd.to_datetime(df["date"].str.strip(), format="%Y-%m-%d").dt.date
     else:
         df = df.rename(columns=OLD)
-        df["date"] = pd.to_datetime(df["date"].str.strip(), format="%d-%b-%Y").dt.date
+        df["date"] = df["date"].str.strip().map(_old_date)
     for c in CM_COLS:
         if c not in df.columns:
             df[c] = ""
@@ -128,28 +134,6 @@ def build_calendar() -> dict:
     return {"days": len(df), "trading": int(df["is_trading_day"].sum()), "path": str(out)}
 
 
-def build_factors(min_change: float = 0.005) -> dict:
-    """Record A: on an ex-date NSE sets the day's previous-close column to the adjusted value. factor = prior close / prev_close.
-    Series EQ only, symbol by symbol over silver/ (dev and validation years; sealed years get theirs at unseal)."""
-    import duckdb
-
-    con = duckdb.connect()
-    glob = str(paths.data_dir() / "silver" / "cm_bhavcopy" / "year=*" / "part.parquet")
-    df = con.execute(f"""
-        with eq as (select date, symbol, close, prev_close from read_parquet('{glob}') where series = 'EQ' and close > 0 and prev_close > 0),
-        lagged as (select *, lag(close) over (partition by symbol order by date) as prior_close,
-                              lag(date) over (partition by symbol order by date) as prior_date from eq)
-        select symbol, date as ex_date, prior_date, prior_close, prev_close as prev_close_field,
-               prior_close / prev_close as factor
-        from lagged where prior_close is not null and abs(prior_close / prev_close - 1) > {min_change}
-        order by symbol, ex_date""").df()
-    out = paths.data_dir() / "silver" / "factors_a" / "factors_a.parquet"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    df["record"] = "A"
-    pq.write_table(pa.Table.from_pandas(df, preserve_index=False), out)
-    return {"factors": len(df), "symbols": int(df["symbol"].nunique()), "path": str(out)}
-
-
 if __name__ == "__main__":
     what = sys.argv[1] if len(sys.argv) > 1 else "all"
     paths.ensure()
@@ -157,5 +141,3 @@ if __name__ == "__main__":
         build_cm([int(y) for y in sys.argv[2:]] or None)
     if what in ("calendar", "all"):
         print(build_calendar(), flush=True)
-    if what in ("factors", "all"):
-        print(build_factors(), flush=True)

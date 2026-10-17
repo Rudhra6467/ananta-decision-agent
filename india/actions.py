@@ -61,7 +61,7 @@ def parse_subject(s: str) -> dict:
     if m:
         a, b = int(m.group(1)), int(m.group(2))
         out.update(kind="BONUS", ratio=(a + b) / b if b else None)
-    m = re.search(r"(?:spli?t|sub-?division).*?(?:from|frm)\s*(?:rs\.?|re\.?)?\s*" + _NUM + r".*?to\s*(?:rs\.?|re\.?)?\s*" + _NUM, t)
+    m = re.search(r"(?:spli?t|sub-?division)[^0-9]*?(?:rs\.?|re\.?)?\s*" + _NUM + r"[^0-9]*?to\s*(?:face value)?\s*(?:rs\.?|re\.?)?\s*" + _NUM, t)
     if m:
         a, b = float(m.group(1)), float(m.group(2))
         if out["kind"] == "BONUS" and out["ratio"] and b:
@@ -141,27 +141,33 @@ def build_a(min_gap: float = 0.08) -> dict:
 
 
 def build_factors() -> dict:
-    """One row per (symbol, ex_date). Record B gives the ratio when it exists and Record A confirms it (the one-day gap or the
-    five-day gap within 6% of it). Without B, a gap counts only when both gaps snap to the same clean ratio of at least 1.3 or
-    at most 0.77, so a penny stock's ordinary 10% day never becomes a split."""
+    """One row per (symbol, ex_date). Record B gives the ratio (every bonus, split and consolidation on that ex-date multiplied
+    together) and Record A confirms it when the one-day gap or the five-day gap is within 10% of it. Without B, a gap counts only
+    when both gaps snap to the same clean ratio of at least 1.3 or at most 0.77, so a penny stock's ordinary 10% day never
+    becomes a split. Each B row takes the nearest A candidate within a day, the same day first."""
     import duckdb
 
     con = duckdb.connect()
     sd = paths.data_dir() / "silver" / "corporate_actions"
     df = con.execute(f"""
-        with b as (select symbol, ex_date, kind, ratio as ratio_b, subject from read_parquet('{sd / "record_b.parquet"}')
-                   where kind in ('BONUS','SPLIT','CONSOLIDATION','BONUS+SPLIT') and ratio is not null),
-             a as (select symbol, ex_date, gap, gap5, ratio as ratio_a, ratio5 from read_parquet('{sd / "record_a.parquet"}'))
-        select coalesce(a.symbol, b.symbol) symbol, coalesce(a.ex_date, b.ex_date) ex_date, b.kind, b.subject, a.gap, a.gap5, a.ratio_a, b.ratio_b,
-               case when b.ratio_b is not null and a.gap is not null and (abs(a.gap / b.ratio_b - 1) < 0.06 or abs(a.gap5 / b.ratio_b - 1) < 0.06) then 'AGREE'
-                    when b.ratio_b is not null and a.gap is null then 'B_ONLY'
-                    when b.ratio_b is not null then 'DISAGREE'
-                    when a.ratio_a is not null and a.ratio_a = a.ratio5 and (a.ratio_a >= 1.3 or a.ratio_a <= 0.77) then 'A_ONLY'
-                    else 'NOISE' end as status,
-               coalesce(b.ratio_b, a.ratio_a) as factor
-        from a full outer join b on a.symbol = b.symbol and abs(datediff('day', a.ex_date, b.ex_date)) <= 1
+        with b0 as (select distinct symbol, ex_date, kind, ratio, subject from read_parquet('{sd / "record_b.parquet"}')
+                    where kind in ('BONUS','SPLIT','CONSOLIDATION','BONUS+SPLIT') and ratio is not null and ratio > 0),
+             b as (select symbol, ex_date, string_agg(kind, '+' order by kind) as kind, exp(sum(ln(ratio))) as ratio_b,
+                          string_agg(subject, ' | ' order by kind) as subject from b0 group by 1, 2),
+             a as (select symbol, ex_date, gap, gap5, ratio as ratio_a, ratio5 from read_parquet('{sd / "record_a.parquet"}')),
+             ab as (select b.symbol, b.ex_date, b.kind, b.subject, b.ratio_b, a.ex_date as a_date, a.gap, a.gap5, a.ratio_a, a.ratio5,
+                           row_number() over (partition by b.symbol, b.ex_date order by abs(datediff('day', a.ex_date, b.ex_date)), a.ex_date) as rn
+                    from b left join a on a.symbol = b.symbol and abs(datediff('day', a.ex_date, b.ex_date)) <= 1),
+             matched as (select * from ab where rn = 1),
+             a_only as (select a.* from a left join b on a.symbol = b.symbol and abs(datediff('day', a.ex_date, b.ex_date)) <= 1 where b.symbol is null)
+        select symbol, ex_date, kind, subject, gap, gap5, ratio_a, ratio_b,
+               case when gap is not null and (abs(gap / ratio_b - 1) < 0.10 or abs(gap5 / ratio_b - 1) < 0.10) then 'AGREE'
+                    when gap is null then 'B_ONLY' else 'DISAGREE' end as status, ratio_b as factor
+        from matched
+        union all
+        select symbol, ex_date, null, null, gap, gap5, ratio_a, null, 'A_ONLY', ratio_a
+        from a_only where ratio_a is not null and ratio_a = ratio5 and (ratio_a >= 1.3 or ratio_a <= 0.77)
         order by 1, 2""").df()
-    df = df[df["status"] != "NOISE"].copy()
     out = sd / "factors.parquet"
     pq.write_table(pa.Table.from_pandas(df, preserve_index=False), out)
     return {"rows": len(df), "status": df["status"].value_counts().to_dict(), "path": str(out)}

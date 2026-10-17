@@ -80,6 +80,34 @@ def spot_check(n: int = 300, seed: int = 20261017, tol: float = 0.005) -> dict:
     return res
 
 
+def spot_check_delivery(n: int = 300, seed: int = 20261017, tol: float = 0.005, start: str = "2020-01-01", end: str = "2023-12-31") -> dict:
+    """Raw second record: the close in NSE's delivery report (a separate report, prices from 2020) against the cash bhavcopy close,
+    same symbol, same day, series EQ. The gate wants at least 297 of 300 within 0.5%."""
+    from india import catalog
+
+    con = catalog.connect(read_only=True)
+    con.execute(f"select setseed({(seed % 1000) / 1000.0})")
+    df = con.execute(f"""
+        with p as (select date, symbol, close as nse_close, open as nse_open, volume as nse_volume from cm
+                   where series = 'EQ' and close > 0 and date between '{start}' and '{end}' order by random() limit {n})
+        select p.*, d.close as del_close, d.open as del_open, d.traded_qty as del_volume,
+               abs(p.nse_close / d.close - 1) as close_diff, abs(p.nse_open / d.open - 1) as open_diff
+        from p left join delivery d on d.symbol = p.symbol and d.date = p.date and d.series = 'EQ'
+        order by p.date""").df()
+    con.close()
+    df["within_tol"] = df["close_diff"] <= tol
+    out_dir = paths.data_dir() / "silver" / "quality"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"spot_checks_delivery_{dt.date.today():%Y%m%d}.parquet"
+    pq.write_table(pa.Table.from_pandas(df, preserve_index=False), out)
+    res = {"n": len(df), "within_0_5pct": int(df["within_tol"].sum()), "missing_in_delivery": int(df["del_close"].isna().sum()),
+           "open_within_0_5pct": int((df["open_diff"] <= tol).sum()), "volume_equal": int((df["nse_volume"] == df["del_volume"]).sum()),
+           "max_close_diff": float(df["close_diff"].max()), "gate_297_of_300": bool(df["within_tol"].sum() >= 297) if n == 300 else None, "path": str(out)}
+    res["misses"] = df[~df["within_tol"]][["date", "symbol", "nse_close", "del_close", "close_diff"]].head(20).to_dict(orient="records")
+    catalog.heartbeat("quality.spot_check_delivery", bool(res["within_0_5pct"] >= 0.99 * n), json.dumps({k: v for k, v in res.items() if k != "misses"}, default=str))
+    return res
+
+
 if __name__ == "__main__":
     paths.ensure()
     what = sys.argv[1]
@@ -87,3 +115,5 @@ if __name__ == "__main__":
         print(build_kite_day(), flush=True)
     elif what == "spot":
         print(json.dumps(spot_check(int(sys.argv[2]) if len(sys.argv) > 2 else 300), default=str, indent=1), flush=True)
+    elif what == "spot_delivery":
+        print(json.dumps(spot_check_delivery(int(sys.argv[2]) if len(sys.argv) > 2 else 300), default=str, indent=1), flush=True)

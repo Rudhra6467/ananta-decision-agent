@@ -22,6 +22,9 @@ VIEWS = {
     "record_a": "silver/corporate_actions/record_a.parquet",
     "record_b": "silver/corporate_actions/record_b.parquet",
     "factors": "silver/corporate_actions/factors.parquet",
+    "delivery": "silver/delivery/year=*/part.parquet",
+    "kite_day": "silver/kite_day/kite_day.parquet",
+    "kite_5m": "silver/kite_5m/year=*/part.parquet",
 }
 
 

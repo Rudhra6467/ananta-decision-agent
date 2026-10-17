@@ -120,7 +120,9 @@ def manifest_rows(dataset: str) -> dict[str, dict]:
         for line in p.read_text().splitlines():
             if line.strip():
                 row = json.loads(line)
-                out[row["date"]] = row
+                key = row.get("date") or (f"{row['year']}-01-01" if row.get("year") else "")
+                if key:
+                    out[key] = row
     return out
 
 

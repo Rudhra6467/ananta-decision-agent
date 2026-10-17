@@ -463,6 +463,60 @@ def coin(sym: str, who: str = Depends(owner)) -> dict:
     return _run(J().coin, sym)
 
 
+# Kite Connect sign-in (India plan, 16 Oct 2026, section 5): the owner opens /kite/login on the Mac, Zerodha's own page takes
+# the password and two-factor code, and /kite/callback stores the day's token in ~/ananta_private. Both routes answer only a
+# browser on this Mac (loopback, not through the Cloudflare tunnel), and the first login pins the Zerodha user id.
+def _local_only(request: Request) -> None:
+    host = request.client.host if request.client else ""
+    if host not in ("127.0.0.1", "::1", "localhost") or request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for"):
+        raise HTTPException(status_code=403, detail="The Kite sign-in works only in a browser on the Mac itself.")
+
+
+def _kite_page(title: str, body: str) -> "HTMLResponse":
+    from fastapi.responses import HTMLResponse
+
+    return HTMLResponse(f"<!doctype html><html><head><meta charset='utf-8'><title>{title}</title>"
+                        "<style>body{font-family:-apple-system,Helvetica,Arial;max-width:34em;margin:4em auto;color:#1a1a1a}"
+                        "h1{font-size:1.3em}p{line-height:1.5}</style></head>"
+                        f"<body><h1>{title}</h1><p>{body}</p></body></html>")
+
+
+@app.get("/kite/login")
+def kite_login(request: Request):
+    from fastapi.responses import RedirectResponse
+
+    from src.india import kite_auth
+
+    _local_only(request)
+    try:
+        return RedirectResponse(kite_auth.login_url())
+    except RuntimeError as exc:
+        return _kite_page("Kite sign-in not set up", str(exc))
+
+
+@app.get("/kite/callback")
+def kite_callback(request: Request, request_token: str = "", status: str = "", action: str = ""):
+    from src.india import kite_auth
+
+    _local_only(request)
+    if status != "success" or not request_token:
+        return _kite_page("Kite sign-in did not complete", "Zerodha did not return a login token. Close this tab and try /kite/login again.")
+    try:
+        st = kite_auth.exchange(request_token)
+    except Exception as exc:  # noqa: BLE001
+        return _kite_page("Kite sign-in failed", str(exc))
+    return _kite_page("Ananta is connected to Kite",
+                      f"Signed in as {st.get('user_name') or st.get('user_id')} ({st.get('user_id')}). The connection lasts until "
+                      f"{st.get('expires_at_ist')}; after that the phone will ask for a fresh sign-in. You can close this tab.")
+
+
+@app.get("/v3/kite/status")
+def kite_status(who: str = Depends(owner)) -> dict:
+    from src.india import kite_auth
+
+    return kite_auth.status()
+
+
 @app.get("/health")
 def health() -> dict:
     import time as _t

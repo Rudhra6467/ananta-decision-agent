@@ -344,12 +344,13 @@ def _call(system: str, user: str, post=None) -> tuple[str, dict]:
                   "cache_read": u.get("cache_read_input_tokens", 0) or 0, "cache_write": u.get("cache_creation_input_tokens", 0) or 0}
 
 
-def _log(j, usage: dict, cost: float, ms: int) -> None:
-    """Into ask_messages as a 'brain' call, so the day's budget and the brain's pacer both see it."""
+def _log(j, usage: dict, cost: float, ms: int, text: str = "") -> None:
+    """Into ask_messages as a 'brain' call, so the day's budget and the brain's pacer both see it. The reply is kept (Oct 16: the first
+    brain stance came back unreadable and nothing had kept the words, so nobody could say why)."""
     try:
         j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, reply, provider, model, ms, tokens_in, tokens_out, tools, error, cost_usd, "
                      "mode, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                     (uuid.uuid4().hex, "brain", _now(j), "assistant", "brain stance and morning scan", "", "sonnet", usage.get("model"), ms,
+                     (uuid.uuid4().hex, "brain", _now(j), "assistant", "brain stance and morning scan", (text or "")[:6000], "sonnet", usage.get("model"), ms,
                       usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0), usage.get("out", 0), "", None, cost,
                       "worker", "stance (fix A2/A3)"))
         j.db.commit()
@@ -470,7 +471,7 @@ def plan(j, call: Callable | None = None, force: bool = False) -> dict | None:
             text, usage, why = None, {}, f"the model call failed ({str(exc)[:120]}): facts only"
         if text is not None:
             cost = brain._price(usage)
-            _log(j, usage, cost, int(1000 * (time.time() - t0)))
+            _log(j, usage, cost, int(1000 * (time.time() - t0)), text)
             res.update(cost_usd=cost, model=usage.get("model"))
             try:
                 d = _parse(text)

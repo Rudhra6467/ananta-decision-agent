@@ -65,7 +65,7 @@
 | I06 | P2 | Opening and intraday | Time-of-day map: volatility, volume and direction by minute of the session |  | READY |  |  |
 | C01 | P3 | Context | Market state map ported from the crypto work: volatility clustering, herding by volatility band, size-after-volatility |  | READY |  | 18 Oct: shock days and high-volatility regimes: large positive leads (+4-8% after a 2% Nifty fall) but too few independent episodes: INCONCLUSIVE, also as declustered events |
 | C02 | P3 | Context | Volume and momentum relationships (crypto H1/H2 port): does volume heat predict the next move's size and where it ends | yes | READY |  |  |
-| C03 | P3 | Context | Index-stock-sector lead-lag and pairs checked side by side; effector groups (M-09) |  | READY |  |  |
+| C03 | P3 | Context | Index-stock-sector lead-lag and pairs checked side by side; effector groups (M-09) |  | READY |  | 18 Oct: Bank Nifty leading (weekly +3.5%, above 200-day): nothing at the bar (signs differ between dev and validation) |
 | C04 | P3 | Context | Buyers versus sellers dominance (M-10) from delivery share, turnover and up/down volume |  | READY |  |  |
 | C05 | P3 | Context | India VIX regimes and what they do to stops and exits | yes | READY |  | 18 Oct: VIX above its 50-day CONDITIONAL for PULL entries (+3.8% dev, +1.5% val) |
 | C06 | P3 | Context | FII/DII positioning (participant OI from 2012) and flows against the next days |  | BLOCKED | D17a (build, no date); D17 (build, no date) |  |

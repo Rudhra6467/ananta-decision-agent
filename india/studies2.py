@@ -34,6 +34,7 @@ GROUPS = {
     "C07": ("context", "Small caps leading large caps at entry (TWT-H13/14)", ["small_lead"], ["BRK", "PULL", "ANY"]),
     "C08": ("context", "Breadth washouts and thrusts at entry (TWT-H01, H30-33)", ["breadth_lt30", "breadth_lt40", "breadth_thrust"], ["BRK", "PULL", "ANY"]),
     "C01": ("context", "Market state after shock days and in high-volatility regimes (crypto C-series port)", ["nifty_down2", "nifty_up2", "nifty_vol_high"], ["BRK", "PULL", "ANY"]),
+    "C03": ("context", "Bank Nifty leading the broad market (TWT-H46)", ["bank_week_up35", "bank_gt200d"], ["BRK", "PULL", "ANY"]),
     "C09": ("context", "Intermarket at entry: rupee, crude, Nasdaq, US 10-year (TWT-H42-47); Nifty valuation (D30) not yet available", ["usdinr_rising", "brent_rising", "nasdaq_gt200d", "us10y_up_60d"], ["BRK", "PULL", "ANY"]),
 }
 

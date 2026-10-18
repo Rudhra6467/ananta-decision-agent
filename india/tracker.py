@@ -125,6 +125,7 @@ PROGRESS = {
     "C05": "18 Oct: VIX above its 50-day CONDITIONAL for PULL entries (+3.8% dev, +1.5% val)",
     "C07": "18 Oct: small caps leading OPPOSITE (entries earn 2-6% less)",
     "C09": "18 Oct: rupee weakening OPPOSITE (entries earn 2.5-3.6% more); Nifty valuation part waits for D30",
+    "C03": "18 Oct: Bank Nifty leading (weekly +3.5%, above 200-day): nothing at the bar (signs differ between dev and validation)",
     "V03": "18 Oct: 239 mainboard IPOs matched to prices: allottees gained +21-26% on average (median +14%); buying on day one roughly matches Nifty after; INCONCLUSIVE (few dev quarters)",
     "I02": "18 Oct: intraday index exits on an opening-range break or a 0.5% stop add 2-5 bp a day over holding to 15:15 (not at the bar) and halve the 5th-percentile loss",
     "P01": "18 Oct: RSI(14) under 30 VALIDATED (+2.5% dev, +1.9% val over 20 sessions on ANY entries), over 70 VALIDATED the other way; weekly outside bar nothing. Paper campaign REV added (rules v1.2)",

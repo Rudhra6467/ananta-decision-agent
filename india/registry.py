@@ -9,7 +9,9 @@ Verdicts (one rule for every study, fixed here so no study picks its own bar):
   threshold z(family) = Bonferroni-style two-sided 5% over every variant ever tried in that family  -> NormalDist().inv_cdf(1 - 0.025 / k)
   VALIDATED    dev t >= z and val t >= z, same sign, val mean has the dev sign
   CONDITIONAL  dev t >= z, val t >= 1.65 same sign (holds out of sample, not by the strict bar), or val passes z with dev t >= 1.65
-  REJECTED     dev t < 1.65 or the val sign is opposite
+  OPPOSITE     (only when the hypothesis has a direction) significantly the other way in dev and the same way in val
+  REJECTED     dev t < 1.65 or the val sign differs from dev, or the effect has the wrong sign without significance
+  Also: with a direction, a VALIDATED/CONDITIONAL needs the dev mean to have that sign.
   INCONCLUSIVE otherwise (including too few dates)
 The ledger is append-only (manifests/test_ledger.jsonl) and mirrored in the catalog table test_ledger. Results are evidence, not decisions: a VALIDATED
 exit rule still has to pass the paper book before it is used.
@@ -55,11 +57,13 @@ def register(study: str, family: str, title: str, hypothesis: str, variants: lis
     return reg
 
 
-def verdict(dev_t: float, val_t: float, dev_mean: float, val_mean: float, dates_dev: int, dates_val: int, z: float) -> str:
+def verdict(dev_t: float, val_t: float, dev_mean: float, val_mean: float, dates_dev: int, dates_val: int, z: float, expect: int = 0) -> str:
     if min(dates_dev, dates_val) < MIN_DATES or any(x != x for x in (dev_t, val_t)):
         return "INCONCLUSIVE"
     same = (dev_mean > 0) == (val_mean > 0)
-    if abs(dev_t) < 1.65 or not same:
+    if expect and abs(dev_t) >= 1.65 and (dev_mean > 0) != (expect > 0) and same:
+        return "OPPOSITE"  # significantly the other way round, in both periods: evidence against the hypothesis, and worth reading
+    if abs(dev_t) < 1.65 or not same or (expect and (dev_mean > 0) != (expect > 0)):
         return "REJECTED"
     if abs(dev_t) >= z and abs(val_t) >= z:
         return "VALIDATED"
@@ -68,14 +72,14 @@ def verdict(dev_t: float, val_t: float, dev_mean: float, val_mean: float, dates_
     return "INCONCLUSIVE"
 
 
-def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None = None) -> dict:
+def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None = None, expect: int = 0) -> dict:
     """dev / val = (mean, t_stat, dates). Counts the variant into its family, then scores it against the family threshold."""
     fam = reg["family"]
     rows = _rows()
     seen = {(r["study"], r["variant"]) for r in rows if r["family"] == fam and r["kind"] == "result"}
     k = len(seen | {(reg["study"], variant)})
     z = threshold(k)
-    v = verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z)
+    v = verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z, expect)
     line = {"kind": "result", "study": reg["study"], "family": fam, "variant": variant, "k_in_family": k, "z": round(z, 3), "dev": list(dev), "val": list(val),
             "verdict": v, "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
     with _ledger_path().open("a") as fh:

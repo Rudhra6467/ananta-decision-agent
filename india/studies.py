@@ -54,17 +54,16 @@ def entry_sets(f: pd.DataFrame, max_signals: int, seed: int = 11) -> dict[str, p
     return out
 
 
-def paired_vs_random(trades: pd.DataFrame, pol: str) -> dict:
-    """Per period: mean of (policy net return - random-exit net return) over date-means, with a t-stat on dates."""
+def paired_vs_null(trades: pd.DataFrame, pol: str) -> dict:
+    """Per period: policy net return minus the time-matched null (same entry, stop and holding time, no exit skill), averaged by date, t on dates."""
     res = {}
-    t = trades.copy()
+    t = trades[trades["policy"] == pol].copy()
     t["period"] = np.where(t["signal_date"].dt.year < SPLIT_YEAR, "dev", "val")
+    t["d"] = t["net_ret"] - t["null_net_ret"]
     for per, g in t.groupby("period"):
-        a = g[g["policy"] == pol].groupby("signal_date")["net_ret"].mean()
-        b = g[g["policy"] == "random_exit"].groupby("signal_date")["net_ret"].mean()
-        d = (a - b).dropna()
+        d = g.groupby("signal_date")["d"].mean()
         se = d.std(ddof=1) / math.sqrt(len(d)) if len(d) > 2 else float("nan")
-        res[per] = (float(d.mean()) if len(d) else float("nan"), float(d.mean() / se) if se else float("nan"), int(len(d)))
+        res[per] = (float(d.mean()), float(d.mean() / se) if se else float("nan"), int(len(d)))
     return res
 
 
@@ -80,7 +79,7 @@ def e02(max_signals: int = 4000) -> dict:
         study = f"E02-{name}"
         reg_cache[name] = registry.register(
             study, family="exit", title=f"Exit bake-off on {name} entries",
-            hypothesis="Some exit policy keeps more of the move and gives back less than exiting on a random day, net of Indian costs, in both the dev and validation years.",
+            hypothesis="An exit policy earns more than the time-matched null (same entry, same stop, held as long, no exit rule), net of Indian costs, in both the dev and validation years.",
             variants=[p.name for p in pols], note=f"signals {len(ent)}; stop {exitlab.STOP_ATR} ATR; horizon {exitlab.HORIZON}; split {SPLIT_YEAR}")
         tr = exitlab.simulate(ent, bars, f, pols)
         (paths.gold() / "studies").mkdir(parents=True, exist_ok=True)
@@ -89,18 +88,18 @@ def e02(max_signals: int = 4000) -> dict:
         summ.to_csv(paths.gold() / "studies" / f"{study}_summary.csv", index=False)
         rows = []
         for p in pols:
-            pr = paired_vs_random(tr, p.name)
+            pr = paired_vs_null(tr, p.name)
             if "dev" not in pr or "val" not in pr:
                 continue
-            line = registry.record(reg_cache[name], p.name, pr["dev"], pr["val"], extra={"entry_set": name})
+            line = registry.record(reg_cache[name], p.name, pr["dev"], pr["val"], extra={"entry_set": name}, expect=1)
             s = summ[summ["policy"] == p.name].set_index("period")
-            rows.append({"policy": p.name, "verdict": line["verdict"], "dev_excess": round(pr["dev"][0] * 100, 2), "dev_t": round(pr["dev"][1], 2),
-                         "val_excess": round(pr["val"][0] * 100, 2), "val_t": round(pr["val"][1], 2),
+            rows.append({"policy": p.name, "verdict": line["verdict"], "dev_vs_null": round(pr["dev"][0] * 100, 2), "dev_t": round(pr["dev"][1], 2),
+                         "val_vs_null": round(pr["val"][0] * 100, 2), "val_t": round(pr["val"][1], 2),
                          "val_capture": round(float(s.loc["val", "capture_median"]), 2) if "val" in s.index else None,
                          "val_giveback_R": round(float(s.loc["val", "giveback_R_median"]), 2) if "val" in s.index else None,
                          "val_p5": round(float(s.loc["val", "p5_net_ret"]) * 100, 1) if "val" in s.index else None})
         summary[name] = {"signals": int(len(ent)), "rows": rows}
-        print(name, "signals", len(ent), "trades", len(tr), f"{time.time()-t0:.0f}s", flush=True)
+        print(name, "signals", len(ent), "trades", len(tr), "skipped(halt/jump)", tr.attrs.get("skipped_data_hygiene"), f"{time.time()-t0:.0f}s", flush=True)
         print(pd.DataFrame(rows).to_string(index=False), flush=True)
     registry.mirror_to_catalog()
     catalog.heartbeat("studies.e02", True, f"{max_signals}")

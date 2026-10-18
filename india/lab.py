@@ -6,6 +6,8 @@
 Security key `sid`: the company entity from the ISIN master where the cash row has an ISIN (2011 on), else the symbol. Prices are adjusted
 with the catalog's cumulative corporate-action factor, so returns are continuous across splits and bonuses.
 
+Data-quality rule: a bhavcopy row with zero open/high/low (no trade that day) keeps its close and takes the close as open, high and low (found by the exit harness: a zero low looked like a -100% stop-out).
+
 Leak rule: every column on a row dated t uses data up to and including the close of t and nothing later. A study that acts on a row acts at the
 next session's open (t+1). Forward returns and exits are never stored here; the exit harness computes them from prices after the entry.
 
@@ -31,7 +33,9 @@ def _con() -> duckdb.DuckDBPyConnection:
     con.execute("set threads to 6")
     con.execute(f"""create view ent as select distinct isin, entity from read_parquet('{root / NAMES}')""")
     con.execute(f"""
-        create view cm as select date, symbol, series, open, high, low, close, prev_close, volume, turnover, isin from read_parquet('{root / CM}') where series = 'EQ' and close > 0""")
+        create view cm as select date, symbol, series,
+               case when open > 0 then open else close end as open, case when high > 0 then high else close end as high, case when low > 0 then low else close end as low,
+               close, prev_close, volume, turnover, isin from read_parquet('{root / CM}') where series = 'EQ' and close > 0""")
     cat = catalog.connect(read_only=True)
     cf = cat.execute("select date, symbol, cum_factor from cm_adj").df()
     cat.close()
@@ -116,6 +120,24 @@ def build_bars(con=None) -> dict:
             "last": str(con.execute("select max(date) from bars").fetchone()[0])}
 
 
+def audit() -> dict:
+    """Sanity counts on the adjusted bars the studies stand on. Anything non-zero is listed in the study notes, never silently fixed."""
+    con = duckdb.connect()
+    b = paths.gold() / "bars" / "adj_daily.parquet"
+    q = lambda sql: con.execute(sql).fetchone()[0]
+    src = f"read_parquet('{b}')"
+    res = {
+        "rows": q(f"select count(*) from {src}"),
+        "low_gt_high": q(f"select count(*) from {src} where l > h + 1e-9"),
+        "open_or_close_outside_range": q(f"select count(*) from {src} where o > h + 1e-9 or o < l - 1e-9 or c > h + 1e-9 or c < l - 1e-9"),
+        "nonpositive_price": q(f"select count(*) from {src} where o <= 0 or h <= 0 or l <= 0 or c <= 0"),
+        "close_to_close_move_over_40pct": q(f"select count(*) from (select c / lag(c) over (partition by sid order by date) - 1 as r from {src}) where abs(r) > 0.4"),
+        "close_to_close_move_over_90pct": q(f"select count(*) from (select c / lag(c) over (partition by sid order by date) - 1 as r from {src}) where abs(r) > 0.9"),
+    }
+    con.close()
+    return res
+
+
 if __name__ == "__main__":
     paths.ensure()
     what = sys.argv[1]
@@ -124,6 +146,9 @@ if __name__ == "__main__":
         print(build_universe(con), flush=True)
     if what in ("features", "all"):
         print(build_features(con), flush=True)
+    if what == "audit":
+        print(audit(), flush=True)
+        sys.exit(0)
     if what in ("bars", "all"):
         print(build_bars(con), flush=True)
     catalog.heartbeat("lab." + what, True, "")

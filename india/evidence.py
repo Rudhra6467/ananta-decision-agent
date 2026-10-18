@@ -49,7 +49,26 @@ def check_nightly() -> dict:
     return {"nightly_ok_runs": n, "ok": n >= 1}
 
 
-CHECKS = {"recorder.minutes": check_recorder, "nightly.runs": check_nightly}
+def check_leaks() -> dict:
+    from india import leakcheck
+    r = leakcheck.run()
+    bad = [k for k, v in r.items() if not k.startswith("_") and not v["ok"]]
+    return {"failed": bad, "ok": not bad}
+
+
+def check_paper() -> dict:
+    import json as _json
+    p = paths.data_dir() / "paper" / "state.json"
+    if not p.exists():
+        return {"ok": False, "note": "no paper state yet"}
+    st = _json.loads(p.read_text())
+    counts: dict = {}
+    for t in st["trades"].values():
+        counts[t["status"]] = counts.get(t["status"], 0) + 1
+    return {"decisions": len(st["decisions"]), "trades": counts, "ok": len(st["decisions"]) >= 1}
+
+
+CHECKS = {"recorder.minutes": check_recorder, "nightly.runs": check_nightly, "leakcheck": check_leaks, "paper.book": check_paper}
 STUDIES: dict = {}  # study id -> function returning a metrics dict; filled as studies are registered and READY
 
 

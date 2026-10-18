@@ -52,7 +52,7 @@ DEFAULT_POLICIES = (
 )
 
 
-def _exit(pol: Policy, o, h, l, c, entry: float, risk: float, rng: random.Random | None = None):
+def _exit(pol: Policy, o, h, l, c, entry: float, risk: float, rng: random.Random | None = None, live: bool = False, rand_day: int | None = None):
     """Walk forward over arrays that start at the entry day. Returns (exit_index, exit_price, reason, peak_high). Index 0 is the entry day."""
     stop = entry - risk
     peak = entry
@@ -60,7 +60,9 @@ def _exit(pol: Policy, o, h, l, c, entry: float, risk: float, rng: random.Random
     half_done = False
     realised_half = 0.0
     pending = None  # an exit decided at a close, filled at the next open
-    rand_day = rng.randint(1, min(HORIZON, n - 1)) if (pol.kind == "random" and rng) else None
+    if rand_day is None and pol.kind == "random" and rng:
+        rand_day = rng.randint(1, min(HORIZON, n - 1))
+    still_open = live and n < HORIZON + 1  # live: the data simply has not arrived yet, so no exit is not the same as the 60-session horizon
     for i in range(n):
         if pending is not None:
             return i, o[i], pending, peak
@@ -90,8 +92,10 @@ def _exit(pol: Policy, o, h, l, c, entry: float, risk: float, rng: random.Random
             pending = "sma"
         elif pol.kind == "swing_low" and i >= pol.n and c[i] < np.min(l[i - int(pol.n): i]):
             pending = "swing"
-        if i == n - 1 and pending is None:
+        if i == n - 1 and pending is None and not still_open:
             return i, c[i], "end", peak
+    if still_open:
+        return n - 1, c[-1], ("pending" if pending else "open"), peak
     return n - 1, c[-1], "end", peak
 
 
@@ -100,6 +104,7 @@ def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies
     policies = list(policies or DEFAULT_POLICIES)
     atr = features.set_index(["sid", "date"])[["atr14", "liq_rank"]].sort_index()
     rows = []
+    skipped = 0
     rng = random.Random(seed)
     for sid, sig in zip(entries["sid"], pd.to_datetime(entries["signal_date"])):
         b = bars.get(sid)
@@ -117,6 +122,13 @@ def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies
             continue
         j1 = min(len(dates), i0 + HORIZON + 1)
         oo, hh, ll, cc = o[i0:j1], h[i0:j1], l[i0:j1], c[i0:j1]
+        # data hygiene (not a forward-looking selection on returns): a window with a trading halt of more than 10 calendar days, or a one-day move above 50% in the adjusted
+        # bars, is a corporate-action or suspension artefact we cannot trade through; it is skipped and counted
+        dd = np.diff(dates[i0:j1]).astype("timedelta64[D]").astype(int)
+        jump = np.abs(cc[1:] / cc[:-1] - 1) if len(cc) > 1 else np.array([0.0])
+        if (len(dd) and dd.max() > 10) or jump.max() > 0.5:
+            skipped += 1
+            continue
         entry = oo[0]
         risk = STOP_ATR * a
         if risk >= entry:
@@ -125,8 +137,16 @@ def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies
             draws = random_draws if pol.kind == "random" else 1
             for _ in range(draws):
                 k, px, why, peak = _exit(pol, oo, hh, ll, cc, entry, risk, rng)
-                rows.append(_row(sid, sig, dates[i0], pol.name, entry, risk, k, px, why, peak, hh[: k + 1], ll[: k + 1], rank))
-    return pd.DataFrame(rows)
+                r = _row(sid, sig, dates[i0], pol.name, entry, risk, k, px, why, peak, hh[: k + 1], ll[: k + 1], rank)
+                # time-matched null: same entry, same stop, held exactly as long, no exit skill -> isolates what the exit rule adds beyond exposure time
+                # an intraday exit (stop, target) happened during day k, so the null must live through day k: it leaves at the next open. A close-based exit already left at the open of day k.
+                nh = k + 1 if why in ("stop", "target") else k
+                kn, pxn, _, _ = _exit(Policy("null", "hold", max(nh, 1)), oo, hh, ll, cc, entry, risk)
+                r["null_net_ret"] = _row(sid, sig, dates[i0], "null", entry, risk, kn, pxn, "", peak, hh[: kn + 1], ll[: kn + 1], rank)["net_ret"]
+                rows.append(r)
+    out = pd.DataFrame(rows)
+    out.attrs["skipped_data_hygiene"] = skipped
+    return out
 
 
 def _row(sid, sig, entry_date, pol, entry, risk, k, px, why, peak, hh, ll, rank):

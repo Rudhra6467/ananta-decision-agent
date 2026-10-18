@@ -6,6 +6,7 @@ what window, how many rows) before any row is returned. Nothing here lets a stud
   paper_context   the engine's market context (Nifty 50 and India VIX against their averages) recorded with each decision
   integrity       selected columns for data checks (duplicates, mappings, stale files, calendar coverage); no returns are computed
   manifest        row counts, last date and file fingerprints for the dataset-version manifest
+  calibration     settlement IVs of recorded days, to measure how far the synthetic option prices are from the recorder's real ones (R01); no rule is scored
 None of them computes rule performance. A lookback or context request for more than LOOKBACK_DAYS calendar days is refused.
 
   from india import sealed
@@ -68,7 +69,7 @@ def read_index(purpose: str, since: str, names: list[str]) -> pd.DataFrame:
 ALLOWED_CONTEXT = {"paper_context"}
 
 
-ALLOWED_INTEGRITY = {"integrity"}
+ALLOWED_INTEGRITY = {"integrity", "calibration"}
 
 
 def read_cols(purpose: str, folder: str, cols: list[str], since: str, where: str = "") -> pd.DataFrame:

@@ -94,7 +94,19 @@ def check_baseline() -> dict:
 
 CHECKS = {"recorder.minutes": check_recorder, "nightly.runs": check_nightly, "leakcheck": check_leaks, "paper.book": check_paper, "paper.baseline": check_baseline,
           "integrity": check_integrity, "lineage": check_lineage}
-STUDIES: dict = {}  # study id -> function returning a metrics dict; filled as studies are registered and READY
+def study_r01() -> dict:
+    from india import o4hist
+    r = o4hist.r01()
+    return {**r, "ok": True}
+
+
+def study_k02() -> dict:
+    from india import dailycall
+    r = dailycall.run()
+    return {"record": r.get("record"), "new_scores": r.get("new_scores"), "ok": True}
+
+
+STUDIES: dict = {"R01.calibration": study_r01, "K02.daily_call": study_k02}  # daily studies on live data (current-market observation)
 
 
 def run() -> list[dict]:

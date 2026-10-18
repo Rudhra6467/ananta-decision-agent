@@ -1,0 +1,53 @@
+"""The nightly job: fetch the last week's NSE files (resumable, so a missed night heals), rebuild this year's silver, rebuild the catalog,
+back up to R2, write one heartbeat row. launchd com.ananta.india.nightly runs it at 02:30 Toronto.
+
+  python -m india.nightly [--no-sync]
+"""
+from __future__ import annotations
+
+import datetime as dt
+import json
+import sys
+import time
+import traceback
+
+from india import actions, backfill, catalog, delivery, paths, silver
+
+DATASETS = ("cm_bhavcopy", "fo_bhavcopy", "delivery")
+
+
+def run(sync: bool = True) -> dict:
+    paths.ensure()
+    t0 = time.time()
+    today = dt.date.today()
+    start, end = today - dt.timedelta(days=8), today - dt.timedelta(days=1)
+    out: dict = {"window": f"{start}..{end}"}
+    steps = [
+        ("fetch", lambda: {ds: backfill.run(ds, start, end, 1.0) for ds in DATASETS}),
+        ("corporate_actions_fetch", lambda: actions.fetch([today.year])),
+        ("silver_cm", lambda: silver.build_cm_year(today.year)),
+        ("silver_delivery", lambda: delivery.build_year(today.year)),
+        ("actions_build", lambda: (actions.build_b(), actions.build_a(), actions.build_factors())),
+        ("catalog", catalog.build),
+    ]
+    if sync:
+        from india import r2sync
+        steps.append(("r2_sync", r2sync.sync))
+    ok = True
+    for name, fn in steps:
+        try:
+            res = fn()
+            out[name] = "ok" if name in ("fetch", "corporate_actions_fetch", "actions_build", "catalog") else res
+        except Exception as e:  # one failed step must not hide the others; the heartbeat says which
+            ok = False
+            out[name] = f"FAILED {type(e).__name__}: {e}"
+            print(traceback.format_exc(), flush=True)
+    out["seconds"] = round(time.time() - t0)
+    catalog.heartbeat("india.nightly", ok, json.dumps(out, default=str))
+    print(json.dumps(out, default=str, indent=1), flush=True)
+    return out
+
+
+if __name__ == "__main__":
+    r = run(sync="--no-sync" not in sys.argv)
+    sys.exit(0 if all(not str(v).startswith("FAILED") for v in r.values()) else 1)

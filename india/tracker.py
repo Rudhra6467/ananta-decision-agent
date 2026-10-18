@@ -124,6 +124,7 @@ PROGRESS = {
     "C05": "18 Oct: VIX above its 50-day CONDITIONAL for PULL entries (+3.8% dev, +1.5% val)",
     "C07": "18 Oct: small caps leading OPPOSITE (entries earn 2-6% less)",
     "C09": "18 Oct: rupee weakening OPPOSITE (entries earn 2.5-3.6% more); Nifty valuation part waits for D30",
+    "F06": "18 Oct: monthly Nifty puts on the 10-slot books cost about 0.1-0.5% a quarter in validation and trim the worst quarter (ANY -34% to -24%), not significant; in dev the bleed outweighs the protection",
     "E11": "18 Oct: selling at the next open after a lower-band day is WORSE than holding on (OPPOSITE for BRK: -12.8% on the trades where it fired); the damage is in that open",
     "G01": "18 Oct first version (india/exitbook.py, descriptive): 10-slot books; per-trade means overstate what a slot-limited book earns (signals cluster in bull runs); val leaders hold60+low20, hold_60d, sma_close_50",
     "E10": "18 Oct: drawdown rule (flatten at -7/-8/-12%, pause 10/20) not significant on returns; cuts the book's worst drawdown (BRK dev -74% to -53%)",

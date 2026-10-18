@@ -31,7 +31,7 @@
 | D21 | IPO dataset (issue price, subscription, listing, first 90 days) | READY |  |  | NSE past issues 2003-2026 (1,479; 566 mainboard), issue price for 1,362; no subscription data |
 | D22 | Macro (RBI, USDINR, crude, US yields) | BUILD |  |  | FRED pulled and typed (silver/macro: USDINR, Brent, WTI, US 10y/2y, S&P, Nasdaq, dollar index, US VIX, fed funds, India 10y monthly); RBI policy dates still to source |
 | D23 | hypothesis_map (3,870 teacher hypotheses mapped to data and status) | READY |  |  | gold/hypothesis_map: 137 register rows mapped (60 TWT, 60 OPT, 17 M); 18 Oct |
-| D24 | Calls ledger (1,001 dated calls + daily scored call) | BUILD |  |  | calls from 2024-01-01 stay unscored until unseal |
+| D24 | Calls ledger (1,001 dated calls + daily scored call) | BUILD |  |  | daily scored call running from 18 Oct (india/dailycall.py); the teachers' calls carry only relative dates ("1 year ago"), so scoring them needs a dating pass first |
 | D25 | Madhav's trade history | READY |  |  | closed: not available; review starts from holdings, history builds from now |
 | D26 | Historical option bid-ask and intraday option prices before 18 Oct 2026 | DECISION |  |  | not available free; stand-ins: synthetic from D13 plus a labelled spread estimate; paid source only if a study proves it matters |
 | D27 | External SSD and UPS | WAIT_MADHAV |  |  | data moves to the SSD when it arrives |
@@ -85,7 +85,7 @@
 | R01 | P6 | Real intraday options | Calibrate synthetic option prices against the recorder: how wrong are they |  | BLOCKED | D14 (wait_time, accumulating) |  |
 | R02 | P6 | Real intraday options | O-01 option leg, O-02 option legs, O-04 real: first look at 12 weeks of recording, tail at 26 | yes | BLOCKED | D14 (wait_time, accumulating) |  |
 | K01 | P7 | Knowledge | Teacher hypotheses run in batches by status (DAILY_NOW first, then OPTIONS, INTRADAY, EVENTS) |  | READY |  |  |
-| K02 | P7 | Knowledge | Daily scored call (M-11): bullish, bearish and neutral written before the open, scored at the checkpoint |  | BLOCKED | D24 (build, no date) |  |
+| K02 | P7 | Knowledge | Daily scored call (M-11): bullish, bearish and neutral written before the open, scored at the checkpoint |  | BLOCKED | D24 (build, no date) | 18 Oct: daily mechanical Nifty call (rule v0 from E08/C01/E04) written each evening with a coin-flip null, scored at 1/5/20 sessions |
 | E09 | P1 | Entries and process | Staged entries: 25/75 split at breakout and pullback, weekly instalments (TWT-H20/21), against one entry |  | READY |  | 18 Oct: staged entries WORSE than one entry on PULL and ANY (OPPOSITE), smaller tail loss |
 | E10 | P1 | Exits, stocks | Portfolio drawdown rule: review or exit everything when open drawdown reaches 7-8% (TWT-H25), on the paper book | yes | READY |  | 18 Oct: drawdown rule (flatten at -7/-8/-12%, pause 10/20) not significant on returns; cuts the book's worst drawdown (BRK dev -74% to -53%) |
 | C07 | P3 | Context | Sector relative strength, rotation and small/mid vs large ratio (TWT-H04-08, H13-14, H16, H29, H39) |  | READY |  | 18 Oct: small caps leading OPPOSITE (entries earn 2-6% less) |

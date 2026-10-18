@@ -97,6 +97,19 @@ def build() -> str:
     else:
         L.append("No baseline rows yet (the first fill is the session after the first decision).")
     L.append("")
+    # ---------------------------------------------------------------- daily call
+    cf = pdir / "calls.jsonl"
+    if cf.exists():
+        rows = [json.loads(x) for x in cf.read_text().splitlines()]
+        calls = [x for x in rows if x["kind"] == "call"]
+        sc = pd.DataFrame([x for x in rows if x["kind"] == "score"])
+        L += ["## Daily Nifty call (K02, forward record, rule " + calls[-1]["rule"] + ")", "",
+              f"Latest: {calls[-1]['call']} on data through {calls[-1]['data_through']} (Nifty {_fmt_pct(calls[-1]['nifty_vs_sma50'])} vs its 50-day); null coin-flip {calls[-1]['null_call']}."]
+        if len(sc):
+            for h, g in sc.groupby("horizon"):
+                m = g[g["score"] != 0]
+                L.append(f"- {h} sessions: {len(m)} scored calls, right {(m['score'] > 0).mean():.0%}; null right {(g['null_score'] > 0).mean():.0%}")
+        L.append("")
     # ---------------------------------------------------------------- options
     L += ["## Options paper book (PAPER EXECUTION, recorder minutes)", ""]
     opf = pdir / "options_trades.jsonl"

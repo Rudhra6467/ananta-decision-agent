@@ -573,6 +573,11 @@ def run() -> dict:
     except Exception as e:
         out["filter_slices"] = f"FAILED {type(e).__name__}: {e}"
     try:
+        from india import dailycall
+        out["daily_call"] = dailycall.run().get("call", {}).get("call", "already written")
+    except Exception as e:
+        out["daily_call"] = f"FAILED {type(e).__name__}: {e}"
+    try:
         from india import report
         report.build()
         out["report"] = "written"

@@ -1,11 +1,16 @@
 {
- "version": "cfg-2026-10-18a",
- "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file.",
+ "version": "cfg-2026-10-18b",
+ "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file. cfg-2026-10-18b adds the REV campaign cap.",
  "stock": {
   "sizing": "fixed_notional",
   "notional_inr": 50000,
   "risk_inr": 1000,
-  "caps": {"BRK": 10, "PULL": 10, "CTL": 5},
+  "caps": {
+   "BRK": 10,
+   "PULL": 10,
+   "CTL": 5,
+   "REV": 10
+  },
   "reentry_days": 14,
   "liq_top": 250,
   "min_price": 10,

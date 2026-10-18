@@ -369,3 +369,56 @@ def e11(max_signals: int = 400000) -> dict:
                   f"fired on {fired:.1%} of trades; when fired {hit['d'].mean()*100 if len(hit) else float('nan'):+.2f}% vs holding on", flush=True)
     registry.mirror_to_catalog()
     return out
+
+
+# ----------------------------------------------------------------------------------------------- P01 indicator-pattern entries
+
+def _indicators() -> pd.DataFrame:
+    """RSI(14, Wilder), stochastic %K(14) and a weekly outside-bar flag per stock-day from the adjusted bars; each value uses bars up to that day only."""
+    b = pd.read_parquet(paths.gold() / "bars" / "adj_daily.parquet")
+    b["date"] = pd.to_datetime(b["date"])
+    b = b.sort_values(["sid", "date"])
+    d = b.groupby("sid")["c"].diff()
+    up, dn = d.clip(lower=0), (-d).clip(lower=0)
+    g = b["sid"]
+    au = up.groupby(g).transform(lambda x: x.ewm(alpha=1 / 14, adjust=False, min_periods=14).mean())
+    ad = dn.groupby(g).transform(lambda x: x.ewm(alpha=1 / 14, adjust=False, min_periods=14).mean())
+    b["rsi14"] = 100 - 100 / (1 + au / ad.replace(0, np.nan))
+    hh = b.groupby("sid")["h"].transform(lambda x: x.rolling(14, min_periods=14).max())
+    ll = b.groupby("sid")["l"].transform(lambda x: x.rolling(14, min_periods=14).min())
+    b["stoch14"] = 100 * (b["c"] - ll) / (hh - ll).replace(0, np.nan)
+    # weekly outside bar: this week's high/low (5 sessions) engulf the previous 5 sessions' range and the close is in the top quarter
+    h5 = b.groupby("sid")["h"].transform(lambda x: x.rolling(5, min_periods=5).max())
+    l5 = b.groupby("sid")["l"].transform(lambda x: x.rolling(5, min_periods=5).min())
+    ph5, pl5 = h5.groupby(g).shift(5), l5.groupby(g).shift(5)
+    b["wk_outside_up"] = ((h5 > ph5) & (l5 < pl5) & (b["c"] >= l5 + 0.75 * (h5 - l5))).astype(float).where(ph5.notna())
+    return b[["sid", "date", "rsi14", "stoch14", "wk_outside_up"]]
+
+
+P01_CONDS = {"rsi_lt30": ("RSI(14) under 30 (oversold)", 1, lambda x: x["rsi14"] < 30), "rsi_gt70": ("RSI(14) over 70 (overbought)", -1, lambda x: x["rsi14"] > 70),
+             "stoch_lt20": ("stochastic %K(14) under 20", 1, lambda x: x["stoch14"] < 20), "wk_outside_up": ("weekly outside bar closing in its top quarter", 1, lambda x: x["wk_outside_up"] > 0.5)}
+
+
+def p01() -> dict:
+    ind = _indicators()
+    out = {}
+    for name in ("BRK", "PULL", "ANY"):
+        tr = pd.read_parquet(paths.gold() / "studies" / f"E02-{name}_trades.parquet", columns=["sid", "signal_date", "policy", "net_ret"])
+        tr = tr[tr["policy"].isin(POLS) & (tr["signal_date"] >= "2000-01-01")]
+        tr = tr.merge(ind, left_on=["sid", "signal_date"], right_on=["sid", "date"], how="left").drop(columns="date")
+        reg = registry.register(f"P01-{name}", family="indicator", title=f"Indicator-pattern conditions at entry ({name} entries)",
+                                hypothesis="Trades signalled while the indicator condition is on earn a different net return than when it is off (direction per condition), within quarters.",
+                                variants=[f"{c}|{p}" for c in P01_CONDS for p in POLS], note="RSI, stochastic and weekly outside bar from adjusted bars; quarter blocks")
+        for c, (desc, ex, rule) in P01_CONDS.items():
+            src = {"rsi_lt30": "rsi14", "rsi_gt70": "rsi14", "stoch_lt20": "stoch14", "wk_outside_up": "wk_outside_up"}[c]
+            tr["cond_" + c] = rule(tr).astype(float).where(tr[src].notna())
+            for p in POLS:
+                x = tr[tr["policy"] == p]
+                dev = _qdiff(x[x["signal_date"].dt.year < SPLIT], "cond_" + c)
+                val = _qdiff(x[x["signal_date"].dt.year >= SPLIT], "cond_" + c)
+                line = registry.record(reg, f"{c}|{p}", dev[:3], val[:3], extra={"entry_set": name, "dev": dev[3], "val": val[3]}, expect=ex)
+                out[f"{name}|{c}|{p}"] = line["verdict"]
+                if p in ("hold_20d", "hold_60d"):
+                    print(f"P01-{name:5s} {c:14s} {p:9s} {line['verdict']:12s} dev {dev[0]*100:+.2f}% t {dev[1]:+.1f} q{dev[2]} | val {val[0]*100:+.2f}% t {val[1]:+.1f} q{val[2]}", flush=True)
+    registry.mirror_to_catalog()
+    return out

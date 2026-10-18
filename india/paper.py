@@ -39,12 +39,12 @@ import pandas as pd
 from india import backfill, catalog, costs, exitlab, paths, sealed, settings, silver
 
 LOOKBACK_CAL_DAYS = 400
-RULES_VERSION = "paper-v1.1-2026-10-18"   # v1.1: funds/ETFs out of the stock universe, applied corporate-action factors only (decisions from 19 Oct)
+RULES_VERSION = "paper-v1.2-2026-10-18"   # v1.1: funds/ETFs out, applied corporate-action factors only; v1.2: REV campaign (RSI(14) under 30, from P01 VALIDATED)
 JOURNAL_VERSION = 2                       # v2 adds the candidate journal, market context, config sha
 POLICIES = {p.name: p for p in exitlab.DEFAULT_POLICIES}
 POLICIES["random_exit"] = exitlab.Policy("random_exit", "random")
 CHOSEN_FIELDS = ("campaign", "sid", "symbol", "atr14", "close", "raw_close", "liq_rank", "vol_ratio20", "dist_sma20", "dist_sma200")
-EXTRA_FIELDS = ("dist_sma50", "ret_20", "ret_60", "rv20", "med60_turnover", "breakout20", "ca_ambiguous_200")
+EXTRA_FIELDS = ("dist_sma50", "ret_20", "ret_60", "rv20", "med60_turnover", "breakout20", "ca_ambiguous_200", "rsi14")
 
 
 def pdir():
@@ -123,6 +123,17 @@ def _atr14(g: pd.DataFrame) -> float:
     return float(np.nanmean(tr[-14:]))
 
 
+def _rsi14(c: np.ndarray) -> float:
+    """Wilder RSI(14) on adjusted closes, the same recursion as the lab (india.studies2._indicators: ewm alpha 1/14, adjust False, min 14); started from
+    the lookback's first bar, so a small start-up difference remains early in a 400-day window and has died out by the last bar."""
+    if len(c) < 15:
+        return float("nan")
+    d = np.diff(c)
+    au = pd.Series(np.maximum(d, 0.0)).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean().iloc[-1]
+    ad = pd.Series(np.maximum(-d, 0.0)).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean().iloc[-1]
+    return float(100 - 100 / (1 + au / ad)) if ad > 0 else 100.0
+
+
 def features(df: pd.DataFrame, asof: pd.Timestamp, min_price: float = 10) -> pd.DataFrame:
     """One row per stock on `asof` with 126+ sessions of history, from rows dated on or before it. Mirrors india.lab (checked by leakcheck.parity)."""
     df = df[df["date"] <= asof]
@@ -143,7 +154,7 @@ def features(df: pd.DataFrame, asof: pd.Timestamp, min_price: float = 10) -> pd.
                     "dist_sma20": float(c[-1] / np.mean(c[-20:]) - 1), "dist_sma50": float(c[-1] / np.mean(c[-50:]) - 1), "dist_sma200": float(c[-1] / np.mean(c[-200:]) - 1),
                     "breakout20": bool(c[-1] > np.max(h[-21:-1])), "ret_20": float(c[-1] / c[-21] - 1), "ret_60": float(c[-1] / c[-61] - 1),
                     "rv20": float(np.std(np.diff(c[-21:]) / c[-21:-1], ddof=1)),
-                    "ca_ambiguous_200": bool(g["ca_ambiguous"].iloc[-200:].any()) if "ca_ambiguous" in g else False})
+                    "ca_ambiguous_200": bool(g["ca_ambiguous"].iloc[-200:].any()) if "ca_ambiguous" in g else False, "rsi14": _rsi14(c)})
     f = pd.DataFrame(out)
     if f.empty:
         return f
@@ -163,7 +174,8 @@ def signals(f: pd.DataFrame, asof: pd.Timestamp, s: dict | None = None) -> dict[
     rng = random.Random(int(asof.strftime("%Y%m%d")))
     idx = sorted(liq.index)
     ctl = liq.loc[rng.sample(idx, min(len(idx), s["ctl_draw"]))] if idx else liq  # draw 40, the open-position filter trims to the cap
-    return {"BRK": brk, "PULL": pull, "CTL": ctl}
+    rev = ok[ok["rsi14"] < 30].sort_values("rsi14", kind="mergesort") if "rsi14" in ok else ok.iloc[0:0]
+    return {"BRK": brk, "PULL": pull, "REV": rev, "CTL": ctl}
 
 
 def context(f: pd.DataFrame, asof: pd.Timestamp, liq_top: int) -> dict:

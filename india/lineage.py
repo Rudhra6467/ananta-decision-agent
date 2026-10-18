@@ -52,6 +52,7 @@ DATASETS = {
     "bronze/results_index": ("bronze/results_index", "**/*", None),
     "bronze/xbrl": ("bronze/xbrl", "**/*", None),
     "bronze/flows": ("bronze/flows", "**/*", None),
+    "silver/flows": ("silver/flows", "*.parquet", "date"),
     "bronze/ledger": ("bronze/ledger", "*.json", None),
 }
 
@@ -62,12 +63,12 @@ DMAP = {
     "D07": (["gold/universe"], "2000-12-31", False), "D09": (["gold/features"], "2000-12-31", False),
     "D10": (["silver/kite_index/minute", "silver/kite_index/5minute"], "2015-12-31", True), "D11": (["silver/kite_index/day"], "2003-12-31", True),
     "D12": (["silver/fo_bhavcopy", "silver/fo_calendar"], "2001-12-31", True), "D13": (["silver/fo_greeks"], "2001-12-31", True),
-    "D14": (["bronze/kite_1m_fo"], None, True), "D16": (["bronze/ledger"], None, False), "D17": (["bronze/flows"], None, False),
+    "D14": (["bronze/kite_1m_fo"], None, True), "D16": (["bronze/ledger"], None, False), "D17": (["bronze/flows"], None, False), "D17a": (["silver/flows"], "2012-12-31", False),
     "D18": (["bronze/pr_zip", "silver/pr"], None, False), "D20": (["bronze/results_index", "bronze/xbrl"], None, False), "D22": (["silver/macro"], None, False),
     "D23": (["gold/hypothesis_map"], None, False), "D29": (["silver/kite_index/day"], None, False),
 }
 # inputs a study can run without: the part that needs them is skipped and the result says so
-OPTIONAL = {"C09": ["D30"], "V06": ["D19"], "F05": ["D14"]}
+OPTIONAL = {"C09": ["D30"], "V06": ["D19"], "F05": ["D14"], "C06": ["D17"]}
 # gold research tables end at the sealed line on purpose; "current" for them means 2023-12-29
 RESEARCH_END = "2023-12-29"
 
@@ -85,7 +86,7 @@ PAPER = {
     "E02": "stock book: 18 exit policies + random exit on every candidate (exec and baseline)", "E03": "stock book: policy set in exitlab (turn-warning exits are lab-only until a family passes)",
     "E07": "stock book: swing_low_* policies", "E08": "decision context: nifty_vs_sma50/200 recorded with every decision; baseline sliced by it",
     "C05": "decision context: vix_close and vix_vs_sma50", "C08": "decision context: breadth200_liq / breadth50_liq",
-    "E04": "baseline journal features ret_20, dist_sma50", "E05": "baseline journal feature dist_sma20 (PULL depth)", "E10": "executed stock book open drawdown (marks)", "E11": "stock book policy set (band-low exit is lab-only)", "V02": "baseline journal + silver/pr band hits",
+    "E04": "baseline journal features ret_20, dist_sma50", "E05": "baseline journal feature dist_sma20 (PULL depth)", "E10": "executed stock book open drawdown (marks)", "C06": "none yet (positioning is context only)", "E11": "stock book policy set (band-low exit is lab-only)", "P01": "stock book campaign REV (RSI(14) under 30) from rules v1.2", "V02": "baseline journal + silver/pr band hits",
     "F02": "options book O-03 (paper/options_trades.jsonl)", "F05": "options book O-04, 8 variants", "I05": "options book O-04 spot side", "R02": "options book O-04 / O-03",
 }
 

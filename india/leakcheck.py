@@ -106,6 +106,21 @@ def check_parity(asof: str = "2023-06-30") -> tuple[bool, str]:
     res["breakout_agree"] = round(float((m["breakout20"] == m["breakout20_gold"]).mean()), 4)
     res["liq_rank_agree_pm3"] = round(float(((m["liq_rank"] - m["liq_rank_gold"]).abs() <= 3).mean()), 4)
     ok &= res["breakout_agree"] > 0.99 and res["liq_rank_agree_pm3"] > 0.95
+    # RSI(14) of the REV campaign: the paper engine starts its recursion at the 400-day lookback, the lab at the first bar ever; they must agree closely
+    if "rsi14" in live:
+        bars = con.execute(f"select sid, date, c from read_parquet('{paths.gold() / 'bars/adj_daily.parquet'}') where date <= ? order by sid, date", [last]).df()
+        sym_sid = dict(zip(live["symbol"], live["sid"]))
+        lab_rsi = {}
+        for sid, g in bars[bars["sid"].isin(set(m["symbol"].map(sym_sid)))].groupby("sid"):
+            d = g["c"].diff()
+            au = d.clip(lower=0).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean().iloc[-1]
+            ad = (-d).clip(lower=0).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean().iloc[-1]
+            lab_rsi[sid] = 100 - 100 / (1 + au / ad) if ad > 0 else 100.0
+        m["rsi_lab"] = m["sid"].map(lab_rsi)
+        dr = (m["rsi14"] - m["rsi_lab"]).abs().dropna()
+        res["rsi14_within_0.5pt"] = round(float((dr < 0.5).mean()), 4)
+        res["rsi14_side_of_30_agree"] = round(float(((m["rsi14"] < 30) == (m["rsi_lab"] < 30)).mean()), 4)
+        ok &= res["rsi14_within_0.5pt"] > 0.98 and res["rsi14_side_of_30_agree"] > 0.995
     return ok, json.dumps(res)
 
 

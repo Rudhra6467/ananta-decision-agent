@@ -21,6 +21,7 @@
 | D15 | Nightly builds clean (gate counter) | WAIT_TIME | 30 runs | 1 of 30 nightly runs | auto: counted from heartbeats |
 | D16 | Ledger snapshots (gate counter) | WAIT_TIME | 30 snapshots | 1 of 30 snapshots | auto: counted from bronze/ledger |
 | D17 | FII/DII flows history | BUILD |  |  | NSE provisional daily; how far back is free to be probed |
+| D17a | Participant-wise open interest in equity derivatives (Client, DII, FII, Pro), daily from 2012 | BUILD |  |  | india/flows.py pulling (about 3,700 files, shared 1 req/s); C06 runs on it |
 | D18 | Announcements, board meetings, corporate-action text (PR zips, from ~2010) | READY |  |  | silver/pr: 7.0M announcements (categorised), 122k board meetings (to Oct 2025), 1.58M book-closure actions, 845k price-band hits, 2010-2026 |
 | D19 | ASM/GSM surveillance lists and pledge/shareholding filings | BUILD |  |  | NSE archives and filings; coverage to probe |
 | D20 | Fundamentals dataset from filed results (NSE results API with filing timestamps and XBRL), point-in-time | BUILD |  |  | results index done (217,104 filings 2007-2024); 2025+ via the integrated-filing API (pulling); XBRL download running, liquid names first (53,654 files); parser india/fundamentals.py |
@@ -67,7 +68,7 @@
 | C03 | P3 | Context | Index-stock-sector lead-lag and pairs checked side by side; effector groups (M-09) |  | READY |  |  |
 | C04 | P3 | Context | Buyers versus sellers dominance (M-10) from delivery share, turnover and up/down volume |  | READY |  |  |
 | C05 | P3 | Context | India VIX regimes and what they do to stops and exits | yes | READY |  | 18 Oct: VIX above its 50-day CONDITIONAL for PULL entries (+3.8% dev, +1.5% val) |
-| C06 | P3 | Context | FII/DII flows against the next days |  | BLOCKED | D17 (build, no date) |  |
+| C06 | P3 | Context | FII/DII positioning (participant OI from 2012) and flows against the next days |  | BLOCKED | D17a (build, no date); D17 (build, no date) |  |
 | F01 | P4 | Futures and options (end of day) | Expiry-day premium decay profiles by days to expiry; straddle decay (M-07/08) |  | READY |  | 18 Oct: short ATM straddles to expiry: positive in validation for Bank Nifty weeklies, negative in dev; not validated; tails up to -Rs 98k per lot |
 | F02 | P4 | Futures and options (end of day) | O-03 expiry-eve strangle, closing-price version: tail first (worst expiry, worst run, margin) |  | READY |  | 18 Oct: O-03 closing-price version: 84-87% wins, mean about Rs 120-140, worst about -Rs 14k, drawdowns -Rs 29k to -34k on a Rs 50,000 book |
 | F03 | P4 | Futures and options (end of day) | OI, put-call ratio, max-pain and chain-shape hypotheses from the Optionables set |  | READY |  | 18 Oct: PCR extremes nothing at the bar; max-pain pin OPPOSITE (the forward predicts settlement better) |
@@ -91,6 +92,6 @@
 | C08 | P3 | Context | Breadth as a gate: share above the 200-day, swing-structure share, washouts (TWT-H01, H30-33) | yes | READY |  |  |
 | C09 | P3 | Context | Intermarket: dollar, crude, S&P, rate cuts, Nifty valuation zones (TWT-H42-45, H47, OPT-H60) |  | BLOCKED | D22 (build, no date); D30 (build, no date) | 18 Oct: rupee weakening OPPOSITE (entries earn 2.5-3.6% more); Nifty valuation part waits for D30 |
 | E11 | P1 | Exits, stocks | Exit after a lower price-band hit (from V02) | yes | READY |  | 18 Oct: selling at the next open after a lower-band day is WORSE than holding on (OPPOSITE for BRK: -12.8% on the trades where it fired); the damage is in that open |
-| P01 | P1 | Entries and process | Indicator-pattern entries (stochastic, Heikin Ashi, RSI divergence, Ichimoku, weekly outside bar, ADX): low priority, run after the exit work |  | READY |  |  |
+| P01 | P1 | Entries and process | Indicator-pattern entries (stochastic, Heikin Ashi, RSI divergence, Ichimoku, weekly outside bar, ADX): low priority, run after the exit work |  | READY |  | 18 Oct: RSI(14) under 30 VALIDATED (+2.5% dev, +1.9% val over 20 sessions on ANY entries), over 70 VALIDATED the other way; weekly outside bar nothing. Paper campaign REV added (rules v1.2) |
 | G01 | P8 | Synthesis and gate | Relationship atlas v1 and the exit policy book: for each situation, the exit that held up out of sample | yes | BLOCKED | study E01; study E02; study E03; study E07 | 18 Oct first version (india/exitbook.py, descriptive): 10-slot books; per-trade means overstate what a slot-limited book earns (signals cluster in bull runs); val leaders hold60+low20, hold_60d, sma_close_50 |
 | G02 | P8 | Synthesis and gate | Two families validated on development plus validation years; holdout opened once per family, and the gate sentence | yes | BLOCKED | D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); study G01 |  |

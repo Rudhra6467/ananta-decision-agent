@@ -41,6 +41,18 @@ def _fundamentals():
     return fundamentals.build()
 
 
+def _flows():
+    from india import flows
+    return flows.fetch(dt.date.today().year), flows.build()
+
+
+def _pr_silver():
+    from india import przip
+    today = dt.date.today()
+    backfill.run("pr_zip", today - dt.timedelta(days=8), today - dt.timedelta(days=1), 1.0)
+    return przip.build()
+
+
 def run(sync: bool = True) -> dict:
     paths.ensure()
     t0 = time.time()
@@ -60,6 +72,8 @@ def run(sync: bool = True) -> dict:
         ("kite_index_silver", _kite_index_silver),
         ("results_integrated", lambda: _results_integrated(today - dt.timedelta(days=14))),
         ("fundamentals", _fundamentals),
+        ("flows", _flows),
+        ("pr_silver", _pr_silver),
     ]
     if sync:
         from india import r2sync

@@ -332,6 +332,9 @@ def _open_trade(book: str, key: str, s: dict, pol: exitlab.Policy, nxt: pd.Times
     tid = f"{key}|{s['campaign']}|{s['sid']}|{pol.name}"
     base = {"id": tid, "book": book, "campaign": s["campaign"], "sid": s["sid"], "symbol": s["symbol"], "policy": pol.name, "signal_date": key, "liq_rank": s["liq_rank"],
             "decision_sha": dsha, "config_sha": cfg_sha}
+    if g is not None and "is_fund" in g and bool(g["is_fund"].iloc[-1]):
+        # the first decision (rules v1, 16 Oct) predates the fund/ETF exclusion: the record stays, the trade is voided with the reason
+        return {**base, "status": "voided", "note": "fund or ETF unit (ISIN INF...): outside the stock universe from rules v1.1"}
     fi = fi if fi is not None else _fill_info(key, nxt, g)
     if fi is None:
         return {**base, "status": "unfilled", "note": "no print on the fill session"}
@@ -406,7 +409,7 @@ def settle(state: dict | None = None, df: pd.DataFrame | None = None) -> dict:
                 if t["status"] == "open":
                     _event({"event": "open", "id": tid, "at": _now(), "entry_date": t["entry_date"], "entry_raw": t["entry_raw"], "notional": t["notional"]})
                     filled += 1
-                elif t["status"] == "unfilled":
+                elif t["status"] in ("unfilled", "voided"):
                     unfilled += 1
                 else:
                     skipped += 1
@@ -464,7 +467,7 @@ def baseline(df: pd.DataFrame | None = None) -> dict:
     out = pd.DataFrame(rows)
     if not out.empty:
         out.to_parquet(pdir() / "baseline.parquet", index=False)
-        out[out["status"].isin(["closed", "unfilled", "skipped"])].to_parquet(cache_p, index=False)
+        out[out["status"].isin(["closed", "unfilled", "skipped", "voided"])].to_parquet(cache_p, index=False)
     st = out["status"].value_counts().to_dict() if not out.empty else {}
     return {"rows": int(len(out)), "status": st, "decisions_waiting_for_fill": waiting, "decisions_without_journal": missing}
 
@@ -557,6 +560,12 @@ def run() -> dict:
         out["filter_slices"] = len(filters.run())
     except Exception as e:
         out["filter_slices"] = f"FAILED {type(e).__name__}: {e}"
+    try:
+        from india import report
+        report.build()
+        out["report"] = "written"
+    except Exception as e:
+        out["report"] = f"FAILED {type(e).__name__}: {e}"
     catalog.heartbeat("paper.run", not str(out["fetch"]).startswith("FAILED") and not str(out["baseline"]).startswith("FAILED"), json.dumps(out, default=str)[:480])
     print(json.dumps(out, default=str, indent=1), flush=True)
     return out

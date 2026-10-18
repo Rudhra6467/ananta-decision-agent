@@ -52,6 +52,7 @@ def index(from_year: int = 2005) -> dict:
             st, j = 0, None
             for k in range(3):
                 try:
+                    nse._global_slot()
                     r = s.get(url, headers=REF, timeout=40)
                     st = r.status_code
                     if st == 200:
@@ -106,6 +107,7 @@ def index_integrated(from_date: str = "2025-01-01") -> dict:
         st, j = 0, None
         for k in range(3):
             try:
+                nse._global_slot()
                 r = s.get(url, headers=IF_REF, timeout=40)
                 st = r.status_code
                 if st == 200:

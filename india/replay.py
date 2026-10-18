@@ -36,7 +36,7 @@ def _raw(start: str, end: str) -> pd.DataFrame:
     df = con.execute(f"select date, symbol, series, open, high, low, close, prev_close, volume, turnover, isin from read_parquet({files!r}) "
                      f"where series = 'EQ' and close > 0 and date >= ? and date <= ?", [since, pd.Timestamp(end).date()]).df()
     con.close()
-    assert pd.to_datetime(df["date"]).max() < pd.Timestamp(paths.HOLDOUT_START), "replay must stay out of the sealed years"
+    assert pd.to_datetime(df["date"]).max() < pd.Timestamp(paths.HOLDOUT_START), "replay must stay out of the holdout years"
     return df
 
 

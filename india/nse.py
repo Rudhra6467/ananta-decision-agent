@@ -75,6 +75,25 @@ URLS = {"cm_bhavcopy": cm_urls, "fo_bhavcopy": fo_urls, "delivery": delivery_url
 EXT = {"cm_bhavcopy": ".csv.zip", "fo_bhavcopy": ".csv.zip", "delivery": ".csv", "pr_zip": ".zip"}
 
 
+def _global_slot(min_gap: float = 1.0) -> None:
+    """One request per second to NSE across every process on this Mac (pulls run in parallel): a lock file holds the time of the last request."""
+    import fcntl
+    lock = paths.data_dir() / ".nse_rate.lock"
+    with open(lock, "a+") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        fh.seek(0)
+        txt = fh.read().strip()
+        last = float(txt) if txt else 0.0
+        wait = min_gap - (time.time() - last)
+        if wait > 0:
+            time.sleep(wait)
+        fh.seek(0)
+        fh.truncate()
+        fh.write(f"{time.time():.3f}")
+        fh.flush()
+        fcntl.flock(fh, fcntl.LOCK_UN)
+
+
 class Fetcher:
     """One polite session: a minimum gap between requests and a backoff that grows on refusals."""
 
@@ -91,6 +110,9 @@ class Fetcher:
         gap = self.rate_s - (time.time() - self._last)
         if gap > 0:
             time.sleep(gap)
+        _global_slot()
+
+
 
     def get(self, url: str) -> tuple[int, bytes, float]:
         """(status, body, seconds). 404 comes back as is; 403/429/5xx are retried three times with growing sleeps."""

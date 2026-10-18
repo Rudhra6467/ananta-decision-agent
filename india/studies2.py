@@ -330,3 +330,42 @@ def _stat(x: pd.Series) -> tuple[float, float, int]:
         return float("nan"), float("nan"), int(len(x))
     se = x.std(ddof=1) / math.sqrt(len(x))
     return float(x.mean()), float(x.mean() / se) if se else float("nan"), int(len(x))
+
+
+# ----------------------------------------------------------------------------------------------- E11 exit on a lower price-band hit
+
+def e11(max_signals: int = 400000) -> dict:
+    """V02 found that stocks hitting their lower price band keep falling for 20 sessions. As an exit: when a held stock hits its lower band (exchange list,
+    known at the close), leave at the next open. Paired against the same policy without it, trade by trade, quarter blocks."""
+    f = studies.load_features()
+    sets = studies.entry_sets(f, max_signals)
+    bars = exitlab.load_bars()
+    base_pols = [exitlab.Policy("hold_60d", "hold", 60), exitlab.Policy("atr_trail_4", "atr_trail", 4), exitlab.Policy("sma_close_50", "sma_close", 50)]
+    pols = base_pols + [exitlab.Policy(p.name + "+band_low", p.kind, p.n, sig=("band_low",)) for p in base_pols]
+    out = {}
+    for name, ent in sets.items():
+        reg = registry.register(f"E11-{name}", family="exit", title=f"Exit on a lower price-band hit, {name} entries",
+                                hypothesis="Leaving at the next open after the stock hits its lower price band raises net return per trade against the same policy without it.",
+                                variants=[p.name for p in pols if "+" in p.name], note="band list from the PR zips (2010 on); trades before 2010 have no band data and are left out")
+        ent = ent[ent["signal_date"] >= "2010-01-01"]
+        tr = exitlab.simulate(ent, bars, f, pols, random_draws=1)
+        tr = tr[tr["policy"] != "random_exit"]
+        for p in base_pols:
+            a = tr[tr["policy"] == p.name][["sid", "signal_date", "net_ret"]]
+            b = tr[tr["policy"] == p.name + "+band_low"][["sid", "signal_date", "net_ret", "reason", "hold_days"]]
+            m = b.merge(a, on=["sid", "signal_date"], suffixes=("", "_base"))
+            m["d"] = m["net_ret"] - m["net_ret_base"]
+            st = {}
+            for per, mk in (("dev", m["signal_date"].dt.year < SPLIT), ("val", m["signal_date"].dt.year >= SPLIT)):
+                d = studies._blk(m[mk], "d")
+                se = d.std(ddof=1) / math.sqrt(len(d)) if len(d) > 2 else float("nan")
+                st[per] = (float(d.mean()), float(d.mean() / se) if se else float("nan"), int(len(d)))
+            fired = float((m["reason"] == "sig_band_low").mean())
+            hit = m[m["reason"] == "sig_band_low"]
+            line = registry.record(reg, p.name + "+band_low", st["dev"], st["val"], extra={"entry_set": name, "fired_share": fired, "trades": int(len(m)),
+                                   "when_fired_mean_diff": float(hit["d"].mean()) if len(hit) else None}, expect=1)
+            out.setdefault(name, {})[p.name] = line["verdict"]
+            print(f"E11-{name:5s} {p.name+'+band_low':24s} {line['verdict']:12s} dev {st['dev'][0]*100:+.3f}% t {st['dev'][1]:+.1f} | val {st['val'][0]*100:+.3f}% t {st['val'][1]:+.1f} | "
+                  f"fired on {fired:.1%} of trades; when fired {hit['d'].mean()*100 if len(hit) else float('nan'):+.2f}% vs holding on", flush=True)
+    registry.mirror_to_catalog()
+    return out

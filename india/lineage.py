@@ -85,7 +85,7 @@ PAPER = {
     "E02": "stock book: 18 exit policies + random exit on every candidate (exec and baseline)", "E03": "stock book: policy set in exitlab (turn-warning exits are lab-only until a family passes)",
     "E07": "stock book: swing_low_* policies", "E08": "decision context: nifty_vs_sma50/200 recorded with every decision; baseline sliced by it",
     "C05": "decision context: vix_close and vix_vs_sma50", "C08": "decision context: breadth200_liq / breadth50_liq",
-    "E04": "baseline journal features ret_20, dist_sma50", "E05": "baseline journal feature dist_sma20 (PULL depth)", "E10": "executed stock book open drawdown (marks)",
+    "E04": "baseline journal features ret_20, dist_sma50", "E05": "baseline journal feature dist_sma20 (PULL depth)", "E10": "executed stock book open drawdown (marks)", "E11": "stock book policy set (band-low exit is lab-only)", "V02": "baseline journal + silver/pr band hits",
     "F02": "options book O-03 (paper/options_trades.jsonl)", "F05": "options book O-04, 8 variants", "I05": "options book O-04 spot side", "R02": "options book O-04 / O-03",
 }
 

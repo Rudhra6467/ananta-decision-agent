@@ -88,7 +88,33 @@ def _sig_giveback(i, o, h, l, c, a, entry, peak):
     return gain > 2 * a["atr"][i] and (peak - c[i]) > 0.5 * gain
 
 
-SIGS = {"vol_climax": _sig_vol_climax, "extended20": _sig_extended, "three_down": _sig_three_down, "gap_down": _sig_gap_down, "range_down": _sig_range_down,
+def _sig_band_low(i, o, h, l, c, a, entry, peak):
+    """the stock hit its lower price band that day (exchange list, PR zip bh file): known at the close"""
+    return bool(a["band_low"][i]) if "band_low" in a else False
+
+
+_BAND = None
+
+
+def band_low_dates() -> dict:
+    """sid -> sorted dates on which the stock (series EQ) hit its lower price band (silver/pr/band_hits, pre-2024 only)."""
+    global _BAND
+    if _BAND is None:
+        from india import paths
+        f = paths.data_dir() / "silver/pr/band_hits.parquet"
+        _BAND = {}
+        if f.exists():
+            b = pd.read_parquet(f, columns=["date", "symbol", "series", "side"])
+            b = b[(b["series"] == "EQ") & b["side"].str.upper().str.startswith("L")]
+            names = pd.read_parquet(paths.data_dir() / "silver/security_master/names.parquet", columns=["symbol", "entity"]).dropna().drop_duplicates("symbol", keep="last")
+            b = b.merge(names, on="symbol", how="left")
+            b["sid"] = b["entity"].fillna(b["symbol"])
+            for sid, g in b.groupby("sid"):
+                _BAND[sid] = np.sort(pd.to_datetime(g["date"]).values.astype("datetime64[D]"))
+    return _BAND
+
+
+SIGS = {"band_low": _sig_band_low, "vol_climax": _sig_vol_climax, "extended20": _sig_extended, "three_down": _sig_three_down, "gap_down": _sig_gap_down, "range_down": _sig_range_down,
         "prev_low": _sig_prev_low, "low20": _sig_low20, "giveback50": _sig_giveback}
 
 
@@ -202,6 +228,8 @@ def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies
         dates, o, h, l, c, v = b
         if sid not in aux_cache:
             aux_cache[sid] = aux_arrays(o, h, l, c, v)
+            if any("band_low" in p.sig for p in policies):
+                aux_cache[sid]["band_low"] = np.isin(dates, band_low_dates().get(sid, np.array([], dtype="datetime64[D]")))
         i0 = int(np.searchsorted(dates, np.datetime64(sig.date()), side="right"))  # first session after the signal
         if i0 >= len(dates) or i0 + 2 > len(dates):
             continue

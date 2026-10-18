@@ -54,7 +54,8 @@ def check_sealed_files() -> tuple[bool, str]:
         if any(s != "sealed" and any("sealed" in tok.lower() and ("/" in tok or "_" in tok or tok == s) for tok in s.split()) for s in _strings(here / f)):
             bad.append(f)
     # paper.py and the leak check may import the sealed module by name; nothing else should reference the folder helpers
-    for f in ("lab.py", "studies.py", "exitlab.py", "registry.py", "costs.py"):
+    for f in ("lab.py", "studies.py", "exitlab.py", "registry.py", "costs.py", "conditions.py", "studies2.py", "istudies.py", "fstudies.py", "vstudies.py",
+              "exitbook.py", "o4hist.py", "replay.py"):
         if any("sealed" in s.lower() for s in _strings(here / f)):
             bad.append(f + " (mentions sealed)")
     return (not bad), ("clean" if not bad else "references in " + ", ".join(sorted(set(bad))))

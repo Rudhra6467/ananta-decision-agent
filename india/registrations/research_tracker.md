@@ -23,7 +23,8 @@
 | D17 | FII/DII flows history | BUILD | Oct 28 |  | NSE provisional daily; how far back is free to be probed |
 | D18 | Announcements, board meetings, corporate-action text (PR zips, from ~2010) | BUILD | Nov 3 |  | about 4,000 files at 1 per second; gate G-E |
 | D19 | ASM/GSM surveillance lists and pledge/shareholding filings | BUILD | Nov 10 |  | NSE archives and filings; coverage to probe |
-| D20 | Fundamentals dataset (statements, ratios), point-in-time | DECISION |  |  | gate G-U: source and licence not chosen; free sources may not allow product use |
+| D20 | Fundamentals dataset from filed results (NSE results API with filing timestamps and XBRL), point-in-time | BUILD | Nov 17 |  | probed 18 Oct: XBRL for every result from about Aug 2018, ~half in 2018, old-format pages before; licence terms to read before bulk fetch |
+| D20b | Fundamentals before 2018 (old-format HTML result pages) | DECISION |  |  | parse the HTML pages, or start ratios from 2018; decide after D20 coverage report |
 | D21 | IPO dataset (issue price, subscription, listing, first 90 days) | BUILD | Nov 10 |  | listing days come from the lake; issue data from NSE/BSE pages, to probe |
 | D22 | Macro (RBI, USDINR, crude, US yields) | BUILD | Nov 3 |  | FRED and RBI, open data |
 | D23 | hypothesis_map (3,870 teacher hypotheses mapped to data and status) | BUILD | Oct 31 |  | one automatic pass, about US$15; then Madhav reviews 50 sample rows plus every INTRADAY and EVENTS row |
@@ -76,8 +77,8 @@
 | V02 | P5 | Events and fundamentals | Announcement reactions and post-event drift | yes | Nov 17 | BLOCKED | D18 (build, Nov 3) |
 | V03 | P5 | Events and fundamentals | IPO listing and first 90 days (M-14) | yes | Nov 24 | BLOCKED | D21 (build, Nov 10) |
 | V04 | P5 | Events and fundamentals | Red flags as a hard gate: surveillance lists, pledge, exchange actions |  | Nov 24 | BLOCKED | D19 (build, Nov 10) |
-| V05 | P5 | Events and fundamentals | Quality and mispricing, peer-relative (M-15); quality score and timing score kept apart |  | Dec 1 | BLOCKED | D20 (decision, no date); D07 (build, Oct 21) |
-| V06 | P5 | Events and fundamentals | Portfolio ranking, replacement finder and concentration (M-16); first run on the father's holdings, suggestions only |  | Dec 8 | BLOCKED | D16 (wait_time, 30 snapshots); D20 (decision, no date); D19 (build, Nov 10); D08 (build, Oct 24) |
+| V05 | P5 | Events and fundamentals | Quality and mispricing, peer-relative (M-15); quality score and timing score kept apart |  | Dec 1 | BLOCKED | D20 (build, Nov 17); D07 (build, Oct 21) |
+| V06 | P5 | Events and fundamentals | Portfolio ranking, replacement finder and concentration (M-16); first run on the father's holdings, suggestions only |  | Dec 8 | BLOCKED | D16 (wait_time, 30 snapshots); D20 (build, Nov 17); D19 (build, Nov 10); D08 (build, Oct 24) |
 | R01 | P6 | Real intraday options | Calibrate synthetic option prices against the recorder: how wrong are they |  | Nov 15 (4 weeks) | BLOCKED | D14 (wait_time, accumulating) |
 | R02 | P6 | Real intraday options | O-01 option leg, O-02 option legs, O-04 real: first look at 12 weeks of recording, tail at 26 | yes | Jan 10 (12 weeks) | BLOCKED | D14 (wait_time, accumulating) |
 | K01 | P7 | Knowledge | Teacher hypotheses run in batches by status (DAILY_NOW first, then OPTIONS, INTRADAY, EVENTS) |  | Nov 3 | BLOCKED | D23 (build, Oct 31) |

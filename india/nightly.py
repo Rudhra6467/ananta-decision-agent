@@ -46,6 +46,11 @@ def _flows():
     return flows.fetch(dt.date.today().year), flows.build()
 
 
+def _surveil():
+    from india import surveil
+    return surveil.snapshot(), surveil.build()
+
+
 def _pr_silver():
     from india import przip
     today = dt.date.today()
@@ -74,6 +79,7 @@ def run(sync: bool = True) -> dict:
         ("fundamentals", _fundamentals),
         ("flows", _flows),
         ("pr_silver", _pr_silver),
+        ("surveillance", _surveil),
     ]
     if sync:
         from india import r2sync

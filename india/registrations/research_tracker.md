@@ -23,12 +23,12 @@
 | D17 | FII/DII flows history | BUILD |  |  | NSE provisional daily; how far back is free to be probed |
 | D17a | Participant-wise open interest in equity derivatives (Client, DII, FII, Pro), daily from 2012 | BUILD |  |  | india/flows.py pulling (about 3,700 files, shared 1 req/s); C06 runs on it |
 | D18 | Announcements, board meetings, corporate-action text (PR zips, from ~2010) | READY |  |  | silver/pr: 7.0M announcements (categorised), 122k board meetings (to Oct 2025), 1.58M book-closure actions, 845k price-band hits, 2010-2026 |
-| D19 | ASM/GSM surveillance lists and pledge/shareholding filings | BUILD |  |  | NSE archives and filings; coverage to probe |
+| D19 | ASM/GSM surveillance lists and pledge/shareholding filings | WAIT_TIME | accumulating |  | NSE serves current lists only: daily snapshots from 18 Oct 2026 (india/surveil.py, 206 ASM + 77 GSM today); pledge filings not yet probed |
 | D20 | Fundamentals dataset from filed results (NSE results API with filing timestamps and XBRL), point-in-time | BUILD |  |  | results index done (217,104 filings 2007-2024); 2025+ via the integrated-filing API (pulling); XBRL download running, liquid names first (53,654 files); parser india/fundamentals.py |
 | D29 | Sector indices and an industry/sector map for the liquid universe (sector relative strength, breadth by sector) | READY |  |  | sector and thematic indices daily (Kite) plus industry per Nifty 500 stock (current list, not point-in-time) |
 | D30 | Nifty valuation series (P/E, P/B, dividend yield) and index total-return history | BUILD |  |  | niftyindices endpoint no longer answers (18 Oct probe); another source needed; one hypothesis (OPT-H60) |
 | D20b | Fundamentals before 2018 (old-format HTML result pages) | DECISION |  |  | parse the HTML pages, or start ratios from 2018; decide after D20 coverage report |
-| D21 | IPO dataset (issue price, subscription, listing, first 90 days) | BUILD |  |  | listing days come from the lake; issue data from NSE/BSE pages, to probe |
+| D21 | IPO dataset (issue price, subscription, listing, first 90 days) | READY |  |  | NSE past issues 2003-2026 (1,479; 566 mainboard), issue price for 1,362; no subscription data |
 | D22 | Macro (RBI, USDINR, crude, US yields) | BUILD |  |  | FRED pulled and typed (silver/macro: USDINR, Brent, WTI, US 10y/2y, S&P, Nasdaq, dollar index, US VIX, fed funds, India 10y monthly); RBI policy dates still to source |
 | D23 | hypothesis_map (3,870 teacher hypotheses mapped to data and status) | READY |  |  | gold/hypothesis_map: 137 register rows mapped (60 TWT, 60 OPT, 17 M); 18 Oct |
 | D24 | Calls ledger (1,001 dated calls + daily scored call) | BUILD |  |  | calls from 2024-01-01 stay unscored until unseal |
@@ -78,10 +78,10 @@
 | F07 | P4 | Futures and options (end of day) | Paper book design (M-17): per-trade, daily and open-risk limits and the drawdown response, for Madhav's approval |  | READY |  |  |
 | V01 | P5 | Events and fundamentals | Behaviour around corporate actions, dividends and results dates |  | READY |  | 18 Oct: results days move about 1.4x a normal day (VALIDATED); post-results drift not at the bar |
 | V02 | P5 | Events and fundamentals | Announcement reactions and post-event drift | yes | READY |  | 18 Oct: lower price-band hits keep falling (-7.6% dev, -3.1% val over 20 sessions vs Nifty, CONDITIONAL); announcement categories nothing at the bar |
-| V03 | P5 | Events and fundamentals | IPO listing and first 90 days (M-14) | yes | BLOCKED | D21 (build, no date) |  |
-| V04 | P5 | Events and fundamentals | Red flags as a hard gate: surveillance lists, pledge, exchange actions |  | BLOCKED | D19 (build, no date) |  |
+| V03 | P5 | Events and fundamentals | IPO listing and first 90 days (M-14) | yes | READY |  | 18 Oct: 239 mainboard IPOs matched to prices: allottees gained +21-26% on average (median +14%); buying on day one roughly matches Nifty after; INCONCLUSIVE (few dev quarters) |
+| V04 | P5 | Events and fundamentals | Red flags as a hard gate: surveillance lists, pledge, exchange actions |  | BLOCKED | D19 (wait_time, accumulating) |  |
 | V05 | P5 | Events and fundamentals | Quality and mispricing, peer-relative (M-15); quality score and timing score kept apart |  | BLOCKED | D20 (build, no date) |  |
-| V06 | P5 | Events and fundamentals | Portfolio ranking, replacement finder and concentration (M-16); first run on the father's holdings, suggestions only |  | BLOCKED | D16 (wait_time, 30 snapshots); D20 (build, no date); D19 (build, no date) |  |
+| V06 | P5 | Events and fundamentals | Portfolio ranking, replacement finder and concentration (M-16); first run on the father's holdings, suggestions only |  | BLOCKED | D16 (wait_time, 30 snapshots); D20 (build, no date); D19 (wait_time, accumulating) |  |
 | R01 | P6 | Real intraday options | Calibrate synthetic option prices against the recorder: how wrong are they |  | BLOCKED | D14 (wait_time, accumulating) |  |
 | R02 | P6 | Real intraday options | O-01 option leg, O-02 option legs, O-04 real: first look at 12 weeks of recording, tail at 26 | yes | BLOCKED | D14 (wait_time, accumulating) |  |
 | K01 | P7 | Knowledge | Teacher hypotheses run in batches by status (DAILY_NOW first, then OPTIONS, INTRADAY, EVENTS) |  | READY |  |  |

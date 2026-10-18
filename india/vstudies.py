@@ -170,7 +170,54 @@ def v02() -> dict:
     return out
 
 
+# ----------------------------------------------------------------------------------------------- V03 IPOs
+
+def v03() -> dict:
+    """M-14: book the IPO, buy on day one, or wait? Mainboard IPOs (EQ/BE) listed 2003-2023 from NSE's past-issues list, prices from the cash files.
+    listing gain = day-1 close / issue price - 1 (what an allottee earned); after = abnormal return (minus Nifty 50) from the day-1 close to the close of
+    session 20 and 60 (buying on day one); strong-listing split at +20%. No subscription data yet, so the subscription part of M-14 is not tested."""
+    import duckdb
+    ipo = pd.read_parquet(paths.data_dir() / "silver/ipo/past_issues.parquet")
+    ipo = ipo[ipo["securityType"].isin(["EQ", "BE"]) & ipo["listingDate"].notna() & ipo["issue_price"].notna()]
+    files = [str(p) for p in (paths.data_dir() / "silver/cm_bhavcopy").glob("year=*/part.parquet")]
+    con = duckdb.connect()
+    cm = con.execute(f"select date, symbol, open, close from read_parquet({files!r}) where list_contains(?, symbol) and close > 0 and series in ('EQ','BE')",
+                     [ipo["symbol"].dropna().unique().tolist()]).df()
+    con.close()
+    cm["date"] = pd.to_datetime(cm["date"])
+    ix = pd.read_parquet(paths.data_dir() / "silver/kite_index/day/day.parquet")
+    nifty = ix[ix["index_name"] == "NIFTY 50"].assign(date=lambda d: pd.to_datetime(d["date"])).set_index("date")["close"].sort_index()
+    rows = []
+    for r in ipo.itertuples():
+        g = cm[(cm["symbol"] == r.symbol) & (cm["date"] >= r.listingDate)].drop_duplicates("date").sort_values("date").reset_index(drop=True)
+        if len(g) < 61 or (g["date"].iloc[0] - r.listingDate).days > 5:
+            continue
+        d0, d20, d60 = g["date"].iloc[0], g["date"].iloc[20], g["date"].iloc[60]
+        if not all(x in nifty.index for x in (d0, d20, d60)):
+            continue
+        c0 = g["close"].iloc[0]
+        rows.append({"symbol": r.symbol, "listed": d0, "listing_gain": c0 / r.issue_price - 1, "open_gain": g["open"].iloc[0] / r.issue_price - 1,
+                     "ab20": g["close"].iloc[20] / c0 - 1 - (nifty[d20] / nifty[d0] - 1), "ab60": g["close"].iloc[60] / c0 - 1 - (nifty[d60] / nifty[d0] - 1)})
+    df = pd.DataFrame(rows)
+    df["y"] = df["listed"].dt.year
+    df["day0"] = df["listed"]
+    df.to_parquet(paths.gold() / "studies" / "V03_ipos.parquet")
+    strong = df["listing_gain"] > 0.2
+    tests = {"listing_gain": (df, "listing_gain", 1), "buy_day1_ab60": (df, "ab60", -1), "buy_day1_ab20": (df, "ab20", -1),
+             "strong_listing_ab60": (df[strong], "ab60", 0), "weak_listing_ab60": (df[~strong], "ab60", 0)}
+    reg = registry.register("V03", family="events", title="IPOs: allotment gain, buying on day one, strong versus weak listings",
+                            hypothesis="Allottees gain on listing day; buying at the day-1 close lags Nifty over 20 and 60 sessions; strong and weak listings differ afterwards.",
+                            variants=list(tests), note="mainboard NSE IPOs 2003-2023; quarter blocks by listing quarter; no subscription data")
+    out = {}
+    for name, (x, col, ex) in tests.items():
+        dev, val = _q(x[x["y"] < SPLIT], col), _q(x[x["y"] >= SPLIT], col)
+        line = registry.record(reg, name, dev, val, extra={"n": int(len(x)), "median": float(x[col].median())}, expect=ex)
+        out[name] = line["verdict"]
+        print(f"V03 {name:20s} {line['verdict']:12s} dev {dev[0]*100:+.2f}% t {dev[1]:+.1f} q{dev[2]} | val {val[0]*100:+.2f}% t {val[1]:+.1f} q{val[2]} | n {len(x)}, median {x[col].median()*100:+.1f}%", flush=True)
+    registry.mirror_to_catalog()
+    return out
+
 if __name__ == "__main__":
     paths.ensure()
     w = sys.argv[1] if len(sys.argv) > 1 else "v01"
-    {"v01": v01, "v02": v02}[w]()
+    {"v01": v01, "v02": v02, "v03": v03}[w]()

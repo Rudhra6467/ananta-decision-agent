@@ -66,8 +66,13 @@ def delivery_urls(d: dt.date) -> list[str]:
     return [full, mto] if d >= dt.date(2020, 1, 1) else [mto, full]
 
 
-URLS = {"cm_bhavcopy": cm_urls, "fo_bhavcopy": fo_urls, "delivery": delivery_urls}
-EXT = {"cm_bhavcopy": ".csv.zip", "fo_bhavcopy": ".csv.zip", "delivery": ".csv"}
+def pr_urls(d: dt.date) -> list[str]:
+    """The daily PR zip: corporate-action text (Bc), announcements (An), board meetings (Bm), market cap (MCAP)."""
+    return [f"{ARCH}/archives/equities/bhavcopy/pr/PR{d:%d%m%y}.zip"]
+
+
+URLS = {"cm_bhavcopy": cm_urls, "fo_bhavcopy": fo_urls, "delivery": delivery_urls, "pr_zip": pr_urls}
+EXT = {"cm_bhavcopy": ".csv.zip", "fo_bhavcopy": ".csv.zip", "delivery": ".csv", "pr_zip": ".zip"}
 
 
 class Fetcher:

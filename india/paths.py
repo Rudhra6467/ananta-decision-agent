@@ -31,6 +31,11 @@ DATASETS = {
     "kite_instruments": "Kite instruments master, one copy per day",
     "kite_5m": "Kite Connect 5-minute candles",
     "kite_day": "Kite Connect daily candles (the second record for spot checks)",
+    "pr_zip": "NSE daily PR zips: corporate-action text, announcements, board meetings, market cap",
+    "results_index": "NSE financial-results filings index by date window (filing timestamps, XBRL links)",
+    "xbrl": "XBRL result files for universe names",
+    "kite_index": "Kite candles for indices and India VIX, minute, 5-minute and daily",
+    "kite_1m_fo": "Kite 1-minute candles for live NIFTY/BANKNIFTY contracts, recorded daily",
     "ledger": "Madhav's Zerodha holdings, positions, orders, funds: daily snapshots, read-only",
 }
 

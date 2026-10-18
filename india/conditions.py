@@ -42,6 +42,10 @@ MARKET = {
     "brent_rising": ("market", "Brent above its 50-day average (C09, TWT-H44)", -1, lambda c: c["brent_vs_sma50"] > 0),
     "nasdaq_gt200d": ("market", "Nasdaq above its 200-day average, previous US close (C09, TWT-H45)", 1, lambda c: c["nasdaq_vs_sma200"] > 0),
     "us10y_up_60d": ("market", "US 10-year yield up over 60 sessions (C09, TWT-H47)", -1, lambda c: c["us10y_chg60"] > 0),
+    "nifty_down2": ("market", "Nifty 50 fell more than 2% on the signal day (C01: what follows a shock day)", 0, lambda c: c["nifty_ret1"] < -0.02),
+    "nifty_up2": ("market", "Nifty 50 rose more than 2% on the signal day", 0, lambda c: c["nifty_ret1"] > 0.02),
+    "nifty_vol_high": ("market", "Nifty 20-day volatility above its own 80th percentile so far (expanding, no look-ahead) (C01 volatility regime)", 0,
+                       lambda c: c["nifty_rv20"] > c["nifty_rv20_p80"]),
 }
 ALL = {**STOCK, **MARKET}
 
@@ -63,6 +67,10 @@ def context_table(features: pd.DataFrame, include_sealed: bool = False) -> pd.Da
     out["vix"] = piv.get("INDIA VIX")
     out["vix_vs_sma50"] = _vs(piv["INDIA VIX"], 50) if "INDIA VIX" in piv else np.nan
     out["small_ratio_vs_sma50"] = _vs(piv["NIFTY SMLCAP 100"] / piv["NIFTY 100"], 50)
+    r1 = piv["NIFTY 50"].pct_change()
+    out["nifty_ret1"] = r1
+    out["nifty_rv20"] = r1.rolling(20, min_periods=20).std()
+    out["nifty_rv20_p80"] = out["nifty_rv20"].expanding(min_periods=250).quantile(0.8)
     c.index = pd.to_datetime(c.index)
     out = c.join(out, how="left")
     m = pd.read_parquet(paths.data_dir() / "silver/macro/macro.parquet")
@@ -117,7 +125,7 @@ def apply_market(ctx: pd.DataFrame) -> pd.DataFrame:
     # a comparison against NaN is False in pandas: put the missing back from the inputs
     need = {"breadth_lt30": "breadth200", "breadth_lt40": "breadth200", "breadth_thrust": "breadth200", "nifty_gt50d": "nifty_vs_sma50", "nifty_gt200d": "nifty_vs_sma200",
             "vix_gt20": "vix", "vix_rising": "vix_vs_sma50", "small_lead": "small_ratio_vs_sma50", "usdinr_rising": "usdinr_vs_sma50", "brent_rising": "brent_vs_sma50",
-            "nasdaq_gt200d": "nasdaq_vs_sma200", "us10y_up_60d": "us10y_chg60"}
+            "nasdaq_gt200d": "nasdaq_vs_sma200", "us10y_up_60d": "us10y_chg60", "nifty_down2": "nifty_ret1", "nifty_up2": "nifty_ret1", "nifty_vol_high": "nifty_rv20_p80"}
     for name, col in need.items():
         if col in ctx.columns:
             out["cond_" + name] = out["cond_" + name].where(ctx[col].notna())

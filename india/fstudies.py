@@ -231,9 +231,93 @@ def f04() -> dict:
     return out
 
 
+
+
+def f03() -> dict:
+    """Option-chain shape (Optionables set): put-call ratio extremes and the max-pain pin. Nearest expiry, NIFTY and BANKNIFTY, end of day.
+    PCR = total put open interest / total call open interest of the nearest expiry at the close of day t; outcome = index close t+5 over close t+1 (entry the
+    session after). Max pain at the expiry-eve close = the strike that minimises the total payout to option holders; the pin test compares the expiry
+    settlement's distance from max pain with its distance from the eve's forward."""
+    con = duckdb.connect()
+    o = con.execute(f"""select date, symbol, expiry, strike, opt_type, open_interest from read_parquet({_files('fo_bhavcopy')!r}, union_by_name=true)
+                        where instrument = 'OPTIDX' and list_contains(['NIFTY','BANKNIFTY'], symbol) and open_interest > 0""").df()
+    con.close()
+    o["date"], o["expiry"] = pd.to_datetime(o["date"]), pd.to_datetime(o["expiry"])
+    near = o[o["expiry"] >= o["date"]]
+    ne = near.groupby(["symbol", "date"])["expiry"].transform("min")
+    near = near[near["expiry"] == ne]
+    pcr = near.pivot_table(index=["symbol", "date"], columns="opt_type", values="open_interest", aggfunc="sum").dropna()
+    pcr["pcr"] = pcr["PE"] / pcr["CE"]
+    ix = pd.read_parquet(paths.data_dir() / "silver/kite_index/day/day.parquet")
+    ix["date"] = pd.to_datetime(ix["date"])
+    rows = []
+    for sym, name in IDX.items():
+        c = ix[ix["index_name"] == name].set_index("date")["close"].sort_index()
+        f5 = c.shift(-5) / c.shift(-1) - 1
+        p = pcr.loc[sym].join(f5.rename("fwd5"), how="inner").dropna()
+        p["symbol"] = sym
+        rows.append(p.reset_index())
+    d = pd.concat(rows)
+    d["y"] = d["date"].dt.year
+    reg = registry.register("F03", family="options_eod", title="Option-chain shape: PCR extremes and the max-pain pin (NIFTY, BANKNIFTY)",
+                            hypothesis="High put-call ratio (>1.3) is followed by higher 5-session index returns, low (<0.7) by lower; the expiry settlement sits nearer max pain than the eve forward.",
+                            variants=[f"pcr_high|{s}" for s in IDX] + [f"pcr_low|{s}" for s in IDX] + [f"maxpain_pin|{s}" for s in IDX],
+                            note="nearest expiry OI at the close; outcome close t+5 / close t+1; quarter blocks for PCR, t across expiries for the pin")
+    out = {}
+    for sym in IDX:
+        x = d[d["symbol"] == sym].copy()
+        for tag, mask, e in (("pcr_high", x["pcr"] > 1.3, 1), ("pcr_low", x["pcr"] < 0.7, -1)):
+            x["on"] = mask
+            st = {}
+            for per, m in (("dev", x["y"] < SPLIT), ("val", x["y"] >= SPLIT)):
+                z = x[m]
+                qm = z.groupby([z["date"].dt.to_period("Q"), "on"])["fwd5"].mean().unstack()
+                qm = qm.dropna() if True in qm.columns and False in qm.columns else pd.DataFrame()
+                st[per] = _stat(qm[True] - qm[False]) if len(qm) else (float("nan"), float("nan"), 0)
+            line = registry.record(reg, f"{tag}|{sym}", st["dev"], st["val"], extra={"share_on": float(mask.mean())}, expect=e)
+            out[f"{tag}|{sym}"] = line["verdict"]
+            print(f"F03 {tag}|{sym:9s} {line['verdict']:12s} dev {st['dev'][0]*100:+.2f}% t {st['dev'][1]:+.1f} q{st['dev'][2]} | val {st['val'][0]*100:+.2f}% t {st['val'][1]:+.1f} q{st['val'][2]} | days on {mask.mean():.0%}", flush=True)
+    # max pain
+    g, fut = _chains()
+    s_exp = _settle_at_expiry(fut)
+    sessions = np.array(sorted(o["date"].unique()))
+    pins = []
+    for (sym, exp), x in o.groupby(["symbol", "expiry"]):
+        if (sym, exp) not in s_exp.index:
+            continue
+        i = np.searchsorted(sessions, np.datetime64(exp))
+        if i < 1:
+            continue
+        eve = pd.Timestamp(sessions[i - 1])
+        y = x[x["date"] == eve]
+        if y.empty:
+            continue
+        ks = np.sort(y["strike"].unique())
+        ce = y[y["opt_type"] == "CE"].set_index("strike")["open_interest"]
+        pe = y[y["opt_type"] == "PE"].set_index("strike")["open_interest"]
+        pay = [float((np.maximum(s - ce.index.values, 0) * ce.values).sum() + (np.maximum(pe.index.values - s, 0) * pe.values).sum()) for s in ks]
+        mp = float(ks[int(np.argmin(pay))])
+        fw = g[(g["symbol"] == sym) & (g["expiry"] == exp) & (g["date"] == eve)]["fwd"]
+        if fw.empty:
+            continue
+        f = float(fw.iloc[0])
+        se = float(s_exp.loc[(sym, exp)])
+        pins.append({"symbol": sym, "expiry": exp, "maxpain": mp, "fwd": f, "settle": se, "d": (abs(se - mp) - abs(se - f)) / f})
+    pdf = pd.DataFrame(pins)
+    pdf["y"] = pdf["expiry"].dt.year
+    for sym in IDX:
+        x = pdf[pdf["symbol"] == sym]
+        dev, val = _stat(-x.loc[x["y"] < SPLIT, "d"]), _stat(-x.loc[x["y"] >= SPLIT, "d"])
+        line = registry.record(reg, f"maxpain_pin|{sym}", dev, val, extra={"expiries": int(len(x))}, expect=1)
+        out[f"maxpain_pin|{sym}"] = line["verdict"]
+        print(f"F03 maxpain_pin|{sym:9s} {line['verdict']:12s} dev {dev[0]*100:+.3f}% closer t {dev[1]:+.1f} n{dev[2]} | val {val[0]*100:+.3f}% t {val[1]:+.1f} n{val[2]}", flush=True)
+    registry.mirror_to_catalog()
+    return out
+
+
 if __name__ == "__main__":
     paths.ensure()
     w = sys.argv[1] if len(sys.argv) > 1 else "all"
-    for k, f in (("f01", f01), ("f02", f02), ("f04", f04)):
+    for k, f in (("f01", f01), ("f02", f02), ("f03", f03), ("f04", f04)):
         if w in (k, "all"):
             f()

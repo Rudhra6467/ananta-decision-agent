@@ -33,6 +33,7 @@ GROUPS = {
     "C05": ("context", "India VIX regimes at entry", ["vix_gt20", "vix_rising"], ["BRK", "PULL", "ANY"]),
     "C07": ("context", "Small caps leading large caps at entry (TWT-H13/14)", ["small_lead"], ["BRK", "PULL", "ANY"]),
     "C08": ("context", "Breadth washouts and thrusts at entry (TWT-H01, H30-33)", ["breadth_lt30", "breadth_lt40", "breadth_thrust"], ["BRK", "PULL", "ANY"]),
+    "C01": ("context", "Market state after shock days and in high-volatility regimes (crypto C-series port)", ["nifty_down2", "nifty_up2", "nifty_vol_high"], ["BRK", "PULL", "ANY"]),
     "C09": ("context", "Intermarket at entry: rupee, crude, Nasdaq, US 10-year (TWT-H42-47); Nifty valuation (D30) not yet available", ["usdinr_rising", "brent_rising", "nasdaq_gt200d", "us10y_up_60d"], ["BRK", "PULL", "ANY"]),
 }
 
@@ -53,7 +54,7 @@ def _qdiff(y: pd.DataFrame, flag: str) -> tuple[float, float, int, dict]:
     return float(d.mean()), float(d.mean() / se) if se else float("nan"), int(len(d)), info
 
 
-def conditions_run() -> dict:
+def conditions_run(only: list[str] | None = None) -> dict:
     f = studies.load_features()
     ctx = conditions.context_table(f)
     mc = conditions.apply_market(ctx).reset_index()
@@ -63,6 +64,8 @@ def conditions_run() -> dict:
     fx = pd.concat([fx[["sid", "date"]], sc], axis=1)
     out = {}
     for study, (family, title, conds, sets) in GROUPS.items():
+        if only and study not in only:
+            continue
         for name in sets:
             tr = pd.read_parquet(paths.gold() / "studies" / f"E02-{name}_trades.parquet", columns=["sid", "signal_date", "policy", "net_ret"])
             tr = tr[tr["policy"].isin(POLS) & (tr["signal_date"] >= "2000-01-01")]
@@ -267,3 +270,63 @@ if __name__ == "__main__":
     if w in ("e09", "all"):
         e09()
     print(f"done in {time.time() - t0:.0f}s", flush=True)
+
+
+# ----------------------------------------------------------------------------------------------- rare market states as declustered events
+
+EVENT_CONDS = ["nifty_down2", "nifty_up2", "nifty_vol_high", "breadth_lt30", "vix_gt20", "breadth_thrust"]
+
+
+def market_events(entry_set: str = "ANY") -> dict:
+    """Registered 18 Oct after the within-quarter design came back INCONCLUSIVE for rare market states (too few quarters with both sides); the change of
+    method is disclosed here and in the registration. Unit = an event day: the first day a market condition turns on after 20 sessions off. Outcome = mean net
+    return of the entries signalled on the event day minus the mean of the entries signalled 21-40 sessions earlier (the same stocks' universe, the regime
+    just before). Events at least 20 sessions apart, so their 20-day outcomes barely overlap; t across events."""
+    f = studies.load_features()
+    ctx = conditions.context_table(f)
+    mc = conditions.apply_market(ctx)
+    tr = pd.read_parquet(paths.gold() / "studies" / f"E02-{entry_set}_trades.parquet", columns=["sid", "signal_date", "policy", "net_ret"])
+    tr = tr[tr["policy"].isin(POLS) & (tr["signal_date"] >= "2000-01-01")]
+    days = pd.DatetimeIndex(sorted(mc.index))
+    reg = registry.register(f"CEV-{entry_set}", family="context_events", title=f"Rare market states as declustered events ({entry_set} entries)",
+                            hypothesis="Entries signalled on the first day of a market state earn a different net return than entries signalled 21-40 sessions before it.",
+                            variants=[f"{c}|{p}" for c in EVENT_CONDS for p in POLS], note="method chosen after the within-quarter design was INCONCLUSIVE; disclosed")
+    out = {}
+    for c in EVENT_CONDS:
+        col = "cond_" + c
+        if col not in mc:
+            continue
+        on = mc[col].fillna(0) > 0.5
+        prev_off = ~on.shift(1, fill_value=False).rolling(20, min_periods=1).max().astype(bool)
+        starts = on & prev_off
+        ev, last = [], None
+        for d in days[starts.reindex(days).fillna(False).values]:
+            if last is None or days.get_loc(d) - days.get_loc(last) >= 20:
+                ev.append(d)
+                last = d
+        for p in POLS:
+            x = tr[tr["policy"] == p].groupby("signal_date")["net_ret"].mean()
+            diffs = []
+            for d in ev:
+                i = days.get_loc(d)
+                if i < 40:
+                    continue
+                base = x.reindex(days[i - 40:i - 20]).dropna()
+                if d in x.index and len(base) >= 5:
+                    diffs.append((d, x[d] - base.mean()))
+            s = pd.Series({d: v for d, v in diffs})
+            dev = _stat(s[s.index.year < SPLIT]) if len(s) else (np.nan, np.nan, 0)
+            val = _stat(s[s.index.year >= SPLIT]) if len(s) else (np.nan, np.nan, 0)
+            line = registry.record(reg, f"{c}|{p}", dev, val, extra={"events": len(ev), "expect": conditions.ALL[c][2]}, expect=conditions.ALL[c][2])
+            out[f"{c}|{p}"] = line["verdict"]
+            print(f"CEV-{entry_set} {c:15s} {p:13s} {line['verdict']:12s} dev {dev[0]*100:+.2f}% t {dev[1]:+.1f} n{dev[2]} | val {val[0]*100:+.2f}% t {val[1]:+.1f} n{val[2]}", flush=True)
+    registry.mirror_to_catalog()
+    return out
+
+
+def _stat(x: pd.Series) -> tuple[float, float, int]:
+    x = x.dropna()
+    if len(x) < 3:
+        return float("nan"), float("nan"), int(len(x))
+    se = x.std(ddof=1) / math.sqrt(len(x))
+    return float(x.mean()), float(x.mean() / se) if se else float("nan"), int(len(x))

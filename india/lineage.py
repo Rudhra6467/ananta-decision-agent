@@ -48,6 +48,7 @@ DATASETS = {
     "gold/hypothesis_map": ("gold/hypothesis_map", "hypothesis_map.parquet", None),
     "bronze/kite_1m_fo": ("bronze/kite_1m_fo", "**/*.jsonl.gz", None),
     "bronze/pr_zip": ("bronze/pr_zip", "**/*", None),
+    "silver/pr": ("silver/pr", "*.parquet", "date"),
     "bronze/results_index": ("bronze/results_index", "**/*", None),
     "bronze/xbrl": ("bronze/xbrl", "**/*", None),
     "bronze/flows": ("bronze/flows", "**/*", None),
@@ -62,7 +63,7 @@ DMAP = {
     "D10": (["silver/kite_index/minute", "silver/kite_index/5minute"], "2015-12-31", True), "D11": (["silver/kite_index/day"], "2003-12-31", True),
     "D12": (["silver/fo_bhavcopy", "silver/fo_calendar"], "2001-12-31", True), "D13": (["silver/fo_greeks"], "2001-12-31", True),
     "D14": (["bronze/kite_1m_fo"], None, True), "D16": (["bronze/ledger"], None, False), "D17": (["bronze/flows"], None, False),
-    "D18": (["bronze/pr_zip"], None, False), "D20": (["bronze/results_index", "bronze/xbrl"], None, False), "D22": (["silver/macro"], None, False),
+    "D18": (["bronze/pr_zip", "silver/pr"], None, False), "D20": (["bronze/results_index", "bronze/xbrl"], None, False), "D22": (["silver/macro"], None, False),
     "D23": (["gold/hypothesis_map"], None, False), "D29": (["silver/kite_index/day"], None, False),
 }
 # inputs a study can run without: the part that needs them is skipped and the result says so

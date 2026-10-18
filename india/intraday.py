@@ -2,7 +2,7 @@
 
 Kite's candles are adjusted for every split, bonus, dividend and demerger as of the fetch date (I0 registration, 4a), so each
 day's bars are multiplied by scale = NSE cash close / Kite daily close for that symbol and day: the intraday shape is Kite's,
-the price level is NSE's. Rows keep both: kite_* as fetched and raw_* after the rescale; a day with no NSE close (not series EQ
+the price level is NSE's, matched on ISIN (india.secmaster) so a renamed or reused symbol still finds its own cash close. Rows keep both: kite_* as fetched and raw_* after the rescale; a day with no NSE close (not series EQ
 that day, or a holiday in one source) keeps scale NULL and raw_* NULL rather than a guess.
   python -m india.intraday build      one Parquet per year under silver/kite_5m (2024 on under sealed/silver/kite_5m)
 """
@@ -37,14 +37,17 @@ def build() -> dict:
         from dedup where rn = 1""")
     con.execute(f"""
         create or replace table scaled as
-        with nse as (select date, symbol, close as nse_close from read_parquet([{cm}]) where series = 'EQ'),
+        with ent as (select distinct isin, entity from read_parquet('{root}/silver/security_master/names.parquet')),
+             nse as (select c.date, e.entity, max(c.close) as nse_close from read_parquet([{cm}]) c join ent e on e.isin = c.isin where c.series = 'EQ' group by 1, 2),
+             link as (select kite_symbol, entity from read_parquet('{root}/silver/security_master/kite.parquet') where entity is not null),
              kd as (select date, symbol, close as kite_day_close from read_parquet([{kd}]))
         select b.*, n.nse_close, k.kite_day_close,
                case when n.nse_close > 0 and k.kite_day_close > 0 then n.nse_close / k.kite_day_close end as scale,
                b.kite_open * (n.nse_close / k.kite_day_close) as raw_open, b.kite_high * (n.nse_close / k.kite_day_close) as raw_high,
                b.kite_low * (n.nse_close / k.kite_day_close) as raw_low, b.kite_close * (n.nse_close / k.kite_day_close) as raw_close,
                'kite:' || b.token as source, now() as ingested_at
-        from bars b left join nse n on n.symbol = b.symbol and n.date = b.date left join kd k on k.symbol = b.symbol and k.date = b.date""")
+        from bars b left join link l on l.kite_symbol = b.symbol left join nse n on n.entity = l.entity and n.date = b.date
+             left join kd k on k.symbol = b.symbol and k.date = b.date""")
     years = [r[0] for r in con.execute("select distinct year(date) from scaled order by 1").fetchall()]
     out = {"rows": con.execute("select count(*) from scaled").fetchone()[0],
            "symbols": con.execute("select count(distinct symbol) from scaled").fetchone()[0],

@@ -37,17 +37,17 @@ def client():
                         region_name="auto", config=Config(retries={"max_attempts": 5}))
 
 
-def _existing(c) -> dict[str, int]:
+def _existing(c, with_time: bool = False) -> dict:
     out = {}
     for page in c.get_paginator("list_objects_v2").paginate(Bucket=BUCKET):
         for o in page.get("Contents", []):
-            out[o["Key"]] = o["Size"]
+            out[o["Key"]] = (o["Size"], o["LastModified"].timestamp()) if with_time else o["Size"]
     return out
 
 
 def sync() -> dict:
     c = client()
-    have = _existing(c)
+    have = _existing(c, with_time=True)
     root = paths.data_dir()
     up = skipped = nbytes = 0
     for part in PARTS:
@@ -59,7 +59,9 @@ def sync() -> dict:
                 continue
             key = str(p.relative_to(root))
             size = p.stat().st_size
-            if have.get(key) == size:
+            old = have.get(key)
+            # same size and not modified since the upload: skip. A rebuilt file of the same size (newer on disk) is uploaded again.
+            if old and old[0] == size and p.stat().st_mtime <= old[1]:
                 skipped += 1
                 continue
             c.upload_file(str(p), BUCKET, key)
@@ -68,21 +70,40 @@ def sync() -> dict:
     return {"uploaded": up, "skipped_same_size": skipped, "bytes_uploaded": nbytes, "objects_in_bucket_before": len(have)}
 
 
-def restore_check(dest: str, n: int = 5) -> dict:
+def restore_check(dest: str, n: int = 8) -> dict:
+    """Download a spread of objects into `dest` (never into the lake) and prove they are the same files: size, sha256 against the local copy, and,
+    for Parquet, that the file opens and has the same row count."""
+    import hashlib
+    import pyarrow.parquet as pq
+
     c = client()
     have = _existing(c)
-    keys = sorted(k for k in have if k.endswith(".parquet"))[:: max(1, len(have) // n)][:n]
-    ok = 0
+    pqk = sorted(k for k in have if k.endswith(".parquet") and have[k] < 300_000_000)
+    keys = pqk[:: max(1, len(pqk) // n)][:n] + [k for k in sorted(have) if k.startswith("manifests/")][:2]
+    res = []
     for k in keys:
         t = Path(dest) / k
         t.parent.mkdir(parents=True, exist_ok=True)
         c.download_file(BUCKET, k, str(t))
-        ok += t.stat().st_size == have[k]
-    return {"checked": len(keys), "size_match": ok, "objects": len(have)}
+        local = paths.data_dir() / k
+        r = {"key": k, "size_match": t.stat().st_size == have[k]}
+        if local.exists():
+            h1 = hashlib.sha256(t.read_bytes()).hexdigest()
+            h2 = hashlib.sha256(local.read_bytes()).hexdigest()
+            r["sha_matches_local"] = h1 == h2  # False only if the local file was rebuilt after its last upload
+        if k.endswith(".parquet"):
+            r["rows_restored"] = pq.ParquetFile(t).metadata.num_rows
+            if local.exists():
+                r["rows_local"] = pq.ParquetFile(local).metadata.num_rows
+        res.append(r)
+    return {"checked": len(res), "size_match": sum(r["size_match"] for r in res), "sha_match": sum(bool(r.get("sha_matches_local")) for r in res), "objects": len(have), "files": res}
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == "restore-check":
-        print(restore_check(sys.argv[2]))
+        import json
+        r = restore_check(sys.argv[2])
+        (paths.manifest_dir() / "r2_restore_check.json").write_text(json.dumps(r, indent=1, default=str))
+        print(json.dumps(r, indent=1, default=str))
     else:
         print(sync())

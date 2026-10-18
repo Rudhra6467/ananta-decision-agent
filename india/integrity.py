@@ -78,9 +78,15 @@ def check_stale_prices() -> tuple[bool, str, dict]:
         g = g[g["volume"] > 0]
         last_days[str(d)[:10]] = round(float((g["close"] == g["prev_close"]).mean()), 4) if len(g) else None
     worst = max((v for v in last_days.values() if v is not None), default=0)
-    ok = r[0] == 0 and worst < 0.2
-    return ok, f"{r[0]} frozen runs (5+ unchanged closes with volume) in liquid stocks across {r[1]} stocks; recent sessions unchanged-close share max {worst:.1%}", \
-        {"frozen_runs": int(r[0]), "stocks": int(r[1]), "recent_unchanged_share": last_days}
+    # every frozen run must be flagged for the exit harness (gold/ca_flags, status FROZEN), so no study trades through one
+    fl = paths.gold() / "ca_flags" / "ca_flags.parquet"
+    flagged = 0
+    if fl.exists():
+        f = pd.read_parquet(fl)
+        flagged = int((f["status"] == "FROZEN").sum() // 2)
+    ok = flagged >= r[0] and worst < 0.2
+    return ok, (f"{r[0]} frozen runs (5+ unchanged closes with volume) in liquid stocks across {r[1]} stocks, {flagged} runs flagged and skipped by the lab; "
+                f"recent sessions unchanged-close share max {worst:.1%}"), {"frozen_runs": int(r[0]), "stocks": int(r[1]), "flagged": flagged, "recent_unchanged_share": last_days}
 
 
 def check_mappings() -> tuple[bool, str, dict]:
@@ -106,7 +112,11 @@ def check_mappings() -> tuple[bool, str, dict]:
     spot = None
     if q:
         sq = pd.read_parquet(q[-1])
-        spot = {"file": q[-1].name, "within_tol": round(float(sq["within_tol"].mean()), 4), "kite_missing": int(sq["kite_missing"].sum())}
+        spot = {"file": q[-1].name, "rows": int(len(sq)),
+                "within_tol": round(float(sq["within_tol"].mean()), 4) if "within_tol" in sq else None,
+                "kite_missing": int(sq["kite_missing"].sum()) if "kite_missing" in sq else None}
+        if spot["within_tol"] is None:
+            spot = None  # a spot-check file of another kind (no tolerance column): not a mapping test
     ok = no_isin == 0 and multi == 0 and two_sym == 0 and not fo_missing and no_ent < 0.02 and (spot is None or spot["within_tol"] >= 0.98)
     return ok, (f"30 days: {no_isin} rows without ISIN, {no_ent:.2%} without an entity, {two_sym} entity-days on two symbols, {multi} ISINs on two entities, "
                 f"{len(fo_missing)} stock futures without a cash row; Kite spot check {spot}"), \

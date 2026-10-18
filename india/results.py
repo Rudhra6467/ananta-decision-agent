@@ -87,7 +87,7 @@ def index_integrated(from_date: str = "2025-01-01") -> dict:
     3,999 filings for 2025 against 17,902 for 2024). Same weekly windows, same point-in-time fields (broadcast_Date), saved to bronze/results_index_integrated/."""
     paths.ensure()
     s = _session()
-    man = paths.manifest_dir() / "results_index_integrated.jsonl"
+    man = paths.manifest_dir() / "results_index_integrated_v2.jsonl"  # v2: the API pages 20 rows by default; size=5000 asks for all
     done = set()
     if man.exists():
         for line in man.read_text().splitlines():
@@ -102,7 +102,7 @@ def index_integrated(from_date: str = "2025-01-01") -> dict:
         if d.isoformat() in done and e < today - dt.timedelta(days=7):
             d = e + dt.timedelta(days=1)
             continue
-        url = f"{IF_API}?index=equities&type=Integrated%20Filing-%20Financials&from_date={d:%d-%m-%Y}&to_date={e:%d-%m-%Y}"
+        url = f"{IF_API}?index=equities&type=Integrated%20Filing-%20Financials&from_date={d:%d-%m-%Y}&to_date={e:%d-%m-%Y}&size=5000"
         st, j = 0, None
         for k in range(3):
             try:
@@ -117,7 +117,10 @@ def index_integrated(from_date: str = "2025-01-01") -> dict:
             s = _session()
         time.sleep(1.5)
         data = j.get("data", []) if isinstance(j, dict) else (j or [])
-        row = {"from": d.isoformat(), "to": e.isoformat(), "status": st, "n": len(data), "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
+        total = j.get("totalCount") if isinstance(j, dict) else None
+        if total is not None and total > len(data):
+            st = 206  # truncated: recorded as incomplete, never treated as done
+        row = {"from": d.isoformat(), "to": e.isoformat(), "status": st, "n": len(data), "total": total, "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
         if data:
             out = paths.bronze("results_index_integrated") / f"{d:%Y}" / f"IF_{d.isoformat()}.json"
             out.parent.mkdir(parents=True, exist_ok=True)
@@ -141,6 +144,32 @@ def priority_isins() -> set:
     return set(names.loc[names["entity"].isin(sids), "isin"]) | {s for s in sids if str(s).startswith("INE")}
 
 
+def _xbrl_queue(first_year: int, pri: set) -> list[dict]:
+    """Every XBRL link from both indexes, ordered: liquid names in the research years (2018-2023) first, newest year first; then liquid names 2024+
+    (paper and portfolio use); then everyone else in the same order."""
+    import pandas as pd
+
+    names = pd.read_parquet(paths.data_dir() / "silver/security_master/names.parquet", columns=["isin", "symbol"]).dropna()
+    sym_isin = dict(zip(names["symbol"], names["isin"]))
+    q = []
+    for src, folder in (("results", "results_index"), ("integrated", "results_index_integrated")):
+        for fp in paths.bronze(folder).glob("*/*.json"):
+            y = int(fp.parent.name)
+            if y < first_year:
+                continue
+            for x in json.loads(fp.read_text()):
+                u = x.get("xbrl") or ""
+                if not u or u.endswith("/-") or not u.startswith("http"):
+                    continue
+                isin = x.get("isin") or sym_isin.get(x.get("symbol"))
+                q.append({"url": u, "year": y, "isin": isin, "symbol": x.get("symbol"), "source": src})
+    for r in q:
+        research = r["year"] <= 2023
+        r["rank"] = (0 if r["isin"] in pri else 2) + (0 if research else 1)
+    q.sort(key=lambda r: (r["rank"], -r["year"]))
+    return q
+
+
 def xbrl(first_year: int = 2018) -> dict:
     paths.ensure()
     f = nse.Fetcher(rate_s=1.0)
@@ -153,32 +182,34 @@ def xbrl(first_year: int = 2018) -> dict:
                 done.add(r["url"])
     n = ok = 0
     pri = priority_isins()
-    print(f"priority ISINs (ever in the 500 most liquid since 2018): {len(pri)}", flush=True)
-    files = sorted((paths.bronze("results_index")).glob("*/*.json"), reverse=True)
-    passes = [("priority", lambda x: x.get("isin") in pri), ("rest", lambda x: x.get("isin") not in pri)]
-    for pname, keep in passes:
-      for fp in files:
-        if int(fp.parent.name) < first_year:
+    queue = [r for r in _xbrl_queue(first_year, pri) if r["url"] not in done]
+    print(f"priority ISINs {len(pri)}; queue {len(queue)} links (by rank: {pd_counts(queue)})", flush=True)
+    for x in queue:
+        u = x["url"]
+        if u in done:
             continue
-        for x in json.loads(fp.read_text()):
-            u = x.get("xbrl") or ""
-            if not u or u.endswith("/-") or u in done or not keep(x):
-                continue
-            done.add(u)
-            st, body, secs = f.get(u)
-            row = {"url": u, "status": st, "bytes": len(body) if st == 200 else 0, "isin": x.get("isin"), "symbol": x.get("symbol")}
-            if st == 200 and body[:5] == b"<?xml":
-                out = paths.bronze("xbrl") / fp.parent.name / u.rsplit("/", 1)[-1]
-                out.parent.mkdir(parents=True, exist_ok=True)
-                out.write_bytes(body)
-                row.update(path=str(out.relative_to(paths.data_dir())), sha256=hashlib.sha256(body).hexdigest())
-                ok += 1
-            with man.open("a") as fh:
-                fh.write(json.dumps(row) + "\n")
-            n += 1
-            if n % 500 == 0:
-                print(f"xbrl {fp.parent.name} fetched={n} files={ok} refusals={f.refusals}", flush=True)
+        done.add(u)
+        st, body, secs = f.get(u)
+        row = {"url": u, "status": st, "bytes": len(body) if st == 200 else 0, "isin": x["isin"], "symbol": x["symbol"], "source": x["source"]}
+        if st == 200 and body[:5] == b"<?xml":
+            out = paths.bronze("xbrl") / str(x["year"]) / u.rsplit("/", 1)[-1]
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_bytes(body)
+            row.update(path=str(out.relative_to(paths.data_dir())), sha256=hashlib.sha256(body).hexdigest())
+            ok += 1
+        with man.open("a") as fh:
+            fh.write(json.dumps(row) + "\n")
+        n += 1
+        if n % 500 == 0:
+            print(f"xbrl rank {x['rank']} year {x['year']} fetched={n} files={ok} refusals={f.refusals}", flush=True)
     return {"fetched": n, "files": ok}
+
+
+def pd_counts(q: list[dict]) -> dict:
+    c: dict = {}
+    for r in q:
+        c[r["rank"]] = c.get(r["rank"], 0) + 1
+    return c
 
 
 if __name__ == "__main__":

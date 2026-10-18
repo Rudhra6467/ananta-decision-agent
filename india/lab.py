@@ -119,8 +119,17 @@ def build_ca_flags(con=None) -> dict:
     con.execute(f"""create or replace table caf as
         select distinct b.sid, f.ex_date as date, f.status, f.factor, f.raw_gap_cc from read_parquet('{fx}') f
         join (select distinct sid, symbol from base) b on b.symbol = f.symbol where f.inside and not f.apply""")
+    # frozen prices: 5+ sessions with the same close while shares traded (a stock stuck at a price, or a stale feed): untradeable, so flagged like an
+    # ambiguous action; the first and last day of each run are written, and the harness skips any window that touches them
+    con.execute("""insert into caf
+        with b as (select sid, date, c, volume, case when c = lag(c) over (partition by sid order by date) then 0 else 1 end as brk from base),
+             g as (select *, sum(brk) over (partition by sid order by date) as grp from b),
+             runs as (select sid, grp, min(date) as d0, max(date) as d1, count(*) as n, min(volume) as v from g group by sid, grp having count(*) >= 5)
+        select sid, d0 as date, 'FROZEN' as status, null as factor, n as raw_gap_cc from runs where v > 0
+        union all select sid, d1, 'FROZEN', null, n from runs where v > 0""")
     con.execute(f"copy (select * from caf order by sid, date) to '{out / 'ca_flags.parquet'}' (format parquet)")
-    return {"ambiguous_events": con.execute("select count(*) from caf").fetchone()[0]}
+    return {"ambiguous_events": con.execute("select count(*) from caf where status <> 'FROZEN'").fetchone()[0],
+            "frozen_run_edges": con.execute("select count(*) from caf where status = 'FROZEN'").fetchone()[0]}
 
 
 def build_bars(con=None) -> dict:

@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|
 | D01 | Daily cash prices 1994-2026, adjusted close | READY |  |  | cm, cm_adj; 299/300 delivery check, 299/300 BSE check |
 | D02 | Delivery report 2003-2026 | READY |  |  | silver/delivery |
-| D03 | Corporate actions, two records | READY |  |  | 99.1% agreement; 237 A_ONLY and 151 B_ONLY on a review list |
+| D03 | Corporate actions, two records | READY |  |  | 1,870 events; applied only when both records agree or the price confirms within 15% (18 Oct rule); 75 ambiguous events left unapplied and skipped by the lab and the paper engine |
 | D04 | Stock 5-minute bars 2015-2026, Nifty 500 | READY |  |  | 1.54% of rows unscaled |
 | D05 | Security master by ISIN (from 2011) | READY |  |  | 3,613 company entities |
 | D06 | Trading calendar | READY |  |  | 7,904 trading days |
@@ -15,15 +15,15 @@
 | D09 | Features table v1 (returns, ranges, volume ratios, momentum, delivery share, per stock-day) | READY |  |  | gold/features/daily.parquet: 3.44M rows, no forward columns (leak-checked) |
 | D10 | Index 5-minute and 1-minute history (Nifty 50, Bank Nifty, Fin Services, Midcap Select) and India VIX | READY |  |  | silver/kite_index: 53 indices daily from 2003, 8 indices 5-minute and 1-minute from 2015 (to 16 Oct 2026; 2024+ sealed) |
 | D11 | Index daily levels, sector indices, VIX daily | READY |  |  | index daily (53 incl. sector and broad indices) and India VIX in silver/kite_index/day; sector map from the Nifty 500 industry column (current constituents) |
-| D12 | F&O bhavcopy typed (silver), expiry calendar, lot sizes | READY |  |  | silver/fo_bhavcopy 2000-2026 (2024+ sealed), expiry calendar built; lot sizes: UDiFF from 2024, estimated before |
+| D12 | F&O bhavcopy typed (silver), expiry calendar, lot sizes | READY |  |  | silver/fo_bhavcopy 2000-2026 (2024+ sealed); American-style stock options (CA/PA, to 2011) now kept with style A (18 Oct fix); lot sizes: UDiFF from 2024, estimated before |
 | D13 | Greeks and implied volatility from settlement prices | READY |  |  | silver/fo_greeks: Black-76 on the same-expiry future, weekly forward from put-call parity; 88-92% of rows priced; end-of-day estimates |
 | D14 | Option recorder, 1-minute live contracts | WAIT_TIME | accumulating | 1 recorded evenings | auto: started 18 Oct 2026; milestones 4, 12, 26 weeks |
 | D15 | Nightly builds clean (gate counter) | WAIT_TIME | 30 runs | 1 of 30 nightly runs | auto: counted from heartbeats |
 | D16 | Ledger snapshots (gate counter) | WAIT_TIME | 30 snapshots | 1 of 30 snapshots | auto: counted from bronze/ledger |
 | D17 | FII/DII flows history | BUILD |  |  | NSE provisional daily; how far back is free to be probed |
-| D18 | Announcements, board meetings, corporate-action text (PR zips, from ~2010) | BUILD |  |  | PR zip pull running (about 4,000 files at 1 per second) |
+| D18 | Announcements, board meetings, corporate-action text (PR zips, from ~2010) | BUILD |  |  | bronze complete 2010-2026 (4,180 files); parsing (An, Bc, Bm files) to silver not built yet |
 | D19 | ASM/GSM surveillance lists and pledge/shareholding filings | BUILD |  |  | NSE archives and filings; coverage to probe |
-| D20 | Fundamentals dataset from filed results (NSE results API with filing timestamps and XBRL), point-in-time | BUILD |  |  | results index running (every filing since 2005); then XBRL download and parse; own ratios stamped with the broadcast time |
+| D20 | Fundamentals dataset from filed results (NSE results API with filing timestamps and XBRL), point-in-time | BUILD |  |  | results index done (217,104 filings 2007-2024); 2025+ via the integrated-filing API (pulling); XBRL download running, liquid names first (53,654 files); parser india/fundamentals.py |
 | D29 | Sector indices and an industry/sector map for the liquid universe (sector relative strength, breadth by sector) | READY |  |  | sector and thematic indices daily (Kite) plus industry per Nifty 500 stock (current list, not point-in-time) |
 | D30 | Nifty valuation series (P/E, P/B, dividend yield) and index total-return history | BUILD |  |  | niftyindices historical data; one hypothesis (OPT-H60) |
 | D20b | Fundamentals before 2018 (old-format HTML result pages) | DECISION |  |  | parse the HTML pages, or start ratios from 2018; decide after D20 coverage report |
@@ -48,14 +48,14 @@
 | S06 | P0 | Lab tools | Registry and multiple-testing ledger (every test counted; thresholds rise with the count) |  | READY |  | done: india/registry.py |
 | S07 | P0 | Lab tools | hypothesis_map build, Madhav review |  | READY |  | done: india/hypmap.py (137 rows) |
 | S08 | P0 | Lab tools | Calls ledger and scoring |  | BLOCKED | D24 (build, no date) |  |
-| E01 | P1 | Exits, stocks | Stop space (M-06): how far a stop must sit to survive normal noise, by volatility bucket | yes | READY |  | first pass done 18 Oct (8,000 signals per entry set): see plan doc |
-| E02 | P1 | Exits, stocks | Exit bake-off: fixed target, ATR trail, swing or level break, moving-average close, time stop, momentum fade, staged scale-outs | yes | READY |  | first pass done 18 Oct: long holds with wide exits lead; no policy beats its time-matched null |
-| E03 | P1 | Exits, stocks | Turn warnings: which signals precede a turn (volume climax, momentum divergence, delivery collapse, range expansion, gap, distance from average), each tested as an exit trigger | yes | READY |  |  |
-| E04 | P1 | Exits, stocks | Saturation after long runs and declines (M-03/04/13) as an exit and as a no-entry filter | yes | READY |  |  |
-| E05 | P1 | Exits, stocks | Pullback depth and what a healthy pullback looks like (M-05) so Ananta holds through it | yes | READY |  |  |
-| E06 | P1 | Exits, stocks | Ride and reposition versus simply holding, after costs, tax and missed upside (M-12) | yes | READY |  |  |
-| E07 | P1 | Exits, stocks | Level-break exits: swing highs and lows, round numbers, volume-at-price, prior-day levels. Includes the crypto lesson that loose exits win in discovery years and lose in confirm years | yes | READY |  |  |
-| E08 | P1 | Exits, stocks | Market gate on exits: Nifty above its 50-day average and breadth (the one crypto filter that passed) | yes | READY |  |  |
+| E01 | P1 | Exits, stocks | Stop space (M-06): how far a stop must sit to survive normal noise, by volatility bucket | yes | READY |  | full run 18 Oct (all signals): no stop distance passes the bar; wider stops help PULL entries in dev only |
+| E02 | P1 | Exits, stocks | Exit bake-off: fixed target, ATR trail, swing or level break, moving-average close, time stop, momentum fade, staged scale-outs | yes | READY |  | full run 18 Oct (22k BRK, 19k PULL, 154k ANY): no exit beats its time-matched null; ATR trails and the half-then-trail are significantly WORSE (OPPOSITE) |
+| E03 | P1 | Exits, stocks | Turn warnings: which signals precede a turn (volume climax, momentum divergence, delivery collapse, range expansion, gap, distance from average), each tested as an exit trigger | yes | READY |  | full run 18 Oct: extra turn-warning exits cut giveback and holding time and cost return; three-down and giveback-50 OPPOSITE on PULL |
+| E04 | P1 | Exits, stocks | Saturation after long runs and declines (M-03/04/13) as an exit and as a no-entry filter | yes | READY |  | 18 Oct: VALIDATED as a no-entry filter on ANY entries: more than 20% above the 50-day, or up more than 25% in 20 sessions, earn about 2-3% less over 20 days |
+| E05 | P1 | Exits, stocks | Pullback depth and what a healthy pullback looks like (M-05) so Ananta holds through it | yes | READY |  | 18 Oct: pullback-depth conditions INCONCLUSIVE or REJECTED (few quarters with both sides) |
+| E06 | P1 | Exits, stocks | Ride and reposition versus simply holding, after costs, tax and missed upside (M-12) | yes | READY |  | 18 Oct: stepping out and back in is WORSE than holding (OPPOSITE on PULL), but cuts the 5th-percentile loss from about -29% to -15% |
+| E07 | P1 | Exits, stocks | Level-break exits: swing highs and lows, round numbers, volume-at-price, prior-day levels. Includes the crypto lesson that loose exits win in discovery years and lose in confirm years | yes | READY |  | full run 18 Oct: prior-day-low exits OPPOSITE; 60-day hold + 20-day-low exit the only positive sign (not at the bar) |
+| E08 | P1 | Exits, stocks | Market gate on exits: Nifty above its 50-day average and breadth (the one crypto filter that passed) | yes | READY |  | full run 18 Oct: Nifty above its 50-day OPPOSITE in dev and validation for BRK, PULL and ANY (entries in weak markets earn 2-6% more) |
 | I01 | P2 | Opening and intraday | First 30 minutes: what proves the day's direction, when 'wait longer' is right (M-01/02) |  | READY |  |  |
 | I02 | P2 | Opening and intraday | Intraday level-break exits for the index and F&O stocks: VWAP, opening range, prior-day high/low | yes | READY |  |  |
 | I03 | P2 | Opening and intraday | Spot side of O-01 triangle breakout (1-minute) |  | READY |  |  |
@@ -66,13 +66,13 @@
 | C02 | P3 | Context | Volume and momentum relationships (crypto H1/H2 port): does volume heat predict the next move's size and where it ends | yes | READY |  |  |
 | C03 | P3 | Context | Index-stock-sector lead-lag and pairs checked side by side; effector groups (M-09) |  | READY |  |  |
 | C04 | P3 | Context | Buyers versus sellers dominance (M-10) from delivery share, turnover and up/down volume |  | READY |  |  |
-| C05 | P3 | Context | India VIX regimes and what they do to stops and exits | yes | READY |  |  |
+| C05 | P3 | Context | India VIX regimes and what they do to stops and exits | yes | READY |  | 18 Oct: VIX above its 50-day CONDITIONAL for PULL entries (+3.8% dev, +1.5% val) |
 | C06 | P3 | Context | FII/DII flows against the next days |  | BLOCKED | D17 (build, no date) |  |
 | F01 | P4 | Futures and options (end of day) | Expiry-day premium decay profiles by days to expiry; straddle decay (M-07/08) |  | READY |  |  |
 | F02 | P4 | Futures and options (end of day) | O-03 expiry-eve strangle, closing-price version: tail first (worst expiry, worst run, margin) |  | READY |  |  |
 | F03 | P4 | Futures and options (end of day) | OI, put-call ratio, max-pain and chain-shape hypotheses from the Optionables set |  | READY |  |  |
 | F04 | P4 | Futures and options (end of day) | Futures: basis, rollover, open interest versus price quadrants |  | READY |  |  |
-| F05 | P4 | Futures and options (end of day) | O-04 straddle, estimated version, to be calibrated against the recorder before it is trusted | yes | BLOCKED | D14 (wait_time, accumulating) |  |
+| F05 | P4 | Futures and options (end of day) | O-04 straddle, estimated version, to be calibrated against the recorder before it is trusted | yes | BLOCKED | D14 (wait_time, accumulating) | 18 Oct: synthetic reconstruction 2015-2023 (928 expiry days): O-04 loses about 1% of the Rs 50,000 book per expiry day; better than holding the straddle to 15:15 (CONDITIONAL); recorder calibration (R01) decides |
 | F06 | P4 | Futures and options (end of day) | Hedging: Nifty puts and futures as portfolio protection, cost versus saved drawdown |  | READY |  |  |
 | F07 | P4 | Futures and options (end of day) | Paper book design (M-17): per-trade, daily and open-risk limits and the drawdown response, for Madhav's approval |  | READY |  |  |
 | V01 | P5 | Events and fundamentals | Behaviour around corporate actions, dividends and results dates |  | BLOCKED | D18 (build, no date) |  |
@@ -85,11 +85,11 @@
 | R02 | P6 | Real intraday options | O-01 option leg, O-02 option legs, O-04 real: first look at 12 weeks of recording, tail at 26 | yes | BLOCKED | D14 (wait_time, accumulating) |  |
 | K01 | P7 | Knowledge | Teacher hypotheses run in batches by status (DAILY_NOW first, then OPTIONS, INTRADAY, EVENTS) |  | READY |  |  |
 | K02 | P7 | Knowledge | Daily scored call (M-11): bullish, bearish and neutral written before the open, scored at the checkpoint |  | BLOCKED | D24 (build, no date) |  |
-| E09 | P1 | Entries and process | Staged entries: 25/75 split at breakout and pullback, weekly instalments (TWT-H20/21), against one entry |  | READY |  |  |
+| E09 | P1 | Entries and process | Staged entries: 25/75 split at breakout and pullback, weekly instalments (TWT-H20/21), against one entry |  | READY |  | 18 Oct: staged entries WORSE than one entry on PULL and ANY (OPPOSITE), smaller tail loss |
 | E10 | P1 | Exits, stocks | Portfolio drawdown rule: review or exit everything when open drawdown reaches 7-8% (TWT-H25), on the paper book | yes | READY |  |  |
-| C07 | P3 | Context | Sector relative strength, rotation and small/mid vs large ratio (TWT-H04-08, H13-14, H16, H29, H39) |  | READY |  |  |
+| C07 | P3 | Context | Sector relative strength, rotation and small/mid vs large ratio (TWT-H04-08, H13-14, H16, H29, H39) |  | READY |  | 18 Oct: small caps leading OPPOSITE (entries earn 2-6% less) |
 | C08 | P3 | Context | Breadth as a gate: share above the 200-day, swing-structure share, washouts (TWT-H01, H30-33) | yes | READY |  |  |
-| C09 | P3 | Context | Intermarket: dollar, crude, S&P, rate cuts, Nifty valuation zones (TWT-H42-45, H47, OPT-H60) |  | BLOCKED | D22 (build, no date); D30 (build, no date) |  |
+| C09 | P3 | Context | Intermarket: dollar, crude, S&P, rate cuts, Nifty valuation zones (TWT-H42-45, H47, OPT-H60) |  | BLOCKED | D22 (build, no date); D30 (build, no date) | 18 Oct: rupee weakening OPPOSITE (entries earn 2.5-3.6% more); Nifty valuation part waits for D30 |
 | P01 | P1 | Entries and process | Indicator-pattern entries (stochastic, Heikin Ashi, RSI divergence, Ichimoku, weekly outside bar, ADX): low priority, run after the exit work |  | READY |  |  |
 | G01 | P8 | Synthesis and gate | Relationship atlas v1 and the exit policy book: for each situation, the exit that held up out of sample | yes | BLOCKED | study E01; study E02; study E03; study E07 |  |
 | G02 | P8 | Synthesis and gate | Two families validated on development plus validation years; holdout opened once per family, and the gate sentence | yes | BLOCKED | D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); study G01 |  |

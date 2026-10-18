@@ -316,47 +316,64 @@ def journal_for(key: str) -> tuple[list | None, str]:
 
 # ----------------------------------------------------------------------------------------------- trades
 
-def _open_trade(book: str, key: str, s: dict, pol: exitlab.Policy, nxt: pd.Timestamp, g: pd.DataFrame | None, dsha: str, cfg: dict, cfg_sha: str) -> dict:
-    tid = f"{key}|{s['campaign']}|{s['sid']}|{pol.name}"
-    base = {"id": tid, "book": book, "campaign": s["campaign"], "sid": s["sid"], "symbol": s["symbol"], "policy": pol.name, "signal_date": key, "liq_rank": s["liq_rank"],
-            "decision_sha": dsha, "config_sha": cfg_sha}
+def _fill_info(key: str, nxt: pd.Timestamp, g: pd.DataFrame | None) -> dict | None:
+    """The fill session's bar and the risk fraction, shared by every policy of one candidate."""
     row = None if g is None else g[g["date"] == nxt]
     if row is None or row.empty:
-        return {**base, "status": "unfilled", "note": "no print on the fill session"}
+        return None
     entry_adj = float(row["adj_open"].iloc[0])
     # risk is carried as a fraction of the entry price so later corporate actions rescale it consistently; the 14-day range is
     # recomputed from the bars up to the signal date under today's factors, so a split between decision and fill cannot skew it
-    risk_frac = exitlab.STOP_ATR * _atr14(g[g["date"] <= pd.Timestamp(key)]) / entry_adj
+    return {"entry_adj": entry_adj, "entry_raw": float(row["open"].iloc[0]), "low_raw": float(row["low"].iloc[0]), "high_raw": float(row["high"].iloc[0]),
+            "risk_frac": exitlab.STOP_ATR * _atr14(g[g["date"] <= pd.Timestamp(key)]) / entry_adj}
+
+
+def _open_trade(book: str, key: str, s: dict, pol: exitlab.Policy, nxt: pd.Timestamp, g: pd.DataFrame | None, dsha: str, cfg: dict, cfg_sha: str, fi: dict | None = None) -> dict:
+    tid = f"{key}|{s['campaign']}|{s['sid']}|{pol.name}"
+    base = {"id": tid, "book": book, "campaign": s["campaign"], "sid": s["sid"], "symbol": s["symbol"], "policy": pol.name, "signal_date": key, "liq_rank": s["liq_rank"],
+            "decision_sha": dsha, "config_sha": cfg_sha}
+    fi = fi if fi is not None else _fill_info(key, nxt, g)
+    if fi is None:
+        return {**base, "status": "unfilled", "note": "no print on the fill session"}
+    entry_adj, risk_frac = fi["entry_adj"], fi["risk_frac"]
     if risk_frac >= 1:
         return {**base, "status": "skipped", "note": "stop below zero"}
     qty, notional = settings.size(cfg, entry_adj, risk_frac)
     rand_day = random.Random(tid).randint(1, exitlab.HORIZON) if pol.kind == "random" else None
-    return {**base, "entry_date": nxt.strftime("%Y-%m-%d"), "entry_raw": float(row["open"].iloc[0]), "entry_adj": entry_adj, "bar_low_raw": float(row["low"].iloc[0]),
-            "bar_high_raw": float(row["high"].iloc[0]), "risk_frac": risk_frac, "rand_day": rand_day, "notional": notional, "sizing": cfg["stock"]["sizing"], "status": "open"}
+    return {**base, "entry_date": nxt.strftime("%Y-%m-%d"), "entry_raw": fi["entry_raw"], "entry_adj": entry_adj, "bar_low_raw": fi["low_raw"],
+            "bar_high_raw": fi["high_raw"], "risk_frac": risk_frac, "rand_day": rand_day, "notional": notional, "sizing": cfg["stock"]["sizing"], "status": "open"}
 
 
-def _step(t: dict, g: pd.DataFrame) -> bool:
-    """Walk an open trade through the bars so far. Returns True if it closed on this pass."""
-    w = g[g["date"] >= pd.Timestamp(t["entry_date"])].head(exitlab.HORIZON + 1)
+def _window(g: pd.DataFrame, entry_date: str) -> dict | None:
+    w = g[g["date"] >= pd.Timestamp(entry_date)].head(exitlab.HORIZON + 1)
     if w.empty:
+        return None
+    return {"o": w["adj_open"].values, "h": w["adj_high"].values, "l": w["adj_low"].values, "c": w["adj_close"].values, "dates": pd.DatetimeIndex(w["date"].values)}
+
+
+def _step(t: dict, g: pd.DataFrame, win: dict | None = None) -> bool:
+    """Walk an open trade through the bars so far. Returns True if it closed on this pass. `win` lets the baseline book share one window across policies."""
+    win = win if win is not None else _window(g, t["entry_date"])
+    if win is None:
         return False
-    o, h, l, c = (w["adj_" + k].values for k in ("open", "high", "low", "close"))
+    o, h, l, c = win["o"], win["h"], win["l"], win["c"]
+    dts = win["dates"]
     entry = float(o[0])  # the factors table can change after entry (a split announced later): re-anchor on the current adjusted entry
     risk = t["risk_frac"] * entry
     k, px, why, peak = exitlab._exit(POLICIES[t["policy"]], o, h, l, c, entry, risk, live=True, rand_day=t.get("rand_day"))
     t["last_close_adj"] = float(c[-1])
-    t["last_date"] = w["date"].iloc[-1].strftime("%Y-%m-%d")
-    t["bars_seen"] = int(len(w))
+    t["last_date"] = dts[-1].strftime("%Y-%m-%d")
+    t["bars_seen"] = int(len(dts))
     t["peak_adj"] = float(max(peak, h.max()))
     if why in ("open", "pending"):
         t["unrealised_ret"] = float(c[-1] / entry - 1)
         return False
     notional = float(t.get("notional", 50_000.0))
     qty = notional / entry
-    rt = costs.round_trip("delivery", notional, px * qty, year=int(w["date"].iloc[k].year), turnover_rank=t.get("liq_rank"))
+    rt = costs.round_trip("delivery", notional, px * qty, year=int(dts[k].year), turnover_rank=t.get("liq_rank"))
     net = px * qty - notional - rt["total"]
     move = peak - entry
-    t.update({"status": "closed", "exit_date": w["date"].iloc[k].strftime("%Y-%m-%d"), "exit_reason": why, "exit_adj": float(px), "exit_bar_low_adj": float(l[k]), "exit_bar_high_adj": float(h[k]),
+    t.update({"status": "closed", "exit_date": dts[k].strftime("%Y-%m-%d"), "exit_reason": why, "exit_adj": float(px), "exit_bar_low_adj": float(l[k]), "exit_bar_high_adj": float(h[k]),
               "gross_ret": float(px / entry - 1), "net_inr": float(net), "net_ret": float(net / notional), "cost_inr": float(rt["total"]), "hold_days": int(k + 1),
               "r_net": float(net / notional / t["risk_frac"]), "mfe_r": float(move / risk), "capture": float(np.clip((px - entry) / move, -1, 1)) if move > 0 else None,
               "giveback_r": float((peak - px) / risk)})
@@ -425,14 +442,21 @@ def baseline(df: pd.DataFrame | None = None) -> dict:
             continue
         dsha = json.loads(p.read_text())["sha256"]
         for c in journal:
+            g = bars_by.get(c["sid"])
+            fi = win = None
+            prepared = False
             for pol in POLICIES.values():
                 tid = f"{key}|{c['campaign']}|{c['sid']}|{pol.name}"
                 if tid in cache:
                     rows.append(cache[tid])
                     continue
-                t = _open_trade("baseline", key, c, pol, nxt, bars_by.get(c["sid"]), dsha, cfg, cfg_sha)
+                if not prepared:  # one fill bar and one price window per candidate, shared by its 19 policies
+                    fi = _fill_info(key, nxt, g)
+                    win = _window(g, nxt.strftime("%Y-%m-%d")) if fi is not None else None
+                    prepared = True
+                t = _open_trade("baseline", key, c, pol, nxt, g, dsha, cfg, cfg_sha, fi=fi)
                 if t["status"] == "open":
-                    _step(t, bars_by[c["sid"]])
+                    _step(t, g, win)
                 t.update({"journal_status": c["status"], "journal_reason": c["reason"], "journal_source": how})
                 for k in EXTRA_FIELDS + ("vol_ratio20", "dist_sma20", "dist_sma200"):
                     t["f_" + k] = c.get(k)

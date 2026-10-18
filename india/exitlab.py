@@ -29,7 +29,8 @@ from india import costs
 
 STOP_ATR = 2.0
 HORIZON = 60
-NOTIONAL = 100_000.0
+from india import settings as _settings
+NOTIONAL = float(_settings.load()["stock"]["notional_inr"])  # same as the paper book (india/paper_config.json); the fixed DP charge makes cost % depend on it
 
 
 @dataclass(frozen=True)

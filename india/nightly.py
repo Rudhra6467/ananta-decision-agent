@@ -16,6 +16,31 @@ from india import actions, backfill, catalog, delivery, paths, silver
 DATASETS = ("cm_bhavcopy", "fo_bhavcopy", "delivery")
 
 
+def _fo_year(y):
+    from india import fo
+    return fo.build_year(y)
+
+
+def _greeks_year(y):
+    from india import greeks
+    return greeks.build_year(y)
+
+
+def _kite_index_silver():
+    from india import kite_index
+    return kite_index.silver()
+
+
+def _results_integrated(since):
+    from india import results
+    return results.index_integrated(since.isoformat())
+
+
+def _fundamentals():
+    from india import fundamentals
+    return fundamentals.build()
+
+
 def run(sync: bool = True) -> dict:
     paths.ensure()
     t0 = time.time()
@@ -29,6 +54,12 @@ def run(sync: bool = True) -> dict:
         ("silver_delivery", lambda: delivery.build_year(today.year)),
         ("actions_build", lambda: (actions.build_b(), actions.build_a(), actions.build_factors())),
         ("catalog", catalog.build),
+        # added 18 Oct: keep F&O, Greeks and index silver current for the paper context and the options book, and the point-in-time fundamentals
+        ("silver_fo", lambda: _fo_year(today.year)),
+        ("greeks", lambda: _greeks_year(today.year)),
+        ("kite_index_silver", _kite_index_silver),
+        ("results_integrated", lambda: _results_integrated(today - dt.timedelta(days=14))),
+        ("fundamentals", _fundamentals),
     ]
     if sync:
         from india import r2sync

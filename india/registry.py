@@ -25,7 +25,7 @@ from statistics import NormalDist
 
 from india import catalog, paths
 
-MIN_DATES = 60
+MIN_DATES = 16  # quarter blocks per period (validation has 24)
 
 
 def _ledger_path():
@@ -40,7 +40,7 @@ def _rows() -> list[dict]:
 
 
 def family_count(family: str) -> int:
-    return len({(r["study"], r["variant"]) for r in _rows() if r["family"] == family})
+    return len({(r["study"], r["variant"]) for r in _rows() if r["kind"] == "result" and r["family"] == family})
 
 
 def threshold(k: int) -> float:

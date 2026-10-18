@@ -25,7 +25,7 @@ from india import catalog, kite, paths
 BAND = {"NIFTY": 20, "BANKNIFTY": 15}
 STEP = {"NIFTY": 50, "BANKNIFTY": 100}
 INDEX_TOKEN = {"NIFTY": "NIFTY 50", "BANKNIFTY": "NIFTY BANK"}
-EXTRA_INDICES = ("INDIA VIX", "NIFTY 50", "NIFTY BANK", "NIFTY FIN SERVICE", "NIFTY MIDCAP SELECT")
+EXTRA_INDICES = ("INDIA VIX", "NIFTY 50", "NIFTY BANK", "NIFTY FIN SERVICE", "NIFTY MID SELECT")
 
 
 def _nfo(k: kite.Kite) -> list[dict]:
@@ -67,8 +67,8 @@ def run(days_back: int = 29) -> dict:
     for name in BAND:
         spot = _last_close(k, idx[INDEX_TOKEN[name]])
         atm = round(spot / STEP[name]) * STEP[name]
-        rows = [r for r in nfo if r["name"] == name and r["expiry"] >= today.isoformat()]
-        expiries = sorted({r["expiry"] for r in rows if r["instrument_type"] in ("CE", "PE")})[:2]
+        rows = [r for r in nfo if r["name"] == name and r["expiry"] >= (today - dt.timedelta(days=1)).isoformat()]  # yesterday's expiry too: a contract may still be served for a few hours after it expires
+        expiries = sorted({r["expiry"] for r in rows if r["instrument_type"] in ("CE", "PE")})[:3]
         for r in rows:
             if r["instrument_type"] in ("CE", "PE") and r["expiry"] in expiries and abs(float(r["strike"]) - atm) <= BAND[name] * STEP[name]:
                 picks.append((r["tradingsymbol"], int(r["instrument_token"]), r["expiry"]))

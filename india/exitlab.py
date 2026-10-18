@@ -37,6 +37,7 @@ class Policy:
     name: str
     kind: str          # hold, target, atr_trail, sma_close, swing_low, scale_half, random
     n: float = 0.0     # days, R multiple, ATR multiple or window depending on kind
+    sig: tuple = ()    # turn-warning / level-break signals that also trigger an exit (decided at the close, filled at the next open)
 
     def __str__(self) -> str:
         return self.name
@@ -52,7 +53,69 @@ DEFAULT_POLICIES = (
 )
 
 
-def _exit(pol: Policy, o, h, l, c, entry: float, risk: float, rng: random.Random | None = None, live: bool = False, rand_day: int | None = None):
+# --- exit signals: each looks only at bars up to and including bar i (aux arrays are built from history up to that bar) ---------------------------------------
+def _sig_vol_climax(i, o, h, l, c, a, entry, peak):
+    return a["vol_ratio"][i] > 3 and c[i] > o[i] and (h[i] - l[i]) > 1.5 * a["atr"][i]
+
+
+def _sig_extended(i, o, h, l, c, a, entry, peak):
+    return a["dist20"][i] > 0.15
+
+
+def _sig_three_down(i, o, h, l, c, a, entry, peak):
+    return i >= 3 and c[i] < c[i - 1] < c[i - 2] < c[i - 3]
+
+
+def _sig_gap_down(i, o, h, l, c, a, entry, peak):
+    return i >= 1 and o[i] / c[i - 1] - 1 < -0.03
+
+
+def _sig_range_down(i, o, h, l, c, a, entry, peak):
+    return (h[i] - l[i]) > 2 * a["atr"][i] and c[i] < o[i]
+
+
+def _sig_prev_low(i, o, h, l, c, a, entry, peak):
+    return i >= 1 and c[i] < l[i - 1]
+
+
+def _sig_low20(i, o, h, l, c, a, entry, peak):
+    return c[i] < a["ll20"][i]
+
+
+def _sig_giveback(i, o, h, l, c, a, entry, peak):
+    gain = peak - entry
+    return gain > 2 * a["atr"][i] and (peak - c[i]) > 0.5 * gain
+
+
+SIGS = {"vol_climax": _sig_vol_climax, "extended20": _sig_extended, "three_down": _sig_three_down, "gap_down": _sig_gap_down, "range_down": _sig_range_down,
+        "prev_low": _sig_prev_low, "low20": _sig_low20, "giveback50": _sig_giveback}
+
+
+def aux_arrays(o, h, l, c, v) -> dict:
+    """Indicator arrays over the whole history of one stock (each value uses data up to and including that bar)."""
+    n = len(c)
+    pc = np.r_[np.nan, c[:-1]]
+    tr = np.maximum(h - l, np.maximum(np.abs(h - pc), np.abs(l - pc)))
+    tr[0] = h[0] - l[0]
+    cs = np.cumsum(np.r_[0.0, tr])
+    atr = np.full(n, np.nan)
+    k = 14
+    atr[k - 1:] = (cs[k:] - cs[:-k]) / k
+    vs = np.cumsum(np.r_[0.0, v.astype(float)])
+    vavg_prev = np.full(n, np.nan)
+    vavg_prev[20:] = (vs[20:n] - vs[0:n - 20]) / 20  # mean of the 20 sessions before bar i
+    cc = np.cumsum(np.r_[0.0, c])
+    sma20 = np.full(n, np.nan)
+    sma20[19:] = (cc[20:] - cc[:-20]) / 20
+    ll20 = np.full(n, np.nan)
+    if n > 20:
+        win = np.lib.stride_tricks.sliding_window_view(l, 20)  # window ending at j covers j..j+19; the 20 sessions before bar i end at i-1
+        ll20[20:] = win[:n - 20].min(axis=1)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return {"atr": atr, "vol_ratio": v / vavg_prev, "dist20": c / sma20 - 1, "ll20": ll20}
+
+
+def _exit(pol: Policy, o, h, l, c, entry: float, risk: float, rng: random.Random | None = None, live: bool = False, rand_day: int | None = None, aux: dict | None = None):
     """Walk forward over arrays that start at the entry day. Returns (exit_index, exit_price, reason, peak_high). Index 0 is the entry day."""
     stop = entry - risk
     peak = entry
@@ -92,6 +155,11 @@ def _exit(pol: Policy, o, h, l, c, entry: float, risk: float, rng: random.Random
             pending = "sma"
         elif pol.kind == "swing_low" and i >= pol.n and c[i] < np.min(l[i - int(pol.n): i]):
             pending = "swing"
+        if pending is None and pol.sig and aux is not None:
+            for sname in pol.sig:
+                if SIGS[sname](i, o, h, l, c, aux, entry, peak):
+                    pending = "sig_" + sname
+                    break
         if i == n - 1 and pending is None and not still_open:
             return i, c[i], "end", peak
     if still_open:
@@ -105,12 +173,15 @@ def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies
     atr = features.set_index(["sid", "date"])[["atr14", "liq_rank"]].sort_index()
     rows = []
     skipped = 0
+    aux_cache: dict = {}
     rng = random.Random(seed)
     for sid, sig in zip(entries["sid"], pd.to_datetime(entries["signal_date"])):
         b = bars.get(sid)
         if b is None:
             continue
-        dates, o, h, l, c = b
+        dates, o, h, l, c, v = b
+        if sid not in aux_cache:
+            aux_cache[sid] = aux_arrays(o, h, l, c, v)
         i0 = int(np.searchsorted(dates, np.datetime64(sig.date()), side="right"))  # first session after the signal
         if i0 >= len(dates) or i0 + 2 > len(dates):
             continue
@@ -122,6 +193,7 @@ def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies
             continue
         j1 = min(len(dates), i0 + HORIZON + 1)
         oo, hh, ll, cc = o[i0:j1], h[i0:j1], l[i0:j1], c[i0:j1]
+        ax = {k_: arr[i0:j1] for k_, arr in aux_cache[sid].items()}
         # data hygiene (not a forward-looking selection on returns): a window with a trading halt of more than 10 calendar days, or a one-day move above 50% in the adjusted
         # bars, is a corporate-action or suspension artefact we cannot trade through; it is skipped and counted
         dd = np.diff(dates[i0:j1]).astype("timedelta64[D]").astype(int)
@@ -136,11 +208,11 @@ def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies
         for pol in policies + [Policy("random_exit", "random")]:
             draws = random_draws if pol.kind == "random" else 1
             for _ in range(draws):
-                k, px, why, peak = _exit(pol, oo, hh, ll, cc, entry, risk, rng)
+                k, px, why, peak = _exit(pol, oo, hh, ll, cc, entry, risk, rng, aux=ax)
                 r = _row(sid, sig, dates[i0], pol.name, entry, risk, k, px, why, peak, hh[: k + 1], ll[: k + 1], rank)
                 # time-matched null: same entry, same stop, held exactly as long, no exit skill -> isolates what the exit rule adds beyond exposure time
                 # an intraday exit (stop, target) happened during day k, so the null must live through day k: it leaves at the next open. A close-based exit already left at the open of day k.
-                nh = k + 1 if why in ("stop", "target") else k
+                nh = k + 1 if why in ("stop", "target") else k  # signal exits are close-based like the moving-average ones: they leave at the next open
                 kn, pxn, _, _ = _exit(Policy("null", "hold", max(nh, 1)), oo, hh, ll, cc, entry, risk)
                 r["null_net_ret"] = _row(sid, sig, dates[i0], "null", entry, risk, kn, pxn, "", peak, hh[: kn + 1], ll[: kn + 1], rank)["net_ret"]
                 rows.append(r)
@@ -166,7 +238,7 @@ def summarise(trades: pd.DataFrame, split_year: int = 2018) -> pd.DataFrame:
     t["period"] = np.where(t["signal_date"].dt.year < split_year, "dev", "val")
     out = []
     for (pol, per), g in t.groupby(["policy", "period"]):
-        by_date = g.groupby("signal_date")["net_ret"].mean()
+        by_date = g.groupby(g["signal_date"].dt.to_period("Q"))["net_ret"].mean()  # quarter blocks: neighbouring dates share overlapping holds
         se = by_date.std(ddof=1) / math.sqrt(len(by_date)) if len(by_date) > 2 else float("nan")
         out.append({"policy": pol, "period": per, "n": len(g), "dates": len(by_date), "mean_net_ret": g["net_ret"].mean(), "t_stat": by_date.mean() / se if se else float("nan"),
                     "expectancy_R": g["r_net"].mean(), "capture_median": g["capture"].median(), "giveback_R_median": g["giveback_r"].median(), "p5_net_ret": g["net_ret"].quantile(0.05),
@@ -181,12 +253,17 @@ def summarise(trades: pd.DataFrame, split_year: int = 2018) -> pd.DataFrame:
 def load_bars(sids=None, hi: str = "2023-12-31") -> dict:
     """Adjusted daily bars from gold/bars (built from silver; the sealed years are not in it). sid -> (dates, o, h, l, c)."""
     from india import paths
-    df = pd.read_parquet(paths.gold() / "bars" / "adj_daily.parquet", columns=["sid", "date", "o", "h", "l", "c"])
+    df = pd.read_parquet(paths.gold() / "bars" / "adj_daily.parquet", columns=["sid", "date", "o", "h", "l", "c", "volume"])
     df["date"] = pd.to_datetime(df["date"])
     df = df[df["date"] <= pd.Timestamp(min(hi, "2023-12-31"))]
     if sids is not None:
         df = df[df["sid"].isin(set(sids))]
     out = {}
     for sid, g in df.groupby("sid", sort=False):
-        out[sid] = (g["date"].values.astype("datetime64[D]"), g["o"].values, g["h"].values, g["l"].values, g["c"].values)
+        out[sid] = (g["date"].values.astype("datetime64[D]"), g["o"].values, g["h"].values, g["l"].values, g["c"].values, g["volume"].values)
     return out
+
+
+# Turn-warning variants for E03/E07: the loose 4-ATR trail alone, and the same trail with one extra signal that can end the trade earlier.
+TRAIL = Policy("trail4", "atr_trail", 4)
+TURN_POLICIES = [TRAIL] + [Policy(f"trail4+{n}", "atr_trail", 4, sig=(n,)) for n in SIGS] + [Policy("hold60+low20", "hold", 60, sig=("low20",)), Policy("hold60+prev_low", "hold", 60, sig=("prev_low",))]

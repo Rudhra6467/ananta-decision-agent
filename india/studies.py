@@ -24,6 +24,12 @@ from india import catalog, exitlab, paths, registry
 SPLIT_YEAR = 2018
 
 
+def _blk(g: pd.DataFrame, col: str) -> pd.Series:
+    """Quarter means. Holds run up to 60 sessions, so trades signalled on neighbouring days overlap and share their outcome; counting each date as an independent observation
+    inflates every t-statistic. Quarter blocks are (almost) non-overlapping for the longest hold, so all t-stats in this file are computed across quarter means."""
+    return g.groupby(g["signal_date"].dt.to_period("Q"))[col].mean()
+
+
 def load_features() -> pd.DataFrame:
     f = pd.read_parquet(paths.gold() / "features" / "daily.parquet")
     f["date"] = pd.to_datetime(f["date"])
@@ -61,7 +67,7 @@ def paired_vs_null(trades: pd.DataFrame, pol: str) -> dict:
     t["period"] = np.where(t["signal_date"].dt.year < SPLIT_YEAR, "dev", "val")
     t["d"] = t["net_ret"] - t["null_net_ret"]
     for per, g in t.groupby("period"):
-        d = g.groupby("signal_date")["d"].mean()
+        d = _blk(g, "d")
         se = d.std(ddof=1) / math.sqrt(len(d)) if len(d) > 2 else float("nan")
         res[per] = (float(d.mean()), float(d.mean() / se) if se else float("nan"), int(len(d)))
     return res
@@ -135,7 +141,7 @@ def e01(max_signals: int = 4000) -> dict:
             stats = {}
             for per, mask in (("dev", m["signal_date"].dt.year < SPLIT_YEAR), ("val", m["signal_date"].dt.year >= SPLIT_YEAR)):
                 g = m[mask]
-                d = g.groupby("signal_date")["diff"].mean()
+                d = _blk(g, "diff")
                 se = d.std(ddof=1) / math.sqrt(len(d)) if len(d) > 2 else float("nan")
                 stats[per] = (float(d.mean()), float(d.mean() / se) if se else float("nan"), int(len(d)))
                 stats[per + "_extra"] = {"net_ret": float(g["net_ret"].mean()), "R_net": float(g["r_net"].mean()), "stopped": float((g["reason"] == "stop").mean()), "p5": float(g["net_ret"].quantile(0.05))}
@@ -148,8 +154,107 @@ def e01(max_signals: int = 4000) -> dict:
     return out
 
 
+def e03(max_signals: int = 8000) -> dict:
+    """E03 turn warnings and E07 level-break exits: the loose 4-ATR trail alone against the same trail plus one extra exit signal, paired trade by trade.
+    A signal helps if it lifts net return and cuts giveback without throwing away the big winners (capture and the 95th percentile are reported)."""
+    f = load_features()
+    sets = entry_sets(f, max_signals)
+    bars = exitlab.load_bars()
+    pols = exitlab.TURN_POLICIES
+    level_break = {"prev_low", "low20", "hold60+low20", "hold60+prev_low"}
+    out = {}
+    for name, ent in sets.items():
+        tr = exitlab.simulate(ent, bars, f, pols, random_draws=1)
+        tr = tr[tr["policy"] != "random_exit"]
+        (paths.gold() / "studies").mkdir(parents=True, exist_ok=True)
+        tr.to_parquet(paths.gold() / "studies" / f"E03-{name}_trades.parquet")
+        base = tr[tr["policy"] == "trail4"][["sid", "signal_date", "net_ret", "giveback_r", "capture", "hold_days"]].rename(columns={"net_ret": "b_net", "giveback_r": "b_gb", "capture": "b_cap", "hold_days": "b_days"})
+        regs = {}
+        for p in pols:
+            if p.name == "trail4":
+                continue
+            study = f"{'E07' if any(x in level_break for x in (p.name, p.name.split('+')[-1])) else 'E03'}-{name}"
+            if study not in regs:
+                sig_names = [q.name for q in pols if q.name != "trail4" and (('E07' if q.name in level_break or q.name.split('+')[-1] in level_break else 'E03') == study.split('-')[0])]
+                regs[study] = registry.register(study, family="exit", title=f"Extra exit signals on {name} entries ({study.split('-')[0]})",
+                                                hypothesis="Adding this signal as an extra exit to a loose 4-ATR trail (or a 60-day hold) raises net return per trade, paired by trade, in both dev and validation.",
+                                                variants=sig_names, note=f"signals {len(ent)}; baseline trail4; split {SPLIT_YEAR}")
+            g = tr[tr["policy"] == p.name].merge(base, on=["sid", "signal_date"])
+            ref = g if not p.name.startswith("hold60") else g  # hold60 variants are compared with the same trail4 baseline: it is the policy under test elsewhere
+            g["d"] = g["net_ret"] - g["b_net"]
+            stats = {}
+            for per, mask in (("dev", g["signal_date"].dt.year < SPLIT_YEAR), ("val", g["signal_date"].dt.year >= SPLIT_YEAR)):
+                x = g[mask]
+                d = _blk(x, "d")
+                se = d.std(ddof=1) / math.sqrt(len(d)) if len(d) > 2 else float("nan")
+                stats[per] = (float(d.mean()), float(d.mean() / se) if se else float("nan"), int(len(d)))
+                stats[per + "_x"] = {"net": float(x["net_ret"].mean()), "giveback_med": float(x["giveback_r"].median()), "capture_med": float(x["capture"].median()), "days": float(x["hold_days"].mean()),
+                                     "p95": float(x["net_ret"].quantile(0.95)), "base_net": float(x["b_net"].mean()), "base_giveback_med": float(x["b_gb"].median()), "base_days": float(x["b_days"].mean())}
+            reg = regs[study]
+            line = registry.record(reg, p.name, stats["dev"], stats["val"], extra={"entry_set": name, "dev": stats["dev_x"], "val": stats["val_x"]}, expect=1)
+            v = stats["val_x"]
+            print(f"{study:10s} {p.name:22s} {line['verdict']:12s} dev {stats['dev'][0]*100:+.2f}% t {stats['dev'][1]:+.1f} | val {stats['val'][0]*100:+.2f}% t {stats['val'][1]:+.1f} | days {v['days']:.1f} vs {v['base_days']:.1f} | "
+                  f"giveback {v['giveback_med']:.2f} vs {v['base_giveback_med']:.2f} | p95 {v['p95']*100:.1f}%", flush=True)
+            out.setdefault(name, {})[p.name] = {"dev": stats["dev"], "val": stats["val"], "verdict": line["verdict"]}
+    registry.mirror_to_catalog()
+    catalog.heartbeat("studies.e03", True, str(max_signals))
+    return out
+
+
+def market_gates(f: pd.DataFrame) -> pd.DataFrame:
+    """Date-level gates, each known at that day's close. breadth200 = share of the 500 most liquid stocks above their own 200-day average (from the lab features);
+    nifty50 = Nifty 50 above its own 50-day average, when the index silver exists."""
+    g = f.groupby("date")["dist_sma200"].apply(lambda x: float((x > 0).mean())).rename("breadth200").to_frame()
+    g["breadth_gt50"] = g["breadth200"] > 0.5
+    g["breadth_gt60"] = g["breadth200"] > 0.6
+    p = paths.data_dir() / "silver/kite_index/day/day.parquet"
+    if p.exists():
+        ix = pd.read_parquet(p)
+        ix = ix[ix["index_name"] == "NIFTY 50"].sort_values("ts")
+        ix["date"] = pd.to_datetime(ix["ts"].dt.date)
+        ix = ix.set_index("date")["close"]
+        n50 = (ix > ix.rolling(50).mean()).rename("nifty_gt50d")
+        n200 = (ix > ix.rolling(200).mean()).rename("nifty_gt200d")
+        g = g.join(n50).join(n200)
+    g.index = pd.to_datetime(g.index)
+    return g
+
+
+def e08(max_signals: int = 8000) -> dict:
+    """E08 market gate on entries: do trades signalled while the gate is on earn more than those signalled while it is off? Uses the E02 trade files, so the entries and exits are
+    the ones already registered. Within each quarter that has both, on-mean minus off-mean; t across quarters. A gate is only interesting if it helps in both dev and validation."""
+    f = load_features()
+    gates = market_gates(f)
+    pols = ["hold_20d", "hold_60d", "atr_trail_4", "sma_close_50", "swing_low_20"]
+    out = {}
+    for name in ("BRK", "PULL", "ANY"):
+        tp = paths.gold() / "studies" / f"E02-{name}_trades.parquet"
+        tr = pd.read_parquet(tp)
+        tr = tr[tr["policy"].isin(pols)].merge(gates.reset_index().rename(columns={"index": "date"}), left_on="signal_date", right_on="date", how="left")
+        reg = registry.register(f"E08-{name}", family="gate", title=f"Market gates on {name} entries", hypothesis="Trades signalled while the gate is on earn more net than trades signalled while it is off, in dev and validation.",
+                                variants=[f"{g}|{p}" for g in gates.columns if g.endswith(("gt50", "gt60", "gt50d", "gt200d")) for p in pols], note="quarter blocks: on-mean minus off-mean within quarters having both; t across quarters")
+        for gname in [c for c in gates.columns if c.endswith(("gt50", "gt60", "gt50d", "gt200d"))]:
+            for p in pols:
+                x = tr[(tr["policy"] == p) & tr[gname].notna()]
+                stats = {}
+                for per, mask in (("dev", x["signal_date"].dt.year < SPLIT_YEAR), ("val", x["signal_date"].dt.year >= SPLIT_YEAR)):
+                    y = x[mask]
+                    qm = y.assign(q=y["signal_date"].dt.to_period("Q"), on=y[gname].astype(bool)).groupby(["q", "on"])["net_ret"].mean().unstack().dropna()
+                    if len(qm) < 3 or True not in qm.columns or False not in qm.columns:
+                        stats[per] = (float("nan"), float("nan"), int(len(qm)))
+                        continue
+                    diff = qm[True] - qm[False]
+                    se = diff.std(ddof=1) / math.sqrt(len(diff))
+                    stats[per] = (float(diff.mean()), float(diff.mean() / se) if se else float("nan"), int(len(diff)))
+                line = registry.record(reg, f"{gname}|{p}", stats["dev"], stats["val"], extra={"entry_set": name, "share_on_val": float(x[x["signal_date"].dt.year >= SPLIT_YEAR][gname].astype(float).mean())}, expect=1)
+                out.setdefault(name, {})[f"{gname}|{p}"] = (stats, line["verdict"])
+                print(f"E08-{name:5s} {gname:13s} {p:13s} {line['verdict']:12s} dev on-off {stats['dev'][0]*100:+.2f}% t {stats['dev'][1]:+.1f} | val {stats['val'][0]*100:+.2f}% t {stats['val'][1]:+.1f}", flush=True)
+    registry.mirror_to_catalog()
+    return out
+
+
 if __name__ == "__main__":
     paths.ensure()
     which = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 4000
-    {"e02": e02, "e01": e01}[which](n)
+    {"e02": e02, "e01": e01, "e03": e03, "e08": e08}[which](n)

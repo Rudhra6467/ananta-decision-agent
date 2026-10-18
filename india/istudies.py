@@ -133,9 +133,75 @@ def i06() -> pd.DataFrame:
     return m
 
 
+def i02() -> dict:
+    """Intraday level-break exits on the index (spot side). A position is opened at the 09:45 open in the direction of the first 30 minutes (I01 showed that
+    direction has no edge, so this is a neutral way to get positions to exit). Exits, each decided on a 1-minute close and filled at the next minute's open:
+      hold     out at 15:15
+      or_break the opening range (09:15-09:44) is broken the other way
+      pdl      the previous day's low (long) / high (short) is broken
+      stop50   0.5% against the entry
+    Paired against hold, day by day; points in basis points of the index, no costs (spot)."""
+    df = _mins()
+    df = df[(df["hm"] >= "09:15") & (df["hm"] <= "15:29")]
+    days = {}
+    for (name, day), g in df.groupby(["index_name", "day"]):
+        if len(g) >= 360:
+            days[(name, day)] = g.reset_index(drop=True)
+    rows = []
+    keys = sorted(days)
+    prev = {}
+    for name, day in keys:
+        g = days[(name, day)]
+        p = prev.get(name)
+        prev[name] = (float(g["high"].max()), float(g["low"].min()))
+        if p is None:
+            continue
+        orng = g[g["hm"] <= "09:44"]
+        rest = g[(g["hm"] >= "09:45") & (g["hm"] <= "15:15")].reset_index(drop=True)
+        if len(orng) < 25 or len(rest) < 300:
+            continue
+        side = 1 if orng["close"].iloc[-1] > orng["open"].iloc[0] else -1
+        entry = float(rest["open"].iloc[0])
+        hi, lo = float(orng["high"].max()), float(orng["low"].min())
+        pdh, pdl = p
+        out = {"index": name, "day": day, "side": side}
+        c, o = rest["close"].values, rest["open"].values
+        exit_px = {"hold": float(rest["close"].iloc[-1])}
+        for nm, test in (("or_break", lambda x: x < lo if side > 0 else x > hi), ("pdl", lambda x: x < pdl if side > 0 else x > pdh),
+                         ("stop50", lambda x: (x / entry - 1) * side < -0.005)):
+            px = exit_px["hold"]
+            for i in range(len(c) - 1):
+                if test(c[i]):
+                    px = float(o[i + 1])
+                    break
+            exit_px[nm] = px
+        for nm, px in exit_px.items():
+            out[nm] = (px / entry - 1) * side * 1e4
+        rows.append(out)
+    d = pd.DataFrame(rows)
+    d["year"] = pd.to_datetime(d["day"]).dt.year
+    d.to_parquet(paths.gold() / "studies" / "I02_days.parquet")
+    reg = registry.register("I02", family="intraday", title="Intraday level-break exits on the index (spot side)",
+                            hypothesis="Leaving an intraday index position on an opening-range break, a previous-day-level break or a 0.5% stop earns more than holding to 15:15.",
+                            variants=[f"{x}|{n}" for x in ("or_break", "pdl", "stop50") for n in NAMES], note="09:45 entry in the first-30-minute direction; next-minute fills; bp, no costs")
+    out = {}
+    for n in NAMES:
+        x = d[d["index"] == n]
+        for e in ("or_break", "pdl", "stop50"):
+            diff = x[e] - x["hold"]
+            dev, val = _stat(diff[x["year"] < SPLIT] / 1e4), _stat(diff[x["year"] >= SPLIT] / 1e4)
+            line = registry.record(reg, f"{e}|{n}", dev, val, extra={"val_mean_bp": float(x.loc[x["year"] >= SPLIT, e].mean()), "val_hold_bp": float(x.loc[x["year"] >= SPLIT, "hold"].mean()),
+                                   "val_p5_bp": float(x.loc[x["year"] >= SPLIT, e].quantile(0.05)), "val_hold_p5_bp": float(x.loc[x["year"] >= SPLIT, "hold"].quantile(0.05))}, expect=1)
+            out[f"{e}|{n}"] = line["verdict"]
+            print(f"I02 {e:9s} {n:18s} {line['verdict']:12s} dev {dev[0]*1e4:+.1f}bp t {dev[1]:+.1f} n{dev[2]} | val {val[0]*1e4:+.1f}bp t {val[1]:+.1f} n{val[2]} | "
+                  f"val p5 {x.loc[x['year'] >= SPLIT, e].quantile(0.05):.0f}bp vs hold {x.loc[x['year'] >= SPLIT, 'hold'].quantile(0.05):.0f}bp", flush=True)
+    registry.mirror_to_catalog()
+    return out
+
+
 if __name__ == "__main__":
     paths.ensure()
     w = sys.argv[1] if len(sys.argv) > 1 else "all"
-    for k, f in (("i01", i01), ("i05", i05), ("i06", i06)):
+    for k, f in (("i01", i01), ("i02", i02), ("i05", i05), ("i06", i06)):
         if w in (k, "all"):
             f()

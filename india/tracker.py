@@ -125,6 +125,7 @@ PROGRESS = {
     "C05": "18 Oct: VIX above its 50-day CONDITIONAL for PULL entries (+3.8% dev, +1.5% val)",
     "C07": "18 Oct: small caps leading OPPOSITE (entries earn 2-6% less)",
     "C09": "18 Oct: rupee weakening OPPOSITE (entries earn 2.5-3.6% more); Nifty valuation part waits for D30",
+    "I02": "18 Oct: intraday index exits on an opening-range break or a 0.5% stop add 2-5 bp a day over holding to 15:15 (not at the bar) and halve the 5th-percentile loss",
     "P01": "18 Oct: RSI(14) under 30 VALIDATED (+2.5% dev, +1.9% val over 20 sessions on ANY entries), over 70 VALIDATED the other way; weekly outside bar nothing. Paper campaign REV added (rules v1.2)",
     "F06": "18 Oct: monthly Nifty puts on the 10-slot books cost about 0.1-0.5% a quarter in validation and trim the worst quarter (ANY -34% to -24%), not significant; in dev the bleed outweighs the protection",
     "E11": "18 Oct: selling at the next open after a lower-band day is WORSE than holding on (OPPOSITE for BRK: -12.8% on the trades where it fired); the damage is in that open",

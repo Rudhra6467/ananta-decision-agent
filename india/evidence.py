@@ -68,7 +68,32 @@ def check_paper() -> dict:
     return {"decisions": len(st["decisions"]), "trades": counts, "ok": len(st["decisions"]) >= 1}
 
 
-CHECKS = {"recorder.minutes": check_recorder, "nightly.runs": check_nightly, "leakcheck": check_leaks, "paper.book": check_paper}
+def check_integrity() -> dict:
+    from india import integrity
+    r = integrity.run()
+    bad = [k for k, v in r.items() if not k.startswith("_") and not v["ok"]]
+    return {"failed": bad, "notes": {k: v["note"][:160] for k, v in r.items() if not k.startswith("_")}, "ok": not bad}
+
+
+def check_lineage() -> dict:
+    from india import lineage
+    r = lineage.build()
+    return {"data_items": r["data_items"], "mismatches": r["mismatches"], "studies": r["studies"], "git": r["git"]["git"], "dirty_files": len(r["git"]["dirty"]),
+            "ok": not r["mismatches"]}
+
+
+def check_baseline() -> dict:
+    p = paths.data_dir() / "paper" / "baseline.parquet"
+    if not p.exists():
+        return {"ok": True, "note": "no baseline rows yet (first fill is the session after the first decision)"}
+    import pandas as pd
+    b = pd.read_parquet(p)
+    return {"rows": len(b), "status": b["status"].value_counts().to_dict(), "journal": b["journal_status"].value_counts().to_dict(),
+            "reasons": b["journal_reason"].value_counts().to_dict(), "ok": True}
+
+
+CHECKS = {"recorder.minutes": check_recorder, "nightly.runs": check_nightly, "leakcheck": check_leaks, "paper.book": check_paper, "paper.baseline": check_baseline,
+          "integrity": check_integrity, "lineage": check_lineage}
 STUDIES: dict = {}  # study id -> function returning a metrics dict; filled as studies are registered and READY
 
 

@@ -78,6 +78,69 @@ def index(from_year: int = 2005) -> dict:
     return {"windows": n, "filings": rows}
 
 
+IF_API = "https://www.nseindia.com/api/integrated-filing-results"
+IF_REF = {"Referer": "https://www.nseindia.com/companies-listing/corporate-integrated-filing"}
+
+
+def index_integrated(from_date: str = "2025-01-01") -> dict:
+    """From early 2025 companies file results as SEBI's Integrated Filing (Financials); the old results API returns almost nothing after 2024 (found 18 Oct 2026:
+    3,999 filings for 2025 against 17,902 for 2024). Same weekly windows, same point-in-time fields (broadcast_Date), saved to bronze/results_index_integrated/."""
+    paths.ensure()
+    s = _session()
+    man = paths.manifest_dir() / "results_index_integrated.jsonl"
+    done = set()
+    if man.exists():
+        for line in man.read_text().splitlines():
+            r = json.loads(line)
+            if r.get("status") == 200:
+                done.add(r["from"])
+    d = dt.date.fromisoformat(from_date)
+    today = dt.date.today()
+    n = rows = 0
+    while d <= today:
+        e = min(d + dt.timedelta(days=6), today)
+        if d.isoformat() in done and e < today - dt.timedelta(days=7):
+            d = e + dt.timedelta(days=1)
+            continue
+        url = f"{IF_API}?index=equities&type=Integrated%20Filing-%20Financials&from_date={d:%d-%m-%Y}&to_date={e:%d-%m-%Y}"
+        st, j = 0, None
+        for k in range(3):
+            try:
+                r = s.get(url, headers=IF_REF, timeout=40)
+                st = r.status_code
+                if st == 200:
+                    j = r.json()
+                    break
+            except (requests.RequestException, ValueError):
+                st = 599
+            time.sleep(5 * (k + 1))
+            s = _session()
+        time.sleep(1.5)
+        data = j.get("data", []) if isinstance(j, dict) else (j or [])
+        row = {"from": d.isoformat(), "to": e.isoformat(), "status": st, "n": len(data), "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
+        if data:
+            out = paths.bronze("results_index_integrated") / f"{d:%Y}" / f"IF_{d.isoformat()}.json"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps(data))
+            rows += len(data)
+        with man.open("a") as fh:
+            fh.write(json.dumps(row) + "\n")
+        n += 1
+        d = e + dt.timedelta(days=1)
+    return {"windows": n, "filings": rows}
+
+
+def priority_isins() -> set:
+    """ISINs of the companies that were ever among the 500 most liquid stocks from 2018 (lab universe, by company entity), so the names the research and the
+    paper book use are fetched first; every other filing follows in a second pass."""
+    import pandas as pd
+
+    u = pd.read_parquet(paths.gold() / "universe" / "u_liq_in.parquet", columns=["date", "sid", "top500"])
+    sids = set(u.loc[u["top500"] & (pd.to_datetime(u["date"]) >= "2018-01-01"), "sid"])
+    names = pd.read_parquet(paths.data_dir() / "silver/security_master/names.parquet", columns=["isin", "entity"])
+    return set(names.loc[names["entity"].isin(sids), "isin"]) | {s for s in sids if str(s).startswith("INE")}
+
+
 def xbrl(first_year: int = 2018) -> dict:
     paths.ensure()
     f = nse.Fetcher(rate_s=1.0)
@@ -89,13 +152,19 @@ def xbrl(first_year: int = 2018) -> dict:
             if r.get("status") in (200, 404):
                 done.add(r["url"])
     n = ok = 0
-    for fp in sorted((paths.bronze("results_index")).glob("*/*.json"), reverse=True):
+    pri = priority_isins()
+    print(f"priority ISINs (ever in the 500 most liquid since 2018): {len(pri)}", flush=True)
+    files = sorted((paths.bronze("results_index")).glob("*/*.json"), reverse=True)
+    passes = [("priority", lambda x: x.get("isin") in pri), ("rest", lambda x: x.get("isin") not in pri)]
+    for pname, keep in passes:
+      for fp in files:
         if int(fp.parent.name) < first_year:
             continue
         for x in json.loads(fp.read_text()):
             u = x.get("xbrl") or ""
-            if not u or u.endswith("/-") or u in done:
+            if not u or u.endswith("/-") or u in done or not keep(x):
                 continue
+            done.add(u)
             st, body, secs = f.get(u)
             row = {"url": u, "status": st, "bytes": len(body) if st == 200 else 0, "isin": x.get("isin"), "symbol": x.get("symbol")}
             if st == 200 and body[:5] == b"<?xml":
@@ -116,5 +185,7 @@ if __name__ == "__main__":
     paths.ensure()
     if sys.argv[1] == "index":
         print(index(int(sys.argv[2]) if len(sys.argv) > 2 else 2005))
+    elif sys.argv[1] == "integrated":
+        print(index_integrated(sys.argv[2] if len(sys.argv) > 2 else "2025-01-01"))
     else:
         print(xbrl(int(sys.argv[2]) if len(sys.argv) > 2 else 2018))

@@ -52,9 +52,21 @@ def register(study: str, family: str, title: str, hypothesis: str, variants: lis
     """Writes the registration line (what was claimed before the run). Re-registering an id appends a new version."""
     reg = {"kind": "registration", "study": study, "family": family, "title": title, "hypothesis": hypothesis, "variants": list(variants), "note": note,
            "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
+    reg["stamp"] = _stamp(study)
     with _ledger_path().open("a") as fh:
-        fh.write(json.dumps(reg) + "\n")
+        fh.write(json.dumps(reg, default=str) + "\n")
     return reg
+
+
+def _stamp(study: str) -> dict:
+    """Code version and the fingerprints of the datasets this study reads (from the tracker's data needs), so every result can be traced to its inputs."""
+    try:
+        from india import lineage
+
+        base = study.split("-")[0]
+        return lineage.stamp(lineage.datasets_for(base), lineage.CODE.get(base[0], []))
+    except Exception as e:  # provenance is recorded, never a reason to stop a study
+        return {"error": f"{type(e).__name__}: {e}"}
 
 
 def verdict(dev_t: float, val_t: float, dev_mean: float, val_mean: float, dates_dev: int, dates_val: int, z: float, expect: int = 0) -> str:
@@ -81,7 +93,8 @@ def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None =
     z = threshold(k)
     v = verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z, expect)
     line = {"kind": "result", "study": reg["study"], "family": fam, "variant": variant, "k_in_family": k, "z": round(z, 3), "dev": list(dev), "val": list(val),
-            "verdict": v, "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
+            "verdict": v, "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "registered_at": reg.get("at"),
+            "code": (reg.get("stamp") or {}).get("code", {}).get("git")}
     with _ledger_path().open("a") as fh:
         fh.write(json.dumps(line, default=str) + "\n")
     return line

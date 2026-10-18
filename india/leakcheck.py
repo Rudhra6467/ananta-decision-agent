@@ -50,7 +50,8 @@ def check_sealed_files() -> tuple[bool, str]:
     bad = []
     here = Path(__file__).parent
     for f in SAFE_FILES:
-        if any("sealed" in s.lower() and s != "sealed" for s in _strings(here / f)):
+        # a path or identifier (no spaces, or a slash) naming the sealed folder is a reference; prose such as "2024+ sealed" in a status note is not
+        if any(s != "sealed" and any("sealed" in tok.lower() and ("/" in tok or "_" in tok or tok == s) for tok in s.split()) for s in _strings(here / f)):
             bad.append(f)
     # paper.py and the leak check may import the sealed module by name; nothing else should reference the folder helpers
     for f in ("lab.py", "studies.py", "exitlab.py", "registry.py", "costs.py"):

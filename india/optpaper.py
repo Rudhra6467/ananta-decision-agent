@@ -29,9 +29,12 @@ from functools import lru_cache
 import numpy as np
 import pandas as pd
 
-from india import catalog, costs, paths
+from india import catalog, costs, paths, settings
 
-BOOK_INR = 50_000.0
+_OPT = settings.load()["options"]          # sizing lives in india/paper_config.json; results are also kept per lot
+BOOK_INR = float(_OPT["capital_inr"])
+LOTS = int(_OPT["lots"])
+O3_STOP_FRAC = float(_OPT["o03_max_loss_frac"])
 HALF_SPREAD_PCT = 0.004   # labelled estimate: 0.4% of premium per side on near-the-money index options near expiry
 HALF_SPREAD_MIN = 0.05    # one tick
 INDEX = {"NIFTY": "NIFTY 50", "BANKNIFTY": "NIFTY BANK", "FINNIFTY": "NIFTY FIN SERVICE", "MIDCPNIFTY": "NIFTY MID SELECT"}
@@ -188,7 +191,7 @@ def sim_o3(name: str, eve: str, expiry_day: str, ins_day: pd.DataFrame, spot_eve
         if r.empty:
             return None, None, None
         sym = r["tradingsymbol"].iloc[0]
-        return sym, minutes("option", sym, expiry_day), int(r["lot_size"].iloc[0])
+        return sym, minutes("option", sym, expiry_day), int(r["lot_size"].iloc[0]) * LOTS
 
     sc, dfc, lot = load(k_call, "CE")
     sp_, dfp, _ = load(k_put, "PE")
@@ -239,7 +242,7 @@ def sim_o3(name: str, eve: str, expiry_day: str, ins_day: pd.DataFrame, spot_eve
         if val <= 0.5 * credit:
             exit_at, reason = nxt, "decayed_50"
             break
-        if pnl_now <= -0.01 * BOOK_INR:
+        if pnl_now <= -O3_STOP_FRAC * BOOK_INR:
             exit_at, reason = nxt, "stop_1pct"
             break
     if exit_at is None:
@@ -296,7 +299,7 @@ def run() -> dict:
                 recs = []
                 if not ce_s.empty and not pe_s.empty:
                     ce, pe = minutes("option", ce_s["tradingsymbol"].iloc[0], d), minutes("option", pe_s["tradingsymbol"].iloc[0], d)
-                    lot = int(ce_s["lot_size"].iloc[0])
+                    lot = int(ce_s["lot_size"].iloc[0]) * LOTS
                     for v in VARIANTS_O4:
                         key = ("O-04", name, d, f"stop{v['stop']}_trail{v['trail']}_nb{v['nobreak']}")
                         if key in done:
@@ -323,6 +326,7 @@ def run() -> dict:
         with (pdir() / "options_trades.jsonl").open("a") as fh:
             for r in out:
                 r["logged_at"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+                r["config_sha"], r["lots"], r["book_inr"] = settings.sha(), LOTS, BOOK_INR
                 fh.write(json.dumps(r, default=str) + "\n")
         new = sum(1 for r in out if r.get("kind") != "skip")
     summary = {"new_trades": new, "skips": sum(1 for r in out if r.get("kind") == "skip")}

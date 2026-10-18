@@ -167,12 +167,31 @@ def _exit(pol: Policy, o, h, l, c, entry: float, risk: float, rng: random.Random
     return n - 1, c[-1], "end", peak
 
 
+_CA = None
+
+
+def ca_flags() -> dict:
+    """sid -> sorted dates of corporate-action events left unapplied because the price does not confirm them (gold/ca_flags, from india.lab)."""
+    global _CA
+    if _CA is None:
+        from india import paths
+        f = paths.gold() / "ca_flags" / "ca_flags.parquet"
+        _CA = {}
+        if f.exists():
+            d = pd.read_parquet(f)
+            for sid, g in d.groupby("sid"):
+                _CA[sid] = np.sort(pd.to_datetime(g["date"]).values.astype("datetime64[D]"))
+    return _CA
+
+
 def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies=None, seed: int = 7, random_draws: int = 5) -> pd.DataFrame:
     """entries: [sid, signal_date]. bars: sid -> (dates ndarray[datetime64[D]], o, h, l, c). features: has [sid, date, atr14, liq_rank]."""
     policies = list(policies or DEFAULT_POLICIES)
     atr = features.set_index(["sid", "date"])[["atr14", "liq_rank"]].sort_index()
     rows = []
     skipped = 0
+    skipped_ca = 0
+    caf = ca_flags()
     aux_cache: dict = {}
     rng = random.Random(seed)
     for sid, sig in zip(entries["sid"], pd.to_datetime(entries["signal_date"])):
@@ -201,6 +220,13 @@ def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies
         if (len(dd) and dd.max() > 10) or jump.max() > 0.5:
             skipped += 1
             continue
+        # an unconfirmed corporate action in the 200 sessions before the signal (it would bend the indicators) or inside the holding window: skipped and counted
+        if sid in caf:
+            lo_d, hi_d = dates[max(0, i0 - 200)], dates[j1 - 1]
+            ev = caf[sid]
+            if ((ev > lo_d) & (ev <= hi_d)).any():
+                skipped_ca += 1
+                continue
         entry = oo[0]
         risk = STOP_ATR * a
         if risk >= entry:
@@ -218,6 +244,7 @@ def simulate(entries: pd.DataFrame, bars: dict, features: pd.DataFrame, policies
                 rows.append(r)
     out = pd.DataFrame(rows)
     out.attrs["skipped_data_hygiene"] = skipped
+    out.attrs["skipped_ambiguous_ca"] = skipped_ca
     return out
 
 

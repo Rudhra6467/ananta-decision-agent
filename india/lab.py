@@ -35,7 +35,9 @@ def _con() -> duckdb.DuckDBPyConnection:
     con.execute(f"""
         create view cm as select date, symbol, series,
                case when open > 0 then open else close end as open, case when high > 0 then high else close end as high, case when low > 0 then low else close end as low,
-               close, prev_close, volume, turnover, isin from read_parquet('{root / CM}') where series = 'EQ' and close > 0""")
+               close, prev_close, volume, turnover, isin from read_parquet('{root / CM}') where series = 'EQ' and close > 0
+               and coalesce(isin, '') not like 'INF%'
+               and symbol not in (select distinct symbol from read_parquet('{root / CM}') where isin like 'INF%')""")
     cat = catalog.connect(read_only=True)
     cf = cat.execute("select date, symbol, cum_factor from cm_adj").df()
     cat.close()
@@ -107,6 +109,20 @@ def build_features(con=None) -> dict:
             "null_share": {c: round(con.execute(f"select avg(({c} is null)::int) from feat").fetchone()[0], 4) for c in ("ret_60", "atr14", "dist_sma200", "vol_ratio20", "deliv_pct")}}
 
 
+def build_ca_flags(con=None) -> dict:
+    """gold/ca_flags.parquet: (sid, date) of corporate-action events that were NOT applied because the price does not confirm them (india.actions.confirm).
+    The exit harness skips any window that crosses one, and counts it."""
+    con = con or _con()
+    fx = str(paths.data_dir() / "silver/corporate_actions/factors.parquet")
+    out = paths.gold() / "ca_flags"
+    out.mkdir(parents=True, exist_ok=True)
+    con.execute(f"""create or replace table caf as
+        select distinct b.sid, f.ex_date as date, f.status, f.factor, f.raw_gap_cc from read_parquet('{fx}') f
+        join (select distinct sid, symbol from base) b on b.symbol = f.symbol where f.inside and not f.apply""")
+    con.execute(f"copy (select * from caf order by sid, date) to '{out / 'ca_flags.parquet'}' (format parquet)")
+    return {"ambiguous_events": con.execute("select count(*) from caf").fetchone()[0]}
+
+
 def build_bars(con=None) -> dict:
     """Adjusted daily bars for every stock that was ever in the top 500, all dates (the exit harness needs the days after a signal too)."""
     con = con or _con()
@@ -151,4 +167,6 @@ if __name__ == "__main__":
         sys.exit(0)
     if what in ("bars", "all"):
         print(build_bars(con), flush=True)
+    if what in ("ca_flags", "all"):
+        print(build_ca_flags(con), flush=True)
     catalog.heartbeat("lab." + what, True, "")

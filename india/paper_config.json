@@ -1,0 +1,23 @@
+{
+ "version": "cfg-2026-10-18a",
+ "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file.",
+ "stock": {
+  "sizing": "fixed_notional",
+  "notional_inr": 50000,
+  "risk_inr": 1000,
+  "caps": {"BRK": 10, "PULL": 10, "CTL": 5},
+  "reentry_days": 14,
+  "liq_top": 250,
+  "min_price": 10,
+  "ctl_draw": 40
+ },
+ "options": {
+  "capital_inr": 50000,
+  "lots": 1,
+  "o03_max_loss_frac": 0.01
+ },
+ "baseline": {
+  "track_all_candidates": true,
+  "note": "The baseline book follows every candidate the entry rules produce across the whole universe, uncapped and unfiltered, through every exit policy. The executed book is the capped subset. Filters are judged against the baseline."
+ }
+}

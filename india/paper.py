@@ -1,22 +1,29 @@
 """The paper engine for Indian stocks: everything on, every exit rule tracked side by side, real prices, paper money, full Indian costs.
 
-  python -m india.paper run        fetch the latest cash file, settle yesterday's decisions, decide today's, write the marks
-  python -m india.paper report     what the book looks like now
-  python -m india.paper settle | decide | marks      one step each
+  python -m india.paper run          fetch the latest cash file, settle, decide today's, follow the baseline book, write the marks
+  python -m india.paper report       what the executed book looks like now
+  python -m india.paper compare      executed book against the unfiltered baseline, per campaign and exit policy
+  python -m india.paper settle | decide | baseline | marks      one step each
+  python -m india.paper reconstruct 2026-10-16                  rebuild the candidate journal for a decision written before journals existed (labelled)
 
 What it does (the point is to see how Ananta works in the real market and where it lacks, not to size anything):
 * Three campaigns, defined before any result was seen (the same entry sets as study E02): BRK (20-day breakout on 1.5x volume, above the 200-day average),
   PULL (uptrend pulled back 5% under the 20-day average) and CTL (a seeded random draw of liquid stocks: the control, so the entries can be told from luck).
-  Universe: the 250 most liquid stocks by 60-session median turnover. At most 10 BRK, 10 PULL and 5 CTL signals a day, one open position per stock per campaign.
-* Every signal becomes one paper trade per exit policy (18 policies plus a random-exit control, exitlab.DEFAULT_POLICIES), each with the same 2 ATR initial stop,
-  Rs 50,000 notional, delivery costs and the labelled spread estimate. All policies see the same entry, so the difference between them is the exit.
-* A decision file is written after the close of day T and before the open of T+1 (decided_at, data_through, a hash). It is never rewritten. The fill is the official
-  open of T+1 from the exchange file, which is only read at settle time, after the decision exists. Close-based exits (moving-average, swing-low, time) fill at the next open;
-  stops and targets fill inside the bar at the level, or at the open if the bar gaps through it.
+* Two books. The BASELINE book follows every candidate the entry rules produce anywhere in the universe, uncapped and unfiltered. The EXECUTED book is the
+  subset a trader with limits would take: the most liquid stocks (liq_top), at most N signals a day per campaign, one open position per stock per campaign,
+  no re-entry within reentry_days. Every candidate is written to the decision journal with status chosen or rejected and the reason, so any filter can be
+  scored against the baseline later. Limits and sizing live in india/paper_config.json; its sha is written into every decision and trade.
+* Every candidate becomes one paper trade per exit policy (18 policies plus a random-exit control, exitlab.DEFAULT_POLICIES), each with the same 2 ATR initial
+  stop, delivery costs and the labelled spread estimate. All policies see the same entry, so the difference between them is the exit.
+* A decision file is written after the close of day T and before the open of T+1 (decided_at, data_through, a hash over signals, journal and config).
+  It is never rewritten. The fill is the official open of T+1, read only at settle time. Close-based exits fill at the next open; stops and targets fill
+  inside the bar at the level, or at the open if the bar gaps through it.
+* Market context at decision time (Nifty 50 and India VIX against their averages, breadth of the liquid universe) is recorded with each decision. If an index
+  row for the decision date is missing the context says so; nothing is substituted.
 * Prices are the exchange's raw file adjusted with the corporate-action factors table (splits and bonuses), the same as the lab.
 * Leak rule: the decision for day T uses rows dated T and earlier only. A test (india/leakcheck.py) edits every later row and checks the decision does not change.
-* The only sealed-year read is the indicator lookback through india.sealed; no performance is computed on holdout rows.
-Files: paper/decisions/<data date>.json, paper/state.json (trades), paper/events.jsonl (opens and closes), paper/marks.jsonl (one line per run per campaign and policy).
+* The only sealed-year reads are the indicator lookback and the index context, through india.sealed; no performance is computed on holdout rows by research code.
+Files: paper/decisions/<data date>.json, paper/state.json (executed trades), paper/events.jsonl, paper/marks.jsonl, paper/baseline.parquet (every candidate x policy).
 """
 from __future__ import annotations
 
@@ -29,15 +36,15 @@ import sys
 import numpy as np
 import pandas as pd
 
-from india import backfill, catalog, costs, exitlab, paths, sealed, silver
+from india import backfill, catalog, costs, exitlab, paths, sealed, settings, silver
 
-NOTIONAL = 50_000.0
 LOOKBACK_CAL_DAYS = 400
-CAPS = {"BRK": 10, "PULL": 10, "CTL": 5}
-REENTRY_DAYS = 14
-RULES_VERSION = "paper-v1-2026-10-18"
+RULES_VERSION = "paper-v1.1-2026-10-18"   # v1.1: funds/ETFs out of the stock universe, applied corporate-action factors only (decisions from 19 Oct)
+JOURNAL_VERSION = 2                       # v2 adds the candidate journal, market context, config sha
 POLICIES = {p.name: p for p in exitlab.DEFAULT_POLICIES}
 POLICIES["random_exit"] = exitlab.Policy("random_exit", "random")
+CHOSEN_FIELDS = ("campaign", "sid", "symbol", "atr14", "close", "raw_close", "liq_rank", "vol_ratio20", "dist_sma20", "dist_sma200")
+EXTRA_FIELDS = ("dist_sma50", "ret_20", "ret_60", "rv20", "med60_turnover", "breakout20", "ca_ambiguous_200")
 
 
 def pdir():
@@ -62,6 +69,10 @@ def _event(ev: dict) -> None:
         fh.write(json.dumps(ev, default=str) + "\n")
 
 
+def _now() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+
+
 # ----------------------------------------------------------------------------------------------- data
 
 def load_adjusted(since: str | None = None, until: str | None = None, raw: pd.DataFrame | None = None) -> pd.DataFrame:
@@ -73,8 +84,9 @@ def load_adjusted(since: str | None = None, until: str | None = None, raw: pd.Da
         df = df[df["date"] <= pd.Timestamp(until)]
     for c in ("open", "high", "low"):
         df[c] = df[c].where(df[c] > 0, df["close"])
-    fx = pd.read_parquet(paths.data_dir() / "silver/corporate_actions/factors.parquet", columns=["symbol", "ex_date", "factor"])
-    fx = fx[fx["factor"].notna() & (fx["factor"] > 0)]
+    fx = pd.read_parquet(paths.data_dir() / "silver/corporate_actions/factors.parquet")
+    amb = fx[fx.get("inside", False) & ~fx.get("apply", True)] if "apply" in fx else fx.iloc[0:0]
+    fx = fx[fx["factor"].notna() & (fx["factor"] > 0) & (fx["apply"] if "apply" in fx else True)][["symbol", "ex_date", "factor"]]
     df = df.sort_values(["symbol", "date"]).reset_index(drop=True)
     ent = pd.read_parquet(paths.data_dir() / "silver/security_master/names.parquet", columns=["isin", "entity"]).drop_duplicates("isin")
     df = df.merge(ent, on="isin", how="left")
@@ -96,6 +108,10 @@ def load_adjusted(since: str | None = None, until: str | None = None, raw: pd.Da
         df["adj_" + c] = df[c] / cum
     df["cum_factor"] = cum
     df = df.sort_values(["sid", "date", "turnover"], ascending=[True, True, False]).drop_duplicates(["sid", "date"]).reset_index(drop=True)
+    # mutual-fund units and ETFs (ISIN INF...) trade in series EQ but are not stocks: flagged, kept out of the stock universe in features()
+    df["is_fund"] = df["isin"].fillna("").str.startswith("INF")
+    amb_dates = {(r.symbol, pd.Timestamp(r.ex_date)) for r in amb.itertuples()}
+    df["ca_ambiguous"] = [((s, d) in amb_dates) for s, d in zip(df["symbol"], df["date"])] if amb_dates else False
     return df
 
 
@@ -107,9 +123,11 @@ def _atr14(g: pd.DataFrame) -> float:
     return float(np.nanmean(tr[-14:]))
 
 
-def features(df: pd.DataFrame, asof: pd.Timestamp) -> pd.DataFrame:
-    """One row per liquid stock on `asof`, from rows dated on or before it. Mirrors india.lab (checked by leakcheck.parity)."""
+def features(df: pd.DataFrame, asof: pd.Timestamp, min_price: float = 10) -> pd.DataFrame:
+    """One row per stock on `asof` with 126+ sessions of history, from rows dated on or before it. Mirrors india.lab (checked by leakcheck.parity)."""
     df = df[df["date"] <= asof]
+    if "is_fund" in df:
+        df = df[~df["is_fund"]]
     out = []
     for sid, g in df.groupby("sid", sort=False):
         if g["date"].iloc[-1] != asof or len(g) < 126:
@@ -123,84 +141,236 @@ def features(df: pd.DataFrame, asof: pd.Timestamp) -> pd.DataFrame:
         out.append({"sid": sid, "symbol": g["symbol"].iloc[-1], "close": c[-1], "raw_close": g["close"].iloc[-1], "atr14": float(np.nanmean(tr[-14:])), "med60_turnover": float(np.median(t[-60:])),
                     "vol_ratio20": float(v[-1] / np.mean(v[-21:-1])) if np.mean(v[-21:-1]) > 0 else np.nan,
                     "dist_sma20": float(c[-1] / np.mean(c[-20:]) - 1), "dist_sma50": float(c[-1] / np.mean(c[-50:]) - 1), "dist_sma200": float(c[-1] / np.mean(c[-200:]) - 1),
-                    "breakout20": bool(c[-1] > np.max(h[-21:-1])), "ret_20": float(c[-1] / c[-21] - 1)})
+                    "breakout20": bool(c[-1] > np.max(h[-21:-1])), "ret_20": float(c[-1] / c[-21] - 1), "ret_60": float(c[-1] / c[-61] - 1),
+                    "rv20": float(np.std(np.diff(c[-21:]) / c[-21:-1], ddof=1)),
+                    "ca_ambiguous_200": bool(g["ca_ambiguous"].iloc[-200:].any()) if "ca_ambiguous" in g else False})
     f = pd.DataFrame(out)
     if f.empty:
         return f
-    f = f[f["raw_close"] > 10].copy()
+    f = f[f["raw_close"] > min_price].copy()
     f["liq_rank"] = f["med60_turnover"].rank(ascending=False, method="min").astype(int)
     return f.sort_values("liq_rank").reset_index(drop=True)
 
 
-def signals(f: pd.DataFrame, asof: pd.Timestamp) -> dict[str, pd.DataFrame]:
-    liq = f[(f["liq_rank"] <= 250) & f["atr14"].notna()]
-    brk = liq[liq["breakout20"] & (liq["vol_ratio20"] > 1.5) & (liq["dist_sma200"] > 0)].sort_values("vol_ratio20", ascending=False)
-    pull = liq[(liq["dist_sma200"] > 0) & (liq["dist_sma20"] < -0.05)].sort_values("dist_sma20")
+def signals(f: pd.DataFrame, asof: pd.Timestamp, s: dict | None = None) -> dict[str, pd.DataFrame]:
+    """Candidates per campaign across the whole universe, in the executed book's order of preference. BRK and PULL are not limited to liquid stocks here:
+    the liquidity limit is applied (and recorded as a rejection reason) in decide(). CTL is drawn from the liquid universe because it is the control for the executed book."""
+    s = s or settings.load()["stock"]
+    ok = f[f["atr14"].notna()]
+    liq = ok[ok["liq_rank"] <= s["liq_top"]]
+    brk = ok[ok["breakout20"] & (ok["vol_ratio20"] > 1.5) & (ok["dist_sma200"] > 0)].sort_values("vol_ratio20", ascending=False, kind="mergesort")
+    pull = ok[(ok["dist_sma200"] > 0) & (ok["dist_sma20"] < -0.05)].sort_values("dist_sma20", kind="mergesort")
     rng = random.Random(int(asof.strftime("%Y%m%d")))
     idx = sorted(liq.index)
-    ctl = liq.loc[rng.sample(idx, min(len(idx), 40))] if idx else liq  # draw 40, the open-position filter below trims to the cap
+    ctl = liq.loc[rng.sample(idx, min(len(idx), s["ctl_draw"]))] if idx else liq  # draw 40, the open-position filter trims to the cap
     return {"BRK": brk, "PULL": pull, "CTL": ctl}
 
 
-# ----------------------------------------------------------------------------------------------- steps
+def context(f: pd.DataFrame, asof: pd.Timestamp, liq_top: int) -> dict:
+    """Market state at decision time. Missing or stale index rows are reported as such, never filled."""
+    liq = f[f["liq_rank"] <= liq_top]
+    out = {"n_universe": int(len(f)), "n_liq": int(len(liq)),
+           "breadth200_liq": float((liq["dist_sma200"] > 0).mean()) if len(liq) else None, "breadth50_liq": float((liq["dist_sma50"] > 0).mean()) if len(liq) else None,
+           "breadth200_all": float((f["dist_sma200"] > 0).mean()) if len(f) else None,
+           # the research breadth (india.conditions) is measured on the 500 most liquid stocks: the same measure, so live and historical splits match
+           "breadth200": float((f.loc[f["liq_rank"] <= 500, "dist_sma200"] > 0).mean()) if len(f) else None}
+    try:
+        idx = sealed.read_index("paper_context", (asof - pd.Timedelta(days=420)).strftime("%Y-%m-%d"), ["NIFTY 50", "INDIA VIX", "NIFTY SMLCAP 100", "NIFTY 100"])
+        idx["date"] = pd.to_datetime(idx["date"])
+        for name, tag in (("NIFTY 50", "nifty"), ("INDIA VIX", "vix")):
+            g = idx[(idx["index_name"] == name) & (idx["date"] <= asof)].sort_values("date")
+            if g.empty:
+                out[tag + "_status"] = "missing"
+                continue
+            last = g["date"].iloc[-1]
+            if last != asof:
+                out[tag + "_status"] = f"stale: last row {last.date()}"
+                continue
+            c = g["close"].values
+            out[tag + "_status"] = "ok"
+            out[tag + "_close"] = float(c[-1])
+            out[tag + "_vs_sma50"] = float(c[-1] / np.mean(c[-50:]) - 1) if len(c) >= 50 else None
+            out[tag + "_vs_sma200"] = float(c[-1] / np.mean(c[-200:]) - 1) if len(c) >= 200 else None
+        sm = idx[idx["index_name"] == "NIFTY SMLCAP 100"].set_index("date")["close"]
+        lg = idx[idx["index_name"] == "NIFTY 100"].set_index("date")["close"]
+        ratio = (sm / lg).dropna().sort_index()
+        ratio = ratio[ratio.index <= asof]
+        if len(ratio) >= 50 and ratio.index[-1] == asof:
+            out["small_ratio_vs_sma50"] = float(ratio.iloc[-1] / ratio.iloc[-50:].mean() - 1)
+        else:
+            out["small_ratio_status"] = "missing or stale"
+    except Exception as e:  # context is recorded, not required: a failure is written down and the decision goes ahead
+        out["index_status"] = f"missing: {type(e).__name__}: {e}"[:200]
+    return out
+
+
+# ----------------------------------------------------------------------------------------------- decide
 
 def fetch_latest() -> dict:
     today = dt.date.today()
-    res = backfill.run("cm_bhavcopy", today - dt.timedelta(days=4), today, 1.0)
-    out = {"fetch": "ok"}
-    out["silver"] = silver.build_cm_year(today.year)
-    return out
+    backfill.run("cm_bhavcopy", today - dt.timedelta(days=4), today, 1.0)
+    return {"fetch": "ok", "silver": silver.build_cm_year(today.year)}
+
+
+def _num(x):
+    return None if x is None or (isinstance(x, float) and np.isnan(x)) or pd.isna(x) else (bool(x) if isinstance(x, (bool, np.bool_)) else float(x) if not isinstance(x, str) else x)
+
+
+def _cand(camp: str, r: pd.Series) -> dict:
+    rec = {"campaign": camp, "sid": r["sid"], "symbol": r["symbol"], "atr14": float(r["atr14"]), "close": float(r["close"]), "raw_close": float(r["raw_close"]),
+           "liq_rank": int(r["liq_rank"]), "vol_ratio20": _num(r["vol_ratio20"]), "dist_sma20": float(r["dist_sma20"]), "dist_sma200": float(r["dist_sma200"])}
+    return rec
+
+
+def _sha(body: dict) -> str:
+    return hashlib.sha256(json.dumps({k: body.get(k) for k in ("rules", "data_through", "signals", "journal", "config_sha")}, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def decide(state: dict | None = None, raw: pd.DataFrame | None = None, write: bool = True, asof: str | None = None) -> dict:
     state = state or _state()
+    cfg = settings.load()
+    s = cfg["stock"]
     df = load_adjusted(raw=raw, until=asof)
     last = df["date"].max()
     key = last.strftime("%Y-%m-%d")
     if key in state["decisions"]:
         return {"status": "already decided", "data_through": key}
-    f = features(df, last)
+    f = features(df, last, s["min_price"])
     if f.empty:
         return {"status": "no features", "data_through": key}
-    sigs = signals(f, last)
+    sigs = signals(f, last, s)
     open_by = {(t["campaign"], t["sid"]) for t in state["trades"].values() if t["status"] in ("pending", "open")}
     recent = {}
     for t in state["trades"].values():
         recent[(t["campaign"], t["sid"])] = max(recent.get((t["campaign"], t["sid"]), ""), t["signal_date"])
-    chosen = []
+    chosen, journal = [], []
+    fx = f.set_index("sid")
     for camp, d in sigs.items():
         n = 0
         for _, r in d.iterrows():
             k = (camp, r["sid"])
-            if k in open_by:
-                continue
-            if k in recent and (last - pd.Timestamp(recent[k])).days < REENTRY_DAYS:
-                continue
-            chosen.append({"campaign": camp, "sid": r["sid"], "symbol": r["symbol"], "atr14": float(r["atr14"]), "close": float(r["close"]), "raw_close": float(r["raw_close"]), "liq_rank": int(r["liq_rank"]),
-                           "vol_ratio20": None if pd.isna(r["vol_ratio20"]) else float(r["vol_ratio20"]), "dist_sma20": float(r["dist_sma20"]), "dist_sma200": float(r["dist_sma200"])})
-            n += 1
-            if n >= CAPS[camp]:
-                break
-    counts = {camp: int(len(d)) for camp, d in sigs.items()}
-    body = {"rules": RULES_VERSION, "data_through": key, "decided_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "universe_size": int(len(f)),
-            "candidates": counts, "signals": chosen}
-    body["sha256"] = hashlib.sha256(json.dumps({k: body[k] for k in ("rules", "data_through", "signals")}, sort_keys=True).encode()).hexdigest()
+            rec = _cand(camp, r)
+            if r.get("ca_ambiguous_200", False):
+                reason = "ambiguous_corporate_action"   # an unconfirmed split/bonus in the last 200 sessions: indicators cannot be trusted
+            elif r["liq_rank"] > s["liq_top"]:
+                reason = "outside_liq_top"
+            elif k in open_by:
+                reason = "open_position"
+            elif k in recent and (last - pd.Timestamp(recent[k])).days < s["reentry_days"]:
+                reason = "reentry_gap"
+            elif n >= s["caps"][camp]:
+                reason = "cap_reached"
+            else:
+                reason = None
+                n += 1
+                chosen.append(rec)
+            extra = {c: _num(fx.at[r["sid"], c]) for c in EXTRA_FIELDS}
+            journal.append({**rec, **extra, "status": "chosen" if reason is None else "rejected", "reason": reason})
+    counts = {camp: {"candidates": int(len(d)), "in_liq_top": int((d["liq_rank"] <= s["liq_top"]).sum()), "chosen": sum(1 for c in chosen if c["campaign"] == camp)} for camp, d in sigs.items()}
+    on_date = int(df.loc[df["date"] == last, "sid"].nunique())
+    body = {"rules": RULES_VERSION, "journal_version": JOURNAL_VERSION, "config_version": cfg["version"], "config_sha": settings.sha(), "data_through": key, "decided_at": _now(),
+            "universe": {"stocks_with_a_row": on_date, "with_features": int(len(f)), "excluded": on_date - int(len(f)),
+                         "excluded_reason": f"under 126 sessions of history or raw close at or below Rs {s['min_price']}"},
+            "context": context(f, last, s["liq_top"]), "candidates": counts, "signals": chosen, "journal": journal, "sha_scheme": 2}
+    body["sha256"] = _sha(body)
     if write:
         path = pdir() / "decisions" / f"{key}.json"
         if path.exists():
             raise FileExistsError(f"decision file for {key} already exists and is never rewritten")
-        path.write_text(json.dumps(body, indent=1))
+        path.write_text(json.dumps(body, indent=1, default=str))
         state["decisions"][key] = {"status": "pending", "signals": len(chosen), "sha256": body["sha256"]}
         _save(state)
     return {"status": "decided", "data_through": key, "signals": len(chosen), "candidates": counts, "body": body}
 
 
-def settle(state: dict | None = None) -> dict:
-    """Fill pending decisions at the next session's open, then step every open trade through the bars so far."""
+def reconstruct(key: str) -> dict:
+    """For a decision written before journals existed: rebuild its candidate journal from rows dated on or before `key`, with the trade state as it stood
+    then (no trades before the first decision), check the chosen list matches the original file, and save it beside the original as <key>.journal.json,
+    labelled reconstructed. The original file is not touched."""
+    orig = json.loads((pdir() / "decisions" / f"{key}.json").read_text())
+    if orig.get("journal") is not None:
+        return {"status": "has a journal already"}
+    prior = {k: v for k, v in _state()["trades"].items() if v["signal_date"] < key}
+    again = decide(state={"trades": prior, "decisions": {}}, write=False, asof=key)["body"]
+    a = [(x["campaign"], x["sid"]) for x in orig["signals"]]
+    b = [(x["campaign"], x["sid"]) for x in again["signals"]]
+    diffs = max((abs(x[c] - y[c]) / max(abs(x[c]), 1e-9) for x, y in zip(orig["signals"], again["signals"]) for c in ("atr14", "close", "dist_sma20", "dist_sma200")), default=0.0)
+    out = {"key": key, "reconstructed_at": _now(), "label": "reconstructed after the fact from rows dated on or before the decision date; not the record written before the open",
+           "original_sha256": orig["sha256"], "chosen_match": a == b, "max_rel_diff_chosen_fields": diffs, "journal": again["journal"], "candidates": again["candidates"],
+           "context": again["context"], "universe": again["universe"], "config_sha": again["config_sha"]}
+    if a != b:
+        out["label"] += "; WARNING the chosen list differs from the original file"
+    (pdir() / "decisions" / f"{key}.journal.json").write_text(json.dumps(out, indent=1, default=str))
+    return {k: v for k, v in out.items() if k not in ("journal",)}
+
+
+def journal_for(key: str) -> tuple[list | None, str]:
+    body = json.loads((pdir() / "decisions" / f"{key}.json").read_text())
+    if body.get("journal") is not None:
+        return body["journal"], "recorded"
+    p = pdir() / "decisions" / f"{key}.journal.json"
+    if p.exists():
+        return json.loads(p.read_text())["journal"], "reconstructed"
+    return None, "missing"
+
+
+# ----------------------------------------------------------------------------------------------- trades
+
+def _open_trade(book: str, key: str, s: dict, pol: exitlab.Policy, nxt: pd.Timestamp, g: pd.DataFrame | None, dsha: str, cfg: dict, cfg_sha: str) -> dict:
+    tid = f"{key}|{s['campaign']}|{s['sid']}|{pol.name}"
+    base = {"id": tid, "book": book, "campaign": s["campaign"], "sid": s["sid"], "symbol": s["symbol"], "policy": pol.name, "signal_date": key, "liq_rank": s["liq_rank"],
+            "decision_sha": dsha, "config_sha": cfg_sha}
+    row = None if g is None else g[g["date"] == nxt]
+    if row is None or row.empty:
+        return {**base, "status": "unfilled", "note": "no print on the fill session"}
+    entry_adj = float(row["adj_open"].iloc[0])
+    # risk is carried as a fraction of the entry price so later corporate actions rescale it consistently; the 14-day range is
+    # recomputed from the bars up to the signal date under today's factors, so a split between decision and fill cannot skew it
+    risk_frac = exitlab.STOP_ATR * _atr14(g[g["date"] <= pd.Timestamp(key)]) / entry_adj
+    if risk_frac >= 1:
+        return {**base, "status": "skipped", "note": "stop below zero"}
+    qty, notional = settings.size(cfg, entry_adj, risk_frac)
+    rand_day = random.Random(tid).randint(1, exitlab.HORIZON) if pol.kind == "random" else None
+    return {**base, "entry_date": nxt.strftime("%Y-%m-%d"), "entry_raw": float(row["open"].iloc[0]), "entry_adj": entry_adj, "bar_low_raw": float(row["low"].iloc[0]),
+            "bar_high_raw": float(row["high"].iloc[0]), "risk_frac": risk_frac, "rand_day": rand_day, "notional": notional, "sizing": cfg["stock"]["sizing"], "status": "open"}
+
+
+def _step(t: dict, g: pd.DataFrame) -> bool:
+    """Walk an open trade through the bars so far. Returns True if it closed on this pass."""
+    w = g[g["date"] >= pd.Timestamp(t["entry_date"])].head(exitlab.HORIZON + 1)
+    if w.empty:
+        return False
+    o, h, l, c = (w["adj_" + k].values for k in ("open", "high", "low", "close"))
+    entry = float(o[0])  # the factors table can change after entry (a split announced later): re-anchor on the current adjusted entry
+    risk = t["risk_frac"] * entry
+    k, px, why, peak = exitlab._exit(POLICIES[t["policy"]], o, h, l, c, entry, risk, live=True, rand_day=t.get("rand_day"))
+    t["last_close_adj"] = float(c[-1])
+    t["last_date"] = w["date"].iloc[-1].strftime("%Y-%m-%d")
+    t["bars_seen"] = int(len(w))
+    t["peak_adj"] = float(max(peak, h.max()))
+    if why in ("open", "pending"):
+        t["unrealised_ret"] = float(c[-1] / entry - 1)
+        return False
+    notional = float(t.get("notional", 50_000.0))
+    qty = notional / entry
+    rt = costs.round_trip("delivery", notional, px * qty, year=int(w["date"].iloc[k].year), turnover_rank=t.get("liq_rank"))
+    net = px * qty - notional - rt["total"]
+    move = peak - entry
+    t.update({"status": "closed", "exit_date": w["date"].iloc[k].strftime("%Y-%m-%d"), "exit_reason": why, "exit_adj": float(px), "exit_bar_low_adj": float(l[k]), "exit_bar_high_adj": float(h[k]),
+              "gross_ret": float(px / entry - 1), "net_inr": float(net), "net_ret": float(net / notional), "cost_inr": float(rt["total"]), "hold_days": int(k + 1),
+              "r_net": float(net / notional / t["risk_frac"]), "mfe_r": float(move / risk), "capture": float(np.clip((px - entry) / move, -1, 1)) if move > 0 else None,
+              "giveback_r": float((peak - px) / risk)})
+    t.pop("unrealised_ret", None)
+    return True
+
+
+def settle(state: dict | None = None, df: pd.DataFrame | None = None) -> dict:
+    """Fill pending decisions at the next session's open (executed book), then step every open trade through the bars so far."""
     state = state or _state()
-    df = load_adjusted()
+    cfg, cfg_sha = settings.load(), settings.sha()
+    df = load_adjusted() if df is None else df
     latest = df["date"].max()
-    filled = closed = unfilled = 0
+    filled = closed = unfilled = skipped = 0
     bars_by = {s: g.reset_index(drop=True) for s, g in df.groupby("sid")}
     for key, dmeta in sorted(state["decisions"].items()):
         if dmeta["status"] != "pending":
@@ -210,105 +380,160 @@ def settle(state: dict | None = None) -> dict:
             continue  # no session after the decision yet
         body = json.loads((pdir() / "decisions" / f"{key}.json").read_text())
         for s in body["signals"]:
-            g = bars_by.get(s["sid"])
-            row = None if g is None else g[g["date"] == nxt]
             for pol in POLICIES.values():
                 tid = f"{key}|{s['campaign']}|{s['sid']}|{pol.name}"
                 if tid in state["trades"]:
                     continue
-                if row is None or row.empty:
-                    state["trades"][tid] = {"id": tid, "campaign": s["campaign"], "sid": s["sid"], "symbol": s["symbol"], "policy": pol.name, "signal_date": key, "status": "unfilled",
-                                            "note": "no print on the fill session"}
+                t = _open_trade("exec", key, s, pol, nxt, bars_by.get(s["sid"]), dmeta["sha256"], cfg, cfg_sha)
+                state["trades"][tid] = t
+                if t["status"] == "open":
+                    _event({"event": "open", "id": tid, "at": _now(), "entry_date": t["entry_date"], "entry_raw": t["entry_raw"], "notional": t["notional"]})
+                    filled += 1
+                elif t["status"] == "unfilled":
                     unfilled += 1
-                    continue
-                entry_adj = float(row["adj_open"].iloc[0])
-                # risk is carried as a fraction of the entry price so later corporate actions rescale it consistently; the 14-day range is
-                # recomputed from the bars up to the signal date under today's factors, so a split between decision and fill cannot skew it
-                gs = g[g["date"] <= pd.Timestamp(key)]
-                risk_frac = exitlab.STOP_ATR * _atr14(gs) / entry_adj
-                if risk_frac >= 1:
-                    state["trades"][tid] = {"id": tid, "campaign": s["campaign"], "sid": s["sid"], "symbol": s["symbol"], "policy": pol.name, "signal_date": key, "status": "skipped", "note": "stop below zero"}
-                    continue
-                rand_day = random.Random(tid).randint(1, exitlab.HORIZON) if pol.kind == "random" else None
-                state["trades"][tid] = {"id": tid, "campaign": s["campaign"], "sid": s["sid"], "symbol": s["symbol"], "policy": pol.name, "signal_date": key, "entry_date": nxt.strftime("%Y-%m-%d"),
-                                        "entry_raw": float(row["open"].iloc[0]), "entry_adj": entry_adj, "risk_frac": risk_frac, "rand_day": rand_day, "liq_rank": s["liq_rank"],
-                                        "status": "open", "decision_sha": dmeta["sha256"]}
-                _event({"event": "open", "id": tid, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "entry_date": nxt.strftime("%Y-%m-%d"), "entry_raw": float(row["open"].iloc[0])})
-                filled += 1
+                else:
+                    skipped += 1
         dmeta["status"] = "filled"
         dmeta["filled_on"] = nxt.strftime("%Y-%m-%d")
     for tid, t in state["trades"].items():
-        if t["status"] != "open":
-            continue
-        g = bars_by[t["sid"]]
-        w = g[g["date"] >= pd.Timestamp(t["entry_date"])].head(exitlab.HORIZON + 1)
-        if w.empty:
-            continue
-        o, h, l, c = (w["adj_" + k].values for k in ("open", "high", "low", "close"))
-        # the factors table can change after entry (a split announced later): re-anchor on the current adjusted entry
-        entry = float(o[0])
-        risk = t["risk_frac"] * entry
-        k, px, why, peak = exitlab._exit(POLICIES[t["policy"]], o, h, l, c, entry, risk, live=True, rand_day=t.get("rand_day"))
-        t["last_close_adj"] = float(c[-1])
-        t["last_date"] = w["date"].iloc[-1].strftime("%Y-%m-%d")
-        t["peak_adj"] = float(max(peak, h.max()))
-        if why in ("open", "pending"):
-            t["unrealised_ret"] = float(c[-1] / entry - 1)
-            continue
-        qty = NOTIONAL / entry
-        rt = costs.round_trip("delivery", NOTIONAL, px * qty, year=int(w["date"].iloc[k].year), turnover_rank=t.get("liq_rank"))
-        net = (px * qty - NOTIONAL - rt["total"])
-        move = peak - entry
-        t.update({"status": "closed", "exit_date": w["date"].iloc[k].strftime("%Y-%m-%d"), "exit_reason": why, "exit_adj": float(px), "gross_ret": float(px / entry - 1),
-                  "net_inr": float(net), "net_ret": float(net / NOTIONAL), "cost_inr": float(rt["total"]), "hold_days": int(k + 1), "r_net": float(net / NOTIONAL / t["risk_frac"]),
-                  "mfe_r": float(move / risk), "capture": float(np.clip((px - entry) / move, -1, 1)) if move > 0 else None, "giveback_r": float((peak - px) / risk)})
-        t.pop("unrealised_ret", None)
-        _event({"event": "close", "id": tid, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "exit_date": t["exit_date"], "reason": why, "net_inr": t["net_inr"]})
-        closed += 1
+        if t["status"] == "open" and _step(t, bars_by[t["sid"]]):
+            _event({"event": "close", "id": tid, "at": _now(), "exit_date": t["exit_date"], "reason": t["exit_reason"], "net_inr": t["net_inr"], "cost_inr": t["cost_inr"]})
+            closed += 1
     _save(state)
-    return {"filled": filled, "unfilled": unfilled, "closed": closed, "latest_session": latest.strftime("%Y-%m-%d")}
+    return {"filled": filled, "unfilled": unfilled, "skipped": skipped, "closed": closed, "latest_session": latest.strftime("%Y-%m-%d")}
+
+
+def baseline(df: pd.DataFrame | None = None) -> dict:
+    """Follow every journal candidate (chosen and rejected) through every policy. Closed rows are cached; open ones are re-walked each run."""
+    cfg, cfg_sha = settings.load(), settings.sha()
+    df = load_adjusted() if df is None else df
+    bars_by = {s: g.reset_index(drop=True) for s, g in df.groupby("sid")}
+    cache_p = pdir() / "baseline_closed.parquet"
+    cache = {}
+    if cache_p.exists():
+        cache = {r["id"]: r for r in pd.read_parquet(cache_p).to_dict("records")}
+    rows, missing, waiting = [], [], []
+    for p in sorted((pdir() / "decisions").glob("????-??-??.json")):
+        key = p.stem
+        journal, how = journal_for(key)
+        if journal is None:
+            missing.append(key)
+            continue
+        nxt = df.loc[df["date"] > pd.Timestamp(key), "date"].min()
+        if pd.isna(nxt):
+            waiting.append(key)
+            continue
+        dsha = json.loads(p.read_text())["sha256"]
+        for c in journal:
+            for pol in POLICIES.values():
+                tid = f"{key}|{c['campaign']}|{c['sid']}|{pol.name}"
+                if tid in cache:
+                    rows.append(cache[tid])
+                    continue
+                t = _open_trade("baseline", key, c, pol, nxt, bars_by.get(c["sid"]), dsha, cfg, cfg_sha)
+                if t["status"] == "open":
+                    _step(t, bars_by[c["sid"]])
+                t.update({"journal_status": c["status"], "journal_reason": c["reason"], "journal_source": how})
+                for k in EXTRA_FIELDS + ("vol_ratio20", "dist_sma20", "dist_sma200"):
+                    t["f_" + k] = c.get(k)
+                rows.append(t)
+    out = pd.DataFrame(rows)
+    if not out.empty:
+        out.to_parquet(pdir() / "baseline.parquet", index=False)
+        out[out["status"].isin(["closed", "unfilled", "skipped"])].to_parquet(cache_p, index=False)
+    st = out["status"].value_counts().to_dict() if not out.empty else {}
+    return {"rows": int(len(out)), "status": st, "decisions_waiting_for_fill": waiting, "decisions_without_journal": missing}
+
+
+# ----------------------------------------------------------------------------------------------- marks and reports
+
+def _summ(g: pd.DataFrame) -> dict:
+    cl = g[g["status"] == "closed"]
+    op = g[g["status"] == "open"]
+    notional_open = op["notional"].fillna(50_000.0) if "notional" in op else pd.Series(50_000.0, index=op.index)
+    return {"closed": int(len(cl)), "open": int(len(op)), "realised_inr": float(cl["net_inr"].sum()) if len(cl) else 0.0,
+            "open_unrealised_inr": float((op["unrealised_ret"].fillna(0) * notional_open).sum()) if len(op) and "unrealised_ret" in op else 0.0,
+            "mean_net_ret": float(cl["net_ret"].mean()) if len(cl) else None, "win_rate": float((cl["net_inr"] > 0).mean()) if len(cl) else None,
+            "expectancy_R": float(cl["r_net"].mean()) if len(cl) else None,
+            "capture_median": float(cl["capture"].dropna().median()) if len(cl) and cl["capture"].notna().any() else None}
+
+
+MARK_COLS = ("at", "book", "campaign", "policy", "closed", "open", "realised_inr", "open_unrealised_inr", "mean_net_ret", "win_rate", "expectancy_R", "capture_median")
 
 
 def marks(state: dict | None = None) -> list[dict]:
     state = state or _state()
     rows = []
-    t = pd.DataFrame(state["trades"].values())
-    if t.empty:
+    now = _now()
+    books = {"exec": pd.DataFrame(state["trades"].values())}
+    bp = pdir() / "baseline.parquet"
+    if bp.exists():
+        books["baseline"] = pd.read_parquet(bp)
+    for book, t in books.items():
+        if t.empty:
+            continue
+        for (camp, pol), g in t[t["status"].isin(["open", "closed"])].groupby(["campaign", "policy"]):
+            rows.append({"at": now, "book": book, "campaign": camp, "policy": pol, **_summ(g)})
+    if not rows:
         return rows
-    now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
-    for (camp, pol), g in t[t["status"].isin(["open", "closed"])].groupby(["campaign", "policy"]):
-        cl = g[g["status"] == "closed"]
-        op = g[g["status"] == "open"]
-        rows.append({"at": now, "campaign": camp, "policy": pol, "closed": int(len(cl)), "open": int(len(op)), "realised_inr": float(cl["net_inr"].sum()) if len(cl) else 0.0,
-                     "open_unrealised_inr": float((op["unrealised_ret"].fillna(0) * NOTIONAL).sum()) if len(op) and "unrealised_ret" in op else 0.0,
-                     "mean_net_ret": float(cl["net_ret"].mean()) if len(cl) else None, "win_rate": float((cl["net_inr"] > 0).mean()) if len(cl) else None,
-                     "expectancy_R": float(cl["r_net"].mean()) if len(cl) else None, "capture_median": float(cl["capture"].dropna().median()) if len(cl) and cl["capture"].notna().any() else None})
     with (pdir() / "marks.jsonl").open("a") as fh:
         for r in rows:
             fh.write(json.dumps(r) + "\n")
     con = catalog.connect()
+    cols = [r[1] for r in con.execute("pragma table_info('paper_marks')").fetchall()]
+    if cols and "book" not in cols:
+        con.execute("alter table paper_marks add column book varchar")
     con.execute("create table if not exists paper_marks (at varchar, campaign varchar, policy varchar, closed integer, open integer, realised_inr double, open_unrealised_inr double, "
-                "mean_net_ret double, win_rate double, expectancy_R double, capture_median double)")
-    con.executemany("insert into paper_marks values (?,?,?,?,?,?,?,?,?,?,?)", [[r[k] for k in ("at", "campaign", "policy", "closed", "open", "realised_inr", "open_unrealised_inr", "mean_net_ret",
-                                                                                                "win_rate", "expectancy_R", "capture_median")] for r in rows])
+                "mean_net_ret double, win_rate double, expectancy_R double, capture_median double, book varchar)")
+    con.executemany(f"insert into paper_marks ({', '.join(MARK_COLS)}) values ({', '.join('?' * len(MARK_COLS))})", [[r[k] for k in MARK_COLS] for r in rows])
     con.close()
     return rows
 
 
+def compare() -> pd.DataFrame:
+    """Executed book against the baseline: same campaign and policy, and inside the baseline the chosen candidates against each rejection reason.
+    This is where a limit or filter earns its place: if rejected candidates do as well as chosen ones, the limit is costing nothing but also adding nothing."""
+    bp = pdir() / "baseline.parquet"
+    if not bp.exists():
+        print("no baseline yet (first fill happens on the session after the first decision)")
+        return pd.DataFrame()
+    b = pd.read_parquet(bp)
+    b = b[b["status"].isin(["open", "closed"])]
+    b["slice"] = np.where(b["journal_status"] == "chosen", "chosen", "rejected:" + b["journal_reason"].fillna("?"))
+    rows = []
+    for (camp, pol, sl), g in b.groupby(["campaign", "policy", "slice"]):
+        rows.append({"campaign": camp, "policy": pol, "slice": sl, **_summ(g)})
+    for (camp, pol), g in b.groupby(["campaign", "policy"]):
+        rows.append({"campaign": camp, "policy": pol, "slice": "ALL (baseline)", **_summ(g)})
+    out = pd.DataFrame(rows).sort_values(["campaign", "policy", "slice"])
+    print(out.to_string(index=False))
+    return out
+
+
 def run() -> dict:
     paths.ensure()
-    out = {}
+    out = {"config": settings.load()["version"], "config_sha": settings.sha()}
     try:
         out["fetch"] = fetch_latest()
     except Exception as e:  # the nightly job heals missing days; the engine works with what is there
         out["fetch"] = f"FAILED {type(e).__name__}: {e}"
     state = _state()
-    out["settle"] = settle(state)
+    df = load_adjusted()
+    out["settle"] = settle(state, df)
     d = decide(state)
     d.pop("body", None)
     out["decide"] = d
+    try:
+        out["baseline"] = baseline(df)
+    except Exception as e:
+        out["baseline"] = f"FAILED {type(e).__name__}: {e}"
     out["marks"] = len(marks(state))
-    catalog.heartbeat("paper.run", not str(out["fetch"]).startswith("FAILED"), json.dumps(out, default=str)[:480])
+    try:
+        from india import filters
+        out["filter_slices"] = len(filters.run())
+    except Exception as e:
+        out["filter_slices"] = f"FAILED {type(e).__name__}: {e}"
+    catalog.heartbeat("paper.run", not str(out["fetch"]).startswith("FAILED") and not str(out["baseline"]).startswith("FAILED"), json.dumps(out, default=str)[:480])
     print(json.dumps(out, default=str, indent=1), flush=True)
     return out
 
@@ -316,7 +541,7 @@ def run() -> dict:
 def report() -> None:
     state = _state()
     t = pd.DataFrame(state["trades"].values())
-    print(f"decisions {len(state['decisions'])}  trades {len(t)}")
+    print(f"decisions {len(state['decisions'])}  executed trades {len(t)}  config {settings.load()['version']} ({settings.sha()})")
     if t.empty:
         return
     print(t["status"].value_counts().to_string())
@@ -329,5 +554,8 @@ def report() -> None:
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "report"
-    {"run": run, "report": report, "settle": lambda: print(settle()), "decide": lambda: print({k: v for k, v in decide().items() if k != "body"}),
-     "marks": lambda: print(len(marks()))}[cmd]()
+    if cmd == "reconstruct":
+        print(json.dumps(reconstruct(sys.argv[2]), indent=1, default=str))
+    else:
+        {"run": run, "report": report, "compare": compare, "settle": lambda: print(settle()), "decide": lambda: print({k: v for k, v in decide().items() if k != "body"}),
+         "baseline": lambda: print(baseline()), "marks": lambda: print(len(marks()))}[cmd]()

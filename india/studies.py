@@ -45,7 +45,8 @@ def entry_sets(f: pd.DataFrame, max_signals: int, seed: int = 11) -> dict[str, p
     }
     out = {}
     for k, d in sets.items():
-        d = d[d["date"] <= "2023-09-30"].sort_values(["sid", "date"])  # leave 60 sessions of room for the longest exit
+        # dev starts 2000-01-01 as the plan says (the lab tables begin May 1995; the first runs on 18 Oct used 1995-1999 too); 60 sessions of room left at the end
+        d = d[(d["date"] >= "2000-01-01") & (d["date"] <= "2023-09-30")].sort_values(["sid", "date"])
         keep, last = [], {}
         for sid, dt_ in zip(d["sid"].values, d["date"].values):
             if sid not in last or (dt_ - last[sid]).astype("timedelta64[D]").astype(int) >= 14:

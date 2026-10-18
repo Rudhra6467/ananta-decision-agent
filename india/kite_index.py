@@ -102,6 +102,11 @@ def silver() -> dict:
         df["ts"] = pd.to_datetime(df["ts"])
         df = df.drop_duplicates(["index_name", "ts"], keep="last").sort_values(["index_name", "ts"]).reset_index(drop=True)
         df["date"] = df["ts"].dt.date
+        if interval == "day":
+            # Kite answers some older days twice (a 00:00 bar with open=high=low=close and a 09:15 bar with the real range); keep one bar per index-day,
+            # the one with a range (integrity check 18 Oct 2026 found 7,992 such pairs, NIFTY 100 / 200 / AUTO and others; closes agree)
+            df["_rng"] = (df["high"] > df["low"]).astype(int)
+            df = df.sort_values(["index_name", "date", "_rng", "ts"]).drop_duplicates(["index_name", "date"], keep="last").drop(columns="_rng").reset_index(drop=True)
         base = paths.data_dir()
         if interval == "day":
             for part, sub in (("silver", df[df["ts"] < hold]), ("sealed/silver", df[df["ts"] >= hold])):

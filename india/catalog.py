@@ -48,7 +48,7 @@ def build() -> dict:
             con.execute(f"create or replace view {name} as select * from read_parquet('{root / rel}')")
     con.execute("""
         create or replace table cm_adj as
-        with fx as (select symbol, ex_date, factor from factors where factor is not null and factor > 0)
+        with fx as (select symbol, ex_date, factor from factors where factor is not null and factor > 0 and coalesce(apply, true))
         select c.date, c.symbol, c.series, c.close, c.volume, c.turnover,
                c.close / coalesce((select exp(sum(ln(f.factor))) from fx f where f.symbol = c.symbol and f.ex_date > c.date), 1.0) as adj_close,
                coalesce((select exp(sum(ln(f.factor))) from fx f where f.symbol = c.symbol and f.ex_date > c.date), 1.0) as cum_factor

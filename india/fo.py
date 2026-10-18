@@ -25,7 +25,10 @@ from india import catalog, nse, paths, silver
 
 TYPE_MAP = {"IDF": "FUTIDX", "STF": "FUTSTK", "IDO": "OPTIDX", "STO": "OPTSTK"}
 COLS = ["date", "instrument", "symbol", "expiry", "strike", "opt_type", "open", "high", "low", "close", "settle", "volume", "value_rs",
-        "open_interest", "chg_oi", "underlying", "lot_size", "lot_est", "source", "ingested_at"]
+        "open_interest", "chg_oi", "underlying", "lot_size", "lot_est", "style", "source", "ingested_at"]
+# Stock options were American-style until 2011 and the old files mark them CA / PA; they are kept as CE / PE with style "A" (found by the
+# integrity check 18 Oct 2026: the earlier parse dropped their strike and type, leaving 870k stock-option rows keyless for 2001-2010).
+OLD_TYPES = {"CE": ("CE", "E"), "PE": ("PE", "E"), "CA": ("CE", "A"), "PA": ("PE", "A")}
 
 
 def _dt(col: pd.Series) -> pd.Series:
@@ -53,12 +56,14 @@ def parse_fo(path: Path) -> pd.DataFrame:
             "volume": pd.to_numeric(raw["TtlTradgVol"]), "value_rs": pd.to_numeric(raw["TtlTrfVal"]), "open_interest": pd.to_numeric(raw["OpnIntrst"]),
             "chg_oi": pd.to_numeric(raw["ChngInOpnIntrst"]), "underlying": pd.to_numeric(raw["UndrlygPric"], errors="coerce"),
             "lot_size": pd.to_numeric(raw["NewBrdLotQty"], errors="coerce"), "lot_est": float("nan")})
+        df["style"] = df["opt_type"].where(df["opt_type"].isna(), "E")
     else:
         ot = "OPTION_TYP" if "OPTION_TYP" in raw.columns else "OPTIONTYPE"
+        typ = raw[ot].str.strip().map(lambda x: OLD_TYPES.get(x, (None, None)))
         df = pd.DataFrame({
             "date": _dt(raw["TIMESTAMP"]).dt.date, "instrument": raw["INSTRUMENT"].str.strip(),
             "symbol": raw["SYMBOL"].str.strip(), "expiry": _dt(raw["EXPIRY_DT"]).dt.date,
-            "strike": pd.to_numeric(raw["STRIKE_PR"], errors="coerce"), "opt_type": raw[ot].where(raw[ot].isin(["CE", "PE"])),
+            "strike": pd.to_numeric(raw["STRIKE_PR"], errors="coerce"), "opt_type": typ.map(lambda x: x[0]), "style": typ.map(lambda x: x[1]),
             "open": pd.to_numeric(raw["OPEN"]), "high": pd.to_numeric(raw["HIGH"]), "low": pd.to_numeric(raw["LOW"]), "close": pd.to_numeric(raw["CLOSE"]),
             "settle": pd.to_numeric(raw["SETTLE_PR"]), "volume": pd.to_numeric(raw["CONTRACTS"]), "value_rs": pd.to_numeric(raw["VAL_INLAKH"]) * 1e5,
             "open_interest": pd.to_numeric(raw["OPEN_INT"]), "chg_oi": pd.to_numeric(raw["CHG_IN_OI"]), "underlying": float("nan"), "lot_size": float("nan")})
@@ -66,7 +71,8 @@ def parse_fo(path: Path) -> pd.DataFrame:
         df["lot_est"] = float("nan")
         df.loc[fut, "lot_est"] = (df.loc[fut, "value_rs"] / (df.loc[fut, "volume"] * df.loc[fut, "close"])).round()
     df["strike"] = df["strike"].where(df["opt_type"].notna())
-    return df
+    # a few old files list the same contract twice with identical numbers (2002-03); keep one row per contract
+    return df.drop_duplicates(["date", "instrument", "symbol", "expiry", "strike", "opt_type"], keep="last")
 
 
 def build_year(year: int) -> dict:

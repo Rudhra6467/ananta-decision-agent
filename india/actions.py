@@ -168,9 +168,38 @@ def build_factors() -> dict:
         select symbol, ex_date, null, null, gap, gap5, ratio_a, null, 'A_ONLY', ratio_a
         from a_only where ratio_a is not null and ratio_a = ratio5 and (ratio_a >= 1.3 or ratio_a <= 0.77)
         order by 1, 2""").df()
+    df = confirm(df, con)
     out = sd / "factors.parquet"
     pq.write_table(pa.Table.from_pandas(df, preserve_index=False), out)
-    return {"rows": len(df), "status": df["status"].value_counts().to_dict(), "path": str(out)}
+    return {"rows": len(df), "status": df["status"].value_counts().to_dict(), "applied": df.groupby("status")["apply"].sum().astype(int).to_dict(),
+            "ambiguous_inside_history": int((df["inside"] & ~df["apply"]).sum()), "path": str(out)}
+
+
+def confirm(df: pd.DataFrame, con) -> pd.DataFrame:
+    """Which factors are applied (18 Oct 2026 rule, from the integrity check: 63 of 514 A_ONLY factors made the adjusted series jump more than 30%).
+    For each event, the raw close on the last session before the ex-date and on the first session on or after it (each within 15 days):
+      inside = the stock traded on both sides; raw_gap = close before / close after.
+      AGREE: applied. Outside the trading history: applied (it moves every row of that stock by the same amount, so no return changes).
+      A_ONLY, B_ONLY, DISAGREE inside the history: applied only if raw_gap is within 15% of the factor; otherwise NOT applied and marked
+      ambiguous: the lab skips any signal window that crosses an ambiguous event and the paper engine rejects a candidate with one in its lookback."""
+    glob = str(paths.data_dir() / "silver" / "cm_bhavcopy" / "year=*" / "part.parquet")
+    con.register("ev", df[["symbol", "ex_date"]].drop_duplicates())
+    side = con.execute(f"""
+        with eq as (select symbol, date, close from read_parquet('{glob}') where series = 'EQ' and close > 0)
+        select ev.symbol, ev.ex_date,
+               (select close from eq where eq.symbol = ev.symbol and eq.date < ev.ex_date and eq.date >= ev.ex_date - interval 15 day order by date desc limit 1) as close_before,
+               (select close from eq where eq.symbol = ev.symbol and eq.date >= ev.ex_date and eq.date <= ev.ex_date + interval 15 day order by date limit 1) as close_after
+        from ev""").df()
+    df = df.merge(side, on=["symbol", "ex_date"], how="left")
+    df["inside"] = df["close_before"].notna() & df["close_after"].notna()
+    df["raw_gap_cc"] = df["close_before"] / df["close_after"]
+    ok = (df["raw_gap_cc"] / df["factor"] - 1).abs() < 0.15
+    df["apply"] = df["factor"].notna() & (df["factor"] > 0) & ((df["status"] == "AGREE") | ~df["inside"] | ok)
+    df["basis"] = "not applied: price does not confirm (ambiguous)"
+    df.loc[df["apply"] & (df["status"] == "AGREE"), "basis"] = "both records agree"
+    df.loc[df["apply"] & ~df["inside"], "basis"] = "outside trading history (level only)"
+    df.loc[df["apply"] & df["inside"] & (df["status"] != "AGREE"), "basis"] = "one record, price confirms within 15%"
+    return df
 
 
 if __name__ == "__main__":

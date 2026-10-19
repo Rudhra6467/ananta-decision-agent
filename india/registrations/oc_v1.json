@@ -1,0 +1,56 @@
+{
+ "family": "OC",
+ "version": "oc-v1-draft-2026-10-19",
+ "status": "DRAFT: awaiting Madhav's approval; nothing has been run",
+ "source": "Madhav's Opening Decision Protocol V1 (19 Oct 2026), encoded exactly; thresholds are candidates to test, not beliefs",
+ "session_ist": {"open": "09:15", "close": "15:30", "last_entry": "14:30", "flat_by": "15:15"},
+ "periods": {"dev": [2015, 2017], "validation": [2018, 2023], "holdout": "2024-01-01 onward (sealed)", "walk_forward_folds": "expanding, test years 2016..2023"},
+ "definitions": {
+  "PDH_PDL_PDC": "previous session high, low, close (adjusted)",
+  "gap": "open(09:15) / PDC - 1; buckets flat |g|<0.25%, small 0.25-0.75%, large >=0.75%",
+  "OR_k": "high and low from 09:15 to 09:15+k minutes, k in {5, 15, 30}",
+  "breadth_B_t": "share of the point-in-time liquidity top 50 (u_liq_in, as of the previous session) with 5-minute data that day whose last price at t is above their own 09:15 open",
+  "agreement_A_t": "sign(Nifty 50 - its open) equals sign(Nifty Bank - its open) at t",
+  "rvol_t": "stocks only: cumulative volume 09:15..t over the median of the same window in the previous 20 sessions",
+  "vwap_t": "stocks only: session VWAP from 5-minute typical price x volume; the index has no volume, so no index VWAP in primary tests",
+  "tight_consolidation": "OR_k width / daily ATR14 (previous session) <= 0.35",
+  "accepted_rejected": "diagnostic, recorded not tested in primary: at 09:30 accepted if price is beyond half the OR15 range in the gap's direction; rejected if the gap has filled (price back through PDC)"
+ },
+ "states": {
+  "CONFIRMED_LONG": "a 1-minute close (5-minute for stocks) above OR_k high at or after 09:15+k, with B >= 0.60 and A true at that bar; stocks also rvol >= 1.5 and price > VWAP",
+  "CONFIRMED_SHORT": "mirror: close below OR_k low, B <= 0.40, A true; stocks rvol >= 1.5 and price < VWAP",
+  "REVERSAL_CANDIDATE": "secondary only: |gap| >= 0.5%, then a close back through the 09:15 open against the gap after 09:30, with B crossing 0.5 in the reversal direction",
+  "WAIT": "no confirmed state by 10:15 (E1, E2) or by 11:30 (E4); recorded as a decision with its counterfactual",
+  "NO_TRADE": "the day ends without a confirmed state, or a stand-down rule applies; a valid outcome"
+ },
+ "entries": {
+  "E1_break": "next bar open after the first qualifying break",
+  "E2_retest": "after the break, price returns within 0.10% (index) / 0.20% (stocks) of the broken OR edge within 30 minutes and the next bar closes away from it; enter at the following open; no retest = no trade (counted)",
+  "E3_after_30": "same as E1 with k = 30 (decision not before 09:45)",
+  "E4_late": "first qualifying break of OR30 between 10:15 and 11:30",
+  "E5_no_trade_on_conflict": "not a trade: the days the filters reject; their unfiltered outcome is the counterfactual that shows whether waiting saved money"
+ },
+ "exits": {
+  "X1_invalidation": "stop at the opposite edge of OR_k (E2: the retest extreme); else flat at 15:15",
+  "X2_measured_room": "stop at entry -/+ m x (OR_k width), where m is the 80th percentile of adverse excursion of dev-period winners of the same variant, computed on dev only and frozen before validation; else flat at 15:15",
+  "secondary": ["X3 trail 1R after +1R", "X4 time stop 60 / 120 minutes", "X5 target previous-day high / low"]
+ },
+ "primary_tests": {
+  "variants_per_instrument": ["k15|E1|X1", "k15|E1|X2", "k15|E2|X1", "k15|E2|X2", "k30|E1|X1", "k30|E1|X2", "k30|E2|X1", "k30|E2|X2", "k30|E4|X1", "k30|E4|X2"],
+  "instruments": {"NIFTY": "Nifty 50 spot minutes traded as an index-future proxy (futures costs, 1-tick slippage, basis ignored, labelled)",
+                  "BANKNIFTY": "Nifty Bank spot minutes, same proxy",
+                  "STOCKS": "point-in-time liquidity top 100 with 5-minute data (survivorship-labelled), intraday long and short"},
+  "event_day_test": "on scheduled event days in the event registry (RBI 10:00, Budget 11:00, election counting), standing down until 30 minutes after the event beats trading through it: NIFTY and BANKNIFTY, k30|E1|X1",
+  "each_against_baseline": "every primary variant is paired with the same entries and exits without the breadth, agreement, volume and VWAP filters (the unfiltered baseline); two questions: does it make money net of costs, and does confirmation improve on the baseline",
+  "count": 32
+ },
+ "secondary_grid": {"k": [5], "B": [0.55, 0.70], "rvol": [1.2, 2.0], "vwap": ["off"], "tight_consolidation": ["required"], "exits": ["X3", "X4", "X5"], "reversal": "REVERSAL_CANDIDATE with X1",
+                    "rule": "exploratory: every variant counts in the ledger; a secondary result is reported only if it survives BH across the whole ledger and the family shuffle"},
+ "options_mapping": {"historical": "synthetic ATM option on the nearest weekly expiry priced with Black-76 from the index minute path and the previous session's IV (labelled SYNTHETIC)",
+                     "suitability_check": "before an option entry: required underlying move = (premium + 2 x half-spread + costs) / |delta| + theta x expected hold; take the option only if the playbook's dev-period favourable-excursion distribution reaches that move at least 60% of the time, else use the future or skip",
+                     "forward": "real recorder minutes and measured order-book spreads from 19 Oct 2026"},
+ "stratify_report_only": ["gap bucket", "VIX tercile (previous close)", "Nifty vs 50-day", "event day", "expiry day", "era 2015-2019 vs 2020-2023", "weekday"],
+ "metrics": ["net expectancy (Rs and R)", "profit factor", "win rate", "average win / average loss", "max drawdown of daily equity", "MAE and MFE distributions", "trades per year", "share of days traded", "WAIT-day counterfactual", "cost share", "slippage"],
+ "statistics": "one trade per index per day: t across days; stocks: per-day mean then t across days; registry family OC with its multiple-testing bar; robustness: at least 5 of 8 walk-forward folds with the same sign, liquidity halves, costs doubled, within-day shuffle for stock filters",
+ "data_limits": ["index minutes have no volume: volume and VWAP confirmation are tested on stocks only", "breadth uses the covered constituents (75-93% of the liquidity top 50 by year)", "stock 5-minute data covers 49-83% of the point-in-time top 250 by year (Kite lists only current instruments): stock results carry a survivorship label and a daily-bar bias check", "no GIFT Nifty history: the overnight view uses the US close, USD/INR, Brent and the previous day's flows", "no historical intraday options, futures, currency or commodity data before the recorder: those are synthetic, proxied or forward-only"]
+}

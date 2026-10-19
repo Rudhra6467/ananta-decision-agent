@@ -4,6 +4,7 @@ A reader names its purpose; the request is checked against the purposes allowed 
 what window, how many rows) before any row is returned. Nothing here lets a study score a rule on the holdout. Allowed purposes:
   paper_lookback  the live paper engine's last few hundred sessions, to compute indicators (200-day average, 14-day range) for a signal on today's close
   paper_context   the engine's market context (Nifty 50 and India VIX against their averages) recorded with each decision
+  forecast_score  index closes after a forecast's horizon, to score forecasts written beforehand in paper/forecasts.jsonl (no rule scored)
   integrity       selected columns for data checks (duplicates, mappings, stale files, calendar coverage); no returns are computed
   manifest        row counts, last date and file fingerprints for the dataset-version manifest
   calibration     settlement IVs of recorded days, to measure how far the synthetic option prices are from the recorder's real ones (R01); no rule is scored
@@ -66,7 +67,7 @@ def read_index(purpose: str, since: str, names: list[str]) -> pd.DataFrame:
     return df.drop_duplicates(["index_name", "date"], keep="last")
 
 
-ALLOWED_CONTEXT = {"paper_context"}
+ALLOWED_CONTEXT = {"paper_context", "forecast_score"}
 
 
 ALLOWED_INTEGRITY = {"integrity", "calibration"}

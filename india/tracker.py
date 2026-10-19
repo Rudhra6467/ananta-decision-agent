@@ -143,6 +143,7 @@ PROGRESS = {
     "F02": "18 Oct: O-03 closing-price version: 84-87% wins, mean about Rs 120-140, worst about -Rs 14k, drawdowns -Rs 29k to -34k on a Rs 50,000 book",
     "I01": "18 Oct: opening 30/60 minutes do not predict the rest of the day",
     "I05": "18 Oct: expiry afternoons: the 13:00-13:29 range breaks 97-99% of days, no continuation after the break; median 13:30-15:15 move 0.24% (Nifty)",
+    "OC1": "19 Oct: Opening Decision Protocol V1, 74 ledger rows: no variant makes money net of costs in 2018-2023 (index ~0 after +5 to +8 bp in 2015-17; stocks -7 to -15 bp, gross 3-8 bp vs ~15 bp costs); confirmation beats the plain break on stocks (VALIDATED x8, mostly by keeping out of losing trades); waiting saved money on index and stocks; one Nifty/Bank Nifty future lot risks Rs 4,000-5,700, so Rs 1,000 max risk = NO TRADE on futures",
     "C01": "18 Oct: shock days and high-volatility regimes: large positive leads (+4-8% after a 2% Nifty fall) but too few independent episodes: INCONCLUSIVE, also as declustered events",
     "F05": "18 Oct: synthetic reconstruction 2015-2023 (928 expiry days): O-04 loses about 1% of the Rs 50,000 book per expiry day; better than holding the straddle to 15:15 (CONDITIONAL); recorder calibration (R01) decides",
 }

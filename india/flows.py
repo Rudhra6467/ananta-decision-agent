@@ -83,6 +83,10 @@ def _parse(p) -> pd.DataFrame:
             raise ValueError(f"title date {td.date()} differs from file date {fd.date()}")
     df = pd.read_csv(io.StringIO("\n".join(txt[1:])))
     df.columns = [re.sub(r"\s+", " ", str(c)).strip() for c in df.columns]
+    if any(re.fullmatch(r"[\d.]+", c) for c in df.columns[1:]):
+        # e.g. 22 Aug 2013: NSE put the header on the title line and the row labels are shifted by one (the "Client" row holds DII-sized
+        # numbers); which row is whose cannot be known, so the day is refused and counted, never guessed
+        raise ValueError("header on the title line with shifted row labels: ambiguous layout")
     df = df[df["Client Type"].astype(str).str.strip().isin(["Client", "DII", "FII", "Pro", "TOTAL"])].copy()
     df["Client Type"] = df["Client Type"].astype(str).str.strip()
     for c in df.columns[1:]:

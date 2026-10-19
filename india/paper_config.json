@@ -1,6 +1,6 @@
 {
- "version": "cfg-2026-10-19a",
- "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file. cfg-2026-10-19a (Madhav, 19 Oct 18:20 Toronto): the India book is Rs 60,000 to start; risk per trade is not fixed: entries, exits, holding time and size are research outputs per market scenario. The Rs 50,000 / Rs 1,000 figures came from the crypto lab's $1,000 / $100 and are withdrawn for India.",
+ "version": "cfg-2026-10-19b",
+ "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file. cfg-2026-10-19a (Madhav, 19 Oct 18:20 Toronto): the India book is Rs 60,000 to start; risk per trade is not fixed: entries, exits, holding time and size are research outputs per market scenario. cfg-2026-10-19b (Madhav, 19 Oct 18:28): survival limits 5% a day and a pause at 22% drawdown; index views through options in the book; futures and forex tracked in shadow paper books.",
  "stock": {
   "sizing": "fixed_notional",
   "notional_inr": 50000,
@@ -31,5 +31,38 @@
   "sizing": "learned per scenario by the research (not a fixed rupee amount)",
   "note": "Rs 1,000 cap withdrawn by Madhav 19 Oct 2026 18:20; it was 2% of a Rs 50,000 book carried over from the crypto lab"
  },
- "book_inr": 60000
+ "book_inr": 60000,
+ "survival": {
+  "daily_loss_limit_pct": 5.0,
+  "daily_basis": "equity at the start of the session; when realised plus open loss reaches it, every position is closed and no new entry that day",
+  "pause_drawdown_pct": 22.0,
+  "pause_basis": "equity below its high-water mark by this much: no new entries until Madhav resumes; open positions follow their own exits",
+  "note": "Madhav 19 Oct 2026 18:28; overnight gaps can exceed the daily limit (the limit acts during market hours only)"
+ },
+ "books": {
+  "main": {
+   "capital_inr": 60000,
+   "instruments": [
+    "index options (NIFTY, BANKNIFTY weekly)",
+    "stocks (intraday and delivery)"
+   ],
+   "survival": true
+  },
+  "shadow_index_futures": {
+   "instruments": [
+    "NIFTY and BANKNIFTY near-month futures, 1 lot"
+   ],
+   "capital": "unconstrained (tracking)",
+   "survival": false,
+   "note": "same decisions as the main book's index views, executed as futures, to keep learning futures (Madhav 19 Oct)"
+  },
+  "shadow_forex": {
+   "instruments": [
+    "USDINR, EURINR, GBPINR, JPYINR near-month futures (NSE CDS)"
+   ],
+   "capital": "unconstrained (tracking)",
+   "survival": false,
+   "note": "recorded at 1 minute from 21 Oct 2026; research phase SP-FX before any forex decisions (Madhav 19 Oct)"
+  }
+ }
 }

@@ -31,13 +31,19 @@ BREADTH_BAR = {"D1": 2, "D2": 5, "D3": 11}    # last 5-minute bar closed by then
 SCHEDULED = {"rbi_policy", "union_budget", "election"}
 
 
-def _daily(name: str) -> pd.DataFrame:
+def _daily(name: str, raw: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Daily bars with ATR14 and the 50/200-day averages. raw: rows supplied by a registered holdout run (silver + sealed), else silver to 2023."""
     D = paths.data_dir()
-    f = next(p for p in (D / "silver/kite_index/day").iterdir() if p.suffix == ".parquet")
-    d = pd.read_parquet(f)
+    if raw is None:
+        f = next(p for p in (D / "silver/kite_index/day").iterdir() if p.suffix == ".parquet")
+        d = pd.read_parquet(f)
+    else:
+        d = raw
     d = d[d["index_name"] == name].copy()
     d["date"] = pd.to_datetime(d["date"]).dt.date
-    d = d[d["date"] <= dt.date(2023, 12, 31)].sort_values("date").reset_index(drop=True)
+    if raw is None:
+        d = d[d["date"] <= dt.date(2023, 12, 31)]
+    d = d.sort_values("date").drop_duplicates("date", keep="last").reset_index(drop=True)
     pc = d["close"].shift(1)
     tr = np.maximum(d["high"], pc) - np.minimum(d["low"], pc)
     d["atr14"] = tr.rolling(14).mean()
@@ -82,15 +88,18 @@ def scheduled_dates() -> set[dt.date]:
     return set(a["fts"]) | set(b["fts"]) | set(c["fts"])
 
 
-def build() -> dict:
+def build(src: dict | None = None, out_file: Path | None = None, from_date: dt.date | None = None) -> dict:
+    """src (optional, a registered holdout run): days, specials, index (ocstudy.index_arrays), breadth (date-indexed b0..b11), participant_oi
+    rows, index_day rows. Without src: silver and gold, 2015-2023. Same code either way."""
     D = paths.data_dir()
-    days, specials = ocstudy._calendar()
-    index = ocstudy.load_index()
-    breadth = pd.read_parquet(D / "gold/studies/OC1_breadth.parquet").set_index("date")
+    src = src or {}
+    days, specials = (src["days"], src["specials"]) if "days" in src else ocstudy._calendar()
+    index = src["index"] if "index" in src else ocstudy.load_index()
+    breadth = src["breadth"] if "breadth" in src else pd.read_parquet(D / "gold/studies/OC1_breadth.parquet").set_index("date")
     macro = _macro()
     us = pd.read_parquet(D / "silver/us/us_close.parquet")
     qqq = us[us["symbol"] == "QQQ"].dropna(subset=["ret"]).set_index("date")["ret"].sort_index()
-    fii = pd.read_parquet(D / "silver/flows/participant_oi.parquet")
+    fii = src["participant_oi"] if "participant_oi" in src else pd.read_parquet(D / "silver/flows/participant_oi.parquet")
     fii = fii[fii["client_type"] == "FII"].copy()
     fii["date"] = pd.to_datetime(fii["date"]).dt.date
     fii["fii_long_share"] = fii["future_index_long"] / (fii["future_index_long"] + fii["future_index_short"])
@@ -105,11 +114,11 @@ def build() -> dict:
     nf, nb = index["NIFTY 50"], index["NIFTY BANK"]
     fi = {d: i for i, d in enumerate(nf["dates"])}
     bi = {d: i for i, d in enumerate(nb["dates"])}
-    daily = {sym: _daily(name).set_index("date") for sym, name in IDX.items()}
-    vix_d = _daily("INDIA VIX").set_index("date")["close"]
+    daily = {sym: _daily(name, src.get("index_day")).set_index("date") for sym, name in IDX.items()}
+    vix_d = _daily("INDIA VIX", src.get("index_day")).set_index("date")["close"]
     rows = []
     for d in days:
-        if d.year < 2015 or d in specials or d not in fi or d not in bi:
+        if d.year < 2015 or d in specials or d not in fi or d not in bi or (from_date is not None and d < from_date):
             continue
         if not (nf["ok"][fi[d]] and nb["ok"][bi[d]]):
             continue
@@ -155,6 +164,10 @@ def build() -> dict:
                 row[f"agree_{dk}"] = bool((m1 >= 0.0005 and m2 >= 0.0005) or (m1 <= -0.0005 and m2 <= -0.0005))
             rows.append(row)
     st = pd.DataFrame(rows)
+    if out_file is not None:
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        st.to_parquet(out_file)
+        return {"rows": len(st), "days": int(st["date"].nunique()) if len(st) else 0, "file": str(out_file)}
     out = D / "gold/scenario"
     out.mkdir(parents=True, exist_ok=True)
     st.to_parquet(out / "index_states.parquet")

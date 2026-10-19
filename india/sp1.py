@@ -149,17 +149,19 @@ def option_leg(sym, day, setup, d, spot_in, m_in, spot_out, day_out, m_out, stop
 
 
 # ----------------------------------------------------------------------------------------------------------------------------- outcomes
-def outcomes(log=print) -> pd.DataFrame:
+def outcomes(log=print, src: dict | None = None, out_file: Path | None = None) -> pd.DataFrame:
+    """src (optional, a registered holdout run): days, specials, states, index, lots, chains. Without src: silver/gold 2015-2023. Same code."""
     D = paths.data_dir()
-    days_all, specials = ocstudy._calendar()
+    src = src or {}
+    days_all, specials = (src["days"], src["specials"]) if "days" in src else ocstudy._calendar()
     nxt = {days_all[i]: days_all[i + 1] for i in range(len(days_all) - 1)}
     prv = {days_all[i]: days_all[i - 1] for i in range(1, len(days_all))}
-    st = pd.read_parquet(D / "gold/scenario/index_states.parquet")
-    index = ocstudy.load_index()
-    lots = ocstudy.load_lots()
+    st = src["states"] if "states" in src else pd.read_parquet(D / "gold/scenario/index_states.parquet")
+    index = src["index"] if "index" in src else ocstudy.load_index()
+    lots = src["lots"] if "lots" in src else ocstudy.load_lots()
     lot = lots.set_index(["date", "symbol"])["lot"].to_dict()
     log("loading option chains (previous-session IV, silver/fo_greeks 2014-2023)")
-    chains = _chains()
+    chains = src["chains"] if "chains" in src else _chains()
     pc = {}
     for sym, name in IDX.items():
         a = index[name]
@@ -245,6 +247,10 @@ def outcomes(log=print) -> pd.DataFrame:
             log(f"{sym} {P}: {len(rows):,} outcome rows")
     out = pd.DataFrame(rows)
     out["net_bps"] = out["gross_bps"] - out["cost_bps"]
+    if out_file is not None:
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        out.to_parquet(out_file, index=False)
+        return out
     out.to_parquet(D / "gold/studies/SP1_outcomes.parquet", index=False)
     summ = {"rows": len(out), "spec_sha": spec_sha(), "by_index_point": out.groupby(["index", "point"]).size().to_dict(),
             "option_leg_share": round(float(out["opt_ret"].notna().mean()), 4) if "opt_ret" in out else 0.0,

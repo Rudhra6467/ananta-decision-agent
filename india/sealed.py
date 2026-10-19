@@ -8,7 +8,9 @@ what window, how many rows) before any row is returned. Nothing here lets a stud
   integrity       selected columns for data checks (duplicates, mappings, stale files, calendar coverage); no returns are computed
   manifest        row counts, last date and file fingerprints for the dataset-version manifest
   calibration     settlement IVs of recorded days, to measure how far the synthetic option prices are from the recorder's real ones (R01); no rule is scored
-None of them computes rule performance. A lookback or context request for more than LOOKBACK_DAYS calendar days is refused.
+  holdout         the ONE registered confirmatory run of a frozen study (HOLDOUT_RUNS): opened once, after Madhav's approval, with a fixed window and
+                  a fixed folder list; every query is logged; once the run is marked completed it can never be opened again
+Apart from a registered holdout run, none of them computes rule performance. A lookback or context request for more than LOOKBACK_DAYS calendar days is refused.
 
   from india import sealed
   df = sealed.read_cm("paper_lookback", since="2025-09-01")      raw series-EQ cash rows from sealed/silver + silver
@@ -18,6 +20,8 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+
+from pathlib import Path
 
 import duckdb
 import pandas as pd
@@ -113,3 +117,76 @@ def metadata(folder: str, pattern: str, datecol: str | None) -> dict:
         con.close()
     _log("manifest", f"metadata {folder}", "-", out.get("rows") or 0)
     return out
+
+
+# ----------------------------------------------------------------------------------------------------------------------------- holdout runs
+HOLDOUT_RUNS = {
+    "sp1_holdout": {"registration": "registrations/sp1_v2.json", "start": "2024-01-01", "end": "2026-10-16",
+                    "approved": "Madhav, 19 Oct 2026 19:52 Toronto (chat: 'Yes' to opening the SP1 holdout)",
+                    "folders": ["kite_index/minute", "kite_index/day", "cm_bhavcopy", "kite_5m", "flows", "fo_bhavcopy", "fo_greeks"]},
+}
+_OPEN: dict[str, dict] = {}
+
+
+def _runs_log():
+    return paths.manifest_dir() / "holdout_runs.jsonl"
+
+
+def _runs() -> list[dict]:
+    p = _runs_log()
+    return [json.loads(x) for x in p.read_text().splitlines() if x.strip()] if p.exists() else []
+
+
+def holdout_open(run: str) -> dict:
+    """Open a registered holdout run. Refused if the run is unknown, its registration is not frozen or has changed since approval would be checked by
+    the caller's spec sha, or the run was already completed (a holdout is used once)."""
+    import hashlib
+
+    if run not in HOLDOUT_RUNS:
+        raise PermissionError(f"holdout refused: {run!r} is not a registered holdout run")
+    h = HOLDOUT_RUNS[run]
+    reg = Path(__file__).parent / h["registration"]
+    spec = json.loads(reg.read_text())
+    if not str(spec.get("status", "")).startswith("FROZEN"):
+        raise PermissionError(f"holdout refused: {h['registration']} is not frozen")
+    if any(r["run"] == run and r["status"] == "completed" for r in _runs()):
+        raise PermissionError(f"holdout refused: {run} was already completed; a holdout is opened once")
+    sha = hashlib.sha256(reg.read_bytes()).hexdigest()[:16]
+    prior = [r for r in _runs() if r["run"] == run]
+    line = {"at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "run": run, "status": "reopened" if prior else "opened",
+            "registration": h["registration"], "sha": sha, "window": [h["start"], h["end"]], "approved": h["approved"]}
+    with _runs_log().open("a") as fh:
+        fh.write(json.dumps(line) + "\n")
+    _log("holdout", f"{run} {line['status']}", h["start"], 0)
+    ticket = {"run": run, "sha": sha, **h}
+    _OPEN[run] = ticket
+    return ticket
+
+
+def holdout_query(ticket: dict, folder: str, select: str, where: str = "", params: list | None = None, group_by: str = "") -> pd.DataFrame:
+    """Rows of one sealed silver folder inside the run's fixed window (the window is always enforced here), logged."""
+    run = ticket.get("run")
+    if _OPEN.get(run) is not ticket:
+        raise PermissionError("holdout query refused: the run is not open in this process")
+    if folder not in ticket["folders"]:
+        raise PermissionError(f"holdout query refused: {folder} is not in the run's folder list")
+    base = paths.data_dir() / "sealed" / "silver" / folder
+    files = [str(p) for p in sorted(base.glob("**/*.parquet"))]
+    if not files:
+        return pd.DataFrame()
+    sql = (f"select {select} from read_parquet({files!r}, union_by_name=true) where cast(date as date) >= ? and cast(date as date) <= ?"
+           + (f" and ({where})" if where else "") + (f" group by {group_by}" if group_by else ""))
+    con = duckdb.connect()
+    con.execute("set threads to 6")
+    df = con.execute(sql, [pd.Timestamp(ticket["start"]).date(), pd.Timestamp(ticket["end"]).date()] + list(params or [])).df()
+    con.close()
+    _log("holdout", f"{run} {folder}: {select[:60]}", ticket["start"], len(df))
+    return df
+
+
+def holdout_complete(ticket: dict, summary: dict) -> None:
+    run = ticket["run"]
+    with _runs_log().open("a") as fh:
+        fh.write(json.dumps({"at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "run": run, "status": "completed",
+                             "sha": ticket["sha"], "summary": summary}, default=str) + "\n")
+    _OPEN.pop(run, None)

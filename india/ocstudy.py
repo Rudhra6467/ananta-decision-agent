@@ -270,7 +270,13 @@ def load_index() -> dict:
                          from read_parquet({_silver('silver/kite_index/minute')!r})
                          where index_name in ('NIFTY 50', 'NIFTY BANK', 'INDIA VIX')""").df()
     con.close()
-    df = df[(df.m >= 0) & (df.m < NMIN)]
+    return index_arrays(df)
+
+
+def index_arrays(df: pd.DataFrame) -> dict:
+    """Per-index day x minute arrays from minute rows (index_name, date, m, open, high, low, close); used for silver and for a registered
+    holdout run alike, so both go through the same code."""
+    df = df[(df.m >= 0) & (df.m < NMIN)].copy()
     df["date"] = pd.to_datetime(df["date"]).dt.date
     out = {}
     for name, g in df.groupby("index_name"):
@@ -296,18 +302,23 @@ def load_lots() -> pd.DataFrame:
     df = con.execute(f"""select date, symbol, expiry, coalesce(lot_size, lot_est) as lot from read_parquet({_silver('silver/fo_bhavcopy')!r})
                          where instrument = 'FUTIDX' and symbol in ('NIFTY', 'BANKNIFTY')""").df()
     con.close()
+    days, _ = _calendar()
+    return lots_from_df(df, days, (YEARS[0], YEARS[-1]))
+
+
+def lots_from_df(df: pd.DataFrame, days: list, year_range: tuple) -> pd.DataFrame:
+    """Nearest-expiry FUTIDX lot per date and symbol, with the labelled neighbour carry (shared by silver and holdout runs)."""
     df = df.sort_values(["date", "symbol", "expiry"]).groupby(["date", "symbol"]).first().reset_index()
     df["date"] = pd.to_datetime(df["date"]).dt.date
     df["lot_source"] = "fo_bhavcopy"
     # a session whose F&O file NSE does not have (both archive addresses 404, e.g. 2021-03-30): the lot is carried from the neighbouring
     # sessions only when the session before and the session after agree; labelled, counted in the results
-    days, _ = _calendar()
     have = set(zip(df["date"], df["symbol"]))
     lot = dict(zip(zip(df["date"], df["symbol"]), df["lot"]))
     add = []
     for i in range(1, len(days) - 1):
         d = days[i]
-        if d.year < YEARS[0] or d.year > YEARS[-1]:
+        if d.year < year_range[0] or d.year > year_range[1]:
             continue
         for sym in ("NIFTY", "BANKNIFTY"):
             if (d, sym) not in have:

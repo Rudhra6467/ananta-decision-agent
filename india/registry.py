@@ -97,6 +97,18 @@ def verdict_seen(val_t: float, val_mean: float, dates_val: int, z: float, expect
     return "NOT_SUPPORTED_SEEN"
 
 
+def verdict_holdout(val_t: float, val_mean: float, dates_val: int, z: float, expect: int) -> str:
+    """The single confirmatory run on a sealed holdout: CONFIRMED when t reaches the family z with the expected sign; OPPOSITE when it reaches z
+    the other way; NOT_CONFIRMED otherwise; INCONCLUSIVE with too few dates."""
+    if dates_val < MIN_DATES or val_t != val_t:
+        return "INCONCLUSIVE"
+    if val_t * (1 if expect >= 0 else -1) >= z:
+        return "CONFIRMED"
+    if val_t * (1 if expect >= 0 else -1) <= -z:
+        return "OPPOSITE"
+    return "NOT_CONFIRMED"
+
+
 def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None = None, expect: int = 0, rule: str = "standard") -> dict:
     """dev / val = (mean, t_stat, dates). Counts the variant into its family, then scores it against the family threshold.
     rule: 'standard' (verdict below) or 'seen_val_only' (verdict_seen)."""
@@ -105,7 +117,12 @@ def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None =
     seen = {(r["study"], r["variant"]) for r in rows if r["family"] == fam and r["kind"] == "result"}
     k = len(seen | {(reg["study"], variant)})
     z = threshold(k)
-    v = verdict_seen(val[1], val[0], val[2], z, expect) if rule == "seen_val_only" else verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z, expect)
+    if rule == "holdout_one_sided":
+        v = verdict_holdout(val[1], val[0], val[2], z, expect)
+    elif rule == "seen_val_only":
+        v = verdict_seen(val[1], val[0], val[2], z, expect)
+    else:
+        v = verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z, expect)
     if (extra or {}).get("min_trades_ok") is False:
         v = "INCONCLUSIVE"  # a pre-registered minimum trade count was not reached (e.g. SP1: 100 validation trades per index)
     line = {"kind": "result", "study": reg["study"], "family": fam, "variant": variant, "k_in_family": k, "z": round(z, 3), "dev": list(dev), "val": list(val),

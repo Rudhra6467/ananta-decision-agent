@@ -66,6 +66,20 @@ def check_sealed_files() -> tuple[bool, str]:
                 first = n.args[0].value if n.args and isinstance(n.args[0], ast.Constant) else None
                 if first != "calibration":
                     bad.append(f"calibrate.py line {n.lineno} (sealed.{n.func.attr} purpose {first!r})")
+    # sp1_holdout.py may open only its own registered run and may call only the holdout functions of the sealed module
+    ho = here / "sp1_holdout.py"
+    if ho.exists():
+        for n in ast.walk(ast.parse(ho.read_text())):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name) and n.func.value.id == "sealed":
+                if n.func.attr not in ("holdout_open", "holdout_query", "holdout_complete"):
+                    bad.append(f"sp1_holdout.py line {n.lineno} (sealed.{n.func.attr})")
+                if n.func.attr == "holdout_open":
+                    first = n.args[0].value if n.args and isinstance(n.args[0], ast.Constant) else None
+                    if first != "sp1_holdout":
+                        bad.append(f"sp1_holdout.py line {n.lineno} (holdout_open {first!r})")
+    for f in ("sp1.py", "scenario.py", "ocstudy.py"):
+        if (here / f).exists() and any(x in ("sealed", "sealed_dir") or "sealed/silver" in x or "sealed/gold" in x for x in _strings(here / f)):
+            bad.append(f + " (mentions sealed)")
     return (not bad), ("clean" if not bad else "references in " + ", ".join(sorted(set(bad))))
 
 

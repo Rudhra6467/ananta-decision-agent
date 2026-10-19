@@ -1,7 +1,7 @@
 {
  "family": "OC",
- "version": "sp1-v1-draft3",
- "status": "DRAFT 3: design approved by Madhav 19 Oct 2026 18:28 Toronto; independent review (two passes) addressed; freeze next",
+ "version": "sp1-v1-2026-10-19-frozen",
+ "status": "FROZEN 19 Oct 2026: design approved by Madhav 18:28 Toronto; independent review in two passes (4 blockers, 7 major, 5 minor; then 5 follow-ups), all addressed before freeze; any change after this is sp1-v2",
  "title": "Scenario Playbook phase 1: index intraday playbook (Nifty 50, Nifty Bank), executed through index options in the Rs 60,000 book, futures tracked as a shadow book",
  "why": "OC v1 (19 Oct): no fixed opening rule pays its costs; the day (breadth, agreement) mattered more than the instrument; shorts and longs differed. So learn which action fits which situation and test the learned policy as one object.",
  "evidence_status": {
@@ -154,5 +154,6 @@
   "F_live_us": "live US-close source required before paper trading",
   "G_newey_west": "lag 5 reported",
   "14b_dated_fees": "ocstudy.leg_fees takes trade dates (cost model v1.1); costs.cost(when=)"
- }
+ },
+ "frozen_at": "2026-10-19T22:42:02+00:00"
 }

@@ -17,7 +17,10 @@ from botocore.config import Config
 from india import paths
 
 BUCKET = "ananta-india-lake"
-ENV = Path("~/code/ananta-decision-agent/.env").expanduser()
+# 19 Oct firewall: an R2 API token scoped to this bucket only, in ~/ananta_private/r2_india.env (same R2_* key names), is used when present;
+# until Madhav creates it, the crypto agent's account key is the fallback and india.firewall reports r2_credentials FAIL.
+_OWN = Path("~/ananta_private/r2_india.env").expanduser()
+ENV = _OWN if _OWN.exists() else Path("~/code/ananta-decision-agent/.env").expanduser()
 PARTS = ("silver", "sealed/silver", "manifests")
 
 

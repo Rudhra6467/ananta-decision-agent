@@ -139,6 +139,9 @@ def run(quick: bool = False) -> dict:
         items, studs = lineage.deps()
         out["data_items"] = [{k: r[k] for k in ("id", "item", "manual_state", "auto_state", "first", "last", "note")} for r in items]
         out["blocked_studies"] = [s for s in studs if not s["runnable"]]
+        from india import firewall
+        fw = firewall.run()
+        out["firewall"] = {k: {"ok": v["ok"], "note": v["note"]} for k, v in fw.items() if not k.startswith("_")}
     out["replay"] = _load("replay.json")
     out["registry"] = _registry_summary()
     out["paper"] = _paper_summary()
@@ -146,6 +149,7 @@ def run(quick: bool = False) -> dict:
     fails += [f"leakcheck.{k}" for k, v in out.get("leakcheck", {}).items() if not v["ok"]]
     fails += [f"integrity.{k}" for k, v in out.get("integrity", {}).items() if not v["ok"]]
     fails += [f"replay.{k}" for k, v in out.get("replay", {}).get("checks", {}).items() if not v["ok"]]
+    fails += [f"firewall.{k}" for k, v in out.get("firewall", {}).items() if not v["ok"]]
     out["failures"] = fails
     (paths.manifest_dir() / "verify.json").write_text(json.dumps(out, indent=1, default=str))
     (HERE / "registrations" / "verification.md").write_text(_markdown(out))
@@ -180,6 +184,9 @@ def _markdown(o: dict) -> str:
         L += [f"| {k} | {'PASS' if v['ok'] else 'FAIL'} | {v['note']} |" for k, v in o["leakcheck"].items()] + [""]
         L += ["## Data integrity (india.integrity)", "", "| check | result | output |", "|---|---|---|"]
         L += [f"| {k} | {'PASS' if v['ok'] else 'FAIL'} | {v['note']} |" for k, v in o["integrity"].items()] + [""]
+    if "firewall" in o:
+        L += ["## India/crypto firewall (india.firewall; gate item, India data enters no shared agent workflow until all PASS)", "",
+              "| check | result | output |", "|---|---|---|"] + [f"| {k} | {'PASS' if v['ok'] else 'FAIL'} | {v['note']} |" for k, v in o["firewall"].items()] + [""]
     rp = o.get("replay") or {}
     if rp:
         L += [f"## Workflow replay (india.replay, {rp.get('window')}, validation years, scratch folder)", "",

@@ -80,6 +80,8 @@ def run(sync: bool = True) -> dict:
         ("flows", _flows),
         ("pr_silver", _pr_silver),
         ("surveillance", _surveil),
+        # 19 Oct: the firewall proof is re-run every night; a FAIL is a gate result recorded in manifests/firewall.json, not a build failure
+        ("firewall", lambda: {k: v["ok"] for k, v in __import__("india.firewall", fromlist=["run"]).run().items() if not k.startswith("_")}),
     ]
     if sync:
         from india import r2sync

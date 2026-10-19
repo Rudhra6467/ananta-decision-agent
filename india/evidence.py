@@ -92,8 +92,19 @@ def check_baseline() -> dict:
             "reasons": b["journal_reason"].value_counts().to_dict(), "ok": True}
 
 
+def check_firewall() -> dict:
+    """Reads the last firewall run (the full scan takes about a minute and runs in verify); stale beyond 36 h counts as not proven."""
+    p = paths.manifest_dir() / "firewall.json"
+    if not p.exists():
+        return {"ok": False, "note": "firewall never run"}
+    r = json.loads(p.read_text())
+    age = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(r["_at"])).total_seconds() / 3600
+    bad = [k for k, v in r.items() if not k.startswith("_") and not v["ok"]]
+    return {"at": r["_at"], "age_h": round(age, 1), "failed": bad, "ok": not bad and age < 36}
+
+
 CHECKS = {"recorder.minutes": check_recorder, "nightly.runs": check_nightly, "leakcheck": check_leaks, "paper.book": check_paper, "paper.baseline": check_baseline,
-          "integrity": check_integrity, "lineage": check_lineage}
+          "integrity": check_integrity, "lineage": check_lineage, "firewall": check_firewall}
 def study_r01() -> dict:
     from india import o4hist
     r = o4hist.r01()

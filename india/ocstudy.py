@@ -46,7 +46,7 @@ B_LONG, B_SHORT, RVOL_MIN, AGREE = 0.60, 0.40, 1.5, 0.0005
 MIN_BREADTH_NAMES = 20
 RETEST = {"index": (0.0010, 30), "stock": (0.0020, 6)}   # band, window in bars (30 minutes)
 VARIANTS = [f"k{k}|{e}|{x}" for k in (15, 30) for e in ("E1", "E2") for x in ("X1", "X2")]
-ETF_RE = re.compile(r"(BEES|ETF|IETF)$|^(N100|MON100|MAFANG|LIQUID[A-Z0-9]*|SETF[A-Z0-9]*)$")
+ETF_RE = re.compile(r"(?:BEES|ETF|IETF)$|^(?:N100|MON100|MAFANG|LIQUID[A-Z0-9]*|SETF[A-Z0-9]*)$")
 
 
 def _sha(p: Path) -> str:
@@ -87,6 +87,8 @@ INTERPRETATIONS = {
     "folds": "expanding walk-forward, test years 2016..2023: per test year, the variant's mean net bps (X2 with m refit on earlier years). Robust if at least 5 of 8 folds are positive.",
     "shuffle_stocks": "within each day, the FILTERED set is replaced by a random set of the same size from that day's BASELINE trades (their baseline results); 500 draws; p = share of draws whose mean is at or above the FILTERED mean. Tests selection, not timing.",
     "sizing": "Rs max risk from paper_config.json (intraday.max_risk_per_trade_inr). Index: lots = floor(max_risk / ((stop distance + per-unit cost) x lot size)); 0 lots = NO_TRADE with reason risk_cap. Stocks: shares = floor(max_risk / (stop distance + per-share cost)); notional above 5x the Rs 50,000 book flagged (intraday margin).",
+    "wait_counterfactual": "the plain rule's own result on the trades the filters rejected (per trade, dev and validation): negative means waiting saved money, positive means it cost money.",
+    "ledger_rows": "74 rows in family OC: for each of 3 instruments x 8 variants, NET (the protocol), VS_BASE (does confirmation improve on the plain rule) and BASE_NET (the plain rule itself), plus the 2 event-day tests. Every row raises the family bar (Bonferroni over all rows ever tried in OC).",
     "exploratory_not_in_this_run": "secondary grid (k5, B 0.55/0.70, rvol 1.2/2.0, VWAP off, tight consolidation, X3-X5, reversal, E4 10:15-11:30) and the synthetic options mapping run next, labelled EXPLORATORY.",
 }
 

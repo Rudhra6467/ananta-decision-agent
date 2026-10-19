@@ -106,6 +106,8 @@ def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None =
     k = len(seen | {(reg["study"], variant)})
     z = threshold(k)
     v = verdict_seen(val[1], val[0], val[2], z, expect) if rule == "seen_val_only" else verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z, expect)
+    if (extra or {}).get("min_trades_ok") is False:
+        v = "INCONCLUSIVE"  # a pre-registered minimum trade count was not reached (e.g. SP1: 100 validation trades per index)
     line = {"kind": "result", "study": reg["study"], "family": fam, "variant": variant, "k_in_family": k, "z": round(z, 3), "dev": list(dev), "val": list(val),
             "verdict": v, "rule": rule, "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "registered_at": reg.get("at"),
             "code": (reg.get("stamp") or {}).get("code", {}).get("git")}

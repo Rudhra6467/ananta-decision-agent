@@ -1,0 +1,8 @@
+{
+ "addendum_to": "oc_v1_implementation.json",
+ "at": "2026-10-19T22:09:41+00:00",
+ "results_seen_before_this": false,
+ "why": "the first full run stopped in index costs, before any scoring: 12 index trades on 2021-03-30 had no lot size because NSE has no F&O bhavcopy for that session (both archive addresses return 404; manifests/fo_bhavcopy.jsonl)",
+ "rule": "the lot size of a session whose F&O file NSE lacks is carried from the neighbouring sessions only when the session before and the session after have the same lot; labelled lot_source, listed in the results counts. The lot only enters fees per unit and the rupee sizing layer, not entries or exits.",
+ "other_missing_fo_sessions": "2000 (17 sessions) and 2013-10-09: outside the study years"
+}

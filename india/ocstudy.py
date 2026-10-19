@@ -292,7 +292,25 @@ def load_lots() -> pd.DataFrame:
     con.close()
     df = df.sort_values(["date", "symbol", "expiry"]).groupby(["date", "symbol"]).first().reset_index()
     df["date"] = pd.to_datetime(df["date"]).dt.date
-    return df[["date", "symbol", "lot"]]
+    df["lot_source"] = "fo_bhavcopy"
+    # a session whose F&O file NSE does not have (both archive addresses 404, e.g. 2021-03-30): the lot is carried from the neighbouring
+    # sessions only when the session before and the session after agree; labelled, counted in the results
+    days, _ = _calendar()
+    have = set(zip(df["date"], df["symbol"]))
+    lot = dict(zip(zip(df["date"], df["symbol"]), df["lot"]))
+    add = []
+    for i in range(1, len(days) - 1):
+        d = days[i]
+        if d.year < YEARS[0] or d.year > YEARS[-1]:
+            continue
+        for sym in ("NIFTY", "BANKNIFTY"):
+            if (d, sym) not in have:
+                a_, b_ = lot.get((days[i - 1], sym)), lot.get((days[i + 1], sym))
+                if a_ is not None and a_ == b_:
+                    add.append({"date": d, "symbol": sym, "lot": a_, "lot_source": "carried: F&O file missing at NSE, neighbours agree"})
+    if add:
+        df = pd.concat([df, pd.DataFrame(add)], ignore_index=True)
+    return df[["date", "symbol", "lot", "lot_source"]]
 
 
 def load_universe(days: list[dt.date]) -> pd.DataFrame:
@@ -862,6 +880,8 @@ def run(log=print, smoke: bool = False) -> dict:
     log("loading index minutes 2015-2023 (silver)")
     index = load_index()
     lots = load_lots()
+    carried = lots[lots["lot_source"] != "fo_bhavcopy"]
+    log(f"lot sizes carried from neighbouring sessions (F&O file missing at NSE): {sorted(set(carried['date'].astype(str)))}")
     log("stock pass 1 (breadth, X1)")
     st1, breadth, scnt = stock_pass(index, days, specials, None, log)
     st1 = stock_costs(st1)
@@ -887,6 +907,7 @@ def run(log=print, smoke: bool = False) -> dict:
     it.to_parquet(out_dir / "OC1_index_trades.parquet")
     stt.to_parquet(out_dir / "OC1_stock_trades.parquet")
     sdf = strata(index, days)
+    icnt["lot_carried_dates"] = sorted(set(carried["date"].astype(str)))
     res = score(it, stt, states, sdf, m_i, m_s, {**scnt, **icnt}, max_risk, record=False, out_dir=out_dir)  # dry run: any error stops before the ledger
     if smoke:
         return res

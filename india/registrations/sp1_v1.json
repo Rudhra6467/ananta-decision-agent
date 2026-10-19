@@ -1,0 +1,97 @@
+{
+ "family": "SP",
+ "version": "sp1-v1-draft",
+ "status": "DRAFT: design approved by Madhav 19 Oct 2026 18:28 Toronto ('i approve, but please make sure we are doing the right thing'); independent review before freeze",
+ "title": "Scenario Playbook phase 1: index intraday playbook (Nifty 50, Nifty Bank), executed through weekly options in the Rs 60,000 book, futures tracked as a shadow book",
+ "why": "OC v1 (19 Oct): no fixed opening rule pays its costs; the day (breadth, agreement) mattered more than the instrument; shorts and longs differed. So learn which action fits which situation, and test the learned policy as one object out of sample.",
+ "data": {
+  "index": "silver/kite_index/minute 2015-2023: NIFTY 50, NIFTY BANK, INDIA VIX (regular full sessions; special sessions excluded)",
+  "breadth": "gold/studies/OC1_breadth.parquet (eligible liquidity top 50, OC v1 rules)",
+  "overnight": "silver/macro (FRED SP500, NASDAQCOM, DEXINUS, DCOILBRENTEU, VIXCLS), silver/flows/participant_oi (FII long share), silver/kite_index/day (trend)",
+  "events": "silver/events/events.parquet, verified only (OFFICIAL, TWO_SOURCES)",
+  "options": "silver/fo_greeks (previous session's IV per contract and the forward), silver/fo_calendar (expiries), lot sizes from silver/fo_bhavcopy",
+  "never": "sealed/ (2024 onward) is not read; it is opened once, for the final policy, by a separate registration"
+ },
+ "decision_points": {
+  "D0": "09:15 open (overnight information only; entry at the 09:15 bar's open)",
+  "D1": "close of the 09:29 bar (09:30; OR15 known); entry at the 09:30 bar's open",
+  "D2": "09:45 (OR30 known)",
+  "D3": "10:15 (OC v1 deadline)",
+  "rule": "the policy is sequential: at D0, D1, D2, D3 in order, if no position in that index yet, it takes the action with the highest predicted value if that value is above 0 net bps; otherwise it waits; nothing by D3 = NO TRADE. One trade per index per day."
+ },
+ "state": {
+  "overnight": {
+   "trend": "Nifty previous close vs its 50- and 200-day averages: up (above both), down (below both), mixed",
+   "vix": "India VIX previous close, terciles of the training years",
+   "us": "S&P 500 return of the last US session completed before 09:15 IST (FRED SP500, latest date strictly before the Indian date): down <= -0.5%, flat, up >= +0.5%",
+   "fx_oil": "USD/INR (DEXINUS) and Brent changes over the last available day: rupee weaker by 0.3% or more, or Brent up 2% or more = 'pressure'; the reverse = 'relief'; else 'calm'",
+   "positioning": "FII long share of index futures (participant OI) at the previous close, terciles of the training years",
+   "event": "scheduled verified event today (RBI decision, Union Budget, election counting) / verified event whose first tradable session was in the previous 3 sessions / none",
+   "expiry": "weekly expiry day of that index: yes / no"
+  },
+  "opening": {
+   "gap": "open vs previous close: down <= -0.25%, flat, up >= +0.25%",
+   "move": "index move since the 09:15 open at the decision bar, terciles of the training years for that decision point",
+   "breadth": "share of eligible top 50 above their own open (last closed 5-minute bar): <= 0.40, mid, >= 0.60",
+   "agreement": "Nifty 50 and Nifty Bank both moved at least 0.05% the same way since 09:15: yes / no",
+   "or_width": "opening-range width (OR15 at D1, OR30 at D2/D3) over the previous session's daily ATR14, terciles of the training years"
+  },
+  "rule": "every feature uses only bars closed by the decision time and data dated before the session; tercile cut-offs are fitted on each fold's training years only; D0 uses the overnight features and the gap"
+ },
+ "actions": {
+  "direction": ["long", "short"],
+  "exits": {
+   "T1130": "time exit at the 11:30 bar's open, no stop",
+   "T1515": "time exit at the 15:15 bar's open, no stop",
+   "ORSTOP": "stop at the opposite OR15 edge (D0: 0.5 x previous daily ATR14), else 15:15",
+   "ATRSTOP": "stop at 0.5 x previous daily ATR14 from entry, else 15:15",
+   "TRAIL": "chandelier trail: 3 x ATR14 of 5-minute bars from the best price since entry, else 15:15",
+   "NEXTOPEN": "hold to the next session's open; intraday stop 1 x previous daily ATR14 (overnight gap not protected)"
+  },
+  "count": "2 directions x 6 exits = 12 actions per decision point, 48 per index, plus NO TRADE"
+ },
+ "outcomes": {
+  "future_proxy": "net bps of the index per trade: spot minutes as the near-month future, Zerodha futures fees of that year on one lot, 1 tick slippage each side (the OC v1 convention)",
+  "option": "Rs per lot: buy the ATM weekly call (long) or put (short) at entry; nearest expiry after the trade date (on an expiry day, the next one); strike nearest the index at entry; Black-76 with the previous session's IV of that contract (nearest listed strike of the expiry if missing) and the previous session's forward/spot carry; IV held through the trade (labelled SYNTHETIC); exits follow the index; option fees of that year, half-spread Rs 0.50 (NIFTY) / Rs 1.00 (BANKNIFTY) per unit each side, stress x2",
+  "unit_note": "the policy is learned and tested on the future-proxy outcome; the option outcome is how the Rs 60,000 book would have executed it"
+ },
+ "learning": {
+  "model": "for each index x decision point x action: ridge regression of the future-proxy net bps on one-hot state features (main effects; one level dropped per feature), intercept unpenalised, target winsorised at the training 1st/99th percentiles for fitting only; lambda by leave-one-year-out CV within the training years from {1, 3, 10, 30, 100, 300, 1000} (a single training year: lambda 100)",
+  "walk_forward": "expanding: test year y in 2016..2023 uses a model fitted on 2015..y-1 only",
+  "option_value": "a second ridge of the same form on the option Rs outcome, used only for sizing"
+ },
+ "sizing_and_survival": {
+  "lots": "n = floor(0.25 x W x mu / sigma^2) per trade, mu = predicted option Rs per lot, sigma^2 = training residual variance of that action's option outcome; n >= 1 only if the policy trades and mu > 0; total premium of open positions <= 40% of W; W = book equity at the start of the session",
+  "survival": "paper_config.json survival: realised plus open loss of 5% of the session's starting equity closes everything for the day; equity 22% below its high-water mark pauses new entries until Madhav resumes (the backtest reports when it would have paused and also the unpaused path)",
+  "book": "Rs 60,000 on 2016-01-01 (the first test year), both indices"
+ },
+ "tests": {
+  "rows": [
+   "NIFTY|future_proxy|policy: daily net bps (0 on no-trade days) > 0",
+   "NIFTY|future_proxy|vs_best_fixed: policy minus the single best (decision point, action) chosen on the same training years, per day, > 0",
+   "NIFTY|option|policy: daily net Rs per lot (0 on no-trade days) > 0",
+   "NIFTY|option|vs_best_fixed",
+   "BANKNIFTY|future_proxy|policy", "BANKNIFTY|future_proxy|vs_best_fixed", "BANKNIFTY|option|policy", "BANKNIFTY|option|vs_best_fixed",
+   "BOOK|option|sized: daily Rs of the Rs 60,000 book with sizing and survival rules > 0"
+  ],
+  "periods": "dev = walk-forward test years 2016-2017; validation = test years 2018-2023 (every prediction is out of sample)",
+  "expected_sign": "+",
+  "robustness_extras": ["costs x2 and option spread x2", "per-year results (8 folds; robust if >= 5 positive)", "random action within the same state and the same days traded (500 draws, p)",
+                        "share of days traded and which (point, action) the policy chose", "the learned coefficients: what Ananta learned about each situation",
+                        "equity, max drawdown, daily-limit hits, pause dates of the sized book"]
+ },
+ "shadow_books": {
+  "index_futures": "the same decisions as 1 lot of the near-month future (research: the future-proxy outcome; forward: recorded future minutes)",
+  "forex": "USDINR, EURINR, GBPINR, JPYINR near-month futures recorded at 1 minute from 21 Oct 2026; phase SP-FX designs and tests forex decisions before any are made"
+ },
+ "later_phases": {
+  "SP2": "top-100 stocks intraday, the same structure per stock-day (5-minute bars)",
+  "SP3": "positional: stocks and index, entry at the open after a signal, holds of 1-20 sessions with the exit harness policies, daily data from 2005",
+  "SP-FX": "forex shadow book"
+ },
+ "limits": [
+  "spot as the future (basis ignored); synthetic options with IV held constant (no event IV crush) until the recorder calibrates them (R01)",
+  "breadth from the covered top 50 (75-93% by year)",
+  "dev test years are only 2016-2017 (index minutes start 2015)"
+ ]
+}

@@ -166,7 +166,7 @@ def _report(df: pd.DataFrame) -> None:
     if sp.exists():
         s = json.loads(sp.read_text())
         L += [f"## Were settlement prices tradable? (recorded live contracts {s['window']}, {s['contract_days']} contract-days, {s['days']} sessions)", "",
-              "Settle (NSE bhavcopy, sealed 2026 rows read for calibration; no rule scored) against the volume-weighted price actually traded in the last "
+              "Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule scored) against the volume-weighted price actually traded in the last "
               "30 minutes (Kite minutes from the recorder). Signed gap > 0: settle above what traded (overstates a seller's credit).", "",
               "| index | expiry eve/day | premium Rs | contract-days | no trade in last 30 min | median signed gap | median abs gap | p90 abs gap |", "|---|---|---|---|---|---|---|---|"]
         for r in s["table"]:
@@ -179,76 +179,5 @@ def _report(df: pd.DataFrame) -> None:
     Path(__file__).resolve().parent.joinpath("registrations", "options_realism.md").write_text("\n".join(L) + "\n")
 
 
-def settle_vs_tradable() -> dict:
-    """Were NSE settlement prices tradable? For every recorded live contract-day (the recorder's real Kite minutes), compare the bhavcopy settle
-    (sealed 2026 rows, purpose calibration: a data check, no rule is scored) with what actually traded: the last 30 minutes' volume-weighted price,
-    whether the contract traded at all in that window, and how stale its last trade was. Grouped by premium size, the axis that separates F01's
-    at-the-money legs from F02's cheap hedges."""
-    import csv
-    import glob
-    import gzip
-
-    from india import sealed
-    inst = {}
-    for f in sorted(glob.glob(str(paths.bronze("kite_instruments") / "NFO_*.csv"))):
-        for r in csv.DictReader(open(f)):
-            if r["segment"] == "NFO-OPT":
-                inst[r["tradingsymbol"]] = (r["name"], r["expiry"], float(r["strike"]), r["instrument_type"])
-    rows = []
-    for f in glob.glob(str(paths.bronze("kite_1m_fo") / "*" / "*.jsonl.gz")):
-        sym = f.rsplit("/", 1)[1].replace(".jsonl.gz", "")
-        if sym not in inst:
-            continue
-        candles = {}
-        with gzip.open(f, "rt") as fh:
-            for line in fh:
-                for c in json.loads(line).get("candles") or []:
-                    candles[c[0]] = c  # later fetches overwrite earlier ones (the last window is still growing)
-        if not candles:
-            continue
-        c = pd.DataFrame(list(candles.values()), columns=["ts", "o", "h", "l", "c", "v"])
-        c["ts"] = pd.to_datetime(c["ts"])
-        c["date"] = c["ts"].dt.tz_localize(None).dt.normalize()
-        c["mins_to_close"] = (c["date"] + pd.Timedelta(hours=15, minutes=30) - c["ts"].dt.tz_localize(None)).dt.total_seconds() / 60
-        c = c[c["mins_to_close"] >= 0]  # Kite serves a few candles after 15:30; the session ends at 15:30
-        for d, x in c.groupby("date"):
-            last30 = x[(x["mins_to_close"] <= 30) & (x["v"] > 0)]
-            traded = x[x["v"] > 0]
-            vwap = float((last30["c"] * last30["v"]).sum() / last30["v"].sum()) if len(last30) else None
-            rows.append({"tradingsymbol": sym, "date": d, "name": inst[sym][0], "expiry": pd.Timestamp(inst[sym][1]), "strike": inst[sym][2], "opt_type": inst[sym][3],
-                         "vwap30": vwap, "last_close": float(x["c"].iloc[-1]), "vol_day": float(x["v"].sum()), "vol_last30": float(last30["v"].sum()),
-                         "mins_since_last_trade": float(traded["mins_to_close"].min()) if len(traded) else None})
-    m = pd.DataFrame(rows)
-    if m.empty:
-        return {"rows": 0}
-    since = str(m["date"].min().date())
-    b = sealed.read_cols("calibration", "silver/fo_bhavcopy", ["date", "symbol", "expiry", "strike", "opt_type", "close", "settle", "volume"], since,
-                         "instrument = 'OPTIDX' and symbol in ('NIFTY', 'BANKNIFTY')")
-    b["date"], b["expiry"] = pd.to_datetime(b["date"]), pd.to_datetime(b["expiry"])
-    j = m.merge(b.rename(columns={"symbol": "name", "volume": "nse_volume"}), on=["name", "date", "expiry", "strike", "opt_type"], how="inner")
-    j = j[j["settle"] > 0]
-    j["gap_vs_vwap30"] = j["settle"] / j["vwap30"] - 1
-    j["no_trade_last30"] = j["vwap30"].isna()
-    j["premium"] = pd.cut(j["settle"], [0, 2, 5, 20, 50, 150, 1e9], labels=["<2", "2-5", "5-20", "20-50", "50-150", "150+"])
-    j["dte"] = (j["expiry"] - j["date"]).dt.days
-    j["eve_or_expiry"] = j["dte"] <= 1
-    g = j.groupby(["name", "eve_or_expiry", "premium"], observed=True).agg(contract_days=("settle", "size"), no_trade_last30=("no_trade_last30", "mean"),
-                                                         median_signed_gap=("gap_vs_vwap30", "median"),
-                                                         median_abs_gap=("gap_vs_vwap30", lambda x: x.abs().median()),
-                                                         p90_abs_gap=("gap_vs_vwap30", lambda x: x.abs().quantile(0.9)),
-                                                         median_mins_since_trade=("mins_since_last_trade", "median")).reset_index()
-    j.to_parquet(paths.gold() / "studies" / "settle_vs_tradable.parquet")
-    out = {"contract_days": int(len(j)), "days": int(j["date"].nunique()), "window": f"{j['date'].min().date()}..{j['date'].max().date()}",
-           "table": g.round(4).to_dict(orient="records")}
-    (paths.manifest_dir() / "settle_vs_tradable.json").write_text(json.dumps(out, indent=1, default=str))
-    print(g.round(4).to_string(index=False), flush=True)
-    return out
-
-
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "settle":
-        r = settle_vs_tradable()
-        print(json.dumps({k: v for k, v in r.items() if k != "table"}), flush=True)
-    else:
-        print(json.dumps(run(), indent=1))
+    print(json.dumps(run(), indent=1))

@@ -106,8 +106,8 @@ def check_firewall() -> dict:
 CHECKS = {"recorder.minutes": check_recorder, "nightly.runs": check_nightly, "leakcheck": check_leaks, "paper.book": check_paper, "paper.baseline": check_baseline,
           "integrity": check_integrity, "lineage": check_lineage, "firewall": check_firewall}
 def study_r01() -> dict:
-    from india import o4hist
-    r = o4hist.r01()
+    from india import calibrate
+    r = calibrate.r01()
     return {**r, "ok": True}
 
 

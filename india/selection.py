@@ -294,13 +294,41 @@ def report() -> dict:
         failed = [c for c, ok in k["checks"].items() if not ok]
         L.append(f"| {k['study']} | {k['variant']} | {k['verdict']} | {k['dev_t']:+.1f} | {k['val_t']:+.1f} | {k['q_bh']:.2g} | {', '.join(failed) or 'none'} | {k['tested']} | "
                  f"{'**yes**' if k['survives'] else 'no'} |")
-    surv = [k for k in keep if k["survives"]]
-    L += ["", f"## Survivors: {len(surv)}", "",
+    from india import lineage
+    standin_roots = {s for v in lineage.STANDIN.values() for s in v}
+    for k in keep:
+        k["rests_on_standin"] = k["study"].split("-")[0] in standin_roots
+    surv_all = [k for k in keep if k["survives"]]
+    surv = [k for k in surv_all if not k["rests_on_standin"]]
+    timing = [k for k in keep if k["checks"].get("perm_quarter_family") and k["checks"].get("perm_day_family") is False]
+    if len(pm):
+        L += ["", "## What the shuffles say: timing, not selection", "",
+              "The within-quarter shuffle asks whether flagged trades beat unflagged ones by more than chance. The within-day shuffle asks the stricter "
+              "question: on the same day, did flagged stocks beat unflagged ones? It keeps how many flagged trades each day had, so its null carries "
+              "the market-timing part of the effect (`day centre`, in t units); `z day` is what is left beyond timing.", "",
+              "| study | variant | period | observed t | quarter-shuffle family p | day-shuffle centre | z beyond timing | family p beyond timing |", "|---|---|---|---|---|---|---|---|"]
+        hp = pm[pm["level"].str.startswith("stock") & pm["variant"].str.endswith("hold_20d")]
+        for r in hp.itertuples():
+            L.append(f"| {r.study} | {r.variant} | {r.period} | {r.t_obs:+.2f} | {r.p_quarter_family:.3f} | {r.null_centre_day:+.2f} | {r.z_day:+.2f} | {r.p_day_family:.3f} |")
+        L += ["", f"**{len(timing)} notable stock-level results pass the quarter shuffle but fail the within-day shuffle**: the E04 saturation and P01 RSI "
+              "families. The flagged trades did earn what the registry says, but because of the days they fall on (oversold stocks cluster after "
+              "broad sell-offs that rebound; extended stocks cluster late in rallies that fade), not because the flagged stocks beat other stocks "
+              "on the same day. Consequences: (1) as stock-selection filters inside a day they add nothing measurable; (2) the effect may still be "
+              "usable as a market-timing signal, which is a different hypothesis (an aggregate share of oversold or extended stocks, tested at the "
+              "market level) and must be registered and tested as such; (3) the REV paper campaign (RSI under 30) is, by this evidence, a "
+              "market-timing campaign and is read that way.", ""]
+    L += ["", f"## Survivors: {len(surv)} (plus {len(surv_all) - len(surv)} that rest on stand-in data)", "",
           "A survivor passed every check it was given: BH 5% across the whole ledger; where trade-level re-tests exist, the family-wise shuffle null "
           "within quarters and within days (largest |t| over all conditions of that study each shuffle), the same sign in at least 4 of 5 period blocks, "
           "the same sign in both liquidity halves, and still significant with costs doubled. Survivors with 'fdr only' have not had the trade-level "
           "checks yet and are listed as such.", ""]
     L += [f"- {k['study']} {k['variant']} ({k['verdict']}; {k['tested']})" for k in surv] + [""]
+    if len(surv_all) > len(surv):
+        L += ["Not holdout candidates yet, because they rest on a stand-in for missing data (registrations/missing_inputs.md): "
+              + "; ".join(f"{k['study']} {k['variant']}" for k in surv_all if k["rests_on_standin"]) + ". They become candidates only after the stand-in is "
+              "replaced (F05: R01 calibration on recorded expiry days).", ""]
+    L += ["Market-level survivors (E08 Nifty above its 50-day average, C07 small caps leading, C09 rupee) rest on few independent regimes "
+          "(see the E08 limitation); their quarter count overstates the number of independent observations.", ""]
     cand = {"frozen_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), "ledger_tests": m, "candidates": [{x: k[x] for x in ("study", "variant", "verdict", "tested")} for k in surv]}
     blob = json.dumps(cand["candidates"], sort_keys=True).encode()
     cand["sha256"] = hashlib.sha256(blob).hexdigest()

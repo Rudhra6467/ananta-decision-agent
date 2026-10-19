@@ -142,68 +142,6 @@ def run() -> dict:
     return out
 
 
-
-
-def r01() -> dict:
-    """R01: how wrong are the synthetic O-04 prices? For every expiry day the recorder has, rebuild the at-the-money call and put from the index path and the
-    previous session's settlement IV (exactly as the historical reconstruction does) and compare minute by minute with the recorded option candles, then
-    compare the O-04 outcome on synthetic and on real prices. CURRENT-MARKET OBSERVATION; written to gold/studies/R01_calibration.parquet."""
-    from india import sealed
-    days = []
-    p = paths.data_dir() / "paper" / "options_trades.jsonl"
-    if p.exists():
-        for line in p.read_text().splitlines():
-            r = json.loads(line)
-            if r.get("strategy") == "O-04" and r.get("kind") != "skip":
-                days.append((r["index"], r["day"]))
-    days = sorted(set(days))
-    if not days:
-        print("R01: no recorded O-04 days yet")
-        return {"days": 0}
-    g = sealed.read_cols("calibration", "silver/fo_greeks", ["date", "symbol", "expiry", "strike", "opt_type", "iv", "flag"], min(d for _, d in days)[:8] + "01")
-    g["date"], g["expiry"] = pd.to_datetime(g["date"]), pd.to_datetime(g["expiry"])
-    ins = optpaper.instruments()
-    rows, outcome = [], []
-    for name, day in days:
-        d = pd.Timestamp(day)
-        spot = optpaper.minutes("index", INDEX[name])
-        spot = spot[spot.index.normalize() == d]
-        s1329 = spot[(spot.index >= d + pd.Timedelta(hours=13, minutes=29)) & (spot.index < d + pd.Timedelta(hours=13, minutes=30))]
-        if s1329.empty:
-            continue
-        K = round(float(s1329["close"].iloc[0]) / STEP[name]) * STEP[name]
-        iv = _iv_prev(name, d, K, g.assign(flag=g["flag"].fillna("ok")))
-        sub = ins[(ins["name"] == name) & (ins["expiry"] == day)]
-        ce_s, pe_s = sub[(sub["strike"] == K) & (sub["instrument_type"] == "CE")], sub[(sub["strike"] == K) & (sub["instrument_type"] == "PE")]
-        if iv is None or ce_s.empty or pe_s.empty:
-            continue
-        ce_r, pe_r = optpaper.minutes("option", ce_s["tradingsymbol"].iloc[0], day), optpaper.minutes("option", pe_s["tradingsymbol"].iloc[0], day)
-        sp = spot[spot.index >= d + pd.Timedelta(hours=12)]
-        ce_m, pe_m = _frame(sp, d, K, iv, True), _frame(sp, d, K, iv, False)
-        for leg, real, model in (("CE", ce_r, ce_m), ("PE", pe_r, pe_m)):
-            j = model.join(real[["close"]].rename(columns={"close": "real"}), how="inner")
-            j = j[j.index >= d + pd.Timedelta(hours=13)]
-            for t, r in j.iterrows():
-                rows.append({"index": name, "day": day, "leg": leg, "ts": t, "model": r["close"], "real": r["real"]})
-        lot = int(ce_s["lot_size"].iloc[0])
-        for v in optpaper.VARIANTS_O4:
-            a = optpaper.sim_o4(name, day, v, ce_m, pe_m, sp, lot)
-            b = optpaper.sim_o4(name, day, v, ce_r, pe_r, spot, lot)
-            if a and b:
-                outcome.append({"index": name, "day": day, "variant": a["variant"], "synthetic_net": a["net_inr"], "real_net": b["net_inr"], "iv_prev": iv})
-    df = pd.DataFrame(rows)
-    if df.empty:
-        return {"days": len(days), "matched": 0}
-    df["err_pct"] = df["model"] / df["real"] - 1
-    df.to_parquet(paths.gold() / "studies" / "R01_calibration.parquet")
-    oc = pd.DataFrame(outcome)
-    out = {"days": len(days), "minutes": len(df), "median_err_pct": float(df["err_pct"].median()), "mae_pct": float(df["err_pct"].abs().median()),
-           "at_1330_err_pct": float(df[df["ts"].dt.strftime("%H:%M") == "13:30"]["err_pct"].median()) if len(df) else None,
-           "o4_synthetic_minus_real_inr": float((oc["synthetic_net"] - oc["real_net"]).mean()) if len(oc) else None}
-    print(json.dumps(out, indent=1), flush=True)
-    return out
-
-
 if __name__ == "__main__":
     paths.ensure()
-    {"run": run, "r01": r01}[sys.argv[1] if len(sys.argv) > 1 else "run"]()
+    {"run": run}[sys.argv[1] if len(sys.argv) > 1 else "run"]()

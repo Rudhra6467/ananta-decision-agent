@@ -52,7 +52,7 @@ Rule: an options result can feed a decision only if it is positive at 2x, and it
 
 ## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-10-16, 4851 contract-days, 19 sessions)
 
-Settle (NSE bhavcopy, sealed 2026 rows read for calibration; no rule scored) against the volume-weighted price actually traded in the last 30 minutes (Kite minutes from the recorder). Signed gap > 0: settle above what traded (overstates a seller's credit).
+Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule scored) against the volume-weighted price actually traded in the last 30 minutes (Kite minutes from the recorder). Signed gap > 0: settle above what traded (overstates a seller's credit).
 
 | index | expiry eve/day | premium Rs | contract-days | no trade in last 30 min | median signed gap | median abs gap | p90 abs gap |
 |---|---|---|---|---|---|---|---|

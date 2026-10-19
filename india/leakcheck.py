@@ -55,9 +55,17 @@ def check_sealed_files() -> tuple[bool, str]:
             bad.append(f)
     # paper.py and the leak check may import the sealed module by name; nothing else should reference the folder helpers
     for f in ("lab.py", "studies.py", "exitlab.py", "registry.py", "costs.py", "conditions.py", "studies2.py", "istudies.py", "fstudies.py", "vstudies.py",
-              "exitbook.py", "o4hist.py", "replay.py"):
-        if any("sealed" in s.lower() for s in _strings(here / f)):
+              "exitbook.py", "o4hist.py", "replay.py", "optreal.py", "selection.py", "hedge.py", "flowstudy.py"):
+        if (here / f).exists() and any("sealed" in s.lower() for s in _strings(here / f)):
             bad.append(f + " (mentions sealed)")
+    # calibrate.py may read sealed rows, but every call must name the purpose "calibration" (a data-vs-market check, never a rule score)
+    cal = here / "calibrate.py"
+    if cal.exists():
+        for n in ast.walk(ast.parse(cal.read_text())):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name) and n.func.value.id == "sealed":
+                first = n.args[0].value if n.args and isinstance(n.args[0], ast.Constant) else None
+                if first != "calibration":
+                    bad.append(f"calibrate.py line {n.lineno} (sealed.{n.func.attr} purpose {first!r})")
     return (not bad), ("clean" if not bad else "references in " + ", ".join(sorted(set(bad))))
 
 

@@ -5,7 +5,7 @@ point, raw values only (bucketing happens inside each walk-forward fold, on its 
   python -m india.scenario check     leak audit: every overnight value is dated before the session, every opening value uses closed bars
 
 Columns (all known at the decision time named in the column):
-  overnight (before 09:15): prev_close, sma50, sma200, trend, atr14_prev (daily, from index day bars), vix_prev, us_spx_ret, us_ndx_ret,
+  overnight (before 09:15): us_qqq_ret and us_qqq_date (SP1 v2's US feature: Tiingo QQQ, last US session before the Indian date), prev_close, sma50, sma200, trend, atr14_prev (daily, from index day bars), vix_prev, us_spx_ret, us_ndx_ret,
       us_date (the US session used), usdinr_chg, brent_chg, fx_date, oil_date (NOT used by SP1: FRED publishes them days late),
       fii_long_share (participant OI, previous session), event_scheduled and event_recent (scheduled calendar events today / in the previous 3
       sessions: scheduled_dates()), expiry (that index's option expiries)
@@ -88,6 +88,8 @@ def build() -> dict:
     index = ocstudy.load_index()
     breadth = pd.read_parquet(D / "gold/studies/OC1_breadth.parquet").set_index("date")
     macro = _macro()
+    us = pd.read_parquet(D / "silver/us/us_close.parquet")
+    qqq = us[us["symbol"] == "QQQ"].dropna(subset=["ret"]).set_index("date")["ret"].sort_index()
     fii = pd.read_parquet(D / "silver/flows/participant_oi.parquet")
     fii = fii[fii["client_type"] == "FII"].copy()
     fii["date"] = pd.to_datetime(fii["date"]).dt.date
@@ -116,6 +118,8 @@ def build() -> dict:
         prev3 = set(days[max(0, i - 3):i])
         spx, spx_r, us_d = _last_before(macro["SP500"], d)
         _, ndx_r, _ = _last_before(macro["NASDAQCOM"], d)
+        q_prev = qqq[qqq.index < d]
+        qqq_r, qqq_d = (float(q_prev.iloc[-1]), q_prev.index[-1]) if len(q_prev) else (np.nan, None)
         _, fx_r, fx_d = _last_before(macro["DEXINUS"], d)
         _, oil_r, oil_d = _last_before(macro["DCOILBRENTEU"], d)
         f_prev = fii[fii.index < d]
@@ -133,7 +137,7 @@ def build() -> dict:
             o, c, h, l = mv[sym]
             row = {"date": d, "index": sym, "prev_date": prev, "prev_close": float(p["close"]), "sma50": float(p["sma50"]), "sma200": float(p["sma200"]),
                    "atr14_prev": float(p["atr14"]), "vix_prev": float(vix_d.get(prev, np.nan)),
-                   "us_spx_ret": spx_r, "us_ndx_ret": ndx_r, "us_date": us_d, "usdinr_chg": fx_r, "fx_date": fx_d, "brent_chg": oil_r, "oil_date": oil_d,
+                   "us_qqq_ret": qqq_r, "us_qqq_date": qqq_d, "us_spx_ret": spx_r, "us_ndx_ret": ndx_r, "us_date": us_d, "usdinr_chg": fx_r, "fx_date": fx_d, "brent_chg": oil_r, "oil_date": oil_d,
                    "fii_long_share": float(f_prev.iloc[-1]) if len(f_prev) else np.nan, "fii_date": f_prev.index[-1] if len(f_prev) else None,
                    "event_scheduled": d in sched, "event_recent": recent, "expiry": d in expiry[sym],
                    "open": float(o[0]), "gap": float(o[0] / p["close"] - 1)}
@@ -165,7 +169,7 @@ def check() -> dict:
     D = paths.data_dir()
     st = pd.read_parquet(D / "gold/scenario/index_states.parquet")
     out = {}
-    for col in ("us_date", "fx_date", "oil_date", "fii_date", "prev_date"):
+    for col in ("us_qqq_date", "us_date", "fx_date", "oil_date", "fii_date", "prev_date"):
         x = st.dropna(subset=[col])
         out[f"{col}_before_session"] = bool((pd.to_datetime(x[col]).dt.date < x["date"]).all())
     out["no_2024_or_later"] = bool((pd.to_datetime(st["date"]).dt.year <= 2023).all())

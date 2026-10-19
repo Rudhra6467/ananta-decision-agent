@@ -1,0 +1,2794 @@
+{
+ "batch": "batch_2023_2026",
+ "era": "2023-01-01..2026-10-19",
+ "collected": "2026-10-19",
+ "method": "research agent under the event-source rules: no article reaction numbers; times only when sourced (else public_period or null); status recomputed by india.events from source tiers",
+ "coverage_note": "COVERAGE: The shared 200-call web-search budget ran out partway through, so most 2025–26 events rest on Business Standard alone (24 of 60 are marked one_source) and need a second publisher such as Reuters, Mint, ET, PIB or the White House. Those events are the Apr 2025 reciprocal tariffs, Pahalgam, Operation Sindoor and the ceasefire, the Aug 2025 tariffs, GST 2.0, H-1B, Jane Street, Budgets 2025 and 2026, and the Iran war, Hormuz, April ceasefire, blockade and later escalations, plus the Oct 2026 Europe riots. Events likely missing: the 90-day US tariff pause (9 Apr 2025), Israel's strikes on Iran (13 Jun 2025), the S&P upgrade to BBB (Aug 2025), the late-Jul 2025 25% tariff announcement, the Bihar results (Nov 2025), the IndusInd Bank derivatives lapse (Mar 2025), DeepSeek (Jan 2025), a 2026 US Supreme Court tariff ruling or India-US trade deal, and RBI decisions of Feb/Apr/Aug 2026. Also likely missing: Karnataka (May 2023), Haryana/J&K (Oct 2024) and Delhi (Feb 2025) state results; the HDFC-HDFC Bank merger (Jul 2023); the Aug 2023 incremental CRR; the Fitch US downgrade and Oct 2023 bond-yield spike; Red Sea/Houthi disruption (early 2024); Russian oil sanctions (Oct 2025); OPEC decisions; index rebalances, big IPOs and monsoon/El Niño shocks. No pandemic events fall in the era. Exact IST times and holiday sessions are often unverified and are left null.",
+ "events": [
+  {
+   "title": "Hindenburg Research report alleging fraud at Adani Group",
+   "category": "corporate_governance",
+   "subcategory": "short-seller report",
+   "event_date": "2023-01-24",
+   "public_time_ist": null,
+   "timing_note": "Report dated 24 Jan 2023; exact IST release time not found. Business Standard's first reports of Adani stocks falling are dated 25 Jan, so 25 Jan is taken as the first session that traded on it. That is an inference: if it came out before 15:30 IST on 24 Jan, that day's session would be the first. 26 Jan (Republic Day) is a market holiday.",
+   "first_tradable_session": "2023-01-25",
+   "scope": "stock",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "US short seller Hindenburg Research published a report accusing the Adani Group of stock manipulation and accounting fraud, just before Adani Enterprises' follow-on public offer. Adani Group called the allegations 'stale and baseless' on 25 Jan.",
+   "reported_affected": [
+    "Adani Group listed companies",
+    "Adani Enterprises FPO",
+    "PSU banks and LIC (exposure concerns)",
+    "Nifty/Sensex (heavyweight weights)"
+   ],
+   "confounders": [
+    "Union Budget on 1 Feb 2023",
+    "Adani Enterprises FPO subscription window",
+    "Q3 FY23 earnings season"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/amp/article/companies/adani-stocks-drop-after-hindenberg-accuses-firm-of-manipulation-and-fraud-123012500367_1.html",
+     "publisher": "Business Standard",
+     "published": "2023-01-25",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/article/companies/adani-group-says-allegations-made-in-hindenburg-report-stale-and-baseless-123012500772_1.html",
+     "publisher": "Business Standard",
+     "published": "2023-01-25",
+     "kind": "news"
+    },
+    {
+     "url": "https://adani.com/newsroom/media-releases/media-statement-25-jan",
+     "publisher": "Adani Group (company statement)",
+     "published": "2023-01-25",
+     "kind": "official"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Kept separate from the FPO withdrawal (1 Feb 2023) and from the later US indictment (Nov 2024) and SEBI orders (Sep 2025).",
+   "public_period": null
+  },
+  {
+   "title": "Union Budget 2023-24",
+   "category": "union_budget",
+   "subcategory": "full budget",
+   "event_date": "2023-02-01",
+   "public_time_ist": null,
+   "timing_note": "Presented in Parliament on 1 Feb 2023, a trading day, during market hours. The start time was not confirmed in the sources found (budget speeches customarily start at 11:00 IST).",
+   "first_tradable_session": "2023-02-01",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "FM Sitharaman raised the capital expenditure outlay by 33% to Rs 10 lakh crore, set the FY24 fiscal deficit target at 5.9% of GDP and made the new income tax regime more attractive.",
+   "reported_affected": [
+    "Infrastructure/capital goods",
+    "Cement",
+    "Insurance (taxation of high-value policies)",
+    "Government bond market"
+   ],
+   "confounders": [
+    "Adani Group sell-off after the Hindenburg report",
+    "Adani FPO withdrawal announced that evening",
+    "US Fed FOMC decision on 1 Feb (US time)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.businesstoday.in/union-budget/news/story/budget-2023-key-highlights-fiscal-deficit-for-fy24-estimated-at-59-of-gdp-says-fm-sitharaman-368412-2023-02-01",
+     "publisher": "Business Today",
+     "published": "2023-02-01",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.deccanherald.com/business/union-budget/capex-hiked-by-33-to-rs-10-lakh-crore-in-big-infra-boost-ahead-of-2024-elections-1186673.html",
+     "publisher": "Deccan Herald",
+     "published": null,
+     "kind": "news"
+    },
+    {
+     "url": "https://scroll.in/latest/1043022/budget-2023-centre-raises-capital-expenditure-by-33-to-rs-10-lakh-crore",
+     "publisher": "Scroll.in",
+     "published": null,
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": null,
+   "public_period": "during"
+  },
+  {
+   "title": "Adani Enterprises withdraws fully subscribed Rs 20,000 crore FPO",
+   "category": "corporate_event",
+   "subcategory": "capital raising withdrawn",
+   "event_date": "2023-02-01",
+   "public_time_ist": null,
+   "timing_note": "Announced on 1 Feb 2023 (Budget day) after the session, in the evening. The exact time was not found. Business Standard says the board weighed Wednesday's market volatility, and its follow-up is dated 2 Feb 09:02 IST.",
+   "first_tradable_session": "2023-02-02",
+   "scope": "stock",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Adani Enterprises' board decided not to proceed with its fully subscribed follow-on public offer and said it would refund investors, citing market volatility after the Hindenburg report.",
+   "reported_affected": [
+    "Adani Group stocks",
+    "Lenders and investors with Adani exposure"
+   ],
+   "confounders": [
+    "Union Budget 2023-24 the same day",
+    "Continuing fallout of the Hindenburg report"
+   ],
+   "sources": [
+    {
+     "url": "https://www.adanienterprises.com/newsroom/media-releases/Adani-Enterprises-Limited-Stands-by-its-Investors",
+     "publisher": "Adani Enterprises (company release)",
+     "published": "2023-02-01",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/article/companies/adani-enterprise-to-review-capital-raising-plans-once-shares-stabilise-123020200210_1.html",
+     "publisher": "Business Standard",
+     "published": "2023-02-02",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.thenewsminute.com/news/adani-enterprises-calls-its-fpo-investors-get-back-money-172765",
+     "publisher": "The News Minute",
+     "published": "2023-02-01",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Separate event from the 24 Jan Hindenburg report.",
+   "public_period": "after_close"
+  },
+  {
+   "title": "Silicon Valley Bank closed by regulators; FDIC appointed receiver",
+   "category": "banking",
+   "subcategory": "US bank failure",
+   "event_date": "2023-03-10",
+   "public_time_ist": null,
+   "timing_note": "Closure announced on Friday 10 Mar 2023 during US hours, after the Indian close. Exact time not found. The first Indian session after it was Monday 13 Mar.",
+   "first_tradable_session": "2023-03-13",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "California regulators shut Silicon Valley Bank and the FDIC created the Deposit Insurance National Bank of Santa Clara to protect insured depositors, in what was then the second-largest US bank failure.",
+   "reported_affected": [
+    "Global bank stocks",
+    "Indian private and PSU banks (sentiment)",
+    "Indian startups with SVB deposits",
+    "US Treasury yields / Fed rate expectations"
+   ],
+   "confounders": [
+    "Signature Bank closure and US deposit backstop over the 11-12 Mar weekend",
+    "Credit Suisse stress the following week"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/2023/03/10/silicon-valley-bank-is-shut-down-by-regulators-fdic-to-protect-insured-deposits.html",
+     "publisher": "CNBC",
+     "published": "2023-03-10",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.fdic.gov/news/press-releases/2023/pr23016.html",
+     "publisher": "FDIC",
+     "published": "2023-03-10",
+     "kind": "official"
+    }
+   ],
+   "verification": "official",
+   "notes": "Confounders listed are general knowledge and were not checked against the gathered sources.",
+   "public_period": "after_close"
+  },
+  {
+   "title": "UBS agrees emergency takeover of Credit Suisse",
+   "category": "banking",
+   "subcategory": "global bank rescue",
+   "event_date": "2023-03-19",
+   "public_time_ist": null,
+   "timing_note": "Announced on Sunday 19 Mar 2023 (European evening). Exact IST time not found.",
+   "first_tradable_session": "2023-03-20",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "UBS agreed to buy Credit Suisse for about $3.2 billion in a rescue brokered by Swiss authorities, and Credit Suisse's AT1 bonds were wiped out as part of the deal.",
+   "reported_affected": [
+    "Global bank stocks",
+    "AT1 / perpetual bond markets (including Indian bank AT1 sentiment)",
+    "Indian banks"
+   ],
+   "confounders": [
+    "SVB and Signature Bank failures the previous week",
+    "Fed FOMC decision on 22 Mar 2023"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/amp/2023/03/19/ubs-agrees-to-buy-credit-suisse-as-regulators-look-to-shore-up-global-banking-system.html",
+     "publisher": "CNBC",
+     "published": "2023-03-19",
+     "kind": "news"
+    },
+    {
+     "url": "https://investing.com/news/stock-market-news/ubs-to-buy-rival-credit-suisse-in-a-deal-worth-over-32-billion-432SI-3034042",
+     "publisher": "Investing.com",
+     "published": null,
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "The AT1 write-off is taken from search-result headlines only; the articles were not read.",
+   "public_period": null
+  },
+  {
+   "title": "RBI MPC unexpectedly pauses rate hikes (repo held at 6.50%)",
+   "category": "rbi_policy",
+   "subcategory": "MPC decision - surprise hold",
+   "event_date": "2023-04-06",
+   "public_time_ist": null,
+   "timing_note": "Scheduled MPC announcement on a trading morning. Exact time not found (customarily 10:00 IST).",
+   "first_tradable_session": "2023-04-06",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "Business Standard's 29 Mar Reuters poll expected one more hike on 6 Apr, with the door left open for more.",
+   "expectation_source": "https://www.business-standard.com/amp/finance/news/rbi-to-raise-rates-once-more-on-april-6-but-leave-door-open-for-more-poll-123032900118_1.html",
+   "what_happened": "The RBI held the repo rate at 6.50% against expectations of another hike. It called the move a pause, not a pivot, and said the inflation fight was still on.",
+   "reported_affected": [
+    "Rate-sensitive sectors (banks, NBFCs, realty, autos)",
+    "Government bond yields",
+    "Rupee"
+   ],
+   "confounders": [
+    "Aftermath of the global banking stress in March 2023"
+   ],
+   "sources": [
+    {
+     "url": "https://www.aljazeera.com/economy/2023/4/6/india-central-bank-surprises-by-holding-rates-steady",
+     "publisher": "Al Jazeera",
+     "published": "2023-04-06",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/finance/news/pause-not-pivot-rbi-keeps-rates-unchanged-says-inflation-fight-still-on-123040601018_1.html",
+     "publisher": "Business Standard",
+     "published": "2023-04-06",
+     "kind": "news"
+    },
+    {
+     "url": "https://nsearchives.nseindia.com/s3fs-public/inline-files/RBI%20Monetary%20Policy%20Review_20230406_0.pdf",
+     "publisher": "NSE (policy review document)",
+     "published": "2023-04-06",
+     "kind": "data"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "The meeting was scheduled; only the outcome was a surprise.",
+   "public_period": null
+  },
+  {
+   "title": "Hamas attack on Israel; Israel-Hamas war begins",
+   "category": "geopolitics_war",
+   "subcategory": "Israel-Hamas war outbreak",
+   "event_date": "2023-10-07",
+   "public_time_ist": "09:00",
+   "timing_note": "Al Jazeera puts the rocket barrage at about 06:30 local (03:30 GMT), which is 09:00 IST on Saturday 7 Oct. The first Indian session was Monday 9 Oct.",
+   "first_tradable_session": "2023-10-09",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Hamas launched a large surprise rocket barrage and cross-border assault into southern Israel, and Israel declared war.",
+   "reported_affected": [
+    "Crude oil",
+    "Indian oil marketing companies, paints, aviation (oil-cost sensitive)",
+    "Gold",
+    "Indian companies with Israel exposure"
+   ],
+   "confounders": [
+    "US bond yields at multi-year highs in October 2023",
+    "Start of Q2 FY24 earnings (TCS results the same week)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.aljazeera.com/news/2023/10/7/what-happened-in-israel-a-breakdown-of-how-the-hamas-attack-unfolded",
+     "publisher": "Al Jazeera",
+     "published": "2023-10-07",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/economy/news/israel-hamas-conflict-rising-oil-prices-to-increase-india-inc-s-costs-123100901007_1.html",
+     "publisher": "Business Standard",
+     "published": "2023-10-09",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.moneylife.in/article/nifty-sensex-slump-on-trouble-in-middle-east-monday-closing-report/72222.html",
+     "publisher": "Moneylife",
+     "published": null,
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "On 9 Oct Indian markets were reported as falling on Middle East trouble.",
+   "public_period": null
+  },
+  {
+   "title": "RBI raises risk weights on unsecured consumer credit and bank loans to NBFCs",
+   "category": "banking",
+   "subcategory": "RBI prudential tightening",
+   "event_date": "2023-11-16",
+   "public_time_ist": null,
+   "timing_note": "Circular dated 16 Nov 2023 (Thursday). Release time not found, so it is unclear whether the 16 Nov or 17 Nov session was the first to trade on it.",
+   "first_tradable_session": null,
+   "scope": "sector",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The RBI raised risk weights on banks' and NBFCs' consumer credit exposures, including personal loans and credit cards, and on bank lending to NBFCs, to cool fast-growing unsecured lending.",
+   "reported_affected": [
+    "NBFCs",
+    "Private banks",
+    "Credit card issuers",
+    "Fintech lenders"
+   ],
+   "confounders": [
+    "US CPI-driven global bond rally in mid-Nov 2023"
+   ],
+   "sources": [
+    {
+     "url": "https://website.rbi.org.in/web/rbi/-/notifications/regulatory-measures-towards-consumer-credit-and-bank-credit-to-nbfcs",
+     "publisher": "Reserve Bank of India",
+     "published": "2023-11-16",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/industry/banking/rbi-tightens-norms-increases-risk-weights-for-personal-loan-credit-cards-123111601200_1.html",
+     "publisher": "Business Standard",
+     "published": "2023-11-16",
+     "kind": "news"
+    },
+    {
+     "url": "https://businesstoday.in/personal-finance/news/story/rbi-increases-risk-weight-on-consumer-credit-exposure-of-banks-nbfcs-405984-2023-11-16",
+     "publisher": "Business Today",
+     "published": "2023-11-16",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": null
+  },
+  {
+   "title": "State election results: BJP wins Madhya Pradesh, Rajasthan, Chhattisgarh",
+   "category": "election",
+   "subcategory": "state assembly results",
+   "event_date": "2023-12-03",
+   "public_time_ist": null,
+   "timing_note": "Counting ran through the day on Sunday 3 Dec. The first Indian session after it was Monday 4 Dec.",
+   "first_tradable_session": "2023-12-04",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "Exit polls before counting were mixed; no consensus source was found.",
+   "expectation_source": null,
+   "what_happened": "The BJP won Madhya Pradesh, Rajasthan and Chhattisgarh and Congress won Telangana. Markets read this as raising the odds of policy continuity in the 2024 general election.",
+   "reported_affected": [
+    "Broad market",
+    "PSU stocks",
+    "Capital goods / infrastructure"
+   ],
+   "confounders": [
+    "Fed pivot expectations after US data in late Nov 2023",
+    "Fed FOMC on 13 Dec 2023"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/elections/assembly-election/bjp-s-state-election-wins-fuel-optimism-for-extended-market-gains-123120300757_1.html",
+     "publisher": "Business Standard",
+     "published": "2023-12-03",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.tribuneindia.com/news/india/suspense-over-wholl-don-cms-cap-in-3-bjp-states-568518",
+     "publisher": "The Tribune",
+     "published": null,
+     "kind": "news"
+    },
+    {
+     "url": "https://www.wionews.com/business-economy/indian-stock-markets-hit-all-time-high-a-day-after-bjps-state-poll-wins-666092/amp",
+     "publisher": "WION",
+     "published": null,
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Mizoram counted separately on 4 Dec. Indian indices were reported at record highs on 4 Dec.",
+   "public_period": null
+  },
+  {
+   "title": "Fed holds rates and signals three cuts in 2024 (dovish pivot)",
+   "category": "world_macro",
+   "subcategory": "FOMC decision",
+   "event_date": "2023-12-13",
+   "public_time_ist": "00:30",
+   "timing_note": "FOMC statement at 14:00 US Eastern on 13 Dec, which is 00:30 IST on 14 Dec.",
+   "first_tradable_session": "2023-12-14",
+   "scope": "world",
+   "known_beforehand": "scheduled",
+   "expectation": "A hold was expected. CNBC's Fed Survey on 12 Dec expected cuts to start around mid-2024. The surprise was the dovish projections.",
+   "expectation_source": "https://www.cnbc.com/2023/12/12/fed-to-start-cutting-rates-midyear-in-2024-with-high-chance-of-soft-landing-cnbc-fed-survey-finds.html",
+   "what_happened": "The FOMC kept the target range at 5.25-5.50% and its projections pointed to three rate cuts in 2024.",
+   "reported_affected": [
+    "Global equities",
+    "US Treasury yields / dollar",
+    "FPI flows to EMs",
+    "Indian IT"
+   ],
+   "confounders": [
+    "Indian state election rally the previous week",
+    "US CPI release on 12 Dec"
+   ],
+   "sources": [
+    {
+     "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20231213a.htm",
+     "publisher": "Federal Reserve",
+     "published": "2023-12-13",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.cnbc.com/2023/12/13/fed-interest-rate-decision-december-2023.html",
+     "publisher": "CNBC",
+     "published": "2023-12-13",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": null
+  },
+  {
+   "title": "RBI bars Paytm Payments Bank from deposits and credits after 29 Feb 2024",
+   "category": "banking",
+   "subcategory": "regulatory action on payments bank",
+   "event_date": "2024-01-31",
+   "public_time_ist": null,
+   "timing_note": "RBI press release dated 31 Jan 2024. Release time not found. Reports of the first market reaction (Paytm parent One97 at lower circuit) are dated 1 Feb, so 1 Feb is taken as the first tradable session (inference).",
+   "first_tradable_session": "2024-02-01",
+   "scope": "stock",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Under Section 35A of the Banking Regulation Act, the RBI barred Paytm Payments Bank from accepting new deposits, credits, top-ups and most services after 29 Feb 2024, citing persistent non-compliance found in audits.",
+   "reported_affected": [
+    "One97 Communications (Paytm)",
+    "Fintech / payments sector",
+    "Partner banks"
+   ],
+   "confounders": [
+    "Interim Budget on 1 Feb 2024",
+    "Fed FOMC on 31 Jan 2024 (US time)"
+   ],
+   "sources": [
+    {
+     "url": "https://rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=57224",
+     "publisher": "Reserve Bank of India",
+     "published": "2024-01-31",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/markets/news/paytm-hits-2nd-straight-20-lower-circuit-post-rbi-curbs-downgrades-weigh-124020200301_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-02-02",
+     "kind": "news"
+    },
+    {
+     "url": "https://techcrunch.com/2024/02/01/indian-central-banks-clampdown-wipes-2-1-billion-off-paytm",
+     "publisher": "TechCrunch",
+     "published": "2024-02-01",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": null
+  },
+  {
+   "title": "Interim Budget 2024-25",
+   "category": "union_budget",
+   "subcategory": "interim (vote-on-account) budget",
+   "event_date": "2024-02-01",
+   "public_time_ist": null,
+   "timing_note": "Presented on 1 Feb 2024, a trading day, during market hours. Exact time not found.",
+   "first_tradable_session": "2024-02-01",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "No major announcements were expected ahead of the general election.",
+   "expectation_source": null,
+   "what_happened": "The FY25 fiscal deficit target was set at 5.1% of GDP, with no major tax changes. Government borrowing came in lower than expected, which Business Standard said made bonds rally.",
+   "reported_affected": [
+    "Government bonds",
+    "PSU / capex stocks",
+    "Rate-sensitive sectors"
+   ],
+   "confounders": [
+    "Paytm Payments Bank action (31 Jan)",
+    "Fed FOMC decision on 31 Jan (US time)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.pib.gov.in/PressReleaseIframePage.aspx?PRID=2001130",
+     "publisher": "Press Information Bureau",
+     "published": "2024-02-01",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/bonds-in-india-rally-as-interim-budget-surprises-with-lower-borrowings-124020100460_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-02-01",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/budget/news/markets-end-little-changed-after-no-surprise-budget-sensex-falls-107-pts-124020101454_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-02-01",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "The borrowing figure was a surprise for bonds. The budget itself was seen as having no surprises for equities.",
+   "public_period": "during"
+  },
+  {
+   "title": "Iran's first direct drone and missile attack on Israel",
+   "category": "geopolitics_war",
+   "subcategory": "Iran-Israel direct strike",
+   "event_date": "2024-04-13",
+   "public_time_ist": null,
+   "timing_note": "Launched late on Saturday 13 Apr (Middle East time). Exact IST time not found. The first Indian session after it was Monday 15 Apr.",
+   "first_tradable_session": "2024-04-15",
+   "scope": "world",
+   "known_beforehand": null,
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Iran launched hundreds of drones and missiles at Israel in its first direct military attack on Israeli territory. Most were intercepted.",
+   "reported_affected": [
+    "Crude oil",
+    "Gold",
+    "Indian OMCs, aviation, paints",
+    "Rupee"
+   ],
+   "confounders": [
+    "Israel's retaliatory strike on Iran on 19 Apr 2024",
+    "Start of Lok Sabha polling on 19 Apr 2024",
+    "Q4 FY24 earnings (TCS)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.aljazeera.com/news/2024/4/13/israeli-army-says-iran-has-launched-drones-at-israel",
+     "publisher": "Al Jazeera",
+     "published": "2024-04-13",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.cnbc.com/2024/04/13/sirens-and-blasts-sound-across-israel-after-iran-launches-drone-attack.html",
+     "publisher": "CNBC",
+     "published": "2024-04-13",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/stock-market-news/markets-drop-after-iranian-strike-on-israel-sensex-ends-845-points-lower-124041500907_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-04-15",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Iranian retaliation for the 1 Apr 2024 strike on its Damascus consulate was widely discussed beforehand, but no contemporaneous expectation source was captured, so known_beforehand is null. Israel's 19 Apr counter-strike (Business Standard): https://www.business-standard.com/markets/news/how-will-israel-s-attack-on-iran-impact-the-stock-market-crude-oil-gold-124041900340_1.html",
+   "public_period": null
+  },
+  {
+   "title": "Lok Sabha 2024 exit polls project large NDA majority",
+   "category": "election",
+   "subcategory": "general election exit polls",
+   "event_date": "2024-06-01",
+   "public_time_ist": "18:30",
+   "timing_note": "The Election Commission barred exit polls until 6:30 pm IST on 1 Jun (Saturday). They were released that evening, and the first session after was Monday 3 Jun.",
+   "first_tradable_session": "2024-06-03",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "Markets expected a comfortable BJP/NDA win, and Business Standard's pre-poll pieces positioned for a 'Modi rally'.",
+   "expectation_source": "https://www.business-standard.com/markets/news/lok-sabha-exit-poll-24-how-will-markets-react-on-monday-where-to-invest-124060200225_1.html",
+   "what_happened": "Exit polls broadcast after the final phase of voting projected a decisive, landslide-scale majority for Modi's BJP-led NDA.",
+   "reported_affected": [
+    "Broad market",
+    "PSU banks",
+    "Defence",
+    "Capital goods",
+    "Adani Group",
+    "Rupee"
+   ],
+   "confounders": [
+    "India Q4 FY24 GDP release on 31 May 2024"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/2024/06/01/india-election-modis-bjp-alliance-set-to-win-parliamentary-majority.html",
+     "publisher": "CNBC",
+     "published": "2024-06-01",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/markets-set-for-a-boost-as-exit-poll-predicts-landslide-win-for-nda-124060200489_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-06-02",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/elections/lok-sabha-election/no-exit-poll-from-7-am-of-apr-19-to-6-30-pm-of-june-1-election-commission-124032900590_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-03-29",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.cnbc.com/2024/06/03/india-stocks-hit-record-intraday-highs-as-exit-polls-predict-a-decisive-modi-win.html",
+     "publisher": "CNBC",
+     "published": "2024-06-03",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Reported on 3 Jun as a record-high rally. Pair this with counting day (4 Jun), which reversed the exit-poll narrative.",
+   "public_period": null
+  },
+  {
+   "title": "Lok Sabha 2024 counting day: BJP falls short of a majority on its own",
+   "category": "election",
+   "subcategory": "general election results",
+   "event_date": "2024-06-04",
+   "public_time_ist": null,
+   "timing_note": "Counting began on the morning of 4 Jun (Tuesday) and trends emerged during market hours. Exact start time not taken from the sources.",
+   "first_tradable_session": "2024-06-04",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "Exit polls on 1 Jun projected a decisive NDA win.",
+   "expectation_source": "https://www.cnbc.com/2024/06/04/india-elections-vote-counting-to-start-modis-bjp-projected-to-win.html",
+   "what_happened": "Results gave the NDA a majority but left the BJP short of a majority on its own, so it depended on allies. This defied the exit polls.",
+   "reported_affected": [
+    "Broad market",
+    "PSU stocks",
+    "Adani Group",
+    "Defence / capital goods",
+    "India VIX / options market",
+    "Rupee"
+   ],
+   "confounders": [
+    "Unwinding of the exit-poll rally from 3 Jun"
+   ],
+   "sources": [
+    {
+     "url": "https://www.aljazeera.com/news/2024/6/4/modis-bjp-loses-majority-in-india-election-shock-needs-allies-for?traffic_source=rss",
+     "publisher": "Al Jazeera",
+     "published": "2024-06-04",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.cnbc.com/2024/06/04/india-elections-modis-bjp-led-alliance-set-for-narrower-than-expected-win.html",
+     "publisher": "CNBC",
+     "published": "2024-06-04",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.aljazeera.com/economy/2024/6/4/indias-stock-market-dips-as-modi-seen-headed-for-slimmer-majority",
+     "publisher": "Al Jazeera",
+     "published": "2024-06-04",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/elections/lok-sabha-election/lok-sabha-2024-early-trends-defy-exit-polls-as-india-inches-closer-to-nda-124060400321_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-06-04",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Reported as a major sell-off.",
+   "public_period": "during"
+  },
+  {
+   "title": "Union Budget July 2024: capital gains tax and STT on F&O raised",
+   "category": "union_budget",
+   "subcategory": "full budget (post-election) - capital markets taxation",
+   "event_date": "2024-07-23",
+   "public_time_ist": null,
+   "timing_note": "Presented on 23 Jul 2024 (Tuesday) during market hours. Exact time not found.",
+   "first_tradable_session": "2024-07-23",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Short-term capital gains tax on listed equity rose to 20% and long-term capital gains tax to 12.5%, and securities transaction tax on futures and options was raised.",
+   "reported_affected": [
+    "Broad market",
+    "Brokerages / capital-market intermediaries",
+    "F&O volumes",
+    "Mutual funds"
+   ],
+   "confounders": [
+    "Q1 FY25 earnings season",
+    "Global tech sell-off in late July 2024"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/markets/news/budget-2024-hikes-ltcg-tax-rate-to-12-5-stcg-to-20-stt-on-f-o-also-up-124072300553_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-07-23",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.pib.gov.in/Pressreleaseshare.aspx?PRID=2035618®=48&lang=2",
+     "publisher": "Press Information Bureau",
+     "published": "2024-07-23",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2036604®=48&lang=2",
+     "publisher": "Press Information Bureau (CBDT FAQs)",
+     "published": null,
+     "kind": "official"
+    }
+   ],
+   "verification": "official",
+   "notes": "The new rates were a surprise. Business Standard reported the indices cracking intraday on the announcement.",
+   "public_period": "during"
+  },
+  {
+   "title": "Global sell-off on yen carry-trade unwind and US recession fears",
+   "category": "world_macro",
+   "subcategory": "global risk-off / carry unwind",
+   "event_date": "2024-08-05",
+   "public_time_ist": null,
+   "timing_note": "Built up over 31 Jul to 2 Aug (BoJ hike, then weak US jobs data on Friday 2 Aug, released after the Indian close) and peaked in Asian trading on Monday 5 Aug.",
+   "first_tradable_session": "2024-08-05",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "A sharp yen rally forced investors to unwind yen-funded carry trades, which together with US recession fears drove a synchronised global equity sell-off led by Japan.",
+   "reported_affected": [
+    "Global equities",
+    "Nikkei / Asian markets",
+    "India broad market",
+    "India VIX",
+    "Rupee"
+   ],
+   "confounders": [
+    "Bank of Japan rate hike on 31 Jul 2024",
+    "Weak US July payrolls on 2 Aug 2024",
+    "Middle East tensions after the killing of a Hamas leader in Tehran (31 Jul)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/2024/08/05/carry-trades-a-major-unwinding-is-underway-amid-a-stock-sell-off.html",
+     "publisher": "CNBC",
+     "published": "2024-08-05",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/stock-market-crash-today-aug-5-why-sensex-nifty-fell-24300-key-reasons-124080500152_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-08-05",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/finance/personal-finance/yen-carry-trade-blowback-explained-what-investors-in-india-should-do-now-124080700319_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-08-07",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Reported as a major global sell-off. The BoJ and payroll confounders are general knowledge and were not checked against the gathered sources.",
+   "public_period": null
+  },
+  {
+   "title": "Hindenburg alleges SEBI chair Madhabi Puri Buch had stakes in offshore funds linked to Adani",
+   "category": "corporate_governance",
+   "subcategory": "allegations against regulator",
+   "event_date": "2024-08-10",
+   "public_time_ist": null,
+   "timing_note": "Published on Saturday 10 Aug 2024. Exact time not found. The first session after was Monday 12 Aug.",
+   "first_tradable_session": "2024-08-12",
+   "scope": "stock",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Hindenburg Research alleged that SEBI chairperson Madhabi Puri Buch and her husband had stakes in offshore entities used in the alleged Adani scandal. The couple called the allegations baseless.",
+   "reported_affected": [
+    "Adani Group stocks",
+    "Broad market sentiment",
+    "Capital-market intermediaries"
+   ],
+   "confounders": [
+    "Aftermath of the 5 Aug global sell-off"
+   ],
+   "sources": [
+    {
+     "url": "https://www.aljazeera.com/economy/2024/8/12/adani-group-rocked-by-hindenburg-allegations-against-sebi",
+     "publisher": "Al Jazeera",
+     "published": "2024-08-12",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/sebi-chair-had-stake-in-offshore-entities-used-in-adani-scandal-hindenburg-124081001383_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-08-10",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/hindenburg-vs-sebi-adani-stocks-global-markets-to-guide-nifty-on-aug-12-124081200066_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-08-12",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Business Standard reported Adani stocks paring early losses on 12 Aug. Hindenburg reportedly teased a new India report beforehand, but no source was captured.",
+   "public_period": null
+  },
+  {
+   "title": "Fed cuts rates 50 bp, its first cut since 2020",
+   "category": "world_macro",
+   "subcategory": "FOMC decision",
+   "event_date": "2024-09-18",
+   "public_time_ist": "23:30",
+   "timing_note": "FOMC statement at 14:00 EDT on 18 Sep, which is 23:30 IST.",
+   "first_tradable_session": "2024-09-19",
+   "scope": "world",
+   "known_beforehand": "scheduled",
+   "expectation": "A cut was expected. Whether it would be 25 or 50 bp was debated; no consensus source was captured.",
+   "expectation_source": null,
+   "what_happened": "The FOMC cut the federal funds target range by half a percentage point to start its easing cycle.",
+   "reported_affected": [
+    "Global equities",
+    "EM flows",
+    "Rupee",
+    "Indian rate-sensitive sectors"
+   ],
+   "confounders": [
+    "PBOC stimulus on 24 Sep 2024",
+    "Record Indian index highs in late Sep 2024"
+   ],
+   "sources": [
+    {
+     "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20240918a.htm",
+     "publisher": "Federal Reserve",
+     "published": "2024-09-18",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.cnbc.com/2024/09/18/fed-cuts-rates-september-2024-.html",
+     "publisher": "CNBC",
+     "published": "2024-09-18",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": null
+  },
+  {
+   "title": "PBOC unveils broad stimulus package, triggering a rotation to China",
+   "category": "world_macro",
+   "subcategory": "China stimulus",
+   "event_date": "2024-09-24",
+   "public_time_ist": null,
+   "timing_note": "Announced at a PBOC press conference in Beijing on 24 Sep (Asian hours). Exact IST time not found.",
+   "first_tradable_session": "2024-09-24",
+   "scope": "world",
+   "known_beforehand": "expected",
+   "expectation": "A PBOC press conference had been flagged beforehand (CNBC: chief 'set to hold press conference'). The size of the package was not known.",
+   "expectation_source": "https://www.cnbc.com/2024/09/24/chinas-central-bank-chief-set-to-hold-press-conference-days-after-fed-rate-cut.html",
+   "what_happened": "China's central bank announced a slate of monetary and property-support measures, including mortgage relief, which sparked a rally in Chinese assets and a foreign-investor rotation toward China.",
+   "reported_affected": [
+    "Chinese/Hong Kong equities",
+    "Metals",
+    "FPI flows out of India (Oct 2024)",
+    "Indian metal stocks"
+   ],
+   "confounders": [
+    "Fed 50 bp cut on 18 Sep 2024",
+    "Iran missile attack on Israel on 1 Oct 2024",
+    "SEBI F&O framework on 1 Oct 2024"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/2024/09/24/chinas-central-bank-chief-set-to-hold-press-conference-days-after-fed-rate-cut.html",
+     "publisher": "CNBC",
+     "published": "2024-09-24",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.cnbc.com/2024/09/24/china-property-stocks-rally-on-homes-mortgage-stimulus-.html",
+     "publisher": "CNBC",
+     "published": "2024-09-24",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/fpi-selling-tops-10-billion-so-far-in-october-amid-a-shift-to-china-124102101134_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-10-21",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": null,
+   "public_period": null
+  },
+  {
+   "title": "Record FPI outflow from Indian equities (October 2024)",
+   "category": "flows",
+   "subcategory": "FPI selling wave",
+   "event_date": "2024-10-01",
+   "public_time_ist": null,
+   "timing_note": "This is a month-long wave, not a single announcement. event_date is the first trading day of the window (Oct 2024). Monthly totals were reported in early November.",
+   "first_tradable_session": null,
+   "scope": "india",
+   "known_beforehand": null,
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Foreign portfolio investors pulled a record monthly amount out of Indian equities in October 2024, a selling wave Business Standard tied to the shift toward China after its stimulus, high valuations and the Middle East conflict.",
+   "reported_affected": [
+    "Financials (largest FPI outflows per RBI)",
+    "Oil & gas",
+    "FMCG",
+    "Large caps broadly",
+    "Rupee"
+   ],
+   "confounders": [
+    "PBOC stimulus (24 Sep)",
+    "Iran-Israel escalation (1 Oct)",
+    "SEBI F&O curbs (1 Oct)",
+    "Weak Q2 FY25 earnings",
+    "US election run-up"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/markets/news/fpis-withdraw-record-rs-94-000-cr-from-indian-equities-in-october-124110300138_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-11-03",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/indian-stocks-see-record-monthly-foreign-outflows-as-china-takes-spotlight-124101800655_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-10-18",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/capital-market-news/financials-oil-gas-and-consumable-fuels-and-fmcg-recorded-the-highest-fpi-outflows-during-october-says-rbi-124112100409_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-11-21",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "EPISODE: a multi-week wave, not a point event; keep out of point-event studies. All sources are Business Standard (one cites RBI data). Flow amounts are left out on purpose.",
+   "public_period": null
+  },
+  {
+   "title": "SEBI announces equity index derivatives (F&O) framework tightening",
+   "category": "regulation_sebi",
+   "subcategory": "F&O / derivatives curbs",
+   "event_date": "2024-10-01",
+   "public_time_ist": null,
+   "timing_note": "SEBI circular dated 1 Oct 2024 (Tuesday). Business Standard reported it that evening, after market hours (time not confirmed). 2 Oct (Gandhi Jayanti) was a holiday, so the first session was 3 Oct. The measures were phased in from 20 Nov 2024 (Business Standard says the first changes took effect from 20/21 Nov).",
+   "first_tradable_session": "2024-10-03",
+   "scope": "sector",
+   "known_beforehand": "expected",
+   "expectation": "SEBI had consulted on the curbs, and Business Standard reported on 6 Sep that SEBI would tighten derivative rules despite pushback.",
+   "expectation_source": "https://www.business-standard.com/markets/news/sebi-to-tighten-derivative-rules-to-increase-barriers-despite-pushback-124090600359_1.html",
+   "what_happened": "SEBI announced six measures to curb speculation in index derivatives, including rationalising weekly expiries and raising the minimum contract size, to be phased in from 20 Nov 2024.",
+   "reported_affected": [
+    "Brokerages / exchanges (BSE, Angel One, etc.)",
+    "F&O volumes",
+    "Index options market",
+    "BSE Bankex / Sensex 50 weekly contracts (discontinued)"
+   ],
+   "confounders": [
+    "Iran missile attack on Israel the same evening (1 Oct)",
+    "China stimulus rotation",
+    "Market holiday on 2 Oct"
+   ],
+   "sources": [
+    {
+     "url": "https://www.sebi.gov.in/legal/circulars/oct-2024/measures-to-strengthen-equity-index-derivatives-framework-for-increased-investor-protection-and-market-stability_87208.html",
+     "publisher": "SEBI",
+     "published": "2024-10-01",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/sebi-announces-six-key-changes-to-curb-speculation-in-derivatives-trading-124100101316_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-10-01",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/new-f-o-rule-to-come-into-effect-from-thursday-nov-21-here-s-what-changes-124112000292_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-11-20",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/capital-market-news/bse-discontinues-weekly-contracts-on-bankex-sensex-50-124100400441_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-10-04",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "Phase start on 20 Nov 2024 is a second relevant date for F&O volume studies.",
+   "public_period": null
+  },
+  {
+   "title": "Iran fires ballistic missiles at Israel",
+   "category": "geopolitics_war",
+   "subcategory": "Iran-Israel direct strike",
+   "event_date": "2024-10-01",
+   "public_time_ist": null,
+   "timing_note": "Launched on the evening of 1 Oct (Middle East time), after the Indian close. Exact IST time not found. 2 Oct was an Indian market holiday, so the first session was 3 Oct.",
+   "first_tradable_session": "2024-10-03",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Iran launched a large ballistic-missile attack on Israel, saying it was retaliation for the assassinations of Hezbollah and Hamas leaders.",
+   "reported_affected": [
+    "Crude oil",
+    "Indian OMCs, aviation, paints",
+    "Broad market"
+   ],
+   "confounders": [
+    "SEBI F&O circular the same evening",
+    "China stimulus rotation",
+    "Israeli ground operation in Lebanon"
+   ],
+   "sources": [
+    {
+     "url": "https://www.aljazeera.com/news/2024/10/1/irans-missile-attack-against-israel-what-we-know-and-what-comes-next",
+     "publisher": "Al Jazeera",
+     "published": "2024-10-01",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/iran-israel-war-sebi-f-o-why-sensex-plunged-over-1-200-pts-intraday-today-124100300183_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-10-03",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Business Standard on 3 Oct attributed the sell-off jointly to the Iran-Israel war and the SEBI F&O rules, so the two are confounded.",
+   "public_period": "after_close"
+  },
+  {
+   "title": "US presidential election: Trump wins",
+   "category": "election",
+   "subcategory": "US presidential election",
+   "event_date": "2024-11-06",
+   "public_time_ist": null,
+   "timing_note": "Results came in on 6 Nov during Asian/Indian hours (5 Nov US election night). The exact IST time of the race call was not found.",
+   "first_tradable_session": "2024-11-06",
+   "scope": "world",
+   "known_beforehand": "scheduled",
+   "expectation": "A CNBC survey on 24 Oct described the race as a dead heat.",
+   "expectation_source": "https://www.cnbc.com/2024/10/24/presidential-election-is-a-dead-heat-though-trump-leads-harris-big-on-economy-says-cnbc-survey.html",
+   "what_happened": "Donald Trump defeated Kamala Harris to win the 2024 US presidential election.",
+   "reported_affected": [
+    "Indian IT stocks",
+    "Pharma",
+    "Dollar / US yields",
+    "Rupee",
+    "Global equities"
+   ],
+   "confounders": [
+    "Fed 25 bp cut on 7 Nov 2024",
+    "Ongoing FPI selling in Oct-Nov 2024"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/2024/11/06/trump-wins-2024-election-for-president.html",
+     "publisher": "CNBC",
+     "published": "2024-11-06",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/stock-market-news/markets-post-biggest-gain-in-six-weeks-on-donald-trump-win-in-us-polls-124110601657_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-11-06",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Business Standard reported IT stocks rallying on 6 Nov.",
+   "public_period": "during"
+  },
+  {
+   "title": "US indictment of Gautam Adani and others (bribery and securities fraud)",
+   "category": "corporate_governance",
+   "subcategory": "US criminal/SEC charges",
+   "event_date": "2024-11-20",
+   "public_time_ist": null,
+   "timing_note": "Indictment (returned 24 Oct 2024) unsealed in a New York federal court on 20 Nov (US time), which was late 20 Nov / early 21 Nov IST. Adani stocks were reported plunging on 21 Nov.",
+   "first_tradable_session": "2024-11-21",
+   "scope": "stock",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "US prosecutors and the SEC charged Gautam Adani, Sagar Adani and others over an alleged roughly $265 million bribery scheme tied to Adani Green solar contracts. Adani Green deferred a dollar bond issue and the group denied the charges.",
+   "reported_affected": [
+    "Adani Group stocks",
+    "Adani Green",
+    "Lenders to Adani",
+    "GQG and other Adani investors"
+   ],
+   "confounders": [
+    "Maharashtra election results on 23 Nov",
+    "Ongoing FPI selling"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/2024/11/20/billionaire-gautam-adani-charged-in-new-york-with-massive-fraud.html",
+     "publisher": "CNBC",
+     "published": "2024-11-20",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/companies/news/gautam-adani-charged-by-us-in-265-million-bribery-case-top-things-we-know-124112100195_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-11-21",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.aljazeera.com/news/2024/11/22/why-has-indian-billionaire-gautam-adani-been-charged-in-a-us-bribery-case",
+     "publisher": "Al Jazeera",
+     "published": "2024-11-22",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/companies/news/adani-s-us-legal-saga-from-bribery-indictment-to-criminal-case-dismissal-126081101061_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-08-11",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Separate from the 2023 Hindenburg events. Later developments are in separate entries for Jan 2026 and May 2026, and the case was dismissed on 10 Aug 2026.",
+   "public_period": null
+  },
+  {
+   "title": "Maharashtra assembly results: BJP-led Mahayuti landslide",
+   "category": "election",
+   "subcategory": "state assembly results",
+   "event_date": "2024-11-23",
+   "public_time_ist": null,
+   "timing_note": "Counting took place on Saturday 23 Nov. The first session after was Monday 25 Nov.",
+   "first_tradable_session": "2024-11-25",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The BJP-led Mahayuti alliance won a sweeping majority in Maharashtra, while the INDIA bloc retained Jharkhand.",
+   "reported_affected": [
+    "Broad market",
+    "Adani Group (recovery)",
+    "Infrastructure / PSU"
+   ],
+   "confounders": [
+    "Adani US indictment (21 Nov)",
+    "Global cues (US Treasury Secretary nomination)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/markets/news/market-rally-bjp-maha-win-global-cues-why-sensex-rallied-1-300pts-monday-124112500207_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-11-25",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.aljazeera.com/news/2024/11/24/how-modi-won-back-indias-big-economic-prize-five-months-after-losing-it",
+     "publisher": "Al Jazeera",
+     "published": "2024-11-24",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/elections/maharashtra-elections/election-results-nda-set-to-stun-in-maharashtra-india-to-retain-jharkhand-124112300454_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-11-23",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Business Standard credited the 25 Nov rally to both the BJP's Maharashtra win and global cues.",
+   "public_period": null
+  },
+  {
+   "title": "RBI holds repo at 6.5% but cuts CRR by 50 bp to 4%",
+   "category": "rbi_policy",
+   "subcategory": "MPC decision - liquidity easing",
+   "event_date": "2024-12-06",
+   "public_time_ist": null,
+   "timing_note": "Scheduled MPC announcement on Friday morning. Exact time not found.",
+   "first_tradable_session": "2024-12-06",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The MPC kept the repo rate at 6.50% while the RBI cut the cash reserve ratio by 50 bp to 4%, releasing about Rs 1.16 lakh crore of primary liquidity. This was Governor Das's last policy.",
+   "reported_affected": [
+    "Banks",
+    "NBFCs",
+    "Bond yields",
+    "Rate-sensitive sectors"
+   ],
+   "confounders": [
+    "Governor transition to Sanjay Malhotra (Dec 2024)",
+    "FPI flows turning positive in early Dec 2024"
+   ],
+   "sources": [
+    {
+     "url": "https://rbidocs.rbi.org.in/rdocs/PressRelease/PDFs/PR1646070ADDB4ACC74D7C9D2A0AB85963802D.PDF",
+     "publisher": "Reserve Bank of India",
+     "published": "2024-12-06",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/finance/news/monetary-policy-review-rbi-keeps-rates-unchanged-cuts-crr-by-50-bps-to-4-124120601217_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-12-06",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/capital-market-news/crr-cut-to-release-primary-liquidity-of-about-rs-1-16-lakh-crore-to-the-banking-system-says-rbi-124120600386_1.html",
+     "publisher": "Business Standard",
+     "published": "2024-12-06",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": null
+  },
+  {
+   "title": "Fed's hawkish cut: 25 bp, but dot plot shows only two 2025 cuts",
+   "category": "world_macro",
+   "subcategory": "FOMC decision",
+   "event_date": "2024-12-18",
+   "public_time_ist": "00:30",
+   "timing_note": "FOMC statement at 14:00 US Eastern on 18 Dec, which is 00:30 IST on 19 Dec.",
+   "first_tradable_session": "2024-12-19",
+   "scope": "world",
+   "known_beforehand": "scheduled",
+   "expectation": "A December cut was widely expected (CNBC, 13 Dec). The surprise was the hawkish guidance for 2025.",
+   "expectation_source": "https://www.cnbc.com/amp/2024/12/13/fed-likely-to-cut-interest-rates-in-december-what-that-means-for-you.html",
+   "what_happened": "The Fed cut rates by a quarter point but projected only two cuts in 2025, fewer than previously projected, and Powell signalled caution.",
+   "reported_affected": [
+    "Global equities",
+    "Dollar / US yields",
+    "Rupee",
+    "FPI flows"
+   ],
+   "confounders": [
+    "Year-end FPI flows"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/2024/12/18/fed-rate-decision-december-2024-.html",
+     "publisher": "CNBC",
+     "published": "2024-12-18",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.cnbc.com/2024/12/18/the-feds-dot-plot-shows-only-two-rate-cuts-in-2025-fewer-than-previously-projected.html",
+     "publisher": "CNBC",
+     "published": "2024-12-18",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.federalreserve.gov/newsevents/pressreleases/2024-press-fomc.htm",
+     "publisher": "Federal Reserve (2024 FOMC press releases index)",
+     "published": null,
+     "kind": "official"
+    }
+   ],
+   "verification": "official",
+   "notes": "Reported as a sharp US sell-off on 18 Dec.",
+   "public_period": null
+  },
+  {
+   "title": "Union Budget 2025-26: income tax relief (no tax up to Rs 12 lakh)",
+   "category": "union_budget",
+   "subcategory": "full budget - consumption push",
+   "event_date": "2025-02-01",
+   "public_time_ist": null,
+   "timing_note": "Presented on Saturday 1 Feb 2025. Whether a special Saturday trading session was held was not verified in the gathered sources. If it was not, the first session was Monday 3 Feb.",
+   "first_tradable_session": null,
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The Budget gave about Rs 1 trillion of income tax relief by making income up to Rs 12 lakh tax-free under the new regime (via a rebate), and set the FY26 fiscal deficit target at 4.4% of GDP.",
+   "reported_affected": [
+    "Consumption / FMCG / autos / consumer durables",
+    "Capex-linked PSUs (rail, defence)",
+    "Government bonds"
+   ],
+   "confounders": [
+    "RBI rate cut on 7 Feb 2025",
+    "Heavy FPI selling in Jan-Feb 2025",
+    "US tariff announcements on Canada/Mexico/China (early Feb 2025)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/budget/news/budget-non-inflationary-focuses-on-fiscal-prudence-finance-secy-pandey-125020401184_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-02-04",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/finance/personal-finance/no-tax-on-income-up-to-rs-12-lakh-but-it-s-a-rebate-not-an-exemption-125020600916_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-02-06",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/economy/news/rbi-guv-lauds-budget-says-rs-1-trn-tax-relief-will-not-impact-inflation-125020701537_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-02-07",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard sources were found (web search budget ran out). The US tariff confounder was not verified.",
+   "public_period": null
+  },
+  {
+   "title": "RBI cuts repo rate 25 bp to 6.25% (first Malhotra policy)",
+   "category": "rbi_policy",
+   "subcategory": "MPC decision - cut",
+   "event_date": "2025-02-07",
+   "public_time_ist": null,
+   "timing_note": "Scheduled MPC announcement on Friday morning. Exact time not found.",
+   "first_tradable_session": "2025-02-07",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "A Business Standard poll (2 Feb) expected a 25 bp cut.",
+   "expectation_source": "https://www.business-standard.com/finance/news/bs-poll-rbi-expected-to-reduce-policy-repo-rate-by-25-basis-points-125020200562_1.html",
+   "what_happened": "The MPC unanimously cut the repo rate by 25 bp to 6.25% and kept a neutral stance.",
+   "reported_affected": [
+    "Banks",
+    "NBFCs",
+    "Realty",
+    "Autos",
+    "Bond yields"
+   ],
+   "confounders": [
+    "Union Budget 1 Feb 2025",
+    "FPI selling",
+    "US tariff threats"
+   ],
+   "sources": [
+    {
+     "url": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=59818",
+     "publisher": "Reserve Bank of India (MPC minutes)",
+     "published": "2025-02-21",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/rate-cut-as-expected-fy26-growth-forecast-slightly-optimistic-aditi-nayar-125020700675_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-02-07",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "Expected, not a surprise.",
+   "public_period": null
+  },
+  {
+   "title": "US 'reciprocal' tariffs announced (India rate 26-27%)",
+   "category": "world_macro",
+   "subcategory": "US tariffs",
+   "event_date": "2025-04-02",
+   "public_time_ist": null,
+   "timing_note": "Announced on Wednesday 2 Apr 2025 (US time), which was after the Indian close and overnight into 3 Apr IST. Exact time not found. Business Standard's 'Market Today' for 3 Apr treats 3 Apr as the first session.",
+   "first_tradable_session": "2025-04-03",
+   "scope": "world",
+   "known_beforehand": "expected",
+   "expectation": "The announcement date had been trailed in advance, and Business Standard reported an FPI sell-off ahead of the tariff move (1 Apr). Rates and scope were unknown.",
+   "expectation_source": "https://www.business-standard.com/markets/news/fpi-selloff-ahead-of-us-president-donald-trump-tariff-move-rattles-markets-125040101181_1.html",
+   "what_happened": "President Trump announced a 10% baseline tariff on imports from more than 180 countries plus higher country-specific rates. India's rate was reported as 27% (26% in some reports), pharma was exempted, and China retaliated with a 34% tariff.",
+   "reported_affected": [
+    "Indian IT",
+    "Seafood / shrimp exporters",
+    "Auto components",
+    "Pharma (exempted)",
+    "Global equities"
+   ],
+   "confounders": [
+    "China's retaliatory tariffs (4 Apr)",
+    "Monthly F&O expiry on 3 Apr",
+    "90-day tariff pause announced later in April 2025 (Business Standard)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/markets/news/market-today-gift-nifty-trump-s-26-india-tariff-f-o-expiry-nikkei-ipo-125040300137_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-04-03",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/economy/news/trump-liberation-day-countrywise-tariffs-india-china-eu-japan-vietnam-125040300077_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-04-03",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/nifty-pharma-jumps-5-as-us-exempts-reciprocal-tariff-on-pharma-goods-125040300308_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-04-03",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/trump-s-tariffs-sensex-nifty-join-global-selloff-amid-fears-of-recession-125040401130_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-04-04",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard; no White House or USTR source was retrieved. The 90-day pause (9 Apr US time) should be its own event but could not be dated from the gathered sources. Business Standard (21 Jan 2026) only confirms that a 90-day pause was announced in April 2025.",
+   "public_period": null
+  },
+  {
+   "title": "Pahalgam terror attack",
+   "category": "terror_security",
+   "subcategory": "terror attack in J&K",
+   "event_date": "2025-04-22",
+   "public_time_ist": null,
+   "timing_note": "Attack on Tuesday 22 Apr 2025 at Baisaran meadow. The time it was reported relative to the 15:30 IST close was not found, so the first tradable session is left null (22 or 23 Apr).",
+   "first_tradable_session": null,
+   "scope": "india",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Terrorists killed 26 people, mostly tourists, at Baisaran meadow near Pahalgam. India blamed Pakistan, suspended the Indus Waters Treaty on 23 Apr and closed the Attari check post, and Pakistan shut its airspace to Indian flights on 24 Apr.",
+   "reported_affected": [
+    "Broad market (geopolitical risk premium)",
+    "Defence stocks",
+    "Tourism / hotels / airlines",
+    "Pakistan equities"
+   ],
+   "confounders": [
+    "US tariff developments in April 2025",
+    "FPI flows turning positive from March 2025"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/external-affairs-defence-security/news/india-pakistan-ceasefire-pahalgam-terror-attack-operation-sindoor-timeline-125051100113_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-05-11",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/stock-in-india-pakistan-set-for-relief-rally-following-understanding-125051100303_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-05-11",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard; no PIB or MEA statement was retrieved.",
+   "public_period": null
+  },
+  {
+   "title": "Operation Sindoor: Indian strikes on terror camps in Pakistan and PoK",
+   "category": "geopolitics_war",
+   "subcategory": "India-Pakistan military conflict",
+   "event_date": "2025-05-07",
+   "public_time_ist": null,
+   "timing_note": "Strikes in the early morning of Wednesday 7 May 2025, before the Indian open. Exact time not found in the gathered sources. Hostilities continued 7-10 May.",
+   "first_tradable_session": "2025-05-07",
+   "scope": "india",
+   "known_beforehand": null,
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "India struck nine terror training camps in Pakistan and Pakistan-occupied Kashmir, calling it a 'focused and measured' act of self-defence. Pakistan retaliated with missile and drone waves on the nights of 7-9 May.",
+   "reported_affected": [
+    "Broad market",
+    "Defence stocks",
+    "Airlines (airspace closures)",
+    "Rupee",
+    "Pakistan equities"
+   ],
+   "confounders": [
+    "Fed FOMC decision on 7 May 2025 (US time)",
+    "Escalating India-Pakistan tensions and measures since 22 Apr"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/external-affairs-defence-security/news/india-pakistan-ceasefire-pahalgam-terror-attack-operation-sindoor-timeline-125051100113_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-05-11",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/blueprint-defence-magazine/features/when-india-struck-deep-126060100804_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-06-01",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/blueprint-defence-magazine/opinion/a-year-after-operation-sindoor-126050600806_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-05-06",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard. Indian retaliation after Pahalgam was widely discussed, but no contemporaneous expectation source was captured, so known_beforehand is null. Clashes on 9 May were reported to weigh on the Nifty that day.",
+   "public_period": null
+  },
+  {
+   "title": "India-Pakistan cessation of hostilities ('understanding')",
+   "category": "geopolitics_war",
+   "subcategory": "ceasefire",
+   "event_date": "2025-05-10",
+   "public_time_ist": "17:00",
+   "timing_note": "The Pakistani DGMO called his Indian counterpart at 15:30 IST, and the understanding took effect at 17:00 IST on Saturday 10 May (Trump announced it first on Truth Social; the exact time of his post was not found). Violations were reported that evening. The first session was Monday 12 May.",
+   "first_tradable_session": "2025-05-12",
+   "scope": "india",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "India and Pakistan agreed to halt military action on land, air and sea from 5 pm IST on 10 May after a DGMO-level call. Business Standard described it as an informal understanding rather than a formal ceasefire.",
+   "reported_affected": [
+    "Broad market (relief)",
+    "Defence stocks",
+    "Pakistan equities",
+    "Rupee"
+   ],
+   "confounders": [
+    "US-China tariff truce announced in Geneva on 12 May 2025 (not verified in gathered sources)",
+    "Q4 FY25 earnings"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/external-affairs-defence-security/news/india-pakistan-ceasefire-pahalgam-terror-attack-operation-sindoor-timeline-125051100113_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-05-11",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/stock-in-india-pakistan-set-for-relief-rally-following-understanding-125051100303_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-05-11",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/external-affairs-defence-security/news/trump-lauds-india-pakistan-ceasefire-kashmir-pahalgam-attack-125051100097_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-05-11",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "A relief rally was expected for 12 May. The US-China Geneva truce on the same day is a major confounder.",
+   "public_period": null
+  },
+  {
+   "title": "RBI 'jumbo' surprise: 50 bp repo cut to 5.50% and 100 bp CRR cut",
+   "category": "rbi_policy",
+   "subcategory": "MPC decision - surprise size",
+   "event_date": "2025-06-06",
+   "public_time_ist": null,
+   "timing_note": "Scheduled MPC announcement on Friday morning. Exact time not found.",
+   "first_tradable_session": "2025-06-06",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "Consensus, including Nomura, expected a 25 bp cut, so the 50 bp cut was against consensus. The CRR cut was also a surprise.",
+   "expectation_source": "https://www.business-standard.com/markets/news/rbi-delivers-a-jumbo-surprise-more-reasons-for-inr-to-underperform-nomura-125060600525_1.html",
+   "what_happened": "The RBI cut the repo rate by 50 bp to 5.50% and the CRR by 100 bp to 3% (in four tranches from September), and moved its stance from accommodative to neutral.",
+   "reported_affected": [
+    "Banks / NBFCs / small finance banks",
+    "Realty",
+    "Autos",
+    "Bond yields",
+    "Rupee"
+   ],
+   "confounders": [
+    "US-China trade talks (Trump-Xi call in early June 2025)",
+    "Israel-Iran war from 13 Jun"
+   ],
+   "sources": [
+    {
+     "url": "https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=60605",
+     "publisher": "Reserve Bank of India (Governor's Statement)",
+     "published": "2025-06-06",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/rbi-delivers-a-jumbo-surprise-more-reasons-for-inr-to-underperform-nomura-125060600525_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-06-06",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/crr-cut-surprised-mkts-rbi-may-await-data-before-next-rate-move-analysts-125060600413_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-06-06",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "The clearest RBI surprise of 2025.",
+   "public_period": null
+  },
+  {
+   "title": "US strikes Iranian nuclear sites; Iran parliament backs Hormuz closure",
+   "category": "geopolitics_war",
+   "subcategory": "US entry into Israel-Iran war",
+   "event_date": "2025-06-22",
+   "public_time_ist": null,
+   "timing_note": "US strikes early on Sunday 22 Jun 2025 (Iran time). Exact IST time not found. The first session was Monday 23 Jun.",
+   "first_tradable_session": "2025-06-23",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The US struck three Iranian nuclear sites (Fordow, Natanz, Isfahan). Iran's parliament approved a proposal to close the Strait of Hormuz, with the final decision left to its Supreme National Security Council.",
+   "reported_affected": [
+    "Crude oil",
+    "Indian OMCs, aviation, paints",
+    "Rupee",
+    "Broad market"
+   ],
+   "confounders": [
+    "Israel-Iran war under way since 13 Jun 2025 (Israeli strikes on Iran)",
+    "Accenture results hitting Indian IT on 23 Jun"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/world-news/us-strikes-iran-nuclear-sites-trump-fordow-natanz-isfahan-conflict-125062200126_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-06-22",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/iran-mps-approve-hormuz-closure-us-warns-of-oil-trade-disruption-125062200805_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-06-22",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/what-sparked-the-early-sell-off-in-nifty-sensex-stock-market-today-why-markets-fell-125062300289_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-06-23",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard. The 13 Jun 2025 Israeli strikes on Iran should be their own event but were not separately sourced. Business Standard mentions 13 Jun only as a prior large market fall.",
+   "public_period": null
+  },
+  {
+   "title": "SEBI interim order bars Jane Street from Indian markets",
+   "category": "regulation_sebi",
+   "subcategory": "enforcement - index manipulation",
+   "event_date": "2025-07-03",
+   "public_time_ist": null,
+   "timing_note": "Ex parte interim order dated 3 Jul 2025. Release time not found (reported after market hours). Business Standard says the trading bar applied from 4 Jul, so 4 Jul is taken as the first tradable session.",
+   "first_tradable_session": "2025-07-04",
+   "scope": "sector",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "SEBI barred Jane Street group entities from Indian markets and impounded Rs 4,840 crore of alleged gains. It alleged the firm pushed up Bank Nifty constituents in cash and futures while holding large short index-options positions. The bar was lifted after the deposit.",
+   "reported_affected": [
+    "Index options volumes",
+    "Exchanges / brokerages (BSE, etc.)",
+    "Bank Nifty derivatives"
+   ],
+   "confounders": [
+    "US tariff deadline of 9 Jul 2025",
+    "Q1 FY26 earnings start"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/markets/news/jane-street-files-appeal-in-sat-alleging-sebi-bias-in-probe-125090301189_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-09-03",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/sebi-ramps-up-jane-street-probe-amid-inadequate-data-ongoing-complaints-125090500792_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-09-05",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard follow-ups were found; the SEBI order itself was not retrieved. The tariff confounder was not verified.",
+   "public_period": null
+  },
+  {
+   "title": "US doubles tariff on India to 50% over Russian oil purchases",
+   "category": "world_macro",
+   "subcategory": "US tariffs on India",
+   "event_date": "2025-08-06",
+   "public_time_ist": null,
+   "timing_note": "Executive order signed on Wednesday 6 Aug 2025 (US time), which was evening or night IST. The first 25% tranche took effect just after midnight New York time on 7 Aug, and the additional 25% took effect on 27 Aug 2025.",
+   "first_tradable_session": "2025-08-07",
+   "scope": "india",
+   "known_beforehand": "expected",
+   "expectation": "A 25% tariff on India had been announced in late July (Business Standard, 31 Jul) and threats over Russian oil had escalated. The extra 25% penalty was not certain.",
+   "expectation_source": "https://www.business-standard.com/markets/news/goldman-sachs-bernstein-nomura-brokerages-decode-trump-india-tariffs-125073100419_1.html",
+   "what_happened": "Trump signed an executive order imposing an additional 25% duty on Indian goods over India's purchases of Russian crude, taking the total tariff on many goods to 50% from 27 Aug. India called the move unfair, unjustified and unreasonable.",
+   "reported_affected": [
+    "Textiles / apparel",
+    "Gems & jewellery",
+    "Seafood",
+    "Auto components",
+    "Rupee",
+    "FPI flows"
+   ],
+   "confounders": [
+    "Late-July 25% tariff announcement",
+    "S&P sovereign upgrade to BBB in mid-Aug 2025 (exact date not captured)",
+    "GST reform announcement in mid-Aug"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/economy/news/us-doubles-tariff-on-india-to-50-over-russian-crude-oil-purchases-125080602011_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-08-06",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/economy/news/donald-trump-tariffs-india-25-per-cent-first-tranche-us-trade-125080700247_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-08-07",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/economy/news/extremely-unfortunate-unfair-unjustified-and-unreasonable-125080601989_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-08-06",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard; no White House text was retrieved. 27 Aug (effective date) is a second date to study. The exact date of the late-July 25% announcement was not captured.",
+   "public_period": "after_close"
+  },
+  {
+   "title": "GST Council approves two-slab GST rate rationalisation ('GST 2.0')",
+   "category": "india_policy",
+   "subcategory": "indirect tax reform",
+   "event_date": "2025-09-03",
+   "public_time_ist": null,
+   "timing_note": "The GST Council approved the changes on Wednesday 3 Sep 2025 (time not found). Business Standard's market analysis is dated 4 Sep, which is taken as the first tradable session (inference). New rates took effect on 22 Sep 2025.",
+   "first_tradable_session": "2025-09-04",
+   "scope": "india",
+   "known_beforehand": "expected",
+   "expectation": "A proposed GST rationalisation 'by September-end' had been flagged in August and was partly priced in. Analysts said the outcome beat expectations in some product categories.",
+   "expectation_source": "https://www.business-standard.com/markets/news/proposed-gst-rejig-saved-the-day-for-indian-stock-markets-says-chris-wood-125082900260_1.html",
+   "what_happened": "The GST Council approved a two-slab structure that removed the 12% and 28% slabs, cut rates on many essentials and consumer goods, and raised levies on select 'sin' goods. The new rates took effect on 22 Sep 2025.",
+   "reported_affected": [
+    "Autos / two-wheelers",
+    "FMCG",
+    "Consumer durables",
+    "Insurance (GST exemption on life/health policies)",
+    "Cement"
+   ],
+   "confounders": [
+    "50% US tariffs in force from 27 Aug",
+    "FPI selling",
+    "Fed cut on 17 Sep 2025"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/markets/news/gst-rate-rejig-above-expectation-stocks-price-in-most-positives-analysts-125090400373_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-09-04",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/industry/auto/hyundai-tata-mahindra-maruti-renault-cv-pv-price-cut-gst-rate-september-22-125090700445_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-09-07",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/equity-markets-log-biggest-gain-two-months-gains-underpinned-by-gst-reforms-125090501057_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-09-05",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard; no PIB or GST Council release was retrieved. The first public signal (PM's Independence Day speech, 15 Aug 2025) could not be confirmed as a GST-rate announcement from the gathered sources.",
+   "public_period": null
+  },
+  {
+   "title": "Fed cuts 25 bp to 4.00-4.25%, its first cut since Dec 2024",
+   "category": "world_macro",
+   "subcategory": "FOMC decision",
+   "event_date": "2025-09-17",
+   "public_time_ist": "23:30",
+   "timing_note": "FOMC statement at 14:00 EDT on 17 Sep, which is 23:30 IST.",
+   "first_tradable_session": "2025-09-18",
+   "scope": "world",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The FOMC lowered the federal funds target range by 25 bp to 4.00-4.25%, citing higher downside risks to employment. Stephen Miran dissented in favour of a 50 bp cut.",
+   "reported_affected": [
+    "Global equities",
+    "Dollar / Treasury yields",
+    "Rupee",
+    "FPI flows"
+   ],
+   "confounders": [
+    "SEBI orders on Adani (18 Sep)",
+    "US H-1B fee proclamation (19 Sep)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm",
+     "publisher": "Federal Reserve",
+     "published": "2025-09-17",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.aljazeera.com/economy/2025/9/17/us-federal-reserve-cuts-interest-rates-for-the-first-time-since-december",
+     "publisher": "Al Jazeera",
+     "published": "2025-09-17",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": null
+  },
+  {
+   "title": "SEBI dismisses Hindenburg-linked stock manipulation allegations against Adani Group",
+   "category": "regulation_sebi",
+   "subcategory": "enforcement outcome",
+   "event_date": "2025-09-18",
+   "public_time_ist": null,
+   "timing_note": "SEBI published two final orders on Thursday 18 Sep 2025. Release time not found, so it is unclear whether 18 or 19 Sep was the first session to trade on it.",
+   "first_tradable_session": null,
+   "scope": "stock",
+   "known_beforehand": null,
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "SEBI found no violation by the Adani Group companies in its probe of the 2023 Hindenburg allegations about tax havens and undisclosed related-party transactions.",
+   "reported_affected": [
+    "Adani Group stocks"
+   ],
+   "confounders": [
+    "Fed cut on 17 Sep",
+    "H-1B fee proclamation on 19 Sep"
+   ],
+   "sources": [
+    {
+     "url": "https://www.aljazeera.com/economy/2025/9/18/indian-regulators-dismiss-stock-manipulation-allegations-on-adani-group",
+     "publisher": "Al Jazeera",
+     "published": "2025-09-18",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only one source; the SEBI orders were not retrieved. This is a later Adani regulatory development, separate from the 2023 events.",
+   "public_period": null
+  },
+  {
+   "title": "US imposes $100,000 fee on new H-1B visa petitions",
+   "category": "world_macro",
+   "subcategory": "US immigration policy",
+   "event_date": "2025-09-19",
+   "public_time_ist": null,
+   "timing_note": "Presidential proclamation on Friday 19 Sep 2025 (US time). The signing date comes from later Business Standard coverage, and the exact time was not found. USCIS applied the fee to new petitions filed after 21 Sep. The first Indian session was Monday 22 Sep.",
+   "first_tradable_session": "2025-09-22",
+   "scope": "sector",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The Trump administration imposed a one-time $100,000 fee on new H-1B visa petitions. USCIS confirmed it applied to new petitions after the 21 Sep cutoff, including FY2026 lottery cases.",
+   "reported_affected": [
+    "Indian IT services",
+    "Pharma (US branded-drug tariffs the same week)",
+    "FPI flows"
+   ],
+   "confounders": [
+    "US tariffs on branded drugs announced in the same week",
+    "GST rate cut effective 22 Sep",
+    "Fed cut on 17 Sep"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/immigration/uscis-confirms-100k-h-1b-visa-fee-for-new-petitions-from-sept-21-125092200122_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-09-22",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/indices-post-steepest-weekly-fall-seven-months-fpi-outflows-125092601194_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-09-26",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/fpis-withdraw-23-885-cr-in-sept-total-outflow-reaches-1-6-trn-in-2025-125100500118_1.html",
+     "publisher": "Business Standard",
+     "published": "2025-10-05",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard. A US court later struck down the implementing guidance (Jun 2026) and the requirement was extended in Sep 2026.",
+   "public_period": null
+  },
+  {
+   "title": "RBI cuts repo 25 bp to 5.25% with Rs 1 lakh crore OMO and $5 bn swap",
+   "category": "rbi_policy",
+   "subcategory": "MPC decision - cut plus liquidity",
+   "event_date": "2025-12-05",
+   "public_time_ist": null,
+   "timing_note": "Scheduled MPC announcement on Friday morning. Exact time not found.",
+   "first_tradable_session": "2025-12-05",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The MPC unanimously cut the repo rate by 25 bp to 5.25% and kept a neutral stance. The RBI also announced Rs 1 lakh crore of OMO bond purchases and a 3-year $5 billion USD/INR buy/sell swap to inject durable liquidity.",
+   "reported_affected": [
+    "Banks",
+    "Bond yields",
+    "Rupee",
+    "Rate-sensitive sectors"
+   ],
+   "confounders": [
+    "Fed December 2025 meeting (9-10 Dec)",
+    "FPI selling resumed in Nov 2025"
+   ],
+   "sources": [
+    {
+     "url": "https://rbi.org.in/Scripts/BS_PressreleaseDisplay.aspx?prid=61750",
+     "publisher": "Reserve Bank of India (Governor's Statement)",
+     "published": "2025-12-05",
+     "kind": "official"
+    },
+    {
+     "url": "https://rbidocs.rbi.org.in/rdocs/PressRelease/PDFs/PR16331051154700094ACFB40DE08AE141531C.PDF",
+     "publisher": "Reserve Bank of India (Monetary Policy Statement)",
+     "published": "2025-12-05",
+     "kind": "official"
+    }
+   ],
+   "verification": "official",
+   "notes": "Only RBI sources were found. No pre-policy expectation source was retrieved, so whether it was a surprise is not established.",
+   "public_period": null
+  },
+  {
+   "title": "US SEC moves to serve summons on Gautam Adani; Adani stocks hit",
+   "category": "corporate_governance",
+   "subcategory": "US SEC civil case",
+   "event_date": "2026-01-23",
+   "public_time_ist": null,
+   "timing_note": "CNBC reported Adani stocks plunging on 23 Jan 2026 as the SEC sought to question the founder. The underlying court filing date and time were not found, so event_date is the date of the reported Indian market reaction.",
+   "first_tradable_session": "2026-01-23",
+   "scope": "stock",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The SEC sought Indian authorities' help to serve summons on Gautam Adani and others in its civil fraud case, which triggered volatility in Adani Group stocks.",
+   "reported_affected": [
+    "Adani Group stocks"
+   ],
+   "confounders": [
+    "Heavy FPI selling in Jan 2026",
+    "Run-up to Union Budget 2026"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/2026/01/23/adani-group-shares-sec-investigation-fraud.html",
+     "publisher": "CNBC",
+     "published": "2026-01-23",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/companies/news/adani-s-us-legal-saga-from-bribery-indictment-to-criminal-case-dismissal-126081101061_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-08-11",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "The CNBC article could not be fetched; its title came from search results.",
+   "public_period": null
+  },
+  {
+   "title": "Union Budget 2026-27: STT raised sharply on F&O",
+   "category": "union_budget",
+   "subcategory": "full budget - market taxation",
+   "event_date": "2026-02-01",
+   "public_time_ist": null,
+   "timing_note": "Presented on Sunday 1 Feb 2026. Whether a special Sunday trading session was held was not verified. If it was not, the first session was Monday 2 Feb.",
+   "first_tradable_session": null,
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "Business Standard (21 Jan) said foreign investors expected limited policy changes from the Budget.",
+   "expectation_source": "https://www.business-standard.com/markets/news/fpi-outflows-top-3-bn-in-january-amid-tepid-earnings-global-uncertainty-126012101202_1.html",
+   "what_happened": "A Business Standard column said the Budget raised securities transaction tax by up to 150%, framed as action to curb F&O speculation. It raised defence spending to about 2% of GDP and had no new middle-class tax cuts.",
+   "reported_affected": [
+    "Brokerages / exchanges",
+    "F&O volumes",
+    "Defence stocks"
+   ],
+   "confounders": [
+    "Heavy FPI selling in Jan 2026",
+    "IT sector AI-disruption sell-off in Feb 2026",
+    "US-Iran nuclear tensions in Feb 2026"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/opinion/columns/budget-2026-confident-yet-anxious-amid-global-and-domestic-uncertainty-126020200006_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-02-02",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/india-news/allocations-for-women-children-jump-11-55-to-5-01-trn-in-budget-2026-126021800845_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-02-18",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard, and one source is an opinion column. Fiscal deficit target and STT rates were not retrieved and should be checked against PIB or Budget documents.",
+   "public_period": null
+  },
+  {
+   "title": "US-Israel war on Iran begins; Khamenei killed",
+   "category": "geopolitics_war",
+   "subcategory": "US-Israel war on Iran",
+   "event_date": "2026-02-28",
+   "public_time_ist": null,
+   "timing_note": "Attack announced by Trump on Saturday 28 Feb 2026. Exact IST time not found. The first Indian session was Monday 2 Mar, and Business Standard expected a weak open that day.",
+   "first_tradable_session": "2026-03-02",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": "US-Iran tensions were known beforehand: nuclear talks ended without a breakthrough in late Feb, and analysts flagged oil could hit $110/bbl in a worst case (Business Standard, 27 Feb). The timing of the attack was not known.",
+   "expectation_source": "https://www.business-standard.com/markets/news/oil-can-flare-57-to-110-bbl-in-worst-case-on-iran-us-tensions-analysts-126022700108_1.html",
+   "what_happened": "The US and Israel launched a joint military offensive on Iran that killed Supreme Leader Ali Khamenei in its opening strikes. Iran retaliated with missiles on Israel and on US bases in Bahrain, Kuwait, Qatar and the UAE.",
+   "reported_affected": [
+    "Crude oil",
+    "Broad market",
+    "Indian OMCs, aviation, paints, logistics",
+    "Jewellery",
+    "India VIX",
+    "Rupee",
+    "Gulf remittances / Indians in Gulf"
+   ],
+   "confounders": [
+    "Strait of Hormuz effectively shut from 28 Feb-1 Mar",
+    "IT sector AI-disruption sell-off (Feb 2026)",
+    "FPIs turned sellers on 26-27 Feb"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/world-news/trump-s-retreat-us-forces-pull-back-from-gulf-britain-amid-iran-war-126100800167_1.html",
+     "publisher": "Business Standard (NYT syndication)",
+     "published": "2026-10-08",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/us-israel-pound-targets-in-iran-as-trump-signals-openness-to-talk-126030200030_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-03-02",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/markets-gap-down-open-us-iran-conflict-oil-fears-126030100190_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-03-01",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/sensex-tanks-1-200pts-nifty-around-24-800-on-us-iran-war-crude-oil-price-key-reasons-126030200381_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-03-02",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "All sources are Business Standard (one is NYT syndication). The Fed's 18 Mar 2026 statement corroborates 'developments in the Middle East'. Reported as a major sell-off on 2 Mar.",
+   "public_period": null
+  },
+  {
+   "title": "Strait of Hormuz effectively shut to shipping",
+   "category": "commodity",
+   "subcategory": "oil supply shock / Hormuz",
+   "event_date": "2026-03-01",
+   "public_time_ist": null,
+   "timing_note": "On Saturday 28 Feb Tasnim called the strait 'effectively shut' and the IRGC warned transit was unsafe. By Sunday 1 Mar traffic had largely stopped and major carriers suspended transits. There was no formal closure declaration, so the date is approximate (28 Feb-1 Mar). The first Indian session was 2 Mar.",
+   "first_tradable_session": "2026-03-02",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "After the US-Israeli strikes, Iranian warnings and ship-tracking data showed Hormuz effectively shut. Hapag-Lloyd, CMA CGM and Nippon Yusen suspended or halted transits and tankers piled up at the entrance.",
+   "reported_affected": [
+    "Crude oil / LNG",
+    "Indian OMCs, gas utilities, LPG supply",
+    "Shipping / insurance",
+    "Rupee",
+    "India current account"
+   ],
+   "confounders": [
+    "US-Israel war on Iran (28 Feb)",
+    "IEA record stock release (11 Mar 2026)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/world-news/ships-avoid-hormuz-as-iran-raises-threats-and-conflict-in-west-asia-spreads-126030100967_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-03-01",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/commodities/oil-drops-ahead-of-us-iran-talks-posts-biggest-weekly-fall-since-2022-126041100046_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-04-11",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/why-oil-prices-have-avoided-worst-case-surge-as-iran-war-enters-sixth-month-126091900164_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-09-19",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard. You asked for 'early Mar 2026'; the sources describe a de facto closure from 28 Feb-1 Mar. Its timing is inseparable from the war start for the 2 Mar session.",
+   "public_period": null
+  },
+  {
+   "title": "Record-pace FPI selling of Indian equities after the Iran war oil shock (Mar-Jun 2026)",
+   "category": "flows",
+   "subcategory": "FPI selling wave",
+   "event_date": "2026-03-02",
+   "public_time_ist": null,
+   "timing_note": "A multi-month wave, not a single announcement. event_date is the first session after the war began. FPIs were net sellers March-June 2026 (March the largest month) and turned buyers in July.",
+   "first_tradable_session": "2026-03-02",
+   "scope": "india",
+   "known_beforehand": null,
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Global funds sold Indian equities at a record pace. Bloomberg via Business Standard said 2026 outflows passed the 2025 full-year record within about three months, driven by the Iran-war energy shock, rotation into AI-linked markets, rupee volatility and a fragile earnings recovery.",
+   "reported_affected": [
+    "Large caps / financials",
+    "Rupee",
+    "Broad market"
+   ],
+   "confounders": [
+    "US-Israel war on Iran and Hormuz shutdown",
+    "Rupee at record lows (dates not captured)",
+    "AI-trade rotation to Korea/Taiwan",
+    "Domestic MF/SIP inflows offsetting"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/markets/news/global-funds-dump-indian-equities-at-record-pace-on-oil-shock-growth-fears-126041100158_1.html",
+     "publisher": "Business Standard (Bloomberg syndication)",
+     "published": "2026-04-11",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/fpis-pour-16-621-crore-into-indian-equities-in-first-half-of-august-126081600116_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-08-16",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/oil-price-surge-derails-fpi-return-to-indian-equities-amid-west-asia-crisis-126071601231_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-07-16",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "EPISODE: a multi-week wave, not a point event; keep out of point-event studies. Flow amounts are left out on purpose. A second wave of FPI selling hit in mid-July 2026 after the truce collapsed.",
+   "public_period": null
+  },
+  {
+   "title": "HDFC Bank chairman Atanu Chakraborty resigns citing ethical concerns",
+   "category": "corporate_governance",
+   "subcategory": "board resignation at systemically important bank",
+   "event_date": "2026-03-19",
+   "public_time_ist": null,
+   "timing_note": "Business Standard reports on 19 Mar 2026 (from about 13:26 IST) said he had stepped down. The disclosure time was not found and may have been late 18 Mar. event_date is the date of the reported market reaction.",
+   "first_tradable_session": "2026-03-19",
+   "scope": "stock",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Atanu Chakraborty quit as HDFC Bank's part-time chairman and independent director, citing ethical differences with certain practices. The RBI said the bank is a D-SIB with sound financials and 'no material concerns on record' on its conduct or governance, and Keki Mistry became interim chair.",
+   "reported_affected": [
+    "HDFC Bank",
+    "Bank Nifty / Nifty (heavyweight)",
+    "Mutual funds with large HDFC Bank holdings"
+   ],
+   "confounders": [
+    "Iran war oil spike",
+    "Fed hold on 18 Mar 2026 (23:30 IST)",
+    "Record FPI selling in March 2026"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/companies/people/who-is-atanu-chakraborty-ex-ias-quit-hdfc-bank-board-over-ethics-row-126031900305_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-03-19",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/industry/banking/rbi-says-no-governance-concerns-at-hdfc-bank-after-exit-126031900378_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-03-19",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/hdfc-bank-share-price-crash-mutual-funds-exposure-top-holders-q3fy26-126031900552_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-03-19",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard; the RBI statement is reported but its own release was not retrieved. Reported as one of HDFC Bank's worst sell-offs since Covid.",
+   "public_period": null
+  },
+  {
+   "title": "Two-week US-Iran ceasefire brokered by Pakistan",
+   "category": "geopolitics_war",
+   "subcategory": "ceasefire",
+   "event_date": "2026-04-07",
+   "public_time_ist": null,
+   "timing_note": "Business Standard says Iran and the US 'agreed on Tuesday' (7 Apr 2026) to a two-week ceasefire set to end on 22 Apr. The announcement time (US vs IST) was not found, so the first tradable session is left null (7 or 8 Apr).",
+   "first_tradable_session": null,
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The US and Iran agreed to a conditional two-week ceasefire brokered by Pakistan, and Iran's Supreme National Security Council approved it. The Islamabad peace talks on 11-12 Apr ended without a deal, and Trump extended the ceasefire on about 21-22 Apr while keeping a blockade.",
+   "reported_affected": [
+    "Crude oil",
+    "Broad market (only a modest rebound per Bloomberg/BS)",
+    "Rupee",
+    "OMCs / aviation"
+   ],
+   "confounders": [
+    "Record FPI selling",
+    "Hormuz still effectively closed to most freighters",
+    "US blockade of Iranian ports from 13 Apr"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/markets/commodities/oil-drops-ahead-of-us-iran-talks-posts-biggest-weekly-fall-since-2022-126041100046_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-04-11",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/india-news/india-flagged-lpg-tanker-jag-vikram-crosses-hormuz-after-us-iran-ceasefire-126041100506_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-04-11",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/israel-us-goals-on-iran-identical-ready-for-any-scenario-netanyahu-126041600030_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-04-16",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/iran-s-leaders-show-united-front-on-war-strategy-but-differ-over-endgame-126080200144_1.html",
+     "publisher": "Business Standard (NYT syndication)",
+     "published": "2026-08-02",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard. The extension came on about 22 Apr: https://www.business-standard.com/world-news/trump-extends-iran-ceasefire-but-maintains-blockade-as-talks-falter-126042200057_1.html",
+   "public_period": null
+  },
+  {
+   "title": "US naval blockade of Iranian ports after Islamabad talks fail",
+   "category": "geopolitics_war",
+   "subcategory": "blockade / escalation",
+   "event_date": "2026-04-13",
+   "public_time_ist": null,
+   "timing_note": "Talks in Islamabad ended without agreement early on 12 Apr (Sunday) and Trump shared plans for a blockade. Business Standard reported on 13 Apr (08:35 IST) that the blockade would begin that day.",
+   "first_tradable_session": "2026-04-13",
+   "scope": "world",
+   "known_beforehand": "expected",
+   "expectation": "Business Standard (12 Apr) said inconclusive US-Iran talks and oil prices would steer markets that week.",
+   "expectation_source": "https://www.business-standard.com/markets/news/inconclusive-us-iran-talks-oil-prices-to-steer-markets-this-week-analysts-126041200399_1.html",
+   "what_happened": "After Vice President Vance left Islamabad without a deal, the US began a naval blockade of Iranian ports while allowing transit through Hormuz. Iran threatened to disrupt Gulf trade.",
+   "reported_affected": [
+    "Crude oil",
+    "Gold",
+    "Asian equities",
+    "Rupee"
+   ],
+   "confounders": [
+    "Fragile two-week ceasefire (7-22 Apr)",
+    "Q4 FY26 results season"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/world-news/us-to-begin-blockade-of-iranian-ports-today-transit-allowed-via-hormuz-126041300025_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-04-13",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/bad-news-vance-says-no-agreement-after-iran-peace-talks-in-pakistan-126041200065_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-04-12",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard. Brent briefly peaked near its 2026 high in late April, per Business Standard (19 Sep 2026).",
+   "public_period": null
+  },
+  {
+   "title": "US DOJ seeks dismissal of Adani indictment; SEC settlement agreed",
+   "category": "corporate_governance",
+   "subcategory": "US legal resolution",
+   "event_date": "2026-05-18",
+   "public_time_ist": null,
+   "timing_note": "CNBC reported an $18 million SEC settlement on 15 May. The DOJ asked the court on 18 May (US time) to dismiss the indictment with prejudice. Times not found; 19 May is taken as the first session after the DOJ filing. The court dismissed the case on 10 Aug 2026.",
+   "first_tradable_session": "2026-05-19",
+   "scope": "stock",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Gautam and Sagar Adani agreed to pay $18 million in civil penalties to settle the SEC case, and the DOJ moved to dismiss the criminal indictment with prejudice, citing prosecutorial discretion. A US judge dismissed the charges and approved the SEC consent judgments on 10 Aug 2026.",
+   "reported_affected": [
+    "Adani Group stocks",
+    "Adani Green / Adani Enterprises bonds"
+   ],
+   "confounders": [
+    "Iran war / ceasefire dynamics",
+    "FPI selling (May 2026)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.cnbc.com/2026/05/15/us-sec-settlement-gautam-adani-sagar-adani-fraud-case.html",
+     "publisher": "CNBC",
+     "published": "2026-05-15",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.cnbc.com/2026/05/19/adani-treasury-justice-department-sec-settlement.html",
+     "publisher": "CNBC",
+     "published": "2026-05-19",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/companies/news/adani-s-us-legal-saga-from-bribery-indictment-to-criminal-case-dismissal-126081101061_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-08-11",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "The CNBC articles could not be fetched; their titles came from search results. Adani Enterprises also settled a separate OFAC sanctions matter (date not stated).",
+   "public_period": null
+  },
+  {
+   "title": "RBI/Centre capital-inflow package to defend rupee (FCNR(B)/ECB swap window; G-sec tax exemption)",
+   "category": "rbi_policy",
+   "subcategory": "FX / capital-flow measures (repo held at 5.25%)",
+   "event_date": "2026-06-05",
+   "public_time_ist": null,
+   "timing_note": "Announced with the MPC decision on Friday 5 Jun 2026 (time not found). The swap facility opened on 8 Jun, and PIB published its G-sec backgrounder on 6 Jun.",
+   "first_tradable_session": "2026-06-05",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The RBI held the repo rate at 5.25% and opened a concessional swap window for fresh FCNR(B) deposits, overseas foreign-currency borrowings and ECBs. The Centre exempted FPIs from tax on G-sec interest and capital gains and widened the Fully Accessible Route, aiming to draw dollar inflows and ease pressure on the rupee.",
+   "reported_affected": [
+    "Rupee",
+    "Government bonds",
+    "Banks (FCNR deposits)",
+    "FPI debt flows"
+   ],
+   "confounders": [
+    "Israel-Iran de-escalation around 8-9 Jun",
+    "Oil price swings",
+    "US-Iran interim deal talks"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/finance/news/rbi-opens-fcnr-b-swap-window-to-attract-foreign-currency-deposits-126060900723_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-06-09",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/economy/news/rbi-s-latest-measures-may-have-steadied-rupee-but-risks-far-from-over-126060900125_1.html",
+     "publisher": "Business Standard (Bloomberg Opinion syndication)",
+     "published": "2026-06-09",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2269719®=3&lang=1",
+     "publisher": "Press Information Bureau",
+     "published": "2026-06-06",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/foreign-investors-buy-8-44-bn-debt-equity-since-rbi-s-june-policy-126080200591_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-08-02",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "The RBI's own June 2026 statement was not retrieved.",
+   "public_period": null
+  },
+  {
+   "title": "US-Iran truce collapses: Iran fires on ships in Hormuz, US resumes airstrikes",
+   "category": "geopolitics_war",
+   "subcategory": "re-escalation",
+   "event_date": "2026-07-07",
+   "public_time_ist": null,
+   "timing_note": "On 7 Jul 2026 Iranian forces fired on three commercial ships in Hormuz (a Qatari LNG tanker was set ablaze), and US airstrikes followed 'by the next morning'. Times were not found, so the first tradable session is left null (7 or 8 Jul).",
+   "first_tradable_session": null,
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The interim US-Iran peace arrangement broke down after Iranian attacks on shipping in Hormuz, and the US resumed airstrikes, tying them to Tehran reopening the strait. Hostilities and oil prices climbed again through mid-July.",
+   "reported_affected": [
+    "Crude oil / LNG",
+    "FPI flows (renewed selling)",
+    "Rupee",
+    "OMCs"
+   ],
+   "confounders": [
+    "MSCI India review flows (Jul 2026)",
+    "Q1 FY27 earnings",
+    "US tariff and trade developments"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/world-news/how-iranian-hard-liners-prevailed-and-sabotaged-peace-deal-with-us-126091400064_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-09-14",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/oil-price-surge-derails-fpi-return-to-indian-equities-amid-west-asia-crisis-126071601231_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-07-16",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/trump-pauses-new-strikes-says-parameters-set-for-deal-to-end-iran-war-126080200080_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-08-02",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Sources disagree on the truce's form and timing: an interim peace agreement around mid-June (BS 16 Jul) versus a truce memorandum the White House says Iran signed and broke (BS 2 Aug). On 1 Aug Trump paused new strikes pending a deal.",
+   "public_period": null
+  },
+  {
+   "title": "Saudi Arabia suspends East-West pipeline (only route bypassing Hormuz) after attacks",
+   "category": "commodity",
+   "subcategory": "oil supply shock",
+   "event_date": "2026-09-12",
+   "public_time_ist": null,
+   "timing_note": "Business Standard reported the suspension at 08:09 IST on Saturday 12 Sep 2026. The first Indian session after was Monday 14 Sep.",
+   "first_tradable_session": "2026-09-14",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "After attacks by Iran-backed militias (Iraq said one originated from its territory), Saudi Arabia temporarily shut its key pipeline to Red Sea ports. This came during a September escalation that included Iranian attacks on US naval vessels, US strikes on Iranian tankers and Houthi seizure of two Red Sea islands.",
+   "reported_affected": [
+    "Crude oil",
+    "Shipping / Red Sea routes",
+    "Indian OMCs",
+    "Rupee"
+   ],
+   "confounders": [
+    "Fed hike on 16 Sep 2026",
+    "US naval blockade (Iran loaded no crude after 25 Aug per US Treasury)",
+    "Hard-line takeover in Iran's war policy (around 12 Sep)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/world-news/saudi-suspends-key-oil-pipeline-only-route-bypassing-hormuz-after-attacks-126091200082_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-09-12",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/why-oil-prices-have-avoided-worst-case-surge-as-iran-war-enters-sixth-month-126091900164_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-09-19",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/how-iranian-hard-liners-prevailed-and-sabotaged-peace-deal-with-us-126091400064_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-09-14",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard. One of several escalations up to October 2026, which also include Iranian claims Hormuz was closed and attacks on Saudi facilities (BS, 8 Oct).",
+   "public_period": null
+  },
+  {
+   "title": "Fed raises rates 25 bp to 3.75-4.00% (first hike of the cycle)",
+   "category": "world_macro",
+   "subcategory": "FOMC decision - hike",
+   "event_date": "2026-09-16",
+   "public_time_ist": "23:30",
+   "timing_note": "FOMC statement at 14:00 EDT on 16 Sep 2026, which is 23:30 IST.",
+   "first_tradable_session": "2026-09-17",
+   "scope": "world",
+   "known_beforehand": "scheduled",
+   "expectation": "At the July 2026 meeting three FOMC members dissented in favour of a hike, signalling a hawkish shift. No market-consensus source was captured.",
+   "expectation_source": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260729a.htm",
+   "what_happened": "The FOMC voted 12-0 to raise the federal funds target range by 25 bp to 3.75-4.00%, from a 3.50-3.75% range held since at least March 2026.",
+   "reported_affected": [
+    "Global equities",
+    "Dollar / Treasury yields",
+    "Rupee",
+    "FPI flows",
+    "EM central banks (RBI)"
+   ],
+   "confounders": [
+    "Saudi pipeline shutdown and Iran escalation (Sep 2026)",
+    "Record weekly drop in India's FX reserves (week to 25 Sep)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+     "publisher": "Federal Reserve",
+     "published": "2026-09-16",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+     "publisher": "Federal Reserve (FOMC calendar)",
+     "published": null,
+     "kind": "official"
+    }
+   ],
+   "verification": "official",
+   "notes": "Only Federal Reserve sources. Business Standard (19 Oct) reports traders paring bets on another hike in October.",
+   "public_period": null
+  },
+  {
+   "title": "Rupee under pressure: record weekly drop in India's FX reserves as RBI sells dollars",
+   "category": "flows",
+   "subcategory": "rupee / FX intervention",
+   "event_date": "2026-09-25",
+   "public_time_ist": null,
+   "timing_note": "Refers to RBI weekly data for the week ended 25 Sep 2026 (release date not confirmed) and continued intervention into early October. This is a multi-week episode, not a single announcement.",
+   "first_tradable_session": null,
+   "scope": "india",
+   "known_beforehand": null,
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "India's FX reserves fell from a record in early September for four straight weeks, including a record weekly drop in the week ended 25 Sep. Market estimates put RBI dollar sales in September at about $30 billion as it defended the rupee against outflows and elevated oil prices.",
+   "reported_affected": [
+    "Rupee",
+    "Bond yields",
+    "FPI flows",
+    "Importers / OMCs"
+   ],
+   "confounders": [
+    "Fed hike on 16 Sep 2026",
+    "Iran war escalation and oil",
+    "RBI rate hike on 7 Oct 2026"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/economy/news/india-s-forex-reserves-drop-for-fourth-week-down-12-95-bn-to-734-6-bn-126100901061_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-09",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/finance/news/rupee-falls-10-paise-to-96-45-against-us-dollar-ahead-of-rbi-mpc-decision-126100700180_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-07",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "EPISODE: a multi-week wave, not a point event; keep out of point-event studies. Rupee levels are left out on purpose. Exact dates of the 2026 rupee record lows were not found.",
+   "public_period": null
+  },
+  {
+   "title": "RBI hikes repo 25 bp to 5.50%, its first hike since Feb 2023; stance to 'calibrated tightening'",
+   "category": "rbi_policy",
+   "subcategory": "MPC decision - hike",
+   "event_date": "2026-10-07",
+   "public_time_ist": null,
+   "timing_note": "Scheduled MPC announcement on Wednesday 7 Oct 2026 during market hours. Business Standard's report is time-stamped 10:04 IST, so the decision was public by then. The RBI then tightened liquidity on 9 Oct (daily CRR maintenance raised to 99%).",
+   "first_tradable_session": "2026-10-07",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "No consensus poll was found. ICRA said the hike was in line with its expectation, and a Business Standard pre-policy piece (6 Oct) asked whether the RBI would join global central banks in raising rates.",
+   "expectation_source": "https://www.business-standard.com/finance/news/will-rbi-join-global-central-banks-in-raising-rates-as-energy-prices-rise-126100601551_1.html",
+   "what_happened": "The MPC unanimously raised the repo rate by 25 bp to 5.50% and moved its stance to 'calibrated tightening' (4-2 vote). The Governor said near-term cuts were 'off the table', citing elevated oil prices, tighter global conditions, food-inflation risks and a weak monsoon.",
+   "reported_affected": [
+    "Banks / NBFCs",
+    "Autos",
+    "Realty",
+    "Bond yields",
+    "Rupee"
+   ],
+   "confounders": [
+    "Fed hike on 16 Sep 2026",
+    "Iran war oil prices",
+    "RBI FX intervention",
+    "Q2 FY27 earnings start"
+   ],
+   "sources": [
+    {
+     "url": "https://rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63744",
+     "publisher": "Reserve Bank of India (Governor's Statement)",
+     "published": "2026-10-07",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/finance/news/rbi-mpc-october-2026-repo-rate-hike-inflation-growth-gdp-sanjay-malhotra-126100700222_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-07",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/finance/news/rbi-policy-highlights-repo-rate-rises-25-bps-as-inflation-risks-broaden-126100700304_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-07",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/economy/news/rbi-tightens-liquidity-after-rate-rise-raises-daily-crr-maintenance-to-99-126100901382_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-09",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": "during"
+  },
+  {
+   "title": "Supreme Court upholds quashing of Yes Bank's Rs 8,415 crore AT1 bond write-off",
+   "category": "banking",
+   "subcategory": "court ruling on bank capital instruments",
+   "event_date": "2026-10-15",
+   "public_time_ist": null,
+   "timing_note": "Ruling on Thursday 15 Oct 2026 during market hours (Business Standard report 15:16 IST). The exact ruling time was not found.",
+   "first_tradable_session": "2026-10-15",
+   "scope": "stock",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The Supreme Court dismissed appeals by Yes Bank, the RBI and the Centre and upheld the Bombay High Court's January 2023 ruling that quashed the write-off of AT1 bonds under the 2020 Yes Bank reconstruction scheme.",
+   "reported_affected": [
+    "Yes Bank",
+    "AT1 bond market / bank capital instruments",
+    "SBI and other reconstruction-scheme investors"
+   ],
+   "confounders": [
+    "Global AI-tech sell-off and India IT rally (15 Oct)",
+    "Softer crude and rupee gains"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/companies/news/supreme-court-upholds-quashing-of-yes-bank-s-8-415cr-at-1-bond-write-off-126101500751_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-15",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/markets/news/in-freefall-yes-bank-crashes-20-after-sc-ruling-on-at-1-bond-write-off-126101500759_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-15",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard. Listed as 'scheduled' because the pending appeal was known, though the hearing date was not verified.",
+   "public_period": "during"
+  },
+  {
+   "title": "Cost-of-living riots in France, Italy, Portugal and Belgium",
+   "category": "civil_unrest",
+   "subcategory": "European cost-of-living protests",
+   "event_date": "2026-10-17",
+   "public_time_ist": null,
+   "timing_note": "Mass mobilisation and violence on Saturday 17 Oct 2026, continuing in Milan and France on Sunday 18 Oct. Times not found. The first Indian session was Monday 19 Oct 2026.",
+   "first_tradable_session": "2026-10-19",
+   "scope": "world",
+   "known_beforehand": null,
+   "expectation": "French student protests had run for about three weeks beforehand, but no source was found anticipating violence on this scale.",
+   "expectation_source": null,
+   "what_happened": "Cost-of-living protests drew more than half a million people in France and turned into nationwide looting and arson, including a fire at Limoges city hall and about 2,400 arrests. Milan saw rioting and looting, and protests were also reported in Belgium and Portugal. Macron linked the anger partly to fuel prices tied to the US war with Iran.",
+   "reported_affected": [
+    "European equities / sovereign bonds (French borrowing costs)",
+    "Euro",
+    "European retailers (Carrefour looting)",
+    "Global risk sentiment"
+   ],
+   "confounders": [
+    "Iran war energy-price shock",
+    "French 2027 budget austerity debate",
+    "Q2 FY27 Indian earnings",
+    "Jio Platforms IPO (Oct 2026)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.business-standard.com/world-news/french-unrest-raises-alarm-across-europe-as-protests-turn-violent-126101900223_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-19",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/france-unrest-macron-urges-calm-after-2-400-arrests-amid-riots-looting-126101900091_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-19",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/rioters-loot-stores-set-fires-in-italy-during-cost-of-living-protest-126101800030_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-18",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/world-news/mass-demonstrations-in-france-spiral-into-worst-violence-in-decades-126101800067_1.html",
+     "publisher": "Business Standard",
+     "published": "2026-10-18",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only Business Standard (wire-based). Belgium and Portugal are mentioned without detail. The Indian market effect would show on 19 Oct, today.",
+   "public_period": null
+  }
+ ]
+}

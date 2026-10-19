@@ -144,6 +144,9 @@ def load() -> dict:
                 srcs.append({"event_id": eid, "url": u, "publisher": s.get("publisher"), "published": s.get("published"), "kind": s.get("kind"), "tier": t,
                              "batch": f.name})
             status = "OFFICIAL" if "A" in tiers else ("TWO_SOURCES" if len(pubs) >= 2 else "ONE_SOURCE")
+            if e.get("date_unverified"):
+                status = "LEAD_DATE_UNVERIFIED"  # the source confirms the event but not its exact date: a lead, excluded from studies
+                p.append("exact date not confirmed by a source")
             if fts is None:
                 status = "REJECTED"
                 p.append("no tradable session in the calendar")
@@ -157,6 +160,15 @@ def load() -> dict:
     ev = pd.DataFrame(rows)
     if ev.empty:
         return {"events": 0, "problems": problems}
+    # one row per real event: a calendar row (calendar_*.json) that repeats an era-batch event of the same category on the same date is kept
+    # for reference but marked DUPLICATE (the era row carries expectations and confounders)
+    ev["_cal"] = ev["batch"].str.startswith("calendar_")
+    key = ev["category"].astype(str) + "|" + ev["event_date"].astype(str)
+    era_keys = set(key[~ev["_cal"]])
+    dup = ev["_cal"] & key.isin(era_keys)
+    ev.loc[dup, "problems"] = (ev.loc[dup, "problems"] + "; duplicate of an era-batch event").str.strip("; ")
+    ev.loc[dup, "status"] = "DUPLICATE"
+    ev = ev.drop(columns="_cal")
     # same-session events confound each other
     grp = ev.groupby("first_tradable_session")["event_id"].apply(list).to_dict()
     ev["same_session_events"] = ev.apply(lambda r: json.dumps([x for x in grp.get(r["first_tradable_session"], []) if x != r["event_id"]]), axis=1)

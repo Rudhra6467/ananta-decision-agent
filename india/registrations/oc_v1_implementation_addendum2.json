@@ -1,0 +1,8 @@
+{
+ "addendum_to": "oc_v1.json approval_conditions.max_rupee_risk",
+ "at": "2026-10-19T22:20:00+00:00",
+ "by": "Madhav",
+ "change": "the Rs 1,000 maximum risk per trade is withdrawn; the India book is Rs 60,000 and risk is a research output per scenario",
+ "effect_on_results": "none on the 74 ledger rows (they are per-unit, net bps, before sizing); the sizing_val columns computed at Rs 1,000 are superseded and not used",
+ "note": "recorded after the OC v1 results; it changes no test"
+}

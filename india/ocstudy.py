@@ -62,7 +62,8 @@ def _git() -> str:
 
 def _max_risk() -> float:
     cfg = json.loads((HERE / "paper_config.json").read_text())
-    return float(cfg["intraday"]["max_risk_per_trade_inr"])
+    v = cfg["intraday"].get("max_risk_per_trade_inr")
+    return float(v) if v else float("nan")  # withdrawn 19 Oct (risk is a research output): the sizing layer is then skipped
 
 
 # ----------------------------------------------------------------------------------------------------------------------------- notes
@@ -761,7 +762,7 @@ def summarize(t: pd.DataFrame) -> dict:
 
 
 def sizing_index(t: pd.DataFrame, max_risk: float) -> dict:
-    if t.empty:
+    if t.empty or max_risk != max_risk:
         return {}
     lots = np.floor(max_risk / ((t["stop_dist"] + t["cost_pts"]) * t["lot"]))
     ok = lots >= 1
@@ -772,7 +773,7 @@ def sizing_index(t: pd.DataFrame, max_risk: float) -> dict:
 
 
 def sizing_stock(t: pd.DataFrame, max_risk: float) -> dict:
-    if t.empty:
+    if t.empty or max_risk != max_risk:
         return {}
     per_share_cost = t["cost_bps"] / 1e4 * t["entry"]
     sh = np.floor(max_risk / (t["stop_dist"] + per_share_cost))

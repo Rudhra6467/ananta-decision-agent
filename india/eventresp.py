@@ -54,7 +54,7 @@ def build() -> dict:
         f"where index_name in ('NIFTY 50','NIFTY BANK','INDIA VIX') and strftime(ts, '%H:%M') in ('09:19','09:29','09:44')").df()
     mins["date"] = pd.to_datetime(mins["ts"]).dt.normalize()
     mins["slot"] = pd.to_datetime(mins["ts"]).dt.strftime("%H:%M").map({"09:19": "m5", "09:29": "m15", "09:44": "m30"})
-    mac = pd.read_parquet(D / "silver/macro/" + next(p.name for p in (D / "silver/macro").iterdir()))
+    mac = pd.read_parquet(next(p for p in (D / "silver/macro").iterdir() if p.suffix == ".parquet"))
     mac["date"] = pd.to_datetime(mac["date"])
     M = mac[mac["series"].isin(MACRO.values())].pivot_table(index="date", columns="series", values="value").sort_index().ffill()
     u = pd.read_parquet(D / "gold/universe/u_liq_in.parquet", columns=["date", "symbol", "top500"])

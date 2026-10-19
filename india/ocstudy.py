@@ -222,15 +222,20 @@ class Cols:
         return pd.DataFrame({key: np.concatenate(v) for key, v in self.parts.items()}) if self.parts else pd.DataFrame()
 
 
-def leg_fees(kind: str, side: str, value: np.ndarray, years: np.ndarray) -> np.ndarray:
-    """Vectorised costs.cost (same formula; checked against it in selftest)."""
+def leg_fees(kind: str, side: str, value: np.ndarray, years: np.ndarray, dates=None) -> np.ndarray:
+    """Vectorised costs.cost (same formula; checked against it in selftest). With `dates`, rates are those in force on each trade's date
+    (cost model v1.1); without, on 1 July of the year."""
     value = np.asarray(value, dtype=float)
+    keys = [pd.Timestamp(x).date() for x in dates] if dates is not None else [dt.date(int(y), 7, 1) for y in years]
+    uk = set(keys)
+    txn_m = {d: costs.txn_rate(kind, d.year, d) for d in uk}
+    stt_m = {d: costs.stt_rate(kind, side, d.year, d) for d in uk}
     brok = np.minimum(20.0, 0.0003 * value)
-    txn = pd.Series(years).map({int(y): costs.txn_rate(kind, int(y)) for y in np.unique(years)}).to_numpy(dtype=float) * value
+    txn = np.array([txn_m[d] for d in keys]) * value
     sebi = costs.SEBI * value
     gst = costs.GST * (brok + txn + sebi)
     stamp = costs.STAMP[kind] * value if side == "buy" else 0.0
-    rate = pd.Series(years).map({int(y): costs.stt_rate(kind, side, int(y)) for y in np.unique(years)}).to_numpy(dtype=float)
+    rate = np.array([stt_m[d] for d in keys])
     return brok + txn + sebi + gst + stamp + rate * value
 
 
@@ -560,7 +565,7 @@ def stock_costs(t: pd.DataFrame, cost_mult: float = 1.0) -> pd.DataFrame:
     lg = (t["dir"] > 0).to_numpy()
     bv = np.where(lg, notional, notional * ratio)
     sv = np.where(lg, notional * ratio, notional)
-    fees = (leg_fees("intraday", "buy", bv, yrs) + leg_fees("intraday", "sell", sv, yrs)) / notional
+    fees = (leg_fees("intraday", "buy", bv, yrs, t["date"]) + leg_fees("intraday", "sell", sv, yrs, t["date"])) / notional
     spread = hs * (1 + ratio) + 0.5 * hs * (1 + np.where(t["stopped"], ratio, 0))
     t["cost_bps"] = (fees + spread.to_numpy()) * 1e4 * cost_mult
     t["gross_bps"] = gross * 1e4
@@ -688,7 +693,7 @@ def index_costs(t: pd.DataFrame, cost_mult: float = 1.0) -> pd.DataFrame:
     ent, ex = t["entry"].to_numpy(), t["exit"].to_numpy()
     bv = np.where(lg, ent, ex) * lt
     sv = np.where(lg, ex, ent) * lt
-    fees = (leg_fees("futures", "buy", bv, yrs) + leg_fees("futures", "sell", sv, yrs)) / lt
+    fees = (leg_fees("futures", "buy", bv, yrs, t["date"]) + leg_fees("futures", "sell", sv, yrs, t["date"])) / lt
     t["cost_pts"] = (fees + 2 * TICK) * cost_mult
     t["gross_pts"] = t["dir"] * (t["exit"] - t["entry"])
     t["net_pts"] = t["gross_pts"] - t["cost_pts"]
@@ -1115,6 +1120,10 @@ def selftest() -> dict:
                 a = float(leg_fees(kind, side, np.array([v]), np.array([y]))[0])
                 b = costs.cost(kind, side, v, y)
                 assert abs(a - b) < 1e-6, (kind, side, v, y, a, b)
+                for dd in (dt.date(2016, 3, 1), dt.date(2023, 2, 1), dt.date(2024, 11, 1)):
+                    a = float(leg_fees(kind, side, np.array([v]), np.array([dd.year]), [dd])[0])
+                    b = costs.cost(kind, side, v, dd.year, when=dd)
+                    assert abs(a - b) < 1e-6, (kind, side, v, dd, a, b)
     # ATR: 14 most recent closed bars, tail then today
     tr = np.arange(75, dtype=float)[None, :]
     tail = np.full((1, 14), 100.0)

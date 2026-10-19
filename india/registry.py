@@ -84,16 +84,30 @@ def verdict(dev_t: float, val_t: float, dev_mean: float, val_mean: float, dates_
     return "INCONCLUSIVE"
 
 
-def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None = None, expect: int = 0) -> dict:
-    """dev / val = (mean, t_stat, dates). Counts the variant into its family, then scores it against the family threshold."""
+def verdict_seen(val_t: float, val_mean: float, dates_val: int, z: float, expect: int) -> str:
+    """Rule for rows on years whose earlier results shaped the design (SP1 review, 19 Oct 2026): the dev year is reported but does not gate.
+    SUPPORTED_SEEN: validation t at or beyond the family z with the expected sign; OPPOSITE: at or beyond z the other way; NOT_SUPPORTED_SEEN
+    otherwise; INCONCLUSIVE with too few dates. Seen-period support is never confirmation: only the registered holdout run confirms."""
+    if dates_val < MIN_DATES or val_t != val_t:
+        return "INCONCLUSIVE"
+    if abs(val_t) >= z and (val_mean > 0) == (expect > 0):
+        return "SUPPORTED_SEEN"
+    if abs(val_t) >= z:
+        return "OPPOSITE"
+    return "NOT_SUPPORTED_SEEN"
+
+
+def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None = None, expect: int = 0, rule: str = "standard") -> dict:
+    """dev / val = (mean, t_stat, dates). Counts the variant into its family, then scores it against the family threshold.
+    rule: 'standard' (verdict below) or 'seen_val_only' (verdict_seen)."""
     fam = reg["family"]
     rows = _rows()
     seen = {(r["study"], r["variant"]) for r in rows if r["family"] == fam and r["kind"] == "result"}
     k = len(seen | {(reg["study"], variant)})
     z = threshold(k)
-    v = verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z, expect)
+    v = verdict_seen(val[1], val[0], val[2], z, expect) if rule == "seen_val_only" else verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z, expect)
     line = {"kind": "result", "study": reg["study"], "family": fam, "variant": variant, "k_in_family": k, "z": round(z, 3), "dev": list(dev), "val": list(val),
-            "verdict": v, "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "registered_at": reg.get("at"),
+            "verdict": v, "rule": rule, "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "registered_at": reg.get("at"),
             "code": (reg.get("stamp") or {}).get("code", {}).get("git")}
     with _ledger_path().open("a") as fh:
         fh.write(json.dumps(line, default=str) + "\n")

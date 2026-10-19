@@ -75,6 +75,7 @@ STUDIES = [
     ("I04", "P2", "Opening and intraday", "Spot side of O-02: SuperTrend(10,2) + VWAP + VWMA(20) on 3-minute, with the 'bunched lines' filter made exact", ["D10"], "", ""),
     ("I05", "P2", "Opening and intraday", "Expiry-day spot behaviour after 1:30 pm: range, direction, level breaks (spot side of O-04)", ["D10", "D12"], "yes", ""),
     ("I06", "P2", "Opening and intraday", "Time-of-day map: volatility, volume and direction by minute of the session", ["D10", "D04"], "", ""),
+    ("OC1", "P2", "Opening and intraday", "Opening Decision Protocol V1 (Madhav, approved 19 Oct): 26 primary tests of confirmed opening-range breaks by 10:15, index and top-100 stocks, against the plain rule", ["D03", "D04", "D06", "D07", "D08", "D10", "D11", "D12"], "yes", "19 Oct"),
     ("C01", "P3", "Context", "Market state map ported from the crypto work: volatility clustering, herding by volatility band, size-after-volatility", ["D04", "D10", "D11"], "", ""),
     ("C02", "P3", "Context", "Volume and momentum relationships (crypto H1/H2 port): does volume heat predict the next move's size and where it ends", ["D04", "D09"], "yes", ""),
     ("C03", "P3", "Context", "Index-stock-sector lead-lag and pairs checked side by side; effector groups (M-09)", ["D04", "D11"], "", ""),

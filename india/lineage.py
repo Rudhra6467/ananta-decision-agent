@@ -80,7 +80,7 @@ CODE = {"E": ["india/studies.py", "india/exitlab.py", "india/lab.py", "india/cos
         "F": ["india/fstudies.py", "india/fo.py", "india/greeks.py", "india/costs.py", "india/registry.py"],
         "I": ["india/istudies.py", "india/kite_index.py", "india/registry.py"],
         "P": ["india/studies.py", "india/exitlab.py", "india/lab.py"], "R": ["india/optpaper.py", "india/recorder.py"],
-        "V": ["india/vstudies.py"], "S": ["india/lab.py", "india/exitlab.py", "india/costs.py", "india/registry.py"], "K": [], "G": []}
+        "V": ["india/vstudies.py"], "O": ["india/ocstudy.py", "india/costs.py", "india/registry.py", "india/registrations/oc_v1.json", "india/registrations/oc_v1_implementation.json"], "S": ["india/lab.py", "india/exitlab.py", "india/costs.py", "india/registry.py"], "K": [], "G": []}
 
 # which paper record follows each study in the live market
 PAPER = {

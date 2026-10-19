@@ -125,6 +125,7 @@ PROGRESS = {
     "C05": "18 Oct: VIX above its 50-day CONDITIONAL for PULL entries (+3.8% dev, +1.5% val)",
     "C07": "18 Oct: small caps leading OPPOSITE (entries earn 2-6% less)",
     "C09": "18 Oct: rupee weakening OPPOSITE (entries earn 2.5-3.6% more); Nifty valuation part waits for D30",
+    "C06": "19 Oct: participant positioning 2012-2026 (2,251 days): FII heavily long in index futures is followed by weaker 5 sessions in both periods (dev -0.9% t -3.3, val -1.3% t -2.4) but too few validation quarters: INCONCLUSIVE",
     "K02": "18 Oct: daily mechanical Nifty call (rule v0 from E08/C01/E04) written each evening with a coin-flip null, scored at 1/5/20 sessions",
     "C03": "18 Oct: Bank Nifty leading (weekly +3.5%, above 200-day): nothing at the bar (signs differ between dev and validation)",
     "V03": "18 Oct: 239 mainboard IPOs matched to prices: allottees gained +21-26% on average (median +14%); buying on day one roughly matches Nifty after; INCONCLUSIVE (few dev quarters)",

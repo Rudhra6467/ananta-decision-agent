@@ -76,6 +76,9 @@ def _parse(p) -> pd.DataFrame:
     df = pd.read_csv(io.StringIO("\n".join(txt[1:])))
     df.columns = [re.sub(r"\s+", " ", c).strip() for c in df.columns]
     df = df[df["Client Type"].isin(["Client", "DII", "FII", "Pro", "TOTAL"])]
+    for c in df.columns[1:]:
+        # some files write numbers in Indian grouping ("2,38,483.00"): strip the commas
+        df[c] = pd.to_numeric(df[c].astype(str).str.replace(",", "").str.strip(), errors="coerce")
     df.insert(0, "date", pd.to_datetime(m.group(1)) if m else pd.NaT)
     return df
 

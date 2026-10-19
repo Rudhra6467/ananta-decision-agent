@@ -34,7 +34,7 @@ CATEGORIES = {"world_macro", "commodity", "geopolitics_war", "terror_security", 
 TIER_A = ("rbi.org.in", "pib.gov.in", "sebi.gov.in", "nseindia.com", "bseindia.com", "eci.gov.in", "federalreserve.gov", "who.int", "gov.uk", "whitehouse.gov",
           "ustr.gov", "indiabudget.gov.in", "finmin.nic.in", "mof.gov.in", "mea.gov.in", "pmindia.gov.in", "imf.org", "worldbank.org", "ecb.europa.eu", "iea.org", "un.org",
           "kremlin.ru", "archives.gov", "state.gov", "defense.gov", "businesswire.com", "prnewswire.com", "biontech.com", "pfizer.com", "nsearchives.nseindia.com",
-          "archives.nseindia.com", "incometaxindia.gov.in", "gst.gov.in", "mha.gov.in", "eci.gov.in", "results.eci.gov.in")  # official bodies and issuers' own releases
+          "archives.nseindia.com", "fdic.gov", "treasury.gov", "sec.gov", "justice.gov", "incometaxindia.gov.in", "gst.gov.in", "mha.gov.in", "eci.gov.in", "results.eci.gov.in")  # official bodies and issuers' own releases
 TIER_B = ("reuters.com", "bloomberg.com", "business-standard.com", "livemint.com", "economictimes.indiatimes.com", "moneycontrol.com", "thehindubusinessline.com",
           "cnbc.com", "bbc.com", "bbc.co.uk", "ft.com", "wsj.com", "apnews.com", "aljazeera.com", "thehindu.com", "indianexpress.com", "hindustantimes.com",
           "ndtv.com", "timesofindia.indiatimes.com", "cnbctv18.com", "financialexpress.com", "nytimes.com", "theguardian.com", "washingtonpost.com",
@@ -167,6 +167,12 @@ def load() -> dict:
     era_keys = set(key[~ev["_cal"]])
     dup = ev["_cal"] & key.isin(era_keys)
     ev.loc[dup, "problems"] = (ev.loc[dup, "problems"] + "; duplicate of an era-batch event").str.strip("; ")
+    # the same event keeps its strongest proof: an official source on the calendar row verifies the era row it duplicates
+    off_keys = dict(zip(key[dup & (ev["status"] == "OFFICIAL")], ev.loc[dup & (ev["status"] == "OFFICIAL"), "event_id"]))
+    up = ~ev["_cal"] & key.isin(off_keys) & ev["status"].isin(["ONE_SOURCE", "TWO_SOURCES"])
+    for i in ev.index[up]:
+        ev.at[i, "status"] = "OFFICIAL"
+        ev.at[i, "problems"] = ("; ".join(x for x in (ev.at[i, "problems"], f"official source on calendar row {off_keys[key[i]]}") if x))
     ev.loc[dup, "status"] = "DUPLICATE"
     ev = ev.drop(columns="_cal")
     # same-session events confound each other

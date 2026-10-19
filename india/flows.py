@@ -71,28 +71,38 @@ def fetch(from_year: int = 2012) -> dict:
 
 
 def _parse(p) -> pd.DataFrame:
+    """The date comes from the file name (fao_participant_oi_DDMMYYYY.csv, the date we asked NSE for) and is checked against the title line.
+    Formats drift: from 2019 some titles are wrapped in doubled quotes and written "Jan 01,2021" (no space), and some headers carry a stray
+    tab ("Future Stock Short\\t"). Before the 19 Oct fix those files were skipped silently (2019 partly, 2020-2023 almost entirely)."""
     txt = p.read_text(errors="ignore").splitlines()
-    m = re.search(r"as on ([A-Za-z]+ \d{1,2}, \d{4})", txt[0])
+    fd = pd.to_datetime(re.search(r"(\d{8})\.csv$", p.name).group(1), format="%d%m%Y")
+    m = re.search(r"as on ([A-Za-z]+ ?\d{1,2}, ?\d{4})", txt[0].replace('"', ""))
+    if m:
+        td = pd.to_datetime(m.group(1).replace(",", ", ").replace("  ", " "), errors="coerce")
+        if td is not pd.NaT and td == td and td != fd:
+            raise ValueError(f"title date {td.date()} differs from file date {fd.date()}")
     df = pd.read_csv(io.StringIO("\n".join(txt[1:])))
-    df.columns = [re.sub(r"\s+", " ", c).strip() for c in df.columns]
-    df = df[df["Client Type"].isin(["Client", "DII", "FII", "Pro", "TOTAL"])]
+    df.columns = [re.sub(r"\s+", " ", str(c)).strip() for c in df.columns]
+    df = df[df["Client Type"].astype(str).str.strip().isin(["Client", "DII", "FII", "Pro", "TOTAL"])].copy()
+    df["Client Type"] = df["Client Type"].astype(str).str.strip()
     for c in df.columns[1:]:
         # some files write numbers in Indian grouping ("2,38,483.00"): strip the commas
         df[c] = pd.to_numeric(df[c].astype(str).str.replace(",", "").str.strip(), errors="coerce")
-    df.insert(0, "date", pd.to_datetime(m.group(1)) if m else pd.NaT)
+    df = df.loc[:, [c for c in df.columns if not c.startswith("Unnamed")]]
+    df.insert(0, "date", fd)
     return df
 
 
 def build() -> dict:
     files = sorted((paths.bronze("flows") / "participant_oi").glob("*/*.csv"))
-    frames = []
+    frames, failed = [], []
     for p in files:
         try:
             frames.append(_parse(p))
-        except Exception:
-            continue
+        except Exception as e:  # counted and reported, never skipped silently
+            failed.append(f"{p.name}: {type(e).__name__}: {str(e)[:80]}")
     if not frames:
-        return {"rows": 0}
+        return {"rows": 0, "failed": failed[:20]}
     df = pd.concat(frames, ignore_index=True).rename(columns={"Client Type": "client_type"})
     df.columns = [c.lower().replace(" ", "_") for c in df.columns]
     hold = pd.Timestamp(paths.HOLDOUT_START)
@@ -100,7 +110,9 @@ def build() -> dict:
         t = paths.data_dir() / part / "flows" / "participant_oi.parquet"
         t.parent.mkdir(parents=True, exist_ok=True)
         pq.write_table(pa.Table.from_pandas(sub.reset_index(drop=True), preserve_index=False), t)
-    return {"rows": len(df), "days": int(df["date"].nunique()), "first": str(df["date"].min().date()), "last": str(df["date"].max().date()), "columns": list(df.columns)[:8]}
+    per_year = df.groupby(df["date"].dt.year)["date"].nunique().to_dict()
+    return {"rows": len(df), "days": int(df["date"].nunique()), "first": str(df["date"].min().date()), "last": str(df["date"].max().date()), "columns": list(df.columns)[:8],
+            "files": len(files), "failed": len(failed), "failed_examples": failed[:10], "days_per_year": per_year}
 
 
 if __name__ == "__main__":

@@ -198,7 +198,66 @@ def check_fills() -> tuple[bool, str, dict]:
     return bad == 0, note, out
 
 
-CHECKS = {"dup_keys": check_dup_keys, "survivorship": check_survivorship, "stale_prices": check_stale_prices, "mappings": check_mappings,
+# Known SOURCE-side gaps (the raw files themselves are thin), each documented; a coverage hole not listed here fails the check.
+KNOWN_GAPS = {("pr_announcements", 2022): "NSE's daily PR announcement files carry far fewer company announcements from mid-2021 to end-2022 "
+                                            "(about 400-600 lines a day against about 2,500 in early 2021); the timestamped corporate-announcements "
+                                            "service is the replacement source (19 Oct 2026)",
+              ("pr_announcements", 2021): "same thinning of the PR files from mid-2021",
+              ("participant_oi", 2012): "first trading days of Jan 2012 published in an older layout (4 files fail to parse, reported)"}
+COVERAGE_SOURCES = {
+    "participant_oi": ("silver/flows/participant_oi.parquet", "date", None),
+    "cm_bhavcopy": ("silver/cm_bhavcopy/year=*/part.parquet", "date", None),
+    "fo_bhavcopy": ("silver/fo_bhavcopy/year=*/part.parquet", "date", None),
+    "delivery": ("silver/delivery/year=*/part.parquet", "date", None),
+    "kite_index_day": ("silver/kite_index/day/day.parquet", "date", "index_name = 'NIFTY 50'"),
+    "kite_5m": ("silver/kite_5m/year=*/part.parquet", "date", None),
+    "pr_announcements": ("silver/pr/announcements.parquet", "date", "category <> 'nav'"),
+}
+COVERAGE_FROM = {"participant_oi": 2012, "delivery": 2003, "kite_index_day": 2003, "kite_5m": 2015, "pr_announcements": 2010, "fo_bhavcopy": 2001, "cm_bhavcopy": 1995}
+
+
+def check_coverage() -> tuple[bool, str, dict]:
+    """Days present per year against the trading calendar, for every daily dataset (research side). Catches silent parse failures: the
+    participant-OI build had dropped most of 2019-2023 without an error until 19 Oct 2026. A year below 90% of trading days fails unless it is
+    a documented source gap (KNOWN_GAPS); the share for the volume of announcements is days with rows, not rows."""
+    import duckdb
+    cal = pd.read_parquet(paths.data_dir() / "silver/calendar/calendar.parquet")
+    cal = cal[cal["is_trading_day"]]
+    cal["y"] = pd.to_datetime(cal["date"]).dt.year
+    tdays = cal.groupby("y").size().to_dict()
+    con = duckdb.connect()
+    bad, docs, metrics = [], [], {}
+    for name, (pat, col, where) in COVERAGE_SOURCES.items():
+        f = str(paths.data_dir() / pat)
+        try:
+            rows = con.execute(f"select year(cast({col} as date)) y, count(distinct cast({col} as date)), count(*) from read_parquet('{f}', union_by_name=true) "
+                               f"{'where ' + where if where else ''} group by 1 order by 1").fetchall()
+        except Exception as e:
+            bad.append(f"{name}: unreadable ({type(e).__name__})")
+            continue
+        have = {int(y): int(n) for y, n, _ in rows if y is not None}
+        dens = {int(y): r / max(n, 1) for y, n, r in rows if y is not None}
+        yrs = [y for y in range(COVERAGE_FROM.get(name, 2000), 2024)]
+        prev = [dens[y] for y in yrs if y in dens]
+        metrics[name] = {}
+        for i, y in enumerate(yrs):
+            share = have.get(y, 0) / tdays.get(y, 1)
+            # rows per day against the median of the three years before: a source that thins out without missing days (PR files 2021-22)
+            ref = sorted(dens[x] for x in yrs[max(0, i - 3):i] if x in dens)
+            thin = bool(ref) and y in dens and dens[y] < 0.5 * ref[len(ref) // 2]
+            metrics[name][y] = {"days": round(share, 3), "rows_per_day": round(dens.get(y, 0), 1)}
+            for kind, hit in (("days", share < 0.90), ("thin", thin)):
+                if not hit:
+                    continue
+                label = f"{name} {y} " + (f"{share:.0%} of days" if kind == "days" else f"rows/day {dens[y]:.0f} vs {ref[len(ref) // 2]:.0f}")
+                (docs if (name, y) in KNOWN_GAPS else bad).append(label + (" (documented)" if (name, y) in KNOWN_GAPS else ""))
+    con.close()
+    note = ("every daily dataset has at least 90% of trading days per year" if not bad else "coverage holes: " + "; ".join(bad[:12])) + \
+           (f"; documented source gaps: {'; '.join(docs)}" if docs else "")
+    return (not bad), note, metrics
+
+
+CHECKS = {"coverage": check_coverage, "dup_keys": check_dup_keys, "survivorship": check_survivorship, "stale_prices": check_stale_prices, "mappings": check_mappings,
           "corporate_actions": check_corporate_actions, "calendar": check_calendar, "fills": check_fills}
 
 

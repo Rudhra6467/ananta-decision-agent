@@ -106,6 +106,7 @@ def f01() -> dict:
             fees = costs.cost("options", "sell", (ce + pe) * lot, d.year) + 0.0  # expiry settlement in cash; no closing order
             pnl = (credit - payoff) * lot - fees
             rows.append({"symbol": sym, "expiry": exp, "date": d, "k": k, "strike": K, "fwd": f, "credit": credit, "payoff": payoff, "lot": lot, "pnl_inr": pnl,
+                         "ce": ce, "pe": pe, "spread_inr": float((_hs(ce) + _hs(pe)) * lot),
                          "ret_on_book": pnl / BOOK, "premium_pct": (ce + pe) / f, "move_pct": abs(se / f - 1)})
     df = pd.DataFrame(rows)
     df.to_parquet(paths.gold() / "studies" / "F01_straddles.parquet")
@@ -165,6 +166,8 @@ def f02() -> dict:
         fees = costs.cost("options", "sell", (sc + sp) * lot, d.year) + costs.cost("options", "buy", (bc + bp) * lot, d.year)
         pnl = (credit - pay) * lot - fees
         rows.append({"symbol": sym, "expiry": exp, "date": d, "credit": credit, "pay": pay, "lot": lot, "pnl_inr": pnl, "ret_on_book": pnl / BOOK,
+                     "sc": sc, "sp": sp, "bc": bc, "bp": bp, "spread_inr": float((_hs(sc) + _hs(sp) + _hs(bc) + _hs(bp)) * lot),
+                     "hedge_spread_inr": float((_hs(bc) + _hs(bp)) * lot),
                      "max_loss_inr": (max(hc - kc, kp - hp) - credit) * lot, "move_pct": se / f - 1})
     df = pd.DataFrame(rows).sort_values("expiry")
     df.to_parquet(paths.gold() / "studies" / "F02_strangles.parquet")

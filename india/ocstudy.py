@@ -846,8 +846,12 @@ def strata(index: dict, days: list[dt.date]) -> pd.DataFrame:
 
 
 # ----------------------------------------------------------------------------------------------------------------------------- run
-def run(log=print) -> dict:
-    nt = notes()
+def run(log=print, smoke: bool = False) -> dict:
+    """smoke: 2016 only, nothing written to the ledger or gold (outputs to ~/ananta_runs/oc_smoke)."""
+    global YEARS
+    if smoke:
+        YEARS = [2016]
+    nt = notes() if not smoke else {"spec_sha": _sha(SPEC)}
     if nt["spec_sha"] != _sha(SPEC):
         raise SystemExit("spec changed since the implementation notes were frozen")
     D = paths.data_dir()
@@ -859,7 +863,8 @@ def run(log=print) -> dict:
     log("stock pass 1 (breadth, X1)")
     st1, breadth, scnt = stock_pass(index, days, specials, None, log)
     st1 = stock_costs(st1)
-    out_dir = D / "gold/studies"
+    out_dir = (Path.home() / "ananta_runs/oc_smoke") if smoke else D / "gold/studies"
+    out_dir.mkdir(parents=True, exist_ok=True)
     breadth.to_parquet(out_dir / "OC1_breadth.parquet")
     log("index pass 1 (states, X1)")
     it1, states, icnt = index_pass(index, breadth, specials, lots, None)
@@ -879,13 +884,16 @@ def run(log=print) -> dict:
     stt = pd.concat([st1, st2], ignore_index=True)
     it.to_parquet(out_dir / "OC1_index_trades.parquet")
     stt.to_parquet(out_dir / "OC1_stock_trades.parquet")
-    res = score(it, stt, states, strata(index, days), m_i, m_s, {**scnt, **icnt}, max_risk, record=True)
-    return res
+    sdf = strata(index, days)
+    res = score(it, stt, states, sdf, m_i, m_s, {**scnt, **icnt}, max_risk, record=False, out_dir=out_dir)  # dry run: any error stops before the ledger
+    if smoke:
+        return res
+    return score(it, stt, states, sdf, m_i, m_s, {**scnt, **icnt}, max_risk, record=True, out_dir=out_dir)
 
 
-def score(it, stt, states, strata_df, m_i, m_s, counts, max_risk, record: bool) -> dict:
+def score(it, stt, states, strata_df, m_i, m_s, counts, max_risk, record: bool, out_dir: Path | None = None) -> dict:
     D = paths.data_dir()
-    nt = json.loads(NOTES.read_text())
+    nt = json.loads(NOTES.read_text()) if NOTES.exists() else {"spec_sha": _sha(SPEC), "frozen_at": "not frozen (smoke)"}
     variants = []
     for inst in ("NIFTY", "BANKNIFTY", "STOCKS"):
         for v in VARIANTS:
@@ -977,9 +985,12 @@ def score(it, stt, states, strata_df, m_i, m_s, counts, max_risk, record: bool) 
     man = {"at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "spec_sha": nt["spec_sha"], "notes_frozen_at": nt["frozen_at"], "code": _git(),
            "max_risk_inr": max_risk, "counts": counts, "m_index": {"|".join(map(str, k)): v for k, v in m_i.items()},
            "m_stocks": {"|".join(map(str, k)): v for k, v in m_s.items()}, "states": wait, "results": results, "strata": strat,
-           "ledger_family_threshold_z": registry.threshold(registry.family_count("OC"))}
-    (D / "manifests/oc_v1_results.json").write_text(json.dumps(man, indent=1, default=str))
-    write_report(man)
+           "ledger_family_threshold_z": registry.threshold(registry.family_count("OC")) if record else None, "recorded": record}
+    if record:
+        (D / "manifests/oc_v1_results.json").write_text(json.dumps(man, indent=1, default=str))
+        write_report(man)
+    elif out_dir is not None:
+        (out_dir / "oc_v1_results_dry.json").write_text(json.dumps(man, indent=1, default=str))
     return man
 
 
@@ -1097,6 +1108,9 @@ if __name__ == "__main__":
     elif cmd == "run":
         r = run(lambda s: print(f"[{dt.datetime.now():%H:%M:%S}] {s}", flush=True))
         print("done", r["ledger_family_threshold_z"])
+    elif cmd == "smoke":
+        r = run(lambda s: print(f"[{dt.datetime.now():%H:%M:%S}] {s}", flush=True), smoke=True)
+        print("smoke ok", json.dumps(r["counts"], default=str)[:1500])
     elif cmd == "report":
         write_report(json.loads((paths.data_dir() / "manifests/oc_v1_results.json").read_text()))
     else:

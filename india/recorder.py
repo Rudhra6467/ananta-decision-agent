@@ -26,6 +26,7 @@ BAND = {"NIFTY": 20, "BANKNIFTY": 15}
 STEP = {"NIFTY": 50, "BANKNIFTY": 100}
 INDEX_TOKEN = {"NIFTY": "NIFTY 50", "BANKNIFTY": "NIFTY BANK"}
 EXTRA_INDICES = ("INDIA VIX", "NIFTY 50", "NIFTY BANK", "NIFTY FIN SERVICE", "NIFTY MID SELECT")
+CURRENCIES = ("USDINR", "EURINR", "GBPINR", "JPYINR")  # NSE currency futures (CDS), two nearest expiries: the forex shadow book (Madhav, 19 Oct)
 
 
 def _nfo(k: kite.Kite) -> list[dict]:
@@ -34,6 +35,15 @@ def _nfo(k: kite.Kite) -> list[dict]:
     if not p.exists():
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(k.instruments("NFO"))
+    return list(csv.DictReader(io.StringIO(p.read_text())))
+
+
+def _cds(k: kite.Kite) -> list[dict]:
+    today = dt.date.today()
+    p = paths.bronze("kite_instruments") / f"CDS_{today:%Y%m%d}.csv"
+    if not p.exists():
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(k.instruments("CDS"))
     return list(csv.DictReader(io.StringIO(p.read_text())))
 
 
@@ -77,6 +87,16 @@ def run(days_back: int = 29) -> dict:
     for name in EXTRA_INDICES:
         if name in idx:
             picks.append((name, idx[name], "indices"))
+    try:
+        cds = _cds(k)
+        for name in CURRENCIES:
+            futs = sorted((r for r in cds if r["name"] == name and r["instrument_type"] == "FUT" and r["expiry"] >= today.isoformat()), key=lambda r: r["expiry"])[:2]
+            picks.extend((r["tradingsymbol"], int(r["instrument_token"]), "cds/" + r["expiry"]) for r in futs)
+    except kite.NeedLogin:
+        raise
+    except Exception as exc:  # the currency list must not stop the option recorder
+        with (paths.manifest_dir() / "kite_1m_fo.jsonl").open("a") as fh:
+            fh.write(json.dumps({"symbol": "CDS instruments", "date": today.isoformat(), "status": f"error {type(exc).__name__}: {exc}"}) + "\n")
     man = paths.manifest_dir() / "kite_1m_fo.jsonl"
     n = rows = 0
     t0 = time.time()

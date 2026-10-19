@@ -1,10 +1,26 @@
 {
  "family": "OC",
- "version": "oc-v1-draft-2026-10-19",
- "status": "DRAFT: awaiting Madhav's approval; nothing has been run",
+ "version": "oc-v1-2026-10-19-approved",
+ "status": "APPROVED by Madhav 19 Oct 2026 17:05 Toronto, with the definitions below recorded before any run; frozen: any later change is oc-v2",
  "source": "Madhav's Opening Decision Protocol V1 (19 Oct 2026), encoded exactly; thresholds are candidates to test, not beliefs",
- "session_ist": {"open": "09:15", "close": "15:30", "last_entry": "14:30", "flat_by": "15:15"},
- "periods": {"dev": [2015, 2017], "validation": [2018, 2023], "holdout": "2024-01-01 onward (sealed)", "walk_forward_folds": "expanding, test years 2016..2023"},
+ "session_ist": {
+  "open": "09:15",
+  "close": "15:30",
+  "last_entry": "14:30",
+  "flat_by": "15:15"
+ },
+ "periods": {
+  "dev": [
+   2015,
+   2017
+  ],
+  "validation": [
+   2018,
+   2023
+  ],
+  "holdout": "2024-01-01 onward (sealed)",
+  "walk_forward_folds": "expanding, test years 2016..2023"
+ },
  "definitions": {
   "PDH_PDL_PDC": "previous session high, low, close (adjusted)",
   "gap": "open(09:15) / PDC - 1; buckets flat |g|<0.25%, small 0.25-0.75%, large >=0.75%",
@@ -32,25 +48,108 @@
  },
  "exits": {
   "X1_invalidation": "stop at the opposite edge of OR_k (E2: the retest extreme); else flat at 15:15",
-  "X2_measured_room": "stop at entry -/+ m x (OR_k width), where m is the 80th percentile of adverse excursion of dev-period winners of the same variant, computed on dev only and frozen before validation; else flat at 15:15",
-  "secondary": ["X3 trail 1R after +1R", "X4 time stop 60 / 120 minutes", "X5 target previous-day high / low"]
+  "X2_measured_room": "X1: the setup invalidation level (the opposite OR edge; E2: the retest extreme) is the hard stop and a trade is never held past it. X2: a stop at m x OR width, m = 80th percentile of the adverse excursion of dev-period winners of the same variant, used as one input only: capped at the invalidation distance, floored at the instrument minimum (2 ticks and half the instrument's 5-minute ATR14 at entry). Both: time exit 15:15",
+  "secondary": [
+   "X3 trail 1R after +1R",
+   "X4 time stop 60 / 120 minutes",
+   "X5 target previous-day high / low"
+  ]
  },
  "primary_tests": {
-  "variants_per_instrument": ["k15|E1|X1", "k15|E1|X2", "k15|E2|X1", "k15|E2|X2", "k30|E1|X1", "k30|E1|X2", "k30|E2|X1", "k30|E2|X2", "k30|E4|X1", "k30|E4|X2"],
-  "instruments": {"NIFTY": "Nifty 50 spot minutes traded as an index-future proxy (futures costs, 1-tick slippage, basis ignored, labelled)",
-                  "BANKNIFTY": "Nifty Bank spot minutes, same proxy",
-                  "STOCKS": "point-in-time liquidity top 100 with 5-minute data (survivorship-labelled), intraday long and short"},
+  "variants_per_instrument": [
+   "k15|E1|X1",
+   "k15|E1|X2",
+   "k15|E2|X1",
+   "k15|E2|X2",
+   "k30|E1|X1",
+   "k30|E1|X2",
+   "k30|E2|X1",
+   "k30|E2|X2"
+  ],
+  "instruments": {
+   "NIFTY": "Nifty 50 spot minutes traded as an index-future proxy (futures costs, 1-tick slippage, basis ignored, labelled)",
+   "BANKNIFTY": "Nifty Bank spot minutes, same proxy",
+   "STOCKS": "point-in-time liquidity top 100 with 5-minute data (survivorship-labelled), intraday long and short"
+  },
   "event_day_test": "on scheduled event days in the event registry (RBI 10:00, Budget 11:00, election counting), standing down until 30 minutes after the event beats trading through it: NIFTY and BANKNIFTY, k30|E1|X1",
   "each_against_baseline": "every primary variant is paired with the same entries and exits without the breadth, agreement, volume and VWAP filters (the unfiltered baseline); two questions: does it make money net of costs, and does confirmation improve on the baseline",
-  "count": 32
+  "count": 26
  },
- "secondary_grid": {"k": [5], "B": [0.55, 0.70], "rvol": [1.2, 2.0], "vwap": ["off"], "tight_consolidation": ["required"], "exits": ["X3", "X4", "X5"], "reversal": "REVERSAL_CANDIDATE with X1",
-                    "rule": "exploratory: every variant counts in the ledger; a secondary result is reported only if it survives BH across the whole ledger and the family shuffle"},
- "options_mapping": {"historical": "synthetic ATM option on the nearest weekly expiry priced with Black-76 from the index minute path and the previous session's IV (labelled SYNTHETIC)",
-                     "suitability_check": "before an option entry: required underlying move = (premium + 2 x half-spread + costs) / |delta| + theta x expected hold; take the option only if the playbook's dev-period favourable-excursion distribution reaches that move at least 60% of the time, else use the future or skip",
-                     "forward": "real recorder minutes and measured order-book spreads from 19 Oct 2026"},
- "stratify_report_only": ["gap bucket", "VIX tercile (previous close)", "Nifty vs 50-day", "event day", "expiry day", "era 2015-2019 vs 2020-2023", "weekday"],
- "metrics": ["net expectancy (Rs and R)", "profit factor", "win rate", "average win / average loss", "max drawdown of daily equity", "MAE and MFE distributions", "trades per year", "share of days traded", "WAIT-day counterfactual", "cost share", "slippage"],
+ "secondary_grid": {
+  "k": [
+   5
+  ],
+  "B": [
+   0.55,
+   0.7
+  ],
+  "rvol": [
+   1.2,
+   2.0
+  ],
+  "vwap": [
+   "off"
+  ],
+  "tight_consolidation": [
+   "required"
+  ],
+  "exits": [
+   "X3",
+   "X4",
+   "X5"
+  ],
+  "reversal": "REVERSAL_CANDIDATE with X1",
+  "rule": "exploratory: every variant counts in the ledger; a secondary result is reported only if it survives BH across the whole ledger and the family shuffle",
+  "entries": [
+   "E4_late (10:15-11:30)"
+  ]
+ },
+ "options_mapping": {
+  "historical": "synthetic ATM option on the nearest weekly expiry priced with Black-76 from the index minute path and the previous session's IV (labelled SYNTHETIC)",
+  "suitability_check": "before an option entry: required underlying move = (premium + 2 x half-spread + costs) / |delta| + theta x expected hold; take the option only if the playbook's dev-period favourable-excursion distribution reaches that move at least 60% of the time, else use the future or skip",
+  "forward": "real recorder minutes and measured order-book spreads from 19 Oct 2026"
+ },
+ "stratify_report_only": [
+  "gap bucket",
+  "VIX tercile (previous close)",
+  "Nifty vs 50-day",
+  "event day",
+  "expiry day",
+  "era 2015-2019 vs 2020-2023",
+  "weekday"
+ ],
+ "metrics": [
+  "net expectancy (Rs and R)",
+  "profit factor",
+  "win rate",
+  "average win / average loss",
+  "max drawdown of daily equity",
+  "MAE and MFE distributions",
+  "trades per year",
+  "share of days traded",
+  "WAIT-day counterfactual",
+  "cost share",
+  "slippage"
+ ],
  "statistics": "one trade per index per day: t across days; stocks: per-day mean then t across days; registry family OC with its multiple-testing bar; robustness: at least 5 of 8 walk-forward folds with the same sign, liquidity halves, costs doubled, within-day shuffle for stock filters",
- "data_limits": ["index minutes have no volume: volume and VWAP confirmation are tested on stocks only", "breadth uses the covered constituents (75-93% of the liquidity top 50 by year)", "stock 5-minute data covers 49-83% of the point-in-time top 250 by year (Kite lists only current instruments): stock results carry a survivorship label and a daily-bar bias check", "no GIFT Nifty history: the overnight view uses the US close, USD/INR, Brent and the previous day's flows", "no historical intraday options, futures, currency or commodity data before the recorder: those are synthetic, proxied or forward-only"]
+ "data_limits": [
+  "index minutes have no volume: volume and VWAP confirmation are tested on stocks only",
+  "breadth uses the covered constituents (75-93% of the liquidity top 50 by year)",
+  "stock 5-minute data covers 49-83% of the point-in-time top 250 by year (Kite lists only current instruments): stock results carry a survivorship label and a daily-bar bias check",
+  "no GIFT Nifty history: the overnight view uses the US close, USD/INR, Brent and the previous day's flows",
+  "no historical intraday options, futures, currency or commodity data before the recorder: those are synthetic, proxied or forward-only"
+ ],
+ "approval_conditions": {
+  "eligible_universe": "stocks: the point-in-time liquidity top 100 (gold/universe u_liq_in rank <= 100 as of the previous session) with 5-minute bars that day; excluded: ETFs and fund units, names with an ambiguous corporate action or a frozen-price run in gold/ca_flags within 5 sessions, names in a circuit halt at the decision bar. Breadth uses the same rule with rank <= 50.",
+  "breadth": "fixed at 0.60 (bullish) / 0.40 (bearish) for the initial test: share of eligible top-50 names whose last price at the decision bar is above (below) their own 09:15 open",
+  "directional_agreement": "index: Nifty 50 and Nifty Bank both moved the same way since 09:15 at the decision bar, each by at least 0.05% (a move inside +/-0.05% counts as no direction, so no agreement); stocks: the stock and the Nifty 50 moved the same way since 09:15, same 0.05% rule",
+  "relative_volume": "fixed at 1.5: cumulative volume 09:15 to the end of the decision bar, divided by the median of the cumulative volume over the same clock window (09:15 to the same bar) in the previous 20 regular sessions; special and shortened sessions are left out of the baseline; at least 15 of the 20 sessions must have data, else the stock is not eligible that day",
+  "time_of_day_baseline": "every volume and range comparison is made against the same minutes of the day in earlier sessions, never against a full-day average",
+  "decision_deadline": "10:15 IST for every primary entry (E1, E2, E3); no confirmed state by 10:15 = WAIT, and a WAIT day ends as NO TRADE; both are valid recorded decisions with their counterfactual. E4 (10:15-11:30) moves to the exploratory grid",
+  "stops": "X1: the setup invalidation level (the opposite OR edge; E2: the retest extreme) is the hard stop and a trade is never held past it. X2: a stop at m x OR width, m = 80th percentile of the adverse excursion of dev-period winners of the same variant, used as one input only: capped at the invalidation distance, floored at the instrument minimum (2 ticks and half the instrument's 5-minute ATR14 at entry). Both: time exit 15:15",
+  "max_rupee_risk": "position size = floor(max risk / (stop distance per unit + per-unit costs)); index proxy trades whole lots (lot size on that date from the F&O files); if one lot or one share would risk more than the maximum, the decision is NO TRADE with reason risk_cap. Maximum risk per trade: Rs 1,000 (2% of the Rs 50,000 paper book), set in paper_config.json; changing it is a config change, recorded with its sha",
+  "event_verification": "two independent credible sources or one official source; reactions only from the lake's price data; one-source events kept as leads, excluded from verified studies",
+  "exploration_policy": "the research phase stays open-eyed: exploratory cuts (other thresholds, regimes, instruments, the E4 window, reversals) are run and reported, clearly labelled EXPLORATORY and counted in the ledger when they claim anything; a promising one becomes a new pre-registered primary before it can reach a paper evidence book"
+ },
+ "frozen_at": "2026-10-19T21:06:57+00:00"
 }

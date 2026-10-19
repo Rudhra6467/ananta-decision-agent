@@ -32,11 +32,17 @@ from india import paths
 CATEGORIES = {"world_macro", "commodity", "geopolitics_war", "terror_security", "civil_unrest", "india_policy", "rbi_policy", "union_budget", "election",
               "regulation_sebi", "credit_crisis", "banking", "corporate_governance", "corporate_event", "flows", "market_structure", "pandemic", "other"}
 TIER_A = ("rbi.org.in", "pib.gov.in", "sebi.gov.in", "nseindia.com", "bseindia.com", "eci.gov.in", "federalreserve.gov", "who.int", "gov.uk", "whitehouse.gov",
-          "ustr.gov", "indiabudget.gov.in", "finmin.nic.in", "mof.gov.in", "mea.gov.in", "pmindia.gov.in", "imf.org", "worldbank.org", "ecb.europa.eu", "iea.org", "un.org")
+          "ustr.gov", "indiabudget.gov.in", "finmin.nic.in", "mof.gov.in", "mea.gov.in", "pmindia.gov.in", "imf.org", "worldbank.org", "ecb.europa.eu", "iea.org", "un.org",
+          "kremlin.ru", "archives.gov", "state.gov", "defense.gov", "businesswire.com", "prnewswire.com", "biontech.com", "pfizer.com", "nsearchives.nseindia.com",
+          "archives.nseindia.com", "incometaxindia.gov.in", "gst.gov.in", "mha.gov.in", "eci.gov.in", "results.eci.gov.in")  # official bodies and issuers' own releases
 TIER_B = ("reuters.com", "bloomberg.com", "business-standard.com", "livemint.com", "economictimes.indiatimes.com", "moneycontrol.com", "thehindubusinessline.com",
           "cnbc.com", "bbc.com", "bbc.co.uk", "ft.com", "wsj.com", "apnews.com", "aljazeera.com", "thehindu.com", "indianexpress.com", "hindustantimes.com",
           "ndtv.com", "timesofindia.indiatimes.com", "cnbctv18.com", "financialexpress.com", "nytimes.com", "theguardian.com", "washingtonpost.com",
-          "businesstoday.in", "news18.com", "indiatoday.in", "france24.com", "dw.com", "npr.org", "axios.com", "politico.com", "marketwatch.com", "forbes.com")
+          "businesstoday.in", "news18.com", "indiatoday.in", "france24.com", "dw.com", "npr.org", "axios.com", "politico.com", "marketwatch.com", "forbes.com",
+          "deccanherald.com", "theprint.in", "thewire.in", "thequint.com", "outlookbusiness.com", "tribuneindia.com", "pbs.org", "bloombergquint.com", "ndtvprofit.com",
+          "gulfnews.com", "arabnews.com", "think.ing.com", "moneylife.in", "thenewsminute.com", "businessinsider.in", "onmanorama.com", "theweek.in", "malaymail.com",
+          "thejakartapost.com", "gulf-times.com", "dtnext.in", "boomlive.in", "etvbharat.com", "scroll.in", "firstpost.com", "telegraphindia.com", "deccanchronicle.com",
+          "abc.net.au", "cbsnews.com", "nbcnews.com", "euronews.com", "japantimes.co.jp", "scmp.com", "straitstimes.com", "oxfordeconomics.com", "investing.com")
 CLOSE = dt.time(15, 30)
 
 
@@ -61,8 +67,9 @@ def _calendar() -> list[dt.date]:
     return sorted(pd.to_datetime(cal.loc[cal["is_trading_day"], "date"]).dt.date)
 
 
-def _first_session(d: dt.date, t: str | None, days: list[dt.date]) -> tuple[dt.date | None, str]:
-    """The first session in which the event could be traded. Unknown time on a trading day: that day, flagged 'time unknown'."""
+def _first_session(d: dt.date, t: str | None, days: list[dt.date], period: str | None = None, curator: str | None = None) -> tuple[dt.date | None, str]:
+    """The first session in which the event could be traded. An exact time decides; otherwise the sourced period (before_open / during /
+    after_close); otherwise the curator's session with a flag; otherwise that day, flagged 'time unknown'."""
     import bisect
     note = ""
     after_close = False
@@ -72,6 +79,14 @@ def _first_session(d: dt.date, t: str | None, days: list[dt.date]) -> tuple[dt.d
             after_close = dt.time(hh, mm) >= CLOSE
         except ValueError:
             note = "unparseable time"
+    elif period in ("before_open", "during", "after_close"):
+        after_close = period == "after_close"
+        note = f"time unknown, period {period} (sourced)"
+    elif curator:
+        try:
+            return dt.date.fromisoformat(curator), "time unknown; first session from the curator, unverified"
+        except ValueError:
+            note = "time unknown"
     else:
         note = "time unknown"
     i = bisect.bisect_left(days, d)
@@ -107,8 +122,8 @@ def load() -> dict:
                 continue
             if e.get("category") not in CATEGORIES:
                 p.append(f"category {e.get('category')!r} not in the taxonomy")
-            fts, tnote = _first_session(d, e.get("public_time_ist"), days)
             given = e.get("first_tradable_session")
+            fts, tnote = _first_session(d, e.get("public_time_ist"), days, e.get("public_period"), given)
             if given and fts and given != fts.isoformat():
                 p.append(f"curator's first session {given} differs from the calendar's {fts} ({tnote or 'trading day'})")
             eid = _eid(e)
@@ -134,7 +149,7 @@ def load() -> dict:
                 p.append("no tradable session in the calendar")
             era = None if fts is None else ("dev" if fts.year < 2018 else ("validation" if fts.year < 2024 else "holdout"))
             rows.append({"event_id": eid, "title": e["title"], "category": e.get("category"), "subcategory": e.get("subcategory"), "scope": e.get("scope"),
-                         "event_date": d, "public_time_ist": e.get("public_time_ist"), "first_tradable_session": fts, "timing_note": "; ".join(x for x in (e.get("timing_note"), tnote) if x),
+                         "event_date": d, "public_time_ist": e.get("public_time_ist"), "public_period": e.get("public_period"), "first_tradable_session": fts, "timing_note": "; ".join(x for x in (e.get("timing_note"), tnote) if x),
                          "known_beforehand": e.get("known_beforehand"), "expectation": e.get("expectation"), "expectation_source": e.get("expectation_source"),
                          "what_happened": e.get("what_happened"), "reported_affected": json.dumps(e.get("reported_affected") or []),
                          "confounders": json.dumps(e.get("confounders") or []), "n_sources": len(tiers), "tiers": "".join(sorted(tiers)), "status": status,

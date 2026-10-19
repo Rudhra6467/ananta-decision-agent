@@ -183,9 +183,21 @@ def fetch_day(f: Fetcher, dataset: str, d: dt.date) -> dict:
     return row
 
 
+def special_sessions() -> set[dt.date]:
+    """Weekend sessions NSE actually held (Budget Saturdays, Diwali Muhurat, special live-trading Saturdays), taken from the days the Nifty 50
+    traded in the Kite index history (manifests/special_sessions.json, refreshed by india.calendarfix). Before 19 Oct 2026 the downloaders
+    asked only for weekdays, so these sessions were missing from the cash, delivery and F&O files and from the calendar."""
+    p = paths.manifest_dir() / "special_sessions.json"
+    if not p.exists():
+        return set()
+    return {dt.date.fromisoformat(x) for x in json.loads(p.read_text())["dates"]}
+
+
 def weekdays(start: dt.date, end: dt.date):
+    """Weekdays plus the weekend special sessions in [start, end]."""
+    extra = special_sessions()
     d = start
     while d <= end:
-        if d.weekday() < 5:
+        if d.weekday() < 5 or d in extra:
             yield d
         d += dt.timedelta(days=1)

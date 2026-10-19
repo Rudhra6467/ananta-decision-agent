@@ -367,9 +367,153 @@ def show(sid: str) -> None:
     print(h.to_string(index=False) if not h.empty else "  none mapped")
 
 
+# Hypotheses that need an item even when no study lists it (matched in the hypothesis map's text and needs columns)
+NEED_TEXT = {"D30": r"P/E|P/B|valuation|dividend yield|total.return", "D19": r"surveillance|\bASM\b|\bGSM\b|pledg|shareholding",
+             "D26": r"bid.?ask|intraday option", "D24": r"calls? ledger", "D20b": r"before 2018", "D22": r"\bRBI\b|rate cut|repo"}
+# what each item would change in conclusions that already ran without it (the indirect part, stated, not guessed)
+INDIRECT = {
+    "D19": "No study's verdict uses surveillance status, but stock-book fills assume normal trading. A name on ASM/GSM can be in the trade-for-trade "
+           "segment, need 100% margin or have a tighter price band, so a fill at the next open may not have been available. Measured below on the live "
+           "candidates; history cannot be measured (NSE serves current lists only).",
+    "D30": "None: no registered result uses valuation. C09 ran its four intermarket conditions without the valuation zone; OPT-H60 has no result.",
+    "D26": "Every options conclusion (F01, F02, F05, F06 hedge cost) uses settlement or synthetic prices plus an assumed spread: see "
+           "registrations/options_realism.md for how far each survives wider spreads, and the settle-vs-tradable check.",
+    "D20": "V05 and the fundamentals parts of V06 run on Aug 2018+ XBRL coverage only; no other study reads fundamentals.",
+    "D20b": "Same as D20 for 2000-2017: the dev period has no point-in-time fundamentals, so any V05 result is validation-only.",
+    "D22": "C09 ran with FRED series; RBI policy dates are missing, so no rate-decision hypothesis (TWT-H45 rate cuts) has a result.",
+    "D24": "K02 scores Ananta's own daily call from 18 Oct; the teachers' 1,001 calls are unscored until dated.",
+    "D14": "R01/R02 (real intraday options) wait for recorded expiry days; F05 stays a synthetic result until R01 calibrates it.",
+}
+
+
+# studies whose EXISTING results rest on a stand-in for the missing part of an item (so those conclusions could change when it arrives).
+# Studies that merely ran beside a missing part without using it (C09 next to D30 and the RBI dates) are listed separately.
+STANDIN = {"D14": ["F05"], "D26": ["F01", "F02", "F05", "F06"], "D16": ["V06"], "D17": ["C06"], "D20": ["V05", "V06"], "D20b": ["V05"], "D19": [], "D30": [], "D22": [],
+           "D24": [], "D15": [], "D27": [], "D28": []}
+
+
+def _surveillance_overlap() -> dict:
+    """Share of the latest decision's candidates that are on today's ASM/GSM lists (present-day measure of the D19 caveat)."""
+    snaps = sorted((paths.data_dir() / "bronze" / "surveillance").glob("*_asm.json"))
+    jfiles = sorted((paths.data_dir() / "paper" / "decisions").glob("*.journal.json"))
+    if not snaps or not jfiles:
+        return {}
+    day = snaps[-1].name.split("_")[0]
+    syms = set()
+    for kind in ("asm", "gsm"):
+        p = snaps[-1].with_name(f"{day}_{kind}.json")
+        if p.exists():
+            raw = json.loads(p.read_text())
+            for part in (raw.values() if isinstance(raw, dict) else [raw]):
+                rows = part.get("data", []) if isinstance(part, dict) else part
+                syms |= {r.get("symbol") for r in rows if isinstance(r, dict)}
+    j = json.loads(jfiles[-1].read_text())["journal"]
+    allc = [c for c in j if c.get("campaign") != "CTL"]
+    top = [c for c in allc if (c.get("liq_rank") or 10**9) <= 250]
+    hit = lambda xs: [c["symbol"] for c in xs if c["symbol"] in syms]
+    return {"lists_date": day, "listed_symbols": len(syms), "decision": jfiles[-1].name.split(".")[0],
+            "baseline_candidates": len(allc), "baseline_on_lists": len(hit(allc)), "exec_universe_candidates": len(top), "exec_universe_on_lists": len(hit(top)),
+            "examples": hit(allc)[:10]}
+
+
+def impact(only: str | None = None, write: bool = True) -> dict:
+    """For every data item that is not READY: the studies that cannot run without it, the studies that ran without part of it, the registered
+    results (conclusions) those studies produced, the hypotheses waiting on it, the paper rules that follow those studies, and what changes
+    indirectly. Everything not listed proceeds unaffected; the counts at the end say how much that is."""
+    import re
+    items, studs = deps()
+    hm = pd.read_parquet(paths.gold() / "hypothesis_map" / "hypothesis_map.parquet")
+    from india import registry
+    lat = {}
+    for r in registry._rows():
+        if r["kind"] == "result":
+            lat[(r["study"], r["variant"])] = r
+    res = pd.DataFrame([{"study": k[0], "variant": k[1], "verdict": v["verdict"]} for k, v in lat.items()])
+    res["root"] = res["study"].str.extract(r"^([A-Z]\d\d)")[0] if len(res) else []
+    needs = {s[0]: s[4] for s in tracker.STUDIES}
+    out = {}
+    for it in items:
+        iid = it["id"]
+        if only and iid != only:
+            continue
+        if it["manual_state"] == "READY" and it["auto_state"] in ("PRESENT", "NOT_CHECKED"):
+            continue
+        hard = [s for s, n in needs.items() if iid in n and iid not in OPTIONAL.get(s, [])]
+        soft = [s for s, n in OPTIONAL.items() if iid in n]
+        blocked = [s["study"] for s in studs if s["study"] in hard and not s["runnable"]]
+        partial = [s for s in hard if s not in blocked]
+        dep = STANDIN.get(iid, hard + soft)
+        concl = res[res["root"].isin(dep)] if len(res) else pd.DataFrame()
+        beside = res[res["root"].isin([s for s in hard + soft if s not in dep])] if len(res) else pd.DataFrame()
+        pat = NEED_TEXT.get(iid)
+        hy = hm[hm["study"].isin(hard + soft)]
+        if pat:
+            hy = pd.concat([hy, hm[hm["needs"].str.contains(pat, case=False, na=False) | hm["text"].str.contains(pat, case=False, na=False)]]).drop_duplicates("id")
+        rec = {"item": it["item"], "manual_state": it["manual_state"], "auto_state": it["auto_state"], "note": it["note"],
+               "studies_blocked": blocked, "studies_ran_with_part_missing": partial + soft,
+               "conclusions": concl.groupby("study")["verdict"].value_counts().unstack(fill_value=0).to_dict(orient="index") if len(concl) else {},
+               "notable_conclusions": concl[concl["verdict"].isin(["VALIDATED", "CONDITIONAL", "OPPOSITE"])][["study", "variant", "verdict"]].to_dict(orient="records") if len(concl) else [],
+               "results_beside_not_using_it": beside.groupby("study").size().to_dict() if len(beside) else {},
+               "hypotheses": hy[["id", "study", "status"]].to_dict(orient="records"),
+               "paper_rules": {s: PAPER[s] for s in hard + soft if s in PAPER}, "indirect": INDIRECT.get(iid, "")}
+        if iid == "D19":
+            rec["measured"] = _surveillance_overlap()
+        out[iid] = rec
+    touched = {s for r in out.values() for s in r["studies_blocked"] + r["studies_ran_with_part_missing"]}
+    standin = {s for iid in out for s in STANDIN.get(iid, [])}
+    all_studies = {s[0] for s in tracker.STUDIES}
+    summary = {"items_not_ready": len(out), "studies_total": len(all_studies), "studies_touched": len(touched), "studies_untouched": len(all_studies - touched),
+               "results_total": int(len(res)), "results_on_standins": int(res["root"].isin(standin).sum()) if len(res) else 0,
+               "results_touched": int(res["root"].isin(touched).sum()) if len(res) else 0,
+               "hypotheses_total": int(len(hm)), "hypotheses_touched": len({h["id"] for r in out.values() for h in r["hypotheses"]})}
+    full = {"at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "summary": summary, "items": out}
+    if write and not only:
+        (paths.manifest_dir() / "impact.json").write_text(json.dumps(full, indent=1, default=str))
+        _impact_md(full)
+    return full
+
+
+def _impact_md(full: dict) -> None:
+    s = full["summary"]
+    L = ["# Missing inputs: exactly which conclusions depend on them", "", f"Generated by `python -m india.lineage impact` ({full['at']}).", "",
+         f"**{s['items_not_ready']} data items are not ready. {s['results_on_standins']} of {s['results_total']} registered results rest on a stand-in for a "
+         f"missing input (all options results, C06 positioning) and could change when it arrives; the other {s['results_total'] - s['results_on_standins']} "
+         f"do not use any missing input. {s['studies_touched']} of {s['studies_total']} studies touch a missing item at all (blocked, or ran with part "
+         f"missing); {s['studies_untouched']} do not. {s['hypotheses_touched']} of {s['hypotheses_total']} mapped hypotheses wait on one.**", ""]
+    for iid, r in full["items"].items():
+        L += [f"## {iid}: {r['item']}", "", f"State: {r['manual_state']} (lake check: {r['auto_state']}). {r['note']}".strip(), ""]
+        L += [f"- Cannot run without it: {', '.join(r['studies_blocked']) or 'none'}",
+              f"- Ran with this part missing (result says so): {', '.join(r['studies_ran_with_part_missing']) or 'none'}"]
+        if r["conclusions"]:
+            L += ["- **Results resting on a stand-in for it (could change when it arrives):** " + "; ".join(f"{k} " + ", ".join(f"{v} {n}" for v, n in d.items() if n) for k, d in r["conclusions"].items())]
+        else:
+            L += ["- Results resting on a stand-in for it: none"]
+        if r["notable_conclusions"]:
+            nc = r["notable_conclusions"]
+            L += [f"- Notable among them ({len(nc)}): " + "; ".join(f"{c['study']} {c['variant']} ({c['verdict']})" for c in nc[:8]) + ("; ..." if len(nc) > 8 else "")]
+        if r["results_beside_not_using_it"]:
+            L += ["- Results that ran beside it without using it (unaffected): " + "; ".join(f"{k} ({n})" for k, n in r["results_beside_not_using_it"].items())]
+        L += [f"- Hypotheses waiting on it: {', '.join(h['id'] + ' (' + str(h['study']) + ')' for h in r['hypotheses']) or 'none'}"]
+        if r["paper_rules"]:
+            L += ["- Paper records that follow those studies: " + "; ".join(f"{k}: {v}" for k, v in r["paper_rules"].items())]
+        if r["indirect"]:
+            L += [f"- Indirect effect: {r['indirect']}"]
+        if r.get("measured"):
+            m = r["measured"]
+            L += [f"- Measured ({m['lists_date']} lists, {m['listed_symbols']} symbols; decision {m['decision']}): {m['baseline_on_lists']} of {m['baseline_candidates']} "
+                  f"baseline candidates and {m['exec_universe_on_lists']} of {m['exec_universe_candidates']} executed-universe (liquidity top 250) candidates are on ASM/GSM"
+                  + (f" ({', '.join(m['examples'])})" if m["examples"] else "")]
+        L += [""]
+    (Path(__file__).resolve().parent / "registrations" / "missing_inputs.md").write_text("\n".join(L) + "\n")
+
+
 if __name__ == "__main__":
     paths.ensure()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
+    if cmd == "impact":
+        r = impact(sys.argv[2] if len(sys.argv) > 2 else None)
+        print(json.dumps(r["summary"], indent=1))
+        sys.exit(0)
     if cmd == "versions":
         for r in versions():
             print(json.dumps(r, default=str))

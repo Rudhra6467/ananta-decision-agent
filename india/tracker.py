@@ -34,7 +34,7 @@ DATA = [
     ("D15", "Nightly builds clean (gate counter)", "WAIT_TIME", "30 runs", "auto: counted from heartbeats"),
     ("D16", "Ledger snapshots (gate counter)", "WAIT_TIME", "30 snapshots", "auto: counted from bronze/ledger"),
     ("D17", "FII/DII flows history", "BUILD", "", "NSE provisional daily; how far back is free to be probed"),
-    ("D17a", "Participant-wise open interest in equity derivatives (Client, DII, FII, Pro), daily from 2012", "BUILD", "", "india/flows.py pulling (about 3,700 files, shared 1 req/s); C06 runs on it"),
+    ("D17a", "Participant-wise open interest in equity derivatives (Client, DII, FII, Pro), daily from 2012", "READY", "", "india/flows.py: 2,251 trading days 2012-2026 in silver/flows/participant_oi.parquet (19 Oct); C06 ran on it"),
     ("D18", "Announcements, board meetings, corporate-action text (PR zips, from ~2010)", "READY", "", "silver/pr: 7.0M announcements (categorised), 122k board meetings (to Oct 2025), 1.58M book-closure actions, 845k price-band hits, 2010-2026"),
     ("D19", "ASM/GSM surveillance lists and pledge/shareholding filings", "WAIT_TIME", "accumulating", "NSE serves current lists only: daily snapshots from 18 Oct 2026 (india/surveil.py, 206 ASM + 77 GSM today); pledge filings not yet probed"),
     ("D20", "Fundamentals dataset from filed results (NSE results API with filing timestamps and XBRL), point-in-time", "BUILD", "", "results index done (217,104 filings 2007-2024); 2025+ via the integrated-filing API (pulling); XBRL download running, liquid names first (53,654 files); parser india/fundamentals.py"),

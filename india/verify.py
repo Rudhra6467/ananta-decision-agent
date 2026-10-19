@@ -139,6 +139,7 @@ def run(quick: bool = False) -> dict:
         items, studs = lineage.deps()
         out["data_items"] = [{k: r[k] for k in ("id", "item", "manual_state", "auto_state", "first", "last", "note")} for r in items]
         out["blocked_studies"] = [s for s in studs if not s["runnable"]]
+        out["impact"] = lineage.impact()["summary"]  # registrations/missing_inputs.md: which conclusions rest on a missing input
         from india import firewall
         fw = firewall.run()
         out["firewall"] = {k: {"ok": v["ok"], "note": v["note"]} for k, v in fw.items() if not k.startswith("_")}

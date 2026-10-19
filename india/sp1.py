@@ -621,13 +621,17 @@ def score(res, pt, iot, fold_meta, null, nul_freq, o, st, log, registry, dry: bo
         for name, series, extra in ((f"{sym}|future_proxy|policy", P, extra_common),
                                     (f"{sym}|future_proxy|vs_intercept_only", P - IO, {"spec": spec_sha(), "min_trades_ok": tr_val >= 100}),
                                     (f"{sym}|option|policy", OP, {"spec": spec_sha(), "unit": "bps of premium per day", "min_trades_ok": tr_val >= 100,
-                                                                  "label": "EXPLORATORY (synthetic options)"})):
+                                                                  "label": "EXPLORATORY (synthetic options, IV held constant)",
+                                                                  "per_trade_val": opt_stats(pt[(pt["index"] == sym) & pt["date"].map(lambda d: d.year >= 2018)])})):
             dev, val = nw_t(_period(series, False)), nw_t(_period(series, True))
             line = registry.record(reg, name, dev=dev, val=val, extra=extra, expect=1, rule="seen_val_only")
             rows[name] = {"dev": dev, "val": val, "verdict": line["verdict"], "z": line["z"], "extra": extra}
             log(f"{name}: dev {dev[0]:.2f} (t {dev[1]:.2f}) val {val[0]:.2f} (t {val[1]:.2f}) -> {line['verdict']}")
     book = book_sim(pt, o, st, log)
     bt = book.pop("_daily")
+    unp = book_sim(pt, o, st, log, pause=False)
+    unp.pop("_daily")
+    book["unpaused"] = unp
     dev, val = boot_t(bt[[d.year < 2018 for d in bt.index]]), boot_t(bt[[d.year >= 2018 for d in bt.index]])
     line = registry.record(reg, "BOOK|option|sized", dev=dev, val=val, extra={"spec": spec_sha(), "label": "EXPLORATORY", **book}, expect=1, rule="seen_val_only")
     rows["BOOK|option|sized"] = {"dev": dev, "val": val, "verdict": line["verdict"], "z": line["z"], "extra": book}
@@ -639,6 +643,16 @@ def score(res, pt, iot, fold_meta, null, nul_freq, o, st, log, registry, dry: bo
     (D / "manifests/sp1_results.json").write_text(json.dumps(man, indent=1, default=str))
     write_report(man)
     return man
+
+
+def opt_stats(t: pd.DataFrame) -> dict:
+    x = t["opt_ret"].dropna()
+    if x.empty:
+        return {}
+    return {"trades": int(len(x)), "mean": round(float(x.mean()), 4), "median": round(float(x.median()), 4), "share_positive": round(float((x > 0).mean()), 3),
+            "p01": round(float(x.quantile(0.01)), 3), "p99": round(float(x.quantile(0.99)), 3),
+            "mean_without_top_1pct": round(float(x[x < x.quantile(0.99)].mean()), 4),
+            "by_era": {k: round(float(v), 4) for k, v in t.dropna(subset=["opt_ret"]).groupby("era")["opt_ret"].mean().items()}}
 
 
 def boot_t(x: pd.Series, block: int = 20, draws: int = 2000, seed: int = 7) -> tuple[float, float, int]:
@@ -677,7 +691,7 @@ def loss_per_lot(r) -> float:
     return (buy - sell) * lot + fees
 
 
-def book_sim(pt: pd.DataFrame, o: pd.DataFrame, st: pd.DataFrame, log) -> dict:
+def book_sim(pt: pd.DataFrame, o: pd.DataFrame, st: pd.DataFrame, log, pause: bool = True) -> dict:
     """Rs 60,000 from 2017-01-01, both indices (NIFTY first at each point), fractional-Kelly lots on the option return per rupee of premium
     (second ridge without the event feature, fitted per fold), loss caps at 5% of the session's starting equity, the daily limit and the 22% pause."""
     cfg = json.loads((HERE / "paper_config.json").read_text())
@@ -711,7 +725,7 @@ def book_sim(pt: pd.DataFrame, o: pd.DataFrame, st: pd.DataFrame, log) -> dict:
         budget = lim * start + min(pnl, 0.0)  # an overnight loss counts against the new session
         if g is not None:
             for r in g.itertuples():
-                if paused_on is not None:
+                if paused_on is not None and pause:
                     reasons["paused"] += 1
                     continue
                 if not (r.opt_ret == r.opt_ret) or not (r.opt_prem_in == r.opt_prem_in):
@@ -749,9 +763,11 @@ def book_sim(pt: pd.DataFrame, o: pd.DataFrame, st: pd.DataFrame, log) -> dict:
     s = pd.Series(dict(eq))
     daily_rs = s.diff().fillna(s.iloc[0] - W0)
     dd = float((s / s.cummax() - 1).min())
-    out = {"start_inr": W0, "end_inr": round(float(s.iloc[-1]), 0), "max_drawdown": round(dd, 4), "pause_date": str(paused_on) if paused_on else None,
-           "reasons": reasons, "_daily": daily_rs}
-    log(f"book: Rs {W0:,.0f} -> Rs {s.iloc[-1]:,.0f}; max drawdown {dd:.1%}; pause {paused_on}; {reasons}")
+    yearly = {int(y): round(float(v), 0) for y, v in s.groupby([d.year for d in s.index]).last().items()}
+    out = {"path": "paused at the 22% rule" if pause else "unpaused (what would have happened without the pause)", "start_inr": W0,
+           "end_inr": round(float(s.iloc[-1]), 0), "max_drawdown": round(dd, 4), "pause_date": str(paused_on) if paused_on else None,
+           "equity_at_year_end": yearly, "reasons": reasons, "_daily": daily_rs}
+    log(f"book ({'paused' if pause else 'unpaused'}): Rs {W0:,.0f} -> Rs {s.iloc[-1]:,.0f}; max drawdown {dd:.1%}; pause {paused_on}; {reasons}")
     return out
 
 

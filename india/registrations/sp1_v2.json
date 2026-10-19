@@ -1,0 +1,172 @@
+{
+ "family": "OC",
+ "version": "sp1-v2-2026-10-19-frozen",
+ "status": "FROZEN 19 Oct 2026: v1 design approved by Madhav 18:28 and reviewed twice independently; v2 changes only the US feature's source (approved 19:20) before any SP1 result existed; any further change is sp1-v3",
+ "title": "Scenario Playbook phase 1: index intraday playbook (Nifty 50, Nifty Bank), executed through index options in the Rs 60,000 book, futures tracked as a shadow book",
+ "why": "OC v1 (19 Oct): no fixed opening rule pays its costs; the day (breadth, agreement) mattered more than the instrument; shorts and longs differed. So learn which action fits which situation and test the learned policy as one object.",
+ "evidence_status": {
+  "seen_period": "2017-2023 walk-forward rows are evidence on years whose OC v1 results shaped this design: they are recorded in ledger family OC (the bar counts every try on these years) and labelled SEEN",
+  "confirmatory": "the only confirmatory test is one run on the sealed 2024-01-01..2026 holdout with the policy, its training rules and every parameter fixed by this spec before it is opened (registered now: tests.holdout)",
+  "option_and_book_rows": "EXPLORATORY until the option recorder calibrates the synthetic prices (R01)"
+ },
+ "data": {
+  "index": "silver/kite_index/minute 2015-2023: NIFTY 50, NIFTY BANK, INDIA VIX (regular full sessions; special sessions excluded); daily bars from silver/kite_index/day (2003 on) for averages and ATR",
+  "breadth": "gold/studies/OC1_breadth.parquet (eligible liquidity top 50, OC v1 rules)",
+  "overnight": "QQQ (Nasdaq-100 ETF) daily adjusted closes from Tiingo (silver/us/us_close.parquet, 2003 on; available about 03:00-04:00 IST), participant OI (FII long share), event calendars; FRED kept only as a next-day cross-check",
+  "events": "scheduled only: dates on the published RBI MPC, Union Budget and election-counting calendars (calendar_*.json and verified era rows with known_beforehand = scheduled and first tradable session = event date). Unscheduled events (surprise RBI moves, wars, riots) are not used in SP1: the registry chose them with hindsight; they belong to the channel model with mechanically defined inputs (GDELT)",
+  "options": "silver/fo_greeks previous session's IV of contracts with volume > 0, forward/spot carry; silver/fo_calendar expiries; lot sizes from silver/fo_bhavcopy",
+  "never": "sealed/ (2024 onward) is not read except by the single holdout run (tests.holdout), through india/sealed.py with its named purpose logged"
+ },
+ "decision_points": {
+  "D0": "09:15: overnight information and the 09:15 open (gap); fill at the open of the 09:16 bar with 2 extra ticks of slippage (the 09:15 print is the pre-open auction)",
+  "D1": "09:30: the 1-minute bar starting 09:29 has closed (bar index 14); fill at the 09:30 bar's open",
+  "D2": "09:45: bar index 29 closed; fill at the 09:45 bar's open",
+  "D3": "10:15: bar index 59 closed; fill at the 10:15 bar's open",
+  "order": "NIFTY is decided before BANKNIFTY at each decision point (fixed order for the book's risk checks)",
+  "rule": "sequential: at D0, D1, D2, D3 in order, if no position in that index yet, take the available action whose predicted net value (predicted gross bps minus the cost in force on that date) exceeds c x its standard error and 0; c is chosen inside each fold's training years by nested leave-one-year-out from {0.5, 1.0, 1.5, 2.0, 2.5} (the c with the best mean daily net on the held-out training years; ties to the larger c); ties between actions go to the lower index in the fixed list; otherwise wait; nothing by D3 = NO TRADE. One trade per index per day."
+ },
+ "state": {
+  "overnight": {
+   "trend": "that index's previous close vs its own 50- and 200-day averages: up (above both), down (below both), mixed",
+   "vix": "India VIX previous close: terciles of the training years",
+   "us": "QQQ return of the last US session completed before the Indian session date (Tiingo adjusted close): down <= -0.5%, flat, up >= +0.5%; live from the same source (evening job, india.usclose update); if missing on a day the feature is 'missing' and logged",
+   "positioning": "FII long share of index futures (participant OI) at the previous close: terciles of the training years",
+   "event": "scheduled event today (RBI MPC decision, Union Budget, election counting) / a scheduled event in the previous 3 sessions / none",
+   "expiry": "that index's option expiry day: yes / no"
+  },
+  "opening": {
+   "gap": "09:15 open vs previous close: down <= -0.25%, flat, up >= +0.25%",
+   "move": "index move from the 09:15 open to the close of the decision bar: terciles of the training years for that decision point",
+   "breadth": "share of eligible top 50 above their own open on the last closed 5-minute bar (bars 2, 5, 11 for D1, D2, D3): <= 0.40, mid, >= 0.60",
+   "agreement": "Nifty 50 and Nifty Bank both moved at least 0.05% the same way from the open: yes / no",
+   "or_width": "opening-range width (OR15 at D1, OR30 at D2 and D3) over the previous session's daily ATR14: terciles of the training years"
+  },
+  "dropped": "USD/INR and Brent: the FRED series are published days late (H.10, EIA), so a 09:15 decision could not have had them; they return when a source with the value by 09:00 IST has history (the recorder's currency futures, MCX crude)",
+  "missing": "every feature has an explicit 'missing' level (breadth undefined, no participant OI, no US session); no row is dropped for a missing feature",
+  "rule": "only bars closed by the decision time and data dated before the session; tercile cut-offs fitted on each fold's training years only; D0 uses the overnight features and the gap"
+ },
+ "actions": {
+  "direction": [
+   "long",
+   "short"
+  ],
+  "exits": {
+   "T1130": "time exit at the 11:30 bar's open, no stop",
+   "T1515": "time exit at the 15:15 bar's open, no stop",
+   "ORSTOP": "stop at the opposite OR15 edge, else 15:15; available only at D1-D3 and only when the stop is on the right side of entry by at least 0.1 x daily ATR14 (otherwise the action is not offered that day)",
+   "ATRSTOP": "stop at 0.5 x previous daily ATR14 from entry, else 15:15",
+   "TRAIL": "chandelier trail: 3 x ATR14 of 5-minute bars from the best price since entry, else 15:15",
+   "NEXTOPEN": "hold to the next session's open (09:16 bar's open, 2 extra ticks); intraday stop 1 x previous daily ATR14; the overnight gap is unprotected"
+  },
+  "count": "2 directions x 6 exits = 12 actions per decision point (ORSTOP absent at D0), 46 per index, plus NO TRADE"
+ },
+ "outcomes": {
+  "future_proxy": "PRIMARY. Net bps of the index per trade: spot minutes as the near-month future (basis ignored), futures fees from the dated cost table (cost model v1.1), 1 tick slippage each side plus the D0/NEXTOPEN extra ticks",
+  "option": "EXPLORATORY. Rs per lot and return per rupee of premium: buy the ATM call (long) or put (short) at entry; nearest expiry after the trade date (on an expiry day the next one); strike nearest the index at entry; Black-76 with IV = the previous session's IV of that contract if it traded (volume > 0), else the nearest strike of that expiry that traded, else no option outcome (counted); forward from the previous session's forward/spot carry; T = calendar minutes to 15:30 IST on the expiry day / (365 x 24 x 60), recomputed at every bar (intraday and overnight decay included); IV held through the trade (SYNTHETIC: no IV crush after events, no volatility jump after down-moves); option fees from the dated cost table; half-spread per unit = max(Rs 0.50 NIFTY / Rs 1.00 BANKNIFTY, 0.25% of premium) each side, plus one extra half-spread on stop fills; stress x2",
+  "eras": "option results are reported separately for the monthly era (nearest expiry up to a month: NIFTY before 2019-02-11, BANKNIFTY before 2016-05-27) and the weekly era; the holdout's BANKNIFTY option is the monthly contract from 2024-11-20 (NSE weekly Bank Nifty contracts discontinued)"
+ },
+ "learning": {
+  "model": "for each index x decision point x action: ridge regression of the future-proxy GROSS bps on one-hot state features (main effects only, one level dropped per feature, 'missing' as its own level), intercept unpenalised, target winsorised at the training 1st/99th percentiles for fitting only; lambda by leave-one-year-out CV within the training years from {1, 3, 10, 30, 100, 300, 1000}; the predicted net = predicted gross minus the futures cost of that action on the decision date (so a cost change, e.g. STT in Oct 2024 and Apr 2026, enters at once)",
+  "prediction_se": "ridge sandwich x'(X'X+L)^-1 X'X (X'X+L)^-1 x times the out-of-fold residual variance; it ignores shrinkage bias and heteroskedasticity, so it is understated: the margin c is calibrated empirically inside training (decision_points.rule) and the state-shuffle null reports trade frequency",
+  "walk_forward": "expanding: test year y in 2017..2023 uses a model fitted on 2015..y-1 only (at least two training years); the last session of each training set is dropped (its NEXTOPEN label is the test year's first open)",
+  "option_value": "a second ridge of the same form on the option return per rupee of premium, WITHOUT the event feature, used only for sizing",
+  "seed": 7
+ },
+ "sizing_and_survival": {
+  "lots": "n = floor(0.25 x W x mu / sigma^2 / premium_per_lot), mu = predicted option return per rupee of premium, sigma^2 = out-of-fold residual variance of that return; n = 0 means NO TRADE with reason size_zero (counted)",
+  "loss_caps": "lots also <= floor(0.05 x W / loss per lot at the stop); loss at the stop = premium minus the Black-76 value at the stop level moved a further 0.25 x daily ATR14 against the trade (gap-through allowance), at T of the latest possible exit (15:15 that day) and the entry IV, plus spreads and fees; exits without a stop (T1130, T1515) and NEXTOPEN count the full premium; the sum over open positions <= 5% of W",
+  "survival": "paper_config.json: realised plus open loss of 5% of the session's starting equity closes everything for the day; an overnight NEXTOPEN gap counts against the new session and is checked before D0; equity 22% below its high-water mark pauses new entries until Madhav resumes (the backtest reports the pause dates and also the unpaused path)",
+  "book": "Rs 60,000 on 2017-01-01 (the first test year), both indices",
+  "no_fallback": "when the policy's chosen action cannot be sized (size_zero or a loss cap), the book takes NO TRADE: it never falls back to another action; the share of policy trades the book could not take is reported by era and exit"
+ },
+ "tests": {
+  "seen_rows": [
+   "NIFTY|future_proxy|policy: daily net bps (0 on no-trade days) > 0",
+   "NIFTY|future_proxy|vs_intercept_only: policy minus the same policy with no state features (same sequential rule and margin), per day, > 0",
+   "BANKNIFTY|future_proxy|policy",
+   "BANKNIFTY|future_proxy|vs_intercept_only"
+  ],
+  "exploratory_rows": [
+   "NIFTY|option|policy",
+   "BANKNIFTY|option|policy",
+   "BOOK|option|sized (daily Rs of the Rs 60,000 book with sizing and survival)"
+  ],
+  "periods": "dev = test year 2017 (diagnostic); validation = test years 2018-2023; every prediction is out of sample; SEEN label (evidence_status)",
+  "statistics": "t from Newey-West standard errors with 1 lag on the daily series (lag 5 reported as a check); the BOOK row by a 20-day block bootstrap; a policy with fewer than 100 validation trades per index is INCONCLUSIVE",
+  "expected_sign": "+",
+  "benchmarks_reported": [
+   "always NO TRADE",
+   "intercept-only policy",
+   "OC v1 k15|E1|X1 FILTERED",
+   "the single best fixed (decision point, action) of the training years"
+  ],
+  "nulls": "state-shuffle null: state rows shuffled across days in month blocks within the training years, models refitted, the full policy rerun, 200 draws; reports how often the policy trades under the null and the share of null policies at or above the real one",
+  "robustness_extras": [
+   "costs x2 and option spread x2",
+   "per-year results (7 folds; robust if >= 5 positive)",
+   "eras 2017-2019 / 2020 / 2021-2023",
+   "share of days traded and which (point, action) the policy chose",
+   "the learned coefficients (what Ananta learned about each situation)",
+   "equity, max drawdown, daily-limit hits and pause dates of the sized book"
+  ],
+  "holdout": "registered now, run once later: test years 2024, 2025 and 2026 with the same annual expanding refit (the 2024 model fitted on 2015-2023, 2025 on 2015-2024, 2026 on 2015-2025), the same c calibration, costs in force on each date; sessions 2024-01-01..2026-10-16 inclusive (fixed now); rows NIFTY|future_proxy|policy and BANKNIFTY|future_proxy|policy confirmatory (standard one-sided test at the family z), option/BOOK exploratory; opened only after Madhav approves the frozen policy, through india/sealed.py with purpose 'sp1_holdout' logged",
+  "scoring": "seen rows use registry rule 'seen_val_only': verdict on validation 2018-2023 at the family z (SUPPORTED_SEEN / NOT_SUPPORTED_SEEN / OPPOSITE / INCONCLUSIVE), 2017 reported but not gating; exploratory rows are recorded in the ledger too (they count toward the family bar) under the same rule, labelled EXPLORATORY"
+ },
+ "shadow_books": {
+  "index_futures": "the same decisions as 1 lot of the near-month future (research: the future-proxy outcome; forward: the recorder's future minutes)",
+  "forex": "USDINR, EURINR, GBPINR, JPYINR near-month futures recorded at 1 minute from 21 Oct 2026; phase SP-FX designs and tests forex decisions before any are made"
+ },
+ "later_phases": {
+  "SP2": "top-100 stocks intraday, the same structure per stock-day",
+  "SP3": "positional: stocks and index, holds of 1-20 sessions with the exit harness policies, daily data from 2005",
+  "SP-FX": "forex shadow book",
+  "EV": "unscheduled events through the channel model on mechanically defined inputs (GDELT conflict and unrest counts, price shocks), not the hand-picked registry"
+ },
+ "limits": [
+  "spot as the future (basis ignored); synthetic options with IV held constant until the recorder calibrates them (R01)",
+  "main-effects ridge learns additive shifts only (no interactions)",
+  "breadth from the covered top 50 (75-93% by year)",
+  "2017-2023 have been seen through OC v1: the holdout is the only confirmatory evidence",
+  "stamp duty before July 2020 varied by state: the current uniform rates are used"
+ ],
+ "review_fixes": {
+  "1_seen_validation": "family OC (shared bar), SEEN label, holdout registered as the only confirmatory test",
+  "2_entry_margin": "prediction > 1.0 x its standard error, state-shuffle null reports trade frequency",
+  "3_synthetic_option": "minute-level T, monthly/weekly eras reported apart, event removed from the sizing model, holdout Bank Nifty monthly contract defined, option rows exploratory",
+  "4_event_leak": "scheduled flag from the published calendars only; event_recent restricted to scheduled events; unscheduled events moved to the channel model",
+  "5_overnight_sources": "USD/INR and Brent dropped (published late); US via Nasdaq (full history); live source requirement stated",
+  "6_sizing": "return per rupee of premium, out-of-fold variance, floor with size_zero counted",
+  "7_survival": "per-trade and summed loss caps at 5% of W, gap counted against the new session, fixed index order",
+  "8_orstop": "offered only with the stop on the right side by >= 0.1 ATR",
+  "9_benchmark": "intercept-only policy is the comparison row; no-trade, OC rule and best fixed reported",
+  "10_null": "state-shuffle refit null replaces the random-action test",
+  "11_dev": "test years from 2017 (two training years); dev diagnostic; daily bars from 2003; missing levels",
+  "12_d0_fill": "09:16 open plus 2 ticks",
+  "13_option_fills": "IV only from traded contracts, extra half-spread on stops, premium-scaled spread",
+  "14_costs": "cost model v1.1: dated STT and exchange-charge tables (options STT 0.017% to 2016-05-31, 0.05% to 2023-03-31, 0.0625% to 2024-09-30, 0.1% to 2026-03-31, 0.15% after; futures 0.01% to 2023-03-31, 0.0125%, 0.02% from 2024-10-01, 0.05% from 2026-04-01; exchange charges before and after 2024-10-01)",
+  "15_statistics": "Newey-West lag 1, training's last session dropped, block bootstrap for the BOOK",
+  "16_rules": "missing levels, tie-break, index order, seed, minimum 100 validation trades, era split, exact bars, own-index trend, additive limit stated",
+  "A_verdict_rule": "registry rule seen_val_only (validation at the family z; 2017 reported, not gating)",
+  "B_margin": "c chosen by nested leave-one-year-out inside training from {0.5..2.5}; SE understatement stated",
+  "C_book_size_zero": "no fallback; unsizable share reported by era and exit",
+  "D_loss_at_stop": "defined at the latest exit's T with a 0.25 ATR gap-through allowance",
+  "E_holdout": "annual refit in the holdout, end date 2026-10-16 fixed, gross model minus dated costs",
+  "F_live_us": "live US-close source required before paper trading",
+  "G_newey_west": "lag 5 reported",
+  "14b_dated_fees": "ocstudy.leg_fees takes trade dates (cost model v1.1); costs.cost(when=)"
+ },
+ "frozen_at": "2026-10-19T23:22:37+00:00",
+ "supersedes": {
+  "file": "sp1_v1.json",
+  "sha": "59e38d3b4c3ceaf6",
+  "no_results_existed": true
+ },
+ "change_log": [
+  {
+   "at": "2026-10-19T23:25:00+00:00",
+   "by": "Madhav (approved 19:20 Toronto)",
+   "change": "US overnight feature: QQQ daily return from Tiingo (silver/us/us_close.parquet) in both history and live, replacing FRED NASDAQCOM",
+   "why": "FRED posts a US close only the next US morning (too late for 09:00 IST live); training and live must use the same series. QQQ vs Nasdaq Composite: return correlation 0.975 but only 89% agreement on the +/-0.5% bucket (manifests/us_close_check.json), so mixing them would change the feature"
+  }
+ ]
+}

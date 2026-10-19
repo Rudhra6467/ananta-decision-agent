@@ -50,20 +50,20 @@ Rule: an options result can feed a decision only if it is positive at 2x, and it
 - F05 (O-04 synthetic) loses even with zero spread, so spread realism cannot rescue it; its doubt is the synthetic price itself (flat IV through the afternoon, which if anything flatters a long straddle, since implied volatility usually falls into expiry). R01 on recorded expiry days settles it.
 - Nothing options-related feeds a decision until (a) measured spreads exist (india.spreads, needs a Kite sign-in after 20:30 Toronto) and (b) the expiry-eve settle check below has rows.
 
-## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-10-16, 4851 contract-days, 19 sessions)
+## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-10-16, 6898 contract-days, 19 sessions)
 
 Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule scored) against the volume-weighted price actually traded in the last 30 minutes (Kite minutes from the recorder). Signed gap > 0: settle above what traded (overstates a seller's credit).
 
 | index | expiry eve/day | premium Rs | contract-days | no trade in last 30 min | median signed gap | median abs gap | p90 abs gap |
 |---|---|---|---|---|---|---|---|
-| BANKNIFTY | no | 50-150 | 52 | 0.0% | +0.86% | 0.96% | 2.84% |
-| BANKNIFTY | no | 150+ | 2041 | 15.3% | +0.01% | 0.56% | 2.38% |
-| NIFTY | no | <2 | 46 | 0.0% | +2.23% | 3.18% | 9.18% |
-| NIFTY | no | 2-5 | 73 | 0.0% | +1.18% | 2.13% | 9.35% |
-| NIFTY | no | 5-20 | 240 | 0.4% | +0.19% | 1.27% | 5.41% |
-| NIFTY | no | 20-50 | 238 | 0.0% | -0.17% | 1.02% | 3.81% |
-| NIFTY | no | 50-150 | 519 | 2.3% | -0.11% | 0.99% | 3.51% |
-| NIFTY | no | 150+ | 1642 | 12.5% | -0.01% | 0.55% | 2.54% |
+| BANKNIFTY | no | 50-150 | 59 | 0.0% | +0.76% | 0.94% | 2.72% |
+| BANKNIFTY | no | 150+ | 2790 | 23.6% | +0.00% | 0.54% | 2.47% |
+| NIFTY | no | <2 | 47 | 0.0% | +2.12% | 3.00% | 9.06% |
+| NIFTY | no | 2-5 | 79 | 0.0% | +1.15% | 2.13% | 9.20% |
+| NIFTY | no | 5-20 | 270 | 0.7% | -0.06% | 1.33% | 5.42% |
+| NIFTY | no | 20-50 | 355 | 1.1% | -0.20% | 1.19% | 4.21% |
+| NIFTY | no | 50-150 | 827 | 4.7% | -0.26% | 1.03% | 4.04% |
+| NIFTY | no | 150+ | 2471 | 16.3% | +0.00% | 0.55% | 2.79% |
 
 No expiry-eve or expiry-day rows yet: the recorder's mapped contracts all expire after the window. F02 (expiry eve) and F05 (expiry day) stay unmeasured until this week's expiries are recorded.
 

@@ -415,9 +415,9 @@
    "title": "Fed holds rates and signals three cuts in 2024 (dovish pivot)",
    "category": "world_macro",
    "subcategory": "FOMC decision",
-   "event_date": "2023-12-13",
+   "event_date": "2023-12-14",
    "public_time_ist": "00:30",
-   "timing_note": "FOMC statement at 14:00 US Eastern on 13 Dec, which is 00:30 IST on 14 Dec.",
+   "timing_note": "FOMC statement at 14:00 US Eastern on 13 Dec, which is 00:30 IST on 14 Dec. event_date set to the IST date (2023-12-14); the US date was 2023-12-13.",
    "first_tradable_session": "2023-12-14",
    "scope": "world",
    "known_beforehand": "scheduled",
@@ -1268,9 +1268,9 @@
    "title": "Fed's hawkish cut: 25 bp, but dot plot shows only two 2025 cuts",
    "category": "world_macro",
    "subcategory": "FOMC decision",
-   "event_date": "2024-12-18",
+   "event_date": "2024-12-19",
    "public_time_ist": "00:30",
-   "timing_note": "FOMC statement at 14:00 US Eastern on 18 Dec, which is 00:30 IST on 19 Dec.",
+   "timing_note": "FOMC statement at 14:00 US Eastern on 18 Dec, which is 00:30 IST on 19 Dec. event_date set to the IST date (2024-12-19); the US date was 2024-12-18.",
    "first_tradable_session": "2024-12-19",
    "scope": "world",
    "known_beforehand": "scheduled",
@@ -2790,5 +2790,6 @@
    "notes": "Only Business Standard (wire-based). Belgium and Portugal are mentioned without detail. The Indian market effect would show on 19 Oct, today.",
    "public_period": null
   }
- ]
+ ],
+ "convention": "event_date and public_time_ist are both Indian Standard Time"
 }

@@ -25,9 +25,12 @@ HALF_SPREAD_BPS = [(50, 2.0), (100, 3.5), (250, 6.0), (500, 10.0), (10**9, 25.0)
 OPTION_HALF_SPREAD_RS = {"NIFTY": 0.5, "BANKNIFTY": 1.0, "default": 1.0}
 
 
-def stt_rate(kind: str, side: str, year: int) -> float:
-    """STT as a fraction of turnover. Delivery 0.1% both sides always. Intraday 0.025% sell. Futures sell: 0.0125% to Sep 2024, 0.02% to Mar 2026,
-    0.05% from Apr 2026 as the page shows today. Options sell on premium: 0.0625% to Sep 2024, 0.1% to Mar 2026, 0.15% from Apr 2026."""
+def stt_rate(kind: str, side: str, year: int, when: dt.date | None = None) -> float:
+    """STT as a fraction of turnover, by date (cost model v1.1, 19 Oct 2026; v1.0 used the 2023-24 rate for every earlier year).
+    Delivery 0.1% both sides. Intraday equity 0.025% on the sell side. Options (sell, on premium): 0.017% to 2016-05-31, 0.05% to 2023-03-31,
+    0.0625% to 2024-09-30, 0.1% to 2026-03-31, 0.15% after. Futures (sell): 0.01% to 2023-03-31, 0.0125% to 2024-09-30, 0.02% to 2026-03-31,
+    0.05% after. A caller with only a year gets the rate in force on 1 July of that year."""
+    d = when or dt.date(int(year), 7, 1)
     if kind == "delivery":
         return 0.001
     if side != "sell":
@@ -35,10 +38,21 @@ def stt_rate(kind: str, side: str, year: int) -> float:
     if kind == "intraday":
         return 0.00025
     if kind == "futures":
-        return 0.000125 if year < 2024 or (year == 2024) else (0.0002 if year == 2025 else 0.0005)
+        return 0.0001 if d < dt.date(2023, 4, 1) else (0.000125 if d < dt.date(2024, 10, 1) else (0.0002 if d < dt.date(2026, 4, 1) else 0.0005))
     if kind == "options":
-        return 0.000625 if year < 2024 or year == 2024 else (0.001 if year == 2025 else 0.0015)
+        return (0.00017 if d < dt.date(2016, 6, 1) else (0.0005 if d < dt.date(2023, 4, 1) else (0.000625 if d < dt.date(2024, 10, 1)
+                else (0.001 if d < dt.date(2026, 4, 1) else 0.0015))))
     raise ValueError(kind)
+
+
+# NSE transaction charges before the 1 Oct 2024 uniform ("true to label") schedule, approximate (labelled): equity 0.00325%, futures 0.0019%,
+# options 0.053% of premium; from 1 Oct 2024 the TXN rates above
+TXN_PRE_2024_10 = {"delivery": 0.0000325, "intraday": 0.0000325, "futures": 0.000019, "options": 0.00053}
+
+
+def txn_rate(kind: str, year: int, when: dt.date | None = None) -> float:
+    d = when or dt.date(int(year), 7, 1)
+    return TXN_PRE_2024_10[kind] if d < dt.date(2024, 10, 1) else TXN[kind]
 
 
 def half_spread_bps(turnover_rank: int | None) -> float:
@@ -49,7 +63,7 @@ def half_spread_bps(turnover_rank: int | None) -> float:
     return HALF_SPREAD_BPS[-1][1]
 
 
-def cost(kind: str, side: str, value: float, year: int = 2026, orders: int = 1) -> float:
+def cost(kind: str, side: str, value: float, year: int = 2026, orders: int = 1, when: dt.date | None = None) -> float:
     """Statutory plus brokerage cost of one leg, rupees. kind: delivery, intraday, futures, options. value = traded value in rupees."""
     if kind == "delivery":
         brokerage = 0.0
@@ -57,11 +71,11 @@ def cost(kind: str, side: str, value: float, year: int = 2026, orders: int = 1) 
         brokerage = 20.0 * orders
     else:
         brokerage = min(20.0, 0.0003 * value) * orders
-    txn = TXN[kind] * value
+    txn = txn_rate(kind, year, when) * value
     sebi = SEBI * value
     gst = GST * (brokerage + txn + sebi)
     stamp = STAMP[kind] * value if side == "buy" else 0.0
-    stt = stt_rate(kind, side, year) * value
+    stt = stt_rate(kind, side, year, when) * value
     dp = DP_CHARGE if (kind == "delivery" and side == "sell") else 0.0
     return brokerage + txn + sebi + gst + stamp + stt + dp
 

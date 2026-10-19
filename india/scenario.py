@@ -6,8 +6,9 @@ point, raw values only (bucketing happens inside each walk-forward fold, on its 
 
 Columns (all known at the decision time named in the column):
   overnight (before 09:15): prev_close, sma50, sma200, trend, atr14_prev (daily, from index day bars), vix_prev, us_spx_ret, us_ndx_ret,
-      us_date (the US session used), usdinr_chg, brent_chg, fx_date, oil_date, fii_long_share (participant OI, previous session), event_scheduled,
-      event_recent (verified events, first tradable session in the previous 3 sessions), expiry (that index's weekly options)
+      us_date (the US session used), usdinr_chg, brent_chg, fx_date, oil_date (NOT used by SP1: FRED publishes them days late),
+      fii_long_share (participant OI, previous session), event_scheduled and event_recent (scheduled calendar events today / in the previous 3
+      sessions: scheduled_dates()), expiry (that index's option expiries)
   opening: gap (09:15 open vs prev_close); for D1 (09:30), D2 (09:45), D3 (10:15): move_Dk (close of the bar ending at Dk vs the 09:15 open),
       breadth_Dk (last closed 5-minute bar of the eligible top 50, OC v1 rules), agree_Dk (both indices moved >= 0.05% the same way),
       or15_w, or30_w (range width) and or15_atr / or30_atr (width over atr14_prev)
@@ -62,6 +63,25 @@ def _last_before(series: pd.Series, day: dt.date) -> tuple[float, float, dt.date
     return float(s.iloc[-1]), float(s.iloc[-1] / s.iloc[-2] - 1), s.index[-1]
 
 
+def scheduled_dates() -> set[dt.date]:
+    """Sessions with a scheduled event (SP1 review fix 4): a date on the published RBI MPC, Union Budget or election-counting calendar,
+    known before the session. Sources: calendar_*.json rows (verified, or DUPLICATE of a verified era row) and verified era rows marked
+    known_beforehand = scheduled; first tradable session = event date. Surprise and off-cycle moves are excluded."""
+    D = paths.data_dir()
+    ev = pd.read_parquet(D / "silver/events/events.parquet")
+    ev["fts"] = pd.to_datetime(ev["first_tradable_session"]).dt.date
+    ev["ed"] = pd.to_datetime(ev["event_date"]).dt.date
+    ev = ev[ev["category"].isin(SCHEDULED) & (ev["fts"] == ev["ed"])]
+    ok = ev["status"].isin(["OFFICIAL", "TWO_SOURCES"])
+    cal = ev["batch"].str.startswith("calendar_")
+    era_ok = set(zip(ev.loc[~cal & ok, "category"], ev.loc[~cal & ok, "ed"]))
+    a = ev[cal & ok & (ev["known_beforehand"] == "scheduled")]
+    b = ev[cal & (ev["status"] == "DUPLICATE") & (ev["known_beforehand"] == "scheduled")]
+    b = b[[(c, d) in era_ok for c, d in zip(b["category"], b["ed"])]]
+    c = ev[~cal & ok & (ev["known_beforehand"] == "scheduled")]
+    return set(a["fts"]) | set(b["fts"]) | set(c["fts"])
+
+
 def build() -> dict:
     D = paths.data_dir()
     days, specials = ocstudy._calendar()
@@ -73,12 +93,8 @@ def build() -> dict:
     fii["date"] = pd.to_datetime(fii["date"]).dt.date
     fii["fii_long_share"] = fii["future_index_long"] / (fii["future_index_long"] + fii["future_index_short"])
     fii = fii.set_index("date")["fii_long_share"].sort_index()
-    ev = pd.read_parquet(D / "silver/events/events.parquet")
-    ev = ev[ev["status"].isin(["OFFICIAL", "TWO_SOURCES"])].copy()
-    ev["fts"] = pd.to_datetime(ev["first_tradable_session"]).dt.date
-    ev["ed"] = pd.to_datetime(ev["event_date"]).dt.date
-    sched = set(ev.loc[ev["category"].isin(SCHEDULED) & (ev["fts"] == ev["ed"]), "fts"])
-    fts_all = sorted(set(ev["fts"].dropna()))
+    sched = scheduled_dates()
+    fts_all = sorted(sched)
     fc = pd.read_parquet(next(p for p in (D / "silver/fo_calendar").iterdir() if p.suffix == ".parquet"))
     fc = fc[fc["instrument"] == "OPTIDX"]
     fc["expiry"] = pd.to_datetime(fc["expiry"]).dt.date

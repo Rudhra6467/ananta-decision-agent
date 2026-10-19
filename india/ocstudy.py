@@ -226,7 +226,7 @@ def leg_fees(kind: str, side: str, value: np.ndarray, years: np.ndarray) -> np.n
     """Vectorised costs.cost (same formula; checked against it in selftest)."""
     value = np.asarray(value, dtype=float)
     brok = np.minimum(20.0, 0.0003 * value)
-    txn = costs.TXN[kind] * value
+    txn = pd.Series(years).map({int(y): costs.txn_rate(kind, int(y)) for y in np.unique(years)}).to_numpy(dtype=float) * value
     sebi = costs.SEBI * value
     gst = costs.GST * (brok + txn + sebi)
     stamp = costs.STAMP[kind] * value if side == "buy" else 0.0

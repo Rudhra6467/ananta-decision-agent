@@ -7,6 +7,9 @@ GET only (india/kite.py has no order method) and the files stay on the Mac (pape
                                               predictions and trades -> paper/sp1/model_2026.json, manifests/sp1paper_model.json
   python -m india.sp1paper replay [dates]    past sessions through the live code (Kite candles cut at each decision time), compared with the
                                               holdout run's state rows and trades; writes no ledger row -> manifests/sp1paper_replay.json
+  python -m india.sp1paper replay-ledger [date]   one paper session through the live code again, compared with what the live ledger recorded
+                                              that morning (plan inputs, levels and choice at every point decided); writes no ledger row. The
+                                              nightly check (india/sp1nightly.py) runs it with verify -> manifests/sp1_nightly_replay.json
   python -m india.sp1paper prepare [date]    before the session: inputs refreshed, the overnight situation, the D0 choice for each gap bucket, the
                                               breadth universe and the contracts -> paper/sp1/plans/<date>.json (its hash goes in the ledger)
   python -m india.sp1paper live [date]       the session: decisions at 09:15, 09:30, 09:45 and 10:15 IST appended to paper/sp1/decisions.jsonl
@@ -838,6 +841,87 @@ class _Clock:
         return self.t
 
 
+COLS_FLOAT = ["prev_close", "sma50", "sma200", "atr14_prev", "vix_prev", "us_qqq_ret", "fii_long_share", "gap", "or15_atr", "or30_atr",
+              "move_D1", "move_D2", "move_D3", "breadth_D1", "breadth_D2", "breadth_D3"]
+COLS_OTHER = ["trend", "event_scheduled", "event_recent", "expiry", "agree_D1", "agree_D2", "agree_D3", "prev_date"]
+
+
+def _replay_rows(k: kite.Kite, model: dict, d: dt.date, log=print) -> tuple[dict, dict]:
+    """One past session through the live code: the plan without refreshing inputs, then every point for both indices with the candles cut at the
+    decision time (state rows complete; the sequence is applied when the choice is read). Nothing is written."""
+    plan = prepare(d, log, refresh_inputs=False, write=False)
+    plan = json.loads(json.dumps(plan, default=str))
+    rows: dict = {}
+    for P in sp1.POINT_ENTRY:
+        for r in decide_point(k, plan, model, P, set(), live=False, now_fn=_Clock(d, P)):
+            rows.setdefault(r["index"], []).append(r)
+    return plan, rows
+
+
+def _diff_values(a: dict, b: dict, floats: list[str], others: list[str]) -> dict:
+    out = {}
+    for c in floats:
+        if c not in a and c not in b:
+            continue
+        x, y = a.get(c), b.get(c)
+        x = float(x) if x is not None and x == x else None
+        y = float(y) if y is not None and y == y else None
+        if (x is None) != (y is None) or (x is not None and abs(x - y) > 1e-9 * max(1.0, abs(x))):
+            out[c] = [x, y]
+    for c in others:
+        if (c in a or c in b) and str(a.get(c))[:10] != str(b.get(c))[:10]:
+            out[c] = [str(a.get(c)), str(b.get(c))]
+    return out
+
+
+def replay_ledger(day: dt.date, log=print) -> dict:
+    """The live ledger's session `day` replayed through the same code: the overnight inputs of the plan, then at every (index, point) the ledger
+    decided, the situation levels (the model's inputs) and the choice. A different choice or level is a mismatch; numeric state differences
+    with the same levels are listed but are not mismatches (e.g. a breadth name Kite served live and not later). Writes no ledger row."""
+    led = [r for r in _rows(DECISIONS) if r.get("date") == day.isoformat()]
+    dec = [r for r in led if r.get("kind") == "decision"]
+    out = {"date": day.isoformat(), "ledger_rows": len(led), "decisions_in_ledger": len(dec),
+           "errors_in_ledger": [r.get("error") for r in led if r.get("kind") == "error"]}
+    if not dec:
+        return {**out, "compared": 0, "mismatches": [], "state_differences": []}
+    model = load_model()
+    k = kite.Kite()
+    plan, rows = _replay_rows(k, model, day, log)
+    mism, sdiff = [], []
+    lp = _plan_path(day)
+    if lp.exists():
+        live_plan = json.loads(lp.read_text())
+        if live_plan.get("model_sha") != plan.get("model_sha"):
+            mism.append({"what": "plan model_sha", "live": live_plan.get("model_sha"), "replay": plan.get("model_sha")})
+        for sym in sp1.IDX:
+            dv = _diff_values(live_plan["overnight"].get(sym, {}), plan["overnight"].get(sym, {}), COLS_FLOAT, COLS_OTHER)
+            if dv:
+                mism.append({"what": f"plan overnight {sym}", "diff": dv})
+            for b, v in (live_plan.get("d0_by_gap_bucket", {}).get(sym) or {}).items():
+                a1 = (v.get("choice") or {}).get("action")
+                a2 = ((plan["d0_by_gap_bucket"][sym].get(b) or {}).get("choice") or {}).get("action")
+                if a1 != a2:
+                    mism.append({"what": f"plan D0 {sym} gap {b}", "live": a1, "replay": a2})
+    else:
+        mism.append({"what": "plan file", "live": "missing", "replay": "rebuilt"})
+    for r in dec:
+        mine = next((x for x in rows.get(r["index"], []) if x["point"] == r["point"]), None)
+        tag = f"{r['index']} {r['point']}"
+        if mine is None:
+            mism.append({"what": tag, "live": "decision", "replay": "no row"})
+            continue
+        ca, cb = (r.get("choice") or {}).get("action"), (mine.get("choice") or {}).get("action")
+        if ca != cb:
+            mism.append({"what": f"{tag} choice", "live": ca, "replay": cb})
+        if (r.get("levels") or {}) != (mine.get("levels") or {}):
+            mism.append({"what": f"{tag} levels", "live": r.get("levels"), "replay": mine.get("levels")})
+        dv = _diff_values(r.get("state") or {}, mine.get("state") or {}, COLS_FLOAT, COLS_OTHER)
+        if dv:
+            sdiff.append({"what": tag, "diff": dv})
+        log(f"replay-ledger {day} {tag}: live {ca} replay {cb}; state differences {dv}")
+    return {**out, "compared": len(dec), "mismatches": mism, "state_differences": sdiff}
+
+
 def replay(dates: list[dt.date], log=print) -> dict:
     """Past sessions through the live code, compared with the completed holdout run's rows. No ledger row is written."""
     model = load_model()
@@ -849,16 +933,9 @@ def replay(dates: list[dt.date], log=print) -> dict:
         x["date"] = pd.to_datetime(x["date"]).dt.date
     k = kite.Kite()
     report = {"dates": [d.isoformat() for d in dates], "days": {}}
-    cols_float = ["prev_close", "sma50", "sma200", "atr14_prev", "vix_prev", "us_qqq_ret", "fii_long_share", "gap", "or15_atr", "or30_atr",
-                  "move_D1", "move_D2", "move_D3", "breadth_D1", "breadth_D2", "breadth_D3"]
-    cols_other = ["trend", "event_scheduled", "event_recent", "expiry", "agree_D1", "agree_D2", "agree_D3", "prev_date"]
+    cols_float, cols_other = COLS_FLOAT, COLS_OTHER
     for d in dates:
-        plan = prepare(d, log, refresh_inputs=False, write=False)
-        plan = json.loads(json.dumps(plan, default=str))
-        rows = {}
-        for P in sp1.POINT_ENTRY:   # every point for both indices (state rows complete); the sequence is applied when reading the choice
-            for r in decide_point(k, plan, model, P, set(), live=False, now_fn=_Clock(d, P)):
-                rows.setdefault(r["index"], []).append(r)
+        plan, rows = _replay_rows(k, model, d, log)
         day_rep = {}
         for sym in sp1.IDX:
             ref = sh[(sh["date"] == d) & (sh["index"] == sym)]
@@ -949,6 +1026,8 @@ if __name__ == "__main__":
         ds = [dt.date.fromisoformat(x) for x in arg] or [dt.date(2026, 10, x) for x in (12, 13, 14, 15, 16)]
         r = replay(ds, lg)
         print(json.dumps({k2: r[k2] for k2 in ("same_decisions", "rows_with_state_differences")}, indent=1))
+    elif cmd == "replay-ledger":
+        print(json.dumps(replay_ledger(dt.date.fromisoformat(arg[0]) if arg else _ist_now().date(), lg), indent=1, default=str))
     elif cmd == "prepare":
         from india import dayplan
         prepare(dt.date.fromisoformat(arg[0]) if arg else dayplan.next_session(), lg)

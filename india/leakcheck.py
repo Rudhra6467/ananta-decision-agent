@@ -10,6 +10,8 @@ Checks:
   future_edit         changing every row after a date does not change the decision made on that date
   fill_after_signal   every paper trade enters on a session strictly after its signal date; no decision file was written after its fill
   stops_gap           in the harness, a stop is never filled better than the stop level or the open (unit check on synthetic bars)
+  paper_review        live paper days (sealed purpose paper_review) are read only by india/missed.py, only through sealed.read_review, and only
+                      with a constant start on or after 2026-10-16; no other module names the purpose
 """
 from __future__ import annotations
 
@@ -56,7 +58,7 @@ def check_sealed_files() -> tuple[bool, str]:
             bad.append(f)
     # paper.py and the leak check may import the sealed module by name; nothing else should reference the folder helpers
     for f in ("lab.py", "studies.py", "exitlab.py", "registry.py", "costs.py", "conditions.py", "studies2.py", "istudies.py", "fstudies.py", "vstudies.py",
-              "exitbook.py", "o4hist.py", "replay.py", "optreal.py", "selection.py", "hedge.py", "flowstudy.py"):
+              "exitbook.py", "o4hist.py", "replay.py", "optreal.py", "selection.py", "hedge.py", "flowstudy.py", "morning.py", "sp1nightly.py"):
         if (here / f).exists() and any("sealed" in s.lower() for s in _strings(here / f)):
             bad.append(f + " (mentions sealed)")
     # calibrate.py may read sealed rows, but every call must name the purpose "calibration" (a data-vs-market check, never a rule score)
@@ -112,6 +114,76 @@ def check_sealed_files() -> tuple[bool, str]:
         if (here / f).exists() and any(x in ("sealed", "sealed_dir") or "sealed/silver" in x or "sealed/gold" in x for x in _strings(here / f)):
             bad.append(f + " (mentions sealed)")
     return (not bad), ("clean" if not bad else "references in " + ", ".join(sorted(set(bad))))
+
+
+REVIEW_MODULE = "missed.py"
+REVIEW_MIN_START = "2026-10-16"   # the stock paper's first decision day (sealed.PAPER_REVIEW_START)
+
+
+def _code_strings(tree: ast.AST) -> list[str]:
+    """String constants that are not docstrings (prose may describe the purpose; code may not use it)."""
+    doc = {id(n.body[0].value) for n in ast.walk(tree) if isinstance(n, (ast.Module, ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef))
+           and n.body and isinstance(n.body[0], ast.Expr) and isinstance(getattr(n.body[0], "value", None), ast.Constant)}
+    return [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in doc]
+
+
+def check_paper_review(here: Path | None = None) -> tuple[bool, str]:
+    """Only india/missed.py may read live paper days (purpose paper_review), only through sealed.read_review, and only with a start that is a
+    constant (a literal, or a module-level name assigned once to a literal) on or after 2026-10-16."""
+    here = Path(here) if here else Path(__file__).parent
+    bad = []
+    for f in sorted(here.glob("*.py")):
+        if f.name in ("sealed.py", "leakcheck.py", REVIEW_MODULE):
+            continue
+        tree = ast.parse(f.read_text())
+        if any("paper_review" in s for s in _code_strings(tree)):
+            bad.append(f"{f.name} (names the paper_review purpose)")
+        if any(isinstance(n, ast.Attribute) and n.attr == "read_review" for n in ast.walk(tree)):
+            bad.append(f"{f.name} (calls read_review)")
+    m = here / REVIEW_MODULE
+    if m.exists():
+        tree = ast.parse(m.read_text())
+        assigned: dict[str, list] = {}
+        for n in ast.walk(tree):   # every binding of a name: assignments, loop and with targets, walrus, and parameters (which would shadow it)
+            if isinstance(n, ast.Name) and isinstance(n.ctx, (ast.Store, ast.Del)):
+                assigned.setdefault(n.id, []).append(n)
+            elif isinstance(n, ast.arg):
+                assigned.setdefault(n.arg, []).append(n)
+            elif isinstance(n, ast.Global):
+                for g in n.names:
+                    assigned.setdefault(g, []).append(n)
+        top = {t.id: n.value.value for n in tree.body if isinstance(n, ast.Assign) and isinstance(n.value, ast.Constant) for t in n.targets if isinstance(t, ast.Name)}
+        calls = 0
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name) and n.func.value.id == "sealed":
+                if n.func.attr != "read_review":
+                    bad.append(f"{REVIEW_MODULE} line {n.lineno} (sealed.{n.func.attr})")
+                    continue
+                calls += 1
+                purpose = n.args[0].value if n.args and isinstance(n.args[0], ast.Constant) else None
+                if purpose != "paper_review":
+                    bad.append(f"{REVIEW_MODULE} line {n.lineno} (read_review purpose {purpose!r})")
+                node = n.args[1] if len(n.args) > 1 else next((k.value for k in n.keywords if k.arg == "since"), None)
+                start = None
+                if isinstance(node, ast.Constant):
+                    start = node.value
+                elif isinstance(node, ast.Name) and node.id in top and len(assigned.get(node.id, [])) == 1:
+                    start = top[node.id]
+                try:
+                    ok_start = isinstance(start, str) and dt.date.fromisoformat(start) >= dt.date.fromisoformat(REVIEW_MIN_START)
+                except ValueError:
+                    ok_start = False
+                if not ok_start:
+                    bad.append(f"{REVIEW_MODULE} line {n.lineno} (read_review start {start!r} is not a constant on or after {REVIEW_MIN_START})")
+            if isinstance(n, ast.ImportFrom) and (n.module or "").endswith("sealed"):
+                bad.append(f"{REVIEW_MODULE} line {n.lineno} (from {n.module} import ...)")
+            if isinstance(n, ast.Attribute) and n.attr == "sealed_dir":
+                bad.append(f"{REVIEW_MODULE} line {n.lineno} (.sealed_dir)")
+        if any("sealed/" in s or "/sealed" in s or "cm_bhavcopy" in s or "kite_index" in s for s in _code_strings(tree)):
+            bad.append(f"{REVIEW_MODULE} (names a sealed or price-data path)")
+    note = (f"only {REVIEW_MODULE} reads live paper days, start constant on or after {REVIEW_MIN_START}" if not bad
+            else "; ".join(sorted(set(bad))))
+    return (not bad), note
 
 
 def check_kite_calls() -> tuple[bool, str]:
@@ -249,7 +321,7 @@ def check_stops_gap() -> tuple[bool, str]:
 
 
 CHECKS = {"sealed_files": check_sealed_files, "kite_calls": check_kite_calls, "tables_pre_2024": check_tables_pre_2024, "feature_columns": check_feature_columns, "parity": check_parity,
-          "future_edit": check_future_edit, "fill_after_signal": check_fill_after_signal, "stops_gap": check_stops_gap}
+          "future_edit": check_future_edit, "fill_after_signal": check_fill_after_signal, "stops_gap": check_stops_gap, "paper_review": check_paper_review}
 
 
 def run() -> dict:

@@ -5,6 +5,7 @@
   python -m india.paper compare      executed book against the unfiltered baseline, per campaign and exit policy
   python -m india.paper settle | decide | baseline | marks      one step each
   python -m india.paper reconstruct 2026-10-16                  rebuild the candidate journal for a decision written before journals existed (labelled)
+  python -m india.paper universe 2026-10-16                     rebuild the liquid-universe file for a decision written before those files existed (labelled)
 
 What it does (the point is to see how Ananta works in the real market and where it lacks, not to size anything):
 * Three campaigns, defined before any result was seen (the same entry sets as study E02): BRK (20-day breakout on 1.5x volume, above the 200-day average),
@@ -23,7 +24,11 @@ What it does (the point is to see how Ananta works in the real market and where 
 * Prices are the exchange's raw file adjusted with the corporate-action factors table (splits and bonuses), the same as the lab.
 * Leak rule: the decision for day T uses rows dated T and earlier only. A test (india/leakcheck.py) edits every later row and checks the decision does not change.
 * The only sealed-year reads are the indicator lookback and the index context, through india.sealed; no performance is computed on holdout rows by research code.
-Files: paper/decisions/<data date>.json, paper/state.json (executed trades), paper/events.jsonl, paper/marks.jsonl, paper/baseline.parquet (every candidate x policy).
+* With each decision the liquid universe of that day (liq_top names) is written beside it, derived numbers only (ranks, the day's bar against the
+  sessions before it): the missed-movers review (india/missed.py, 20 Oct 2026) takes its universe and every indicator from this file, so that
+  review computes nothing on history itself.
+Files: paper/decisions/<data date>.json, <data date>.universe.json, paper/state.json (executed trades), paper/events.jsonl, paper/marks.jsonl,
+paper/baseline.parquet (every candidate x policy).
 """
 from __future__ import annotations
 
@@ -178,6 +183,61 @@ def signals(f: pd.DataFrame, asof: pd.Timestamp, s: dict | None = None) -> dict[
     return {"BRK": brk, "PULL": pull, "REV": rev, "CTL": ctl}
 
 
+def _f(x) -> float | None:
+    return None if x is None or not np.isfinite(x) else round(float(x), 6)
+
+
+def universe_snapshot(df: pd.DataFrame, f: pd.DataFrame, asof: pd.Timestamp, liq_top: int) -> list[dict]:
+    """The executed book's universe on `asof` (liq_rank <= liq_top) with the derived numbers the missed-movers review describes a day's move with:
+    the day's bar against the sessions before it (prior 20-session range, 250-session high and low, RSI and averages as of the close before).
+    From rows dated on or before `asof` only; adjusted prices; no raw price is written."""
+    liq = f[f["liq_rank"] <= liq_top].set_index("sid")
+    d = df[(df["date"] <= asof) & df["sid"].isin(set(liq.index))]
+    out = []
+    for sid, g in d.groupby("sid", sort=False):
+        if g["date"].iloc[-1] != asof or len(g) < 22:
+            continue
+        o, h, l, c = (g["adj_" + k].values.astype(float) for k in ("open", "high", "low", "close"))
+        t = g["turnover"].values.astype(float)
+        r = liq.loc[sid]
+        ph, pl = float(np.max(h[-21:-1])), float(np.min(l[-21:-1]))
+        med = float(r["med60_turnover"])
+        out.append({"sid": sid, "symbol": r["symbol"], "isin": g["isin"].iloc[-1] if "isin" in g else None, "liq_rank": int(r["liq_rank"]),
+                    "ret_1": _f(c[-1] / c[-2] - 1), "gap": _f(o[-1] / c[-2] - 1), "oc": _f(c[-1] / o[-1] - 1),
+                    "vol_ratio20": _f(r["vol_ratio20"]), "turnover_vs_med60": _f(t[-1] / med) if med > 0 else None,
+                    "breakout20": bool(c[-1] > ph), "breakdown20": bool(c[-1] < pl), "base20_range": _f((ph - pl) / c[-2]),
+                    "new_high_250": bool(c[-1] > np.max(h[-251:-1])) if len(c) >= 251 else None,
+                    "new_low_250": bool(c[-1] < np.min(l[-251:-1])) if len(c) >= 251 else None,
+                    "rsi14": _f(r["rsi14"]), "rsi14_prev": _f(_rsi14(c[:-1])),
+                    "dist_sma20": _f(r["dist_sma20"]), "dist_sma20_prev": _f(c[-2] / np.mean(c[-21:-1]) - 1),
+                    "dist_sma200": _f(r["dist_sma200"]), "dist_sma200_prev": _f(c[-2] / np.mean(c[-201:-1]) - 1) if len(c) >= 201 else None,
+                    "ret_20_prev": _f(c[-2] / c[-22] - 1), "atr_pct": _f(r["atr14"] / c[-1])})
+    return sorted(out, key=lambda x: x["liq_rank"])
+
+
+def _write_universe(key: str, rows: list[dict], liq_top: int, source: str) -> None:
+    body = {"key": key, "written_at": _now(), "source": source, "rules": RULES_VERSION, "liq_top": liq_top, "n": len(rows), "rows": rows}
+    tmp = pdir() / "decisions" / f"{key}.universe.json.tmp"
+    tmp.write_text(json.dumps(body, indent=0, default=str))
+    tmp.replace(pdir() / "decisions" / f"{key}.universe.json")
+
+
+def universe(key: str) -> dict:
+    """For a decision written before universe files existed: the liquid universe of `key` rebuilt from rows dated on or before it (the engine's
+    own lookback read), saved as <key>.universe.json and labelled reconstructed. An existing file is never replaced."""
+    if (pdir() / "decisions" / f"{key}.universe.json").exists():
+        return {"key": key, "status": "exists"}
+    if not (pdir() / "decisions" / f"{key}.json").exists():
+        raise SystemExit(f"no decision file for {key}")
+    s = settings.load()["stock"]
+    df = load_adjusted(until=key)
+    asof = pd.Timestamp(key)
+    rows = universe_snapshot(df, features(df, asof, s["min_price"]), asof, s["liq_top"])
+    _write_universe(key, rows, s["liq_top"], "reconstructed after the fact from rows dated on or before the decision date (the engine's lookback read); "
+                                             "not the file written at decision time")
+    return {"key": key, "status": "reconstructed", "n": len(rows)}
+
+
 def context(f: pd.DataFrame, asof: pd.Timestamp, liq_top: int) -> dict:
     """Market state at decision time. Missing or stale index rows are reported as such, never filled."""
     liq = f[f["liq_rank"] <= liq_top]
@@ -294,6 +354,12 @@ def decide(state: dict | None = None, raw: pd.DataFrame | None = None, write: bo
         path.write_text(json.dumps(body, indent=1, default=str))
         state["decisions"][key] = {"status": "pending", "signals": len(chosen), "sha256": body["sha256"]}
         _save(state)
+        try:   # the review's universe file; a failure here is reported, it never undoes or blocks the decision
+            _write_universe(key, universe_snapshot(df, f, last, s["liq_top"]), s["liq_top"], "recorded at decision time")
+            uni = "written"
+        except Exception as e:
+            uni = f"FAILED {type(e).__name__}: {e}"[:200]
+        return {"status": "decided", "data_through": key, "signals": len(chosen), "candidates": counts, "universe_file": uni, "body": body}
     return {"status": "decided", "data_through": key, "signals": len(chosen), "candidates": counts, "body": body}
 
 
@@ -612,6 +678,8 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "report"
     if cmd == "reconstruct":
         print(json.dumps(reconstruct(sys.argv[2]), indent=1, default=str))
+    elif cmd == "universe":
+        print(json.dumps(universe(sys.argv[2]), indent=1, default=str))
     else:
         {"run": run, "report": report, "compare": compare, "settle": lambda: print(settle()), "decide": lambda: print({k: v for k, v in decide().items() if k != "body"}),
          "baseline": lambda: print(baseline()), "marks": lambda: print(len(marks()))}[cmd]()

@@ -13,6 +13,9 @@ what window, how many rows) before any row is returned. Nothing here lets a stud
                   a fixed folder list; every query is logged; once the run is marked completed it can never be opened again
   paper_model / paper_parity   after a run is completed: its own derived tables, to fit the live model the spec prescribes and to check the
                   live paper code against the run's rows (holdout_outputs); the verdicts are already in the ledger and cannot change
+  paper_review    live paper days only (Madhav, 20 Oct 2026): cash-market series-EQ rows dated on or after PAPER_REVIEW_START (the stock paper's
+                  first decision day), for the missed-movers review of the paper book (india/missed.py, the only caller india/leakcheck.py allows,
+                  with a constant start). An earlier start is refused, never clipped; nothing on history is computed from these rows
 Apart from a registered holdout run, none of them computes rule performance. A lookback or context request for more than LOOKBACK_DAYS calendar days is refused.
 
   from india import sealed
@@ -75,6 +78,38 @@ def read_index(purpose: str, since: str, names: list[str]) -> pd.DataFrame:
 
 
 ALLOWED_CONTEXT = {"paper_context", "forecast_score"}
+
+PAPER_REVIEW_START = dt.date(2026, 10, 16)   # the stock paper's first decision (data of Fri 16 Oct 2026); no review row is older
+ALLOWED_REVIEW = {"paper_review"}
+
+
+def read_review(purpose: str, since: str, until: str | None = None) -> pd.DataFrame:
+    """Live paper days for the missed-movers review (purpose paper_review): raw series-EQ cash rows dated since..until, where since must be on or
+    after PAPER_REVIEW_START. Every check runs before any file is opened; a start before the paper's first day is refused, not clipped. The caller
+    computes nothing on history from these rows (its universe and indicators come from the paper engine's own decision-time files). Logged."""
+    if purpose not in ALLOWED_REVIEW:
+        raise PermissionError(f"sealed review read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED_REVIEW)}")
+    since_d = pd.Timestamp(since).date()
+    if since_d < PAPER_REVIEW_START:
+        raise PermissionError(f"sealed review read refused: start {since_d} is before the paper's first day {PAPER_REVIEW_START} (live paper days only)")
+    until_d = pd.Timestamp(until).date() if until else None
+    if until_d is not None and until_d < since_d:
+        raise PermissionError(f"sealed review read refused: end {until_d} is before start {since_d}")
+    root = paths.data_dir()
+    files = [str(p) for p in list((root / "silver/cm_bhavcopy").glob("year=*/part.parquet")) + list((root / "sealed/silver/cm_bhavcopy").glob("year=*/part.parquet"))
+             if int(p.parent.name.split("=")[1]) >= PAPER_REVIEW_START.year]
+    if not files:
+        _log(purpose, "cm_bhavcopy EQ live paper days (no files)", f"{since_d}..{until_d or ''}", 0)
+        return pd.DataFrame(columns=["date", "symbol", "series", "open", "high", "low", "close", "prev_close", "volume", "turnover", "isin"])
+    con = duckdb.connect()
+    sql = ("select date, symbol, series, open, high, low, close, prev_close, volume, turnover, isin from read_parquet(" + repr(files)
+           + ", union_by_name=true) where series = 'EQ' and close > 0 and cast(date as date) >= ?" + (" and cast(date as date) <= ?" if until_d else ""))
+    df = con.execute(sql, [since_d] + ([until_d] if until_d else [])).df()
+    con.close()
+    if len(df) and pd.to_datetime(df["date"]).min().date() < PAPER_REVIEW_START:   # never reached: the query bounds it; kept as the second lock
+        raise PermissionError("sealed review read refused: a row before the paper's first day came back")
+    _log(purpose, "cm_bhavcopy EQ live paper days", f"{since_d}..{until_d or ''}", len(df))
+    return df
 
 
 ALLOWED_INTEGRITY = {"integrity", "calibration"}

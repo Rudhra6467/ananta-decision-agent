@@ -14,6 +14,7 @@ How it works
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import time
@@ -26,6 +27,8 @@ from jarvis.service import views
 MAX_TOOL_ROUNDS = 10
 HISTORY_TURNS = 8
 DAILY_LIMIT = int(os.getenv("ASK_DAILY_LIMIT", "150"))
+# the app's mic timing for one voice turn (Oct 20, repair #74), kept with his message: see Ask._keep_client_timing
+VOICE_TIMING_FIELDS = ("tts_end_to_live_ms", "onset_ms", "speech_ms", "end_silence_ms", "preroll_ms", "bytes", "arm_to_live_ms", "capture", "platform")
 GEMINI_MODELS = [m.strip() for m in os.getenv("ASK_GEMINI_MODELS", "gemini-3.5-flash,gemini-3.1-flash-lite,gemini-flash-latest").split(",") if m.strip()]
 GEMINI_MODEL = GEMINI_MODELS[0]       # free tier: when the first model is busy (503), the next one answers
 CLAUDE_MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
@@ -2773,18 +2776,46 @@ class Ask:
         r = json.loads(row[0]) if row and row[0] else {}
         return str(r.get("speak") or r.get("answer") or "")
 
+    def _keep_client_timing(self, thread: str | None, client_timing: dict | None) -> None:
+        """Oct 20 (repair #74, "a tiny inconsistency between the timing of what I speak and when it hears"): the app's mic timing for
+        this turn (Ananta finished speaking -> mic live, where his speech started, the pre-roll, the size) goes into HIS message row's
+        timing column (user rows had none; the answer's own timing is untouched), so the repair shop can measure the gap per turn.
+        Only known fields, numbers or a short word; never fails the turn."""
+        if not thread or not isinstance(client_timing, dict):
+            return
+        keep = {}
+        for k in VOICE_TIMING_FIELDS:
+            x = client_timing.get(k)
+            if isinstance(x, bool) or x is None:
+                continue
+            if isinstance(x, (int, float)) and math.isfinite(x) and abs(x) < 1e9:
+                keep[k] = round(x, 1) if isinstance(x, float) else x
+            elif isinstance(x, str) and k in ("platform", "capture"):
+                keep[k] = x[:24]
+        if not keep:
+            return
+        try:
+            self.j.db.execute("UPDATE ask_messages SET timing=? WHERE id=(SELECT id FROM ask_messages WHERE thread=? AND role='user' "
+                              "ORDER BY t DESC, rowid DESC LIMIT 1) AND timing IS NULL", (json.dumps({"client": keep}), thread))
+            self.j.db.commit()
+        except Exception:  # noqa: BLE001
+            pass
+
     def voice_turn(self, who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None, source: str = "",
-                   prefix: str = "") -> dict:
+                   prefix: str = "", client_timing: dict | None = None) -> dict:
+        def asked(text: str, **extra) -> dict:
+            out = self.ask(who, text, thread=thread, mode=mode, context=context, voice=True, source=source)
+            self._keep_client_timing(out.get("thread") or thread, client_timing)
+            return {"heard": heard, **extra, **out}
+
         heard = self.transcribe(audio_b64, mime, thread=thread)
         if not heard:
             return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone."}
         if WHY.match(heard):                                   # plan 4.2: "why?" on its own is a full question (it explains the last answer)
-            out = self.ask(who, heard, thread=thread, mode=mode, context=context, voice=True, source=source)
-            return {"heard": heard, **out}
+            return asked(heard)
         chip = spoken_chip(heard, (context or {}).get("chips"))  # plan 3.7: saying a chip's words is the same as tapping it
         if chip:
-            out = self.ask(who, chip, thread=thread, mode=mode, context=context, voice=True, source=source)
-            return {"heard": heard, "chip": chip, **out}
+            return asked(chip, chip=chip)
         last = self._last_spoken(thread)
         kind = hearing_check(heard, last)                      # what reaches the model is a real question (Oct 1-3: 1 turn in 6 was not)
         if kind == "echo":
@@ -2795,8 +2826,7 @@ class Ask:
             heard = f"{prefix.strip()} {heard}".strip()
         if kind == "partial" and len(heard.split()) < 14:
             return {"heard": heard, "thread": thread, "partial": True}
-        out = self.ask(who, heard, thread=thread, mode=mode, context=context, voice=True, source=source)
-        return {"heard": heard, **out}
+        return asked(heard)
 
     def second(self, who: str, msg_id: str) -> dict:
         row = self.j.db.execute("SELECT thread, t, provider FROM ask_messages WHERE id=? AND role='assistant'", (msg_id,)).fetchone()

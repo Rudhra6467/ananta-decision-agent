@@ -1679,12 +1679,13 @@ class VoiceTurn(BaseModel):
     context: dict | None = None
     source: str = ""
     prefix: str = ""          # what he said just before, when he stopped mid-sentence (joined to this turn)
+    client_timing: dict | None = None   # Oct 20 (repair #74): the app's mic timing for this turn (stored with his message)
 
 
 @app.post("/v3/voice/turn")
 def voice_turn(b: VoiceTurn, request: Request, who: str = Depends(owner)) -> dict:
     return _run(lambda: A().voice_turn(who, b.audio_b64, b.mime, b.thread, b.mode, _with_country(b.context, request), source="eval" if b.source == "eval" else "",
-                                       prefix=b.prefix))
+                                       prefix=b.prefix, client_timing=b.client_timing))
 
 
 

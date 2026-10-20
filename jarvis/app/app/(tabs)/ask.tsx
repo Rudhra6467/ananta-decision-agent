@@ -194,6 +194,7 @@ export default function Ananta() {
     SecureStore.setItemAsync(k, v ? "1" : "0").catch(() => {});
   };
   const [phase, setPhase] = useState<Phase>("off");         // voice mode: off / listening / thinking / speaking
+  const [micLive, setMicLive] = useState(false);            // listening: false while the mic is still getting ready (Oct 20)
   const live = phase !== "off";
   const [note, setNote] = useState("");
   const [sessions, setSessions] = useState(false);
@@ -465,6 +466,9 @@ export default function Ananta() {
       micSend: () => micRef.current!.send(),
       micBusy: () => micRef.current!.busy(),
       micState: () => micRef.current!.state(),
+      micClose: () => { micRef.current?.close(); },
+      settleMs: Platform.OS === "web" ? 0 : 250,               // the web keeps the mic open: listen the moment Ananta stops
+      onListening: (s) => setMicLive(s === "live"),
       ask: async (b64, current) => {
         let r: any;
         const pre = prefixRef.current && Date.now() - prefixRef.current.t < 20000 ? prefixRef.current.text : "";
@@ -472,7 +476,8 @@ export default function Ananta() {
         const ack = setTimeout(() => { if (current()) TTS.playAck(); }, 1500);
         try {
           r = await api("/v3/voice/turn", { audio_b64: b64, mime: micMime(), thread: threadRef.current,
-            mode: modeRef.current, context: where(true), prefix: pre || undefined }, 60000);
+            mode: modeRef.current, context: where(true), prefix: pre || undefined,
+            client_timing: micRef.current?.clientTiming(loopRef.current?.lastGapMs) ?? undefined }, 60000);
         } catch (e: any) {
           r = { error: e?.message ?? String(e) };
         } finally {
@@ -573,8 +578,8 @@ export default function Ananta() {
 
   const startLive = async () => {
     if (loop.on) return;                                         // extra taps do nothing
-    const p = await requestRecordingPermissionsAsync();
-    if (!p.granted) { setErr(Platform.OS === "web" ? "The microphone is blocked for this site. Allow it in the browser's site settings, then tap the wave again."
+    const granted = await mic.open();                            // once per conversation, straight from the tap (Safari)
+    if (!granted) { setErr(Platform.OS === "web" ? "The microphone is blocked for this site. Allow it in the browser's site settings, then tap the wave again."
       : "Microphone permission is off. Allow it for Expo Go in iPhone Settings."); return; }
     if (loop.on) return;
     setErr(null);
@@ -677,7 +682,7 @@ export default function Ananta() {
   const micLabel = { idle: "", listening: "Listening…", hearing: "Hearing you…", sending: "Got it…" }[mic.status];
   const hearing = live && phase === "listening" && mic.status === "hearing";
   const liveLabel = phase === "thinking" ? "Thinking…  ·  tap to cancel" : phase === "speaking" ? "Speaking  ·  tap to stop and talk"
-    : hearing ? "Hearing you…  ·  tap when done" : mic.status === "sending" ? "Got it…" : "Listening…  just talk";
+    : hearing ? "Hearing you…  ·  tap when done" : mic.status === "sending" ? "Got it…" : !micLive ? "Getting ready…" : "Listening…  just talk";
   const voiceNote = note || (TTS.lastEngine === "phone" && TTS.engine === "natural" ? TTS.lastNote : "");
 
   const top = (
@@ -821,7 +826,7 @@ export default function Ananta() {
         </View>
       ) : null}
       {live ? (
-        <LivePanel label={liveLabel} phase={phase} hearing={hearing} level={mic.level} note={voiceNote}
+        <LivePanel label={liveLabel} phase={phase} hearing={hearing} ready={micLive || hearing} level={mic.level} note={voiceNote}
           onOrb={() => { Haptics.soft(); loop.tap(); }} onEnd={endLive} onVoice={pickVoice}
           rateLabel={TTS.rate} onRate={(r) => TTS.setRate(r)} />
       ) : (
@@ -851,9 +856,9 @@ export default function Ananta() {
 
 // Voice mode panel. The orb shows what Ananta is doing; one tap always does the obvious thing:
 // blue = listening (tap: restart the mic) · red = hearing you (tap: done talking) · amber = thinking (tap: cancel) ·
-// green = speaking (tap: stop and talk).
-function LivePanel({ label, phase, hearing, level, note, onOrb, onEnd, rateLabel, onRate, onVoice }: {
-  label: string; phase: Phase; hearing: boolean; level: number; note: string; onOrb: () => void; onEnd: () => void;
+// green = speaking (tap: stop and talk) · faint = getting ready (the mic is not hearing yet; Oct 20).
+function LivePanel({ label, phase, hearing, ready, level, note, onOrb, onEnd, rateLabel, onRate, onVoice }: {
+  label: string; phase: Phase; hearing: boolean; ready: boolean; level: number; note: string; onOrb: () => void; onEnd: () => void;
   rateLabel: number; onRate: (r: number) => void; onVoice: (v: string) => void;
 }) {
   const pulse = useRef(new Animated.Value(1)).current;
@@ -869,16 +874,18 @@ function LivePanel({ label, phase, hearing, level, note, onOrb, onEnd, rateLabel
   }, [fast]);
   const lv = Math.max(0, Math.min(1, (level + 60) / 50));
   const color = phase === "speaking" ? C.good : phase === "thinking" ? C.warn : hearing ? C.bad : C.accent;
+  const opening = phase === "listening" && !ready;           // the mic is not hearing yet: the orb is faint, it doesn't say "listening"
   // the state in words, and the one button that does the obvious thing (the orb does the same on a tap)
   const [name, detail, button] = phase === "thinking" ? ["Thinking", "Claude is on it · about 4 seconds", "Stop"]
     : phase === "speaking" ? ["Speaking", "tap Stop to interrupt and talk", "Stop"]
     : hearing ? ["Hearing you", "tap Done when you finish; no waiting for silence", "Done"]
+    : opening ? ["Getting ready", "one moment, then just talk", ""]
     : ["Listening", "just talk", ""];
   return (
     <View style={{ alignItems: "center", gap: 10, paddingVertical: 14, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
       <Pressable onPress={onOrb} hitSlop={16} accessibilityLabel={label}>
         <Animated.View style={{ transform: [{ scale: hearing ? 1 + lv * 0.25 : pulse }], width: 84, height: 84, borderRadius: 42,
-          backgroundColor: color, opacity: 0.92 }} />
+          backgroundColor: color, opacity: opening ? 0.4 : 0.92 }} />
       </Pressable>
       <View style={{ alignItems: "center", gap: 2 }}>
         <Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>{name}</Text>

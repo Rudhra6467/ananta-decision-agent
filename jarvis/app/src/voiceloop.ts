@@ -6,11 +6,17 @@
 //  - a tap on the orb always does the obvious thing for that moment, and extra taps are harmless;
 //  - a watchdog (tick, once a second) repairs anything stuck: a mic that isn't recording, a question that never
 //    came back, a voice that never finished.
-// No React or Expo in here, so it can be tested with plain Node (see scripts/voiceloop.test.ts).
+// No React or Expo in here, so it can be tested with plain Node (see scripts/voiceloop.test.mjs).
+//
+// Listening has two moments (Madhav, repair #74, Oct 20: his first word was lost when he talked as soon as the orb said
+// "listening"): "opening" (the mic is getting ready) and "live" (sound is really being captured). onListening tells the
+// screen which, so it says "listening" only once the mic really hears.
 
 export type Phase = "off" | "listening" | "thinking" | "speaking";
 
 export type MicState = "idle" | "listening" | "hearing" | "sending";
+
+export type ListenState = "opening" | "live";
 
 export type LoopFx = {
   // start recording; force = restart even if it seems to be running. The mic must check wanted() right before it
@@ -25,6 +31,9 @@ export type LoopFx = {
   respond: (answer: any, current: () => boolean) => Promise<void>; // move the screen + speak; resolves when finished or stopped
   stopSpeaking: () => void;                       // cut the voice off (its respond() resolves)
   onPhase: (p: Phase) => void;
+  onListening?: (s: ListenState) => void;          // while listening: "opening" until micStart really started, then "live"
+  micClose?: () => void;                          // voice ended: let the microphone go (the web keeps one mic open per conversation)
+  settleMs?: number;                              // wait after Ananta speaks before listening (iPhone app: 250; web: 0, the mic stays open)
   onNote?: (msg: string) => void;                 // a short message for the screen
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
@@ -38,6 +47,10 @@ export class VoiceLoop {
   private since = 0;
   private micDeadSince: number | null = null;
   private fx: LoopFx;
+  private listenSeq = 0;                          // only the newest listen() may say "live"
+  private spokeEnd: number | null = null;         // when Ananta last finished speaking (for the timing telemetry)
+  live = false;                                   // listening AND the mic really started
+  lastGapMs: number | null = null;                // Ananta finished speaking -> mic live, for the listen that followed it (else null)
 
   constructor(fx: LoopFx) { this.fx = fx; }
 
@@ -46,6 +59,7 @@ export class VoiceLoop {
   private set(p: Phase) {
     if (this.phase === p) return;
     this.phase = p;
+    if (p !== "listening") this.live = false;
     this.since = this.now();
     this.micDeadSince = null;
     this.fx.onPhase(p);
@@ -57,6 +71,8 @@ export class VoiceLoop {
   start() {
     if (this.phase !== "off") return;
     this.turn++;
+    this.spokeEnd = null;
+    this.lastGapMs = null;
     this.listen(this.turn, true);
   }
 
@@ -64,9 +80,11 @@ export class VoiceLoop {
   end() {
     if (this.phase === "off") return;
     this.turn++;
+    this.live = false;
     this.set("off");
     this.fx.stopSpeaking();
-    this.fx.micStop().catch(() => {});
+    // stop the mic, then let it go, unless voice was started again meanwhile
+    this.fx.micStop().catch(() => {}).then(() => { if (this.phase === "off") this.fx.micClose?.(); });
   }
 
   // The orb. One tap always does the obvious thing for that moment:
@@ -118,13 +136,25 @@ export class VoiceLoop {
   private listen(turn: number, force: boolean) {
     if (turn !== this.turn) return;
     this.set("listening");
+    const seq = ++this.listenSeq;
+    this.live = false;
+    this.fx.onListening?.("opening");
     const wanted = () => turn === this.turn && this.phase === "listening";
     const run = async () => {
       for (let i = 0; i < LIMITS.micRetries; i++) {
         if (!wanted()) return;
         let ok = false;
         try { ok = await this.fx.micStart(force || i > 0, wanted); } catch { ok = false; }
-        if (ok) return;
+        if (ok) {
+          if (wanted() && seq === this.listenSeq) {           // a newer listen (a tap, a restart) speaks for itself
+            this.live = true;
+            const t = this.now();
+            this.lastGapMs = this.spokeEnd !== null ? Math.max(0, t - this.spokeEnd) : null;
+            this.spokeEnd = null;
+            this.fx.onListening?.("live");
+          }
+          return;
+        }
         await this.wait(400 + 300 * i);
       }
       if (turn === this.turn && this.phase === "listening") this.fx.onNote?.("The microphone didn't start. Tap the orb to try again.");
@@ -140,6 +170,7 @@ export class VoiceLoop {
   async onAudio(b64: string) {
     if (this.phase !== "listening") return;          // voice was ended / interrupted meanwhile: drop it
     const my = ++this.turn;
+    this.live = false;
     this.set("thinking");
     let r: any;
     try { r = await this.fx.ask(b64, () => my === this.turn); } catch (e: any) { r = { error: e?.message ?? String(e) }; }
@@ -171,10 +202,18 @@ export class VoiceLoop {
     this.set("speaking");
     try { await fn(); } catch { /* */ }
     if (my !== this.turn) return false;
-    await this.wait(250);
-    if (my !== this.turn) return false;
+    if (!(await this.settle(my))) return false;
     this.listen(my, false);
     return true;
+  }
+
+  // After Ananta speaks: on the iPhone app wait a moment (the phone switches from speaker to microphone); on the web the mic
+  // stays open, so listen at once. False if tapped or ended meanwhile.
+  private async settle(my: number): Promise<boolean> {
+    this.spokeEnd = this.now();
+    const ms = this.fx.settleMs ?? 250;
+    if (ms > 0) await this.wait(ms);
+    return my === this.turn;
   }
 
   private async answer(my: number, r: any) {
@@ -183,8 +222,7 @@ export class VoiceLoop {
     this.set("speaking");
     try { await this.fx.respond(r, () => my === this.turn); } catch { /* */ }
     if (my !== this.turn) return;                     // interrupted: the tap already started listening
-    await this.wait(250);                              // let the phone switch from speaker to microphone
-    if (my !== this.turn) return;
+    if (!(await this.settle(my))) return;             // iPhone app: let the phone switch from speaker to microphone
     this.listen(my, false);
   }
 

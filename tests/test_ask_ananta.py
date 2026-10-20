@@ -330,6 +330,29 @@ def test_voice_turn_transcribes_then_answers():
     assert out == "what is hunter doing" and bodies[0]["contents"][0]["parts"][0]["inlineData"]["mimeType"] == "audio/wav"
 
 
+def test_voice_turn_keeps_the_apps_mic_timing_with_his_message():
+    """Oct 20 (repair #74): the app's mic timing goes into HIS message row (known fields only); the answer's timing is untouched."""
+    j, ex = _jarvis()
+    fake = lambda s, h, u, t, log: (json.dumps({"kind": "answer", "answer": "Solana is flat."}), {"in": 1, "out": 1})
+    A = ask.Ask(j, providers={"gemini": fake})
+    A.transcribe = lambda b64, mime="audio/wav", thread=None: "and solana?" if b64 == "AAAA" else ""
+    ct = {"tts_end_to_live_ms": 12, "onset_ms": 0, "speech_ms": 900, "end_silence_ms": 1100, "preroll_ms": 0, "bytes": 64044,
+          "arm_to_live_ms": 9.27, "capture": "worklet", "platform": "web", "junk": "x" * 5000, "speech_ms_bad": float("nan")}
+    r = A.voice_turn("o", "AAAA", "audio/wav", None, "everyday", None, client_timing=ct)
+    assert r["answer"]
+    rows = j.db.execute("SELECT role, timing FROM ask_messages WHERE thread=? ORDER BY t, rowid", (r["thread"],)).fetchall()
+    user = json.loads([t for role, t in rows if role == "user"][-1])["client"]
+    assert user == {"tts_end_to_live_ms": 12, "onset_ms": 0, "speech_ms": 900, "end_silence_ms": 1100, "preroll_ms": 0, "bytes": 64044,
+                    "arm_to_live_ms": 9.3, "capture": "worklet", "platform": "web"}
+    assert "client" not in json.loads([t for role, t in rows if role == "assistant"][-1])     # the answer's own timing as before
+    # no timing (old app), a bad one, or nothing heard: the turn works and nothing is written
+    r2 = A.voice_turn("o", "AAAA", "audio/wav", r["thread"], "everyday", None, client_timing={"onset_ms": "soon"})
+    assert r2["answer"]
+    last_user = j.db.execute("SELECT timing FROM ask_messages WHERE thread=? AND role='user' ORDER BY t DESC, rowid DESC LIMIT 1", (r["thread"],)).fetchone()[0]
+    assert last_user is None
+    assert A.voice_turn("o", "BBBB", "audio/wav", r["thread"], "everyday", None, client_timing=ct)["heard"] == ""
+
+
 
 def test_alerts_by_talking_and_briefs():
     from jarvis.service.alerts import Alerts

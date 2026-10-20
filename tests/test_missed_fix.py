@@ -171,7 +171,7 @@ def _books(tmp_path, j):
     t0 = _t("2026-10-14")
     rows = [("z1", "ZONE_TOUCH-UC", "AVA", t0 - 5 * DAY, None, None, 1.0, "OPEN"),          # monitor-only (won't take again), open
             ("h1", "H07-UB", "AVA", t0 - DAY, t0 + 2 * DAY, 7.77, 1.0, "CLOSED"),           # allowed, realised
-            ("b1", "JARVIS_BOLD", "AVA", t0, None, None, 1.0, "OPEN"),                      # monitor-only (never wakes the brain)
+            ("b1", "JARVIS_BOLD", "AVA", t0, None, None, 1.0, "OPEN"),                      # allowed (real decisions), though it never wakes the brain
             ("r1", "RANDOM_20D", "AVA", t0, None, None, 1.0, "OPEN"),                       # a random twin: never "in it"
             ("j1", "JARVIS", "PHA", t0, None, None, 2.0, "OPEN")]                           # allowed (the brain's book), marked
     for tid, w, c, et, xt, net, entry, st in rows:
@@ -206,21 +206,27 @@ def test_each_catch_records_its_books_whether_they_may_trade_and_their_pnl(tmp_p
     by = {h["book"]: h for h in ava}
     assert set(by) == {"ZONE_TOUCH-UC", "H07-UB", "JARVIS_BOLD"}            # the random twin is never a catch
     assert by["ZONE_TOUCH-UC"]["allowed"] is False and by["ZONE_TOUCH-UC"]["monitor_why"] == "won't take again"
-    assert by["JARVIS_BOLD"]["allowed"] is False and "never wake" in by["JARVIS_BOLD"]["monitor_why"]
+    assert by["JARVIS_BOLD"]["allowed"] is True and by["JARVIS_BOLD"]["monitor_why"] is None and by["JARVIS_BOLD"]["pnl"] == "marked"
     assert by["H07-UB"]["allowed"] is True and by["H07-UB"]["pnl"] == "realised" and by["H07-UB"]["pnl_usd"] == 7.77
     assert by["ZONE_TOUCH-UC"]["pnl"] == "marked" and by["ZONE_TOUCH-UC"]["pnl_usd"] == watch_engine.net("AVA", 1.0, 1.5, "ZONE_TOUCH-UC")
-    assert got["2026-10-14:UNIV:AVA"][:2] == (1, 7.77)                     # the row's P&L is the allowed books' only
+    bold = watch_engine.net("AVA", 1.0, 1.5, "JARVIS_BOLD")
+    assert got["2026-10-14:UNIV:AVA"][:2] == (1, round(7.77 + bold, 2))    # the row's P&L is the allowed books' only (H07 + bold)
     pha = got["2026-10-14:UNIV:PHA"]
     assert pha[0] == 1 and pha[1] == watch_engine.net("PHA", 2.0, 2.2, "JARVIS")
     assert got["2026-10-14:UNIV:OP"] == (None, None, None)                 # not caught: nothing recorded
     assert missed.book_allowed("EXPLORER") == (False, "won't take again") and missed.book_allowed("HOURLY")[0] is False
     assert missed.book_allowed("RANDOM") == (False, "a random baseline") and missed.book_allowed(None)[0] is False
     assert missed.book_allowed("BOOK500") == (True, None) and missed.book_allowed("H07") == (True, None)
+    # review #38's frozen list: allowed is about real decisions, not waking the brain (the bold book never wakes it, and is allowed)
+    for sid in ("BOOK500", "T3", "T3_T30", "H07", "JARVIS", "BOLD", "READS", "MANUAL"):
+        assert missed.book_allowed(sid) == (True, None), sid
+    for sid in ("ZONE_TOUCH", "EXPLORER", "HOURLY", "CANDIDATE", "RANDOM"):
+        assert missed.book_allowed(sid)[0] is False, sid
     assert _snapshot(j) == before                                           # reporting only: no book, trade or register changed
-    j.db.execute("DELETE FROM evidence_trades WHERE id='z1'")               # scoring again only touches the open ones; idempotent
+    j.db.execute("DELETE FROM evidence_trades WHERE id IN ('z1', 'b1')")    # scoring again only touches the open ones; idempotent
     missed.score_catches(j)
     assert {h["book"] for h in json.loads(j.db.execute("SELECT caught_books FROM missed_moves WHERE id='2026-10-14:UNIV:AVA'").fetchone()[0])} == {
-        "H07-UB", "JARVIS_BOLD"}
+        "H07-UB"}
 
 
 def test_only_monitor_only_watches_in_a_move_is_not_a_trade_ok_catch(tmp_path):
@@ -229,7 +235,7 @@ def test_only_monitor_only_watches_in_a_move_is_not_a_trade_ok_catch(tmp_path):
     j = _j(tmp_path, {"t": _t("2026-10-20")})
     missed._table(j)
     _books(tmp_path, j)
-    j.db.execute("DELETE FROM evidence_trades WHERE id IN ('h1')")
+    j.db.execute("DELETE FROM evidence_trades WHERE id IN ('h1', 'b1')")
     missed._insert(j, _univ_row(missed, "2026-10-17", "AVA", low_t=_t("2026-10-17"), saw={"traded": ["ZONE_TOUCH-UC"], "saw": []}))
     missed.score_catches(j)
     assert j.db.execute("SELECT caught_allowed, caught_pnl_usd FROM missed_moves").fetchone() == (0, None)
@@ -246,6 +252,7 @@ def _scored(tmp_path, now):
     j = _j(tmp_path, now)
     missed._table(j)
     _books(tmp_path, j)
+    j.db.execute("DELETE FROM evidence_trades WHERE id='b1'")
     for d in ("2026-12-01", "2026-12-02"):
         missed._insert(j, _univ_row(missed, d, "AVA", low_t=_t("2026-10-14"), saw={"traded": ["H07-UB", "ZONE_TOUCH-UC"], "saw": []}))
     missed.score_catches(j, since="2026-12-01")

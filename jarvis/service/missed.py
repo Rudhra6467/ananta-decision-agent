@@ -423,8 +423,9 @@ def _sid_of_book(key: str) -> str | None:
 
 def book_allowed(sid: str | None) -> tuple[bool, str | None]:
     """(allowed to trade, why not) for one strategy of the register (docs/knowledge/strategy_status.json, read, never changed).
-    Monitor-only: verdict won't take again, signals that never wake the brain, a random baseline, a parked or retired book, or a book
-    the register does not know."""
+    Monitor-only: verdict won't take again, a random baseline, a parked or retired book, or a book the register does not know. Whether a
+    book wakes the brain does not decide it: allowed is whether its trades are real decisions (the bold book is allowed), matching
+    review #38's frozen list of allowed books."""
     from jarvis.service import strategy_status as SS
 
     s = (SS.load().get("strategies") or {}).get(sid) if sid else None
@@ -434,8 +435,6 @@ def book_allowed(sid: str | None) -> tuple[bool, str | None]:
         return False, "a random baseline"
     if s.get("verdict") == "wont_take_again":
         return False, "won't take again"
-    if s.get("wakes_brain") is False:
-        return False, "its signals never wake the brain"
     if s.get("status") in ("PARKED", "RETIRED"):
         return False, f"{str(s.get('status')).lower()}: takes no new trades"
     return True, None
@@ -821,7 +820,7 @@ def recent(j, days: int = 7) -> dict:
     classes = {k: sum(1 for r in rows if r["miss_class"] == k) for k in MISS_CLASSES}
     catches = {"all_tiers": _catch_split(rows),
                "meaning": "CAUGHT_TRADE_OK: a book allowed to trade was in the move; CAUGHT_MONITOR_ONLY: only watches that monitor were "
-                          "(won't take again, never wake the brain, random, parked or retired); CAUGHT_UNSCORED: not scored yet."}
+                          "(won't take again, random, parked or retired); CAUGHT_UNSCORED: not scored yet."}
     if show:
         catches["money"] = _catch_money(rows)
     else:

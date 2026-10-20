@@ -166,8 +166,9 @@ def breadth(rd, days, specials, ranks_prev: pd.DataFrame, first_day: dt.date, ca
 # ----------------------------------------------------------------------------------------------------------------------------- inputs
 def build_inputs(rd, days, specials, first_day: dt.date, ca_block: set, log) -> dict:
     D = paths.data_dir()
-    log("universe ranks")
-    u = universe_ranks(rd, "2022-06-01", first_day - dt.timedelta(days=60))
+    log("universe ranks (full cash history from 1994, so 'at least 126 sessions' counts a renamed company's earlier sessions, as gold does)")
+    rd_cm = HoldoutReader(rd.t, "1994-01-01") if isinstance(rd, HoldoutReader) else SilverReader("1994-01-01", str(rd.end))
+    u = universe_ranks(rd_cm, "1994-01-01", first_day - dt.timedelta(days=60))
     rp = prev_ranks(u, days)
     log("breadth")
     br = breadth(rd, days, specials, rp, first_day, ca_block)

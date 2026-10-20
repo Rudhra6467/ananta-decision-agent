@@ -57,6 +57,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from jarvis.service.missed import SCORE_COLS
+
 DAY = 86400
 UTC = timezone.utc
 WINDOW_START = int(datetime(2026, 10, 21, tzinfo=UTC).timestamp())
@@ -67,9 +69,11 @@ CATCH_UP_DAYS = 7
 SCHEMA = 1
 
 # outcome fields: a row carrying any of these is refused (no outcome is computed or kept before day 60)
-FORBIDDEN = frozenset({"net", "net_usd", "pnl", "pnl_usd", "caught_pnl_usd", "caught_books", "after_1d_pct", "after_5d_pct",
+# (the missed-moves study's catch-money columns are named from missed.SCORE_COLS, the one place that may name them)
+FORBIDDEN = frozenset({"net", "net_usd", "pnl", "pnl_usd", "after_1d_pct", "after_5d_pct",
                        "after_1d_ex", "after_5d_ex", "ACTUAL_net", "ACTUAL_R", "ACTUAL_bell", "ACTUAL_exit_t", "mfe", "mae",
-                       "excess", "win", "wins", "total", "totals", "profit", "vs_random_usd", "bell"})
+                       "excess", "win", "wins", "total", "totals", "profit", "vs_random_usd", "bell"}
+                      | {c for c, _ in SCORE_COLS if c != "caught_allowed"})
 
 # review #31
 R31_DECIDES = ("JARVIS", "JARVIS_RANDOM", "JARVIS_BOLD", "RANDOM_BOLD")          # the books brain.manage_live runs
@@ -841,7 +845,7 @@ def _units_at(fills: list[tuple], t: int) -> float:
 def r38(ctx: Ctx) -> list[dict]:
     """Each missed-moves row from the window on, with the frozen allowed books (REVIEW_38) that were in the move: evidence trades
     entered by two hours after the low and not closed before it; the $500 book, the T3 books and Madhav's fills holding the coin at
-    the low or buying it by two hours after. No money is read (caught_pnl_usd and caught_books are never copied)."""
+    the low or buying it by two hours after. No money is read: of missed.SCORE_COLS only caught_allowed (a label) is copied."""
     seen = ctx.ids("R38")
     con = ctx.db()
     out = []

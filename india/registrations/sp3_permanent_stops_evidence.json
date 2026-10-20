@@ -673,7 +673,7 @@
    "class": "renamed",
    "evidence": "no exchange notice found for the January 2007 suspension; the same company (JK Industries, renamed JK Tyre & Industries) traded as JKTYRE from 2007-03-19 (cash file)",
    "successor": "JKTYRE",
-   "flag": "reason for the 2007-01-19..2007-03-16 suspension not found; check for a restructuring ratio before following"
+   "flag": "reason for the 2007-01-19..2007-03-16 suspension not found and no factor in silver/corporate_actions: check for a restructuring ratio before a held position is followed"
   },
   "NAHAREXP": {
    "class": "scheme",
@@ -699,7 +699,7 @@
    "class": "renamed",
    "evidence": "no exchange notice found for the July 2007 suspension; the same company (GMR Industries Limited: silver/pr/announcements 2010 rows under GMRINDS) traded as GMRINDS from 2007-09-24 (cash file); GMRVASAVI -> GMRINDSTRS 2006-04-28 in https://nsearchives.nseindia.com/content/equities/symbolchange.csv",
    "successor": "GMRINDS",
-   "flag": "reason for the 2007-07-13..2007-09-21 suspension not found; check for a restructuring ratio before following"
+   "flag": "reason for the 2007-07-13..2007-09-21 suspension not found and no factor in silver/corporate_actions: check for a restructuring ratio before a held position is followed"
   },
   "SOLECTCENT": {
    "class": "scheme",
@@ -1206,7 +1206,7 @@
    "class": "renamed",
    "evidence": "silver/cm_bhavcopy: symbol TIDEWATER continues the next session (2021-07-27) under the same issuer's new ISIN INE484C01030 (face-value split); the security master links only EQ spells within 10 days, and the old ISIN's last spell was in series BE",
    "successor": "INE484C01030",
-   "flag": "a face-value split; check that its factor applies before following"
+   "flag": "a face-value split under a new ISIN, not in silver/corporate_actions factors: apply its ratio before a held position is followed"
   },
   "INE748C01020": {
    "class": "renamed",

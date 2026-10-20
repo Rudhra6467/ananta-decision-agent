@@ -10,6 +10,8 @@ what window, how many rows) before any row is returned. Nothing here lets a stud
   calibration     settlement IVs of recorded days, to measure how far the synthetic option prices are from the recorder's real ones (R01); no rule is scored
   holdout         the ONE registered confirmatory run of a frozen study (HOLDOUT_RUNS): opened once, after Madhav's approval, with a fixed window and
                   a fixed folder list; every query is logged; once the run is marked completed it can never be opened again
+  paper_model / paper_parity   after a run is completed: its own derived tables, to fit the live model the spec prescribes and to check the
+                  live paper code against the run's rows (holdout_outputs); the verdicts are already in the ledger and cannot change
 Apart from a registered holdout run, none of them computes rule performance. A lookback or context request for more than LOOKBACK_DAYS calendar days is refused.
 
   from india import sealed
@@ -190,3 +192,40 @@ def holdout_complete(ticket: dict, summary: dict) -> None:
         fh.write(json.dumps({"at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "run": run, "status": "completed",
                              "sha": ticket["sha"], "summary": summary}, default=str) + "\n")
     _OPEN.pop(run, None)
+
+
+HOLDOUT_OUTPUT_PURPOSES = {
+    "paper_model": "fit the live model the frozen spec prescribes for the current year (refit on all earlier years), with its parity check",
+    "paper_parity": "compare the live paper code's state rows and decisions on past sessions with the completed run's own rows (no new score)",
+}
+
+
+def holdout_outputs(run: str, purpose: str) -> Path:
+    """After a holdout run is COMPLETED (its verdicts are in the ledger and can never change), its own derived tables (situation states,
+    outcomes, policy trades) may be read for the purposes above only. Logged; refused before completion."""
+    if purpose not in HOLDOUT_OUTPUT_PURPOSES:
+        raise PermissionError(f"holdout outputs refused: purpose {purpose!r}")
+    if not any(r["run"] == run and r["status"] == "completed" for r in _runs()):
+        raise PermissionError(f"holdout outputs refused: {run} is not completed")
+    _log(purpose, f"{run} outputs (states, outcomes, trades): {HOLDOUT_OUTPUT_PURPOSES[purpose]}", "-", 0)
+    return paths.data_dir() / "sealed" / "gold" / run
+
+
+def read_flows(purpose: str, since: str) -> pd.DataFrame:
+    """Participant-wise OI rows (silver + sealed) for the live paper engine's positioning feature; same rules as read_cm (paper_lookback, LOOKBACK_DAYS)."""
+    if purpose not in ALLOWED:
+        raise PermissionError(f"sealed read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED)}")
+    since_d = pd.Timestamp(since).date()
+    if (dt.date.today() - since_d).days > LOOKBACK_DAYS:
+        raise PermissionError(f"sealed read refused: window of {(dt.date.today() - since_d).days} days exceeds {LOOKBACK_DAYS}")
+    root = paths.data_dir()
+    parts = []
+    for p in (root / "silver/flows/participant_oi.parquet", root / "sealed/silver/flows/participant_oi.parquet"):
+        if p.exists():
+            parts.append(pd.read_parquet(p))
+    df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    if len(df):
+        df["date"] = pd.to_datetime(df["date"]).dt.date
+        df = df[df["date"] >= since_d]
+    _log(purpose, "flows participant_oi", since, len(df))
+    return df

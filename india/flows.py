@@ -39,6 +39,11 @@ def _days(from_year: int) -> list[dt.date]:
 
 
 def fetch(from_year: int = 2012) -> dict:
+    return fetch_days(_days(from_year))
+
+
+def fetch_days(days: list[dt.date]) -> dict:
+    """The files for the given sessions (skipping any already fetched or known missing); the live paper engine asks for the last session's."""
     paths.ensure()
     man = paths.manifest_dir() / "flows_participant_oi.jsonl"
     done = set()
@@ -49,7 +54,7 @@ def fetch(from_year: int = 2012) -> dict:
                 done.add(r["date"])
     f = nse.Fetcher(rate_s=1.0)
     n = ok = 0
-    for d in _days(from_year):
+    for d in days:
         if d.isoformat() in done:
             continue
         st, body, secs = f.get(URL.format(d=d))

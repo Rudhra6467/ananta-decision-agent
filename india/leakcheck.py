@@ -77,6 +77,21 @@ def check_sealed_files() -> tuple[bool, str]:
                     first = n.args[0].value if n.args and isinstance(n.args[0], ast.Constant) else None
                     if first != "sp1_holdout":
                         bad.append(f"sp1_holdout.py line {n.lineno} (holdout_open {first!r})")
+    # sp1paper.py (the live paper engine) may read the lookback rows and, after the holdout run completed, that run's own outputs; nothing else
+    pp = here / "sp1paper.py"
+    if pp.exists():
+        allowed = {"read_cm": {"paper_lookback"}, "read_flows": {"paper_lookback"}, "holdout_outputs": {"sp1_holdout"}}
+        for n in ast.walk(ast.parse(pp.read_text())):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name) and n.func.value.id == "sealed":
+                first = n.args[0].value if n.args and isinstance(n.args[0], ast.Constant) else None
+                if n.func.attr not in allowed or first not in allowed[n.func.attr]:
+                    bad.append(f"sp1paper.py line {n.lineno} (sealed.{n.func.attr} {first!r})")
+                if n.func.attr == "holdout_outputs":
+                    second = n.args[1].value if len(n.args) > 1 and isinstance(n.args[1], ast.Constant) else None
+                    if second not in ("paper_model", "paper_parity"):
+                        bad.append(f"sp1paper.py line {n.lineno} (holdout_outputs purpose {second!r})")
+        if any("sealed/" in x for x in _strings(pp)):
+            bad.append("sp1paper.py (names a sealed path)")
     for f in ("sp1.py", "scenario.py", "ocstudy.py"):
         if (here / f).exists() and any(x in ("sealed", "sealed_dir") or "sealed/silver" in x or "sealed/gold" in x for x in _strings(here / f)):
             bad.append(f + " (mentions sealed)")

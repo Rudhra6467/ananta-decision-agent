@@ -306,6 +306,19 @@ def feature_frame(st: pd.DataFrame, point: str, train_mask: pd.Series) -> pd.Dat
     return f
 
 
+def tercile_cutoffs(st: pd.DataFrame, sym: str, test_year: int) -> dict:
+    """The tercile cut-offs feature_frame uses for a fold (training years 2015..test_year-1, last training session dropped): for the live model."""
+    s = st[st["index"] == sym].set_index("date").sort_index()
+    tr_days = [d for d in s.index if 2015 <= d.year < test_year][:-1]
+    t = s.loc[tr_days]
+    out = {}
+    for name, col in (("vix", "vix_prev"), ("positioning", "fii_long_share"), ("move_D1", "move_D1"), ("move_D2", "move_D2"), ("move_D3", "move_D3"),
+                      ("or_width_D1", "or15_atr"), ("or_width_D2", "or30_atr"), ("or_width_D3", "or30_atr")):
+        q = t[col].dropna().quantile([1 / 3, 2 / 3]).to_list()
+        out[name] = [float(q[0]), float(q[1])]
+    return out
+
+
 def design(f: pd.DataFrame, drop: tuple = ()) -> np.ndarray:
     cols = [np.ones(len(f))]
     for c in f.columns:
@@ -429,7 +442,7 @@ def nw_t(x: pd.Series, lag: int = 1) -> tuple[float, float, int]:
 # ----------------------------------------------------------------------------------------------------------------------------- walk-forward
 def fold_predictions(o: pd.DataFrame, st: pd.DataFrame, sym: str, test_year: int, target: str = "gross_bps", drop: tuple = (),
                      intercept_only: bool = False, lam_from: dict | None = None, shuffle_rng=None, train_years: list | None = None,
-                     predict_years: list | None = None):
+                     predict_years: list | None = None, keep_models: dict | None = None):
     """Fit one model per (point, action) on the training years and predict the predict_years (default: the test year).
     Returns predictions and the models' lambdas. shuffle_rng: state rows of the training years permuted in month blocks (null)."""
     s = st[st["index"] == sym].set_index("date").sort_index()
@@ -467,6 +480,8 @@ def fold_predictions(o: pd.DataFrame, st: pd.DataFrame, sym: str, test_year: int
             lam = (lam_from or {}).get((point, aid))
             m = Model(X, tr[target].to_numpy(float), yrs, lam=lam, intercept_only=intercept_only)
             lams[(point, aid)] = m.lam
+            if keep_models is not None:
+                keep_models[(point, aid)] = m
             pg, se = m.predict(X_pred_all.loc[te["date"]].to_numpy())
             te = te.assign(pred_gross=pg, se=se, s2=m.s2)
             out.append(te)

@@ -21,6 +21,7 @@ function makeMic(deliver, opts = {}) {
     await tick(); await tick();                                     // stop old, audio mode, prepare
     if (!wanted()) { m.status = "idle"; return false; }
     if (m.failStarts > 0) { m.failStarts--; return false; }
+    if (opts.gate) { await opts.gate(); if (!wanted()) { m.status = "idle"; return false; } }   // a slow mic (iPhone: hundreds of ms)
     m.recording = true; m.done = false; m.gen++; m.status = "listening"; m.log.push(`REC on${force ? "!" : ""}`);
     return true;
   });
@@ -39,7 +40,7 @@ function makeMic(deliver, opts = {}) {
 }
 
 function rig(opts = {}) {
-  const log = [], bad = [];
+  const log = [], bad = [], sleeps = [];
   let clock = 1000, loop, answerFns = [], speakDone = null;
   const mic = makeMic((b) => loop.onAudio(b), opts);
   loop = new VoiceLoop({
@@ -50,13 +51,16 @@ function rig(opts = {}) {
     respond: (r) => new Promise((res) => { log.push(`speak:${r.answer ?? r.error}`); speakDone = () => { speakDone = null; res(); }; }),
     stopSpeaking: () => { log.push("voice:stop"); if (speakDone) speakDone(); },
     onPhase: (p) => log.push(`phase:${p}`), onNote: (m) => log.push(`note:${m}`),
-    now: () => clock, sleep: async () => { await tick(); },
+    onListening: (s) => { log.push(`listen:${s}`); if (s === "live" && !mic.recording) bad.push("said live before the mic was recording"); },
+    micClose: () => log.push("mic:close"),
+    ...(opts.settleMs !== undefined ? { settleMs: opts.settleMs } : {}),
+    now: () => clock, sleep: async (ms) => { sleeps.push(ms); await tick(); },
   });
   const timer = setInterval(() => {
     if (mic.recording && (loop.phase === "thinking" || loop.phase === "speaking" || loop.phase === "off")) bad.push(`recording while ${loop.phase}`);
   }, 0);
   return {
-    loop, mic, log, bad, adv: (ms) => { clock += ms; },
+    loop, mic, log, bad, sleeps, adv: (ms) => { clock += ms; },
     answer: (r) => { const f = answerFns.shift(); f && f(r); },
     finishSpeaking: () => speakDone && speakDone(),
     say: async (b) => { mic.status = "hearing"; mic.finish(true); await flush(); },   // he talks, the detector sends it
@@ -209,5 +213,61 @@ const ok = (t) => { assert.deepEqual(t.bad, [], "mic must never record while thi
   let done; t.loop.interject(() => new Promise((r) => { done = r; })); await flush();
   t.loop.end(); done(); await flush(); assert.equal(t.loop.phase, "off"); assert.ok(!t.mic.recording); ok(t); }
 
-console.log("voice loop: all 27 checks passed (mic never recorded while thinking, speaking or off)");
+// 21. (Oct 20, repair #74) "Listening" only once the mic really records: while it opens, the screen hears "opening".
+{ let release; const t = rig({ gate: () => new Promise((r) => { release = r; }) });
+  t.loop.start(); await flush();
+  assert.equal(t.loop.phase, "listening"); assert.equal(t.loop.live, false); assert.ok(!t.mic.recording);
+  assert.ok(t.log.includes("listen:opening")); assert.ok(!t.log.includes("listen:live"), "not live before the mic starts");
+  release(); await flush();
+  assert.equal(t.loop.live, true); assert.ok(t.mic.recording); assert.equal(t.log.filter((l) => l === "listen:live").length, 1); ok(t); }
+// ... a mic that never starts never says "live" (the note asks for a tap)
+{ const t = rig({ failStarts: 9 }); t.loop.start(); await flush(80);
+  assert.equal(t.loop.live, false); assert.ok(!t.log.includes("listen:live")); assert.ok(t.log.some((l) => l.startsWith("note:The microphone didn't start"))); ok(t); }
+// ... a tap while it opens: the old start (overtaken) never says "live"; the new one does
+{ let release; const t = rig({ gate: () => new Promise((r) => { release = r; }) });
+  t.loop.start(); await flush(); t.loop.tap(); await flush();
+  release(); await flush();
+  assert.ok(!t.log.includes("listen:live"), "the overtaken start does not say live");
+  release(); await flush();
+  assert.equal(t.loop.live, true); assert.ok(t.mic.recording); assert.equal(t.log.filter((l) => l === "listen:live").length, 1); ok(t); }
+// ... while opening after an answer, it is not live; thinking / speaking are never "live"
+{ let release = null; let slow = false; const t = rig({ gate: () => slow ? new Promise((r) => { release = r; }) : Promise.resolve() });
+  t.loop.start(); await flush(); assert.equal(t.loop.live, true);
+  await t.say(); assert.equal(t.loop.live, false); t.answer({ answer: "A." }); await flush(); assert.equal(t.loop.live, false);
+  slow = true; t.finishSpeaking(); await flush(); assert.equal(t.loop.phase, "listening"); assert.equal(t.loop.live, false);
+  release(); await flush(); assert.equal(t.loop.live, true); ok(t); }
+// ... End voice while it opens: never live, never records
+{ let release; const t = rig({ gate: () => new Promise((r) => { release = r; }) });
+  t.loop.start(); await flush(); t.loop.end(); release(); await flush();
+  assert.equal(t.loop.phase, "off"); assert.equal(t.loop.live, false); assert.ok(!t.mic.recording); assert.ok(!t.log.includes("listen:live")); ok(t); }
+
+// 22. End voice lets the microphone go, once; End then start again at once keeps it.
+{ const t = rig(); t.loop.start(); await flush(); t.loop.end(); t.loop.end(); await flush();
+  assert.equal(t.log.filter((l) => l === "mic:close").length, 1); ok(t); }
+{ const t = rig(); t.loop.start(); await flush(); t.loop.end(); t.loop.start(); await flush();
+  assert.ok(!t.log.includes("mic:close")); assert.equal(t.loop.phase, "listening"); assert.ok(t.mic.recording); ok(t); }
+{ const t = rig(); t.loop.start(); await flush(); await t.say(); t.answer({ answer: "A." }); await flush(); assert.ok(!t.log.includes("mic:close"), "no close between turns"); ok(t); }
+
+// 23. Web (settleMs 0): after Ananta speaks it listens at once, no 250 ms wait; the iPhone app keeps the wait.
+{ const t = rig({ settleMs: 0 }); t.loop.start(); await flush(); await t.say(); t.answer({ answer: "Hi." }); await flush();
+  t.finishSpeaking(); await flush(); assert.equal(t.loop.phase, "listening"); assert.ok(t.mic.recording); assert.ok(!t.sleeps.includes(250)); ok(t); }
+{ const t = rig({ settleMs: 0 }); t.loop.start(); await flush();
+  let done; const p = t.loop.interject(() => new Promise((r) => { done = r; })); await flush(); done(); assert.equal(await p, true); await flush();
+  assert.equal(t.loop.phase, "listening"); assert.ok(t.mic.recording); assert.ok(!t.sleeps.includes(250)); ok(t); }
+{ const t = rig(); t.loop.start(); await flush(); await t.say(); t.answer({ answer: "Hi." }); await flush();
+  t.finishSpeaking(); await flush(); assert.ok(t.sleeps.includes(250), "iPhone app: still waits 250 ms"); assert.ok(t.mic.recording); ok(t); }
+// ... a tap during the wait still wins (iPhone app)
+{ const t = rig(); t.loop.start(); await flush(); await t.say(); t.answer({ answer: "Hi." }); await flush();
+  t.finishSpeaking(); t.loop.end(); await flush(); assert.equal(t.loop.phase, "off"); assert.ok(!t.mic.recording); ok(t); }
+
+// 24. Timing telemetry: Ananta finished speaking -> mic live, for the listen right after speaking only.
+{ let release; const t = rig({ settleMs: 0, gate: () => new Promise((r) => { release = r; }) });
+  t.loop.start(); await flush(); release(); await flush(); assert.equal(t.loop.lastGapMs, null, "first listen: no speech before it");
+  await t.say(); t.answer({ answer: "Hi." }); await flush();
+  t.finishSpeaking(); await flush(); t.adv(180); release(); await flush();
+  assert.equal(t.loop.lastGapMs, 180);
+  t.mic.cancel(); await flush(); t.loop.onNoSpeech(); await flush(); release(); await flush();
+  assert.equal(t.loop.lastGapMs, null, "a restart after silence is not measured as a gap"); ok(t); }
+
+console.log("voice loop: all 40 checks passed (27 earlier + 13 new): mic never recorded while thinking, speaking or off; listening only once the mic is live");
 process.exit(0);

@@ -1,0 +1,286 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>webmic harness</title></head>
+<body>
+<pre id="out">loading…</pre>
+<script type="module">
+// Headless-Chromium harness for src/webmic.js (driven by scripts/webmic_browser_test.py).
+// The "microphone" is our own AudioContext: room noise always, plus a speech-like burst we start exactly when we want
+// (the worst case: the instant arm() is called). getUserMedia is replaced so the page's mic is that stream.
+import { createWebMic, WEBMIC } from "../src/webmic.js";
+
+const out = document.getElementById("out");
+const say = (m) => { out.textContent += "\n" + m; };
+const realGum = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ---- the fake microphone ----
+const R = 48000;
+const fake = { ctx: null, dest: null, gumCalls: 0, real: false, gumDelayMs: 0 };
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296 * 2 - 1; }; }
+function speech(rate, ms, seed = 11) {        // same as scripts/webmic.test.mjs: noise through two resonances, ~4 syllables a second
+  const r = rng(seed), n = Math.round(rate * ms / 1000), x = new Float32Array(n);
+  const res = (f, q) => { const w = 2 * Math.PI * f / rate, a = Math.exp(-w / (2 * q)); return { b1: 2 * a * Math.cos(w), b2: -a * a, y1: 0, y2: 0 }; };
+  const f1 = res(500, 6), f2 = res(1500, 8), edge = Math.round(rate * 0.003);
+  for (let i = 0; i < n; i++) {
+    const e = r();
+    const y1 = e + f1.b1 * f1.y1 + f1.b2 * f1.y2; f1.y2 = f1.y1; f1.y1 = y1;
+    const y2 = e + f2.b1 * f2.y1 + f2.b2 * f2.y2; f2.y2 = f2.y1; f2.y1 = y2;
+    const syl = 0.15 + 0.85 * Math.abs(Math.sin(Math.PI * 4 * (i / rate) + 0.6)) ** 1.5;
+    x[i] = (0.06 * y1 + 0.04 * y2) * syl * Math.min(1, i / edge, (n - 1 - i) / edge);
+  }
+  const g = 0.1 / Math.sqrt(x.reduce((s, v) => s + v * v, 0) / n);
+  for (let i = 0; i < n; i++) x[i] *= g;
+  return x;
+}
+function tone(rate, ms, f = 3000, a = 0.1) { return Float32Array.from({ length: Math.round(rate * ms / 1000) }, (_, i) => a * Math.sin(2 * Math.PI * f * i / rate)); }
+async function setupFake() {
+  fake.ctx = new AudioContext({ sampleRate: R });
+  await fake.ctx.resume();
+  fake.dest = fake.ctx.createMediaStreamDestination();
+  const nb = fake.ctx.createBuffer(1, R * 2, R), d = nb.getChannelData(0), r = rng(7);
+  for (let i = 0; i < d.length; i++) d[i] = r() * 0.001 * Math.sqrt(3);            // room noise, -60 dBFS
+  const n = fake.ctx.createBufferSource(); n.buffer = nb; n.loop = true; n.connect(fake.dest); n.start();
+}
+// play a sound into the fake mic now; resolves when it has finished playing in the fake context
+function play(samples) {
+  const b = fake.ctx.createBuffer(1, samples.length, R); b.copyToChannel(samples, 0);
+  const s = fake.ctx.createBufferSource(); s.buffer = b; s.connect(fake.dest);
+  const done = new Promise((res) => { s.onended = res; });
+  s.start();
+  return { at: performance.now(), done };
+}
+navigator.mediaDevices.getUserMedia = async (c) => {
+  fake.gumCalls++;
+  if (fake.real) return realGum(c);                                        // Chromium's own (fake-device) microphone
+  if (fake.gumDelayMs) await wait(fake.gumDelayMs);                        // an iPhone-like cost per call (assumed, not measured)
+  return fake.dest.stream.clone();
+};
+
+// ---- measuring what was delivered ----
+function decodeWavB64(b64) {
+  const bin = atob(b64), b = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i);
+  const dv = new DataView(b.buffer);
+  const tag = (o) => String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3]);
+  if (tag(0) !== "RIFF" || tag(8) !== "WAVE" || tag(36) !== "data") throw new Error("not our WAV");
+  const rate = dv.getUint32(24, true), n = dv.getUint32(40, true) / 2, x = new Float32Array(n);
+  for (let i = 0; i < n; i++) x[i] = dv.getInt16(44 + 2 * i, true) / 32768;
+  return { rate, x, channels: dv.getUint16(22, true), bits: dv.getUint16(34, true) };
+}
+function burst(x, rate, thr = 0.01) {                                    // 2 ms windows above -40 dBFS
+  const w = Math.round(rate * 0.002); let first = -1, last = -1;
+  for (let i = 0; i + w <= x.length; i += w) {
+    let s = 0; for (let k = i; k < i + w; k++) s += x[k] * x[k];
+    if (Math.sqrt(s / w) > thr) { if (first < 0) first = i; last = i + w; }
+  }
+  return { startMs: +(first * 1000 / rate).toFixed(1), endMs: +(last * 1000 / rate).toFixed(1), durMs: +((last - first) * 1000 / rate).toFixed(1),
+    totalMs: +(x.length * 1000 / rate).toFixed(1) };
+}
+const rmsDb = (x, a, b) => { let s = 0; for (let i = a; i < b; i++) s += x[i] * x[i]; return +(10 * Math.log10(s / Math.max(1, b - a) + 1e-20)).toFixed(1); };
+const median = (a) => { const s = [...a].sort((p, q) => p - q); return s.length ? s[Math.floor(s.length / 2)] : null; };
+
+// One webmic turn: arm, optionally start the burst at a chosen moment, wait for the end of speech, disarm and measure.
+async function webmicTurn(mic, { burstMs = 1500, startAt = "arm", delayMs = 0 } = {}) {
+  const sp = speech(R, burstMs);
+  let ended = null, speechAt = null, played = null;
+  const endP = new Promise((res) => { ended = res; });
+  const t0 = performance.now();
+  const armP = mic.arm({ onSpeech: () => { speechAt = performance.now(); }, onEnd: (r) => ended(r) });
+  if (startAt === "arm") played = play(sp);                              // the instant arm() is called
+  const ok = await armP;
+  const armWall = performance.now() - t0;
+  if (!ok) return { ok: false };
+  if (startAt === "live") played = play(sp);                             // the instant the orb would say "listening"
+  if (startAt === "later") { await wait(delayMs); played = play(sp); }
+  const reason = await Promise.race([endP, wait(25000).then(() => "timeout")]);
+  await played.done;
+  const res = mic.disarm(true);
+  const w = decodeWavB64(res.b64), b = burst(w.x, w.rate);
+  // what was kept before his speech (turn 5: Ananta's voice must not be there): level of the first 150 ms
+  const headDb = rmsDb(w.x, 0, Math.min(w.x.length, Math.round(w.rate * 0.15)));
+  const lead = burst(w.x.subarray(0, Math.round(w.rate * 0.2)), w.rate);   // anything loud in the first 200 ms (turn 5b: Ananta's tail)
+  const after = burst(w.x.subarray(Math.round(w.rate * 0.2)), w.rate);    // his speech when it starts after 200 ms (turn 5b)
+  return { headDb, soundInFirst200Ms: lead.durMs > 0 ? lead.durMs : 0, burstAfter200: after, ok: true, reason, capture: mic.capture, armToLiveMs: res.timing.armToLiveMs, armWallMs: +armWall.toFixed(1),
+    onsetMs: res.timing.onsetMs, prerollMs: res.timing.prerollMs, speechMs: res.timing.speechMs, endSilenceMs: res.timing.endSilenceMs,
+    bytes: res.bytes, wav: { rate: w.rate, channels: w.channels, bits: w.bits }, burst: b,
+    clipMs: +Math.max(0, burstMs - b.durMs).toFixed(1), tailMs: +(b.totalMs - b.endMs).toFixed(1),
+    room: mic.room };
+}
+
+// The old path, as mic.ts + expo-audio 57.0.5 did on the web on EVERY turn (see node_modules/expo-audio/build/AudioRecorder.web.js):
+// requestRecordingPermissionsAsync (getUserMedia, stop tracks), then prepareToRecordAsync (getUserMedia again,
+// enumerateDevices, an analyser on the shared AudioContext, a new MediaRecorder), then record(). The orb already said
+// "listening" when this began (VoiceLoop set the phase before micStart). "Live" = the MediaRecorder's start event.
+let expoCtx = null;
+async function oldPathStart() {
+  const t0 = performance.now();
+  const perm = await navigator.mediaDevices.getUserMedia({ audio: true });
+  perm.getTracks().forEach((t) => t.stop());
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  await navigator.mediaDevices.enumerateDevices();
+  if (!expoCtx) expoCtx = new AudioContext();
+  if (expoCtx.state === "suspended") expoCtx.resume();
+  const an = expoCtx.createAnalyser(); an.fftSize = 2048; const src = expoCtx.createMediaStreamSource(stream); src.connect(an);
+  const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : undefined;
+  const mr = new MediaRecorder(stream, mime ? { mimeType: mime, bitsPerSecond: 128000 } : { bitsPerSecond: 128000 });
+  const started = new Promise((r) => mr.addEventListener("start", r, { once: true }));
+  const chunks = [];
+  mr.addEventListener("dataavailable", (e) => chunks.push(e.data));
+  mr.start();
+  await started;
+  return { t0, liveMs: +(performance.now() - t0).toFixed(1), stop: async () => {
+    const done = new Promise((r) => mr.addEventListener("stop", r, { once: true }));
+    mr.stop(); await done;
+    src.disconnect(); stream.getTracks().forEach((t) => t.stop());
+    return new Blob(chunks, { type: mr.mimeType });
+  } };
+}
+
+window.runAll = async () => {
+  const res = { webmic: {}, old: {}, notes: [] };
+  await setupFake();
+  say("fake mic ready");
+
+  // ---- 1. webmic: open once (permission + stream), then turns ----
+  const mic = createWebMic({ log: (m) => res.notes.push(m) });
+  let t = performance.now();
+  const opened = await mic.open();
+  res.webmic.openMs = +(performance.now() - t).toFixed(1);
+  res.webmic.opened = opened;
+  res.webmic.capture = mic.capture;
+  res.webmic.rate = mic.rate;
+  if (!opened) return res;
+  const gumAfterOpen = fake.gumCalls;
+  // turn 1 (first turn: the room is being learned) - he talks the instant arm() is called
+  res.webmic.turn1_first_speakAtArm = await webmicTurn(mic, { startAt: "arm" });
+  say("turn 1 done");
+  // turn 2 (room learned) - the worst case again
+  res.webmic.turn2_speakAtArm = await webmicTurn(mic, { startAt: "arm" });
+  say("turn 2 done");
+  // turn 3 - he talks the instant the orb would say "listening" (arm resolved)
+  res.webmic.turn3_speakAtLive = await webmicTurn(mic, { startAt: "live" });
+  // turn 4 - he talks 1.2 s later: the pre-roll gives 400 ms before his first word
+  res.webmic.turn4_speakLater = await webmicTurn(mic, { startAt: "later", delayMs: 1200 });
+  say("turns 3-4 done");
+  // 5. Ananta speaking while disarmed is never kept, and its tail is not taken for speech.
+  //  a) the mic arms while the last 180 ms of "Ananta's voice" (a tone) are still playing (a slow Bluetooth speaker); he says
+  //     nothing: no "hearing you", no turn
+  {
+    const ananta = play(tone(R, 800));
+    await wait(620);
+    let heard = false, endReason = null;
+    const ok = await mic.arm({ onSpeech: () => { heard = true; }, onEnd: (r) => { endReason = r; } });
+    await ananta.done;
+    await wait(1500);
+    const r = mic.disarm(true);
+    const w = decodeWavB64(r.b64);
+    res.webmic.turn5a_tailOnly = { ok, heardSpeech: heard, endReason, tailInWavMs: burst(w.x, w.rate).durMs };
+  }
+  //  b) the mic arms the moment "Ananta" stops; he talks 250 ms later: all of him, and at most a sliver of the tail
+  {
+    const ananta = play(tone(R, 800));
+    await ananta.done;
+    res.webmic.turn5b_afterAnanta = await webmicTurn(mic, { startAt: "later", delayMs: 250 });
+  }
+  say("turn 5 done");
+  // 6. arm -> live latency, 8 quick turns (arm, then throw away)
+  const lat = [];
+  for (let i = 0; i < 8; i++) {
+    const t1 = performance.now();
+    const ok = await mic.arm({});
+    lat.push(+(performance.now() - t1).toFixed(1));
+    mic.disarm(false);
+    if (!ok) res.notes.push("arm failed in the latency loop");
+    await wait(60);
+  }
+  res.webmic.armToLiveMs = lat;
+  res.webmic.armToLiveMedian = median(lat);
+  res.webmic.getUserMediaCallsPerTurn = (fake.gumCalls - gumAfterOpen) / 13;     // 5 measured turns + 8 latency turns
+  res.webmic.getUserMediaCallsTotal = fake.gumCalls;
+  mic.close();
+  res.webmic.closedTracksLive = mic.isOpen;
+
+  // ---- 2. ScriptProcessor fallback (a browser without AudioWorklet) ----
+  {
+    const saved = window.AudioWorkletNode;
+    window.AudioWorkletNode = undefined;
+    const m2 = createWebMic({});
+    const ok = await m2.open();
+    window.AudioWorkletNode = saved;
+    res.webmic.fallback = ok ? { capture: m2.capture, ...(await webmicTurn(m2, { startAt: "arm" })), second: await webmicTurn(m2, { startAt: "arm" }) } : { ok: false };
+    m2.close();
+  }
+  say("fallback done");
+
+  // ---- 3. the old path: arm -> live per turn, with the patched mic and with Chromium's own (fake-device) mic ----
+  for (const real of [false, true]) {
+    fake.real = real;
+    const xs = [];
+    for (let i = 0; i < 6; i++) {
+      const o = await oldPathStart();
+      xs.push(o.liveMs);
+      await o.stop();
+      await wait(60);
+    }
+    res.old[real ? "chromiumMicLiveMs" : "patchedMicLiveMs"] = xs;
+    res.old[real ? "chromiumMicLiveMedian" : "patchedMicLiveMedian"] = median(xs);
+  }
+  fake.real = false;
+  // webmic with Chromium's own mic, for the same comparison
+  {
+    fake.real = true;
+    const m3 = createWebMic({});
+    let t3 = performance.now();
+    const ok = await m3.open();
+    res.webmic.chromiumMicOpenMs = +(performance.now() - t3).toFixed(1);
+    const xs = [];
+    for (let i = 0; ok && i < 6; i++) { const t1 = performance.now(); await m3.arm({}); xs.push(+(performance.now() - t1).toFixed(1)); m3.disarm(false); await wait(60); }
+    res.webmic.chromiumMicArmToLiveMs = xs;
+    res.webmic.chromiumMicArmToLiveMedian = median(xs);
+    m3.close();
+    fake.real = false;
+  }
+  say("latency done");
+
+  // ---- 4. the old path's clipping: he talks the instant the orb said "listening" (when the old start began) ----
+  // once with this machine's getUserMedia, once with an assumed iPhone-like 300 ms per getUserMedia call
+  for (const delay of [0, 300]) {
+    fake.gumDelayMs = delay;
+    const sp = speech(R, 1500);
+    const o = oldPathStart();                                            // the orb says "listening" now
+    const played = play(sp);                                             // ... and he talks
+    const started = await o;
+    await played.done;
+    await wait(1100);
+    const blob = await started.stop();
+    const key = delay ? "clipSlowGum" : "clip";
+    try {
+      const ab = await blob.arrayBuffer();
+      const buf = await fake.ctx.decodeAudioData(ab);
+      const b = burst(buf.getChannelData(0), buf.sampleRate);
+      res.old[key] = { gumDelayMs: delay, liveMs: started.liveMs, mime: blob.type, burst: b, clipMs: +Math.max(0, 1500 - b.durMs).toFixed(1) };
+    } catch (e) {
+      res.old[key] = { gumDelayMs: delay, liveMs: started.liveMs, error: String(e) };
+    }
+  }
+  // ... and webmic with the same slow getUserMedia: paid once at open, never per turn
+  {
+    const m4 = createWebMic({});
+    const t4 = performance.now();
+    const ok = await m4.open();
+    const openMs = +(performance.now() - t4).toFixed(1);
+    const a = ok ? await webmicTurn(m4, { startAt: "live" }) : { ok: false };
+    const b = ok ? await webmicTurn(m4, { startAt: "live" }) : { ok: false };
+    res.webmic.slowGum = { gumDelayMs: 300, openMs, turn1: { armToLiveMs: a.armToLiveMs, clipMs: a.clipMs }, turn2: { armToLiveMs: b.armToLiveMs, clipMs: b.clipMs } };
+    m4.close();
+  }
+  fake.gumDelayMs = 0;
+  say("old clip done");
+  return res;
+};
+window.harnessReady = true;
+out.textContent = "ready";
+</script>
+</body>
+</html>

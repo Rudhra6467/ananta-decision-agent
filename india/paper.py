@@ -221,7 +221,9 @@ def context(f: pd.DataFrame, asof: pd.Timestamp, liq_top: int) -> dict:
 def fetch_latest() -> dict:
     today = dt.date.today()
     backfill.run("cm_bhavcopy", today - dt.timedelta(days=4), today, 1.0)
-    return {"fetch": "ok", "silver": silver.build_cm_year(today.year)}
+    out = {"fetch": "ok", "silver": silver.build_cm_year(today.year)}
+    out["calendar"] = silver.build_calendar()   # a new cash file is a new trading day (19 Oct: verify failed until the calendar was rebuilt)
+    return out
 
 
 def _num(x):

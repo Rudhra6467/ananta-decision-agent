@@ -742,7 +742,7 @@ def run_day(day: str, data: Path = DATA_DIR, accounts: Path = ACCOUNTS_FILE, age
     rows = [x for x in rows if x["day"] != day]
     row = {"day": day, "made_t": int(time.time()), "version": VERSION, "files": len(r["files"]), "accounts": r["accounts"],
            "trips_closed": r["trips_closed"], "watched": len(r["cases"]), "outside": r["outside"], "unmapped": r["unmapped"], "dial": r["dial"],
-           **s, "filed": (old or {}).get("filed") or [], "notes": r["notes"]}
+           **s, "filed": (old or {}).get("filed") or [], "notes": r["notes"], "dry_run": not requests}
     rows.append(row)
     filed, pending = [], []
     for p in repeats(rows, day):
@@ -765,10 +765,11 @@ def run_day(day: str, data: Path = DATA_DIR, accounts: Path = ACCOUNTS_FILE, age
 
 
 def run(days: int = 7, now: float | None = None, data: Path = DATA_DIR, out: Path = DOCS_DIR, force: bool = False, **kw) -> list[dict]:
-    """Every day of the last `days` finished UTC days that has a day file and no history row yet (oldest first)."""
+    """Every day of the last `days` finished UTC days that has a day file and no history row yet (oldest first). A row written by a
+    dry run (--no-requests) does not count as done, so the pattern rule still runs on that day."""
     now = now or time.time()
     today = int(now) - int(now) % DAY
-    done = {r["day"] for r in read_history(Path(out) / "repair_shop" / "daily" / "others_history.jsonl")}
+    done = {r["day"] for r in read_history(Path(out) / "repair_shop" / "daily" / "others_history.jsonl") if not r.get("dry_run")}
     res = []
     for k in range(days, 0, -1):
         d = _day(today - k * DAY)

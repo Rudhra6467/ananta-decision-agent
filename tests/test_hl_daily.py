@@ -434,6 +434,17 @@ def test_three_days_in_seven_files_one_draft_finding_through_the_repair_board(tm
     assert r2["filed"] == []
     hist = od.read_history(out / "repair_shop" / "daily" / "others_history.jsonl")
     assert [h["day"] for h in hist] == sorted({_d(9), _d(5), _d(2), D}) and hist[-1]["filed"][0]["num"] == 1
+    from src.research import others_daily as od2
+
+    seen = []
+    monkeypatch.setattr(od2, "run_day", lambda d, **kw: seen.append((d, kw.get("requests"))) or {"day": d})
+    od2.run(now=D0 + DAY + 3600, data=c.DATA, out=out)                       # D has a real row; only D - 1 (a day file, no row) runs
+    assert seen == [(_d(1), None)]
+    hp = out / "repair_shop" / "daily" / "others_history.jsonl"
+    od2.write_history(hp, [dict(h, dry_run=True) if h["day"] == D else h for h in od2.read_history(hp)])
+    seen.clear()
+    od2.run(now=D0 + DAY + 3600, data=c.DATA, out=out)                       # a dry run's row does not count as done
+    assert seen == [(_d(1), None), (D, None)]
     j = type("J", (), {"db": sqlite3.connect(ag / "jarvis.sqlite"), "now": staticmethod(time.time)})()
     assert len(requests_log.list_(j)) == 1
     j.db.close()

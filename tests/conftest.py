@@ -49,3 +49,10 @@ def _no_live_kill_switch(monkeypatch):
 
     for k in ("prices", "prices_t", "prices_lim"):            # the eye's last look (with its times) never leaks into the next test
         monkeypatch.delitem(eye.STATE, k, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _no_live_shadow_log(tmp_path, monkeypatch):
+    """Oct 20 (OD-SHADOW-LANE): the nightly round and the 15-minute jobs now call the shadow lane. Tests never append to the real
+    ~/ananta_runs/shadow/shadow_log.jsonl: each test gets its own folder."""
+    monkeypatch.setenv("ANANTA_SHADOW_DIR", str(tmp_path / "shadow_lane"))

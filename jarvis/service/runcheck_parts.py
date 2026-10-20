@@ -130,6 +130,12 @@ PARTS: list[dict] = [
      "severity": "medium", "since": "2026-10-04", "cadence": {"daily": "00:30", "tz": "UTC", "grace": 3 * 3600}, "min_work": 1,
      "proof": {"sql": J, "query": "SELECT CAST(strftime('%s', substr(k, 12, 10)) AS INTEGER) + 86400 + 1800, 1, "
                                   "CASE WHEN v LIKE '%error%' THEN v END FROM engine_state WHERE k LIKE 'missed_t30:%'"}},
+    {"id": "shadow_lane", "name": "Blind shadow lane: at least one row a day and its hash chain intact", "job": "com.ananta.jarvis (run_daily, shadow)",
+     "severity": "medium", "since": "2026-10-21", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 3 * 3600},
+     "min_work": 1,
+     "proof": {"log": "{runs}/shadow/run.log", "time_format": "%Y-%m-%d %H:%M", "tz": "UTC",
+               "regex": r"^\[(?P<t>\d{4}-\d\d-\d\d \d\d:\d\d)\] daily rows=(?P<work>\d+) status=(?P<err>.*)$", "ok_err": "ok"},
+     "note": "OD-SHADOW-LANE: status is ok only when verify() found the chain intact and no rule failed; the lane shows counts only"},
     {"id": "evening_review", "name": "Evening review", "job": "15-minute jobs (reviews.evening)", "severity": "low",
      "since": "2026-10-05", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 3 * 3600}, "min_work": 1,
      "proof": {"sql": J, "query": "SELECT t, 1 FROM daily_reviews WHERE t >= :t0"}},

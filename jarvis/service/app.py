@@ -1804,6 +1804,12 @@ def background_jobs() -> dict:
         out["requests"] = requests_log.notify(J(), push=_push)       # "Fixed: request 4" on the phone
     except Exception as exc:  # noqa: BLE001
         out["requests_error"] = str(exc)[:200]
+    try:  # OD-SHADOW-LANE (Oct 20): the attention board and the intraday breakout cross, logged blind; no result, no book
+        from jarvis.service import shadow
+
+        shadow.hook_15m(J(), out)
+    except Exception as exc:  # noqa: BLE001  never breaks the jobs (hook_15m already swallows; this catches a failed import)
+        out["shadow"] = {"error": f"{_t.strftime('%Y-%m-%d %H:%M:%S', _t.gmtime())} UTC {str(exc)[:200]}"}
     a = A()
     if a.setting("ask_enabled") == "1" and a.setting("voice_enabled") == "1":
         kind = AL().due_brief()

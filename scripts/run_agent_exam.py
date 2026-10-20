@@ -4,12 +4,28 @@ which the gate's agent_knows, agent_unknowns and ux_why read. Prints a short sum
 from __future__ import annotations
 
 import json
+import os
+import re
 import time
 
-from jarvis.service import core, exam
+ENV_FILE = os.getenv("ANANTA_ENV_FILE", os.path.expanduser("~/code/ananta-decision-agent/.env"))
+
+
+def load_env(path: str = ENV_FILE) -> None:
+    """The service's own environment, rebuilt from the agent's .env exactly as ~/ananta_runs/jarvis_run.py does (values are never printed)."""
+    for line in open(path):
+        m = re.match(r"\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$", line)
+        if m and not line.lstrip().startswith("#"):
+            v = m.group(2)
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+                v = v[1:-1]
+            os.environ[m.group(1)] = v
 
 
 def main() -> int:
+    load_env()
+    from jarvis.service import core, exam
+
     j = core.from_env()
     t0 = time.time()
     e = exam.run(j)

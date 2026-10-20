@@ -1447,6 +1447,8 @@
    "evidence": "from 2026-10-04: phone note when a part goes quiet and when it is back; a must-have before live",
    "files": [
     "jarvis/service/health.py",
+    "jarvis/service/runcheck.py",
+    "jarvis/service/runcheck_parts.py",
     "jarvis/service/worker.py",
     "jarvis/service/ndax_spreads.py",
     "jarvis/service/realism.py",

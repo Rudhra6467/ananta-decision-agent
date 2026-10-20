@@ -274,9 +274,10 @@ def test_engine_execution_is_judged_against_the_workers_independent_ndax_quote(t
     assert el.execution_reading(_realism(40, 38, 5.1))["status"] == "FAIL"                # median over 5 bp
     books = {"BOOK500": {"fills": 10, "measured": 10, "realistic": 10, "no_quote": 0, "realistic_share": 1.0, "median_optimism_bps": -20.0},
              "T30": {"fills": 30, "measured": 26, "realistic": 12, "no_quote": 4, "realistic_share": 0.462, "median_optimism_bps": 9.5},
-             "H07": {"fills": 3, "measured": 0, "realistic": 0, "no_quote": 3, "realistic_share": None, "median_optimism_bps": None}}
-    bad = el.execution_reading(_realism(36, 22, 6.0, books, no_quote=7))
-    assert bad["status"] == "FAIL" and "worst book T30: 12 of 26" in bad["note"] and "7 fills had no worker quote (T30 4, H07 3)" in bad["note"]
+             "H07": {"fills": 3, "measured": 0, "realistic": 0, "no_quote": 3, "realistic_share": None, "median_optimism_bps": None},
+             "TINY": {"fills": 2, "measured": 2, "realistic": 0, "no_quote": 0, "realistic_share": 0.0, "median_optimism_bps": 22.0}}
+    bad = el.execution_reading(_realism(38, 22, 6.0, books, no_quote=7))
+    assert bad["status"] == "FAIL" and "worst book T30: 12 of 26" in bad["note"] and "TINY" not in bad["note"]     # 2 fills: too few to name and "7 fills had no worker quote (T30 4, H07 3)" in bad["note"]
 
     j = _j(tmp_path)
     j.db.execute("CREATE TABLE book500_fills (t INTEGER, coin TEXT, side TEXT, qty REAL, px REAL, fee REAL, bid REAL, ask REAL)")

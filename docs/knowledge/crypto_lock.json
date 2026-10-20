@@ -168,7 +168,7 @@
     "docs/knowledge/acceptance_gate.json",
     "jarvis/service/realism.py"
    ],
-   "sha256": "0c1696b446f9ffd1912fd3e0999f8f8f934aae05a59b4b604d094345f246d555",
+   "sha256": "ba397b745dae98597ffae65bada22bb126cc53d9da042ddf71226fec80b33dfe",
    "history": [
     {
      "date": "2026-10-15",
@@ -179,8 +179,8 @@
     {
      "date": "2026-10-20",
      "approved_by": "Madhav (in chat)",
-     "sha256": "0c1696b446f9ffd1912fd3e0999f8f8f934aae05a59b4b604d094345f246d555",
-     "note": "Asked in the decision map of 20 Oct (docs/repair_shop/plan-2026-10-20-decision-map.md, section 4 and section 6, item 2): \"engine_execution counts every paper fill of every book, judged against the worker's independent NDAX quote for that minute. Pass: at least 20 fills, at least 90% achievable, and the median gap within 5 bp. engine_sizing stays on the $500 book only.\" Madhav, 2026-10-20 12:08 Toronto: \"2. yes\". The change: evidence_live reads engine_execution from realism.report(since=\"2026-10-12\") through the new execution_reading (PENDING under 20 measured fills; FAIL under 90% achievable or a median optimism over 5 bp; else PASS), and this pin now also covers EXEC_SINCE, EXEC_FILLS, EXEC_ACHIEVABLE, EXEC_MEDIAN_BPS, execution_reading and realism.py's test (NDAX_FEE, TOLERANCE_BPS, MAX_QUOTE_GAP_S, optimism_bps, score). The $500 book's old count stays in the note for continuity."
+     "sha256": "ba397b745dae98597ffae65bada22bb126cc53d9da042ddf71226fec80b33dfe",
+     "note": "Asked in the decision map of 20 Oct (docs/repair_shop/plan-2026-10-20-decision-map.md, section 4 and section 6, item 2): \"engine_execution counts every paper fill of every book, judged against the worker's independent NDAX quote for that minute. Pass: at least 20 fills, at least 90% achievable, and the median gap within 5 bp. engine_sizing stays on the $500 book only.\" Madhav, 2026-10-20 12:08 Toronto: \"2. yes\". The change: evidence_live reads engine_execution from realism.report(since=\"2026-10-12\") through the new execution_reading (PENDING under 20 measured fills; FAIL under 90% achievable or a median optimism over 5 bp; else PASS), and this pin now also covers EXEC_SINCE, EXEC_FILLS, EXEC_ACHIEVABLE, EXEC_MEDIAN_BPS, execution_reading (EXEC_WORST_MIN, which only picks the book the note names, is not pinned) and realism.py's test (NDAX_FEE, TOLERANCE_BPS, MAX_QUOTE_GAP_S, optimism_bps, score). The $500 book's old count stays in the note for continuity."
     }
    ]
   }

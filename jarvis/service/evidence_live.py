@@ -1000,6 +1000,7 @@ EXEC_SINCE = "2026-10-12"                # engine_execution (Madhav, 2026-10-20 
 EXEC_FILLS = 20                          # since the worker's first NDAX day, judged against the worker Mac's independent NDAX quote for
 EXEC_ACHIEVABLE = 0.90                   # that minute (jarvis/service/realism.py): PASS needs 20 measured fills, 90% achievable and
 EXEC_MEDIAN_BPS = 5.0                    # the median optimism within 5 bp
+EXEC_WORST_MIN = 5                       # the note's 'worst book' among books with at least 5 measured fills (words only, not the rule)
 
 
 def execution_reading(rep: dict) -> dict:
@@ -1011,18 +1012,21 @@ def execution_reading(rep: dict) -> dict:
     med = rep.get("median_optimism_bps")
     books = rep.get("books") or {}
     meas = {k: b for k, b in books.items() if b.get("measured")}
-    worst = min(meas, key=lambda k: (meas[k]["realistic_share"], -meas[k]["measured"], k)) if meas else None
+    big = {k: b for k, b in meas.items() if b["measured"] >= EXEC_WORST_MIN} or meas     # a book of 1 or 2 fills says little
+    worst = min(big, key=lambda k: (big[k]["realistic_share"], -big[k]["measured"], k)) if big else None
     nq = {k: b["no_quote"] for k, b in books.items() if b.get("no_quote")}
+    top = sorted(nq.items(), key=lambda x: (-x[1], x[0]))
     status = ("PENDING" if n < EXEC_FILLS else
               "FAIL" if share < EXEC_ACHIEVABLE or (med is not None and med > EXEC_MEDIAN_BPS) else "PASS")
     note = (f"{ok} of {n} measured paper fills of every book since {rep.get('since', EXEC_SINCE)} were achievable at the worker's NDAX "
             f"quote that minute" + (f" ({100 * share:.0f}%, needs {100 * EXEC_ACHIEVABLE:.0f}%)" if n else "")
             + (f"; median optimism {med:g} bp (needs {EXEC_MEDIAN_BPS:g} bp or less)" if med is not None else "")
-            + f"; needs {EXEC_FILLS} measured fills"
+            + (f"; needs {EXEC_FILLS} measured fills" if n < EXEC_FILLS else "")
             + (f"; worst book {worst}: {meas[worst]['realistic']} of {meas[worst]['measured']} achievable, median "
                f"{meas[worst]['median_optimism_bps']:g} bp" if worst else "")
             + (f"; {sum(nq.values())} fill{'s' if sum(nq.values()) != 1 else ''} had no worker quote ("
-               + ", ".join(f"{k} {v}" for k, v in sorted(nq.items(), key=lambda x: (-x[1], x[0]))) + ")" if nq else "; every fill had a worker quote"))
+               + ", ".join(f"{k} {v}" for k, v in top[:5]) + (f" and {len(top) - 5} more books" if len(top) > 5 else "") + ")"
+               if nq else "; every fill had a worker quote"))
     return {"status": status, "note": note}
 
 

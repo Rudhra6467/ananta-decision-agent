@@ -1,0 +1,103 @@
+{
+ "family": "SP3",
+ "version": "sp3-v1-2026-10-20-draft1",
+ "status": "DRAFT 1, 20 Oct 2026. Design approved by Madhav 20 Oct 2026 08:36 Toronto ('SP3 design approved. we have to maintain the baseline we followed in crypto. gather as much as possible to start with and then start filtering and tuning based on findings. the car manufacturing plan we followed'). Independent review next, then freeze; nothing is run before the freeze.",
+ "title": "SP3: the positional playbook. For every liquid stock (and the two indices) each evening: which entry, which exit and holding time (1-60 sessions) suits today's situation, or no trade",
+ "why": [
+  "the evidence points to positional first: a 5-60 session trade pays about 0.25% round trip against moves of 2-10%, intraday pays about 0.15% against 0.3-0.5% (audit 19 Oct, section 5)",
+  "what we learned is about timing and context, not stock picking: saturation (E04) and oversold (P01) pass false-discovery control but fail the within-day shuffle; weak markets paid more (E08, C07, C09 OPPOSITE; C06 FII long OPPOSITE); holding beat clever exits (E02, E06, E09, E11) and time/structure exits led (G01). SP3 turns these from single filters into one situation-dependent policy, as SP1 did for the index intraday",
+  "Madhav's rule, from the crypto lab: gather everything first (the unfiltered baseline book), then filter and tune only by findings measured against that baseline, station by station (the car-manufacturing line: raw material, assembly, quality check, repair shop, road test)"
+ ],
+ "evidence_status": {
+  "seen": "2018-2023 has been seen by the E/C/P/V studies on the same entry sets: every SP3 validation row is labelled SEEN and scored with registry rule seen_val_only; nothing on 2018-2023 can confirm",
+  "family_bar": "SP3 rows use family SP3, but the bar is the Bonferroni z over the count of ALL positional-family rows already in the ledger (families exit, stop, gate, reposition, staging, indicator, portfolio, context, context_events, conditions, filter) plus SP3's own rows, recorded with each SP3 row",
+  "confirmatory": "only the registered SP3 holdout run (tests.holdout), opened once after Madhav approves the frozen policy",
+  "untouched_by_sp3": "no SP3 code has read 2024+ rows; the live stock paper engine reads the last 460 days through the logged paper_lookback purpose (observation, never scoring)"
+ },
+ "data": {
+  "prices": "gold/bars/adj_daily (adjusted with the corporate-action factors, applied only when both records agree or the price confirms; the 75 ambiguous events stay excluded), the daily features table gold/features/daily.parquet and gold/universe/u_liq_in.parquet, all to 2023-12-29 (lab rebuilt 19 Oct with the 30 weekend sessions)",
+  "context": "silver/kite_index (Nifty 50, Nifty Bank, India VIX, sector and size indices, daily from 2003), silver/us/us_close (QQQ, SPY from Tiingo, 2003+), participant OI (2012+), delivery (2003+), the event registry (scheduled calendar rows only, scenario.scheduled_dates), board-meeting intimations and results filings with their broadcast times (silver/pr, results index), price-band hits (silver/pr)",
+  "not_used": "FRED USD/INR and Brent (published days late: not known at the decision time); GDELT (that channel is EVC's); fundamentals (V05's, still downloading)",
+  "periods": "dev 2005-2017, validation 2018-2023 (SEEN), holdout 2024-01-01 onward (sealed)"
+ },
+ "decision_point": {
+  "when": "after the close of session T (the live engine decides 22:30 Toronto, before T+1 opens); every input is known by then: closes of T, delivery of T, participant OI of T (published the evening of T), the last US close dated before the entry session T+1 (the US session of date T, on Tiingo by 17:30 New York), filings broadcast before T+1 09:00 IST",
+  "fill": "T+1 official open plus the half-spread for the stock's turnover rank (costs.py estimate) and the slippage the harness adds; exits as the harness fills them (close-based exits at the next open; stops and targets in the bar at the level or at the open if it gaps through)"
+ },
+ "universe": "stocks: liquidity rank 1-250 by 60-session median turnover on T (U_LIQ-IN rule: series EQ, close above Rs 10, no ETFs or funds, at least 126 sessions), excluding corporate-action-ambiguous names over the trade's window; index: NIFTY 50 and NIFTY BANK through the near-month future proxy",
+ "stage_1_gather_everything": {
+  "principle": "the raw material: every candidate any of our entry families produces, unfiltered and uncapped, plus controls; nothing is dropped for being unpromising",
+  "families": {
+   "BRK": "20-day high close on volume at least 1.5x its 20-day average, above the 200-day average (E02's BRK)",
+   "PULL": "above the 200-day and at least 5% under the 20-day average (E02's PULL)",
+   "REV": "RSI(14) under 30 (P01; the live paper engine's REV)",
+   "DECL": "down more than 30% in 60 sessions (saturation after a decline, M-13; E04's decline flag)",
+   "BAND": "a lower price-band hit within the last 5 sessions (V02/E11), as an entry family to measure (not to favour)",
+   "ANY": "every liquid stock-day, sampled at a fixed 3% with seed 11 (the no-entry-skill baseline)",
+   "CTL": "for each day, as many random liquid stocks as the other families produced that day (seed 13): the matched control"
+  },
+  "spacing": "one candidate per stock per family per 14 calendar days (the lab rule); a stock can be in several families on the same day (each is its own candidate row)",
+  "index": "every session for NIFTY and NIFTY BANK is a candidate (long and short)",
+  "size_check": "counts by family and year reported before any outcome is read; if the stock candidate set exceeds 400,000 rows, ANY's sampling rate is lowered (fixed now: to keep the total under 400,000) before outcomes are computed"
+ },
+ "stage_2_every_action": {
+  "stock_exits": "the 18 exit-harness policies exactly as the live paper engine runs them (exitlab.DEFAULT_POLICIES: hold 5/10/20/40/60 sessions; targets 1R/2R/3R; ATR trails 2/3/4; close below the 10/20/50-day average; swing lows 5/10/20; half then trail 3), each with the harness's 2 ATR initial stop, plus hold60_low20 (60-session hold with a close-below-20-day-low exit, G01's validation leader) and the harness's random-exit control: 20 actions + NO TRADE",
+  "stock_direction": "long only (Indian cash delivery cannot be shorted overnight); stock-futures shorts are a later shadow study",
+  "index_actions": "long or short x exits {hold 5, 10, 20 sessions; close below/above the 10-day average; 20-day low/high stop with a 20-session time limit} = 10 actions + NO TRADE, on the future proxy with dated futures costs and the near-month roll at expiry",
+  "outcomes": "per candidate x action: net return after dated costs (delivery: STT 0.1% each side, stamp, exchange, SEBI, GST, DP charge on the Rs 60,000 book's position size; the labelled spread estimate), net R (against the 2 ATR initial stop), holding days, worst and best move, the exit reason; computed by the same code as the live paper engine (exitlab), so research and paper are one schema"
+ },
+ "stage_3_situation": {
+  "market": "Nifty trend (above both / below both / mixed of its 50- and 200-day), breadth (share of the top 500 above the 200-day) in training terciles, India VIX tercile and above/below its 50-day, small caps against large caps (Smallcap 100 / Nifty 100 ratio vs its 50-day), Nifty 20-session return tercile, Nasdaq (QQQ) above/below its 200-day and the last US session's move bucket (+/-1%), FII index-futures long share tercile (2012+; 'missing' before), a scheduled RBI/Budget/election day in the next 5 sessions",
+  "stock": "family (which of the above produced it), distance from the 50-day (under 0, 0-20%, over 20%: E04's saturation line), RSI(14) bucket (under 30, 30-70, over 70), 20-session return tercile, volume heat (above 1.5x), delivery share above 60%, own 20-day volatility (top fifth of the day or not), liquidity bucket (1-50, 51-150, 151-250), F&O member or not, lower band hit in the last 5 sessions, results filed in the last 5 sessions, a results board meeting intimated (before the decision) for the next 10 sessions, sector index 20-session return vs Nifty (tercile; sector from the Nifty 500 industry map, current list, labelled)",
+  "levels": "every feature has a 'missing' level; terciles are fitted on the training years of each fold only"
+ },
+ "stage_4_learning": {
+  "model": "for each (family, action): ridge regression of net return on one-hot situation features (main effects; intercept unpenalised; target winsorised at training 1st/99th percentiles for fitting only); lambda by leave-one-year-out within the training years from {1, 3, 10, 30, 100, 300, 1000}; out-of-fold residual variance for the prediction's standard error (the SP1 sandwich)",
+  "walk_forward": "expanding: test year y in 2010..2023 uses a model fitted on candidates whose exit completed before 1 January of y (so no training label overlaps the test year), from 2005",
+  "policy": "for each candidate: the action with the highest predicted net return if it is above c x SE and above 0, else NO TRADE; a stock in several families on one day takes the best of all its candidate rows (ties: lower family order BRK, PULL, REV, DECL, BAND, ANY); c from {0.5, 1.0, 1.5, 2.0, 2.5} by nested leave-one-year-out inside the training years (best mean book return; ties to the larger c); the same for the index (per index)",
+  "learned_report": "the largest coefficients per family (what Ananta learned about each situation), and which actions the policy chose by year"
+ },
+ "stage_5_book": {
+  "slots": "the stock book is slot-limited (per-trade means overstate what a book earns because signals cluster in bull runs, G01): K equal-weight slots of equity (K = 5 at Rs 60,000; reported also K = 10 at Rs 2 lakh and K = 20 at Rs 10 lakh), one position per stock; each evening free slots take the day's policy trades in order of predicted net / SE; a trade that finds no free slot is recorded as NO SLOT (counted, outcome kept)",
+  "costs_at_size": "every position's costs computed at its rupee size (the DP charge and stamp matter at Rs 12,000 a position)",
+  "survival": "paper_config.json survival: the 5% day line and the 22% drawdown line are evaluated and logged; on paper the book keeps running after a 22% line (cfg-2026-10-19c, Madhav: everything runs and is tracked), reported both ways",
+  "index_book": "the index policy's daily future-proxy return (bps), and an exploratory option version only after sizing v2 (SZ2) is selected"
+ },
+ "stage_6_quality_check_and_tuning": {
+  "against_the_baseline": "at every station the same comparison: the policy book against (a) the unfiltered baseline book (all candidates of all families, best fixed action of the training years, same slots), (b) the same policy without situation features (intercept-only, same c rule), (c) CTL entries with the policy's chosen exits, (d) Nifty buy-and-hold over the same days",
+  "filters_as_findings": "every named condition (conditions.py: saturation, market gate, VIX, breadth, small-cap lead, band hits...) is reported as on/off slices of the baseline book per family and action, dev and validation, descriptive; a filter is not hand-added to the policy: the policy's situation model already holds it as a feature, so a filter only 'works' if the learned policy beats the intercept-only policy",
+  "tuning_budget": "no tuning after the freeze; anything changed later (a new family, feature or exit) is sp3-v2 with its own rows, counted in the same family bar"
+ },
+ "tests": {
+  "seen_rows": [
+   "STOCK|book|policy: daily book return (K=5, Rs 60,000) > 0",
+   "STOCK|book|vs_baseline: policy book minus the baseline book (best fixed action), per day, > 0",
+   "STOCK|book|vs_intercept_only: policy minus the same policy with no situation, per day, > 0",
+   "STOCK|book|vs_nifty: policy book minus Nifty buy-and-hold, per day, > 0",
+   "INDEX|NIFTY|policy: daily future-proxy net bps > 0",
+   "INDEX|BANKNIFTY|policy: daily future-proxy net bps > 0"
+  ],
+  "exploratory_rows": [
+   "STOCK|trade|policy: per-trade net return of the policy's trades (dates as clusters)",
+   "STOCK|book|K10 and K20 (larger capitals)"
+  ],
+  "statistics": "Newey-West t with 5 lags on the daily series (the book holds positions for weeks, so daily returns are autocorrelated); per-trade rows by date-clustered t; fewer than 200 validation trades (stocks) or 100 trading days (index) = INCONCLUSIVE",
+  "nulls": "state-shuffle null: situation rows shuffled across dates in month blocks within the training years, models refitted, the whole policy and book rerun, 100 draws; reports the share of null books at or above the real one and how often the null trades",
+  "robustness": ["costs and spreads x2", "per test year (robust if at least 4 of 6 validation years positive)", "eras 2018-2019 / 2020 / 2021-2023", "liquidity halves (rank 1-125 vs 126-250)", "K = 3 and K = 8 slots"],
+  "holdout": "registered at the freeze, run once later on approval: test years 2024, 2025 and 2026 (to the last complete month at run time) with the same annual expanding refit and c rule, costs in force on each date; rows STOCK|book|policy, STOCK|book|vs_baseline, INDEX|NIFTY|policy, INDEX|BANKNIFTY|policy confirmatory (holdout_one_sided at the family bar), the rest exploratory; through india/sealed.py as a new registered HOLDOUT_RUNS entry 'sp3_holdout' with its folder list fixed at the freeze",
+  "scoring": "seen rows: rule seen_val_only (2010-2017 reported as dev, not gating); exploratory rows recorded too (they count toward the bar)"
+ },
+ "paper": {
+  "baseline_now": "the live stock paper engine is already the baseline line (BRK, PULL, REV, CTL x the 18 exit policies, every candidate, since the 16 Oct decision); at the freeze it adds DECL, BAND and ANY (rules v1.3), so the live baseline is the research baseline",
+  "policy_later": "after the holdout run and Madhav's approval: the frozen policy's decisions each evening (hash-chained ledger, written before the open), the K=5 Rs 60,000 book beside the unfiltered baseline, scored nightly; the baseline never stops",
+  "promotion": "a filter or the policy moves from paper to the main book only when history and the live record agree and Madhav approves"
+ },
+ "outputs": ["gold/studies/SP3_candidates.parquet", "gold/studies/SP3_outcomes.parquet", "gold/studies/SP3_policy_trades.parquet", "manifests/sp3_results.json", "registrations/sp3_results.md", "india/sp3.py", "india/checks/sp3_crosscheck.py (independent bar-by-bar re-derivation of 300+ outcomes before any result is read)"],
+ "limits": [
+  "the 5-minute data is not used (daily decisions); intraday entries are SP2's",
+  "sector map is today's Nifty 500 industry list, not point in time (labelled)",
+  "results-intimation dates exist from the PR zips (to Oct 2025) and the results index; a missing intimation is 'missing', never 'no results'",
+  "tax: results are pre-tax; an after-tax view (short-term gains 15% before 23 Jul 2024, 20% after) is reported for the book, for the accountant to confirm",
+  "survivorship: daily data includes delisted names; the universe is point in time"
+ ]
+}

@@ -1040,6 +1040,7 @@
     "jarvis/app/app.json",
     "jarvis/service/core.py",
     "jarvis/service/app.py",
+    "src/india/kite_auth.py",
     "docs/GUEST_GUIDE.md"
    ]
   },
@@ -1446,6 +1447,7 @@
     "jarvis/service/health.py",
     "jarvis/service/worker.py",
     "jarvis/service/ndax_spreads.py",
+    "jarvis/service/realism.py",
     "scripts/jarvis_watchdog.py"
    ]
   },

@@ -170,6 +170,14 @@ PARTS: list[dict] = [
     {"id": "lake", "name": "Research lake extended (Sundays)", "job": "com.ananta.lake", "severity": "low", "since": "2026-10-04",
      "cadence": {"weekly": 6, "at": "02:15", "tz": TOR, "grace": 6 * 3600}, "latest_only": True,
      "proof": {"mtime": "{runs}/lake_weekly.log"}},
+    {"id": "exam_weekly", "name": "Agent exam (Sundays 07:10)", "job": "com.ananta.exam", "severity": "medium", "since": "2026-10-25",
+     "cadence": {"weekly": 6, "at": "07:10", "tz": TOR, "grace": 6 * 3600}, "latest_only": True,
+     "proof": {"mtime": "{runs}/exam_weekly.log"},
+     "note": "OD-EXAM-CADENCE (a), Madhav Oct 20; the gate's exam checks read the run itself (a pass counts for 8 days)"},
+    {"id": "others_daily", "name": "Other traders: yesterday's trades rebuilt and sorted (04:30)", "job": "com.ananta.othersdaily",
+     "severity": "low", "since": "2026-10-21", "cadence": {"daily": "04:30", "tz": TOR, "grace": 3 * 3600}, "latest_only": True,
+     "proof": {"mtime": "{runs}/others_daily.log"},
+     "note": "OD-HL-FILLS (a), Madhav Oct 20; it has little to sort until the worker's capture runs"},
 
     # ---------------------------------------------------------------- parts with no dated proof (listed every time)
     {"id": "outside_watchdog", "name": "Outside watchdog (every 5 minutes)", "job": "com.ananta.watchdog", "severity": "medium",
@@ -186,6 +194,12 @@ PARTS: list[dict] = [
      "proof": {"none": "the eye keeps its last look in memory only; its outages show under health_outages"}},
     {"id": "telugu", "name": "Telugu speech server", "job": "com.ananta.telugu", "severity": "low", "since": "2026-10-11",
      "cadence": {"every": 3600}, "proof": {"none": "it logs only when used and the health watchdog does not check it"}},
+    {"id": "hands", "name": "Hands (the paper order service), kept alive by launchd", "job": "com.ananta.hands", "severity": "high",
+     "since": "2026-10-20", "cadence": {"every": 3600},
+     "proof": {"none": "a server with no dated record of its own; the health watchdog checks it every 2 minutes and its outages show under health_outages (#71)"}},
+    {"id": "worker_hl", "name": "Worker Mac: other traders' fills, every finished UTC day (hourly)", "job": "com.ananta.worker.hlcapture",
+     "severity": "low", "since": "2026-10-20", "cadence": {"every": 3600},
+     "proof": {"none": "installs itself when the worker Mac is back online (#72); its day files are not pulled to the main Mac yet"}},
     {"id": "awake", "name": "Keep-awake", "job": "com.ananta.awake", "severity": "low", "since": "2026-10-11", "cadence": {"every": 3600},
      "proof": {"none": "no record of its own; a sleeping Mac shows as gaps in jobs_loop and explorer_scans"}},
 

@@ -13,6 +13,7 @@ GET only (india/kite.py has no order method) and the files stay on the Mac (pape
   python -m india.sp1paper score [date]      after the close: each trade three ways (the study's index proxy; the 1-lot future and the 1-lot option
                                               at real Kite prices); a NEXTOPEN exit is scored the next evening -> paper/sp1/outcomes.jsonl, book.json
   python -m india.sp1paper run               the launchd entry (22:00 Toronto): prepare, wait for 09:15 IST, live; returns after 10:16 IST
+                                              (needs a Kite sign-in made AFTER Zerodha's morning token flush, about 07:00-07:30 IST)
   python -m india.sp1paper verify            hash chains of both ledgers and the timing rule
 
 Fills. The study fills a decision at the open of its entry bar (D0: 09:16; D1: 09:30; D2: 09:45; D3: 10:15) and reads the bars that closed
@@ -893,7 +894,7 @@ def run(log=print, rehearsal: bool = False) -> dict:
     nudged = False
     while True:
         try:
-            kite.token()
+            kite.Kite().get("/user/profile")   # a real call: Zerodha flushes tokens made before about 07:00-07:30 IST, which the file's expiry cannot show
             break
         except kite.NeedLogin as e:
             if _ist_now() >= deadline:

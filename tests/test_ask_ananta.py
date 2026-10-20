@@ -694,7 +694,8 @@ def test_every_spot_ananta_can_point_at_exists_in_the_app():
     from jarvis.service import appmap as am
     root = pathlib.Path(__file__).resolve().parents[1] / "jarvis" / "app"
     src = "\n".join(p.read_text() for p in list((root / "app").rglob("*.tsx")) + list((root / "src").rglob("*.tsx")))
-    in_app = {m.split(":")[0] for m in _re.findall(r'Spot id=\{?["`]([^"`]+)', src)}
+    # a spot is a <Spot id="..."> or a decision line's <Decision spot="..."> (home.decision, markets.decision, jarvis.decision)
+    in_app = {m.split(":")[0] for m in _re.findall(r'(?:Spot id|Decision spot)=\{?["`]([^"`]+)', src)}
     wanted = {k.split(":")[0] for v in am.SPOTS.values() for k in v}
     assert wanted <= in_app, sorted(wanted - in_app)
 

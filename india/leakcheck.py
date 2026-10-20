@@ -104,7 +104,9 @@ def check_sealed_files() -> tuple[bool, str]:
                 bad.append(f"sp3.py line {n.lineno} (from {n.module} import ...)")
             if isinstance(n, ast.Attribute) and n.attr == "sealed_dir":
                 bad.append(f"sp3.py line {n.lineno} (.sealed_dir)")
-        if any(x in ("sealed", "sealed_dir") or "sealed/" in x for x in _strings(s3)):
+        # string constants only: the module name `sealed` must appear (sp3.py calls sealed.coverage), a path to the folder must not
+        consts = [n.value for n in ast.walk(ast.parse(s3.read_text())) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+        if any(x.strip() in ("sealed", "sealed_dir") or "sealed/" in x or "/sealed" in x for x in consts):
             bad.append("sp3.py (names the sealed folder)")
     for f in ("sp1.py", "scenario.py", "ocstudy.py"):
         if (here / f).exists() and any(x in ("sealed", "sealed_dir") or "sealed/silver" in x or "sealed/gold" in x for x in _strings(here / f)):

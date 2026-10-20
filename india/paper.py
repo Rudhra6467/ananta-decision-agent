@@ -519,11 +519,12 @@ def marks(state: dict | None = None) -> list[dict]:
         for r in rows:
             fh.write(json.dumps(r) + "\n")
     con = catalog.connect()
-    cols = [r[1] for r in con.execute("pragma table_info('paper_marks')").fetchall()]
-    if cols and "book" not in cols:
-        con.execute("alter table paper_marks add column book varchar")
+    # create first: newer DuckDB raises on table_info for a table that does not exist (the first marks night, 19 Oct 2026, stopped here)
     con.execute("create table if not exists paper_marks (at varchar, campaign varchar, policy varchar, closed integer, open integer, realised_inr double, open_unrealised_inr double, "
                 "mean_net_ret double, win_rate double, expectancy_R double, capture_median double, book varchar)")
+    cols = [r[1] for r in con.execute("pragma table_info('paper_marks')").fetchall()]
+    if "book" not in cols:
+        con.execute("alter table paper_marks add column book varchar")
     con.executemany(f"insert into paper_marks ({', '.join(MARK_COLS)}) values ({', '.join('?' * len(MARK_COLS))})", [[r[k] for k in MARK_COLS] for r in rows])
     con.close()
     return rows
@@ -566,7 +567,10 @@ def run() -> dict:
         out["baseline"] = baseline(df)
     except Exception as e:
         out["baseline"] = f"FAILED {type(e).__name__}: {e}"
-    out["marks"] = len(marks(state))
+    try:
+        out["marks"] = len(marks(state))
+    except Exception as e:  # a marks failure must not stop the filter slices, the daily call and the report
+        out["marks"] = f"FAILED {type(e).__name__}: {e}"
     try:
         from india import filters
         out["filter_slices"] = len(filters.run())

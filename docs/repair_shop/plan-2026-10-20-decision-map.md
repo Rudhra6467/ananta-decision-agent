@@ -59,7 +59,7 @@ The working files are on the Mac under `~/ananta_runs/decision_audit/`, `silent_
 
 | Area (grade) | What is actually wrong (evidence) | Done today | Next (allowed now) | Needs you |
 |---|---|---|---|---|
-| **Engine decisions** (C−) | Decisions right 537 of 550. Wrong: stop rule vs code (8), bold T3 misread (3), Hands (2) | Decision audit; STOP-CLOSE vs STOP-TOUCH pre-registration (in progress) | Daily decision-quality line in the morning review: process kept separate from outcome | The stop rule (#6 above); the bold book's T3 rating (#7) |
+| **Engine decisions** (C−) | Decisions right 537 of 550. Wrong: stop rule vs code (8), bold T3 misread (3), Hands (2) | Decision audit; STOP-CLOSE vs STOP-TOUCH pre-registration (in progress) | Daily process line in the morning review (did each decision follow the dial and the measured edges); outcomes of the pre-registered findings stay hidden until 14 Dec so the forward tests stay clean | The stop rule (#6 above); the bold book's T3 rating (#7) |
 | **Risk and survival** (B) | Cash was right; the guard failed safe; the stops sold into 2.5–3.4% spreads | Hands is a launchd job, tested: killed on purpose and back in 8 s | Monthly risk rehearsal before 30 Oct (ENGINE-RISK-REHEARSAL) | none |
 | **Execution realism** (D) | The `engine_execution` check cannot fail (the $500 book copies its fill from the very quote it is checked against). Only 61% of paper fills were achievable at NDAX; T30 46%; ETH 2.7× the cost table | `realism.py`: every paper fill of every book checked against the worker's independent NDAX quote for that minute | In the morning review daily; S2 on 26 Oct | The readiness-check wording (section 4) |
 | **Learning loop** (D+) | Stopped for 4 reasons: Rule B; triggers that can't fire; nobody owns weekly tickets; a hand-written ledger. The missed-moves review was **skipped 9 of 11 nights** (a bug, still happening). Other traders rebuilt only once (30 Sep) | Daily other-traders rebuild installed (04:30); the worker capture installs itself when the worker is back; 8 parked findings being pre-registered | Fix the skipped reviews and add profit scoring (branch in progress); weekly tickets filed automatically | A shadow lane (OD-SHADOW-LANE, section 6) |
@@ -125,7 +125,7 @@ This is a gate change, so I'll record it only after you say yes to this exact wo
   - the 14 Oct "random beat the pick" ticket was never filed;
   - the ledger is hand-written.
 - **The way forward, in three steps:**
-  1. **Now (allowed):** pre-register every parked finding with the window's own live data as its fresh test, to be scored once at day 60 (8 findings, in progress).
+  1. **Now (allowed):** pre-register every parked finding with the window's own live data as its fresh test, to be scored once at day 60: done, reviews #31-#38 (docs/research/PREREG_WINDOW_2026-10-20.md); their results stay hidden until 14 Dec.
   2. **Now:** a learning-loop section in the morning review, plus small fixes (file weekly tickets, count lessons when they mature).
   3. **Needs your yes (OD-SHADOW-LANE):** a blind, append-only shadow log that records what each pre-registered rule would have done each day, unseen until day 60, never touching a book.
 

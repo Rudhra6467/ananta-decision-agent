@@ -1,6 +1,6 @@
 {
- "version": "cfg-2026-10-19b",
- "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file. cfg-2026-10-19a (Madhav, 19 Oct 18:20 Toronto): the India book is Rs 60,000 to start; risk per trade is not fixed: entries, exits, holding time and size are research outputs per market scenario. cfg-2026-10-19b (Madhav, 19 Oct 18:28): survival limits 5% a day and a pause at 22% drawdown; index views through options in the book; futures and forex tracked in shadow paper books.",
+ "version": "cfg-2026-10-19c",
+ "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file. cfg-2026-10-19a (Madhav, 19 Oct 18:20 Toronto): the India book is Rs 60,000 to start; risk per trade is not fixed: entries, exits, holding time and size are research outputs per market scenario. cfg-2026-10-19b (Madhav, 19 Oct 18:28): survival limits 5% a day and a pause at 22% drawdown; index views through options in the book; futures and forex tracked in shadow paper books. cfg-2026-10-19c (Madhav, 19 Oct 21:01): the 22% pause stays as the rule, and on paper it does not stop anything: everything keeps running and everything is noted and tracked (the pause date, and the book both as the rule would have it and as it ran); the rule is revisited as evidence comes. Kite's margin calculator (POST /margins/basket, a calculation) is allowed for the sizing margin check.",
  "stock": {
   "sizing": "fixed_notional",
   "notional_inr": 50000,
@@ -37,7 +37,9 @@
   "daily_basis": "equity at the start of the session; when realised plus open loss reaches it, every position is closed and no new entry that day",
   "pause_drawdown_pct": 22.0,
   "pause_basis": "equity below its high-water mark by this much: no new entries until Madhav resumes; open positions follow their own exits",
-  "note": "Madhav 19 Oct 2026 18:28; overnight gaps can exceed the daily limit (the limit acts during market hours only)"
+  "note": "Madhav 19 Oct 2026 18:28; overnight gaps can exceed the daily limit (the limit acts during market hours only)",
+  "pause_on_paper": "record, do not stop: when equity falls 22% below its high-water mark the paper books log the pause and keep trading; every report shows both paths (paused: no new entries from that date; continuing: as it ran); Madhav, 19 Oct 2026 21:01: 'for now we will keep 22%. That's only for us on paper. Everything runs, and everything gets noted and tracked. We will work on this rule as we gather evidence.'",
+  "daily_on_paper": "the 5% daily close is applied as the rule says and also logged; each day's report shows what the day would have been without it"
  },
  "books": {
   "main": {

@@ -2,7 +2,10 @@
 
 The token comes from ~/ananta_private/kite_token.json, written by the Jarvis service when Madhav signs in at
 http://127.0.0.1:8100/kite/login (src/india/kite_auth.py in the agent repo). This module never logs in, never sees
-the password or the API secret, and has no method that places, changes or cancels an order: it sends GET only.
+the password or the API secret, and has no method that places, changes or cancels an order. It sends GET, with ONE exception approved by
+Madhav on 19 Oct 2026 21:01 Toronto ("through kites margin calculator"): POST /margins/basket, Kite's margin calculator, which computes the
+margin a basket would need and places nothing (used by the sizing v2 margin check). post_calc() refuses every other path (CALC_POSTS), and
+india/leakcheck.py (kite_calls) fails if any other POST, PUT or DELETE appears in this file.
 Limits (Kite forum, staff, 2018; the probe confirms): 3 requests a second; per request, minute 30 days, 5minute 90 days,
 15minute 180 days, 60minute 365 days, day 2000 days. The token expires at 6 am IST; a 403 TokenException raises NeedLogin
 and, when the ntfy topic is configured, sends the phone "Kite login needed".
@@ -21,6 +24,7 @@ from india import paths
 
 BASE = "https://api.kite.trade"
 TOKEN_FILE = paths.private_dir() / "kite_token.json"
+CALC_POSTS = ("/margins/basket",)   # calculation only: the one POST allowed (Madhav, 19 Oct 2026)
 DAYS_PER_REQUEST = {"minute": 30, "3minute": 90, "5minute": 90, "10minute": 90, "15minute": 180, "30minute": 180, "60minute": 365, "day": 2000}
 
 
@@ -94,6 +98,25 @@ class Kite:
                 raise NeedLogin("Kite token rejected (TokenException): sign in again")
         r.raise_for_status()
         return r.text if raw else r.json()["data"]
+
+    def post_calc(self, path: str, body: list, params: dict | None = None):
+        """Kite's margin calculator (CALC_POSTS only): a calculation, never an order."""
+        if path not in CALC_POSTS:
+            raise PermissionError(f"POST refused: {path} is not a calculation endpoint on the allowed list {CALC_POSTS}")
+        wait = self.gap - (time.time() - self._last)
+        if wait > 0:
+            time.sleep(wait)
+        r = self.s.post(BASE + path, params=params, json=body, timeout=40)
+        self._last = time.time()
+        self.calls += 1
+        if r.status_code == 403:
+            raise NeedLogin("Kite token rejected: sign in again")
+        r.raise_for_status()
+        return r.json()["data"]
+
+    def basket_margin(self, orders: list[dict]) -> dict:
+        """Margin Kite would block for a basket (spread benefit included in 'final'); nothing is placed."""
+        return self.post_calc("/margins/basket", orders, params={"consider_positions": "false", "mode": "compact"})
 
     # ---- data ----
     def instruments(self, exchange: str | None = None) -> str:

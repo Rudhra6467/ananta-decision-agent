@@ -3,6 +3,7 @@
   python -m india.leakcheck           all checks
 Checks:
   sealed_files        lab / studies / exitlab / registry / paper / costs / greeks-input code never names the sealed folder; only india/sealed.py reads it
+  kite_calls          india/kite.py sends GET plus only Kite's margin calculator (POST /margins/basket); no order path
   tables_pre_2024     gold lab tables stop before 2024-01-01
   feature_columns     the daily feature table holds no forward-looking columns (whitelist)
   parity              the paper engine's live features equal the lab's gold features on a past date (mapping between the two code paths)
@@ -96,6 +97,29 @@ def check_sealed_files() -> tuple[bool, str]:
         if (here / f).exists() and any(x in ("sealed", "sealed_dir") or "sealed/silver" in x or "sealed/gold" in x for x in _strings(here / f)):
             bad.append(f + " (mentions sealed)")
     return (not bad), ("clean" if not bad else "references in " + ", ".join(sorted(set(bad))))
+
+
+def check_kite_calls() -> tuple[bool, str]:
+    """india/kite.py sends GET, plus only Kite's margin calculator (POST /margins/basket, approved by Madhav 19 Oct 2026); no other POST, no PUT or DELETE,
+    and no order path anywhere in the file."""
+    src = (Path(__file__).parent / "kite.py").read_text()
+    tree = ast.parse(src)
+    bad = []
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr in ("post", "put", "delete", "patch"):
+            owner = n.func.value
+            is_ntfy = isinstance(owner, ast.Name) and owner.id == "requests" and n.args and isinstance(n.args[0], ast.JoinedStr) and "ntfy.sh" in ast.unparse(n.args[0])
+            in_calc = any(isinstance(f, ast.FunctionDef) and f.name == "post_calc" and f.lineno <= n.lineno <= f.end_lineno for f in ast.walk(tree))
+            if not (is_ntfy or (n.func.attr == "post" and in_calc)):
+                bad.append(f"line {n.lineno}: .{n.func.attr}(")
+    calc = next((n for n in ast.walk(tree) if isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "CALC_POSTS" for t in n.targets)), None)
+    allowed = ast.literal_eval(calc.value) if calc else None
+    if allowed != ("/margins/basket",):
+        bad.append(f"CALC_POSTS is {allowed!r}")
+    for word in ("/orders/", "/gtt", "place_order", "modify_order", "cancel_order"):
+        if word in src:
+            bad.append(f"mentions {word}")
+    return (not bad), ("GET plus the margin calculator only" if not bad else "; ".join(bad))
 
 
 def check_tables_pre_2024() -> tuple[bool, str]:
@@ -209,7 +233,7 @@ def check_stops_gap() -> tuple[bool, str]:
     return (gap_ok and touch_ok and both_ok), f"gap {gap_ok}, touch {touch_ok}, same-bar stop+target {both_ok}"
 
 
-CHECKS = {"sealed_files": check_sealed_files, "tables_pre_2024": check_tables_pre_2024, "feature_columns": check_feature_columns, "parity": check_parity,
+CHECKS = {"sealed_files": check_sealed_files, "kite_calls": check_kite_calls, "tables_pre_2024": check_tables_pre_2024, "feature_columns": check_feature_columns, "parity": check_parity,
           "future_edit": check_future_edit, "fill_after_signal": check_fill_after_signal, "stops_gap": check_stops_gap}
 
 

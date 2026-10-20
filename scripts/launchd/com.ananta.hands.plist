@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Hands, the App backend on port 8001 (~/code/Ananta/backend; it loads its own .env). Until 2026-10-20 it was started by hand, so nothing
+     restarted it when it stopped (down 425 minutes on 2026-10-16, repair request #71). launchd now starts it at log-in and restarts it
+     after a crash. Madhav approved this on 2026-10-20 ("Hands restart (#71) ... yes"). Installed by scripts/install_hands_job.sh. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.ananta.hands</string>
+  <key>WorkingDirectory</key><string>__HOME__/code/Ananta/backend</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__HOME__/code/Ananta/backend/.venv/bin/python</string>
+    <string>-m</string>
+    <string>uvicorn</string>
+    <string>server:app</string>
+    <string>--host</string>
+    <string>127.0.0.1</string>
+    <string>--port</string>
+    <string>8001</string>
+    <string>--workers</string>
+    <string>1</string>
+  </array>
+  <key>KeepAlive</key><true/>
+  <key>RunAtLoad</key><true/>
+  <key>ThrottleInterval</key><integer>15</integer>
+  <key>StandardOutPath</key><string>__HOME__/ananta_runs/hands_service.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/ananta_runs/hands_service.log</string>
+</dict>
+</plist>

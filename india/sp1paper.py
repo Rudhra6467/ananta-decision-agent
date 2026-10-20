@@ -21,7 +21,9 @@ by then. D0 is decided before 09:16, so its study fill is real. At D1-D3 the bar
 trade is also scored with a realistic fill, the open of the minute after the decision row was written; both are kept.
 Differences from the study, by construction: a session's data completeness is checked on the bars so far (the study's "at least 360
 minutes" and the breadth names' "at least 70 five-minute bars" use the whole day); the entry price used for ORSTOP's availability and the
-planned cost is the latest price at the decision (the study used the entry bar's open, a few seconds later).
+planned cost is the latest price at the decision (the study used the entry bar's open, a few seconds later); breadth counts every eligible
+top-50 name Kite serves, while the lake's 5-minute history lacks some (replay 12-16 Oct 2026: PC Jeweller, rank 31-35, absent from the lake,
+so the holdout's breadth used 49 names and the live code 50; every other situation value matched exactly and 10 of 10 decisions were the same).
 """
 from __future__ import annotations
 

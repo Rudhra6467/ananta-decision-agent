@@ -227,7 +227,9 @@ def build(j) -> dict:
         if m["moves"]:
             c = m["counts"]
             top = next((x for x in m["moves"] if x["label"] == "MISSED"), m["moves"][0])
-            parts.append(f"Yesterday's biggest moves: caught {c['CAUGHT']}, saw {c['SEEN']}, missed {c['MISSED']}. "
+            split = (f" ({c.get('CAUGHT_TRADE_OK', 0)} by a book allowed to trade, {c.get('CAUGHT_MONITOR_ONLY', 0)} only by a monitor-only watch)"
+                     if c["CAUGHT"] else "")                             # counts only: no catch P&L before review #38's look (missed.PNL_SHOWN_FROM)
+            parts.append(f"Yesterday's biggest moves: caught {c['CAUGHT']}{split}, saw {c['SEEN']}, missed {c['MISSED']}. "
                          f"Biggest {top['label'].lower()}: {top['coin']} +{top['move_pct']:.1f}% ({top['why']}).")
         pats = [p for p in m["patterns"] if p["times"] >= 3]
         if pats:

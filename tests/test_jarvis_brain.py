@@ -330,10 +330,8 @@ def test_missed_moves_label_and_repeats_become_a_request(tmp_path):
     pat = j.db.execute("SELECT pattern FROM missed_moves WHERE coin='SOL'").fetchone()[0]
     for k in range(4):
         day_k = _time.strftime("%Y-%m-%d", _time.gmtime(now["t"] - (k + 2) * DAY))
-        j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                     (f"x{k}", day_k, "ADA", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, pat, "", "LIVE10", None))
-    j.db.execute("INSERT INTO missed_moves VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                 ("same_day_twin", r["day"], "XRP", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, pat, "", "LIVE10", None))
+        missed._insert(j, dict(zip(missed.COLS, (f"x{k}", day_k, "ADA", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, pat, "", "LIVE10", None))))
+    missed._insert(j, dict(zip(missed.COLS, ("same_day_twin", r["day"], "XRP", 0, 0, 1, 1.05, 5.0, 1.2, "MISSED", "{}", "x", None, None, pat, "", "LIVE10", None))))
     logged = []
     f = missed._repeats(j, log_request=lambda t: logged.append(t) or {"num": 9})
     assert f and f[0]["request"] == 9 and "keep missing" in logged[0] and "5 separate days" in logged[0]

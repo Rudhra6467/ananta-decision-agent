@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Ananta worker: other traders' fills, data only (decision OD-HL-FILLS (a), Oct 20). install_worker.sh fills in __PY__ and __HOME__.
+     Every hour (and once at load): every finished UTC day of the last 7 not held yet. caffeinate -i keeps the Mac from idling to
+     sleep while a run is going; a run ends by itself (no KeepAlive). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.ananta.worker.hlcapture</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string><string>-i</string>
+    <string>__PY__</string><string>__HOME__/ananta_worker/hl_capture.py</string><string>run</string>
+  </array>
+  <key>WorkingDirectory</key><string>__HOME__/ananta_worker</string>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>3600</integer>
+  <key>Nice</key><integer>10</integer>
+  <key>LowPriorityIO</key><true/>
+  <key>EnvironmentVariables</key><dict><key>PYTHONUNBUFFERED</key><string>1</string></dict>
+  <key>StandardOutPath</key><string>__HOME__/ananta_worker/logs/hlcapture.out</string>
+  <key>StandardErrorPath</key><string>__HOME__/ananta_worker/logs/hlcapture.err</string>
+</dict>
+</plist>

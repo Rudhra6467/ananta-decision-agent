@@ -273,20 +273,6 @@ def consistency(log=print) -> dict:
     return res
 
 
-if __name__ == "__main__":
-    paths.ensure()
-    cmd = sys.argv[1] if len(sys.argv) > 1 else "consistency"
-    lg = lambda s: print(f"[{dt.datetime.now():%H:%M:%S}] {s}", flush=True)
-    if cmd == "consistency":
-        print(json.dumps(consistency(lg), indent=1, default=str))
-    elif cmd == "rehearse":
-        print(json.dumps(rehearse(lg), indent=1, default=str))
-    elif cmd == "run":
-        print(json.dumps(run(lg), indent=1, default=str)[:4000])
-    else:
-        raise SystemExit(__doc__)
-
-
 # ----------------------------------------------------------------------------------------------------------------------------- scoring
 def score_years(o_all: pd.DataFrame, st_all: pd.DataFrame, test_years: list, log) -> dict:
     """The frozen SP1 procedure for the given test years: per index, refit on all earlier years, calibrate c, run the policy; benchmarks."""
@@ -446,3 +432,17 @@ def write_report(man: dict) -> None:
     b = man["rows"].get("SP1H|BOOK|option|sized", {}).get("extra", {})
     L += ["## Rs 60,000 book from 2024-01-01 (EXPLORATORY)", "", "```", json.dumps(b, indent=1, default=str), "```"]
     (HERE / "registrations" / "sp1_holdout_results.md").write_text("\n".join(L) + "\n")
+
+
+if __name__ == "__main__":
+    paths.ensure()
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "consistency"
+    lg = lambda s: print(f"[{dt.datetime.now():%H:%M:%S}] {s}", flush=True)
+    if cmd == "consistency":
+        print(json.dumps(consistency(lg), indent=1, default=str))
+    elif cmd == "rehearse":
+        print(json.dumps(rehearse(lg), indent=1, default=str))
+    elif cmd == "run":
+        print(json.dumps(run(lg), indent=1, default=str)[:4000])
+    else:
+        raise SystemExit(__doc__)

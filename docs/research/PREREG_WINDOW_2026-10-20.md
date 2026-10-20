@@ -89,3 +89,18 @@ Review #38 is not request #38: request #38 (the breakout) is tested in review #3
 ## Ledger
 Each review has a row in `docs/repair_shop/ledger.json`, "reviews" (R31 to R38, status PRE_REGISTERED, verdict PENDING), because
 the nightly ledger check (`knowledge_build.ledger`) files a repair-board request for any review document without a row.
+
+## Errata (after the push; the eight reviews themselves are unchanged)
+- **2026-10-20, review #37 (the bold book).** Madhav approved the audit's fix 2 to the bold pack at 12:08 Toronto ("4. yes"): each
+  candidate's T3 rating (IN or OUT for that close) is in the pick input, and T3's wording is corrected ("20-day exit" is an exit
+  rule: out on a daily close under the 20-day average, not a 20-day hold). As review #37 says, this splits its window at the date
+  written in `bold_mandate.json` (amendment of 2026-10-20): part 2 starts at the first `bold_decisions` row with pack `t3-v1`. A
+  pick that cites T3 for a coin rated OUT is flagged (`cites_t3_on_out`), never rejected; rejecting it stays the CITES_UNSOUND
+  proposal. The same rewording of the T3 and TRAIL lines in `brain.KNOWLEDGE` reaches the safe brain and the stance at the same
+  deploy; reviews #33 and #34 note that date beside their results.
+- **2026-10-20, review #31 (the stop rule).** Madhav, 12:08 Toronto, "3. yes": the coded touch stop keeps running unchanged in the
+  window, the written close stop is scored beside it by review #31, and the rule is decided at day 60. Nothing in #31 changes.
+- **2026-10-20, `OD-SHADOW-LANE`.** Madhav, 12:08 Toronto, "5. yes": the blind, append-only shadow log is approved. Another agent
+  builds it; until it records, the 'Needs a recorder' items above stay unrecorded. It never touches a book and shows nothing before
+  `CHECKPOINT-60`.
+

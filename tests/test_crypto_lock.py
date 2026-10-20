@@ -123,6 +123,9 @@ def current() -> dict[str, str]:
             _top("jarvis/service/exam.py", ["KNOWS_PASS", "UNKNOWNS_PASS", "VOICE_PASS", "run", "rejudge", "voice"]),  # the pass marks
             _top("jarvis/service/evidence_live.py", ["EXAM_FRESH_DAYS", "_exam_age", "SIZING_ENTRIES", "CITES_N", "CITES_PASS",
                                                       "OUTAGE_MIN", "ALERT_WITHIN_S", "GOAL_EVENTS"]),
+            # Oct 20, Madhav "2. yes": engine_execution against the worker's independent NDAX quote, and the realism test it rests on
+            _top("jarvis/service/evidence_live.py", ["EXEC_SINCE", "EXEC_FILLS", "EXEC_ACHIEVABLE", "EXEC_MEDIAN_BPS", "execution_reading"]),
+            _top("jarvis/service/realism.py", ["NDAX_FEE", "TOLERANCE_BPS", "MAX_QUOTE_GAP_S", "optimism_bps", "score"]),
             _top("jarvis/service/ev.py", ["fidelity"]),                                          # Rule A's "within 3 points"
             _top("src/intelligence/paper_exit.py", ["settings_for"]),                            # which cost profile a book gets by default
             _json("docs/knowledge/acceptance_gate.json", lambda d: [{x: c.get(x) for x in ("id", "status")} for c in d["checks"]]),

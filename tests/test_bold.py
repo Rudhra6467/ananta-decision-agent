@@ -128,3 +128,82 @@ def test_no_stacking_a_held_coin_is_recorded_not_bought_again(tmp_path, monkeypa
     row = j.db.execute("SELECT action, trade_id, random_id FROM bold_decisions WHERE day=?", (bold._day(NOW + DAY),)).fetchone()
     assert row == ("WOULD_ADD", None, None)
     assert bold.run(j, call=lambda u: _reply()) is None                                    # the day is decided once
+
+
+# -- Oct 20, Madhav "4. yes": each candidate's T3 rating in the pick input, T3's wording corrected, a flag (never a block) -------------
+def _t3_book(tmp_path, ratings: dict) -> None:
+    """A T3 book (portfolio_book.sqlite) with its decision for the close the facts were built on."""
+    import sqlite3
+
+    con = sqlite3.connect(str(tmp_path / "portfolio_book.sqlite"))
+    con.execute("CREATE TABLE decisions (day_t INTEGER PRIMARY KEY, json TEXT)")
+    con.execute("INSERT INTO decisions VALUES (?, ?)", (NOW - NOW % DAY, json.dumps({"ratings": ratings})))
+    con.commit()
+    con.close()
+
+
+def _bars(close_t: int, n: int, step: float) -> list[tuple]:
+    out, px = [], 100.0
+    for i in range(n):
+        t = close_t - (n - i) * DAY
+        out.append((t, px, px * 1.01, px * 0.99, px, 1.0))
+        px *= 1 + step
+    return out
+
+
+def test_the_bold_input_carries_each_candidates_t3_rating_and_the_corrected_wording(tmp_path, monkeypatch):
+    from jarvis.service import bold, brain, stance
+
+    j = _ready(tmp_path, monkeypatch, dial=1.0)
+    _t3_book(tmp_path, {"SOL": {"rating": "OK", "hold": True, "why": ["above both averages"]},
+                        "ETH": {"rating": "OUT", "hold": False, "why": ["closed below its 20-day average (fast exit)"]}})
+    monkeypatch.setattr(stance, "_closed_daily", lambda jj, c: [])          # ADA: no candles, so no rating
+    seen = []
+    r = bold.run(j, call=lambda u: (seen.append(u), _reply())[1])
+    user = seen[0]
+    facts = json.loads(user.split("Tonight's facts (JSON):\n", 1)[1].split("\n\n", 1)[0])
+    t3 = {c["coin"]: (c["t3"], c["t3_rating"]) for c in facts["candidates"]}
+    assert t3 == {"SOL": ("IN", "OK"), "ETH": ("OUT", "OUT"), "ADA": (None, None)}
+    assert bold.T3_WORDS in user and "NOT a 20-day hold" in user and "first daily close under the 20-day average" in user
+    t3_line = next(w for k, s, w in brain.KNOWLEDGE if k == "T3")
+    assert "20-day exit" not in t3_line and "not a 20-day hold" in t3_line
+    assert "time exit" not in next(w for k, s, w in brain.KNOWLEDGE if k == "TRAIL").replace("not a time exit", "")
+    assert r["action"] == "TAKE" and r["flag"] is None                    # SOL is IN; the thesis does not cite T3 anyway
+    pack, saved, flag = j.db.execute("SELECT pack, t3, flag FROM bold_decisions").fetchone()
+    assert pack == bold.PACK == "t3-v1" and json.loads(saved)["ETH"]["source"] == "portfolio_book.sqlite" and flag is None
+    assert "mandate" not in bold.T3_WORDS.lower()                          # the mandate is unchanged: one idea a day, dial open
+
+
+def test_a_pick_that_cites_t3_on_a_coin_t3_rates_out_is_flagged_never_blocked(tmp_path, monkeypatch):
+    from jarvis.service import bold
+
+    j = _ready(tmp_path, monkeypatch, dial=1.0)
+    _t3_book(tmp_path, {"SOL": {"rating": "OK", "hold": True}, "ETH": {"rating": "OUT", "hold": False}, "ADA": {"rating": "WEAK", "hold": True}})
+    r = bold.run(j, call=lambda u: _reply(coin="ETH", stop=46.0, thesis="ETH as T3: the trend portfolio holds it for 20 days",
+                                          knowledge_used=["T3"]))
+    assert r["action"] == "TAKE" and r["coin"] == "ETH" and r["trade_id"]          # the decision stays with the brain
+    assert r["flag"] == bold.FLAG_T3_OUT == "cites_t3_on_out"
+    flag, ku = j.db.execute("SELECT flag, knowledge_used FROM bold_decisions").fetchone()
+    assert flag == "cites_t3_on_out" and json.loads(ku) == ["T3"]
+    t3 = {"SOL": {"t3": "IN"}, "ETH": {"t3": "OUT"}}
+    assert bold.t3_flag("SOL", t3, "Trend Portfolio says yes") is None              # cites T3, rated IN: no flag
+    assert bold.t3_flag("ETH", t3, "the dial is open, BTC leads") is None           # rated OUT but T3 not cited: no flag
+    assert bold.t3_flag("ETH", t3, None, "per the PORTFOLIO LAYER") == "cites_t3_on_out"
+    assert bold.t3_flag(None, t3, "T3") is None
+
+
+def test_a_coin_in_no_t3_book_is_rated_by_portfolio_layer_on_its_daily_candles(tmp_path):
+    from jarvis.service import bold
+    from tests.test_universe_live import J
+
+    j = J(tmp_path, now=NOW)
+    close_t = NOW - NOW % DAY
+    up, down = _bars(close_t, 80, 0.01), _bars(close_t, 80, -0.01)
+    daily = {"BTC": up, "UPC": up, "DNC": down, "NEW": up[-20:]}
+    f = {"candidates": [{"coin": c} for c in ("UPC", "DNC", "NEW")]}
+    r = bold.t3_ratings(j, f, daily=lambda c: daily[c])
+    assert r["UPC"]["t3"] == "IN" and r["UPC"]["source"] == "computed"
+    assert r["DNC"]["t3"] == "OUT" and any("50-day" in w for w in r["DNC"]["why"])
+    assert r["NEW"]["t3"] is None                                                   # under 50 days: not rated
+    daily["BTC"] = down                                                             # Bitcoin under its 50-day: the gate is off
+    assert bold.t3_ratings(j, f, daily=lambda c: daily[c])["UPC"]["t3"] == "OUT"

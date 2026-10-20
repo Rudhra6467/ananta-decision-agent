@@ -41,6 +41,18 @@
    "approved_by": "Madhav (in chat)",
    "what": "no stacking (WOULD_ADD)",
    "note": "Asked after BTC was picked on Oct 15 and Oct 16: may the bold book stack the same coin? Recommendation: no, a repeat pick is logged as 'would add' without a new position. Madhav, Oct 16 10:02 Toronto: \"And for the bold book stacking question. No as you said.\" Applies from the Oct 17 UTC pick; the two open BTC trades (Oct 15, Oct 16) and their twins stay as opened."
+  },
+  {
+   "date": "2026-10-20",
+   "approved_by": "Madhav (in chat)",
+   "what": "each candidate's T3 rating in the pick input (pack t3-v1); T3's wording corrected; a flag when a pick cites T3 for a coin T3 rates OUT",
+   "note": "Asked in the decision map of 20 Oct (docs/repair_shop/plan-2026-10-20-decision-map.md, section 6, item 4): give the bold book each coin's T3 rating in what it reads before it picks, and correct the T3 wording it reads (\"20-day exit\" is an exit rule: out on a daily close under the 20-day average, not a 20-day hold). Madhav, 2026-10-20 12:08 Toronto: \"4. yes\". The mandate itself is unchanged: one idea a day while the dial is open. A pick that cites T3 for a coin T3 rates OUT is saved with flag 'cites_t3_on_out' and is never blocked.",
+   "splits_review_37": "Review #37's window splits here. Part 1: bold decisions made without the T3 ratings (bold_decisions rows with no pack). Part 2: every decision from the first row with pack 't3-v1', i.e. the first daily pick after this change is deployed (2026-10-21 00:05 UTC at the earliest, the window's first day; if so, part 1 inside the window is empty and the 15-20 Oct pairs stay 'reported beside'). A is judged on the whole window with each part reported; B on each part separately (REVIEW_37.md, 'Changes in the window').",
+   "split_marker": {
+    "table": "bold_decisions",
+    "column": "pack",
+    "value": "t3-v1"
+   }
   }
  ]
 }

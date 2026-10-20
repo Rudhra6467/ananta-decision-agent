@@ -103,13 +103,19 @@
    "files": [
     "docs/knowledge/acceptance_gate.json"
    ],
-   "sha256": "6200c24a692ee6e8529aa187cd22b69a0670c66fca549891a2a121f61c6d51fd",
+   "sha256": "7fb2452e60e3e1684b2f81b79432e308d5f37df51b6c7d02870d128ebb5b913f",
    "history": [
     {
      "date": "2026-10-15",
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
      "sha256": "6200c24a692ee6e8529aa187cd22b69a0670c66fca549891a2a121f61c6d51fd"
+    },
+    {
+     "date": "2026-10-20",
+     "approved_by": "Madhav (in chat)",
+     "sha256": "7fb2452e60e3e1684b2f81b79432e308d5f37df51b6c7d02870d128ebb5b913f",
+     "note": "Asked in the decision map of 20 Oct (docs/repair_shop/plan-2026-10-20-decision-map.md, section 4 and section 6, item 2): \"engine_execution counts every paper fill of every book, judged against the worker's independent NDAX quote for that minute. Pass: at least 20 fills, at least 90% achievable, and the median gap within 5 bp. engine_sizing stays on the $500 book only.\" Madhav, 2026-10-20 12:08 Toronto: \"2. yes\". The change: engine_execution's measure and pass mark in acceptance_gate.json (every book since 2026-10-12, judged by jarvis/service/realism.py; at least 20 measured fills, at least 90% achievable, median optimism within 5 bp). engine_sizing is not broadened. No other check changes."
     }
    ]
   },
@@ -150,7 +156,7 @@
    ]
   },
   "live_logic": {
-   "what": "The logic that decides money or the success verdict and sat outside the first nine pins (found by the independent check of Oct 15): how the dial is read (exposure.state, dial_by_day); what may enter the $500 book's edge sleeve (ndax_book.passed_rules, edge_signals); the trade guard's staleness limits and its list of paths; the exams' pass marks and run/rejudge/voice (exam.py); the gate's constants (EXAM_FRESH_DAYS, _exam_age, SIZING_ENTRIES, CITES_N, CITES_PASS, OUTAGE_MIN, ALERT_WITHIN_S, GOAL_EVENTS); Rule A's fidelity bar (ev.fidelity); the default cost profile (paper_exit.settings_for); and the hand-written status of every gate check.",
+   "what": "The logic that decides money or the success verdict and sat outside the first nine pins (found by the independent check of Oct 15): how the dial is read (exposure.state, dial_by_day); what may enter the $500 book's edge sleeve (ndax_book.passed_rules, edge_signals); the trade guard's staleness limits and its list of paths; the exams' pass marks and run/rejudge/voice (exam.py); the gate's constants (EXAM_FRESH_DAYS, _exam_age, SIZING_ENTRIES, CITES_N, CITES_PASS, OUTAGE_MIN, ALERT_WITHIN_S, GOAL_EVENTS); Rule A's fidelity bar (ev.fidelity); the default cost profile (paper_exit.settings_for); the hand-written status of every gate check; and, from Oct 20, engine_execution's rule (EXEC_SINCE, EXEC_FILLS, EXEC_ACHIEVABLE, EXEC_MEDIAN_BPS, execution_reading) with the realism test it rests on (realism.NDAX_FEE, TOLERANCE_BPS, MAX_QUOTE_GAP_S, optimism_bps, score).",
    "files": [
     "jarvis/service/exposure.py",
     "jarvis/service/ndax_book.py",
@@ -159,15 +165,22 @@
     "jarvis/service/evidence_live.py",
     "jarvis/service/ev.py",
     "src/intelligence/paper_exit.py",
-    "docs/knowledge/acceptance_gate.json"
+    "docs/knowledge/acceptance_gate.json",
+    "jarvis/service/realism.py"
    ],
-   "sha256": "c2fb83366f1567cd265e17af911f713906e67721869b723c671ecb9e036e3db7",
+   "sha256": "0c1696b446f9ffd1912fd3e0999f8f8f934aae05a59b4b604d094345f246d555",
    "history": [
     {
      "date": "2026-10-15",
      "approved_by": "Madhav (in chat)",
      "sha256": "c2fb83366f1567cd265e17af911f713906e67721869b723c671ecb9e036e3db7",
      "note": "Asked after the independent lock check: \"(b) add one new pin live_logic covering those unpinned rules\". Madhav, 18:02 Toronto: \"yes a , yes b\"."
+    },
+    {
+     "date": "2026-10-20",
+     "approved_by": "Madhav (in chat)",
+     "sha256": "0c1696b446f9ffd1912fd3e0999f8f8f934aae05a59b4b604d094345f246d555",
+     "note": "Asked in the decision map of 20 Oct (docs/repair_shop/plan-2026-10-20-decision-map.md, section 4 and section 6, item 2): \"engine_execution counts every paper fill of every book, judged against the worker's independent NDAX quote for that minute. Pass: at least 20 fills, at least 90% achievable, and the median gap within 5 bp. engine_sizing stays on the $500 book only.\" Madhav, 2026-10-20 12:08 Toronto: \"2. yes\". The change: evidence_live reads engine_execution from realism.report(since=\"2026-10-12\") through the new execution_reading (PENDING under 20 measured fills; FAIL under 90% achievable or a median optimism over 5 bp; else PASS), and this pin now also covers EXEC_SINCE, EXEC_FILLS, EXEC_ACHIEVABLE, EXEC_MEDIAN_BPS, execution_reading and realism.py's test (NDAX_FEE, TOLERANCE_BPS, MAX_QUOTE_GAP_S, optimism_bps, score). The $500 book's old count stays in the note for continuity."
     }
    ]
   }

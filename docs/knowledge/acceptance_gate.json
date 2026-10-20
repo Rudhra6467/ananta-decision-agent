@@ -80,10 +80,10 @@
    "id": "engine_execution",
    "area": "Engine",
    "check": "Execution assumptions",
-   "measure": "Every paper fill of the $500 book is priced at NDAX's own bid or ask at that moment, fee on top",
-   "pass_mark": "Every fill inside NDAX's bid and ask, at least 20 fills",
+   "measure": "Every paper fill of every book since 2026-10-12, judged against the worker Mac's independent NDAX quote for that minute (jarvis/service/realism.py): achievable when the book's effective price, after the cost it charged itself, is no better than NDAX's ask (buy) or bid (sell) after NDAX's fee by more than 5 bp. Madhav, 2026-10-20: \"2. yes\" (it replaced the $500 book's own count, which could not fail: that book copies its fill from the quote it was checked against). engine_sizing stays on the $500 book only.",
+   "pass_mark": "At least 20 measured fills, at least 90% of them achievable, and the median optimism within 5 bp",
    "status": "PENDING",
-   "note": "measured live (Oct 11)"
+   "note": "measured live (Oct 11); against the worker's independent NDAX quote from Oct 20"
   },
   {
    "id": "engine_risk",

@@ -996,6 +996,36 @@ def _gate_why(c: dict, e: dict | None) -> None:
     _exam_age(c, e.get("day"))
 
 
+EXEC_SINCE = "2026-10-12"                # engine_execution (Madhav, 2026-10-20 12:08 Toronto, "2. yes"): every paper fill of every book
+EXEC_FILLS = 20                          # since the worker's first NDAX day, judged against the worker Mac's independent NDAX quote for
+EXEC_ACHIEVABLE = 0.90                   # that minute (jarvis/service/realism.py): PASS needs 20 measured fills, 90% achievable and
+EXEC_MEDIAN_BPS = 5.0                    # the median optimism within 5 bp
+
+
+def execution_reading(rep: dict) -> dict:
+    """Gate engine_execution from a realism.report: PENDING under EXEC_FILLS measured fills; FAIL when under EXEC_ACHIEVABLE of them
+    were achievable at NDAX's own quote that minute, or the median optimism is over EXEC_MEDIAN_BPS; else PASS. The note gives the
+    numbers, the worst book and the fills that had no worker quote."""
+    n, ok = int(rep.get("measured") or 0), int(rep.get("realistic") or 0)
+    share = ok / n if n else None
+    med = rep.get("median_optimism_bps")
+    books = rep.get("books") or {}
+    meas = {k: b for k, b in books.items() if b.get("measured")}
+    worst = min(meas, key=lambda k: (meas[k]["realistic_share"], -meas[k]["measured"], k)) if meas else None
+    nq = {k: b["no_quote"] for k, b in books.items() if b.get("no_quote")}
+    status = ("PENDING" if n < EXEC_FILLS else
+              "FAIL" if share < EXEC_ACHIEVABLE or (med is not None and med > EXEC_MEDIAN_BPS) else "PASS")
+    note = (f"{ok} of {n} measured paper fills of every book since {rep.get('since', EXEC_SINCE)} were achievable at the worker's NDAX "
+            f"quote that minute" + (f" ({100 * share:.0f}%, needs {100 * EXEC_ACHIEVABLE:.0f}%)" if n else "")
+            + (f"; median optimism {med:g} bp (needs {EXEC_MEDIAN_BPS:g} bp or less)" if med is not None else "")
+            + f"; needs {EXEC_FILLS} measured fills"
+            + (f"; worst book {worst}: {meas[worst]['realistic']} of {meas[worst]['measured']} achievable, median "
+               f"{meas[worst]['median_optimism_bps']:g} bp" if worst else "")
+            + (f"; {sum(nq.values())} fill{'s' if sum(nq.values()) != 1 else ''} had no worker quote ("
+               + ", ".join(f"{k} {v}" for k, v in sorted(nq.items(), key=lambda x: (-x[1], x[0]))) + ")" if nq else "; every fill had a worker quote"))
+    return {"status": status, "note": note}
+
+
 def _gate_measured(j, by: dict) -> None:
     """The six checks that had no measure until Oct 11 (plan Batch 5): sizing, execution, regimes, the agent exam and the voice exam."""
     from jarvis.service import exam, ndax_book
@@ -1010,9 +1040,14 @@ def _gate_measured(j, by: dict) -> None:
     if c:
         n, inside = j.db.execute("SELECT COUNT(*), SUM(px >= bid - 1e-9 AND px <= ask + 1e-9) FROM book500_fills").fetchone() \
             if j.db.execute("SELECT 1 FROM sqlite_master WHERE name='book500_fills'").fetchone() else (0, 0)
-        inside = inside or 0
-        c["status"] = "FAIL" if inside < n else "PASS" if n >= 20 else "PENDING"
-        c["note"] = f"{inside} of {n} paper fills inside NDAX's bid and ask (needs 20)"
+        old = f"the $500 book's own count (the rule until Oct 20): {inside or 0} of {n} fills inside NDAX's logged bid and ask"
+        try:
+            from jarvis.service import realism
+
+            c.update(execution_reading(realism.report(j, since=EXEC_SINCE, data=Path(j.dir))))
+            c["note"] += f"; {old}"
+        except Exception as exc:  # noqa: BLE001  no worker quotes on this machine: the check cannot be read, so it is not a pass
+            c["status"], c["note"] = "PENDING", f"could not measure against the worker's NDAX quotes ({str(exc)[:80]}); {old}"
     c = by.get("strategy_regimes")
     if c:
         from jarvis.service import exposure

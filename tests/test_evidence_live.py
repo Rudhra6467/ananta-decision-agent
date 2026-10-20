@@ -249,3 +249,48 @@ def test_the_gate_item_no_trade_when_unhealthy_reads_the_code_that_runs_and_coun
     el._gate_measured(j, by)
     c = by["ops_no_trade_unhealthy"]
     assert c["status"] == "PASS" and "11 of 11 paths" in c["note"] and "1 refusal in 7 days (1 x the kill switch is on)" in c["note"]
+
+
+def _realism(measured: int, ok: int, median: float | None, books: dict | None = None, no_quote: int = 0) -> dict:
+    return {"since": "2026-10-12", "fills": measured + no_quote, "measured": measured, "realistic": ok, "no_quote": no_quote,
+            "realistic_share": round(ok / measured, 3) if measured else None, "median_optimism_bps": median,
+            "books": books or {"BOOK500": {"fills": measured + no_quote, "measured": measured, "realistic": ok, "no_quote": no_quote,
+                                           "realistic_share": round(ok / measured, 3) if measured else None, "median_optimism_bps": median,
+                                           "worst_optimism_bps": median}}}
+
+
+def test_engine_execution_is_judged_against_the_workers_independent_ndax_quote(tmp_path, monkeypatch):
+    """Oct 20, Madhav "2. yes": every paper fill of every book against the worker's NDAX quote for that minute. PENDING under 20
+    measured fills; FAIL under 90% achievable or a median optimism over 5 bp; else PASS."""
+    from jarvis.service import evidence_live as el
+    from jarvis.service import realism
+
+    assert (el.EXEC_FILLS, el.EXEC_ACHIEVABLE, el.EXEC_MEDIAN_BPS, el.EXEC_SINCE) == (20, 0.90, 5.0, "2026-10-12")
+    assert el.execution_reading(_realism(0, 0, None))["status"] == "PENDING"
+    assert el.execution_reading(_realism(19, 19, -3.0))["status"] == "PENDING"            # too few, however good
+    ok = el.execution_reading(_realism(20, 18, 4.9))
+    assert ok["status"] == "PASS" and "18 of 20" in ok["note"] and "90%" in ok["note"]
+    assert el.execution_reading(_realism(20, 17, 1.0))["status"] == "FAIL"                # 85% achievable
+    assert el.execution_reading(_realism(40, 38, 5.1))["status"] == "FAIL"                # median over 5 bp
+    books = {"BOOK500": {"fills": 10, "measured": 10, "realistic": 10, "no_quote": 0, "realistic_share": 1.0, "median_optimism_bps": -20.0},
+             "T30": {"fills": 30, "measured": 26, "realistic": 12, "no_quote": 4, "realistic_share": 0.462, "median_optimism_bps": 9.5},
+             "H07": {"fills": 3, "measured": 0, "realistic": 0, "no_quote": 3, "realistic_share": None, "median_optimism_bps": None}}
+    bad = el.execution_reading(_realism(36, 22, 6.0, books, no_quote=7))
+    assert bad["status"] == "FAIL" and "worst book T30: 12 of 26" in bad["note"] and "7 fills had no worker quote (T30 4, H07 3)" in bad["note"]
+
+    j = _j(tmp_path)
+    j.db.execute("CREATE TABLE book500_fills (t INTEGER, coin TEXT, side TEXT, qty REAL, px REAL, fee REAL, bid REAL, ask REAL)")
+    j.db.execute("INSERT INTO book500_fills VALUES (1, 'BTC', 'BUY', 1, 100, 0.2, 99, 101)")
+    asked = {}
+    monkeypatch.setattr(realism, "report", lambda jj=None, since=None, **k: asked.update(since=since, **k) or _realism(20, 20, 0.5))
+    by = {"engine_execution": {"id": "engine_execution", "status": "PENDING", "note": ""}}
+    el._gate_measured(j, by)
+    c = by["engine_execution"]
+    assert asked["since"] == "2026-10-12" and asked["data"] == tmp_path
+    assert c["status"] == "PASS" and "the $500 book's own count (the rule until Oct 20): 1 of 1 fills inside" in c["note"]
+
+    def broken(*a, **k):
+        raise FileNotFoundError("no worker data")
+    monkeypatch.setattr(realism, "report", broken)
+    el._gate_measured(j, by)
+    assert by["engine_execution"]["status"] == "PENDING" and "could not measure" in by["engine_execution"]["note"]

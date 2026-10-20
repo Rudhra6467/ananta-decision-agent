@@ -732,7 +732,7 @@
    "feeds": [
     "EVIDENCE"
    ],
-   "evidence": "review #4 PASS: +13% vs buy-and-hold -22% (2024-26), half the drawdown; review #12: its tight 20-day exit beat zone/ATR/50-day trails in 2024-26 (+13% vs -7% to -26%), though they won big in 2018-23; review #20 (2026-10-05): sizing T3-B (re-size only coins outside 0.5x-1.5x of their share) passes on LAB10 and TOP30, the default since Madhav's yes 2026-10-05",
+   "evidence": "review #4 PASS: +13% vs buy-and-hold -22% (2024-26), half the drawdown; review #12: its tight 20-day exit (out on a daily close under the 20-day average, not a 20-day hold; worded 2026-10-20) beat zone/ATR/50-day trails in 2024-26 (+13% vs -7% to -26%), though they won big in 2018-23; review #20 (2026-10-05): sizing T3-B (re-size only coins outside 0.5x-1.5x of their share) passes on LAB10 and TOP30, the default since Madhav's yes 2026-10-05",
    "files": [
     "src/intelligence/portfolio_layer.py",
     "docs/repair_shop/REVIEW_4_RESULTS.md",

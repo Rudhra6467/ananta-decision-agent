@@ -8,7 +8,8 @@ version; it changes no reading, no rule and no cost.
 
   realism.report(j, since="2026-10-12")  per book: fills measured, fills with no worker quote, the share the book could really have had,
                                          the median and worst 'optimism' in basis points, and the cost the book charged against what NDAX
-                                         would have charged at that minute
+                                         would have charged at that minute; the same three over every book together (realistic_share,
+                                         median_optimism_bps, no_quote), which the gate's engine_execution reads (Madhav, 20 Oct: "2. yes")
 
 The test, per fill (NDAX fee 0.20% a side, as the books assume):
   achievable buy  = NDAX ask x (1 + fee)        the book's effective buy  = its price x (1 + the cost it charged itself)
@@ -178,8 +179,11 @@ def report(j=None, since: str = "2026-10-12", dest: Path | None = None, data: Pa
                   "median_optimism_bps": round(statistics.median(o), 1) if o else None,
                   "worst_optimism_bps": o[-1] if o else None}
     m = [r for r in rows if r["measured"]]
+    om = sorted(r["optimism_bps"] for r in m)
     return {"since": since, "tolerance_bps": TOLERANCE_BPS, "fills": len(rows), "measured": len(m),
-            "realistic": sum(r["realistic"] for r in m), "books": out,
+            "realistic": sum(r["realistic"] for r in m), "no_quote": len(rows) - len(m),
+            "realistic_share": round(sum(r["realistic"] for r in m) / len(m), 3) if m else None,
+            "median_optimism_bps": round(statistics.median(om), 1) if om else None, "books": out,
             "worst": sorted(m, key=lambda r: -r["optimism_bps"])[:10],
             "line": (f"{sum(r['realistic'] for r in m)} of {len(m)} paper fills since {since} were achievable at NDAX's own quote that minute "
                      f"({len(rows) - len(m)} fills had no worker quote)") if m else f"no paper fill since {since} has a worker quote yet"}

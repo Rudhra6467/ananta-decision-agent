@@ -11,6 +11,14 @@ Every trade opens a random tier-A twin (RANDOM_BOLD) at the same moment with the
 the brain's kind (source 'brain'): live stops by brain.manage_live, daily time exits by the watch engine (the 10) and
 universe_watch.manage_live_rows (the rest). Its model call is logged as thread 'bold', so it never touches the safe book's budget.
 Paper only: nothing here reaches Hands or an exchange.
+
+T3 in the pack (Madhav, 2026-10-20 12:08 Toronto: "4. yes"): the pick input carries each candidate's T3 rating for tonight's close
+(`t3` IN or OUT, t3_ratings below: the T3 books' own decision for that close, else portfolio_layer.rate on the coin's daily candles,
+as review #37 defines it), with T3's exit worded as what it is: out on a daily close under the 20-day average, not a 20-day hold.
+The mandate is unchanged. A pick whose thesis or why cites T3 (review #37's words: the card's id or its aliases, ignoring case) for
+a coin T3 rates OUT is saved with flag 'cites_t3_on_out'. It is never blocked: the bold book is a registered experiment, so the
+decision stays with the brain; the flag lets review #37's question B be scored. Rows written with this pack carry pack 't3-v1',
+which is where review #37's window splits (bold_mandate.json, amendment of 2026-10-20).
 """
 from __future__ import annotations
 
@@ -23,6 +31,14 @@ from typing import Any, Callable
 WATCH, TWIN = "JARVIS_BOLD", "RANDOM_BOLD"
 DAY = 86400
 STOP_MAX = 0.15
+PACK = "t3-v1"                                         # Madhav, 2026-10-20: "4. yes" (each candidate's T3 rating in the pick input)
+T3_BOOKS = ("portfolio_book.sqlite", "portfolio_book_t30.sqlite")   # the 10, then the 30-coin tier (review #37's order)
+T3_CITES = ("t3", "trend portfolio", "portfolio layer")  # review #37: the T3 card's id and its aliases (status_cards.json), any case
+FLAG_T3_OUT = "cites_t3_on_out"
+T3_WORDS = ("T3 tonight: each candidate's `t3` is the trend portfolio's own rating for tonight's daily close. IN: T3 holds the coin "
+            "today (its daily close above its 20-day AND its 50-day average, with Bitcoin's close above its own 50-day). OUT: T3 does "
+            "not hold it. T3's '20-day exit' is an exit RULE: out on the first daily close under the 20-day average. It is NOT a "
+            "20-day hold; the TREND exit plan's 20 days is a separate time exit. T3 backs a coin only on a day it rates it IN.")
 
 SYSTEM = """You are Ananta's decision brain running the BOLD paper book (crypto, long only, spot, paper only) under a written mandate
 that differs from the safe book's: on a day the exposure dial is OPEN you MUST pick your single best idea among the candidates and
@@ -81,6 +97,112 @@ def _ai_ok(j) -> tuple[bool, str]:
 def _table(j) -> None:
     j.db.execute("CREATE TABLE IF NOT EXISTS bold_decisions (id TEXT PRIMARY KEY, day TEXT, t INTEGER, dial REAL, action TEXT, coin TEXT, "
                  "plan TEXT, price REAL, stop REAL, thesis TEXT, why TEXT, model TEXT, cost_usd REAL, trade_id TEXT, random_id TEXT, note TEXT)")
+    have = {r[1] for r in j.db.execute("PRAGMA table_info(bold_decisions)").fetchall()}
+    for col in ("pack", "t3", "flag", "knowledge_used"):          # Oct 20 ("4. yes"): the pack version, T3's ratings, the flag
+        if col not in have:
+            j.db.execute(f"ALTER TABLE bold_decisions ADD COLUMN {col} TEXT")
+
+
+def _close_t(f: dict, now: int) -> int:
+    """The close time (day_close_t, as portfolio_layer.daily_view writes it) of the daily candle the facts were built on."""
+    import calendar
+
+    day = f.get("candle_closed_utc")
+    if day:
+        return calendar.timegm(time.strptime(day, "%Y-%m-%d")) + DAY
+    return now - now % DAY
+
+
+def _book_ratings(base, close_t: int) -> dict:
+    """coin -> rating from the T3 books' own decision for that close (read-only; a missing book or day gives nothing)."""
+    import sqlite3
+    from pathlib import Path
+
+    out: dict = {}
+    for name in T3_BOOKS:
+        f = Path(base) / name
+        if not f.exists():
+            continue
+        try:
+            con = sqlite3.connect(f"file:{f}?mode=ro", uri=True)
+            try:
+                r = con.execute("SELECT json FROM decisions WHERE day_t=?", (close_t,)).fetchone()
+            finally:
+                con.close()
+        except sqlite3.Error:
+            continue
+        for coin, x in ((json.loads(r[0]) if r else {}).get("ratings") or {}).items():
+            out.setdefault(coin.upper(), {"t3": "IN" if x.get("hold") else "OUT", "rating": x.get("rating"),
+                                          "why": list(x.get("why") or [])[:2], "source": name})
+    return out
+
+
+def _view(D: list[tuple]):
+    from src.intelligence import portfolio_layer as pl
+    from src.intelligence.explorer_engine import TfState
+
+    tf = TfState("1d")
+    for b in D:
+        tf.add(*b[:6])
+    return pl.daily_view(tf)
+
+
+def t3_ratings(j, f: dict, daily: Callable | None = None) -> dict:
+    """Each candidate's T3 rating for the close the facts were built on: {coin: {t3: IN|OUT|None, rating, why, source}}.
+    The T3 books' own decision for that close when one holds the coin; otherwise portfolio_layer.rate on the coin's closed daily
+    candles up to that close, Bitcoin's close against its own 50-day as the market gate (review #37, question B). The momentum rank
+    is left out there (it moves STRONG/OK/WEAK only, never IN or OUT). None: not enough candles to rate."""
+    from src.intelligence import portfolio_layer as pl
+
+    if daily is None:
+        from jarvis.service import stance
+
+        daily = lambda c: stance._closed_daily(j, c)  # noqa: E731
+    close_t = _close_t(f, int(j.now()))
+    coins = [str(c.get("coin") or "").upper() for c in f.get("candidates") or []]
+    books = _book_ratings(j.dir, close_t)
+    out: dict = {}
+    views: dict = {}
+
+    def view(c):
+        if c not in views:
+            try:
+                views[c] = _view([b for b in daily(c) if b[0] + DAY <= close_t])
+            except Exception:  # noqa: BLE001
+                views[c] = None
+        return views[c]
+    for c in coins:
+        if c in books:
+            out[c] = books[c]
+            continue
+        v, btc = view(c), view("BTC")
+        if not v or not btc:
+            out[c] = {"t3": None, "rating": None, "why": ["not enough daily candles to rate"], "source": "computed"}
+            continue
+        r, on, why = pl.rate(c, v, btc["close"] > btc["ema50"], None)
+        out[c] = {"t3": "IN" if on else "OUT", "rating": r, "why": why[:2], "source": "computed"}
+    return out
+
+
+def cites_t3(*texts) -> bool:
+    """Review #37's 'cites T3': the text contains the T3 card's id or one of its aliases, ignoring case."""
+    t = " ".join(str(x or "") for x in texts).lower()
+    return any(k in t for k in T3_CITES)
+
+
+def t3_flag(coin: str | None, t3: dict, *texts) -> str | None:
+    """'cites_t3_on_out' when the pick cites T3 for a coin T3 rates OUT that day; never a block."""
+    if not coin or not cites_t3(*texts):
+        return None
+    return FLAG_T3_OUT if (t3.get(coin.upper()) or {}).get("t3") == "OUT" else None
+
+
+def pack_facts(f: dict, t3: dict) -> dict:
+    """The facts the bold pick reads: tonight's stance facts with each candidate's T3 rating added (the stance's own copy is untouched)."""
+    g = dict(f)
+    g["candidates"] = [{**c, "t3": (t3.get(str(c.get("coin") or "").upper()) or {}).get("t3"),
+                        "t3_rating": (t3.get(str(c.get("coin") or "").upper()) or {}).get("rating")} for c in f.get("candidates") or []]
+    return g
 
 
 def _day(t: float) -> str:
@@ -218,7 +340,13 @@ def run(j, call: Callable | None = None) -> dict | None:
         res.update(action="MISS" if must else "SIT", note=ai_why or f"the bold book's ${budget:.2f} for today is used")
     else:
         know = [{"id": k, "status": s, "what": w} for k, s, w in brain.KNOWLEDGE]
-        user = ("Tonight's facts (JSON):\n" + json.dumps(f, default=str, separators=(",", ":")) + "\n\nThe knowledge list:\n"
+        try:
+            t3 = t3_ratings(j, f)
+        except Exception as exc:  # noqa: BLE001  the pick still runs; the row says T3 could not be read
+            t3, res["note"] = {}, f"T3 ratings could not be read ({str(exc)[:80]})"
+        res["t3"] = t3
+        user = ("Tonight's facts (JSON):\n" + json.dumps(pack_facts(f, t3), default=str, separators=(",", ":")) + "\n\n" + T3_WORDS
+                + "\n\nThe knowledge list:\n"
                 + json.dumps(know, separators=(",", ":")) + "\n\nYour bold record so far: " + json.dumps(record(j), default=str)
                 + ("\n\nThe dial is OPEN: you must take one." if must else "\n\nThe dial is CLOSED: take one or sit, and say why."))
         live = {c["coin"]: brain._live_px(j, c["coin"]) for c in f.get("candidates") or []}
@@ -270,9 +398,13 @@ def run(j, call: Callable | None = None) -> dict | None:
             res.update(action="SIT", why=str(d.get("thesis") or d.get("why_not_others") or "")[:400])
         else:
             res.update(action="MISS" if must else "SIT", note=("mandate miss: " if must else "") + (reason or "no pick")[:300])
+        res["knowledge_used"] = d.get("knowledge_used") if isinstance(d.get("knowledge_used"), list) else None
+        res["flag"] = t3_flag(res.get("coin"), t3, res.get("thesis"), res.get("why"))
     j.db.execute("INSERT INTO bold_decisions (id, day, t, dial, action, coin, plan, price, stop, thesis, why, model, cost_usd, trade_id, "
-                 "random_id, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                 "random_id, note, pack, t3, flag, knowledge_used) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                  (did, day, now, dial, res["action"], res.get("coin"), res.get("plan"), res.get("price"), res.get("stop"), res.get("thesis"),
-                  res.get("why"), res.get("model"), res["cost_usd"], res.get("trade_id"), res.get("random_id"), res.get("note") or None))
+                  res.get("why"), res.get("model"), res["cost_usd"], res.get("trade_id"), res.get("random_id"), res.get("note") or None,
+                  PACK if "t3" in res else None, json.dumps(res["t3"]) if "t3" in res else None, res.get("flag"),
+                  json.dumps(res["knowledge_used"]) if res.get("knowledge_used") else None))
     j.db.commit()
     return res

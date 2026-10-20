@@ -304,7 +304,8 @@ def _agent(tmp: Path) -> Path:
         "PEPE": {"status": "LISTED", "tier": "A", "ndax": False, "binance_half_spread": 0.0005}}}))
     scans = [{"t": D0 + 14 * 3600 - 900, "coin": "SOL", "state": {"S1": "BULL", "S2": "UP", "trend_4h": "UP", "daily_above_ema50": True, "rsi15": 61.2,
                                                                   "in_support": False}, "sightings": [], "setups": []},
-             {"t": D0 + 14 * 3600 + 900, "coin": "SOL", "state": {"S1": "BEAR"}, "sightings": [], "setups": []}]
+             {"t": D0 + 14 * 3600 + 900, "coin": "SOL", "state": {"S1": "BEAR"}, "sightings": [], "setups": []},
+             {"t": D0 + 9 * 3600, "coin": "AVAX", "state": {"S1": "BULL"}, "sightings": ["E2", "E5"], "setups": ["E5"]}]
     (ag / "explorer_decisions.jsonl").write_text("".join(json.dumps(s) + "\n" for s in scans))
     con = sqlite3.connect(ag / "explorer_book.sqlite")
     con.executescript("CREATE TABLE events (seq INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER, kind TEXT, coin TEXT, id TEXT, json TEXT);"
@@ -353,6 +354,7 @@ def _day_fills():
             + trip(D0 + 14 * 3600, D0 + 16 * 3600, "SOL", 20, 21)                 # (c) nothing of ours fired (a random baseline does not count)
             + trip(D0 + 2 * 3600, D0 + 3 * 3600, "DOGE", 0.2, 0.19, short=True)   # (c) a winning short
             + trip(D0 + 4 * 3600, D0 + 6 * 3600, "ADA", 1.0, 1.0 + ada_cost)      # (d) up, but not by our two costs
+            + trip(D0 + 9 * 3600 + 300, D0 + 13 * 3600, "AVAX", 10, 11)          # (b) its scan saw E2, which is not in the rules
             + trip(D0 + 10 * 3600 + 600, D0 + 11 * 3600, "ARKM", 1.0, 1.1)        # (b) universe Explorer shadow
             + trip(D0 + 15 * 3600, D0 + 17 * 3600, "kPEPE", 0.01, 0.0105)         # (c) the 30-coin tier
             + trip(D0 + 15 * 3600, D0 + 17 * 3600, "FOOBAR", 1.0, 1.2)            # outside our list
@@ -397,7 +399,9 @@ def test_the_classes_and_the_page(tmp_path, monkeypatch):
     assert "XRP" not in cases                                                     # closed the day before
     assert cases["BTC"]["after_our_costs_pct"] == pytest.approx(100 * (0.03 - 2 * cases["BTC"]["cost_per_side_pct"] / 100), abs=1e-3)
     assert {x["label"] for x in cases.values()} == {"LB_WINNER-01"}               # B (HFT by its trips) and C (review #2's HFT) dropped
-    assert r["classes"] == {"a": 1, "b": 2, "c": 5, "d": 1}
+    assert cases["AVAX"]["class"] == "b" and cases["AVAX"]["blocked_by"] == ["seen, not in the active rulebook"]
+    assert [f["what"] for f in cases["AVAX"]["state"]["fired"]] == ["Explorer E2 sighting"]          # E5 is in the rules: an order would say
+    assert r["classes"] == {"a": 1, "b": 3, "c": 5, "d": 1}
     text = (out / "repair_shop" / "daily" / f"others_{D}.md").read_text()
     assert "Reference only (D8)" in text and "2 dropped as market makers or HFT" in text and "outside our list 1" in text
     assert "spot or other markets 1" in text and "## The top 10 cases" in text and A not in text and "0x" not in text

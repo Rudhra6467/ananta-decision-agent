@@ -24,9 +24,10 @@ THE FIXED RULES (written 2026-10-20, before any captured day was read; they chan
     - the Explorer's scan of the coin: the last 15-minute scan at or before T (a later one would know the future), within 30 minutes;
       saved for the 10 only (explorer_decisions.jsonl). Other coins: the universe Explorer's tags when it placed an order in the window.
     - the dial on T's UTC day (exposure.dial_by_day: decided on the previous close): OPEN, CLOSED or UNKNOWN.
-    - what fired on the coin from T - 2 h to T + 1 h: the Explorer (orders, blocked orders, sightings, unfilled limits), the universe
-      Explorer (its orders are shadows), Hunter, the eye's zone entries, the brain's wakes (brain_queue, with what became of each) and
-      decisions (brain_decisions); the daily watches from T - 24 h (they decide once a day, at the close).
+    - what fired on the coin from T - 2 h to T + 1 h: the Explorer (orders, blocked orders, unfilled limits, and setups its scans saw
+      that are not in the active rules), the universe Explorer (its orders are shadows), Hunter, the eye's zone entries, the brain's
+      wakes (brain_queue, with what became of each) and decisions (brain_decisions); the daily watches from T - 24 h (they decide once
+      a day, at the close).
     - what we held: a paper position of ours in the coin open at T or opened by T + 1 h: the Explorer's real trades, every evidence
       book except the random baselines (the daily watches, the eye's zone trades, the brain's own books), Hunter's takes, the trend
       books (T3 on the 10, T3 on the 30), the $500 book.
@@ -134,7 +135,8 @@ def build_accounts(hl: Path, out: Path) -> dict:
            f"{sampling.get('seed', hb.SEED)}; analysed in review #2 on 2026-09-30) whose fills were fetched. Chosen at random within strata from "
            "three public sources: the Hyperliquid leaderboard's active accounts (30-day volume above 0, account value at least $1,000, monthly "
            "volume under 300 times account value) split into thirds by all-time PnL, 10 from each (LB_LOSER, LB_MIDDLE, LB_WINNER); wallets "
-           "seen in recent trades on the 10 lab coins (TAPE, the first 20 with fills kept); public vaults open, with at least $10,000 and over "
+           "seen in recent trades on the 10 lab coins, taken in random order until 20 complete histories were fetched (TAPE; a truncated "
+           "one is kept too); public vaults open, with at least $10,000 and over "
            "a year old, 5 from each third by APR (VAULT). " + ", ".join(f"{k} {v}" for k, v in sorted(n_by.items())) + f" = {len(accts)} accounts"
            + (f"; left out: " + ", ".join(f"{v} {k}" for k, v in sorted(skipped.items())) if skipped else "") + ". r2_hft marks the "
            f"{sum(a['r2_hft'] for a in accts)} that review #2 dropped as market makers or HFT. Labels are by source and address order; the "
@@ -296,7 +298,7 @@ class Ananta:
             return
         try:
             opened: dict[str, tuple] = {}
-            for t, kind, coin, js in con.execute("SELECT t, kind, coin, json FROM events WHERE kind IN ('ORDER','SIGHTING','MISSED','FILLED','CLOSED') "
+            for t, kind, coin, js in con.execute("SELECT t, kind, coin, json FROM events WHERE kind IN ('ORDER','MISSED','FILLED','CLOSED') "
                                                  "AND t >= ? ORDER BY seq", (self.lo - 60 * DAY,)):
                 e = json.loads(js)
                 if e.get("shadow") == "RANDOM":
@@ -312,10 +314,8 @@ class Ananta:
                 if kind == "ORDER":
                     self._add(self.fired, coin, {"src": "Explorer", "what": f"Explorer {e.get('setup')} order", "t": t,
                                                  "blocked": SHADOW_WORDS.get(sh, sh) if sh else None})
-                elif kind == "MISSED":
+                else:                                            # MISSED (sightings come from the scans: setups seen but not in the rules)
                     self._add(self.fired, coin, {"src": "Explorer", "what": f"Explorer {e.get('setup')} order", "t": t, "blocked": "the limit order did not fill"})
-                else:
-                    self._add(self.fired, coin, {"src": "Explorer", "what": f"Explorer {e.get('setup')} sighting", "t": t, "blocked": "seen, not in the active rulebook"})
             for _id, (t0, c, s) in opened.items():
                 self._add(self.held, c, {"src": "Explorer", "what": f"Explorer {s} trade", "t0": t0, "t1": None})
         finally:

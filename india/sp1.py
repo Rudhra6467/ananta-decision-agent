@@ -697,7 +697,7 @@ def loss_per_lot(r) -> float:
     return (buy - sell) * lot + fees
 
 
-def book_sim(pt: pd.DataFrame, o: pd.DataFrame, st: pd.DataFrame, log, pause: bool = True) -> dict:
+def book_sim(pt: pd.DataFrame, o: pd.DataFrame, st: pd.DataFrame, log, pause: bool = True, test_years: list | None = None, start_year: int = 2017) -> dict:
     """Rs 60,000 from 2017-01-01, both indices (NIFTY first at each point), fractional-Kelly lots on the option return per rupee of premium
     (second ridge without the event feature, fitted per fold), loss caps at 5% of the session's starting equity, the daily limit and the 22% pause."""
     cfg = json.loads((HERE / "paper_config.json").read_text())
@@ -707,7 +707,7 @@ def book_sim(pt: pd.DataFrame, o: pd.DataFrame, st: pd.DataFrame, log, pause: bo
     # option-return models per fold for mu and sigma^2
     mus = []
     for sym in IDX:
-        for y in TEST_YEARS:
+        for y in (test_years or TEST_YEARS):
             oo = o.dropna(subset=["opt_ret"])
             pr, _ = fold_predictions(oo, st, sym, y, target="opt_ret", drop=("event",))
             if not pr.empty:
@@ -717,7 +717,7 @@ def book_sim(pt: pd.DataFrame, o: pd.DataFrame, st: pd.DataFrame, log, pause: bo
     t["pt_order"] = t["point"].map({"D0": 0, "D1": 1, "D2": 2, "D3": 3})
     t["ix_order"] = t["index"].map({"NIFTY": 0, "BANKNIFTY": 1})
     t = t.sort_values(["date", "pt_order", "ix_order"])
-    days = sorted(set(st["date"]) & {d for d in st["date"] if d.year >= 2017})
+    days = sorted({d for d in st["date"] if d.year >= start_year and d.year <= max(test_years or TEST_YEARS)})
     W, hwm, paused_on = W0, W0, None
     Wu = W0
     eq, eq_u, reasons = [], [], {"size_zero": 0, "no_option": 0, "loss_cap": 0, "paused": 0, "daily_limit_breach": 0, "taken": 0}

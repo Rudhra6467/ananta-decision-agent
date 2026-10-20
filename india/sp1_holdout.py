@@ -276,7 +276,173 @@ def consistency(log=print) -> dict:
 if __name__ == "__main__":
     paths.ensure()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "consistency"
+    lg = lambda s: print(f"[{dt.datetime.now():%H:%M:%S}] {s}", flush=True)
     if cmd == "consistency":
-        print(json.dumps(consistency(lambda s: print(f"[{dt.datetime.now():%H:%M:%S}] {s}", flush=True)), indent=1, default=str))
+        print(json.dumps(consistency(lg), indent=1, default=str))
+    elif cmd == "rehearse":
+        print(json.dumps(rehearse(lg), indent=1, default=str))
+    elif cmd == "run":
+        print(json.dumps(run(lg), indent=1, default=str)[:4000])
     else:
         raise SystemExit(__doc__)
+
+
+# ----------------------------------------------------------------------------------------------------------------------------- scoring
+def score_years(o_all: pd.DataFrame, st_all: pd.DataFrame, test_years: list, log) -> dict:
+    """The frozen SP1 procedure for the given test years: per index, refit on all earlier years, calibrate c, run the policy; benchmarks."""
+    out, trades = {}, []
+    for sym in sp1.IDX:
+        days = {y: sorted(d for d in st_all.loc[st_all["index"] == sym, "date"] if d.year == y) for y in test_years}
+        P, IO, BF, X2, OP, meta = [], [], [], [], [], []
+        for y in test_years:
+            pr, lams = sp1.fold_predictions(o_all, st_all, sym, y)
+            c = sp1.calibrate_c(o_all, st_all, sym, y, lams)
+            t = sp1.run_policy(pr, c).assign(index=sym, c=c)
+            trades.append(t)
+            P.append(sp1.daily(t, days[y]))
+            X2.append(sp1.daily(sp1.run_policy(pr, c, cost_mult=2.0), days[y]))
+            OP.append(sp1.daily(t, days[y], col="opt_ret") * 1e4)
+            pio, lio = sp1.fold_predictions(o_all, st_all, sym, y, intercept_only=True)
+            cio = sp1.calibrate_c(o_all, st_all, sym, y, lio, intercept_only=True)
+            IO.append(sp1.daily(sp1.run_policy(pio, cio), days[y]))
+            trn = o_all[(o_all["index"] == sym) & (o_all["year"] < y)]
+            bf = trn.groupby(["point", "action"])["net_bps"].mean().idxmax()
+            BF.append(sp1.daily(o_all[(o_all["index"] == sym) & (o_all["year"] == y) & (o_all["point"] == bf[0]) & (o_all["action"] == bf[1])], days[y]))
+            meta.append({"test_year": y, "c": c, "c_intercept_only": cio, "trades": int(len(t)), "best_fixed": [bf[0], int(bf[1])],
+                         "mean_daily_net": round(float(P[-1].mean()), 2)})
+            log(f"{sym} {y}: c={c} trades={len(t)} mean daily net {P[-1].mean():.2f} bps (intercept-only {IO[-1].mean():.2f})")
+        out[sym] = {k: pd.concat(v) for k, v in (("policy", P), ("io", IO), ("bf", BF), ("x2", X2), ("opt", OP))}
+        out[sym]["meta"] = meta
+    return out, pd.concat(trades, ignore_index=True)
+
+
+def record_rows(res: dict, pt: pd.DataFrame, o_all, st_all, test_years, registry, seen: dict, log) -> dict:
+    reg = registry.register("SP1H", family="OC", title="SP1 holdout: the one confirmatory run of the frozen index playbook (sp1_v2.json tests.holdout)",
+                            hypothesis="the frozen SP1 policy, refitted each year on all earlier years, earns net of costs on 2024-01-01..2026-10-16",
+                            variants=["SP1H|NIFTY|future_proxy|policy", "SP1H|BANKNIFTY|future_proxy|policy", "SP1H|NIFTY|option|policy",
+                                      "SP1H|BANKNIFTY|option|policy", "SP1H|BOOK|option|sized"],
+                            note=f"spec {sp1.spec_sha()}; approved by Madhav 19 Oct 2026 19:52; confirmatory rows first, then exploratory")
+    rows = {}
+    order = [("future_proxy", "policy"), ("option", "opt")]
+    for kind, key in order:
+        for sym in sp1.IDX:
+            r = res[sym]
+            series = r[key]
+            per_year = {int(y): round(float(r["policy"][[d.year == y for d in r["policy"].index]].mean()), 2) for y in test_years}
+            extra = {"spec": sp1.spec_sha(), "label": "CONFIRMATORY" if kind == "future_proxy" else "EXPLORATORY (synthetic options, IV held constant)",
+                     "per_year": per_year, "trades": int((pt["index"] == sym).sum()), "days_traded_share": round(float((r["policy"] != 0).mean()), 3),
+                     "intercept_only": sp1.nw_t(r["io"]), "best_fixed": sp1.nw_t(r["bf"]), "costs_x2": sp1.nw_t(r["x2"]), "nw_lag5": sp1.nw_t(r["policy"], 5),
+                     "folds": r["meta"], "seen_2018_2023": seen.get(f"{sym}|future_proxy|policy" if kind == "future_proxy" else f"{sym}|option|policy")}
+            if kind == "option":
+                extra["per_trade"] = sp1.opt_stats(pt[pt["index"] == sym])
+            val = sp1.nw_t(series)
+            dev = tuple(seen.get(f"{sym}|future_proxy|policy" if kind == "future_proxy" else f"{sym}|option|policy", {}).get("val", (float("nan"), float("nan"), 0)))
+            name = f"SP1H|{sym}|{kind}|policy"
+            line = registry.record(reg, name, dev=dev, val=val, extra=extra, expect=1, rule="holdout_one_sided")
+            rows[name] = {"holdout": val, "verdict": line["verdict"], "z": line["z"], "extra": extra}
+            log(f"{name}: holdout mean {val[0]:.2f} (t {val[1]:.2f}, {val[2]} days) -> {line['verdict']}")
+    book = sp1.book_sim(pt, o_all, st_all, log, test_years=test_years, start_year=test_years[0])
+    bt = book.pop("_daily")
+    unp = sp1.book_sim(pt, o_all, st_all, log, pause=False, test_years=test_years, start_year=test_years[0])
+    unp.pop("_daily")
+    book["unpaused"] = unp
+    val = sp1.boot_t(bt)
+    line = registry.record(reg, "SP1H|BOOK|option|sized", dev=(float("nan"), float("nan"), 0), val=val,
+                           extra={"spec": sp1.spec_sha(), "label": "EXPLORATORY", **book}, expect=1, rule="holdout_one_sided")
+    rows["SP1H|BOOK|option|sized"] = {"holdout": val, "verdict": line["verdict"], "z": line["z"], "extra": book}
+    return rows
+
+
+def rehearse(log=print) -> dict:
+    """The scoring path on silver only (test years 2022-2023, nothing recorded): proves the run cannot fail half-way for a code reason."""
+    D = paths.data_dir()
+    o = pd.read_parquet(D / "gold/studies/SP1_outcomes.parquet")
+    o["date"] = pd.to_datetime(o["date"]).dt.date
+    o["pcost"] = sp1.planned_cost_bps(o)
+    st = pd.read_parquet(D / "gold/scenario/index_states.parquet")
+    st["date"] = pd.to_datetime(st["date"]).dt.date
+    res, pt = score_years(o, st, [2022, 2023], log)
+    rows = record_rows(res, pt, o, st, [2022, 2023], sp1._DryRegistry, {}, log)
+    return {"rehearsal": "PASS", "rows": list(rows)}
+
+
+# ----------------------------------------------------------------------------------------------------------------------------- the run
+def run(log=print) -> dict:
+    from india import registry
+
+    D = paths.data_dir()
+    seen = json.loads((D / "manifests/sp1_results.json").read_text())["rows"]
+    t = sealed.holdout_open("sp1_holdout")
+    if t["sha"] != sp1.spec_sha():
+        raise SystemExit("the registration changed since the spec this code scores")
+    start, end = pd.Timestamp(t["start"]).date(), pd.Timestamp(t["end"]).date()
+    days, specials = calendar_full()
+    days_w = [d for d in days if d <= end]
+    ca = ocstudy.load_ca_block([d for d in days if d.year <= 2023])
+    rd = HoldoutReader(t, "2022-06-01")
+    first = dt.date(2023, 12, 1)
+    inp = build_inputs(rd, days_w, specials, first, ca, log)
+    out_dir = D / "sealed" / "gold" / "sp1_holdout"
+    log("situation table (scenario.build, same code)")
+    scenario.build(src=inp, out_file=out_dir / "index_states.parquet", from_date=first)
+    sh = pd.read_parquet(out_dir / "index_states.parquet")
+    sh["date"] = pd.to_datetime(sh["date"]).dt.date
+    log("outcomes (sp1.outcomes, same code)")
+    oh = sp1.outcomes(log, src={**inp, "states": sh}, out_file=out_dir / "outcomes.parquet")
+    oh["date"] = pd.to_datetime(oh["date"]).dt.date
+    og = pd.read_parquet(D / "gold/studies/SP1_outcomes.parquet")
+    og["date"] = pd.to_datetime(og["date"]).dt.date
+    sg = pd.read_parquet(D / "gold/scenario/index_states.parquet")
+    sg["date"] = pd.to_datetime(sg["date"]).dt.date
+    # continuity: December 2023 through the holdout path equals the dev/validation build (else stop before any holdout number is scored)
+    k = ["date", "index", "point", "action"]
+    dec_g, dec_h = og[og["date"] >= dt.date(2023, 12, 4)], oh[(oh["date"] >= dt.date(2023, 12, 4)) & (oh["date"] < start)]
+    m = dec_g.merge(dec_h, on=k, suffixes=("_g", "_h"), how="outer", indicator=True)
+    cont_bad = int((m["_merge"] != "both").sum()) + int(((m["gross_bps_g"] - m["gross_bps_h"]).abs() > 1e-9).sum())
+    lot_gap = int(oh.loc[oh["date"] >= start, "lot"].isna().sum())
+    log(f"continuity check (Dec 2023): {len(dec_g)} rows, {cont_bad} differences; holdout rows without a lot size: {lot_gap}")
+    if cont_bad or lot_gap:
+        raise SystemExit("continuity or lot check failed: nothing scored; the run stays open (not completed) and can be reopened after a fix")
+    sh_h, oh_h = sh[(sh["date"] >= start) & (sh["date"] <= end)], oh[(oh["date"] >= start) & (oh["date"] <= end)]
+    o_all = pd.concat([og, oh_h], ignore_index=True)
+    st_all = pd.concat([sg, sh_h], ignore_index=True)
+    log("planned costs")
+    o_all["pcost"] = sp1.planned_cost_bps(o_all)
+    years = [2024, 2025, 2026]
+    res, pt = score_years(o_all, st_all, years, log)
+    pt.to_parquet(out_dir / "policy_trades.parquet", index=False)
+    rows = record_rows(res, pt, o_all, st_all, years, registry, seen, log)
+    man = {"at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "run": RUN, "spec_sha": sp1.spec_sha(), "window": [str(start), str(end)],
+           "holdout_days": int(sh_h["date"].nunique()), "outcome_rows": int(len(oh_h)), "rows": rows,
+           "family_z": registry.threshold(registry.family_count("OC")), "differences_from_dev_build": "no corporate-action flags for 2024+ breadth"}
+    (D / "manifests/sp1_holdout_results.json").write_text(json.dumps(man, indent=1, default=str))
+    write_report(man)
+    sealed.holdout_complete(t, {"rows": {k2: v["verdict"] for k2, v in rows.items()}, "holdout_days": man["holdout_days"]})
+    return man
+
+
+def write_report(man: dict) -> None:
+    f = sp1._f
+    L = ["# SP1 holdout: the one confirmatory run (2024-01-01 to 2026-10-16)", "",
+         f"Frozen spec `sp1_v2.json` sha `{man['spec_sha']}`; approved by Madhav 19 Oct 2026 19:52; run {man['at']} through india/sealed.py (logged, single use).",
+         f"{man['holdout_days']} sessions. Each test year refitted on all earlier years with the frozen rules (lambda by year-out CV, the margin c by nested CV). "
+         f"Family OC bar z = {man['family_z']:.2f}; confirmatory rows are one-sided at that bar.",
+         "Before scoring: the holdout path reproduced the dev/validation universe, breadth, situation table and outcomes exactly on 2023, and December 2023 again inside the run.", "",
+         "| Row | Holdout mean (t, days) | Verdict | Seen 2018-2023 | Per year |", "|---|---|---|---|---|"]
+    for k, r in man["rows"].items():
+        h = r["holdout"]
+        x = r["extra"]
+        sv = x.get("seen_2018_2023") or {}
+        svv = sv.get("val") if isinstance(sv, dict) else None
+        L.append(f"| {k} | {f(h[0])} ({f(h[1])}, {h[2]}) | {r['verdict']} | {f(svv[0]) + ' (' + f(svv[1]) + ')' if svv else '–'} | {x.get('per_year', '')} |")
+    L += [""]
+    for k, r in man["rows"].items():
+        if "|future_proxy|" in k:
+            x = r["extra"]
+            L += [f"## {k.split('|')[1]}", "",
+                  f"- trades {x['trades']}, days traded {x['days_traded_share']:.0%}",
+                  f"- same rules without the situation {tuple(round(v, 2) for v in x['intercept_only'][:2])}; single best fixed action {tuple(round(v, 2) for v in x['best_fixed'][:2])}; costs x2 {tuple(round(v, 2) for v in x['costs_x2'][:2])}; Newey-West lag 5 t {x['nw_lag5'][1]:.2f}",
+                  f"- folds: {x['folds']}", ""]
+    b = man["rows"].get("SP1H|BOOK|option|sized", {}).get("extra", {})
+    L += ["## Rs 60,000 book from 2024-01-01 (EXPLORATORY)", "", "```", json.dumps(b, indent=1, default=str), "```"]
+    (HERE / "registrations" / "sp1_holdout_results.md").write_text("\n".join(L) + "\n")

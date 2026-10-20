@@ -100,6 +100,8 @@ def agent(tmp_path):
         {"bars": [("BTC", "1d", *b) for b in btc]})
     det = {"days": 15, "trail_atr": 3.0, "atr": 0.02, "stop0": 0.95, "target": 1.3, "stop_moves": []}
     ev = [_ev("tC", "JARVIS", "CCC", _t(2026, 10, 19, 12), 1.0, 0.95, _t(2026, 10, 21, 6), 0.95, -5.4, "stop (live price)", det),
+          _ev("tZ", "ZONE_TOUCH-UC", "CCC", _t(2026, 10, 19, 12), 1.0, 0.95, _t(2026, 10, 21, 7), 0.95, -5.4, "stop (live price)",
+              {"zone": [0.96, 1.0], "atr": 0.02}, source="eye"),
           _ev("tR", "JARVIS_RANDOM", "AAA", _t(2026, 10, 19, 12), 1.2, 1.1, detail=det),
           _ev("tB", "JARVIS_BOLD", "BTC", _t(2026, 10, 21, 0, 10), 120.0, 110.0, detail={"days": 20}),
           _ev("tH", "H07-UA", "BTC", _t(2026, 10, 20, 0), 119.0, None, source="daily")]
@@ -256,9 +258,10 @@ def test_daily_round_records_each_reviews_trigger_state(agent, tmp_path):
     for r in rows:
         by.setdefault((r["review"], r["kind"]), []).append(r)
     # R31: the touch, then the close rule: Oct 21 closed above the stop (HOLD, no trail on the touch day), Oct 22 closed under it
-    t, = by[("R31", "touch")]
+    tz, t = sorted(by[("R31", "touch")], key=lambda r: r["trade_id"] != "tZ")
+    assert tz["cell"] == "zone_touch_beside" and tz["days"] == 20                # a tier copy holds as its base does
     assert t["trade_id"] == "tC" and t["level_at_touch"] == 0.95 and t["has_minute"] and t["cell"] == "A" and t["in_window"]
-    cr = by[("R31", "close_rule")]
+    cr = [r for r in by[("R31", "close_rule")] if r["trade_id"] == "tC"]
     assert [(r["candle_day"], r["would"]) for r in cr] == [("2026-10-21", "HOLD"), ("2026-10-22", "EXIT_AT_CLOSE")]
     assert cr[0]["level_next"] == 0.95 and cr[1]["would_price"] == 0.93
     # R32: three closes since the window start; AAA broke out on the last two, one trade per coin

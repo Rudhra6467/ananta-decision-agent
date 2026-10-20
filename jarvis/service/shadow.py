@@ -377,7 +377,8 @@ def r31(ctx: Ctx) -> list[dict]:
     D1 = ctx.d1()
     for tid, w, coin, src, entry_t, entry, stop, exit_t, exit_px, exit_why, dj in trades:
         d = _json(dj)
-        days = int(d.get("days") or (watch_engine.EYE.get(w) or {}).get("days") or 30)
+        spec = watch_engine.EYE.get(w) or watch_engine.EYE.get(_base(w)) or watch_engine.DAILY.get(w) or {}
+        days = int(d.get("days") or spec.get("days") or 30)        # a tier copy's hold is its base's (universe_watch sets 20)
         plan = {"target": _num(d.get("target")), "days": days, "trail_atr": _num(d.get("trail_atr")), "atr": _num(d.get("atr")),
                 "stop0": _num(d.get("stop0"))}
         if tid not in state:

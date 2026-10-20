@@ -141,8 +141,8 @@ def coverage(manifest: str, since: str = "2024-01-01", until: str = "2026-09-30"
                 e = json.loads(line)
             except ValueError:
                 continue
-            if e.get("status") not in (200, "200", "ok"):
-                continue
+            if e.get("status") not in (200, "200", "ok") and not (e.get("status") is None and e.get("sha256")):
+                continue  # a manifest without a status field (us_close) counts an entry only when it saved a file (sha256)
             if match and any(e.get(k) != v for k, v in match.items()):
                 continue
             if e.get("date"):

@@ -6,6 +6,10 @@ A read-only second machine. It records, once a minute, what cannot be fetched ag
 - the USD/CAD rate
 - whether Ananta's public status page answers
 
+And, every hour since Oct 20 (decision OD-HL-FILLS, option (a): data only), other traders' fills: every finished UTC day of the
+last 7 it does not hold yet, for the fixed sample of review #2 without its 6 market-maker / HFT accounts (59 accounts) (Hyperliquid's public info API, `userFillsByTime` only). Other
+traders are reference, never teachers or copy signals (docs/LOCK.md, D8).
+
 It holds **no keys, no passwords and no accounts**, and it never places an order. The main Mac connects to it; it never
 connects to the main Mac.
 
@@ -13,10 +17,14 @@ connects to the main Mac.
 |---|---|
 | `collector.py` | the collector (Python 3.8+, standard library only) |
 | `com.ananta.worker.collector.plist` | the launchd job (keeps it running, keeps the Mac awake on power) |
-| `install_worker.sh` | installs or updates it from the main Mac over SSH |
+| `hl_capture.py` | other traders' fills, one file per finished UTC day (Python 3.8+, standard library only) |
+| `com.ananta.worker.hlcapture.plist` | its launchd job (every hour and at login; a run ends by itself) |
+| `install_worker.sh` | installs or updates both from the main Mac over SSH |
 
 On the worker, everything lives in `~/ananta_worker`: `data/l1_YYYY-MM-DD.sqlite` (one file per UTC day, 45 days kept),
-`heartbeat.json`, `logs/`, and `status`.
+`data/hl_YYYY-MM-DD.sqlite` (other traders' fills, written as `.part` and renamed only when the day is whole, 45 days kept),
+`hl_accounts.json` (the fixed account list), `heartbeat.json`, `hl_heartbeat.json`, `logs/`, and `status`. The main Mac's 03:40
+backup pulls both kinds of finished day into `~/ananta_worker_data` (`jarvis/service/worker.py`, `pull`).
 
 ## Setup (once)
 
@@ -56,4 +64,23 @@ ssh ananta-worker '~/ananta_worker/status'
 ```
 
 It prints `OK · … last good round 23 s ago · today: NDAX … rows …`. It exits 0 when the last round is under 3 minutes old,
-1 when stale, and 2 when there has never been a heartbeat.
+1 when stale, and 2 when there has never been a heartbeat. A second line, `hl OK · other traders' fills: 7 of the last 7
+finished days held …`, is the fills capture; it never changes the exit code (the collector's line is the worker's health).
+
+## The daily comparison on the main Mac (installed by hand, not by the script)
+
+`src/research/others_daily.py` reads the pulled `hl_*.sqlite` days, rebuilds the round trips, holds each against what Ananta
+saw and did at the trader's entry (read-only), and writes `docs/repair_shop/daily/others_YYYY-MM-DD.md` plus a row in
+`docs/repair_shop/daily/others_history.jsonl`. A situation no rule of ours covers that repeats on 3 days in 7 becomes one
+repair-board request worded as a DRAFT finding. Its launchd job is `scripts/launchd/com.ananta.othersdaily.plist` (04:30, after
+the 03:40 pull). To install it, on the main Mac, after this branch is merged into the checkout the service runs from:
+
+```
+cd ~/code/ananta-agent-research
+~/ananta_venvs/jarvis/bin/python -m src.research.others_daily run --no-requests     # a dry run: pages, nothing filed
+sed -e "s#__REPO__#$PWD#g" -e "s#__HOME__#$HOME#g" scripts/launchd/com.ananta.othersdaily.plist > ~/Library/LaunchAgents/com.ananta.othersdaily.plist
+plutil -lint ~/Library/LaunchAgents/com.ananta.othersdaily.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ananta.othersdaily.plist
+```
+
+To stop it: `launchctl bootout gui/$(id -u)/com.ananta.othersdaily`.

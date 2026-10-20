@@ -234,7 +234,9 @@ def collect(out: Path, per_bucket: int = 10, tape_k: int = 20, vault_k: int = 15
 # ---------------------------------------------------------------------------
 def round_trips(fills: list[tuple]) -> list[dict]:
     """fills: (time, coin, side, px, sz, start_pos, closed_pnl, fee) sorted by time.
-    A trip = a coin position going from flat to flat. Flips close one trip and open the next."""
+    A trip = a coin position going from flat to flat. Flips close one trip and open the next.
+    Each trip also carries entry_vwap / exit_vwap (size-weighted prices of the fills that opened and closed it; Oct 20, for the
+    daily rebuild's after-cost result: a trip scaled in or out is priced on all its fills, not on the first and the last)."""
     trips: list[dict] = []
     open_: dict[str, dict] = {}
     for t, coin, side, px, sz, start_pos, cpnl, fee in fills:
@@ -243,7 +245,7 @@ def round_trips(fills: list[tuple]) -> list[dict]:
         cur = open_.get(coin)
         if cur is None and abs(start_pos) < 1e-12:
             cur = open_[coin] = {"coin": coin, "open_ms": t, "dir": "LONG" if sgn > 0 else "SHORT", "entry_px": px,
-                                 "pnl": 0.0, "fees": 0.0, "max_notional": 0.0, "fills": 0}
+                                 "pnl": 0.0, "fees": 0.0, "max_notional": 0.0, "fills": 0, "_vw": [0.0, 0.0, 0.0, 0.0]}
         if cur is None:  # position opened before our window: cannot score it honestly
             continue
         cur["pnl"] += cpnl
@@ -251,14 +253,35 @@ def round_trips(fills: list[tuple]) -> list[dict]:
         cur["fills"] += 1
         cur["max_notional"] = max(cur["max_notional"], abs(after) * px)
         crossed = (start_pos > 0 > after) or (start_pos < 0 < after)
+        vw = cur["_vw"]                       # [size in, value in, size out, value out]
+        if abs(start_pos) < 1e-12 or (start_pos > 0) == (sgn > 0):
+            vw[0] += sz
+            vw[1] += sz * px
+        else:
+            q = min(sz, abs(start_pos))
+            vw[2] += q
+            vw[3] += q * px
         if abs(after) < 1e-12 or crossed:
             cur.update(close_ms=t, exit_px=px, net=cur["pnl"] - cur["fees"], hold_h=(t - cur["open_ms"]) / 3_600_000)
+            vw = cur.pop("_vw")
+            cur["entry_vwap"] = vw[1] / vw[0] if vw[0] > 0 else px
+            cur["exit_vwap"] = vw[3] / vw[2] if vw[2] > 0 else px
             trips.append(cur)
             open_.pop(coin, None)
             if crossed:
                 open_[coin] = {"coin": coin, "open_ms": t, "dir": "LONG" if after > 0 else "SHORT", "entry_px": px,
-                               "pnl": 0.0, "fees": 0.0, "max_notional": abs(after) * px, "fills": 1}
+                               "pnl": 0.0, "fees": 0.0, "max_notional": abs(after) * px, "fills": 1,
+                               "_vw": [abs(after), abs(after) * px, 0.0, 0.0]}
     return trips
+
+
+HFT_HOLD_H, HFT_TRIPS_WEEK = 10 / 60, 200.0   # review #2's trip rule (the one review2_traders.load_trips applies)
+
+
+def is_hft(beh: dict) -> bool:
+    """Market maker / HFT by review #2's trip rule: a median hold under 10 minutes or more than 200 round trips a week. Their game is
+    not ours, so they are dropped and counted (the sampling's turnover rule, HFT_TURNOVER, needs the leaderboard's account value)."""
+    return bool(beh.get("trips", 0)) and (beh["hold_h_median"] < HFT_HOLD_H or beh["trips_per_week"] > HFT_TRIPS_WEEK)
 
 
 def _pct(xs: list[float], q: float):
@@ -296,7 +319,7 @@ def behaviour(trips: list[dict]) -> dict[str, Any]:
         "long_share": round(sum(1 for t in trips if t["dir"] == "LONG") / len(trips), 3),
         "lab10_share": round(len(lab) / len(trips), 3),
         "coins": len({t["coin"] for t in trips}),
-        "largest_loss_share": round(max(losses) / sum(losses), 3) if losses else None,
+        "largest_loss_share": round(max(losses) / sum(losses), 3) if losses and sum(losses) > 0 else None,   # Oct 20: break-even trips only
     }
 
 

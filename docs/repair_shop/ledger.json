@@ -1,6 +1,6 @@
 {
  "version": "repair_shop.ledger.v1",
- "updated": "2026-10-15",
+ "updated": "2026-10-20",
  "meaning": {
   "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
   "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
@@ -457,6 +457,118 @@
    "files": [
     "docs/research/REVIEW_30.md",
     "docs/research/REVIEW_30_RESULTS.md"
+   ]
+  },
+  {
+   "id": "R31",
+   "date": "2026-10-20",
+   "status": "PRE_REGISTERED",
+   "verdict": "PENDING",
+   "title": "The written close stop against the coded touch stop",
+   "forwarded_because": "Decision audit, Oct 20: all 18 stop exits of Jarvis's book and its twins (13-20 Oct) fired during the day while the close stayed above the stop; the written zone stop (chain.py, STOP_ZONE) is a daily close under it.",
+   "question": "Does selling on a daily close under the stop beat selling on a touch, on the same trades of the books brain.manage_live runs? And are the stop fills inside NDAX's quote at that minute?",
+   "result": "Not run. Pre-registered forward test on live data from 2026-10-21 to 2026-12-14; one look at CHECKPOINT-60.",
+   "changed": "Nothing until the look; every outcome is a proposal to Madhav after the window (LOCK section 9).",
+   "files": [
+    "docs/research/REVIEW_31.md"
+   ]
+  },
+  {
+   "id": "R32",
+   "date": "2026-10-20",
+   "status": "PRE_REGISTERED",
+   "verdict": "PENDING",
+   "title": "A breakout away from support (request #38, PW-BREAKOUT-38)",
+   "forwarded_because": "Request #38 (missed-moves pattern breakout, no zone, market allowed), parked by Rule B on Oct 15; the audit's caution: the first close above the prior 20-day high lost on 6 of 7 coins in the week of Oct 13.",
+   "question": "Does buying a close above the prior 5-day high, away from any support zone with the market allowed, beat the average coin bought the same day after costs (the 20-day chase reported beside)?",
+   "result": "Not run. Pre-registered forward test on live data from 2026-10-21 to 2026-12-14; one look at CHECKPOINT-60.",
+   "changed": "Nothing until the look; every outcome is a proposal to Madhav after the window (LOCK section 9).",
+   "files": [
+    "docs/research/REVIEW_32.md"
+   ]
+  },
+  {
+   "id": "R33",
+   "date": "2026-10-20",
+   "status": "PRE_REGISTERED",
+   "verdict": "PENDING",
+   "title": "Does Jarvis's pick beat a random coin? (the Oct 14 weekly ticket)",
+   "forwarded_because": "The weekly review of Oct 14 counted 'random beat the pick' 3 times and proposed a pre-registered review; the ticket was never filed.",
+   "question": "Does Jarvis's own pick beat its random twin traded with the same plan (ledger question Q7's question, with a frozen pass mark)?",
+   "result": "Not run. Pre-registered forward test on live data from 2026-10-21 to 2026-12-14; one look at CHECKPOINT-60.",
+   "changed": "Nothing until the look; every outcome is a proposal to Madhav after the window (LOCK section 9).",
+   "files": [
+    "docs/research/REVIEW_33.md"
+   ]
+  },
+  {
+   "id": "R34",
+   "date": "2026-10-20",
+   "status": "PRE_REGISTERED",
+   "verdict": "PENDING",
+   "title": "Are the brain's PASSes right, and does the ranker send it the right coins?",
+   "forwarded_because": "Gate review, Oct 20: the brain's PASSes ended -1.41 points against the universe median over 5 days, while the wakes it never reviewed ended +0.37.",
+   "question": "Do passed coins beat the median coin over 5 days, and do ranked-out wakes beat the decided ones?",
+   "result": "Not run. Pre-registered forward test on live data from 2026-10-21 to 2026-12-14; one look at CHECKPOINT-60.",
+   "changed": "Nothing until the look; every outcome is a proposal to Madhav after the window (LOCK section 9).",
+   "files": [
+    "docs/research/REVIEW_34.md"
+   ]
+  },
+  {
+   "id": "R35",
+   "date": "2026-10-20",
+   "status": "PRE_REGISTERED",
+   "verdict": "PENDING",
+   "title": "Does the attention score point at better coins? (measures only)",
+   "forwarded_because": "The attention score is a design rule never tested as a signal (LOCK section 7); OD-PLAYBOOK-ATTENTION is due Oct 31.",
+   "question": "Do lab coins marked attention-HIGH beat the other lab coins over 5 days, against the universe median? It decides nothing.",
+   "result": "Not run. Pre-registered forward test on live data from 2026-10-21 to 2026-12-14; one look at CHECKPOINT-60.",
+   "changed": "Nothing until the look; every outcome is a proposal to Madhav after the window (LOCK section 9).",
+   "files": [
+    "docs/research/REVIEW_35.md"
+   ]
+  },
+  {
+   "id": "R36",
+   "date": "2026-10-20",
+   "status": "PRE_REGISTERED",
+   "verdict": "PENDING",
+   "title": "Does the 'room to a target' check stop better trades?",
+   "forwarded_because": "Gate review appendix, Oct 20: the Explorer's NO_TYPE shadows (no room to a target) lost $0.65 per $100 against $0.90 for its real trades.",
+   "question": "Do the Explorer's NO_TYPE shadows do at least as well as its real trades closing on the same days?",
+   "result": "Not run. Pre-registered forward test on live data from 2026-10-21 to 2026-12-14; one look at CHECKPOINT-60.",
+   "changed": "Nothing until the look; every outcome is a proposal to Madhav after the window (LOCK section 9).",
+   "files": [
+    "docs/research/REVIEW_36.md"
+   ]
+  },
+  {
+   "id": "R37",
+   "date": "2026-10-20",
+   "status": "PRE_REGISTERED",
+   "verdict": "PENDING",
+   "title": "The bold book against its random twin, and whether its cited rule backed the coin",
+   "forwarded_because": "Decision audit, Oct 20: every bold TAKE of Oct 15-20 cited T3 while T3's own rule rated the coin OUT; no gate check audits the bold book.",
+   "question": "Does the bold pick beat its random tier-A twin, and do T3-citing picks have the coin rated IN by T3 that day?",
+   "result": "Not run. Pre-registered forward test on live data from 2026-10-21 to 2026-12-14; one look at CHECKPOINT-60.",
+   "changed": "Nothing until the look; every outcome is a proposal to Madhav after the window (LOCK section 9).",
+   "files": [
+    "docs/research/REVIEW_37.md"
+   ]
+  },
+  {
+   "id": "R38",
+   "date": "2026-10-20",
+   "status": "PRE_REGISTERED",
+   "verdict": "PENDING",
+   "title": "When Ananta catches a big move, does a book allowed to trade make money from it?",
+   "forwarded_because": "Decision audit, Oct 20: 15 catches, none by the account; 22 of 28 catching trades in books classed won't take again; one AVA trade carried the total.",
+   "question": "Do the distinct catching trades of books allowed to trade make money after costs, also without the largest one?",
+   "result": "Not run. Pre-registered forward test on live data from 2026-10-21 to 2026-12-14; one look at CHECKPOINT-60.",
+   "changed": "Nothing until the look; every outcome is a proposal to Madhav after the window (LOCK section 9).",
+   "files": [
+    "docs/research/REVIEW_38.md"
    ]
   }
  ],

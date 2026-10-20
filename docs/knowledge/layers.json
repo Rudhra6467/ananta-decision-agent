@@ -283,7 +283,8 @@
    "files": [
     "docs/repair_shop/REVIEW_2_RESULTS.md",
     "src/research/hl_bench.py",
-    "src/research/review2_traders.py"
+    "src/research/review2_traders.py",
+    "src/research/others_daily.py"
    ]
   },
   {
@@ -923,7 +924,8 @@
    "files": [
     "src/research/casebook.py",
     "src/research/hl_bench.py",
-    "src/research/review2_traders.py"
+    "src/research/review2_traders.py",
+    "src/research/others_daily.py"
    ]
   },
   {
@@ -1040,6 +1042,7 @@
     "jarvis/app/app.json",
     "jarvis/service/core.py",
     "jarvis/service/app.py",
+    "src/india/kite_auth.py",
     "docs/GUEST_GUIDE.md"
    ]
   },
@@ -1444,8 +1447,11 @@
    "evidence": "from 2026-10-04: phone note when a part goes quiet and when it is back; a must-have before live",
    "files": [
     "jarvis/service/health.py",
+    "jarvis/service/runcheck.py",
+    "jarvis/service/runcheck_parts.py",
     "jarvis/service/worker.py",
     "jarvis/service/ndax_spreads.py",
+    "jarvis/service/realism.py",
     "scripts/jarvis_watchdog.py"
    ]
   },

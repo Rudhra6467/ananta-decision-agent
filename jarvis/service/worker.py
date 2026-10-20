@@ -4,7 +4,9 @@ Ananta's public page answers). The main Mac pulls from it; it never connects to 
 note topic (alert.json, mode 600, Oct 15), which can do nothing but send notes to Madhav's phone when the public page is down.
 
   status()              its one-line status over SSH, cached 5 minutes: {"ok", "state", "line", "checked_t"} (a part of system health)
-  pull()                every finished UTC day the main Mac does not hold yet copied into ~/ananta_worker_data, checked, never twice
+  pull()                every finished UTC day the main Mac does not hold yet copied into ~/ananta_worker_data, checked, never twice:
+                        the collector's l1_YYYY-MM-DD.sqlite and, since Oct 20, other traders' fills hl_YYYY-MM-DD.sqlite (data only,
+                        decision OD-HL-FILLS (a); worker/hl_capture.py writes a day only when it is whole)
   push_backups(n=3)     the newest n nightly backups to the worker, WITHOUT the tables that hold logins, sessions, push tokens,
                         people or conversations and without the guests' practice books (the worker is an old, unpatched Mac: no
                         secrets on it), only while it has more than 20 GB free; the copy is integrity-checked there
@@ -44,7 +46,11 @@ def status(max_age_s: int = 300) -> dict:
     try:
         r = _ssh("~/ananta_worker/status", timeout=20)
         state = {0: "OK", 1: "STALE", 2: "NEVER"}.get(r.returncode, "ERROR")
-        out = {"ok": r.returncode == 0, "state": state, "line": (r.stdout or r.stderr).strip()[:300], "checked_t": now}
+        lines = (r.stdout or r.stderr).strip().splitlines()      # the collector's line; since Oct 20 the fills capture's line too
+        hl = next((ln for ln in lines if ln.startswith("hl ")), None)
+        out = {"ok": r.returncode == 0, "state": state, "line": (lines[0] if lines else "")[:300], "checked_t": now}
+        if hl:
+            out["hl"] = hl[:300]
     except Exception as exc:  # noqa: BLE001
         out = {"ok": False, "state": "UNREACHABLE", "line": str(exc)[:200], "checked_t": now}
     _CACHE["status"] = out
@@ -54,10 +60,15 @@ def status(max_age_s: int = 300) -> dict:
 _LAST_SSH_ERROR = ""
 
 
+PREFIXES = ("l1_", "hl_")
+CHECK_TABLES = {"l1_": ("ndax", "binance", "fx", "site"), "hl_": ("fills", "accounts")}
+
+
 def _remote_files() -> dict[str, int]:
     global _LAST_SSH_ERROR
-    try:
-        r = _ssh(f"cd {REMOTE_DATA} && for f in l1_*.sqlite; do echo \"$f $(stat -f %z \"$f\")\"; done", timeout=30)
+    try:                                    # find, not a shell glob: a pattern with no file is an error in zsh and would hide the others
+        r = _ssh(f"cd {REMOTE_DATA} && find . -maxdepth 1 -type f \\( -name 'l1_*.sqlite' -o -name 'hl_*.sqlite' \\) -exec stat -f '%N %z' {{}} +",
+                 timeout=30)
     except Exception as exc:  # noqa: BLE001  (a timeout is the usual one)
         _LAST_SSH_ERROR = f"ssh: {str(exc)[:160]}"
         return {}
@@ -66,7 +77,9 @@ def _remote_files() -> dict[str, int]:
     for line in (r.stdout or "").splitlines():
         parts = line.split()
         if len(parts) == 2 and parts[1].isdigit():
-            out[parts[0]] = int(parts[1])
+            name = parts[0][2:] if parts[0].startswith("./") else parts[0]
+            if name[:3] in PREFIXES and name.endswith(".sqlite"):
+                out[name] = int(parts[1])
     return out
 
 
@@ -78,7 +91,7 @@ def pull(dest: Path | None = None) -> dict:
     today = time.strftime("%Y-%m-%d", time.gmtime())
     got, skipped, bad = [], [], []
     for name, size in sorted(_remote_files().items()):
-        day = name[3:13]
+        day, kind = name[3:13], name[:3]
         if day >= today:
             continue
         if (dest / name).exists():
@@ -88,19 +101,22 @@ def pull(dest: Path | None = None) -> dict:
         r = subprocess.run(["scp", "-q", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", f"{HOST}:{REMOTE_DATA}/{name}", str(part)],
                            capture_output=True, text=True, timeout=600)
         if r.returncode != 0 or not part.exists() or part.stat().st_size != size:
-            bad.append({"day": day, "why": (r.stderr or "size differs").strip()[:120]})
+            bad.append({"day": day, "file": name, "why": (r.stderr or "size differs").strip()[:120]})
             part.unlink(missing_ok=True)
             continue
         try:
             con = sqlite3.connect(f"file:{part}?mode=ro", uri=True)
-            n = {t: con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("ndax", "binance", "fx", "site")}
+            n = {t: con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in CHECK_TABLES.get(kind, CHECK_TABLES["l1_"])}
+            if kind == "hl_" and not con.execute("SELECT 1 FROM meta WHERE k='finished_at'").fetchone():
+                con.close()
+                raise sqlite3.DatabaseError("not marked finished")
             con.close()
         except sqlite3.Error as exc:
-            bad.append({"day": day, "why": str(exc)[:120]})
+            bad.append({"day": day, "file": name, "why": str(exc)[:120]})
             part.unlink(missing_ok=True)
             continue
         part.rename(dest / name)
-        got.append({"day": day, **n})
+        got.append({"day": day, **n} if kind == "l1_" else {"day": day, "file": "hl", **n})
     out = {"pulled": got, "already_here": len(skipped), "failed": bad, "dest": str(dest)}
     if _LAST_SSH_ERROR:                      # Oct 16: the first night's pull found nothing and said nothing; now it says why
         out["error"] = _LAST_SSH_ERROR

@@ -229,8 +229,9 @@ def proof(label: str, due: dt.datetime | None, ctx: dict) -> tuple[bool | None, 
         n = len(list(folder.glob("*"))) if folder.exists() else 0
         return n > 0, f"IST {ist_day}: {n} depth snapshots"
     if name in ("recorder_noon", "evening"):
-        rows = [r for r in _json_lines(D / "manifests" / "kite_1m_fo.jsonl", 6000) if r.get("date") == d.isoformat() and r.get("status") == "ok"
-                and str(r.get("fetched_at", "")) >= due.astimezone(dt.timezone.utc).isoformat(timespec="seconds")]
+        lo = due.astimezone(dt.timezone.utc).isoformat(timespec="seconds")
+        hi = (due + dt.timedelta(hours=12)).astimezone(dt.timezone.utc).isoformat(timespec="seconds")
+        rows = [r for r in _json_lines(D / "manifests" / "kite_1m_fo.jsonl", 6000) if r.get("status") == "ok" and lo <= str(r.get("fetched_at", "")) < hi]
         txt = f"recorder: {len(rows)} contracts saved since {due:%H:%M}"
         if name == "evening":
             nxt = next_session(d + dt.timedelta(days=1), hol)
@@ -314,14 +315,16 @@ def build(now: dt.datetime | None = None, launchctl_text: str | None = None, age
     rday = due_of("evening").date()
     rp = D / "manifests" / "sp1_nightly_replay.json"
     replay = json.loads(rp.read_text()) if rp.exists() else None
-    if replay is None:
+    history = _json_lines(D / "manifests" / "sp1_nightly_replay.jsonl", 400) + ([replay] if replay else [])
+    mine = next((x for x in reversed(history) if x.get("date") == rday.isoformat()), None)
+    if replay is None and not history:
         lost.append(f"SP1 nightly replay: no result file (india.sp1nightly has not run; expected for {rday})")
+    elif mine is None:
+        lost.append(f"SP1 nightly replay: no result for {rday} (the latest is for {history[-1].get('date')}: {history[-1].get('status')})")
     else:
-        st = str(replay.get("status"))
-        if replay.get("date") != rday.isoformat():
-            lost.append(f"SP1 nightly replay: no result for {rday} (the last one is for {replay.get('date')}: {st})")
-        elif not (st == "PASS" or st == "skipped (holiday)" or st.startswith("skipped (no ledger rows)")):
-            lost.append(f"SP1 nightly replay {replay.get('date')}: {st}" + (f" ({replay.get('detail')})" if replay.get("detail") else "")
+        st = str(mine.get("status"))
+        if not (st == "PASS" or st == "skipped (holiday)" or st.startswith("skipped (no ledger rows)")):
+            lost.append(f"SP1 nightly replay {rday}: {st}" + (f" ({mine.get('detail')})" if mine.get("detail") else "")
                         + (f"; next sign-in {ctx['signin']}" if st == "skipped (no token)" else ""))
     res = {"at": now, "jobs": jobs, "lost": lost, "missed_line": missed_line, "missed_session": str(mday), "replay": replay, "signin": ctx["signin"]}
     reg.mkdir(parents=True, exist_ok=True)

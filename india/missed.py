@@ -426,7 +426,7 @@ def md_line(man: dict) -> str:
     for r in man["movers"]:
         if r.get("class") == "b":
             words.setdefault(r["situation_key"], r["situation"])
-    top = "; ".join(f"{k.split(':', 1)[1].replace(':', ', ').replace('_', ' ')} x{len(v)}" for k, v in list(s["b_situations"].items())[:3])
+    top = "; ".join(f"{k.split(':')[0]}: {k.split(':', 1)[1].replace(':', ', ').replace('_', ' ')} x{len(v)}" for k, v in list(s["b_situations"].items())[:3])
     share = f", {u['share_of_top20_cc_move_caught']:.1%} of the top-20 move" if u["share_of_top20_cc_move_caught"] is not None else ""
     return (f"| {d} | {u['movers']} up | caught {u['caught']} ({_inr(u['catches_pnl_so_far_inr'])} so far{share}); control {u['caught_by_control']} "
             f"({_inr(u['control_pnl_so_far_inr'])}) | a {u['a']} / b {u['b']} / c {u['c']} | {w['movers']} down: held {w['held_into_fall']} "

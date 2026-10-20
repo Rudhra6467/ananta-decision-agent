@@ -354,14 +354,19 @@ def test_morning_summary_none_when_all_ran(lake, tmp_path):
     (lake / "paper" / "marks.jsonl").write_text(json.dumps({"at": "2026-10-20T02:30:12+00:00"}) + "\n")
     _job(agents, logs, "paper", {"Hour": 22, "Minute": 30}, "{}", "", _ts(2026, 10, 19, 22, 31), _ts(2026, 10, 19, 22, 30))
     _job(agents, logs, "nightly", {"Hour": 2, "Minute": 30}, NIGHTLY_OK, "", _ts(2026, 10, 20, 2, 37), _ts(2026, 10, 20, 2, 30))
+    _job(agents, logs, "recorder_noon", [{"Weekday": w, "Hour": 12, "Minute": 30} for w in range(1, 6)], "{}", "", _ts(2026, 10, 19, 12, 35), _ts(2026, 10, 19, 12, 30))
+    with (paths.manifest_dir() / "kite_1m_fo.jsonl").open("w") as fh:   # the recorder's rows carry start/end/fetched_at, not a date
+        fh.write(json.dumps({"symbol": "NIFTY26OCTFUT", "end": str(T), "fetched_at": "2026-10-19T16:31:00+00:00", "n": 3000, "status": "ok"}) + "\n")
     man = {"date": str(T), "status": "ok", "md_line": f"| {T} | 30 up | caught 1 | a 1 / b 20 / c 1 | 28 down | x | 0 |"}
     (paths.manifest_dir() / f"missed_{T}.json").write_text(json.dumps(man))
-    (paths.manifest_dir() / "sp1_nightly_replay.json").write_text(json.dumps({"date": str(T), "status": "skipped (no ledger rows)", "verify": {"ok": True}}))
-    lc = "-\t0\tcom.ananta.india.paper\n-\t0\tcom.ananta.india.nightly\n"
+    (paths.manifest_dir() / "sp1_nightly_replay.jsonl").write_text(json.dumps({"date": str(T), "status": "skipped (no ledger rows)"}) + "\n")
+    (paths.manifest_dir() / "sp1_nightly_replay.json").write_text(json.dumps({"date": str(HOL), "status": "skipped (holiday)", "verify": {"ok": True}}))
+    lc = "-\t0\tcom.ananta.india.paper\n-\t0\tcom.ananta.india.nightly\n-\t0\tcom.ananta.india.recorder_noon\n"
     r = morning.build(now=dt.datetime(2026, 10, 20, 7, 0, tzinfo=TOR), launchctl_text=lc, agents=agents, reg=tmp_path / "reg")
     assert r["lost"] == []
     md = (tmp_path / "reg" / "india_morning.md").read_text()
-    assert "## Lost or empty runs\n\n- none" in md and f"| {T} | 30 up |" in md and "skipped (no ledger rows)" in md
+    assert "## Lost or empty runs\n\n- none" in md and f"| {T} | 30 up |" in md and "skipped (holiday)" in md
+    assert "recorder: 1 contracts saved" in md
     assert missed.MD_HEAD.splitlines()[-2] in md                        # the missed-movers table header
 
 

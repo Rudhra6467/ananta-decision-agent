@@ -1,0 +1,1295 @@
+{
+ "about": "Manual classification of the SP3 2005-2023 permanent-stop cases (in_window_events.boundary with E = 2023-12-29; pre_freeze.permanent_stops) that india/sp3.py prep stops cannot settle mechanically. The code settles two kinds itself: the 2011 sid-key switch (a symbol sid whose symbol carries an ISIN from the next sessions: renamed to that ISIN's entity) and the renames in NSE's symbol-change list (symbol_changes below, confirmed by the new symbol's first cash session following L). Every other case is listed here with its class, evidence (a record in silver/announce or silver/pr/announcements dated to 2023-12-29, or an exchange or index notice on the web) and, for renamed, the successor sid. prep stops refuses to run if this list and the computed case list differ. Classes: scheme (a scheme of arrangement, amalgamation, demerger or reconstruction ended the listing), voluntary_delisting (a delisting offer), renamed (the same company's shares kept trading under another symbol or ISIN; a relisting after a capital reduction is flagged), compulsory (delisted by the exchange, or under an IBC resolution plan that paid the shareholders nothing), liquidation (a winding-up or liquidation order), suspended_unresolved (suspended and neither resumed nor delisted by 2023-12-29), unresolved (no record settles it).",
+ "built": "2026-10-20, from records cut at 2023-12-29 and web lookups (NSE index press releases on niftyindices.com, NSE press releases and circulars on nsearchives.nseindia.com, the Calcutta Stock Exchange notice archive, one news report); no login, no members-only page",
+ "symbol_change_list": {
+  "url": "https://nsearchives.nseindia.com/content/equities/symbolchange.csv",
+  "fetched": "2026-10-20",
+  "rows": 1067,
+  "sha256": "69c0c5e18cca3350c2e07f7c8c4c1ebbfe38d81c8fa32c51f6ca9ea332e85f17",
+  "note": "one GET of the public file; only the rows naming a case symbol as the old symbol are kept below"
+ },
+ "symbol_changes": [
+  {
+   "old": "CRESTCOMM",
+   "new": "CRESTANI",
+   "effective": "2005-01-04",
+   "company": "Crest Animation Studios Limited"
+  },
+  {
+   "old": "GLOBALTELE",
+   "new": "GTL",
+   "effective": "2005-01-14",
+   "company": "GTL Limited"
+  },
+  {
+   "old": "TATATELSER",
+   "new": "TTML",
+   "effective": "2005-01-14",
+   "company": "Tata Teleservices (Maharashtra) Limited"
+  },
+  {
+   "old": "ABANLLOYD",
+   "new": "ABANLOYD",
+   "effective": "2005-01-17",
+   "company": "Aban Offshore Limited"
+  },
+  {
+   "old": "SAWPIPES",
+   "new": "JINDALSAW",
+   "effective": "2005-02-18",
+   "company": "Jindal Saw Limited"
+  },
+  {
+   "old": "IOL",
+   "new": "BOC",
+   "effective": "2005-03-10",
+   "company": "Linde India Limited"
+  },
+  {
+   "old": "KIRLOSKCUM",
+   "new": "CUMMINSIND",
+   "effective": "2005-06-17",
+   "company": "Cummins India Limited"
+  },
+  {
+   "old": "VYSYABANK",
+   "new": "INGVYSYABK",
+   "effective": "2005-08-16",
+   "company": "ING Vysya Bank Limited"
+  },
+  {
+   "old": "TISCO",
+   "new": "TATASTEEL",
+   "effective": "2005-10-17",
+   "company": "Tata Steel Limited"
+  },
+  {
+   "old": "TASCPHARMA",
+   "new": "MARKSANS",
+   "effective": "2005-11-14",
+   "company": "Marksans Pharma Limited"
+  },
+  {
+   "old": "CENBNK",
+   "new": "CENTBOP",
+   "effective": "2005-12-06",
+   "company": "Centurion Bank of Punjab Limited"
+  },
+  {
+   "old": "INDRAYON",
+   "new": "ABIRLANUVO",
+   "effective": "2005-12-07",
+   "company": "Aditya Birla Nuvo Limited"
+  },
+  {
+   "old": "KECINTL",
+   "new": "KECINFRA",
+   "effective": "2006-02-21",
+   "company": "Summit Securities Limited"
+  },
+  {
+   "old": "CHOLAINV",
+   "new": "CHOLADBS",
+   "effective": "2006-06-01",
+   "company": "Cholamandalam Investment and Finance Company Limited"
+  },
+  {
+   "old": "MORAREALTY",
+   "new": "PENINLAND",
+   "effective": "2006-06-09",
+   "company": "Peninsula Land Limited"
+  },
+  {
+   "old": "BHARTI",
+   "new": "BHARTIARTL",
+   "effective": "2006-06-19",
+   "company": "Bharti Airtel Limited"
+  },
+  {
+   "old": "MIRZATAN",
+   "new": "MIRZAINT",
+   "effective": "2006-07-05",
+   "company": "Mirza International Limited"
+  },
+  {
+   "old": "HINDCONS",
+   "new": "HCC",
+   "effective": "2006-07-10",
+   "company": "Hindustan Construction Company Limited"
+  },
+  {
+   "old": "SCANDENT",
+   "new": "CAMBRIDGE",
+   "effective": "2006-07-17",
+   "company": "Xchanging Solutions Limited"
+  },
+  {
+   "old": "NAVBARFERO",
+   "new": "NBVENTURES",
+   "effective": "2006-07-31",
+   "company": "NAVA LIMITED"
+  },
+  {
+   "old": "ABANLOYD",
+   "new": "ABAN",
+   "effective": "2006-08-18",
+   "company": "Aban Offshore Limited"
+  },
+  {
+   "old": "SATNAMOVER",
+   "new": "KOHINOOR",
+   "effective": "2006-08-18",
+   "company": "Kohinoor Foods Limited"
+  },
+  {
+   "old": "GOETZEIND",
+   "new": "FMGOETZE",
+   "effective": "2006-09-12",
+   "company": "Federal-Mogul Goetze (India) Limited."
+  },
+  {
+   "old": "ADANIEXPO",
+   "new": "ADANIENT",
+   "effective": "2006-09-20",
+   "company": "Adani Enterprises Limited"
+  },
+  {
+   "old": "AZTEC",
+   "new": "AZTECSOFT",
+   "effective": "2006-09-20",
+   "company": "Aztecsoft Limited"
+  },
+  {
+   "old": "MAHAVIRSPG",
+   "new": "VTL",
+   "effective": "2006-10-11",
+   "company": "Vardhman Textiles Limited"
+  },
+  {
+   "old": "AFTEKINFO",
+   "new": "AFTEK",
+   "effective": "2006-11-27",
+   "company": "Aftek Limited"
+  },
+  {
+   "old": "MPHASISBFL",
+   "new": "MPHASIS",
+   "effective": "2006-12-26",
+   "company": "MphasiS Limited"
+  },
+  {
+   "old": "ZEETELE",
+   "new": "ZEEL",
+   "effective": "2007-02-28",
+   "company": "Zee Entertainment Enterprises Limited"
+  },
+  {
+   "old": "FLEX",
+   "new": "UFLEX",
+   "effective": "2007-04-17",
+   "company": "UFLEX Limited"
+  },
+  {
+   "old": "HINDLEVER",
+   "new": "HINDUNILVR",
+   "effective": "2007-07-19",
+   "company": "Hindustan Unilever Limited"
+  },
+  {
+   "old": "GUJAMBCEM",
+   "new": "AMBUJACEM",
+   "effective": "2007-07-24",
+   "company": "Ambuja Cements Limited"
+  },
+  {
+   "old": "UTIBANK",
+   "new": "AXISBANK",
+   "effective": "2007-08-16",
+   "company": "Axis Bank Limited"
+  },
+  {
+   "old": "HINDALC0",
+   "new": "HINDALCO",
+   "effective": "2007-08-27",
+   "company": "Hindalco Industries Limited"
+  },
+  {
+   "old": "GESCOCORP",
+   "new": "MAHLIFE",
+   "effective": "2007-11-23",
+   "company": "Mahindra Lifespace Developers Limited"
+  },
+  {
+   "old": "STROPTICAL",
+   "new": "STRTECH",
+   "effective": "2007-12-17",
+   "company": "Sterlite Technologies Limited"
+  },
+  {
+   "old": "GENUSOVERE",
+   "new": "GENUSPOWER",
+   "effective": "2008-01-14",
+   "company": "Genus Power Infrastructures Limited"
+  },
+  {
+   "old": "ERACONS",
+   "new": "ERAINFRA",
+   "effective": "2008-02-25",
+   "company": "Era Infra Engineering Limited"
+  },
+  {
+   "old": "SHRINGAR",
+   "new": "FAME",
+   "effective": "2008-02-25",
+   "company": "Fame India Limited"
+  },
+  {
+   "old": "VSNL",
+   "new": "TATACOMM",
+   "effective": "2008-02-25",
+   "company": "Tata Communications Limited"
+  },
+  {
+   "old": "MICO",
+   "new": "BOSCHLTD",
+   "effective": "2008-02-28",
+   "company": "Bosch Limited"
+  },
+  {
+   "old": "BAJAJAUTO",
+   "new": "BAJAJHLDNG",
+   "effective": "2008-03-14",
+   "company": "Bajaj Holdings & Investment Limited"
+  },
+  {
+   "old": "GBN",
+   "new": "IBN18",
+   "effective": "2008-05-15",
+   "company": "TV18 Broadcast Limited"
+  },
+  {
+   "old": "REL",
+   "new": "RELINFRA",
+   "effective": "2008-05-16",
+   "company": "Reliance Infrastructure Limited"
+  },
+  {
+   "old": "PIRAMYDRET",
+   "new": "IBRETAILS",
+   "effective": "2008-06-09",
+   "company": "SORIL Infra Resources Limited"
+  },
+  {
+   "old": "NICOLASPIR",
+   "new": "PIRHEALTH",
+   "effective": "2008-06-19",
+   "company": "Piramal Enterprises Limited"
+  },
+  {
+   "old": "ARVINDMILL",
+   "new": "ARVIND",
+   "effective": "2008-07-07",
+   "company": "Arvind Limited"
+  },
+  {
+   "old": "BIRLAJUTE",
+   "new": "BIRLACORPN",
+   "effective": "2008-07-28",
+   "company": "Birla Corporation Limited"
+  },
+  {
+   "old": "I-FLEX",
+   "new": "OFSS",
+   "effective": "2008-09-18",
+   "company": "Oracle Financial Services Software Limited"
+  },
+  {
+   "old": "GTCIND",
+   "new": "GOLDENTOBC",
+   "effective": "2008-09-29",
+   "company": "Golden Tobacco Limited"
+  },
+  {
+   "old": "AIRDECCAN",
+   "new": "KFA",
+   "effective": "2008-10-06",
+   "company": "Kingfisher Airlines Limited"
+  },
+  {
+   "old": "GEOINFO",
+   "new": "GEODESIC",
+   "effective": "2008-10-06",
+   "company": "Geodesic Limited"
+  },
+  {
+   "old": "JSTAINLESS",
+   "new": "JSL",
+   "effective": "2008-10-23",
+   "company": "Jindal Stainless Limited"
+  },
+  {
+   "old": "KNL",
+   "new": "KGL",
+   "effective": "2008-11-20",
+   "company": "Karuturi Global Limited"
+  },
+  {
+   "old": "PHOENIXLMP",
+   "new": "HALONIX",
+   "effective": "2009-03-09",
+   "company": "Phoenix Lamps Limited"
+  },
+  {
+   "old": "MYSORECEM",
+   "new": "HEIDELBERG",
+   "effective": "2009-05-15",
+   "company": "HeidelbergCement India Limited"
+  },
+  {
+   "old": "GEOJIT",
+   "new": "GEOJITBNPP",
+   "effective": "2009-06-05",
+   "company": "Geojit Financial Services Limited"
+  },
+  {
+   "old": "AKRUTI",
+   "new": "ACKRUTI",
+   "effective": "2009-06-30",
+   "company": "Hubtown Limited"
+  },
+  {
+   "old": "XLTL",
+   "new": "XLTELENE",
+   "effective": "2009-07-22",
+   "company": "XL Energy Limited"
+  },
+  {
+   "old": "D-LINK",
+   "new": "SMARTLINK",
+   "effective": "2009-07-29",
+   "company": "Smartlink Holdings Limited"
+  },
+  {
+   "old": "ADLABSFILM",
+   "new": "RELMEDIA",
+   "effective": "2009-10-20",
+   "company": "Reliance MediaWorks Limited"
+  },
+  {
+   "old": "JPHYDRO",
+   "new": "JPPOWER",
+   "effective": "2010-01-08",
+   "company": "Jaiprakash Power Ventures Limited"
+  },
+  {
+   "old": "GWALCHEM",
+   "new": "GEECEE",
+   "effective": "2010-03-05",
+   "company": "GeeCee Ventures Limited"
+  },
+  {
+   "old": "ZANDUPHARM",
+   "new": "ZANDUREALT",
+   "effective": "2010-03-10",
+   "company": "Zandu Realty Limited"
+  },
+  {
+   "old": "IVRPRIME",
+   "new": "IVRCLAH",
+   "effective": "2010-04-13",
+   "company": "IVRCL Assets & Holdings Limited"
+  },
+  {
+   "old": "ANSALINFRA",
+   "new": "ANSALAPI",
+   "effective": "2010-05-14",
+   "company": "Ansal Properties & Infrastructure Limited"
+  },
+  {
+   "old": "WELGUJ",
+   "new": "WELCORP",
+   "effective": "2010-05-17",
+   "company": "Welspun Corp Limited"
+  },
+  {
+   "old": "AVAYAGCL",
+   "new": "AGCNET",
+   "effective": "2010-06-08",
+   "company": "Black Box Limited"
+  },
+  {
+   "old": "SREINTFIN",
+   "new": "SREINFRA",
+   "effective": "2010-07-21",
+   "company": "SREI Infrastructure Finance Limited"
+  },
+  {
+   "old": "TATATEA",
+   "new": "TATAGLOBAL",
+   "effective": "2010-07-21",
+   "company": "TATA CONSUMER PRODUCTS LIMITED"
+  },
+  {
+   "old": "VITLINFO",
+   "new": "CORALHUB",
+   "effective": "2010-07-26",
+   "company": "Coral Hub Limited"
+  },
+  {
+   "old": "DALMIACEM",
+   "new": "DALMIASUG",
+   "effective": "2010-09-30",
+   "company": "Dalmia Bharat Sugar and Industries Limited"
+  },
+  {
+   "old": "MSKPROJ",
+   "new": "WELPROJ",
+   "effective": "2011-01-04",
+   "company": "Welspun Enterprises Limited"
+  },
+  {
+   "old": "SHASUNCHEM",
+   "new": "SHASUNPHAR",
+   "effective": "2011-01-28",
+   "company": "Shasun Pharmaceuticals Limited"
+  },
+  {
+   "old": "MAYTASINFR",
+   "new": "IL&FSENGG",
+   "effective": "2011-02-08",
+   "company": "IL&FS Engineering and Construction Company Limited"
+  },
+  {
+   "old": "NAGARCONST",
+   "new": "NCC",
+   "effective": "2011-03-15",
+   "company": "NCC Limited"
+  },
+  {
+   "old": "KIRIDYES",
+   "new": "KIRIINDUS",
+   "effective": "2011-03-28",
+   "company": "Kiri Industries Limited"
+  },
+  {
+   "old": "ABSHEKINDS",
+   "new": "TRIDENT",
+   "effective": "2011-05-03",
+   "company": "Trident Limited"
+  },
+  {
+   "old": "MID-DAY",
+   "new": "NEXTMEDIA",
+   "effective": "2011-06-15",
+   "company": "Next Mediaworks Limited"
+  },
+  {
+   "old": "ISPATIND",
+   "new": "JSWISPAT",
+   "effective": "2011-08-16",
+   "company": "JSW ISPAT Steel Limited"
+  },
+  {
+   "old": "COREPROTEC",
+   "new": "COREEDUTEC",
+   "effective": "2011-09-07",
+   "company": "CORE Education & Technologies Limited"
+  },
+  {
+   "old": "PIPAVAVYD",
+   "new": "PIPAVAVDOC",
+   "effective": "2011-09-29",
+   "company": "Reliance Naval and Engineering Limited"
+  },
+  {
+   "old": "MLL",
+   "new": "MERCATOR",
+   "effective": "2011-12-08",
+   "company": "Mercator Limited"
+  },
+  {
+   "old": "DEWANHOUS",
+   "new": "DHFL",
+   "effective": "2012-05-22",
+   "company": "Dewan Housing Finance Corporation Limited"
+  },
+  {
+   "old": "BSTRANSCOM",
+   "new": "BSLIMITED",
+   "effective": "2012-11-29",
+   "company": "BS Limited"
+  },
+  {
+   "old": "FCH",
+   "new": "CAPF",
+   "effective": "2012-12-06",
+   "company": "Capital First Limited"
+  },
+  {
+   "old": "DALMIABEL",
+   "new": "DALMIABHA",
+   "effective": "2013-01-09",
+   "company": "Dalmia Bharat Limited"
+  },
+  {
+   "old": "AANJANEYA",
+   "new": "DRDATSONS",
+   "effective": "2013-09-02",
+   "company": "Dr. Datson's Labs Limited"
+  },
+  {
+   "old": "LANCOIN",
+   "new": "SRIPIPES",
+   "effective": "2014-12-17",
+   "company": "Srikalahasthi Pipes Limited"
+  },
+  {
+   "old": "AMTEKINDIA",
+   "new": "CASTEXTECH",
+   "effective": "2015-06-11",
+   "company": "Castex Technologies Limited"
+  },
+  {
+   "old": "ORCHIDCHEM",
+   "new": "ORCHIDPHAR",
+   "effective": "2015-12-21",
+   "company": "Orchid Pharma Limited"
+  },
+  {
+   "old": "PIPAVAVDOC",
+   "new": "RDEL",
+   "effective": "2016-03-18",
+   "company": "Reliance Naval and Engineering Limited"
+  },
+  {
+   "old": "SKSMICRO",
+   "new": "BHARATFIN",
+   "effective": "2016-07-01",
+   "company": "Bharat Financial Inclusion Limited"
+  },
+  {
+   "old": "LLOYDELENG",
+   "new": "LEEL",
+   "effective": "2017-06-19",
+   "company": "LEEL Electricals Limited"
+  },
+  {
+   "old": "RDEL",
+   "new": "RNAVAL",
+   "effective": "2017-09-18",
+   "company": "Reliance Naval and Engineering Limited"
+  },
+  {
+   "old": "BHUSANSTL",
+   "new": "TATASTLBSL",
+   "effective": "2018-12-10",
+   "company": "Tata Steel Bsl Limited"
+  }
+ ],
+ "cases": {
+  "JINDALIRON": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs14022005.pdf: Jindal Iron & Steel Co. suspended w.e.f. 2005-02-18 pursuant to the Scheme of Arrangement and Amalgamation with Jindal Vijayanagar Steel"
+  },
+  "JINDVIJSTL": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs16022005.pdf: Jindal Vijayanagar Steel excluded w.e.f. 2005-02-21 pursuant to the Scheme of Arrangement and Amalgamation (with Jindal Iron & Steel, Jindal South West Holdings); resumed as JSWSTEEL 2005-09-16"
+  },
+  "UNIONCARBI": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs03032005.pdf: Eveready Industries (symbol UNIONCARBI) excluded w.e.f. 2005-03-15 pursuant to the Scheme of Arrangement; resumed as EVEREADY 2005-04-27"
+  },
+  "WELSPUNGUJ": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs12042005.pdf: Welspun Gujarat Stahl Rohren suspended w.e.f. 2005-04-20 for a scheme with Eupec-Welspun Pipe Coatings; resumed as WELGUJ 2005-05-24"
+  },
+  "ESSARGUJ": {
+   "class": "renamed",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs22042005.pdf: Essar Steel (symbol ESSARGUJ) suspended w.e.f. 2005-04-25 pursuant to the reduction of share capital; the same company traded as ESTL from 2005-06-13 (cash file) until its 2007 delisting (https://niftyindices.com/Press_Release/ind_prs27112007.pdf)",
+   "successor": "ESTL",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "IDBIBANK": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs06052005.pdf: IDBI Bank suspended (excluded w.e.f. 2005-05-09) pursuant to the Scheme of Amalgamation of IDBI Bank with Industrial Development Bank of India"
+  },
+  "TATAFIN": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs03082005.pdf: Tata Finance excluded w.e.f. 2005-08-05 due to a scheme of Amalgamation with Tata Motors"
+  },
+  "BANKPUNJAB": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs05102005.pdf: Bank of Punjab excluded w.e.f. 2005-10-06 on account of Scheme of Amalgamation with Centurion Bank"
+  },
+  "NIPPONDENR": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs29112005.pdf: Ispat Industries (symbol NIPPONDENR) suspended w.e.f. 2005-12-08 due to a scheme of Reconstruction and Amalgamation; resumed as ISPATIND 2006-04-20"
+  },
+  "VDOCONINTL": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs04012006.pdf: Videocon International excluded w.e.f. 2006-01-06 due to a scheme of Amalgamation"
+  },
+  "GEORGWILIM": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs13072006.pdf: Williamson Tea Assam (symbol GEORGWILIM) excluded w.e.f. 2006-07-14 due to a Scheme of Amalgamation"
+  },
+  "RAMANEWSPR": {
+   "class": "renamed",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs20072006_2.pdf: Rama Newsprint & Papers suspended w.e.f. 2006-07-21 due to a Reduction of Equity Share Capital; the same company traded as RAMANEWS from 2006-09-20 (cash file)",
+   "successor": "RAMANEWS",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "SHYAMTELE": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs24072006.pdf: Shyam Telecom excluded w.e.f. 2006-07-25 due to a Scheme of Arrangement"
+  },
+  "JINDALDRIL": {
+   "class": "scheme",
+   "evidence": "https://www.cse-india.com/upload/CSE%20Notices%20&%20Circulars/2006/Notice150906_4.htm: Jindal Drilling & Industries record date 2006-09-19 for a scheme of arrangement with Haryana Capfin and restructuring of share capital; resumed as JINDRILL 2006-12-22"
+  },
+  "PENTSFWARE": {
+   "class": "suspended_unresolved",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs07092006.pdf: Pentasoft Technologies suspended w.e.f. 2006-09-13 for non-compliance with the Listing Agreement / non-submission of the Secretarial Audit Report; no session after (cash file to 2023-12-29)"
+  },
+  "COCHINREFN": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs08092006_1.pdf: Kochi Refineries suspended w.e.f. 2006-09-22 due to a Scheme of Amalgamation"
+  },
+  "MANALIPET": {
+   "class": "renamed",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs22092006.pdf: Manali Petrochemicals suspended w.e.f. 2006-09-28 due to a Reduction of Share Capital and Consolidation; the same company traded as MANALIPETC from 2006-12-06 (cash file)",
+   "successor": "MANALIPETC",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "GESHIPPING": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs03112006.pdf: Great Eastern Shipping excluded w.e.f. 2006-11-08 due to a Scheme of Arrangement (demerger of offshore services into Great Offshore); resumed as GESHIP 2006-11-27"
+  },
+  "TV18": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs16112006.pdf: Television Eighteen India suspended w.e.f. 2006-11-17 due to a Scheme of Arrangement; resumed as TV-18 2006-12-27"
+  },
+  "JKINDUSTRY": {
+   "class": "renamed",
+   "evidence": "no exchange notice found for the January 2007 suspension; the same company (JK Industries, renamed JK Tyre & Industries) traded as JKTYRE from 2007-03-19 (cash file)",
+   "successor": "JKTYRE",
+   "flag": "reason for the 2007-01-19..2007-03-16 suspension not found; check for a restructuring ratio before following"
+  },
+  "NAHAREXP": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs23012007.pdf: Nahar Exports excluded w.e.f. 2007-01-24, suspended due to a Scheme of Demerger and Arrangement"
+  },
+  "NAHARSPG": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs23012007.pdf: Nahar Spinning Mills excluded w.e.f. 2007-01-24, suspended due to a Scheme of Demerger and Arrangement"
+  },
+  "HTMT": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs22032007.pdf: Hinduja TMT suspended w.e.f. 2007-03-29 due to a Scheme of Arrangement and Reconstruction"
+  },
+  "VISUALSOFT": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs26042007.pdf: Visualsoft Technologies excluded w.e.f. 2007-04-30 due to a Scheme of Amalgamation with Megasoft"
+  },
+  "IBP": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs24052007.pdf: IBP Co. excluded w.e.f. 2007-06-04 due to a Scheme of Amalgamation with Indian Oil Corporation"
+  },
+  "GMRINDSTRS": {
+   "class": "renamed",
+   "evidence": "no exchange notice found for the July 2007 suspension; the same company (GMR Industries Limited: silver/pr/announcements 2010 rows under GMRINDS) traded as GMRINDS from 2007-09-24 (cash file); GMRVASAVI -> GMRINDSTRS 2006-04-28 in https://nsearchives.nseindia.com/content/equities/symbolchange.csv",
+   "successor": "GMRINDS",
+   "flag": "reason for the 2007-07-13..2007-09-21 suspension not found; check for a restructuring ratio before following"
+  },
+  "SOLECTCENT": {
+   "class": "scheme",
+   "evidence": "https://nsearchives.nseindia.com/content/press/03102007.htm: trading in Centum Electronics (formerly Solectron Centum) resumes 2007-10-05 pursuant to scheme of arrangement"
+  },
+  "IPCL": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs12092007.pdf: Indian Petrochemicals Corporation excluded w.e.f. 2007-10-05 due to Scheme of Amalgamation with Reliance Industries"
+  },
+  "SRIADIKARI": {
+   "class": "renamed",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs22102007.pdf: Sri Adhikari Brothers Television Network suspended w.e.f. 2007-10-25 due to consolidation of equity shares from Rs 2 to Rs 10; the same company traded as SABTN from 2007-11-16 (cash file)",
+   "successor": "SABTN",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "TELEDATAIN": {
+   "class": "scheme",
+   "evidence": "https://nsearchives.nseindia.com/content/press/15012008.htm: trading in Teledata Informatics (TELEDATAGL) resumes 2008-01-17 pursuant to scheme of arrangement"
+  },
+  "COLGATE": {
+   "class": "renamed",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs08112007.pdf: Colgate Palmolive excluded w.e.f. 2007-11-29 due to Capital reduction; the same company traded as COLPAL from 2007-12-17 (cash file)",
+   "successor": "COLPAL",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "ESTL": {
+   "class": "voluntary_delisting",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs27112007.pdf: Essar Steel excluded w.e.f. 2007-12-07, voluntarily delisting pursuant to the SEBI (Delisting of Securities) Guidelines 2003"
+  },
+  "RAINCALCIN": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs20122007.pdf: Rain Calcining suspended w.e.f. 2007-12-26 due to a Scheme of Amalgamation with Rain Commodities"
+  },
+  "CEAT": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs20122007.pdf: Ceat suspended w.e.f. 2007-12-26 due to a scheme of Arrangement; resumed as CEATLTD 2008-02-01"
+  },
+  "BILT": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs11022008.pdf: Ballarpur Industries excluded w.e.f. 2008-02-29 due to Scheme of Arrangement and Reorganisation with BILT Graphic Paper Products; resumed as BALLARPUR 2008-03-31"
+  },
+  "CENTBOP": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs27052008.pdf: Centurion Bank of Punjab suspended (excluded w.e.f. 2008-06-09) due to the Scheme of amalgamation with HDFC Bank"
+  },
+  "REIAGRO": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs18092008.pdf: Rei Agro excluded w.e.f. 2008-09-22 due to a Scheme of Arrangement; resumed as REIAGROLTD 2008-11-25"
+  },
+  "MORGANSTAN": {
+   "class": "scheme",
+   "evidence": "https://www.cse-india.com/upload/CSE%20Notices%20&%20Circulars/2008/Notice041208.htm: no dealing in units of Morgan Stanley Growth Fund from 2008-12-05, record date 2008-12-15, for conversion into an open-ended scheme (a closed-end fund, not a stock: before 2011 the lab's fund filter, ISIN INF..., cannot see it)",
+   "flag": "a fund in the stock universe"
+  },
+  "ORIENTINFO": {
+   "class": "scheme",
+   "evidence": "https://equitybulls.com/category.php?id=21866: amalgamation of Orient Information Technology into IT People India under a scheme of arrangement (100 IT People shares for 275 OITL shares); no exchange notice found"
+  },
+  "PUNJABTRAC": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs20022009.pdf: Punjab Tractors excluded w.e.f. 2009-02-25 on account of a Scheme of Amalgamation with Mahindra and Mahindra"
+  },
+  "BONGAIREFN": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs01042009.pdf: Bongaigaon Refinery & Petrochemicals excluded w.e.f. 2009-04-21 on account of a Scheme of Amalgamation with Indian Oil Corporation"
+  },
+  "SPSL": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs06052009.pdf: Shree Precoated Steels (symbol SPSL) excluded w.e.f. 2009-05-11 on account of a Scheme of Arrangement"
+  },
+  "MATRIXLABS": {
+   "class": "voluntary_delisting",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs10082009.pdf: Matrix Laboratories suspended w.e.f. 2009-08-14 for voluntary delisting pursuant to the SEBI (Delisting of Securities) Guidelines 2003"
+  },
+  "RPL": {
+   "class": "scheme",
+   "evidence": "https://niftyindices.com/Press_Release/ind_prs19052009.pdf: the Scheme of Amalgamation of Reliance Petroleum with Reliance Industries approved (index exclusion); trading ended 2009-09-24"
+  },
+  "VISHALEXPO": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2016-04-26 [Public Notice - Compulsory Delisting] and silver/pr/announcements 2017-03-08 [Delisting]: equity shares delisted under Regulation 22(6) of the SEBI Delisting Regulations 2009"
+  },
+  "SPICETELE": {
+   "class": "scheme",
+   "evidence": "silver/pr/announcements 2010-03-04 [Suspension of trading in equity shares]: Spice Communications suspended w.e.f. 2010-03-11; 2010-02-11 Scheme of Amalgamation with Idea Cellular sanctioned"
+  },
+  "KIRLOSOIL": {
+   "class": "scheme",
+   "evidence": "silver/pr/announcements 2010-04-08 [Suspension of trading in equity shares]: Kirloskar Oil Engines suspended w.e.f. 2010-04-21 for the Scheme of Arrangement with Kirloskar Engines India (demerger: the residual company traded as KIRLOSIND from 2010-06-24, the engines business as KIRLOSENG from 2010-12-24)"
+  },
+  "PSTL": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2016-08-26 [Delisting]: Pyramid Saimira Theatre delisted w.e.f. 2016-09-12 as the company is under liquidation (suspended w.e.f. 2010-06-01, silver/pr/announcements 2010-05-25)"
+  },
+  "BANKRAJAS": {
+   "class": "scheme",
+   "evidence": "silver/pr/announcements 2010-08-17 [Suspension of trading in equity shares]: Bank of Rajasthan suspended w.e.f. 2010-08-24; 2010-08-13 RBI approved the scheme of amalgamation with ICICI Bank"
+  },
+  "RNRL": {
+   "class": "scheme",
+   "evidence": "silver/pr/announcements 2010-11-02 [Suspension of trading in equity shares]: Reliance Natural Resources suspended w.e.f. 2010-11-10; merger with Reliance Power effective (2010-11-01 press release)"
+  },
+  "HINDMOTOR": {
+   "class": "renamed",
+   "evidence": "silver/pr/announcements 2011-01-18: Hindustan Motors suspended w.e.f. 2011-01-27 on account of Scheme of Capital Reduction; the same company (silver/pr/announcements names) traded as HINDMOTORS from 2011-02-21 (cash file)",
+   "successor": "HINDMOTORS",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "HIMACHLFUT": {
+   "class": "renamed",
+   "evidence": "silver/pr/announcements 2011-02-02: Himachal Futuristic Communications suspended w.e.f. 2011-02-08 on account of Scheme of Capital Reduction; the same company traded as HFCL from 2011-03-09 (cash file; renamed HFCL Limited 2019)",
+   "successor": "HFCL",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "BINANICEM": {
+   "class": "voluntary_delisting",
+   "evidence": "silver/pr/announcements 2011-05-10 [Suspension and Delisting of Trading in Equity Shares]: Binani Cement suspended w.e.f. 2011-05-23 for voluntary delisting (delisting offer by Binani Industries, 2011-01-21 public announcement)"
+  },
+  "TV-18": {
+   "class": "scheme",
+   "evidence": "silver/pr/announcements 2011-06-16 [Suspension of trading in equity shares]: Television Eighteen India suspended w.e.f. 2011-06-21; Scheme of Arrangement with Network18 sanctioned by the Delhi High Court 2011-04-26"
+  },
+  "INE507B01022": {
+   "class": "voluntary_delisting",
+   "evidence": "silver/pr/announcements 2012-02-27 [Suspension and Delisting of Trading in Equity Shares]: UTV Software Communications suspended for delisting under the SEBI Delisting Regulations (offer by the acquirer)"
+  },
+  "INE427A01017": {
+   "class": "voluntary_delisting",
+   "evidence": "silver/pr/announcements 2012-03-30 [Suspension and Delisting of Trading in Equity Shares]: Alfa Laval (India) suspended w.e.f. 2012-04-12 for delisting (delisting advertisement 2012-04-04)"
+  },
+  "INE660F01012": {
+   "class": "voluntary_delisting",
+   "evidence": "silver/pr/announcements 2012-05-08 [Suspension and Delisting of Trading in Equity Shares]: Patni Computer Systems suspended for delisting (2012-03-14 delisting public announcement by Pan-Asia iGATE Solutions)"
+  },
+  "INE137G01027": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2016-12-07 [Public Notice - Compulsory Delisting] and 2017-04-24 [Delisting]: Deccan Chronicle Holdings delisted under Regulation 22(6) of the SEBI Delisting Regulations 2009"
+  },
+  "INE894F01025": {
+   "class": "scheme",
+   "evidence": "silver/announce 2013-03-11 [Suspension of trading in equity shares]: Indiabulls Financial Services suspended w.e.f. 2013-03-19 on account of Scheme of Amalgamation (with Indiabulls Housing Finance)"
+  },
+  "INE136A01022": {
+   "class": "scheme",
+   "evidence": "silver/announce 2013-06-04 [Suspension of trading in equity shares]: JSW ISPAT Steel suspended w.e.f. 2013-06-11; Composite Scheme of Amalgamation and Arrangement with JSW Steel sanctioned (2013-05-08)"
+  },
+  "INE275A01028": {
+   "class": "scheme",
+   "evidence": "silver/announce 2013-06-27 [Suspension of trading in equity shares]: Satyam Computer Services suspended w.e.f. 2013-07-04 on account of Scheme of Amalgamation and Arrangement (with Tech Mahindra)"
+  },
+  "INE268A01049": {
+   "class": "scheme",
+   "evidence": "silver/announce 2013-08-19 [Suspension of Trading]: Sterlite Industries suspended w.e.f. 2013-08-27 on account of Scheme of Amalgamation (with Sesa Goa)"
+  },
+  "INE172A01019": {
+   "class": "renamed",
+   "evidence": "silver/announce 2014-02-21 [Suspension of trading in equity shares]: Castrol India suspended w.e.f. 2014-02-28 on account of Scheme of Capital Reduction (Rs 5 per share paid out); the same issuer's new ISIN INE172A01027 traded as CASTROLIND from 2014-03-14 (cash file)",
+   "successor": "INE172A01027",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "INE122H01027": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-02-28 [Public Notice - Compulsory Delisting] and 2018-05-18 [Delisting]: Tulip Telecom delisted under the SEBI Delisting Regulations 2009, Section 21A SCRA"
+  },
+  "INE015A01028": {
+   "class": "scheme",
+   "evidence": "silver/announce 2015-03-25 [Suspension of trading in equity shares]: Ranbaxy Laboratories suspended w.e.f. 2015-04-06 on account of Scheme of Amalgamation with Sun Pharmaceutical"
+  },
+  "INE166A01011": {
+   "class": "scheme",
+   "evidence": "silver/announce 2015-04-07 [Suspension of trading in equity shares]: ING Vysya Bank suspended w.e.f. 2015-04-16 on account of Scheme of Amalgamation with Kotak Mahindra Bank"
+  },
+  "INE772A01016": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-02-02 [Public Notice - Compulsory Delisting] and 2021-02-03 [Delisting]: S. Kumars Nationwide delisted under the SEBI Delisting Regulations (a provisional liquidator had been appointed, 2015-04-27 update)"
+  },
+  "INE928K01013": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2015-05-18 [Suspension of Trading]: Dr. Datson's Labs suspended w.e.f. 2015-05-22 pursuant to the Bombay High Court order of 2015-02-18 (winding up; Official Liquidator, 2015-05-15 update); compulsory delisting notice 2018-02-02"
+  },
+  "INE432P01015": {
+   "class": "scheme",
+   "evidence": "silver/announce 2015-04-21 [Scheme of Arrangement]: Bombay High Court sanctioned the Scheme of Arrangement between Marico Kaya Enterprises and Kaya Limited"
+  },
+  "INE374A01029": {
+   "class": "scheme",
+   "evidence": "silver/announce 2015-05-21 [Suspension of trading in equity shares]: Gujarat Gas Company suspended w.e.f. 2015-05-27 on account of Scheme of Amalgamation with GSPC Distribution Networks"
+  },
+  "INE438H01019": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-01-24 [Public Notice - Compulsory Delisting] and 2018-05-18 [Delisting]: Kingfisher Airlines delisted under Regulation 22(6) of the SEBI Delisting Regulations 2009"
+  },
+  "INE032G01012": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2015-03-16 [Updates]: liquidation proceedings initiated against Varun Industries by the Bombay High Court (order 2014-09-30); compulsory delisting 2018-05-18 [Delisting]"
+  },
+  "INE314A01017": {
+   "class": "scheme",
+   "evidence": "silver/announce 2015-09-22 [Suspension of trading in equity shares]: CMC suspended w.e.f. 2015-09-30 on account of Scheme of Amalgamation with Tata Consultancy Services"
+  },
+  "INE932G01021": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-02-28 [Public Notice - Compulsory Delisting] and 2018-05-18 [Delisting]: Glodyne Technoserve delisted under the SEBI Delisting Regulations 2009"
+  },
+  "INE317A01028": {
+   "class": "scheme",
+   "evidence": "silver/announce 2015-07-22 [Scheme of Arrangement]: Madras High Court sanctioned the Scheme of Amalgamation of Shasun Pharmaceuticals with Strides Arcolab"
+  },
+  "INE011A01019": {
+   "class": "voluntary_delisting",
+   "evidence": "silver/announce 2016-01-27 [Suspension and Delisting of Trading in Equity Shares]: Essar Oil suspended w.e.f. 2016-02-10 on account of voluntary delisting pursuant to the SEBI Delisting Regulations"
+  },
+  "INE851B01016": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2020-07-08 [Updates]: liquidation process commenced for Shri Lakshmi Cotsyn under the IBC; delisted 2021-08-05 [Delisting]"
+  },
+  "INE491H01018": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-02-28 [Public Notice - Compulsory Delisting] and 2018-05-18 [Delisting]: Plethico Pharmaceuticals delisted under Regulation 22(6) of the SEBI Delisting Regulations 2009"
+  },
+  "INE211C01037": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-02-28 [Public Notice - Compulsory Delisting] and 2018-07-26 [Delisting]: Arvind Remedies delisted under Regulation 22(6) of the SEBI Delisting Regulations 2009"
+  },
+  "INE378J01013": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-02-28 [Public Notice - Compulsory Delisting] and 2018-07-26 [Delisting]: C. Mahendra Exports delisted under Regulation 22(6) of the SEBI Delisting Regulations 2009"
+  },
+  "INE247G01024": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2018-01-09 [Updates]: the Court appointed the Official Liquidator of CORE Education & Technologies; compulsory delisting notice 2018-02-28"
+  },
+  "INE517H01010": {
+   "class": "scheme",
+   "evidence": "silver/announce 2016-06-23 [Amalgamation/Merger]: Gujarat High Court approved the Scheme of Amalgamation of Advanta with UPL"
+  },
+  "INE975A01015": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-02-28 [Public Notice - Compulsory Delisting] and 2018-05-18 [Delisting]: Elder Pharmaceuticals delisted under the SEBI Delisting Regulations 2009"
+  },
+  "INE039E01020": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-02-28 [Public Notice - Compulsory Delisting] and 2018-07-26 [Delisting]: Era Infra Engineering delisted under Regulation 22(6) of the SEBI Delisting Regulations 2009"
+  },
+  "INE678H01010": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2016-10-26 [Suspension of Trading]: Everonn Education suspended w.e.f. 2016-11-04 pursuant to the Madras High Court order of 2016-08-29 on the recommendation of the Official Liquidator (winding up, provisional liquidator 2016-09-21)"
+  },
+  "INE605A01026": {
+   "class": "scheme",
+   "evidence": "silver/announce 2016-11-24 [Suspension of Trading]: Pricol Limited suspended w.e.f. 2016-12-05 on account of Scheme of Amalgamation of Pricol Limited with Pricol Pune Limited (which traded as PRICOLLTD, INE726V01018, from 2017-02-10)"
+  },
+  "INE178D01010": {
+   "class": "scheme",
+   "evidence": "silver/announce 2017-02-02 [Suspension of Trading]: Kalindee Rail Nirman suspended w.e.f. 2017-02-09 on account of Scheme of Amalgamation (with Texmaco Rail & Engineering)"
+  },
+  "INE797A01021": {
+   "class": "scheme",
+   "evidence": "silver/announce 2017-03-07 [Suspension of Trading]: Geometric suspended w.e.f. 2017-03-14 on account of Scheme of Arrangement and Amalgamation (with HCL Technologies)"
+  },
+  "INE648A01026": {
+   "class": "scheme",
+   "evidence": "silver/announce 2017-03-06 [Suspension of Trading]: State Bank of Bikaner and Jaipur suspended w.e.f. 2017-03-16 on account of Scheme of Amalgamation (with State Bank of India)"
+  },
+  "INE018B01012": {
+   "class": "scheme",
+   "evidence": "silver/announce 2017-03-17 [Suspension of Trading]: Upper Ganges Sugar & Industries suspended w.e.f. 2017-03-23 on account of Scheme of Amalgamation"
+  },
+  "INE910H01017": {
+   "class": "scheme",
+   "evidence": "silver/announce 2017-04-13 [Suspension of Trading]: Cairn India suspended w.e.f. 2017-04-26 on account of Scheme of Arrangement with Vedanta"
+  },
+  "INE353G01020": {
+   "class": "scheme",
+   "evidence": "silver/announce 2017-05-22 [Suspension of Trading]: Dishman Pharmaceuticals and Chemicals suspended w.e.f. 2017-05-30 on account of Scheme of Amalgamation (into Dishman Carbogen Amcis)"
+  },
+  "INE384L01017": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-02-28 [Public Notice - Compulsory Delisting] and 2018-08-16 [Delisting]: Sudar Industries delisted under the SEBI Delisting Regulations 2009"
+  },
+  "INE069A01017": {
+   "class": "scheme",
+   "evidence": "silver/announce 2017-06-22 [Suspension of Trading]: Aditya Birla Nuvo suspended w.e.f. 2017-07-05 on account of Scheme of Arrangement (with Grasim Industries)"
+  },
+  "INE628H01015": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-05-22 [Public Notice - Compulsory Delisting] and 2018-07-26 [Delisting]: Orbit Corporation delisted under Regulation 22(6) of the SEBI Delisting Regulations 2009"
+  },
+  "INE110D01013": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2020-08-24 [Updates]: liquidation proceedings of Gujarat NRE Coke; delisted 2021-09-27 [Delisting]"
+  },
+  "INE696A01025": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2018-05-22 [Public Notice - Compulsory Delisting] and 2018-08-16 [Delisting]: United Breweries (Holdings) delisted under the SEBI Delisting Regulations 2009"
+  },
+  "INE763A01023": {
+   "class": "voluntary_delisting",
+   "evidence": "silver/announce 2018-07-12 [Voluntary Delisting]: exit offer for the voluntary delisting of Polaris Consulting & Services by Virtusa Consulting Services"
+  },
+  "INE743C01013": {
+   "class": "renamed",
+   "evidence": "silver/announce 2018-08-23 [Suspension of Trading]: Monnet Ispat and Energy suspended w.e.f. 2018-08-29 on account of Reduction of Share Capital under the IBC resolution plan (2018-07-26); the same issuer's new ISIN INE743C01021 traded as AIONJSW from 2018-09-14 (cash file)",
+   "successor": "INE743C01021",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "INE785C01048": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2018-08-29 [Updates]: liquidation application of Lanco Infratech under Section 33(1)(a) of the IBC; compulsory delisting 2019-09-24 [Delisting]"
+  },
+  "INE648H01013": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2018-10-04 [Suspension of Trading]: Hanung Toys and Textiles suspended w.e.f. 2018-10-12 as per the court order in CO.PET. 518/2013 (winding up); compulsory delisting 2019-09-24 [Delisting]"
+  },
+  "INE324C01038": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2022-11-15 [Liquidation] and 2023-02-24 [Delisting]: Sterling Biotech delisted w.e.f. 2023-03-03 pursuant to the NCLT order (liquidation)"
+  },
+  "INE043K01011": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2019-11-22 [Updates]: commencement of the liquidation process of BS Limited; delisted 2021-02-03 [Delisting]"
+  },
+  "INE439L01019": {
+   "class": "scheme",
+   "evidence": "silver/announce 2018-11-21 [Suspension of Trading]: Dalmia Bharat suspended w.e.f. 2018-11-29 on account of Scheme of Arrangement and Amalgamation (shareholders received shares of the new Dalmia Bharat, INE00R701025, DALBHARAT, from 2019-01-22)"
+  },
+  "INE486J01014": {
+   "class": "voluntary_delisting",
+   "evidence": "silver/announce 2018-11-30 [Voluntary Delisting]: Infinite Computer Solutions suspended w.e.f. 2018-12-14 on account of voluntary delisting"
+  },
+  "INE688I01017": {
+   "class": "scheme",
+   "evidence": "silver/announce 2018-12-20 [Suspension of Trading]: Capital First suspended w.e.f. 2018-12-28 on account of Composite Scheme of Amalgamation (with IDFC Bank)"
+  },
+  "INE087J01010": {
+   "class": "renamed",
+   "evidence": "silver/announce 2019-02-06 [Suspension of Trading]: Mandhana Industries suspended w.e.f. 2019-02-14 on account of Reduction of Share Capital under the IBC resolution plan; the same issuer's new ISIN INE087J01028 traded as MIL from 2019-06-07 (cash file)",
+   "successor": "INE087J01028",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "INE705A01016": {
+   "class": "scheme",
+   "evidence": "silver/announce 2019-02-25 [Suspension of Trading]: Vijaya Bank suspended w.e.f. 2019-03-08 on account of Scheme of Amalgamation with Bank of Baroda"
+  },
+  "INE077A01010": {
+   "class": "scheme",
+   "evidence": "silver/announce 2019-02-25 [Suspension of Trading]: Dena Bank suspended w.e.f. 2019-03-08 on account of Scheme of Amalgamation with Bank of Baroda"
+  },
+  "INE235G01011": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2019-03-22 [Suspension of Trading]: Usher Agro suspended w.e.f. 2019-04-01 as per the NCLT order in CP (IB) 1817(MB)/2017 (liquidation); compulsory delisting 2020-02-12 [Delisting]"
+  },
+  "INE346H01014": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2019-06-18 [Public Notice - Compulsory Delisting]: proposed compulsory delisting of Gitanjali Gems (CIRP since 2018); no later record to 2023-12-29"
+  },
+  "INE130C01021": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2021-09-20 [Voluntary Delisting]: Amtek Auto delisted w.e.f. 2021-09-27 pursuant to the resolution plan approved by the NCLT under the IBC (not a delisting offer: the public shareholders were not paid)",
+   "flag": "IBC delisting filed under NSE's Voluntary Delisting category"
+  },
+  "INE510K01019": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2019-05-08 [Suspension of Trading]: Shilpi Cable Technologies suspended w.e.f. 2019-05-16 as per the NCLT order in C.P. IB-64(PB) (liquidation); compulsory delisting 2020-02-12 [Delisting]"
+  },
+  "INE067H01016": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2019-05-08 [Suspension of Trading]: ABG Shipyard suspended w.e.f. 2019-05-16 as per the NCLT order in CP (I.B) 53 of 2017 (liquidation); compulsory delisting 2020-02-12 [Delisting]"
+  },
+  "INE992B01026": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2021-08-06 [Updates]: NCLT Chandigarh ordered the liquidation of Lakshmi Energy and Foods (2021-07-26); compulsory delisting notice 2019-12-02"
+  },
+  "INE180K01011": {
+   "class": "scheme",
+   "evidence": "silver/announce 2019-06-25 [Suspension of Trading]: Bharat Financial Inclusion suspended w.e.f. 2019-07-03 on account of Composite Scheme of Amalgamation (with IndusInd Bank)"
+  },
+  "INE305H01010": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2019-07-09 [Suspension of Trading]: Sunil Hitech Engineers suspended w.e.f. 2019-07-17 as per the NCLT order in CP (IB) 2295/MB/2018 (liquidation); delisted 2021-02-03 [Delisting]"
+  },
+  "INE191A01019": {
+   "class": "renamed",
+   "evidence": "silver/announce 2020-03-31 [Corporate Insolvency Resolution Process]: implementation of the approved resolution plan of Orchid Pharma (capital reduction); the same issuer's new ISIN INE191A01027 traded as ORCHPHARMA from 2020-11-03 (cash file)",
+   "successor": "INE191A01027",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "INE225I01018": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2015-09-15: Zylog Systems under the Official Liquidator (winding up); delisted 2021-02-03 [Delisting]"
+  },
+  "INE875A01025": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2022-06-27 [Liquidation]: IVRCL in liquidation (e-auction under liquidation)"
+  },
+  "INE274B01011": {
+   "class": "scheme",
+   "evidence": "silver/announce 2019-09-25 [Suspension of Trading]: Monsanto India suspended w.e.f. 2019-09-27 on account of Scheme of Amalgamation (with Bayer CropScience)"
+  },
+  "INE580B01011": {
+   "class": "scheme",
+   "evidence": "silver/announce 2019-10-11 [Suspension of Trading]: Gruh Finance suspended w.e.f. 2019-10-16 on account of Scheme of Amalgamation (with Bandhan Bank)"
+  },
+  "INE619A01027": {
+   "class": "renamed",
+   "evidence": "silver/announce 2019-12-18 [Updates]: implementation of the IBC resolution plan of Ruchi Soya (scheme of restructuring and amalgamation, capital reduction); the same issuer's new ISIN INE619A01035 traded as RUCHI from 2020-01-27 (cash file)",
+   "successor": "INE619A01035",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "INE825H01017": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2019-07-03 [Suspension of Trading]: Ess Dee Aluminium suspended w.e.f. 2019-07-05 for non-compliance with the SEBI LODR; compulsory delisting 2021-08-05 [Delisting]"
+  },
+  "INE270A01011": {
+   "class": "renamed",
+   "evidence": "silver/announce 2020-01-27 [Suspension of Trading]: Alok Industries suspended w.e.f. 2020-01-31 on account of Reduction of Share Capital under the IBC resolution plan; the same issuer's new ISIN INE270A01029 traded as ALOKINDS from 2020-02-19 (cash file)",
+   "successor": "INE270A01029",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "INE245C01019": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2022-07-21 [Liquidation]: LEEL Electricals in liquidation by NCLT order of 2021-12-06"
+  },
+  "INE667A01018": {
+   "class": "scheme",
+   "evidence": "silver/announce 2020-03-11 [Suspension of Trading]: Syndicate Bank suspended w.e.f. 2020-03-20 on account of Scheme of Amalgamation with Canara Bank"
+  },
+  "INE434A01013": {
+   "class": "scheme",
+   "evidence": "silver/announce 2020-03-16 [Suspension of Trading]: Andhra Bank suspended w.e.f. 2020-03-20 on account of Scheme of Amalgamation with Union Bank of India"
+  },
+  "INE112A01015": {
+   "class": "scheme",
+   "evidence": "silver/announce 2020-03-12 [Suspension of Trading]: Corporation Bank suspended w.e.f. 2020-03-20 on account of Scheme of Amalgamation with Union Bank of India"
+  },
+  "INE428A01015": {
+   "class": "scheme",
+   "evidence": "silver/announce 2020-03-12 [Suspension of Trading]: Allahabad Bank suspended w.e.f. 2020-03-20 on account of Scheme of Amalgamation with Indian Bank"
+  },
+  "INE695A01019": {
+   "class": "scheme",
+   "evidence": "silver/announce 2020-03-11 [Suspension of Trading]: United Bank of India suspended w.e.f. 2020-03-23 on account of Scheme of Amalgamation with Punjab National Bank"
+  },
+  "INE141A01014": {
+   "class": "scheme",
+   "evidence": "silver/announce 2020-03-11 [Suspension of Trading]: Oriental Bank of Commerce suspended w.e.f. 2020-03-23 on account of Scheme of Amalgamation (with Punjab National Bank)"
+  },
+  "INE264A01014": {
+   "class": "scheme",
+   "evidence": "silver/announce 2020-04-08 [Suspension of Trading]: GlaxoSmithKline Consumer Healthcare suspended w.e.f. 2020-04-16 on account of Scheme of Amalgamation (with Hindustan Unilever)"
+  },
+  "INE920A01011": {
+   "class": "renamed",
+   "evidence": "silver/announce 2023-02-22 [Suspension of Trading]: Dolphin Offshore remains suspended on account of Reduction of Share Capital pursuant to the NCLT order (IBC resolution plan); the same issuer's new ISIN INE920A01029 traded as DOLPHIN from 2023-08-21 (cash file)",
+   "successor": "INE920A01029",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "INE122R01018": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2020-08-31 [Public Announcement - Delisting]: public notice of the proposed compulsory delisting of Manpasand Beverages; no later record to 2023-12-29"
+  },
+  "INE754A01014": {
+   "class": "renamed",
+   "evidence": "silver/announce 2020-10-15 [Suspension of Trading]: Subex suspended w.e.f. 2020-10-22 on account of Reduction of Share Capital; 2020-10-28 change in ISIN; the same issuer's new ISIN INE754A01055 traded as SUBEXLTD from 2020-11-05 (cash file)",
+   "successor": "INE754A01055",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "INE093A01033": {
+   "class": "voluntary_delisting",
+   "evidence": "silver/announce 2020-10-19 [Voluntary Delisting]: Hexaware Technologies suspended w.e.f. 2020-11-02 on account of voluntary delisting"
+  },
+  "INE694C01018": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2020-12-16 [Delisting]: Lakshmi Vilas Bank delisted w.e.f. 2020-12-18 pursuant to the gazette notification of 2020-11-25 (amalgamation with DBS Bank India under the government's scheme, which wrote off the bank's entire paid-up capital)",
+   "flag": "filed as an amalgamation; the shareholders were not paid"
+  },
+  "INE775B01025": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2021-09-28: Kwality Limited (In Liquidation): the liquidator sold the company as a going concern under the IBC"
+  },
+  "INE502K01016": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2023-07-18 [Copy of Newspaper Publication]: the liquidator of Talwalkars Better Value Fitness published an auction notice"
+  },
+  "INE974H01013": {
+   "class": "scheme",
+   "evidence": "silver/announce 2021-05-12 [Suspension of Trading]: Meghmani Organics suspended w.e.f. 2021-05-18 on account of Scheme of Amalgamation and Arrangement (shareholders received shares of Meghmani Organochem, INE0CT101020, MOL, from 2021-08-18)"
+  },
+  "INE202B01012": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2021-09-29 [Voluntary Delisting]: Dewan Housing Finance delisted pursuant to the resolution plan approved by the NCLT under the IBC (not a delisting offer: the public shareholders were not paid)",
+   "flag": "IBC delisting filed under NSE's Voluntary Delisting category"
+  },
+  "INE703A01011": {
+   "class": "suspended_unresolved",
+   "evidence": "silver/announce 2022-01-06 [Corporate Insolvency Resolution Process]: the NCLT order approving the Twin Star resolution plan for Videocon Industries was set aside; trading suspended (last BZ session 2021-06-15) and not resumed to 2023-12-29"
+  },
+  "INE068D01021": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2021-11-30 [Voluntary Delisting]: Castex Technologies suspended w.e.f. 2021-12-07 on account of delisting of equity shares under the IBC resolution plan (not a delisting offer)",
+   "flag": "IBC delisting filed under NSE's Voluntary Delisting category"
+  },
+  "INE484C01014": {
+   "class": "renamed",
+   "evidence": "silver/cm_bhavcopy: symbol TIDEWATER continues the next session (2021-07-27) under the same issuer's new ISIN INE484C01030 (face-value split); the security master links only EQ spells within 10 days, and the old ISIN's last spell was in series BE",
+   "successor": "INE484C01030",
+   "flag": "a face-value split; check that its factor applies before following"
+  },
+  "INE748C01020": {
+   "class": "renamed",
+   "evidence": "silver/announce 2021-09-07 [Scheme of Arrangement]: 3i Infotech shares reduced and consolidated under the NCLT-approved scheme; the same issuer's new ISIN INE748C01038 traded as 3IINFOLTD from 2021-10-22 (cash file)",
+   "successor": "INE748C01038",
+   "flag": "the relisting followed a capital reduction / consolidation of the old shares: its ratio must be applied before a held position is followed (not in silver/corporate_actions factors)"
+  },
+  "INE574I01027": {
+   "class": "suspended_unresolved",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CML49305.pdf: weekly trade-for-trade (BZ) trading of Arcotech discontinued w.e.f. 2021-08-31 (suspension for non-compliance with Regulation 17(1) of the SEBI LODR); not resumed to 2023-12-29"
+  },
+  "INE964B01033": {
+   "class": "suspended_unresolved",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CML49305.pdf: weekly trade-for-trade (BZ) trading of Alchemist discontinued w.e.f. 2021-08-31 (suspension for non-compliance with Regulation 17(1) of the SEBI LODR); not resumed to 2023-12-29"
+  },
+  "INE824B01021": {
+   "class": "scheme",
+   "evidence": "silver/announce 2021-11-09 [Suspension of Trading]: Tata Steel BSL suspended w.e.f. 2021-11-15 on account of Scheme of Amalgamation with Tata Steel"
+  },
+  "INE852F01015": {
+   "class": "scheme",
+   "evidence": "silver/announce 2022-01-04 [Suspension of Trading]: Gateway Distriparks suspended w.e.f. 2022-01-05 on account of Scheme of Amalgamation (shareholders received shares of Gateway Rail Freight, renamed Gateway Distriparks, INE079J01017, GATEWAY, from 2022-03-22)"
+  },
+  "INE943C01027": {
+   "class": "scheme",
+   "evidence": "silver/announce 2022-01-11 [Suspension of Trading]: Srikalahasthi Pipes suspended w.e.f. 2022-01-13 on account of Scheme of Amalgamation (with Electrosteel Castings)"
+  },
+  "INE008I01026": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2023-02-22 [Delisting]: Cox & Kings delisted by the Exchange in terms of Regulation 32(1) of the SEBI Delisting Regulations 2021 (compulsory delisting)"
+  },
+  "INE808B01016": {
+   "class": "suspended_unresolved",
+   "evidence": "https://nsearchives.nseindia.com/content/circulars/CML52270.pdf: weekly trade-for-trade (BZ) trading of Opto Circuits ended 2022-05-23 (suspension for non-submission of the shareholding pattern, Regulation 31 of the SEBI LODR); not resumed to 2023-12-29"
+  },
+  "INE701B01021": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2023-12-27 [Corporate Insolvency Resolution Process]: Punj Lloyd Ltd. (In Liquidation)"
+  },
+  "INE018I01017": {
+   "class": "scheme",
+   "evidence": "silver/announce 2022-11-16 [Suspension of Trading]: Mindtree suspended w.e.f. 2022-11-23 on account of Scheme of Amalgamation (with Larsen & Toubro Infotech)"
+  },
+  "INE589G01011": {
+   "class": "suspended_unresolved",
+   "evidence": "https://archives.nseindia.com/content/circulars/CML52069.pdf: Bombay Rayon Fashions suspended w.e.f. 2022-05-23 for non-compliance with Regulation 17 of the SEBI LODR (weekly BZ trading to 2022-12-12); CIRP records 2023; not resumed to 2023-12-29"
+  },
+  "INE988K01017": {
+   "class": "scheme",
+   "evidence": "silver/announce 2023-02-01 [Suspension of Trading]: Equitas Holdings suspended w.e.f. 2023-02-03 on account of Scheme of Amalgamation (with Equitas Small Finance Bank)"
+  },
+  "INE429C01035": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2023-03-03 [Delisting]: Sintex Industries delisted w.e.f. 2023-03-10 pursuant to the NCLT order approving the resolution plan under the IBC (the public shareholders were not paid)"
+  },
+  "INE312H01016": {
+   "class": "scheme",
+   "evidence": "silver/announce 2023-02-14 [Suspension of Trading]: INOX Leisure suspended w.e.f. 2023-02-17 on account of Scheme of Amalgamation (with PVR)"
+  },
+  "INE099J01015": {
+   "class": "suspended_unresolved",
+   "evidence": "silver/announce 2023-03-08 [Suspension of Trading]: Jaypee Infratech suspended w.e.f. 2023-03-08 pursuant to approval of the resolution plan by the NCLT; neither resumed nor delisted to 2023-12-29"
+  },
+  "INE934B01028": {
+   "class": "liquidation",
+   "evidence": "silver/announce 2023-03-08 [Corporate Insolvency Resolution Process]: commencement of the liquidation process of Mercator and appointment of the liquidator"
+  },
+  "INE285B01017": {
+   "class": "unresolved",
+   "evidence": "silver/cm_bhavcopy: SPICEJET (BSE-listed, traded on NSE under the 'permitted to trade' category; MODILUFT -> SPICEJET 2019-08-19 in https://nsearchives.nseindia.com/content/equities/symbolchange.csv) has no NSE session after 2023-04-28; NSE reviewed that category in circular NSE/CML/2023/24 of 2023-03-29 (https://nsearchives.nseindia.com/web/sites/default/files/inline-files/Circular%20for%20review%20of%20Securities%20available%20for%20trading%20under%20%E2%80%9Cpermitted%20to%20trade%E2%80%9D%20category.pdf) without naming SpiceJet; the shares kept trading on BSE (https://www.business-standard.com/markets/news/spicejet-tanks-19-crashes-to-near-8-year-low-on-heavy-volumes-123052300483_1.html)",
+   "flag": "no class fits: the stock left NSE's permitted-to-trade list but kept trading on BSE"
+  },
+  "INE001A01036": {
+   "class": "scheme",
+   "evidence": "silver/announce 2023-07-04 [Suspension of Trading]: Housing Development Finance Corporation suspended w.e.f. 2023-07-13 on account of Scheme of Amalgamation (with HDFC Bank)"
+  },
+  "INE542F01012": {
+   "class": "suspended_unresolved",
+   "evidence": "silver/announce 2023-07-11 [Suspension of Trading]: Reliance Naval and Engineering suspended w.e.f. 2023-07-14 on account of Reduction of Share Capital pursuant to the NCLT order (IBC resolution plan); not resumed to 2023-12-29"
+  },
+  "INE872A01014": {
+   "class": "compulsory",
+   "evidence": "silver/announce 2023-12-07 [Delisting]: SREI Infrastructure Finance delisted pursuant to the resolution plan approved by the NCLT under the IBC (the public shareholders were not paid)"
+  }
+ }
+}

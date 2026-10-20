@@ -215,6 +215,9 @@ HOLDOUT_RUNS = {
     "sp1_holdout": {"registration": "registrations/sp1_v2.json", "start": "2024-01-01", "end": "2026-10-16",
                     "approved": "Madhav, 19 Oct 2026 19:52 Toronto (chat: 'Yes' to opening the SP1 holdout)",
                     "folders": ["kite_index/minute", "kite_index/day", "cm_bhavcopy", "kite_5m", "flows", "fo_bhavcopy", "fo_greeks"]},
+    # SP3 (registered at the freeze, 20 Oct 2026): opened once, only after Madhav approves the frozen policy's dev/validation results
+    "sp3_holdout": {"registration": "registrations/sp3_v1.json", "start": "2024-01-01", "end": "2026-09-30", "approved": "",
+                    "folders": ["cm_bhavcopy", "delivery", "kite_index/day", "flows", "fo_bhavcopy", "pr", "announce"]},
 }
 _OPEN: dict[str, dict] = {}
 
@@ -236,6 +239,8 @@ def holdout_open(run: str) -> dict:
     if run not in HOLDOUT_RUNS:
         raise PermissionError(f"holdout refused: {run!r} is not a registered holdout run")
     h = HOLDOUT_RUNS[run]
+    if not h.get("approved"):
+        raise PermissionError(f"holdout refused: {run} has no recorded approval from Madhav")
     reg = Path(__file__).parent / h["registration"]
     spec = json.loads(reg.read_text())
     if not str(spec.get("status", "")).startswith("FROZEN"):

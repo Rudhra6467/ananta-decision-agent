@@ -42,10 +42,17 @@ from india import costs, kite, ocstudy, paths, scenario, sealed, sp1, sp1_holdou
 
 IST = ZoneInfo("Asia/Kolkata")
 YEAR = 2026
+PAPER_START = dt.date(2026, 10, 21)   # Madhav, 19 Oct 2026: paper from Wednesday 21 October
 ROOT = paths.data_dir() / "paper" / "sp1"
 MODEL = ROOT / f"model_{YEAR}.json"
 DECISIONS = ROOT / "decisions.jsonl"
 OUTCOMES = ROOT / "outcomes.jsonl"
+
+
+def _use(root: Path) -> None:
+    """Point the ledgers at another folder (the rehearsal keeps its own, so the paper record starts clean on PAPER_START)."""
+    global ROOT, DECISIONS, OUTCOMES
+    ROOT, DECISIONS, OUTCOMES = root, root / "decisions.jsonl", root / "outcomes.jsonl"
 POINT_TIME = {"D0": dt.time(9, 15), "D1": dt.time(9, 30), "D2": dt.time(9, 45), "D3": dt.time(10, 15)}
 LAST_BAR = {"D0": 0, "D1": scenario.DEC["D1"], "D2": scenario.DEC["D2"], "D3": scenario.DEC["D3"]}
 READ_DELAY_S = {"D0": 8, "D1": 5, "D2": 5, "D3": 5}
@@ -867,14 +874,19 @@ def replay(dates: list[dt.date], log=print) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------------------------------------- run
-def run(log=print) -> dict:
-    """launchd entry, 22:00 Toronto every evening: the next NSE session in IST; prepare (waiting for Madhav's Kite sign-in if needed), then live."""
+def run(log=print, rehearsal: bool = False) -> dict:
+    """launchd entry, 22:00 Toronto every evening: the next NSE session in IST; prepare (waiting for Madhav's Kite sign-in if needed), then live.
+    rehearsal: the same at real times into paper/sp1/rehearsal/ (not the paper record), allowed before PAPER_START."""
     from india import dayplan
 
     day = dayplan.next_session()
     now = _ist_now()
     if day != now.date():
         return {"skipped": f"no session this IST morning (next session {day})"}
+    if rehearsal:
+        _use(paths.data_dir() / "paper" / "sp1" / "rehearsal")
+    elif day < PAPER_START:
+        return {"skipped": f"paper starts {PAPER_START}"}
     if day.weekday() >= 5 or day in _specials():
         return {"skipped": f"{day} is a special session (the study excludes them)"}
     deadline = dt.datetime.combine(day, dt.time(9, 10), IST)
@@ -927,5 +939,10 @@ if __name__ == "__main__":
         print(json.dumps(verify(), indent=1))
     elif cmd == "run":
         print(json.dumps(run(lg), indent=1, default=str))
+    elif cmd == "rehearse":
+        print(json.dumps(run(lg, rehearsal=True), indent=1, default=str))
+    elif cmd == "rehearse-score":
+        _use(paths.data_dir() / "paper" / "sp1" / "rehearsal")
+        print(json.dumps(score(dt.date.fromisoformat(arg[0]) if arg else None, lg), indent=1, default=str))
     else:
         raise SystemExit(__doc__)

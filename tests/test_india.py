@@ -91,11 +91,16 @@ def test_isolation_refuses_crypto_and_canada_folders(monkeypatch, tmp_path):
 
 
 def test_kite_client_is_read_only():
+    """GET only, plus ONE approved exception (Madhav, 19 Oct 2026 21:01): a POST to Kite's margin calculator, a calculation, never an order."""
     src = inspect.getsource(kite)
-    for verb in (".post(", ".put(", ".delete(", "/orders/regular", "/gtt"):
-        assert verb not in src.replace("requests.post(f\"https://ntfy.sh", ""), verb
-    assert "requests.post" in src   # only the ntfy nudge
-    assert src.count("requests.post(") == 1
+    rest = src.replace("requests.post(f\"https://ntfy.sh", "").replace("self.s.post(BASE + path", "")
+    for verb in (".post(", ".put(", ".delete(", "/orders", "/gtt", "place_order", "modify_order", "cancel_order"):
+        assert verb not in rest, verb
+    assert src.count("requests.post(") == 1   # only the ntfy nudge
+    assert src.count("self.s.post(") == 1     # only inside post_calc
+    assert kite.CALC_POSTS == ("/margins/basket",)
+    with pytest.raises(PermissionError):
+        kite.Kite.__new__(kite.Kite).post_calc("/orders/regular", [])
 
 
 def test_kite_token_expiry(tmp_path, monkeypatch):

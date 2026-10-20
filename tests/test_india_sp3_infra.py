@@ -61,7 +61,8 @@ def test_dated_stt():
     assert costs.stt_rate("intraday", "sell", 2005, d(2005, 1, 3)) == pytest.approx(0.00015)
     old = costs.round_trip("delivery", 12000, 12000, 2026, 80)
     dated = costs.round_trip("delivery", 12000, 12000, 2026, 80, when=d(2010, 3, 1))
-    assert dated["fees"] - old["fees"] == pytest.approx(24000 * 0.00025, rel=1e-6)
+    # STT 0.125% vs 0.1% on both legs, plus the pre-Oct-2024 exchange charge (with GST on it)
+    assert dated["fees"] - old["fees"] == pytest.approx(24000 * 0.00025 + 24000 * (0.0000325 - 0.0000307) * 1.18, rel=1e-6)
 
 
 def test_coverage_reads_manifests_only(lake):

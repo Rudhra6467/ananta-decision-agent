@@ -1020,7 +1020,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(r))
         return 0 if r["ok"] else 1
     out = Path(a.out).expanduser()
-    if out.resolve() == shadow_dir().resolve():
+    real = Path(os.getenv("ANANTA_RUNS_DIR", str(Path.home() / "ananta_runs"))).expanduser() / "shadow"
+    if out.resolve() == real.resolve():
         print("refused: a dry run never writes the real log", file=sys.stderr)
         return 2
     now = time.time()

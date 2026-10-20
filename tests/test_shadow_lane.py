@@ -451,3 +451,13 @@ def test_the_run_checker_reads_the_lane(tmp_path):
     kinds = sorted((m["kind"], m["from"][:10] if isinstance(m.get("from"), str) else "") for m in res["windows"]["7d"]["misses"])
     got = [m["kind"] for m in res["windows"]["7d"]["misses"]]
     assert sorted(got) == ["empty", "errored", "no run"], kinds              # Oct 23 broken, Oct 24 missing, Oct 25 no rows
+
+
+def test_a_dry_run_refuses_the_real_log_and_writes_its_own_folder(agent, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("ANANTA_RUNS_DIR", str(tmp_path / "runs"))
+    _fake_boards(monkeypatch)
+    assert shadow.main(["dry-run", "--agent", str(agent), "--out", str(tmp_path / "runs" / "shadow")]) == 2
+    assert not (tmp_path / "runs" / "shadow" / shadow.LOG).exists()
+    monkeypatch.setenv("ANANTA_SHADOW_DIR", str(tmp_path / "dry"))       # pointing the env at the dry folder is fine
+    assert shadow.main(["dry-run", "--agent", str(agent), "--out", str(tmp_path / "dry"), "--since", "2026-10-21"]) == 0
+    assert shadow.verify(tmp_path / "dry")["ok"] and not (tmp_path / "runs" / "shadow" / shadow.LOG).exists()

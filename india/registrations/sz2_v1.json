@@ -1,7 +1,7 @@
 {
  "family": "SZ",
- "version": "sz2-v1-2026-10-19-draft2",
- "status": "DRAFT 2, 19 Oct 2026 (Madhav approved the plan: 'sizing v2 with independent review, sounds solid'). Draft 1 was reviewed independently (7 blockers, 8 should-fix, 4 nice-to-have; review_fixes maps each); draft 2 goes to a second independent review, then freeze. Nothing is run before the freeze.",
+ "version": "sz2-v1-2026-10-19-frozen",
+ "status": "FROZEN 19 Oct 2026: plan approved by Madhav ('sizing v2 with independent review, sounds solid'); three independent review rounds (draft 1: 7 blockers; draft 2: 3 partly fixed + 1 new; draft 3: 4 one-line fixes, applied with the reviewer's wording, who judged it freezable with them). Any change is sz2-v2. The run waits for the margin check (margin.check) and the recorder window statement (pricing.calibration).",
  "title": "Sizing v2: how much of the Rs 60,000 book (and later Rs 2 lakh, Rs 5 lakh, Rs 10 lakh and more) an SP1 index decision may use, and through which option structure",
  "why": [
   "SP1's synthetic option book at 0.25 Kelly paused in April 2017 (-24%) and swung to a 59% drawdown unpaused: a Kelly size on fat-tailed bought-option returns is far too large",
@@ -11,7 +11,7 @@
  ],
  "evidence_status": {
   "seen": "every SP1 year 2017 to 16 Oct 2026 has been seen (the SP1 holdout is completed): what this study selects is selected on seen data and is EXPLORATORY",
-  "selection_window": "growth is measured on the holdout-era decisions only (2024-01-01..2026-10-16: the frozen procedure's out-of-sample predictions, today's expiry rules and lot sizes); 2017-2023 are reported, never used to choose",
+  "selection_window": "growth is measured on the holdout-era decisions only (2024-01-01..2026-10-16: the frozen procedure's out-of-sample predictions under today's expiry rules); survival is judged on both 2024-01-01..2026-10-16 and 2017-01-02..2026-10-16 at today's contract scale, the worse result deciding",
   "synthetic_prices": "historical option prices are Black-76 on the previous session's smile, calibrated once (calibration below) to the option recorder's real prices; every rupee result is EXPLORATORY",
   "forward": "the selected variant runs in the main paper book from its freeze; every variant is shadow-run on real prices; the forward gate decides whether the selection stands"
  },
@@ -20,11 +20,11 @@
   "per_trade": "the index path (entry bar, the price known at the decision, exit minute, stop level, stopped), the previous-session option chain (listed strikes, traded IV per strike and type, volume, forward carry)"
  },
  "contracts": {
-  "expiry": "fixed, not part of the grid: BANKNIFTY legs always use the monthly expiry (the contract that traded throughout; its weeklies ended in Nov 2024); NIFTY uses the nearest expiry with at least 2 sessions left after the trade day (no 0-1 day options); a NEXTOPEN trade uses the nearest expiry with at least 3 sessions left",
+  "expiry": "fixed, not part of the grid; 'sessions left' counts the sessions after the trade day up to and including the expiry session: NIFTY uses the nearest expiry with at least 2 sessions left (at least 3 for a NEXTOPEN trade); BANKNIFTY always uses a monthly expiry (its weeklies ended in Nov 2024): the current month's if it has at least 2 sessions left (3 for NEXTOPEN), else the next month's",
   "strike": "chosen from the price known at the decision (D0: the 09:15 open; D1-D3: the close of the last closed bar), never from the later fill",
   "strikes_by_structure": "ATM = the listed strike nearest that price; OTM1 = the nearest listed strike at least one strike step (Nifty 50, Bank Nifty 100) out of the money with traded IV; a spread's short leg = the nearest listed strike at least W points further out of the money with traded IV; a leg without one is unavailable (reason: strike)",
-  "liquidity": "historical: every leg needs previous-session volume >= 1,000 contracts; live: quoted spread <= max(Rs 2, 1% of premium) and depth at the best price >= the order's quantity (GET /quote); otherwise NO TRADE, reason liquidity",
-  "lots_and_scale": "the study stores each trade per lot as R = realised P&L / planned max loss, and planned max loss as a fraction of lot notional (lot x index at entry); every book simulation uses today's contracts: lot 65 (Nifty) and 30 (Bank Nifty), index at the 16 Oct 2026 close; a 2017 trade is re-expressed at today's scale, never booked at its own lot"
+  "liquidity": "historical: every leg needs a previous-session premium turnover (contracts x that day's lot x settlement price) of at least Rs 1 crore; live: quoted spread <= max(Rs 2, 1% of premium) and depth at the best price >= the order's quantity (GET /quote); otherwise NO TRADE, reason liquidity",
+  "lots_and_scale": "the study stores each trade per lot GROSS: leg prices and every minute mark as fractions of the forward, the gross R (gross P&L / planned max loss) and the planned max loss as a fraction of lot notional (lot x index at entry); every book simulation re-expresses them at today's contracts (lot 65 Nifty, 30 Bank Nifty, index at the 16 Oct 2026 close) and recomputes half-spreads and fees at that scale with today's cost table (options STT 0.15% from 1 Apr 2026, Rs 20 per order); the results with each trade's own dated costs are reported alongside; the daily-limit check uses the marks in R x today's planned max loss"
  },
  "structures": {
   "LONG_ATM": "buy the call (long view) or put (short view) at ATM",
@@ -36,24 +36,26 @@
  },
  "pricing": {
   "model": "Black-76 per leg on the forward (carry from the previous chain), minute-level time to expiry; IV = the previous session's smile at the leg's moneyness (strike / forward), linear in log-moneyness between traded strikes, flat beyond, for the entry and every mark (gap days handled by moneyness)",
-  "calibration": "fixed now and applied once before the selection: per index x days-to-expiry bucket (0-1, 2-3, 4+) x time of day (09:15-09:30, 09:30-11:30, 11:30-15:30), (a) an additive IV shift = median(real IV - synthetic IV) and (b) the half-spread = the median measured half-spread from india.spreads, both from the recorder's sessions up to the freeze; after 60 forward sessions the same model is refitted on all recorded sessions and the selection is re-run once, unconditionally; a changed choice starts a new forward record; there is no third run",
+  "calibration": "fixed now: per index x sessions-left bucket, counted as in contracts.expiry (2-3, 4-7, 8+; the 0-1 bucket is never traded under contracts.expiry) x time of day (09:15-09:30, 09:30-11:30, 11:30-15:30): (a) an additive IV shift = median(real IV - synthetic IV), real IV from the recorder's minute price with the forward from put-call parity at the same minute; (b) the half-spread = the median measured half-spread from india.spreads; a cell with fewer than 5 sessions or 200 contract-minutes uses the pooled index x time-of-day value; if india.spreads has fewer than 10 sessions, the half-spread is max(Rs 0.5 Nifty / Rs 1.0 Bank Nifty, 0.4% of premium); the recorder window (2026-09-21 to the freeze date) is stated at the freeze. Applied once before the selection; after the forward gate's 30 decisions per index the same model is refitted on all recorded sessions and the selection re-run once, unconditionally; a changed choice starts a new forward record; there is no third run",
   "costs": "dated option fees per order (Rs 20 brokerage per order, not per lot; STT, exchange, SEBI, stamp, GST from costs.py v1.1); half-spread per leg per side as calibrated, doubled on a stop exit and on the daily-limit close; D0 fills (09:16) use the 09:15-09:30 bucket"
  },
  "max_loss_per_lot": {
-  "rule": "planned at entry, for every structure the same way: min(full premium or debit + entry costs + exit costs at 2x half-spread, stressed loss at the stop); the stressed loss values every leg at the stop moved a further 0.25 daily ATR14 against the trade, T at 15:15, IV from the previous smile at the stressed moneyness moved 2 vol points against the position; exits without a stop (T1130, T1515) and NEXTOPEN use the full premium or debit + entry and exit costs",
+  "rule": "planned at entry, for every structure the same way: min(full premium or debit + entry costs + exit costs at 2x half-spread, stressed loss at the stop); the stressed loss values every leg at the stop moved a further 0.25 daily ATR14 against the trade, T at 15:15, IV from the calibrated previous smile at the stressed moneyness, each leg's IV moved 2 points in the direction that lowers the position's value (long legs down, short legs up); exits without a stop (T1130, T1515) and NEXTOPEN use the full premium or debit + entry and exit costs",
   "spreads": "a spread's exit can cost more than its debit (buying back the short leg at the ask near zero value): the exit costs are inside the rule above; nothing assumes a spread cannot breach",
-  "check": "every trade's realised loss is compared with its planned max loss; breaches are counted and reported by exit and by days-to-expiry"
+  "check": "every trade's realised loss is compared with its planned max loss; breaches are counted and reported by exit and by sessions-left bucket (counted as in contracts.expiry)"
  },
  "margin": {
-  "rule": "a structure is available only if its blocked margin fits the free equity (W minus margin and premium already blocked that day)",
+  "rule": "a structure is available only if its blocked margin fits the free cash: free cash = W - the marked value of open long legs - the margin currently blocked by open short legs",
   "historical_proxy": "premium paid for long legs; for a short leg: SPAN proxy = the spread width x lot (the hedged worst case) + exposure margin 2% of the short leg's notional + from 20 Nov 2024 the extra 2% ELM on its expiry day; stated as conservative (NSE's dated SPAN files are not in the lake)",
   "live": "the same proxy (india/kite.py is GET only: Kite's basket-margin call is a POST and is not used); the long leg is always entered first",
-  "reason": "a structure that does not fit is NO TRADE, reason margin"
+  "reason": "a structure that does not fit is NO TRADE, reason margin",
+  "bias": "conservative: the short leg's exposure margin (2% of notional, about Rs 32,000 for Nifty and Rs 34,000 for Bank Nifty) applies even when hedged and dominates; the 'width x lot' term overstates a debit vertical's SPAN (its worst case is the debit, already paid) by about Rs 6,500-15,000; at Rs 60,000 two spreads cannot be open the same day: reported as a known bias against spreads",
+  "check": "Before the selection run, the proxy is compared with a broker margin calculator for 5 baskets (both indices, both widths). Where the proxy is below the calculator's figure it is raised to it (recorded), and the selection uses the raised proxy. No later change."
  },
  "sizing_rule": {
   "FF_f": "lots = floor(f x W / planned max loss per lot), f in {2%, 3%, 4%, 5%}; the edge-scaled rule of draft 1 is dropped (Nifty's c = 2.5 made it equal to FF, and z is the future-proxy edge, not the option's)",
   "W": "mark-to-market equity at the session's start: cash plus open positions marked at the previous session's 15:29 bid side",
-  "budget": "budget = 5% x W - today's realised losses - the overnight gap loss - the planned max loss of open positions; a closed position releases its planned max loss and books its actual P&L; a trade needs lots x planned max loss <= budget, else lots = floor(budget / planned max loss); 0 lots = NO TRADE, reason budget or size_zero, and that index's day ends (no later point)",
+  "budget": "budget = 5% x W - max(0, -today's net realised P&L) - the overnight gap loss - the planned max loss of open positions (gains never add to the budget); a closed position releases its planned max loss and books its actual P&L; a trade needs lots x planned max loss <= budget, else lots = floor(budget / planned max loss); 0 lots = NO TRADE, reason budget or size_zero, and that index's day ends (no later point)",
   "order": "at each decision point Nifty is sized before Bank Nifty (as decided); budget-blocked counts are reported",
   "grid": "4 fractions x 5 structures = 20 variants, each at four starting capitals: Rs 60,000, 2 lakh, 5 lakh, 10 lakh"
  },
@@ -61,12 +63,12 @@
   "marks": "every minute, each open position is marked at its synthetic bid side (mid minus the calibrated half-spread)",
   "daily_limit": "when realised plus open loss at minute m's close reaches 5% of W, every position closes at minute m+1's open with stop half-spreads and no new entry that day",
   "overnight": "at 09:16 the NEXTOPEN exit is booked first, measured against its previous 15:29 mark (the gap counts against the new session); D0 entries are then sized on the remaining budget",
-  "pause": "equity 22% below its high-water mark: no new entries; open positions follow their exits; the historical path records the pause and continues unpaused as well (both reported); in a bootstrap path the pause ends that path's trading; on Madhav's resume the high-water mark resets to the equity at the resume",
-  "bootstrap": "whole sessions (trades with their minute marks) resampled from 2024-01-01..2026-10-16 into 2,000 paths of 250 sessions, (i) 20-session blocks and (ii) a stationary bootstrap with mean block 60; eligibility uses the worse of the two; all variants share the same draws; seed 20261019; the Monte Carlo error of each probability is reported"
+  "pause": "equity 22% below its high-water mark: no new entries; open positions follow their exits; the historical path records the pause and continues unpaused as well (both reported); in a bootstrap path the pause ends that path's trading. What happens on Madhav's resume (for example resetting the high-water mark, which would allow about 39% = 1 - 0.78^2 before a second pause) is his decision in paper_config.json, outside this study",
+  "bootstrap": "whole sessions (trades with their minute marks, in R) resampled into 2,000 paths of 250 sessions, (i) 20-session blocks and (ii) a stationary bootstrap with mean block 60, each on two windows: 2024-01-01..2026-10-16 and 2017-01-02..2026-10-16 (both at today's contract scale); eligibility uses the worst of the four; all variants share the same draws; seed 20261019; the Monte Carlo error of each probability is reported"
  },
  "selection_rule": {
-  "eligible": "a variant is eligible at a tier when, in each of three bootstraps, its probability of a 22% pause within 250 sessions is <= 10%: (a) trades as recorded; (b) each trade's per-lot P&L demeaned to zero within index x exit x structure (survival with no edge); (c) costs and half-spreads x 2; and separately when its daily-limit misses (a close that came too late because of a gap) are <= 2% of sessions",
-  "choice": "default variant FF 2% LONG_ATM; among variants eligible at all four tiers (a filter), the lowest-risk one (smallest f, then the smaller planned max loss per lot) whose median one-year log growth at Rs 60,000 on (a) is within one bootstrap standard error of the best eligible variant's; Hansen's SPA p-value for the chosen variant against the default is reported (exploratory)",
+  "eligible": "a variant is eligible at a tier when, in every bootstrap (survival_simulation.bootstrap), its probability of a 22% pause within 250 sessions is <= 10% under each of: (a) trades as recorded; (b) each trade's GROSS per-lot P&L demeaned to zero within index x exit x structure, then that trade's spreads and fees as recomputed at today's scale and cost table (contracts.lots_and_scale) subtracted (survival with no edge); (c) half-spreads and fees x 2; AND, separately, its daily-limit misses are <= 2% of sessions on the historical path and in each bootstrap, a miss being a session whose loss exceeds 5% of W by more than the stop-close costs",
+  "choice": "default variant FF 2% LONG_ATM. Among variants eligible at all four tiers (a filter), compute for each its paired difference from the best eligible variant in mean daily log growth at Rs 60,000 on (a) on the paused historical path from 2024-01-01 (no new entries after a pause; equity held flat) over the 687 holdout-era sessions, and SE = the 20-session block-bootstrap standard error of that paired difference, scaled to 250 sessions; if the default is eligible and within one SE of the best, the default is chosen; otherwise the lowest-risk variant within one SE (smallest f, then the smaller planned max loss per lot). Hansen's SPA p-value for the chosen variant against the default is reported (exploratory)",
   "none_eligible": "if no variant is eligible at Rs 60,000, the main book does not trade SP1 options (stated plainly); the shadow lines continue; the report shows the smallest tier at which each index trades at all and at which a variant becomes eligible",
   "no_retuning": "the grid, the selection rule and the thresholds are fixed here; anything else is sz2-v2 with its own forward record"
  },
@@ -75,14 +77,20 @@
   "end equity and median one-year log growth on the paused path (bootstrap), with the standard error",
   "maximum drawdown (historical), probability of a pause within 250 sessions in each bootstrap, with Monte Carlo error",
   "days the 5% limit closed the book; daily-limit misses; planned-max-loss breaches",
-  "results by days-to-expiry bucket and by era (monthly, weekly, after the Nov 2024 SEBI rules, after the Apr 2026 STT change)"
+  "results by sessions-left bucket (2-3, 4-7, 8+, counted as in contracts.expiry) and by era (monthly, weekly, after the Nov 2024 SEBI rules, after the Apr 2026 STT change)"
  ],
  "forward_checks": {
   "record": "from the freeze: the main paper book applies the selected variant to SP1's live decisions at real Kite prices (both legs from the recorder and the decision-time quotes); all 20 variants x 4 tiers are shadow-run on the same real prices",
-  "gate": "the first judgement waits for at least 30 SP1 decisions priced in every structure (about 6 months at the holdout's trade rate); then: (1) execution: realised loss never above planned max loss by more than 10% on any trade, else the book stops for review; (2) calibration passes if the median bias of planned max loss is within 10% and the median absolute price error within 15% of premium, else the book stops; (3) the one unconditional re-run of the selection on refitted calibration (pricing.calibration)",
+  "gate": "every SP1 decision is shadow-priced at 1 lot in all five structures on real prices, whatever the main book took; check (1) applies from the first main-book trade: realised loss never above planned max loss by more than 10%, else the book stops for review; the judgement waits for 30 SP1 decisions per index (at 2026's rate about 7 weeks for Bank Nifty and about 7 months for Nifty; the count governs, not the time); then (2) calibration passes if the median of (planned max loss from the synthetic entry - from the real entry quote) / real is within +/-10% and the median absolute price error is within 15% of premium, else the book stops; and (3) the one unconditional re-run of the selection (pricing.calibration)",
   "not_a_profit_test": "this gate checks execution and pricing; profit evidence stays with SP1's index rows and the forward paper record"
  },
- "outputs": ["gold/studies/SZ2_trades.parquet (per trade, per structure: R, planned max loss as a fraction of notional, reasons)", "gold/studies/SZ2_variants.parquet", "manifests/sz2_results.json", "registrations/sz2_results.md", "paper_config.json main.sizing set to the selected variant (a new cfg version, with Madhav's approval)"],
+ "outputs": [
+  "gold/studies/SZ2_trades.parquet (per trade, per structure: R, planned max loss as a fraction of notional, reasons)",
+  "gold/studies/SZ2_variants.parquet",
+  "manifests/sz2_results.json",
+  "registrations/sz2_results.md",
+  "paper_config.json main.sizing set to the selected variant (a new cfg version, with Madhav's approval)"
+ ],
  "ledger": "one EXPLORATORY row per variant at Rs 60,000 in family SZ (the selection is counted, never claimed as confirmed)",
  "limits": [
   "synthetic prices, even calibrated, miss real behaviour on the biggest days (the days that decide option returns)",
@@ -111,5 +119,30 @@
   "17 Bank Nifty at Rs 60,000": "why",
   "18 budget crowding": "sizing_rule.order",
   "19 Monte Carlo error, slicing, impact": "survival_simulation.bootstrap, limits"
- }
+ },
+ "review_fixes_2": {
+  "B1 zero-edge bootstrap": "selection_rule.eligible (b): gross demeaned, own costs subtracted",
+  "N1 short survival window": "survival_simulation.bootstrap: both windows, worst decides; growth on 2024-2026 only",
+  "B3 Bank Nifty monthly near expiry": "contracts.expiry: sessions-left rule for both indices",
+  "B4 vol shift wording": "max_loss_per_lot.rule: per-leg value-lowering 2-point shift after calibration",
+  "B5 margin": "margin.rule (free cash defined), margin.bias, margin.check",
+  "B6 which SE": "selection_rule.choice: paired-difference block-bootstrap SE; default first",
+  "B7 realised losses": "sizing_rule.budget: net realised P&L when negative",
+  "S1 costs under rescaling": "contracts.lots_and_scale: gross storage, costs recomputed at today's scale and table, dated costs reported",
+  "S2 marks under rescaling": "contracts.lots_and_scale: marks in R",
+  "S3 calibration cells": "pricing.calibration: pooling, parity forward, fallback half-spread, stated window; DTE buckets moved to the traded range",
+  "S4 forward gate": "forward_checks.gate: 30 decisions per index shadow-priced in all structures; bias defined",
+  "S5 HWM reset": "survival_simulation.pause: left to Madhav in paper_config.json, with the 39% figure",
+  "S6 miss": "selection_rule.eligible: defined",
+  "T1 liquidity unit": "contracts.liquidity: premium turnover",
+  "T2 margin check": "margin.check"
+ },
+ "review_fixes_3": {
+  "choice path": "selection_rule.choice: paused historical path from 2024-01-01",
+  "margin check timing": "margin.check: before the selection run, no later change",
+  "sessions-left unit": "pricing.calibration, metrics, max_loss_per_lot.check",
+  "cost basis in (b)": "selection_rule.eligible (b): today's scale and table",
+  "gate time": "forward_checks.gate: per-index time at 2026 rates"
+ },
+ "frozen_at": "2026-10-20T00:56:52+00:00"
 }

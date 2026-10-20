@@ -649,7 +649,24 @@ def live(day: dt.date | None = None, log=print) -> dict:
     model = load_model()
     if plan["model_sha"] != _model_sha():
         raise SystemExit("the plan was written with another model file")
-    k = kite.Kite()
+    # pre-open token check (a sign-in made before Zerodha's morning flush dies at the flush): from 09:00 IST, nudge once and wait to 09:14:30
+    at = dt.datetime.combine(day, dt.time(9, 0), IST)
+    while (w := (at - _ist_now()).total_seconds()) > 0:
+        time.sleep(min(w, 60))
+    nudged = False
+    while True:
+        try:
+            k = kite.Kite()
+            k.get("/user/profile")
+            break
+        except kite.NeedLogin as e:
+            if _ist_now() >= dt.datetime.combine(day, dt.time(9, 14, 30), IST):
+                _append(DECISIONS, {"kind": "error", "date": day.isoformat(), "at": _ist_now().isoformat(timespec="seconds"), "error": f"Kite token not valid at the open: {e}"})
+                return {"date": day.isoformat(), "decisions": [], "error": "no valid Kite token at the open"}
+            if not nudged:
+                kite._ntfy("SP1 paper: the Kite token stopped working; sign in again before 09:14 IST (http://127.0.0.1:8100/kite/login)")
+                nudged = True
+            time.sleep(30)
     done: set = set()
     for r in _rows(DECISIONS):
         if r.get("kind") == "decision" and r["date"] == day.isoformat() and r.get("choice"):
@@ -894,7 +911,8 @@ def run(log=print, rehearsal: bool = False) -> dict:
     nudged = False
     while True:
         try:
-            kite.Kite().get("/user/profile")   # a real call: Zerodha flushes tokens made before about 07:00-07:30 IST, which the file's expiry cannot show
+            kite.token()                        # the file's own expiry first (no API call, no phone nudge from india.kite)
+            kite.Kite().get("/user/profile")   # then a real call: Zerodha flushes tokens made before about 07:00-07:30 IST, which the file cannot show
             break
         except kite.NeedLogin as e:
             if _ist_now() >= deadline:

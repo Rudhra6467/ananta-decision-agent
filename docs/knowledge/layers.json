@@ -1069,6 +1069,7 @@
     "jarvis/service/appmap.py",
     "jarvis/service/plain.py",
     "jarvis/app/scripts/make_icons.py",
+    "jarvis/app/scripts/webmic_browser_test.py",
     "jarvis/service/speech.py",
     "jarvis/voice/server.py",
     "jarvis/evals/run.py"
@@ -1452,6 +1453,7 @@
     "jarvis/service/worker.py",
     "jarvis/service/ndax_spreads.py",
     "jarvis/service/realism.py",
+    "jarvis/service/sayshow.py",
     "scripts/jarvis_watchdog.py"
    ]
   },

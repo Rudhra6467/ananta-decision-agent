@@ -41,7 +41,8 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 
 ## Repair shop (changes tested before they go in)
 - `repair_shop/REVIEW_1.md`, `repair_shop/REVIEW_1_RESULTS.md`: rule changes v0.2: none passed, rulebook v0 stays.
-- `repair_shop/REVIEW_2.md`, `repair_shop/REVIEW_2_RESULTS.md`: reconstruction of other traders: 65 Hyperliquid accounts collected, 37 traders' 7,441 trades on our coins studied (Sep 30): a tiny first-hour edge, no persistent skill, better when they bought weakness (-> review #3, failed after costs). A one-time study, not a daily job.
+- `repair_shop/REVIEW_2.md`, `repair_shop/REVIEW_2_RESULTS.md`: reconstruction of other traders: 65 Hyperliquid accounts collected, 37 traders' 7,441 trades on our coins studied (Sep 30): a tiny first-hour edge, no persistent skill, better when they bought weakness (-> review #3, failed after costs). A one-time study until Oct 20; since then a daily rebuild (src/research/others_daily.py, com.ananta.othersdaily, Madhav's yes to OD-HL-FILLS (a)).
+- `repair_shop/plan-2026-10-20-decision-map.md`: the decision map, the seven areas and the learning loop (Oct 20): 537 of 550 decisions right; stop wording vs code; execution realism 61%; lost runs and the run checker; pre-registrations #31-#38.
 - `repair_shop/REVIEW_3.md`, `repair_shop/REVIEW_3_RESULTS.md`: "buy weakness" variants: all lost after costs.
 - `repair_shop/REVIEW_4.md`, `repair_shop/REVIEW_4_RESULTS.md`: portfolio trend exposure with crash protection: T3 passed.
 - `repair_shop/REVIEW_5.md`, `repair_shop/REVIEW_5_RESULTS.md`: Madhav's reads (capitulation, higher-low retest, quiet base): they caught all four of his buys, but none beat a random day on its own in 2018-2023.

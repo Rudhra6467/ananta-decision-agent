@@ -384,7 +384,12 @@ def run(log=print) -> dict:
     k = ["date", "index", "point", "action"]
     dec_g, dec_h = og[og["date"] >= dt.date(2023, 12, 4)], oh[(oh["date"] >= dt.date(2023, 12, 4)) & (oh["date"] < start)]
     m = dec_g.merge(dec_h, on=k, suffixes=("_g", "_h"), how="outer", indicator=True)
-    cont_bad = int((m["_merge"] != "both").sum()) + int(((m["gross_bps_g"] - m["gross_bps_h"]).abs() > 1e-9).sum())
+    # expected boundary: the dev/validation build had no session after 2023-12-29, so its NEXTOPEN rows for that day do not exist there
+    # (16 rows: 2 indices x 4 points x 2 directions); they are not used (the holdout scores 2024 onward, and the 2024 fold drops that session)
+    last_silver = max(d for d in days if d.year == 2023)
+    boundary = (m["_merge"] == "right_only") & (m["date"] == last_silver) & (m["exit_h"] == "NEXTOPEN")
+    cont_bad = int(((m["_merge"] != "both") & ~boundary).sum()) + int(((m["gross_bps_g"] - m["gross_bps_h"]).abs() > 1e-9).sum())
+    log(f"expected boundary rows (NEXTOPEN on {last_silver}, only computable with the next session): {int(boundary.sum())}")
     lot_gap = int(oh.loc[oh["date"] >= start, "lot"].isna().sum())
     log(f"continuity check (Dec 2023): {len(dec_g)} rows, {cont_bad} differences; holdout rows without a lot size: {lot_gap}")
     if cont_bad or lot_gap:

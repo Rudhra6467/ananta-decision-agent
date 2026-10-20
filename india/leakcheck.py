@@ -93,6 +93,19 @@ def check_sealed_files() -> tuple[bool, str]:
                         bad.append(f"sp1paper.py line {n.lineno} (holdout_outputs purpose {second!r})")
         if any("sealed/" in x for x in _strings(pp)):
             bad.append("sp1paper.py (names a sealed path)")
+    # sp3.py (the positional playbook study) may ask only for presence dates (the coverage rule); its holdout run will live in its own file
+    s3 = here / "sp3.py"
+    if s3.exists():
+        for n in ast.walk(ast.parse(s3.read_text())):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name) and n.func.value.id == "sealed":
+                if n.func.attr not in ("coverage", "coverage_summary"):
+                    bad.append(f"sp3.py line {n.lineno} (sealed.{n.func.attr})")
+            if isinstance(n, ast.ImportFrom) and (n.module or "").endswith("sealed"):
+                bad.append(f"sp3.py line {n.lineno} (from {n.module} import ...)")
+            if isinstance(n, ast.Attribute) and n.attr == "sealed_dir":
+                bad.append(f"sp3.py line {n.lineno} (.sealed_dir)")
+        if any(x in ("sealed", "sealed_dir") or "sealed/" in x for x in _strings(s3)):
+            bad.append("sp3.py (names the sealed folder)")
     for f in ("sp1.py", "scenario.py", "ocstudy.py"):
         if (here / f).exists() and any(x in ("sealed", "sealed_dir") or "sealed/silver" in x or "sealed/gold" in x for x in _strings(here / f)):
             bad.append(f + " (mentions sealed)")

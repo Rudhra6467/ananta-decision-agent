@@ -8,6 +8,7 @@ what window, how many rows) before any row is returned. Nothing here lets a stud
   integrity       selected columns for data checks (duplicates, mappings, stale files, calendar coverage); no returns are computed
   manifest        row counts, last date and file fingerprints for the dataset-version manifest
   calibration     settlement IVs of recorded days, to measure how far the synthetic option prices are from the recorder's real ones (R01); no rule is scored
+  coverage        presence only, from the download manifests (no data file is read): the sessions a source was fetched for (SP3 coverage rule)
   holdout         the ONE registered confirmatory run of a frozen study (HOLDOUT_RUNS): opened once, after Madhav's approval, with a fixed window and
                   a fixed folder list; every query is logged; once the run is marked completed it can never be opened again
   paper_model / paper_parity   after a run is completed: its own derived tables, to fit the live model the spec prescribes and to check the
@@ -119,6 +120,59 @@ def metadata(folder: str, pattern: str, datecol: str | None) -> dict:
         con.close()
     _log("manifest", f"metadata {folder}", "-", out.get("rows") or 0)
     return out
+
+
+def coverage(manifest: str, since: str = "2024-01-01", until: str = "2026-09-30", match: dict | None = None) -> list[str]:
+    """PRESENCE ONLY (SP3 coverage rule, 20 Oct 2026; manifest-based after the third review): the trading sessions between since and until that
+    a source's DOWNLOAD MANIFEST (manifests/<manifest>.jsonl) shows as fetched with status 200 (or 'ok'). A daily entry ('date') covers its
+    session; a windowed query ('from'/'to', 'start'/'end') covers every session inside the window, so a quiet day of a sparse source (results,
+    board meetings) still counts as present; a yearly entry ('year') covers that year's sessions. match filters entries (e.g. {'symbol':
+    'NIFTY 50'}). It reads no data file at all, sealed or not, and returns no counts or values. Logged under purpose coverage."""
+    cal = pd.read_parquet(paths.data_dir() / "silver/calendar/calendar.parquet")
+    lo, hi = pd.Timestamp(since).date(), pd.Timestamp(until).date()
+    sessions = sorted(d for d in pd.to_datetime(cal.loc[cal["is_trading_day"], "date"]).dt.date if lo <= d <= hi)
+    f = paths.manifest_dir() / f"{manifest}.jsonl"
+    present: set = set()
+    if f.exists():
+        for line in f.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            if e.get("status") not in (200, "200", "ok"):
+                continue
+            if match and any(e.get(k) != v for k, v in match.items()):
+                continue
+            if e.get("date"):
+                a = b = pd.Timestamp(e["date"]).date()
+            elif e.get("from") or e.get("start"):
+                a = pd.Timestamp(e.get("from") or e.get("start")).date()
+                b = pd.Timestamp(e.get("to") or e.get("end") or a).date()
+            elif e.get("year"):
+                a, b = dt.date(int(e["year"]), 1, 1), dt.date(int(e["year"]), 12, 31)
+            else:
+                continue
+            present.update(d for d in sessions if a <= d <= b)
+    out = [str(d) for d in sessions if d in present]
+    _log("coverage", f"manifest {manifest} sessions present{(' ' + json.dumps(match)) if match else ''}", since, len(out))
+    return out
+
+
+def coverage_summary(manifest: str, since: str = "2024-01-01", until: str = "2026-09-30", match: dict | None = None) -> dict:
+    """The coverage rule's verdict for one source: share of sessions present, the longest run of missing sessions, PASS at >= 99% and no gap over 5."""
+    cal = pd.read_parquet(paths.data_dir() / "silver/calendar/calendar.parquet")
+    lo, hi = pd.Timestamp(since).date(), pd.Timestamp(until).date()
+    sessions = sorted(d for d in pd.to_datetime(cal.loc[cal["is_trading_day"], "date"]).dt.date if lo <= d <= hi)
+    have = set(coverage(manifest, since, until, match))
+    gap = run = 0
+    for d in sessions:
+        run = 0 if str(d) in have else run + 1
+        gap = max(gap, run)
+    share = len(have) / len(sessions) if sessions else 0.0
+    return {"manifest": manifest, "match": match, "sessions": len(sessions), "share_present": round(share, 4), "longest_gap": gap,
+            "verdict": "PASS" if share >= 0.99 and gap <= 5 else "FAIL"}
 
 
 # ----------------------------------------------------------------------------------------------------------------------------- holdout runs

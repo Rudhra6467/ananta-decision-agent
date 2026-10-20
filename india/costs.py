@@ -1,4 +1,4 @@
-"""Cost model v1 and tax model v1 for the India paper lab and every study.
+"""Cost model v1.2 and tax model v1 for the India paper lab and every study.
 
 Rates are Zerodha's published charges page as read on 18 Oct 2026 (brokerage, STT, NSE transaction charges, SEBI fee, stamp duty, DP charge,
 GST). They are the CURRENT rates; history used different STT and exchange charges, so a study that spans years passes `year` and gets the
@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import datetime as dt
 
+COST_MODEL = "v1.2"  # 20 Oct 2026: dated delivery, intraday and pre-2013 futures STT; round_trip takes the legs' dates
+
 GST = 0.18
 SEBI = 10 / 1e7  # Rs 10 per crore
 STAMP = {"delivery": 0.00015, "intraday": 0.00003, "futures": 0.00002, "options": 0.00003}  # buy side
@@ -26,18 +28,24 @@ OPTION_HALF_SPREAD_RS = {"NIFTY": 0.5, "BANKNIFTY": 1.0, "default": 1.0}
 
 
 def stt_rate(kind: str, side: str, year: int, when: dt.date | None = None) -> float:
-    """STT as a fraction of turnover, by date (cost model v1.1, 19 Oct 2026; v1.0 used the 2023-24 rate for every earlier year).
-    Delivery 0.1% both sides. Intraday equity 0.025% on the sell side. Options (sell, on premium): 0.017% to 2016-05-31, 0.05% to 2023-03-31,
-    0.0625% to 2024-09-30, 0.1% to 2026-03-31, 0.15% after. Futures (sell): 0.01% to 2023-03-31, 0.0125% to 2024-09-30, 0.02% to 2026-03-31,
-    0.05% after. A caller with only a year gets the rate in force on 1 July of that year."""
+    """STT as a fraction of turnover, by date (cost model v1.2, 20 Oct 2026; v1.1 of 19 Oct dated options and recent futures only; v1.0 used the
+    2023-24 rate for every earlier year). Delivery, both sides: 0.075% to 2005-05-31, 0.1% to 2006-05-31, 0.125% to 2013-05-31, 0.1% after.
+    Intraday equity, sell side: 0.015% / 0.02% / 0.025% on the same three dates, 0.025% after. Futures, sell: 0.01% to 2005-05-31, 0.0133% to
+    2006-05-31, 0.017% to 2013-05-31, 0.01% to 2023-03-31, 0.0125% to 2024-09-30, 0.02% to 2026-03-31, 0.05% after. Options (sell, on premium):
+    0.017% to 2016-05-31, 0.05% to 2023-03-31, 0.0625% to 2024-09-30, 0.1% to 2026-03-31, 0.15% after (before 1 Jun 2008 options STT was on
+    contract value, not premium: this function returns the premium-basis rate, so a pre-2008 options study must handle that itself). Source of the pre-2016 steps: the Finance Act
+    changes as tabulated on Zerodha TradingQnA (read 20 Oct 2026). A caller with only a year gets the rate in force on 1 July of that year."""
     d = when or dt.date(int(year), 7, 1)
+    j05, j06, j13 = dt.date(2005, 6, 1), dt.date(2006, 6, 1), dt.date(2013, 6, 1)
     if kind == "delivery":
-        return 0.001
+        return 0.00075 if d < j05 else (0.001 if d < j06 else (0.00125 if d < j13 else 0.001))
     if side != "sell":
         return 0.0
     if kind == "intraday":
-        return 0.00025
+        return 0.00015 if d < j05 else (0.0002 if d < j06 else 0.00025)
     if kind == "futures":
+        if d < j13:
+            return 0.0001 if d < j05 else (0.000133 if d < j06 else 0.00017)
         return 0.0001 if d < dt.date(2023, 4, 1) else (0.000125 if d < dt.date(2024, 10, 1) else (0.0002 if d < dt.date(2026, 4, 1) else 0.0005))
     if kind == "options":
         return (0.00017 if d < dt.date(2016, 6, 1) else (0.0005 if d < dt.date(2023, 4, 1) else (0.000625 if d < dt.date(2024, 10, 1)
@@ -80,10 +88,12 @@ def cost(kind: str, side: str, value: float, year: int = 2026, orders: int = 1, 
     return brokerage + txn + sebi + gst + stamp + stt + dp
 
 
-def round_trip(kind: str, buy_value: float, sell_value: float, year: int = 2026, turnover_rank: int | None = None, extra_slippage_bps: float = 0.0) -> dict:
-    """Costs of buy then sell, with the spread estimate: each leg gives up the half-spread plus any extra slippage, in rupees on its value."""
+def round_trip(kind: str, buy_value: float, sell_value: float, year: int = 2026, turnover_rank: int | None = None, extra_slippage_bps: float = 0.0,
+               when: dt.date | None = None, sell_when: dt.date | None = None) -> dict:
+    """Costs of buy then sell, with the spread estimate: each leg gives up the half-spread plus any extra slippage, in rupees on its value.
+    when / sell_when (v1.2): the dates of the two legs, so rate changes apply by date; without them the year's 1 July rates apply."""
     hs = (half_spread_bps(turnover_rank) + extra_slippage_bps) / 1e4
-    fees = cost(kind, "buy", buy_value, year) + cost(kind, "sell", sell_value, year)
+    fees = cost(kind, "buy", buy_value, year, when=when) + cost(kind, "sell", sell_value, year, when=sell_when or when)
     spread = hs * (buy_value + sell_value)
     return {"fees": fees, "spread_estimate": spread, "total": fees + spread}
 

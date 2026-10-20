@@ -48,10 +48,19 @@ def threshold(k: int) -> float:
     return NormalDist().inv_cdf(1 - 0.025 / k)
 
 
-def register(study: str, family: str, title: str, hypothesis: str, variants: list[str], note: str = "") -> dict:
-    """Writes the registration line (what was claimed before the run). Re-registering an id appends a new version."""
+def register(study: str, family: str, title: str, hypothesis: str, variants: list[str], note: str = "", bar_families: list[str] | None = None,
+             union_k: int | None = None, holdout_k: int | None = None) -> dict:
+    """Writes the registration line (what was claimed before the run). Re-registering an id appends a new version.
+    bar_families / union_k / holdout_k (SP3 review, 20 Oct 2026): a study whose bar spans several families stores the list and the k pinned at its
+    freeze, so the bar cannot drift as rows are recorded; record() uses union_k for the standard and seen rules and holdout_k for holdout rows."""
     reg = {"kind": "registration", "study": study, "family": family, "title": title, "hypothesis": hypothesis, "variants": list(variants), "note": note,
            "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
+    if bar_families:
+        reg["bar_families"] = sorted(set(bar_families) | {family})
+    if union_k:
+        reg["union_k"] = int(union_k)
+    if holdout_k:
+        reg["holdout_k"] = int(holdout_k)
     reg["stamp"] = _stamp(study)
     with _ledger_path().open("a") as fh:
         fh.write(json.dumps(reg, default=str) + "\n")
@@ -114,8 +123,15 @@ def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None =
     rule: 'standard' (verdict below) or 'seen_val_only' (verdict_seen)."""
     fam = reg["family"]
     rows = _rows()
-    seen = {(r["study"], r["variant"]) for r in rows if r["family"] == fam and r["kind"] == "result"}
-    k = len(seen | {(reg["study"], variant)})
+    if rule == "holdout_one_sided" and reg.get("holdout_k"):
+        k, k_src = int(reg["holdout_k"]), "holdout_k"  # frozen at registration: the confirmatory claims on the sealed period (exploratory holdout rows are not counted)
+    elif rule != "holdout_one_sided" and reg.get("union_k"):
+        k, k_src = int(reg["union_k"]), "union_k"  # frozen at registration: the rows of every family in bar_families plus the study's own
+    else:
+        fams = set(reg.get("bar_families") or [fam])
+        seen = {(r["study"], r["variant"]) for r in rows if r["family"] in fams and r["kind"] == "result"}
+        k = len(seen | {(reg["study"], variant)})
+        k_src = "bar_families" if reg.get("bar_families") else "family"
     z = threshold(k)
     if rule == "holdout_one_sided":
         v = verdict_holdout(val[1], val[0], val[2], z, expect)
@@ -125,7 +141,7 @@ def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None =
         v = verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z, expect)
     if (extra or {}).get("min_trades_ok") is False:
         v = "INCONCLUSIVE"  # a pre-registered minimum trade count was not reached (e.g. SP1: 100 validation trades per index)
-    line = {"kind": "result", "study": reg["study"], "family": fam, "variant": variant, "k_in_family": k, "z": round(z, 3), "dev": list(dev), "val": list(val),
+    line = {"kind": "result", "study": reg["study"], "family": fam, "variant": variant, "k_in_family": k, "k_source": k_src, "z": round(z, 3), "dev": list(dev), "val": list(val),
             "verdict": v, "rule": rule, "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "registered_at": reg.get("at"),
             "code": (reg.get("stamp") or {}).get("code", {}).get("git")}
     with _ledger_path().open("a") as fh:

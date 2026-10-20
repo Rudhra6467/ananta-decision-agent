@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The weekly agent exam, Sundays 07:10 Toronto (OD-EXAM-CADENCE (a), approved by Madhav 2026-10-20). About $1.30 a run in paid answers.
+     Installed by scripts/install_exam_job.sh. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.ananta.exam</string>
+  <key>WorkingDirectory</key><string>__REPO__</string>
+  <key>EnvironmentVariables</key><dict><key>PYTHONPATH</key><string>.</string></dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string>
+    <string>-i</string>
+    <string>__HOME__/ananta_venvs/jarvis/bin/python</string>
+    <string>scripts/run_agent_exam.py</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Weekday</key><integer>0</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>10</integer></dict>
+  <key>StandardOutPath</key><string>__HOME__/ananta_runs/exam_weekly.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/ananta_runs/exam_weekly.log</string>
+</dict>
+</plist>

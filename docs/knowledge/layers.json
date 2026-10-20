@@ -283,7 +283,8 @@
    "files": [
     "docs/repair_shop/REVIEW_2_RESULTS.md",
     "src/research/hl_bench.py",
-    "src/research/review2_traders.py"
+    "src/research/review2_traders.py",
+    "src/research/others_daily.py"
    ]
   },
   {
@@ -923,7 +924,8 @@
    "files": [
     "src/research/casebook.py",
     "src/research/hl_bench.py",
-    "src/research/review2_traders.py"
+    "src/research/review2_traders.py",
+    "src/research/others_daily.py"
    ]
   },
   {

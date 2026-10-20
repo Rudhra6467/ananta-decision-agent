@@ -274,6 +274,7 @@ export default function Ananta() {
     if (r.mode === "nav" && r.ui?.length && !r.tour?.length) {
       setMsgs((m) => [...m, { role: "assistant", ...r }]);
       const res = await UI.run(r.ui);
+      UI.report(r.id, res, r.points);
       const bad = res.filter((x) => !x.ok);
       if (bad.length) {
         const failNote = `I couldn't open ${bad.map((b) => b.action.label ?? b.action.target).join(", ")}. You're still on ${getScreen()?.label ?? "the same screen"}.`;
@@ -299,6 +300,7 @@ export default function Ananta() {
         let failNote = "";
         if (m.ui?.length) {
           const res = await UI.run(m.ui);
+          UI.report(m.id, res, m.points);
           const bad = res.filter((x) => !x.ok);
           if (bad.length) failNote = `I couldn't open ${bad.map((b) => b.action.label ?? b.action.target).join(", ")}.`;
         }
@@ -517,6 +519,7 @@ export default function Ananta() {
         let failNote = "";
         if (r.ui?.length && current()) {                       // move the screen first, then talk about it
           const res = await UI.run(r.ui);
+          UI.report(r.id, res, r.points);                     // request #73: what the screen really did (never waits)
           const bad = res.filter((x) => !x.ok);
           if (bad.length) {
             failNote = `I couldn't open ${bad.map((b) => b.action.label ?? b.action.target).join(", ")}. You're still on ${getScreen()?.label ?? "the same screen"}.`;

@@ -21,7 +21,8 @@ SCREENS = {
                          "1h/4h trend and how close each is to its nearest setup; above it, Ananta's reasoning: where each coin stops on the "
                          "decision chain (regime, trend, location, trigger, invalidation, risk, exposure); tap a coin for its page"},
     "portfolio": {"name": "Ananta market: trend portfolio (T3)", "where": "Markets tab, second page 'Ananta market', Trend sub-tab (Ananta's book is the row above; the Books tab folded in here on Oct 15)",
-                  "shows": "the T3 portfolio value chart, the Autopilot switch, suggested changes, holdings with value, return and rating, cash and costs"},
+                  "shows": "the T3 portfolio value chart, the Autopilot switch, suggested changes, holdings with value, return and rating, cash and costs. "
+                           "Not the $500 NDAX account: that account and what it holds are on Home (spot home.value)"},
     "portfolio:explorer": {"name": "Explorer trades", "where": "Markets tab, second page 'Ananta market', Explorer sub-tab",
                            "shows": "the Explorer's paper book: open trades with P&L, orders waiting to fill, closed trades"},
     "portfolio:mine": {"name": "My trades", "where": "Markets tab, second page 'Ananta market', Mine sub-tab",
@@ -51,11 +52,15 @@ SCREENS = {
 ALIASES = {
     "home": "home", "home screen": "home", "main": "home", "start": "home", "dashboard": "home", "inbox": "home", "brief": "home", "activity": "home",
     "market": "markets", "markets": "markets", "watchlists": "markets", "watchlist": "markets", "watch list": "markets", "scan": "markets", "scanner": "markets",
-    "portfolio": "portfolio", "t3": "portfolio", "holdings": "portfolio",
+    "portfolio": "portfolio", "t3": "portfolio", "holdings": "portfolio", "trend portfolio": "portfolio",
+    # request #73 (Oct 20): "that $500 we are holding" is the NDAX account on Home, never the trend portfolio (T3)
+    "$500": "home", "500 book": "home", "500 dollar book": "home", "five hundred": "home", "ndax": "home", "the account": "home",
+    "our account": "home", "my account": "home", "account": "home", "positions we hold": "home", "current positions": "home",
+    "what we are holding": "home", "what we're holding": "home",
     "explorer": "portfolio:explorer", "explorer trades": "portfolio:explorer", "open trades": "portfolio:explorer", "trades": "portfolio:explorer",
     "my trades": "portfolio:mine", "my book": "portfolio:mine", "my paper book": "portfolio:mine", "manual book": "portfolio:mine",
     "ananta": "ananta", "chat": "ananta", "voice": "ananta", "conversation": "ananta",
-    "evidence": "evidence", "lab": "evidence", "repair shop": "evidence", "evidence tracker": "evidence", "forwarded": "evidence:forwarded",
+    "evidence": "evidence", "lab": "evidence", "repair shop": "evidence", "repair board": "evidence", "evidence tracker": "evidence", "forwarded": "evidence:forwarded",
     "jarvis": "jarvis", "jarvis's book": "jarvis", "jarvis book": "jarvis", "your book": "jarvis", "your trades": "jarvis", "books": "home",
     "ananta market": "portfolio", "the lab": "portfolio", "lab books": "portfolio", "needs you": "home", "your note": "home", "ananta's note": "home", "the note": "home",
     "missed": "missed", "missed moves": "missed", "what we missed": "missed", "findings": "missed",
@@ -183,11 +188,16 @@ def here_target(here: dict | None) -> str | None:
     return sc
 
 
+def _has(word: str, low: str) -> bool:
+    """The alias as a whole word (also "$500", which starts with a symbol, so a plain \\b cannot frame it)."""
+    return bool(re.search(r"(?<!\w)" + re.escape(word) + r"(?!\w)", low))
+
+
 def guess(text: str) -> str | None:
     """Best place in the app for a question, from its words (longest alias first)."""
     low = text.lower()
     for k in sorted(ALIASES, key=len, reverse=True):
-        if re.search(r"\b" + re.escape(k) + r"\b", low):
+        if _has(k, low):
             return ALIASES[k]
     for k in sorted(COINS, key=len, reverse=True):
         if re.search(r"\b" + re.escape(k) + r"\b", low):
@@ -589,3 +599,122 @@ def clean_evidence(j, items) -> list[dict]:
                     e.pop("screen", None)
         out.append(e)
     return out
+
+
+# ---------------------------------------------------------------------------
+# Say = show (request #73, Oct 20): the screen an answer opens is the book the voice talks about.
+# Madhav asked about "that $500 we are holding"; the voice spoke about the $500 NDAX book (Home) while the screen opened the trend
+# portfolio (T3): the move was picked from keywords ("portfolio", "holdings") on paths apart from the words read aloud.
+# say_show() reads the SPOKEN words and keeps, retargets or drops each move to a book.
+# ---------------------------------------------------------------------------
+BOOKS = [  # words that name a book or place out loud -> the screen that shows it. Ananta is the one speaking: "my book" is Ananta's,
+    # "your book" is Madhav's. The dial, the market gate and the brakes are on Home AND Markets, so they name neither (only the
+    # "trend dial", Markets' own name for it, names Markets).
+    ("home", r"\$\s?500\b|\b500[- ]dollars?\b|\b500 book\b|\bfive[- ]hundred[- ]dollars?\b|\bndax\b|\b(?:the|our|your) account\b|"
+             r"\baccount's\b|\breal book\b|\bhome\b"),
+    ("portfolio", r"\btrend portfolio\b|\bt3\b|\bautopilot\b"),
+    ("portfolio:explorer", r"\bexplorer\b"),
+    ("portfolio:mine", r"\byour (?:own )?(?:paper |practice )?(?:book|trades|orders)\b|\bmanual book\b"),
+    ("jarvis", r"\bmy (?:own )?(?:paper )?book\b|\b(?:ananta|jarvis)'?s (?:own )?book\b|\brandom twins?\b"),
+    ("evidence", r"\bevidence\b|\brepair (?:shop|board|loop)\b|\bacceptance gate\b|\bchecks? pass|\bbacktests?\b|"
+                 r"\b(?:the|our|a) (?:\w+ ){0,2}(?:review|study)\b"),
+    ("evidence:forwarded", r"\bforwarded\b|\bsafety changes?\b"),
+    ("markets", r"\bmarkets (?:tab|page|screen)\b|\bwatch ?lists?\b|\bour watches\b|\bdecision chain\b|\btrend dial\b"),
+    ("missed", r"\bmissed moves?\b|\bwhat we missed\b|\bmoves we (?:missed|only saw)\b"),
+    ("cockpit", r"\bcockpit\b|\bmore tab\b|\bkill switch\b|\bthe controls\b|\bsettings\b"),
+]
+BOOK_SCREENS = {s for s, _ in BOOKS}         # the Ask tab, the mandate, the test lab, coin and trade pages: never touched
+SAME_PAGE = {"evidence:forwarded": "evidence"}  # the forwarded list is the lower part of the Evidence page
+MAIN_SPOT = {"home": "home.value", "portfolio": "portfolio.value", "portfolio:explorer": "explorer.value", "portfolio:mine": "mine.value",
+             "jarvis": "jarvis.score", "evidence": "evidence.tracker", "evidence:forwarded": "evidence.in_use", "markets": "markets.summary",
+             "missed": "missed.moves", "cockpit": "cockpit.controls"}
+VAGUE = {"portfolio", "holdings", "trades", "open trades", "books", "lab", "the lab", "lab books", "ananta market"}   # Madhav says "portfolio" for the $500 account too
+BACK_ASK = re.compile(r"\b(?:go|going|take me|bring me|head|come) back\b|\bback to\b|\bprevious (?:page|screen)\b|^\W*back\b", re.I)
+
+
+def books_named(text: str) -> list[str]:
+    """The books and places these spoken words name, in the order they are first named."""
+    hits = [(m.start(), s) for s, rx in BOOKS for m in [re.search(rx, text or "", re.I)] if m]
+    return [s for _, s in sorted(hits)]
+
+
+def _page(t: str | None) -> str:
+    return SAME_PAGE.get(t or "", t or "")
+
+
+def _on(p: dict, target: str | None) -> bool:
+    """This highlight sits on that screen."""
+    return _page(spot_screen(str(p.get("spot", "")))) == _page(target)
+
+
+def asked_for(question: str, target: str, vague_ok: bool = True) -> bool:
+    """He asked to SEE this place: a show-me request that names it ("show me the Explorer"). The vague words ("portfolio",
+    "holdings", "trades") count only when vague_ok. "Open" as in "our open trades" is not a request to open anything."""
+    if not SHOW_INTENT.search(re.sub(r"\bopen (?=(?:trades?|positions?|orders?)\b)", "", question or "", flags=re.I)):
+        return False
+    low = (question or "").lower()
+    return any(_page(v) == _page(target) and (vague_ok or k not in VAGUE) and _has(k, low) for k, v in ALIASES.items())
+
+
+def _move_points(points: list[dict], old: str, new: str, spoken: str) -> list[dict]:
+    """The highlights on the old screen go; the new screen's main spot glows on the first sentence that names its book."""
+    out = [p for p in points if not _on(p, old)]
+    if MAIN_SPOT.get(new) and not any(_on(p, new) for p in out):
+        sents = [x for x in re.split(r"(?<=[.!?])\s+", spoken or "") if x.strip()]
+        k = next((i for i, x in enumerate(sents) if re.search(dict(BOOKS)[new], x, re.I)), 0)
+        if not any(p.get("sentence") == k for p in out):            # one highlight per sentence
+            out = sorted(out + [{"spot": MAIN_SPOT[new], "sentence": k}], key=lambda p: p.get("sentence", 0))
+    return out
+
+
+def say_show(j, spoken: str, ui: list[dict], points: list[dict], question: str = "", here: dict | None = None) -> tuple[list[dict], list[dict], str]:
+    """Make the screen show the book the voice SAYS (request #73). spoken = the words read aloud (speak_text). Each move to a book:
+    - its book is named in the spoken words: keep it
+    - he asked for this very place ("show me the Explorer"): keep it
+    - exactly one other book is named: move there instead, with the highlights
+    - he asked with a vague word ("show me the portfolio") and no book is named: keep it
+    - otherwise drop it and its highlights: better no move than a wrong move.
+    A go_to undone by a back in the same answer only flashes a screen: both go, unless he asked to go back.
+    -> (ui, points, note for the reply's meta: 'kept X' / 'retargeted X->Y' / 'dropped X', joined with '; ')."""
+    ui = [dict(u) for u in ui or [] if isinstance(u, dict)]
+    points = [dict(p) for p in points or [] if isinstance(p, dict)]
+    notes: list[str] = []
+    if not BACK_ASK.search(question or ""):
+        kept: list[dict] = []
+        for u in ui:
+            last = next((i for i in range(len(kept) - 1, -1, -1) if kept[i].get("do") in ("go_to", "open", "back")), None)
+            if u.get("do") == "back" and last is not None and kept[last].get("do") == "go_to":
+                gone = kept.pop(last)
+                points = [p for p in points if not _on(p, gone.get("target"))]
+                notes.append(f"dropped {gone.get('target')}+back")
+                continue
+            kept.append(u)
+        ui = kept
+    said = books_named(spoken)
+    cur = here_target(here)
+    out: list[dict] = []
+    for u in ui:
+        t = u.get("target") or ""
+        if u.get("do") not in ("go_to", "open") or t not in BOOK_SCREENS:
+            out.append(u)
+            continue
+        others = [s for s in said if _page(s) != _page(t)]
+        if len(others) < len(said):
+            notes.append(f"kept {t}")
+            out.append(u)
+        elif asked_for(question, t, vague_ok=False):
+            notes.append(f"kept {t} (asked)")
+            out.append(u)
+        elif len({_page(s) for s in others}) == 1:
+            new = others[0]
+            points = _move_points(points, t, new, spoken)
+            notes.append(f"retargeted {t}->{new}" + (" (already open)" if new == cur else ""))
+            if new != cur:
+                out.append({"do": "go_to", "target": new, "label": SCREENS[new]["name"]})
+        elif not others and asked_for(question, t):
+            notes.append(f"kept {t} (asked)")
+            out.append(u)
+        else:
+            points = [p for p in points if not _on(p, t)]
+            notes.append(f"dropped {t}")
+    return dedupe(out), points, "; ".join(notes)

@@ -2551,6 +2551,19 @@ class Ask:
                         reply["ui"] = [{**u, "target": v, "label": label}]
                         if sp and not reply["points"]:
                             reply["points"] = [{"spot": sp, "sentence": 0}]
+            # request #73 (Oct 20): the screen shows the book the voice talks about. The moves above come from keywords; the gate
+            # reads the words actually read aloud (voice: the first ~60; a typed answer's walk-through reads it all) and keeps,
+            # retargets or drops each move to a book. Its note goes in the reply (and so in ask_messages).
+            try:
+                spoken = speak_text(reply) if voice else (reply.get("answer") or "")
+                reply["ui"], reply["points"], ss = _am.say_show(self.j, spoken, reply["ui"], reply.get("points") or [], text, here=_here)
+                if ss:
+                    reply["say_show"] = ss
+                    moves = any(u.get("do") in ("go_to", "open") for u in reply["ui"])
+                    if "dropped" in ss and not moves and _am.CLAIM.search(reply.get("answer") or ""):
+                        reply["answer"] = (reply.get("answer") or "").rstrip() + " (I couldn't move the screen for this one; it is still on the same page.)"
+            except Exception:  # noqa: BLE001  the gate never stops an answer
+                pass
         except Exception:  # noqa: BLE001
             reply["ui"] = L.ui
         timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),

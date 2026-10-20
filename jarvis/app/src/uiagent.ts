@@ -1,5 +1,6 @@
 // The only way Ananta moves the app. Each action reports whether it really happened, so Ananta never claims a move it did not make.
 import { router } from "expo-router";
+import { api } from "./api";
 import { getScreen, goTab } from "./context";
 import { clearSpot, focusSpot, scroll } from "./spotlight";
 
@@ -72,6 +73,14 @@ export async function run(actions: UiAction[] = []): Promise<UiResult[]> {
     }
   }
   return out;
+}
+
+// Request #73 (Oct 20): tell the service what the screen really did for an answer (each move: target, ok, where it landed; the
+// spots it was to light), so "it says one thing and the app shows another" is measured, not guessed. Fire-and-forget: never awaited.
+export function report(answerId: string | undefined, res: UiResult[], points: { spot: string }[] = []) {
+  if (!answerId || !res.length) return;
+  const results = res.map((x) => ({ target: x.action.target ?? `${x.action.do}${x.action.dir ? `:${x.action.dir}` : ""}`, ok: x.ok, landed: x.landed ?? "" }));
+  api("/v3/voice/ui_result", { answer_id: answerId, results, spots: (points ?? []).map((p) => p.spot) }, 8000, true).catch(() => {});
 }
 
 export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);

@@ -2028,3 +2028,19 @@ def voice_clip(cid: str, who: str = Depends(owner)):
         raise HTTPException(status_code=404, detail="unknown clip") from exc
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=503, detail=f"natural voice unavailable ({str(exc)[:80]})") from exc
+
+
+class UiResult(BaseModel):
+    answer_id: str
+    results: list[dict] = []        # each move the app ran: {target, ok, landed}
+    spots: list[str] = []           # the spots the answer was to light
+
+
+@app.post("/v3/voice/ui_result")
+def voice_ui_result(b: UiResult, who: str = Depends(owner)) -> dict:
+    """Request #73 (Oct 20): after an answer moves the screen, the app says what really happened. Stored in voice_ui next to
+    what Ananta planned and the say-show gate's note. The app sends it without waiting, so it never slows the voice."""
+    from jarvis.service import sayshow
+
+    j = J()
+    return {"ok": _run(sayshow.record, j.db, b.answer_id, b.results, b.spots, int(j.now()))}

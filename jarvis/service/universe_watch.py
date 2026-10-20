@@ -755,6 +755,12 @@ def run_daily(j) -> dict:
         out["officer_note"] = (officer.write(j, out, push=_phone_push()) or {}).get("ok")
     except Exception as exc:  # noqa: BLE001
         out["officer_error"] = str(exc)[:200]
+    try:  # OD-SHADOW-LANE (Oct 20): the blind shadow lane logs each pre-registered rule's trigger state; it shows no result and touches no book
+        from jarvis.service import shadow
+
+        shadow.hook_daily(j, out)
+    except Exception as exc:  # noqa: BLE001  never breaks the round (hook_daily already swallows; this catches a failed import)
+        out["shadow"] = {"error": f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} UTC {str(exc)[:200]}"}
     out["steps_failed"] = sorted(set(out.get("steps_failed") or []) | {k[:-len("_error")] for k, v in out.items() if k.endswith("_error") and v})
     try:
         _daily_file(j, out)

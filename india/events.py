@@ -8,7 +8,8 @@ its confounders and a verification status. News explains why; prices (the lake) 
 Rules
 - first_tradable_session is recomputed from the NSE trading calendar: public after 15:30 IST, or on a non-trading day -> the next session.
 - Status: OFFICIAL (an official source), TWO_SOURCES (two independent tier A/B publishers), ONE_SOURCE (kept, excluded from studies),
-  REJECTED (failed a check). Only OFFICIAL and TWO_SOURCES events enter studies.
+  REJECTED (failed a check), PRE_CALENDAR (before the NSE calendar of 3 Nov 1994: kept, excluded from studies, 20 Oct 2026).
+  Only OFFICIAL and TWO_SOURCES events enter studies.
 - Era from first_tradable_session: dev (<2018), validation (2018-2023), holdout (2024+). Market reactions of holdout events are not computed
   until the one-time holdout run; the registry stores the event, never a reaction, for them.
 - No reaction numbers from articles are stored anywhere: reactions come from the lake (india.eventresp).
@@ -150,6 +151,9 @@ def load() -> dict:
             if fts is None:
                 status = "REJECTED"
                 p.append("no tradable session in the calendar")
+            elif days and fts < days[0]:
+                status = "PRE_CALENDAR"  # before the NSE calendar (and the lake's prices): kept for the record, excluded from studies
+                p.append(f"before the NSE calendar ({days[0]}): no session check and no lake prices; a BSE calendar and prices would be needed")
             era = None if fts is None else ("dev" if fts.year < 2018 else ("validation" if fts.year < 2024 else "holdout"))
             rows.append({"event_id": eid, "title": e["title"], "category": e.get("category"), "subcategory": e.get("subcategory"), "scope": e.get("scope"),
                          "event_date": d, "public_time_ist": e.get("public_time_ist"), "public_period": e.get("public_period"), "first_tradable_session": fts, "timing_note": "; ".join(x for x in (e.get("timing_note"), tnote) if x),

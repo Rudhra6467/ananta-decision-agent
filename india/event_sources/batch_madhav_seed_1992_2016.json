@@ -1,0 +1,925 @@
+{
+ "batch": "batch_madhav_seed_1992_2016",
+ "era": "1992-01-01..2016-12-31",
+ "collected": "2026-10-20",
+ "method": "research agent under the event-source rules, seeded by Madhav's 20 Oct 2026 list of remembered moves: point events only (a dated public moment), not episodes; no article or remembered reaction numbers (his figures stay in india/ev1.py SEED); times only when sourced (else public_period or null with a timing_note); status recomputed by india.events from source tiers",
+ "coverage_note": "COVERAGE: 21 new point events from Madhav's list, 1992-2013. His items from 2014 on are already registry rows and are not repeated: the Aug 2015 yuan devaluation and Black Monday, the Jan 2016 China circuit breakers, demonetisation and the US election (Nov 2016), GST, PNB-Nirav Modi, IL&FS, the 2019 election and corporate tax cut, COVID (incl. the 23 Mar 2020 circuit breaker), Russia-Ukraine, Adani-Hindenburg, the 2024 election, and the 2025-26 tariff, oil and FPI-outflow leads. Multi-month episodes (the 2000-03 dot-com and K-10 bust, the 2008 crisis as a whole and its Oct 2008 trough, the 2010-13 euro-area crisis, the Aug 2013 rupee slide, the 2015-16 China and commodity rout and its Jan-Feb 2016 lows) go to the drawdown catalogue (india/ev1.py), and are represented here only by their key dated events. Calendar and data limits: the 1992 row predates NSE trading, the NSE calendar (from 1994-11-03) and the lake, so it is a BSE session that cannot be measured; ev1's index series starts in 2003, so the 2001 rows need the cash bhavcopy. Timing: an exact sourced IST time for 8 rows (Budget 2001, 9/11, the NSE halt and the Fed cut of 22 Jan 2008, the 8 Oct 2008 coordinated cuts, and the three Fed events of 2013); 6 carry a sourced period; 7 use the curator's session with a timing_note (the 1992 report, Ketan Parekh's arrest, Lehman, Greece, the S&P downgrade, Draghi and Rajan). One source only: Ketan Parekh's arrest (The Tribune). Holidays assumed, not confirmed: 9 Oct 2008 (Dasara) and 8 Jan 2009 (Muharram). Candidates not added: the UTI US-64 freeze (Jul 2001), the US House's TARP rejection (29 Sep 2008), RBI's Oct 2008 CRR cuts and 24 Oct 2008 mid-term review, the EU's stabilisation mechanism (9-10 May 2010), the ECB's OMT (6 Sep 2012), RBI's Jul 2013 liquidity tightening and 14 Aug 2013 capital controls, the Food Security Bill (26 Aug 2013), and a dated event for the Feb 2016 lows. Madhav's 28 Apr 1992 crash date is a reaction day; no separate public event that day was found.",
+ "convention": "event_date and public_time_ist are both Indian Standard Time",
+ "events": [
+  {
+   "title": "Securities scam exposed: press report of a shortfall in SBI's government securities (Harshad Mehta)",
+   "category": "banking",
+   "subcategory": "securities scam exposed (bank funds diverted to the stock market)",
+   "event_date": "1992-04-23",
+   "public_time_ist": null,
+   "timing_note": "Moneylife says Sucheta Dalal broke the securities scam on 23 Apr 1992; Business Today gives only 'April 1992' for the press reports of a shortfall in SBI's government securities. A newspaper story, so the BSE session of Thursday 23 Apr 1992 is taken as the first that could trade on it (curator's choice, unverified). The date is before NSE trading began and before the registry's NSE calendar (from 1994-11-03), and the lake holds no 1992 prices: this is a BSE session and no reaction can be measured from the lake.",
+   "first_tradable_session": "1992-04-23",
+   "scope": "india",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Journalist Sucheta Dalal broke the story of the securities scam: press reports said State Bank of India's government securities holdings showed a shortfall. Investigations over the following month uncovered misappropriation of bank funds (Business Today puts it at about Rs 3,500 crore) routed into the stock market, centred on broker Harshad Mehta; a Special Court for securities offences was later set up by an Act of Parliament in 1992.",
+   "reported_affected": [
+    "Bombay Stock Exchange stocks (broad market)",
+    "Banks involved in the securities deals (SBI and others)",
+    "Government securities market"
+   ],
+   "confounders": [
+    "Market boom after the Union Budget of Feb 1992 (general knowledge, not checked)",
+    "Follow-up disclosures, arrests and investigations through May-June 1992"
+   ],
+   "sources": [
+    {
+     "url": "https://www.moneylife.in/article/the-scam-of-1992-revisited/25164.html",
+     "publisher": "Moneylife",
+     "published": null,
+     "kind": "news"
+    },
+    {
+     "url": "https://www.businesstoday.in/latest/corporate/story/big-bull-harshad-mehta-pays-dues-9-years-after-death-18830-2011-03-17",
+     "publisher": "Business Today",
+     "published": "2011-03-17",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "The exact day (23 Apr) comes from Moneylife only; Business Today confirms the month. The Moneylife page does not name the newspaper. Madhav's 28 Apr 1992 crash date is a reaction day: no separate public event on 28 Apr was found. Before the NSE calendar and the lake: keep out of lake-based studies until a BSE calendar and BSE prices exist.",
+   "public_period": null
+  },
+  {
+   "title": "Union Budget 2001-02 (first budget presented at 11:00)",
+   "category": "union_budget",
+   "subcategory": "full budget",
+   "event_date": "2001-02-28",
+   "public_time_ist": "11:00",
+   "timing_note": "The speech dated 28 Feb 2001 (Wednesday) is in the India Budget archive. The Tribune says it was in 2001 that Finance Minister Yashwant Sinha changed the practice and the budget began to be introduced at 11:00 (instead of 17:00). 11:00 is the scheduled start, not a timestamp from the day.",
+   "first_tradable_session": "2001-02-28",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Finance Minister Yashwant Sinha presented the 2001-02 Union Budget in Parliament; the speech opens with the challenges posed by the Gujarat earthquake. It was the first budget presented in the morning. It fell during the 2000-01 market bust, days before the Ketan Parekh (K-10) unravelling and the March 2001 payment crisis.",
+   "reported_affected": [
+    "Broad market",
+    "Government bond market"
+   ],
+   "confounders": [
+    "Gujarat earthquake of 26 Jan 2001 (referred to in the speech)",
+    "Bear-cartel selling of 2 Mar 2001 that SEBI then probed (Tribune, 10 Mar 2001)",
+    "Global technology-stock bust (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.indiabudget.gov.in/budget_archive/ub2001-02/bs/intro.htm",
+     "publisher": "Ministry of Finance (India Budget archive)",
+     "published": "2001-02-28",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.tribuneindia.com/news/archive/business/lesser-known-facts-about-the-union-budget-202879",
+     "publisher": "The Tribune",
+     "published": "2016-03-01",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "Only the introduction of the speech was read, so no budget measures are described.",
+   "public_period": null
+  },
+  {
+   "title": "Calcutta Stock Exchange payment crisis: broker pay-in defaults",
+   "category": "market_structure",
+   "subcategory": "exchange payment crisis (broker pay-in defaults)",
+   "event_date": "2001-03-09",
+   "public_time_ist": null,
+   "timing_note": "Business Standard (2002, citing IndusInd Bank's rebuttal of the JPC draft report) dates the pay-in defaults to 7-8 Mar 2001. The Tribune's 10 Mar edition reports that news of the shortfall hit the Bombay market during Friday's (9 Mar) session, while the CSE said it would not know until Saturday whether brokers had defaulted. 9 Mar is taken as the day it became public; if the news was out during the 8 Mar session, that session would be first.",
+   "first_tradable_session": "2001-03-09",
+   "scope": "india",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Brokers on the Calcutta Stock Exchange failed to meet pay-in obligations (cheques were dishonoured and pay-in defaults reported for D K Singhania and Arihant Exim, per Business Standard), and the exchange fell into a payment crisis: settlements were delayed and the pay-out of many brokers was blocked while SEBI investigators examined trades. ThePrint links the crisis to the unravelling of Ketan Parekh's operations. It came as SEBI probed a suspected bear cartel and BSE president Anand Rathi resigned.",
+   "reported_affected": [
+    "Calcutta Stock Exchange brokers and settlements",
+    "Stocks associated with Ketan Parekh (the 'K-10')",
+    "Bombay Stock Exchange (broad market)",
+    "Banks with broker exposure (IndusInd Bank, cooperative banks)"
+   ],
+   "confounders": [
+    "SEBI bear-cartel probe and BSE president Anand Rathi's resignation (Tribune, 10 Mar 2001)",
+    "Union Budget 2001-02 on 28 Feb",
+    "25% margin on net outstanding sales positions and nervousness over the political situation (Tribune, 20 Mar 2001)",
+    "Tehelka defence-deal sting on 13 Mar 2001 (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.tribuneindia.com/2001/20010310/biz.htm",
+     "publisher": "The Tribune",
+     "published": "2001-03-10",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.tribuneindia.com/2001/20010320/biz.htm",
+     "publisher": "The Tribune",
+     "published": "2001-03-20",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/article/finance/indusind-rebuts-jpc-charge-of-fuelling-cse-payment-crisis-102072701032_1.html",
+     "publisher": "Business Standard",
+     "published": "2002-07-27",
+     "kind": "news"
+    },
+    {
+     "url": "https://theprint.in/economy/boom-to-bust-haunted-by-ketan-parekh-saga-117-yr-old-calcutta-stock-exchanges-future-lies-in-limbo/2768300/",
+     "publisher": "ThePrint",
+     "published": "2025-10-22",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "The dated point of the 2001 payment crisis; the wider dot-com and K-10 bust is an episode for the drawdown catalogue. A SEBI order (Deepak Jhunjhunwala and Co, Jun 2006) mentions the 'market crisis in March 2001' only in passing and is not cited.",
+   "public_period": "during"
+  },
+  {
+   "title": "Ketan Parekh arrested in the Madhavpura bank pay-order case",
+   "category": "banking",
+   "subcategory": "broker arrested (bank pay-order fraud)",
+   "event_date": "2001-03-30",
+   "public_time_ist": null,
+   "timing_note": "The Tribune's report datelined Mumbai, 31 Mar says Parekh 'was arrested yesterday', i.e. Friday 30 Mar 2001. The time of the arrest was not found; 30 Mar is the curator's choice for the first session. If it became public after 15:30 IST, the first session would be Monday 2 Apr 2001.",
+   "first_tradable_session": "2001-03-30",
+   "scope": "sector",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Stock broker Ketan Parekh and Jagdish Pandya, a branch manager of Madhavpura Cooperative Bank, were arrested in connection with the pay-order scam; on 31 Mar a designated court remanded both in judicial custody until 9 Apr.",
+   "reported_affected": [
+    "Stocks associated with Ketan Parekh (the 'K-10')",
+    "Cooperative banks (Madhavpura Mercantile Cooperative Bank)",
+    "Broker community"
+   ],
+   "confounders": [
+    "Calcutta Stock Exchange payment crisis earlier in March",
+    "Fiscal year-end on 31 Mar",
+    "SEBI's ban on carry-forward (badla) trading in 2001 (Business Today; date not sourced)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.tribuneindia.com/2001/20010401/main6.htm",
+     "publisher": "The Tribune",
+     "published": "2001-04-01",
+     "kind": "news"
+    }
+   ],
+   "verification": "one_source",
+   "notes": "Only one publisher found (The Tribune); needs a second tier A/B source for the arrest date.",
+   "public_period": null
+  },
+  {
+   "title": "September 11 terrorist attacks on the United States",
+   "category": "terror_security",
+   "subcategory": "terror attack (US)",
+   "event_date": "2001-09-11",
+   "public_time_ist": "18:16",
+   "timing_note": "NBC News: American Airlines Flight 11 hit the World Trade Center's north tower at 8:46 a.m. New York time (EDT, UTC-4), which is 18:16 IST on 11 Sep, after the Indian close. The Tribune's 13 Sep edition reports Indian markets trading on Wednesday 12 Sep, the first session.",
+   "first_tradable_session": "2001-09-12",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Hijacked airliners were flown into the World Trade Center in New York and other targets; President Bush addressed the nation that evening, calling them deliberate and deadly terrorist acts. In India, SEBI held a board meeting an hour before trading opened on 12 Sep and, as a precaution, put a circuit filter on a list of derivatives scrips; RBI Governor Bimal Jalan said the economy would not be immediately affected.",
+   "reported_affected": [
+    "Global equities",
+    "Airlines, insurance and travel",
+    "Indian IT exporters (US exposure)",
+    "Oil and gold"
+   ],
+   "confounders": [
+    "US stock exchanges stayed shut until 17 Sep 2001 (general knowledge, not checked)",
+    "Continuing 2001 Indian market bust"
+   ],
+   "sources": [
+    {
+     "url": "https://georgewbush-whitehouse.archives.gov/news/releases/2001/09/20010911-16.html",
+     "publisher": "The White House (archived by NARA)",
+     "published": "2001-09-11",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.nbcnews.com/slideshow/news/sept-11-attack-on-america-44209092",
+     "publisher": "NBC News",
+     "published": null,
+     "kind": "news"
+    },
+    {
+     "url": "https://tribuneindia.com/2001/20010913/biz.htm",
+     "publisher": "The Tribune",
+     "published": "2001-09-13",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "Affected list is general knowledge.",
+   "public_period": null
+  },
+  {
+   "title": "Lok Sabha 2004 results: Congress-led alliance defeats the BJP-led NDA; Vajpayee resigns",
+   "category": "election",
+   "subcategory": "general election result (against the polls)",
+   "event_date": "2004-05-13",
+   "public_time_ist": null,
+   "timing_note": "Counting day was Thursday 13 May 2004; results came in through the day and Al Jazeera reports the BJP said on Thursday that Vajpayee would hand in his resignation. The time of the first trends was not found; the 13 May session is taken as the first.",
+   "first_tradable_session": "2004-05-13",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": "Opinion polls had shown the BJP-led alliance as the clear favourite (PBS: 'All the polls said BJP alliance would be number one').",
+   "expectation_source": "https://www.pbs.org/newshour/politics/asia-jan-june04-india_05-13",
+   "what_happened": "Results of the staggered general election showed the Congress party and its allies defeating Prime Minister Atal Bihari Vajpayee's BJP-led coalition, a comeback Al Jazeera called stunning for a party 'virtually written off'. Vajpayee resigned and was asked to stay on until a new government was formed.",
+   "reported_affected": [
+    "Broad market",
+    "PSU stocks (disinvestment policy)",
+    "Rupee and government bonds"
+   ],
+   "confounders": [
+    "Exit polls of 10 May 2004 (general knowledge, not checked)",
+    "Left parties' statements on disinvestment and the coalition talks of 14-17 May"
+   ],
+   "sources": [
+    {
+     "url": "https://www.aljazeera.com/news/2004/5/13/indian-pm-resigns-after-losing-elections",
+     "publisher": "Al Jazeera",
+     "published": "2004-05-13",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.pbs.org/newshour/politics/asia-jan-june04-india_05-13",
+     "publisher": "PBS NewsHour",
+     "published": "2004-05-13",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Kept separate from the 17 May 2004 trading halts.",
+   "public_period": "during"
+  },
+  {
+   "title": "Trading halted twice on BSE and NSE in the post-election crash (17 May 2004)",
+   "category": "market_structure",
+   "subcategory": "market-wide circuit breaker (two halts)",
+   "event_date": "2004-05-17",
+   "public_time_ist": null,
+   "timing_note": "SEBI's record of the UBS appeal says trading stopped twice during the day on BSE and NSE; The Tribune says the first halt came mid-morning and lasted an hour. Exact times not found. Monday 17 May 2004, the first session after the weekend.",
+   "first_tradable_session": "2004-05-17",
+   "scope": "india",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Heavy selling forced two temporary stoppages of trading on the BSE and NSE, a fall the appeal record calls unprecedented in the history of the Indian stock market. Reports linked it to Communist leaders speaking against privatisation and calling for the Disinvestment Ministry to be scrapped, and to uncertainty over the new government's economic policies. Outgoing Finance Minister Jaswant Singh said he had discussed it with SEBI and the RBI; the RBI said it was closely monitoring the market; Manmohan Singh said action would be taken against anyone found manipulating it. SEBI later investigated UBS Securities' trading around the fall.",
+   "reported_affected": [
+    "Broad market (BSE and NSE)",
+    "PSU stocks (disinvestment)",
+    "FII-held stocks",
+    "Nifty futures"
+   ],
+   "confounders": [
+    "13 May 2004 election result",
+    "Selling on Friday 14 May 2004 (SEBI examined UBS's Nifty futures short positions that day)",
+    "Sonia Gandhi's decision not to become Prime Minister on 18 May and Manmohan Singh's nomination (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.sebi.gov.in/enforcement/orders/sep-2005/in-the-matter-of-ubs-securities-asia-ltd_12034.html",
+     "publisher": "SEBI (Securities Appellate Tribunal decision, UBS Securities Asia v SEBI)",
+     "published": "2005-09-09",
+     "kind": "official"
+    },
+    {
+     "url": "https://tribuneindia.com/2004/20040518/main1.htm",
+     "publisher": "The Tribune",
+     "published": "2004-05-18",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "The SEBI-hosted page is the SAT decision of 9 Sep 2005 on UBS's appeal against SEBI's order of 17 May 2005.",
+   "public_period": "during"
+  },
+  {
+   "title": "Market-wide circuit breaker at the open, 22 Jan 2008, after a global sell-off on US recession fears",
+   "category": "market_structure",
+   "subcategory": "market-wide circuit breaker (first level)",
+   "event_date": "2008-01-22",
+   "public_time_ist": "09:55",
+   "timing_note": "NSE's press release: the capital market was closed at 9:55:58 on 22 Jan 2008 after a first-level index circuit violation; cash and F&O reopened with a pre-open session 10:45-10:55 and normal trading from 10:55. NSE trading then began at 09:55, so the halt came at the open. The global sell-off it followed was on Monday 21 Jan (PBS).",
+   "first_tradable_session": "2008-01-22",
+   "scope": "india",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "After world markets fell on fears that a US recession would spread worldwide (PBS), Indian stocks opened sharply lower, hit the first-level market-wide circuit straight away and cash and derivatives trading stopped for about an hour. The Fed cut rates in an emergency move that evening (IST).",
+   "reported_affected": [
+    "Broad market (cash and F&O)",
+    "Global equities"
+   ],
+   "confounders": [
+    "Global sell-off of Monday 21 Jan 2008 (US markets closed that day) (general knowledge, not checked)",
+    "Fed emergency 75 bp cut announced at 19:00 IST the same day",
+    "Reliance Power IPO in the same week (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://nsearchives.nseindia.com/content/press/22012008.htm",
+     "publisher": "NSE (press release: market timings)",
+     "published": "2008-01-22",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.pbs.org/newshour/economy/business-jan-june08-fedrate_01-22",
+     "publisher": "PBS NewsHour",
+     "published": "2008-01-22",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "The circuit level percentage is left out (rule, not reaction, but it implies the move).",
+   "public_period": null
+  },
+  {
+   "title": "Fed emergency intermeeting cut of 75 bp to 3.50%",
+   "category": "world_macro",
+   "subcategory": "Fed intermeeting cut",
+   "event_date": "2008-01-22",
+   "public_time_ist": "19:00",
+   "timing_note": "The FOMC minutes say the statement agreed on the 21 Jan conference call was to be released at 8:30 a.m. on Tuesday 22 Jan (EST, UTC-5), which is 19:00 IST, after the Indian close. The press release itself shows no time. First Indian session 23 Jan.",
+   "first_tradable_session": "2008-01-23",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": "No intermeeting move was expected: the FOMC minutes say the 75 bp cut on 22 Jan surprised market participants; the next scheduled meeting was 29-30 Jan.",
+   "expectation_source": "https://www.federalreserve.gov/monetarypolicy/fomcminutes20080130.htm",
+   "what_happened": "After an emergency conference call on 21 Jan, the FOMC lowered its federal funds target by 75 bp to 3-1/2 percent, saying broader financial market conditions had continued to deteriorate and strains in some financial markets had intensified.",
+   "reported_affected": [
+    "Global equities",
+    "US Treasury yields and the dollar",
+    "Rupee and FII flows"
+   ],
+   "confounders": [
+    "Indian market-wide circuit breaker that morning",
+    "Global sell-off of 21 Jan",
+    "Scheduled FOMC meeting of 29-30 Jan 2008"
+   ],
+   "sources": [
+    {
+     "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20080122b.htm",
+     "publisher": "Federal Reserve",
+     "published": "2008-01-22",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.federalreserve.gov/monetarypolicy/fomcminutes20080130.htm",
+     "publisher": "Federal Reserve (FOMC minutes incl. the 21 Jan call)",
+     "published": "2008-02-20",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.pbs.org/newshour/economy/business-jan-june08-fedrate_01-22",
+     "publisher": "PBS NewsHour",
+     "published": "2008-01-22",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": null
+  },
+  {
+   "title": "Lehman Brothers announces Chapter 11 bankruptcy filing",
+   "category": "banking",
+   "subcategory": "US investment bank failure",
+   "event_date": "2008-09-15",
+   "public_time_ist": null,
+   "timing_note": "Lehman's press release is datelined New York, 15 Sep 2008 (Monday), with no time; Al Jazeera says Bank of America announced its Merrill Lynch purchase early on Monday after the bidding for Lehman ended. Early Monday in New York is Monday morning to midday IST, and The Tribune's report of that day's Indian session attributes the fall to the filing, so 15 Sep is taken as the first session (curator). Whether it was public before the 09:55 IST open was not confirmed.",
+   "first_tradable_session": "2008-09-15",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Lehman Brothers Holdings said it intended to file a Chapter 11 bankruptcy petition; its broker-dealer and other US subsidiaries were not included. The same weekend Bank of America agreed to buy Merrill Lynch, and AIG asked the Federal Reserve for a bridge loan.",
+   "reported_affected": [
+    "Global banks and financials",
+    "Indian banks and NBFCs (funding stress)",
+    "FII flows and the rupee",
+    "Lehman's Indian broking and back-office units"
+   ],
+   "confounders": [
+    "Bank of America-Merrill Lynch deal (same weekend)",
+    "AIG's request for Fed support (rescued on 16 Sep) (general knowledge, not checked)",
+    "Reports of a Chinese rate cut the same day (Tribune)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.sec.gov/Archives/edgar/data/0000806085/000110465908059632/a08-22764_4ex99d1.htm",
+     "publisher": "Lehman Brothers Holdings (press release filed with the SEC, Form 8-K Ex. 99.1)",
+     "published": "2008-09-15",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.aljazeera.com/news/2008/9/15/lehman-files-for-bankruptcy",
+     "publisher": "Al Jazeera",
+     "published": "2008-09-15",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.tribuneindia.com/2008/20080916/main3.htm",
+     "publisher": "The Tribune",
+     "published": "2008-09-16",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "Lehman's distress and the weekend rescue talks were public; the filing was the surprise outcome of failed talks.",
+   "public_period": null
+  },
+  {
+   "title": "Coordinated rate cuts by the Fed, ECB, Bank of England and other central banks",
+   "category": "world_macro",
+   "subcategory": "coordinated central-bank easing",
+   "event_date": "2008-10-08",
+   "public_time_ist": "16:30",
+   "timing_note": "The Fed's joint statement was 'for release at 7:00 a.m. EDT' on 8 Oct 2008 (UTC-4), which is 16:30 IST, after the Indian close. 9 Oct 2008 is believed to have been the Dasara market holiday (not confirmed from a source); if so the first session is Friday 10 Oct. The loader's calendar decides.",
+   "first_tradable_session": "2008-10-10",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The Bank of Canada, Bank of England, European Central Bank, Federal Reserve, Sveriges Riksbank and Swiss National Bank announced simultaneous reductions in policy interest rates, saying they had been in continuous close consultation through the crisis; the Bank of Japan expressed strong support.",
+   "reported_affected": [
+    "Global equities",
+    "Bonds and currencies",
+    "Indian banks (liquidity)"
+   ],
+   "confounders": [
+    "RBI cut the CRR by 150 bp on 10 Oct 2008 to ease liquidity (Tribune, 11 Oct 2008)",
+    "Global market crash in the week of 6-10 Oct 2008 (general knowledge, not checked)",
+    "US TARP enacted on 3 Oct 2008 (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20081008a.htm",
+     "publisher": "Federal Reserve (joint statement by central banks)",
+     "published": "2008-10-08",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.tribuneindia.com/2008/20081011/main1.htm",
+     "publisher": "The Tribune",
+     "published": "2008-10-11",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "The ECB's own release of the same day was found in search but not read, so it is not cited.",
+   "public_period": null
+  },
+  {
+   "title": "RBI cuts repo rate 100 bp to 8.0% in an unscheduled move",
+   "category": "rbi_policy",
+   "subcategory": "inter-meeting repo cut",
+   "event_date": "2008-10-20",
+   "public_time_ist": null,
+   "timing_note": "RBI press release and circular dated Monday 20 Oct 2008, 'with immediate effect', no time. Business Standard's report of that day's session (first published 15:35 IST) says the surprise cut lifted the index during the session, so it was public during market hours. Exact time not found.",
+   "first_tradable_session": "2008-10-20",
+   "scope": "india",
+   "known_beforehand": "surprise",
+   "expectation": "Business Standard called it a surprise 100 bp repo cut.",
+   "expectation_source": "https://www.business-standard.com/article/markets/sensex-ends-up-312pts-at-10-288-108102000030_1.html",
+   "what_happened": "The RBI cut the LAF repo rate by 100 bp from 9.0% to 8.0% with immediate effect, saying India was experiencing the indirect impact of the global liquidity constraint, with signs of strain in credit markets, and aiming to maintain financial stability; standing liquidity facilities for banks and primary dealers moved to the new repo rate.",
+   "reported_affected": [
+    "Banks and NBFCs",
+    "Rate-sensitive sectors (realty, autos)",
+    "Government bond yields"
+   ],
+   "confounders": [
+    "RBI CRR cuts earlier in October 2008 (10 Oct per Tribune)",
+    "RBI mid-term review of policy on 24 Oct 2008 (general knowledge, not checked)",
+    "Global sell-off into the late-October 2008 trough"
+   ],
+   "sources": [
+    {
+     "url": "https://rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=19295",
+     "publisher": "Reserve Bank of India",
+     "published": "2008-10-20",
+     "kind": "official"
+    },
+    {
+     "url": "https://rbi.org.in/scripts/BS_CircularIndexDisplay.aspx?Id=4570",
+     "publisher": "Reserve Bank of India (circular)",
+     "published": "2008-10-20",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/article/markets/sensex-ends-up-312pts-at-10-288-108102000030_1.html",
+     "publisher": "Business Standard",
+     "published": "2008-10-20",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "Represents the Oct 2008 trough period together with the 8 Oct coordinated cuts; the trough itself is an episode for the drawdown catalogue.",
+   "public_period": "during"
+  },
+  {
+   "title": "Satyam chairman Ramalinga Raju confesses to years of inflated profits and fictitious cash",
+   "category": "corporate_governance",
+   "subcategory": "accounting fraud confession",
+   "event_date": "2009-01-07",
+   "public_time_ist": null,
+   "timing_note": "Bloomberg says Raju sent the letter to his board and SEBI on the morning of Wednesday 7 Jan 2009; SEBI's order records an email of that date. The time it reached BSE/NSE was not found; the 7 Jan session is taken as the first. 8 Jan 2009 is believed to have been a market holiday (Muharram), not confirmed.",
+   "first_tradable_session": "2009-01-07",
+   "scope": "stock",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "In a letter to Satyam Computer Services' board, chairman B. Ramalinga Raju admitted that the gap in the balance sheet came from profits inflated over several years, including non-existent cash and bank balances of Rs 50.40 billion, and said he was prepared to face the laws of the land. SEBI later passed orders against Raju and others, and the US SEC charged the company in April 2011.",
+   "reported_affected": [
+    "Satyam Computer Services",
+    "Indian IT services stocks",
+    "Corporate-governance sentiment (mid-caps, audit firms)",
+    "Broad market"
+   ],
+   "confounders": [
+    "Q3 FY09 results season",
+    "Global financial crisis after Lehman",
+    "Market holiday believed on 8 Jan 2009 (Muharram, not confirmed)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.sebi.gov.in/sebi_data/attachdocs/1441894262377.pdf",
+     "publisher": "SEBI (order in the matter of Satyam Computer Services, 2015)",
+     "published": null,
+     "kind": "official"
+    },
+    {
+     "url": "https://www.bloomberg.com/news/articles/2009-01-07/indias-madoff-satyam-scandal-rocks-outsourcing-industry",
+     "publisher": "Bloomberg (BusinessWeek)",
+     "published": "2009-01-07",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.sec.gov/news/press/2011/2011-81.htm",
+     "publisher": "US SEC (press release)",
+     "published": "2011-04-05",
+     "kind": "official"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": "during"
+  },
+  {
+   "title": "Greece agrees EU-IMF rescue: EUR 110 billion package",
+   "category": "world_macro",
+   "subcategory": "euro-area sovereign debt crisis: bailout",
+   "event_date": "2010-05-02",
+   "public_time_ist": null,
+   "timing_note": "IMF press release 10/176 dated Sunday 2 May 2010; exact time not found. The first Indian session after it was Monday 3 May 2010.",
+   "first_tradable_session": "2010-05-03",
+   "scope": "world",
+   "known_beforehand": "expected",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "The IMF reached a staff-level agreement with Greece on a EUR 30 billion stand-by arrangement, alongside EUR 80 billion of bilateral loans pledged by euro-area members, bringing total financing to EUR 110 billion, in return for a multi-year programme of up-front fiscal correction and reforms.",
+   "reported_affected": [
+    "European banks and sovereign bonds",
+    "Euro",
+    "Global equities",
+    "FII flows into emerging markets"
+   ],
+   "confounders": [
+    "US 'flash crash' of 6 May 2010 (general knowledge, not checked)",
+    "EU stabilisation mechanism and ECB bond purchases announced 9-10 May 2010 (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.imf.org/external/np/sec/pr/2010/pr10176.htm",
+     "publisher": "IMF (press release 10/176)",
+     "published": "2010-05-02",
+     "kind": "official"
+    }
+   ],
+   "verification": "official",
+   "notes": "known_beforehand is 'expected' (as in other registry rows): the rescue talks were public and a deal was anticipated; neither 'scheduled' nor 'surprise' fits.",
+   "public_period": null
+  },
+  {
+   "title": "S&P downgrades the United States from AAA to AA+",
+   "category": "world_macro",
+   "subcategory": "sovereign rating downgrade",
+   "event_date": "2011-08-06",
+   "public_time_ist": null,
+   "timing_note": "PBS (AP) says S&P announced the downgrade hours after US markets closed on Friday 5 Aug 2011; its story is stamped 8:42 p.m. EDT, which is 06:12 IST on Saturday 6 Aug. event_date set to the IST date (2011-08-06); the US date was 2011-08-05. Business Standard reported it at 10:40 IST on 6 Aug. The first Indian session was Monday 8 Aug 2011.",
+   "first_tradable_session": "2011-08-08",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Standard & Poor's cut the US government's top AAA sovereign rating by one notch to AA+, the first time the US lost its AAA rating from S&P.",
+   "reported_affected": [
+    "Global equities",
+    "US Treasuries and the dollar",
+    "Gold",
+    "FII flows and the rupee"
+   ],
+   "confounders": [
+    "Euro-area debt contagion to Italy and Spain and the ECB's 7 Aug 2011 statement on bond purchases (general knowledge, not checked)",
+    "US debt-ceiling deal of 2 Aug 2011 (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.pbs.org/newshour/economy/sp-downgrades-us-credit-rating-from-aaa-for-first-time",
+     "publisher": "PBS NewsHour (AP)",
+     "published": "2011-08-05",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/article/economy-policy/s-p-downgrades-us-aaa-rating-to-aa-111080600085_1.html",
+     "publisher": "Business Standard",
+     "published": "2011-08-06",
+     "kind": "news"
+    }
+   ],
+   "verification": "two_sources",
+   "notes": "Listed under Madhav's euro-area item (Aug 2011); the downgrade itself is a US event.",
+   "public_period": null
+  },
+  {
+   "title": "Draghi: the ECB is ready to do 'whatever it takes' to preserve the euro",
+   "category": "world_macro",
+   "subcategory": "central-bank verbal commitment",
+   "event_date": "2012-07-26",
+   "public_time_ist": null,
+   "timing_note": "Remarks at the Global Investment Conference in London on Thursday 26 Jul 2012 (ECB verbatim). Bloomberg places them at a morning panel; the exact time was not found. London morning (BST, UTC+1) is 12:30-16:30 IST and the Indian close was 15:30 IST (11:00 BST), so it is unclear whether the 26 Jul session could trade on them. 27 Jul is taken as the first session that certainly could (curator); if the remarks came before 11:00 BST, 26 Jul would be first.",
+   "first_tradable_session": "2012-07-27",
+   "scope": "world",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "ECB President Mario Draghi said that, within its mandate, the ECB was ready to do whatever it takes to preserve the euro.",
+   "reported_affected": [
+    "European bank and periphery bond markets",
+    "Euro",
+    "Global equities",
+    "Risk appetite for emerging markets"
+   ],
+   "confounders": [
+    "RBI policy review of 31 Jul 2012 (general knowledge, not checked)",
+    "ECB meeting of 2 Aug 2012 and the OMT announcement of 6 Sep 2012 (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.ecb.europa.eu/press/key/date/2012/html/sp120726.en.html",
+     "publisher": "European Central Bank (verbatim of the remarks)",
+     "published": "2012-07-26",
+     "kind": "official"
+    },
+    {
+     "url": "https://brp-prod-bcc.bloomberg.com/news/features/2018-11-27/3-words-and-3-trillion-the-inside-story-of-how-mario-draghi-saved-the-euro",
+     "publisher": "Bloomberg",
+     "published": "2018-11-27",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/article/markets/euro-jumps-global-stocks-follow-as-ecb-hints-action-112072600196_1.html",
+     "publisher": "Business Standard (Reuters)",
+     "published": "2012-07-26",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "First session needs the exact time of the remarks.",
+   "public_period": null
+  },
+  {
+   "title": "Bernanke tells Congress the Fed could slow bond purchases 'in the next few meetings' (taper tantrum begins)",
+   "category": "world_macro",
+   "subcategory": "Fed guidance on QE tapering",
+   "event_date": "2013-05-22",
+   "public_time_ist": "19:30",
+   "timing_note": "The Joint Economic Committee hearing convened at 10:00 a.m. EDT (UTC-4) on Wednesday 22 May 2013, which is 19:30 IST, after the Indian close; the remark on slowing purchases came in questioning later in the hearing. The minutes of the Apr 30-May 1 FOMC meeting came out the same afternoon (US time) (general knowledge, not checked). First Indian session 23 May.",
+   "first_tradable_session": "2013-05-23",
+   "scope": "world",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "In testimony on the economic outlook, Fed Chairman Ben Bernanke said that if the outlook kept improving the Fed could 'in the next few meetings, take a step down in our pace of purchases', the first signal that its bond buying could be tapered.",
+   "reported_affected": [
+    "Emerging-market currencies and bonds (rupee)",
+    "Indian government bond yields",
+    "FII flows (debt and equity)",
+    "Rate-sensitive sectors"
+   ],
+   "confounders": [
+    "FOMC minutes released the same day (general knowledge, not checked)",
+    "Japanese equity sell-off of 23 May 2013 (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.federalreserve.gov/newsevents/testimony/bernanke20130522a.htm",
+     "publisher": "Federal Reserve (testimony)",
+     "published": "2013-05-22",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.govinfo.gov/content/pkg/CHRG-113jhrg81472/html/CHRG-113jhrg81472.htm",
+     "publisher": "US Government Publishing Office (hearing record)",
+     "published": null,
+     "kind": "official"
+    }
+   ],
+   "verification": "official",
+   "notes": "The 'next few meetings' remark is in the hearing record (Q&A), not in the prepared testimony.",
+   "public_period": null
+  },
+  {
+   "title": "FOMC and Bernanke lay out a taper timeline: purchases to slow later in 2013 and end around mid-2014",
+   "category": "world_macro",
+   "subcategory": "Fed guidance on QE tapering",
+   "event_date": "2013-06-19",
+   "public_time_ist": "23:30",
+   "timing_note": "The Fed's press-conference page shows the FOMC statement at 2:00 p.m. EDT on 19 Jun 2013 (UTC-4), which is 23:30 IST; the press conference followed, after midnight IST. First Indian session 20 Jun.",
+   "first_tradable_session": "2013-06-20",
+   "scope": "world",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "At his post-meeting press conference Bernanke said the Fed may moderate the pace of its bond purchases later this year and end them around mid-2014 if the economy improved as expected (Bloomberg).",
+   "reported_affected": [
+    "Rupee and emerging-market currencies",
+    "Indian bond yields",
+    "FII flows",
+    "Global equities"
+   ],
+   "confounders": [
+    "China interbank cash squeeze of late June 2013 (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.federalreserve.gov/monetarypolicy/fomcpresconf20130619.htm",
+     "publisher": "Federal Reserve (press conference page)",
+     "published": "2013-06-19",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.bloomberg.com/news/2013-06-19/bernanke-says-fed-may-moderate-purchases-in-2013-end-in-2014.html",
+     "publisher": "Bloomberg",
+     "published": "2013-06-19",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": null
+  },
+  {
+   "title": "RBI opens a forex swap window for the state oil marketing companies",
+   "category": "rbi_policy",
+   "subcategory": "FX measure (dollar swap window)",
+   "event_date": "2013-08-28",
+   "public_time_ist": null,
+   "timing_note": "RBI press release dated Wednesday 28 Aug 2013, no time. Business Standard calls it a late-evening statement (its report first published 00:50 IST on 29 Aug; a Reuters report on the same site at 20:35 IST on 28 Aug). First session 29 Aug.",
+   "first_tradable_session": "2013-08-29",
+   "scope": "india",
+   "known_beforehand": "surprise",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "Citing current market conditions, the RBI opened a forex swap window to meet the entire daily dollar requirements of the three public-sector oil marketing companies (IOC, HPCL and BPCL), effective immediately and until further notice.",
+   "reported_affected": [
+    "Rupee",
+    "Oil marketing companies (IOC, BPCL, HPCL)",
+    "Bond market"
+   ],
+   "confounders": [
+    "Rupee's slide to record lows in late August 2013 (general knowledge, not checked)",
+    "Lok Sabha's passage of the Food Security Bill on 26 Aug 2013 (general knowledge, not checked)",
+    "Syria strike fears and oil prices (general knowledge, not checked)",
+    "Rajan took office on 4 Sep 2013"
+   ],
+   "sources": [
+    {
+     "url": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=29423",
+     "publisher": "Reserve Bank of India",
+     "published": "2013-08-28",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/article/companies/rbi-opens-forex-swap-window-for-omcs-113082801021_1.html",
+     "publisher": "Business Standard",
+     "published": "2013-08-29",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/article/reuters/rbi-opens-forex-swap-window-for-state-oil-retailers-113082801025_1.html",
+     "publisher": "Business Standard (Reuters)",
+     "published": "2013-08-28",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "The dated policy point of Madhav's Aug 2013 rupee item; the 28 Aug rupee low itself is a market outcome, not an event.",
+   "public_period": "after_close"
+  },
+  {
+   "title": "Raghuram Rajan takes office as RBI governor and announces rupee and banking measures",
+   "category": "rbi_policy",
+   "subcategory": "governor's first-day statement (FCNR(B) swap window)",
+   "event_date": "2013-09-04",
+   "public_time_ist": null,
+   "timing_note": "RBI press release dated Wednesday 4 Sep 2013, no time. The earliest report seen (a Reuters factbox on Business Standard) was first published at 19:34 IST, and Business Standard's 5 Sep report says the measures were announced 'yesterday'. The exact time of the statement was not found; 5 Sep is taken as the first session (curator). If it was public before 15:30 IST, 4 Sep would be first.",
+   "first_tradable_session": "2013-09-05",
+   "scope": "india",
+   "known_beforehand": "scheduled",
+   "expectation": null,
+   "expectation_source": null,
+   "what_happened": "On taking office Rajan announced a swap window for fresh FCNR(B) deposits of three years or more at a fixed 3.5% a year, a higher overseas borrowing limit for banks (from 50% to 100% of unimpaired Tier I capital) with a concessional swap, an external committee chaired by Bimal Jalan to screen new bank licences, a review of the monetary policy framework, and his first policy statement on 20 Sep.",
+   "reported_affected": [
+    "Rupee",
+    "Banks (FCNR deposits, overseas borrowing)",
+    "Bond market"
+   ],
+   "confounders": [
+    "RBI's OMC swap window from 29 Aug",
+    "FOMC meeting of 17-18 Sep 2013 (taper expected)",
+    "G20 summit of 5-6 Sep 2013 (general knowledge, not checked)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=29479",
+     "publisher": "Reserve Bank of India",
+     "published": "2013-09-04",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/article/reuters/factbox-rbi-governor-rajan-s-new-proposals-113090400957_1.html",
+     "publisher": "Business Standard (Reuters)",
+     "published": "2013-09-04",
+     "kind": "news"
+    },
+    {
+     "url": "https://www.business-standard.com/amp/article/finance/rupee-bonds-rally-as-street-welcomes-rajan-s-steps-113090500107_1.html",
+     "publisher": "Business Standard",
+     "published": "2013-09-05",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": "known_beforehand 'scheduled' refers to the day he took office; the measures themselves were not known in advance.",
+   "public_period": null
+  },
+  {
+   "title": "Fed surprises by not tapering: bond purchases kept at USD 85 billion a month",
+   "category": "world_macro",
+   "subcategory": "Fed decision - surprise no-taper",
+   "event_date": "2013-09-18",
+   "public_time_ist": "23:30",
+   "timing_note": "The Fed's press-conference page shows the FOMC statement at 2:00 p.m. EDT on 18 Sep 2013 (UTC-4), which is 23:30 IST; NPR says Bernanke's press conference was at 2:30 p.m. ET. First Indian session 19 Sep.",
+   "first_tradable_session": "2013-09-19",
+   "scope": "world",
+   "known_beforehand": "scheduled",
+   "expectation": "The Fed was widely anticipated to announce that it was tapering its USD 85 billion a month bond-buying programme (NPR).",
+   "expectation_source": "https://www.npr.org/sections/thetwo-way/2013/09/18/223770221/in-a-surprise-move-fed-holds-steady-on-economic-stimulus",
+   "what_happened": "The FOMC decided to await more evidence that progress would be sustained before adjusting the pace of its purchases, and kept buying agency mortgage-backed securities at USD 40 billion and longer-term Treasuries at USD 45 billion a month.",
+   "reported_affected": [
+    "Rupee and emerging-market currencies",
+    "Indian bonds",
+    "FII flows",
+    "Global equities"
+   ],
+   "confounders": [
+    "RBI's first policy review under Rajan on 20 Sep 2013 (RBI, 4 Sep statement)"
+   ],
+   "sources": [
+    {
+     "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20130918a.htm",
+     "publisher": "Federal Reserve",
+     "published": "2013-09-18",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.federalreserve.gov/monetarypolicy/fomcpresconf20130918.htm",
+     "publisher": "Federal Reserve (press conference page)",
+     "published": "2013-09-18",
+     "kind": "official"
+    },
+    {
+     "url": "https://www.npr.org/sections/thetwo-way/2013/09/18/223770221/in-a-surprise-move-fed-holds-steady-on-economic-stimulus",
+     "publisher": "NPR",
+     "published": "2013-09-18",
+     "kind": "news"
+    }
+   ],
+   "verification": "official",
+   "notes": null,
+   "public_period": null
+  }
+ ]
+}

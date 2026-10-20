@@ -9,7 +9,8 @@ calls Hyperliquid's /exchange endpoint, and the only request type it sends is us
 
 The accounts: hl_accounts.json, the fixed sample of review #2 (the Sep 29-30 collection, src/research/hl_bench.py: random accounts
 from the leaderboard's winners / middle / losers, the live tape on the 10 lab coins and public vaults, seed 20260929; the file says
-how it was chosen). The installer builds it once on the main Mac and copies it here. It never changes by itself.
+how it was chosen), minus the 6 accounts review #2 dropped as market makers or HFT (59 captured). The installer builds it once on the
+main Mac and copies it here. It never changes by itself.
 
 Every run (launchd, every hour: com.ananta.worker.hlcapture.plist) fetches every FINISHED UTC day of the last 7 that is not held
 yet, so a sleep or an outage catches up by itself. Per account and day: userFillsByTime from 00:00 to 24:00 UTC, paged (2,000 fills

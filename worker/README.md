@@ -7,7 +7,7 @@ A read-only second machine. It records, once a minute, what cannot be fetched ag
 - whether Ananta's public status page answers
 
 And, every hour since Oct 20 (decision OD-HL-FILLS, option (a): data only), other traders' fills: every finished UTC day of the
-last 7 it does not hold yet, for the fixed sample of review #2 (Hyperliquid's public info API, `userFillsByTime` only). Other
+last 7 it does not hold yet, for the fixed sample of review #2 without its 6 market-maker / HFT accounts (59 accounts) (Hyperliquid's public info API, `userFillsByTime` only). Other
 traders are reference, never teachers or copy signals (docs/LOCK.md, D8).
 
 It holds **no keys, no passwords and no accounts**, and it never places an order. The main Mac connects to it; it never

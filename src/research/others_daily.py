@@ -13,8 +13,8 @@ THE FIXED RULES (written 2026-10-20, before any captured day was read; they chan
     a trip cannot be rebuilt honestly across a hole). Round trips are rebuilt per account with hl_bench.round_trips (flat to flat; a
     position already open at the start of the run is not scored). The day's cases are the trips that CLOSED on that UTC day.
  2. Dropped and counted: market makers and HFT by review #2's trip rule (hl_bench.is_hft: median hold under 10 minutes or more than
-    200 trips a week) on the account's trips in its run, or the account was excluded by that rule in review #2 itself (r2_hft in
-    hl_accounts.json).
+    200 trips a week) on the account's trips in its run. The 6 accounts review #2 itself dropped by that rule are not even captured
+    (they are left out of hl_accounts.json; an older list's r2_hft flag is still honoured).
  3. Coins: Hyperliquid's name mapped to ours (kPEPE -> PEPE; renames as tier30.RENAMED; spot "@n", pairs and builder markets left out).
     Groups, in this order: LAB10 (the 10 live coins), T30 (the rest of the 30-coin tier), UNIV-A / UNIV-B / UNIV-C (the rest of the
     watched universe by registry tier). Anything else is OUTSIDE: counted, not classed.
@@ -33,15 +33,16 @@ THE FIXED RULES (written 2026-10-20, before any captured day was read; they chan
       books (T3 on the 10, T3 on the 30), the $500 book.
  6. The class (the first that fits):
     (d) LOST     their trip lost after our costs (rule 4 <= 0): nothing to miss.
-    (c) COVERED BY NOTHING, part 1: a winning SHORT trip (Ananta only buys: spot, long only).
+    (c) COVERED BY NOTHING, part 1: a winning SHORT trip, labelled "short (we only buy)": Ananta is spot, long only. Kept on the
+        page and in the history as reference; never counted by the pattern rule (rule 8).
     (a) TAKEN    a winning long trip and we held the coin (rule 5).
     (b) PASSED   a winning long trip, something of ours fired, no position: said by what (the blocked reasons).
     (c) NOT COVERED a winning long trip and nothing of ours fired.
  7. The situation of a (c) case: group (rule 3), kind = LONG or SHORT with the hold (scalp under 1 h, intraday 1-24 h, swing 1-7 days,
     position over 7 days), and the dial on T's day.
  8. The pattern rule: the same situation on 3 or more separate report days within the 7 days ending on the day -> one repair-board
-    request (kind idea, by ananta-auto) worded as a DRAFT finding, never a rule or a signal. The same situation is not filed again
-    within 30 days (the history file records each filing).
+    request (kind idea, by ananta-auto) worded as a DRAFT finding, never a rule or a signal. Short situations never count (we only
+    buy). The same situation is not filed again within 30 days (the history file records each filing).
  9. Output: docs/repair_shop/daily/others_YYYY-MM-DD.md (plain words, counts, the top 10 winning cases after our costs) and one row
     in docs/repair_shop/daily/others_history.jsonl; every case in ~/ananta_runs/others_daily/cases_YYYY-MM-DD.json. Accounts appear
     only by their sample label (LB_WINNER-03), never by address (the repo is public; review #2: results are never published per person).
@@ -131,22 +132,26 @@ def build_accounts(hl: Path, out: Path) -> dict:
         skipped = dict(con.execute("SELECT status, COUNT(*) FROM accounts WHERE status NOT LIKE 'DONE%' GROUP BY status").fetchall())
     finally:
         con.close()
+    hft = [a for a in accts if a["r2_hft"]]                  # coordinator, Oct 20: market makers / HFT are not captured at all
+    accts = [a for a in accts if not a["r2_hft"]]
     how = (f"Review #2's fixed sample, unchanged: every account of the hl_bench collection of 2026-09-29 (src/research/hl_bench.py, seed "
            f"{sampling.get('seed', hb.SEED)}; analysed in review #2 on 2026-09-30) whose fills were fetched. Chosen at random within strata from "
            "three public sources: the Hyperliquid leaderboard's active accounts (30-day volume above 0, account value at least $1,000, monthly "
            "volume under 300 times account value) split into thirds by all-time PnL, 10 from each (LB_LOSER, LB_MIDDLE, LB_WINNER); wallets "
            "seen in recent trades on the 10 lab coins, taken in random order until 20 complete histories were fetched (TAPE; a truncated "
            "one is kept too); public vaults open, with at least $10,000 and over "
-           "a year old, 5 from each third by APR (VAULT). " + ", ".join(f"{k} {v}" for k, v in sorted(n_by.items())) + f" = {len(accts)} accounts"
-           + (f"; left out: " + ", ".join(f"{v} {k}" for k, v in sorted(skipped.items())) if skipped else "") + ". r2_hft marks the "
-           f"{sum(a['r2_hft'] for a in accts)} that review #2 dropped as market makers or HFT. Labels are by source and address order; the "
-           "addresses stay on Madhav's Macs (the repo is public).")
-    d = {"version": "hl.accounts.v1 (2026-10-20)", "made": _day(time.time()), "how_chosen": how, "sampling": sampling, "accounts": accts}
+           "a year old, 5 from each third by APR (VAULT). " + ", ".join(f"{k} {v}" for k, v in sorted(n_by.items())) + f" = {len(accts) + len(hft)} accounts"
+           + (f"; left out: " + ", ".join(f"{v} {k}" for k, v in sorted(skipped.items())) if skipped else "") + ". The "
+           f"{len(hft)} that review #2 dropped as market makers or HFT ({', '.join(a['label'] for a in hft) or 'none'}) are not captured, so "
+           f"{len(accts)} accounts are. Labels are by source and address order (kept from the whole sample); the addresses stay on Madhav's "
+           "Macs (the repo is public).")
+    d = {"version": "hl.accounts.v1 (2026-10-20)", "made": _day(time.time()), "how_chosen": how, "sampling": sampling, "accounts": accts,
+         "left_out_hft": [{"label": a["label"], "source": a["source"]} for a in hft]}
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp")
     tmp.write_text(json.dumps(d, indent=1))
     tmp.replace(out)
-    return {"accounts": len(accts), "by_source": n_by, "r2_hft": sum(a["r2_hft"] for a in accts), "out": str(out)}
+    return {"accounts": len(accts), "by_source": n_by, "left_out_hft": [a["label"] for a in hft], "out": str(out)}
 
 
 def load_accounts(path: Path) -> dict[str, dict]:
@@ -593,8 +598,17 @@ def write_history(path: Path, rows: list[dict]) -> None:
     tmp.replace(path)
 
 
+SHORT_LABEL = "short (we only buy)"
+
+
+def is_short(key: str) -> bool:
+    """A situation key of a short trip (group|SHORT hold|dial)."""
+    parts = str(key).split("|")
+    return len(parts) == 3 and parts[1].startswith("SHORT")
+
+
 def repeats(rows: list[dict], day: str) -> list[dict]:
-    """Rule 8: situations of class (c) seen on REPEAT_N or more separate report days in the REPEAT_DAYS days ending on `day`, and not
+    """Rule 8: long situations of class (c) seen on REPEAT_N or more separate report days in the REPEAT_DAYS days ending on `day`, and not
     filed in the REFILE_DAYS days before it."""
     t = _day_t(day)
     lo, refile_lo = _day(t - (REPEAT_DAYS - 1) * DAY), _day(t - REFILE_DAYS * DAY)
@@ -602,6 +616,8 @@ def repeats(rows: list[dict], day: str) -> list[dict]:
     for r in rows:
         if lo <= r["day"] <= day:
             for k, v in (r.get("situations_c") or {}).items():
+                if is_short(k):                                  # short (we only buy): reference only, never a request
+                    continue
                 s = seen.setdefault(k, {"days": [], "n": 0, "pcts": [], "coins": set()})
                 s["days"].append(r["day"])
                 s["n"] += v.get("n", 0)
@@ -619,7 +635,7 @@ def repeats(rows: list[dict], day: str) -> list[dict]:
 def draft_text(p: dict, day: str) -> str:
     group, kind, dial = p["key"].split("|")
     direction, hold = kind.split(" ")
-    kind_words = f"{'long' if direction == 'LONG' else 'short'} {hold}" + (" (Ananta only buys)" if direction == "SHORT" else "")
+    kind_words = f"{'long' if direction == 'LONG' else 'short'} {hold}"
     return (f"DRAFT finding (other traders, reference only, D8; the daily rebuild's 3-in-7 rule): on {len(p['days'])} separate days in the 7 "
             f"days to {day} ({', '.join(p['days'])}), traders in the fixed Hyperliquid sample closed {p['trips']} winning {kind_words} trips "
             f"on {GROUP_WORDS.get(group, group)} while the dial was {dial.lower()}, and no rule of ours covered that situation (daily medians "
@@ -702,13 +718,14 @@ def page(r: dict, s: dict, filed: list[dict], pending: list[dict]) -> str:
         lines.append("None: no trip on a coin we watch made money after our costs.")
     for i, c in enumerate(win, 1):
         why = {"a": "we were in it", "b": "something of ours fired but we did not trade: " + "; ".join(c["blocked_by"][:3]),
-               "c": "nothing of ours covers it" + (" (a short: Ananta only buys)" if c["dir"] == "SHORT" else "")}[c["class"]]
-        lines.append(f"{i}. **{c['coin']}** ({GROUP_WORDS[c['group']]}), {c['label']}, {c['dir'].lower()} from {_hm(c['entry_t'])} UTC, "
+               "c": "nothing of ours covers it" + (f": a {SHORT_LABEL}, reference only" if c["dir"] == "SHORT" else "")}[c["class"]]
+        lines.append(f"{i}. **{c['coin']}** ({GROUP_WORDS[c['group']]}), {c['label']}, {SHORT_LABEL if c['dir'] == 'SHORT' else 'long'} from {_hm(c['entry_t'])} UTC, "
                      f"held {c['hold_h']:.1f} h, {_pct(c['after_our_costs_pct'])} after our costs (their own net ${c['their_net_usd']:,.2f}). "
                      f"Class ({c['class']}): {why}. Ananta then: {_state_words(c)}.")
     lines += ["", "## Repeated situations (3 days in 7)", ""]
     if s["situations_c"]:
-        lines.append("Class (c) today, by situation (group | kind | dial): " + "; ".join(f"{k} ({v['n']})" for k, v in s["situations_c"].items()) + ".")
+        lines.append("Class (c) today, by situation (group | kind | dial): " + "; ".join(
+            f"{k} ({v['n']}{', ' + SHORT_LABEL + ': reference, never filed' if is_short(k) else ''})" for k, v in s["situations_c"].items()) + ".")
     else:
         lines.append("No class (c) case today.")
     for f in filed:

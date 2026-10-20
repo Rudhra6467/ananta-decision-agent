@@ -460,8 +460,25 @@ def test_the_pattern_rule_counts_separate_days_inside_seven_and_waits_thirty_day
     filed = [{"key": k, "num": 4}]
     assert od.repeats([_hrow(_d(20), filed=filed), _hrow(_d(4)), _hrow(_d(2)), _hrow(D)], D) == []     # filed 20 days ago
     assert od.repeats([_hrow(_d(31), filed=filed), _hrow(_d(4)), _hrow(_d(2)), _hrow(D)], D)[0]["key"] == k
-    t = od.draft_text({"key": "T30|SHORT swing|CLOSED", "days": [_d(2), _d(1), D], "trips": 5, "median_pct": 2.5, "coins": ["SUI"]}, D)
-    assert t.startswith("DRAFT finding") and "Ananta only buys" in t and "the 30-coin tier" in t and "closed" in t
+    t = od.draft_text({"key": "T30|LONG swing|CLOSED", "days": [_d(2), _d(1), D], "trips": 5, "median_pct": 2.5, "coins": ["SUI"]}, D)
+    assert t.startswith("DRAFT finding") and "long swing" in t and "the 30-coin tier" in t and "closed" in t
+
+
+def test_winning_shorts_are_kept_as_reference_but_never_file_a_request(tmp_path, monkeypatch):
+    """Coordinator, Oct 20: a winning short stays on the page and in the history, labelled "short (we only buy)", and is left out of
+    the 3-in-7 rule, so it never files a request."""
+    k = "LAB10|SHORT intraday|OPEN"
+    od, c, acc, ag, out = _setup_daily(tmp_path, monkeypatch, history=[_hrow(_d(2), k), _hrow(_d(4), k), _hrow(_d(6), k)])
+    assert od.is_short(k) and not od.is_short("LAB10|LONG intraday|OPEN")
+    assert od.repeats([_hrow(_d(2), k), _hrow(_d(4), k), _hrow(D, k)], D) == []                # 3 days in 7, but a short
+    filed = []
+    r = od.run_day(D, data=c.DATA, accounts=acc, agent=ag, out=out, cases_dir=None, file_request=lambda t: filed.append(t) or {"num": 9})
+    assert not any("SHORT" in f["key"] for f in r["filed"]) and not any("short" in t for t in filed)
+    hist = od.read_history(out / "repair_shop" / "daily" / "others_history.jsonl")
+    assert hist[-1]["day"] == D and hist[-1]["situations_c"][k]["n"] == 1 and hist[-1]["classes"]["c"] == 5   # still counted as reference
+    text = (out / "repair_shop" / "daily" / f"others_{D}.md").read_text()
+    assert "**DOGE** (the 10 lab coins), LB_WINNER-01, short (we only buy) from" in text
+    assert f"{k} (1, short (we only buy): reference, never filed)" in text
 
 
 def _hashes(folder: Path) -> dict:
@@ -517,8 +534,9 @@ def test_the_account_list_is_built_once_from_review_2s_collection(tmp_path):
     out = tmp_path / "x" / "hl_accounts.json"
     r = od.build_accounts(hl_db, out)
     d = json.loads(out.read_text())
-    assert r["accounts"] == 2 and [x["label"] for x in d["accounts"]] == ["LB_WINNER-01", "TAPE-01"]
-    assert [x["account"] for x in d["accounts"]] == [A, B] and [x["r2_hft"] for x in d["accounts"]] == [False, True]
+    assert r["accounts"] == 1 and [x["label"] for x in d["accounts"]] == ["LB_WINNER-01"] and r["left_out_hft"] == ["TAPE-01"]
+    assert [x["account"] for x in d["accounts"]] == [A] and d["left_out_hft"] == [{"label": "TAPE-01", "source": "TAPE"}]   # HFT: not captured
+    assert B not in out.read_text() and "are not captured, so 1 accounts are" in d["how_chosen"]
     assert "seed 20260929" in d["how_chosen"] and "1 NO_FILLS" in d["how_chosen"] and "1 SKIPPED_QUOTA" in d["how_chosen"]
     with pytest.raises(FileExistsError):
         od.build_accounts(hl_db, out)                                            # fixed: never rebuilt

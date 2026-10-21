@@ -24,7 +24,7 @@ from __future__ import annotations
 import json
 import math
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -757,6 +757,205 @@ PERMISSION_CHECK_FROM = 1791288000      # 2026-10-06 12:00 UTC: Jarvis's decisio
 GATE_WORDS = {"PASS": "Pass", "FAIL": "Fail", "PARTLY": "Partly", "PENDING": "In progress", "NOT_MEASURED": "Not measured yet"}
 
 
+def no_failed_rules_reading(j) -> dict:
+    """Gate agent_no_failed_rules: buys of the last 7 days that lean on a context-only or switched-off idea (brain.permission_check).
+    The brain's own book: a buy whose note says it cited one (a buy that rested ONLY on such ideas was turned into a pass, the check
+    working). The bold book (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4: "the bold book is added"): a
+    TAKE whose recorded knowledge list (knowledge_used, recorded from Oct 20) holds such an idea; the bold book is never blocked, so
+    each one is counted. A bold buy with no recorded list cannot be checked and is named, not counted. Only buys count."""
+    from jarvis.service import brain
+
+    since = max(int(j.now()) - 7 * DAY, PERMISSION_CHECK_FROM)      # only decisions made since the check exists count
+    # Only BUYS count (status check, Oct 8): a pass that mentions a context idea is not a trade on it.
+    n = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE'", (since,))
+    cited = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE' AND note LIKE '%cited context-only%'", (since,))
+    blocked = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND note LIKE 'permission:%'", (since,))
+    try:
+        rows = j.db.execute("SELECT knowledge_used FROM bold_decisions WHERE t >= ? AND action = 'TAKE'", (since,)).fetchall()
+    except sqlite3.OperationalError:                       # no bold decisions yet (or a table from before Oct 20)
+        rows = []
+    bn = bc = bu = 0
+    bad_ids: set[str] = set()
+    for (ku,) in rows:
+        try:
+            ids = json.loads(ku) if ku else None
+        except ValueError:
+            ids = None
+        if not isinstance(ids, list):
+            bu += 1
+            continue
+        bn += 1
+        bad, _ = brain.permission_check([k for k in ids if isinstance(k, str)])
+        if bad:
+            bc += 1
+            bad_ids |= set(bad)
+    total, flagged = n + bn, cited + bc
+    note = (f"brain: {cited} of {n} buys leaned partly on a context-only idea, {blocked} buys that rested only on one were stopped; "
+            f"bold book: {bc} of {bn} buys cited a context-only or switched-off idea" + (f" ({', '.join(sorted(bad_ids))})" if bad_ids else "")
+            + (f", {bu} bold buy{'s' if bu != 1 else ''} from before its knowledge list was recorded (Oct 20) cannot be checked" if bu else "")
+            + " (last 7 days)")
+    return {"status": "PENDING" if not total else "PASS" if not flagged else "FAIL",
+            "note": note if total else "no buys to check in the last 7 days (the brain's and the bold book's)"
+                                       + (f"; {bu} bold buy{'s' if bu != 1 else ''} with no recorded knowledge list" if bu else "")}
+
+
+def _baseline_watch(watch: str, reg: dict) -> str | None:
+    """The random twin a book is judged against, as the scoreboard and the universe books pair them: a tier copy '<rule>-U<tier>'
+    against its rule's random baseline on the same tier (universe_watch.BASELINE_OF), any other watch by watches.json."""
+    from jarvis.service import scoreboard, universe_watch
+
+    sp = universe_watch.split(watch)
+    if sp:
+        b = universe_watch.BASELINE_OF.get(sp[0].split(".")[0])
+        return f"{b}-U{sp[1]}" if b else None
+    w = reg.get(watch)
+    return scoreboard._baseline_for(w) if w else None
+
+
+def _btc_bench(j, start: str) -> dict:
+    """Buy-and-hold Bitcoin (HOLD) and the BTC 50-day benchmark (GATE50) from a day on, after NDAX costs (exposure.books)."""
+    from jarvis.service import exposure
+
+    return {b["book"]: b["return_pct"] for b in exposure.books(j, start).get("books", [])}
+
+
+def _day_of(t: float | None) -> str | None:
+    return datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d") if t else None
+
+
+def baselines_reading(j, out: dict | None = None) -> dict:
+    """Gate strategy_baselines (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4: "strategy_baselines
+    points at the account's books, adding buy-and-hold and the BTC 50-day benchmark"). Until Oct 21 it read the retired Explorer
+    against its random entries. Now:
+      the allowed books   every evidence book allowed to trade (missed.book_allowed over strategy_status.json: not 'won't take again',
+                          not parked or retired, not a random baseline), each against its own random twin per $100 after costs,
+                          weighted by its closed trades; counted in independent market events (scoreboard.independent_events,
+                          daily=True: entries within 3 days of each other are one event)
+      the portfolios      the $500 book (from its start) and the two trend books (from their first decision) against buy-and-hold
+                          (Bitcoin held for the $500 book, their own coins held for the trend books) and the BTC 50-day benchmark
+                          over the same days
+    PENDING under GOAL_EVENTS events in the allowed books, or with no twin to compare; then PASS only when the allowed books are
+    ahead of their twins and every portfolio is ahead of both benchmarks; else FAIL."""
+    from jarvis.service import missed, scoreboard
+    from jarvis.service.scoreboard import independent_events
+
+    reg = {w["id"]: w for w in scoreboard.registry(j).get("watches", [])}
+    try:
+        rows = j.db.execute("SELECT watch, net_usd, entry_t FROM evidence_trades WHERE status='CLOSED' AND net_usd IS NOT NULL").fetchall()
+    except sqlite3.OperationalError:                       # no evidence book yet
+        rows = []
+    by: dict[str, list[tuple]] = {}
+    for w, net, et in rows:
+        by.setdefault(w, []).append((float(net), et))
+    allowed = sorted(w for w in by if missed.book_allowed(missed._sid_of_watch(w))[0])
+    num = den = 0.0
+    mine: list[float] = []
+    twins: list[float] = []
+    no_twin = 0
+    for w in allowed:
+        xs = [x for x, _ in by[w]]
+        tw = _baseline_watch(w, reg)
+        ys = [y for y, _ in by.get(tw, [])] if tw else []
+        if not ys:
+            no_twin += len(xs)
+            continue
+        num += len(xs) * (sum(xs) / len(xs) - sum(ys) / len(ys))
+        den += len(xs)
+        mine += xs
+        twins += ys
+    ev = independent_events([int(et) for w in allowed for _, et in by[w] if et], daily=True)
+    edge = num / den if den else None
+    parts = [f"allowed books: {sum(len(by[w]) for w in allowed)} closed trades, {ev} of {GOAL_EVENTS} independent market events"
+             + (f"; against their own random twins {'+' if edge >= 0 else '-'}${abs(edge):.2f} per $100 (weighted by trades; they "
+                f"averaged {_usd(sum(mine) / len(mine))}, the twins {_usd(sum(twins) / len(twins))})" if edge is not None else
+                "; no twin has closed trades yet")
+             + (f"; {no_twin} trade{'s' if no_twin != 1 else ''} whose twin has none closed are not compared" if no_twin and edge is not None else "")]
+    behind: list[str] = []
+    ports: list[str] = []
+    try:
+        from src.research import book500 as B
+
+        r0 = (j.db.execute("SELECT v FROM book500 WHERE k='state'").fetchone()
+              if j.db.execute("SELECT 1 FROM sqlite_master WHERE name='book500'").fetchone() else None)
+        s = json.loads(r0[0]) if r0 else None
+        if s and s.get("started"):
+            ret = 100 * ((s.get("value") or B.START_CAD) / B.START_CAD - 1)
+            bb = _btc_bench(j, s["started"])
+            if "HOLD" not in bb or "GATE50" not in bb:
+                ports.append(f"the $500 book {ret:+.2f}% since {s['started']}; Bitcoin's benchmarks not read (too little history)")
+                behind.append("the $500 book (benchmarks not read)")
+            else:
+                ports.append(f"the $500 book {ret:+.2f}% since {s['started']} (CAD at NDAX) against Bitcoin held {bb['HOLD']:+.1f}% and the "
+                             f"50-day benchmark {bb['GATE50']:+.1f}%")
+                if not (ret > bb["HOLD"] and ret > bb["GATE50"]):
+                    behind.append("the $500 book")
+        else:
+            ports.append("the $500 book has not started")
+            behind.append("the $500 book (not started)")
+    except Exception as exc:  # noqa: BLE001  the book or the Bitcoin candles could not be read
+        ports.append(f"the $500 book could not be read ({str(exc)[:60]})")
+        behind.append("the $500 book (not read)")
+    firsts = {}
+    try:
+        firsts["t3"] = j._layer().con.execute("SELECT min(day_t) FROM decisions").fetchone()[0]
+    except Exception:  # noqa: BLE001
+        pass
+    p30 = Path(j.dir) / "portfolio_book_t30.sqlite"
+    if p30.exists():
+        con = sqlite3.connect(f"file:{p30}?mode=ro", uri=True, timeout=10)
+        try:
+            firsts["t30"] = con.execute("SELECT min(day_t) FROM decisions").fetchone()[0]
+        except sqlite3.Error:
+            pass
+        finally:
+            con.close()
+    books = {b.get("key"): b for b in ((out or {}).get("results") or {}).get("books") or []}
+    for key, label in (("t3", "the 10-coin trend book"), ("t30", "the 30-coin trend book")):
+        b, start = books.get(key), _day_of(firsts.get(key))
+        if not b or b.get("pct") is None or b.get("vs_pct") is None or not start:
+            ports.append(f"{label} not read")
+            behind.append(f"{label} (not read)")
+            continue
+        try:
+            g50 = _btc_bench(j, start).get("GATE50")
+        except Exception:  # noqa: BLE001
+            g50 = None
+        ports.append(f"{label} {b['pct']:+.2f}% since {start} against its coins held {b['vs_pct']:+.2f}%"
+                     + (f" and the 50-day benchmark {g50:+.1f}%" if g50 is not None else " (50-day benchmark not read)"))
+        if g50 is None or not (b["pct"] > b["vs_pct"] and b["pct"] > g50):
+            behind.append(label)
+    note = "; ".join(parts + ports) + "; the retired Explorer no longer counts"
+    if ev < GOAL_EVENTS or edge is None:
+        return {"status": "PENDING", "note": note}
+    ok = edge > 0 and not behind
+    return {"status": "PASS" if ok else "FAIL",
+            "note": note + ("" if ok else "; behind: " + ", ".join((["the allowed books against their twins"] if edge <= 0 else []) + behind))}
+
+
+HAND_FRESH_DAYS = 30                     # a hand-written verdict holds 30 days from its evidence date unless the check sets expires_days
+
+
+def _hand_age(c: dict, now: float) -> None:
+    """Madhav, 2026-10-21 09:41 Toronto ("I approve all"; decision map section 4: "each hand-written check gets an evidence date and
+    an expiry"): a check whose status is written by hand carries evidence_date and expires_days in acceptance_gate.json. Like the
+    exam's 8-day rule (_exam_age), a hand-written PASS older than that reads PARTLY until its evidence is checked again and the date
+    renewed. Every check with an evidence date shows when it expires."""
+    day = c.get("evidence_date")
+    if not day:
+        return
+    try:
+        d0 = datetime.strptime(str(day), "%Y-%m-%d").date()
+        keep = int(c.get("expires_days") or HAND_FRESH_DAYS)
+    except (TypeError, ValueError):
+        return
+    exp = d0 + timedelta(days=keep)
+    c["expires"] = exp.isoformat()
+    if c.get("status") == "PASS" and datetime.fromtimestamp(now, timezone.utc).date() > exp:
+        c["status"] = "PARTLY"
+        c["note"] = (f"{c.get('note', '')}; the hand-written pass of {day} expired on {exp.isoformat()} (it holds {keep} days; its evidence "
+                     "needs checking again and a new date)").lstrip("; ")
+
+
 def _gate(j, out: dict) -> dict:
     """The Engine Acceptance Gate (docs/knowledge/acceptance_gate.json): 27 checks; a few are computed live here."""
     from jarvis.service.core import docs_dir
@@ -781,32 +980,29 @@ def _gate(j, out: dict) -> dict:
             c.update(reconstructable(j))
         except Exception as exc:  # noqa: BLE001
             c["note"] = f"could not measure: {str(exc)[:80]}"
-    r = out.get("results") or {}
     c = by.get("strategy_baselines")
-    if c and r:
-        real = next((x for x in r.get("items", []) if x["key"] == "real"), {})
-        ev = r.get("events") or 0
-        ahead = (real.get("avg_usd") or -9) > (r.get("random_avg_usd") or 0)
-        c["status"] = ("PASS" if ahead else "FAIL") if ev >= GOAL_EVENTS else "PENDING"
-        c["note"] = (f"{ev} of {GOAL_EVENTS} market events; real {_usd(real.get('avg_usd'))} vs random {_usd(r.get('random_avg_usd'))} per $100")
+    if c:
+        try:
+            c.update(baselines_reading(j, out))
+        except Exception as exc:  # noqa: BLE001  the books could not be read: not a pass
+            c["status"], c["note"] = "PENDING", f"could not measure: {str(exc)[:80]}"
     c = by.get("agent_no_failed_rules")
     if c:
-        since = max(int(j.now()) - 7 * DAY, PERMISSION_CHECK_FROM)      # only decisions made since the check exists count
-        n = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action != 'ERROR'", (since,))
-        # Only BUYS count (status check, Oct 8): a pass that mentions a context idea is not a trade on it. A buy that rested only on
-        # context-only ideas is turned into a pass by brain.permission_check ("permission:" notes = the check working).
-        n = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE'", (since,))
-        cited = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE' AND note LIKE '%cited context-only%'", (since,))
-        blocked = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND note LIKE 'permission:%'", (since,))
-        c["status"] = "PENDING" if not n else "PASS" if not cited else "FAIL"
-        c["note"] = (f"{cited} of {n} buys leaned partly on a context-only idea; {blocked} buys that rested only on one were stopped "
-                     "(last 7 days, checked since Oct 6)" if n else "no buys since the check started (Oct 6)")
+        c.update(no_failed_rules_reading(j))
     try:
         _gate_measured(j, by)
     except Exception as exc:  # noqa: BLE001  a measurement failing never hides the gate
         for k in ("engine_sizing", "engine_execution", "strategy_regimes"):
             if by.get(k):
                 by[k]["note"] = f"could not measure: {str(exc)[:80]}"
+    c = by.get("ops_outages")
+    if c:
+        try:
+            c.update(outages_reading(j, {"status": c.get("status"), "note": c.get("note")}))
+        except Exception as exc:  # noqa: BLE001  the part outages could not be read: not a pass
+            c["status"], c["note"] = "PENDING", f"could not read the part outages: {str(exc)[:80]}; {c.get('note', '')}"
+    for c in checks:
+        _hand_age(c, j.now())
     for c in checks:
         c["status_words"] = GATE_WORDS.get(c["status"], c["status"])
     passed = sum(1 for c in checks if c["status"] == "PASS")
@@ -928,21 +1124,156 @@ def outages_seen_from_outside(j, o: dict, armed_live: bool | None = None) -> dic
                                       + ("; every one alerted by minute 15" if n and not before else "") + gone}
 
 
+OUTAGE_DAYS = 7                          # ops_outages (Madhav, 2026-10-21 09:41 Toronto, "I approve all"): the last 7 days, as the outside view
+PART_OUTAGE_MAX_MIN = 60                 # a part (Hands, the Explorer, the jobs, the feed...) down 10+ minutes must be noted on the phone and back within 60
+WORKER_BLIND_MAX_MIN = 60 * OUTAGE_DAYS  # the worker may be blind at most 60 minutes a day on average (the run checker's 1,380 of 1,440 minutes a day)
+
+
+def _part_outages(j, since: int, now: int) -> list[dict]:
+    """The health watchdog's outages (health_log, the run checker's health_outages) overlapping [since, now], read-only."""
+    try:
+        rows = j.db.execute("SELECT part, down_t, up_t FROM health_log WHERE COALESCE(up_t, ?) >= ? ORDER BY down_t", (now, since)).fetchall()
+    except sqlite3.OperationalError:                       # no outage recorded yet
+        return []
+    out = []
+    for part, d, u in rows:
+        a, b = max(int(d), since), int(u or now)
+        out.append({"part": part, "down_t": int(d), "up_t": u, "minutes": round((int(u or now) - int(d)) / 60), "in_window_s": max(0, b - a)})
+    return out
+
+
+def worker_blind_minutes(j, since: int, now: int, dest: Path | None = None, parts: list[dict] | None = None) -> dict | None:
+    """The time the worker Mac could not see anything, over [since, now], in minutes. On a UTC day pulled from it, its own record is
+    the truth: a minute with no look at the public page (it looks every minute) is blind, and a minute the main Mac could not reach it
+    is not (Oct 18-19: SSH was down while the worker recorded 1,435 and 1,440 minutes). On a day not pulled (today, whose record
+    arrives with tomorrow's pull, or a day whose pull failed), a minute the main Mac could not reach it (health_log part 'worker': the
+    watchdog marks it down after 15 minutes of failed answers) counts as blind, since nothing shows it was looking. None when this
+    machine has no worker day and the watchdog never checked one (no worker)."""
+    from jarvis.service import worker
+
+    dest = dest or worker.DEST
+    files = {f.name[3:13]: f for f in sorted(Path(dest).glob("l1_*.sqlite"))} if Path(dest).exists() else {}
+    w = [o for o in (parts or []) if o["part"] == "worker"]
+    if not files and not w:
+        return None
+    not_looking = unreachable = 0
+    pulled = 0
+    d0 = since - since % DAY
+    while d0 < now:
+        a, b = max(since, d0), min(now, d0 + DAY)
+        f = files.get(datetime.fromtimestamp(d0, timezone.utc).strftime("%Y-%m-%d"))
+        if f is not None:
+            pulled += 1
+            con = sqlite3.connect(f"file:{f}?mode=ro", uri=True)
+            try:
+                seen = {int(t) // 60 for (t,) in con.execute("SELECT t FROM site WHERE t >= ? AND t < ?", (a, b))}
+            except sqlite3.Error:
+                seen = set()
+            finally:
+                con.close()
+            not_looking += len(set(range(-(-a // 60), b // 60)) - seen)
+        else:
+            mins: set[int] = set()
+            for o in w:
+                mins |= set(range(max(int(o["down_t"]), a) // 60, min(int(o["up_t"] or now), b) // 60))
+            unreachable += len(mins)
+        d0 += DAY
+    return {"minutes": not_looking + unreachable, "not_looking": not_looking, "unreachable_not_pulled": unreachable, "days_pulled": pulled,
+            "unreachable_all": sum(o["in_window_s"] for o in w) // 60}
+
+
+def calendar_t(day: str) -> int:
+    return int(datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
+
+
+def outages_reading(j, base: dict, dest: Path | None = None) -> dict:
+    """Gate ops_outages (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4: "ops_outages counts part outages
+    and the time the worker can't see anything"). Until Oct 21 it read the public page from the outside only, so it stayed green
+    through the 426-minute Hands outage and the 416 minutes with no Explorer scan of Oct 16-17. Over the last OUTAGE_DAYS days:
+      the outside view   every outage of OUTAGE_MIN+ minutes the worker saw on the public page alerted by minute 15 (base: the
+                         reading of outages_seen_from_outside, unchanged)
+      part outages       every part the health watchdog checks except the worker (its own measure is next): each outage of
+                         OUTAGE_MIN+ minutes must have sent its phone note (HEALTH_DOWN) within ALERT_WITHIN_S of being marked down,
+                         and none may last more than PART_OUTAGE_MAX_MIN minutes
+      worker blind time  the minutes the worker could not see anything (worker_blind_minutes): at most WORKER_BLIND_MAX_MIN
+    FAIL when any bar is missed; else the outside view's own reading (PASS, or PARTLY / PENDING while its alert is not proven)."""
+    now = int(j.now())
+    since = now - OUTAGE_DAYS * DAY
+    parts = _part_outages(j, since, now)
+    tz = None
+    try:
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("America/Toronto")
+    except Exception:  # noqa: BLE001
+        tz = timezone.utc
+
+    def lab(o):
+        return f"{o['part']} {datetime.fromtimestamp(o['down_t'], tz).strftime('%b %d %H:%M')} Toronto, {o['minutes']} min" + ("" if o["up_t"] else " (still down)")
+    long_ = [o for o in parts if o["part"] != "worker" and o["minutes"] >= OUTAGE_MIN]
+    unnoted, too_long = [], []
+    for o in long_:
+        try:
+            noted = j.db.execute("SELECT 1 FROM eye_events WHERE kind='HEALTH_DOWN' AND pushed=1 AND t BETWEEN ? AND ? AND detail LIKE ?",
+                                 (o["down_t"] - 60, o["down_t"] + ALERT_WITHIN_S, f'%"part": "{o["part"]}"%')).fetchone()
+        except sqlite3.OperationalError:
+            noted = None
+        if not noted:
+            unnoted.append(lab(o))
+        if o["minutes"] > PART_OUTAGE_MAX_MIN:
+            too_long.append(lab(o))
+    blind = worker_blind_minutes(j, since, now, dest, parts)
+    bits = [f"part outages (health watchdog, {OUTAGE_DAYS} days): {len(long_)} of {OUTAGE_MIN}+ minutes"
+            + (f", longest {max(o['minutes'] for o in long_)} min" if long_ else "")]
+    if blind is not None:
+        bits.append(f"the worker could not see for {blind['minutes']} minutes (needs {WORKER_BLIND_MAX_MIN} or less: {blind['not_looking']} "
+                    f"with no look in its own record on {blind['days_pulled']} pulled day{'s' if blind['days_pulled'] != 1 else ''}, "
+                    f"{blind['unreachable_not_pulled']} unreachable on days not pulled yet; the main Mac could not reach it for "
+                    f"{blind['unreachable_all']} minutes in all)")
+    else:
+        bits.append("the worker's blind time not measured (no worker day pulled on this machine)")
+    miss = []
+    if unnoted:
+        miss.append("NO phone note for: " + "; ".join(unnoted))
+    if too_long:
+        miss.append(f"down more than {PART_OUTAGE_MAX_MIN} minutes: " + "; ".join(too_long))
+    if blind is not None and blind["minutes"] > WORKER_BLIND_MAX_MIN:
+        miss.append(f"the worker blind {blind['minutes']} minutes (over {WORKER_BLIND_MAX_MIN})")
+    head = "; ".join(bits)
+    tail = f"; {base.get('note')}" if base.get("note") else ""
+    if miss or base.get("status") == "FAIL":
+        return {"status": "FAIL", "note": f"{head}; " + "; ".join(miss) + tail if miss else head + tail}
+    if blind is None and base.get("status") == "PASS":
+        return {"status": "PARTLY", "note": head + tail}
+    return {"status": base.get("status") or "PENDING", "note": head + tail}
+
+
 CITES_N, CITES_PASS = 20, 18             # agent_cites (Oct 15): the weekly spot check of 20 answers, done by code; 18 of 20 like agent_knows
 SIZING_ENTRIES = 20                      # engine_sizing (Oct 15, the Oct 14 audit): 0 violations in at least 20 entries, as engine_execution
 
 
+CITES_NOT_THREADS = ("brain", "bold")     # the brain's own calls (the stance, the morning scan, the pacer) and the bold book's
+
+
 def cites(j, days: int = 7) -> tuple[int, int, int]:
-    """agent_cites, measured: the newest 20 answers to Madhav that state a number (background jobs, family questions and exam
-    conversations left out). An evidence item 'opens on screen' when it names the spot that shows it on the open screen or the
-    screen to open for it (Ask's rule 14: "spot", and "screen" when it is on another screen); the app points at it or opens it.
+    """agent_cites, measured: the newest 20 answers to Madhav that state a number, in CONVERSATIONS only (Madhav, 2026-10-21 09:41
+    Toronto: "I approve all"; decision map section 4: "agent_cites counts conversations only (scheduled briefs inflate it)"). A
+    conversation is what ask.last_conversation calls one: a thread with no ':' in its name (the scheduled morning and evening briefs
+    are 'brief:...', the news reads 'reads:news'), not the brain's or the bold book's own thread (the stance is logged there), with
+    a question a person asked (not a test run, mode 'eval:...', nor a background worker). Family questions and exam conversations
+    stay out. An evidence item 'opens on screen' when it names the spot that shows it on the open screen or the screen to open for
+    it (Ask's rule 14: "spot", and "screen" when it is on another screen); the app points at it or opens it.
     Returns (answers checked, answers with at least one item that opens on screen, answers whose every item names a source)."""
     import re
 
     try:
-        rows = j.db.execute("SELECT reply FROM ask_messages WHERE role='assistant' AND t >= ? AND COALESCE(mode, '') NOT IN ('worker', 'people') "
-                            "AND COALESCE(route, '') != 'people' AND COALESCE(thread, '') NOT LIKE 'exam-%' ORDER BY t DESC LIMIT 500",
-                            (int(j.now()) - days * DAY,)).fetchall()
+        rows = j.db.execute(
+            "SELECT reply FROM ask_messages WHERE role='assistant' AND t >= ? AND COALESCE(mode, '') NOT IN ('worker', 'people') "
+            "AND COALESCE(route, '') != 'people' AND COALESCE(thread, '') NOT LIKE 'exam-%' AND COALESCE(thread, '') NOT LIKE '%:%' "
+            f"AND COALESCE(thread, '') NOT IN ({','.join('?' * len(CITES_NOT_THREADS))}) "
+            "AND thread IN (SELECT thread FROM ask_messages WHERE role='user' AND COALESCE(mode, '') NOT LIKE 'eval:%' "
+            "AND COALESCE(mode, '') NOT LIKE '%worker%') ORDER BY t DESC LIMIT 500",
+            (int(j.now()) - days * DAY, *CITES_NOT_THREADS)).fetchall()
     except sqlite3.OperationalError:                       # no conversations yet
         return 0, 0, 0
     picked = []
@@ -1030,6 +1361,37 @@ def execution_reading(rep: dict) -> dict:
     return {"status": status, "note": note}
 
 
+REGIME_EVENTS = 10                       # strategy_regimes: 10 independent market events with the dial open AND 10 with it closed
+REGIME_BOOKS = (("H07-UA", "H07 tier A"), ("JARVIS", "Jarvis's book"))
+
+
+def regimes_reading(j, dial: dict) -> dict:
+    """Gate strategy_regimes (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4, "uses the stricter event
+    count"): each idea's closed trades split by the dial on their entry day, counted as INDEPENDENT market events the way the
+    scoreboard counts a daily book (scoreboard.independent_events, daily=True: entries within 3 days of each other, any coin, are one
+    event; the count Jarvis's book and ledger Q7 use), no longer one event per closing day. PASS needs REGIME_EVENTS in each state
+    for each idea; nothing fails it, it waits."""
+    from jarvis.service.scoreboard import independent_events
+
+    parts, ok = [], True
+    for watch, label in REGIME_BOOKS:
+        ts: dict[str, list[int]] = {"OPEN": [], "CLOSED": []}
+        n = 0
+        for day, et in j.db.execute("SELECT entry_day, entry_t FROM evidence_trades WHERE watch=? AND status='CLOSED' AND entry_t IS NOT NULL",
+                                    (watch,)):
+            d = dial.get(day)
+            if d is not None:
+                ts["OPEN" if d else "CLOSED"].append(int(et))
+                n += 1
+        ev = {k: independent_events(v, daily=True) if v else 0 for k, v in ts.items()}
+        ok = ok and ev["OPEN"] >= REGIME_EVENTS and ev["CLOSED"] >= REGIME_EVENTS
+        parts.append(f"{label}: {ev['OPEN']} independent event{'s' if ev['OPEN'] != 1 else ''} dial open, {ev['CLOSED']} dial closed "
+                     f"({n} closed trade{'s' if n != 1 else ''})")
+    return {"status": "PASS" if ok else "PENDING",
+            "note": "; ".join(parts) + f" (needs {REGIME_EVENTS} each; entries within 3 days of each other are one event; the backtest's "
+                                       "split is in BOOK500.md and reviews #25-#27)"}
+
+
 def _gate_measured(j, by: dict) -> None:
     """The six checks that had no measure until Oct 11 (plan Batch 5): sizing, execution, regimes, the agent exam and the voice exam."""
     from jarvis.service import exam, ndax_book
@@ -1056,18 +1418,7 @@ def _gate_measured(j, by: dict) -> None:
     if c:
         from jarvis.service import exposure
 
-        dial = exposure.dial_by_day(j)
-        parts, ok = [], True
-        for watch, label in (("H07-UA", "H07 tier A"), ("JARVIS", "Jarvis's book")):
-            ev = {"OPEN": set(), "CLOSED": set()}
-            for day, xday in j.db.execute("SELECT entry_day, exit_day FROM evidence_trades WHERE watch=? AND status='CLOSED'", (watch,)):
-                d = dial.get(day)
-                if d is not None:
-                    ev["OPEN" if d else "CLOSED"].add(xday)
-            ok = ok and len(ev["OPEN"]) >= 10 and len(ev["CLOSED"]) >= 10
-            parts.append(f"{label}: {len(ev['OPEN'])} events dial open, {len(ev['CLOSED'])} dial closed")
-        c["status"] = "PASS" if ok else "PENDING"
-        c["note"] = "; ".join(parts) + " (needs 10 each; the backtest's split is in BOOK500.md and reviews #25-#27)"
+        c.update(regimes_reading(j, exposure.dial_by_day(j)))
     try:                                   # worker S1 (Oct 15): measured NDAX costs and the outside view, from the pulled worker days
         from jarvis.service import ndax_spreads, registry, worker
 

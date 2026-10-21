@@ -146,6 +146,8 @@ def test_agent_cites_is_the_weekly_spot_check_done_by_code(tmp_path):
     def add(i, reply, thread="th", mode="auto", route="market"):
         j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, mode, route) VALUES (?,?,?,?,?,?,?)",
                      (f"m{i}", thread, now - 100 - i, "assistant", json.dumps(reply), mode, route))
+        j.db.execute("INSERT OR IGNORE INTO ask_messages (id, thread, t, role, text, mode) VALUES (?,?,?,?,?,?)",
+                     (f"u-{thread}", thread, now - 1000, "user", "a question", "voice:auto"))     # Oct 21: a conversation has a person's question
 
     good = {"kind": "answer", "answer": "Bitcoin is 80,900.", "evidence": [{"label": "BTC", "value": "80,900", "source": "MARKET_BRIEF", "spot": "markets.btc"}]}
     for i in range(17):
@@ -295,3 +297,321 @@ def test_engine_execution_is_judged_against_the_workers_independent_ndax_quote(t
     monkeypatch.setattr(realism, "report", broken)
     el._gate_measured(j, by)
     assert by["engine_execution"]["status"] == "PENDING" and "could not measure" in by["engine_execution"]["note"]
+
+
+# ---------------------------------------------------------------------------
+# Oct 21 gate bundle (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4)
+# ---------------------------------------------------------------------------
+NOW21 = 1792594431                      # 2026-10-21 14:53 UTC
+
+
+def _ev_table(j):
+    j.db.execute("CREATE TABLE evidence_trades (id TEXT, watch TEXT, coin TEXT, entry_t INTEGER, entry_day TEXT, exit_day TEXT, "
+                 "net_usd REAL, status TEXT)")
+
+
+def _trade(j, watch, et, net, i=[0]):
+    from datetime import datetime, timezone
+
+    i[0] += 1
+    day = datetime.fromtimestamp(et, timezone.utc).strftime("%Y-%m-%d")
+    j.db.execute("INSERT INTO evidence_trades VALUES (?,?,?,?,?,?,?,?)", (f"t{i[0]}", watch, "BTC", et, day, day, net, "CLOSED"))
+
+
+def test_cites_counts_conversations_only_never_briefs_or_the_stance(tmp_path):
+    """agent_cites (Oct 21): the scheduled morning and evening briefs ('brief:...'), the brain's own thread (the stance) and the bold
+    book's, the news reads and test runs never count; a person's conversation does."""
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path, NOW21)
+    j.db.execute("CREATE TABLE ask_messages (id TEXT PRIMARY KEY, thread TEXT, t INTEGER, role TEXT, text TEXT, reply TEXT, mode TEXT, route TEXT)")
+    good = {"kind": "answer", "answer": "Bitcoin is 80,900.", "evidence": [{"label": "BTC", "source": "MARKET_BRIEF", "spot": "markets.btc"}]}
+    bare = {"kind": "answer", "answer": "Bitcoin is 80,900.", "evidence": [{"label": "BTC", "source": "MARKET_BRIEF"}]}
+    k = [0]
+
+    def say(thread, reply, umode="voice:auto", amode="auto", ask=True):
+        k[0] += 1
+        if ask:
+            j.db.execute("INSERT OR IGNORE INTO ask_messages (id, thread, t, role, text, mode) VALUES (?,?,?,?,?,?)",
+                         (f"u{thread}", thread, NOW21 - 5000, "user", "q", umode))
+        j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, mode, route) VALUES (?,?,?,?,?,?,?)",
+                     (f"a{k[0]}", thread, NOW21 - 100 - k[0], "assistant", json.dumps(reply), amode, "market"))
+    for n in range(25):
+        say(f"brief:{n:012d}", good, umode="deep", amode="deep")                    # scheduled briefs: never counted
+    say("brain", good, umode="worker", amode="auto")                               # the stance's thread
+    say("bold", good, amode="worker")
+    say("reads:news", good, amode="worker")
+    say("evalthread01", good, umode="eval:lab")                                    # a test run
+    say("noquestion01", good, ask=False)                                           # no question a person asked
+    assert el.cites(j) == (0, 0, 0)
+    by = {"agent_cites": {"id": "agent_cites"}, "agent_knows": {}, "agent_unknowns": {}, "ux_voice": {}}
+    try:
+        el._gate_measured(j, by)
+    except Exception:  # noqa: BLE001  the exam files may be missing here; cites is written first
+        pass
+    assert by["agent_cites"]["status"] == "PENDING"                               # 25 good briefs once made this a PASS
+    for n in range(17):
+        say("a1b2c3d4e5f6", good)
+    for n in range(3):
+        say("a1b2c3d4e5f6", bare)
+    assert el.cites(j) == (20, 17, 20)
+    try:
+        el._gate_measured(j, by)
+    except Exception:  # noqa: BLE001
+        pass
+    assert by["agent_cites"]["status"] == "FAIL" and "17 of the last 20" in by["agent_cites"]["note"]
+
+
+def test_strategy_regimes_counts_independent_market_events_not_closing_days(tmp_path):
+    """strategy_regimes (Oct 21): 'the stricter event count': entries within 3 days of each other are one event (the scoreboard's
+    daily rule, as Jarvis's book and Q7 count), split by the dial on the entry day. The old count (one per closing day) said 9 for
+    Jarvis's book on Oct 21; the stricter count says 1."""
+    from datetime import datetime, timezone
+
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path, NOW21)
+    _ev_table(j)
+    t0 = NOW21 - 60 * DAY
+    for k in range(12):                                   # 12 trades, entered 6 hours apart: one market event
+        _trade(j, "JARVIS", t0 + k * 6 * 3600, -1.0)
+    dial = {datetime.fromtimestamp(t0 + d * DAY, timezone.utc).strftime("%Y-%m-%d"): 1.0 for d in range(-1, 61)}
+    r = el.regimes_reading(j, dial)
+    assert r["status"] == "PENDING" and "Jarvis's book: 1 independent event dial open, 0 dial closed (12 closed trades)" in r["note"]
+    assert "H07 tier A: 0 independent events dial open" in r["note"]
+    # entries 4 days apart, the first 10 with the dial open and the next 10 closed: 10 events in each state for both ideas: PASS
+    j.db.execute("DELETE FROM evidence_trades")
+    dial = {}
+    for watch in ("JARVIS", "H07-UA"):
+        for k in range(20):
+            et = t0 + k * 4 * DAY
+            _trade(j, watch, et, 1.0)
+            dial[datetime.fromtimestamp(et, timezone.utc).strftime("%Y-%m-%d")] = 1.0 if k < 10 else 0.0
+    r = el.regimes_reading(j, dial)
+    assert r["status"] == "PASS" and r["note"].count("10 independent events dial open, 10 dial closed") == 2
+    j.db.execute("DELETE FROM evidence_trades WHERE watch='H07-UA' AND entry_t > ?", (t0 + 15 * 4 * DAY,))   # H07 now 6 closed events
+    assert el.regimes_reading(j, dial)["status"] == "PENDING"
+    assert el.REGIME_EVENTS == 10
+
+
+def test_agent_no_failed_rules_counts_the_bold_books_buys(tmp_path):
+    """agent_no_failed_rules (Oct 21): the bold book is added. A bold TAKE whose recorded knowledge list holds a context-only or
+    switched-off idea is counted (the bold book is never blocked); a bold buy from before the list was recorded is named, not counted."""
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path, NOW21)
+    assert el.no_failed_rules_reading(j)["status"] == "PENDING"                    # no tables at all
+    j.db.execute("CREATE TABLE brain_decisions (t INTEGER, action TEXT, note TEXT)")
+    j.db.execute("CREATE TABLE bold_decisions (id TEXT, t INTEGER, action TEXT, knowledge_used TEXT)")
+    j.db.execute("INSERT INTO bold_decisions VALUES ('a', ?, 'TAKE', NULL)", (NOW21 - 3 * DAY,))       # before Oct 20: no list
+    j.db.execute("INSERT INTO bold_decisions VALUES ('b', ?, 'WOULD_ADD', ?)", (NOW21 - DAY, json.dumps(["FILTERS"])))
+    r = el.no_failed_rules_reading(j)
+    assert r["status"] == "PENDING" and "1 bold buy with no recorded knowledge list" in r["note"]
+    j.db.execute("INSERT INTO bold_decisions VALUES ('c', ?, 'TAKE', ?)", (NOW21 - DAY, json.dumps(["T3", "REGIME", "STOPS"])))
+    r = el.no_failed_rules_reading(j)
+    assert r["status"] == "PASS" and "bold book: 0 of 1 buys" in r["note"] and "1 bold buy from before" in r["note"]
+    j.db.execute("INSERT INTO bold_decisions VALUES ('d', ?, 'TAKE', ?)", (NOW21 - 3600, json.dumps(["T3", "FILTERS"])))
+    r = el.no_failed_rules_reading(j)
+    assert r["status"] == "FAIL" and "bold book: 1 of 2 buys cited a context-only or switched-off idea (FILTERS)" in r["note"]
+    j.db.execute("DELETE FROM bold_decisions WHERE id='d'")
+    j.db.execute("INSERT INTO brain_decisions VALUES (?, 'TAKE', 'cited context-only ideas: FILTERS')", (NOW21 - 3600,))
+    assert el.no_failed_rules_reading(j)["status"] == "FAIL"                       # the brain's own rule is unchanged
+    j.db.execute("DELETE FROM brain_decisions")
+    j.db.execute("INSERT INTO bold_decisions VALUES ('e', ?, 'TAKE', ?)", (NOW21 - 9 * DAY, json.dumps(["FILTERS"])))
+    assert el.no_failed_rules_reading(j)["status"] == "PASS"                       # older than 7 days: out of the window
+
+
+def _baselines_setup(tmp_path, monkeypatch, n_events, mine, twin, books, bench):
+    import sqlite3 as sq
+    import types as ty
+
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path, NOW21)
+    _ev_table(j)
+    t0 = NOW21 - 50 * DAY
+    for k in range(n_events):                            # entries 4 days apart: each its own event
+        _trade(j, "H07-UA", t0 + k * 4 * DAY, mine)
+        _trade(j, "RANDOM_10D-UA", t0 + k * 4 * DAY, twin)
+        _trade(j, "ZONE_TOUCH-UB", t0 + k * 4 * DAY + 3600, 50.0)          # 'won't take again': never counted
+        _trade(j, "E1", t0 + k * 4 * DAY + 7200, 50.0)                    # the retired Explorer's setups: never counted
+    j.db.execute("CREATE TABLE book500 (k TEXT PRIMARY KEY, v TEXT)")
+    j.db.execute("INSERT INTO book500 VALUES ('state', ?)", (json.dumps({"started": "2026-10-11", "value": books["b500"]}),))
+    lay = sq.connect(":memory:")
+    lay.execute("CREATE TABLE decisions (day_t INTEGER, json TEXT)")
+    lay.execute("INSERT INTO decisions VALUES (?, '{}')", (NOW21 - 21 * DAY,))
+    j._layer = lambda: ty.SimpleNamespace(con=lay)
+    t30 = sq.connect(str(tmp_path / "portfolio_book_t30.sqlite"))
+    t30.execute("CREATE TABLE decisions (day_t INTEGER, json TEXT)")
+    t30.execute("INSERT INTO decisions VALUES (?, '{}')", (NOW21 - 16 * DAY,))
+    t30.commit()
+    t30.close()
+    monkeypatch.setattr(el, "_btc_bench", lambda jj, start: dict(bench))
+    out = {"results": {"books": [{"key": "t3", "pct": books["t3"], "vs_pct": books["t3_hold"]},
+                                 {"key": "t30", "pct": books["t30"], "vs_pct": books["t30_hold"]}]}}
+    return el, j, out
+
+
+GOOD = {"b500": 520.0, "t3": 3.0, "t3_hold": 1.0, "t30": 2.0, "t30_hold": 1.0}
+
+
+def test_strategy_baselines_reads_the_accounts_books_with_buy_and_hold_and_the_btc_50_day(tmp_path, monkeypatch):
+    """strategy_baselines (Oct 21): not the retired Explorer. The books allowed to trade against their own random twins, in
+    independent market events, and the $500 book and both trend books against buy-and-hold and the BTC 50-day benchmark."""
+    bench = {"HOLD": 1.0, "GATE50": 0.5}
+    el, j, out = _baselines_setup(tmp_path, monkeypatch, 9, 2.0, -1.0, GOOD, bench)
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "PENDING" and "9 closed trades, 9 of 10 independent market events" in r["note"]   # ZONE_TOUCH and E1 left out
+    assert "+$3.00 per $100" in r["note"] and "the retired Explorer no longer counts" in r["note"]
+    (tmp_path / "p").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "p", monkeypatch, 10, 2.0, -1.0, GOOD, bench)
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "PASS" and "the $500 book +4.00% since 2026-10-11" in r["note"] and "Bitcoin held +1.0%" in r["note"]
+    assert "the 10-coin trend book +3.00%" in r["note"] and "50-day benchmark +0.5%" in r["note"]
+
+
+def test_strategy_baselines_fails_when_a_book_trails_a_benchmark_or_its_twin(tmp_path, monkeypatch):
+    bench = {"HOLD": 1.0, "GATE50": 0.5}
+    (tmp_path / "a").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "a", monkeypatch, 10, -2.0, -1.0, GOOD, bench)          # behind its random twin
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "FAIL" and "behind: the allowed books against their twins" in r["note"]
+    (tmp_path / "b").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "b", monkeypatch, 10, 2.0, -1.0, dict(GOOD, b500=490.0), bench)   # $500 book -2%
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "FAIL" and "behind: the $500 book" in r["note"]
+    (tmp_path / "c").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "c", monkeypatch, 10, 2.0, -1.0, GOOD, {"HOLD": 1.0, "GATE50": 2.5})  # +2.0% under the 50-day's +2.5%
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "FAIL" and r["note"].split("behind:")[1].strip() == "the 30-coin trend book"   # the 10-coin book (+3.0%) is ahead
+    (tmp_path / "d").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "d", monkeypatch, 10, 2.0, -1.0, GOOD, bench)
+    r = el.baselines_reading(j, {})                                                                   # trend books not read: not a pass
+    assert r["status"] == "FAIL" and "the 10-coin trend book (not read)" in r["note"]
+
+
+def _l1(dest, day, minutes, alerts=()):
+    import sqlite3 as sq
+    from datetime import datetime, timezone
+
+    d0 = int(datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
+    con = sq.connect(str(dest / f"l1_{day}.sqlite"))
+    con.execute("CREATE TABLE site (t INTEGER, ok INTEGER, ms INTEGER, detail TEXT)")
+    con.executemany("INSERT INTO site VALUES (?,1,100,NULL)", [(d0 + 60 * m + 5,) for m in minutes])
+    con.commit()
+    con.close()
+    return d0
+
+
+def _health(j):
+    j.db.execute("CREATE TABLE health_log (id INTEGER PRIMARY KEY AUTOINCREMENT, part TEXT, down_t INTEGER, up_t INTEGER, detail TEXT)")
+    j.db.execute("CREATE TABLE eye_events (id TEXT, t INTEGER, kind TEXT, coin TEXT, price REAL, title TEXT, body TEXT, pushed INTEGER, detail TEXT)")
+
+
+def test_ops_outages_counts_part_outages_and_their_phone_notes(tmp_path):
+    """ops_outages (Oct 21): it stayed green through the 426-minute Hands outage of Oct 16-17. A part outage of 10+ minutes needs its
+    phone note within 5 minutes and must end within 60; a short blip counts for nothing."""
+    from jarvis.service import evidence_live as el
+
+    dest = tmp_path / "w"
+    dest.mkdir()
+    for d in range(7, -1, -1):
+        from datetime import datetime, timezone
+
+        _l1(dest, datetime.fromtimestamp(NOW21 - d * DAY, timezone.utc).strftime("%Y-%m-%d"), range(1440))
+    j = _j(tmp_path, NOW21)
+    _health(j)
+    ok = {"status": "PASS", "note": "worker alert armed; outside view fine"}
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "PASS" and "0 of 10+ minutes" in r["note"] and "outside view fine" in r["note"]
+    assert el.outages_reading(j, {"status": "PARTLY", "note": "alert not proven"}, dest)["status"] == "PARTLY"
+    assert el.outages_reading(j, {"status": "PENDING"}, dest)["status"] == "PENDING"
+    t0 = NOW21 - 4 * DAY
+    j.db.execute("INSERT INTO health_log (part, down_t, up_t) VALUES ('hands', ?, ?)", (t0, t0 + 426 * 60))
+    j.db.execute("INSERT INTO eye_events (id, t, kind, pushed, detail) VALUES ('e', ?, 'HEALTH_DOWN', 1, '{\"part\": \"hands\"}')", (t0,))
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "FAIL" and "down more than 60 minutes: hands" in r["note"] and "426 min" in r["note"]
+    j.db.execute("UPDATE health_log SET up_t=?", (t0 + 20 * 60,))
+    assert el.outages_reading(j, ok, dest)["status"] == "PASS"                     # 20 minutes, noted at once
+    j.db.execute("UPDATE eye_events SET t=?", (t0 + 6 * 60,))                       # noted 6 minutes late
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "FAIL" and "NO phone note for: hands" in r["note"]
+    j.db.execute("UPDATE eye_events SET t=?, pushed=0", (t0,))                      # recorded but never reached the phone
+    assert el.outages_reading(j, ok, dest)["status"] == "FAIL"
+    j.db.execute("UPDATE health_log SET up_t=?", (t0 + 8 * 60,))                    # an 8-minute blip: not an outage
+    assert el.outages_reading(j, ok, dest)["status"] == "PASS"
+    assert el.outages_reading(j, {"status": "FAIL", "note": "outside outage not alerted"}, dest)["status"] == "FAIL"
+
+
+def test_ops_outages_counts_the_minutes_the_worker_could_not_see(tmp_path):
+    """The worker's blind time: on a pulled day its own minute record decides (Oct 18-19: SSH down while it recorded every minute,
+    not blind); on a day not pulled yet, the minutes the main Mac could not reach it. Over 420 minutes in 7 days fails."""
+    from datetime import datetime, timezone
+
+    from jarvis.service import evidence_live as el
+
+    dest = tmp_path / "w"
+    dest.mkdir()
+    days = [datetime.fromtimestamp(NOW21 - d * DAY, timezone.utc).strftime("%Y-%m-%d") for d in range(7, 0, -1)]   # today not pulled
+    starts = [_l1(dest, d, range(1440)) for d in days]
+    j = _j(tmp_path, NOW21)
+    _health(j)
+    ok = {"status": "PASS", "note": "outside fine"}
+    j.db.execute("INSERT INTO health_log (part, down_t, up_t) VALUES ('worker', ?, ?)", (starts[-2] + 3600, starts[-2] + 15 * 3600))
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "PASS" and "could not see for 0 minutes" in r["note"] and "could not reach it for 840 minutes" in r["note"]
+    today0 = NOW21 - NOW21 % DAY
+    j.db.execute("INSERT INTO health_log (part, down_t, up_t) VALUES ('worker', ?, NULL)", (today0 + 3600,))   # still unreachable today
+    r = el.outages_reading(j, ok, dest)
+    blind = el.worker_blind_minutes(j, NOW21 - 7 * DAY, NOW21, dest, el._part_outages(j, NOW21 - 7 * DAY, NOW21))
+    assert blind["unreachable_not_pulled"] == (NOW21 - today0 - 3600) // 60 and r["status"] == ("FAIL" if blind["minutes"] > 420 else "PASS")
+    j.db.execute("DELETE FROM health_log")
+    (dest / f"l1_{days[2]}.sqlite").unlink()
+    _l1(dest, days[2], range(0, 1440 - 500))                                       # a pulled day with 500 minutes not looking
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "FAIL" and "the worker blind 500 minutes (over 420)" in r["note"]
+    assert el.WORKER_BLIND_MAX_MIN == 420 and el.PART_OUTAGE_MAX_MIN == 60 and el.OUTAGE_DAYS == 7
+    j2 = _j(tmp_path, NOW21)
+    _health(j2)
+    r = el.outages_reading(j2, ok, tmp_path / "none")                            # no worker on this machine: not a pass
+    assert r["status"] == "PARTLY" and "not measured" in r["note"]
+
+
+def test_a_hand_written_pass_expires_like_the_exam(tmp_path):
+    """Oct 21: each hand-written check carries an evidence date and an expiry (30 days, 35 for the monthly rehearsal); an expired
+    hand-written PASS reads PARTLY, as an exam pass older than 8 days does. Non-passes are left as they are."""
+    from datetime import datetime, timezone
+
+    from jarvis.service import evidence_live as el
+    from jarvis.service.core import docs_dir
+
+    def at(day):
+        return datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() + 3600
+
+    c = {"status": "PASS", "note": "x", "evidence_date": "2026-10-06", "expires_days": 30}
+    el._hand_age(c, at("2026-11-05"))
+    assert c["status"] == "PASS" and c["expires"] == "2026-11-05"
+    el._hand_age(c, at("2026-11-06"))
+    assert c["status"] == "PARTLY" and "expired on 2026-11-05" in c["note"]
+    r = {"status": "PASS", "note": "rehearsed Sep 30", "evidence_date": "2026-09-30", "expires_days": 35}
+    el._hand_age(r, at("2026-11-04"))
+    assert r["status"] == "PASS"
+    el._hand_age(r, at("2026-11-05"))
+    assert r["status"] == "PARTLY"
+    f = {"status": "PENDING", "note": "", "evidence_date": "2020-01-01"}
+    el._hand_age(f, at("2026-11-06"))
+    assert f["status"] == "PENDING" and f["expires"] == "2020-01-31"               # the default is 30 days
+    m = {"status": "PASS", "note": "measured"}
+    el._hand_age(m, at("2030-01-01"))
+    assert m == {"status": "PASS", "note": "measured"}                             # no evidence date: a measured check
+    g = json.loads((docs_dir(tmp_path) / "knowledge" / "acceptance_gate.json").read_text())
+    hand = {c["id"] for c in g["checks"] if c.get("evidence_date")}
+    assert hand == {"data_correct", "data_complete", "data_pit", "data_survivorship", "data_costs", "engine_lookahead", "engine_risk",
+                    "strategy_oos", "strategy_universe", "strategy_survivorship", "agent_explains", "ops_stale", "ux_confirm"}
+    for c in g["checks"]:
+        if c["id"] in hand:
+            assert c["expires_days"] == (35 if c["id"] == "engine_risk" else 30) and c["evidence_what"]
+    j = types.SimpleNamespace(dir=tmp_path, db=sqlite3.connect(":memory:"), now=lambda: at("2026-12-01"))
+    gate = el._gate(j, {})
+    by = {c["id"]: c for c in gate["checks"]}
+    assert by["ux_confirm"]["status"] == "PARTLY" and by["strategy_oos"]["status"] == "PARTLY" and "expired" in by["ux_confirm"]["note"]

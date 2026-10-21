@@ -1,6 +1,6 @@
 {
  "version": "acceptance_gate.v1",
- "updated": "2026-10-15",
+ "updated": "2026-10-21",
  "source": "Ananta Engine Acceptance Framework (Madhav, Oct 6)",
  "rule": "The engine is ready to lock (and go to the App Store) only when every check passes at the same time. Read daily; a pass can turn back into a fail.",
  "checks": [
@@ -11,7 +11,10 @@
    "measure": "Quality grade of every coin used; redenomination flags handled",
    "pass_mark": "No unhandled flag; grade A or B",
    "status": "PASS",
-   "note": "COCOS, BNX and LUNA cut"
+   "note": "COCOS, BNX and LUNA cut",
+   "evidence_date": "2026-10-06",
+   "expires_days": 30,
+   "evidence_what": "verdict written at the gate's start (COCOS and BNX cut in review #15, Oct 4)"
   },
   {
    "id": "data_complete",
@@ -20,7 +23,10 @@
    "measure": "Missing-data share; stale-candle detection",
    "pass_mark": "Under 0.5% missing; stale data stops trading",
    "status": "PASS",
-   "note": ""
+   "note": "",
+   "evidence_date": "2026-10-06",
+   "expires_days": 30,
+   "evidence_what": "verdict written at the gate's start"
   },
   {
    "id": "data_pit",
@@ -29,7 +35,10 @@
    "measure": "Every test uses only data known at that moment",
    "pass_mark": "Code tests plus review rule",
    "status": "PASS",
-   "note": ""
+   "note": "",
+   "evidence_date": "2026-10-06",
+   "expires_days": 30,
+   "evidence_what": "verdict written at the gate's start"
   },
   {
    "id": "data_survivorship",
@@ -38,7 +47,10 @@
    "measure": "Each traded idea re-tested on the point-in-time universe of its tier",
    "pass_mark": "Done for every tier that trades",
    "status": "PASS",
-   "note": "30-coin tier (#22) and live 10 (#30, Oct 15) re-tested on their point-in-time tiers"
+   "note": "30-coin tier (#22) and live 10 (#30, Oct 15) re-tested on their point-in-time tiers",
+   "evidence_date": "2026-10-15",
+   "expires_days": 30,
+   "evidence_what": "review #30 (live 10) on its point-in-time tier"
   },
   {
    "id": "data_costs",
@@ -47,7 +59,10 @@
    "measure": "Every book pays NDAX fee plus measured spread",
    "pass_mark": "All books",
    "status": "PASS",
-   "note": "Hunter's book fixed Oct 5"
+   "note": "Hunter's book fixed Oct 5",
+   "evidence_date": "2026-10-06",
+   "expires_days": 30,
+   "evidence_what": "verdict written at the gate's start (Hunter's book fixed Oct 5); the code reads PARTLY until S2"
   },
   {
    "id": "engine_reproducible",
@@ -65,7 +80,10 @@
    "measure": "Tests that feed future bars and expect no change",
    "pass_mark": "Tests pass",
    "status": "PASS",
-   "note": ""
+   "note": "",
+   "evidence_date": "2026-10-06",
+   "expires_days": 30,
+   "evidence_what": "verdict written at the gate's start"
   },
   {
    "id": "engine_sizing",
@@ -92,7 +110,10 @@
    "measure": "Kill switch, stops, caps rehearsed",
    "pass_mark": "Rehearsal passes monthly",
    "status": "PASS",
-   "note": "rehearsed Sep 30; next due Oct 30"
+   "note": "rehearsed Sep 30; next due Oct 30",
+   "evidence_date": "2026-09-30",
+   "expires_days": 35,
+   "evidence_what": "the rehearsal of Sep 30; monthly, so 35 days"
   },
   {
    "id": "strategy_oos",
@@ -101,7 +122,10 @@
    "measure": "Pre-registered, discovery then confirm",
    "pass_mark": "Pass in both periods",
    "status": "PASS",
-   "note": "T3-B on 10 coins; the dip trade is weak"
+   "note": "T3-B on 10 coins; the dip trade is weak",
+   "evidence_date": "2026-10-06",
+   "expires_days": 30,
+   "evidence_what": "verdict written at the gate's start (reviews #4 and #20)"
   },
   {
    "id": "strategy_universe",
@@ -110,7 +134,10 @@
    "measure": "Re-test on 30 and 120 coins",
    "pass_mark": "Pass on its own tier",
    "status": "PASS",
-   "note": "#15"
+   "note": "#15",
+   "evidence_date": "2026-10-04",
+   "expires_days": 30,
+   "evidence_what": "review #15"
   },
   {
    "id": "strategy_survivorship",
@@ -119,14 +146,17 @@
    "measure": "Re-test on the point-in-time tier, for every tier that could trade real money (Madhav, Oct 15: the live 10; the 30-coin tier is evidence only)",
    "pass_mark": "Pass",
    "status": "PASS",
-   "note": "Live 10 passes (#30): +3.7% in 2024-26 vs holding -31.9%, much weaker than on today's 10 (+15.1%); the 30-coin tier failed (#22) and is evidence only"
+   "note": "Live 10 passes (#30): +3.7% in 2024-26 vs holding -31.9%, much weaker than on today's 10 (+15.1%); the 30-coin tier failed (#22) and is evidence only",
+   "evidence_date": "2026-10-15",
+   "expires_days": 30,
+   "evidence_what": "review #30"
   },
   {
    "id": "strategy_baselines",
    "area": "Strategy",
    "check": "Beats baselines",
-   "measure": "Live and history vs random, buy-and-hold and the simple versions",
-   "pass_mark": "Ahead after costs with 10+ market events",
+   "measure": "The account's books, not the retired Explorer: every evidence book allowed to trade (strategy_status.json: not 'won't take again', not parked or retired, not a random baseline) against its own random twin per $100 after costs, weighted by its closed trades and counted in independent market events (entries within 3 days of each other are one event); and the $500 book and the two trend books, each from its own start, against buy-and-hold (Bitcoin held for the $500 book, the book's own coins held for a trend book) and the BTC 50-day benchmark over the same days. Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "At least 10 independent market events in the allowed books; then the allowed books ahead of their random twins after costs AND every one of the three portfolios ahead of both buy-and-hold and the BTC 50-day benchmark",
    "status": "LIVE",
    "note": ""
   },
@@ -134,8 +164,8 @@
    "id": "strategy_regimes",
    "area": "Strategy",
    "check": "Failure regimes known",
-   "measure": "Closed trades of each traded idea (H07 on tier A, Jarvis's book) split by the exposure dial at entry",
-   "pass_mark": "At least 10 market events with the dial open AND 10 with it closed, results written for both",
+   "measure": "Closed trades of each traded idea (H07 on tier A, Jarvis's book) split by the exposure dial on their entry day, counted as independent market events the way the scoreboard counts a daily book (entries within 3 days of each other, any coin, are one event), not one per closing day. Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "At least 10 independent market events with the dial open AND 10 with it closed, for each idea, results written for both",
    "status": "PENDING",
    "note": "measured live (Oct 11)"
   },
@@ -161,8 +191,8 @@
    "id": "agent_no_failed_rules",
    "area": "Agent",
    "check": "No failed research as rules",
-   "measure": "Decisions citing a context-only or switched-off idea as a reason",
-   "pass_mark": "0 in the weekly audit",
+   "measure": "Buys of the last 7 days citing a context-only or switched-off idea as a reason: the brain's own book (from its decision note) and the bold book (from its recorded knowledge list; the bold book is never blocked, so each such buy counts). The bold book added: Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "0 in the last 7 days, over at least one buy of either book",
    "status": "LIVE",
    "note": ""
   },
@@ -173,14 +203,17 @@
    "measure": "Each decision has a plan and its reasons before the outcome",
    "pass_mark": "100%",
    "status": "PASS",
-   "note": "Jarvis's book"
+   "note": "Jarvis's book",
+   "evidence_date": "2026-10-06",
+   "expires_days": 30,
+   "evidence_what": "verdict written at the gate's start"
   },
   {
    "id": "agent_cites",
    "area": "Agent",
    "check": "Cites evidence",
-   "measure": "Answers carry evidence items that open on screen (checked by code on the newest 20 answers with numbers, Oct 15)",
-   "pass_mark": "Spot check 20 answers a week: at least 18 of 20",
+   "measure": "Answers carry evidence items that open on screen, checked by code on the newest 20 answers with numbers in conversations only: threads a person asked in, never the scheduled morning and evening briefs, the brain's or the bold book's own calls (the stance), the news reads, tests, exams or family questions. Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "At least 18 of the newest 20 conversation answers with numbers (last 7 days)",
    "status": "PARTLY",
    "note": ""
   },
@@ -188,8 +221,8 @@
    "id": "ops_outages",
    "area": "Operations",
    "check": "Outages detected",
-   "measure": "Watchdog on every part, and the worker Mac's outside check of the public page every minute (a sleeping or frozen main Mac cannot report itself); its phone note fires at minute 10 of an outage (Madhav, Oct 15)",
-   "pass_mark": "Every outage of 10+ minutes alerted by minute 15, from the day the worker's alert is armed; the alert armed and one note proven to arrive (was: within 5 minutes, before the worker alert was chosen at 10 minutes)",
+   "measure": "Over the last 7 days: (1) the worker Mac's outside check of the public page every minute, its phone note at minute 10 of an outage (Madhav, Oct 15); (2) every part the health watchdog checks (Hands, the Explorer, the jobs, the feed, the tunnel...), from its outage record; (3) the minutes the worker Mac could not see anything: on a day pulled from it, the minutes its own record has no look at the page; on a day not pulled yet, the minutes the main Mac could not reach it. Part outages and the worker's blind time added: Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "Every outside outage of 10+ minutes alerted by minute 15 with the alert armed and one note proven to arrive; every part outage of 10+ minutes noted on the phone within 5 minutes of being marked down and none longer than 60 minutes; the worker blind at most 420 minutes in the 7 days (60 a day, as the run checker's 1,380 of 1,440 minutes)",
    "status": "PARTLY",
    "note": "needs the worker Mac's outside view (Oct 4, Oct 12 and Oct 13 went unalerted: the reason the alert exists)"
   },
@@ -200,7 +233,10 @@
    "measure": "Engine refuses to trade on stale data",
    "pass_mark": "Tested",
    "status": "PASS",
-   "note": "the Explorer stands still"
+   "note": "the Explorer stands still",
+   "evidence_date": "2026-10-06",
+   "expires_days": 30,
+   "evidence_what": "verdict written at the gate's start"
   },
   {
    "id": "ops_no_trade_unhealthy",
@@ -236,7 +272,10 @@
    "measure": "Consequential actions need a confirm card",
    "pass_mark": "100%",
    "status": "PASS",
-   "note": "orders and switches"
+   "note": "orders and switches",
+   "evidence_date": "2026-10-06",
+   "expires_days": 30,
+   "evidence_what": "verdict written at the gate's start"
   },
   {
    "id": "ux_why",
@@ -247,5 +286,6 @@
    "status": "PARTLY",
    "note": ""
   }
- ]
+ ],
+ "hand_written": "A check whose status is written by hand carries evidence_date (the day its evidence was last checked) and expires_days (30, or 35 for a monthly check); after that a hand-written PASS reads PARTLY until the evidence is checked again and the date renewed, as the exam's 8-day rule. Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)"
 }

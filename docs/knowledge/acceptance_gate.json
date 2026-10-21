@@ -110,10 +110,10 @@
    "measure": "Kill switch, stops, caps rehearsed",
    "pass_mark": "Rehearsal passes monthly",
    "status": "PASS",
-   "note": "rehearsed Sep 30; next due Oct 30",
-   "evidence_date": "2026-09-30",
+   "note": "rehearsed Oct 21 (kill switch on, checked, off in 1 s with no Hands position open; brake, sizing and guard tests 41 of 41; kill_plan lists every $500-book holding, about $491.86 CAD); next due Nov 20",
+   "evidence_date": "2026-10-21",
    "expires_days": 35,
-   "evidence_what": "the rehearsal of Sep 30; monthly, so 35 days"
+   "evidence_what": "the rehearsal of Oct 21 (docs/LIVE_MONEY_SAFETY.md section 6 checklist); monthly, so 35 days"
   },
   {
    "id": "strategy_oos",

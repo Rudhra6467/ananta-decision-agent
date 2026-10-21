@@ -287,9 +287,15 @@ def _snapshots() -> None:
                 J().record_snapshot()
             except Exception:  # noqa: BLE001  history is best-effort
                 pass
+            try:                                          # Oct 21: every step's *_error is kept with its UTC time, never thrown away
+                jobs_out = background_jobs()
+            except Exception as exc:  # noqa: BLE001
+                jobs_out = {"background_jobs_error": f"{type(exc).__name__}: {str(exc)[:200]}"}
             try:
-                background_jobs()
-            except Exception:  # noqa: BLE001
+                from jarvis.service import reliability
+
+                reliability.record_job_errors(jobs_out)
+            except Exception:  # noqa: BLE001  recording never stops the loop
                 pass
             try:                                          # build plan 1.4b: every account's watches and positions, one shared snapshot
                 from jarvis.service import watches as _W

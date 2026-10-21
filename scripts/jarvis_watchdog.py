@@ -123,5 +123,10 @@ def sites(st: dict, now: float, send, out: dict, opener=None) -> dict:
     return st
 
 
+def line(out: dict, now: float | None = None) -> str:
+    """One watchdog.log line: its UTC time first (Oct 21), so the run checker can date every look (jarvis/service/runcheck_parts.py)."""
+    return f"[{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(time.time() if now is None else now))} UTC] {json.dumps(out)}"
+
+
 if __name__ == "__main__":
-    print(json.dumps(main(sys.argv[1:])))
+    print(line(main(sys.argv[1:])))

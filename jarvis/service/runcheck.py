@@ -252,7 +252,12 @@ def judge(part: dict, paths: dict, now: int, span: int) -> dict:
                 params["inst"] = slots[-1]
             events = _sql(pr["sql"].format(**paths), pr["query"], params)
         elif "log" in pr:
-            events = _log(part, paths)
+            try:
+                events = _log(part, paths)
+            except FileNotFoundError:
+                if not part.get("from_first"):
+                    raise
+                events = []                              # not written yet: judged from its first dated line (below)
         elif "files" in pr:
             events = _files(part, paths, slots)
         elif "sqlite_files" in pr:
@@ -273,6 +278,17 @@ def judge(part: dict, paths: dict, now: int, span: int) -> dict:
         res["misses"].append(_miss(part, "no proof", slots[0], ends[slots[-1]], detail=f"the proof could not be read: {exc}"[:200]))
         res["expected"] = len(slots)
         return res
+
+    if part.get("from_first") and events is not None:   # Oct 21: proof that starts with a code change is judged from its first record
+        first = min((e[0] for e in events), default=None)
+        if first is None:
+            res["not_checked"] = pr.get("before_first", "no dated record yet")
+            return res
+        if not part.get("latest_only"):                  # a single current value is judged as it is, however old
+            slots = [s for s in slots if ends[s] > first]
+        if not slots:
+            res["not_checked"] = "not started yet in this window"
+            return res
 
     need = part.get("min_work", 1)
     for s in slots:

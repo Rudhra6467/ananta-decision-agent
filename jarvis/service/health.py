@@ -55,6 +55,9 @@ FIX = {"explorer": "Restart it from the main checkout (RUNBOOK_SAFETY.md, 'Explo
        "universe_feed": "Restart Jarvis (deploy_jarvis.sh); if it stays down, check the internet and Binance's public API (api.binance.com).",
        "worker": "Check that the old MacBook Air is plugged in, awake and on the home network, then run: ssh ananta-worker '~/ananta_worker/status'"}
 STATE: dict[str, Any] = {"last_run": None, "jobs_t": None, "running": False, "parts": {}}
+# Oct 21: the time of the last round, kept as a row of health_state (last_push = the epoch time, fails = parts checked), so the run
+# checker can date it. A row, not a new column: the table keeps its six columns and older code that writes six values still works.
+LAST_CHECK = "_last_check"
 _lock = threading.Lock()
 
 
@@ -265,6 +268,8 @@ def watch(j, push: Callable | None = None, get: Callable = _get, now: float | No
             _note(j, "HEALTH_DOWN", part, f"Still down: {name}", f"Down for {(now - down_t) / 3600:.1f} hours ({r['detail']}). {FIX.get(part, '')}", push)
             down.append(part)
         j.db.execute("INSERT OR REPLACE INTO health_state VALUES (?,?,?,?,?,?)", (part, 0, fails, down_t, last_push, r["detail"]))
+    j.db.execute("INSERT OR REPLACE INTO health_state (part, ok, fails, down_t, last_push, detail) VALUES (?,?,?,?,?,?)",
+                 (LAST_CHECK, 1, len(res), None, int(now), time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(now))))
     j.db.commit()
     STATE.update(last_run=now, parts=res)
     return {"parts": res, "went_down": down, "came_back": back}
@@ -274,7 +279,7 @@ def status(j) -> dict:
     """For the app and Ask: every part's last check, and the outages of the last 3 days."""
     _table(j)
     rows = {p: {"ok": bool(ok), "fails": f, "down_since": d, "detail": det} for p, ok, f, d, _, det in
-            j.db.execute("SELECT part, ok, fails, down_t, last_push, detail FROM health_state")}
+            j.db.execute("SELECT part, ok, fails, down_t, last_push, detail FROM health_state WHERE part != ?", (LAST_CHECK,))}
     log = [dict(zip(("part", "down_t", "up_t", "detail"), r)) for r in
            j.db.execute("SELECT part, down_t, up_t, detail FROM health_log WHERE down_t >= ? ORDER BY down_t DESC LIMIT 30", (int(time.time() - 3 * 86400),))]
     for x in log:
@@ -298,6 +303,7 @@ def start(get_j: Callable[[], Any], push: Callable | None = None, every: float =
         if STATE.get("running"):
             return False
         STATE["running"] = True
+    STATE["push"] = push                                 # reused by reliability.save_failed (a paid result that was not saved)
 
     def loop():
         time.sleep(90)                                   # let the eye and the jobs start first

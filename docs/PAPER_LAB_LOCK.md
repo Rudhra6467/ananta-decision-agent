@@ -64,3 +64,10 @@ fixed in Hands PR #4 and in SD6 on 2026-09-29. Operator approved the fix.
 - **V0_TRAIL**: failed the holdout and the fresh coins. No new setups; its open positions finish under their own rules.
   - Set `ANANTA_CANDIDATE_V0_NEW=1` to re-enable it.
 - Evidence class for both: `CANDIDATE_PAPER`. exec, live and M2 are all false.
+
+## Candidate books retired (2026-10-21)
+
+- Madhav, 2026-10-21 09:41 Toronto: "for all the recommended items, its yes" (OD-CANDIDATE-BOOKS (a)).
+- Both V0_TRAIL and V1_RIDE are retired: `candidate_paper.RETIRED` makes every tick a wind-down (no new setups, a resting
+  order is cancelled), whatever `ANANTA_CANDIDATE_V0_NEW` or the breaker says. Resetting V1's breaker no longer restarts entries.
+- Nothing is deleted: `candidate_book.sqlite`, `candidate_v1_book.sqlite` and V1's TRIPPED entry in `breaker_state.json` stay as history.

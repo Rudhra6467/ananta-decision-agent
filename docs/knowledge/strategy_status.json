@@ -103,9 +103,9 @@
   },
   "CANDIDATE": {
    "name": "Frozen trend-dip candidate books (V0 and V1)",
-   "status": "PARKED",
+   "status": "RETIRED",
    "verdict": "wont_take_again",
-   "why": "The 4-hour trend-dip candidate failed its one-time holdout (docs/research/CANDIDATE_V3_HOLDOUT_RESULT.md: -0.48% a trade at NDAX costs, its $1,000 book -2.94% while buy-and-hold made +24.69%); V1, its trend-ride exit, passed the fresh-coin study by its rules but lost 61% from a 2025 start (docs/research/STUDY_V3_FRESH_RESULTS.md). Both paper books (candidate_book.sqlite V0, candidate_v1_book.sqlite V1) ran inside the hourly watch: last trades closed Oct 8 (V0 3, V1 10, none won), no updates since that watch was parked on Oct 11 (D6). Kept as a record; never the account, never pushed."
+   "why": "The 4-hour trend-dip candidate failed its one-time holdout (docs/research/CANDIDATE_V3_HOLDOUT_RESULT.md: -0.48% a trade at NDAX costs, its $1,000 book -2.94% while buy-and-hold made +24.69%); V1, its trend-ride exit, passed the fresh-coin study by its rules but lost 61% from a 2025 start (docs/research/STUDY_V3_FRESH_RESULTS.md). Both paper books (candidate_book.sqlite V0, candidate_v1_book.sqlite V1) ran inside the hourly watch: last trades closed Oct 8 (V0 3, V1 10, none won), no updates since that watch was parked on Oct 11 (D6). Retired, Madhav 2026-10-21 (OD-CANDIDATE-BOOKS (a): \"for all the recommended items, its yes\"): neither book opens a new paper entry (candidate_paper.RETIRED); the books, their trades and V1's tripped breaker are kept as history; nothing deleted. Never the account, never pushed."
   },
   "READS": {
    "name": "Madhav's setups M1-M3 (universe books)",

@@ -96,9 +96,15 @@ def fills(j=None, since_t: int = 0, data: Path | None = None, cost_fn=None) -> l
     """Every paper fill since since_t with its effective price (after the cost the book charged itself). Read-only."""
     data = data or DATA
     if cost_fn is None:
+        from types import SimpleNamespace
+
         from jarvis.service import registry
 
-        cost_fn = registry.cost
+        # Oct 21 (morning review): registry.cost() with no registry loaded charges every coin outside the lab ten as tier C on
+        # Kraken's fee, so a report run on its own (86 of 142) disagreed with the same report run after the service had loaded the
+        # registry (69 of 142, the gate's reading). Load the registry of the same folder the fills are read from, every time.
+        reg = registry.load(SimpleNamespace(dir=str(data)))
+        cost_fn = lambda coin: registry.cost(coin, reg)  # noqa: E731
     out: list[dict] = []
     jdb = data / "jarvis.sqlite"
     if jdb.exists():

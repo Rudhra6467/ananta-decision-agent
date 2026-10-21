@@ -76,3 +76,26 @@ def test_report_never_writes(tmp_path):
     src = open(realism.__file__).read()
     for bad in ("INSERT", "UPDATE ", "DELETE", "CREATE TABLE", ".commit("):
         assert bad not in src, bad
+
+
+def test_default_cost_reads_the_registry_of_the_data_folder(tmp_path):
+    """Oct 21: with no cost_fn the report charged every non-lab coin tier C on Kraken's fee unless something else had loaded the
+    registry first, so the same report gave 86 of 142 on its own and 69 of 142 inside the evidence page."""
+    from jarvis.service import registry
+
+    d = tmp_path / "d"
+    d.mkdir()
+    (d / registry.FILE).write_text(json.dumps({"coins": {"ZZZ": {"tier": "A", "ndax": True, "binance_half_spread": 0.0001}}}))
+    t = calendar.timegm(time.strptime("2026-10-15", "%Y-%m-%d")) + 3600 * 12
+    con = sqlite3.connect(d / "jarvis.sqlite")
+    con.execute("CREATE TABLE evidence_trades (watch, coin, entry_t, entry, exit_t, exit)")
+    con.execute("INSERT INTO evidence_trades VALUES (?,?,?,?,?,?)", ("ZONE_TOUCH-UB", "ZZZ", t, 1.0, None, None))
+    con.commit()
+    con.close()
+    saved = dict(registry._CACHE)
+    registry._CACHE.update(m=None, path=None, reg=None)                    # nothing loaded beforehand, as in a run on its own
+    try:
+        (f,) = realism.fills(None, 0, d)
+    finally:
+        registry._CACHE.update(saved)
+    assert abs(f["eff_usd"] - (1 + registry.NDAX_FEE + registry.FLOOR["A"])) < 1e-12

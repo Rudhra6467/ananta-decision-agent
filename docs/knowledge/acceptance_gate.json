@@ -134,8 +134,8 @@
    "id": "strategy_regimes",
    "area": "Strategy",
    "check": "Failure regimes known",
-   "measure": "Closed trades of each traded idea (H07 on tier A, Jarvis's book) split by the exposure dial at entry",
-   "pass_mark": "At least 10 market events with the dial open AND 10 with it closed, results written for both",
+   "measure": "Closed trades of each traded idea (H07 on tier A, Jarvis's book) split by the exposure dial on their entry day, counted as independent market events the way the scoreboard counts a daily book (entries within 3 days of each other, any coin, are one event), not one per closing day. Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "At least 10 independent market events with the dial open AND 10 with it closed, for each idea, results written for both",
    "status": "PENDING",
    "note": "measured live (Oct 11)"
   },

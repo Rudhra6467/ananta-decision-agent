@@ -1041,6 +1041,37 @@ def execution_reading(rep: dict) -> dict:
     return {"status": status, "note": note}
 
 
+REGIME_EVENTS = 10                       # strategy_regimes: 10 independent market events with the dial open AND 10 with it closed
+REGIME_BOOKS = (("H07-UA", "H07 tier A"), ("JARVIS", "Jarvis's book"))
+
+
+def regimes_reading(j, dial: dict) -> dict:
+    """Gate strategy_regimes (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4, "uses the stricter event
+    count"): each idea's closed trades split by the dial on their entry day, counted as INDEPENDENT market events the way the
+    scoreboard counts a daily book (scoreboard.independent_events, daily=True: entries within 3 days of each other, any coin, are one
+    event; the count Jarvis's book and ledger Q7 use), no longer one event per closing day. PASS needs REGIME_EVENTS in each state
+    for each idea; nothing fails it, it waits."""
+    from jarvis.service.scoreboard import independent_events
+
+    parts, ok = [], True
+    for watch, label in REGIME_BOOKS:
+        ts: dict[str, list[int]] = {"OPEN": [], "CLOSED": []}
+        n = 0
+        for day, et in j.db.execute("SELECT entry_day, entry_t FROM evidence_trades WHERE watch=? AND status='CLOSED' AND entry_t IS NOT NULL",
+                                    (watch,)):
+            d = dial.get(day)
+            if d is not None:
+                ts["OPEN" if d else "CLOSED"].append(int(et))
+                n += 1
+        ev = {k: independent_events(v, daily=True) if v else 0 for k, v in ts.items()}
+        ok = ok and ev["OPEN"] >= REGIME_EVENTS and ev["CLOSED"] >= REGIME_EVENTS
+        parts.append(f"{label}: {ev['OPEN']} independent event{'s' if ev['OPEN'] != 1 else ''} dial open, {ev['CLOSED']} dial closed "
+                     f"({n} closed trade{'s' if n != 1 else ''})")
+    return {"status": "PASS" if ok else "PENDING",
+            "note": "; ".join(parts) + f" (needs {REGIME_EVENTS} each; entries within 3 days of each other are one event; the backtest's "
+                                       "split is in BOOK500.md and reviews #25-#27)"}
+
+
 def _gate_measured(j, by: dict) -> None:
     """The six checks that had no measure until Oct 11 (plan Batch 5): sizing, execution, regimes, the agent exam and the voice exam."""
     from jarvis.service import exam, ndax_book
@@ -1067,18 +1098,7 @@ def _gate_measured(j, by: dict) -> None:
     if c:
         from jarvis.service import exposure
 
-        dial = exposure.dial_by_day(j)
-        parts, ok = [], True
-        for watch, label in (("H07-UA", "H07 tier A"), ("JARVIS", "Jarvis's book")):
-            ev = {"OPEN": set(), "CLOSED": set()}
-            for day, xday in j.db.execute("SELECT entry_day, exit_day FROM evidence_trades WHERE watch=? AND status='CLOSED'", (watch,)):
-                d = dial.get(day)
-                if d is not None:
-                    ev["OPEN" if d else "CLOSED"].add(xday)
-            ok = ok and len(ev["OPEN"]) >= 10 and len(ev["CLOSED"]) >= 10
-            parts.append(f"{label}: {len(ev['OPEN'])} events dial open, {len(ev['CLOSED'])} dial closed")
-        c["status"] = "PASS" if ok else "PENDING"
-        c["note"] = "; ".join(parts) + " (needs 10 each; the backtest's split is in BOOK500.md and reviews #25-#27)"
+        c.update(regimes_reading(j, exposure.dial_by_day(j)))
     try:                                   # worker S1 (Oct 15): measured NDAX costs and the outside view, from the pulled worker days
         from jarvis.service import ndax_spreads, registry, worker
 

@@ -305,6 +305,19 @@ def test_engine_execution_is_judged_against_the_workers_independent_ndax_quote(t
 NOW21 = 1792594431                      # 2026-10-21 14:53 UTC
 
 
+def _ev_table(j):
+    j.db.execute("CREATE TABLE evidence_trades (id TEXT, watch TEXT, coin TEXT, entry_t INTEGER, entry_day TEXT, exit_day TEXT, "
+                 "net_usd REAL, status TEXT)")
+
+
+def _trade(j, watch, et, net, i=[0]):
+    from datetime import datetime, timezone
+
+    i[0] += 1
+    day = datetime.fromtimestamp(et, timezone.utc).strftime("%Y-%m-%d")
+    j.db.execute("INSERT INTO evidence_trades VALUES (?,?,?,?,?,?,?,?)", (f"t{i[0]}", watch, "BTC", et, day, day, net, "CLOSED"))
+
+
 def test_cites_counts_conversations_only_never_briefs_or_the_stance(tmp_path):
     """agent_cites (Oct 21): the scheduled morning and evening briefs ('brief:...'), the brain's own thread (the stance) and the bold
     book's, the news reads and test runs never count; a person's conversation does."""
@@ -347,3 +360,35 @@ def test_cites_counts_conversations_only_never_briefs_or_the_stance(tmp_path):
     except Exception:  # noqa: BLE001
         pass
     assert by["agent_cites"]["status"] == "FAIL" and "17 of the last 20" in by["agent_cites"]["note"]
+
+
+def test_strategy_regimes_counts_independent_market_events_not_closing_days(tmp_path):
+    """strategy_regimes (Oct 21): 'the stricter event count': entries within 3 days of each other are one event (the scoreboard's
+    daily rule, as Jarvis's book and Q7 count), split by the dial on the entry day. The old count (one per closing day) said 9 for
+    Jarvis's book on Oct 21; the stricter count says 1."""
+    from datetime import datetime, timezone
+
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path, NOW21)
+    _ev_table(j)
+    t0 = NOW21 - 60 * DAY
+    for k in range(12):                                   # 12 trades, entered 6 hours apart: one market event
+        _trade(j, "JARVIS", t0 + k * 6 * 3600, -1.0)
+    dial = {datetime.fromtimestamp(t0 + d * DAY, timezone.utc).strftime("%Y-%m-%d"): 1.0 for d in range(-1, 61)}
+    r = el.regimes_reading(j, dial)
+    assert r["status"] == "PENDING" and "Jarvis's book: 1 independent event dial open, 0 dial closed (12 closed trades)" in r["note"]
+    assert "H07 tier A: 0 independent events dial open" in r["note"]
+    # entries 4 days apart, the first 10 with the dial open and the next 10 closed: 10 events in each state for both ideas: PASS
+    j.db.execute("DELETE FROM evidence_trades")
+    dial = {}
+    for watch in ("JARVIS", "H07-UA"):
+        for k in range(20):
+            et = t0 + k * 4 * DAY
+            _trade(j, watch, et, 1.0)
+            dial[datetime.fromtimestamp(et, timezone.utc).strftime("%Y-%m-%d")] = 1.0 if k < 10 else 0.0
+    r = el.regimes_reading(j, dial)
+    assert r["status"] == "PASS" and r["note"].count("10 independent events dial open, 10 dial closed") == 2
+    j.db.execute("DELETE FROM evidence_trades WHERE watch='H07-UA' AND entry_t > ?", (t0 + 15 * 4 * DAY,))   # H07 now 6 closed events
+    assert el.regimes_reading(j, dial)["status"] == "PENDING"
+    assert el.REGIME_EVENTS == 10

@@ -161,8 +161,8 @@
    "id": "agent_no_failed_rules",
    "area": "Agent",
    "check": "No failed research as rules",
-   "measure": "Decisions citing a context-only or switched-off idea as a reason",
-   "pass_mark": "0 in the weekly audit",
+   "measure": "Buys of the last 7 days citing a context-only or switched-off idea as a reason: the brain's own book (from its decision note) and the bold book (from its recorded knowledge list; the bold book is never blocked, so each such buy counts). The bold book added: Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "0 in the last 7 days, over at least one buy of either book",
    "status": "LIVE",
    "note": ""
   },

@@ -392,3 +392,30 @@ def test_strategy_regimes_counts_independent_market_events_not_closing_days(tmp_
     j.db.execute("DELETE FROM evidence_trades WHERE watch='H07-UA' AND entry_t > ?", (t0 + 15 * 4 * DAY,))   # H07 now 6 closed events
     assert el.regimes_reading(j, dial)["status"] == "PENDING"
     assert el.REGIME_EVENTS == 10
+
+
+def test_agent_no_failed_rules_counts_the_bold_books_buys(tmp_path):
+    """agent_no_failed_rules (Oct 21): the bold book is added. A bold TAKE whose recorded knowledge list holds a context-only or
+    switched-off idea is counted (the bold book is never blocked); a bold buy from before the list was recorded is named, not counted."""
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path, NOW21)
+    assert el.no_failed_rules_reading(j)["status"] == "PENDING"                    # no tables at all
+    j.db.execute("CREATE TABLE brain_decisions (t INTEGER, action TEXT, note TEXT)")
+    j.db.execute("CREATE TABLE bold_decisions (id TEXT, t INTEGER, action TEXT, knowledge_used TEXT)")
+    j.db.execute("INSERT INTO bold_decisions VALUES ('a', ?, 'TAKE', NULL)", (NOW21 - 3 * DAY,))       # before Oct 20: no list
+    j.db.execute("INSERT INTO bold_decisions VALUES ('b', ?, 'WOULD_ADD', ?)", (NOW21 - DAY, json.dumps(["FILTERS"])))
+    r = el.no_failed_rules_reading(j)
+    assert r["status"] == "PENDING" and "1 bold buy with no recorded knowledge list" in r["note"]
+    j.db.execute("INSERT INTO bold_decisions VALUES ('c', ?, 'TAKE', ?)", (NOW21 - DAY, json.dumps(["T3", "REGIME", "STOPS"])))
+    r = el.no_failed_rules_reading(j)
+    assert r["status"] == "PASS" and "bold book: 0 of 1 buys" in r["note"] and "1 bold buy from before" in r["note"]
+    j.db.execute("INSERT INTO bold_decisions VALUES ('d', ?, 'TAKE', ?)", (NOW21 - 3600, json.dumps(["T3", "FILTERS"])))
+    r = el.no_failed_rules_reading(j)
+    assert r["status"] == "FAIL" and "bold book: 1 of 2 buys cited a context-only or switched-off idea (FILTERS)" in r["note"]
+    j.db.execute("DELETE FROM bold_decisions WHERE id='d'")
+    j.db.execute("INSERT INTO brain_decisions VALUES (?, 'TAKE', 'cited context-only ideas: FILTERS')", (NOW21 - 3600,))
+    assert el.no_failed_rules_reading(j)["status"] == "FAIL"                       # the brain's own rule is unchanged
+    j.db.execute("DELETE FROM brain_decisions")
+    j.db.execute("INSERT INTO bold_decisions VALUES ('e', ?, 'TAKE', ?)", (NOW21 - 9 * DAY, json.dumps(["FILTERS"])))
+    assert el.no_failed_rules_reading(j)["status"] == "PASS"                       # older than 7 days: out of the window

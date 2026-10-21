@@ -757,6 +757,48 @@ PERMISSION_CHECK_FROM = 1791288000      # 2026-10-06 12:00 UTC: Jarvis's decisio
 GATE_WORDS = {"PASS": "Pass", "FAIL": "Fail", "PARTLY": "Partly", "PENDING": "In progress", "NOT_MEASURED": "Not measured yet"}
 
 
+def no_failed_rules_reading(j) -> dict:
+    """Gate agent_no_failed_rules: buys of the last 7 days that lean on a context-only or switched-off idea (brain.permission_check).
+    The brain's own book: a buy whose note says it cited one (a buy that rested ONLY on such ideas was turned into a pass, the check
+    working). The bold book (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4: "the bold book is added"): a
+    TAKE whose recorded knowledge list (knowledge_used, recorded from Oct 20) holds such an idea; the bold book is never blocked, so
+    each one is counted. A bold buy with no recorded list cannot be checked and is named, not counted. Only buys count."""
+    from jarvis.service import brain
+
+    since = max(int(j.now()) - 7 * DAY, PERMISSION_CHECK_FROM)      # only decisions made since the check exists count
+    # Only BUYS count (status check, Oct 8): a pass that mentions a context idea is not a trade on it.
+    n = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE'", (since,))
+    cited = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE' AND note LIKE '%cited context-only%'", (since,))
+    blocked = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND note LIKE 'permission:%'", (since,))
+    try:
+        rows = j.db.execute("SELECT knowledge_used FROM bold_decisions WHERE t >= ? AND action = 'TAKE'", (since,)).fetchall()
+    except sqlite3.OperationalError:                       # no bold decisions yet (or a table from before Oct 20)
+        rows = []
+    bn = bc = bu = 0
+    bad_ids: set[str] = set()
+    for (ku,) in rows:
+        try:
+            ids = json.loads(ku) if ku else None
+        except ValueError:
+            ids = None
+        if not isinstance(ids, list):
+            bu += 1
+            continue
+        bn += 1
+        bad, _ = brain.permission_check([k for k in ids if isinstance(k, str)])
+        if bad:
+            bc += 1
+            bad_ids |= set(bad)
+    total, flagged = n + bn, cited + bc
+    note = (f"brain: {cited} of {n} buys leaned partly on a context-only idea, {blocked} buys that rested only on one were stopped; "
+            f"bold book: {bc} of {bn} buys cited a context-only or switched-off idea" + (f" ({', '.join(sorted(bad_ids))})" if bad_ids else "")
+            + (f", {bu} bold buy{'s' if bu != 1 else ''} from before its knowledge list was recorded (Oct 20) cannot be checked" if bu else "")
+            + " (last 7 days)")
+    return {"status": "PENDING" if not total else "PASS" if not flagged else "FAIL",
+            "note": note if total else "no buys to check in the last 7 days (the brain's and the bold book's)"
+                                       + (f"; {bu} bold buy{'s' if bu != 1 else ''} with no recorded knowledge list" if bu else "")}
+
+
 def _gate(j, out: dict) -> dict:
     """The Engine Acceptance Gate (docs/knowledge/acceptance_gate.json): 27 checks; a few are computed live here."""
     from jarvis.service.core import docs_dir
@@ -791,16 +833,7 @@ def _gate(j, out: dict) -> dict:
         c["note"] = (f"{ev} of {GOAL_EVENTS} market events; real {_usd(real.get('avg_usd'))} vs random {_usd(r.get('random_avg_usd'))} per $100")
     c = by.get("agent_no_failed_rules")
     if c:
-        since = max(int(j.now()) - 7 * DAY, PERMISSION_CHECK_FROM)      # only decisions made since the check exists count
-        n = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action != 'ERROR'", (since,))
-        # Only BUYS count (status check, Oct 8): a pass that mentions a context idea is not a trade on it. A buy that rested only on
-        # context-only ideas is turned into a pass by brain.permission_check ("permission:" notes = the check working).
-        n = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE'", (since,))
-        cited = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND action = 'TAKE' AND note LIKE '%cited context-only%'", (since,))
-        blocked = _one(j, "SELECT COUNT(*) FROM brain_decisions WHERE t >= ? AND note LIKE 'permission:%'", (since,))
-        c["status"] = "PENDING" if not n else "PASS" if not cited else "FAIL"
-        c["note"] = (f"{cited} of {n} buys leaned partly on a context-only idea; {blocked} buys that rested only on one were stopped "
-                     "(last 7 days, checked since Oct 6)" if n else "no buys since the check started (Oct 6)")
+        c.update(no_failed_rules_reading(j))
     try:
         _gate_measured(j, by)
     except Exception as exc:  # noqa: BLE001  a measurement failing never hides the gate

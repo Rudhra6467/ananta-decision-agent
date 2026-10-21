@@ -1,6 +1,6 @@
 {
  "version": "repair_shop.ledger.v1",
- "updated": "2026-10-20",
+ "updated": "2026-10-21",
  "meaning": {
   "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
   "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
@@ -967,6 +967,23 @@
    "did": "Checked each against the live book, the app's grant record and the benchmark's own database (counts quoted in the corrected rows).",
    "change": "The three rows are corrected in place. Every night the ledger is now checked against its own files (ids, named files, a finished review still in the queue, a review document with no row, a stale updated date) and a new problem becomes one repair-board request (knowledge_build.ledger_nightly).",
    "status": "DONE"
+  },
+  {
+   "id": "TK19",
+   "date": "2026-10-21",
+   "from": "weekly situation review of 14 Oct (docs/repair_shop/weekly/2026-10-14.md)",
+   "what": "The weekly review of 7 to 14 Oct counted the lesson 'random beat the pick' 3 times among Jarvis's closed buys and proposed 'a pre-registered review of this pattern before any change'. The ticket lived only in that markdown file and was never filed (decision map of 20 Oct, section 5; gate review section 2.2: no owner). The three cases, all bought on 8 Oct and stopped the same day: DOGE -$7.54 against its random twin BTC -$3.81; XRP -$6.30 against SOL -$5.47; LINK -$5.38 against ETH -$2.53 ($ per $100 after costs, evidence_trades).",
+   "did": "Filed now, with its evidence (Madhav, 21 Oct 09:41 Toronto: 'Complete all pending tasks and all that are waiting for me. I approve all.'). The question it proposed is already pre-registered as review #33 (docs/research/REVIEW_33.md, 20 Oct): Jarvis's pick against a random coin, forward window 21 Oct to 14 Dec, one look at CHECKPOINT-60.",
+   "change": "None to any trading rule (Rule B). The learning loop now counts each lesson when it matures and files a weekly ticket by itself (learning.count_lessons, nightly); later 'random beat the pick' cases join this ticket instead of filing another.",
+   "status": "WAITING_FOR_EVIDENCE",
+   "next": "Closed at CHECKPOINT-60 with 'pre-registered in #33' and review #33's verdict (REVIEW_33.md, 'What each outcome changes').",
+   "lesson": "random beat the pick",
+   "decisions": [
+    "2fa79120821d",
+    "450cfffaeac5",
+    "58058e45d50b"
+   ],
+   "review": "R33"
   }
  ],
  "changes": [

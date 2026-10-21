@@ -125,8 +125,8 @@
    "id": "strategy_baselines",
    "area": "Strategy",
    "check": "Beats baselines",
-   "measure": "Live and history vs random, buy-and-hold and the simple versions",
-   "pass_mark": "Ahead after costs with 10+ market events",
+   "measure": "The account's books, not the retired Explorer: every evidence book allowed to trade (strategy_status.json: not 'won't take again', not parked or retired, not a random baseline) against its own random twin per $100 after costs, weighted by its closed trades and counted in independent market events (entries within 3 days of each other are one event); and the $500 book and the two trend books, each from its own start, against buy-and-hold (Bitcoin held for the $500 book, the book's own coins held for a trend book) and the BTC 50-day benchmark over the same days. Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "At least 10 independent market events in the allowed books; then the allowed books ahead of their random twins after costs AND every one of the three portfolios ahead of both buy-and-hold and the BTC 50-day benchmark",
    "status": "LIVE",
    "note": ""
   },

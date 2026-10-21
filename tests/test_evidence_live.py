@@ -419,3 +419,72 @@ def test_agent_no_failed_rules_counts_the_bold_books_buys(tmp_path):
     j.db.execute("DELETE FROM brain_decisions")
     j.db.execute("INSERT INTO bold_decisions VALUES ('e', ?, 'TAKE', ?)", (NOW21 - 9 * DAY, json.dumps(["FILTERS"])))
     assert el.no_failed_rules_reading(j)["status"] == "PASS"                       # older than 7 days: out of the window
+
+
+def _baselines_setup(tmp_path, monkeypatch, n_events, mine, twin, books, bench):
+    import sqlite3 as sq
+    import types as ty
+
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path, NOW21)
+    _ev_table(j)
+    t0 = NOW21 - 50 * DAY
+    for k in range(n_events):                            # entries 4 days apart: each its own event
+        _trade(j, "H07-UA", t0 + k * 4 * DAY, mine)
+        _trade(j, "RANDOM_10D-UA", t0 + k * 4 * DAY, twin)
+        _trade(j, "ZONE_TOUCH-UB", t0 + k * 4 * DAY + 3600, 50.0)          # 'won't take again': never counted
+        _trade(j, "E1", t0 + k * 4 * DAY + 7200, 50.0)                    # the retired Explorer's setups: never counted
+    j.db.execute("CREATE TABLE book500 (k TEXT PRIMARY KEY, v TEXT)")
+    j.db.execute("INSERT INTO book500 VALUES ('state', ?)", (json.dumps({"started": "2026-10-11", "value": books["b500"]}),))
+    lay = sq.connect(":memory:")
+    lay.execute("CREATE TABLE decisions (day_t INTEGER, json TEXT)")
+    lay.execute("INSERT INTO decisions VALUES (?, '{}')", (NOW21 - 21 * DAY,))
+    j._layer = lambda: ty.SimpleNamespace(con=lay)
+    t30 = sq.connect(str(tmp_path / "portfolio_book_t30.sqlite"))
+    t30.execute("CREATE TABLE decisions (day_t INTEGER, json TEXT)")
+    t30.execute("INSERT INTO decisions VALUES (?, '{}')", (NOW21 - 16 * DAY,))
+    t30.commit()
+    t30.close()
+    monkeypatch.setattr(el, "_btc_bench", lambda jj, start: dict(bench))
+    out = {"results": {"books": [{"key": "t3", "pct": books["t3"], "vs_pct": books["t3_hold"]},
+                                 {"key": "t30", "pct": books["t30"], "vs_pct": books["t30_hold"]}]}}
+    return el, j, out
+
+
+GOOD = {"b500": 520.0, "t3": 3.0, "t3_hold": 1.0, "t30": 2.0, "t30_hold": 1.0}
+
+
+def test_strategy_baselines_reads_the_accounts_books_with_buy_and_hold_and_the_btc_50_day(tmp_path, monkeypatch):
+    """strategy_baselines (Oct 21): not the retired Explorer. The books allowed to trade against their own random twins, in
+    independent market events, and the $500 book and both trend books against buy-and-hold and the BTC 50-day benchmark."""
+    bench = {"HOLD": 1.0, "GATE50": 0.5}
+    el, j, out = _baselines_setup(tmp_path, monkeypatch, 9, 2.0, -1.0, GOOD, bench)
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "PENDING" and "9 closed trades, 9 of 10 independent market events" in r["note"]   # ZONE_TOUCH and E1 left out
+    assert "+$3.00 per $100" in r["note"] and "the retired Explorer no longer counts" in r["note"]
+    (tmp_path / "p").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "p", monkeypatch, 10, 2.0, -1.0, GOOD, bench)
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "PASS" and "the $500 book +4.00% since 2026-10-11" in r["note"] and "Bitcoin held +1.0%" in r["note"]
+    assert "the 10-coin trend book +3.00%" in r["note"] and "50-day benchmark +0.5%" in r["note"]
+
+
+def test_strategy_baselines_fails_when_a_book_trails_a_benchmark_or_its_twin(tmp_path, monkeypatch):
+    bench = {"HOLD": 1.0, "GATE50": 0.5}
+    (tmp_path / "a").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "a", monkeypatch, 10, -2.0, -1.0, GOOD, bench)          # behind its random twin
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "FAIL" and "behind: the allowed books against their twins" in r["note"]
+    (tmp_path / "b").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "b", monkeypatch, 10, 2.0, -1.0, dict(GOOD, b500=490.0), bench)   # $500 book -2%
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "FAIL" and "behind: the $500 book" in r["note"]
+    (tmp_path / "c").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "c", monkeypatch, 10, 2.0, -1.0, GOOD, {"HOLD": 1.0, "GATE50": 2.5})  # +2.0% under the 50-day's +2.5%
+    r = el.baselines_reading(j, out)
+    assert r["status"] == "FAIL" and r["note"].split("behind:")[1].strip() == "the 30-coin trend book"   # the 10-coin book (+3.0%) is ahead
+    (tmp_path / "d").mkdir()
+    el, j, out = _baselines_setup(tmp_path / "d", monkeypatch, 10, 2.0, -1.0, GOOD, bench)
+    r = el.baselines_reading(j, {})                                                                   # trend books not read: not a pass
+    assert r["status"] == "FAIL" and "the 10-coin trend book (not read)" in r["note"]

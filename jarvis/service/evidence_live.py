@@ -799,6 +799,139 @@ def no_failed_rules_reading(j) -> dict:
                                        + (f"; {bu} bold buy{'s' if bu != 1 else ''} with no recorded knowledge list" if bu else "")}
 
 
+def _baseline_watch(watch: str, reg: dict) -> str | None:
+    """The random twin a book is judged against, as the scoreboard and the universe books pair them: a tier copy '<rule>-U<tier>'
+    against its rule's random baseline on the same tier (universe_watch.BASELINE_OF), any other watch by watches.json."""
+    from jarvis.service import scoreboard, universe_watch
+
+    sp = universe_watch.split(watch)
+    if sp:
+        b = universe_watch.BASELINE_OF.get(sp[0].split(".")[0])
+        return f"{b}-U{sp[1]}" if b else None
+    w = reg.get(watch)
+    return scoreboard._baseline_for(w) if w else None
+
+
+def _btc_bench(j, start: str) -> dict:
+    """Buy-and-hold Bitcoin (HOLD) and the BTC 50-day benchmark (GATE50) from a day on, after NDAX costs (exposure.books)."""
+    from jarvis.service import exposure
+
+    return {b["book"]: b["return_pct"] for b in exposure.books(j, start).get("books", [])}
+
+
+def _day_of(t: float | None) -> str | None:
+    return datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d") if t else None
+
+
+def baselines_reading(j, out: dict | None = None) -> dict:
+    """Gate strategy_baselines (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4: "strategy_baselines
+    points at the account's books, adding buy-and-hold and the BTC 50-day benchmark"). Until Oct 21 it read the retired Explorer
+    against its random entries. Now:
+      the allowed books   every evidence book allowed to trade (missed.book_allowed over strategy_status.json: not 'won't take again',
+                          not parked or retired, not a random baseline), each against its own random twin per $100 after costs,
+                          weighted by its closed trades; counted in independent market events (scoreboard.independent_events,
+                          daily=True: entries within 3 days of each other are one event)
+      the portfolios      the $500 book (from its start) and the two trend books (from their first decision) against buy-and-hold
+                          (Bitcoin held for the $500 book, their own coins held for the trend books) and the BTC 50-day benchmark
+                          over the same days
+    PENDING under GOAL_EVENTS events in the allowed books, or with no twin to compare; then PASS only when the allowed books are
+    ahead of their twins and every portfolio is ahead of both benchmarks; else FAIL."""
+    from jarvis.service import missed, scoreboard
+    from jarvis.service.scoreboard import independent_events
+
+    reg = {w["id"]: w for w in scoreboard.registry(j).get("watches", [])}
+    try:
+        rows = j.db.execute("SELECT watch, net_usd, entry_t FROM evidence_trades WHERE status='CLOSED' AND net_usd IS NOT NULL").fetchall()
+    except sqlite3.OperationalError:                       # no evidence book yet
+        rows = []
+    by: dict[str, list[tuple]] = {}
+    for w, net, et in rows:
+        by.setdefault(w, []).append((float(net), et))
+    allowed = sorted(w for w in by if missed.book_allowed(missed._sid_of_watch(w))[0])
+    num = den = 0.0
+    mine: list[float] = []
+    twins: list[float] = []
+    no_twin = 0
+    for w in allowed:
+        xs = [x for x, _ in by[w]]
+        tw = _baseline_watch(w, reg)
+        ys = [y for y, _ in by.get(tw, [])] if tw else []
+        if not ys:
+            no_twin += len(xs)
+            continue
+        num += len(xs) * (sum(xs) / len(xs) - sum(ys) / len(ys))
+        den += len(xs)
+        mine += xs
+        twins += ys
+    ev = independent_events([int(et) for w in allowed for _, et in by[w] if et], daily=True)
+    edge = num / den if den else None
+    parts = [f"allowed books: {sum(len(by[w]) for w in allowed)} closed trades, {ev} of {GOAL_EVENTS} independent market events"
+             + (f"; against their own random twins {'+' if edge >= 0 else '-'}${abs(edge):.2f} per $100 (weighted by trades; they "
+                f"averaged {_usd(sum(mine) / len(mine))}, the twins {_usd(sum(twins) / len(twins))})" if edge is not None else
+                "; no twin has closed trades yet")
+             + (f"; {no_twin} trade{'s' if no_twin != 1 else ''} whose twin has none closed are not compared" if no_twin and edge is not None else "")]
+    behind: list[str] = []
+    ports: list[str] = []
+    try:
+        from src.research import book500 as B
+
+        r0 = (j.db.execute("SELECT v FROM book500 WHERE k='state'").fetchone()
+              if j.db.execute("SELECT 1 FROM sqlite_master WHERE name='book500'").fetchone() else None)
+        s = json.loads(r0[0]) if r0 else None
+        if s and s.get("started"):
+            ret = 100 * ((s.get("value") or B.START_CAD) / B.START_CAD - 1)
+            bb = _btc_bench(j, s["started"])
+            if "HOLD" not in bb or "GATE50" not in bb:
+                ports.append(f"the $500 book {ret:+.2f}% since {s['started']}; Bitcoin's benchmarks not read (too little history)")
+                behind.append("the $500 book (benchmarks not read)")
+            else:
+                ports.append(f"the $500 book {ret:+.2f}% since {s['started']} (CAD at NDAX) against Bitcoin held {bb['HOLD']:+.1f}% and the "
+                             f"50-day benchmark {bb['GATE50']:+.1f}%")
+                if not (ret > bb["HOLD"] and ret > bb["GATE50"]):
+                    behind.append("the $500 book")
+        else:
+            ports.append("the $500 book has not started")
+            behind.append("the $500 book (not started)")
+    except Exception as exc:  # noqa: BLE001  the book or the Bitcoin candles could not be read
+        ports.append(f"the $500 book could not be read ({str(exc)[:60]})")
+        behind.append("the $500 book (not read)")
+    firsts = {}
+    try:
+        firsts["t3"] = j._layer().con.execute("SELECT min(day_t) FROM decisions").fetchone()[0]
+    except Exception:  # noqa: BLE001
+        pass
+    p30 = Path(j.dir) / "portfolio_book_t30.sqlite"
+    if p30.exists():
+        con = sqlite3.connect(f"file:{p30}?mode=ro", uri=True, timeout=10)
+        try:
+            firsts["t30"] = con.execute("SELECT min(day_t) FROM decisions").fetchone()[0]
+        except sqlite3.Error:
+            pass
+        finally:
+            con.close()
+    books = {b.get("key"): b for b in ((out or {}).get("results") or {}).get("books") or []}
+    for key, label in (("t3", "the 10-coin trend book"), ("t30", "the 30-coin trend book")):
+        b, start = books.get(key), _day_of(firsts.get(key))
+        if not b or b.get("pct") is None or b.get("vs_pct") is None or not start:
+            ports.append(f"{label} not read")
+            behind.append(f"{label} (not read)")
+            continue
+        try:
+            g50 = _btc_bench(j, start).get("GATE50")
+        except Exception:  # noqa: BLE001
+            g50 = None
+        ports.append(f"{label} {b['pct']:+.2f}% since {start} against its coins held {b['vs_pct']:+.2f}%"
+                     + (f" and the 50-day benchmark {g50:+.1f}%" if g50 is not None else " (50-day benchmark not read)"))
+        if g50 is None or not (b["pct"] > b["vs_pct"] and b["pct"] > g50):
+            behind.append(label)
+    note = "; ".join(parts + ports) + "; the retired Explorer no longer counts"
+    if ev < GOAL_EVENTS or edge is None:
+        return {"status": "PENDING", "note": note}
+    ok = edge > 0 and not behind
+    return {"status": "PASS" if ok else "FAIL",
+            "note": note + ("" if ok else "; behind: " + ", ".join((["the allowed books against their twins"] if edge <= 0 else []) + behind))}
+
+
 def _gate(j, out: dict) -> dict:
     """The Engine Acceptance Gate (docs/knowledge/acceptance_gate.json): 27 checks; a few are computed live here."""
     from jarvis.service.core import docs_dir
@@ -823,14 +956,12 @@ def _gate(j, out: dict) -> dict:
             c.update(reconstructable(j))
         except Exception as exc:  # noqa: BLE001
             c["note"] = f"could not measure: {str(exc)[:80]}"
-    r = out.get("results") or {}
     c = by.get("strategy_baselines")
-    if c and r:
-        real = next((x for x in r.get("items", []) if x["key"] == "real"), {})
-        ev = r.get("events") or 0
-        ahead = (real.get("avg_usd") or -9) > (r.get("random_avg_usd") or 0)
-        c["status"] = ("PASS" if ahead else "FAIL") if ev >= GOAL_EVENTS else "PENDING"
-        c["note"] = (f"{ev} of {GOAL_EVENTS} market events; real {_usd(real.get('avg_usd'))} vs random {_usd(r.get('random_avg_usd'))} per $100")
+    if c:
+        try:
+            c.update(baselines_reading(j, out))
+        except Exception as exc:  # noqa: BLE001  the books could not be read: not a pass
+            c["status"], c["note"] = "PENDING", f"could not measure: {str(exc)[:80]}"
     c = by.get("agent_no_failed_rules")
     if c:
         c.update(no_failed_rules_reading(j))

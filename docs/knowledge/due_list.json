@@ -241,7 +241,9 @@
    "due": "2026-11-30",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(b) keep the per-test bar and require a point-in-time or forward re-test before any promotion: written in docs/research/RESEARCH_RULES.md section 1 (under the existing heading; no heading changed). Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-GRAD-GATE7",
@@ -295,7 +297,9 @@
    "due": "2026-11-30",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(b) build nothing; never claim a card influenced a decision (RESEARCH_RULES.md section 6). Revisit after the window. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-MERGE-MAIN",

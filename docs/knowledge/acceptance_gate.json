@@ -1,6 +1,6 @@
 {
  "version": "acceptance_gate.v1",
- "updated": "2026-10-15",
+ "updated": "2026-10-21",
  "source": "Ananta Engine Acceptance Framework (Madhav, Oct 6)",
  "rule": "The engine is ready to lock (and go to the App Store) only when every check passes at the same time. Read daily; a pass can turn back into a fail.",
  "checks": [
@@ -179,8 +179,8 @@
    "id": "agent_cites",
    "area": "Agent",
    "check": "Cites evidence",
-   "measure": "Answers carry evidence items that open on screen (checked by code on the newest 20 answers with numbers, Oct 15)",
-   "pass_mark": "Spot check 20 answers a week: at least 18 of 20",
+   "measure": "Answers carry evidence items that open on screen, checked by code on the newest 20 answers with numbers in conversations only: threads a person asked in, never the scheduled morning and evening briefs, the brain's or the bold book's own calls (the stance), the news reads, tests, exams or family questions. Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "At least 18 of the newest 20 conversation answers with numbers (last 7 days)",
    "status": "PARTLY",
    "note": ""
   },

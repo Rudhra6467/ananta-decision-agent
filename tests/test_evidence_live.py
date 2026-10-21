@@ -146,6 +146,8 @@ def test_agent_cites_is_the_weekly_spot_check_done_by_code(tmp_path):
     def add(i, reply, thread="th", mode="auto", route="market"):
         j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, mode, route) VALUES (?,?,?,?,?,?,?)",
                      (f"m{i}", thread, now - 100 - i, "assistant", json.dumps(reply), mode, route))
+        j.db.execute("INSERT OR IGNORE INTO ask_messages (id, thread, t, role, text, mode) VALUES (?,?,?,?,?,?)",
+                     (f"u-{thread}", thread, now - 1000, "user", "a question", "voice:auto"))     # Oct 21: a conversation has a person's question
 
     good = {"kind": "answer", "answer": "Bitcoin is 80,900.", "evidence": [{"label": "BTC", "value": "80,900", "source": "MARKET_BRIEF", "spot": "markets.btc"}]}
     for i in range(17):
@@ -295,3 +297,53 @@ def test_engine_execution_is_judged_against_the_workers_independent_ndax_quote(t
     monkeypatch.setattr(realism, "report", broken)
     el._gate_measured(j, by)
     assert by["engine_execution"]["status"] == "PENDING" and "could not measure" in by["engine_execution"]["note"]
+
+
+# ---------------------------------------------------------------------------
+# Oct 21 gate bundle (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4)
+# ---------------------------------------------------------------------------
+NOW21 = 1792594431                      # 2026-10-21 14:53 UTC
+
+
+def test_cites_counts_conversations_only_never_briefs_or_the_stance(tmp_path):
+    """agent_cites (Oct 21): the scheduled morning and evening briefs ('brief:...'), the brain's own thread (the stance) and the bold
+    book's, the news reads and test runs never count; a person's conversation does."""
+    from jarvis.service import evidence_live as el
+
+    j = _j(tmp_path, NOW21)
+    j.db.execute("CREATE TABLE ask_messages (id TEXT PRIMARY KEY, thread TEXT, t INTEGER, role TEXT, text TEXT, reply TEXT, mode TEXT, route TEXT)")
+    good = {"kind": "answer", "answer": "Bitcoin is 80,900.", "evidence": [{"label": "BTC", "source": "MARKET_BRIEF", "spot": "markets.btc"}]}
+    bare = {"kind": "answer", "answer": "Bitcoin is 80,900.", "evidence": [{"label": "BTC", "source": "MARKET_BRIEF"}]}
+    k = [0]
+
+    def say(thread, reply, umode="voice:auto", amode="auto", ask=True):
+        k[0] += 1
+        if ask:
+            j.db.execute("INSERT OR IGNORE INTO ask_messages (id, thread, t, role, text, mode) VALUES (?,?,?,?,?,?)",
+                         (f"u{thread}", thread, NOW21 - 5000, "user", "q", umode))
+        j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, mode, route) VALUES (?,?,?,?,?,?,?)",
+                     (f"a{k[0]}", thread, NOW21 - 100 - k[0], "assistant", json.dumps(reply), amode, "market"))
+    for n in range(25):
+        say(f"brief:{n:012d}", good, umode="deep", amode="deep")                    # scheduled briefs: never counted
+    say("brain", good, umode="worker", amode="auto")                               # the stance's thread
+    say("bold", good, amode="worker")
+    say("reads:news", good, amode="worker")
+    say("evalthread01", good, umode="eval:lab")                                    # a test run
+    say("noquestion01", good, ask=False)                                           # no question a person asked
+    assert el.cites(j) == (0, 0, 0)
+    by = {"agent_cites": {"id": "agent_cites"}, "agent_knows": {}, "agent_unknowns": {}, "ux_voice": {}}
+    try:
+        el._gate_measured(j, by)
+    except Exception:  # noqa: BLE001  the exam files may be missing here; cites is written first
+        pass
+    assert by["agent_cites"]["status"] == "PENDING"                               # 25 good briefs once made this a PASS
+    for n in range(17):
+        say("a1b2c3d4e5f6", good)
+    for n in range(3):
+        say("a1b2c3d4e5f6", bare)
+    assert el.cites(j) == (20, 17, 20)
+    try:
+        el._gate_measured(j, by)
+    except Exception:  # noqa: BLE001
+        pass
+    assert by["agent_cites"]["status"] == "FAIL" and "17 of the last 20" in by["agent_cites"]["note"]

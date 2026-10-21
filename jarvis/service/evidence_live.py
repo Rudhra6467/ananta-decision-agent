@@ -932,17 +932,28 @@ CITES_N, CITES_PASS = 20, 18             # agent_cites (Oct 15): the weekly spot
 SIZING_ENTRIES = 20                      # engine_sizing (Oct 15, the Oct 14 audit): 0 violations in at least 20 entries, as engine_execution
 
 
+CITES_NOT_THREADS = ("brain", "bold")     # the brain's own calls (the stance, the morning scan, the pacer) and the bold book's
+
+
 def cites(j, days: int = 7) -> tuple[int, int, int]:
-    """agent_cites, measured: the newest 20 answers to Madhav that state a number (background jobs, family questions and exam
-    conversations left out). An evidence item 'opens on screen' when it names the spot that shows it on the open screen or the
-    screen to open for it (Ask's rule 14: "spot", and "screen" when it is on another screen); the app points at it or opens it.
+    """agent_cites, measured: the newest 20 answers to Madhav that state a number, in CONVERSATIONS only (Madhav, 2026-10-21 09:41
+    Toronto: "I approve all"; decision map section 4: "agent_cites counts conversations only (scheduled briefs inflate it)"). A
+    conversation is what ask.last_conversation calls one: a thread with no ':' in its name (the scheduled morning and evening briefs
+    are 'brief:...', the news reads 'reads:news'), not the brain's or the bold book's own thread (the stance is logged there), with
+    a question a person asked (not a test run, mode 'eval:...', nor a background worker). Family questions and exam conversations
+    stay out. An evidence item 'opens on screen' when it names the spot that shows it on the open screen or the screen to open for
+    it (Ask's rule 14: "spot", and "screen" when it is on another screen); the app points at it or opens it.
     Returns (answers checked, answers with at least one item that opens on screen, answers whose every item names a source)."""
     import re
 
     try:
-        rows = j.db.execute("SELECT reply FROM ask_messages WHERE role='assistant' AND t >= ? AND COALESCE(mode, '') NOT IN ('worker', 'people') "
-                            "AND COALESCE(route, '') != 'people' AND COALESCE(thread, '') NOT LIKE 'exam-%' ORDER BY t DESC LIMIT 500",
-                            (int(j.now()) - days * DAY,)).fetchall()
+        rows = j.db.execute(
+            "SELECT reply FROM ask_messages WHERE role='assistant' AND t >= ? AND COALESCE(mode, '') NOT IN ('worker', 'people') "
+            "AND COALESCE(route, '') != 'people' AND COALESCE(thread, '') NOT LIKE 'exam-%' AND COALESCE(thread, '') NOT LIKE '%:%' "
+            f"AND COALESCE(thread, '') NOT IN ({','.join('?' * len(CITES_NOT_THREADS))}) "
+            "AND thread IN (SELECT thread FROM ask_messages WHERE role='user' AND COALESCE(mode, '') NOT LIKE 'eval:%' "
+            "AND COALESCE(mode, '') NOT LIKE '%worker%') ORDER BY t DESC LIMIT 500",
+            (int(j.now()) - days * DAY, *CITES_NOT_THREADS)).fetchall()
     except sqlite3.OperationalError:                       # no conversations yet
         return 0, 0, 0
     picked = []

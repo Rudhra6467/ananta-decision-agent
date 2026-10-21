@@ -488,3 +488,90 @@ def test_strategy_baselines_fails_when_a_book_trails_a_benchmark_or_its_twin(tmp
     el, j, out = _baselines_setup(tmp_path / "d", monkeypatch, 10, 2.0, -1.0, GOOD, bench)
     r = el.baselines_reading(j, {})                                                                   # trend books not read: not a pass
     assert r["status"] == "FAIL" and "the 10-coin trend book (not read)" in r["note"]
+
+
+def _l1(dest, day, minutes, alerts=()):
+    import sqlite3 as sq
+    from datetime import datetime, timezone
+
+    d0 = int(datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
+    con = sq.connect(str(dest / f"l1_{day}.sqlite"))
+    con.execute("CREATE TABLE site (t INTEGER, ok INTEGER, ms INTEGER, detail TEXT)")
+    con.executemany("INSERT INTO site VALUES (?,1,100,NULL)", [(d0 + 60 * m + 5,) for m in minutes])
+    con.commit()
+    con.close()
+    return d0
+
+
+def _health(j):
+    j.db.execute("CREATE TABLE health_log (id INTEGER PRIMARY KEY AUTOINCREMENT, part TEXT, down_t INTEGER, up_t INTEGER, detail TEXT)")
+    j.db.execute("CREATE TABLE eye_events (id TEXT, t INTEGER, kind TEXT, coin TEXT, price REAL, title TEXT, body TEXT, pushed INTEGER, detail TEXT)")
+
+
+def test_ops_outages_counts_part_outages_and_their_phone_notes(tmp_path):
+    """ops_outages (Oct 21): it stayed green through the 426-minute Hands outage of Oct 16-17. A part outage of 10+ minutes needs its
+    phone note within 5 minutes and must end within 60; a short blip counts for nothing."""
+    from jarvis.service import evidence_live as el
+
+    dest = tmp_path / "w"
+    dest.mkdir()
+    for d in range(7, -1, -1):
+        from datetime import datetime, timezone
+
+        _l1(dest, datetime.fromtimestamp(NOW21 - d * DAY, timezone.utc).strftime("%Y-%m-%d"), range(1440))
+    j = _j(tmp_path, NOW21)
+    _health(j)
+    ok = {"status": "PASS", "note": "worker alert armed; outside view fine"}
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "PASS" and "0 of 10+ minutes" in r["note"] and "outside view fine" in r["note"]
+    assert el.outages_reading(j, {"status": "PARTLY", "note": "alert not proven"}, dest)["status"] == "PARTLY"
+    assert el.outages_reading(j, {"status": "PENDING"}, dest)["status"] == "PENDING"
+    t0 = NOW21 - 4 * DAY
+    j.db.execute("INSERT INTO health_log (part, down_t, up_t) VALUES ('hands', ?, ?)", (t0, t0 + 426 * 60))
+    j.db.execute("INSERT INTO eye_events (id, t, kind, pushed, detail) VALUES ('e', ?, 'HEALTH_DOWN', 1, '{\"part\": \"hands\"}')", (t0,))
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "FAIL" and "down more than 60 minutes: hands" in r["note"] and "426 min" in r["note"]
+    j.db.execute("UPDATE health_log SET up_t=?", (t0 + 20 * 60,))
+    assert el.outages_reading(j, ok, dest)["status"] == "PASS"                     # 20 minutes, noted at once
+    j.db.execute("UPDATE eye_events SET t=?", (t0 + 6 * 60,))                       # noted 6 minutes late
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "FAIL" and "NO phone note for: hands" in r["note"]
+    j.db.execute("UPDATE eye_events SET t=?, pushed=0", (t0,))                      # recorded but never reached the phone
+    assert el.outages_reading(j, ok, dest)["status"] == "FAIL"
+    j.db.execute("UPDATE health_log SET up_t=?", (t0 + 8 * 60,))                    # an 8-minute blip: not an outage
+    assert el.outages_reading(j, ok, dest)["status"] == "PASS"
+    assert el.outages_reading(j, {"status": "FAIL", "note": "outside outage not alerted"}, dest)["status"] == "FAIL"
+
+
+def test_ops_outages_counts_the_minutes_the_worker_could_not_see(tmp_path):
+    """The worker's blind time: on a pulled day its own minute record decides (Oct 18-19: SSH down while it recorded every minute,
+    not blind); on a day not pulled yet, the minutes the main Mac could not reach it. Over 420 minutes in 7 days fails."""
+    from datetime import datetime, timezone
+
+    from jarvis.service import evidence_live as el
+
+    dest = tmp_path / "w"
+    dest.mkdir()
+    days = [datetime.fromtimestamp(NOW21 - d * DAY, timezone.utc).strftime("%Y-%m-%d") for d in range(7, 0, -1)]   # today not pulled
+    starts = [_l1(dest, d, range(1440)) for d in days]
+    j = _j(tmp_path, NOW21)
+    _health(j)
+    ok = {"status": "PASS", "note": "outside fine"}
+    j.db.execute("INSERT INTO health_log (part, down_t, up_t) VALUES ('worker', ?, ?)", (starts[-2] + 3600, starts[-2] + 15 * 3600))
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "PASS" and "could not see for 0 minutes" in r["note"] and "could not reach it for 840 minutes" in r["note"]
+    today0 = NOW21 - NOW21 % DAY
+    j.db.execute("INSERT INTO health_log (part, down_t, up_t) VALUES ('worker', ?, NULL)", (today0 + 3600,))   # still unreachable today
+    r = el.outages_reading(j, ok, dest)
+    blind = el.worker_blind_minutes(j, NOW21 - 7 * DAY, NOW21, dest, el._part_outages(j, NOW21 - 7 * DAY, NOW21))
+    assert blind["unreachable_not_pulled"] == (NOW21 - today0 - 3600) // 60 and r["status"] == ("FAIL" if blind["minutes"] > 420 else "PASS")
+    j.db.execute("DELETE FROM health_log")
+    (dest / f"l1_{days[2]}.sqlite").unlink()
+    _l1(dest, days[2], range(0, 1440 - 500))                                       # a pulled day with 500 minutes not looking
+    r = el.outages_reading(j, ok, dest)
+    assert r["status"] == "FAIL" and "the worker blind 500 minutes (over 420)" in r["note"]
+    assert el.WORKER_BLIND_MAX_MIN == 420 and el.PART_OUTAGE_MAX_MIN == 60 and el.OUTAGE_DAYS == 7
+    j2 = _j(tmp_path, NOW21)
+    _health(j2)
+    r = el.outages_reading(j2, ok, tmp_path / "none")                            # no worker on this machine: not a pass
+    assert r["status"] == "PARTLY" and "not measured" in r["note"]

@@ -971,6 +971,12 @@ def _gate(j, out: dict) -> dict:
         for k in ("engine_sizing", "engine_execution", "strategy_regimes"):
             if by.get(k):
                 by[k]["note"] = f"could not measure: {str(exc)[:80]}"
+    c = by.get("ops_outages")
+    if c:
+        try:
+            c.update(outages_reading(j, {"status": c.get("status"), "note": c.get("note")}))
+        except Exception as exc:  # noqa: BLE001  the part outages could not be read: not a pass
+            c["status"], c["note"] = "PENDING", f"could not read the part outages: {str(exc)[:80]}; {c.get('note', '')}"
     for c in checks:
         c["status_words"] = GATE_WORDS.get(c["status"], c["status"])
     passed = sum(1 for c in checks if c["status"] == "PASS")
@@ -1090,6 +1096,130 @@ def outages_seen_from_outside(j, o: dict, armed_live: bool | None = None) -> dic
     last = datetime.fromtimestamp(max(proven), tz).strftime("%b %d %H:%M")
     return {"status": "PASS", "note": f"worker alert {since}; a note reached the phone ({last} Toronto); {head}"
                                       + ("; every one alerted by minute 15" if n and not before else "") + gone}
+
+
+OUTAGE_DAYS = 7                          # ops_outages (Madhav, 2026-10-21 09:41 Toronto, "I approve all"): the last 7 days, as the outside view
+PART_OUTAGE_MAX_MIN = 60                 # a part (Hands, the Explorer, the jobs, the feed...) down 10+ minutes must be noted on the phone and back within 60
+WORKER_BLIND_MAX_MIN = 60 * OUTAGE_DAYS  # the worker may be blind at most 60 minutes a day on average (the run checker's 1,380 of 1,440 minutes a day)
+
+
+def _part_outages(j, since: int, now: int) -> list[dict]:
+    """The health watchdog's outages (health_log, the run checker's health_outages) overlapping [since, now], read-only."""
+    try:
+        rows = j.db.execute("SELECT part, down_t, up_t FROM health_log WHERE COALESCE(up_t, ?) >= ? ORDER BY down_t", (now, since)).fetchall()
+    except sqlite3.OperationalError:                       # no outage recorded yet
+        return []
+    out = []
+    for part, d, u in rows:
+        a, b = max(int(d), since), int(u or now)
+        out.append({"part": part, "down_t": int(d), "up_t": u, "minutes": round((int(u or now) - int(d)) / 60), "in_window_s": max(0, b - a)})
+    return out
+
+
+def worker_blind_minutes(j, since: int, now: int, dest: Path | None = None, parts: list[dict] | None = None) -> dict | None:
+    """The time the worker Mac could not see anything, over [since, now], in minutes. On a UTC day pulled from it, its own record is
+    the truth: a minute with no look at the public page (it looks every minute) is blind, and a minute the main Mac could not reach it
+    is not (Oct 18-19: SSH was down while the worker recorded 1,435 and 1,440 minutes). On a day not pulled (today, whose record
+    arrives with tomorrow's pull, or a day whose pull failed), a minute the main Mac could not reach it (health_log part 'worker': the
+    watchdog marks it down after 15 minutes of failed answers) counts as blind, since nothing shows it was looking. None when this
+    machine has no worker day and the watchdog never checked one (no worker)."""
+    from jarvis.service import worker
+
+    dest = dest or worker.DEST
+    files = {f.name[3:13]: f for f in sorted(Path(dest).glob("l1_*.sqlite"))} if Path(dest).exists() else {}
+    w = [o for o in (parts or []) if o["part"] == "worker"]
+    if not files and not w:
+        return None
+    not_looking = unreachable = 0
+    pulled = 0
+    d0 = since - since % DAY
+    while d0 < now:
+        a, b = max(since, d0), min(now, d0 + DAY)
+        f = files.get(datetime.fromtimestamp(d0, timezone.utc).strftime("%Y-%m-%d"))
+        if f is not None:
+            pulled += 1
+            con = sqlite3.connect(f"file:{f}?mode=ro", uri=True)
+            try:
+                seen = {int(t) // 60 for (t,) in con.execute("SELECT t FROM site WHERE t >= ? AND t < ?", (a, b))}
+            except sqlite3.Error:
+                seen = set()
+            finally:
+                con.close()
+            not_looking += len(set(range(-(-a // 60), b // 60)) - seen)
+        else:
+            mins: set[int] = set()
+            for o in w:
+                mins |= set(range(max(int(o["down_t"]), a) // 60, min(int(o["up_t"] or now), b) // 60))
+            unreachable += len(mins)
+        d0 += DAY
+    return {"minutes": not_looking + unreachable, "not_looking": not_looking, "unreachable_not_pulled": unreachable, "days_pulled": pulled,
+            "unreachable_all": sum(o["in_window_s"] for o in w) // 60}
+
+
+def calendar_t(day: str) -> int:
+    return int(datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
+
+
+def outages_reading(j, base: dict, dest: Path | None = None) -> dict:
+    """Gate ops_outages (Madhav, 2026-10-21 09:41 Toronto: "I approve all"; decision map section 4: "ops_outages counts part outages
+    and the time the worker can't see anything"). Until Oct 21 it read the public page from the outside only, so it stayed green
+    through the 426-minute Hands outage and the 416 minutes with no Explorer scan of Oct 16-17. Over the last OUTAGE_DAYS days:
+      the outside view   every outage of OUTAGE_MIN+ minutes the worker saw on the public page alerted by minute 15 (base: the
+                         reading of outages_seen_from_outside, unchanged)
+      part outages       every part the health watchdog checks except the worker (its own measure is next): each outage of
+                         OUTAGE_MIN+ minutes must have sent its phone note (HEALTH_DOWN) within ALERT_WITHIN_S of being marked down,
+                         and none may last more than PART_OUTAGE_MAX_MIN minutes
+      worker blind time  the minutes the worker could not see anything (worker_blind_minutes): at most WORKER_BLIND_MAX_MIN
+    FAIL when any bar is missed; else the outside view's own reading (PASS, or PARTLY / PENDING while its alert is not proven)."""
+    now = int(j.now())
+    since = now - OUTAGE_DAYS * DAY
+    parts = _part_outages(j, since, now)
+    tz = None
+    try:
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("America/Toronto")
+    except Exception:  # noqa: BLE001
+        tz = timezone.utc
+
+    def lab(o):
+        return f"{o['part']} {datetime.fromtimestamp(o['down_t'], tz).strftime('%b %d %H:%M')} Toronto, {o['minutes']} min" + ("" if o["up_t"] else " (still down)")
+    long_ = [o for o in parts if o["part"] != "worker" and o["minutes"] >= OUTAGE_MIN]
+    unnoted, too_long = [], []
+    for o in long_:
+        try:
+            noted = j.db.execute("SELECT 1 FROM eye_events WHERE kind='HEALTH_DOWN' AND pushed=1 AND t BETWEEN ? AND ? AND detail LIKE ?",
+                                 (o["down_t"] - 60, o["down_t"] + ALERT_WITHIN_S, f'%"part": "{o["part"]}"%')).fetchone()
+        except sqlite3.OperationalError:
+            noted = None
+        if not noted:
+            unnoted.append(lab(o))
+        if o["minutes"] > PART_OUTAGE_MAX_MIN:
+            too_long.append(lab(o))
+    blind = worker_blind_minutes(j, since, now, dest, parts)
+    bits = [f"part outages (health watchdog, {OUTAGE_DAYS} days): {len(long_)} of {OUTAGE_MIN}+ minutes"
+            + (f", longest {max(o['minutes'] for o in long_)} min" if long_ else "")]
+    if blind is not None:
+        bits.append(f"the worker could not see for {blind['minutes']} minutes (needs {WORKER_BLIND_MAX_MIN} or less: {blind['not_looking']} "
+                    f"with no look in its own record on {blind['days_pulled']} pulled day{'s' if blind['days_pulled'] != 1 else ''}, "
+                    f"{blind['unreachable_not_pulled']} unreachable on days not pulled yet; the main Mac could not reach it for "
+                    f"{blind['unreachable_all']} minutes in all)")
+    else:
+        bits.append("the worker's blind time not measured (no worker day pulled on this machine)")
+    miss = []
+    if unnoted:
+        miss.append("NO phone note for: " + "; ".join(unnoted))
+    if too_long:
+        miss.append(f"down more than {PART_OUTAGE_MAX_MIN} minutes: " + "; ".join(too_long))
+    if blind is not None and blind["minutes"] > WORKER_BLIND_MAX_MIN:
+        miss.append(f"the worker blind {blind['minutes']} minutes (over {WORKER_BLIND_MAX_MIN})")
+    head = "; ".join(bits)
+    tail = f"; {base.get('note')}" if base.get("note") else ""
+    if miss or base.get("status") == "FAIL":
+        return {"status": "FAIL", "note": f"{head}; " + "; ".join(miss) + tail if miss else head + tail}
+    if blind is None and base.get("status") == "PASS":
+        return {"status": "PARTLY", "note": head + tail}
+    return {"status": base.get("status") or "PENDING", "note": head + tail}
 
 
 CITES_N, CITES_PASS = 20, 18             # agent_cites (Oct 15): the weekly spot check of 20 answers, done by code; 18 of 20 like agent_knows

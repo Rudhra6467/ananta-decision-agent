@@ -188,8 +188,8 @@
    "id": "ops_outages",
    "area": "Operations",
    "check": "Outages detected",
-   "measure": "Watchdog on every part, and the worker Mac's outside check of the public page every minute (a sleeping or frozen main Mac cannot report itself); its phone note fires at minute 10 of an outage (Madhav, Oct 15)",
-   "pass_mark": "Every outage of 10+ minutes alerted by minute 15, from the day the worker's alert is armed; the alert armed and one note proven to arrive (was: within 5 minutes, before the worker alert was chosen at 10 minutes)",
+   "measure": "Over the last 7 days: (1) the worker Mac's outside check of the public page every minute, its phone note at minute 10 of an outage (Madhav, Oct 15); (2) every part the health watchdog checks (Hands, the Explorer, the jobs, the feed, the tunnel...), from its outage record; (3) the minutes the worker Mac could not see anything: on a day pulled from it, the minutes its own record has no look at the page; on a day not pulled yet, the minutes the main Mac could not reach it. Part outages and the worker's blind time added: Madhav, 2026-10-21 09:41 Toronto: \"I approve all\" (decision map section 4)",
+   "pass_mark": "Every outside outage of 10+ minutes alerted by minute 15 with the alert armed and one note proven to arrive; every part outage of 10+ minutes noted on the phone within 5 minutes of being marked down and none longer than 60 minutes; the worker blind at most 420 minutes in the 7 days (60 a day, as the run checker's 1,380 of 1,440 minutes)",
    "status": "PARTLY",
    "note": "needs the worker Mac's outside view (Oct 4, Oct 12 and Oct 13 went unalerted: the reason the alert exists)"
   },

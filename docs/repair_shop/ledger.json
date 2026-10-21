@@ -984,6 +984,29 @@
     "58058e45d50b"
    ],
    "review": "R33"
+  },
+  {
+   "id": "TK20",
+   "date": "2026-10-21",
+   "from": "request #75, filed by the learning loop (learning.count_lessons) on its first live run, 21 Oct 12:15 Toronto",
+   "what": "8 brain PASSes from 9 to 14 Oct rose 5% or more in the next 5 days ('missed winner'): INJ 4 times (Oct 9 +11.6%, Oct 12 +8.5% and +8.7%, Oct 14 +8.2%), WLD twice (Oct 14 +9.1%, +7.5%), OP (Oct 9 +11.9%), BERA (Oct 9 +12.6%). They sit beside the decision audit of 20 Oct: across the 103 passes the coins fell 8.1% on average and only 8 of 92 would have beaten their costs, so these are the exceptions, not the rule. INJ is also one of the four breakout misses the audit judged right to skip (no measured rule covers a breakout away from support).",
+   "did": "Recorded with its cases (decisions ef1bb8a88e5a, 6f15477e06ff, d1990519e8cf, d0b80b9416cc, 257d89f357ae, bc92ed435ca0, a850a5670120, 74e34bd0fe5a). The question is already pre-registered as review #34 (are the brain's PASSes right?) with its forward window, and the breakout case as request #38.",
+   "change": "None to any trading rule (Rule B). Later 'missed winner' cases join this ticket.",
+   "status": "WAITING_FOR_EVIDENCE",
+   "next": "Closed at CHECKPOINT-60 with review #34's verdict; request #38 decides the breakout question.",
+   "lesson": "missed winner",
+   "request": "75",
+   "decisions": [
+    "ef1bb8a88e5a",
+    "6f15477e06ff",
+    "d1990519e8cf",
+    "d0b80b9416cc",
+    "257d89f357ae",
+    "bc92ed435ca0",
+    "a850a5670120",
+    "74e34bd0fe5a"
+   ],
+   "review": "R34"
   }
  ],
  "changes": [

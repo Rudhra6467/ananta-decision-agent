@@ -6,7 +6,7 @@ checks them against the levels the slower sections ARM (docs/knowledge/watches.j
   MY_STOPS      your own paper positions' stops and targets          -> sold at the live price, phone note
   PRICE_ALERTS  your "tell me if X goes above / below / moves" lines -> phone note
   BTC_SHOCK     Bitcoin down 2% or more within 15 minutes            -> phone note (at most once an hour)
-  ZONE_ENTRY    the live price comes down into a support zone        -> feed; phone when the coin's attention is HIGH
+  ZONE_ENTRY    the live price comes down into a support zone        -> feed only (the phone note when attention is HIGH stopped Oct 21)
   ZONE_TOUCH    ...a zone kind history supports, market allowed      -> a $100 evidence trade (watch_engine), stop checked live
   MARKET_WARN   Bitcoin's live price crosses its 50-day average      -> phone note (market_shift.live, 12 h per direction)
   BRAIN         a zone entry wakes Jarvis's brain for a decision; its trades' stops, targets and trailing stops run here
@@ -29,6 +29,9 @@ from typing import Any, Callable
 INTERVAL = 10
 SHOCK_PCT, SHOCK_WINDOW, SHOCK_COOLDOWN = -2.0, 15 * 60, 60 * 60
 ZONE_REPEAT_S, ZONE_PUSH_COOLDOWN, ZONE_TOUCH_GAP = 6 * 3600, 6 * 3600, 20 * 86400
+# OD-PLAYBOOK-ATTENTION (a), Madhav 2026-10-21 ("for all the recommended items, its yes"): a zone entry no longer rings the phone.
+# It is still recorded in the feed (eye_events, pushed 0), still wakes the brain, and zone tracking and the attention weights are unchanged.
+ZONE_ENTRY_PHONE = False
 ARM_EVERY = 15 * 60
 KRAKEN = {"BTC": ("XBTUSD", "XXBTZUSD"), "ETH": ("ETHUSD", "XETHZUSD"), "SOL": ("SOLUSD",), "ADA": ("ADAUSD",), "DOGE": ("XDGUSD", "XXDGZUSD"),
           "AVAX": ("AVAXUSD",), "BCH": ("BCHUSD",), "LINK": ("LINKUSD",), "LTC": ("LTCUSD", "XLTCZUSD"), "XRP": ("XRPUSD", "XXRPZUSD")}
@@ -197,7 +200,7 @@ def tick(j, px: dict[str, float], push: Callable | None = None, armed: dict | No
                 continue                                          # price hovering at the edge: one entry, not many
             kinds = "+".join(z.get("kinds") or []).lower() or "zone"
             att = (armed.get("attention") or {}).get(c)
-            loud = att == "HIGH" and _cool_ok(f"zonepush:{c}", ZONE_PUSH_COOLDOWN, now)
+            loud = ZONE_ENTRY_PHONE and att == "HIGH" and _cool_ok(f"zonepush:{c}", ZONE_PUSH_COOLDOWN, now)
             events.append(_event(j, "ZONE_ENTRY", c, p, f"{c} entered a zone ({kinds})",
                                  f"Price came down into ${bot:,.6g}-{top:,.6g}; history: {z.get('history', 'untested').lower()}. The lookout starts now.",
                                  push if loud else None, {"zone": [bot, top], "kinds": z.get("kinds"), "attention": att}))

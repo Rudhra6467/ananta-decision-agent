@@ -39,6 +39,10 @@ EVIDENCE_NOTE = {
     "V0_TRAIL": "FAILED holdout (CANDIDATE_V3_HOLDOUT_RESULT.md) and fresh coins (STUDY_V3_FRESH_RESULTS.md); wind-down",
     "V1_RIDE": "PASSED fresh coins by the rules; fragile: -61% from a 2025-01-01 fresh start (STUDY_V3_FRESH_RESULTS.md)",
 }
+# OD-CANDIDATE-BOOKS (a), Madhav 2026-10-21 09:41 Toronto ("for all the recommended items, its yes"): both candidate books are
+# retired. A retired book never opens a new paper entry, whatever the caller, the environment or the breaker says; an open
+# position (none on 2026-10-21) would still finish under its own rules. The books, their events and V1's tripped breaker stay as history.
+RETIRED = {"V0_TRAIL": "2026-10-21", "V1_RIDE": "2026-10-21"}
 
 
 # ---------------------------------------------------------------------------
@@ -206,6 +210,9 @@ def step_coin(book: Book, coin: str, bars1d: list, bars4h: list, bars1h: list, n
         book.put_state(coin, st)
         book.event(coin, "STARTED", {"from_1h": st["last_1h"], "from_4h": st["last_4h"]})
         return ev
+    if rules in RETIRED and st["orders"]:            # a retired book: a limit order armed earlier never fills as a new entry
+        book.event(coin, "CANCELLED", {"orders": len(st["orders"]), "why": f"book retired {RETIRED[rules]}"})
+        st["orders"] = []
     new_1h = [b for b in bars1h if b[_T] > st["last_1h"]]
     new_4h = [k for k, b in enumerate(bars4h) if b[_T] > st["last_4h"]]
     pos = None
@@ -286,8 +293,12 @@ def fetch_http(asset: str, tf: str, limit: int) -> list[list[float]]:
 def tick(*, fetch: Callable[[str, str, int], list] = fetch_http, now_ms: float | None = None,
          book_path: str | Path = BOOK, rules: str = "V0_TRAIL", new_entries: bool = True) -> dict[str, Any]:
     now_ms = now_ms if now_ms is not None else time.time() * 1000
+    if rules in RETIRED:
+        new_entries = False
     book = Book(book_path)
     out: dict[str, Any] = {"version": VERSION, "rules": rules, "new_entries": new_entries, "events": [], "errors": []}
+    if rules in RETIRED:
+        out["retired"] = RETIRED[rules]
     try:
         for coin in COINS:
             try:

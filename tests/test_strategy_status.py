@@ -59,6 +59,16 @@ def test_background_books_record_but_failed_ideas_never_wake_the_brain():
     assert S.account() == "BOOK500" and "ladder" in S.pushed_rule()
 
 
+def test_madhavs_setups_record_but_no_longer_wake_the_brain():
+    """OD-READS-WAKES (a), Madhav 2026-10-21: the READS setups keep recording (trades, read_fires for ledger Q5) but never wake the brain."""
+    from jarvis.service import brain
+
+    for w in ("M1a-UA", "M2a-UB", "M2a-G-UA", "M3a-UA", "M3b-UB", "M1a"):
+        assert S.of_watch(w)[0] == "READS" and S.trades(w) and not S.wakes(w), w
+    assert brain._monitor_only("setup:M1a-UA").startswith("monitoring only") and "M1a-UA" in brain._monitor_only("setup:M1a-UA")
+    assert brain._monitor_only("setup:M1a-UA|setup:H07-UA") == ""               # H07 still reaches the brain
+
+
 def test_push_pipe_notes_once_and_edge_sleeve_takes_passed_rules(tmp_path, monkeypatch):
     from jarvis.service import ndax_book, universe_watch as U
 

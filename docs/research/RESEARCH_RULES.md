@@ -29,6 +29,11 @@ push in between is marked "unanchored" in the result.
 Every review adds its cell count to the family's running look count (reviews #15 to #23 judged about 97 cells on Oct 4-5; the 660 looks of the first
 relationship hunt are carried by anything born from it). A pass found after many looks is read against that count, not on its own.
 
+**Before any promotion: a point-in-time or forward re-test** (OD-MULTITEST (b), Madhav 2026-10-21: "for all the recommended items, its yes").
+The per-test bar stays (no family-wide Bonferroni bar), but no cell passed in a multi-cell family is promoted (a ladder step, the edge sleeve,
+a card's evidence word raised, real money) on that pass alone: it first passes again on a point-in-time list (section 4) or on forward live
+paper, pre-registered as one look, with the same pass marks.
+
 **Rule B.** Inside the evidence window no review creates a new crypto strategy. A re-test of an existing idea is queued for the period
 after the window (the list is in `docs/LOCK.md`, section "After the window") and runs under these same rules.
 
@@ -82,7 +87,8 @@ after the window (the list is in `docs/LOCK.md`, section "After the window") and
 ## 6. Reading a result
 
 - Evidence is what the pre-registered rule says it is. A card that was cited is not a card that mattered: before claiming a card changed a
-  decision, log the decision with and without it (no tool does this yet: the exam asks questions and the counterfactual log scores refused trades; neither re-runs a decision without the card); citation is not influence.
+  decision, log the decision with and without it (no tool does this yet: the exam asks questions and the counterfactual log scores refused trades; neither re-runs a decision without the card); citation is not influence. OD-CARD-INFLUENCE (b), Madhav 2026-10-21: no such tool is built;
+  nothing Ananta writes or says claims that a card influenced a decision (revisit after the window).
 - A strategy's status comes from one file, `docs/knowledge/strategy_status.json`; the nightly build step (`jarvis/service/knowledge_build.py`,
   `align`) makes the entries of `watches.json` that belong to a strategy, and the cards' permissions in `status_cards.json` (a retired or parked
   strategy's cards are not PAPER), agree with it, and lists the conflicts it will not decide. It does not reach the 24 of 39 watches that belong to

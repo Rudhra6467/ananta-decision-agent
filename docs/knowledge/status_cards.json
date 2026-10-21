@@ -1,6 +1,6 @@
 {
  "version": "status_cards.v1",
- "updated": "2026-10-15",
+ "updated": "2026-10-21",
  "meaning": {
   "evidence": {
    "SUPPORTED": "passed its pre-registered test in both periods after costs on its tier",
@@ -259,8 +259,8 @@
    "name": "Explorer setups E1-E6",
    "kind": "setup",
    "evidence": "REJECTED",
-   "permission": "PAPER",
-   "reason": "No intraday setup has an edge after costs: reviews #1 and #3, review #24 (no E6 variant passes), the atlas (0 of 55 contexts stable). Retired as a trading book Oct 13; keeps scanning as the intraday eyes and keeps a paper record as evidence",
+   "permission": "CONTEXT",
+   "reason": "No intraday setup has an edge after costs: reviews #1 and #3, review #24 (no E6 variant passes), the atlas (0 of 55 contexts stable). Retired as a trading book Oct 13; keeps scanning as the intraday eyes and keeps a paper record as evidence. Permission PAPER -> CONTEXT on 2026-10-21 (OD-E5-PERMISSION (a), Madhav: \"for all the recommended items, its yes\"): it matches 'won't take again', so it is never a reason to buy.",
    "reviews": [
     "#1",
     "#24",
@@ -281,8 +281,8 @@
    "name": "E5 squeeze breakout",
    "kind": "setup",
    "evidence": "INSUFFICIENT",
-   "permission": "PAPER",
-   "reason": "Weakest setup in review #1. Its probation (Q3) ended on Oct 15 without a verdict: the Explorer was retired as a trading book on Oct 13 (ledger TK17); E5 stays evidence only.",
+   "permission": "CONTEXT",
+   "reason": "Weakest setup in review #1. Its probation (Q3) ended on Oct 15 without a verdict: the Explorer was retired as a trading book on Oct 13 (ledger TK17); E5 stays evidence only. Permission PAPER -> CONTEXT on 2026-10-21 (OD-E5-PERMISSION (a), Madhav: \"for all the recommended items, its yes\"): it matches 'won't take again', so it is never a reason to buy.",
    "reviews": [
     "#1"
    ],

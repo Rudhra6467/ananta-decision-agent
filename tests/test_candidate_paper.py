@@ -2,10 +2,20 @@
 import math
 from pathlib import Path
 
+import pytest
+
 from src.intelligence import candidate_paper as cp
 
 H, H4, D = cp.H_MS, cp.H4_MS, cp.D_MS
 T0 = 1_780_000_000_000 - (1_780_000_000_000 % D)
+
+
+@pytest.fixture(autouse=True)
+def _rules_as_written(request, monkeypatch):
+    """Both books are retired (OD-CANDIDATE-BOOKS, 2026-10-21); the rule tests below still check the frozen rules as written,
+    so they run with the retirement lifted. Tests named *retired* see the real list."""
+    if "retired" not in request.node.name:
+        monkeypatch.setattr(cp, "RETIRED", {})
 
 
 def _series(n, step, start, f, width=0.004):
@@ -168,6 +178,30 @@ def test_wind_down_never_opens_new_positions(tmp_path):
     feed["1h"] = _hours(level, 30, dip=(6, s["limit"] * 0.999))
     r = cp.tick(fetch=_fetcher(feed, T0 + 28 * H), now_ms=T0 + 29 * H, book_path=book, new_entries=False)
     assert r["events"] == [] and r["ledger"]["closed"] == 0 and not r["ledger"]["open"]
+
+
+def test_retired_books_never_open_a_new_entry_even_when_asked(tmp_path):
+    """OD-CANDIDATE-BOOKS (a), Madhav 2026-10-21: both candidate books are retired; history is kept, nothing new is entered."""
+    assert set(cp.RETIRED) == {"V0_TRAIL", "V1_RIDE"}
+    for rules in cp.RULES:
+        book = tmp_path / f"{rules}.sqlite"
+        feed = _feed()
+        level = feed["4h"][-1][4]
+        feed["1h"] = _hours(level, 2)
+        cp.tick(fetch=_fetcher(feed, T0 + 1 * H), now_ms=T0 + 2 * H, book_path=book, rules=rules, new_entries=True)
+        s = _add_4h_at_T0(feed)
+        b = cp.Book(book)
+        st = b.state("BTC")
+        st["orders"] = [s]                                                   # a limit order armed before the retirement
+        b.put_state("BTC", st)
+        b.close()
+        feed["1h"] = _hours(level, 30, dip=(6, s["limit"] * 0.999))
+        r = cp.tick(fetch=_fetcher(feed, T0 + 28 * H), now_ms=T0 + 29 * H, book_path=book, rules=rules, new_entries=True)
+        assert r["new_entries"] is False and r["retired"] == "2026-10-21", rules
+        assert r["events"] == [] and r["ledger"]["closed"] == 0 and not r["ledger"]["open"], rules
+        b = cp.Book(book)
+        assert b.state("BTC")["orders"] == [] and b.trades() == []
+        b.close()
 
 
 def test_no_setup_in_downtrend():

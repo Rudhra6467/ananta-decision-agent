@@ -104,7 +104,10 @@ def test_eye_stops_alerts_shock_and_zone_touch():
     assert "EVIDENCE_EXIT" in kinds3 and "MY_STOP" in kinds3
     assert watch_engine.trades(j, "ZONE_TOUCH")[0]["status"] == "CLOSED"
     assert not Mn.state(p3)["positions"]                                     # your position was sold at the live price
-    assert any(x.startswith("Bitcoin fell") for x in pushed) and any("entered a zone" in x for x in pushed)
+    assert any(x.startswith("Bitcoin fell") for x in pushed)
+    assert not any("entered a zone" in x for x in pushed)                   # OD-PLAYBOOK-ATTENTION (a), Oct 21: zone entries are feed only
+    z = j.db.execute("SELECT pushed FROM eye_events WHERE kind='ZONE_ENTRY'").fetchall()
+    assert z and all(p == 0 for (p,) in z)                                   # still recorded, attention HIGH, no phone note
     st = eye.status(j)
     assert st["recent"] and st["armed"]["regime"] is None or True
 

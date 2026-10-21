@@ -1,6 +1,6 @@
 {
  "version": 2,
- "updated": "2026-10-15",
+ "updated": "2026-10-21",
  "meaning": "One list of every strategy that holds or held paper money, with its status and verdict. Madhav, Oct 13: the $500 NDAX book is THE account (what he and Ananta look at); the engine keeps every measuring book running in the background (watching, scanning, recording, tracking), and only what passes its bar is pushed into the account. status: ACTIVE (trades, counts as holdings) | UNDER_REVIEW (trades, counts, under a review) | EVIDENCE (measures in the background: records paper trades, never holdings, never in the headline) | PARKED (switched off by Madhav) | RETIRED (takes no new trades; its record is kept). verdict: wont_take_again | will_try_again | modify_rules. wakes_brain: false = its signals never wake the brain (a failed idea is recorded, not decided on). pushed: how a strategy enters the account.",
  "account": "BOOK500",
  "pushed": "A rule enters the $500 book's measured-edge sleeve when BOTH hold: its cell (rule x dial state x tier) passed on history in both periods after costs (the measured-edge table, review #26), AND its forward paper book is ahead of its random baseline over 10 market days in each regime (the promotion ladder), with Madhav's sign-off. When the ladder says a rule may step up, Ananta sends a phone note and opens a request; nothing enters the account by itself. Expect the first promotion to take a while: the one measured edge (H07 on tier A) counts only while the dial is closed, and the ladder needs 10 market days in each regime.",
@@ -118,8 +118,8 @@
     "M3a",
     "M3b"
    ],
-   "wakes_brain": true,
-   "why": "Measured forward per tier against random; no measured edge yet (reviews #5, #26). Pushed only if a cell passes and the ladder agrees.",
+   "wakes_brain": false,
+   "why": "Measured forward per tier against random; no measured edge yet (reviews #5, #26). Pushed only if a cell passes and the ladder agrees. Records in the background: every signal is still logged and counted (ledger Q5), but it no longer wakes the brain (Madhav, 2026-10-21, OD-READS-WAKES (a): \"for all the recommended items, its yes\").",
    "cards": [
     "READS"
    ]

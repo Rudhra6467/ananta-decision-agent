@@ -577,16 +577,19 @@ def _account_open(j) -> int:
 
 
 def _open(j, watch: str, coin: str, price: float, stop: float, target: float | None, trail_atr: float | None, days: int, atr: float,
-          detail: dict, regime: str | None) -> dict:
+          detail: dict, regime: str | None, tid: str | None = None, commit: bool = True) -> dict:
+    """One paper trade row. commit=False inside a decision's transaction (reliability.atomic): the decision row and its trades are
+    saved together or not at all (Oct 21: a failed save after a buy could leave an orphan trade)."""
     from jarvis.service import watch_engine
 
     t = int(j.now())
-    row = {"id": uuid.uuid4().hex[:12], "watch": watch, "coin": coin, "source": "brain", "signal_t": t, "signal_day": watch_engine._day(t), "entry_t": t,
+    row = {"id": tid or uuid.uuid4().hex[:12], "watch": watch, "coin": coin, "source": "brain", "signal_t": t, "signal_day": watch_engine._day(t), "entry_t": t,
            "entry_day": watch_engine._day(t), "entry": float(price), "stop": float(stop), "status": "OPEN", "why": detail.get("thesis", "")[:300],
            "regime": regime, "detail": json.dumps({**detail, "target": target, "trail_atr": trail_atr, "atr": atr, "high": float(price), "days": days,
                                                    "stop0": float(stop)}, default=str)}
     watch_engine._insert(j, row)
-    j.db.commit()
+    if commit:
+        j.db.commit()
     return row
 
 
@@ -619,10 +622,6 @@ def web_veto(j, coin: str, p: dict) -> dict | None:
 def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Callable | None = None, noroom: bool | str = False) -> dict:
     """One decision: the pack, the model's weighing, the code's red flags, then a paper trade (and its random twin) or a PASS.
     noroom: True when the account is full (D7); a sentence when the last free slots are kept for priority moments (A5)."""
-    from jarvis.service import eye
-    from jarvis.service import trade_guard as tg
-    from src.research import reads as R
-
     _table(j)
     p = pack(j, coin, triggers)
     seen = {k: p.pop(k, None) for k in ("price_t", "price_max_age_s", "daily_t")}     # the trade guard's, not the model's
@@ -639,6 +638,25 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
     cost = _price(usage)
     _log_cost(j, coin, usage, cost, int(1000 * (time.time() - t0)))
     did = uuid.uuid4().hex[:12]
+    try:                                                # Oct 21: from here on the call is paid; a failure is logged and noted
+        return _decided(j, coin, triggers, p, seen, price, atr, holding, user, text, usage, cost, did, call, push, noroom)
+    except Exception as exc:
+        from jarvis.service import reliability
+
+        reliability.save_failed(j, "brain decision", exc, f"{coin}, decision {did}, ${cost:.4f} paid")
+        raise
+
+
+def _decided(j, coin: str, triggers: dict, p: dict, seen: dict, price, atr, holding: int, user: str, text: str, usage: dict, cost: float,
+             did: str, call: Callable, push: Callable | None, noroom: bool | str) -> dict:
+    """Everything after the paid model call: read the reply (asking once more if it cannot be read), the code's checks, then ONE
+    transaction (reliability.atomic) for the decision row and the paper trades it opens (Oct 21: a failed save after a buy could leave
+    an orphan trade). The trades are rows in this database, not orders sent to Hands, so they share the decision's transaction; every
+    check that reads Hands (the trade guard) runs before it, and the phone hears about a trade only once it is saved."""
+    from jarvis.service import eye, reliability
+    from jarvis.service import trade_guard as tg
+    from src.research import reads as R
+
     try:
         d = _parse(text)
     except (ValueError, json.JSONDecodeError):
@@ -709,7 +727,8 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
         live_stop = float(d["stop"])
         if (EXIT_PLANS.get(plan.get("exit_plan") or "") or {}).get("no_stop"):      # review #27: the DIP plan exits by time only
             det["invalidation"], live_stop = float(d["stop"]), 0.0
-        trade = _open(j, WATCH, coin, price, live_stop, target, trail, days, atr or 0.0, det, regime)
+        tid = uuid.uuid4().hex[:12]
+        opens = [(WATCH, coin, price, live_stop, target, trail, days, atr or 0.0, det, regime, tid)]
         # the random twin: same moment, another coin, the same plan in its own daily ranges
         if _is_lab(coin):
             px_all = dict(eye.STATE.get("prices") or {})
@@ -734,22 +753,29 @@ def decide(j, coin: str, triggers: dict, call: Callable | None = None, push: Cal
                 rp = px_all[rc]
                 k_stop = (price - float(d["stop"])) / atr
                 rt = rp + (target - price) / atr * ratr if target else None
-                rnd = _open(j, BASE, rc, rp, (rp - k_stop * ratr) if live_stop else 0.0, rt, trail, days, ratr, {"decision": did, "twin_of": trade["id"], "thesis": f"random twin of {coin}", **({"no_room": True} if noroom else {})}, regime)
-        if push:
-            try:
-                push(f"Jarvis paper trade: {coin}", f"About ${price:,.6g}, stop ${float(d['stop']):,.6g}"
-                     + (f", target ${target:,.6g}" if target else "") + (f", trailing {trail:g} daily ranges" if trail else "")
-                     + f", {days} days max. Confidence {conf:.0f}%, size {size:.0f}%. {d.get('thesis', '')}"[:480])
-            except Exception:  # noqa: BLE001
-                pass
-    # Oct 15: columns named, so a later ALTER TABLE (after_1d_ex, after_5d_ex) can never break the save again (206 decisions
-    # were lost on Oct 14-15 when an 18-value INSERT met a 20-column table)
-    j.db.execute("INSERT INTO brain_decisions (id, t, coin, triggers, action, confidence, size_pct, price, plan, thesis, knowledge, model, "
-                 "cost_usd, trade_id, random_id, after_1d_pct, after_5d_pct, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                 (did, int(j.now()), coin, json.dumps(triggers, default=str), action, conf, size, price, json.dumps(plan, default=str),
-                  (d.get("thesis") or "")[:600], json.dumps(know), usage.get("model"), cost, trade["id"] if trade else None, rnd["id"] if rnd else None,
-                  None, None, note or None))
-    j.db.commit()
+                opens.append((BASE, rc, rp, (rp - k_stop * ratr) if live_stop else 0.0, rt, trail, days, ratr,
+                              {"decision": did, "twin_of": tid, "thesis": f"random twin of {coin}", **({"no_room": True} if noroom else {})},
+                              regime, None))
+    else:
+        opens = []
+    # Oct 21: the decision row and the trades it opens are ONE transaction: both saved, or neither (and the failure is logged and
+    # noted by decide()). Oct 15: columns named, so a later ALTER TABLE (after_1d_ex, after_5d_ex) can never break the save again
+    # (206 decisions were lost on Oct 14-15 when an 18-value INSERT met a 20-column table).
+    with reliability.atomic(j):
+        rows = [_open(j, *o[:10], tid=o[10], commit=False) for o in opens]
+        trade, rnd = (rows + [None, None])[:2]
+        j.db.execute("INSERT INTO brain_decisions (id, t, coin, triggers, action, confidence, size_pct, price, plan, thesis, knowledge, model, "
+                     "cost_usd, trade_id, random_id, after_1d_pct, after_5d_pct, note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                     (did, int(j.now()), coin, json.dumps(triggers, default=str), action, conf, size, price, json.dumps(plan, default=str),
+                      (d.get("thesis") or "")[:600], json.dumps(know), usage.get("model"), cost, trade["id"] if trade else None,
+                      rnd["id"] if rnd else None, None, None, note or None))
+    if trade and push:                                  # only a saved trade reaches the phone
+        try:
+            push(f"Jarvis paper trade: {coin}", f"About ${price:,.6g}, stop ${float(d['stop']):,.6g}"
+                 + (f", target ${target:,.6g}" if target else "") + (f", trailing {trail:g} daily ranges" if trail else "")
+                 + f", {days} days max. Confidence {conf:.0f}%, size {size:.0f}%. {d.get('thesis', '')}"[:480])
+        except Exception:  # noqa: BLE001
+            pass
     return {"id": did, "action": action, "confidence": conf, "size_pct": size, "thesis": d.get("thesis"), "flags": flags,
             "trade": trade["id"] if trade else None, "random_twin": rnd["coin"] if rnd else None, "cost_usd": cost}
 
@@ -1103,6 +1129,9 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
             state = "DONE"
         except Exception as exc:  # noqa: BLE001
             r, state = {"error": str(exc)[:160]}, "FAILED: " + str(exc)[:80]
+            from jarvis.service import reliability      # Oct 21: never only in the queue row (a paid failure was also noted by decide)
+
+            reliability._logger().error(f"brain queue {qid} ({coin}): {state}")
         j.db.execute("UPDATE brain_queue SET state=? WHERE id=?", (state, qid))
         j.db.commit()
         out.append({"coin": coin, **r})

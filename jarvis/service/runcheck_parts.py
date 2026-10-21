@@ -30,6 +30,8 @@ One entry:
   errors_only     true: absence is fine, only error rows are misses (FAILED queue items, unreadable replies)
   zero_means      "empty" when each row is a unit of work (a decision), so no rows means the part ran and did nothing
   latest_only     true: only the latest scheduled run can be judged (the proof is a single current value)
+  from_first      true: the proof began with a code change (Oct 21), so runs before its first dated record are not judged; with no
+                  record yet the part is listed under "cannot be checked" with the proof's "before_first" reason
 Paths: {agent} the agent folder (databases), {runs} ~/ananta_runs, {repo} this checkout, {worker} the worker's pulled days,
 {backups} ~/ananta_backups.
 """
@@ -185,16 +187,28 @@ PARTS: list[dict] = [
      "proof": {"mtime": "{runs}/others_daily.log"},
      "note": "OD-HL-FILLS (a), Madhav Oct 20; it has little to sort until the worker's capture runs"},
 
+    # ---------------------------------------------------------------- dated from Oct 21 (live-code reliability fixes)
+    # from_first: the proof starts with that code change, so each is judged from its first dated record; before it exists the part
+    # is listed under "cannot be checked" with before_first as the reason.
+    {"id": "outside_watchdog", "name": "Outside watchdog (a look at least every 10 minutes; it runs every 5)", "job": "com.ananta.watchdog",
+     "severity": "medium", "since": "2026-10-04", "cadence": {"every": 600, "grace": 600}, "min_work": 1, "from_first": True,
+     "proof": {"log": "{runs}/watchdog.log", "time_format": "%Y-%m-%d %H:%M", "tz": "UTC",
+               "regex": r"^\[(?P<t>\d{4}-\d\d-\d\d \d\d:\d\d):\d\d UTC\] \{",
+               "before_first": "watchdog.log has no dated line yet (scripts/jarvis_watchdog.py dates its lines from Oct 21)"},
+     "note": "per 10 minutes: launchd's 5-minute interval does not line up with the checker's slots"},
+    {"id": "health_loop", "name": "Health watchdog's own checks (the last round under 10 minutes old)", "job": "com.ananta.jarvis (health watchdog)",
+     "severity": "medium", "since": "2026-10-04", "cadence": {"every": 600, "grace": 300}, "min_work": 1, "latest_only": True,
+     "from_first": True,
+     "proof": {"sql": J, "query": "SELECT last_push, 1 FROM health_state WHERE part='_last_check' AND last_push IS NOT NULL",
+               "before_first": "health_state has no _last_check row yet (health.watch records it from Oct 21)"}},
+    {"id": "jobs_steps", "name": "Each step inside the 15-minute jobs (its *_error keys)", "job": "com.ananta.jarvis (background_jobs)",
+     "severity": "high", "since": "2026-10-01", "cadence": {"every": 900, "grace": 600}, "errors_only": True, "from_first": True,
+     "proof": {"log": "{runs}/jobs_steps.jsonl", "time_format": "%Y-%m-%d %H:%M", "tz": "UTC",
+               "regex": r'^\{"t": "(?P<t>\d{4}-\d\d-\d\d \d\d:\d\d):\d\d", "n": \d+, "errors": (?P<err>\{.*\})\}$', "ok_err": "{}",
+               "before_first": "jobs_steps.jsonl not written yet (the 15-minute loop records every *_error from Oct 21)"},
+     "note": "reliability.record_job_errors: one line per run; a run with no line at all shows under jobs_loop"},
+
     # ---------------------------------------------------------------- parts with no dated proof (listed every time)
-    {"id": "outside_watchdog", "name": "Outside watchdog (every 5 minutes)", "job": "com.ananta.watchdog", "severity": "medium",
-     "since": "2026-10-04", "cadence": {"every": 300},
-     "proof": {"none": "watchdog.log lines carry no time, so a missed look cannot be dated"}},
-    {"id": "health_loop", "name": "Health watchdog's own checks (every 2 minutes)", "job": "com.ananta.jarvis (health watchdog)",
-     "severity": "medium", "since": "2026-10-04", "cadence": {"every": 120},
-     "proof": {"none": "health_state keeps no time of the last check; only outages are dated (health_outages)"}},
-    {"id": "jobs_steps", "name": "Each step inside the 15-minute jobs", "job": "com.ananta.jarvis (background_jobs)",
-     "severity": "high", "since": "2026-10-01", "cadence": {"every": 900},
-     "proof": {"none": "background_jobs() returns every step's *_error key and the loop throws the result away"}},
     {"id": "eye_loop", "name": "The eye (live prices every 10 seconds)", "job": "com.ananta.jarvis (eye)", "severity": "medium",
      "since": "2026-10-01", "cadence": {"every": 120},
      "proof": {"none": "the eye keeps its last look in memory only; its outages show under health_outages"}},

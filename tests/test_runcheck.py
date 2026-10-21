@@ -337,7 +337,8 @@ def test_every_query_runs_against_the_live_column_names(tmp_path):
         "CREATE TABLE news_log (day TEXT, coin TEXT, t INTEGER, verdict TEXT, why TEXT, json TEXT)",
         "CREATE TABLE credit_records (day TEXT, coin TEXT, t INTEGER, close REAL, signals TEXT, detail TEXT, fwd20 REAL)",
         "CREATE TABLE briefings (id TEXT, t INTEGER, kind TEXT, day TEXT, text TEXT, json TEXT)",
-        "CREATE TABLE health_log (id INTEGER, part TEXT, down_t INTEGER, up_t INTEGER, detail TEXT)"])
+        "CREATE TABLE health_log (id INTEGER, part TEXT, down_t INTEGER, up_t INTEGER, detail TEXT)",
+        "CREATE TABLE health_state (part TEXT PRIMARY KEY, ok INTEGER, fails INTEGER, down_t INTEGER, last_push INTEGER, detail TEXT)"])
     _db(paths["agent"] + "/universe_bars.sqlite", ["CREATE TABLE m5 (coin TEXT, t INTEGER, o, h, l, c, v)",
                                                    "CREATE TABLE d1 (coin TEXT, t INTEGER, o, h, l, c, v, q)"])
     _db(paths["agent"] + "/tier30_bars.sqlite", ["CREATE TABLE bars (coin TEXT, t INTEGER, o, h, l, c, v)"])

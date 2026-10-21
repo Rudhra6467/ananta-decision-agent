@@ -281,8 +281,9 @@ def record(j) -> dict:
             "decisions": acts, "enabled": enabled()[0], "why_off": enabled()[1] or None}
 
 
-def _open_pair(j, did: str, pick: dict) -> tuple[dict, dict | None]:
-    """The trade and its random tier-A twin, exactly as the brain opens its own (same plan in the twin's own daily ranges)."""
+def _pair_plan(j, did: str, pick: dict) -> list[tuple]:
+    """What _open_pair will write: the trade and its random tier-A twin, exactly as the brain opens its own (same plan in the twin's
+    own daily ranges). Every read of Hands (the twin's trade guard) happens here, before the save's transaction (Oct 21)."""
     from jarvis.service import brain, stance
 
     ep = brain.EXIT_PLANS[pick["plan"]]
@@ -290,10 +291,10 @@ def _open_pair(j, did: str, pick: dict) -> tuple[dict, dict | None]:
     live_stop = 0.0 if ep.get("no_stop") else pick["stop"]
     regime = brain._regime_now(j)
     det = {"bold": did, "thesis": pick["thesis"], "size_pct": 100.0, "exit_plan": pick["plan"], "invalidation": pick["stop"]}
-    trade = brain._open(j, WATCH, pick["coin"], pick["price"], live_stop, None, None, ep["days"], atr, det, regime)
+    tid = uuid.uuid4().hex[:12]
+    out = [((WATCH, pick["coin"], pick["price"], live_stop, None, None, ep["days"], atr, det, regime), tid)]
     pool = [c for c in stance.candidates(j) if c != pick["coin"] and brain._live_px(j, c)]
     rc = brain._random_coin(j, pick["coin"], int(j.now()), pool)
-    rnd = None
     if rc and atr:
         from jarvis.service import trade_guard as tg
 
@@ -304,15 +305,24 @@ def _open_pair(j, did: str, pick: dict) -> tuple[dict, dict | None]:
                 ratr = None
         if ratr and rp:
             k = (pick["price"] - pick["stop"]) / atr
-            rnd = brain._open(j, TWIN, rc, rp, (rp - k * ratr) if live_stop else 0.0, None, None, ep["days"], ratr,
-                              {"bold": did, "twin_of": trade["id"], "thesis": f"random twin of {pick['coin']}"}, regime)
-    return trade, rnd
+            out.append(((TWIN, rc, rp, (rp - k * ratr) if live_stop else 0.0, None, None, ep["days"], ratr,
+                         {"bold": did, "twin_of": tid, "thesis": f"random twin of {pick['coin']}"}, regime), uuid.uuid4().hex[:12]))
+    return out
+
+
+def _open_pair(j, planned: list[tuple]) -> tuple[dict, dict | None]:
+    """Writes the planned rows without committing: run() saves them in one transaction with the decision row (reliability.atomic)."""
+    from jarvis.service import brain
+
+    rows = [brain._open(j, *args, tid=tid, commit=False) for args, tid in planned]
+    return rows[0], (rows[1] if len(rows) > 1 else None)
 
 
 def run(j, call: Callable | None = None) -> dict | None:
     """Once per UTC day, after tonight's stance. Off unless both locks are open. While the trade guard's kill switch is on (or
-    cannot be read) it waits without a model call and tries again at the next run; a pick whose price is too old is BLOCKED."""
-    from jarvis.service import brain, stance
+    cannot be read) it waits without a model call and tries again at the next run; a pick whose price is too old is BLOCKED.
+    Oct 21: the decision row and the trades it opens are saved in one transaction; a paid pick that cannot be saved is logged and noted."""
+    from jarvis.service import brain, reliability, stance
     from jarvis.service import trade_guard as tg
 
     ok, why = enabled()
@@ -335,6 +345,7 @@ def run(j, call: Callable | None = None) -> dict | None:
     budget = float((mandate().get("parameters") or {}).get("budget_usd_per_day") or 0.05)
     did = uuid.uuid4().hex[:12]
     res: dict[str, Any] = {"id": did, "day": day, "dial": dial, "action": None, "cost_usd": 0.0, "note": ""}
+    planned: list[tuple] = []
     ai_ok, ai_why = _ai_ok(j)
     if spent_today(j) >= budget or not ai_ok:
         res.update(action="MISS" if must else "SIT", note=ai_why or f"the bold book's ${budget:.2f} for today is used")
@@ -390,21 +401,31 @@ def run(j, call: Callable | None = None) -> dict | None:
         elif pick and gwhy:
             res.update(action="BLOCKED", coin=pick["coin"], plan=pick["plan"], price=pick["price"], stop=pick["stop"], thesis=pick["thesis"],
                        note="trade guard: " + gwhy)
-        elif pick:
-            trade, rnd = _open_pair(j, did, pick)
+        elif pick:                                   # planned now (the twin's guard reads Hands), written with the decision below
+            planned = _pair_plan(j, did, pick)
             res.update(action="TAKE", coin=pick["coin"], plan=pick["plan"], price=pick["price"], stop=pick["stop"], thesis=pick["thesis"],
-                       why=str(d.get("why_not_others") or "")[:300], trade_id=trade["id"], random_id=rnd["id"] if rnd else None)
+                       why=str(d.get("why_not_others") or "")[:300], trade_id=planned[0][1],
+                       random_id=planned[1][1] if len(planned) > 1 else None)
         elif d.get("action") == "SIT" and not must:
             res.update(action="SIT", why=str(d.get("thesis") or d.get("why_not_others") or "")[:400])
         else:
             res.update(action="MISS" if must else "SIT", note=("mandate miss: " if must else "") + (reason or "no pick")[:300])
         res["knowledge_used"] = d.get("knowledge_used") if isinstance(d.get("knowledge_used"), list) else None
         res["flag"] = t3_flag(res.get("coin"), t3, res.get("thesis"), res.get("why"))
-    j.db.execute("INSERT INTO bold_decisions (id, day, t, dial, action, coin, plan, price, stop, thesis, why, model, cost_usd, trade_id, "
-                 "random_id, note, pack, t3, flag, knowledge_used) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                 (did, day, now, dial, res["action"], res.get("coin"), res.get("plan"), res.get("price"), res.get("stop"), res.get("thesis"),
-                  res.get("why"), res.get("model"), res["cost_usd"], res.get("trade_id"), res.get("random_id"), res.get("note") or None,
-                  PACK if "t3" in res else None, json.dumps(res["t3"]) if "t3" in res else None, res.get("flag"),
-                  json.dumps(res["knowledge_used"]) if res.get("knowledge_used") else None))
-    j.db.commit()
+    try:                                             # Oct 21: the pick and the trades it opens, one transaction; a failed save is noted
+        with reliability.atomic(j):
+            if planned:
+                _open_pair(j, planned)
+            j.db.execute("INSERT INTO bold_decisions (id, day, t, dial, action, coin, plan, price, stop, thesis, why, model, cost_usd, "
+                         "trade_id, random_id, note, pack, t3, flag, knowledge_used) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                         (did, day, now, dial, res["action"], res.get("coin"), res.get("plan"), res.get("price"), res.get("stop"),
+                          res.get("thesis"), res.get("why"), res.get("model"), res["cost_usd"], res.get("trade_id"), res.get("random_id"),
+                          res.get("note") or None, PACK if "t3" in res else None, json.dumps(res["t3"]) if "t3" in res else None,
+                          res.get("flag"), json.dumps(res["knowledge_used"]) if res.get("knowledge_used") else None))
+    except Exception as exc:
+        if res["cost_usd"]:
+            reliability.save_failed(j, "bold pick", exc, f"{day}, {res.get('action')} {res.get('coin') or ''}, ${res['cost_usd']:.4f} paid")
+        else:
+            reliability._logger().error(f"bold book {day}: its unpaid row could not be saved ({type(exc).__name__}: {exc})")
+        raise
     return res

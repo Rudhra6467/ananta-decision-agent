@@ -366,8 +366,14 @@ def _parse(text: str) -> dict:
         raise ValueError("no JSON in the reply" + (" (it was cut off)" if "{" in (text or "") else ""))
     d = json.loads(blk)
     if not isinstance(d, dict) or not str(d.get("view") or "").strip():
-        raise ValueError("the reply has no view")
+        # Oct 18-19: both replies hit MAX_TOKENS mid-positions; the first complete {...} was then one position, with no view
+        raise ValueError("the reply has no view" + (" (it was cut off)" if not (text or "").rstrip().endswith("}") else ""))
     return d
+
+
+RETRY = ("\n\nYour last reply could not be read ({why}). Reply again with ONLY the JSON object, nothing before or after it, and keep "
+         "it short so it is not cut off: view and changed under 60 words each, each position's why under 15 words, each expectation's "
+         "why under 20 words. The \"view\" key must come first and must not be empty.")
 
 
 def validate(raw: Any, f: dict) -> tuple[list[dict], list[str]]:
@@ -443,8 +449,10 @@ def _prompt(j, f: dict, prev: dict | None) -> str:
 
 
 def plan(j, call: Callable | None = None, force: bool = False) -> dict | None:
-    """Once a day after the daily close: the facts, the brain's stance and expectations (when its day's money allows), saved."""
-    from jarvis.service import brain
+    """Once a day after the daily close: the facts, the brain's stance and expectations (when its day's money allows), saved.
+    An unreadable reply is asked once more with a stricter, shorter format (Oct 21; Oct 18-19 were cut off at MAX_TOKENS), inside the
+    same daily AI cap; if that fails too, the facts alone are saved, as before, and the log says so."""
+    from jarvis.service import brain, reliability
 
     _table(j)
     if not force and not due(j):
@@ -464,39 +472,63 @@ def plan(j, call: Callable | None = None, force: bool = False) -> dict | None:
     if ok and not f["candidates"]:
         ok, why = False, "no tier-A coin has yesterday's daily candle yet: facts only"
     if ok:
-        t0 = time.time()
-        try:
-            text, usage = (call or (lambda u: _call(SYSTEM, u)))(_prompt(j, f, prev))
-        except Exception as exc:  # noqa: BLE001
-            text, usage, why = None, {}, f"the model call failed ({str(exc)[:120]}): facts only"
-        if text is not None:
+        call = call or (lambda u: _call(SYSTEM, u))
+        prompt = _prompt(j, f, prev)
+        d = None
+        for attempt in range(2):                        # Oct 21: an unreadable reply is asked once more, stricter and shorter
+            t0 = time.time()
+            try:
+                text, usage = call(prompt if attempt == 0 else prompt + RETRY.format(why=bad))
+            except Exception as exc:  # noqa: BLE001
+                why = f"the model call failed ({str(exc)[:120]}): facts only" + (" (on the retry)" if attempt else "")
+                break
             cost = brain._price(usage)
             _log(j, usage, cost, int(1000 * (time.time() - t0)), text)
-            res.update(cost_usd=cost, model=usage.get("model"))
+            res.update(cost_usd=round(res["cost_usd"] + cost, 5), model=usage.get("model"))
             try:
                 d = _parse(text)
+                break
             except (ValueError, json.JSONDecodeError) as exc:
-                d, why = None, f"unreadable reply ({str(exc)[:100]}): facts only"
-            if d:
-                exps, rejected = validate(d.get("expectations"), f)
-                res.update(view=str(d.get("view"))[:900], changed=str(d.get("changed") or "")[:400], source="brain",
-                           positions=_positions_reply(d.get("positions"), f), expectations=exps, rejected=rejected)
-                if not exps:
-                    why = "no expectation tonight: " + str(d.get("no_expectation_reason") or "no reason given")[:300]
-                elif rejected:
-                    why = "dropped by the code: " + "; ".join(rejected)[:300]
+                bad = str(exc)[:100]
+                why = f"unreadable reply ({bad})"
+            if attempt == 0:
+                again, cap = _may_call(j)               # the retry counts against the same daily AI cap as the first call
+                if not again:
+                    why += f"; no retry: {cap}"
+                    break
+                reliability._logger().warning(f"stance {day}: {why}; asking once more")
+        if d is None and why.startswith("unreadable reply"):   # today's fallback, kept: the facts alone, and why
+            if "no retry" not in why:
+                why += ": facts only (also after one retry)"
+            reliability._logger().warning(f"stance {day}: {why}")
+        if d:
+            exps, rejected = validate(d.get("expectations"), f)
+            res.update(view=str(d.get("view"))[:900], changed=str(d.get("changed") or "")[:400], source="brain",
+                       positions=_positions_reply(d.get("positions"), f), expectations=exps, rejected=rejected)
+            if not exps:
+                why = "no expectation tonight: " + str(d.get("no_expectation_reason") or "no reason given")[:300]
+            elif rejected:
+                why = "dropped by the code: " + "; ".join(rejected)[:300]
     res["note"] = why
-    j.db.execute("INSERT OR REPLACE INTO stance (day, t, dial, view, changed, facts_diff, positions, facts, source, model, cost_usd, note) "
-                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                 (day, now, res["dial"], res["view"], res["changed"], json.dumps(res["facts_diff"]), json.dumps(res["positions"]),
-                  json.dumps(f, default=str, separators=(",", ":")), res["source"], res["model"], res["cost_usd"], why or None))
-    for e in res["expectations"]:
-        e["id"] = uuid.uuid4().hex[:12]
-        j.db.execute("INSERT INTO expectations (id, day, t, coin, plan, trigger_type, trigger_price, invalidation, horizon_days, size_pct, why, "
-                     "knowledge, price_at_plan, dial, status, status_t) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                     (e["id"], day, now, e["coin"], e["plan"], e["trigger_type"], e["trigger_price"], e["invalidation"], e["horizon_days"],
-                      e["size_pct"], e["why"], json.dumps(e["knowledge"]), e["price_at_plan"], res["dial"], "OPEN", now))
-    j.db.commit()
+    try:                                                # Oct 21: the stance and its expectations in one transaction; a failed save is noted
+        with reliability.atomic(j):
+            j.db.execute("INSERT OR REPLACE INTO stance (day, t, dial, view, changed, facts_diff, positions, facts, source, model, cost_usd, "
+                         "note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                         (day, now, res["dial"], res["view"], res["changed"], json.dumps(res["facts_diff"]), json.dumps(res["positions"]),
+                          json.dumps(f, default=str, separators=(",", ":")), res["source"], res["model"], res["cost_usd"], why or None))
+            for e in res["expectations"]:
+                e["id"] = uuid.uuid4().hex[:12]
+                j.db.execute("INSERT INTO expectations (id, day, t, coin, plan, trigger_type, trigger_price, invalidation, horizon_days, "
+                             "size_pct, why, knowledge, price_at_plan, dial, status, status_t) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                             (e["id"], day, now, e["coin"], e["plan"], e["trigger_type"], e["trigger_price"], e["invalidation"],
+                              e["horizon_days"], e["size_pct"], e["why"], json.dumps(e["knowledge"]), e["price_at_plan"], res["dial"],
+                              "OPEN", now))
+    except Exception as exc:
+        if res["cost_usd"]:
+            reliability.save_failed(j, "stance", exc, f"{day}, ${res['cost_usd']:.4f} paid")
+        else:
+            reliability._logger().error(f"stance {day}: the facts-only stance could not be saved ({type(exc).__name__}: {exc})")
+        raise
     if prev and prev.get("dial") is not None and prev["dial"] <= 0 and (res["dial"] or 0) > 0:
         try:                                            # A5: the dial opening is a moment for the brain (review #25)
             brain.wake(j, "BTC", "dial_open", {"from": "CLOSED", "to": "OPEN", "why": (f.get("dial") or {}).get("why")})

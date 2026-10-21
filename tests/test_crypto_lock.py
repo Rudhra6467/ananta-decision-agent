@@ -126,6 +126,16 @@ def current() -> dict[str, str]:
             # Oct 20, Madhav "2. yes": engine_execution against the worker's independent NDAX quote, and the realism test it rests on
             _top("jarvis/service/evidence_live.py", ["EXEC_SINCE", "EXEC_FILLS", "EXEC_ACHIEVABLE", "EXEC_MEDIAN_BPS", "execution_reading"]),
             _top("jarvis/service/realism.py", ["NDAX_FEE", "TOLERANCE_BPS", "MAX_QUOTE_GAP_S", "optimism_bps", "score"]),
+            # Oct 21, Madhav "I approve all" (09:41 Toronto): the decision map's gate bundle (baselines on the account's books with
+            # buy-and-hold and the BTC 50-day, part outages and the worker's blind time, cites in conversations only, the bold book
+            # in no_failed_rules, regimes in independent events, an expiry on every hand-written pass), and the rules it rests on
+            _top("jarvis/service/evidence_live.py", ["REGIME_EVENTS", "REGIME_BOOKS", "regimes_reading", "no_failed_rules_reading",
+                                                      "_baseline_watch", "baselines_reading", "OUTAGE_DAYS", "PART_OUTAGE_MAX_MIN",
+                                                      "WORKER_BLIND_MAX_MIN", "_part_outages", "worker_blind_minutes", "outages_reading",
+                                                      "CITES_NOT_THREADS", "cites", "HAND_FRESH_DAYS", "_hand_age"]),
+            _top("jarvis/service/scoreboard.py", ["independent_events"]),                        # what one market event is
+            _top("jarvis/service/missed.py", ["book_allowed"]),                                  # which books are allowed to trade
+            _json("docs/knowledge/acceptance_gate.json", lambda d: [{x: c.get(x) for x in ("id", "expires_days")} for c in d["checks"]]),
             _top("jarvis/service/ev.py", ["fidelity"]),                                          # Rule A's "within 3 points"
             _top("src/intelligence/paper_exit.py", ["settings_for"]),                            # which cost profile a book gets by default
             _json("docs/knowledge/acceptance_gate.json", lambda d: [{x: c.get(x) for x in ("id", "status")} for c in d["checks"]]),

@@ -575,3 +575,43 @@ def test_ops_outages_counts_the_minutes_the_worker_could_not_see(tmp_path):
     _health(j2)
     r = el.outages_reading(j2, ok, tmp_path / "none")                            # no worker on this machine: not a pass
     assert r["status"] == "PARTLY" and "not measured" in r["note"]
+
+
+def test_a_hand_written_pass_expires_like_the_exam(tmp_path):
+    """Oct 21: each hand-written check carries an evidence date and an expiry (30 days, 35 for the monthly rehearsal); an expired
+    hand-written PASS reads PARTLY, as an exam pass older than 8 days does. Non-passes are left as they are."""
+    from datetime import datetime, timezone
+
+    from jarvis.service import evidence_live as el
+    from jarvis.service.core import docs_dir
+
+    def at(day):
+        return datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() + 3600
+
+    c = {"status": "PASS", "note": "x", "evidence_date": "2026-10-06", "expires_days": 30}
+    el._hand_age(c, at("2026-11-05"))
+    assert c["status"] == "PASS" and c["expires"] == "2026-11-05"
+    el._hand_age(c, at("2026-11-06"))
+    assert c["status"] == "PARTLY" and "expired on 2026-11-05" in c["note"]
+    r = {"status": "PASS", "note": "rehearsed Sep 30", "evidence_date": "2026-09-30", "expires_days": 35}
+    el._hand_age(r, at("2026-11-04"))
+    assert r["status"] == "PASS"
+    el._hand_age(r, at("2026-11-05"))
+    assert r["status"] == "PARTLY"
+    f = {"status": "PENDING", "note": "", "evidence_date": "2020-01-01"}
+    el._hand_age(f, at("2026-11-06"))
+    assert f["status"] == "PENDING" and f["expires"] == "2020-01-31"               # the default is 30 days
+    m = {"status": "PASS", "note": "measured"}
+    el._hand_age(m, at("2030-01-01"))
+    assert m == {"status": "PASS", "note": "measured"}                             # no evidence date: a measured check
+    g = json.loads((docs_dir(tmp_path) / "knowledge" / "acceptance_gate.json").read_text())
+    hand = {c["id"] for c in g["checks"] if c.get("evidence_date")}
+    assert hand == {"data_correct", "data_complete", "data_pit", "data_survivorship", "data_costs", "engine_lookahead", "engine_risk",
+                    "strategy_oos", "strategy_universe", "strategy_survivorship", "agent_explains", "ops_stale", "ux_confirm"}
+    for c in g["checks"]:
+        if c["id"] in hand:
+            assert c["expires_days"] == (35 if c["id"] == "engine_risk" else 30) and c["evidence_what"]
+    j = types.SimpleNamespace(dir=tmp_path, db=sqlite3.connect(":memory:"), now=lambda: at("2026-12-01"))
+    gate = el._gate(j, {})
+    by = {c["id"]: c for c in gate["checks"]}
+    assert by["ux_confirm"]["status"] == "PARTLY" and by["strategy_oos"]["status"] == "PARTLY" and "expired" in by["ux_confirm"]["note"]

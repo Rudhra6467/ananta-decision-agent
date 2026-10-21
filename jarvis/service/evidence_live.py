@@ -24,7 +24,7 @@ from __future__ import annotations
 import json
 import math
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -932,6 +932,30 @@ def baselines_reading(j, out: dict | None = None) -> dict:
             "note": note + ("" if ok else "; behind: " + ", ".join((["the allowed books against their twins"] if edge <= 0 else []) + behind))}
 
 
+HAND_FRESH_DAYS = 30                     # a hand-written verdict holds 30 days from its evidence date unless the check sets expires_days
+
+
+def _hand_age(c: dict, now: float) -> None:
+    """Madhav, 2026-10-21 09:41 Toronto ("I approve all"; decision map section 4: "each hand-written check gets an evidence date and
+    an expiry"): a check whose status is written by hand carries evidence_date and expires_days in acceptance_gate.json. Like the
+    exam's 8-day rule (_exam_age), a hand-written PASS older than that reads PARTLY until its evidence is checked again and the date
+    renewed. Every check with an evidence date shows when it expires."""
+    day = c.get("evidence_date")
+    if not day:
+        return
+    try:
+        d0 = datetime.strptime(str(day), "%Y-%m-%d").date()
+        keep = int(c.get("expires_days") or HAND_FRESH_DAYS)
+    except (TypeError, ValueError):
+        return
+    exp = d0 + timedelta(days=keep)
+    c["expires"] = exp.isoformat()
+    if c.get("status") == "PASS" and datetime.fromtimestamp(now, timezone.utc).date() > exp:
+        c["status"] = "PARTLY"
+        c["note"] = (f"{c.get('note', '')}; the hand-written pass of {day} expired on {exp.isoformat()} (it holds {keep} days; its evidence "
+                     "needs checking again and a new date)").lstrip("; ")
+
+
 def _gate(j, out: dict) -> dict:
     """The Engine Acceptance Gate (docs/knowledge/acceptance_gate.json): 27 checks; a few are computed live here."""
     from jarvis.service.core import docs_dir
@@ -977,6 +1001,8 @@ def _gate(j, out: dict) -> dict:
             c.update(outages_reading(j, {"status": c.get("status"), "note": c.get("note")}))
         except Exception as exc:  # noqa: BLE001  the part outages could not be read: not a pass
             c["status"], c["note"] = "PENDING", f"could not read the part outages: {str(exc)[:80]}; {c.get('note', '')}"
+    for c in checks:
+        _hand_age(c, j.now())
     for c in checks:
         c["status_words"] = GATE_WORDS.get(c["status"], c["status"])
     passed = sum(1 for c in checks if c["status"] == "PASS")

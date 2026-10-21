@@ -14,6 +14,7 @@ Paper only; nothing here trades.
 """
 from __future__ import annotations
 
+import calendar
 import json
 import statistics
 import time
@@ -70,8 +71,9 @@ def _btc_window(j, t0: int, t1: int) -> dict:
     return out
 
 
-def card(j, d: dict) -> dict:
-    """One situation (a brain decision) in four views, plus the lesson the rules draw from it."""
+def card(j, d: dict, light: bool = False) -> dict:
+    """One situation (a brain decision) in four views, plus the lesson the rules draw from it. light: without Bitcoin's and the
+    benchmark's window (the nightly lesson count needs only the lesson and the twin)."""
     t = int(d["t"])
     coin = d["coin"]
     plan = json.loads(d.get("plan") or "{}") if isinstance(d.get("plan"), str) else (d.get("plan") or {})
@@ -102,7 +104,8 @@ def card(j, d: dict) -> dict:
                  "best": max(closed, key=lambda r: r[3] or 0)[:2] if closed else None}
     # what others did
     t1 = int(tr["exit_t"]) if tr and tr.get("exit_t") else int(time.time())
-    others = {"random_twin": {"coin": twin["coin"], "status": twin["status"], "net_usd": twin["net_usd"]} if twin else None, **_btc_window(j, t, t1)}
+    others = {"random_twin": {"coin": twin["coin"], "status": twin["status"], "net_usd": twin["net_usd"]} if twin else None,
+              **({} if light else _btc_window(j, t, t1))}
     # the lesson the rules draw
     lesson = None
     if d["action"] == "PASS" and (d.get("after_5d_pct") or 0) >= 5:
@@ -147,6 +150,11 @@ def weekly_review(j, days: int = 7, write: bool = True) -> dict:
     out = {"from": time.strftime("%Y-%m-%d", time.gmtime(since)), "to": time.strftime("%Y-%m-%d", time.gmtime(j.now())),
            "decisions": len(cards), "takes": sum(c["what_we_did"]["action"] == "TAKE" for c in cards), "situations": chosen,
            "lessons": lessons, "tickets": tickets, "credit": credit(j, since), "changes": changes_after(j), "peers": peers(j)}
+    try:  # Oct 21: the lessons of earlier weeks that matured since the last review (counted nightly by count_lessons), and auto-filed tickets
+        out["matured"] = lessons_summary(j, since)
+        out["auto_tickets"] = auto_requests(j, since)
+    except Exception as exc:  # noqa: BLE001
+        out["matured"] = {"error": str(exc)[:120]}
     if write:
         try:
             f = ROOT / "docs" / "repair_shop" / "weekly" / f"{out['to']}.md"
@@ -172,6 +180,18 @@ def _markdown(r: dict, j=None) -> str:
               f"- **Lesson:** {c['lesson'] or 'none drawn'}",
               f"- **Ends in:** {c['ends_in']}", ""]
     L += ["## Tickets", ""] + ([f"- {t}" for t in r["tickets"]] or ["- None this week: no pattern reached 3 cases."]) + [""]
+    m = r.get("matured")
+    if m is not None:
+        L += ["## Lessons that matured since the last review", ""]
+        if m.get("error"):
+            L += [f"- (not read: {m['error']})"]
+        else:
+            L += [f"- {m['counted']} decisions' lessons matured and were counted under their own week ({m['late']} after that week's review had run)"
+                  + (": " + ", ".join(f"{k} x{n}" for k, n in m["kinds"].items()) if m["kinds"] else "") + ".",
+                  f"- {m['sealed_waiting']} matured inside the forward window and stay unlabelled until 2026-12-15 (pre-registered reviews #31, #33, #34).",
+                  "- Filed on the repair board by themselves this week (weekly lessons, missed-move patterns, fidelity, the ledger check): "
+                  + (", ".join(f"#{t['num']} ({t['about'] or 'no topic'}, {t['status']})" for t in r.get("auto_tickets") or []) or "none") + "."]
+        L += [""]
     L += ["## Credit (which knowledge moved decisions)", ""] + [f"- {k}: {json.dumps(v)}" for k, v in list(r["credit"].items())[:12]] + [""]
     L += ["## Change log, after", ""] + [f"- {c['change']}: {c.get('after')}" for c in r["changes"]] + [""]
     L += ["## Due", ""] + [f"- {x}" for x in _due(j)] + [""]
@@ -213,6 +233,250 @@ def _due(j=None) -> list[str]:
         except Exception as exc:  # noqa: BLE001
             out.append(f"(the due list could not be read: {str(exc)[:80]})")
     return out or ["nothing scheduled"]
+
+
+# ---------------------------------------------------------------------------
+# lessons counted when they mature; the weekly tickets filed by themselves (Oct 21, decision map sections 3 and 5)
+# ---------------------------------------------------------------------------
+# The weekly review counts the lessons of the week's decisions on Sunday, but a buy's lesson needs both legs closed (and a stop's, the
+# price 5 days later), and a pass's needs its 5-day move: most mature after the review has run and were never counted. The Oct 14
+# review's ticket ("random beat the pick", 3 times) was never filed, and its fourth case (VTHO, bought Oct 9) matured on Oct 15.
+# count_lessons() runs at every daily close: each decision whose lesson has matured since the last count is labelled once, exactly as
+# card() labels it, under the week whose review it belongs to; a kind that reaches 3 in one week files one repair-board request with its
+# evidence. Reporting only (Rule B): a lesson or a ticket never changes a trading rule.
+# Forward window (docs/research/PREREG_WINDOW_2026-10-20.md): every lesson kind is the object of a pre-registered review (#31, #33,
+# #34), so a decision made from 2026-10-21 is counted as matured but NOT labelled before 2026-12-15 (labelling compares a pair's
+# values, which is a look); its label and any ticket follow at the first count after the seal lifts.
+TICKET_KINDS = ("stopped at the low", "missed winner", "random beat the pick")
+TICKET_MIN = 3
+PREREG = {"random beat the pick": "#33 (does Jarvis's pick beat a random coin?)", "stopped at the low": "#31 (the written close stop against the coded touch stop)",
+          "missed winner": "#34 (are the brain's PASSes right?)"}
+WINDOW_FROM_T = calendar.timegm((2026, 10, 21, 0, 0, 0))
+SEALED_UNTIL_T = calendar.timegm((2026, 12, 15, 0, 0, 0))
+MATURE_AFTER_EXIT = 6 * DAY          # card() reads the close 5 days after a stop exit once that day is complete
+UNFILLED_AFTER = 30 * DAY            # a leg never filled (WAITING) stops holding its decision back after 30 days
+REVIEW_SLACK = 1800                  # the Sunday review runs just after the 00:00 UTC close
+
+
+def _lessons_table(j) -> None:
+    j.db.execute("CREATE TABLE IF NOT EXISTS learning_lessons (decision_id TEXT PRIMARY KEY, t INTEGER, coin TEXT, action TEXT, week TEXT, "
+                 "matured_t INTEGER, counted_t INTEGER, lesson TEXT, sealed INTEGER, late INTEGER, ticket TEXT, evidence TEXT)")
+    j.db.execute("CREATE TABLE IF NOT EXISTS engine_state (k TEXT PRIMARY KEY, v TEXT)")
+
+
+def _has_table(j, name: str) -> bool:
+    return bool(j.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone())
+
+
+def _week_of(t: int) -> str:
+    """The Sunday whose weekly review covers a decision at t (the review runs at the Sunday 00:00 UTC close over the 7 days before)."""
+    day0 = int(t) - int(t) % DAY
+    wd = time.gmtime(day0).tm_wday                                    # Monday 0 .. Sunday 6
+    return time.strftime("%Y-%m-%d", time.gmtime(day0 + ((6 - wd) if wd != 6 else 7) * DAY))
+
+
+def _maturity(j, d: dict, now: int) -> int | None:
+    """When the decision's lesson can no longer change (None: not yet). Reads statuses and times only, never a result, so it is not a
+    look at a sealed review: a PASS once its 5-day move is settled; a TAKE once its trade and its random twin are closed (a leg never
+    filled lets go after 30 days) and 6 days have passed since the last exit."""
+    t = int(d["t"])
+    if d["action"] != "TAKE":
+        return min(now, t + 6 * DAY) if d.get("after_5d_pct") is not None else None
+    last = t
+    for tid in (d.get("trade_id"), d.get("random_id")):
+        if not tid:
+            continue
+        r = j.db.execute("SELECT status, exit_t FROM evidence_trades WHERE id=?", (tid,)).fetchone()
+        if r is None:
+            continue
+        if r[0] == "CLOSED":
+            last = max(last, int(r[1] or t))
+        elif r[0] == "OPEN" or now < t + UNFILLED_AFTER:
+            return None
+    m = last + MATURE_AFTER_EXIT
+    return m if now >= m else None
+
+
+def _sealed(j, d: dict, now: int) -> bool:
+    """Inside the forward window until the seal lifts: a decision made from 2026-10-21 (reviews #33, #34), or one with a leg that exited
+    from 2026-10-21 (review #31 counts every stop exit in the window, whenever it was opened; #33 reports the pairs open at the push)."""
+    if now >= SEALED_UNTIL_T:
+        return False
+    if int(d["t"]) >= WINDOW_FROM_T:
+        return True
+    for tid in (d.get("trade_id"), d.get("random_id")):
+        if tid:
+            r = j.db.execute("SELECT exit_t FROM evidence_trades WHERE id=?", (tid,)).fetchone()
+            if r and r[0] and int(r[0]) >= WINDOW_FROM_T:
+                return True
+    return False
+
+
+def _evidence(c: dict) -> dict:
+    w, o = c["what_we_did"], c["what_others_did"]
+    tw = o.get("random_twin") or {}
+    return {"coin": w["coin"], "day": c["day"], "action": w["action"], "net_usd": w.get("net_usd"), "twin": tw.get("coin"), "twin_net_usd": tw.get("net_usd"),
+            "after_5d_pct": c["what_if"].get("had_we_bought_5d_pct"), "after_stop_5d_pct": c["what_if"].get("price_5_days_after_exit_vs_exit_pct")}
+
+
+def _label(j, d: dict) -> tuple[str | None, str]:
+    c = card(j, d, light=True)
+    return ((c["lesson"] or "").split(":")[0] or None), json.dumps(_evidence(c))
+
+
+def count_lessons(j, now: float | None = None) -> dict:
+    """The nightly count (run_daily, step 'lessons'): every decision whose lesson matured since the last count is recorded once in
+    learning_lessons under its week; then file_lesson_tickets(). Returns what was counted tonight."""
+    now = int(now if now is not None else j.now())
+    out: dict = {"matured": 0, "late": 0, "sealed": 0, "unsealed": 0, "by_kind": {}, "tickets": []}
+    if not _has_table(j, "brain_decisions"):
+        return {**out, "note": "no brain decisions yet"}
+    _lessons_table(j)
+    have = dict(j.db.execute("SELECT decision_id, sealed FROM learning_lessons").fetchall())
+    for d in _decisions(j, 0):
+        prev = have.get(d["id"])
+        if prev == 0:
+            continue
+        seal = _sealed(j, d, now)
+        if prev == 1:                                                  # matured inside the window: labelled once the seal has lifted
+            if seal:
+                continue
+            lesson, ev = _label(j, d)
+            j.db.execute("UPDATE learning_lessons SET lesson=?, evidence=?, sealed=0, counted_t=? WHERE decision_id=?", (lesson, ev, now, d["id"]))
+            out["unsealed"] += 1
+            out["by_kind"][lesson or "none drawn"] = out["by_kind"].get(lesson or "none drawn", 0) + 1
+            continue
+        m = _maturity(j, d, now)
+        if m is None:
+            continue
+        week = _week_of(int(d["t"]))
+        late = int(m > calendar.timegm(time.strptime(week, "%Y-%m-%d")) + REVIEW_SLACK)
+        lesson, ev = (None, None) if seal else _label(j, d)
+        j.db.execute("INSERT INTO learning_lessons (decision_id, t, coin, action, week, matured_t, counted_t, lesson, sealed, late, ticket, evidence) "
+                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", (d["id"], int(d["t"]), d["coin"], d["action"], week, m, now, lesson, int(seal), late, None, ev))
+        out["matured"] += 1
+        out["late"] += late
+        if seal:
+            out["sealed"] += 1
+        else:
+            out["by_kind"][lesson or "none drawn"] = out["by_kind"].get(lesson or "none drawn", 0) + 1
+    j.db.commit()
+    out["tickets"] = file_lesson_tickets(j, now)
+    day = time.strftime("%Y-%m-%d", time.gmtime(now))
+    j.db.execute("INSERT OR REPLACE INTO engine_state (k, v) VALUES (?,?)", (f"learning:count:{day}", json.dumps({**out, "t": now})))
+    j.db.commit()
+    return out
+
+
+def _ledger_lessons() -> tuple[dict[str, str], dict[str, str]]:
+    """Lesson tickets in the hand-written ledger (a ticket row with "lesson" and "decisions"): {decision id: ticket id} and, per lesson
+    kind, the ticket still open (status not DONE or WONT). The loop never files what the ledger already holds."""
+    try:
+        led = json.loads((ROOT / "docs" / "repair_shop" / "ledger.json").read_text())
+    except Exception:  # noqa: BLE001
+        return {}, {}
+    by_dec, open_kind = {}, {}
+    for t in led.get("tickets", []):
+        if not t.get("lesson"):
+            continue
+        for did in t.get("decisions") or []:
+            by_dec[str(did)] = str(t.get("id"))
+        if t.get("status") not in ("DONE", "WONT"):
+            open_kind.setdefault(t["lesson"], str(t.get("id")))
+    return by_dec, open_kind
+
+
+def _open_request(j, kind: str) -> str | None:
+    """The repair-board request this loop filed for a lesson kind, while it is still OPEN or PLANNED."""
+    st = j.db.execute("SELECT v FROM engine_state WHERE k=?", (f"learning:ticket:{kind}",)).fetchone()
+    if not st:
+        return None
+    num = json.loads(st[0]).get("request")
+    r = j.db.execute("SELECT status FROM owner_requests WHERE num=?", (int(num),)).fetchone() if str(num or "").isdigit() and _has_table(j, "owner_requests") else None
+    return str(num) if r and r[0] in ("OPEN", "PLANNED") else None
+
+
+def _case_words(kind: str, ev: dict) -> str:
+    if kind == "random beat the pick":
+        return f"{ev.get('coin')} {ev.get('day')}: ${ev.get('net_usd')} against the random {ev.get('twin')} ${ev.get('twin_net_usd')}"
+    if kind == "stopped at the low":
+        return f"{ev.get('coin')} {ev.get('day')}: stopped at ${ev.get('net_usd')}, {ev.get('after_stop_5d_pct'):+}% five days later" \
+            if ev.get("after_stop_5d_pct") is not None else f"{ev.get('coin')} {ev.get('day')}: stopped at ${ev.get('net_usd')}"
+    return f"{ev.get('coin')} {ev.get('day')}: PASS, {ev.get('after_5d_pct'):+}% in 5 days" if ev.get("after_5d_pct") is not None \
+        else f"{ev.get('coin')} {ev.get('day')}: PASS"
+
+
+def file_lesson_tickets(j, now: float | None = None) -> list[dict]:
+    """A lesson kind reaching TICKET_MIN cases in one week becomes ONE repair-board request (by ananta-auto) carrying its evidence, and is
+    never filed twice: while that kind has an open ticket (a ledger ticket row, or the request this loop filed, still OPEN or PLANNED)
+    every new case of the kind joins it (learning_lessons.ticket) instead of filing another. Only after the ticket is closed can a later
+    week that reaches TICKET_MIN again file a new one. Sealed rows are never read."""
+    from jarvis.service import requests_log
+
+    now = int(now if now is not None else j.now())
+    _lessons_table(j)
+    by_dec, open_kind = _ledger_lessons()
+    rows = j.db.execute(f"SELECT decision_id, week, lesson, evidence FROM learning_lessons WHERE sealed=0 AND ticket IS NULL "
+                        f"AND lesson IN ({','.join('?' * len(TICKET_KINDS))}) ORDER BY t", TICKET_KINDS).fetchall()
+    cases: dict[str, list] = {}
+    for did, week, kind, ev in rows:
+        if by_dec.get(did):
+            j.db.execute("UPDATE learning_lessons SET ticket=? WHERE decision_id=?", (by_dec[did], did))
+        else:
+            cases.setdefault(kind, []).append((did, week, json.loads(ev or "{}")))
+    out = []
+    for kind in TICKET_KINDS:
+        cs = cases.get(kind) or []
+        if not cs:
+            continue
+        weeks: dict[str, int] = {}
+        for _, w, _ in cs:
+            weeks[w] = weeks.get(w, 0) + 1
+        tk = open_kind.get(kind) or _open_request(j, kind)
+        if tk is None:
+            if max(weeks.values()) < TICKET_MIN:
+                continue
+            per_week = ", ".join(f"{n} in the week to {w}" for w, n in sorted(weeks.items()))
+            shown = "; ".join(_case_words(kind, ev) for _, _, ev in cs[:6]) + ("; and more" if len(cs) > 6 else "")
+            text = (f"Weekly lesson \"{kind}\": {len(cs)} cases ({per_week}), each counted when it matured: {shown}. The question is "
+                    f"pre-registered as review {PREREG[kind]}, scored once at CHECKPOINT-60, so nothing is proposed before then. "
+                    "Rule B: a ticket never changes a trading rule. Filed by the learning loop (learning.count_lessons).")
+            r = requests_log.add(j, "idea", text, about="weekly lessons", by="ananta-auto")
+            tk = str(r.get("num"))
+            prev = j.db.execute("SELECT v FROM engine_state WHERE k=?", (f"learning:ticket:{kind}",)).fetchone()
+            j.db.execute("INSERT OR REPLACE INTO engine_state (k, v) VALUES (?,?)",
+                         (f"learning:ticket:{kind}", json.dumps({"request": tk, "t": now, "cases": [d for d, _, _ in cs],
+                                                                 "before": (json.loads(prev[0]).get("before") or []) + [json.loads(prev[0]).get("request")] if prev else []})))
+            out.append({"kind": kind, "request": tk, "cases": len(cs), "weeks": weeks, "filed": True})
+        else:
+            out.append({"kind": kind, "request": tk, "cases": len(cs), "weeks": weeks, "filed": False})
+        for did, _, _ in cs:
+            j.db.execute("UPDATE learning_lessons SET ticket=? WHERE decision_id=?", (str(tk), did))
+    j.db.commit()
+    return out
+
+
+def lessons_summary(j, since: int) -> dict | None:
+    """Read-only: what the nightly count recorded since `since` (counts, late ones, sealed ones, kinds of unsealed ones) and when it last ran."""
+    if not _has_table(j, "learning_lessons"):
+        return None
+    rows = j.db.execute("SELECT lesson, sealed, late FROM learning_lessons WHERE counted_t >= ?", (int(since),)).fetchall()
+    kinds: dict = {}
+    for lesson, sealed, _ in rows:
+        if not sealed:
+            kinds[lesson or "none drawn"] = kinds.get(lesson or "none drawn", 0) + 1
+    last = j.db.execute("SELECT MAX(k) FROM engine_state WHERE k LIKE 'learning:count:%'").fetchone()[0] if _has_table(j, "engine_state") else None
+    return {"counted": len(rows), "late": sum(1 for r in rows if r[2]), "sealed": sum(1 for r in rows if r[1]), "kinds": kinds,
+            "sealed_waiting": j.db.execute("SELECT COUNT(*) FROM learning_lessons WHERE sealed=1").fetchone()[0],
+            "last_count": last[len("learning:count:"):] if last else None}
+
+
+def auto_requests(j, since: int) -> list[dict]:
+    """Read-only: repair-board requests the system filed by itself since `since` (weekly lessons, missed-move patterns, fidelity, ledger)."""
+    if not _has_table(j, "owner_requests"):
+        return []
+    return [{"num": n, "about": a, "status": s} for n, a, s in
+            j.db.execute("SELECT num, about, status FROM owner_requests WHERE by='ananta-auto' AND t >= ? ORDER BY num", (int(since),))]
 
 
 def credit(j, since: int = 0) -> dict:
@@ -613,3 +877,4 @@ def changes_after(j) -> list[dict]:
             pass
         out.append(x)
     return out
+

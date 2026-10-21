@@ -707,6 +707,9 @@ def run_daily(j) -> dict:
     _step(out, "counterfactuals", lambda: learning.close_counterfactuals(j))
     _step(out, "knowledge_align", lambda: knowledge_build.align(j))        # one truth: surfaces regenerated from strategy_status.json
     _step(out, "ledger_check", lambda: knowledge_build.ledger_nightly(j))  # Oct 15 (reconstruction Fix 10): the repair ledger against its own files
+    # Oct 21 (decision map, section 5): lessons are counted when they mature, every night, before the Sunday review reads them; a kind
+    # reaching 3 in a week files one repair-board request by itself (reporting only, Rule B)
+    _step(out, "lessons", lambda: {k: v for k, v in learning.count_lessons(j).items() if k != "by_kind" or v})
     if time.gmtime(j.now()).tm_wday == 6:                                   # Sundays: the situation review, a step of its own
         if _step(out, "weekly_review", lambda: learning.weekly_review(j).get("file")) and out.get("weekly_review"):
             _step(out, "sunday_review_ticked", lambda: due_list.mark_done_through(j, "SUNDAY-REVIEW", str(out["weekly_review"])))

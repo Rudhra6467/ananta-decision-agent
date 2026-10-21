@@ -200,7 +200,7 @@ Madhav, 09:41 Toronto: "Complete all pending tasks and all that are waiting for 
 | `OD-READS-WAKES` | (a) | `strategy_status.json`: READS `wakes_brain` false. M1a, M2a, M2a-G, M3a and M3b still log their signals and paper trades (EV-Q5 still counts them); their moments no longer cost a brain call. `strategy_verdicts` re-pinned. |
 | `OD-E5-PERMISSION` | (a) | `status_cards.json`: EXPLORER and E5 permission CONTEXT, so the brain no longer counts them as support. |
 | `OD-CANDIDATE-BOOKS` | (a) | `candidate_paper.RETIRED`: V0 and V1 never open a new entry; history and the tripped breaker kept. `strategy_verdicts` re-pinned. |
-| `OD-PLAYBOOK-ATTENTION` | (a) | Weights unchanged; `eye.ZONE_ENTRY_PHONE = False`: zone entries are recorded and still wake the brain but no longer ring the phone. |
+| `OD-PLAYBOOK-ATTENTION` | (a) | Weights unchanged; `eye.ZONE_ENTRY_PHONE = False`: zone entries are recorded and still go to the brain's queue (monitoring only through ZONE_TOUCH) but no longer ring the phone. |
 | `OD-MULTITEST` | (b) | `RESEARCH_RULES.md` section 1: no promotion without a point-in-time or forward re-test, pre-registered as one look (headings unchanged). |
 | `OD-CARD-INFLUENCE` | (b) | `RESEARCH_RULES.md` section 6: a card is never claimed to have influenced a decision; nothing built. |
 | `OD-RULEBOOK-S1S3` | (a) | On the after-the-window list as `PW-RULEBOOK-V1`; the rulebook is unchanged in the window. |

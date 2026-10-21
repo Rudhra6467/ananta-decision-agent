@@ -30,7 +30,7 @@ INTERVAL = 10
 SHOCK_PCT, SHOCK_WINDOW, SHOCK_COOLDOWN = -2.0, 15 * 60, 60 * 60
 ZONE_REPEAT_S, ZONE_PUSH_COOLDOWN, ZONE_TOUCH_GAP = 6 * 3600, 6 * 3600, 20 * 86400
 # OD-PLAYBOOK-ATTENTION (a), Madhav 2026-10-21 ("for all the recommended items, its yes"): a zone entry no longer rings the phone.
-# It is still recorded in the feed (eye_events, pushed 0), still wakes the brain, and zone tracking and the attention weights are unchanged.
+# It is still recorded in the feed (eye_events, pushed 0), still goes to the brain's queue (where ZONE_TOUCH keeps it monitoring only), and zone tracking and the attention weights are unchanged.
 ZONE_ENTRY_PHONE = False
 ARM_EVERY = 15 * 60
 KRAKEN = {"BTC": ("XBTUSD", "XXBTZUSD"), "ETH": ("ETHUSD", "XETHZUSD"), "SOL": ("SOLUSD",), "ADA": ("ADAUSD",), "DOGE": ("XDGUSD", "XXDGZUSD"),

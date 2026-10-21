@@ -119,7 +119,7 @@
     "M3b"
    ],
    "wakes_brain": false,
-   "why": "Measured forward per tier against random; no measured edge yet (reviews #5, #26). Pushed only if a cell passes and the ladder agrees. Records in the background: every signal is still logged and counted (ledger Q5), but it no longer wakes the brain (Madhav, 2026-10-21, OD-READS-WAKES (a): \"for all the recommended items, its yes\").",
+   "why": "Measured forward per tier against random; no measured edge yet (reviews #5, #26). Pushed only if a cell passes and the ladder agrees. Records in the background: every signal still opens its paper trade and is counted (ledger Q5), but it no longer wakes the brain on its own (when it shares a moment with a signal that does wake it, the brain still sees it as context) (Madhav, 2026-10-21, OD-READS-WAKES (a): \"for all the recommended items, its yes\").",
    "cards": [
     "READS"
    ]

@@ -49,7 +49,7 @@ def align(j) -> dict:
                 out["fixed"].append(f"watches.json {w.get('id')}: {w.get('status')} -> {want} ({e[0]} is {e[1].get('status')})")
                 w["status"] = want
                 changed = True
-        if changed or doc.get("updated") != today:
+        if changed:
             doc["updated"] = today
             p.write_text(json.dumps(doc, indent=1, ensure_ascii=False))
     except Exception as exc:  # noqa: BLE001
@@ -72,7 +72,7 @@ def align(j) -> dict:
                     c["permission"] = "CONTEXT"
                     c["reason"] = (c.get("reason") or "") + f" [{sid} {str(s.get('status')).lower()} {today}: no longer a reason to buy]"
                     changed = True
-        if changed or doc.get("updated") != today:
+        if changed:
             doc["updated"] = today
             p.write_text(json.dumps(doc, indent=1, ensure_ascii=False))
     except Exception as exc:  # noqa: BLE001

@@ -500,6 +500,14 @@
    "how": "After the window: write rulebook v1 with S1 and S3 removed from E1, E3, E4 and LONG_TERM, so the registry and the rules agree; pre-register any re-test it needs (RESEARCH_RULES.md section 1). Nothing changes inside the window (Rule B).",
    "after_window": true,
    "owner": "Claude"
+  },
+  {
+   "id": "GATE-REDATE",
+   "what": "The hand-written gate checks carry an evidence date and expire after 30 days (engine_risk 35; Oct 21 gate bundle). Most expire on 2026-11-05 and would read PARTLY from Nov 6.",
+   "how": "For each hand-written check in docs/knowledge/acceptance_gate.json, re-check its evidence on today's data; if it still holds, set a new evidence date with what was checked; if not, let it read PARTLY and say why in the morning review.",
+   "due": "2026-11-04",
+   "cadence": "monthly",
+   "owner": "Claude"
   }
  ]
 }

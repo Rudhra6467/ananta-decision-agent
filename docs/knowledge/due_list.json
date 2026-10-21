@@ -169,7 +169,9 @@
    "due": "2026-10-22",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "Parked: no further A6 exam and no spending; branch a6-prompt stays unmerged. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-EXAM-CADENCE",
@@ -187,7 +189,9 @@
    "due": "2026-10-31",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(a) attention weights unchanged (the credit study judges attention_high, about Jan 2027); the phone note on zone entries stopped (eye.ZONE_ENTRY_PHONE False); zone entries are still recorded, still wake the brain, zone tracking continues. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-BOOK500-BRAKES",
@@ -196,7 +200,9 @@
    "due": "2026-10-31",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(1) keep the D12 brakes on the whole $500 book, as decided. No change. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-CANDIDATE-BOOKS",
@@ -205,7 +211,9 @@
    "due": "2026-10-31",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(a) both candidate books retired: no new paper entries (candidate_paper.RETIRED), strategy CANDIDATE RETIRED, docs/GRANTS.md row; books, trades and V1's tripped breaker kept as history, nothing deleted. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-READS-WAKES",
@@ -214,7 +222,9 @@
    "due": "2026-10-31",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(a) wakes_brain false for READS (strategy_status.json). The five setups keep recording and logging signals (read_fires, ledger Q5 / EV-Q5 still counts them); only the brain wake stops. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-E5-PERMISSION",
@@ -223,7 +233,9 @@
    "due": "2026-10-31",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(a) EXPLORER and E5 status cards PAPER -> CONTEXT (status_cards.json): never a reason to buy, so brain.permission_check no longer counts them as support. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-C3-PRICE",
@@ -232,7 +244,9 @@
    "due": "2026-11-14",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(b) C3 stays 'not matched'; nothing downstream uses its price. No change. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-MULTITEST",
@@ -252,7 +266,9 @@
    "due": "2026-11-14",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(b) gate 7 stays strict; Rule A and the Acceptance Gate decide. No change to graduation.py. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-GEMINI-KEY",
@@ -261,7 +277,9 @@
    "due": "2026-10-22",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "Ticked done: the voice exam, whose speech-to-text uses the same free key, passed 10 of 10 on Monday 2026-10-19 (docs/repair_shop/exam/history.jsonl). No free web-search line yet in ~/ananta_runs/web_free_log.jsonl (no web search since; the paid log has no row after Oct 15), so the first free search is still unseen. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-HL-FILLS",
@@ -279,7 +297,9 @@
    "due": "2026-10-22",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "Recorded: confirming the worker's test phone note and turning off password SSH login on the worker are Madhav's own steps (a security setting on his machine); not done by Claude, and Claude did not touch the worker. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-RULEBOOK-S1S3",
@@ -288,7 +308,9 @@
    "due": "2026-11-30",
    "cadence": "once",
    "owner": "Madhav",
-   "owner_decision": true
+   "owner_decision": true,
+   "done": "2026-10-21",
+   "answer": "(a) a rulebook v1 without S1 and S3, after the window: queued as PW-RULEBOOK-V1. No rulebook change now. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all. ... for all the recommended items, its yes.\""
   },
   {
    "id": "OD-CARD-INFLUENCE",
@@ -470,6 +492,13 @@
    "how": "Rehearse docs/LIVE_MONEY_SAFETY.md section 6 on paper (kill switch on: no new entries, every paper position flattened; off: trading resumes), write the result in docs/repair_shop/, then mark this done: python3 ~/ananta_runs/svc_env_run.py \"from jarvis.service import core, due_list; j=core.from_env(); print(due_list.mark_done(j,'ENGINE-RISK-REHEARSAL','rehearsed, passed'))\". A failed rehearsal is a FAIL on the gate and a repair-board request.",
    "due": "2026-10-30",
    "cadence": "monthly",
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-RULEBOOK-V1",
+   "what": "Rulebook v1 without S1 and S3 (OD-RULEBOOK-S1S3 (a), Madhav 2026-10-21): the variable registry says not to use S3 and S1 as signals (V12, V13), yet E1, E3, E4 and the LONG_TERM type still require them (audit doubt 19).",
+   "how": "After the window: write rulebook v1 with S1 and S3 removed from E1, E3, E4 and LONG_TERM, so the registry and the rules agree; pre-register any re-test it needs (RESEARCH_RULES.md section 1). Nothing changes inside the window (Rule B).",
+   "after_window": true,
    "owner": "Claude"
   }
  ]

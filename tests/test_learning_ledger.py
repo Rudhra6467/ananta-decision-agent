@@ -20,6 +20,39 @@ def test_the_oct_14_random_beat_the_pick_ticket_is_in_the_ledger():
     assert "random beat the pick" in (REPO / "docs" / "repair_shop" / "weekly" / "2026-10-14.md").read_text()
 
 
+# ---------------------------------------------------------------------------- 4. the ledger against the database, warnings only
+def test_ledger_warnings_name_missing_requests_and_unknown_decisions(loop, tmp_path):
+    from jarvis.service import requests_log
+
+    s = loop
+    d = _pair(s, SUN - 3 * DAY, -5.0, -1.0)
+    requests_log.add(s.j, "idea", "one", by="owner")
+    (tmp_path / "docs" / "repair_shop" / "ledger.json").write_text(json.dumps({"tickets": [
+        {"id": "TK1", "what": "See request #1 and Requests #7/#8."},
+        {"id": "TK19", "lesson": "random beat the pick", "decisions": [d, "nope"]}]}))
+    w = s.L.ledger_warnings(s.j)
+    assert w["checked"] == 5
+    assert w["warnings"] == ["the ledger cites requests that are not on the repair board: #7, #8",
+                             "lesson tickets name decisions the database does not have: TK19 nope"]
+    before = s.j.db.execute("SELECT COUNT(*) FROM owner_requests").fetchone()[0]
+    md = "\n".join(s.L.morning_lines(s.j))
+    assert "Ledger against the database (warning only): the ledger cites requests" in md
+    assert s.j.db.execute("SELECT COUNT(*) FROM owner_requests").fetchone()[0] == before          # warnings only: nothing filed
+
+
+def test_a_loop_ticket_with_no_ledger_row_is_a_warning_and_the_morning_flags_a_missed_count(loop):
+    s = loop
+    for k in range(3):
+        _pair(s, SUN - 3 * DAY + k, -5.0, -1.0)
+    s.j._now = SUN + 9 * DAY
+    s.L.count_lessons(s.j)
+    md = "\n".join(s.L.morning_lines(s.j))
+    assert "request #1 (filed by the learning loop: random beat the pick) has no row in the ledger yet" in md
+    assert "Filed by themselves, last 7 days: #1 (weekly lessons, OPEN)" in md and "WARNING" not in md
+    s.j._now = SUN + 12 * DAY
+    assert "WARNING: the last count was 2026-10-20" in "\n".join(s.L.morning_lines(s.j))
+
+
 def test_the_ledger_on_this_branch_agrees_with_itself():
     from jarvis.service import knowledge_build
 

@@ -479,6 +479,68 @@ def auto_requests(j, since: int) -> list[dict]:
             j.db.execute("SELECT num, about, status FROM owner_requests WHERE by='ananta-auto' AND t >= ? ORDER BY num", (int(since),))]
 
 
+def ledger_warnings(j) -> dict:
+    """Read-only, cheap: the hand-written ledger against the database (PW-LEDGER-GENERATE, the full generator, waits for after the window).
+    Checks that every request the ledger cites ("request #38", "Requests #7/#8") exists on the repair board, that every decision a lesson
+    ticket names exists, and that every lesson ticket the loop filed by itself and still open has a row in the ledger. Warnings only."""
+    import re
+
+    out: dict = {"checked": 0, "warnings": []}
+    try:
+        led = json.loads((ROOT / "docs" / "repair_shop" / "ledger.json").read_text())
+    except Exception as exc:  # noqa: BLE001
+        return {"checked": 0, "warnings": [f"ledger.json cannot be read: {str(exc)[:100]}"]}
+    nums = set()
+    for m in re.finditer(r"[Rr]equests?\s+((?:#\d+\s*(?:/|,|and)?\s*)+)", json.dumps(led, ensure_ascii=False)):
+        nums |= {int(n) for n in re.findall(r"#(\d+)", m.group(1))}
+    have = {r[0] for r in j.db.execute("SELECT num FROM owner_requests")} if _has_table(j, "owner_requests") else set()
+    out["checked"] += len(nums)
+    missing = sorted(n for n in nums if n not in have)
+    if missing:
+        out["warnings"].append("the ledger cites requests that are not on the repair board: " + ", ".join(f"#{n}" for n in missing))
+    decs = {str(d): t.get("id") for t in led.get("tickets", []) if t.get("lesson") for d in t.get("decisions") or []}
+    if decs:
+        known = {r[0] for r in j.db.execute(f"SELECT id FROM brain_decisions WHERE id IN ({','.join('?' * len(decs))})", tuple(decs))} \
+            if _has_table(j, "brain_decisions") else set()
+        out["checked"] += len(decs)
+        gone = sorted(d for d in decs if d not in known)
+        if gone:
+            out["warnings"].append("lesson tickets name decisions the database does not have: " + ", ".join(f"{decs[d]} {d}" for d in gone))
+    cited = {n for n in nums}
+    for (k, v) in (j.db.execute("SELECT k, v FROM engine_state WHERE k LIKE 'learning:ticket:%'").fetchall() if _has_table(j, "engine_state") else []):
+        req = str(json.loads(v).get("request") or "")
+        if not req.isdigit():
+            continue
+        out["checked"] += 1
+        st = j.db.execute("SELECT status FROM owner_requests WHERE num=?", (int(req),)).fetchone() if have else None
+        in_ledger = int(req) in cited or any(f"#{req}" in str(t.get("from", "")) + str(t.get("what", "")) for t in led.get("tickets", []))
+        if st and st[0] in ("OPEN", "PLANNED") and not in_ledger:
+            out["warnings"].append(f"request #{req} (filed by the learning loop: {k.split(':', 2)[2]}) has no row in the ledger yet")
+    return out
+
+
+def morning_lines(j, now: float | None = None) -> list[str]:
+    """Read-only lines for the morning review's "## Learning loop" section: last night's lesson count, the requests the system filed by
+    itself in the last 7 days, and the ledger against the database (warnings only). Counts only, never an outcome of a sealed review.
+    python -m jarvis.service.learning --morning"""
+    now = int(now if now is not None else j.now())
+    L: list[str] = []
+    s = lessons_summary(j, now - DAY)
+    if s is None:
+        L.append("- Lessons: never counted yet (the nightly count runs at the daily close).")
+    else:
+        stale = not s["last_count"] or s["last_count"] < time.strftime("%Y-%m-%d", time.gmtime(now - DAY))
+        L.append(f"- Lessons counted when they matured, last 24 hours: {s['counted']}" + (f" ({s['late']} after their week's review had run)" if s["late"] else "")
+                 + (": " + ", ".join(f"{k} x{n}" for k, n in s["kinds"].items()) if s["kinds"] else "")
+                 + f". {s['sealed_waiting']} matured in the forward window, unlabelled until 2026-12-15."
+                 + (f" WARNING: the last count was {s['last_count'] or 'never'}." if stale else ""))
+    auto = auto_requests(j, now - 7 * DAY)
+    L.append("- Filed by themselves, last 7 days: " + (", ".join(f"#{r['num']} ({r['about'] or 'no topic'}, {r['status']})" for r in auto) or "none") + ".")
+    w = ledger_warnings(j)
+    L.append("- Ledger against the database (warning only): " + ("; ".join(w["warnings"]) if w["warnings"] else f"agrees ({w['checked']} references checked)") + ".")
+    return L
+
+
 def credit(j, since: int = 0) -> dict:
     """For each piece of knowledge the brain cited: its buys (closed, average $), its passes (average move 5 days later)."""
     try:                                                           # excess over the universe median (columns exist once settle_passes has run)
@@ -878,3 +940,11 @@ def changes_after(j) -> list[dict]:
         out.append(x)
     return out
 
+
+if __name__ == "__main__":
+    import sys
+
+    if "--morning" in sys.argv:                                    # read-only, for the morning review's "## Learning loop" section
+        from jarvis.service import core
+
+        print("\n".join(morning_lines(core.from_env())))

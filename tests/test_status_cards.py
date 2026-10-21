@@ -30,6 +30,17 @@ def test_a_take_resting_only_on_context_ideas_is_refused():
     assert bad == [] and ok == ["ZONES"]
 
 
+def test_the_explorer_cards_are_context_only():
+    """OD-E5-PERMISSION (a), Madhav 2026-10-21: EXPLORER and E5 match 'won't take again', so they are never support for a TAKE."""
+    from jarvis.service import brain, watches
+
+    cards = {c["id"]: c for c in json.loads((ROOT / "docs" / "knowledge" / "status_cards.json").read_text())["cards"]}
+    assert cards["EXPLORER"]["permission"] == "CONTEXT" and cards["E5"]["permission"] == "CONTEXT"
+    bad, ok = brain.permission_check(["EXPLORER", "E5"])
+    assert bad == ["EXPLORER", "E5"] and ok == []
+    assert "setup_15m" not in {k["kind"] for k in watches.kinds()}           # a new account watch cannot rest on the Explorer card
+
+
 def test_idea_status_lookup_finds_by_alias(tmp_path):
     import types
     from jarvis.service import ask

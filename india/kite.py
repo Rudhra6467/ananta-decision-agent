@@ -32,13 +32,45 @@ class NeedLogin(RuntimeError):
     pass
 
 
-def token() -> dict:
+AUTO_ENV = paths.private_dir() / "kite_login.env"            # present only when Madhav has set up the automatic sign-in (22 Oct 2026)
+AGENT_REPO = Path(os.path.expanduser("~/code/ananta-agent-research"))
+AGENT_PY = Path(os.path.expanduser("~/ananta_venvs/jarvis/bin/python"))
+
+
+def _read_token() -> dict | None:
+    """The stored token, or None when it is missing or past 6 am IST."""
     if not TOKEN_FILE.exists():
-        raise NeedLogin("no Kite token on disk: open http://127.0.0.1:8100/kite/login on the Mac")
+        return None
     t = json.loads(TOKEN_FILE.read_text())
     if t.get("expires_at") and dt.datetime.fromisoformat(t["expires_at"]) <= dt.datetime.now(dt.timezone.utc):
-        raise NeedLogin("the Kite token expired at 6 am IST: open http://127.0.0.1:8100/kite/login on the Mac")
+        return None
     return t
+
+
+def try_auto_login(force: bool = False) -> bool:
+    """Ask the agent service's sign-in module (src/india/kite_auth.py auto, in its own process and venv) for a fresh token.
+    This module still never sees the password, the two-factor secret or the API secret: they stay in the other process.
+    Returns True when a token is on disk afterwards; False when auto sign-in is off (no kite_login.env) or it failed."""
+    import subprocess
+    if not (AUTO_ENV.exists() and AGENT_PY.exists() and (AGENT_REPO / "src" / "india" / "kite_auth.py").exists()):
+        return False
+    try:
+        args = [str(AGENT_PY), "-m", "src.india.kite_auth", "auto"] + (["--force"] if force else [])
+        subprocess.run(args, cwd=AGENT_REPO, capture_output=True, text=True, timeout=240)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return _read_token() is not None
+
+
+def token() -> dict:
+    t = _read_token()
+    if t is None and try_auto_login():
+        t = _read_token()
+    if t is not None:
+        return t
+    if not TOKEN_FILE.exists():
+        raise NeedLogin("no Kite token on disk: open http://127.0.0.1:8100/kite/login on the Mac")
+    raise NeedLogin("the Kite token expired at 6 am IST: open http://127.0.0.1:8100/kite/login on the Mac")
 
 
 def _ntfy(text: str) -> None:
@@ -94,6 +126,12 @@ class Kite:
             except ValueError:
                 err = ""
             if err == "TokenException":
+                # The stored token looks alive but Kite rejects it (a sign-in elsewhere, a logout): one forced auto sign-in, then one retry.
+                if not getattr(self, "_relogged", False) and try_auto_login(force=True):
+                    self._relogged = True
+                    t = token()
+                    self.s.headers.update({"Authorization": f"token {t['api_key']}:{t['access_token']}"})
+                    return self.get(path, params, raw)
                 _ntfy("Kite login needed: open http://127.0.0.1:8100/kite/login on the Mac")
                 raise NeedLogin("Kite token rejected (TokenException): sign in again")
         r.raise_for_status()

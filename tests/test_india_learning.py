@@ -359,6 +359,9 @@ def test_morning_summary_none_when_all_ran(lake, tmp_path):
         fh.write(json.dumps({"symbol": "NIFTY26OCTFUT", "end": str(T), "fetched_at": "2026-10-19T16:31:00+00:00", "n": 3000, "status": "ok"}) + "\n")
     man = {"date": str(T), "status": "ok", "md_line": f"| {T} | 30 up | caught 1 | a 1 / b 20 / c 1 | 28 down | x | 0 |"}
     (paths.manifest_dir() / f"missed_{T}.json").write_text(json.dumps(man))
+    oman = {"date": str(T), "status": "ok", "league": {"window_sessions": 1, "1": {"sessions": 1, "HINDSIGHT": 0.02, "MARKET": -0.01, "ANANTA": 0.0,
+                                                                                  "ananta_pct_vs_random": 0.6, "coverage": {"TAKEN": 2, "PASSED": 1, "NOT_COVERED": 17}}}}
+    (paths.manifest_dir() / f"others_{T}.json").write_text(json.dumps(oman))
     (paths.manifest_dir() / "sp1_nightly_replay.jsonl").write_text(json.dumps({"date": str(T), "status": "skipped (no ledger rows)"}) + "\n")
     (paths.manifest_dir() / "sp1_nightly_replay.json").write_text(json.dumps({"date": str(HOL), "status": "skipped (holiday)", "verify": {"ok": True}}))
     lc = "-\t0\tcom.ananta.india.paper\n-\t0\tcom.ananta.india.nightly\n-\t0\tcom.ananta.india.recorder_noon\n"

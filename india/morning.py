@@ -312,6 +312,29 @@ def build(now: dt.datetime | None = None, launchctl_text: str | None = None, age
             lost.append(f"missed movers {mday}: {man.get('status')}")
     else:
         lost.append(f"missed movers: no manifest for {mday} (india.missed did not run after the paper run)")
+    # the reference-traders review (india.others, 22 Oct 2026) runs right after india.missed in the same job
+    om = D / "manifests" / f"others_{mday}.json"
+    others_line = None
+    if om.exists():
+        oman = json.loads(om.read_text())
+        if oman.get("status") == "ok":
+            lg = oman.get("league", {})
+            parts = []
+            for h in ("1", "5", "20"):
+                x = lg.get(h) or {}
+                if x.get("sessions"):
+                    cv = x.get("coverage", {})
+                    pct = "" if x.get("ananta_pct_vs_random") is None else f", Ananta at the {x['ananta_pct_vs_random']:.0%} point of random"
+                    parts.append(f"H{h} ({x['sessions']} sessions): hindsight {x['HINDSIGHT']:+.2%}, market {x['MARKET']:+.2%}, Ananta "
+                                 f"{'' if x.get('ANANTA') is None else format(x['ANANTA'], '+.2%')}{pct}; of the best rises: took {cv.get('TAKEN', 0)}, "
+                                 f"passed {cv.get('PASSED', 0)}, not covered {cv.get('NOT_COVERED', 0)}")
+            others_line = "; ".join(parts) if parts else "no horizon has two live sessions yet"
+            if oman.get("drafts_written"):
+                others_line += f"; drafts: {', '.join(oman['drafts_written'])}"
+        elif not str(oman.get("status")).startswith("no session"):
+            lost.append(f"reference traders {mday}: {oman.get('status')}")
+    else:
+        lost.append(f"reference traders: no manifest for {mday} (india.others did not run after the paper run)")
     rday = due_of("evening").date()
     rp = D / "manifests" / "sp1_nightly_replay.json"
     replay = json.loads(rp.read_text()) if rp.exists() else None
@@ -326,7 +349,7 @@ def build(now: dt.datetime | None = None, launchctl_text: str | None = None, age
         if not (st == "PASS" or st == "skipped (holiday)" or st.startswith("skipped (no ledger rows)")):
             lost.append(f"SP1 nightly replay {rday}: {st}" + (f" ({mine.get('detail')})" if mine.get("detail") else "")
                         + (f"; next sign-in {ctx['signin']}" if st == "skipped (no token)" else ""))
-    res = {"at": now, "jobs": jobs, "lost": lost, "missed_line": missed_line, "missed_session": str(mday), "replay": replay, "signin": ctx["signin"]}
+    res = {"at": now, "jobs": jobs, "lost": lost, "missed_line": missed_line, "others_line": others_line, "missed_session": str(mday), "replay": replay, "signin": ctx["signin"]}
     reg.mkdir(parents=True, exist_ok=True)
     md = markdown(res)
     (reg / "india_morning.md").write_text(md)
@@ -350,7 +373,8 @@ def markdown(r: dict) -> str:
         note = j.get("problems_note") or ("; ".join(j["problems"]) if j["problems"] else "")
         L.append(f"| {j['label'][len(PREFIX):]} | {j['last_exit'] if j['last_exit'] is not None else '-'} | {_fmt(j['due'])} | {_fmt(j['last_output'])} | "
                  f"{pf}: {j['proof']} | {note} |")
-    L += ["", f"## Missed movers ({r['missed_session']})", ""]
+    L += ["", f"## Reference traders against Ananta ({r['missed_session']})", "", f"- {r.get('others_line') or 'no reference-traders result for the session'}",
+          "", f"## Missed movers ({r['missed_session']})", ""]
     if r["missed_line"]:
         L += ["| date | gainers | catches (P&L so far) | gainer misses | losers | top (b) situations | drafts |", "|---|---|---|---|---|---|---|", r["missed_line"]]
     else:

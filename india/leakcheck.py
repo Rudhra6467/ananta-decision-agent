@@ -127,20 +127,38 @@ def _code_strings(tree: ast.AST) -> list[str]:
     return [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in doc]
 
 
+REVIEW_MODULES = {REVIEW_MODULE: ("paper_review", "read_review"),      # the missed-movers review (20 Oct 2026)
+                  "others.py": ("others_review", "read_others")}       # the reference-traders review (22 Oct 2026)
+
+
 def check_paper_review(here: Path | None = None) -> tuple[bool, str]:
-    """Only india/missed.py may read live paper days (purpose paper_review), only through sealed.read_review, and only with a start that is a
-    constant (a literal, or a module-level name assigned once to a literal) on or after 2026-10-16."""
+    """Live paper days are read by the two review modules only (REVIEW_MODULES), each through its own sealed reader and purpose, and only with a
+    start that is a constant (a literal, or a module-level name assigned once to a literal) on or after 2026-10-16. No other module may name
+    either purpose or call either reader."""
     here = Path(here) if here else Path(__file__).parent
     bad = []
+    purposes = {p for p, _ in REVIEW_MODULES.values()}
+    readers = {r for _, r in REVIEW_MODULES.values()}
     for f in sorted(here.glob("*.py")):
-        if f.name in ("sealed.py", "leakcheck.py", REVIEW_MODULE):
+        if f.name in ("sealed.py", "leakcheck.py") or f.name in REVIEW_MODULES:
             continue
         tree = ast.parse(f.read_text())
-        if any("paper_review" in s for s in _code_strings(tree)):
-            bad.append(f"{f.name} (names the paper_review purpose)")
-        if any(isinstance(n, ast.Attribute) and n.attr == "read_review" for n in ast.walk(tree)):
-            bad.append(f"{f.name} (calls read_review)")
-    m = here / REVIEW_MODULE
+        for p in sorted(purposes):
+            if any(p in s for s in _code_strings(tree)):
+                bad.append(f"{f.name} (names the {p} purpose)")
+        for r in sorted(readers):
+            if any(isinstance(n, ast.Attribute) and n.attr == r for n in ast.walk(tree)):
+                bad.append(f"{f.name} (calls {r})")
+    for REVIEW_MODULE_, (own_purpose, own_reader) in REVIEW_MODULES.items():
+        bad += _check_review_module(here / REVIEW_MODULE_, own_purpose, own_reader)
+    note = (f"only {' and '.join(REVIEW_MODULES)} read live paper days, start constant on or after {REVIEW_MIN_START}" if not bad
+            else "; ".join(sorted(set(bad))))
+    return (not bad), note
+
+
+def _check_review_module(m: Path, own_purpose: str, own_reader: str) -> list[str]:
+    bad: list[str] = []
+    REVIEW_MODULE = m.name
     if m.exists():
         tree = ast.parse(m.read_text())
         assigned: dict[str, list] = {}
@@ -156,13 +174,13 @@ def check_paper_review(here: Path | None = None) -> tuple[bool, str]:
         calls = 0
         for n in ast.walk(tree):
             if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name) and n.func.value.id == "sealed":
-                if n.func.attr != "read_review":
+                if n.func.attr != own_reader:
                     bad.append(f"{REVIEW_MODULE} line {n.lineno} (sealed.{n.func.attr})")
                     continue
                 calls += 1
                 purpose = n.args[0].value if n.args and isinstance(n.args[0], ast.Constant) else None
-                if purpose != "paper_review":
-                    bad.append(f"{REVIEW_MODULE} line {n.lineno} (read_review purpose {purpose!r})")
+                if purpose != own_purpose:
+                    bad.append(f"{REVIEW_MODULE} line {n.lineno} ({own_reader} purpose {purpose!r})")
                 node = n.args[1] if len(n.args) > 1 else next((k.value for k in n.keywords if k.arg == "since"), None)
                 start = None
                 if isinstance(node, ast.Constant):
@@ -174,16 +192,14 @@ def check_paper_review(here: Path | None = None) -> tuple[bool, str]:
                 except ValueError:
                     ok_start = False
                 if not ok_start:
-                    bad.append(f"{REVIEW_MODULE} line {n.lineno} (read_review start {start!r} is not a constant on or after {REVIEW_MIN_START})")
+                    bad.append(f"{REVIEW_MODULE} line {n.lineno} ({own_reader} start {start!r} is not a constant on or after {REVIEW_MIN_START})")
             if isinstance(n, ast.ImportFrom) and (n.module or "").endswith("sealed"):
                 bad.append(f"{REVIEW_MODULE} line {n.lineno} (from {n.module} import ...)")
             if isinstance(n, ast.Attribute) and n.attr == "sealed_dir":
                 bad.append(f"{REVIEW_MODULE} line {n.lineno} (.sealed_dir)")
-        if any("sealed/" in s or "/sealed" in s or "cm_bhavcopy" in s or "kite_index" in s for s in _code_strings(tree)):
+        if any("sealed/" in s or "/sealed" in s or "cm_bhavcopy" in s or "kite_index" in s or "participant_oi" in s for s in _code_strings(tree)):
             bad.append(f"{REVIEW_MODULE} (names a sealed or price-data path)")
-    note = (f"only {REVIEW_MODULE} reads live paper days, start constant on or after {REVIEW_MIN_START}" if not bad
-            else "; ".join(sorted(set(bad))))
-    return (not bad), note
+    return bad
 
 
 def check_kite_calls() -> tuple[bool, str]:

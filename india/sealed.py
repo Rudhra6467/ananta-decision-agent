@@ -112,6 +112,61 @@ def read_review(purpose: str, since: str, until: str | None = None) -> pd.DataFr
     return df
 
 
+ALLOWED_OTHERS = {"others_review"}
+
+
+def read_others(purpose: str, since: str, until: str | None = None) -> dict:
+    """Live paper days for the reference-traders review (purpose others_review, Madhav 22 Oct 2026; india/others.py is the only caller
+    india/leakcheck.py allows, with a constant start on or after PAPER_REVIEW_START): the same cash rows read_review gives, plus the
+    participant-wise open-interest rows (FII, DII, Pro, Client: index and stock futures and options, long and short contracts) dated
+    since..until. The hindsight, informed and random reference traders are built from live sessions only; nothing on history is computed
+    from these rows and no rule is scored. Logged."""
+    if purpose not in ALLOWED_OTHERS:
+        raise PermissionError(f"sealed others read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED_OTHERS)}")
+    since_d = pd.Timestamp(since).date()
+    if since_d < PAPER_REVIEW_START:
+        raise PermissionError(f"sealed others read refused: start {since_d} is before the paper's first day {PAPER_REVIEW_START} (live paper days only)")
+    until_d = pd.Timestamp(until).date() if until else None
+    if until_d is not None and until_d < since_d:
+        raise PermissionError(f"sealed others read refused: end {until_d} is before start {since_d}")
+    cash = _live_cash(purpose, since_d, until_d)
+    root = paths.data_dir()
+    files = [str(p) for p in [root / "silver/flows/participant_oi.parquet", root / "sealed/silver/flows/participant_oi.parquet"] if p.exists()]
+    cols = ["date", "client_type", "future_index_long", "future_index_short", "future_stock_long", "future_stock_short", "option_index_call_long",
+            "option_index_put_long", "option_index_call_short", "option_index_put_short", "total_long_contracts", "total_short_contracts"]
+    if not files:
+        oi = pd.DataFrame(columns=cols)
+    else:
+        con = duckdb.connect()
+        sql = ("select " + ", ".join(cols) + " from read_parquet(" + repr(files) + ", union_by_name=true) where cast(date as date) >= ?"
+               + (" and cast(date as date) <= ?" if until_d else "") + " order by date, client_type")
+        oi = con.execute(sql, [since_d] + ([until_d] if until_d else [])).df()
+        con.close()
+    if len(oi) and pd.to_datetime(oi["date"]).min().date() < PAPER_REVIEW_START:
+        raise PermissionError("sealed others read refused: a participant row before the paper's first day came back")
+    _log(purpose, "participant_oi live paper days", f"{since_d}..{until_d or ''}", len(oi))
+    return {"cash": cash, "oi": oi}
+
+
+def _live_cash(purpose: str, since_d: dt.date, until_d: dt.date | None) -> pd.DataFrame:
+    """The cash rows of live paper days (series EQ), shared by read_review and read_others; the callers have already checked the window."""
+    root = paths.data_dir()
+    files = [str(p) for p in list((root / "silver/cm_bhavcopy").glob("year=*/part.parquet")) + list((root / "sealed/silver/cm_bhavcopy").glob("year=*/part.parquet"))
+             if int(p.parent.name.split("=")[1]) >= PAPER_REVIEW_START.year]
+    if not files:
+        _log(purpose, "cm_bhavcopy EQ live paper days (no files)", f"{since_d}..{until_d or ''}", 0)
+        return pd.DataFrame(columns=["date", "symbol", "series", "open", "high", "low", "close", "prev_close", "volume", "turnover", "isin"])
+    con = duckdb.connect()
+    sql = ("select date, symbol, series, open, high, low, close, prev_close, volume, turnover, isin from read_parquet(" + repr(files)
+           + ", union_by_name=true) where series = 'EQ' and close > 0 and cast(date as date) >= ?" + (" and cast(date as date) <= ?" if until_d else ""))
+    df = con.execute(sql, [since_d] + ([until_d] if until_d else [])).df()
+    con.close()
+    if len(df) and pd.to_datetime(df["date"]).min().date() < PAPER_REVIEW_START:   # never reached: the query bounds it; kept as the second lock
+        raise PermissionError("sealed review read refused: a row before the paper's first day came back")
+    _log(purpose, "cm_bhavcopy EQ live paper days", f"{since_d}..{until_d or ''}", len(df))
+    return df
+
+
 ALLOWED_INTEGRITY = {"integrity", "calibration"}
 
 

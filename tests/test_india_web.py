@@ -187,3 +187,38 @@ def test_india_voice_routes_use_the_local_voice_server(lake, monkeypatch):
     p = c.post("/v3/voice/prepare", json={"sentences": ["One. Two."]}).json()
     assert len(p["ids"]) == 2 and c.get(f"/v3/voice/clip/{p['ids'][0]}").status_code == 200
     assert c.post("/v3/voice/ui_result", json={"answer_id": "x"}).json()["ok"] is True
+
+
+def test_india_ask_fix_flow_files_offers_and_queues_by_words(lake, monkeypatch):
+    from jarvis.india import ask as ia, views
+
+    monkeypatch.setattr(views, "DATA", lake)
+    monkeypatch.setattr(views, "REG", lake / "registrations")
+    monkeypatch.setattr(ia, "ASK_DIR", lake / "ask")
+    sent = []
+
+    class R:
+        def __init__(self, j):
+            self._j = j
+
+        def json(self):
+            return self._j
+
+    def fpost(url, body):
+        sent.append((url, body))
+        if url.endswith("/v3/flags"):
+            return R({"num": 83, "diagnosis": "The Options card shows a stale plan.", "options": [{"title": "Refresh the plan every minute", "lane": "SAFE"}, {"title": "Change the plan's sizing", "lane": "DECISION"}]})
+        return R({"state": "queued"})
+
+    def fget(url):
+        return R({"flags": [{"num": 83, "state": "queued", "market": "india", "text": "[Indian market · Home] the options card is stale"}]})
+
+    th = "t1"
+    r = ia.ask("madhav", "the options card on home is not working, the plan is stale", thread=th, token="tok", flag_post=fpost, flag_get=fget)
+    assert r["provider"] == "rule" and "request number 83" in r["answer"] and r["follow_ups"][0].startswith("Fix 1:") and sent[0][1]["market"] == "india"
+    r2 = ia.ask("madhav", "the first", thread=th, token="tok", flag_post=fpost, flag_get=fget)
+    assert "queued" in r2["answer"] and sent[-1][0].endswith("/v3/flags/83/choose") and sent[-1][1]["option"] == 0
+    r3 = ia.ask("madhav", "what happened to my flag?", thread=th, token="tok", flag_post=fpost, flag_get=fget)
+    assert "request 83: queued" in r3["answer"]
+    assert ia.fix_flow("what did you decide?", th, "tok", None, post=fpost, get=fget) is None          # an ordinary question goes to the model
+    assert ia.fix_flow("fix it", th, None, None) is None                                                  # no token: nothing is filed

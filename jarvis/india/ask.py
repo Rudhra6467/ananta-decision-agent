@@ -105,10 +105,12 @@ def _index() -> list[dict]:
 
 def _touch_index(thread: str, title: str, voice: bool) -> None:
     ASK_DIR.mkdir(parents=True, exist_ok=True)
+    old = next((r for r in _index() if r.get("thread") == thread), {})
     rows = [r for r in _index() if r.get("thread") != thread]
     n = sum(1 for m in thread_messages(thread) if m.get("role") == "user")
     now = time.time()
-    rows.append({"thread": thread, "title": title, "time": dt.datetime.fromtimestamp(now).strftime("%b %-d, %-I:%M %p"), "messages": n, "t": int(now), "voice": voice})
+    rows.append({"thread": thread, "title": old.get("title") or title, "time": dt.datetime.fromtimestamp(now).strftime("%b %-d, %-I:%M %p"), "messages": n, "t": int(now), "voice": voice,
+                 **({"pending_flag": old["pending_flag"]} if old.get("pending_flag") else {})})
     (ASK_DIR / "threads.jsonl").write_text("\n".join(json.dumps(r) for r in rows[-200:]) + "\n")
 
 
@@ -235,13 +237,23 @@ def _offline(question: str, f: dict, why: str) -> dict:
 ACT = re.compile(r"\b(buy|sell|place|book|exit|close|order|short)\b", re.I)
 
 
-def ask(who: str, text: str, thread: str | None = None, mode: str | None = None, context: dict | None = None, voice: bool = False, post=None) -> dict:
+def ask(who: str, text: str, thread: str | None = None, mode: str | None = None, context: dict | None = None, voice: bool = False, post=None,
+        token: str | None = None, flag_post=None, flag_get=None) -> dict:
     text = (text or "").strip()[:2000]
     if not text:
         raise ValueError("empty question")
     if today_count() >= DAILY_LIMIT:
         raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
     thread = thread or uuid.uuid4().hex[:12]
+    fixed = fix_flow(text, thread, token, context, post=flag_post, get=flag_get)      # a problem, a pick or "my flags": the fix flow, in code
+    if fixed is not None:
+        uid = uuid.uuid4().hex[:12]
+        _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
+        rid = uuid.uuid4().hex[:12]
+        row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "rule", "ms": 0, "rating": None, **fixed, "model_label": "Ananta (rules)", "mode": mode or "auto", "cost_usd": 0.0, "thread": thread}
+        _append(thread, row)
+        _touch_index(thread, text[:60], voice)
+        return {**row, "timing": {"ms": 0}}
     hist = [{"role": m["role"], "text": m["text"] if m["role"] == "user" else json.dumps({k: m.get(k) for k in ("answer", "breakdown")})} for m in thread_messages(thread)[-2 * HISTORY_TURNS:]]
     uid = uuid.uuid4().hex[:12]
     _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
@@ -283,3 +295,82 @@ def thread_view(thread: str) -> list[dict]:
 def stats() -> dict:
     rows = _index()
     return {"threads": len(rows), "questions": sum(r.get("messages", 0) for r in rows), "today": today_count(), "limit": DAILY_LIMIT, "model": MODEL}
+
+
+# ---------------------------------------------------------------------------------------------------------------- the fix flow, by voice or chat (Madhav, 23 Oct)
+# "Ananta voice agent should be able to do the whole process, not a separate flag button": a problem said to Ananta is filed on the shared
+# repair board (the sign-in service's fix flow, with his own token), the fixes come back as numbered choices, he picks one by voice or tap,
+# and the repair worker builds the safe ones and tells him. Rules in code, no model call.
+JARVIS_URL = os.getenv("ANANTA_JARVIS_URL", "http://127.0.0.1:8100")
+FLAG = re.compile(r"\b(flag|broken|not working|doesn'?t work|isn'?t working|fix (it|this|that|the)|bug|wrong|report (it|this|that))\b", re.I)
+PICK = re.compile(r"^\s*(?:fix\s*)?(?:option\s*)?(\d)\b|^\s*(?:the\s+)?(first|second|third|one|two|three)\b", re.I)
+STATUS = re.compile(r"\b(my (flags?|requests?)|what happened to (my|the) (flag|request)|is it fixed|did you fix)\b", re.I)
+WORDS = {"first": 1, "one": 1, "second": 2, "two": 2, "third": 3, "three": 3}
+
+
+def _pending(thread: str) -> dict | None:
+    for r in _index():
+        if r.get("thread") == thread and r.get("pending_flag"):
+            return r["pending_flag"]
+    return None
+
+
+def _set_pending(thread: str, flag: dict | None) -> None:
+    ASK_DIR.mkdir(parents=True, exist_ok=True)
+    rows = _index()
+    if not any(r.get("thread") == thread for r in rows):
+        rows.append({"thread": thread, "title": "", "time": "", "messages": 0, "t": int(time.time()), "voice": False})
+    for r in rows:
+        if r.get("thread") == thread:
+            r["pending_flag"] = flag
+    (ASK_DIR / "threads.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+
+def _reply(answer: str, follow_ups: list[str], evidence: list[str], extra: dict | None = None) -> dict:
+    return {"kind": "answer", "stage": "observation", "answer": answer, "breakdown": [], "evidence": evidence, "assumption": "", "follow_ups": follow_ups[:4],
+            "next_action": {}, "show": [], "options": [], "points": [], "actions": [], "ui": [], "route": "india", **(extra or {})}
+
+
+def fix_flow(text: str, thread: str, token: str | None, context: dict | None, post=None, get=None) -> dict | None:
+    """Returns a reply when the message is about a problem, a pick, or the flags' status; None otherwise (the model answers)."""
+    if not token:
+        return None
+    H = {"Authorization": f"Bearer {token}", "X-Ananta-Quiet": "1"}
+    post = post or (lambda url, body: requests.post(url, json=body, headers=H, timeout=60))
+    get = get or (lambda url: requests.get(url, headers=H, timeout=30))
+    pend = _pending(thread)
+    m = PICK.match(text) if pend else None
+    if pend and m:
+        n = int(m.group(1)) if m.group(1) else WORDS.get(m.group(2).lower(), 0)
+        if 1 <= n <= len(pend.get("options") or []):
+            r = post(f"{JARVIS_URL}/v3/flags/{pend['num']}/choose", {"option": n - 1, "words": text[:200]})
+            j = r.json() if hasattr(r, "json") else r
+            state = j.get("state")
+            _set_pending(thread, None)
+            if state == "queued":
+                a = f"Done, sir: fix {n} for request {pend['num']} is queued. The repair worker builds it, tests it and puts it live within minutes; you get 'Fixed: request {pend['num']}' on your phone."
+            elif state == "plan":
+                a = f"Noted, sir: fix {n} for request {pend['num']} is near trading, so the worker writes the plan and waits for your yes. Nothing changes until then."
+            else:
+                a = f"Request {pend['num']}: {state or j.get('detail') or 'recorded'}."
+            return _reply(a, ["What happened to my flag?", "What did you decide for the next session?"], [f"fix flow: request {pend['num']}, option {n}, state {state}"])
+    if STATUS.search(text):
+        r = get(f"{JARVIS_URL}/v3/flags")
+        j = r.json() if hasattr(r, "json") else r
+        flags = [f for f in (j.get("flags") or []) if str(f.get("market", "")).startswith("ind") or "Indian market" in str(f.get("text", ""))][:5] or (j.get("flags") or [])[:5]
+        if not flags:
+            return _reply("No flags on the board yet, sir.", ["What did you decide for the next session?"], ["fix flow board: empty"])
+        lines = "; ".join(f"request {f.get('num')}: {str(f.get('state') or f.get('status') or '?')} - {str(f.get('text') or '')[:60]}" for f in flags)
+        return _reply(f"Your flags, sir: {lines}.", ["Flag something else", "What did you decide for the next session?"], [f"fix flow board: {len(flags)} shown"])
+    if FLAG.search(text) and len(text) >= 8:
+        screen = str((context or {}).get("here", {}).get("label") if isinstance((context or {}).get("here"), dict) else (context or {}).get("screen") or "")[:80]
+        r = post(f"{JARVIS_URL}/v3/flags", {"text": text[:600], "market": "india", "screen": screen, "route": "ask"})
+        j = r.json() if hasattr(r, "json") else r
+        if not j.get("num"):
+            return _reply(f"I could not file that, sir: {str(j.get('detail') or j)[:120]}", [], [])
+        opts = j.get("options") or []
+        lines = [f"{i + 1}. {o.get('title')} - {'I fix it and put it live' if o.get('lane') == 'SAFE' else 'near trading: a plan for your yes'}" for i, o in enumerate(opts)]
+        _set_pending(thread, {"num": j["num"], "options": [{"title": o.get("title"), "lane": o.get("lane")} for o in opts]})
+        a = f"Flagged as request number {j['num']}, sir. " + (f"{j.get('diagnosis')} " if j.get("diagnosis") else "") + ("Fixes: " + " ".join(lines) + " Say a number or tap one." if lines else "I'll tell you when it's fixed.")
+        return _reply(a, [f"Fix {i + 1}: {o.get('title')}" for i, o in enumerate(opts)], [f"fix flow: request {j['num']} filed on the shared board"], {"flag": j})
+    return None

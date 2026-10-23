@@ -757,12 +757,32 @@ def options() -> dict:
             "allocation": _allocation()}
 
 
+def allocation_plan(full: bool = False) -> dict:
+    """The allocator's latest plan (records repo, paper/allocation_view.json). Owner: everything. Others: mode, totals and the headline, never the holdings."""
+    v = _json(DATA / "paper" / "allocation_view.json", {}) or {}
+    a = _json(DATA / "paper" / "allocation.json", {}) or {}
+    mode = {"fixed": "advisory", "ananta": "autonomous"}.get(a.get("mode"), a.get("mode") or "advisory")
+    if not v:
+        return {"mode": mode, "ready": False, "headline": "The allocator has not built a plan yet; it runs every few minutes and each evening.", "paper": True}
+    out = {k: v.get(k) for k in ("mode", "day", "for_session", "built_at", "headline", "sleeves", "regime", "options", "moves", "moves_applied", "watch", "snapshot", "yardstick", "words", "paper")}
+    out["mode"] = mode
+    out["ready"] = True
+    out["counts"] = {"holdings": len(v.get("holdings") or []), "suggested_changes": len(v.get("suggestions") or [])}
+    if full:
+        out["holdings"] = v.get("holdings") or []
+        out["suggestions"] = v.get("suggestions") or []
+        out["set_at"] = a.get("set_at")
+    else:
+        out["moves"] = [{k: m.get(k) for k in ("kind", "from", "to", "inr")} for m in (v.get("moves") or [])]
+        out["watch"] = []
+    return out
+
+
 def _allocation() -> dict:
-    """The capital split (Madhav, 23 Oct): Ananta decides, or a fixed split between stocks and options. A setting, shown here; enforcement is a lock decision."""
-    p = DATA / "paper" / "allocation.json"
-    a = _json(p, {}) or {}
-    return {"mode": a.get("mode", "ananta"), "stocks_inr": a.get("stocks_inr"), "options_inr": a.get("options_inr"), "total_inr": a.get("total_inr", ACCOUNT_START),
-            "note": a.get("note", "Ananta decides the split between stocks and options from its market read; enforcement enters the books with SZ2 and the lock's yes"), "set_at": a.get("set_at")}
+    """The capital allocation, summary form for Home (no holdings): mode, sleeves, the headline, the counts. The full plan is /v3/allocation/plan, owner only."""
+    p = allocation_plan(full=False)
+    p.pop("snapshot", None)
+    return p
 
 
 ROUTES.update({"decisions/recent": decisions_recent, "options": options, "allocation": _allocation})

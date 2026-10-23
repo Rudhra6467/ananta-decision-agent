@@ -222,3 +222,37 @@ def test_india_ask_fix_flow_files_offers_and_queues_by_words(lake, monkeypatch):
     assert "request 83: queued" in r3["answer"]
     assert ia.fix_flow("what did you decide?", th, "tok", None, post=fpost, get=fget) is None          # an ordinary question goes to the model
     assert ia.fix_flow("fix it", th, None, None) is None                                                  # no token: nothing is filed
+
+
+def _plan(tmp):
+    d = tmp / "paper"
+    d.mkdir(exist_ok=True)
+    (d / "allocation_view.json").write_text(json.dumps({
+        "mode": "advisory", "day": "2026-10-22", "headline": "Advisory: options fixed at 50,000", "sleeves": {"now": {"stocks": 100, "options": 50, "cash": 1}}, "paper": True,
+        "holdings": [{"rank": 1, "symbol": "TATAPOWER", "grade": "B", "score": 56, "action": "HOLD", "value_inr": 27573, "weight_pct": 24.8, "pnl_pct": 27.0, "suggest_inr": 0, "why": "w", "wrong_if": "x"}],
+        "suggestions": [{"symbol": "JIOFIN", "action": "REDUCE"}], "moves": [{"kind": "sleeve", "from": "options", "to": "cash", "inr": 16300, "why": "w"}], "moves_applied": False, "watch": [{"what": "k"}]}))
+
+
+def test_allocation_plan_holdings_are_the_owners_only(lake, monkeypatch):
+    from jarvis.india import views
+    monkeypatch.setattr(views, "DATA", lake)
+    _plan(lake)
+    full = views.allocation_plan(full=True)
+    assert full["holdings"][0]["symbol"] == "TATAPOWER" and full["suggestions"]
+    guest = views.allocation_plan(full=False)
+    assert "holdings" not in guest and "suggestions" not in guest and guest["watch"] == [] and guest["counts"]["holdings"] == 1
+    assert "symbol" not in json.dumps(guest["moves"]), "a guest sees amounts only, never a name"
+    assert views._allocation().get("snapshot") is None
+
+
+def test_allocation_mode_by_words_is_owner_only_and_paper(lake, monkeypatch):
+    from jarvis.india import ask, views
+    monkeypatch.setattr(ask, "DATA", lake)
+    r = ask.allocation_flow("everything is autonomous", "owner")
+    assert r and "autonomous" in r["answer"] and "Nothing is sent to your broker" in r["answer"]
+    assert json.loads((lake / "paper" / "allocation.json").read_text())["mode"] == "autonomous"
+    r = ask.allocation_flow("go back to advisory", "owner")
+    assert json.loads((lake / "paper" / "allocation.json").read_text())["mode"] == "advisory"
+    assert ask.allocation_flow("what does autonomous mean?", "owner") is None, "a question is answered, not obeyed"
+    assert "Only Madhav" in ask.allocation_flow("everything is autonomous", "guest:abc")["answer"]
+    assert json.loads((lake / "paper" / "allocation.json").read_text())["mode"] == "advisory", "a guest changed nothing"

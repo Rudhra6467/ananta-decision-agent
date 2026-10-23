@@ -331,32 +331,36 @@ def voice_ui_result(b: UiResult, who: str = Depends(signed_in)) -> dict:
 
 
 class Allocation(BaseModel):
-    mode: str = "ananta"            # "ananta": Ananta decides the split; "fixed": the amounts below hold
-    stocks_inr: float | None = None
+    mode: str = "advisory"          # "advisory": options fixed, stocks as in the account, Ananta rates and suggests; "autonomous": Ananta moves capital on paper
     options_inr: float | None = None
-    total_inr: float | None = None
     note: str = ""
 
 
 @r.post("/v3/allocation")
 def allocation_set(b: Allocation, who: str = Depends(signed_in)) -> dict:
-    """The capital split (Madhav, 23 Oct): a recorded setting, shown on Home and read by the read model. Enforcement in the books is a
-    lock decision (INDIA_LOCK), so this changes no trade; it records what he wants and when he set it."""
+    """The allocation mode (Madhav, 23 Oct, 14:04): advisory (options Rs 50,000 fixed, stocks as in the account, Ananta rates, ranks and suggests) or
+    autonomous (Ananta moves capital between stocks, options and cash on paper). Both are paper: no order is placed. The allocator job (records repo)
+    reads this file and rebuilds the plan within minutes."""
     import datetime as _dt
 
     if who == "owner" or not who.startswith("guest:"):
-        mode = "fixed" if b.mode == "fixed" else "ananta"
-        if mode == "fixed" and (b.stocks_inr is None or b.options_inr is None or b.stocks_inr < 0 or b.options_inr < 0):
-            raise HTTPException(status_code=400, detail="a fixed split needs both amounts")
-        rec = {"mode": mode, "stocks_inr": b.stocks_inr, "options_inr": b.options_inr, "total_inr": b.total_inr or ((b.stocks_inr or 0) + (b.options_inr or 0) if mode == "fixed" else 60000.0),
-               "note": b.note or ("Ananta decides the split between stocks and options from its market read" if mode == "ananta" else "fixed split, set by Madhav"),
-               "set_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "set_by": who, "enforced": False,
-               "enforcement": "recorded only; the stock book and the option line size to it once SZ2 lands and the lock says yes"}
+        mode = {"autonomous": "autonomous", "ananta": "autonomous"}.get(b.mode, "advisory")
+        if b.options_inr is not None and not (0 <= b.options_inr <= 1_000_000):
+            raise HTTPException(status_code=400, detail="options amount out of range")
+        rec = {"mode": mode, "options_inr": b.options_inr or 50000.0,
+               "note": b.note or ("Ananta moves capital between stocks, options and cash on paper, inside the regime table" if mode == "autonomous" else "options fixed; Ananta rates, ranks and suggests"),
+               "set_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "set_by": who, "paper": True}
         p = india_views.DATA / "paper" / "allocation.json"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(rec, indent=1))
         return rec
     raise HTTPException(status_code=403, detail="owner only")
+
+
+@r.get("/v3/allocation/plan")
+def allocation_plan(who: str = Depends(signed_in)) -> dict:
+    """The full plan (every holding, rating, suggestion and paper move) is the owner's; anyone else gets the totals."""
+    return india_views.allocation_plan(full=(who == "owner" or not who.startswith("guest:")))
 
 
 @r.get("/v3/{name:path}")

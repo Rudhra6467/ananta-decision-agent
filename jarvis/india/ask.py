@@ -27,7 +27,7 @@ MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
 DAILY_LIMIT = int(os.getenv("ASK_DAILY_LIMIT", "150"))
 HISTORY_TURNS = 8
 SYSTEM = """You are Ananta, Madhav's trading assistant for the INDIAN market (NSE stocks and the Nifty index), on paper only. Address him as "sir".
-Answer ONLY from the FACTS block in the user turn; it is India's read model for the latest session. Never invent a number, a stock or a reason.
+Answer ONLY from the FACTS block in the user turn; it is India's read model for the latest session (and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason.
 If the facts do not hold the answer, say so plainly and say what the facts do hold. Nothing here is financial advice; no real money is traded;
 you cannot place, change or close anything from chat (say "paper only; nothing is placed from chat" if asked to act).
 Explain technical words with a plain meaning alongside the name (simplify the explanation, not the intelligence). Be brutally honest: a lost
@@ -55,8 +55,8 @@ def _load_env_key() -> str:
 
 # ---------------------------------------------------------------------------------------------------------------- facts
 
-def facts() -> dict:
-    """The read model, trimmed to what a question can use (about 3-4k tokens)."""
+def facts(owner: bool = False) -> dict:
+    """The read model, trimmed to what a question can use (about 3-4k tokens). The owner's facts also carry the account allocation plan."""
     rm = views.readmodel()
     d = rm.get("decisions_today") or {}
     sb = rm.get("stock_book") or {}
@@ -80,7 +80,19 @@ def facts() -> dict:
             "missed_movers": (L.get("missed") or {}).get("line"), "drafts": L.get("drafts"),
             "research": {"studies": r.get("studies"), "gate_G02": r.get("gate"), "gate_counters": r.get("gate_counters"), "registry_verdicts": r.get("verdicts"), "exit_book_chosen": (r.get("exit_book") or {}).get("chosen")},
             "jobs": {"signin": j.get("signin"), "problems": [{"job": x["label"], "problems": x["problems"]} for x in j.get("jobs", []) if not x.get("ok")]},
-            "guardrails": (rm.get("guardrails") or {}).get("words"), "missing_sections": rm.get("missing")}
+            "guardrails": (rm.get("guardrails") or {}).get("words"), "missing_sections": rm.get("missing"),
+            **({"account_allocation": _alloc_facts()} if owner else {})}
+
+
+def _alloc_facts() -> dict:
+    p = views.allocation_plan(full=True)
+    if not p.get("ready"):
+        return {"ready": False, "words": p.get("headline")}
+    return {"mode": p["mode"], "headline": p["headline"], "paper": True, "sleeves": p["sleeves"], "regime_table_now": p.get("regime"), "options_sleeve": p.get("options"),
+            "holdings_ranked": [{"rank": x["rank"], "symbol": x["symbol"], "grade": x["grade"], "score": x["score"], "action": x["action"], "value_inr": x["value_inr"], "weight_pct": x["weight_pct"],
+                                 "pnl_pct": x["pnl_pct"], "suggest_inr": x["suggest_inr"], "why": x["why"], "wrong_if": x["wrong_if"]} for x in p.get("holdings", [])],
+            "paper_moves_today": p.get("moves"), "moves_applied": p.get("moves_applied"), "watching": p.get("watch"), "snapshot": p.get("snapshot"),
+            "meaning": "advisory = options fixed at Rs 50,000, stocks as in the account, Ananta rates/ranks/suggests and moves nothing; autonomous = Ananta moves capital between stocks, options and cash on paper inside the regime table; grades A>=70, B>=55, C>=40, D below"}
 
 
 # ---------------------------------------------------------------------------------------------------------------- threads
@@ -245,7 +257,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if today_count() >= DAILY_LIMIT:
         raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
     thread = thread or uuid.uuid4().hex[:12]
-    fixed = fix_flow(text, thread, token, context, post=flag_post, get=flag_get)      # a problem, a pick or "my flags": the fix flow, in code
+    fixed = allocation_flow(text, who) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get)      # a mode switch, or a problem, a pick or "my flags": in code
     if fixed is not None:
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
@@ -257,7 +269,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     hist = [{"role": m["role"], "text": m["text"] if m["role"] == "user" else json.dumps({k: m.get(k) for k in ("answer", "breakdown")})} for m in thread_messages(thread)[-2 * HISTORY_TURNS:]]
     uid = uuid.uuid4().hex[:12]
     _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
-    f = facts()
+    f = facts(owner=(who == "owner" or not str(who).startswith("guest:")))
     t0 = time.time()
     if ACT.search(text) and re.search(r"\b(now|please|for me|this|it|today)\b", text, re.I) and len(text) < 90:
         reply = {"kind": "answer", "stage": "observation", "answer": "Paper only, sir: nothing is placed, changed or closed from chat. The stock book and the index line decide by their rules, and every decision is in the Home feed.",
@@ -329,6 +341,42 @@ def _set_pending(thread: str, flag: dict | None) -> None:
 def _reply(answer: str, follow_ups: list[str], evidence: list[str], extra: dict | None = None) -> dict:
     return {"kind": "answer", "stage": "observation", "answer": answer, "breakdown": [], "evidence": evidence, "assumption": "", "follow_ups": follow_ups[:4],
             "next_action": {}, "show": [], "options": [], "points": [], "actions": [], "ui": [], "route": "india", **(extra or {})}
+
+
+ALLOC_AUTO = re.compile(r"(\b(everything|all of it|allocation|the capital|my capital|the money|portfolio)\s+(is\s+|to be\s+|should be\s+)?autonomous\b|\b(go|switch|set|make|turn|put)\b[^.?!]{0,40}\bautonomous\b|\b(you|ananta)\s+(decide|manage|handle|move)\b[^.?!]{0,30}\b(allocation|capital|money|split|everything)\b)", re.I)
+ALLOC_ADV = re.compile(r"\b(advisory|suggest only|only suggest|stop (moving|managing) (the )?(capital|money)|back to (advisory|suggestions))\b", re.I)
+ALLOC_Q = re.compile(r"^\s*(what|how|why|explain|tell me|does|is it)\b", re.I)
+
+
+def allocation_flow(text: str, who: str) -> dict | None:
+    """'Everything is autonomous' / 'go back to advisory', by voice or chat: sets the allocation mode in code (owner only, paper only)."""
+    if ALLOC_Q.search(text):
+        return None
+    mode = "autonomous" if ALLOC_AUTO.search(text) else ("advisory" if ALLOC_ADV.search(text) else None)
+    if mode is None:
+        return None
+    if not (who == "owner" or not str(who).startswith("guest:")):
+        return _reply("Only Madhav can change how capital is allocated.", [], [])
+    import datetime as _dt
+    p = DATA / "paper" / "allocation.json"
+    cur = {}
+    try:
+        cur = json.loads(p.read_text())
+    except (OSError, ValueError):
+        pass
+    rec = {"mode": mode, "options_inr": cur.get("options_inr") or 50000.0, "set_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "set_by": who, "paper": True,
+           "note": "set by voice or chat"}
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(rec, indent=1))
+    if mode == "autonomous":
+        ans = ("Done, sir: allocation is autonomous, on paper. From the next plan (within minutes, then each evening) I set the split between stocks, options and cash from the market's regime, "
+               "move capital between them by the table (at most 10% of the pool a session, never under Rs 2,000), keep every move in the ledger, and keep watching the market and your positions for changes and new chances. "
+               "Nothing is sent to your broker; real orders wait for the gate and your yes.")
+        fu = ["What will you move first?", "What are you watching?", "Go back to advisory"]
+    else:
+        ans = ("Done, sir: back to advisory. Options stay fixed at Rs 50,000, stocks stay as they are in your account, and I rate and rank every holding and suggest changes. I move nothing.")
+        fu = ["Rate my holdings", "What would you change first?", "Go autonomous"]
+    return _reply(ans, fu, ["allocation setting saved to paper/allocation.json"], {"route": "india"})
 
 
 def fix_flow(text: str, thread: str, token: str | None, context: dict | None, post=None, get=None) -> dict | None:

@@ -1,0 +1,103 @@
+{
+ "version": 1,
+ "drafted": "2026-10-23",
+ "lock_day": {
+  "planned": "2026-11-01",
+  "pinned_then": [
+   "the G01 exit book as the stock book uses it (manifests/g01_exit_book.json, copied into registrations)",
+   "the SP1 line's sizing after the SZ2 selection",
+   "the SP3 frozen list (or the recorded 'no playbook change')",
+   "the India gate's definition (G02 plus the operational rows)",
+   "the India exam's judges and pass marks",
+   "the read model's rules version (india/readmodel.py RULES)"
+  ]
+ },
+ "what": "The India lock. Each pin is a hash of something that must not change on India's paper books during their evidence window without Madhav's recorded yes. docs/INDIA_LOCK.md explains each one; tests/test_india_lock.py checks them.",
+ "how_to_change_a_pin": "Only on Madhav's decision: append an entry to that pin's history (date, approved_by starting with Madhav, a note quoting his words, the new sha256) and set the pin's sha256 to the same value. Run `python tests/test_india_lock.py` for the current hashes.",
+ "pins": {
+  "paper_rules": {
+   "what": "The stock paper book's rules as configured (india/paper_config.json): families, exits, slots, the Rs 60,000 book and the survival rules (5% day, 22% pause, record-only on paper).",
+   "sha256": "a559ff407d642b043d5c2293b145eb9cea087ab52c0428fc2b3c824e45bff01e",
+   "history": [
+    {
+     "date": "2026-10-23",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-23 (in chat, to \"Lock India like crypto\"): \"Yes\". Drafted at the start of the India lock; docs/INDIA_LOCK.md lists every pinned item and what waits for lock day (about 1 Nov).",
+     "sha256": "a559ff407d642b043d5c2293b145eb9cea087ab52c0428fc2b3c824e45bff01e"
+    }
+   ]
+  },
+  "sp1_playbook": {
+   "what": "The SP1 index playbook as frozen 21 Oct (india/registrations/sp1_v2.json): four decision points 09:15-10:15 IST, futures shadow, 1-lot option line.",
+   "sha256": "60c2a568c5594b958bd7b9c498fd1dadbc9874096fd26f9643f955188c9c13fd",
+   "history": [
+    {
+     "date": "2026-10-23",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-23 (in chat, to \"Lock India like crypto\"): \"Yes\". Drafted at the start of the India lock; docs/INDIA_LOCK.md lists every pinned item and what waits for lock day (about 1 Nov).",
+     "sha256": "60c2a568c5594b958bd7b9c498fd1dadbc9874096fd26f9643f955188c9c13fd"
+    }
+   ]
+  },
+  "sp3_spec": {
+   "what": "The SP3 positional study as frozen 20 Oct (sp3_v1.json, sha 20f9070f3d3a61c9) and its permanent-stops list (sp3_permanent_stops.csv).",
+   "sha256": "ba42892f185d5ad3d6f31808aceac5aa0f31bf480d9f56e254a32c3d6304de86",
+   "history": [
+    {
+     "date": "2026-10-23",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-23 (in chat, to \"Lock India like crypto\"): \"Yes\". Drafted at the start of the India lock; docs/INDIA_LOCK.md lists every pinned item and what waits for lock day (about 1 Nov).",
+     "sha256": "ba42892f185d5ad3d6f31808aceac5aa0f31bf480d9f56e254a32c3d6304de86"
+    }
+   ]
+  },
+  "sz2_spec": {
+   "what": "The SZ2 sizing study's frozen spec (sz2_v1.json).",
+   "sha256": "61d9aa5079324e8fc2f1f8c5d71fc11a7b492f2dd83de4d647bc7269f63f1a86",
+   "history": [
+    {
+     "date": "2026-10-23",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-23 (in chat, to \"Lock India like crypto\"): \"Yes\". Drafted at the start of the India lock; docs/INDIA_LOCK.md lists every pinned item and what waits for lock day (about 1 Nov).",
+     "sha256": "61d9aa5079324e8fc2f1f8c5d71fc11a7b492f2dd83de4d647bc7269f63f1a86"
+    }
+   ]
+  },
+  "cost_model": {
+   "what": "The cost model every India paper book and study pays (india/costs.py v1.2, lines of code).",
+   "sha256": "50a768f0f69318c7ba38e6e52961248037e30cf521dd586abc808fd4fb6255a5",
+   "history": [
+    {
+     "date": "2026-10-23",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-23 (in chat, to \"Lock India like crypto\"): \"Yes\". Drafted at the start of the India lock; docs/INDIA_LOCK.md lists every pinned item and what waits for lock day (about 1 Nov).",
+     "sha256": "50a768f0f69318c7ba38e6e52961248037e30cf521dd586abc808fd4fb6255a5"
+    }
+   ]
+  },
+  "learning_rules": {
+   "what": "The learning loop's rules: the league's horizons, draws, notional, participants, window and classes (india/others.py) and the missed-movers bands and families (india/missed.py).",
+   "sha256": "0b0b25bf43337211ad6e6de6fb3b3b99010bb6ae32e8c9143de63ebe01d617a9",
+   "history": [
+    {
+     "date": "2026-10-23",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-23 (in chat, to \"Lock India like crypto\"): \"Yes\". Drafted at the start of the India lock; docs/INDIA_LOCK.md lists every pinned item and what waits for lock day (about 1 Nov).",
+     "sha256": "0b0b25bf43337211ad6e6de6fb3b3b99010bb6ae32e8c9143de63ebe01d617a9"
+    }
+   ]
+  },
+  "no_order_rule": {
+   "what": "The leak check that forbids every order call until the gate (india/leakcheck.py, lines of code).",
+   "sha256": "e38d07226bb0258d7e97d1eacd2a7f2906d265ec439125a4967d2076ddaa9b61",
+   "history": [
+    {
+     "date": "2026-10-23",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-23 (in chat, to \"Lock India like crypto\"): \"Yes\". Drafted at the start of the India lock; docs/INDIA_LOCK.md lists every pinned item and what waits for lock day (about 1 Nov).",
+     "sha256": "e38d07226bb0258d7e97d1eacd2a7f2906d265ec439125a4967d2076ddaa9b61"
+    }
+   ]
+  }
+ }
+}

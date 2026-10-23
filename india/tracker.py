@@ -143,7 +143,10 @@ PROGRESS = {
     "P01": "18 Oct: RSI(14) under 30 VALIDATED (+2.5% dev, +1.9% val over 20 sessions on ANY entries), over 70 VALIDATED the other way; weekly outside bar nothing. Paper campaign REV added (rules v1.2)",
     "F06": "18 Oct: monthly Nifty puts on the 10-slot books cost about 0.1-0.5% a quarter in validation and trim the worst quarter (ANY -34% to -24%), not significant; in dev the bleed outweighs the protection",
     "E11": "18 Oct: selling at the next open after a lower-band day is WORSE than holding on (OPPOSITE for BRK: -12.8% on the trades where it fired); the damage is in that open",
-    "G01": "18 Oct first version (india/exitbook.py, descriptive): 10-slot books; per-trade means overstate what a slot-limited book earns (signals cluster in bull runs); val leaders hold60+low20, hold_60d, sma_close_50",
+    "G01": "22 Oct v2 (india/exitbook.py verdict, registrations/exit_policy_book.md): exits ranked by 10-slot book growth over drawdown per entry set x Nifty trend at signal; "
+           "dev top-3 that stay val top-5 with positive net and growth = HELD. BRK: long holds held (sma_close_50 all/mixed, hold_60d above both averages, hold60+low20, swing_low_20; "
+           "11 of 36 leaders HELD, all but 2 on BRK); PULL and ANY: nothing held except hold60+low20 in narrow cells. No exit beats its own-duration hold (E02), so the book "
+           "chooses for capital speed and drawdown, never per-trade edge. 18 Oct first version was descriptive only",
     "E10": "18 Oct: drawdown rule (flatten at -7/-8/-12%, pause 10/20) not significant on returns; cuts the book's worst drawdown (BRK dev -74% to -53%)",
     "V01": "18 Oct: results days move about 1.4x a normal day (VALIDATED); post-results drift not at the bar",
     "V02": "18 Oct: lower price-band hits keep falling (-7.6% dev, -3.1% val over 20 sessions vs Nifty, CONDITIONAL); announcement categories nothing at the bar",
@@ -186,7 +189,8 @@ def evaluate() -> tuple[list[dict], list[dict]]:
     for sid, ph, fam, q, needs, exit_focus, start in STUDIES:
         blockers = [n for n in needs if n not in done and not (n.startswith(("E", "G")))]
         pending = [f"{n} ({data[n]['state'].lower()}, {data[n]['eta'] or 'no date'})" for n in blockers if n in data]
-        pending += [f"study {n}" for n in needs if n.startswith(("E", "G"))]
+        # a study it waits on counts as met once that study has recorded progress (a results line here); never before
+        pending += [f"study {n}" for n in needs if n.startswith(("E", "G")) and not PROGRESS.get(n)]
         state = "READY" if not pending else "BLOCKED"
         studies.append({"progress": PROGRESS.get(sid, ""), "id": sid, "phase": ph, "family": fam, "question": q, "exit_focus": exit_focus, "planned_start": start,
                         "state": state, "waiting_on": "; ".join(pending)})

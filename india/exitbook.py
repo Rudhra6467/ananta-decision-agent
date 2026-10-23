@@ -193,11 +193,154 @@ def e10(entry_set: str = "BRK", policy: str = "hold_60d") -> dict:
     return out
 
 
+# ----------------------------------------------------------------------------------------------- G01 v2: the book by situation, with a verdict
+
+SITUATIONS = ("all", "above_both", "mixed", "below_both")
+MIN_TRADES = 300          # a cell (entry set x situation x period) with fewer trades per policy is INCONCLUSIVE
+DEV_TOP, VAL_TOP = 3, 5   # the rule, declared before the run: a dev top-3 exit HELD if it is val top-5 with positive excess and net
+
+
+def nifty_state() -> pd.Series:
+    """Nifty 50 trend on each session, SP3's first situation axis: close against its 50- and 200-day averages -> above_both / below_both / mixed.
+    Read from the silver index file (2003+); earlier sessions get no state and fall only into the 'all' cell."""
+    p = paths.silver("kite_index") / "day" / "day.parquet"
+    d = pd.read_parquet(p, columns=["index_name", "date", "close"])
+    d = d[d["index_name"] == "NIFTY 50"].sort_values("date")
+    c = d.set_index(pd.to_datetime(d["date"]))["close"]
+    s50, s200 = c.rolling(50).mean(), c.rolling(200).mean()
+    st = pd.Series(np.where((c > s50) & (c > s200), "above_both", np.where((c < s50) & (c < s200), "below_both", "mixed")), index=c.index)
+    return st[s200.notna()]
+
+
+def _cells(tr: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for (sit, pol, per), g in tr.groupby(["situation", "policy", "period"]):
+        if pol == "random_exit":
+            g = g.drop_duplicates(["sid", "signal_date"])
+        x = g["net_ret"]
+        ex = g["net_ret"] - g["null_net_ret"]
+        r = {"situation": sit, "policy": pol, "period": per, "trades": len(g), "mean_net": x.mean(), "p5": x.quantile(0.05), "worst": x.min(),
+             "days": g["hold_days"].mean(), "net_per_20d": x.mean() / max(g["hold_days"].mean(), 1) * 20, "excess_vs_null": ex.mean(),
+             "excess_t": float(ex.mean() / (ex.std(ddof=1) / np.sqrt(len(ex)))) if len(ex) > 2 and ex.std(ddof=1) > 0 else np.nan}
+        r.update(_book(g))
+        rows.append(r)
+    return pd.DataFrame(rows)
+
+
+def judge(cells: pd.DataFrame) -> pd.DataFrame:
+    """The pre-declared rule on one entry set's cells. Rank by the 10-slot book's growth over drawdown within (situation, period), random_exit
+    excluded. dev leader = dev top-3. HELD = dev leader that is val top-5 with positive val net per trade and positive val book growth; NOT_HELD = dev
+    leader that is not; INCONCLUSIVE = too few trades in either period. Non-leaders carry no verdict. Excess over the time-matched null is reported,
+    not required: E02 found no exit beats its own-duration hold on average, so the book chooses among exits by capital speed and drawdown."""
+    c = cells[cells["policy"] != "random_exit"].copy()
+    c["rank"] = c.groupby(["situation", "period"])["book_mar"].rank(ascending=False, method="first", na_option="bottom")
+    dev = c[c["period"] == "dev"].set_index(["situation", "policy"])
+    val = c[c["period"] == "val"].set_index(["situation", "policy"])
+    out = []
+    for key in dev.index:
+        if key not in val.index:
+            continue
+        d, v = dev.loc[key], val.loc[key]
+        leader = d["rank"] <= DEV_TOP
+        if not leader:
+            verdict = ""
+        elif d["trades"] < MIN_TRADES or v["trades"] < MIN_TRADES:
+            verdict = "INCONCLUSIVE"
+        elif v["rank"] <= VAL_TOP and v["mean_net"] > 0 and v["book_growth_pa"] > 0:
+            verdict = "HELD"
+        else:
+            verdict = "NOT_HELD"
+        out.append({"situation": key[0], "policy": key[1], "dev_rank": int(d["rank"]), "val_rank": int(v["rank"]), "dev_trades": int(d["trades"]), "val_trades": int(v["trades"]),
+                    "dev_mar": d["book_mar"], "val_mar": v["book_mar"], "dev_excess": d["excess_vs_null"], "val_excess": v["excess_vs_null"], "val_excess_t": v["excess_t"],
+                    "dev_net": d["mean_net"], "val_net": v["mean_net"], "val_p5": v["p5"], "val_days": v["days"], "val_growth_pa": v["book_growth_pa"], "val_max_dd": v["book_max_dd"],
+                    "verdict": verdict})
+    return pd.DataFrame(out)
+
+
+def book_by_situation(entry_sets: tuple[str, ...] = ("BRK", "PULL", "ANY")) -> dict:
+    """G01 v2. Writes gold/studies/G01_exit_book_by_situation.csv (every cell), gold/studies/G01_verdicts.csv (the judged leaders),
+    registrations/exit_policy_book.md (the book a trader reads) and manifests/g01_exit_book.json (inputs with sha256, the chosen exits)."""
+    import datetime as dt
+    import hashlib
+    import json
+
+    state = nifty_state()
+    inputs, all_cells, all_verdicts, chosen = [], [], [], {}
+    for name in entry_sets:
+        frames = []
+        for f in (f"E02-{name}_trades.parquet", f"E03-{name}_trades.parquet"):
+            p = paths.gold() / "studies" / f
+            if not p.exists():
+                continue
+            inputs.append({"file": f, "sha256": hashlib.sha256(p.read_bytes()).hexdigest(), "bytes": p.stat().st_size})
+            frames.append(pd.read_parquet(p, columns=["sid", "signal_date", "policy", "hold_days", "net_ret", "null_net_ret"]))
+        if not frames:
+            continue
+        tr = pd.concat(frames).drop_duplicates(["sid", "signal_date", "policy"])
+        tr = tr[tr["signal_date"] >= "2000-01-01"].copy()
+        tr["period"] = np.where(tr["signal_date"].dt.year < SPLIT, "dev", "val")
+        tr["situation"] = state.reindex(pd.to_datetime(tr["signal_date"]).values).values
+        parts = [tr.assign(situation="all"), tr[tr["situation"].notna()]]
+        cells = _cells(pd.concat(parts)).assign(entry_set=name)
+        verdicts = judge(cells).assign(entry_set=name)
+        all_cells.append(cells)
+        all_verdicts.append(verdicts)
+        for sit in SITUATIONS:
+            held = verdicts[(verdicts["situation"] == sit) & (verdicts["verdict"] == "HELD")].sort_values("val_mar", ascending=False)
+            tried = verdicts[(verdicts["situation"] == sit) & (verdicts["verdict"] != "")]
+            chosen[f"{name}/{sit}"] = ({"policy": held.iloc[0]["policy"], "val_mar": float(held.iloc[0]["val_mar"]), "val_net": float(held.iloc[0]["val_net"]),
+                                        "val_excess": float(held.iloc[0]["val_excess"]), "held": int(len(held)), "tried": int(len(tried))} if len(held)
+                                       else {"policy": None, "held": 0, "tried": int(len(tried)), "why": "no dev leader held up in validation" if len(tried) else "no cell"})
+    cells = pd.concat(all_cells, ignore_index=True)
+    verdicts = pd.concat(all_verdicts, ignore_index=True)
+    cells.to_csv(paths.gold() / "studies" / "G01_exit_book_by_situation.csv", index=False)
+    verdicts.to_csv(paths.gold() / "studies" / "G01_verdicts.csv", index=False)
+    _write_book_md(verdicts, chosen)
+    man = {"study": "G01", "version": 2, "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "split": SPLIT, "slots": SLOTS,
+           "rule": {"dev_top": DEV_TOP, "val_top": VAL_TOP, "min_trades": MIN_TRADES, "rank_by": "book_mar", "held": "dev top-3 by book MAR; val top-5, val net>0, val book growth>0 (excess vs null reported, not required: E02)"},
+           "situation": "Nifty 50 close vs 50- and 200-day averages at the signal close (SP3 stage_3_situation, first axis)", "inputs": inputs,
+           "cells": int(len(cells)), "leaders": int((verdicts["verdict"] != "").sum()), "held": int((verdicts["verdict"] == "HELD").sum()),
+           "not_held": int((verdicts["verdict"] == "NOT_HELD").sum()), "inconclusive": int((verdicts["verdict"] == "INCONCLUSIVE").sum()), "chosen": chosen}
+    paths.manifest_dir().mkdir(parents=True, exist_ok=True)
+    (paths.manifest_dir() / "g01_exit_book.json").write_text(json.dumps(man, indent=1, default=str))
+    return man
+
+
+def _write_book_md(verdicts: pd.DataFrame, chosen: dict) -> None:
+    from pathlib import Path
+
+    lines = ["# Exit policy book (G01 v2, generated by `python -m india.exitbook verdict`)", "",
+             "For each entry set and situation (Nifty trend at the signal close), the exits that led in development (2000-2017, top 3 by 10-slot book growth "
+             "over drawdown) and whether each held up in validation (2018-2023: top 5, positive net per trade, positive book growth). No exit beats its own-duration "
+             "hold on average (E02), so excess over the time-matched null is shown, not required: the book chooses among exits by capital speed and drawdown. "
+             f"Cells under {MIN_TRADES} trades per policy are INCONCLUSIVE. Read beside the registry verdicts, never instead of them.", "", "## Chosen exit per cell", "",
+             "| entry set | situation | exit that held | val MAR | val net/trade | val excess vs null | held / tried |", "|---|---|---|---|---|---|---|"]
+    for k, v in chosen.items():
+        es, sit = k.split("/")
+        if v["policy"]:
+            lines.append(f"| {es} | {sit} | **{v['policy']}** | {v['val_mar']:.2f} | {v['val_net']*100:+.2f}% | {v['val_excess']*100:+.2f}% | {v['held']} / {v['tried']} |")
+        else:
+            lines.append(f"| {es} | {sit} | none ({v.get('why', '')}) | | | | {v['held']} / {v['tried']} |")
+    lines += ["", "## Every development leader and its validation verdict", "",
+              "| entry set | situation | policy | verdict | dev rank | val rank | dev trades | val trades | dev MAR | val MAR | val net | val p5 | val excess (t) | val growth/yr | val max dd |",
+              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    v = verdicts[verdicts["verdict"] != ""].sort_values(["entry_set", "situation", "dev_rank"])
+    for r in v.itertuples():
+        lines.append(f"| {r.entry_set} | {r.situation} | {r.policy} | {r.verdict} | {r.dev_rank} | {r.val_rank} | {r.dev_trades} | {r.val_trades} | {r.dev_mar:.2f} | {r.val_mar:.2f} | "
+                     f"{r.val_net*100:+.2f}% | {r.val_p5*100:+.1f}% | {r.val_excess*100:+.2f}% ({r.val_excess_t:+.1f}) | {r.val_growth_pa*100:+.1f}% | {r.val_max_dd*100:.0f}% |")
+    (Path(__file__).parent / "registrations" / "exit_policy_book.md").write_text("\n".join(lines) + "\n")
+
+
 if __name__ == "__main__":
     paths.ensure()
     w = sys.argv[1] if len(sys.argv) > 1 else "book"
     if w == "book":
         run()
+    elif w == "verdict":
+        m = book_by_situation()
+        print(f"G01 v2: {m['cells']} cells, {m['leaders']} dev leaders, HELD {m['held']}, NOT_HELD {m['not_held']}, INCONCLUSIVE {m['inconclusive']}")
+        for k, v in m["chosen"].items():
+            print(f"  {k:18s} {v['policy'] or 'none':24s} held {v['held']}/{v['tried']}")
     elif w == "e10":
         for es in ("BRK", "PULL", "ANY"):
             e10(es, "hold_60d")

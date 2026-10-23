@@ -32,6 +32,9 @@ If the facts do not hold the answer, say so plainly and say what the facts do ho
 you cannot place, change or close anything from chat (say "paper only; nothing is placed from chat" if asked to act).
 Explain technical words with a plain meaning alongside the name (simplify the explanation, not the intelligence). Be brutally honest: a lost
 session is lost, a wrong call is wrong, 0 of 3 is 0 of 3. Keep the answer to 2-5 sentences a person can read in under ten seconds.
+When the FACTS hold "reconstruction_detail", Madhav wants to discuss the reconstruction process: explain it in simple spoken words, one part at a time (use the
+card's own numbers from last night as the example, and an everyday comparison when it helps, e.g. a coach replaying the match), up to 6 sentences, and offer the
+next part as a follow-up (the seven parts A-G, the findings, the staircase, what is filed on the repair board).
 Reply with ONE JSON object and nothing else: {"kind":"answer","stage":"observation|outcome|learning","answer":"...","breakdown":["...","..."],
 "evidence":["<fact and where it comes from>", ...],"assumption":"","follow_ups":["short question","short question","short question"],
 "next_action":{"label":"","why":"","route":""},"show":[],"options":[],"route":"india"}.
@@ -84,6 +87,36 @@ def facts(owner: bool = False) -> dict:
             "reconstruction_last_night": {k: (rm.get("reconstruction") or {}).get(k) for k in ("headline", "people_words", "not_done_words", "league_words", "reviews", "findings")} | {"staircase": ((rm.get("reconstruction") or {}).get("staircase") or {}).get("words"),
                                           "meaning": "the nightly reconstruction card (what the market and other participants did, what Ananta did and did not do, trade reviews, findings); SAFE findings go to the repair board by themselves, DECISION findings wait for Madhav; the staircase says what the allocated capital may use (ADMITTED only; nothing yet)"},
             **({"account_allocation": _alloc_facts()} if owner else {})}
+
+
+RX_TOPIC = re.compile(r"reconstruct|rebuild|session card|\bcard\b|finding|staircase|admitted|shadow|repair (shop|board)|evidence|missed|did not do|didn.t (take|do|buy)|what (did )?(you|ananta) learn|learn(ed|t)? last night|other (traders|people)|what people|bulk|block deal|fii|dii|trade review|stopped then ran|gave back|never worked|left on (the )?table|league", re.I)
+
+RX_EXPLAINER = """THE RECONSTRUCTION PROCESS (RX-IN v1, built 23 Oct 2026; Madhav agreed to every part of the design the same day). Plain words, for explaining:
+- Why it exists: Ananta is judged by the quality of its decisions. Every night it replays the day like a coach replaying a match: what the market did, what other people did, what Ananta did, what it did not do, and whether each of those was right. What it learns goes to the repair shop; what survives testing climbs a staircase until the allocated paper capital may use it.
+- When: every evening at 22:30 Toronto, after the paper engine, the missed-movers review and the reference-traders league; the SAFE findings are filed on the repair board at 22:50.
+- The card has seven parts. A, the market: the trend, how many stocks are healthy (breadth), the fear gauge (VIX), the biggest movers. B, what people did: public records only, each stamped at the minute it became public: big single-client trades (bulk and block deals), foreign and domestic institutions' buying and selling (FII/DII), who holds the futures (participant open interest), company announcements, registered world events, and the reference traders (HINDSIGHT = the best trips the day offered, the ceiling; RANDOM = pure chance; MARKET = the average stock). These are a yardstick, never something to copy: in crypto, copying traders' timing failed every test. C, what Ananta did: what it chose, what it rejected and why, fills, exits, the daily call, the index line, the allocation moves. D, what it did not do: the big moves it missed (class a: a rule fired but was rejected or had already exited; class b: no rule was positioned for it; class c: it could not be traded), the falls it held into, and every rejected candidate followed forward by the shadow (baseline) book to see whether the pass was right; that is hindsight and only ever raises a question, never a verdict. E, trade reviews: three sessions after a trade closes, it is tagged in units of its own risk (R = entry minus the signal bar's low): STOPPED_THEN_RAN (stopped out and then the price rose a full R above the entry: stop too tight or early entry), GAVE_BACK (was up 1.5R and still closed at or under the entry: no plan to protect the winner), NEVER_WORKED (never got a quarter R above the entry: poor timing), LEFT_ON_TABLE (a win, then the price went another R higher within three sessions: sold too early), COSTS_ATE (moved less than the charges), CLEAN (a win that kept at least half of its best move). F, findings: only fixed counts make a finding, never one day's story: the same missed situation on 3 of 7 sessions, the same review tag on 5 trades of one family in 20 sessions, a family holding into 5 of the top falls on 3 of 7 sessions, the daily call below a coin flip over 20 sessions, allocation moves wrong 3 times in 20, missing data, failed jobs, the sign-in. G, forwarding: SAFE findings (data, jobs, words, screens) go to the repair board by themselves, at most 3 a night, and the repair worker fixes them; DECISION findings (anything touching a rule, size, stop, exit, book, allocation) go to a queue for Madhav's weekly yes. Code decides the lane, never the AI.
+- The evidence staircase, each bar fixed before any data: NOTED (on a card) -> DRAFT (its count fired) -> REGISTERED (Madhav says yes; the study is written down before it runs) -> TESTED (run on 2000-2023 only; it must pass the registry's strict bar for every variant ever tried) -> SHADOW (a paper book runs it on live sessions; 20 recorded sessions) -> ADMITTED (beats RANDOM and MARKET on 10 separate sessions after costs, the leak check passes, pinned in the lock, Madhav says yes; only now may the allocated capital use it) -> LIVE_ELIGIBLE (the India gate and Madhav's yes).
+- Rules on the process itself: it never reads the sealed 2024+ data, never calls the broker, never places a trade; every number names its file; a missing source says missing; the same finding is never filed twice while open; sessions, not trades, are the unit of evidence because stocks move together on a day.
+- Where it shows: the Evidence tab (repair shop, forwarded, tracker), the Reconstruction screen, the My flags screen for filed findings, and this conversation."""
+
+
+def _rx_detail() -> dict:
+    c = views.reconstruction()
+    rm = views.readmodel()
+    st = (rm.get("reconstruction") or {}).get("staircase") or {}
+    sec = c.get("sections") or {}
+    rv = sec.get("reviews") or {}
+    return {"how_it_works": RX_EXPLAINER, "card_ready": c.get("ready"), "card_day": c.get("day"), "cards_so_far": c.get("cards"),
+            "A_market": (sec.get("market") or {}).get("words"), "A_movers_up": (sec.get("market") or {}).get("movers_up"), "A_movers_down": (sec.get("market") or {}).get("movers_down"),
+            "B_people": (sec.get("people") or {}).get("words"), "B_league": ((sec.get("people") or {}).get("league") or {}).get("words"),
+            "B_deals_top": (((sec.get("people") or {}).get("deals") or {}).get("bulk") or {}).get("top", [])[:5],
+            "B_missing": [k for k in ("deals", "fii_dii", "participant_oi", "announcements", "events") if (((sec.get("people") or {}).get(k)) or {}).get("status") != "ok"],
+            "C_ananta": (sec.get("ananta") or {}).get("words"), "D_not_done": (sec.get("not_done") or {}).get("words"),
+            "D_best_passes_hindsight": ((sec.get("not_done") or {}).get("counterfactual") or {}).get("best_passes"),
+            "E_reviews": {"count": rv.get("count"), "tags": rv.get("tags"), "trades": [t.get("words") for t in (rv.get("trades") or [])[:10]], "note": rv.get("note")},
+            "F_findings": [{k: f.get(k) for k in ("type", "lane", "state", "words")} for f in c.get("findings") or []],
+            "queue": [{k: q.get(k) for k in ("type", "lane", "state", "day", "request")} for q in views._queue_rows()][-12:],
+            "staircase": {"words": st.get("words"), "rules": st.get("rules"), "admitted": st.get("admitted")}}
 
 
 def _alloc_facts() -> dict:
@@ -272,6 +305,12 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     uid = uuid.uuid4().hex[:12]
     _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
     f = facts(owner=(who == "owner" or not str(who).startswith("guest:")))
+    recent = " ".join(m.get("text") or "" for m in thread_messages(thread)[-4:] if m.get("role") == "user")
+    if RX_TOPIC.search(text) or RX_TOPIC.search(recent) or str((context or {}).get("screen", "")).startswith(("reconstruction", "evidence", "missed")):
+        try:
+            f["reconstruction_detail"] = _rx_detail()
+        except Exception as e:  # noqa: BLE001
+            f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
     t0 = time.time()
     if ACT.search(text) and re.search(r"\b(now|please|for me|this|it|today)\b", text, re.I) and len(text) < 90:
         reply = {"kind": "answer", "stage": "observation", "answer": "Paper only, sir: nothing is placed, changed or closed from chat. The stock book and the index line decide by their rules, and every decision is in the Home feed.",

@@ -827,6 +827,9 @@ def allocation_plan(full: bool = False) -> dict:
     out["mode"] = mode
     out["ready"] = True
     out["counts"] = {"holdings": len(v.get("holdings") or []), "suggested_changes": len(v.get("suggestions") or [])}
+    ab = _json(DATA / "paper" / "account" / "view.json", {}) or {}
+    out["account_book"] = ({k: ab.get(k) for k in ("words", "value_inr", "stocks_inr", "cash_inr", "options_inr", "trades_count", "costs_inr", "pending_days", "admitted")}
+                           | ({"positions": ab.get("positions") or [], "trades": ab.get("trades") or [], "differs_from_real": ab.get("differs_from_real") or []} if full else {})) if ab else None
     if full:
         out["holdings"] = v.get("holdings") or []
         out["suggestions"] = v.get("suggestions") or []

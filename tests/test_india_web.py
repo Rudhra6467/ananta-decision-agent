@@ -290,3 +290,23 @@ def test_reconstruction_card_staircase_and_filing(lake, monkeypatch):
     assert next(x for x in q["rows"] if x["key"] == "DATA_GAP:announcements")["state"] == "filed"
     col = c.get("/v3/evidence/collected").json()
     assert "#41" in col["forwarded"][-1]["question"]
+
+
+def test_ask_carries_the_reconstruction_detail_when_asked(lake, monkeypatch):
+    from jarvis.india import ask, views
+    monkeypatch.setattr(views, "DATA", lake)
+    monkeypatch.setattr(views, "REG", lake / "registrations")
+    monkeypatch.setattr(ask, "ASK_DIR", lake / "ask")
+    seen = {}
+
+    def fake(system, hist, user, post=None):
+        seen["user"] = user
+        seen["system"] = system
+        return json.dumps({"kind": "answer", "answer": "Every night I replay the day like a coach.", "follow_ups": []}), {"model": "x", "in": 1, "out": 1}
+
+    monkeypatch.setattr(ask, "_claude", fake)
+    r = ask.ask("owner", "Explain the reconstruction process in simple words")
+    assert "reconstruction_detail" in seen["user"] and "THE RECONSTRUCTION PROCESS" in seen["user"] and "coach" in seen["system"]
+    assert r["answer"].startswith("Every night")
+    ask.ask("owner", "What is the Nifty trend?")
+    assert "reconstruction_detail" not in seen["user"] or "reconstruct" in seen["user"].lower()

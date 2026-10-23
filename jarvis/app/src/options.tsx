@@ -66,6 +66,7 @@ export function AllocationCard() {
       </View>
       <T small>{d.headline}</T>
       {sl.now ? <Sleeves sl={sl} /> : null}
+      {d.account_book ? <T small>{d.account_book.words}</T> : null}
       {top.map((x: any, i: number) => (
         <T key={i} small>{x.action} {x.symbol} ({x.grade}){x.suggest_inr ? ` · about ${rs(x.suggest_inr)}` : ""}</T>
       ))}
@@ -126,6 +127,16 @@ function AllocationPanel({ d, onClose, reload }: { d: any; onClose: () => void; 
               <View style={{ gap: 4 }}>
                 <Text style={st.h}>{d.moves_applied ? "Paper moves today" : "What it would move (advisory: not moved)"}</Text>
                 {d.moves.map((m: any, i: number) => <T key={i} small>{rs(m.inr)} {m.from} → {m.to}{m.symbol ? ` (${m.symbol})` : ""}{m.why ? ` — ${m.why}` : ""}</T>)}
+              </View>
+            ) : null}
+            {d.account_book ? (
+              <View style={{ gap: 2 }}>
+                <Text style={st.h}>Account book (what the allocated capital holds, paper)</Text>
+                <T small>{d.account_book.words}</T>
+                {(d.account_book.trades ?? []).slice(-6).reverse().map((t: any, i: number) => (
+                  <T key={i} small>{t.day}: {t.skipped ? `skipped ${t.symbol ?? ""} — ${t.skipped}` : t.side ? `${t.side} ${t.qty} ${t.symbol} at ₹${t.price} (costs ₹${t.cost_inr})` : `${rs(t.inr)} ${t.from} → ${t.to}`}</T>
+                ))}
+                {(d.account_book.differs_from_real ?? []).length ? <T small>Differs from your real account in {d.account_book.differs_from_real.length} name(s): the twin trades on paper only.</T> : null}
               </View>
             ) : null}
             {d.options ? (

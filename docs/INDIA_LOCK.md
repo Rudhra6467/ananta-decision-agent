@@ -100,6 +100,19 @@ Between them the morning review reads the India gate and the due list every day;
 | India history from an India-located machine | optional | Only if EV6/DEALS need it; forward recording is enough for the review point. |
 | UPS and SSD (D27); residency (D28); the B13 list; a weekly 10-minute read of the drafts queue | - | As on the 22 Oct ledger. |
 
+### Decisions of 23 Oct
+
+Madhav, 23 Oct (in chat): "Will get TOTP fixed before Sunday. Yes for all others."
+
+| Item | Decision | What the India task does |
+|---|---|---|
+| The Kite TOTP key | Madhav fixes it before Sunday 25 Oct | The 24 Oct check-in verifies `kite_autologin.log` says "auto sign-in ok"; if not by Sunday, the manual sign-in 22:00-23:40 Toronto. |
+| SZ2 (a): a logged sealed purpose for the completed SP1 holdout run's own policy_trades 2024-26 | **yes, logged** | Record the purpose (`sealed_access.jsonl`) before the read; the SZ2 selection may then run as the spec wrote it. |
+| SZ2 (b): the recorder's IV-shift calibration | **keep 0 and state it** | 0 stays, stated in the SZ2 results; one pre-registered sensitivity run with R01's measured shift after its four weeks (about 15 Nov). |
+| SP3 holdout | **not yet** | The holdout stays sealed; `sealed.holdout_open('sp3_holdout')` keeps refusing. Finish the remaining parts (index book, nulls, ablations, start months, reverse priority, filter slices); then the question returns to Madhav with the numbers. |
+| Lock India like crypto | **yes** | This page; lock day about 1 Nov. |
+| The worker Mac (crypto #72) | hourly pull retry | `com.ananta.workerpull` on the main Mac (agent repo LOCK.md, Decisions of 23 Oct). |
+
 ## 9. After the window
 
 Research that does not change a paper rule: the READY studies (C04, F07, I03, I04, I06, K01, EV5, EV6, EVC and the rest of the 52), the DEALS, FUNDS and TEACHER league traders, the shadow books with no history (futures, forex, commodities, results-day options; recording forward), the SP1 2027 refit (January), one voice across both markets (after each has stood alone), and live-readiness engineering built disabled in parallel (the order module behind leakcheck, broker-side stops, reconciliation, kill switch, drift alarm, cost profiles, per-account ledger, NAV units, the enforce switch) with a monthly India risk rehearsal, switch off.

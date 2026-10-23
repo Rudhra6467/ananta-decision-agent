@@ -1,0 +1,313 @@
+"""V0 India read model: one read-only JSON per session, built from the ledgers and manifests after the evening jobs.
+  python -m india.readmodel build [YYYY-MM-DD]   -> <data dir>/readmodel/<day>.json and readmodel/latest.json, and registrations/india_readmodel.md
+  python -m india.readmodel show                  prints the latest as plain text
+Rules: derived numbers only (never a raw NSE or Kite row); every section names the file it came from, so each number traces to a ledger line;
+nothing here reads sealed data, touches Kite, or writes to a ledger. The India app shell (V1), Ask (V2), voice (V3) and father mode read this
+file and nothing else, so what is not here cannot be said. A section whose source is missing says so ("status": "missing") and never guesses.
+"""
+from __future__ import annotations
+
+import datetime as dt
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+from india import paths
+
+RULES = "readmodel-v0-2026-10-22"
+REG = Path(__file__).parent / "registrations"
+REF_POLICY = "hold_20d"       # the one exit shown per campaign in the stock-book summary (every policy stays in marks.jsonl)
+CAMPAIGN_WORDS = {"BRK": "20-session breakout on volume", "PULL": "pullback in an uptrend", "REV": "oversold reversal (RSI under 30, P01)",
+                  "CTL": "random control: no edge is claimed, it is the yardstick"}
+
+
+def rm_dir() -> Path:
+    d = paths.data_dir() / "readmodel"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _load(p: Path) -> dict | list | None:
+    try:
+        return json.loads(p.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def _jsonl(p: Path) -> list[dict]:
+    try:
+        return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+    except (OSError, ValueError):
+        return []
+
+
+def _missing(src: Path) -> dict:
+    return {"status": "missing", "source": str(src)}
+
+
+def _pct(x) -> str:
+    return "n/a" if x is None else f"{x * 100:+.1f}%"
+
+
+# ---------------------------------------------------------------------------------------------------------------- sections
+
+def market(day: str) -> dict:
+    src = paths.data_dir() / "paper" / "decisions" / f"{day}.json"
+    j = _load(src)
+    if not j or "context" not in j:
+        return _missing(src)
+    c = j["context"]
+    v50, v200 = c.get("nifty_vs_sma50"), c.get("nifty_vs_sma200")
+    if v50 is None or v200 is None:
+        state = "unknown"
+    elif v50 > 0 and v200 > 0:
+        state = "above_both"
+    elif v50 < 0 and v200 < 0:
+        state = "below_both"
+    else:
+        state = "mixed"
+    words = {"above_both": "Nifty is above both its 50- and 200-day averages: an uptrend", "below_both": "Nifty is below both its 50- and 200-day averages: a downtrend",
+             "mixed": "Nifty is between its 50- and 200-day averages: no clear trend", "unknown": "Nifty's trend could not be read"}[state]
+    return {"status": "ok", "source": str(src), "data_through": j.get("data_through", day), "nifty_close": c.get("nifty_close"), "nifty_vs_sma50": v50, "nifty_vs_sma200": v200,
+            "trend_state": state, "vix_close": c.get("vix_close"), "breadth_200d_liquid": c.get("breadth200_liq"), "breadth_50d_liquid": c.get("breadth50_liq"),
+            "words": f"{words}; {_pct(v50)} from the 50-day, {_pct(v200)} from the 200-day; {round((c.get('breadth200_liq') or 0) * 100)}% of the liquid 250 are above their 200-day"}
+
+
+def call(day: str) -> dict:
+    src = paths.data_dir() / "paper" / "calls.jsonl"
+    rows = _jsonl(src)
+    if not rows:
+        return _missing(src)
+    calls = [r for r in rows if r.get("kind") == "call"]
+    scores = [r for r in rows if r.get("kind") == "score"]
+    today = next((r for r in reversed(calls) if r.get("data_through") == day), calls[-1] if calls else None)
+    hits = sum(1 for s in scores if s.get("score") == 1)
+    null_hits = sum(1 for s in scores if s.get("null_score") == 1)
+    return {"status": "ok", "source": str(src), "data_through": today.get("data_through") if today else None, "call": today.get("call") if today else None,
+            "rule": today.get("rule") if today else None, "scored": len(scores), "hits": hits, "null_hits": null_hits,
+            "words": (f"Daily call for the next session: {today.get('call')} (mechanical rule {today.get('rule')}); so far {hits} of {len(scores)} calls right "
+                      f"against {null_hits} for the coin flip") if today else "no call written"}
+
+
+def stock_book(day: str) -> dict:
+    pdir = paths.data_dir() / "paper"
+    st = _load(pdir / "state.json")
+    if not st or "trades" not in st:
+        return _missing(pdir / "state.json")
+    open_ = {}
+    closed = Counter()
+    for t in st["trades"].values():
+        if t.get("book") != "exec":
+            continue
+        if t.get("status") == "open":
+            k = (t["campaign"], t["sid"])
+            if t.get("policy") == REF_POLICY or k not in open_:
+                e, l = t.get("entry_adj"), t.get("last_close_adj")
+                open_[k] = {"symbol": t.get("symbol"), "campaign": t["campaign"], "entry_date": t.get("entry_date"), "entry": e, "last_close": l, "last_date": t.get("last_date"),
+                            "pnl_pct": (l / e - 1) if e and l else None, "shown_policy": t.get("policy")}
+        else:
+            closed[t["campaign"]] += 1
+    marks = _jsonl(pdir / "marks.jsonl")
+    latest = {}
+    for m in marks:
+        if m.get("book") == "exec" and m.get("policy") == REF_POLICY:
+            latest[m["campaign"]] = m
+    by_campaign = {}
+    for camp, m in latest.items():
+        by_campaign[camp] = {"what": CAMPAIGN_WORDS.get(camp, camp), "open": m.get("open"), "closed": m.get("closed"), "realised_inr": m.get("realised_inr"),
+                             "open_unrealised_inr": m.get("open_unrealised_inr"), "win_rate": m.get("win_rate"), "expectancy_R": m.get("expectancy_R"),
+                             "marked_at": m.get("at"), "policy_shown": REF_POLICY}
+    positions = sorted(open_.values(), key=lambda r: (r["campaign"], -(r["pnl_pct"] or 0)))
+    return {"status": "ok", "source": f"{pdir / 'state.json'} (exec book) and {pdir / 'marks.jsonl'} (policy {REF_POLICY})", "rules": st.get("version"),
+            "open_positions": len(positions), "positions": positions[:40], "by_campaign": by_campaign,
+            "note": "the research book's scale unit is Rs 50,000 per trade (results in % and R); the real paper capital is Rs 60,000 and sits in the SP1 line"}
+
+
+def decisions_today(day: str) -> dict:
+    src = paths.data_dir() / "paper" / "decisions" / f"{day}.json"
+    j = _load(src)
+    if not j:
+        return _missing(src)
+    chosen = []
+    for s in j.get("signals", []):
+        camp = s.get("campaign")
+        why = CAMPAIGN_WORDS.get(camp, camp)
+        bits = []
+        if s.get("vol_ratio20") is not None:
+            bits.append(f"volume {s['vol_ratio20']:.1f}x its 20-day")
+        if s.get("dist_sma20") is not None:
+            bits.append(f"{_pct(s['dist_sma20'])} from the 20-day average")
+        if s.get("dist_sma200") is not None:
+            bits.append(f"{_pct(s['dist_sma200'])} from the 200-day")
+        if s.get("liq_rank") is not None:
+            bits.append(f"liquidity rank {s['liq_rank']}")
+        chosen.append({"symbol": s.get("symbol"), "campaign": camp, "close": s.get("close"), "why": why + (": " + ", ".join(bits) if bits else ""),
+                       "entry": "next session's open, Rs 50,000 notional, every registered exit tracked"})
+    return {"status": "ok", "source": str(src), "rules": j.get("rules"), "decided_at": j.get("decided_at"), "data_through": j.get("data_through"),
+            "universe": j.get("universe"), "candidates": j.get("candidates"), "chosen": chosen, "sha256": j.get("sha256")}
+
+
+def sp1(day: str) -> dict:
+    d = paths.data_dir() / "paper" / "sp1"
+    rows = [r for r in _jsonl(d / "decisions.jsonl") if r.get("date") == day]
+    book = _load(d / "book.json") or {}
+    errors = [r.get("error") for r in rows if r.get("kind") == "error"]
+    decisions = [{"index": r.get("index"), "point": r.get("point"), "action": (r.get("choice") or {}).get("action"), "exit": (r.get("choice") or {}).get("exit"),
+                  "situation": r.get("situation")} for r in rows if r.get("kind") == "decision"]
+    status = "ok" if decisions else ("lost" if errors else ("no_rows" if (d / "decisions.jsonl").exists() else "missing"))
+    return {"status": status, "source": f"{d / 'decisions.jsonl'} and {d / 'book.json'}", "decisions": decisions, "errors": errors[:3],
+            "book": {"sessions": book.get("sessions"), "by_index": book.get("by_index")}, "capital_inr": 60000,
+            "words": ("session lost: " + errors[0]) if status == "lost" and errors else (f"{len(decisions)} index decisions recorded" if decisions else "no SP1 rows for this session")}
+
+
+def learning(day: str) -> dict:
+    mdir = paths.manifest_dir()
+    out = {}
+    m = _load(mdir / f"missed_{day}.json")
+    out["missed"] = ({"status": m.get("status"), "source": str(mdir / f"missed_{day}.json"), "summary": m.get("summary"), "line": m.get("md_line"), "drafts_written": m.get("drafts_written")}
+                     if m else _missing(mdir / f"missed_{day}.json"))
+    o = _load(mdir / f"others_{day}.json")
+    if o:
+        h1 = (o.get("by_h") or {}).get("1") or {}
+        out["league"] = {"status": o.get("status"), "source": str(mdir / f"others_{day}.json"), "h1": {k: h1.get(k) for k in ("hindsight_mean", "market_mean", "ananta_mean", "ananta_n", "ananta_pct_vs_random", "coverage")},
+                         "informed": o.get("informed"), "league": o.get("league"), "drafts_written": o.get("drafts_written")}
+    else:
+        out["league"] = _missing(mdir / f"others_{day}.json")
+    drafts = _jsonl(REG / "missed_drafts.jsonl")
+    out["drafts"] = {"source": str(REG / "missed_drafts.jsonl"), "total": len(drafts), "open": sum(1 for d in drafts if str(d.get("status", "DRAFT")).upper() in ("DRAFT", "OPEN"))}
+    return out
+
+
+def research() -> dict:
+    from india import registry, tracker
+
+    out = {"source": "india/tracker.py evaluate() and registrations/registry (ledger lines)"}
+    try:
+        data, studies = tracker.evaluate()
+        out["studies"] = {"ready": sum(s["state"] == "READY" for s in studies), "blocked": sum(s["state"] == "BLOCKED" for s in studies), "with_results": sum(bool(s["progress"]) for s in studies)}
+        out["gate_counters"] = {d["id"]: d["live"] for d in data if d["id"] in ("D15", "D16")}
+        g02 = next((s for s in studies if s["id"] == "G02"), None)
+        out["gate"] = {"state": g02["state"], "waiting_on": g02["waiting_on"]} if g02 else None
+    except Exception as e:   # noqa: BLE001 - the read model must build even when the catalog is busy
+        out["studies"] = {"status": "unavailable", "why": str(e)[:120]}
+    verdicts = Counter(r.get("verdict") for r in registry._rows() if r.get("verdict"))
+    out["verdicts"] = dict(verdicts)
+    g01 = _load(paths.manifest_dir() / "g01_exit_book.json")
+    out["exit_book"] = ({"source": str(paths.manifest_dir() / "g01_exit_book.json"), "chosen": {k: v.get("policy") for k, v in g01.get("chosen", {}).items()}} if g01
+                        else _missing(paths.manifest_dir() / "g01_exit_book.json"))
+    return out
+
+
+def jobs() -> dict:
+    from india import morning
+
+    try:
+        r = morning.build()
+    except Exception as e:   # noqa: BLE001
+        return {"status": "unavailable", "why": str(e)[:120]}
+    return {"status": "ok", "source": "india/morning.py build() (launchd logs and proof-of-work files)", "signin": r.get("signin"),
+            "jobs": [{"label": j["label"].replace("com.ananta.india.", ""), "ok": not j.get("problems") and not j.get("errors"), "problems": j.get("problems", [])[:2]} for j in r.get("jobs", [])],
+            "lost": r.get("lost", [])[:6]}
+
+
+def guardrails() -> dict:
+    cfg = _load(Path(__file__).parent / "paper_config.json") or {}
+    s = cfg.get("survival", {})
+    return {"source": "india/paper_config.json survival", "daily_loss_limit_pct": s.get("daily_loss_limit_pct"), "pause_drawdown_pct": s.get("pause_drawdown_pct"),
+            "state": "recorded, not enforced (paper); enforcement is W7 live-readiness work",
+            "words": f"Stop for the day at a {s.get('daily_loss_limit_pct')}% loss; pause new entries when {s.get('pause_drawdown_pct')}% below the high-water mark until Madhav resumes"}
+
+
+# ---------------------------------------------------------------------------------------------------------------- build and render
+
+def latest_day() -> str:
+    """The last session with a stock-book decision file (the 22:30 Toronto job writes it): the day the read model describes."""
+    d = paths.data_dir() / "paper" / "decisions"
+    days = sorted(p.stem for p in d.glob("????-??-??.json")) if d.exists() else []
+    if not days:
+        raise RuntimeError("no stock-book decision file yet; the read model has nothing to describe")
+    return days[-1]
+
+
+def build(day: str | None = None) -> dict:
+    from india import morning
+
+    day = day or latest_day()
+    hol = morning._holidays()
+    nxt = morning.next_session(dt.date.fromisoformat(day), hol).isoformat()
+    rm = {"rules": RULES, "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "data_through": day, "next_session": nxt,
+          "market": market(day), "call": call(day), "stock_book": stock_book(day), "decisions_today": decisions_today(day), "sp1": sp1(day),
+          "learning": learning(day), "research": research(), "jobs": jobs(), "guardrails": guardrails()}
+    rm["missing"] = [k for k, v in rm.items() if isinstance(v, dict) and v.get("status") == "missing"]
+    rm["brief"] = brief(rm)
+    body = json.dumps(rm, indent=1, default=str)
+    (rm_dir() / f"{day}.json").write_text(body)
+    (rm_dir() / "latest.json").write_text(body)
+    (REG / "india_readmodel.md").write_text(markdown(rm))
+    return rm
+
+
+def brief(rm: dict) -> list[str]:
+    """Three to five plain sentences, each from a section above: what the app's first screen and the morning voice say."""
+    out = []
+    m, c, sb, d, s, L = rm["market"], rm["call"], rm["stock_book"], rm["decisions_today"], rm["sp1"], rm["learning"]
+    if m.get("status") == "ok":
+        out.append(f"Through {m['data_through']}: Nifty {m['nifty_close']:,.0f}. {m['words']}.")
+    if c.get("status") == "ok":
+        out.append(c["words"] + ".")
+    if sb.get("status") == "ok":
+        tot = sum((v.get("realised_inr") or 0) for v in sb["by_campaign"].values())
+        out.append(f"Stock paper book: {sb['open_positions']} open positions; realised Rs {tot:+,.0f} on the {REF_POLICY} exits across campaigns.")
+    if d.get("status") == "ok":
+        by = Counter(x["campaign"] for x in d["chosen"])
+        out.append("New for the next session: " + (", ".join(f"{n} {k}" for k, n in sorted(by.items())) or "nothing") + ".")
+    if s.get("status") in ("ok", "lost"):
+        out.append("SP1 index line: " + s["words"] + ".")
+    lg = L.get("league", {})
+    if lg.get("status") == "ok" and lg.get("h1", {}).get("coverage"):
+        cov = lg["h1"]["coverage"]
+        out.append(f"Against the reference traders (1 session): Ananta held {cov.get('TAKEN', 0)} of the top 20 trips, passed on {cov.get('PASSED', 0)}, had no rule for {cov.get('NOT_COVERED', 0)}; "
+                   f"its picks sat at the {round((lg['h1'].get('ananta_pct_vs_random') or 0) * 100)}th percentile of random.")
+    if rm["missing"]:
+        out.append("Not available for this session: " + ", ".join(rm["missing"]) + ".")
+    return out
+
+
+def markdown(rm: dict) -> str:
+    L = [f"# India read model (V0) — data through {rm['data_through']}, built {rm['built_at']}", "", "Rules " + rm["rules"] + ". Every number below traces to the file named in its section of readmodel/latest.json; nothing here is typed by hand.", "",
+         "## Brief", ""] + [f"- {s}" for s in rm["brief"]] + ["", "## Decisions for the next session", ""]
+    d = rm["decisions_today"]
+    if d.get("status") == "ok":
+        L += ["| symbol | campaign | close | why |", "|---|---|---|---|"] + [f"| {x['symbol']} | {x['campaign']} | {x['close']} | {x['why']} |" for x in d["chosen"]]
+    else:
+        L.append("(no decision file)")
+    L += ["", "## Stock paper book (exec, policy shown: " + REF_POLICY + ")", ""]
+    sb = rm["stock_book"]
+    if sb.get("status") == "ok":
+        L += ["| campaign | what | open | closed | realised Rs | unrealised Rs | win rate | expectancy R |", "|---|---|---|---|---|---|---|---|"]
+        L += [f"| {k} | {v['what']} | {v['open']} | {v['closed']} | {(v['realised_inr'] or 0):+,.0f} | {(v['open_unrealised_inr'] or 0):+,.0f} | {v['win_rate']} | {v['expectancy_R']} |" for k, v in sb["by_campaign"].items()]
+    L += ["", "## SP1 index line", "", rm["sp1"].get("words", ""), "", "## Jobs", ""]
+    j = rm["jobs"]
+    if j.get("status") == "ok":
+        L += [f"- {x['label']}: {'ok' if x['ok'] else 'PROBLEM ' + '; '.join(x['problems'])}" for x in j["jobs"]] + ["", f"Next sign-in: {j.get('signin')}"]
+    r = rm["research"]
+    L += ["", "## Research", "", f"- studies: {r.get('studies')}", f"- gate G02: {r.get('gate')} counters {r.get('gate_counters')}", f"- registry verdicts: {r.get('verdicts')}",
+          f"- exit book (G01): {r.get('exit_book', {}).get('chosen')}", "", "## Guardrails", "", rm["guardrails"]["words"] + " — " + rm["guardrails"]["state"], ""]
+    return "\n".join(L)
+
+
+if __name__ == "__main__":
+    paths.ensure()
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
+    if cmd == "build":
+        rm = build(sys.argv[2] if len(sys.argv) > 2 else None)
+        print(f"read model built for {rm['data_through']}: missing {rm['missing'] or 'nothing'}")
+        for s in rm["brief"]:
+            print("  " + s)
+    elif cmd == "show":
+        rm = _load(rm_dir() / "latest.json")
+        print(markdown(rm) if rm else "no read model yet")
+    else:
+        print("usage: python -m india.readmodel [build [YYYY-MM-DD]|show]")
+        sys.exit(64)

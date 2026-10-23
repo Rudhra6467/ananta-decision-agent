@@ -35,7 +35,7 @@ export default function Flags() {
       refreshControl={<RefreshControl refreshing={busy} onRefresh={load} />}>
       <Pressable onPress={() => router.back()} accessibilityRole="button"><Text style={{ color: C.accent, fontWeight: "700" }}>‹ Back</Text></Pressable>
       <Text style={{ color: C.text, fontSize: TYPE.title, fontWeight: "800", marginTop: 8 }}>My flags</Text>
-      <Text style={{ color: C.dim, fontSize: TYPE.meta, marginTop: 4 }}>{open_} open · {rows.length} in all · both markets. Flag a problem with ⚑ on any screen.</Text>
+      <Text style={{ color: C.dim, fontSize: TYPE.meta, marginTop: 4 }}>Your saved flags: {open_} open · {rows.length} in all · both markets. Add one any time with the ⚑ Flag button at the bottom left of every screen.</Text>
       {msg ? <Text style={{ color: C.text, marginTop: 10 }}>{msg}</Text> : null}
       {rows.map((r) => {
         const f = r.flow;

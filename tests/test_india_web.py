@@ -256,3 +256,37 @@ def test_allocation_mode_by_words_is_owner_only_and_paper(lake, monkeypatch):
     assert ask.allocation_flow("what does autonomous mean?", "owner") is None, "a question is answered, not obeyed"
     assert "Only Madhav" in ask.allocation_flow("everything is autonomous", "guest:abc")["answer"]
     assert json.loads((lake / "paper" / "allocation.json").read_text())["mode"] == "advisory", "a guest changed nothing"
+
+
+def test_reconstruction_card_staircase_and_filing(lake, monkeypatch):
+    from jarvis.india import views
+    monkeypatch.setattr(views, "DATA", lake)
+    monkeypatch.setattr(views, "REG", lake / "registrations")
+    rxd = lake / "paper" / "reconstruction"
+    rxd.mkdir(parents=True, exist_ok=True)
+    card = {"day": "2026-10-22", "rules": "rx-in-v1", "built_at": "2026-10-23T18:38:00+00:00", "headline": "2026-10-22: a card", "market": {"words": "m"}, "people": {"words": "p", "league": {"words": "l"}},
+            "ananta": {"words": "a"}, "not_done": {"words": "n"}, "reviews": {"count": 0, "tags": {}},
+            "findings": [{"type": "DATA_GAP", "key": "DATA_GAP:announcements", "lane": "SAFE", "state": "to_file", "words": "no announcements", "day": "2026-10-22"}]}
+    (rxd / "2026-10-22.json").write_text(json.dumps(card))
+    (rxd / "latest.json").write_text(json.dumps(card))
+    (lake / "registrations" / "reconstruction_queue.jsonl").write_text(json.dumps(card["findings"][0]) + "\n" + json.dumps({"type": "MISS_PATTERN", "key": "MISS_PATTERN:x", "lane": "DECISION", "state": "DRAFT", "words": "q", "day": "2026-10-22"}) + "\n")
+    rm = json.loads(service.READMODEL.read_text())
+    rm["reconstruction"] = {"status": "ok", "headline": "2026-10-22: a card", "built_at": card["built_at"], "league_words": "l", "reviews": {"count": 0}, "findings": card["findings"],
+                            "staircase": {"words": "Nothing is ADMITTED yet.", "rules": {"stock:BRK": {"step": "SHADOW", "shadow_sessions": 3, "shadow_bar": 20, "beats": 2, "beats_bar": 10}}, "admitted": [], "queue": {"to_file": 1, "DRAFT": 1}}}
+    service.READMODEL.write_text(json.dumps(rm))
+    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    r = c.get("/v3/reconstruction").json()
+    assert r["ready"] and r["headline"] == "2026-10-22: a card" and r["findings"][0]["lane"] == "SAFE" and r["cards"] == 1
+    ev = c.get("/v3/evidence/live").json()["rebuild"]
+    assert ev["nightly"]["runs"] == 1 and ev["chain"][0]["step"] == "SHADOW" and ev["findings"][0]["type"] == "DATA_GAP"
+    col = c.get("/v3/evidence/collected").json()
+    assert col["shop"]["running"][0]["status"] == "SHADOW" and {w["status"] for w in col["shop"]["waiting"]} == {"to_file", "DRAFT"} and col["shop"]["done"] == []
+    assert col["forwarded"][-1]["id"] == "DATA_GAP:announcements" and "filing tonight" in col["forwarded"][-1]["question"]
+    q = c.get("/v3/reconstruction/queue").json()
+    assert len(q["rows"]) == 2 and q["safe_per_night"] == 3
+    f = c.post("/v3/reconstruction/filed", json={"key": "DATA_GAP:announcements", "num": 41, "day": "2026-10-22"}).json()
+    assert f["num"] == 41 and (rxd / "forwarded.jsonl").exists()
+    q = c.get("/v3/reconstruction/queue").json()
+    assert next(x for x in q["rows"] if x["key"] == "DATA_GAP:announcements")["state"] == "filed"
+    col = c.get("/v3/evidence/collected").json()
+    assert "#41" in col["forwarded"][-1]["question"]

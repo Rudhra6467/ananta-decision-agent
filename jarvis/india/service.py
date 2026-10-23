@@ -363,6 +363,37 @@ def allocation_plan(who: str = Depends(signed_in)) -> dict:
     return india_views.allocation_plan(full=(who == "owner" or not who.startswith("guest:")))
 
 
+
+@r.get("/v3/reconstruction/queue")
+def reconstruction_queue(who: str = Depends(signed_in)) -> dict:
+    """The findings queue with its filing state (owner): what scripts/india_findings.py reads to file SAFE rows on the repair board."""
+    if who == "owner" or not who.startswith("guest:"):
+        return {"rows": india_views._queue_rows(), "safe_per_night": 3}
+    raise HTTPException(status_code=403, detail="owner only")
+
+
+class Filed(BaseModel):
+    key: str
+    num: int
+    day: str = ""
+    note: str = ""
+
+
+@r.post("/v3/reconstruction/filed")
+def reconstruction_filed(b: Filed, who: str = Depends(signed_in)) -> dict:
+    """Records that a SAFE finding was filed on the repair board as request `num` (owner; the filing script calls it over loopback)."""
+    import datetime as _dt
+
+    if who == "owner" or not who.startswith("guest:"):
+        p = india_views.DATA / "paper" / "reconstruction" / "forwarded.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        row = {"key": b.key, "num": b.num, "day": b.day, "note": b.note, "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}
+        with p.open("a") as f:
+            f.write(json.dumps(row) + "\n")
+        return row
+    raise HTTPException(status_code=403, detail="owner only")
+
+
 @r.get("/v3/{name:path}")
 def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     fn = india_views.ROUTES.get(name)

@@ -519,12 +519,7 @@ def evidence_live() -> dict:
                        {"cadence": "nightly", "name": "gate", "scope": "G02", "n": 0, "unit": "of 30", "detail": str(r.get("gate_counters"))}],
             "limits": [], "results": {"items": items, "random_avg_usd": round(NOTIONAL * (h1.get("market_mean") or 0), 2) if h1 else None, "events": days, "goal_events": 60,
                                       "books": [], "by_setup": [], "verdict": "too early", "read": "Sixty sessions on paper inside the expected range per book, then the gate."},
-            "rebuild": {"books": [], "nightly": {"runs": 0, "first": "", "mismatches": 0, "every": "nightly"}, "asked": {"runs": 0, "mismatches": 0, "last": "", "how": ""}, "total": 0, "mismatches": 0,
-                        "last": {"when": "", "match": True, "checked": 0, "rebuilt": 0}, "how": "integrity, leak, lineage, firewall, verify (india.nightly)", "if_mismatch": "the morning summary names it",
-                        "others": {"id": "league", "title": "Reference traders against Ananta", "date": rm.get("data_through"), "runs": str(days), "excluded_bots": 0, "accounts_trading_our_coins": 0,
-                                   "round_trips": 20, "long": 20, "short": 0, "period": "H1", "our_setups_silent_before_their_buys_pct": None, "their_timing_edge": "", "skill_persisted": False,
-                                   "what_we_did": f"held {(h1.get('coverage') or {}).get('TAKEN', 0)} of the top 20 trips; picks at the {round(100 * (h1.get('ananta_pct_vs_random') or 0))}th percentile of random"},
-                        "chain": []},
+            "rebuild": _rebuild(rm, h1, days),
             "misses": [], "board": [], "in_use": {"verdicts": r.get("verdicts"), "studies": r.get("studies")}}
 
 
@@ -545,6 +540,58 @@ def cockpit() -> dict:
             "recent_actions": actions, "signin": j.get("signin")}
 
 
+def _rx_cards() -> list[Path]:
+    d = DATA / "paper" / "reconstruction"
+    return sorted(d.glob("????-??-??.json")) if d.exists() else []
+
+
+def _rebuild(rm: dict, h1: dict, days: int) -> dict:
+    """The Reconstruction screen's block, from RX-IN (india/reconstruct.py): nightly cards, the league, the staircase as the chain."""
+    rx = rm.get("reconstruction") or {}
+    cards = _rx_cards()
+    st = rx.get("staircase") or {}
+    chain = []
+    steps = ["NOTED", "DRAFT", "REGISTERED", "TESTED", "SHADOW", "ADMITTED", "LIVE_ELIGIBLE"]
+    for k, r in (st.get("rules") or {}).items():
+        chain.append({"id": k, "step": r.get("step"), "steps": steps, "words": f"{k}: {r.get('step')} · {r.get('shadow_sessions', 0)}/{r.get('shadow_bar', 20)} shadow sessions · beats RANDOM and MARKET on {r.get('beats', 0)}/{r.get('beats_bar', 10)} independent sessions"})
+    f = rx.get("findings") or []
+    return {"books": [{"book": "session card", "runs": len(cards), "mismatches": 0, "what": "A market · B people · C Ananta did · D did not do · E trade reviews · F findings · G forwarding"}],
+            "nightly": {"runs": len(cards), "first": cards[0].stem if cards else "", "mismatches": 0, "every": "every night at 22:30 Toronto, after the paper engine, the missed movers and the league"},
+            "asked": {"runs": 0, "mismatches": 0, "last": "", "how": "ask Ananta: what did you learn last night?"}, "total": len(cards), "mismatches": 0,
+            "last": {"when": rx.get("built_at") or "", "match": True, "checked": len(f), "rebuilt": len(cards), "headline": rx.get("headline") or "no card yet"},
+            "how": "every number names its file; a missing source says missing; findings fire only on fixed counts (3 of 7 sessions, 5 tags in 20, 20 shadow sessions)",
+            "if_mismatch": "a SAFE finding goes to the repair board by itself; a DECISION finding waits in the queue for Madhav's read",
+            "others": {"id": "league", "title": "Reference traders against Ananta", "date": rm.get("data_through"), "runs": str(days), "excluded_bots": 0, "accounts_trading_our_coins": 0,
+                       "round_trips": 20, "long": 20, "short": 0, "period": "H1", "our_setups_silent_before_their_buys_pct": None, "their_timing_edge": "", "skill_persisted": False,
+                       "what_we_did": rx.get("league_words") or f"held {(h1.get('coverage') or {}).get('TAKEN', 0)} of the top 20 trips; picks at the {round(100 * (h1.get('ananta_pct_vs_random') or 0))}th percentile of random"},
+            "findings": [{"type": x.get("type"), "lane": x.get("lane"), "state": x.get("state"), "words": x.get("words")} for x in f],
+            "reviews": rx.get("reviews") or {}, "staircase_words": st.get("words") or "", "chain": chain}
+
+
+def reconstruction() -> dict:
+    """The latest session card whole, plus the staircase and the queue counts (the card holds no holdings, so everyone may read it)."""
+    p = DATA / "paper" / "reconstruction" / "latest.json"
+    c = _json(p, {}) or {}
+    rm = readmodel()
+    rx = rm.get("reconstruction") or {}
+    if not c:
+        return {"ready": False, "headline": "No reconstruction card yet: the first one is written tonight at 22:30 Toronto.", "staircase": rx.get("staircase") or {}}
+    return {"ready": True, "day": c.get("day"), "rules": c.get("rules"), "built_at": c.get("built_at"), "headline": c.get("headline"),
+            "sections": {"market": c.get("market"), "people": c.get("people"), "ananta": c.get("ananta"), "not_done": c.get("not_done"), "reviews": c.get("reviews")},
+            "findings": c.get("findings") or [], "forwarding": c.get("forwarding") or {}, "staircase": rx.get("staircase") or {}, "cards": len(_rx_cards())}
+
+
+def _queue_rows() -> list[dict]:
+    q = REG / "reconstruction_queue.jsonl"
+    rows = _jsonl(q)
+    filed = {f.get("key"): f for f in _jsonl(DATA / "paper" / "reconstruction" / "forwarded.jsonl")}
+    for r in rows:
+        if r.get("key") in filed:
+            r["state"] = "filed" if r.get("state") == "to_file" else r.get("state")
+            r["request"] = filed[r["key"]].get("num")
+    return rows
+
+
 def evidence_collected() -> dict:
     rm = readmodel()
     marks = exec_marks()
@@ -559,9 +606,21 @@ def evidence_collected() -> dict:
     forwarded = []
     for k, p in (r.get("exit_book") or {}).get("chosen", {}).items():
         forwarded.append({"id": f"G01:{k}", "title": f"Exit book · {k}", "date": "2026-10-22", "verdict": "HELD" if p else "NOT_HELD", "why": p or "no dev leader held up", "question": "which exit held up out of sample?", "result": p or "none", "changed": ""})
-    drafts = (rm.get("learning") or {}).get("drafts") or {}
-    shop = {"running": [], "waiting": [{"id": "DRAFTS", "status": "OPEN", "title": "Missed-mover drafts", "waiting_for": "Madhav's weekly read", "why": "3 sessions in 7", "metric": "open drafts", "goal": drafts.get("open")}],
-            "done": [], "summary": f"{drafts.get('open', 0)} open drafts of {drafts.get('total', 0)}"}
+    rx = rm.get("reconstruction") or {}
+    st = rx.get("staircase") or {}
+    rows = _queue_rows()
+    for q in rows:
+        if q.get("lane") == "SAFE":
+            forwarded.append({"id": q.get("key"), "title": f"{q.get('type')} · {q.get('day')}", "date": q.get("day"), "verdict": q.get("state", "").upper(),
+                              "why": (q.get("words") or "")[:220], "question": "filed on the repair board" + (f" as request #{q['request']}" if q.get("request") else " (filing tonight)"), "result": q.get("state"), "changed": ""})
+    running = [{"id": k, "status": r.get("step"), "title": k, "waiting_for": f"{r.get('shadow_sessions', 0)}/{r.get('shadow_bar', 20)} shadow sessions; beats RANDOM and MARKET {r.get('beats', 0)}/{r.get('beats_bar', 10)}",
+                "why": "the evidence staircase", "metric": "shadow sessions", "goal": r.get("shadow_bar", 20)} for k, r in (st.get("rules") or {}).items()]
+    waiting = [{"id": q.get("key"), "status": q.get("state"), "title": f"{q.get('type')} ({q.get('day')})", "waiting_for": "Madhav's weekly read" if q.get("lane") == "DECISION" else "the repair board",
+                "why": (q.get("words") or "")[:160], "metric": q.get("lane"), "goal": None} for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]
+    done = [{"id": k, "status": "ADMITTED", "title": k, "waiting_for": "", "why": "Madhav's recorded yes", "metric": "", "goal": None} for k in (st.get("admitted") or [])]
+    tracker.append({"key": "cards", "label": "Reconstruction cards", "value": len(_rx_cards()), "explain": "one per session since 22 Oct"})
+    tracker.append({"key": "findings", "label": "Findings in the queue", "value": len([q for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]), "explain": "SAFE to the repair board, DECISION for Madhav"})
+    shop = {"running": running, "waiting": waiting, "done": done, "summary": st.get("words") or "no staircase yet"}
     return {"collected": collected, "tracker": tracker, "forwarded": forwarded, "shop": shop}
 
 
@@ -591,7 +650,7 @@ def ask_suggestions() -> dict:
     d = rm.get("decisions_today") or {}
     first = next((x["symbol"] for x in d.get("chosen", []) if x.get("campaign") != "CTL"), None)
     q = ["What did you decide for the next session?", "Why is the daily call " + str((rm.get("call") or {}).get("call") or "what it is") + "?", "How is the stock paper book doing?",
-         "What held up in the exit book?", "Where do we stand against the reference traders?", "Is every job running?", "What is the Nifty trend?", "What are the guardrails?"]
+         "What did you learn last night?", "What is on the evidence staircase?", "What held up in the exit book?", "Where do we stand against the reference traders?", "Is every job running?", "What is the Nifty trend?", "What are the guardrails?"]
     if first:
         q.insert(1, f"Why {first}?")
     return {"questions": q, "portfolio": ["How many positions are open?", "What was closed recently?", "What is the Rs 60,000 line doing?", "How did the random control do?"],
@@ -785,4 +844,4 @@ def _allocation() -> dict:
     return p
 
 
-ROUTES.update({"decisions/recent": decisions_recent, "options": options, "allocation": _allocation})
+ROUTES.update({"decisions/recent": decisions_recent, "options": options, "allocation": _allocation, "reconstruction": reconstruction})

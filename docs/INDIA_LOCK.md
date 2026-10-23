@@ -117,6 +117,8 @@ Madhav, 23 Oct (in chat): "Will get TOTP fixed before Sunday. Yes for all others
 
 Research that does not change a paper rule: the READY studies (C04, F07, I03, I04, I06, K01, EV5, EV6, EVC and the rest of the 52), the DEALS, FUNDS and TEACHER league traders, the shadow books with no history (futures, forex, commodities, results-day options; recording forward), the SP1 2027 refit (January), one voice across both markets (after each has stood alone), and live-readiness engineering built disabled in parallel (the order module behind leakcheck, broker-side stops, reconciliation, kill switch, drift alarm, cost profiles, per-account ledger, NAV units, the enforce switch) with a monthly India risk rehearsal, switch off.
 
+**Parked drafts.** `PW-INDIA-DRAFTS`: the 10 learning-loop DRAFTs of 19-22 Oct (8 missed-movers patterns, 2 reference-traders patterns) were read on Oct 23 and parked (status PARKED in `missed_drafts.jsonl`, with the note): read together with the league once it has 20 sessions; a new paper rule needs a pre-registered test and Madhav's yes.
+
 ## 10. The end state Madhav opens
 
 livetrading247.com → sign in → **Which Ananta?** → Crypto (locked 15 Oct, review 07:25, other traders 04:30, exam Sundays, day-60 14 Dec) or Indian market (locked about 1 Nov, review 07:45, league 22:30, exam Sundays, G02 about 5-8 Dec). Behind each: a frozen rulebook, a checker that proves every run, a gate read daily, a review that works the board, an app, Ask and voice that answer only from the record, a due list, and an after-the-window list. The only human work anywhere is the due list.

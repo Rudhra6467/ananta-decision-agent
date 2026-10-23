@@ -271,3 +271,12 @@ Madhav, 09:41 Toronto: "Complete all pending tasks and all that are waiting for 
 | `PW-FREE-SEARCH-LOG` | Free web-search counts and answers are not recorded anywhere (audit live-outcomes), so a rejected key shows only in web_paid_log.jsonl. |
 | `PW-ALIGN-WATCHES` | 24 of 39 watches belong to no strategy (UNIVERSE_DAILY, HUNTER, SQUEEZE, E1-E6, T3_TREND and others), so the nightly align does not repair their words. |
 | `PW-HOURLY-RESUME` | Before the hourly watch (Hunter, Squeeze; parked Oct 11, D6) is ever resumed: re-decide cite_allowlist LIVE_5 and the statuses in knowledge_catalog_v1.json. |
+
+## 10. The Indian market beside this lock (from 2026-10-23)
+
+Madhav, 23 Oct: bring India to the same place as crypto ("Remaining all should be done … I open the website, login and see 2 options"), and yes to locking India like crypto. The plan is the project doc `claude/plan-2026-10-23-ananta-to-the-review-point.md`; India's own lock page is `~/code/ananta-records/docs/INDIA_LOCK.md` (pins in `india/registrations/india_lock.json`, guarded by `tests/test_india_lock.py` in that repo; lock day about 1 Nov). What the morning review does about India from Oct 23:
+
+- The lost-runs checker proves every India session (ten dated proofs on NSE session days: the SP1 line's decisions, the ledger snapshot, the decision journal, the read model, the daily call, the league, the missed-movers review, the recorder, the evening report, the auto sign-in) and prints India's own 24-hour and 7-day lines. They are part of the review page; a **high** India miss (a lost SP1 session, a missing ledger snapshot, a failed auto sign-in) becomes a repair-board request with a first answer, like a crypto one.
+- The review never changes an India paper rule or pin. India decisions go under "Waiting for Madhav" with the recommendation from INDIA_LOCK.md section 8. India's builds (SP3, SZ2, Ask, the exam, Telugu) belong to the India task at 07:45, not to this review.
+- When the worker Mac's nightly pull failed and the worker answers over SSH, the review runs the pull by hand (`jarvis.service.worker.pull()`) and re-runs the checker, as on Oct 22 and 23.
+- The one app is live since Oct 23: sign in → "Which Ananta?" → Crypto or Indian market; India reads the app's own `/v3` contract from `api.livetrading247.com/india` (read-only, no order path). Once India locks, one morning review writes both halves of one page.

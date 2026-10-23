@@ -1282,6 +1282,55 @@ def requests_status(rid: str, b: ReqStatus, who: str = Depends(owner)) -> dict:
     return {"ok": True, "request": r}
 
 
+class FlagIn(BaseModel):
+    text: str
+    market: str = "crypto"
+    screen: str = ""
+    route: str = ""
+
+
+class FlagChoice(BaseModel):
+    option: int
+    words: str = ""
+
+
+def _owner_only(who: str) -> None:
+    if str(who).startswith("guest:"):
+        raise HTTPException(status_code=403, detail="Practice mode: only the owner flags fixes.")
+
+
+@app.post("/v3/flags")
+def flags_new(b: FlagIn, who: str = Depends(owner)) -> dict:
+    """Madhav's Flag button (Oct 23): file the request now and offer up to three fixes, each SAFE (built and deployed by the repair
+    worker) or DECISION (near trading: a plan for his yes). Both markets come here; the flag names its market."""
+    from jarvis.service import fixflow
+
+    _owner_only(who)
+    r = _run(fixflow.flag, J(), b.text, b.market, b.screen, b.route)
+    J().audit(who, "flag.new", f"#{r['num']} {b.market} {b.screen}", "OK")
+    return r
+
+
+@app.post("/v3/flags/{num}/choose")
+def flags_choose(num: int, b: FlagChoice, who: str = Depends(owner)) -> dict:
+    from jarvis.service import fixflow, requests_log
+
+    _owner_only(who)
+    r = _run(fixflow.choose, J(), num, b.option, b.words)
+    requests_log.notify(J(), push=_push)
+    J().audit(who, "flag.choose", f"#{num} option {b.option} -> {r['state']}", "OK")
+    return r
+
+
+@app.get("/v3/flags")
+def flags_board(who: str = Depends(owner)) -> dict:
+    """Every request with its flag flow (state, lane, steps, commit), newest first: the app's 'My flags' screen."""
+    from jarvis.service import fixflow
+
+    _owner_only(who)
+    return {"flags": fixflow.board(J()), "states": fixflow.STATE_WORDS}
+
+
 @app.get("/v3/scoreboard")
 def scoreboard_board(who: str = Depends(owner)) -> dict:
     """Every watch's evidence book with the same columns, against its random baseline (docs/knowledge/watches.json)."""

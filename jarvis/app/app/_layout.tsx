@@ -6,6 +6,7 @@ import { token } from "../src/api";
 import { Toast, loadMe } from "../src/visitor";
 import { loadNames } from "../src/names";
 import { HomeScreenHint } from "../src/homescreen";
+import { FlagButton } from "../src/flag";
 import { getVoiceApi, goTab, tourCommand, useHere, useNarrating, useTour, useVoiceLive, useVoicePhase } from "../src/context";
 import * as TTS from "../src/tts";
 import { C, deviceTheme, setTheme, useThemeVersion } from "../src/theme";
@@ -38,6 +39,7 @@ export default function Root() {
       <TourBar />
       <Toast />
       <HomeScreenHint />
+      <FlagButton />
     </View>
   );
 }

@@ -1664,6 +1664,25 @@
     "jarvis/india/ask.py",
     "jarvis/india/voice.py"
    ]
+  },
+  {
+   "id": "FIX_FLOW",
+   "name": "Flag it, choose the fix, get told (both markets)",
+   "layer": 7,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "MADHAV"
+   ],
+   "evidence": "Madhav, Oct 23: SAFE fixes (words, screens, voice, reports) built, tested and deployed by the repair worker; anything near trading or pinned comes back as a plan for his yes; the lane is decided by code",
+   "files": [
+    "jarvis/service/fixflow.py",
+    "scripts/repair_worker.py"
+   ]
   }
  ],
  "gaps": [

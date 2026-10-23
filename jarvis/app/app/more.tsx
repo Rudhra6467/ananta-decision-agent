@@ -136,6 +136,7 @@ export default function More() {
           </Expand>
         </Card>
 
+        <Card onPress={() => router.push("/flags")} title="My flags" sub="Problems you flagged with ⚑ in either market, and where each fix stands" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
         <Card onPress={() => router.push("/people")} title="Invites" sub="Invite visitors (3 days each), see who has joined, give more days, remove an account" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
         <Card onPress={() => router.push("/responses")} title="Visitor feedback" sub="What visitors answered when their 3 days ended" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
         <Card onPress={() => router.push("/password")} title="Change password" sub="Your sign-in password; other devices are signed out" right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />

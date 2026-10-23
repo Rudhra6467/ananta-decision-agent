@@ -34,7 +34,9 @@ Explain technical words with a plain meaning alongside the name (simplify the ex
 session is lost, a wrong call is wrong, 0 of 3 is 0 of 3. Keep the answer to 2-5 sentences a person can read in under ten seconds.
 When the FACTS hold "reconstruction_detail", Madhav wants to discuss the reconstruction process: explain it in simple spoken words, one part at a time (use the
 card's own numbers from last night as the example, and an everyday comparison when it helps, e.g. a coach replaying the match), up to 6 sentences, and offer the
-next part as a follow-up (the seven parts A-G, the findings, the staircase, what is filed on the repair board).
+next part as a follow-up (the seven parts A-G, the findings, the staircase, what is filed on the repair board). Its "web_notes" are public reasons found on the
+web for the day's biggest moves, each with a grade (A filing, B two outlets, C one source or unclear) and URLs: when asked why a stock moved, say "public reports
+say ..." with the grade, and add that a note is never a reason to trade.
 Reply with ONE JSON object and nothing else: {"kind":"answer","stage":"observation|outcome|learning","answer":"...","breakdown":["...","..."],
 "evidence":["<fact and where it comes from>", ...],"assumption":"","follow_ups":["short question","short question","short question"],
 "next_action":{"label":"","why":"","route":""},"show":[],"options":[],"route":"india"}.
@@ -89,7 +91,7 @@ def facts(owner: bool = False) -> dict:
             **({"account_allocation": _alloc_facts()} if owner else {})}
 
 
-RX_TOPIC = re.compile(r"reconstruct|rebuild|session card|\bcard\b|finding|staircase|admitted|shadow|repair (shop|board)|evidence|missed|did not do|didn.t (take|do|buy)|what (did )?(you|ananta) learn|learn(ed|t)? last night|other (traders|people)|what people|bulk|block deal|fii|dii|trade review|stopped then ran|gave back|never worked|left on (the )?table|league", re.I)
+RX_TOPIC = re.compile(r"\bwhy (did|is|was|has)\b[^?]{0,40}\b(fall|fell|drop|dropped|rise|rose|jump|jumped|move|moved|rally|rallied|crash|crashed|up|down|surge|surged|slump|slumped)\b|news|reason|reconstruct|rebuild|session card|\bcard\b|finding|staircase|admitted|shadow|repair (shop|board)|evidence|missed|did not do|didn.t (take|do|buy)|what (did )?(you|ananta) learn|learn(ed|t)? last night|other (traders|people)|what people|bulk|block deal|fii|dii|trade review|stopped then ran|gave back|never worked|left on (the )?table|league", re.I)
 
 RX_EXPLAINER = """THE RECONSTRUCTION PROCESS (RX-IN v1, built 23 Oct 2026; Madhav agreed to every part of the design the same day). Plain words, for explaining:
 - Why it exists: Ananta is judged by the quality of its decisions. Every night it replays the day like a coach replaying a match: what the market did, what other people did, what Ananta did, what it did not do, and whether each of those was right. What it learns goes to the repair shop; what survives testing climbs a staircase until the allocated paper capital may use it.
@@ -116,7 +118,8 @@ def _rx_detail() -> dict:
             "E_reviews": {"count": rv.get("count"), "tags": rv.get("tags"), "trades": [t.get("words") for t in (rv.get("trades") or [])[:10]], "note": rv.get("note")},
             "F_findings": [{k: f.get(k) for k in ("type", "lane", "state", "words")} for f in c.get("findings") or []],
             "queue": [{k: q.get(k) for k in ("type", "lane", "state", "day", "request")} for q in views._queue_rows()][-12:],
-            "staircase": {"words": st.get("words"), "rules": st.get("rules"), "admitted": st.get("admitted")}}
+            "staircase": {"words": st.get("words"), "rules": st.get("rules"), "admitted": st.get("admitted")},
+            "web_notes": views.netnotes(c.get("day")), "drafts_waiting": views.drafts()["drafts"]}
 
 
 def _alloc_facts() -> dict:
@@ -292,7 +295,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if today_count() >= DAILY_LIMIT:
         raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
     thread = thread or uuid.uuid4().hex[:12]
-    fixed = allocation_flow(text, who) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get)      # a mode switch, or a problem, a pick or "my flags": in code
+    fixed = allocation_flow(text, who) or draft_flow(text, who) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get)      # a mode switch, or a problem, a pick or "my flags": in code
     if fixed is not None:
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
@@ -418,6 +421,45 @@ def allocation_flow(text: str, who: str) -> dict | None:
         ans = ("Done, sir: back to advisory. Options stay fixed at Rs 50,000, stocks stay as they are in your account, and I rate and rank every holding and suggest changes. I move nothing.")
         fu = ["Rate my holdings", "What would you change first?", "Go autonomous"]
     return _reply(ans, fu, ["allocation setting saved to paper/allocation.json"], {"route": "india"})
+
+
+DRAFT_LIST = re.compile(r"\b(drafts?|waiting for (me|my yes|my decision)|what needs my (yes|decision|approval))\b", re.I)
+DRAFT_ACT = re.compile(r"\b(approve|register|yes to|accept|skip|reject|drop|no to)\b[^.?!]{0,30}?\b(the )?(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|\d+)(st|nd|rd|th)?\b[^.?!]{0,12}\bdraft", re.I)
+ORD = {"first": 1, "1st": 1, "second": 2, "2nd": 2, "third": 3, "3rd": 3, "fourth": 4, "4th": 4, "fifth": 5, "5th": 5}
+
+
+def draft_flow(text: str, who: str) -> dict | None:
+    """Madhav's weekly read of the reconstruction drafts, by voice or chat: "what drafts are waiting?", "approve the first draft", "skip draft 2"."""
+    m = DRAFT_ACT.search(text) or re.search(r"\b(approve|register|skip|reject)\b[^.?!]{0,12}\bdraft\s*(\d+)", text, re.I)
+    if not m and not (DRAFT_LIST.search(text) and re.search(r"\b(what|which|show|list|read|any)\b", text, re.I)
+                      and len(text) < 70 and not re.search(r"\b(why|how|explain)\b|\band\b", text, re.I)):
+        return None                       # a mixed question goes to the model, which has the drafts in its facts
+    d = views.drafts()["drafts"]
+    if not m:
+        if not d:
+            return _reply("No drafts are waiting for you, sir. A draft appears when a missed situation, a review tag or a league gap repeats on enough sessions (3 of 7, or 5 in 20).", ["What did you learn last night?", "Explain the evidence staircase"], [])
+        lines = [f"{x['n']}. {x['type']} ({x['day']}): {x['words'][:180]}" for x in d[:5]]
+        return _reply(f"{len(d)} draft(s) wait for your yes or skip, sir. " + " ".join(lines) + " Yes means a study is written down and tested on 2000-2023 only; skip closes it.",
+                      [f"Approve the first draft", f"Skip the first draft"] + (["Read the second draft"] if len(d) > 1 else []), ["paper/reconstruction queue"])
+    if not (who == "owner" or not str(who).startswith("guest:")):
+        return _reply("Only Madhav decides on drafts.", [], [])
+    verb = m.group(1).lower()
+    raw = next((g for g in m.groups()[1:] if g and (g.lower() in ORD or g.isdigit())), None)
+    n = ORD.get((raw or "").lower()) or (int(raw) if raw and raw.isdigit() else None)
+    pick = next((x for x in d if x["n"] == n), None)
+    if not pick:
+        return _reply(f"There is no draft number {n} waiting, sir; {len(d)} are open.", ["What drafts are waiting?"], [])
+    dec = "SKIPPED" if verb in ("skip", "reject", "drop", "no to") else "APPROVED"
+    import datetime as _dt
+    p = DATA / "paper" / "reconstruction" / "decisions.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("a") as f:
+        f.write(json.dumps({"key": pick["key"], "decision": dec, "by": who, "words": text[:300], "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}) + "\n")
+    if dec == "APPROVED":
+        ans = f"Approved, sir: draft {n} ({pick['type']}) goes to registration. The study is written down before it runs, tested on 2000-2023 only, and it climbs the staircase only if it passes; nothing trades from this."
+    else:
+        ans = f"Skipped, sir: draft {n} ({pick['type']}) is closed and will not be filed again."
+    return _reply(ans, ["What drafts are waiting?", "Explain the evidence staircase"], ["paper/reconstruction/decisions.jsonl"])
 
 
 def fix_flow(text: str, thread: str, token: str | None, context: dict | None, post=None, get=None) -> dict | None:

@@ -16,7 +16,7 @@ import { VisitorHome, useMe } from "../../src/visitor";
 import { ConceptCard, ValueCard, hello } from "../../src/home";
 import { AnantaButton, AnantaSheet, useAnantaCount } from "../../src/ananta";
 import { RecentDecisions } from "../../src/decisions";
-import { AllocationCard, OptionsCard } from "../../src/options";
+import { AllocationCard, DraftsCard, OptionsCard } from "../../src/options";
 import { getMarket, W } from "../../src/market";
 import { sayMoney, upDown, type VoiceSpec } from "../../src/sectionvoice";
 
@@ -95,6 +95,7 @@ function OwnerHome() {
       </Spot>
       {getMarket() === "india" ? <Spot id="home.options"><OptionsCard /></Spot> : null}
       {getMarket() === "india" ? <Spot id="home.allocation"><AllocationCard /></Spot> : null}
+      {getMarket() === "india" ? <DraftsCard /> : null}
 
       <Spot id="home.activity">
         <Pressable onPress={() => setShowActivity(!actOpen)} accessibilityRole="button" accessibilityState={{ expanded: actOpen }}

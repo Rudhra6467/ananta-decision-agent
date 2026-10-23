@@ -179,3 +179,36 @@ function AllocationPanel({ d, onClose, reload }: { d: any; onClose: () => void; 
     </Modal>
   );
 }
+
+// Drafts waiting for Madhav (RX-IN, 23 Oct): the reconstruction's DECISION findings. Yes = register a study (tested on 2000-2023 only);
+// Skip = closed. Shown on India Home only when something waits; the voice tab takes "approve the first draft" too.
+export function DraftsCard() {
+  const { data: d, reload } = useData("/v3/reconstruction/drafts", 120000);
+  const [msg, setMsg] = useState("");
+  const rows: any[] = d?.drafts ?? [];
+  if (!rows.length) return null;
+  const act = async (key: string, decision: string) => {
+    setMsg("Saving…");
+    try { await api("/v3/reconstruction/decide", { key, decision }); setMsg(decision === "APPROVED" ? "Approved: a study will be registered." : "Skipped."); reload(); }
+    catch (e: any) { setMsg(e?.message ?? "Could not save"); }
+  };
+  return (
+    <Card>
+      <View style={st.row}>
+        <Text style={st.h}>Waiting for your yes · {rows.length}</Text>
+        <Act tight label="Ask ›" onPress={() => askAbout({ screen: "reconstruction", label: "the drafts" }, "What drafts are waiting for me, and what does each mean?")} />
+      </View>
+      <T small>{d?.meaning}</T>
+      {rows.slice(0, 4).map((x) => (
+        <View key={x.key} style={{ gap: 4, borderTopWidth: 1, borderTopColor: C.line, paddingTop: 6 }}>
+          <T small>{x.n}. {x.type} ({x.day}): {x.words}</T>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Btn small label="Yes, register" onPress={() => act(x.key, "APPROVED")} />
+            <Btn small kind="secondary" label="Skip" onPress={() => act(x.key, "SKIPPED")} />
+          </View>
+        </View>
+      ))}
+      {msg ? <T small>{msg}</T> : null}
+    </Card>
+  );
+}

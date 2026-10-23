@@ -202,9 +202,26 @@ def _health(rm: dict) -> dict:
     return {"all_ok": not down and bool(jobs), "down": down, "ok": len(jobs) - len(down), "of": len(jobs), "checked_s_ago": age}
 
 
+def _book() -> dict:
+    """The account book (records repo india/account.py): the paper twin of Madhav's account that trades the allocation. {} until it exists."""
+    return _json(DATA / "paper" / "account" / "view.json", {}) or {}
+
+
 def _account(rm: dict) -> dict:
-    """The India account = the Rs 60,000 SP1 index line (paper). Positions: none until the first session books one.
+    """The India account. Since 23 Oct (Madhav: "on the home tab it shows it trades on allocation") it is the account book, the paper twin of his
+    account (stocks, options sleeve, cash) traded by the allocator; before the book exists, the Rs 60,000 SP1 index line.
     dial = the guardrail state (OPEN when no rule has fired); brakes = the 5%-day and 22%-pause rules."""
+    a = _account_sp1(rm)
+    ab = _book()
+    if ab.get("value_inr"):
+        a.update({"value_cad": float(ab["value_inr"]), "start_cad": float(ab.get("start_inr") or ab["value_inr"]), "return_pct": float(ab.get("return_pct") or 0.0),
+                  "cash_cad": float(ab.get("cash_inr") or 0), "started": (ab.get("opened_at") or "")[:10] or a["started"], "book_words": ab.get("words"),
+                  "options_inr": ab.get("options_inr"), "stocks_inr": ab.get("stocks_inr"), "positions_count": len(ab.get("positions") or []),
+                  "pushed_rule": "The account book buys a new name only from a family ADMITTED on the evidence staircase (20 shadow sessions, beats RANDOM and MARKET on 10, Madhav's yes); until then it rebalances and trims."})
+    return a
+
+
+def _account_sp1(rm: dict) -> dict:
     s = rm.get("sp1") or {}
     g = rm.get("guardrails") or {}
     book = (s.get("book") or {}).get("by_index") or {}
@@ -394,9 +411,17 @@ def books() -> dict:
             "initials": {}, "read": "Paper only. The Rs 60,000 line is the account; the stock book is the lab at research scale."}
 
 
-def holdings() -> dict:
+def holdings(full: bool = False) -> dict:
     rm = readmodel()
     a = _account(rm)
+    ab = _book()
+    if ab.get("value_inr"):
+        pos = ab.get("positions") or []
+        rows = [{"coin": p["symbol"], "qty": p.get("qty"), "avg": p.get("avg"), "now": p.get("last"), "value": p.get("value_inr"), "pnl_pct": p.get("pnl_pct"), "currency": "INR"} for p in pos] if full else []
+        return {"mode": "PAPER", "value": ab["value_inr"], "start": ab.get("start_inr"), "return_pct": ab.get("return_pct"), "cash": ab.get("cash_inr"), "invested": ab.get("stocks_inr"),
+                "options": ab.get("options_inr"), "costs_paid": ab.get("costs_inr"), "holdings": rows, "holdings_count": len(pos), "not_held": [], "pending": ab.get("pending_days") or [],
+                "decided": rm.get("data_through"), "btc_gate": (rm.get("market") or {}).get("trend_state") == "above_both", "shadow": {"value": ab["value_inr"], "return_pct": ab.get("return_pct")},
+                "trades": (ab.get("trades") or [])[-10:] if full else [], "rule_plain": ab.get("words") or ""}
     d = rm.get("decisions_today") or {}
     not_held = [{"coin": x.get("symbol"), "rating": CAMPAIGN.get(x.get("campaign"), ""), "why": x.get("why", "")} for x in d.get("chosen", []) if x.get("campaign") != "CTL"][:10]
     return {"mode": "PAPER", "value": a["value_cad"], "start": a["start_cad"], "return_pct": a["return_pct"], "cash": a["cash_cad"], "invested": 0, "costs_paid": 0.0,
@@ -568,6 +593,21 @@ def _rebuild(rm: dict, h1: dict, days: int) -> dict:
             "reviews": rx.get("reviews") or {}, "staircase_words": st.get("words") or "", "chain": chain}
 
 
+def drafts() -> dict:
+    """The DECISION findings waiting for Madhav's yes or skip, numbered in a fixed order (oldest first) so "the first draft" means the same thing
+    on the screen and in the voice tab."""
+    rows = [r for r in _queue_rows() if r.get("lane") == "DECISION" and r.get("state") == "DRAFT"]
+    rows.sort(key=lambda r: (r.get("day") or "", r.get("key") or ""))
+    return {"drafts": [{"n": i + 1, "key": r["key"], "type": r.get("type"), "day": r.get("day"), "words": r.get("words")} for i, r in enumerate(rows)],
+            "decided": [{"key": r["key"], "state": r["state"], "at": r.get("decided_at")} for r in _queue_rows() if r.get("state") in ("APPROVED", "SKIPPED")][-10:],
+            "meaning": "Yes = register a study for it (written down before it runs, tested on 2000-2023 only); Skip = closed, not filed again."}
+
+
+def netnotes(day: str | None = None) -> list[dict]:
+    d = day or (readmodel().get("data_through") or "")
+    return _jsonl(DATA / "paper" / "reconstruction" / "netnotes" / f"{d}.jsonl")
+
+
 def reconstruction() -> dict:
     """The latest session card whole, plus the staircase and the queue counts (the card holds no holdings, so everyone may read it)."""
     p = DATA / "paper" / "reconstruction" / "latest.json"
@@ -578,13 +618,19 @@ def reconstruction() -> dict:
         return {"ready": False, "headline": "No reconstruction card yet: the first one is written tonight at 22:30 Toronto.", "staircase": rx.get("staircase") or {}}
     return {"ready": True, "day": c.get("day"), "rules": c.get("rules"), "built_at": c.get("built_at"), "headline": c.get("headline"),
             "sections": {"market": c.get("market"), "people": c.get("people"), "ananta": c.get("ananta"), "not_done": c.get("not_done"), "reviews": c.get("reviews")},
-            "findings": c.get("findings") or [], "forwarding": c.get("forwarding") or {}, "staircase": rx.get("staircase") or {}, "cards": len(_rx_cards())}
+            "findings": c.get("findings") or [], "forwarding": c.get("forwarding") or {}, "staircase": rx.get("staircase") or {}, "cards": len(_rx_cards()),
+            "net_notes": netnotes(c.get("day")), "drafts": drafts()["drafts"]}
 
 
 def _queue_rows() -> list[dict]:
     q = REG / "reconstruction_queue.jsonl"
     rows = _jsonl(q)
     filed = {f.get("key"): f for f in _jsonl(DATA / "paper" / "reconstruction" / "forwarded.jsonl")}
+    dec = {d.get("key"): d for d in _jsonl(DATA / "paper" / "reconstruction" / "decisions.jsonl")}
+    for r in rows:
+        d = dec.get(r.get("key"))
+        if d and r.get("lane") == "DECISION":
+            r["state"], r["decided_at"], r["decided_words"] = d.get("decision"), d.get("at"), d.get("words")
     for r in rows:
         if r.get("key") in filed:
             r["state"] = "filed" if r.get("state") == "to_file" else r.get("state")
@@ -847,4 +893,4 @@ def _allocation() -> dict:
     return p
 
 
-ROUTES.update({"decisions/recent": decisions_recent, "options": options, "allocation": _allocation, "reconstruction": reconstruction})
+ROUTES.update({"decisions/recent": decisions_recent, "options": options, "allocation": _allocation, "reconstruction": reconstruction, "reconstruction/drafts": drafts})

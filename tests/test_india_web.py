@@ -310,3 +310,27 @@ def test_ask_carries_the_reconstruction_detail_when_asked(lake, monkeypatch):
     assert r["answer"].startswith("Every night")
     ask.ask("owner", "What is the Nifty trend?")
     assert "reconstruction_detail" not in seen["user"] or "reconstruct" in seen["user"].lower()
+
+
+def test_drafts_decide_by_screen_and_by_voice_and_notes(lake, monkeypatch):
+    from jarvis.india import ask, views
+    monkeypatch.setattr(views, "DATA", lake)
+    monkeypatch.setattr(views, "REG", lake / "registrations")
+    monkeypatch.setattr(ask, "DATA", lake)
+    q = [{"type": "MISS_PATTERN", "key": "MISS_PATTERN:a", "lane": "DECISION", "state": "DRAFT", "words": "first", "day": "2026-10-22"},
+         {"type": "LEAGUE_GAP", "key": "LEAGUE_GAP:b", "lane": "DECISION", "state": "DRAFT", "words": "second", "day": "2026-10-23"},
+         {"type": "DATA_GAP", "key": "DATA_GAP:c", "lane": "SAFE", "state": "to_file", "words": "safe", "day": "2026-10-23"}]
+    (lake / "registrations" / "reconstruction_queue.jsonl").write_text("\n".join(json.dumps(x) for x in q) + "\n")
+    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    d = c.get("/v3/reconstruction/drafts").json()["drafts"]
+    assert [x["n"] for x in d] == [1, 2] and d[0]["key"] == "MISS_PATTERN:a"
+    r = ask.draft_flow("what drafts are waiting for me?", "owner")
+    assert "2 draft(s)" in r["answer"]
+    r = ask.draft_flow("approve the first draft", "owner")
+    assert r["answer"].startswith("Approved") and c.get("/v3/reconstruction/drafts").json()["drafts"][0]["key"] == "LEAGUE_GAP:b"
+    assert c.post("/v3/reconstruction/decide", json={"key": "LEAGUE_GAP:b", "decision": "skip"}).json()["decision"] == "SKIPPED"
+    assert c.get("/v3/reconstruction/drafts").json()["drafts"] == []
+    assert c.post("/v3/reconstruction/decide", json={"key": "DATA_GAP:c", "decision": "yes"}).status_code == 404, "SAFE rows are not decided by Madhav"
+    assert "Only Madhav" in ask.draft_flow("skip draft 1", "guest:x")["answer"] or "no draft" in ask.draft_flow("skip draft 1", "guest:x")["answer"].lower()
+    n = c.post("/v3/reconstruction/notes", json={"day": "2026-10-22", "symbol": "KEI", "note": "results missed estimates", "grade": "B", "urls": ["https://x"]}).json()
+    assert n["weight"] == "note only" and views.netnotes("2026-10-22")[0]["symbol"] == "KEI"

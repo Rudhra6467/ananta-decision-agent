@@ -394,12 +394,71 @@ def reconstruction_filed(b: Filed, who: str = Depends(signed_in)) -> dict:
     raise HTTPException(status_code=403, detail="owner only")
 
 
+
+class Decide(BaseModel):
+    key: str
+    decision: str          # "APPROVED" (register a study) or "SKIPPED"
+    words: str = ""
+
+
+def _decide(key: str, decision: str, who: str, words: str) -> dict:
+    import datetime as _dt
+
+    dec = {"approve": "APPROVED", "approved": "APPROVED", "yes": "APPROVED", "skip": "SKIPPED", "skipped": "SKIPPED", "no": "SKIPPED"}.get(decision.lower(), decision.upper())
+    if dec not in ("APPROVED", "SKIPPED"):
+        raise HTTPException(status_code=400, detail="decision is APPROVED or SKIPPED")
+    if not any(r.get("key") == key and r.get("lane") == "DECISION" for r in india_views._queue_rows()):
+        raise HTTPException(status_code=404, detail=f"no draft {key}")
+    p = india_views.DATA / "paper" / "reconstruction" / "decisions.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    row = {"key": key, "decision": dec, "by": who, "words": words[:300], "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}
+    with p.open("a") as f:
+        f.write(json.dumps(row) + "\n")
+    return row
+
+
+@r.post("/v3/reconstruction/decide")
+def reconstruction_decide(b: Decide, who: str = Depends(signed_in)) -> dict:
+    """Madhav's yes or skip on a DECISION draft (owner)."""
+    if who == "owner" or not who.startswith("guest:"):
+        return _decide(b.key, b.decision, who, b.words)
+    raise HTTPException(status_code=403, detail="owner only")
+
+
+class Note(BaseModel):
+    day: str
+    symbol: str
+    note: str
+    grade: str = "C"
+    urls: list[str] = []
+    asked: str = ""
+
+
+@r.post("/v3/reconstruction/notes")
+def reconstruction_note(b: Note, who: str = Depends(signed_in)) -> dict:
+    """A web note for the card (scripts/india_netnotes.py, loopback): notes only, URL and grade shown, never a reason to trade."""
+    import datetime as _dt
+
+    if who == "owner" or not who.startswith("guest:"):
+        p = india_views.DATA / "paper" / "reconstruction" / "netnotes" / f"{b.day}.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        row = {**b.model_dump(), "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "weight": "note only"}
+        with p.open("a") as f:
+            f.write(json.dumps(row) + "\n")
+        return row
+    raise HTTPException(status_code=403, detail="owner only")
+
+
 @r.get("/v3/{name:path}")
 def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     fn = india_views.ROUTES.get(name)
     if fn is None:
         raise HTTPException(status_code=404, detail=f"India has no view for /v3/{name} yet")
     try:
+        import inspect
+
+        if "full" in inspect.signature(fn).parameters:            # views with private detail (the account book's holdings) give it to the owner only
+            return fn(full=(who == "owner" or not who.startswith("guest:")))
         return fn()
     except Exception as e:   # noqa: BLE001 - a view that cannot build says so; the screen shows the error box, never a half page
         raise HTTPException(status_code=503, detail=f"India view {name} could not build: {e.__class__.__name__}: {str(e)[:120]}") from e

@@ -24,8 +24,8 @@ export function FlagButton() {
       <View pointerEvents="box-none" style={{ position: "absolute", left: 12, bottom: 92 }}>
         <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel="Flag a problem on this screen"
           style={({ pressed }) => ({ backgroundColor: pressed ? C.warnSoft : C.card, borderColor: C.warn, borderWidth: 1, borderRadius: 999,
-            paddingHorizontal: 12, paddingVertical: 7, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 6 })}>
-          <Text style={{ color: C.warn, fontWeight: "800", fontSize: 13 }}>⚑ Flag</Text>
+            width: 36, height: 36, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 6 })}>
+          <Text style={{ color: C.warn, fontWeight: "800", fontSize: 15 }}>⚑</Text>
         </Pressable>
       </View>
       {open ? <FlagSheet path={path} onClose={() => setOpen(false)} /> : null}

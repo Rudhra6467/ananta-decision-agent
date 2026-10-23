@@ -670,3 +670,99 @@ def reads() -> dict:
 ROUTES = {"home": home, "books": books, "holdings": holdings, "coins": coins, "chain": chain, "exposure": exposure, "watches/mine": watches_mine, "evidence/live": evidence_live,
           "cockpit": cockpit, "evidence/collected": evidence_collected, "universe/ladder": universe_ladder, "agent/state": agent_state, "ask/suggestions": ask_suggestions,
           "ask/threads": ask_threads, "ask/last": ask_last, "alerts": alerts, "needs": needs, "onboard/demo": onboard_demo, "missed": missed, "brain": brain, "reads": reads}
+
+
+# ---------------------------------------------------------------------------------------------------------------- Home: recent decisions, options (Madhav, 23 Oct)
+
+def decisions_recent(n: int = 10) -> dict:
+    """Ananta's recent decisions in plain words: a headline a person reads in two seconds, and the whole message behind it."""
+    rm = readmodel()
+    out = []
+    st = _json(DATA / "paper" / "state.json", {}) or {}
+    stops = {}
+    for t in (st.get("trades") or {}).values():
+        if t.get("book") == "exec" and t.get("bar_low_raw") and t.get("entry_raw"):
+            stops[(t["signal_date"], t["campaign"], t["sid"])] = (t["bar_low_raw"], t["entry_raw"])
+    for day in reversed(_decision_days()[-3:]):
+        d = _json(DATA / "paper" / "decisions" / f"{day}.json", {}) or {}
+        t = _ts(d.get("decided_at"))
+        for x in d.get("signals", []):
+            camp = x.get("campaign")
+            if camp == "CTL":
+                continue
+            px = x.get("close")
+            why = CAMPAIGN_WHY.get(camp, camp)
+            bits = []
+            if x.get("vol_ratio20") is not None:
+                bits.append(f"volume {x['vol_ratio20']:.1f}x its 20-day")
+            if x.get("dist_sma20") is not None:
+                bits.append(f"{100 * x['dist_sma20']:+.1f}% from the 20-day average")
+            if x.get("dist_sma200") is not None:
+                bits.append(f"{100 * x['dist_sma200']:+.1f}% from the 200-day")
+            stop = stops.get((day, camp, x.get("sid")))
+            if camp == "BRK":
+                reason = f"it broke its 20-session high on {bits[0]}" if bits else why
+            elif camp == "PULL":
+                reason = f"it pulled back {100 * (x.get('dist_sma20') or 0):+.1f}% to its 20-day average inside an uptrend ({100 * (x.get('dist_sma200') or 0):+.1f}% above the 200-day)"
+            elif camp == "REV":
+                reason = f"it is oversold (RSI under 30), {100 * (x.get('dist_sma20') or 0):+.1f}% below its 20-day average, and reversals have paid here before"
+            else:
+                reason = why
+            out.append({"id": f"{day}|{camp}|{x.get('sid')}", "t": t, "time": _when(d.get("decided_at")), "coin": x.get("symbol"), "action": "TAKE", "price": px,
+                        "headline": f"Chose {x.get('symbol')} at ₹{px:,.2f} ({CAMPAIGN.get(camp, camp).lower()}) because {reason}" if px else f"Chose {x.get('symbol')}: {why}",
+                        "message": (f"What: a paper entry in {x.get('symbol')} at the next session's open ({rm.get('next_session') if day == rm.get('data_through') else 'the session after ' + day}), Rs 50,000 notional, every registered exit tracked.\n"
+                                    f"Why: {why}; {', '.join(bits)}; liquidity rank {x.get('liq_rank')}.\n"
+                                    + (f"Wrong if: the signal bar's low (₹{stop[0]:,.2f}) gives way; that is the first stop, {100 * (stop[1] / stop[0] - 1):.1f}% below the entry.\n" if stop else "Wrong if: the signal bar's low gives way (the first stop).\n")
+                                    + f"Decided {_when(d.get('decided_at'))} by rules {d.get('rules')} on data through {day}."),
+                        "confidence": None, "link": "/jarvis"})
+        cands = d.get("candidates") or {}
+        passed = sum((v.get("candidates") or 0) - (v.get("chosen") or 0) for k, v in cands.items() if k != "CTL")
+        if passed:
+            out.append({"id": f"{day}|pass", "t": t - 1, "time": _when(d.get("decided_at")), "coin": None, "action": "PASS", "price": None,
+                        "headline": f"Passed on {passed} other candidates on {day[5:]}: outside the liquid 250 or beaten on the family's own ranking",
+                        "message": f"What: {passed} candidates fired a family rule but were not taken.\nWhy: the book takes at most {', '.join(f'{v} {k}' for k, v in CAPS.items())} a session from the liquid 250, ranked by each family's own score; the rest are recorded in the journal, never traded.\nThey are scored anyway: the missed-movers review checks every session whether a pass was a miss.",
+                        "confidence": None, "link": "/missed"})
+    for c in reversed(_jsonl(DATA / "paper" / "calls.jsonl")[-6:]):
+        if c.get("kind") == "call":
+            out.append({"id": f"call|{c.get('data_through')}", "t": _ts(c.get("written_at")), "time": _when(c.get("written_at")), "coin": "NIFTY", "action": "CALL", "price": c.get("close"),
+                        "headline": f"Called the next session {c.get('call')} with Nifty at {c.get('close'):,.0f}",
+                        "message": f"What: the mechanical daily call ({c.get('rule')}) for the session after {c.get('data_through')}: {c.get('call')}.\nWhy: Nifty {100 * (c.get('nifty_vs_sma50') or 0):+.1f}% from its 50-day average, last session {100 * (c.get('nifty_ret1') or 0):+.2f}%.\nScored the next evening against a coin flip; so far {(rm.get('call') or {}).get('hits')} of {(rm.get('call') or {}).get('scored')} right.",
+                        "confidence": None, "link": "/jarvis"})
+    out.sort(key=lambda r: -r["t"])
+    return {"decisions": out[:n], "page": "/jarvis", "data_through": rm.get("data_through")}
+
+
+def options() -> dict:
+    """India's options section on Home: the Rs 60,000 index line (SP1), today's plan, the session's decisions, the option book, the recorder's paper book."""
+    rm = readmodel()
+    s = rm.get("sp1") or {}
+    book = (s.get("book") or {})
+    plans = sorted((DATA / "paper" / "dayplans").glob("*.json")) if (DATA / "paper" / "dayplans").exists() else []
+    plan = _json(plans[-1], {}) if plans else {}
+    fc = plan.get("forecast") or {}
+    sc = plan.get("scenarios_text") or {}
+    rec = [r for r in _jsonl(DATA / "paper" / "options_trades.jsonl") if r.get("kind") != "skip"]
+    rec_net = sum((r.get("net_inr") or 0) for r in rec)
+    by_idx = book.get("by_index") or {}
+    line_pnl = sum(float(v.get("option_1lot_rs_realistic_fill") or 0) for v in by_idx.values())
+    sessions = book.get("sessions") or 0
+    words = (f"{sessions} sessions recorded on the index line" if sessions else "0 sessions recorded on the index line") + (f"; the last session was lost: {s.get('words', '')[:90]}" if s.get("status") == "lost" else "")
+    return {"capital_inr": ACCOUNT_START, "value_inr": round(ACCOUNT_START + line_pnl, 2), "pnl_inr": round(line_pnl, 2), "sessions": sessions, "status": s.get("status"), "words": words,
+            "plan": {"session": plan.get("session"), "bull": fc.get("bull"), "bear": fc.get("bear"), "neutral": fc.get("neutral"), "scenarios": sc, "limits": plan.get("limits") or [],
+                     "vix": ((plan.get("overnight") or {}).get("INDIA VIX") or {}).get("close")},
+            "decisions_today": s.get("decisions") or [], "errors": (s.get("errors") or [])[:1], "by_index": by_idx,
+            "recorder": {"trades": len(rec), "net_inr": round(rec_net, 2), "last": [{"strategy": r.get("strategy"), "index": r.get("index"), "day": r.get("day"), "net_inr": round(r.get("net_inr") or 0), "exit": r.get("exit_reason")} for r in rec[-3:]],
+                         "what": "O-03/O-04 expiry-day paper book on the recorder's real option minutes (Rs 50,000 scale)"},
+            "suitability": "an option entry needs the required move to clear the premium, the spread and theta before it is taken (the SZ2 check)",
+            "allocation": _allocation()}
+
+
+def _allocation() -> dict:
+    """The capital split (Madhav, 23 Oct): Ananta decides, or a fixed split between stocks and options. A setting, shown here; enforcement is a lock decision."""
+    p = DATA / "paper" / "allocation.json"
+    a = _json(p, {}) or {}
+    return {"mode": a.get("mode", "ananta"), "stocks_inr": a.get("stocks_inr"), "options_inr": a.get("options_inr"), "total_inr": a.get("total_inr", ACCOUNT_START),
+            "note": a.get("note", "Ananta decides the split between stocks and options from its market read; enforcement enters the books with SZ2 and the lock's yes"), "set_at": a.get("set_at")}
+
+
+ROUTES.update({"decisions/recent": decisions_recent, "options": options, "allocation": _allocation})

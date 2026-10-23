@@ -15,9 +15,10 @@ import { C, live, pnlColor } from "../../src/theme";
 import { VisitorHome, useMe } from "../../src/visitor";
 import { ConceptCard, ValueCard, hello } from "../../src/home";
 import { AnantaButton, AnantaSheet, useAnantaCount } from "../../src/ananta";
-import { AccountTrades } from "../../src/books";
+import { RecentDecisions } from "../../src/decisions";
+import { OptionsCard } from "../../src/options";
+import { getMarket, W } from "../../src/market";
 import { sayMoney, upDown, type VoiceSpec } from "../../src/sectionvoice";
-import { W } from "../../src/market";
 
 const COIN_WORD: Record<string, string> = { BTC: "Bitcoin", ETH: "Ethereum", SOL: "Solana", XRP: "XRP", ADA: "Cardano", DOGE: "Dogecoin",
   AVAX: "Avalanche", LINK: "Chainlink", LTC: "Litecoin", BCH: "Bitcoin Cash" };
@@ -75,7 +76,7 @@ function OwnerHome() {
 
       <Decision spot="home.decision" verb={dec.verb} rest={dec.rest} why={dec.why}
         action={count.total ? { label: `${count.total} thing${count.total === 1 ? "" : "s"} need${count.total === 1 ? "s" : ""} you ›`, onPress: () => setAnanta(true) }
-          : { label: "Trades ›", onPress: () => focusSpot("books.trades", 2000) }} />
+          : { label: "Trades ›", onPress: () => router.push({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", sub: "mine" } } as any) }} />
 
       <Spot id="home.status">
         <HealthStrip h={m.health} />
@@ -90,8 +91,9 @@ function OwnerHome() {
       </Spot>
 
       <Spot id="home.books">
-        {m.account?.started ? <AccountTrades /> : <JarvisCard jv={m.jarvis} />}
+        <RecentDecisions />
       </Spot>
+      {getMarket() === "india" ? <Spot id="home.options"><OptionsCard /></Spot> : null}
 
       <Spot id="home.activity">
         <Pressable onPress={() => setShowActivity(!actOpen)} accessibilityRole="button" accessibilityState={{ expanded: actOpen }}
@@ -168,7 +170,7 @@ function AccountCard({ a }: { a: any }) {
       + ` with ${sayMoney(a.cash_cad, W().account_ccy)} in cash. The dial is ${dial.toLowerCase()}, and ${brakes}. ${W().next_decision}.` };
   return (
     <StatCard voice={voice} title={W().account_title} label="The account"
-      right={<Act tight label="Trades ›" onPress={() => { focusSpot("books.trades", 2000); }} />}
+      right={<Act tight label="Trades ›" onPress={() => router.push({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", sub: "mine" } } as any)} />}
       value={a.value_cad == null ? "…" : cad(a.value_cad)} aside={`${cadSigned(change)} · ${pct(a.return_pct)} since ${dayOf(a.started)}`} asideColor={pnlColor(change)}
       line={`${pos.length} holding${pos.length === 1 ? "" : "s"} · ${cad(a.cash_cad, 0)} cash · ${W().next_line}`}
       meta={`Dial ${dial} · ${brakes}`}

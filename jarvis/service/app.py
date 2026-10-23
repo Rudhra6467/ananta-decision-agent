@@ -1368,6 +1368,41 @@ def brain_report(days: int = 30, who: str = Depends(owner)) -> dict:
     return brain.report(J(), days)
 
 
+@app.get("/v3/decisions/recent")
+def decisions_recent(n: int = 10, who: str = Depends(owner)) -> dict:
+    """Home (Madhav, 23 Oct): Ananta's recent decisions in plain words - a headline a person reads in two seconds, the whole message behind it.
+    Display only, from the brain's own decision rows (TAKE and PASS with their thesis and plan); nothing is changed."""
+    import datetime as _dt
+    import json as _json
+
+
+    j = J()
+    names = {"BTC": "Bitcoin", "ETH": "Ethereum", "SOL": "Solana", "XRP": "XRP", "ADA": "Cardano", "DOGE": "Dogecoin", "AVAX": "Avalanche", "LINK": "Chainlink", "LTC": "Litecoin", "BCH": "Bitcoin Cash"}
+    out = []
+    for rid, t, coin, action, conf, size, price, plan, thesis, trade_id, note in j.db.execute(
+            "SELECT id, t, coin, action, confidence, size_pct, price, plan, thesis, trade_id, note FROM brain_decisions ORDER BY t DESC LIMIT ?", (max(1, min(n, 50)),)):
+        try:
+            p = _json.loads(plan or "{}")
+        except ValueError:
+            p = {}
+        name = names.get(coin, coin)
+        px = f"${price:,.2f}" if price and price >= 10 else (f"${price:.4f}" if price else "")
+        first = (thesis or "").split(". ")[0].strip()
+        if first and first[:1].isupper() and first[1:2].islower() and first.split(" ")[0] not in names.values():   # "The dial…" -> "the dial…"; never "ADA" -> "aDA"
+            first = first[:1].lower() + first[1:]
+        if action == "TAKE":
+            head = f"Bought {name} at {px} because {first if first else 'its setup fired'}"
+        else:
+            head = f"Passed on {name} at {px} because {first if first else 'the setup did not clear its bar'}"
+        wrong = f"Wrong if: it closes under ${p['stop']:,} (the stop)." if p.get("stop") else ""
+        msg = (f"What: {'a paper trade' if action == 'TAKE' else 'no trade'} in {name} at {px}" + (f", {size:.0f}% of the book" if action == "TAKE" and size else "") + ".\n"
+               f"Why: {thesis or ''}\n" + (("For: " + "; ".join(p.get("for", [])[:4]) + "\n") if p.get("for") else "") + (("Against: " + "; ".join(p.get("against", [])[:3]) + "\n") if p.get("against") else "")
+               + (wrong + "\n" if wrong else "") + f"Confidence {conf:.0f}%." + (f" Note: {note}" if note else ""))
+        out.append({"id": rid, "t": int(t), "time": _dt.datetime.fromtimestamp(int(t)).strftime("%b %-d, %-I:%M %p"), "coin": coin, "action": action, "price": price,
+                    "headline": head[:220], "message": msg[:2000], "confidence": conf, "link": f"/trade/{trade_id}" if trade_id else "/jarvis"})
+    return {"decisions": out, "page": "/jarvis"}
+
+
 @app.get("/v3/stance")
 def stance_now(who: str = Depends(owner)) -> dict:
     """Fixes A2/A3: the brain's newest written stance, its expectations, and the morning scan's record."""

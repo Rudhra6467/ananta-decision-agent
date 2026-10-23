@@ -27,7 +27,7 @@ import pandas as pd
 
 from india import exitlab, paths
 
-SAFE_FILES = ("lab.py", "studies.py", "exitlab.py", "registry.py", "paper.py", "costs.py", "tracker.py", "evidence.py", "reconstruct.py", "allocator.py")
+SAFE_FILES = ("lab.py", "studies.py", "exitlab.py", "registry.py", "paper.py", "costs.py", "tracker.py", "evidence.py", "reconstruct.py", "allocator.py", "account.py")
 FEATURE_WHITELIST = {"date", "sid", "symbol", "liq_rank", "o", "h", "l", "c", "volume", "turnover", "ret_1", "ret_5", "ret_20", "ret_60", "gap_pct", "range_pct", "atr14", "atr_pct",
                      "rv20", "vol_ratio20", "dist_sma20", "dist_sma50", "dist_sma200", "breakout20", "breakdown20", "pos20", "deliv_pct"}
 

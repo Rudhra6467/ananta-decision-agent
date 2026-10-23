@@ -239,7 +239,7 @@ def _moves(sleeves: dict, tg: dict, ratings: list[dict], cands: list[dict], r: d
             each = round(min(-stock_gap, budget) / len(picks) / 100) * 100
             if each >= r["min_move_inr"]:
                 for kind, sym, tag in picks:
-                    moves.append({"kind": "stock_buy", "symbol": sym, "from": "cash", "to": "stocks", "inr": each,
+                    moves.append({"kind": "stock_buy", "symbol": sym, "from": "cash", "to": "stocks", "inr": each, "family": tag if kind == "candidate" else "GRADE",
                                   "why": f"{'a holding graded ' + str(tag) if kind == 'holding' else 'a fresh ' + str(tag) + ' signal from the stock book'}; the stock sleeve is under its {100 * tg['stocks']:.0f}% target"})
     return moves
 
@@ -354,6 +354,11 @@ def run(day: str | None = None) -> dict:
     rows.sort(key=lambda x: x["day"])
     (paper / "allocation_ledger.jsonl").write_text("\n".join(json.dumps(x) for x in rows) + "\n")
     (paper / "allocation_view.json").write_text(json.dumps(v, indent=1))
+    try:                                   # the account book (india/account.py) applies the final days' paper moves and marks the twin
+        from india import account as acct
+        v["account_book"] = acct.run().get("words")
+    except Exception as e:  # noqa: BLE001
+        v["account_book"] = f"the account book could not run: {e.__class__.__name__}: {str(e)[:100]}"
     return v
 
 

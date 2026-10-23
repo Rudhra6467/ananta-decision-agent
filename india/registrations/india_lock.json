@@ -89,13 +89,19 @@
   },
   "no_order_rule": {
    "what": "The leak check that forbids every order call until the gate (india/leakcheck.py, lines of code).",
-   "sha256": "e38d07226bb0258d7e97d1eacd2a7f2906d265ec439125a4967d2076ddaa9b61",
+   "sha256": "554697f5b6f83aad4237261e0473eb0453faceee1f9bbcb1f6eef94fa8dc62a4",
    "history": [
     {
      "date": "2026-10-23",
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-10-23 (in chat, to \"Lock India like crypto\"): \"Yes\". Drafted at the start of the India lock; docs/INDIA_LOCK.md lists every pinned item and what waits for lock day (about 1 Nov).",
      "sha256": "e38d07226bb0258d7e97d1eacd2a7f2906d265ec439125a4967d2076ddaa9b61"
+    },
+    {
+     "date": "2026-10-23",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-23 14:47 Toronto (in chat), on the reconstruction design (claude/design-2026-10-23-india-reconstruction-process.md, section 8.1: 'the leak check gains a row for it'): \"I agree with you on everything\". The change adds reconstruct.py, allocator.py and account.py to SAFE_FILES (the sealed-folder scan): stricter, no order path added.",
+     "sha256": "554697f5b6f83aad4237261e0473eb0453faceee1f9bbcb1f6eef94fa8dc62a4"
     }
    ]
   },

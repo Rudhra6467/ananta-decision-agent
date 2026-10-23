@@ -29,7 +29,7 @@ The page was checked a second time on Oct 15 evening by an independent review (1
 | every 15 minutes | the Explorer scans one minute after each 15-minute close (evidence only); Jarvis's 15-minute jobs run (value history, alerts, the reads watch, following the stance's expectations, phone notes). |
 | daily close (about 00:05 UTC, 8 pm Toronto in summer time) | the daily rules on every tier and their rebuild; the brain's moments; every book re-checked against its candles (the Explorer replay, every evidence trade, Jarvis's trades, both trend books, the $500 book's fills and sizes, the 15-minute snapshot stream); the $500 book's step at NDAX's live quotes; the fidelity check (a cell 3 or more points under its backtest is forwarded by itself); the stance and the bold book; the officer's note; the due list (an overdue item becomes one repair-board request); the evening review. |
 | 03:20 | the old app's database archive (`com.ananta.mongoarchive`). |
-| 03:40 | database backups, 14 days kept, Sundays also to R2 (`com.ananta.backup`, `scripts/backup_db.py`); from the night of Oct 16: the Explorer's live state and the paid-search log are copied beside them, the worker's finished days are pulled in, and a copy of the newest backups (no logins, conversations or guests' books) goes to the worker. |
+| 03:40 | database backups, 14 days kept, Sundays also to R2 (`com.ananta.backup`, `scripts/backup_db.py`); from the night of Oct 16: the Explorer's live state and the paid-search log are copied beside them, the worker's finished days are pulled in, and a copy of the newest backups (no logins, conversations or guests' books) goes to the worker. From Oct 23 `com.ananta.workerpull` retries the worker pull at 04:20, 05:20, 06:20, 07:05, 08:20 and 09:20 until the day lands (Madhav's yes, #72). |
 | 04:30 Toronto (from Oct 20) | `com.ananta.othersdaily` (`src.research.others_daily`): rebuilds yesterday's other-traders trades on our coins and sorts each one: we had a rule and took it / we had a rule and passed (and why) / no rule of ours covers it / they lost after costs. A situation that repeats on 3 days in 7 files a draft request, never a rule or a copy signal (D8). It reads the worker's daily fill files, so it has little to read until the worker capture runs. |
 | every 15 minutes (from Oct 21) | each 15-minute run writes one line to `~/ananta_runs/jobs_steps.jsonl` with every step's error (empty when all went well); the run checker reads it (`jobs_steps`). The outside watchdog's `watchdog.log` lines and the health watchdog's last check (`health_state` row `_last_check`) carry a time, so the checker can date them. |
 | daily close (from Oct 21) | `learning.count_lessons`: each brain decision is labelled once, under its own week, as soon as its result can no longer change; a lesson kind reaching 3 cases in a week files one repair-board request (never twice while one is open). Decisions from Oct 21 on are counted but not labelled until Dec 15, so the forward tests stay blind. |
@@ -211,6 +211,17 @@ Madhav, 09:41 Toronto: "Complete all pending tasks and all that are waiting for 
 | The gate bundle (decision map section 4) | yes | Section 4 above; `gate_definition` and `live_logic` re-pinned. |
 | The live-code reliability fixes (decision map section 6, item 6) | yes | `reliability.py`: every failed paid save (brain decision, stance, bold pick) is logged and sends one phone note an hour at most; the brain's and bold book's decision row, paper trade and random twin save in one transaction; the stance asks once more for a shorter reply when its reply is cut off (the Oct 18-19 cause) within the daily AI dollar; 15-minute step errors, watchdog lines and the health watchdog's checks are dated and read by the run checker. No trading rule changed. |
 | The learning loop (decision map section 5) | yes | `learning.count_lessons` (section 2); the 14 Oct "random beat the pick" ticket filed as TK19 (`ledger.json`, linked to review #33, closes at day 60); a read-only ledger consistency warning in the morning review. |
+
+### Decisions of 23 Oct
+
+Madhav, 23 Oct (in chat): "Will get TOTP fixed before Sunday. Yes for all others."
+
+| Item | Decision | Done |
+|---|---|---|
+| Hunter's book (#80) | (a) a written rule: after 10 independent market events, retire it unless it is ahead of its random twin after costs; until then unchanged | Recorded on #80; nothing changes in the window; judged at the 10th event, never before. |
+| Worker pull retry (#72) | yes: retry the worker pull each hour until the day lands | `com.ananta.workerpull` at 04:20, 05:20, 06:20, 07:05, 08:20, 09:20 Toronto (`worker.pull()` never overwrites a day already pulled); log `~/ananta_runs/workerpull.log`. The worker already has wake-for-network on and never sleeps (pmset: womp 1, sleep 0), so the 03:40 failures are the main Mac's link, not the worker. |
+| India: lock India like crypto | yes | `INDIA_LOCK.md` (records repo), section 10 here. |
+| India: SZ2 (a) and (b), SP3 holdout | yes-logged, keep 0, not yet | Recorded in INDIA_LOCK.md "Decisions of 23 Oct". |
 
 ## 9. After the window
 

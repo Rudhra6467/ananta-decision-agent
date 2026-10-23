@@ -228,6 +228,11 @@ PARTS: list[dict] = [
     {"id": "awake", "name": "Keep-awake", "job": "com.ananta.awake", "severity": "low", "since": "2026-10-11", "cadence": {"every": 3600},
      "proof": {"none": "no record of its own; a sleeping Mac shows as gaps in jobs_loop and explorer_scans"}},
 
+    {"id": "worker_pull_retry", "name": "Worker pull retry (hourly 04:20-09:20 Toronto until the day lands)", "job": "com.ananta.workerpull",
+     "severity": "low", "since": "2026-10-24", "from_first": True, "cadence": {"daily": "04:20", "tz": TOR, "grace": 6 * 3600}, "min_work": 1,
+     "proof": {"log": "{runs}/workerpull.log", "regex": r"^(?P<t>\d{4}-\d\d-\d\d \d\d:\d\d) retry pull (?P<err>.*\"error\": \"[^n][^\"]*\")?",
+               "tz": TOR, "before_first": "first retry runs the night of Oct 23-24"}},
+
     # ---------------------------------------------------------------- India (read-only): session proofs (Oct 23, plan "to the review point")
     # Each is a dated file or row the India jobs write for a session; cadence "holidays": True skips NSE holidays (the lake's own list).
     {"id": "india_sp1_session", "name": "India SP1 index line: the session's decisions recorded (09:15-10:15 IST)", "job": "com.ananta.india.sp1paper",

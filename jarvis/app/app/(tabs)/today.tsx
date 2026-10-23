@@ -17,6 +17,7 @@ import { ConceptCard, ValueCard, hello } from "../../src/home";
 import { AnantaButton, AnantaSheet, useAnantaCount } from "../../src/ananta";
 import { AccountTrades } from "../../src/books";
 import { sayMoney, upDown, type VoiceSpec } from "../../src/sectionvoice";
+import { W } from "../../src/market";
 
 const COIN_WORD: Record<string, string> = { BTC: "Bitcoin", ETH: "Ethereum", SOL: "Solana", XRP: "XRP", ADA: "Cardano", DOGE: "Dogecoin",
   AVAX: "Avalanche", LINK: "Chainlink", LTC: "Litecoin", BCH: "Bitcoin Cash" };
@@ -140,12 +141,12 @@ function homeDecision(m: any, needs: number): { verb: string; rest?: string; why
   const names = pos.map((c) => COIN_WORD[c] ?? c);
   const dialOpen = /open/i.test(String(a.dial?.state ?? ""));
   const fired = Object.entries(a.brakes?.fired ?? {}).filter(([, n]) => (n as number) > 0).map(([k]) => k.replace(/_/g, " "));
-  const verb = pos.length ? `Holding ${names.length <= 3 ? names.join(" and ") : `${names.length} coins`}` : dialOpen ? "Holding nothing yet" : "In cash";
+  const verb = pos.length ? `Holding ${names.length <= 3 ? names.join(" and ") : `${names.length} ${W().coins}`}` : dialOpen ? "Holding nothing yet" : "In cash";
   const rest = pos.length ? "in the account" : undefined;
   const why = a.brakes?.paused ? "Brakes paused it after a 15% fall; only you can resume."
     : fired.length ? `Brakes fired (${fired.join(", ")}): no new buys for now.`
-    : dialOpen ? "Dial open: buys only what crosses its averages. Next decision at the close."
-    : "Dial closed: no new buys, cash is the position. Next decision at the close.";
+    : dialOpen ? W().dial_open_why
+    : W().dial_closed_why;
   return { verb, rest, why: needs ? why : `${why} Nothing needs you.` };
 }
 
@@ -161,19 +162,19 @@ function AccountCard({ a }: { a: any }) {
   const ex = a.execution_check;
   const voice: VoiceSpec = { id: "home.account", label: "the account", back: "home", spot: "home.value", screen: "home",
     questions: [change < 0 ? "Why is the account down?" : "Why is the account up?", "When does it buy or sell next?", "What are the brakes?", "Show me the trades"],
-    say: () => `This is the account: the 500 dollar NDAX book, paper money at real NDAX prices, in Canadian dollars. It is worth ${sayMoney(a.value_cad, "CAD")},`
-      + ` ${upDown(change)} ${sayMoney(change, "CAD")} since ${dayOf(a.started)}.`
-      + (pos.length ? ` It holds ${pos.map(([c, p]) => { const q = pnlPct(p); return `${COIN_WORD[c] ?? c}${q == null ? "" : `, ${q >= 0 ? "up" : "down"} ${Math.abs(q).toFixed(1)} percent`}`; }).join(", and ")},` : " It holds no coins,")
-      + ` with ${sayMoney(a.cash_cad, "CAD")} in cash. The dial is ${dial.toLowerCase()}, and ${brakes}. The next decision comes at the daily close.` };
+    say: () => `This is the account: ${W().account_say}. It is worth ${sayMoney(a.value_cad, W().account_ccy)},`
+      + ` ${upDown(change)} ${sayMoney(change, W().account_ccy)} since ${dayOf(a.started)}.`
+      + (pos.length ? ` It holds ${pos.map(([c, p]) => { const q = pnlPct(p); return `${COIN_WORD[c] ?? c}${q == null ? "" : `, ${q >= 0 ? "up" : "down"} ${Math.abs(q).toFixed(1)} percent`}`; }).join(", and ")},` : ` It holds no ${W().coins},`)
+      + ` with ${sayMoney(a.cash_cad, W().account_ccy)} in cash. The dial is ${dial.toLowerCase()}, and ${brakes}. ${W().next_decision}.` };
   return (
-    <StatCard voice={voice} title="The account · $500 NDAX book · paper, real NDAX prices" label="The account"
+    <StatCard voice={voice} title={W().account_title} label="The account"
       right={<Act tight label="Trades ›" onPress={() => { focusSpot("books.trades", 2000); }} />}
       value={a.value_cad == null ? "…" : cad(a.value_cad)} aside={`${cadSigned(change)} · ${pct(a.return_pct)} since ${dayOf(a.started)}`} asideColor={pnlColor(change)}
-      line={`${pos.length} holding${pos.length === 1 ? "" : "s"} · ${cad(a.cash_cad, 0)} cash · next decision at the daily close`}
+      line={`${pos.length} holding${pos.length === 1 ? "" : "s"} · ${cad(a.cash_cad, 0)} cash · ${W().next_line}`}
       meta={`Dial ${dial} · ${brakes}`}
       more={<>
         {(a.dial?.why ?? []).map((w: string, i: number) => <T key={i} small>· {w}</T>)}
-        <T small>{a.next}. Last step {a.last_step} UTC. Fills inside NDAX's bid and ask: {ex?.inside_bid_ask ?? 0} of {ex?.fills ?? 0}.</T>
+        <T small>{a.next}. Last step {a.last_step} UTC. Fills inside {W().exchange}'s bid and ask: {ex?.inside_bid_ask ?? 0} of {ex?.fills ?? 0}.</T>
       </>}>
       {pos.length ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -212,7 +213,7 @@ function JarvisCard({ jv }: { jv: any }) {
   const open = jv.open ?? [];
   const sentence = take || pass
     ? `Today I took ${take} paper trade${take === 1 ? "" : "s"} and passed on ${pass}. ${jv.left} decisions left.`
-    : open.length ? `No new decisions today. ${open.length} of my trades are open.` : "No decisions yet today. I wake when a coin enters a zone or a setup fires.";
+    : open.length ? `No new decisions today. ${open.length} of my trades are open.` : `No decisions yet today. ${W().wake}`;
   return (
     <Card onPress={() => router.push("/jarvis")}>
       <View style={st.row}>

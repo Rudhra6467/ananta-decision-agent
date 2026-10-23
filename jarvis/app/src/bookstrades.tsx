@@ -10,6 +10,7 @@ import { ExplainSheet } from "./blocks";
 import { C, pnlColor } from "./theme";
 import { Act, Btn, Card, Divider, Expand, ListState, Section, Stat, StatCard, T, Tag, dayOf, money, moneySigned, pct, price, s as st, usdSigned, when } from "./ui";
 import { sayMoney, upDown, type VoiceSpec } from "./sectionvoice";
+import { W } from "./market";
 
 const openTrade = (t: any) => router.push(t.link ?? `/story/${encodeURIComponent(t.id)}`);
 const tm = (v: any) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? dayOf(String(v)) : when(v));
@@ -46,7 +47,7 @@ export function BooksTrades({ d, explainers, title, voice }: { d: any; explainer
   return (
     <View style={{ gap: 12 }}>
       {acct ? (
-        <StatCard voice={vs} title="The account · $500 NDAX book · paper, real NDAX prices" label="Account summary"
+        <StatCard voice={vs} title={W().account_title} label="Account summary"
           value={s.value == null ? "…" : S(gain)} valueColor={pnlColor(gain)} aside={`net since ${dayOf(s.since) || "the start"}`}
           line={`${s.closed_count ?? closed.length} closed · ${s.won_count ?? 0} won · ${open.length} open${ex ? ` · ${ex.inside_bid_ask} of ${ex.fills} fills inside the bid/ask` : ""}`}
           meta={`Worth ${M(s.value)} · started with ${M(s.start, 0)}`} action={{ label: "Rules ›", onPress: () => setRules(true) }} />
@@ -81,7 +82,7 @@ export function BooksTrades({ d, explainers, title, voice }: { d: any; explainer
         </View>
       ) : null}
 
-      <Section title={`Open · ${fo.length}`} right={<T small>{acct ? "Marked at the NDAX bid" : "Marked at the last price"}</T>} />
+      <Section title={`Open · ${fo.length}`} right={<T small>{acct ? W().marked_at : "Marked at the last price"}</T>} />
       <Card>
         {fo.length === 0 ? <ListState state="empty" text={acct ? "No open trades. The next decision comes at the daily close." : "No open trades here."} /> : null}
         {fo.map((t, i) => <View key={`${t.id}`}>{i ? <Divider /> : null}<TradeRow t={t} ccy={d.currency} /></View>)}

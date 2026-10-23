@@ -20,6 +20,7 @@ import { useData } from "../../src/useData";
 import { HomeIcon, MenuIcon, SlidersIcon, TrendIcon, VoiceIcon } from "../../src/icons";
 import { AppDrawer } from "../../src/drawer";
 import { clearMe, useMe } from "../../src/visitor";
+import { MARKET_NAME, clearMarket, useMarket } from "../../src/market";
 
 const TITLES: Record<string, string> = { today: "Home", ask: "Ask Ananta", watchlists: "Markets", cockpit: "More", portfolio: "Home" };
 
@@ -53,6 +54,20 @@ function PracticeStrip() {
   );
 }
 
+// Which Ananta is loaded (23 Oct): a small chip beside the title when it is the Indian market; tap it to switch. Crypto shows nothing,
+// so the crypto app looks exactly as before.
+function MarketChip() {
+  const m = useMarket();
+  const me = useMe();
+  if (m !== "india" || me?.guest) return null;
+  return (
+    <Pressable onPress={async () => { await clearMarket(); router.replace("/market"); }} accessibilityRole="button" accessibilityLabel="Indian market loaded; tap to switch market"
+      style={{ marginLeft: 8, paddingVertical: 3, paddingHorizontal: 8, borderRadius: 999, backgroundColor: C.card2, borderWidth: 1, borderColor: C.line }}>
+      <Text style={{ color: C.dim, fontSize: 11, fontWeight: "700" }}>{MARKET_NAME.india.toUpperCase()}</Text>
+    </Pressable>
+  );
+}
+
 function Header() {
   const top = useSafeAreaInsets().top;
   const path = usePathname();
@@ -68,6 +83,7 @@ function Header() {
         </Pressable>
         <AppDrawer open={menu} onClose={() => setMenu(false)} />
         <Text style={{ color: C.text, fontWeight: "700", fontSize: 17 }}>{title}</Text>
+        <MarketChip />
         {title === "More" ? (
           <View style={{ position: "absolute", right: 16, flexDirection: "row", gap: 10 }}><AlertsBell /><ThemeToggle /></View>
         ) : null}

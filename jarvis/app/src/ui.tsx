@@ -298,16 +298,20 @@ export const ErrorBox = ({ err, onRetry }: { err: string; onRetry?: () => void }
 );
 
 // Money: one currency per screen. US$ for the lab's books, C$ for the account (the $500 NDAX book).
+// Indian market loaded (23 Oct): every amount is rupees, Indian grouping, no paise on big numbers — the same screens, the right money.
+import { getMarket } from "./market";
+const inr = (x: number, d: number) => `₹${Math.abs(x).toLocaleString("en-IN", { minimumFractionDigits: Math.abs(x) >= 1000 ? 0 : d, maximumFractionDigits: Math.abs(x) >= 1000 ? 0 : d })}`;
 export const usd = (x?: number | null, d = 2) =>
-  x == null ? "–" : `${x < 0 ? "-" : ""}$${Math.abs(x).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })}`;
-export const usdSigned = (x?: number | null) => (x == null ? "–" : `${x >= 0 ? "+" : "-"}$${Math.abs(x).toFixed(2)}`);
+  x == null ? "–" : getMarket() === "india" ? `${x < 0 ? "-" : ""}${inr(x, d)}` : `${x < 0 ? "-" : ""}$${Math.abs(x).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })}`;
+export const usdSigned = (x?: number | null) => (x == null ? "–" : getMarket() === "india" ? `${x >= 0 ? "+" : "-"}${inr(x, 2)}` : `${x >= 0 ? "+" : "-"}$${Math.abs(x).toFixed(2)}`);
 export const cad = (x?: number | null, d = 2) =>
-  x == null ? "–" : `${x < 0 ? "-" : ""}C$${Math.abs(x).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })}`;
-export const cadSigned = (x?: number | null) => (x == null ? "–" : `${x >= 0 ? "+" : "-"}C$${Math.abs(x).toFixed(2)}`);
+  x == null ? "–" : getMarket() === "india" ? `${x < 0 ? "-" : ""}${inr(x, d)}` : `${x < 0 ? "-" : ""}C$${Math.abs(x).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })}`;
+export const cadSigned = (x?: number | null) => (x == null ? "–" : getMarket() === "india" ? `${x >= 0 ? "+" : "-"}${inr(x, 2)}` : `${x >= 0 ? "+" : "-"}C$${Math.abs(x).toFixed(2)}`);
 export const money = (ccy?: string | null) => (ccy === "CAD" ? cad : usd);
 export const moneySigned = (ccy?: string | null) => (ccy === "CAD" ? cadSigned : usdSigned);
 export const pct = (x?: number | null) => (x == null ? "–" : `${x >= 0 ? "+" : ""}${x.toFixed(2)}%`);
 export const price = (x?: number | null, ccy?: string | null) => {
+  if (getMarket() === "india") return x == null ? "–" : `₹${x.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;   // NSE prices: rupees, two paise
   const u = ccy === "CAD" ? "C$" : "$";
   return x == null ? "–" : x >= 10 ? `${u}${x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : x >= 0.1 ? `${u}${x.toFixed(4)}` : `${u}${x.toFixed(5)}`;
 };

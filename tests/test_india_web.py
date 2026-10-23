@@ -97,3 +97,57 @@ def test_through_the_tunnel_needs_the_app_token(lake, monkeypatch):
     assert len(calls) == 1                                                                   # the second call is remembered, not re-checked
     assert c.get("/india/health", headers=cf).status_code == 200                              # health never needs a token
     assert "Ananta · Indian market" in c.get("/india/").text
+
+
+def test_v3_contract_routes_fill_from_the_read_model(lake, monkeypatch):
+    from jarvis.india import views
+
+    monkeypatch.setattr(views, "DATA", lake)
+    monkeypatch.setattr(views, "REG", lake / "registrations")
+    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    h = c.get("/v3/home").json()
+    assert set(h) >= {"summary", "feed", "mission"} and h["mission"]["account"]["start_cad"] == 60000.0 and h["mission"]["market"]["btc"] == 22811.35
+    assert h["mission"]["market"]["regime"] == "DOWNTREND" and h["summary"]["portfolio"]["mode"] == "PAPER"
+    b = c.get("/india/v3/books").json()
+    assert b["account"]["book"]["currency"] == "INR" and isinstance(b["trades"], list) and isinstance(b["closed"], list)
+    assert c.get("/v3/coins").json()["coins"] == []                                   # no universe file in the fixture: empty, never invented
+    assert c.get("/v3/no/such/view").status_code == 404
+    assert c.get("/history?days=7").json()["points"] == []
+    for name in views.ROUTES:
+        assert c.get(f"/v3/{name}").status_code == 200, name
+
+
+def test_india_ask_is_grounded_threaded_and_honest_offline(lake, monkeypatch):
+    from jarvis.india import ask as ia, views
+
+    monkeypatch.setattr(views, "DATA", lake)
+    monkeypatch.setattr(views, "REG", lake / "registrations")
+    monkeypatch.setattr(ia, "ASK_DIR", lake / "ask")
+    monkeypatch.setattr(ia, "ENV_FILE", lake / "no.env")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    r = c.post("/v3/ask", json={"text": "What did you decide?"}).json()                 # no key: the read model's own words, said so
+    assert r["kind"] == "answer" and "Nifty 22,811" in r["answer"] and r["provider"] == "none" and "read model only" in r["note"]
+    assert r["thread"] and r["id"] and isinstance(r["follow_ups"], list)
+    th = r["thread"]
+    sent = {}
+
+    def fake_post(url, headers, body):
+        sent["body"] = body
+        return {"content": [{"type": "text", "text": json.dumps({"kind": "answer", "stage": "outcome", "answer": "The call was BULLISH and wrong, sir.", "breakdown": ["0 of 3"], "evidence": ["daily_call"], "follow_ups": ["Why?"]})}],
+                "usage": {"input_tokens": 1000, "output_tokens": 50}}
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-real")
+    r2 = ia.ask("madhav", "Was the call right?", thread=th, post=fake_post)
+    assert r2["answer"].startswith("The call was BULLISH") and r2["provider"] == "claude" and r2["cost_usd"] > 0
+    assert "FACTS" in sent["body"]["messages"][-1]["content"] and "22811.35" in sent["body"]["messages"][-1]["content"]   # grounded on the read model
+    assert sent["body"]["messages"][0]["role"] == "user" and len(sent["body"]["messages"]) == 3                               # the thread's history travels with it
+    assert "no real money" in sent["body"]["system"][0]["text"].lower() or "paper only" in sent["body"]["system"][0]["text"].lower()
+    r3 = ia.ask("madhav", "buy it now", thread=th, post=fake_post)
+    assert "Paper only" in r3["answer"] and r3["provider"] == "rule"                                                         # no actions from chat
+    msgs = c.get(f"/v3/ask/thread/{th}").json()["messages"]
+    assert [m["role"] for m in msgs] == ["user", "assistant"] * 3 and msgs[1]["answer"]
+    assert c.get("/v3/ask/threads").json()["threads"][0]["thread"] == th and c.get("/v3/ask/last").json()["last"]["thread"] == th
+    assert c.post("/v3/ask/rate", json={"id": r2["id"], "rating": 1}).json()["ok"] is True
+    assert "You: Was the call right?" in c.get(f"/v3/ask/thread/{th}/export").json()["text"]
+    assert c.post(f"/v3/ask/thread/{th}/delete").json()["ok"] and c.get("/v3/ask/threads").json()["threads"] == []

@@ -104,10 +104,11 @@ export function Bars({ color, h = 1 }: { color: string; h?: number }) {
 }
 
 // spoken money: "275 dollars", "7 dollars 50", never "minus dollar sign"
-export function sayMoney(v: number | null | undefined, ccy: "USD" | "CAD" = "USD") {
+export function sayMoney(v: number | null | undefined, ccy: "USD" | "CAD" | "INR" = "USD") {
   if (v == null || !isFinite(v)) return "unknown";
-  const a = Math.abs(v), unit = ccy === "CAD" ? "Canadian dollars" : "dollars";
-  if (a >= 1000) return `${Math.round(a).toLocaleString("en-US")} ${unit}`;
+  const a = Math.abs(v), unit = ccy === "CAD" ? "Canadian dollars" : ccy === "INR" ? "rupees" : "dollars";
+  if (ccy === "INR" && a >= 100000) return `${(a / 100000).toFixed(a >= 1000000 ? 1 : 2).replace(/\.?0+$/, "")} lakh rupees`;   // spoken the Indian way
+  if (a >= 1000) return `${Math.round(a).toLocaleString(ccy === "INR" ? "en-IN" : "en-US")} ${unit}`;
   const d = Math.floor(a), c = Math.round((a - d) * 100);
   return c ? `${d} ${unit} ${c}` : `${d} ${unit}`;
 }

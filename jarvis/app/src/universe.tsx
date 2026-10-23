@@ -9,6 +9,7 @@ import { useData } from "./useData";
 import { C } from "./theme";
 import { Spot } from "./spotlight";
 import { spoken, type VoiceSpec } from "./sectionvoice";
+import { W } from "./market";
 
 const TABS: [string, string][] = [["up", "Up today"], ["down", "Down today"], ["near", "Near support"]];
 const TIER_WORDS: Record<string, string> = { A: "A", B: "B", C: "C" };
@@ -53,8 +54,8 @@ export function WholeMarket() {
       + " Tap any coin and I'll tell you about it." };
   return (
     <Spot id="markets.whole">
-    <Card voice={voice} title="The whole market" sub={k ? `${k.listed} coins watched live · tier A ${k.A} · B ${k.B} · C ${k.C} (watched, never judged)` : "every coin Ananta watches"}>
-      <TextInput value={q} onChangeText={setQ} placeholder="Search any coin (e.g. SUI, PEPE)" placeholderTextColor={C.faint} autoCapitalize="characters"
+    <Card voice={voice} title="The whole market" sub={k ? `${k.listed} ${W().coins} watched live · tier A ${k.A} · B ${k.B} · C ${k.C} (watched, never judged)` : W().whole_market_sub}>
+      <TextInput value={q} onChangeText={setQ} placeholder={W().symbol_hint} placeholderTextColor={C.faint} autoCapitalize="characters"
         style={{ backgroundColor: C.card2, color: C.text, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, marginBottom: 8 }} />
       {q.trim() ? null : (
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 4 }}>
@@ -88,20 +89,20 @@ export function ExposureDial({ own, compact }: { own?: boolean; compact?: boolea
   if (!data && err) return <Card><ListState state="error" text="Couldn't read the dial." action={{ label: "Retry", onPress: reload }} /></Card>;
   const voice: VoiceSpec = { id: "markets.dial", label: "the trend dial", back: "markets:markets", spot: "markets.dial", screen: "markets",
     questions: [open ? "Why is the dial open?" : "Why is the dial closed?", "What happens when the dial changes?", "How far is Bitcoin from its 50-day average?", "Which books does the dial feed?"],
-    say: () => `This is the trend dial, Ananta's market rule for crypto. Right now it is ${state}${d?.dial == null ? "" : open ? ": buying is allowed" : ": no new buys, cash is the position"}.`
+    say: () => `This is ${W().dial_for}. Right now it is ${state}${d?.dial == null ? "" : open ? (W().rule_who === "Nifty" ? ": entries are allowed" : ": buying is allowed") : (W().rule_who === "Nifty" ? ": no new entries" : ": no new buys, cash is the position")}.`
       + (reasons.length ? ` ${spoken(reasons.slice(0, 3).join(", "))}.` : "")
       + (brakes ? ` ${brakes}.` : "")
       + " Every book may buy only what the dial allows. Ask me anything about it." };
   return (
     <>
       <Spot id="markets.dial">
-      <StatCard voice={voice} title={`Trend dial · crypto${d?.as_of_day ? ` · as of ${dayOf(d.as_of_day)}` : ""}`} label="The trend dial"
-        meta={[brakes, "Feeds the account's core and the edge sleeve"].filter(Boolean).join(" · ")} action={{ label: "Why ›", onPress: () => setWhy(true) }}>
+      <StatCard voice={voice} title={`${W().dial_label}${d?.as_of_day ? ` · as of ${dayOf(d.as_of_day)}` : ""}`} label="The trend dial"
+        meta={[brakes, W().dial_feeds].filter(Boolean).join(" · ")} action={{ label: "Why ›", onPress: () => setWhy(true) }}>
         {!data ? <ListState state="loading" lines={1} /> : compact ? (
           // under the decision line (Oct 16) the state is already said; this card keeps the facts and the Why
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Dot color={d?.dial == null ? C.dim : open ? C.good : C.bad} />
-            <T style={{ flex: 1 }}>{state} · {reasons.slice(1, 3).map((w) => w.replace(/\s*\([^)]*\)/, "")).join(" · ") || d?.note || "Reading Bitcoin's daily close."}</T>
+            <T style={{ flex: 1 }}>{state} · {reasons.slice(1, 3).map((w) => w.replace(/\s*\([^)]*\)/, "")).join(" · ") || d?.note || W().dial_reads}</T>
           </View>
         ) : (
           <>
@@ -110,13 +111,13 @@ export function ExposureDial({ own, compact }: { own?: boolean; compact?: boolea
               <Text style={st.title}>{state}</Text>
               <T small style={{ flex: 1 }} numberOfLines={1}>{d?.dial == null ? "" : open ? "buying allowed" : "no new buys; cash is the position"}</T>
             </View>
-            <T>{reasons.slice(1, 3).map((w) => w.replace(/\s*\([^)]*\)/, "")).join(" · ") || d?.note || "Reading Bitcoin's daily close."}</T>
+            <T>{reasons.slice(1, 3).map((w) => w.replace(/\s*\([^)]*\)/, "")).join(" · ") || d?.note || W().dial_reads}</T>
           </>
         )}
       </StatCard>
       </Spot>
       <ExplainSheet open={why} onClose={() => setWhy(false)} title={`The dial is ${state}`}>
-        <T>{d?.dial_words ?? "Reading Bitcoin's daily close."}</T>
+        <T>{d?.dial_words ?? W().dial_reads}</T>
         {reasons.map((w) => <T key={w} dim>· {w}</T>)}
         {d?.rule ? <T small>{d.rule}</T> : null}
         <Divider />

@@ -16,6 +16,7 @@ import { C, COIN_NAME, pnlColor, ratingColor, ratingWord } from "./theme";
 import { VisitorBooks } from "./visitor";
 import { BooksTrades, Explainers } from "./bookstrades";
 import { ReadsBoard } from "./reads";
+import { W } from "./market";
 
 const RANGES = [{ key: "1", label: "1D" }, { key: "7", label: "1W" }, { key: "30", label: "1M" }, { key: "365", label: "All" }];
 
@@ -116,7 +117,7 @@ function LabTrades() {
         why={`${who.length ? who.join(" · ") + ". " : ""}${books.length ? `${ahead} of ${books.length} books above their start. ` : ""}None of this touches the account.`}
         action={{ label: "Ananta's book ›", onPress: () => router.push("/jarvis") }} />
       <Spot id="lab.books">
-        <BooksTrades d={lab} title="The lab's paper books · US$" voice={{ id: "lab.books", label: "the lab's paper books", back: "portfolio:lab", spot: "lab.books", screen: "ananta_market" }} />
+        <BooksTrades d={lab} title={W().lab_title} voice={{ id: "lab.books", label: "the lab's paper books", back: "portfolio:lab", spot: "lab.books", screen: "ananta_market" }} />
       </Spot>
     </Screen>
   );

@@ -11,6 +11,7 @@ import { askAbout, goTab } from "./context";
 import { C, COIN_NAME, pnlColor } from "./theme";
 import { Btn, Card, Divider, T, pct, price, usd } from "./ui";
 import { useData } from "./useData";
+import { W } from "./market";
 
 export function hello(name?: string, sir?: boolean) {
   const h = new Date().getHours();                       // the phone's own clock: local time for everyone
@@ -75,7 +76,7 @@ export function MarketSlides({ coins, market, more = true }: { coins: any[]; mar
         <Text style={{ color: C.text, fontWeight: "700", fontSize: 16, flex: 1 }}>The market</Text>
         {hasRule ? (
           <View style={{ flexDirection: "row", backgroundColor: C.card2, borderRadius: 999, padding: 2 }}>
-            {["Coins", "Market rule"].map((l, i) => (
+            {[W().Coins, "Market rule"].map((l, i) => (
               <Pressable key={l} onPress={() => setPage(i)} accessibilityRole="tab" accessibilityState={{ selected: page === i }}
                 style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: page === i ? C.card : "transparent" }}>
                 <Text style={{ color: page === i ? C.accent : C.dim, fontSize: 12, fontWeight: "700" }}>{l}</Text>
@@ -98,7 +99,7 @@ function CoinsSlide({ coins, more }: { coins: any[]; more: boolean }) {
   const shown = coins.slice(0, 6);
   return (
     <Card>
-      {shown.length === 0 ? <T dim>No coins yet. Pick the coins you care about in Markets.</T> : null}
+      {shown.length === 0 ? <T dim>No {W().coins} yet. Pick the {W().coins} you care about in Markets.</T> : null}
       {shown.map((c, i) => (
         <View key={c.coin}>
           {i ? <Divider /> : null}
@@ -123,7 +124,7 @@ export function CoinLine({ c, stance }: { c: any; stance?: string }) {
         style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: C.text, fontSize: 15, fontWeight: "700" }}>{name}</Text>
-          <Text style={{ color: C.dim, fontSize: 12 }} numberOfLines={1}>{stance ?? `${c.coin}${c.trend_1h ? ` · 1h ${String(c.trend_1h).toLowerCase()}` : ""}`}</Text>
+          <Text style={{ color: C.dim, fontSize: 12 }} numberOfLines={1}>{stance ?? `${c.coin}${c.trend_1h ? ` · ${W().trend_short} ${String(c.trend_1h).toLowerCase()}` : ""}`}</Text>
         </View>
         {c.spark?.length ? <Spark data={c.spark} color={pnlColor(c.day_pct)} /> : null}
         <View style={{ alignItems: "flex-end", minWidth: 82 }}>
@@ -184,7 +185,7 @@ export function MarketRule({ mk }: { mk: any }) {
   const allowed = mk.regime === "ALLOWED";
   const crossing = (allowed && mk.live_side === "below") || (!allowed && mk.live_side === "above");
   return (
-    <Card onPress={() => router.push("/coin/BTC")}>
+    <Card onPress={() => { if (W().rule_who !== "Nifty") router.push("/coin/BTC"); }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <T dim small>The market rule</T>
         <View style={{ backgroundColor: allowed ? C.goodSoft : C.warnSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
@@ -192,10 +193,10 @@ export function MarketRule({ mk }: { mk: any }) {
         </View>
       </View>
       <Text style={{ color: C.text, fontSize: 16, fontWeight: "600", lineHeight: 22 }}>
-        Bitcoin is {Math.abs(mk.vs_pct).toFixed(0)}% {mk.vs_pct >= 0 ? "above" : "below"} its 50-day average. {allowed ? "Buying is allowed." : "Ananta stays careful."}
+        {W().rule_who} is {Math.abs(mk.vs_pct).toFixed(0)}% {mk.vs_pct >= 0 ? "above" : "below"} its 50-day average. {allowed ? (W().rule_who === "Nifty" ? "An uptrend: breakouts are in season." : "Buying is allowed.") : (W().rule_who === "Nifty" ? "A downtrend: Ananta looks for reversals and keeps breakouts rare." : "Ananta stays careful.")}
       </Text>
-      {crossing ? <T small style={{ color: C.warn }}>Bitcoin crossed the line today: the daily close decides.</T> : null}
-      <LineChart height={110} series={[{ data: mk.closes, color: C.text, width: 1.6, label: "Bitcoin" }, { data: mk.ema, color: C.accent, dashed: true, label: "50-day" }]}
+      {crossing ? <T small style={{ color: C.warn }}>{W().rule_who} crossed the line today: the daily close decides.</T> : null}
+      <LineChart height={110} series={[{ data: mk.closes, color: C.text, width: 1.6, label: W().rule_who }, { data: mk.ema, color: C.accent, dashed: true, label: "50-day" }]}
         xLabels={["90 days ago", "today"]} />
     </Card>
   );

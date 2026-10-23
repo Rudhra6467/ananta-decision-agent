@@ -148,5 +148,108 @@ def index() -> str:
     return (Path(__file__).parent / "page.html").read_text()
 
 
+# ---- the app's own /v3 contract, filled with Indian data (jarvis/india/views.py): the crypto screens render these unchanged ----
+from jarvis.india import views as india_views  # noqa: E402
+
+
+# ---- Ask Ananta, Indian market (jarvis/india/ask.py): the same routes the chat screen calls on the crypto service ----
+from jarvis.india import ask as india_ask  # noqa: E402
+
+
+class Question(BaseModel):
+    text: str
+    thread: str | None = None
+    mode: str | None = None
+    provider: str | None = None
+    context: dict | None = None
+    source: str | None = None
+
+
+class Rate(BaseModel):
+    id: str
+    rating: int
+
+
+class Second(BaseModel):
+    id: str
+
+
+def _ask_run(fn, *a, **k):
+    try:
+        return fn(*a, **k)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@r.post("/v3/ask")
+def ask_q(b: Question, who: str = Depends(signed_in)) -> dict:
+    return _ask_run(india_ask.ask, who, b.text, b.thread, b.mode, b.context)
+
+
+@r.post("/v3/ask/second")
+def ask_second(b: Second, who: str = Depends(signed_in)) -> dict:
+    for p in india_ask.ASK_DIR.glob("*.jsonl"):
+        for m in india_ask.thread_messages(p.stem):
+            if m.get("id") == b.id and m.get("role") == "assistant":
+                return {**{k: v for k, v in m.items() if k != "usage"}, "second_of": b.id}
+    raise HTTPException(status_code=404, detail="no such answer")
+
+
+@r.post("/v3/ask/rate")
+def ask_rate(b: Rate, who: str = Depends(signed_in)) -> dict:
+    return india_ask.rate(b.id, b.rating)
+
+
+@r.post("/v3/ask/speaker")
+def ask_speaker(who: str = Depends(signed_in)) -> dict:
+    return {"ok": True}
+
+
+@r.get("/v3/ask/threads")
+def ask_threads(who: str = Depends(signed_in)) -> dict:
+    return {"threads": india_ask.threads()}
+
+
+@r.get("/v3/ask/last")
+def ask_last(who: str = Depends(signed_in)) -> dict:
+    return india_ask.last()
+
+
+@r.get("/v3/ask/stats")
+def ask_stats(who: str = Depends(signed_in)) -> dict:
+    return india_ask.stats()
+
+
+@r.get("/v3/ask/thread/{thread}/export")
+def ask_export(thread: str, who: str = Depends(signed_in)) -> dict:
+    return {"text": india_ask.export(thread)}
+
+
+@r.post("/v3/ask/thread/{thread}/delete")
+def ask_delete(thread: str, who: str = Depends(signed_in)) -> dict:
+    return india_ask.delete_thread(thread)
+
+
+@r.get("/v3/ask/thread/{thread}")
+def ask_thread(thread: str, who: str = Depends(signed_in)) -> dict:
+    return {"messages": india_ask.thread_view(thread)}
+
+
+@r.get("/v3/{name:path}")
+def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
+    fn = india_views.ROUTES.get(name)
+    if fn is None:
+        raise HTTPException(status_code=404, detail=f"India has no view for /v3/{name} yet")
+    try:
+        return fn()
+    except Exception as e:   # noqa: BLE001 - a view that cannot build says so; the screen shows the error box, never a half page
+        raise HTTPException(status_code=503, detail=f"India view {name} could not build: {e.__class__.__name__}: {str(e)[:120]}") from e
+
+
+@r.get("/history")
+def history(days: int = 30, who: str = Depends(signed_in)) -> dict:
+    return india_views.history(days)
+
+
 app.include_router(r)                      # on this Mac: http://127.0.0.1:8110/...
 app.include_router(r, prefix="/india")     # through the tunnel: https://api.livetrading247.com/india/... (same token as the crypto app)

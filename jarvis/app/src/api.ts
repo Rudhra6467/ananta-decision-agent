@@ -1,6 +1,7 @@
 // Talks to the Ananta service (owner only). The token and server address live in the phone's secure storage.
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
+import { getMarket, loadMarket } from "./market";
 
 const DEFAULT_SERVER: string = (Constants.expoConfig?.extra as any)?.defaultServer ?? "https://api.livetrading247.com";
 
@@ -34,8 +35,20 @@ export class ApiError extends Error {
 
 // Every call gives up after timeoutMs (default 60 s), so a dropped connection can never leave a screen waiting forever.
 // quiet = a background refresh the person did not ask for: it does not keep the sign-in alive (3 hours without use signs out).
+// One app, two backends (23 Oct): with the Indian market loaded, the screens' own routes (/v3/..., /history) go to /india on the same
+// server, where the India service answers the same contract with Indian data. Account-level routes (sign-in, who I am, practice,
+// onboarding, spend, settings, push) always stay on the sign-in service: one login, one account.
+const SHARED = ["/auth/", "/v3/me", "/v3/practice", "/v3/onboard", "/v3/spend", "/v3/settings", "/v3/push", "/v3/feedback", "/v3/people", "/v3/join"];
+export function routeFor(path: string): string {
+  if (getMarket() !== "india") return path;
+  if (SHARED.some((s) => path === s || path.startsWith(s))) return path;
+  return (path.startsWith("/v3/") || path.startsWith("/history")) ? "/india" + path : path;
+}
+
 export async function api<T = any>(path: string, body?: object, timeoutMs = 60000, quiet = false): Promise<T> {
+  await loadMarket();                                   // the market choice is read once from this device before any route is picked
   const [base, tok] = [await server(), await token()];
+  path = routeFor(path);
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   let r: Response;

@@ -26,6 +26,7 @@ import { ExposureDial, WholeMarket } from "../../src/universe";
 import { AnantaMarket, GuestBook } from "../../src/books";
 import { Segmented } from "../../src/ui";
 import { VoiceBtn, VoiceStrip, type VoiceSpec } from "../../src/sectionvoice";
+import { W } from "../../src/market";
 
 const GROUP: Record<string, string> = { my_coins: "My coins", all: "All 10 coins", large: "The large coins" };
 const watchWho = (w: any) => (w.group ? GROUP[w.group] ?? w.group : (w.coins ?? []).map((c: string) => COIN_NAME[c] ?? c).join(", "));
@@ -78,8 +79,8 @@ function MarketPage({ me, own }: { me: any; own: boolean }) {
       + " A watch tells you when its setup gets close, and when it fires." };
   const coinsVoice: VoiceSpec = { id: "markets.coins", label: "the coins Ananta watches", back: "markets:markets", spot: "markets.coins", screen: "markets",
     questions: ["Which coin looks strongest right now?", "Which coins are near support?", "Why these ten coins?"],
-    say: () => `These are the ${coins.length} coins Ananta watches most closely: ${coins.slice(0, 10).map((c: any) => COIN_NAME[c.coin] ?? c.coin).join(", ")}.`
-      + " Each line shows the price, today's change and the one-hour trend. Tap a coin for its page, or plus to watch it." };
+    say: () => `These are the ${coins.length} ${W().coins} Ananta watches most closely: ${coins.slice(0, 10).map((c: any) => COIN_NAME[c.coin] ?? c.coin).join(", ")}.`
+      + ` Each line shows the price, today's change and the ${W().trend_short === "1h" ? "one-hour" : "day's"} trend. Tap a ${W().coin} for its page, or plus to watch it.` };
   return (
     <Screen loading={loading} onRefresh={() => { reload(); reloadW(); }}>
       <Decision spot="markets.decision" verb={dec.verb} rest={dec.rest} why={dec.why}
@@ -97,11 +98,11 @@ function MarketPage({ me, own }: { me: any; own: boolean }) {
         </Card>
         </Spot>
         <Spot id="markets.coins">
-        <Section title={myCoins.length ? `Your coins · ${coins.length}` : `Coins Ananta watches · ${coins.length}`} right={
+        <Section title={myCoins.length ? `Your ${W().coins} · ${coins.length}` : `${W().Coins} Ananta watches · ${coins.length}`} right={
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><T small>+ to watch</T><VoiceBtn v={coinsVoice} /></View>} />
         <Card>
           <VoiceStrip id="markets.coins" />
-          {coins.length === 0 ? <ListState state="empty" text="No coins yet." action={{ label: "+ Watch", onPress: () => setAdd(true) }} /> : null}
+          {coins.length === 0 ? <ListState state="empty" text={`No ${W().coins} yet.`} action={{ label: "+ Watch", onPress: () => setAdd(true) }} /> : null}
           {coins.map((c: any, i: number) => <View key={c.coin}>{i ? <Divider /> : null}<Spot id={`markets.coin:${c.coin}`}><CoinLine c={c} stance={stance[c.coin]} /></Spot></View>)}
         </Card>
         </Spot>
@@ -225,16 +226,16 @@ function stanceShort(r: any): string {
 // the market in one sentence: the dial, then how many coins are ready and what the rest wait for
 function marketDecision(dial: any, rows: any[], n: number): { verb: string; rest?: string; why: string } {
   const open = dial?.dial != null && dial.dial > 0;
-  if (dial?.dial == null) return { verb: "Reading the market", why: "Bitcoin's daily close decides whether buying is allowed." };
+  if (dial?.dial == null) return { verb: "Reading the market", why: W().dial_reads };
   const ready = rows.filter((r: any) => r.verdict !== "NO TRADE").length;
   const stops: Record<string, number> = {};
   rows.forEach((r: any) => { const g = (r.gates ?? []).find((x: any) => x.status === "FAIL"); if (g) stops[g.gate] = (stops[g.gate] ?? 0) + 1; });
   const top = Object.entries(stops).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([g, k]) => `${k} ${WAIT_MANY[g] ?? String(g).toLowerCase()}`);
-  const verb = open ? "Buying allowed" : "No new buys";
-  const rest = rows.length ? `· ${ready} of ${rows.length || n} coins ready` : undefined;
+  const verb = open ? W().ready_verb_open : W().ready_verb_closed;
+  const rest = rows.length ? `· ${ready} of ${rows.length || n} ${W().coins} ready` : undefined;
   const why = open
-    ? (rows.length ? (ready ? `${ready} pass every step.` : `None passes every step yet: ${top.join(", ")}.`) : "Bitcoin is above its 50- and 200-day averages.")
-    : "Bitcoin closed below its averages: cash is the position until it crosses back.";
+    ? (rows.length ? (ready ? `${ready} pass every step.` : `None passes every step yet: ${top.join(", ")}.`) : W().dial_open_market)
+    : W().dial_closed_market;
   return { verb, rest, why };
 }
 function plainLine(r: any): string {
@@ -265,7 +266,7 @@ function AddWatch({ open, onClose, kinds, groups, coins, onDone }: { open: boole
   );
   return (
     <ExplainSheet open={open} onClose={onClose} title="Watch for me">
-      <T dim small>Which coins?</T>
+      <T dim small>Which {W().coins}?</T>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {Object.entries(groups).map(([g, l]) => chip(grp === g, String(l).split(" (")[0], () => { setGrp(grp === g ? null : g); setPick([]); }))}
       </View>

@@ -1,6 +1,6 @@
 {
  "version": "layers.v1",
- "updated": "2026-10-15",
+ "updated": "2026-10-23",
  "meaning": {
   "layer": "0 = highest authority. A lower number overrides a higher one; data errors (1) poison everything above them.",
   "status": {
@@ -1642,6 +1642,27 @@
    "files": [
     "worker/collector.py",
     "worker/install_worker.sh"
+   ]
+  },
+  {
+   "id": "INDIA_APP",
+   "name": "India Ananta behind the one app (Indian market option)",
+   "layer": 8,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "MADHAV"
+   ],
+   "feeds": [
+    "MADHAV"
+   ],
+   "evidence": "reads only the India read model and paper ledgers (records repo); speaks the app's own /v3 contract; no order path (India leakcheck 9/9); paper only, read-only until the India gate",
+   "files": [
+    "jarvis/india/service.py",
+    "jarvis/india/views.py",
+    "jarvis/india/ask.py",
+    "jarvis/india/voice.py"
    ]
   }
  ],

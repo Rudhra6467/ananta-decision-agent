@@ -43,7 +43,8 @@ def default_paths() -> dict:
     return {"agent": os.getenv("ANANTA_AGENT_DIR", str(home / "code" / "ananta-decision-agent")),
             "runs": os.getenv("ANANTA_RUNS_DIR", str(home / "ananta_runs")),
             "repo": str(Path(__file__).resolve().parents[2]),
-            "worker": str(home / "ananta_worker_data"), "backups": str(home / "ananta_backups")}
+            "worker": str(home / "ananta_worker_data"), "backups": str(home / "ananta_backups"),
+            "india": os.getenv("ANANTA_INDIA_DATA", str(home / "ananta_data" / "india"))}
 
 
 def _tz(name: str | None):
@@ -70,8 +71,27 @@ def grace(cad: dict) -> int:
     return int(cad["grace"]) if "grace" in cad else int(cad["every"]) if "every" in cad else 3 * 3600
 
 
+_HOLIDAYS: dict[str, frozenset] = {}
+
+
+def holidays(paths: dict) -> frozenset:
+    """NSE trading holidays (ISO dates) from the India lake's own calendar file; empty when the file is missing or unreadable, so a
+    session part is then judged on weekdays alone (Oct 23: India's session parts skip these days; the calendar is NSE's CM list)."""
+    p = str(Path(paths["india"]) / "manifests" / "nse_holidays_2026.json")
+    if p not in _HOLIDAYS:
+        days = set()
+        try:
+            cal = json.loads(Path(p).read_text())
+            for row in (cal.get("CM") or cal.get("CBM") or []):
+                days.add(datetime.strptime(row["tradingDate"], "%d-%b-%Y").date().isoformat())
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            pass
+        _HOLIDAYS[p] = frozenset(days)
+    return _HOLIDAYS[p]
+
+
 def instants(cad: dict, start: int, end: int) -> list[int]:
-    """Every scheduled run time in [start, end] (epoch seconds)."""
+    """Every scheduled run time in [start, end] (epoch seconds). "skip": dates (ISO, in the cadence's tz) with no run (holidays)."""
     if "every" in cad:
         s, off = int(cad["every"]), int(cad.get("offset", 0))
         first = -(-(start - off) // s) * s + off
@@ -82,7 +102,7 @@ def instants(cad: dict, start: int, end: int) -> list[int]:
     out = []
     while d <= last:
         ok = d.weekday() == int(cad["weekly"]) if "weekly" in cad else ("days" not in cad or str(d.weekday()) in cad["days"])
-        if ok:
+        if ok and d.isoformat() not in cad.get("skip", ()):
             t = int(datetime(d.year, d.month, d.day, hh, mm, tzinfo=tz).timestamp())
             if start <= t <= end:
                 out.append(t)
@@ -194,12 +214,15 @@ def _miss(part: dict, kind: str, t: int, to: int, found: float | None = None, de
     cad = part.get("cadence") or {}
     return {"part": part["id"], "name": part["name"], "severity": part.get("severity", "medium"), "area": part.get("area", "crypto"),
             "kind": kind, "t": int(t), "to": int(to), "runs": 1, "found": found, "needed": part.get("min_work"), "detail": detail,
-            "utc_day": "daily" in cad and cad.get("tz", "UTC") == "UTC"}
+            "utc_day": "daily" in cad and cad.get("tz", "UTC") == "UTC",
+            "day_tz": cad.get("tz") if "daily" in cad and cad.get("tz") not in (None, "UTC", SHOW_TZ) else None}
 
 
 def judge(part: dict, paths: dict, now: int, span: int) -> dict:
     """{expected, ok, misses, not_checked} for the scheduled runs of the last `span` seconds that are complete (past their grace)."""
     cad, pr = part["cadence"], part["proof"]
+    if cad.get("holidays"):                              # a market's session days: weekdays less its exchange holidays
+        cad = {**cad, "skip": holidays(paths)}
     res = {"part": part["id"], "name": part["name"], "area": part.get("area", "crypto"), "expected": 0, "ok": 0, "misses": [],
            "not_checked": None}
     if "none" in pr:
@@ -372,6 +395,8 @@ def run(paths: dict | None = None, now: float | None = None, parts: list[dict] |
         out["windows"][label] = {
             "parts": len(judged), "expected": sum(r["expected"] or 0 for r in judged), "ok": sum(r["ok"] or 0 for r in judged),
             "misses": misses, "not_checked": [{"part": r["part"], "name": r["name"], "why": r["not_checked"]} for r in judged if r["not_checked"]],
+            "by_area": {a: {"expected": sum(r["expected"] or 0 for r in judged if (r["area"] == "india") == (a == "india")),
+                            "ok": sum(r["ok"] or 0 for r in judged if (r["area"] == "india") == (a == "india"))} for a in ("crypto", "india")},
             "by_part": {r["part"]: {"expected": r["expected"], "ok": r["ok"], "missed": len(r["misses"])} for r in judged}}
     return out
 
@@ -387,9 +412,17 @@ def _utc_day(t: int) -> str:
     return datetime.fromtimestamp(t, timezone.utc).strftime("%b %d").replace(" 0", " ")
 
 
+def _day_in(t: int, tz: str) -> str:
+    return datetime.fromtimestamp(t, _tz(tz)).strftime("%b %d").replace(" 0", " ")
+
+
 def _line(m: dict) -> str:
     if m.get("utc_day") and m["kind"] != "down":          # a daily-close part: name the UTC day, not a Toronto evening
         span = f"UTC day {_utc_day(m['t'])}" if m["runs"] == 1 else f"UTC days {_utc_day(m['t'])} to {_utc_day(m['to'] - 1)}"
+    elif m.get("day_tz") and m["kind"] != "down":         # a session in another market's clock (India: IST), named by its date
+        tz = m["day_tz"]
+        word = "IST session" if tz == "Asia/Kolkata" else f"{tz} day"
+        span = f"{word} {_day_in(m['t'], tz)}" if m["runs"] == 1 else f"{word}s {_day_in(m['t'], tz)} to {_day_in(m['to'] - 1, tz)}"
     elif m["runs"] == 1 and m["kind"] not in ("down", "lost"):
         span = _when(m["t"])
     else:
@@ -410,20 +443,21 @@ def markdown(res: dict, limit: int = 25) -> str:
     w24, w7 = res["windows"]["24h"], res["windows"]["7d"]
     L.append(f"Checked read-only at {_when(res['now'])} Toronto: {w7['parts']} parts (jarvis/service/runcheck.py). "
              "Times are Toronto; daily-close parts name their UTC day.")
-    for label, w in (("Last 24 hours", w24), ("Last 7 days", w7)):
-        crypto = [m for m in w["misses"] if m["area"] != "india"]
-        L.append("")
-        if not crypto:
-            L.append(f"**{label}: none.** {w['ok']:,} of {w['expected']:,} scheduled runs found with their work done.")
-        else:
-            L.append(f"**{label}: {len(crypto)} miss{'es' if len(crypto) != 1 else ''}** "
-                     f"({w['ok']:,} of {w['expected']:,} scheduled runs found with their work done).")
-            L += [_line(m) for m in crypto[:limit]]
-            if len(crypto) > limit:
-                L.append(f"- ... and {len(crypto) - limit} more (python -m jarvis.service.runcheck --json)")
-    india = [m for m in w24["misses"] if m["area"] == "india"]
-    L += ["", "**India (read-only, latest run of each job):** " + ("none." if not india else "")]
-    L += [_line(m) for m in india]
+    for area, title in (("crypto", ""), ("india", "India, ")):
+        for label, w in (("last 24 hours", w24), ("last 7 days", w7)):
+            ms = [m for m in w["misses"] if (m["area"] == "india") == (area == "india")]
+            ok, exp = w["by_area"][area]["ok"], w["by_area"][area]["expected"]
+            L.append("")
+            if not ms:
+                L.append(f"**{title}{label.capitalize() if not title else label}: none.** {ok:,} of {exp:,} scheduled runs found with their work done.")
+            else:
+                L.append(f"**{title}{label.capitalize() if not title else label}: {len(ms)} miss{'es' if len(ms) != 1 else ''}** "
+                         f"({ok:,} of {exp:,} scheduled runs found with their work done).")
+                L += [_line(m) for m in ms[:limit]]
+                if len(ms) > limit:
+                    L.append(f"- ... and {len(ms) - limit} more (python -m jarvis.service.runcheck --json)")
+    L += ["", "India is read-only: the checker reads its session files (decisions, the read model, the league, the ledger snapshot, "
+          "the recorder) on NSE session days, and each job's latest log."]
     nc = [n for n in w24["not_checked"] if n["why"] and not n["why"].startswith(("no run due", "not started"))]
     if nc:
         L += ["", "**Cannot be checked (no dated proof):** " + "; ".join(f"{n['name']} ({n['why']})" for n in nc) + "."]

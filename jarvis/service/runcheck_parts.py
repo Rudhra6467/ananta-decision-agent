@@ -38,6 +38,7 @@ Paths: {agent} the agent folder (databases), {runs} ~/ananta_runs, {repo} this c
 from __future__ import annotations
 
 TOR = "America/Toronto"
+IST = "Asia/Kolkata"
 J = "{agent}/jarvis.sqlite"
 
 PARTS: list[dict] = [
@@ -227,7 +228,50 @@ PARTS: list[dict] = [
     {"id": "awake", "name": "Keep-awake", "job": "com.ananta.awake", "severity": "low", "since": "2026-10-11", "cadence": {"every": 3600},
      "proof": {"none": "no record of its own; a sleeping Mac shows as gaps in jobs_loop and explorer_scans"}},
 
-    # ---------------------------------------------------------------- India (read-only; only the latest run has dated proof)
+    # ---------------------------------------------------------------- India (read-only): session proofs (Oct 23, plan "to the review point")
+    # Each is a dated file or row the India jobs write for a session; cadence "holidays": True skips NSE holidays (the lake's own list).
+    {"id": "india_sp1_session", "name": "India SP1 index line: the session's decisions recorded (09:15-10:15 IST)", "job": "com.ananta.india.sp1paper",
+     "area": "india", "severity": "high", "since": "2026-10-21",
+     "cadence": {"daily": "09:15", "tz": IST, "days": "01234", "holidays": True, "grace": 3 * 3600}, "min_work": 1,
+     "proof": {"log": "{india}/paper/sp1/decisions.jsonl",
+               "regex": r'"kind": "(?P<k>[a-z_]+)", "date": "(?P<d>\d{4}-\d\d-\d\d)"(?:, "at": "[^"]*", "error": "(?P<err>[^"]{0,140}))?',
+               "tz": IST}},
+    {"id": "india_ledger", "name": "India ledger snapshot (gate counter D16; 12:30 Toronto, session days)", "job": "com.ananta.india.recorder_noon",
+     "area": "india", "severity": "high", "since": "2026-10-21",
+     "cadence": {"daily": "12:30", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
+     "proof": {"files": "{india}/bronze/ledger/{date}.json", "min_bytes": 1000}},
+    {"id": "india_decisions", "name": "India stock paper book: the session's decision journal", "job": "com.ananta.india.paper", "area": "india",
+     "severity": "high", "since": "2026-10-21", "cadence": {"daily": "22:30", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
+     "proof": {"files": "{india}/paper/decisions/{date}.json", "min_bytes": 500}},
+    {"id": "india_readmodel", "name": "India read model built with no missing section (what the app, Ask and voice read)", "job": "com.ananta.india.paper",
+     "area": "india", "severity": "medium", "since": "2026-10-21",
+     "cadence": {"daily": "22:30", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
+     "proof": {"files": "{india}/readmodel/{date}.json", "min_bytes": 2000, "must_contain": '"missing": []'}},
+    {"id": "india_call", "name": "India daily call written (K02)", "job": "com.ananta.india.paper", "area": "india", "severity": "medium",
+     "since": "2026-10-19", "cadence": {"daily": "22:30", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600}, "min_work": 1,
+     "proof": {"log": "{india}/paper/calls.jsonl", "regex": r'"kind": "call", .*?"data_through": "(?P<d>\d{4}-\d\d-\d\d)"', "tz": TOR}},
+    {"id": "india_league", "name": "India reference-traders league page", "job": "com.ananta.india.paper", "area": "india", "severity": "medium",
+     "since": "2026-10-19", "cadence": {"daily": "22:30", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
+     "proof": {"files": "{india}/manifests/others_{date}.json", "min_bytes": 500, "must_contain": '"status": "ok"'}},
+    {"id": "india_missed", "name": "India missed-movers review", "job": "com.ananta.india.paper", "area": "india", "severity": "medium",
+     "since": "2026-10-19", "cadence": {"daily": "22:30", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
+     "proof": {"files": "{india}/manifests/missed_{date}.json", "min_bytes": 500, "must_contain": '"status": "ok"'}},
+    {"id": "india_recorder", "name": "India option recorder: minutes saved for the session (noon and evening fetches)", "job": "com.ananta.india.recorder_noon",
+     "area": "india", "severity": "medium", "since": "2026-10-19",
+     "cadence": {"daily": "12:30", "tz": TOR, "days": "01234", "holidays": True, "grace": 10 * 3600}, "min_work": 1_000_000,
+     "proof": {"log": "{india}/manifests/kite_1m_fo.jsonl",
+               "regex": r'"fetched_at": "(?P<t>\d{4}-\d\d-\d\dT\d\d:\d\d)[^\n]*?"n": (?P<work>\d+), "status": "(?P<err>\w+)"',
+               "time_format": "%Y-%m-%dT%H:%M", "tz": "UTC", "ok_err": "ok"}},
+    {"id": "india_report", "name": "India evening portfolio report", "job": "com.ananta.india.evening", "area": "india", "severity": "low",
+     "since": "2026-10-19", "cadence": {"daily": "19:00", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
+     "proof": {"files": "{india}/reports/portfolio_{date}.md", "min_bytes": 200}},
+    {"id": "india_autologin", "name": "India Kite auto sign-in (21:40 and 21:52 Toronto, Sun-Thu)", "job": "com.ananta.india.autologin",
+     "area": "india", "severity": "high", "since": "2026-10-23", "from_first": True,
+     "cadence": {"daily": "21:40", "tz": TOR, "days": "01236", "grace": 3600}, "min_work": 1,
+     "proof": {"log": "{runs}/kite_autologin.log", "regex": r"^(?P<t>\d{4}-\d\d-\d\dT\d\d:\d\d)[^ ]* auto sign-in (?P<err>FAILED.{0,120})?",
+               "time_format": "%Y-%m-%dT%H:%M", "tz": "UTC", "before_first": "no dated sign-in record yet; the first run writes it"}},
+
+    # ---------------------------------------------------------------- India (read-only; each job's latest run)
     {"id": "india_nightly", "name": "India nightly", "job": "com.ananta.india.nightly", "area": "india", "severity": "medium",
      "since": "2026-10-18", "cadence": {"daily": "02:30", "tz": TOR, "grace": 2 * 3600}, "latest_only": True,
      "proof": {"mtime": "{runs}/india_nightly.log", "err_file": "{runs}/india_nightly.err"}},

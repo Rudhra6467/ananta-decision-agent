@@ -286,7 +286,7 @@ if __name__ == "__main__":
         except Exception as e:   # noqa: BLE001 - every reason goes to the log and the phone, never a secret
             why = str(e)[:300]
             _log(f"auto sign-in FAILED: {why}")
-            _ntfy(f"Kite auto sign-in failed: {why}. Open http://127.0.0.1:8100/kite/login on the Mac.")
+            _ntfy(f"Kite auto sign-in failed: {why}. Sign in by hand before 23:40 Toronto (09:10 IST) or the next NSE session is lost: open http://127.0.0.1:8100/kite/login on the Mac.")
             print(json.dumps({"ok": False, "why": why}))
             sys.exit(1)
     else:

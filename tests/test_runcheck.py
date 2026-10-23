@@ -18,7 +18,7 @@ D0 = NOW - NOW % DAY                                       # Oct 20 00:00 UTC
 
 
 def _paths(tmp: Path) -> dict:
-    p = {k: str(tmp / k) for k in ("agent", "runs", "repo", "worker", "backups")}
+    p = {k: str(tmp / k) for k in ("agent", "runs", "repo", "worker", "backups", "india")}
     for v in p.values():
         Path(v).mkdir(parents=True, exist_ok=True)
     return p
@@ -254,7 +254,73 @@ def test_india_job_that_wrote_stderr_during_its_run_is_errored(tmp_path):
     res = runcheck.run(paths, NOW, [_part("india_evening")])
     ms = _misses(res, "24h")
     assert len(ms) == 1 and ms[0]["kind"] == "errored" and ms[0]["area"] == "india"
-    assert "India (read-only" in runcheck.markdown(res) and "india_evening.err written during the run" in runcheck.markdown(res)
+    assert "**India, last 24 hours: 1 miss**" in runcheck.markdown(res) and "india_evening.err written during the run" in runcheck.markdown(res)
+
+
+def _india_calendar(paths: dict, holidays: list[str]) -> None:
+    import json
+    p = Path(paths["india"], "manifests", "nse_holidays_2026.json")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"CM": [{"tradingDate": h, "weekDay": "", "description": "test"} for h in holidays]}))
+    runcheck._HOLIDAYS.clear()
+
+
+def test_india_sp1_session_lost_to_a_dead_token_is_a_high_errored_miss_named_by_its_ist_date(tmp_path):
+    """Oct 21-23: three IST sessions wrote only an error row ("no Kite sign-in by 09:10 IST"). Before Oct 23 the checker saw the
+    SP1 job's latest log only; now every session day needs decision rows, named by the session's IST date, and Oct 20 (an NSE
+    holiday) is not expected."""
+    paths = _paths(tmp_path)
+    _india_calendar(paths, ["20-Oct-2026"])
+    f = Path(paths["india"], "paper", "sp1", "decisions.jsonl")
+    f.parent.mkdir(parents=True)
+    rows = ['{"kind": "plan", "date": "2026-10-16", "at": "2026-10-16T09:15:00+05:30", "x": 1}',
+            '{"kind": "decision", "date": "2026-10-16", "at": "2026-10-16T09:30:00+05:30", "x": 1}',
+            '{"kind": "decision", "date": "2026-10-19", "at": "2026-10-19T09:15:00+05:30", "x": 1}',
+            '{"kind": "error", "date": "2026-10-20", "at": "2026-10-20T09:10:07+05:30", "error": "no Kite sign-in by 09:10 IST: the Kite token expired at 6 am IST", "prev_hash": "a"}']
+    f.write_text("\n".join(rows) + "\n")
+    now = calendar.timegm((2026, 10, 20, 14, 0, 0))                                # Oct 20 10:00 Toronto = 19:30 IST
+    res = runcheck.run(paths, now, [_part("india_sp1_session", since="2026-10-15")])
+    ms = _misses(res)
+    # Oct 15 (Thu) has no rows -> no run; Oct 16 and 19 are fine; Oct 20 is a holiday and its error row is not a session
+    assert [(m["kind"], m["severity"]) for m in ms] == [("no run", "high")]
+    assert res["windows"]["7d"]["by_area"]["india"] == {"expected": 3, "ok": 2}
+    md = runcheck.markdown(res)
+    assert "IST session Oct 15" in md and "**India, last 7 days: 1 miss**" in md and "**Last 7 days: none.**" in md
+
+    _india_calendar(paths, [])                                                     # without the holiday, the error row is an errored session
+    res = runcheck.run(paths, now, [_part("india_sp1_session", since="2026-10-15")])
+    kinds = sorted(m["kind"] for m in _misses(res))
+    assert kinds == ["errored", "no run"] and any("no Kite sign-in by 09:10 IST" in m["detail"] for m in _misses(res))
+
+
+def test_india_session_files_are_judged_per_session_day(tmp_path):
+    """The read model, the decision journal and the ledger snapshot are one dated file per session; a missing or thin file is a miss,
+    a read model with a missing section is an empty run."""
+    import json
+    paths = _paths(tmp_path)
+    _india_calendar(paths, [])
+    rm = Path(paths["india"], "readmodel"); rm.mkdir(parents=True)
+    led = Path(paths["india"], "bronze", "ledger"); led.mkdir(parents=True)
+    for d in ("2026-10-15", "2026-10-16", "2026-10-19"):
+        rm.joinpath(f"{d}.json").write_text(json.dumps({"data_through": d, "missing": [] if d != "2026-10-19" else ["sp1"], "pad": "x" * 2500}))
+        led.joinpath(f"{d}.json").write_text(json.dumps({"holdings": [], "pad": "x" * 1200}))
+    now = calendar.timegm((2026, 10, 20, 14, 0, 0))
+    res = runcheck.run(paths, now, [_part("india_readmodel", since="2026-10-16"), _part("india_ledger", since="2026-10-16")])
+    ms = _misses(res)
+    assert [(m["part"], m["kind"]) for m in ms] == [("india_readmodel", "empty")]   # Oct 20's files are not due yet; Oct 19's read model misses a section
+    assert any("no '\"missing\": []'" in m["detail"] for m in ms if m["part"] == "india_readmodel")
+    assert res["windows"]["7d"]["by_area"]["india"]["ok"] == 4
+
+
+def test_holiday_calendar_is_read_from_the_lake_and_absent_means_weekdays(tmp_path):
+    paths = _paths(tmp_path)
+    runcheck._HOLIDAYS.clear()
+    assert runcheck.holidays(paths) == frozenset()                                 # no file: nothing skipped, nothing raised
+    _india_calendar(paths, ["20-Oct-2026", "08-Nov-2026"])
+    assert runcheck.holidays(paths) == {"2026-10-20", "2026-11-08"}
+    cad = {"daily": "09:15", "tz": "Asia/Kolkata", "days": "01234", "skip": runcheck.holidays(paths)}
+    days = runcheck.instants(cad, calendar.timegm((2026, 10, 18, 0, 0, 0)), calendar.timegm((2026, 10, 23, 0, 0, 0)))
+    assert len(days) == 3                                                          # Mon 19, Wed 21, Thu 22: Tue 20 is the holiday
 
 
 # ---------------------------------------------------------------------------- the review section, read-only, a missing source
@@ -265,7 +331,7 @@ def test_the_section_is_never_omitted_and_says_none(tmp_path):
     assert md.startswith("## Lost or empty runs\n")
     assert "**Last 24 hours: none.**" in md and "**Last 7 days: none.**" in md
     assert "Cannot be checked (no dated proof):** Outside watchdog" in md          # listed every time, never dropped
-    assert "India (read-only, latest run of each job):** none." in md
+    assert "**India, last 24 hours: none.**" in md and "**India, last 7 days: none.**" in md
 
 
 def test_the_checker_never_writes(tmp_path):
@@ -294,7 +360,7 @@ def test_a_missing_proof_source_is_one_clear_line_not_hundreds(tmp_path):
 LAUNCHD = ["com.ananta.jarvis", "com.ananta.explorer", "com.ananta.website", "com.ananta.voice", "com.ananta.telugu", "com.ananta.tunnel",
            "com.ananta.awake", "com.ananta.watchdog", "com.ananta.backup", "com.ananta.mongoarchive", "com.ananta.lake",
            "com.ananta.india.evening", "com.ananta.india.nightly", "com.ananta.india.paper", "com.ananta.india.recorder_noon",
-           "com.ananta.india.sp1paper", "com.ananta.india.sp1paper.score", "com.ananta.india.spreads"]
+           "com.ananta.india.sp1paper", "com.ananta.india.sp1paper.score", "com.ananta.india.spreads", "com.ananta.india.autologin"]
 
 
 def test_every_part_is_well_formed():

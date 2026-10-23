@@ -264,6 +264,13 @@ def job_report(label: str, lc: dict, agents: Path, now: dt.datetime, ctx: dict) 
     r = {"label": label, "pid": lc.get("pid"), "last_exit": lc.get("last_exit"), "due": due, "last_output": last_out, "proof_ok": ok, "proof": found,
          "errors": _errors(err_lines), "token_dead": _token_dead(err_lines), "problems": []}
     running = r["pid"] is not None
+    if pl.get("KeepAlive") and not pl.get("StartCalendarInterval"):       # a service (the India web app), not a job: healthy means running now
+        r["service"] = True
+        if not running:
+            r["problems"].append("service not running")
+        else:
+            r["problems_note"] = f"running now (pid {r['pid']})"
+        return r
     if r["last_exit"] not in (0, None):
         if r["token_dead"]:
             r["problems"].append(f"exit {r['last_exit']}: token dead" + (", expected (the token was flushed before the session)" if label.endswith(".spreads") else "")

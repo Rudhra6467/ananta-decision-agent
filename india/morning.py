@@ -254,6 +254,9 @@ def job_report(label: str, lc: dict, agents: Path, now: dt.datetime, ctx: dict) 
     out_p = Path(pl["StandardOutPath"]) if pl.get("StandardOutPath") else None
     err_p = Path(pl["StandardErrorPath"]) if pl.get("StandardErrorPath") else None
     due = last_due(pl.get("StartCalendarInterval"), now - GRACE)   # a run due in the last few minutes is judged next time
+    born = _mtime(agents / f"{label}.plist")
+    if due is not None and born is not None and born > due:          # a job created after its last due time has not missed anything yet (23 Oct: new jobs read as lost)
+        due = None
     last_out = max((m for m in (_mtime(out_p), _mtime(err_p)) if m), default=None)
     out_lines = _tail(out_p)
     err_all = _tail(err_p)

@@ -111,13 +111,13 @@ def rate_holding(h: dict, weight: float, row: dict | None, trend: str, r: dict) 
         parts["liquidity"] = w["liquidity"] if (row.get("liq_rank") or 999) <= 50 else (w["liquidity"] * 0.6 if (row.get("liq_rank") or 999) <= 150 else w["liquidity"] * 0.3)
         sma20 = last / (1 + d20) if d20 is not None else None
         sma200 = last / (1 + d200) if d200 is not None else None
-        notes.append(f"{100 * (d200 or 0):+.0f}% from its 200-day, {100 * (d20 or 0):+.0f}% from its 20-day, RSI {rsi:.0f}" if rsi is not None else "")
+        notes.append(_tape_words(d20, d200, rsi))
         rated = True
     else:
         # outside the liquid 250 the research has no tape on it; it is graded on what the account itself shows, and says so
         parts.update({"trend": 0.0, "regime": 0.0, "volatility": 0.0, "liquidity": w["liquidity"] * 0.3})
         sma20 = sma200 = None
-        notes.append("outside the liquid 250, so there is no research tape on it: graded on weight and result only")
+        notes.append("not among the 250 most-traded stocks, so Ananta has no price study on it: graded on its size in your account and its result only")
         rated = False
     wt = 100 * weight
     parts["concentration"] = w["concentration"] if wt <= r["weight_ok_pct"] else (w["concentration"] * 0.5 if wt <= r["weight_high_pct"] else 0.0)
@@ -129,31 +129,32 @@ def rate_holding(h: dict, weight: float, row: dict | None, trend: str, r: dict) 
     g = grade(score)
     sym = h.get("tradingsymbol")
     act, why, wrong = "HOLD", "", ""
+    on_cost = (f", {pnl_pct:+.0f}% on what you paid" if pnl_pct is not None else "")
     if value < r["tiny_inr"]:
         act = "TIDY"
-        why = f"it is only ₹{value:,.0f}, too small to move the account; sell it and let the money work in a position that matters, or add to it on purpose"
-        wrong = "it is worth keeping as a deliberate small stake (then say so and it stays)"
+        why = f"Only ₹{value:,.0f}{on_cost}: too small to matter either way. Sell it and put the money to work, or add to it on purpose."
+        wrong = "you want to keep it as a small deliberate stake (then say so and it stays)"
     elif g == "D":
         act = "REDUCE"
-        why = f"grade D ({score:.0f}/100): {notes[0] if notes[0] else 'weak result and weight'}; it is {wt:.0f}% of your stocks" + (f" and {pnl_pct:+.0f}% on your cost" if pnl_pct is not None else "")
-        wrong = (f"it closes back above ₹{sma20:,.0f} (its 20-day average) on volume" if sma20 else "its result turns positive on rising volume")
+        why = f"Weak ({score:.0f}/100): {notes[0] or 'poor result'}. It is {wt:.0f}% of your stocks{on_cost}. Halving it limits the damage if the slide continues."
+        wrong = (f"it climbs back above ₹{sma20:,.0f}, its one-month average, on good volume" if sma20 else "it turns up on good volume")
     elif g == "C":
         if wt > r["weight_ok_pct"]:
             act = "TRIM"
-            why = f"grade C ({score:.0f}/100) and {wt:.0f}% of your stocks, above the {r['weight_ok_pct']:.0f}% a weak holding should be; trim toward {r['weight_ok_pct']:.0f}%"
-            wrong = (f"it closes back above ₹{sma20:,.0f} (its 20-day average)" if sma20 else "its result turns positive")
+            why = f"Middling ({score:.0f}/100) but {wt:.0f}% of your stocks{on_cost}: more than a middling stock should be. Trim it toward {r['weight_ok_pct']:.0f}%."
+            wrong = (f"it climbs back above ₹{sma20:,.0f}, its one-month average" if sma20 else "it turns up")
         else:
             act = "WATCH"
-            why = f"grade C ({score:.0f}/100): not weak enough to sell, not strong enough to add; {notes[0] if notes[0] else ''}"
-            wrong = (f"it closes below ₹{sma200:,.0f} (its 200-day average)" if sma200 else "it falls another 10% on your cost")
+            why = f"Middling ({score:.0f}/100): not weak enough to sell, not strong enough to add. {notes[0]}"
+            wrong = (f"it closes under ₹{sma200:,.0f}, its long-term average" if sma200 else "it falls another 10%")
     elif g == "A" and wt <= r["add_below_weight_pct"] and trend != "below_both":
         act = "ADD"
-        why = f"grade A ({score:.0f}/100), only {wt:.0f}% of your stocks, and the market is not in a downtrend"
-        wrong = (f"it closes below ₹{sma20:,.0f} (its 20-day average)" if sma20 else "its result turns negative")
+        why = f"Strong ({score:.0f}/100) and only {wt:.0f}% of your stocks, with the market not in a downtrend: room to add."
+        wrong = (f"it closes under ₹{sma20:,.0f}, its one-month average" if sma20 else "it turns down")
     else:
         act = "HOLD"
-        why = f"grade {g} ({score:.0f}/100): {notes[0] if notes[0] else 'result and weight are acceptable'}"
-        wrong = (f"it closes below ₹{sma200:,.0f} (its 200-day average)" if sma200 else "its result turns negative")
+        why = f"{'Strong' if g == 'A' else 'Fine'} ({score:.0f}/100): {notes[0] or 'result and size are acceptable'}{on_cost}. Keep it."
+        wrong = (f"it closes under ₹{sma200:,.0f}, its long-term average" if sma200 else "it turns down")
     if act == "TIDY":
         size = value
     elif act == "REDUCE":
@@ -170,6 +171,18 @@ def rate_holding(h: dict, weight: float, row: dict | None, trend: str, r: dict) 
             "action": act, "why": why, "wrong_if": wrong, "parts": {k: round(v, 1) for k, v in parts.items()}}
 
 
+def _tape_words(d20, d200, rsi) -> str:
+    """What the chart says, in words a person uses: against the long-term average, against the last month, and momentum."""
+    bits = []
+    if d200 is not None:
+        bits.append(f"{abs(100 * d200):.0f}% {'above' if d200 > 0 else 'below'} its long-term average")
+    if d20 is not None:
+        bits.append("flat over the last month" if abs(d20) < 0.015 else f"{abs(100 * d20):.0f}% {'up' if d20 > 0 else 'down'} over the last month")
+    if rsi is not None:
+        bits.append("momentum " + ("strong" if rsi >= 60 else "weak" if rsi <= 40 else "neutral"))
+    return ", ".join(bits)
+
+
 def rate_options(rm: dict, r: dict, opt_value: float) -> dict:
     s = (rm.get("sp1") or {})
     sessions = (s.get("book") or {}).get("sessions") or 0
@@ -181,11 +194,11 @@ def rate_options(rm: dict, r: dict, opt_value: float) -> dict:
     sc += 25 if (vix is not None and vix <= 18) else 10
     sc += 25 if opt_value >= r["options_inr"] * 0.9 else 12
     g = grade(sc)
-    why = f"{sessions} sessions recorded on the index line" + ("; the last session was lost (the sign-in), so there is no evidence yet" if lost else "") + (f"; VIX {vix:.1f}" if vix is not None else "")
+    why = (f"{sessions} session{'s' if sessions != 1 else ''} traded so far" if sessions else "nothing traded on options yet") + ("; the last session was missed because the morning sign-in to Zerodha failed" if lost else "") + (f"; the fear gauge is at {vix:.1f}" if vix is not None else "")
     return {"score": round(sc), "grade": g, "sessions": sessions, "why": why,
             "action": "KEEP SMALL" if sessions < r["evidence_sessions"] else "HOLD",
-            "words": (f"The options sleeve plays one lot at a time until SZ2 sizes it; with {sessions} recorded sessions it has no evidence behind it yet, so most of its ₹{opt_value:,.0f} would sit as margin and cash, not working."
-                      if sessions < r["evidence_sessions"] else "The index line has evidence behind it; size follows SZ2.")}
+            "words": (f"₹{opt_value:,.0f} is set aside for options. Ananta trades one lot at a time there, and it earns a bigger share only after {r['evidence_sessions']} sessions are on record ({sessions} so far); until then most of this money waits as cash."
+                      if sessions < r["evidence_sessions"] else "The options line has a track record; its size follows the sizing study.")}
 
 
 def _regime(rm: dict) -> str:
@@ -214,9 +227,10 @@ def _moves(sleeves: dict, tg: dict, ratings: list[dict], cands: list[dict], r: d
         amt = min(opt_gap, budget)
         amt = round(amt / 100) * 100
         if amt >= r["min_move_inr"]:
+            regime = {"below_both": "in a downtrend", "above_both": "in an uptrend", "mixed": "with no clear trend"}.get(tg["regime"], "")
             moves.append({"kind": "sleeve", "from": "options", "to": "cash", "inr": amt,
-                          "why": f"options are {100 * sleeves['options'] / pool:.0f}% of the pool; the {tg['regime'].replace('_', ' ')} table allows {100 * tg['options']:.0f}%"
-                                 + (" (the index line has too few recorded sessions to earn more)" if tg["options"] <= r["unproven_options_max"] else "")})
+                          "why": f"options were {100 * sleeves['options'] / pool:.0f}% of your money; {regime} Ananta keeps them at or under {100 * tg['options']:.0f}%"
+                                 + (", and the options line has not yet earned a bigger share" if tg["options"] <= r["unproven_options_max"] else "")})
             budget -= amt
     stock_gap = sleeves["stocks"] - tg["stocks"] * pool
     if stock_gap > band and budget >= r["min_move_inr"]:
@@ -229,7 +243,7 @@ def _moves(sleeves: dict, tg: dict, ratings: list[dict], cands: list[dict], r: d
             part = round(part / 100) * 100
             if part >= r["min_move_inr"]:
                 moves.append({"kind": "stock_sell", "symbol": x["symbol"], "from": "stocks", "to": "cash", "inr": part,
-                              "why": f"{x['symbol']} is grade {x['grade']} ({x['score']:.0f}); the stock sleeve is over its {100 * tg['stocks']:.0f}% target: " + x["why"].split(":")[0]})
+                              "why": f"{x['symbol']} is a weak holding ({x['score']:.0f}/100) and stocks are over their {100 * tg['stocks']:.0f}% share"})
                 left -= part
                 budget -= part
     elif -stock_gap > band and not fired and tg["regime"] != "below_both" and budget >= r["min_move_inr"]:
@@ -240,7 +254,7 @@ def _moves(sleeves: dict, tg: dict, ratings: list[dict], cands: list[dict], r: d
             if each >= r["min_move_inr"]:
                 for kind, sym, tag in picks:
                     moves.append({"kind": "stock_buy", "symbol": sym, "from": "cash", "to": "stocks", "inr": each, "family": tag if kind == "candidate" else "GRADE",
-                                  "why": f"{'a holding graded ' + str(tag) if kind == 'holding' else 'a fresh ' + str(tag) + ' signal from the stock book'}; the stock sleeve is under its {100 * tg['stocks']:.0f}% target"})
+                                  "why": f"{'a strong holding with room to add' if kind == 'holding' else 'a fresh ' + str(tag).lower() + ' signal from a proved rule'}; stocks are under their {100 * tg['stocks']:.0f}% share"})
     return moves
 
 
@@ -249,17 +263,23 @@ def watch(rm: dict, ratings: list[dict], snap: dict, trend: str) -> list[dict]:
     out = []
     n50, n200 = m.get("nifty_vs_sma50"), m.get("nifty_vs_sma200")
     if n50 is not None and n200 is not None:
-        out.append({"what": "Market regime", "now": trend.replace("_", " "),
-                    "flips_if": (f"Nifty closes {100 * abs(min(n50, n200)):.1f}% higher: it regains its averages one at a time and the table loosens a step each time" if n50 < 0 or n200 < 0
-                                 else "Nifty closes below its 50-day: the table tightens"), "why": "the options ceiling and cash floor follow this"})
+        tw = {"below_both": "a downtrend", "above_both": "an uptrend", "mixed": "no clear trend"}.get(trend, trend.replace("_", " "))
+        out.append({"what": "The market's trend", "now": tw,
+                    "flips_if": (f"Nifty climbs about {100 * abs(min(n50, n200)):.0f}%: it is back above its averages and Ananta allows more in options and less in cash" if n50 < 0 or n200 < 0
+                                 else "Nifty closes under its ten-week average: Ananta keeps less in options and more in cash"), "why": "how much goes to options and how much stays in cash follow the trend"})
     v = m.get("vix_vs_sma50")
     if v is not None:
-        out.append({"what": "Fear gauge (India VIX)", "now": f"{m.get('vix_close')} ({100 * v:+.0f}% vs its 50-day)", "flips_if": "a close more than 30% over its 50-day marks option premiums as expensive; below its 50-day marks them as fair", "why": "buying options in a spike pays for the fear"})
+        out.append({"what": "The fear gauge (India VIX)", "now": f"{m.get('vix_close')} ({100 * v:+.0f}% against its ten-week average)", "flips_if": "it jumps more than 30% above its ten-week average: options get expensive and Ananta buys fewer", "why": "buying options when fear spikes means paying too much"})
     near = [x["symbol"] for x in ratings if x.get("rated") and abs(x["score"] - 55) < 4 or abs(x["score"] - 40) < 4]
     if near:
-        out.append({"what": "Holdings near a grade boundary", "now": ", ".join(near[:6]), "flips_if": "a few points either way moves them between hold, watch and trim", "why": "re-graded every evening"})
-    out.append({"what": "Account snapshot", "now": f"taken {snap.get('taken_at', 'never')[:16]}" if snap.get("taken_at") else "none", "flips_if": "older than one session: the ratings use stale holdings and the view says so", "why": "ratings are only as fresh as the ledger snapshot"})
-    out.append({"what": "Index options evidence", "now": f"{((rm.get('sp1') or {}).get('book') or {}).get('sessions') or 0} sessions", "flips_if": f"{rule()['evidence_sessions']} recorded sessions lifts the unproven cap on options", "why": "options earn size by recorded sessions, not by hope"})
+        out.append({"what": "Holdings close to a different rating", "now": ", ".join(near[:6]), "flips_if": "a few points either way moves them between keep, watch and trim", "why": "every holding is re-rated each evening"})
+    taken = snap.get("taken_at")
+    try:
+        taken_w = dt.datetime.fromisoformat(taken).astimezone(dt.timezone(dt.timedelta(hours=5, minutes=30))).strftime("%-d %b %H:%M") + " Indian time" if taken else "never"
+    except ValueError:
+        taken_w = str(taken)[:16]
+    out.append({"what": "Your account's snapshot from Zerodha", "now": f"taken {taken_w}", "flips_if": "it gets more than a day old: the ratings use old holdings", "why": "the ratings are only as fresh as the snapshot"})
+    out.append({"what": "The options line's record", "now": f"{((rm.get('sp1') or {}).get('book') or {}).get('sessions') or 0} sessions", "flips_if": f"it reaches {rule()['evidence_sessions']} sessions: options can earn a bigger share", "why": "options earn their share by a track record, not by hope"})
     return out
 
 
@@ -321,13 +341,14 @@ def build(day: str | None = None) -> dict:
         return round(100 * v / pool, 1) if pool else 0.0
 
     suggestions = [x for x in ratings if x["action"] not in ("HOLD", "WATCH")]
+    regime = {"below_both": "in a downtrend", "above_both": "in an uptrend", "mixed": "with no clear trend"}.get(trend, "")
     if cfg["mode"] == "advisory":
-        headline = (f"Advisory: options fixed at ₹{opt_base:,.0f}, stocks ₹{sleeves['stocks']:,.0f} as in your account. "
-                    f"{len(suggestions)} of {len(ratings)} holdings have a suggested change. In this {trend.replace('_', ' ')} market my table would hold options at most "
-                    f"{100 * tg['options']:.0f}% of the pool (₹{tg['options'] * pool:,.0f}); you have {pct(sleeves['options'])}%.")
+        headline = (f"Advisory: Ananta only suggests. Options are fixed at ₹{opt_base:,.0f}; your stocks stay as they are (₹{sleeves['stocks']:,.0f}). "
+                    f"{len(suggestions)} of your {len(ratings)} holdings have a suggested change. {regime.capitalize()}, it would keep options at or under {100 * tg['options']:.0f}% of your money; they are {pct(sleeves['options']):.0f}%.")
     else:
-        headline = (f"Autonomous: pool ₹{pool:,.0f}. Target in this {trend.replace('_', ' ')} market: options up to {100 * tg['options']:.0f}%, cash at least {100 * tg['cash_min']:.0f}%, "
-                    f"stocks the rest. " + (f"{len(moves)} paper move(s) today, ₹{sum(m['inr'] for m in moves):,.0f} gross." if moves else "No move today: every sleeve is inside its band."))
+        moved = ", ".join(f"₹{m['inr']:,.0f} {m['from']} → {m['to']}" + (f" ({m['symbol']})" if m.get("symbol") else "") for m in moves)
+        headline = (f"Ananta manages the split on paper. {regime.capitalize()}, it keeps options at or under {100 * tg['options']:.0f}% and at least {100 * tg['cash_min']:.0f}% in cash. "
+                    + (f"Today it moved {moved}." if moves else "Nothing to move today: every part is within its band."))
     view = {"rules": r["version"], "day": day, "for_session": rm.get("next_session"), "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
             "mode": cfg["mode"], "paper": True, "headline": headline,
             "sleeves": {"now": sleeves, "now_pct": {k: pct(v) for k, v in sleeves.items()}, "after": after, "after_pct": {k: pct(v) for k, v in after.items()}, "pool_inr": pool,
@@ -336,8 +357,8 @@ def build(day: str | None = None) -> dict:
             "suggestions": [{"symbol": x["symbol"], "action": x["action"], "grade": x["grade"], "why": x["why"], "wrong_if": x["wrong_if"], "value_inr": x["value_inr"], "suggest_inr": x["suggest_inr"]} for x in suggestions],
             "moves": moves, "moves_applied": applied, "watch": watch(rm, ratings, snap, trend),
             "snapshot": {"status": snap["status"], "taken_at": snap.get("taken_at"), "stale_days": stale, "holdings": len(hs), "cash_inr": snap["cash_inr"]},
-            "yardstick": "the research stock book (₹50,000 a trade, every registered exit) keeps running beside this as the yardstick; nothing here changes it",
-            "words": "Paper only: no order is placed. A suggestion is advice; a paper move is a ledger line; real execution waits for the gate and your yes.",
+            "yardstick": "Ananta's research book keeps trading every rule at research size in the background; it is the yardstick and nothing here changes it.",
+            "words": "Paper only: no order goes to your broker. A suggestion is advice; a move happens on the paper copy of your account; real trades wait for the gate and your yes.",
             "sources": {"readmodel": str(paths.data_dir() / "readmodel" / "latest.json"), "account_snapshot": snap.get("source"), "universe": uni_day, "rule": str(RULE_FILE)}}
     return view | {"_applied_adj": adj_today}
 

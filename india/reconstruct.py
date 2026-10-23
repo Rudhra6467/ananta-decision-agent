@@ -274,9 +274,10 @@ def _league(day: str) -> dict:
     rnd = h1.get("random") or {}
     beats = (h1.get("ananta_mean") is not None and rnd.get("median") is not None and h1.get("market_mean") is not None
              and h1["ananta_mean"] > rnd["median"] and h1["ananta_mean"] > h1["market_mean"])
-    words = (f"H1 trips: HINDSIGHT (the ceiling) {_pct(h1.get('hindsight_mean'))}, MARKET {_pct(h1.get('market_mean'))}, RANDOM median {_pct(rnd.get('median'))}, "
-             f"Ananta {_pct(h1.get('ananta_mean'))} on {h1.get('ananta_n')} positions ({round(100 * (h1.get('ananta_pct_vs_random') or 0))}th percentile of random); "
-             f"of the top 20 trips it held {(h1.get('coverage') or {}).get('TAKEN', 0)}, passed {(h1.get('coverage') or {}).get('PASSED', 0)}, had no rule for {(h1.get('coverage') or {}).get('NOT_COVERED', 0)}.")
+    cov = h1.get("coverage") or {}
+    words = (f"Of the day's 20 best one-day trades, Ananta held {cov.get('TAKEN', 0)}, passed on {cov.get('PASSED', 0)} and had no rule for {cov.get('NOT_COVERED', 0)}. "
+             f"Its {h1.get('ananta_n')} positions did {_pct(h1.get('ananta_mean'))} against {_pct(h1.get('market_mean'))} for the average stock "
+             f"(better than {round(100 * (h1.get('ananta_pct_vs_random') or 0))}% of random picks); the best possible was {_pct(h1.get('hindsight_mean'))}.")
     return {"status": "ok", "source": str(src), "h1": {k: h1.get(k) for k in ("hindsight_mean", "market_mean", "ananta_mean", "ananta_n", "ananta_pct_vs_random", "coverage")}, "random_median": rnd.get("median"),
             "beats_random_and_market": bool(beats), "best": best, "not_covered_situations": {k: v.get("situation") for k, v in (o.get("not_covered") or {}).items()}, "words": words}
 
@@ -455,8 +456,10 @@ def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fw
     for name in ("deals", "fii_dii", "announcements"):
         sec = people.get(name) or {}
         if sec.get("status") != "ok":
-            add("DATA_GAP", f"DATA_GAP:{name}", f"The session card has no {name.replace('_', '/')} record for {day}: {sec.get('note') or 'the file is missing'} (expected {sec.get('source', '?')}).", "SAFE",
-                {"source": sec.get("source"), "sessions_missing": 1})
+            what = {"deals": "big single-client trades (bulk and block deals)", "fii_dii": "foreign and domestic institutions' buying and selling",
+                    "announcements": "company announcements"}.get(name, name)
+            add("DATA_GAP", f"DATA_GAP:{name}", f"The {what} for {day} did not reach Ananta, so the nightly review could not say what happened there. The download needs checking.", "SAFE",
+                {"source": sec.get("source"), "note": sec.get("note"), "sessions_missing": 1})
     jobs = (rm.get("jobs") or {}).get("jobs") or []
     signin_jobs = []
     for j in jobs:
@@ -466,21 +469,21 @@ def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fw
         if any(w in text.lower() for w in ("token", "sign-in", "kite", "depth snapshots", "recorder")) or j.get("label") in ("autologin", "evening"):
             signin_jobs.append(j.get("label"))                                              # one root cause, one row: the sign-in
             continue
-        add("JOB_FAIL", f"JOB_FAIL:{j.get('label')}", f"The India job '{j.get('label')}' reported a problem: {text[:200]}.", "SAFE", {"job": j})
+        add("JOB_FAIL", f"JOB_FAIL:{j.get('label')}", f"One of Ananta's India jobs ('{j.get('label')}') did not finish properly. It needs checking.", "SAFE", {"job": j, "problem": text[:300]})
     if (rm.get("sp1") or {}).get("status") == "lost" or signin_jobs:
-        add("SIGNIN_LOST", "SIGNIN_LOST:kite", f"The Kite sign-in was missing for the session of {day}: {((rm.get('sp1') or {}).get('errors') or ['the token was dead'])[0][:160]}. "
-            f"Jobs that ran empty because of it: {', '.join(signin_jobs) or 'the index line'}. The TOTP key (Zerodha ticket) or the manual sign-in window fixes it; nothing else does.", "SAFE",
-            {"source": (rm.get("sp1") or {}).get("source"), "jobs": signin_jobs})
+        add("SIGNIN_LOST", "SIGNIN_LOST:kite", f"The morning sign-in to Zerodha was missing for {day}, so the options line could not trade and {len(signin_jobs) or 1} job{'s' if len(signin_jobs) != 1 else ''} had nothing to work with. "
+            "The automatic sign-in key (the Zerodha ticket) fixes this for good; until then, a manual sign-in the evening before.", "SAFE",
+            {"source": (rm.get("sp1") or {}).get("source"), "jobs": signin_jobs, "error": ((rm.get("sp1") or {}).get("errors") or [""])[0][:200]})
 
     snapd = paths.data_dir() / "bronze" / "ledger"
     snaps = sorted(snapd.glob("*.json")) if snapd.exists() else []
     upto = [x for x in sess if x <= day]
     if not snaps or (len(upto) >= BARS["data_stale_sessions"] and snaps[-1].stem < upto[-BARS["data_stale_sessions"]]):
-        add("DATA_GAP", "DATA_GAP:ledger_snapshot", f"The account snapshot (the daily Zerodha ledger) is older than {BARS['data_stale_sessions']} sessions (newest: {snaps[-1].stem if snaps else 'none'}); "
-            "the allocator and the account book grade stale holdings until it refreshes (it needs the Kite sign-in).", "SAFE", {"newest": snaps[-1].stem if snaps else None})
+        add("DATA_GAP", "DATA_GAP:ledger_snapshot", f"Your account's daily snapshot from Zerodha is more than {BARS['data_stale_sessions']} sessions old (newest: {snaps[-1].stem if snaps else 'none'}), "
+            "so Ananta is grading old holdings. It refreshes once the Zerodha sign-in works.", "SAFE", {"newest": snaps[-1].stem if snaps else None})
     for name, sec in card.items():
         if isinstance(sec, dict) and sec.get("status") == "error":
-            add("WORDS", f"WORDS:{name}", f"Section '{name}' of the card could not be built: {sec.get('error')}. The card says so instead of guessing.", "SAFE", {"section": name})
+            add("WORDS", f"WORDS:{name}", f"One part of the nightly review ('{name}') failed to build, so it shows as missing instead of guessing. It needs a code fix.", "SAFE", {"section": name, "error": sec.get("error")})
 
     # DECISION: the index line's direction (5 sessions of 10 recorded with a traded point that went the wrong way)
     outs = _jsonl(_paper() / "sp1" / "outcomes.jsonl")
@@ -636,9 +639,9 @@ def staircase(sess: list[str] | None = None) -> dict:
                             "independent_sessions_beating_random_and_market": 0, "independent_bar": STAIRS["admitted_independent_sessions"], "registered": "sp1_v2 (21 Oct 2026), pinned"}
     counts = Counter(r.get("state") for r in queue())
     out = {**STAIRS, "built_at": _now(), "rules": rules, "admitted": adm, "queue": dict(counts), "history": prev.get("history") or [],
-           "words": (f"Nothing is ADMITTED yet. Stock families are at SHADOW with {max((len(v) for v in fam_days.values()), default=0)} decision days of {STAIRS['shadow_sessions']}; "
-                     f"the index line has {sp1.get('sessions') or 0} recorded sessions; Ananta beat RANDOM and MARKET on {beats} independent sessions of the {STAIRS['admitted_independent_sessions']} needed."
-                     if not adm else f"ADMITTED: {', '.join(adm)}.")}
+           "words": (f"No rule has proved itself yet. The stock rules have {max((len(v) for v in fam_days.values()), default=0)} of {STAIRS['shadow_sessions']} trial sessions; "
+                     f"the options line has {sp1.get('sessions') or 0}; Ananta beat chance and the average stock on {beats} of the {STAIRS['admitted_independent_sessions']} days needed."
+                     if not adm else "Proved and allowed to use your money: " + ", ".join(adm) + ".")}
     STAIRS_FILE.parent.mkdir(parents=True, exist_ok=True)
     STAIRS_FILE.write_text(json.dumps(out, indent=1))
     return out
@@ -681,13 +684,28 @@ def build(day: str | None = None) -> dict:
 
 
 def _headline(c: dict) -> str:
+    """The night in three plain sentences (the Reconstruction screen and the voice read this first; the sections hold the detail)."""
     f = c.get("findings") or []
     safe = sum(1 for x in f if x["lane"] == "SAFE")
-    dec = sum(1 for x in f if x["lane"] == "DECISION")
-    rv = c.get("reviews") or {}
-    return (f"{c['day']}: {(c['market'] or {}).get('words', 'market: missing')} {(c['ananta'] or {}).get('words', '')} "
-            f"{(c['not_done'] or {}).get('words', '')} Reviews: {rv.get('count', 0)} trades tagged ({', '.join(f'{k} {v}' for k, v in (rv.get('tags') or {}).items()) or 'none'}). "
-            f"Findings: {len(f)} ({safe} to the repair board, {dec} for your read).")
+    dec = sum(1 for x in f if x["lane"] == "DECISION" and x.get("state") == "DRAFT")
+    mk, an, nd, rv = c.get("market") or {}, c.get("ananta") or {}, c.get("not_done") or {}, c.get("reviews") or {}
+    try:
+        d = dt.date.fromisoformat(c["day"]).strftime("%-d %b")
+    except (KeyError, ValueError):
+        d = c.get("day", "")
+    trend = {"above_both": "in an uptrend", "below_both": "in a downtrend", "mixed": "with no clear trend"}.get(mk.get("trend_state"), "")
+    picked = len([x for x in (an.get("chosen") or []) if x.get("campaign") != "CTL"])
+    up, down = ((nd.get("summary") or {}).get("up") or {}), ((nd.get("summary") or {}).get("down") or {})
+    parts = [f"{d}: Nifty {trend}." if trend else f"{d}."]
+    if up or down:
+        parts.append(f"Ananta picked {picked} stocks; of the day's {up.get('movers', 0)} biggest rises it held {up.get('caught', 0)} and missed {up.get('b', 0)} that no rule was watching, "
+                     f"and it held {down.get('held_into_fall', 0)} of the {down.get('movers', 0)} biggest falls.")
+    if rv.get("count"):
+        tags = ", ".join(f"{v} {k.lower().replace('_', ' ')}" for k, v in (rv.get("tags") or {}).items())
+        parts.append(f"{rv['count']} closed trade{'s' if rv['count'] != 1 else ''} reviewed ({tags}).")
+    parts.append((f"{safe} small fix{'es' if safe != 1 else ''} went to the repair shop" if safe else "Nothing went to the repair shop")
+                 + (f"; {dec} idea{'s' if dec != 1 else ''} wait{'s' if dec == 1 else ''} for your yes." if dec else "; nothing waits for you."))
+    return " ".join(parts)
 
 
 def evening(day: str | None = None) -> dict:
@@ -701,7 +719,7 @@ def evening(day: str | None = None) -> dict:
         card["headline"] = _headline(card)
     card["forwarding"] = {"queued": [{"key": r["key"], "lane": r["lane"], "state": r["state"]} for r in new],
                           "to_repair_board": [r["key"] for r in new if r["lane"] == "SAFE"][:BARS["safe_per_night"]],
-                          "note": "SAFE rows are filed on the repair board by scripts/india_findings.py (agent side) within the hour; DECISION rows wait for Madhav's weekly read"}
+                          "note": "Small fixes go to the repair shop by themselves within the hour; ideas that touch trading wait for your yes."}
     p = _rx() / f"{card['day']}.json"
     p.write_text(json.dumps(card, indent=1, default=str))
     (_rx() / "latest.json").write_text(json.dumps(card, indent=1, default=str))

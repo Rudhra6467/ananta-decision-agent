@@ -243,7 +243,7 @@ def reconstruction(day: str) -> dict:
             "market_words": (c.get("market") or {}).get("words"), "people_words": (c.get("people") or {}).get("words"), "ananta_words": (c.get("ananta") or {}).get("words"),
             "not_done_words": (c.get("not_done") or {}).get("words"), "league_words": ((c.get("people") or {}).get("league") or {}).get("words"),
             "reviews": {"count": rv.get("count", 0), "tags": rv.get("tags") or {}, "exit_date": rv.get("reviewed_exit_date")},
-            "findings": [{k: x.get(k) for k in ("type", "key", "lane", "state", "words")} for x in f],
+            "findings": [{k: x.get(k) for k in ("type", "key", "lane", "state", "words", "day")} for x in f],
             "staircase": {"words": st.get("words"), "rules": {k: {"step": v.get("step"), "shadow_sessions": v.get("shadow_sessions"), "shadow_bar": v.get("shadow_bar"),
                                                                    "beats": v.get("independent_sessions_beating_random_and_market"), "beats_bar": v.get("independent_bar")} for k, v in (st.get("rules") or {}).items()},
                           "admitted": st.get("admitted") or [], "queue": st.get("queue") or {}},

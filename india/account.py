@@ -159,9 +159,10 @@ def run() -> dict:
                                  for s, pos in book["positions"].items()], key=lambda r: -r["value_inr"]),
             "trades": book["trades"][-30:], "trades_count": len(book["trades"]), "costs_inr": round(book["costs_inr"], 2), "applied_days": book["applied_days"], "pending_days": pending,
             "differs_from_real": diff, "admitted": sorted(adm),
-            "words": (f"Account book (paper twin): ₹{value:,.0f} — stocks ₹{stocks:,.0f} in {len(book['positions'])} names, options ₹{book['options_inr']:,.0f}, cash ₹{book['cash_inr']:,.0f}; "
-                      f"{len(book['trades'])} paper trade(s) so far" + (f"; the moves of {', '.join(pending)} fill after that day closes" if pending else "") + "."
-                      + (" It buys new names only from ADMITTED families; none yet." if not adm else ""))}
+            "words": (f"₹{value:,.0f} on paper: ₹{stocks:,.0f} in {len(book['positions'])} stocks, ₹{book['options_inr']:,.0f} set aside for options, ₹{book['cash_inr']:,.0f} cash. "
+                      + (f"{len(book['trades'])} paper trade{'s' if len(book['trades']) != 1 else ''} so far." if book["trades"] else "No paper trades yet.")
+                      + (" Today's move fills after the session closes." if pending else "")
+                      + (" It buys a new stock only once a rule has proved itself on paper and you say yes." if not adm else ""))}
     (_dir() / "view.json").write_text(json.dumps(view, indent=1))
     return view
 

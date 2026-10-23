@@ -235,7 +235,7 @@ def build(day: str | None = None) -> dict:
 
     day = day or latest_day()
     hol = morning._holidays()
-    nxt = morning.next_session(dt.date.fromisoformat(day), hol).isoformat()
+    nxt = morning.next_session(dt.date.fromisoformat(day) + dt.timedelta(days=1), hol).isoformat()   # morning's helper is "on or after"
     rm = {"rules": RULES, "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "data_through": day, "next_session": nxt,
           "market": market(day), "call": call(day), "stock_book": stock_book(day), "decisions_today": decisions_today(day), "sp1": sp1(day),
           "learning": learning(day), "research": research(), "jobs": jobs(), "guardrails": guardrails()}

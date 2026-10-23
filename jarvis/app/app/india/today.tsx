@@ -1,9 +1,10 @@
 // India · Today: what Ananta decided and why, in under three seconds, from the India read model (V0) and nothing else.
 // Lead line (trend, Nifty, how many new paper trades for the next session), four cards, the five sentences with Hear it, every decision
 // with its reason, and the Telugu brief for father mode with its own Hear it. Read-only: this screen books nothing.
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Platform, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { api } from "../../src/api";
+import { useData } from "../../src/useData";
 import { C, RADIUS, SPACE, TYPE } from "../../src/theme";
 import { INDIA, IndiaHeader } from "./_layout";
 
@@ -47,20 +48,13 @@ function Hear({ lang, color }: { lang: "en" | "te"; color: string }) {
 }
 
 export default function IndiaToday() {
-  const [rm, setRm] = useState<any>(null);
+  // the same hook every crypto screen uses: a stale sign-in goes to the login page, a quiet refresh every minute, pull-down to reload
+  const { data: rm, err, loading, reload } = useData<any>("/india/api/readmodel");
   const [te, setTe] = useState<string[]>([]);
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
-  const load = useCallback(async () => {
-    setBusy(true);
-    try {
-      const r: any = await api("/india/api/readmodel", undefined, 20000, true);
-      setRm(r); setErr("");
-      api("/india/api/brief?lang=te", undefined, 20000, true).then((b: any) => setTe(b.sentences || [])).catch(() => setTe([]));
-    } catch (e: any) { setErr(e?.message || "no read model"); }
-    setBusy(false);
-  }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!rm) return;
+    api("/india/api/brief?lang=te", undefined, 20000, true).then((b: any) => setTe(b.sentences || [])).catch(() => setTe([]));
+  }, [rm?.built_at]);
   const m = rm?.market || {}, c = rm?.call || {}, sb = rm?.stock_book || {}, d = rm?.decisions_today || {}, s = rm?.sp1 || {};
   const picks = (d.chosen || []).filter((x: any) => x.campaign !== "CTL");
   const tot = Object.values(sb.by_campaign || {}).reduce((a: number, v: any) => a + (v.realised_inr || 0), 0);
@@ -68,7 +62,7 @@ export default function IndiaToday() {
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <IndiaHeader title="Indian market" />
-      <ScrollView refreshControl={<RefreshControl refreshing={busy} onRefresh={load} />}
+      <ScrollView refreshControl={<RefreshControl refreshing={loading && !!rm} onRefresh={reload} />}
         contentContainerStyle={{ padding: SPACE.screen, paddingBottom: 60, maxWidth: 960, alignSelf: "center", width: "100%" }}>
         {err ? <Text style={{ color: INDIA.red, fontWeight: "700" }}>{err}</Text> : null}
         {rm ? (

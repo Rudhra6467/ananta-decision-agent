@@ -235,6 +235,9 @@ Madhav, 23 Oct (in chat): "Will get TOTP fixed before Sunday. Yes for all others
 | `SPREAD-REFRESH` | 2026-11-01 | monthly | Claude | Cost table check (V04): once a month compare the worker Mac's measured NDAX spreads with the table in src/intelligence/ndax_costs.py. |
 | `CHECKPOINT-30` | 2026-11-14 | once | Claude | Day-30 checkpoint of the 60-market-day evidence window: read every evidence count and confirm nothing is silently stuck. |
 | `CHECKPOINT-60` | 2026-12-14 | once | Claude | Day-60 checkpoint: the evidence window ends and Rule A (60 market days, both dial states seen, fidelity within 3 points) is judged for Madhav. |
+| `PW-REPAIR-75` | 2026-12-14 | once | Claude | Repair #75 (8 'missed winner' PASSes, Oct 9-14): answered by review #34 at CHECKPOINT-60; closed on the board Oct 23 so the count reads 0, carried here. |
+| `PW-REPAIR-76-78` | 2027-01-01 | once | Claude | Repairs #76-#78 (other traders' winning longs no rule of ours covers, ARB/ENA/UNI, BNB/ENA/UNI, ONDO/PUMP/ZEC): read together as one pre-registered question at Q-R2-HL; reference only. |
+| `PW-REPAIR-79-80` | 2026-12-15 | once | Claude | Repairs #79-#80 (Madhav's self-audit): Explorer setups vs their own random entries after S2's measured costs; E6's hourly-bell exit vs stop/target-only vs random; Hunter's book judged by the rule of Oct 23 at its 10th event. Each written down before any data is read. |
 | `ZONES-JUDGE` | 2026-12-14 | once | Claude | Judge the live zone visits (audit cards R6 and SWING-NEW): zones stay a location label, never a trade. |
 | `Q-R2-HL` | 2027-01-01 | quarterly | Claude | Quarterly refresh of the other-traders study (R2, Hyperliquid). |
 | `Q-ME1` | 2027-01-01 | quarterly | Claude | Quarterly refresh of ME1, the base-rate sheet of how often coins move 0.5%, 1% or 2% within 5 minutes to 4 hours, used to size stops and targets. |

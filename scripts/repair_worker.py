@@ -87,6 +87,7 @@ Rules that always hold:
   If the fix needs any of those, change nothing and explain why in your final message.
 - Never read or print .env files, keys, ~/ananta_private, ~/.ssh or anything outside this folder.
 - Keep the change as small as the fix needs. Add or update a test that would have caught the problem when that is possible.
+- Do not say "nothing is committed"; the worker commits after its own checks.
 - Run the tests of the area you changed (for example: {py} -m pytest -q tests/test_<area>.py) and, for app files,
   "cd jarvis/app && npx tsc --noEmit". Do not commit; the worker commits.
 - End with a short plain-English summary for Madhav (two or three sentences): what was wrong and what you changed.
@@ -114,7 +115,8 @@ def run_claude(wt: Path, flag: dict, plan_only: bool) -> tuple[str, float]:
 
 def changed(wt: Path) -> list[str]:
     r = sh(["git", "status", "--porcelain", "--untracked-files=all"], wt)
-    return sorted({line[3:].strip().strip('"') for line in r.stdout.splitlines() if line.strip()})
+    files = {line[3:].strip().strip('"') for line in r.stdout.splitlines() if line.strip()}
+    return sorted(f for f in files if f != "jarvis/app/node_modules")        # the worker's own link, never part of a fix
 
 
 def checks(wt: Path, files: list[str]) -> tuple[bool, str]:
@@ -196,6 +198,9 @@ def work_one(j, fixflow, flag: dict) -> None:
         fixflow.report(j, num, "failed", f"could not make a work copy: {r.stderr[-200:]}")
         return
     try:
+        nm = wt / "jarvis/app/node_modules"                      # the app's packages, so the AI can run the TypeScript check itself
+        if not nm.exists() and (LIVE / "jarvis/app/node_modules").exists():
+            nm.symlink_to(LIVE / "jarvis/app/node_modules")
         summary, cost = run_claude(wt, flag, plan_only)
         files = changed(wt)
         if plan_only or not files:

@@ -160,3 +160,20 @@ def test_auto_is_off_without_the_login_file(login_env):
     (login_env / "kite_login.env").unlink()
     with pytest.raises(RuntimeError, match="auto sign-in is off"):
         kite_auth.auto()
+
+
+def test_totp_secret_accepts_messy_pastes_and_refuses_the_six_digit_code():
+    key = "JBSWY3DPEHPK3PXP"
+    assert kite_auth.totp_secret("jbsw y3dp-ehpk 3pxp") == key
+    assert kite_auth.totp_secret(f"otpauth://totp/Zerodha:AB1234?secret={key.lower()}&issuer=Zerodha") == key
+    assert kite_auth.totp_secret(key + "====") == key
+    with pytest.raises(RuntimeError, match="6-digit code, not the key"):
+        kite_auth.totp_secret("123456")
+    with pytest.raises(RuntimeError, match="not a base32 key"):
+        kite_auth.totp_secret("hello world! 018")
+
+
+def test_login_creds_reports_the_pasted_code_plainly(login_env):
+    (login_env / "kite_login.env").write_text("KITE_USER_ID=AB1234\nKITE_PASSWORD=pw\nKITE_TOTP_SECRET=654321\n")
+    with pytest.raises(RuntimeError, match="6-digit code, not the key"):
+        kite_auth.login_creds()

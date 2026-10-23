@@ -135,7 +135,34 @@ def login_creds() -> dict:
     missing = [k for k in ("KITE_USER_ID", "KITE_PASSWORD", "KITE_TOTP_SECRET") if not kv.get(k)]
     if missing:
         raise RuntimeError(f"kite_login.env is missing {', '.join(missing)}")
+    kv["KITE_TOTP_SECRET"] = totp_secret(kv["KITE_TOTP_SECRET"])
     return kv
+
+
+def totp_secret(raw: str) -> str:
+    """Normalise the pasted TOTP key: accept an otpauth:// URL, spaces, dashes and lower case; refuse the 6-digit code
+    people paste by mistake, with a reason that says what to paste instead (never echoes the value)."""
+    import base64
+    import re
+    from urllib.parse import parse_qs, urlparse
+
+    v = raw.strip()
+    if v.lower().startswith("otpauth://"):
+        q = parse_qs(urlparse(v).query)
+        v = (q.get("secret") or [""])[0]
+    v = re.sub(r"[\s\-_]", "", v).upper().rstrip("=")
+    if re.fullmatch(r"\d{6,8}", v):
+        raise RuntimeError("KITE_TOTP_SECRET is a 6-digit code, not the key: on Console > Password & Security > External 2FA TOTP, "
+                           "set TOTP up again and copy the long key under the QR code ('Can't scan? Copy the key')")
+    bad = sorted(set(v) - set("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"))
+    if bad or len(v) < 16:
+        raise RuntimeError("KITE_TOTP_SECRET is not a base32 key (it should be 16-64 letters A-Z and digits 2-7): "
+                           "copy the key shown under the QR code when External 2FA TOTP is set up on Console")
+    try:
+        base64.b32decode(v + "=" * (-len(v) % 8))
+    except (ValueError, TypeError) as e:
+        raise RuntimeError(f"KITE_TOTP_SECRET does not decode as base32: {e}") from None
+    return v
 
 
 def _log(line: str) -> None:

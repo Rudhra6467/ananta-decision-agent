@@ -296,7 +296,14 @@ def build(day: str | None = None) -> dict:
     tg = targets(r, trend, sessions, fired)
     opts = rate_options(rm, r, sleeves["options"])
     dt_ = rm.get("decisions_today")
-    cands = [{"symbol": d.get("symbol"), "campaign": d.get("campaign")} for d in dt_ if isinstance(d, dict) and d.get("symbol") and d.get("campaign") not in (None, "CTL")] if isinstance(dt_, list) else []
+    chosen = (dt_.get("chosen") if isinstance(dt_, dict) else dt_) or []
+    # the evidence staircase (india/reconstruct.py): the allocated capital may buy a fresh signal only from an ADMITTED family; nothing is admitted until Madhav's recorded yes
+    try:
+        from india import reconstruct
+        adm = reconstruct.admitted()
+    except Exception:  # noqa: BLE001
+        adm = set()
+    cands = [{"symbol": d.get("symbol"), "campaign": d.get("campaign")} for d in chosen if isinstance(d, dict) and d.get("symbol") and d.get("campaign") not in (None, "CTL") and f"stock:{d.get('campaign')}" in adm]
     moves = _moves(sleeves, tg, ratings, cands, r, fired)
     applied = cfg["mode"] == "autonomous"
     adj_today = {"stocks": 0.0, "options": 0.0, "cash": 0.0}

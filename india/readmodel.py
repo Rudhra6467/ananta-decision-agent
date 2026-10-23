@@ -230,6 +230,27 @@ def latest_day() -> str:
     return days[-1]
 
 
+def reconstruction(day: str) -> dict:
+    """RX-IN (india/reconstruct.py): the session card's headline, its findings and where every rule stands on the evidence staircase."""
+    src = paths.data_dir() / "paper" / "reconstruction" / f"{day}.json"
+    c = _load(src)
+    if not c:
+        return _missing(src)
+    st = _load(REG / "evidence_staircase.json") or {}
+    f = c.get("findings") or []
+    rv = c.get("reviews") or {}
+    return {"status": "ok", "source": str(src), "rules": c.get("rules"), "headline": c.get("headline"), "built_at": c.get("built_at"),
+            "market_words": (c.get("market") or {}).get("words"), "people_words": (c.get("people") or {}).get("words"), "ananta_words": (c.get("ananta") or {}).get("words"),
+            "not_done_words": (c.get("not_done") or {}).get("words"), "league_words": ((c.get("people") or {}).get("league") or {}).get("words"),
+            "reviews": {"count": rv.get("count", 0), "tags": rv.get("tags") or {}, "exit_date": rv.get("reviewed_exit_date")},
+            "findings": [{k: x.get(k) for k in ("type", "key", "lane", "state", "words")} for x in f],
+            "staircase": {"words": st.get("words"), "rules": {k: {"step": v.get("step"), "shadow_sessions": v.get("shadow_sessions"), "shadow_bar": v.get("shadow_bar"),
+                                                                   "beats": v.get("independent_sessions_beating_random_and_market"), "beats_bar": v.get("independent_bar")} for k, v in (st.get("rules") or {}).items()},
+                          "admitted": st.get("admitted") or [], "queue": st.get("queue") or {}},
+            "meaning": "the nightly reconstruction: what the market and other participants did, what Ananta did and did not do, the trade reviews, the findings and their lane; "
+                       "the staircase NOTED > DRAFT > REGISTERED > TESTED > SHADOW > ADMITTED > LIVE_ELIGIBLE says what the allocated capital may use (ADMITTED only)"}
+
+
 def build(day: str | None = None) -> dict:
     from india import morning
 
@@ -238,7 +259,7 @@ def build(day: str | None = None) -> dict:
     nxt = morning.next_session(dt.date.fromisoformat(day) + dt.timedelta(days=1), hol).isoformat()   # morning's helper is "on or after"
     rm = {"rules": RULES, "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "data_through": day, "next_session": nxt,
           "market": market(day), "call": call(day), "stock_book": stock_book(day), "decisions_today": decisions_today(day), "sp1": sp1(day),
-          "learning": learning(day), "research": research(), "jobs": jobs(), "guardrails": guardrails()}
+          "learning": learning(day), "research": research(), "jobs": jobs(), "guardrails": guardrails(), "reconstruction": reconstruction(day)}
     rm["missing"] = [k for k, v in rm.items() if isinstance(v, dict) and v.get("status") == "missing"]
     rm["brief"] = brief(rm)
     body = json.dumps(rm, indent=1, default=str)

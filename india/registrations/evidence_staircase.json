@@ -1,0 +1,67 @@
+{
+ "version": "stairs-v1-2026-10-23",
+ "shadow_sessions": 20,
+ "admitted_independent_sessions": 10,
+ "steps": [
+  "NOTED",
+  "DRAFT",
+  "REGISTERED",
+  "TESTED",
+  "SHADOW",
+  "ADMITTED",
+  "LIVE_ELIGIBLE"
+ ],
+ "who": {
+  "DRAFT": "code (BARS)",
+  "REGISTERED": "Madhav",
+  "TESTED": "code (india.registry)",
+  "SHADOW": "code (20 recorded sessions)",
+  "ADMITTED": "Madhav (beats RANDOM and MARKET on 10+ independent sessions net of costs; leak check passes; pinned in the lock)",
+  "LIVE_ELIGIBLE": "Madhav (the India gate and the live-readiness rules)"
+ },
+ "built_at": "2026-10-23T18:40:26+00:00",
+ "rules": {
+  "stock:BRK": {
+   "what": "20-session breakout on volume",
+   "step": "SHADOW",
+   "shadow_sessions": 3,
+   "shadow_bar": 20,
+   "independent_sessions_beating_random_and_market": 2,
+   "independent_bar": 10,
+   "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
+  },
+  "stock:PULL": {
+   "what": "pullback in an uptrend",
+   "step": "SHADOW",
+   "shadow_sessions": 3,
+   "shadow_bar": 20,
+   "independent_sessions_beating_random_and_market": 2,
+   "independent_bar": 10,
+   "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
+  },
+  "stock:REV": {
+   "what": "oversold reversal",
+   "step": "SHADOW",
+   "shadow_sessions": 2,
+   "shadow_bar": 20,
+   "independent_sessions_beating_random_and_market": 2,
+   "independent_bar": 10,
+   "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
+  },
+  "options:SP1": {
+   "what": "the index playbook's 1-lot option line",
+   "step": "SHADOW",
+   "shadow_sessions": 0,
+   "shadow_bar": 20,
+   "independent_sessions_beating_random_and_market": 0,
+   "independent_bar": 10,
+   "registered": "sp1_v2 (21 Oct 2026), pinned"
+  }
+ },
+ "admitted": [],
+ "queue": {
+  "to_file": 2
+ },
+ "history": [],
+ "words": "Nothing is ADMITTED yet. Stock families are at SHADOW with 3 decision days of 20; the index line has 0 recorded sessions; Ananta beat RANDOM and MARKET on 2 independent sessions of the 10 needed."
+}

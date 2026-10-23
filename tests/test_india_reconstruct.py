@@ -99,7 +99,9 @@ def test_findings_fire_on_counts_collapse_the_signin_and_never_refile_an_open_ke
     q = rx.queue()
     assert sum(1 for r in q if r["key"] == kinds["MISS_PATTERN"]["key"]) == 1
     c2 = rx.evening("2026-10-27")
-    assert not [f for f in c2["findings"] if f["key"] in {r["key"] for r in q}], "an open key is never filed twice"
+    q2 = rx.queue()
+    assert sum(1 for r in q2 if r["key"] == kinds["MISS_PATTERN"]["key"]) == 1, "an open key is never queued twice"
+    assert any(f["key"] == kinds["MISS_PATTERN"]["key"] for f in c2["findings"]) and c2["reruns"] == 1, "a re-run keeps the first run's findings on the card"
 
 
 def test_staircase_admits_nothing_without_madhav_and_the_allocator_obeys(lake, monkeypatch):
@@ -120,3 +122,23 @@ def test_the_module_reads_nothing_sealed_and_calls_no_broker():
     strings = [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
     assert not any("sealed/" in s or "sealed_" in s for s in strings), "the reconstruction never names the sealed folder"
     assert rx.STAIRS["shadow_sessions"] == 20 and rx.STAIRS["admitted_independent_sessions"] == 10 and rx.BARS["safe_per_night"] == 3
+
+
+def test_new_findings_options_line_events_stale_snapshot_and_words(lake, monkeypatch):
+    outs = [{"kind": "outcome", "date": f"2026-10-{d:02d}", "action": 1, "index_proxy": {"net_bps": -5.0 if d % 2 else 3.0}} for d in range(1, 11)]
+    (lake / "paper" / "sp1" / "outcomes.jsonl").write_text("\n".join(json.dumps(o) for o in outs) + "\n")
+    monkeypatch.setattr(rx, "section_ananta", lambda *a: (_ for _ in ()).throw(ValueError("boom")))
+    c = rx.evening("2026-10-23")
+    kinds = {f["type"]: f for f in c["findings"]}
+    assert kinds["OPTIONS_LINE"]["lane"] == "DECISION" and len(kinds["OPTIONS_LINE"]["evidence"]["wrong_days"]) == 5
+    assert c["ananta"]["status"] == "error" and kinds["WORDS"]["key"] == "WORDS:ananta"
+    assert kinds["DATA_GAP"] and any(f["key"] == "DATA_GAP:ledger_snapshot" for f in c["findings"]), "no ledger snapshot in the fixture: stale"
+    log = [json.loads(x) for x in (lake / "manifests" / "evidence_log.jsonl").read_text().splitlines()]
+    assert log[-1]["check"] == "RX.card" and log[-1]["ok"] is False
+
+
+def test_madhavs_decision_closes_a_draft(lake):
+    (lake / "paper" / "reconstruction").mkdir(parents=True, exist_ok=True)
+    rx.write_queue([{"type": "MISS_PATTERN", "key": "MISS_PATTERN:x", "lane": "DECISION", "state": "DRAFT", "words": "q", "day": "2026-10-22"}])
+    (lake / "paper" / "reconstruction" / "decisions.jsonl").write_text(json.dumps({"key": "MISS_PATTERN:x", "decision": "APPROVED", "at": "t", "words": "yes"}) + "\n")
+    assert rx.queue()[0]["state"] == "APPROVED"

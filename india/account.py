@@ -53,7 +53,8 @@ def open_book(snap: dict, options_inr: float) -> dict:
     pos = {h["tradingsymbol"]: {"qty": int(h["quantity"]), "avg": float(h.get("average_price") or 0), "last": float(h.get("last_price") or 0)}
            for h in snap.get("holdings") or [] if (h.get("quantity") or 0) > 0}
     return {"opened_at": _now(), "opened_from": snap.get("source"), "snapshot_day": snap.get("day"), "positions": pos, "cash_inr": round(float(snap.get("cash_inr") or 0), 2),
-            "options_inr": float(options_inr), "applied_days": [], "trades": [], "costs_inr": 0.0}
+            "options_inr": float(options_inr), "applied_days": [], "trades": [], "costs_inr": 0.0,
+            "opened_value_inr": round(sum(int(h["quantity"]) * float(h.get("last_price") or 0) for h in snap.get("holdings") or [] if (h.get("quantity") or 0) > 0) + float(snap.get("cash_inr") or 0) + float(options_inr), 2)}
 
 
 def _apply(book: dict, row: dict, px: dict, adm: set, when: str) -> list[dict]:
@@ -152,7 +153,8 @@ def run() -> dict:
             if book["positions"].get(s, {}).get("qty", 0) != real.get(s, 0)]
     p.write_text(json.dumps(book, indent=1))
     pending = [r["day"] for r in led if r.get("mode") == "autonomous" and r.get("moves") and r["day"] not in book["applied_days"]]
-    view = {"built_at": _now(), "paper": True, "opened_at": book["opened_at"], "value_inr": round(value), "stocks_inr": round(stocks), "cash_inr": round(book["cash_inr"]), "options_inr": round(book["options_inr"]),
+    start = book.get("opened_value_inr") or round(value)
+    view = {"built_at": _now(), "paper": True, "opened_at": book["opened_at"], "start_inr": round(start), "return_pct": round(100 * (value / start - 1), 2) if start else 0.0, "value_inr": round(value), "stocks_inr": round(stocks), "cash_inr": round(book["cash_inr"]), "options_inr": round(book["options_inr"]),
             "positions": sorted([{"symbol": s, **{k: round(v, 2) if isinstance(v, float) else v for k, v in pos.items()}, "value_inr": round(pos["qty"] * pos["last"]), "pnl_pct": round(100 * (pos["last"] / pos["avg"] - 1), 1) if pos["avg"] else None}
                                  for s, pos in book["positions"].items()], key=lambda r: -r["value_inr"]),
             "trades": book["trades"][-30:], "trades_count": len(book["trades"]), "costs_inr": round(book["costs_inr"], 2), "applied_days": book["applied_days"], "pending_days": pending,

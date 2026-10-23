@@ -442,7 +442,7 @@ def _recent_cards(day: str, n: int) -> list[dict]:
 
 def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fwd: list[dict], rm: dict, sess: list[str]) -> list[dict]:
     out: list[dict] = []
-    open_keys = {q["key"] for q in queue_rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed", "REGISTERED", "TESTED", "SHADOW")}
+    open_keys = {q["key"] for q in queue_rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed", "APPROVED", "SKIPPED", "REGISTERED", "TESTED", "SHADOW")}
     recent_safe = {f["key"] for f in fwd if f.get("day") in sess and day in sess and sess.index(day) - sess.index(f["day"]) < BARS["safe_refile_sessions"]}
 
     def add(kind, key, words, lane, evidence, state=None, extra=None):
@@ -471,6 +471,41 @@ def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fw
         add("SIGNIN_LOST", "SIGNIN_LOST:kite", f"The Kite sign-in was missing for the session of {day}: {((rm.get('sp1') or {}).get('errors') or ['the token was dead'])[0][:160]}. "
             f"Jobs that ran empty because of it: {', '.join(signin_jobs) or 'the index line'}. The TOTP key (Zerodha ticket) or the manual sign-in window fixes it; nothing else does.", "SAFE",
             {"source": (rm.get("sp1") or {}).get("source"), "jobs": signin_jobs})
+
+    snapd = paths.data_dir() / "bronze" / "ledger"
+    snaps = sorted(snapd.glob("*.json")) if snapd.exists() else []
+    upto = [x for x in sess if x <= day]
+    if not snaps or (len(upto) >= BARS["data_stale_sessions"] and snaps[-1].stem < upto[-BARS["data_stale_sessions"]]):
+        add("DATA_GAP", "DATA_GAP:ledger_snapshot", f"The account snapshot (the daily Zerodha ledger) is older than {BARS['data_stale_sessions']} sessions (newest: {snaps[-1].stem if snaps else 'none'}); "
+            "the allocator and the account book grade stale holdings until it refreshes (it needs the Kite sign-in).", "SAFE", {"newest": snaps[-1].stem if snaps else None})
+    for name, sec in card.items():
+        if isinstance(sec, dict) and sec.get("status") == "error":
+            add("WORDS", f"WORDS:{name}", f"Section '{name}' of the card could not be built: {sec.get('error')}. The card says so instead of guessing.", "SAFE", {"section": name})
+
+    # DECISION: the index line's direction (5 sessions of 10 recorded with a traded point that went the wrong way)
+    outs = _jsonl(_paper() / "sp1" / "outcomes.jsonl")
+    by_day: dict[str, bool] = {}
+    for o in outs:
+        if o.get("kind") == "outcome" and int(o.get("action") or 0) != 0:
+            bad = float(((o.get("index_proxy") or {}).get("net_bps")) or 0) < 0
+            by_day[o["date"]] = by_day.get(o["date"], False) or bad
+    last = sorted(by_day)[-BARS["options_window"]:]
+    wrong_days = [d for d in last if by_day[d]]
+    if len(last) >= BARS["options_window"] and len(wrong_days) >= BARS["options_n"]:
+        add("OPTIONS_LINE", "OPTIONS_LINE:SP1", f"The index line traded the wrong way on {len(wrong_days)} of its last {len(last)} recorded sessions. Question for the SP1 playbook (pinned): which decision point misfires, "
+            "and does the frozen model still beat its own no-trade baseline?", "DECISION", {"wrong_days": wrong_days, "sessions": len(last)})
+
+    # NOTE -> DRAFT: registered events; the third note of one kind becomes a draft
+    ev = ((card.get("people") or {}).get("events") or {}).get("recent") or []
+    for e in ev:
+        if e.get("first_session") == day:
+            cat = e.get("category")
+            add("EVENT_NOTE", f"EVENT_NOTE:{cat}:{day}", f"Registered event on {day}: {e.get('title')} ({cat}). Noted; its reaction is compared with the response table when the holdout run is allowed.", "DECISION",
+                {"event": e}, state="NOTE")
+            n = sum(1 for q in queue_rows if str(q.get("key", "")).startswith(f"EVENT_NOTE:{cat}:")) + 1
+            if n >= BARS["event_notes_to_draft"]:
+                add("EVENT_SURPRISE", f"EVENT_SURPRISE:{cat}", f"{n} registered '{cat}' events on live sessions so far. Question for a registered study: how does the market respond to this kind of event, "
+                    "measured on 2000-2023 from the response table, and does it change what Ananta should hold the day after?", "DECISION", {"notes": n})
 
     # DECISION: miss patterns (the missed-movers rule, counted over the last 7 cards) and league gaps
     win = (prior + [card])[-BARS["pattern_window"]:]
@@ -540,19 +575,24 @@ def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fw
     if wrong >= BARS["alloc_wrong_n"]:
         add("ALLOC_WRONG", "ALLOC_WRONG:regime_table", f"{wrong} allocation moves of the last {scored} scored were wrong at +{BARS['alloc_horizon']} sessions. Question for the regime table (allocation_rule_v1, pinned): which row misfired?", "DECISION", {"wrong": wrong, "scored": scored})
 
-    # NOTE: a registered event on the day (its reaction is compared with the response table only when the holdout run is allowed)
-    ev = ((card.get("people") or {}).get("events") or {}).get("recent") or []
-    for e in ev:
-        if e.get("first_session") == day:
-            add("EVENT_SURPRISE", f"EVENT_SURPRISE:{e.get('category')}", f"Registered event on {day}: {e.get('title')} ({e.get('category')}). Its reaction is compared with the response table when the holdout run is allowed; until then it is a note.", "DECISION",
-                {"event": e}, state="NOTE")
     return out
 
 
 # ------------------------------------------------------------------------------------------------------------------------------- queue, staircase
 
 def queue() -> list[dict]:
-    return _jsonl(QUEUE)
+    """Every queue row, with Madhav's latest decision folded in (paper/reconstruction/decisions.jsonl, written by the India service when he says
+    yes or skip in the app or by voice): APPROVED = register a study for it; SKIPPED = closed, not refiled."""
+    rows = _jsonl(QUEUE)
+    dec = {}
+    for d in _jsonl(_rx() / "decisions.jsonl"):
+        dec[d.get("key")] = d
+    for r in rows:
+        d = dec.get(r.get("key"))
+        if d and r.get("lane") == "DECISION":
+            r["state"] = d.get("decision")
+            r["decided_at"], r["decided_words"] = d.get("at"), d.get("words")
+    return rows
 
 
 def forwarded() -> list[dict]:
@@ -618,10 +658,20 @@ def build(day: str | None = None) -> dict:
     day = day or rm.get("data_through") or (sess[-1] if sess else dt.date.today().isoformat())
     st = _load(_paper() / "state.json", {}) or {}
     names = _names()
-    market = section_market(day, rm)
+    try:
+        market = section_market(day, rm)
+    except Exception as e:  # noqa: BLE001
+        market = {"status": "error", "error": f"{e.__class__.__name__}: {str(e)[:140]}"}
     movers = {m["symbol"] for m in (market.get("movers_up") or []) + (market.get("movers_down") or [])}
+    def safe(fn, *a):
+        try:
+            return fn(*a)
+        except Exception as e:  # noqa: BLE001 - a section that cannot build says so; the rest of the card still builds
+            return {"status": "error", "error": f"{e.__class__.__name__}: {str(e)[:140]}"}
+
     card = {"rules": RULES, "day": day, "built_at": _now(), "sessions_on_record": len(sess),
-            "market": market, "people": section_people(day, names, movers), "ananta": section_ananta(day, rm, st, sess), "not_done": section_not_done(day, rm), "reviews": reviews(day, st, sess)}
+            "market": market, "people": safe(section_people, day, names, movers), "ananta": safe(section_ananta, day, rm, st, sess),
+            "not_done": safe(section_not_done, day, rm), "reviews": safe(reviews, day, st, sess)}
     prior = _recent_cards(day, BARS["exit_lesson_window"])
     card["findings"] = findings(day, card, prior, queue(), forwarded(), rm, sess)
     inputs = {"decision": str(_paper() / "decisions" / f"{day}.json"), "missed": str(_data() / "manifests" / f"missed_{day}.json"), "others": str(_data() / "manifests" / f"others_{day}.json"), "state": str(_paper() / "state.json")}
@@ -643,14 +693,24 @@ def _headline(c: dict) -> str:
 def evening(day: str | None = None) -> dict:
     card = build(day)
     new = write_queue(card["findings"])
+    old = _load(_rx() / f"{card['day']}.json", {}) or {}
+    if old.get("findings"):                      # a re-run of the same session keeps what the first run found (the queue already holds those keys)
+        keys = {f["key"] for f in card["findings"]}
+        card["findings"] = [f for f in old["findings"] if f["key"] not in keys] + card["findings"]
+        card["reruns"] = (old.get("reruns") or 0) + 1
+        card["headline"] = _headline(card)
     card["forwarding"] = {"queued": [{"key": r["key"], "lane": r["lane"], "state": r["state"]} for r in new],
                           "to_repair_board": [r["key"] for r in new if r["lane"] == "SAFE"][:BARS["safe_per_night"]],
                           "note": "SAFE rows are filed on the repair board by scripts/india_findings.py (agent side) within the hour; DECISION rows wait for Madhav's weekly read"}
     p = _rx() / f"{card['day']}.json"
     p.write_text(json.dumps(card, indent=1, default=str))
     (_rx() / "latest.json").write_text(json.dumps(card, indent=1, default=str))
-    staircase()
+    st = staircase()
     page()
+    _append(_data() / "manifests" / "evidence_log.jsonl", {"date": card["day"], "check": "RX.card", "ok": all((card.get(k) or {}).get("status") != "error" for k in ("market", "people", "ananta", "not_done", "reviews")),
+                                                           "metrics": {"findings": len(card["findings"]), "safe": sum(1 for f in card["findings"] if f["lane"] == "SAFE"),
+                                                                       "decision": sum(1 for f in card["findings"] if f["lane"] == "DECISION"), "reviews": (card.get("reviews") or {}).get("count", 0),
+                                                                       "tags": (card.get("reviews") or {}).get("tags") or {}, "admitted": st.get("admitted") or [], "rules": RULES}})
     return card
 
 
@@ -674,6 +734,11 @@ def page() -> str:
         sec = (c["people"] or {}).get(k) or {}
         if sec.get("status") != "ok":
             L.append(f"- {k}: missing ({sec.get('note') or sec.get('source', '')})")
+    notes = _jsonl(_rx() / "netnotes" / f"{c['day']}.jsonl")
+    if notes:
+        L.append("- Notes from the web (public pages, notes only, never a reason to trade):")
+        for n in notes[:8]:
+            L.append(f"  - {n.get('symbol')}: {n.get('note')} [{n.get('grade')}] {', '.join(n.get('urls') or [])[:200]}")
     L += ["", "## C. What Ananta did", (c["ananta"] or {}).get("words", "missing"), "", "## D. What it did not do, and was that right", (c["not_done"] or {}).get("words", "missing")]
     cf = (c["not_done"] or {}).get("counterfactual") or {}
     for r in (cf.get("best_passes") or [])[:3]:

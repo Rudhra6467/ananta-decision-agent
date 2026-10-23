@@ -1,0 +1,27 @@
+{
+ "version": "alloc-v1-2026-10-23",
+ "decided": "Madhav, 2026-10-23 14:04 Toronto, in chat: \"If I allocate capital separately, it will be 50000 to options and what's already there in my account for stocks. It has to evaluate, rate, rank and suggest modifications for me. And if I say everything is autonomous, it should be able to move the capital here and there, do adjustments and keep track for upcoming changes and market moves.\"",
+ "default_mode": "advisory",
+ "options_inr": 50000,
+ "evidence_sessions": 20,
+ "unproven_options_max": 0.2,
+ "regime_table": {
+  "above_both": {"options_max": 0.35, "cash_min": 0.05},
+  "mixed": {"options_max": 0.30, "cash_min": 0.10},
+  "below_both": {"options_max": 0.20, "cash_min": 0.20}
+ },
+ "max_shift_frac": 0.10,
+ "band_frac": 0.03,
+ "min_move_inr": 2000,
+ "weight_ok_pct": 15,
+ "weight_high_pct": 25,
+ "add_below_weight_pct": 12,
+ "tiny_inr": 2000,
+ "unrated_cap": 62,
+ "rating_weights": {
+  "above_200d": 15, "above_20d": 10, "rsi_healthy": 10,
+  "regime_fit": 20, "volatility": 10, "liquidity": 10,
+  "concentration": 10, "result": 15
+ },
+ "paper_only": true
+}

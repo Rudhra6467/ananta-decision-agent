@@ -112,6 +112,8 @@ def current() -> dict[str, str]:
         # the learning loop's rules: the league's horizons, draws, notional and classes; the missed-movers bands and families
         "learning_rules": _sha(_top("india/others.py", ["RULES", "HORIZONS", "TOP_N", "DRAWS", "NOTIONAL", "PARTICIPANTS", "LEAGUE_WINDOW", "CLASSES"])
                                + "\n#--\n" + _top("india/missed.py", ["TOP_N", "LOOKBACK_SESSIONS", "BANDS", "BASE_TIGHT", "THIN_DAY", "RESEARCH", "CONTROL"])),
+        # the capital allocation rule (Madhav, 23 Oct 14:04): options Rs 50,000 fixed, stocks as in the account, the regime table, the move limits, the rating weights
+        "allocation_rule": _sha(_json("india/registrations/allocation_rule_v1.json")),
         # no order path: the leak check that forbids every order call until the gate (lines of code)
         "no_order_rule": _sha(_code("india/leakcheck.py")),
     }

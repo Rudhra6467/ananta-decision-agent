@@ -98,6 +98,18 @@
      "sha256": "e38d07226bb0258d7e97d1eacd2a7f2906d265ec439125a4967d2076ddaa9b61"
     }
    ]
+  },
+  "allocation_rule": {
+   "what": "The capital allocation rule (india/registrations/allocation_rule_v1.json): options Rs 50,000 fixed, stocks as in the account, advisory and autonomous modes, the regime table (options ceiling, cash floor), move limits (10% of the pool a session, Rs 2,000 minimum) and the rating weights. Paper only.",
+   "sha256": "f0a3dbb2d4cf4503b8d87ffdb217a01bd42247198d844292d3f0d5b2aadc8d44",
+   "history": [
+    {
+     "date": "2026-10-23",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-23 14:04 Toronto (in chat): \"If I allocate capital separately, it will be 50000 to options and what's already there in my account for stocks. It has to evaluate, rate, rank and suggest modifications for me. And if I say everything is autonomous, it should be able to move the capital here and there, do adjustments and keep track for upcoming changes and market moves to keep tracing current positions and for new opportunities.\"",
+     "sha256": "f0a3dbb2d4cf4503b8d87ffdb217a01bd42247198d844292d3f0d5b2aadc8d44"
+    }
+   ]
   }
  }
 }

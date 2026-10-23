@@ -45,7 +45,12 @@ export async function routeAfterSignIn() {
   const m = await loadMe();
   if (m?.guest && m.onboard && m.onboard !== "done") router.replace("/(tabs)/ask");          // Phase 5: the first conversation
   else if (m?.guest && m.stage === "tour") router.replace("/(tabs)/today");
-  else router.replace("/(tabs)/today");
+  else if (m?.guest) router.replace("/(tabs)/today");
+  else {                                                                                   // the owner: the chosen market, or choose one (22 Oct)
+    const { loadMarket, homeOf } = await import("./market");
+    const mk = await loadMarket();
+    router.replace((mk ? homeOf(mk) : "/market") as any);
+  }
 }
 
 // ---- the confirmation pop-up (plan 2.6): "Order placed ✓" closes by itself after 2 seconds, or with its ✕ ----

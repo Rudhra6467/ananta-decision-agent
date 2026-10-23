@@ -46,7 +46,8 @@ function groups(guest: boolean): Group[] {
     items: guest
       ? [{ label: "Controls and voice", go: tab("/(tabs)/cockpit") }]
       : [{ label: "Controls", go: spot("/(tabs)/cockpit", "cockpit.controls") }, { label: "Evidence", go: spot("/(tabs)/cockpit", "cockpit.evidence") },
-        { label: "Additional features", go: page("/more") }],
+        { label: "Additional features", go: page("/more") },
+        { label: "Switch market · Indian market", go: () => { import("./market").then(({ clearMarket }) => clearMarket().then(() => router.replace("/market"))); } }],
   };
   return [home, ask, markets, more];
 }

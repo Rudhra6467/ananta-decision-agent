@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ananta India</title>
+<style>
+  :root { --bg:#faf7f0; --ink:#13213a; --mute:#5c677d; --line:#e4ddcd; --card:#ffffff; --saffron:#e3761f; --green:#1d7a3a; --red:#b3261e; --chip:#f1ebdd; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  header { display:flex; align-items:center; gap:14px; padding:14px 20px; border-bottom:3px solid var(--saffron); background:#fff; position:sticky; top:0; z-index:2; }
+  header .mark { width:34px; height:34px; border-radius:9px; background:linear-gradient(180deg,var(--saffron) 0 33%,#fff 33% 66%,var(--green) 66%); border:1px solid var(--line); }
+  header h1 { font-size:20px; margin:0; letter-spacing:.2px; }
+  header .sub { color:var(--mute); font-size:13px; margin-left:auto; text-align:right; }
+  nav { display:flex; gap:6px; padding:10px 20px; overflow-x:auto; background:#fff; border-bottom:1px solid var(--line); }
+  nav button { border:1px solid var(--line); background:var(--chip); color:var(--ink); padding:8px 14px; border-radius:999px; cursor:pointer; font-weight:600; white-space:nowrap; }
+  nav button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+  main { max-width:1080px; margin:0 auto; padding:18px 20px 60px; }
+  section { display:none; } section.on { display:block; }
+  .lead { font-size:26px; line-height:1.25; font-weight:700; margin:8px 0 14px; }
+  .lead .tag { display:inline-block; font-size:13px; font-weight:700; padding:3px 9px; border-radius:6px; vertical-align:middle; margin-right:8px; color:#fff; }
+  .up { background:var(--green);} .down { background:var(--red);} .flat { background:var(--mute);}
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; margin:12px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .card h3 { margin:0 0 6px; font-size:13px; color:var(--mute); text-transform:uppercase; letter-spacing:.6px; }
+  .big { font-size:28px; font-weight:700; }
+  .pos { color:var(--green);} .neg { color:var(--red);}
+  ul.brief { padding-left:18px; } ul.brief li { margin:6px 0; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; font-size:14px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--chip); font-weight:700; }
+  .why { color:var(--mute); }
+  .src { color:var(--mute); font-size:12px; margin-top:8px; }
+  pre { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; overflow:auto; font-size:13px; white-space:pre-wrap; }
+  .btn { border:0; background:var(--saffron); color:#fff; padding:10px 16px; border-radius:10px; font-weight:700; cursor:pointer; }
+  .btn.g { background:var(--green);} .btn:disabled { opacity:.5; }
+  .te { font-size:20px; line-height:1.7; }
+  .warn { background:#fff4e5; border:1px solid #f3cf9b; border-radius:10px; padding:10px 14px; margin:10px 0; }
+  .ok { color:var(--green); font-weight:700;} .bad { color:var(--red); font-weight:700;}
+</style>
+</head>
+<body>
+<header><div class="mark"></div><h1>Ananta · Indian market</h1><div class="sub" id="stamp">loading…</div></header>
+<nav id="nav">
+  <button data-s="today" class="on">Today</button><button data-s="books">Books</button><button data-s="league">League</button>
+  <button data-s="research">Research</button><button data-s="jobs">Jobs</button><button data-s="telugu">తెలుగు</button>
+</nav>
+<main>
+<section id="today" class="on"></section>
+<section id="books"></section>
+<section id="league"></section>
+<section id="research"></section>
+<section id="jobs"></section>
+<section id="telugu"></section>
+</main>
+<script>
+const API = location.pathname.startsWith("/india") ? "/india" : "";
+const $ = (s) => document.querySelector(s);
+const esc = (x) => String(x ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = (x, d=1) => x == null ? "n/a" : (x*100).toFixed(d) + "%";
+const rs = (x) => x == null ? "—" : "₹" + Math.round(x).toLocaleString("en-IN");
+const cls = (x) => x > 0 ? "pos" : x < 0 ? "neg" : "";
+let RM = null;
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("main section").forEach(s => s.classList.toggle("on", s.id === b.dataset.s));
+  try { localStorage.setItem("india.tab", b.dataset.s); } catch (e) {}
+});
+
+function today(rm) {
+  const m = rm.market || {}, c = rm.call || {}, sb = rm.stock_book || {}, d = rm.decisions_today || {}, s = rm.sp1 || {};
+  const tag = m.trend_state === "above_both" ? '<span class="tag up">UPTREND</span>' : m.trend_state === "below_both" ? '<span class="tag down">DOWNTREND</span>' : '<span class="tag flat">NO CLEAR TREND</span>';
+  const picks = (d.chosen || []).filter(x => x.campaign !== "CTL");
+  const tot = Object.values(sb.by_campaign || {}).reduce((a, v) => a + (v.realised_inr || 0), 0);
+  let h = `<div class="lead">${m.status === "ok" ? tag + `Nifty ${Number(m.nifty_close).toLocaleString("en-IN")} · ${picks.length} new paper trades for ${esc(rm.next_session)}` : "No market section for this session"}</div>`;
+  h += `<div class="grid">
+    <div class="card"><h3>Daily call</h3><div class="big">${esc(c.call || "—")}</div><div class="why">${c.scored != null ? `${c.hits} of ${c.scored} right (coin flip ${c.null_hits})` : "no calls scored yet"}</div></div>
+    <div class="card"><h3>Stock paper book</h3><div class="big ${cls(tot)}">${rs(tot)}</div><div class="why">${sb.open_positions ?? "—"} open · realised on ${esc(sb.by_campaign && Object.values(sb.by_campaign)[0]?.policy_shown || "ref")} exits</div></div>
+    <div class="card"><h3>SP1 index line</h3><div class="big">${s.status === "ok" ? (s.decisions || []).length + " decisions" : s.status === "lost" ? "lost" : "—"}</div><div class="why">${esc((s.words || "").slice(0, 110))}</div></div>
+    <div class="card"><h3>Breadth</h3><div class="big">${m.breadth_200d_liquid != null ? Math.round(m.breadth_200d_liquid*100) + "%" : "—"}</div><div class="why">of the liquid 250 above their 200-day · VIX ${m.vix_close ?? "—"}</div></div>
+  </div>`;
+  h += `<h2>In five sentences</h2><ul class="brief">${(rm.brief || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  h += `<p><button class="btn" onclick="speak('en')">Hear it</button> <span id="say-en" class="why"></span></p>`;
+  h += `<h2>Decisions for ${esc(rm.next_session)} <span class="why">(${esc(d.rules || "")}, decided ${esc((d.decided_at||"").slice(0,16))})</span></h2>`;
+  if (d.status === "ok") {
+    h += `<table><tr><th>Stock</th><th>Campaign</th><th>Close</th><th>Why</th></tr>` + (d.chosen || []).map(x => `<tr><td><b>${esc(x.symbol)}</b></td><td>${esc(x.campaign)}</td><td>${x.close}</td><td class="why">${esc(x.why)}</td></tr>`).join("") + `</table>`;
+    h += `<div class="src">Entry ${esc((d.chosen||[{}])[0]?.entry || "")}. Source: ${esc(d.source)}</div>`;
+  } else h += `<div class="warn">No decision file for this session.</div>`;
+  if ((rm.missing || []).length) h += `<div class="warn">Not available for this session: ${esc(rm.missing.join(", "))}</div>`;
+  $("#today").innerHTML = h;
+}
+
+function books(rm) {
+  const sb = rm.stock_book || {}, s = rm.sp1 || {}, g = rm.guardrails || {};
+  let h = `<div class="lead">Stock paper book · ${sb.open_positions ?? 0} open positions</div>`;
+  if (sb.status === "ok") {
+    h += `<table><tr><th>Campaign</th><th>What it is</th><th>Open</th><th>Closed</th><th>Realised</th><th>Unrealised</th><th>Win rate</th><th>Expectancy (R)</th></tr>`;
+    for (const [k, v] of Object.entries(sb.by_campaign || {}))
+      h += `<tr><td><b>${esc(k)}</b></td><td class="why">${esc(v.what)}</td><td>${v.open}</td><td>${v.closed}</td><td class="${cls(v.realised_inr)}">${rs(v.realised_inr)}</td><td class="${cls(v.open_unrealised_inr)}">${rs(v.open_unrealised_inr)}</td><td>${v.win_rate == null ? "—" : pct(v.win_rate,0)}</td><td>${v.expectancy_R == null ? "—" : Number(v.expectancy_R).toFixed(2)}</td></tr>`;
+    h += `</table><div class="src">${esc(sb.note)} · exit shown: ${esc(Object.values(sb.by_campaign||{})[0]?.policy_shown || "")} (every registered exit is tracked in marks.jsonl)</div>`;
+    h += `<h2>Open positions</h2><table><tr><th>Stock</th><th>Campaign</th><th>Entered</th><th>Entry</th><th>Last</th><th>P&amp;L</th></tr>` +
+      (sb.positions || []).map(p => `<tr><td><b>${esc(p.symbol)}</b></td><td>${esc(p.campaign)}</td><td>${esc(p.entry_date)}</td><td>${p.entry}</td><td>${p.last_close} <span class="why">(${esc(p.last_date)})</span></td><td class="${cls(p.pnl_pct)}">${pct(p.pnl_pct)}</td></tr>`).join("") + `</table>`;
+  } else h += `<div class="warn">No stock book section.</div>`;
+  h += `<h2>SP1 index line (₹${(s.capital_inr||60000).toLocaleString("en-IN")})</h2><p>${esc(s.words || "")}</p>`;
+  if (s.book && s.book.by_index) h += `<pre>${esc(JSON.stringify(s.book, null, 1))}</pre>`;
+  h += `<h2>Guardrails</h2><p>${esc(g.words || "")}</p><div class="src">${esc(g.state || "")}</div>`;
+  $("#books").innerHTML = h;
+}
+
+function league(rm) {
+  const L = rm.learning || {}, lg = L.league || {}, ms = L.missed || {}, h1 = lg.h1 || {}, cov = h1.coverage || {};
+  let h = `<div class="lead">Reference traders against Ananta · ${esc(rm.data_through)}</div>`;
+  if (lg.status === "ok") {
+    h += `<div class="grid">
+      <div class="card"><h3>Coverage of the top 20 trips</h3><div class="big">${cov.TAKEN ?? 0} taken</div><div class="why">${cov.PASSED ?? 0} passed · ${cov.CONTROL ?? 0} control · ${cov.NOT_COVERED ?? 0} no rule</div></div>
+      <div class="card"><h3>Ananta vs random</h3><div class="big">${h1.ananta_pct_vs_random != null ? Math.round(h1.ananta_pct_vs_random*100) + "th pct" : "—"}</div><div class="why">picks ${pct(h1.ananta_mean,2)} (n=${h1.ananta_n ?? "—"}) · market ${pct(h1.market_mean,2)}</div></div>
+      <div class="card"><h3>Hindsight ceiling</h3><div class="big">${pct(h1.hindsight_mean,2)}</div><div class="why">best 1-session trips the day offered</div></div>
+    </div>`;
+    if (lg.informed) h += `<h2>Informed money</h2><pre>${esc(JSON.stringify(lg.informed, null, 1))}</pre>`;
+    if (lg.league) h += `<h2>League (rolling)</h2><pre>${esc(JSON.stringify(lg.league, null, 1))}</pre>`;
+  } else h += `<div class="warn">No league manifest for this session (${esc(lg.source || "")}).</div>`;
+  h += `<h2>Missed movers</h2>` + (ms.status === "ok" ? `<p>${esc(ms.line || "")}</p><pre>${esc(JSON.stringify(ms.summary, null, 1))}</pre>` : `<div class="warn">No missed-movers manifest for this session.</div>`);
+  h += `<p class="src">Drafts: ${L.drafts ? `${L.drafts.open} open of ${L.drafts.total}` : "—"} (3 sessions in 7 files one DRAFT, never a rule)</p>`;
+  h += `<p><button class="btn" onclick="page('others_league','league-page')">Open the league page</button></p><pre id="league-page" style="display:none"></pre>`;
+  $("#league").innerHTML = h;
+}
+
+function research(rm) {
+  const r = rm.research || {}, st = r.studies || {}, v = r.verdicts || {}, eb = (r.exit_book || {}).chosen || {};
+  let h = `<div class="lead">${st.with_results ?? "—"} studies with results · ${st.ready ?? "—"} ready · ${st.blocked ?? "—"} blocked</div>`;
+  h += `<div class="grid"><div class="card"><h3>Gate G02</h3><div class="big">${esc((r.gate||{}).state || "—")}</div><div class="why">${esc((r.gate||{}).waiting_on || "")}</div></div>
+    <div class="card"><h3>Counters</h3><div class="why">${esc(JSON.stringify(r.gate_counters || {}))}</div></div>
+    <div class="card"><h3>Registry verdicts</h3><div class="why">${Object.entries(v).map(([k,n]) => `${esc(k)} ${n}`).join(" · ")}</div></div></div>`;
+  h += `<h2>Exit policy book (G01): the exit that held up, per entry set and situation</h2><table><tr><th>Entry set / situation</th><th>Exit</th></tr>` +
+    Object.entries(eb).map(([k, p]) => `<tr><td>${esc(k)}</td><td>${p ? `<b>${esc(p)}</b>` : '<span class="why">none held up</span>'}</td></tr>`).join("") + `</table>`;
+  h += `<p><button class="btn" onclick="page('exit_policy_book','eb-page')">Open the exit book</button> <button class="btn" onclick="page('research_tracker','rt-page')">Open the tracker</button></p><pre id="eb-page" style="display:none"></pre><pre id="rt-page" style="display:none"></pre>`;
+  $("#research").innerHTML = h;
+}
+
+function jobs(rm) {
+  const j = rm.jobs || {};
+  let h = `<div class="lead">${j.status === "ok" ? `${(j.jobs||[]).filter(x => x.ok).length} of ${(j.jobs||[]).length} jobs healthy` : "Job health unavailable"}</div>`;
+  if (j.status === "ok") {
+    h += `<table><tr><th>Job</th><th>State</th><th>Problems</th></tr>` + (j.jobs || []).map(x => `<tr><td><b>${esc(x.label)}</b></td><td class="${x.ok ? "ok" : "bad"}">${x.ok ? "ok" : "PROBLEM"}</td><td class="why">${esc((x.problems||[]).join("; "))}</td></tr>`).join("") + `</table>`;
+    h += `<p class="src">Next sign-in: ${esc(j.signin || "")}</p>`;
+  }
+  h += `<p><button class="btn" onclick="page('india_morning','mo-page')">Open the morning summary</button></p><pre id="mo-page" style="display:none"></pre>`;
+  $("#jobs").innerHTML = h;
+}
+
+async function telugu() {
+  const r = await fetch(API + "/api/brief?lang=te"); const j = await r.json();
+  $("#telugu").innerHTML = `<div class="lead">నాన్నగారి కోసం ఉదయం సారాంశం · ${esc(j.data_through)}</div><div class="te">${(j.sentences||[]).map(s => `<p>${esc(s)}</p>`).join("")}</div>
+    <p><button class="btn g" onclick="speak('te')">వినండి (hear it)</button> <span id="say-te" class="why"></span></p>
+    <p><button class="btn" onclick="page('telugu_glossary','gl-page')">పదకోశం · glossary</button></p><pre id="gl-page" style="display:none"></pre>
+    <p class="src">Father mode on paper: every sentence here comes from the read model; nothing is booked from this screen yet (V1 is read-only).</p>`;
+}
+
+async function page(name, id) {
+  const el = document.getElementById(id); el.style.display = "block"; el.textContent = "loading…";
+  const r = await fetch(API + "/api/page/" + name); el.textContent = r.ok ? await r.text() : "not written yet";
+}
+
+async function speak(lang) {
+  const out = document.getElementById("say-" + lang); out.textContent = "making the audio…";
+  const r = await fetch(API + "/api/brief?lang=" + lang); const j = await r.json();
+  const s = await fetch(API + "/api/speak", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({sentences: j.sentences, lang})});
+  if (!s.ok) { out.textContent = "voice server did not answer"; return; }
+  const a = await s.json(); const audio = new Audio("data:" + (a.mime || "audio/mpeg") + ";base64," + a.audio_b64);
+  out.textContent = `${Math.round(a.duration || 0)} s`; audio.play();
+}
+
+async function load() {
+  const r = await fetch(API + "/api/readmodel");
+  if (!r.ok) { $("#stamp").textContent = "no read model yet"; $("#today").innerHTML = `<div class="warn">${esc((await r.json()).detail)}</div>`; return; }
+  RM = await r.json();
+  $("#stamp").innerHTML = `data through <b>${esc(RM.data_through)}</b> · built ${esc((RM.built_at||"").slice(0,16).replace("T"," "))} UTC (${RM.age_hours} h ago)<br><span class="why">${esc(RM.rules)}</span>`;
+  today(RM); books(RM); league(RM); research(RM); jobs(RM); telugu();
+  try { const t = localStorage.getItem("india.tab"); if (t) document.querySelector(`nav button[data-s="${t}"]`)?.click(); } catch (e) {}
+}
+load();
+</script>
+</body>
+</html>

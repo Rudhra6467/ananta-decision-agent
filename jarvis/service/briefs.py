@@ -128,6 +128,18 @@ def portfolio_brief(j) -> dict:
     return _cached("portfolio", build)
 
 
+LESSONS_MAX = 20   # Oct 23 (#81): the review list grew past the brief's 12,000-character cap; the newest 20 go in, the rest are counted
+
+
+def _lessons(forwarded: list[dict]) -> list[str]:
+    """The newest finished reviews as one line each, newest first, with a count of the older ones (they stay on the Evidence page)."""
+    rows = sorted(forwarded, key=lambda r: str(r.get("date") or ""), reverse=True)
+    out = [f'{r["title"]}: {r["verdict"]}. {str(r.get("result") or "")[:220]}' for r in rows[:LESSONS_MAX]]
+    if len(rows) > LESSONS_MAX:
+        out.append(f"... and {len(rows) - LESSONS_MAX} older reviews on the Evidence page")
+    return out
+
+
 def market_brief(j) -> dict:
     def build() -> dict:
         m = views.markets(j)
@@ -174,7 +186,7 @@ def market_brief(j) -> dict:
         out["evidence"] = {"live_days": tk.get("days"), "paper_buys": tk.get("bought"), "closed_trades": tk.get("closed"),
                            "closed_needed_for_first_check": 30, "setups_seen": tk.get("sightings"), "replay_matches_live": tk.get("reconstruction"),
                            "repair_shop": ev["shop"]["summary"],
-                           "lessons": [f'{r["title"]}: {r["verdict"]}. {r["result"][:220]}' for r in ev["forwarded"]]}
+                           "lessons": _lessons(ev["forwarded"])}
         try:                                    # fix A2: every market answer reads the brain's written stance first
             from jarvis.service import stance
 

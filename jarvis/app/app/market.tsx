@@ -8,8 +8,6 @@ import { api } from "../src/api";
 import { C, RADIUS, SPACE, TYPE } from "../src/theme";
 import { Market, MARKET_NAME, homeOf, setMarket } from "../src/market";
 
-const INDIA = { saffron: "#E3761F", green: "#1D7A3A" };
-
 function Card({ m, title, line, sub, color, onPress }: { m: Market; title: string; line: string; sub: string; color: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Open ${title}`}
@@ -39,7 +37,7 @@ export default function MarketScreen() {
       </Text>
       <Card m="crypto" title={MARKET_NAME.crypto} color={C.accent} line={crypto} onPress={() => pick("crypto")}
         sub="NDAX paper books, the watches, Ask Ananta and voice, the evidence layer." />
-      <Card m="india" title={MARKET_NAME.india} color={INDIA.saffron} line={india} onPress={() => pick("india")}
+      <Card m="india" title={MARKET_NAME.india} color={C.india} line={india} onPress={() => pick("india")}
         sub="NSE stock and index paper books, the reference-traders league, the research gate, and the Telugu brief for father mode." />
       {Platform.OS === "web" ? <Text style={{ color: C.faint, fontSize: TYPE.meta, marginTop: 10 }}>Tip: the choice is kept on this device.</Text> : null}
     </ScrollView>

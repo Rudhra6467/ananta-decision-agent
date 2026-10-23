@@ -9,6 +9,8 @@ const LIGHT = {
   accent: "#2952CC", accentSoft: "#E8EEFC",
   good: "#06804C", goodSoft: "#E6F4EC", bad: "#C8332B", badSoft: "#FBEAE9", warn: "#B54708", warnSoft: "#FEF4E6",
   goodDeep: "#05603A", badDeep: "#912018", warnDeep: "#7A2E0E",
+  // each market's accent on the Market screen (Oct 23, #81): India saffron, crypto stays C.accent
+  india: "#B5560F",
   // "ink": the dark pills and caption bars (tour, toast, listening); onInk: text on ink or on any filled colour
   ink: "#101828", onInk: "#FFFFFF", inkDim: "#C9D3F5", inkBtn: "#33405E",
   ok: "#2952CC", ema20: "#2952CC", ema50: "#98A2B3", level: "#5B7083", level2: "#8A6D3B",
@@ -23,6 +25,7 @@ const BAT: Palette = {
   accent: "#F2CF66", accentSoft: "#3A331C",
   good: "#5CCB92", goodSoft: "#183126", bad: "#F2796F", badSoft: "#3A1F1F", warn: "#F2A65A", warnSoft: "#3A2A18",
   goodDeep: "#8FE0B6", badDeep: "#F7A8A1", warnDeep: "#F7C48F",
+  india: "#F0A35E",
   ink: "#ECEAE6", onInk: "#141518", inkDim: "#4B4F57", inkBtn: "#CBC8C2",
   ok: "#F2CF66", ema20: "#F2CF66", ema50: "#7E828A", level: "#8C96A3", level2: "#B59A62",
   shades: ["#F2CF66", "#D9BA5E", "#BFA457", "#A68F4F", "#8C7A47", "#73653F", "#5E5437", "#4A4430", "#3A3628", "#2E2B22"],

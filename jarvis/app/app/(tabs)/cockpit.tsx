@@ -18,6 +18,7 @@ import { api, logout } from "../../src/api";
 import { confirmWithFaceId } from "../../src/guard";
 import { Btn, Busy, Card, Divider, ErrorBox, Line, ListState, Screen, Section, Segmented, T, s as st } from "../../src/ui";
 import { useData } from "../../src/useData";
+import { getMarket } from "../../src/market";
 import { C } from "../../src/theme";
 import { ExplainSheet, VERDICT, showToast } from "../../src/blocks";
 import { clearMe, loadMe, useMe } from "../../src/visitor";
@@ -214,9 +215,13 @@ function Cockpit() {
       <Spot id="cockpit.controls">
         <Section title="Controls" />
         <Card>
-          <SwitchRow label="Kill switch" help="On: close every paper position and block new trades." on={!!sw("kill_switch").on} danger onChange={(v) => flip("kill_switch", v)} />
-          <SwitchRow label="Autopilot" help="On: the trend portfolio rebalances by itself." on={!!sw("portfolio_auto").on} onChange={(v) => flip("portfolio_auto", v)} />
-          <SwitchRow label="Live" help="Real money: coming soon. Paper only." on={false} locked onChange={() => setLive(true)} />
+          {getMarket() === "india" ? (d.switches ?? []).map((w: any) => (                                   // India (23 Oct): its own switches, read-only until the gate
+            <SwitchRow key={w.key} label={w.label} help={w.help} on={!!w.on} locked onChange={() => {}} />
+          )) : (<>
+            <SwitchRow label="Kill switch" help="On: close every paper position and block new trades." on={!!sw("kill_switch").on} danger onChange={(v) => flip("kill_switch", v)} />
+            <SwitchRow label="Autopilot" help="On: the trend portfolio rebalances by itself." on={!!sw("portfolio_auto").on} onChange={(v) => flip("portfolio_auto", v)} />
+            <SwitchRow label="Live" help="Real money: coming soon. Paper only." on={false} locked onChange={() => setLive(true)} />
+          </>)}
           <Spot id="cockpit.ai">
             <View>
               <SwitchRow label="Ask Ananta" help="Off: no AI answers at all (nothing can cost money)." on={sp?.settings?.ask_enabled === "1"} onChange={(v) => setting("ask_enabled", v ? "1" : "0")} />

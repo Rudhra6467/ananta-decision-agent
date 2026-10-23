@@ -25,9 +25,11 @@ ACCOUNT_SINCE = "2026-10-21"       # SP1 paper start (sessions so far are what t
 NOTIONAL = 50000.0                 # the stock research book's scale unit per trade
 CAPS = {"BRK": 10, "PULL": 10, "REV": 10, "CTL": 5}
 REF_POLICY = "hold_20d"
-CAMPAIGN = {"BRK": "Breakout", "PULL": "Pullback", "REV": "Reversal", "CTL": "Random control"}
-CAMPAIGN_WHY = {"BRK": "20-session breakout on volume", "PULL": "pullback in an uptrend", "REV": "oversold reversal (RSI under 30, P01)",
-                "CTL": "random control: no edge claimed, the yardstick"}
+CAMPAIGN = {"BRK": "Breakout", "PULL": "Pullback", "REV": "Reversal", "CTL": "Random pick"}
+CAMPAIGN_WHY = {"BRK": "breaks above its one-month high on heavy volume", "PULL": "a strong stock resting at its one-month average",
+                "REV": "a stock sold too hard, due a bounce", "CTL": "picked at random, to compare Ananta's picks against"}
+JOB_WORDS = {"autologin": "morning sign-in", "evening": "evening data", "morning": "morning check", "nightly": "nightly checks", "paper": "stock picks",
+             "recorder_noon": "option prices", "sp1paper": "options line", "sp1paper.score": "options scoring", "spreads": "option spreads", "allocator": "money split"}
 
 
 # ---------------------------------------------------------------------------------------------------------------- files
@@ -134,7 +136,7 @@ def closed_trades(limit: int = 40) -> list[dict]:
             continue
         rows.append({"id": e["id"], "coin": None, "sid": parts[2], "campaign": parts[1], "signal_date": parts[0], "exit_date": e.get("exit_date"),
                      "net_usd": round(e.get("net_inr") or 0, 2), "why": f"exit: {e.get('reason', '')}", "time": _when(e.get("at")), "t": _ts(e.get("at")),
-                     "stamp": {"who": "ananta", "label": f"Stock book · {CAMPAIGN.get(parts[1], parts[1])}", "source": "stockbook"}, "link": None})
+                     "stamp": {"who": "ananta", "label": f"Research book · {CAMPAIGN.get(parts[1], parts[1])}", "source": "stockbook"}, "link": None})
     # names: the universe files carry sid -> symbol
     names = _names()
     for r in rows:
@@ -190,10 +192,46 @@ def sparks() -> dict[str, list[float]]:
 
 # ---------------------------------------------------------------------------------------------------------------- Home: /v3/home
 
+def plain_brief(rm: dict) -> list[str]:
+    """Ananta's day in three short sentences a person reads in ten seconds: the market, what it picked, the options line and the account."""
+    out = []
+    m = rm.get("market") or {}
+    if m.get("nifty_close"):
+        tr = {"above_both": "in an uptrend", "below_both": "in a downtrend", "mixed": "with no clear trend"}.get(m.get("trend_state"), "")
+        out.append(f"Nifty closed at {m['nifty_close']:,.0f} on {_day_words(m.get('data_through'))}, {tr}.")
+    d = rm.get("decisions_today") or {}
+    chosen = [x for x in d.get("chosen", []) if x.get("campaign") != "CTL"]
+    if chosen:
+        by = Counter(x.get("campaign") for x in chosen)
+        kinds = ", ".join(f"{v} {CAMPAIGN.get(k, k).lower()}{'s' if v != 1 else ''}" for k, v in by.most_common())
+        out.append(f"Ananta picked {len(chosen)} stocks to buy on paper at the next open ({kinds}).")
+    c = rm.get("call") or {}
+    if c.get("call"):
+        word = {"BULLISH": "up", "BEARISH": "down", "NEUTRAL": "flat"}.get(str(c["call"]).upper(), str(c["call"]).lower())
+        out.append(f"It calls the next session {word}; so far {c.get('hits', 0)} of {c.get('scored', 0)} calls were right.")
+    s = rm.get("sp1") or {}
+    if s.get("status") == "lost":
+        out.append("Options: nothing traded yet, because the morning sign-in to Zerodha was missing.")
+    return out
+
+
+def _day_words(d) -> str:
+    """'2026-10-22' -> '22 Oct' for a sentence a person reads."""
+    try:
+        return dt.date.fromisoformat(str(d)[:10]).strftime("%-d %b")
+    except (TypeError, ValueError):
+        return str(d or "")
+
+
 def _health(rm: dict) -> dict:
     j = rm.get("jobs") or {}
     jobs = j.get("jobs") or []
     down = [x["label"] for x in jobs if not x.get("ok")]
+    signin = [x["label"] for x in jobs if not x.get("ok") and (x["label"] in ("autologin", "evening") or any(w in "; ".join(x.get("problems") or []).lower() for w in ("token", "sign-in", "kite", "depth snapshots", "recorder")))]
+    if signin and len(signin) == len(down):
+        down = [f"the Zerodha morning sign-in ({len(signin)} jobs waited for it)"]
+    elif signin:
+        down = [f"the Zerodha morning sign-in ({len(signin)} jobs waited for it)"] + [x for x in down if x not in signin]
     age = None
     try:
         age = int((dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(rm["built_at"])).total_seconds())
@@ -214,10 +252,11 @@ def _account(rm: dict) -> dict:
     a = _account_sp1(rm)
     ab = _book()
     if ab.get("value_inr"):
+        pos = {p["symbol"]: {"qty": p.get("qty"), "last": p.get("last"), "paid": round((p.get("avg") or 0) * (p.get("qty") or 0), 2), "rule": "holding", "sleeve": "stocks"} for p in (ab.get("positions") or [])}
         a.update({"value_cad": float(ab["value_inr"]), "start_cad": float(ab.get("start_inr") or ab["value_inr"]), "return_pct": float(ab.get("return_pct") or 0.0),
-                  "cash_cad": float(ab.get("cash_inr") or 0), "started": (ab.get("opened_at") or "")[:10] or a["started"], "book_words": ab.get("words"),
-                  "options_inr": ab.get("options_inr"), "stocks_inr": ab.get("stocks_inr"), "positions_count": len(ab.get("positions") or []),
-                  "pushed_rule": "The account book buys a new name only from a family ADMITTED on the evidence staircase (20 shadow sessions, beats RANDOM and MARKET on 10, Madhav's yes); until then it rebalances and trims."})
+                  "cash_cad": float(ab.get("cash_inr") or 0), "started": (ab.get("opened_at") or "")[:10] or a["started"], "book_words": ab.get("words"), "positions": pos,
+                  "options_inr": ab.get("options_inr"), "stocks_inr": ab.get("stocks_inr"), "positions_count": len(pos),
+                  "pushed_rule": "Ananta may buy a new stock for the account only after a rule has proved itself on paper (20 sessions, beating chance and the market) and you say yes. Until then it holds, trims and rebalances."})
     return a
 
 
@@ -230,29 +269,33 @@ def _account_sp1(rm: dict) -> dict:
         pnl += float(v.get("option_1lot_rs_realistic_fill") or 0)
     sessions = (s.get("book") or {}).get("sessions") or 0
     m = rm.get("market") or {}
-    trend = {"above_both": "uptrend: Nifty above both averages", "below_both": "downtrend: Nifty below both averages", "mixed": "no clear trend"}.get(m.get("trend_state"), "trend unknown")
-    why = [f"Nifty {m.get('nifty_close'):,.0f} on {m.get('data_through')}: {trend}" if m.get("nifty_close") else "no market section",
-           f"Daily call for {rm.get('next_session')}: {(rm.get('call') or {}).get('call') or 'none'}",
-           f"Guardrails: stop the day at {g.get('daily_loss_limit_pct')}% loss; pause new entries {g.get('pause_drawdown_pct')}% below the high-water mark"]
+    trend = {"above_both": "an uptrend (above its ten-week and long-term averages)", "below_both": "a downtrend (below its ten-week and long-term averages)",
+             "mixed": "no clear trend"}.get(m.get("trend_state"), "trend unknown")
+    why = [f"Nifty {m.get('nifty_close'):,.0f} on {_day_words(m.get('data_through'))}: {trend}" if m.get("nifty_close") else "no market reading yet",
+           f"Ananta's call for the next session: {str((rm.get('call') or {}).get('call') or 'none').lower()}",
+           (f"Guardrails: a {g['daily_loss_limit_pct']:.0f}% loss stops the day; {g['pause_drawdown_pct']:.0f}% below the peak pauses new buys"
+            if g.get("daily_loss_limit_pct") is not None and g.get("pause_drawdown_pct") is not None else "Guardrails: not in the daily summary yet")]
     return {"started": ACCOUNT_SINCE, "value_cad": round(ACCOUNT_START + pnl, 2), "start_cad": ACCOUNT_START, "return_pct": round(100 * pnl / ACCOUNT_START, 2),
             "cash_cad": round(ACCOUNT_START + pnl, 2), "positions": {}, "currency": "INR",
             "brakes": {"paused": False, "block_until": None, "fired": {"day_loss": 0, "pause_22pct": 0}, "streak": 0},
-            "dial": {"state": "OPEN: no guardrail has fired" if s.get("status") != "lost" else "OPEN: no guardrail has fired (last session lost to the sign-in)", "why": why},
+            "dial": {"state": "OPEN: no guardrail has fired", "why": why},
             "last_step": (rm.get("built_at") or "")[:16].replace("T", " "), "execution_check": {"fills": 0, "inside_bid_ask": 0},
-            "next": f"the next decisions come at the open of {rm.get('next_session')} (09:15 to 10:15 IST)", "sessions": sessions,
-            "note": {"day": rm.get("data_through"), "t": _ts(rm.get("built_at")), "note": " ".join((rm.get("brief") or [])[:2]), "cost_usd": 0},
-            "lab": _lab_list(rm), "pushed_rule": "A playbook action enters the Rs 60,000 line only after validation on 2018-2023, the selection checks, and Madhav's sentence (G02)."}
+            "next": f"Next decisions at the open on {_day_words(rm.get('next_session'))} (09:15 Indian time)", "sessions": sessions,
+            "note": {"day": rm.get("data_through"), "t": _ts(rm.get("built_at")), "note": " ".join(plain_brief(rm)), "cost_usd": 0},
+            "lab": _lab_list(rm), "pushed_rule": "A playbook action trades the options line only after it is validated on 2018-2023, passes the selection checks, and you say yes."}
 
 
 def _lab_list(rm: dict) -> list[dict]:
     r = rm.get("research") or {}
-    out = [{"id": "SP1", "name": "Index intraday playbook (Nifty, Bank Nifty)", "status": "PAPER", "verdict": "paper since 21 Oct; sessions so far: " + str(((rm.get("sp1") or {}).get("book") or {}).get("sessions") or 0)},
-           {"id": "SP3", "name": "Positional playbook (stocks and index)", "status": "FROZEN", "verdict": "run pending"},
-           {"id": "SZ2", "name": "Sizing v2 (option structures)", "status": "FROZEN", "verdict": "study pending"}]
+    out = [{"id": "SP1", "name": "Options line (Nifty and Bank Nifty)", "status": "PAPER", "verdict": f"on paper since 21 Oct · {((rm.get('sp1') or {}).get('book') or {}).get('sessions') or 0} sessions traded"},
+           {"id": "SP3", "name": "Longer-hold playbook (stocks and index)", "status": "WAITING", "verdict": "written down, waiting for its test run"},
+           {"id": "SZ2", "name": "Option sizing study", "status": "WAITING", "verdict": "written down, waiting for its test run"}]
     for camp, name in CAMPAIGN.items():
-        out.append({"id": camp, "name": f"Stock book · {name}", "status": "PAPER", "verdict": "recording since 16 Oct"})
+        out.append({"id": camp, "name": f"Research book · {name}", "status": "PAPER", "verdict": "practice trades since 16 Oct"})
     g = r.get("gate") or {}
-    out.append({"id": "G02", "name": "The gate", "status": g.get("state") or "BLOCKED", "verdict": g.get("waiting_on") or ""})
+    cnt = r.get("gate_counters") or {}
+    out.append({"id": "G02", "name": "The gate to real money", "status": "CLOSED" if (g.get("state") or "BLOCKED") == "BLOCKED" else g.get("state"),
+                "verdict": ("waiting on " + " and ".join(str(v) for v in cnt.values())) if isinstance(cnt, dict) and cnt else "waiting"})
     return out
 
 
@@ -284,8 +327,8 @@ def findings(rm: dict, n: int = 5) -> list[dict]:
             kind = "CAUGHT" if mv.get("caught") else ("SEEN" if fired else "MISSED")
             pct = round(100 * (mv.get("cc") or 0), 1)
             out.append({"t": _day_t(day), "kind": kind, "coin": mv.get("symbol"), "link": "missed", "move_pct": pct,
-                        "title": f"{mv.get('symbol')} {pct:+.1f}% on {day[5:]}",
-                        "body": ("A family fired in the window: " + ", ".join(f"{f.get('campaign', '')} {f.get('date', '')}" for f in fired[:2])) if fired else "No rule covered it",
+                        "title": f"{mv.get('symbol')} {pct:+.1f}% on {_day_words(day)}",
+                        "body": (f"A {CAMPAIGN.get(fired[-1].get('campaign') or fired[-1].get('family'), 'rule').lower()} rule had flagged it on {_day_words(fired[-1].get('date'))}, but it was not bought") if fired else "No rule was watching it",
                         "simple": f"{'Ananta had a rule on' if fired else 'No rule saw'} {mv.get('symbol')}'s {abs(pct):.0f}% {'rise' if pct > 0 else 'fall'}."})
     out.sort(key=lambda x: (-x["t"], -abs(x["move_pct"])))
     return out[:n]
@@ -299,38 +342,56 @@ def feed(limit: int = 40) -> list[dict]:
         t = _ts(d.get("decided_at"))
         by = Counter(x.get("campaign") for x in d.get("signals", []))
         if by:
-            rows.append({"t": t, "kind": "watch", "coin": None, "title": f"Decided {sum(v for k, v in by.items() if k != 'CTL')} paper entries for the next session",
-                         "body": ", ".join(f"{v} {CAMPAIGN.get(k, k)}" for k, v in sorted(by.items())) + " · entry at the next open", "time": _when(d.get("decided_at"))})
+            n_real = sum(v for k, v in by.items() if k != "CTL")
+            rows.append({"t": t, "kind": "watch", "coin": None, "title": f"Picked {n_real} stocks to buy on paper at the next open",
+                         "body": ", ".join(f"{v} {CAMPAIGN.get(k, k).lower()}{'s' if v != 1 else ''}" for k, v in sorted(by.items()) if k != "CTL")
+                                 + (f" · plus {by['CTL']} random picks to compare against" if by.get("CTL") else ""), "time": _when(d.get("decided_at"))})
         for x in d.get("signals", [])[:6]:
             if x.get("campaign") == "CTL":
                 continue
-            rows.append({"t": t - 1, "kind": "buy", "coin": x.get("symbol"), "title": f"{x.get('symbol')} · {CAMPAIGN.get(x.get('campaign'), '')} entry at the next open",
-                         "body": CAMPAIGN_WHY.get(x.get("campaign"), "") + (f" · close {x.get('close')}" if x.get("close") else ""), "time": _when(d.get("decided_at"))})
+            rows.append({"t": t - 1, "kind": "buy", "coin": x.get("symbol"), "title": f"{x.get('symbol')}: buy at the next open ({CAMPAIGN.get(x.get('campaign'), '').lower()})",
+                         "body": CAMPAIGN_WHY.get(x.get("campaign"), "") + (f" · last ₹{x['close']:,.2f}" if x.get("close") else ""), "time": _when(d.get("decided_at"))})
     for e in _jsonl(DATA / "paper" / "events.jsonl")[-400:]:
         if e.get("event") == "close" and str(e.get("id", "")).endswith("|" + REF_POLICY):
             p = e["id"].split("|")
             net = e.get("net_inr") or 0
             rows.append({"t": _ts(e.get("at")), "kind": "sell", "coin": _names().get(p[2], p[2]), "good": net > 0, "trade_id": None,
-                         "title": f"{_names().get(p[2], p[2])} closed ({e.get('reason')}) {net:+,.0f} INR", "body": f"{CAMPAIGN.get(p[1], p[1])} · exit {e.get('exit_date')}", "time": _when(e.get("at"))})
+                         "title": f"Sold {_names().get(p[2], p[2])} · {'+' if net >= 0 else '−'}₹{abs(net):,.0f}", "body": f"{CAMPAIGN.get(p[1], p[1])} · {_exit_words(e.get('reason'))} · {_day_words(e.get('exit_date'))}", "time": _when(e.get("at"))})
     for c in _jsonl(DATA / "paper" / "calls.jsonl")[-6:]:
         if c.get("kind") == "call":
-            rows.append({"t": _ts(c.get("written_at")), "kind": "watch", "coin": "NIFTY", "title": f"Daily call for the next session: {c.get('call')}",
-                         "body": f"Nifty {c.get('close'):,.0f}, {100 * (c.get('nifty_vs_sma50') or 0):+.1f}% from its 50-day", "time": _when(c.get("written_at"))})
+            word = {"BULLISH": "up", "BEARISH": "down", "NEUTRAL": "flat"}.get(str(c.get("call")).upper(), str(c.get("call")).lower())
+            rows.append({"t": _ts(c.get("written_at")), "kind": "watch", "coin": "NIFTY", "title": f"Ananta calls the next session {word}",
+                         "body": f"Nifty {c.get('close'):,.0f}, {abs(100 * (c.get('nifty_vs_sma50') or 0)):.1f}% {'above' if (c.get('nifty_vs_sma50') or 0) >= 0 else 'below'} its ten-week average", "time": _when(c.get("written_at"))})
         elif c.get("kind") == "score":
-            rows.append({"t": _ts(c.get("scored_at")), "kind": "watch", "coin": "NIFTY", "title": f"Yesterday's call scored: {'right' if c.get('score') == 1 else 'wrong'}",
+            rows.append({"t": _ts(c.get("scored_at")), "kind": "watch", "coin": "NIFTY", "title": f"Yesterday's call was {'right' if c.get('score') == 1 else 'wrong'}",
                          "body": f"Nifty moved {100 * (c.get('move') or 0):+.2f}%", "time": _when(c.get("scored_at"))})
     for day in _rm_days()[-3:]:
         o = _json(DATA / "manifests" / f"others_{day}.json", {}) or {}
         h1 = (o.get("by_h") or {}).get("1") or {}
         cov = h1.get("coverage") or {}
         if cov:
-            rows.append({"t": _ts(o.get("made_at")), "kind": "watch", "coin": None, "title": f"League {day[5:]}: held {cov.get('TAKEN', 0)} of the top 20 trips, no rule for {cov.get('NOT_COVERED', 0)}",
-                         "body": f"picks at the {round(100 * (h1.get('ananta_pct_vs_random') or 0))}th percentile of random · market {100 * (h1.get('market_mean') or 0):+.2f}%", "time": _when(o.get("made_at"))})
+            rows.append({"t": _ts(o.get("made_at")), "kind": "watch", "coin": None, "title": f"Against other traders on {_day_words(day)}: Ananta held {cov.get('TAKEN', 0)} of the day's 20 best trades",
+                         "body": f"No rule for {cov.get('NOT_COVERED', 0)} of them · its picks beat {round(100 * (h1.get('ananta_pct_vs_random') or 0))}% of random picks · the average stock {100 * (h1.get('market_mean') or 0):+.1f}%", "time": _when(o.get("made_at"))})
     lost = (rm.get("sp1") or {})
     if lost.get("status") == "lost":
-        rows.append({"t": _day_t(rm.get("data_through", "2026-01-01"), 9, 10), "kind": "alert", "coin": "NIFTY", "title": "SP1 index session lost", "body": lost.get("words", "")[:140], "time": ""})
+        rows.append({"t": _day_t(rm.get("data_through", "2026-01-01"), 9, 10), "kind": "alert", "coin": "NIFTY", "title": "The options line missed its session", "body": "The morning sign-in to Zerodha was missing, so no option trade could be recorded.", "time": ""})
     rows.sort(key=lambda r: -r["t"])
     return rows[:limit]
+
+
+def _exit_words(reason) -> str:
+    r = str(reason or "")
+    if r.startswith("stop"):
+        return "stop hit"
+    if r.startswith("target"):
+        return "target reached"
+    if r in ("time", "hold") or r.startswith("hold"):
+        return "holding time up"
+    if r == "random":
+        return "random exit (yardstick)"
+    if r.startswith("sma") or r.startswith("trail") or r.startswith("atr") or r.startswith("swing"):
+        return "trend turned"
+    return r.replace("_", " ") or "exit"
 
 
 def day_summary(rm: dict) -> dict:
@@ -340,7 +401,10 @@ def day_summary(rm: dict) -> dict:
     pos = open_positions()
     d = rm.get("decisions_today") or {}
     chosen = [x for x in d.get("chosen", []) if x.get("campaign") != "CTL"]
-    sentence = (" ".join((rm.get("brief") or [])[:1]) or "No read model yet.") + " Paper only: no real money is at risk."
+    m = rm.get("market") or {}
+    tr = {"above_both": "in an uptrend, above its ten-week and long-term averages", "below_both": "in a downtrend, below its ten-week and long-term averages", "mixed": "between its ten-week and long-term averages"}.get(m.get("trend_state"), "trend unknown")
+    sentence = (f"Nifty {m['nifty_close']:,.0f} on {_day_words(m.get('data_through'))}, {tr}; {100 * (m.get('breadth_200d_liquid') or 0):.0f}% of the 250 most-traded stocks are above their long-term average."
+                if m.get("nifty_close") else "No market reading yet.") + " Paper only: no real money is at risk."
     return {"date": dt.datetime.now(TOR).strftime("%A, %b %-d"), "paper_value": round(a["value_cad"] + lab_val, 2), "start_value": ACCOUNT_START + lab_start(), "today_change": 0.0,
             "explorer": {"value": round(lab_val, 2), "open": len(pos), "opened_today": len(chosen), "closed_today": 0},
             "portfolio": {"value": a["value_cad"], "return_pct": a["return_pct"], "mode": "PAPER", "holding": 0, "pending": 0},
@@ -374,7 +438,7 @@ def home() -> dict:
 # ---------------------------------------------------------------------------------------------------------------- Books, holdings, history
 
 def _trade_row(p: dict) -> dict:
-    return {"id": p["id"], "coin": p["coin"], "book": "stockbook", "stamp": {"who": "ananta", "label": f"Stock book · {CAMPAIGN.get(p['campaign'], p['campaign'])}", "source": "stockbook"},
+    return {"id": p["id"], "coin": p["coin"], "book": "stockbook", "stamp": {"who": "ananta", "label": f"Research book · {CAMPAIGN.get(p['campaign'], p['campaign'])}", "source": "stockbook"},
             "entry": p["entry"], "now": p["now"], "currency": "INR", "pnl_usd": p["pnl_usd"], "pnl_pct": p["pnl_pct"], "since": p["since"],
             "why": CAMPAIGN_WHY.get(p["campaign"]), "stop": None, "target": None, "sleeve": p["campaign"], "rule": p["campaign"], "link": None,
             "setup_name": CAMPAIGN.get(p["campaign"]), "type_name": "paper · delivery", "status": "open", "time": p["since"], "entries": 1}
@@ -391,24 +455,25 @@ def books() -> dict:
     closed_pnl = sum((m.get("realised_inr") or 0) for m in marks.values())
     acct_summary = {"value": a["value_cad"], "start": a["start_cad"], "open_count": 0, "open_pnl": 0.0, "closed_pnl_recent": 0.0, "closed_count": 0, "won_count": 0,
                     "execution_check": a["execution_check"], "since": a["started"], "dial_open": True, "brakes": a["brakes"]}
-    account = {"book": {"name": "The Rs 60,000 India book (SP1 index line)", "value": a["value_cad"], "start": a["start_cad"], "currency": "INR", "execution_check": a["execution_check"],
+    account = {"book": {"name": "Your account (paper copy)" if _book() else "The options line (paper)", "value": a["value_cad"], "start": a["start_cad"], "currency": "INR", "execution_check": a["execution_check"],
                         "started": a["started"], "dial_open": True, "brakes": a["brakes"], "status": "ACTIVE",
-                        "why": "The account: the index playbook's Rs 60,000 line on paper; sized by SZ2 once its study lands; guardrails 5% a day and a 22% pause."},
+                        "why": ("Your holdings, the options money and cash, traded by Ananta on paper. Real trades wait for the gate and your yes." if _book()
+                                else "The options line on paper. Guardrails: a 5% loss stops the day; 22% below the peak pauses new buys.")},
                "trades": [], "closed": [], "currency": "INR", "summary": acct_summary}
     lab_trades = [_trade_row(p) for p in pos]
     by_camp = []
     for camp, name in CAMPAIGN.items():
         m = marks.get(camp) or {}
-        by_camp.append({"id": camp, "name": f"Stock book · {name}", "kind": "paper", "t": _ts(m.get("at")), "start": CAPS[camp] * NOTIONAL,
+        by_camp.append({"id": camp, "name": f"Research book · {name}", "kind": "paper", "t": _ts(m.get("at")), "start": CAPS[camp] * NOTIONAL,
                         "value": round(CAPS[camp] * NOTIONAL + (m.get("realised_inr") or 0) + (m.get("open_unrealised_inr") or 0), 2), "status": "PAPER",
-                        "verdict": f"{m.get('open') or 0} open · {m.get('closed') or 0} closed · win rate {m.get('win_rate') if m.get('win_rate') is not None else '–'}",
+                        "verdict": f"{m.get('open') or 0} open · {m.get('closed') or 0} closed · " + ("no closed trades yet" if not m.get("closed") else ("no wins yet" if not m.get("win_rate") else f"won {round(100 * m['win_rate'])}%")),
                         "events": m.get("closed") or 0, "result": None})
     return {"summary": {"value": round(lab_val + a["value_cad"], 2), "start": lab_start() + a["start_cad"], "open_pnl": round(open_pnl, 2), "closed_pnl_recent": round(closed_pnl, 2),
                         "open_count": len(pos), "retired_pnl": 0.0, "retired_count": 0, "evidence_open": len(pos)},
-            "account": account, "lab": {"trades": lab_trades, "closed": closed, "books": by_camp, "decision": " ".join((rm.get("brief") or [])[:1])},
+            "account": account, "lab": {"trades": lab_trades, "closed": closed, "books": by_camp, "decision": " ".join(plain_brief(rm)[:2])},
             "retired": [], "evidence_open_by": dict(Counter(p["campaign"] for p in pos)), "trades": lab_trades, "closed": closed, "books": by_camp,
-            "stamps": {"stockbook": "the stock research book, Rs 50,000 a trade, every registered exit tracked"}, "random_open": sum(1 for p in pos if p["campaign"] == "CTL"),
-            "initials": {}, "read": "Paper only. The Rs 60,000 line is the account; the stock book is the lab at research scale."}
+            "stamps": {"stockbook": "Ananta's research book: practice trades of ₹50,000 each, to test its rules"}, "random_open": sum(1 for p in pos if p["campaign"] == "CTL"),
+            "initials": {}, "read": "Paper only. Your account is the paper copy on Home; this research book tests Ananta's rules with ₹50,000 practice trades and is not your money."}
 
 
 def holdings(full: bool = False) -> dict:
@@ -426,7 +491,7 @@ def holdings(full: bool = False) -> dict:
     not_held = [{"coin": x.get("symbol"), "rating": CAMPAIGN.get(x.get("campaign"), ""), "why": x.get("why", "")} for x in d.get("chosen", []) if x.get("campaign") != "CTL"][:10]
     return {"mode": "PAPER", "value": a["value_cad"], "start": a["start_cad"], "return_pct": a["return_pct"], "cash": a["cash_cad"], "invested": 0, "costs_paid": 0.0,
             "holdings": [], "not_held": not_held, "pending": [], "decided": rm.get("data_through"), "btc_gate": (rm.get("market") or {}).get("trend_state") == "above_both",
-            "shadow": {"value": a["value_cad"], "return_pct": a["return_pct"]}, "rule_plain": "The Rs 60,000 line trades the index playbook on paper; stocks are the research book, not holdings."}
+            "shadow": {"value": a["value_cad"], "return_pct": a["return_pct"]}, "rule_plain": "The options line trades on paper; the stocks you see in the research book are practice trades, not holdings."}
 
 
 def history(days: int = 30) -> dict:
@@ -469,25 +534,25 @@ def coins(n: int = 40) -> dict:
         out.append({"coin": s, "price": px, "day_pct": round(100 * (r.get("ret_1") or 0), 2), "week_pct": round(100 * (path[-1] / path[max(0, len(path) - 6)] - 1), 2) if len(path) > 1 else None,
                     "spark": [round((px or 100) * x / path[-1], 2) for x in path], "rating": _rating(r), "held_usd": None, "open_trades": pos.get(s, 0),
                     "trend_1h": "up" if (r.get("oc") or 0) > 0 else "down", "trend_4h": "up" if (r.get("dist_sma20") or 0) > 0 else "down",
-                    "daily": "above 200-day" if (r.get("dist_sma200") or 0) > 0 else "below 200-day",
-                    "closest": {"setup": chosen.get(s, ""), "name": CAMPAIGN.get(chosen.get(s, ""), "no family fired"), "met": 1 if s in chosen else 0, "of": 1, "missing": "" if s in chosen else "not chosen this session"},
+                    "daily": "above its long-term average" if (r.get("dist_sma200") or 0) > 0 else "below its long-term average",
+                    "closest": {"setup": chosen.get(s, ""), "name": CAMPAIGN.get(chosen.get(s, ""), "no rule fired"), "met": 1 if s in chosen else 0, "of": 1, "missing": "" if s in chosen else "not picked today"},
                     "liq_rank": r.get("liq_rank"), "vol_ratio20": r.get("vol_ratio20"), "rsi14": r.get("rsi14")})
     return {"coins": out, "data_through": rm.get("data_through"), "universe": (d.get("universe") or {})}
 
 
 def chain() -> dict:
     rm = readmodel()
-    gates = [{"gate": "LIQUIDITY", "question": "Is it in the liquid 250?"}, {"gate": "TREND", "question": "Where is the Nifty against its averages?"},
-             {"gate": "FAMILY", "question": "Did a registered family fire (breakout, pullback, reversal)?"}, {"gate": "COSTS", "question": "Does it clear the Rs 50,000 cost model?"},
-             {"gate": "GUARDRAIL", "question": "Has the 5% day or the 22% pause fired?"}]
+    gates = [{"gate": "LIQUIDITY", "question": "Is it one of the 250 most-traded stocks?"}, {"gate": "TREND", "question": "Which way is the Nifty trending?"},
+             {"gate": "FAMILY", "question": "Does it match one of Ananta's rules (breakout, pullback, reversal)?"}, {"gate": "COSTS", "question": "Can the trade pay its charges?"},
+             {"gate": "GUARDRAIL", "question": "Is a guardrail stopping new buys?"}]
     d = decision()
     rows = []
     for x in d.get("signals", [])[:12]:
         rows.append({"coin": x.get("symbol"), "price": x.get("close"), "verdict": "TAKEN" if x.get("campaign") != "CTL" else "CONTROL", "stops_at": "",
-                     "summary": CAMPAIGN_WHY.get(x.get("campaign"), ""), "gates": [{**g, "status": "PASS", "why": "", "source": "decision file", "values": {}, "reached": True} for g in gates],
+                     "summary": CAMPAIGN_WHY.get(x.get("campaign"), ""), "gates": [{**g, "status": "PASS", "why": "", "source": "today's decisions", "values": {}, "reached": True} for g in gates],
                      "observations": {"relative_strength": x.get("dist_sma200"), "volume": x.get("vol_ratio20"), "setup_family": CAMPAIGN.get(x.get("campaign")), "daily_atr_pct": round(100 * (x.get("atr14") or 0) / (x.get("close") or 1), 2) if x.get("close") else None, "your_setups": "", "zone": ""}})
-    return {"framework": "India stock book v1.2: liquidity, Nifty trend, a registered family, the cost model, the guardrails", "gates": gates,
-            "stops": {"GUARDRAIL": 0}, "coins": rows, "note": f"From the decision file for {rm.get('data_through')}; every registered exit is tracked on each entry."}
+    return {"framework": "How a stock gets bought: it must be one of the 250 most-traded, fit the Nifty trend, match a rule, pay its charges, and pass the guardrails.", "gates": gates,
+            "stops": {"GUARDRAIL": 0}, "coins": rows, "note": f"From Ananta's decisions on {_day_words(rm.get('data_through'))}."}
 
 
 def exposure() -> dict:
@@ -499,18 +564,19 @@ def exposure() -> dict:
     for camp, name in CAMPAIGN.items():
         mk = marks.get(camp) or {}
         start = CAPS[camp] * NOTIONAL
-        books_.append({"book": f"Stock book · {name}", "role": "control" if camp == "CTL" else "family", "return_pct": round(100 * ((mk.get("realised_inr") or 0) + (mk.get("open_unrealised_inr") or 0)) / start, 2),
+        books_.append({"book": f"Research book · {name}", "role": "control" if camp == "CTL" else "family", "return_pct": round(100 * ((mk.get("realised_inr") or 0) + (mk.get("open_unrealised_inr") or 0)) / start, 2),
                        "worst_fall_pct": None, "trades": (mk.get("open") or 0) + (mk.get("closed") or 0), "days": len(_rm_days())})
     v50 = m.get("nifty_vs_sma50")
-    trend_words = {"above_both": "uptrend: breakouts are in season", "below_both": "downtrend: reversals are watched, breakouts are rare", "mixed": "no clear trend"}.get(m.get("trend_state"), "trend unknown")
+    trend_words = {"above_both": "in an uptrend: breakouts are in season", "below_both": "in a downtrend: Ananta looks for bounces, breakouts are rare",
+                   "mixed": "with no clear trend"}.get(m.get("trend_state"), "trend unknown")
     return {"dial": {"dial": 1.0,                                                         # OPEN unless a guardrail has fired (the 5% day, the 22% pause): paper records, nothing has fired
                      "dial_words": f"No guardrail has fired. Nifty {trend_words}.", "why": a["dial"]["why"], "challenger_weight": None, "benchmark_in": True, "btc_vol_30d_pct": None,
-                     "as_of_day": m.get("data_through"), "rule": "Stop the day at a 5% loss; pause new entries 22% below the high-water mark. The Nifty trend is the situation, not a switch."},
-            "books": {"since": "2026-10-16", "books": books_, "how_to_read": "Each family is a paper book at research scale (Rs 50,000 a trade); the random control is the yardstick."},
+                     "as_of_day": m.get("data_through"), "rule": "A 5% loss in a day stops trading for that day; 22% below the peak pauses new buys. The Nifty trend changes what Ananta looks for; it does not switch it off."},
+            "books": {"since": "2026-10-16", "books": books_, "how_to_read": "Each rule trades its own practice book at ₹50,000 a trade; the random picks are the yardstick."},
             "measured_edges": [], "account": {"account_usd": a["value_cad"], "taken": 0, "closed": 0, "open": 0, "skipped": {"dial_closed": 0, "full": 0, "same_coin": 0, "same_day": 0, "risk_cap": 0},
                                               "net_usd": 0.0, "return_pct": a["return_pct"], "avg_R": None, "total_R": 0.0, "hurdle_pct": None, "beats_hurdle": False, "positive_expectancy": False,
-                                              "rules": "the SP1 playbook; sizing v2 pending", "how_to_read": "0 sessions recorded until the sign-in holds"},
-            "fidelity": {"cells": [], "min_trades": 20, "rule": "paper fills checked against live quotes once SP1 sessions record"}, "nifty_vs_sma50_pct": round(100 * v50, 2) if v50 is not None else None}
+                                              "rules": "the index playbook; the option sizing study is still to run", "how_to_read": "No options sessions yet: they start once the morning sign-in to Zerodha works."},
+            "fidelity": {"cells": [], "min_trades": 20, "rule": "Paper prices are checked against live quotes once the options line has sessions."}, "nifty_vs_sma50_pct": round(100 * v50, 2) if v50 is not None else None}
 
 
 def watches_mine() -> dict:
@@ -521,10 +587,10 @@ def watches_mine() -> dict:
     for x in d.get("chosen", []):
         by.setdefault(x.get("campaign"), []).append(x.get("symbol"))
     for camp, syms in by.items():
-        w.append({"id": f"family:{camp}", "t": _ts(d.get("decided_at")), "coins": syms, "group": None, "kind": camp, "kind_name": CAMPAIGN.get(camp, camp), "mode": "tell", "mode_words": "tells you (paper entry at the open)",
+        w.append({"id": f"family:{camp}", "t": _ts(d.get("decided_at")), "coins": syms, "group": None, "kind": camp, "kind_name": CAMPAIGN.get(camp, camp), "mode": "tell", "mode_words": "buys on paper at the next open",
                   "state": "fired", "detail": {"coins": syms, "best": syms[0] if syms else None, "why": CAMPAIGN_WHY.get(camp, "")}, "checked_t": _ts(rm.get("built_at")), "fired_t": _ts(d.get("decided_at")), "by": "ananta"})
-    return {"watches": w, "kinds": [{"kind": k, "name": v, "plain": CAMPAIGN_WHY.get(k, ""), "evidence": "stock book since 16 Oct", "default": k != "CTL"} for k, v in CAMPAIGN.items()],
-            "modes": {"tell": "tells you", "ask": "asks first", "auto": "takes the paper trade"}, "groups": {"my_coins": "chosen today", "all": "the liquid 250", "large": "Nifty 50"}}
+    return {"watches": w, "kinds": [{"kind": k, "name": v, "plain": CAMPAIGN_WHY.get(k, ""), "evidence": "practice trades since 16 Oct", "default": k != "CTL"} for k, v in CAMPAIGN.items()],
+            "modes": {"tell": "tells you", "ask": "asks first", "auto": "takes the paper trade"}, "groups": {"my_coins": "picked today", "all": "the 250 most-traded stocks", "large": "Nifty 50"}}
 
 
 def evidence_live() -> dict:
@@ -534,16 +600,17 @@ def evidence_live() -> dict:
     h1 = lg.get("h1") or {}
     days = len(_rm_days())
     marks = exec_marks()
-    items = [{"key": c, "label": f"Stock book · {CAMPAIGN[c]}", "closed": m.get("closed") or 0, "wins": None, "net_usd": round(m.get("realised_inr") or 0, 2),
+    items = [{"key": c, "label": f"Research book · {CAMPAIGN[c]}", "closed": m.get("closed") or 0, "wins": None, "net_usd": round(m.get("realised_inr") or 0, 2),
               "avg_usd": round((m.get("realised_inr") or 0) / max(1, m.get("closed") or 0), 2), "events": days, "open": m.get("open") or 0, "events_own": days} for c, m in marks.items()]
-    return {"as_of": rm.get("data_through"), "days": days, "rules": "India paper v1.2 · others-v1 · readmodel-v0", "since": "2026-10-16",
+    cnt = r.get("gate_counters") or {}
+    return {"as_of": rm.get("data_through"), "days": days, "rules": "rules as of 23 Oct", "since": "2026-10-16",
             "health": {**_health(rm), "summary": "", "outages_3d": []},
-            "clocks": [{"cadence": "daily", "name": "paper", "scope": "stock book", "n": days, "unit": "sessions", "detail": "decisions at 22:30 Toronto"},
-                       {"cadence": "daily", "name": "league", "scope": "reference traders", "n": days, "unit": "sessions", "detail": "H1/H5/H20 trips"},
-                       {"cadence": "daily", "name": "sp1", "scope": "index line", "n": ((rm.get("sp1") or {}).get("book") or {}).get("sessions") or 0, "unit": "sessions", "detail": "needs the morning sign-in"},
-                       {"cadence": "nightly", "name": "gate", "scope": "G02", "n": 0, "unit": "of 30", "detail": str(r.get("gate_counters"))}],
+            "clocks": [{"cadence": "daily", "name": "stock picks", "scope": "research book", "n": days, "unit": "sessions", "detail": "picked every evening at 22:30 Toronto"},
+                       {"cadence": "daily", "name": "other traders", "scope": "comparison", "n": days, "unit": "sessions", "detail": "the day's best trades over 1, 5 and 20 sessions"},
+                       {"cadence": "daily", "name": "options line", "scope": "Nifty and Bank Nifty", "n": ((rm.get("sp1") or {}).get("book") or {}).get("sessions") or 0, "unit": "sessions", "detail": "needs the morning sign-in"},
+                       {"cadence": "nightly", "name": "the gate", "scope": "to real money", "n": 0, "unit": "of 30", "detail": "waiting on " + " and ".join(str(v) for v in cnt.values()) if isinstance(cnt, dict) and cnt else "waiting"}],
             "limits": [], "results": {"items": items, "random_avg_usd": round(NOTIONAL * (h1.get("market_mean") or 0), 2) if h1 else None, "events": days, "goal_events": 60,
-                                      "books": [], "by_setup": [], "verdict": "too early", "read": "Sixty sessions on paper inside the expected range per book, then the gate."},
+                                      "books": [], "by_setup": [], "verdict": "too early", "read": "After 60 sessions on paper, each book must sit inside its expected range before the gate opens."},
             "rebuild": _rebuild(rm, h1, days),
             "misses": [], "board": [], "in_use": {"verdicts": r.get("verdicts"), "studies": r.get("studies")}}
 
@@ -553,21 +620,62 @@ def evidence_live() -> dict:
 def cockpit() -> dict:
     rm = readmodel()
     j = rm.get("jobs") or {}
-    systems = [{"label": f"India · {x['label']}", "ok": bool(x.get("ok"))} for x in j.get("jobs", [])]
+    systems = [{"label": f"India · {JOB_WORDS.get(x['label'], x['label'])}", "ok": bool(x.get("ok"))} for x in j.get("jobs", [])]
     actions = []
     for day in reversed(_decision_days()[-5:]):
         d = _json(DATA / "paper" / "decisions" / f"{day}.json", {}) or {}
-        actions.append({"time": _when(d.get("decided_at")), "who": "ananta", "action": "paper decisions", "detail": f"{len(d.get('signals', []))} signals from {len(d.get('journal', []))} candidates", "result": "recorded"})
-    return {"switches": [{"key": "india_paper", "label": "India paper books", "on": True, "help": "The stock book and the SP1 line record every session on paper. Read-only here.", "confirm": False},
-                         {"key": "india_orders", "label": "Order placing", "on": False, "help": "Forbidden until the G02 gate and Madhav's sentence; leakcheck enforces it.", "confirm": True}],
+        actions.append({"time": _when(d.get("decided_at")), "who": "ananta", "action": "stock picks on paper", "detail": f"picked {len(d.get('signals', []))} of {len(d.get('journal', []))} candidates", "result": "recorded"})
+    return {"switches": [{"key": "india_paper", "label": "India paper trading", "on": True, "help": "The research book and the options line trade every session on paper. Read-only here.", "confirm": False},
+                         {"key": "india_orders", "label": "Real orders", "on": False, "help": "Locked until the gate and your yes; a nightly check makes sure no order can be sent.", "confirm": True}],
             "systems": systems, "circuit_breakers": {"india_book": {"status": "ARMED", "consecutive_losses": 0, "drawdown_usd": 0.0, "drawdown_pct_of_start": 0.0, "checked_at": rm.get("built_at"),
-                                                                    "reason": "5% day / 22% pause: recorded, enforced at live", "tripped_at": None, "evidence": []}},
+                                                                    "reason": "a 5% loss stops the day; 22% below the peak pauses buys (written down now, enforced with real money)", "tripped_at": None, "evidence": []}},
             "recent_actions": actions, "signin": j.get("signin")}
 
 
 def _rx_cards() -> list[Path]:
     d = DATA / "paper" / "reconstruction"
     return sorted(d.glob("????-??-??.json")) if d.exists() else []
+
+
+RULE_WORDS = {"stock:BRK": "Breakout rule", "stock:PULL": "Pullback rule", "stock:REV": "Reversal rule", "options:SP1": "Options line"}
+STEP_WORDS = {"NOTED": "noted", "DRAFT": "an idea", "REGISTERED": "written down", "TESTED": "tested on past years", "SHADOW": "on trial", "ADMITTED": "proved", "LIVE_ELIGIBLE": "ready for real money"}
+FINDING_WORDS = {"DATA_GAP": "Missing data", "JOB_FAIL": "A job failed", "SIGNIN_LOST": "Zerodha sign-in missing", "WORDS": "Part of the card failed", "MISS_PATTERN": "The same kind of miss again",
+                 "LEAGUE_GAP": "Other traders caught moves Ananta had no rule for", "EXIT_LESSON": "An exit lesson", "HELD_INTO_FALL": "Held stocks into falls", "CALL_DRIFT": "The daily call is weak",
+                 "OPTIONS_LINE": "The options line is misfiring", "EVENT_NOTE": "An event noted", "EVENT_SURPRISE": "An event that keeps coming back", "ALLOC_WRONG": "Money moves are misfiring"}
+STATE_WORDS = {"to_file": "goes to the repair shop tonight", "filed": "on the repair shop", "closed": "closed (false alarm)", "DRAFT": "waiting for your yes", "NOTE": "noted", "APPROVED": "approved: to be studied",
+               "SKIPPED": "skipped", "REGISTERED": "written down", "TESTED": "tested"}
+
+
+POLICY_WORDS = {"sma_close_50": "sell when it closes under its ten-week average", "sma_close_20": "sell when it closes under its one-month average",
+                "sma_close_10": "sell when it closes under its two-week average", "hold_5d": "hold for 5 days", "hold_10d": "hold for 10 days", "hold_20d": "hold for 20 days",
+                "hold_40d": "hold for 40 days", "hold_60d": "hold for 60 days", "atr_trail_2": "a trailing stop two daily ranges under the high",
+                "atr_trail_3": "a trailing stop three daily ranges under the high", "atr_trail_4": "a trailing stop four daily ranges under the high",
+                "swing_low_5": "sell under the lowest low of the last 5 days", "swing_low_10": "sell under the lowest low of the last 10 days",
+                "swing_low_20": "sell under the lowest low of the last 20 days", "target_1R": "take profit at one times the risk", "target_2R": "take profit at twice the risk",
+                "target_3R": "take profit at three times the risk", "scale_half_then_trail3": "sell half at the first target, trail the rest", "random_exit": "a random exit (the yardstick)"}
+DATA_WORDS = {"deals": "big single-client trades (bulk and block deals)", "fii_dii": "foreign and domestic institutions' buying and selling", "announcements": "company announcements",
+              "ledger_snapshot": "daily snapshot of your Zerodha account"}
+
+
+def finding_words(r: dict) -> str:
+    """A finding in one plain sentence, composed from its type, so rows written before the plain-words pass read the same as new ones."""
+    t, key = r.get("type"), str(r.get("key") or "")
+    day = _day_words(r.get("day")) if r.get("day") else ""
+    tail = key.split(":", 1)[1] if ":" in key else ""
+    if t == "DATA_GAP":
+        return f"The {DATA_WORDS.get(tail, tail.replace('_', ' '))}{' for ' + day if day else ''} did not reach Ananta."
+    if t == "SIGNIN_LOST":
+        return f"The morning sign-in to Zerodha was missing{' for ' + day if day else ''}, so the options line could not trade."
+    if t == "JOB_FAIL":
+        return f"The '{JOB_WORDS.get(tail, tail)}' job did not finish properly{' on ' + day if day else ''}."
+    if t == "WORDS":
+        return f"One part of the nightly review{' for ' + day if day else ''} failed to build."
+    return r.get("words") or ""
+
+
+def _rule_line(k: str, r: dict) -> str:
+    return (f"{RULE_WORDS.get(k, k)}: {STEP_WORDS.get(r.get('step'), r.get('step'))} · {r.get('shadow_sessions', 0)} of {r.get('shadow_bar', 20)} trial sessions · "
+            f"beat chance and the market on {r.get('beats', 0)} of {r.get('beats_bar', 10)} days")
 
 
 def _rebuild(rm: dict, h1: dict, days: int) -> dict:
@@ -578,19 +686,31 @@ def _rebuild(rm: dict, h1: dict, days: int) -> dict:
     chain = []
     steps = ["NOTED", "DRAFT", "REGISTERED", "TESTED", "SHADOW", "ADMITTED", "LIVE_ELIGIBLE"]
     for k, r in (st.get("rules") or {}).items():
-        chain.append({"id": k, "step": r.get("step"), "steps": steps, "words": f"{k}: {r.get('step')} · {r.get('shadow_sessions', 0)}/{r.get('shadow_bar', 20)} shadow sessions · beats RANDOM and MARKET on {r.get('beats', 0)}/{r.get('beats_bar', 10)} independent sessions"})
+        chain.append({"id": k, "step": r.get("step"), "steps": [STEP_WORDS[x] for x in steps], "words": _rule_line(k, r)})
     f = rx.get("findings") or []
-    return {"books": [{"book": "session card", "runs": len(cards), "mismatches": 0, "what": "A market · B people · C Ananta did · D did not do · E trade reviews · F findings · G forwarding"}],
-            "nightly": {"runs": len(cards), "first": cards[0].stem if cards else "", "mismatches": 0, "every": "every night at 22:30 Toronto, after the paper engine, the missed movers and the league"},
+    return {"books": [{"book": "the nightly review", "runs": len(cards), "mismatches": 0, "what": "the market · what other traders did · what Ananta did and did not do · trade reviews · findings"}],
+            "nightly": {"runs": len(cards), "first": cards[0].stem if cards else "", "mismatches": 0, "every": "every night at 22:30 Toronto, after the day's picks"},
             "asked": {"runs": 0, "mismatches": 0, "last": "", "how": "ask Ananta: what did you learn last night?"}, "total": len(cards), "mismatches": 0,
-            "last": {"when": rx.get("built_at") or "", "match": True, "checked": len(f), "rebuilt": len(cards), "headline": rx.get("headline") or "no card yet"},
-            "how": "every number names its file; a missing source says missing; findings fire only on fixed counts (3 of 7 sessions, 5 tags in 20, 20 shadow sessions)",
-            "if_mismatch": "a SAFE finding goes to the repair board by itself; a DECISION finding waits in the queue for Madhav's read",
-            "others": {"id": "league", "title": "Reference traders against Ananta", "date": rm.get("data_through"), "runs": str(days), "excluded_bots": 0, "accounts_trading_our_coins": 0,
+            "last": {"when": rx.get("built_at") or "", "match": True, "checked": len(f), "rebuilt": len(cards), "headline": rx.get("headline") or "no review yet"},
+            "how": "Every night Ananta replays the day: what the market did, what other traders did, what it did and did not do. A pattern needs to repeat (3 days in 7) before it becomes an idea.",
+            "if_mismatch": "Small fixes (data, jobs, words) go to the repair shop by themselves; anything that touches trading waits for your yes.",
+            "others": {"id": "league", "title": "Ananta against other traders", "date": rm.get("data_through"), "runs": str(days), "excluded_bots": 0, "accounts_trading_our_coins": 0,
                        "round_trips": 20, "long": 20, "short": 0, "period": "H1", "our_setups_silent_before_their_buys_pct": None, "their_timing_edge": "", "skill_persisted": False,
                        "what_we_did": rx.get("league_words") or f"held {(h1.get('coverage') or {}).get('TAKEN', 0)} of the top 20 trips; picks at the {round(100 * (h1.get('ananta_pct_vs_random') or 0))}th percentile of random"},
-            "findings": [{"type": x.get("type"), "lane": x.get("lane"), "state": x.get("state"), "words": x.get("words")} for x in f],
+            "findings": [{"type": FINDING_WORDS.get(x.get("type"), x.get("type")), "lane": x.get("lane"), "state": STATE_WORDS.get(x.get("state"), x.get("state")), "words": finding_words(x)} for x in f],
             "reviews": rx.get("reviews") or {}, "staircase_words": st.get("words") or "", "chain": chain}
+
+
+def _stairs_words(st: dict) -> str:
+    rules = st.get("rules") or {}
+    if st.get("admitted"):
+        return "Proved and allowed to use your money: " + ", ".join(RULE_WORDS.get(k, k) for k in st["admitted"]) + "."
+    if not rules:
+        return "No rule is on trial yet."
+    best = max((r.get("shadow_sessions") or 0) for r in rules.values())
+    beats = max((r.get("beats") or 0) for r in rules.values())
+    return (f"No rule has proved itself yet. The stock rules have {best} of 20 trial sessions and beat chance and the market on {beats} of 10 days; "
+            f"the options line has {(rules.get('options:SP1') or {}).get('shadow_sessions', 0)} sessions.")
 
 
 def drafts() -> dict:
@@ -618,7 +738,8 @@ def reconstruction() -> dict:
         return {"ready": False, "headline": "No reconstruction card yet: the first one is written tonight at 22:30 Toronto.", "staircase": rx.get("staircase") or {}}
     return {"ready": True, "day": c.get("day"), "rules": c.get("rules"), "built_at": c.get("built_at"), "headline": c.get("headline"),
             "sections": {"market": c.get("market"), "people": c.get("people"), "ananta": c.get("ananta"), "not_done": c.get("not_done"), "reviews": c.get("reviews")},
-            "findings": c.get("findings") or [], "forwarding": c.get("forwarding") or {}, "staircase": rx.get("staircase") or {}, "cards": len(_rx_cards()),
+            "findings": [{**x, "words": finding_words(x), "type_words": FINDING_WORDS.get(x.get("type"), x.get("type")), "state_words": STATE_WORDS.get(x.get("state"), x.get("state"))} for x in (c.get("findings") or [])],
+            "forwarding": c.get("forwarding") or {}, "staircase": rx.get("staircase") or {}, "cards": len(_rx_cards()),
             "net_notes": netnotes(c.get("day")), "drafts": drafts()["drafts"]}
 
 
@@ -633,8 +754,12 @@ def _queue_rows() -> list[dict]:
             r["state"], r["decided_at"], r["decided_words"] = d.get("decision"), d.get("at"), d.get("words")
     for r in rows:
         if r.get("key") in filed:
+            fw = filed[r["key"]]
+            if str(fw.get("note", "")).startswith("closed"):          # a SAFE row closed without filing (a false alarm), with the reason in the note
+                r["state"], r["closed_why"] = "closed", fw.get("note")
+                continue
             r["state"] = "filed" if r.get("state") == "to_file" else r.get("state")
-            r["request"] = filed[r["key"]].get("num")
+            r["request"] = fw.get("num")
     return rows
 
 
@@ -643,40 +768,45 @@ def evidence_collected() -> dict:
     marks = exec_marks()
     r = rm.get("research") or {}
     v = r.get("verdicts") or {}
-    collected = [{"setup": c, "name": f"Stock book · {CAMPAIGN[c]}", "seen": None, "orders": (m.get("open") or 0) + (m.get("closed") or 0), "shadow_orders": 0, "bought": (m.get("open") or 0) + (m.get("closed") or 0),
+    collected = [{"setup": c, "name": f"Research book · {CAMPAIGN[c]}", "seen": None, "orders": (m.get("open") or 0) + (m.get("closed") or 0), "shadow_orders": 0, "bought": (m.get("open") or 0) + (m.get("closed") or 0),
                   "closed": m.get("closed") or 0, "net_usd": round(m.get("realised_inr") or 0, 2)} for c, m in marks.items()]
-    tracker = [{"key": "sessions", "label": "Paper sessions recorded", "value": len(_rm_days()), "explain": "stock book decisions since 16 Oct"},
-               {"key": "validated", "label": "Registry verdicts VALIDATED", "value": v.get("VALIDATED", 0), "explain": "of " + str(sum(v.values())) + " variants scored"},
-               {"key": "ready", "label": "Studies ready to run", "value": (r.get("studies") or {}).get("ready", 0), "explain": "with every data item in hand"},
-               {"key": "gate", "label": "Gate G02", "value": 0, "explain": str(r.get("gate_counters"))}]
+    cnt = r.get("gate_counters") or {}
+    tracker = [{"key": "sessions", "label": "Days on paper", "value": len(_rm_days()), "explain": "stock picks every evening since 16 Oct"},
+               {"key": "validated", "label": "Ideas that passed a strict test", "value": v.get("VALIDATED", 0), "explain": f"of {sum(v.values())} versions tried on past years"},
+               {"key": "ready", "label": "Studies ready to run", "value": (r.get("studies") or {}).get("ready", 0), "explain": "all their data is in"},
+               {"key": "gate", "label": "Gate to real money", "value": 0, "explain": ("waiting on " + " and ".join(str(x) for x in cnt.values())) if isinstance(cnt, dict) and cnt else "waiting"}]
     forwarded = []
     for k, p in (r.get("exit_book") or {}).get("chosen", {}).items():
-        forwarded.append({"id": f"G01:{k}", "title": f"Exit book · {k}", "date": "2026-10-22", "verdict": "HELD" if p else "NOT_HELD", "why": p or "no dev leader held up", "question": "which exit held up out of sample?", "result": p or "none", "changed": ""})
+        fam, _, situ = str(k).partition("/")
+        situ_w = {"all": "any market", "above_both": "an uptrend", "below_both": "a downtrend", "mixed": "a mixed market"}.get(situ, situ.replace("_", " "))
+        forwarded.append({"id": f"G01:{k}", "title": f"Best exit for {CAMPAIGN.get(fam, fam).lower()}s in {situ_w}", "date": "2026-10-22", "verdict": "HELD" if p else "NOT_HELD",
+                          "why": (f"chosen: {POLICY_WORDS.get(str(p), str(p).replace('_', ' '))}" if p else "no exit held up on years it had not seen"), "question": "Which exit held up on years it had not seen?",
+                          "result": POLICY_WORDS.get(str(p), str(p or "none").replace("_", " ")), "changed": ""})
     rx = rm.get("reconstruction") or {}
     st = rx.get("staircase") or {}
     rows = _queue_rows()
     for q in rows:
         if q.get("lane") == "SAFE":
-            forwarded.append({"id": q.get("key"), "title": f"{q.get('type')} · {q.get('day')}", "date": q.get("day"), "verdict": q.get("state", "").upper(),
-                              "why": (q.get("words") or "")[:220], "question": "filed on the repair board" + (f" as request #{q['request']}" if q.get("request") else " (filing tonight)"), "result": q.get("state"), "changed": ""})
-    running = [{"id": k, "status": r.get("step"), "title": k, "waiting_for": f"{r.get('shadow_sessions', 0)}/{r.get('shadow_bar', 20)} shadow sessions; beats RANDOM and MARKET {r.get('beats', 0)}/{r.get('beats_bar', 10)}",
-                "why": "the evidence staircase", "metric": "shadow sessions", "goal": r.get("shadow_bar", 20)} for k, r in (st.get("rules") or {}).items()]
-    waiting = [{"id": q.get("key"), "status": q.get("state"), "title": f"{q.get('type')} ({q.get('day')})", "waiting_for": "Madhav's weekly read" if q.get("lane") == "DECISION" else "the repair board",
-                "why": (q.get("words") or "")[:160], "metric": q.get("lane"), "goal": None} for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]
-    done = [{"id": k, "status": "ADMITTED", "title": k, "waiting_for": "", "why": "Madhav's recorded yes", "metric": "", "goal": None} for k in (st.get("admitted") or [])]
-    tracker.append({"key": "cards", "label": "Reconstruction cards", "value": len(_rx_cards()), "explain": "one per session since 22 Oct"})
-    tracker.append({"key": "findings", "label": "Findings in the queue", "value": len([q for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]), "explain": "SAFE to the repair board, DECISION for Madhav"})
-    shop = {"running": running, "waiting": waiting, "done": done, "summary": st.get("words") or "no staircase yet"}
+            forwarded.append({"id": q.get("key"), "title": f"{FINDING_WORDS.get(q.get('type'), q.get('type'))} · {_day_words(q.get('day'))}", "date": q.get("day"), "verdict": q.get("state", "").upper(),
+                              "why": finding_words(q), "question": "sent to the repair shop" + (f" as request #{q['request']}" if q.get("request") else " (tonight)") if q.get("state") != "closed" else "closed: a false alarm", "result": STATE_WORDS.get(q.get("state"), q.get("state")), "changed": ""})
+    running = [{"id": k, "status": STEP_WORDS.get(r.get("step"), r.get("step")), "title": RULE_WORDS.get(k, k), "waiting_for": f"{r.get('shadow_sessions', 0)} of {r.get('shadow_bar', 20)} trial sessions; beat chance and the market on {r.get('beats', 0)} of {r.get('beats_bar', 10)} days",
+                "why": "a rule must prove itself on paper before it can use your money", "metric": "trial sessions", "goal": r.get("shadow_bar", 20)} for k, r in (st.get("rules") or {}).items()]
+    waiting = [{"id": q.get("key"), "status": STATE_WORDS.get(q.get("state"), q.get("state")), "title": f"{FINDING_WORDS.get(q.get('type'), q.get('type'))} ({_day_words(q.get('day'))})", "waiting_for": "your yes" if q.get("lane") == "DECISION" else "the repair shop",
+                "why": finding_words(q)[:200], "metric": "needs you" if q.get("lane") == "DECISION" else "fixed by itself", "goal": None} for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]
+    done = [{"id": k, "status": "proved", "title": RULE_WORDS.get(k, k), "waiting_for": "", "why": "you said yes", "metric": "", "goal": None} for k in (st.get("admitted") or [])]
+    tracker.append({"key": "cards", "label": "Nightly reviews", "value": len(_rx_cards()), "explain": "one every evening since 22 Oct"})
+    tracker.append({"key": "findings", "label": "Things found", "value": len([q for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]), "explain": "small ones fixed by themselves; trading ones wait for you"})
+    shop = {"running": running, "waiting": waiting, "done": done, "summary": _stairs_words(st)}
     return {"collected": collected, "tracker": tracker, "forwarded": forwarded, "shop": shop}
 
 
 def universe_ladder() -> dict:
     rm = readmodel()
-    rows = [{"watch": f"Stock book · {n}", "rule": CAMPAIGN_WHY.get(c, ""), "tier": "research", "step": "PAPER", "meaning": "recording every session at research scale", "next_allowed": False,
-             "why": "60 sessions and the gate first", "signed_by": None} for c, n in CAMPAIGN.items()]
-    rows.append({"watch": "SP1 index playbook", "rule": "fade the session after 09:30 with the opening-range stop; hold longs overnight", "tier": "account", "step": "PAPER",
-                 "meaning": "the Rs 60,000 line", "next_allowed": False, "why": "sessions so far: " + str(((rm.get("sp1") or {}).get("book") or {}).get("sessions") or 0), "signed_by": None})
-    return {"rows": rows, "steps": ["RESEARCH", "PAPER", "GATE", "LIVE"], "rule": "Research → paper (60 sessions) → the G02 gate → Madhav's sentence → live."}
+    rows = [{"watch": f"Research book · {n}", "rule": CAMPAIGN_WHY.get(c, ""), "tier": "research", "step": "PAPER", "meaning": "practice trades every session", "next_allowed": False,
+             "why": "needs 60 sessions and the gate first", "signed_by": None} for c, n in CAMPAIGN.items()]
+    rows.append({"watch": "Options line", "rule": "trades Nifty and Bank Nifty options in the first hour, by the index playbook", "tier": "account", "step": "PAPER",
+                 "meaning": "the options money on paper", "next_allowed": False, "why": f"{((rm.get('sp1') or {}).get('book') or {}).get('sessions') or 0} sessions traded so far", "signed_by": None})
+    return {"rows": rows, "steps": ["RESEARCH", "PAPER", "GATE", "LIVE"], "rule": "Research → paper (60 sessions) → the gate → your yes → real money."}
 
 
 # ---------------------------------------------------------------------------------------------------------------- Ask-adjacent, alerts, needs, misc
@@ -684,9 +814,7 @@ def universe_ladder() -> dict:
 def agent_state() -> dict:
     rm = readmodel()
     s = rm.get("sp1") or {}
-    lines = [{"tone": "info", "text": x} for x in (rm.get("brief") or [])[:3]]
-    if s.get("status") == "lost":
-        lines.append({"tone": "warn", "text": "The index line's last session was lost to the Kite sign-in."})
+    lines = [{"tone": "warn" if x.startswith("Options: nothing") else "info", "text": x} for x in plain_brief(rm)]
     return {"lines": lines, "watches": watches_mine()["watches"], "positions": [{"coin": p["coin"], "pnl_pct": p["pnl_pct"], "since": p["since"]} for p in open_positions()[:20]],
             "needs_you": 0, "last_check": {"accounts": 1, "fired": 0, "warned": 1 if s.get("status") == "lost" else 0, "ms": 0}}
 
@@ -695,12 +823,13 @@ def ask_suggestions() -> dict:
     rm = readmodel()
     d = rm.get("decisions_today") or {}
     first = next((x["symbol"] for x in d.get("chosen", []) if x.get("campaign") != "CTL"), None)
-    q = ["What did you decide for the next session?", "Why is the daily call " + str((rm.get("call") or {}).get("call") or "what it is") + "?", "How is the stock paper book doing?",
-         "What did you learn last night?", "What is on the evidence staircase?", "What held up in the exit book?", "Where do we stand against the reference traders?", "Is every job running?", "What is the Nifty trend?", "What are the guardrails?"]
+    call = {"BULLISH": "up", "BEARISH": "down", "NEUTRAL": "flat"}.get(str((rm.get("call") or {}).get("call") or "").upper(), "")
+    q = ["What did you pick for the next session?", (f"Why do you think the next session goes {call}?" if call else "What is your call for the next session?"), "How are my holdings doing?",
+         "What did you learn last night?", "What would you change in my holdings?", "How do you compare with other traders?", "Is everything running?", "Which way is the Nifty trending?", "What are the guardrails?"]
     if first:
         q.insert(1, f"Why {first}?")
-    return {"questions": q, "portfolio": ["How many positions are open?", "What was closed recently?", "What is the Rs 60,000 line doing?", "How did the random control do?"],
-            "market": ["What is the Nifty trend?", "How wide is breadth?", "Where is the VIX?", "What were the biggest moves?"]}
+    return {"questions": q, "portfolio": ["What would you change in my holdings?", "What did you move today?", "How is the options line doing?", "How do your picks compare with random picks?"],
+            "market": ["Which way is the Nifty trending?", "How many stocks are healthy?", "What is the fear gauge saying?", "What were the biggest moves?"]}
 
 
 def ask_threads() -> dict:
@@ -718,11 +847,11 @@ def alerts() -> dict:
     out = []
     s = rm.get("sp1") or {}
     if s.get("status") == "lost":
-        out.append({"id": "sp1-lost", "t": _ts(rm.get("built_at")), "kind": "system", "coin": "NIFTY", "value": None, "setup": "SP1", "note": s.get("words", "")[:120], "status": "open",
-                    "fired_t": _ts(rm.get("built_at")), "message": "Index session lost: no Kite sign-in", "what": "sign in before 09:10 IST"})
+        out.append({"id": "sp1-lost", "t": _ts(rm.get("built_at")), "kind": "system", "coin": "NIFTY", "value": None, "setup": "SP1", "note": "The morning sign-in to Zerodha was missing, so the options line could not trade.", "status": "open",
+                    "fired_t": _ts(rm.get("built_at")), "message": "Options line missed its session", "what": "sign in to Zerodha before 09:10 Indian time (19:40 Toronto the evening before)"})
     for x in (rm.get("missing") or []):
-        out.append({"id": f"missing-{x}", "t": _ts(rm.get("built_at")), "kind": "system", "coin": None, "value": None, "setup": x, "note": "section missing from the read model", "status": "open",
-                    "fired_t": _ts(rm.get("built_at")), "message": f"Read model: {x} missing", "what": "check the evening jobs"})
+        out.append({"id": f"missing-{x}", "t": _ts(rm.get("built_at")), "kind": "system", "coin": None, "value": None, "setup": x, "note": f"The daily summary has no '{x}' part today.", "status": "open",
+                    "fired_t": _ts(rm.get("built_at")), "message": f"Part of the daily summary is missing: {x}", "what": "the evening jobs rebuild it; Ananta files it on the repair shop if it stays missing"})
     return {"alerts": out}
 
 
@@ -744,14 +873,15 @@ def missed() -> dict:
             fired = mv.get("fired_in_window") or []
             kind = "CAUGHT" if mv.get("caught") else ("SEEN" if fired else "MISSED")
             counts[kind] += 1
-            moves.append({"day": day, "coin": mv.get("symbol"), "move_pct": round(100 * (mv.get("cc") or 0), 1), "move_atr": None, "label": mv.get("side"), "why": ", ".join(f"{f.get('campaign')} {f.get('date')}" for f in fired[:2]) or "no rule covered it",
+            moves.append({"day": day, "coin": mv.get("symbol"), "move_pct": round(100 * (mv.get("cc") or 0), 1), "move_atr": None, "label": mv.get("side"),
+                          "why": (f"a {CAMPAIGN.get(fired[-1].get('campaign') or fired[-1].get('family'), 'rule').lower()} rule flagged it on {_day_words(fired[-1].get('date'))}" if fired else "no rule was watching it"),
                           "kind": kind, "at_zone": "", "regime": (rm.get("market") or {}).get("trend_state"), "low_t": _day_t(day), "tier": "liquid 250", "miss_class": None, "trade_ok": bool(fired), "class_why": ""})
     drafts = _jsonl(REG / "missed_drafts.jsonl")
     patterns = [{"pattern": d.get("pattern") or d.get("situation_key") or d.get("key", ""), "times": d.get("sessions") or d.get("count") or 0, "rows": 0, "avg_move_pct": None, "coins": ", ".join(d.get("symbols", [])[:5]) if isinstance(d.get("symbols"), list) else "",
                  "said": d.get("text") or d.get("draft") or "", "status": d.get("status", "DRAFT")} for d in drafts[-10:]]
     return {"days": len(days), "counts": dict(counts), "classes": {}, "class_meaning": {}, "moves": moves[:40], "patterns": patterns,
             "catches": {"all_tiers": {"CAUGHT_TRADE_OK": counts.get("CAUGHT", 0), "CAUGHT_MONITOR_ONLY": 0, "CAUGHT_UNSCORED": 0}, "meaning": "a mover a family fired on in the window", "money": ""},
-            "tier30": {"counts": dict(counts)}, "universe": "the liquid 250", "how_to_read": "Every session's top movers against what fired in the 7-session window; 3 sessions in 7 files a DRAFT, never a rule."}
+            "tier30": {"counts": dict(counts)}, "universe": "the 250 most-traded stocks", "how_to_read": "Each day's biggest moves, checked against what Ananta's rules saw in the week before. The same kind of miss on 3 days in 7 becomes an idea for you to approve, never a rule by itself."}
 
 
 def brain() -> dict:
@@ -769,7 +899,7 @@ def reads() -> dict:
     d = rm.get("decisions_today") or {}
     rows = [{"coin": x.get("symbol"), "day": rm.get("data_through"), "close": x.get("close"), "reads": [{"read": x.get("campaign"), "variant": x.get("campaign"), "conditions": x.get("why"), "stop": None, "name": CAMPAIGN.get(x.get("campaign")),
              "like": "", "state": "fired", "met": 1, "of": 1, "history": "", "stop_pct": None}], "best": {"variant": x.get("campaign"), "name": CAMPAIGN.get(x.get("campaign")), "state": "fired", "met": 1, "of": 1, "like": "", "history": ""}} for x in d.get("chosen", [])]
-    return {"day": rm.get("data_through"), "coins": rows, "fired": [], "close": [], "recent": [], "history": {k: CAMPAIGN_WHY[k] for k in CAMPAIGN}, "note": d.get("rules", "")}
+    return {"day": rm.get("data_through"), "coins": rows, "fired": [], "close": [], "recent": [], "history": {k: CAMPAIGN_WHY[k] for k in CAMPAIGN}, "note": ""}
 
 
 ROUTES = {"home": home, "books": books, "holdings": holdings, "coins": coins, "chain": chain, "exposure": exposure, "watches/mine": watches_mine, "evidence/live": evidence_live,
@@ -805,33 +935,38 @@ def decisions_recent(n: int = 10) -> dict:
             if x.get("dist_sma200") is not None:
                 bits.append(f"{100 * x['dist_sma200']:+.1f}% from the 200-day")
             stop = stops.get((day, camp, x.get("sid")))
+            d20, d200 = 100 * (x.get("dist_sma20") or 0), 100 * (x.get("dist_sma200") or 0)
             if camp == "BRK":
-                reason = f"it broke its 20-session high on {bits[0]}" if bits else why
+                short = "broke out to a new one-month high on heavy volume"
+                reason = f"it broke above its one-month high on {x['vol_ratio20']:.1f}x its usual volume" if x.get("vol_ratio20") else "it broke above its one-month high"
             elif camp == "PULL":
-                reason = f"it pulled back {100 * (x.get('dist_sma20') or 0):+.1f}% to its 20-day average inside an uptrend ({100 * (x.get('dist_sma200') or 0):+.1f}% above the 200-day)"
+                short = "a pullback in an uptrend"
+                reason = f"it has dipped {abs(d20):.0f}% to its one-month average while still {d200:+.0f}% above its long-term average; strong stocks that rest like this often go on"
             elif camp == "REV":
-                reason = f"it is oversold (RSI under 30), {100 * (x.get('dist_sma20') or 0):+.1f}% below its 20-day average, and reversals have paid here before"
+                short = "oversold, due a bounce"
+                reason = f"it has been sold hard ({abs(d20):.0f}% under its one-month average, momentum under 30), and bounces from here have paid before"
             else:
-                reason = why
+                short, reason = why, why
+            fill_day = rm.get("next_session") if day == rm.get("data_through") else "the next session"
             out.append({"id": f"{day}|{camp}|{x.get('sid')}", "t": t, "time": _when(d.get("decided_at")), "coin": x.get("symbol"), "action": "TAKE", "price": px,
-                        "headline": f"Chose {x.get('symbol')} at ₹{px:,.2f} ({CAMPAIGN.get(camp, camp).lower()}) because {reason}" if px else f"Chose {x.get('symbol')}: {why}",
-                        "message": (f"What: a paper entry in {x.get('symbol')} at the next session's open ({rm.get('next_session') if day == rm.get('data_through') else 'the session after ' + day}), Rs 50,000 notional, every registered exit tracked.\n"
-                                    f"Why: {why}; {', '.join(bits)}; liquidity rank {x.get('liq_rank')}.\n"
-                                    + (f"Wrong if: the signal bar's low (₹{stop[0]:,.2f}) gives way; that is the first stop, {100 * (stop[1] / stop[0] - 1):.1f}% below the entry.\n" if stop else "Wrong if: the signal bar's low gives way (the first stop).\n")
-                                    + f"Decided {_when(d.get('decided_at'))} by rules {d.get('rules')} on data through {day}."),
+                        "headline": f"Chose {x.get('symbol')} at ₹{px:,.0f} — {short}" if px else f"Chose {x.get('symbol')} — {short}",
+                        "message": (f"What: a paper buy of about ₹50,000 in {x.get('symbol')} at the open on {_day_words(fill_day)}; the exit rule decides when it sells.\n"
+                                    f"Why: {reason}" + (f"; it is number {x.get('liq_rank')} of the 250 most-traded stocks" if x.get("liq_rank") else "") + ".\n"
+                                    + (f"Wrong if: it closes under ₹{stop[0]:,.0f}, the low of the day it was chosen — that is the first stop, {abs(100 * (stop[1] / stop[0] - 1)):.1f}% under the entry.\n" if stop else "Wrong if: it closes under the low of the day it was chosen (the first stop).\n")
+                                    + f"Decided {_when(d.get('decided_at'))} on prices through {_day_words(day)}."),
                         "confidence": None, "link": "/jarvis"})
         cands = d.get("candidates") or {}
         passed = sum((v.get("candidates") or 0) - (v.get("chosen") or 0) for k, v in cands.items() if k != "CTL")
         if passed:
             out.append({"id": f"{day}|pass", "t": t - 1, "time": _when(d.get("decided_at")), "coin": None, "action": "PASS", "price": None,
-                        "headline": f"Passed on {passed} other candidates on {day[5:]}: outside the liquid 250 or beaten on the family's own ranking",
-                        "message": f"What: {passed} candidates fired a family rule but were not taken.\nWhy: the book takes at most {', '.join(f'{v} {k}' for k, v in CAPS.items())} a session from the liquid 250, ranked by each family's own score; the rest are recorded in the journal, never traded.\nThey are scored anyway: the missed-movers review checks every session whether a pass was a miss.",
+                        "headline": f"Passed on {passed} other candidates — not among the 250 most-traded, or outranked",
+                        "message": f"What: {passed} stocks met a rule but were not taken.\nWhy: Ananta takes at most {', '.join(f'{v} {CAMPAIGN.get(k, k).lower()}' for k, v in CAPS.items())} a session, from the 250 most-traded stocks, ranked by each rule's own score; the rest are written down, never traded.\nThey are followed anyway: every night it checks whether a pass was a miss.",
                         "confidence": None, "link": "/missed"})
     for c in reversed(_jsonl(DATA / "paper" / "calls.jsonl")[-6:]):
         if c.get("kind") == "call":
             out.append({"id": f"call|{c.get('data_through')}", "t": _ts(c.get("written_at")), "time": _when(c.get("written_at")), "coin": "NIFTY", "action": "CALL", "price": c.get("close"),
-                        "headline": f"Called the next session {c.get('call')} with Nifty at {c.get('close'):,.0f}",
-                        "message": f"What: the mechanical daily call ({c.get('rule')}) for the session after {c.get('data_through')}: {c.get('call')}.\nWhy: Nifty {100 * (c.get('nifty_vs_sma50') or 0):+.1f}% from its 50-day average, last session {100 * (c.get('nifty_ret1') or 0):+.2f}%.\nScored the next evening against a coin flip; so far {(rm.get('call') or {}).get('hits')} of {(rm.get('call') or {}).get('scored')} right.",
+                        "headline": f"Called the next session {str(c.get('call', '')).lower()} with Nifty at {c.get('close'):,.0f}",
+                        "message": f"What: Ananta's fixed daily call for the next session: {str(c.get('call', '')).lower()}.\nWhy: Nifty is {100 * (c.get('nifty_vs_sma50') or 0):+.1f}% from its ten-week average and moved {100 * (c.get('nifty_ret1') or 0):+.2f}% in the last session.\nIt is scored the next evening against a coin flip; so far {(rm.get('call') or {}).get('hits')} of {(rm.get('call') or {}).get('scored')} right.",
                         "confidence": None, "link": "/jarvis"})
     out.sort(key=lambda r: -r["t"])
     return {"decisions": out[:n], "page": "/jarvis", "data_through": rm.get("data_through")}
@@ -851,14 +986,14 @@ def options() -> dict:
     by_idx = book.get("by_index") or {}
     line_pnl = sum(float(v.get("option_1lot_rs_realistic_fill") or 0) for v in by_idx.values())
     sessions = book.get("sessions") or 0
-    words = (f"{sessions} sessions recorded on the index line" if sessions else "0 sessions recorded on the index line") + (f"; the last session was lost: {s.get('words', '')[:90]}" if s.get("status") == "lost" else "")
+    words = (f"{sessions} session{'s' if sessions != 1 else ''} traded on the options line so far." if sessions else "Nothing traded on options yet.") + (" The last session was missed because the morning sign-in to Zerodha failed." if s.get("status") == "lost" else "")
     return {"capital_inr": ACCOUNT_START, "value_inr": round(ACCOUNT_START + line_pnl, 2), "pnl_inr": round(line_pnl, 2), "sessions": sessions, "status": s.get("status"), "words": words,
             "plan": {"session": plan.get("session"), "bull": fc.get("bull"), "bear": fc.get("bear"), "neutral": fc.get("neutral"), "scenarios": sc, "limits": plan.get("limits") or [],
                      "vix": ((plan.get("overnight") or {}).get("INDIA VIX") or {}).get("close")},
             "decisions_today": s.get("decisions") or [], "errors": (s.get("errors") or [])[:1], "by_index": by_idx,
             "recorder": {"trades": len(rec), "net_inr": round(rec_net, 2), "last": [{"strategy": r.get("strategy"), "index": r.get("index"), "day": r.get("day"), "net_inr": round(r.get("net_inr") or 0), "exit": r.get("exit_reason")} for r in rec[-3:]],
-                         "what": "O-03/O-04 expiry-day paper book on the recorder's real option minutes (Rs 50,000 scale)"},
-            "suitability": "an option entry needs the required move to clear the premium, the spread and theta before it is taken (the SZ2 check)",
+                         "what": "the expiry-day paper book, on real option prices (about ₹50,000 scale)"},
+            "suitability": "An option is bought only when the move it needs is bigger than what the option costs (its price, the spread and the daily decay).",
             "allocation": _allocation()}
 
 

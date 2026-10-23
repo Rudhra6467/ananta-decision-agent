@@ -360,7 +360,9 @@ def allocation_set(b: Allocation, who: str = Depends(signed_in)) -> dict:
 @r.get("/v3/allocation/plan")
 def allocation_plan(who: str = Depends(signed_in)) -> dict:
     """The full plan (every holding, rating, suggestion and paper move) is the owner's; anyone else gets the totals."""
-    return india_views.allocation_plan(full=(who == "owner" or not who.startswith("guest:")))
+    from jarvis.india import plain
+
+    return plain.scrub(india_views.allocation_plan(full=(who == "owner" or not who.startswith("guest:"))))
 
 
 
@@ -457,9 +459,12 @@ def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     try:
         import inspect
 
+        from jarvis.india import plain
+
+        tidy = (lambda x: x) if name.startswith("ask/") else plain.scrub   # plain words on every screen (jarvis/india/plain.py); his own typed words stay his
         if "full" in inspect.signature(fn).parameters:            # views with private detail (the account book's holdings) give it to the owner only
-            return fn(full=(who == "owner" or not who.startswith("guest:")))
-        return fn()
+            return tidy(fn(full=(who == "owner" or not who.startswith("guest:"))))
+        return tidy(fn())
     except Exception as e:   # noqa: BLE001 - a view that cannot build says so; the screen shows the error box, never a half page
         raise HTTPException(status_code=503, detail=f"India view {name} could not build: {e.__class__.__name__}: {str(e)[:120]}") from e
 

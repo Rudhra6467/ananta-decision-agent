@@ -16,7 +16,7 @@ import { VisitorHome, useMe } from "../../src/visitor";
 import { ConceptCard, ValueCard, hello } from "../../src/home";
 import { AnantaButton, AnantaSheet, useAnantaCount } from "../../src/ananta";
 import { RecentDecisions } from "../../src/decisions";
-import { AllocationCard, DraftsCard, OptionsCard } from "../../src/options";
+import { DraftsCard, MoneyCard } from "../../src/options";
 import { getMarket, W } from "../../src/market";
 import { sayMoney, upDown, type VoiceSpec } from "../../src/sectionvoice";
 
@@ -93,8 +93,7 @@ function OwnerHome() {
       <Spot id="home.books">
         <RecentDecisions />
       </Spot>
-      {getMarket() === "india" ? <Spot id="home.options"><OptionsCard /></Spot> : null}
-      {getMarket() === "india" ? <Spot id="home.allocation"><AllocationCard /></Spot> : null}
+      {getMarket() === "india" ? <Spot id="home.money"><MoneyCard /></Spot> : null}
       {getMarket() === "india" ? <DraftsCard /> : null}
 
       <Spot id="home.activity">
@@ -158,7 +157,10 @@ function homeDecision(m: any, needs: number): { verb: string; rest?: string; why
 // One number (its value), one line (holdings, cash, the next decision), the holdings as chips, the dial and brakes in one line; More opens why.
 function AccountCard({ a }: { a: any }) {
   const change = (a.value_cad ?? 0) - (a.start_cad ?? 500);
-  const pos = Object.entries(a.positions ?? {}) as [string, any][];
+  const india = getMarket() === "india";
+  const allPos = Object.entries(a.positions ?? {}) as [string, any][];
+  // India holds a whole portfolio (14 names today): the card shows the four biggest; Your money › More ranks them all
+  const pos = india ? [...allPos].sort(([, x], [, y]) => (y.qty ?? 0) * (y.last ?? 0) - (x.qty ?? 0) * (x.last ?? 0)).slice(0, 4) : allPos;
   const fired = Object.entries(a.brakes?.fired ?? {}).filter(([, n]) => (n as number) > 0);
   const brakes = a.brakes?.paused ? "brakes PAUSED after a 15% fall; only you can resume" : fired.length ? `brakes fired: ${fired.map(([k]) => k.replace(/_/g, " ")).join(", ")}` : "no brake fired";
   const dial = String(a.dial?.state ?? "…").split(":")[0];
@@ -168,25 +170,29 @@ function AccountCard({ a }: { a: any }) {
     questions: [change < 0 ? "Why is the account down?" : "Why is the account up?", "When does it buy or sell next?", "What are the brakes?", "Show me the trades"],
     say: () => `This is the account: ${W().account_say}. It is worth ${sayMoney(a.value_cad, W().account_ccy)},`
       + ` ${upDown(change)} ${sayMoney(change, W().account_ccy)} since ${dayOf(a.started)}.`
-      + (pos.length ? ` It holds ${pos.map(([c, p]) => { const q = pnlPct(p); return `${COIN_WORD[c] ?? c}${q == null ? "" : `, ${q >= 0 ? "up" : "down"} ${Math.abs(q).toFixed(1)} percent`}`; }).join(", and ")},` : ` It holds no ${W().coins},`)
+      + (pos.length ? ` It holds ${pos.map(([c, p]) => { const q = pnlPct(p); return `${COIN_WORD[c] ?? c}${q == null ? "" : `, ${q >= 0 ? "up" : "down"} ${Math.abs(q).toFixed(1)} percent`}`; }).join(", and ")}${allPos.length > pos.length ? `, and ${allPos.length - pos.length} more` : ""},` : ` It holds no ${W().coins},`)
       + ` with ${sayMoney(a.cash_cad, W().account_ccy)} in cash. The dial is ${dial.toLowerCase()}, and ${brakes}. ${W().next_decision}.` };
   return (
     <StatCard voice={voice} title={W().account_title} label="The account"
       right={<Act tight label="Trades ›" onPress={() => router.push({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", sub: "mine" } } as any)} />}
       value={a.value_cad == null ? "…" : cad(a.value_cad)} aside={`${cadSigned(change)} · ${pct(a.return_pct)} since ${dayOf(a.started)}`} asideColor={pnlColor(change)}
-      line={`${pos.length} holding${pos.length === 1 ? "" : "s"} · ${cad(a.cash_cad, 0)} cash · ${W().next_line}`}
-      meta={`Dial ${dial} · ${brakes}`}
+      line={india ? `${allPos.length} stocks · ${cad(a.options_inr ?? 0, 0)} for options · ${cad(a.cash_cad, 0)} cash` : `${pos.length} holding${pos.length === 1 ? "" : "s"} · ${cad(a.cash_cad, 0)} cash · ${W().next_line}`}
+      meta={india ? (/open/i.test(dial) ? `Guardrails: none fired · ${W().next_line}` : "A guardrail has fired: no new buys") : `Dial ${dial} · ${brakes}`}
       more={<>
         {(a.dial?.why ?? []).map((w: string, i: number) => <T key={i} small>· {w}</T>)}
-        <T small>{a.next}. Last step {a.last_step} UTC. Fills inside {W().exchange}'s bid and ask: {ex?.inside_bid_ask ?? 0} of {ex?.fills ?? 0}.</T>
+        {india ? <>
+          {a.book_words ? <T small>{a.book_words}</T> : null}
+          {a.pushed_rule ? <T small>{a.pushed_rule}</T> : null}
+        </> : <T small>{a.next}. Last step {a.last_step} UTC. Fills inside {W().exchange}'s bid and ask: {ex?.inside_bid_ask ?? 0} of {ex?.fills ?? 0}.</T>}
       </>}>
       {pos.length ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {pos.map(([c, p]) => {
             const q = pnlPct(p);
-            return <Tag key={c} text={`${c} · ${String(p.rule ?? p.sleeve ?? "").toLowerCase()}`} value={q == null ? cad(p.paid, 0) : pct(q)} valueColor={pnlColor(q)}
-              onPress={() => router.push(`/coin/${c}`)} />;
+            return <Tag key={c} text={india ? c : `${c} · ${String(p.rule ?? p.sleeve ?? "").toLowerCase()}`} value={q == null ? cad(p.paid, 0) : pct(q)} valueColor={pnlColor(q)}
+              onPress={() => india ? askAbout({ screen: "home", label: c, coin: c }, `How is ${c} doing in my account, and what would you do with it?`) : router.push(`/coin/${c}`)} />;
           })}
+          {india && allPos.length > pos.length ? <Tag text={`+${allPos.length - pos.length} more`} value="" onPress={() => focusSpot("home.money")} /> : null}
         </View>
       ) : null}
     </StatCard>

@@ -276,12 +276,13 @@ def test_reconstruction_card_staircase_and_filing(lake, monkeypatch):
     service.READMODEL.write_text(json.dumps(rm))
     c = TestClient(service.app, client=("127.0.0.1", 50000))
     r = c.get("/v3/reconstruction").json()
-    assert r["ready"] and r["headline"] == "2026-10-22: a card" and r["findings"][0]["lane"] == "SAFE" and r["cards"] == 1
+    assert r["ready"] and r["headline"] == "22 Oct: a card" and r["findings"][0]["lane"] == "SAFE" and r["cards"] == 1, "dates read as people say them"
     ev = c.get("/v3/evidence/live").json()["rebuild"]
-    assert ev["nightly"]["runs"] == 1 and ev["chain"][0]["step"] == "SHADOW" and ev["findings"][0]["type"] == "DATA_GAP"
+    assert ev["nightly"]["runs"] == 1 and ev["chain"][0]["step"] == "SHADOW" and ev["findings"][0]["type"] == "Missing data", "finding types reach the screen in words"
+    assert "on trial" in ev["chain"][0]["words"] and "Pullback" not in ev["chain"][0]["words"]
     col = c.get("/v3/evidence/collected").json()
-    assert col["shop"]["running"][0]["status"] == "SHADOW" and {w["status"] for w in col["shop"]["waiting"]} == {"to_file", "DRAFT"} and col["shop"]["done"] == []
-    assert col["forwarded"][-1]["id"] == "DATA_GAP:announcements" and "filing tonight" in col["forwarded"][-1]["question"]
+    assert col["shop"]["running"][0]["status"] == "on trial" and {w["status"] for w in col["shop"]["waiting"]} == {"goes to the repair shop tonight", "waiting for your yes"} and col["shop"]["done"] == []
+    assert col["forwarded"][-1]["id"] == "DATA_GAP:announcements" and "tonight" in col["forwarded"][-1]["question"]
     q = c.get("/v3/reconstruction/queue").json()
     assert len(q["rows"]) == 2 and q["safe_per_night"] == 3
     f = c.post("/v3/reconstruction/filed", json={"key": "DATA_GAP:announcements", "num": 41, "day": "2026-10-22"}).json()

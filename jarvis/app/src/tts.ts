@@ -11,7 +11,7 @@ import * as SecureStore from "expo-secure-store";
 import * as Speech from "expo-speech";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import { File, Paths } from "expo-file-system";
-import { api, server, token } from "./api";
+import { api, routeFor, server, token } from "./api";
 import { fetchBlobUri, isWeb, webPlayer } from "./webaudio";
 
 // the phone plays through expo-audio; the website through one shared, tap-unlocked audio element (plan 2.7)
@@ -105,9 +105,9 @@ async function fetchMeta(parts: string[], id?: string): Promise<Meta> {
 // each play gets its own file (two plays of the same words must not delete each other's audio)
 async function download(id: string, my: number): Promise<File> {
   const [base, tok] = [await server(), await token()];
-  if (isWeb) return (await fetchBlobUri(`${base}/v3/voice/answer/${id}/audio`, tok)) as any;
+  if (isWeb) return (await fetchBlobUri(`${base}${routeFor(`/v3/voice/answer/${id}/audio`)}`, tok)) as any;
   const f = new File(Paths.cache, `ananta-voice-${id}-${my}.mp3`);
-  return File.downloadFileAsync(`${base}/v3/voice/answer/${id}/audio`, f,
+  return File.downloadFileAsync(`${base}${routeFor(`/v3/voice/answer/${id}/audio`)}`, f,
     { headers: tok ? { Authorization: `Bearer ${tok}` } : {}, idempotent: true });
 }
 
@@ -243,9 +243,9 @@ export async function warmAcks() {
   for (const t of ACKS) {
     try {
       const meta = await api<Meta>("/v3/voice/answer", { sentences: [t], voice, speed: rate }, 30000);
-      if (isWeb) { ackFiles[t] = (await fetchBlobUri(`${base}/v3/voice/answer/${meta.id}/audio`, tok)).uri; continue; }
+      if (isWeb) { ackFiles[t] = (await fetchBlobUri(`${base}${routeFor(`/v3/voice/answer/${meta.id}/audio`)}`, tok)).uri; continue; }
       const f = new File(Paths.cache, `ananta-ack-${meta.id}.mp3`);
-      if (!f.exists) await File.downloadFileAsync(`${base}/v3/voice/answer/${meta.id}/audio`, f, { headers: tok ? { Authorization: `Bearer ${tok}` } : {}, idempotent: true });
+      if (!f.exists) await File.downloadFileAsync(`${base}${routeFor(`/v3/voice/answer/${meta.id}/audio`)}`, f, { headers: tok ? { Authorization: `Bearer ${tok}` } : {}, idempotent: true });
       if (ackKey !== key) return;                        // the voice changed meanwhile
       ackFiles[t] = f.uri;
     } catch { /* this one is skipped; the others still play */ }

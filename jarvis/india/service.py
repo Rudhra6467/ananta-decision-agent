@@ -235,6 +235,99 @@ def ask_thread(thread: str, who: str = Depends(signed_in)) -> dict:
     return {"messages": india_ask.thread_view(thread)}
 
 
+# ---- India voice (jarvis/india/voice.py): the app's voice loop, on the local voice server, India's own voice ----
+from fastapi.responses import Response  # noqa: E402
+
+from jarvis.india import voice as india_voice  # noqa: E402
+
+
+class Audio(BaseModel):
+    audio_b64: str
+    mime: str = "audio/webm"
+
+
+class VoiceTurn(BaseModel):
+    audio_b64: str
+    mime: str = "audio/webm"
+    thread: str | None = None
+    mode: str | None = None
+    context: dict | None = None
+    source: str | None = None
+    prefix: str | None = None
+    client_timing: dict | None = None
+
+
+class AnswerVoice(BaseModel):
+    sentences: list[str]
+    voice: str = "Calm"
+    speed: float = 1.0
+    wait: bool = True
+
+
+class SpeakReq(BaseModel):
+    sentences: list[str]
+    voice: str = "Calm"
+
+
+class UiResult(BaseModel):
+    answer_id: str
+    results: list[dict] = []
+    spots: list[str] = []
+
+
+def _voice_run(fn, *a, **k):
+    try:
+        return fn(*a, **k)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail="unknown answer audio") from e
+    except requests.RequestException as e:
+        raise HTTPException(status_code=503, detail=f"the voice server did not answer ({str(e)[:80]})") from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@r.post("/v3/voice/transcribe")
+def voice_transcribe(b: Audio, who: str = Depends(signed_in)) -> dict:
+    return {"text": _voice_run(india_voice.transcribe, b.audio_b64, b.mime)}
+
+
+@r.post("/v3/voice/turn")
+def voice_turn(b: VoiceTurn, who: str = Depends(signed_in)) -> dict:
+    return _voice_run(india_voice.turn, who, b.audio_b64, b.mime, b.thread, b.mode, b.context, india_ask.ask)
+
+
+@r.post("/v3/voice/answer")
+def voice_answer(b: AnswerVoice, who: str = Depends(signed_in)) -> dict:
+    return _voice_run(india_voice.prepare_answer, b.sentences, b.speed)
+
+
+@r.get("/v3/voice/answer/{key}")
+def voice_answer_meta(key: str, who: str = Depends(signed_in)) -> dict:
+    return _voice_run(india_voice.answer_meta, key)
+
+
+@r.get("/v3/voice/answer/{key}/audio")
+def voice_answer_audio(key: str, who: str = Depends(signed_in)):
+    body, ctype = _voice_run(india_voice.answer_audio, key)
+    return Response(content=body, media_type=ctype, headers={"Cache-Control": "private, max-age=600", "Content-Length": str(len(body))})
+
+
+@r.post("/v3/voice/prepare")
+def voice_prepare(b: SpeakReq, who: str = Depends(signed_in)) -> dict:
+    return {"ids": _voice_run(india_voice.prepare, b.sentences), "voices": [INDIA_VOICE]}
+
+
+@r.get("/v3/voice/clip/{cid}")
+def voice_clip(cid: str, who: str = Depends(signed_in)):
+    body, ctype = _voice_run(india_voice.clip, cid)
+    return Response(content=body, media_type=ctype, headers={"Cache-Control": "private, max-age=600"})
+
+
+@r.post("/v3/voice/ui_result")
+def voice_ui_result(b: UiResult, who: str = Depends(signed_in)) -> dict:
+    return {"ok": True}
+
+
 @r.get("/v3/{name:path}")
 def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     fn = india_views.ROUTES.get(name)

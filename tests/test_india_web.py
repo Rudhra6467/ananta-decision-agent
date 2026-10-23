@@ -151,3 +151,39 @@ def test_india_ask_is_grounded_threaded_and_honest_offline(lake, monkeypatch):
     assert c.post("/v3/ask/rate", json={"id": r2["id"], "rating": 1}).json()["ok"] is True
     assert "You: Was the call right?" in c.get(f"/v3/ask/thread/{th}/export").json()["text"]
     assert c.post(f"/v3/ask/thread/{th}/delete").json()["ok"] and c.get("/v3/ask/threads").json()["threads"] == []
+
+
+def test_india_voice_routes_use_the_local_voice_server(lake, monkeypatch):
+    from jarvis.india import ask as ia, views, voice as iv
+
+    monkeypatch.setattr(views, "DATA", lake)
+    monkeypatch.setattr(views, "REG", lake / "registrations")
+    monkeypatch.setattr(ia, "ASK_DIR", lake / "ask")
+    monkeypatch.setattr(ia, "ENV_FILE", lake / "no.env")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    calls = []
+
+    def fake_post(url, json=None, timeout=0):
+        calls.append((url, json))
+
+        class R:
+            def json(self):
+                if url.endswith("/stt"):
+                    return {"text": "what did you decide", "ms": 10}
+                return {"audio_b64": "AAAA", "mime": "audio/mpeg", "offsets": [0.0], "duration": 1.5, "ms": 20}
+        return R()
+
+    monkeypatch.setattr(iv.requests, "post", fake_post)
+    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    assert c.post("/v3/voice/transcribe", json={"audio_b64": "x", "mime": "audio/webm"}).json()["text"] == "what did you decide"
+    t = c.post("/india/v3/voice/turn", json={"audio_b64": "x", "mime": "audio/webm"}).json()
+    assert t["heard"] == "what did you decide" and "Nifty 22,811" in t["answer"] and t["thread"]
+    a = c.post("/v3/voice/answer", json={"sentences": ["Nifty is down. The call was wrong."], "voice": "Calm", "speed": 1.0}).json()
+    assert a["id"] and a["duration"] == 1.5 and a["voice"] == iv.INDIA_VOICE and calls[-1][1]["voice"] == iv.INDIA_VOICE and len(calls[-1][1]["sentences"]) == 2
+    assert c.get(f"/v3/voice/answer/{a['id']}").json()["id"] == a["id"]
+    au = c.get(f"/v3/voice/answer/{a['id']}/audio")
+    assert au.status_code == 200 and au.headers["content-type"].startswith("audio/mpeg") and au.content == b"\x00\x00\x00"
+    assert c.get("/v3/voice/answer/nope").status_code == 404
+    p = c.post("/v3/voice/prepare", json={"sentences": ["One. Two."]}).json()
+    assert len(p["ids"]) == 2 and c.get(f"/v3/voice/clip/{p['ids'][0]}").status_code == 200
+    assert c.post("/v3/voice/ui_result", json={"answer_id": "x"}).json()["ok"] is True

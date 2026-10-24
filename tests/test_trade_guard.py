@@ -365,6 +365,7 @@ def test_bold_book_waits_while_the_kill_switch_is_on_and_needs_fresh_prices_for_
 # ZONE_TOUCH from the eye (the 10), including the Explorer-price fallback when Kraken is down
 # ---------------------------------------------------------------------------
 def test_eye_zone_touch_needs_a_healthy_look_and_its_stops_always_work(monkeypatch):
+    monkeypatch.setattr(tg, "parked", lambda book: None)      # ZONE_TOUCH is PARKED since 24 Oct 2026 (step 0); this test is about steps 1-3
     from jarvis.service import eye, watch_engine
     from jarvis.service.manual import Manual
     from src.intelligence import explorer_live
@@ -407,6 +408,7 @@ def test_eye_zone_touch_needs_a_healthy_look_and_its_stops_always_work(monkeypat
 # ZONE_TOUCH-U<tier> from the universe feed (every coin)
 # ---------------------------------------------------------------------------
 def test_universe_zone_touch_needs_fresh_zones_a_fresh_feed_price_and_candle(tmp_path, monkeypatch):
+    monkeypatch.setattr(tg, "parked", lambda book: None)      # ZONE_TOUCH is PARKED since 24 Oct 2026 (step 0); this test is about steps 1-3
     from jarvis.service import universe_watch as U
     from jarvis.service import watch_engine
     from tests.test_universe_live import J

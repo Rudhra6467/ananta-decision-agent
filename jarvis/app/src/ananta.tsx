@@ -62,9 +62,12 @@ export function AnantaSheet({ open, onClose, home, onChanged }: { open: boolean;
   const { data: inbox, reload: reloadInbox } = useData(open ? "/v3/inbox" : null);
   const [need, setNeed] = useState<any>(null);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   const s = home?.summary ?? {};
   const m = home?.mission ?? {};
   const note = m.account?.note;
+  const plan = m.account?.plan;                        // discipline (24 Oct 2026): one plan line, the four checks, the conflicts
+  const checkName = (id: string) => ({ idle_cash: "Idle cash", core_exit: "Core exit", book_bleed: "Book bleed", explorer_costs: "Explorer costs" } as any)[id] ?? id;
   const lab: any[] = m.account?.lab ?? [];
   const findings: any[] = (m.findings ?? []).slice(0, 5);
   const pending = s.portfolio?.pending ?? 0;
@@ -76,7 +79,7 @@ export function AnantaSheet({ open, onClose, home, onChanged }: { open: boolean;
   const decide = async (it: any, decision: "approve" | "later") => {
     try {
       await api("/v3/needs/decide", { id: it.id, decision });
-      showToast(decision === "approve" ? `${it.rule} steps up to ${word(it.to)} ✓` : "Hidden for a week ✓");
+      showToast(decision === "approve" ? (it.kind === "rx" ? "Yes recorded · sent to the repair board ✓" : `${it.rule} steps up to ${word(it.to)} ✓`) : "Hidden for a week ✓");
     } catch (e: any) { showToast(e?.message ?? "Not changed"); }
     setNeed(null);
     refresh();
@@ -115,6 +118,25 @@ export function AnantaSheet({ open, onClose, home, onChanged }: { open: boolean;
             ) : null}
           </Card>
 
+          {plan ? (
+            <Card title={`The plan · ${dayOf(plan.day) || plan.day}`}>
+              <Text style={[st.t, { fontSize: 16, lineHeight: 23 }]} numberOfLines={planOpen ? undefined : 3}>{plan.line}</Text>
+              {(plan.checks ?? []).length ? (
+                <View style={{ gap: 4, marginTop: 6 }}>
+                  {(plan.checks ?? []).map((c: any) => (
+                    <T key={c.id} small>{c.state === "FAIL" ? "✗" : c.state === "OK" ? "✓" : "?"} {checkName(c.id)}: {c.words}</T>
+                  ))}
+                </View>
+              ) : null}
+              {(plan.conflicts ?? []).map((c: any, i: number) => <T key={i} small>⚠ {c.words}</T>)}
+              <View style={[st.row, { marginTop: -2 }]}>
+                <T faint>One plan, the stance wins conflicts · rules of 24 Oct</T>
+                <Text onPress={() => setPlanOpen(!planOpen)} style={st.act}>{planOpen ? "Show less" : "Read it all"}</Text>
+              </View>
+              <Btn label="Ask about the plan" kind="secondary" onPress={() => go(() => askAbout({ screen: "home", label: "The plan" }, "What is the plan tonight, and what did the reconstruction find?"))} />
+            </Card>
+          ) : null}
+
           <Card title={note ? `Ananta's note · ${dayOf(note.day) || note.day}` : "Ananta's note"}>
             {note ? (
               <>
@@ -140,7 +162,15 @@ export function AnantaSheet({ open, onClose, home, onChanged }: { open: boolean;
         </ScrollView>
 
         <ExplainSheet open={!!need} onClose={() => setNeed(null)} title={need?.title ?? ""}>
-          {need ? (
+          {need && need.kind === "rx" ? (
+            <>
+              <T>{need.line}</T>
+              <T dim>{need.meaning}</T>
+              <T small>{need.why} {need.note}</T>
+              <Btn label="Yes, do it" onPress={() => decide(need, "approve")} />
+              <Btn label="Not now · ask me again in a week" kind="secondary" onPress={() => decide(need, "later")} />
+            </>
+          ) : need ? (
             <>
               <T>{need.why}.</T>
               <T dim>{need.to === "PROMOTED" ? "Promoted" : "Live candidate"} means: {need.meaning}.</T>

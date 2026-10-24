@@ -75,8 +75,11 @@ def test_daily_engine_trades_every_signal_with_the_history_rule(tmp_path):
     assert tens and all(x["exit_why"] == "10 days" for x in tens)
 
 
-def test_eye_stops_alerts_shock_and_zone_touch():
+def test_eye_stops_alerts_shock_and_zone_touch(monkeypatch):
     from jarvis.service import eye, watch_engine
+    from jarvis.service import trade_guard as tg
+
+    monkeypatch.setattr(tg, "parked", lambda book: None)      # ZONE_TOUCH is PARKED since 24 Oct 2026; this test is about the eye's mechanics
     from jarvis.service.alerts import Alerts
     from jarvis.service.manual import Manual
     from tests.test_ask_ananta import _jarvis
@@ -125,10 +128,12 @@ def test_kraken_prices_are_mapped():
     assert p["BTC"] == 84817.3 and p["DOGE"] == 0.09 and len(p) == 10
 
 
-def test_scoreboard_has_every_trading_watch():
+def test_scoreboard_has_every_trading_watch(monkeypatch):
     from jarvis.service import scoreboard, watch_engine
+    from jarvis.service import trade_guard as tg
     from tests.test_ask_ananta import _jarvis
 
+    monkeypatch.setattr(tg, "parked", lambda book: None)      # ZONE_TOUCH is PARKED since 24 Oct 2026; the scoreboard still lists it
     j, ex = _jarvis()
     watch_engine.open_eye_trade(j, "ZONE_TOUCH", "BTC", 100.0, 95.0, "test", {"zone": [96, 98]}, "ALLOWED")
     watch_engine.close_at(j, watch_engine.trades(j, "ZONE_TOUCH")[0]["id"], 103.0, "test")

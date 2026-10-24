@@ -65,7 +65,11 @@ def test_step_fills_inside_bid_and_ask(tmp_path, monkeypatch):
     assert {b.split()[0] for b in out["bought"]} == {"BTC", "ETH"}             # uptrend: the dial is open, the core goes in
     st = ndax_book.status(j)
     assert st["execution_check"]["fills"] == 2 and st["execution_check"]["inside_bid_ask"] == 2
-    assert abs(st["positions"]["BTC"]["paid"] - 200) < 1 and abs(st["positions"]["ETH"]["paid"] - 100) < 1
+    # core-v2 (Madhav, 24 Oct 2026, discipline item 4): the first fill is a third of the core (20% of the book), never the whole 60%
+    assert st["core_plan"]["state"] == "CONFIRMED"
+    assert abs(st["positions"]["BTC"]["paid"] - 200 / 3) < 1 and abs(st["positions"]["ETH"]["paid"] - 100 / 3) < 1
+    assert st["positions"]["BTC"]["inv"] and "50-day" in st["positions"]["BTC"]["inv_rule"]   # the invalidation is written at entry
+    assert st["tranches"]["done"] == 1
     assert ndax_book.step(j, get=get).get("skipped")                          # one step per daily close
 
 

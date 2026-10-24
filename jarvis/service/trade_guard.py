@@ -94,14 +94,31 @@ def kill_switch_on(j) -> bool:
         raise
 
 
+PARKED = "paused by Madhav: the strategy is PARKED (docs/knowledge/strategy_status.json)"
+
+
+def parked(book: str) -> str | None:
+    """Step 0 (discipline item 1, Madhav 24 Oct 2026): a book whose strategy is PARKED or RETIRED in strategy_status.json opens
+    nothing new, whatever path asks (the eye, the universe tick, the daily watches, the brain). Its open trades run to their own exits.
+    A file that cannot be read never blocks (the kill switch is the fail-closed check)."""
+    try:
+        from jarvis.service import strategy_status
+
+        return None if strategy_status.trades(book) else PARKED
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def blocked(j, book: str, coin: str | None = None, price_t: float | None = None, max_age_s: float | None = None,
             daily_t: float | None = None) -> str | None:
     """None when a new paper position may open now; otherwise the reason (also written to trade_guard_log)."""
     now = _now(j)
-    try:
-        why = KILL_ON if kill_switch_on(j) else None
-    except Exception:  # noqa: BLE001  fail closed: an unread kill switch is an unhealthy input
-        why = KILL_UNREAD
+    why = parked(book)                                    # step 0 (Madhav, 24 Oct 2026, discipline item 1): a PARKED strategy opens nothing
+    if why is None:
+        try:
+            why = KILL_ON if kill_switch_on(j) else None
+        except Exception:  # noqa: BLE001  fail closed: an unread kill switch is an unhealthy input
+            why = KILL_UNREAD
     if why is None and price_t is not None:
         lim = float(max_age_s or LIVE_PRICE_S)
         if now - float(price_t) > lim:

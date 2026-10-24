@@ -37,6 +37,20 @@ def list_(j) -> list[dict]:
                     "why": r.get("why"), "meaning": U.LADDER_WORDS.get(nxt, ""),
                     "note": ("A promoted rule with a passing measured cell enters the $500 book's edge sleeve, on paper." if nxt == "PROMOTED"
                              else "A live candidate may be proposed for real money, with your approval each time. Nothing is live today.")})
+    try:  # the reconstruction loop's DECISION rows (RX-CR v1, Madhav 24 Oct 2026): yes files the work, later hides it a week
+        from jarvis.service import reconstruct
+
+        for q in reconstruct.queue(j):
+            nid = f"rx:{q['id']}"
+            if q["state"] != "OPEN" or q["lane"] != "DECISION" or nid in snoozed:
+                continue
+            ask = {"BOOK_BLEED": "Yes pauses this book (it stops opening new paper trades; open ones run to their exits).",
+                   "MISS_PATTERN": "Yes drafts a rule family for this kind of move, in shadow only, judged against random after 20 sessions."}
+            out.append({"id": nid, "kind": "rx", "rule": q["kind"].replace("_", " ").lower(), "to": "yes", "title": q["kind_words"].capitalize(),
+                        "line": q["words"], "why": f"Found by last night's reconstruction ({q['day']}).", "meaning": ask.get(q["kind"], "Yes files the work."),
+                        "note": "Nothing changes until you say yes; the work then goes to the repair board with your words."})
+    except Exception:  # noqa: BLE001
+        pass
     return out
 
 
@@ -52,6 +66,13 @@ def decide(j, nid: str, decision: str, by: str) -> dict:
         j.db.execute("INSERT OR REPLACE INTO needs_snooze VALUES (?,?,?)", (nid, int(j.now()) + LATER_S, by))
         j.db.commit()
         return {"id": nid, "decision": "later", "until_days": 7}
+    if item.get("kind") == "rx" and decision in ("approve", "yes"):
+        from jarvis.service import fixflow, reconstruct
+
+        rid = nid[3:]
+        r = fixflow.flag(j, f"Madhav said yes (Needs you, {by}) to: {item['line']} {item['meaning']}", market="crypto", screen="reconstruction", use_ai=False)
+        reconstruct.decide(j, rid, f"yes, from Needs you; request #{r.get('num')}", by=by)
+        return {"id": nid, "decision": "approve", "request": r.get("num")}
     if decision in ("approve", "step_up"):
         moved = U.set_step(j, item["watch"], item["to"], by)
         if hasattr(j, "audit"):

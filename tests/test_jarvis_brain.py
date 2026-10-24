@@ -386,7 +386,13 @@ def test_closed_trades_get_a_review_and_the_evening_review_runs(tmp_path):
     _store(tmp_path, [("SOL", "1d", *b) for b in D] + [("SOL", "15m", *b) for b in q])
     now = {"t": t0 + 600}
     j = _j(tmp_path, now)
-    t = watch_engine.open_eye_trade(j, "ZONE_TOUCH", "SOL", 100.0, 97.0, "test", {}, "ALLOWED")
+    from jarvis.service import trade_guard
+
+    trade_guard.parked, _parked = (lambda b: None), trade_guard.parked      # ZONE_TOUCH is PARKED since 24 Oct 2026; this test is about reviews
+    try:
+        t = watch_engine.open_eye_trade(j, "ZONE_TOUCH", "SOL", 100.0, 97.0, "test", {}, "ALLOWED")
+    finally:
+        trade_guard.parked = _parked
     now["t"] = t0 + 86400
     watch_engine.close_at(j, t["id"], 97.0, "stop (live price)")
     assert reviews.review_closed(j) == []                                  # waits 3 days after the exit
@@ -445,13 +451,13 @@ def test_home_mission_and_trade_detail(monkeypatch):
     monkeypatch.setattr(brain, "_atr", lambda j_, c: px[c] * 0.04)
     plan = {"action": "TAKE", "confidence": 60, "size_pct": 50, "stop": p * 0.95, "trail_atr": 2, "days": 10, "thesis": "test",
             "for": ["a"], "against": ["b"], "change_mind": "c", "knowledge_used": ["ZONES"]}
-    r = brain.decide(j, coin, {"zone_entry": {"zone": [p * 0.97, p * 1.01]}}, call=lambda u: (json.dumps(plan), {"in": 1, "out": 1}))
+    r = brain.decide(j, coin, {"zone_entry": {"zone": [p * 0.95, p * 1.04]}}, call=lambda u: (json.dumps(plan), {"in": 1, "out": 1}))
     m = views.mission(j)
     json.dumps(m, default=str)
     assert m["jarvis"]["open"][0]["coin"] == coin and m["jarvis"]["today"]["TAKE"] == 1 and m["jarvis"]["left"] == brain.DAILY_MAX - 1
     assert "findings" in m and isinstance(m["findings"], list)
     d = brain.trade_detail(j, r["trade"])
-    assert d["decision"]["plan"]["for"] == ["a"] and d["zone"] == [p * 0.97, p * 1.01] and d["twin"]["coin"] != coin
+    assert d["decision"]["plan"]["for"] == ["a"] and d["zone"] == [p * 0.95, p * 1.04] and d["twin"]["coin"] != coin
     assert brain.open_trades(j)[0]["twin"] == d["twin"]["coin"]
     with pytest.raises(ValueError):
         brain.trade_detail(j, "nope")

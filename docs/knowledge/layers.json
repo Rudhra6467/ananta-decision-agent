@@ -1662,7 +1662,8 @@
     "jarvis/india/service.py",
     "jarvis/india/views.py",
     "jarvis/india/ask.py",
-    "jarvis/india/voice.py"
+    "jarvis/india/voice.py",
+    "jarvis/india/plain.py"
    ]
   },
   {
@@ -1682,6 +1683,46 @@
    "files": [
     "jarvis/service/fixflow.py",
     "scripts/repair_worker.py"
+   ]
+  },
+  {
+   "id": "DISCIPLINE",
+   "name": "The trader's discipline (24 Oct 2026): protect rule, core-v2 targets, selection floor, wait_for, officer checks, one plan line",
+   "layer": 5,
+   "status": "ACTIVE",
+   "acts": true,
+   "regime": "ALL",
+   "depends_on": [
+    "BRAIN",
+    "EVIDENCE",
+    "REVIEWS"
+   ],
+   "feeds": [
+    "REVIEWS"
+   ],
+   "evidence": "docs/knowledge/discipline_v1.json (Madhav, 24 Oct 2026, 'Yes to all'); claude/review-2026-10-24-crypto-7-days-brutal.md",
+   "files": [
+    "jarvis/service/discipline.py"
+   ]
+  },
+  {
+   "id": "RECONSTRUCTION_CR",
+   "name": "The crypto reconstruction loop RX-CR v1: a card a night, typed findings, lanes by code, the repair board and Madhav's queue",
+   "layer": 7,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "REVIEWS",
+    "MISSED",
+    "DISCIPLINE"
+   ],
+   "feeds": [
+    "REVIEWS"
+   ],
+   "evidence": "discipline item 9 (24 Oct 2026); the India loop RX-IN v1 is the model",
+   "files": [
+    "jarvis/service/reconstruct.py"
    ]
   }
  ],

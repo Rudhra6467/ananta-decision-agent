@@ -218,6 +218,7 @@ TOOLS = [
     ("scoreboard", "One scoreboard for every watch that trades (Explorer setups, Hunter, Squeeze, your setups, the short dip trade, zone touches, random baselines): closed and open trades, win rate, average per $100 after costs, independent events, worst run, by market regime, and the average against its random baseline with the same holding time; plus the trend portfolio against buy-and-hold. Use for 'which watch is working', 'how is X doing', 'is anything beating random', 'compare the strategies'.", OFF),
     ("watches", "The watch registry: every watch Ananta runs, by section (market weather, coin structure and zones, setups, risk and exits, news and events, baselines), with its timeframe, trigger (candle close or live price level), where it runs, its entry, exit, size, evidence status and alerts; plus the eye's state (live prices every 10 seconds, what it is armed with, last events). Use for 'what are we watching', 'how does the eye work', 'how do I add a setup', 'what runs every 15 seconds'.", _schema({"section": {"type": "string", "description": "optional section id"}})),
     ("officer_note", "The officer's notes: once a day after the close, the brain's plain account of THE account (the $500 NDAX book): what it did and why (dial, sleeves, brakes), what the engine recorded in the background (signals, measuring books, anything pushed), and what needs Madhav. Use for 'what happened today', 'how is the account', 'anything need me', 'what did the engine do behind the scenes'.", _schema({"n": {"type": "number", "description": "how many notes back, default 1"}})),
+    ("discipline", "The trader's discipline Madhav switched on 24 Oct 2026 after the brutal 7-day review (\"Yes to all\"): tonight's ONE plan line (the dial's state CLOSED / FRAGILE / CONFIRMED, the account's core plan and cash target, what the brain and the bold book did, the officer's four checks, which passes saw their condition arrive), the layer conflicts (the stance wins), the ten rules themselves (zone touches and the E6 dip paused; the protect rule: stop to the entry at +1.5 R and a 1 R trail from +2.5 R; the core in thirds with its invalidation at the 50-day; the selection floor: tier A/B, not within 2% of a zone top, stop under 8%; every pass names what it waits for; the breakout family BRK in shadow), and the reconstruction card of the night with its findings (GAVE_BACK, MISS_PATTERN, BOOK_BLEED, LAYER_CONFLICT, SELECTION, WAIT_ARRIVED) and the queue waiting for Madhav. Use for 'what is the plan tonight', 'what did the reconstruction find', 'what is waiting for me', 'why was zone touch paused', 'what are the new rules', 'is the core protected', 'what does the breakout family do'.", _schema({"part": {"type": "string", "description": "plan | rules | reconstruction | queue | all (default all)"}})),
     ("lost_trades", "Every closed losing paper trade judged by its strategy's verdict (docs knowledge/strategy_status.json): WON'T TAKE AGAIN (the strategy is retired by evidence: zone touches, the 15-minute Explorer), RULES MODIFIED, TRYING AGAIN (the brain's picks after the Oct 11 changes), WILL TRY AGAIN (the short dip trade, the trend books). Totals per verdict, each strategy's closed/lost/$ and why, and the trades. Also which strategies still count in the headline. Use for 'which losses won't happen again', 'what did we learn from the losses', 'why is the home number negative', 'which strategies are retired'.", OFF),
     ("jarvis_book", "My own paper book (Jarvis's decisions): closed and open trades, average per $100 against the random twins, independent events and verdict, calibration (does higher confidence mean better results), which knowledge pieces earned their keep, today's decisions and the latest plans with their thesis, and passes that ran 5%+ afterwards. Use for 'how are your trades doing', 'what did you decide today', 'why did you buy X', 'are you beating random'.", OFF),
     ("situations", "The learning loop: the week's brain decisions seen four ways (what we did, what if we had done the other thing, what the other signals did that day, what the random twin, Bitcoin and the benchmark did), the lessons counted, the tickets they raised (a pattern needs 3 cases), credit for each piece of knowledge the brain cited (its buys' average $ and the move after its passes), the change log's after-numbers and the two classic peer playbooks (BREAKOUT20, ROTATE5). Use for 'what did we learn this week', 'which knowledge is helping', 'how do we compare with simple playbooks'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
@@ -1226,6 +1227,25 @@ class Lookups:
 
         return {"notes": officer.latest(self.j, int(n or 1)), "units": "the account is in CANADIAN dollars (NDAX, CAD); its Bitcoin price near C$118,000 is about US$83,000",
                 "account_now": {k: v for k, v in ndax_book.status(self.j).items() if k in ("value_cad", "cash_cad", "return_pct", "positions", "brakes", "dial_open", "last_step")}}
+
+    def t_discipline(self, part: str = "all") -> dict:
+        from jarvis.service import discipline, reconstruct
+
+        part = (part or "all").lower()
+        out: dict = {"units": "the account is in CANADIAN dollars (NDAX, CAD); evidence books are US dollars per $100 paper trade"}
+        if part in ("plan", "all"):
+            out["plan_tonight"] = discipline.latest_plan(self.j) or discipline.plan_line(self.j)
+        if part in ("rules", "all"):
+            r = discipline.rules()
+            out["rules"] = {"version": r.get("version"), "decided": r.get("decided"), "items": r.get("items")}
+        if part in ("reconstruction", "all"):
+            c = reconstruct.latest(self.j)
+            out["reconstruction_last_night"] = ({"day": c.get("day"), "headline": c.get("headline"), "findings": c.get("findings"), "not_done": c.get("not_done"),
+                                                "reviews_by_tag": (c.get("reviews") or {}).get("by_tag"), "forwarding": c.get("forwarding")} if c else
+                                               "no card yet: the first one is written after the next daily close")
+        if part in ("queue", "all"):
+            out["queue_for_madhav"] = [q for q in reconstruct.queue(self.j) if q["state"] == "OPEN"][:10]
+        return out
 
     def t_lost_trades(self) -> dict:
         from jarvis.service import strategy_status

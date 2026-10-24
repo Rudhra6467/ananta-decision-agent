@@ -152,7 +152,8 @@ def status(j) -> dict:
             "positions": s["pos"], "closed": s.get("closed", [])[-20:], "brakes": {k: s["brakes"].get(k) for k in ("paused", "block_until", "fired", "streak")},
             "brake_log": s["brakes"].get("log", [])[-10:], "dial_open": s.get("dial"), "last_step": s.get("last_step"),
             "execution_check": {"fills": inside[0], "inside_bid_ask": inside[1] or 0}, "recent_fills": fills,
-            "rules": "src/research/book500.py (docs/research/BOOK500.md)"}
+            "core_plan": s.get("core_plan"), "tranches": s.get("tranches"),
+            "rules": "src/research/book500.py (docs/research/BOOK500.md); core-v2: docs/knowledge/discipline_v1.json (Madhav, 24 Oct 2026)"}
 
 
 def audit(j) -> dict:
@@ -260,6 +261,36 @@ def step(j, get=None, now: float | None = None) -> dict:
     if dial is False:
         for c in [c for c, p in s["pos"].items() if p["sleeve"] == "CORE"]:
             sell(c, "dial closed")
+    # core-v2 (discipline item 4, Madhav 24 Oct 2026 "Yes to all"): the dial's state (CLOSED / FRAGILE / CONFIRMED), each core coin's own
+    # invalidation (a daily close under its 50-day average sells that coin's core), thirds, a trim back to target, a cash target
+    from jarvis.service import discipline
+
+    i_b = len(btc.t) - 1
+    state = discipline.dial_state_from(btc.c[i_b], btc.ema50[i_b], btc.sma200[i_b])
+    for c in [c for c, p in s["pos"].items() if p["sleeve"] == "CORE"]:
+        S = C.get(c)
+        if S and S.ema50[-1] is not None and S.c[-1] < S.ema50[-1]:
+            sell(c, f"invalidation: a daily close under its own 50-day average ({S.ema50[-1]:,.0f})")
+        elif S and S.ema50[-1] is not None and not s["pos"][c].get("inv"):      # a position from before core-v2: its invalidation written now
+            s["pos"][c].update(inv=round(S.ema50[-1], 2), inv_rule="a daily close under its own 50-day average", inv_written="2026-10-24 core-v2")
+
+    def sell_part(c, qty, why):
+        p = s["pos"][c]
+        if not q(c) or qty <= 0:
+            return
+        qty = min(qty, p["qty"])
+        px, fee = fill(c, "SELL", p["sleeve"], qty, why)
+        got = qty * px - fee
+        share = qty / p["qty"]
+        cost = p["paid"] * share
+        s["cash"] += got
+        s["closed"].append({"coin": c, "sleeve": p["sleeve"], "in": p["day"], "out": time.strftime("%Y-%m-%d", time.gmtime(now)), "pnl_cad": round(got - cost, 2),
+                            "pct": round(100 * (got - cost) / cost, 2) if cost else None, "why": why, "part": round(share, 3), "dial": p.get("dial")})
+        p["qty"] -= qty
+        p["paid"] -= cost
+        out["sold"].append(f"{c} part {share:.0%} ({why})")
+        if p["qty"] <= 0:
+            del s["pos"][c]
     # 2. the book's value and the brakes (on the close just ended; buys follow it, as in the backtest)
     value = mark()
     brakes.close(bar_t, value, closed_pnls)
@@ -283,17 +314,78 @@ def step(j, get=None, now: float | None = None) -> dict:
             return False
         px, fee = fill(c, "BUY", sleeve, qty, why)
         s["cash"] -= qty * px + fee
-        s["pos"][c] = {"sleeve": sleeve, "qty": qty, "paid": qty * px + fee, "t": now, "day": time.strftime("%Y-%m-%d", time.gmtime(now)), "last": px,
-                       "book_value": value, "dial": dial, **extra}
-        if "risk" in extra:
-            s["pos"][c]["risk_pct"] = round(100 * extra["risk"] / value, 3)
+        if c in s["pos"] and s["pos"][c].get("sleeve") == sleeve:     # core-v2: a further tranche joins the position
+            p = s["pos"][c]
+            p["qty"] += qty
+            p["paid"] += qty * px + fee
+            p["last"] = px
+            p.setdefault("tranches", []).append({"day": time.strftime("%Y-%m-%d", time.gmtime(now)), "cad": round(qty * px + fee, 2), "why": why})
+            p.update({k: v for k, v in extra.items() if k in ("inv", "inv_rule")})
+        else:
+            s["pos"][c] = {"sleeve": sleeve, "qty": qty, "paid": qty * px + fee, "t": now, "day": time.strftime("%Y-%m-%d", time.gmtime(now)), "last": px,
+                           "book_value": value, "dial": dial, **extra}
+            if "risk" in extra:
+                s["pos"][c]["risk_pct"] = round(100 * extra["risk"] / value, 3)
         out["bought"].append(f"{c} {sleeve} ${qty * px:.2f}")
         return True
 
+    # core-v2 (discipline item 4): targets by the dial's state; trims run even when the brakes block buys (an exit always works)
+    tr = s.get("tranches") or {"done": 0, "last_day": None}
+    if not any(p["sleeve"] == "CORE" for p in s["pos"].values()):
+        tr = {"done": 0, "last_day": None}
+    held_now = {}
+    for c, p in s["pos"].items():
+        if p["sleeve"] == "CORE":
+            k = q(c)
+            held_now[c] = p["qty"] * (k["bid"] if k else p["last"])
+    full_core = sum(B.CORE.values()) * value
+    if held_now and full_core and not s.get("tranches"):          # a core from before core-v2 counts as the thirds it already is
+        tr["done"] = min(3, round(3 * sum(held_now.values()) / full_core))
+    plan = discipline.core_targets(state, value, B.CORE, int(tr.get("done") or 0), held=held_now)
+    today = time.strftime("%Y-%m-%d", time.gmtime(now))
+    for c, p in list(s["pos"].items()):
+        if p["sleeve"] != "CORE":
+            continue
+        k = q(c)
+        held = p["qty"] * (k["bid"] if k else p["last"])
+        over = held - plan["target"].get(c, 0.0)
+        if k and over > plan["trim_band"] * value and p.get("trim_day") != today:
+            sell_part(c, over / k["bid"], f"core-v2 trim: {discipline.STATE_WORDS.get(state or '', 'dial unread')}; target {plan['target'].get(c, 0):,.0f}")
+            if c in s["pos"]:
+                s["pos"][c]["trim_day"] = today
     if may:
-        if dial and not any(p["sleeve"] == "CORE" for p in s["pos"].values()):
+        core_now = {c: p for c, p in s["pos"].items() if p["sleeve"] == "CORE"}
+        want = state in ("FRAGILE", "CONFIRMED")
+        if want and state == "CONFIRMED" and core_now:              # the next third only after a close above the 20-day, a later session
+            closes = btc.c[-20:]
+            above20 = len(closes) == 20 and btc.c[-1] > sum(closes) / 20
+            want = above20 and tr.get("last_day") != today and int(tr.get("done") or 0) < 3
+        if want:
+            added = False
             for c, w in B.CORE.items():
-                buy(c, "CORE", w * value, "dial open")
+                S = C.get(c)
+                k = q(c)
+                held = (core_now[c]["qty"] * (k["bid"] if k else core_now[c]["last"])) if c in core_now else 0.0
+                need = plan["next"].get(c, 0.0) - held
+                if need > max(5.0, 0.01 * value) and S:
+                    inv = S.ema50[-1]
+                    if buy(c, "CORE", need, f"core-v2 tranche {min(int(tr.get('done') or 0) + 1, 3)}: {plan['words']}", inv=round(inv, 2) if inv else None,
+                           inv_rule="a daily close under its own 50-day average"):
+                        added = True
+            if added:
+                tr = {"done": int(tr.get("done") or 0) + 1, "last_day": today}
+    core_held = sum(p["qty"] * p["last"] for p in s["pos"].values() if p["sleeve"] == "CORE")
+    if not core_held:
+        tr = {"done": 0, "last_day": None}
+    s["tranches"] = tr
+    s["core_plan"] = {**plan, "state_words": discipline.STATE_WORDS.get(state or "", "the dial could not be read"), "rules": discipline.version(),
+                      "core_held_cad": round(core_held, 2)}
+    cash_now = s["cash"] / value if value else 0.0
+    if cash_now > float(plan["cash_target"]) + 0.10:
+        s.setdefault("cash_over_target_since", now)
+    else:
+        s.pop("cash_over_target_since", None)
+    if may:
         for c, rule, why in edge_signals(j, C, tier_a, dial, bar_t):       # Oct 13: every rule that passed its bar, not H07 alone
             if c in s["pos"]:
                 continue

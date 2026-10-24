@@ -46,7 +46,9 @@ TRIGGER_POINTS = {"zone_entry": 0.5, "attention_high": 1.0, "hunter": 0.5, "sque
                   "setup:H07": 3.0, "setup:M1a": 2.0, "setup:M2a-G": 0.5,     # Oct 15: measured with no edge (review #15) = 0.5, this rule
                   # fix A5 (Oct 15): never measured as kinds, so no evidence points; they rank with the measured rules because they
                   # are the brain's own plan written before the move (stance.py, A3) and the exposure dial opening (review #25)
-                  "expectation": 2.0, "dial_open": 2.0}
+                  "expectation": 2.0, "dial_open": 2.0,
+                  # discipline item 6 (24 Oct 2026): a PASS whose wait_for came true is woken again, ranked like its own written plan
+                  "wait_arrived": 2.0}
 PRIORITY = ("expectation:", "dial_open")                  # A5: these skip the 6-hour coin wait and the pacing (never the day's $1)
 PRIORITY_POINTS = 2.0                                     # a moment at or above this is a priority moment for the reserved slots
 RESERVED = 5                                              # A5: the last 5 of the 20 slots are kept for priority moments
@@ -133,7 +135,14 @@ Reply with ONE JSON object only:
  "thesis": "one or two sentences: why this trade, now",
  "for": ["the strongest points for"], "against": ["the points against, and how the plan handles them"],
  "red_flags": [], "knowledge_used": ["ids from the knowledge list that moved the decision"],
- "change_mind": "what would make this wrong / what would make a PASS a TAKE"}"""
+ "change_mind": "what would make this wrong / what would make a PASS a TAKE",
+ "wait_for": {"price_above": number or null, "price_below": number or null, "dial": "CONFIRMED" | "CLOSED" | null,
+              "words": "on a PASS: the one concrete condition that would turn it into a TAKE (a daily close above a price, the dial
+                        confirmed, breadth back); on a TAKE: null"}}
+
+The selection floor (Madhav, 24 Oct 2026; the code enforces it, so a TAKE outside it becomes a PASS): tier A and B coins only; no entry
+within 2% of the top of its zone; the stop at most 8% under the entry. Prefer coins whose own trend is up and whose relative strength
+against Bitcoin is positive; a cheap coin falling faster than Bitcoin is not a bargain."""
 
 
 # ---------------------------------------------------------------------------
@@ -677,6 +686,19 @@ def _decided(j, coin: str, triggers: dict, p: dict, seen: dict, price, atr, hold
         j.db.commit()
         return {"id": did, "action": "ERROR", "note": str(exc)}
     flags = check_plan(d, price, atr, (p.get("news") or {}).get("verdict"), holding)
+    if d.get("action") == "TAKE":                       # discipline item 7 (Madhav, 24 Oct 2026): the selection floor, by code
+        from jarvis.service import discipline
+
+        tier = ((p.get("universe_tier") or {}).get("tier")) or ("A" if _is_lab(coin) else None)
+        ztop = None
+        for v in triggers.values():
+            if isinstance(v, dict) and isinstance(v.get("zone"), (list, tuple)) and len(v["zone"]) == 2:
+                ztop = v["zone"][1]
+        if ztop is None:
+            inside = ((p.get("zones") or {}).get("inside") or [])
+            if inside and isinstance(inside[0], dict):
+                ztop = inside[0].get("top")
+        flags += discipline.selection_floor(tier, price, ztop, d.get("stop") if isinstance(d.get("stop"), (int, float)) else None)
     action = d["action"]
     note = ""
     if action == "TAKE" and flags:
@@ -706,7 +728,9 @@ def _decided(j, coin: str, triggers: dict, p: dict, seen: dict, price, atr, hold
         if gwhy:
             action, size = "PASS", 0.0
             note = (note + "; " if note else "") + "trade guard: " + gwhy
-    plan = {k: d.get(k) for k in ("stop", "target", "trail_atr", "days", "for", "against", "red_flags", "change_mind")}
+    plan = {k: d.get(k) for k in ("stop", "target", "trail_atr", "days", "for", "against", "red_flags", "change_mind", "wait_for")}
+    if action == "PASS" and not isinstance(plan.get("wait_for"), dict):   # discipline item 6: every PASS names what it waits for
+        plan["wait_for"] = {"words": str(d.get("change_mind") or "not stated")[:200]}
     trade = rnd = None
     if action == "TAKE":
         plan_name = str(d.get("exit_plan") or "").upper()
@@ -1260,6 +1284,16 @@ def manage_live(j, px: dict[str, float]) -> list[dict]:
                 moves = d.setdefault("stop_moves", [])
                 if len(moves) < 200:
                     moves.append({"t": int(j.now()), "from": stop, "to": round(new, 8), "rule": f"trail {d['trail_atr']} x ATR under the high"})
+            # discipline item 3 (Madhav, 24 Oct 2026): the protect rule on the live price (+1.5 R: stop to the entry; +2.5 R: trail 1 R)
+            from jarvis.service import discipline
+
+            if stop and discipline.protect_books(w, "brain"):
+                pnew, rule = discipline.protect(entry, d.get("stop0"), p, new)
+                if rule and pnew != new:
+                    moves = d.setdefault("stop_moves", [])
+                    if len(moves) < 200:
+                        moves.append({"t": int(j.now()), "from": new, "to": round(pnew, 8), "rule": rule})
+                    new = pnew
             j.db.execute("UPDATE evidence_trades SET stop=?, detail=? WHERE id=?", (new, json.dumps(d, default=str), tid))
     j.db.commit()
     return out

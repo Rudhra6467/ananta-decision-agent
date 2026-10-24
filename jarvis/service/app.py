@@ -1913,6 +1913,51 @@ def alerts_list(who: str = Depends(owner)) -> dict:
     return {"alerts": AL().list()}
 
 
+# --- the trader's discipline (Madhav, 24 Oct 2026, "Yes to all"): one plan line, the checks, the reconstruction card and its queue ---
+@app.get("/v3/plan")
+def plan_tonight(who: str = Depends(owner)) -> dict:
+    from jarvis.service import discipline
+
+    pl = discipline.latest_plan(J()) or discipline.plan_line(J())
+    return {"plan": pl, "rules": discipline.rules().get("version"), "items": discipline.rules().get("items")}
+
+
+@app.get("/v3/reconstruction/crypto")
+def reconstruction_crypto(who: str = Depends(owner)) -> dict:
+    from jarvis.service import reconstruct
+
+    return {"card": reconstruct.latest(J()), "queue": reconstruct.queue(J()), "rules": reconstruct.RULES, "bars": reconstruct.BARS,
+            "kind_words": reconstruct.KIND_WORDS}
+
+
+class RxDecision(BaseModel):
+    id: str
+    words: str
+
+
+@app.post("/v3/reconstruction/crypto/decide")
+def reconstruction_decide(d: RxDecision, who: str = Depends(owner)) -> dict:
+    from jarvis.service import reconstruct
+
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="the owner decides")
+    try:
+        r = reconstruct.decide(J(), d.id, d.words, by=who)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="no such row")
+    J().audit(who, "reconstruction.decide", d.id, d.words[:80])
+    return r
+
+
+@app.post("/v3/reconstruction/crypto/run")
+def reconstruction_run(who: str = Depends(owner)) -> dict:
+    from jarvis.service import reconstruct
+
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="the owner runs it")
+    return {"result": reconstruct.evening(J(), force=True), "card": reconstruct.latest(J())}
+
+
 @app.post("/v3/alerts/{aid}/off")
 def alert_off(aid: str, who: str = Depends(owner)) -> dict:
     AL().turn_off(who, aid)

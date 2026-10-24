@@ -51,7 +51,7 @@ def sentences(text: str) -> list[str]:
 _CODES = {"T3": "trend portfolio", "SD6": "Hunter's book", "H07": "short dip trade", "E1": "pullback setup", "E2": "breakout setup",
           "E3": "bounce setup", "E4": "momentum setup", "E5": "squeeze setup", "E6": "deep dip setup", "E7": "downtrend dip setup",
           "E8": "dip setup", "V02": "Bitcoin 50-day rule", "V01": "trend rule", "M1a": "capitulation setup", "M2a-G": "retest setup",
-          "M2a": "retest setup", "M3a": "quiet base setup", "M3b": "quiet base setup"}
+          "M2a": "retest setup", "M3a": "quiet base setup", "M3b": "quiet base setup", "BRK": "breakout family (shadow)"}
 _CODE_RE = re.compile(r"(\b(?:the|our|a|an|your|my|its|this|that|his)\s+)?\b(" + "|".join(sorted(map(re.escape, _CODES), key=len, reverse=True))
                       + r")\b(\s+(?:setup|setups|book|portfolio|trade|trades|rule))?", re.I)
 

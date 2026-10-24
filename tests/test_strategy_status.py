@@ -9,7 +9,7 @@ from tests.test_universe_live import J
 
 def test_status_file_is_consistent():
     d = S.load()
-    assert d["strategies"]["ZONE_TOUCH"]["status"] == "EVIDENCE" and d["strategies"]["EXPLORER"]["status"] == "EVIDENCE"
+    assert d["strategies"]["ZONE_TOUCH"]["status"] == "PARKED" and d["strategies"]["EXPLORER"]["status"] == "EVIDENCE"   # ZONE_TOUCH parked 24 Oct 2026 (Madhav, "Yes to all")
     assert d["strategies"]["ZONE_TOUCH"]["wakes_brain"] is False and d["account"] == "BOOK500"
     for sid, s in d["strategies"].items():
         assert s["status"] in ("ACTIVE", "UNDER_REVIEW", "RETIRED", "PARKED", "EVIDENCE"), sid
@@ -17,7 +17,7 @@ def test_status_file_is_consistent():
         assert s.get("why"), sid
     assert S.of_watch("ZONE_TOUCH-UB")[0] == "ZONE_TOUCH" and S.of_watch("H07-T30")[0] == "H07" and S.of_watch("JARVIS_RANDOM")[0] == "RANDOM"
     assert all(S.of_watch(w)[0] == "RANDOM" for w in ("RANDOM_10D", "RANDOM_20D-UB", "RANDOM_30D-UC", "RANDOM_BOLD"))
-    assert S.trades("ZONE_TOUCH-UC") and S.trades("H07-UA") and S.trades("JARVIS") and not S.trades("HOURLY-UA") if S.of_watch("HOURLY-UA") else True
+    assert not S.trades("ZONE_TOUCH-UC") and S.trades("H07-UA") and S.trades("JARVIS") and S.trades("BRK-UA") and not S.trades("HOURLY-UA") if S.of_watch("HOURLY-UA") else True
     assert not S.counts_book("15-minute Explorer") and S.counts_book("Trend portfolio") and not S.counts_watch("JARVIS") and not S.counts_watch("M2a-UC")
 
 
@@ -38,7 +38,7 @@ def test_background_rule_records_but_never_wakes_and_losses_are_classified(tmp_p
     from jarvis.service import registry
     monkeypatch.setattr(registry, "members", lambda jj, tier: ["BTC", "SOL"])
     U.run_rules(j)
-    assert any(w.startswith("H07") for w in seen["w"]) and any(w.startswith("RANDOM_20D") for w in seen["w"]) and S.trades("ZONE_TOUCH-UA")   # still recording
+    assert any(w.startswith("H07") for w in seen["w"]) and any(w.startswith("RANDOM_20D") for w in seen["w"]) and not S.trades("ZONE_TOUCH-UA")   # parked 24 Oct: the open rows still record, nothing new opens
     woke = []
     from jarvis.service import brain
     monkeypatch.setattr(brain, "wake", lambda jj, coin, trig, det: woke.append(trig))
@@ -52,7 +52,7 @@ def test_background_rule_records_but_never_wakes_and_losses_are_classified(tmp_p
 
 
 def test_background_books_record_but_failed_ideas_never_wake_the_brain():
-    assert S.trades("ZONE_TOUCH-UB") and not S.wakes("ZONE_TOUCH-UB")          # measures in the background, no decisions on it
+    assert not S.trades("ZONE_TOUCH-UB") and not S.wakes("ZONE_TOUCH-UB")      # parked 24 Oct 2026: no new trades, no decisions on it
     assert S.trades("H07-UA") and S.wakes("H07-UA")
     assert not S.trades("HOURLY") or S.of_watch("HOURLY") is None
     assert not S.counts_watch("JARVIS") and not S.counts_book("15-minute Explorer") and S.counts_book("The $500 NDAX book")

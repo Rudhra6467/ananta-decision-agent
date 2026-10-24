@@ -88,7 +88,7 @@
    "files": [
     "docs/knowledge/strategy_status.json"
    ],
-   "sha256": "1876edffdd0798adcaf17631e6a4f4de8d7edfafcd86fffec9dd4d94caee5ca9",
+   "sha256": "44b25541f34a08fb3c39743de6bf5a018f95bc25640e24687fbae79c8249f30a",
    "history": [
     {
      "date": "2026-10-15",
@@ -101,6 +101,12 @@
      "approved_by": "Madhav (in chat)",
      "sha256": "1876edffdd0798adcaf17631e6a4f4de8d7edfafcd86fffec9dd4d94caee5ca9",
      "note": "OD-READS-WAKES (a): READS wakes_brain false; OD-CANDIDATE-BOOKS (a): CANDIDATE retired. Madhav, 2026-10-21 09:41 Toronto: \"Complete all pending tasks and all that are waiting for me. I approve all.\" and \"for all the recommeneded items , its yes.\""
+    },
+    {
+     "date": "2026-10-24",
+     "approved_by": "Madhav (in chat)",
+     "sha256": "44b25541f34a08fb3c39743de6bf5a018f95bc25640e24687fbae79c8249f30a",
+     "note": "Discipline v1 (claude/review-2026-10-24-crypto-7-days-brutal.md): ZONE_TOUCH PARKED (item 1: 123 stop-exits and -$1,638 in one week, scoreboard -13/100 on every tier); EXPLORER keeps EVIDENCE with E6 paused under ruleset W3 (item 2); BRK registered as a shadow family, EVIDENCE, never wakes the brain (item 10). Madhav, 2026-10-24 01:13 Toronto: \"Yes to all\"."
     }
    ]
   },

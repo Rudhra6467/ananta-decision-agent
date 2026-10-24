@@ -1,0 +1,113 @@
+{
+ "version": "discipline-v1-2026-10-24",
+ "decided": "Madhav, 2026-10-24 01:13 Toronto, in chat: \"Yes to all\" to the ten items of claude/review-2026-10-24-crypto-7-days-brutal.md (the brutal 7-day review of crypto Ananta, 17-24 Oct 2026).",
+ "written_before": "every rule below was written on 24 Oct 2026 before it ran once; the numbers do not move without a new entry in history",
+ "items": {
+  "1_pause_zone_touch": {
+   "lane": "DECISION",
+   "what": "ZONE_TOUCH, ZONE_TOUCH-UA/-UB/-UC take no new paper trades (strategy_status PARKED; the trade guard refuses every book that is PARKED). The 218 open ones keep recording to their own exits.",
+   "why": "123 closed in the week, every one by stop, median -11.3%, net -$1,638; scoreboard -13/100 on all three tiers."
+  },
+  "2_pause_e6": {
+   "lane": "DECISION",
+   "what": "The Explorer runs ruleset W3 = W2 without the E6 dip setup (src/intelligence/explorer_engine.py).",
+   "why": "90 trades, net -$41, COSTS_ATE 56, NEVER_WORKED 19."
+  },
+  "3_protect": {
+   "lane": "SAFE",
+   "what": "Every open paper trade that has a stop: when the high reaches entry + 1.5 R (R = entry - first stop) the stop moves to the entry; from +2.5 R it trails 1 R under the high. Live for the brain's trades, on the daily candle for every other book. Never for the $500 account (item 4 has its own rules) and never for a trade with no stop (DIP, H07, the random baselines).",
+   "why": "GAVE_BACK x5 in the brain's last 13 trades; every close this week was a stop or a date."
+  },
+  "4_core": {
+   "lane": "DECISION",
+   "what": "The $500 book's core reads the cash target Madhav approved: CLOSED 70% (no core), FRAGILE 40%, CONFIRMED 15%. The core may hold at most min(60%, 1 - cash target) of the book, split BTC 2 : ETH 1, and is trimmed back to that cap when it is more than 5% of the book over it (one trim a session). FRAGILE (Bitcoin less than 3% above its 50-day): hold what is held, no adds; with no core, a first buy of at most 20% of the book. CONFIRMED: thirds, the first at most 20% of the book, the next only after a daily close above the 20-day average in a later session. Each coin's invalidation is its own 50-day average: a daily close under it sells that coin's core. A core bought before core-v2 gets its invalidation written at the first step.",
+   "why": "60% in within hours of the dial opening on 11 Oct; 40% idle for 13 days; the 22 Oct brake fired instead of a plan."
+  },
+  "5_one_plan": {
+   "lane": "SAFE",
+   "what": "One plan line per night (discipline.plan_line) reconciling the stance, the brain, the bold book and the officer; where they conflict the stance wins and the conflict is a LAYER_CONFLICT finding.",
+   "why": "Four voices, zero decisions."
+  },
+  "6_wait_for": {
+   "lane": "SAFE",
+   "what": "Every PASS names wait_for (a price level, a dial state or breadth) that would turn it into a TAKE; the next night the card says 'arrived' when the condition came true, even if the brain still passed.",
+   "why": "24 templated passes; ARK, COMP, BEAMX seen and ignored."
+  },
+  "7_selection_floor": {
+   "lane": "SAFE",
+   "what": "The brain's book: no tier-C entries; no entry within 2% of the top of its zone; stop at most 8% away. The code turns such a TAKE into a PASS with the floor named.",
+   "why": "TST, FLOKI, AXS, WLD, VTHO."
+  },
+  "8_officer_checks": {
+   "lane": "SAFE",
+   "what": "Nightly checks with a state each: cash idle more than 5 days above the cash target; a core position without an invalidation; any book down more than 2% of its start in 7 days; any explorer setup with COSTS_ATE over 50% of its closed trades. A failed check is filed on the repair board once a week.",
+   "why": "'Nothing changed in the account today' seven days running."
+  },
+  "9_rx_cr": {
+   "lane": "SAFE",
+   "what": "The reconstruction loop on crypto (jarvis/service/reconstruct.py, RX-CR v1): a card a night with typed findings (GAVE_BACK, MISS_PATTERN, BOOK_BLEED, LAYER_CONFLICT, SELECTION, WAIT_ARRIVED), lanes by code, SAFE rows to the repair board, DECISION rows to the queue for Madhav.",
+   "why": "Crypto logs everything and learns nothing."
+  },
+  "10_breakout_shadow": {
+   "lane": "DECISION",
+   "what": "The breakout family BRK: a daily close at a 20-session high on volume at least 1.5x its 20-day average, tier A and B only, stop 8% under the entry, the protect rule, out after 20 days. Shadow books BRK, BRK-UA, BRK-UB; judged against RANDOM_20D and the market after 20 sessions; nothing live.",
+   "why": "The only catches of the +25-30% movers came from a banned rule; the real family is missing."
+  }
+ },
+ "protect": {
+  "breakeven_r": 1.5,
+  "trail_from_r": 2.5,
+  "trail_by_r": 1.0
+ },
+ "core": {
+  "fragile_pct_over_50d": 0.03,
+  "tranches": 3,
+  "first_fill_max": 0.2,
+  "cash_target": {
+   "CLOSED": 0.7,
+   "FRAGILE": 0.4,
+   "CONFIRMED": 0.15
+  },
+  "trim_band": 0.05,
+  "next_tranche_needs": "a daily close above the 20-day average, dial CONFIRMED, at least one session after the last tranche"
+ },
+ "selection_floor": {
+  "tiers": [
+   "A",
+   "B"
+  ],
+  "zone_top_gap": 0.02,
+  "stop_max": 0.08
+ },
+ "officer_checks": {
+  "idle_days": 5,
+  "book_bleed_pct": 0.02,
+  "book_bleed_days": 7,
+  "costs_ate_share": 0.5
+ },
+ "brk": {
+  "lookback": 20,
+  "vol_x": 1.5,
+  "stop_pct": 0.08,
+  "days": 20,
+  "tiers": [
+   "A",
+   "B"
+  ],
+  "shadow_sessions": 20,
+  "baseline": "RANDOM_20D"
+ },
+ "history": [
+  {
+   "when": "2026-10-24T01:13-04:00",
+   "who": "Madhav",
+   "words": "Yes to all",
+   "what": "discipline-v1 written and switched on"
+  },
+  {
+   "when": "2026-10-24T10:40-04:00",
+   "who": "Claude (correction, no number changed)",
+   "what": "item 4 coded as Madhav approved it: the first version read FRAGILE as 'a third of the core' and would have trimmed two-thirds of BTC and ETH at the next close; the approved rule is the 40% cash target, which the book already meets (41%). Caught on the first dry run before any fill."
+  }
+ ]
+}

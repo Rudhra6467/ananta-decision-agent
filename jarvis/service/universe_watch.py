@@ -26,10 +26,11 @@ from typing import Any, Callable
 
 DAY = 86400
 TIERS = ("A", "B", "C")
-RULES = ("H07", "M1a", "M2a", "M2a-G", "M3a", "M3b")
+RULES = ("H07", "M1a", "M2a", "M2a-G", "M3a", "M3b", "BRK")      # BRK: discipline item 10 (24 Oct 2026), tiers A and B only, shadow
 RANDOMS = ("RANDOM_10D", "RANDOM_20D", "RANDOM_30D")
 BASELINE_OF = {"H07": "RANDOM_10D", "ZONE_TOUCH": "RANDOM_20D", "M1a": "RANDOM_30D", "M2a": "RANDOM_30D", "M2a-G": "RANDOM_30D",
-               "M3a": "RANDOM_30D", "M3b": "RANDOM_30D"}
+               "M3a": "RANDOM_30D", "M3b": "RANDOM_30D", "BRK": "RANDOM_20D"}
+TIERS_OF = {"BRK": ("A", "B")}                                   # a rule that runs on some tiers only
 ZONE_GAP = 20 * DAY
 MIN_EVENTS = 10
 STATE: dict[str, Any] = {"armed": {}, "armed_t": 0, "prev": {}, "last_daily": None, "last_tick": None, "errors": {}}
@@ -69,6 +70,8 @@ def register() -> None:
     vers = [v for v in versions() if v.get("rule") in RULES and v.get("version") and set(v.get("changes") or {}) <= VERSION_KEYS]
     for tier in TIERS:
         for r in RULES + RANDOMS:
+            if tier not in TIERS_OF.get(r, TIERS):
+                continue
             spec = dict(W.DAILY[r])
             spec["tier"] = "U" + tier
             W.DAILY[wid(r, tier)] = spec
@@ -758,6 +761,12 @@ def run_daily(j) -> dict:
         out["officer_note"] = (officer.write(j, out, push=_phone_push()) or {}).get("ok")
     except Exception as exc:  # noqa: BLE001
         out["officer_error"] = str(exc)[:200]
+    try:  # RX-CR v1 (Madhav, 24 Oct 2026, discipline item 9): the reconstruction card, its findings and where they went
+        from jarvis.service import reconstruct
+
+        out["reconstruction"] = reconstruct.evening(j)
+    except Exception as exc:  # noqa: BLE001
+        out["reconstruction_error"] = str(exc)[:200]
     try:  # OD-SHADOW-LANE (Oct 20): the blind shadow lane logs each pre-registered rule's trigger state; it shows no result and touches no book
         from jarvis.service import shadow
 

@@ -42,6 +42,9 @@ DAILY = {
     "RANDOM_10D": {"kind": "random", "days": 10},
     "RANDOM_20D": {"kind": "random", "days": 20},
     "RANDOM_30D": {"kind": "random", "days": 30},
+    # discipline item 10 (Madhav, 24 Oct 2026 "Yes to all"): the breakout family, shadow only. A daily close at a 20-session high on
+    # volume at least 1.5x its 20-day average; entry next open; stop 8% under the fill (set at the fill); the protect rule; out after 20 days.
+    "BRK": {"kind": "brk", "days": 20, "lookback": 20, "vol_x": 1.5, "stop_pct": 0.08},
 }
 EYE = {"ZONE_TOUCH": {"days": 20}}
 COLS = ("id", "watch", "coin", "source", "signal_t", "signal_day", "entry_t", "entry_day", "entry", "stop", "exit_t", "exit_day",
@@ -116,6 +119,15 @@ def _fires(spec: dict, S, B, i: int, r10: list) -> tuple[bool, float | None, str
             if not (bi is not None and B.ema50[bi] is not None and B.c[bi] > B.ema50[bi]):
                 return False, None, ""
         return True, float(r["stop"]) if r.get("stop") else None, "all conditions met"
+    if spec["kind"] == "brk":                                 # discipline item 10: a close at a 20-session high on 1.5x volume
+        n = int(spec.get("lookback", 20))
+        if i < n or S.c[i] is None:
+            return False, None, ""
+        prev_hi = max(S.c[i - n:i])
+        vols = [v for v in S.v[i - n:i] if v]
+        avg_v = sum(vols) / len(vols) if vols else None
+        ok = bool(S.c[i] > prev_hi and avg_v and (S.v[i] or 0) >= float(spec.get("vol_x", 1.5)) * avg_v)
+        return ok, None, (f"closed at a {n}-session high on {(S.v[i] or 0) / avg_v:.1f}x average volume" if ok else "")
     return False, None, ""
 
 
@@ -149,12 +161,20 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
                 continue                                      # the entry day has not closed yet
             k = i + 1
             r.update(entry_t=D[k][0], entry_day=_day(D[k][0]), entry=D[k][1], status="OPEN")
-            j.db.execute("UPDATE evidence_trades SET entry_t=?, entry_day=?, entry=?, status='OPEN' WHERE id=?", (r["entry_t"], r["entry_day"], r["entry"], r["id"]))
+            if spec.get("stop_pct") and not r.get("stop"):     # BRK: the stop is a share under the fill, set at the fill
+                r["stop"] = round(float(r["entry"]) * (1 - float(spec["stop_pct"])), 12)
+            j.db.execute("UPDATE evidence_trades SET entry_t=?, entry_day=?, entry=?, status='OPEN', stop=? WHERE id=?",
+                         (r["entry_t"], r["entry_day"], r["entry"], r["stop"], r["id"]))
             out.append({"watch": r["watch"], "coin": coin, "event": "filled"})
         if r["status"] != "OPEN":
             continue
         live = r["source"] in ("eye", "brain")
         det = json.loads(r.get("detail") or "{}") if live else {}
+        if not live:
+            try:
+                det = json.loads(r.get("detail") or "{}")
+            except ValueError:
+                det = {}
         if live:                                              # entered at a live price inside day k: daily checks start the next day
             k = next((m for m, b in enumerate(D) if b[0] > r["entry_t"]), None)
             if k is None:
@@ -168,7 +188,25 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
         days = int(det.get("days") or spec.get("days", 30))
         exit_px = exit_t = None
         why = ""
+        # discipline item 3 (Madhav, 24 Oct 2026): the protect rule on daily candles for every book with a stop (the brain's live trades
+        # get it on the live price in brain.manage_live; here the daily candle is their second check). R = entry - first stop.
+        from jarvis.service import discipline
+
+        stop0 = det.get("stop0") or r["stop"]
+        if r["stop"] and stop0 and "stop0" not in det:
+            det["stop0"] = float(stop0)
+        protect_on = bool(r["stop"]) and discipline.protect_books(r["watch"], r["source"])
+        high = float(det.get("high") or r["entry"] or 0) if protect_on else None
+        moved = False
         for d in range(k, len(D)):
+            if protect_on and d > (k if live else k0) and D[d - 1][0] > (det.get("high_t") or 0):   # yesterday's high moves today's stop, never today's own
+                if D[d - 1][2] > high:
+                    high = D[d - 1][2]
+                new, rule = discipline.protect(r["entry"], det.get("stop0"), high, r["stop"])
+                if rule and new != r["stop"]:
+                    det.setdefault("stop_moves", []).append({"t": D[d - 1][0], "from": r["stop"], "to": new, "rule": rule})
+                    r["stop"], moved = new, True
+                det["high"], det["high_t"] = high, D[d - 1][0]
             if live and D[d][0] >= r["entry_t"] + days * DAY:
                 exit_px, exit_t, why = D[d][1], D[d][0], f"{days} days"
                 break
@@ -180,7 +218,8 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
                     exit_px, exit_t, why = D[d][1], D[d][0], "opened under the stop"
                     break
                 if D[d][3] <= r["stop"]:
-                    exit_px, exit_t, why = r["stop"], D[d][0], "stop"
+                    exit_px, exit_t = r["stop"], D[d][0]
+                    why = "protect stop" if moved and det.get("stop0") and r["stop"] > float(det["stop0"]) else "stop"
                     break
             if det.get("target") and D[d][2] >= det["target"]:      # the brain's target, if the eye missed it (daily high)
                 exit_px, exit_t, why = (D[d][1] if D[d][1] >= det["target"] else det["target"]), D[d][0], "target"
@@ -190,9 +229,14 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
                 break
         if exit_px is not None:
             n = net(coin, r["entry"], exit_px, r["watch"])
-            j.db.execute("UPDATE evidence_trades SET exit_t=?, exit_day=?, exit=?, net_usd=?, status='CLOSED', exit_why=? WHERE id=?",
-                         (exit_t, _day(exit_t), exit_px, n, why, r["id"]))
+            j.db.execute("UPDATE evidence_trades SET exit_t=?, exit_day=?, exit=?, net_usd=?, status='CLOSED', exit_why=?, stop=?, detail=? WHERE id=?",
+                         (exit_t, _day(exit_t), exit_px, n, why, r["stop"], json.dumps(det, default=str) if (protect_on or live) else r.get("detail"), r["id"]))
             out.append({"watch": r["watch"], "coin": coin, "event": "closed", "net_usd": n})
+        elif moved:                                           # the protect rule moved the stop: the row says so (stop_moves, high)
+            j.db.execute("UPDATE evidence_trades SET stop=?, detail=? WHERE id=?", (r["stop"], json.dumps(det, default=str), r["id"]))
+            out.append({"watch": r["watch"], "coin": coin, "event": "protected", "stop": r["stop"]})
+        elif protect_on and det.get("high_t") and (det.get("high_t") != (json.loads(r.get("detail") or "{}") if r.get("detail") else {}).get("high_t")):
+            j.db.execute("UPDATE evidence_trades SET detail=? WHERE id=?", (json.dumps(det, default=str), r["id"]))
     return out
 
 

@@ -19,8 +19,11 @@ NOTE_RULES = """You are Ananta, the trading assistant of one owner, Madhav. Writ
 paper book. You are its risk officer and narrator, not a trader: the rules decide the trades; you explain and watch.
 Write 4 to 6 short sentences in plain everyday English, first person, to "sir" once at most. Numbers rounded, at most two a sentence.
 Order: (1) what the account did today and why (the dial, the sleeves, the brakes); (2) what the engine recorded in the background
-(signals, measuring books, anything that passed or was pushed), in one or two sentences, without listing every book; (3) what needs
-him, or "nothing needs you"; (4) if the facts carry "evidence_window", one closing sentence: which day of the 60-day
+(signals, measuring books, anything that passed or was pushed), in one or two sentences, without listing every book; (3) the checks:
+the facts carry "checks" (idle cash, a core without an exit, a bleeding book, an explorer eaten by costs) and "layer_conflicts"; name every
+FAIL and every conflict plainly in one sentence each, with its number, and say what the rule does about it ("the stance wins", "trimmed to
+target"); if all pass, one short sentence says so; then what needs him, or "nothing needs you". Never write "nothing changed" when a check
+fails; (4) if the facts carry "evidence_window", one closing sentence: which day of the 60-day
 evidence window it is and whether the learning loop ran clean. Never invent a number: every figure must come from the facts. No headings, no bullet points, no
 greeting by time of day. If the facts say a brake fired or a strategy passed, lead with that."""
 
@@ -83,6 +86,17 @@ def facts(j, daily: dict | None = None) -> dict:
             f["evidence_window"] = ew
     except Exception:  # noqa: BLE001
         pass
+    try:  # discipline items 5 and 8 (Madhav, 24 Oct 2026): the officer's four checks and tonight's one plan line
+        from jarvis.service import discipline
+
+        pl = discipline.plan_line(j)
+        f["checks"] = pl.get("checks") or discipline.officer_checks(j)
+        f["plan_line"] = pl.get("line")
+        f["layer_conflicts"] = pl.get("conflicts") or []
+        f["wait_for_arrived"] = pl.get("arrived") or []
+        f["core_plan"] = ((f.get("account") or {}) and (ndax_book._get(j, "state") or {}).get("core_plan")) or None
+    except Exception as exc:  # noqa: BLE001
+        f["checks_error"] = str(exc)[:120]
     return f
 
 
@@ -135,6 +149,12 @@ def write(j, daily: dict | None = None, push: Callable | None = None, call: Call
         return {"ok": False, "error": "empty note", "facts": f}
     j.db.execute("INSERT OR REPLACE INTO officer_notes VALUES (?,?,?,?,?)", (day, int(j.now()), note, json.dumps(f, default=str)[:20000], cost))
     j.db.commit()
+    try:  # discipline item 8: a failed check is filed on the repair board, once a week per check
+        from jarvis.service import discipline
+
+        f["checks_filed"] = discipline.file_failed_checks(j, f.get("checks") or [])
+    except Exception:  # noqa: BLE001
+        pass
     if push:
         try:
             push("Ananta's note", note[:220])

@@ -1,6 +1,6 @@
 {
  "version": 2,
- "updated": "2026-10-21",
+ "updated": "2026-10-24",
  "meaning": "One list of every strategy that holds or held paper money, with its status and verdict. Madhav, Oct 13: the $500 NDAX book is THE account (what he and Ananta look at); the engine keeps every measuring book running in the background (watching, scanning, recording, tracking), and only what passes its bar is pushed into the account. status: ACTIVE (trades, counts as holdings) | UNDER_REVIEW (trades, counts, under a review) | EVIDENCE (measures in the background: records paper trades, never holdings, never in the headline) | PARKED (switched off by Madhav) | RETIRED (takes no new trades; its record is kept). verdict: wont_take_again | will_try_again | modify_rules. wakes_brain: false = its signals never wake the brain (a failed idea is recorded, not decided on). pushed: how a strategy enters the account.",
  "account": "BOOK500",
  "pushed": "A rule enters the $500 book's measured-edge sleeve when BOTH hold: its cell (rule x dial state x tier) passed on history in both periods after costs (the measured-edge table, review #26), AND its forward paper book is ahead of its random baseline over 10 market days in each regime (the promotion ladder), with Madhav's sign-off. When the ladder says a rule may step up, Ananta sends a phone note and opens a request; nothing enters the account by itself. Expect the first promotion to take a while: the one measured edge (H07 on tier A) counts only while the dial is closed, and the ladder needs 10 market days in each regime.",
@@ -70,7 +70,7 @@
   },
   "ZONE_TOUCH": {
    "name": "Daily zone touch",
-   "status": "EVIDENCE",
+   "status": "PARKED",
    "verdict": "wont_take_again",
    "watches": [
     "ZONE_TOUCH",
@@ -79,7 +79,16 @@
     "ZONE_TOUCH-UC"
    ],
    "wakes_brain": false,
-   "why": "A plain touch of a zone is not a reason to buy: it lost with every exit on 8 years of data (review #27) and, live, {lost} of {closed} closed paper trades lost ({lost_usd}). It keeps recording in the background as the yardstick for zones, never wakes the brain, and will not be pushed."
+   "why": "Paused by Madhav on 24 Oct 2026 (discipline item 1, 'Yes to all'): in the week of 17-24 Oct 123 paper trades closed, every one by stop, median -11.3%, net -$1,638; the scoreboard reads -13/100 on all three tiers. No new zone-touch trades in any tier; the open ones run to their own exits and keep recording. History before that: a plain touch of a zone lost with every exit on 8 years of data (review #27) and, live, {lost} of {closed} closed paper trades lost ({lost_usd}).",
+   "history": [
+    {
+     "when": "2026-10-24",
+     "who": "Madhav",
+     "from": "EVIDENCE",
+     "to": "PARKED",
+     "words": "Yes to all (item 1: pause ZONE_TOUCH live entries in every evidence book)"
+    }
+   ]
   },
   "EXPLORER": {
    "name": "15-minute Explorer (E1-E8)",
@@ -87,11 +96,19 @@
    "verdict": "wont_take_again",
    "home_book": "15-minute Explorer",
    "wakes_brain": false,
-   "why": "No intraday setup has an edge after costs (reviews #1, #3, #24; 0 of 55 atlas contexts). Live paper record: {closed} closed, {won} won ({net}). It keeps scanning as the intraday eyes and recording its paper book as evidence (Q1 live-vs-replay); it never wakes the brain and will not be pushed.",
+   "why": "No intraday setup has an edge after costs (reviews #1, #3, #24; 0 of 55 atlas contexts). Live paper record: {closed} closed, {won} won ({net}). It keeps scanning as the intraday eyes and recording its paper book as evidence (Q1 live-vs-replay); it never wakes the brain and will not be pushed. E6 (the 15-minute dip) paused by Madhav on 24 Oct 2026 (discipline item 2: 90 trades, net -$41, 56 eaten by costs): the Explorer runs ruleset W3 = W2 without E6.",
    "cards": [
     "EXPLORER",
     "E5",
     "E3"
+   ],
+   "history": [
+    {
+     "when": "2026-10-24",
+     "who": "Madhav",
+     "what": "E6 paused: ruleset W3",
+     "words": "Yes to all (item 2)"
+    }
    ]
   },
   "HOURLY": {
@@ -145,6 +162,19 @@
    "verdict": "will_try_again",
    "home_book": "Your trades",
    "why": "His own paper trades, stamped with his initials; not a strategy Ananta judges."
+  },
+  "BRK": {
+   "name": "Breakout family (20-session high on volume), shadow",
+   "status": "EVIDENCE",
+   "verdict": "will_try_again",
+   "watches": [
+    "BRK",
+    "BRK-UA",
+    "BRK-UB"
+   ],
+   "wakes_brain": false,
+   "why": "Drafted 24 Oct 2026 (discipline item 10, Madhav 'Yes to all'): a daily close at a 20-session high on volume at least 1.5x its 20-day average, tier A and B only, stop 8% under the entry, the protect rule, out after 20 days. Shadow books only, $100 paper a signal, judged against RANDOM_20D and the market after 20 sessions; nothing live. Live paper record so far: {closed} closed, {won} won ({net}).",
+   "since": "2026-10-24"
   }
  },
  "evidence_window": {

@@ -930,7 +930,17 @@ def mission(j) -> dict:
                           "cash_cad": st.get("cash_cad"), "positions": st.get("positions") or {}, "brakes": st.get("brakes"),
                           "dial": {"state": d.get("dial_words"), "why": d.get("why")}, "last_step": st.get("last_step"),
                           "execution_check": st.get("execution_check"), "next": "the next decision comes at the daily close (8 pm Toronto)",
-                          "note": notes[0] if notes else None, "lab": lab, "pushed_rule": strategy_status.pushed_rule()}
+                          "note": notes[0] if notes else None, "lab": lab, "pushed_rule": strategy_status.pushed_rule(),
+                          "core_plan": st.get("core_plan")}
+        try:  # discipline items 5 and 8 (24 Oct 2026): tonight's one plan line and the officer's checks, beside the note
+            from jarvis.service import discipline
+
+            pl = discipline.latest_plan(j)
+            if pl:
+                out["account"]["plan"] = {"day": pl.get("day"), "state": pl.get("state"), "line": pl.get("line"), "conflicts": pl.get("conflicts"),
+                                          "checks": pl.get("checks"), "arrived": pl.get("arrived")}
+        except Exception:  # noqa: BLE001
+            pass
     except Exception as exc:  # noqa: BLE001
         out["account_error"] = str(exc)[:120]
     out["findings"] = findings(j)

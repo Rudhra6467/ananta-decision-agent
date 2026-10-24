@@ -451,6 +451,61 @@ def reconstruction_note(b: Note, who: str = Depends(signed_in)) -> dict:
     raise HTTPException(status_code=403, detail="owner only")
 
 
+
+class MorningWords(BaseModel):
+    session: str
+    words: str
+    review: str = ""
+    reviewer_scenarios: dict | None = None      # {"bull": p, "bear": p, "neutral": p} from the reviewer: written to the forecast ledger as its own prediction
+    reviewer_basis: str = ""
+    opening: str | None = None                   # the opening update (10:20 Indian time), when this call carries it instead of the note
+
+
+@r.post("/v3/morning/words")
+def morning_words(b: MorningWords, who: str = Depends(signed_in)) -> dict:
+    """The writer's note and the reviewer's second opinion for the session's morning view (owner; scripts/india_morningview.py over loopback).
+    The reviewer's odds go to the forecast ledger as a 'reviewer' pre-open forecast, so they are scored like Ananta's own and compared on the record."""
+    import datetime as _dt
+
+    if not (who == "owner" or not who.startswith("guest:")):
+        raise HTTPException(status_code=403, detail="owner only")
+    from jarvis.india import plain
+
+    p = india_views.DATA / "paper" / "morningview" / f"{b.session}.json"
+    f = json.loads(p.read_text()) if p.exists() else None
+    if not f:
+        raise HTTPException(status_code=404, detail=f"no morning view for {b.session}")
+    now = _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
+    if b.opening is not None:
+        f["opening"] = {"words": plain.text(b.opening)[:1500], "at": now}
+    else:
+        f["words"], f["review"], f["words_at"] = plain.text(b.words)[:4000], plain.text(b.review)[:2500], now
+        if b.reviewer_scenarios:
+            try:
+                from india import forecast as _fc
+
+                row = _fc.write("NIFTY 50", b.session, b.reviewer_scenarios, 1, "none", "reviewer: " + (b.reviewer_basis or "second opinion on the morning view")[:200])
+                f["reviewer_scenarios"] = {**{k: float(v) for k, v in b.reviewer_scenarios.items()}, "forecast_id": row.get("forecast_id"), "written": True}
+            except Exception as e:  # noqa: BLE001 - too late, or a bad sum: recorded as not written, never silently dropped
+                f["reviewer_scenarios"] = {**{k: float(v) for k, v in b.reviewer_scenarios.items()}, "written": False, "why": str(e)[:160]}
+    p.write_text(json.dumps(f, indent=1, default=str))
+    (p.parent / "latest.json").write_text(json.dumps(f, indent=1, default=str))
+    try:
+        from india import morningview as _mv
+
+        _mv.page(f)
+    except Exception:  # noqa: BLE001
+        pass
+    return {"ok": True, "session": b.session, "reviewer_scenarios": f.get("reviewer_scenarios"), "opening": f.get("opening")}
+
+
+@r.get("/v3/morning/facts")
+def morning_facts(who: str = Depends(signed_in)) -> dict:
+    if who == "owner" or not who.startswith("guest:"):
+        return india_views.morning_facts()
+    raise HTTPException(status_code=403, detail="owner only")
+
+
 @r.get("/v3/{name:path}")
 def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     fn = india_views.ROUTES.get(name)

@@ -815,6 +815,9 @@ def agent_state() -> dict:
     rm = readmodel()
     s = rm.get("sp1") or {}
     lines = [{"tone": "warn" if x.startswith("Options: nothing") else "info", "text": x} for x in plain_brief(rm)]
+    mv = _mv_latest()
+    if mv.get("session") and mv.get("session") >= str(rm.get("data_through") or ""):
+        lines.insert(0, {"tone": "info", "text": f"Morning view for {_day_words(mv['session'])}: " + ((mv.get("lines") or {}).get("headline") or "")})
     return {"lines": lines, "watches": watches_mine()["watches"], "positions": [{"coin": p["coin"], "pnl_pct": p["pnl_pct"], "since": p["since"]} for p in open_positions()[:20]],
             "needs_you": 0, "last_check": {"accounts": 1, "fired": 0, "warned": 1 if s.get("status") == "lost" else 0, "ms": 0}}
 
@@ -1028,4 +1031,37 @@ def _allocation() -> dict:
     return p
 
 
-ROUTES.update({"decisions/recent": decisions_recent, "options": options, "allocation": _allocation, "reconstruction": reconstruction, "reconstruction/drafts": drafts})
+
+
+# ---------------------------------------------------------------------------------------------------------------- the morning view (Madhav, 23 Oct 20:23)
+
+def _mv_latest() -> dict:
+    d = DATA / "paper" / "morningview"
+    files = sorted(d.glob("????-??-??.json")) if d.exists() else []
+    return (_json(files[-1], {}) or {}) if files else {}
+
+
+def morning() -> dict:
+    """The morning view for the next session: the facts' plain lines, Ananta's note (the model's words, checked by the reviewer), the reviewer's second
+    opinion, the scorecard of yesterday's predictions, and the opening update once the first hour is in. Built before the open; everyone may read it."""
+    f = _mv_latest()
+    if not f:
+        return {"ready": False, "headline": "The morning view is written before each Indian open (08:30 Indian time, 23:00 Toronto).", "session": None}
+    L = f.get("lines") or {}
+    sc = f.get("scorecard") or {}
+    return {"ready": True, "session": f.get("session"), "session_words": _day_words(f.get("session")), "built_at": f.get("built_at"), "data_through": f.get("data_through"),
+            "headline": L.get("headline"), "view": L.get("view") or [], "plan": L.get("plan") or [], "chances": L.get("chances") or [], "watch": L.get("watch") or [], "yesterday": L.get("yesterday") or [],
+            "words": f.get("words"), "review": f.get("review"), "reviewer_scenarios": f.get("reviewer_scenarios"), "words_at": f.get("words_at"), "opening": f.get("opening"),
+            "scenarios": (f.get("setup") or {}).get("scenarios"), "scenario_levels": (f.get("setup") or {}).get("scenario_levels"), "expiry": (f.get("setup") or {}).get("expiry"),
+            "picks": (f.get("plan") or {}).get("picks") or [], "options_line": (f.get("plan") or {}).get("options_line"), "holdings_suggestions": (f.get("plan") or {}).get("holdings_suggestions") or [],
+            "scorecard": {"forecasts": sc.get("forecasts"), "daily_call": sc.get("daily_call"), "options_sessions": sc.get("options_sessions"), "words": sc.get("words")},
+            "lessons": f.get("lessons_for_writer") or [], "paper": True,
+            "read": "Paper only, not advice. Every number comes from Ananta's own files; the odds are base rates beside their baseline until a rule proves itself."}
+
+
+def morning_facts() -> dict:
+    """The whole facts file (for the writer and the reviewer, owner side)."""
+    return _mv_latest()
+
+
+ROUTES.update({"decisions/recent": decisions_recent, "options": options, "allocation": _allocation, "reconstruction": reconstruction, "reconstruction/drafts": drafts, "morning": morning})

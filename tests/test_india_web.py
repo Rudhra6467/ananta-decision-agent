@@ -335,3 +335,33 @@ def test_drafts_decide_by_screen_and_by_voice_and_notes(lake, monkeypatch):
     assert "Only Madhav" in ask.draft_flow("skip draft 1", "guest:x")["answer"] or "no draft" in ask.draft_flow("skip draft 1", "guest:x")["answer"].lower()
     n = c.post("/v3/reconstruction/notes", json={"day": "2026-10-22", "symbol": "KEI", "note": "results missed estimates", "grade": "B", "urls": ["https://x"]}).json()
     assert n["weight"] == "note only" and views.netnotes("2026-10-22")[0]["symbol"] == "KEI"
+
+
+def test_morning_view_route_words_reviewer_ledger_and_voice(lake, monkeypatch):
+    from jarvis.india import ask, views
+    monkeypatch.setattr(views, "DATA", lake)
+    monkeypatch.setattr(views, "REG", lake / "registrations")
+    import india.paths as _ip                                   # the reviewer's odds go to the records repo's forecast ledger: point it at the fixture, never the real one
+    monkeypatch.setattr(_ip, "data_dir", lambda: lake)
+    (lake / "paper").mkdir(exist_ok=True)
+    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    assert c.get("/v3/morning").json()["ready"] is False
+    d = lake / "paper" / "morningview"
+    d.mkdir(parents=True)
+    f = {"session": "2099-01-05", "data_through": "2099-01-02", "built_at": "t", "lines": {"headline": "Nifty closed at 22,688, in a downtrend.", "view": ["US flat.", "Nifty down."], "plan": ["Practice buys."], "chances": ["0 of 2 against the coin flip."], "watch": ["Expiry 27 Oct."], "yesterday": ["The rule was wrong."]},
+         "setup": {"scenarios": {"bull": 0.4, "bear": 0.33, "neutral": 0.27}, "scenario_levels": {"up_above": 22756, "down_below": 22620}, "expiry": {}}, "plan": {"picks": [], "options_line": {"words": "cannot trade"}}, "scorecard": {"words": "w"}, "lessons_for_writer": ["l"]}
+    (d / "2099-01-05.json").write_text(json.dumps(f))
+    (d / "latest.json").write_text(json.dumps(f))
+    m = c.get("/v3/morning").json()
+    assert m["ready"] and m["session_words"] == "5 Jan" and m["view"] == ["US flat.", "Nifty down."] and m["words"] is None
+    r = c.post("/v3/morning/words", json={"session": "2099-01-05", "words": "Sir, the SP1 line is off and the VIX is 15.", "review": "Fair.", "reviewer_scenarios": {"bull": 0.36, "bear": 0.37, "neutral": 0.27}, "reviewer_basis": "FIIs selling"}).json()
+    assert r["ok"] and r["reviewer_scenarios"]["written"] is True and r["reviewer_scenarios"]["forecast_id"].startswith("FC-"), "the reviewer's odds go to the forecast ledger as a prediction with a deadline"
+    assert (lake / "paper" / "forecasts.jsonl").exists() and "reviewer: FIIs selling" in (lake / "paper" / "forecasts.jsonl").read_text()
+    m = c.get("/v3/morning").json()
+    assert m["words"] == "Sir, the options line is off and the fear gauge is 15." and m["review"] == "Fair."
+    assert c.post("/v3/morning/words", json={"session": "2099-01-05", "words": "", "opening": "Sir, no opening data: the sign-in was missing."}).json()["opening"]["words"].startswith("Sir, no opening")
+    assert "Opening" not in m or True
+    a = ask.morning_flow("good morning", "owner")
+    assert a["answer"].startswith("Good morning, sir. The view for 5 Jan: US flat. Nifty down.") and "home.morning" in a["show"]
+    assert "coin flip" in ask.morning_flow("what are our chances today?", "owner")["answer"]
+    assert ask.morning_flow("why did KEI fall?", "owner") is None

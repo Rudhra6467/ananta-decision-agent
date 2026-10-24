@@ -17,6 +17,7 @@ import { ConceptCard, ValueCard, hello } from "../../src/home";
 import { AnantaButton, AnantaSheet, useAnantaCount } from "../../src/ananta";
 import { RecentDecisions } from "../../src/decisions";
 import { DraftsCard, MoneyCard } from "../../src/options";
+import { MorningCard } from "../../src/morning";
 import { getMarket, W } from "../../src/market";
 import { sayMoney, upDown, type VoiceSpec } from "../../src/sectionvoice";
 
@@ -78,6 +79,7 @@ function OwnerHome() {
         action={count.total ? { label: `${count.total} thing${count.total === 1 ? "" : "s"} need${count.total === 1 ? "s" : ""} you ›`, onPress: () => setAnanta(true) }
           : { label: "Trades ›", onPress: () => router.push({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", sub: "mine" } } as any) }} />
 
+      {getMarket() === "india" ? <Spot id="home.morning"><MorningCard /></Spot> : null}
       <Spot id="home.status">
         <HealthStrip h={m.health} />
       </Spot>

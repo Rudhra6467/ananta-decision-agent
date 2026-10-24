@@ -27,7 +27,7 @@ MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
 DAILY_LIMIT = int(os.getenv("ASK_DAILY_LIMIT", "150"))
 HISTORY_TURNS = 8
 SYSTEM = """You are Ananta, Madhav's trading assistant for the INDIAN market (NSE stocks and the Nifty index), on paper only. Address him as "sir".
-Answer ONLY from the FACTS block in the user turn; it is India's read model for the latest session (and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason.
+Answer ONLY from the FACTS block in the user turn; it is India's read model for the latest session ("morning_view" is the day's view written before the open: the market, Ananta's plan, the chances with their baselines, what to watch, yesterday's scorecard, the reviewer's second opinion; and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason.
 If the facts do not hold the answer, say so plainly and say what the facts do hold. Nothing here is financial advice; no real money is traded;
 you cannot place, change or close anything from chat (say "paper only; nothing is placed from chat" if asked to act).
 Explain technical words with a plain meaning alongside the name (simplify the explanation, not the intelligence). Be brutally honest: a lost
@@ -86,6 +86,7 @@ def facts(owner: bool = False) -> dict:
             "research": {"studies": r.get("studies"), "gate_G02": r.get("gate"), "gate_counters": r.get("gate_counters"), "registry_verdicts": r.get("verdicts"), "exit_book_chosen": (r.get("exit_book") or {}).get("chosen")},
             "jobs": {"signin": j.get("signin"), "problems": [{"job": x["label"], "problems": x["problems"]} for x in j.get("jobs", []) if not x.get("ok")]},
             "guardrails": (rm.get("guardrails") or {}).get("words"), "missing_sections": rm.get("missing"),
+            "morning_view": {k: v for k, v in views.morning().items() if k in ("session_words", "headline", "view", "plan", "chances", "watch", "yesterday", "words", "review", "reviewer_scenarios", "scenarios", "opening", "lessons", "read")},
             "reconstruction_last_night": {k: (rm.get("reconstruction") or {}).get(k) for k in ("headline", "people_words", "not_done_words", "league_words", "reviews", "findings")} | {"staircase": ((rm.get("reconstruction") or {}).get("staircase") or {}).get("words"),
                                           "meaning": "the nightly reconstruction card (what the market and other participants did, what Ananta did and did not do, trade reviews, findings); SAFE findings go to the repair board by themselves, DECISION findings wait for Madhav; the staircase says what the allocated capital may use (ADMITTED only; nothing yet)"},
             **({"account_allocation": _alloc_facts()} if owner else {})}
@@ -231,7 +232,7 @@ def _claude(system: str, history: list[dict], user: str, post=None) -> tuple[str
     if not key:
         raise RuntimeError("no model key on this service")
     msgs = [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": user}]
-    body = {"model": MODEL, "max_tokens": 1200, "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}], "messages": msgs}
+    body = {"model": MODEL, "max_tokens": 3000, "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}], "messages": msgs}   # the model thinks inside this budget too
     post = post or (lambda url, headers, body: requests.post(url, headers=headers, json=body, timeout=90).json())
     r = post("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body)
     if r.get("error"):
@@ -295,7 +296,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if today_count() >= DAILY_LIMIT:
         raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
     thread = thread or uuid.uuid4().hex[:12]
-    fixed = allocation_flow(text, who) or draft_flow(text, who) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get)      # a mode switch, or a problem, a pick or "my flags": in code
+    fixed = morning_flow(text, who) or allocation_flow(text, who) or draft_flow(text, who) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get)      # a mode switch, or a problem, a pick or "my flags": in code
     if fixed is not None:
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
@@ -460,6 +461,33 @@ def draft_flow(text: str, who: str) -> dict | None:
     else:
         ans = f"Skipped, sir: draft {n} ({pick['type']}) is closed and will not be filed again."
     return _reply(ans, ["What drafts are waiting?", "Explain the evidence staircase"], ["paper/reconstruction/decisions.jsonl"])
+
+
+MORNING = re.compile(r"\b(good morning|morning view|morning brief|today'?s view|view for (today|the day)|what'?s (good|the plan) (today|for today)|what (do you see|are we doing|is the plan) today|our chances today|chances (for )?today|start (my|the) (day|morning)|what should i watch today)\b", re.I)
+
+
+def morning_flow(text: str, who: str) -> dict | None:
+    """"Good morning" / "morning view" / "our chances today": the morning view read back in code, one part at a time by voice."""
+    if not MORNING.search(text) or len(text) > 90 or re.search(r"\b(review|reviewer|second opinion|agree|why|explain|compare|because)\b", text, re.I):
+        return None                        # a question about the view, not a request to hear it: the model answers with the view in its facts
+    m = views.morning()
+    if not m.get("ready"):
+        return _reply("Good morning, sir. The morning view is not written yet; it comes before each Indian open, at 08:30 Indian time.", ["What did you learn last night?", "How are my holdings doing?"], [])
+    greet = "Good morning, sir. " if re.search(r"good morning|start (my|the)", text, re.I) else ""
+    if re.search(r"chances", text, re.I):
+        ans = greet + " ".join(m.get("chances") or [])
+        fu = ["What is the view for today?", "What are you doing today?", "What should I watch today?"]
+    elif re.search(r"watch", text, re.I):
+        ans = greet + " ".join(m.get("watch") or [])
+        fu = ["What is the view for today?", "What are our chances today?"]
+    elif re.search(r"doing|plan", text, re.I):
+        ans = greet + " ".join(m.get("plan") or [])
+        fu = ["What are our chances today?", "What should I watch today?"]
+    else:
+        v = m.get("view") or []
+        ans = greet + f"The view for {m.get('session_words')}: " + " ".join(v[:3])
+        fu = ["What are you doing today?", "What are our chances today?", "What should I watch today?", "What did yesterday teach you?"]
+    return _reply(ans[:1800], fu, ["the morning view (paper/morningview)"], {"route": "india", "show": ["home.morning"]})
 
 
 def fix_flow(text: str, thread: str, token: str | None, context: dict | None, post=None, get=None) -> dict | None:

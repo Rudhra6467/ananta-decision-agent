@@ -365,3 +365,22 @@ def test_morning_view_route_words_reviewer_ledger_and_voice(lake, monkeypatch):
     assert a["answer"].startswith("Good morning, sir. The view for 5 Jan: US flat. Nifty down.") and "home.morning" in a["show"]
     assert "coin flip" in ask.morning_flow("what are our chances today?", "owner")["answer"]
     assert ask.morning_flow("why did KEI fall?", "owner") is None
+
+
+def test_ask_flags_name_old_data_mixed_signals_and_an_unusual_day(monkeypatch):
+    import datetime as dt
+
+    from jarvis.india import views
+    rm = {"data_through": "2026-10-21", "built_at": dt.datetime.now(dt.timezone.utc).isoformat(), "missing": ["research"],
+          "market": {"trend_state": "above_both", "breadth_200d_liquid": 0.31, "vix_close": 23.4},
+          "call": {"call": "BEARISH", "hits": 8, "scored": 20}, "jobs": {"jobs": [{"label": "evening", "ok": True}]}}
+    monkeypatch.setattr(views, "readmodel", lambda: rm)
+    f = views.ask_flags(today=dt.date(2026, 10, 24))["flags"]
+    words = " ".join(f)
+    assert "stops on 21 Oct" in words and "2 weekday sessions" in words, "Wednesday's data on Saturday: Thursday and Friday are missing"
+    assert "'research'" in words and "Mixed signals" in words and "India VIX" in words and "8 of 20" in words
+    assert all(". " not in s and s.endswith(".") for s in f), "each flag is one sentence"
+    assert views.ROUTES["ask/flags"] is views.ask_flags
+    rm.update({"data_through": "2026-10-23", "missing": [], "market": {"trend_state": "above_both", "breadth_200d_liquid": 0.7, "vix_close": 12}, "call": {"call": "BULLISH"}})
+    assert views.ask_flags(today=dt.date(2026, 10, 24))["flags"] == [], "a clean day raises nothing"
+    assert isinstance(service.v3("ask/flags", who="owner")["flags"], list), "served by the existing /v3/{name} route"

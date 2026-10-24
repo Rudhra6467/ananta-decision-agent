@@ -23,6 +23,7 @@ import { C } from "../../src/theme";
 import { router } from "expo-router";
 import { MicIcon, SendIcon, SpeakerIcon, StopIcon, ThumbDownIcon, ThumbUpIcon } from "../../src/icons";
 import { loadMe, useMe } from "../../src/visitor";
+import { useMarket } from "../../src/market";
 
 // Starter questions on an empty conversation (Madhav: a new person should know what to ask)
 const STARTERS = ["What's happening here?", "What are we doing here?", "Show me around", "Which coins are we watching?",
@@ -151,6 +152,13 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
   );
 }
 
+const Flags = ({ flags }: { flags: string[] }) => (
+  <View style={{ backgroundColor: C.warnSoft, borderRadius: 12, padding: 12, gap: 6, maxWidth: "96%" }}>
+    <Text style={{ color: C.warn, fontSize: 12, fontWeight: "700" }}>FLAGS FOR YOU</Text>
+    {flags.map((f, i) => <Bullet key={i}>{f}</Bullet>)}
+  </View>
+);
+
 const Tab = ({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) => (
   <Pressable onPress={onPress} style={{ backgroundColor: on ? C.text : C.card2, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 }}>
     <Text style={{ color: on ? C.onInk : C.text, fontWeight: "600", fontSize: 13 }}>{label}</Text>
@@ -203,6 +211,10 @@ export default function Ananta() {
   const [err, setErr] = useState<string | null>(null);
   const [ctx, setCtx] = useScreen();
   const { data: sg } = useData("/v3/ask/suggestions", 0);
+  // Flags for you (24 Oct): what looks off in the facts under an India answer (old data, mixed signals, an unusual day), decided by the service's code
+  const { data: fl, reload: reloadFlags } = useData<{ flags: string[] }>(useMarket() === "india" ? "/v3/ask/flags" : null, 300000);
+  const nAnswers = msgs.filter((m) => m.role === "assistant").length;
+  useEffect(() => { if (nAnswers) reloadFlags(); }, [nAnswers]);   // eslint-disable-line react-hooks/exhaustive-deps
   const scroll = useRef<ScrollView>(null);
   const lastParam = useRef<string | undefined>(undefined);
   const threadRef = useRef<string | null>(null), modeRef = useRef("auto"), dictating = useRef(false);
@@ -771,6 +783,7 @@ export default function Ananta() {
             <Answer m={m} onPick={(q) => (live ? loop.onText(q) : send(q))} onRate={(v) => rate(m, v)} onSecond={() => second(m)}
               onSpeak={live ? undefined : () => { TTS.speak(UI.sentences(m.answer ?? ""), () => {}); }}
               onShow={live ? undefined : () => walkThrough(m)} />
+            {i === msgs.length - 1 && m.kind === "answer" && fl?.flags?.length ? <Flags flags={fl.flags} /> : null}
             {m.voice && i === msgs.length - 1 ? (m.show ?? []).slice(0, 1).map((sh: any, k: number) => <StageCard key={k} sh={sh} open={() => openScreen(sh)} />) : null}
           </View>
         )))}

@@ -845,6 +845,44 @@ def ask_last() -> dict:
     return {"last": last, "continue_minutes": 30}
 
 
+def ask_flags(today: dt.date | None = None) -> dict:
+    """'Flags for you' under an answer (Madhav, 24 Oct: "is there something that we have to flag from this process or from the way it is looking at
+    the market?"): what looks off in the facts the answer stands on, one sentence each, decided by code from the read model, never by the model."""
+    rm = readmodel()
+    today = today or dt.date.today()
+    out: list[str] = []
+    through = str(rm.get("data_through") or "")[:10]
+    try:
+        d0 = dt.date.fromisoformat(through)
+        gap = sum(1 for i in range(1, (today - d0).days) if (d0 + dt.timedelta(days=i)).weekday() < 5)
+        if gap:
+            out.append(f"The market data stops on {_day_words(through)}; {gap} weekday session{'s' if gap != 1 else ''} since then {'are' if gap != 1 else 'is'} not in it yet, so the answer may be out of date.")
+    except ValueError:
+        out.append("The daily summary has no market date, so the age of the data is unknown.")
+    age = _health(rm)["checked_s_ago"]
+    if age is not None and age > 36 * 3600:
+        out.append(f"The daily summary was last rebuilt {age // 3600} hours ago; the evening jobs may not have run.")
+    for x in (rm.get("missing") or [])[:3]:
+        out.append(f"The daily summary has no '{x}' part, so anything that needs it is a data gap, not a no.")
+    down = _health(rm)["down"]
+    if down:
+        out.append(f"Not running cleanly: {', '.join(down[:3])}{' and more' if len(down) > 3 else ''}.")
+    m = rm.get("market") or {}
+    trend, call = m.get("trend_state"), str((rm.get("call") or {}).get("call") or "").upper()
+    if (trend == "above_both" and call == "BEARISH") or (trend == "below_both" and call == "BULLISH"):
+        out.append(f"Mixed signals: the Nifty is {'in an uptrend' if trend == 'above_both' else 'in a downtrend'} but Ananta calls the next session {'down' if call == 'BEARISH' else 'up'}.")
+    b = m.get("breadth_200d_liquid")
+    if b is not None and ((trend == "above_both" and b < 0.4) or (trend == "below_both" and b > 0.6)):
+        out.append(f"Mixed signals: the Nifty is {'in an uptrend' if trend == 'above_both' else 'in a downtrend'} but {100 * b:.0f}% of the 250 most-traded stocks are above their long-term average.")
+    vix = m.get("vix_close")
+    if isinstance(vix, (int, float)) and vix >= 20:
+        out.append(f"An unusual day: the fear gauge (India VIX) is at {vix:.1f}, well above its calm range, so the usual patterns are less reliable.")
+    c = rm.get("call") or {}
+    if (c.get("scored") or 0) >= 20 and (c.get("hits") or 0) * 2 < c["scored"]:
+        out.append(f"The daily call has been right {c.get('hits', 0)} of {c['scored']} times, below a coin flip; weigh it lightly.")
+    return {"flags": out, "data_through": through or None}
+
+
 def alerts() -> dict:
     rm = readmodel()
     out = []
@@ -907,7 +945,7 @@ def reads() -> dict:
 
 ROUTES = {"home": home, "books": books, "holdings": holdings, "coins": coins, "chain": chain, "exposure": exposure, "watches/mine": watches_mine, "evidence/live": evidence_live,
           "cockpit": cockpit, "evidence/collected": evidence_collected, "universe/ladder": universe_ladder, "agent/state": agent_state, "ask/suggestions": ask_suggestions,
-          "ask/threads": ask_threads, "ask/last": ask_last, "alerts": alerts, "needs": needs, "onboard/demo": onboard_demo, "missed": missed, "brain": brain, "reads": reads}
+          "ask/threads": ask_threads, "ask/last": ask_last, "ask/flags": ask_flags, "alerts": alerts, "needs": needs, "onboard/demo": onboard_demo, "missed": missed, "brain": brain, "reads": reads}
 
 
 # ---------------------------------------------------------------------------------------------------------------- Home: recent decisions, options (Madhav, 23 Oct)

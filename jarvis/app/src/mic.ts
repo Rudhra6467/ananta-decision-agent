@@ -30,8 +30,8 @@ const WAV = {
 } as any;
 
 export type MicStatus = "idle" | "listening" | "hearing" | "sending";
-const CALIBRATE_MS = 400, END_SILENCE_MS = 1000, MAX_TURN_MS = 20000, NO_SPEECH_MS = 15000, DEAD_MS = 3000;
-const BELOW_PEAK_DB = 18, STEADY_DB = 5, STEADY_N = 12, MIN_TURN_MS = 1200;   // quiet = 18 dB under your voice, or 1.2 s of flat hum
+const CALIBRATE_MS = 400, END_SILENCE_MS = 2000, MAX_TURN_MS = 30000, NO_SPEECH_MS = 15000, DEAD_MS = 3000;
+const BELOW_PEAK_DB = 18, STEADY_DB = 5, STEADY_N = 22, MIN_TURN_MS = 1200;   // quiet = 18 dB under your voice for 2.0 s, or 2.2 s of flat hum (request 92, 24 Oct)
 // Not re-learning the room each turn: a loud stretch over within 250 ms of the start is the tail of Ananta's voice, not speech
 // (the whole recording is kept either way; only "hearing you" waits). Same as src/webmic.js.
 const GUARD_MS = 250;

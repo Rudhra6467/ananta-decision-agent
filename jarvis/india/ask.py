@@ -29,7 +29,10 @@ HISTORY_TURNS = 8
 SYSTEM = """You are Ananta, Madhav's trading assistant for the INDIAN market (NSE stocks and the Nifty index), on paper only. Address him as "sir".
 Answer ONLY from the FACTS block in the user turn; it is India's read model for the latest session ("morning_view" is the day's view written before the open: the market, Ananta's plan, the chances with their baselines, what to watch, yesterday's scorecard, the reviewer's second opinion; and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason.
 If the facts do not hold the answer, say so plainly and say what the facts do hold. Nothing here is financial advice; no real money is traded;
-you cannot place, change or close anything from chat (say "paper only; nothing is placed from chat" if asked to act).
+you cannot place, change or close a trade from chat: say "paper only; nothing is placed from chat" ONLY when he asks you to trade, never as a sign-off on other answers.
+Flags and fix choices are handled in code before you see a message: never say a flag or a choice cannot be filed or recorded from chat. If he seems to pick a fix
+but the code did not catch it, ask him to say "fix 1", "fix 2" or "fix 3". "teacher_libraries" holds the YouTube teachers' classes (Optionables = the options
+teacher, Trade With Trend = the stocks teacher) turned into testable hypotheses and where each stands; "the professor" or "YouTube classes" means these.
 Explain technical words with a plain meaning alongside the name (simplify the explanation, not the intelligence). Be brutally honest: a lost
 session is lost, a wrong call is wrong, 0 of 3 is 0 of 3. Keep the answer to 2-5 sentences a person can read in under ten seconds.
 When the FACTS hold "reconstruction_detail", Madhav wants to discuss the reconstruction process: explain it in simple spoken words, one part at a time (use the
@@ -89,6 +92,7 @@ def facts(owner: bool = False) -> dict:
             "morning_view": {k: v for k, v in views.morning().items() if k in ("session_words", "headline", "view", "plan", "chances", "watch", "yesterday", "words", "review", "reviewer_scenarios", "scenarios", "opening", "lessons", "read")},
             "reconstruction_last_night": {k: (rm.get("reconstruction") or {}).get(k) for k in ("headline", "people_words", "not_done_words", "league_words", "reviews", "findings")} | {"staircase": ((rm.get("reconstruction") or {}).get("staircase") or {}).get("words"),
                                           "meaning": "the nightly reconstruction card (what the market and other participants did, what Ananta did and did not do, trade reviews, findings); SAFE findings go to the repair board by themselves, DECISION findings wait for Madhav; the staircase says what the allocated capital may use (ADMITTED only; nothing yet)"},
+            "teacher_libraries": _library_facts(),
             **({"account_allocation": _alloc_facts()} if owner else {})}
 
 
@@ -121,6 +125,46 @@ def _rx_detail() -> dict:
             "queue": [{k: q.get(k) for k in ("type", "lane", "state", "day", "request")} for q in views._queue_rows()][-12:],
             "staircase": {"words": st.get("words"), "rules": st.get("rules"), "admitted": st.get("admitted")},
             "web_notes": views.netnotes(c.get("day")), "drafts_waiting": views.drafts()["drafts"]}
+
+
+LIBRARIES = {"OPT": {"teacher": "Optionables (YouTube, Indian options)", "videos": "434 public videos with captions, of 459 (members-only not used)"},
+             "TWT": {"teacher": "Trade With Trend, Raunak A (YouTube, Indian stocks)", "videos": "161 public videos with captions, of 289 (members-only not used)"},
+             "M": {"teacher": "Madhav's own method notes", "videos": "-"}}
+_LIB_CACHE: dict = {}
+
+
+def _library_facts() -> dict:
+    """The teachers' libraries (Madhav, 24 Oct: "I have a long data of YouTube professor's options trading in our database"): each teacher's
+    claims as testable hypotheses, where each stands on India's research map, and the work plan. Counts are read from the review pack
+    (records repo registrations), never from the teaching library itself: the agent never reads the teachers' words (tests/test_library.py)."""
+    p = views.REG / "hypothesis_review.md"
+    try:
+        mt = p.stat().st_mtime
+    except OSError:
+        return {"ready": False}
+    if _LIB_CACHE.get("mt") == mt:
+        return _LIB_CACHE["v"]
+    out: dict = {}
+    for line in p.read_text().splitlines():
+        m = re.match(r"\|\s*(OPT|TWT|M)-H?\d+\s*\|[^|]*\|[^|]*\|\s*([A-Z_]+)\s*\|\s*([^|]*)\|\s*([^|]*)\|", line)
+        if not m:
+            continue
+        pre, status, study, verdicts = m.group(1), m.group(2), m.group(3).strip(), m.group(4).strip()
+        o = out.setdefault(pre, {**LIBRARIES[pre], "hypotheses": 0, "by_status": {}, "studies": set(), "with_results": 0})
+        o["hypotheses"] += 1
+        o["by_status"][status] = o["by_status"].get(status, 0) + 1
+        if study and study != "-":
+            o["studies"].add(study)
+        if verdicts:
+            o["with_results"] += 1
+    for o in out.values():
+        o["studies"] = sorted(o["studies"])
+    v = {"ready": True, "libraries": out,
+         "status_meaning": "TESTABLE_NOW = data and code exist; NEEDS_BUILD = code to write; NEEDS_DATA = a data set is missing; EOD_FO = end-of-day F&O data; WAITS_RECORDER = needs the live option recorder (Kite sign-in); DEFERRED/OUT_OF_SCOPE = parked",
+         "honest_limits": "Every row is the teacher's claim restated, never validated. 'with_results' counts hypotheses whose mapped study has verdicts, but a study covers several hypotheses, so it is not a per-claim result. Members-only videos were never used.",
+         "work_plan": "Madhav asked on 24 Oct to turn every class into a strategy and test it in real time: the plan (claude/plan-2026-10-24-teacher-libraries-to-strategies) registers each hypothesis as its own study, tests on 2000-2023, then runs survivors as shadow paper books on live sessions."}
+    _LIB_CACHE.update({"mt": mt, "v": v})
+    return v
 
 
 def _alloc_facts() -> dict:
@@ -296,7 +340,9 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if today_count() >= DAILY_LIMIT:
         raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
     thread = thread or uuid.uuid4().hex[:12]
-    fixed = morning_flow(text, who) or allocation_flow(text, who) or draft_flow(text, who) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get)      # a mode switch, or a problem, a pick or "my flags": in code
+    # code-built answers first (a mode switch, the morning view, drafts, the portfolio review), then a pick, a problem or "my flags"
+    fixed = (morning_flow(text, who) or allocation_flow(text, who) or draft_flow(text, who) or portfolio_flow(text, who)
+             or fix_flow(text, thread, token, context, post=flag_post, get=flag_get))
     if fixed is not None:
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
@@ -360,9 +406,33 @@ def stats() -> dict:
 # and the repair worker builds the safe ones and tells him. Rules in code, no model call.
 JARVIS_URL = os.getenv("ANANTA_JARVIS_URL", "http://127.0.0.1:8100")
 FLAG = re.compile(r"\b(flag|broken|not working|doesn'?t work|isn'?t working|fix (it|this|that|the)|bug|wrong|report (it|this|that))\b", re.I)
-PICK = re.compile(r"^\s*(?:fix\s*)?(?:option\s*)?(\d)\b|^\s*(?:the\s+)?(first|second|third|one|two|three)\b", re.I)
 STATUS = re.compile(r"\b(my (flags?|requests?)|what happened to (my|the) (flag|request)|is it fixed|did you fix)\b", re.I)
-WORDS = {"first": 1, "one": 1, "second": 2, "two": 2, "third": 3, "three": 3}
+WORDS = {"first": 1, "one": 1, "1": 1, "second": 2, "two": 2, "2": 2, "third": 3, "three": 3, "3": 3}
+# Picking a fix by voice (24 Oct, from Madhav's own chat): "Second bot's answer is basically the same" was taken as "fix 2" and queued a fix he
+# never chose, while "maybe two will do good" and "we will go with the Pixels 1 and 2" (the voice's "fixes") were missed. A pick now needs the
+# number to be the point of the message: a short reply that is only a number with filler words, a number next to a pick word ("go with",
+# "option", "fix", "will do", "sounds good"), or the words of exactly one option's title.
+_N = r"(\d|one|two|three|first|second|third)"
+_FILL = r"(?:yes|yeah|yep|ok(?:ay)?|sure|so|well|maybe|i think|let'?s|we(?:'ll| will)|i(?:'ll| will)|go(?:ing)? with|pick|choose|take|do|the|number|option|fix|please|,|\.|!)"
+PICK_SHORT = re.compile(rf"^\s*(?:{_FILL}\s*)*(?:fix(?:es)?|pixels?|options?|numbers?)?\s*{_N}(?:\s*(?:and|&|,|plus)\s*{_N})?(?:\s*(?:please|one|is good|sounds good|will do( good)?|works|for me|then)?[\s.!]*)*$", re.I)
+PICK_NEAR = re.compile(rf"\b(?:go(?:ing)? with|pick(?:ing)?|choose|chose|take|fix(?:es)?|pixels?|options?|numbers?)\s+(?:the\s+)?{_N}(?:\s*(?:and|&|,|plus)\s*{_N})?\b"
+                       rf"|\b{_N}(?:\s*(?:and|&)\s*{_N})?\s+(?:will do|would do|sounds? good|is good|works|is fine|is better)\b", re.I)
+_STOP = {"a", "an", "the", "and", "or", "to", "of", "with", "for", "your", "you", "i", "it", "is", "in", "on", "my", "will", "be", "that", "this", "show", "add"}
+
+
+def _picks(text: str, options: list[dict]) -> list[int]:
+    """The fix numbers (1-based) Madhav chose in this message, or [] when it is not a pick."""
+    n_opts = len(options or [])
+    nums: list[int] = []
+    m = PICK_SHORT.match(text) if len(text.split()) <= 12 else None
+    m = m or PICK_NEAR.search(text)
+    if m:
+        nums = [WORDS[g.lower()] for g in m.groups() if g and g.lower() in WORDS]
+    if not nums:                                                         # the words of one option's title ("clear indicator with done button")
+        said = {w for w in re.findall(r"[a-z']+", text.lower()) if w not in _STOP and len(w) > 2}
+        hits = [i + 1 for i, o in enumerate(options or []) if len(said & {w for w in re.findall(r"[a-z']+", str(o.get("title", "")).lower()) if w not in _STOP and len(w) > 2}) >= 3]
+        nums = hits if len(hits) == 1 else []
+    return [n for i, n in enumerate(nums) if 1 <= n <= n_opts and n not in nums[:i]]
 
 
 def _pending(thread: str) -> dict | None:
@@ -463,6 +533,63 @@ def draft_flow(text: str, who: str) -> dict | None:
     return _reply(ans, ["What drafts are waiting?", "Explain the evidence staircase"], ["paper/reconstruction/decisions.jsonl"])
 
 
+PORT = re.compile(r"\b(analy[sz]e|analysis|review|rate|rank|grade|check|go through|assess)\b[^.?!]{0,40}\b(portfolio|holdings?|my stocks|my account|my positions?)\b"
+                  r"|\b(portfolio|holdings?)\b[^.?!]{0,20}\b(analysis|review|ratings?|rankings?)\b", re.I)
+PORT_WHY = re.compile(r"\b(why|how come|explain)\b", re.I)
+ACTION_WORDS = {"HOLD": "keep", "WATCH": "watch", "TRIM": "trim", "REDUCE": "reduce by half", "TIDY": "tidy up (sell, too small to matter)", "ADD": "add"}
+
+
+def _rs(x) -> str:
+    try:
+        return "Rs " + f"{round(float(x)):,}"
+    except (TypeError, ValueError):
+        return "-"
+
+
+def portfolio_flow(text: str, who: str) -> dict | None:
+    """Request 95 (Madhav, 24 Oct: "if I ask you to analyze one part of my portfolio or all of it, pull it up and get it done right away"):
+    the review is built in code from the latest ratings, instantly, with every holding's grade, action, reason and 'wrong if', and the
+    snapshot's age said plainly. One stock named in the question gets that stock's card. Owner only; a 'why' question goes to the model."""
+    whole = bool(PORT.search(text))
+    verb = bool(re.match(r"^\s*(please\s+)?(analy[sz]e|review|rate|grade|check)\b", text, re.I))
+    if not (whole or verb) or PORT_WHY.search(text) or re.search(r"\bflag", text, re.I) or not (who == "owner" or not str(who).startswith("guest:")):
+        return None                        # "flag this: when I ask you to analyze my portfolio..." is a flag, not a request for the review
+    p = views.allocation_plan(full=True)
+    hs = p.get("holdings") or []
+    if not p.get("ready") or not hs:
+        return _reply("Sir, the ratings are not built yet: the allocator rates your holdings every few minutes once a Zerodha snapshot exists.", ["Is everything running?"], [])
+    snap = p.get("snapshot") or {}
+    age = snap.get("stale_days")
+    when = (snap.get("taken_at") or "")[:10]
+    fresh = f"From the Zerodha snapshot of {when}" + (f" ({age} days old: a new one comes with the next Zerodha sign-in)" if age else "") + "."
+    named = [h for h in hs if re.search(rf"\b{re.escape(h['symbol'])}\b", text, re.I)]
+    if named:
+        lines = [f"{h['symbol']}: grade {h['grade']} ({h['score']:.0f}/100), rank {h['rank']} of {len(hs)}, {_rs(h['value_inr'])} = {h['weight_pct']}% of your stocks, "
+                 f"{h['pnl_pct']:+.1f}% on what you paid. Action: {ACTION_WORDS.get(h['action'], h['action'])}{(' about ' + _rs(h['suggest_inr'])) if h.get('suggest_inr') else ''}. "
+                 f"{h['why']} Wrong if {h['wrong_if']}." for h in named[:3]]
+        return _reply("Sir, here it is. " + " ".join(lines) + " " + fresh, [f"Why is {named[0]['symbol']} rated {named[0]['grade']}?", "Analyze my whole portfolio", "What would you change first?"],
+                      ["account ratings (paper/allocation_view.json)"], {"show": ["home.value"]})
+    if not whole:
+        return None                        # "analyze Nifty" / "check the market": not a holding, the model answers
+    grades = {g: sum(1 for h in hs if h["grade"] == g) for g in "ABCD"}
+    total = sum(float(h.get("value_inr") or 0) for h in hs)
+    paid = sum(float(h.get("avg") or 0) * float(h.get("qty") or 0) for h in hs)
+    changes = [h for h in hs if h["action"] not in ("HOLD", "WATCH")]
+    keep = [h for h in hs if h["action"] in ("HOLD", "WATCH")]
+    head = (f"Sir, your {len(hs)} stocks are worth {_rs(total)}, {100 * (total / paid - 1):+.1f}% on what you paid. Grades: {grades['A']} A, {grades['B']} B, {grades['C']} C, {grades['D']} D. "
+            f"{len(changes)} change{'s' if len(changes) != 1 else ''} suggested, {len(keep)} kept. {fresh}")
+    brk = []
+    for h in sorted(changes, key=lambda x: -(x.get("suggest_inr") or 0))[:8]:
+        brk.append(f"{h['symbol']} ({h['grade']}, {h['weight_pct']}% of stocks, {h['pnl_pct']:+.1f}%): {ACTION_WORDS.get(h['action'], h['action'])}"
+                   f"{(' about ' + _rs(h['suggest_inr'])) if h.get('suggest_inr') else ''}. {h['why']} Wrong if {h['wrong_if']}.")
+    if keep:
+        brk.append("Kept: " + "; ".join(f"{h['symbol']} ({h['grade']}, {ACTION_WORDS.get(h['action'], h['action'])}): {h['why']}" for h in keep[:4]))
+    r = _reply(head, [f"Why is {changes[0]['symbol']} rated {changes[0]['grade']}?" if changes else "Which is my strongest holding?", "What would you change first?", "How are my options doing?"],
+               ["account ratings (paper/allocation_view.json), rebuilt every few minutes"], {"show": ["home.value"]})
+    r["breakdown"] = brk
+    return r
+
+
 MORNING = re.compile(r"\b(good morning|morning view|morning brief|today'?s view|view for (today|the day)|what'?s (good|the plan) (today|for today)|what (do you see|are we doing|is the plan) today|our chances today|chances (for )?today|start (my|the) (day|morning)|what should i watch today)\b", re.I)
 
 
@@ -498,21 +625,23 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
     post = post or (lambda url, body: requests.post(url, json=body, headers=H, timeout=60))
     get = get or (lambda url: requests.get(url, headers=H, timeout=30))
     pend = _pending(thread)
-    m = PICK.match(text) if pend else None
-    if pend and m:
-        n = int(m.group(1)) if m.group(1) else WORDS.get(m.group(2).lower(), 0)
-        if 1 <= n <= len(pend.get("options") or []):
-            r = post(f"{JARVIS_URL}/v3/flags/{pend['num']}/choose", {"option": n - 1, "words": text[:200]})
-            j = r.json() if hasattr(r, "json") else r
-            state = j.get("state")
-            _set_pending(thread, None)
-            if state == "queued":
-                a = f"Done, sir: fix {n} for request {pend['num']} is queued. The repair worker builds it, tests it and puts it live within minutes; you get 'Fixed: request {pend['num']}' on your phone."
-            elif state == "plan":
-                a = f"Noted, sir: fix {n} for request {pend['num']} is near trading, so the worker writes the plan and waits for your yes. Nothing changes until then."
-            else:
-                a = f"Request {pend['num']}: {state or j.get('detail') or 'recorded'}."
-            return _reply(a, ["What happened to my flag?", "What did you decide for the next session?"], [f"fix flow: request {pend['num']}, option {n}, state {state}"])
+    picks = _picks(text, pend.get("options") or []) if pend else []
+    if pend and picks:
+        n = picks[0]
+        also = [f"also fix {k}: {(pend['options'][k - 1] or {}).get('title')}" for k in picks[1:]]
+        r = post(f"{JARVIS_URL}/v3/flags/{pend['num']}/choose", {"option": n - 1, "words": (text[:200] + (" (" + "; ".join(also) + ")" if also else ""))})
+        j = r.json() if hasattr(r, "json") else r
+        state = j.get("state")
+        _set_pending(thread, None)
+        which = " and ".join(f"fix {k}" for k in picks)
+        title = "; ".join(str((pend["options"][k - 1] or {}).get("title")) for k in picks)
+        if state == "queued":
+            a = f"Done, sir: {which} for request {pend['num']} ({title}) {'is' if len(picks) == 1 else 'are'} queued. The repair worker builds it, tests it and puts it live; you get 'Fixed: request {pend['num']}' on your phone."
+        elif state == "plan":
+            a = f"Noted, sir: {which} for request {pend['num']} ({title}). It is near trading, so the worker writes the plan first and it waits for your yes in Needs you."
+        else:
+            a = f"Request {pend['num']}: {state or j.get('detail') or 'recorded'}."
+        return _reply(a, ["What happened to my flag?", "What did you decide for the next session?"], [f"fix flow: request {pend['num']}, {which}, state {state}"])
     if STATUS.search(text):
         r = get(f"{JARVIS_URL}/v3/flags")
         j = r.json() if hasattr(r, "json") else r

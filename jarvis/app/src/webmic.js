@@ -20,8 +20,11 @@
 
 export const WEBMIC = Object.freeze({
   // the same end-of-speech rules as src/mic.ts
-  CALIBRATE_MS: 400, END_SILENCE_MS: 1000, MAX_TURN_MS: 20000, NO_SPEECH_MS: 15000, DEAD_MS: 3000,
-  BELOW_PEAK_DB: 18, STEADY_DB: 5, STEADY_N: 12, MIN_TURN_MS: 1200,
+  CALIBRATE_MS: 400, END_SILENCE_MS: 2000, MAX_TURN_MS: 30000, NO_SPEECH_MS: 15000, DEAD_MS: 3000,
+  BELOW_PEAK_DB: 18, STEADY_DB: 5, STEADY_N: 22, MIN_TURN_MS: 1200,
+  // request 92 (Madhav, 24 Oct: "sometimes while I am still talking, you stop listening"): a thinking pause or a breath is up to
+  // about 1.5 s, so the turn ends after 2.0 s of quiet (was 1.0) or 2.2 s of flat hum (was 1.2; longer than the quiet rule, so a quiet room ends on quiet), and a turn may run 30 s (was 20).
+  // Done ends it at once; a turn cut off mid-sentence is still joined to the next one (the service's "partial").
   // a loud stretch that is over within the first 250 ms after the mic arms is not speech: it is the tail of Ananta's own voice
   // still leaving the speaker (Bluetooth adds ~200 ms). The 400 ms of re-learning the room used to absorb it. Nothing is lost:
   // all of it is kept; only "hearing you" waits until the loudness outlasts 250 ms.
@@ -32,7 +35,7 @@ export const WEBMIC = Object.freeze({
   OUT_RATE: 16000,                 // what the service gets: 16 kHz mono 16-bit WAV
   LIVE_TIMEOUT_MS: 1500,           // arm(): no sound arriving within this = the session is broken (reopen)
   STALL_MS: 1500,                  // armed, and the sound stopped arriving for this long = dead (iOS took the mic, etc.)
-  MAX_KEEP_S: 21,                  // capture buffer (the longest turn is 20 s)
+  MAX_KEEP_S: 31,                  // capture buffer (the longest turn is 30 s)
 });
 
 /** @typedef {{ floor: number, calibrated: boolean }} Room */

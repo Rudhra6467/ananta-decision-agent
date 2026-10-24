@@ -42,10 +42,13 @@ export function MorningCard() {
   if (!m?.ready) return null;
   const first = (m.view ?? []).slice(0, 2);
   const note = noteSections(m.words);
+  // the session's own day decides the words (24 Oct: "This morning · 23 Oct" showed on a Saturday)
+  const istToday = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+  const when = !m.session || m.session === istToday ? "This morning" : m.session > istToday ? "Next session" : "Last session";
   return (
     <Card>
       <View style={st.row}>
-        <Text style={st.h}>This morning · {m.session_words}</Text>
+        <Text style={st.h}>{when} · {m.session_words}</Text>
         <Act tight label="Read ›" onPress={() => setOpen(true)} />
       </View>
       {first.length ? <T numberOfLines={4}>{first[0]}</T> : null}

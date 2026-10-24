@@ -134,7 +134,9 @@ export async function focusSpot(id: string, holdMs = 0): Promise<boolean> {
   if (clearTimer) clearTimeout(clearTimer);
   active = id;
   emit();
-  if (holdMs) clearTimer = setTimeout(() => { if (active === id) { active = null; emit(); } }, holdMs);
+  // Nothing stays lit by itself (Madhav, 24 Oct: the money card "just keeps highlighting" with the voice off): a highlight with no hold time
+  // still ends after 20 s; the voice re-lights each sentence's spot, so a long answer keeps pointing while it is spoken.
+  clearTimer = setTimeout(() => { if (active === id) { active = null; emit(); } }, holdMs || 20000);
   return true;
 }
 

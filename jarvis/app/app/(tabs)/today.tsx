@@ -18,6 +18,7 @@ import { AnantaButton, AnantaSheet, useAnantaCount } from "../../src/ananta";
 import { RecentDecisions } from "../../src/decisions";
 import { DraftsCard, MoneyCard } from "../../src/options";
 import { MorningCard } from "../../src/morning";
+import { IndiaPortfolio } from "../../src/indiaportfolio";
 import { getMarket, W } from "../../src/market";
 import { sayMoney, upDown, type VoiceSpec } from "../../src/sectionvoice";
 
@@ -64,6 +65,7 @@ function OwnerHome() {
   const feed = all ? d.feed : d.feed.slice(0, 8);
   const actOpen = showActivity || activityLit;
   const dec = homeDecision(m, count.total);
+  const india = getMarket() === "india";
   return (
     <Screen loading={loading} onRefresh={reload}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -79,18 +81,19 @@ function OwnerHome() {
         action={count.total ? { label: `${count.total} thing${count.total === 1 ? "" : "s"} need${count.total === 1 ? "s" : ""} you ›`, onPress: () => setAnanta(true) }
           : { label: "Trades ›", onPress: () => router.push({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", sub: "mine" } } as any) }} />
 
-      {getMarket() === "india" ? <Spot id="home.morning"><MorningCard /></Spot> : null}
+      {india && m.account?.started ? <Spot id="home.value"><IndiaPortfolio a={m.account} /></Spot> : null}
+      {india ? <Spot id="home.morning"><MorningCard /></Spot> : null}
       <Spot id="home.status">
         <HealthStrip h={m.health} />
       </Spot>
       <ConceptCard />
 
-      <Spot id="home.value">
+      {india && m.account?.started ? null : <Spot id="home.value">
         {m.account?.started ? <AccountCard a={m.account} /> : (
           <ValueCard label="Paper books that still trade" value={bk?.summary?.value ?? null} change={bk ? bk.summary.value - bk.summary.start : null}
             sub={bk ? `Started with ${usd(bk.summary.start, 0)} · ${bk.summary.open_count} open trades · no real money` : "Adding up every book…"} />
         )}
-      </Spot>
+      </Spot>}
 
       <Spot id="home.books">
         <RecentDecisions />

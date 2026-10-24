@@ -891,9 +891,9 @@ function LivePanel({ label, phase, hearing, ready, level, note, onOrb, onEnd, ra
   // the state in words, and the one button that does the obvious thing (the orb does the same on a tap)
   const [name, detail, button] = phase === "thinking" ? ["Thinking", "Claude is on it · about 4 seconds", "Stop"]
     : phase === "speaking" ? ["Speaking", "tap Stop to interrupt and talk", "Stop"]
-    : hearing ? ["Hearing you", "tap Done when you finish; no waiting for silence", "Done"]
+    : hearing ? ["Hearing you", "pause to think, I'll wait · tap Done when you finish", "Done"]
     : opening ? ["Getting ready", "one moment, then just talk", ""]
-    : ["Listening", "just talk", ""];
+    : ["Listening", "just talk · I wait 2 seconds of quiet before answering", ""];
   return (
     <View style={{ alignItems: "center", gap: 10, paddingVertical: 14, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
       <Pressable onPress={onOrb} hitSlop={16} accessibilityLabel={label}>

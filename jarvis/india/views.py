@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import re
 from collections import Counter
 from functools import lru_cache
 from pathlib import Path
@@ -252,10 +253,19 @@ def _account(rm: dict) -> dict:
     a = _account_sp1(rm)
     ab = _book()
     if ab.get("value_inr"):
-        pos = {p["symbol"]: {"qty": p.get("qty"), "last": p.get("last"), "paid": round((p.get("avg") or 0) * (p.get("qty") or 0), 2), "rule": "holding", "sleeve": "stocks"} for p in (ab.get("positions") or [])}
+        pos = {p["symbol"]: {"qty": p.get("qty"), "avg": p.get("avg"), "last": p.get("last"), "paid": round((p.get("avg") or 0) * (p.get("qty") or 0), 2), "rule": "holding", "sleeve": "stocks"} for p in (ab.get("positions") or [])}
+        paid = sum(v["paid"] for v in pos.values())
+        stocks = float(ab.get("stocks_inr") or 0)
+        snap = (_json(DATA / "paper" / "allocation_view.json", {}) or {}).get("snapshot") or {}
+        s = rm.get("sp1") or {}
+        opt_pnl = round(sum(float(v.get("option_1lot_rs_realistic_fill") or 0) for v in ((s.get("book") or {}).get("by_index") or {}).values()), 2)
         a.update({"value_cad": float(ab["value_inr"]), "start_cad": float(ab.get("start_inr") or ab["value_inr"]), "return_pct": float(ab.get("return_pct") or 0.0),
                   "cash_cad": float(ab.get("cash_inr") or 0), "started": (ab.get("opened_at") or "")[:10] or a["started"], "book_words": ab.get("words"), "positions": pos,
                   "options_inr": ab.get("options_inr"), "stocks_inr": ab.get("stocks_inr"), "positions_count": len(pos),
+                  # the Home hero (Madhav, 24 Oct 16:27): stocks against what was paid, the options line's own result, and how fresh the prices are
+                  "stocks_paid_inr": round(paid, 2), "stocks_pnl_inr": round(stocks - paid, 2), "stocks_pnl_pct": round(100 * (stocks / paid - 1), 2) if paid else None,
+                  "options_book": {"pnl_inr": opt_pnl, "sessions": (s.get("book") or {}).get("sessions") or 0, "status": s.get("status")},
+                  "prices_at": snap.get("taken_at"), "prices_stale_days": snap.get("stale_days"),
                   "pushed_rule": "Ananta may buy a new stock for the account only after a rule has proved itself on paper (20 sessions, beating chance and the market) and you say yes. Until then it holds, trims and rebalances."})
     return a
 
@@ -272,7 +282,10 @@ def _account_sp1(rm: dict) -> dict:
     trend = {"above_both": "an uptrend (above its ten-week and long-term averages)", "below_both": "a downtrend (below its ten-week and long-term averages)",
              "mixed": "no clear trend"}.get(m.get("trend_state"), "trend unknown")
     why = [f"Nifty {m.get('nifty_close'):,.0f} on {_day_words(m.get('data_through'))}: {trend}" if m.get("nifty_close") else "no market reading yet",
-           f"Ananta's call for the next session: {str((rm.get('call') or {}).get('call') or 'none').lower()}",
+           # the call with its record beside it (24 Oct: "bullish" alone read like a forecast to lean on; it was 0 of 3)
+           f"Ananta's call for the next session: {str((rm.get('call') or {}).get('call') or 'none').lower()}"
+           + (f" (right {(rm.get('call') or {}).get('hits')} of {(rm.get('call') or {}).get('scored')} so far; a coin flip got {(rm.get('call') or {}).get('null_hits')})"
+              if (rm.get("call") or {}).get("scored") else ""),
            (f"Guardrails: a {g['daily_loss_limit_pct']:.0f}% loss stops the day; {g['pause_drawdown_pct']:.0f}% below the peak pauses new buys"
             if g.get("daily_loss_limit_pct") is not None and g.get("pause_drawdown_pct") is not None else "Guardrails: not in the daily summary yet")]
     return {"started": ACCOUNT_SINCE, "value_cad": round(ACCOUNT_START + pnl, 2), "start_cad": ACCOUNT_START, "return_pct": round(100 * pnl / ACCOUNT_START, 2),
@@ -831,7 +844,11 @@ def ask_suggestions() -> dict:
          "What did you learn last night?", "What would you change in my holdings?", "How do you compare with other traders?", "Is everything running?", "Which way is the Nifty trending?", "What are the guardrails?"]
     if first:
         q.insert(1, f"Why {first}?")
-    return {"questions": q, "portfolio": ["What would you change in my holdings?", "What did you move today?", "How is the options line doing?", "How do your picks compare with random picks?"],
+    # request 95, fix 2 (Madhav, 24 Oct): one tap starts the full review; the biggest holding gets its own button
+    ab = _book()
+    top = ((ab.get("positions") or [{}])[0] or {}).get("symbol")
+    q = ["Analyze my whole portfolio"] + ([f"Analyze {top}"] if top else []) + q
+    return {"questions": q, "portfolio": ["Analyze my whole portfolio"] + ([f"Analyze {top}"] if top else []) + ["What would you change in my holdings?", "What did you move today?", "How is the options line doing?", "How do your picks compare with random picks?"],
             "market": ["Which way is the Nifty trending?", "How many stocks are healthy?", "What is the fear gauge saying?", "What were the biggest moves?"]}
 
 
@@ -1050,6 +1067,17 @@ def allocation_plan(full: bool = False) -> dict:
     out["ready"] = True
     out["counts"] = {"holdings": len(v.get("holdings") or []), "suggested_changes": len(v.get("suggestions") or [])}
     ab = _json(DATA / "paper" / "account" / "view.json", {}) or {}
+    # The allocator writes "Today it moved X" as soon as it decides; the paper copy fills the move only after the session's close (pending_days).
+    # Until it fills, say what will happen, so the card never claims a move the account does not show yet (Madhav, 24 Oct).
+    if ab.get("pending_days") and out.get("headline"):
+        out["headline"] = re.sub(r"Today it moved (.+?)\.", r"It moves \1 at the session's close (not filled yet).", out["headline"])
+        out["moves_applied"] = False
+    # The guardrails, the market call and the buy rule live here since 24 Oct (Madhav: "No need of Ananta guard rails" on the account section).
+    rm = readmodel()
+    acct = _account_sp1(rm)
+    out["guard"] = {"fired": not str(acct["dial"]["state"]).startswith("OPEN"), "short": "none fired" if str(acct["dial"]["state"]).startswith("OPEN") else "one has fired: no new buys",
+                    "lines": acct["dial"]["why"], "next": acct["next"],
+                    "buy_rule": "Ananta may buy a new stock for the account only after a rule has proved itself on paper (20 sessions, beating chance and the market) and you say yes. Until then it holds, trims and rebalances."}
     out["account_book"] = ({k: ab.get(k) for k in ("words", "value_inr", "stocks_inr", "cash_inr", "options_inr", "trades_count", "costs_inr", "pending_days", "admitted")}
                            | ({"positions": ab.get("positions") or [], "trades": ab.get("trades") or [], "differs_from_real": ab.get("differs_from_real") or []} if full else {})) if ab else None
     if full:

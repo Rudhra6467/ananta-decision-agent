@@ -99,12 +99,22 @@ def _numbers(s: str) -> set[str]:
     return {x.replace(",", "") for x in re.findall(r"\d[\d,]*\.?\d*", s)}
 
 
+def _ist_today() -> str:
+    import datetime as _dt
+    return _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=5, minutes=30))).date().isoformat()
+
+
 def morning() -> int:
     f = _get("/v3/morning/facts")
     if not f.get("session"):
         print("morning view: no facts yet")
         return 0
     session = f["session"]
+    # 24 Oct 2026: a "morning view" for a session that has already traded is not a morning view (the read model ran a session late
+    # until the nightly timing fix; on 24 Oct it wrote "This morning · 23 Oct" on a Saturday). Skip and say why in the log.
+    if session < _ist_today():
+        print(f"morning view: skipped, the read model's next session {session} is before today in India ({_ist_today()}); the data is behind")
+        return 0
     lessons = "\n".join(f"- {x}" for x in (f.get("lessons_for_writer") or [])) or "- none yet"
     note = claude(WRITER.format(lessons=lessons, facts=_facts_for_prompt(f)), MODEL)
     # a cheap honesty check by code before the reviewer: numbers in the note that appear nowhere in the facts are flagged in the log
@@ -139,6 +149,9 @@ def opening() -> int:
     f = _get("/v3/morning/facts")
     if not f.get("session"):
         print("opening update: no morning view")
+        return 0
+    if f["session"] != _ist_today():     # only on the session's own morning (it ran on Saturday 24 Oct and said "sign-in worked this time")
+        print(f"opening update: skipped, today in India is {_ist_today()} and the morning view is for {f['session']}")
         return 0
     try:
         from jarvis.india import views as _v  # noqa: F401 - only to confirm the service package is importable in this env

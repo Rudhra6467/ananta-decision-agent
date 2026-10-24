@@ -72,7 +72,7 @@ check("speech at the arm moment (room already learned): the WAV starts with his 
   assert.ok(b.startMs <= 30, `burst onset at ${b.startMs} ms in the WAV (<= 30)`);
   assert.ok(Math.abs(b.durMs - 1500) <= 30, `burst kept whole: ${b.durMs} ms of 1500`);
   const tail = b.totalMs - b.endMs;
-  assert.ok(tail >= 950 && tail <= 1250, `turn ended ${tail} ms after he stopped (about 1 s)`);
+  assert.ok(tail >= 1950 && tail <= 2250, `turn ended ${tail} ms after he stopped (about 2 s, request 92)`);
 });
 check("speech at the arm moment on the FIRST turn (room still being learned): nothing is cut either", () => {
   const pcm = mix(concat(speech(R, 1500), new Float32Array(R * 3)), room(R, 4500));
@@ -108,16 +108,16 @@ check("44.1 kHz capture works the same", () => {
 // ---- 2. the end-of-speech rules (same as src/mic.ts), level by level ----
 const feed = (vad, levels) => { const out = []; levels.forEach((m, i) => { const e = vad.step(m, (i + 1) * 100); if (e) out.push([e, (i + 1) * 100]); }); return out; };
 const rep = (m, n) => Array(n).fill(m);
-check("first turn learns the room in 400 ms, then two loud readings = speech, 1 s of quiet ends it", () => {
+check("first turn learns the room in 400 ms, then two loud readings = speech, 2 s of quiet ends it (request 92)", () => {
   const v = createVad(null);
-  const ev = feed(v, [...rep(-60, 6), ...rep(-25, 8), ...rep(-60, 15)]);
-  assert.deepEqual(ev, [["onset", 800], ["silence", 2500]]);
+  const ev = feed(v, [...rep(-60, 6), ...rep(-25, 8), ...rep(-60, 25)]);
+  assert.deepEqual(ev, [["onset", 800], ["silence", 3500]]);
   assert.equal(v.state.onsetMs, 600, "onset = start of the first loud reading");
   assert.ok(v.room().calibrated && Math.abs(v.room().floor + 60) < 0.5);
 });
 check("room carried over: no 400 ms of re-learning, speech at once is speech", () => {
   const v = createVad({ floor: -60, calibrated: true });
-  assert.deepEqual(feed(v, [...rep(-25, 5), ...rep(-60, 12)]), [["onset", 300], ["silence", 1600]]);
+  assert.deepEqual(feed(v, [...rep(-25, 5), ...rep(-60, 22)]), [["onset", 300], ["silence", 2600]]);
   assert.equal(v.state.onsetMs, 0, "onset = where he started, even though 'hearing you' waits for 250 ms");
   const fresh = createVad(null);                                 // the old way: the first 400 ms only learn the room
   assert.deepEqual(feed(fresh, rep(-25, 4)), []);
@@ -131,16 +131,17 @@ check("the tail of Ananta's voice (loud only in the first 250 ms) is not speech;
 check("quiet is measured against his own voice (18 dB under his loudest)", () => {
   const v = createVad({ floor: -60, calibrated: true });
   // he speaks at -15, then the room gets louder (-36: above the room bar of -50, but 21 dB under his voice) -> ends
-  assert.deepEqual(feed(v, [...rep(-15, 5), ...[-36, -38, -35, -37, -39, -36, -38, -35, -37, -39, -36]]).at(-1), ["silence", 1600]);
+  const q = [-36, -38, -35, -37, -39, -36, -38, -35, -37, -39, -36];
+  assert.deepEqual(feed(v, [...rep(-15, 5), ...q, ...q]).at(-1), ["silence", 2600]);
 });
-check("a flat hum after he speaks ends the turn (1.2 s, < 5 dB of change)", () => {
+check("a flat hum after he speaks ends the turn (2.2 s, < 5 dB of change)", () => {
   const v = createVad({ floor: -60, calibrated: true });
-  const ev = feed(v, [...rep(-30, 3), ...rep(-44, 20)]);      // -44 is above the bar (-48) but perfectly steady
+  const ev = feed(v, [...rep(-30, 3), ...rep(-44, 30)]);      // -44 is above the bar (-48) but perfectly steady
   assert.equal(ev.at(-1)[0], "flat");
 });
-check("15 s with nothing said = no speech; 20 s of talking = max; 3 s of digital silence = dead mic", () => {
+check("15 s with nothing said = no speech; 30 s of talking = max; 3 s of digital silence = dead mic", () => {
   assert.deepEqual(feed(createVad(null), rep(-60, 200)).at(-1), ["nospeech", 15100]);
-  const talk = Array.from({ length: 260 }, (_, i) => (i % 2 ? -22 : -16));
+  const talk = Array.from({ length: 320 }, (_, i) => (i % 2 ? -22 : -16));
   assert.deepEqual(feed(createVad({ floor: -60, calibrated: true }), talk).map((e) => e[0]), ["onset", "max"]);
   assert.deepEqual(feed(createVad(null), rep(-160, 40)), [["dead", 3100]]);
 });

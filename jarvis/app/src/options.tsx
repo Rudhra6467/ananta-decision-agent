@@ -30,6 +30,7 @@ export function MoneyCard() {
       </View>
       <T>{d.headline}</T>
       <T small>Stocks {rs(sl.stocks)} · Options {rs(sl.options)} · Cash {rs(sl.cash)}{n ? ` · ${n} suggested change${n === 1 ? "" : "s"}` : ""} · paper</T>
+      {d.guard ? <T faint numberOfLines={2}>Guardrails: {d.guard.short} · {String(d.guard.next ?? "").replace(/^Next decisions at the open on /, "next decisions ")}</T> : null}
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Act tight label="Ask ›" onPress={() => askAbout({ screen: "allocation", label: "your money" }, voiceQ)} />
       </View>
@@ -95,6 +96,14 @@ function MoneyPanel({ d, onClose, reload }: { d: any; onClose: () => void; reloa
               <Row k="Cash" v={`${rs(sl.now?.cash)} · ${sl.now_pct?.cash}% (at least ${sl.target_pct?.cash_min}%)${sl.after && sl.after.cash !== sl.now?.cash ? ` → ${rs(sl.after.cash)}` : ""}`} />
             </View>
 
+            {d.guard ? (
+              <Section title={`Guardrails: ${d.guard.short}`}>
+                {(d.guard.lines ?? []).map((w: string, i: number) => <T key={i} small>· {w}</T>)}
+                {d.guard.next ? <T small>· {d.guard.next}</T> : null}
+                <T small>{d.guard.buy_rule}</T>
+              </Section>
+            ) : null}
+
             <Section title="Who decides">
               <View style={{ flexDirection: "row", gap: 8 }}>{chip(mode === "autonomous", "Ananta manages", () => setM("autonomous"))}{chip(mode !== "autonomous", "Ananta suggests", () => setM("advisory"))}</View>
               <T small>{mode === "autonomous"
@@ -104,7 +113,7 @@ function MoneyPanel({ d, onClose, reload }: { d: any; onClose: () => void; reloa
             </Section>
 
             {(d.moves ?? []).length ? (
-              <Section title={d.moves_applied ? "Today's move" : "What it would move (not moved: suggest-only)"}>
+              <Section title={d.moves_applied ? "Today's move" : mode === "autonomous" ? "Today's move (fills at the session's close)" : "What it would move (not moved: suggest-only)"}>
                 {d.moves.map((m: any, i: number) => <T key={i} small>{rs(m.inr)} {m.from} → {m.to}{m.symbol ? ` (${m.symbol})` : ""}{m.why ? `: ${m.why}` : ""}</T>)}
               </Section>
             ) : null}

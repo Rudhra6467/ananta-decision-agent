@@ -61,6 +61,9 @@ RULESETS = {  # repair-shop review #1 (docs/repair_shop/REVIEW_1.md)
     # "hit their target" the minute they filled (target 0.01% away) and lost to costs; with no room it is a NO_TYPE shadow.
     "W2": Rules("W2", setups=("E1", "E2", "E3", "E4", "E5", "E6"), stack=3, stack_gap=2.0, dip_room=0.012),
     # review #24 (docs/research/REVIEW_24.md): the live deep-dip buy alone, and two of its pre-registered variants
+    # W3 (Madhav's yes, 2026-10-24, discipline item 2): W2 without the E6 dip setup. Live 9-24 Oct under W1/W2: 90 E6 trades, net -$41,
+    # 56 eaten by costs, 19 never worked. Switched with `widen W3` (explorer_live); earlier decisions keep their rules.
+    "W3": Rules("W3", setups=("E1", "E2", "E3", "E4", "E5"), stack=3, stack_gap=2.0, dip_room=0.012),
     "E6LIVE": Rules("E6LIVE", setups=("E6",), stack=3, stack_gap=2.0, dip_room=0.012),
     "E6NOBELL": Rules("E6NOBELL", setups=("E6",), stack=3, stack_gap=2.0, dip_room=0.012, x3=False),
     "E6ROOM": Rules("E6ROOM", setups=("E6",), stack=3, stack_gap=2.0, dip_room=0.02),

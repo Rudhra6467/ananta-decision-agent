@@ -170,7 +170,8 @@ def _auto() -> dict[str, str]:
     out = {}
     con = catalog.connect(read_only=True)
     try:
-        n = con.execute("select count(*) from heartbeats where job = 'india.nightly' and ok").fetchone()[0]
+        # one clean night per date (24 Oct 2026: the nightly also runs at 12:45 on weekdays; two runs on one date are one night)
+        n = con.execute("select count(distinct cast(run_at as date)) from heartbeats where job = 'india.nightly' and ok").fetchone()[0]
         out["D15"] = f"{n} of 30 nightly runs"
         r = con.execute("select count(distinct cast(run_at as date)) from heartbeats where job = 'recorder.run' and ok").fetchone()[0]
         out["D14"] = f"{r} recorded evenings"

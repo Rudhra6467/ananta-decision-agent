@@ -21,9 +21,12 @@ def run(dataset: str, start: dt.date, end: dt.date, rate_s: float = 1.0, log_eve
     f = nse.Fetcher(rate_s=rate_s)
     n = ok = miss = bad = 0
     t0 = time.time()
+    recent = dt.date.today() - dt.timedelta(days=3)
     for d in nse.weekdays(start, end):
         prev = done.get(d.isoformat())
-        if prev and prev.get("status") in (200, 404):
+        # a "no file" for the last few days may only mean NSE had not posted it yet when we asked: ask again (24 Oct 2026, the
+        # nightly now also runs in the Indian evening); an older 404 is a holiday and stays skipped
+        if prev and (prev.get("status") == 200 or (prev.get("status") == 404 and d < recent)):
             continue
         row = nse.fetch_day(f, dataset, d)
         n += 1

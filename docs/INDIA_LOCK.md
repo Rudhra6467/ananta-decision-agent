@@ -26,6 +26,7 @@ Madhav's standard for every judgement (Oct 20): *"It's not about how much money 
 | 07:20 (16:50) | `com.ananta.india.morning`: job health, the missed line, the league line, the SP1 replay, the next sign-in. |
 | 07:25 / 07:45 | the two morning reviews (crypto, India). The crypto review's lost-runs checker reads India's session proofs (section 4) since Oct 23. Once India locks, one review writes both halves of one page. |
 | 12:30 (22:00) | `com.ananta.india.recorder_noon`: option minutes, the ledger snapshot (D16), index candles. |
+| 12:45 (22:15), weekdays | `com.ananta.india.nightly` again (since 24 Oct 2026): fetches the session that just closed, so the 19:00 and 22:30 jobs plan the next session on its close; the 02:30 run stays as the heal run. |
 | 19:00 (04:30) | `com.ananta.india.evening`: recorder, SP1 nightly replay, US close, forecast score, day plan, option book, calibration, selection report, evidence, report, portfolio, FII/DII and deals captures. |
 | Sundays | the agent exam (crypto's `com.ananta.exam`; the India exam joins it in Phase 2); the voice exam on Mondays. |
 

@@ -1,5 +1,5 @@
 """The nightly job: fetch the last week's NSE files (resumable, so a missed night heals), rebuild this year's silver, rebuild the catalog,
-back up to R2, write one heartbeat row. launchd com.ananta.india.nightly runs it at 02:30 Toronto.
+back up to R2, write one heartbeat row. launchd com.ananta.india.nightly runs it at 12:45 Toronto on weekdays (after NSE posts the day's files) and at 02:30 every day as the heal run.
 
   python -m india.nightly [--no-sync]
 """
@@ -58,11 +58,21 @@ def _pr_silver():
     return przip.build()
 
 
+def last_published_day(now_utc: dt.datetime | None = None) -> dt.date:
+    """The newest NSE session whose end-of-day files should be out: today in India once it is past 19:00 there (NSE posts the bhavcopy
+    and the F&O files by about 18:30-19:30), else yesterday in India. Weekends and holidays come back as "no file" and are skipped.
+    Fixed 24 Oct 2026: the job ran only at 02:30 Toronto (12:00 in India, the day after) and fetched up to "yesterday in Toronto", so a
+    session's close reached the read model only after the NEXT session had already traded: every plan and morning view ran one session late."""
+    now = (now_utc or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+    return now.date() if now.hour >= 19 else now.date() - dt.timedelta(days=1)
+
+
 def run(sync: bool = True) -> dict:
     paths.ensure()
     t0 = time.time()
     today = dt.date.today()
-    start, end = today - dt.timedelta(days=8), today - dt.timedelta(days=1)
+    end = last_published_day()
+    start = end - dt.timedelta(days=8)
     out: dict = {"window": f"{start}..{end}"}
     steps = [
         ("fetch", lambda: {ds: backfill.run(ds, start, end, 1.0) for ds in DATASETS}),

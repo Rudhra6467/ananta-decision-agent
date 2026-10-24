@@ -26,11 +26,11 @@ from typing import Any, Callable
 
 DAY = 86400
 TIERS = ("A", "B", "C")
-RULES = ("H07", "M1a", "M2a", "M2a-G", "M3a", "M3b", "BRK")      # BRK: discipline item 10 (24 Oct 2026), tiers A and B only, shadow
+RULES = ("H07", "M1a", "M2a", "M2a-G", "M3a", "M3b", "BRK", "RBD")   # BRK (discipline item 10) and RBD (24 Oct 2026): tiers A and B, shadow
 RANDOMS = ("RANDOM_10D", "RANDOM_20D", "RANDOM_30D")
 BASELINE_OF = {"H07": "RANDOM_10D", "ZONE_TOUCH": "RANDOM_20D", "M1a": "RANDOM_30D", "M2a": "RANDOM_30D", "M2a-G": "RANDOM_30D",
-               "M3a": "RANDOM_30D", "M3b": "RANDOM_30D", "BRK": "RANDOM_20D"}
-TIERS_OF = {"BRK": ("A", "B")}                                   # a rule that runs on some tiers only
+               "M3a": "RANDOM_30D", "M3b": "RANDOM_30D", "BRK": "RANDOM_20D", "RBD": "RANDOM_10D"}
+TIERS_OF = {"BRK": ("A", "B"), "RBD": ("A", "B")}                                   # a rule that runs on some tiers only
 ZONE_GAP = 20 * DAY
 MIN_EVENTS = 10
 STATE: dict[str, Any] = {"armed": {}, "armed_t": 0, "prev": {}, "last_daily": None, "last_tick": None, "errors": {}}
@@ -731,6 +731,12 @@ def run_daily(j) -> dict:
         out["pushed"] = push_passed(j, _phone_push())
     except Exception as exc:  # noqa: BLE001
         out["push_error"] = str(exc)[:200]
+    try:  # the setups board (Madhav, 24 Oct 2026: "tracking the market completely, looking for good trade setups"): every tier A and B coin
+        from jarvis.service import setups
+
+        out["setups"] = {k: v for k, v in setups.build(j).items() if k in ("scanned", "fired", "close", "woke", "words")}
+    except Exception as exc:  # noqa: BLE001
+        out["setups_error"] = str(exc)[:200]
     try:  # the $500 NDAX paper book (D9, D12, D13): one step per daily close, filled at NDAX's live bid and ask
         from jarvis.service import ndax_book
 

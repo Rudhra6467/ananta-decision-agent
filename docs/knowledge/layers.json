@@ -1724,6 +1724,28 @@
    "files": [
     "jarvis/service/reconstruct.py"
    ]
+  },
+  {
+   "id": "SETUPS_BOARD",
+   "name": "The setups board: every tier A and B coin scanned after each daily close for H07, BRK, RBD and PULL, ranked; the best FIRED setups wake the brain, near ones watched on the live price",
+   "layer": 4,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "EVIDENCE",
+    "DISCIPLINE"
+   ],
+   "feeds": [
+    "BRAIN",
+    "RECONSTRUCTION_CR",
+    "ASK",
+    "APP"
+   ],
+   "evidence": "Madhav, 24 Oct 2026 10:42: 'make sure we are tracking the market completely, looking for good trade setups'; rules only, no model call",
+   "files": [
+    "jarvis/service/setups.py"
+   ]
   }
  ],
  "gaps": [

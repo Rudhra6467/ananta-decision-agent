@@ -379,6 +379,17 @@ def plan_line(j, day: str | None = None) -> dict:
     checks = officer_checks(j)
     failed = [c for c in checks if c["state"] == "FAIL"]
     parts.append(("Officer: " + "; ".join(c["words"] for c in failed) + ".") if failed else "Officer: all four checks pass.")
+    try:  # the setups board (24 Oct 2026): what the scan of every tier A and B coin found
+        from jarvis.service import setups
+
+        b = setups.latest(j)
+        if b:
+            parts.append("Setups: " + b.get("words", "") + (f" Sent to the brain: {', '.join(b['woke'])}." if b.get("woke") else ""))
+            touched = setups.touched_today(j)
+            if touched:
+                parts.append("Touched their trigger today: " + ", ".join(f"{t['coin']} ({t['family']})" for t in touched[:4]) + ".")
+    except Exception:  # noqa: BLE001
+        pass
     arrived = wait_for_arrived(j)
     if arrived:
         parts.append("Arrived: " + "; ".join(f"{a['coin']} ({a['arrived']})" for a in arrived[:3]) + ".")

@@ -162,3 +162,65 @@ def test_reconstruction_decisions_reach_needs_you():
     assert [i["id"] for i in rx] == ["rx:q9"] and "pauses this book" in rx[0]["meaning"]
     assert needs.decide(j, "rx:q9", "later", "owner")["until_days"] == 7
     assert not [i for i in needs.list_(j) if i["kind"] == "rx"]
+
+
+def _series(n, start=1_700_000_000, base=100.0, step=0.0, vol=1000.0):
+    return [(start + k * 86400, base + step * k, base + step * k + 1, base + step * k - 1, base + step * k, vol) for k in range(n)]
+
+
+def test_setups_board_finds_a_breakout_ranks_it_and_wakes_the_brain(monkeypatch):
+    from jarvis.service import brain, feed, registry, setups
+
+    j = _J()
+    btc = _series(300, base=100.0, step=0.1)
+    j._t = btc[-1][0] + 3600
+    up = _series(300, base=50.0, step=0.01)                                # a slow uptrend
+    up[-1] = (up[-1][0], 53.0, 56.0, 52.9, 55.9, 4000.0)                     # a 20-session closing high on 4x volume: BRK fires
+    flat = _series(300, base=10.0)                                           # nothing on it
+    data = {"BTC": btc, "UPC": up, "FLAT": flat}
+    monkeypatch.setattr(registry, "members", lambda jj, t=None: {"A": ["BTC", "UPC"], "B": ["FLAT"]}.get(t, []))
+    monkeypatch.setattr(feed, "daily", lambda jj, c: data[c])
+    woke = []
+    monkeypatch.setattr(brain, "wake", lambda jj, c, trig, det=None: woke.append((c, trig)) or True)
+    b = setups.build(j)
+    assert b["scanned"] == 3
+    rows = setups.latest(j)["rows"]
+    brk = [r for r in rows if r["coin"] == "UPC" and r["family"] == "BRK"]
+    assert brk and brk[0]["state"] == "FIRED" and abs(brk[0]["stop_pct"] - 0.08) < 1e-9
+    assert ("UPC", "board:BRK") in woke and "UPC" in b["words"]
+    assert all(r["coin"] != "FLAT" or r["family"] != "BRK" for r in rows if r["state"] == "FIRED")
+
+
+def test_setups_board_never_wakes_a_coin_the_brain_holds(monkeypatch):
+    from jarvis.service import brain, feed, registry, setups
+
+    j = _J()
+    watch_engine._table(j)
+    j.db.execute("INSERT INTO evidence_trades (id, watch, coin, status) VALUES ('h1','JARVIS','UPC','OPEN')")
+    btc = _series(300, base=100.0, step=0.1)
+    j._t = btc[-1][0] + 3600
+    up = _series(300, base=50.0, step=0.01)
+    up[-1] = (up[-1][0], 53.0, 56.0, 52.9, 55.9, 4000.0)
+    monkeypatch.setattr(registry, "members", lambda jj, t=None: {"A": ["BTC", "UPC"]}.get(t, []))
+    monkeypatch.setattr(feed, "daily", lambda jj, c: {"BTC": btc, "UPC": up}[c])
+    woke = []
+    monkeypatch.setattr(brain, "wake", lambda jj, c, trig, det=None: woke.append(c) or True)
+    setups.build(j)
+    assert "UPC" not in woke
+
+
+def test_rbd_rule_needs_a_closed_reversal_candle(monkeypatch):
+    from src.research import reads as R
+    from src.research import zones as Z
+
+    bars = _series(300, base=100.0)
+    t = bars[-1][0]
+    bars[-1] = (t, 96.0, 99.5, 95.0, 99.0, 1000.0)                            # low is the 5-day low, green, closes in the top of the day
+    monkeypatch.setattr(Z, "live_zones", lambda D, near_atr=3.0: {"zones": [{"bot": 94.5, "top": 96.0, "kinds": ["SWING"]}]})
+    S = R.Series(bars)
+    B = R.Series(_series(300, base=100.0, step=0.1))                         # Bitcoin above its 50-day: market allowed
+    ok, stop, why = watch_engine._fires(watch_engine.DAILY["RBD"], S, B, len(bars) - 1, R.rsi(S.c, 10))
+    assert ok and stop < 95.0 and "reversal candle" in why
+    bars[-1] = (t, 99.0, 99.5, 95.0, 95.5, 1000.0)                            # the same low, a red close: no
+    S2 = R.Series(bars)
+    assert watch_engine._fires(watch_engine.DAILY["RBD"], S2, B, len(bars) - 1, R.rsi(S2.c, 10))[0] is False

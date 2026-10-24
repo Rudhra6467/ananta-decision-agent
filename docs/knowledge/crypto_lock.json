@@ -88,7 +88,7 @@
    "files": [
     "docs/knowledge/strategy_status.json"
    ],
-   "sha256": "44b25541f34a08fb3c39743de6bf5a018f95bc25640e24687fbae79c8249f30a",
+   "sha256": "1b75c1ed76f2af6724b0643d6d34c61cbc59e858a480136e3c68bb4407d6e179",
    "history": [
     {
      "date": "2026-10-15",
@@ -107,6 +107,12 @@
      "approved_by": "Madhav (in chat)",
      "sha256": "44b25541f34a08fb3c39743de6bf5a018f95bc25640e24687fbae79c8249f30a",
      "note": "Discipline v1 (claude/review-2026-10-24-crypto-7-days-brutal.md): ZONE_TOUCH PARKED (item 1: 123 stop-exits and -$1,638 in one week, scoreboard -13/100 on every tier); EXPLORER keeps EVIDENCE with E6 paused under ruleset W3 (item 2); BRK registered as a shadow family, EVIDENCE, never wakes the brain (item 10). Madhav, 2026-10-24 01:13 Toronto: \"Yes to all\"."
+    },
+    {
+     "date": "2026-10-24",
+     "approved_by": "Madhav (in chat)",
+     "sha256": "1b75c1ed76f2af6724b0643d6d34c61cbc59e858a480136e3c68bb4407d6e179",
+     "note": "RBD (rebound off a recent low at support, closed reversal candle) registered as a shadow family, EVIDENCE, never wakes the brain on its own (the setups board ranks and wakes at most 5 a night); BRK set wakes_brain false for the same reason. Madhav, 2026-10-24 10:42 Toronto: \"Yes do it. But make sure we are tracking the market completely, looking for good trade setups\"."
     }
    ]
   },

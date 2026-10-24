@@ -1857,6 +1857,12 @@ def background_jobs() -> dict:
     except Exception as exc:  # noqa: BLE001
         out["stance_error"] = str(exc)[:200]
     try:
+        from jarvis.service import setups
+
+        out["setups_live"] = setups.live(J())                           # the board's near setups whose trigger the live price crossed
+    except Exception as exc:  # noqa: BLE001
+        out["setups_live_error"] = str(exc)[:200]
+    try:
         from jarvis.service import bold
 
         out["bold"] = bold.run(J())                                     # fix A8: off until Madhav approves (two locks)
@@ -1920,6 +1926,18 @@ def plan_tonight(who: str = Depends(owner)) -> dict:
 
     pl = discipline.latest_plan(J()) or discipline.plan_line(J())
     return {"plan": pl, "rules": discipline.rules().get("version"), "items": discipline.rules().get("items")}
+
+
+@app.get("/v3/setups")
+def setups_board(n: int = 40, who: str = Depends(owner)) -> dict:
+    """The setups board (24 Oct 2026): every tier A and B coin scanned after the daily close, ranked; the near ones watched live."""
+    from jarvis.service import setups
+
+    b = setups.latest(J())
+    if b:
+        b["rows"] = (b.get("rows") or [])[:max(1, min(200, int(n)))]
+        b["touched_today"] = setups.touched_today(J())
+    return {"board": b, "families": {f: {"name": setups.NAMES[f], "evidence": setups.EVIDENCE[f]} for f in setups.NAMES}}
 
 
 @app.get("/v3/reconstruction/crypto")

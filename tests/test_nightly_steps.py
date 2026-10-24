@@ -47,6 +47,9 @@ def _setup(tmp_path, monkeypatch):
     monkeypatch.setattr(ev, "retirement_watch", lambda j, push: [])
     monkeypatch.setattr(graduation, "book500_card", lambda j: {})
     monkeypatch.setattr(officer, "write", lambda j, out, push=None: {"ok": True})
+    from jarvis.service import setups
+
+    monkeypatch.setattr(setups, "build", lambda j, wake=True: {})        # the setups board (24 Oct 2026) has its own tests
     return learning
 
 

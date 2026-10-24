@@ -63,6 +63,9 @@ export function AnantaSheet({ open, onClose, home, onChanged }: { open: boolean;
   const [need, setNeed] = useState<any>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
+  const [setupsOpen, setSetupsOpen] = useState(false);
+  const { data: sb } = useData(open ? "/v3/setups?n=12" : null, 300000);
+  const board = sb?.board;
   const s = home?.summary ?? {};
   const m = home?.mission ?? {};
   const note = m.account?.note;
@@ -136,6 +139,28 @@ export function AnantaSheet({ open, onClose, home, onChanged }: { open: boolean;
               <Btn label="Ask about the plan" kind="secondary" onPress={() => go(() => askAbout({ screen: "home", label: "The plan" }, "What is the plan tonight, and what did the reconstruction find?"))} />
             </Card>
           ) : null}
+
+          <Card title={board ? `Setups · ${dayOf(board.day) || board.day}` : "Setups"}>
+            {board ? (
+              <>
+                <T>{board.words}</T>
+                {(board.rows ?? []).slice(0, setupsOpen ? 12 : 4).map((r: any, i: number) => (
+                  <View key={`${r.coin}-${r.family}`}>
+                    {i ? <Divider /> : null}
+                    <Row tag={r.state === "FIRED" ? "FIRED" : "NEAR"} tone={r.state === "FIRED" ? "accent" : "dim"}
+                      title={`${r.coin} · ${r.name}`}
+                      line={`${r.why}${r.stop_pct != null ? ` · stop ${(100 * r.stop_pct).toFixed(1)}% under` : ""}${r.state === "CLOSE" ? ` · waits for ${r.trigger}` : ""}${(r.flags ?? []).length ? ` · ${r.flags.join("; ")}` : ""}`}
+                      onPress={() => go(() => askAbout({ screen: "home", label: `Setup ${r.coin}` }, `Tell me about the ${r.name} setup on ${r.coin}: is it worth taking, and what would make it wrong?`))} />
+                  </View>
+                ))}
+                {(board.woke ?? []).length ? <T small>Sent to the brain tonight: {board.woke.join(", ")}</T> : null}
+                <View style={[st.row, { marginTop: -2 }]}>
+                  <T faint>{board.scanned} coins scanned · only the short dip on tier A has a measured edge</T>
+                  <Text onPress={() => setSetupsOpen(!setupsOpen)} style={st.act}>{setupsOpen ? "Show less" : "Show more"}</Text>
+                </View>
+              </>
+            ) : <ListState state="empty" text="The first scan runs after the next daily close (8 pm Toronto)." />}
+          </Card>
 
           <Card title={note ? `Ananta's note · ${dayOf(note.day) || note.day}` : "Ananta's note"}>
             {note ? (

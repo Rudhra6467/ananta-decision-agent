@@ -103,6 +103,17 @@ def section_ananta(j, day0: int) -> dict:
         out["books"] = {"opened": {w: n for w, n in opened}, "closed": {w: {"n": n, "net_usd": net} for w, n, net in closed}, "open_with_protected_stop": prot}
     except Exception as exc:  # noqa: BLE001
         out["books_error"] = str(exc)[:120]
+    try:  # the setups board: what the scan found and what the brain did with the setups it was sent
+        from jarvis.service import setups
+
+        b = setups.latest(j)
+        if b:
+            sent = j.db.execute("SELECT coin, action, triggers, note FROM brain_decisions WHERE t >= ? AND triggers LIKE '%board%'", (day0 - DAY,)).fetchall()
+            out["board"] = {"day": b.get("day"), "words": b.get("words"), "fired": b.get("fired"), "close": b.get("close"), "woke": b.get("woke"),
+                            "by_family": b.get("by_family"), "touched_today": setups.touched_today(j),
+                            "brain_on_board": [{"coin": c, "action": a, "note": (n or "")[:160]} for c, a, _t, n in sent]}
+    except Exception as exc:  # noqa: BLE001
+        out["board_error"] = str(exc)[:120]
     pl = discipline.latest_plan(j)
     out["plan_line"] = (pl or {}).get("line")
     out["layer_conflicts"] = (pl or {}).get("conflicts") or []

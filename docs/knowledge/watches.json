@@ -452,6 +452,23 @@
    "costs": "NDAX 0.20% + half-spread each side; Universe Rule v2 on tiers A and B"
   },
   {
+   "id": "RBD",
+   "name": "Rebound off a recent low at support, after a reversal candle (shadow)",
+   "section": "SETUPS",
+   "timeframe": "1d",
+   "trigger": "bar_close",
+   "runs_in": "jarvis.watch_engine",
+   "entry": "the day's low is the 5-day low (within 0.25 of a daily range) inside a support zone mapped from the closes before it; a green close in the top 40% of the day; Bitcoin above its 50-day; buy $100 at the next open; on the 10 here and as RBD-UA / RBD-UB",
+   "exit": "stop half a daily range under the low (no trade if over 8%), the protect rule, else the open 10 days after entry",
+   "size_usd": 100,
+   "book": "evidence_trades",
+   "status": "SHADOW",
+   "evidence": "drafted 24 Oct 2026 (Madhav: 'Yes do it') from the reconstruction's MISS_PATTERN finding (3 such moves missed in 30 days, about +5% on average); judged against RANDOM_10D after 20 sessions",
+   "alerts": "none",
+   "since": "2026-10-24",
+   "costs": "NDAX 0.20% + half-spread each side; Universe Rule v2 on tiers A and B"
+  },
+  {
    "id": "MY_STOPS",
    "name": "Your stops and targets",
    "section": "RISK_EXITS",
@@ -692,7 +709,7 @@
    "timeframe": "1d",
    "trigger": "bar_close",
    "runs_in": "jarvis.universe_watch",
-   "entry": "the same rule code as the history tests and the 10-coin watches (H07, M1a, M2a, M2a-G, M3a, M3b; BRK on tiers A and B only, shadow, since 24 Oct 2026) on every coin of Universe Rule v2, after each daily close; buy $100 at the next day's open; one at a time per rule and coin",
+   "entry": "the same rule code as the history tests and the 10-coin watches (H07, M1a, M2a, M2a-G, M3a, M3b; BRK and RBD on tiers A and B only, shadow, since 24 Oct 2026) on every coin of Universe Rule v2, after each daily close; buy $100 at the next day's open; one at a time per rule and coin",
    "exit": "each rule's own exit (H07: RSI(10) back over 40 or 10 days; your setups: their stop or 30 days)",
    "size_usd": 100,
    "book": "evidence_trades (watch ids <rule>-UA / -UB / -UC)",

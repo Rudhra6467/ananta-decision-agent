@@ -45,6 +45,12 @@ DAILY = {
     # discipline item 10 (Madhav, 24 Oct 2026 "Yes to all"): the breakout family, shadow only. A daily close at a 20-session high on
     # volume at least 1.5x its 20-day average; entry next open; stop 8% under the fill (set at the fill); the protect rule; out after 20 days.
     "BRK": {"kind": "brk", "days": 20, "lookback": 20, "vol_x": 1.5, "stop_pct": 0.08},
+    # Madhav, 24 Oct 2026 10:42 ("Yes do it ... looking for good trade setups"): the move the reconstruction keeps finding we miss, a rebound
+    # from a recent low at a support zone, as a shadow family. Unlike the paused zone touch it waits for the reversal candle to CLOSE: the
+    # day's low is the 5-day low (within 0.25 of a daily range), inside a support zone mapped from the closes before it (+/- half a range),
+    # a green close in the top 40% of the day, Bitcoin above its 50-day. Entry next open; stop half a daily range under the low, no trade if
+    # that is more than 8% away; the protect rule; out after 10 days.
+    "RBD": {"kind": "rbd", "days": 10, "stop_max": 0.08},
 }
 EYE = {"ZONE_TOUCH": {"days": 20}}
 COLS = ("id", "watch", "coin", "source", "signal_t", "signal_day", "entry_t", "entry_day", "entry", "stop", "exit_t", "exit_day",
@@ -128,6 +134,26 @@ def _fires(spec: dict, S, B, i: int, r10: list) -> tuple[bool, float | None, str
         avg_v = sum(vols) / len(vols) if vols else None
         ok = bool(S.c[i] > prev_hi and avg_v and (S.v[i] or 0) >= float(spec.get("vol_x", 1.5)) * avg_v)
         return ok, None, (f"closed at a {n}-session high on {(S.v[i] or 0) / avg_v:.1f}x average volume" if ok else "")
+    if spec["kind"] == "rbd":                                 # a reversal candle off the 5-day low at a support zone, market allowed
+        if i < 260 or not S.atr[i]:
+            return False, None, ""
+        atr, lo, hi, op, cl = S.atr[i], S.l[i], S.h[i], S.o[i], S.c[i]
+        if lo > min(S.l[i - 4:i + 1]) + 0.25 * atr or not (cl > op and cl >= lo + 0.6 * (hi - lo)):
+            return False, None, ""
+        bi = B.at(S.t[i])
+        if not (bi is not None and B.ema50[bi] is not None and B.c[bi] > B.ema50[bi]):
+            return False, None, ""
+        from src.research import zones as Z
+
+        try:
+            zs = Z.live_zones(S.D[:i])["zones"]               # the map from the closes before tonight (point in time)
+        except Exception:  # noqa: BLE001
+            return False, None, ""
+        at = next((z for z in zs if z["bot"] - 0.5 * atr <= lo <= z["top"] + 0.5 * atr), None)
+        stop = lo - 0.5 * atr
+        if not at or (cl - stop) / cl > float(spec.get("stop_max", 0.08)):
+            return False, None, ""
+        return True, round(stop, 12), f"a reversal candle off its 5-day low at a {'+'.join(at.get('kinds') or []).lower() or 'support'} zone"
     return False, None, ""
 
 

@@ -222,7 +222,19 @@ def facts(j) -> dict:
         (cands.append(f) if f else stale.append(c))
     btc = next((f for f in cands if f["coin"] == "BTC"), None)
     n = len(cands)
+    board = None
+    try:  # the setups board (24 Oct 2026): what the scan of every tier A and B coin found on the last close, for the expectations
+        from jarvis.service import setups
+
+        b = setups.latest(j)
+        if b:
+            board = {"day": b.get("day"), "words": b.get("words"), "leaders": b.get("leaders"),
+                     "top": [{k: r.get(k) for k in ("coin", "tier", "family", "name", "state", "trigger", "trigger_px", "stop", "why", "evidence")}
+                             for r in (b.get("rows") or [])[:10]]}
+    except Exception:  # noqa: BLE001
+        board = None
     return {"as_of_utc": time.strftime("%Y-%m-%d %H:%M", time.gmtime(now)), "candle_closed_utc": _day(now - now % DAY - DAY),
+            "setups_board": board,
             "dial": {"dial": dl.get("dial"), "words": dl.get("dial_words"), "why": dl.get("why"), "rule": dl.get("rule")},
             "btc": btc,
             "breadth_tier_a": {"above_200d": sum(1 for f in cands if (f["vs_200d_pct"] or -1) > 0),

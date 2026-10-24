@@ -48,8 +48,10 @@ TRIGGER_POINTS = {"zone_entry": 0.5, "attention_high": 1.0, "hunter": 0.5, "sque
                   # are the brain's own plan written before the move (stance.py, A3) and the exposure dial opening (review #25)
                   "expectation": 2.0, "dial_open": 2.0,
                   # discipline item 6 (24 Oct 2026): a PASS whose wait_for came true is woken again, ranked like its own written plan
-                  "wait_arrived": 2.0}
-PRIORITY = ("expectation:", "dial_open")                  # A5: these skip the 6-hour coin wait and the pacing (never the day's $1)
+                  "wait_arrived": 2.0,
+                  # the setups board (24 Oct 2026): at most 5 FIRED setups a night across tiers A and B, inside the selection floor
+                  "board": 1.0}
+PRIORITY = ("expectation:", "dial_open", "board:", "wait_arrived")   # A5: skip the 6-hour coin wait and the pacing (never the day's $1)
 PRIORITY_POINTS = 2.0                                     # a moment at or above this is a priority moment for the reserved slots
 RESERVED = 5                                              # A5: the last 5 of the 20 slots are kept for priority moments
 # A5: a kind of moment whose strategy the registry keeps from waking the brain (docs/knowledge/strategy_status.json: wakes_brain

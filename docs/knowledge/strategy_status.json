@@ -175,6 +175,19 @@
    "wakes_brain": false,
    "why": "Drafted 24 Oct 2026 (discipline item 10, Madhav 'Yes to all'): a daily close at a 20-session high on volume at least 1.5x its 20-day average, tier A and B only, stop 8% under the entry, the protect rule, out after 20 days. Shadow books only, $100 paper a signal, judged against RANDOM_20D and the market after 20 sessions; nothing live. Live paper record so far: {closed} closed, {won} won ({net}).",
    "since": "2026-10-24"
+  },
+  "RBD": {
+   "name": "Rebound off a recent low at support (closed reversal candle), shadow",
+   "status": "EVIDENCE",
+   "verdict": "will_try_again",
+   "watches": [
+    "RBD",
+    "RBD-UA",
+    "RBD-UB"
+   ],
+   "wakes_brain": false,
+   "why": "Drafted 24 Oct 2026 (Madhav, 10:42: \"Yes do it\" to the reconstruction's MISS_PATTERN row, \"looking for good trade setups\"): the day's low is the 5-day low inside a support zone mapped from earlier closes, then a green close in the top 40% of the day, Bitcoin above its 50-day; entry next open, stop half a daily range under the low (no trade past 8%), the protect rule, out after 10 days. Unlike the paused zone touch it never buys a falling price. Shadow books only, judged against RANDOM_10D and the market after 20 sessions. Live paper record so far: {closed} closed, {won} won ({net}).",
+   "since": "2026-10-24"
   }
  },
  "evidence_window": {

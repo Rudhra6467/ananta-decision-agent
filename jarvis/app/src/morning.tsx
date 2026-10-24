@@ -48,9 +48,8 @@ export function MorningCard() {
         <Text style={st.h}>This morning · {m.session_words}</Text>
         <Act tight label="Read ›" onPress={() => setOpen(true)} />
       </View>
-      {first.map((x: string, i: number) => <T key={i} small>{x}</T>)}
-      {(m.plan ?? []).length ? <T small>{m.plan[0]}</T> : null}
-      {m.opening?.words ? <T small>Opening: {m.opening.words}</T> : null}
+      {first.length ? <T numberOfLines={4}>{first[0]}</T> : null}
+      {first.length > 1 ? <T faint numberOfLines={2}>{first[1]}</T> : null}
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Act tight label="Ask ›" onPress={() => askAbout({ screen: "home", label: "the morning view" }, "Good morning. What is the view for today, and what are our chances?")} />
       </View>

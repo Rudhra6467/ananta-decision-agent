@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "version": "RANK-v0.2",
+  "phase": "I4_INTERFACE",
+  "flag": "UNKNOWN",
+  "fp": "UNKNOWN|UNKNOWN|UNKNOWN|UNCLEAR",
+  "match": "NONE",
+  "n_key": 0,
+  "why": "NO_TAPE_FLAG",
+  "knowledge_action": "UNKNOWN",
+  "issued_action": "UNKNOWN",
+  "rows": [],
+  "parent_trend_rows": [],
+  "keep": false,
+  "take": false,
+  "live_enable": false,
+  "laws": {
+    "rank_cannot_take": true,
+    "rank_cannot_keep": true,
+    "rank_is_not_similarity": true,
+    "sparse_key_does_not_inherit_parent": true,
+    "consult_cannot_override_issued": true,
+    "i4_is_interface": true
+  },
+  "note": "Key-first rank. Sparse \u2260 parent WASH. Issued WAIT/UNKNOWN. Rank \u2260 trade."
+}

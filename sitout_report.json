@@ -1,0 +1,148 @@
+{
+  "ok": true,
+  "version": "SITOUT-v0",
+  "keep": false,
+  "wave_a": [
+    "hunter",
+    "squeeze",
+    "bollinger-mr"
+  ],
+  "live_take_n": 0,
+  "live_take_zero_means": "WAVE_A_WATCH",
+  "rows": [
+    {
+      "strategy": "hunter",
+      "live_take": 0,
+      "live_wait_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "live_skip_setup_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "hist_take": 0,
+      "hist_wait_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "hist_skip_setup_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "keep": false
+    },
+    {
+      "strategy": "squeeze",
+      "live_take": 0,
+      "live_wait_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "live_skip_setup_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "hist_take": 0,
+      "hist_wait_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "hist_skip_setup_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "keep": false
+    },
+    {
+      "strategy": "bollinger-mr",
+      "live_take": 0,
+      "live_wait_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "live_skip_setup_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "hist_take": 0,
+      "hist_wait_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "hist_skip_setup_1h": {
+        "clock": "+1h",
+        "n": 0,
+        "mean_pct": null,
+        "usable": true,
+        "evidence_depth": "NONE",
+        "path_call": "NO_SAMPLE",
+        "verdict": "NO_SAMPLE"
+      },
+      "keep": false
+    }
+  ],
+  "laws": {
+    "take_is_not_keep": true,
+    "live_take_zero_is_watch_not_gap": true,
+    "wait_is_a_decision": true,
+    "skip_is_a_decision": true,
+    "wave_a_watch": true
+  },
+  "note": "Sit-out is the live DQ sample while WATCH holds. Do not enable TREND_UP to manufacture live TAKEs. KEEP=False."
+}

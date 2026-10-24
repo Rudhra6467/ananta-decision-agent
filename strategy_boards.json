@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "version": "BOARDS-v0",
+  "keep": false,
+  "ranker": false,
+  "blended_score": null,
+  "live_watch_frozen": true,
+  "n_suitable": 0,
+  "n_unsuitable": 0,
+  "boards": {
+    "SUITABLE": [],
+    "UNSUITABLE": [],
+    "WASH": [],
+    "TESTED_UNKNOWN": [],
+    "UNTESTED": []
+  },
+  "laws": {
+    "empty_suitable_is_valid": true,
+    "board_is_not_keep": true,
+    "board_is_not_a_score": true,
+    "unknown_is_valid": true
+  },
+  "note": "Separate boards. No 81/100. Empty SUITABLE means authority not earned."
+}

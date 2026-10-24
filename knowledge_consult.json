@@ -1,0 +1,37 @@
+{
+  "ok": true,
+  "version": "CONSULT-v0.1",
+  "source_obs": "live_paper",
+  "obs_id": "obs_test_001",
+  "fingerprint": {
+    "trend": "UP",
+    "compression": "UNKNOWN",
+    "independent_label": "BULLISH",
+    "ret_1h_bin": "UP_STRONG",
+    "key": "UP|UNKNOWN|UP_STRONG|BULLISH",
+    "data_gap": false
+  },
+  "flag": "UP",
+  "match": "TREND",
+  "n_key": 0,
+  "min_key_n": 5,
+  "rows": [],
+  "parent_trend_rows": [],
+  "knowledge_action": "UNKNOWN",
+  "why": "NO_HIST_FOR_FLAG",
+  "issued_override": false,
+  "keep": false,
+  "live_enable": false,
+  "trend_up_enable": false,
+  "authority_earned": false,
+  "laws": {
+    "consult_is_not_keep": true,
+    "consult_cannot_take": true,
+    "consult_cannot_override_issued": true,
+    "wave_a_watch": true,
+    "i2_hist_baseline_locked": true,
+    "unknown_is_valid": true,
+    "sparse_key_does_not_inherit_parent": true
+  },
+  "note": "Exact fingerprint key first. Sparse key \u2192 UNKNOWN, not parent WASH. Memory does not fill."
+}

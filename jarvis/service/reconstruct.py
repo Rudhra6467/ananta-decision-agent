@@ -220,6 +220,9 @@ def forward(j, day: str, rows: list[dict]) -> dict:
         if j.db.execute("SELECT 1 FROM rx_queue WHERE key=? AND state IN ('OPEN','FILED')", (key,)).fetchone():
             out["skipped"].append(key)
             continue
+        if f["lane"] == "DECISION" and j.db.execute("SELECT 1 FROM rx_queue WHERE key=? AND state='DECIDED' AND decided_t>?", (key, int(j.now()) - 7 * 86400)).fetchone():
+            out["skipped"].append(f"{key}: decided this week")        # a decision is not asked again for 7 days
+            continue
         rid = uuid.uuid4().hex[:10]
         if f["lane"] == "SAFE":
             if f["kind"] == "WAIT_ARRIVED":                       # item 6: wake the brain again, no repair request

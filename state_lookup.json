@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "version": "LOOKUP-v0.1",
+  "source": "historical_lab",
+  "flag": "UP",
+  "axis": "by_trend",
+  "keep": false,
+  "similarity": false,
+  "ranker": false,
+  "n_strategies": 0,
+  "rows": [],
+  "laws": {
+    "lookup_is_not_similarity": true,
+    "lookup_is_not_keep": true,
+    "empty_is_valid": true,
+    "costly_is_not_enable": true,
+    "take_gt_sitout_is_not_keep": true,
+    "counts_are_not_edge": true
+  },
+  "note": "Inverted Market Truth + +1h TAKE vs skip on that flag. TAKE_GT_SITOUT is a finding, not KEEP. Hunter COSTLY on UP \u2260 TREND_UP enable."
+}

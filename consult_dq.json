@@ -1,0 +1,47 @@
+{
+  "ok": true,
+  "version": "CONSULT-DQ-v0.3",
+  "n_consults": 2,
+  "n_joined": 0,
+  "n_complete_1h": 0,
+  "data_gap": false,
+  "knowledge_actions": {
+    "UNKNOWN": 2
+  },
+  "matches": {
+    "TREND": 2
+  },
+  "plus_1h_stamps": {
+    "NO_OBS": 2
+  },
+  "plus_1h_by_action": {
+    "UNKNOWN": {}
+  },
+  "plus_1h_by_match": {
+    "TREND": {}
+  },
+  "plus_1h_by_fp": [
+    {
+      "fp": "UP|UNKNOWN|UNKNOWN|UNCLEAR",
+      "n": 0,
+      "stamps": {},
+      "keep": false
+    },
+    {
+      "fp": "UP|NORMAL|UP|BULLISH",
+      "n": 0,
+      "stamps": {},
+      "keep": false
+    }
+  ],
+  "keep": false,
+  "take_enable": false,
+  "trend_up_enable": false,
+  "laws": {
+    "consult_dq_is_not_keep": true,
+    "costly_wait_is_not_take_enable": true,
+    "sparse_costly_is_not_take": true,
+    "live_take_zero_is_watch_not_gap": true
+  },
+  "note": "Aftermath of WAIT/UNKNOWN consults. COSTLY means the tape rose after we stood down. Finding, not KEEP, not TREND_UP."
+}

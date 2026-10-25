@@ -1,6 +1,6 @@
 {
  "version": "repair_shop.ledger.v1",
- "updated": "2026-10-21",
+ "updated": "2026-10-25",
  "meaning": {
   "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
   "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
@@ -1007,6 +1007,24 @@
     "74e34bd0fe5a"
    ],
    "review": "R34"
+  },
+  {
+   "id": "TK21",
+   "date": "2026-10-25",
+   "from": "request #98, filed by the learning loop (learning.count_lessons, weekly lessons) on 25 Oct; the morning review of 25 Oct found it had no ledger row",
+   "what": "Three of Jarvis's buys in the week to 11 Oct were stopped and the coin then rose in the next 5 days ('stopped at the low'): SOL bought 8 Oct, stopped at -$6.97, +6.01% five days after the stop; ETH bought 8 Oct, stopped at -$4.05, +4.85%; VTHO bought 9 Oct, stopped at -$10.40, +7.33% ($ per $100 after costs, evidence_trades). All three matured late (after their week's review had run) and all are from before the forward window.",
+   "did": "Recorded with its cases (decisions ac38b50633da, 612daa1a51e1, ec20048ce29a). The question these cases raise, whether a stop on the daily close would do better than the stop on a touch, is already pre-registered as review #31 (docs/research/REVIEW_31.md) with its forward window 21 Oct to 14 Dec and one look at CHECKPOINT-60; these pre-window cases are not part of that look.",
+   "change": "None to any trading rule (Rule B; OD-STOP-RULE, 20 Oct: keep the touch stop running unchanged in the window). Later 'stopped at the low' cases join this ticket.",
+   "status": "WAITING_FOR_EVIDENCE",
+   "next": "Closed at CHECKPOINT-60 with review #31's verdict (REVIEW_31.md, 'What each outcome changes').",
+   "lesson": "stopped at the low",
+   "request": "98",
+   "decisions": [
+    "ac38b50633da",
+    "612daa1a51e1",
+    "ec20048ce29a"
+   ],
+   "review": "R31"
   }
  ],
  "changes": [

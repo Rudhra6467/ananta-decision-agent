@@ -115,6 +115,12 @@ def code_version(files: list[str] | None = None) -> dict:
     head = _git("rev-parse", "--short=12", "HEAD").strip()
     dirty = [x[3:] for x in _git("status", "--porcelain", "--", "india").splitlines() if x.strip()]
     out = {"git": head, "dirty": dirty}
+    # 25 Oct audit: the git hash alone hid uncommitted code (E04 passed at 22:39 on the same hash it failed on at 22:34). Every changed or new
+    # Python file under india/ is hashed by content, and one short fingerprint of them all is kept, so two runs on different code never look alike.
+    py = sorted(d for d in dirty if d.endswith(".py"))
+    if py:
+        out["dirty_py"] = {f: (_git("hash-object", f)[:12] if (REPO / f).exists() else "deleted") for f in py}
+        out["dirty_fingerprint"] = hashlib.sha256(json.dumps(out["dirty_py"], sort_keys=True).encode()).hexdigest()[:12]
     if files:
         out["files"] = {f: (_git("hash-object", f)[:12] if (REPO / f).exists() else "missing") for f in files}
     return out

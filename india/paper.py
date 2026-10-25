@@ -300,6 +300,36 @@ def _sha(body: dict) -> str:
     return hashlib.sha256(json.dumps({k: body.get(k) for k in ("rules", "data_through", "signals", "journal", "config_sha")}, sort_keys=True, default=str).encode()).hexdigest()
 
 
+MIN_CASH_ROWS = 1000   # a session's cash file with fewer stocks than this is a partial file
+
+
+def input_check(ctx: dict, stocks_on_date: int, asof: pd.Timestamp) -> dict:
+    """Madhav, 25 Oct 2026: a decision made on stale inputs is MARKED, never stopped and never dropped from the record. Lists every input that was
+    missing or older than the decision's session (the index rows, VIX, the small-cap ratio, a thin cash file, a cash file older than the last
+    completed session). The paper rules are unchanged; the mark travels with the decision into the read model, the app and the evidence counts."""
+    stale = []
+    for tag, name in (("nifty", "Nifty 50"), ("vix", "India VIX")):
+        st = ctx.get(tag + "_status")
+        if st and st != "ok":
+            stale.append(f"{name}: {st}")
+    if ctx.get("small_ratio_status"):
+        stale.append(f"small-cap ratio: {ctx['small_ratio_status']}")
+    if ctx.get("index_status"):
+        stale.append(f"index file: {ctx['index_status']}")
+    if stocks_on_date < MIN_CASH_ROWS:
+        stale.append(f"cash file: only {stocks_on_date} stocks on {asof.date()}")
+    try:
+        cal = pd.read_parquet(paths.data_dir() / "silver" / "calendar" / "calendar.parquet")
+        now_ist = pd.Timestamp.now(tz="Asia/Kolkata")
+        done = pd.to_datetime(cal.loc[cal["is_trading_day"].astype(bool), "date"])
+        done = done[(done.dt.date < now_ist.date()) | ((done.dt.date == now_ist.date()) & (now_ist.hour >= 16))]
+        if len(done) and done.max() > asof:
+            stale.append(f"cash file: decided on {asof.date()} although the {done.max().date()} session had closed")
+    except Exception:  # noqa: BLE001  the calendar check is extra; the index checks above always run
+        pass
+    return {"stale": stale, "marked": bool(stale), "rule": "stale inputs are marked, never stopped or dropped (Madhav, 25 Oct 2026)"}
+
+
 def decide(state: dict | None = None, raw: pd.DataFrame | None = None, write: bool = True, asof: str | None = None) -> dict:
     state = state or _state()
     cfg = settings.load()
@@ -346,6 +376,7 @@ def decide(state: dict | None = None, raw: pd.DataFrame | None = None, write: bo
             "universe": {"stocks_with_a_row": on_date, "with_features": int(len(f)), "excluded": on_date - int(len(f)),
                          "excluded_reason": f"under 126 sessions of history or raw close at or below Rs {s['min_price']}"},
             "context": context(f, last, s["liq_top"]), "candidates": counts, "signals": chosen, "journal": journal, "sha_scheme": 2}
+    body["inputs"] = input_check(body["context"], on_date, last)
     body["sha256"] = _sha(body)
     if write:
         path = pdir() / "decisions" / f"{key}.json"

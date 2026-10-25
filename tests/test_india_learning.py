@@ -295,6 +295,9 @@ def _job(agents, logs, name, cal, out_text="", err_text="", out_at=None, err_at=
         os.utime(err, (err_at, err_at))
     (agents / f"{lab}.plist").write_bytes(plistlib.dumps({"Label": lab, "ProgramArguments": ["/bin/zsh", "-c", "x"] if wrap else ["python"],
                                                           "StandardOutPath": str(out), "StandardErrorPath": str(err), "StartCalendarInterval": cal}))
+    # 25 Oct: morning.job_report ignores due times before a job's plist was created (23 Oct fix), so the fake jobs must look older than the runs
+    old = _ts(2026, 10, 1, 0, 0)
+    os.utime(agents / f"{lab}.plist", (old, old))
 
 
 PAPER_TB = """Traceback (most recent call last):

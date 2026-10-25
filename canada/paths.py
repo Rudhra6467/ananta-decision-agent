@@ -7,7 +7,8 @@ from pathlib import Path
 DEV = ("2000-01-01", "2017-12-31")
 VAL = ("2018-01-01", "2023-12-31")
 HOLDOUT_START = "2024-01-01"
-CRYPTO_DIRS = ("~/code/ananta-decision-agent", "~/code/ananta-agent-research", "~/code/Ananta")
+# 25 Oct audit: ~/code/ananta-records (the records checkout of the same repository) was missing, so a Canada folder inside it was not refused
+CRYPTO_DIRS = ("~/code/ananta-decision-agent", "~/code/ananta-agent-research", "~/code/Ananta", "~/code/ananta-records")
 
 
 def data_dir() -> Path:

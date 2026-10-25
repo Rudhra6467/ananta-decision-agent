@@ -114,6 +114,15 @@ Madhav, 23 Oct (in chat): "Will get TOTP fixed before Sunday. Yes for all others
 | Lock India like crypto | **yes** | This page; lock day about 1 Nov. |
 | The worker Mac (crypto #72) | hourly pull retry | `com.ananta.workerpull` on the main Mac (agent repo LOCK.md, Decisions of 23 Oct). |
 
+### Decisions of 25 Oct (after the process audit, `claude/audit-2026-10-25-india-process`)
+
+Madhav, 25 Oct (in chat): "be marked when input data is stale. we will start immediately on all these items very carefully and complete fixing all of them. at the end we audit the whole process again."
+
+| Item | Decision | Where |
+|---|---|---|
+| A decision made on stale inputs | **marked, never stopped or dropped** | `india/paper.py input_check` writes `inputs` into every decision from 25 Oct (outside the hashed fields); older decisions are marked from their recorded context (`readmodel.decision_inputs`); the read model brief, the app's brief, the Evidence tracker ("Picks made on stale data") and the Ask carry the mark. No paper rule changed; `paper_rules` pin untouched. |
+| Every audit item | fix all now; only time-bound items stay pending | The fix list in the audit doc; the re-audit closes it. |
+
 ## 9. After the window
 
 Research that does not change a paper rule: the READY studies (C04, F07, I03, I04, I06, K01, EV5, EV6, EVC and the rest of the 52), the DEALS, FUNDS and TEACHER league traders, the shadow books with no history (futures, forex, commodities, results-day options; recording forward), the SP1 2027 refit (January), one voice across both markets (after each has stood alone), and live-readiness engineering built disabled in parallel (the order module behind leakcheck, broker-side stops, reconciliation, kill switch, drift alarm, cost profiles, per-account ledger, NAV units, the enforce switch) with a monthly India risk rehearsal, switch off.

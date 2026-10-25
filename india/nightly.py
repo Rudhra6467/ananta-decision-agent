@@ -67,6 +67,13 @@ def last_published_day(now_utc: dt.datetime | None = None) -> dt.date:
     return now.date() if now.hour >= 19 else now.date() - dt.timedelta(days=1)
 
 
+def _r2_verify(r2sync) -> dict:
+    r = r2sync.verify()
+    r["checked_at"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    (paths.manifest_dir() / "r2_verify.json").write_text(json.dumps(r, indent=1, default=str))
+    return {k: r[k] for k in ("local_files", "backed_up_same_size", "changed_since_upload", "missing_in_bucket", "size_mismatch")}
+
+
 def run(sync: bool = True) -> dict:
     paths.ensure()
     t0 = time.time()
@@ -96,6 +103,8 @@ def run(sync: bool = True) -> dict:
     if sync:
         from india import r2sync
         steps.append(("r2_sync", r2sync.sync))
+        # 25 Oct audit: after the upload, every backed-up file is checked against the bucket by size; the result is kept in manifests/r2_verify.json
+        steps.append(("r2_verify", lambda: _r2_verify(r2sync)))
     ok = True
     for name, fn in steps:
         try:

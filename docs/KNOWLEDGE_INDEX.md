@@ -108,6 +108,8 @@ Evidence classes, strongest first: **verified variables** (Ananta's own tests) >
 - `DECISION_INTELLIGENCE_LOCK.md`, `DECISION_QUALITY_V0.md`, `S5_HYPOTHESES.md`: decision quality baseline and early hypotheses.
 - `OPPORTUNITY_ENGINE_LOCK.md`, `STRATEGY_EVIDENCE_ENGINE.md`, `STRATEGY_INTEL_AUDIT.md`, `STRATEGY_UNIVERSE_V1.md`: strategy research design (August 2026).
 - `FEATURE_COMPLETE_NOW.md`, `BLUEPRINT_V2.2_AMENDMENT.md`, `TRADINGAGENTS_REFERENCE_AUDIT.md`: older design notes.
+- `INDIA_LOCK.md`: the India lock (drafted 23 Oct 2026, lock day about 1 Nov): every pinned India paper rule, what waits for lock day, and Madhav's recorded decisions. India only; the crypto agent never trades on it.
+- `plan-2026-10-20-india-voice-and-account-readiness.md`: the India voice agent's timing, keeping the India app separate, and what the account needs before any live step (20 Oct 2026). India only.
 
 ## Madhav's notes (optional)
 - Notes Madhav writes himself (for example in Obsidian) in the folder `ANANTA_NOTES_DIR` (default `~/AnantaBrain/My notes`). Ananta searches them too and quotes them as "your note", never as verified fact.

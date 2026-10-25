@@ -46,7 +46,9 @@ def lake(tmp_path, monkeypatch):
     return data
 
 
-def test_build_facts_lines_and_page(lake):
+def test_build_facts_lines_and_page(lake, monkeypatch):
+    from india import kite
+    monkeypatch.setattr(kite, "_read_token", lambda: None)   # 25 Oct: the Mac's real morning token leaked in once auto sign-in worked
     f = mv.build(SESSION)
     assert f["session"] == SESSION and f["overnight"]["us"]["S&P 500"]["ret"] == -0.005 and "Brent crude" not in f["overnight"]["us"], "stale FRED data is dropped"
     assert f["setup"]["scenario_levels"]["up_above"] == 22756.0 and f["setup"]["expiry"]["today"] == ["BANKNIFTY"] and f["setup"]["expiry"]["next"]["date"] == "2026-10-27"

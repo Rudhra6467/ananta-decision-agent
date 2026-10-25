@@ -160,7 +160,34 @@ def decisions_today(day: str) -> dict:
         chosen.append({"symbol": s.get("symbol"), "campaign": camp, "close": s.get("close"), "why": why + (": " + ", ".join(bits) if bits else ""),
                        "entry": "next session's open, Rs 50,000 notional, every registered exit tracked"})
     return {"status": "ok", "source": str(src), "rules": j.get("rules"), "decided_at": j.get("decided_at"), "data_through": j.get("data_through"),
-            "universe": j.get("universe"), "candidates": j.get("candidates"), "chosen": chosen, "sha256": j.get("sha256")}
+            "universe": j.get("universe"), "candidates": j.get("candidates"), "chosen": chosen, "sha256": j.get("sha256"), "inputs": decision_inputs(j)}
+
+
+def decision_inputs(j: dict) -> dict:
+    """The stale-input mark (Madhav, 25 Oct 2026: marked, never stopped). Decisions from 25 Oct carry it; older decision files are never
+    rewritten, so their mark is read from the context they recorded (the same index statuses)."""
+    if j.get("inputs"):
+        return j["inputs"]
+    ctx = j.get("context") or {}
+    stale = [f"{n}: {ctx.get(t + '_status')}" for t, n in (("nifty", "Nifty 50"), ("vix", "India VIX")) if ctx.get(t + "_status") not in (None, "ok")]
+    if ctx.get("small_ratio_status"):
+        stale.append(f"small-cap ratio: {ctx['small_ratio_status']}")
+    if ctx.get("index_status"):
+        stale.append(f"index file: {ctx['index_status']}")
+    return {"stale": stale, "marked": bool(stale), "rule": "stale inputs are marked, never stopped or dropped (Madhav, 25 Oct 2026)", "derived": "from the recorded context"}
+
+
+def stale_sessions() -> list[dict]:
+    """Every decision day whose inputs were stale, for the evidence counts and the app."""
+    out = []
+    for p in sorted((paths.data_dir() / "paper" / "decisions").glob("20*.json")):
+        if p.name.endswith("universe.json"):
+            continue
+        j = _load(p) or {}
+        m = decision_inputs(j)
+        if m["marked"]:
+            out.append({"day": j.get("data_through") or p.stem, "stale": m["stale"]})
+    return out
 
 
 def sp1(day: str) -> dict:
@@ -206,8 +233,15 @@ def research() -> dict:
         out["gate"] = {"state": g02["state"], "waiting_on": g02["waiting_on"]} if g02 else None
     except Exception as e:   # noqa: BLE001 - the read model must build even when the catalog is busy
         out["studies"] = {"status": "unavailable", "why": str(e)[:120]}
-    verdicts = Counter(r.get("verdict") for r in registry._rows() if r.get("verdict"))
-    out["verdicts"] = dict(verdicts)
+    # audit 25 Oct: count each (study, version) once, at its latest result; the raw ledger also holds re-runs of the same version
+    latest = {}
+    for r in registry._rows():
+        if r.get("kind") == "result" and r.get("verdict"):
+            latest[(r["study"], r["variant"])] = r["verdict"]
+    out["verdicts"] = dict(Counter(latest.values()))
+    out["versions_tested"] = len(latest)
+    out["ledger_result_rows"] = sum(1 for r in registry._rows() if r.get("kind") == "result")
+    out["stale_input_sessions"] = stale_sessions()
     g01 = _load(paths.manifest_dir() / "g01_exit_book.json")
     out["exit_book"] = ({"source": str(paths.manifest_dir() / "g01_exit_book.json"), "chosen": {k: v.get("policy") for k, v in g01.get("chosen", {}).items()}} if g01
                         else _missing(paths.manifest_dir() / "g01_exit_book.json"))
@@ -301,6 +335,8 @@ def brief(rm: dict) -> list[str]:
     if d.get("status") == "ok":
         by = Counter(x["campaign"] for x in d["chosen"])
         out.append("New for the next session: " + (", ".join(f"{n} {k}" for k, n in sorted(by.items())) or "nothing") + ".")
+        if (d.get("inputs") or {}).get("marked"):
+            out.append("Marked: these picks were made on stale inputs (" + "; ".join(d["inputs"]["stale"]) + ").")
     if s.get("status") in ("ok", "lost"):
         out.append("SP1 index line: " + s["words"] + ".")
     lg = L.get("league", {})

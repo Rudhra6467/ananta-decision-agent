@@ -49,12 +49,20 @@ def threshold(k: int) -> float:
 
 
 def register(study: str, family: str, title: str, hypothesis: str, variants: list[str], note: str = "", bar_families: list[str] | None = None,
-             union_k: int | None = None, holdout_k: int | None = None) -> dict:
+             union_k: int | None = None, holdout_k: int | None = None, rerun_reason: str | None = None) -> dict:
     """Writes the registration line (what was claimed before the run). Re-registering an id appends a new version.
     bar_families / union_k / holdout_k (SP3 review, 20 Oct 2026): a study whose bar spans several families stores the list and the k pinned at its
-    freeze, so the bar cannot drift as rows are recorded; record() uses union_k for the standard and seen rules and holdout_k for holdout rows."""
+    freeze, so the bar cannot drift as rows are recorded; record() uses union_k for the standard and seen rules and holdout_k for holdout rows.
+    rerun_reason (25 Oct audit): a study id registered before gets a version number and the reason for running it again (the argument, or the
+    ANANTA_RERUN_REASON environment variable); with neither, the row says "no reason given", so a quiet re-run is visible in the ledger."""
+    import os
+
     reg = {"kind": "registration", "study": study, "family": family, "title": title, "hypothesis": hypothesis, "variants": list(variants), "note": note,
            "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
+    before = sum(1 for r in _rows() if r.get("kind") == "registration" and r.get("study") == study)
+    if before:
+        reg["version"] = before + 1
+        reg["rerun_reason"] = rerun_reason or os.getenv("ANANTA_RERUN_REASON") or "no reason given"
     if bar_families:
         reg["bar_families"] = sorted(set(bar_families) | {family})
     if union_k:
@@ -141,9 +149,16 @@ def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None =
         v = verdict(dev[1], val[1], dev[0], val[0], dev[2], val[2], z, expect)
     if (extra or {}).get("min_trades_ok") is False:
         v = "INCONCLUSIVE"  # a pre-registered minimum trade count was not reached (e.g. SP1: 100 validation trades per index)
+    code = (reg.get("stamp") or {}).get("code", {})
+    code_id = code.get("git") or None
+    if code_id and code.get("dirty_fingerprint"):
+        code_id += f"+dirty:{code['dirty_fingerprint']}"
     line = {"kind": "result", "study": reg["study"], "family": fam, "variant": variant, "k_in_family": k, "k_source": k_src, "z": round(z, 3), "dev": list(dev), "val": list(val),
             "verdict": v, "rule": rule, "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "registered_at": reg.get("at"),
-            "code": (reg.get("stamp") or {}).get("code", {}).get("git")}
+            # 25 Oct audit: uncommitted code shows as git+dirty fingerprint, so a result can always be traced to the exact code that made it
+            "code": code_id}
+    if reg.get("version"):
+        line["registration_version"], line["rerun_reason"] = reg["version"], reg.get("rerun_reason")
     with _ledger_path().open("a") as fh:
         fh.write(json.dumps(line, default=str) + "\n")
     return line

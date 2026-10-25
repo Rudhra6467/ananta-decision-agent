@@ -22,6 +22,10 @@ BUCKET = "ananta-india-lake"
 _OWN = Path("~/ananta_private/r2_india.env").expanduser()
 ENV = _OWN if _OWN.exists() else Path("~/code/ananta-decision-agent/.env").expanduser()
 PARTS = ("silver", "sealed/silver", "manifests")
+# 25 Oct audit: the generated registration files in the repo (verification.md, evidence_staircase.json, missed_drafts.jsonl, ...) change every
+# night and were only on this Mac. They are uploaded under repo/india/registrations/ so a lost Mac does not lose the evidence trail.
+REPO = Path(__file__).resolve().parent.parent
+REPO_PARTS = ("india/registrations", "registrations")
 
 
 def _env() -> dict:
@@ -53,14 +57,14 @@ def sync() -> dict:
     have = _existing(c, with_time=True)
     root = paths.data_dir()
     up = skipped = nbytes = 0
-    for part in PARTS:
-        base = root / part
+    jobs = [(root, root / part, "") for part in PARTS] + [(REPO, REPO / part, "repo/") for part in REPO_PARTS]
+    for top, base, prefix in jobs:
         if not base.exists():
             continue
         for p in sorted(base.rglob("*")):
-            if not p.is_file() or p.name.startswith("."):
+            if not p.is_file() or p.name.startswith(".") or "__pycache__" in p.parts:
                 continue
-            key = str(p.relative_to(root))
+            key = prefix + str(p.relative_to(top))
             size = p.stat().st_size
             old = have.get(key)
             # same size and not modified since the upload: skip. A rebuilt file of the same size (newer on disk) is uploaded again.
@@ -71,6 +75,37 @@ def sync() -> dict:
             up += 1
             nbytes += size
     return {"uploaded": up, "skipped_same_size": skipped, "bytes_uploaded": nbytes, "objects_in_bucket_before": len(have)}
+
+
+def verify() -> dict:
+    """25 Oct audit: every local file that should be backed up is checked against the bucket by size (no download). Missing or different-size
+    objects are listed; a local file newer than its upload counts as 'pending' (the next sync uploads it), not as a failure."""
+    c = client()
+    have = _existing(c, with_time=True)
+    root = paths.data_dir()
+    ok = pending = 0
+    missing, wrong = [], []
+    jobs = [(root, root / part, "") for part in PARTS] + [(REPO, REPO / part, "repo/") for part in REPO_PARTS]
+    for top, base, prefix in jobs:
+        if not base.exists():
+            continue
+        for p in sorted(base.rglob("*")):
+            if not p.is_file() or p.name.startswith(".") or "__pycache__" in p.parts:
+                continue
+            key = prefix + str(p.relative_to(top))
+            old = have.get(key)
+            st = p.stat()
+            if old is None:
+                missing.append(key)
+            elif old[0] == st.st_size:
+                ok += 1
+            elif st.st_mtime > old[1]:
+                pending += 1
+            else:
+                wrong.append(key)
+    return {"local_files": ok + pending + len(missing) + len(wrong), "backed_up_same_size": ok, "changed_since_upload": pending,
+            "missing_in_bucket": len(missing), "size_mismatch": len(wrong), "missing_examples": missing[:10], "mismatch_examples": wrong[:10],
+            "objects_in_bucket": len(have)}
 
 
 def restore_check(dest: str, n: int = 8) -> dict:
@@ -107,6 +142,11 @@ if __name__ == "__main__":
         import json
         r = restore_check(sys.argv[2])
         (paths.manifest_dir() / "r2_restore_check.json").write_text(json.dumps(r, indent=1, default=str))
+        print(json.dumps(r, indent=1, default=str))
+    elif len(sys.argv) > 1 and sys.argv[1] == "verify":
+        import json
+        r = verify()
+        (paths.manifest_dir() / "r2_verify.json").write_text(json.dumps(r, indent=1, default=str))
         print(json.dumps(r, indent=1, default=str))
     else:
         print(sync())

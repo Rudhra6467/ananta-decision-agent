@@ -164,6 +164,34 @@ PROGRESS = {
 }
 
 
+def consecutive_sessions(run_times: list, today=None) -> int:
+    """Audit 25 Oct: G02 asks for 30 CONSECUTIVE clean sessions, but D15 counted distinct dates. A trading session s counts as clean when a
+    clean nightly run started between 12:00 on s and 12:00 the next day (the 12:45 weekday run, or the 02:30 heal run after it); the run of
+    clean sessions is counted back from the newest session whose window has closed."""
+    import datetime as dt
+
+    import pandas as pd
+
+    try:
+        cal = pd.read_parquet(paths.data_dir() / "silver" / "calendar" / "calendar.parquet")
+        sess = sorted(pd.to_datetime(cal.loc[cal["is_trading_day"].astype(bool), "date"]).dt.date)
+    except Exception:  # noqa: BLE001
+        return 0
+    runs = sorted(pd.Timestamp(t).tz_localize(None) if pd.Timestamp(t).tzinfo else pd.Timestamp(t) for t in run_times)
+    now = pd.Timestamp(today) if today else pd.Timestamp.now()
+    n = 0
+    for s in reversed(sess):
+        a = pd.Timestamp(s) + pd.Timedelta(hours=12)
+        b = a + pd.Timedelta(days=1)
+        if b > now:
+            continue                       # this session's window is still open: neither counted nor breaking the run
+        if any(a <= r < b for r in runs):
+            n += 1
+        else:
+            break
+    return n
+
+
 def _auto() -> dict[str, str]:
     import datetime as dt
 
@@ -172,7 +200,8 @@ def _auto() -> dict[str, str]:
     try:
         # one clean night per date (24 Oct 2026: the nightly also runs at 12:45 on weekdays; two runs on one date are one night)
         n = con.execute("select count(distinct cast(run_at as date)) from heartbeats where job = 'india.nightly' and ok").fetchone()[0]
-        out["D15"] = f"{n} of 30 nightly runs"
+        runs = [r[0] for r in con.execute("select run_at from heartbeats where job = 'india.nightly' and ok").fetchall()]
+        out["D15"] = f"{n} of 30 nightly runs; {consecutive_sessions(runs)} clean sessions in a row (the gate needs 30 in a row)"
         r = con.execute("select count(distinct cast(run_at as date)) from heartbeats where job = 'recorder.run' and ok").fetchone()[0]
         out["D14"] = f"{r} recorded evenings"
     except Exception:

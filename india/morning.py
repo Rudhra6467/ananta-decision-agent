@@ -62,7 +62,41 @@ def next_signin(now: dt.datetime, hol: set | None = None) -> str:
     day = ist.date() if (ist.time() < SIGNIN_BY and is_session(ist.date(), hol)) else next_session(ist.date() + dt.timedelta(days=1), hol)
     a = dt.datetime.combine(day, SIGNIN_FROM, IST).astimezone(TOR)
     b = dt.datetime.combine(day, SIGNIN_BY, IST).astimezone(TOR)
-    return f"{a:%a %d %b %H:%M}-{b:%H:%M} Toronto (07:30-09:10 IST, for the {day:%a %d %b} session)"
+    window = f"{a:%a %d %b %H:%M}-{b:%H:%M} Toronto (07:30-09:10 IST, for the {day:%a %d %b} session)"
+    auto = autologin_state(now)
+    if auto is None:
+        return window
+    if auto["ok"]:
+        # audit 25 Oct: the page kept telling Madhav to sign in by hand after the automatic sign-in started working
+        return f"automatic at 21:40 Toronto (last automatic sign-in ok {auto['at']}); by hand only if it fails, {window}"
+    return f"{window}; the automatic sign-in is failing ({auto['why'][:120]})"
+
+
+AUTOLOGIN_LOG = Path.home() / "ananta_runs" / "kite_autologin.log"
+
+
+def autologin_state(now: dt.datetime, log: Path | None = None) -> dict | None:
+    """The newest line of the automatic Kite sign-in log: ok or failed, when, and why (None when there is no log, e.g. in tests)."""
+    import os
+    if log is None and os.environ.get("PYTEST_CURRENT_TEST"):
+        return None   # tests never read the Mac's real sign-in log
+    p = log or AUTOLOGIN_LOG
+    try:
+        lines = [x for x in p.read_text().splitlines() if "auto sign-in" in x]
+    except OSError:
+        return None
+    if not lines:
+        return None
+    last = lines[-1]
+    at = last.split(" ")[0]
+    try:
+        at_t = dt.datetime.fromisoformat(at).astimezone(TOR)
+        at_s = f"{at_t:%a %d %b %H:%M} Toronto"
+        if (now.astimezone(TOR) - at_t).days > 3:
+            return {"ok": False, "at": at_s, "why": "no automatic sign-in for more than 3 days"}
+    except ValueError:
+        at_s = at
+    return {"ok": "auto sign-in ok" in last, "at": at_s, "why": last.split("FAILED:", 1)[-1].strip() if "FAILED" in last else ""}
 
 
 def launchctl_list(text: str | None = None) -> dict[str, dict]:
@@ -359,12 +393,42 @@ def build(now: dt.datetime | None = None, launchctl_text: str | None = None, age
         if not (st == "PASS" or st == "skipped (holiday)" or st.startswith("skipped (no ledger rows)")):
             lost.append(f"SP1 nightly replay {rday}: {st}" + (f" ({mine.get('detail')})" if mine.get("detail") else "")
                         + (f"; next sign-in {ctx['signin']}" if st == "skipped (no token)" else ""))
+    lost += storage_problems(D, now)
     res = {"at": now, "jobs": jobs, "lost": lost, "missed_line": missed_line, "others_line": others_line, "missed_session": str(mday), "replay": replay, "signin": ctx["signin"]}
     reg.mkdir(parents=True, exist_ok=True)
     md = markdown(res)
     (reg / "india_morning.md").write_text(md)
     res["markdown"] = md
     return res
+
+
+DISK_FLOOR_GB = 30
+
+
+def storage_problems(D: Path, now: dt.datetime) -> list[str]:
+    """25 Oct audit: the disk was 86% full with nobody watching, and the backup was spot-checked only. A line appears when free space is under
+    30 GB, or when the nightly backup check (manifests/r2_verify.json) found missing or different files or is more than 2 days old."""
+    import shutil
+
+    out = []
+    try:
+        free = shutil.disk_usage(D).free / 1e9
+        if free < DISK_FLOOR_GB:
+            out.append(f"disk: only {free:.0f} GB free (the floor is {DISK_FLOOR_GB} GB); clear space before the recorder fills it")
+    except OSError:
+        pass
+    v = D / "manifests" / "r2_verify.json"
+    if v.exists():
+        try:
+            r = json.loads(v.read_text())
+            if r.get("missing_in_bucket") or r.get("size_mismatch"):
+                out.append(f"backup: {r.get('missing_in_bucket')} files missing in R2, {r.get('size_mismatch')} with a different size (manifests/r2_verify.json)")
+            at = dt.datetime.fromisoformat(r["checked_at"]) if r.get("checked_at") else dt.datetime.fromtimestamp(v.stat().st_mtime, dt.timezone.utc)
+            if now - at > dt.timedelta(days=2):
+                out.append(f"backup: the last R2 check was {at.astimezone(TOR):%a %d %b %H:%M}, more than 2 days ago")
+        except (ValueError, KeyError, TypeError):
+            out.append("backup: manifests/r2_verify.json is unreadable")
+    return out
 
 
 def _fmt(t: dt.datetime | None) -> str:

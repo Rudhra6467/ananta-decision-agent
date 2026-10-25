@@ -57,7 +57,7 @@ Build this only after both voices have each stood on their own for a few weeks.
 
 **Prototype stage needs nothing.** Ananta's Kite module only reads data and never places, changes or cancels an order. Its single write call is Kite's margin calculator, approved on 19 Oct. Zerodha says market data and the read calls work from any IP address. The rules below start to matter only on the day Ananta places a real order.
 
-### B1. Father's account (resident, Zerodha DZT404): before Ananta places any order
+### B1. Father's account (resident; Zerodha ID kept in ~/ananta_private): before Ananta places any order
 
 1. **Static IP for API orders.** Zerodha requires a static IP for API order placement from 1 April 2026, under the NSE/SEBI retail-algo rules. You may register up to two IPs, and change them at most once a week. One IP can be shared only with "immediate family", which Zerodha names as spouse, dependent children and dependent parents.
    - Decide before live which machine places orders (the Mac in Canada, or a small server in India), and get a static IP for it.

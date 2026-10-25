@@ -82,3 +82,16 @@ def test_dirty_python_files_change_the_code_fingerprint(monkeypatch):
     calls["hash"] = "222"
     b = lineage.code_version()
     assert a["git"] == b["git"] and a["dirty_fingerprint"] != b["dirty_fingerprint"]
+
+
+def test_missing_reconstruction_card_is_a_lost_run(tmp_path: Path):
+    dec = tmp_path / "paper" / "decisions"
+    rx = tmp_path / "paper" / "reconstruction"
+    dec.mkdir(parents=True)
+    rx.mkdir(parents=True)
+    (dec / "2026-10-23.json").write_text("{}")
+    (rx / "2026-10-22.json").write_text("{}")
+    out = morning.reconstruction_problems(tmp_path)
+    assert out and "2026-10-23" in out[0] and "2026-10-22" in out[0]
+    (rx / "2026-10-23.json").write_text("{}")
+    assert morning.reconstruction_problems(tmp_path) == []

@@ -394,12 +394,30 @@ def build(now: dt.datetime | None = None, launchctl_text: str | None = None, age
             lost.append(f"SP1 nightly replay {rday}: {st}" + (f" ({mine.get('detail')})" if mine.get("detail") else "")
                         + (f"; next sign-in {ctx['signin']}" if st == "skipped (no token)" else ""))
     lost += storage_problems(D, now)
+    lost += reconstruction_problems(D)
     res = {"at": now, "jobs": jobs, "lost": lost, "missed_line": missed_line, "others_line": others_line, "missed_session": str(mday), "replay": replay, "signin": ctx["signin"]}
     reg.mkdir(parents=True, exist_ok=True)
     md = markdown(res)
     (reg / "india_morning.md").write_text(md)
     res["markdown"] = md
     return res
+
+
+def reconstruction_problems(D: Path) -> list[str]:
+    """25 Oct (Madhav: "is it daily or not?"): the reconstruction card must exist for the newest session the paper job decided on. It took its
+    session from a read model that was rebuilt only after it, so the 23 Oct card was never built and nobody was told. Checked only where the
+    reconstruction folder exists."""
+    rx = D / "paper" / "reconstruction"
+    dec = D / "paper" / "decisions"
+    if not rx.exists() or not dec.exists():
+        return []
+    days = sorted(p.stem for p in dec.glob("????-??-??.json"))
+    if not days:
+        return []
+    have = sorted(p.stem for p in rx.glob("????-??-??.json"))
+    if days[-1] not in have:
+        return [f"reconstruction: no card for the {days[-1]} session (the newest card is {have[-1] if have else 'none'}); run python -m india.reconstruct evening"]
+    return []
 
 
 DISK_FLOOR_GB = 30

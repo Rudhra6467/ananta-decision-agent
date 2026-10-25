@@ -57,7 +57,22 @@ def market(day: str) -> dict:
     j = _load(src)
     if not j or "context" not in j:
         return _missing(src)
-    c = j["context"]
+    c = dict(j["context"])
+    if c.get("nifty_close") is None:
+        # 25 Oct: the decision was taken while the index download was down (Kite sign-in lost), so its context has no Nifty. Once the
+        # index is fetched later, read the day's close and averages from it (sealed purpose paper_context, the same reader the engine uses)
+        try:
+            from india import sealed
+            import datetime as _dt
+            ix = sealed.read_index("paper_context", (_dt.date.fromisoformat(day) - _dt.timedelta(days=330)).isoformat(), ["NIFTY 50"])   # inside the 460-day cap
+            ix = ix[ix["date"].astype(str).str[:10] <= day].sort_values("date")
+            if len(ix) >= 200 and str(ix["date"].iloc[-1])[:10] == day:
+                cl = ix["close"].astype(float)
+                c["nifty_close"] = float(cl.iloc[-1])
+                c["nifty_vs_sma50"] = float(cl.iloc[-1] / cl.tail(50).mean() - 1)
+                c["nifty_vs_sma200"] = float(cl.iloc[-1] / cl.tail(200).mean() - 1)
+        except Exception:  # noqa: BLE001  the section still says what it can
+            pass
     v50, v200 = c.get("nifty_vs_sma50"), c.get("nifty_vs_sma200")
     if v50 is None or v200 is None:
         state = "unknown"
@@ -274,7 +289,10 @@ def brief(rm: dict) -> list[str]:
     out = []
     m, c, sb, d, s, L = rm["market"], rm["call"], rm["stock_book"], rm["decisions_today"], rm["sp1"], rm["learning"]
     if m.get("status") == "ok":
-        out.append(f"Through {m['data_through']}: Nifty {m['nifty_close']:,.0f}. {m['words']}.")
+        # request 85 (24-25 Oct): with the Kite sign-in lost there is no Nifty close for the day, and formatting None crashed the whole
+        # read model (the app, the Ask and the voice then read a stale day). Say it is missing instead.
+        close = f"Nifty {m['nifty_close']:,.0f}" if m.get("nifty_close") is not None else "no Nifty close for the day (the index download did not run)"
+        out.append(f"Through {m['data_through']}: {close}. {m['words']}.")
     if c.get("status") == "ok":
         out.append(c["words"] + ".")
     if sb.get("status") == "ok":

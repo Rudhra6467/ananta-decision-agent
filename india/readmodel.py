@@ -228,11 +228,17 @@ def research() -> dict:
     try:
         data, studies = tracker.evaluate()
         out["studies"] = {"ready": sum(s["state"] == "READY" for s in studies), "blocked": sum(s["state"] == "BLOCKED" for s in studies), "with_results": sum(bool(s["progress"]) for s in studies)}
-        out["gate_counters"] = {d["id"]: d["live"] for d in data if d["id"] in ("D15", "D16")}
+        out["gate_counters"] = {d["id"]: d["live"] for d in data if d["id"] in ("D15", "D16", "D32")}
         g02 = next((s for s in studies if s["id"] == "G02"), None)
         out["gate"] = {"state": g02["state"], "waiting_on": g02["waiting_on"]} if g02 else None
     except Exception as e:   # noqa: BLE001 - the read model must build even when the catalog is busy
         out["studies"] = {"status": "unavailable", "why": str(e)[:120]}
+    try:   # 25 Oct audit: the India exam (india/exam.py), shown as a gate row and on the Evidence tracker
+        from india import exam
+
+        out["exam"] = exam.summary()
+    except Exception as e:   # noqa: BLE001
+        out["exam"] = {"words": f"unavailable: {str(e)[:80]}"}
     # audit 25 Oct: count each (study, version) once, at its latest result; the raw ledger also holds re-runs of the same version
     latest = {}
     for r in registry._rows():

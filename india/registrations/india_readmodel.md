@@ -1,4 +1,4 @@
-# India read model (V0) — data through 2026-10-23, built 2026-10-25T16:26:44+00:00
+# India read model (V0) — data through 2026-10-23, built 2026-10-25T16:54:25+00:00
 
 Rules readmodel-v0-2026-10-22. Every number below traces to the file named in its section of readmodel/latest.json; nothing here is typed by hand.
 
@@ -78,9 +78,9 @@ Next sign-in: automatic at 21:40 Toronto (last automatic sign-in ok Sun 25 Oct 1
 
 ## Research
 
-- studies: {'ready': 52, 'blocked': 12, 'with_results': 40}
-- gate G02: {'state': 'BLOCKED', 'waiting_on': 'D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots)'} counters {'D15': '7 of 30 nightly runs; 4 clean sessions in a row (the gate needs 30 in a row)', 'D16': '4 of 30 snapshots'}
-- registry verdicts: {'REJECTED': 382, 'OPPOSITE': 129, 'INCONCLUSIVE': 553, 'CONDITIONAL': 27, 'VALIDATED': 19, 'NOT_SUPPORTED_SEEN': 15, 'SUPPORTED_SEEN': 1, 'NOT_CONFIRMED': 5}
+- studies: {'ready': 53, 'blocked': 11, 'with_results': 40}
+- gate G02: {'state': 'BLOCKED', 'waiting_on': 'D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); D32 (wait_time, weekly runs)'} counters {'D15': '7 of 30 nightly runs; 4 clean sessions in a row (the gate needs 30 in a row)', 'D16': '4 of 30 snapshots', 'D32': '2026-10-25: knows 18 of 18, unknowns 6 of 7, why 5 of 5, safety 30 of 30, plain words 27 of 30: PASS; 1 of 1 runs passed'}
+- registry verdicts: {'REJECTED': 385, 'OPPOSITE': 131, 'INCONCLUSIVE': 554, 'CONDITIONAL': 27, 'VALIDATED': 19, 'NOT_SUPPORTED_SEEN': 19, 'SUPPORTED_SEEN': 1, 'NOT_CONFIRMED': 5}
 - exit book (G01): {'BRK/all': 'sma_close_50', 'BRK/above_both': 'hold_60d', 'BRK/mixed': 'sma_close_50', 'BRK/below_both': None, 'PULL/all': None, 'PULL/above_both': None, 'PULL/mixed': 'hold60+low20', 'PULL/below_both': None, 'ANY/all': None, 'ANY/above_both': None, 'ANY/mixed': None, 'ANY/below_both': 'hold60+low20'}
 
 ## Guardrails

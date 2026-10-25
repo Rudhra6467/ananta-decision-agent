@@ -60,17 +60,20 @@ def _done(interval: str) -> set[tuple[str, str]]:
     return out
 
 
-def run(universe: str, interval: str, start: dt.date, end: dt.date | None = None) -> dict:
+def run(universe: str, interval: str, start: dt.date, end: dt.date | None = None, rate: float = 3.0, guard=None, symbols: list[str] | None = None) -> dict:
+    """rate: requests a second (25 Oct: background fills run at 2 a second so the live jobs keep their share of Kite's 3 a second).
+    guard: called before every request; it may sleep (the backfill driver keeps out of the live jobs' Kite windows) and returns False to stop.
+    symbols: an explicit list instead of the universe file (in its order)."""
     paths.ensure()
     end = end or dt.date.today()
-    k = kite.Kite()
+    k = kite.Kite(rate_per_s=rate)
     tokens = _tokens(k)
     done = _done(interval)
     ds = "kite_5m" if interval == "5minute" else f"kite_{interval}"
     step = dt.timedelta(days=kite.DAYS_PER_REQUEST[interval] - 1)
     n = rows = skipped = 0
     t0 = time.time()
-    syms = _symbols(universe)
+    syms = symbols if symbols is not None else _symbols(universe)
     for sym in syms:
         tok = tokens.get(sym)
         if not tok:
@@ -87,6 +90,9 @@ def run(universe: str, interval: str, start: dt.date, end: dt.date | None = None
                 skipped += 1
                 a = b + dt.timedelta(days=1)
                 continue
+            if guard is not None and guard() is False:
+                print("stopped by the guard", flush=True)
+                return {"stopped": "guard", "windows": n, "rows": rows}
             try:
                 candles = k.historical(tok, interval, a, b)
             except kite.NeedLogin as exc:

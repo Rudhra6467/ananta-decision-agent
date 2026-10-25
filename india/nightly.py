@@ -46,6 +46,27 @@ def _flows():
     return flows.fetch(dt.date.today().year), flows.build()
 
 
+def _data_gaps():
+    """25 Oct 2026 audit (data gaps): the Nifty valuation series for this year, NSDL's FPI archive for last month and this one, and today's
+    sector-list snapshot (the map is point in time only from its first snapshot, so a missed day is a hole in that history)."""
+    # Each part reports its own problem as text and never fails the nightly build: an outside site's bad evening must not reset the gate's
+    # clean-run count (the coverage reports show the holes).
+    from india import fiidii, sectormap, valuation
+    today = dt.date.today()
+    prev = (today.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
+    quiet = lambda *_: None
+    parts = {"valuation": lambda: (valuation.fetch(today.year, log=quiet), valuation.build().get("rows")),
+             "fpi_archive": lambda: (fiidii.history(prev, log=quiet), fiidii.build().get("rows")),
+             "sector_map": lambda: (sectormap.snapshot(log=quiet), sectormap.build().get("labels"))}
+    out = {}
+    for k, fn in parts.items():
+        try:
+            out[k] = fn()
+        except Exception as e:  # noqa: BLE001
+            out[k] = f"problem (not a build failure) {type(e).__name__}: {str(e)[:150]}"
+    return out
+
+
 def _surveil():
     from india import surveil
     return surveil.snapshot(), surveil.build()
@@ -97,6 +118,7 @@ def run(sync: bool = True) -> dict:
         ("flows", _flows),
         ("pr_silver", _pr_silver),
         ("surveillance", _surveil),
+        ("data_gaps", _data_gaps),
         # 19 Oct: the firewall proof is re-run every night; a FAIL is a gate result recorded in manifests/firewall.json, not a build failure
         ("firewall", lambda: {k: v["ok"] for k, v in __import__("india.firewall", fromlist=["run"]).run().items() if not k.startswith("_")}),
     ]

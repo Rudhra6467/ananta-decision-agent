@@ -56,6 +56,10 @@ DATASETS = {
     "bronze/ledger": ("bronze/ledger", "*.json", None),
     "bronze/surveillance": ("bronze/surveillance", "*.json", None),
     "silver/ipo": ("silver/ipo", "*.parquet", None),
+    # 25 Oct 2026 data gaps: index valuation (D30), the industry labels (D29) and the stock 1-minute bronze (D04 extension)
+    "silver/valuation": ("silver/valuation", "index_pepb.parquet", "date"),
+    "silver/reference": ("silver/reference", "industry_labels.parquet", None),
+    "bronze/kite_minute": ("bronze/kite_minute", "*.jsonl.gz", None),
 }
 
 # data item -> what the lake must show for it to count as present: datasets, first date the item promises (or None), and whether it must be current
@@ -67,7 +71,8 @@ DMAP = {
     "D12": (["silver/fo_bhavcopy", "silver/fo_calendar"], "2001-12-31", True), "D13": (["silver/fo_greeks"], "2001-12-31", True),
     "D14": (["bronze/kite_1m_fo"], None, True), "D16": (["bronze/ledger"], None, False), "D17": (["bronze/flows"], None, False), "D17a": (["silver/flows"], "2012-12-31", False),
     "D18": (["bronze/pr_zip", "silver/pr"], None, False), "D19": (["bronze/surveillance"], None, False), "D21": (["silver/ipo"], None, False), "D20": (["bronze/results_index", "bronze/xbrl"], None, False), "D22": (["silver/macro"], None, False),
-    "D23": (["gold/hypothesis_map"], None, False), "D29": (["silver/kite_index/day"], None, False),
+    "D23": (["gold/hypothesis_map"], None, False), "D29": (["silver/kite_index/day", "silver/reference"], None, False),
+    "D30": (["silver/valuation"], "1999-12-31", False),
 }
 # inputs a study can run without: the part that needs them is skipped and the result says so
 OPTIONAL = {"C09": ["D30"], "V06": ["D19"], "F05": ["D14"], "C06": ["D17"]}

@@ -20,7 +20,7 @@ DATA = [
     ("D01", "Daily cash prices 1994-2026, adjusted close", "READY", "", "cm, cm_adj; 299/300 delivery check, 299/300 BSE check"),
     ("D02", "Delivery report 2003-2026", "READY", "", "silver/delivery"),
     ("D03", "Corporate actions, two records", "READY", "", "1,870 events; applied only when both records agree or the price confirms within 15% (18 Oct rule); 75 ambiguous events left unapplied and skipped by the lab and the paper engine"),
-    ("D04", "Stock 5-minute bars 2015-2026, Nifty 500", "READY", "", "1.54% of rows unscaled"),
+    ("D04", "Stock 5-minute bars 2015-2026, Nifty 500", "READY", "1-minute filling", "1.54% of rows unscaled; 25 Oct: india/kite_fill.py (background, 2 requests a second, outside the live jobs' Kite windows) extends 5-minute bars to the Nifty Total Market (about 750 names) and adds 1-minute bars for the Nifty 100 from 2015 into bronze/kite_minute (silver for stock minutes not built yet; its 2024+ rows would be sealed); progress in manifests/kite_fill.json"),
     ("D05", "Security master by ISIN (from 2011)", "READY", "", "3,613 company entities"),
     ("D06", "Trading calendar", "READY", "", "7,904 trading days"),
     ("D07", "Universe table U_LIQ-IN (top N by 60-day turnover)", "READY", "", "gold/universe/u_liq_in.parquet: 6.99M stock-days, top 500 per day (built 18 Oct)"),
@@ -33,14 +33,16 @@ DATA = [
     ("D14", "Option recorder, 1-minute live contracts", "WAIT_TIME", "accumulating", "auto: started 18 Oct 2026; milestones 4, 12, 26 weeks"),
     ("D15", "Nightly builds clean (gate counter)", "WAIT_TIME", "30 runs", "auto: counted from heartbeats"),
     ("D16", "Ledger snapshots (gate counter)", "WAIT_TIME", "30 snapshots", "auto: counted from bronze/ledger"),
-    ("D17", "FII/DII cash flows (provisional daily FII and DII buy/sell/net; NSDL confirmed FPI equity)", "WAIT_TIME", "accumulating", "india/fiidii.py: forward capture from 23 Oct 2026 (MSE page for FII+DII provisional, NSDL latest for confirmed FPI); no free history reachable from Toronto (NSE www geo-blocked, NSDL/CDSL/SEBI pages show one day)"),
-    ("D31", "Bulk and block deals (NSE daily files; history)", "WAIT_TIME", "accumulating", "india/deals.py: forward capture of bulk.csv/block.csv from 23 Oct 2026 (111 bulk, 4 block rows for 22 Oct); the historical service is geo-blocked from Toronto (status 451 recorded) and BSE's API refuses (403)"),
+    # 25 Oct audit: India had no exam; the gate row reads the last full run (india/exam.py, registrations/india_exam_v1.json; weekly)
+    ("D32", "India exam (gate row): 30 questions to the India Ask, judged in code against its facts (knows 16/18, unknowns 6/7, why 4/5, safety 30/30, plain words 27/30)", "WAIT_TIME", "weekly runs", "auto: manifests/exam_latest.json"),
+    ("D17", "FII/DII cash flows (provisional daily FII and DII buy/sell/net; NSDL confirmed FPI equity)", "READY", "DII history: none", "india/fiidii.py (25 Oct): FPI equity and debt daily from Jan 2000 from NSDL's archive (confirmed, by reporting date, usable the session after; month totals re-checked against each page); DII has no free history (NSE's archive page geo-blocked), forward only: MSE page from 23 Oct 2026, NSE API from 25 Oct 2026; 2024+ sealed"),
+    ("D31", "Bulk and block deals (NSE daily files; history)", "WAIT_TIME", "forward only", "india/deals.py: FORWARD ONLY: bulk.csv/block.csv captured every evening from 23 Oct 2026 (evening job: deals snapshot, deals build); no history: the historical service is geo-blocked from Toronto (status 451 recorded) and BSE's API refuses (403); history waits for a reachable source (an India VPN exit or a hand download)"),
     ("D17a", "Participant-wise open interest in equity derivatives (Client, DII, FII, Pro), daily from 2012", "READY", "", "india/flows.py: 2,251 trading days 2012-2026 in silver/flows/participant_oi.parquet (19 Oct); C06 ran on it"),
     ("D18", "Announcements, board meetings, corporate-action text (PR zips, from ~2010)", "READY", "", "silver/pr: 7.0M announcements (categorised), 122k board meetings (to Oct 2025), 1.58M book-closure actions, 845k price-band hits, 2010-2026"),
     ("D19", "ASM/GSM surveillance lists and pledge/shareholding filings", "WAIT_TIME", "accumulating", "NSE serves current lists only: daily snapshots from 18 Oct 2026 (india/surveil.py, 206 ASM + 77 GSM today); pledge filings not yet probed"),
     ("D20", "Fundamentals dataset from filed results (NSE results API with filing timestamps and XBRL), point-in-time", "BUILD", "", "results index done (217,104 filings 2007-2024); 2025+ via the integrated-filing API (pulling); XBRL download running, liquid names first (53,654 files); parser india/fundamentals.py"),
-    ("D29", "Sector indices and an industry/sector map for the liquid universe (sector relative strength, breadth by sector)", "READY", "", "sector and thematic indices daily (Kite) plus industry per Nifty 500 stock (current list, not point-in-time)"),
-    ("D30", "Nifty valuation series (P/E, P/B, dividend yield) and index total-return history", "BUILD", "", "niftyindices endpoint no longer answers (18 Oct probe); another source needed; one hypothesis (OPT-H60)"),
+    ("D29", "Sector indices and an industry/sector map for the liquid universe (sector relative strength, breadth by sector)", "READY", "point in time from 17 Oct 2026", "sector and thematic indices daily (Kite); india/sectormap.py (25 Oct): NSE industry labels for 756 stocks (Nifty Total Market and its sub-lists) in silver/reference/industry_labels.parquet, snapshotted nightly so the map is point in time from its first snapshot; NOT point in time before it (230 of the 250 most liquid stocks of 29 Dec 2023 have a label, 455 of the 1,700 ever in the top 250; the rest read 'unknown', never dropped); list membership by date is sealed (2026 lists encode holdout survivorship)"),
+    ("D30", "Nifty valuation series (P/E, P/B, dividend yield) and index total-return history", "READY", "total return: not built", "india/valuation.py (25 Oct): daily P/E, P/B, dividend yield for Nifty 50, Nifty Bank and Nifty 500 from 1999 (NSE Indices endpoint, path spelled BackPage); P/E on consolidated earnings from 31 Mar 2021 (standalone before: Nifty 50 P/E 40.4 to 33.2 that day, a level break; yield steps too); usable the session after; 2024+ sealed; nightly keeps the year current; one hypothesis (OPT-H60)"),
     ("D20b", "Fundamentals before 2018 (old-format HTML result pages)", "DECISION", "", "parse the HTML pages, or start ratios from 2018; decide after D20 coverage report"),
     ("D21", "IPO dataset (issue price, subscription, listing, first 90 days)", "READY", "", "NSE past issues 2003-2026 (1,479; 566 mainboard), issue price for 1,362; no subscription data"),
     ("D22", "Macro (RBI, USDINR, crude, US yields)", "BUILD", "", "FRED pulled and typed (silver/macro: USDINR, Brent, WTI, US 10y/2y, S&P, Nasdaq, dollar index, US VIX, fed funds, India 10y monthly); RBI policy dates still to source"),
@@ -117,7 +119,7 @@ STUDIES = [
     ("E11", "P1", "Exits, stocks", "Exit after a lower price-band hit (from V02)", ["D07", "D09", "D18"], "yes", ""),
     ("P01", "P1", "Entries and process", "Indicator-pattern entries (stochastic, Heikin Ashi, RSI divergence, Ichimoku, weekly outside bar, ADX): low priority, run after the exit work", ["D07", "D09"], "", ""),
     ("G01", "P8", "Synthesis and gate", "Relationship atlas v1 and the exit policy book: for each situation, the exit that held up out of sample", ["E01", "E02", "E03", "E07"], "yes", ""),
-    ("G02", "P8", "Synthesis and gate", "Two families validated on development plus validation years; holdout opened once per family, and the gate sentence", ["G01", "D15", "D16"], "yes", ""),
+    ("G02", "P8", "Synthesis and gate", "Two families validated on development plus validation years; holdout opened once per family, and the gate sentence (25 Oct audit: the India exam, data row D32, is a gate row too)", ["G01", "D15", "D16", "D32"], "yes", ""),
 ]
 
 
@@ -209,6 +211,13 @@ def _auto() -> dict[str, str]:
     con.close()
     led = list(paths.bronze("ledger").glob("*.json")) if paths.bronze("ledger").exists() else []
     out["D16"] = f"{len(led)} of 30 snapshots"
+    try:
+        from india import exam
+
+        s = exam.summary()
+        out["D32"] = s["words"] + (f"; {s['passed']} of {s['runs']} runs passed" if s["runs"] else "")
+    except Exception:  # noqa: BLE001
+        pass
     return out
 
 

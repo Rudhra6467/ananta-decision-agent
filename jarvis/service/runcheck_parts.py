@@ -108,7 +108,9 @@ PARTS: list[dict] = [
     {"id": "lab10_rules", "name": "Daily rules evaluated on all 10 lab coins up to yesterday", "job": "15-minute jobs (watch_engine.run)",
      "severity": "high", "since": "2026-10-09", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 3 * 3600}, "min_work": 10,
      "latest_only": True,
-     "proof": {"sql": J, "query": "SELECT :inst, COUNT(*) FROM engine_state WHERE k LIKE 'last_t:H07,M1a,%' AND CAST(v AS INTEGER) >= :inst - 86400"}},
+     "proof": {"sql": J, "query": "SELECT :inst, COUNT(DISTINCT substr(substr(k, 8), instr(substr(k, 8), ':') + 1)) FROM engine_state "
+                                    "WHERE k LIKE 'last_t:%H07,M1a,%' AND CAST(v AS INTEGER) >= :inst - 86400"},
+     "note": "the key lists the lab watches in name order, so a new watch sorting before H07 (BRK, Oct 24) moves H07 off the front; one count per coin"},
     {"id": "universe_round", "name": "Universe round: rules, zones, rebuild (one rebuild record)", "job": "com.ananta.jarvis (run_daily)",
      "severity": "high", "since": "2026-10-09", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 3 * 3600}, "min_work": 1,
      "proof": {"sql": J, "query": "SELECT t, 1 FROM universe_rebuilds WHERE t >= :t0"}},

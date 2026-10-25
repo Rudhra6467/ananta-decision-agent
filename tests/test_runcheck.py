@@ -203,6 +203,19 @@ def test_latest_only_parts_judge_the_current_value(tmp_path):
     assert by["lab10_rules"]["kind"] == "empty" and by["lab10_rules"]["found"] == 9  # one coin's rules stopped 4 days ago
 
 
+
+def test_lab10_rules_count_once_per_coin_whatever_watch_sorts_first(tmp_path):
+    # Oct 25: BRK and RBD joined the lab watches on Oct 24, the key became 'last_t:BRK,H07,M1a,...,RBD:<coin>'
+    # and the old proof (k LIKE 'last_t:H07,M1a,%') read a full night as 0 of 10.
+    paths = _paths(tmp_path)
+    rules = [(f"last_t:BRK,H07,M1a,M2a,RANDOM_10D,RBD:C{i}", str(D0 - DAY)) for i in range(10)]
+    rules += [(f"last_t:BRK,H07,M1a,M2a,RANDOM_10D:C{i}", str(D0 - DAY)) for i in range(10)]        # an older key set, same night
+    rules += [(f"last_t:H07,M1a,M2a,RANDOM_10D:C{i}", str(D0 - 9 * DAY)) for i in range(10)]        # stale, from before
+    rules += [(f"last_t:BRK-UA,H07-UA,M1a-UA:X{i}", str(D0 - DAY)) for i in range(30)]             # tier A, not the lab 10
+    _db(paths["agent"] + "/jarvis.sqlite", ["CREATE TABLE engine_state (k TEXT, v TEXT)"], {"engine_state": rules})
+    res = runcheck.run(paths, NOW, [_part("lab10_rules")])
+    assert "lab10_rules" not in {m["part"] for m in _misses(res, "24h")}
+
 def test_outages_are_listed_with_their_minutes(tmp_path):
     paths = _paths(tmp_path)
     _db(paths["agent"] + "/jarvis.sqlite", ["CREATE TABLE health_log (id INTEGER, part TEXT, down_t INTEGER, up_t INTEGER, detail TEXT)"],

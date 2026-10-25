@@ -206,6 +206,9 @@ def plain_brief(rm: dict) -> list[str]:
         by = Counter(x.get("campaign") for x in chosen)
         kinds = ", ".join(f"{v} {CAMPAIGN.get(k, k).lower()}{'s' if v != 1 else ''}" for k, v in by.most_common())
         out.append(f"Ananta picked {len(chosen)} stocks to buy on paper at the next open ({kinds}).")
+    if (d.get("inputs") or {}).get("marked"):
+        # Madhav, 25 Oct: decisions on stale inputs are marked, never stopped
+        out.append("Marked: these picks were made on stale data (" + "; ".join((d["inputs"].get("stale") or [])[:2]) + ").")
     c = rm.get("call") or {}
     if c.get("call"):
         word = {"BULLISH": "up", "BEARISH": "down", "NEUTRAL": "flat"}.get(str(c["call"]).upper(), str(c["call"]).lower())
@@ -479,14 +482,26 @@ def books() -> dict:
         m = marks.get(camp) or {}
         by_camp.append({"id": camp, "name": f"Research book · {name}", "kind": "paper", "t": _ts(m.get("at")), "start": CAPS[camp] * NOTIONAL,
                         "value": round(CAPS[camp] * NOTIONAL + (m.get("realised_inr") or 0) + (m.get("open_unrealised_inr") or 0), 2), "status": "PAPER",
-                        "verdict": f"{m.get('open') or 0} open · {m.get('closed') or 0} closed · " + ("no closed trades yet" if not m.get("closed") else ("no wins yet" if not m.get("win_rate") else f"won {round(100 * m['win_rate'])}%")),
-                        "events": m.get("closed") or 0, "result": None})
+                        "verdict": f"{m.get('open') or 0} open · {m.get('closed') or 0} closed · " + ("no closed trades yet" if not m.get("closed") else ("no wins yet" if not m.get("win_rate") else f"won {round(100 * m['win_rate'])}%"))
+                                   + (f" · {per_trade_pct(m):+.1f}% a closed trade" if per_trade_pct(m) is not None else ""),
+                        "per_trade_pct": per_trade_pct(m), "events": m.get("closed") or 0, "result": None})
+    n_closed = sum((m.get("closed") or 0) for m in marks.values())
+    avg_all = round(100 * closed_pnl / (n_closed * NOTIONAL), 1) if n_closed else None
     return {"summary": {"value": round(lab_val + a["value_cad"], 2), "start": lab_start() + a["start_cad"], "open_pnl": round(open_pnl, 2), "closed_pnl_recent": round(closed_pnl, 2),
                         "open_count": len(pos), "retired_pnl": 0.0, "retired_count": 0, "evidence_open": len(pos)},
             "account": account, "lab": {"trades": lab_trades, "closed": closed, "books": by_camp, "decision": " ".join(plain_brief(rm)[:2])},
             "retired": [], "evidence_open_by": dict(Counter(p["campaign"] for p in pos)), "trades": lab_trades, "closed": closed, "books": by_camp,
             "stamps": {"stockbook": "Ananta's research book: practice trades of ₹50,000 each, to test its rules"}, "random_open": sum(1 for p in pos if p["campaign"] == "CTL"),
-            "initials": {}, "read": "Paper only. Your account is the paper copy on Home; this research book tests Ananta's rules with ₹50,000 practice trades and is not your money."}
+            "initials": {}, "per_trade_pct": avg_all,
+            "read": ("Paper only. Your account is the paper copy on Home; this research book tests Ananta's rules with ₹50,000 practice trades and is not your money."
+                     # 25 Oct audit: rupee totals of notional ₹50,000 slots read like money lost next to a ₹1.6 lakh account; the per-trade % is the honest scale
+                     + (f" Read it in % per trade: its {n_closed} closed trades averaged {avg_all:+.1f}% each." if avg_all is not None else ""))}
+
+
+def per_trade_pct(m: dict) -> float | None:
+    """The research book's average closed trade as a % of its ₹50,000 practice slot (25 Oct audit: show the book in % per trade)."""
+    n = m.get("closed") or 0
+    return round(100 * (m.get("realised_inr") or 0) / (n * NOTIONAL), 1) if n else None
 
 
 def holdings(full: bool = False) -> dict:
@@ -495,7 +510,8 @@ def holdings(full: bool = False) -> dict:
     ab = _book()
     if ab.get("value_inr"):
         pos = ab.get("positions") or []
-        rows = [{"coin": p["symbol"], "qty": p.get("qty"), "avg": p.get("avg"), "now": p.get("last"), "value": p.get("value_inr"), "pnl_pct": p.get("pnl_pct"), "currency": "INR"} for p in pos] if full else []
+        rows = [{"coin": p["symbol"], "qty": p.get("qty"), "avg": p.get("avg"), "now": p.get("last"), "value": p.get("value_inr"), "pnl_pct": p.get("pnl_pct"), "currency": "INR",
+                 **({"note": p["note"]} if p.get("note") else {})} for p in pos] if full else []
         return {"mode": "PAPER", "value": ab["value_inr"], "start": ab.get("start_inr"), "return_pct": ab.get("return_pct"), "cash": ab.get("cash_inr"), "invested": ab.get("stocks_inr"),
                 "options": ab.get("options_inr"), "costs_paid": ab.get("costs_inr"), "holdings": rows, "holdings_count": len(pos), "not_held": [], "pending": ab.get("pending_days") or [],
                 "decided": rm.get("data_through"), "btc_gate": (rm.get("market") or {}).get("trend_state") == "above_both", "shadow": {"value": ab["value_inr"], "return_pct": ab.get("return_pct")},
@@ -830,6 +846,12 @@ def evidence_collected() -> dict:
                {"key": "validated", "label": "Ideas that passed a strict test", "value": v.get("VALIDATED", 0), "explain": f"of {sum(v.values())} versions tried on past years"},
                {"key": "ready", "label": "Studies ready to run", "value": (r.get("studies") or {}).get("ready", 0), "explain": "all their data is in"},
                {"key": "gate", "label": "Gate to real money", "value": 0, "explain": ("waiting on " + " and ".join(str(x) for x in cnt.values())) if isinstance(cnt, dict) and cnt else "waiting"}]
+    # 25 Oct audit: the India exam (records india/exam.py), a gate row: 30 questions to Ask Ananta, judged in code against its facts
+    ex = (r.get("exam") or {}).get("last") or {}
+    tracker.append({"key": "exam", "label": "India exam (30 questions)",
+                    "value": (ex.get("known") or 0) + (ex.get("unknown") or 0) + (ex.get("why") or 0) if ex else 0,
+                    "explain": (f"right on {_day_words(ex.get('day'))}; every answer safe: {'yes' if ex.get('safety') == ex.get('of') else 'no'}; "
+                                f"{'passed' if ex.get('exam_pass') else 'not passed yet'} (pass: 16 of 18 facts, 6 of 7 'I don't know', 4 of 5 reasons)") if ex else "not run yet: weekly, from the evening job"})
     forwarded = []
     for k, p in (r.get("exit_book") or {}).get("chosen", {}).items():
         fam, _, situ = str(k).partition("/")
@@ -850,6 +872,9 @@ def evidence_collected() -> dict:
                 "why": finding_words(q)[:200], "metric": "needs you" if q.get("lane") == "DECISION" else "fixed by itself", "goal": None} for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]
     done = [{"id": k, "status": "proved", "title": RULE_WORDS.get(k, k), "waiting_for": "", "why": "you said yes", "metric": "", "goal": None} for k in (st.get("admitted") or [])]
     tracker.append({"key": "cards", "label": "Nightly reviews", "value": len(_rx_cards()), "explain": "one every evening since 22 Oct"})
+    st_s = r.get("stale_input_sessions") or []
+    tracker.append({"key": "stale", "label": "Picks made on stale data", "value": len(st_s),
+                    "explain": ("marked, never dropped: " + ", ".join(x["day"] for x in st_s[-3:])) if st_s else "none so far"})
     tracker.append({"key": "findings", "label": "Things found", "value": len([q for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]), "explain": "small ones fixed by themselves; trading ones wait for you"})
     shop = {"running": running, "waiting": waiting, "done": done, "summary": _stairs_words(st)}
     return {"collected": collected, "tracker": tracker, "forwarded": forwarded, "shop": shop}

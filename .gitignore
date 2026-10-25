@@ -73,3 +73,7 @@ eval_runs/
 *.sqlite-shm
 *.sqlite-wal
 universe_bars.sqlite
+
+# 25 Oct audit: web build folders (the live build and the previous one) are rebuilt, never tracked
+dist_prev/
+dist_new/

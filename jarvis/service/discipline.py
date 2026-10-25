@@ -266,11 +266,22 @@ def officer_checks(j) -> list[dict]:
         over = [(b, n, net) for b, (n, net) in fam.items() if n >= 5 and net < -bar * n and "RANDOM" not in b]   # baselines are yardsticks, not books
         live = [x for x in over if strategy_status.trades(x[0])]
         paused = [x for x in over if not strategy_status.trades(x[0])]
-        words = "; ".join(f"{b}: {n} closed, net ${net:,.0f} in 7 days" for b, n, net in live) if live else "no live book is bleeding over 7 days"
+        # Madhav's decisions on a bleeding book stand for 14 days (24 Oct: "keep Jarvis's own book running"): the check reports the
+        # decision instead of failing again every night
+        decided = {}
+        for b, n, net in live:
+            r = j.db.execute("SELECT decision, decided_t FROM rx_queue WHERE key=? AND state='DECIDED' AND decided_t > ? ORDER BY decided_t DESC LIMIT 1",
+                             (f"bleed:{b}", int(j.now()) - 14 * DAY)).fetchone() if j.db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='rx_queue'").fetchone() else None
+            if r:
+                decided[b] = (r[0] or "").split(": ", 1)[-1]
+        failing = [x for x in live if x[0] not in decided]
+        parts = [f"{b}: {n} closed, net ${net:,.0f} in 7 days" + (f" (Madhav decided: {decided[b][:120]})" if b in decided else "") for b, n, net in live]
+        words = "; ".join(parts) if live else "no live book is bleeding over 7 days"
         if paused:
-            words += " (already paused, still closing old trades: " + ", ".join(f"{b} ${net:,.0f}" for b, n, net in paused) + ")"
-        out.append({"id": "book_bleed", "state": "FAIL" if live else "OK", "words": words,
-                    "books": [{"book": b, "n": n, "net_usd": round(net, 2)} for b, n, net in live]})
+            words += ". Paused books still closing their old trades: " + ", ".join(f"{b} ${net:,.0f}" for b, n, net in paused)
+        out.append({"id": "book_bleed", "state": "FAIL" if failing else ("DECIDED" if live else "OK"), "words": words,
+                    "books": [{"book": b, "n": n, "net_usd": round(net, 2), "decided": decided.get(b)} for b, n, net in live]})
     except Exception as exc:  # noqa: BLE001
         out.append({"id": "book_bleed", "state": "UNKNOWN", "words": str(exc)[:80]})
     try:  # explorer setups whose closed trades are mostly eaten by costs (the reviews' tags)

@@ -25,7 +25,9 @@ FAIL and every conflict plainly in one sentence each, with its number, and say w
 target"); if all pass, one short sentence says so; then what needs him, or "nothing needs you". Never write "nothing changed" when a check
 fails; (4) if the facts carry "evidence_window", one closing sentence: which day of the 60-day
 evidence window it is and whether the learning loop ran clean. Never invent a number: every figure must come from the facts. No headings, no bullet points, no
-greeting by time of day. If the facts say a brake fired or a strategy passed, lead with that."""
+greeting by time of day. If the facts say a brake fired or a strategy passed, lead with that. What fired TODAY is "account.brakes_today";
+the "fired" numbers inside "brakes" are totals since the book started, never today's. In a check's words, the books after "Paused books still closing"
+are different books from the ones before: never call a live book paused. A check with state DECIDED is one Madhav has already decided: say his decision, not a failure."""
 
 
 def _table(j) -> None:
@@ -45,6 +47,15 @@ def facts(j, daily: dict | None = None) -> dict:
                         "positions": {c: {"sleeve": p.get("sleeve"), "paid_cad": round(p.get("paid", 0), 2), "last_price_cad": p.get("last"), "rule": p.get("rule")} for c, p in (s.get("positions") or {}).items()},
                         "brakes": s.get("brakes"), "last_step": s.get("last_step"), "started": s.get("started"),
                         "closed_recent": (s.get("closed") or [])[-3:]}
+        # 25 Oct: the note said "the day-loss brake fired once today" when it had fired on 22 Oct ("fired" counts are totals since the start).
+        # Say in words what fired today and when each brake last fired.
+        log = (s.get("brakes") or {}).get("log") or []
+        today = [x for x in log if x.get("day") == f["day"]]
+        last = {}
+        for x in log:
+            last[x.get("brake")] = x
+        f["account"]["brakes_today"] = ("; ".join(f"the {x.get('brake', '').replace('_', '-')} brake fired today (no new buys until {x.get('until')})" for x in today)
+                                        or "no brake fired today" + ("; last fired: " + ", ".join(f"{b.replace('_', '-')} on {x.get('day')} (blocked until {x.get('until')})" for b, x in last.items()) if last else ""))
     except Exception as exc:  # noqa: BLE001
         f["account_error"] = str(exc)[:120]
     try:

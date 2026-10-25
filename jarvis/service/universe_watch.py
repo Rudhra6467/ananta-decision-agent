@@ -317,6 +317,8 @@ def rebuild(j, days: int = 3) -> dict:
                 if D[i][0] < since:
                     continue
                 for rule in RULES_ALL:
+                    if tier not in TIERS_OF.get(rule, TIERS):   # BRK and RBD run on tiers A and B only (25 Oct: the rebuild failed on BRK-UC)
+                        continue
                     spec = watch_engine.DAILY[wid(rule, tier)]
                     if spec["kind"] == "h07" and len(D) < 210:
                         continue
@@ -331,8 +333,19 @@ def rebuild(j, days: int = 3) -> dict:
 
     trade_guard._table(j.db)
     by_reason = {k: 0 for k in EXPLAINED_BY}
+    # a rule added later starts its book later (25 Oct: BRK and RBD, registered 24 Oct, "missed" the 23 Oct candle they never ran on):
+    # each rule's own start is its "since" date in the watch registry
+    since_of: dict[str, int] = {}
+    try:
+        reg = json.loads((Path(__file__).resolve().parents[2] / "docs" / "knowledge" / "watches.json").read_text())
+        items = reg.get("watches", reg) if isinstance(reg, dict) else reg
+        for k, v in (items.items() if isinstance(items, dict) else [(x.get("id"), x) for x in items]):
+            if isinstance(v, dict) and v.get("since"):
+                since_of[str(k)] = int(__import__("calendar").timegm(time.strptime(v["since"], "%Y-%m-%d")))
+    except Exception:  # noqa: BLE001
+        pass
     for w, c, t in sorted(rebuilt - live):
-        why = explain_unlogged(j, w, c, t, started)
+        why = explain_unlogged(j, w, c, t, max(started, since_of.get(w.split("-U")[0], 0)))
         if why:
             explained += 1
             by_reason[why] += 1

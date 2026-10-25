@@ -1125,7 +1125,9 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
             j.db.commit()
             continue
         sc, sw = score(j, coin, trig, detail)
-        if sc < MIN_SCORE:
+        # a priority moment (the setups board's nightly picks, a wait_for that arrived, the dial opening) is already a short, ranked list:
+        # it is never dropped as "ranked too low" (25 Oct: ASTER, the board's best pick, was dropped at 1.7)
+        if sc < MIN_SCORE and not prio:
             _unreviewed(j, qid, t, coin, trig, sc, f"ranked too low ({sc:g}: {', '.join(sw)})")
             continue
         ranked.append((sc, t, qid, coin, det, sw, trig, prio))   # D7: a full account still decides; a buy becomes "no room" evidence

@@ -192,6 +192,8 @@ def findings(j, day0: int, market: dict, ananta: dict, not_done: dict, reviews: 
         for c in discipline.officer_checks(j):
             if c["id"] == "book_bleed" and c["state"] == "FAIL":
                 for bk in c.get("books") or []:          # one row per live book, so each gets its own yes / no
+                    if bk.get("decided"):                # Madhav already decided on this book (the check says so): not a finding again
+                        continue
                     out.append(_f("BOOK_BLEED", f"bleed:{bk['book']}", f"{bk['book']}: {bk['n']} closed, net ${bk['net_usd']:,.0f} in {b['bleed_days']} days "
                                   f"(the bar is -${b['bleed_pct'] * 100 * bk['n']:,.0f}); pause it, or say why it keeps running", bk))
     except Exception:  # noqa: BLE001

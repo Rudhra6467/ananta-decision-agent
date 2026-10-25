@@ -18,7 +18,7 @@ from pathlib import Path
 
 import requests
 
-from jarvis.india import views
+from jarvis.india import appmap, views
 
 DATA = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india")))
 ASK_DIR = DATA / "ask"
@@ -42,7 +42,11 @@ web for the day's biggest moves, each with a grade (A filing, B two outlets, C o
 say ..." with the grade, and add that a note is never a reason to trade.
 Reply with ONE JSON object and nothing else: {"kind":"answer","stage":"observation|outcome|learning","answer":"...","breakdown":["...","..."],
 "evidence":["<fact and where it comes from>", ...],"assumption":"","follow_ups":["short question","short question","short question"],
-"next_action":{"label":"","why":"","route":""},"show":[],"options":[],"route":"india"}.
+"next_action":{"label":"","why":"","route":""},"show":[],"options":[],"route":"india","ui":[],"points":[]}.
+You can move the app and point at things: when he asks to see, open or go somewhere, or when showing it makes the answer clearer, put
+"ui":[{"do":"go_to"|"open","target":"<a PLACE key>"}] (open is for sheet:... targets) and say in the answer what you opened; to light a part
+of Home while a sentence is spoken, add "points":[{"spot":"<a SPOT key>","sentence":<0-based sentence number>}]. Never claim you opened
+something without a ui action for it. Use only the PLACE and SPOT keys listed below.
 If the question is unclear, use "kind":"clarify" with 2-4 "options". If it is off-topic, answer briefly as "kind":"outside" without facts."""
 
 
@@ -340,14 +344,16 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if today_count() >= DAILY_LIMIT:
         raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
     thread = thread or uuid.uuid4().hex[:12]
-    # code-built answers first (a mode switch, the morning view, drafts, the portfolio review), then a pick, a problem or "my flags"
-    fixed = (morning_flow(text, who) or allocation_flow(text, who) or draft_flow(text, who) or portfolio_flow(text, who)
+    # plain navigation first ("show my stocks", "open my flags", "go back": done at once in code, flags 96/97), then the code-built answers
+    # (a mode switch, the morning view, drafts, the portfolio review), then a pick, a problem or "my flags"
+    fixed = (nav_flow(text) or morning_flow(text, who) or allocation_flow(text, who) or draft_flow(text, who) or portfolio_flow(text, who)
              or fix_flow(text, thread, token, context, post=flag_post, get=flag_get))
     if fixed is not None:
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
         rid = uuid.uuid4().hex[:12]
-        row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "rule", "ms": 0, "rating": None, **fixed, "model_label": "Ananta (rules)", "mode": mode or "auto", "cost_usd": 0.0, "thread": thread}
+        row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "rule", "ms": 0, "rating": None, **fixed,
+               "model_label": "Instant" if fixed.get("mode") == "nav" else "Ananta (rules)", "mode": fixed.get("mode") or mode or "auto", "cost_usd": 0.0, "thread": thread}
         _append(thread, row)
         _touch_index(thread, text[:60], voice)
         return {**row, "timing": {"ms": 0}}
@@ -370,8 +376,11 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     else:
         user = f"QUESTION: {text}\n\nFACTS (India read model, data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\nReply with the JSON object only: begin with {{ and end with }}, no markdown, no text outside it."
         try:
-            raw, usage = _claude(SYSTEM, hist, user, post=post)
+            raw, usage = _claude(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post)
             reply = _parse(raw)
+            # the model may move the app and light Home while it talks; only real places and spots pass (flags 96/97, 25 Oct)
+            reply["ui"] = appmap.valid_ui(reply.get("ui"))
+            reply["points"] = appmap.valid_points(reply.get("points"))
         except Exception as e:  # noqa: BLE001
             reply = _offline(text, f, str(e)[:120])
             usage = {"model": "none"}
@@ -546,6 +555,15 @@ def _rs(x) -> str:
         return "-"
 
 
+def nav_flow(text: str) -> dict | None:
+    """Voice and chat navigation in India (flags 96/97; Madhav, 25 Oct): a plain "take me / show me / open" answered at once in code."""
+    q = appmap.quick_command(text)
+    if not q:
+        return None
+    return _reply(q["say"], ["What am I looking at?", "Go back"], ["app map (jarvis/india/appmap.py)"],
+                  {"ui": q["ui"], "points": q.get("points") or [], "mode": "nav", "route": "app"})
+
+
 def portfolio_flow(text: str, who: str) -> dict | None:
     """Request 95 (Madhav, 24 Oct: "if I ask you to analyze one part of my portfolio or all of it, pull it up and get it done right away"):
     the review is built in code from the latest ratings, instantly, with every holding's grade, action, reason and 'wrong if', and the
@@ -635,21 +653,21 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         _set_pending(thread, None)
         which = " and ".join(f"fix {k}" for k in picks)
         title = "; ".join(str((pend["options"][k - 1] or {}).get("title")) for k in picks)
-        if state == "queued":
-            a = f"Done, sir: {which} for request {pend['num']} ({title}) {'is' if len(picks) == 1 else 'are'} queued. The repair worker builds it, tests it and puts it live; you get 'Fixed: request {pend['num']}' on your phone."
-        elif state == "plan":
-            a = f"Noted, sir: {which} for request {pend['num']} ({title}). It is near trading, so the worker writes the plan first and it waits for your yes in Needs you."
+        name = j.get("label") or f"flag {pend['num'] - 81}"
+        if state in ("queued", "plan"):                 # the time it needs, said straight away (Madhav, 25 Oct), and the phone note when done
+            a = f"Done, sir: {which} for {name} ({title}) {'is queued' if state == 'queued' else 'goes to a plan first'}. {j.get('eta_words') or ''}".strip()
         else:
-            a = f"Request {pend['num']}: {state or j.get('detail') or 'recorded'}."
-        return _reply(a, ["What happened to my flag?", "What did you decide for the next session?"], [f"fix flow: request {pend['num']}, {which}, state {state}"])
+            a = f"{name.capitalize()}: {state or j.get('detail') or 'recorded'}."
+        return _reply(a, ["What happened to my flag?", "Show my flags"], [f"fix flow: {name}, {which}, state {state}"])
     if STATUS.search(text):
         r = get(f"{JARVIS_URL}/v3/flags")
         j = r.json() if hasattr(r, "json") else r
         flags = [f for f in (j.get("flags") or []) if str(f.get("market", "")).startswith("ind") or "Indian market" in str(f.get("text", ""))][:5] or (j.get("flags") or [])[:5]
         if not flags:
             return _reply("No flags on the board yet, sir.", ["What did you decide for the next session?"], ["fix flow board: empty"])
-        lines = "; ".join(f"request {f.get('num')}: {str(f.get('state') or f.get('status') or '?')} - {str(f.get('text') or '')[:60]}" for f in flags)
-        return _reply(f"Your flags, sir: {lines}.", ["Flag something else", "What did you decide for the next session?"], [f"fix flow board: {len(flags)} shown"])
+        lines = "; ".join(f"{f.get('label') or 'request ' + str(f.get('num'))}: {str((f.get('flow') or {}).get('state_words') or f.get('state') or f.get('status_words') or f.get('status') or '?')} - {str(f.get('text') or '').split('] ', 1)[-1][:60]}" for f in flags)
+        return _reply(f"Your flags, sir: {lines}.", ["Show my flags", "Flag something else"], [f"fix flow board: {len(flags)} shown"],
+                      {"ui": [{"do": "go_to", "target": "flags", "label": "My flags"}]})
     if FLAG.search(text) and len(text) >= 8:
         screen = str((context or {}).get("here", {}).get("label") if isinstance((context or {}).get("here"), dict) else (context or {}).get("screen") or "")[:80]
         r = post(f"{JARVIS_URL}/v3/flags", {"text": text[:600], "market": "india", "screen": screen, "route": "ask"})
@@ -659,6 +677,7 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         opts = j.get("options") or []
         lines = [f"{i + 1}. {o.get('title')} - {'I fix it and put it live' if o.get('lane') == 'SAFE' else 'near trading: a plan for your yes'}" for i, o in enumerate(opts)]
         _set_pending(thread, {"num": j["num"], "options": [{"title": o.get("title"), "lane": o.get("lane")} for o in opts]})
-        a = f"Flagged as request number {j['num']}, sir. " + (f"{j.get('diagnosis')} " if j.get("diagnosis") else "") + ("Fixes: " + " ".join(lines) + " Say a number or tap one." if lines else "I'll tell you when it's fixed.")
-        return _reply(a, [f"Fix {i + 1}: {o.get('title')}" for i, o in enumerate(opts)], [f"fix flow: request {j['num']} filed on the shared board"], {"flag": j})
+        name = j.get("label") or f"flag {j['num'] - 81}"
+        a = f"Flagged as {name}, sir. " + (f"{j.get('diagnosis')} " if j.get("diagnosis") else "") + ("Fixes: " + " ".join(lines) + " Say a number or tap one." if lines else "I'll tell you when it's fixed.")
+        return _reply(a, [f"Fix {i + 1}: {o.get('title')}" for i, o in enumerate(opts)], [f"fix flow: {name} filed on the shared board"], {"flag": j})
     return None

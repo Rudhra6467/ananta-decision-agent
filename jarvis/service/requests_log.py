@@ -14,6 +14,7 @@ readable at /v3/requests. The work session starts by reading the OPEN ones (docs
 """
 from __future__ import annotations
 
+import re
 import uuid
 
 KINDS = ("data", "feature", "bug", "idea")
@@ -22,6 +23,26 @@ EXAM_NOTE = "Made by the agent exam (a test question), not by Madhav."
 STATUSES = ("OPEN", "PLANNED", "DONE", "WONT")
 STATUS_WORDS = {"OPEN": "on the list", "PLANNED": "planned for the next work session", "DONE": "fixed", "WONT": "closed without a change"}
 COLS = ("id", "num", "t", "by", "kind", "text", "about", "thread", "status", "note", "updated_t", "pushed", "told")
+# The flag numbers restart after the 23 Oct reset (Madhav, 25 Oct: "the flag number is 90 plus. didn't we discuss to update the number?"):
+# request 82 is flag 1, 96 is flag 15. The stored number never changes (the repair ledger and the locks cite it); people see and say
+# the flag number, and every lookup takes either.
+RESET_AFTER = 81
+
+
+def label(num) -> str:
+    try:
+        n = int(num)
+    except (TypeError, ValueError):
+        return f"request {num}"
+    return f"flag {n - RESET_AFTER}" if n > RESET_AFTER else f"request {n}"
+
+
+def flag_no(num) -> int | None:
+    try:
+        n = int(num)
+    except (TypeError, ValueError):
+        return None
+    return n - RESET_AFTER if n > RESET_AFTER else None
 
 
 def _table(j) -> None:
@@ -40,6 +61,7 @@ def _table(j) -> None:
 def _row(r) -> dict:
     d = dict(zip(COLS, r))
     d["status_words"] = STATUS_WORDS.get(d["status"], d["status"])
+    d["no"], d["label"] = flag_no(d["num"]), label(d["num"])
     return d
 
 
@@ -49,9 +71,19 @@ def _select(j, where: str = "", args: tuple = ()) -> list[dict]:
 
 
 def get(j, ref: str | int) -> dict | None:
-    """By id or by number ("4", "#4")."""
-    s = str(ref).strip().lstrip("#")
-    rows = _select(j, "WHERE id=? OR num=?", (s, int(s) if s.isdigit() else -1))
+    """By id, by flag number ("flag 15", "15") or by stored number ("request 96", "96"). A small number is a flag number when that
+    flag exists (every request before the reset is closed)."""
+    s = str(ref).strip().lower().lstrip("#")
+    m = re.fullmatch(r"(flag|request)?\s*#?\s*(\d+)", s)
+    if m:
+        n = int(m.group(2))
+        if m.group(1) != "request" and n <= RESET_AFTER:
+            rows = _select(j, "WHERE num=?", (n + RESET_AFTER,))
+            if rows:
+                return rows[0]
+        rows = _select(j, "WHERE num=?", (n,))
+        return rows[0] if rows else None
+    rows = _select(j, "WHERE id=?", (s,))
     return rows[0] if rows else None
 
 
@@ -64,7 +96,7 @@ def add(j, kind: str, text: str, about: str | None = None, by: str = "owner", th
     dup = j.db.execute("SELECT id, num FROM owner_requests WHERE status IN ('OPEN','PLANNED') AND lower(text)=lower(?)", (text,)).fetchone()
     if dup:                                                  # the same words again: no second copy
         return {"id": dup[0], "num": dup[1], "status": "OPEN", "duplicate": True,
-                "say": f"That's already on the list as request number {dup[1]}. I'll tell you when it's fixed."}
+                "say": f"That's already on the list as {label(dup[1])}. I'll tell you when it's fixed."}
     num = (j.db.execute("SELECT COALESCE(MAX(num), 0) FROM owner_requests").fetchone()[0] or 0) + 1
     rid = uuid.uuid4().hex[:8]
     exam = str(thread or "").startswith(EXAM_THREAD)        # the agent exam asks through the live path: kept, but closed and labelled
@@ -73,7 +105,7 @@ def add(j, kind: str, text: str, about: str | None = None, by: str = "owner", th
                   "WONT" if exam else "OPEN", EXAM_NOTE if exam else "", int(j.now()), 1, 1))
     j.db.commit()
     return {"id": rid, "num": num, "kind": kind, "status": "OPEN",
-            "say": f"Flagged as request number {num} for the repair shop. It's on the Evidence page's repair board, and I'll tell you when it's fixed."}
+            "say": f"Flagged as {label(num)}. It's on your flags list, and I'll tell you when it's fixed."}
 
 
 def list_(j, include_done: bool = True) -> list[dict]:
@@ -98,7 +130,7 @@ def set_status(j, ref: str | int, status: str, note: str = "") -> dict:
 
 def _sentence(r: dict) -> str:
     what = r["text"].split(". ")[0][:140]
-    s = f"Request {r['num']} ({what}) is {r['status_words']}"
+    s = f"{label(r['num']).capitalize()} ({what}) is {r['status_words']}"
     return s + (f": {r['note']}" if r.get("note") else ".")
 
 
@@ -107,7 +139,7 @@ def notify(j, push=None) -> list[dict]:
     rows = _select(j, "WHERE COALESCE(pushed, 1)=0 AND status IN ('PLANNED','DONE','WONT')")
     out = []
     for r in rows:
-        title = {"DONE": f"Fixed: request {r['num']}", "PLANNED": f"Planned: request {r['num']}", "WONT": f"Closed: request {r['num']}"}[r["status"]]
+        title = {"DONE": f"Fixed: {label(r['num'])}", "PLANNED": f"Planned: {label(r['num'])}", "WONT": f"Closed: {label(r['num'])}"}[r["status"]]
         try:
             if push:
                 push(title, _sentence(r))
@@ -136,9 +168,9 @@ def feed_items(j, since: int) -> list[dict]:
     items = []
     for r in _select(j, "WHERE (t >= ? OR COALESCE(updated_t, 0) >= ?) AND COALESCE(by, '') != 'exam'", (since, since)):
         if r["t"] >= since:
-            items.append({"t": r["t"], "kind": "request", "title": f"Flagged for the repair shop: request {r['num']}",
+            items.append({"t": r["t"], "kind": "request", "title": f"Flagged: {label(r['num'])}",
                           "body": r["text"][:200]})
         if r["status"] != "OPEN" and (r.get("updated_t") or 0) >= since:
             items.append({"t": r["updated_t"], "kind": "request", "good": r["status"] == "DONE",
-                          "title": f"Request {r['num']}: {r['status_words']}", "body": (r["note"] or r["text"])[:200]})
+                          "title": f"{label(r['num']).capitalize()}: {r['status_words']}", "body": (r["note"] or r["text"])[:200]})
     return items

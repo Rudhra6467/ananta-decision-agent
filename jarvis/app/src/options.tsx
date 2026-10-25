@@ -8,6 +8,7 @@ import { useData } from "./useData";
 import { Act, Btn, Card, ListState, T, s as st } from "./ui";
 import { C } from "./theme";
 import { askAbout } from "./context";
+import { useSheetRequest } from "./spotlight";
 
 const GRADE_COLOR: Record<string, string> = { A: "good", B: "good", C: "warn", D: "bad" };
 const ACTION_WORD: Record<string, string> = { HOLD: "Keep", WATCH: "Watch", TRIM: "Trim", REDUCE: "Reduce", TIDY: "Tidy up", ADD: "Add" };
@@ -16,6 +17,7 @@ const rs = (x: any) => (x == null ? "–" : "₹" + Math.round(Number(x)).toLoca
 export function MoneyCard() {
   const { data: d, err, loading, reload } = useData("/v3/allocation/plan", 60000);
   const [open, setOpen] = useState(false);
+  useSheetRequest(["money"], () => setOpen(true));                    // "show my money" by voice
   if (!d && loading) return <Card><T dim>Reading your money…</T></Card>;
   if (!d) return <Card><ListState state="error" text={err ?? "No data"} /></Card>;
   const auto = d.mode === "autonomous";

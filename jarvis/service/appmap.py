@@ -48,6 +48,8 @@ SCREENS = {
                          "running, recent actions, costs), your mandate, the test lab, active alerts"},
     "mandate": {"name": "Your mandate", "where": "More > Additional features > Your mandate", "shows": "your goals, markets, styles, setups, limits and how Ananta should talk"},
     "testlab": {"name": "Test lab", "where": "More > Voice and model > Test lab", "shows": "recorded test runs of Ananta with answers to mark Good / OK / Bad"},
+    # 25 Oct: the Flag button left every screen; Ananta takes flags by voice or chat and opens this list when asked
+    "flags": {"name": "My flags", "where": "More > My flags, or ask Ananta 'show my flags'", "shows": "every flag (numbered from 1 since the 23 Oct reset) with where its fix stands: waiting for your choice, queued, being built, live, or back with you"},
 }
 ALIASES = {
     "home": "home", "home screen": "home", "main": "home", "start": "home", "dashboard": "home", "inbox": "home", "brief": "home", "activity": "home",
@@ -66,6 +68,7 @@ ALIASES = {
     "missed": "missed", "missed moves": "missed", "what we missed": "missed", "findings": "missed",
     "cockpit": "cockpit", "more tab": "cockpit", "the more tab": "cockpit", "settings": "cockpit", "controls": "cockpit", "kill switch": "cockpit", "budget": "cockpit", "alerts": "cockpit",
     "dial": "markets", "trend dial": "markets", "brakes": "markets",
+    "flags": "flags", "my flags": "flags", "flag requests": "flags", "my flag requests": "flags", "flag list": "flags", "my requests": "flags",
     "mandate": "mandate", "my mandate": "mandate", "goals": "mandate", "test lab": "testlab", "tests": "testlab", "test results": "testlab",
     "test runs": "testlab", "app tests": "testlab",
 }
@@ -128,6 +131,12 @@ def quick_command(j, text: str) -> dict | None:
     qs = quick_scroll(text)
     if qs:
         return qs
+    # flag 8 (request 89) and 25 Oct: "switch to the Indian market" by voice; the switch itself is the chip beside every tab's title
+    if re.search(r"\b(switch|go|move|take me|change)\b[^.?!]{0,20}\b(india|indian)\b|\bopen (the )?indian market\b", text, re.I) and len(text) < 90:
+        return {"ui": [{"do": "market", "target": "market:india", "label": "the Indian market"}],
+                "say": "Sure, Madhav. Switching you to the Indian market. The switch is also the small chip beside the title on every tab."}
+    if re.search(r"\bwhere\b[^.?!]{0,30}\b(india|indian)\b[^.?!]{0,20}\b(switch|option|market)\b", text, re.I):
+        return {"ui": [], "say": "The market switch is the small chip beside the title at the top of every tab: tap it to change market. Or just say 'switch to the Indian market'."}
     if TOUR_ASK.search(text) and len(text.split()) <= 14:
         steps = tour(j)
         return {"ui": [], "tour": steps, "say": "Sure, Madhav. Let me show you around. I'll go tab by tab; say stop or tap Stop any time."}

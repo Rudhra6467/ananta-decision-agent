@@ -7,6 +7,7 @@ import { useData } from "./useData";
 import { Act, Btn, Card, T, s as st } from "./ui";
 import { C } from "./theme";
 import { askAbout } from "./context";
+import { useSheetRequest } from "./spotlight";
 
 function Section({ title, lines }: { title: string; lines?: string[] | string | null }) {
   const arr = !lines ? [] : Array.isArray(lines) ? lines : String(lines).split("\n").filter((x) => x.trim());
@@ -39,6 +40,7 @@ function noteSections(words?: string | null): { title: string; lines: string[] }
 export function MorningCard() {
   const { data: m } = useData("/v3/morning", 120000);
   const [open, setOpen] = useState(false);
+  useSheetRequest(["morning"], () => setOpen(true));                  // "show the morning view" by voice
   if (!m?.ready) return null;
   const first = (m.view ?? []).slice(0, 2);
   const note = noteSections(m.words);

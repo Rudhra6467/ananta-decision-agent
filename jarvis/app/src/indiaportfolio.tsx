@@ -7,6 +7,7 @@ import { Act, Btn, T, s as st } from "./ui";
 import { C, pnlColor } from "./theme";
 import { askAbout } from "./context";
 import { useData } from "./useData";
+import { useSheetRequest } from "./spotlight";
 
 const rs = (x: any) => (x == null || Number.isNaN(Number(x)) ? "–" : "₹" + Math.round(Number(x)).toLocaleString("en-IN"));
 const rsSigned = (x: any) => (x == null ? "–" : `${Number(x) < 0 ? "−" : "+"}${rs(Math.abs(Number(x)))}`);
@@ -50,6 +51,7 @@ function Box({ title, value, change, changePct, sub, onPress }: { title: string;
 
 export function IndiaPortfolio({ a }: { a: any }) {
   const [open, setOpen] = useState<null | "stocks" | "options">(null);
+  useSheetRequest(["stocks", "options"], (n) => setOpen(n as "stocks" | "options"));      // "show my stocks" by voice
   const pos = positionsOf(a);
   const stocks = a.stocks_inr ?? pos.reduce((s, p) => s + p.value, 0);
   const paid = a.stocks_paid_inr ?? pos.reduce((s, p) => s + p.paid, 0);

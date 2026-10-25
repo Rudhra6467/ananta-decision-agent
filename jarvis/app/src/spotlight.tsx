@@ -154,3 +154,16 @@ export function scroll(dir: "up" | "down" | "top" | "bottom"): boolean {
   scroller.ref.current.scrollTo({ y: to, animated: true });
   return true;
 }
+
+
+// Sheets Ananta can open on India Home (25 Oct, voice navigation): "show my stocks" opens the Stocks box, "my options" the Options box,
+// "my money" Your money's panel, "the morning view" its Read sheet. The card that owns the sheet listens.
+const sheetSubs = new Set<(name: string) => void>();
+export function requestSheet(name: string) { sheetSubs.forEach((f) => f(name)); }
+export function useSheetRequest(names: string[], open: (name: string) => void) {
+  useEffect(() => {
+    const f = (n: string) => { if (names.includes(n)) open(n); };
+    sheetSubs.add(f);
+    return () => { sheetSubs.delete(f); };
+  }, [names.join("|")]);
+}

@@ -57,9 +57,9 @@ function PracticeStrip() {
 // Which Ananta is loaded (23 Oct): a small chip beside the title when it is the Indian market; tap it to switch. Crypto shows nothing,
 // so the crypto app looks exactly as before.
 function MarketChip() {
-  const m = useMarket();
-  const me = useMe();
-  if (!m || me?.guest) return null;                                   // both markets show which Ananta is loaded; a tap switches (Madhav, 23 Oct)
+  const m = useMarket() ?? "crypto";                                  // flag 8 (request 89, 24 Oct): a laptop that never picked a market
+  const me = useMe();                                                 // runs crypto and showed no switch; the chip now shows there too
+  if (!me || me?.guest) return null;                                  // both markets show which Ananta is loaded; a tap switches (Madhav, 23 Oct)
   return (
     <Pressable onPress={async () => { await clearMarket(); router.replace("/market"); }} accessibilityRole="button" accessibilityLabel={`${MARKET_NAME[m]} loaded; tap to switch market`}
       style={{ marginLeft: 8, paddingVertical: 3, paddingHorizontal: 8, borderRadius: 999, backgroundColor: C.card2, borderWidth: 1, borderColor: C.line }}>

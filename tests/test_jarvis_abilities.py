@@ -18,7 +18,7 @@ def _no_local(monkeypatch):
 def test_requests_report_back_once():
     j, ex = _jarvis()
     a = requests_log.add(j, "data", "Track the highest price of a trade while it is open.", "XRP")
-    assert a["num"] == 1 and "number 1" in a["say"] and "tell you when it's fixed" in a["say"]
+    assert a["num"] == 1 and "request 1" in a["say"] and "tell you when it's fixed" in a["say"]
     assert requests_log.add(j, "data", "Track the highest price of a trade while it is open.")["duplicate"]   # same words: no copy
     b = requests_log.add(j, "bug", "The voice said Vamsi instead of Madhav.")
     assert b["num"] == 2

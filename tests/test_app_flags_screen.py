@@ -1,14 +1,10 @@
-"""My flags screen (Madhav, 23 Oct): the line under the title says where the Flag button is, and that matches where it sits."""
+"""My flags screen (Madhav, 23 Oct; 25 Oct: the Flag button left every screen, flags are said to Ananta): the line under the title says how to flag."""
 from pathlib import Path
 
 APP = Path(__file__).resolve().parents[1] / "jarvis" / "app"
 
 
-def test_flags_subtitle_says_where_the_flag_button_is():
+def test_flags_subtitle_says_how_to_flag():
     screen = (APP / "app" / "flags.tsx").read_text()
-    assert "Flag button at the bottom left of every screen" in screen
-
-
-def test_flag_button_really_sits_bottom_left():
-    button = (APP / "src" / "flag.tsx").read_text()
-    assert 'position: "absolute", left:' in button and "bottom:" in button
+    assert "tell Ananta by voice or chat" in screen and "Flag button" not in screen
+    assert "FlagButton" not in (APP / "app" / "_layout.tsx").read_text()

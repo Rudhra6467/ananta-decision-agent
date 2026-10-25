@@ -2,9 +2,10 @@
 import { router } from "expo-router";
 import { api } from "./api";
 import { getScreen, goTab } from "./context";
-import { clearSpot, focusSpot, scroll } from "./spotlight";
+import { clearSpot, focusSpot, requestSheet, scroll } from "./spotlight";
+import { setMarket } from "./market";
 
-export type UiAction = { do: "go_to" | "open" | "back" | "scroll"; target?: string; dir?: "up" | "down" | "top" | "bottom"; label?: string };
+export type UiAction = { do: "go_to" | "open" | "back" | "scroll" | "market"; target?: string; dir?: "up" | "down" | "top" | "bottom"; label?: string };
 export type UiResult = { action: UiAction; ok: boolean; landed?: string; error?: string };
 
 const TABS: Record<string, { path: string; tab?: string; sub?: string }> = {
@@ -17,6 +18,8 @@ const TABS: Record<string, { path: string; tab?: string; sub?: string }> = {
   evidence: { path: "/lab", tab: "collected" }, "evidence:forwarded": { path: "/lab", tab: "forwarded" },
   cockpit: { path: "/(tabs)/cockpit" }, mandate: { path: "/mandate" }, testlab: { path: "/testlab" },
   jarvis: { path: "/jarvis" }, missed: { path: "/missed" },
+  // 25 Oct (flags 96/97, India voice navigation): My flags, the nightly reconstruction, More by its own name
+  flags: { path: "/flags" }, reconstruction: { path: "/reconstruction" }, more: { path: "/(tabs)/cockpit" },
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -25,6 +28,8 @@ function expected(t: string): (s: any) => boolean {
   if (t.startsWith("coin:")) return (s) => s?.screen === "coin" && s?.coin === t.slice(5);
   if (t.startsWith("trade:")) return (s) => s?.screen === "trade" && s?.id === t.slice(6);
   if (t.startsWith("jtrade:")) return (s) => s?.screen === "jtrade" && s?.id === t.slice(7);
+  if (t.startsWith("sheet:") || t.startsWith("market:")) return (s) => s?.screen === "home";
+  if (t === "more") return (s) => s?.screen === "cockpit";
   const [screen, tab] = t.split(":");
   const name = screen === "portfolio" && tab === "explorer" ? "explorer_trades" : screen === "portfolio" && tab === "mine" ? "manual_book"
     : screen === "portfolio" && tab === "lab" ? "ananta_market" : screen === "books" ? "home" : screen;
@@ -56,6 +61,21 @@ export async function run(actions: UiAction[] = []): Promise<UiResult[]> {
         continue;
       }
       const t = a.target ?? "";
+      if (a.do === "market" || t.startsWith("market:")) {           // "switch to crypto" / "switch to India": the app reloads that market's Home
+        const m = t.split(":")[1] === "india" ? "india" : "crypto";
+        await setMarket(m);
+        goTab({ pathname: "/(tabs)/today", params: { t: String(Date.now()) } } as any);
+        const ok = await confirm(t);
+        out.push({ action: a, ok, landed: getScreen()?.label, error: ok ? undefined : "the market did not switch" });
+        continue;
+      }
+      if (t.startsWith("sheet:")) {                                 // India Home's boxes and cards: go Home, then open the sheet
+        if (getScreen()?.screen !== "home") goTab({ pathname: "/(tabs)/today", params: { t: String(Date.now()) } } as any);
+        const ok = await confirm(t);
+        if (ok) { await sleep(300); requestSheet(t.slice(6)); }
+        out.push({ action: a, ok, landed: getScreen()?.label, error: ok ? undefined : "Home did not open" });
+        continue;
+      }
       if (t.startsWith("coin:")) router.push(`/coin/${t.slice(5)}`);
       else if (t.startsWith("trade:")) router.push(`/trade/${t.slice(6)}`);
       else if (t.startsWith("jtrade:")) router.push(`/jtrade/${t.slice(7)}`);

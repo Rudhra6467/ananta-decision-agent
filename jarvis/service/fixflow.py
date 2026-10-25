@@ -14,7 +14,7 @@ The flow, one row per flag beside its repair-board request (owner_requests, jarv
   2. choose()   Madhav taps one option. SAFE -> state "queued" (scripts/repair_worker.py picks it up within two minutes);
                 DECISION -> state "plan" (the worker writes the plan, changes no code).
   3. the worker reports each step (report()): working -> deployed / needs_decision / failed, with the commit and the cost; the request's
-                status follows (DONE when deployed), and requests_log.notify sends "Fixed: request N" to the phone.
+                status follows (DONE when deployed), and requests_log.notify sends "Fixed: flag N" to the phone at once.
 
 Spending: the triage call is capped at TRIAGE_DAILY a day; the worker at WORKER_DAILY fixes a day (scripts/repair_worker.py).
 Nothing here places an order or changes a trading rule; the worker refuses any change outside SAFE_PATHS (repair_worker.allowed).
@@ -127,7 +127,39 @@ def flag(j, text: str, market: str = "crypto", screen: str = "", route: str = ""
                  (num, market, screen[:80], route[:120], lane_of(text), json.dumps(body), None, "triaged",
                   json.dumps([[now, "flagged; options offered"]]), cost, None, None, now, now))
     j.db.commit()
-    return {"num": num, "say": f"Flagged as request {num}. Choose how to fix it.", **body}
+    return {"num": num, "no": requests_log.flag_no(num), "label": requests_log.label(num), "say": f"Flagged as {requests_log.label(num)}. Choose how to fix it.", **body}
+
+
+def _fix_minutes(j) -> list[float]:
+    """How long the worker's past SAFE fixes took, from Madhav's choice to live (minutes)."""
+    out = []
+    for log, upd in j.db.execute("SELECT log, updated_t FROM fix_flow WHERE state='deployed' AND lane='SAFE'").fetchall():
+        try:
+            chose = next(t for t, line in json.loads(log or "[]") if str(line).startswith("Madhav chose"))
+            if upd and upd > chose:
+                out.append((upd - chose) / 60)
+        except (StopIteration, ValueError):
+            continue
+    return sorted(out)
+
+
+def eta(j, num: int, lane: str) -> tuple[int, str]:
+    """Straight away when Madhav picks (25 Oct: "it should tell me straight how much time it needs"): the minutes, from the worker's own
+    past fixes plus anything queued ahead of this one, and the promise of a phone note when it is live."""
+    from jarvis.service import requests_log
+
+    past = _fix_minutes(j)
+    one = past[len(past) // 2] if past else 8.0
+    one = max(4.0, min(30.0, one + 2))                          # the worker looks every 2 minutes
+    ahead = j.db.execute("SELECT COUNT(*) FROM fix_flow WHERE state IN ('queued','working') AND num != ?", (num,)).fetchone()[0]
+    mins = int(round(one * (1 + ahead)))
+    name = requests_log.label(num)
+    if lane == "SAFE":
+        q = f" ({ahead} fix{'es' if ahead != 1 else ''} ahead of it)" if ahead else ""
+        return mins, (f"It should be live in about {mins} minutes{q}. You'll get a phone notification, 'Fixed: {name}', the moment it is; "
+                      "if a check fails, nothing changes and you're told why.")
+    return mins, (f"This one is near trading, so the plan comes first, in about {max(5, int(one))} minutes, and it waits for your yes. "
+                  f"After your yes, building it takes about {mins} minutes; you'll get a phone notification at each step.")
 
 
 def choose(j, num: int, option: int, words: str = "") -> dict:
@@ -139,7 +171,7 @@ def choose(j, num: int, option: int, words: str = "") -> dict:
     if not row:
         raise ValueError(f"no flag {num}")
     if row["state"] not in ("triaged", "needs_decision", "failed"):
-        raise ValueError(f"request {num} is already {STATE_WORDS.get(row['state'], row['state'])}")
+        raise ValueError(f"{requests_log.label(num)} is already {STATE_WORDS.get(row['state'], row['state'])}")
     opts = row["options"]["options"]
     if not 0 <= option < len(opts):
         raise ValueError("pick one of the offered fixes")
@@ -150,7 +182,9 @@ def choose(j, num: int, option: int, words: str = "") -> dict:
     requests_log.set_status(j, num, "PLANNED", f"Madhav chose: {o['title']}. {o['what']}" + (f" His words: {words[:200]}" if words else "")
                             + (" The repair worker builds, tests and deploys it, then reports back." if lane == "SAFE"
                                else " Near trading: the worker writes a plan only; nothing changes without his yes."))
-    return {"num": num, "state": state, "lane": lane, "say": f"Request {num}: {STATE_WORDS[state]}. I'll tell you when it's done."}
+    mins, words = eta(j, num, lane)
+    return {"num": num, "no": requests_log.flag_no(num), "label": requests_log.label(num), "state": state, "lane": lane, "eta_minutes": mins, "eta_words": words,
+            "say": f"{requests_log.label(num).capitalize()}: {o['title']}. {words}"}
 
 
 def _log(j, num: int, line: str, **set_) -> None:
@@ -178,6 +212,13 @@ def report(j, num: int, state: str, line: str, commit: str | None = None, cost: 
         requests_log.set_status(j, num, "DONE", f"Fixed and live: {line}" + (f" (commit {commit[:7]})" if commit else ""))
     elif state in ("needs_decision", "failed"):
         requests_log.set_status(j, num, "PLANNED", f"{STATE_WORDS[state].capitalize()}: {line}")
+    if state in ("deployed", "needs_decision", "failed") and not os.getenv("PYTEST_CURRENT_TEST"):   # the phone hears at once (Madhav, 25 Oct); never from a test
+        try:
+            from src.intelligence.paper_watch import push_phone
+
+            requests_log.notify(j, push=lambda title, body: push_phone(title, body, level="EVENT"))
+        except Exception:  # noqa: BLE001  the 15-minute round tries again
+            pass
     return get(j, num)
 
 

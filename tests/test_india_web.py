@@ -215,7 +215,7 @@ def test_india_ask_fix_flow_files_offers_and_queues_by_words(lake, monkeypatch):
 
     th = "t1"
     r = ia.ask("madhav", "the options card on home is not working, the plan is stale", thread=th, token="tok", flag_post=fpost, flag_get=fget)
-    assert r["provider"] == "rule" and "request number 83" in r["answer"] and r["follow_ups"][0].startswith("Fix 1:") and sent[0][1]["market"] == "india"
+    assert r["provider"] == "rule" and "flag 2" in r["answer"] and r["follow_ups"][0].startswith("Fix 1:") and sent[0][1]["market"] == "india"
     r2 = ia.ask("madhav", "the first", thread=th, token="tok", flag_post=fpost, flag_get=fget)
     assert "queued" in r2["answer"] and sent[-1][0].endswith("/v3/flags/83/choose") and sent[-1][1]["option"] == 0
     r3 = ia.ask("madhav", "what happened to my flag?", thread=th, token="tok", flag_post=fpost, flag_get=fget)

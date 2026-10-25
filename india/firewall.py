@@ -49,6 +49,8 @@ ALLOWED_REFS = {
     ("jarvis/india/views.py", r"ananta-records"): "the India screens read the generated registration pages",
     ("tests/test_india_web.py", r"import india\b"): "a test of the India web app",
     ("tests/test_india_plain.py", r"ananta_data/india"): "a test of the India plain-words screens",
+    ("scripts/run_india_exam.py", r"ananta-records"): "the weekly India exam runner imports the records checkout's exam judges and asks the India Ask (25 Oct)",
+    ("tests/test_india_exam_runner.py", r"INDIA_DATA_DIR"): "a test that points the India data folder at a temporary folder",
     ("jarvis/service/runcheck_parts.py", r"bronze/ledger"): "the job watch checks that the India ledger snapshot file exists and its size (no read of its contents)",
 }
 CANARY_FILE = paths.manifest_dir() / "firewall_canary.txt"

@@ -110,8 +110,10 @@ def margincheck(log=print) -> dict:
 # python -m india.sz2 trades      per SP1 policy trade (2017-2023 walk-forward rows, gold/studies/SP1_policy_trades.parquet) x structure:
 #                                 legs, entry and exit values, planned max loss per lot, gross R, the minute marks in R
 #                                 -> gold/studies/SZ2_trades.parquet, manifests/sz2_trades.json
-# The holdout-era decisions (2024-01-01..2026-10-16, the completed sp1_holdout run's own policy_trades) are the spec's selection window; they
-# sit under sealed/gold and need a logged purpose in india/sealed.py before this step may read them: not added in this session.
+# python -m india.sz2 trades_holdout   the same table for the holdout-era decisions (2024-01-01..2026-10-16, the completed sp1_holdout run's
+#                                 own policy_trades: the spec's selection window), read through the logged purpose sz2_selection (sealed.read_sz2,
+#                                 Madhav 23 Oct 2026) and written inside the sealed tree
+# python -m india.sz2 select      the selection (india/sz2sel.py): survival simulation, bootstraps, eligibility, the choice, the report
 import numpy as np
 import pandas as pd
 
@@ -201,35 +203,30 @@ def leg_costs(sym: str, legs, prices_in: list, prices_out: list, lot: int, day, 
     return {"hs_in": hs_in, "hs_out": hs_out, "fees": fees}
 
 
-def build_trades(log=print) -> dict:
-    """The per-trade, per-structure table for the walk-forward rows (2017-2023)."""
-    import datetime as dt, json, time
-    from india import paths
-    t0 = time.time()
-    D = paths.data_dir()
-    pt = pd.read_parquet(D / "gold/studies/SP1_policy_trades.parquet")
-    pt["date"] = pd.to_datetime(pt["date"]).dt.date
-    pt = pt[(pt["date"] >= dt.date(2017, 1, 1)) & (pt["date"] <= dt.date(2023, 12, 29))].reset_index(drop=True)
-    days_all, _ = ocstudy._calendar()
+IV_SHIFT_NOTE = ("IV shift 0 (Madhav, 23 Oct 2026, SZ2 decision (b): keep 0 and state it until R01's four weeks give a measured number, about 15 Nov; "
+                 "then one pre-registered sensitivity run); half-spread = max(Rs 0.5 Nifty / 1.0 Bank Nifty, 0.4% of premium) (the spec's fallback "
+                 "while india.spreads has fewer than 10 sessions)")
+
+
+def trade_rows(pt: pd.DataFrame, days_all: list, chains: pd.DataFrame, idx: dict, log=print) -> tuple[pd.DataFrame, dict]:
+    """Per SP1 policy trade x structure (the same code for the walk-forward rows and the holdout-era rows): legs, entry and exit values, the
+    planned max loss per lot from entry information only, GROSS per lot, the per-leg prices (to re-express everything at today's contracts)
+    and the minute marks in R. pt: SP1 policy trades (date as date); days_all: the trading calendar; chains: previous-session fo_greeks rows;
+    idx: ocstudy.index_arrays of the index minutes."""
+    import json
     di = {d: i for i, d in enumerate(days_all)}
     prev = {days_all[i]: days_all[i - 1] for i in range(1, len(days_all))}
     nxt = {days_all[i]: days_all[i + 1] for i in range(len(days_all) - 1)}
+
     def sessions_after(day, exp):
         a, b = di.get(day), di.get(exp)
         if a is None or b is None:
             return sum(1 for d in days_all if day < d <= exp)
         return b - a
-    import duckdb
-    files = [str(D / "silver/fo_greeks" / f"year={y}" / "part.parquet") for y in range(2016, 2024) if (D / "silver/fo_greeks" / f"year={y}" / "part.parquet").exists()]
-    con = duckdb.connect()
-    chains = con.execute(f"""select date, symbol, expiry, strike, opt_type, fwd, iv, settle, coalesce(volume, 0) as volume from read_parquet({files!r})
-                             where symbol in ('NIFTY', 'BANKNIFTY')""").df()
-    con.close()
+    chains = chains.copy()
     chains["date"] = pd.to_datetime(chains["date"]).dt.date
     chains["expiry"] = pd.to_datetime(chains["expiry"]).dt.date
     by = {k: g for k, g in chains.groupby(["symbol", "date"])}
-    idx = ocstudy.load_index()
-    iv_shift_note = "IV shift 0 (pricing.calibration (a) not yet fitted from the recorder); half-spread = max(Rs 0.5 Nifty / 1.0 Bank Nifty, 0.4% of premium) (the spec's fallback while india.spreads has fewer than 10 sessions)"
     rows, reasons = [], {}
     for r in pt.itertuples(index=False):
         sym, day = r.index, r.date
@@ -244,8 +241,7 @@ def build_trades(log=print) -> dict:
             continue
         c = g[g["expiry"] == exp]
         fwd_prev = c["fwd"].dropna()
-        name = sp1.IDX[sym]
-        ix = idx[name]
+        ix = idx[sp1.IDX[sym]]
         d_i = {d: i for i, d in enumerate(ix["dates"])}
         if day not in d_i or fwd_prev.empty:
             reasons["no_minutes"] = reasons.get("no_minutes", 0) + 1
@@ -257,7 +253,6 @@ def build_trades(log=print) -> dict:
         typ = "CE" if r.dir > 0 else "PE"
         x = c[(c["opt_type"] == typ) & (c["volume"] > 0) & c["iv"].notna() & (c["iv"] > 0)]
         ks, ivs = x["strike"].to_numpy(float), x["iv"].to_numpy(float) + IV_SHIFT[sym]
-        # premium turnover of the previous session per strike: volume x lot x settle (fo_greeks settle)
         sett = c[c["opt_type"] == typ].groupby("strike")["settle"].max()
         e0 = sp1.POINT_ENTRY[r.point]
         decision_px = float(ix["open"][k, 0]) if r.point == "D0" else float(ix["close"][k, e0 - 1])
@@ -274,75 +269,139 @@ def build_trades(log=print) -> dict:
         call = typ == "CE"
         F_in, F_out = float(r.entry) * carry, float(r.exit_px) * carry
         T_in, T_out = sp1._t_years(day, m_in, exp), sp1._t_years(d_out, m_out, exp)
+        lot = int(r.lot)
         for structure in STRUCTURES:
             s_eff = MAPPED[r.exit] if structure == "MAPPED" else structure
             legs, why = leg_strikes(s_eff, typ, decision_px, listed, ks, sym)
-            base = {"date": day, "index": sym, "point": r.point, "exit": r.exit, "dir": int(r.dir), "lot": int(r.lot), "expiry": exp, "sessions_left": sessions_after(day, exp),
-                    "structure": structure, "structure_eff": s_eff, "decision_px": decision_px, "entry_idx": float(r.entry), "exit_idx": float(r.exit_px), "stopped": bool(r.stopped), "carry": carry}
+            base = {"date": day, "index": sym, "point": r.point, "exit": r.exit, "dir": int(r.dir), "lot": lot, "expiry": exp, "sessions_left": sessions_after(day, exp),
+                    "structure": structure, "structure_eff": s_eff, "decision_px": decision_px, "entry_idx": float(r.entry), "exit_idx": float(r.exit_px), "stopped": bool(r.stopped),
+                    "carry": carry, "m_in": int(m_in), "m_out": int(m_out), "next_day": bool(r.next_day), "date_out": d_out}
             if legs is None:
                 rows.append({**base, "available": False, "reason": why})
                 continue
-            # liquidity: previous-session premium turnover of each leg
             liq_ok = True
             for K, side in legs:
                 vol = float(x.loc[x["strike"] == K, "volume"].sum()) if len(x) else 0.0
                 st_ = float(sett.get(K, np.nan))
-                if not (vol * r.lot * (st_ if st_ == st_ else 0.0) >= MIN_TURNOVER_RS):
+                if not (vol * lot * (st_ if st_ == st_ else 0.0) >= MIN_TURNOVER_RS):
                     liq_ok = False
             if not liq_ok:
                 rows.append({**base, "available": False, "reason": "liquidity"})
                 continue
-            p_in = [float(greeks.black76(np.array([F_in]), np.array([K]), np.array([T_in]), np.array([max(iv_of(F_in, K), 0.01)]), np.array([call]))[0][0]) for K, _ in legs]
-            p_out = [float(greeks.black76(np.array([F_out]), np.array([K]), np.array([T_out]), np.array([max(iv_of(F_out, K), 0.01)]), np.array([call]))[0][0]) for K, _ in legs]
-            p_in, p_out = [max(v, 0.05) for v in p_in], [max(v, 0.05) for v in p_out]
+            bs = lambda F, K, T: float(greeks.black76(np.array([F]), np.array([K]), np.array([T]), np.array([max(iv_of(F, K), 0.01)]), np.array([call]))[0][0])
+            p_in = [max(bs(F_in, K, T_in), 0.05) for K, _ in legs]
+            p_out = [max(bs(F_out, K, T_out), 0.05) for K, _ in legs]
             v_in = sum(side * v for (K, side), v in zip(legs, p_in))
             v_out = sum(side * v for (K, side), v in zip(legs, p_out))
-            cst = leg_costs(sym, legs, p_in, p_out, int(r.lot), day, d_out, bool(r.stopped))
-            gross_rs = (v_out - v_in) * r.lot                                    # GROSS per lot: no spreads, no fees (contracts.lots_and_scale)
-            # planned max loss per lot (max_loss_per_lot.rule)
-            full = v_in * r.lot + cst["hs_in"] + 2 * sum(_hs(sym, v) for v in p_out) * r.lot + cst["fees"]
-            if r.exit in NO_STOP_EXITS or not (r.stop0 == r.stop0):
-                max_loss = full
-            else:
+            cst = leg_costs(sym, legs, p_in, p_out, lot, day, d_out, bool(r.stopped))
+            gross_rs = (v_out - v_in) * lot
+            # planned max loss per lot from entry information only (max_loss_per_lot.rule): the full premium or debit (every leg exits at the
+            # 0.05 floor) or the stressed exit, each with its entry costs and its exit costs at 2x half-spread at the planned exit prices
+            p_full = [0.05 for _ in legs]
+            fees_in = sum(costs.cost("options", "buy" if s > 0 else "sell", abs(pi) * lot, day.year, when=day) for (K, s), pi in zip(legs, p_in))
+            def exit_fees(ps):
+                return sum(costs.cost("options", "sell" if s > 0 else "buy", abs(px) * lot, day.year, when=day) for (K, s), px in zip(legs, ps))
+            full_core = v_in * lot
+            full = full_core + cst["hs_in"] + 2 * sum(_hs(sym, v) for v in p_full) * lot + fees_in + exit_fees(p_full)
+            p_s, stressed_core, stressed = None, np.nan, np.nan
+            if not (r.exit in NO_STOP_EXITS or not (r.stop0 == r.stop0)):
                 S = float(r.stop0) - r.dir * STRESS_ATR * float(r.atr_d)
                 T_s = sp1._t_years(day, STRESS_MIN, exp)
-                v_s = _value(legs, S * carry, T_s, iv_of, call, shift=STRESS_IV)
-                stressed = (v_in - v_s) * r.lot + cst["hs_in"] + 2 * sum(_hs(sym, abs(v)) for v in p_out) * r.lot + cst["fees"]
-                max_loss = min(full, stressed)
-            max_loss = max(max_loss, 1.0)
-            # minute marks in R: the structure valued at each minute's close from the entry minute to the exit minute (bid side = mid minus hs)
+                p_s = []
+                for K, side in legs:
+                    iv = max(iv_of(S * carry, K) - side * STRESS_IV, 0.01)
+                    p_s.append(max(float(greeks.black76(np.array([S * carry]), np.array([K]), np.array([T_s]), np.array([iv]), np.array([call]))[0][0]), 0.05))
+                v_s = sum(side * v for (K, side), v in zip(legs, p_s))
+                stressed_core = (v_in - v_s) * lot
+                stressed = stressed_core + cst["hs_in"] + 2 * sum(_hs(sym, v) for v in p_s) * lot + fees_in + exit_fees(p_s)
+            max_loss = max(min(full, stressed) if stressed == stressed else full, 1.0)
             marks = []
             for kk, m0, m1 in ((k, m_in, NMIN - 1 if r.next_day else m_out), *(((k_out, 0, m_out),) if r.next_day else ())):
                 dday = day if kk == k else d_out
                 for m in range(m0, m1 + 1):
                     F = float(ix["close"][kk, m]) * carry
                     if F != F:
+                        marks.append(marks[-1] if marks else 0.0)
                         continue
                     T = sp1._t_years(dday, m, exp)
                     v = _value(legs, F, T, iv_of, call) - sum(_hs(sym, abs(pv)) for pv in p_in)
-                    marks.append(float((v - v_in) * r.lot / max_loss))
-            notional = r.lot * float(r.entry)
-            rows.append({**base, "available": True, "reason": "", "legs": json.dumps(legs), "v_in": v_in, "v_out": v_out, "gross_rs": gross_rs, "gross_frac_notional": gross_rs / notional,
-                         "max_loss_rs": max_loss, "max_loss_frac_notional": max_loss / notional, "gross_R": gross_rs / max_loss, "hs_in_rs": cst["hs_in"], "hs_out_rs": cst["hs_out"],
-                         "fees_rs_dated": cst["fees"], "net_rs_dated": gross_rs - cst["hs_in"] - cst["hs_out"] - cst["fees"], "breach": (-(gross_rs - cst["hs_in"] - cst["hs_out"] - cst["fees"])) > max_loss,
-                         "marks_R": np.array(marks, dtype=np.float32), "min_mark_R": float(min(marks)) if marks else float("nan")})
-    out = pd.DataFrame(rows)
-    out_file = paths.gold() / "studies" / "SZ2_trades.parquet"
-    out.to_parquet(out_file, index=False)
+                    marks.append(float((v - v_in) * lot / max_loss))
+            notional = lot * float(r.entry)
+            net_dated = gross_rs - cst["hs_in"] - cst["hs_out"] - cst["fees"]
+            rows.append({**base, "available": True, "reason": "", "legs": json.dumps(legs), "p_in": json.dumps(p_in), "p_out": json.dumps(p_out),
+                         "p_stress": json.dumps(p_s) if p_s else "", "v_in": v_in, "v_out": v_out, "gross_rs": gross_rs, "gross_frac_notional": gross_rs / notional,
+                         "max_loss_rs": max_loss, "max_loss_frac_notional": max_loss / notional, "ml_branch": "stressed" if (stressed == stressed and stressed < full) else "full",
+                         "full_core_frac": full_core / notional, "stressed_core_frac": stressed_core / notional if stressed_core == stressed_core else np.nan,
+                         "gross_R": gross_rs / max_loss, "hs_in_rs": cst["hs_in"], "hs_out_rs": cst["hs_out"], "fees_rs_dated": cst["fees"], "net_rs_dated": net_dated,
+                         "net_R_dated": net_dated / max_loss, "breach": (-net_dated) > max_loss, "marks_R": np.array(marks, dtype=np.float32),
+                         "min_mark_R": float(min(marks)) if marks else float("nan")})
+    return pd.DataFrame(rows), reasons
+
+
+def _summary(out: pd.DataFrame, n_pt: int, reasons: dict, window: str, out_file, t0: float) -> dict:
+    import datetime as dt, time
     av = out[out["available"]]
-    summ = {"at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "spec_version": "sz2-v1-2026-10-19-frozen", "window": "2017-01-02..2023-12-29 (walk-forward rows; the holdout-era rows wait on a logged sealed purpose)",
-            "sp1_trades": int(len(pt)), "skipped_trades": reasons, "rows": int(len(out)), "available_share_by_structure": {k: round(float(v), 3) for k, v in out.groupby("structure")["available"].mean().items()},
+    return {"at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "spec_version": "sz2-v1-2026-10-19-frozen", "window": window,
+            "sp1_trades": int(n_pt), "skipped_trades": reasons, "rows": int(len(out)),
+            "available_share_by_structure": {k: round(float(v), 3) for k, v in out.groupby("structure")["available"].mean().items()},
             "unavailable_reasons": {k: int(v) for k, v in out.loc[~out["available"], "reason"].value_counts().items()},
             "gross_R_mean_by_structure": {k: round(float(v), 4) for k, v in av.groupby("structure")["gross_R"].mean().items()},
             "max_loss_frac_notional_median_by_index_structure": {f"{i}|{s}": round(float(v), 5) for (i, s), v in av.groupby(["index", "structure"])["max_loss_frac_notional"].median().items()},
             "planned_max_loss_breaches": {"n": int(av["breach"].sum()), "share": round(float(av["breach"].mean()), 4) if len(av) else None,
                                           "by_exit": {k: int(v) for k, v in av.groupby("exit")["breach"].sum().items()},
                                           "by_sessions_left": {str(k): int(v) for k, v in av.groupby(pd.cut(av["sessions_left"], [0, 3, 7, 1000], labels=["2-3", "4-7", "8+"]), observed=True)["breach"].sum().items()}},
-            "calibration": iv_shift_note, "file": str(out_file), "seconds": round(time.time() - t0, 1)}
+            "calibration": IV_SHIFT_NOTE, "file": str(out_file), "seconds": round(time.time() - t0, 1),
+            "note": "25 Oct 2026: the planned max loss uses entry information only (exit costs at the planned exit prices: the 0.05 floor for the full loss, the "
+                    "stressed leg values for the stop); the 23 Oct table took the exit half-spread from the realised exit prices"}
+
+
+def build_trades(log=print) -> dict:
+    """The per-trade, per-structure table for the walk-forward rows (2017-2023), from silver."""
+    import datetime as dt, json, time
+    import duckdb
+    from india import paths
+    t0 = time.time()
+    D = paths.data_dir()
+    pt = pd.read_parquet(D / "gold/studies/SP1_policy_trades.parquet")
+    pt["date"] = pd.to_datetime(pt["date"]).dt.date
+    pt = pt[(pt["date"] >= dt.date(2017, 1, 1)) & (pt["date"] <= dt.date(2023, 12, 29))].reset_index(drop=True)
+    days_all, _ = ocstudy._calendar()
+    files = [str(D / "silver/fo_greeks" / f"year={y}" / "part.parquet") for y in range(2016, 2024) if (D / "silver/fo_greeks" / f"year={y}" / "part.parquet").exists()]
+    con = duckdb.connect()
+    chains = con.execute(f"""select date, symbol, expiry, strike, opt_type, fwd, iv, settle, coalesce(volume, 0) as volume from read_parquet({files!r})
+                             where symbol in ('NIFTY', 'BANKNIFTY')""").df()
+    con.close()
+    out, reasons = trade_rows(pt, days_all, chains, ocstudy.load_index(), log)
+    out_file = paths.gold() / "studies" / "SZ2_trades.parquet"
+    out.to_parquet(out_file, index=False)
+    summ = _summary(out, len(pt), reasons, "2017-01-02..2023-12-29 (walk-forward rows)", out_file, t0)
     (paths.manifest_dir() / "sz2_trades.json").write_text(json.dumps(summ, indent=1, default=str))
     log(json.dumps({k: summ[k] for k in ("sp1_trades", "skipped_trades", "rows", "available_share_by_structure", "unavailable_reasons", "gross_R_mean_by_structure", "planned_max_loss_breaches", "seconds")}, indent=1, default=str))
     return summ
 
+
+def build_trades_holdout(log=print) -> dict:
+    """The same table for the holdout-era decisions (2024-01-01..2026-10-16: the completed SP1 holdout run's own policy trades), read through
+    the logged sealed purpose sz2_selection (Madhav, 23 Oct 2026, SZ2 decision (a)); written inside the sealed tree (sealed.sz2_output_dir)."""
+    import datetime as dt, json, time
+    from india import paths, sealed, sp1_holdout
+    t0 = time.time()
+    pt = sealed.read_sz2("sz2_selection", "policy_trades")
+    pt["date"] = pd.to_datetime(pt["date"]).dt.date
+    days_all, _ = sp1_holdout.calendar_full()
+    di = {d: i for i, d in enumerate(days_all)}
+    prev_days = sorted({days_all[di[d] - 1] for d in pt["date"] if d in di})
+    m_days = sorted(set(pt["date"]) | {days_all[di[d] + 1] for d in pt["date"] if d in di and di[d] + 1 < len(days_all)} | set(prev_days))
+    chains = sealed.read_sz2("sz2_selection", "chains", prev_days)
+    mins = sealed.read_sz2("sz2_selection", "index_minutes", m_days)
+    idx = ocstudy.index_arrays(mins)
+    out, reasons = trade_rows(pt, days_all, chains, idx, log)
+    out_file = sealed.sz2_output_dir("sz2_selection") / "SZ2_trades_holdout.parquet"
+    out.to_parquet(out_file, index=False)
+    summ = _summary(out, len(pt), reasons, "2024-01-01..2026-10-16 (the completed SP1 holdout run's policy trades; sealed purpose sz2_selection)", out_file, t0)
+    (paths.manifest_dir() / "sz2_trades_holdout.json").write_text(json.dumps(summ, indent=1, default=str))
+    log(json.dumps({k: summ[k] for k in ("sp1_trades", "skipped_trades", "rows", "available_share_by_structure", "unavailable_reasons", "planned_max_loss_breaches", "seconds")}, indent=1, default=str))
+    return summ
 
 if __name__ == "__main__":
     paths.ensure()
@@ -351,5 +410,10 @@ if __name__ == "__main__":
         print(json.dumps(margincheck(), indent=1))
     elif cmd == "trades":
         build_trades()
+    elif cmd == "trades_holdout":
+        build_trades_holdout()
+    elif cmd in ("select", "rehearse"):
+        from india import sz2sel
+        sz2sel.main(cmd)
     else:
         raise SystemExit(__doc__)

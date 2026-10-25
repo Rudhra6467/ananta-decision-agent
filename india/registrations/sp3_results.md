@@ -77,7 +77,7 @@ Trades in the K=5 policy book: dev 516, validation 437 (minimum 200 for a non-IN
 - outcomes: 500 of 500 sampled (candidate, action) rows re-derived bar by bar with exitlab._exit on the holding bars agree to the rupee (0 differ)
 - book days: 18 of 20 K=5 policy-book days recomputed from the trade list agree within Rs 1; the rest differ by under Rs 200 where a survival closure fell on a session the stock did not trade (the book credits the cash a session early)
 
-## Not run in this session
+## Not run in the 23 Oct session (all run on 25 Oct: see Remaining parts below)
 
 - INDEX rows (NIFTY, BANKNIFTY futures book)
 - state-shuffle nulls (200 draws)
@@ -91,3 +91,123 @@ Trades in the K=5 policy book: dev 516, validation 437 (minimum 200 for a non-IN
 - `/Users/vamsie/ananta_data/india/gold/studies/SP3_policy_trades.parquet`
 - `/Users/vamsie/ananta_data/india/gold/studies/SP3_book_daily.parquet`
 - `manifests/sp3_results.json`, `manifests/sp3_outcomes.json`, `manifests/sp3_features.json`, `manifests/sp3_bars.json`, `manifests/sp3_crosscheck.json`
+
+## Remaining parts (run 25 Oct 2026, `python -m india.sp3extra`)
+
+Same frozen spec, same dev 2010-2017 and validation 2018-2023 (SEEN); nothing here changes the frozen policy. Numbers are daily book returns (Newey-West t, 5 lags) unless said otherwise.
+
+### INDEX rows (near-month futures shadow book, bps of one future's notional, rule seen_val_only, the frozen union bar z 3.985)
+
+| row | dev mean/day | dev t | val mean/day | val t | val Sharpe | verdict |
+|---|---|---|---|---|---|---|
+| INDEX|NIFTY|policy | +0.33 bp | +0.15 | +3.79 bp | +1.34 | +0.57 | NOT_SUPPORTED_SEEN |
+| INDEX|NIFTY|vs_intercept_only | -1.60 bp | -1.06 | -0.75 bp | -0.55 | -0.24 | NOT_SUPPORTED_SEEN |
+| INDEX|BANKNIFTY|policy | +2.86 bp | +0.86 | +1.41 bp | +0.37 | +0.16 | NOT_SUPPORTED_SEEN |
+| INDEX|BANKNIFTY|vs_intercept_only | -1.13 bp | -0.57 | -3.60 bp | -1.32 | -0.56 | NOT_SUPPORTED_SEEN |
+- NIFTY: trades dev 147, validation 100 (minimum 100); net per closed trade +24.78 bp, win rate 0.533; actions taken {'long_hold_5': 77, 'long_hold_20': 69, 'long_sma10_cap60': 36, 'long_hold_10': 30, 'long_x20_lim20': 20, 'short_x20_lim20': 8, 'short_hold_20': 5, 'short_hold_5': 1, 'short_hold_10': 1}; c by year {'2010': 0.5, '2011': 1.5, '2012': 1.5, '2013': 0.5, '2014': 0.5, '2015': 1.5, '2016': 0.5, '2017': 1.5, '2018': 3.0, '2019': 3.0, '2020': 3.0, '2021': 2.0, '2022': 2.0, '2023': 0.5}; data handling {'entry_spot': 3, 'carried_close': 123, 'exit_open_carried': 120, 'roll_new_spot': 0, 'rolls': 13437}
+- BANKNIFTY: trades dev 126, validation 119 (minimum 100); net per closed trade +31.30 bp, win rate 0.512; actions taken {'long_hold_5': 59, 'long_sma10_cap60': 55, 'long_x20_lim20': 48, 'long_hold_20': 33, 'long_hold_10': 30, 'short_x20_lim20': 19, 'short_sma10_cap60': 1}; c by year {'2010': 1.0, '2011': 2.0, '2012': 1.5, '2013': 0.5, '2014': 2.5, '2015': 0.5, '2016': 1.5, '2017': 4.0, '2018': 2.5, '2019': 0.5, '2020': 1.0, '2021': 1.0, '2022': 0.5, '2023': 1.0}; data handling {'entry_spot': 4, 'carried_close': 124, 'exit_open_carried': 120, 'roll_new_spot': 0, 'rolls': 13133}
+- Exit decisions use the index's own closes (and its 20-session lows/highs); fills and marks use the future, rolled at the close two sessions before expiry with both legs' dated fees and a tick each; the index is not re-entered at the open where its position left; the shadow book has no survival lines.
+
+### State-shuffle nulls (tests.nulls; descriptive, cannot reach the bar)
+
+- 200 draws (seeds 1001-1200): market rows permuted across dates in month blocks, stock-feature vectors permuted within family and month, models refitted with lambda and c fixed at the real fit's values, policy and K=5 book rerun.
+- share of null books at or above the real one: validation 0.220, dev 0.285 (real validation +0.95 bp; null median -7.69 bp, 5-95% -20.42 bp .. +5.93 bp)
+- how often the null trades: median 1290 book entries; median share of candidates with a qualifying action 0.361
+- parity check (this fitter on the real features): 1.0 of the decisions equal the real run's; validation +0.95 bp
+
+### Drop-one feature-group ablations (full refit without the group)
+
+The real K=5 policy book made 953 entries over 2010-2023. An ablated book that trades far more pays far more in costs, so a large 'real minus ablated' says the group kept the policy out of costly trades, not that it found winners. Descriptive only.
+
+| group dropped | val mean/day (t) | real minus ablated, val (t) | dev mean/day (t) | book entries |
+|---|---|---|---|---|
+| breadth (breadth) | +0.84 bp (+0.17) | +0.11 bp (+0.03) | +4.33 bp (+1.19) | 646 |
+| fii (fii_share) | -16.76 bp (-5.15) | +17.71 bp (+3.53) | -8.71 bp (-2.85) | 4464 |
+| market_trend (nifty_trend, nifty_ret20) | -17.42 bp (-4.84) | +18.37 bp (+3.68) | -1.89 bp (-0.44) | 3140 |
+| scheduled_events (sched_5) | -0.87 bp (-0.18) | +1.82 bp (+0.48) | +1.89 bp (+0.48) | 856 |
+| size (small_vs_large, liq_b) | +2.58 bp (+0.55) | -1.63 bp (-0.43) | +1.18 bp (+0.34) | 906 |
+| stock_events (band5, results_meeting_10) | +3.30 bp (+0.64) | -2.35 bp (-0.52) | +5.72 bp (+1.33) | 978 |
+| stock_flow (vol_heat, deliv_high, fo_member) | +4.68 bp (+1.02) | -3.73 bp (-0.90) | +2.12 bp (+0.51) | 782 |
+| stock_technical (dist50_b, rsi_b, ret_20, rv20_top) | +4.54 bp (+0.81) | -3.59 bp (-0.81) | +6.57 bp (+1.57) | 890 |
+| us (qqq_vs200, qqq_move) | +5.84 bp (+1.25) | -4.89 bp (-1.16) | +8.16 bp (+1.86) | 765 |
+| vix (vix, vix_vs50) | -9.58 bp (-2.68) | +10.53 bp (+2.21) | -0.99 bp (-0.25) | 1847 |
+
+### The book started in 12 different months
+
+- started in each month of 2010: validation mean from +0.32 bp to +5.93 bp; positive in 12 of 12
+- started in each month of 2018 (validation only): from -1.76 bp to +4.14 bp; positive in 8 of 12
+
+### Reverse family priority
+
+- 35794 priority flags change; policy validation +3.52 bp (t +0.65); vs baseline +0.20 bp (t +0.05); vs intercept-only +17.56 bp (t +3.19); dev policy +1.94 bp (t +0.49)
+
+### Filters as findings (on/off slices of the baseline population; descriptive)
+
+Population: real-family priority candidates 2010-2023 with outcomes (the baseline book's pool) (93237 candidates); net = GROSS minus a Rs 12,000 slot's dated round-trip fees; full table `gold/studies/SP3_filter_slices.parquet` (18850 cells; 3123 with at least 200 trades on each side and the same sign in dev and validation).
+
+Differences are per trade (net return of a trade with the condition on minus off, in bp of the slot), pooled over families.
+
+| condition | action | dev on-off (n on/off) | val on-off (n on/off) | same sign |
+|---|---|---|---|---|
+| ext_ret60_gt50 | hold_60d_nostop | -8.74 bp (3694/47076) | +680.29 bp (2941/39526) | False |
+| ext_ret60_gt50 | hold_20d | +37.25 bp (3694/47076) | +103.89 bp (2941/39526) | True |
+| ext_sma50_gt20 | hold_60d_nostop | +135.38 bp (3556/47214) | +545.06 bp (2949/39518) | True |
+| ext_sma50_gt20 | hold_20d | +43.28 bp (3556/47214) | +9.56 bp (2949/39518) | True |
+| ext_ret20_gt25 | hold_60d_nostop | +189.28 bp (2485/48285) | +316.80 bp (2157/40310) | True |
+| ext_ret20_gt25 | hold_20d | +22.25 bp (2485/48285) | -76.87 bp (2157/40310) | False |
+| decline_ret60_lt_m30 | hold_60d_nostop | +36.91 bp (3635/47135) | +566.77 bp (3906/38561) | True |
+| decline_ret60_lt_m30 | hold_20d | +135.94 bp (3635/47135) | +284.08 bp (3906/38561) | True |
+| pull_shallow | hold_60d_nostop | -75.19 bp (6793/43977) | -96.96 bp (5514/36953) | True |
+| pull_shallow | hold_20d | +7.80 bp (6793/43977) | -30.07 bp (5514/36953) | False |
+| pull_deep | hold_60d_nostop | -81.99 bp (3398/47372) | +456.89 bp (3624/38843) | False |
+| pull_deep | hold_20d | +6.78 bp (3398/47372) | +166.12 bp (3624/38843) | True |
+| pull_above50 | hold_60d_nostop | +83.44 bp (33889/16881) | -0.68 bp (27278/15189) | False |
+| pull_above50 | hold_20d | +9.22 bp (33889/16881) | -24.02 bp (27278/15189) | False |
+| pull_lowvol | hold_60d_nostop | -34.69 bp (23622/27148) | +103.64 bp (19454/23013) | False |
+| pull_lowvol | hold_20d | +32.45 bp (23622/27148) | +61.19 bp (19454/23013) | True |
+| pull_healthy | hold_60d_nostop | +44.95 bp (15022/35748) | +25.72 bp (12227/30240) | True |
+| pull_healthy | hold_20d | +37.70 bp (15022/35748) | +4.33 bp (12227/30240) | True |
+| vol_heat2 | hold_60d_nostop | -13.21 bp (10905/39865) | -137.09 bp (9177/33290) | True |
+| vol_heat2 | hold_20d | -42.75 bp (10905/39865) | -76.05 bp (9177/33290) | True |
+| deliv_high | hold_60d_nostop | +89.20 bp (9263/41507) | +191.09 bp (4518/37927) | True |
+| deliv_high | hold_20d | +19.63 bp (9263/41507) | +45.53 bp (4518/37927) | True |
+| rv20_high | hold_60d_nostop | -166.35 bp (10523/40247) | -13.54 bp (8637/33830) | True |
+| rv20_high | hold_20d | -24.13 bp (10523/40247) | -7.01 bp (8637/33830) | True |
+| breadth_lt30 | hold_60d_nostop | +430.22 bp (4109/46661) | +1017.29 bp (6059/36408) | True |
+| breadth_lt30 | hold_20d | +232.26 bp (4109/46661) | +347.79 bp (6059/36408) | True |
+| breadth_lt40 | hold_60d_nostop | +123.53 bp (7408/43362) | +493.19 bp (10448/32019) | True |
+| breadth_lt40 | hold_20d | +69.71 bp (7408/43362) | +140.72 bp (10448/32019) | True |
+| breadth_thrust | hold_60d_nostop | -171.74 bp (245/50525) | -1084.76 bp (132/42335) | True |
+| breadth_thrust | hold_20d | -9.77 bp (245/50525) | -182.25 bp (132/42335) | True |
+| nifty_gt50d | hold_60d_nostop | +25.18 bp (33624/17146) | -205.91 bp (27436/15031) | False |
+| nifty_gt50d | hold_20d | +40.65 bp (33624/17146) | -16.82 bp (27436/15031) | False |
+| nifty_gt200d | hold_60d_nostop | -197.77 bp (40331/10439) | -843.50 bp (33535/8932) | True |
+| nifty_gt200d | hold_20d | -128.59 bp (40331/10439) | -230.01 bp (33535/8932) | True |
+| vix_gt20 | hold_60d_nostop | +116.01 bp (13961/36613) | +1013.01 bp (12690/29756) | True |
+| vix_gt20 | hold_20d | +147.39 bp (13961/36613) | +263.26 bp (12690/29756) | True |
+| vix_rising | hold_60d_nostop | +265.19 bp (19678/28454) | -170.41 bp (19738/21380) | False |
+| vix_rising | hold_20d | +107.95 bp (19678/28454) | -2.47 bp (19738/21380) | False |
+| small_lead | hold_60d_nostop | -151.64 bp (27434/23336) | +249.53 bp (21727/20740) | False |
+| small_lead | hold_20d | -49.94 bp (27434/23336) | -26.65 bp (21727/20740) | True |
+| usdinr_rising | hold_60d_nostop | +131.33 bp (20159/18376) | -84.63 bp (18839/12168) | False |
+| usdinr_rising | hold_20d | -8.46 bp (20159/18376) | +33.71 bp (18839/12168) | False |
+| brent_rising | hold_60d_nostop | -151.15 bp (20567/18522) | -6.59 bp (17769/14012) | True |
+| brent_rising | hold_20d | -10.27 bp (20567/18522) | -9.25 bp (17769/14012) | True |
+| nasdaq_gt200d | hold_60d_nostop | -493.30 bp (34739/4104) | +156.75 bp (23724/7571) | False |
+| nasdaq_gt200d | hold_20d | -170.07 bp (34739/4104) | +48.13 bp (23724/7571) | False |
+| us10y_up_60d | hold_60d_nostop | -454.32 bp (17740/20877) | -104.02 bp (18159/12917) | True |
+| us10y_up_60d | hold_20d | -278.39 bp (17740/20877) | -6.48 bp (18159/12917) | True |
+| bank_week_up35 | hold_60d_nostop | +119.41 bp (6814/43956) | +458.25 bp (4366/38101) | True |
+| bank_week_up35 | hold_20d | +133.18 bp (6814/43956) | +99.94 bp (4366/38101) | True |
+| bank_gt200d | hold_60d_nostop | -275.89 bp (33421/11583) | -766.51 bp (31508/10959) | True |
+| bank_gt200d | hold_20d | -82.78 bp (33421/11583) | -229.51 bp (31508/10959) | True |
+| nifty_down2 | hold_60d_nostop | +60.59 bp (2181/48589) | +649.98 bp (3020/39447) | True |
+| nifty_down2 | hold_20d | +19.28 bp (2181/48589) | +110.29 bp (3020/39447) | True |
+| nifty_up2 | hold_60d_nostop | +99.02 bp (1109/49661) | +964.20 bp (1623/40844) | True |
+| nifty_up2 | hold_20d | +226.01 bp (1109/49661) | +308.62 bp (1623/40844) | True |
+| nifty_vol_high | hold_60d_nostop | +924.40 bp (619/50151) | +1445.72 bp (4187/38280) | True |
+| nifty_vol_high | hold_20d | +647.74 bp (619/50151) | +484.82 bp (4187/38280) | True |
+
+### Still not run
+
+- none: every part the spec listed is in

@@ -18,6 +18,9 @@ what window, how many rows) before any row is returned. Nothing here lets a stud
                   with a constant start). An earlier start is refused, never clipped; nothing on history is computed from these rows
   account_marks   one live session's closes for the stocks the account's paper twin holds, only when the Zerodha snapshot is older than that
                   session (Madhav, 25 Oct 2026); india/account.py is the only caller
+  sz2_selection   the SZ2 sizing selection (Madhav, 23 Oct 2026, SZ2 decision (a)): the completed SP1 holdout run's own policy trades
+                  2024-01-01..2026-10-16 and, to price them as sz2_v1.json prescribes, their previous-session chains, their index minutes and the
+                  16 Oct 2026 index closes (read_sz2); no SP1 rule is scored
 Apart from a registered holdout run, none of them computes rule performance. A lookback or context request for more than LOOKBACK_DAYS calendar days is refused.
 
   from india import sealed
@@ -194,6 +197,69 @@ def read_marks(purpose: str, day: str, symbols: list[str]) -> pd.DataFrame:
     con.close()
     _log(purpose, f"cm_bhavcopy EQ closes of {len(syms)} held stocks", str(d), len(df))
     return df.drop_duplicates("symbol", keep="last")
+
+
+ALLOWED_SZ2 = {"sz2_selection"}
+SZ2_WINDOW = ("2024-01-01", "2026-10-16")
+SZ2_APPROVAL = ("Madhav, 23 Oct 2026 (docs/INDIA_LOCK.md, SZ2 decision (a)): 'yes, logged': a logged sealed purpose for the completed SP1 holdout "
+                "run's own policy_trades 2024-26; the SZ2 selection may then run as the spec (registrations/sz2_v1.json) wrote it")
+
+
+def read_sz2(purpose: str, what: str, days: list | None = None) -> pd.DataFrame:
+    """The SZ2 sizing selection (purpose sz2_selection; SZ2_APPROVAL), after the SP1 holdout run is COMPLETED (its verdicts are in the ledger
+    and cannot change). what:
+      policy_trades   that run's own policy trades, 2024-01-01..2026-10-16 (the spec's selection window: inputs.decisions)
+      chains          the previous-session option chains of those trades (fo_greeks: strike, type, forward, IV, settle, volume), only on `days`
+      index_minutes   the index minute bars (NIFTY 50, NIFTY BANK) on `days` (the trade days and their next sessions), for the minute marks
+      scale_close     the NIFTY 50 and NIFTY BANK closes of 2026-10-16 (contracts.lots_and_scale: 'index at the 16 Oct 2026 close')
+    Rows outside SZ2_WINDOW are never returned. Nothing here scores an SP1 rule; the sizing never changes which decision is made. Logged."""
+    if purpose not in ALLOWED_SZ2:
+        raise PermissionError(f"sealed SZ2 read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED_SZ2)}")
+    if not any(r["run"] == "sp1_holdout" and r["status"] == "completed" for r in _runs()):
+        raise PermissionError("sealed SZ2 read refused: the sp1_holdout run is not completed")
+    lo, hi = (pd.Timestamp(x).date() for x in SZ2_WINDOW)
+    root = paths.data_dir()
+    con = duckdb.connect()
+    try:
+        if what == "policy_trades":
+            df = pd.read_parquet(root / "sealed" / "gold" / "sp1_holdout" / "policy_trades.parquet")
+            d = pd.to_datetime(df["date"]).dt.date
+            df = df[(d >= lo) & (d <= hi)].reset_index(drop=True)
+        elif what in ("chains", "index_minutes"):
+            ds = sorted({pd.Timestamp(x).date() for x in (days or [])})
+            ds = [x for x in ds if lo - dt.timedelta(days=10) <= x <= hi]   # a 2024-01-01 trade's previous session is in silver (2023)
+            if not ds:
+                return pd.DataFrame()
+            if what == "chains":
+                files = [str(p) for p in list((root / "sealed/silver/fo_greeks").glob("year=*/part.parquet")) + list((root / "silver/fo_greeks").glob("year=2023/part.parquet"))]
+                sql = ("select date, symbol, expiry, strike, opt_type, fwd, iv, settle, coalesce(volume, 0) as volume from read_parquet(" + repr(files)
+                       + ", union_by_name=true) where symbol in ('NIFTY', 'BANKNIFTY') and list_contains(?, cast(date as date))")
+            else:
+                files = [str(p) for p in list((root / "sealed/silver/kite_index/minute").glob("**/*.parquet")) + list((root / "silver/kite_index/minute").glob("year=2023/*.parquet"))]
+                sql = ("select index_name, date, (hour(ts) * 60 + minute(ts) - 555) as m, open, high, low, close from read_parquet(" + repr(files)
+                       + ", union_by_name=true) where index_name in ('NIFTY 50', 'NIFTY BANK') and list_contains(?, cast(date as date))")
+            df = con.execute(sql, [ds]).df()
+        elif what == "scale_close":
+            files = [str(p) for p in (root / "sealed/silver/kite_index/day").glob("**/*.parquet")]
+            df = con.execute("select index_name, cast(date as date) as date, close from read_parquet(" + repr(files) + ", union_by_name=true) "
+                             "where index_name in ('NIFTY 50', 'NIFTY BANK') and cast(date as date) = ?", [hi]).df()
+        else:
+            raise PermissionError(f"sealed SZ2 read refused: unknown item {what!r}")
+    finally:
+        con.close()
+    _log(purpose, f"sz2 {what}" + (f" on {len(days)} days" if days else ""), SZ2_WINDOW[0], len(df))
+    return df
+
+
+def sz2_output_dir(purpose: str) -> Path:
+    """Where the SZ2 selection keeps its holdout-era derived tables (trades x structures, per-session paths): inside the sealed tree, so no
+    research table outside it carries a 2024+ row. Purpose sz2_selection only; logged."""
+    if purpose not in ALLOWED_SZ2:
+        raise PermissionError(f"SZ2 outputs refused: purpose {purpose!r}")
+    p = paths.data_dir() / "sealed" / "gold" / "sz2"
+    p.mkdir(parents=True, exist_ok=True)
+    _log(purpose, "sz2 derived tables (sealed/gold/sz2)", SZ2_WINDOW[0], 0)
+    return p
 
 
 ALLOWED_INTEGRITY = {"integrity", "calibration"}

@@ -3,7 +3,7 @@ Madhav, 25 Oct: "the voice navigation is not working in India, make sure the int
 
 Ananta never touches the screen itself: an answer carries ui actions and highlight points; the app performs them and reports whether
 they happened (jarvis/app/src/uiagent.ts). The same action shapes as crypto (jarvis/service/appmap.py), with India's own places:
-  go_to <screen>        home, markets, ananta, evidence, reconstruction, missed, flags, cockpit
+  go_to <screen>        home, markets, ananta, evidence, reconstruction, missed, flags, teachers, cockpit
   open sheet:<name>     on India Home: stocks, options (the two boxes), money (Your money · More), morning (the morning view · Read)
   market market:crypto  switch the app to the crypto market
   points                light a part of Home while the answer is spoken (spot ids below)
@@ -24,6 +24,7 @@ PLACES = {
     "reconstruction": {"name": "the nightly reconstruction", "shows": "last night's card: the market, what people did, what Ananta did and missed, findings"},
     "missed": {"name": "What we missed", "shows": "the day's biggest moves: caught, seen or missed, and why"},
     "flags": {"name": "My flags", "shows": "every flag with where its fix stands"},
+    "teachers": {"name": "Teachers, tested", "shows": "every claim from the two YouTube teachers as a tested card: what held up, what came out the wrong way, what is tracked live"},
     "cockpit": {"name": "More", "shows": "switches, voice and model, the market switch, settings"},
     "market:crypto": {"name": "the crypto market", "shows": "the crypto app"},
 }
@@ -48,6 +49,10 @@ ALIASES = {
     "missed": "missed", "missed moves": "missed", "what we missed": "missed", "biggest moves": "missed",
     "flags": "flags", "my flags": "flags", "flag requests": "flags", "my flag requests": "flags", "flag list": "flags", "requests": "flags",
     "my requests": "flags", "repair shop": "flags", "fixes": "flags",
+    "teachers": "teachers", "teacher": "teachers", "the teachers": "teachers", "youtube teachers": "teachers", "teachers results": "teachers",
+    "teachers' results": "teachers", "teacher results": "teachers", "teacher cards": "teachers", "professor": "teachers", "the professor": "teachers",
+    "professor's strategies": "teachers", "professors strategies": "teachers", "youtube classes": "teachers", "the youtube classes": "teachers",
+    "classes": "teachers", "optionables": "teachers", "trade with trend": "teachers", "teacher strategies": "teachers", "teachers strategies": "teachers",
     "more": "cockpit", "more tab": "cockpit", "settings": "cockpit", "controls": "cockpit", "voice settings": "cockpit",
     "crypto": "market:crypto", "crypto market": "market:crypto", "crypto app": "market:crypto", "the crypto side": "market:crypto",
     "decisions": "home.books", "ananta's decisions": "home.books", "recent decisions": "home.books", "picks": "home.books", "todays picks": "home.books",

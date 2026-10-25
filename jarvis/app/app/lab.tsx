@@ -65,6 +65,12 @@ export default function Evidence() {
       {d.board ? <Spot id="evidence.forwarded"><Board b={d.board} /></Spot> : null}
       {d.in_use ? <InUse u={d.in_use} /> : null}
       {d.waiting ? <Spot id="evidence.shop"><Waiting w={d.waiting} /></Spot> : null}
+      {d.teachers ? (
+        <Spot id="evidence.teachers">
+          <Card title="The YouTube teachers, tested" sub={d.teachers.line} onPress={() => router.push("/teachers")}
+            right={<Text style={{ color: C.faint, fontSize: 18 }}>›</Text>} />
+        </Spot>
+      ) : null}
 
       <Pressable onPress={() => setFold(!fold)}>
         <Card title={fold ? "Hide the research detail" : "Research detail"} sub="Setups seen, every watch's scoreboard, the short dip trade's shadow book, layer credit, teacher ideas"

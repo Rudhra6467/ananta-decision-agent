@@ -20,6 +20,13 @@ def test_plain_navigation_is_done_in_code():
     assert d["ui"][0]["target"] == "home" and d["points"] == [{"spot": "home.books", "sentence": 0}]
 
 
+def test_teachers_screen_by_voice():
+    """25 Oct: the YouTube teachers' tested cards have their own screen; Ananta opens it when asked."""
+    for said in ("show me the teachers", "open the professor's strategies", "take me to the YouTube classes", "show me the teacher results"):
+        assert appmap.quick_command(said)["ui"][0] == {"do": "go_to", "target": "teachers", "label": "Teachers, tested"}, said
+    assert appmap.quick_command("how are the professor's strategies doing?") is None
+
+
 def test_questions_are_not_navigation():
     assert appmap.quick_command("show me why TATAPOWER is rated C") is None
     assert appmap.quick_command("What is the Nifty doing today?") is None

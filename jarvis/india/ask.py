@@ -33,6 +33,8 @@ you cannot place, change or close a trade from chat: say "paper only; nothing is
 Flags and fix choices are handled in code before you see a message: never say a flag or a choice cannot be filed or recorded from chat. If he seems to pick a fix
 but the code did not catch it, ask him to say "fix 1", "fix 2" or "fix 3". "teacher_libraries" holds the YouTube teachers' classes (Optionables = the options
 teacher, Trade With Trend = the stocks teacher) turned into testable hypotheses and where each stands; "the professor" or "YouTube classes" means these.
+Its "tested" part holds the 25 Oct backtest of every claim, card by card: use the plain words there, say which held up, which came out the wrong
+way, and that the held-up ones are filters (what to avoid), not buy signals; his intraday straddle systems are still being tracked on live prices.
 Explain technical words with a plain meaning alongside the name (simplify the explanation, not the intelligence). Be brutally honest: a lost
 session is lost, a wrong call is wrong, 0 of 3 is 0 of 3. Keep the answer to 2-5 sentences a person can read in under ten seconds.
 When the FACTS hold "reconstruction_detail", Madhav wants to discuss the reconstruction process: explain it in simple spoken words, one part at a time (use the
@@ -143,7 +145,8 @@ def _library_facts() -> dict:
     (records repo registrations), never from the teaching library itself: the agent never reads the teachers' words (tests/test_library.py)."""
     p = views.REG / "hypothesis_review.md"
     try:
-        mt = p.stat().st_mtime
+        sp = views.DATA / "gold" / "teachers" / "summary.json"
+        mt = (p.stat().st_mtime, sp.stat().st_mtime if sp.exists() else 0)          # the tested results change nightly; the review pack rarely
     except OSError:
         return {"ready": False}
     if _LIB_CACHE.get("mt") == mt:
@@ -163,10 +166,29 @@ def _library_facts() -> dict:
             o["with_results"] += 1
     for o in out.values():
         o["studies"] = sorted(o["studies"])
-    v = {"ready": True, "libraries": out,
+    t = views.teachers()
+    tested = {}
+    if t.get("ready"):
+        cards = t.get("cards", [])
+        fo = (t.get("forward_options") or {}).get("systems") or {}
+        tested = {"what": "Every claim from both libraries as a pre-registered card (25 Oct 2026), backtested on 2000-2017 and checked on 2018-2023 at a strict bar "
+                          "(Bonferroni across every version tried); 2024+ sealed. The app's Teachers screen (Evidence › The YouTube teachers, tested) shows all of it.",
+                  "versions_tested": t.get("variants_tested"), "counts": t.get("counts"),
+                  "held_up": [{"id": c["id"], "title": c["title"], "plain": c["plain"]} for c in cards if c.get("verdict") in ("PASSED", "MIXED")],
+                  "wrong_way": [{"id": c["id"], "title": c["title"], "plain": c["plain"]} for c in cards if c.get("verdict") == "WRONG WAY"],
+                  "notable": [{"id": c["id"], "title": c["title"], "verdict": c.get("word"), "plain": c["plain"]} for c in cards
+                              if c.get("verdict") in ("NOT ENOUGH DATA", "DID NOT HOLD", "MEASURED", "Tested earlier") and len(c.get("plain") or "") > 40][:30],
+                  "index": {c["id"]: f"{c['title']} · {c.get('word')}" for c in cards},
+                  "live_option_systems": {k: {"card": v.get("card"), "forward_sessions": v.get("forward_sessions"), "before_cards_sessions": v.get("before_cards_sessions"),
+                                              "total_inr": v.get("total_inr"), "win_share": v.get("win_share")} for k, v in list(fo.items())[:40]},
+                  "live_stock_rules": [{"card": r.get("card"), "variant": r.get("variant"), "words": r.get("words"), "stage": r.get("stage")}
+                                       for r in ((t.get("forward_stocks") or {}).get("rules") or [])],
+                  "honest_limits": "Held-up rules are filters (what to avoid), not buy signals; two of them are partly true by construction. The intraday straddle systems "
+                                   "need 60 live sessions before a first look; the 22 sessions the recorder held before the cards were written are shown apart."}
+    v = {"ready": True, "libraries": out, "tested": tested,
          "status_meaning": "TESTABLE_NOW = data and code exist; NEEDS_BUILD = code to write; NEEDS_DATA = a data set is missing; EOD_FO = end-of-day F&O data; WAITS_RECORDER = needs the live option recorder (Kite sign-in); DEFERRED/OUT_OF_SCOPE = parked",
          "honest_limits": "Every row is the teacher's claim restated, never validated. 'with_results' counts hypotheses whose mapped study has verdicts, but a study covers several hypotheses, so it is not a per-claim result. Members-only videos were never used.",
-         "work_plan": "Madhav asked on 24 Oct to turn every class into a strategy and test it in real time: the plan (claude/plan-2026-10-24-teacher-libraries-to-strategies) registers each hypothesis as its own study, tests on 2000-2023, then runs survivors as shadow paper books on live sessions."}
+         "work_plan": "Madhav asked on 24 Oct to turn every class into a strategy and test it in real time: the plan (claude/plan-2026-10-24-teacher-libraries-to-strategies) registers each hypothesis as its own study, tests on 2000-2023, then runs survivors as shadow paper books on live sessions. Done on 25 Oct: see 'tested'."}
     _LIB_CACHE.update({"mt": mt, "v": v})
     return v
 

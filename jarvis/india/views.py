@@ -625,7 +625,49 @@ def evidence_live() -> dict:
             "limits": [], "results": {"items": items, "random_avg_usd": round(NOTIONAL * (h1.get("market_mean") or 0), 2) if h1 else None, "events": days, "goal_events": 60,
                                       "books": [], "by_setup": [], "verdict": "too early", "read": "After 60 sessions on paper, each book must sit inside its expected range before the gate opens."},
             "rebuild": _rebuild(rm, h1, days),
-            "misses": [], "board": [], "in_use": {"verdicts": r.get("verdicts"), "studies": r.get("studies")}}
+            "misses": [], "board": [], "in_use": {"verdicts": r.get("verdicts"), "studies": r.get("studies")}, "teachers": teachers_brief()}
+
+
+# ---------------------------------------------------------------------------------------------------------------- the YouTube teachers, tested
+_TEACH: dict = {}
+TEACH_WORD = {"PASSED": "Held up", "MIXED": "Partly held", "WRONG WAY": "Wrong way", "DID NOT HOLD": "Did not hold", "NOT ENOUGH DATA": "Not enough data",
+              "MEASURED": "Measured", "Waiting for live option prices": "Tracking live"}
+
+
+def teachers() -> dict:
+    """The teacher cards (records repo india/teachers.py, run of 25 Oct 2026): every claim from the two YouTube libraries as a tested card, with
+    plain words, the variants' verdicts and the forward books. Read from gold/teachers/summary.json; the agent never reads the teaching itself."""
+    p = DATA / "gold" / "teachers" / "summary.json"
+    try:
+        mt = p.stat().st_mtime
+    except OSError:
+        return {"ready": False, "cards": [], "counts": {}}
+    if _TEACH.get("mt") != mt:
+        s = json.loads(p.read_text())
+        for c in s.get("cards", []):
+            c["word"] = TEACH_WORD.get(c.get("verdict"), c.get("verdict"))
+        fo = (s.get("forward_options") or {}).get("systems") or {}
+        s["forward_rows"] = [{"id": k, "card": v.get("card"), "forward_sessions": v.get("forward_sessions", 0), "before_cards_sessions": v.get("before_cards_sessions", 0),
+                              "total_inr": v.get("total_inr"), "forward_total_inr": v.get("forward_total_inr"), "win_share": v.get("win_share"), "worst_inr": v.get("worst_inr"),
+                              "stage": v.get("stage")} for k, v in sorted(fo.items())]
+        s["ready"] = True
+        _TEACH.update({"mt": mt, "v": s})
+    return _TEACH["v"]
+
+
+def teachers_brief() -> dict | None:
+    s = teachers()
+    if not s.get("ready"):
+        return None
+    tested = [c for c in s["cards"] if c.get("status") == "TEST"]
+    by = Counter(c["verdict"] for c in tested)
+    live_n = sum(1 for c in s["cards"] if c.get("status") == "FORWARD")
+    return {"cards": len(s["cards"]), "tested": len(tested), "variants": s.get("variants_tested"), "held": by.get("PASSED", 0) + by.get("MIXED", 0),
+            "wrong_way": by.get("WRONG WAY", 0), "did_not_hold": by.get("DID NOT HOLD", 0), "not_enough": by.get("NOT ENOUGH DATA", 0), "tracking_live": live_n,
+            "survivors": s.get("survivors", [])[:6],
+            "line": f"{len(tested)} of {len(s['cards'])} claims backtested on 2000-2023: {by.get('PASSED', 0) + by.get('MIXED', 0)} held up at least partly, "
+                    f"{by.get('WRONG WAY', 0)} came out the wrong way, {by.get('DID NOT HOLD', 0)} did not hold, {by.get('NOT ENOUGH DATA', 0)} had too little data. "
+                    f"{live_n} intraday option systems are tracked on the live recorder."}
 
 
 # ---------------------------------------------------------------------------------------------------------------- More: cockpit, evidence/collected, ladder
@@ -962,6 +1004,7 @@ def reads() -> dict:
 
 ROUTES = {"home": home, "books": books, "holdings": holdings, "coins": coins, "chain": chain, "exposure": exposure, "watches/mine": watches_mine, "evidence/live": evidence_live,
           "cockpit": cockpit, "evidence/collected": evidence_collected, "universe/ladder": universe_ladder, "agent/state": agent_state, "ask/suggestions": ask_suggestions,
+          "teachers": teachers,
           "ask/threads": ask_threads, "ask/last": ask_last, "ask/flags": ask_flags, "alerts": alerts, "needs": needs, "onboard/demo": onboard_demo, "missed": missed, "brain": brain, "reads": reads}
 
 

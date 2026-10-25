@@ -184,3 +184,18 @@ def test_names_for_speech_to_text_and_a_new_name_is_checked(tmp_path, monkeypatc
     people.add_person(p)
     people.set_speaker(j, "t8", p)
     assert "NAME CHECK" in people.prompt_note(j, "t8")
+
+
+def test_owner_business_ends_a_handover(tmp_path, monkeypatch):
+    """Flag 90: after a handover, a message about flags, requests or approvals is Madhav speaking, decided by code."""
+    from jarvis.service import people
+
+    _file(tmp_path, monkeypatch)
+    j = J(tmp_path)
+    people.set_speaker(j, "t9", people.find("Prasad"))
+    assert people.route(j, "t9", "Does request 88 need my yes?")["kind"] == "back"
+    people.set_speaker(j, "t9", people.find("Prasad"))
+    assert people.route(j, "t9", "flag this, the chart is wrong")["kind"] == "back"
+    people.set_speaker(j, "t9", people.find("Prasad"))
+    assert people.route(j, "t9", "How is the weather there?") is None          # ordinary talk stays with the guest
+    assert people.route(j, "t0", "Does request 88 need my yes?") is None        # nobody introduced: nothing to end

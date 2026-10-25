@@ -223,6 +223,16 @@ Madhav, 23 Oct (in chat): "Will get TOTP fixed before Sunday. Yes for all others
 | India: lock India like crypto | yes | `INDIA_LOCK.md` (records repo), section 10 here. |
 | India: SZ2 (a) and (b), SP3 holdout | yes-logged, keep 0, not yet | Recorded in INDIA_LOCK.md "Decisions of 23 Oct". |
 
+### Decisions of 25 Oct
+
+Madhav, 25 Oct (in chat): "yes to all your recommendations" (on the open flags).
+
+| Item | Decision | Done |
+|---|---|---|
+| Flag 86 (5 trades were up and gave it back in 7 days) | **no new rule change**: the protect rule switched on 24 Oct (stop to the entry at +1.5 R, a 1 R trail from +2.5 R) is the answer; the nightly reconstruction card counts any repeat (GAVE_BACK) and raises it again if it recurs | Recorded on flag 86; nothing pinned changed. |
+| Flag 90 (Ananta mixed up who was speaking) | yes: the speaker is read from each message; owner business (flags, requests, approvals, fixes, the account) ends a handover by code; ask "Who am I speaking with?" when unsure | `jarvis/service/people.py OWNER_TOPIC`, Ask's instructions, `tests/test_people.py`. |
+| Flag 88 (long blank gap in a voice conversation) | yes: a "Got your question · Ananta is thinking…" line appears at once | `jarvis/app/app/(tabs)/ask.tsx`. Showing the answer word by word stays a later server change. |
+
 ## 9. After the window
 
 **Dated and recurring steps that run before and after day 60** (each is on the due list; an overdue item becomes a repair-board request):

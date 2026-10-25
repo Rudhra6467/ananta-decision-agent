@@ -92,6 +92,13 @@ BACK = re.compile(r"\b(?:i'?m back|i am back|it'?s me|it is me|it'?s " + OWNER_H
                   r"not (?:my )?(?:mother|mom|mum|amma|mummy|father|dad|nanna)|(?:she|he)'?s gone|she left|he left|nenu " + OWNER_HEARD + r")\b", re.I)
 
 
+# Flag 90 (Madhav, 24-25 Oct): after a handover Ananta kept calling Madhav by the guest's name and answered "does request 88 need his yes"
+# differently by who it thought was asking. Owner-only business (flags, requests, approvals, fixes, the repair shop, the account's rules) can
+# only be Madhav speaking, so such a message ends the handover, decided by code before any AI.
+OWNER_TOPIC = re.compile(r"\b(?:flag(?:ged|s)?|request(?:s)? ?#?\d+|ticket|repair (?:shop|board)|approve|approval|my yes|go ahead and fix|fix it|deploy|"
+                         r"kill switch|mandate|paper order|my account|my portfolio|my book)\b", re.I)
+
+
 def is_owner_name(word: str) -> bool:
     """True for Madhav's own names as speech-to-text writes them (request #35)."""
     return bool(re.fullmatch(OWNER_HEARD, _norm(word).split(" ")[0] if word else ""))
@@ -174,7 +181,7 @@ def route(j, thread: str | None, text: str) -> dict | None:
     {"kind": "back"} | {"kind": "handover", "person"} | {"kind": "relay", "person"} | None."""
     t = (text or "").replace("’", "'")
     now = talking_to(j, thread)
-    if BACK.search(t) or _madhav_in_english(now, t):
+    if BACK.search(t) or _madhav_in_english(now, t) or (now and OWNER_TOPIC.search(t) and not RELAY.search(t)):
         return {"kind": "back"} if now else None
     newp = new_person_like(t)
     if newp:

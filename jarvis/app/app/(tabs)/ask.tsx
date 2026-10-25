@@ -261,7 +261,7 @@ export default function Ananta() {
   };
   const where = (voice = false) => ({ here: getScreen() ?? undefined, about: ctxRef.current ?? undefined,
     tts: voice ? TTS.prepHint() : undefined, chips: voice ? chipsNow() : undefined });
-  useEffect(() => { setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [msgs.length, busy]);
+  useEffect(() => { setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [msgs.length, busy, phase]);
   const [kb, setKb] = useState(false);
   useEffect(() => {
     const a = Keyboard.addListener("keyboardWillShow", () => setKb(true)), b = Keyboard.addListener("keyboardWillHide", () => setKb(false));
@@ -787,10 +787,11 @@ export default function Ananta() {
             {m.voice && i === msgs.length - 1 ? (m.show ?? []).slice(0, 1).map((sh: any, k: number) => <StageCard key={k} sh={sh} open={() => openScreen(sh)} />) : null}
           </View>
         )))}
-        {busy && !live ? (
+        {(busy && !live) || (live && phase === "thinking") ? (
+          // flag 88 (24 Oct): in a voice conversation the chat stayed blank until the whole answer was ready; now it shows at once that the question landed
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
             <ActivityIndicator color={C.dim} />
-            <T dim>Ananta is looking…</T>
+            <T dim>{live ? "Got your question · Ananta is thinking…" : "Ananta is looking…"}</T>
           </View>
         ) : null}
         {err ? <Text style={{ color: C.bad }}>{err}</Text> : null}

@@ -42,6 +42,10 @@ card's own numbers from last night as the example, and an everyday comparison wh
 next part as a follow-up (the seven parts A-G, the findings, the staircase, what is filed on the repair board). Its "web_notes" are public reasons found on the
 web for the day's biggest moves, each with a grade (A filing, B two outlets, C one source or unclear) and URLs: when asked why a stock moved, say "public reports
 say ..." with the grade, and add that a note is never a reason to trade.
+Say the same thing the screens say (25 Oct, from his chats): the daily call's own "words" say which session it is for (never call an old call
+"the call for the next session"); the research book is practice money, so quote it as the average % per closed trade; for his account, a holding's
+suggest_inr (the full suggestion) and paper_moves_today (what actually moves at today's close) are different numbers, so name the one you quote;
+each "jobs.problems" line is that job's LAST run, so give its time if it has one and do not call it a current failure when a later line says it worked.
 Reply with ONE JSON object and nothing else: {"kind":"answer","stage":"observation|outcome|learning","answer":"...","breakdown":["...","..."],
 "evidence":["<fact and where it comes from>", ...],"assumption":"","follow_ups":["short question","short question","short question"],
 "next_action":{"label":"","why":"","route":""},"show":[],"options":[],"route":"india","ui":[],"points":[]}.
@@ -82,9 +86,13 @@ def facts(owner: bool = False) -> dict:
     marks = views.exec_marks()
     return {"data_through": rm.get("data_through"), "next_session": rm.get("next_session"), "built_at": rm.get("built_at"), "brief": rm.get("brief"),
             "market": {k: (rm.get("market") or {}).get(k) for k in ("nifty_close", "nifty_vs_sma50", "nifty_vs_sma200", "trend_state", "vix_close", "breadth_200d_liquid", "words")},
-            "daily_call": {k: (rm.get("call") or {}).get(k) for k in ("call", "rule", "scored", "hits", "null_hits")},
+            "daily_call": call_state(rm),
             "stock_book": {"rules": sb.get("rules"), "open_positions": sb.get("open_positions"), "scale": "Rs 50,000 notional a trade (research scale), every registered exit tracked; the reference exit shown is hold_20d",
-                           "by_campaign": {c: {k: m.get(k) for k in ("open", "closed", "realised_inr", "open_unrealised_inr", "win_rate")} for c, m in marks.items()},
+                           "closed_trades_avg_pct": views.books().get("per_trade_pct"),
+                           "how_to_say_it": "this is the research book of practice trades, not Madhav's money: say its result as the average % per closed trade "
+                                            "(closed_trades_avg_pct, per family avg_pct_per_closed_trade), the scale the screens use; the rupee totals only if he asks for them",
+                           "by_campaign": {c: {**{k: m.get(k) for k in ("open", "closed", "realised_inr", "open_unrealised_inr", "win_rate")},
+                                               "avg_pct_per_closed_trade": views.per_trade_pct(m)} for c, m in marks.items()},
                            "campaign_meaning": views.CAMPAIGN_WHY, "top_positions": [{"symbol": p["coin"], "campaign": p["campaign"], "since": p["since"], "pnl_pct": p["pnl_pct"]} for p in pos[:12]],
                            "recent_closed": [{"symbol": c["coin"], "campaign": c["campaign"], "net_inr": c["net_usd"], "why": c["why"], "exit_date": c["exit_date"]} for c in views.closed_trades(8)]},
             "decisions_for_next_session": {"rules": d.get("rules"), "decided_at": d.get("decided_at"), "candidates": d.get("candidates"),
@@ -202,7 +210,11 @@ def _alloc_facts() -> dict:
             "holdings_ranked": [{"rank": x["rank"], "symbol": x["symbol"], "grade": x["grade"], "score": x["score"], "action": x["action"], "value_inr": x["value_inr"], "weight_pct": x["weight_pct"],
                                  "pnl_pct": x["pnl_pct"], "suggest_inr": x["suggest_inr"], "why": x["why"], "wrong_if": x["wrong_if"]} for x in p.get("holdings", [])],
             "paper_moves_today": p.get("moves"), "moves_applied": p.get("moves_applied"), "watching": p.get("watch"), "snapshot": p.get("snapshot"),
-            "meaning": "advisory = options fixed at Rs 50,000, stocks as in the account, Ananta rates/ranks/suggests and moves nothing; autonomous = Ananta moves capital between stocks, options and cash on paper inside the regime table; grades A>=70, B>=55, C>=40, D below"}
+            "meaning": "advisory = options fixed at Rs 50,000, stocks as in the account, Ananta rates/ranks/suggests and moves nothing; autonomous = Ananta moves capital between stocks, options and cash on paper inside the regime table; grades A>=70, B>=55, C>=40, D below",
+            # 25 Oct chat: "JIOFIN Rs 9,900 into cash" (the day's move) and "sell half of JIOFIN, about Rs 12,200" (the suggestion) both came out as
+            # "the plan" in two answers ten minutes apart. They are two different things and are now named apart.
+            "two_numbers": "suggest_inr on a holding is Ananta's full suggestion for it (what it would change, e.g. halve it); paper_moves_today is what the paper copy "
+                           "actually moves at today's close, sized only to bring the stocks back inside the regime table's share (so it can be smaller). Always say which one you quote."}
 
 
 # ---------------------------------------------------------------------------------------------------------------- threads
@@ -332,9 +344,23 @@ def _sections(text: str) -> dict:
 def _parse(text: str) -> dict:
     m = re.search(r"\{.*\}", text, re.S)
     try:
-        d = json.loads(m.group(0) if m else text)
+        d = json.loads(m.group(0) if m else text, strict=False)
     except (ValueError, AttributeError):
-        d = _sections(text)
+        # 23 Oct chat: a reply that was almost JSON (one bad character) was shown raw, braces and all. Take its answer field out of it.
+        # the answer runs to the next "key": of the reply's shape (an unescaped quote inside it, like "fair", is what broke the JSON)
+        a = re.search(r'"answer"\s*:\s*"(.*?)"\s*(?:,\s*"(?:breakdown|evidence|follow_ups|kind|stage|assumption|next_action|show|options|route|ui|points)"\s*:|\}\s*$)', text, re.S)
+        if a:
+            try:
+                ans = json.loads('"' + a.group(1).replace('\\"', '\u0000').replace('"', '\\"').replace('\u0000', '\\"') + '"', strict=False)
+            except ValueError:
+                ans = a.group(1).replace('\\"', '"').replace("\\n", " ")
+            d = {"kind": "answer", "answer": ans}
+            for key in ("breakdown", "follow_ups"):
+                b = re.search(rf'"{key}"\s*:\s*\[(.*?)\]', text, re.S)
+                if b:
+                    d[key] = [json.loads('"' + x + '"', strict=False) for x in re.findall(r'"((?:[^"\\]|\\.)*)"', b.group(1))][:8]
+        else:
+            d = _sections(text)
     d.setdefault("kind", "answer")
     d.setdefault("stage", "observation")
     d.setdefault("answer", "")
@@ -355,6 +381,11 @@ _JOBS = {"recorder_noon": "the noon recorder job", "sp1paper": "the options-line
          "openingview": "the opening-update job", "autologin": "the automatic sign-in", "nightly": "the nightly data job", "spreads": "the spread sampler"}
 
 
+# 25 Oct refinement (Madhav: "lot of inconsistencies in Indian voice agent"): his real chats showed the family codes and the line's code name
+# ("10 PULL, 10 REV, 5 CTL and 0 BRK", "the index line (SP1)") read aloud. Each is put into words; "PULL (pullbacks)" keeps only the words.
+_FAMILIES = {"PULL": "pullbacks", "REV": "oversold reversals", "CTL": "random controls", "BRK": "breakouts", "SP1": "the index options line"}
+
+
 def plain_codes(s: str) -> str:
     s = re.sub(r"`?\bcall-v\d+-\d{4}-\d{2}-\d{2}\b`?", "the daily-call rule", s)
     s = re.sub(r"`?\bhold_(\d+)d_nostop\b`?", lambda m: f"a {m.group(1)}-session hold with no stop", s)
@@ -363,7 +394,33 @@ def plain_codes(s: str) -> str:
     for k, v in sorted(_JOBS.items(), key=lambda kv: -len(kv[0])):
         if "_" in k or "." in k:
             s = re.sub(r"`?\b" + re.escape(k) + r"\b`?", v, s)
+    fam = "|".join(_FAMILIES)
+    s = re.sub(rf"\(({fam})\)\s*", "", s)                                          # "the index line (SP1)" -> "the index line"
+    s = re.sub(rf"\b({fam})\s*\(([^()]{{3,60}})\)", lambda m: m.group(2), s)          # "REV (oversold reversal)" -> "oversold reversal"
+    s = re.sub(rf"(?<![\w/.-])({fam})(?![\w/-])", lambda m: _FAMILIES[m.group(1)], s)
+    s = re.sub(r"(?<![\w/.:])([a-z]+(?:_[a-z0-9]+)+)(?![\w/(]|\.\w)", lambda m: m.group(1).replace("_", " "), s)   # any field name left: words
     return s
+
+
+_SIGNOFF = re.compile(r"\s*(?:(?:It is |It's |This is |Everything here is )?(?:all )?paper only[^.!?]*[.!?]|Nothing here is (?:financial )?advice[^.!?]*[.!?]|"
+                      r"(?:This is )?not (?:financial )?advice[^.!?]*[.!?])\s*$", re.I)
+_TRADE_Q = re.compile(r"\b(buy|sell|trade|order|position|invest|put money|should i|real money|paper|advice|place)\b", re.I)
+
+
+def finish(reply: dict, question: str, model: bool) -> dict:
+    """The one exit every answer passes (25 Oct refinement): plain words on the answer and its breakdown, and the paper-only sign-off kept
+    only where the question is about trading (the prompt already says so; the model kept adding it to every answer)."""
+    a = plain_codes(str(reply.get("answer") or ""))
+    if model and not _TRADE_Q.search(question or ""):
+        for _ in range(2):
+            b = _SIGNOFF.sub("", a).rstrip()
+            if not b or b == a:
+                break
+            a = b
+    reply["answer"] = a
+    if isinstance(reply.get("breakdown"), list):
+        reply["breakdown"] = [plain_codes(x) if isinstance(x, str) else x for x in reply["breakdown"]]
+    return reply
 
 
 def _offline(question: str, f: dict, why: str) -> dict:
@@ -388,9 +445,12 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     thread = thread or uuid.uuid4().hex[:12]
     # plain navigation first ("show my stocks", "open my flags", "go back": done at once in code, flags 96/97), then the code-built answers
     # (a mode switch, the morning view, drafts, the portfolio review), then a pick, a problem or "my flags"
-    fixed = (nav_flow(text) or morning_flow(text, who) or allocation_flow(text, who) or draft_flow(text, who) or portfolio_flow(text, who)
-             or fix_flow(text, thread, token, context, post=flag_post, get=flag_get))
+    # 25 Oct refinement: a pick or a flag comes before the code answers ("use one and fix it" must reach the fix flow), and a turn cut off
+    # mid-sentence, a stock's move, the research book and the next-session decision are answered in code, the same every time
+    fixed = (nav_flow(text) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get) or fragment_flow(text) or morning_flow(text, who)
+             or allocation_flow(text, who) or draft_flow(text, who) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text))
     if fixed is not None:
+        fixed = finish(fixed, text, model=False)
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
         rid = uuid.uuid4().hex[:12]
@@ -423,9 +483,13 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             # the model may move the app and light Home while it talks; only real places and spots pass (flags 96/97, 25 Oct)
             reply["ui"] = appmap.valid_ui(reply.get("ui"))
             reply["points"] = appmap.valid_points(reply.get("points"))
+            if not reply["ui"]:                  # say-vs-show: a sentence saying it opened something, with no screen actually opened, is dropped
+                reply["answer"] = re.sub(r"\s*[^.!?]*\b(?:I(?:'ve| have) opened|I'm opening|I am opening|I've taken you|I have taken you)\b[^.!?]*[.!?]", "",
+                                         str(reply.get("answer") or "")).strip() or reply.get("answer")
         except Exception as e:  # noqa: BLE001
             reply = _offline(text, f, str(e)[:120])
             usage = {"model": "none"}
+    reply = finish(reply, text, model=usage.get("model") not in ("rule", "none"))
     ms = int((time.time() - t0) * 1000)
     rid = uuid.uuid4().hex[:12]
     row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "claude" if usage.get("model") not in ("rule", "none") else usage.get("model"), "ms": ms, "rating": None, **reply,
@@ -458,17 +522,23 @@ def stats() -> dict:
 JARVIS_URL = os.getenv("ANANTA_JARVIS_URL", "http://127.0.0.1:8100")
 FLAG = re.compile(r"\b(flag|broken|not working|doesn'?t work|isn'?t working|fix (it|this|that|the)|bug|wrong|report (it|this|that))\b", re.I)
 STATUS = re.compile(r"\b(my (flags?|requests?)|what happened to (my|the) (flag|request)|is it fixed|did you fix)\b", re.I)
+BARE_FLAG = re.compile(r"^\s*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|please|so|then|go ahead|do it)[\s,.!]*)*(?:flag|file|log|report)\s+(?:it|this|that)(?:\s+(?:please|now|then|for me))?[\s.!]*$", re.I)
 WORDS = {"first": 1, "one": 1, "1": 1, "second": 2, "two": 2, "2": 2, "third": 3, "three": 3, "3": 3}
 # Picking a fix by voice (24 Oct, from Madhav's own chat): "Second bot's answer is basically the same" was taken as "fix 2" and queued a fix he
 # never chose, while "maybe two will do good" and "we will go with the Pixels 1 and 2" (the voice's "fixes") were missed. A pick now needs the
 # number to be the point of the message: a short reply that is only a number with filler words, a number next to a pick word ("go with",
 # "option", "fix", "will do", "sounds good"), or the words of exactly one option's title.
 _N = r"(\d|one|two|three|first|second|third)"
-_FILL = r"(?:yes|yeah|yep|ok(?:ay)?|sure|so|well|maybe|i think|let'?s|we(?:'ll| will)|i(?:'ll| will)|go(?:ing)? with|pick|choose|take|do|the|number|option|fix|please|,|\.|!)"
+_FILL = r"(?:yes|yeah|yep|ok(?:ay)?|sure|so|well|maybe|i think|let'?s|we(?:'ll| will)|i(?:'ll| will)|go(?:ing)? with|pick|choose|take|use|do|the|number|option|fix|please|,|\.|!)"
 PICK_SHORT = re.compile(rf"^\s*(?:{_FILL}\s*)*(?:fix(?:es)?|pixels?|options?|numbers?)?\s*{_N}(?:\s*(?:and|&|,|plus)\s*{_N})?(?:\s*(?:please|one|is good|sounds good|will do( good)?|works|for me|then)?[\s.!]*)*$", re.I)
-PICK_NEAR = re.compile(rf"\b(?:go(?:ing)? with|pick(?:ing)?|choose|chose|take|fix(?:es)?|pixels?|options?|numbers?)\s+(?:the\s+)?{_N}(?:\s*(?:and|&|,|plus)\s*{_N})?\b"
+# 25 Oct chat: "Use one and fix it." was filed as a NEW flag instead of picking fix 1 of the flag he had just raised; "use" is a pick word now
+PICK_NEAR = re.compile(rf"\b(?:go(?:ing)? with|pick(?:ing)?|choose|chose|take|use|fix(?:es)?|pixels?|options?|numbers?)\s+(?:the\s+)?(?:number\s+|option\s+|fix\s+)?{_N}(?:\s*(?:and|&|,|plus)\s*{_N})?\b"
                        rf"|\b{_N}(?:\s*(?:and|&)\s*{_N})?\s+(?:will do|would do|sounds? good|is good|works|is fine|is better)\b", re.I)
-_STOP = {"a", "an", "the", "and", "or", "to", "of", "with", "for", "your", "you", "i", "it", "is", "in", "on", "my", "will", "be", "that", "this", "show", "add"}
+_STOP = {"a", "an", "the", "and", "or", "to", "of", "with", "for", "your", "you", "i", "it", "is", "in", "on", "my", "will", "be", "that", "this", "show", "add",
+         # 25 Oct chat: "Ask which problem when the note is vague" was picked by a long complaint that happened to contain "ask", "which" and "when"
+         "ask", "which", "when", "what", "who", "how", "why", "can", "make", "get", "see", "screen", "chat", "message", "ananta", "answer", "reply", "button", "tap",
+         "one", "two", "three", "first", "second", "third", "option", "options", "fix", "fixes", "plain", "clear", "user", "owner", "here", "there", "like", "just"}
+PENDING_SECONDS = 15 * 60                  # a list of fixes is answered within minutes; an older one is not what a later "one" refers to
 
 
 def _picks(text: str, options: list[dict]) -> list[int]:
@@ -479,9 +549,13 @@ def _picks(text: str, options: list[dict]) -> list[int]:
     m = m or PICK_NEAR.search(text)
     if m:
         nums = [WORDS[g.lower()] for g in m.groups() if g and g.lower() in WORDS]
-    if not nums:                                                         # the words of one option's title ("clear indicator with done button")
+    if not nums and len(text.split()) <= 18:                             # the words of one option's title ("clear indicator with done button")
         said = {w for w in re.findall(r"[a-z']+", text.lower()) if w not in _STOP and len(w) > 2}
-        hits = [i + 1 for i, o in enumerate(options or []) if len(said & {w for w in re.findall(r"[a-z']+", str(o.get("title", "")).lower()) if w not in _STOP and len(w) > 2}) >= 3]
+        hits = []
+        for i, o in enumerate(options or []):
+            tw = {w for w in re.findall(r"[a-z']+", str(o.get("title", "")).lower()) if w not in _STOP and len(w) > 2}
+            if len(said & tw) >= 3 and len(said & tw) >= 0.6 * len(tw):
+                hits.append(i + 1)
         nums = hits if len(hits) == 1 else []
     return [n for i, n in enumerate(nums) if 1 <= n <= n_opts and n not in nums[:i]]
 
@@ -489,7 +563,10 @@ def _picks(text: str, options: list[dict]) -> list[int]:
 def _pending(thread: str) -> dict | None:
     for r in _index():
         if r.get("thread") == thread and r.get("pending_flag"):
-            return r["pending_flag"]
+            p = r["pending_flag"]
+            if p.get("at") and time.time() - float(p["at"]) > PENDING_SECONDS:
+                return None
+            return p
     return None
 
 
@@ -644,6 +721,11 @@ def portfolio_flow(text: str, who: str) -> dict | None:
              "ADD": f"add to {top['symbol']}{amt}"}.get(top["action"], f"{ACTION_WORDS.get(top['action'], top['action'])} {top['symbol']}{amt}") if top else "")
     first = (f"Sir, the one change I would make first: {verb}. Why: {top['why']} " if top
              else "Sir, I would not change anything right now: every holding rates hold or watch. ")
+    # the day's paper move is a different number from the full suggestion (25 Oct chat: Rs 9,900 vs Rs 12,200 for JIOFIN): say both, named
+    mv = [m for m in (p.get("moves") or []) if m.get("kind") == "stock_sell"]
+    if mv:
+        first += ("Today the paper copy already moves " + " and ".join(f"{_rs(m.get('inr'))} of {m.get('symbol')}" for m in mv)
+                  + " to cash at the close, only what brings your stocks back inside their share. ")
     head = (first + f"Overall: {len(hs)} stocks worth {_rs(total)}, {100 * (total / paid - 1):+.1f}% on what you paid; {len(changes)} change{'s' if len(changes) != 1 else ''} suggested in all "
             f"(details below). Paper only: nothing is sold until you say so. {fresh}")
     brk = []
@@ -685,6 +767,182 @@ def morning_flow(text: str, who: str) -> dict | None:
     return _reply(ans[:1800], fu, ["the morning view (paper/morningview)"], {"route": "india", "show": ["home.morning"]})
 
 
+# ---------------------------------------------------------------------------------------------------------------- code answers (25 Oct refinement)
+# Madhav's chats of 23-25 Oct, read one by one: the same question asked twice came back with different numbers and words ("How is the stock
+# paper book doing?" twice in a minute; "What did you decide for the next session?" three times; "Why did KEI fall?" said "no reason on file"
+# twice and "Q2 results" once). The common questions are now answered in code from the same sources the screens read, so they cannot drift.
+FRAGMENT_Q = re.compile(r"^\s*(?:question|number|point)\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s*[.!?]?\s*$", re.I)
+HELLO = re.compile(r"^\s*(?:hey|hi|hello|ok(?:ay)?)?[\s,]*(?:ananta|jarvis)(?:\s+(?:india|here|in here))?[\s.,!?]*$", re.I)
+
+
+def fragment_flow(text: str) -> dict | None:
+    """A turn that stopped mid-sentence ("Hey Ananta in here. Ah, so...", "My last kid that was...", "Question one."): no model call and no
+    guess; Ananta says it is listening, so the next turn carries the question."""
+    words = text.split()
+    if FRAGMENT_Q.match(text):
+        n = FRAGMENT_Q.match(text).group(1)
+        return _reply(f"Go on, sir: what is question {n}?", [], [], {"mode": "listen"})
+    if HELLO.match(text):
+        return _reply("Yes, sir? I'm listening.", ["What did you decide for the next session?", "How is my portfolio?", "Good morning"], [], {"mode": "listen"})
+    if re.search(r"(\.\.\.|…)\s*$", text) and len(words) <= 10 and not re.search(r"\?", text):
+        return _reply("I'm listening, sir. Go on.", [], [], {"mode": "listen"})
+    return None
+
+
+MOVE_WORD = r"(fall|fell|falling|drop|dropped|dropping|down|crash|crashed|slump|slumped|rise|rose|rising|jump|jumped|up|rally|rallied|surge|surged|move|moved|spike|spiked)"
+WHY_MOVE = re.compile(rf"\bwhy\b.{{0,60}}\b{MOVE_WORD}\b|\bwhat (?:made|caused)\b.{{0,40}}\b{MOVE_WORD}\b|\breason\b.{{0,40}}\b{MOVE_WORD}\b", re.I)
+_MOVE_STATUS = {"caught": "Ananta held it, from its own picks", "caught_by_control": "only one of the random control stocks held it",
+                "held_into_fall": "Ananta held it into the fall", "missed": "Ananta did not hold it"}
+_MISS_CLASS = {"a": "a rule fired on it, but the pick was rejected or had already exited", "b": "no rule of Ananta's was watching it", "c": "it could not be traded"}
+_GRADE = {"A": "from an exchange filing", "B": "two news outlets agree", "C": "one source, or unclear"}
+_WORD_SYMBOLS = {"IDEA", "SAIL", "GAIL", "BEL", "ITC", "TRENT", "PAGE", "CAN", "ONE", "ALL", "HOME", "STAR", "BASF", "IRB", "NAM-INDIA"}
+
+
+def _recent_days(n: int = 3) -> list[str]:
+    rx = DATA / "paper" / "reconstruction" / "netnotes"
+    man = DATA / "manifests"
+    days = {p.stem for p in rx.glob("????-??-??.jsonl")} | {p.stem[len("missed_"):] for p in man.glob("missed_????-??-??.json")}
+    return sorted(days)[-n:][::-1]
+
+
+def mover_flow(text: str) -> dict | None:
+    """"Why did KEI fall?": the web note (if one was found) and what Ananta did, from the nightly files, the same every time it is asked."""
+    if not WHY_MOVE.search(text) or re.search(r"\b(nifty|sensex|bank nifty|market|index)\b", text, re.I) or re.search(r"\band (what|how|which|who)\b", text, re.I):
+        return None                       # the index or the whole market, or a second question in the same message: the model answers
+    days = _recent_days()
+    found = None
+    for day in days:
+        notes = {str(n.get("symbol", "")).upper(): n for n in _jsonl_rows(DATA / "paper" / "reconstruction" / "netnotes" / f"{day}.jsonl")}
+        movers = {str(m.get("symbol", "")).upper(): m for m in ((_json_file(DATA / "manifests" / f"missed_{day}.json") or {}).get("movers") or [])}
+        for sym in sorted(set(notes) | set(movers), key=len, reverse=True):
+            flags = 0 if sym in _WORD_SYMBOLS else re.I          # "IDEA" or "SAIL" only when written in capitals
+            if sym and re.search(rf"(?<![A-Za-z0-9]){re.escape(sym)}(?![A-Za-z0-9])", text, flags):
+                found = (day, sym, notes.get(sym), movers.get(sym))
+                break
+        if found:
+            break
+    if not found:
+        return None
+    day, sym, note, mv = found
+    when = dt.date.fromisoformat(day).strftime("%-d %b")
+    parts = []
+    if mv:
+        cc = mv.get("cc")
+        if cc is not None and (cc > 0) == (mv.get("side") == "up"):
+            parts.append(f"Sir, {sym} {'rose' if cc > 0 else 'fell'} {abs(cc) * 100:.1f}% on {when}.")
+        elif mv.get("oc") is not None:
+            parts.append(f"Sir, {sym} {'rose' if mv['oc'] > 0 else 'fell'} {abs(mv['oc']) * 100:.1f}% from its open on {when}.")
+        else:
+            parts.append(f"Sir, {sym} was one of the big moves on {when}.")
+        if mv.get("situation"):
+            parts.append(f"It {mv['situation']}.")
+    else:
+        parts.append(f"Sir, {sym} was one of the big moves on {when}.")
+    if note and note.get("note") and not str(note.get("note")).lower().startswith("no public"):
+        parts.append(f"Public reports say: {str(note['note']).rstrip('.')} ({_GRADE.get(note.get('grade'), 'grade ' + str(note.get('grade')))}). A news note is never a reason to trade.")
+    else:
+        parts.append("No public reason for the move is on file: the evening web check found no filing or news article explaining it, so I won't guess one.")
+    if mv:
+        st = _MOVE_STATUS.get(mv.get("status"), "")
+        if mv.get("status") == "missed" and mv.get("class") in _MISS_CLASS:
+            st = f"Ananta did not hold it: {_MISS_CLASS[mv['class']]}"
+        if st:
+            parts.append(st + ".")
+    rm = views.readmodel()
+    pick = next((x for x in (rm.get("decisions_today") or {}).get("chosen", []) if str(x.get("symbol", "")).upper() == sym), None)
+    if pick:
+        parts.append(f"It is one of the practice picks for the next session ({_FAMILIES.get(pick.get('campaign'), pick.get('campaign'))}).")
+    ev = [f"web notes for {day} (paper/reconstruction/netnotes)" if note else f"no web note for {sym} on {day}", f"missed movers {day} (manifests)" if mv else ""]
+    return _reply(" ".join(parts), [f"What did Ananta do on {when}?", "What did you learn last night?", "What did you decide for the next session?"], [e for e in ev if e],
+                  {"route": "india", "ui": [{"do": "go_to", "target": "reconstruction", "label": "the reconstruction"}] if mv else []})
+
+
+def _jsonl_rows(p: Path) -> list[dict]:
+    try:
+        return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+    except (OSError, ValueError):
+        return []
+
+
+def _json_file(p: Path):
+    try:
+        return json.loads(p.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+BOOK_Q = re.compile(r"^\s*(?:hey ananta,?\s*)?(?:how is|how's|how are)\s+(?:the |our |my )?(?:stock )?(?:paper |research |practice )?(?:stock )?(?:book|trades|practice trades|research book)\b[^?]{0,25}(?:doing|going|performing)?\s*\??\s*$", re.I)
+
+
+def book_flow(text: str) -> dict | None:
+    """"How is the stock paper book doing?": the research book in % per closed trade, the scale the screens use since 25 Oct (the ₹50,000 slots
+    are practice money, not his), family by family, from the same marks the Books screen reads."""
+    if not BOOK_Q.match(text) or re.search(r"\b(my account|portfolio|holdings|options)\b", text, re.I):
+        return None
+    b = views.books()
+    marks = views.exec_marks()
+    pos = views.open_positions()
+    closed = sum((m.get("closed") or 0) for m in marks.values())
+    wins = sum(round((m.get("win_rate") or 0) * (m.get("closed") or 0)) for m in marks.values())
+    avg = b.get("per_trade_pct")
+    fam = []
+    for c in ("PULL", "REV", "BRK", "CTL"):
+        m = marks.get(c) or {}
+        p = views.per_trade_pct(m)
+        if m.get("closed"):
+            fam.append(f"{_FAMILIES[c]} {p:+.1f}% ({m['closed']} closed)")
+    rm = views.readmodel()
+    trend = (rm.get("market") or {}).get("trend_state")
+    a = (f"Sir, the research book (practice trades of ₹50,000 each that test Ananta's rules, not your money) holds {len(pos)} open trades and has closed {closed}. "
+         + (f"Its closed trades average {avg:+.1f}% each, and {wins} of {closed} were winners. " if avg is not None else "No trade has closed yet. ")
+         + (f"By family: {'; '.join(fam)}; the random controls are the yardstick. " if fam else "")
+         + ("The market is in a downtrend, below both its averages, which is where most of these stopped out." if trend == "below_both" else ""))
+    return _reply(a.strip(), ["Which trades are open?", "What did you decide for the next session?", "Why does the book take random stocks?"],
+                  ["research book marks (paper/marks.jsonl), the Books screen"], {"ui": [], "show": ["home.books"]})
+
+
+DECIDE_Q = re.compile(r"^\s*(?:hey ananta,?\s*)?what (?:did you|have you|has ananta|did ananta) (?:decide|decided|pick|picked|choose|chosen)\b[^?]{0,20}\b(?:next|tomorrow'?s?|monday'?s?|the) (?:session|open|day)\b[^?]{0,20}\??\s*$", re.I)
+
+
+def call_state(rm: dict) -> dict:
+    """The daily call with the session it is for. On Fri 23 Oct the call job had no 23 Oct close, so the newest call (made on 22 Oct data,
+    for the 23 Oct session) was read as Monday's: the call now says which session it was made for."""
+    c = rm.get("call") or {}
+    through = c.get("data_through")
+    current = bool(through and through >= str(rm.get("data_through") or ""))
+    return {**{k: c.get(k) for k in ("call", "scored", "hits", "null_hits")}, "made_on_data_through": through, "is_for_next_session": current,
+            "words": (f"The daily call for the next session is {str(c.get('call')).lower()}" if current else
+                      f"No daily call has been made yet for the next session; the last one ({str(c.get('call')).lower()}) was made on {views._day_words(through)} data")
+                     + f"; so far {c.get('hits')} of {c.get('scored')} calls were right, against {c.get('null_hits')} for a coin flip."}
+
+
+def decide_flow(text: str) -> dict | None:
+    """"What did you decide for the next session?": the same sentences the Home decision card shows (views.plain_brief), plus the random
+    controls counted apart and the call's own session, so Home and Ask say the same thing."""
+    if not DECIDE_Q.match(text):
+        return None
+    rm = views.readmodel()
+    d = rm.get("decisions_today") or {}
+    ch = d.get("chosen") or []
+    from collections import Counter
+    n = Counter(x.get("campaign") for x in ch)
+    picks = [x.get("symbol") for x in ch if x.get("campaign") != "CTL"][:3]
+    fam = ", ".join(f"{n[c]} {_FAMILIES[c]}" for c in ("PULL", "REV", "BRK") if n.get(c))
+    nxt = rm.get("next_session")
+    when = dt.date.fromisoformat(nxt).strftime("%a %-d %b") if nxt else "the next session"
+    a = [f"Sir, for {when} the practice book buys {sum(v for k, v in n.items() if k != 'CTL')} stocks at the open ({fam}), such as {', '.join(picks)}, "
+         f"plus {n.get('CTL', 0)} random control stocks as the yardstick; all paper."]
+    mark = (d.get("inputs") or {})
+    if mark.get("marked"):
+        a.append("These picks were made on stale data (" + "; ".join(str(s).split(":")[0] for s in mark.get("stale") or []) + "), so they are marked, not stopped.")
+    a.append(call_state(rm)["words"])
+    sp = rm.get("sp1") or {}
+    a.append("The index options line decides between 09:15 and 10:15 Indian time, one lot, only if the opening move clears the option's cost; it needs that morning's Zerodha sign-in."
+             if sp.get("status") != "ok" else str(sp.get("words") or ""))
+    return _reply(" ".join(a), ["Why these stocks?", "What are our chances?", "When is the next sign-in?"], ["the decision file (paper/decisions), the Home decision card"],
+                  {"show": ["home.decision"]})
+
+
 def fix_flow(text: str, thread: str, token: str | None, context: dict | None, post=None, get=None) -> dict | None:
     """Returns a reply when the message is about a problem, a pick, or the flags' status; None otherwise (the model answers)."""
     if not token:
@@ -720,13 +978,22 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
                       {"ui": [{"do": "go_to", "target": "flags", "label": "My flags"}]})
     if FLAG.search(text) and len(text) >= 8:
         screen = str((context or {}).get("here", {}).get("label") if isinstance((context or {}).get("here"), dict) else (context or {}).get("screen") or "")[:80]
-        r = post(f"{JARVIS_URL}/v3/flags", {"text": text[:600], "market": "india", "screen": screen, "route": "ask"})
+        body = text
+        if BARE_FLAG.match(text):
+            # 25 Oct chat: "Yeah, flag it." filed a flag whose whole text was "Yeah, flag it." The problem is in the turns before it: Ananta's
+            # own suggested wording ('say "flag it: ..."') if it gave one, else his last message(s).
+            prev = thread_messages(thread)[-6:]
+            said = next((m.group(1) for a in reversed([x for x in prev if x.get("role") == "assistant"])
+                         for m in [re.search(r'flag it:\s*([^"”]{8,300})["”]', str(a.get("answer") or ""))] if m), None)
+            his = [str(x.get("text") or "") for x in prev if x.get("role") == "user" and not BARE_FLAG.match(str(x.get("text") or ""))][-2:]
+            body = (said or " / ".join(his) or text)[:600]
+        r = post(f"{JARVIS_URL}/v3/flags", {"text": body[:600], "market": "india", "screen": screen, "route": "ask"})
         j = r.json() if hasattr(r, "json") else r
         if not j.get("num"):
             return _reply(f"I could not file that, sir: {str(j.get('detail') or j)[:120]}", [], [])
         opts = j.get("options") or []
         lines = [f"{i + 1}. {o.get('title')} - {'I fix it and put it live' if o.get('lane') == 'SAFE' else 'near trading: a plan for your yes'}" for i, o in enumerate(opts)]
-        _set_pending(thread, {"num": j["num"], "options": [{"title": o.get("title"), "lane": o.get("lane")} for o in opts]})
+        _set_pending(thread, {"num": j["num"], "at": int(time.time()), "options": [{"title": o.get("title"), "lane": o.get("lane")} for o in opts]})
         name = j.get("label") or f"flag {j['num'] - 81}"
         a = f"Flagged as {name}, sir. " + (f"{j.get('diagnosis')} " if j.get("diagnosis") else "") + ("Fixes: " + " ".join(lines) + " Say a number or tap one." if lines else "I'll tell you when it's fixed.")
         return _reply(a, [f"Fix {i + 1}: {o.get('title')}" for i, o in enumerate(opts)], [f"fix flow: {name} filed on the shared board"], {"flag": j})

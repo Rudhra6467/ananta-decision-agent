@@ -333,6 +333,20 @@
    "owner_decision": true
   },
   {
+   "id": "PW-HF-NEWS",
+   "what": "The news-model shadow (Madhav, 25 Oct 2026: 'add both'): score the blind FinBERT ratings of the stored news-check headlines (~/ananta_lake/agent/hf_shadow/news_ratings.jsonl, written nightly since 25 Oct by com.ananta.hfnews.shadow, read by nothing until then), and run the historical crypto news study if a dated headline source exists.",
+   "how": "Pre-register first (RESEARCH_RULES.md section 1): the outcome is STUDY_NEWS_CREDIT's (fwd20 minus the 10 coins' median, weekly blocks, |t| >= 2.5 and 2 points); the question is whether the model's tone adds to the news check's own CLEAR/CAUTION verdict. A pass is a proposal, never a live change.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
+   "id": "PW-HF-CHRONOS",
+   "what": "The Chronos forecaster shadow (Madhav, 25 Oct 2026: 'add both'): score the blind BTC and ETH forecasts written daily since 26 Oct by com.ananta.chronosshadow (~/ananta_runs/shadow_chronos/, read by nothing until then), and run the historical crypto Chronos study.",
+   "how": "Pre-register first (RESEARCH_RULES.md section 1): direction hit rate against the coin flip and against always-up, calibration of the 10-90% band, and a long/flat rule after NDAX costs against holding; the India run (hf_chronos_v1, 25 Oct) found no skill, so the bar is written before any look. A pass is a proposal, never a live change.",
+   "after_window": true,
+   "owner": "Claude"
+  },
+  {
    "id": "PW-LIBRARY",
    "what": "Old-app re-test queue: APP-LIBRARY (13 outside ideas, each needs a written pass rule), APP-REGVAL (re-run the regime validation on the daily horizon with NDAX-type costs, the baseline for any new cost model) and STRAT:CONTINUATION (pullback in an uptrend, parked until one daily-horizon re-test).",
    "how": "One pre-registered batch (RESEARCH_RULES.md section 1): daily bars, NDAX costs, each idea's pass rule written first. The old library's placeholder numbers are never cited.",

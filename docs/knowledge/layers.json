@@ -948,6 +948,7 @@
    "files": [
     "docs/research/ZONES_PROGRAM.md",
     "jarvis/service/shadow.py",
+    "src/research/chronos_shadow.py",
     "src/research/entry_v2.py",
     "src/research/mtf_entry.py",
     "src/research/green_runs.py",

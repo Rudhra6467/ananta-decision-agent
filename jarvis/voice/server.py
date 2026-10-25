@@ -31,6 +31,12 @@ VOICES = {"Calm": "af_heart", "Friendly": "af_bella", "Deep": "am_michael", "Bri
 STT_PROMPT = ("Madhav talking to Ananta, a crypto trading assistant. Hey there. Hey Jarvis. Walk me through it. Bitcoin, Ethereum, Solana, "
               "Cardano, Dogecoin, Avalanche, Bitcoin Cash, Chainlink, Litecoin, XRP. Hunter, Squeeze, Explorer, trend portfolio, T3, zones, "
               "stop loss, the short dip trade, setup, scan, portfolio, mandate, evidence, repair shop.")
+# 25 Oct (India voice refinement): India's voice was heard with the crypto prompt above ("Bitcoin, Solana, Hunter ..."), so Whisper leaned toward
+# crypto words while Madhav talked about the Nifty, Zerodha and his holdings. India sends context "india" and gets its own words.
+STT_PROMPT_INDIA = ("Madhav talking to Ananta, an Indian stock market trading assistant. Hey Ananta. Walk me through it. Nifty, Nifty 50, Bank Nifty, "
+                    "Sensex, NSE, BSE, Zerodha, Kite, India VIX, F and O, options, straddle, expiry, lot, rupees, lakh, crore, pullback, breakout, "
+                    "reversal, portfolio, holdings, morning view, reconstruction, flag it, fix one, fix two, fix three. Reliance, Tata Power, "
+                    "Jio Financial, HDFC Bank, Infosys, ICICI Bank, Tata Motors.")
 
 app = FastAPI(title="Ananta voice", docs_url=None, redoc_url=None, openapi_url=None)
 _lock = threading.Lock()          # MLX: one job at a time
@@ -68,13 +74,14 @@ def synth(text: str, voice: str, speed: float) -> bytes:
     return buf.getvalue()
 
 
-def stt_prompt(names: str = "") -> str:
-    """The English prompt plus the names to expect (request #35: 'Madhav' came out as 'Mahider'); at most 12 names, letters only."""
-    ns = [n.strip() for n in (names or "").split(",") if n.strip() and all(c.isalpha() or c in " '-" for c in n.strip())][:12]
-    return STT_PROMPT + (" Names: " + ", ".join(ns) + "." if ns else "")
+def stt_prompt(names: str = "", context: str = "") -> str:
+    """The English prompt plus the names to expect (request #35: 'Madhav' came out as 'Mahider'); at most 12 names, letters only.
+    context "india" uses India's words (Nifty, Zerodha ...) instead of crypto's."""
+    ns = [n.strip() for n in (names or "").split(",") if n.strip() and all(c.isalpha() or c in " '-&" for c in n.strip())][:12]
+    return (STT_PROMPT_INDIA if context == "india" else STT_PROMPT) + (" Names: " + ", ".join(ns) + "." if ns else "")
 
 
-def stt_file(path: str | None, language: str | None = "en", names: str = "") -> str:
+def stt_file(path: str | None, language: str | None = "en", names: str = "", context: str = "") -> str:
     """language "en" for Madhav; None lets Whisper detect it (Telugu conversations with his family, Oct 11)."""
     import mlx_whisper
 
@@ -82,7 +89,7 @@ def stt_file(path: str | None, language: str | None = "en", names: str = "") -> 
         path = os.path.join(tempfile.gettempdir(), "ananta_silence.wav")
         sf.write(path, np.zeros(16000, dtype=np.float32), 16000)
     with _lock:
-        r = mlx_whisper.transcribe(path, path_or_hf_repo=STT_MODEL, language=language, initial_prompt=stt_prompt(names) if language == "en" else None,
+        r = mlx_whisper.transcribe(path, path_or_hf_repo=STT_MODEL, language=language, initial_prompt=stt_prompt(names, context) if language == "en" else None,
                                    condition_on_previous_text=False, temperature=0.0)
     return (r.get("text") or "").strip()
 
@@ -193,6 +200,7 @@ class STTReq(BaseModel):
     mime: str = "audio/wav"
     language: str = "en"
     names: str = ""
+    context: str = ""
 
 
 @app.get("/health")
@@ -224,7 +232,7 @@ def stt(b: STTReq) -> dict:
     try:
         voiced = voiced_seconds(p)
         lang = getattr(b, 'language', 'en') or 'en'
-        text = stt_file(p, None if lang == 'auto' else lang, getattr(b, 'names', '') or '')
+        text = stt_file(p, None if lang == 'auto' else lang, getattr(b, 'names', '') or '', getattr(b, 'context', '') or '')
     finally:
         os.unlink(p)
     # Whisper sometimes "hears" its prompt or stock phrases in near-silence. Drop those only when there was almost no

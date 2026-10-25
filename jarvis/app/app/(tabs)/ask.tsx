@@ -152,12 +152,18 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
   );
 }
 
-const Flags = ({ flags }: { flags: string[] }) => (
-  <View style={{ backgroundColor: C.warnSoft, borderRadius: 12, padding: 12, gap: 6, maxWidth: "96%" }}>
-    <Text style={{ color: C.warn, fontSize: 12, fontWeight: "700" }}>FLAGS FOR YOU</Text>
-    {flags.map((f, i) => <Bullet key={i}>{f}</Bullet>)}
-  </View>
-);
+// 25 Oct (Madhav, India chat): "message flags for you, which is unnecessary. I couldn't read the message because of this. Every time I have
+// to scroll down." The notes about the data now sit in one small closed line under the answer; a tap opens them.
+const Flags = ({ flags }: { flags: string[] }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" accessibilityLabel={open ? "Hide notes about the data" : "Show notes about the data"}
+      style={{ alignSelf: "flex-start", maxWidth: "96%", paddingVertical: 4, gap: 6 }}>
+      <Text style={{ color: C.warn, fontSize: 12, fontWeight: "600" }}>{open ? "▾" : "▸"} {flags.length} note{flags.length === 1 ? "" : "s"} about the data</Text>
+      {open ? <View style={{ backgroundColor: C.warnSoft, borderRadius: 12, padding: 10, gap: 6 }}>{flags.map((f, i) => <Bullet key={i}>{f}</Bullet>)}</View> : null}
+    </Pressable>
+  );
+};
 
 const Tab = ({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) => (
   <Pressable onPress={onPress} style={{ backgroundColor: on ? C.text : C.card2, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 }}>
@@ -783,7 +789,7 @@ export default function Ananta() {
             <Answer m={m} onPick={(q) => (live ? loop.onText(q) : send(q))} onRate={(v) => rate(m, v)} onSecond={() => second(m)}
               onSpeak={live ? undefined : () => { TTS.speak(UI.sentences(m.answer ?? ""), () => {}); }}
               onShow={live ? undefined : () => walkThrough(m)} />
-            {i === msgs.length - 1 && m.kind === "answer" && fl?.flags?.length ? <Flags flags={fl.flags} /> : null}
+            {i === msgs.length - 1 && m.kind === "answer" && !live && fl?.flags?.length ? <Flags flags={fl.flags} /> : null}
             {m.voice && i === msgs.length - 1 ? (m.show ?? []).slice(0, 1).map((sh: any, k: number) => <StageCard key={k} sh={sh} open={() => openScreen(sh)} />) : null}
           </View>
         )))}

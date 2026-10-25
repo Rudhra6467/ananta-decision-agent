@@ -95,10 +95,92 @@ def clip(cid: str) -> tuple[bytes, str]:
     return a["audio"], a["mime"]
 
 
+def expected_names(n: int = 12) -> str:
+    """The words Whisper should expect in India (25 Oct refinement): Madhav, then his holdings by size (the names he says most)."""
+    out = ["Madhav"]
+    try:
+        from jarvis.india import views
+        for h in (views.allocation_plan(full=True).get("holdings") or []):
+            s = str(h.get("symbol") or "")
+            if s and s not in out:
+                out.append(s)
+    except Exception:  # noqa: BLE001 - a missing plan never stops the voice
+        pass
+    return ", ".join(out[:n])
+
+
+# Indian names Whisper still bends after the India prompt (25 Oct voice check: "GIO Financial"; with the old crypto prompt also "Ziradha",
+# "Tadah power" and "one lock"): put right after hearing, only these exact shapes.
+HEARD_FIX = [(re.compile(r"\b(?:gio|geo|jeo)\s+(fin(?:ancial|ance)?)\b", re.I), r"Jio \1"), (re.compile(r"\bzi?radha\b|\bzerod[ah]+\b|\bzeroda\b", re.I), "Zerodha"),
+             (re.compile(r"\btad(?:ah|a)?\s+power\b", re.I), "Tata Power"),
+             (re.compile(r"\b(\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|a)\s+locks?\b", re.I), r"\1 lakh")]
+
+
+def fix_heard(text: str) -> str:
+    for rx, rep in HEARD_FIX:
+        text = rx.sub(rep, text)
+    return text
+
+
 def transcribe(audio_b64: str, mime: str, post=None) -> str:
     post = post or (lambda url, body: requests.post(url, json=body, timeout=120).json())
-    j = post(f"{VOICE_URL}/stt", {"audio_b64": audio_b64, "mime": mime or "audio/webm", "language": "en"})
-    return str(j.get("text") or "").strip()
+    # context "india": the voice server uses India's words (Nifty, Zerodha, lakh ...), not the crypto prompt it used before 25 Oct
+    j = post(f"{VOICE_URL}/stt", {"audio_b64": audio_b64, "mime": mime or "audio/webm", "language": "en", "context": "india", "names": expected_names()})
+    return fix_heard(str(j.get("text") or "").strip())
+
+
+# ---- the India voice check (25 Oct refinement; crypto's is jarvis/service/exam.py voice): India phrases spoken by the Mac's own voice, heard by
+# the India speech path (India prompt, his holdings as names). Free, local; run weekly with the India exam. Pass: 9 of 12 heard right.
+VOICE_CHECK = [
+    ("nifty", "How did the Nifty close today?", [r"nifty"]),
+    ("banknifty", "What is Bank Nifty doing?", [r"bank\s*nifty"]),
+    ("zerodha", "Did the Zerodha sign-in work this morning?", [r"zerodha", r"sign"]),
+    ("tatapower", "Should I trim Tata Power?", [r"tata\s*power", r"trim"]),
+    ("jiofin", "Why is Jio Financial rated D?", [r"jio", r"rated|rate"]),
+    ("lakh", "My stocks are worth one lakh eight thousand rupees.", [r"lakh|lac", r"rupee"]),
+    ("expiry", "When is the next weekly expiry?", [r"expir", r"week"]),
+    ("straddle", "How did the straddle do?", [r"straddle"]),
+    ("fixone", "Use fix one.", [r"fix", r"one|1"]),
+    ("flag", "Flag it, the chart is wrong.", [r"flag", r"wrong"]),
+    ("morning", "Open the morning view.", [r"morning", r"view"]),
+    ("pullback", "How are the pullback trades doing?", [r"pull\s*-?\s*back", r"trade"]),
+]
+VOICE_CHECK_PASS = 9
+
+
+def _say_wav(text: str, d, k: int) -> bytes:
+    import subprocess
+    from pathlib import Path
+    aiff, wav = Path(d) / f"v{k}.aiff", Path(d) / f"v{k}.wav"
+    subprocess.run(["say", "-o", str(aiff), text], check=True, timeout=60)
+    subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI16@16000", "-c", "1", str(aiff), str(wav)], check=True, timeout=60)
+    return wav.read_bytes()
+
+
+def check(post=None, speak=None) -> dict:
+    """Each phrase spoken (say), heard through transcribe(), judged by its word groups; the result kept in manifests/voice_check_*.json."""
+    import json
+    import tempfile
+    import time
+    from pathlib import Path
+    speak = speak or _say_wav
+    rows = []
+    with tempfile.TemporaryDirectory() as td:
+        for k, (cid, said, groups) in enumerate(VOICE_CHECK):
+            try:
+                heard = transcribe(base64.b64encode(speak(said, td, k)).decode(), "audio/wav", post)
+            except Exception as exc:  # noqa: BLE001
+                heard = f"(error: {str(exc)[:100]})"
+            rows.append({"id": cid, "said": said, "heard": heard, "ok": all(re.search(g, heard, re.I) for g in groups)})
+    n = sum(r["ok"] for r in rows)
+    out = {"t": int(time.time()), "day": time.strftime("%Y-%m-%d"), "understood": n, "of": len(rows), "pass": n >= VOICE_CHECK_PASS, "rows": rows,
+           "note": "spoken by the Mac's voice (say), heard by India's speech path (India prompt and his holdings as names)"}
+    d = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "manifests"
+    if d.exists():
+        (d / "voice_check_latest.json").write_text(json.dumps(out, indent=1))
+        with (d / "voice_check_history.jsonl").open("a") as f:
+            f.write(json.dumps({k: v for k, v in out.items() if k != "rows"}) + "\n")
+    return out
 
 
 FILLER = re.compile(r"^(um+|uh+|hmm+|okay|ok|yeah|thanks?|thank you)[.!]?$", re.I)

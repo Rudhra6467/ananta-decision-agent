@@ -79,6 +79,15 @@ def main(argv: list[str]) -> int:
     for r in e["rows"]:
         if not r["ok"] or r["safety"] or r["plain"]:
             print("  MISS", r["kind"], r["id"], "missed", r.get("missed"), "safety", r["safety"], "plain", r["plain"], "->", r["answer"][:200].replace("\n", " "), flush=True)
+    try:                                   # the India voice check rides along (free, local): India phrases through India's speech path
+        from jarvis.india import voice as india_voice
+        v = india_voice.check()
+        print(time.strftime("%Y-%m-%d %H:%M"), "INDIA VOICE CHECK", f"{v['understood']} of {v['of']} heard right", "PASS" if v["pass"] else "FAIL", flush=True)
+        for r in v["rows"]:
+            if not r["ok"]:
+                print("  NOT HEARD", r["id"], repr(r["said"]), "->", repr(r["heard"]), flush=True)
+    except Exception as exc:  # noqa: BLE001
+        print("india voice check failed:", exc, flush=True)
     return 0
 
 

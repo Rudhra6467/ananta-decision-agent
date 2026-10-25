@@ -212,7 +212,12 @@ def plain_brief(rm: dict) -> list[str]:
     c = rm.get("call") or {}
     if c.get("call"):
         word = {"BULLISH": "up", "BEARISH": "down", "NEUTRAL": "flat"}.get(str(c["call"]).upper(), str(c["call"]).lower())
-        out.append(f"It calls the next session {word}; so far {c.get('hits', 0)} of {c.get('scored', 0)} calls were right.")
+        rec = f"so far {c.get('hits', 0)} of {c.get('scored', 0)} calls were right, against {c.get('null_hits', 0)} for a coin flip."
+        if c.get("data_through") and str(c["data_through"]) < str(rm.get("data_through") or ""):
+            # 25 Oct: the newest call was made on 22 Oct data for the 23 Oct session, and was shown as the call for Monday
+            out.append(f"No call yet for the next session (the last one, {word}, was made on {_day_words(c['data_through'])} data); {rec}")
+        else:
+            out.append(f"It calls the next session {word}; {rec}")
     s = rm.get("sp1") or {}
     if s.get("status") == "lost":
         out.append("Options: nothing traded yet, because the morning sign-in to Zerodha was missing.")
@@ -823,9 +828,12 @@ def _queue_rows() -> list[dict]:
         d = dec.get(r.get("key"))
         if d and r.get("lane") == "DECISION":
             r["state"], r["decided_at"], r["decided_words"] = d.get("decision"), d.get("at"), d.get("words")
+    # 25 Oct: a forwarded row that names its day matches only that day's finding, so closing or filing JOB_FAIL:paper of 23 Oct does not hide
+    # a new paper failure on a later day (a row without a day still matches by key, as before)
+    filed_day = {(f.get("key"), f.get("day")): f for f in _jsonl(DATA / "paper" / "reconstruction" / "forwarded.jsonl") if f.get("day")}
     for r in rows:
-        if r.get("key") in filed:
-            fw = filed[r["key"]]
+        fw = filed_day.get((r.get("key"), r.get("day"))) or (filed.get(r.get("key")) if not (filed.get(r.get("key")) or {}).get("day") else None)
+        if fw:
             if str(fw.get("note", "")).startswith("closed"):          # a SAFE row closed without filing (a false alarm), with the reason in the note
                 r["state"], r["closed_why"] = "closed", fw.get("note")
                 continue

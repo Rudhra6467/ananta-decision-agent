@@ -2,9 +2,9 @@
 
 Madhav's request: extract everything useful for the Indian market from the two YouTube teachers, test every strategy that can be tested, keep every result, and track the survivors forward. Source registers: Trade With Trend TWT-H01..H60 and Optionables OPT-H01..H60 (paraphrased from public videos; members-only videos not used).
 
-Bars: family teacher_twt k = 145, teacher_opt k = 86 (frozen in every registration); two-sided Bonferroni z at 3.58 and 3.44. VALIDATED needs |t| at z in both development (2000-2017) and validation (2018-2023) with the same sign; CONDITIONAL needs z in one and 1.65 in the other. t is across calendar-quarter means; at least 16 quarters per period. 2024 onward stays sealed.
+Bars: family teacher_twt k = 151, teacher_opt k = 86 (frozen in every registration); two-sided Bonferroni z at 3.59 and 3.44. VALIDATED needs |t| at z in both development (2000-2017) and validation (2018-2023) with the same sign; CONDITIONAL needs z in one and 1.65 in the other. t is across calendar-quarter means; at least 16 quarters per period. 2024 onward stays closed to research.
 
-Status counts: AMBIGUOUS 1, DEFERRED 4, DESCRIPTIVE 6, FORWARD 22, LINKED 3, NEEDS_BUILD 3, NEEDS_DATA 11, NOT_INDIA 1, TEST 65, TOO_FEW 4
+Status counts: AMBIGUOUS 1, DEFERRED 4, DESCRIPTIVE 6, FORWARD 22, LINKED 3, NEEDS_BUILD 3, NEEDS_DATA 11, NOT_INDIA 1, TEST 67, TOO_FEW 4
 
 ## Trade With Trend (Raunak A)
 
@@ -58,6 +58,11 @@ Variants (expected sign): `vol1.0|net20` +; `vol1.5|net20` +; `vol2.0|net20` +; 
 Breakout bars that are the widest of the last 20 sessions, close in the top 25% of the bar and have an upper wick under 15% of the range earn more over 5/10/20 sessions and fail less often. Wide, high-volume (1.5x) bars with an upper wick of 40% or more earn less.
 Variants (expected sign): `good|net5` +; `good|net10` +; `good|net20` +; `good|fail5` -; `wicky|net20` -
 
+### TWT-H12F · Follow-up: do the good breakout bars pay later? · TEST
+H12's good breakout bars (widest of 20, close in the top 25%, upper wick under 15%) failed less in 5 days but did not earn more from the next open. Follow-up: counted from day 5 (once the 5-day failure is known), do they earn more over the next 20 and 60 sessions than other breakouts?
+Variants (expected sign): `good|p5net20` +; `good|p5net60` +
+Note: Follow-up registered 25 Oct 2026 after H12's result; the same teacher bar, k grows by 2.
+
 ### TWT-H13 · RS line at a high confirms the breakout · TEST
 Breakouts where the stock / Nifty 500 ratio is at (within 0.5% of) its 126-session high earn more over 20 and 60 sessions than breakouts where it is not.
 Variants (expected sign): `net20` +; `net60` +
@@ -83,6 +88,11 @@ Note: His 5:1 bullish-to-bearish candle filter is not added.
 ### TWT-H18 · Quiet pullbacks after a breakout · TEST
 After a breakout, the first pullback of 3% from the post-breakout high (days 3-15): pullbacks on lower volume than the up-leg that hold the breakout level make a new high within 15 sessions more often than other pullbacks; pullbacks that retrace under 38.2% of the run do too.
 Variants (expected sign): `quiet_hold|newhigh15` +; `shallow|newhigh15` +
+
+### TWT-H18F · Follow-up: do quiet pullbacks pay? · TEST
+H18's quiet (lower volume, holding the breakout level) and shallow (under 38.2% of the run) pullbacks made new highs more often, partly because they start closer to the high. Follow-up: buying the next open after the pullback day, do they earn more over 5 and 20 sessions, net of costs, than other first pullbacks?
+Variants (expected sign): `quiet_hold|net5` +; `quiet_hold|net20` +; `shallow|net5` +; `shallow|net20` +
+Note: Follow-up registered 25 Oct 2026 after H18's result; the same teacher bar, k grows by 4.
 
 ### TWT-H19 · How often breakouts retest · DESCRIPTIVE
 Share of breakouts whose close returns to the breakout level within 10 sessions, and whose low touches it within 20; also among the breakouts that went on to gain 10%+ in 60 sessions. His figures: about 40% of eventual winners, more than 65% of breakouts.

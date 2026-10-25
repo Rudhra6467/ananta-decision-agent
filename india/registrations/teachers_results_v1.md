@@ -1,12 +1,12 @@
 # Teacher cards v1 · results
 
-Generated 25 Oct 2026 11:35 Toronto. Rules and variants: teachers_v1.md.
+Generated 25 Oct 2026 12:48 Toronto. Rules and variants: teachers_v1.md.
 
 ## Trade With Trend (Raunak A)
 
-Cards: DEFERRED 2, DESCRIPTIVE 1, LINKED 3, NEEDS_BUILD 2, NEEDS_DATA 7, TEST 41, TOO_FEW 4
+Cards: DEFERRED 2, DESCRIPTIVE 1, LINKED 3, NEEDS_BUILD 2, NEEDS_DATA 7, TEST 43, TOO_FEW 4
 
-Variant verdicts: CONDITIONAL 5, INCONCLUSIVE 68, OPPOSITE 16, REJECTED 52, VALIDATED 4
+Variant verdicts: CONDITIONAL 5, INCONCLUSIVE 68, OPPOSITE 18, REJECTED 56, VALIDATED 4
 
 | card | variant | verdict | dev mean | dev t | val mean | val t | val quarters |
 |---|---|---|---|---|---|---|---|
@@ -51,6 +51,8 @@ Variant verdicts: CONDITIONAL 5, INCONCLUSIVE 68, OPPOSITE 16, REJECTED 52, VALI
 | TWT-H12 | good|net20 | REJECTED | -0.0104 | -2.8 | +0.0007 | +0.2 | 24 |
 | TWT-H12 | good|net5 | OPPOSITE | -0.0040 | -1.8 | -0.0006 | -0.2 | 24 |
 | TWT-H12 | wicky|net20 | REJECTED | +0.0081 | +1.7 | -0.0071 | -1.2 | 23 |
+| TWT-H12F | good|p5net20 | REJECTED | -0.0078 | -2.2 | +0.0023 | +0.5 | 24 |
+| TWT-H12F | good|p5net60 | OPPOSITE | -0.0234 | -4.0 | -0.0034 | -0.4 | 23 |
 | TWT-H13 | net20 | REJECTED | +0.0049 | +1.1 | +0.0086 | +2.4 | 24 |
 | TWT-H13 | net60 | REJECTED | +0.0090 | +1.1 | +0.0251 | +4.6 | 23 |
 | TWT-H14 | net120 | REJECTED | -0.0073 | -0.5 | +0.0229 | +3.0 | 22 |
@@ -63,6 +65,10 @@ Variant verdicts: CONDITIONAL 5, INCONCLUSIVE 68, OPPOSITE 16, REJECTED 52, VALI
 | TWT-H17 | p5net60 | REJECTED | -0.0062 | -1.1 | -0.0042 | -0.6 | 23 |
 | TWT-H18 | quiet_hold|newhigh15 | VALIDATED | +0.0996 | +14.5 | +0.1087 | +9.5 | 24 |
 | TWT-H18 | shallow|newhigh15 | VALIDATED | +0.1517 | +16.1 | +0.1523 | +11.8 | 24 |
+| TWT-H18F | quiet_hold|net20 | REJECTED | +0.0002 | +0.1 | -0.0026 | -0.7 | 24 |
+| TWT-H18F | quiet_hold|net5 | REJECTED | +0.0002 | +0.1 | -0.0002 | -0.2 | 24 |
+| TWT-H18F | shallow|net20 | OPPOSITE | -0.0061 | -1.7 | -0.0020 | -0.7 | 24 |
+| TWT-H18F | shallow|net5 | REJECTED | -0.0020 | -1.2 | -0.0000 | -0.0 | 24 |
 | TWT-H22 | single7_vs_none|hold60 | OPPOSITE | -0.0204 | -1.7 | -0.0225 | -1.6 | 23 |
 | TWT-H22 | staged_vs_single|hold20 | REJECTED | +0.0007 | +0.7 | +0.0006 | +0.5 | 23 |
 | TWT-H22 | staged_vs_single|hold60 | REJECTED | -0.0032 | -1.5 | -0.0028 | -0.9 | 23 |

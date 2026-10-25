@@ -19,7 +19,7 @@
   "ADMITTED": "Madhav (beats RANDOM and MARKET on 10+ independent sessions net of costs; leak check passes; pinned in the lock)",
   "LIVE_ELIGIBLE": "Madhav (the India gate and the live-readiness rules)"
  },
- "built_at": "2026-10-23T23:50:17+00:00",
+ "built_at": "2026-10-25T02:30:15+00:00",
  "rules": {
   "stock:BRK": {
    "what": "20-session breakout on volume",
@@ -33,7 +33,7 @@
   "stock:PULL": {
    "what": "pullback in an uptrend",
    "step": "SHADOW",
-   "shadow_sessions": 3,
+   "shadow_sessions": 4,
    "shadow_bar": 20,
    "independent_sessions_beating_random_and_market": 2,
    "independent_bar": 10,
@@ -42,7 +42,7 @@
   "stock:REV": {
    "what": "oversold reversal",
    "step": "SHADOW",
-   "shadow_sessions": 2,
+   "shadow_sessions": 3,
    "shadow_bar": 20,
    "independent_sessions_beating_random_and_market": 2,
    "independent_bar": 10,
@@ -63,5 +63,5 @@
   "to_file": 4
  },
  "history": [],
- "words": "No rule has proved itself yet. The stock rules have 3 of 20 trial sessions; the options line has 0; Ananta beat chance and the average stock on 2 of the 10 days needed."
+ "words": "No rule has proved itself yet. The stock rules have 4 of 20 trial sessions; the options line has 0; Ananta beat chance and the average stock on 2 of the 10 days needed."
 }

@@ -89,14 +89,15 @@ def autologin_state(now: dt.datetime, log: Path | None = None) -> dict | None:
         return None
     last = lines[-1]
     at = last.split(" ")[0]
+    at_t = None
     try:
         at_t = dt.datetime.fromisoformat(at).astimezone(TOR)
         at_s = f"{at_t:%a %d %b %H:%M} Toronto"
         if (now.astimezone(TOR) - at_t).days > 3:
-            return {"ok": False, "at": at_s, "why": "no automatic sign-in for more than 3 days"}
+            return {"ok": False, "at": at_s, "t": at_t, "why": "no automatic sign-in for more than 3 days"}
     except ValueError:
         at_s = at
-    return {"ok": "auto sign-in ok" in last, "at": at_s, "why": last.split("FAILED:", 1)[-1].strip() if "FAILED" in last else ""}
+    return {"ok": "auto sign-in ok" in last, "at": at_s, "t": at_t, "why": last.split("FAILED:", 1)[-1].strip() if "FAILED" in last else ""}
 
 
 def launchctl_list(text: str | None = None) -> dict[str, dict]:
@@ -313,7 +314,14 @@ def job_report(label: str, lc: dict, agents: Path, now: dt.datetime, ctx: dict) 
             r["problems"].append(f"exit {r['last_exit']}: token dead" + (", expected (the token was flushed before the session)" if label.endswith(".spreads") else "")
                                  + f"; next sign-in {ctx['signin']}")
         else:
-            r["problems"].append(f"exit {r['last_exit']}: " + ("; ".join(r["errors"][-2:]) if r["errors"] else "no error line in the log tail"))
+            # 25 Oct (the India voice said a job "still fails" a day after the fix): the line says when that failing run ended
+            r["problems"].append(f"exit {r['last_exit']}: " + ("; ".join(r["errors"][-2:]) if r["errors"] else "no error line in the log tail")
+                                 + (f" (that run ended {last_out:%a %d %b %H:%M})" if last_out else ""))
+        if label.endswith(".autologin") and r["problems"]:
+            st = autologin_state(now)                       # a sign-in that worked after the failed run: the failure is over
+            if st and st.get("ok") and st.get("t") and last_out and st["t"] > last_out:
+                r["problems"] = []
+                r["problems_note"] = f"the last scheduled run failed, but a sign-in worked after it ({st.get('at')})"
     if due is not None and not running and (last_out is None or last_out < due - dt.timedelta(minutes=1)):
         r["problems"].append(f"lost run: due {due:%a %d %b %H:%M}, no output since {last_out:%a %d %b %H:%M}" if last_out else f"lost run: due {due:%a %d %b %H:%M}, no log at all")
     elif ok is False and not running:

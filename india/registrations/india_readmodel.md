@@ -1,4 +1,4 @@
-# India read model (V0) — data through 2026-10-23, built 2026-10-25T16:54:25+00:00
+# India read model (V0) — data through 2026-10-23, built 2026-10-25T22:00:33+00:00
 
 Rules readmodel-v0-2026-10-22. Every number below traces to the file named in its section of readmodel/latest.json; nothing here is typed by hand.
 
@@ -11,7 +11,6 @@ Rules readmodel-v0-2026-10-22. Every number below traces to the file named in it
 - Marked: these picks were made on stale inputs (Nifty 50: stale: last row 2026-10-22; India VIX: stale: last row 2026-10-22; small-cap ratio: missing or stale).
 - SP1 index line: session lost: no Kite sign-in by 09:10 IST: the Kite token expired at 6 am IST: open http://127.0.0.1:8100/kite/login on the Mac.
 - Against the reference traders (1 session): Ananta held 2 of the top 20 trips, passed on 0, had no rule for 13; its picks sat at the 20th percentile of random.
-- Not available for this session: reconstruction.
 
 ## Decisions for the next session
 
@@ -59,15 +58,15 @@ session lost: no Kite sign-in by 09:10 IST: the Kite token expired at 6 am IST: 
 ## Jobs
 
 - allocator: ok
-- autologin: PROBLEM exit 1: no error line in the log tail
+- autologin: ok
 - evening: ok
 - findings: ok
-- morning: PROBLEM exit 1: india.readmodel: TypeError: unsupported format string passed to NoneType.__format__
+- morning: PROBLEM exit 1: india.readmodel: TypeError: unsupported format string passed to NoneType.__format__ (that run ended Sun 25 Oct 07:20)
 - morningview: ok
 - netnotes: ok
 - nightly: ok
 - openingview: ok
-- paper: PROBLEM exit 1: india.readmodel: TypeError: unsupported format string passed to NoneType.__format__
+- paper: ok
 - recorder_noon: PROBLEM exit 1: token dead; next sign-in automatic at 21:40 Toronto (last automatic sign-in ok Sun 25 Oct 10:02 Toronto); by hand only if it fails, Sun 25 Oct 22:00-23:40 Toronto (07:30-09:10 IST, for the Mon 26 Oct session); empty run: recorder: 0 contracts saved since 12:30
 - sp1paper: ok
 - sp1paper.score: PROBLEM exit 1: token dead; next sign-in automatic at 21:40 Toronto (last automatic sign-in ok Sun 25 Oct 10:02 Toronto); by hand only if it fails, Sun 25 Oct 22:00-23:40 Toronto (07:30-09:10 IST, for the Mon 26 Oct session); empty run: book.json updated 24 Oct 19:00
@@ -80,7 +79,7 @@ Next sign-in: automatic at 21:40 Toronto (last automatic sign-in ok Sun 25 Oct 1
 
 - studies: {'ready': 53, 'blocked': 11, 'with_results': 40}
 - gate G02: {'state': 'BLOCKED', 'waiting_on': 'D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); D32 (wait_time, weekly runs)'} counters {'D15': '7 of 30 nightly runs; 4 clean sessions in a row (the gate needs 30 in a row)', 'D16': '4 of 30 snapshots', 'D32': '2026-10-25: knows 18 of 18, unknowns 6 of 7, why 5 of 5, safety 30 of 30, plain words 27 of 30: PASS; 1 of 1 runs passed'}
-- registry verdicts: {'REJECTED': 385, 'OPPOSITE': 131, 'INCONCLUSIVE': 554, 'CONDITIONAL': 27, 'VALIDATED': 19, 'NOT_SUPPORTED_SEEN': 19, 'SUPPORTED_SEEN': 1, 'NOT_CONFIRMED': 5}
+- registry verdicts: {'REJECTED': 392, 'OPPOSITE': 131, 'INCONCLUSIVE': 577, 'CONDITIONAL': 27, 'VALIDATED': 19, 'NOT_SUPPORTED_SEEN': 19, 'SUPPORTED_SEEN': 1, 'NOT_CONFIRMED': 5}
 - exit book (G01): {'BRK/all': 'sma_close_50', 'BRK/above_both': 'hold_60d', 'BRK/mixed': 'sma_close_50', 'BRK/below_both': None, 'PULL/all': None, 'PULL/above_both': None, 'PULL/mixed': 'hold60+low20', 'PULL/below_both': None, 'ANY/all': None, 'ANY/above_both': None, 'ANY/mixed': None, 'ANY/below_both': 'hold60+low20'}
 
 ## Guardrails

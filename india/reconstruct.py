@@ -154,9 +154,22 @@ def section_market(day: str, rm: dict) -> dict:
     up = sorted([m for m in movers if m.get("side") == "up"], key=lambda m: -(m.get("cc") or 0))[:8]
     down = sorted([m for m in movers if m.get("side") == "down"], key=lambda m: (m.get("cc") or 0))[:8]
     trend = {"above_both": "uptrend: above its 50- and 200-day averages", "below_both": "downtrend: below both averages", "mixed": "mixed: between its averages"}
+    # 25 Oct: the 23 Oct decision was made while the Nifty file was a day stale (its context holds no Nifty close), and this section crashed on
+    # the empty value, so the 23 Oct card had no market part and Ask said the market was missing. The read model's own market block (built
+    # from the day's NSE files) fills what the decision context lacks, and the words say where each number came from.
+    rmm = (rm or {}).get("market") or {}
+    filled = []
+    if c.get("nifty_close") is None and str(rmm.get("data_through") or day) == day:
+        for k_ctx, k_rm in (("nifty_close", "nifty_close"), ("nifty_vs_sma50", "nifty_vs_sma50"), ("nifty_vs_sma200", "nifty_vs_sma200"), ("vix_close", "vix_close")):
+            if c.get(k_ctx) is None and rmm.get(k_rm) is not None:
+                c = {**c, k_ctx: rmm[k_rm]}
+                filled.append(k_ctx)
     ts = "above_both" if (c.get("nifty_vs_sma50") or 0) > 0 and (c.get("nifty_vs_sma200") or 0) > 0 else ("below_both" if (c.get("nifty_vs_sma50") or 0) < 0 and (c.get("nifty_vs_sma200") or 0) < 0 else "mixed")
-    words = (f"Nifty {c.get('nifty_close'):,.0f}, {trend[ts]} ({_pct(c.get('nifty_vs_sma50'))} vs 50-day, {_pct(c.get('nifty_vs_sma200'))} vs 200-day); "
-             f"{100 * (c.get('breadth200_liq') or 0):.0f}% of the liquid 250 above their 200-day; VIX {c.get('vix_close')}.")
+    nifty = f"Nifty {c['nifty_close']:,.0f}" if c.get("nifty_close") is not None else "No Nifty close on file for the day"
+    words = (f"{nifty}, {trend[ts]} ({_pct(c.get('nifty_vs_sma50'))} vs 50-day, {_pct(c.get('nifty_vs_sma200'))} vs 200-day); "
+             f"{100 * (c.get('breadth200_liq') or 0):.0f}% of the liquid 250 above their 200-day; "
+             + (f"VIX {c.get('vix_close')}." if c.get("vix_close") is not None else "no India VIX close on file for the day.")
+             + (" (The decision was made on a stale Nifty file; the Nifty numbers here come from the day's own close.)" if filled else ""))
     return {"status": "ok", "source": str(src), "nifty_close": c.get("nifty_close"), "trend_state": ts, "nifty_vs_sma50": _r(c.get("nifty_vs_sma50")), "nifty_vs_sma200": _r(c.get("nifty_vs_sma200")),
             "breadth200_liq": _r(c.get("breadth200_liq")), "breadth50_liq": _r(c.get("breadth50_liq")), "vix_close": c.get("vix_close"), "vix_vs_sma50": _r(c.get("vix_vs_sma50")),
             "words": words, "movers_source": str(_data() / "manifests" / f"missed_{day}.json") if man else "missing",
@@ -245,8 +258,16 @@ def _announcements(day: str, names: dict, movers: set) -> dict:
         if sym in names:
             keep.append({"symbol": sym, "category": r.get("desc"), "text": str(r.get("attchmntText") or "")[:160], "public_ist": r.get("exchdisstime"), "on_mover": sym in movers})
     keep.sort(key=lambda x: (not x["on_mover"], x["symbol"]))
-    return {"status": "ok", "source": str(p), "universe_rows": len(keep), "on_movers": [x for x in keep if x["on_mover"]][:12], "others": [x for x in keep if not x["on_mover"]][:8],
-            "public": "the exchange's dissemination minute; after 15:30 IST it is tradable the next session"}
+    out = {"status": "ok", "source": str(p), "universe_rows": len(keep), "on_movers": [x for x in keep if x["on_mover"]][:12], "others": [x for x in keep if not x["on_mover"]][:8],
+           "public": "the exchange's dissemination minute; after 15:30 IST it is tradable the next session"}
+    try:   # 25 Oct (HFN1): the FinBERT reading of the same file, written by india.hf_news forward; a note on the card, never a reason to trade
+        from india import hf_news
+        nr = hf_news.read_note(day, names)
+        if nr:
+            out["news_read"] = nr
+    except Exception:  # noqa: BLE001 - the card never fails for the note
+        pass
+    return out
 
 
 def _events(day: str) -> dict:
@@ -296,7 +317,8 @@ def section_people(day: str, names: dict, movers: set) -> dict:
         bits.append(f"{n} bulk/block deals in our universe" + (f" (largest: {dl['bulk']['top'][0]['client']} {dl['bulk']['top'][0]['side']} {dl['bulk']['top'][0]['symbol']} ₹{dl['bulk']['top'][0]['value_inr'] / 1e7:.1f} crore)" if (dl.get("bulk") or {}).get("top") else ""))
     an = out["announcements"]
     if an.get("status") == "ok":
-        bits.append(f"{an['universe_rows']} announcements on universe names, {len(an['on_movers'])} on today's movers")
+        bits.append(f"{an['universe_rows']} announcements on universe names, {len(an['on_movers'])} on today's movers"
+                    + (f" ({an['news_read']['words']})" if (an.get("news_read") or {}).get("words") else ""))
     out["words"] = "; ".join(bits) + "." if bits else "no public record of the session reached the lake yet (deals, flows and announcements are captured by the evening job)."
     return out
 

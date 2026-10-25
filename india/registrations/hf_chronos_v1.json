@@ -1,0 +1,46 @@
+{
+ "study": "HF-CHRONOS",
+ "version": 1,
+ "written": "2026-10-25",
+ "status": "registered before any forecast was computed",
+ "asked_by": "Madhav, 25 Oct 2026: \"We can add both, if they are helping Ananta in either crypto and Indian infrastructure ... see where hugging face fits for us ... for predictions / reconstructions or comparisons.\"",
+ "question": "Does a zero-shot Hugging Face time-series model, Chronos-Bolt, forecast the direction of NIFTY 50 and NIFTY BANK over the next session and the next 5 sessions better than (a) a coin flip and (b) Ananta's own daily-call rule (call-v0-2026-10-18, india/dailycall.py), and is its forecast spread calibrated?",
+ "model": {
+  "id": "amazon/chronos-bolt-small",
+  "revision": "772f3d25d38aec6d914c8949dab4462e2d46f5d8",
+  "library": "chronos-forecasting 2.3.2 (venv ~/ananta_venvs/hf)",
+  "use": "zero-shot: no fitting, no tuning, no choice of settings after any result; quantile levels 0.1..0.9; prediction length 5",
+  "disclosure": "Chronos was pretrained by Amazon on a large public corpus of time series. That corpus may include financial series covering 2010-2023, so the backtest may be optimistic; the forward record (written before each session, from 26 Oct 2026) is the real test."
+ },
+ "data": {
+  "source": "silver/kite_index/day/day.parquet (daily closes, research tree only)",
+  "indices": ["NIFTY 50", "NIFTY BANK"],
+  "origins": "every session from 2010-01-01 to 2023-12-29 with a full context (outcomes beyond 2023-12-29 are not available, so the last few origins drop)",
+  "dev": "2010-2017",
+  "validation": "2018-2023",
+  "sealed": "nothing from 2024 onward is read by the backtest; the research code reads the silver file only and filters dates before 2024-01-01; it never imports india/sealed.py"
+ },
+ "method": {
+  "context": "the previous 300 closes only (walk-forward; the forecast at origin t sees closes up to and including t). 300, not 512: the live forecast reads closes through the logged paper_context purpose, which allows at most 460 calendar days (about 315 sessions), so the backtest tests exactly what runs forward.",
+  "direction": "up if the forecast median for horizon h is above the origin close, down if below; the outcome is the sign of close(t+h)/close(t)-1; a zero move or a median equal to the close is dropped",
+  "probability_up": "1 minus the forecast distribution's value at the origin close, read by straight-line interpolation between the nine quantiles (beyond 0.1/0.9 extended in a straight line and clipped to 0.01/0.99)",
+  "daily_call_rule": "india/dailycall.py v0, applied to each index's own closes: BULLISH when the close is below its 50-day average or fell more than 1.5% on the day; BEARISH when more than 5% above the 50-day average; NEUTRAL otherwise (NEUTRAL days are not compared)",
+  "long_flat_rule": "next session long the index (through the near future, priced on the index close) when probability_up(h1) > 0.5, flat otherwise; each change of position pays one leg of india/costs.py v1.2 futures costs at that year's rates plus a 2 bp half-spread (turnover rank 1, conservative against one tick); measured per session against always holding the index"
+ },
+ "variants": {
+  "NIFTY|h1|hit": 1, "NIFTY|h5|hit": 1, "BANKNIFTY|h1|hit": 1, "BANKNIFTY|h5|hit": 1,
+  "NIFTY|h1|vs_call": 1, "NIFTY|h5|vs_call": 1, "BANKNIFTY|h1|vs_call": 1, "BANKNIFTY|h5|vs_call": 1,
+  "NIFTY|h1|longflat_vs_hold": 1, "BANKNIFTY|h1|longflat_vs_hold": 1
+ },
+ "outcomes": {
+  "hit": "per origin session: 1 if the direction was right, 0 if wrong, minus 0.5",
+  "vs_call": "per origin session where the call rule is not NEUTRAL: Chronos's hit minus the call rule's hit",
+  "longflat_vs_hold": "per session: the long/flat rule's net return minus the index's return"
+ },
+ "verdict": {
+  "registry": "india/registry.py, study HF-CHRONOS, family forecast_hf, union_k 10 frozen at registration (every variant above); two-sided Bonferroni z = 2.81",
+  "statistic": "t across calendar-quarter means (32 quarters dev, 24 validation; at least 16 per period), the registry's standard rule (VALIDATED, CONDITIONAL, OPPOSITE, REJECTED, INCONCLUSIVE); every expected sign is +1",
+  "calibration": "descriptive, not a registry row: the share of outcomes inside the forecast's 10%-90% band, per index, horizon and period; calibrated means 75%-85% in both periods (the target is 80%)"
+ },
+ "what_happens_next": "Whatever the verdict, Chronos's forecast is written every evening to the forecast ledger (source chronos) and scored beside the rule forecast, the reviewer and the coin flip. Nothing trades on it. A paper use needs a later registered test and Madhav's yes."
+}

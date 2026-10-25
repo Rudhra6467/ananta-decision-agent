@@ -1,0 +1,50 @@
+{
+ "study": "HFN1",
+ "version": 1,
+ "status": "frozen before any rating or outcome was computed",
+ "frozen": "2026-10-25",
+ "asked_by": "Madhav, 25 Oct 2026: \"We can add both, if they are helping Ananta in either crypto and Indian infrastructure ... see where hugging face fits for us\"",
+ "title": "Does a financial-news model's reading of NSE company announcements predict the stock's drift over the next 5 and 20 sessions, beyond the announcement's category?",
+ "model": {
+  "id": "ProsusAI/finbert",
+  "revision": "0bc2ac10dda6929bcb1f77ccc43c7ec5c424f031",
+  "source": "Hugging Face, downloaded 25 Oct 2026, run locally on the Mac (no fitting, no fine-tuning: zero-shot)",
+  "labels": {"0": "positive", "1": "negative", "2": "neutral"},
+  "input": "the announcement's text field (silver/pr/announcements.parquet column text: subject plus body as the PR zip gives it), first 128 tokens",
+  "output": "p_positive, p_negative, p_neutral; label = the largest; tone = p_positive - p_negative",
+  "second_model": "none (yiyanghkust/finbert-tone was considered and NOT registered, so it is not run)"
+ },
+ "data": {
+  "announcements": "silver/pr/announcements.parquet, 2010-01-04 to 2023-12-29 only (research never reads 2024+ or the sealed folders; india/leakcheck.py)",
+  "categories": "every category except nav and share_cert (fund NAVs and share-certificate notices are not company news); the V02 categories are kept as the control",
+  "universe": "a stock-day with a row in gold/features/daily.parquet that day (the lab's 500 most liquid), as V02",
+  "prices": "gold/bars/adj_daily close; Nifty 50 from silver/kite_index day",
+  "counts_before_rating": "319,430 announcements on 234,386 stock-days, 249,893 distinct texts (counts only, no outcome read)"
+ },
+ "timing": "the file of day d is known after the close of d (as V02): the outcome runs from the close of d to the close of d+5 and d+20 (session counts on the trading calendar of the adjusted bars), minus Nifty over the same sessions; |drift| above 100% dropped (as V02). The same-day move is never counted",
+ "aggregation": {
+  "stock_day_tone": "the mean tone of that stock's announcements that day",
+  "stock_day_label": "positive = at least one positive and no negative announcement; negative = at least one negative and no positive; mixed = both; neutral = all neutral"
+ },
+ "variants": {
+  "pos|drift5": {"expect": 1, "what": "mean drift5 of positive stock-days (quarter means, t over quarters)"},
+  "pos|drift20": {"expect": 1, "what": "mean drift20 of positive stock-days"},
+  "neg|drift5": {"expect": -1, "what": "mean drift5 of negative stock-days"},
+  "neg|drift20": {"expect": -1, "what": "mean drift20 of negative stock-days"},
+  "spread|drift5": {"expect": 1, "what": "per quarter: mean drift5 of positive minus negative stock-days"},
+  "spread|drift20": {"expect": 1, "what": "per quarter: mean drift20 of positive minus negative stock-days"},
+  "within_cat|drift20": {"expect": 1, "what": "per quarter: inside each category, mean drift20 of positive minus negative stock-days, averaged over the categories that have both (beyond the category)"},
+  "rank|drift20": {"expect": 1, "what": "per quarter: Spearman rank correlation between stock-day tone and drift20 across that quarter's stock-days"}
+ },
+ "statistics": "quarter blocks (calendar quarter of day d), t over quarter means; dev 2010-2017, validation 2018-2023; at least 16 quarters per period (registry MIN_DATES)",
+ "bar": {
+  "family": "news_tone",
+  "bar_families": ["events", "news_tone"],
+  "union_k": 32,
+  "why": "24 distinct events-family rows on 25 Oct (V01-V03, whose announcement categories this study builds on) plus these 8 = 32, frozen; two-sided Bonferroni z = 3.16",
+  "rule": "registry standard rule: VALIDATED needs |t| >= z in both periods with the same sign as expected; CONDITIONAL z in one and 1.65 in the other"
+ },
+ "what_a_pass_means": "the reading carries information about the next weeks. It is NOT a trade: the drifts are gross of costs (a round trip costs about 0.3-0.5% at Rs 12,000-50,000); a paper rule would need its own registered test and Madhav's yes",
+ "forward": "from the session of 26 Oct 2026 every evening's announcement file (bronze/announce_api, the same file the reconstruction card reads) is rated and stored in paper/news_read/<day>.json; the reconstruction card shows the counts as a note; nothing trades on it; after 20 forward sessions the same variants are read on the forward rows (descriptive)",
+ "code": "india/hf_news.py (rate, run, forward), Python ~/ananta_venvs/hf"
+}

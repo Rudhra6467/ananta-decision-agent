@@ -197,17 +197,20 @@ def scorecard(rm: dict) -> dict:
     rows = _jsonl(_paper() / "forecasts.jsonl")
     fcs = {r["forecast_id"]: r for r in rows if r.get("kind") == "forecast"}
     scores = [r for r in rows if r.get("kind") == "score"]
-    rec = {"rule": {"n": 0, "hits": 0, "brier": []}, "reviewer": {"n": 0, "hits": 0, "brier": []}, "coin_flip_brier": []}
+    rec = {"rule": {"n": 0, "hits": 0, "brier": []}, "reviewer": {"n": 0, "hits": 0, "brier": []}, "chronos": {"n": 0, "hits": 0, "brier": []},
+           "coin_flip_brier": []}
     for s in scores:
         f = fcs.get(s.get("ref")) or {}
-        who = "reviewer" if str(f.get("basis", "")).startswith("reviewer") else "rule"
+        who = _who(f)
+        if who == "chronos" and not (f.get("subject") == "NIFTY 50" and int(f.get("horizon_sessions") or 0) == 1):
+            continue                       # the scorecard compares like with like: Nifty 50, next session (the other Chronos rows stay in the ledger)
         rec[who]["n"] += 1
         rec[who]["hits"] += 1 if s.get("hit") else 0
         if s.get("brier") is not None:
             rec[who]["brier"].append(float(s["brier"]))
         if s.get("brier_coin_flip") is not None and who == "rule":
             rec["coin_flip_brier"].append(float(s["brier_coin_flip"]))
-    for k in ("rule", "reviewer"):
+    for k in ("rule", "reviewer", "chronos"):
         b = rec[k].pop("brier")
         rec[k]["brier_mean"] = round(sum(b) / len(b), 3) if b else None
     cf = rec.pop("coin_flip_brier")
@@ -225,6 +228,12 @@ def scorecard(rm: dict) -> dict:
             "words": _chances_words(rec, call, book, sp1.get("sessions") or 0)}
 
 
+def _who(f: dict) -> str:
+    """Who wrote a forecast: the morning-view reviewer, the Hugging Face Chronos model (25 Oct 2026), or Ananta's rule (the day plan)."""
+    b = str(f.get("basis", ""))
+    return "reviewer" if b.startswith("reviewer") else ("chronos" if b.startswith("chronos") else "rule")
+
+
 def _chances_words(rec: dict, call: dict, book: dict, opt_sessions: int) -> str:
     r = rec["rule"]
     bits = []
@@ -235,6 +244,9 @@ def _chances_words(rec: dict, call: dict, book: dict, opt_sessions: int) -> str:
     v = rec["reviewer"]
     if v["n"]:
         bits.append(f"the reviewer's forecast {v['hits']} of {v['n']}")
+    ch = rec.get("chronos") or {}
+    if ch.get("n"):
+        bits.append(f"the Chronos model (a free Hugging Face forecaster) {ch['hits']} of {ch['n']}")
     if call.get("scored"):
         bits.append(f"the daily call {call['hits']} of {call['scored']} against {call['coin_flip_hits']} for the coin flip")
     closed = sum(b.get("closed", 0) for b in book.values())
@@ -255,7 +267,7 @@ def yesterday(rm: dict) -> dict:
     for f in fcs:
         s = scores.get(f["forecast_id"]) or {}
         top = max((f.get("scenarios") or {}).items(), key=lambda kv: kv[1])[0] if f.get("scenarios") else None
-        preds.append({"who": "reviewer" if str(f.get("basis", "")).startswith("reviewer") else "rule", "favoured": top, "p": (f.get("scenarios") or {}).get(top),
+        preds.append({"who": _who(f), "favoured": top, "p": (f.get("scenarios") or {}).get(top),
                       "outcome": s.get("outcome"), "hit": s.get("hit"), "basis": str(f.get("basis", ""))[:120]})
     m = rm.get("market") or {}
     c = rm.get("call") or {}

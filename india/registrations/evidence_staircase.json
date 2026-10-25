@@ -19,7 +19,7 @@
   "ADMITTED": "Madhav (beats RANDOM and MARKET on 10+ independent sessions net of costs; leak check passes; pinned in the lock)",
   "LIVE_ELIGIBLE": "Madhav (the India gate and the live-readiness rules)"
  },
- "built_at": "2026-10-25T02:30:15+00:00",
+ "built_at": "2026-10-25T22:00:33+00:00",
  "rules": {
   "stock:BRK": {
    "what": "20-session breakout on volume",
@@ -60,7 +60,7 @@
  },
  "admitted": [],
  "queue": {
-  "to_file": 4
+  "to_file": 7
  },
  "history": [],
  "words": "No rule has proved itself yet. The stock rules have 4 of 20 trial sessions; the options line has 0; Ananta beat chance and the average stock on 2 of the 10 days needed."

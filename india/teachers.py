@@ -1076,7 +1076,7 @@ def write_cards() -> str:
              f"Bars: family teacher_twt k = {union_k('TWT')}, teacher_opt k = {union_k('OPT')} (frozen in every registration); two-sided Bonferroni z at "
              f"{registry.threshold(union_k('TWT')):.2f} and {registry.threshold(union_k('OPT')):.2f}. VALIDATED needs |t| at z in both development "
              "(2000-2017) and validation (2018-2023) with the same sign; CONDITIONAL needs z in one and 1.65 in the other. t is across calendar-quarter "
-             "means; at least 16 quarters per period. 2024 onward stays sealed.", ""]
+             "means; at least 16 quarters per period. 2024 onward stays closed to research.", ""]
     counts = pd.Series([c["status"] for c in CARDS.values()]).value_counts().to_dict()
     lines += ["Status counts: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())), ""]
     for t in ("TWT", "OPT"):
@@ -1211,6 +1211,111 @@ def report() -> str:
     return str(p)
 
 
+# My reading of the 25 Oct results, in plain words (written after the run; the numbers are in teachers_results_v1.md)
+TAKEAWAY = {
+    "TWT-H01": "Not enough data: weak-breadth periods cover too few quarters to judge.",
+    "TWT-H02": "Not enough data: periods with the Nifty under both averages cover too few quarters to judge.",
+    "TWT-H10": "Holds: don't chase. Uptrend stocks bought 8-15% above their 50-day average earned about 1-1.5% less over the next 20 sessions than ones bought near it, in both 2000-17 and 2018-23; over 60 sessions the gap faded. They also fell deeper.",
+    "TWT-H11": "Mixed: high-volume breakouts fell back under the level less often in the first 5 days, but earned less over the next 20 sessions, the opposite of his claim.",
+    "TWT-H12": "Half true: breakout days that close near the top of a wide bar fail less in the first 5 days (partly by construction, they close further above the level), but they did not earn more.",
+    "TWT-H13": "Did not hold in 2000-17; strong in 2018-23 only. Not passed.",
+    "TWT-H15": "Wrong way on the main claim: stocks near their 52-week high earned less than deep losers over the next 20 sessions. His warning held: stocks 40%+ down and under the 200-day average more often fell another 40%.",
+    "TWT-H18": "Holds on his own measure: quiet, shallow pullbacks after a breakout made a new high within 15 sessions 10-15 points more often. Partly by construction (they start closer to the high); whether they earn more is the next check.",
+    "TWT-H20": "Tested on 18 Oct (E09, his exact 25/75 split): no help on breakouts, and worse than one entry on pullback entries.",
+    "TWT-H21": "Tested on 18 Oct (E09, 4 weekly instalments; his 8-16 weeks not run): no help on breakouts, worse on other entries.",
+    "TWT-H25": "Tested on 18 Oct (E10): pausing a 10-slot book at a 7-8% drawdown made no reliable difference either way.",
+    "TWT-H22": "Did not hold: the staged -3/-5/-7 stop was no better than one -7% stop, and the -7% stop itself lost against no stop over 60 sessions.",
+    "TWT-H23": "Did not hold: swing-low exits were no better than a +15%/-7% bracket or a tight -3% stop.",
+    "TWT-H24": "Wrong way: his three-step exit for big winners gave back more than holding, and more than one exit at the 50-day average.",
+    "TWT-H30": "Wrong way: when few stocks showed higher highs and lows, the Nifty did better over the next month, not worse.",
+    "TWT-H37": "Promising, too few episodes: after India VIX at 28+, the Nifty did better over 21 sessions in both periods, but only 13 and 6 quarters had such days.",
+    "TWT-H44": "Wrong way: Nasdaq weakness was followed by a slightly better Nifty, not a worse one.",
+    "TWT-H49": "Wrong way: his extra filters made the stochastic dip entries worse.",
+    "TWT-H54": "Wrong way: the ADX filter made 20-EMA pullback entries worse.",
+    "OPT-H16": "Weekly Bank Nifty straddles earned in 2018-23 (not significant) and there are too few earlier years. Bank Nifty weeklies ended in Nov 2024; the Nifty weekly is tracked live.",
+    "OPT-H17": "Worked before 2018, not since: the expiry-eve strangle earned in 2003-17 but was flat in 2018-23. Tracked live on the recorder at his exact times.",
+    "OPT-H24": "Did not hold: overnight short straddles did about the same on event nights as on other nights.",
+    "OPT-H25": "Wrong way: the open-interest band held the expiry less often than a plain band of the same width around the price.",
+    "OPT-H26": "Wrong way: the open-interest band held the next day less often than a plain band of the same width.",
+    "OPT-H31": "Wrong way: expiry settled further from the biggest-OI strike than from the plain at-the-money strike.",
+    "OPT-H42": "Did not hold overall; entries after VIX above 20 did better in both periods but over too few quarters.",
+    "OPT-H45": "Wrong way: option-implied odds were less accurate than a simple model from recent volatility (options price in more movement than usually happens).",
+    "OPT-H51": "Wrong way: stocks at new all-time highs lagged the market over the next 1-4 weeks.",
+    "OPT-H59": "Too few early years; in 2018-23 selling next week's straddle on expiry day lost money overnight.",
+}
+DESC_WORDS = {
+    "OPT-H18": "His range-day numbers roughly hold: the Nifty closed within 1% of the prior close on 67% of days (his 68%) and moved over 2% on 10% (his 10% or less).",
+    "OPT-H19": "Matches him: day range 0.79% with VIX under 14, 1.11% at 14-20, 1.83% above 20 (his 0.78/1.0/1.78). Gaps are 1.8x larger, not 3x.",
+    "TWT-H19": "Retests are common: 62% of breakouts closed back at the level within 10 sessions, and 74% of the big winners touched it within 20 (he said 40% of winners).",
+    "OPT-H46": "Only 19-21% of 1-3% out-of-the-money calls bought a week before expiry ended in profit (his figure: a third or fewer); call spreads 43-46%.",
+    "OPT-H55": "Statutory charges are 27-64% of a round trip's cost at Zerodha (his 88%); costs plus spread were about 20% of the net on the short straddles.",
+    "OPT-H57": "About 2-3% of options opening at Rs 5 or less reached 8x on expiry day; about 70% of those fell back under 2x by the close.",
+}
+STATUS_WORD = {"FORWARD": "Waiting for live option prices", "NEEDS_DATA": "Needs data we don't have", "NEEDS_BUILD": "Needs a build first", "TOO_FEW": "Too few episodes",
+               "DEFERRED": "Sizing rule, deferred by you", "NOT_INDIA": "Not for India", "AMBIGUOUS": "Rule unclear as taught", "LINKED": "Tested earlier", "DESCRIPTIVE": "Measured"}
+
+
+def card_verdict(vs: list[str]) -> str:
+    sup = any(v in ("VALIDATED", "CONDITIONAL") for v in vs)
+    opp = "OPPOSITE" in vs
+    if sup and opp:
+        return "MIXED"
+    if sup:
+        return "PASSED"
+    if opp:
+        return "WRONG WAY"
+    if vs and all(v == "INCONCLUSIVE" for v in vs):
+        return "NOT ENOUGH DATA"
+    return "DID NOT HOLD"
+
+
+def summary() -> dict:
+    """gold/teachers/summary.json: what the app and the India Ask read (per card: status, verdict, plain words; forward books)."""
+    _load_more()
+    df = latest_results()
+    by = {c: g for c, g in df.groupby("card")} if not df.empty else {}
+    try:
+        from india import teacher_forward
+        fo = teacher_forward.report(write=False)
+    except Exception as e:  # noqa: BLE001
+        fo = {"error": str(e)}
+    lp = paths.data_dir() / "paper" / "teachers" / "live_summary.json"
+    live = json.loads(lp.read_text()) if lp.exists() else {}
+    desc = json.loads((OUT / "descriptive.json").read_text()) if (OUT / "descriptive.json").exists() else {}
+    cards, counts = [], {}
+    for cid in sorted(CARDS, key=lambda x: (x[:3], int(x.split("H")[1]))):
+        c = CARDS[cid]
+        row = {"id": cid, "teacher": c["teacher"], "title": c["title"], "status": c["status"], "rule": c["rule"], "note": c["note"]}
+        if c["status"] == "TEST" and cid in by:
+            g = by[cid]
+            vs = list(g["verdict"])
+            row["verdict"] = card_verdict(vs)
+            row["variants"] = [{"variant": r.variant, "verdict": r.verdict, "dev": [None if x != x else x for x in r.dev], "val": [None if x != x else x for x in r.val]}
+                               for r in g.itertuples()]
+            row["plain"] = TAKEAWAY.get(cid) or {"PASSED": "Held in both periods.", "DID NOT HOLD": f"Did not hold: none of its {len(vs)} versions cleared the bar.",
+                                                  "NOT ENOUGH DATA": "Not enough data to judge.", "WRONG WAY": "Wrong way: the opposite showed up.", "MIXED": "Mixed."}[row["verdict"]]
+        elif c["status"] == "DESCRIPTIVE":
+            row["verdict"] = "MEASURED"
+            row["plain"] = DESC_WORDS.get(cid, "Measured.")
+            row["numbers"] = desc.get(cid)
+        else:
+            row["verdict"] = STATUS_WORD.get(c["status"], c["status"])
+            row["plain"] = TAKEAWAY.get(cid) or c["note"] or c["rule"]
+        if c["status"] == "FORWARD":
+            row["plain"] = "Tracked on the live option recorder; first look after 60 forward sessions. " + (c["note"] or "")
+        counts.setdefault(c["teacher"], {}).setdefault(row["verdict"], 0)
+        counts[c["teacher"]][row["verdict"]] += 1
+        cards.append(row)
+    out = {"generated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), "registered": "2026-10-25", "bars": {t: round(registry.threshold(union_k(t)), 2) for t in FAM},
+           "variants_tested": int(len(df)), "cards": cards, "counts": counts,
+           "teachers": {"TWT": {"name": TEACHER["TWT"], "videos": "161 of 289 public videos with captions"}, "OPT": {"name": TEACHER["OPT"], "videos": "434 of 459 public videos with captions"}},
+           "forward_options": fo, "forward_stocks": live,
+           "survivors": [{"id": r["id"], "title": r["title"], "plain": r["plain"]} for r in cards if r["verdict"] in ("PASSED", "MIXED")]}
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "summary.json").write_text(json.dumps(out, indent=1, default=str))
+    return out
+
+
 def main(argv: list[str]) -> None:
     sys.argv = argv
     cmd = sys.argv[1] if len(sys.argv) > 1 else "cards"
@@ -1240,6 +1345,9 @@ def main(argv: list[str]) -> None:
         descriptives()
     elif cmd == "report":
         print(report())
+    elif cmd == "summary":
+        s = summary()
+        print(json.dumps(s["counts"]), len(s["cards"]), "cards", len(s["survivors"]), "survivors")
 
 
 if __name__ == "__main__":

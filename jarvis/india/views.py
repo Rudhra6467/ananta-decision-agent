@@ -845,9 +845,12 @@ def evidence_collected() -> dict:
     tracker = [{"key": "sessions", "label": "Days on paper", "value": len(_rm_days()), "explain": "stock picks every evening since 16 Oct"},
                {"key": "validated", "label": "Ideas that passed a strict test", "value": v.get("VALIDATED", 0), "explain": f"of {sum(v.values())} versions tried on past years"},
                {"key": "ready", "label": "Studies ready to run", "value": (r.get("studies") or {}).get("ready", 0), "explain": "all their data is in"},
-               {"key": "gate", "label": "Gate to real money", "value": 0, "explain": ("waiting on " + " and ".join(str(x) for x in cnt.values())) if isinstance(cnt, dict) and cnt else "waiting"}]
+               {"key": "gate", "label": "Gate to real money", "value": 0, "explain": "waiting"}]
     # 25 Oct audit: the India exam (records india/exam.py), a gate row: 30 questions to Ask Ananta, judged in code against its facts
     ex = (r.get("exam") or {}).get("last") or {}
+    if isinstance(cnt, dict) and cnt:
+        waits = [str(v) for k, v in cnt.items() if k != "D32" and v] + ([] if ex.get("exam_pass") else ["a passed India exam"])
+        tracker[-1]["explain"] = "waiting on " + " and ".join(waits) if waits else "waiting"
     tracker.append({"key": "exam", "label": "India exam (30 questions)",
                     "value": (ex.get("known") or 0) + (ex.get("unknown") or 0) + (ex.get("why") or 0) if ex else 0,
                     "explain": (f"right on {_day_words(ex.get('day'))}; every answer safe: {'yes' if ex.get('safety') == ex.get('of') else 'no'}; "

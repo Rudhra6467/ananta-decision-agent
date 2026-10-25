@@ -344,7 +344,26 @@ def _parse(text: str) -> dict:
     d.setdefault("assumption", "")
     d.setdefault("next_action", {})
     d.setdefault("route", "india")
+    d["answer"] = plain_codes(str(d.get("answer") or ""))
+    if isinstance(d.get("breakdown"), list):
+        d["breakdown"] = [plain_codes(x) if isinstance(x, str) else x for x in d["breakdown"]]
     return d
+
+
+# 25 Oct India exam: the Ask quoted internal names (call-v0-2026-10-18, hold_20d, recorder_noon). They are put into words after the model answers.
+_JOBS = {"recorder_noon": "the noon recorder job", "sp1paper": "the options-line job", "sp1paper.score": "the options-line scoring job", "morningview": "the morning-view job",
+         "openingview": "the opening-update job", "autologin": "the automatic sign-in", "nightly": "the nightly data job", "spreads": "the spread sampler"}
+
+
+def plain_codes(s: str) -> str:
+    s = re.sub(r"`?\bcall-v\d+-\d{4}-\d{2}-\d{2}\b`?", "the daily-call rule", s)
+    s = re.sub(r"`?\bhold_(\d+)d_nostop\b`?", lambda m: f"a {m.group(1)}-session hold with no stop", s)
+    s = re.sub(r"`?\bhold_(\d+)d\b`?", lambda m: f"the {m.group(1)}-session hold", s)
+    s = re.sub(r"`?\bcom\.ananta\.india\.([a-z0-9_]+(?:\.[a-z0-9_]+)*)\b`?", lambda m: _JOBS.get(m.group(1), "the " + m.group(1).replace("_", " ") + " job"), s)
+    for k, v in sorted(_JOBS.items(), key=lambda kv: -len(kv[0])):
+        if "_" in k or "." in k:
+            s = re.sub(r"`?\b" + re.escape(k) + r"\b`?", v, s)
+    return s
 
 
 def _offline(question: str, f: dict, why: str) -> dict:

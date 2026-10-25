@@ -43,8 +43,10 @@ def _stat(x: pd.Series) -> tuple[float, float, int]:
     return (float(x.mean()), float(x.mean() / se) if se else float("nan"), int(len(x)))
 
 
-def split(df: pd.DataFrame, on: pd.Series, col: str, date_col: str = "date", base: pd.Series | None = None) -> dict:
-    """(dev, val) of the per-quarter difference mean(on) - mean(off) within base, plus the counts."""
+def split(df: pd.DataFrame, on: pd.Series, col: str, date_col: str = "date", base: pd.Series | None = None, min_on: int = MIN_SIDE,
+          min_off: int = MIN_SIDE) -> dict:
+    """(dev, val) of the per-quarter difference mean(on) - mean(off) within base, plus the counts. Rare-event cards (one trade a month, a few event
+    nights a quarter) pass min_on=1 so a quarter counts when it has at least one 'on' observation."""
     d = df if base is None else df[base.reindex(df.index, fill_value=False).astype(bool)]
     o = on.reindex(d.index)
     d = d.assign(_on=o.astype("float"), _y=d[col]).dropna(subset=["_on", "_y"])
@@ -56,12 +58,43 @@ def split(df: pd.DataFrame, on: pd.Series, col: str, date_col: str = "date", bas
         if len(gg) == 0 or ("mean", 1.0) not in gg.columns or ("mean", 0.0) not in gg.columns:
             out[per] = (float("nan"), float("nan"), 0)
             continue
-        ok = (gg[("count", 1.0)] >= MIN_SIDE) & (gg[("count", 0.0)] >= MIN_SIDE)
+        ok = (gg[("count", 1.0)] >= min_on) & (gg[("count", 0.0)] >= min_off)
         out[per] = _stat((gg[("mean", 1.0)] - gg[("mean", 0.0)])[ok])
     n_on = int((d["_on"] == 1).sum())
     out["extra"] = {"n_on": n_on, "n_off": int((d["_on"] == 0).sum()), "mean_on": float(d.loc[d["_on"] == 1, "_y"].mean()) if n_on else None,
                     "mean_off": float(d.loc[d["_on"] == 0, "_y"].mean()) if len(d) - n_on else None,
                     "on_dev_val": [float(d.loc[(d["_on"] == 1) & (d["_yr"] < SPLIT), "_y"].mean()), float(d.loc[(d["_on"] == 1) & (d["_yr"] >= SPLIT), "_y"].mean())]}
+    return out
+
+
+def msplit(df: pd.DataFrame, on: pd.Series, col: str, h: int, date_col: str = "date", base: pd.Series | None = None, min_on: int = 1,
+           min_off: int = 5) -> dict:
+    """Market-timing claims (one row per session): the claim is that the regime itself predicts the index, so pairing within a quarter would remove
+    the very effect being tested. Instead: block means of the 'on' sessions against block means of the 'off' sessions, Welch t across blocks.
+    Blocks are calendar quarters for horizons up to 63 sessions and calendar years beyond (overlapping 126/252-session returns are not independent
+    across quarters); 'dates' is the smaller block count, so a regime seen in fewer than 16 blocks per period is INCONCLUSIVE by the registry's rule."""
+    d = df if base is None else df[base.reindex(df.index, fill_value=False).astype(bool)]
+    d = d.assign(_on=on.reindex(d.index).astype("float"), _y=d[col]).dropna(subset=["_on", "_y"])
+    freq = "Q" if h <= 63 else "Y"
+    per = pd.to_datetime(d[date_col]).dt.to_period(freq)
+    out = {}
+    for name, sel in (("dev", per.dt.year < SPLIT), ("val", per.dt.year >= SPLIT)):
+        x, p = d[sel.values], per[sel.values]
+        g = x.groupby([p.values, x["_on"].values])["_y"].agg(["mean", "count"]).unstack()
+        if ("mean", 1.0) not in g.columns or ("mean", 0.0) not in g.columns:
+            out[name] = (float("nan"), float("nan"), 0)
+            continue
+        on_m = g[("mean", 1.0)][g[("count", 1.0)] >= min_on].dropna()
+        off_m = g[("mean", 0.0)][g[("count", 0.0)] >= min_off].dropna()
+        if len(on_m) < 3 or len(off_m) < 3:
+            out[name] = (float("nan"), float("nan"), int(min(len(on_m), len(off_m))))
+            continue
+        diff = float(on_m.mean() - off_m.mean())
+        se = math.sqrt(on_m.var(ddof=1) / len(on_m) + off_m.var(ddof=1) / len(off_m))
+        out[name] = (diff, diff / se if se else float("nan"), int(min(len(on_m), len(off_m))))
+    n_on = int((d["_on"] == 1).sum())
+    out["extra"] = {"n_on": n_on, "n_off": int((d["_on"] == 0).sum()), "block": freq, "mean_on": float(d.loc[d["_on"] == 1, "_y"].mean()) if n_on else None,
+                    "mean_off": float(d.loc[d["_on"] == 0, "_y"].mean()) if len(d) - n_on else None}
     return out
 
 

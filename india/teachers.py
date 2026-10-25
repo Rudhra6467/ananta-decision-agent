@@ -88,7 +88,7 @@ class Ctx:
 
     @cached_property
     def sec(self) -> pd.DataFrame:
-        S = ts.sector_panel().merge(self.m[["date", "nifty_dd252", "sess"]], on="date", how="left")
+        S = ts.sector_panel().merge(self.m[["date", "nifty_dd252", "sess"]].reset_index(drop=True), on="date", how="left")
         S["rs_rank"] = S.groupby("date")["rs63"].rank(ascending=False, method="first")
         S["dd_rank"] = S.groupby("date")["dd_from_hi"].rank(ascending=False, method="first")     # 1 = fell least
         S["n_sec"] = S.groupby("date")["sector"].transform("count")
@@ -97,6 +97,13 @@ class Ctx:
 
 def _ev(df: pd.DataFrame, mask: pd.Series, days: int = 10) -> pd.Series:
     return ts._cooldown(df, mask.fillna(False).astype(bool), days)
+
+
+def _m(M: pd.DataFrame, on: pd.Series, col: str, base: pd.Series | None = None) -> dict:
+    """Market-timing split (teachers_stock.msplit); the horizon, which sets the block length, is read from the outcome's name (nfwd21 -> 21)."""
+    import re
+    h = int(re.findall(r"(\d+)$", col)[0])
+    return ts.msplit(M, on.reindex(M.index).fillna(False).astype(bool), col, h=h, base=base)
 
 
 # =================================================================================================================== Trade With Trend (stocks)
@@ -110,6 +117,12 @@ card("TWT-H01", "Low breadth hurts breakouts", "TEST",
      {**{f"lt{x}|net{h}": -1 for x in (25, 30, 35, 40) for h in (20, 60)}, "lt35|fail5": 1})
 
 
+def _regime(s, on, col, base, h):
+    """A market-regime condition on stock trades: low-breadth quarters rarely also hold high-breadth trades, so trades are compared across
+    quarter blocks (Welch), not within the quarter (teachers_stock.msplit)."""
+    return ts.msplit(s, on, col, h=h, base=base, min_on=3, min_off=3)
+
+
 @test("TWT-H01")
 def _(P):
     s, out = P.s, {}
@@ -117,9 +130,9 @@ def _(P):
         on = s["breadth200"] < x / 100
         base = P.brk & (on | (s["breadth200"] >= 0.5))
         for h in (20, 60):
-            out[f"lt{x}|net{h}"] = ts.split(s, on, f"net{h}", base=base)
+            out[f"lt{x}|net{h}"] = _regime(s, on, f"net{h}", base, h)
     on = s["breadth200"] < 0.35
-    out["lt35|fail5"] = ts.split(s.assign(fail5=P.fail5), on, "fail5", base=P.brk & (on | (s["breadth200"] >= 0.5)))
+    out["lt35|fail5"] = _regime(s.assign(fail5=P.fail5), on, "fail5", P.brk & (on | (s["breadth200"] >= 0.5)), 5)
     return out
 
 
@@ -135,8 +148,8 @@ def _(P):
     below = (s["nifty_vs50"] < 0) & (s["nifty_vs200"] < 0)
     above = (s["nifty_vs50"] > 0) & (s["nifty_vs200"] > 0)
     base = P.brk & (below | above)
-    out = {f"net{h}": ts.split(s, below, f"net{h}", base=base) for h in (20, 60)}
-    out["fail5"] = ts.split(s.assign(fail5=P.fail5), below, "fail5", base=base)
+    out = {f"net{h}": _regime(s, below, f"net{h}", base, h) for h in (20, 60)}
+    out["fail5"] = _regime(s.assign(fail5=P.fail5), below, "fail5", base, 5)
     falling = P.brk & (s["nifty_vs200"] < 0) & ~s["nifty_200up"].fillna(False).astype(bool)
     x = s.loc[falling, "net60"].dropna()
     out["net60"]["extra"]["his_75pct_claim_share_losing"] = float((x < 0).mean()) if len(x) else None
@@ -443,8 +456,8 @@ def _(P):
     M = P.m
     on = M["hhhl"] < 0.35
     base = on | (M["hhhl"] > 0.60)
-    out = {"lt35|nfwd21": ts.split(M, on, "nfwd21", base=base), "lt35|nrv_fwd21": ts.split(M, on, "nrv_fwd21", base=base)}
-    out["lt20_near_high|n_mdd63"] = ts.split(M, (M["hhhl"] <= 0.20) & (M["nifty_dd252"] >= -0.03), "n_mdd63")
+    out = {"lt35|nfwd21": _m(M, on, "nfwd21", base=base), "lt35|nrv_fwd21": _m(M, on, "nrv_fwd21", base=base)}
+    out["lt20_near_high|n_mdd63"] = _m(M, (M["hhhl"] <= 0.20) & (M["nifty_dd252"] >= -0.03), "n_mdd63")
     return out
 
 
@@ -461,7 +474,7 @@ def _(P):
     thin, wide = M["breadth200"] <= 0.5, M["breadth200"] >= 0.7
     M["dd4_21"] = (M["n_mdd21"] <= -0.04).astype(float).where(M["n_mdd21"].notna())
     M["dd4_63"] = (M["n_mdd63"] <= -0.04).astype(float).where(M["n_mdd63"].notna())
-    return {"dd4|21": ts.split(M, thin, "dd4_21", base=near & (thin | wide)), "dd4|63": ts.split(M, thin, "dd4_63", base=near & (thin | wide))}
+    return {"dd4|21": _m(M, thin, "dd4_21", base=near & (thin | wide)), "dd4|63": _m(M, thin, "dd4_63", base=near & (thin | wide))}
 
 
 card("TWT-H32", "Short-term breadth damage, long-term intact", "TEST",
@@ -477,7 +490,7 @@ def _(P):
     v = {"v1": (M["b50_chg10"] <= -0.20) & (M["b200_chg10"] >= -0.10),
          "v2": (M["breadth50"] <= 0.45) & (M["breadth200"] >= 0.65),
          "v3": (M["nifty_dd252"] <= -0.04) & (M["nifty_dd252"] >= -0.06) & (M["breadth50"] >= 0.55)}
-    return {f"{k}|nfwd{h}": ts.split(M, on, f"nfwd{h}") for k, on in v.items() for h in (21, 63)}
+    return {f"{k}|nfwd{h}": _m(M, on, f"nfwd{h}") for k, on in v.items() for h in (21, 63)}
 
 
 card("TWT-H33", "Breadth washouts", "TEST",
@@ -490,7 +503,7 @@ card("TWT-H33", "Breadth washouts", "TEST",
 def _(P):
     M = P.m
     v = {"b200le20": M["breadth200"] <= 0.20, "b50le11": M["breadth50"] <= 0.11}
-    return {f"{k}|nfwd{h}": ts.split(M, on, f"nfwd{h}") for k, on in v.items() for h in (63, 126, 252)}
+    return {f"{k}|nfwd{h}": _m(M, on, f"nfwd{h}") for k, on in v.items() for h in (63, 126, 252)}
 
 
 card("TWT-H34", "Bottoming signals", "TOO_FEW", "Strong up days after lows, holding the first rally day's low, ranges above the 50/200 DMA.",
@@ -507,7 +520,7 @@ def _(P):
     M = P.m
     down = (M["nifty_vs50"] < 0) & ~M["nifty_50up"].astype(bool) & (M["nifty_vs200"] < 0)
     ev = down & (M["nifty_vs50"] >= -0.03) & (M["nifty_vs50"].shift(1) < -0.03)
-    return {f"nfwd{h}": ts.split(M, ev, f"nfwd{h}") for h in (10, 21)}
+    return {f"nfwd{h}": _m(M, ev, f"nfwd{h}") for h in (10, 21)}
 
 
 card("TWT-H36", "Deep below the 200 DMA", "TEST",
@@ -520,8 +533,8 @@ def _(P):
     M = P.m
     a = (M["nifty_vs200"] <= -0.08) & (M["nifty_vs200"] >= -0.14)
     b = (M["nifty_vs200"] <= -0.09) & (M["nifty_vs200"] >= -0.10)
-    return {"b8_14|nfwd21": ts.split(M, a, "nfwd21"), "b8_14|nfwd63": ts.split(M, a, "nfwd63"),
-            "b9_10|nfwd63": ts.split(M, b, "nfwd63"), "b9_10|nfwd126": ts.split(M, b, "nfwd126")}
+    return {"b8_14|nfwd21": _m(M, a, "nfwd21"), "b8_14|nfwd63": _m(M, a, "nfwd63"),
+            "b9_10|nfwd63": _m(M, b, "nfwd63"), "b9_10|nfwd126": _m(M, b, "nfwd126")}
 
 
 card("TWT-H37", "India VIX spikes above 28", "TEST",
@@ -537,8 +550,8 @@ def _(P):
     ge = M["vix"] >= 28
     mx = M["vix"].rolling(5, min_periods=1).max()
     pk = (mx >= 28) & (M["vix"] <= 0.9 * mx)
-    out = {f"ge28|nfwd{h}": ts.split(M, ge, f"nfwd{h}", base=M["vix"].notna()) for h in (21, 63, 252)}
-    out.update({f"peak_turn|nfwd{h}": ts.split(M, pk, f"nfwd{h}", base=M["vix"].notna()) for h in (21, 63)})
+    out = {f"ge28|nfwd{h}": _m(M, ge, f"nfwd{h}", base=M["vix"].notna()) for h in (21, 63, 252)}
+    out.update({f"peak_turn|nfwd{h}": _m(M, pk, f"nfwd{h}", base=M["vix"].notna()) for h in (21, 63)})
     return out
 
 
@@ -555,8 +568,8 @@ def _(P):
     wake = (M["vix"] >= 14) & (M["vix"].shift(1).rolling(15).max() <= 13)
     jump = M["vix_wk"] >= 0.30
     hi, lo = M["vix"] > 17, M["vix"] < 14
-    return {"wake14|n_mdd21": ts.split(M, wake, "n_mdd21", base=ok), "jump30|n_mdd21": ts.split(M, jump, "n_mdd21", base=ok),
-            "gt17_vs_lt14|n_mdd21": ts.split(M, hi, "n_mdd21", base=hi | lo)}
+    return {"wake14|n_mdd21": _m(M, wake, "n_mdd21", base=ok), "jump30|n_mdd21": _m(M, jump, "n_mdd21", base=ok),
+            "gt17_vs_lt14|n_mdd21": _m(M, hi, "n_mdd21", base=hi | lo)}
 
 
 card("TWT-H39", "Small caps' turn", "TEST",
@@ -568,7 +581,7 @@ card("TWT-H39", "Small caps' turn", "TEST",
 def _(P):
     M = P.m
     v = {"ret40": M["sl_ret40"] > 0, "above50": M["sl_vs50"] > 0}
-    return {f"{k}|slfwd{h}": ts.split(M, on, f"slfwd{h}", base=M["sl_ratio"].notna()) for k, on in v.items() for h in (63, 126)}
+    return {f"{k}|slfwd{h}": _m(M, on, f"slfwd{h}", base=M["sl_ratio"].notna()) for k, on in v.items() for h in (63, 126)}
 
 
 card("TWT-H40", "Index contraction on a rising 50 DMA", "TEST",
@@ -582,7 +595,7 @@ def _(P):
     M = P.m
     up = M["nifty_50up"].astype(bool) & (M["nifty_vs50"] > 0)
     on = (M["n_rng10_vs50"] < 0.7) & (M["nifty_vs50"] <= 0.03)
-    return {f"nfwd{h}": ts.split(M, on, f"nfwd{h}", base=up) for h in (10, 21)}
+    return {f"nfwd{h}": _m(M, on, f"nfwd{h}", base=up) for h in (10, 21)}
 
 
 card("TWT-H41", "Leadership turns over after a bear phase", "TOO_FEW", "Prior-cycle leaders lag for 1-3 years.",
@@ -600,7 +613,7 @@ def _(P):
     M = P.m
     ok = M["dxy_chg126"].notna()
     v = {"up5": M["dxy_chg126"] >= 0.05, "break3y": M["dxy_break"].fillna(False).astype(bool)}
-    return {f"{k}|nfwd{h}": ts.split(M, on, f"nfwd{h}", base=ok) for k, on in v.items() for h in (21, 63)}
+    return {f"{k}|nfwd{h}": _m(M, on, f"nfwd{h}", base=ok) for k, on in v.items() for h in (21, 63)}
 
 
 card("TWT-H43", "Strong crude hurts the Nifty", "TEST",
@@ -614,7 +627,7 @@ def _(P):
     M = P.m
     ok = M["brent"].notna()
     v = {"above50": M["brent_vs50"] > 0, "ge100": M["brent"] >= 100}
-    return {f"{k}|nfwd{h}": ts.split(M, on, f"nfwd{h}", base=ok) for k, on in v.items() for h in (21, 63)}
+    return {f"{k}|nfwd{h}": _m(M, on, f"nfwd{h}", base=ok) for k, on in v.items() for h in (21, 63)}
 
 
 card("TWT-H44", "US weakness leads the Nifty lower", "TEST",
@@ -628,9 +641,9 @@ def _(P):
     M = P.m
     ok = M["nq_vs50"].notna()
     rec = M["nq_reclaim50"].fillna(False).astype(int).rolling(5, min_periods=1).max().astype(bool)
-    out = {f"below50|nfwd{h}": ts.split(M, M["nq_vs50"] < 0, f"nfwd{h}", base=ok) for h in (21, 63)}
-    out.update({f"dd10|nfwd{h}": ts.split(M, M["nq_dd60"] <= -0.10, f"nfwd{h}", base=ok) for h in (21, 63)})
-    out.update({f"reclaim|nfwd{h}": ts.split(M, rec, f"nfwd{h}", base=ok) for h in (21, 42)})
+    out = {f"below50|nfwd{h}": _m(M, M["nq_vs50"] < 0, f"nfwd{h}", base=ok) for h in (21, 63)}
+    out.update({f"dd10|nfwd{h}": _m(M, M["nq_dd60"] <= -0.10, f"nfwd{h}", base=ok) for h in (21, 63)})
+    out.update({f"reclaim|nfwd{h}": _m(M, rec, f"nfwd{h}", base=ok) for h in (21, 42)})
     return out
 
 
@@ -648,8 +661,8 @@ def _(P):
     M = P.m
     wk = M["bank_ret5"] >= 0.035
     ab = M["bank_vs200"] > 0
-    return {"wk35|nfwd21": ts.split(M, wk, "nfwd21"), "wk35|breadth_fwd21": ts.split(M, wk, "b200_fwd21"),
-            "above200|nfwd21": ts.split(M, ab, "nfwd21", base=M["bank_vs200"].notna()), "above200|nfwd63": ts.split(M, ab, "nfwd63", base=M["bank_vs200"].notna())}
+    return {"wk35|nfwd21": _m(M, wk, "nfwd21"), "wk35|breadth_fwd21": _m(M, wk, "b200_fwd21"),
+            "above200|nfwd21": _m(M, ab, "nfwd21", base=M["bank_vs200"].notna()), "above200|nfwd63": _m(M, ab, "nfwd63", base=M["bank_vs200"].notna())}
 
 
 card("TWT-H47", "Rate-cut lags", "TOO_FEW", "First cut of a cycle to the index's major low: 4-8 months.", note="About 5 RBI cutting cycles since 2000.")
@@ -875,7 +888,7 @@ def _(P):
     M = P.m
     hi20, lo20 = hh.rolling(20).max().shift(1), ll.rolling(20).min().shift(1)
     ev = ((hi20 / lo20 - 1) <= 0.04) & (c > hi20)
-    out.update({f"nifty20|nfwd{h}": ts.split(M, ev.reindex(M.index).fillna(False), f"nfwd{h}") for h in (5, 10)})
+    out.update({f"nifty20|nfwd{h}": _m(M, ev.reindex(M.index).fillna(False), f"nfwd{h}") for h in (5, 10)})
     return out
 
 
@@ -918,7 +931,7 @@ def _(P):
     d = s[P.s5 | ev]
     out = {f"stk|net{h}": ts.level(d, ev.reindex(d.index), f"net{h}") for h in (5, 10, 20)}
     M = P.m
-    out.update({f"nifty|nfwd{h}": ts.split(M, M["nifty_ath"].fillna(False).astype(bool), f"nfwd{h}") for h in (5, 21)})
+    out.update({f"nifty|nfwd{h}": _m(M, M["nifty_ath"].fillna(False).astype(bool), f"nfwd{h}") for h in (5, 21)})
     return out
 
 
@@ -1198,14 +1211,38 @@ def report() -> str:
     return str(p)
 
 
-if __name__ == "__main__":
+def main(argv: list[str]) -> None:
+    sys.argv = argv
     cmd = sys.argv[1] if len(sys.argv) > 1 else "cards"
     if cmd == "cards":
         print(write_cards())
         print({t: union_k(t) for t in ("TWT", "OPT")})
     elif cmd == "run":
         run(sys.argv[2:] or None)
+    elif cmd == "check":
+        # code check before the recorded run: prints only whether each variant produced numbers (sample sizes), never the means, t or verdicts
+        _load_more()
+        P = Ctx()
+        for cid in sys.argv[2:]:
+            try:
+                res = TESTS[cid](P)
+                for var in CARDS[cid]["variants"]:
+                    r = res.get(var)
+                    print(cid, var, "MISSING" if r is None else f"quarters dev {r['dev'][2]} val {r['val'][2]} · n_on {r.get('extra', {}).get('n_on')}", flush=True)
+                extra = set(res) - set(CARDS[cid]["variants"])
+                if extra:
+                    print(cid, "UNREGISTERED VARIANTS", extra)
+            except Exception as e:  # noqa: BLE001
+                import traceback
+                print(cid, "ERROR", type(e).__name__, e)
+                traceback.print_exc(limit=3)
     elif cmd == "desc":
         descriptives()
     elif cmd == "report":
         print(report())
+
+
+if __name__ == "__main__":
+    import india.teachers as _t  # run inside the importable module, so the F&O and exit modules register their tests in the same place
+
+    _t.main(sys.argv)

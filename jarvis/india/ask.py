@@ -636,8 +636,16 @@ def portfolio_flow(text: str, who: str) -> dict | None:
     paid = sum(float(h.get("avg") or 0) * float(h.get("qty") or 0) for h in hs)
     changes = [h for h in hs if h["action"] not in ("HOLD", "WATCH")]
     keep = [h for h in hs if h["action"] in ("HOLD", "WATCH")]
-    head = (f"Sir, your {len(hs)} stocks are worth {_rs(total)}, {100 * (total / paid - 1):+.1f}% on what you paid. Grades: {grades['A']} A, {grades['B']} B, {grades['C']} C, {grades['D']} D. "
-            f"{len(changes)} change{'s' if len(changes) != 1 else ''} suggested, {len(keep)} kept. {fresh}")
+    # flag 101 (Madhav, 25 Oct: "the answer was not so clear and it was hard for me to comprehend"; flag 102 "use one"): lead with ONE plain
+    # recommendation, then the short overview; the per-stock detail stays in the breakdown below the answer
+    top = max(changes, key=lambda x: (x.get("suggest_inr") or 0)) if changes else None
+    amt = (" (about " + _rs(top["suggest_inr"]) + ")") if top and top.get("suggest_inr") else ""
+    verb = ({"REDUCE": f"sell half of {top['symbol']}{amt}", "TRIM": f"trim {top['symbol']}{amt}", "TIDY": f"sell {top['symbol']}, too small to matter{amt}",
+             "ADD": f"add to {top['symbol']}{amt}"}.get(top["action"], f"{ACTION_WORDS.get(top['action'], top['action'])} {top['symbol']}{amt}") if top else "")
+    first = (f"Sir, the one change I would make first: {verb}. Why: {top['why']} " if top
+             else "Sir, I would not change anything right now: every holding rates hold or watch. ")
+    head = (first + f"Overall: {len(hs)} stocks worth {_rs(total)}, {100 * (total / paid - 1):+.1f}% on what you paid; {len(changes)} change{'s' if len(changes) != 1 else ''} suggested in all "
+            f"(details below). Paper only: nothing is sold until you say so. {fresh}")
     brk = []
     for h in sorted(changes, key=lambda x: -(x.get("suggest_inr") or 0))[:8]:
         brk.append(f"{h['symbol']} ({h['grade']}, {h['weight_pct']}% of stocks, {h['pnl_pct']:+.1f}%): {ACTION_WORDS.get(h['action'], h['action'])}"

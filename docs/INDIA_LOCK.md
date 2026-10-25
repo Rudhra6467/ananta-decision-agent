@@ -122,6 +122,11 @@ Madhav, 25 Oct (in chat): "be marked when input data is stale. we will start imm
 |---|---|---|
 | A decision made on stale inputs | **marked, never stopped or dropped** | `india/paper.py input_check` writes `inputs` into every decision from 25 Oct (outside the hashed fields); older decisions are marked from their recorded context (`readmodel.decision_inputs`); the read model brief, the app's brief, the Evidence tracker ("Picks made on stale data") and the Ask carry the mark. No paper rule changed; `paper_rules` pin untouched. |
 | Every audit item | fix all now; only time-bound items stay pending | The fix list in the audit doc; the re-audit closes it. |
+| The account twin when the Zerodha snapshot is stale | **marked at the last session's NSE closes** (marks only; fills keep the snapshot rule) | New sealed purpose `account_marks` (`india/sealed.py read_marks`): one live session, the held symbols only, logged; `india/account.py` is the only caller (`tests/test_india_account_marks.py`). The view says which prices it used. |
+| TMCV / TMPV cost basis | **checked: correct** | The broker splits the old Tata Motors cost 68.85% / 31.15%, exactly the published demerger split (record date 14 Oct 2025). The holding detail now says so and shows the pair's combined result (`india/account.py demerger_notes`). |
+| The research book on screens | **shown in % per closed trade** beside the rupees | `jarvis/india/views.py books()` (`per_trade_pct`); the ₹50,000 slots are notional, not his money. |
+| The firewall's static scan | **an allowlist naming each India-app reference by file and pattern, with its reason** | `india/firewall.py ALLOWED_REFS`; any other reference, or a new pattern in a listed file, still fails; the sign-in scope check now also sees paths built on a base constant (`tests/test_india_firewall_allowlist.py`). |
+| H12 and H18 (partly true by construction) | **registered money follow-ups TWT-H12F and TWT-H18F** in the same teacher bar | `india/teachers.py`; results in `teachers_results_v1.md`. |
 
 ## 9. After the window
 

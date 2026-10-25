@@ -42,6 +42,13 @@ def card(cid: str, title: str, status: str, rule: str, variants: dict | None = N
                   "india": india, "note": note, "forward": forward}
 
 
+def card_key(cid: str) -> tuple:
+    """Sort key for card ids: TWT-H12 before TWT-H12F (a follow-up) before TWT-H13."""
+    import re
+    m = re.match(r"(\d+)(.*)", cid.split("H", 1)[1])
+    return (int(m.group(1)), m.group(2))
+
+
 def test(cid):
     def deco(f):
         TESTS[cid] = f
@@ -333,6 +340,40 @@ def _(P):
     base = s["pb3"].astype(bool)
     return {"quiet_hold|newhigh15": ts.split(s, s["pb3_good"].astype(bool), "pb3_newhigh15", base=base),
             "shallow|newhigh15": ts.split(s, s["pb3_shallow"].astype(bool), "pb3_newhigh15", base=base)}
+
+
+# 25 Oct audit follow-ups: H12 and H18 held partly by construction (their good cases start closer to the level or the high). These ask the money
+# question the cards left open, registered after H12/H18's results were seen (so they are follow-ups, counted in the same teacher bar).
+card("TWT-H12F", "Follow-up: do the good breakout bars pay later?", "TEST",
+     "H12's good breakout bars (widest of 20, close in the top 25%, upper wick under 15%) failed less in 5 days but did not earn more from the next open. "
+     "Follow-up: counted from day 5 (once the 5-day failure is known), do they earn more over the next 20 and 60 sessions than other breakouts?",
+     {"good|p5net20": 1, "good|p5net60": 1}, note="Follow-up registered 25 Oct 2026 after H12's result; the same teacher bar, k grows by 2.")
+
+
+@test("TWT-H12F")
+def _(P):
+    s = P.s
+    good = (s["range_vs_max20"] >= 1) & (s["close_pos"] >= 0.75) & (s["upper_wick"] <= 0.15)
+    return {f"good|p5net{h}": ts.split(s, good, f"p5net{h}", base=P.brk) for h in (20, 60)}
+
+
+card("TWT-H18F", "Follow-up: do quiet pullbacks pay?", "TEST",
+     "H18's quiet (lower volume, holding the breakout level) and shallow (under 38.2% of the run) pullbacks made new highs more often, partly because they "
+     "start closer to the high. Follow-up: buying the next open after the pullback day, do they earn more over 5 and 20 sessions, net of costs, than other "
+     "first pullbacks?",
+     {"quiet_hold|net5": 1, "quiet_hold|net20": 1, "shallow|net5": 1, "shallow|net20": 1},
+     note="Follow-up registered 25 Oct 2026 after H18's result; the same teacher bar, k grows by 4.")
+
+
+@test("TWT-H18F")
+def _(P):
+    s = P.s
+    base = s["pb3"].astype(bool)
+    out = {}
+    for name, col in (("quiet_hold", "pb3_good"), ("shallow", "pb3_shallow")):
+        for h in (5, 20):
+            out[f"{name}|net{h}"] = ts.split(s, s[col].astype(bool), f"net{h}", base=base)
+    return out
 
 
 card("TWT-H19", "How often breakouts retest", "DESCRIPTIVE",
@@ -1081,7 +1122,7 @@ def write_cards() -> str:
     lines += ["Status counts: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())), ""]
     for t in ("TWT", "OPT"):
         lines += [f"## {TEACHER[t]}", ""]
-        for cid in sorted((c for c in CARDS if c.startswith(t)), key=lambda x: int(x.split("H")[1])):
+        for cid in sorted((c for c in CARDS if c.startswith(t)), key=card_key):
             c = CARDS[cid]
             lines.append(f"### {cid} · {c['title']} · {c['status']}")
             lines.append(c["rule"])
@@ -1197,7 +1238,7 @@ def report() -> str:
             vc = sub["verdict"].value_counts().to_dict()
             lines += ["Variant verdicts: " + ", ".join(f"{k} {v}" for k, v in sorted(vc.items())), "",
                       "| card | variant | verdict | dev mean | dev t | val mean | val t | val quarters |", "|---|---|---|---|---|---|---|---|"]
-            sub = sub.assign(_n=sub["card"].str.split("H").str[1].astype(int)).sort_values(["_n", "variant"])
+            sub = sub.assign(_n=sub["card"].map(lambda c: card_key(c)[0]), _s=sub["card"].map(lambda c: card_key(c)[1])).sort_values(["_n", "_s", "variant"])
             for _, r in sub.iterrows():
                 lines.append(f"| {r['card']} | {r['variant']} | {r['verdict']} | {_f(r['dev'][0])} | {_f(r['dev'][1], 1)} | {_f(r['val'][0])} | {_f(r['val'][1], 1)} | {r['val'][2]} |")
             lines.append("")
@@ -1283,7 +1324,7 @@ def summary() -> dict:
     live = json.loads(lp.read_text()) if lp.exists() else {}
     desc = json.loads((OUT / "descriptive.json").read_text()) if (OUT / "descriptive.json").exists() else {}
     cards, counts = [], {}
-    for cid in sorted(CARDS, key=lambda x: (x[:3], int(x.split("H")[1]))):
+    for cid in sorted(CARDS, key=lambda x: (x[:3], *card_key(x))):
         c = CARDS[cid]
         row = {"id": cid, "teacher": c["teacher"], "title": c["title"], "status": c["status"], "rule": c["rule"], "note": c["note"]}
         if c["status"] == "TEST" and cid in by:

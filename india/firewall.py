@@ -35,6 +35,22 @@ SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", ".expo", "d
 PATTERNS = [r"ananta_data/india", r"INDIA_DATA_DIR", r"ananta-india-lake", r"india\.duckdb", r"ananta-records", r"from india\b", r"import india\b",
             r"bronze/ledger", r"sealed/silver"]
 ALLOWED_FILES = {"src/india/kite_auth.py", "src/india/__init__.py"}
+# 25 Oct audit (the allowlist due by lock day, 1 Nov): India runs inside the one app since 22 Oct (Madhav: "India in one app"), so the India
+# app's own files in the agent checkout read the India read model. Each allowed reference is named here: the file, the exact pattern and why.
+# A new pattern in one of these files, or any reference in any other file, still fails the scan.
+ALLOWED_REFS = {
+    ("jarvis/india/service.py", r"ananta_data/india"): ("the India app reads the read model and paper files, and appends only its own records there: "
+                                                        "Madhav's fix-flow and reconstruction decisions and the reviewer's morning answers"),
+    ("jarvis/india/service.py", r"ananta-records"): "the India app reads the records checkout's generated registration pages",
+    ("jarvis/india/service.py", r"from india\b"): ("imports india.telugu (words), india.morningview (rebuilds the morning page) and india.forecast "
+                                                  "(writes the reviewer's odds to the forecast ledger, by design since 24 Oct)"),
+    ("jarvis/india/ask.py", r"ananta_data/india"): "the India ask path answers from the read model and keeps its own threads under ask/",
+    ("jarvis/india/views.py", r"ananta_data/india"): "the India screens read the read model and paper files",
+    ("jarvis/india/views.py", r"ananta-records"): "the India screens read the generated registration pages",
+    ("tests/test_india_web.py", r"import india\b"): "a test of the India web app",
+    ("tests/test_india_plain.py", r"ananta_data/india"): "a test of the India plain-words screens",
+    ("jarvis/service/runcheck_parts.py", r"bronze/ledger"): "the job watch checks that the India ledger snapshot file exists and its size (no read of its contents)",
+}
 CANARY_FILE = paths.manifest_dir() / "firewall_canary.txt"
 
 
@@ -46,7 +62,7 @@ def _walk(base: Path):
 
 
 def check_static() -> tuple[bool, str, dict]:
-    hits = []
+    hits, allowed = [], []
     n = 0
     for base in AGENT_DIRS:
         if not base.exists():
@@ -65,8 +81,11 @@ def check_static() -> tuple[bool, str, dict]:
             for pat in PATTERNS:
                 for m in re.finditer(pat, txt):
                     line = txt.count("\n", 0, m.start()) + 1
-                    hits.append(f"{base.name}/{rel}:{line} [{pat}]")
-    return (not hits), f"{n} code/config files scanned in {sum(b.exists() for b in AGENT_DIRS)} checkouts: {len(hits)} references", {"hits": hits[:50]}
+                    why = ALLOWED_REFS.get((rel, pat)) if base.name == "ananta-agent-research" else None
+                    (allowed if why else hits).append(f"{base.name}/{rel}:{line} [{pat}]" + (f" allowed: {why}" if why else ""))
+    note = (f"{n} code/config files scanned in {sum(b.exists() for b in AGENT_DIRS)} checkouts: {len(hits)} references outside the allowlist, "
+            f"{len(allowed)} allowed (the India app's own files, each named in ALLOWED_REFS)")
+    return (not hits), note, {"hits": hits[:50], "allowed": allowed[:50]}
 
 
 def check_kite_auth() -> tuple[bool, str, dict]:
@@ -75,10 +94,15 @@ def check_kite_auth() -> tuple[bool, str, dict]:
         p = base / "src/india/kite_auth.py"
         if p.exists():
             txt = p.read_text()
-            urls = sorted(set(re.findall(r"https?://[^\s\"']+", txt)) | set(re.findall(r"[\"'](/[a-z_/{}]+)[\"']", txt)))
+            urls = sorted(set(re.findall(r"https?://[^\s\"']+", txt)) | set(re.findall(r"[\"'](/[a-z_/{}]+)[\"']", txt))
+                          # 25 Oct audit: paths built on a base constant, e.g. f"{KITE_WEB}/api/login", are listed too (they were invisible before)
+                          | set("{" + b + "}" + q for b, q in re.findall(r"\{([A-Z_]+)\}(/[A-Za-z0-9_/]+)", txt)))
             calls[base.name] = urls
-    bad = {k: [u for u in v if not re.search(r"connect/login|session/token|kite\.zerodha\.com/connect|api\.kite\.trade/?$|127\.0\.0\.1|localhost", u) and u.startswith(("http", "/"))]
-           for k, v in calls.items()}
+    # allowed: the login and session endpoints (the automatic sign-in posts the password and the 2FA code to kite.zerodha.com/api/login and
+    # /api/twofa, the browser login page), the local sign-in page, the bare web base used only to build those, and the ntfy phone nudge (text only)
+    ok_re = (r"connect/login|session/token|kite\.zerodha\.com/connect|api\.kite\.trade/?$|127\.0\.0\.1|localhost|/api/login$|/api/twofa$"
+             r"|^https://kite\.zerodha\.com/?$|^https://ntfy\.sh/\{topic\}$")
+    bad = {k: [u for u in v if not re.search(ok_re, u) and u.startswith(("http", "/", "{"))] for k, v in calls.items()}
     bad = {k: v for k, v in bad.items() if v}
     return (not bad), (f"kite_auth.py found in {len(calls)} checkouts; endpoints outside login/session: {bad or 'none'}"), {"endpoints": calls}
 

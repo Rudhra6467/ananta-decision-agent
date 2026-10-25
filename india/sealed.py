@@ -16,6 +16,8 @@ what window, how many rows) before any row is returned. Nothing here lets a stud
   paper_review    live paper days only (Madhav, 20 Oct 2026): cash-market series-EQ rows dated on or after PAPER_REVIEW_START (the stock paper's
                   first decision day), for the missed-movers review of the paper book (india/missed.py, the only caller india/leakcheck.py allows,
                   with a constant start). An earlier start is refused, never clipped; nothing on history is computed from these rows
+  account_marks   one live session's closes for the stocks the account's paper twin holds, only when the Zerodha snapshot is older than that
+                  session (Madhav, 25 Oct 2026); india/account.py is the only caller
 Apart from a registered holdout run, none of them computes rule performance. A lookback or context request for more than LOOKBACK_DAYS calendar days is refused.
 
   from india import sealed
@@ -165,6 +167,33 @@ def _live_cash(purpose: str, since_d: dt.date, until_d: dt.date | None) -> pd.Da
         raise PermissionError("sealed review read refused: a row before the paper's first day came back")
     _log(purpose, "cm_bhavcopy EQ live paper days", f"{since_d}..{until_d or ''}", len(df))
     return df
+
+
+ALLOWED_MARKS = {"account_marks"}
+
+
+def read_marks(purpose: str, day: str, symbols: list[str]) -> pd.DataFrame:
+    """Closing prices of ONE live session for the stocks the paper twin of the account holds (purpose account_marks, Madhav 25 Oct 2026: "fix
+    all items"): used only when the daily Zerodha snapshot is older than the last completed session, so the twin is not marked at stale prices.
+    The day must be a live paper day (on or after PAPER_REVIEW_START, not in the future); only series-EQ closes of the named symbols on that
+    day come back; nothing is scored. india/account.py is the only caller (tests/test_india_account_marks.py). Logged."""
+    if purpose not in ALLOWED_MARKS:
+        raise PermissionError(f"sealed marks read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED_MARKS)}")
+    d = pd.Timestamp(day).date()
+    if d < PAPER_REVIEW_START or d > dt.date.today():
+        raise PermissionError(f"sealed marks read refused: {d} is not a live paper day")
+    syms = sorted({str(s) for s in symbols if s})
+    root = paths.data_dir()
+    files = [str(p) for p in list((root / "silver/cm_bhavcopy").glob(f"year={d.year}/part.parquet")) + list((root / "sealed/silver/cm_bhavcopy").glob(f"year={d.year}/part.parquet"))]
+    if not files or not syms:
+        _log(purpose, "cm_bhavcopy EQ closes (nothing to read)", str(d), 0)
+        return pd.DataFrame(columns=["symbol", "close"])
+    con = duckdb.connect()
+    df = con.execute("select symbol, close from read_parquet(" + repr(files) + ", union_by_name=true) where series = 'EQ' and close > 0 "
+                     "and cast(date as date) = ? and list_contains(?, symbol)", [d, syms]).df()
+    con.close()
+    _log(purpose, f"cm_bhavcopy EQ closes of {len(syms)} held stocks", str(d), len(df))
+    return df.drop_duplicates("symbol", keep="last")
 
 
 ALLOWED_INTEGRITY = {"integrity", "calibration"}

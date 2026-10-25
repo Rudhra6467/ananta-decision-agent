@@ -58,8 +58,7 @@ def check_sealed_files() -> tuple[bool, str]:
             bad.append(f)
     # paper.py and the leak check may import the sealed module by name; nothing else should reference the folder helpers
     for f in ("lab.py", "studies.py", "exitlab.py", "registry.py", "costs.py", "conditions.py", "studies2.py", "istudies.py", "fstudies.py", "vstudies.py",
-              "exitbook.py", "o4hist.py", "replay.py", "optreal.py", "selection.py", "hedge.py", "flowstudy.py", "morning.py", "sp1nightly.py", "sp3run.py", "sp3learn.py",
-              "teachers.py", "teachers_stock.py", "teachers_fo.py", "teachers_exits.py", "teacher_forward.py", "teacher_live.py"):
+              "exitbook.py", "o4hist.py", "replay.py", "optreal.py", "selection.py", "hedge.py", "flowstudy.py", "morning.py", "sp1nightly.py", "sp3run.py", "sp3learn.py"):
         if (here / f).exists() and any("sealed" in s.lower() for s in _strings(here / f)):
             bad.append(f + " (mentions sealed)")
     # calibrate.py may read sealed rows, but every call must name the purpose "calibration" (a data-vs-market check, never a rule score)

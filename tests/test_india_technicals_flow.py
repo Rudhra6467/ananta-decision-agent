@@ -127,3 +127,14 @@ def test_a_study_headline_is_said_first(monkeypatch):
     assert "not a usable signal" in _a("is MACD tested?")
     f = technicals.facts_part({**RM, "indicator_knowledge": know})["indicator_knowledge"]
     assert f["MACD"]["tested_study"].startswith("Tested 26 Oct") and f["RSI and stochastic"]["tested_study"] is None
+
+
+def test_cross_date_from_the_history_and_the_one_before(monkeypatch):
+    """26 Oct: the cross dates since 2015 (records technicals_history) give the real date instead of "no cross since 20 May"."""
+    nifty = {**NIFTY, "cross_50_200": {"state": "below", "last_cross": "2026-03-16", "direction": "down", "sessions_ago": 149, "searched_from": "2026-05-20",
+                                       "history": [{"date": "2025-01-17", "direction": "down"}, {"date": "2025-06-04", "direction": "up"},
+                                                   {"date": "2026-03-16", "direction": "down"}]}}
+    monkeypatch.setattr(views, "readmodel", lambda: {**RM, "technicals": {**RM["technicals"], "indices": {"NIFTY 50": nifty, "NIFTY BANK": BANK}}})
+    a = _a("when did the 50-day cross the 200-day on nifty?")
+    assert "crossed below the 200-day on Mon 16 Mar, 149 sessions ago (a death cross)" in a and "golden cross of Wed 4 Jun 2025" in a
+    assert "since at least" not in a

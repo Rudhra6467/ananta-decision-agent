@@ -154,6 +154,10 @@ def _say(kind: str, n: str, p: dict) -> str:
             first = (f"On {n} the 50-day average ({_num(sma.get('50'))}) is {x['state']} the 200-day ({_num(sma.get('200'))}) and has been since at least "
                      f"{_dw(x.get('searched_from'))}, as far back as my daily data allows a 200-day average; so any {'death' if below else 'golden'} cross "
                      f"came before that, and there has been no {'golden' if below else 'death'} cross since.")
+        hist = [h for h in (x.get("history") or []) if h.get("date") != x.get("last_cross")]
+        if hist:     # 26 Oct: the cross dates since 2015 (technicals_history)
+            h = hist[-1]
+            first += f" Before that, the {'golden' if h['direction'] == 'up' else 'death'} cross of {_dw(h['date'])} {h['date'][:4]}."
         second = (f" The 20-day crossed {'above' if x2.get('direction') == 'up' else 'below'} the 50-day on {_dw(x2['last_cross'])}." if x2.get("last_cross") else "")
         return first + second + f" The close is {_pc(vs.get('50'))} from the 50-day and {_pc(vs.get('200'))} from the 200-day."
     if kind == "rsi":

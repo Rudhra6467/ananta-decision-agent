@@ -50,3 +50,10 @@ def test_trade_confirm_guardrail_and_dont_know():
     assert "5%" in g and "22%" in g and "మాధవ్ గారు" in g
     assert telugu.dont_know_te("నిఫ్టీ 22,811").endswith("నిఫ్టీ 22,811")
     assert "| stop loss | స్టాప్ లాస్ |" in telugu.glossary_md()
+
+
+def test_brief_says_the_close_is_missing_instead_of_crashing(tmp_path, monkeypatch):
+    monkeypatch.setattr(telugu, "PEOPLE", tmp_path / "none.json")
+    rm = dict(RM, market=dict(RM["market"], nifty_close=None))
+    s = telugu.brief_te(rm)
+    assert "2026-10-21 నాటి నిఫ్టీ ముగింపు సమాచారం అందలేదు." in s

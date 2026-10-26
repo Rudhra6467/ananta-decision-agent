@@ -99,8 +99,10 @@ def brief_te(rm: dict) -> list[str]:
     """State 1, morning brief: what the market did, what today's plan is, what Ananta is watching. Read only. Three to five sentences."""
     out = [f"నమస్కారం {address()}."]
     m, c, sb, d, s = rm.get("market", {}), rm.get("call", {}), rm.get("stock_book", {}), rm.get("decisions_today", {}), rm.get("sp1", {})
-    if m.get("status") == "ok":
+    if m.get("status") == "ok" and m.get("nifty_close") is not None:
         out.append(f"{m['data_through']} నాటికి నిఫ్టీ {m['nifty_close']:,.0f} వద్ద ముగిసింది. {TREND_TE.get(m.get('trend_state'), TREND_TE['unknown'])}.")
+    elif m.get("status") == "ok":   # 26 Oct: a day with no index close crashed the English line (fixed in readmodel.py); the same guard here
+        out.append(f"{m.get('data_through')} నాటి నిఫ్టీ ముగింపు సమాచారం అందలేదు.")
     else:
         out.append("ఈరోజు మార్కెట్ సమాచారం అందలేదు.")
     if d.get("status") == "ok":

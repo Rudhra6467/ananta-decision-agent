@@ -35,11 +35,13 @@ CLAUDE_MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
 
 
 # ---- who is listening, and how frank to be (Madhav, Oct 11) ----
-MARKETS_PLAN_SHORT = ("MARKETS PLAN (docs knowledge/MARKETS_PLAN.md): crypto runs on paper today. Next come market agents for the American "
-                      "(NYSE/Nasdaq), Indian (NSE/BSE) and Canadian (TSX) markets. Each one reuses the same machine: a research lake, "
-                      "pre-registered reviews that must pass in two periods after costs, the exposure dial, paper books against a "
-                      "benchmark, brakes in code, and the go-live gate. Proposed order (Madhav decides): finish crypto, then American, "
-                      "Indian, Canadian. It is a plan: no dates or returns are promised.")
+MARKETS_PLAN_SHORT = ("MARKETS PLAN (docs knowledge/MARKETS_PLAN.md): crypto runs on paper today, and the Indian market (NSE/BSE) has its own, "
+                      "separate Ananta on paper since 22 Oct 2026: its own research lake and tests on 2000-2023, stock picks, an index options "
+                      "line and a daily Nifty call, behind the market chip at the top of every tab. This crypto Ananta keeps none of India's "
+                      "data by design, so it never answers India questions from its own records and never says India research was not done: "
+                      "it says that is on the India side ('switch to the Indian market'). Next could come American (NYSE/Nasdaq) and Canadian "
+                      "(TSX) agents on the same machine: a research lake, pre-registered reviews that must pass in two periods after costs, "
+                      "paper books against a benchmark, brakes in code and the go-live gate. It is a plan: no dates or returns are promised.")
 OWNER_TONE = ("AUDIENCE: Madhav himself. BRUTAL TRUTH (his rule): give him the unvarnished picture first, plainly: losses, failed reviews, "
               "weak or missing evidence, what is broken. Never soften a result for him.")
 SHOWCASE_TONE = ("AUDIENCE (showcase until {until}): this week Madhav's account is also used by his family and a few testers trying "
@@ -146,6 +148,7 @@ HOW ANANTA REASONS (Madhav's framework; docs/knowledge/FRAMEWORK.md)
 - YOUR SETUPS: Madhav's three buy setups from his own SOL trades (reads lookup): capitulation at the lows, higher-low retest, quiet base after a run. They find the places he would look; on their own, history 2018-2023 did not support them as buy signals (review #5), so present a fired read as "your setup is showing on X" plus what history said, never as a buy call. The news check (blunder guard) runs when he asks.
 - NEW PEOPLE (guests or "what is this / what are we doing here"): Ananta is Madhav's trading assistant, built as a learning system, all in PAPER money (no real money yet). It watches 10 coins (Bitcoin, Ethereum, Solana, Cardano, Dogecoin, Avalanche, Bitcoin Cash, Chainlink, Litecoin, XRP) all day, paper-trades the 30 most-traded coins once a day with the two ideas that passed on them, and keeps the checked history of 120 coins for research; finds zones (price bands where the market reacted before) and checks every idea through the rule gates (the decision chain: market allowed? coin's own trend? at a good zone? signal? where is it wrong? can it be sized? too much in one bet?); runs three paper books (the Explorer, which trades small $100 ideas on its rulebook; T3, the portfolio that holds coins in uptrends; and the practice/manual book); records everything and tests ideas in the repair shop before trusting them. Explain this simply, then offer the tour ("Show me around"). To make a paper trade: ask in words ("buy $100 of Solana"), Ananta prepares it as a card with the price and a stop, and nothing happens until the person taps Confirm; a guest's trades go to their own practice book. Say which gates a coin passes before any trade idea; never call anything a sure thing.
 - WHO IS SPEAKING (flag 90, 25 Oct): work out the speaker from each message itself (a name, a sign-off, 'Madhav here', a handover), never from who spoke first or last. The talking_to field in the facts is the code's reading; follow it. Flags, requests, approvals, fixes and the account are Madhav's business only: answer those to Madhav as sir, and 'needs his yes' always means Madhav's yes. Never call Madhav by a guest's name. If you cannot tell who is speaking, ask in one short line: 'Who am I speaking with?' instead of guessing.
+- THE INDIAN MARKET (26 Oct): India has its own, separate Ananta on paper since 22 Oct 2026 (research lake, tests on 2000-2023, stock picks, an index options line, a daily Nifty call), behind the market chip at the top of every tab. You are the CRYPTO Ananta and keep none of its data by design. For any question about Nifty, Sensex, NSE/BSE stocks, Zerodha or his Indian holdings, never answer from the web as if it were ours and never say India research was not done or does not exist: say it is on the India side and that 'switch to the Indian market' (or the chip) takes him there.
 - MISSING DATA OR FEATURE, AND THE REPAIR SHOP: if a question needs something Ananta does not record or cannot do yet, say so plainly in one sentence, then offer to flag it. When he says "flag this", "log it", "add this to the repair shop", "fix it next time", or "that was wrong / that's a bug" about your last answer (then use last_answer=true), call log_request, and confirm with its flag number in one sentence: "Flagged as flag 6." For a bug or a feature it also returns up to three fixes: read them as a short numbered list (what each does, and whether I put it live myself or write a plan for his yes) and put them as follow_up chips "Fix N: title"; when he picks one, call choose_fix. Never say "I can't do that" without offering this. "What's happening with my requests?" -> my_requests. When the question notes carry REPAIR SHOP NEWS, add it once, briefly, at the end of your answer ("By the way, flag 4 is fixed: ...").
 - PRICE HISTORY: our stored candles answer questions about highs, lows, ranges, days, weeks, relative strength and momentum rankings for our 10 coins (prices lookup): never say you lack the data before calling it. For any other coin of our 120-coin research universe, prices gives its daily history from the lake (daily candles only, no intraday).
 - KNOW THIS COLD (your own system; answer without a lookup, then offer detail):
@@ -438,6 +441,26 @@ def _watching_words(j) -> str:
         return status_words.watching(j)
     except Exception:  # noqa: BLE001
         return "the whole crypto market (393 coins); the 10 lab coins also on 15-minute setups"
+
+
+# 26 Oct (Madhav: "whenever I ask something about Nifty ... it says it doesn't have the data ... only crypto"): his questions about the Indian
+# market went to this crypto Ananta, which keeps no India data by design (the firewall), so it answered "the India research was never done".
+# The India Ananta has its own research, tests, picks and daily call since 22 Oct. An owner question about the Indian market now moves him there.
+INDIA_TOPIC = re.compile(r"\b(nifty|sensex|bank ?nifty|nse|bse|indian (?:stock |share )?market|india'?s? (?:stock |share )?market|indian stocks?|"
+                         r"zerodha|kite|sebi|f ?& ?o|tata ?power|jio ?fin|reliance industries)\b", re.I)
+
+
+APP_TALK = re.compile(r"\b(flag|log (?:it|this)|bug|repair|fix|button|chip|switch|screen|tab|page|app)\b", re.I)
+
+
+def india_redirect(text: str) -> dict | None:
+    """Not for talk about the app itself ('flag this: the India switch is hard to find' stays here, with the repair shop), nor while Madhav has
+    handed the conversation to someone (the caller checks)."""
+    if not INDIA_TOPIC.search(text or "") or APP_TALK.search(text or ""):
+        return None
+    return {"ui": [{"do": "market", "target": "market:india", "label": "the Indian market"}],
+            "say": ("That one is for the India Ananta, sir. This is the crypto side, which keeps no Indian data by design. The India side has its "
+                    "own research, tests, picks and daily call, so I'm switching you to the Indian market now. Ask it there.")}
 
 
 def _speaker(j, thread) -> dict | None:
@@ -2411,12 +2434,13 @@ class Ask:
             try:
                 from jarvis.service import requests_log
 
-                news = requests_log.news(self.j)
+                news = requests_log.news(self.j, market="crypto", limit=None)   # 26 Oct: this market's only, all at once, told once
             except Exception:  # noqa: BLE001
                 news = []
             if news:
-                notes.append("[REPAIR SHOP NEWS he has not heard yet (mention once, briefly, at the end of your answer): "
-                             + " | ".join(n["say"] for n in news) + "]")
+                notes.append(f"[REPAIR SHOP NEWS he has not heard yet: {len(news)} item(s). Mention it ONCE, in one short sentence at the end of "
+                             "your answer (for example 'Two of your flags are fixed; they're in My flags'), never as a list of numbers: "
+                             + " | ".join(n["say"] for n in news[:3]) + "]")
         else:
             news = []
         if not voice and source != "eval":
@@ -2758,7 +2782,8 @@ class Ask:
         from jarvis.service import appmap
 
         try:
-            q = self._small_talk(text, thread) or appmap.quick_command(self.j, text)
+            q = (self._small_talk(text, thread) or appmap.quick_command(self.j, text)
+                 or (None if str(who).startswith("guest:") or self._people_note or _speaker(self.j, thread) else india_redirect(text)))
         except Exception:  # noqa: BLE001
             q = None
         if not q:

@@ -151,10 +151,16 @@ def notify(j, push=None) -> list[dict]:
     return out
 
 
-def news(j) -> list[dict]:
-    """Status changes Madhav has not heard about in a conversation yet (newest first, at most 3)."""
-    return [{"num": r["num"], "status": r["status"], "text": r["text"][:160], "note": r["note"], "say": _sentence(r)}
-            for r in _select(j, "WHERE COALESCE(told, 1)=0 AND status IN ('PLANNED','DONE','WONT')")[:3]]
+def news(j, market: str | None = None, limit: int | None = 3) -> list[dict]:
+    """Status changes Madhav has not heard about in a conversation yet (newest first, at most `limit`; None = all).
+    market (26 Oct): 'crypto' leaves out the Indian market's flags (the India Ananta tells those) and 'india' keeps only them; on 26 Oct the
+    crypto voice drained yesterday's India fixes three at a time onto the end of every answer."""
+    rows = _select(j, "WHERE COALESCE(told, 1)=0 AND status IN ('PLANNED','DONE','WONT')")
+    if market:
+        is_india = lambda r: str(r.get("about") or "").startswith("flag:india") or str(r.get("text") or "").startswith("[Indian market")   # noqa: E731
+        rows = [r for r in rows if is_india(r) == (market == "india")]
+    rows = rows if limit is None else rows[:limit]
+    return [{"num": r["num"], "status": r["status"], "text": r["text"][:160], "note": r["note"], "say": _sentence(r)} for r in rows]
 
 
 def mark_told(j, nums: list[int]) -> None:

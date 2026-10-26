@@ -1287,6 +1287,7 @@ class FlagIn(BaseModel):
     market: str = "crypto"
     screen: str = ""
     route: str = ""
+    note: str = ""          # 26 Oct: a research note (title in text, the full note here) is saved with no fix menu
 
 
 class FlagChoice(BaseModel):
@@ -1306,6 +1307,10 @@ def flags_new(b: FlagIn, who: str = Depends(owner)) -> dict:
     from jarvis.service import fixflow
 
     _owner_only(who)
+    if b.note:
+        r = _run(fixflow.note, J(), b.text, b.note, b.market, b.screen, b.route)
+        J().audit(who, "flag.note", f"#{r['num']} {b.market} {'added' if r.get('updated') else 'new'}", "OK")
+        return r
     r = _run(fixflow.flag, J(), b.text, b.market, b.screen, b.route)
     J().audit(who, "flag.new", f"#{r['num']} {b.market} {b.screen}", "OK")
     return r

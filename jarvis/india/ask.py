@@ -30,8 +30,11 @@ SYSTEM = """You are Ananta, Madhav's trading assistant for the INDIAN market (NS
 Answer ONLY from the FACTS block in the user turn; it is India's read model for the latest session ("morning_view" is the day's view written before the open: the market, Ananta's plan, the chances with their baselines, what to watch, yesterday's scorecard, the reviewer's second opinion; and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason.
 If the facts do not hold the answer, say so plainly and say what the facts do hold. Nothing here is financial advice; no real money is traded;
 you cannot place, change or close a trade from chat: say "paper only; nothing is placed from chat" ONLY when he asks you to trade, never as a sign-off on other answers.
-Flags and fix choices are handled in code before you see a message: never say a flag or a choice cannot be filed or recorded from chat. If he seems to pick a fix
-but the code did not catch it, ask him to say "fix 1", "fix 2" or "fix 3". "teacher_libraries" holds the YouTube teachers' classes (Optionables = the options
+Flags, research notes and fix choices are handled in code before you see a message (26 Oct): a request to research or note something is saved as a detailed
+note with no fix menu, and an app problem is flagged with fixes. Never say a flag or a note cannot be filed from chat; never offer fixes for a research request,
+never tell him to say "fix N" to save a note, and never bring up flags or notes unless he asks about them. If the QUESTION starts with a note line, it was
+already saved: just answer the question. If his message only remarks on your last answer or says he is ready (no question in it), reply in one short line
+and wait; if a question he asked earlier is still unanswered, answer it. "teacher_libraries" holds the YouTube teachers' classes (Optionables = the options
 teacher, Trade With Trend = the stocks teacher) turned into testable hypotheses and where each stands; "the professor" or "YouTube classes" means these.
 Its "tested" part holds the 25 Oct backtest of every claim, card by card: use the plain words there, say which held up, which came out the wrong
 way, and that the held-up ones are filters (what to avoid), not buy signals; his intraday straddle systems are still being tracked on live prices.
@@ -97,13 +100,19 @@ def facts(owner: bool = False) -> dict:
                            "recent_closed": [{"symbol": c["coin"], "campaign": c["campaign"], "net_inr": c["net_usd"], "why": c["why"], "exit_date": c["exit_date"]} for c in views.closed_trades(8)]},
             "decisions_for_next_session": {"rules": d.get("rules"), "decided_at": d.get("decided_at"), "candidates": d.get("candidates"),
                                            "stale_inputs": d.get("inputs"),
+                                           # 26 Oct chat: "the Nifty input is marked stale (last row 22 Oct)" was repeated in every answer as if the market
+                                           # numbers were old; the mark is about the inputs the picks were made on, not the market section
+                                           "stale_inputs_meaning": "the picks for the next session were decided on these inputs at decision time; it says nothing about "
+                                                                   "the market section above, which is current through data_through. Mention it only when asked about "
+                                                                   "the picks or the data, once.",
                                            "chosen": [{"symbol": x.get("symbol"), "campaign": x.get("campaign"), "close": x.get("close"), "why": x.get("why")} for x in d.get("chosen", [])]},
             "index_line_sp1": {"capital_inr": 60000, **{k: (rm.get("sp1") or {}).get(k) for k in ("status", "words", "decisions", "errors")}, "sessions": ((rm.get("sp1") or {}).get("book") or {}).get("sessions")},
             "reference_traders_league": {"h1": lg.get("h1"), "informed": lg.get("informed"), "meaning": "HINDSIGHT = best trips the session offered; RANDOM = chance; MARKET = the liquid 250; coverage = of the top 20 trips, how many Ananta took / passed / had no rule for"},
             "missed_movers": (L.get("missed") or {}).get("line"), "drafts": L.get("drafts"),
             "research": {"studies": r.get("studies"), "gate_G02": r.get("gate"), "gate_counters": r.get("gate_counters"), "registry_verdicts": r.get("verdicts"), "exit_book_chosen": (r.get("exit_book") or {}).get("chosen")},
             "jobs": {"signin": j.get("signin"), "problems": [{"job": x["label"], "problems": x["problems"]} for x in j.get("jobs", []) if not x.get("ok")]},
-            "guardrails": (rm.get("guardrails") or {}).get("words"), "missing_sections": rm.get("missing"),
+            "guardrails": guardrail_facts(rm), "missing_sections": rm.get("missing"),
+            "allocation_rule": allocation_rule_facts(),
             "morning_view": {k: v for k, v in views.morning().items() if k in ("session_words", "headline", "view", "plan", "chances", "watch", "yesterday", "words", "review", "reviewer_scenarios", "scenarios", "opening", "lessons", "read")},
             "reconstruction_last_night": {k: (rm.get("reconstruction") or {}).get(k) for k in ("headline", "people_words", "not_done_words", "league_words", "reviews", "findings")} | {"staircase": ((rm.get("reconstruction") or {}).get("staircase") or {}).get("words"),
                                           "meaning": "the nightly reconstruction card (what the market and other participants did, what Ananta did and did not do, trade reviews, findings); SAFE findings go to the repair board by themselves, DECISION findings wait for Madhav; the staircase says what the allocated capital may use (ADMITTED only; nothing yet)"},
@@ -200,6 +209,40 @@ def _library_facts() -> dict:
          "work_plan": "Madhav asked on 24 Oct to turn every class into a strategy and test it in real time: the plan (claude/plan-2026-10-24-teacher-libraries-to-strategies) registers each hypothesis as its own study, tests on 2000-2023, then runs survivors as shadow paper books on live sessions. Done on 25 Oct: see 'tested'."}
     _LIB_CACHE.update({"mt": mt, "v": v})
     return v
+
+
+RECORDS = Path(os.getenv("ANANTA_RECORDS", os.path.expanduser("~/code/ananta-records")))
+
+
+def guardrail_facts(rm: dict) -> dict:
+    """26 Oct chat: asked what happens to open positions at the 5% line and who restarts after the 22% pause, the Ask said "the facts don't
+    say": it had only the one-line summary. The survival rules are written in full in india/paper_config.json (pinned, read only here)."""
+    try:
+        s = json.loads((RECORDS / "india" / "paper_config.json").read_text()).get("survival") or {}
+    except (OSError, ValueError):
+        s = {}
+    return {"words": (rm.get("guardrails") or {}).get("words"),
+            "daily_5pct": s.get("daily_basis"), "pause_22pct": s.get("pause_basis"),
+            "on_paper_now": {"daily": s.get("daily_on_paper"), "pause": s.get("pause_on_paper")}, "note": s.get("note"),
+            "resume": "Madhav resumes after a 22% pause by telling Ananta (chat or voice) or in the app; on paper the books keep trading and log the pause "
+                      "(both paths are shown), by his decision of 19 Oct"}
+
+
+def allocation_rule_facts() -> dict:
+    """26 Oct chat: "the facts give the table's numbers only for the downtrend". The whole allocation rule (india/registrations/allocation_rule_v1.json,
+    pinned): every regime's options cap and cash floor, the unproven-options cap, the band and the per-move limit."""
+    try:
+        a = json.loads((RECORDS / "india" / "registrations" / "allocation_rule_v1.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    return {"regime_table": a.get("regime_table"), "stocks_share": "whatever is left after options and cash",
+            "regime_meaning": "above_both = Nifty above its 50- and 200-day averages; mixed = between them; below_both = under both (today)",
+            "unproven_options_max": a.get("unproven_options_max"), "evidence_sessions_before_more_options": a.get("evidence_sessions"),
+            "band_frac": a.get("band_frac"), "max_shift_frac_per_move": a.get("max_shift_frac"), "min_move_inr": a.get("min_move_inr"),
+            "how": "the split follows the regime the evening it changes (one evening's close decides; no extra confirmation is written in the rule); "
+                   "a gap smaller than the band (3% of the account) is left alone and one move shifts at most 10% of the account, so a "
+                   "sleeve can sit slightly outside its line for a while; options stay at most 20% until 20 sessions are on record",
+            "decided": a.get("decided"), "version": a.get("version")}
 
 
 def _alloc_facts() -> dict:
@@ -435,6 +478,22 @@ def _offline(question: str, f: dict, why: str) -> dict:
 ACT = re.compile(r"\b(buy|sell|place|book|exit|close|order|short)\b", re.I)
 
 
+def garbled_flow(text: str) -> dict | None:
+    """26 Oct 10:50: speech-to-text looped on noise ("Nifty, Nifty, Nifty..." 70 times) and the Ask answered it as a question. The same word
+    over and over is a bad recording, not a question (the crypto Ask has had this check since Oct 11)."""
+    w = re.findall(r"\w+", (text or "").lower())
+    if len(w) < 6:
+        return None
+    run = best = 1
+    for a, b in zip(w, w[1:]):
+        run = run + 1 if a == b else 1
+        best = max(best, run)
+    if len(set(w)) / len(w) >= 0.35 and best < 4:
+        return None
+    return _reply("Sorry sir, that recording came through as one word repeated, so I didn't catch the question. Please say it again.",
+                  ["What is the Nifty trend?", "What did you decide for the next session?"], ["speech-to-text repeated one word: not answered as a question"])
+
+
 def ask(who: str, text: str, thread: str | None = None, mode: str | None = None, context: dict | None = None, voice: bool = False, post=None,
         token: str | None = None, flag_post=None, flag_get=None) -> dict:
     text = (text or "").strip()[:2000]
@@ -447,8 +506,11 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     # (a mode switch, the morning view, drafts, the portfolio review), then a pick, a problem or "my flags"
     # 25 Oct refinement: a pick or a flag comes before the code answers ("use one and fix it" must reach the fix flow), and a turn cut off
     # mid-sentence, a stock's move, the research book and the next-session decision are answered in code, the same every time
-    fixed = (nav_flow(text) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get) or fragment_flow(text) or morning_flow(text, who)
+    fixed = (garbled_flow(text) or nav_flow(text) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get) or fragment_flow(text) or morning_flow(text, who)
              or allocation_flow(text, who) or draft_flow(text, who) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text))
+    prefix, text_q = "", text
+    if fixed is not None and fixed.get("_then"):      # 26 Oct: a note or flag was saved, and the same message also asked a question: answer it
+        prefix, text_q, fixed = fixed["_prefix"], fixed["_then"], None
     if fixed is not None:
         fixed = finish(fixed, text, model=False)
         uid = uuid.uuid4().hex[:12]
@@ -476,7 +538,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                  "next_action": {}, "show": [], "options": [], "points": [], "actions": [], "ui": [], "route": "india"}
         usage = {"model": "rule"}
     else:
-        user = f"QUESTION: {text}\n\nFACTS (India read model, data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\nReply with the JSON object only: begin with {{ and end with }}, no markdown, no text outside it."
+        user = f"QUESTION: {text_q}\n\nFACTS (India read model, data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\nReply with the JSON object only: begin with {{ and end with }}, no markdown, no text outside it."
         try:
             raw, usage = _claude(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post)
             reply = _parse(raw)
@@ -490,6 +552,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             reply = _offline(text, f, str(e)[:120])
             usage = {"model": "none"}
     reply = finish(reply, text, model=usage.get("model") not in ("rule", "none"))
+    if prefix:
+        reply["answer"] = f"{prefix} {reply.get('answer') or ''}".strip()
     ms = int((time.time() - t0) * 1000)
     rid = uuid.uuid4().hex[:12]
     row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "claude" if usage.get("model") not in ("rule", "none") else usage.get("model"), "ms": ms, "rating": None, **reply,
@@ -520,7 +584,79 @@ def stats() -> dict:
 # repair board (the sign-in service's fix flow, with his own token), the fixes come back as numbered choices, he picks one by voice or tap,
 # and the repair worker builds the safe ones and tells him. Rules in code, no model call.
 JARVIS_URL = os.getenv("ANANTA_JARVIS_URL", "http://127.0.0.1:8100")
-FLAG = re.compile(r"\b(flag|broken|not working|doesn'?t work|isn'?t working|fix (it|this|that|the)|bug|wrong|report (it|this|that))\b", re.I)
+# 26 Oct (Madhav's chat, 10:50-11:17): every sentence with "flag", "wrong" or "fix" in it filed a flag, 10 in 15 minutes (flags 31-40):
+# "Flag 34 logged" and "I don't need any information about the flagging now" included, while his research requests (crossovers, rupee against
+# dollar, FII flows) got an app-fix menu and his questions 9 and 12 went unanswered. A flag now needs an actual request to flag or note
+# something (FLAG_REQ, not negated); a research request, or "no fixes", becomes a detailed note with no fix menu; a question in the same
+# message is still answered after the note.
+FLAG_REQ = re.compile(
+    r"\b(?:flag|log|note|file|report|record)\s+(?:it|this|that|these|them|this one|that one|the (?:issue|problem|gap|point|idea|question)|"
+    r"(?:this|that|an?) (?:issue|problem|gap|idea|point|bug|question)|it down|this down|that down)\b"
+    r"|(?:^|[.!?]\s+|\b(?:you|please|just|to|and|can you|could you)\s+)(?:keep|make|write|take) (?:a |the )?(?:detailed |technical |deep )?note\b"
+    r"|\badd (?:it|this|that) to (?:the )?(?:repair shop|flags|research|list|back ?end)\b"
+    r"|\b(?:that|this|it)(?:'s| is| was) (?:a bug|broken)\b", re.I)       # "is X not working?" is a question, answered, not a flag
+FLAG = FLAG_REQ                         # kept for callers and tests that import the old name
+NEG_BEFORE = re.compile(r"\b(?:don'?t|do not|no need to|not|never|stop|didn'?t|won'?t|no)\b[^.!?]{0,25}$", re.I)
+RESEARCH = re.compile(r"\b(research\w*|analy[sz]\w*|stud(?:y|ies)|evaluat\w*|investigat\w*|influenc\w*|impact\w*|effect on|back ?test\w*|look into|"
+                      r"deep (?:dive|analysis)|technical (?:note|analysis)|cross-?overs?|indicators?|correlat\w*|relationship)\b", re.I)
+APP_BUG = re.compile(r"\b(screen|button|panel|chat|tab|page|app|voice|mic|microphone|scroll|display|banner|menu|crash|error|slow|lag|"
+                     r"ui|front ?end|keeps (?:saying|showing|replying|going back))\b", re.I)
+NO_FIX = re.compile(r"\b(?:no|don'?t (?:give|suggest|need|want)|not)\b[^.!?]{0,20}\b(?:fix|fixes|suggestions?|menu|options?)\b|\bjust (?:a |the )?(?:detailed )?note\b", re.I)
+
+
+def flag_intent(text: str) -> dict | None:
+    """None, or {"kind": "research" | "note" | "bug"} when the message asks Ananta to flag or note something."""
+    t = text or ""
+    req = [m for m in FLAG_REQ.finditer(t) if not NEG_BEFORE.search(t[max(0, m.start() - 30):m.start()])]
+    if not req and not BARE_FLAG.match(t):
+        return None
+    if RESEARCH.search(t) and not APP_BUG.search(t):
+        return {"kind": "research"}
+    if NO_FIX.search(t):
+        return {"kind": "research" if RESEARCH.search(t) else "note"}
+    return {"kind": "bug"}
+
+
+def other_question(text: str) -> str:
+    """The part of a flag message that is a question for Ananta ("... flag it. Question 12: if FII flows turn sharply negative, what's your
+    first move?"), so it is answered after the note instead of being swallowed by it."""
+    m = re.search(r"\bquestion\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen)\b[.:,]?\s*(.{12,})$", text, re.I | re.S)
+    if m and "?" in m.group(1):
+        return m.group(1).strip()
+    qs = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip().endswith("?") and not FLAG_REQ.search(s) and len(s.split()) >= 5]
+    return " ".join(qs)
+
+
+NOTE_SYSTEM = """You write research notes for Madhav (owner of Ananta, a paper-trading agent for the Indian market) to read later in the back end.
+From his request and the conversation, write ONE note about the topic he asked to be researched. Use only the FACTS block for anything about
+Ananta's data, tests and numbers (name the card or study ids and verdicts that are closest); never invent a result; say plainly what is not known.
+Reply with JSON only: {"title": "<6-10 plain words naming the topic>", "note": "<plain text with these headings, each on its own line:
+QUESTION / WHY IT MATTERS / WHAT ANANTA KNOWS TODAY / DATA WE HAVE AND DATA MISSING / PROPOSED TEST (written down before any run: 2000-2017 then
+2018-2023, 2024+ sealed, the registry's strict bar, costs included, against a random or no-signal baseline) / RISKS AND CAVEATS>"}.
+Keep it under 450 words; short sentences; no markdown symbols."""
+
+
+def write_note(text: str, thread: str, post=None) -> dict:
+    """The detailed note, written by the model from his words, the recent turns and the facts; a plain note from his words if the model fails."""
+    prev = thread_messages(thread)[-8:]
+    convo = "\n".join(f"{'Madhav' if m.get('role') == 'user' else 'Ananta'}: {str(m.get('text') if m.get('role') == 'user' else m.get('answer'))[:700]}"
+                      + ("\n  " + " | ".join(str(b)[:300] for b in (m.get("breakdown") or [])[:6]) if m.get("role") != "user" and m.get("breakdown") else "")
+                      for m in prev)
+    try:
+        f = facts(owner=True)
+        user = (f"HIS REQUEST: {text}\n\nRECENT CONVERSATION:\n{convo}\n\nFACTS (India read model, data through {f.get('data_through')}):\n"
+                f"{json.dumps(f, default=str)}\n\nReply with the JSON object only.")
+        raw, usage = _claude(NOTE_SYSTEM, [], user, post=post)
+        m = re.search(r"\{.*\}", raw, re.S)
+        d = json.loads(m.group(0)) if m else {}
+        if d.get("title") and d.get("note"):
+            return {"title": str(d["title"])[:120], "note": plain_codes(str(d["note"]))[:6000], "by": "model"}
+    except Exception:  # noqa: BLE001  - the note is still saved, in his own words
+        pass
+    words = re.sub(r"\s+", " ", text).strip()
+    return {"title": " ".join(words.split()[:10])[:120], "note": f"QUESTION\n{words}\n\nRECENT CONVERSATION\n{convo[-2500:]}", "by": "words"}
+
+
 STATUS = re.compile(r"\b(my (flags?|requests?)|what happened to (my|the) (flag|request)|is it fixed|did you fix)\b", re.I)
 BARE_FLAG = re.compile(r"^\s*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|please|so|then|go ahead|do it)[\s,.!]*)*(?:flag|file|log|report)\s+(?:it|this|that)(?:\s+(?:please|now|then|for me))?[\s.!]*$", re.I)
 WORDS = {"first": 1, "one": 1, "1": 1, "second": 2, "two": 2, "2": 2, "third": 3, "three": 3, "3": 3}
@@ -976,7 +1112,33 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         lines = "; ".join(f"{f.get('label') or 'request ' + str(f.get('num'))}: {str((f.get('flow') or {}).get('state_words') or f.get('state') or f.get('status_words') or f.get('status') or '?')} - {str(f.get('text') or '').split('] ', 1)[-1][:60]}" for f in flags)
         return _reply(f"Your flags, sir: {lines}.", ["Show my flags", "Flag something else"], [f"fix flow board: {len(flags)} shown"],
                       {"ui": [{"do": "go_to", "target": "flags", "label": "My flags"}]})
-    if FLAG.search(text) and len(text) >= 8:
+    intent = flag_intent(text) if len(text) >= 8 else None
+    if intent and BARE_FLAG.match(text):          # "yeah, flag it": what it is about is in his last messages
+        ctx = " ".join(str(x.get("text") or "") for x in thread_messages(thread)[-4:] if x.get("role") == "user")
+        if RESEARCH.search(ctx) and not APP_BUG.search(ctx):
+            intent = {"kind": "research"}
+    if intent and intent["kind"] in ("research", "note"):
+        # 26 Oct: a research request (or "no fixes") is saved as a detailed note for him to read later: no fix menu, one short line back,
+        # and any question in the same message is answered after it
+        screen = str((context or {}).get("here", {}).get("label") if isinstance((context or {}).get("here"), dict) else (context or {}).get("screen") or "")[:80]
+        about = text
+        if BARE_FLAG.match(text):
+            his = [str(x.get("text") or "") for x in thread_messages(thread)[-6:] if x.get("role") == "user" and not BARE_FLAG.match(str(x.get("text") or ""))]
+            about = " / ".join(his[-2:]) or text
+        n = write_note(about, thread)
+        r = post(f"{JARVIS_URL}/v3/flags", {"text": n["title"], "note": n["note"], "market": "india", "screen": screen or "research note", "route": "ask"})
+        j = r.json() if hasattr(r, "json") else r
+        if not j.get("num"):
+            return _reply(f"I could not save that note, sir: {str(j.get('detail') or j)[:120]}", [], [])
+        name = j.get("label") or f"note {j['num']}"
+        line = (f"Added to the research note on {j.get('title') or n['title']} ({name}), sir." if j.get("updated") else
+                f"Noted for research, sir: {n['title']}. The full note is in My flags as {name}.")
+        q = other_question(text)
+        if q:
+            return {"_then": q, "_prefix": line, "_note": j}
+        return _reply(line + " Ready for your next question.", ["Show my flags", "What did you decide for the next session?"],
+                      [f"research note {name} ({'added to' if j.get('updated') else 'new'}; written by {n['by']})"], {"flag": j})
+    if intent and intent["kind"] == "bug":
         screen = str((context or {}).get("here", {}).get("label") if isinstance((context or {}).get("here"), dict) else (context or {}).get("screen") or "")[:80]
         body = text
         if BARE_FLAG.match(text):
@@ -995,6 +1157,9 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         lines = [f"{i + 1}. {o.get('title')} - {'I fix it and put it live' if o.get('lane') == 'SAFE' else 'near trading: a plan for your yes'}" for i, o in enumerate(opts)]
         _set_pending(thread, {"num": j["num"], "at": int(time.time()), "options": [{"title": o.get("title"), "lane": o.get("lane")} for o in opts]})
         name = j.get("label") or f"flag {j['num'] - 81}"
+        q = other_question(text)
+        if q:                                        # 26 Oct: a question in the same message is answered; the fixes wait in My flags
+            return {"_then": q, "_prefix": f"Flagged as {name}, sir; its fixes are waiting in My flags.", "_note": j}
         a = f"Flagged as {name}, sir. " + (f"{j.get('diagnosis')} " if j.get("diagnosis") else "") + ("Fixes: " + " ".join(lines) + " Say a number or tap one." if lines else "I'll tell you when it's fixed.")
         return _reply(a, [f"Fix {i + 1}: {o.get('title')}" for i, o in enumerate(opts)], [f"fix flow: {name} filed on the shared board"], {"flag": j})
     return None

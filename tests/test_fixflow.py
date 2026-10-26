@@ -122,3 +122,20 @@ def test_the_worker_refuses_any_file_outside_the_safe_paths_or_pinned_by_the_loc
     assert w.allowed([], pinned)[0] is False                                                        # nothing changed is not a fix
     for safe in w.SAFE_PATHS:                                                                        # no safe path is pinned
         assert not any(p.startswith(safe) or p == safe for p in pinned if not p.startswith("tests/")), safe
+
+
+def test_a_research_note_has_no_menu_and_the_same_topic_is_added_not_refiled(tmp_path):
+    """26 Oct: research requests were given app-fix menus and refiled (flags 36/37 rupee, 39/40 FII). A note is saved whole, with no options
+    for the worker to build, and the same topic within 45 minutes goes into the first note."""
+    from jarvis.service import fixflow, requests_log
+
+    j = _j(tmp_path)
+    a = fixflow.note(j, "FII flows and their influence on Nifty", "QUESTION\nDo sharp FII selling days lead Nifty?", market="india")
+    row = fixflow.get(j, a["num"])
+    assert row["state"] == "noted" and row["options"]["options"] == [] and "QUESTION" in row["options"]["note"]
+    b = fixflow.note(j, "FII influence research on stock prices", "More: use the NSDL FPI history.", market="india")
+    assert b["num"] == a["num"] and b["updated"] and "NSDL" in fixflow.get(j, a["num"])["options"]["note"]
+    c = fixflow.note(j, "Rupee against dollar and Indian stocks", "QUESTION\nDoes a weak rupee hurt Nifty?", market="india")
+    assert c["num"] != a["num"] and not c["updated"]
+    assert fixflow.pending(j) == []                                  # nothing for the repair worker to build
+    assert requests_log.get(j, a["num"])["status"] == "OPEN"

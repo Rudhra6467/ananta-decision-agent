@@ -28,10 +28,11 @@ import time
 
 TRIAGE_DAILY = int(os.getenv("FIX_TRIAGE_DAILY", "20"))
 SONNET = os.getenv("FIX_TRIAGE_MODEL", "claude-sonnet-5-5")
-STATES = ("triaged", "queued", "plan", "working", "deployed", "needs_decision", "failed", "cancelled")
+STATES = ("triaged", "queued", "plan", "working", "deployed", "needs_decision", "failed", "cancelled", "noted")
 STATE_WORDS = {"triaged": "waiting for your choice", "queued": "queued for the repair worker", "plan": "the worker is writing a plan for your yes",
                "working": "the repair worker is on it", "deployed": "fixed and live", "needs_decision": "needs your yes",
-               "failed": "the fix did not pass its checks; nothing changed", "cancelled": "cancelled"}
+               "failed": "the fix did not pass its checks; nothing changed", "cancelled": "cancelled",
+               "noted": "research note saved for you to read"}
 
 # Words that put a fix near trading: such a fix is never built by the worker, only planned (DECISION lane).
 TRADING = re.compile(r"\b(trade|trades|trading|buy|buys|sell|sells|order|orders|size|sizing|position size|stop|stops|stop-loss|target|exit|exits|"
@@ -87,7 +88,7 @@ def _spent_today(j) -> int:
 
 
 def _fallback(text: str) -> dict:
-    return {"diagnosis": "I could not read it with the AI just now, so here are the two plain choices.",
+    return {"diagnosis": "",                         # 26 Oct: no "I could not read it with the AI" excuse read out five times in one chat
             "options": [{"title": "Fix it as I described", "what": f"The repair worker reads your words and makes that change: \"{text[:160]}\"."},
                         {"title": "Investigate and tell me first", "what": "The worker finds the cause and writes a plan; nothing changes until you say yes."}]}
 
@@ -128,6 +129,52 @@ def flag(j, text: str, market: str = "crypto", screen: str = "", route: str = ""
                   json.dumps([[now, "flagged; options offered"]]), cost, None, None, now, now))
     j.db.commit()
     return {"num": num, "no": requests_log.flag_no(num), "label": requests_log.label(num), "say": f"Flagged as {requests_log.label(num)}. Choose how to fix it.", **body}
+
+
+NOTE_WINDOW = 45 * 60          # a second note on the same topic within 45 minutes is added to the first one, not filed again
+_STOP = set("the a an and or of to in on for with about this that it is are be we our how what when where which who into from by as at vs versus "
+            "research note study test analyse analyze influence impact effect stock stocks market indian india nifty prices price their there "
+            "they them its his her need needs needed have has will would should could does did against".split())
+
+
+def _topic(s: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z0-9]+", (s or "").lower()) if len(w) > 2 and w not in _STOP}
+
+
+def note(j, title: str, body: str, market: str = "india", screen: str = "", route: str = "") -> dict:
+    """A research or plain note (26 Oct, Madhav: "I just want you to keep a detailed note on the issue ... so that I can go in the back and
+    read it"; "No fixes are needed to suggest here"). Filed on the same board as the flags, with the full note on the request and no fix menu
+    (state 'noted'); the same topic again within NOTE_WINDOW is added to the first note instead of filing a second one."""
+    from jarvis.service import requests_log
+
+    _table(j)
+    market = "india" if str(market).lower().startswith("ind") else "crypto"
+    title, body = (title or "").strip()[:160], (body or "").strip()[:6000]
+    if not title:
+        raise ValueError("a note needs a title")
+    now = int(time.time())
+    top = _topic(title)
+    for num, opts, t in j.db.execute("SELECT num, options, t FROM fix_flow WHERE state='noted' AND market=? AND t>=? ORDER BY t DESC",
+                                     (market, now - NOTE_WINDOW)).fetchall():
+        old = json.loads(opts or "{}")
+        other = _topic(old.get("title", ""))
+        if top and other and len(top & other) >= (1 if min(len(top), len(other)) <= 2 else 2):
+            old["note"] = (old.get("note", "") + f"\n\nAdded {time.strftime('%d %b %H:%M')}: " + body)[-8000:]
+            j.db.execute("UPDATE fix_flow SET options=?, updated_t=? WHERE num=?", (json.dumps(old), now, num))
+            j.db.commit()
+            _log(j, num, "more added to the note")
+            requests_log.set_status(j, num, "OPEN", old["note"][-1500:])
+            return {"num": num, "no": requests_log.flag_no(num), "label": requests_log.label(num), "noted": True, "updated": True, "title": old.get("title")}
+    where = f"[{'Indian market' if market == 'india' else 'Crypto'} · research note] "
+    req = requests_log.add(j, "idea", where + title, about=f"note:{market}:{(screen or route or 'chat')}"[:120], by="owner")
+    num = req["num"]
+    j.db.execute(f"INSERT OR REPLACE INTO fix_flow ({', '.join(COLS)}) VALUES ({', '.join('?' * len(COLS))})",
+                 (num, market, (screen or "research note")[:80], (route or "ask")[:120], "RESEARCH",
+                  json.dumps({"diagnosis": "Research note", "title": title, "note": body, "options": []}), None, "noted",
+                  json.dumps([[now, "research note saved; no fix menu"]]), 0.0, None, None, now, now))
+    j.db.commit()
+    requests_log.set_status(j, num, "OPEN", body[:1500])
+    return {"num": num, "no": requests_log.flag_no(num), "label": requests_log.label(num), "noted": True, "updated": False, "title": title}
 
 
 def _fix_minutes(j) -> list[float]:

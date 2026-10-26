@@ -9,7 +9,7 @@ import { api } from "../src/api";
 import { C, RADIUS, SPACE, TYPE } from "../src/theme";
 
 type Flow = { state: string; state_words: string; lane: string; market: string; screen: string; log: [number, string][]; commit_sha?: string;
-  options: { diagnosis: string; options: { title: string; what: string; lane: string; does: string }[] }; choice?: number | null };
+  options: { diagnosis: string; options: { title: string; what: string; lane: string; does: string }[]; title?: string; note?: string }; choice?: number | null };
 type Row = { num: number; no?: number | null; label?: string; text: string; status: string; status_words: string; note: string; updated_t: number; flow: Flow | null };
 
 const stateColor = (s: string) => s === "deployed" ? C.good : s === "failed" ? C.bad : s === "needs_decision" || s === "triaged" ? C.warn : C.accent;
@@ -38,7 +38,7 @@ export default function Flags() {
       refreshControl={<RefreshControl refreshing={busy} onRefresh={load} />}>
       <Pressable onPress={() => router.back()} accessibilityRole="button"><Text style={{ color: C.accent, fontWeight: "700" }}>‹ Back</Text></Pressable>
       <Text style={{ color: C.text, fontSize: TYPE.title, fontWeight: "800", marginTop: 8 }}>My flags</Text>
-      <Text style={{ color: C.dim, fontSize: TYPE.meta, marginTop: 4 }}>Your flags: {open_} open · {rows.length} in all · both markets. To flag something, tell Ananta by voice or chat ("flag this: …"); pick a fix and it tells you how long it needs, and your phone gets a note when it is done.</Text>
+      <Text style={{ color: C.dim, fontSize: TYPE.meta, marginTop: 4 }}>Your flags: {open_} open · {rows.length} in all · both markets. To flag an app problem, tell Ananta "flag this: …" and pick a fix. To save a research idea, say "note this for research: …": it is written up in full here, with no fixes to pick.</Text>
       {msg ? <Text style={{ color: C.text, marginTop: 10 }}>{msg}</Text> : null}
       {rows.map((r) => {
         const f = r.flow;
@@ -54,7 +54,9 @@ export default function Flags() {
             </View>
             {open === r.num ? (
               <View style={{ marginTop: 8, gap: 6 }}>
-                {r.note ? <Text style={{ color: C.dim, fontSize: TYPE.meta, lineHeight: 19 }}>{r.note}</Text> : null}
+                {/* 26 Oct: a research note shows in full, to read in the back end; a flag shows its status note */}
+                {f?.state === "noted" && f.options?.note ? <Text selectable style={{ color: C.text, fontSize: TYPE.meta, lineHeight: 20 }}>{f.options.note}</Text>
+                  : r.note ? <Text style={{ color: C.dim, fontSize: TYPE.meta, lineHeight: 19 }}>{r.note}</Text> : null}
                 {f && (st === "triaged" || st === "needs_decision" || st === "failed") ? f.options.options.map((o, i) => (
                   <Pressable key={i} onPress={() => choose(r.num, i)} accessibilityRole="button"
                     style={{ borderColor: o.lane === "SAFE" ? C.line : C.warn, borderWidth: 1, borderRadius: RADIUS.card, padding: 10 }}>

@@ -270,6 +270,22 @@ def test_india_job_that_wrote_stderr_during_its_run_is_errored(tmp_path):
     assert "**India, last 24 hours: 1 miss**" in runcheck.markdown(res) and "india_evening.err written during the run" in runcheck.markdown(res)
 
 
+def test_india_job_whose_stderr_holds_only_its_own_start_line_is_not_errored(tmp_path):
+    import os
+    paths = _paths(tmp_path)
+    run_t = calendar.timegm((2026, 10, 19, 23, 0, 0))                             # Oct 19 19:00 Toronto
+    log, err = Path(paths["runs"], "india_evening.log"), Path(paths["runs"], "india_evening.err")
+    log.write_text("# Ananta India daily report\n")
+    err.write_text("=== 2026-10-18_19:00:04 evening\nTraceback (most recent call last):\nindia.kite.NeedLogin: old run\n=== 2026-10-19_19:00:04 evening\n")
+    os.utime(log, (run_t + 78, run_t + 78))
+    os.utime(err, (run_t + 4, run_t + 4))
+    assert _misses(runcheck.run(paths, NOW, [_part("india_evening")]), "24h") == []
+    err.write_text(err.read_text() + "TypeError: unsupported format string passed to NoneType.__format__\n")
+    os.utime(err, (run_t + 6, run_t + 6))
+    ms = _misses(runcheck.run(paths, NOW, [_part("india_evening")]), "24h")
+    assert len(ms) == 1 and ms[0]["kind"] == "errored"
+
+
 def _india_calendar(paths: dict, holidays: list[str]) -> None:
     import json
     p = Path(paths["india"], "manifests", "nse_holidays_2026.json")

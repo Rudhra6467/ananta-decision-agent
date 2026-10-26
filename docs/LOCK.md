@@ -236,6 +236,18 @@ Madhav, 25 Oct (in chat): "yes to all your recommendations" (on the open flags).
 | Hugging Face forecaster for crypto (Madhav, 17:41: "We can add both, if they are helping Ananta in either crypto and Indian infrastructure ... see where hugging face fits for us ... for predictions / reconstructions or comparisons") | yes, as a **blind forward record only** (the Rule B exception, like `OD-SHADOW-LANE`): no study is run on crypto history inside the window | `com.ananta.chronosshadow` and `src/research/chronos_shadow.py` (section 2); log outside the repo, sealed until 2026-12-15, never read by a book, the brain, the gate, Ask or a screen (`tests/test_chronos_shadow.py`); the run checker counts its run lines (`chronos_shadow`). The history study is `PW-HF-CHRONOS` (section 9). Nothing pinned changed. |
 | Hugging Face news model, crypto (Madhav, 25 Oct: "We can add both, if they are helping Ananta in either crypto and Indian infrastructure") | yes, as a FORWARD, BLIND, RECORD-ONLY shadow (Rule B, the OD-SHADOW-LANE way): each night FinBERT (ProsusAI/finbert, local) rates the headlines the daily news check already stored; read by nothing until the window ends | `scripts/hf_news_shadow.py`, launchd `com.ananta.hfnews.shadow` 05:10 Toronto, log `~/ananta_lake/agent/hf_shadow/news_ratings.jsonl`, `tests/test_hf_news_shadow.py`; scored at PW-HF-NEWS. |
 
+### Decisions of 26 Oct
+
+Madhav, 26 Oct (in chat, on the morning review's recommendations): "ok. yes for all your recomendations and my terminal work is done."
+
+| Item | Decision | Done |
+|---|---|---|
+| Restart com.ananta.jarvis | yes | Restarted 08:54 Toronto; health 200. Puts 89ebb4f (the rebuild judges each day on that week's tier, #105) live; nothing that trades changed. |
+| #108, S2 measured costs (no coin lost its edge; confirm-period book C$652.55 measured vs C$848.8 assumed) | keep the coin list unchanged; take the measured spreads into the cost table at `SPREAD-REFRESH` (Nov 1) | Recorded; the table itself changes on Nov 1 with a dated line in `ndax_costs.py` and its pins, as that item says. Nothing changed today. |
+| #107, officer `book_bleed` | count tier C (watched only, never judged) apart | `discipline.officer_checks`: tier C books listed apart and never make a family FAIL (reporting only; test). |
+| #105, the MITO double row (one Oct 18 candle in the ledger under tier B and tier C) | find why | Found and written on #105; any ledger or engine change waits for his yes. |
+| India: run-checker false "errored" lines; Telugu brief crash on a day with no Nifty close | fix | `runcheck._err_written` (a job's own start line on stderr is not an error; test); records `90eae77` (Telugu guard; test). The SP1 score crash was already fixed by the India review (records `b78d9a1`). |
+
 ## 9. After the window
 
 **Dated and recurring steps that run before and after day 60** (each is on the due list; an overdue item becomes a repair-board request):

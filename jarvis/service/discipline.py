@@ -255,7 +255,13 @@ def officer_checks(j) -> list[dict]:
         since = int(j.now()) - int(oc.get("book_bleed_days", 7)) * DAY
         rows = j.db.execute("SELECT watch, COUNT(*), SUM(net_usd) FROM evidence_trades WHERE status='CLOSED' AND exit_t >= ? GROUP BY watch", (since,)).fetchall()
         fam: dict[str, list[float]] = {}
+        watched: dict[str, list[float]] = {}   # tier C books are watched only, never judged (Universe Rule v2): counted apart (#107, Madhav 26 Oct: yes)
         for w, n, net in rows:
+            if w.endswith("-UC"):
+                b = watched.setdefault(w[:-3], [0, 0.0])
+                b[0] += n
+                b[1] += float(net or 0)
+                continue
             base = w.split("-U")[0] if "-U" in w else w
             fam.setdefault(base, [0, 0.0])
             fam[base][0] += n
@@ -280,6 +286,9 @@ def officer_checks(j) -> list[dict]:
         words = "; ".join(parts) if live else "no live book is bleeding over 7 days"
         if paused:
             words += ". Paused books still closing their old trades: " + ", ".join(f"{b} ${net:,.0f}" for b, n, net in paused)
+        if watched:
+            words += (". Watched only (tier C, never judged): "
+                      + ", ".join(f"{b} {n} closed, ${net:,.0f}" for b, (n, net) in sorted(watched.items()) if "RANDOM" not in b))
         out.append({"id": "book_bleed", "state": "FAIL" if failing else ("DECIDED" if live else "OK"), "words": words,
                     "books": [{"book": b, "n": n, "net_usd": round(net, 2), "decided": decided.get(b)} for b, n, net in live]})
     except Exception as exc:  # noqa: BLE001

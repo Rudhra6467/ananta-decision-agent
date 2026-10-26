@@ -293,7 +293,7 @@ def judge(part: dict, paths: dict, now: int, span: int) -> dict:
             if p.is_file():
                 events.append((int(p.stat().st_mtime), 1.0, None, None))
             ef = Path(pr["err_file"].format(**paths)) if pr.get("err_file") else None
-            if ef and ef.is_file() and ef.stat().st_size and int(ef.stat().st_mtime) >= slots[-1] - 120:
+            if ef and ef.is_file() and ef.stat().st_size and int(ef.stat().st_mtime) >= slots[-1] - 120 and _err_written(ef):
                 events.append((int(ef.stat().st_mtime), 0.0, f"{ef.name} written during the run", None))
         else:
             raise ValueError(f"unknown proof kind: {sorted(pr)}")
@@ -383,6 +383,18 @@ def merge(misses: list[dict]) -> list[dict]:
             out.append(dict(m))
     return sorted(out, key=lambda x: (SEV_ORDER.get(x["severity"], 9), x["t"]))
 
+
+
+def _err_written(ef: Path) -> bool:
+    """True when the job wrote something to stderr in its latest run. Two India jobs (evening, paper) print their own start line
+    ("=== <date> evening") to stderr, so the file is written on every run, clean or not (26 Oct: the clean Oct 25 runs read
+    'errored'). Only text after the last such start line counts; a file with no start line counts whole, as before."""
+    with ef.open("rb") as f:
+        f.seek(max(0, ef.stat().st_size - 65536))
+        tail = f.read().decode(errors="ignore")
+    lines = tail.splitlines()
+    starts = [i for i, ln in enumerate(lines) if ln.startswith("=== ")]
+    return any(ln.strip() for ln in (lines[starts[-1] + 1:] if starts else lines))
 
 def run(paths: dict | None = None, now: float | None = None, parts: list[dict] | None = None) -> dict:
     """Every part, both windows, read-only. Returns {now, windows: {"24h": {...}, "7d": {...}}}."""

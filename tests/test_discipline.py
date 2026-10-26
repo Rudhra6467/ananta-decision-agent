@@ -224,3 +224,17 @@ def test_rbd_rule_needs_a_closed_reversal_candle(monkeypatch):
     bars[-1] = (t, 99.0, 99.5, 95.0, 95.5, 1000.0)                            # the same low, a red close: no
     S2 = R.Series(bars)
     assert watch_engine._fires(watch_engine.DAILY["RBD"], S2, B, len(bars) - 1, R.rsi(S2.c, 10))[0] is False
+
+
+def test_book_bleed_counts_tier_c_apart(monkeypatch):
+    """#107 (Madhav, 26 Oct: yes): tier C books are watched only, never judged, so they never make a family read as bleeding."""
+    from jarvis.service import strategy_status
+
+    monkeypatch.setattr(strategy_status, "trades", lambda b: True)
+    j = _J()
+    j.db.execute("CREATE TABLE evidence_trades (watch TEXT, coin TEXT, status TEXT, exit_t INTEGER, net_usd REAL)")
+    rows = [("H07-UC", "X", "CLOSED", int(j.now()) - 3600, -5.0)] * 11 + [("H07-UB", "Y", "CLOSED", int(j.now()) - 3600, 1.0)] * 5
+    j.db.executemany("INSERT INTO evidence_trades VALUES (?,?,?,?,?)", rows)
+    c = next(x for x in discipline.officer_checks(j) if x["id"] == "book_bleed")
+    assert c["state"] == "OK" and c["books"] == []
+    assert "Watched only (tier C, never judged): H07 11 closed, $-55" in c["words"]

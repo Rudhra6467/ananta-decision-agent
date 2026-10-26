@@ -290,6 +290,30 @@ def explain_unlogged(j, w: str, c: str, t: int, started: int) -> str | None:
     return None
 
 
+def monday_of(t: int) -> int:
+    """00:00 UTC of the Monday that starts t's ISO week (1970-01-01 was a Thursday)."""
+    d = int(t) // DAY
+    return (d - (d + 3) % 7) * DAY
+
+
+def tier_at(qv_rows: list[tuple], t: int) -> str:
+    """The tier the registry's rule (registry.build: median daily traded value of the last 30 closed days, A >= $20M, B >= $1M,
+    C below or under 30 days) gave a coin when the daily rules judged the candle that opened at t. The rules run just after the
+    candle closes (t + 1 day, feed.cycle: daily candles, then the registry, then the rules), and the registry re-tiers on the
+    first build of each UTC Monday from the days closed before it, so a Sunday candle is judged on the new week's tier.
+    qv_rows: (t, quote volume) daily rows, as feed.daily_qv. Used by rebuild so each day is judged on its own week's tier."""
+    import statistics
+
+    from jarvis.service import registry
+
+    mon = monday_of(int(t) + DAY)
+    rows = [qv for tt, qv in qv_rows if tt < mon and qv is not None][-30:]
+    if len(rows) < 30:
+        return "C"
+    med = statistics.median(rows)
+    return "A" if med >= registry.TIER_A else "B" if med >= registry.TIER_B else "C"
+
+
 def rebuild(j, days: int = 3) -> dict:
     """Every daily rule on every coin over the last N closed days, from the feed's stored candles, against the ledger.
     A rebuilt signal missing from the ledger is fine when the rule was busy (a trade already open, or the same episode);
@@ -306,25 +330,35 @@ def rebuild(j, days: int = 3) -> dict:
     started = int(j.db.execute("SELECT COALESCE(MIN(signal_t), 0) FROM evidence_trades WHERE watch LIKE '%-U_'").fetchone()[0] or 0)
     since = max(since, started)
     rebuilt, explained = set(), 0
-    for tier in TIERS:
-        for c in registry.members(j, tier):
-            D = btc if c == "BTC" else _daily(j, c)
-            if len(D) < 60:
+    from jarvis.service import feed
+
+    # point-in-time tiers (26 Oct): the registry re-tiers every Monday and keeps no history, so the Monday full rebuild ran each coin
+    # under today's tier and every coin that changed tier showed as a mismatch (15 of 15 on Oct 26). Each day now uses the tier the
+    # registry's own rule gave that week (tier_at), from the stored daily traded value.
+    for c in registry.members(j):
+        D = btc if c == "BTC" else _daily(j, c)
+        if len(D) < 60:
+            continue
+        S = B if c == "BTC" else R.Series(D)
+        r10 = R.rsi(S.c, 10)
+        qv = feed.daily_qv(j, c)
+        week_tier: dict[int, str] = {}
+        for i in range(len(D)):
+            if D[i][0] < since:
                 continue
-            S = B if c == "BTC" else R.Series(D)
-            r10 = R.rsi(S.c, 10)
-            for i in range(len(D)):
-                if D[i][0] < since:
+            mon = monday_of(D[i][0] + DAY)
+            if mon not in week_tier:
+                week_tier[mon] = tier_at(qv, D[i][0])
+            tier = week_tier[mon]
+            for rule in RULES_ALL:
+                if tier not in TIERS_OF.get(rule, TIERS):   # BRK and RBD run on tiers A and B only (25 Oct: the rebuild failed on BRK-UC)
                     continue
-                for rule in RULES_ALL:
-                    if tier not in TIERS_OF.get(rule, TIERS):   # BRK and RBD run on tiers A and B only (25 Oct: the rebuild failed on BRK-UC)
-                        continue
-                    spec = watch_engine.DAILY[wid(rule, tier)]
-                    if spec["kind"] == "h07" and len(D) < 210:
-                        continue
-                    ok, _, _ = watch_engine._fires(spec, S, B, i, r10)
-                    if ok:
-                        rebuilt.add((wid(rule, tier), c, D[i][0]))
+                spec = watch_engine.DAILY[wid(rule, tier)]
+                if spec["kind"] == "h07" and len(D) < 210:
+                    continue
+                ok, _, _ = watch_engine._fires(spec, S, B, i, r10)
+                if ok:
+                    rebuilt.add((wid(rule, tier), c, D[i][0]))
     live = {(w, c, t) for w, c, t in j.db.execute("SELECT watch, coin, signal_t FROM evidence_trades WHERE source='daily' AND signal_t >= ? "
                                                   "AND watch LIKE '%-U_' AND watch NOT LIKE 'RANDOM%'", (since,))}
     only_live = sorted(live - rebuilt)

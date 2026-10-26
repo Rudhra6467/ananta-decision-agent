@@ -7,6 +7,9 @@ confirmed FPI equity figures, captured every evening from the pages that publish
   python -m india.fiidii build        silver/flows/fii_dii_cash.parquet (date, source, category, buy_cr, sell_cr, net_cr) ; manifests/fii_dii_build.json
   python -m india.fiidii coverage     sessions captured against the calendar, per year and source -> manifests/fii_dii_coverage.json
 
+  python -m india.fiidii mfhistory    SEBI's Mutual Funds Trends archive (OtherAction.do?doMfdTrendsSearch: one form post per month returns
+                                      every trading day of that month, equity and debt), Jan 2005 to this month
+                                      -> bronze/flows/sebi_mf/<year>/sebi_mf_<YYYYMM>.html; manifests/mf_history.jsonl (page total checked)
   python -m india.fiidii history      NSDL's archive (Archive.aspx: one form post per month returns every reporting day of that month), Jan 2000
                                       to last month -> bronze/flows/nsdl_archive/<year>/nsdl_archive_<YYYYMM>.html; manifests/fii_dii_history.jsonl
 
@@ -14,7 +17,11 @@ History (25 Oct 2026): FPI history is filled from NSDL's archive, daily from 3 J
 routes together and, from about 2011, the stock-exchange route apart; plus debt net. These are CONFIRMED custodian figures by REPORTING date:
 a reporting date's row covers trades up to the previous trading day(s) and is published after that day, so a study may use it from the
 session after the reporting date. DII history has no free source (NSE's www FII/DII archive page is geo-blocked; its fiidiiTradeReact API
-answers but shows only the latest day, so it is captured forward as a third source from 25 Oct 2026). The derivatives positioning
+answers but shows only the latest day, so it is captured forward as a third source from 25 Oct 2026). 26 Oct 2026 (Madhav's yes): the
+mutual funds' part of DII, the largest and official part, is filled from SEBI's Mutual Funds Trends: daily equity and debt gross purchases,
+sales and net (Rs crore) by TRADING date, compiled from custodians' reports and published a day or more later, so a study may use a
+trading day's row only from the second session after it (categories MF_equity, MF_debt; source "SEBI mutual funds (custodians, by
+trading date)"). Insurers, banks and pension funds (the rest of DII) have no free daily history. The derivatives positioning
 (participant OI, india/flows.py) stays labelled apart.
 """
 from __future__ import annotations
@@ -178,6 +185,128 @@ def parse_nse(text: str) -> list[dict]:
     return out
 
 
+SEBI_MF = "https://www.sebi.gov.in/sebiweb/other/OtherAction.do?doMfdTrends=yes"
+SEBI_MF_SEARCH = "https://www.sebi.gov.in/sebiweb/other/OtherAction.do?doMfdTrendsSearch=yes"
+MF_START = dt.date(2005, 1, 1)
+
+
+def _cells(html: str) -> list[list[str]]:
+    import html as h
+    t = re.sub(r"<script.*?</script>", "", html, flags=re.S)
+    return [[h.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", rr, flags=re.S)]
+            for rr in re.findall(r"<tr[^>]*>(.*?)</tr>", t, flags=re.S)]
+
+
+def _snum(x) -> float | None:
+    x = str(x).strip().replace(",", "")
+    neg = x.startswith("(") and x.endswith(")")
+    try:
+        v = float(x.strip("()"))
+    except ValueError:
+        return None
+    return -v if neg else v
+
+
+def parse_sebi_mf(html: str) -> list[dict]:
+    """SEBI Mutual Funds Trends (one month): 'Trading Date | Debt/Equity | Gross Purchases | Gross Sales | Net Investment' rows, the date on the
+    Equity row and the Debt row after it; negatives in brackets. Only the first table (the month's days) is read, up to its 'Total' row."""
+    out, day = [], None
+    for c in _cells(html):
+        if c and c[0] == "Total":
+            break
+        if len(c) == 5 and c[1] in ("Equity", "Debt"):
+            d = pd.to_datetime(c[0], format="%d %b, %Y", errors="coerce")
+            if d is pd.NaT or d != d:
+                continue
+            day = d.date().isoformat()
+            vals = c[2:]
+            kind = c[1]
+        elif len(c) == 4 and c[0] in ("Equity", "Debt") and day:
+            vals, kind = c[1:], c[0]
+        else:
+            continue
+        b, se, n = (_snum(v) for v in vals)
+        out.append({"date": day, "category": f"MF_{kind.lower()}", "buy_cr": b, "sell_cr": se, "net_cr": n})
+    return out
+
+
+def mf_month_check(html: str) -> dict:
+    """The page's own 'Total' equity net against the sum of its daily equity rows."""
+    rows = parse_sebi_mf(html)
+    cells = _cells(html)
+    tot = next((c for c in cells if len(c) == 5 and c[0] == "Total" and c[1] == "Equity"), None)
+    page = _snum(tot[4]) if tot else None
+    mine = round(sum(r["net_cr"] or 0 for r in rows if r["category"] == "MF_equity"), 2)
+    days = len({r["date"] for r in rows})
+    return {"checked": page is not None, "page_total": page, "sum_of_days": mine, "days": days,
+            "match": page is not None and abs(page - mine) <= max(0.05, 0.011 * days)}
+
+
+def _mf_man():
+    return paths.manifest_dir() / "mf_history.jsonl"
+
+
+def mf_history(start: dt.date = MF_START, end: dt.date | None = None, log=print) -> dict:
+    """One form post per month (any day of the month returns the whole month), a fresh form token before each post, 3 s between requests
+    (sebi.gov.in robots.txt allows /sebiweb). Resumable: a month already saved with rows is skipped, except the current month."""
+    import time
+
+    paths.ensure()
+    end = end or dt.date.today()
+    done = set()
+    if _mf_man().exists():
+        for line in _mf_man().read_text().splitlines():
+            r = json.loads(line)
+            if r.get("status") == 200 and r.get("rows"):
+                done.add(r["month"])
+    s = requests.Session()
+    s.headers.update({"User-Agent": "Mozilla/5.0 (Macintosh)", "Accept": "text/html,application/xhtml+xml", "Accept-Language": "en-US,en;q=0.9"})
+    months, m = [], dt.date(start.year, start.month, 1)
+    while m <= end:
+        months.append(m)
+        m = dt.date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+    got = rows = bad = 0
+    cur = f"{end:%Y-%m}"
+    first = dt.date(end.year, end.month, 1)
+    prev = f"{first - dt.timedelta(days=1):%Y-%m}" if end.day <= 7 else cur   # the nightly run (26 Oct): finish last month's late rows early in a month
+    for m in months:
+        key = f"{m:%Y-%m}"
+        if key in done and key not in (cur, prev):
+            continue
+        ask = min(dt.date(m.year + (m.month == 12), m.month % 12 + 1, 1) - dt.timedelta(days=1), end)   # the page lists the month up to the asked day
+        try:
+            r = s.get(SEBI_MF, timeout=40)
+            tok = re.search(r'name="org.apache.struts.taglib.html.TOKEN" value="([^"]+)"', r.text)
+            time.sleep(3)
+            form = {"date": ask.strftime("%d-%m-%Y"), "currdate": dt.date.today().strftime("%d-%m-%Y")}
+            if tok:
+                form["org.apache.struts.taglib.html.TOKEN"] = tok.group(1)
+            r = s.post(SEBI_MF_SEARCH, data=form, timeout=60, headers={"Referer": SEBI_MF, "Origin": "https://www.sebi.gov.in"})
+            st, body = r.status_code, r.content
+        except requests.RequestException as e:
+            st, body = 599, str(e).encode()
+        text = body.decode("utf-8", "ignore") if st == 200 else ""
+        recs = parse_sebi_mf(text) if st == 200 else []
+        recs = [x for x in recs if x["date"][:7] == key]
+        chk = mf_month_check(text) if recs else {"checked": False}
+        row = {"month": key, "asked": ask.isoformat(), "status": st, "bytes": len(body), "rows": len(recs), "days": len({x["date"] for x in recs}),
+               "check": chk, "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
+        if recs:
+            folder = paths.bronze("flows") / "sebi_mf" / f"{m.year}"
+            folder.mkdir(parents=True, exist_ok=True)
+            pth = folder / f"sebi_mf_{m:%Y%m}.html"
+            pth.write_bytes(body)
+            row.update(path=str(pth.relative_to(paths.data_dir())), sha256=hashlib.sha256(body).hexdigest())
+            got += 1
+            rows += len(recs)
+            bad += int(not chk.get("match"))
+        with _mf_man().open("a") as fh:
+            fh.write(json.dumps(row) + "\n")
+        log(f"sebi mf {key}: status {st}, {row['days']} trading days, check {chk.get('match')}")
+        time.sleep(3)
+    return {"months_saved": got, "rows": rows, "months_asked": len(months), "months_failing_check": bad}
+
+
 def _hist_man():
     return paths.manifest_dir() / "fii_dii_history.jsonl"
 
@@ -288,6 +417,12 @@ def build() -> dict:
     for p in sorted((paths.bronze("flows") / "nsdl_archive").glob("*/*.html")):
         for x in parse_nsdl_archive(p.read_text(errors="ignore")):
             recs.append({**x, "source": "NSDL archive (custodians, by reporting date)"})
+    # 26 Oct 2026: SEBI's Mutual Funds Trends pages, daily by trading date (the mutual funds' part of DII; usable from the second session after)
+    for p in sorted((paths.bronze("flows") / "sebi_mf").glob("*/*.html")):
+        ym = p.stem.rsplit("_", 1)[-1]
+        for x in parse_sebi_mf(p.read_text(errors="ignore")):
+            if x["date"][:7].replace("-", "") == ym:
+                recs.append({**x, "source": "SEBI mutual funds (custodians, by trading date)"})
     if not recs:
         return {"rows": 0}
     df = pd.DataFrame(recs)
@@ -334,7 +469,8 @@ def coverage() -> dict:
             arch[int(mth[:4])] = arch.get(int(mth[:4]), 0) + n
     out["nsdl_archive"] = [{"year": y, "reporting_days": n} for y, n in sorted(arch.items())]
     out["history"] = ("FPI (FII) equity and debt: daily from 2000 via NSDL's archive (confirmed, by reporting date, usable the session after). "
-                      "DII: no free history (NSE's archive page geo-blocked from Toronto): forward capture only, MSEI from 2026-10-23 and NSE's API from 2026-10-25")
+                      "DII as a whole: no free history (NSE's archive page geo-blocked from Toronto): forward capture only, MSEI from 2026-10-23 and NSE's API "
+                      "from 2026-10-25. Mutual funds (the largest part of DII): daily from SEBI's Mutual Funds Trends, by trading date (manifests/mf_history.jsonl)")
     out["at"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     (paths.manifest_dir() / "fii_dii_coverage.json").write_text(json.dumps(out, indent=1))
     return out
@@ -349,6 +485,8 @@ if __name__ == "__main__":
         print(json.dumps(build(), indent=1, default=str))
     elif a[:1] == ["coverage"]:
         print(json.dumps(coverage(), indent=1))
+    elif a[:1] == ["mfhistory"]:
+        print(json.dumps(mf_history(dt.date.fromisoformat(a[1]) if len(a) > 1 else MF_START), indent=1))
     elif a[:1] == ["history"]:
         print(json.dumps(history(dt.date.fromisoformat(a[1]) if len(a) > 1 else ARCHIVE_START), indent=1))
     else:

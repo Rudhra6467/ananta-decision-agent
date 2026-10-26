@@ -372,8 +372,9 @@ FAMILIES = {
     "breadth": {"conds": ["breadth_lt30", "breadth_lt40", "breadth_thrust"], "cards": r"breadth"},
     "India VIX (the fear gauge)": {"conds": ["vix_gt20", "vix_rising"], "cards": r"\bvix\b"},
     "FII flows and positioning": {"conds": ["fii_long_gt60", "fii_long_lt40", "fii_rising5", "client_long_gt60"], "cards": r"\bfii\b|foreign|\bfpi\b",
-                                  "studies": [("FII1", None)],
-                                  "untested_note": "domestic institutions' (DII) flows: no free history, captured each evening from 26 Oct, so not tested"},
+                                  "studies": [("FII1", None), ("DII1", None)],
+                                  "untested_note": "insurers', banks' and pension funds' flows (the rest of DII): no free daily history; captured as part of the DII "
+                                                   "total each evening from 25 Oct"},
     "USD/INR (the rupee)": {"conds": ["usdinr_rising"], "cards": r"dollar|rupee|usd", "studies": [("FX1", None)]},
 }
 # The plain words of the 26 Oct studies' versions (india/xstudies.py; registrations xo1/fx1/fii1_v1): who, what event, which outcome.
@@ -385,7 +386,7 @@ EVENT = {"gc": "50-day crossing above the 200-day (golden cross)", "dc": "50-day
          "state50gt200": "holding while the 50-day is above the 200-day", "converge": "the averages bunched together (a bigger move after?)",
          "weak5": "a sharp weak-rupee week", "weak1": "a sharp weak-rupee day", "h42_up5": "a strong-dollar stretch (TWT-H42)",
          "h42_break3y": "the dollar at a 3-year high against the rupee (TWT-H42)", "neg5": "a sharp 5-day foreign outflow",
-         "neg1": "a sharp one-day foreign outflow", "pos5": "a sharp 5-day foreign inflow", "pos1": "a sharp one-day foreign inflow",
+         "diibuy_fiisell": "mutual funds buying hard while foreigners sell hard", "neg1": "a sharp one-day foreign outflow", "pos5": "a sharp 5-day foreign inflow", "pos1": "a sharp one-day foreign inflow",
          "bounce20": "a bounce off 20-session support (touched it, closed up within 1.5% above)",
          "bounce60": "a bounce off 60-session support (touched it, closed up within 1.5% above)",
          "break20": "a close above 20-session resistance", "break60": "a close above 60-session resistance",
@@ -408,6 +409,9 @@ HEADLINE = {   # the conclusion of each study, shown only once its rows are in t
         "signal. On liquid-250 stocks a close above resistance was followed by about 0.5-1% WORSE returns over 20 sessions than ordinary days (the reverse "
         "of the claim; about zero as a trade after costs); a bounce off support had no edge over ordinary days, and a close below support was not followed "
         "by weaker returns; on the Nifty and Bank Nifty neither the bounce nor the breakout made a difference",
+    ("DII1", "FII flows and positioning"): "Tested 26 Oct (study DII1, SEBI mutual fund flows 2007-2023, the largest part of DII): sharp fund outflows or "
+        "inflows were followed by no weaker or stronger Nifty over 1, 5 or 20 sessions, and funds buying while foreigners sold was no cushion (all 10 "
+        "rejected); fund flows mirror foreign flows (same-session correlation -0.35 to -0.62 since 2016) and carry nothing about the next session",
     ("FII1", "FII flows and positioning"): "Tested 26 Oct (study FII1, NSDL FPI cash flows 2010-2023): sharp foreign outflow or inflow days and weeks were followed by "
         "no weaker or stronger Nifty over 1, 5 or 20 sessions (all 8 rejected); flows follow the market (correlation 0.2-0.46 with the previous session's Nifty move, "
         "about zero with the next) and the same-day link is tiny (TWT-H48)",
@@ -427,6 +431,8 @@ def _study_row_words(r: dict) -> str:
     subj = SUBJ.get(parts[0]) if parts[0] in SUBJ else None
     rest = parts[1:] if subj else parts
     ev = EVENT.get(rest[0], rest[0]) if rest else r["variant"]
+    if r["study"].split("-")[0] == "DII1":      # DII1 reuses FII1's version names for mutual-fund (SEBI) flows
+        ev = ev.replace("foreign outflow", "mutual-fund outflow").replace("foreign inflow", "mutual-fund inflow")
     out = OUT.get(rest[1], rest[1]) if len(rest) > 1 else ""
     trade = " (as a trade after costs)" if "absolute" in parts else ""
     if trade:

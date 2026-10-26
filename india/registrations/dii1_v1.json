@@ -1,0 +1,30 @@
+{
+ "study": "DII1",
+ "family": "flows",
+ "version": 1,
+ "written": "2026-10-26",
+ "asked_by": "Madhav, 26 Oct 2026 12:19 Toronto: \"lets fix everything. i say yes to your recommendations\" (the open item: domestic institutions' flows had no history, so DII was untested; FII1 found foreign flows do not lead the Nifty)",
+ "title": "Domestic mutual fund cash flows (the largest part of DII): do sharp outflows precede a weaker Nifty, inflows a stronger one, and does DII buying while FII sells cushion the market?",
+ "hypothesis": "Sessions after sharply negative mutual fund equity net flows (bottom decile, daily or over 5 sessions) are followed by weaker Nifty returns over 1, 5 and 20 sessions; after sharply positive flows (top decile) by stronger returns; and a day with mutual funds in their top decile while FPIs are in their bottom decile is followed by a stronger Nifty over 5 and 20 sessions (the domestic cushion).",
+ "data": {
+  "flows": "silver/flows/fii_dii_cash.parquet, category MF_equity (SEBI Mutual Funds Trends: daily equity gross purchases, sales and net in Rs crore by TRADING date, compiled from custodians' reports), 2005-2023; filled 26 Oct 2026 by india/fiidii.py mfhistory, every month checked against the page's own total. FPI_equity (NSDL, by reporting date) for the combined version.",
+  "index": "silver/kite_index/day NIFTY 50, 2003-2023",
+  "not_covered": "insurers, banks and pension funds (the rest of DII) have no free daily history; mutual funds are the largest and the only official daily part"
+ },
+ "timing": "A mutual fund row (trading date T) is placed at the first Nifty session AFTER T (SEBI publishes a day or more later), and the index outcome runs from the NEXT session's close, so the outcome starts at the close two sessions after the trade. The FPI row for the combined version is placed as in FII1 (first session on or after its reporting date) and both must fall on the same placed session.",
+ "definitions": {
+  "neg1 / pos1": "the day's MF equity net in the bottom / top decile of its own trailing 756-session distribution (threshold known at the time; flows grow with the market, so a fixed rupee cut-off would be wrong)",
+  "neg5 / pos5": "the 5-session sum in the bottom / top decile of its trailing 756-session distribution",
+  "diibuy_fiisell": "on the same placed session, the MF daily net in its top decile and the FPI daily net in its bottom decile (each against its own trailing 756 sessions)"
+ },
+ "outcomes": "nfwd1 / nfwd5 / nfwd20: Nifty from the next session's close",
+ "statistics": "india.teachers_stock.msplit (market timing: quarter blocks of 'on' against 'off' sessions, Welch t); development to 2017, validation 2018-2023; india/registry.record standard rule, MIN_DATES 16",
+ "bar": {"union_k": 22, "z": 3.052, "bar_families": ["flows"], "note": "family 'flows' already holds C06's 4 rows and FII1's 8; k frozen at 12 + the 10 variants below"},
+ "variants": {
+  "neg5|nfwd1": -1, "neg5|nfwd5": -1, "neg5|nfwd20": -1, "neg1|nfwd1": -1, "neg1|nfwd5": -1,
+  "pos5|nfwd5": 1, "pos5|nfwd20": 1, "pos1|nfwd1": 1,
+  "diibuy_fiisell|nfwd5": 1, "diibuy_fiisell|nfwd20": 1
+ },
+ "descriptive_only": "How the MF flow moves with the Nifty: correlations of the day's MF net (in trailing-SD units) with the previous, same and next session's Nifty return, by year, and with the same day's FPI net (do domestic funds take the other side of foreign ones). Not a trading rule and not a registered verdict.",
+ "not_claimed": "No paper rule changes from this study."
+}

@@ -752,7 +752,7 @@ def score(day: dt.date | None = None, log=print) -> dict:
         chains = pd.DataFrame(columns=["date", "symbol", "expiry", "strike", "opt_type", "fwd", "iv", "volume"])
         o = sp1.outcomes(lambda s: None, src={"days": days_all, "specials": specials, "states": st_rows, "index": index, "lots": lots, "chains": chains},
                          out_file=ROOT / "work" / "score_outcomes.parquet")
-        hit = o[(o["date"] == d) & (o["point"] == r["point"]) & (o["action"] == r["choice"]["action"])]
+        hit = o[(o["index"] == sym) & (o["date"] == d) & (o["point"] == r["point"]) & (o["action"] == r["choice"]["action"])] if len(o) else o
         if hit.empty:
             if r["choice"]["exit"] == "NEXTOPEN" and not nxt:
                 log(f"{r['date']} {sym}: NEXTOPEN, held overnight; scored after the next session")

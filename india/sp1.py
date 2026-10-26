@@ -173,8 +173,10 @@ def outcomes(log=print, src: dict | None = None, out_file: Path | None = None) -
         a = index[name]
         pos = {d: i for i, d in enumerate(a["dates"])}
         s = st[st["index"] == sym].sort_values("date").reset_index(drop=True)
+        if s.empty:  # the live scorer passes only the traded index's state rows (review of 26 Oct 2026)
+            continue
         dd = list(s["date"])
-        sel = np.array([pos[d] for d in dd])
+        sel = np.array([pos[d] for d in dd], dtype=int)
         O, H, L, C = (a[f][sel] for f in ("open", "high", "low", "close"))
         nd = len(dd)
         atr = s["atr14_prev"].to_numpy(float)

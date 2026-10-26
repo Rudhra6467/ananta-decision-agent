@@ -193,6 +193,17 @@ def _token_dead(lines: list[str]) -> bool:
     return any(w in x for x in lines for w in TOKEN_WORDS)
 
 
+def _last_run_errors(err_lines: list[str], marked: bool) -> tuple[list[str], bool]:
+    """(errors, token dead) for the last run. A job that prints no run marker appends every run's traceback to one error file, so only its
+    last traceback belongs to the last run (26 Oct: sp1paper.score crashed on an IndexError and was reported as "token dead" from older
+    NeedLogin tracebacks in the same file)."""
+    if marked:
+        return _errors(err_lines), _token_dead(err_lines)
+    tb = [i for i, x in enumerate(err_lines) if x.startswith("Traceback")]
+    last = err_lines[tb[-1]:] if tb else err_lines[-20:]
+    return _errors(last), _token_dead(last)
+
+
 def _json_lines(p: Path, n: int = 5000) -> list[dict]:
     out = []
     for x in _tail(p, n):
@@ -299,8 +310,9 @@ def job_report(label: str, lc: dict, agents: Path, now: dt.datetime, ctx: dict) 
     fresh_err = err_mt is not None and due is not None and err_mt >= due - dt.timedelta(minutes=1)
     err_lines = _since_marker(err_all) if fresh_err else []
     ok, found = proof(label, due, {**ctx, "out_lines": _since_marker(out_lines)})
+    errs, dead = _last_run_errors(err_lines, marked=any(x.startswith(MARK) for x in err_all))
     r = {"label": label, "pid": lc.get("pid"), "last_exit": lc.get("last_exit"), "due": due, "last_output": last_out, "proof_ok": ok, "proof": found,
-         "errors": _errors(err_lines), "token_dead": _token_dead(err_lines), "problems": []}
+         "errors": errs, "token_dead": dead, "problems": []}
     running = r["pid"] is not None
     if pl.get("KeepAlive") and not pl.get("StartCalendarInterval"):       # a service (the India web app), not a job: healthy means running now
         r["service"] = True

@@ -18,7 +18,7 @@ from pathlib import Path
 
 import requests
 
-from jarvis.india import appmap, views
+from jarvis.india import appmap, technicals, views
 
 DATA = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india")))
 ASK_DIR = DATA / "ask"
@@ -117,6 +117,7 @@ def facts(owner: bool = False) -> dict:
             "reconstruction_last_night": {k: (rm.get("reconstruction") or {}).get(k) for k in ("headline", "people_words", "not_done_words", "league_words", "reviews", "findings")} | {"staircase": ((rm.get("reconstruction") or {}).get("staircase") or {}).get("words"),
                                           "meaning": "the nightly reconstruction card (what the market and other participants did, what Ananta did and did not do, trade reviews, findings); SAFE findings go to the repair board by themselves, DECISION findings wait for Madhav; the staircase says what the allocated capital may use (ADMITTED only; nothing yet)"},
             "teacher_libraries": _library_facts(),
+            "technicals": technicals.facts_part(rm),     # 26 Oct: averages, crossovers, RSI, MACD, support/resistance, volume + what was tested
             **({"account_allocation": _alloc_facts()} if owner else {})}
 
 
@@ -507,6 +508,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     # 25 Oct refinement: a pick or a flag comes before the code answers ("use one and fix it" must reach the fix flow), and a turn cut off
     # mid-sentence, a stock's move, the research book and the next-session decision are answered in code, the same every time
     fixed = (garbled_flow(text) or nav_flow(text) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get) or fragment_flow(text) or morning_flow(text, who)
+             or technicals.technicals_flow(text)
              or allocation_flow(text, who) or draft_flow(text, who) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text))
     prefix, text_q = "", text
     if fixed is not None and fixed.get("_then"):      # 26 Oct: a note or flag was saved, and the same message also asked a question: answer it

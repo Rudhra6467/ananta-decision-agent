@@ -5,6 +5,8 @@ what window, how many rows) before any row is returned. Nothing here lets a stud
   paper_lookback  the live paper engine's last few hundred sessions, to compute indicators (200-day average, 14-day range) for a signal on today's close
   paper_context   the engine's market context (Nifty 50 and India VIX against their averages) recorded with each decision
   forecast_score  index closes after a forecast's horizon, to score forecasts written beforehand in paper/forecasts.jsonl (no rule scored)
+  technicals_history  the DATES of the indices' 50/200 and 20/50 moving-average crosses since 2015, for the technicals panel (Madhav, 26 Oct
+                  2026); only the event list is returned (index_cross_dates), no price or return
   integrity       selected columns for data checks (duplicates, mappings, stale files, calendar coverage); no returns are computed
   manifest        row counts, last date and file fingerprints for the dataset-version manifest
   calibration     settlement IVs of recorded days, to measure how far the synthetic option prices are from the recorder's real ones (R01); no rule is scored
@@ -83,6 +85,40 @@ def read_index(purpose: str, since: str, names: list[str]) -> pd.DataFrame:
 
 
 ALLOWED_CONTEXT = {"paper_context", "forecast_score"}
+
+ALLOWED_CROSSES = {"technicals_history"}
+CROSS_PAIRS = ((50, 200), (20, 50))
+
+
+def index_cross_dates(purpose: str, names: list[str], since: str = "2015-01-01") -> list[dict]:
+    """The dates of moving-average crosses (50/200 and 20/50 on daily closes) of the named indices since `since` (Madhav, 26 Oct 2026: "when did
+    the 50-day last cross the 200-day?"; the paper_context window of LOOKBACK_DAYS is too short for a 200-day average to see it). Purpose
+    technicals_history; logged. Only the event list leaves this function (index, date, pair, direction): no price, no return, no rule
+    performance is returned or computed."""
+    if purpose not in ALLOWED_CROSSES:
+        raise PermissionError(f"sealed cross read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED_CROSSES)}")
+    root = paths.data_dir()
+    files = [str(p) for p in (root / "silver/kite_index/day/day.parquet", root / "sealed/silver/kite_index/day/day.parquet") if p.exists()]
+    if not files:
+        return []
+    con = duckdb.connect()
+    df = con.execute(f"select index_name, date, close from read_parquet({files!r}, union_by_name=true) where date >= ? and list_contains(?, index_name)",
+                     [pd.Timestamp(since).date(), names]).df()
+    con.close()
+    df = df.drop_duplicates(["index_name", "date"], keep="last").sort_values(["index_name", "date"])
+    out = []
+    for name, g in df.groupby("index_name"):
+        c = g["close"].astype(float).reset_index(drop=True)
+        dates = list(g["date"])
+        for f, s in CROSS_PAIRS:
+            diff = (c.rolling(f).mean() - c.rolling(s).mean())
+            sign = diff.apply(lambda x: 0 if x != x else (1 if x > 0 else -1))
+            for i in range(1, len(sign)):
+                if sign[i] and sign[i - 1] and sign[i] != sign[i - 1]:
+                    out.append({"index_name": name, "date": str(pd.Timestamp(dates[i]).date()), "pair": f"{f}/{s}", "direction": "up" if sign[i] > 0 else "down",
+                                "sessions_ago": int(len(sign) - 1 - i)})
+    _log(purpose, "kite_index day cross dates only " + ",".join(names), since, len(out))
+    return out
 
 PAPER_REVIEW_START = dt.date(2026, 10, 16)   # the stock paper's first decision (data of Fri 16 Oct 2026); no review row is older
 ALLOWED_REVIEW = {"paper_review"}

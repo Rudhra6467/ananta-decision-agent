@@ -1,16 +1,17 @@
 """XO1 (moving-average and MACD crossovers), FX1 (the rupee against the dollar) and FII1 (foreign investor cash flows): three registered studies
-Madhav asked for in the India chat of 26 Oct 2026. Each spec is written first (india/registrations/<id>_v1.json, with every variant and its expected
+Madhav asked for in the India chat of 26 Oct 2026; SR1 (support and resistance as an entry), his yes of 26 Oct 12:19 Toronto. Each spec is written first (india/registrations/<id>_v1.json, with every variant and its expected
 sign); `run` registers the study with the spec's frozen k, computes, and records every variant in the ledger. Research rows only: nothing dated
 2024 or later is used and no holdout folder is opened (index and stock panels come from india.teachers_stock, which cuts at 2024-01-01).
 
-  python -m india.xstudies check XO1|FX1|FII1|all     event counts per period only (no means, no t, no verdicts): a code check before the run
-  python -m india.xstudies run XO1|FX1|FII1|all       register, compute, record; manifests/xstudies_<id>.json and a results table in registrations/
+  python -m india.xstudies check XO1|FX1|FII1|SR1|all     event counts per period only (no means, no t, no verdicts): a code check before the run
+  python -m india.xstudies run XO1|FX1|FII1|SR1|all     register, compute, record; manifests/xstudies_<id>.json and a results table in registrations/
 """
 from __future__ import annotations
 
 import json
 import math
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -332,9 +333,125 @@ def fii_beta() -> dict:
             "note": "descriptive only (same-day; not a trading rule, not a registered verdict); beta = Nifty % move per one trailing-SD of FPI net flow"}
 
 
+# ------------------------------------------------------------------------------------------------------------------------- SR1
+
+PIVOT = 5          # the technicals panel's swing rule (india/technicals.py PIVOT, SR_WINDOW): 5 bars each side, levels from the last 60 sessions
+
+
+def _levels(h: np.ndarray, l: np.ndarray, c: np.ndarray, w: int, k: int = PIVOT) -> tuple[np.ndarray, np.ndarray]:
+    """Support and resistance as of the previous session for every row of one continuous run, exactly as india.technicals.panel finds them on the
+    bars up to yesterday: swing points whose bar lies in [t - w, t - k - 1] (so confirmed by yesterday), S = the highest swing low below
+    yesterday's close, R = the lowest swing high above it. Rows before the w-th of the run get no level."""
+    from numpy.lib.stride_tricks import sliding_window_view as swv
+
+    n = len(c)
+    S, R = np.full(n, np.nan), np.full(n, np.nan)
+    if n <= w or w - k < 1:
+        return S, R
+    ctr = np.arange(k, n - k)
+    lw, hw = swv(l, 2 * k + 1).min(axis=1), swv(h, 2 * k + 1).max(axis=1)
+    pl, ph = np.full(n, np.nan), np.full(n, np.nan)
+    pl[ctr] = np.where(l[ctr] == lw, l[ctr], np.nan)
+    ph[ctr] = np.where(h[ctr] == hw, h[ctr], np.nan)
+    t = np.arange(w, n)
+    VL, VH = swv(pl, w - k)[t - w], swv(ph, w - k)[t - w]          # pivot bars t-w .. t-k-1
+    cp = c[t - 1][:, None]
+    with np.errstate(invalid="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)          # an all-empty window is a row with no level (NaN), not an error
+        S[t] = np.nanmax(np.where(VL < cp, VL, np.nan), axis=1)
+        R[t] = np.nanmin(np.where(VH > cp, VH, np.nan), axis=1)
+    return S, R
+
+
+def _sr_stock_frame() -> pd.DataFrame:
+    cols = ["sid", "date", "n", "liq_rank", "h", "l", "c", "fwd20", "net20"]
+    P = pd.read_parquet(paths.gold() / "teachers" / "stock_panel.parquet", columns=cols)
+    P["date"] = pd.to_datetime(P["date"])
+    P = P[P["date"] < CUT].sort_values(["sid", "date"]).reset_index(drop=True)
+    consec = (P["sid"] == P["sid"].shift(1)) & (P["n"] == P["n"].shift(1) + 1)
+    seg = (~consec).cumsum().values
+    h, l, c = (P[x].astype(float).values for x in ("h", "l", "c"))
+    out = {w: (np.full(len(P), np.nan), np.full(len(P), np.nan)) for w in (20, 60)}
+    bounds = np.flatnonzero(np.diff(seg)) + 1
+    for a, b in zip(np.r_[0, bounds], np.r_[bounds, len(P)]):
+        if b - a <= 20:
+            continue
+        for w in (20, 60):
+            s, r = _levels(h[a:b], l[a:b], c[a:b], w)
+            out[w][0][a:b], out[w][1][a:b] = s, r
+    cprev = pd.Series(c).shift(1).where(consec).values
+    liq = (P["liq_rank"] <= 250).values
+    with np.errstate(invalid="ignore"):
+        for w in (20, 60):
+            S, R = out[w]
+            P[f"S{w}"], P[f"R{w}"] = S, R
+            P[f"bounce{w}"] = (l <= S * 1.01) & (c >= S) & (c <= S * 1.015) & (c > cprev)
+            P[f"break{w}"] = c > R
+        P["breakdown60"] = c < out[60][0]
+    for k in ("bounce20", "bounce60", "break20", "break60", "breakdown60"):
+        P[k] = ts._cooldown(P, P[k].fillna(False).astype(bool) & liq, 10)
+    P["liq"] = liq
+    P["s5"] = ts.sample5(P)
+    return P
+
+
+def _sr_index_frame(name: str) -> pd.DataFrame:
+    c = ts.index_panel()[name].dropna()
+    c = c[c.index < CUT]
+    v = c.astype(float).values
+    S, R = _levels(v, v, v, 60)                    # closes stand in for highs and lows, as in the live panel
+    M = pd.DataFrame(index=c.index)
+    M["date"] = c.index
+    M["fwd20"] = ts._fwd_close(c, 20)
+    cp = c.shift(1).values
+    M["ok"] = np.arange(len(c)) >= 60
+    with np.errstate(invalid="ignore"):
+        M["bounce60"] = _cool(pd.Series((cp <= S * 1.01) & (v > cp) & (v >= S) & (v <= S * 1.015), index=c.index), 10)
+        M["break60"] = _cool(pd.Series(v > R, index=c.index), 10)
+    return M
+
+
+def sr1_results(counts_only: bool = False) -> dict:
+    out = {}
+    for tag, name in (("NIFTY", "NIFTY 50"), ("BANK", "NIFTY BANK")):
+        M = _sr_index_frame(name)
+        for ev in ("bounce60", "break60"):
+            key = f"{tag}|{ev}|fwd20"
+            cnt = _period_counts(M["date"], M[ev] & M["ok"])
+            if counts_only:
+                out[key] = cnt
+                continue
+            r = ts.msplit(M, M[ev], "fwd20", h=20, base=M["ok"])
+            r["extra"] = {**r["extra"], **cnt}
+            out[key] = r
+    P = _sr_stock_frame()
+    evs = ["bounce20", "bounce60", "break20", "break60", "breakdown60"]
+    base = P["liq"] & (P["s5"] | P[evs].any(axis=1))
+    d = P[base]
+    for ev in evs:
+        key = f"STK|{ev}|net20"
+        cnt = _period_counts(P["date"], P[ev])
+        if counts_only:
+            out[key] = cnt
+            continue
+        r = ts.level(d, d[ev], "net20")
+        r["extra"] = {**r["extra"], **cnt}
+        out[key] = r
+    for ev in ("bounce60", "break60"):
+        key = f"STK|{ev}|net20|absolute"
+        cnt = _period_counts(P["date"], P[ev])
+        if counts_only:
+            out[key] = cnt
+            continue
+        r = ts.absolute(P[P["liq"]], P[ev], "net20")
+        r["extra"] = {**r["extra"], **cnt}
+        out[key] = r
+    return out
+
+
 # ------------------------------------------------------------------------------------------------------------------------- run
 
-FUNCS = {"XO1": xo1_results, "FX1": fx1_results, "FII1": fii1_results}
+FUNCS = {"XO1": xo1_results, "FX1": fx1_results, "FII1": fii1_results, "SR1": sr1_results}
 
 
 def check(study: str) -> dict:
@@ -403,6 +520,20 @@ TAKEAWAY = {
         "0.05% after, with no change across the SIP era (t 0.2).",
         "- **Flows follow the price:** most years the flow correlates 0.2-0.46 with the PREVIOUS session's Nifty return and about zero with the next "
         "one. Part of this is NSDL's reporting date sitting a day after the trade, but either way the flows trail the market rather than lead it.",
+    ],
+    "SR1": [
+        "**Support and resistance are not an entry signal here. Nothing reached the bar (z 3.21), and on stocks a close through resistance did WORSE than "
+        "ordinary days.** The levels are the technicals panel's own (swing points with 5 bars each side; checked to match it exactly).",
+        "- **Stocks, breakout above 60-session resistance (35,883 events in 2000-17, 13,411 in 2018-23):** the next 20 sessions were about 0.95% worse "
+        "than an ordinary day in the same quarter in 2000-17 and 0.54% worse in 2018-23 (t -4.6 and -2.9): OPPOSITE. Over 20-session resistance "
+        "(23,226 / 8,521): about 1.1% and 0.5% worse (t -4.3 and -2.0): OPPOSITE. As a trade after costs the breakout earned about zero (REJECTED).",
+        "- **Stocks, bounce off support (touched it and closed up within 1.5% above):** no edge over ordinary days, from 60-session support "
+        "(10,946 / 5,102: +0.1% and +0.2%, t 0.6 and 0.8) or 20-session support (5,001 / 2,355). As a trade the 60-session bounce made about +0.9% "
+        "after costs in both periods, which is the market's own drift, not significant (t 1.5 and 1.0): REJECTED.",
+        "- **Stocks, close below 60-session support (31,331 / 11,514):** not followed by weaker returns (REJECTED).",
+        "- **Nifty and Bank Nifty, bounce off and break through 60-session levels:** no difference from other sessions (REJECTED, every |t| under 1.2).",
+        "- **What Ananta does with this:** nothing changes in the paper rules. Support and resistance stay a description of where the price has turned "
+        "before, never a reason to buy; a close through resistance is, if anything, a reason not to chase (as TWT-H10 'don't chase' found).",
     ],
 }
 

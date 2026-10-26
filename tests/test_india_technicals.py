@@ -101,6 +101,8 @@ def test_section_and_knowledge_shapes(tmp_path, monkeypatch):
         assert {"moving averages and crossovers", "RSI and stochastic", "MACD", "volume", "support and resistance"} <= set(fams)
         macd = fams["MACD"]       # untested until study XO1 (26 Oct) is in the ledger; then its verdicts and headline are shown
         assert macd["not_tested"] or (macd["headline"] and any(t["study"] == "XO1" for t in macd["tested"]))
+        sr = fams["support and resistance"]   # untested as an entry until study SR1 (26 Oct) is in the ledger
+        assert sr["not_tested"] or (sr["headline"] and any(x["study"] == "SR1" for x in sr["tested"]))
         assert all("words" in v for v in fams.values())
 
 
@@ -114,5 +116,5 @@ def test_firewall_stays_green_and_the_panel_uses_only_the_logged_purposes():
     tree = ast.parse(Path(tx.__file__).read_text())
     calls = [(n.func.attr, n.args[0].value if n.args and isinstance(n.args[0], ast.Constant) else None) for n in ast.walk(tree)
              if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name) and n.func.value.id == "sealed"]
-    assert calls and set(calls) == {("read_index", "paper_context")}, calls      # stocks come through paper.load_adjusted (paper_lookback)
+    assert calls and set(calls) == {("read_index", "paper_context"), ("index_cross_dates", "technicals_history")}, calls   # cross dates only (26 Oct)      # stocks come through paper.load_adjusted (paper_lookback)
     assert "load_adjusted" in Path(tx.__file__).read_text()

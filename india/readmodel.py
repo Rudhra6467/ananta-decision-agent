@@ -192,15 +192,32 @@ def stale_sessions() -> list[dict]:
 
 def sp1(day: str) -> dict:
     d = paths.data_dir() / "paper" / "sp1"
-    rows = [r for r in _jsonl(d / "decisions.jsonl") if r.get("date") == day]
+    allr = _jsonl(d / "decisions.jsonl")
+    # 26 Oct: SP1 trades live in the morning, before the nightly data reaches `day`; the read model said "session lost" for 23 Oct while the
+    # 26 Oct session had run and been scored. Show the newest SP1 session on or after `day`, always named by its date.
+    newest = max([str(r.get("date")) for r in allr if r.get("date") and str(r.get("date")) >= day] or [day])
+    rows = [r for r in allr if r.get("date") == newest]
     book = _load(d / "book.json") or {}
     errors = [r.get("error") for r in rows if r.get("kind") == "error"]
     decisions = [{"index": r.get("index"), "point": r.get("point"), "action": (r.get("choice") or {}).get("action"), "exit": (r.get("choice") or {}).get("exit"),
                   "situation": r.get("situation")} for r in rows if r.get("kind") == "decision"]
     status = "ok" if decisions else ("lost" if errors else ("no_rows" if (d / "decisions.jsonl").exists() else "missing"))
-    return {"status": status, "source": f"{d / 'decisions.jsonl'} and {d / 'book.json'}", "decisions": decisions, "errors": errors[:3],
-            "book": {"sessions": book.get("sessions"), "by_index": book.get("by_index")}, "capital_inr": 60000,
-            "words": ("session lost: " + errors[0]) if status == "lost" and errors else (f"{len(decisions)} index decisions recorded" if decisions else "no SP1 rows for this session")}
+    try:
+        x = dt.date.fromisoformat(newest)
+        when = f"{x:%a} {x.day} {x:%b}"
+    except ValueError:
+        when = newest
+    trades = [f"{q['index']} at {q.get('point')} ({'long' if (r.get('choice') or {}).get('dir', 1) > 0 else 'short'}, exit {q.get('exit')})"
+              for q, r in zip(decisions, [r for r in rows if r.get("kind") == "decision"]) if q.get("action")]
+    bi = book.get("by_index") or {}
+    scored = "; ".join(f"{k}: {v.get('trades')} scored trade(s), index {v.get('index_proxy_sum_bps', 0):+.0f} bp, one option lot Rs {v.get('option_1lot_rs_realistic_fill', 0):,.0f} "
+                       f"with realistic fills" for k, v in bi.items() if v.get("trades"))
+    words = (f"{when}: session lost: " + errors[0]) if status == "lost" and errors else (
+        f"{when}: {len(decisions)} index decisions recorded" + (f", traded {', '.join(trades)}" if trades else ", no trade") if decisions else f"{when}: no SP1 rows")
+    if scored:
+        words += f". Book over {book.get('sessions')} scored session(s): {scored}"
+    return {"status": status, "date": newest, "source": f"{d / 'decisions.jsonl'} and {d / 'book.json'}", "decisions": decisions, "errors": errors[:3],
+            "book": {"sessions": book.get("sessions"), "by_index": bi}, "capital_inr": 60000, "words": words}
 
 
 def learning(day: str) -> dict:

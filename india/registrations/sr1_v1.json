@@ -1,0 +1,42 @@
+{
+ "study": "SR1",
+ "family": "technical",
+ "version": 1,
+ "written": "2026-10-26",
+ "asked_by": "Madhav, 26 Oct 2026 12:19 Toronto: \"lets fix everything. i say yes to your recommendations\" (the recommendation: test support and resistance as an ENTRY signal; until now only swing-low exits and the retest cards were tested)",
+ "title": "Support and resistance as an entry: does a bounce off support or a close through resistance give a buy call (and a close below support a sell call)?",
+ "hypothesis": "Buying a stock that touches its swing-low support and closes up within 1.5% above it, or that closes above its swing-high resistance, beats ordinary days over the next 20 sessions (and pays after costs); a close below support is followed by weaker returns; the same bounce and breakout on the Nifty and Bank Nifty are followed by better index returns.",
+ "data": {
+  "index": "silver/kite_index/day (NIFTY 50, NIFTY BANK) 2003-2023, closes only, via india.teachers_stock.index_panel (rows before 2024 only)",
+  "stocks": "gold/teachers/stock_panel.parquet (adjusted daily bars of the liquid universe, to 2023-12-29); events and base = liquidity rank 1-250 that day",
+  "nothing_sealed": "no 2024+ row and no sealed folder is read"
+ },
+ "definitions": {
+  "swing point (the technicals panel's own rule, india/technicals.py swings)": "a swing low is a bar whose low is the lowest of the 5 bars on each side; a swing high, whose high is the highest. It is known only 5 sessions after the bar (no look-ahead). Index: closes stand in for highs and lows, as in the live panel",
+  "support S_w / resistance R_w, as of the previous session": "among swing points whose bar lies in the last w sessions before today (w = 20 or 60; the panel uses 60) and that are confirmed by yesterday: S = the highest swing low below yesterday's close, R = the lowest swing high above yesterday's close",
+  "bounce_w (stocks)": "today's low <= S_w x 1.01 (touched), today's close between S_w and S_w x 1.015, and today's close above yesterday's close; one event per stock per 10 sessions",
+  "break_w (stocks)": "today's close above R_w (R_w was above yesterday's close, so this is the first close above it); one per 10 sessions",
+  "breakdown60 (stocks)": "today's close below S_60 (the first close below the support); one per 10 sessions",
+  "bounce60 / break60 (index)": "bounce: yesterday's close <= S_60 x 1.01 (touched), today's close up and between S_60 and S_60 x 1.015; break: today's close above R_60; one per 10 sessions",
+  "segments (stocks)": "swing points and levels use only the stock's continuous run of sessions in the panel (no level carried across a gap)"
+ },
+ "outcomes": {
+  "index": "from the next session's close to the close 20 sessions later: fwd20",
+  "stocks": "buy at the next open, sell at the close 20 sessions later, net of the delivery round trip and the spread estimate (india/costs.py): net20"
+ },
+ "statistics": {
+  "index (market timing)": "india.teachers_stock.msplit against all other sessions with levels defined, quarter blocks, Welch t",
+  "stocks vs ordinary days": "india.teachers_stock.level: event mean minus the mean of all base rows (every 5th session of every liquid-250 stock, plus the events) in the same quarter, t across quarters",
+  "stocks, the trade itself after costs": "india.teachers_stock.absolute: the event's own mean net20, quarter means",
+  "periods": "development 2000-2017 (index from 2003), validation 2018-2023",
+  "verdict": "india/registry.record standard rule; MIN_DATES 16 blocks per period"
+ },
+ "bar": {"union_k": 38, "z": 3.213, "note": "family 'technical' (XO1's 27 variants) plus these 11; k frozen at 38"},
+ "variants": {
+  "STK|bounce20|net20": 1, "STK|bounce60|net20": 1, "STK|bounce60|net20|absolute": 1,
+  "STK|break20|net20": 1, "STK|break60|net20": 1, "STK|break60|net20|absolute": 1,
+  "STK|breakdown60|net20": -1,
+  "NIFTY|bounce60|fwd20": 1, "NIFTY|break60|fwd20": 1, "BANK|bounce60|fwd20": 1, "BANK|break60|fwd20": 1
+ },
+ "not_claimed": "No paper rule changes from this study; a pass would be a proposal for Madhav, then a forward paper check."
+}

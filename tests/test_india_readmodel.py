@@ -71,3 +71,19 @@ def test_build_without_a_decision_file_is_a_plain_error(lake):
     rm = readmodel.build(DAY)
     assert rm["market"]["status"] == "missing" and "market" in rm["missing"] and "decisions_today" in rm["missing"]
     assert any(s.startswith("Not available for this session") for s in rm["brief"])
+
+
+def test_sp1_shows_the_newest_session_by_date(lake):
+    """26 Oct: the read model (data through 23 Oct) said "session lost" while the 26 Oct SP1 session had run and been scored."""
+    d = readmodel.paths.data_dir() / "paper" / "sp1"
+    rows = [{"kind": "error", "date": "2026-10-23", "error": "no Kite sign-in by 09:10 IST"},
+            {"kind": "decision", "date": "2026-10-26", "index": "NIFTY", "point": "D0", "choice": None},
+            {"kind": "decision", "date": "2026-10-26", "index": "BANKNIFTY", "point": "D2", "choice": {"action": 6, "exit": "ATRSTOP", "dir": 1}}]
+    (d / "decisions.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    (d / "book.json").write_text(json.dumps({"sessions": 1, "by_index": {"BANKNIFTY": {"trades": 1, "index_proxy_sum_bps": 48.4, "option_1lot_rs_realistic_fill": 1078.0}}}))
+    s = readmodel.sp1("2026-10-23")
+    assert s["date"] == "2026-10-26" and s["status"] == "ok"
+    assert s["words"].startswith("Mon 26 Oct: 2 index decisions recorded, traded BANKNIFTY at D2 (long, exit ATRSTOP)")
+    assert "+48 bp" in s["words"] and "Rs 1,078" in s["words"]
+    (d / "decisions.jsonl").write_text(json.dumps(rows[0]) + "\n")
+    assert readmodel.sp1("2026-10-23")["words"].startswith("Fri 23 Oct: session lost: no Kite sign-in")

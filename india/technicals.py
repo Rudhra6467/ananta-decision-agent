@@ -266,6 +266,28 @@ def stock_rows(symbols: list[str]) -> pd.DataFrame:
                          "close": df["adj_close"], "volume": df["volume"]})
 
 
+def history_crosses(indices: dict) -> None:
+    """26 Oct (Madhav said yes): the 460-day paper_context window cannot see a 50/200 cross older than about May, so the panel said "no cross
+    since 20 May". The dates come from sealed.index_cross_dates (purpose technicals_history: cross dates only, no price leaves the loader):
+    the last cross fills in when the window shows none, and the last three 50/200 crosses are kept for "when did it last cross?"."""
+    from india import sealed
+    names = [n for n, p in indices.items() if p.get("status") == "ok"]
+    if not names:
+        return
+    ev = sealed.index_cross_dates("technicals_history", names)
+    for n in names:
+        p = indices[n]
+        for pair, key in (("50/200", "cross_50_200"), ("20/50", "cross_20_50")):
+            e = [x for x in ev if x["index_name"] == n and x["pair"] == pair and x["date"] <= p["as_of"]]
+            x = p[key]
+            if pair == "50/200":
+                x["history"] = [{"date": q["date"], "direction": q["direction"]} for q in e[-3:]]
+            if e and not x.get("last_cross") and x.get("state") in ("above", "below") and (e[-1]["direction"] == "up") == (x["state"] == "above"):
+                x.update({"last_cross": e[-1]["date"], "direction": e[-1]["direction"], "sessions_ago": e[-1]["sessions_ago"],
+                          "from_history": "cross date from the index history since 2015 (technicals_history)"})
+        p["words"] = words(p)
+
+
 def run() -> dict:
     who = names_to_follow()
     out = {"rules": RULES, "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "basis": "daily closes, as of the date on each row; nothing intraday",
@@ -276,6 +298,10 @@ def run() -> dict:
             out["indices"][nm] = panel(nm, g.assign(open=g["close"], high=g["close"], low=g["close"], volume=0), "index")
     except Exception as e:  # noqa: BLE001  the panel says what failed, never guesses
         out["errors"].append(f"indices: {type(e).__name__}: {e}"[:200])
+    try:
+        history_crosses(out["indices"])
+    except Exception as e:  # noqa: BLE001
+        out["errors"].append(f"cross history: {type(e).__name__}: {e}"[:200])
     syms = sorted(set(who["holdings"]) | set(who["picks"]))
     if syms:
         try:
@@ -342,7 +368,7 @@ FAMILIES = {
     "MACD": {"conds": [], "cards": r"\bmacd\b", "studies": [("XO1", r"\|macd(?:up|dn)\|")]},
     "volume": {"conds": ["vol_heat2", "deliv_high"], "cards": r"volume|delivery"},
     "support and resistance": {"conds": [], "exits": ["swing_low_5", "swing_low_10", "swing_low_20"], "cards": r"support|resistance|retest|breakout level|pivot",
-                               "untested_note": "support and resistance as an ENTRY signal has not been tested; only swing-low exits and the retest cards"},
+                               "studies": [("SR1", None)]},
     "breadth": {"conds": ["breadth_lt30", "breadth_lt40", "breadth_thrust"], "cards": r"breadth"},
     "India VIX (the fear gauge)": {"conds": ["vix_gt20", "vix_rising"], "cards": r"\bvix\b"},
     "FII flows and positioning": {"conds": ["fii_long_gt60", "fii_long_lt40", "fii_rising5", "client_long_gt60"], "cards": r"\bfii\b|foreign|\bfpi\b",
@@ -359,7 +385,11 @@ EVENT = {"gc": "50-day crossing above the 200-day (golden cross)", "dc": "50-day
          "state50gt200": "holding while the 50-day is above the 200-day", "converge": "the averages bunched together (a bigger move after?)",
          "weak5": "a sharp weak-rupee week", "weak1": "a sharp weak-rupee day", "h42_up5": "a strong-dollar stretch (TWT-H42)",
          "h42_break3y": "the dollar at a 3-year high against the rupee (TWT-H42)", "neg5": "a sharp 5-day foreign outflow",
-         "neg1": "a sharp one-day foreign outflow", "pos5": "a sharp 5-day foreign inflow", "pos1": "a sharp one-day foreign inflow"}
+         "neg1": "a sharp one-day foreign outflow", "pos5": "a sharp 5-day foreign inflow", "pos1": "a sharp one-day foreign inflow",
+         "bounce20": "a bounce off 20-session support (touched it, closed up within 1.5% above)",
+         "bounce60": "a bounce off 60-session support (touched it, closed up within 1.5% above)",
+         "break20": "a close above 20-session resistance", "break60": "a close above 60-session resistance",
+         "breakdown60": "a close below 60-session support"}
 OUT = {"fwd60": "next 60 sessions", "fwd20": "next 20 sessions", "net60": "next 60 sessions against ordinary days", "net20": "next 20 sessions against ordinary days",
        "abs20": "size of the move over 20 sessions", "nfwd1": "Nifty next session", "nfwd5": "Nifty next 5 sessions", "nfwd20": "Nifty next 20 sessions",
        "nfwd21": "Nifty next 21 sessions", "nfwd63": "Nifty next 63 sessions", "bankfwd20": "Bank Nifty next 20 sessions",
@@ -374,6 +404,10 @@ HEADLINE = {   # the conclusion of each study, shown only once its rows are in t
     ("FX1", "USD/INR (the rupee)"): "Tested 26 Oct (study FX1, 2010-2023, FRED USD/INR): sharp weak-rupee weeks and days were followed by no weaker Nifty or Bank Nifty "
         "and gave no edge to IT or pharma (all rejected); TWT-H42 (strong dollar hurts the Nifty) inconclusive, and its one strong reading points the other way "
         "(the Nifty about 4% better over 21 sessions after a weak-rupee stretch in 2018-2023)",
+    ("SR1", "support and resistance"): "Tested 26 Oct (study SR1, 2000-2023, the panel's own swing levels): support and resistance are not a usable entry "
+        "signal. On liquid-250 stocks a close above resistance was followed by about 0.5-1% WORSE returns over 20 sessions than ordinary days (the reverse "
+        "of the claim; about zero as a trade after costs); a bounce off support had no edge over ordinary days, and a close below support was not followed "
+        "by weaker returns; on the Nifty and Bank Nifty neither the bounce nor the breakout made a difference",
     ("FII1", "FII flows and positioning"): "Tested 26 Oct (study FII1, NSDL FPI cash flows 2010-2023): sharp foreign outflow or inflow days and weeks were followed by "
         "no weaker or stronger Nifty over 1, 5 or 20 sessions (all 8 rejected); flows follow the market (correlation 0.2-0.46 with the previous session's Nifty move, "
         "about zero with the next) and the same-day link is tiny (TWT-H48)",
@@ -395,6 +429,8 @@ def _study_row_words(r: dict) -> str:
     ev = EVENT.get(rest[0], rest[0]) if rest else r["variant"]
     out = OUT.get(rest[1], rest[1]) if len(rest) > 1 else ""
     trade = " (as a trade after costs)" if "absolute" in parts else ""
+    if trade:
+        out = out.replace(" against ordinary days", "")
     d, v = (r.get("dev") or [None, None]), (r.get("val") or [None, None])
     num = ""
     if r["verdict"] in ("OPPOSITE", "VALIDATED", "CONDITIONAL") and d[0] is not None and v[0] is not None:

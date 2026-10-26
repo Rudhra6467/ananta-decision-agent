@@ -315,6 +315,13 @@ def build(day: str | None = None) -> dict:
     rm = {"rules": RULES, "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "data_through": day, "next_session": nxt,
           "market": market(day), "call": call(day), "stock_book": stock_book(day), "decisions_today": decisions_today(day), "sp1": sp1(day),
           "learning": learning(day), "research": research(), "jobs": jobs(), "guardrails": guardrails(), "reconstruction": reconstruction(day)}
+    try:   # 26 Oct (Madhav: crossovers, RSI, MACD, support and resistance, volume): the technicals panel and what was ever tested about each
+        from india import technicals
+
+        rm["technicals"] = technicals.section()
+        rm["indicator_knowledge"] = technicals.knowledge()
+    except Exception as e:   # noqa: BLE001 - the read model must build even if the panel fails; the section says why
+        rm["technicals"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
     rm["missing"] = [k for k, v in rm.items() if isinstance(v, dict) and v.get("status") == "missing"]
     rm["brief"] = brief(rm)
     body = json.dumps(rm, indent=1, default=str)

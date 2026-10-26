@@ -1,0 +1,45 @@
+{
+ "study": "XO1",
+ "family": "technical",
+ "version": 1,
+ "written": "2026-10-26",
+ "asked_by": "Madhav, 26 Oct 2026 (India chat): \"we have to do research about this crossover ... where are the multiple points meeting and like what is a good buy call\"",
+ "title": "Moving-average and MACD crossovers, and averages converging: do they give a buy (or sell) call?",
+ "hypothesis": "After a 50/200 golden cross, a 20/50 upward cross or a MACD(12,26,9) upward signal-line cross, forward returns beat ordinary days (and the opposite crosses are followed by weaker returns); the 50-over-200 state is a better time to hold the index; when the 20, 50 and 200-day averages converge, a bigger move (either way) follows.",
+ "data": {
+  "index": "silver/kite_index/day (NIFTY 50, NIFTY BANK) 2003-2023, via india.teachers_stock.index_panel (rows before 2024 only)",
+  "stocks": "gold/teachers/stock_panel.parquet (adjusted daily bars of the liquid universe, to 2023-12-29); base = liquidity rank 1-250 that day",
+  "nothing_sealed": "no 2024+ row and no sealed folder is read"
+ },
+ "definitions": {
+  "sma": "simple averages of the close (stocks: from the panel's dist_sma20/50/200, computed on each stock's full history)",
+  "gc / dc": "50-day average crosses above / below the 200-day average (today above, yesterday not; stocks: yesterday must be the stock's previous session); one event per index or stock per 20 sessions",
+  "x2050up / x2050dn": "20-day average crosses above / below the 50-day average; one per 10 sessions",
+  "macdup / macddn": "MACD line (EMA12 - EMA26 of the close) crosses above / below its 9-day EMA signal line; stocks need 60 continuous sessions of warm-up; one per 10 sessions",
+  "state50gt200": "index only: the 50-day average is above the 200-day (the golden-cross state), every session",
+  "converge": "max(sma20, sma50, sma200) / min(...) - 1 under 2%: index = every session in that state; stocks = the first day entering it, one per 20 sessions",
+  "trend states (stock split)": "uptrend = Nifty above its 200-day; downtrend = Nifty below both its 50- and 200-day averages (india.teachers_stock.market_context)"
+ },
+ "outcomes": {
+  "index": "from the next session's close to the close h sessions later (an index cannot be bought at the close that made the signal): fwd20, fwd60; abs20 = |fwd20|",
+  "stocks": "buy at the next open, sell at the close h sessions later, net of the delivery round trip and the spread estimate (india/costs.py): net20, net60; abs20 = |gross fwd20|"
+ },
+ "statistics": {
+  "index (market timing)": "india.teachers_stock.msplit: quarter-block means of 'on' sessions against quarter-block means of 'off' sessions, Welch t across blocks; dates = the smaller block count",
+  "stocks vs ordinary days (the random-entry control)": "india.teachers_stock.level: event mean minus the mean of all base rows (every 5th session of every liquid-250 stock, plus the events) in the same quarter, t across quarters",
+  "stocks, the trade itself after costs": "india.teachers_stock.absolute: the event's own mean net return, quarter means",
+  "periods": "development 2000-2017 (index from 2003), validation 2018-2023",
+  "verdict": "india/registry.record standard rule; MIN_DATES 16 blocks per period (rare events such as index 50/200 crosses are expected to be INCONCLUSIVE and stay so)"
+ },
+ "bar": {"union_k": 27, "z": 3.105, "note": "a new family 'technical'; k frozen at the 27 variants below"},
+ "variants": {
+  "NIFTY|gc|fwd60": 1, "NIFTY|dc|fwd60": -1, "NIFTY|x2050up|fwd20": 1, "NIFTY|x2050dn|fwd20": -1, "NIFTY|macdup|fwd20": 1, "NIFTY|macddn|fwd20": -1,
+  "NIFTY|state50gt200|fwd20": 1, "NIFTY|converge|abs20": 1,
+  "BANK|gc|fwd60": 1, "BANK|dc|fwd60": -1, "BANK|x2050up|fwd20": 1, "BANK|x2050dn|fwd20": -1, "BANK|macdup|fwd20": 1, "BANK|macddn|fwd20": -1,
+  "BANK|state50gt200|fwd20": 1, "BANK|converge|abs20": 1,
+  "STK|gc|net60": 1, "STK|dc|net60": -1, "STK|x2050up|net20": 1, "STK|x2050dn|net20": -1, "STK|macdup|net20": 1, "STK|macddn|net20": -1, "STK|converge|abs20": 1,
+  "STK|x2050up_uptrend|net20": 1, "STK|x2050up_downtrend|net20": 1,
+  "STK|gc|net60|absolute": 1, "STK|x2050up|net20|absolute": 1
+ },
+ "not_claimed": "No paper rule changes from this study; a pass would be a proposal for Madhav, then a forward paper check."
+}

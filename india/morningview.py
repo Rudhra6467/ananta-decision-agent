@@ -104,6 +104,20 @@ def overnight(plan: dict) -> dict:
         v = ov.get(k)
         if v:
             out["india"][name] = {"date": v.get("date"), "close": v.get("close"), "d1": v.get("d1"), "vs_sma50": v.get("vs_sma50"), "vs_sma200": v.get("vs_sma200")}
+    # 26 Oct: the day plan for Mon 26 Oct was written on Fri 23 Oct at 19:00, before that day's index close arrived, so the view said "Nifty
+    # 22,688 (-0.5%)" (the 22 Oct close) while the 23 Oct close was 22,600. The newest close is now read at build time and its date is kept.
+    try:
+        from india import technicals
+        fresh = technicals.latest_index(["NIFTY 50", "NIFTY BANK", "INDIA VIX"])
+    except Exception as e:  # noqa: BLE001  the plan's rows stand, and the note says why
+        fresh = {}
+        out["notes"].append(f"newest index close not read: {e.__class__.__name__}")
+    for k, name in (("NIFTY 50", "Nifty"), ("NIFTY BANK", "Bank Nifty"), ("INDIA VIX", "fear gauge")):
+        f, have = fresh.get(k), out["india"].get(name) or {}
+        if f and str(f.get("date")) > str(have.get("date") or ""):
+            if have:
+                out["notes"].append(f"{name}: the day plan had the {have.get('date')} close; the newest is {f['date']}")
+            out["india"][name] = {**f, "plan_close": have.get("close"), "plan_date": have.get("date")}
     fd = ov.get("FII_DII") or {}
     for k, name in (("FII/FPI", "foreign institutions"), ("DII", "domestic institutions")):
         v = fd.get(k)
@@ -160,7 +174,9 @@ def setup(session: str, plan: dict, rm: dict) -> dict:
     return {"status": "ok" if m else "missing", "trend_state": m.get("trend_state"), "nifty_prev_close": prev, "nifty_vs_sma50": m.get("nifty_vs_sma50"), "nifty_vs_sma200": m.get("nifty_vs_sma200"),
             "breadth_200d": m.get("breadth_200d_liquid"), "breadth_50d": m.get("breadth_50d_liquid"), "vix": m.get("vix_close"), "vix_vs_sma50": m.get("vix_vs_sma50"),
             "scenarios": {"bull": fc.get("bull"), "bear": fc.get("bear"), "neutral": fc.get("neutral")}, "scenario_text": plan.get("scenarios_text") or {},
-            "scenario_levels": {"up_above": round(prev * (1 + band), 0) if prev else None, "down_below": round(prev * (1 - band), 0) if prev else None},
+            "scenario_levels": {"up_above": round(prev * (1 + band), 0) if prev else None, "down_below": round(prev * (1 - band), 0) if prev else None,
+                                # the day's forecast was written with these lines, so they stay; the close they came from is named (26 Oct)
+                                "set_from_date": (plan.get("overnight") or {}).get("NIFTY 50", {}).get("date"), "set_from_close": prev},
             "forecast_basis": "climatology: how often Nifty closed up, down or flat on 2005-2023 sessions (no skill claimed)", "forecast_id": plan.get("forecast_id"),
             "limits": plan.get("limits") or [], "expiry": exp, "events": events, "market_words": m.get("words")}
 
@@ -328,7 +344,7 @@ def lines(f: dict) -> dict:
     n = ind.get("Nifty") or {}
     if n:
         tr = {"above_both": "in an uptrend", "below_both": "in a downtrend", "mixed": "with no clear trend"}.get(s.get("trend_state"), "")
-        view.append(f"Nifty closed at {n['close']:,.0f} ({_pct(n.get('d1'))}), {tr}: {_pct(n.get('vs_sma50'))} against its ten-week average, {_pct(n.get('vs_sma200'))} against its long-term average; "
+        view.append(f"Nifty closed at {n['close']:,.0f} on {_dw(n.get('date'))} ({_pct(n.get('d1'))}), {tr}: {_pct(n.get('vs_sma50'))} against its ten-week average, {_pct(n.get('vs_sma200'))} against its long-term average; "
                     f"{100 * (s.get('breadth_200d') or 0):.0f}% of the 250 most-traded stocks are above their long-term average.")
     v = ind.get("fear gauge") or {}
     if v:
@@ -366,7 +382,9 @@ def lines(f: dict) -> dict:
         watch.append(f"Recent event: {e['title']} ({_dw(e['session'])}).")
     lv = s.get("scenario_levels") or {}
     if lv.get("up_above"):
-        watch.append(f"The lines that decide the day's label: above {lv['up_above']:,.0f} is an up day, below {lv['down_below']:,.0f} a down day.")
+        stale_lines = n.get("plan_date") and lv.get("set_from_date") and str(lv["set_from_date"]) < str(n.get("date"))
+        watch.append(f"The lines that decide the day's label: above {lv['up_above']:,.0f} is an up day, below {lv['down_below']:,.0f} a down day"
+                     + (f" (set when the day's forecast was written, from the {_dw(lv['set_from_date'])} close of {lv['set_from_close']:,.0f}, not the newer {_dw(n.get('date'))} close)." if stale_lines else "."))
     watch.append("Guardrails: a 5% loss stops the day; 22% below the peak pauses new buys.")
     yest = []
     if y.get("lessons"):

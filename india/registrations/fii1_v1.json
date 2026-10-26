@@ -1,0 +1,27 @@
+{
+ "study": "FII1",
+ "family": "flows",
+ "version": 1,
+ "written": "2026-10-26",
+ "asked_by": "Madhav, 26 Oct 2026 (India chat): \"we have to do research about this FII and their influence on the stock prices\"",
+ "title": "Foreign investor (FPI) cash flows: do sharp outflows precede a weaker Nifty, and inflows a stronger one?",
+ "hypothesis": "Sessions after sharply negative FPI equity net flows (bottom decile, daily or over 5 sessions) are followed by weaker Nifty returns over 1, 5 and 20 sessions; after sharply positive flows (top decile) by stronger returns.",
+ "data": {
+  "flows": "silver/flows/fii_dii_cash.parquet, category FPI_equity (NSDL archive: custodians' daily equity buy/sell/net in Rs crore, by reporting date), 2000-2023; filled 25 Oct 2026 by india/fiidii.py",
+  "index": "silver/kite_index/day NIFTY 50, 2003-2023"
+ },
+ "timing": "NSDL rows are dated by reporting date; a row is first used at the first Nifty session on or after its reporting date, and the index outcome runs from the NEXT session's close (so the flow is known a full session before any entry)",
+ "definitions": {
+  "neg1 / pos1": "the day's FPI equity net in the bottom / top decile of its own trailing 756-session distribution (threshold known at the time; flows grow with the market, so a fixed rupee cut-off would be wrong)",
+  "neg5 / pos5": "the 5-session sum in the bottom / top decile of its trailing 756-session distribution"
+ },
+ "outcomes": "nfwd1 / nfwd5 / nfwd20: Nifty from the next session's close",
+ "statistics": "india.teachers_stock.msplit (market timing: quarter blocks of 'on' against 'off' sessions, Welch t); development 2003-2017, validation 2018-2023; india/registry.record standard rule, MIN_DATES 16",
+ "bar": {"union_k": 12, "z": 2.865, "bar_families": ["flows"], "note": "family 'flows' already holds C06's 4 rows; k frozen at 4 + the 8 variants below"},
+ "variants": {
+  "neg5|nfwd1": -1, "neg5|nfwd5": -1, "neg5|nfwd20": -1, "neg1|nfwd1": -1, "neg1|nfwd5": -1,
+  "pos5|nfwd5": 1, "pos5|nfwd20": 1, "pos1|nfwd1": 1
+ },
+ "descriptive_only": "TWT-H48 (FII flow beta, before and after the SIP era): the same-day sensitivity of the Nifty's return to the FPI net flow (in units of the trailing flow spread), by year and for 2003-2016 against 2017-2023. Same-day, so not a trading rule and not a registered verdict.",
+ "not_claimed": "No paper rule changes from this study."
+}

@@ -1,0 +1,30 @@
+{
+ "study": "FX1",
+ "family": "fx",
+ "version": 1,
+ "written": "2026-10-26",
+ "asked_by": "Madhav, 26 Oct 2026 (India chat): \"evaluate rupee versus dollar, evaluate against stock prices so that to see how it is influencing\"",
+ "title": "Rupee against the dollar: does a sharply weaker rupee precede weaker Indian stocks (and stronger exporters)?",
+ "hypothesis": "After a sharp weakening of the rupee (USD/INR up) the Nifty and Bank Nifty do worse over the next 5 and 20 sessions, while the exporters (Nifty IT, Nifty Pharma) do better than the Nifty; and TWT-H42 restated on the rupee: when USD/INR is up 5%+ over 126 sessions, or breaks above its 3-year high, the Nifty's next 21 and 63 sessions are weaker.",
+ "data": {
+  "usdinr": "FRED DEXINUS (Federal Reserve H.10, rupees per US dollar, New York noon buying rate), already in silver/macro/macro.parquet from 1990 (fetched by the macro job; US data, not an Indian market file, so it is not split into the sealed tree); research reads rows before 2024 only",
+  "index": "silver/kite_index/day (NIFTY 50, NIFTY BANK, NIFTY IT, NIFTY PHARMA) 2003-2023"
+ },
+ "timing": "a DEXINUS value dated d (a New York rate) is used from the Indian session after d (merge on d <= session date - 1 day, as india.teachers_stock.market_context does for US data); index outcomes run from the next session's close",
+ "definitions": {
+  "dep5": "USD/INR change over the last 5 FRED observations",
+  "weak5": "dep5 in the top decile of its own trailing 756-observation distribution (the threshold uses only data known at the time)",
+  "weak1": "the 1-observation change in the top decile of its trailing 756-observation distribution",
+  "h42_up5": "USD/INR up 5% or more over 126 observations",
+  "h42_break3y": "USD/INR above its highest value of the previous 756 observations"
+ },
+ "outcomes": "nfwd5/nfwd20/nfwd21/nfwd63 = Nifty from the next close; bankfwd20 = Nifty Bank; itx20 / pharmax20 = Nifty IT / Nifty Pharma 20-session return minus the Nifty's over the same window",
+ "statistics": "india.teachers_stock.msplit (market timing: quarter blocks of 'on' against 'off' sessions, Welch t); development 2003-2017, validation 2018-2023; india/registry.record standard rule, MIN_DATES 16",
+ "bar": {"union_k": 10, "z": 2.807, "note": "a new family 'fx'; k frozen at the 10 variants below. The earlier context study C09 (usdinr_rising, family 'context') is related and its rows stay where they are"},
+ "variants": {
+  "weak5|nfwd5": -1, "weak5|nfwd20": -1, "weak5|bankfwd20": -1, "weak5|itx20": 1, "weak5|pharmax20": 1, "weak1|nfwd5": -1,
+  "h42_up5|nfwd21": -1, "h42_up5|nfwd63": -1, "h42_break3y|nfwd21": -1, "h42_break3y|nfwd63": -1
+ },
+ "caveat_written_first": "The rupee drifts weaker over the long run (about 3-4% a year), so 'breaks its 3-year high' is common; this is part of the claim as stated, not a flaw found afterwards.",
+ "not_claimed": "No paper rule changes from this study."
+}

@@ -21,6 +21,8 @@ def lake(tmp_path, monkeypatch):
     monkeypatch.setattr(mv.paths, "data_dir", lambda: data)
     monkeypatch.setattr(mv, "REG", tmp_path / "reg")
     monkeypatch.setattr(mv, "PAGE", tmp_path / "reg" / "morningview.md")
+    from india import technicals
+    monkeypatch.setattr(technicals, "latest_index", lambda names: {})     # 26 Oct: the newest-close read stays out of the fixture lake
     (tmp_path / "reg").mkdir()
     (data / "readmodel" / "latest.json").write_text(json.dumps({"data_through": PREV, "next_session": SESSION,
         "market": {"trend_state": "below_both", "nifty_close": 22688.0, "nifty_vs_sma50": -0.032, "nifty_vs_sma200": -0.06, "breadth_200d_liquid": 0.4, "breadth_50d_liquid": 0.148, "vix_close": 15.7, "vix_vs_sma50": 0.26, "nifty_ret1": -0.0054, "words": "w"},
@@ -85,3 +87,21 @@ def test_words_survive_a_rebuild_and_missing_sources_say_so(lake):
     (lake / "paper" / "dayplans" / f"{SESSION}.json").unlink()
     f3 = mv.build(SESSION)
     assert f3["setup"]["scenarios"]["bull"] is None and not any("Odds for today" in x for x in f3["lines"]["view"])
+
+
+def test_newest_index_close_replaces_the_day_plans_older_one(lake, monkeypatch):
+    """26 Oct: the Mon 26 Oct plan was written Fri 19:00 with the Thu 22 Oct close (22,688); the view must say the Fri 23 Oct close (22,600),
+    keep the plan's forecast lines, and say which close those lines came from."""
+    from india import technicals
+    p = lake / "paper" / "dayplans" / f"{SESSION}.json"
+    j = json.loads(p.read_text())
+    j["overnight"]["NIFTY 50"]["date"] = "2026-10-22"
+    p.write_text(json.dumps(j))
+    monkeypatch.setattr(technicals, "latest_index", lambda names: {"NIFTY 50": {"date": PREV, "close": 22600.0, "d1": -0.0039, "vs_sma50": -0.034, "vs_sma200": -0.063}})
+    f = mv.build(SESSION)
+    n = f["overnight"]["india"]["Nifty"]
+    assert n["close"] == 22600.0 and n["date"] == PREV and n["plan_close"] == 22688.0 and n["plan_date"] == "2026-10-22"
+    assert any("the day plan had the 2026-10-22 close; the newest is 2026-10-23" in x for x in f["overnight"]["notes"])
+    assert any("Nifty closed at 22,600 on 23 Oct" in x for x in f["lines"]["view"])
+    assert f["setup"]["scenario_levels"]["up_above"] == 22756.0, "the forecast's lines stay as they were written"
+    assert any("from the 22 Oct close of 22,688, not the newer 23 Oct close" in x for x in f["lines"]["watch"])

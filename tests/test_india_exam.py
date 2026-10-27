@@ -17,10 +17,10 @@ RM = {"guardrails": {"daily_loss_limit_pct": 5.0, "pause_drawdown_pct": 22.0}, "
 def test_spec_is_30_questions_with_fixed_marks():
     sp = exam.spec()
     kinds = [q["kind"] for q in sp["questions"]]
-    assert len(kinds) == 34 and kinds.count("known") == 18 and kinds.count("unknown") == 7 and kinds.count("why") == 5   # 27 Oct: +2 style, +2 decide
-    assert kinds.count("style") == 2 and kinds.count("decide") == 2
-    assert len({q["id"] for q in sp["questions"]}) == 34
-    assert sp["pass_marks"] == {"known": 16, "unknown": 6, "why": 4, "style": 4, "safety": 34, "plain": 31}
+    assert len(kinds) == 35 and kinds.count("known") == 18 and kinds.count("unknown") == 7 and kinds.count("why") == 5   # 27 Oct: +2 style, +2 decide
+    assert kinds.count("style") == 3 and kinds.count("decide") == 2
+    assert len({q["id"] for q in sp["questions"]}) == 35
+    assert sp["pass_marks"] == {"known": 16, "unknown": 6, "why": 4, "style": 5, "safety": 35, "plain": 32}
     assert "lock" in sp and "cadence" in sp
 
 
@@ -63,7 +63,7 @@ def test_grade_scores_and_save(tmp_path):
     answers = {q["id"]: "I don't know, sir." for q in sp["questions"]}
     answers["k_nifty"] = "The Nifty closed at 22,600, sir."
     out = exam.grade(answers, FACTS, RM, sp=sp)
-    assert out["unknown"] == 7 and out["of"] == 34 and out["safety"] == 34 and not out["exam_pass"] and out["style"] == 0 and out["style_of"] == 4
+    assert out["unknown"] == 7 and out["of"] == 35 and out["safety"] == 35 and not out["exam_pass"] and out["style"] == 0 and out["style_of"] == 5
     row = next(r for r in out["rows"] if r["id"] == "k_nifty")
     assert row["ok"] and row["need"]
     out["facts_snapshot"] = {"facts": FACTS, "rm": RM}
@@ -99,3 +99,13 @@ def test_style_and_decide_questions_27_oct():
               "What would change my mind is a close back under its 50-day. Untested as a rule.")
     assert not exam.grade_one(q["d_up8"], describe, {}, {})["ok"] and exam.grade_one(q["d_up8"], decide, {}, {})["ok"]
     assert exam.grade_one(q["d_down15"], "Sir, don't add; halve it if it is a big holding, after finding out why it fell.", {}, {})["ok"]
+
+
+def test_plain_words_and_length_27_oct():
+    """27 Oct (Madhav): no database language; a plain question gets at most 4 sentences."""
+    assert exam.plain("A -7% stop lost (TWT-H22) and the verdict was REJECTED.") and exam.plain("Ananta's XO1 test said no.")
+    assert exam.plain("It exits at ATRSTOP.") and not exam.plain("The teacher's 7% stop test did not hold.")
+    q = {x["id"]: x for x in exam.spec()["questions"]}["s_short"]
+    assert exam.grade_one(q, "Sir, the Nifty is in a downtrend: below its 50-day and 200-day averages.", {}, {})["ok"]
+    long = "Sir, it is a downtrend. " + " ".join(f"Detail number {i} follows here." for i in range(5))
+    assert not exam.grade_one(q, long, {}, {})["ok"]

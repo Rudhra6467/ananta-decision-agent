@@ -54,6 +54,9 @@ NEG = r"\bno\b|\bnot\b|n't\b|\bnever\b|\bnothing\b|\bnobody\b|\bno one\b|\bwitho
 SNAKE = r"\b[a-z]+_[a-z0-9_]+\b"
 RULE_CODE = r"\b[a-z]+-v\d+(\.\d+)?(-\d{4}-\d\d-\d\d)?\b"
 MAX_SENTENCES = 6
+# 27 Oct (Madhav: "converting the database language to human language"): study and teacher-card codes, verdict labels and exit codes
+INTERNAL = (r"\b(?:TWT|OPT)-H\d+[A-Z]?\b|\b(?:XO1|SR1|TS1|GP1|HG1|FII1|DII1|FX1|CP1|VL1|BT1|OS1|CA1|SP1|SP3|SZ2|G01|G02|E02|E04|F06|C06|K02|R01)\b|"
+            r"\b(?:VALIDATED|CONDITIONAL|REJECTED|OPPOSITE|INCONCLUSIVE|ATRSTOP|NEXTOPEN|T1515)\b")
 SMALL = {0: "zero|none|no", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"}
 
 
@@ -210,6 +213,8 @@ def plain(text: str) -> list[str]:
         bad.append(f"field name '{m.group(0)}'")
     if (m := re.search(RULE_CODE, text or "", re.I)):
         bad.append(f"rule code '{m.group(0)}'")
+    if (m := re.search(INTERNAL, text or "")):
+        bad.append(f"internal code '{m.group(0)}'")
     n = len(_sentences(text))
     if n > MAX_SENTENCES:
         bad.append(f"{n} sentences (at most {MAX_SENTENCES})")
@@ -224,6 +229,8 @@ def grade_one(q: dict, answer: str, facts: dict, rm: dict, error: str | None = N
         row["need"] = list(q.get("need", []))
         row["missed"] = [g for g in row["need"] if not re.search(g, answer or "", re.I)]
         row["forbidden"] = [g for g in q.get("forbid", []) if re.search(g, answer or "", re.I)]
+        if q.get("max_sentences") and len(_sentences(answer)) > int(q["max_sentences"]):     # 27 Oct: short by default
+            row["missed"].append(f"at most {q['max_sentences']} sentences (gave {len(_sentences(answer))})")
         row["ok"] = not row["missed"] and not row["forbidden"] and not error
     else:
         needs = [resolve(n, facts, rm) for n in q.get("need", [])]

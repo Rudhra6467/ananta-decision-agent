@@ -47,7 +47,7 @@ NEWK = ("gap", "stop", "hedge", "candle", "valuation", "beta", "spread", "corp")
 FAMILY_OF = {"cross": "moving averages and crossovers", "rsi": "RSI and stochastic", "macd": "MACD", "sr": "support and resistance", "volume": "volume", "gap": "gaps", "stop": "stops and exits (trailing vs fixed)", "hedge": "hedging", "candle": "candlestick patterns", "valuation": "valuation (P/E, P/B)", "beta": "beta and volatility",
              "spread": "option spreads", "corp": "corporate actions"}
 TESTED_Q = re.compile(r"\b(tested|test|evidence|proven|proof|work|works|working|edge|reliable|backtest(?:ed)?)\b", re.I)
-NOT_FOR_US = re.compile(r"\b(research|study|studies|analy[sz]e|flag|log it|note it|should|let'?s|plan to|later|buy|sell|why|too late|enter|entry|"
+NOT_FOR_US = re.compile(r"\b(stocks above|shares? of (the )?(liquid|stocks)|how many (stocks|shares)|breadth|research|study|studies|analy[sz]e|flag|log it|note it|should|let'?s|plan to|later|buy|sell|why|too late|enter|entry|"
                         r"earnings|results|worth|good time|what do you think|your read|hold|add|trim|exit)\b", re.I)
 # 27 Oct: "TCS gapped up 4% after earnings. Is it too late to enter?" got NIFTY's support and resistance. A name Ananta has no panel for (an
 # upper-case ticker or a well-known company word) means the question is not about the Nifty: the model answers (it says what it has).

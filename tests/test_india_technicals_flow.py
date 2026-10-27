@@ -154,3 +154,18 @@ def test_gap_stop_hedge_questions_are_answered_only_as_tested_or_not(monkeypatch
     assert "no hedge is free" in _a("is hedging tested on Nifty?")
     for q in ("where is the stop for IDEA?", "what is the hedge ratio today?", "did Nifty gap down today?", "knowledge gaps in the tested rules?"):
         assert technicals.technicals_flow(q) is None, q
+
+
+def test_the_grader_gap_families_are_answered_from_the_registry(monkeypatch):
+    """27 Oct evening (GK1, IB1, MS1): 'is X tested?' for option Greeks, intraday breakouts and intraday patterns answers from indicator_knowledge."""
+    fams = {**KNOW["families"],
+            "option Greeks and time decay": {"tested": [{"what": "study GK1", "study": "GK1", "verdict": {"REJECTED": 7, "OPPOSITE": 1}, "words": "study GK1 (8 versions)"}],
+                                             "not_tested": None, "headline": "Tested 27 Oct (study GK1): time decay hits hardest on expiry day."},
+            "intraday breakouts": {"tested": [{"what": "study IB1", "study": "IB1", "verdict": {"VALIDATED": 4}, "words": "study IB1 (8 versions)"}],
+                                   "not_tested": None, "headline": "Tested 27 Oct (study IB1): breakouts within the day beat a random entry but barely make money after costs."},
+            "intraday patterns": {"tested": [{"what": "study MS1", "study": "MS1", "verdict": {"REJECTED": 4}, "words": "study MS1 (6 versions)"}],
+                                  "not_tested": None, "headline": "Tested 27 Oct (study MS1): the first 15 minutes' direction does not carry to the close."}}
+    monkeypatch.setattr(views, "readmodel", lambda: {**RM, "indicator_knowledge": {"status": "ok", "families": fams}})
+    assert "time decay hits hardest on expiry day" in _a("Is theta decay on expiry day tested?")
+    assert "beat a random entry" in _a("Is the opening range breakout tested?")
+    assert "does not carry to the close" in _a("Is the first 15 minutes tested?")

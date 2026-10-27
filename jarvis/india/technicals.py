@@ -40,12 +40,17 @@ WHAT = {
     "beta": r"\bbeta\b|\blow[- ]volatility\b|\blow[- ]vol\b",
     "spread": r"\b(?:option )?spreads?\b|\bbull call\b|\bbear put\b|\bdebit spread\b|\bcredit spread\b",
     "corp": r"\b(?:stock )?splits?\b|\bbonus(?: issues?)?\b|\bbuybacks?\b|\bdividends?\b",
+    # 27 Oct evening (Madhav's yes to the grader's gaps: GK1, IB1, MS1), answered here only as "was it tested?"
+    "greeks": r"\btheta\b|\bdelta\b|\bgamma\b|\bvega\b|\bgreeks?\b|\btime decay\b|\bexpiry[- ]day\b",
+    "orb": r"\bopening[- ]range\b|\borb\b|\bintraday breakouts?\b|\bvwap\b|\bfirst[- ]hour (?:high|low|range|break)",
+    "intraday": r"\bfirst 15 minutes\b|\bfirst fifteen minutes\b|\blast hour\b|\bintraday patterns?\b|\btime of (?:the )?day\b|\bpower hour\b",
     "all": r"\btechnicals?\b|\bindicators?\b|\bchart\b",
 }
-ORDER = ("cross", "rsi", "macd", "sr", "volume", "high52", "gap", "stop", "hedge", "candle", "valuation", "beta", "spread", "corp", "all")
-NEWK = ("gap", "stop", "hedge", "candle", "valuation", "beta", "spread", "corp")      # 26 Oct (GP1, TS1, HG1): answered here only as "was it tested?"; a reading-style question about them goes to the model
+ORDER = ("orb", "greeks", "intraday", "cross", "rsi", "macd", "sr", "volume", "high52", "gap", "stop", "hedge", "candle", "valuation", "beta", "spread", "corp", "all")
+NEWK = ("gap", "stop", "hedge", "candle", "valuation", "beta", "spread", "corp", "greeks", "orb", "intraday")      # 26 Oct (GP1, TS1, HG1): answered here only as "was it tested?"; a reading-style question about them goes to the model
 FAMILY_OF = {"cross": "moving averages and crossovers", "rsi": "RSI and stochastic", "macd": "MACD", "sr": "support and resistance", "volume": "volume", "gap": "gaps", "stop": "stops and exits (trailing vs fixed)", "hedge": "hedging", "candle": "candlestick patterns", "valuation": "valuation (P/E, P/B)", "beta": "beta and volatility",
-             "spread": "option spreads", "corp": "corporate actions"}
+             "spread": "option spreads", "corp": "corporate actions", "greeks": "option Greeks and time decay", "orb": "intraday breakouts",
+             "intraday": "intraday patterns"}
 DEFINE_Q = re.compile(r"^\s*(?:(?:okay|so|and|ananta|sir)[\s,]*)*(?:what(?:'s| is| are| does)|explain|define|meaning of|tell me what)\s+"
                       r"(?:(?:an? )?(?:rsi|macd|support|resistance|volume|beta)|(?:an? |the )?(?:moving averages?|golden cross(?:es)?|death cross(?:es)?|"
                       r"crossovers?|candlesticks?|52[- ]week high))(?:\s+(?:is|are|and what does it (?:mean|signal)|means?|signals?|indicates?|tells? you))?\s*\??\s*$", re.I)

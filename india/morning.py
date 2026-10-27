@@ -346,6 +346,17 @@ def job_report(label: str, lc: dict, agents: Path, now: dt.datetime, ctx: dict) 
     return r
 
 
+def league_part(h: str, x: dict) -> str:
+    """One horizon of the reference-traders line. 27 Oct review: with no Ananta pick scored at a horizon the line read "Ananta ;"
+    (an empty value) and "1 sessions"; it now says so in words. Reporting only."""
+    cv = x.get("coverage", {})
+    pct = "" if x.get("ananta_pct_vs_random") is None else f", Ananta at the {x['ananta_pct_vs_random']:.0%} point of random"
+    ananta = "no pick scored yet" if x.get("ANANTA") is None else format(x["ANANTA"], "+.2%")
+    n = x.get("sessions")
+    return (f"H{h} ({n} session{'' if n == 1 else 's'}): hindsight {x['HINDSIGHT']:+.2%}, market {x['MARKET']:+.2%}, Ananta {ananta}{pct}; "
+            f"of the best rises: took {cv.get('TAKEN', 0)}, passed {cv.get('PASSED', 0)}, not covered {cv.get('NOT_COVERED', 0)}")
+
+
 def build(now: dt.datetime | None = None, launchctl_text: str | None = None, agents: Path | None = None, reg: Path | None = None) -> dict:
     now = (now or dt.datetime.now(TOR)).astimezone(TOR)
     agents = agents or AGENTS
@@ -387,11 +398,7 @@ def build(now: dt.datetime | None = None, launchctl_text: str | None = None, age
             for h in ("1", "5", "20"):
                 x = lg.get(h) or {}
                 if x.get("sessions"):
-                    cv = x.get("coverage", {})
-                    pct = "" if x.get("ananta_pct_vs_random") is None else f", Ananta at the {x['ananta_pct_vs_random']:.0%} point of random"
-                    parts.append(f"H{h} ({x['sessions']} sessions): hindsight {x['HINDSIGHT']:+.2%}, market {x['MARKET']:+.2%}, Ananta "
-                                 f"{'' if x.get('ANANTA') is None else format(x['ANANTA'], '+.2%')}{pct}; of the best rises: took {cv.get('TAKEN', 0)}, "
-                                 f"passed {cv.get('PASSED', 0)}, not covered {cv.get('NOT_COVERED', 0)}")
+                    parts.append(league_part(h, x))
             others_line = "; ".join(parts) if parts else "no horizon has two live sessions yet"
             if oman.get("drafts_written"):
                 others_line += f"; drafts: {', '.join(oman['drafts_written'])}"

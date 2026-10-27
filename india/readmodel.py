@@ -400,6 +400,15 @@ def build(day: str | None = None) -> dict:
     return rm
 
 
+def percentile_words(p) -> str:
+    """27 Oct review: the brief said "the 72th percentile", and "the 0th percentile" when no pick was scored. Reporting only."""
+    if p is None:
+        return "its picks are not scored against random yet."
+    n = round(p * 100)
+    suf = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"its picks sat at the {n}{suf} percentile of random."
+
+
 def brief(rm: dict) -> list[str]:
     """Three to five plain sentences, each from a section above: what the app's first screen and the morning voice say."""
     out = []
@@ -425,7 +434,7 @@ def brief(rm: dict) -> list[str]:
     if lg.get("status") == "ok" and lg.get("h1", {}).get("coverage"):
         cov = lg["h1"]["coverage"]
         out.append(f"Against the reference traders (1 session): Ananta held {cov.get('TAKEN', 0)} of the top 20 trips, passed on {cov.get('PASSED', 0)}, had no rule for {cov.get('NOT_COVERED', 0)}; "
-                   f"its picks sat at the {round((lg['h1'].get('ananta_pct_vs_random') or 0) * 100)}th percentile of random.")
+                   + percentile_words(lg["h1"].get("ananta_pct_vs_random")))
     if rm["missing"]:
         out.append("Not available for this session: " + ", ".join(rm["missing"]) + ".")
     return out

@@ -87,3 +87,21 @@ def test_sp1_shows_the_newest_session_by_date(lake):
     assert "+48 bp" in s["words"] and "Rs 1,078" in s["words"]
     (d / "decisions.jsonl").write_text(json.dumps(rows[0]) + "\n")
     assert readmodel.sp1("2026-10-23")["words"].startswith("Fri 23 Oct: session lost: no Kite sign-in")
+
+
+def test_newer_closes_say_the_index_is_ahead_of_the_decision_day(lake, monkeypatch):
+    """26 Oct: the index closes land at 12:30, the stock-book decision at 22:30; the read model names the newer closes and keeps the decided numbers."""
+    from india import technicals
+    monkeypatch.setattr(technicals, "latest_index", lambda names: {"NIFTY 50": {"date": "2026-10-23", "close": 22600.0, "d1": -0.004}, "INDIA VIX": {"date": DAY, "close": 15.7, "d1": 0.0}})
+    nc = readmodel.newer_closes(DAY)
+    assert set(nc) == {"NIFTY 50", "words", "meaning"} and "22,600.00 on 2026-10-23" in nc["words"]       # the same-day VIX row is not "newer"
+    monkeypatch.setattr(technicals, "latest_index", lambda names: {})
+    assert readmodel.newer_closes(DAY) == {}
+
+
+def test_stock_book_counts_closed_and_open_apart_flag_44(lake):
+    rm = readmodel.build(DAY)
+    cvo = rm["stock_book"]["closed_vs_open"]
+    assert cvo["total"]["open"]["n"] == 1 and cvo["total"]["open"]["winners"] == 1 and cvo["total"]["closed"]["n"] == 0
+    assert cvo["words"].startswith("win rate counts closed trades only: 0 of 0 closed won")
+    assert rm["book_stats"]["status"] == "ok" and rm["book_stats"]["sharpe"]["words"].startswith("only ")

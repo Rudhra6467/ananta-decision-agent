@@ -395,6 +395,34 @@ OUT = {"fwd60": "next 60 sessions", "fwd20": "next 20 sessions", "net60": "next 
        "abs20": "size of the move over 20 sessions", "nfwd1": "Nifty next session", "nfwd5": "Nifty next 5 sessions", "nfwd20": "Nifty next 20 sessions",
        "nfwd21": "Nifty next 21 sessions", "nfwd63": "Nifty next 63 sessions", "bankfwd20": "Bank Nifty next 20 sessions",
        "itx20": "IT against the Nifty over 20 sessions", "pharmax20": "pharma against the Nifty over 20 sessions"}
+# 26 Oct 2026 (GP1, TS1, HG1: india/gaplab.py; registrations gp1/ts1/hg1_v1): three more families and the plain words of their versions
+FAMILIES.update({     # GAPLAB_WORDS
+    "gaps": {"conds": [], "cards": r"\bgaps?\b|gap up|gap down|gap-up|gap-down|opening gap|gap fill", "studies": [("GP1", None)],
+             "untested_note": "buying after a gap on intraday bars for stocks beyond the 5-minute history (about 360 a year); the sealed 2024+ data was not used"},
+    "stops and exits (trailing vs fixed)": {"conds": [], "exits": ["atr_trail_2", "atr_trail_3", "atr_trail_4", "target_1R", "target_2R", "scale_half_then_trail3"],
+                                            "cards": r"trailing|trail the stop|fixed stop|stop[- ]loss|\batr\b stop|chandelier|breakeven stop|time stop",
+                                            "studies": [("TS1", None)]},
+    "hedging": {"conds": [], "cards": r"hedge|hedging|protective put|put protection|collar|portfolio insurance|downside protection",
+                "studies": [("HG1", None), ("F06-ANY", None)],
+                "untested_note": "hedges on the real 10-slot books with the paper engine's exits (HG1 used a liquid-250 equal-weight basket as a proxy); stock options as a hedge"},
+})
+SUBJ.update({"ANY": "any liquid-250 entry", "BRK": "breakout entries", "PULL": "pullback entries"})
+EVENT.update({
+    "gapdown2": "a gap-down of 2% or more at the open", "gapdown1": "a gap-down of 1% or more at the open", "gapup2": "a gap-up of 2% or more at the open",
+    "gapup1": "a gap-up of 1% or more at the open",
+    "fixed7_vs_hold20": "a fixed 7% stop against selling after 20 sessions", "fixed2atr_vs_hold20": "a fixed 2 ATR stop against selling after 20 sessions",
+    "trail2atr_vs_hold20": "a 2 ATR trailing stop against selling after 20 sessions", "trail10_vs_hold20": "a 10% trailing stop against selling after 20 sessions",
+    "trail2atr_vs_fixed2atr": "a 2 ATR trailing stop against a fixed 2 ATR stop", "trail10_vs_fixed7": "a 10% trailing stop against a fixed 7% stop",
+    "short_futures": "short Nifty futures equal to the basket while the Nifty is below its 200-day",
+    "cash20": "holding 20% more cash while the Nifty is below its 200-day", "put5otm": "a monthly Nifty put 5% out of the money",
+    "put5otm_50pct": "an always-on monthly Nifty put 5% out of the money on half the book", "put5otm_100pct": "an always-on monthly Nifty put 5% out of the money on the whole book",
+    "put10otm_50pct": "an always-on monthly Nifty put 10% out of the money on half the book", "put10otm_100pct": "an always-on monthly Nifty put 10% out of the money on the whole book",
+})
+OUT.update({"open": "bought at that open", "next": "bought at the next session's open", "wait30": "bought 30 minutes after the open",
+            "hold1": "sold at the same close (against ordinary days)", "hold5": "sold after 5 sessions (against ordinary days)",
+            "return": "quarterly return against the unhedged basket", "worst20": "worst 20-session loss against the unhedged basket"})
+EXIT_WORDS.update({"atr_trail_2": "a trailing stop 2 ATR below the peak", "atr_trail_3": "a trailing stop 3 ATR below the peak", "atr_trail_4": "a trailing stop 4 ATR below the peak",
+                   "target_1R": "a profit target at 1R (the stop distance)", "target_2R": "a profit target at 2R", "scale_half_then_trail3": "selling half at 1R, then a 3 ATR trailing stop"})
 HEADLINE = {   # the conclusion of each study, shown only once its rows are in the ledger (results pages: india/registrations/*_results_v1.md)
     ("XO1", "moving averages and crossovers"): "Tested 26 Oct (study XO1, 2000-2023): no moving-average crossover is a usable buy or sell signal. On liquid-250 stocks the "
         "golden cross was followed by about 2.7% WORSE returns over 60 sessions than ordinary days and the 20-day crossing above the 50-day by about 0.5-0.7% worse "
@@ -418,6 +446,24 @@ HEADLINE = {   # the conclusion of each study, shown only once its rows are in t
 }
 
 
+HEADLINE.update({
+    ("GP1", "gaps"): "Tested 26 Oct (study GP1, 2000-2023): there is no usable gap rule. Buying the open after a stock gaps down 2% or more beat ordinary days on paper "
+        "(+2.3% in 2000-2017, +0.4% in 2018-2023) but it cannot be traded as defined: the gap is only known after the open, the edge was about +2.6-3.2% a trade in 2002-07 "
+        "and zero or negative in 2021-23, and entering at the second five-minute bar (09:20) leaves a trade that lost 0.1% after costs. Gap-ups bought at the open did WORSE "
+        "than ordinary days (about -1.0%, OPPOSITE); buying the next open did nothing. Nifty and Bank Nifty gap-downs of 1% or more were followed by slightly better "
+        "weeks that are not significant; waiting 30 minutes is inconclusive (the 5-minute history starts in 2015)",
+    ("TS1", "stops and exits (trailing vs fixed)"): "Tested 26 Oct (study TS1, 2000-2023, the exit campaign's own entries): a trailing stop is not better than a fixed one, it was "
+        "worse in every comparison (OPPOSITE). A 2 ATR trailing stop earned 2.4% less per trade than a fixed 2 ATR stop in 2000-2017 and 1.8% less in 2018-2023 "
+        "(pullback entries -2.5% and -3.0%), and a 10% trailing stop 1.6% and 0.9% less than a fixed 7% stop. Trailing stops were hit on 99% of trades after 11 days, "
+        "fixed ones on about 64% after 32 days. A fixed stop beat selling after 20 sessions by about 1.2-1.7% a trade but below the strict bar and mostly from longer time "
+        "invested (INCONCLUSIVE). The fixed 7% stop kept the worst 5% of trades near -8%, against -12% to -17% for the fixed 2 ATR stop",
+    ("HG1", "hedging"): "Tested 26 Oct (study HG1, a liquid-250 equal-weight basket 2003-2023; the Nifty below its 200-day about 22% of sessions): no hedge is free. Holding "
+        "20% more cash below the 200-day made the worst 20-session stretch of a quarter 0.7% shallower for 0.2-0.4% a quarter (CONDITIONAL, the only pass; the maximum "
+        "drawdown only -74% to -68% and -55% to -53%). Short Nifty futures cut the worst 20 sessions from -44% to -32% (2003-17) and -41% to -16% (2018-23) but cost 1.1-1.7% "
+        "a quarter (growth 22.5% to 19.1% and 11.0% to 5.6% a year; return per unit of drawdown worse in 2018-23) and did not reach the bar in 2018-23 (INCONCLUSIVE). A monthly 5%-out-of-the-money "
+        "Nifty put protected only in 2018-23 (worst 20 sessions -41% to -15%), not in 2003-17 (REJECTED), as F06 found for always-on puts",
+})
+
 def _study_spec(s) -> tuple[str, str | None]:
     return s if isinstance(s, tuple) else (s, None)
 
@@ -433,7 +479,7 @@ def _study_row_words(r: dict) -> str:
     ev = EVENT.get(rest[0], rest[0]) if rest else r["variant"]
     if r["study"].split("-")[0] == "DII1":      # DII1 reuses FII1's version names for mutual-fund (SEBI) flows
         ev = ev.replace("foreign outflow", "mutual-fund outflow").replace("foreign inflow", "mutual-fund inflow")
-    out = OUT.get(rest[1], rest[1]) if len(rest) > 1 else ""
+    out = ", ".join(OUT.get(x, x) for x in rest[1:]) if len(rest) > 1 else ""
     trade = " (as a trade after costs)" if "absolute" in parts else ""
     if trade:
         out = out.replace(" against ordinary days", "")

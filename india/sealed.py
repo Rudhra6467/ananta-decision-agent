@@ -78,7 +78,8 @@ def read_index(purpose: str, since: str, names: list[str]) -> pd.DataFrame:
     root = paths.data_dir()
     files = [str(p) for p in (root / "silver/kite_index/day/day.parquet", root / "sealed/silver/kite_index/day/day.parquet") if p.exists()]
     con = duckdb.connect()
-    df = con.execute(f"select index_name, date, close from read_parquet({files!r}, union_by_name=true) where date >= ? and list_contains(?, index_name)", [since_d, names]).df()
+    # 26 Oct: the open too, so the market context can say how far the index opened from the previous close (the gap)
+    df = con.execute(f"select index_name, date, open, close from read_parquet({files!r}, union_by_name=true) where date >= ? and list_contains(?, index_name)", [since_d, names]).df()
     con.close()
     _log(purpose, "kite_index day " + ",".join(names), since, len(df))
     return df.drop_duplicates(["index_name", "date"], keep="last")

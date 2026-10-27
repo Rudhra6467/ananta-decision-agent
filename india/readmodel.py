@@ -73,6 +73,20 @@ def market(day: str) -> dict:
                 c["nifty_vs_sma200"] = float(cl.iloc[-1] / cl.tail(200).mean() - 1)
         except Exception:  # noqa: BLE001  the section still says what it can
             pass
+    if c.get("vix_close") is None:
+        # 26 Oct: the same gap for the fear gauge: the decision recorded no VIX (stale: last row 22 Oct) and the morning view read 15.73 beside 16.86.
+        # Fill the day's own close (and its distance from the 50-day average) from the index, the same reader the Nifty fill uses.
+        try:
+            from india import sealed
+            import datetime as _dt
+            ix = sealed.read_index("paper_context", (_dt.date.fromisoformat(day) - _dt.timedelta(days=330)).isoformat(), ["INDIA VIX"])
+            ix = ix[ix["date"].astype(str).str[:10] <= day].sort_values("date")
+            if len(ix) >= 50 and str(ix["date"].iloc[-1])[:10] == day:
+                cl = ix["close"].astype(float)
+                c["vix_close"] = float(cl.iloc[-1])
+                c["vix_vs_sma50"] = float(cl.iloc[-1] / cl.tail(50).mean() - 1)
+        except Exception:  # noqa: BLE001
+            pass
     v50, v200 = c.get("nifty_vs_sma50"), c.get("nifty_vs_sma200")
     if v50 is None or v200 is None:
         state = "unknown"
@@ -84,9 +98,29 @@ def market(day: str) -> dict:
         state = "mixed"
     words = {"above_both": "Nifty is above both its 50- and 200-day averages: an uptrend", "below_both": "Nifty is below both its 50- and 200-day averages: a downtrend",
              "mixed": "Nifty is between its 50- and 200-day averages: no clear trend", "unknown": "Nifty's trend could not be read"}[state]
+    nc = newer_closes(day)
     return {"status": "ok", "source": str(src), "data_through": j.get("data_through", day), "nifty_close": c.get("nifty_close"), "nifty_vs_sma50": v50, "nifty_vs_sma200": v200,
-            "trend_state": state, "vix_close": c.get("vix_close"), "breadth_200d_liquid": c.get("breadth200_liq"), "breadth_50d_liquid": c.get("breadth50_liq"),
+            "trend_state": state, "vix_close": c.get("vix_close"), "vix_vs_sma50": c.get("vix_vs_sma50"),
+            "breadth_200d_liquid": c.get("breadth200_liq"), "breadth_50d_liquid": c.get("breadth50_liq"),
+            "newer_closes": nc,
             "words": f"{words}; {_pct(v50)} from the 50-day, {_pct(v200)} from the 200-day; {round((c.get('breadth200_liq') or 0) * 100)}% of the liquid 250 are above their 200-day"}
+
+
+def newer_closes(day: str) -> dict:
+    """26 Oct (Madhav's yes): the stock-book decision is written at 22:30 Toronto, but the day's index closes land at the 12:30 fetch. When the index
+    is ahead of the decision day, say so with the newer closes (the decision-linked numbers above stay as decided: the allocator reads them).
+    Same reader as the technicals panel (sealed purpose paper_context)."""
+    try:
+        from india import technicals
+        fresh = technicals.latest_index(["NIFTY 50", "NIFTY BANK", "INDIA VIX"])
+    except Exception:  # noqa: BLE001  no index files (or none newer): nothing to add
+        return {}
+    out = {n: {"date": f["date"], "close": f["close"], "d1": f["d1"]} for n, f in fresh.items() if str(f.get("date")) > day}
+    if not out:
+        return {}
+    out["words"] = "; ".join(f"{n} {v['close']:,.2f} on {v['date']} ({_pct(v['d1'])})" for n, v in out.items() if isinstance(v, dict))
+    out["meaning"] = f"the index data runs past the decision day {day}; the section above is as decided on {day}, these are the newer closes"
+    return out
 
 
 def call(day: str) -> dict:
@@ -134,8 +168,14 @@ def stock_book(day: str) -> dict:
                              "open_unrealised_inr": m.get("open_unrealised_inr"), "win_rate": m.get("win_rate"), "expectancy_R": m.get("expectancy_R"),
                              "marked_at": m.get("at"), "policy_shown": REF_POLICY}
     positions = sorted(open_.values(), key=lambda r: (r["campaign"], -(r["pnl_pct"] or 0)))
+    try:   # flag 44 (26 Oct): closed and open counted apart, so a win rate over closed trades is never read as the whole book
+        from india import bookstats
+
+        cvo = bookstats.split(bookstats.trade_rows(st, REF_POLICY))
+    except Exception as e:   # noqa: BLE001
+        cvo = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
     return {"status": "ok", "source": f"{pdir / 'state.json'} (exec book) and {pdir / 'marks.jsonl'} (policy {REF_POLICY})", "rules": st.get("version"),
-            "open_positions": len(positions), "positions": positions[:40], "by_campaign": by_campaign,
+            "open_positions": len(positions), "positions": positions[:40], "by_campaign": by_campaign, "closed_vs_open": cvo,
             "note": "the research book's scale unit is Rs 50,000 per trade (results in % and R); the real paper capital is Rs 60,000 and sits in the SP1 line"}
 
 
@@ -339,6 +379,18 @@ def build(day: str | None = None) -> dict:
         rm["indicator_knowledge"] = technicals.knowledge()
     except Exception as e:   # noqa: BLE001 - the read model must build even if the panel fails; the section says why
         rm["technicals"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
+    try:   # 26 Oct: the market-context feed (rupee, dollar, crude, US yields and indices, the fear gauges, institutions' flows): explanation only
+        from india import marketcontext
+
+        rm["market_context"] = marketcontext.section()
+    except Exception as e:   # noqa: BLE001
+        rm["market_context"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
+    try:   # 26 Oct (Madhav: yes to all): expectancy, Sharpe-like ratio, holdings correlation and slippage, each with its own "too few" words
+        from india import bookstats
+
+        rm["book_stats"] = bookstats.build()
+    except Exception as e:   # noqa: BLE001
+        rm["book_stats"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
     rm["missing"] = [k for k, v in rm.items() if isinstance(v, dict) and v.get("status") == "missing"]
     rm["brief"] = brief(rm)
     body = json.dumps(rm, indent=1, default=str)

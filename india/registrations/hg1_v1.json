@@ -1,0 +1,47 @@
+{
+ "study": "HG1",
+ "family": "hedge",
+ "version": 1,
+ "written": "2026-10-26",
+ "asked_by": "Madhav, 26 Oct 2026 20:26 Toronto: \"your recommendations sounds good, yes to all.\" (the recommendation: test hedges on a long stock book. F06 tested only always-on monthly Nifty puts, not a hedge that switches on in a downtrend)",
+ "title": "Hedging a long stock basket when the Nifty is below its 200-day average: short index futures, 20% more cash, or a monthly 5%-out-of-the-money Nifty put",
+ "hypothesis": "A long basket of liquid stocks is better protected, at an acceptable cost in return, by (i) a short Nifty futures position equal to the basket whenever the Nifty closed below its 200-day average, (ii) holding 20% of the basket in cash whenever the Nifty closed below its 200-day average, or (iii) buying a one-month Nifty put 5% out of the money every month: each shows a shallower worst 20-session drawdown, and a better return per unit of drawdown, than the unhedged basket.",
+ "data": {
+  "basket": "gold/teachers/stock_panel.parquet: equal-weight daily average of the close-to-close returns of every stock ranked 1-250 by liquidity on the PREVIOUS session (one-day moves over 50% dropped), 2003-01-02 to 2023-12-29. It is a proxy for a long book, not the paper engine's slots. The basket's own trading costs are the same in every arm and are not charged",
+  "nifty": "silver/kite_index/day NIFTY 50 closes; the 200-day average uses closes up to the day before the return day",
+  "futures": "silver/fo_bhavcopy FUTIDX NIFTY settlement prices, 2003 onward: the nearest contract that does not expire before the day's close, the daily return on yesterday's contract (rolled by the nearest-expiry rule)",
+  "options": "silver/fo_bhavcopy OPTIDX NIFTY puts, settlement prices; the monthly expiries from silver/fo_calendar; reuses india/hedge.py overlay exactly (F06): buy at the monthly expiry close, half-spread and charges paid, marked at settlement, settled at expiry, rolled",
+  "nothing_sealed": "no 2024+ row and no sealed folder is read; nothing was looked at for outcomes before this spec was written"
+ },
+ "definitions": {
+  "signal": "the Nifty's close on the previous session is below its own 200-day simple average (a signal known at yesterday's close, applied to today's return)",
+  "short_futures": "return of the day = basket return minus signal x futures return (notional equal to the basket's equity, reset daily); 0.03% of notional per side whenever the position is opened or closed",
+  "cash20": "return of the day = (1 - 0.2 x signal) x basket return; 0.10% of the traded 20% whenever the exposure changes; cash earns nothing (conservative)",
+  "put5otm": "the F06 overlay with 5% out of the money and a notional of 100% of equity; the basket curve is the equity curve of the unhedged arm. Each period starts its own book at 1.0",
+  "unhedged": "the basket's own daily return, no overlay",
+  "worst 20-session drawdown (the worst20 variants)": "for each calendar quarter, the lowest 20-session compounded return of the arm ending on a day in that quarter (windows may start in the previous quarter)"
+ },
+ "outcomes": "daily returns of each arm and of the unhedged basket; quarterly returns compounded from the dailies",
+ "statistics": {
+  "return": "per calendar quarter, arm return minus unhedged return; t across quarters",
+  "worst20": "per calendar quarter, arm's worst 20-session return minus the unhedged basket's worst 20-session return (positive = a shallower drawdown); t across quarters",
+  "extras reported": "per period: compound annual return, maximum drawdown, return per unit of maximum drawdown, worst 20-session return, worst quarter, for the arm and the unhedged basket; the share of sessions the signal was on",
+  "periods": "development 2003-2017 (options exist from 2001), validation 2018-2023",
+  "verdict": "india/registry.record standard rule; MIN_DATES 16 blocks per period. A hedge is expected to cost return: expect +1 on each row says only that the hedge improves on the unhedged basket; the plain-words reading puts the return row and the worst20 row together"
+ },
+ "bar": {
+  "union_k": 18,
+  "bar_families": ["hedge"],
+  "z": 2.991,
+  "note": "family 'hedge' already holds F06's 12 rows; k frozen at 12 + these 6 variants"
+ },
+ "variants": {
+  "short_futures|return": 1,
+  "short_futures|worst20": 1,
+  "cash20|return": 1,
+  "cash20|worst20": 1,
+  "put5otm|return": 1,
+  "put5otm|worst20": 1
+ },
+ "not_claimed": "No paper rule changes from this study. The basket is a proxy; a pass would be a proposal for Madhav, then a forward paper check on the real slots."
+}

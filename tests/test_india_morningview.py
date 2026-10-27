@@ -105,3 +105,26 @@ def test_newest_index_close_replaces_the_day_plans_older_one(lake, monkeypatch):
     assert any("Nifty closed at 22,600 on 23 Oct" in x for x in f["lines"]["view"])
     assert f["setup"]["scenario_levels"]["up_above"] == 22756.0, "the forecast's lines stay as they were written"
     assert any("from the 22 Oct close of 22,688, not the newer 23 Oct close" in x for x in f["lines"]["watch"])
+
+
+STALE = "The fear gauge (expected swing size) is 15.73, 26% above its ten-week average. Options: fear gauge 15.73. My latest close in my data is 22,688."
+
+
+def test_refresh_note_replaces_only_the_stale_figures_by_rule():
+    f = {"overnight": {"india": {"fear gauge": {"close": 16.86, "plan_close": 15.73, "vs_sma50": 0.338, "date": "2026-10-26"},
+                                 "Nifty": {"close": 22753.2, "plan_close": 22688.0, "date": "2026-10-26"}}}}
+    out = mv.refresh_note(STALE, f)
+    assert "is 16.86, 34% above" in out and "Options: fear gauge 16.86." in out and "15.73" not in out
+    assert "latest close in my data is 22,753" in out and "22,688" not in out
+    assert mv.refresh_note(STALE, {"overnight": {"india": {}}}) == STALE and mv.refresh_note(None, f) is None
+
+
+def test_the_views_vix_is_never_older_than_the_newest_close(lake, monkeypatch):
+    from india import technicals
+    j = json.loads((lake / "paper" / "dayplans" / f"{SESSION}.json").read_text())
+    monkeypatch.setattr(technicals, "latest_index", lambda names: {"INDIA VIX": {"date": "2026-10-24", "close": 16.86, "d1": 0.07, "vs_sma50": 0.338}})
+    f = mv.build(SESSION)
+    assert f["overnight"]["india"]["fear gauge"]["close"] == 16.86 and f["setup"]["vix"] == 16.86 and f["setup"]["vix_vs_sma50"] == 0.338
+    # a close dated on the session itself is after the pre-open view: it never enters
+    monkeypatch.setattr(technicals, "latest_index", lambda names: {"INDIA VIX": {"date": SESSION, "close": 17.16, "d1": 0.02, "vs_sma50": 0.4}})
+    assert mv.build(SESSION)["overnight"]["india"]["fear gauge"]["close"] == 15.7

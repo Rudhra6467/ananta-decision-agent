@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -83,7 +84,7 @@ def _pct(x, nd=1) -> str:
 
 # ------------------------------------------------------------------------------------------------------------------------------ sections
 
-def overnight(plan: dict) -> dict:
+def overnight(plan: dict, session: str | None = None) -> dict:
     """What moved while India slept: the US close (Tiingo, fresh), India's own last close, the fear gauge, yesterday's institutional flows."""
     out = {"status": "ok", "us": {}, "india": {}, "flows": {}, "notes": []}
     p = _data() / "silver" / "us" / "us_close.parquet"
@@ -114,6 +115,8 @@ def overnight(plan: dict) -> dict:
         out["notes"].append(f"newest index close not read: {e.__class__.__name__}")
     for k, name in (("NIFTY 50", "Nifty"), ("NIFTY BANK", "Bank Nifty"), ("INDIA VIX", "fear gauge")):
         f, have = fresh.get(k), out["india"].get(name) or {}
+        if f and session and str(f.get("date")) >= str(session):    # a pre-open view never shows the session's own close (a rebuild after the close, 26 Oct)
+            continue
         if f and str(f.get("date")) > str(have.get("date") or ""):
             if have:
                 out["notes"].append(f"{name}: the day plan had the {have.get('date')} close; the newest is {f['date']}")
@@ -401,20 +404,43 @@ def next_session(after: str | None = None) -> str:
     return dayplan.next_session(d).isoformat()
 
 
+def refresh_note(words: str | None, f: dict) -> str | None:
+    """26 Oct: the written note is kept across a rebuild, so after the index closes arrived it still named the day plan's older numbers (the fear
+    gauge 15.73 beside 16.86; Nifty 22,688 beside 22,600). The model does not rewrite it; only the stale figures are replaced, by rule, when the
+    view now holds a newer close for that name (the plan's older close is recorded in the view as plan_close)."""
+    if not words:
+        return words
+    ind = (f.get("overnight") or {}).get("india") or {}
+    v, n = ind.get("fear gauge") or {}, ind.get("Nifty") or {}
+    out = words
+    if v.get("plan_close") is not None and v.get("close") is not None and v["plan_close"] != v["close"]:
+        old, new = f"{v['plan_close']:g}", f"{v['close']:g}"
+        pct = v.get("vs_sma50")
+        out = re.sub(rf"(fear gauge \(expected swing size\) is ){re.escape(old)}, \d+% (above|below)",
+                     lambda m: f"{m.group(1)}{new}, " + (f"{abs(pct) * 100:.0f}% {'above' if pct >= 0 else 'below'}" if pct is not None else f"{m.group(0).split(', ', 1)[1]}"), out)
+        out = re.sub(rf"(fear gauge ){re.escape(old)}\b", rf"\g<1>{new}", out)
+    if n.get("plan_close") is not None and n.get("close") is not None and round(n["plan_close"]) != round(n["close"]):
+        out = out.replace(f"latest close in my data is {n['plan_close']:,.0f}", f"latest close in my data is {n['close']:,.0f} ({_dw(n.get('date'))})")
+    return out
+
+
 def build(session: str | None = None) -> dict:
     rm = _load(_data() / "readmodel" / "latest.json", {}) or {}
     session = session or rm.get("next_session") or next_session(rm.get("data_through"))
     plan = _load(_paper() / "dayplans" / f"{session}.json", {}) or {}
     f = {"rules": RULES, "session": session, "built_at": _now(), "data_through": rm.get("data_through"), "paper": True,
-         "overnight": overnight(plan), "setup": setup(session, plan, rm), "plan": plan_today(session, rm), "scorecard": scorecard(rm), "yesterday": yesterday(rm)}
+         "overnight": overnight(plan, session), "setup": setup(session, plan, rm), "plan": plan_today(session, rm), "scorecard": scorecard(rm), "yesterday": yesterday(rm)}
     f["lessons_for_writer"] = lessons_for_writer(f["scorecard"], f["yesterday"])
+    fg = ((f["overnight"].get("india") or {}).get("fear gauge")) or {}
+    if fg.get("close") is not None and fg.get("date") and str(fg["date"]) > str(f.get("data_through") or ""):      # the setup's VIX is never older than the view's
+        f["setup"]["vix"], f["setup"]["vix_vs_sma50"] = fg["close"], fg.get("vs_sma50")
     f["lines"] = lines(f)
     f["sources"] = {"dayplan": str(_paper() / "dayplans" / f"{session}.json"), "us_close": str(_data() / "silver" / "us" / "us_close.parquet"), "readmodel": str(_data() / "readmodel" / "latest.json"),
                     "forecasts": str(_paper() / "forecasts.jsonl"), "decisions": str(_paper() / "decisions" / f"{rm.get('data_through')}.json")}
     prev = _load(_dir() / f"{session}.json", {}) or {}
     for k in ("words", "review", "reviewer_scenarios", "words_at", "opening"):     # the model's words and the opening update survive a rebuild
         if prev.get(k) is not None:
-            f[k] = prev[k]
+            f[k] = refresh_note(prev[k], f) if k in ("words", "review") and isinstance(prev[k], str) else prev[k]
     p = _dir() / f"{session}.json"
     p.write_text(json.dumps(f, indent=1, default=str))
     (_dir() / "latest.json").write_text(json.dumps(f, indent=1, default=str))

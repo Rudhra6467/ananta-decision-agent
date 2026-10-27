@@ -487,8 +487,9 @@ def books() -> dict:
         m = marks.get(camp) or {}
         by_camp.append({"id": camp, "name": f"Research book · {name}", "kind": "paper", "t": _ts(m.get("at")), "start": CAPS[camp] * NOTIONAL,
                         "value": round(CAPS[camp] * NOTIONAL + (m.get("realised_inr") or 0) + (m.get("open_unrealised_inr") or 0), 2), "status": "PAPER",
-                        "verdict": f"{m.get('open') or 0} open · {m.get('closed') or 0} closed · " + ("no closed trades yet" if not m.get("closed") else ("no wins yet" if not m.get("win_rate") else f"won {round(100 * m['win_rate'])}%"))
-                                   + (f" · {per_trade_pct(m):+.1f}% a closed trade" if per_trade_pct(m) is not None else ""),
+                        "verdict": f"{m.get('open') or 0} open · {m.get('closed') or 0} closed · " + ("no closed trades yet" if not m.get("closed") else ("no closed win yet" if not m.get("win_rate") else f"{round(100 * m['win_rate'])}% of closed won"))
+                                   + (f" · {per_trade_pct(m):+.1f}% a closed trade" if per_trade_pct(m) is not None else "")
+                                   + _open_side(camp),
                         "per_trade_pct": per_trade_pct(m), "events": m.get("closed") or 0, "result": None})
     n_closed = sum((m.get("closed") or 0) for m in marks.values())
     avg_all = round(100 * closed_pnl / (n_closed * NOTIONAL), 1) if n_closed else None
@@ -500,7 +501,19 @@ def books() -> dict:
             "initials": {}, "per_trade_pct": avg_all,
             "read": ("Paper only. Your account is the paper copy on Home; this research book tests Ananta's rules with ₹50,000 practice trades and is not your money."
                      # 25 Oct audit: rupee totals of notional ₹50,000 slots read like money lost next to a ₹1.6 lakh account; the per-trade % is the honest scale
-                     + (f" Read it in % per trade: its {n_closed} closed trades averaged {avg_all:+.1f}% each." if avg_all is not None else ""))}
+                     + (f" Read it in % per trade: its {n_closed} closed trades averaged {avg_all:+.1f}% each." if avg_all is not None else "")
+                     + (f" {str(((rm.get('stock_book') or {}).get('closed_vs_open') or {}).get('words'))[:1].upper()}{str(((rm.get('stock_book') or {}).get('closed_vs_open') or {}).get('words'))[1:]}." if ((rm.get("stock_book") or {}).get("closed_vs_open") or {}).get("words") else ""))}
+
+
+def _open_side(camp: str) -> str:
+    """Flag 44 (26 Oct): the open trades beside a closed-trades-only win rate, from the read model's closed_vs_open ("· 3 of 24 open are up (-3.4% avg)")."""
+    try:
+        o = (((readmodel().get("stock_book") or {}).get("closed_vs_open") or {}).get("by_family") or {}).get(camp, {}).get("open") or {}
+    except Exception:  # noqa: BLE001 - a missing read model leaves the old line
+        return ""
+    if not o.get("n"):
+        return ""
+    return f" · {o['winners']} of {o['n']} open are up" + (f" ({o['avg'] * 100:+.1f}% avg)" if o.get("avg") is not None else "")
 
 
 def per_trade_pct(m: dict) -> float | None:

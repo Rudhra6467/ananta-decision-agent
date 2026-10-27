@@ -31,10 +31,14 @@ WHAT = {
     "sr": r"\bsupport\b|\bresistance\b",
     "volume": r"\bvolumes?\b",
     "high52": r"\b52[- ]?week|\byearly high\b|\byear'?s high\b",
+    "gap": r"\bgap[- ]?(?:up|down|fill|rule|trade|trading)s?\b|\b(?:opening|overnight) gaps?\b|\bgaps? (?:up|down)\b|\bgapp(?:ed|ing)\b",
+    "stop": r"\btrailing[- ]stops?\b|\bfixed[- ]stops?\b|\bstop[- ]?loss(?:es)?\b|\btrail(?:ing)? (?:the )?stops?\b",
+    "hedge": r"\bhedg(?:e|es|ed|ing)\b|\bprotective puts?\b|\bput protection\b",
     "all": r"\btechnicals?\b|\bindicators?\b|\bchart\b",
 }
-ORDER = ("cross", "rsi", "macd", "sr", "volume", "high52", "all")
-FAMILY_OF = {"cross": "moving averages and crossovers", "rsi": "RSI and stochastic", "macd": "MACD", "sr": "support and resistance", "volume": "volume"}
+ORDER = ("cross", "rsi", "macd", "sr", "volume", "high52", "gap", "stop", "hedge", "all")
+NEWK = ("gap", "stop", "hedge")      # 26 Oct (GP1, TS1, HG1): answered here only as "was it tested?"; a reading-style question about them goes to the model
+FAMILY_OF = {"cross": "moving averages and crossovers", "rsi": "RSI and stochastic", "macd": "MACD", "sr": "support and resistance", "volume": "volume", "gap": "gaps", "stop": "stops and exits (trailing vs fixed)", "hedge": "hedging"}
 TESTED_Q = re.compile(r"\b(tested|test|evidence|proven|proof|work|works|working|edge|reliable|backtest(?:ed)?)\b", re.I)
 NOT_FOR_US = re.compile(r"\b(research|study|studies|analy[sz]e|flag|log it|note it|should (?:we|i)|let'?s|plan to|later|buy|sell|why)\b", re.I)
 
@@ -203,6 +207,8 @@ def technicals_flow(text: str) -> dict | None:
     if not text or len(text) > 200 or NOT_FOR_US.search(text):
         return None
     kinds = [k for k in ORDER if re.search(WHAT[k], text, re.I)]
+    if not TESTED_Q.search(text):
+        kinds = [k for k in kinds if k not in NEWK]
     if not kinds:
         return None
     rm = views.readmodel()
@@ -212,7 +218,7 @@ def technicals_flow(text: str) -> dict | None:
     names = _which(text, t)
     asked = [k for k in kinds if k != "all"][:3] or ["all"]     # "RSI on Bank Nifty and where is its support?" answers both (26 Oct check)
     kind = asked[0]
-    if TESTED_Q.search(text) and not names:          # "has RSI ever been tested?", "does the golden cross work?"
+    if TESTED_Q.search(text) and (not names or all(k in NEWK for k in asked)):          # "has RSI ever been tested?", "does the golden cross work?"
         line = " ".join(x for x in dict.fromkeys(_tested_line(rm, FAMILY_OF.get(k), full=True) for k in asked) if x)
         if not line:
             return None

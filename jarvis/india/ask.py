@@ -18,7 +18,7 @@ from pathlib import Path
 
 import requests
 
-from jarvis.india import appmap, technicals, views
+from jarvis.india import appmap, marketcontext, technicals, views
 
 DATA = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india")))
 ASK_DIR = DATA / "ask"
@@ -90,7 +90,12 @@ def facts(owner: bool = False) -> dict:
     return {"data_through": rm.get("data_through"), "next_session": rm.get("next_session"), "built_at": rm.get("built_at"), "brief": rm.get("brief"),
             "market": {k: (rm.get("market") or {}).get(k) for k in ("nifty_close", "nifty_vs_sma50", "nifty_vs_sma200", "trend_state", "vix_close", "breadth_200d_liquid", "words")},
             "daily_call": call_state(rm),
-            "stock_book": {"rules": sb.get("rules"), "open_positions": sb.get("open_positions"), "scale": "Rs 50,000 notional a trade (research scale), every registered exit tracked; the reference exit shown is hold_20d",
+            "stock_book": {"rules": sb.get("rules"), "open_positions": sb.get("open_positions"),
+                           # flag 44 (26 Oct): a win rate over closed trades alone hides the open winners; always say the two counts together
+                           "closed_vs_open": sb.get("closed_vs_open"),
+                           "win_rate_rule": "never say a bare 'win rate'. A win rate counts closed trades only; say it with the open book beside it, using closed_vs_open.words "
+                                            "(for example 'win rate counts closed trades only: 0 of 29 closed won; of 72 open, 10 are up') and use per_family_words for one family.",
+                           "scale": "Rs 50,000 notional a trade (research scale), every registered exit tracked; the reference exit shown is hold_20d",
                            "closed_trades_avg_pct": views.books().get("per_trade_pct"),
                            "how_to_say_it": "this is the research book of practice trades, not Madhav's money: say its result as the average % per closed trade "
                                             "(closed_trades_avg_pct, per family avg_pct_per_closed_trade), the scale the screens use; the rupee totals only if he asks for them",
@@ -118,6 +123,8 @@ def facts(owner: bool = False) -> dict:
                                           "meaning": "the nightly reconstruction card (what the market and other participants did, what Ananta did and did not do, trade reviews, findings); SAFE findings go to the repair board by themselves, DECISION findings wait for Madhav; the staircase says what the allocated capital may use (ADMITTED only; nothing yet)"},
             "teacher_libraries": _library_facts(),
             "technicals": technicals.facts_part(rm),     # 26 Oct: averages, crossovers, RSI, MACD, support/resistance, volume + what was tested
+            "book_stats": book_stats_facts(rm),     # 26 Oct (Madhav: yes to all): expectancy, Sharpe-like ratio, holdings correlation, slippage, each with its "too few" flag
+            "market_context": marketcontext.facts_part(rm),     # 26 Oct: rupee, dollar, crude, US yields/indices, fear gauges, FII/DII: to explain, never to predict
             **({"account_allocation": _alloc_facts()} if owner else {})}
 
 
@@ -508,7 +515,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     # 25 Oct refinement: a pick or a flag comes before the code answers ("use one and fix it" must reach the fix flow), and a turn cut off
     # mid-sentence, a stock's move, the research book and the next-session decision are answered in code, the same every time
     fixed = (garbled_flow(text) or nav_flow(text) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get) or fragment_flow(text) or morning_flow(text, who)
-             or technicals.technicals_flow(text)
+             or technicals.technicals_flow(text) or marketcontext.market_context_flow(text)
              or allocation_flow(text, who) or draft_flow(text, who) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text))
     prefix, text_q = "", text
     if fixed is not None and fixed.get("_then"):      # 26 Oct: a note or flag was saved, and the same message also asked a question: answer it
@@ -1012,6 +1019,30 @@ def _json_file(p: Path):
 BOOK_Q = re.compile(r"^\s*(?:hey ananta,?\s*)?(?:how is|how's|how are)\s+(?:the |our |my )?(?:stock )?(?:paper |research |practice )?(?:stock )?(?:book|trades|practice trades|research book)\b[^?]{0,25}(?:doing|going|performing)?\s*\??\s*$", re.I)
 
 
+def _open_words(rm: dict) -> str:
+    """Flag 44 (26 Oct): the open side of the book, said beside any closed-trade win rate ("of 72 open, 10 are up (avg -2.5%)")."""
+    cvo = ((rm.get("stock_book") or {}).get("closed_vs_open") or {})
+    o = (cvo.get("total") or {}).get("open") or {}
+    if not o.get("n"):
+        return ""
+    avg = o.get("avg")
+    return f"of {o['n']} open trades, {o['winners']} are up" + (f" (average {avg * 100:+.1f}%)" if avg is not None else "")
+
+
+def book_stats_facts(rm: dict) -> dict:
+    """26 Oct (Madhav: yes to all): the numbers Ask was missing, each with its own 'too few' words so a small count is never read as a finding."""
+    bs = rm.get("book_stats") or {}
+    if bs.get("status") != "ok":
+        return {"status": bs.get("status") or "missing", "why": bs.get("why") or "the book statistics were not built"}
+    return {"status": "ok", "reference_exit": bs.get("reference_exit"), "words": bs.get("words"),
+            "expectancy": bs.get("expectancy"), "sharpe_like": bs.get("sharpe"), "holdings": bs.get("holdings"), "slippage": bs.get("slippage"),
+            "how_to_say_it": "expectancy = the average result per trade (in % and in R, the trade's own stop distance), on closed trades and on closed plus open marked to the last close; "
+                             "always say n and the 'too few trades (n<30)' flag when it is set, and never call a flagged number a finding. The Sharpe-like ratio is only computed with 20 sessions; "
+                             "until then say 'only N sessions: not computed'. The holdings line is the average correlation of the 14 account holdings' daily returns over the last 60 sessions "
+                             "and how many sit below their 50-day average; say the diversification line from holdings.words. Slippage is the study fill minus the realistic fill on scored index-line "
+                             "trades, per option lot; with fewer than 20 trades say it is not enough to trust."}
+
+
 def book_flow(text: str) -> dict | None:
     """"How is the stock paper book doing?": the research book in % per closed trade, the scale the screens use since 25 Oct (the ₹50,000 slots
     are practice money, not his), family by family, from the same marks the Books screen reads."""
@@ -1032,7 +1063,8 @@ def book_flow(text: str) -> dict | None:
     rm = views.readmodel()
     trend = (rm.get("market") or {}).get("trend_state")
     a = (f"Sir, the research book (practice trades of ₹50,000 each that test Ananta's rules, not your money) holds {len(pos)} open trades and has closed {closed}. "
-         + (f"Its closed trades average {avg:+.1f}% each, and {wins} of {closed} were winners. " if avg is not None else "No trade has closed yet. ")
+         + (f"Its closed trades average {avg:+.1f}% each, and {wins} of {closed} closed trades won. " if avg is not None else "No trade has closed yet. ")
+         + (f"Counting only closed trades hides the open ones: {_open_words(rm)}. " if _open_words(rm) else "")
          + (f"By family: {'; '.join(fam)}; the random controls are the yardstick. " if fam else "")
          + ("The market is in a downtrend, below both its averages, which is where most of these stopped out." if trend == "below_both" else ""))
     return _reply(a.strip(), ["Which trades are open?", "What did you decide for the next session?", "Why does the book take random stocks?"],

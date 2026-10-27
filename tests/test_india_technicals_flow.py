@@ -138,3 +138,19 @@ def test_cross_date_from_the_history_and_the_one_before(monkeypatch):
     a = _a("when did the 50-day cross the 200-day on nifty?")
     assert "crossed below the 200-day on Mon 16 Mar, 149 sessions ago (a death cross)" in a and "golden cross of Wed 4 Jun 2025" in a
     assert "since at least" not in a
+
+
+def test_gap_stop_hedge_questions_are_answered_only_as_tested_or_not(monkeypatch):
+    """26 Oct (GP1, TS1, HG1): "is the gap rule tested?" says what the registry holds; a reading-style question about them goes to the model."""
+    fam = lambda head: {"tested": [], "not_tested": None, "headline": head}
+    know = {"status": "ok", "families": {**KNOW["families"],
+            "gaps": fam("Tested 26 Oct (study GP1, 2000-2023): there is no usable gap rule. More detail follows."),
+            "stops and exits (trailing vs fixed)": fam("Tested 26 Oct (study TS1, 2000-2023): a trailing stop is not better than a fixed one. More."),
+            "hedging": fam("Tested 26 Oct (study HG1): no hedge is free. More.")}}
+    monkeypatch.setattr(views, "readmodel", lambda: {**RM, "indicator_knowledge": know})
+    assert "no usable gap rule" in _a("is the gap rule tested?")
+    assert "no usable gap rule" in _a("does buying a gap-down work?")
+    assert "not better than a fixed one" in _a("has a trailing stop been tested against a fixed stop?")
+    assert "no hedge is free" in _a("is hedging tested on Nifty?")
+    for q in ("where is the stop for IDEA?", "what is the hedge ratio today?", "did Nifty gap down today?", "knowledge gaps in the tested rules?"):
+        assert technicals.technicals_flow(q) is None, q

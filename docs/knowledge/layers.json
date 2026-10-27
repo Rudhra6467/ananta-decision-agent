@@ -1666,7 +1666,8 @@
     "jarvis/india/voice.py",
     "jarvis/india/plain.py",
     "jarvis/india/appmap.py",
-    "jarvis/india/technicals.py"
+    "jarvis/india/technicals.py",
+    "jarvis/india/marketcontext.py"
    ]
   },
   {

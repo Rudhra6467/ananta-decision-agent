@@ -65,3 +65,14 @@ def test_new_families_answer_only_was_it_tested(rm):
     assert technicals.technicals_flow("has the P/E ratio been tested?") is None                # no family yet in the read model: the model answers
     assert technicals.FAMILY_OF["valuation"] == "valuation (P/E, P/B)" and technicals.FAMILY_OF["corp"] == "corporate actions"
     assert technicals.FAMILY_OF["beta"] == "beta and volatility" and technicals.FAMILY_OF["spread"] == "option spreads"
+
+
+def test_a_question_about_the_close_is_not_an_order():
+    """27 Oct live check: "How did the Nifty close today?" got the paper-only order refusal."""
+    import inspect, re
+    from jarvis.india import ask as ia
+    src = inspect.getsource(ia.ask)
+    assert "asks = " in src and "not asks" in src
+    assert ia.ACT.search("How did the Nifty close today?")          # the word matches, so the question test is what keeps it out
+    asks = lambda t: "?" in t or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", t, re.I)
+    assert asks("How did the Nifty close today?") and not asks("buy it now") and not asks("sell TATAPOWER today please")

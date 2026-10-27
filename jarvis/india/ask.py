@@ -559,7 +559,9 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         except Exception as e:  # noqa: BLE001
             f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
     t0 = time.time()
-    if ACT.search(text) and re.search(r"\b(now|please|for me|this|it|today)\b", text, re.I) and len(text) < 90:
+    # 27 Oct: "How did the Nifty close today?" is a question, not an order (the model still never places anything)
+    asks = "?" in text or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", text, re.I)
+    if ACT.search(text) and not asks and re.search(r"\b(now|please|for me|this|it|today)\b", text, re.I) and len(text) < 90:
         reply = {"kind": "answer", "stage": "observation", "answer": "Paper only, sir: nothing is placed, changed or closed from chat. The stock book and the index line decide by their rules, and every decision is in the Home feed.",
                  "breakdown": [], "evidence": ["India leakcheck: no order path exists in this service"], "assumption": "", "follow_ups": ["What did you decide for the next session?", "What are the guardrails?"],
                  "next_action": {}, "show": [], "options": [], "points": [], "actions": [], "ui": [], "route": "india"}

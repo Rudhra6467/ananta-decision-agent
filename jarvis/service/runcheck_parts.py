@@ -142,11 +142,14 @@ PARTS: list[dict] = [
                "regex": r"^\[(?P<t>\d{4}-\d\d-\d\d \d\d:\d\d)\] daily rows=(?P<work>\d+) status=(?P<err>.*)$", "ok_err": "ok"},
      "note": "OD-SHADOW-LANE: status is ok only when verify() found the chain intact and no rule failed; the lane shows counts only"},
     {"id": "chronos_shadow", "name": "Chronos shadow (Hugging Face forecaster, blind): BTC and ETH forecast each day, chain intact",
-     "job": "com.ananta.chronosshadow", "severity": "low", "since": "2026-10-26", "cadence": {"daily": "04:20", "tz": TOR, "grace": 3 * 3600},
+     "job": "com.ananta.chronosshadow", "severity": "low", "since": "2026-10-26", "cadence": {"daily": "04:20", "tz": TOR, "grace": 3 * 3600,
+                                                                                                    "early": 8 * 3600},
      "min_work": 1,
      "proof": {"log": "{runs}/shadow_chronos/run.log", "time_format": "%Y-%m-%d %H:%M", "tz": "UTC",
                "regex": r"^\[(?P<t>\d{4}-\d\d-\d\d \d\d:\d\d)\] daily rows=(?P<work>\d+) status=(?P<err>.*)$", "ok_err": "ok"},
-     "note": "Madhav 25 Oct ('add both'): a blind forward record only; counts here, no outcome until PW-HF-CHRONOS after 14 Dec"},
+     "note": "Madhav 25 Oct ('add both'): a blind forward record only; counts here, no outcome until PW-HF-CHRONOS after 14 Dec. "
+             "early (27 Oct): the UTC day closes at 20:00 Toronto, so a run from 20:20 the evening before (a catch-up by hand) "
+             "does that day's work; the 04:20 run then finds it already written"},
     {"id": "polymarket_shadow", "name": "Polymarket shadow (crowd vs Ananta on crypto price questions, read-only): questions recorded each day, chain intact",
      "job": "com.ananta.polymarketshadow", "severity": "low", "since": "2026-10-27", "cadence": {"daily": "04:45", "tz": TOR, "grace": 3 * 3600},
      "min_work": 1,

@@ -442,3 +442,27 @@ def test_every_query_runs_against_the_live_column_names(tmp_path):
     bad = [m for w in ("24h", "7d") for m in res["windows"][w]["misses"] if m["kind"] == "no proof" and "database" not in m["detail"]
            and "log at" not in m["detail"]]
     assert not bad, bad
+
+
+def test_a_chronos_forecast_written_by_hand_before_0420_is_not_an_empty_run(tmp_path):
+    """27 Oct: the day's forecasts were written by hand at 00:10 Toronto; the 04:20 run found them already written (rows=0).
+    The day's work was done, so that is no miss; a day with no rows at all still is."""
+    paths = _paths(tmp_path)
+    log = Path(paths["runs"]) / "shadow_chronos" / "run.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    lines = []
+    for d in range(1, 8):                                     # Oct 13 to 19, 04:20 Toronto = 08:20 UTC, normal days
+        lines.append(f"[{_utc(D0 - d * DAY + 8 * 3600 + 1200)}] daily rows=2 status=ok")
+    lines.append(f"[{_utc(D0 + 4 * 3600 + 600)}] daily rows=2 status=ok")       # Oct 20 00:10 Toronto, by hand
+    lines.append(f"[{_utc(D0 + 8 * 3600 + 1200)}] daily rows=0 status=ok")      # Oct 20 04:20, already written
+    log.write_text("\n".join(lines) + "\n")
+    part = _part("chronos_shadow", since="2026-10-13")
+    assert _misses(runcheck.run(paths, NOW, [part]), "24h") == []
+    log.write_text("\n".join(lines[:-2] + [lines[-1]]) + "\n")               # no hand run: the 04:20 run wrote nothing
+    ms = _misses(runcheck.run(paths, NOW, [part]), "24h")
+    assert len(ms) == 1 and ms[0]["kind"] == "empty"
+
+
+def _utc(t: int) -> str:
+    import datetime as _dt
+    return _dt.datetime.fromtimestamp(t, _dt.timezone.utc).strftime("%Y-%m-%d %H:%M")

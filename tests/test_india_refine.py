@@ -115,7 +115,7 @@ def test_india_speech_uses_india_words():
         seen.update(body)
         return {"text": "How did the Nifty close today?"}
     assert V.transcribe("eA==", "audio/wav", post) == "How did the Nifty close today?"
-    assert seen["context"] == "india" and seen["names"].startswith("Madhav")
+    assert seen["context"] == "india" and seen["names"] == "Madhav"      # 27 Oct: no ticker list (Whisper looped on it)
     out = V.check(post=lambda url, body: {"text": "nifty bank nifty zerodha sign tata power trim jio rated lakh rupees expiry week straddle fix one flag wrong morning view pullback trade"},
                   speak=lambda said, d, k: b"x")
     assert out["understood"] == out["of"] == 12 and out["pass"]

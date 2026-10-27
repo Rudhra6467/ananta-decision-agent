@@ -47,6 +47,7 @@ def facts_part(rm: dict) -> dict:
             "rupee_same_day": r(mc.get("rupee_same_day")), "macro": {k: r(v) for k, v in (mc.get("macro") or {}).items()},
             "india_vix": r(mc.get("india_vix")), "flows": mc.get("flows"), "gift_nifty": mc.get("gift_nifty"),
             "opening_gaps": mc.get("opening_gaps"),     # 26 Oct: each index's open against the previous close, with the GP1 tested line
+            "valuation": mc.get("valuation"),           # 27 Oct: Nifty 50 / 500 / Bank P/E, P/B, yield and their percentiles in 2024-free history
             "how_to_say_it": mc.get("how_to_say_it")}
 
 

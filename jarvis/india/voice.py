@@ -96,17 +96,11 @@ def clip(cid: str) -> tuple[bytes, str]:
 
 
 def expected_names(n: int = 12) -> str:
-    """The words Whisper should expect in India (25 Oct refinement): Madhav, then his holdings by size (the names he says most)."""
-    out = ["Madhav"]
-    try:
-        from jarvis.india import views
-        for h in (views.allocation_plan(full=True).get("holdings") or []):
-            s = str(h.get("symbol") or "")
-            if s and s not in out:
-                out.append(s)
-    except Exception:  # noqa: BLE001 - a missing plan never stops the voice
-        pass
-    return ", ".join(out[:n])
+    """The names Whisper is told to expect in India. 25 Oct: Madhav, then his holdings by size. 27 Oct: Madhav only. The holdings went in as
+    ticker codes ("TATAPOWER, UNITDSPR, TMPV"), and on a noisy or half-heard clip Whisper repeated them back ("Nameshav, TMPV, IDEA, MARICO,
+    UNITDSPR, TATAPOWER, TATAPOWER, ...", twice on the morning of 27 Oct). The India prompt already carries the spoken names (Tata Power,
+    Jio Financial ...), and the India voice check heard 12 of 12 both with and without the tickers (27 Oct), so they are dropped."""
+    return "Madhav"
 
 
 # Indian names Whisper still bends after the India prompt (25 Oct voice check: "GIO Financial"; with the old crypto prompt also "Ziradha",

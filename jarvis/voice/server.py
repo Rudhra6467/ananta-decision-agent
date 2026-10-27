@@ -81,17 +81,89 @@ def stt_prompt(names: str = "", context: str = "") -> str:
     return (STT_PROMPT_INDIA if context == "india" else STT_PROMPT) + (" Names: " + ", ".join(ns) + "." if ns else "")
 
 
-def stt_file(path: str | None, language: str | None = "en", names: str = "", context: str = "") -> str:
-    """language "en" for Madhav; None lets Whisper detect it (Telugu conversations with his family, Oct 11)."""
-    import mlx_whisper
+LOOP_MIN = 6           # a word or 2-3 word phrase repeated this often, making up half the transcript, is a Whisper loop, not speech
+SR = 16000
 
+
+def is_loop(text: str) -> bool:
+    """27 Oct: "TATAPOWER, TATAPOWER, TATAPOWER, ..." twice in one morning: on a noisy or half-heard clip Whisper repeats its prompt's names."""
+    from collections import Counter
+    import re
+    words = re.findall(r"[a-z0-9']+", (text or "").lower())
+    if len(words) < 8:
+        return False
+    for k in (1, 2, 3):
+        grams = [" ".join(words[i:i + k]) for i in range(0, len(words) - k + 1)]
+        g, c = Counter(grams).most_common(1)[0]
+        if c >= LOOP_MIN and c * k >= 0.5 * len(words):
+            return True
+    return False
+
+
+def _keep(seg: dict) -> bool:
+    """Whisper's own guards: a segment it rates as probably no speech (and not confidently decoded), or one that compresses like a loop, is dropped."""
+    if (seg.get("no_speech_prob") or 0) > 0.6 and (seg.get("avg_logprob") or 0) < -1.0:
+        return False
+    return (seg.get("compression_ratio") or 0) <= 2.4
+
+
+def _decode(audio, language, prompt):
+    import mlx_whisper
+    with _lock:
+        r = mlx_whisper.transcribe(audio, path_or_hf_repo=STT_MODEL, language=language, initial_prompt=prompt,
+                                   condition_on_previous_text=False, temperature=0.0)
+    segs = r.get("segments") or []
+    raw = (r.get("text") or "").strip()
+    kept = " ".join((x.get("text") or "").strip() for x in segs if _keep(x)).strip() if segs else raw
+    return kept, raw
+
+
+def voiced(a: np.ndarray, rate: int = SR, thr: float = 0.01) -> tuple[np.ndarray, float]:
+    """The clip with leading and trailing near-silence cut (a quarter second kept each side) and how many seconds are clearly above it
+    (20 ms frames over about -40 dBFS). Works on any format, since the audio comes decoded from ffmpeg."""
+    n = max(1, int(rate * 0.02))
+    if a.size < n:
+        return a, 0.0
+    frames = a[: a.size // n * n].reshape(-1, n)
+    rms = np.sqrt((frames ** 2).mean(axis=1) + 1e-12)
+    idx = np.flatnonzero(rms > thr)
+    if not idx.size:
+        return a[:0], 0.0
+    pad = int(0.25 * rate)
+    return a[max(0, idx[0] * n - pad): min(a.size, (idx[-1] + 1) * n + pad)], float(idx.size * 0.02)
+
+
+def stt_file(path: str | None, language: str | None = "en", names: str = "", context: str = "", info: dict | None = None) -> str:
+    """language "en" for Madhav; None lets Whisper detect it (Telugu conversations with his family, Oct 11).
+    27 Oct: silence trimmed first (a clip with almost no speech returns ""), Whisper's no-speech and loop guards applied per segment, and a
+    transcript that is still a repetition loop is decoded once more without any prompt before giving up ("" = "please say it again")."""
+    from mlx_whisper.audio import load_audio
+
+    info = info if info is not None else {}
     if path is None:                       # warm-up: load the model with a second of silence
         path = os.path.join(tempfile.gettempdir(), "ananta_silence.wav")
         sf.write(path, np.zeros(16000, dtype=np.float32), 16000)
-    with _lock:
-        r = mlx_whisper.transcribe(path, path_or_hf_repo=STT_MODEL, language=language, initial_prompt=stt_prompt(names, context) if language == "en" else None,
-                                   condition_on_previous_text=False, temperature=0.0)
-    return (r.get("text") or "").strip()
+        _decode(path, language, None)
+        return ""
+    try:
+        a = load_audio(path)
+        a, secs = voiced(a)
+    except Exception as exc:  # noqa: BLE001 - can't decode here: let Whisper read the file as before
+        a, secs = path, None
+        info["decode_error"] = str(exc)[:80]
+    info["voiced_s"] = secs
+    if secs is not None and secs < 0.25:
+        info["dropped"] = "no speech"
+        return ""
+    prompt = stt_prompt(names, context) if language == "en" else None
+    text, raw = _decode(a, language, prompt)
+    if is_loop(raw) or is_loop(text) or (raw and not text):
+        info["retry"] = "loop or guard: decoded again without the prompt"
+        text, raw = _decode(a, language, None)
+        if is_loop(text):
+            info["dropped"] = "repetition loop"
+            return ""
+    return text
 
 
 def encode_mp3(audio: np.ndarray, rate: int = 24000) -> tuple[bytes, str]:
@@ -229,15 +301,17 @@ def stt(b: STTReq) -> dict:
         f.write(raw)
         p = f.name
     t0 = time.time()
+    info: dict = {}
     try:
-        voiced = voiced_seconds(p)
         lang = getattr(b, 'language', 'en') or 'en'
-        text = stt_file(p, None if lang == 'auto' else lang, getattr(b, 'names', '') or '', getattr(b, 'context', '') or '')
+        text = stt_file(p, None if lang == 'auto' else lang, getattr(b, 'names', '') or '', getattr(b, 'context', '') or '', info)
+        vs = info.get("voiced_s")
+        vs = voiced_seconds(p) if vs is None else vs
     finally:
         os.unlink(p)
     # Whisper sometimes "hears" its prompt or stock phrases in near-silence. Drop those only when there was almost no
     # real speech in the clip, so a real "thank you" from Madhav still gets an answer.
-    stock = text.lower().strip(" .!") in ("", "thank you", "thanks for watching", "you", "bye")
-    if text.startswith("Madhav talking to Ananta") or text.startswith("Names:") or (stock and voiced < 0.35):
+    stock = text.lower().strip(" .!") in ("", "thank you", "thanks for watching", "you", "bye", "transcription by castingwords")
+    if text.startswith("Madhav talking to Ananta") or text.startswith("Names:") or (stock and vs < 0.35):
         text = ""
-    return {"text": text, "ms": int(1000 * (time.time() - t0))}
+    return {"text": text, "ms": int(1000 * (time.time() - t0)), **({"note": info.get("dropped") or info.get("retry")} if (info.get("dropped") or info.get("retry")) else {})}

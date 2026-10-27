@@ -34,13 +34,35 @@ WHAT = {
     "gap": r"\bgap[- ]?(?:up|down|fill|rule|trade|trading)s?\b|\b(?:opening|overnight) gaps?\b|\bgaps? (?:up|down)\b|\bgapp(?:ed|ing)\b",
     "stop": r"\btrailing[- ]stops?\b|\bfixed[- ]stops?\b|\bstop[- ]?loss(?:es)?\b|\btrail(?:ing)? (?:the )?stops?\b",
     "hedge": r"\bhedg(?:e|es|ed|ing)\b|\bprotective puts?\b|\bput protection\b",
+    # 27 Oct (Madhav's yes): the five families being tested in records india/technicals.py, answered here only as "was it tested?"
+    "candle": r"\bhammers?\b|\bengulfing\b|\bdojis?\b|\bcandlesticks?\b|\bcandle ?(?:stick )?patterns?\b",
+    "valuation": r"\bp/?e(?: ratio)?s?\b|\bpe ratio\b|\bprice[- ]to[- ]earnings\b|\bp/?b(?: ratio)?\b|\bprice[- ]to[- ]book\b|\bvaluations?\b|\bdividend yield\b",
+    "beta": r"\bbeta\b|\blow[- ]volatility\b|\blow[- ]vol\b",
+    "spread": r"\b(?:option )?spreads?\b|\bbull call\b|\bbear put\b|\bdebit spread\b|\bcredit spread\b",
+    "corp": r"\b(?:stock )?splits?\b|\bbonus(?: issues?)?\b|\bbuybacks?\b|\bdividends?\b",
     "all": r"\btechnicals?\b|\bindicators?\b|\bchart\b",
 }
-ORDER = ("cross", "rsi", "macd", "sr", "volume", "high52", "gap", "stop", "hedge", "all")
-NEWK = ("gap", "stop", "hedge")      # 26 Oct (GP1, TS1, HG1): answered here only as "was it tested?"; a reading-style question about them goes to the model
-FAMILY_OF = {"cross": "moving averages and crossovers", "rsi": "RSI and stochastic", "macd": "MACD", "sr": "support and resistance", "volume": "volume", "gap": "gaps", "stop": "stops and exits (trailing vs fixed)", "hedge": "hedging"}
+ORDER = ("cross", "rsi", "macd", "sr", "volume", "high52", "gap", "stop", "hedge", "candle", "valuation", "beta", "spread", "corp", "all")
+NEWK = ("gap", "stop", "hedge", "candle", "valuation", "beta", "spread", "corp")      # 26 Oct (GP1, TS1, HG1): answered here only as "was it tested?"; a reading-style question about them goes to the model
+FAMILY_OF = {"cross": "moving averages and crossovers", "rsi": "RSI and stochastic", "macd": "MACD", "sr": "support and resistance", "volume": "volume", "gap": "gaps", "stop": "stops and exits (trailing vs fixed)", "hedge": "hedging", "candle": "candlestick patterns", "valuation": "valuation (P/E, P/B)", "beta": "beta and volatility",
+             "spread": "option spreads", "corp": "corporate actions"}
 TESTED_Q = re.compile(r"\b(tested|test|evidence|proven|proof|work|works|working|edge|reliable|backtest(?:ed)?)\b", re.I)
-NOT_FOR_US = re.compile(r"\b(research|study|studies|analy[sz]e|flag|log it|note it|should (?:we|i)|let'?s|plan to|later|buy|sell|why)\b", re.I)
+NOT_FOR_US = re.compile(r"\b(research|study|studies|analy[sz]e|flag|log it|note it|should|let'?s|plan to|later|buy|sell|why|too late|enter|entry|"
+                        r"earnings|results|worth|good time|what do you think|your read|hold|add|trim|exit)\b", re.I)
+# 27 Oct: "TCS gapped up 4% after earnings. Is it too late to enter?" got NIFTY's support and resistance. A name Ananta has no panel for (an
+# upper-case ticker or a well-known company word) means the question is not about the Nifty: the model answers (it says what it has).
+TERMS = {"RSI", "MACD", "NSE", "BSE", "ETF", "ETFS", "ATR", "FII", "DII", "FPI", "VIX", "USD", "INR", "SMA", "DMA", "EMA", "SEBI", "RBI", "IPO", "OK",
+         "PE", "PB", "EPS", "GDP", "US", "AI", "NAV", "SIP", "OTM", "ATM", "ITM", "IST", "CE", "PM", "AM", "I", "A", "F&O", "FO", "NIFTY", "BANKNIFTY", "SENSEX"}
+COMPANY_WORDS = re.compile(r"\b(reliance|infosys|infy|wipro|hdfc|icici|kotak|axis bank|sbi|airtel|bharti|adani|bajaj|maruti|larsen|l&t|hul|hindustan unilever|"
+                           r"asian paints|titan|sun pharma|cipla|ongc|ntpc|coal india|itc|tcs|zomato|paytm|nykaa)\b", re.I)
+
+
+def _unknown_name(text: str, t: dict) -> bool:
+    have = set((t.get("stocks") or {}).keys())
+    for tok in re.findall(r"(?<![A-Za-z0-9])[A-Z][A-Z0-9&]{1,14}(?![A-Za-z0-9])", text):
+        if tok not in TERMS and tok not in have:
+            return True
+    return bool(COMPANY_WORDS.search(text)) and not any(re.search(rf"(?<![a-z0-9]){re.escape(s.lower())}(?![a-z0-9])", text.lower()) for s in have)
 
 
 def _dw(d) -> str:
@@ -216,6 +238,9 @@ def technicals_flow(text: str) -> dict | None:
     if not t:
         return None
     names = _which(text, t)
+    tested_q = bool(TESTED_Q.search(text))
+    if _unknown_name(text, t) and not tested_q:
+        return None                                   # a stock Ananta has no panel for: the model answers (27 Oct, the TCS question)
     asked = [k for k in kinds if k != "all"][:3] or ["all"]     # "RSI on Bank Nifty and where is its support?" answers both (26 Oct check)
     kind = asked[0]
     if TESTED_Q.search(text) and (not names or all(k in NEWK for k in asked)):          # "has RSI ever been tested?", "does the golden cross work?"
@@ -223,6 +248,8 @@ def technicals_flow(text: str) -> dict | None:
         if not line:
             return None
         return _reply(f"Sir, here is what Ananta has tested about it. {line}", FOLLOW["all"], ["indicator_knowledge (the registry and the teacher cards)"])
+    if any(k in NEWK for k in asked):
+        return None                                   # gaps, stops, hedges and the 27 Oct families are answered here only as "was it tested?"
     if not names:
         if kind == "all":
             return None                               # "what indicators do you use?" is not a question about one chart: the model answers

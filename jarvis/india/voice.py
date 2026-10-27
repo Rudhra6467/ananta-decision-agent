@@ -199,9 +199,11 @@ FILLER = re.compile(r"^(um+|uh+|hmm+|okay|ok|yeah|thanks?|thank you)[.!]?$", re.
 def turn(who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None, ask_fn, post=None) -> dict:
     heard, spk = transcribe_full(audio_b64, mime, post)
     if not heard:
-        return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone.", "voice_id": spk}
+        return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone.", "speaker": spk}
     if FILLER.match(heard.strip()):
-        return {"heard": heard, "thread": thread, "ignored": "filler", "voice_id": spk}
+        return {"heard": heard, "thread": thread, "ignored": "filler", "speaker": spk}
     ctx = {**(context or {}), "voice_id": spk}          # 27 Oct: who the voice belongs to, for the Ask's handover logic (jarvis/india/voiceid.py)
     out = ask_fn(who, heard, thread=thread, mode=mode, context=ctx, voice=True)
-    return {"heard": heard, "voice_id": spk, **out}
+    # 27 Oct: the speaker verdict is "speaker", never "voice_id": the app reads voice_id as the id of the answer's audio, and an object there sent
+    # it to /v3/voice/answer/[object Object] (404) and so to the phone's female voice for every answer
+    return {"heard": heard, "speaker": spk, **out}

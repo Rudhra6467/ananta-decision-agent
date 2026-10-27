@@ -553,7 +553,7 @@ export default function Ananta() {
         // the service already made the audio for r.speak (voice_id); a note about a screen that didn't open is added on top
         const base = r.speak ?? spokenText(r, "");
         const t = failNote ? `${base} ${failNote}`.trim() : base;
-        const id = failNote ? undefined : r.voice_id;
+        const id = failNote ? undefined : (typeof r.voice_id === "string" ? r.voice_id : undefined);   // 27 Oct: only an audio id, never an object
         if (t) await UI.pointAlong(t, r.points, (parts, onPart) => TTS.speak(parts, onPart, id));
         // a walk-through of another screen (not a plain "open Watchlists") ends back here with the closing line
         if (current() && r.ui?.length && r.mode !== "nav" && getScreen()?.screen !== "ananta") await comeBack();

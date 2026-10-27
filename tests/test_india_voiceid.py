@@ -33,7 +33,7 @@ def test_the_turn_carries_the_voice_verdict_to_the_ask():
         return {"answer": "ok", "thread": "t1"}
 
     out = V.turn("owner", "AAAA", "audio/wav", "t1", None, {"screen": "home"}, ask_fn, post=post)
-    assert out["voice_id"]["speaker"] == "madhav" and out["answer"] == "ok"
+    assert out["speaker"]["speaker"] == "madhav" and out["answer"] == "ok" and "voice_id" not in out   # voice_id is the audio id in the app
     assert seen["context"] == {"screen": "home", "voice_id": {"speaker": "madhav", "score": 0.77, "enrolled": True}} and seen["voice"] is True
     assert V.transcribe("AAAA", "audio/wav", post=post) == "How did the Nifty close today?"     # old callers still get text only
 

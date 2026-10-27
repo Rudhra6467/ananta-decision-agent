@@ -290,7 +290,7 @@ def _voice_run(fn, *a, **k):
 @r.post("/v3/voice/transcribe")
 def voice_transcribe(b: Audio, who: str = Depends(signed_in)) -> dict:
     text, spk = _voice_run(india_voice.transcribe_full, b.audio_b64, b.mime)
-    return {"text": text, "voice_id": spk}
+    return {"text": text, "speaker": spk}
 
 
 # 'Teach Ananta my voice' (Madhav, 27 Oct): only the owner's sign-in may enrol, reset or test; the voice print never leaves the Mac

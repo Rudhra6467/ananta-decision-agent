@@ -21,7 +21,7 @@ import { VoiceLoop, type Phase } from "../../src/voiceloop";
 import { Act, Bullet, Divider, Pill, Segmented, T, Tag, s as st } from "../../src/ui";
 import { C } from "../../src/theme";
 import { router } from "expo-router";
-import { MicIcon, SendIcon, SpeakerIcon, StopIcon, ThumbDownIcon, ThumbUpIcon } from "../../src/icons";
+import { CheckIcon, CopyIcon, MicIcon, RetryIcon, SendIcon, SpeakerIcon, StopIcon, ThumbDownIcon, ThumbUpIcon } from "../../src/icons";
 import { loadMe, useMe } from "../../src/visitor";
 import { useMarket } from "../../src/market";
 
@@ -35,30 +35,73 @@ type Msg = { id?: string; role: "user" | "assistant"; text?: string; voice?: boo
 const STAGE: Record<string, string> = { observation: "Observation", candidate: "Candidate setup", "candidate setup": "Candidate setup", setup: "Setup",
   decision: "Decision", execution: "Executed", position: "Open position", outcome: "Outcome", evaluation: "Evaluation", learning: "Learning" };
 
-const UserBubble = ({ text, voice }: { text: string; voice?: boolean }) => (
-  <View style={{ alignSelf: "flex-end", maxWidth: "85%", backgroundColor: C.card2, borderRadius: 18, borderBottomRightRadius: 4, paddingHorizontal: 14, paddingVertical: 10,
-    flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-    {voice ? <View style={{ paddingTop: 3 }}><MicIcon color={C.dim} size={14} /></View> : null}
-    <Text style={{ color: C.text, fontSize: 15, lineHeight: 22, flexShrink: 1 }}>{text}</Text>
-  </View>
-);
+// 27 Oct (Madhav): a copy icon on every message, shown on hover on a computer (like ChatGPT and Grok) and always, small, on a touch screen
+const TOUCH = Platform.OS !== "web" || (typeof window !== "undefined" && !!(window as any).matchMedia?.("(hover: none)")?.matches);
+async function copyText(t: string): Promise<boolean> {
+  try {
+    if (Platform.OS === "web" && (navigator as any)?.clipboard) { await (navigator as any).clipboard.writeText(t); return true; }
+    await Share.share({ message: t });
+    return true;
+  } catch { return false; }
+}
+function CopyBtn({ text, visible }: { text: string; visible: boolean }) {
+  const [done, setDone] = useState(false);
+  const on = visible || done;
+  return (
+    <Pressable onPress={async () => { if (await copyText(text)) { setDone(true); setTimeout(() => setDone(false), 1500); } else showToast("Could not copy it"); }}
+      hitSlop={8} accessibilityLabel="Copy message" disabled={!on}
+      style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 28, paddingHorizontal: 6, opacity: on ? 1 : 0 }}>
+      {done ? <CheckIcon color={C.good ?? C.accent} size={14} /> : <CopyIcon color={C.dim} size={14} />}
+      {done ? <Text style={{ color: C.dim, fontSize: 11 }}>Copied</Text> : null}
+    </Pressable>
+  );
+}
+
+const UserBubble = ({ text, voice }: { text: string; voice?: boolean }) => {
+  const [hover, setHover] = useState(false);
+  return (
+    <Pressable onHoverIn={() => setHover(true)} onHoverOut={() => setHover(false)} style={{ alignSelf: "flex-end", maxWidth: "85%", alignItems: "flex-end" }}>
+      <View style={{ backgroundColor: C.card2, borderRadius: 18, borderBottomRightRadius: 4, paddingHorizontal: 14, paddingVertical: 10,
+        flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+        {voice ? <View style={{ paddingTop: 3 }}><MicIcon color={C.dim} size={14} /></View> : null}
+        <Text selectable style={{ color: C.text, fontSize: 15, lineHeight: 22, flexShrink: 1 }}>{text}</Text>
+      </View>
+      <CopyBtn text={text} visible={hover || TOUCH} />
+    </Pressable>
+  );
+};
 
 // Oct 14: every answer is labelled with its language, model and (when spoken) voice, so a Telugu/English switch is visible, never a surprise
 const LANG: Record<string, string> = { te: "తెలుగు", en: "English" };
 const langOf = (m: Msg) => LANG[String(m.language ?? "")] ?? (/[\u0C00-\u0C7F]/.test(String(m.answer ?? "")) ? "తెలుగు" : "English");
 const voiceWords = (m?: Msg) => (m && langOf(m) === "తెలుగు" ? "Telugu voice" : TTS.engine === "phone" ? `Phone voice · ${TTS.rate}×` : `${TTS.voice} voice · ${TTS.rate}×`);
 
-function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPick: (q: string) => void; onRate: (v: number) => void; onSecond: () => void; onSpeak?: () => void; onShow?: () => void }) {
+function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: Msg; onPick: (q: string) => void; onRate: (v: number) => void; onSecond: () => void; onSpeak?: () => void; onShow?: () => void; onRetry?: () => void }) {
   const [layer, setLayer] = useState<"none" | "breakdown" | "evidence">("none");
+  const [hover, setHover] = useState(false);
   if (m.error) {
-    return <View style={{ backgroundColor: C.badSoft, borderRadius: 12, padding: 12 }}><Text style={{ color: C.bad }}>{m.error}</Text></View>;
+    // 27 Oct (Madhav): "For the failed to load questions here in chat, we need to add a retry button. Only for failed ones"
+    return (
+      <View style={{ backgroundColor: C.badSoft, borderRadius: 12, padding: 12, gap: 8 }}>
+        <Text style={{ color: C.bad }}>{m.error}</Text>
+        {m.retry && onRetry ? (
+          <Pressable onPress={onRetry} accessibilityLabel="Retry this question"
+            style={({ pressed }) => ({ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.card, borderRadius: 999,
+              paddingHorizontal: 12, paddingVertical: 7, opacity: pressed ? 0.6 : 1 })}>
+            <RetryIcon color={C.accent} size={14} />
+            <Text style={{ color: C.accent, fontSize: 13, fontWeight: "700" }}>Retry</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    );
   }
   // plan 4.2: a recommendation always carries a "Why?" chip (it explains the answer from its decision card and the chain)
   const recommends = m.kind === "answer" && !!(m.next_action || m.card || (m.actions ?? []).length);
   const chips: string[] = m.kind === "clarify" ? m.options ?? []
     : [...(recommends && !(m.follow_ups ?? []).some((f: string) => /^why\b/i.test(f)) ? ["Why?"] : []), ...(m.follow_ups ?? [])];
   return (
-    <View style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 16, borderTopLeftRadius: 4, padding: 14, gap: 10, maxWidth: "96%" }}>
+    <Pressable onHoverIn={() => setHover(true)} onHoverOut={() => setHover(false)}
+      style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 16, borderTopLeftRadius: 4, padding: 14, gap: 10, maxWidth: "96%" }}>
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
         {m.second_of ? <Pill text="SECOND OPINION" color={C.text} bg={C.card2} /> : null}
         {m.stage ? <Pill text={(STAGE[String(m.stage).toLowerCase()] ?? m.stage).toUpperCase()} color={C.accent} bg={C.accentSoft} /> : null}
@@ -67,7 +110,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
         {m.outside ? <Pill text={`FROM AI · ${m.outside.source ?? "outside our system"}`} color={C.warn} bg={C.warnSoft} /> : null}
         {m.kind === "cannot_do_yet" ? <Pill text="CAN'T DO THAT YET" color={C.warn} bg={C.warnSoft} /> : null}
       </View>
-      <Text style={{ color: C.text, fontSize: 15, lineHeight: 22 }}>{m.answer}</Text>
+      <Text selectable style={{ color: C.text, fontSize: 15, lineHeight: 22 }}>{m.answer}</Text>
       {m.assumption ? <T small>Assumed: {m.assumption}</T> : null}
       {m.outside ? <Text style={{ color: C.faint, fontSize: 11 }}>{m.outside.note}</Text> : null}
 
@@ -137,6 +180,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
         <Text style={[st.faint, { flex: 1 }]} numberOfLines={2}>
           {m.model_label ?? (m.provider === "gemini" ? "Gemini" : "Claude")} · {langOf(m)}{m.voice ? ` · ${voiceWords(m)}` : ""}{m.ms ? ` · ${(m.ms / 1000).toFixed(1)} s` : ""}{m.cost_usd ? ` · ${(m.cost_usd * 100).toFixed(1)}¢` : ""}{m.lookups?.length ? ` · ${m.lookups.length} lookup${m.lookups.length === 1 ? "" : "s"}` : ""}
         </Text>
+        {m.answer ? <CopyBtn text={String(m.answer)} visible={hover || TOUCH} /> : null}
         {onSpeak && m.answer ? (
           <Pressable onPress={onSpeak} hitSlop={8} accessibilityLabel="Read it aloud" style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}><SpeakerIcon color={C.dim} /></Pressable>
         ) : null}
@@ -148,7 +192,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow }: { m: Msg; onPi
           <ThumbDownIcon color={m.rating === -1 ? C.accent : C.dim} />
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -426,6 +470,19 @@ export default function Ananta() {
     return true;
   };
 
+  // the failed answer and its question come out of the list, and the same question is sent again in the same thread
+  const retryFailed = (m: Msg) => {
+    if (busy || !m.retry) return;
+    const q = String(m.retry);
+    setMsgs((all) => {
+      const i = all.indexOf(m);
+      if (i < 0) return all;
+      const from = i > 0 && all[i - 1].role === "user" && all[i - 1].text === q ? i - 1 : i;
+      return [...all.slice(0, from), ...all.slice(i + 1)];
+    });
+    send(q);
+  };
+
   const send = async (q: string) => {
     q = q.trim();
     if (!q || busy) return;
@@ -443,9 +500,12 @@ export default function Ananta() {
     try {
       const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: modeRef.current, context: where() });
       if (pendingChips.current.length && !r.error) { r.follow_ups = pendingChips.current; pendingChips.current = []; }
-      handleTextAnswer(r);
+      // 27 Oct: an answer that failed or came back empty keeps the question, so it can be retried with one tap
+      if (r.error || (!String(r.answer ?? "").trim() && !r.tour?.length && !r.ui?.length && r.kind !== "clarify"))
+        handleTextAnswer({ ...r, error: r.error ?? "That answer came back empty.", retry: q });
+      else handleTextAnswer(r);
     } catch (e: any) {
-      handleTextAnswer({ error: e?.message ?? String(e) });
+      handleTextAnswer({ error: e?.message ?? String(e), retry: q });
     } finally {
       setBusy(false);
     }
@@ -787,6 +847,7 @@ export default function Ananta() {
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
           <View key={i} style={{ gap: 8 }}>
             <Answer m={m} onPick={(q) => (live ? loop.onText(q) : send(q))} onRate={(v) => rate(m, v)} onSecond={() => second(m)}
+              onRetry={live || !m.retry ? undefined : () => retryFailed(m)}
               onSpeak={live ? undefined : () => { TTS.speak(UI.sentences(m.answer ?? ""), () => {}); }}
               onShow={live ? undefined : () => walkThrough(m)} />
             {i === msgs.length - 1 && m.kind === "answer" && !live && fl?.flags?.length ? <Flags flags={fl.flags} /> : null}

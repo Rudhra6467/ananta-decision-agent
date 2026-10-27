@@ -37,7 +37,8 @@ knowledge, as an expert would. Do NOT label it "general knowledge", "general mar
 say you are "marking it that way", and never refuse a basic question (NSE vs BSE: NSE is far larger by volume, especially in derivatives). Things that
 change over time (current SEBI rules, tax rates, fees, exchange volumes) you may give "as far as I know".
 (2) LIVE NUMBERS and anything about Madhav's account, the books, Ananta's plan, prices, indicators or flows: ONLY from the FACTS block in the user turn,
-with the date each number is as of; it is India's read model for the latest session ("morning_view" is the day's view written before the open: the market, Ananta's plan, the chances with their baselines, what to watch, yesterday's scorecard, the reviewer's second opinion; and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason; if the facts do not hold a live number, say so in one short clause and give what they do hold.
+with the date each number is as of (for "today", "the latest close" or "how did the Nifty close", use latest_closes, the newest dated close, and say
+its date; breadth, the trend averages and the books stay on data_through and say their own date); it is India's read model for the latest session ("morning_view" is the day's view written before the open: the market, Ananta's plan, the chances with their baselines, what to watch, yesterday's scorecard, the reviewer's second opinion; and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason; if the facts do not hold a live number, say so in one short clause and give what they do hold.
 (3) DOES IT WORK / SHOULD I USE IT: only from Ananta's tests in the facts (technicals.indicator_knowledge, teacher_libraries "tested", the registry
 verdicts, the study lines in market_context); if there is no test, say "Ananta hasn't tested this" once. That is the one caveat that matters, because
 he might act on it; a definition needs no caveat.
@@ -97,6 +98,42 @@ def _load_env_key() -> str:
 
 # ---------------------------------------------------------------------------------------------------------------- facts
 
+def latest_closes(rm: dict) -> dict:
+    """27 Oct (17:02 voice: "today's Nifty at 22,753 on 26 Oct" while the 27 Oct close was already in): the newest dated close of Nifty, Bank
+    Nifty and India VIX, whichever source is newest (the market section's newer_closes, the technicals panel, the market context), so 'today /
+    the latest close' is never the bhavcopy day's number."""
+    best: dict[str, dict] = {}
+
+    def put(name, date, close, d1=None, src=""):
+        if close is None or not date:
+            return
+        date = str(date)[:10]
+        if name not in best or date > best[name]["date"]:
+            best[name] = {"date": date, "close": close, "change_1d": d1, "source": src}
+    m = rm.get("market") or {}
+    for n, v in ((m.get("newer_closes") or {}).items() if isinstance(m.get("newer_closes"), dict) else []):
+        if isinstance(v, dict):
+            put(n, v.get("date"), v.get("close"), v.get("d1"), "newer closes")
+    if m.get("nifty_close") is not None:
+        put("NIFTY 50", m.get("data_through") or rm.get("data_through"), m.get("nifty_close"), None, "decision day")
+    if m.get("vix_close") is not None:
+        put("INDIA VIX", m.get("data_through") or rm.get("data_through"), m.get("vix_close"), None, "decision day")
+    for n, p in ((rm.get("technicals") or {}).get("indices") or {}).items():
+        if isinstance(p, dict):
+            put(n, p.get("as_of"), p.get("close"), p.get("change_1d"), "technicals panel")
+    mc = rm.get("market_context") or {}
+    for n, g in (((mc.get("opening_gaps") or {}).get("rows")) or {}).items():
+        if isinstance(g, dict):
+            put(n, g.get("date"), g.get("close"), g.get("day"), "market context")
+    v = mc.get("india_vix") or {}
+    if v.get("status") == "ok":
+        put("INDIA VIX", v.get("as_of"), v.get("value"), v.get("change_1"), "market context")
+    newest = max((x["date"] for x in best.values()), default=None)
+    return {"closes": best, "newest_date": newest,
+            "how_to_say_it": "for 'today', 'the latest close' or 'how did the Nifty close', use these newest dated closes and say their date; breadth, the "
+                             "trend averages in market and the books stay on data_through and say that date when it is older"}
+
+
 def facts(owner: bool = False) -> dict:
     """The read model, trimmed to what a question can use (about 3-4k tokens). The owner's facts also carry the account allocation plan."""
     rm = views.readmodel()
@@ -109,6 +146,7 @@ def facts(owner: bool = False) -> dict:
     pos = views.open_positions()
     marks = views.exec_marks()
     return {"data_through": rm.get("data_through"), "next_session": rm.get("next_session"), "built_at": rm.get("built_at"), "brief": rm.get("brief"),
+            "latest_closes": latest_closes(rm),
             "market": {k: (rm.get("market") or {}).get(k) for k in ("nifty_close", "nifty_vs_sma50", "nifty_vs_sma200", "trend_state", "vix_close", "breadth_200d_liquid", "words")},
             "daily_call": call_state(rm),
             "stock_book": {"rules": sb.get("rules"), "open_positions": sb.get("open_positions"),
@@ -383,19 +421,62 @@ def rate(mid: str, rating: int) -> dict:
 
 # ---------------------------------------------------------------------------------------------------------------- the model
 
-def _claude(system: str, history: list[dict], user: str, post=None) -> tuple[str, dict]:
+def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: int = 3000) -> tuple[str, dict]:
     key = _load_env_key()
     if not key:
         raise RuntimeError("no model key on this service")
     msgs = [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": user}]
-    body = {"model": MODEL, "max_tokens": 3000, "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}], "messages": msgs}   # the model thinks inside this budget too
+    body = {"model": MODEL, "max_tokens": int(max_tokens), "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}], "messages": msgs}   # the model thinks inside this budget too
     post = post or (lambda url, headers, body: requests.post(url, headers=headers, json=body, timeout=90).json())
     r = post("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body)
     if r.get("error"):
         raise RuntimeError(str(r["error"].get("message", r["error"]))[:160])
     text = "".join(c.get("text", "") for c in (r.get("content") or []) if c.get("type") == "text")
     u = r.get("usage") or {}
-    return text, {"in": u.get("input_tokens", 0), "out": u.get("output_tokens", 0), "cache_read": u.get("cache_read_input_tokens", 0) or 0, "model": MODEL}
+    return text, {"in": u.get("input_tokens", 0), "out": u.get("output_tokens", 0), "cache_read": u.get("cache_read_input_tokens", 0) or 0, "model": MODEL,
+                  "stop": r.get("stop_reason")}
+
+
+def _call(system: str, history: list[dict], user: str, post=None, max_tokens: int | None = None) -> tuple[str, dict]:
+    """_claude with a bigger budget when asked (a batch of questions, a retry); a stand-in without the max_tokens argument still works."""
+    if max_tokens:
+        try:
+            return _claude(system, history, user, post=post, max_tokens=max_tokens)
+        except TypeError:
+            pass
+    return _claude(system, history, user, post=post)
+
+
+# 27 Oct (14:40 chat): a pasted list of 28 numbered questions came back EMPTY twice (the reply hit the 3,000-token budget and the cut-off
+# JSON parsed to ''). A list of more than 8 numbered questions is answered 6 at a time, numbered, a line or two each, ending 'Say "next" for
+# 7 to 12.'; "next" / "continue" / "go on" answers the following 6 from the same list (kept on the assistant row as "batch").
+NUMBERED = re.compile(r"(?m)^\s*(?:\*\*)?(\d{1,2})[.)](?:\*\*)?\s+(.+?)\s*$")
+NEXT_Q = re.compile(r"^\W*(?:(?:ok(?:ay)?|yes|yeah|sure|good|great|thanks|thank you|ananta)[\s,.!]+)*(?:next|continue|go on|carry on|keep going|"
+                    r"next (?:ones|batch|six|set|questions|six questions)|the next (?:ones|six|batch)|more questions)\W*$", re.I)
+BATCH = 6
+EMPTY_FALLBACK = "That came back empty, sir. Please ask again, or send the questions a few at a time."
+
+
+def numbered_questions(text: str) -> list[str]:
+    qs = [m.group(2).strip() for m in NUMBERED.finditer(text or "") if len(m.group(2).split()) >= 2]
+    return qs if len(qs) > 8 else []
+
+
+def pending_batch(thread: str) -> dict | None:
+    """The list being answered in groups, when Ananta's last answer said 'Say "next" for ...'."""
+    for m in reversed(thread_messages(thread)):
+        if m.get("role") == "assistant":
+            b = m.get("batch") or {}
+            return b if b.get("questions") and int(b.get("next", 0)) < len(b["questions"]) else None
+    return None
+
+
+def batch_prompt(qs: list[str], start: int) -> tuple[str, int]:
+    end = min(start + BATCH, len(qs))
+    lines = "\n".join(f"{i + 1}. {q}" for i, q in enumerate(qs[start:end], start))
+    return (f"He sent a numbered list of {len(qs)} questions. Answer ONLY questions {start + 1} to {end} below, numbered exactly as in his list, "
+            f"one to two short sentences each (a should-I question: the decision in one line), plain words and no codes, in the \"answer\" field "
+            f"with each answer on its own line. Do not answer the others yet.\n{lines}"), end
 
 
 def _sections(text: str) -> dict:
@@ -573,13 +654,20 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             sp = {"kind": "back", "rest": speaker._rest(text) if not (sp and sp["kind"] == "back") else sp.get("rest", ""), "was": g0}
         elif vid == "other" and not sp and voiceid.needs_owner_check(text, vmeta, g0 is not None):
             sp = {"kind": "ask_who", "was": None}
+        if sp and sp.get("self_intro") and vid == "madhav":      # Madhav's own voice is never 'the grader introducing itself'
+            sp = None
     guest = speaker.current(thread)
     welcome, early = "", None
     if sp and sp["kind"] == "handover":
         speaker.set_guest(thread, sp["person"])
+        speaker.stranger_reset(thread)
         guest = speaker.current(thread)
-        early = _reply(speaker.greeting(sp["person"]), [], [f"who is speaking: Madhav handed the conversation to {sp['person']['name']}"],
-                       {"mode": "people", "note": f"Talking with {sp['person']['name']} now"})
+        if sp.get("self_intro") and sp.get("rest"):           # "Grader here: how is the book doing?": noted, and the question is answered
+            text = sp["rest"]
+        else:
+            early = _reply(speaker.greeting(sp["person"]), [], [f"who is speaking: {sp['person']['name']}" + (" (introduced itself)" if sp.get("self_intro") else
+                                                                f"; Madhav handed the conversation over")],
+                           {"mode": "people", "note": f"Talking with {sp['person']['name']} now"})
     elif sp and sp["kind"] == "back":
         if sp.get("was"):
             speaker.clear(thread)
@@ -595,13 +683,41 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                        [], ["who is speaking: a guest; approvals, flags and changes are Madhav's only"], {"mode": "people"})
     elif sp and sp["kind"] == "ask_who":
         early = _reply("Who am I speaking with? If it's you, sir, say \"it's me\".", [], ["who is speaking: not clear"], {"mode": "people"})
-    prev = None if early else expand_of(text, thread)
+    # 27 Oct: a voice the print is sure is not Madhav's, with no handover: no "sir"; after two such turns ask once "Am I speaking with the grader?"
+    stranger, ask_grader = False, ""
+    if voice and not str(who).startswith("guest:"):
+        if vid == "madhav":
+            speaker.stranger_reset(thread)
+        elif guest is None and not early and voiceid.clearly_other(vmeta):
+            st = speaker.stranger_tick(thread)
+            if st.get("asked") and speaker.AFFIRM.match(text):
+                p = speaker.observer("grader")
+                speaker.set_guest(thread, p)
+                speaker.stranger_reset(thread)
+                guest = speaker.current(thread)
+                early = _reply("Thank you, grader. Go ahead with your next question; anything that needs a yes stays with Madhav.", [],
+                               ["who is speaking: the grader (confirmed)"], {"mode": "people", "note": "Talking with the grader now"})
+            else:
+                stranger = True
+                if st["n"] >= 2 and not st.get("asked"):
+                    ask_grader = "Am I speaking with the grader?"
+                    speaker.stranger_mark_asked(thread)
+    batch = None                                       # 27 Oct: a long numbered list, answered 6 at a time ("next" for the rest)
+    if not early:
+        qs = numbered_questions(text)
+        if qs:
+            batch = {"questions": qs[:60], "start": 0}
+        elif NEXT_Q.match(text):
+            pb = pending_batch(thread)
+            if pb:
+                batch = {"questions": pb["questions"], "start": int(pb["next"])}
+    prev = None if (early or batch) else expand_of(text, thread)
     # plain navigation first ("show my stocks", "open my flags", "go back": done at once in code, flags 96/97), then the code-built answers
     # (a mode switch, the morning view, drafts, the portfolio review), then a pick, a problem or "my flags"
     # 25 Oct refinement: a pick or a flag comes before the code answers ("use one and fix it" must reach the fix flow), and a turn cut off
     # mid-sentence, a stock's move, the research book and the next-session decision are answered in code, the same every time
     owner_here = guest is None
-    fixed = early or (None if prev else (garbled_flow(text) or nav_flow(text) or (fix_flow(text, thread, token, context, post=flag_post, get=flag_get) if owner_here else None)
+    fixed = early or (None if (prev or batch) else (garbled_flow(text) or nav_flow(text) or (fix_flow(text, thread, token, context, post=flag_post, get=flag_get) if owner_here else None)
              or fragment_flow(text) or morning_flow(text, who)
              or technicals.technicals_flow(text) or marketcontext.market_context_flow(text)
              or (allocation_flow(text, who) if owner_here else None) or draft_flow(text, who) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text)))
@@ -612,6 +728,10 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         fixed = finish(fixed, text, model=False)
         if guest and not early:
             fixed["answer"] = speaker.address(fixed.get("answer"), guest)
+        if stranger:
+            fixed["answer"] = speaker.address(fixed.get("answer"), {"call": ""})
+        if ask_grader:
+            fixed["answer"] = f"{fixed.get('answer') or ''} {ask_grader}".strip()
         if welcome:
             fixed["answer"] = with_welcome(welcome, fixed.get("answer"))
         uid = uuid.uuid4().hex[:12]
@@ -648,12 +768,32 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                   "sentences or a short list, still plain words and no codes; add the reasons, numbers and caveats you left out, and do not repeat the first "
                   "answer word for word." if prev else
                   "\n\nSHORT MODE: 2-4 short sentences, the answer first (a decision: about 4); he will say 'explain more' when he wants the detail.")
+        b_end, budget = None, None
+        if batch:
+            text_q, b_end = batch_prompt(batch["questions"], batch["start"])
+            length, budget = "\n\nLIST MODE: one or two short sentences per question, numbered; nothing else.", 7000
         who_note = ("\n\n" + speaker.prompt_note(guest)) if guest else ""
+        if stranger:
+            who_note += ("\n\n[The voice print says this speaker is NOT Madhav and no handover is active: do not call them sir; answer the question "
+                         "neutrally and just as plainly. Approvals, flags and changes stay Madhav's.]")
         user = (f"QUESTION: {text_q}{length}{who_note}\n\nFACTS (India read model, data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\n"
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         try:
-            raw, usage = _claude(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post)
+            raw, usage = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post, max_tokens=budget)
             reply = _parse(raw)
+            # 27 Oct (14:40 / 14:44 chat): an empty answer is never shown. The answer is taken from the breakdown if only that came back; else
+            # one retry with a bigger budget and a 'be brief' instruction; else a plain line saying so
+            if not str(reply.get("answer") or "").strip() and reply.get("breakdown"):
+                reply["answer"] = "\n".join(str(x) for x in reply["breakdown"] if x)
+            if not str(reply.get("answer") or "").strip():
+                brief = ("\n\nYOUR LAST REPLY CAME BACK EMPTY OR CUT OFF. Answer now in at most 5 short sentences"
+                         + (" (one line per question)" if batch else "") + ", inside the JSON \"answer\" field.")
+                raw2, usage2 = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user + brief, post=post, max_tokens=max(budget or 0, 6000))
+                r2 = _parse(raw2)
+                if not str(r2.get("answer") or "").strip() and r2.get("breakdown"):
+                    r2["answer"] = "\n".join(str(x) for x in r2["breakdown"] if x)
+                usage = {**usage2, "in": usage.get("in", 0) + usage2.get("in", 0), "out": usage.get("out", 0) + usage2.get("out", 0), "retried": True}
+                reply = r2 if str(r2.get("answer") or "").strip() else {**reply, "answer": EMPTY_FALLBACK}
             # the model may move the app and light Home while it talks; only real places and spots pass (flags 96/97, 25 Oct)
             reply["ui"] = appmap.valid_ui(reply.get("ui"))
             reply["points"] = appmap.valid_points(reply.get("points"))
@@ -664,8 +804,21 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             reply = _offline(text, f, str(e)[:120])
             usage = {"model": "none"}
     reply = finish(reply, text, model=usage.get("model") not in ("rule", "none"))
+    if not str(reply.get("answer") or "").strip():
+        reply["answer"] = EMPTY_FALLBACK                       # never an empty answer (27 Oct)
     if guest:
         reply["answer"] = speaker.address(reply.get("answer"), guest)
+    if stranger:
+        reply["answer"] = speaker.address(reply.get("answer"), {"call": ""})
+    if batch and reply.get("answer") != EMPTY_FALLBACK:
+        end = min(batch["start"] + BATCH, len(batch["questions"]))
+        reply["batch"] = {"questions": batch["questions"], "next": end}
+        if end < len(batch["questions"]):
+            reply["answer"] = f"{reply['answer'].rstrip()}\n\nSay \"next\" for {end + 1} to {min(end + BATCH, len(batch['questions']))}."
+    elif batch:
+        reply["batch"] = {"questions": batch["questions"], "next": batch["start"]}
+    if ask_grader:
+        reply["answer"] = f"{reply.get('answer') or ''} {ask_grader}".strip()
     if prefix:
         reply["answer"] = f"{prefix} {reply.get('answer') or ''}".strip()
     if welcome:
@@ -1257,7 +1410,8 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         lines = "; ".join(f"{f.get('label') or 'request ' + str(f.get('num'))}: {str((f.get('flow') or {}).get('state_words') or f.get('state') or f.get('status_words') or f.get('status') or '?')} - {str(f.get('text') or '').split('] ', 1)[-1][:60]}" for f in flags)
         return _reply(f"Your flags, sir: {lines}.", ["Show my flags", "Flag something else"], [f"fix flow board: {len(flags)} shown"],
                       {"ui": [{"do": "go_to", "target": "flags", "label": "My flags"}]})
-    intent = flag_intent(text) if len(text) >= 8 else None
+    # 27 Oct (14:42 chat): a bare "Flag it" is 7 characters, so the old length guard (>= 8) sent it to the model and nothing was filed
+    intent = flag_intent(text) if (len(text.strip()) >= 8 or BARE_FLAG.match(text)) else None
     if intent and BARE_FLAG.match(text):          # "yeah, flag it": what it is about is in his last messages
         ctx = " ".join(str(x.get("text") or "") for x in thread_messages(thread)[-4:] if x.get("role") == "user")
         if RESEARCH.search(ctx) and not APP_BUG.search(ctx):
@@ -1292,7 +1446,7 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
             prev = thread_messages(thread)[-6:]
             said = next((m.group(1) for a in reversed([x for x in prev if x.get("role") == "assistant"])
                          for m in [re.search(r'flag it:\s*([^"”]{8,300})["”]', str(a.get("answer") or ""))] if m), None)
-            his = [str(x.get("text") or "") for x in prev if x.get("role") == "user" and not BARE_FLAG.match(str(x.get("text") or ""))][-2:]
+            his = [str(x.get("text") or "") for x in prev if x.get("role") == "user" and not BARE_FLAG.match(str(x.get("text") or ""))][-1:]   # the message just before
             body = (said or " / ".join(his) or text)[:600]
         r = post(f"{JARVIS_URL}/v3/flags", {"text": body[:600], "market": "india", "screen": screen, "route": "ask"})
         j = r.json() if hasattr(r, "json") else r

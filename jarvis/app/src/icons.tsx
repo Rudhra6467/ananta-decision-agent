@@ -56,6 +56,16 @@ export const ThumbDownIcon = ({ color, size = 20 }: P) => (
 export const StopIcon = ({ color, size = 20 }: P) => (
   <S size={size}><Rect x={6} y={6} width={12} height={12} rx={2} fill={color} /></S>
 );
+// 27 Oct (Madhav: "a copy symbol here on messages in chat, which only comes to life when we hover over them like in grok, chat gpt")
+export const CopyIcon = ({ color, size = 16 }: P) => (
+  <S size={size}><Rect x={8} y={8} width={12} height={12} rx={2} stroke={color} strokeWidth={1.8} /><Path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" stroke={color} strokeWidth={1.8} strokeLinejoin="round" /></S>
+);
+export const CheckIcon = ({ color, size = 16 }: P) => (
+  <S size={size}><Path d="m5 12.5 4.5 4.5L19 7.5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" /></S>
+);
+export const RetryIcon = ({ color, size = 16 }: P) => (
+  <S size={size}><Path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /></S>
+);
 export const SendIcon = ({ color, size = 20 }: P) => (
   <S size={size}><Path d="M4 12 20 4l-4 16-4-7-8-1Z" stroke={color} strokeWidth={1.8} strokeLinejoin="round" /></S>
 );

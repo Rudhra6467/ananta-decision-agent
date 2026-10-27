@@ -42,7 +42,16 @@ OWNER_ONLY = re.compile(
     r"(?:file|log|raise) (?:a |the )?(?:flag|bug|issue)|deploy|kill switch|go autonomous|switch (?:to )?(?:autonomous|advisory)|"
     r"(?:move|sell|buy|trim|exit|add to) (?:my|the) (?:holdings?|account|capital|money)|change (?:the|my) (?:rules?|allocation|plan))\b", re.I)
 OWNER_TOPIC = re.compile(r"\b(?:my account|my portfolio|my holdings|my flags?|my requests?|my money|my capital)\b", re.I)
-OBSERVER = re.compile(r"\b(?:the |our |my |an? )?(?P<role>grader|tester|examiner|evaluator|judge|reviewer|auditor|interviewer|assessor)\b", re.I)
+OBSERVER = re.compile(r"\b(?:the |our |my |an? )?(?P<role>grader|greater|grater|grade her|tester|examiner|evaluator|judge|reviewer|auditor|interviewer|assessor)\b", re.I)
+# 27 Oct voice session: Whisper writes "grader" as "greater" / "grater" / "grade her"; inside a handover or an introduction they mean the grader
+ROLE_ALIAS = {"greater": "grader", "grater": "grader", "grade her": "grader"}
+# The grader introducing itself ("No, you're talking to the greater ... I'm the greater and Ananta's the one"; "grader here: ...")
+SELF_INTRO = re.compile(
+    r"\b(?:i'?m|i am|this is|it'?s|it is|you'?re (?:talking|speaking) (?:to|with)|you are (?:talking|speaking) (?:to|with))\s+(?:the |your |an? )?"
+    r"(?P<role>grader|greater|grater|grade her|tester|examiner|evaluator)\b(?!\s+(?:than|chance|risk|return|number|part|good))"
+    r"|^\W*(?:(?:hi|hello|hey|okay|ok|so)[\s,.!]+)*(?:the )?(?P<role2>grader|greater|grater|tester|examiner) (?:here|speaking)\b", re.I)
+AFFIRM = re.compile(r"^\W*(?:yes|yeah|yep|yup|correct|right|that'?s right|that is right|i am|yes,? i am|yes,? (?:it'?s|this is) (?:the )?(?:grader|greater))"
+                    r"(?:,? (?:the )?(?:grader|greater))?[\s.!]*$", re.I)
 MOM_DAD = re.compile(r"\bmy (?P<rel>mom|mum|mother|amma|mummy|dad|father|nanna|daddy)\b", re.I)
 _WHO = r"(?P<who>[A-Za-z' ]{2,40}?)"
 _END = r"(?=[.,!?;:]|\s+(?:please|now|here|for a (?:bit|while|moment)|ji|garu)\b|$)"
@@ -127,7 +136,7 @@ def person_for(who: str, unknown_ok: bool = True) -> dict | None:
         return None
     m = OBSERVER.search(who)
     if m:
-        return {"id": m.group("role").lower(), "name": "the " + m.group("role").lower(), "role": "observer", "call": m.group("role").lower()}
+        return observer(m.group("role"))
     try:
         p = people.resolve(who) or people.find(w)
     except Exception:  # noqa: BLE001
@@ -153,6 +162,15 @@ def route(thread: str | None, text: str) -> dict | None:
             # no guest: only a bare "Ananta, it's me" is about who is speaking (a short "yes, sir"); "talk to me about RSI" is a question
             return {"kind": "back", "rest": "", "was": None} if IDENT.search(t) and not _rest(rest) else None
         return {"kind": "back", "rest": _rest(rest), "was": now}
+    si = SELF_INTRO.search(t)
+    if si:                                   # 27 Oct: the grader introduces itself (ask.py ignores it when the voice print says Madhav)
+        p = observer(si.group("role") or si.group("role2"))
+        if now and now.get("id") == p["id"]:
+            return None
+        rest = _rest((t[:si.start()] + " " + t[si.end():]).strip(" ,.!-:"))
+        rest = re.sub(r"^(?:no|yes|okay|understood|and)\b[\s,.!]*", "", rest, flags=re.I) if rest else rest
+        rest = re.sub(r"\b(?:and )?ananta'?s the one\b[\s,.!]*", "", rest, flags=re.I).strip(" ,.!-") if rest else rest
+        return {"kind": "handover", "person": p, "self_intro": True, "rest": rest if "?" in (rest or "") else ""}
     for rx, strong in HANDOVER:
         for m in rx.finditer(t):
             p = person_for(m.group("who"), unknown_ok=strong)
@@ -170,6 +188,40 @@ def route(thread: str | None, text: str) -> dict | None:
     if now and OWNER_TOPIC.search(t) and now.get("role") != "observer":
         return {"kind": "ask_who", "was": now}
     return None
+
+
+def observer(role: str) -> dict:
+    """An observer guest from its role word ('greater' is Whisper's 'grader')."""
+    r = re.sub(r"\s+", " ", (role or "grader").lower().strip())
+    r = ROLE_ALIAS.get(r, r)
+    return {"id": r, "name": "the " + r, "role": "observer", "call": r}
+
+
+# ---- a voice the voice print says is clearly not Madhav, with no handover (27 Oct): no "sir", and once "Am I speaking with the grader?"
+def _vkey(thread: str) -> str:
+    return f"{thread}#voice"
+
+
+def stranger_tick(thread: str) -> dict:
+    d = _load()
+    st = d.get(_vkey(thread)) or {"n": 0, "asked": False}
+    st = {"n": int(st.get("n", 0)) + 1, "asked": bool(st.get("asked")), "t": time.time()}
+    d[_vkey(thread)] = st
+    _save(d)
+    return st
+
+
+def stranger_mark_asked(thread: str) -> None:
+    d = _load()
+    st = d.get(_vkey(thread)) or {"n": 0}
+    d[_vkey(thread)] = {**st, "asked": True, "t": time.time()}
+    _save(d)
+
+
+def stranger_reset(thread: str) -> None:
+    d = _load()
+    if d.pop(_vkey(thread), None) is not None:
+        _save(d)
 
 
 def _rest(s: str) -> str:

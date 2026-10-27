@@ -453,6 +453,9 @@ INDIA_TOPIC = re.compile(r"\b(nifty|sensex|bank ?nifty|nse|bse|indian (?:stock |
 APP_TALK = re.compile(r"\b(flag|log (?:it|this)|bug|repair|fix|button|chip|switch|screen|tab|page|app)\b", re.I)
 
 
+PM_Q = re.compile(r"\bpoly ?market\b|\bprediction markets?\b|\bkalshi\b|\bcrowd'?s? (?:odds|probabilit\w*|forecast)|\bbetting odds\b", re.I)
+
+
 def india_redirect(text: str) -> dict | None:
     """Not for talk about the app itself ('flag this: the India switch is hard to find' stays here, with the repair shop), nor while Madhav has
     handed the conversation to someone (the caller checks)."""
@@ -2443,6 +2446,14 @@ class Ask:
                              + " | ".join(n["say"] for n in news[:3]) + "]")
         else:
             news = []
+        if PM_Q.search(text):        # 27 Oct (Madhav's yes): the Polymarket record-only shadow, counts only until 15 Dec
+            try:
+                from src.research import polymarket_shadow
+
+                notes.append(f"[POLYMARKET SHADOW (read-only, never a bet): {polymarket_shadow.status()['words']} Say exactly that; never quote a score "
+                             "or say which side is better before 15 Dec.]")
+            except Exception:  # noqa: BLE001
+                notes.append("[POLYMARKET SHADOW: its log could not be read right now; say so]")
         if not voice and source != "eval":
             notes.append("[typed chat: the answer is READ, not heard, and the screen does NOT move by itself. Answer fully in text. You may still "
                          "add ui_go / points / a tour as a plan; the app shows a 'Show me on screen' button and only walks him through it, "

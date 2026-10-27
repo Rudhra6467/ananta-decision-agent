@@ -13,7 +13,10 @@ exception, like OD-SHADOW-LANE)
 - No outcome is computed or kept: append() refuses any row carrying an outcome field. results() raises Sealed before 2026-12-15 00:00 UTC;
   the scoring study (PW-HF-CHRONOS in docs/LOCK.md section 9) is registered and run after the window.
 - Nothing in Ananta reads this log: no book, brain, gate, Ask, screen or brief (tests/test_chronos_shadow.py checks the repo).
-- It opens the lake's daily file read-only and writes only under its own folder. It never touches a trade.
+- It opens the lake's daily file read-only (and, since 27 Oct, adds the finished days the weekly lake does not have yet from Binance spot's
+  public daily candles, the lake's own source) and writes only under its own folder. It never touches a trade.
+- One reader besides the run checker (Madhav's yes of 27 Oct 00:05): src/research/polymarket_shadow.py turns each forecast into a probability
+  for Polymarket's crypto price questions; it is blind too (no score before 2026-12-15).
 
   python -m src.research.chronos_shadow run       one day's forecasts (runs in ~/ananta_venvs/hf; launchd com.ananta.chronosshadow 04:20 Toronto)
   python -m src.research.chronos_shadow verify    the chain
@@ -109,14 +112,34 @@ def results():
     return _rows()
 
 
-def closes(coin: str) -> tuple[list[int], np.ndarray]:
-    """Daily bar times and closes from the lake's daily file, opened read-only."""
+BINANCE_DAILY = "https://data-api.binance.vision/api/v3/klines"   # Binance's public market-data mirror (no key); the lake's own source
+
+
+def _api_daily(coin: str, after_t: int, now: float) -> list[tuple[int, float]]:
+    """Complete UTC daily candles after after_t from Binance spot (COINUSDT), the same market the lake is built from (27 Oct: the lake's daily
+    file is rebuilt only on Sundays, so on every other day the shadow skipped: 'the latest daily bar is ..., expected ...'; 0 rows written)."""
+    import urllib.request
+
+    url = f"{BINANCE_DAILY}?symbol={coin}USDT&interval=1d&startTime={(after_t + DAY) * 1000}&limit=10"
+    req = urllib.request.Request(url, headers={"User-Agent": "Ananta chronos shadow (read-only)"})
+    rows = json.loads(urllib.request.urlopen(req, timeout=30).read())
+    return [(int(r[0]) // 1000, float(r[4])) for r in rows if int(r[6]) // 1000 < now]          # r[6] = close time: only finished days
+
+
+def closes(coin: str, upto: str | None = None, now: float | None = None) -> tuple[list[int], np.ndarray]:
+    """Daily bar times and closes from the lake's daily file, opened read-only. When the lake ends before `upto` (a UTC day), the missing
+    finished days are added from Binance spot daily candles (_api_daily); a fetch failure leaves the lake's rows, and run() then skips as before."""
     con = sqlite3.connect(f"file:{daily_db()}?mode=ro", uri=True)
     try:
-        rows = con.execute("SELECT t, c FROM bars WHERE coin = ? ORDER BY t", (coin,)).fetchall()
+        rows = [(int(r[0]), float(r[1])) for r in con.execute("SELECT t, c FROM bars WHERE coin = ? ORDER BY t", (coin,)).fetchall()]
     finally:
         con.close()
-    return [int(r[0]) for r in rows], np.array([float(r[1]) for r in rows])
+    if rows and upto and datetime.fromtimestamp(rows[-1][0], UTC).strftime("%Y-%m-%d") < upto:
+        try:
+            rows += [x for x in _api_daily(coin, rows[-1][0], now or time.time()) if x[0] > rows[-1][0]]
+        except Exception:  # noqa: BLE001  no network: the lake's rows only, and the day is skipped as stale
+            pass
+    return [r[0] for r in rows], np.array([r[1] for r in rows])
 
 
 _PIPE = None
@@ -152,7 +175,7 @@ def run(now: float | None = None) -> dict:
     written, skipped = [], []
     todo = []
     for coin in COINS:
-        ts, c = closes(coin)
+        ts, c = closes(coin, upto=want, now=now)
         if not ts:
             skipped.append(f"{coin}: no bars")
             continue

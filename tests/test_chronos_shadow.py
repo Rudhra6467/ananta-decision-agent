@@ -26,6 +26,7 @@ def lake(tmp_path, monkeypatch):
     con.close()
     monkeypatch.setenv("ANANTA_LAKE_DAILY", str(db))
     monkeypatch.setattr(S, "predict", lambda ctx: np.tile(np.linspace(0.98, 1.02, 9), (len(ctx), S.PRED_LEN, 1)) * 100.0)
+    monkeypatch.setattr(S, "_api_daily", lambda coin, after_t, now: [])        # no network in tests
     return datetime(2026, 10, 26, 8, 20, tzinfo=timezone.utc).timestamp()
 
 
@@ -63,7 +64,8 @@ def test_sealed_until_the_window_ends(lake, monkeypatch):
 def test_nothing_reads_the_shadow():
     out = subprocess.run(["git", "-C", str(ROOT), "grep", "-l", "-e", "chronos_crypto", "-e", "chronos_shadow", "--", "jarvis", "src", "scripts"],
                          capture_output=True, text=True).stdout.split()
-    allowed = {"src/research/chronos_shadow.py", "jarvis/service/runcheck_parts.py"}      # the module itself; the run checker counts run lines only
+    allowed = {"src/research/chronos_shadow.py", "jarvis/service/runcheck_parts.py",     # the module itself; the run checker counts run lines only
+               "src/research/polymarket_shadow.py"}      # Madhav's yes of 27 Oct 00:05: the Polymarket shadow, blind too (sealed until 15 Dec)
     untracked = [f for f in ("jarvis", "src", "scripts")]
     assert set(out) <= allowed, f"something reads the Chronos shadow: {set(out) - allowed}"
     for d in untracked:
@@ -71,3 +73,18 @@ def test_nothing_reads_the_shadow():
             rel = str(f.relative_to(ROOT))
             if rel not in allowed and ("chronos_crypto" in f.read_text(errors="ignore") or "chronos_shadow" in f.read_text(errors="ignore")):
                 pytest.fail(f"{rel} mentions the Chronos shadow")
+
+
+def test_missing_days_come_from_binance_daily_candles(lake, monkeypatch):
+    """27 Oct: the lake's daily file is rebuilt only on Sundays, so the shadow skipped every other day (0 rows). Finished days after the lake's
+    last bar are added from Binance spot daily candles; an unfinished day is never used; a fetch failure skips the day as before."""
+    t25 = int(datetime(2026, 10, 25, tzinfo=timezone.utc).timestamp())
+    now = lake + 2 * 86400                                                      # 28 Oct 08:20 UTC: wants the 27 Oct bar
+    monkeypatch.setattr(S, "_api_daily", lambda coin, after_t, n: [(t25 + 86400, 101.0), (t25 + 2 * 86400, 102.0)])
+    r = S.run(now=now)
+    assert sorted(r["written"]) == ["BTC 2026-10-27", "ETH 2026-10-27"]
+    def boom(*a):
+        raise OSError("no network")
+    monkeypatch.setattr(S, "_api_daily", boom)
+    r2 = S.run(now=now + 86400)
+    assert r2["written"] == [] and all("expected 2026-10-28" in s for s in r2["skipped"])

@@ -116,11 +116,27 @@ def fix_heard(text: str) -> str:
     return text
 
 
-def transcribe(audio_b64: str, mime: str, post=None) -> str:
+def transcribe_full(audio_b64: str, mime: str, post=None) -> tuple[str, dict]:
+    """The words and who spoke them (27 Oct: the voice server scores each clip against Madhav's enrolled voice; "unknown" when it can't say)."""
     post = post or (lambda url, body: requests.post(url, json=body, timeout=120).json())
     # context "india": the voice server uses India's words (Nifty, Zerodha, lakh ...), not the crypto prompt it used before 25 Oct
     j = post(f"{VOICE_URL}/stt", {"audio_b64": audio_b64, "mime": mime or "audio/webm", "language": "en", "context": "india", "names": expected_names()})
-    return fix_heard(str(j.get("text") or "").strip())
+    spk = j.get("speaker") if isinstance(j.get("speaker"), dict) else {"speaker": "unknown", "score": None}
+    return fix_heard(str(j.get("text") or "").strip()), spk
+
+
+def transcribe(audio_b64: str, mime: str, post=None) -> str:
+    return transcribe_full(audio_b64, mime, post)[0]
+
+
+# ---- 'Teach Ananta my voice' (27 Oct): the app's enrolment screen talks to the voice server's /speaker/* routes through these
+def speaker_call(path: str, body: dict | None = None, post=None) -> dict:
+    if post is not None:
+        return post(f"{VOICE_URL}/speaker/{path}", body or {})
+    url = f"{VOICE_URL}/speaker/{path}"
+    r = requests.get(url, timeout=15) if body is None else requests.post(url, json=body, timeout=60)
+    r.raise_for_status()
+    return r.json()
 
 
 # ---- the India voice check (25 Oct refinement; crypto's is jarvis/service/exam.py voice): India phrases spoken by the Mac's own voice, heard by
@@ -181,10 +197,11 @@ FILLER = re.compile(r"^(um+|uh+|hmm+|okay|ok|yeah|thanks?|thank you)[.!]?$", re.
 
 
 def turn(who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None, ask_fn, post=None) -> dict:
-    heard = transcribe(audio_b64, mime, post)
+    heard, spk = transcribe_full(audio_b64, mime, post)
     if not heard:
-        return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone."}
+        return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone.", "voice_id": spk}
     if FILLER.match(heard.strip()):
-        return {"heard": heard, "thread": thread, "ignored": "filler"}
-    out = ask_fn(who, heard, thread=thread, mode=mode, context=context, voice=True)
-    return {"heard": heard, **out}
+        return {"heard": heard, "thread": thread, "ignored": "filler", "voice_id": spk}
+    ctx = {**(context or {}), "voice_id": spk}          # 27 Oct: who the voice belongs to, for the Ask's handover logic (jarvis/india/voiceid.py)
+    out = ask_fn(who, heard, thread=thread, mode=mode, context=ctx, voice=True)
+    return {"heard": heard, "voice_id": spk, **out}

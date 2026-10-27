@@ -289,7 +289,44 @@ def _voice_run(fn, *a, **k):
 
 @r.post("/v3/voice/transcribe")
 def voice_transcribe(b: Audio, who: str = Depends(signed_in)) -> dict:
-    return {"text": _voice_run(india_voice.transcribe, b.audio_b64, b.mime)}
+    text, spk = _voice_run(india_voice.transcribe_full, b.audio_b64, b.mime)
+    return {"text": text, "voice_id": spk}
+
+
+# 'Teach Ananta my voice' (Madhav, 27 Oct): only the owner's sign-in may enrol, reset or test; the voice print never leaves the Mac
+def _owner_only(who: str) -> None:
+    if str(who).startswith("guest:"):
+        raise HTTPException(status_code=403, detail="only Madhav can teach Ananta his voice")
+
+
+@r.get("/v3/voice/speaker/status")
+def speaker_status(who: str = Depends(signed_in)) -> dict:
+    _owner_only(who)
+    return _voice_run(india_voice.speaker_call, "status")
+
+
+@r.post("/v3/voice/speaker/start")
+def speaker_start(who: str = Depends(signed_in)) -> dict:
+    _owner_only(who)
+    return _voice_run(india_voice.speaker_call, "start", {})
+
+
+@r.post("/v3/voice/speaker/enrol")
+def speaker_enrol(b: Audio, who: str = Depends(signed_in)) -> dict:
+    _owner_only(who)
+    return _voice_run(india_voice.speaker_call, "enrol", {"audio_b64": b.audio_b64, "mime": b.mime})
+
+
+@r.post("/v3/voice/speaker/test")
+def speaker_test(b: Audio, who: str = Depends(signed_in)) -> dict:
+    _owner_only(who)
+    return _voice_run(india_voice.speaker_call, "test", {"audio_b64": b.audio_b64, "mime": b.mime})
+
+
+@r.post("/v3/voice/speaker/reset")
+def speaker_reset(who: str = Depends(signed_in)) -> dict:
+    _owner_only(who)
+    return _voice_run(india_voice.speaker_call, "reset", {})
 
 
 @r.post("/v3/voice/turn")

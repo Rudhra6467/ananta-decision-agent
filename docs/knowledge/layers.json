@@ -1075,6 +1075,7 @@
     "jarvis/app/scripts/webmic_browser_test.py",
     "jarvis/service/speech.py",
     "jarvis/voice/server.py",
+    "jarvis/voice/speaker.py",
     "jarvis/evals/run.py"
    ]
   },
@@ -1668,7 +1669,10 @@
     "jarvis/india/plain.py",
     "jarvis/india/appmap.py",
     "jarvis/india/technicals.py",
-    "jarvis/india/marketcontext.py"
+    "jarvis/india/marketcontext.py",
+    "jarvis/india/askwords.py",
+    "jarvis/india/speaker.py",
+    "jarvis/india/voiceid.py"
    ]
   },
   {

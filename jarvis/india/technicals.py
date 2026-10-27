@@ -46,6 +46,9 @@ ORDER = ("cross", "rsi", "macd", "sr", "volume", "high52", "gap", "stop", "hedge
 NEWK = ("gap", "stop", "hedge", "candle", "valuation", "beta", "spread", "corp")      # 26 Oct (GP1, TS1, HG1): answered here only as "was it tested?"; a reading-style question about them goes to the model
 FAMILY_OF = {"cross": "moving averages and crossovers", "rsi": "RSI and stochastic", "macd": "MACD", "sr": "support and resistance", "volume": "volume", "gap": "gaps", "stop": "stops and exits (trailing vs fixed)", "hedge": "hedging", "candle": "candlestick patterns", "valuation": "valuation (P/E, P/B)", "beta": "beta and volatility",
              "spread": "option spreads", "corp": "corporate actions"}
+DEFINE_Q = re.compile(r"^\s*(?:(?:okay|so|and|ananta|sir)[\s,]*)*(?:what(?:'s| is| are| does)|explain|define|meaning of|tell me what)\s+"
+                      r"(?:(?:an? )?(?:rsi|macd|support|resistance|volume|beta)|(?:an? |the )?(?:moving averages?|golden cross(?:es)?|death cross(?:es)?|"
+                      r"crossovers?|candlesticks?|52[- ]week high))(?:\s+(?:is|are|and what does it (?:mean|signal)|means?|signals?|indicates?|tells? you))?\s*\??\s*$", re.I)
 TESTED_Q = re.compile(r"\b(tested|test|evidence|proven|proof|work|works|working|edge|reliable|backtest(?:ed)?)\b", re.I)
 NOT_FOR_US = re.compile(r"\b(stocks above|shares? of (the )?(liquid|stocks)|how many (stocks|shares)|breadth|research|study|studies|analy[sz]e|flag|log it|note it|should|let'?s|plan to|later|buy|sell|why|too late|enter|entry|"
                         r"earnings|results|worth|good time|what do you think|your read|hold|add|trim|exit)\b", re.I)
@@ -227,6 +230,8 @@ def technicals_flow(text: str) -> dict | None:
     from jarvis.india.ask import _reply      # here, not at the top: ask.py imports this module
 
     if not text or len(text) > 200 or NOT_FOR_US.search(text):
+        return None
+    if DEFINE_Q.search(text):           # 27 Oct: "What is RSI?" wants the meaning, which the model gives briefly; a reading needs a name ("Nifty's RSI")
         return None
     kinds = [k for k in ORDER if re.search(WHAT[k], text, re.I)]
     if not TESTED_Q.search(text):

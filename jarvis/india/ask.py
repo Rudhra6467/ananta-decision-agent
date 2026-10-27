@@ -18,7 +18,10 @@ from pathlib import Path
 
 import requests
 
-from jarvis.india import appmap, marketcontext, technicals, views
+from jarvis.india import appmap, askwords, marketcontext, speaker, technicals, views, voiceid
+
+# "my mom asks ...", "she wants to know ...": Madhav relaying for the guest, so his voice does not end the handover
+RELAY = re.compile(r"\b(?:my (?:mom|mother|amma|dad|father|nanna|pinni)|she|he|they|the grader)\s+(?:asks?|is asking|wants to know|says|said)\b", re.I)
 
 DATA = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india")))
 ASK_DIR = DATA / "ask"
@@ -57,7 +60,7 @@ teacher, Trade With Trend = the stocks teacher) turned into testable hypotheses 
 Its "tested" part holds the 25 Oct backtest of every claim, card by card: use the plain words there, say which held up, which came out the wrong
 way, and that the held-up ones are filters (what to avoid), not buy signals; his intraday straddle systems are still being tracked on live prices.
 Explain technical words with a plain meaning alongside the name (simplify the explanation, not the intelligence). Be brutally honest: a lost
-session is lost, a wrong call is wrong, 0 of 3 is 0 of 3. Keep the answer to 2-5 sentences a person can read in under ten seconds (a read-and-decide answer: 4-6 sentences, never more; drop detail before the decision).
+session is lost, a wrong call is wrong, 0 of 3 is 0 of 3. SHORT AND PLAIN (27 Oct, Madhav: "we have to do something about length and making it simpler"): by default answer in 2-4 short sentences, the answer first, one idea per sentence, numbers rounded sensibly (22,750 not 22,749.75; 0.5% not 0.48%) unless he asks for the exact figure; a read-and-decide answer about 4 sentences. He says 'explain more' when he wants the detail; the message then says EXPAND and gives your previous answer. Never use database language in the answer: no study or card codes (XO1, TWT-H22, OPT-H55, SP1 ...), no field names with underscores (wrong_if, suggest_inr ...), no verdict labels in capitals (VALIDATED, REJECTED ...), no exit codes (ATRSTOP, D2): say what they mean ("the teacher's 7% stop test did not hold"); the codes go in "evidence" only.
 When the FACTS hold "reconstruction_detail", Madhav wants to discuss the reconstruction process: explain it in simple spoken words, one part at a time (use the
 card's own numbers from last night as the example, and an everyday comparison when it helps, e.g. a coach replaying the match), up to 6 sentences, and offer the
 next part as a follow-up (the seven parts A-G, the findings, the staircase, what is filed on the repair board). Its "web_notes" are public reasons found on the
@@ -326,7 +329,8 @@ def last() -> dict:
     if not rows:
         return {"last": None, "continue_minutes": 30}
     r = rows[0]
-    return {"last": {**r, "minutes_ago": round((time.time() - r["t"]) / 60, 1), "talking_to": None}, "continue_minutes": 30}
+    g = speaker.current(r.get("thread"))
+    return {"last": {**r, "minutes_ago": round((time.time() - r["t"]) / 60, 1), "talking_to": g.get("name") if g else None}, "continue_minutes": 30}
 
 
 def today_count() -> int:
@@ -478,8 +482,9 @@ _TRADE_Q = re.compile(r"\b(buy|sell|trade|order|position|invest|put money|should
 
 def finish(reply: dict, question: str, model: bool) -> dict:
     """The one exit every answer passes (25 Oct refinement): plain words on the answer and its breakdown, and the paper-only sign-off kept
-    only where the question is about trading (the prompt already says so; the model kept adding it to every answer)."""
-    a = plain_codes(str(reply.get("answer") or ""))
+    only where the question is about trading (the prompt already says so; the model kept adding it to every answer). 27 Oct: every code and
+    field name is put into words (jarvis/india/askwords.py) before the answer is shown or spoken; the codes stay in "evidence"."""
+    a = askwords.words(plain_codes(str(reply.get("answer") or "")))
     if model and not _TRADE_Q.search(question or ""):
         for _ in range(2):
             b = _SIGNOFF.sub("", a).rstrip()
@@ -488,8 +493,34 @@ def finish(reply: dict, question: str, model: bool) -> dict:
             a = b
     reply["answer"] = a
     if isinstance(reply.get("breakdown"), list):
-        reply["breakdown"] = [plain_codes(x) if isinstance(x, str) else x for x in reply["breakdown"]]
+        reply["breakdown"] = [askwords.words(plain_codes(x)) if isinstance(x, str) else x for x in reply["breakdown"]]
+    if isinstance(reply.get("follow_ups"), list):
+        reply["follow_ups"] = [askwords.words(x) if isinstance(x, str) else x for x in reply["follow_ups"]]
     return reply
+
+
+# 27 Oct (Madhav: "When asked to explain more, we can add the necessary details"): short by default; a request for more gets the fuller
+# version of the previous answer, decided in code so the model is told which mode it is in
+EXPAND = re.compile(r"^\s*(?:(?:ok(?:ay)?|so|and|please|sure|ananta|sir|hmm+|yes|yeah|right|got it|interesting)[\s,.!]*)*"
+                    r"(?:can you |could you |would you |please |now )?(?:explain (?:more|that|this|it|further|in detail|a bit more|why)|tell me more|more (?:details?|detail|on (?:that|this|it)|please)|"
+                    r"go deeper|dig deeper|elaborate|break (?:it|that|this) down|details?|in detail|expand(?: on (?:that|this|it))?|say more|"
+                    r"why\s*\??\s*$|why (?:is|was) that|how so|what do you mean|give me (?:the )?details?|walk me through (?:it|that|this))(?:\b|$)", re.I)
+
+
+def with_welcome(welcome: str, answer: str | None) -> str:
+    """'Welcome back, sir.' then the answer, without a second 'Sir,' (27 Oct live check: "Welcome back, sir. Sir, as of ...")."""
+    a = re.sub(r"^(?:Sir|Yes,? sir|Okay,? sir)[,.!]?\s*", "", (answer or "").strip())
+    return f"{welcome} {a[:1].upper() + a[1:]}".strip()
+
+
+def expand_of(text: str, thread: str) -> str | None:
+    """The previous answer, when this message asks for more of it ('explain more', 'tell me more', 'why?'); else None."""
+    if len((text or "").split()) > 14 or not EXPAND.search(text or ""):
+        return None
+    for m in reversed(thread_messages(thread)):
+        if m.get("role") == "assistant" and m.get("answer"):
+            return str(m["answer"])
+    return None
 
 
 def _offline(question: str, f: dict, why: str) -> dict:
@@ -528,30 +559,76 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if today_count() >= DAILY_LIMIT:
         raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
     thread = thread or uuid.uuid4().hex[:12]
+    said = text                                       # his words as said, for the thread; text may become the question left after "it's me"
+    # 27 Oct: who is speaking, decided in code before anything else (jarvis/india/speaker.py): a handover, Madhav coming back, a guest asking
+    # for something only Madhav can give, or a message that could be either
+    sp = None if str(who).startswith("guest:") else speaker.route(thread, text)
+    # 27 Oct (speaker recognition, Madhav's yes): his own voice print outranks the words. His voice during a handover means he is back (unless he
+    # is relaying for the guest); a voice that is not his asking for something only Madhav gives, with no handover, gets "Who am I speaking with?"
+    vmeta = (context or {}).get("voice_id")
+    vid = voiceid.identify(vmeta) if voice else "unknown"
+    if not str(who).startswith("guest:"):
+        g0 = speaker.current(thread)
+        if vid == "madhav" and g0 and not (sp and sp["kind"] == "handover") and not RELAY.search(text):
+            sp = {"kind": "back", "rest": speaker._rest(text) if not (sp and sp["kind"] == "back") else sp.get("rest", ""), "was": g0}
+        elif vid == "other" and not sp and voiceid.needs_owner_check(text, vmeta, g0 is not None):
+            sp = {"kind": "ask_who", "was": None}
+    guest = speaker.current(thread)
+    welcome, early = "", None
+    if sp and sp["kind"] == "handover":
+        speaker.set_guest(thread, sp["person"])
+        guest = speaker.current(thread)
+        early = _reply(speaker.greeting(sp["person"]), [], [f"who is speaking: Madhav handed the conversation to {sp['person']['name']}"],
+                       {"mode": "people", "note": f"Talking with {sp['person']['name']} now"})
+    elif sp and sp["kind"] == "back":
+        if sp.get("was"):
+            speaker.clear(thread)
+            guest = None
+        welcome = "Welcome back, sir." if sp.get("was") else "Yes, sir, it's you."
+        if sp.get("rest"):
+            text = sp["rest"]
+        else:
+            early = _reply(welcome, ["What did you decide for the next session?", "How is the practice book doing?"], ["who is speaking: Madhav"], {"mode": "people"})
+            welcome = ""
+    elif sp and sp["kind"] == "owner_only":
+        early = _reply(f"That needs Madhav's yes, so I can't take it from {guest['name'] if guest else 'a guest'}. Sir, if this is you, say \"Ananta, it's me\" and I'll do it.",
+                       [], ["who is speaking: a guest; approvals, flags and changes are Madhav's only"], {"mode": "people"})
+    elif sp and sp["kind"] == "ask_who":
+        early = _reply("Who am I speaking with? If it's you, sir, say \"it's me\".", [], ["who is speaking: not clear"], {"mode": "people"})
+    prev = None if early else expand_of(text, thread)
     # plain navigation first ("show my stocks", "open my flags", "go back": done at once in code, flags 96/97), then the code-built answers
     # (a mode switch, the morning view, drafts, the portfolio review), then a pick, a problem or "my flags"
     # 25 Oct refinement: a pick or a flag comes before the code answers ("use one and fix it" must reach the fix flow), and a turn cut off
     # mid-sentence, a stock's move, the research book and the next-session decision are answered in code, the same every time
-    fixed = (garbled_flow(text) or nav_flow(text) or fix_flow(text, thread, token, context, post=flag_post, get=flag_get) or fragment_flow(text) or morning_flow(text, who)
+    owner_here = guest is None
+    fixed = early or (None if prev else (garbled_flow(text) or nav_flow(text) or (fix_flow(text, thread, token, context, post=flag_post, get=flag_get) if owner_here else None)
+             or fragment_flow(text) or morning_flow(text, who)
              or technicals.technicals_flow(text) or marketcontext.market_context_flow(text)
-             or allocation_flow(text, who) or draft_flow(text, who) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text))
+             or (allocation_flow(text, who) if owner_here else None) or draft_flow(text, who) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text)))
     prefix, text_q = "", text
     if fixed is not None and fixed.get("_then"):      # 26 Oct: a note or flag was saved, and the same message also asked a question: answer it
         prefix, text_q, fixed = fixed["_prefix"], fixed["_then"], None
     if fixed is not None:
         fixed = finish(fixed, text, model=False)
+        if guest and not early:
+            fixed["answer"] = speaker.address(fixed.get("answer"), guest)
+        if welcome:
+            fixed["answer"] = with_welcome(welcome, fixed.get("answer"))
         uid = uuid.uuid4().hex[:12]
-        _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
+        _append(thread, {"id": uid, "role": "user", "text": said, "t": int(time.time()), "voice": voice})
         rid = uuid.uuid4().hex[:12]
         row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "rule", "ms": 0, "rating": None, **fixed,
-               "model_label": "Instant" if fixed.get("mode") == "nav" else "Ananta (rules)", "mode": fixed.get("mode") or mode or "auto", "cost_usd": 0.0, "thread": thread}
+               "model_label": "Instant" if fixed.get("mode") in ("nav", "people") else "Ananta (rules)", "mode": fixed.get("mode") or mode or "auto", "cost_usd": 0.0, "thread": thread,
+               "talking_to": speaker.label(thread)}
         _append(thread, row)
-        _touch_index(thread, text[:60], voice)
+        _touch_index(thread, said[:60], voice)
         return {**row, "timing": {"ms": 0}}
     hist = [{"role": m["role"], "text": m["text"] if m["role"] == "user" else json.dumps({k: m.get(k) for k in ("answer", "breakdown")})} for m in thread_messages(thread)[-2 * HISTORY_TURNS:]]
     uid = uuid.uuid4().hex[:12]
-    _append(thread, {"id": uid, "role": "user", "text": text, "t": int(time.time()), "voice": voice})
-    f = facts(owner=(who == "owner" or not str(who).startswith("guest:")))
+    _append(thread, {"id": uid, "role": "user", "text": said, "t": int(time.time()), "voice": voice})
+    # an observer Madhav brought in (the grader) hears what he would; family and other guests do not get his account
+    f = facts(owner=(who == "owner" or not str(who).startswith("guest:")) and (guest is None or guest.get("role") == "observer"))
+    f["talking_to"] = speaker.label(thread)
     recent = " ".join(m.get("text") or "" for m in thread_messages(thread)[-4:] if m.get("role") == "user")
     if RX_TOPIC.search(text) or RX_TOPIC.search(recent) or str((context or {}).get("screen", "")).startswith(("reconstruction", "evidence", "missed")):
         try:
@@ -567,7 +644,13 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                  "next_action": {}, "show": [], "options": [], "points": [], "actions": [], "ui": [], "route": "india"}
         usage = {"model": "rule"}
     else:
-        user = f"QUESTION: {text_q}\n\nFACTS (India read model, data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\nReply with the JSON object only: begin with {{ and end with }}, no markdown, no text outside it."
+        length = (f"\n\nEXPAND: he asked for more on your previous answer, which was: \"{prev[:1500]}\". Give the fuller version now: up to 8-10 short "
+                  "sentences or a short list, still plain words and no codes; add the reasons, numbers and caveats you left out, and do not repeat the first "
+                  "answer word for word." if prev else
+                  "\n\nSHORT MODE: 2-4 short sentences, the answer first (a decision: about 4); he will say 'explain more' when he wants the detail.")
+        who_note = ("\n\n" + speaker.prompt_note(guest)) if guest else ""
+        user = (f"QUESTION: {text_q}{length}{who_note}\n\nFACTS (India read model, data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\n"
+                "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         try:
             raw, usage = _claude(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post)
             reply = _parse(raw)
@@ -581,15 +664,21 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             reply = _offline(text, f, str(e)[:120])
             usage = {"model": "none"}
     reply = finish(reply, text, model=usage.get("model") not in ("rule", "none"))
+    if guest:
+        reply["answer"] = speaker.address(reply.get("answer"), guest)
     if prefix:
         reply["answer"] = f"{prefix} {reply.get('answer') or ''}".strip()
+    if welcome:
+        reply["answer"] = with_welcome(welcome, reply.get("answer"))
+    if prev:
+        reply["expanded"] = True
     ms = int((time.time() - t0) * 1000)
     rid = uuid.uuid4().hex[:12]
     row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "claude" if usage.get("model") not in ("rule", "none") else usage.get("model"), "ms": ms, "rating": None, **reply,
            "model_label": "Claude Sonnet" if usage.get("model") not in ("rule", "none") else "Ananta (rules)", "mode": mode or "auto", "cost_usd": round((usage.get("in", 0) * 3 + usage.get("out", 0) * 15) / 1e6, 5),
-           "usage": usage, "thread": thread}
+           "usage": usage, "thread": thread, "talking_to": speaker.label(thread)}
     _append(thread, row)
-    _touch_index(thread, text[:60], voice)
+    _touch_index(thread, said[:60], voice)
     return {**row, "id": rid, "thread": thread, "timing": {"ms": ms}}
 
 

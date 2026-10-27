@@ -235,6 +235,7 @@ function Cockpit() {
       <Card>
         <GoRow label="Who answers" value={who} onPress={more} />
         <GoRow label="Voice" value={`${voice.e === "phone" ? "Phone" : voice.v} · ${voice.r}×`} onPress={more} />
+        <GoRow label="Teach Ananta my voice" value="so it knows it's you" onPress={() => router.push("/voiceid")} />
         <GoRow label="Claude budget" value={sp ? `$${sp.today_usd.toFixed(2)} of $${sp.budget_usd.toFixed(2)} today` : "…"} onPress={more} last />
       </Card>
 

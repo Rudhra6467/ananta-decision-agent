@@ -20,6 +20,7 @@ const TABS: Record<string, { path: string; tab?: string; sub?: string }> = {
   jarvis: { path: "/jarvis" }, missed: { path: "/missed" },
   // 25 Oct (flags 96/97, India voice navigation): My flags, the nightly reconstruction, More by its own name
   flags: { path: "/flags" }, reconstruction: { path: "/reconstruction" }, more: { path: "/(tabs)/cockpit" }, teachers: { path: "/teachers" },
+  voiceid: { path: "/voiceid" },     // 27 Oct: Teach Ananta my voice
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

@@ -152,6 +152,8 @@ def stt_file(path: str | None, language: str | None = "en", names: str = "", con
         a, secs = path, None
         info["decode_error"] = str(exc)[:80]
     info["voiced_s"] = secs
+    if secs is not None and not isinstance(a, str):
+        info["_pcm"] = a                   # 27 Oct: the speech part, for speaker recognition (never stored)
     if secs is not None and secs < 0.25:
         info["dropped"] = "no speech"
         return ""
@@ -314,4 +316,125 @@ def stt(b: STTReq) -> dict:
     stock = text.lower().strip(" .!") in ("", "thank you", "thanks for watching", "you", "bye", "transcription by castingwords")
     if text.startswith("Madhav talking to Ananta") or text.startswith("Names:") or (stock and vs < 0.35):
         text = ""
-    return {"text": text, "ms": int(1000 * (time.time() - t0)), **({"note": info.get("dropped") or info.get("retry")} if (info.get("dropped") or info.get("retry")) else {})}
+    spk = speaker_of(info.get("_pcm"), vs) if text else {"speaker": "unknown", "score": None, "why": "no words"}
+    return {"text": text, "ms": int(1000 * (time.time() - t0)), "speaker": spk,
+            **({"note": info.get("dropped") or info.get("retry")} if (info.get("dropped") or info.get("retry")) else {})}
+
+
+# ---- speaker recognition (Madhav, 27 Oct: "Yes for speaker recognition model"): the local service jarvis/voice/speaker.py on 8215 -------------
+SPEAKER_URL = os.getenv("ANANTA_SPEAKER_URL", "http://127.0.0.1:8215")
+SPEAKER_LOG = os.path.expanduser("~/ananta_data/voice/speaker_log.jsonl")
+
+
+def _spk_post(path: str, body: dict | None = None, timeout: float = 2.0) -> dict:
+    import json as _json
+    import urllib.request
+    data = None if body is None else _json.dumps(body).encode()
+    req = urllib.request.Request(SPEAKER_URL + path, data=data, headers={"content-type": "application/json"}, method="GET" if body is None else "POST")
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return _json.loads(r.read())
+
+
+def _pcm_b64(a: np.ndarray) -> str:
+    return base64.b64encode(np.ascontiguousarray(a, dtype="<f4").tobytes()).decode()
+
+
+def speaker_of(pcm, speech_s) -> dict:
+    """Who is speaking: {"speaker": "madhav" | "not_madhav" | "unknown", "score", "enrolled"}; "unknown" whenever the service can't say.
+    Logged (verdict, score, seconds; no audio) in ~/ananta_data/voice/speaker_log.jsonl."""
+    if pcm is None or not hasattr(pcm, "size") or pcm.size == 0:
+        return {"speaker": "unknown", "score": None, "why": "no audio to score"}
+    try:
+        out = _spk_post("/score", {"pcm_b64": _pcm_b64(pcm), "speech_s": float(speech_s or 0)})
+    except Exception as exc:  # noqa: BLE001 - never block a transcript on it
+        out = {"speaker": "unknown", "score": None, "why": f"speaker service: {str(exc)[:60]}"}
+    try:
+        import json as _json
+        os.makedirs(os.path.dirname(SPEAKER_LOG), exist_ok=True)
+        with open(SPEAKER_LOG, "a") as fh:
+            fh.write(_json.dumps({"t": int(time.time()), **{k: out.get(k) for k in ("speaker", "score", "enrolled", "speech_s", "why")}}) + "\n")
+    except OSError:
+        pass
+    return out
+
+
+def _audio_pcm(audio_b64: str, mime: str) -> tuple[np.ndarray, float]:
+    from mlx_whisper.audio import load_audio
+    raw = base64.b64decode(audio_b64)
+    if len(raw) > 12_000_000:
+        raise HTTPException(400, "audio too long")
+    ext = (".m4a" if "m4a" in mime or "mp4" in mime else ".webm" if "webm" in mime else ".ogg" if "ogg" in mime else ".wav")
+    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as f:
+        f.write(raw)
+        p = f.name
+    try:
+        return voiced(load_audio(p))
+    finally:
+        os.unlink(p)
+
+
+class AudioReq(BaseModel):
+    audio_b64: str
+    mime: str = "audio/wav"
+
+
+def _spk_call(fn):
+    try:
+        return fn()
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"the speaker service did not answer ({str(exc)[:80]})") from exc
+
+
+@app.post("/speaker/start")
+def speaker_start() -> dict:
+    return _spk_call(lambda: _spk_post("/enrol/start", {}))
+
+
+@app.post("/speaker/enrol")
+def speaker_enrol(b: AudioReq) -> dict:
+    """One read sentence of 'Teach Ananta my voice'."""
+    a, secs = _audio_pcm(b.audio_b64, b.mime)
+    return _spk_call(lambda: _spk_post("/enrol", {"pcm_b64": _pcm_b64(a), "speech_s": secs}, timeout=10))
+
+
+@app.get("/speaker/status")
+def speaker_status() -> dict:
+    return _spk_call(lambda: _spk_post("/enrol/status"))
+
+
+@app.post("/speaker/reset")
+def speaker_reset() -> dict:
+    return _spk_call(lambda: _spk_post("/enrol/reset", {}))
+
+
+@app.post("/speaker/test")
+def speaker_test(b: AudioReq) -> dict:
+    """'Test my voice': the score and verdict of one clip (nothing is stored)."""
+    a, secs = _audio_pcm(b.audio_b64, b.mime)
+    return {**speaker_of(a, secs), "speech_s": round(secs, 2)}
+
+
+NEG_VOICES = ["Aman", "Rishi", "Daniel", "Fred", "Ralph", "Karen", "Moira", "Eddy (English (US))", "Grandpa (English (US))"]
+NEG_TEXT = ["Ananta, how did the Nifty close today?", "Show me my holdings and the practice book.", "Yes to all your recommendations."]
+
+
+@app.post("/speaker/negatives")
+def speaker_negatives() -> dict:
+    """Prints of the Mac's own synthetic voices ('not Madhav'), with a little room noise mixed into half, for the reject line."""
+    clips, used = [], []
+    rng = np.random.default_rng(7)
+    with tempfile.TemporaryDirectory() as d:
+        for i, v in enumerate(NEG_VOICES):
+            try:
+                aiff, wav = os.path.join(d, f"n{i}.aiff"), os.path.join(d, f"n{i}.wav")
+                subprocess.run(["say", "-v", v, "-o", aiff, " ".join(NEG_TEXT)], check=True, timeout=60)
+                subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI16@16000", "-c", "1", aiff, wav], check=True, timeout=60)
+                x, _ = sf.read(wav, dtype="float32")
+                clips.append(_pcm_b64(x))
+                clips.append(_pcm_b64(x + rng.normal(0, 0.01, x.size).astype(np.float32)))
+                used.append(v)
+            except Exception:  # noqa: BLE001 - a voice not installed on this Mac
+                continue
+    return _spk_call(lambda: {**_spk_post("/negatives", {"pcm_b64": clips, "voices": used}, timeout=60), "voices": used})

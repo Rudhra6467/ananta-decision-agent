@@ -25,7 +25,7 @@ def test_run_uses_its_own_thread_folder_and_saves(tmp_path, monkeypatch):
                                  ask=lambda who, q, thread=None: asked.append((who, q, thread)) or {"answer": "I don't know, sir."})
     ex = R.judges()
     out = R.run(ex, ask_mod=fake)
-    assert fake.ASK_DIR == tmp_path / "ask_exam" and len(asked) == 34 and all(w == "owner" for w, _, _ in asked)
-    assert len({t for _, _, t in asked}) == 34                       # a fresh thread for every question
+    assert fake.ASK_DIR == tmp_path / "ask_exam" and len(asked) == 35 and all(w == "owner" for w, _, _ in asked)
+    assert len({t for _, _, t in asked}) == 35                       # a fresh thread for every question
     assert (tmp_path / "manifests" / "exam_latest.json").exists() and out["unknown"] == 7 and not out["exam_pass"]
     assert not R.due(ex) and R.due(ex, now=dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=7))

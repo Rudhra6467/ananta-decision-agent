@@ -2113,6 +2113,45 @@ def voice_transcribe(b: Audio, who: str = Depends(owner)) -> dict:
     return {"text": _run(A().transcribe, b.audio_b64, b.mime)}
 
 
+# 'Teach Ananta my voice' (Madhav, 27 Oct): the same enrolment screen from the crypto side; one voice print on the Mac serves both markets
+def _speaker(path: str, body: dict | None = None) -> dict:
+    import os as _os
+
+    import requests as _rq
+    url = _os.getenv("ANANTA_VOICE_URL", "http://127.0.0.1:8200") + "/speaker/" + path
+    try:
+        r = _rq.get(url, timeout=15) if body is None else _rq.post(url, json=body, timeout=60)
+        r.raise_for_status()
+        return r.json()
+    except _rq.RequestException as e:
+        raise HTTPException(status_code=503, detail=f"the voice server did not answer ({str(e)[:80]})") from e
+
+
+@app.get("/v3/voice/speaker/status")
+def speaker_status(who: str = Depends(owner)) -> dict:
+    return _speaker("status")
+
+
+@app.post("/v3/voice/speaker/start")
+def speaker_start(who: str = Depends(owner)) -> dict:
+    return _speaker("start", {})
+
+
+@app.post("/v3/voice/speaker/enrol")
+def speaker_enrol(b: Audio, who: str = Depends(owner)) -> dict:
+    return _speaker("enrol", {"audio_b64": b.audio_b64, "mime": b.mime})
+
+
+@app.post("/v3/voice/speaker/test")
+def speaker_test(b: Audio, who: str = Depends(owner)) -> dict:
+    return _speaker("test", {"audio_b64": b.audio_b64, "mime": b.mime})
+
+
+@app.post("/v3/voice/speaker/reset")
+def speaker_reset(who: str = Depends(owner)) -> dict:
+    return _speaker("reset", {})
+
+
 class AnswerVoice(BaseModel):
     sentences: list[str]
     voice: str = "Calm"

@@ -26,6 +26,7 @@ PLACES = {
     "flags": {"name": "My flags", "shows": "every flag with where its fix stands"},
     "teachers": {"name": "Teachers, tested", "shows": "every claim from the two YouTube teachers as a tested card: what held up, what came out the wrong way, what is tracked live"},
     "cockpit": {"name": "More", "shows": "switches, voice and model, the market switch, settings"},
+    "voiceid": {"name": "Teach Ananta my voice", "shows": "read six sentences so Ananta knows a voice message is Madhav's; test it, teach it again or forget it"},
     "market:crypto": {"name": "the crypto market", "shows": "the crypto app"},
 }
 SPOTS = {"home.value": "your account: total and the Stocks and Options boxes", "home.morning": "the morning view card",
@@ -54,6 +55,8 @@ ALIASES = {
     "professor's strategies": "teachers", "professors strategies": "teachers", "youtube classes": "teachers", "the youtube classes": "teachers",
     "classes": "teachers", "optionables": "teachers", "trade with trend": "teachers", "teacher strategies": "teachers", "teachers strategies": "teachers",
     "more": "cockpit", "more tab": "cockpit", "settings": "cockpit", "controls": "cockpit", "voice settings": "cockpit",
+    "teach ananta my voice": "voiceid", "teach my voice": "voiceid", "my voice": "voiceid", "voice print": "voiceid", "my voice print": "voiceid",
+    "voice recognition": "voiceid", "voice id": "voiceid", "speaker recognition": "voiceid",
     "crypto": "market:crypto", "crypto market": "market:crypto", "crypto app": "market:crypto", "the crypto side": "market:crypto",
     "decisions": "home.books", "ananta's decisions": "home.books", "recent decisions": "home.books", "picks": "home.books", "todays picks": "home.books",
     "activity": "home.activity", "the activity": "home.activity",

@@ -43,7 +43,7 @@ always decide, in this shape: (a) your read in one sentence; (b) what Ananta wou
 the account grades, actions and wrong_if lines exactly; the guardrails; the tested filters: RSI over 70 and far above the 50-day = don't chase, wait;
 a fixed stop beat a trailing one (TS1); a -7% stop lost against no stop (TWT-H22); adding to stocks 40% down and under the 200-day often fell further
 (TWT-H15)); (c) what would change your mind; (d) how strong the evidence is: tested, untested or against the tests. End on the decision. Paper only,
-not advice. A HYPOTHETICAL ("a position up 8% while the market falls all week", "a stock down 15% in two days on heavy volume") is answered as a
+not advice. Keep it to about five short sentences: one per part plus the decision; cite at most two tests; leave out extra numbers. A HYPOTHETICAL ("a position up 8% while the market falls all week", "a stock down 15% in two days on heavy volume") is answered as a
 hypothetical by these rules first (for example: strength against a falling market is relative strength, so hold it with its stop and do not add
 while it is far above its 50-day); only then, if useful, map it to a real holding in the facts. Never stop at describing a position.
 Nothing here is financial advice; no real money is traded;

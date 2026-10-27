@@ -1,0 +1,45 @@
+{
+ "study": "MS1",
+ "family": "intraday",
+ "version": 1,
+ "written": "2026-10-27",
+ "asked_by": "Madhav, 27 Oct 2026 18:26 Toronto: \"yes please also run the three studies on the gaps the grader named\" (the grader: Ananta has not tested intraday microstructure)",
+ "title": "Intraday patterns: does the first 15 minutes' direction carry through the rest of the day (indices and liquid stocks), does the last hour extend the day's move, does a wide opening range come before a wide rest of the day, and are expiry-day afternoons more volatile?",
+ "hypothesis": "The first 15 minutes set the day's direction (the rest of the day moves the same way), the last hour extends the move made until 14:30, a wide 09:15-09:30 range comes before a wider range for the rest of the day, and on an index's own expiry day the 13:30-15:30 move is bigger than on other days.",
+ "data": {
+  "index": "silver/kite_index/minute 2015-2023 (NIFTY 50, NIFTY BANK) via india.ocstudy.load_index; days with fewer than 360 minutes or no 09:15 bar are skipped",
+  "stocks": "silver/kite_5m 2015-2023, the 50 most liquid stocks of each day by liq_rank",
+  "expiries": "the index's own option expiry days from the bhavcopy expiries (silver/fo_calendar, OPTIDX), weekly Bank Nifty from 27 May 2016 and weekly Nifty from 11 Feb 2019",
+  "nothing_sealed": "no 2024+ row, no sealed folder"
+ },
+ "definitions": {
+  "first15 rest_signed": "sign of the 09:15 open to 09:30 close move times the 09:30 to 15:29 close move (per day; a zero first move is left out); a positive mean = continuation",
+  "lasthour extends": "sign of the open to 14:30 move times the 14:30 to 15:29 move; indices pooled",
+  "or15_top dayrange": "rest-of-day range = (high - low after 09:30) / the 09:30 price; days whose 09:15-09:30 range (as a share of the open) is in the top third of that index's previous 250 sessions against days in the bottom third",
+  "expiry_pm absmove": "absolute 13:30 to 15:29 move on the index's own expiry days against its other days; indices pooled",
+  "descriptive": "for Nifty 2015-2023: the mean return and the mean absolute return of each 15-minute bucket of the day, with no verdict"
+ },
+ "statistics": {
+  "signed": "first15 and lasthour: calendar-month means of the signed move, t across months (same-day outcomes, so months are independent blocks)",
+  "split": "or15_top and expiry_pm: per calendar month the mean of 'on' days against the mean of 'off' days, Welch t across monthly block means (a month counts on a side with at least 1 'on' and 3 'off' days)",
+  "periods": "development to 2017 (36 months), validation 2018-2023 (72 months)",
+  "verdict": "india/registry.record standard rule; 16 blocks per period"
+ },
+ "bar": {
+  "union_k": 42,
+  "z": 3.241,
+  "bar_families": [
+   "intraday"
+  ],
+  "note": "family 'intraday' (28) plus IB1's 8 plus these 6; k frozen at 42"
+ },
+ "variants": {
+  "NIFTY|first15|rest_signed": 1,
+  "BANK|first15|rest_signed": 1,
+  "STK|first15|rest_signed": 1,
+  "IDX|lasthour|extends": 1,
+  "IDX|or15_top|dayrange": 1,
+  "IDX|expiry_pm|absmove": 1
+ },
+ "not_claimed": "Descriptive features of the trading day; no rule is changed by a pass."
+}

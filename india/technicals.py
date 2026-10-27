@@ -511,6 +511,44 @@ HEADLINE.update({
         "(INCONCLUSIVE); a dividend of 2% or more of the price: nothing (REJECTED). The announcement itself is untested (no announcement dates in the free history)",
 })
 
+# LAB4_WORDS (27 Oct 2026, india/lab4.py: GK1, IB1, MS1; Madhav's yes of 27 Oct 18:26 to testing the gaps the grader named)
+FAMILIES.update({
+    "option Greeks and time decay": {"conds": [], "cards": r"\btheta\b|\bdelta\b|\bgamma\b|\bvega\b|greeks|time decay|expiry day|implied vol",
+                                     "studies": [("GK1", None)],
+                                     "untested_note": "gamma and vega as trading signals; option selling (writing) strategies"},
+    "intraday breakouts": {"conds": [], "cards": r"opening range|\borb\b|intraday breakout|\bvwap\b|first hour", "studies": [("IB1", None)],
+                           "untested_note": "extra slippage on stop orders in fast breakouts (only the half-spread is charged); stocks beyond the 50 most liquid"},
+    "intraday patterns": {"conds": [], "cards": r"first 15 minutes|opening 15|last hour|intraday pattern|time of day|power hour", "studies": [("MS1", None)]},
+})
+SUBJ.update({"IDX": "Nifty and Bank Nifty", "SP1": "the options line's research trades"})
+STUDY_SUBJ = {("GK1", "ALL"): "Nifty and Bank Nifty options", ("IB1", "STK"): "the 50 most liquid stocks", ("MS1", "STK"): "the 50 most liquid stocks"}
+EVENT.update({
+    "exp0": "an at-the-money straddle bought at the open on expiry day", "exp0_vs_exp3": "the expiry-day straddle against the same straddle three sessions before",
+    "next_vs_near": "the next expiry's option against the nearest expiry's", "dte1": "one session before expiry", "dte2_3": "two to three sessions before expiry",
+    "dte4_7": "four to seven sessions before expiry",
+    "orb15": "trading the break of the first 15 minutes' range", "orb30": "trading the break of the first 30 minutes' range",
+    "fh_break": "the break of the first hour's range after 11:00", "vwap_reclaim": "a stock reclaiming its VWAP",
+    "first15": "the first 15 minutes' direction", "lasthour": "the last hour", "or15_top": "a wide first 15 minutes",
+    "expiry_pm": "expiry-day afternoons",
+})
+OUT.update({"straddle_oc": "sold at the close, after costs", "realised_vs_implied": "realised move against the move the options implied",
+            "net": "after costs, against a random entry", "rest_signed": "carried to the close", "extends": "extending the day's move",
+            "dayrange": "the rest of the day's range", "absmove": "size of the move"})
+HEADLINE.update({
+    ("GK1", "option Greeks and time decay"): "Tested 27 Oct (study GK1, Nifty and Bank Nifty options 2014-2023): time decay hits hardest on expiry day: an at-the-money "
+        "straddle bought at the open on expiry day lost about 15% of its premium by the close on average after costs (16-19% in 2018-23, strong; about 8% in 2014-17, "
+        "not significant, so not a pass), while the same straddle three sessions earlier was about flat. For the options line's same-day trades the nearest expiry "
+        "still beat the next one (+4.1% against +0.8% of premium a trade; the opposite of the claim). Options did not consistently imply bigger moves than the index made",
+    ("IB1", "intraday breakouts"): "Tested 27 Oct (study IB1, Nifty, Bank Nifty and the 50 most liquid stocks, 2015-2023): breakouts within the day beat a random entry "
+        "on the same days (opening-range breakouts on stocks by about 0.1% a trade, strongly; the Nifty's 30-minute breakout and the first-hour break after 11:00 "
+        "too), but they barely make money themselves after costs: stocks still lost about 0.06% a trade, the Nifty about broke even, Bank Nifty's 30-minute "
+        "breakout and the first-hour break earned 0.02-0.03% a trade, about the size of the slippage on a stop order. Better timing than random, not a money-maker",
+    ("MS1", "intraday patterns"): "Tested 27 Oct (study MS1, Nifty, Bank Nifty and liquid stocks, 2015-2023): the first 15 minutes' direction does not carry to the close "
+        "(rejected); the last hour leans slightly toward extending the day's move but below the bar; a wide first 15 minutes came before a wider rest of the day "
+        "(1.64% against 0.96%, conditional: it says how much the day moves, not which way); expiry-day afternoons were no wilder than other afternoons. The first 15 "
+        "minutes and 15:00-15:15 are the busiest parts of the day, midday the quietest",
+})
+
 def _study_spec(s) -> tuple[str, str | None]:
     return s if isinstance(s, tuple) else (s, None)
 
@@ -522,6 +560,8 @@ def _study_rows(res: dict, s: str, vre: str | None) -> list[dict]:
 def _study_row_words(r: dict) -> str:
     parts = r["variant"].split("|")
     subj = SUBJ.get(parts[0]) if parts[0] in SUBJ else None
+    if (r["study"].split("-")[0], parts[0]) in globals().get("STUDY_SUBJ", {}):      # the same prefix means another set in a later study (27 Oct)
+        subj = STUDY_SUBJ[(r["study"].split("-")[0], parts[0])]
     rest = parts[1:] if subj else parts
     ev = EVENT.get(rest[0], rest[0]) if rest else r["variant"]
     if r["study"].split("-")[0] == "DII1":      # DII1 reuses FII1's version names for mutual-fund (SEBI) flows
@@ -536,7 +576,7 @@ def _study_row_words(r: dict) -> str:
         if parts[-1] == "rs":      # OS1's rupee rows (27 Oct)
             num = f" (Rs {d[0]:+,.0f} and Rs {v[0]:+,.0f} a lot per trade, development and 2018-2023)"
         else:
-            first = {"OS1": "2015-2017", "BT1": "2004-2017", "VL1": "2003-2017"}.get(r["study"].split("-")[0], "2000-2017")     # each study's own development years
+            first = {"OS1": "2015-2017", "BT1": "2004-2017", "VL1": "2003-2017", "GK1": "2014-2017", "IB1": "2015-2017", "MS1": "2015-2017"}.get(r["study"].split("-")[0], "2000-2017")     # each study's own development years
             num = f" ({_pc(d[0])} in {first}, {_pc(v[0])} in 2018-2023)"
     if r["study"].split("-")[0] == "CA1" and parts[0] == "STK":        # CA1 used every panel stock (liquidity rank 1-500), not only the liquid 250
         subj = "panel stocks (liquidity rank 1-500)"

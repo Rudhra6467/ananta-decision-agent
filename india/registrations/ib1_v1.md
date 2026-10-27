@@ -1,0 +1,47 @@
+# IB1 v1 (spec, written 2026-10-27 before any outcome was read)
+
+**Asked by:** Madhav, 27 Oct 2026 18:26 Toronto: "yes please also run the three studies on the gaps the grader named" (the grader: Ananta has not tested breakouts within a day)
+
+**Question:** Intraday breakouts: on Nifty, Bank Nifty and liquid stocks, does trading the break of the opening range (first 15 or 30 minutes), the break of the first hour's range after 11:00, or a stock reclaiming its VWAP earn more after costs than a random intraday entry?
+
+**Hypothesis:** Breakouts within the day carry momentum: entering on the first break of the opening range (long above its high, short below its low for the indices; long only for stocks), with a stop at the other side and an exit near the close, earns more after costs than a random entry on the same days; so do a break of the first hour's range after 11:00 (indices) and a stock reclaiming its VWAP after trading below it.
+
+## Data
+
+- **index:** silver/kite_index/minute 2015-2023 (NIFTY 50, NIFTY BANK), through india.ocstudy.load_index (day x minute arrays, 09:15-15:29); days with fewer than 360 minutes or no 09:15 bar are skipped
+- **stocks:** silver/kite_5m 2015-2023, 5-minute bars (kite prices, adjusted; volume), the 50 most liquid stocks of each day by the stock panel's liq_rank (gold/teachers/stock_panel.parquet); days with fewer than 70 bars are skipped
+- **costs:** index trades as Nifty/Bank Nifty futures: india.costs.round_trip('futures', ...) on one lot's notional (rank 1 half-spread); stocks as intraday trades: round_trip('intraday', Rs 50,000, turnover rank = liq_rank)
+- **nothing_sealed:** no 2024+ row, no sealed folder
+
+## Definitions
+
+- **orb15 / orb30:** the opening range = high and low of the first 15 (or 30) minutes; afterwards, the first bar whose high goes above the range high is a long entry at the range high (or that bar's open if it opened above), the first bar whose low goes below the range low is a short entry at the range low (indices only; stocks long only); a bar that breaks both sides is skipped; no entry after 14:00; stop at the other side of the range (a stop is filled at the stop level, or the bar's open if it gapped through); otherwise exit at the 15:25 close
+- **fh_break:** indices: the first hour's range (09:15-10:15); the first break of either side between 11:00 and 14:00, same stop and exit rules
+- **vwap_reclaim:** stocks: after 10:00, the first 5-minute bar that closes above the session VWAP (cumulative price x volume / volume from 09:15) after at least two bars closing below it; long at that close, stop at the session low so far, exit at the 15:25 close; entries until 14:00
+- **control:** for each instrument and day with a valid session: one entry at a random bar between 10:00 and 14:00 (fixed seed), a random direction for the indices and long for stocks, exit at the 15:25 close, the same costs
+- **outcome:** net return per trade after costs, in % of the entry price
+
+## Statistics
+
+- **test:** per calendar month the mean net return of the strategy's trades minus the mean net return of the control trades on the same instrument set, t across months (development 2015-2017, 36 months; validation 2018-2023, 72 months); intraday trades close the same day, so months are independent blocks
+- **periods:** development to 2017, validation 2018-2023; nothing from 2024 on
+- **verdict:** india/registry.record standard rule; 16 blocks per period
+
+## Bar
+
+Family intraday; union k = 36, z = 3.197 (family 'intraday' (28: I01, I02, I05) plus these 8; k frozen at 36).
+
+## Versions (expected sign)
+
+- NIFTY|orb15|net: +
+- NIFTY|orb30|net: +
+- BANK|orb15|net: +
+- BANK|orb30|net: +
+- IDX|fh_break|net: +
+- STK|orb15|net: +
+- STK|orb30|net: +
+- STK|vwap_reclaim|net: +
+
+**Not claimed:** Ananta trades no intraday stock rule; a pass would be a proposal for a shadow paper book first.
+
+Results: `ib1_results_v1.md`; code: `india/lab4.py`.

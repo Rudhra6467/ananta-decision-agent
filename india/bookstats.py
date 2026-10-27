@@ -4,6 +4,7 @@ All of it is plain arithmetic on files the paper job already writes; nothing her
 - split(): closed and open trades counted apart, per family (flag 44: a win rate that counts closed trades only hides the open winners).
 - expectancy(): average result per trade, in % and in R, on closed trades and on closed+open (open ones marked to their last close).
 - sharpe_like(): needs at least 20 sessions of the book's daily return; otherwise it says how many sessions exist.
+- beta_vol(): each holding's beta against the Nifty (120 sessions) and 60-day volatility (27 Oct).
 - holdings_risk(): how alike the 14 account holdings move (average pairwise correlation of daily returns, last 60 sessions) and how many sit below their 50-day average.
 - slippage(): the gap between the study fill and the realistic fill on SP1 scored option trades.
 """
@@ -197,6 +198,48 @@ def holdings_risk(prices, symbols: list[str]) -> dict:
             "words": div + (f"; {len(below)} of {have} sit below their 50-day average" if have else "") + f" (last close {last})"}
 
 
+BETA_WINDOW = 120     # sessions for beta against the Nifty (about six months)
+VOL_WINDOW = 60       # sessions for volatility, annualised with sqrt(250)
+
+
+def beta_vol(prices, index_closes, symbols: list[str]) -> dict:
+    """Per holding: beta of daily returns against the Nifty 50 over the last BETA_WINDOW sessions and 60-day volatility, annualised (27 Oct, Madhav's
+    yes: Ananta said "my facts hold no beta or volatility figure for any stock"). `index_closes`: a frame with date, close (Nifty 50)."""
+    import numpy as np
+    import pandas as pd
+    df = prices[prices["symbol"].isin(symbols)]
+    wide = df.pivot_table(index="date", columns="symbol", values="adj_close").sort_index()
+    ix = index_closes.copy()
+    ix["date"] = pd.to_datetime(ix["date"])
+    wide.index = pd.to_datetime(wide.index)
+    nifty = ix.set_index("date")["close"].astype(float).sort_index()
+    rets = wide.pct_change(fill_method=None)
+    nr = nifty.pct_change()
+    rows = {}
+    for s in wide.columns:
+        j = pd.concat([rets[s], nr], axis=1, join="inner").dropna().tail(BETA_WINDOW)
+        if len(j) < BETA_WINDOW // 2:
+            continue
+        var = float(j.iloc[:, 1].var())
+        beta = float(j.iloc[:, 0].cov(j.iloc[:, 1]) / var) if var > 0 else None
+        v = rets[s].dropna().tail(VOL_WINDOW)
+        vol = float(v.std() * np.sqrt(250)) if len(v) >= VOL_WINDOW // 2 else None
+        jump = bool((rets[s].dropna().tail(BETA_WINDOW).abs() > 0.35).any())      # a corporate action (demerger, bonus) the adjusted series missed
+        rows[s] = {"beta": None if beta is None else round(beta, 2), "vol_ann": None if vol is None else round(vol, 3), "sessions": len(j),
+                   **({"unreliable": "a one-day price jump over 35% in the window (likely a corporate action): read these two numbers with care"} if jump else {})}
+    nvol = float(nr.dropna().tail(VOL_WINDOW).std() * np.sqrt(250)) if nr.notna().sum() >= VOL_WINDOW // 2 else None
+    if not rows:
+        return {"status": "missing", "words": "no price history to compute beta or volatility"}
+    hi = sorted((s for s, r in rows.items() if r["beta"] is not None), key=lambda s: -rows[s]["beta"])
+    words = ("beta against the Nifty (last %d sessions; 1.0 = moves with the market) and 60-day volatility a year: " % BETA_WINDOW
+             + "; ".join((f"{s} beta {rows[s]['beta']:.2f}, vol {100 * rows[s]['vol_ann']:.0f}%" if rows[s]["vol_ann"] is not None else f"{s} beta {rows[s]['beta']:.2f}")
+                         + (" (unreliable: a price jump over 35%, likely a corporate action)" if rows[s].get("unreliable") else "") for s in hi)
+             + (f". The Nifty's own 60-day volatility is {100 * nvol:.0f}% a year" if nvol else "")
+             + ". Ananta has no test of beta as a signal (a low-beta study is registered separately)")
+    return {"status": "ok", "beta_window": BETA_WINDOW, "vol_window": VOL_WINDOW, "per_holding": rows, "nifty_vol_ann": None if nvol is None else round(nvol, 3),
+            "words": words}
+
+
 def latest_holdings() -> list[str]:
     led = paths.data_dir() / "bronze" / "ledger"
     for f in sorted(led.glob("*.json"), reverse=True):
@@ -216,7 +259,16 @@ def account_holdings_risk() -> dict:
         from india import paper
         since = (dt.date.today() - dt.timedelta(days=170)).isoformat()
         df = paper.load_adjusted(since)
-        return holdings_risk(df[["symbol", "date", "adj_close"]], syms)
+        out = holdings_risk(df[["symbol", "date", "adj_close"]], syms)
+        try:                                   # beta and volatility per holding (27 Oct); the Nifty through the logged paper_context reader
+            from india import technicals
+            ix = technicals.index_rows(["NIFTY 50"], since)
+            out["beta_vol"] = beta_vol(df[["symbol", "date", "adj_close"]], ix[["date", "close"]], syms)
+            if out["beta_vol"].get("status") == "ok":
+                out["words"] = out.get("words", "") + "; " + out["beta_vol"]["words"]
+        except Exception as e:  # noqa: BLE001
+            out["beta_vol"] = {"status": "error", "words": f"beta not computed ({type(e).__name__})"}
+        return out
     except Exception as e:  # noqa: BLE001 - said, never hidden
         return {"status": "error", "words": f"could not read the price history ({type(e).__name__}: {str(e)[:120]})"}
 

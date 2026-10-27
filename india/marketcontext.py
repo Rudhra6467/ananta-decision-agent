@@ -184,6 +184,23 @@ def opening_gaps() -> dict:
                       "2% gap-down was followed by a rebound in 2000-2017 that had nearly gone by 2021-2023 and cannot be bought at the open price"}
 
 
+def valuation_latest() -> dict:
+    """The Nifty 50, Nifty 500 and Bank Nifty P/E, P/B and dividend yield (NSE, published after each close) and where today sits in the pre-2024
+    history (india/valuation.latest; 27 Oct, Madhav's yes: "my facts hold no PE or PB figure")."""
+    try:
+        from india import valuation
+        rows = valuation.latest()
+    except Exception as e:  # noqa: BLE001
+        return {"status": "missing", "why": f"{type(e).__name__}: {e}"[:100]}
+    if not rows:
+        return {"status": "missing", "why": "no rows"}
+    return {"status": "ok", "rows": rows, "as_of": max(v["date"] for v in rows.values()),
+            "source": "NSE index P/E, P/B and dividend yield (niftyindices.com), published after each close; percentiles against 2024-free history only",
+            "meaning": "pe_pctile 10 = today's P/E is higher than only 10% of past days on the same basis (cheap against that history); since 31 Mar 2021 "
+                       "NSE uses consolidated earnings, so P/E and yield are compared with 2021-2023 only (a short history); P/B with 1999-2023",
+            "tested": "the Nifty valuation study (VL1) is registered separately; until its result, a cheap or dear reading is context, not a signal"}
+
+
 def flows_latest() -> dict:
     """The newest session's FII and DII cash (NSE provisional) and FPI exchange cash (NSDL), from the evening capture manifest."""
     f = paths.manifest_dir() / "fii_dii_cash.jsonl"
@@ -216,7 +233,21 @@ def build() -> dict:
     vix = india_vix()
     flows = flows_latest()
     gaps = opening_gaps()
+    val = valuation_latest()
     lines = []
+    if val.get("status") == "ok":
+        bits = []
+        for nm, v in val["rows"].items():
+            if v.get("pe") is None:
+                continue
+            def ordn(x):
+                n = int(x)
+                return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+            bits.append(f"{nm} P/E {v['pe']:.1f}" + (f" (higher than {v['pe_pctile']:.0f}% of 2021-2023 days, {ordn(v['pe_pctile'])} percentile)" if v.get("pe_pctile") is not None else "")
+                        + (f", P/B {v['pb']:.2f}" if v.get("pb") is not None else "") + (f" ({ordn(v['pb_pctile'])} percentile since {v['pb_pctile_basis'][5:9]})" if v.get("pb_pctile") is not None and v.get("pb_pctile_basis") else "")
+                        + (f", dividend yield {v['div_yield']:.2f}%" if v.get("div_yield") is not None else ""))
+        if bits:
+            lines.append(f"Valuation on {_dw(val['as_of'])}: " + "; ".join(bits) + ".")
     if gaps.get("status") == "ok":
         for nm, g in gaps["rows"].items():
             kind = "gap-up" if g["gap"] >= 0.0025 else "gap-down" if g["gap"] <= -0.0025 else "flat open"
@@ -245,7 +276,7 @@ def build() -> dict:
     if not explains:
         explains.append("No single reading made an unusually large move on its latest day.")
     out = {"rules": RULES, "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "status": "ok",
-           "rupee_same_day": rupee, "macro": macro, "india_vix": vix, "flows": flows, "opening_gaps": gaps,
+           "rupee_same_day": rupee, "macro": macro, "india_vix": vix, "flows": flows, "opening_gaps": gaps, "valuation": val,
            "gift_nifty": {"status": "missing", "why": "no free source"},
            "words": " ".join(lines), "explains": explains, "tested": TESTED,
            "how_to_say_it": ("Give each reading with its as-of date; the macro series are FRED and lag the Indian open by a day or more, so say 'as of' and never "

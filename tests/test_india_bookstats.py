@@ -102,3 +102,25 @@ def test_build_reads_the_lake_and_survives_missing_pieces(tmp_path, monkeypatch)
     b = bs.build(compute_holdings=False)
     assert b["status"] == "ok" and b["closed_vs_open"]["total"]["closed"]["n"] == 4 and b["slippage"]["trades"] == 0
     assert "win rate counts closed trades only" in b["words"]
+
+
+def test_beta_and_volatility_per_holding():
+    """27 Oct: Ananta said "my facts hold no beta or volatility figure for any stock"."""
+    import numpy as np
+    import pandas as pd
+    from india import bookstats as bs
+    rng = np.random.default_rng(1)
+    days = pd.bdate_range("2026-03-02", periods=160)
+    m = rng.normal(0, 0.01, len(days))
+    nifty = 20000 * np.cumprod(1 + m)
+    hi = 100 * np.cumprod(1 + 1.5 * m + rng.normal(0, 0.002, len(days)))
+    lo = 100 * np.cumprod(1 + 0.5 * m + rng.normal(0, 0.002, len(days)))
+    prices = pd.concat([pd.DataFrame({"symbol": "HI", "date": days, "adj_close": hi}), pd.DataFrame({"symbol": "LO", "date": days, "adj_close": lo})])
+    out = bs.beta_vol(prices, pd.DataFrame({"date": days, "close": nifty}), ["HI", "LO"])
+    assert out["status"] == "ok"
+    assert 1.35 < out["per_holding"]["HI"]["beta"] < 1.65 and 0.35 < out["per_holding"]["LO"]["beta"] < 0.65
+    assert out["per_holding"]["HI"]["vol_ann"] > out["per_holding"]["LO"]["vol_ann"]
+    assert out["words"].index("HI beta") < out["words"].index("LO beta") and "no test of beta" in out["words"]
+    jumpy = prices.copy()
+    jumpy.loc[(jumpy["symbol"] == "LO") & (jumpy["date"] >= days[100]), "adj_close"] *= 0.5     # a missed corporate action
+    assert bs.beta_vol(jumpy, pd.DataFrame({"date": days, "close": nifty}), ["LO"])["per_holding"]["LO"].get("unreliable")

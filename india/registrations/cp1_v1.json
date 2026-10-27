@@ -1,0 +1,51 @@
+{
+ "study": "CP1",
+ "family": "technical",
+ "version": 1,
+ "written": "2026-10-27",
+ "asked_by": "Madhav, 27 Oct 2026 09:17 Toronto: \"Yes to all your recommendations\" (the recommendation, after reviewing his 25-question Ask session of 27 Oct: test the topics Ananta could only answer from the textbook: candlestick patterns, valuation (P/E, P/B), beta and low volatility, option spreads, corporate actions)",
+ "title": "Candlestick patterns: do a hammer or a bullish engulfing after a fall, or a bearish engulfing or a doji after a rise, predict the next 5-20 sessions on liquid stocks?",
+ "hypothesis": "The classic reading: a hammer or a bullish engulfing candle after a decline marks a turn up (better returns ahead, worth buying at the next open); a bearish engulfing candle or a doji after a rise marks a turn down (worse returns ahead).",
+ "data": {
+  "stocks": "gold/teachers/stock_panel.parquet (adjusted daily open/high/low/close, 2000-01-03 to 2023-12-29); events and base = liquidity rank 1-250 that day",
+  "nothing_sealed": "no 2024+ row; nothing was looked at for outcomes before this spec"
+ },
+ "definitions": {
+  "body, range, shadows": "body = |close - open|; range = high - low (must be > 0); lower shadow = min(open, close) - low; upper shadow = high - max(open, close)",
+  "prior move": "the 5-session return to YESTERDAY's close (close[t-1] / close[t-6] - 1), continuous sessions only; a decline is <= -3%, a rise >= +3%",
+  "hammer": "lower shadow >= 2 x body, upper shadow <= 25% of the range, after a decline",
+  "bullish engulfing": "yesterday red (close < open), today green; today's open <= yesterday's close and today's close >= yesterday's open; today's body larger; after a decline",
+  "bearish engulfing": "yesterday green, today red; today's open >= yesterday's close and today's close <= yesterday's open; today's body larger; after a rise",
+  "doji after a rise": "body <= 10% of the range, after a rise",
+  "events": "one per stock per 10 sessions; the pattern is known at the close, so every outcome starts at the NEXT session's open"
+ },
+ "outcomes": {
+  "fwd5 / fwd20": "the panel's fwd5 / fwd20: close 5 / 20 sessions later divided by the next open, minus 1 (windows with a one-day move over 50% skipped)",
+  "trade20": "the panel's net20: fwd20 minus the round-trip cost column (delivery plus the spread estimate by liquidity rank)"
+ },
+ "statistics": {
+  "vs ordinary days (fwd5, fwd20)": "india.teachers_stock.level: event mean minus the mean of the base (every 5th session of every liquid-250 stock, plus the events) in the same quarter, t across quarters",
+  "the trade itself (trade20)": "india.teachers_stock.absolute: the events' own mean net return, quarter means (this includes the market's drift; the vs-ordinary rows say whether the pattern adds anything)",
+  "periods": "development to 2017, validation 2018-2023; nothing from 2024 on, no sealed folder",
+  "verdict": "india/registry.record standard rule; 16 blocks per period"
+ },
+ "bar": {
+  "union_k": 46,
+  "z": 3.267,
+  "bar_families": [
+   "technical"
+  ],
+  "note": "family 'technical' (XO1 27 + SR1 11 = 38) plus these 8; k frozen at 46"
+ },
+ "variants": {
+  "STK|hammer|fwd5": 1,
+  "STK|hammer|fwd20": 1,
+  "STK|bullengulf|fwd5": 1,
+  "STK|bullengulf|fwd20": 1,
+  "STK|bearengulf|fwd20": -1,
+  "STK|doji_rise|fwd20": -1,
+  "STK|hammer|trade20": 1,
+  "STK|bullengulf|trade20": 1
+ },
+ "not_claimed": "No paper rule changes from this study; a pass would be a proposal for Madhav, then a forward paper check."
+}

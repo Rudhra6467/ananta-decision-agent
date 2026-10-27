@@ -1,0 +1,40 @@
+{
+ "study": "VL1",
+ "family": "valuation",
+ "version": 1,
+ "written": "2026-10-27",
+ "asked_by": "Madhav, 27 Oct 2026 09:17 Toronto: \"Yes to all your recommendations\" (the recommendation, after reviewing his 25-question Ask session of 27 Oct: test the topics Ananta could only answer from the textbook: candlestick patterns, valuation (P/E, P/B), beta and low volatility, option spreads, corporate actions)",
+ "title": "Nifty valuation: does an expensive Nifty (high P/E or P/B, low dividend yield) come before weaker returns, and a cheap one before better returns?",
+ "hypothesis": "When the Nifty 50's P/E or P/B is in the top tenth of its own history (or its dividend yield in the bottom tenth), the next 60 and 250 sessions are weaker than other times; when it is cheap (bottom-tenth P/E, top-tenth yield) they are better.",
+ "data": {
+  "valuation": "silver/valuation/index_pepb.parquet (NSE daily P/E, P/B, dividend yield of the NIFTY 50, 1999-2023)",
+  "index": "silver/kite_index/day NIFTY 50 closes 2003-2023",
+  "method_break": "NSE moved P/E and P/B from standalone to consolidated earnings on 31 Mar 2021 (pe_basis column). P/E and P/B are used ONLY on the standalone basis (to 30 Mar 2021); the dividend yield has no basis change and is used to 2023",
+  "nothing_sealed": "no 2024+ row; nothing was looked at for outcomes before this spec"
+ },
+ "definitions": {
+  "percentile": "expanding: the share of all earlier days (from 1999, same basis) with a lower value; needs 750 earlier days; known at the day's close",
+  "top10 / bottom10": "percentile >= 0.90 / <= 0.10",
+  "outcome": "Nifty close 60 (or 250) sessions after the NEXT session's close, divided by the next session's close, minus 1 (no cost: a market-timing reading)"
+ },
+ "statistics": {
+  "test": "india.teachers_stock.msplit: block means of 'on' sessions against block means of the other sessions with a percentile and an outcome; quarter blocks for 60 sessions, year blocks for 250",
+  "honest_limit": "250-session rows use year blocks: 2003-2017 holds at most 15 and 2018-2023 at most 6, under the 16-block rule, so they CANNOT reach a verdict (INCONCLUSIVE by design; recorded for the numbers). P/E and P/B rows in validation stop at Mar 2021 (about 13 quarters), also under 16",
+  "periods": "development to 2017, validation 2018-2023; nothing from 2024 on, no sealed folder",
+  "verdict": "india/registry.record standard rule; 16 blocks per period"
+ },
+ "bar": {
+  "union_k": 6,
+  "z": 2.638,
+  "note": "a new family 'valuation'; k frozen at the 6 variants below"
+ },
+ "variants": {
+  "NIFTY|pe_top10|fwd60": -1,
+  "NIFTY|pe_bottom10|fwd60": 1,
+  "NIFTY|pb_top10|fwd60": -1,
+  "NIFTY|dy_top10|fwd60": 1,
+  "NIFTY|dy_bottom10|fwd60": -1,
+  "NIFTY|pe_top10|fwd250": -1
+ },
+ "not_claimed": "No paper rule changes; a market-timing pass would be a proposal for the allocation rule review, not a change."
+}

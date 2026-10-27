@@ -464,6 +464,53 @@ HEADLINE.update({
         "Nifty put protected only in 2018-23 (worst 20 sessions -41% to -15%), not in 2003-17 (REJECTED), as F06 found for always-on puts",
 })
 
+# LAB3_WORDS (27 Oct 2026, india/lab3.py: CP1, VL1, BT1, OS1, CA1; Madhav's yes of 27 Oct 09:17 to testing the topics Ananta could only answer from the textbook)
+FAMILIES.update({
+    "candlestick patterns": {"conds": [], "cards": r"candle|hammer|engulf|doji|shooting star|morning star|evening star|harami|marubozu|pin bar", "studies": [("CP1", None)]},
+    "valuation (P/E, P/B)": {"conds": [], "cards": r"\bp/?e\b|price[- ]to[- ]earnings|\bp/?b\b|price[- ]to[- ]book|valuation|dividend yield|earnings yield",
+                             "studies": [("VL1", None)],
+                             "untested_note": "per-stock P/E and P/B (no free per-stock history); the Nifty's P/E and P/B after March 2021 (consolidated method, too short)"},
+    "beta and volatility": {"conds": ["rv20_high"], "cards": r"\bbeta\b|low[- ]vol|volatility|defensive", "studies": [("BT1", None)]},
+    "option spreads": {"conds": [], "cards": r"spread|bull call|bear put|iron condor|butterfly|straddle|strangle|calendar", "studies": [("OS1", None)],
+                       "untested_note": "spreads held for several days toward a target, credit spreads and other multi-leg structures"},
+    "corporate actions": {"conds": [], "cards": r"bonus|split|buyback|buy back|dividend|rights issue|demerger", "studies": [("CA1", None)],
+                          "untested_note": "the reaction to the announcement itself (the free history has ex-dates only); rights issues and demergers"},
+})
+SUBJ.update({"ALL": "intraday index trades (SP1 candidates)", "HIVIX": "intraday index trades when India VIX was above 18"})
+EVENT.update({
+    "hammer": "a hammer candle after a fall", "bullengulf": "a bullish engulfing candle after a fall", "bearengulf": "a bearish engulfing candle after a rise",
+    "doji_rise": "a doji after a rise",
+    "pe_top10": "the Nifty's P/E in the top tenth of its history", "pe_bottom10": "the Nifty's P/E in the bottom tenth of its history",
+    "pb_top10": "the Nifty's P/B in the top tenth of its history", "dy_top10": "the Nifty's dividend yield in the top tenth (cheap)",
+    "dy_bottom10": "the Nifty's dividend yield in the bottom tenth (expensive)",
+    "LOWBETA-HIGHBETA": "the lowest-beta fifth against the highest-beta fifth", "LOWBETA-ALL": "the lowest-beta fifth against the whole liquid 250",
+    "LOWVOL-HIGHVOL": "the lowest-volatility fifth against the highest", "LOWVOL-ALL": "the lowest-volatility fifth against the whole liquid 250",
+    "spread1": "a debit spread selling the next strike out, against the single option", "spread2": "a debit spread selling two strikes out, against the single option",
+    "bonus_split": "a bonus issue or split (from the ex-date)", "buyback": "a buyback (from the ex-date)", "dividend_y2": "a dividend of 2% or more of the price (from the ex-date)",
+})
+OUT.update({"fwd5": "next 5 sessions against ordinary days", "fwd250": "next 250 sessions against other times", "trade20": "as a trade after costs, held 20 sessions",
+            "monthly": "monthly net return", "ret": "return per rupee at risk, per trade", "rs": "rupees per lot, per trade"})
+HEADLINE.update({
+    ("CP1", "candlestick patterns"): "Tested 27 Oct (study CP1, liquid-250 stocks 2000-2023): no candlestick pattern is a usable signal. A hammer after a fall was followed "
+        "by +0.6% and +0.3% over 20 sessions against ordinary days (INCONCLUSIVE, fading), a bullish engulfing by +0.3% and +0.6% (REJECTED); a bearish engulfing "
+        "after a rise -0.4% and -0.2%, a doji after a rise -0.3% and -0.3% (both INCONCLUSIVE). The directions lean the textbook way but are too small to trade",
+    ("VL1", "valuation (P/E, P/B)"): "Tested 27 Oct (study VL1, Nifty 50 P/E, P/B and dividend yield 2003-2023): an expensive Nifty came before weaker returns but it is "
+        "NOT proven: with P/E in the top tenth of its history the next 60 sessions were 6.7% weaker than other times in 2003-2017 (t -3.0) and 9.1% weaker in "
+        "2018-2021 (only 3 quarters), the next 250 sessions 32% weaker (8 years, mostly the 2008 crash). All six rows INCONCLUSIVE: valuation regimes give too "
+        "few independent episodes, and the P/E method changed in March 2021. A cheap Nifty (bottom-tenth P/E, top-tenth yield) did not occur in 2018-2023",
+    ("BT1", "beta and volatility"): "Tested 27 Oct (study BT1, liquid 250, monthly baskets 2004-2023, after costs): low-beta and low-volatility stocks did NOT earn more per "
+        "month on average (all four rows REJECTED), but they compounded better with about half the swings: the lowest-beta fifth grew 19.0% and 15.7% a year "
+        "(2004-17, 2018-23) against 12.3% and 2.3% for the highest-beta fifth, with worst falls of -64% and -21% against -76% and -73% (reported, not tested). "
+        "Beta is a risk measure, not a return signal",
+    ("OS1", "option spreads"): "Tested 27 Oct (study OS1, SP1's intraday index trades 2015-2023): a debit spread was much WORSE than buying the single option (OPPOSITE). "
+        "Selling the next strike out turned +4.1% a trade on the premium into -18.5% on the net debit (two strikes out: -8.6%); in rupees -232 against +172 per "
+        "lot; win rate 25% against 44%. The same with India VIX above 18. On a same-day move the sold option takes much of the gain and adds a second set of spreads "
+        "and charges; multi-day spreads were not tested",
+    ("CA1", "corporate actions"): "Tested 27 Oct (study CA1, NSE ex-dates 2000-2023): after a bonus issue or split, stocks did WORSE than ordinary days from the day after "
+        "the ex-date: -3.8% and -6.0% over 20 sessions, -4.1% and -3.3% over 60 (OPPOSITE; they had usually run up into it). Buybacks: too few to judge "
+        "(INCONCLUSIVE); a dividend of 2% or more of the price: nothing (REJECTED). The announcement itself is untested (no announcement dates in the free history)",
+})
+
 def _study_spec(s) -> tuple[str, str | None]:
     return s if isinstance(s, tuple) else (s, None)
 
@@ -486,7 +533,13 @@ def _study_row_words(r: dict) -> str:
     d, v = (r.get("dev") or [None, None]), (r.get("val") or [None, None])
     num = ""
     if r["verdict"] in ("OPPOSITE", "VALIDATED", "CONDITIONAL") and d[0] is not None and v[0] is not None:
-        num = f" ({_pc(d[0])} in 2000-2017, {_pc(v[0])} in 2018-2023)"
+        if parts[-1] == "rs":      # OS1's rupee rows (27 Oct)
+            num = f" (Rs {d[0]:+,.0f} and Rs {v[0]:+,.0f} a lot per trade, development and 2018-2023)"
+        else:
+            first = {"OS1": "2015-2017", "BT1": "2004-2017", "VL1": "2003-2017"}.get(r["study"].split("-")[0], "2000-2017")     # each study's own development years
+            num = f" ({_pc(d[0])} in {first}, {_pc(v[0])} in 2018-2023)"
+    if r["study"].split("-")[0] == "CA1" and parts[0] == "STK":        # CA1 used every panel stock (liquidity rank 1-500), not only the liquid 250
+        subj = "panel stocks (liquidity rank 1-500)"
     return f"{(subj + ', ') if subj else ''}{ev}{', ' + out if out else ''}{trade}: {r['verdict']}{num}"
 
 

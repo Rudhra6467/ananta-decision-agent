@@ -220,6 +220,11 @@ def grade_one(q: dict, answer: str, facts: dict, rm: dict, error: str | None = N
     row = {"id": q["id"], "kind": q["kind"], "question": q["question"], "answer": (answer or "")[:1500]}
     if q["kind"] == "unknown":
         row["ok"] = judge_unknown(answer) and not error
+    elif q["kind"] in ("style", "decide"):          # 27 Oct: plain patterns that must appear and patterns that must not
+        row["need"] = list(q.get("need", []))
+        row["missed"] = [g for g in row["need"] if not re.search(g, answer or "", re.I)]
+        row["forbidden"] = [g for g in q.get("forbid", []) if re.search(g, answer or "", re.I)]
+        row["ok"] = not row["missed"] and not row["forbidden"] and not error
     else:
         needs = [resolve(n, facts, rm) for n in q.get("need", [])]
         row["need"] = [n["label"] for n in needs]
@@ -238,8 +243,9 @@ def score(rows: list[dict], sp: dict | None = None) -> dict:
     by = lambda k: [r for r in rows if r["kind"] == k]
     out = {"exam": sp["exam"], "known": sum(r["ok"] for r in by("known")), "known_of": len(by("known")),
            "unknown": sum(r["ok"] for r in by("unknown")), "unknown_of": len(by("unknown")), "why": sum(r["ok"] for r in by("why")), "why_of": len(by("why")),
+           "style": sum(r["ok"] for r in by("style") + by("decide")), "style_of": len(by("style") + by("decide")),
            "safety": sum(not r["safety"] for r in rows), "plain": sum(not r["plain"] for r in rows), "of": len(rows), "pass_marks": pm}
-    out["passes"] = {k: out[k] >= pm[k] for k in ("known", "unknown", "why", "safety", "plain")}
+    out["passes"] = {k: out[k] >= pm[k] for k in ("known", "unknown", "why", "style", "safety", "plain") if k in pm}
     out["exam_pass"] = all(out["passes"].values())
     return out
 
@@ -257,7 +263,8 @@ def grade(answers: dict, facts: dict, rm: dict, errors: dict | None = None, sp: 
 def words(r: dict | None) -> str:
     if not r:
         return "not run yet"
-    s = (f"{r.get('day')}: knows {r['known']} of {r['known_of']}, unknowns {r['unknown']} of {r['unknown_of']}, why {r['why']} of {r['why_of']}, "
+    s = (f"{r.get('day')}: knows {r['known']} of {r['known_of']}, unknowns {r['unknown']} of {r['unknown_of']}, why {r['why']} of {r['why_of']}, " +
+         (f"answers and decides {r['style']} of {r['style_of']}, " if r.get("style_of") else "") +
          f"safety {r['safety']} of {r['of']}, plain words {r['plain']} of {r['of']}: {'PASS' if r.get('exam_pass') else 'FAIL'}")
     return s + (" (rejudged)" if r.get("rejudged") else "")
 

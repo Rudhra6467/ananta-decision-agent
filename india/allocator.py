@@ -89,6 +89,41 @@ def grade(score: float) -> str:
     return next(g for g, lo in GRADES if score >= lo)
 
 
+WRONG_STEP = 0.10    # when no average sits on the right side of the price: a further 10% move
+
+
+def wrong_down(last: float, levels: list, tail: str = "") -> str:
+    """What would prove a keep / watch / add call wrong: a close under a level that is still BELOW today's price (27 Oct: TMPV said
+    "wrong if it closes under ₹338, its long-term average" while it was at ₹263.70, a line already crossed). The first level under the price,
+    else a further 10% fall."""
+    for lv, name in levels:
+        if lv and last and lv < last:
+            return f"it closes under ₹{lv:,.0f}, {name}{tail}"
+    if not last:
+        return "it turns down"
+    return f"it falls another {WRONG_STEP:.0%}, under ₹{last * (1 - WRONG_STEP):,.0f} (it is already below its averages){tail}"
+
+
+def wrong_up(last: float, levels: list, tail: str = "") -> str:
+    """What would prove a reduce / trim call wrong: a climb back above a level still ABOVE today's price, else a further 10% rise."""
+    for lv, name in levels:
+        if lv and last and lv > last:
+            return f"it climbs back above ₹{lv:,.0f}, {name}{tail}"
+    if not last:
+        return "it turns up" + tail
+    return f"it climbs another {WRONG_STEP:.0%}, above ₹{last * (1 + WRONG_STEP):,.0f} (it is already above its averages){tail}"
+
+
+def wrong_if_already_true(x: dict) -> bool:
+    """A check for every suggestion: a 'wrong if' line must not already be true at the price it was written at."""
+    import re
+    m = re.search(r"(closes under|climbs back above) ₹([\d,]+)", x.get("wrong_if") or "")
+    if not m or not x.get("last"):
+        return False
+    lv = float(m.group(2).replace(",", ""))
+    return x["last"] <= lv if m.group(1) == "closes under" else x["last"] >= lv
+
+
 def rate_holding(h: dict, weight: float, row: dict | None, trend: str, r: dict) -> dict:
     """Score one holding 0-100 from its own tape, the market regime, the account's concentration and the cost to leave. Every part is in `parts`."""
     w = r["rating_weights"]
@@ -137,24 +172,24 @@ def rate_holding(h: dict, weight: float, row: dict | None, trend: str, r: dict) 
     elif g == "D":
         act = "REDUCE"
         why = f"Weak ({score:.0f}/100): {notes[0] or 'poor result'}. It is {wt:.0f}% of your stocks{on_cost}. Halving it limits the damage if the slide continues."
-        wrong = (f"it climbs back above ₹{sma20:,.0f}, its one-month average, on good volume" if sma20 else "it turns up on good volume")
+        wrong = wrong_up(last, [(sma20, "its one-month average"), (sma200, "its long-term average")], " on good volume")
     elif g == "C":
         if wt > r["weight_ok_pct"]:
             act = "TRIM"
             why = f"Middling ({score:.0f}/100) but {wt:.0f}% of your stocks{on_cost}: more than a middling stock should be. Trim it toward {r['weight_ok_pct']:.0f}%."
-            wrong = (f"it climbs back above ₹{sma20:,.0f}, its one-month average" if sma20 else "it turns up")
+            wrong = wrong_up(last, [(sma20, "its one-month average"), (sma200, "its long-term average")])
         else:
             act = "WATCH"
             why = f"Middling ({score:.0f}/100): not weak enough to sell, not strong enough to add. {notes[0]}"
-            wrong = (f"it closes under ₹{sma200:,.0f}, its long-term average" if sma200 else "it falls another 10%")
+            wrong = wrong_down(last, [(sma200, "its long-term average"), (sma20, "its one-month average")])
     elif g == "A" and wt <= r["add_below_weight_pct"] and trend != "below_both":
         act = "ADD"
         why = f"Strong ({score:.0f}/100) and only {wt:.0f}% of your stocks, with the market not in a downtrend: room to add."
-        wrong = (f"it closes under ₹{sma20:,.0f}, its one-month average" if sma20 else "it turns down")
+        wrong = wrong_down(last, [(sma20, "its one-month average"), (sma200, "its long-term average")])
     else:
         act = "HOLD"
         why = f"{'Strong' if g == 'A' else 'Fine'} ({score:.0f}/100): {notes[0] or 'result and size are acceptable'}{on_cost}. Keep it."
-        wrong = (f"it closes under ₹{sma200:,.0f}, its long-term average" if sma200 else "it turns down")
+        wrong = wrong_down(last, [(sma200, "its long-term average"), (sma20, "its one-month average")])
     if act == "TIDY":
         size = value
     elif act == "REDUCE":

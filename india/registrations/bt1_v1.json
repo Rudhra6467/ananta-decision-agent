@@ -1,0 +1,40 @@
+{
+ "study": "BT1",
+ "family": "portfolio",
+ "version": 1,
+ "written": "2026-10-27",
+ "asked_by": "Madhav, 27 Oct 2026 09:17 Toronto: \"Yes to all your recommendations\" (the recommendation, after reviewing his 25-question Ask session of 27 Oct: test the topics Ananta could only answer from the textbook: candlestick patterns, valuation (P/E, P/B), beta and low volatility, option spreads, corporate actions)",
+ "title": "Low beta and low volatility: do the calmest liquid stocks earn as much as or more than the jumpiest, after costs?",
+ "hypothesis": "The low-risk effect: a monthly-rebalanced basket of the lowest-beta (or lowest-volatility) fifth of the liquid 250 earns more per month than the highest fifth and than the whole liquid 250, after costs.",
+ "data": {
+  "stocks": "gold/teachers/stock_panel.parquet daily closes and the cost column, 2003-2023; universe = liquidity rank 1-250 on the formation day",
+  "index": "silver/kite_index/day NIFTY 50 daily returns (for beta)",
+  "nothing_sealed": "no 2024+ row"
+ },
+ "definitions": {
+  "beta": "250-session covariance of the stock's daily return with the Nifty's divided by the Nifty's variance (at least 200 sessions), as of the last session of the month",
+  "volatility": "standard deviation of the last 60 daily returns (at least 50)",
+  "baskets": "equal weight; formed on the last session of each month from the liquid 250 with a beta (or volatility); held through the next month (daily returns averaged across names; one-day moves over 50% dropped)",
+  "costs": "at each rebalance: one-sided turnover (share of the basket replaced) x the average round-trip cost column of the names; the whole-universe basket pays its own turnover the same way"
+ },
+ "statistics": {
+  "test": "monthly net return difference (basket minus comparison); each month is one block, t across months",
+  "periods": "development to 2017, validation 2018-2023; nothing from 2024 on, no sealed folder",
+  "verdict": "india/registry.record standard rule; 16 blocks per period"
+ },
+ "bar": {
+  "union_k": 16,
+  "z": 2.955,
+  "bar_families": [
+   "portfolio"
+  ],
+  "note": "family 'portfolio' (12 rows) plus these 4; k frozen at 16"
+ },
+ "variants": {
+  "LOWBETA-HIGHBETA|monthly": 1,
+  "LOWBETA-ALL|monthly": 1,
+  "LOWVOL-HIGHVOL|monthly": 1,
+  "LOWVOL-ALL|monthly": 1
+ },
+ "not_claimed": "No paper rule changes; the volatility and return-per-risk figures per basket are reported alongside, not tested."
+}

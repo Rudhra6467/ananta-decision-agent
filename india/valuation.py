@@ -33,6 +33,33 @@ FIRST_YEAR = 1999
 METHOD_BREAK = "2021-03-31"
 
 
+def _pctile(hist: pd.Series, x: float) -> float | None:
+    h = hist.dropna()
+    return None if h.empty or x is None else round(float((h < x).mean() * 100), 0)
+
+
+def latest(names: tuple = INDICES) -> dict:
+    """Each index's newest P/E, P/B and dividend yield (through sealed.read_valuation, purpose paper_context) and where today's level sits in the
+    pre-2024 history only (silver/valuation): P/E and yield against the same consolidated basis (31 Mar 2021 to 2023, since the method changed
+    then), P/B against 1999-2023 (it did not move at the break). For the market context (27 Oct, Madhav's yes); nothing is scored from it."""
+    from india import sealed
+    since = (dt.date.today() - dt.timedelta(days=20)).isoformat()
+    cur = sealed.read_valuation("paper_context", since, list(names)).sort_values(["index_name", "date"])
+    hist_p = paths.data_dir() / "silver" / "valuation" / "index_pepb.parquet"
+    hist = pd.read_parquet(hist_p) if hist_p.exists() else pd.DataFrame(columns=["index_name", "date", "pe", "pb", "div_yield", "pe_basis"])
+    out = {}
+    for nm, g in cur.groupby("index_name"):
+        r = g.iloc[-1]
+        h = hist[hist["index_name"] == nm]
+        hc = h[h["pe_basis"] == r["pe_basis"]] if "pe_basis" in h else h
+        pe, pb, dy = (None if pd.isna(r[c]) else float(r[c]) for c in ("pe", "pb", "div_yield"))
+        out[nm] = {"date": str(pd.Timestamp(r["date"]).date()), "pe": pe, "pb": pb, "div_yield": dy, "pe_basis": r["pe_basis"],
+                   "pe_pctile": _pctile(hc["pe"], pe), "pe_pctile_basis": f"{r['pe_basis']} P/E, {str(hc['date'].min())[:10]} to {str(hc['date'].max())[:10]}" if len(hc) else None,
+                   "pb_pctile": _pctile(h["pb"], pb), "pb_pctile_basis": f"P/B, {str(h['date'].min())[:10]} to {str(h['date'].max())[:10]}" if len(h) else None,
+                   "div_yield_pctile": _pctile(hc["div_yield"], dy)}
+    return out
+
+
 def parse(text: str) -> list[dict]:
     """The endpoint's JSON (a list, or {'d': '<list as text>'}) -> date, index_name, pe, pb, div_yield. Blank or '-' values become None."""
     d = json.loads(text)

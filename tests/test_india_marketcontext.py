@@ -112,3 +112,38 @@ def test_opening_gap_is_open_against_the_previous_close(monkeypatch):
     r = g["rows"]["NIFTY 50"]
     assert g["status"] == "ok" and r["date"] == "2026-10-26" and r["prev_close"] == 22600.0 and r["open"] == 22524.4
     assert r["gap"] == -0.0033 and r["open_to_close"] == 0.0102 and "GP1" in g["tested"]
+
+
+def test_valuation_percentiles_use_2024_free_history_on_the_same_basis(tmp_path, monkeypatch):
+    """27 Oct: Ananta said "my facts hold no PE or PB figure"; today's index P/E, P/B and yield come through the paper_context purpose and are
+    compared with the pre-2024 file only, P/E on the same (consolidated) basis."""
+    import pandas as pd
+    from india import sealed, valuation, marketcontext as mc
+    data = tmp_path / "india"
+    (data / "silver" / "valuation").mkdir(parents=True)
+    hist = pd.DataFrame({"index_name": "NIFTY 50", "date": pd.to_datetime(["2010-01-04", "2015-01-05", "2021-04-01", "2022-04-01", "2023-04-03"]),
+                         "pe": [20.0, 22.0, 30.0, 22.0, 24.0], "pb": [3.0, 3.5, 4.0, 4.2, 3.8], "div_yield": [1.2, 1.3, 1.0, 1.3, 1.2],
+                         "pe_basis": ["standalone", "standalone", "consolidated", "consolidated", "consolidated"]})
+    hist.to_parquet(data / "silver" / "valuation" / "index_pepb.parquet")
+    monkeypatch.setattr(valuation.paths, "data_dir", lambda: data)
+    seen = {}
+    def fake(purpose, since, names):
+        seen["purpose"] = purpose
+        return pd.DataFrame({"index_name": ["NIFTY 50"], "date": pd.to_datetime(["2026-10-26"]), "pe": [23.0], "pb": [2.79], "div_yield": [1.51],
+                             "pe_basis": ["consolidated"]})
+    monkeypatch.setattr(sealed, "read_valuation", fake)
+    v = valuation.latest(("NIFTY 50",))["NIFTY 50"]
+    assert seen["purpose"] == "paper_context"
+    assert v["pe"] == 23.0 and v["pe_pctile"] == 33.0 and "consolidated" in v["pe_pctile_basis"]     # above 22 only, of 30/22/24
+    assert v["pb_pctile"] == 0.0 and v["pb_pctile_basis"].startswith("P/B, 2010")
+    monkeypatch.setattr(valuation, "latest", lambda names=valuation.INDICES: {"NIFTY 50": v})
+    out = mc.valuation_latest()
+    assert out["status"] == "ok" and out["as_of"] == "2026-10-26" and "VL1" in out["tested"]
+
+
+def test_sealed_valuation_reader_refuses_other_purposes():
+    import pytest
+    from india import sealed
+    for p in ("research", "holdout", "technicals_history"):
+        with pytest.raises(PermissionError):
+            sealed.read_valuation(p, "2026-10-01", ["NIFTY 50"])

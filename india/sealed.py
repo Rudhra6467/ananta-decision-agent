@@ -3,7 +3,8 @@
 A reader names its purpose; the request is checked against the purposes allowed below and written to manifests/sealed_access.jsonl (who, why,
 what window, how many rows) before any row is returned. Nothing here lets a study score a rule on the holdout. Allowed purposes:
   paper_lookback  the live paper engine's last few hundred sessions, to compute indicators (200-day average, 14-day range) for a signal on today's close
-  paper_context   the engine's market context (Nifty 50 and India VIX against their averages) recorded with each decision
+  paper_context   the engine's market context (Nifty 50 and India VIX against their averages) recorded with each decision; also the indices' latest
+                  P/E, P/B and dividend yield for the market context (read_valuation, 27 Oct 2026)
   forecast_score  index closes after a forecast's horizon, to score forecasts written beforehand in paper/forecasts.jsonl (no rule scored)
   technicals_history  the DATES of the indices' 50/200 and 20/50 moving-average crosses since 2015, for the technicals panel (Madhav, 26 Oct
                   2026); only the event list is returned (index_cross_dates), no price or return
@@ -86,6 +87,27 @@ def read_index(purpose: str, since: str, names: list[str]) -> pd.DataFrame:
 
 
 ALLOWED_CONTEXT = {"paper_context", "forecast_score"}
+
+
+def read_valuation(purpose: str, since: str, names: list[str]) -> pd.DataFrame:
+    """The indices' daily P/E, P/B and dividend yield (NSE) for the market context (27 Oct, Madhav's yes): same rules as read_index (purpose
+    paper_context, at most LOOKBACK_DAYS back), logged. Nothing is scored from these rows; the long-run comparison uses the pre-2024 file only."""
+    if purpose not in ALLOWED_CONTEXT:
+        raise PermissionError(f"sealed valuation read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED_CONTEXT)}")
+    since_d = pd.Timestamp(since).date()
+    if (dt.date.today() - since_d).days > LOOKBACK_DAYS:
+        raise PermissionError(f"sealed read refused: window of {(dt.date.today() - since_d).days} days exceeds {LOOKBACK_DAYS}")
+    root = paths.data_dir()
+    files = [str(p) for p in (root / "silver/valuation/index_pepb.parquet", root / "sealed/silver/valuation/index_pepb.parquet") if p.exists()]
+    if not files:
+        return pd.DataFrame(columns=["index_name", "date", "pe", "pb", "div_yield", "pe_basis"])
+    con = duckdb.connect()
+    df = con.execute(f"select index_name, date, pe, pb, div_yield, pe_basis from read_parquet({files!r}, union_by_name=true) where date >= ? and list_contains(?, index_name)",
+                     [since_d, names]).df()
+    con.close()
+    _log(purpose, "valuation index_pepb " + ",".join(names), since, len(df))
+    return df.drop_duplicates(["index_name", "date"], keep="last")
+
 
 ALLOWED_CROSSES = {"technicals_history"}
 CROSS_PAIRS = ((50, 200), (20, 50))

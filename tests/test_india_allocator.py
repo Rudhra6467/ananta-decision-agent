@@ -120,3 +120,19 @@ def test_the_allocator_places_no_order_and_calls_no_broker():
     src = Path(allocator.__file__).read_text()
     names = {n.id for n in ast.walk(ast.parse(src)) if isinstance(n, ast.Name)} | {n.attr for n in ast.walk(ast.parse(src)) if isinstance(n, ast.Attribute)}
     assert not names & {"Kite", "place_order", "orders", "requests", "post"}, "the allocator only reads files"
+
+
+def test_wrong_if_is_never_a_line_already_crossed():
+    """27 Oct: TMPV (WATCH) said "wrong if it closes under ₹338, its long-term average" while it was at ₹263.70."""
+    from india import allocator as al
+    w = al.wrong_down(263.70, [(338.0, "its long-term average"), (270.0, "its one-month average")])
+    assert "338" not in w and "270" not in w and "another 10%" in w and "237" in w
+    assert al.wrong_down(300.0, [(338.0, "its long-term average"), (290.0, "its one-month average")]) == "it closes under ₹290, its one-month average"
+    assert al.wrong_up(300.0, [(280.0, "its one-month average"), (320.0, "its long-term average")], " on good volume") == \
+        "it climbs back above ₹320, its long-term average on good volume"
+    assert "330" in al.wrong_up(300.0, [(280.0, "a"), (290.0, "b")])
+    assert al.wrong_if_already_true({"wrong_if": "it closes under ₹338, its long-term average", "last": 263.7})
+    assert not al.wrong_if_already_true({"wrong_if": al.wrong_down(263.7, [(338.0, "x")]), "last": 263.7})
+    for last, lv in ((100.0, 120.0), (100.0, 80.0)):
+        for f in (al.wrong_down, al.wrong_up):
+            assert not al.wrong_if_already_true({"wrong_if": f(last, [(lv, "an average")]), "last": last})

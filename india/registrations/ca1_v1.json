@@ -1,0 +1,42 @@
+{
+ "study": "CA1",
+ "family": "events",
+ "version": 1,
+ "written": "2026-10-27",
+ "asked_by": "Madhav, 27 Oct 2026 09:17 Toronto: \"Yes to all your recommendations\" (the recommendation, after reviewing his 25-question Ask session of 27 Oct: test the topics Ananta could only answer from the textbook: candlestick patterns, valuation (P/E, P/B), beta and low volatility, option spreads, corporate actions)",
+ "title": "Corporate actions: do stocks do better after a bonus or split, a buyback, or a large dividend, from the ex-date on?",
+ "hypothesis": "Bonus issues and splits signal management confidence and widen ownership; buybacks signal the shares are cheap; a large dividend signals strong cash flow: each is followed by better 20-60 session returns than ordinary days.",
+ "data": {
+  "events": "silver/corporate_actions/record_b.parquet (NSE corporate-action records 2000-2026 with EX-DATES and kinds; there is NO announcement date in the free history, so the test starts at the ex-date, which is known in advance, not at the news)",
+  "stocks": "gold/teachers/stock_panel.parquet, every stock in the panel (liquidity rank 1-500) because buybacks are rare in the liquid 250",
+  "nothing_sealed": "no 2024+ row; nothing was looked at for outcomes before this spec"
+ },
+ "definitions": {
+  "bonus_split": "kind BONUS, SPLIT or BONUS+SPLIT",
+  "buyback": "kind BUYBACK (the tender's ex/record date)",
+  "dividend_y2": "kind DIVIDEND with amount per share >= 2% of the previous session's close (the unadjusted prev_close on the ex-date row of silver/cm_bhavcopy, series EQ; if missing, the event is skipped) [data source fixed before the run, 27 Oct]",
+  "event row": "the ex-date session in the panel (matched on symbol and date); one per stock per 10 sessions",
+  "outcome": "panel fwd20 / fwd60: from the NEXT session's open (the day after the ex-date), adjusted prices"
+ },
+ "statistics": {
+  "test": "india.teachers_stock.level against every 5th session of the panel in the same quarter, t across quarters (quarters need 3 events)",
+  "periods": "development to 2017, validation 2018-2023; nothing from 2024 on, no sealed folder",
+  "verdict": "india/registry.record standard rule; 16 blocks per period"
+ },
+ "bar": {
+  "union_k": 29,
+  "z": 3.134,
+  "bar_families": [
+   "events"
+  ],
+  "note": "family 'events' (24) plus these 5; k frozen at 29"
+ },
+ "variants": {
+  "STK|bonus_split|fwd20": 1,
+  "STK|bonus_split|fwd60": 1,
+  "STK|buyback|fwd20": 1,
+  "STK|buyback|fwd60": 1,
+  "STK|dividend_y2|fwd20": 1
+ },
+ "not_claimed": "No paper rule changes. Announcement-day reactions cannot be tested: the free history has ex-dates only."
+}

@@ -1,0 +1,46 @@
+{
+ "study": "OS1",
+ "family": "options_eod",
+ "version": 1,
+ "written": "2026-10-27",
+ "asked_by": "Madhav, 27 Oct 2026 09:17 Toronto: \"Yes to all your recommendations\" (the recommendation, after reviewing his 25-question Ask session of 27 Oct: test the topics Ananta could only answer from the textbook: candlestick patterns, valuation (P/E, P/B), beta and low volatility, option spreads, corporate actions)",
+ "title": "Option spreads: for the same intraday index trade, does a debit spread (buy the at-the-money option, sell one 1-2 strikes further out) do better than buying the single option, overall and when the fear gauge is high?",
+ "hypothesis": "Selling the further option cuts the premium paid and the time decay, so per rupee at risk the debit spread earns more than the single option, especially when India VIX is high (options dear).",
+ "data": {
+  "trades": "gold/studies/SP1_outcomes.parquet (the completed SP1 research, 2015-2023, not the holdout): every candidate index trade at decision points D1 and D2 (entry 15 and 30 minutes after the open) with the ATRSTOP and T1515 exits, both directions, where the single-option leg exists",
+  "options": "the same previous-session chain and Black-76 repricing india/sp1.py uses (silver/fo_greeks 2014-2023 IVs, OptionBook, option_leg), the same spread model (half-spread max(tick-floor, 0.25% of premium), doubled on a stopped exit) and india.costs option charges",
+  "vix": "gold/scenario/index_states.parquet vix_prev (the previous session's India VIX)",
+  "nothing_sealed": "no 2024+ row, no holdout row"
+ },
+ "definitions": {
+  "single": "sp1.option_leg as stored: buy the at-the-money option (call for a long, put for a short) at entry, sell at the index exit",
+  "spread1 / spread2": "the same long leg plus a SOLD option of the same type and expiry, the next listed strike out (1) or two strikes out (2), priced with its own previous-session IV, sold at entry and bought back at the exit, with its own half-spread and charges",
+  "ret": "net rupees divided by the premium paid (single) or the net debit (spread) of one lot",
+  "rs": "net rupees per lot",
+  "HIVIX": "previous-session India VIX above 18"
+ },
+ "statistics": {
+  "test": "per trade, spread minus single on the same trade; calendar-month means; each month one block; t across months (development 2015-2017, 36 months)",
+  "descriptive": "the same comparison on SP1's out-of-fold policy trades 2017-2023 is reported, not tested",
+  "periods": "development to 2017, validation 2018-2023; nothing from 2024 on, no sealed folder",
+  "verdict": "india/registry.record standard rule; 16 blocks per period"
+ },
+ "bar": {
+  "union_k": 38,
+  "z": 3.213,
+  "bar_families": [
+   "options_intraday",
+   "options_eod"
+  ],
+  "note": "families 'options_intraday' and 'options_eod' (32) plus these 6; k frozen at 38"
+ },
+ "variants": {
+  "ALL|spread1|ret": 1,
+  "ALL|spread2|ret": 1,
+  "HIVIX|spread1|ret": 1,
+  "HIVIX|spread2|ret": 1,
+  "ALL|spread1|rs": 1,
+  "HIVIX|spread1|rs": 1
+ },
+ "not_claimed": "SP1 options stay shadow; a pass would be a proposal to price the options line's lot as a spread on paper first."
+}

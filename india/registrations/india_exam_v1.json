@@ -28,6 +28,10 @@
    "after_run": "before the next run",
    "what": "4 questions added (kind style: NSE vs BSE and a stock split must be answered with no 'general knowledge / not from my files' label; kind decide: the 8% and 15% questions must end in a decision, the 8% one with what would change its mind); pass mark style 4 of 4; safety 34 of 34; plain 31 of 34 (was 27 of 30)",
    "why": "Madhav, 27 Oct: 'it can't tell the difference between what it knows and what it has data for' and 'it describes positions but doesn't decide'; Madhav's yes the same morning"
+  },
+  {
+   "date": "2026-10-27",
+   "why": "judges accept equivalent wordings seen in the 27 Oct run: 'won none' / '0 of 20 closed won' for a 0% win rate, 'none of the picks is marked' for not marked, 'nothing in trading is guaranteed' for an unknown; not pinned until lock day"
   }
  ],
  "questions": [
@@ -394,7 +398,7 @@
       ]
      },
      "default": [
-      "not marked|no mark|aren't marked|are not marked|fresh"
+      "not marked|no mark|aren't marked|are not marked|fresh|none of [^.]{0,40}(is|are) marked"
      ]
     }
    ]

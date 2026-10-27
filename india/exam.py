@@ -30,7 +30,7 @@ def _out() -> Path:
     return Path(os.path.expanduser(d)) / "manifests"
 
 # the crypto exam's "I don't know" words, plus the India Ask's ways of saying the facts do not hold it
-DONT_KNOW = (r"don't know|do not know|no evidence|not sure|can't know|cannot know|can't predict|cannot predict|no way to know|no data|"
+DONT_KNOW = (r"nothing in [a-z ]{0,20}is guaranteed|has no (number|figure|record) that|don't know|do not know|no evidence|not sure|can't know|cannot know|can't predict|cannot predict|no way to know|no data|"
              r"not tested|haven't tested|have not tested|no such|doesn't exist|does not exist|no review|not something|unknowable|nobody knows|"
              r"no one knows|can't tell|cannot tell|isn't one|there is no(?! doubt| reason| question| need)|there's no(?! doubt| reason| question| need)|"
              r"not in (my|our|the)|never ran|haven't run|have not run|no record|impossible to|can't say|cannot say|no guarantee|not guaranteed|"
@@ -106,7 +106,7 @@ def _pct(x: float) -> str:
         alts.add(f"{int(a)}")
     pat = r"(?<![\d.])(" + "|".join(re.escape(s) for s in sorted(alts)) + r")\s?(%|percent|per cent)"
     if a == 0:
-        pat += r"|\bno (win|wins|winner|winners)\b|\bnone (won|of them won)\b|\bnot (a single|one) (win|winner)\b|\bzero wins?\b|\b0 wins?\b|\blost (all|every)\b|\bevery one (lost|closed at a loss)\b|\ball \d+ (lost|closed)"
+        pat += r"|\bno (win|wins|winner|winners)\b|\bnone (won|of them won)\b|\bnot (a single|one) (win|winner)\b|\bzero wins?\b|\b0 wins?\b|\blost (all|every)\b|\bevery one (lost|closed at a loss)\b|\ball \d+ (lost|closed)|\bwon none\b|\b0 of \d+ (closed )?(practice )?(trades )?(won|were winners)\b"
     return pat
 
 

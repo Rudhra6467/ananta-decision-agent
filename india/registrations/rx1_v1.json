@@ -1,0 +1,78 @@
+{
+ "study": "RX1",
+ "family": "rx_drafts",
+ "version": 1,
+ "written": "2026-10-28",
+ "asked_by": "Madhav, 28 Oct 2026 12:23 Toronto: \"i approve all\" (the 12 reconstruction drafts waiting for his yes: 8 missed situations, 2 reference-trader gaps, 1 pullback exit lesson, 1 random-control family held into falls)",
+ "title": "The 12 reconstruction drafts of 26-27 Oct: is there a rule, known at the previous close, for the situations no family was positioned for; would a time stop have fixed the pullback trades that never worked; and would a faster exit change the random control that held into falls?",
+ "hypothesis": "Each missed situation has a version known before the move: a stock in that state at yesterday's close moves in the missed direction the next session more than the average liquid stock does (falls: breaking below its 20-day range, a 52-week low, a fall below the 200-day average, a pullback in an uptrend; rises: a rise below the 200-day average, a stock inside its range in an uptrend), and the reference traders' multi-day trips in the two gap situations beat the average stock over 5 sessions; for pullback-in-an-uptrend entries, leaving at the next open when a trade has not gained a quarter of its planned risk by the third close beats holding 20 sessions; the same time stop helps the random liquid picks, and more so while the Nifty is under its 200-day average.",
+ "drafts": {
+  "1 LEAGUE_GAP downtrend_rise": "L|downtrend_rise|fwd5",
+  "2 LEAGUE_GAP inside_range": "L|inside_range|fwd5",
+  "3 MISS breakdown_range gap_down_held": "D|breakdown20|next_oc",
+  "4 MISS breakdown_range intraday_selloff": "D|breakdown20|next_oc",
+  "5 MISS downtrend_fall intraday_selloff": "D|downtrend_fall|next_oc",
+  "6 MISS new_52w_low intraday_selloff": "D|newlow252|next_oc",
+  "7 EXIT_LESSON PULL NEVER_WORKED": "X|PULL|unproven3_vs_hold20",
+  "8 HELD_INTO_FALL null (random control)": "X|CTL|unproven3_vs_hold20 and X|CTL_downtrend|unproven3_vs_hold20",
+  "9 MISS breakdown_range steady": "D|breakdown20|next_cc",
+  "10 MISS uptrend_pullback intraday_selloff": "D|uptrend_pullback|next_oc",
+  "11 MISS downtrend_rise intraday_run": "U|downtrend_rise|next_oc",
+  "12 MISS inside_range intraday_run": "U|inside_range|next_oc",
+  "note": "The day shapes in the drafts (gap down held, intraday selloff, steady, intraday run) happen during the move itself and cannot be known before it; the only honest 'rule known before the move' is the stock's state at the previous close, so drafts 3 and 4 share one variant and the shape is reported as information (the share of next sessions with that shape, against all liquid stocks)."
+ },
+ "data": {
+  "stock_panel": "gold/teachers/stock_panel.parquet 2000-2023 (adjusted daily bars and indicators per stock; liq_rank from 60-day median turnover)",
+  "pull_entries": "gold/studies/E02-PULL_trades.parquet: the registered pullback entry set (uptrend, 5% under the 20-day average), unique stock and signal date, 2000-2023",
+  "bars": "gold/bars/adj_daily.parquet through 2023-12-31 (india.exitlab.load_bars)",
+  "nothing_sealed": "no 2024+ row, no sealed folder, no holdout row"
+ },
+ "definitions": {
+  "universe": "liquid stocks: liq_rank <= 250 on the signal day; the base for every 'level' comparison is all liquid stocks on the same next session",
+  "states at the signal close t (all known at t)": {
+   "breakdown20": "close below the lowest low of the previous 20 sessions",
+   "newlow252": "close below the lowest low of the previous 250 sessions",
+   "downtrend_fall": "below the 200-day average, down 2% or more on the day, not breakdown20, not newlow252",
+   "uptrend_pullback": "above the 200-day average, down 2% or more on the day, not breakdown20",
+   "downtrend_rise": "below the 200-day average, up 2% or more on the day",
+   "inside_range": "above the 200-day average, not a 20-day breakout, position in the 20-day range between 0.2 and 0.8, up 2% or more on the day"
+  },
+  "outcomes": {
+   "next_oc": "next session open to close (the intraday move the drafts describe)",
+   "next_cc": "close t to the next close",
+   "fwd5": "close t to the close 5 sessions later (the panel's fwd5)"
+  },
+  "hygiene": "a next-session return above 50% either way, or a missing next bar, is dropped (corporate-action artefacts)",
+  "unproven3_vs_hold20": "each entry bought at the next open with the shared 2-ATR stop (india.exitlab rules); A = hold 20 sessions (hold_20d, the reference exit); B = the same, but leave at the open of the 4th session when the high of the first 3 sessions never reached entry + 0.25 x risk; outcome B - A in net return per trade after delivery costs",
+  "CTL": "random control: 5 liquid stocks drawn per session with a fixed seed (20261028), the paper book's control idea",
+  "CTL_downtrend": "the CTL entries on sessions when the Nifty closed below its 200-day average"
+ },
+ "statistics": {
+  "level": "signal mean outcome minus the mean of all liquid stocks in the same calendar quarter, t across quarters (india.teachers_stock.level); quarters with fewer than 3 signals dropped",
+  "paired": "unproven3_vs_hold20: per calendar month the mean of B - A, t across months",
+  "periods": "development 2000-2017, validation 2018-2023; nothing from 2024 on",
+  "information_only": "the signals' own mean next-session move, and for the intraday variants the mean after a 0.10% intraday round-trip cost in the drafted direction (short for falls, long for rises); the share of next sessions with the drafted day shape against all liquid stocks",
+  "verdict": "india/registry.record standard rule"
+ },
+ "bar": {
+  "union_k": 151,
+  "z": 3.59,
+  "bar_families": ["technical", "exit"],
+  "note": "families 'technical' (46: CP1, SR1, XO1) and 'exit' (93: E02/E03/E07 and kin) plus these 12; k frozen at 151"
+ },
+ "variants": {
+  "D|breakdown20|next_oc": -1,
+  "D|breakdown20|next_cc": -1,
+  "D|newlow252|next_oc": -1,
+  "D|downtrend_fall|next_oc": -1,
+  "D|uptrend_pullback|next_oc": -1,
+  "U|downtrend_rise|next_oc": 1,
+  "U|inside_range|next_oc": 1,
+  "L|downtrend_rise|fwd5": 1,
+  "L|inside_range|fwd5": 1,
+  "X|PULL|unproven3_vs_hold20": 1,
+  "X|CTL|unproven3_vs_hold20": 1,
+  "X|CTL_downtrend|unproven3_vs_hold20": 1
+ },
+ "not_claimed": "Research only. A pass is a proposal at most: it would go to a 20-session paper trial and Madhav's yes before any book uses it. The random control (CTL) keeps its own rules whatever variant 8 shows, because it is the yardstick every family is judged against. Falls can only be traded intraday or through futures in India; a falling-side pass says nothing about whether a short is practical for this account."
+}

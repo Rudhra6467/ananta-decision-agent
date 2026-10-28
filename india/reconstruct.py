@@ -358,6 +358,11 @@ def section_ananta(day: str, rm: dict, st: dict, sess: list[str]) -> dict:
 
 # ------------------------------------------------------------------------------------------------------------------------------- D: what it did not do
 
+def _held_family(g: dict) -> str:
+    """The family of one held group in a missed-movers manifest (india.missed writes "family"; older shapes said "campaign")."""
+    return g.get("family") or g.get("campaign") or "unknown"
+
+
 def section_not_done(day: str, rm: dict) -> dict:
     man_src = _data() / "manifests" / f"missed_{day}.json"
     man = _load(man_src, {}) or {}
@@ -384,14 +389,16 @@ def section_not_done(day: str, rm: dict) -> dict:
     except Exception as e:  # noqa: BLE001
         cf["note"] = f"{e.__class__.__name__}: {str(e)[:80]}"
     held = [m for m in movers if m.get("status") == "held_into_fall"]
-    held_by_family = Counter(g.get("campaign") for m in held for g in (m.get("held") or []) if isinstance(g, dict))
+    # 28 Oct: india.missed writes each held group's family under "family" (not "campaign"); reading "campaign" gave None,
+    # so every held-into-fall finding was keyed HELD_INTO_FALL:null and said "The null family". Reporting only.
+    held_by_family = Counter(_held_family(g) for m in held for g in (m.get("held") or []) if isinstance(g, dict))
     up, down = s.get("up") or {}, s.get("down") or {}
     words = (f"Of the top {up.get('movers', 0)} rises the book held {up.get('caught', 0)} (plus {up.get('caught_by_control', 0)} by the random control), "
              f"missed {up.get('a', 0)} after a family fired (class a), {up.get('b', 0)} with no family positioned (b), {up.get('c', 0)} untradeable (c); "
              f"it held into {down.get('held_into_fall', 0)} of the top {down.get('movers', 0)} falls (₹{abs(down.get('held_pnl_so_far_inr') or 0):,.0f} against it so far). "
              + (f"Of {cf['rejected_followed']} research candidates it rejected, {cf['so_far_not_missed']} have not run away and {cf['so_far_would_have_paid_2pct']} are up 2%+ (hindsight)." if cf.get("status") == "ok" and cf.get("rejected_followed") else ""))
     return {"status": "ok" if man else "missing", "source": str(man_src), "summary": s, "b_situations": s.get("b_situations") or {},
-            "held_into_fall": [{"symbol": m["symbol"], "cc": _r(m.get("cc")), "families": sorted({g.get("campaign") for g in (m.get("held") or []) if isinstance(g, dict)})} for m in held][:10],
+            "held_into_fall": [{"symbol": m["symbol"], "cc": _r(m.get("cc")), "families": sorted({_held_family(g) for g in (m.get("held") or []) if isinstance(g, dict)})} for m in held][:10],
             "held_into_fall_by_family": dict(held_by_family), "counterfactual": cf, "words": words}
 
 

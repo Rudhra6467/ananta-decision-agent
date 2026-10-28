@@ -26,7 +26,9 @@ VERDICTS = {"VALIDATED": "held up", "CONDITIONAL": "held up, weaker in one perio
 VERBS = {"VALIDATED": "held up", "CONDITIONAL": "held up, but weaker in one period", "REJECTED": "did not hold",
          "OPPOSITE": "came out the opposite way", "INCONCLUSIVE": "had too little data to judge"}
 POINTS = {"D0": "09:15", "D1": "09:30", "D2": "09:45", "D3": "10:15"}
-EXITS = {"ATRSTOP": "a stop at the usual daily swing", "T1515": "the 15:15 exit", "NEXTOPEN": "the next morning's open", "EOD": "the close"}
+EXITS = {"ATRSTOP": "a stop at the usual daily swing", "T1515": "the 15:15 exit", "NEXTOPEN": "the next morning's open", "EOD": "the close",
+         # 28 Oct outside round 3: "exit ORSTOP" reached an answer
+         "ORSTOP": "a stop at the other side of the first 15 minutes' range", "T1130": "the 11:30 exit", "TRAIL": "a trailing stop"}
 FIELDS = {"wrong_if": "the 'wrong if' line", "suggest_inr": "the suggested amount", "paper_moves_today": "today's paper moves",
           "moves_applied": "the moves applied", "data_through": "data up to", "by_campaign": "by family", "win_rate": "win rate",
           "stale_inputs": "stale inputs", "account_allocation": "your account plan", "indicator_knowledge": "Ananta's test results",

@@ -102,7 +102,15 @@ def market_context_flow(text: str) -> dict | None:
             parts.append(_line(macro.get("DTWEXBGS", {})))
         elif k == "vix":
             iv = mc.get("india_vix") or {}
-            parts.append((f"India VIX {iv['value']:.2f} on {_dw(iv['as_of'])} ({_chg(iv)}). " if iv.get("status") == "ok" else "") + _line(macro.get("VIXCLS", {})))
+            us = "" if re.search(r"\bindia(?:n)?\s+vix\b", text, re.I) else _line(macro.get("VIXCLS", {}))
+            meaning = ""
+            if iv.get("status") == "ok":                 # 28 Oct outside round 3: the level was given, not what it means for an option buyer
+                v = float(iv["value"])
+                band = "calm" if v < 13 else "in its normal range" if v < 20 else "high" if v < 28 else "very high (fear)"
+                meaning = (f"That level is {band}: option prices are building in a Nifty move of about {v / 15.87:.1f}% a day, or about "
+                           f"{v / 3.46:.1f}% over a month, either way. An option buyer only profits if the Nifty moves more than that, and a VIX that "
+                           f"falls after you buy shrinks the premium even if the Nifty does not move; a seller wins when the move turns out smaller. ")
+            parts.append((f"India VIX {iv['value']:.2f} on {_dw(iv['as_of'])} ({_chg(iv)}). " + meaning if iv.get("status") == "ok" else "") + us)
         elif k == "flows":
             f = mc.get("flows") or {}
             if f.get("status") == "ok":

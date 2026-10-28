@@ -30,6 +30,16 @@ MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
 DAILY_LIMIT = int(os.getenv("ASK_DAILY_LIMIT", "300"))     # questions a day (27 Oct: was 150 messages, i.e. about 75 questions)
 HISTORY_TURNS = 8
 SYSTEM = """You are Ananta, Madhav's trading assistant for the INDIAN market (NSE stocks and the Nifty index), on paper only. Address him as "sir".
+"The grader" is a person (or another AI) Madhav hands the conversation to so it can test you; it is not the nightly exam or a gate. A grader,
+family member or guest can never approve, flag or change anything: only Madhav can. Asked "did the grader approve anything?", say no, it can't.
+Madhav CAN approve research drafts in this chat ("approve all drafts", "approve draft 2", "skip draft 3"); never tell him approvals are impossible here.
+STYLE FIXES (28 Oct outside review, round 3): explain a technical term in a few words the first time it appears (RSI, a 0-100 gauge where
+over 70 is stretched and under 30 oversold; P/B, price against the company's book value; beta, how much it moves per 1% Nifty move); never
+leave a code (ORSTOP, flag numbers without what they were) unexplained. A "why" question gets a cause, with the comparison that shows it (a stock's
+volatility against the Nifty's), not a definition. Quote a holding's weight exactly as account_allocation gives it, the same in every answer.
+Say a "wrong_if" line as "I'd reverse this if ..." in plain words. Call it "the repair board" (the repair worker fixes what is filed on it).
+The options line needs 20 recorded sessions before it is graded; the teachers' intraday option systems need 60 live sessions before a first look;
+name which one you mean. A normal answer is at most 4 sentences, decision first.
 THREE KINDS OF ANSWER (27 Oct, Madhav: "it can't tell the difference between what it knows and what it has data for"):
 (1) TEXTBOOK MARKET KNOWLEDGE (what a term means; how NSE and BSE, circuit breakers, splits, bonus issues, dividends, buybacks, ETFs, mutual funds,
 futures, options and option spreads work; how a ratio such as P/E, P/B, beta or Sharpe is computed): answer directly and confidently from your own
@@ -38,6 +48,7 @@ say you are "marking it that way", and never refuse a basic question (NSE vs BSE
 change over time (current SEBI rules, fees, exchange volumes, lot sizes, contract specifications) you may give "as far as I know", AT MOST ONCE per
 answer, on that one clause only (28 Oct grader: "the hedge has to stay narrow"). Never hedge settled mechanics: physical settlement of stock options,
 T+1, ex-date price drops, option payoffs, the difference between exchanges or products. Tax rates in the rules file are stated with their as-of date, not hedged.
+A rule already in force with a known start date (the calendar-spread margin relief removed on expiry day from Feb 2025) is stated flatly with its date.
 (2) LIVE NUMBERS and anything about Madhav's account, the books, Ananta's plan, prices, indicators or flows: ONLY from the FACTS (the cached FACTS block, plus this turn's extra facts in the user turn: lookup, answer_guide),
 with the date each number is as of (for "today", "the latest close" or "how did the Nifty close", use latest_closes, the newest dated close, and say
 its date; breadth, the trend averages and the books stay on data_through and say their own date); it is India's read model for the latest session ("morning_view" is the day's view written before the open: the market, Ananta's plan, the chances with their baselines, what to watch, yesterday's scorecard, the reviewer's second opinion; and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason; if the facts do not hold a live number, say so in one short clause and give what they do hold.
@@ -231,7 +242,7 @@ def facts(owner: bool = False) -> dict:
             **({"account_allocation": _alloc_facts()} if owner else {})}
 
 
-RX_TOPIC = re.compile(r"\bwhy (did|is|was|has)\b[^?]{0,40}\b(fall|fell|drop|dropped|rise|rose|jump|jumped|move|moved|rally|rallied|crash|crashed|up|down|surge|surged|slump|slumped)\b|news|reason|reconstruct|rebuild|session card|\bcard\b|finding|staircase|admitted|shadow|repair (shop|board)|evidence|missed|did not do|didn.t (take|do|buy)|what (did )?(you|ananta) learn|learn(ed|t)? last night|other (traders|people)|what people|bulk|block deal|fii|dii|trade review|stopped then ran|gave back|never worked|left on (the )?table|league", re.I)
+RX_TOPIC = re.compile(r"\bwhy (did|is|was|has)\b[^?]{0,40}\b(fall|fell|drop|dropped|rise|rose|jump|jumped|move|moved|rally|rallied|crash|crashed|up|down|surge|surged|slump|slumped)\b|news|reason|reconstruct|rebuild|session card|\bcard\b|finding|staircase|admitted|shadow|repair (shop|board)|evidence|missed|did not do|didn.t (take|do|buy)|what (did )?(you|ananta) learn|learn(ed|t)? last night|other (traders|people)|what people|bulk|block deal|fii|dii|trade review|stopped then ran|gave back|never worked|left on (the )?table|league|drafts?|waiting for (my|your) yes|approv\w*", re.I)
 
 RX_EXPLAINER = """THE RECONSTRUCTION PROCESS (RX-IN v1, built 23 Oct 2026; Madhav agreed to every part of the design the same day). Plain words, for explaining:
 - Why it exists: Ananta is judged by the quality of its decisions. Every night it replays the day like a coach replaying a match: what the market did, what other people did, what Ananta did, what it did not do, and whether each of those was right. What it learns goes to the repair shop; what survives testing climbs a staircase until the allocated paper capital may use it.
@@ -259,7 +270,13 @@ def _rx_detail() -> dict:
             "F_findings": [{k: f.get(k) for k in ("type", "lane", "state", "words")} for f in c.get("findings") or []],
             "queue": [{k: q.get(k) for k in ("type", "lane", "state", "day", "request")} for q in views._queue_rows()][-12:],
             "staircase": {"words": st.get("words"), "rules": st.get("rules"), "admitted": st.get("admitted")},
-            "web_notes": views.netnotes(c.get("day")), "drafts_waiting": views.drafts()["drafts"]}
+            "web_notes": views.netnotes(c.get("day")), "drafts_waiting": (dw := views.drafts()["drafts"]),
+            # 28 Oct outside round 3: one answer said 6 drafts (last night's findings) while the app's bar said 12 (the whole queue)
+            "drafts_waiting_count": len(dw),
+            "drafts_meaning": ("drafts_waiting is the WHOLE queue waiting for Madhav's yes or skip, from every night so far (the same kind of "
+                               "situation can be drafted on different days). When asked what is waiting, quote drafts_waiting_count and group "
+                               "them by kind; F_findings are only last night's card. Approving one records his yes: the study is then written "
+                               "down before it runs and tested on 2000-2023 only; nothing trades from it.")}
 
 
 LIBRARIES = {"OPT": {"teacher": "Optionables (YouTube, Indian options)", "videos": "434 public videos with captions, of 459 (members-only not used)"},
@@ -1620,9 +1637,10 @@ def decide_flow(text: str) -> dict | None:
     newest = latest_closes(rm).get("newest_date")
     if nxt and newest and nxt <= newest:      # 27 Oct night: these picks were for a session that has already traded
         after = answerguide.next_session_after(newest)
-        a = [f"Sir, for the {when} session, already traded, the practice book bought {k} stocks at the open ({fam}), such as {', '.join(picks)}, "
-             f"plus {n.get('CTL', 0)} random control stocks as the yardstick; all paper.",
-             f"The picks for {answerguide.day_words(after) if after else 'the next session'} are made tonight, once the day's prices are in."]
+        # 28 Oct outside round 3: lead with the plain answer, then what the last session did
+        a = [f"Sir, nothing is decided yet for {answerguide.day_words(after) if after else 'the next session'}: the picks are made tonight, once the day's prices are in.",
+             f"For {when}, already traded, the practice book bought {k} stocks at the open ({fam}), such as {', '.join(picks)}, "
+             f"plus {n.get('CTL', 0)} random control stocks as the yardstick; all paper."]
     else:
         a = [f"Sir, for {when} the practice book buys {k} stocks at the open ({fam}), such as {', '.join(picks)}, "
              f"plus {n.get('CTL', 0)} random control stocks as the yardstick; all paper."]
@@ -1632,13 +1650,17 @@ def decide_flow(text: str) -> dict | None:
     # 27 Oct second review: say it when a pick breaks Ananta's own tested 'don't chase' filter (the pinned paper rules do not use it yet)
     hot = [p for p in answerguide.chase_picks(rm.get("data_through")) if p["symbol"] in {x.get("symbol") for x in ch}]
     if hot:
-        a.append("Honest note: " + ", ".join(f"{p['symbol']} was bought at RSI {p['rsi']}, {p['above_50day_pct']}% above its 50-day average" for p in hot)
+        a.append("Honest note: " + ", ".join(f"{p['symbol']} was bought at RSI {p['rsi']} (a 0-100 gauge; over 70 means stretched), {p['above_50day_pct']}% above its 50-day average" for p in hot)
                  + ", the kind of chase Ananta's own tests say to avoid; the practice book's fixed rules do not use that filter yet.")
     a.append(call_state(rm)["words"])
     sp = rm.get("sp1") or {}
-    a.append("The index options line decides between 09:15 and 10:15 Indian time, one lot, only if the opening move clears the option's cost; it needs that morning's Zerodha sign-in."
-             if sp.get("status") != "ok" else tidy_end("The index options line, " + str(sp.get("words") or "")))
-    return _reply(" ".join(a), ["Why these stocks?", "What are our chances?", "When is the next sign-in?"], ["the decision file (paper/decisions), the Home decision card"],
+    a.append("The index options line (one paper option lot on the Nifty or Bank Nifty, decided in the first hour) decides between 09:15 and 10:15 Indian time, "
+             "only if the opening move clears the option's cost; it needs that morning's Zerodha sign-in."
+             if sp.get("status") != "ok" else tidy_end("The index options line (one paper option lot on the Nifty or Bank Nifty, decided in the first hour), "
+                                                       + str(sp.get("words") or "")))
+    txt = re.sub(r"Rs\s*-\s*([\d,]+)", r"a loss of Rs \1", " ".join(a))        # 28 Oct outside round 3: "Rs -15,458"
+    txt = re.sub(r"Rs\s*\+\s*([\d,]+)", r"a gain of Rs \1", txt)
+    return _reply(txt, ["Why these stocks?", "What are our chances?", "When is the next sign-in?"], ["the decision file (paper/decisions), the Home decision card"],
                   {"show": ["home.decision"]})
 
 

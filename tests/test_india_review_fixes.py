@@ -100,7 +100,7 @@ def test_the_decision_answer_says_when_the_picks_were_already_traded(monkeypatch
     monkeypatch.setattr(G, "_holidays", lambda: set())
     monkeypatch.setattr(A.views, "readmodel", lambda: RM)
     a = A.decide_flow("What did you decide for the next session, and why?")["answer"]
-    assert "Tue 27 Oct session, already traded" in a and "Wed 28 Oct" in a and "made tonight" in a
+    assert "For Tue 27 Oct, already traded" in a and a.startswith("Sir, nothing is decided yet for Wed 28 Oct") and "Wed 28 Oct" in a and "made tonight" in a
     assert "(s)" not in a
 
 

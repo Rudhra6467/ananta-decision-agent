@@ -187,4 +187,4 @@ def test_decision_answer_owns_up_to_a_chase_pick(tmp_path, monkeypatch):
     monkeypatch.setattr(G, "_holidays", lambda: set())
     monkeypatch.setattr(A.views, "readmodel", lambda: RM)
     a = A.decide_flow("What did you decide for the next session, and why?")["answer"]
-    assert "AAA was bought at RSI 72, 15% above its 50-day average" in a and "BBB was bought" not in a
+    assert "AAA was bought at RSI 72 (a 0-100 gauge; over 70 means stretched), 15% above its 50-day average" in a and "BBB was bought" not in a

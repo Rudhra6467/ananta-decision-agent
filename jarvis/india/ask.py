@@ -39,7 +39,18 @@ leave a code (ORSTOP, flag numbers without what they were) unexplained. A "why" 
 volatility against the Nifty's), not a definition. Quote a holding's weight exactly as account_allocation gives it, the same in every answer.
 Say a "wrong_if" line as "I'd reverse this if ..." in plain words. Call it "the repair board" (the repair worker fixes what is filed on it).
 The options line needs 20 recorded sessions before it is graded; the teachers' intraday option systems need 60 live sessions before a first look;
-name which one you mean. A normal answer is at most 4 sentences, decision first.
+name which one you mean. A normal answer is at most 4 sentences, decision first; a judgment answer is the decision plus two reasons, and
+the "as a trade / as a long-term holding" split only when the horizon is unknown, one line each.
+ONE NUMBER, ONE SOURCE (28 Oct re-grade): quote these exactly and never derive them: drafts_waiting_total.count (what waits for his yes);
+daily_call scored/hits/null_hits (never work out how often the Nifty rose or fell from them); a holding's value_inr (what it is worth) versus
+suggest_inr (the amount to move), naming which; the holdings to cut are the account_allocation rows whose action is REDUCE or TRIM, in its order.
+The Chronos forecast has its own record, separate from the daily call; name which one a figure belongs to. Add an "I'd reverse this if ..." line
+only when there is a real condition with a number in it. Buying an index dip: cite Ananta's gap-down study (Nifty and Bank Nifty gap-downs of
+1% or more were followed by a slightly better week, not reliably) from indicator_knowledge.
+PROCESS WORDS: say "a 20-session paper trial" (not shadow), "the comparison picks" (not the null family), "the best trades the day offered, in
+hindsight" (not the reference traders' best trips), "repeats often enough" (not its count fires), "the steps an idea climbs" (not the staircase),
+"a check that no future data leaked in" (not the leak check), "the final real-money gate" (not the India gate), "a quarter of the trade's
+planned risk" (not a quarter R), and say what a flag was about, not just its number.
 THREE KINDS OF ANSWER (27 Oct, Madhav: "it can't tell the difference between what it knows and what it has data for"):
 (1) TEXTBOOK MARKET KNOWLEDGE (what a term means; how NSE and BSE, circuit breakers, splits, bonus issues, dividends, buybacks, ETFs, mutual funds,
 futures, options and option spreads work; how a ratio such as P/E, P/B, beta or Sharpe is computed): answer directly and confidently from your own
@@ -227,7 +238,11 @@ def facts(owner: bool = False) -> dict:
                                            "chosen": [{"symbol": x.get("symbol"), "campaign": x.get("campaign"), "close": x.get("close"), "why": x.get("why")} for x in d.get("chosen", [])]},
             "index_line_sp1": {"capital_inr": 60000, **{k: (rm.get("sp1") or {}).get(k) for k in ("status", "words", "decisions", "errors")}, "sessions": ((rm.get("sp1") or {}).get("book") or {}).get("sessions")},
             "reference_traders_league": {"h1": lg.get("h1"), "informed": lg.get("informed"), "meaning": "HINDSIGHT = best trips the session offered; RANDOM = chance; MARKET = the liquid 250; coverage = of the top 20 trips, how many Ananta took / passed / had no rule for"},
-            "missed_movers": (L.get("missed") or {}).get("line"), "drafts": L.get("drafts"),
+            "missed_movers": (L.get("missed") or {}).get("line"),
+            # 28 Oct outside round 3 re-grade: "3 open drafts" (this missed-moves file) contradicted the 12 waiting in the whole queue
+            "missed_moves_drafts": {**(L.get("drafts") or {}), "meaning": "only the missed-moves part, counted its own way; never quote it as what waits "
+                                    "for Madhav: that is drafts_waiting_total"},
+            "drafts_waiting_total": _drafts_total(),
             "research": {"studies": r.get("studies"), "gate_G02": r.get("gate"), "gate_counters": r.get("gate_counters"), "registry_verdicts": r.get("verdicts"), "exit_book_chosen": (r.get("exit_book") or {}).get("chosen")},
             "jobs": {"signin": j.get("signin"), "problems": [{"job": x["label"], "problems": x["problems"]} for x in j.get("jobs", []) if not x.get("ok")]},
             "guardrails": guardrail_facts(rm), "missing_sections": rm.get("missing"),
@@ -240,6 +255,20 @@ def facts(owner: bool = False) -> dict:
             "book_stats": book_stats_facts(rm),     # 26 Oct (Madhav: yes to all): expectancy, Sharpe-like ratio, holdings correlation, slippage, each with its "too few" flag
             "market_context": marketcontext.facts_part(rm),     # 26 Oct: rupee, dollar, crude, US yields/indices, fear gauges, FII/DII: to explain, never to predict
             **({"account_allocation": _alloc_facts()} if owner else {})}
+
+
+def _drafts_total() -> dict:
+    """One number for 'what waits for Madhav's yes', the same in every answer (and the same as the app's bar)."""
+    try:
+        d = views.drafts()["drafts"]
+    except Exception:  # noqa: BLE001
+        return {"count": None}
+    kinds: dict = {}
+    for x in d:
+        k = views.FINDING_WORDS.get(x.get("type"), x.get("type")) if hasattr(views, "FINDING_WORDS") else x.get("type")
+        kinds[k] = kinds.get(k, 0) + 1
+    return {"count": len(d), "by_kind": kinds, "meaning": "the whole queue of research drafts waiting for Madhav's yes or skip, from every night "
+            "so far; last night's card findings are a part of it. Quote this count, the same every time."}
 
 
 RX_TOPIC = re.compile(r"\bwhy (did|is|was|has)\b[^?]{0,40}\b(fall|fell|drop|dropped|rise|rose|jump|jumped|move|moved|rally|rallied|crash|crashed|up|down|surge|surged|slump|slumped)\b|news|reason|reconstruct|rebuild|session card|\bcard\b|finding|staircase|admitted|shadow|repair (shop|board)|evidence|missed|did not do|didn.t (take|do|buy)|what (did )?(you|ananta) learn|learn(ed|t)? last night|other (traders|people)|what people|bulk|block deal|fii|dii|trade review|stopped then ran|gave back|never worked|left on (the )?table|league|drafts?|waiting for (my|your) yes|approv\w*", re.I)
@@ -1652,7 +1681,12 @@ def decide_flow(text: str) -> dict | None:
     if hot:
         a.append("Honest note: " + ", ".join(f"{p['symbol']} was bought at RSI {p['rsi']} (a 0-100 gauge; over 70 means stretched), {p['above_50day_pct']}% above its 50-day average" for p in hot)
                  + ", the kind of chase Ananta's own tests say to avoid; the practice book's fixed rules do not use that filter yet.")
-    a.append(call_state(rm)["words"])
+    cs = call_state(rm)
+    if a and a[0].startswith("Sir, nothing is decided yet") and cs.get("scored"):   # 28 Oct re-grade: "no daily call yet" was said twice
+        a.append(f"The daily call is made tonight too; its record so far is {cs.get('hits')} right of {cs.get('scored')}"
+                 + (f", against {cs.get('null_hits')} for a coin flip, so don't act on it." if cs.get("below_coin_flip") else "."))
+    else:
+        a.append(cs["words"])
     sp = rm.get("sp1") or {}
     a.append("The index options line (one paper option lot on the Nifty or Bank Nifty, decided in the first hour) decides between 09:15 and 10:15 Indian time, "
              "only if the opening move clears the option's cost; it needs that morning's Zerodha sign-in."

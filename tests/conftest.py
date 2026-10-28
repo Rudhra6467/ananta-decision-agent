@@ -56,3 +56,27 @@ def _no_live_shadow_log(tmp_path, monkeypatch):
     """Oct 20 (OD-SHADOW-LANE): the nightly round and the 15-minute jobs now call the shadow lane. Tests never append to the real
     ~/ananta_runs/shadow/shadow_log.jsonl: each test gets its own folder."""
     monkeypatch.setenv("ANANTA_SHADOW_DIR", str(tmp_path / "shadow_lane"))
+
+
+@pytest.fixture(autouse=True)
+def _strategy_status_as_tested(tmp_path, monkeypatch, request):
+    """28 Oct 2026: Madhav parked H07 in the live strategy file (docs/knowledge/strategy_status.json). The behaviour tests describe the engine with
+    each strategy at its designed status, so they read a copy with any Madhav park undone ('status_before_park'); the lock test still reads the
+    live file. A test that wants the live file marks itself with @pytest.mark.live_status."""
+    if request.node.get_closest_marker("live_status"):
+        return
+    import json as _json
+    from jarvis.service import strategy_status as _ss
+
+    try:
+        live = _json.loads(_ss._path().read_text())
+    except (OSError, ValueError):
+        return
+    for s in (live.get("strategies") or {}).values():
+        if s.get("status_before_park"):
+            s["status"] = s.pop("status_before_park")
+            s.pop("parked", None)
+    p = tmp_path / "strategy_status_as_tested.json"
+    p.write_text(_json.dumps(live))
+    monkeypatch.setattr(_ss, "_path", lambda: p)
+    _ss._CACHE.update(m=None, v={})

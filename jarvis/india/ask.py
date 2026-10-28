@@ -266,10 +266,21 @@ RX1_WORDS = ("Madhav approved all 12 drafts on 28 Oct; Ananta's test of them (20
              "rule that could be known before the move (breaking the 20-day range, 52-week lows, pullbacks, rises below the 200-day or inside the "
              "range did about the same as the average stock the next day); the one with something is a stock falling 2%+ while already below its "
              "200-day average, which did 0.18% (2000-17) and 0.12% (2018-23) worse than the average stock the next session (held up, weaker in one "
-             "period), a proposal only: a 20-session paper trial of avoiding or exiting such stocks, waiting for Madhav's yes, never a short book. "
+             "period); Madhav said yes on 28 Oct 17:15 to a 20-session paper trial that records it forward (rx1_trial: nothing trades, no rule changes, "
+             "never a short book; after 20 scored sessions he decides whether it becomes a filter). Answered situations are not drafted again until about "
+             "27 Jan 2027. "
              "The two reference-trader gaps were hindsight (one small and not significant, one the opposite way). A day-3 time stop for pullbacks "
              "that never worked did not help (worse month by month), and the same stop hurt the random control, most in downtrends, so holding "
              "into falls is the cost of holding; the control keeps its rules. No rule changed.")
+
+
+def _rx1_trial() -> dict:
+    """The RX1 paper trial's own summary (records india/rx1trial.py, paper/rx1_trial.json), without the per-session rows."""
+    try:
+        d = json.loads((DATA / "paper" / "rx1_trial.json").read_text())
+    except (OSError, ValueError):
+        return {"words": "The RX1 paper trial starts with the 28 Oct close; its first scored session is 29 Oct."}
+    return {k: d.get(k) for k in ("words", "scored", "need", "complete", "mean_diff", "history")}
 
 
 def _drafts_total() -> dict:
@@ -318,6 +329,7 @@ def _rx_detail() -> dict:
             # 28 Oct outside round 3: one answer said 6 drafts (last night's findings) while the app's bar said 12 (the whole queue)
             "drafts_waiting_count": len(dw),
             "drafts_answered_28oct": RX1_WORDS,
+            "rx1_trial": _rx1_trial(),
             "drafts_meaning": ("drafts_waiting is the WHOLE queue waiting for Madhav's yes or skip, from every night so far (the same kind of "
                                "situation can be drafted on different days). When asked what is waiting, quote drafts_waiting_count and group "
                                "them by kind; F_findings are only last night's card. Approving one records his yes: the study is then written "

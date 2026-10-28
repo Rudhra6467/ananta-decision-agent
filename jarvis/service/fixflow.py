@@ -28,11 +28,12 @@ import time
 
 TRIAGE_DAILY = int(os.getenv("FIX_TRIAGE_DAILY", "20"))
 SONNET = os.getenv("FIX_TRIAGE_MODEL", "claude-sonnet-5-5")
-STATES = ("triaged", "queued", "plan", "working", "deployed", "needs_decision", "failed", "cancelled", "noted")
+STATES = ("triaged", "queued", "plan", "working", "deployed", "needs_decision", "failed", "cancelled", "noted", "decided")
 STATE_WORDS = {"triaged": "waiting for your choice", "queued": "queued for the repair worker", "plan": "the worker is writing a plan for your yes",
                "working": "the repair worker is on it", "deployed": "fixed and live", "needs_decision": "needs your yes",
                "failed": "the fix did not pass its checks; nothing changed", "cancelled": "cancelled",
-               "noted": "research note saved for you to read"}
+               "noted": "research note saved for you to read",
+               "decided": "you already said yes; it is being done"}
 
 # Words that put a fix near trading: such a fix is never built by the worker, only planned (DECISION lane).
 TRADING = re.compile(r"\b(trade|trades|trading|buy|buys|sell|sells|order|orders|size|sizing|position size|stop|stops|stop-loss|target|exit|exits|"

@@ -35,7 +35,7 @@
   },
   "H07": {
    "name": "Short dip trade (H07)",
-   "status": "ACTIVE",
+   "status": "PARKED",
    "verdict": "will_try_again",
    "watches": [
     "H07",
@@ -46,7 +46,14 @@
    "why": "The one measured edge (review #26: tier A while the dial is closed, +5.1% a trade over random, both periods; review #29 confirmed it point-in-time on all 530 Binance pairs with live costs, +6.3% a trade expected). Its live paper record is read from the database: {closed} closed, {won} won ({net}); the scoreboard counts independent market events, not trades (Evidence page). It feeds the $500 book's edge sleeve; tiers B/C and the 30-coin version keep measuring.",
    "cards": [
     "H07"
-   ]
+   ],
+   "status_before_park": "ACTIVE",
+   "parked": {
+    "date": "2026-10-28",
+    "by": "Madhav (Needs you card, then in chat 17:15 Toronto: \"I have approved from my side on crypto\")",
+    "why": "Discipline v1 book-bleed check: H07 18 closed, net -$54 in 7 days against a -$36 weekly bar. Paused: no new paper trades; open ones run to their exits. Unpark with Madhav's yes.",
+    "note": "H07 is the one measured crypto edge (review #26/#29); its research verdict is unchanged, only the live paper book is paused."
+   }
   },
   "JARVIS": {
    "name": "The brain's own $100 book",

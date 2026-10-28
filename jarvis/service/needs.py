@@ -71,6 +71,11 @@ def decide(j, nid: str, decision: str, by: str) -> dict:
 
         rid = nid[3:]
         r = fixflow.flag(j, f"Madhav said yes (Needs you, {by}) to: {item['line']} {item['meaning']}", market="crypto", screen="reconstruction", use_ai=False)
+        if r.get("num"):                  # 28 Oct: his yes on the card is the decision; it must not come back as "Flag N: pick a fix"
+            try:
+                fixflow._log(j, int(r["num"]), "Madhav already said yes on the card; no second pick needed. The work is done in the next session.", state="decided")
+            except Exception:  # noqa: BLE001
+                pass
         reconstruct.decide(j, rid, f"yes, from Needs you; request #{r.get('num')}", by=by)
         return {"id": nid, "decision": "approve", "request": r.get("num")}
     if decision in ("approve", "step_up"):

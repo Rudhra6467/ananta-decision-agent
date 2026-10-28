@@ -88,7 +88,7 @@
    "files": [
     "docs/knowledge/strategy_status.json"
    ],
-   "sha256": "1b75c1ed76f2af6724b0643d6d34c61cbc59e858a480136e3c68bb4407d6e179",
+   "sha256": "50bde676db712f0d06340c54670143a7c83556bd30fb1d19b8f4dbece5196f7e",
    "history": [
     {
      "date": "2026-10-15",
@@ -113,6 +113,12 @@
      "approved_by": "Madhav (in chat)",
      "sha256": "1b75c1ed76f2af6724b0643d6d34c61cbc59e858a480136e3c68bb4407d6e179",
      "note": "RBD (rebound off a recent low at support, closed reversal candle) registered as a shadow family, EVIDENCE, never wakes the brain on its own (the setups board ranks and wakes at most 5 a night); BRK set wakes_brain false for the same reason. Madhav, 2026-10-24 10:42 Toronto: \"Yes do it. But make sure we are tracking the market completely, looking for good trade setups\"."
+    },
+    {
+     "date": "2026-10-28",
+     "approved_by": "Madhav (in chat)",
+     "sha256": "50bde676db712f0d06340c54670143a7c83556bd30fb1d19b8f4dbece5196f7e",
+     "note": "H07 PARKED (discipline v1 book-bleed: 18 closed, net -$54 in 7 days against the -$36 bar; no new paper trades, open ones run out). Madhav said yes on the Needs-you card (\"Yes pauses this book\") and, 2026-10-28 17:15 Toronto: \"I have approved from my side on crypto, Set the remaining things to complete as well.\""
     }
    ]
   },

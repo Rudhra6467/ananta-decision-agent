@@ -24,6 +24,9 @@ import { router } from "expo-router";
 import { CheckIcon, CopyIcon, MicIcon, RetryIcon, SendIcon, SpeakerIcon, StopIcon, ThumbDownIcon, ThumbUpIcon } from "../../src/icons";
 import { loadMe, useMe } from "../../src/visitor";
 import { useMarket } from "../../src/market";
+import { MsgGuard, ScreenError } from "../../src/safe";
+
+export const ErrorBoundary = ScreenError;               // 28 Oct (flag 49): never a blank conversation screen
 
 // Starter questions on an empty conversation (Madhav: a new person should know what to ask)
 const STARTERS = ["What's happening here?", "What are we doing here?", "Show me around", "Which coins are we watching?",
@@ -144,7 +147,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
       ) : null}
 
       {m.kind === "answer" && m.next_action?.label ? (
-        <Pressable onPress={() => onPick(m.next_action.ask)} style={({ pressed }) => ({ backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 14,
+        <Pressable onPress={() => onPick(String(m.next_action.ask ?? m.next_action.label))} style={({ pressed }) => ({ backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 14,
           paddingVertical: 9, alignSelf: "flex-start", opacity: pressed ? 0.75 : 1 })}>
           <Text style={{ color: C.onInk, fontSize: 14, fontWeight: "700" }}>{m.next_action.label}</Text>
         </Pressable>
@@ -154,7 +157,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {chips.map((c, i) => (
             <Pressable key={i} onPress={() => onPick(c)} style={({ pressed }) => ({ backgroundColor: C.card2, borderRadius: 999, paddingHorizontal: 12, minHeight: 34, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}>
-              <Text style={{ color: C.accent, fontSize: 13, fontWeight: "600" }}>{c}</Text>
+              <Text style={{ color: C.accent, fontSize: 13, fontWeight: "600" }}>{typeof c === "string" ? c : String((c as any)?.label ?? (c as any)?.title ?? "")}</Text>
             </Pressable>
           ))}
         </View>
@@ -846,10 +849,12 @@ export default function Ananta() {
         ) : null}
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
           <View key={i} style={{ gap: 8 }}>
+            <MsgGuard text={String(m.answer ?? m.error ?? "")}>
             <Answer m={m} onPick={(q) => (live ? loop.onText(q) : send(q))} onRate={(v) => rate(m, v)} onSecond={() => second(m)}
               onRetry={live || !m.retry ? undefined : () => retryFailed(m)}
               onSpeak={live ? undefined : () => { TTS.speak(UI.sentences(m.answer ?? ""), () => {}); }}
               onShow={live ? undefined : () => walkThrough(m)} />
+            </MsgGuard>
             {i === msgs.length - 1 && m.kind === "answer" && !live && fl?.flags?.length ? <Flags flags={fl.flags} /> : null}
             {m.voice && i === msgs.length - 1 ? (m.show ?? []).slice(0, 1).map((sh: any, k: number) => <StageCard key={k} sh={sh} open={() => openScreen(sh)} />) : null}
           </View>

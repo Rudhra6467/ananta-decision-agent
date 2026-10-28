@@ -9,6 +9,10 @@ import { HomeScreenHint } from "../src/homescreen";
 import { getVoiceApi, goTab, tourCommand, useHere, useNarrating, useTour, useVoiceLive, useVoicePhase } from "../src/context";
 import * as TTS from "../src/tts";
 import { C, deviceTheme, setTheme, useThemeVersion } from "../src/theme";
+import { ScreenError } from "../src/safe";
+
+// 28 Oct (flag 49): a drawing error anywhere shows "Reload conversation" instead of a blank screen (expo-router's route error boundary)
+export const ErrorBoundary = ScreenError;
 
 export default function Root() {
   const path = usePathname();

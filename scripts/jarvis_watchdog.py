@@ -3,7 +3,8 @@
 It asks Jarvis's /health on the Mac. Two failed looks in a row -> a phone note "Jarvis is not answering"; Jarvis answering but
 its inside health checks (jarvis/service/health.py) silent for 10 minutes -> "health checks stopped"; a note again when it is
 back. Standard library only (it must work when everything else is broken); the phone topic comes from the .env the launchd
-wrapper loads. Read-only: it never restarts anything.
+wrapper loads. Since Oct 28 (flag 48) it heals one thing: Jarvis not answering, or its 15-minute jobs stuck, for 3 looks in a
+row gets a stack snapshot (ananta_runs/stalls) and a launchd restart, at most once an hour. Nothing else is ever touched.
 
     python3 scripts/jarvis_watchdog.py            one look (what launchd runs)
     python3 scripts/jarvis_watchdog.py --test     send a test note
@@ -49,10 +50,40 @@ def look(get=None) -> tuple[str, str]:
     a = h.get("health_checks_s_ago")
     if a is not None and a > 600:
         return "blind", f"Jarvis answers, but its health checks have not run for {a / 60:.0f} minutes"
+    b = h.get("jobs_s_ago")                               # Oct 28 (flag 48): the 15-minute loop can stall while the service answers
+    if b is not None and b > STUCK_LOOP_S:
+        return "stuck", f"Jarvis answers, but its 15-minute jobs have not started for {b / 60:.0f} minutes"
     return "ok", "answers"
 
 
-def main(argv: list[str], get=None, now: float | None = None, send=push) -> dict:
+STUCK_LOOP_S = 45 * 60
+HEAL_AFTER = 3                                            # looks in a row (about 15 minutes) before a restart
+HEAL_GAP_S = 3600                                         # at most one restart an hour
+STALLS = Path(os.path.expanduser("~/ananta_runs/stalls"))
+
+
+def heal(now: float, run=None) -> str:
+    """Oct 28 (flag 48, 27 Oct 11:40-13:37 stall): capture what the stuck process was doing, then restart it through launchd.
+    Service only: it never touches trading, rules or data."""
+    import subprocess
+
+    run = run or subprocess.run
+    STALLS.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime(now))
+    try:
+        pids = run(["pgrep", "-f", "uvicorn jarvis.service.app:app"], capture_output=True, text=True, timeout=10).stdout.split()
+        for pid in pids[:1]:
+            run(["/usr/bin/sample", pid, "5", "-file", str(STALLS / f"jarvis_{stamp}.txt")], capture_output=True, timeout=30)
+    except Exception:  # noqa: BLE001  the snapshot is a bonus; the restart matters
+        pass
+    try:
+        r = run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/com.ananta.jarvis"], capture_output=True, text=True, timeout=30)
+        return "restarted" if r.returncode == 0 else f"restart failed ({r.returncode})"
+    except Exception as exc:  # noqa: BLE001
+        return f"restart failed ({type(exc).__name__})"
+
+
+def main(argv: list[str], get=None, now: float | None = None, send=push, heal_run=None) -> dict:
     if "--test" in argv:
         return {"sent": send("Ananta watchdog: test", "The outside watchdog can reach your phone.", "3")}
     now = now or time.time()
@@ -66,11 +97,17 @@ def main(argv: list[str], get=None, now: float | None = None, send=push) -> dict
     if res == "ok":
         if st.get("down_t"):
             out["sent"] = send("Back: Jarvis", f"Answering again after about {(now - st['down_t']) / 60:.0f} minutes.", "3")
-        st = {"fails": 0}
+        st = {"fails": 0, **({"heal_t": st["heal_t"]} if st.get("heal_t") else {})}
     else:
         fails += 1
         st["fails"] = fails
-        title = "Ananta: Jarvis is not answering" if res == "down" else "Ananta: Jarvis's health checks stopped"
+        if res in ("down", "stuck") and fails >= HEAL_AFTER and (not st.get("heal_t") or now - st["heal_t"] >= HEAL_GAP_S) and (get is None or heal_run):
+            st["heal_t"] = now
+            out["healed"] = heal(now, run=heal_run)
+            out["sent"] = send("Ananta restarted Jarvis", f"{detail} for about {fails * 5} minutes, so the watchdog restarted it "
+                               f"({out['healed']}). A snapshot of what it was stuck on is in ananta_runs/stalls.", "3")
+        title = {"down": "Ananta: Jarvis is not answering", "stuck": "Ananta: Jarvis's 15-minute jobs are stuck"}.get(
+            res, "Ananta: Jarvis's health checks stopped")
         body = (f"{detail}. The phone app, the eye, alerts and the health checks are off until it is back. Restart Jarvis "
                 "(python3 ~/ananta_runs/restart_jarvis.py).")
         if fails >= 2 and not st.get("down_t"):

@@ -35,7 +35,9 @@ THREE KINDS OF ANSWER (27 Oct, Madhav: "it can't tell the difference between wha
 futures, options and option spreads work; how a ratio such as P/E, P/B, beta or Sharpe is computed): answer directly and confidently from your own
 knowledge, as an expert would. Do NOT label it "general knowledge", "general market knowledge", "not from my data files" or "not from my files", do not
 say you are "marking it that way", and never refuse a basic question (NSE vs BSE: NSE is far larger by volume, especially in derivatives). Things that
-change over time (current SEBI rules, tax rates, fees, exchange volumes) you may give "as far as I know".
+change over time (current SEBI rules, fees, exchange volumes, lot sizes, contract specifications) you may give "as far as I know", AT MOST ONCE per
+answer, on that one clause only (28 Oct grader: "the hedge has to stay narrow"). Never hedge settled mechanics: physical settlement of stock options,
+T+1, ex-date price drops, option payoffs, the difference between exchanges or products. Tax rates in the rules file are stated with their as-of date, not hedged.
 (2) LIVE NUMBERS and anything about Madhav's account, the books, Ananta's plan, prices, indicators or flows: ONLY from the FACTS (the cached FACTS block, plus this turn's extra facts in the user turn: lookup, answer_guide),
 with the date each number is as of (for "today", "the latest close" or "how did the Nifty close", use latest_closes, the newest dated close, and say
 its date; breadth, the trend averages and the books stay on data_through and say their own date); it is India's read model for the latest session ("morning_view" is the day's view written before the open: the market, Ananta's plan, the chances with their baselines, what to watch, yesterday's scorecard, the reviewer's second opinion; and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason; if the facts do not hold a live number, say so in one short clause and give what they do hold.
@@ -108,7 +110,7 @@ each "jobs.problems" line is that job's LAST run, so give its time if it has one
 Reply with ONE JSON object and nothing else: {"kind":"answer","stage":"observation|outcome|learning","answer":"...","breakdown":["...","..."],
 "evidence":["<fact and where it comes from>", ...],"assumption":"","follow_ups":["short question","short question","short question"],
 "next_action":{"label":"","why":"","route":""},"show":[],"options":[],"route":"india","ui":[],"points":[]}.
-You can move the app and point at things: when he asks to see, open or go somewhere, or when showing it makes the answer clearer, put
+You can move the app and point at things, but only when he asks to see, open or go somewhere (never on your own: it pulls the screen away mid-answer), put
 "ui":[{"do":"go_to"|"open","target":"<a PLACE key>"}] (open is for sheet:... targets) and say in the answer what you opened; to light a part
 of Home while a sentence is spoken, add "points":[{"spot":"<a SPOT key>","sentence":<0-based sentence number>}]. Never claim you opened
 something without a ui action for it. Use only the PLACE and SPOT keys listed below.
@@ -638,6 +640,27 @@ def tidy_end(a: str) -> str:
     return a
 
 
+_HEDGE = re.compile(r"(?:,\s*)?\bas far as I know\b(?:,\s*)?", re.I)
+
+
+def one_hedge(a: str) -> str:
+    """28 Oct (grader): "as far as I know" crept into settled mechanics; at most one per answer, the first."""
+    seen = [0]
+
+    def sub(m: re.Match) -> str:
+        seen[0] += 1
+        if seen[0] == 1:
+            return m.group(0)
+        s = m.group(0)
+        return ", " if s.startswith(",") and s.rstrip().endswith(",") else (" " if s.strip() != s else "")
+    out = _HEDGE.sub(sub, a or "")
+    if seen[0] < 2:
+        return a or ""
+    out = re.sub(r"\s+,", ",", re.sub(r"\s{2,}", " ", out))
+    out = re.sub(r"(^|[.!?]\s+)([a-z])(?=[a-z]* )", lambda m: m.group(1) + m.group(2).upper(), out)
+    return out
+
+
 def finish(reply: dict, question: str, model: bool) -> dict:
     """The one exit every answer passes (25 Oct refinement): plain words on the answer and its breakdown, and the paper-only sign-off kept
     only where the question is about trading (the prompt already says so; the model kept adding it to every answer). 27 Oct: every code and
@@ -649,7 +672,11 @@ def finish(reply: dict, question: str, model: bool) -> dict:
             if not b or b == a:
                 break
             a = _close_cut(b)
-    reply["answer"] = tidy_end(a)
+    reply["answer"] = tidy_end(one_hedge(a))
+    opts = [str(o) for o in (reply.get("options") or []) if isinstance(o, str) and o.strip()][:4]
+    if reply.get("kind") == "clarify" and opts and not any(o[:24].lower() in reply["answer"].lower() for o in opts):
+        # 28 Oct voice session: "Could you say which of these it is?" was spoken with no choices (they were only buttons on the screen)
+        reply["answer"] = (reply["answer"].rstrip() + " " + " ".join(f"{i + 1}. {o.rstrip('.')}." for i, o in enumerate(opts))).strip()
     if isinstance(reply.get("breakdown"), list):
         reply["breakdown"] = [askwords.words(plain_codes(x)) if isinstance(x, str) else x for x in reply["breakdown"]]
     if isinstance(reply.get("follow_ups"), list):
@@ -691,6 +718,27 @@ def _offline(question: str, f: dict, why: str) -> dict:
 
 
 ACT = re.compile(r"\b(buy|sell|place|book|exit|close|order|short)\b", re.I)
+SYS_TOPIC = re.compile(r"\b(watch ?dog|health|repair|fix(?:es|ed)?|flags?|jobs?|restart\w*|broke\w*|breaks?|outage|down|stall\w*|monitor\w*|"
+                       r"self[- ]heal\w*|alerts?|notif\w*|what happens (?:to|after)|deploy\w*)\b", re.I)
+SYSTEM_CARE = {
+    "watchdog": ("The outside watchdog (com.ananta.watchdog) runs every 5 minutes, separate from Jarvis, because a stuck service cannot report its "
+                 "own death. It checks that Jarvis answers, that its inside health checks ran in the last 10 minutes, that the 15-minute jobs "
+                 "started in the last 45 minutes, and that the website, livetrading247.com and the app's public address answer. Two failed looks "
+                 "in a row send a phone note, and a note again when it is back. Since 28 Oct it also heals one thing: Jarvis not answering or its "
+                 "15-minute jobs stuck for 3 looks in a row (about 15 minutes) gets a snapshot of what it was stuck on and a restart, at most "
+                 "once an hour. It never touches trading, rules or data. It found the 27 Oct stall (Jarvis stopped answering 11:40-12:37 Toronto, "
+                 "flag 48)."),
+    "inside_checks": "Jarvis's own health checks run every few minutes (each job's last run, data freshness, the sign-in); Home's status line shows them.",
+    "fix_life": ("A flag gets up to three fix options, each in a lane decided by code. SAFE (words, screens, voice, reports, display bugs): when "
+                 "Madhav picks it, the repair worker takes it within about two minutes, writes the change, runs the test suite, and only if the "
+                 "tests pass commits it and puts it live (deployed); then the phone gets 'Fixed: flag N' and My flags shows 'fixed and live' with "
+                 "the commit. If the checks fail, nothing changes and the flag says so. DECISION (anything near trading, a rule, size, stop, cost "
+                 "or a pinned file): the worker writes a plan only and it waits for Madhav's yes. The worker builds at most a few fixes a day."),
+}
+ACCOUNTISH = re.compile(r"\b(?:my|our|your|his)\s+(?:account|portfolio|holdings?|stocks|money|capital|book|books|positions?|flags?|plan)\b|"
+                        r"\b(?:practice book|paper book|holdings?|approve|approval|drafts?|allocation|flag|fix)\b", re.I)
+# 28 Oct (flag 49): a reply moved to the Evidence screen on its own while it was being read aloud and the screen went blank.
+ASKS_TO_SEE = re.compile(r"\b(?:show(?:\s+me)?|open|take me|go to|navigate|bring up|pull up|where (?:is|are|do i|can i)|point (?:at|to)|walk me through)\b", re.I)
 
 
 def garbled_flow(text: str) -> dict | None:
@@ -767,16 +815,22 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             speaker.stranger_reset(thread)
         elif guest is None and not early and voiceid.clearly_other(vmeta):
             st = speaker.stranger_tick(thread)
-            if st.get("asked") and speaker.AFFIRM.match(text):
+            yes_rest = speaker.affirm_rest(text) if st.get("asked") else None
+            if yes_rest is not None:
                 p = speaker.observer("grader")
                 speaker.set_guest(thread, p)
                 speaker.stranger_reset(thread)
                 guest = speaker.current(thread)
-                early = _reply("Thank you, grader. Go ahead with your next question; anything that needs a yes stays with Madhav.", [],
-                               ["who is speaking: the grader (confirmed)"], {"mode": "people", "note": "Talking with the grader now"})
+                if len(yes_rest) >= 15:                # 28 Oct: "Yes, still the grader, and that's a pass. Question 30 ..." -> answer question 30
+                    text = yes_rest
+                else:
+                    early = _reply("Thank you, grader. Go ahead with your next question; anything that needs a yes stays with Madhav.", [],
+                                   ["who is speaking: the grader (confirmed)"], {"mode": "people", "note": "Talking with the grader now"})
             else:
                 stranger = True
-                if st["n"] >= 2 and not st.get("asked"):
+                # 28 Oct (grader: "that closing question was out of place"): asked once per conversation, and only when the message is
+                # about the account, the books or a decision; a textbook question is simply answered, without "sir"
+                if st["n"] >= 2 and not st.get("asked") and ACCOUNTISH.search(text):
                     ask_grader = "Am I speaking with the grader?"
                     speaker.stranger_mark_asked(thread)
     batch = None                                       # 27 Oct: a long numbered list, answered 6 at a time ("next" for the rest)
@@ -794,7 +848,9 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     # 25 Oct refinement: a pick or a flag comes before the code answers ("use one and fix it" must reach the fix flow), and a turn cut off
     # mid-sentence, a stock's move, the research book and the next-session decision are answered in code, the same every time
     owner_here = guest is None
-    fixed = early or (None if (prev or batch) else (garbled_flow(text) or nav_flow(text) or (fix_flow(text, thread, token, context, post=flag_post, get=flag_get) if owner_here else None)
+    is_owner_acct = not str(who).startswith("guest:")
+    wait = waiting_now(token, flag_get) if (is_owner_acct and owner_here and not stranger) else None
+    fixed = early or (None if (prev or batch or not owner_here) else waiting_flow(text, wait)) or (None if (prev or batch) else (garbled_flow(text) or nav_flow(text) or (fix_flow(text, thread, token, context, post=flag_post, get=flag_get) if owner_here else None)
              or fragment_flow(text) or morning_flow(text, who)
              or technicals.technicals_flow(text) or marketcontext.market_context_flow(text)
              or (allocation_flow(text, who) if owner_here else None) or draft_flow(text, who) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text)))
@@ -811,6 +867,10 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             fixed["answer"] = f"{fixed.get('answer') or ''} {ask_grader}".strip()
         if welcome:
             fixed["answer"] = with_welcome(welcome, fixed.get("answer"))
+        if wait and not early and not re.search(r"\b(?:drafts?|waiting for your yes)\b", str(fixed.get("answer") or ""), re.I):
+            nd = waiting_nudge(thread, wait)
+            if nd:
+                fixed["answer"] = f"{str(fixed.get('answer') or '').rstrip()} {nd}".strip()
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": said, "t": int(time.time()), "voice": voice})
         rid = uuid.uuid4().hex[:12]
@@ -841,6 +901,12 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             f["reconstruction_detail"] = _rx_detail()
         except Exception as e:  # noqa: BLE001
             f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
+    if SYS_TOPIC.search(text) or SYS_TOPIC.search(recent):   # 28 Oct (grader): the watchdog and a fix's life after it is built were not in the facts
+        f["system_care"] = SYSTEM_CARE
+    if wait is not None:                                       # 28 Oct: what waits for his yes, so "can you start on them?" is answered from it
+        f["waiting_for_you"] = {"count": wait.get("count"), "line": wait.get("line"),
+                                "items": [{k: x.get(k) for k in ("title", "line", "say")} for x in (wait.get("items") or [])[:6]],
+                                "how": "He can approve in chat: 'approve all drafts', 'approve draft 2', 'skip draft 3', or pick a flag's fix by number."}
     t0 = time.time()
     # 27 Oct: "How did the Nifty close today?" is a question, not an order (the model still never places anything)
     asks = "?" in text or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", text, re.I)
@@ -865,12 +931,13 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         who_note = ("\n\n" + speaker.prompt_note(guest)) if guest else ""
         if stranger:
             who_note += ("\n\n[The voice print says this speaker is NOT Madhav and no handover is active: do not call them sir; answer the question "
-                         "neutrally and just as plainly. Approvals, flags and changes stay Madhav's.]")
+                         "neutrally and just as plainly. Approvals, flags and changes stay Madhav's. Do not mention the voice print or who is "
+                         "speaking unless they ask or they ask for something only Madhav can give.]")
         user = (f"QUESTION: {text_q}{length}{who_note}\n\nFACTS (India read model, data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\n"
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
-        per_turn = ("talking_to", "reconstruction_detail", "lookup", "answer_guide")
+        per_turn = ("talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you")
         facts_text = (f"FACTS (India read model, data through {f.get('data_through')}). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"
@@ -895,6 +962,14 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 reply = r2 if str(r2.get("answer") or "").strip() else {**reply, "answer": EMPTY_FALLBACK}
             # the model may move the app and light Home while it talks; only real places and spots pass (flags 96/97, 25 Oct)
             reply["ui"] = appmap.valid_ui(reply.get("ui"))
+            if reply["ui"] and not ASKS_TO_SEE.search(text):   # 28 Oct (flag 49): the screen moves only when he asks; otherwise a button
+                u0 = reply["ui"][0]
+                if not (reply.get("next_action") or {}).get("label"):
+                    reply["next_action"] = {"label": f"Open {u0.get('label') or u0.get('target')}", "why": "", "route": u0.get("target")}
+                reply["ui"] = []
+            na = reply.get("next_action")
+            if isinstance(na, dict) and na.get("label") and not na.get("ask"):   # the app's button asks with na.ask; never an empty ask
+                na["ask"] = str(na["label"])
             reply["points"] = appmap.valid_points(reply.get("points"))
             if not reply["ui"]:                  # say-vs-show: a sentence saying it opened something, with no screen actually opened, is dropped
                 reply["answer"] = re.sub(r"\s*[^.!?]*\b(?:I(?:'ve| have) opened|I'm opening|I am opening|I've taken you|I have taken you)\b[^.!?]*[.!?]", "",
@@ -922,6 +997,10 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         reply["answer"] = f"{prefix} {reply.get('answer') or ''}".strip()
     if welcome:
         reply["answer"] = with_welcome(welcome, reply.get("answer"))
+    if wait and not batch and not re.search(r"\b(?:drafts?|waiting for your yes)\b", str(reply.get("answer") or ""), re.I):
+        nd = waiting_nudge(thread, wait)              # 28 Oct (Madhav): said once per conversation, at the end of the answer
+        if nd:
+            reply["answer"] = f"{str(reply.get('answer') or '').rstrip()} {nd}".strip()
     if prev:
         reply["expanded"] = True
     ms = int((time.time() - t0) * 1000)
@@ -1133,8 +1212,56 @@ DRAFT_ACT = re.compile(r"\b(approve|register|yes to|accept|skip|reject|drop|no t
 ORD = {"first": 1, "1st": 1, "second": 2, "2nd": 2, "third": 3, "3rd": 3, "fourth": 4, "4th": 4, "fifth": 5, "5th": 5}
 
 
+# 28 Oct voice session: "I will be approving all those things that we are waiting for ... in the evidence ... I approve them" got "I cannot
+# approve anything from chat". An explicit "approve all drafts" now does it; a looser "I approve them all" gets one confirming question first.
+BULK_EXPLICIT = re.compile(r"\b(?:approve|register|yes to)\s+(?:all|every|each)(?:\s+(?:of\s+)?(?:the\s+)?(?:\d+\s+)?)?\s*(?:research\s+)?drafts?\b|"
+                           r"\b(?:approve|yes to)\s+(?:the\s+)?(?:\d+\s+)?drafts?\s+all\b|\ball\s+(?:\d+\s+)?drafts?\s+(?:are\s+)?approved\b", re.I)
+BULK_LOOSE = re.compile(r"\b(?:i\s+(?:will\s+be\s+|am\s+)?approv\w*|approve|yes to)\b[^.?!]{0,60}\b(?:all|everything|them all|all of them|all those|all the things|the whole)\b|"
+                        r"\b(?:all|everything)\b[^.?!]{0,40}\b(?:i\s+)?approve(?:d)?\b", re.I)
+SKIP_ALL = re.compile(r"\b(?:skip|reject|drop)\s+(?:all|every)(?:\s+(?:of\s+)?(?:the\s+)?)?\s*drafts?\b", re.I)
+
+
+def bulk_draft_flow(text: str, who: str) -> dict | None:
+    if re.match(r"\s*(?:how|what|why|can|could|should|do|does|is|will)\b", text or "", re.I) and "?" in (text or ""):
+        return None                                   # "how do I approve all drafts?" is a question
+    explicit, skip = BULK_EXPLICIT.search(text or ""), SKIP_ALL.search(text or "")
+    loose = BULK_LOOSE.search(text or "") and re.search(r"\b(?:drafts?|evidence|waiting|staircase|studies|study|approvals?)\b", text or "", re.I)
+    if not (explicit or skip or loose):
+        return None
+    if not (who == "owner" or not str(who).startswith("guest:")):
+        return _reply("Only Madhav decides on drafts.", [], [])
+    d = views.drafts()["drafts"]
+    if not d:
+        return _reply("No drafts are waiting for your yes, sir; nothing to approve.", ["What did you learn last night?"], [])
+    if not (explicit or skip):
+        kinds = {}
+        for x in d:
+            kinds[x.get("type") or "other"] = kinds.get(x.get("type") or "other", 0) + 1
+        kw = ", ".join(f"{n} {views.FINDING_WORDS.get(k, k) if hasattr(views, 'FINDING_WORDS') else k}" for k, n in kinds.items())
+        return _reply(f"Sir, to be sure: {len(d)} drafts are waiting ({kw}). Yes to all registers {len(d)} studies, each written down first and tested on "
+                      "2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first.",
+                      ["Approve all drafts", "Read the drafts"], ["paper/reconstruction queue"])
+    import datetime as _dt
+    dec = "SKIPPED" if skip else "APPROVED"
+    p = DATA / "paper" / "reconstruction" / "decisions.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    at = _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
+    with p.open("a") as f:
+        for x in d:
+            f.write(json.dumps({"key": x["key"], "decision": dec, "by": who, "words": text[:300], "at": at, "bulk": True}) + "\n")
+    _WAIT_CACHE.update(t=0.0)
+    if dec == "APPROVED":
+        return _reply(f"Approved, sir: all {len(d)} drafts go to registration. Each study is written down before it runs, tested on 2000-2023 only, "
+                      "and climbs the staircase only if it passes; nothing trades from this.", ["What happens after a study is registered?", "What's waiting?"],
+                      ["paper/reconstruction/decisions.jsonl"])
+    return _reply(f"Skipped, sir: all {len(d)} drafts are closed and will not be filed again.", ["What's waiting?"], ["paper/reconstruction/decisions.jsonl"])
+
+
 def draft_flow(text: str, who: str) -> dict | None:
     """Madhav's weekly read of the reconstruction drafts, by voice or chat: "what drafts are waiting?", "approve the first draft", "skip draft 2"."""
+    bulk = bulk_draft_flow(text, who)
+    if bulk is not None:
+        return bulk
     m = DRAFT_ACT.search(text) or re.search(r"\b(approve|register|skip|reject)\b[^.?!]{0,12}\bdraft\s*(\d+)", text, re.I)
     if not m and not (DRAFT_LIST.search(text) and re.search(r"\b(what|which|show|list|read|any)\b", text, re.I)
                       and len(text) < 70 and not re.search(r"\b(why|how|explain)\b|\band\b", text, re.I)):
@@ -1513,6 +1640,72 @@ def decide_flow(text: str) -> dict | None:
              if sp.get("status") != "ok" else tidy_end("The index options line, " + str(sp.get("words") or "")))
     return _reply(" ".join(a), ["Why these stocks?", "What are our chances?", "When is the next sign-in?"], ["the decision file (paper/decisions), the Home decision card"],
                   {"show": ["home.decision"]})
+
+
+# ---- 28 Oct (Madhav): "it asks for my approval in evidence layer, but never notifies me ... I had to be reminded by the voice agent (when I am
+# talking to it)". What waits for his yes comes from Jarvis (/v3/waiting, jarvis/service/waiting.py); the Ask says it once, and lists it on request.
+_WAIT_CACHE: dict = {"t": 0.0, "tok": None, "v": None}
+WAITING_Q = re.compile(r"\b(?:what'?s|what is|what are|is (?:there )?anything|anything|what (?:else )?is)\s+(?:still\s+|else\s+)?(?:waiting|pending)"
+                       r"(?:\s+(?:for (?:me|my (?:yes|approval|decision)|your yes)|on me))?(?:\s+(?:right now|now|today))?\s*[?.!]*\s*$|"
+                       r"\b(?:what )?needs? my (?:yes|approval|decision|attention)\b|\bwhat do (?:you|i) need (?:from me|me to approve)\b", re.I)
+
+
+def waiting_now(token: str | None, get=None) -> dict | None:
+    if not token:
+        return None
+    if time.time() - _WAIT_CACHE["t"] < 60 and _WAIT_CACHE["tok"] == token:
+        return _WAIT_CACHE["v"]
+    H = {"Authorization": f"Bearer {token}", "X-Ananta-Quiet": "1"}
+    get = get or (lambda url: requests.get(url, headers=H, timeout=5))
+    try:
+        r = get(f"{JARVIS_URL}/v3/waiting")
+        v = r.json() if hasattr(r, "json") else r
+        v = v if isinstance(v, dict) and "items" in v else None
+    except Exception:  # noqa: BLE001  a reminder never breaks an answer
+        v = None
+    _WAIT_CACHE.update(t=time.time(), tok=token, v=v)
+    return v
+
+
+def waiting_nudge(thread: str, w: dict | None) -> str:
+    """Once per conversation, and not again within 3 hours for the same list, one short line at the end of the answer."""
+    if not w or not w.get("items") or not w.get("line"):
+        return ""
+    p = Path(ASK_DIR) / "waiting_told.json"
+    try:
+        d = json.loads(p.read_text())
+    except (OSError, ValueError):
+        d = {}
+    now = time.time()
+    th = {k: v for k, v in (d.get("threads") or {}).items() if now - float(v) < 86400}
+    last = d.get("last") or {}
+    if thread in th or (last.get("key") == w.get("key") and now - float(last.get("t", 0)) < 3 * 3600):
+        return ""
+    th[thread] = now
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"threads": th, "last": {"key": w.get("key"), "t": now}}))
+    ln = str(w["line"])
+    drafts = any(x.get("kind") == "drafts" for x in w["items"])
+    return (f"One more thing, sir: {ln[:1].lower()}{ln[1:]} Say \"what's waiting\" to hear them"
+            + (", or \"approve all drafts\"." if drafts else "."))
+
+
+def waiting_flow(text: str, w: dict | None) -> dict | None:
+    if not WAITING_Q.search(text or "") or len(text) > 120:
+        return None
+    if w is None:
+        return None                                   # no list (no sign-in token): the drafts flow or the model answers
+    if not w.get("items"):
+        return _reply("Nothing is waiting for your yes, sir.", ["What did you learn last night?"], ["/v3/waiting: empty"])
+    lines = [f"{i + 1}. {x['title']}" + (f" ({x['line']})" if x.get("kind", "").startswith("flag") and x.get("line") else "") + "." for i, x in enumerate(w["items"][:6])]
+    tail = []
+    if any(x.get("kind") == "drafts" for x in w["items"]):
+        tail.append("For the drafts, say \"approve all drafts\", \"read the drafts\", or \"approve draft 2\"; yes registers a study and nothing trades from it.")
+    if any(x.get("kind", "").startswith("flag") for x in w["items"]):
+        tail.append("For a flag, open My flags or say \"show my flags\".")
+    fu = (["Approve all drafts", "Read the drafts"] if any(x.get("kind") == "drafts" for x in w["items"]) else []) + ["Show my flags"]
+    return _reply(f"{w['count']} thing{'s' if w['count'] != 1 else ''} wait for your yes, sir. " + " ".join(lines) + " " + " ".join(tail),
+                  fu[:3], ["/v3/waiting (jarvis/service/waiting.py)"])
 
 
 def fix_flow(text: str, thread: str, token: str | None, context: dict | None, post=None, get=None) -> dict | None:

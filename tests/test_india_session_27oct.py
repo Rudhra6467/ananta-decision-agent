@@ -79,7 +79,9 @@ def test_madhavs_voice_saying_grader_words_is_still_madhav(lake):
 def test_a_clearly_other_voice_is_not_called_sir_and_is_asked_once(lake):
     r1 = ia.ask("madhav", "What is MACD and when does it give false signals?", thread="g5", voice=True, context={"voice_id": OTHER})
     assert not re.search(r"\bsir\b", r1["answer"], re.I) and "grader?" not in r1["answer"]
-    r2 = ia.ask("madhav", "What is a limit order versus a stop order?", thread="g5", voice=True, context={"voice_id": OTHER})
+    r2a = ia.ask("madhav", "What is a limit order versus a stop order?", thread="g5", voice=True, context={"voice_id": OTHER})
+    assert "grader?" not in r2a["answer"]                     # 28 Oct: a textbook question is just answered
+    r2 = ia.ask("madhav", "How is the practice book doing?", thread="g5", voice=True, context={"voice_id": OTHER})
     assert r2["answer"].endswith("Am I speaking with the grader?")
     r3 = ia.ask("madhav", "What is beta?", thread="g5", voice=True, context={"voice_id": OTHER})
     assert "grader?" not in r3["answer"]                      # asked once only

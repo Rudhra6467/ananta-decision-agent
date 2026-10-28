@@ -42,13 +42,14 @@ OWNER_ONLY = re.compile(
     r"(?:file|log|raise) (?:a |the )?(?:flag|bug|issue)|deploy|kill switch|go autonomous|switch (?:to )?(?:autonomous|advisory)|"
     r"(?:move|sell|buy|trim|exit|add to) (?:my|the) (?:holdings?|account|capital|money)|change (?:the|my) (?:rules?|allocation|plan))\b", re.I)
 OWNER_TOPIC = re.compile(r"\b(?:my account|my portfolio|my holdings|my flags?|my requests?|my money|my capital)\b", re.I)
-OBSERVER = re.compile(r"\b(?:the |our |my |an? )?(?P<role>grader|greater|grater|grade her|tester|examiner|evaluator|judge|reviewer|auditor|interviewer|assessor)\b", re.I)
+OBSERVER = re.compile(r"\b(?:the |our |my |an? )?(?P<role>grader|greater|grater|grade her|great rai|great ray|grade a|greyder|tester|examiner|evaluator|judge|reviewer|auditor|interviewer|assessor)\b", re.I)
 # 27 Oct voice session: Whisper writes "grader" as "greater" / "grater" / "grade her"; inside a handover or an introduction they mean the grader
-ROLE_ALIAS = {"greater": "grader", "grater": "grader", "grade her": "grader"}
+ROLE_ALIAS = {"greater": "grader", "grater": "grader", "grade her": "grader", "great rai": "grader", "great ray": "grader", "grade a": "grader", "greyder": "grader"}
+# 28 Oct: "Ananta, the Great Rai is asking questions" was the grader too (Whisper)
 # The grader introducing itself ("No, you're talking to the greater ... I'm the greater and Ananta's the one"; "grader here: ...")
 SELF_INTRO = re.compile(
     r"\b(?:i'?m|i am|this is|it'?s|it is|you'?re (?:talking|speaking) (?:to|with)|you are (?:talking|speaking) (?:to|with))\s+(?:the |your |an? )?"
-    r"(?P<role>grader|greater|grater|grade her|tester|examiner|evaluator)\b(?!\s+(?:than|chance|risk|return|number|part|good))"
+    r"(?P<role>grader|greater|grater|grade her|great rai|great ray|tester|examiner|evaluator)\b(?!\s+(?:than|chance|risk|return|number|part|good))"
     r"|^\W*(?:(?:hi|hello|hey|okay|ok|so)[\s,.!]+)*(?:the )?(?P<role2>grader|greater|grater|tester|examiner) (?:here|speaking)\b", re.I)
 AFFIRM = re.compile(r"^\W*(?:yes|yeah|yep|yup|correct|right|that'?s right|that is right|i am|yes,? i am|yes,? (?:it'?s|this is) (?:the )?(?:grader|greater))"
                     r"(?:,? (?:the )?(?:grader|greater))?[\s.!]*$", re.I)
@@ -63,7 +64,7 @@ HANDOVER = [(re.compile(x, re.I), strong) for x, strong in (
     (r"\b(?:meet|greet|introduce yourself to)\s+" + _WHO + _END, True),
     (r"\b(?:i'?m |i am )?(?:handing|passing|giving|putting) (?:you |this |it |the (?:mic|phone|conversation) )?(?:over )?(?:to|on to)\s+" + _WHO + _END, True),
     (r"^\s*" + _FILL + r"this is\s+" + _WHO + _END, False),
-    (r"\b" + _WHO + r"\s+(?:is|are)\s+(?:here|with me|on the line|joining|going to (?:ask|talk|grade))\b", False),
+    (r"\b" + _WHO + r"\s+(?:is|are)\s+(?:here|with me|on the line|joining|going to (?:ask|talk|grade)|(?:asking|grading|testing)(?: you)?(?: (?:the |some )?questions)?)\b", False),
     (r"\b" + _WHO + r"\s+wants?\s+to\s+(?:talk|speak|ask|chat|grade)\b", False),
 )]
 NOT_A_PERSON = re.compile(r"^(?:me|you|him|her|them|it|this|that|us|who|what|which|there|here|nobody|no one|everything|nothing|something|someone|somebody|"
@@ -219,9 +220,27 @@ def stranger_mark_asked(thread: str) -> None:
 
 
 def stranger_reset(thread: str) -> None:
+    """Madhav's own voice: the count starts again, but "asked" is kept, so the grader question is asked once per conversation (28 Oct:
+    it was asked four times in one session because his voice in between reset it)."""
     d = _load()
-    if d.pop(_vkey(thread), None) is not None:
+    st = d.pop(_vkey(thread), None)
+    if st is not None:
+        if st.get("asked"):
+            d[_vkey(thread)] = {"n": 0, "asked": True, "t": time.time()}
         _save(d)
+
+
+# 28 Oct: "Yes, you're speaking with me." / "Yes, still the greater, and that's a pass. Question 30 ..." answered the grader question
+AFFIRM_START = re.compile(r"^\W*(?:(?:and|okay|ok|so)[\s,.!]+)*(?:yes|yeah|yep|yup|correct|that'?s right|still)\b[\s,.!]*(?:(?:ananta|sir)[\s,.!]*)?"
+                          r"(?:(?:it'?s|this is|i'?m|i am|you'?re (?:talking|speaking) (?:to|with)|still)\s+)?(?:(?:the|me|your)\s+)?(?:grader|greater|grater|me)?\b[\s,.!]*", re.I)
+
+
+def affirm_rest(text: str) -> str | None:
+    """None when the message is not a yes; else what follows the yes ('' for a bare yes)."""
+    m = AFFIRM_START.match(text or "")
+    if not m:
+        return None
+    return re.sub(r"^(?:and )?(?:that'?s a |it'?s a )?(?:pass|paz|pas)\b[\s,.!]*", "", text[m.end():], flags=re.I).strip()
 
 
 def _rest(s: str) -> str:

@@ -297,6 +297,13 @@ def _snapshots() -> None:
                 reliability.record_job_errors(jobs_out)
             except Exception:  # noqa: BLE001  recording never stops the loop
                 pass
+            try:                                          # 28 Oct (Madhav): a phone note when something new waits for his yes
+                from jarvis.service import notify as _N0
+                from jarvis.service import waiting as _WT
+
+                STATE_W["waiting"] = _WT.remind(_main(), push=_push, web=lambda t, b: _N0.notify(_main(), t, b, url="/ask"))
+            except Exception as exc:  # noqa: BLE001
+                STATE_W["waiting_error"] = str(exc)[:200]
             try:                                          # build plan 1.4b: every account's watches and positions, one shared snapshot
                 from jarvis.service import watches as _W
 
@@ -434,6 +441,16 @@ def needs_list(who: str = Depends(owner)) -> dict:
     return {"items": needs.list_(_main())}
 
 
+@app.get("/v3/waiting")
+def waiting_list(who: str = Depends(owner)) -> dict:
+    """28 Oct (Madhav): everything waiting for his yes (India drafts, flags waiting for a pick, crypto decisions), for the bar on every screen."""
+    if is_guest(who):
+        return {"items": [], "count": 0, "key": "", "line": ""}
+    from jarvis.service import waiting
+
+    return waiting.collect(_main())
+
+
 class NeedsIn(BaseModel):
     id: str
     decision: str = "later"
@@ -530,7 +547,9 @@ def health() -> dict:
     from jarvis.service import health as _h
 
     last = _h.STATE.get("last_run")
-    return {"ok": True, "version": core.VERSION, "health_checks_s_ago": round(_t.time() - last) if last else None}
+    jt = _h.STATE.get("jobs_t")                                          # Oct 28 (flag 48): the outside watchdog sees a stuck 15-minute loop
+    return {"ok": True, "version": core.VERSION, "health_checks_s_ago": round(_t.time() - last) if last else None,
+            "jobs_s_ago": round(_t.time() - jt) if jt else None}
 
 
 class Join(BaseModel):

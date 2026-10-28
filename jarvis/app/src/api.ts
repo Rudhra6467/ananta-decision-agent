@@ -38,7 +38,7 @@ export class ApiError extends Error {
 // One app, two backends (23 Oct): with the Indian market loaded, the screens' own routes (/v3/..., /history) go to /india on the same
 // server, where the India service answers the same contract with Indian data. Account-level routes (sign-in, who I am, practice,
 // onboarding, spend, settings, push) always stay on the sign-in service: one login, one account.
-const SHARED = ["/auth/", "/v3/me", "/v3/practice", "/v3/onboard", "/v3/spend", "/v3/settings", "/v3/push", "/v3/feedback", "/v3/people", "/v3/join", "/v3/flags"];
+const SHARED = ["/auth/", "/v3/me", "/v3/practice", "/v3/onboard", "/v3/spend", "/v3/settings", "/v3/push", "/v3/feedback", "/v3/people", "/v3/join", "/v3/flags", "/v3/waiting"];
 export function routeFor(path: string): string {
   if (getMarket() !== "india") return path;
   if (SHARED.some((s) => path === s || path.startsWith(s))) return path;

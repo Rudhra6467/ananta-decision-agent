@@ -21,6 +21,10 @@ import { HomeIcon, MenuIcon, SlidersIcon, TrendIcon, VoiceIcon } from "../../src
 import { AppDrawer } from "../../src/drawer";
 import { clearMe, useMe } from "../../src/visitor";
 import { MARKET_NAME, clearMarket, useMarket } from "../../src/market";
+import { WaitingBar, useWaiting } from "../../src/waiting";
+import { ScreenError } from "../../src/safe";
+
+export const ErrorBoundary = ScreenError;               // 28 Oct (flag 49): a tab that fails to draw shows "Reload", never a blank page
 
 const TITLES: Record<string, string> = { today: "Home", ask: "Ask Ananta", watchlists: "Markets", cockpit: "More", portfolio: "Home" };
 
@@ -89,6 +93,7 @@ function Header() {
         ) : null}
       </View>
       <PracticeStrip />
+      <WaitingBar />
     </View>
   );
 }
@@ -101,6 +106,12 @@ export default function TabsLayout() {
   const badge = () => needs ? (
     <View style={{ minWidth: 16, height: 16, borderRadius: 8, backgroundColor: C.bad, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, marginTop: 4, marginRight: 14 }}>
       <Text style={{ color: C.onInk, fontSize: 10, fontWeight: "800" }}>{needs}</Text>
+    </View>
+  ) : null;
+  const wt = useWaiting();                                         // 28 Oct: Ask Ananta carries the count of what waits for his yes
+  const askBadge = () => wt?.count ? (
+    <View style={{ minWidth: 16, height: 16, borderRadius: 8, backgroundColor: C.warn, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, marginTop: 4, marginRight: 14 }}>
+      <Text style={{ color: C.onInk, fontSize: 10, fontWeight: "800" }}>{wt.count}</Text>
     </View>
   ) : null;
   const icon = (I: any) => ({ color }: { color: string }) => <I color={String(color)} />;
@@ -127,7 +138,7 @@ export default function TabsLayout() {
           tabPress: () => { if (navigation.isFocused()) scroll(route.name === "ask" ? "bottom" : "top"); },
         })}>
         <SwipeTabs.Screen name="today" options={{ title: "Home", tabBarIcon: icon(HomeIcon), tabBarBadge: badge } as any} />
-        <SwipeTabs.Screen name="ask" options={{ title: "Ask Ananta", tabBarIcon: icon(VoiceIcon) }} />
+        <SwipeTabs.Screen name="ask" options={{ title: "Ask Ananta", tabBarIcon: icon(VoiceIcon), tabBarBadge: askBadge } as any} />
         <SwipeTabs.Screen name="watchlists" options={{ title: "Markets", tabBarIcon: icon(TrendIcon) }} />
         <SwipeTabs.Screen name="cockpit" options={{ title: "More", tabBarIcon: icon(SlidersIcon) }} />
       </SwipeTabs>

@@ -1693,6 +1693,7 @@
    "evidence": "Madhav, Oct 23: SAFE fixes (words, screens, voice, reports) built, tested and deployed by the repair worker; anything near trading or pinned comes back as a plan for his yes; the lane is decided by code",
    "files": [
     "jarvis/service/fixflow.py",
+    "jarvis/service/waiting.py",
     "scripts/repair_worker.py"
    ]
   },

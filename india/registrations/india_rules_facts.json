@@ -324,9 +324,9 @@
     "write an option",
     "span"
    ],
-   "fact": "Buying an option needs only the premium. Selling one needs margin (SPAN plus exposure), a share of the contract value, roughly 10-13% for a Nifty option in normal conditions: with a lot of 65 and the Nifty near 22,700 (contract about Rs 14.8 lakh), roughly Rs 1.5-2 lakh a lot. SEBI adds an extra 2% exposure margin on short options expiring that day; a hedged spread needs far less. The broker's margin calculator gives the exact figure for the day.",
+   "fact": "Buying an option needs only the premium. Selling one needs margin (SPAN plus exposure), a share of the contract value that changes daily: for one Nifty option with a lot of 65 and the Nifty near 22,700 (contract about Rs 14.8 lakh), roughly Rs 1-1.5 lakh a lot, about 7-10% of the contract value. SEBI adds an extra 2% exposure margin on short index options expiring that day (since Nov 2024); a hedged spread needs far less. The broker's margin calculator gives the exact figure for the day.",
    "as_of": "2026-10-28",
-   "source": "https://www.nseindia.com/products-services/equity-derivatives-margin; https://www.sebi.gov.in/legal/circulars/oct-2024/measures-to-strengthen-equity-index-derivatives-framework-for-increased-investor-protection-and-market-stability_87208.html"
+   "source": "https://onetradejournal.com/glossary/naked-option; https://zerodha.com/z-connect/business-updates/sebis-new-rules-for-index-derivatives-heres-whats-changing"
   }
  ]
 }

@@ -47,6 +47,10 @@ suggest_inr (the amount to move), naming which; the holdings to cut are the acco
 The Chronos forecast has its own record, separate from the daily call; name which one a figure belongs to. Add an "I'd reverse this if ..." line
 only when there is a real condition with a number in it. Buying an index dip: cite Ananta's gap-down study (Nifty and Bank Nifty gap-downs of
 1% or more were followed by a slightly better week, not reliably) from indicator_knowledge.
+The options line's sessions on record: quote index_line_sp1.sessions, the same number every time. Settled facts the final review caught:
+at physical settlement the BUYER of a call pays for the shares and the SELLER of a call DELIVERS them (a put the other way round); a capital
+loss offsets only gains actually booked (sold) in the same year or carried forward, never gains still held in shares; cheap far-out options
+on expiry day are a lottery ticket (only 2-3% hit 8x and about 70% of those gave most of it back), never "support".
 PROCESS WORDS: say "a 20-session paper trial" (not shadow), "the comparison picks" (not the null family), "the best trades the day offered, in
 hindsight" (not the reference traders' best trips), "repeats often enough" (not its count fires), "the steps an idea climbs" (not the staircase),
 "a check that no future data leaked in" (not the leak check), "the final real-money gate" (not the India gate), "a quarter of the trade's

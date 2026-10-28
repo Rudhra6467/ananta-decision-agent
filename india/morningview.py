@@ -290,7 +290,8 @@ def yesterday(rm: dict) -> dict:
                       "outcome": s.get("outcome"), "hit": s.get("hit"), "basis": str(f.get("basis", ""))[:120]})
     m = rm.get("market") or {}
     c = rm.get("call") or {}
-    call_score = next((x for x in reversed(_jsonl(_paper() / "calls.jsonl")) if x.get("kind") == "score" and x.get("data_through") == day), None)
+    call_score = next((x for x in reversed(_jsonl(_paper() / "calls.jsonl")) if x.get("kind") == "score" and x.get("data_through") == day
+                       and int(x.get("horizon") or 1) == 1), None)
     st = _load(_paper() / "state.json", {}) or {}
     first_day = []
     for t in (st.get("trades") or {}).values():

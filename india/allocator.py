@@ -85,6 +85,9 @@ def _universe() -> tuple[dict, dict, str | None]:
     return by_sym, by_isin, fs[-1].name.split(".")[0]
 
 
+TOO_EARLY_SESSIONS = 10      # under this many options sessions the readiness letter is not shown as a grade (wording only)
+
+
 def grade(score: float) -> str:
     return next(g for g, lo in GRADES if score >= lo)
 
@@ -230,9 +233,14 @@ def rate_options(rm: dict, r: dict, opt_value: float) -> dict:
     sc += 25 if opt_value >= r["options_inr"] * 0.9 else 12
     g = grade(sc)
     why = (f"{sessions} session{'s' if sessions != 1 else ''} traded so far" if sessions else "nothing traded on options yet") + ("; the last session was missed because the morning sign-in to Zerodha failed" if lost else "") + (f"; the fear gauge is at {vix:.1f}" if vix is not None else "")
-    return {"score": round(sc), "grade": g, "sessions": sessions, "why": why,
+    # 27 Oct second review: "its grade is B (57 out of 100)" after one trade; the letter is a readiness score, not a result, so under 10 sessions
+    # it is shown as too early to grade (wording only: the score and sizing are unchanged)
+    early = sessions < TOO_EARLY_SESSIONS
+    return {"score": round(sc), "grade": g, "sessions": sessions, "why": why, "too_early_to_grade": early,
+            "grade_words": (f"too early to grade ({sessions} session{'s' if sessions != 1 else ''} on record; a grade needs about {TOO_EARLY_SESSIONS})"
+                            if early else f"grade {g} ({round(sc)} of 100)"),
             "action": "KEEP SMALL" if sessions < r["evidence_sessions"] else "HOLD",
-            "words": (f"₹{opt_value:,.0f} is set aside for options. Ananta trades one lot at a time there, and it earns a bigger share only after {r['evidence_sessions']} sessions are on record ({sessions} so far); until then most of this money waits as cash."
+            "words": ("Too early to grade the options line. " if early else "") + (f"₹{opt_value:,.0f} is set aside for options. Ananta trades one lot at a time there, and it earns a bigger share only after {r['evidence_sessions']} sessions are on record ({sessions} so far); until then most of this money waits as cash."
                       if sessions < r["evidence_sessions"] else "The options line has a track record; its size follows the sizing study.")}
 
 

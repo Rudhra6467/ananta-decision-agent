@@ -129,12 +129,20 @@ def call(day: str) -> dict:
     if not rows:
         return _missing(src)
     calls = [r for r in rows if r.get("kind") == "call"]
-    scores = [r for r in rows if r.get("kind") == "score"]
+    # 27 Oct second review: the record jumped from 1 of 6 to 1 of 8 overnight because the 5-session scores (dailycall.HORIZONS = 1, 5, 20) were
+    # counted with the next-session ones. The call is for the next session: count horizon 1 only, once per call; the 5-session record apart.
+    by_h: dict[int, dict] = {}
+    for s in rows:
+        if s.get("kind") == "score":
+            by_h.setdefault(int(s.get("horizon") or 1), {}).setdefault(s.get("data_through"), s)
+    scores = list((by_h.get(1) or {}).values())
+    s5 = list((by_h.get(5) or {}).values())
     today = next((r for r in reversed(calls) if r.get("data_through") == day), calls[-1] if calls else None)
     hits = sum(1 for s in scores if s.get("score") == 1)
     null_hits = sum(1 for s in scores if s.get("null_score") == 1)
     return {"status": "ok", "source": str(src), "data_through": today.get("data_through") if today else None, "call": today.get("call") if today else None,
             "rule": today.get("rule") if today else None, "scored": len(scores), "hits": hits, "null_hits": null_hits,
+            "five_sessions": {"scored": len(s5), "hits": sum(1 for s in s5 if s.get("score") == 1), "null_hits": sum(1 for s in s5 if s.get("null_score") == 1)},
             "words": (f"Daily call for the next session: {today.get('call')} (mechanical rule {today.get('rule')}); so far {hits} of {len(scores)} calls right "
                       f"against {null_hits} for the coin flip") if today else "no call written"}
 

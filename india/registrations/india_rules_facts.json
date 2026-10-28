@@ -90,18 +90,20 @@
   {
    "id": "direct_vs_regular",
    "topics": [
-    "direct",
-    "regular",
-    "expense ratio",
-    "ter",
-    "distributor",
     "commission",
+    "direct",
+    "distributor",
+    "etf",
+    "expense ratio",
+    "index fund",
     "mutual fund",
-    "sip"
+    "regular",
+    "sip",
+    "ter"
    ],
-   "fact": "Every mutual fund scheme has a Direct plan (bought from the fund house or a direct platform, no distributor commission) and a Regular plan (through a distributor, a higher expense ratio). Same portfolio; the Regular plan's NAV grows slower by the extra cost every year, often 0.5-1.5% a year for equity funds.",
+   "fact": "Every mutual fund scheme has a Direct plan (no distributor commission) and a Regular plan (through a distributor, higher expense ratio); same portfolio. The yearly cost gap is usually about 0.1-0.4 percentage points for index funds and about 0.7-1.2 points for active equity funds. ETFs have no Direct or Regular plan: they are bought on the exchange through a demat account and the cost is the expense ratio plus brokerage and spread.",
    "as_of": "2026-10-27",
-   "source": "standard practice: Direct plans exist since SEBI's 2013 rule; the cost gap is visible in each scheme's Direct vs Regular NAV"
+   "source": "https://stableinvestor.com/2022/06/mutual-fund-expense-ratio-direct-vs-regular.html (expense-ratio tables by scheme)"
   },
   {
    "id": "exit_load",
@@ -121,18 +123,22 @@
    "id": "active_vs_index",
    "topics": [
     "active",
-    "index fund",
-    "passive",
-    "fund manager",
+    "active fund",
     "beat the market",
-    "large cap fund",
     "flexi cap",
+    "flexi cap fund",
+    "fund manager",
+    "index fund",
+    "large cap fund",
+    "mid cap fund",
+    "nifty 500",
+    "passive",
     "small cap fund",
-    "mid cap fund"
+    "spiva"
    ],
-   "fact": "SPIVA India (S&P): over the 10 years to December 2025, 76.3% of Indian large-cap funds and 79.0% of mid/small-cap funds underperformed their benchmark index.",
+   "fact": "SPIVA India mid-year 2026 (S&P, to 30 Jun 2026): over 10 years, 74% of Indian large-cap funds and 82% of mid/small-cap funds trailed their benchmark index (over 1 year only 15% of mid/small-cap funds trailed, so short spells can flatter active funds). A plain index fund in the same space is the default; there is no 'flexi-cap index fund' - the broad-market equivalent is a Nifty 500 index fund.",
    "as_of": "2026-10-27",
-   "source": "https://www.spglobal.com/spdji/en/spiva/article/spiva-india-year-end-2025/"
+   "source": "https://www.spglobal.com/spdji/en/documents/spiva/spiva-india-scorecard-mid-year-2026.pdf"
   },
   {
    "id": "fno_losses",
@@ -271,6 +277,21 @@
    "fact": "Selling a holding at a loss books a capital loss that can be set off against capital gains (short-term losses against short- or long-term gains; long-term losses only against long-term gains) and carried forward 8 years if the return is filed on time; selling at a gain books a taxable gain.",
    "as_of": "2026-10-27",
    "source": "Income-tax Act, sections 70-74 (set-off and carry-forward of capital losses)"
+  },
+  {
+   "id": "fd_interest_tax",
+   "topics": [
+    "fd",
+    "fixed deposit",
+    "fd rate",
+    "interest income",
+    "tds",
+    "debt fund",
+    "tax"
+   ],
+   "fact": "FD interest is added to income and taxed at the investor's slab rate every year (no special rate, no indexation). Banks deduct 10% TDS (20% without PAN) once a year's interest from one bank crosses Rs 50,000 (Rs 1 lakh for senior citizens) from FY 2025-26; TDS is only an advance, the slab rate decides the final tax. Debt mutual funds bought after 1 Apr 2023 are also taxed at slab rate.",
+   "as_of": "2026-10-27",
+   "source": "https://www.businesstoday.in/personal-finance/tax/story/fixed-interest-taxation-6-7-returns-can-fall-below-5-after-taxes-warns-ca-493455-2025-09-11 ; https://cleartax.in/s/tds-on-fd-interest"
   }
  ]
 }

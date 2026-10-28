@@ -1,0 +1,16 @@
+{
+ "what": "Situations a registered study has already answered. The reconstruction does not draft them again before 'until' (about 60 sessions), so Madhav is not asked the same question twice. A key matches when it starts with the prefix.",
+ "approved": "Madhav, 2026-10-28 17:15 Toronto (in chat): \"Set the remaining things to complete as well.\" (the RX1 suggestion: stop re-drafting an answered situation for 60 sessions)",
+ "answered": [
+  {"prefix": "MISS_PATTERN:down:breakdown_range", "study": "RX1", "verdict": "REJECTED", "until": "2027-01-27"},
+  {"prefix": "MISS_PATTERN:down:new_52w_low", "study": "RX1", "verdict": "REJECTED", "until": "2027-01-27"},
+  {"prefix": "MISS_PATTERN:down:downtrend_fall", "study": "RX1", "verdict": "CONDITIONAL (in a 20-session paper trial)", "until": "2027-01-27"},
+  {"prefix": "MISS_PATTERN:down:uptrend_pullback", "study": "RX1", "verdict": "INCONCLUSIVE", "until": "2027-01-27"},
+  {"prefix": "MISS_PATTERN:up:downtrend_rise", "study": "RX1", "verdict": "INCONCLUSIVE", "until": "2027-01-27"},
+  {"prefix": "MISS_PATTERN:up:inside_range", "study": "RX1", "verdict": "REJECTED", "until": "2027-01-27"},
+  {"prefix": "LEAGUE_GAP:others:H1:downtrend_rise", "study": "RX1", "verdict": "INCONCLUSIVE", "until": "2027-01-27"},
+  {"prefix": "LEAGUE_GAP:others:H1:inside_range", "study": "RX1", "verdict": "OPPOSITE", "until": "2027-01-27"},
+  {"prefix": "EXIT_LESSON:PULL:NEVER_WORKED", "study": "RX1", "verdict": "OPPOSITE", "until": "2027-01-27"},
+  {"prefix": "HELD_INTO_FALL:null", "study": "RX1", "verdict": "OPPOSITE (the control keeps its rules)", "until": "2027-01-27"}
+ ]
+}

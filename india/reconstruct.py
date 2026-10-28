@@ -470,13 +470,27 @@ def _recent_cards(day: str, n: int) -> list[dict]:
     return out[-n:]
 
 
+def _answered(day: str) -> list[str]:
+    """Key prefixes a registered study has answered (registrations/answered_situations.json), still inside their 'until' date."""
+    p = Path(__file__).resolve().parent / "registrations" / "answered_situations.json"
+    try:
+        rows = json.loads(p.read_text()).get("answered") or []
+    except (OSError, ValueError):
+        return []
+    return [r["prefix"] for r in rows if r.get("prefix") and str(r.get("until") or "9999") >= day]
+
+
 def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fwd: list[dict], rm: dict, sess: list[str]) -> list[dict]:
     out: list[dict] = []
     open_keys = {q["key"] for q in queue_rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed", "APPROVED", "SKIPPED", "REGISTERED", "TESTED", "SHADOW")}
     recent_safe = {f["key"] for f in fwd if f.get("day") in sess and day in sess and sess.index(day) - sess.index(f["day"]) < BARS["safe_refile_sessions"]}
 
+    answered = _answered(day)
+
     def add(kind, key, words, lane, evidence, state=None, extra=None):
         if key in open_keys or key in recent_safe:
+            return
+        if lane == "DECISION" and any(key.startswith(p) for p in answered):   # 28 Oct (Madhav's yes): an answered situation is not asked again
             return
         out.append({"type": kind, "key": key, "words": words, "lane": lane, "evidence": evidence, "state": state or ("to_file" if lane == "SAFE" else "DRAFT"), "day": day, **(extra or {})})
 

@@ -261,6 +261,17 @@ def facts(owner: bool = False) -> dict:
             **({"account_allocation": _alloc_facts()} if owner else {})}
 
 
+# Madhav approved all 12 drafts on 28 Oct 12:23; study RX1 answered them the same afternoon (records india/registrations/rx1_results_v1.md)
+RX1_WORDS = ("Madhav approved all 12 drafts on 28 Oct; Ananta's test of them (2000-2023, strict bar) found: 7 of the 8 missed situations have no "
+             "rule that could be known before the move (breaking the 20-day range, 52-week lows, pullbacks, rises below the 200-day or inside the "
+             "range did about the same as the average stock the next day); the one with something is a stock falling 2%+ while already below its "
+             "200-day average, which did 0.18% (2000-17) and 0.12% (2018-23) worse than the average stock the next session (held up, weaker in one "
+             "period), a proposal only: a 20-session paper trial of avoiding or exiting such stocks, waiting for Madhav's yes, never a short book. "
+             "The two reference-trader gaps were hindsight (one small and not significant, one the opposite way). A day-3 time stop for pullbacks "
+             "that never worked did not help (worse month by month), and the same stop hurt the random control, most in downtrends, so holding "
+             "into falls is the cost of holding; the control keeps its rules. No rule changed.")
+
+
 def _drafts_total() -> dict:
     """One number for 'what waits for Madhav's yes', the same in every answer (and the same as the app's bar)."""
     try:
@@ -306,6 +317,7 @@ def _rx_detail() -> dict:
             "web_notes": views.netnotes(c.get("day")), "drafts_waiting": (dw := views.drafts()["drafts"]),
             # 28 Oct outside round 3: one answer said 6 drafts (last night's findings) while the app's bar said 12 (the whole queue)
             "drafts_waiting_count": len(dw),
+            "drafts_answered_28oct": RX1_WORDS,
             "drafts_meaning": ("drafts_waiting is the WHOLE queue waiting for Madhav's yes or skip, from every night so far (the same kind of "
                                "situation can be drafted on different days). When asked what is waiting, quote drafts_waiting_count and group "
                                "them by kind; F_findings are only last night's card. Approving one records his yes: the study is then written "

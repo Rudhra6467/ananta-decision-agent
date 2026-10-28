@@ -19,7 +19,7 @@ STUDIES = {
     "OS1": "Ananta's option-spread test", "CA1": "Ananta's corporate-actions test", "F06": "the put-protection test", "E02": "the exit test",
     "E04": "the exit test", "C06": "the futures-positioning test", "P01": "the entry test", "H12F": "a follow-up test of a teacher's idea",
     "H18F": "a follow-up test of a teacher's idea", "SP1": "the options line", "SP3": "the positional playbook", "SZ2": "the sizing study",
-    "G01": "the exit book", "G02": "the gate", "K02": "the daily-call study", "R01": "the calibration check", "PW-HF-CHRONOS": "the Chronos forecast study",
+    "G01": "the exit book", "RX1": "Ananta's test of the 12 reconstruction drafts", "G02": "the gate", "K02": "the daily-call study", "R01": "the calibration check", "PW-HF-CHRONOS": "the Chronos forecast study",
 }
 VERDICTS = {"VALIDATED": "held up", "CONDITIONAL": "held up, weaker in one period", "REJECTED": "did not hold",
             "OPPOSITE": "the opposite showed up", "INCONCLUSIVE": "not enough data to judge"}

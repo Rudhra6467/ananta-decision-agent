@@ -477,7 +477,7 @@ def _answered(day: str) -> list[str]:
         rows = json.loads(p.read_text()).get("answered") or []
     except (OSError, ValueError):
         return []
-    return [r["prefix"] for r in rows if r.get("prefix") and str(r.get("until") or "9999") >= day]
+    return [r["prefix"] for r in rows if r.get("prefix") and str(r.get("from") or "0000") <= day <= str(r.get("until") or "9999")]
 
 
 def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fwd: list[dict], rm: dict, sess: list[str]) -> list[dict]:

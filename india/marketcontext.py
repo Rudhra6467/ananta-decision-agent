@@ -197,7 +197,8 @@ def valuation_latest() -> dict:
     return {"status": "ok", "rows": rows, "as_of": max(v["date"] for v in rows.values()),
             "source": "NSE index P/E, P/B and dividend yield (niftyindices.com), published after each close; percentiles against 2024-free history only",
             "meaning": "pe_pctile 10 = today's P/E is higher than only 10% of past days on the same basis (cheap against that history); since 31 Mar 2021 "
-                       "NSE uses consolidated earnings, so P/E and yield are compared with 2021-2023 only (a short history); P/B with 1999-2023",
+                       "NSE uses consolidated earnings, so P/E and yield are compared with 2021-2023 only (a short history); P/B with 1999-2023; "
+                       "pb_last_lower = the newest pre-2024 day with a P/B as low as today's (\"lowest since\" context); pb_words says it in a sentence",
             "tested": "the Nifty valuation study (VL1) is registered separately; until its result, a cheap or dear reading is context, not a signal"}
 
 

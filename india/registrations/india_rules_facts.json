@@ -1,0 +1,276 @@
+{
+ "what": "India rules, rates and practice facts the Ask may state, each with the date it was checked and its source (Madhav, 27 Oct 2026: the outside review found the Ask out of date or silent on tax, broker practice and regulation). Not pinned; refresh after each Budget, RBI policy meeting and SEBI circular.",
+ "checked": "2026-10-27",
+ "facts": [
+  {
+   "id": "equity_capital_gains",
+   "topics": [
+    "tax",
+    "capital gains",
+    "ltcg",
+    "stcg",
+    "long term",
+    "short term",
+    "long-term",
+    "short-term"
+   ],
+   "fact": "Listed shares and equity mutual funds: held more than 12 months, gains are long-term and taxed at 12.5% on the part above Rs 1.25 lakh of long-term gains in a financial year; held 12 months or less, gains are short-term and taxed at 20%. Surcharge and cess come on top. Budget 2026 left these unchanged.",
+   "as_of": "2026-10-27",
+   "source": "https://www.sahi.com/blogs/ltcg-tax-mutual-funds-stocks-budget-2026"
+  },
+  {
+   "id": "equity_cg_conditions",
+   "topics": [
+    "tax",
+    "capital gains",
+    "ltcg",
+    "stcg",
+    "indexation",
+    "grandfather",
+    "stt"
+   ],
+   "fact": "The concessional equity rates apply only when STT was paid on the transfer; there is no indexation on listed equity; for shares bought before 1 Feb 2018 the cost can be taken as the 31 Jan 2018 market price (grandfathering, section 112A).",
+   "as_of": "2026-10-27",
+   "source": "https://cleartax.in/s/long-term-capital-gains-on-shares"
+  },
+  {
+   "id": "rebate_87a_special_rates",
+   "topics": [
+    "tax",
+    "87a",
+    "rebate",
+    "12 lakh",
+    "capital gains",
+    "stcg",
+    "ltcg"
+   ],
+   "fact": "From FY 2025-26 the section 87A rebate (the 'no tax up to Rs 12 lakh' of the new regime) does not cover capital gains taxed at special rates: short-term equity gains (section 111A) and long-term equity gains (112A) are still taxed even when total income is under Rs 12 lakh.",
+   "as_of": "2026-10-27",
+   "source": "https://ebizfiling.com/blog/section-87a-capital-gains/"
+  },
+  {
+   "id": "gold_tax",
+   "topics": [
+    "gold",
+    "gold etf",
+    "gold fund",
+    "fund of fund",
+    "fof",
+    "tax",
+    "silver"
+   ],
+   "fact": "Since 1 Apr 2025: gold ETFs held more than 12 months and gold mutual funds / gold fund-of-funds held more than 24 months are long-term, taxed at 12.5% without indexation; shorter holdings are taxed at the investor's slab rate.",
+   "as_of": "2026-10-27",
+   "source": "https://taxguru.in/income-tax/new-income-tax-rules-sale-gold-etf-gold-mutual-funds.html"
+  },
+  {
+   "id": "gold_fof_structure",
+   "topics": [
+    "gold fund",
+    "fund of fund",
+    "fof",
+    "gold"
+   ],
+   "fact": "A gold fund (fund-of-funds) such as SBI Gold Fund invests in its fund house's gold ETF, so the investor pays the fund's expense ratio on top of the ETF's; buying the gold ETF directly is cheaper but needs a demat account.",
+   "as_of": "2026-10-27",
+   "source": "https://www.hdfcfund.com/product-solutions/overview/hdfc-gold-fund/direct"
+  },
+  {
+   "id": "sgb_paused",
+   "topics": [
+    "sgb",
+    "sovereign gold",
+    "gold bond",
+    "gold"
+   ],
+   "fact": "No new Sovereign Gold Bond tranches have been issued since February 2024; existing bonds can be bought and sold on the exchange and redeemed early on RBI's schedule.",
+   "as_of": "2026-10-27",
+   "source": "https://www.outlookbusiness.com/ampstories/markets/sovereign-gold-bond-issuance-paused-since-feb-2024heres-when-next-tranche-may-arrive"
+  },
+  {
+   "id": "direct_vs_regular",
+   "topics": [
+    "direct",
+    "regular",
+    "expense ratio",
+    "ter",
+    "distributor",
+    "commission",
+    "mutual fund",
+    "sip"
+   ],
+   "fact": "Every mutual fund scheme has a Direct plan (bought from the fund house or a direct platform, no distributor commission) and a Regular plan (through a distributor, a higher expense ratio). Same portfolio; the Regular plan's NAV grows slower by the extra cost every year, often 0.5-1.5% a year for equity funds.",
+   "as_of": "2026-10-27",
+   "source": "standard practice: Direct plans exist since SEBI's 2013 rule; the cost gap is visible in each scheme's Direct vs Regular NAV"
+  },
+  {
+   "id": "exit_load",
+   "topics": [
+    "exit load",
+    "switch",
+    "redeem",
+    "redemption",
+    "mutual fund",
+    "sip"
+   ],
+   "fact": "Most equity funds charge an exit load (commonly 1%) if units are redeemed within 12 months of purchase, and each SIP instalment has its own 12-month clock; switching funds is a redemption, so it can trigger both exit load and capital-gains tax.",
+   "as_of": "2026-10-27",
+   "source": "standard practice: each scheme's document states its exit load"
+  },
+  {
+   "id": "active_vs_index",
+   "topics": [
+    "active",
+    "index fund",
+    "passive",
+    "fund manager",
+    "beat the market",
+    "large cap fund",
+    "flexi cap",
+    "small cap fund",
+    "mid cap fund"
+   ],
+   "fact": "SPIVA India (S&P): over the 10 years to December 2025, 76.3% of Indian large-cap funds and 79.0% of mid/small-cap funds underperformed their benchmark index.",
+   "as_of": "2026-10-27",
+   "source": "https://www.spglobal.com/spdji/en/spiva/article/spiva-india-year-end-2025/"
+  },
+  {
+   "id": "fno_losses",
+   "topics": [
+    "f&o",
+    "fno",
+    "options",
+    "futures",
+    "derivatives",
+    "option buying",
+    "borrow",
+    "loan",
+    "leverage"
+   ],
+   "fact": "SEBI's study of FY2024-25: 91% of individual traders in equity derivatives (F&O) lost money; their net losses were about Rs 1.06 lakh crore.",
+   "as_of": "2026-10-27",
+   "source": "https://www.business-standard.com/markets/news/net-losses-of-traders-in-fo-widens-in-fy25-sebi-study-125070701221_1.html"
+  },
+  {
+   "id": "fno_stt_2026",
+   "topics": [
+    "stt",
+    "f&o",
+    "fno",
+    "options",
+    "futures",
+    "trading cost",
+    "charges"
+   ],
+   "fact": "From 1 Apr 2026 (Budget 2026), STT on futures rose from 0.02% to 0.05% of the sale value and on options from 0.10% to 0.15% of the premium sold (0.15% on exercise); STT on cash-market shares was unchanged.",
+   "as_of": "2026-10-27",
+   "source": "https://www.icicidirect.com/ilearn/futures-and-options/articles/stt-changes-in-budget-2026-what-f-o-traders-should-know"
+  },
+  {
+   "id": "lot_sizes",
+   "topics": [
+    "lot size",
+    "lot",
+    "f&o",
+    "nifty option",
+    "bank nifty option",
+    "contract size"
+   ],
+   "fact": "Index derivative lot sizes since the January 2026 contracts: Nifty 50 = 65, Bank Nifty = 30, Fin Nifty = 60, Midcap Nifty (Nifty Midcap Select) = 120.",
+   "as_of": "2026-10-27",
+   "source": "https://www.angelone.in/news/market-updates/nse-revises-lot-sizes-for-index-derivatives-from-december-2025-nifty-lot-size-to-reduce-to-65"
+  },
+  {
+   "id": "bracket_orders",
+   "topics": [
+    "bracket order",
+    "bracket",
+    "cover order",
+    "gtt",
+    "oco",
+    "stop loss order",
+    "order type"
+   ],
+   "fact": "Bracket orders have not been available at Zerodha (and several other brokers) since March 2020; the usual substitutes are a GTT OCO order (a target and a stop that cancel each other, for delivery holdings) and a cover order (entry plus a compulsory stop, intraday).",
+   "as_of": "2026-10-27",
+   "source": "https://support.zerodha.com/category/trading-and-markets/trading-faqs/general/articles/why-bo-stopped"
+  },
+  {
+   "id": "sebi_check",
+   "topics": [
+    "tip",
+    "telegram",
+    "whatsapp",
+    "advisor",
+    "adviser",
+    "registered",
+    "fraud",
+    "scam",
+    "upi",
+    "penny stock",
+    "pump"
+   ],
+   "fact": "Before paying anyone for market advice or investing through them, check they are SEBI-registered (SEBI's intermediary search) and pay only to a validated '@valid' UPI handle, which can be checked with the SEBI Check tool; unregistered tip groups promising multi-bagger returns are a common pump-and-dump pattern. Report them on SEBI SCORES.",
+   "as_of": "2026-10-27",
+   "source": "https://yourstory.com/2025/10/sebi-validated-upi-handles-sebi-check-curb-payment-fraud"
+  },
+  {
+   "id": "repo_rate",
+   "topics": [
+    "repo",
+    "rbi",
+    "interest rate",
+    "rate hike",
+    "rate cut",
+    "fd rate",
+    "loan rate",
+    "monetary policy"
+   ],
+   "fact": "RBI repo rate: 5.50%, raised by 25 basis points from 5.25% at the 7 Oct 2026 policy meeting, with the stance changed from neutral to 'calibrated tightening'.",
+   "as_of": "2026-10-27",
+   "source": "https://www.scconline.com/blog/post/2026/10/09/rbi-hikes-repo-rate-to-5-50-percent-october-2026/"
+  },
+  {
+   "id": "emergency_fund",
+   "topics": [
+    "emergency fund",
+    "emergency",
+    "before investing",
+    "before trading",
+    "beginner",
+    "start investing"
+   ],
+   "fact": "Ananta's one rule of thumb: keep 6 months of living expenses as an emergency fund (9-12 months if income is uncertain) in a savings account, FD or liquid fund, separate from investments; get term and health insurance in place before investing for growth.",
+   "as_of": "2026-10-27",
+   "source": "standard Indian personal-finance practice (Ananta's house rule)"
+  },
+  {
+   "id": "personal_loan",
+   "topics": [
+    "personal loan",
+    "borrow",
+    "loan",
+    "leverage",
+    "margin"
+   ],
+   "fact": "Borrowing to invest in shares means paying a fixed interest rate (personal loans often 11-20% a year) for an uncertain return that can be negative for years; no market condition makes a personal loan for stocks sensible.",
+   "as_of": "2026-10-27",
+   "source": "standard practice; RBI repo 5.50% (lending rates sit well above it)"
+  },
+  {
+   "id": "tax_loss_harvesting",
+   "topics": [
+    "sell",
+    "reduce",
+    "trim",
+    "book loss",
+    "tax loss",
+    "harvest",
+    "capital gains"
+   ],
+   "fact": "Selling a holding at a loss books a capital loss that can be set off against capital gains (short-term losses against short- or long-term gains; long-term losses only against long-term gains) and carried forward 8 years if the return is filed on time; selling at a gain books a taxable gain.",
+   "as_of": "2026-10-27",
+   "source": "Income-tax Act, sections 70-74 (set-off and carry-forward of capital losses)"
+  }
+ ]
+}

@@ -57,7 +57,39 @@ def latest(names: tuple = INDICES) -> dict:
                    "pe_pctile": _pctile(hc["pe"], pe), "pe_pctile_basis": f"{r['pe_basis']} P/E, {str(hc['date'].min())[:10]} to {str(hc['date'].max())[:10]}" if len(hc) else None,
                    "pb_pctile": _pctile(h["pb"], pb), "pb_pctile_basis": f"P/B, {str(h['date'].min())[:10]} to {str(h['date'].max())[:10]}" if len(h) else None,
                    "div_yield_pctile": _pctile(hc["div_yield"], dy)}
+        h10 = h[pd.to_datetime(h["date"]) >= "2010-01-01"]
+        out[nm]["pb_pctile_2010"] = _pctile(h10["pb"], pb)
+        out[nm]["pb_last_lower"] = _last_lower(h, "pb", pb)
+        out[nm]["pe_last_lower"] = _last_lower(hc, "pe", pe)
+        out[nm]["pb_words"] = _pb_words(nm, out[nm])
     return out
+
+
+def _last_lower(h: pd.DataFrame, col: str, x: float | None) -> dict | None:
+    """The newest day in the pre-2024 history at or below today's value: "lowest since ..." context for a percentile (Nifty Bank P/B 1.63 on
+    27 Oct 2026 is cheaper than 94% of days since 2003, and the last pre-2024 day as low was in March 2020)."""
+    if x is None or h.empty:
+        return None
+    g = h[h[col].notna() & (h[col] <= x)]
+    if g.empty:
+        return {"date": None, "value": None, "note": "lower than every day in the pre-2024 history"}
+    r = g.sort_values("date").iloc[-1]
+    return {"date": str(pd.Timestamp(r["date"]).date()), "value": float(r[col])}
+
+
+def _pb_words(nm: str, v: dict) -> str | None:
+    if v.get("pb") is None or v.get("pb_pctile") is None:
+        return None
+    s = f"{nm} P/B {v['pb']:.2f} on {v['date']}: lower than {100 - v['pb_pctile']:.0f}% of days in {v['pb_pctile_basis'].replace('P/B, ', '')}"
+    if v.get("pb_pctile_2010") is not None:
+        p = v["pb_pctile_2010"]
+        s += f" ({'over 99' if p < 1 else f'{100 - p:.0f}'}% of days since 2010)"
+    ll = v.get("pb_last_lower") or {}
+    if ll.get("date"):
+        s += f"; the last day before 2024 with P/B this low was {ll['date']} ({ll['value']:.2f})"
+    elif ll.get("note"):
+        s += f"; {ll['note']}"
+    return s + " (2024 onwards is not compared: that history is kept sealed for testing)."
 
 
 def parse(text: str) -> list[dict]:

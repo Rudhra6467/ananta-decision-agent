@@ -39,15 +39,169 @@ def _key(sents: list[str], voice: str, speed: float) -> str:
     return hashlib.sha1(("|".join(sents) + f"|{voice}|{speed}").encode()).hexdigest()[:16]
 
 
-def _speak(sents: list[str], speed: float = 1.0, post=None) -> dict:
+def _speak(sents: list[str], speed: float = 1.0, post=None, tail: float = 0.0) -> dict:
     post = post or (lambda url, body: requests.post(url, json=body, timeout=300).json())
-    j = post(f"{VOICE_URL}/speak", {"sentences": sents, "voice": INDIA_VOICE, "speed": max(0.6, min(1.5, float(speed or 1.0)))})
+    body = {"sentences": sents, "voice": INDIA_VOICE, "speed": max(0.6, min(1.5, float(speed or 1.0)))}
+    if tail:
+        body["tail"] = tail
+    j = post(f"{VOICE_URL}/speak", body)
     return {"audio": base64.b64decode(j["audio_b64"]), "mime": j.get("mime", "audio/mpeg"), "offsets": j.get("offsets", []), "duration": j.get("duration", 0.0),
             "engine": "kokoro", "voice": INDIA_VOICE, "ms": j.get("ms")}
 
 
-def prepare_answer(texts: list[str], speed: float = 1.0, post=None) -> dict:
-    """The whole answer as one file; made now (local, a few seconds) and kept by key."""
+# ---- 27 Oct (Madhav: "the time gap for replying in voice has become a new issue"): the answer spoken in pieces --------------------------
+# Kokoro made the WHOLE answer before the phone could play a word (23-25 s for a 470-character answer while the Mac's GPU was busy, about 5 s
+# when idle). Now the first sentence is made first (about 0.5 s idle, 2-3 s busy) and plays while the rest is made, piece by piece, in order,
+# in the same voice (bm_lewis). A stream's id is "s<key>"; piece i is "s<key>.<i>" on the same /v3/voice/answer routes. Only a client that
+# says it can play pieces (tts.stream) gets a stream; an older client still gets one file.
+STREAM_FIRST_CHARS = 120          # the first piece: the first sentence, plus the next when the first is very short
+STREAM_PIECE_CHARS = 200          # then about this much per piece (at most 3 sentences): short enough to keep ahead of playback on a busy GPU
+STREAM_WAIT_S = 45.0              # how long a request for a piece waits for it to be made (27 Oct: 30 s ran out once while the GPU was saturated)
+STREAM_TAIL_S = 0.32              # the pause after a piece, so pieces join like sentences
+_streams: OrderedDict[str, dict] = OrderedDict()
+
+
+CLAUSE = re.compile(r"[,;:]\s+|\s[—–-]\s+")
+JOIN = re.compile(r"\s(?=(?:if|because|but|so|when|which|while|unless|though|although)\b)", re.I)
+HEAD_SPLIT_OVER = 80              # a first sentence longer than this speaks its opening clause first, the rest next
+HEAD_TAIL_S = 0.12                # the short breath after that opening clause (mid-sentence, not a full stop)
+
+
+def _head_cut(s: str) -> int | None:
+    """Where to cut a long first sentence, in order of preference: after a comma/semicolon/colon/dash 30-90 characters in; before a joining
+    word (if, because, but, so, when, which, while, unless, though) 40-100 in; after a comma etc. up to 120 in. At least 15 characters stay."""
+    def first(rx, lo, hi, at):
+        return next((m for m in rx.finditer(s) if lo <= at(m) <= hi and len(s) - m.end() >= 15), None)
+    m = first(CLAUSE, 30, 90, lambda m: m.end()) or first(JOIN, 40, 100, lambda m: m.start()) or first(CLAUSE, 30, 120, lambda m: m.end())
+    return m.end() if m else None
+
+
+def plan(sents: list[str]) -> list[list[tuple[int, str]]]:
+    """Each audio piece as (sentence index, text) items, in order. The first piece is small: the first sentence (with the next when the first is
+    very short), or only the opening clause of a long first sentence (its rest opens the next piece, still sentence 0), so the first audio is
+    ready fast even when the Mac's GPU is busy. Then about STREAM_PIECE_CHARS per piece, at most 3 items."""
+    if not sents:
+        return []
+    items = [(i, s) for i, s in enumerate(sents)]
+    first: list[tuple[int, str]] = [items.pop(0)]
+    s0 = sents[0]
+    cut = _head_cut(s0) if len(s0) > HEAD_SPLIT_OVER else None
+    if cut:
+        first = [(0, s0[:cut].rstrip())]
+        items.insert(0, (0, s0[cut:].lstrip()))
+    elif items and len(s0) < 40 and len(s0) + len(items[0][1]) <= STREAM_FIRST_CHARS:
+        first.append(items.pop(0))
+    out, cur, n = [first], [], 0
+    for it in items:
+        cur.append(it)
+        n += len(it[1])
+        if n >= STREAM_PIECE_CHARS or len(cur) >= 3:
+            out.append(cur)
+            cur, n = [], 0
+    if cur:
+        out.append(cur)
+    return out
+
+
+def pieces(sents: list[str]) -> list[list[int]]:
+    """Sentence indices per audio piece (a sentence split across two pieces appears in both)."""
+    return [[i for i, _ in p] for p in plan(sents)]
+
+
+def _stream_worker(key: str, post=None) -> None:
+    with _lock:
+        s = _streams.get(key)
+    if not s:
+        return
+    last = len(s["plan"]) - 1
+    for i, items in enumerate(s["plan"]):
+        part = [t for _, t in items]
+        split_head = i == 0 and len(s["plan"]) > 1 and s["plan"][1][0][0] == 0      # the opening clause of sentence 0: a short breath only
+        for attempt in (1, 2):                      # one retry: a busy voice server sometimes drops a request
+            try:
+                s["segs"][i] = _speak(part, s["speed"], post, tail=0.0 if i == last else (HEAD_TAIL_S if split_head else STREAM_TAIL_S))
+                s["errors"][i] = None
+                break
+            except Exception as exc:  # noqa: BLE001 - the phone falls back to its own voice for the rest; never a crash
+                s["errors"][i] = f"{type(exc).__name__}: {str(exc)[:120]}"
+        s["events"][i].set()
+
+
+def start_stream(texts: list[str], speed: float = 1.0, post=None, background: bool = True) -> str:
+    """Start making an answer's audio piece by piece (the first piece first) and return its id at once."""
+    sents = sentences(texts)
+    if not sents:
+        raise ValueError("no text to speak")
+    speed = max(0.6, min(1.5, float(speed or 1.0)))
+    key = "s" + _key(sents, INDIA_VOICE, speed)
+    with _lock:
+        old = _streams.get(key)
+        if old and not any(e for e in old["errors"] if e):
+            _streams.move_to_end(key)
+            return key
+        p = plan(sents)
+        groups = [[i for i, _ in items] for items in p]
+        _streams[key] = {"sents": sents, "plan": p, "pieces": groups, "speed": speed, "segs": [None] * len(groups), "errors": [None] * len(groups),
+                         "events": [threading.Event() for _ in groups]}
+        while len(_streams) > 60:
+            _streams.popitem(last=False)
+    if background:
+        threading.Thread(target=_stream_worker, args=(key, post), daemon=True).start()
+    else:
+        _stream_worker(key, post)
+    return key
+
+
+def _piece(key: str, i: int, wait: float = STREAM_WAIT_S) -> dict:
+    with _lock:
+        s = _streams[key]                           # KeyError -> 404
+    if not 0 <= i < len(s["pieces"]):
+        raise KeyError(f"{key}.{i}")
+    if not s["events"][i].wait(wait):
+        raise requests.Timeout(f"piece {i} not made within {int(wait)} s")
+    a = s["segs"][i]
+    if a is None:
+        raise requests.ConnectionError(s["errors"][i] or "the voice server did not make this piece")
+    return a
+
+
+def _split_id(key: str) -> tuple[str, int] | None:
+    if key.startswith("s") and "." in key:
+        base, _, n = key.rpartition(".")
+        if n.isdigit():
+            return base, int(n)
+    return None
+
+
+def stream_meta(key: str) -> dict:
+    """The stream's first piece (waited for) and the plan of all pieces: the phone plays piece 0 and fetches the next while it plays."""
+    a = _piece(key, 0)
+    with _lock:
+        s = _streams[key]
+    return {"id": key, "stream": True, "offsets": a["offsets"], "duration": a["duration"], "engine": a["engine"], "voice": a["voice"], "mime": a["mime"],
+            "bytes": len(a["audio"]), "ms": a.get("ms"), "sentences": len(s["sents"]),
+            "segments": [{"id": f"{key}.{i}", "first": idx[0], "count": len(idx)} for i, idx in enumerate(s["pieces"])]}
+
+
+def attach_stream(out: dict, context: dict | None, post=None) -> dict:
+    """For a spoken answer: start its audio now (the first piece is usually ready before the phone asks) and tell the phone its id.
+    Only when the phone said it plays pieces in the natural voice (context.tts.stream); a clarify question, a tour or an error is left alone."""
+    try:
+        tts = (context or {}).get("tts") if isinstance(context, dict) else None
+        ans = str(out.get("answer") or "").strip()
+        if isinstance(tts, dict) and tts.get("stream") and ans and not out.get("error") and out.get("kind") != "clarify" and not out.get("tour"):
+            out["voice_id"] = start_stream([ans], float(tts.get("speed") or 1.0), post)
+            out["speak"] = ans
+    except Exception:  # noqa: BLE001 - the phone makes the audio itself as before
+        pass
+    return out
+
+
+def prepare_answer(texts: list[str], speed: float = 1.0, post=None, stream: bool = False) -> dict:
+    """The whole answer as one file; made now (local, a few seconds) and kept by key. stream=True (a phone that plays pieces): the first piece
+    now and the rest in order while it plays (see start_stream)."""
+    if stream:
+        return stream_meta(start_stream(texts, speed, post))
     sents = sentences(texts)
     key = _key(sents, INDIA_VOICE, speed)
     with _lock:
@@ -62,12 +216,33 @@ def prepare_answer(texts: list[str], speed: float = 1.0, post=None) -> dict:
 
 
 def answer_meta(key: str) -> dict:
+    sp = _split_id(key)
+    if sp:                                              # one piece of a stream (waits until it is made)
+        base, i = sp
+        a = _piece(base, i)
+        with _lock:
+            idx = _streams[base]["pieces"][i]
+        return {"id": key, "offsets": a["offsets"], "duration": a["duration"], "engine": a["engine"], "voice": a["voice"], "mime": a["mime"],
+                "bytes": len(a["audio"]), "ms": a.get("ms"), "first": idx[0], "count": len(idx)}
+    with _lock:
+        is_stream = key in _streams
+    if is_stream:
+        return stream_meta(key)
     with _lock:
         a = _answers[key]
     return {"id": key, "offsets": a["offsets"], "duration": a["duration"], "engine": a["engine"], "voice": a["voice"], "mime": a["mime"], "bytes": len(a["audio"]), "ms": a.get("ms")}
 
 
 def answer_audio(key: str) -> tuple[bytes, str]:
+    sp = _split_id(key)
+    if sp:
+        a = _piece(*sp)
+        return a["audio"], a["mime"]
+    with _lock:
+        is_stream = key in _streams
+    if is_stream:                                       # a stream's own id plays its first piece
+        a = _piece(key, 0)
+        return a["audio"], a["mime"]
     with _lock:
         a = _answers[key]
     return a["audio"], a["mime"]
@@ -204,6 +379,7 @@ def turn(who: str, audio_b64: str, mime: str, thread: str | None, mode: str | No
         return {"heard": heard, "thread": thread, "ignored": "filler", "speaker": spk}
     ctx = {**(context or {}), "voice_id": spk}          # 27 Oct: who the voice belongs to, for the Ask's handover logic (jarvis/india/voiceid.py)
     out = ask_fn(who, heard, thread=thread, mode=mode, context=ctx, voice=True)
+    out = attach_stream(out, context, post)          # 27 Oct: the first piece of the spoken answer starts now, before the phone asks for it
     # 27 Oct: the speaker verdict is "speaker", never "voice_id": the app reads voice_id as the id of the answer's audio, and an object there sent
     # it to /v3/voice/answer/[object Object] (404) and so to the phone's female voice for every answer
     return {"heard": heard, "speaker": spk, **out}

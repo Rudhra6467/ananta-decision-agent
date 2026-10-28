@@ -73,7 +73,8 @@ export async function useAccountVoice(v?: string | null) {
 export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
 
 // What the service needs to prepare the natural voice ahead of time (sent with each voice question).
-export const prepHint = () => (engine === "natural" ? { voice, speed: rate } : undefined);
+// stream (27 Oct): this phone plays an answer in pieces, the first piece first, so it starts talking in about a second.
+export const prepHint = () => (engine === "natural" ? { voice, speed: rate, stream: true } : undefined);
 
 // ---- one active utterance at a time ----------------------------------------------------------
 let seq = 0;
@@ -94,12 +95,16 @@ export function stop() {
   a?.settle("stopped");
 }
 
-// ---- natural voice: one file per answer --------------------------------------------------------
-type Meta = { id: string; offsets: number[]; duration: number };
+// ---- natural voice: one file per answer, or (27 Oct) the answer in pieces ------------------------
+// A service that can stream (India) answers with segments: piece 0 is ready first and plays at once; piece i+1 is fetched while
+// piece i plays, so the wait is the first sentence, not the whole answer. Every piece is the same voice (the service always
+// uses one voice), so pieces can't switch voices. A service without segments (crypto) still sends one file.
+type Seg = { id: string; first: number; count: number };
+type Meta = { id: string; offsets: number[]; duration: number; segments?: Seg[]; stream?: boolean };
 
 async function fetchMeta(parts: string[], id?: string): Promise<Meta> {
   if (id) return api<Meta>(`/v3/voice/answer/${id}`, undefined, 30000);       // already being made since the answer was written
-  return api<Meta>("/v3/voice/answer", { sentences: parts, voice, speed: rate }, 30000);
+  return api<Meta>("/v3/voice/answer", { sentences: parts, voice, speed: rate, stream: true }, 30000);
 }
 
 // each play gets its own file (two plays of the same words must not delete each other's audio)
@@ -111,8 +116,9 @@ async function download(id: string, my: number): Promise<File> {
     { headers: tok ? { Authorization: `Bearer ${tok}` } : {}, idempotent: true });
 }
 
-// "ok" | "stopped" | "failed" (could not start: caller falls back to the phone voice for the whole answer)
-async function playNatural(parts: string[], onPart: (i: number) => void, my: number, id?: string): Promise<"ok" | "stopped" | "failed"> {
+// "ok" | "stopped" | "failed" (could not start: caller falls back to the phone voice for the whole answer) |
+// "partial" (a later piece failed twice: the phone voice said the rest)
+async function playNatural(parts: string[], onPart: (i: number) => void, my: number, id?: string): Promise<"ok" | "stopped" | "failed" | "partial"> {
   let meta: Meta, file: File;
   try {
     if (id) [meta, file] = await Promise.all([fetchMeta(parts, id), download(id, my)]);   // both at once: saves a round trip
@@ -123,6 +129,41 @@ async function playNatural(parts: string[], onPart: (i: number) => void, my: num
   }
   try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
   if (my !== seq) return "stopped";
+  const segs = meta.segments && meta.segments.length > 1 ? meta.segments : null;
+  if (!segs) return playFile(file, meta.offsets, meta.duration, 0, onPart, my);
+  const fetchSeg = async (s: Seg): Promise<[Meta, File]> => {
+    for (let a = 0; ; a++) {                       // one retry, then the phone voice says the rest
+      try { return await Promise.all([api<Meta>(`/v3/voice/answer/${s.id}`, undefined, 50000), download(s.id, my)]); }
+      catch (e) { if (a >= 1 || my !== seq) throw e; }
+    }
+  };
+  const drop = (pr: Promise<[Meta, File]> | null) => { pr?.then(([, f]) => { try { f.delete(); } catch { /* */ } }).catch(() => {}); };
+  const phoneRest = async (i: number): Promise<"partial" | "stopped"> => {
+    if (my !== seq) return "stopped";
+    lastNote = "The natural voice stopped partway, so the phone voice finished the answer.";
+    const from = segs[i].first;
+    const r = await playPhone(parts.slice(from), (k) => onPart(from + k), my);
+    return r === "ok" ? "partial" : "stopped";
+  };
+  let next: Promise<[Meta, File]> | null = null;
+  for (let i = 0; i < segs.length; i++) {
+    let m: Meta = meta, f: File = file;
+    if (i > 0) {
+      try { [m, f] = await next!; } catch { return phoneRest(i); }
+      if (my !== seq) { try { f.delete(); } catch { /* */ } return "stopped"; }
+    }
+    next = i + 1 < segs.length ? fetchSeg(segs[i + 1]) : null;     // the next piece downloads while this one plays
+    next?.catch(() => {});
+    const r = await playFile(f, m.offsets, m.duration, segs[i].first, onPart, my);
+    if (r === "stopped" || my !== seq) { drop(next); return "stopped"; }
+    if (r === "failed") { drop(next); return i === 0 ? "failed" : phoneRest(i); }
+  }
+  return "ok";
+}
+
+// Play one downloaded file; onPart(base + k) as playback reaches its sentence k. Deletes the file when done.
+async function playFile(file: File, offsets: number[], duration: number, base: number, onPart: (i: number) => void, my: number): Promise<"ok" | "stopped" | "failed"> {
+  const meta = { offsets, duration };
   // keepAudioSessionActive: otherwise expo-audio switches the iPhone's audio session OFF ~0.1 s after playback ends
   // (or on pause) - right when the mic has just started listening - and the mic then hears nothing for a long time.
   const p = mkPlayer(file.uri);
@@ -146,7 +187,7 @@ async function playNatural(parts: string[], onPart: (i: number) => void, my: num
       // highlight: the sentence whose start the playback has reached
       let k = 0;
       for (let i = 0; i < offs.length; i++) if (t + 0.05 >= offs[i]) k = i;
-      if (k > part) { for (let i = part + 1; i <= k; i++) onPart(i); part = k; }
+      if (k > part) { for (let i = part + 1; i <= k; i++) onPart(base + i); part = k; }
       const dur = meta.duration || p.duration || 0;
       if (finished) return "ok";
       if (dur > 0 && t >= dur - 0.08) return "ok";
@@ -199,6 +240,7 @@ export function speak(parts: string[], onPart: (i: number) => void = () => {}, i
       if (wantNatural) {
         const r = await playNatural(parts, onPart, my, id);
         if (r === "ok") { lastEngine = "natural"; lastNote = ""; return settle("done"); }
+        if (r === "partial") { lastEngine = "phone"; return settle("done"); }   // the phone voice said the rest; the note says so
         if (r === "stopped" || my !== seq) return settle("stopped");
         naturalDownUntil = Date.now() + 60000;              // the Mac's voice didn't answer: phone voice for a minute
         lastNote = "The natural voice didn't answer, so the phone voice spoke.";

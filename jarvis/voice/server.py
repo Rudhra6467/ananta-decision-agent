@@ -189,6 +189,7 @@ class SpeakReq(BaseModel):
     voice: str = "Calm"
     speed: float = 1.0
     gap: float = 0.26
+    tail: float = 0.0          # 27 Oct: seconds of silence after the last sentence (a piece of a streamed answer, so pieces join like sentences)
 
 
 def trim(a: np.ndarray, rate: int = 24000, lead: float = 0.03, tail: float = 0.06) -> np.ndarray:
@@ -236,8 +237,9 @@ def speak(b: SpeakReq) -> dict:
             offsets.append(round(t, 3))
             chunks.append(a)
             t += len(a) / rate
-            if i < len(sents) - 1:
-                gap = np.zeros(int(rate * pause_after(x, base_gap)), dtype=np.float32)
+            if i < len(sents) - 1 or b.tail > 0:
+                g = pause_after(x, base_gap) if i < len(sents) - 1 else max(0.0, min(1.0, b.tail))
+                gap = np.zeros(int(rate * g), dtype=np.float32)
                 chunks.append(gap)
                 t += len(gap) / rate
     audio = np.concatenate(chunks).astype(np.float32)

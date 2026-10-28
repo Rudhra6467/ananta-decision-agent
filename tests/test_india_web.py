@@ -140,7 +140,10 @@ def test_india_ask_is_grounded_threaded_and_honest_offline(lake, monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-real")
     r2 = ia.ask("madhav", "Was the call right?", thread=th, post=fake_post)
     assert r2["answer"].startswith("The call was BULLISH") and r2["provider"] == "claude" and r2["cost_usd"] > 0
-    assert "FACTS" in sent["body"]["messages"][-1]["content"] and "22811.35" in sent["body"]["messages"][-1]["content"]   # grounded on the read model
+    # grounded on the read model: since 27 Oct the facts block is a second, cached system part; the user turn keeps the question and its extras
+    facts_part = sent["body"]["system"][1]
+    assert "FACTS" in facts_part["text"] and "22811.35" in facts_part["text"] and facts_part.get("cache_control")
+    assert "Was the call right?" in sent["body"]["messages"][-1]["content"] and "22811.35" not in sent["body"]["messages"][-1]["content"]
     assert sent["body"]["messages"][0]["role"] == "user" and len(sent["body"]["messages"]) == 3                               # the thread's history travels with it
     assert "no real money" in sent["body"]["system"][0]["text"].lower() or "paper only" in sent["body"]["system"][0]["text"].lower()
     r3 = ia.ask("madhav", "buy it now", thread=th, post=fake_post)

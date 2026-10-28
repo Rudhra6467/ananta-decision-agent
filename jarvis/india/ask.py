@@ -27,7 +27,7 @@ DATA = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/ind
 ASK_DIR = DATA / "ask"
 ENV_FILE = Path(os.getenv("ANANTA_AGENT_ENV", "/Users/vamsie/code/ananta-decision-agent/.env"))
 MODEL = os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5")
-DAILY_LIMIT = int(os.getenv("ASK_DAILY_LIMIT", "150"))
+DAILY_LIMIT = int(os.getenv("ASK_DAILY_LIMIT", "300"))     # questions a day (27 Oct: was 150 messages, i.e. about 75 questions)
 HISTORY_TURNS = 8
 SYSTEM = """You are Ananta, Madhav's trading assistant for the INDIAN market (NSE stocks and the Nifty index), on paper only. Address him as "sir".
 THREE KINDS OF ANSWER (27 Oct, Madhav: "it can't tell the difference between what it knows and what it has data for"):
@@ -377,7 +377,9 @@ def today_count() -> int:
     for r in _index():
         if dt.datetime.fromtimestamp(r["t"]).date().isoformat() == day:
             n += r.get("messages", 0)
-    return n
+    # 27 Oct: the index counts both his question and the reply, so "150" stopped him after about 75 questions (exams and tests count too);
+    # the limit is on questions
+    return n // 2
 
 
 def _append(thread: str, row: dict) -> None:
@@ -421,29 +423,43 @@ def rate(mid: str, rating: int) -> dict:
 
 # ---------------------------------------------------------------------------------------------------------------- the model
 
-def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: int = 3000) -> tuple[str, dict]:
+def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: int = 3000, cached: tuple[str, str] | None = None) -> tuple[str, dict]:
+    """cached (27 Oct, voice latency): (facts_text, user_text). The ~115 KB facts block, the same on every turn until the read model changes,
+    goes after the instructions as a second cached system part, and the user turn carries only the question and this turn's few extras.
+    Before, the facts sat in the user turn after the question, so about 50,000 input tokens were read fresh on every question (3,638 cached)."""
     key = _load_env_key()
     if not key:
         raise RuntimeError("no model key on this service")
+    sysparts = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+    if cached:
+        sysparts.append({"type": "text", "text": cached[0], "cache_control": {"type": "ephemeral"}})
+        user = cached[1]
     msgs = [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": user}]
-    body = {"model": MODEL, "max_tokens": int(max_tokens), "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}], "messages": msgs}   # the model thinks inside this budget too
+    body = {"model": MODEL, "max_tokens": int(max_tokens), "system": sysparts, "messages": msgs}   # the model thinks inside this budget too
     post = post or (lambda url, headers, body: requests.post(url, headers=headers, json=body, timeout=90).json())
     r = post("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body)
     if r.get("error"):
         raise RuntimeError(str(r["error"].get("message", r["error"]))[:160])
     text = "".join(c.get("text", "") for c in (r.get("content") or []) if c.get("type") == "text")
     u = r.get("usage") or {}
-    return text, {"in": u.get("input_tokens", 0), "out": u.get("output_tokens", 0), "cache_read": u.get("cache_read_input_tokens", 0) or 0, "model": MODEL,
-                  "stop": r.get("stop_reason")}
+    return text, {"in": u.get("input_tokens", 0), "out": u.get("output_tokens", 0), "cache_read": u.get("cache_read_input_tokens", 0) or 0,
+                  "cache_write": u.get("cache_creation_input_tokens", 0) or 0, "model": MODEL, "stop": r.get("stop_reason")}
 
 
-def _call(system: str, history: list[dict], user: str, post=None, max_tokens: int | None = None) -> tuple[str, dict]:
-    """_claude with a bigger budget when asked (a batch of questions, a retry); a stand-in without the max_tokens argument still works."""
-    if max_tokens:
+def _call(system: str, history: list[dict], user: str, post=None, max_tokens: int | None = None, cached: tuple[str, str] | None = None) -> tuple[str, dict]:
+    """_claude with a bigger budget when asked (a batch of questions, a retry) and the facts cached when given; a stand-in without those
+    arguments still works (it gets the old single user turn, facts included)."""
+    kw = {**({"max_tokens": max_tokens} if max_tokens else {}), **({"cached": cached} if cached else {})}
+    if kw:
         try:
-            return _claude(system, history, user, post=post, max_tokens=max_tokens)
+            return _claude(system, history, user, post=post, **kw)
         except TypeError:
             pass
+        if max_tokens:
+            try:
+                return _claude(system, history, user, post=post, max_tokens=max_tokens)
+            except TypeError:
+                pass
     return _claude(system, history, user, post=post)
 
 
@@ -778,8 +794,16 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                          "neutrally and just as plainly. Approvals, flags and changes stay Madhav's.]")
         user = (f"QUESTION: {text_q}{length}{who_note}\n\nFACTS (India read model, data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\n"
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
+        # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
+        # extras (who is talking, reconstruction detail) stay in the user turn with the question
+        per_turn = ("talking_to", "reconstruction_detail")
+        facts_text = (f"FACTS (India read model, data through {f.get('data_through')}). This is the FACTS block your rules refer to; this turn's few "
+                      f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
+        user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"
+                  f"{json.dumps({k: f[k] for k in per_turn if k in f}, default=str)}\n\n"
+                  "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         try:
-            raw, usage = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post, max_tokens=budget)
+            raw, usage = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post, max_tokens=budget, cached=(facts_text, user_c))
             reply = _parse(raw)
             # 27 Oct (14:40 / 14:44 chat): an empty answer is never shown. The answer is taken from the breakdown if only that came back; else
             # one retry with a bigger budget and a 'be brief' instruction; else a plain line saying so
@@ -788,7 +812,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             if not str(reply.get("answer") or "").strip():
                 brief = ("\n\nYOUR LAST REPLY CAME BACK EMPTY OR CUT OFF. Answer now in at most 5 short sentences"
                          + (" (one line per question)" if batch else "") + ", inside the JSON \"answer\" field.")
-                raw2, usage2 = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user + brief, post=post, max_tokens=max(budget or 0, 6000))
+                raw2, usage2 = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user + brief, post=post, max_tokens=max(budget or 0, 6000),
+                                     cached=(facts_text, user_c + brief))
                 r2 = _parse(raw2)
                 if not str(r2.get("answer") or "").strip() and r2.get("breakdown"):
                     r2["answer"] = "\n".join(str(x) for x in r2["breakdown"] if x)

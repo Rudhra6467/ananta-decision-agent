@@ -184,7 +184,9 @@ def _ask_run(fn, *a, **k):
 @r.post("/v3/ask")
 def ask_q(b: Question, who: str = Depends(signed_in), authorization: str = Header(default="")) -> dict:
     tok = authorization.removeprefix("Bearer ").strip() or None            # his own token: the fix flow files on the shared board as him
-    return _ask_run(india_ask.ask, who, b.text, b.thread, b.mode, b.context, token=tok)
+    out = _ask_run(india_ask.ask, who, b.text, b.thread, b.mode, b.context, token=tok)
+    # 27 Oct: a question tapped while voice is on: its spoken answer's first piece starts now (only for a phone that plays pieces)
+    return india_voice.attach_stream(out, b.context) if isinstance(out, dict) else out
 
 
 @r.post("/v3/ask/second")
@@ -263,6 +265,7 @@ class AnswerVoice(BaseModel):
     voice: str = "Calm"
     speed: float = 1.0
     wait: bool = True
+    stream: bool = False      # 27 Oct: the phone plays the answer in pieces (the first piece first); older phones get one file
 
 
 class SpeakReq(BaseModel):
@@ -337,7 +340,7 @@ def voice_turn(b: VoiceTurn, who: str = Depends(signed_in), authorization: str =
 
 @r.post("/v3/voice/answer")
 def voice_answer(b: AnswerVoice, who: str = Depends(signed_in)) -> dict:
-    return _voice_run(india_voice.prepare_answer, b.sentences, b.speed)
+    return _voice_run(india_voice.prepare_answer, b.sentences, b.speed, stream=b.stream)
 
 
 @r.get("/v3/voice/answer/{key}")

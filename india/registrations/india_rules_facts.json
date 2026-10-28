@@ -1,6 +1,6 @@
 {
  "what": "India rules, rates and practice facts the Ask may state, each with the date it was checked and its source (Madhav, 27 Oct 2026: the outside review found the Ask out of date or silent on tax, broker practice and regulation). Not pinned; refresh after each Budget, RBI policy meeting and SEBI circular.",
- "checked": "2026-10-27",
+ "checked": "2026-10-28",
  "facts": [
   {
    "id": "equity_capital_gains",
@@ -292,6 +292,41 @@
    "fact": "FD interest is added to income and taxed at the investor's slab rate every year (no special rate, no indexation). Banks deduct 10% TDS (20% without PAN) once a year's interest from one bank crosses Rs 50,000 (Rs 1 lakh for senior citizens) from FY 2025-26; TDS is only an advance, the slab rate decides the final tax. Debt mutual funds bought after 1 Apr 2023 are also taxed at slab rate.",
    "as_of": "2026-10-27",
    "source": "https://www.businesstoday.in/personal-finance/tax/story/fixed-interest-taxation-6-7-returns-can-fall-below-5-after-taxes-warns-ca-493455-2025-09-11 ; https://cleartax.in/s/tds-on-fd-interest"
+  },
+  {
+   "id": "stt_physical_settlement",
+   "topics": [
+    "stt",
+    "physical settlement",
+    "physically settled",
+    "expire",
+    "expiry",
+    "exercise",
+    "in the money",
+    "itm",
+    "delivery",
+    "stock option",
+    "stock options"
+   ],
+   "fact": "Stock futures and options on NSE settle by delivery. A stock F&O contract that goes to physical settlement carries 0.1% STT on the full contract value for both buyer and seller (the delivery rate), plus 0.15% on the intrinsic value for an exercised bought option; the buyer must pay the full value of the shares (the seller delivers them). Zerodha's example: a Rs 980 call, lot 400, settling at Rs 1,020 pays Rs 392 + Rs 24 = Rs 416 STT. Brokers raise delivery margins from 4 days before expiry (long in-the-money options need 50% of contract value on expiry day), and many square off positions that lack the money.",
+   "as_of": "2026-10-28",
+   "source": "https://support.zerodha.com/category/trading-and-markets/trading-faqs/f-otrading/articles/policy-on-physical-settlement"
+  },
+  {
+   "id": "short_option_margin",
+   "topics": [
+    "margin",
+    "sell an option",
+    "selling options",
+    "option selling",
+    "short option",
+    "naked",
+    "write an option",
+    "span"
+   ],
+   "fact": "Buying an option needs only the premium. Selling one needs margin (SPAN plus exposure), a share of the contract value, roughly 10-13% for a Nifty option in normal conditions: with a lot of 65 and the Nifty near 22,700 (contract about Rs 14.8 lakh), roughly Rs 1.5-2 lakh a lot. SEBI adds an extra 2% exposure margin on short options expiring that day; a hedged spread needs far less. The broker's margin calculator gives the exact figure for the day.",
+   "as_of": "2026-10-28",
+   "source": "https://www.nseindia.com/products-services/equity-derivatives-margin; https://www.sebi.gov.in/legal/circulars/oct-2024/measures-to-strengthen-equity-index-derivatives-framework-for-increased-investor-protection-and-market-stability_87208.html"
   }
  ]
 }

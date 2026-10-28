@@ -44,6 +44,10 @@ JARGON = [
     (re.compile(r"\bscored (sessions?|trades?|calls?)\b"), r"\1 with a result"),
     (re.compile(r"\b(?:the |a )?5% daily loss stop\b"), "the rule that stops trading for the day after a 5% loss"),
     (re.compile(r"\b(?:the |a )?22% pause\b"), "the rule that pauses trading after a 22% fall"),
+    # 27 Oct second review: no 'flexi-cap index fund' exists; the broad-market index fund is a Nifty 500 index fund
+    (re.compile(r"\bflexi[- ]?cap index funds?\b", re.I), "Nifty 500 index fund"),
+    # the model's decision stamp (answer_guide: no labels), only at the start of a sentence
+    (re.compile(r"(^|[.!?]\s+)(?:Decision|My read)\s*:\s*([a-z])"), lambda m: m.group(1) + m.group(2).upper()),
 ]
 
 

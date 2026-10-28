@@ -66,9 +66,11 @@ cash is inside the band ("target 20%, inside its band"), never "at least 20%" be
 if income is uncertain), separate from trading money. Valuation words: within about 10% of the long-run average is "about average"; the Nifty 50's
 long-run P/E is about 20, so 19 is about average, not cheap; NSE moved to consolidated earnings in April 2021, so older P/Es are not directly
 comparable; a P/B below its usual level may be called below usual. A percentile against a short history is not "cheap against history".
-INDIA PRACTICE: bracket orders have not been available at Zerodha since March 2020 (use GTT OCO for delivery, cover orders intraday); in India a high
-put-call ratio on open interest is usually read as put writers supporting the market, with extremes contrarian; Direct plans cost less than Regular
-plans; equity funds usually charge an exit load inside 12 months; the options share in his plan is Ananta's paper rule, not a normal part of a
+INDIA PRACTICE: bracket orders have not been available at Zerodha since March 2020 (use GTT OCO for delivery, cover orders intraday); when he asks
+about the put-call ratio: in India a high one on open interest is usually read as put writers supporting the market, with extremes contrarian;
+Direct plans cost less than Regular plans (about 0.1-0.4 points a year for index funds, about 0.7-1.2 for active funds; ETFs have no Direct plan);
+there is no "flexi-cap index fund" (the broad-market index fund is a Nifty 500 index fund); a fund is compared with its benchmark's total-return
+index (FACTS.lookup gives it to the same date); an IPO (FACTS.lookup.ipo): dates, price band and subscription only, no view on its quality; equity funds usually charge an exit load inside 12 months; the options share in his plan is Ananta's paper rule, not a normal part of a
 long-term investor's money (SEBI found 91% of individual F&O traders lost money in FY25). Say a stock's volatility as "swings about X% a year".
 Plain names only: "the 250 most traded stocks" (not liquid 250), "the practice book" (not research book), "the YouTube teacher's claim"; never name
 data vendors or contract codes (Kite, FRED, USDINR26OCTFUT).
@@ -77,7 +79,8 @@ answer_guide.decision_asked), always decide, in this shape (only then: otherwise
 assessment of the fund for its purpose, never "decision: wait"; a friend's SIP gets what to check and a keep-or-rethink rule): (a) your read in one sentence; (b) what Ananta would do on paper by its own rules: hold, trim, add, exit or wait (quote
 the account grades, actions and wrong_if lines exactly; the guardrails; the tested filters: RSI over 70 and far above the 50-day = don't chase, wait;
 a fixed stop beat a trailing one (TS1); a -7% stop lost against no stop (TWT-H22); adding to stocks 40% down and under the 200-day often fell further
-(TWT-H15)); (c) what would change your mind; (d) how strong the evidence is: tested, untested or against the tests. End on the decision. Paper only,
+(TWT-H15)); (c) what would change your mind; (d) how strong the evidence is: tested, untested or against the tests. End on what to do, in plain
+words (never a "Decision:" label). FACTS.answer_guide.lines override this shape for this question (horizon not stated, worry, length). Paper only,
 not advice. Keep it to about five short sentences: one per part plus the decision; cite at most two tests; leave out extra numbers. A HYPOTHETICAL ("a position up 8% while the market falls all week", "a stock down 15% in two days on heavy volume") is answered as a
 hypothetical by these rules first (for example: strength against a falling market is relative strength, so hold it with its stop and do not add
 while it is far above its 50-day); only then, if useful, map it to a real holding in the facts. Never stop at describing a position.
@@ -856,6 +859,9 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         if batch:
             text_q, b_end = batch_prompt(batch["questions"], batch["start"])
             length, budget = "\n\nLIST MODE: one or two short sentences per question, numbered; nothing else.", 7000
+        if (prev or batch) and isinstance(f.get("answer_guide"), dict):
+            # the per-question length cap is for a fresh answer, not for 'explain more' or a numbered list
+            f["answer_guide"]["lines"] = [x for x in f["answer_guide"].get("lines") or [] if not x.startswith(("LENGTH:", "WORRY QUESTION:"))]
         who_note = ("\n\n" + speaker.prompt_note(guest)) if guest else ""
         if stranger:
             who_note += ("\n\n[The voice print says this speaker is NOT Madhav and no handover is active: do not call them sir; answer the question "
@@ -1496,6 +1502,11 @@ def decide_flow(text: str) -> dict | None:
     mark = (d.get("inputs") or {})
     if mark.get("marked"):
         a.append("These picks were made on stale data (" + "; ".join(str(s).split(":")[0] for s in mark.get("stale") or []) + "), so they are marked, not stopped.")
+    # 27 Oct second review: say it when a pick breaks Ananta's own tested 'don't chase' filter (the pinned paper rules do not use it yet)
+    hot = [p for p in answerguide.chase_picks(rm.get("data_through")) if p["symbol"] in {x.get("symbol") for x in ch}]
+    if hot:
+        a.append("Honest note: " + ", ".join(f"{p['symbol']} was bought at RSI {p['rsi']}, {p['above_50day_pct']}% above its 50-day average" for p in hot)
+                 + ", the kind of chase Ananta's own tests say to avoid; the practice book's fixed rules do not use that filter yet.")
     a.append(call_state(rm)["words"])
     sp = rm.get("sp1") or {}
     a.append("The index options line decides between 09:15 and 10:15 Indian time, one lot, only if the opening move clears the option's cost; it needs that morning's Zerodha sign-in."

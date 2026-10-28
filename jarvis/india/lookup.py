@@ -161,6 +161,10 @@ def _quote_words(q: dict) -> str:
           if q.get(k) is not None]
     if ch:
         bits.append("changes: " + ", ".join(ch))
+    nf = _qb().get("nifty") or {}
+    if q.get("chg_ytd") is not None and nf.get("chg_ytd") is not None:   # 27 Oct re-grade: "Reliance vs the Nifty this year" was left unanswered
+        gap = q["chg_ytd"] - nf["chg_ytd"]
+        bits.append(f"this year {'ahead of' if gap > 0 else 'behind'} the Nifty ({_pc(nf['chg_ytd'])} this year) by {abs(gap) * 100:.1f} points")
     if q.get("vs_nifty_1y") is not None:
         bits.append(f"{'ahead of' if q['vs_nifty_1y'] > 0 else 'behind'} the Nifty by {abs(q['vs_nifty_1y']) * 100:.1f} points over 1 year")
     if q.get("vs_high_52w") is not None:
@@ -217,10 +221,19 @@ def sector_facts() -> dict:
     if mid and small:
         w += (f" Mid caps (Nifty Midcap 150) are {abs(mid['vs_high_52w']) * 100:.0f}% below their 52-week high and {_pc(mid['chg_1y'])} over 1 year; "
               f"small caps (Nifty Smallcap 250) are {abs(small['vs_high_52w']) * 100:.0f}% below their 52-week high and {_pc(small['chg_1y'])} over 1 year.")
+    # the longer window: the total-return series since 2015 shows the fall from the real peak, not only from the 52-week high
+    ath = []
+    for key, label in (("midcap150", "mid caps"), ("smallcap250", "small caps")):
+        s = _tri(key)
+        if s:
+            pk = max(s, key=lambda t: t[1])
+            ath.append(f"{label} {abs(s[-1][1] / pk[1] - 1) * 100:.0f}% below their peak of {pk[0].day} {pk[0]:%b %Y}")
+    if ath:
+        w += " Measured with dividends since 2015: " + ", ".join(ath) + "."
     def brief(v):
         return {k: v.get(k) for k in ("name", "chg_1m", "chg_3m", "chg_1y", "vs_sma200", "vs_high_52w") if v.get(k) is not None}
     return {"status": "ok", "as_of": sec[0].get("as_of"), "sectors_by_3m": [brief(s) for s in sec], "broad": [brief(b) for b in broad], "words": w,
-            "note": "falls are measured from the 52-week high (the data window is about 15 months, so an older all-time high is not seen); "
+            "note": "say which window a fall is measured over: '52-week high' (price, about 15 months of data) or 'peak since 2015' (total-return index); "
                     "Ananta's test of 'the strongest sectors keep leading' did not hold, so a ranking describes, it does not pick"}
 
 
@@ -341,7 +354,21 @@ def _parse_hist(j: dict) -> list[tuple[dt.date, float]] | None:
         except (KeyError, ValueError, TypeError):
             continue
     out.sort()
-    return out or None
+    return _split_adjust(out) or None
+
+
+def _split_adjust(navs):
+    """ETFs split their units (SBI Gold ETF, Gold BeES): the NAV drops 90%+ overnight and returns read as a crash. A real fund never moves 5x in a
+    day, so a jump like that is a split: scale everything before it by the jump."""
+    if not navs:
+        return navs
+    out = list(navs)
+    for i in range(len(out) - 1, 0, -1):
+        a, b = out[i - 1][1], out[i][1]
+        if a > 0 and b > 0 and (b / a < 0.2 or b / a > 5):
+            k = b / a
+            out[:i] = [(d, v * k) for d, v in out[:i]]
+    return out
 
 
 def _cached_nav(code: int, max_age_days: int | None = 0):
@@ -509,7 +536,9 @@ def _bench_key(fund: dict) -> str | None:
         return "smallcap250"
     if "mid cap" in c and "large" not in c or "midcap" in n.replace(" ", ""):
         return "midcap150"
-    if "large cap" in c and "mid" not in c or "nifty 50" in n:
+    if re.search(r"\bnifty ?500\b", n):
+        return "nifty500"
+    if "large cap" in c and "mid" not in c or re.search(r"\bnifty ?50\b(?!0)|\bnifty ?bees\b", n):
         return "nifty50"
     if "equity" in c or "index" in c or "elss" in c or "fof" in c or "etf" in c:
         return "nifty500"
@@ -524,6 +553,34 @@ def _bench_code(key: str) -> int | None:
         if r["name"].lower() == name.lower() and r["plan"] == "Direct" and r["option"] == "Growth":
             return r["code"]
     return None
+
+
+TRI_KEYS = {"nifty50": "NIFTY 50", "nifty500": "NIFTY 500", "midcap150": "NIFTY MIDCAP 150", "smallcap250": "NIFTY SMLCAP 250"}
+
+
+def _tri(key: str, until: str | None = None) -> list[tuple[dt.date, float]] | None:
+    """The total-return index (dividends included) for an equity benchmark, cut at the fund's own latest NAV date, so both are measured to the
+    same day (27 Oct outside re-grade: a price index and mismatched end dates made an index fund look 1 point behind its ETF)."""
+    j = _load(CACHE / "tri.json") or {}
+    rows = (j.get("series") or {}).get(TRI_KEYS.get(key, ""))
+    if not rows:
+        return None
+    out = [(dt.date.fromisoformat(d), float(v)) for d, v in rows if not until or d <= until]
+    return out if len(out) > 300 else None
+
+
+def _own_gold_etf(fund: dict) -> dict | None:
+    """A gold fund of funds holds its own fund house's gold ETF: compare it with that ETF, not with another house's (SBI Gold Fund -> SBI Gold ETF)."""
+    n = (fund.get("name") or "").lower()
+    if "gold" not in n or "etf" in n or "fof" not in (fund.get("category") or "").lower() and "fund" not in n:
+        return None
+    amc = (fund.get("amc") or "").lower()
+    best = None
+    for r in _schemes():
+        if r["amc"].lower() == amc and "gold" in r["name"].lower() and "etf" in (r["category"] + r["name"]).lower() and "fund" not in r["name"].lower():
+            best = r
+            break
+    return best
 
 
 _POOL = None
@@ -555,7 +612,11 @@ def fund_facts(funds: list[dict]) -> dict:
         if f.get("sibling_code"):
             jobs[("sib", f["code"])] = f["sibling_code"]
         bk = _bench_key(f)
-        if bk and _bench_code(bk):
+        own = _own_gold_etf(f) if bk == "gold" else None
+        if own:
+            f["_own_etf"] = own
+            jobs[("bench", f"own:{f['code']}")] = own["code"]
+        elif bk and not (bk in TRI_KEYS and _tri(bk)) and _bench_code(bk):
             jobs[("bench", bk)] = _bench_code(bk)
     res, fut = {}, {}
     t0 = time.time()
@@ -581,7 +642,9 @@ def fund_facts(funds: list[dict]) -> dict:
     for f in funds:
         navs = res.get(("fund", f["code"]))
         base = {k: f.get(k) for k in ("code", "name", "amc", "category", "plan", "option", "nav", "nav_date", "assumed_plan", "assumed_option")}
-        label = f"{f['name']} ({f['plan']} plan, {f['option'] or 'option not stated'})"
+        is_etf = "etf" in (f.get("category") or "").lower() or re.search(r"\betf\b|\bbees\b", (f.get("name") or "").lower())
+        label = f"{f['name']} (an ETF, bought on the exchange; ETFs have no Direct or Regular plan)" if is_etf else \
+            f"{f['name']} ({f['plan']} plan, {f['option'] or 'option not stated'})"
         if not navs or isinstance(navs, Exception):
             out[str(f["code"])] = {**base, "status": "history_unavailable",
                                     "words": f"{label}: latest NAV {f['nav']} on {_dw(f['nav_date'])} (AMFI). Its return history could not be fetched right now, so returns are not available this time."}
@@ -589,11 +652,25 @@ def fund_facts(funds: list[dict]) -> dict:
         m = _metrics(navs)
         e = {**base, "status": "ok", **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in m.items()}}
         bk = _bench_key(f)
-        bn = res.get(("bench", bk)) if bk else None
-        if bn and not isinstance(bn, Exception):
+        own = f.get("_own_etf")
+        if own:
+            bn, bname, bvia = res.get(("bench", f"own:{f['code']}")), f"its own fund house's gold ETF ({own['name']})", \
+                "the ETF this fund of funds holds: after its extra layer of cost the fund should trail it slightly, never beat it for long"
+            if bn and not isinstance(bn, Exception):
+                bn = [x for x in bn if x[0] <= navs[-1][0]]          # the same end date as the fund
+        elif bk in TRI_KEYS and _tri(bk, navs[-1][0].isoformat()):
+            bn, bname, bvia = _tri(bk, navs[-1][0].isoformat()), f"{BENCH[bk][2]} total-return index", \
+                "the index with dividends reinvested (TRI), to the fund's own latest NAV date: the fair yardstick for a fund"
+        else:
+            bn = res.get(("bench", bk)) if bk else None
+            bname, bvia = (BENCH[bk][2], BENCH[bk][0] + " (an index fund or ETF, after its own small cost; to its own latest date)") if bk else (None, None)
+        if bn and not isinstance(bn, Exception) and len(bn) > 260:
             bm = _metrics(bn)
-            e["benchmark"] = {"name": BENCH[bk][2], "via": BENCH[bk][0] + " (an index fund or ETF, after its own small cost)",
+            e["benchmark"] = {"name": bname, "via": bvia, "end_date": bn[-1][0].isoformat(),
                               **{k: (round(bm[k], 4) if isinstance(bm[k], float) else bm[k]) for k in ("ret_1y", "cagr_3y", "cagr_5y", "sip_xirr_3y", "sip_xirr_5y", "worst_drawdown")}}
+            idx = "index" in (f.get("category") or "").lower() or "etf" in (f.get("category") or "").lower() or "index" in (f.get("name") or "").lower()
+            if idx and bk in TRI_KEYS and m.get("ret_1y") is not None and bm.get("ret_1y") is not None:
+                e["tracking_difference_1y"] = round(m["ret_1y"] - bm["ret_1y"], 4)
         sb = res.get(("sib", f["code"]))
         if sb and not isinstance(sb, Exception):
             s1, s3 = _cagr(sb, 1), _cagr(sb, 3)
@@ -610,7 +687,13 @@ def fund_facts(funds: list[dict]) -> dict:
         if m.get("sip_xirr_3y") is not None:
             w.append(f"a monthly SIP over 3 years earned {_pc(m['sip_xirr_3y'])} a year" + (f" (over 5 years {_pc(m['sip_xirr_5y'])} a year)" if m.get("sip_xirr_5y") is not None else ""))
         if e.get("benchmark"):
-            w.append(_ret_words(f"{e['benchmark']['name']} for comparison", e["benchmark"]))
+            w.append(_ret_words(f"{e['benchmark']['name']} for comparison (to the same date)", e["benchmark"]))
+        if e.get("tracking_difference_1y") is not None:
+            w.append(f"over 1 year it was {abs(e['tracking_difference_1y']) * 100:.2f} points {'behind' if e['tracking_difference_1y'] < 0 else 'ahead of'} "
+                     "the total-return index it tracks (its tracking difference: smaller is better)")
+        if f.get("_own_etf"):
+            w.append("a gold fund of funds holds its fund house's gold ETF and adds its own cost on top, so it should trail that ETF a little; "
+                     "for tax, a gold fund of funds counts as long-term only after 24 months")
         w.append(f"worst fall {_pc(m['worst_drawdown'], 0)} ({m['worst_drawdown_from'][:7]} to {m['worst_drawdown_to'][:7]})" if m.get("worst_drawdown_to") else "")
         if m.get("vol_3y") is not None:
             w.append(f"swings about {m['vol_3y'] * 100:.0f}% a year")
@@ -639,6 +722,34 @@ def rules_facts(text: str, limit: int = 4) -> list[dict]:
     return [{k: f[k] for k in ("id", "fact", "as_of", "source")} for _, f in hits[:limit]]
 
 
+IPO_Q = re.compile(r"\b(ipos?|initial public offer\w*|new listings?|public issues?|grey market|gmp)\b", re.I)
+INDEX_FUND_Q = re.compile(r"\bnifty ?50 index fund\b|\bindex fund\b.*\bnifty ?50\b(?!0)", re.I)
+
+
+def ipo_facts() -> dict:
+    """NSE's current and upcoming IPOs, from the nightly public API copy (records india/lookupdata.py)."""
+    j = _load(CACHE / "ipo.json") or {}
+    if not j:
+        return {"status": "missing", "words": "The IPO calendar has not been fetched yet."}
+    cur, up = j.get("current") or [], j.get("upcoming") or []
+    def one(x):
+        bits = [x.get("companyName") or x.get("symbol") or "?"]
+        if x.get("issueStartDate") or x.get("issueEndDate"):
+            bits.append(f"open {x.get('issueStartDate', '?')} to {x.get('issueEndDate', '?')}")
+        if x.get("priceBand") or x.get("issuePrice"):
+            bits.append(f"price band {x.get('priceBand') or x.get('issuePrice')}")
+        try:
+            bits.append(f"subscribed {float(x['noOfTime']):.2f} times so far")
+        except (KeyError, TypeError, ValueError):
+            pass
+        return ", ".join(bits)
+    w = ("NSE IPOs (fetched " + str(j.get("built_at", ""))[:10] + "): open now: " + ("; ".join(one(x) for x in cur[:6]) or "none")
+         + ". Upcoming: " + ("; ".join(one(x) for x in up[:6]) or "none listed") + ".")
+    return {"status": "ok", "current": cur[:8], "upcoming": up[:8], "words": w,
+            "note": "dates, price bands and subscription only; a real view needs the offer document (valuation against listed peers, what the money is "
+                    "for, promoters selling or fresh issue); grey-market premiums are unofficial and unreliable; Ananta has not tested IPOs"}
+
+
 # ------------------------------------------------------------------------------------------------------------------------------ all of it
 def facts_for(text: str) -> dict:
     """Only the blocks this question needs: named stocks/ETFs, sectors, gold, named mutual funds, rules. {} when nothing applies."""
@@ -648,6 +759,10 @@ def facts_for(text: str) -> dict:
         if syms:
             out["stocks"] = quote_facts(syms)
             out["stocks_as_of"] = (_qb().get("as_of"))
+            nf = _qb().get("nifty") or {}
+            if nf.get("close") and nf.get("chg_ytd") is not None:
+                out["nifty"] = {k: nf.get(k) for k in ("as_of", "close", "chg_1m", "chg_3m", "chg_ytd", "chg_1y")} | {
+                    "words": f"Nifty 50 {nf.get('close'):,.2f} on {_dw(nf.get('as_of'))}: this year {_pc(nf.get('chg_ytd'))}, 1 year {_pc(nf.get('chg_1y'))}, 3 months {_pc(nf.get('chg_3m'))}."}
     except Exception as e:  # noqa: BLE001  a lookup must never break the answer
         out["stocks_error"] = f"{type(e).__name__}"
     try:
@@ -661,7 +776,18 @@ def facts_for(text: str) -> dict:
     except Exception as e:  # noqa: BLE001
         out["gold_error"] = f"{type(e).__name__}"
     try:
+        if IPO_Q.search(text or ""):
+            out["ipo"] = ipo_facts()
+    except Exception as e:  # noqa: BLE001
+        out["ipo_error"] = f"{type(e).__name__}"
+    try:
         funds = find_funds(text)
+        if INDEX_FUND_Q.search(text or "") and not any(f["code"] == BENCH["nifty50"][1] for f in funds):
+            # "a Nifty 50 index fund" names no scheme: show one large Direct index fund as the example, so an ETF can be compared on the same basis
+            r = next((x for x in _schemes() if x["code"] == BENCH["nifty50"][1]), None)
+            if r:
+                funds = (funds + [{"code": r["code"], "name": r["name"], "amc": r["amc"], "category": r["category"], "plan": r["plan"],
+                                   "option": r["option"], "nav": r["nav"], "nav_date": r["date"], "example": True}])[:3]
         if funds:
             out["mutual_funds"] = fund_facts(funds)
             # "SBI Gold Fund" names the fund house, not State Bank's shares: drop a stock hit that is only the fund house's name

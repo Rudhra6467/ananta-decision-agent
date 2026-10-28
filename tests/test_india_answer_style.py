@@ -19,8 +19,9 @@ def test_system_has_the_decide_shape_and_hypotheticals():
     s = ask.SYSTEM
     assert "WHEN HE ASKS FOR A READ OR A DECISION" in s and "always decide" in s
     for part in ("your read in one sentence", "hold, trim, add, exit or wait", "what would change your mind", "tested, untested or against the tests",
-                 "End on the decision", "HYPOTHETICAL", "Never stop at describing a position"):
+                 "End on what to do", "HYPOTHETICAL", "Never stop at describing a position"):
         assert part in s, part
+    assert 'never a "Decision:" label' in s                     # 27 Oct second review: decide in plain words, no stamp
     assert "TS1" in s and "TWT-H22" in s and "TWT-H15" in s and "wrong_if" in s
 
 

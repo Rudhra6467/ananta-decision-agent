@@ -24,7 +24,11 @@ WHAT = {
 }
 ORDER = ("rupee", "gift", "crude", "yield", "dollar", "us", "vix", "flows")
 # questions the flow leaves to the model, which has the facts and answers in context
-NOT_FOR_US = re.compile(r"\b(research|study|studies|analy[sz]e|flag|log it|note it|should (?:we|i)|\bif\b|let'?s|plan to|later|buy|sell|why|because|reason|cause|gap(?:ped|s)?|explain|affect|impact|influence|predict|forecast|will |what if|tested|test)\b", re.I)
+NOT_FOR_US = re.compile(r"\b(research|study|studies|analy[sz]e|flag|log it|note it|should (?:we|i)|\bif\b|let'?s|plan to|later|buy|sell|why|because|reason|cause|gap(?:ped|s)?|explain|affect|impact|influence|predict|forecast|will |what if|tested|test|matter|matters|holdings?|my stocks|portfolio|mean for|for me|for us|my money)\b", re.I)
+# 27 Oct outside review: "does the rupee matter for my holdings" got a reading and a rule; those now go to the model, which has
+# answer_guide.rupee_sensitivity for his holdings. The tested line and the sources are said in plain words (no vendor names, no study codes).
+TESTED_WORDS = "Ananta's tests found none of these readings predicts what the Nifty does next: use them to explain a move, never to trade."
+LABELS = {"USD/INR, FRED": "The official daily dollar-rupee rate", "broad dollar index": "The dollar index"}
 READING_Q = re.compile(r"\b(what|how|where|show|tell|is|are|did|does)\b", re.I)
 
 
@@ -62,7 +66,7 @@ def _line(x: dict, fmt: str = ",.2f") -> str:
     if not x or x.get("status") != "ok":
         return f"{(x or {}).get('label', 'that reading')} is not available right now."
     lag = f", {x['lag_days']} days behind today" if (x.get("lag_days") or 0) > 1 and "FRED" in str(x.get("source")) else ""
-    return f"{x['label']} {x['value']:{fmt}}{(' ' + x['unit']) if x.get('unit') and x['unit'] != '%' else ('%' if x.get('unit') == '%' else '')} on {_dw(x['as_of'])} ({_chg(x)}{lag})."
+    return f"{LABELS.get(x['label'], x['label'])} {x['value']:{fmt}}{(' ' + x['unit']) if x.get('unit') and x['unit'] != '%' else ('%' if x.get('unit') == '%' else '')} on {_dw(x['as_of'])} ({_chg(x)}{lag})."
 
 
 def market_context_flow(text: str) -> dict | None:
@@ -84,8 +88,8 @@ def market_context_flow(text: str) -> dict | None:
             rs = mc.get("rupee_same_day") or {}
             if rs.get("status") == "ok":
                 w = "weaker" if rs["change_1"] > 0 else "stronger"
-                parts.append(f"The rupee, same day: USD/INR {rs['value']:.2f} on {_dw(rs['as_of'])} ({_chg(rs)}; the rupee is {w}; this is the Kite {rs.get('contract', 'USDINR')} future's last candle of the session, "
-                             f"so read the move, not the exact level). " + _line(macro.get("DEXINUS", {})).replace("USD/INR, FRED", "The longer series (FRED USD/INR)"))
+                parts.append(f"The rupee on {_dw(rs['as_of'])}: about {rs['value']:.2f} to the dollar ({_chg(rs)}; the rupee is {w}). This is from the rupee futures price "
+                             f"at the close, so read the move, not the exact level. " + _line(macro.get("DEXINUS", {})))
             else:
                 parts.append(_line(macro.get("DEXINUS", {})))
         elif k == "us":
@@ -109,6 +113,6 @@ def market_context_flow(text: str) -> dict | None:
                 parts.append("The institutions' flows are not available right now.")
         elif k == "gift":
             parts.append("GIFT Nifty (the pre-open signal) has no free source, so Ananta does not have it.")
-    ans = "Sir, " + " ".join(p for p in parts if p) + " " + (mc.get("tested") or "")
+    ans = "Sir, " + " ".join(p for p in parts if p) + " " + (TESTED_WORDS if mc.get("tested") else "")
     return _reply(ans, ["What is the rupee doing?", "How did the US close?", "What did FII and DII do?"], ["market_context (manifests/market_context.json), each reading with its as-of date"],
                   {})

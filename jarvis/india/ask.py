@@ -18,7 +18,7 @@ from pathlib import Path
 
 import requests
 
-from jarvis.india import appmap, askwords, marketcontext, speaker, technicals, views, voiceid
+from jarvis.india import answerguide, appmap, askwords, lookup, marketcontext, speaker, technicals, views, voiceid
 
 # "my mom asks ...", "she wants to know ...": Madhav relaying for the guest, so his voice does not end the handover
 RELAY = re.compile(r"\b(?:my (?:mom|mother|amma|dad|father|nanna|pinni)|she|he|they|the grader)\s+(?:asks?|is asking|wants to know|says|said)\b", re.I)
@@ -36,21 +36,52 @@ futures, options and option spreads work; how a ratio such as P/E, P/B, beta or 
 knowledge, as an expert would. Do NOT label it "general knowledge", "general market knowledge", "not from my data files" or "not from my files", do not
 say you are "marking it that way", and never refuse a basic question (NSE vs BSE: NSE is far larger by volume, especially in derivatives). Things that
 change over time (current SEBI rules, tax rates, fees, exchange volumes) you may give "as far as I know".
-(2) LIVE NUMBERS and anything about Madhav's account, the books, Ananta's plan, prices, indicators or flows: ONLY from the FACTS block in the user turn,
+(2) LIVE NUMBERS and anything about Madhav's account, the books, Ananta's plan, prices, indicators or flows: ONLY from the FACTS (the cached FACTS block, plus this turn's extra facts in the user turn: lookup, answer_guide),
 with the date each number is as of (for "today", "the latest close" or "how did the Nifty close", use latest_closes, the newest dated close, and say
 its date; breadth, the trend averages and the books stay on data_through and say their own date); it is India's read model for the latest session ("morning_view" is the day's view written before the open: the market, Ananta's plan, the chances with their baselines, what to watch, yesterday's scorecard, the reviewer's second opinion; and, for Madhav, "account_allocation": his holdings graded A-D and ranked, the suggested changes, the paper moves and what is being watched; quote its grades, actions and "wrong_if" exactly). Never invent a number, a stock or a reason; if the facts do not hold a live number, say so in one short clause and give what they do hold.
 (3) DOES IT WORK / SHOULD I USE IT: only from Ananta's tests in the facts (technicals.indicator_knowledge, teacher_libraries "tested", the registry
 verdicts, the study lines in market_context); if there is no test, say "Ananta hasn't tested this" once. That is the one caveat that matters, because
 he might act on it; a definition needs no caveat.
-WHEN HE ASKS FOR A READ OR A DECISION ("what's your read", "what do you think", "what should I do", "sell, hold or add", "is it too late to enter"),
-always decide, in this shape: (a) your read in one sentence; (b) what Ananta would do on paper by its own rules: hold, trim, add, exit or wait (quote
+(4) NAMED STOCKS, ETFS, FUNDS, SECTORS, GOLD, RULES (27 Oct night, after an outside review): FACTS.lookup has dated facts for the stocks, ETFs,
+sectors, gold, mutual funds and India rules named in the question: quote its words lines with their dates (a fund: its returns against its
+benchmark, worst fall, SIP return, cost note; a rule: as of its date). If a named stock or fund is missing from it, use the NO-DATA SHAPE: one line
+on what is missing; what the company or fund is and the 3-4 numbers that decide it (with any sector or category context the facts hold); the
+closest thing Ananta does have (its sector, a similar fund or the index, with dates); and no decision without data. Never a dead end.
+MATCH THE HORIZON (FACTS.answer_guide.horizon): for long_term or personal_finance (SIPs, mutual funds, gold or the Nifty for years, FDs, emergency
+funds, loans, tax, beginners) do NOT use the 50/200-day averages, "downtrend so wait", the October low or the practice book; answer from the goal and
+time horizon, asset allocation, valuation against the long-run average, costs (Direct vs Regular plan, expense ratio, exit load) and tax, as a careful
+adviser would. Long-term money is not timed by the trend: a SIP keeps running through a downtrend. For broad exposure (small caps, a sector, gold)
+suggest a diversified fund or ETF in small staggered amounts, never a single stock. A trade question keeps the read-and-decide shape below.
+EVIDENCE THAT FITS: cite an Ananta test only when its universe and horizon match the question (a stock-level beta test says nothing about small-cap
+funds; a 20-session test says nothing about 12-month momentum or a 5-year SIP), in one sentence at most.
+THE PRACTICE BOOK: quote its results only when he asks about the book (answer_guide.book_question), never as a reason for his real-money choices, a
+beginner's plan or a safety answer. When you quote it, give closed and open together and say its exits are stops or time limits, so closed trades lean
+to losers, and compare it with the random control picks.
+SAFETY IS UNCONDITIONAL: no market level makes a personal loan, margin or borrowed money for shares sensible (never "I'd change my mind if the Nifty
+climbs"); for tips, Telegram or WhatsApp groups and "sure 10x" stocks say no, tell him to check the adviser's SEBI registration on SEBI Check, to pay
+only to @valid UPI handles, and to report the group; never cite the practice book or a test there.
+ONE NUMBER, ONE SOURCE: the Nifty's gap to its 50- and 200-day averages comes from latest_closes.nifty_vs_averages (the indicator panel, with its
+date), every time. The cash rule is the regime table's floor (20% in a downtrend) with its band of 3% of the account before anything moves, so 18.5%
+cash is inside the band ("target 20%, inside its band"), never "at least 20%" beside 18.5%. The emergency fund rule is one: 6 months of expenses (9-12
+if income is uncertain), separate from trading money. Valuation words: within about 10% of the long-run average is "about average"; the Nifty 50's
+long-run P/E is about 20, so 19 is about average, not cheap; NSE moved to consolidated earnings in April 2021, so older P/Es are not directly
+comparable; a P/B below its usual level may be called below usual. A percentile against a short history is not "cheap against history".
+INDIA PRACTICE: bracket orders have not been available at Zerodha since March 2020 (use GTT OCO for delivery, cover orders intraday); in India a high
+put-call ratio on open interest is usually read as put writers supporting the market, with extremes contrarian; Direct plans cost less than Regular
+plans; equity funds usually charge an exit load inside 12 months; the options share in his plan is Ananta's paper rule, not a normal part of a
+long-term investor's money (SEBI found 91% of individual F&O traders lost money in FY25). Say a stock's volatility as "swings about X% a year".
+Plain names only: "the 250 most traded stocks" (not liquid 250), "the practice book" (not research book), "the YouTube teacher's claim"; never name
+data vendors or contract codes (Kite, FRED, USDINR26OCTFUT).
+WHEN HE ASKS FOR A READ OR A DECISION ("what's your read", "what do you think", "what should I do", "sell, hold or add", "is it too late to enter";
+answer_guide.decision_asked), always decide, in this shape (only then: otherwise explain with no "decision" line; a fund-quality question gets an
+assessment of the fund for its purpose, never "decision: wait"; a friend's SIP gets what to check and a keep-or-rethink rule): (a) your read in one sentence; (b) what Ananta would do on paper by its own rules: hold, trim, add, exit or wait (quote
 the account grades, actions and wrong_if lines exactly; the guardrails; the tested filters: RSI over 70 and far above the 50-day = don't chase, wait;
 a fixed stop beat a trailing one (TS1); a -7% stop lost against no stop (TWT-H22); adding to stocks 40% down and under the 200-day often fell further
 (TWT-H15)); (c) what would change your mind; (d) how strong the evidence is: tested, untested or against the tests. End on the decision. Paper only,
 not advice. Keep it to about five short sentences: one per part plus the decision; cite at most two tests; leave out extra numbers. A HYPOTHETICAL ("a position up 8% while the market falls all week", "a stock down 15% in two days on heavy volume") is answered as a
 hypothetical by these rules first (for example: strength against a falling market is relative strength, so hold it with its stop and do not add
 while it is far above its 50-day); only then, if useful, map it to a real holding in the facts. Never stop at describing a position.
-Nothing here is financial advice; no real money is traded;
+Nothing here is financial advice; Ananta's own trades are paper (his savings, emergency fund and real investments are real money);
 you cannot place, change or close a trade from chat: say "paper only; nothing is placed from chat" ONLY when he asks you to trade, never as a sign-off on other answers.
 Flags, research notes and fix choices are handled in code before you see a message (26 Oct): a request to research or note something is saved as a detailed
 note with no fix menu, and an app problem is flagged with fixes. Never say a flag or a note cannot be filed from chat; never offer fixes for a research request,
@@ -68,7 +99,7 @@ next part as a follow-up (the seven parts A-G, the findings, the staircase, what
 web for the day's biggest moves, each with a grade (A filing, B two outlets, C one source or unclear) and URLs: when asked why a stock moved, say "public reports
 say ..." with the grade, and add that a note is never a reason to trade.
 Say the same thing the screens say (25 Oct, from his chats): the daily call's own "words" say which session it is for (never call an old call
-"the call for the next session"); the research book is practice money, so quote it as the average % per closed trade; for his account, a holding's
+"the call for the next session"); the practice book is practice money: quote it only when he asks about it, closed and open together (THE PRACTICE BOOK above); for his account, a holding's
 suggest_inr (the full suggestion) and paper_moves_today (what actually moves at today's close) are different numbers, so name the one you quote;
 each "jobs.problems" line is that job's LAST run, so give its time if it has one and do not call it a current failure when a later line says it worked.
 Reply with ONE JSON object and nothing else: {"kind":"answer","stage":"observation|outcome|learning","answer":"...","breakdown":["...","..."],
@@ -129,9 +160,17 @@ def latest_closes(rm: dict) -> dict:
     if v.get("status") == "ok":
         put("INDIA VIX", v.get("as_of"), v.get("value"), v.get("change_1"), "market context")
     newest = max((x["date"] for x in best.values()), default=None)
-    return {"closes": best, "newest_date": newest,
-            "how_to_say_it": "for 'today', 'the latest close' or 'how did the Nifty close', use these newest dated closes and say their date; breadth, the "
-                             "trend averages in market and the books stay on data_through and say that date when it is older"}
+    # 27 Oct night (outside review: 2.5% / 5.5% in one answer, 2.6% / 5.6% in the next): one value for the Nifty's gap to its averages, the panel's
+    p = ((rm.get("technicals") or {}).get("indices") or {}).get("NIFTY 50") or {}
+    vs = p.get("vs_sma") or {}
+    gaps = ({"as_of": p.get("as_of"), "vs_50_day": vs.get("50"), "vs_200_day": vs.get("200"),
+             "words": (f"on {answerguide.day_words(p.get('as_of'))} the Nifty was {abs(vs['50']) * 100:.1f}% {'above' if vs['50'] >= 0 else 'below'} its 50-day average "
+                       f"and {abs(vs['200']) * 100:.1f}% {'above' if vs['200'] >= 0 else 'below'} its 200-day"
+                       if vs.get("50") is not None and vs.get("200") is not None else None)} if p else None)
+    return {"closes": best, "newest_date": newest, "nifty_vs_averages": gaps,
+            "how_to_say_it": "for 'today', 'the latest close' or 'how did the Nifty close', use these newest dated closes and say their date; the Nifty's "
+                             "gap to its 50- and 200-day averages is always nifty_vs_averages (not market.nifty_vs_sma50/200, which is the older decision "
+                             "day); breadth and the books stay on data_through and say that date when it is older"}
 
 
 def facts(owner: bool = False) -> dict:
@@ -577,6 +616,25 @@ _SIGNOFF = re.compile(r"\s*(?:(?:It is |It's |This is |Everything here is )?(?:a
 _TRADE_Q = re.compile(r"\b(buy|sell|trade|order|position|invest|put money|should i|real money|paper|advice|place)\b", re.I)
 
 
+def _close_cut(s: str) -> str:
+    """27 Oct night (outside review: answers ending "... not a tested edge;" and "... Ananta hasn't tested gold or SIPs, and"): the sign-off
+    remover takes the trailing "paper only, not advice." clause even when it is the end of a longer sentence; what is left must not end on a
+    connector. The trailing ', and' / ';' / ' but' is dropped and the sentence closed."""
+    s = re.sub(r"(?:[\s,;:–—-]*\b(?:and|but|so|or|while|as|though|although|because)\b)*[\s,;:–—-]*$", "", s or "")
+    return s + "." if s and s[-1] not in ".!?\"'”)" else s
+
+
+def tidy_end(a: str) -> str:
+    """Every answer reads as finished sentences (27 Oct night): 'Sir, The rupee' -> 'Sir, the rupee'; a last sentence with no full stop
+    (a code-built line such as '... with realistic fills') gets one."""
+    a = (a or "").strip()
+    a = re.sub(r"^((?:Sir|Yes,? sir|No,? sir|Okay,? sir),\s+)(The|This|That|There|It|A|An|Its|These|Those|Our|Your|In|On|At)\b",
+               lambda m: m.group(1) + m.group(2).lower(), a)
+    if a and a[-1].isalnum():
+        a += "."
+    return a
+
+
 def finish(reply: dict, question: str, model: bool) -> dict:
     """The one exit every answer passes (25 Oct refinement): plain words on the answer and its breakdown, and the paper-only sign-off kept
     only where the question is about trading (the prompt already says so; the model kept adding it to every answer). 27 Oct: every code and
@@ -587,8 +645,8 @@ def finish(reply: dict, question: str, model: bool) -> dict:
             b = _SIGNOFF.sub("", a).rstrip()
             if not b or b == a:
                 break
-            a = b
-    reply["answer"] = a
+            a = _close_cut(b)
+    reply["answer"] = tidy_end(a)
     if isinstance(reply.get("breakdown"), list):
         reply["breakdown"] = [askwords.words(plain_codes(x)) if isinstance(x, str) else x for x in reply["breakdown"]]
     if isinstance(reply.get("follow_ups"), list):
@@ -765,6 +823,15 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     # an observer Madhav brought in (the grader) hears what he would; family and other guests do not get his account
     f = facts(owner=(who == "owner" or not str(who).startswith("guest:")) and (guest is None or guest.get("role") == "observer"))
     f["talking_to"] = speaker.label(thread)
+    # 27 Oct night (outside review): dated facts for the stocks, ETFs, sectors, gold, funds and rules the question names (jarvis/india/lookup.py),
+    # and how to answer this question (jarvis/india/answerguide.py: horizon, decision asked, book quotable, topic lines); both per turn
+    try:
+        lk = lookup.facts_for(text_q)
+    except Exception as e:  # noqa: BLE001  a lookup never breaks the answer
+        lk = {"lookup_error": type(e).__name__}
+    if lk:
+        f["lookup"] = lk
+    f["answer_guide"] = answerguide.guide(text_q, f)
     recent = " ".join(m.get("text") or "" for m in thread_messages(thread)[-4:] if m.get("role") == "user")
     if RX_TOPIC.search(text) or RX_TOPIC.search(recent) or str((context or {}).get("screen", "")).startswith(("reconstruction", "evidence", "missed")):
         try:
@@ -775,7 +842,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     # 27 Oct: "How did the Nifty close today?" is a question, not an order (the model still never places anything)
     asks = "?" in text or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", text, re.I)
     if ACT.search(text) and not asks and re.search(r"\b(now|please|for me|this|it|today)\b", text, re.I) and len(text) < 90:
-        reply = {"kind": "answer", "stage": "observation", "answer": "Paper only, sir: nothing is placed, changed or closed from chat. The stock book and the index line decide by their rules, and every decision is in the Home feed.",
+        reply = {"kind": "answer", "stage": "observation", "answer": "Paper only, sir: nothing is placed, changed or closed from chat. The stock book and the index line decide by their rules, and every decision is in the Home feed."
+                 + order_conflict(text),
                  "breakdown": [], "evidence": ["India leakcheck: no order path exists in this service"], "assumption": "", "follow_ups": ["What did you decide for the next session?", "What are the guardrails?"],
                  "next_action": {}, "show": [], "options": [], "points": [], "actions": [], "ui": [], "route": "india"}
         usage = {"model": "rule"}
@@ -796,7 +864,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
-        per_turn = ("talking_to", "reconstruction_detail")
+        per_turn = ("talking_to", "reconstruction_detail", "lookup", "answer_guide")
         facts_text = (f"FACTS (India read model, data through {f.get('data_through')}). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"
@@ -1096,6 +1164,23 @@ def draft_flow(text: str, who: str) -> dict | None:
 PORT = re.compile(r"\b(analy[sz]e|analysis|review|rate|rank|grade|check|go through|assess)\b[^.?!]{0,40}\b(portfolio|holdings?|my stocks|my account|my positions?)\b"
                   r"|\b(portfolio|holdings?)\b[^.?!]{0,20}\b(analysis|review|ratings?|rankings?)\b", re.I)
 PORT_WHY = re.compile(r"\b(why|how come|explain)\b", re.I)
+def order_conflict(text: str) -> str:
+    """27 Oct outside review: "buy more TATAPOWER now" got only the paper-only line; when the order names one of his holdings, say Ananta's own
+    rating for it, so he sees a conflict before placing it himself ("Ananta's own call on TATAPOWER is reduce by half; it is already 24% of your stocks")."""
+    try:
+        p = views.allocation_plan(full=True)
+    except Exception:  # noqa: BLE001
+        return ""
+    out = []
+    for h in (p.get("holdings") or []) if p.get("ready") else []:
+        if re.search(rf"\b{re.escape(str(h.get('symbol')))}\b", text, re.I):
+            act = ACTION_WORDS.get(h.get("action"), str(h.get("action") or "").lower())
+            clash = (re.search(r"\b(buy|add|more)\b", text, re.I) and h.get("action") in ("TRIM", "REDUCE", "TIDY")) or \
+                    (re.search(r"\b(sell|exit|close|dump)\b", text, re.I) and h.get("action") in ("ADD", "HOLD"))
+            out.append(f" {'That goes against' if clash else 'For reference,'} Ananta's own call on {h['symbol']}: {act}; it is {h.get('weight_pct')}% of your stocks.")
+    return "".join(out[:2])
+
+
 ACTION_WORDS = {"HOLD": "keep", "WATCH": "watch", "TRIM": "trim", "REDUCE": "reduce by half", "TIDY": "tidy up (sell, too small to matter)", "ADD": "add"}
 
 
@@ -1368,11 +1453,20 @@ def call_state(rm: dict) -> dict:
     for the 23 Oct session) was read as Monday's: the call now says which session it was made for."""
     c = rm.get("call") or {}
     through = c.get("data_through")
-    current = bool(through and through >= str(rm.get("data_through") or ""))
+    # 27 Oct night (outside review: after the 27 Oct close the Ask still said "for Tue 27 Oct"): the call is current only when it was made on
+    # the newest close Ananta has, which can be newer than the read model's decision day
+    newest = latest_closes(rm).get("newest_date") or ""
+    base = max(str(rm.get("data_through") or ""), str(newest))
+    current = bool(through and through >= base)
+    behind = c.get("hits") is not None and c.get("null_hits") is not None and (c.get("hits") or 0) < (c.get("null_hits") or 0)
+    nxt = answerguide.next_session_after(through) if (through and not current) else None
     return {**{k: c.get(k) for k in ("call", "scored", "hits", "null_hits")}, "made_on_data_through": through, "is_for_next_session": current,
+            "below_coin_flip": behind,
             "words": (f"The daily call for the next session is {str(c.get('call')).lower()}" if current else
-                      f"No daily call has been made yet for the next session; the last one ({str(c.get('call')).lower()}) was made on {views._day_words(through)} data")
-                     + f"; so far {c.get('hits')} of {c.get('scored')} calls were right, against {c.get('null_hits')} for a coin flip."}
+                      f"No daily call has been made yet for the next session; the last one ({str(c.get('call')).lower()}) was made on {views._day_words(through)} data"
+                      + (f", for the {answerguide.day_words(nxt)} session" if nxt else ""))
+                     + f"; so far {c.get('hits')} of {c.get('scored')} calls were right, against {c.get('null_hits')} for a coin flip"
+                     + ("; that is worse than a coin flip, so don't act on it." if behind else ".")}
 
 
 def decide_flow(text: str) -> dict | None:
@@ -1389,15 +1483,23 @@ def decide_flow(text: str) -> dict | None:
     fam = ", ".join(f"{n[c]} {_FAMILIES[c]}" for c in ("PULL", "REV", "BRK") if n.get(c))
     nxt = rm.get("next_session")
     when = dt.date.fromisoformat(nxt).strftime("%a %-d %b") if nxt else "the next session"
-    a = [f"Sir, for {when} the practice book buys {sum(v for k, v in n.items() if k != 'CTL')} stocks at the open ({fam}), such as {', '.join(picks)}, "
-         f"plus {n.get('CTL', 0)} random control stocks as the yardstick; all paper."]
+    k = sum(v for kk, v in n.items() if kk != "CTL")
+    newest = latest_closes(rm).get("newest_date")
+    if nxt and newest and nxt <= newest:      # 27 Oct night: these picks were for a session that has already traded
+        after = answerguide.next_session_after(newest)
+        a = [f"Sir, for the {when} session, already traded, the practice book bought {k} stocks at the open ({fam}), such as {', '.join(picks)}, "
+             f"plus {n.get('CTL', 0)} random control stocks as the yardstick; all paper.",
+             f"The picks for {answerguide.day_words(after) if after else 'the next session'} are made tonight, once the day's prices are in."]
+    else:
+        a = [f"Sir, for {when} the practice book buys {k} stocks at the open ({fam}), such as {', '.join(picks)}, "
+             f"plus {n.get('CTL', 0)} random control stocks as the yardstick; all paper."]
     mark = (d.get("inputs") or {})
     if mark.get("marked"):
         a.append("These picks were made on stale data (" + "; ".join(str(s).split(":")[0] for s in mark.get("stale") or []) + "), so they are marked, not stopped.")
     a.append(call_state(rm)["words"])
     sp = rm.get("sp1") or {}
     a.append("The index options line decides between 09:15 and 10:15 Indian time, one lot, only if the opening move clears the option's cost; it needs that morning's Zerodha sign-in."
-             if sp.get("status") != "ok" else str(sp.get("words") or ""))
+             if sp.get("status") != "ok" else tidy_end("The index options line, " + str(sp.get("words") or "")))
     return _reply(" ".join(a), ["Why these stocks?", "What are our chances?", "When is the next sign-in?"], ["the decision file (paper/decisions), the Home decision card"],
                   {"show": ["home.decision"]})
 

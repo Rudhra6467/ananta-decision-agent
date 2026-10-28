@@ -32,7 +32,25 @@ FIELDS = {"wrong_if": "the 'wrong if' line", "suggest_inr": "the suggested amoun
           "stale_inputs": "stale inputs", "account_allocation": "your account plan", "indicator_knowledge": "Ananta's test results",
           "market_context": "the market background", "book_stats": "the book's numbers", "beta_vol": "beta and volatility",
           "reconstruction_detail": "last night's review", "decisions_for_next_session": "the plan for the next session"}
-TEACHER = {"TWT": "the stocks teacher's", "OPT": "the options teacher's", "M": "a teacher's"}
+TEACHER = {"TWT": "the YouTube stocks teacher's", "OPT": "the YouTube options teacher's", "M": "a YouTube teacher's"}
+# 27 Oct outside review: in-house words that reached his answers, said the way a person would (each replacement is idempotent)
+JARGON = [
+    (re.compile(r"\b(?:the )?liquid[- ]250(?: stocks| names| universe)?\b", re.I), "the 250 most traded stocks"),
+    (re.compile(r"\bresearch book\b"), "practice book"),
+    (re.compile(r"\b(?:[Tt]he |[Mm]y )?(?:FACTS\.)?lookup\b(?! (?:table|page))"), "Ananta's data"),
+    (re.compile(r"\bfull suggestion\b"), "suggested change"),
+    (re.compile(r"\bstudy fill(s?)\b"), r"ideal price\1"),
+    (re.compile(r"\brealistic fill(s?)\b"), r"realistic price\1"),
+    (re.compile(r"\bscored (sessions?|trades?|calls?)\b"), r"\1 with a result"),
+    (re.compile(r"\b(?:the |a )?5% daily loss stop\b"), "the rule that stops trading for the day after a 5% loss"),
+    (re.compile(r"\b(?:the |a )?22% pause\b"), "the rule that pauses trading after a 22% fall"),
+]
+
+
+def _plural(s: str) -> str:
+    """'1 call(s)' -> '1 call', '3 trade(s)' -> '3 trades', a bare 'trade(s)' -> 'trades' (records lines write '(s)')."""
+    s = re.sub(r"\b(\d[\d,]*) ((?:[A-Za-z-]+ ){0,2})([A-Za-z]+)\(s\)", lambda m: f"{m.group(1)} {m.group(2)}{m.group(3)}" + ("" if m.group(1) == "1" else "s"), s)
+    return re.sub(r"\b([A-Za-z]+)\(s\)", r"\1s", s)
 
 _CARD = r"(?:TWT|OPT|M)-H\d+[A-Z]?"
 _STUDY = "|".join(sorted((re.escape(k) for k in STUDIES), key=len, reverse=True))
@@ -108,6 +126,10 @@ def words(s: str, known: dict | None = None) -> str:
     out = re.sub(r"\b(Ananta's [a-z-]+(?: [a-z-]+)? test) (?:test|study)\b", r"\1", out)
     out = re.sub(r"\b(?:on|by|in) (?:Ananta's|the) (Ananta's [^,.;]+ test)", r"in \1", out)
     out = re.sub(r"\b([Tt]he|[Aa]) (Ananta's)\b", r"\2", out)
+    out = _plural(out)                                  # before the jargon: '2 scored session(s)' -> '2 scored sessions' -> '2 sessions with a result'
+    for rx, v in JARGON:
+        out = rx.sub(v, out)
+    out = re.sub(r"\b(?:the|The) the\b", lambda m: m.group(0).split()[0], out)
     out = re.sub(r"\(\s*\)", "", out)
     out = re.sub(r"\s+([,.;:])", r"\1", out)
     out = re.sub(r"  +", " ", out).strip()

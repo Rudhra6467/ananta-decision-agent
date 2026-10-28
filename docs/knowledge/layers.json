@@ -1672,7 +1672,9 @@
     "jarvis/india/marketcontext.py",
     "jarvis/india/askwords.py",
     "jarvis/india/speaker.py",
-    "jarvis/india/voiceid.py"
+    "jarvis/india/voiceid.py",
+    "jarvis/india/lookup.py",
+    "jarvis/india/answerguide.py"
    ]
   },
   {

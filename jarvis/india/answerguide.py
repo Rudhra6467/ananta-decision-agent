@@ -74,7 +74,12 @@ EXTRA_LINES = {
     "options_sleeve": "The options share in his account plan is Ananta's paper allocation rule, not a normal part of a long-term investor's money.",
     "broad": "For broad exposure (small caps, mid caps, a sector, gold) suggest a diversified fund or ETF bought in small staggered amounts, never a "
              "single stock; check a 'it fell X%' claim against FACTS.lookup (sector and index drawdowns).",
+    # 28 Oct outsider (third grading): pf6 said "hold gold over 12 months" while recommending a gold FUND (24 months)
+    "gold_tax": "Gold tax by instrument (since 1 Apr 2025): a gold ETF is long-term after 12 months; a gold mutual fund or fund of funds (e.g. SBI "
+                "Gold Fund) only after 24 months; long-term gains are taxed at 12.5%, shorter holdings at the slab rate. Never give one holding "
+                "period for both.",
 }
+GOLD = re.compile(r"\b(gold|goldbees|sgb|sovereign gold)\b", re.I)
 
 
 def horizon(text: str) -> str | None:
@@ -109,6 +114,8 @@ def topics(text: str) -> list[str]:
             out.append(name)
     if RUPEE.search(t) and MINE.search(t):
         out.append("rupee_holdings")
+    if GOLD.search(t):
+        out.append("gold_tax")
     return out
 
 
@@ -189,7 +196,7 @@ def guide(text: str, f: dict | None = None) -> dict:
     if "tip" in tp:
         lines.append("SAFETY: say no; tell him to check the adviser's SEBI registration (SEBI Check) and pay only to @valid UPI handles, and to "
                      "report the group to SEBI; no Ananta test or practice-book numbers here.")
-    for k in ("beginner", "pcr", "broad"):
+    for k in ("beginner", "pcr", "broad", "gold_tax"):
         if k in tp:
             lines.append(EXTRA_LINES[k])
     picks = chase_picks() if (book or PICKS_Q.search(t)) else []

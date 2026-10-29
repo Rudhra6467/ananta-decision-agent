@@ -7,7 +7,7 @@ from jarvis.india import ask, technicals, views
 
 
 def test_system_has_three_kinds_and_forbids_the_label():
-    s = ask.SYSTEM
+    s = ask.SYSTEM_V1                                           # 29 Oct: the old text, kept for ASK_PROMPT=v1 (askprompt.py has the live one)
     assert "THREE KINDS OF ANSWER" in s and "TEXTBOOK MARKET KNOWLEDGE" in s and "LIVE NUMBERS" in s and "DOES IT WORK" in s
     assert 'Do NOT label it "general knowledge"' in s and "not from my data files" in s      # named only as what not to say
     assert "never refuse a basic question" in s and "NSE is far larger by volume" in s
@@ -16,7 +16,7 @@ def test_system_has_three_kinds_and_forbids_the_label():
 
 
 def test_system_has_the_decide_shape_and_hypotheticals():
-    s = ask.SYSTEM
+    s = ask.SYSTEM_V1                                           # 29 Oct: the old text, kept for ASK_PROMPT=v1 (askprompt.py has the live one)
     assert "WHEN HE ASKS FOR A READ OR A DECISION" in s and "always decide" in s
     for part in ("your read in one sentence", "hold, trim, add, exit or wait", "what would change your mind", "tested, untested or against the tests",
                  "End on what to do", "HYPOTHETICAL", "Never stop at describing a position"):
@@ -77,3 +77,15 @@ def test_a_question_about_the_close_is_not_an_order():
     assert ia.ACT.search("How did the Nifty close today?")          # the word matches, so the question test is what keeps it out
     asks = lambda t: "?" in t or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", t, re.I)
     assert asks("How did the Nifty close today?") and not asks("buy it now") and not asks("sell TATAPOWER today please")
+
+
+def test_v2_keeps_every_principle_in_one_place():
+    """29 Oct: the slimmed instructions (jarvis/india/askprompt.py) still carry what the old patches taught, said once."""
+    s = ask.SYSTEM_V2
+    for part in ("Answer every part of the message", "Textbook knowledge", "never a refusal", "ONLY from the FACTS", "Ananta hasn't tested this",
+                 "Match the horizon", "always decide", "I'd reverse this if", 'never a "Decision:" label', "hypothetical",
+                 "PREDICTION question", "drafts_waiting_total.count", "value_inr", "SAFETY (unconditional)", "SEBI Check", "@valid UPI",
+                 "seller of a call delivers", "booked in the same year", "lottery ticket", "PLAIN WORDS", "ORSTOP", "The grader",
+                 "approve all drafts", "Move the app only when he asks", "kind\":\"clarify\"".replace("\\", "")):
+        assert part.replace('\\"', '"') in s or part in s, part
+    assert len(s.split()) < 0.75 * len(ask.SYSTEM_V1.split())

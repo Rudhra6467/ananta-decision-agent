@@ -71,7 +71,7 @@ def test_short_by_default_and_expand_on_request(lake):
         assert "EXPAND: he asked for more on your previous answer" in m.sent[-1] and "0-100 gauge" in m.sent[-1], ask_more
     ia.ask("owner", "Why did the Nifty fall today?", thread=r["thread"], post=m)        # a new question, not "more"
     assert "SHORT MODE" in m.sent[-1]
-    assert "SHORT AND PLAIN" in ia.SYSTEM and "no study or card codes" in ia.SYSTEM
+    assert ("SHORT AND PLAIN" in ia.SYSTEM or "Short and plain" in ia.SYSTEM) and ("no study or card codes" in ia.SYSTEM or "No study or card codes" in ia.SYSTEM)
 
 
 # ---------------------------------------------------------------------------------------------------------------- who is speaking

@@ -80,3 +80,14 @@ def _strategy_status_as_tested(tmp_path, monkeypatch, request):
     p.write_text(_json.dumps(live))
     monkeypatch.setattr(_ss, "_path", lambda: p)
     _ss._CACHE.update(m=None, v={})
+
+
+@pytest.fixture(autouse=True)
+def _no_live_split(monkeypatch):
+    """29 Oct: the India Ask's message splitter (jarvis/india/mind.py) calls a model; tests never reach the network for it. A test that
+    wants a split passes its own `split_post` to ask(), which this fixture leaves alone."""
+    from jarvis.india import mind
+
+    real = mind.split
+    monkeypatch.setattr(mind, "split", lambda text, last_answer="", key="", post=None: real(text, last_answer, key=key, post=post) if post else
+                        [{"kind": "unsure", "text": text}])

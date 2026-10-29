@@ -142,3 +142,17 @@ def test_an_approval_with_a_question_answers_both():
     assert r["_then"].startswith("It's going to go up or down tomorrow?") and r["_prefix"].startswith("Approved, sir")
     plain = ask._reply("Approved.", [], [])
     assert ask._and_question(plain, "Approve all drafts. Confirm.") is plain
+
+
+def test_one_brain_split_runs_the_command_on_its_part_and_answers_the_question(tmp_path, monkeypatch):
+    from jarvis.india import mind
+    monkeypatch.setattr(ask, "_load_env_key", lambda: "k")
+
+    def fake_split(url, headers, body):
+        return {"content": [{"type": "text", "text": json.dumps({"parts": [
+            {"kind": "approve_drafts", "text": "I will approve them all."}, {"kind": "question", "text": "Is the market going up tomorrow?"}]})}]}
+    parts = mind.split("I will approve them all. Is the market going up tomorrow?", "", key="k", post=fake_split)
+    assert [p["kind"] for p in parts] == ["approve_drafts", "question"]
+    assert mind.compound("Yeah Ananta, I approve them all. What do you think about the market tomorrow?")
+    assert not mind.compound("What is a covered call?")
+    assert mind.split("x y z", "", key="") == [{"kind": "unsure", "text": "x y z"}]

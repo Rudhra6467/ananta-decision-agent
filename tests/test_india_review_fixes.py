@@ -125,7 +125,7 @@ def test_an_order_naming_a_holding_shows_ananta_s_own_call(monkeypatch):
 
 
 def test_system_carries_the_review_rules():
-    s = A.SYSTEM
+    s = A.SYSTEM_V1
     for k in ("NAMED STOCKS, ETFS, FUNDS, SECTORS, GOLD, RULES", "MATCH THE HORIZON", "EVIDENCE THAT FITS", "THE PRACTICE BOOK", "SAFETY IS UNCONDITIONAL",
               "ONE NUMBER, ONE SOURCE", "INDIA PRACTICE", "FACTS.lookup", "answer_guide"):
         assert k in s, k

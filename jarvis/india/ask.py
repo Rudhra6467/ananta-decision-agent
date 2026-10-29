@@ -18,7 +18,7 @@ from pathlib import Path
 
 import requests
 
-from jarvis.india import answerguide, appmap, askwords, lookup, marketcontext, speaker, technicals, views, voiceid
+from jarvis.india import answerguide, appmap, askwords, lookup, marketcontext, mind, speaker, technicals, views, voiceid
 
 # "my mom asks ...", "she wants to know ...": Madhav relaying for the guest, so his voice does not end the handover
 RELAY = re.compile(r"\b(?:my (?:mom|mother|amma|dad|father|nanna|pinni)|she|he|they|the grader)\s+(?:asks?|is asking|wants to know|says|said)\b", re.I)
@@ -145,6 +145,10 @@ You can move the app and point at things, but only when he asks to see, open or 
 of Home while a sentence is spoken, add "points":[{"spot":"<a SPOT key>","sentence":<0-based sentence number>}]. Never claim you opened
 something without a ui action for it. Use only the PLACE and SPOT keys listed below.
 If the question is unclear, use "kind":"clarify" with 2-4 "options". If it is off-topic, answer briefly as "kind":"outside" without facts."""
+SYSTEM_V1 = SYSTEM
+# 29 Oct: the slimmed instructions (jarvis/india/askprompt.py); ASK_PROMPT=v1 brings back the old text
+from jarvis.india.askprompt import SYSTEM_V2  # noqa: E402
+SYSTEM = SYSTEM_V1 if os.getenv("ASK_PROMPT", "v2") == "v1" else SYSTEM_V2
 
 
 def _load_env_key() -> str:
@@ -790,6 +794,19 @@ def expand_of(text: str, thread: str) -> str | None:
     return None
 
 
+# 29 Oct (nightly replay): the replay re-asks Madhav's real messages with DRY_RUN on, so an approval, a mode switch or a flag in a replayed
+# message never changes anything: decisions and the allocation go to scratch files beside the replay's own threads.
+DRY_RUN = False
+
+
+def _dec_path() -> Path:
+    return (Path(ASK_DIR) / "dry_decisions.jsonl") if DRY_RUN else (DATA / "paper" / "reconstruction" / "decisions.jsonl")
+
+
+def _alloc_path() -> Path:
+    return (Path(ASK_DIR) / "dry_allocation.json") if DRY_RUN else (DATA / "paper" / "allocation.json")
+
+
 def _offline(question: str, f: dict, why: str) -> dict:
     """No model (no key, a refused call): the read model's own sentences, so the chat still answers honestly."""
     return {"kind": "answer", "stage": "observation", "answer": " ".join((f.get("brief") or [])[:3]) or "The India read model has not been built yet.",
@@ -840,7 +857,7 @@ def garbled_flow(text: str) -> dict | None:
 
 
 def ask(who: str, text: str, thread: str | None = None, mode: str | None = None, context: dict | None = None, voice: bool = False, post=None,
-        token: str | None = None, flag_post=None, flag_get=None) -> dict:
+        token: str | None = None, flag_post=None, flag_get=None, split_post=None) -> dict:
     text = (text or "").strip()[:2000]
     if not text:
         raise ValueError("empty question")
@@ -932,10 +949,54 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     owner_here = guest is None
     is_owner_acct = not str(who).startswith("guest:")
     wait = waiting_now(token, flag_get) if (is_owner_acct and owner_here and not stranger) else None
-    fixed = early or (None if (prev or batch or not owner_here) else waiting_flow(text, wait)) or (None if (prev or batch) else (garbled_flow(text) or nav_flow(text) or (fix_flow(text, thread, token, context, post=flag_post, get=flag_get) if owner_here else None)
-             or fragment_flow(text) or morning_flow(text, who)
-             or technicals.technicals_flow(text) or marketcontext.market_context_flow(text)
-             or (allocation_flow(text, who) if owner_here else None) or _and_question(draft_flow(text, who), text) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text)))
+
+    def chain(t: str, commands: bool = True) -> dict | None:
+        """The code answers, in order. commands=False leaves out every command flow (flags, picks, drafts, waiting, mode, navigation)."""
+        return ((waiting_flow(t, wait) if (commands and owner_here) else None) or garbled_flow(t) or (nav_flow(t) if commands else None)
+                or (fix_flow(t, thread, token, context, post=flag_post, get=flag_get) if (commands and owner_here) else None)
+                or fragment_flow(t) or morning_flow(t, who) or technicals.technicals_flow(t) or marketcontext.market_context_flow(t)
+                or (allocation_flow(t, who) if (commands and owner_here) else None) or (_and_question(draft_flow(t, who), t) if commands else None)
+                or portfolio_flow(t, who) or mover_flow(t) or book_flow(t) or decide_flow(t))
+
+    # 29 Oct (one brain, code as its hands; jarvis/india/mind.py): a compound message is read whole by a small model first, which only says
+    # which part is which; code still does every action. Commands are run on their own part, the questions go to the main model together with
+    # what the code did, and a message that only MENTIONS a command word is not treated as one.
+    plan = None
+    if not (early or prev or batch) and owner_here and mind.compound(text):
+        last = next((m.get("answer") for m in reversed(thread_messages(thread)) if m.get("role") == "assistant"), "")
+        parts = mind.split(text, last or "", key=_load_env_key(), post=split_post)
+        if parts and parts[0]["kind"] != "unsure":
+            plan = parts
+    if plan is not None:
+        acts = [x for x in plan if x["kind"] in ("approve_drafts", "skip_drafts", "draft_one", "flag", "fix_pick", "waiting", "show", "allocation")]
+        qs = [x["text"] for x in plan if x["kind"] == "question"]
+        if acts:
+            done, notes = [], []
+            for x in acts:
+                part = x["text"]
+                if x["kind"] == "approve_drafts" and not re.search(r"\bdrafts?\b", part, re.I):
+                    part = part + " (the drafts waiting in the evidence)"
+                r = chain(part)
+                if r is not None and r.get("_then"):
+                    done.append(str(r.get("_prefix") or ""))
+                    qs.insert(0, r["_then"])
+                elif r is not None:
+                    done.append(str(r.get("answer") or ""))
+                    notes.append(r)
+                else:
+                    qs.insert(0, x["text"])
+            if done and qs:
+                fixed = {"_then": " ".join(qs), "_prefix": " ".join(d for d in done if d)}
+            elif done:
+                fixed = {**(notes[0] if notes else _reply("", [], [])), "answer": " ".join(d for d in done if d)}
+            else:
+                fixed = None
+                text = " ".join(qs) or text
+        else:
+            fixed = chain(text, commands=False)          # questions and remarks only: no command flow may catch them
+        fixed = early or fixed
+    else:
+        fixed = early or (None if (prev or batch) else chain(text))
     prefix, text_q = "", text
     if fixed is not None and fixed.get("_then"):      # 26 Oct: a note or flag was saved, and the same message also asked a question: answer it
         prefix, text_q, fixed = fixed["_prefix"], fixed["_then"], None
@@ -1268,7 +1329,7 @@ def allocation_flow(text: str, who: str) -> dict | None:
     if not (who == "owner" or not str(who).startswith("guest:")):
         return _reply("Only Madhav can change how capital is allocated.", [], [])
     import datetime as _dt
-    p = DATA / "paper" / "allocation.json"
+    p = _alloc_path()
     cur = {}
     try:
         cur = json.loads(p.read_text())
@@ -1338,7 +1399,7 @@ def bulk_draft_flow(text: str, who: str) -> dict | None:
                       ["Approve all drafts", "Read the drafts"], ["paper/reconstruction queue"])
     import datetime as _dt
     dec = "SKIPPED" if skip else "APPROVED"
-    p = DATA / "paper" / "reconstruction" / "decisions.jsonl"
+    p = _dec_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     at = _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
     with p.open("a") as f:
@@ -1378,7 +1439,7 @@ def draft_flow(text: str, who: str) -> dict | None:
         return _reply(f"There is no draft number {n} waiting, sir; {len(d)} are open.", ["What drafts are waiting?"], [])
     dec = "SKIPPED" if verb in ("skip", "reject", "drop", "no to") else "APPROVED"
     import datetime as _dt
-    p = DATA / "paper" / "reconstruction" / "decisions.jsonl"
+    p = _dec_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("a") as f:
         f.write(json.dumps({"key": pick["key"], "decision": dec, "by": who, "words": text[:300], "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}) + "\n")

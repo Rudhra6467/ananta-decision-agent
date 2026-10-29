@@ -986,7 +986,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 else:
                     qs.insert(0, x["text"])
             if done and qs:
-                fixed = {"_then": " ".join(qs), "_prefix": " ".join(d for d in done if d)}
+                fixed = {"_then": " ".join(qs), "_prefix": " ".join(d for d in done if d),
+                         "_ui": [u for r in notes for u in (r.get("ui") or [])]}          # a "show me" part still moves the screen
             elif done:
                 fixed = {**(notes[0] if notes else _reply("", [], [])), "answer": " ".join(d for d in done if d)}
             else:
@@ -997,9 +998,9 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         fixed = early or fixed
     else:
         fixed = early or (None if (prev or batch) else chain(text))
-    prefix, text_q = "", text
+    prefix, text_q, carry_ui = "", text, []
     if fixed is not None and fixed.get("_then"):      # 26 Oct: a note or flag was saved, and the same message also asked a question: answer it
-        prefix, text_q, fixed = fixed["_prefix"], fixed["_then"], None
+        prefix, text_q, carry_ui, fixed = fixed["_prefix"], fixed["_then"], fixed.get("_ui") or [], None
     if fixed is not None:
         fixed = finish(fixed, text, model=False)
         if guest and not early:
@@ -1138,6 +1139,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         reply["answer"] = f"{reply.get('answer') or ''} {ask_grader}".strip()
     if prefix:
         reply["answer"] = f"{prefix} {reply.get('answer') or ''}".strip()
+    if carry_ui:
+        reply["ui"] = carry_ui
     if welcome:
         reply["answer"] = with_welcome(welcome, reply.get("answer"))
     if wait and not batch and not re.search(r"\b(?:drafts?|waiting for your yes)\b", str(reply.get("answer") or ""), re.I):

@@ -47,6 +47,10 @@ suggest_inr (the amount to move), naming which; the holdings to cut are the acco
 The Chronos forecast has its own record, separate from the daily call; name which one a figure belongs to. Add an "I'd reverse this if ..." line
 only when there is a real condition with a number in it. Buying an index dip: cite Ananta's gap-down study (Nifty and Bank Nifty gap-downs of
 1% or more were followed by a slightly better week, not reliably) from indicator_knowledge.
+A prediction question ("up or down tomorrow?", "what's your prediction?"): Ananta HAS a forecast, the daily call; give it (daily_call.call
+and the session it is for; if is_for_next_session is false, say the next one is made tonight after the close and give the last one), its record
+(hits of scored against null_hits for a coin flip) and, when it is below a coin flip, "so don't act on it"; then the levels that would change the
+picture. Never say Ananta cannot call the direction without quoting the daily call.
 The options line's sessions on record: quote index_line_sp1.sessions, the same number every time. Settled facts the final review caught:
 at physical settlement the BUYER of a call pays for the shares and the SELLER of a call DELIVERS them (a put the other way round); a capital
 loss offsets only gains actually booked (sold) in the same year or carried forward, never gains still held in shares; cheap far-out options
@@ -271,7 +275,11 @@ RX1_WORDS = ("Madhav approved all 12 drafts on 28 Oct; Ananta's test of them (20
              "27 Jan 2027. "
              "The two reference-trader gaps were hindsight (one small and not significant, one the opposite way). A day-3 time stop for pullbacks "
              "that never worked did not help (worse month by month), and the same stop hurt the random control, most in downtrends, so holding "
-             "into falls is the cost of holding; the control keeps its rules. No rule changed.")
+             "into falls is the cost of holding; the control keeps its rules. No rule changed. "
+             "29 Oct: Madhav approved 3 more drafts; the two reference-trader gaps at the 5-session horizon are the same situations RX1 already "
+             "tested at 5 sessions (answered, not re-tested), and the oversold-reversal 'never worked' lesson was tested the same morning (RX2): "
+             "the day-3 time stop came out the opposite way (+0.08% a trade held 20 sessions against -0.43% with the stop), because reversals "
+             "need time. No rule changed; these situations are not drafted again until about 27 Jan 2027.")
 
 
 def _rx1_trial() -> dict:
@@ -927,7 +935,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     fixed = early or (None if (prev or batch or not owner_here) else waiting_flow(text, wait)) or (None if (prev or batch) else (garbled_flow(text) or nav_flow(text) or (fix_flow(text, thread, token, context, post=flag_post, get=flag_get) if owner_here else None)
              or fragment_flow(text) or morning_flow(text, who)
              or technicals.technicals_flow(text) or marketcontext.market_context_flow(text)
-             or (allocation_flow(text, who) if owner_here else None) or draft_flow(text, who) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text)))
+             or (allocation_flow(text, who) if owner_here else None) or _and_question(draft_flow(text, who), text) or portfolio_flow(text, who) or mover_flow(text) or book_flow(text) or decide_flow(text)))
     prefix, text_q = "", text
     if fixed is not None and fixed.get("_then"):      # 26 Oct: a note or flag was saved, and the same message also asked a question: answer it
         prefix, text_q, fixed = fixed["_prefix"], fixed["_then"], None
@@ -1295,6 +1303,15 @@ BULK_LOOSE = re.compile(r"\b(?:i\s+(?:will\s+be\s+|am\s+)?approv\w*|approve|yes 
 SKIP_ALL = re.compile(r"\b(?:skip|reject|drop)\s+(?:all|every)(?:\s+(?:of\s+)?(?:the\s+)?)?\s*drafts?\b", re.I)
 
 
+def _and_question(r: dict | None, text: str) -> dict | None:
+    """29 Oct (voice): "I will approve them all ... and what do you think about the market tomorrow? What's your prediction?" got only the
+    approval line. A code answer that leaves a question in the same message unanswered hands the question on: the code line comes first."""
+    if not r or r.get("_then"):
+        return r
+    q = other_question(text)
+    return {"_then": q, "_prefix": str(r.get("answer") or ""), "_note": r} if q else r
+
+
 def bulk_draft_flow(text: str, who: str) -> dict | None:
     if re.match(r"\s*(?:how|what|why|can|could|should|do|does|is|will)\b", text or "", re.I) and "?" in (text or ""):
         return None                                   # "how do I approve all drafts?" is a question
@@ -1311,7 +1328,11 @@ def bulk_draft_flow(text: str, who: str) -> dict | None:
         kinds = {}
         for x in d:
             kinds[x.get("type") or "other"] = kinds.get(x.get("type") or "other", 0) + 1
-        kw = ", ".join(f"{n} {views.FINDING_WORDS.get(k, k) if hasattr(views, 'FINDING_WORDS') else k}" for k, n in kinds.items())
+        def _kind(k):                     # 29 Oct: "1 An exit lesson" -> "1 exit lesson"
+            w = str(views.FINDING_WORDS.get(k, k) if hasattr(views, "FINDING_WORDS") else k)
+            w = re.sub(r"^(?:an?|the)\s+", "", w, flags=re.I)
+            return w[:1].lower() + w[1:]
+        kw = ", ".join(f"{n} {_kind(k)}" for k, n in kinds.items())
         return _reply(f"Sir, to be sure: {len(d)} drafts are waiting ({kw}). Yes to all registers {len(d)} studies, each written down first and tested on "
                       "2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first.",
                       ["Approve all drafts", "Read the drafts"], ["paper/reconstruction queue"])

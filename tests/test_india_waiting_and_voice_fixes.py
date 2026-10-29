@@ -134,3 +134,11 @@ def test_watchdog_restarts_after_three_looks(tmp_path, monkeypatch):
     assert "healed" not in out4                            # at most once an hour
     stuck = jw.look(get=lambda u: {"health_checks_s_ago": 30, "jobs_s_ago": 50 * 60})
     assert stuck[0] == "stuck"
+
+
+def test_an_approval_with_a_question_answers_both():
+    r = ask._and_question(ask._reply("Approved, sir: all 3 drafts go to registration.", [], []),
+                          "Yeah, I will approve them all. Let's proceed. It's going to go up or down tomorrow? What's your prediction?")
+    assert r["_then"].startswith("It's going to go up or down tomorrow?") and r["_prefix"].startswith("Approved, sir")
+    plain = ask._reply("Approved.", [], [])
+    assert ask._and_question(plain, "Approve all drafts. Confirm.") is plain

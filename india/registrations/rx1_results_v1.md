@@ -50,3 +50,12 @@ Madhav approved all 12 drafts at 12:23 Toronto on 28 Oct. The spec (`rx1_v1.json
 - One proposal waits for Madhav's yes: the 20-session paper trial of the "falling under the 200-day" filter (draft 5).
 - The other 11 drafts are answered.
 - Suggested, not done: stop the reconstruction from re-drafting an answered situation for 60 sessions. This touches the reconstruction's rules, so it waits for Madhav's yes.
+
+## Follow-up, 29 Oct: RX2 and the drafts of the 28 Oct card
+Madhav approved 3 more drafts at 06:50 Toronto on 29 Oct.
+- **The two reference-trader gaps, now at the 5-session horizon (H5):** these are the same situations RX1 tested at exactly 5 sessions (rising below the 200-day: INCONCLUSIVE; inside the range: OPPOSITE). They were not re-tested.
+- **Oversold reversals that never worked (RX2, spec rx2_v1.json committed before the run, k 152):** the same day-3 time stop was OPPOSITE.
+  - Results month by month: -0.41% in 2000-2017 and -0.63% in 2018-2023 (t -2.5 / -2.4).
+  - Per trade: +0.08% held 20 days against -0.43% with the time stop, over 14,317 trades.
+  - Reversals need time to work; cutting the slow starters throws away the ones that recover.
+- **No rule changes.** "Never worked" exit lessons of any family, and these gaps at any horizon, are now in answered_situations.json until 27 Jan 2027.

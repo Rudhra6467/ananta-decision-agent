@@ -211,6 +211,38 @@ def run(rerun_reason: str | None = None) -> dict:
     return out
 
 
+def _rev_entries(P: pd.DataFrame) -> pd.DataFrame:
+    rsi = pd.read_parquet(paths.gold() / "teachers" / "stock_panel.parquet", columns=["sid", "date", "rsi14"])
+    rsi["date"] = pd.to_datetime(rsi["date"])
+    Q = P[["sid", "date", "n", "liq"]].merge(rsi, on=["sid", "date"], how="left")
+    m = (Q["liq"] & (Q["rsi14"] < 30)).fillna(False)
+    keep = ts._cooldown(Q, m, 14)
+    return Q.loc[keep, ["sid", "date"]].rename(columns={"date": "signal_date"})
+
+
+def run2(counts_only: bool = False) -> dict:
+    """RX2 (29 Oct): the REV exit lesson, spec registrations/rx2_v1.json (committed before the run)."""
+    s = json.loads((REG_DIR / "rx2_v1.json").read_text())
+    k = int(s["bar"]["union_k"])
+    if abs(registry.threshold(k) - float(s["bar"]["z"])) > 0.01:
+        raise ValueError(f"RX2: the spec's z {s['bar']['z']} does not match k {k}")
+    P = frame()
+    e = _rev_entries(P)
+    if counts_only:
+        return {"X|REV|unproven3_vs_hold20": _counts(e["signal_date"])}
+    reg = registry.register("RX2", family=s["family"], title=s["title"], hypothesis=s["hypothesis"], variants=list(s["variants"]),
+                            note="spec india/registrations/rx2_v1.json (written and committed before the run)", bar_families=s["bar"].get("bar_families"), union_k=k)
+    bars = exitlab.load_bars(set(e["sid"]))
+    r = _paired(_overlay(e, bars, P[["sid", "date", "atr14", "liq_rank"]]))
+    line = registry.record(reg, "X|REV|unproven3_vs_hold20", tuple(r["dev"]), tuple(r["val"]), extra=_clean(r["extra"]), expect=1)
+    out = {"study": "RX2", "registered_at": reg["at"], "k": k, "rows": [{"variant": "X|REV|unproven3_vs_hold20", "verdict": line["verdict"], "dev": _clean(list(line["dev"])),
+                                                                       "val": _clean(list(line["val"])), "extra": _clean(line["extra"])}]}
+    (paths.manifest_dir() / "lab5_rx2.json").write_text(json.dumps(out, indent=1, default=str))
+    registry.mirror_to_catalog()
+    return out
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "check"
-    print(json.dumps(_clean(check() if cmd == "check" else run()), indent=1, default=str)[:6000])
+    res = {"check": check, "run": run, "check2": lambda: run2(True), "run2": run2}[cmd]()
+    print(json.dumps(_clean(res), indent=1, default=str)[:6000])

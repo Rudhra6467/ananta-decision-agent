@@ -1,5 +1,5 @@
 {
- "what": "Situations a registered study has already answered. The reconstruction does not draft them again before 'until' (about 60 sessions), so Madhav is not asked the same question twice. A key matches when it starts with the prefix.",
+ "what": "Situations a registered study has already answered. The reconstruction does not draft them again before 'until' (about 60 sessions), so Madhav is not asked the same question twice. A key matches when it starts with the prefix. A '*' matches any part (29 Oct: the same gap came back at the 5-session horizon as LEAGUE_GAP:others:H5:...).",
  "approved": "Madhav, 2026-10-28 17:15 Toronto (in chat): \"Set the remaining things to complete as well.\" (the RX1 suggestion: stop re-drafting an answered situation for 60 sessions)",
  "answered": [
   {
@@ -45,22 +45,22 @@
    "from": "2026-10-28"
   },
   {
-   "prefix": "LEAGUE_GAP:others:H1:downtrend_rise",
+   "prefix": "LEAGUE_GAP:others:*:downtrend_rise",
    "study": "RX1",
    "verdict": "INCONCLUSIVE",
    "until": "2027-01-27",
    "from": "2026-10-28"
   },
   {
-   "prefix": "LEAGUE_GAP:others:H1:inside_range",
+   "prefix": "LEAGUE_GAP:others:*:inside_range",
    "study": "RX1",
    "verdict": "OPPOSITE",
    "until": "2027-01-27",
    "from": "2026-10-28"
   },
   {
-   "prefix": "EXIT_LESSON:PULL:NEVER_WORKED",
-   "study": "RX1",
+   "prefix": "EXIT_LESSON:*:NEVER_WORKED",
+   "study": "RX1 (PULL) and RX2 (REV)",
    "verdict": "OPPOSITE",
    "until": "2027-01-27",
    "from": "2026-10-28"

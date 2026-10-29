@@ -28,6 +28,7 @@ Nothing here reads sealed data, calls the broker or writes a trade. Every bar in
 from __future__ import annotations
 
 import csv
+import fnmatch
 import datetime as dt
 import gzip
 import hashlib
@@ -490,7 +491,7 @@ def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fw
     def add(kind, key, words, lane, evidence, state=None, extra=None):
         if key in open_keys or key in recent_safe:
             return
-        if lane == "DECISION" and any(key.startswith(p) for p in answered):   # 28 Oct (Madhav's yes): an answered situation is not asked again
+        if lane == "DECISION" and any(key.startswith(p) or fnmatch.fnmatchcase(key, p + "*") for p in answered):   # 28 Oct (Madhav's yes): an answered situation is not asked again
             return
         out.append({"type": kind, "key": key, "words": words, "lane": lane, "evidence": evidence, "state": state or ("to_file" if lane == "SAFE" else "DRAFT"), "day": day, **(extra or {})})
 

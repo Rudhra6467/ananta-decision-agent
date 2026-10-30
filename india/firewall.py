@@ -52,6 +52,15 @@ ALLOWED_REFS = {
     ("scripts/run_india_exam.py", r"ananta-records"): "the weekly India exam runner imports the records checkout's exam judges and asks the India Ask (25 Oct)",
     ("tests/test_india_exam_runner.py", r"INDIA_DATA_DIR"): "a test that points the India data folder at a temporary folder",
     ("jarvis/service/runcheck_parts.py", r"bronze/ledger"): "the job watch checks that the India ledger snapshot file exists and its size (no read of its contents)",
+    # 29 Oct audit (Phase 2.1): the India Ask files added 25-29 Oct, each read-only on the manifests/read model or writing only under its own folder
+    ("jarvis/india/lookup.py", r"ananta_data/india"): "the Ask's lookup reads manifests/quotebook*.json and mf_schemes.json and keeps its own NAV cache under mf_cache/",
+    ("jarvis/india/lookup.py", r"ananta-records"): "the Ask's lookup reads india_rules_facts.json (tax, SEBI and broker facts) from the records checkout",
+    ("jarvis/india/answerguide.py", r"ananta_data/india"): "the answer guide reads the manifests for the per-question facts block (read-only)",
+    ("jarvis/india/voice.py", r"ananta_data/india"): "the voice path reads the manifests folder for the facts it speaks (read-only)",
+    ("jarvis/india/speaker.py", r"ananta_data/india"): "the speaker memory lives under the Ask's own folder ask/ (its only write)",
+    ("jarvis/india/ask.py", r"ananta-records"): "a status-meaning string that names the records checkout's hypothesis statuses (text, not a path)",
+    ("jarvis/india/knowledgemap.py", r"ananta_data/india"): "the one map reads the test ledger, paper rules and hypothesis map (read-only); it writes only under the agent's docs/",
+    ("jarvis/india/knowledgemap.py", r"ananta-records"): "the one map reads the records checkout's registrations and write-ups (read-only)",
 }
 CANARY_FILE = paths.manifest_dir() / "firewall_canary.txt"
 

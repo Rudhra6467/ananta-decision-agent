@@ -106,6 +106,9 @@ def run(sync: bool = True) -> dict:
         ("fetch", lambda: {ds: backfill.run(ds, start, end, 1.0) for ds in DATASETS}),
         ("corporate_actions_fetch", lambda: actions.fetch([today.year])),
         ("silver_cm", lambda: silver.build_cm_year(today.year)),
+        # 29 Oct audit: the calendar is built from the cash manifest, so it is rebuilt right after the cash files land; before this it was only
+        # rebuilt by the 22:00 paper job, and the integrity calendar check failed every afternoon with "a cash file on a non-trading day"
+        ("calendar", silver.build_calendar),
         ("silver_delivery", lambda: delivery.build_year(today.year)),
         ("actions_build", lambda: (actions.build_b(), actions.build_a(), actions.build_factors())),
         ("catalog", catalog.build),

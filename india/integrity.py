@@ -153,9 +153,13 @@ def check_calendar() -> tuple[bool, str, dict]:
     cal = set(pd.to_datetime(cal))
     lo = max(min(have), min(cal))
     missing = sorted(d for d in cal if d >= lo and d not in have)
-    extra = sorted(d for d in have if d >= lo and d not in cal)
-    return (not missing and not extra), f"{len(cal)} calendar trading days; {len(missing)} without a cash file; {len(extra)} cash files on non-trading days", \
-        {"missing": [str(d.date()) for d in missing[:30]], "extra": [str(d.date()) for d in extra[:30]]}
+    # 29 Oct audit: a cash file dated after the calendar's last row is a day the calendar has not been rebuilt for yet (the nightly now rebuilds
+    # it right after the fetch); it is reported as pending, not as a file on a non-trading day
+    cal_max = max(cal)
+    extra = sorted(d for d in have if lo <= d <= cal_max and d not in cal)
+    pending = sorted(d for d in have if d > cal_max)
+    return (not missing and not extra), f"{len(cal)} calendar trading days; {len(missing)} without a cash file; {len(extra)} cash files on non-trading days; {len(pending)} newer than the calendar", \
+        {"missing": [str(d.date()) for d in missing[:30]], "extra": [str(d.date()) for d in extra[:30]], "pending": [str(d.date()) for d in pending[:10]]}
 
 
 def check_fills() -> tuple[bool, str, dict]:

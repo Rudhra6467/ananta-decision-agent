@@ -1,6 +1,6 @@
 {
  "summary": {
-  "built_at": "2026-10-29T21:38:03",
+  "built_at": "2026-10-29T21:40:13",
   "studies": 165,
   "variants": 1333,
   "gap_counts": {
@@ -43,7 +43,49 @@
    "plain_name": "Ananta's low-beta test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "LOWVOL-HIGHVOL|monthly",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0011446467722585132,
+     "dev_t": 0.18773570057453598,
+     "dev_blocks": 153,
+     "val_mean": 0.008412846905129504,
+     "val_t": 1.1182850675213436,
+     "val_blocks": 72
+    },
+    {
+     "variant": "LOWBETA-HIGHBETA|monthly",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0005204073341007519,
+     "dev_t": -0.08135889239700647,
+     "dev_blocks": 153,
+     "val_mean": 0.006169002133131773,
+     "val_t": 0.7791686459666501,
+     "val_blocks": 72
+    },
+    {
+     "variant": "LOWBETA-ALL|monthly",
+     "verdict": "REJECTED",
+     "dev_mean": 2.6573154143250774e-05,
+     "dev_t": 0.008657927638421072,
+     "dev_blocks": 153,
+     "val_mean": 0.002456310507312998,
+     "val_t": 0.6688446722472201,
+     "val_blocks": 72
+    },
+    {
+     "variant": "LOWVOL-ALL|monthly",
+     "verdict": "REJECTED",
+     "dev_mean": -0.002832635478873852,
+     "dev_t": -0.8632558438767768,
+     "dev_blocks": 153,
+     "val_mean": 0.0012314820304143487,
+     "val_t": 0.35037597550110716,
+     "val_blocks": 72
+    }
+   ]
   },
   {
    "id": "C01-ANY",
@@ -77,7 +119,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nifty_down2|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.04431745693081316,
+     "dev_t": 3.1815126201182182,
+     "dev_blocks": 41,
+     "val_mean": 0.06960667419321885,
+     "val_t": 5.58517007775096,
+     "val_blocks": 11
+    },
+    {
+     "variant": "nifty_down2|hold_60d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.04425193204607319,
+     "dev_t": 2.7799773834724846,
+     "dev_blocks": 41,
+     "val_mean": 0.07929891347545191,
+     "val_t": 5.021323975966697,
+     "val_blocks": 11
+    },
+    {
+     "variant": "nifty_down2|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.03853252408981313,
+     "dev_t": 3.6242823482902056,
+     "dev_blocks": 41,
+     "val_mean": 0.07746789446769338,
+     "val_t": 5.005386306600997,
+     "val_blocks": 11
+    },
+    {
+     "variant": "nifty_down2|sma_close_50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.046827130645500224,
+     "dev_t": 3.0687248105064464,
+     "dev_blocks": 41,
+     "val_mean": 0.07934110744294992,
+     "val_t": 4.818934933991687,
+     "val_blocks": 11
+    }
+   ]
   },
   {
    "id": "C01-BRK",
@@ -111,7 +195,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nifty_down2|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.00022879797576735563,
+     "dev_t": 0.009457480869502497,
+     "dev_blocks": 7,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 2
+    },
+    {
+     "variant": "nifty_down2|hold_60d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.024743362780962414,
+     "dev_t": 0.7521763947267861,
+     "dev_blocks": 7,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 2
+    },
+    {
+     "variant": "nifty_down2|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.018272330223806064,
+     "dev_t": 0.6250323576117329,
+     "dev_blocks": 7,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 2
+    },
+    {
+     "variant": "nifty_down2|sma_close_50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.024659978325440566,
+     "dev_t": 0.770191901225766,
+     "dev_blocks": 7,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 2
+    }
+   ]
   },
   {
    "id": "C01-PULL",
@@ -145,7 +271,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nifty_down2|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.00011058699259424432,
+     "dev_t": 0.01540781886529603,
+     "dev_blocks": 40,
+     "val_mean": 0.02806718276074654,
+     "val_t": 1.8266548731758352,
+     "val_blocks": 11
+    },
+    {
+     "variant": "nifty_down2|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.021873014007338997,
+     "dev_t": 1.9462422541009279,
+     "dev_blocks": 40,
+     "val_mean": 0.020637582975180382,
+     "val_t": 1.3344438782921089,
+     "val_blocks": 11
+    },
+    {
+     "variant": "nifty_down2|sma_close_50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.020418077973942614,
+     "dev_t": 1.6454309398149038,
+     "dev_blocks": 40,
+     "val_mean": 0.02510173755761647,
+     "val_t": 1.2139932492575465,
+     "val_blocks": 11
+    },
+    {
+     "variant": "nifty_down2|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.02064264049535528,
+     "dev_t": 1.7572404497578673,
+     "dev_blocks": 40,
+     "val_mean": 0.01867487282974921,
+     "val_t": 1.1574866662575671,
+     "val_blocks": 11
+    }
+   ]
   },
   {
    "id": "C02-ANY",
@@ -179,7 +347,49 @@
    "plain_name": null,
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "deliv_high|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.005356575083614961,
+     "dev_t": 1.1982527490569006,
+     "dev_blocks": 59,
+     "val_mean": 0.012176004513316468,
+     "val_t": 2.5234819179427874,
+     "val_blocks": 23
+    },
+    {
+     "variant": "deliv_high|hold_60d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.006341388889478481,
+     "dev_t": 1.3656722188475077,
+     "dev_blocks": 59,
+     "val_mean": 0.013641687267664602,
+     "val_t": 2.481750154212287,
+     "val_blocks": 23
+    },
+    {
+     "variant": "deliv_high|hold_20d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0035109484390908096,
+     "dev_t": 1.4794959831358012,
+     "dev_blocks": 59,
+     "val_mean": 0.0063457225242748005,
+     "val_t": 2.4191707886376452,
+     "val_blocks": 23
+    },
+    {
+     "variant": "deliv_high|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0060703719787733815,
+     "dev_t": 1.326901929842964,
+     "dev_blocks": 59,
+     "val_mean": 0.012617681756763833,
+     "val_t": 2.347565195543356,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "C02-BRK",
@@ -213,7 +423,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "rv20_high|atr_trail_4",
+     "verdict": "REJECTED",
+     "dev_mean": -0.003945462075616898,
+     "dev_t": -0.8002879570696574,
+     "dev_blocks": 68,
+     "val_mean": -0.00852949183350363,
+     "val_t": -1.3146767080454054,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rv20_high|hold_20d",
+     "verdict": "REJECTED",
+     "dev_mean": -0.001902221185723207,
+     "dev_t": -0.4475370265107926,
+     "dev_blocks": 68,
+     "val_mean": -0.006726599535440282,
+     "val_t": -1.125824331991822,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rv20_high|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.007879126860155839,
+     "dev_t": -1.5003723686240589,
+     "dev_blocks": 68,
+     "val_mean": -0.005742989963634312,
+     "val_t": -0.6309468450091812,
+     "val_blocks": 23
+    },
+    {
+     "variant": "vol_heat2|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.003978610921213553,
+     "dev_t": 1.0090531835894674,
+     "dev_blocks": 69,
+     "val_mean": -0.000976490687842312,
+     "val_t": -0.2597771776955228,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "C02-PULL",
@@ -248,7 +500,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "deliv_high|atr_trail_4",
+     "verdict": "REJECTED",
+     "dev_mean": 0.007196743434142302,
+     "dev_t": 1.1673027209676887,
+     "dev_blocks": 55,
+     "val_mean": 0.012514897875334411,
+     "val_t": 1.1906208879070752,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rv20_high|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.004486848764599535,
+     "dev_t": 0.520173830551078,
+     "dev_blocks": 67,
+     "val_mean": 0.006327345971813316,
+     "val_t": 0.46135944245047006,
+     "val_blocks": 22
+    },
+    {
+     "variant": "rv20_high|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0018200336279010746,
+     "dev_t": 0.2057747641329645,
+     "dev_blocks": 67,
+     "val_mean": 0.0062776549043089495,
+     "val_t": 0.42201291856703704,
+     "val_blocks": 22
+    },
+    {
+     "variant": "rv20_high|hold_20d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.004197470349930961,
+     "dev_t": 0.6884027294874958,
+     "dev_blocks": 67,
+     "val_mean": 0.0031714682531781588,
+     "val_t": 0.3857363260358368,
+     "val_blocks": 22
+    }
+   ]
   },
   {
    "id": "C03-ANY",
@@ -280,7 +574,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "bank_week_up35|hold_60d",
+     "verdict": "REJECTED",
+     "dev_mean": -0.009305844080130847,
+     "dev_t": -1.5456029439954175,
+     "dev_blocks": 55,
+     "val_mean": 0.02538577201852363,
+     "val_t": 1.288519474684648,
+     "val_blocks": 22
+    },
+    {
+     "variant": "bank_week_up35|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00855631699657235,
+     "dev_t": -1.4284484015187053,
+     "dev_blocks": 55,
+     "val_mean": 0.024293647687358685,
+     "val_t": 1.2295409871411795,
+     "val_blocks": 22
+    },
+    {
+     "variant": "bank_week_up35|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.009275047432269807,
+     "dev_t": -1.6988847455807674,
+     "dev_blocks": 55,
+     "val_mean": 0.020851634550370982,
+     "val_t": 1.180687644316757,
+     "val_blocks": 22
+    },
+    {
+     "variant": "bank_week_up35|atr_trail_4",
+     "verdict": "REJECTED",
+     "dev_mean": -0.010190555359794958,
+     "dev_t": -2.232430287511041,
+     "dev_blocks": 55,
+     "val_mean": 0.020043520792472253,
+     "val_t": 1.0260940767131277,
+     "val_blocks": 22
+    }
+   ]
   },
   {
    "id": "C03-BRK",
@@ -312,7 +648,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "bank_week_up35|hold_60d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0007393136915974441,
+     "dev_t": 0.13576092553522848,
+     "dev_blocks": 54,
+     "val_mean": 0.021134961333565877,
+     "val_t": 2.025679078676077,
+     "val_blocks": 21
+    },
+    {
+     "variant": "bank_week_up35|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0012807149298297885,
+     "dev_t": 0.2455465003253762,
+     "dev_blocks": 54,
+     "val_mean": 0.01849175118172963,
+     "val_t": 1.9449495243415091,
+     "val_blocks": 21
+    },
+    {
+     "variant": "bank_week_up35|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0020267295388252103,
+     "dev_t": -0.40473156926579235,
+     "dev_blocks": 54,
+     "val_mean": 0.016911340099408284,
+     "val_t": 1.732788468264444,
+     "val_blocks": 21
+    },
+    {
+     "variant": "bank_week_up35|hold_20d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0018493911503137755,
+     "dev_t": 0.4022465283613391,
+     "dev_blocks": 54,
+     "val_mean": 0.01130376276227536,
+     "val_t": 1.4078251827548094,
+     "val_blocks": 21
+    }
+   ]
   },
   {
    "id": "C03-PULL",
@@ -343,7 +721,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "bank_gt200d|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.05155855572121247,
+     "dev_t": -3.586332937480085,
+     "dev_blocks": 16,
+     "val_mean": -0.0378620319389675,
+     "val_t": -1.8655236104676358,
+     "val_blocks": 13
+    },
+    {
+     "variant": "bank_gt200d|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.06296986903360956,
+     "dev_t": -3.6077590391976764,
+     "dev_blocks": 16,
+     "val_mean": -0.03252985675540015,
+     "val_t": -1.6673344428708738,
+     "val_blocks": 13
+    },
+    {
+     "variant": "bank_week_up35|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.02484092505524587,
+     "dev_t": -2.5799469630140006,
+     "dev_blocks": 42,
+     "val_mean": -0.03719703276948357,
+     "val_t": -1.539623794326933,
+     "val_blocks": 11
+    },
+    {
+     "variant": "bank_gt200d|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.062495879445374006,
+     "dev_t": -4.516220600162111,
+     "dev_blocks": 16,
+     "val_mean": -0.03296400591319915,
+     "val_t": -1.5341854622723776,
+     "val_blocks": 13
+    }
+   ]
   },
   {
    "id": "C05-ANY",
@@ -376,7 +796,49 @@
    "plain_name": null,
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "vix_rising|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": 0.01559418251155445,
+     "dev_t": 1.4357856144363934,
+     "dev_blocks": 30,
+     "val_mean": 0.025422951716846588,
+     "val_t": 2.863203141047411,
+     "val_blocks": 23
+    },
+    {
+     "variant": "vix_rising|hold_60d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.015698541829730798,
+     "dev_t": 1.3712531733368083,
+     "dev_blocks": 30,
+     "val_mean": 0.02324921358088431,
+     "val_t": 2.5636980767694184,
+     "val_blocks": 23
+    },
+    {
+     "variant": "vix_gt20|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.02736096811987935,
+     "dev_t": 3.1298930657125914,
+     "dev_blocks": 16,
+     "val_mean": 0.03186740915513015,
+     "val_t": 3.2859335471582636,
+     "val_blocks": 13
+    },
+    {
+     "variant": "vix_rising|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.017287697768563037,
+     "dev_t": 1.8416786297126884,
+     "dev_blocks": 30,
+     "val_mean": 0.022659412878286215,
+     "val_t": 2.703969453060528,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "C05-BRK",
@@ -409,7 +871,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "vix_rising|hold_20d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.01212523941489877,
+     "dev_t": 1.476501118164898,
+     "dev_blocks": 28,
+     "val_mean": 0.017401950013505675,
+     "val_t": 2.5965290686856104,
+     "val_blocks": 20
+    },
+    {
+     "variant": "vix_rising|atr_trail_4",
+     "verdict": "REJECTED",
+     "dev_mean": 0.013022424560616,
+     "dev_t": 1.5603574289476543,
+     "dev_blocks": 28,
+     "val_mean": 0.011150186686336806,
+     "val_t": 1.3812599989108902,
+     "val_blocks": 20
+    },
+    {
+     "variant": "vix_rising|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.009318901284918355,
+     "dev_t": 0.9682987497419506,
+     "dev_blocks": 28,
+     "val_mean": 0.015226905521314175,
+     "val_t": 1.3785845417423985,
+     "val_blocks": 20
+    },
+    {
+     "variant": "vix_rising|hold_60d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.01268371896094357,
+     "dev_t": 1.1856183492766614,
+     "dev_blocks": 28,
+     "val_mean": 0.01415864751829008,
+     "val_t": 1.2144462588022291,
+     "val_blocks": 20
+    }
+   ]
   },
   {
    "id": "C05-PULL",
@@ -443,7 +947,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "vix_rising|hold_20d",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.038152686194275455,
+     "dev_t": 4.017911756043998,
+     "dev_blocks": 27,
+     "val_mean": 0.015272586538834032,
+     "val_t": 1.6978031442428267,
+     "val_blocks": 20
+    },
+    {
+     "variant": "vix_gt20|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.05936986675009448,
+     "dev_t": 4.490189261686572,
+     "dev_blocks": 15,
+     "val_mean": 0.06073061657869532,
+     "val_t": 6.757103781123966,
+     "val_blocks": 11
+    },
+    {
+     "variant": "vix_gt20|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.06174419992174174,
+     "dev_t": 4.054962421161088,
+     "dev_blocks": 15,
+     "val_mean": 0.06296983351962614,
+     "val_t": 6.647780632069471,
+     "val_blocks": 11
+    },
+    {
+     "variant": "vix_gt20|sma_close_50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0638262334225885,
+     "dev_t": 4.064514104224457,
+     "dev_blocks": 15,
+     "val_mean": 0.07367591566364795,
+     "val_t": 6.647644665600209,
+     "val_blocks": 11
+    }
+   ]
   },
   {
    "id": "C06",
@@ -475,7 +1021,49 @@
    "plain_name": "the futures-positioning test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "fii_long_gt60",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.009248053887663322,
+     "dev_t": -3.3173750306744862,
+     "dev_blocks": 17,
+     "val_mean": -0.008148751836711082,
+     "val_t": -2.8007378569715833,
+     "val_blocks": 21
+    },
+    {
+     "variant": "fii_rising5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0005970707900632167,
+     "dev_t": -0.3521392014924337,
+     "dev_blocks": 24,
+     "val_mean": -0.0004842055995026449,
+     "val_t": -0.20268594107636997,
+     "val_blocks": 24
+    },
+    {
+     "variant": "fii_long_lt40",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.018553750374822164,
+     "dev_t": 4.595022182822657,
+     "dev_blocks": 6,
+     "val_mean": 0.005991045203855405,
+     "val_t": 1.4849551038876525,
+     "val_blocks": 16
+    },
+    {
+     "variant": "client_long_gt60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.01822840907746833,
+     "dev_t": 4.070613701026252,
+     "dev_blocks": 4,
+     "val_mean": 0.0008005099651477077,
+     "val_t": 0.11346007992714717,
+     "val_blocks": 14
+    }
+   ]
   },
   {
    "id": "C07-ANY",
@@ -510,7 +1098,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "small_lead|hold_20d",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.039087362806022125,
+     "dev_t": -4.339037110111988,
+     "dev_blocks": 47,
+     "val_mean": -0.033029360191961676,
+     "val_t": -4.12855364392509,
+     "val_blocks": 16
+    },
+    {
+     "variant": "small_lead|swing_low_20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.05740760742224258,
+     "dev_t": -4.334228113558512,
+     "dev_blocks": 47,
+     "val_mean": -0.03883706673509037,
+     "val_t": -3.577230886063178,
+     "val_blocks": 16
+    },
+    {
+     "variant": "small_lead|atr_trail_4",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.04719020236904143,
+     "dev_t": -4.8070881680773585,
+     "dev_blocks": 47,
+     "val_mean": -0.03801550697998346,
+     "val_t": -3.4997221027858623,
+     "val_blocks": 16
+    },
+    {
+     "variant": "small_lead|sma_close_50",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.05875015613486659,
+     "dev_t": -4.0624135564545885,
+     "dev_blocks": 47,
+     "val_mean": -0.03969541326380388,
+     "val_t": -3.105351058534555,
+     "val_blocks": 16
+    }
+   ]
   },
   {
    "id": "C07-BRK",
@@ -545,7 +1175,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "small_lead|swing_low_20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.02814908151490111,
+     "dev_t": -3.6147841775814835,
+     "dev_blocks": 44,
+     "val_mean": -0.030107227967466073,
+     "val_t": -3.2323498622998414,
+     "val_blocks": 16
+    },
+    {
+     "variant": "small_lead|sma_close_50",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.03143465138431555,
+     "dev_t": -3.6685502050012735,
+     "dev_blocks": 44,
+     "val_mean": -0.031503382600827134,
+     "val_t": -2.9543566182919685,
+     "val_blocks": 16
+    },
+    {
+     "variant": "small_lead|atr_trail_4",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.024848180573082003,
+     "dev_t": -4.177768114904708,
+     "dev_blocks": 44,
+     "val_mean": -0.020320275547271574,
+     "val_t": -2.943785894114867,
+     "val_blocks": 16
+    },
+    {
+     "variant": "small_lead|hold_20d",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.029504984976613347,
+     "dev_t": -4.437592070313068,
+     "dev_blocks": 44,
+     "val_mean": -0.023336893245900436,
+     "val_t": -2.6948650530648703,
+     "val_blocks": 16
+    }
+   ]
   },
   {
    "id": "C07-PULL",
@@ -579,7 +1251,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "small_lead|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.057253964617994764,
+     "dev_t": -3.480534067945473,
+     "dev_blocks": 39,
+     "val_mean": -0.03858098858337677,
+     "val_t": -2.2868043446588096,
+     "val_blocks": 15
+    },
+    {
+     "variant": "small_lead|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.03675850768071843,
+     "dev_t": -3.498919858552373,
+     "dev_blocks": 39,
+     "val_mean": -0.024124322914704437,
+     "val_t": -1.9357347348999632,
+     "val_blocks": 15
+    },
+    {
+     "variant": "small_lead|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.04807256700510052,
+     "dev_t": -3.3797904298241024,
+     "dev_blocks": 39,
+     "val_mean": -0.024834231812106578,
+     "val_t": -1.3584503403784502,
+     "val_blocks": 15
+    },
+    {
+     "variant": "small_lead|sma_close_50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.06343958006377778,
+     "dev_t": -3.5063718962553407,
+     "dev_blocks": 39,
+     "val_mean": -0.028070589001191394,
+     "val_t": -1.262854545376326,
+     "val_blocks": 15
+    }
+   ]
   },
   {
    "id": "C08-ANY",
@@ -612,7 +1326,49 @@
    "plain_name": null,
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "breadth_lt40|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.07245254252083722,
+     "dev_t": 6.174466265278399,
+     "dev_blocks": 27,
+     "val_mean": 0.05880054244381891,
+     "val_t": 5.367794724042592,
+     "val_blocks": 12
+    },
+    {
+     "variant": "breadth_lt40|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.11670139173120143,
+     "dev_t": 5.713890799172284,
+     "dev_blocks": 27,
+     "val_mean": 0.07756398356024066,
+     "val_t": 4.4938358106708565,
+     "val_blocks": 12
+    },
+    {
+     "variant": "breadth_lt40|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.09311355530174954,
+     "dev_t": 5.547260818070302,
+     "dev_blocks": 27,
+     "val_mean": 0.0782255818212902,
+     "val_t": 4.403252817272013,
+     "val_blocks": 12
+    },
+    {
+     "variant": "breadth_lt40|sma_close_50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.1154100049853747,
+     "dev_t": 5.7921609691726434,
+     "dev_blocks": 27,
+     "val_mean": 0.07696386678086632,
+     "val_t": 3.5782164555828624,
+     "val_blocks": 12
+    }
+   ]
   },
   {
    "id": "C08-BRK",
@@ -645,7 +1401,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "breadth_lt40|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.047301063052474904,
+     "dev_t": 2.9205353874870372,
+     "dev_blocks": 22,
+     "val_mean": 0.04275955260331981,
+     "val_t": 5.714860501107988,
+     "val_blocks": 9
+    },
+    {
+     "variant": "breadth_lt40|hold_60d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.08139783049017607,
+     "dev_t": 4.548913638914397,
+     "dev_blocks": 22,
+     "val_mean": 0.04934334474789695,
+     "val_t": 5.582045544003354,
+     "val_blocks": 9
+    },
+    {
+     "variant": "breadth_lt40|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.07707361457372378,
+     "dev_t": 4.166326938848951,
+     "dev_blocks": 22,
+     "val_mean": 0.04953950064959308,
+     "val_t": 5.145996528081888,
+     "val_blocks": 9
+    },
+    {
+     "variant": "breadth_lt40|sma_close_50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.07770281714592933,
+     "dev_t": 4.354790079307099,
+     "dev_blocks": 22,
+     "val_mean": 0.04589164095108145,
+     "val_t": 4.992915179303017,
+     "val_blocks": 9
+    }
+   ]
   },
   {
    "id": "C08-PULL",
@@ -678,7 +1476,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "breadth_lt40|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.05064591041833921,
+     "dev_t": 2.9779311213949513,
+     "dev_blocks": 20,
+     "val_mean": 0.07384474611412893,
+     "val_t": 3.5744056097167105,
+     "val_blocks": 9
+    },
+    {
+     "variant": "breadth_lt40|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.10096355014774987,
+     "dev_t": 3.206306749801733,
+     "dev_blocks": 20,
+     "val_mean": 0.09218879722996792,
+     "val_t": 3.1032719926576906,
+     "val_blocks": 9
+    },
+    {
+     "variant": "breadth_lt40|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0803137881095635,
+     "dev_t": 2.900081505050019,
+     "dev_blocks": 20,
+     "val_mean": 0.08613749991906583,
+     "val_t": 2.4918302021272374,
+     "val_blocks": 9
+    },
+    {
+     "variant": "breadth_lt40|sma_close_50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.10523323884479033,
+     "dev_t": 3.0560626062773784,
+     "dev_blocks": 20,
+     "val_mean": 0.08803220467262128,
+     "val_t": 2.4849887342690447,
+     "val_blocks": 9
+    }
+   ]
   },
   {
    "id": "C09-ANY",
@@ -714,7 +1554,49 @@
    "plain_name": null,
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "usdinr_rising|atr_trail_4",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.02425313210949171,
+     "dev_t": 2.5135759867421434,
+     "dev_blocks": 58,
+     "val_mean": 0.02537445043994868,
+     "val_t": 3.533224414102712,
+     "val_blocks": 20
+    },
+    {
+     "variant": "usdinr_rising|sma_close_50",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.036249193316194896,
+     "dev_t": 2.59621352065003,
+     "dev_blocks": 58,
+     "val_mean": 0.030685301068488203,
+     "val_t": 3.5241246216464495,
+     "val_blocks": 20
+    },
+    {
+     "variant": "usdinr_rising|hold_60d",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.03643273206971295,
+     "dev_t": 2.687983361002306,
+     "dev_blocks": 58,
+     "val_mean": 0.031236828459698534,
+     "val_t": 3.4838098494887273,
+     "val_blocks": 20
+    },
+    {
+     "variant": "usdinr_rising|swing_low_20",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.035090862173183114,
+     "dev_t": 2.582440042957307,
+     "dev_blocks": 58,
+     "val_mean": 0.027987121564595086,
+     "val_t": 3.3037065509213304,
+     "val_blocks": 20
+    }
+   ]
   },
   {
    "id": "C09-BRK",
@@ -749,7 +1631,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "usdinr_rising|atr_trail_4",
+     "verdict": "REJECTED",
+     "dev_mean": 0.010166131770228959,
+     "dev_t": 1.5187836030763826,
+     "dev_blocks": 50,
+     "val_mean": 0.02116398682461997,
+     "val_t": 4.422095746780792,
+     "val_blocks": 20
+    },
+    {
+     "variant": "usdinr_rising|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.01243978400939193,
+     "dev_t": 1.2901735715830698,
+     "dev_blocks": 50,
+     "val_mean": 0.027512538824761745,
+     "val_t": 3.434368096222026,
+     "val_blocks": 20
+    },
+    {
+     "variant": "usdinr_rising|hold_20d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0017317678064682858,
+     "dev_t": 0.2908119747598533,
+     "dev_blocks": 50,
+     "val_mean": 0.021994697049729207,
+     "val_t": 3.244470949270197,
+     "val_blocks": 20
+    },
+    {
+     "variant": "usdinr_rising|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": 0.010342432278804216,
+     "dev_t": 1.035379744630158,
+     "dev_blocks": 50,
+     "val_mean": 0.028523458784309674,
+     "val_t": 3.1707113456569336,
+     "val_blocks": 20
+    }
+   ]
   },
   {
    "id": "C09-PULL",
@@ -784,7 +1708,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "usdinr_rising|atr_trail_4",
+     "verdict": "REJECTED",
+     "dev_mean": 0.013808609139193895,
+     "dev_t": 1.1405244392885987,
+     "dev_blocks": 50,
+     "val_mean": 0.03608770834434936,
+     "val_t": 4.237400300896881,
+     "val_blocks": 19
+    },
+    {
+     "variant": "usdinr_rising|hold_60d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.013482082571263378,
+     "dev_t": 0.9847198566981379,
+     "dev_blocks": 50,
+     "val_mean": 0.03781070892639331,
+     "val_t": 3.7308937638740365,
+     "val_blocks": 19
+    },
+    {
+     "variant": "usdinr_rising|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": 0.012882898778118546,
+     "dev_t": 0.9075622559936497,
+     "dev_blocks": 50,
+     "val_mean": 0.03684942271060715,
+     "val_t": 3.7157435499616023,
+     "val_blocks": 19
+    },
+    {
+     "variant": "usdinr_rising|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.01072541588468193,
+     "dev_t": 0.8229383646299783,
+     "dev_blocks": 50,
+     "val_mean": 0.031815191290969644,
+     "val_t": 2.9246205562139043,
+     "val_blocks": 19
+    }
+   ]
   },
   {
    "id": "CA1",
@@ -813,7 +1779,49 @@
    "plain_name": "Ananta's corporate-actions test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "STK|bonus_split|fwd20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.03762702495017572,
+     "dev_t": -3.9134726711088823,
+     "dev_blocks": 36,
+     "val_mean": -0.060027964889516956,
+     "val_t": -6.163957421593431,
+     "val_blocks": 18
+    },
+    {
+     "variant": "STK|bonus_split|fwd60",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.040888214617094375,
+     "dev_t": -3.1187402063567826,
+     "dev_blocks": 36,
+     "val_mean": -0.03256600746692901,
+     "val_t": -2.0917367053124916,
+     "val_blocks": 18
+    },
+    {
+     "variant": "STK|dividend_y2|fwd20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.010610553583855965,
+     "dev_t": 0.9111915277396848,
+     "dev_blocks": 37,
+     "val_mean": 0.001647069629062424,
+     "val_t": 0.1887811662871989,
+     "val_blocks": 22
+    },
+    {
+     "variant": "STK|buyback|fwd60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.044287777212788336,
+     "dev_t": -1.098263781913421,
+     "dev_blocks": 5,
+     "val_mean": -0.011493438338596663,
+     "val_t": -0.40699776090846107,
+     "val_blocks": 15
+    }
+   ]
   },
   {
    "id": "CEV-ANY",
@@ -840,7 +1848,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "breadth_lt30|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.02464831803787539,
+     "dev_t": 0.7347995160490968,
+     "dev_blocks": 12,
+     "val_mean": 0.03675845326376377,
+     "val_t": 1.8055788908967756,
+     "val_blocks": 6
+    },
+    {
+     "variant": "vix_gt20|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.003624331257645971,
+     "dev_t": -0.12989768648852773,
+     "dev_blocks": 10,
+     "val_mean": -0.054081920793508466,
+     "val_t": -1.6897841891195766,
+     "val_blocks": 7
+    },
+    {
+     "variant": "breadth_lt30|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.03135974723760187,
+     "dev_t": 0.9094585035293132,
+     "dev_blocks": 12,
+     "val_mean": 0.029579225363336903,
+     "val_t": 1.5542499309789135,
+     "val_blocks": 6
+    },
+    {
+     "variant": "nifty_down2|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.009483684476273306,
+     "dev_t": 0.6200565363350837,
+     "dev_blocks": 41,
+     "val_mean": 0.03564241907532293,
+     "val_t": 1.0289917513791769,
+     "val_blocks": 11
+    }
+   ]
   },
   {
    "id": "CEV-BRK",
@@ -867,7 +1917,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nifty_down2|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0017919001478233286,
+     "dev_t": 0.07717257206856436,
+     "dev_blocks": 17,
+     "val_mean": -0.06311798858504077,
+     "val_t": -8.376806324677965,
+     "val_blocks": 3
+    },
+    {
+     "variant": "nifty_down2|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.029402056082810456,
+     "dev_t": 0.6241568033313063,
+     "dev_blocks": 17,
+     "val_mean": -0.044954637718963096,
+     "val_t": -3.534180239783865,
+     "val_blocks": 3
+    },
+    {
+     "variant": "nifty_down2|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0005420096426367112,
+     "dev_t": -0.01911178176386016,
+     "dev_blocks": 17,
+     "val_mean": -0.03763591305656841,
+     "val_t": -1.3170272665386407,
+     "val_blocks": 3
+    },
+    {
+     "variant": "nifty_up2|atr_trail_4",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.020153433423963155,
+     "dev_t": 1.0714105533110665,
+     "dev_blocks": 29,
+     "val_mean": 0.071907898463339,
+     "val_t": 1.1136670200129244,
+     "val_blocks": 9
+    }
+   ]
   },
   {
    "id": "CEV-PULL",
@@ -894,7 +1986,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "vix_gt20|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0011693180353904778,
+     "dev_t": -0.042433015142531165,
+     "dev_blocks": 8,
+     "val_mean": -0.03914603677121153,
+     "val_t": -1.748657413133208,
+     "val_blocks": 7
+    },
+    {
+     "variant": "nifty_vol_high|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.06470077456030518,
+     "dev_t": -2.008911996529338,
+     "dev_blocks": 10,
+     "val_mean": 0.07319169771710993,
+     "val_t": 1.6198614056582863,
+     "val_blocks": 4
+    },
+    {
+     "variant": "nifty_vol_high|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.02442024587616123,
+     "dev_t": 0.5105272291025068,
+     "dev_blocks": 10,
+     "val_mean": 0.04430053569772611,
+     "val_t": 1.41299775016583,
+     "val_blocks": 4
+    },
+    {
+     "variant": "nifty_vol_high|hold_60d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.024874406515327227,
+     "dev_t": 0.44527065661225335,
+     "dev_blocks": 10,
+     "val_mean": 0.04109715974263632,
+     "val_t": 1.2661041609850723,
+     "val_blocks": 4
+    }
+   ]
   },
   {
    "id": "CP1",
@@ -922,7 +2056,49 @@
    "plain_name": "Ananta's candlestick test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "STK|bullengulf|fwd20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0028280674374345353,
+     "dev_t": 1.1106731429563645,
+     "dev_blocks": 70,
+     "val_mean": 0.006334011039431593,
+     "val_t": 2.016867790426907,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|hammer|fwd5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0011094338097039694,
+     "dev_t": 0.9843376290843965,
+     "dev_blocks": 70,
+     "val_mean": 0.0020345466805195386,
+     "val_t": 0.9975664412256539,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|bullengulf|fwd5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0012808294175535148,
+     "dev_t": -0.8719007922249735,
+     "dev_blocks": 70,
+     "val_mean": 0.0015635978295807957,
+     "val_t": 0.7505198713572973,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|bullengulf|trade20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.012064835671531339,
+     "dev_t": 1.9414165731474269,
+     "dev_blocks": 70,
+     "val_mean": 0.012825828935962869,
+     "val_t": 1.6114190208236019,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "DII1",
@@ -949,7 +2125,49 @@
    "plain_name": "Ananta's domestic-flows test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "diibuy_fiisell|nfwd5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0035894153791893174,
+     "dev_t": -0.6773128981718676,
+     "dev_blocks": 34,
+     "val_mean": 0.010231817374191533,
+     "val_t": 1.6493640255455906,
+     "val_blocks": 19
+    },
+    {
+     "variant": "diibuy_fiisell|nfwd20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.007278377016577419,
+     "dev_t": -0.5542515115071783,
+     "dev_blocks": 34,
+     "val_mean": 0.015806992475759882,
+     "val_t": 1.2355234988146677,
+     "val_blocks": 19
+    },
+    {
+     "variant": "pos1|nfwd1",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00012655567653177335,
+     "dev_t": 0.11720250347838548,
+     "dev_blocks": 44,
+     "val_mean": 0.0008970146269568329,
+     "val_t": 0.7568509268698442,
+     "val_blocks": 23
+    },
+    {
+     "variant": "neg1|nfwd1",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00035869789249403814,
+     "dev_t": -0.4998388865346995,
+     "dev_blocks": 41,
+     "val_mean": -0.0008794956822777834,
+     "val_t": -0.6566468876961222,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E01-ANY",
@@ -979,7 +2197,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stop_1.0atr",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.004536702462687744,
+     "dev_t": -2.1962913360418974,
+     "dev_blocks": 71,
+     "val_mean": -0.0024047697931845026,
+     "val_t": -1.1824154422393631,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stop_1.5atr",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0015549929890490623,
+     "dev_t": -1.7514306506114075,
+     "dev_blocks": 71,
+     "val_mean": -0.0008968731101976969,
+     "val_t": -1.0135230448162187,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stop_3.0atr",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0021966496251485325,
+     "dev_t": 2.065736758607003,
+     "dev_blocks": 71,
+     "val_mean": 0.0010995649897707308,
+     "val_t": 0.8454302765180738,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stop_4.0atr",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0030568206710097617,
+     "dev_t": 1.9371570344742148,
+     "dev_blocks": 71,
+     "val_mean": 0.0015474665968096325,
+     "val_t": 0.7603285587800062,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E01-BRK",
@@ -1008,7 +2268,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stop_1.5atr",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0009562422286301019,
+     "dev_t": -0.8684295498305763,
+     "dev_blocks": 71,
+     "val_mean": -0.0006625020224259111,
+     "val_t": -0.5181920272655617,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stop_1.0atr",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00048747392547177423,
+     "dev_t": -0.25328522405290094,
+     "dev_blocks": 71,
+     "val_mean": -0.0006898841252114326,
+     "val_t": -0.2826805808458053,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stop_3.0atr",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00037432800141387867,
+     "dev_t": 0.22273811962068318,
+     "dev_blocks": 71,
+     "val_mean": 0.0003309927753764423,
+     "val_t": 0.17856504042916163,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stop_6.0atr",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0018131047356449291,
+     "dev_t": 0.5293389239176681,
+     "dev_blocks": 71,
+     "val_mean": 0.00040086711066881364,
+     "val_t": 0.10759248398257193,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E01-PULL",
@@ -1038,7 +2340,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stop_1.0atr",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0029073756910609704,
+     "dev_t": -1.1411974733283778,
+     "dev_blocks": 71,
+     "val_mean": -0.002758396084353722,
+     "val_t": -0.9644116834727345,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stop_1.5atr",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0015052252902314558,
+     "dev_t": -1.1483847792806392,
+     "dev_blocks": 71,
+     "val_mean": -0.000564122032092338,
+     "val_t": -0.6143079441215965,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stop_4.0atr",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.004832538094683495,
+     "dev_t": 2.330070118437539,
+     "dev_blocks": 71,
+     "val_mean": 0.0021805000365044,
+     "val_t": 1.0348794634236942,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stop_6.0atr",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.006962957115732781,
+     "dev_t": 2.9076584856996,
+     "dev_blocks": 71,
+     "val_mean": 0.002367539426357675,
+     "val_t": 0.7784798226642771,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E02-ANY",
@@ -1069,7 +2413,49 @@
    "plain_name": "the exit test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "target_1R",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0006704251751836279,
+     "dev_t": -1.9160909279754994,
+     "dev_blocks": 71,
+     "val_mean": -0.0017526252548008103,
+     "val_t": -5.364015508175052,
+     "val_blocks": 23
+    },
+    {
+     "variant": "atr_trail_4",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.005762749959543492,
+     "dev_t": -8.349787319936734,
+     "dev_blocks": 71,
+     "val_mean": -0.0013004452739442502,
+     "val_t": -3.9808036628769563,
+     "val_blocks": 23
+    },
+    {
+     "variant": "scale_half_then_trail3",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.005670308214387035,
+     "dev_t": -9.587051050198456,
+     "dev_blocks": 71,
+     "val_mean": -0.0015991483328808263,
+     "val_t": -3.7600228418609944,
+     "val_blocks": 23
+    },
+    {
+     "variant": "atr_trail_3",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.005888716493142938,
+     "dev_t": -9.701794859482089,
+     "dev_blocks": 71,
+     "val_mean": -0.0016257591831119018,
+     "val_t": -3.6199253573596426,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E02-BRK",
@@ -1100,7 +2486,49 @@
    "plain_name": "the exit test",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "scale_half_then_trail3",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0034259294199936122,
+     "dev_t": -5.329476139777028,
+     "dev_blocks": 71,
+     "val_mean": -0.0013947557556052011,
+     "val_t": -3.442334404459603,
+     "val_blocks": 23
+    },
+    {
+     "variant": "sma_close_50",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0007267484530482792,
+     "dev_t": -2.6455778832075407,
+     "dev_blocks": 71,
+     "val_mean": -0.00048081232481925873,
+     "val_t": -2.9825760110587836,
+     "val_blocks": 23
+    },
+    {
+     "variant": "atr_trail_3",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.004339802112112773,
+     "dev_t": -6.2041400262577415,
+     "dev_blocks": 71,
+     "val_mean": -0.001266820459967608,
+     "val_t": -2.8580077416590806,
+     "val_blocks": 23
+    },
+    {
+     "variant": "atr_trail_2",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0036075256603880458,
+     "dev_t": -4.990718137163937,
+     "dev_blocks": 71,
+     "val_mean": -0.0013628595499985395,
+     "val_t": -2.4462266011735827,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E02-PULL",
@@ -1131,7 +2559,49 @@
    "plain_name": "the exit test",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "atr_trail_2",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0067935158678475134,
+     "dev_t": -7.4156112193488015,
+     "dev_blocks": 71,
+     "val_mean": -0.002674122350677392,
+     "val_t": -4.070986981095568,
+     "val_blocks": 23
+    },
+    {
+     "variant": "scale_half_then_trail3",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.007166704647741162,
+     "dev_t": -8.299843426530074,
+     "dev_blocks": 71,
+     "val_mean": -0.0017909336090819986,
+     "val_t": -2.9796604265920505,
+     "val_blocks": 23
+    },
+    {
+     "variant": "atr_trail_3",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0068164673288083925,
+     "dev_t": -7.37621679297334,
+     "dev_blocks": 71,
+     "val_mean": -0.0014829407806442236,
+     "val_t": -2.323915125786922,
+     "val_blocks": 23
+    },
+    {
+     "variant": "atr_trail_4",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0068143737549046035,
+     "dev_t": -7.021108173397953,
+     "dev_blocks": 71,
+     "val_mean": -0.0010852379361399383,
+     "val_t": -1.5102962807023037,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E03-ANY",
@@ -1162,7 +2632,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "trail4+gap_down",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0014563876599679897,
+     "dev_t": -0.6007642239142994,
+     "dev_blocks": 71,
+     "val_mean": -0.005359756560819402,
+     "val_t": -1.6224008318809187,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+giveback50",
+     "verdict": "REJECTED",
+     "dev_mean": -0.003956132617556853,
+     "dev_t": -1.2702963044274638,
+     "dev_blocks": 71,
+     "val_mean": -0.008100914148234004,
+     "val_t": -1.6118637899803145,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+three_down",
+     "verdict": "REJECTED",
+     "dev_mean": -0.004839869949991844,
+     "dev_t": -1.3045879115818353,
+     "dev_blocks": 71,
+     "val_mean": -0.00900595658029326,
+     "val_t": -1.5972598523831794,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+vol_climax",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0018131520682861046,
+     "dev_t": -0.9536251492947987,
+     "dev_blocks": 71,
+     "val_mean": -0.003208718873092764,
+     "val_t": -1.2397803314290794,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E03-BRK",
@@ -1192,7 +2704,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "trail4+gap_down",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0013012238880204256,
+     "dev_t": 0.9458666346191954,
+     "dev_blocks": 71,
+     "val_mean": -0.001983431131597575,
+     "val_t": -1.2312581008485997,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+range_down",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0005403194759212343,
+     "dev_t": 0.7142333685801878,
+     "dev_blocks": 71,
+     "val_mean": -0.0011989696521837647,
+     "val_t": -0.9820983825393875,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+three_down",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0004022740754140989,
+     "dev_t": 0.17694194151892828,
+     "dev_blocks": 71,
+     "val_mean": -0.0033914770546245154,
+     "val_t": -0.9399375867234024,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+giveback50",
+     "verdict": "REJECTED",
+     "dev_mean": 1.754211608604585e-05,
+     "dev_t": 0.009609228398242114,
+     "dev_blocks": 71,
+     "val_mean": -0.0023372368500626296,
+     "val_t": -0.7344615452186608,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E03-PULL",
@@ -1223,7 +2777,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "trail4+giveback50",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.009693645883931137,
+     "dev_t": -2.3236205326860766,
+     "dev_blocks": 71,
+     "val_mean": -0.01699611214844767,
+     "val_t": -2.548900532086015,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+three_down",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.012027334207500134,
+     "dev_t": -2.3027709888323415,
+     "dev_blocks": 71,
+     "val_mean": -0.021639958115648752,
+     "val_t": -2.0828322540277666,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+range_down",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.003459604677431185,
+     "dev_t": -2.0852368704505353,
+     "dev_blocks": 71,
+     "val_mean": -0.005239539131150464,
+     "val_t": -1.5000577425753356,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+gap_down",
+     "verdict": "REJECTED",
+     "dev_mean": -0.002616316194081213,
+     "dev_t": -0.7984802510698517,
+     "dev_blocks": 71,
+     "val_mean": -0.005306352398673577,
+     "val_t": -2.401087105572875,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E04-ANY",
@@ -1257,7 +2853,49 @@
    "plain_name": "the exit test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "ext_ret20_gt25|hold_20d",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.020480080879798586,
+     "dev_t": -5.029232516534813,
+     "dev_blocks": 70,
+     "val_mean": -0.028393731903147982,
+     "val_t": -4.847024649286766,
+     "val_blocks": 23
+    },
+    {
+     "variant": "ext_ret20_gt25|atr_trail_4",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.018568546408874384,
+     "dev_t": -3.617024115924076,
+     "dev_blocks": 70,
+     "val_mean": -0.03294304206984002,
+     "val_t": -3.981060149375374,
+     "val_blocks": 23
+    },
+    {
+     "variant": "ext_sma50_gt20|hold_20d",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.024918148183933286,
+     "dev_t": -6.024621746410056,
+     "dev_blocks": 70,
+     "val_mean": -0.02377863165483337,
+     "val_t": -3.9070427655750852,
+     "val_blocks": 23
+    },
+    {
+     "variant": "ext_sma50_gt20|atr_trail_4",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.023831567451312766,
+     "dev_t": -4.545858639152731,
+     "dev_blocks": 70,
+     "val_mean": -0.023563508454777962,
+     "val_t": -3.107959769093203,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E04-BRK",
@@ -1290,7 +2928,49 @@
    "plain_name": "the exit test",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "ext_ret20_gt25|hold_20d",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.010390440035353492,
+     "dev_t": -2.722435788018458,
+     "dev_blocks": 67,
+     "val_mean": -0.022315536423405582,
+     "val_t": -3.4982231651648705,
+     "val_blocks": 22
+    },
+    {
+     "variant": "ext_ret20_gt25|atr_trail_4",
+     "verdict": "REJECTED",
+     "dev_mean": -0.006959734707820419,
+     "dev_t": -1.3878547693218763,
+     "dev_blocks": 67,
+     "val_mean": -0.02286182904393809,
+     "val_t": -2.8539978938003596,
+     "val_blocks": 22
+    },
+    {
+     "variant": "ext_ret20_gt25|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0012974818633018444,
+     "dev_t": -0.1904832644545064,
+     "dev_blocks": 67,
+     "val_mean": -0.02429021852951376,
+     "val_t": -2.693842761869547,
+     "val_blocks": 22
+    },
+    {
+     "variant": "ext_ret20_gt25|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": -0.002376301617268579,
+     "dev_t": -0.33413809881323503,
+     "dev_blocks": 67,
+     "val_mean": -0.02243762965404792,
+     "val_t": -2.2300183531214897,
+     "val_blocks": 22
+    }
+   ]
   },
   {
    "id": "E04-PULL",
@@ -1321,7 +3001,49 @@
    "plain_name": "the exit test",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "ext_ret60_gt50|sma_close_50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0019136945886704154,
+     "dev_t": -0.14634491918190443,
+     "dev_blocks": 53,
+     "val_mean": 0.022502714299385922,
+     "val_t": 0.9286831891022087,
+     "val_blocks": 12
+    },
+    {
+     "variant": "ext_ret60_gt50|swing_low_20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.003046083349531639,
+     "dev_t": -0.2563609935122669,
+     "dev_blocks": 53,
+     "val_mean": 0.021794728383608585,
+     "val_t": 0.8151213895683224,
+     "val_blocks": 12
+    },
+    {
+     "variant": "ext_ret60_gt50|hold_60d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0007711181356828723,
+     "dev_t": -0.05739035493471358,
+     "dev_blocks": 53,
+     "val_mean": 0.018970148124916434,
+     "val_t": 0.8089118581736299,
+     "val_blocks": 12
+    },
+    {
+     "variant": "ext_ret60_gt50|hold_20d",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0011520200335354924,
+     "dev_t": -0.1338574860903543,
+     "dev_blocks": 53,
+     "val_mean": 0.007722957607999033,
+     "val_t": 0.5233130128512044,
+     "val_blocks": 12
+    }
+   ]
   },
   {
    "id": "E05-PULL",
@@ -1354,7 +3076,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "pull_shallow|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": -0.006031166429534051,
+     "dev_t": -0.8378774047040973,
+     "dev_blocks": 67,
+     "val_mean": -0.04166861102826503,
+     "val_t": -2.5275477662013577,
+     "val_blocks": 21
+    },
+    {
+     "variant": "pull_shallow|atr_trail_4",
+     "verdict": "REJECTED",
+     "dev_mean": -0.009878362268610705,
+     "dev_t": -1.452328521867409,
+     "dev_blocks": 67,
+     "val_mean": -0.03391851351413998,
+     "val_t": -2.2375988364096413,
+     "val_blocks": 21
+    },
+    {
+     "variant": "pull_shallow|hold_60d",
+     "verdict": "REJECTED",
+     "dev_mean": -0.005012892400770815,
+     "dev_t": -0.6793854340424448,
+     "dev_blocks": 67,
+     "val_mean": -0.036563513007755344,
+     "val_t": -2.225672069286239,
+     "val_blocks": 21
+    },
+    {
+     "variant": "pull_shallow|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00986219195610058,
+     "dev_t": -1.4310520049392694,
+     "dev_blocks": 67,
+     "val_mean": -0.04120087090356198,
+     "val_t": -2.165661338719172,
+     "val_blocks": 21
+    }
+   ]
   },
   {
    "id": "E06-ANY",
@@ -1386,7 +3150,39 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "rr_sma50_hh20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.017223372793349147,
+     "dev_t": -1.7622893385759006,
+     "dev_blocks": 70,
+     "val_mean": -0.015394857002947872,
+     "val_t": -1.4433387161259779,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rr_sma20_hh10",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.020792287428984074,
+     "dev_t": -1.8895679780266337,
+     "dev_blocks": 70,
+     "val_mean": -0.01942491974325961,
+     "val_t": -1.433542010053903,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rr_sma20_sma20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.011336183052065294,
+     "dev_t": -1.2463246923475304,
+     "dev_blocks": 70,
+     "val_mean": -0.013647603239827283,
+     "val_t": -1.129828491941061,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E06-BRK",
@@ -1417,7 +3213,39 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "rr_sma20_sma20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.008505456942414799,
+     "dev_t": -0.9127020016633601,
+     "dev_blocks": 70,
+     "val_mean": -0.010004590111112082,
+     "val_t": -0.7311364703223098,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rr_sma20_hh10",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00947271754160678,
+     "dev_t": -0.8470371937941535,
+     "dev_blocks": 70,
+     "val_mean": -0.0099965171617894,
+     "val_t": -0.6617295772405511,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rr_sma50_hh20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.001227311568817075,
+     "dev_t": 0.14991616817356684,
+     "dev_blocks": 70,
+     "val_mean": -0.0033059149296862595,
+     "val_t": -0.32037200790512227,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E06-PULL",
@@ -1448,7 +3276,39 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "rr_sma50_hh20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.032217468912138676,
+     "dev_t": -2.5248798931329297,
+     "dev_blocks": 70,
+     "val_mean": -0.035580888671680515,
+     "val_t": -2.9241683919840082,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rr_sma20_hh10",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.03195147639608354,
+     "dev_t": -2.42405019070297,
+     "dev_blocks": 70,
+     "val_mean": -0.03870179905380132,
+     "val_t": -2.5549390512444137,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rr_sma20_sma20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.024497794901309555,
+     "dev_t": -2.1915177655763554,
+     "dev_blocks": 70,
+     "val_mean": -0.030384326288953146,
+     "val_t": -2.226162671269693,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E07-ANY",
@@ -1482,7 +3342,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "hold60+prev_low",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.009518896203182881,
+     "dev_t": -1.6564956756639921,
+     "dev_blocks": 71,
+     "val_mean": -0.013378423850530058,
+     "val_t": -1.694998205493179,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+prev_low",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.009845600911007998,
+     "dev_t": -1.706621605880055,
+     "dev_blocks": 71,
+     "val_mean": -0.013375331404428752,
+     "val_t": -1.6941763098541296,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+low20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0005324719246893921,
+     "dev_t": 0.3698452840927146,
+     "dev_blocks": 71,
+     "val_mean": -0.003627208087228423,
+     "val_t": -1.7781074941421682,
+     "val_blocks": 23
+    },
+    {
+     "variant": "hold60+low20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.012637964265822295,
+     "dev_t": 3.6679849128342252,
+     "dev_blocks": 71,
+     "val_mean": 0.0007167361536086084,
+     "val_t": 0.28950895812034244,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E07-BRK",
@@ -1515,7 +3417,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "trail4+low20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00028488691378015905,
+     "dev_t": 1.1159428689436852,
+     "dev_blocks": 71,
+     "val_mean": -0.0008132615243099668,
+     "val_t": -1.9393129984479573,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+prev_low",
+     "verdict": "REJECTED",
+     "dev_mean": 6.43456060376714e-05,
+     "dev_t": 0.018515357453890376,
+     "dev_blocks": 71,
+     "val_mean": -0.0032536451020142216,
+     "val_t": -0.5590494638995825,
+     "val_blocks": 23
+    },
+    {
+     "variant": "hold60+prev_low",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0005387251612337766,
+     "dev_t": 0.1567704374038843,
+     "dev_blocks": 71,
+     "val_mean": -0.0031677863902994253,
+     "val_t": -0.5457694234141034,
+     "val_blocks": 23
+    },
+    {
+     "variant": "hold60+low20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.01182256897443725,
+     "dev_t": 2.795773972197447,
+     "dev_blocks": 71,
+     "val_mean": 0.005489674126244898,
+     "val_t": 1.3882172957690275,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E07-PULL",
@@ -1548,7 +3492,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "hold60+prev_low",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.015558831244779692,
+     "dev_t": -2.1182719208275413,
+     "dev_blocks": 71,
+     "val_mean": -0.027089607854148788,
+     "val_t": -2.3159452734719435,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+prev_low",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.015669013424032846,
+     "dev_t": -2.12939899119833,
+     "dev_blocks": 71,
+     "val_mean": -0.026957326834128992,
+     "val_t": -2.3052960935954783,
+     "val_blocks": 23
+    },
+    {
+     "variant": "trail4+low20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.005825274069541099,
+     "dev_t": -1.7838251102826768,
+     "dev_blocks": 71,
+     "val_mean": -0.009624280448426373,
+     "val_t": -1.8193707232224958,
+     "val_blocks": 23
+    },
+    {
+     "variant": "hold60+low20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0008270958549656019,
+     "dev_t": 0.2959818845371881,
+     "dev_blocks": 71,
+     "val_mean": -0.0035376858286148586,
+     "val_t": -0.9225497142132008,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E08-ANY",
@@ -1579,7 +3565,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nifty_gt50d|atr_trail_4",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.05097334747793132,
+     "dev_t": -6.029583556525546,
+     "dev_blocks": 46,
+     "val_mean": -0.042724210777506745,
+     "val_t": -5.3407663185346825,
+     "val_blocks": 19
+    },
+    {
+     "variant": "nifty_gt50d|swing_low_20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.057769258189534704,
+     "dev_t": -5.7538544453541896,
+     "dev_blocks": 46,
+     "val_mean": -0.03981272269967796,
+     "val_t": -5.209025666199696,
+     "val_blocks": 19
+    },
+    {
+     "variant": "nifty_gt50d|sma_close_50",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.056204191236542723,
+     "dev_t": -5.120081557155939,
+     "dev_blocks": 46,
+     "val_mean": -0.04124946736565369,
+     "val_t": -5.142066528292973,
+     "val_blocks": 19
+    },
+    {
+     "variant": "nifty_gt50d|hold_60d",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.05555760609075294,
+     "dev_t": -4.782284588680421,
+     "dev_blocks": 46,
+     "val_mean": -0.04172728291598899,
+     "val_t": -5.116391053081507,
+     "val_blocks": 19
+    }
+   ]
   },
   {
    "id": "E08-BRK",
@@ -1610,7 +3638,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nifty_gt50d|sma_close_50",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.046717050916705194,
+     "dev_t": -3.2987494756413427,
+     "dev_blocks": 45,
+     "val_mean": -0.0367820838028186,
+     "val_t": -3.241649229399658,
+     "val_blocks": 19
+    },
+    {
+     "variant": "nifty_gt50d|atr_trail_4",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.033778662343173914,
+     "dev_t": -4.462607660166736,
+     "dev_blocks": 45,
+     "val_mean": -0.02611173474527251,
+     "val_t": -3.071074242014134,
+     "val_blocks": 19
+    },
+    {
+     "variant": "nifty_gt50d|swing_low_20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.04558459559525471,
+     "dev_t": -3.4825737895825526,
+     "dev_blocks": 45,
+     "val_mean": -0.032604454761632304,
+     "val_t": -3.0043804774309675,
+     "val_blocks": 19
+    },
+    {
+     "variant": "nifty_gt50d|hold_60d",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.04755801227683947,
+     "dev_t": -3.272136117328991,
+     "dev_blocks": 45,
+     "val_mean": -0.03289373027622181,
+     "val_t": -2.7106530037448158,
+     "val_blocks": 19
+    }
+   ]
   },
   {
    "id": "E08-PULL",
@@ -1642,7 +3712,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nifty_gt50d|atr_trail_4",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.038752385808402186,
+     "dev_t": -3.124664364421651,
+     "dev_blocks": 45,
+     "val_mean": -0.03191407215743889,
+     "val_t": -3.1003623867206076,
+     "val_blocks": 19
+    },
+    {
+     "variant": "nifty_gt50d|swing_low_20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.039447377270296104,
+     "dev_t": -2.6077235374773435,
+     "dev_blocks": 45,
+     "val_mean": -0.02979204744414442,
+     "val_t": -2.781758770416059,
+     "val_blocks": 19
+    },
+    {
+     "variant": "nifty_gt50d|hold_60d",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.03853515675352774,
+     "dev_t": -2.3163564682923923,
+     "dev_blocks": 45,
+     "val_mean": -0.030286550450130127,
+     "val_t": -2.581141530644277,
+     "val_blocks": 19
+    },
+    {
+     "variant": "nifty_gt50d|hold_20d",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.038686914895676966,
+     "dev_t": -4.232213224310818,
+     "dev_blocks": 45,
+     "val_mean": -0.022521144234990492,
+     "val_t": -2.448994529907412,
+     "val_blocks": 19
+    }
+   ]
   },
   {
    "id": "E09-ANY",
@@ -1672,7 +3784,29 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stage_25_75_pullback",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.006279536053033094,
+     "dev_t": -4.117990616588232,
+     "dev_blocks": 71,
+     "val_mean": -0.002743047076569675,
+     "val_t": -1.2358330217164986,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stage_weekly4",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.007572470235241232,
+     "dev_t": -3.0805016656761857,
+     "dev_blocks": 71,
+     "val_mean": -0.003631248222999536,
+     "val_t": -1.0363231560085178,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E09-BRK",
@@ -1702,7 +3836,29 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stage_25_75_pullback",
+     "verdict": "REJECTED",
+     "dev_mean": 0.001195063101688968,
+     "dev_t": 0.8064544180502499,
+     "dev_blocks": 71,
+     "val_mean": -0.0015731639330173852,
+     "val_t": -0.8656744942108375,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stage_weekly4",
+     "verdict": "REJECTED",
+     "dev_mean": 0.000501287748556909,
+     "dev_t": 0.18748842445240474,
+     "dev_blocks": 71,
+     "val_mean": -0.0021379500302480797,
+     "val_t": -0.7199591650033814,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E09-PULL",
@@ -1732,7 +3888,29 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stage_weekly4",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.008928246061645401,
+     "dev_t": -2.2943506111782983,
+     "dev_blocks": 71,
+     "val_mean": -0.00665689034672153,
+     "val_t": -1.356890845989078,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stage_25_75_pullback",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.006797181876891417,
+     "dev_t": -2.694304272804488,
+     "dev_blocks": 71,
+     "val_mean": -0.004542374104000661,
+     "val_t": -1.3417665024434473,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E10-ANY",
@@ -1761,7 +3939,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "dd8_pause20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.003162641514733449,
+     "dev_t": 0.17516651477005582,
+     "dev_blocks": 71,
+     "val_mean": 0.017256017848951786,
+     "val_t": 0.600706392131824,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dd12_pause10",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0038119602941227224,
+     "dev_t": 0.24650044964172846,
+     "dev_blocks": 71,
+     "val_mean": 0.011016772402916966,
+     "val_t": 0.5368510187879814,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dd8_pause10",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0015869958067670925,
+     "dev_t": 0.08658439532087153,
+     "dev_blocks": 71,
+     "val_mean": -0.009472805335996232,
+     "val_t": -0.4559625357370552,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dd7_pause10",
+     "verdict": "REJECTED",
+     "dev_mean": -0.005032016311153727,
+     "dev_t": -0.30268709785672043,
+     "dev_blocks": 71,
+     "val_mean": -3.100945289260618e-05,
+     "val_t": -0.001597299539103851,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "E10-BRK",
@@ -1790,7 +4010,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "dd7_pause10",
+     "verdict": "REJECTED",
+     "dev_mean": -0.010457778788083457,
+     "dev_t": -0.6894269455490435,
+     "dev_blocks": 71,
+     "val_mean": -0.010264279986843821,
+     "val_t": -0.6031596260072976,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dd8_pause10",
+     "verdict": "REJECTED",
+     "dev_mean": 0.014654472989080857,
+     "dev_t": 1.2059722401163566,
+     "dev_blocks": 71,
+     "val_mean": 0.007139699896407069,
+     "val_t": 0.5373903446399542,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dd8_pause20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.001177894323956913,
+     "dev_t": 0.08441879727804982,
+     "dev_blocks": 71,
+     "val_mean": -0.0061336084864663755,
+     "val_t": -0.3829013728876017,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dd12_pause10",
+     "verdict": "REJECTED",
+     "dev_mean": 0.018238200699376195,
+     "dev_t": 1.938767320625943,
+     "dev_blocks": 71,
+     "val_mean": -0.001462126341771448,
+     "val_t": -0.14681598928935014,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "E10-PULL",
@@ -1819,7 +4081,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "dd8_pause10",
+     "verdict": "REJECTED",
+     "dev_mean": -0.011887883661586543,
+     "dev_t": -0.7613358207609908,
+     "dev_blocks": 71,
+     "val_mean": -0.033904986452756886,
+     "val_t": -1.5748116766702263,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dd12_pause10",
+     "verdict": "REJECTED",
+     "dev_mean": -0.010891943237903236,
+     "dev_t": -0.7429495976767623,
+     "dev_blocks": 71,
+     "val_mean": -0.02841980275933821,
+     "val_t": -1.1900719830728508,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dd7_pause10",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0055587786603620275,
+     "dev_t": -0.3225460799087692,
+     "dev_blocks": 71,
+     "val_mean": -0.02355932681229145,
+     "val_t": -1.0158795418849713,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dd8_pause20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.013782625494407397,
+     "dev_t": 0.8337144651184911,
+     "dev_blocks": 71,
+     "val_mean": -0.023041583520816047,
+     "val_t": -0.8811270577066977,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "E11-ANY",
@@ -1846,7 +4150,39 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "sma_close_50+band_low",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00035606016990647767,
+     "dev_t": -1.1553008615155806,
+     "dev_blocks": 31,
+     "val_mean": -0.0015632356507033754,
+     "val_t": -2.181368581385119,
+     "val_blocks": 23
+    },
+    {
+     "variant": "hold_60d+band_low",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0003356687443944915,
+     "dev_t": -1.0138857375093207,
+     "dev_blocks": 31,
+     "val_mean": -0.0016690705987627231,
+     "val_t": -2.1515812434125365,
+     "val_blocks": 23
+    },
+    {
+     "variant": "atr_trail_4+band_low",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00024272828724652566,
+     "dev_t": 1.9050222869255635,
+     "dev_blocks": 31,
+     "val_mean": -0.000997231963036357,
+     "val_t": -1.4841799135962443,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E11-BRK",
@@ -1874,7 +4210,39 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "hold_60d+band_low",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0015335787661877555,
+     "dev_t": -2.3088472809176452,
+     "dev_blocks": 31,
+     "val_mean": -0.0016902029854291719,
+     "val_t": -2.305573510789581,
+     "val_blocks": 23
+    },
+    {
+     "variant": "sma_close_50+band_low",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.001349373250839238,
+     "dev_t": -2.2281679825307075,
+     "dev_blocks": 31,
+     "val_mean": -0.001423205883292913,
+     "val_t": -2.1656031409956737,
+     "val_blocks": 23
+    },
+    {
+     "variant": "atr_trail_4+band_low",
+     "verdict": "REJECTED",
+     "dev_mean": 4.663045054280252e-05,
+     "dev_t": 0.6764220040838161,
+     "dev_blocks": 31,
+     "val_mean": -0.0005171696515732064,
+     "val_t": -1.3560249542446665,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "E11-PULL",
@@ -1901,7 +4269,39 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "sma_close_50+band_low",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00011759678658461723,
+     "dev_t": -0.3019014521353448,
+     "dev_blocks": 31,
+     "val_mean": -0.0029602827762172136,
+     "val_t": -1.776257103473302,
+     "val_blocks": 23
+    },
+    {
+     "variant": "hold_60d+band_low",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0004163433358680236,
+     "dev_t": -0.7966842849167183,
+     "dev_blocks": 31,
+     "val_mean": -0.00269037224980355,
+     "val_t": -1.6240847766520448,
+     "val_blocks": 23
+    },
+    {
+     "variant": "atr_trail_4+band_low",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00034145175982342184,
+     "dev_t": 0.8587549655508886,
+     "dev_blocks": 31,
+     "val_mean": -0.0017970668910295131,
+     "val_t": -1.547714863908181,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "F01",
@@ -1937,7 +4337,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "k3|BANKNIFTY",
+     "verdict": "REJECTED",
+     "dev_mean": -0.006103660007031468,
+     "dev_t": -0.5991517860183269,
+     "dev_blocks": 40,
+     "val_mean": 0.04026420521013182,
+     "val_t": 2.9433092413142417,
+     "val_blocks": 24
+    },
+    {
+     "variant": "k2|BANKNIFTY",
+     "verdict": "REJECTED",
+     "dev_mean": -0.006600765601651385,
+     "dev_t": -0.8123977354863217,
+     "dev_blocks": 41,
+     "val_mean": 0.0275577198177492,
+     "val_t": 2.7490409713222834,
+     "val_blocks": 24
+    },
+    {
+     "variant": "k1|BANKNIFTY",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0036817830231866966,
+     "dev_t": -0.6168873708061184,
+     "dev_blocks": 39,
+     "val_mean": 0.01477558203939978,
+     "val_t": 2.28141809299026,
+     "val_blocks": 24
+    },
+    {
+     "variant": "k2|NIFTY",
+     "verdict": "REJECTED",
+     "dev_mean": 7.247363817774628e-05,
+     "dev_t": 0.013762578563730324,
+     "dev_blocks": 67,
+     "val_mean": 0.012624176337466547,
+     "val_t": 1.7247150690492112,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "F02",
@@ -1969,7 +4411,29 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "eve_strangle|BANKNIFTY",
+     "verdict": "REJECTED",
+     "dev_mean": 8.709006100886522e-05,
+     "dev_t": 0.03418939930514949,
+     "dev_blocks": 37,
+     "val_mean": 0.004909742407405213,
+     "val_t": 1.4961485536492432,
+     "val_blocks": 24
+    },
+    {
+     "variant": "eve_strangle|NIFTY",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.004232378517960681,
+     "dev_t": 3.362838770552835,
+     "dev_blocks": 67,
+     "val_mean": 0.00275082027170291,
+     "val_t": 1.490208389885165,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "F03",
@@ -2004,7 +4468,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "maxpain_pin|NIFTY",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.015515467998562288,
+     "dev_t": -7.60310271963998,
+     "dev_blocks": 194,
+     "val_mean": -0.0017697197544564666,
+     "val_t": -3.1740151696048526,
+     "val_blocks": 267
+    },
+    {
+     "variant": "maxpain_pin|BANKNIFTY",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.019420356131708515,
+     "dev_t": -4.922925206800181,
+     "dev_blocks": 189,
+     "val_mean": -0.0007726173895780818,
+     "val_t": -2.1470275224155757,
+     "val_blocks": 312
+    },
+    {
+     "variant": "pcr_low|NIFTY",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.007043658451855469,
+     "dev_t": 2.2398897364283417,
+     "dev_blocks": 32,
+     "val_mean": 0.0015744823621296588,
+     "val_t": 0.40850011038853,
+     "val_blocks": 22
+    },
+    {
+     "variant": "pcr_high|NIFTY",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0016880240131595516,
+     "dev_t": -1.0296456888215193,
+     "dev_blocks": 55,
+     "val_mean": -0.0013988934396929537,
+     "val_t": -0.6954895513551571,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "F04",
@@ -2037,7 +4543,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "long_unwinding",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.006554840263226298,
+     "dev_t": 2.7102046041467354,
+     "dev_blocks": 65,
+     "val_mean": 0.001724908417788425,
+     "val_t": 0.4032156438096152,
+     "val_blocks": 24
+    },
+    {
+     "variant": "long_buildup",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0019719748458421472,
+     "dev_t": -1.650931851479896,
+     "dev_blocks": 65,
+     "val_mean": 0.0018767132767621394,
+     "val_t": 1.4256221075152506,
+     "val_blocks": 24
+    },
+    {
+     "variant": "short_buildup",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0008400524002180062,
+     "dev_t": 0.9119072410978499,
+     "dev_blocks": 65,
+     "val_mean": -0.0008713850231138893,
+     "val_t": -0.43978911880005445,
+     "val_blocks": 24
+    },
+    {
+     "variant": "short_covering",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.002421748920454154,
+     "dev_t": 1.942032364507071,
+     "dev_blocks": 65,
+     "val_mean": 0.0001784428133611664,
+     "val_t": 0.10854904098398033,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "F05-O04",
@@ -2068,7 +4616,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "vs_hold|stop0.5_trail0.35_nb14:45",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.006934690842679787,
+     "dev_t": 2.324011269732006,
+     "dev_blocks": 136,
+     "val_mean": 0.018229477698660446,
+     "val_t": 12.589450594422816,
+     "val_blocks": 792
+    },
+    {
+     "variant": "vs_hold|stop0.6_trail0.35_nb14:45",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.00694914616886524,
+     "dev_t": 2.3289465407452727,
+     "dev_blocks": 136,
+     "val_mean": 0.018229477698660446,
+     "val_t": 12.589450594422816,
+     "val_blocks": 792
+    },
+    {
+     "variant": "vs_hold|stop0.5_trail0.35_nb15:15",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.006709225983280099,
+     "dev_t": 2.2504913906424733,
+     "dev_blocks": 136,
+     "val_mean": 0.018109711178593526,
+     "val_t": 12.56886468354149,
+     "val_blocks": 792
+    },
+    {
+     "variant": "vs_hold|stop0.6_trail0.35_nb15:15",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.0068318737239866315,
+     "dev_t": 2.2910255494828817,
+     "dev_blocks": 136,
+     "val_mean": 0.018153594058021614,
+     "val_t": 12.548990566680185,
+     "val_blocks": 792
+    }
+   ]
   },
   {
    "id": "F06-ANY",
@@ -2102,7 +4692,49 @@
    "plain_name": "the put-protection test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "put5otm_50pct",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0020629126077842436,
+     "dev_t": 0.4722805433982158,
+     "dev_blocks": 59,
+     "val_mean": -0.0052590762291266965,
+     "val_t": -0.8775857070647994,
+     "val_blocks": 23
+    },
+    {
+     "variant": "put5otm_100pct",
+     "verdict": "REJECTED",
+     "dev_mean": 0.008059746206740845,
+     "dev_t": 0.6907210689513362,
+     "dev_blocks": 59,
+     "val_mean": -0.009534497192449665,
+     "val_t": -0.8174894658045423,
+     "val_blocks": 23
+    },
+    {
+     "variant": "put10otm_50pct",
+     "verdict": "REJECTED",
+     "dev_mean": 0.003329652496368503,
+     "dev_t": 0.7460705167186282,
+     "dev_blocks": 59,
+     "val_mean": -0.0026721336922446064,
+     "val_t": -0.6032073300866901,
+     "val_blocks": 23
+    },
+    {
+     "variant": "put10otm_100pct",
+     "verdict": "REJECTED",
+     "dev_mean": 0.010315885912046121,
+     "dev_t": 0.8565082807335951,
+     "dev_blocks": 59,
+     "val_mean": -0.0047512445107356855,
+     "val_t": -0.5481937570055914,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "F06-BRK",
@@ -2136,7 +4768,49 @@
    "plain_name": "the put-protection test",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "put5otm_50pct",
+     "verdict": "REJECTED",
+     "dev_mean": -0.002887396444009117,
+     "dev_t": -0.5867932968872984,
+     "dev_blocks": 59,
+     "val_mean": -0.0026345082516107555,
+     "val_t": -0.4800457215095963,
+     "val_blocks": 23
+    },
+    {
+     "variant": "put5otm_100pct",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0023435545449264354,
+     "dev_t": 0.1416585501639598,
+     "dev_blocks": 59,
+     "val_mean": -0.004761144995024394,
+     "val_t": -0.4375946153105547,
+     "val_blocks": 23
+    },
+    {
+     "variant": "put10otm_50pct",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0015699915094052113,
+     "dev_t": -0.4604770176256858,
+     "dev_blocks": 59,
+     "val_mean": -0.0007604665017598372,
+     "val_t": -0.1892692329089475,
+     "val_blocks": 23
+    },
+    {
+     "variant": "put10otm_100pct",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0010892371371368829,
+     "dev_t": -0.12583684135604942,
+     "dev_blocks": 59,
+     "val_mean": -0.0012347030595060197,
+     "val_t": -0.155055084663081,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "F06-PULL",
@@ -2170,7 +4844,49 @@
    "plain_name": "the put-protection test",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "put5otm_50pct",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0004053196535899571,
+     "dev_t": 0.052437243313136525,
+     "dev_blocks": 59,
+     "val_mean": -0.0044219912071856325,
+     "val_t": -0.7172171659491996,
+     "val_blocks": 23
+    },
+    {
+     "variant": "put5otm_100pct",
+     "verdict": "REJECTED",
+     "dev_mean": -0.33368989530582666,
+     "dev_t": -0.9549716944432608,
+     "dev_blocks": 59,
+     "val_mean": -0.007873739031571292,
+     "val_t": -0.6558980746789793,
+     "val_blocks": 23
+    },
+    {
+     "variant": "put10otm_50pct",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0007178927420347487,
+     "dev_t": 0.125990000769249,
+     "dev_blocks": 59,
+     "val_mean": -0.002367477168551699,
+     "val_t": -0.5324860483383914,
+     "val_blocks": 23
+    },
+    {
+     "variant": "put10otm_100pct",
+     "verdict": "REJECTED",
+     "dev_mean": 0.015455682634714227,
+     "dev_t": 0.7624105335897138,
+     "dev_blocks": 59,
+     "val_mean": -0.0042088666676940055,
+     "val_t": -0.4830348386016209,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "FII1",
@@ -2197,7 +4913,49 @@
    "plain_name": "Ananta's foreign-flows test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "pos5|nfwd5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0005152803971771053,
+     "dev_t": 0.18881901528172523,
+     "dev_blocks": 39,
+     "val_mean": -0.0058396491798642786,
+     "val_t": -1.56496672913064,
+     "val_blocks": 19
+    },
+    {
+     "variant": "neg5|nfwd1",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0006926508691766301,
+     "dev_t": -0.6761183956675465,
+     "dev_blocks": 38,
+     "val_mean": 0.0019017041935788055,
+     "val_t": 1.3724601167917114,
+     "val_blocks": 20
+    },
+    {
+     "variant": "neg5|nfwd20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0009350075824480671,
+     "dev_t": 0.09210183719104684,
+     "dev_blocks": 38,
+     "val_mean": 0.013149326958638092,
+     "val_t": 1.2022017169096957,
+     "val_blocks": 20
+    },
+    {
+     "variant": "neg1|nfwd1",
+     "verdict": "REJECTED",
+     "dev_mean": 0.001298851946232988,
+     "dev_t": 1.2358538824430747,
+     "dev_blocks": 48,
+     "val_mean": 0.0007625920702662978,
+     "val_t": 0.6829371680530147,
+     "val_blocks": 22
+    }
+   ]
   },
   {
    "id": "FX1",
@@ -2225,7 +4983,49 @@
    "plain_name": "Ananta's rupee test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "weak5|itx20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.004523057845063272,
+     "dev_t": 0.648857700590421,
+     "dev_blocks": 54,
+     "val_mean": -0.006551656130218174,
+     "val_t": -0.7235650608342783,
+     "val_blocks": 20
+    },
+    {
+     "variant": "weak5|pharmax20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0037154457300957087,
+     "dev_t": 0.5617623267245683,
+     "dev_blocks": 54,
+     "val_mean": 0.010458133462829053,
+     "val_t": 0.6241171182147833,
+     "val_blocks": 20
+    },
+    {
+     "variant": "weak1|nfwd5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0013849631710646918,
+     "dev_t": 0.589087708637163,
+     "dev_blocks": 59,
+     "val_mean": 0.0020703280499435295,
+     "val_t": 0.5323955132877116,
+     "val_blocks": 23
+    },
+    {
+     "variant": "weak5|bankfwd20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0037434663119157996,
+     "dev_t": -0.28609463332237844,
+     "dev_blocks": 54,
+     "val_mean": -0.0036839346373778604,
+     "val_t": -0.22751277008982074,
+     "val_blocks": 20
+    }
+   ]
   },
   {
    "id": "GK1",
@@ -2253,7 +5053,49 @@
    "plain_name": null,
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "SP1|next_vs_near|ret",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.02191690647965249,
+     "dev_t": -4.814703772153435,
+     "dev_blocks": 36,
+     "val_mean": -0.04012819492160275,
+     "val_t": -9.473577319153463,
+     "val_blocks": 72
+    },
+    {
+     "variant": "BANK|exp0|straddle_oc",
+     "verdict": "REJECTED",
+     "dev_mean": -0.08646017529467842,
+     "dev_t": -0.6452755099235262,
+     "dev_blocks": 16,
+     "val_mean": -0.1935753696410687,
+     "val_t": -6.1677008152333705,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANK|exp0_vs_exp3|straddle_oc",
+     "verdict": "REJECTED",
+     "dev_mean": -0.13975012284820454,
+     "dev_t": -0.8541973762148991,
+     "dev_blocks": 16,
+     "val_mean": -0.2031697501021504,
+     "val_t": -5.278669632765821,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|exp0|straddle_oc",
+     "verdict": "REJECTED",
+     "dev_mean": -0.08235205615556941,
+     "dev_t": -0.7300736864103159,
+     "dev_blocks": 16,
+     "val_mean": -0.19430073636761527,
+     "val_t": -4.73961437346302,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "GP1",
@@ -2284,7 +5126,49 @@
    "plain_name": "Ananta's opening-gap test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "STK|gapdown2|open|hold1",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.022607927870596473,
+     "dev_t": 14.744066752358572,
+     "dev_blocks": 71,
+     "val_mean": 0.00439725848152398,
+     "val_t": 2.979614169711393,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|gapdown1|open|hold5",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.012203091608208153,
+     "dev_t": 10.47310424746466,
+     "dev_blocks": 71,
+     "val_mean": 0.004101985934926995,
+     "val_t": 2.7740416446621157,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|gapdown2|open|hold5",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.02221436052127255,
+     "dev_t": 10.871069209211665,
+     "dev_blocks": 71,
+     "val_mean": 0.006445726339851778,
+     "val_t": 2.4472626842835905,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|gapup2|open|hold5",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.01029693800169982,
+     "dev_t": -8.197375155376635,
+     "dev_blocks": 71,
+     "val_mean": -0.0007278564192390504,
+     "val_t": -0.3897824984878189,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "HF-CHRONOS",
@@ -2312,7 +5196,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|h1|longflat_vs_hold",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00016493118047325044,
+     "dev_t": -1.2682256460418406,
+     "dev_blocks": 32,
+     "val_mean": -0.0003196690547711917,
+     "val_t": -2.1350733166075413,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|h1|hit",
+     "verdict": "REJECTED",
+     "dev_mean": 0.014966913682421576,
+     "dev_t": 1.3500131241794162,
+     "dev_blocks": 32,
+     "val_mean": 0.01884076261330682,
+     "val_t": 1.3706162256666112,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|h5|vs_call",
+     "verdict": "REJECTED",
+     "dev_mean": 0.028841061990634295,
+     "dev_t": 0.8435882109446587,
+     "dev_blocks": 32,
+     "val_mean": -0.046620922838891334,
+     "val_t": -1.3411281031307565,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|h1|longflat_vs_hold",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00024751705703135457,
+     "dev_t": -1.2854655485010489,
+     "dev_blocks": 32,
+     "val_mean": -0.00023363994723709283,
+     "val_t": -1.0057722292374018,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "HFN1",
@@ -2340,7 +5266,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "rank|drift20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.006293822195800633,
+     "dev_t": 1.295063827294223,
+     "dev_blocks": 31,
+     "val_mean": 0.010320595278925492,
+     "val_t": 1.3259675881082178,
+     "val_blocks": 22
+    },
+    {
+     "variant": "spread|drift5",
+     "verdict": "REJECTED",
+     "dev_mean": 5.6418807987574756e-05,
+     "dev_t": 0.035681555822881406,
+     "dev_blocks": 31,
+     "val_mean": -0.002302740650579361,
+     "val_t": -1.2201408641363778,
+     "val_blocks": 22
+    },
+    {
+     "variant": "neg|drift5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0009267168327380422,
+     "dev_t": -0.6033597622433745,
+     "dev_blocks": 31,
+     "val_mean": 0.0024453554495231316,
+     "val_t": 1.1492907347363148,
+     "val_blocks": 22
+    },
+    {
+     "variant": "pos|drift20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0017596338945074083,
+     "dev_t": 0.5170059645658501,
+     "dev_blocks": 31,
+     "val_mean": 0.0023582100944091956,
+     "val_t": 0.49440400736270224,
+     "val_blocks": 22
+    }
+   ]
   },
   {
    "id": "HG1",
@@ -2369,7 +5337,49 @@
    "plain_name": "Ananta's hedging test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "cash20|worst20",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.006570989086059035,
+     "dev_t": 3.7222874478060715,
+     "dev_blocks": 59,
+     "val_mean": 0.006640095768311788,
+     "val_t": 1.9314656873781575,
+     "val_blocks": 24
+    },
+    {
+     "variant": "put5otm|worst20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.004180030189664506,
+     "dev_t": -1.2018920977401506,
+     "dev_blocks": 59,
+     "val_mean": 0.021958062399095524,
+     "val_t": 1.6626021489528753,
+     "val_blocks": 24
+    },
+    {
+     "variant": "short_futures|return",
+     "verdict": "REJECTED",
+     "dev_mean": -0.01088855054348479,
+     "dev_t": -1.2026502124223857,
+     "dev_blocks": 59,
+     "val_mean": -0.01700663110843184,
+     "val_t": -1.1203801056746705,
+     "val_blocks": 24
+    },
+    {
+     "variant": "cash20|return",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0021171856337281743,
+     "dev_t": -0.8117914486379082,
+     "dev_blocks": 59,
+     "val_mean": -0.0040129152728535,
+     "val_t": -0.9767530515545373,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "I01",
@@ -2400,7 +5410,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "first30|NIFTY BANK",
+     "verdict": "REJECTED",
+     "dev_mean": 0.000513037370753145,
+     "dev_t": 1.5252720515545382,
+     "dev_blocks": 728,
+     "val_mean": -0.00019558710267680493,
+     "val_t": -0.6036883597618381,
+     "val_blocks": 1477
+    },
+    {
+     "variant": "first30|NIFTY 50",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0001566989388628483,
+     "dev_t": 0.6683182290999524,
+     "dev_blocks": 727,
+     "val_mean": 0.00013113486583531358,
+     "val_t": 0.5521387861163269,
+     "val_blocks": 1478
+    },
+    {
+     "variant": "first30|NIFTY FIN SERVICE",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00036585677213317317,
+     "dev_t": 1.179783092756482,
+     "dev_blocks": 726,
+     "val_mean": -4.512486254424228e-05,
+     "val_t": -0.14845851832659526,
+     "val_blocks": 1477
+    },
+    {
+     "variant": "first60|NIFTY 50",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.000564791738070461,
+     "dev_t": 2.584252720178228,
+     "dev_blocks": 728,
+     "val_mean": 0.00017502525564809087,
+     "val_t": 0.7600906429388553,
+     "val_blocks": 1478
+    }
+   ]
   },
   {
    "id": "I02",
@@ -2428,7 +5480,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stop50|NIFTY BANK",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0001540274814297485,
+     "dev_t": 0.8982565476610691,
+     "dev_blocks": 726,
+     "val_mean": 0.00047163764340008013,
+     "val_t": 2.205373868326538,
+     "val_blocks": 1477
+    },
+    {
+     "variant": "or_break|NIFTY FIN SERVICE",
+     "verdict": "REJECTED",
+     "dev_mean": 0.000173931828672615,
+     "dev_t": 1.030112719870649,
+     "dev_blocks": 725,
+     "val_mean": 0.00035568420238215145,
+     "val_t": 1.8374039928402137,
+     "val_blocks": 1477
+    },
+    {
+     "variant": "stop50|NIFTY FIN SERVICE",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0002024758204680278,
+     "dev_t": 1.3035319185425562,
+     "dev_blocks": 725,
+     "val_mean": 0.0003595723824368868,
+     "val_t": 1.6817768582935582,
+     "val_blocks": 1477
+    },
+    {
+     "variant": "or_break|NIFTY BANK",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00016066281526619963,
+     "dev_t": 0.8778178140126678,
+     "dev_blocks": 726,
+     "val_mean": 0.0002792513871684859,
+     "val_t": 1.3998247683737524,
+     "val_blocks": 1477
+    }
+   ]
   },
   {
    "id": "I05",
@@ -2458,7 +5552,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "cont_other|NIFTY 50",
+     "verdict": "REJECTED",
+     "dev_mean": 2.165083581104319e-05,
+     "dev_t": 0.14339295144505376,
+     "dev_blocks": 686,
+     "val_mean": 0.00029599272362530846,
+     "val_t": 2.19261771721323,
+     "val_blocks": 1199
+    },
+    {
+     "variant": "cont_other|NIFTY FIN SERVICE",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00017331566520092682,
+     "dev_t": 0.9362366468885436,
+     "dev_blocks": 719,
+     "val_mean": 0.00027928131181083386,
+     "val_t": 1.6778846878003932,
+     "val_blocks": 1290
+    },
+    {
+     "variant": "cont_expiry|NIFTY BANK",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00025907145559410865,
+     "dev_t": 0.5436933962522584,
+     "dev_blocks": 99,
+     "val_mean": 0.00032692355862280124,
+     "val_t": 0.8761749618980685,
+     "val_blocks": 308
+    },
+    {
+     "variant": "cont_other|NIFTY BANK",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00016482860952998546,
+     "dev_t": 0.7730774705573411,
+     "dev_blocks": 620,
+     "val_mean": 0.00015735535501260007,
+     "val_t": 0.8199352300664388,
+     "val_blocks": 1140
+    }
+   ]
   },
   {
    "id": "IB1",
@@ -2487,7 +5623,49 @@
    "plain_name": null,
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "STK|orb30|net",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.001401961180390904,
+     "dev_t": 8.637532541746527,
+     "dev_blocks": 35,
+     "val_mean": 0.0011661027511882405,
+     "val_t": 8.964772618996657,
+     "val_blocks": 72
+    },
+    {
+     "variant": "STK|orb15|net",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.0013795646859939583,
+     "dev_t": 8.467804908441018,
+     "dev_blocks": 35,
+     "val_mean": 0.001020513508542139,
+     "val_t": 7.392050694692199,
+     "val_blocks": 72
+    },
+    {
+     "variant": "IDX|fh_break|net",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.0007511734870691533,
+     "dev_t": 3.245857720697253,
+     "dev_blocks": 36,
+     "val_mean": 0.001063655640200432,
+     "val_t": 4.985927908312715,
+     "val_blocks": 72
+    },
+    {
+     "variant": "NIFTY|orb30|net",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.0012513355154932472,
+     "dev_t": 4.800364934996929,
+     "dev_blocks": 36,
+     "val_mean": 0.0007681844595783132,
+     "val_t": 3.6032183895349204,
+     "val_blocks": 72
+    }
+   ]
   },
   {
    "id": "MS1",
@@ -2516,7 +5694,49 @@
    "plain_name": null,
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "IDX|or15_top|dayrange",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.001900606109923252,
+     "dev_t": 1.950310681056515,
+     "dev_blocks": 30,
+     "val_mean": 0.00454121034428356,
+     "val_t": 4.446413218723561,
+     "val_blocks": 66
+    },
+    {
+     "variant": "STK|first15|rest_signed",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00015275234154981583,
+     "dev_t": 0.8917771650867786,
+     "dev_blocks": 35,
+     "val_mean": 0.0003582717146099739,
+     "val_t": 2.736307852775652,
+     "val_blocks": 72
+    },
+    {
+     "variant": "BANK|first15|rest_signed",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0005109014136514662,
+     "dev_t": 1.599649879384088,
+     "dev_blocks": 36,
+     "val_mean": -0.0001712095313416737,
+     "val_t": -0.6768353020939707,
+     "val_blocks": 72
+    },
+    {
+     "variant": "IDX|expiry_pm|absmove",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00013897253566310698,
+     "dev_t": 0.3464194626260567,
+     "dev_blocks": 36,
+     "val_mean": -0.0001878503194432616,
+     "val_t": -0.5230724032620377,
+     "val_blocks": 72
+    }
+   ]
   },
   {
    "id": "OC1",
@@ -2546,7 +5766,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "STOCKS|k30|E2|X2|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 13.352749759612138,
+     "dev_t": 15.817350081983239,
+     "dev_blocks": 697,
+     "val_mean": 14.0342635505365,
+     "val_t": 19.92983653692967,
+     "val_blocks": 1474
+    },
+    {
+     "variant": "STOCKS|k15|E2|X2|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 11.780434639596233,
+     "dev_t": 13.822607805040496,
+     "dev_blocks": 697,
+     "val_mean": 12.888465121474116,
+     "val_t": 18.83707699153609,
+     "val_blocks": 1475
+    },
+    {
+     "variant": "STOCKS|k15|E2|X1|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 11.169766370717344,
+     "dev_t": 10.573705868954958,
+     "dev_blocks": 697,
+     "val_mean": 12.947586714103362,
+     "val_t": 16.15325496835325,
+     "val_blocks": 1475
+    },
+    {
+     "variant": "STOCKS|k30|E2|X1|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 13.299535610827398,
+     "dev_t": 12.382180916133999,
+     "dev_blocks": 697,
+     "val_mean": 13.175257242018558,
+     "val_t": 15.280454876212172,
+     "val_blocks": 1474
+    }
+   ]
   },
   {
    "id": "OS1",
@@ -2574,7 +5836,49 @@
    "plain_name": "Ananta's option-spread test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "ALL|spread1|ret",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.20471455842218167,
+     "dev_t": -29.53794174560723,
+     "dev_blocks": 36,
+     "val_mean": -0.23865605067020143,
+     "val_t": -35.87873927191437,
+     "val_blocks": 72
+    },
+    {
+     "variant": "ALL|spread2|ret",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.10855877511510259,
+     "dev_t": -27.642730180124904,
+     "dev_blocks": 36,
+     "val_mean": -0.13734578476605724,
+     "val_t": -31.745374047924365,
+     "val_blocks": 72
+    },
+    {
+     "variant": "ALL|spread1|rs",
+     "verdict": "OPPOSITE",
+     "dev_mean": -283.1791732312456,
+     "dev_t": -15.538657119516271,
+     "dev_blocks": 36,
+     "val_mean": -469.67018778598475,
+     "val_t": -12.048265671961499,
+     "val_blocks": 72
+    },
+    {
+     "variant": "HIVIX|spread1|ret",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.2149282351388328,
+     "dev_t": -14.260999562891504,
+     "dev_blocks": 15,
+     "val_mean": -0.23564449512812302,
+     "val_t": -20.417487932244708,
+     "val_blocks": 41
+    }
+   ]
   },
   {
    "id": "P01-ANY",
@@ -2612,7 +5916,49 @@
    "plain_name": "the entry test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "rsi_gt70|hold_20d",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.019344874052225236,
+     "dev_t": -5.102584114717815,
+     "dev_blocks": 70,
+     "val_mean": -0.014654708717447434,
+     "val_t": -4.434963117458544,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rsi_gt70|atr_trail_4",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.01659092731173907,
+     "dev_t": -3.375064348506796,
+     "dev_blocks": 70,
+     "val_mean": -0.018156352358612286,
+     "val_t": -3.8598686012181918,
+     "val_blocks": 23
+    },
+    {
+     "variant": "rsi_lt30|hold_20d",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.02540366580128845,
+     "dev_t": 4.208574657398781,
+     "dev_blocks": 70,
+     "val_mean": 0.019085181759709302,
+     "val_t": 3.4319811886620317,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stoch_lt20|atr_trail_4",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.0133459596206707,
+     "dev_t": 3.210287631730121,
+     "dev_blocks": 71,
+     "val_mean": 0.016386886271114284,
+     "val_t": 3.3214476059991638,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "P01-BRK",
@@ -2648,7 +5994,49 @@
    "plain_name": "the entry test",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "rsi_gt70|hold_20d",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.009331266608894745,
+     "dev_t": -3.4250818229788442,
+     "dev_blocks": 69,
+     "val_mean": -0.005486440062584178,
+     "val_t": -1.715832048374137,
+     "val_blocks": 23
+    },
+    {
+     "variant": "wk_outside_up|hold_60d",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00523646110462845,
+     "dev_t": -1.060510671286353,
+     "dev_blocks": 68,
+     "val_mean": -0.00804409904533185,
+     "val_t": -1.3105428622692705,
+     "val_blocks": 23
+    },
+    {
+     "variant": "wk_outside_up|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": -0.004135591488143641,
+     "dev_t": -0.8459000147401873,
+     "dev_blocks": 68,
+     "val_mean": -0.0062906110052483736,
+     "val_t": -1.1311629615814245,
+     "val_blocks": 23
+    },
+    {
+     "variant": "wk_outside_up|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0062439912578155865,
+     "dev_t": -1.4161137910967536,
+     "dev_blocks": 68,
+     "val_mean": -0.0046726182178216434,
+     "val_t": -0.9045366087620095,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "P01-PULL",
@@ -2683,7 +6071,49 @@
    "plain_name": "the entry test",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stoch_lt20|hold_60d",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0049588329863430565,
+     "dev_t": 0.7794616310993633,
+     "dev_blocks": 68,
+     "val_mean": -0.021343288649692746,
+     "val_t": -1.6244217561388417,
+     "val_blocks": 21
+    },
+    {
+     "variant": "stoch_lt20|atr_trail_4",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0009530061476339072,
+     "dev_t": 0.1516346180473765,
+     "dev_blocks": 68,
+     "val_mean": -0.018843630231389383,
+     "val_t": -1.6205195771136378,
+     "val_blocks": 21
+    },
+    {
+     "variant": "stoch_lt20|swing_low_20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0018736726933684385,
+     "dev_t": -0.2835078388736603,
+     "dev_blocks": 68,
+     "val_mean": -0.018200782066097473,
+     "val_t": -1.476180214864812,
+     "val_blocks": 21
+    },
+    {
+     "variant": "stoch_lt20|sma_close_50",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0012096179615841175,
+     "dev_t": 0.18625787983682363,
+     "dev_blocks": 68,
+     "val_mean": -0.01809936453902158,
+     "val_t": -1.3381320219735198,
+     "val_blocks": 21
+    }
+   ]
   },
   {
    "id": "RX1",
@@ -2713,7 +6143,49 @@
    "plain_name": "Ananta's test of the 12 reconstruction drafts",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "D|downtrend_fall|next_oc",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.0017893504501037406,
+     "dev_t": -4.872189903750646,
+     "dev_blocks": 67,
+     "val_mean": -0.0012358135164943212,
+     "val_t": -2.4610006242930473,
+     "val_blocks": 24
+    },
+    {
+     "variant": "X|CTL_downtrend|unproven3_vs_hold20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.004803053161890934,
+     "dev_t": -1.962996383224624,
+     "dev_blocks": 57,
+     "val_mean": -0.0064433767698598215,
+     "val_t": -2.1346875964554024,
+     "val_blocks": 28
+    },
+    {
+     "variant": "X|CTL|unproven3_vs_hold20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0024387373624622957,
+     "dev_t": -1.9687270190489499,
+     "dev_blocks": 211,
+     "val_mean": -0.0023670058055939806,
+     "val_t": -1.674891497155711,
+     "val_blocks": 72
+    },
+    {
+     "variant": "X|PULL|unproven3_vs_hold20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0043752801305531755,
+     "dev_t": -2.4364139570098335,
+     "dev_blocks": 208,
+     "val_mean": -0.0025853088333946056,
+     "val_t": -1.520136102216756,
+     "val_blocks": 69
+    }
+   ]
   },
   {
    "id": "RX2",
@@ -2740,7 +6212,19 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "X|REV|unproven3_vs_hold20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0040732455936069506,
+     "dev_t": -2.4875039961208225,
+     "dev_blocks": 211,
+     "val_mean": -0.006276766437273866,
+     "val_t": -2.415414183162027,
+     "val_blocks": 71
+    }
+   ]
   },
   {
    "id": "SP1",
@@ -2769,7 +6253,49 @@
    "plain_name": "the options line",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": true
+   "in_lock": true,
+   "top_variants": [
+    {
+     "variant": "NIFTY|option|policy",
+     "verdict": "SUPPORTED_SEEN",
+     "dev_mean": 76.05399716670391,
+     "dev_t": 0.2845211300379954,
+     "dev_blocks": 246,
+     "val_mean": 498.3020489211261,
+     "val_t": 3.4898182288126773,
+     "val_blocks": 1476
+    },
+    {
+     "variant": "NIFTY|future_proxy|policy",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": -1.5583644126074583,
+     "dev_t": -0.6064505590117479,
+     "dev_blocks": 246,
+     "val_mean": 3.8286707422218114,
+     "val_t": 2.527515531700975,
+     "val_blocks": 1476
+    },
+    {
+     "variant": "BANKNIFTY|option|policy",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": 70.96875107763138,
+     "dev_t": 0.16567173658841108,
+     "dev_blocks": 246,
+     "val_mean": 289.4182991648048,
+     "val_t": 2.2289595611626916,
+     "val_blocks": 1476
+    },
+    {
+     "variant": "NIFTY|future_proxy|vs_intercept_only",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": -1.0660214381856796,
+     "dev_t": -1.0461215218894135,
+     "dev_blocks": 246,
+     "val_mean": 2.5635343973309057,
+     "val_t": 1.5798845416288714,
+     "val_blocks": 1476
+    }
+   ]
   },
   {
    "id": "SP1H",
@@ -2796,7 +6322,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "SP1H|NIFTY|option|policy",
+     "verdict": "NOT_CONFIRMED",
+     "dev_mean": 498.3020489211261,
+     "dev_t": 3.4898182288126773,
+     "dev_blocks": 1476,
+     "val_mean": 461.17798329505047,
+     "val_t": 2.5002957126378917,
+     "val_blocks": 687
+    },
+    {
+     "variant": "SP1H|NIFTY|future_proxy|policy",
+     "verdict": "NOT_CONFIRMED",
+     "dev_mean": 3.8286707422218114,
+     "dev_t": 2.527515531700975,
+     "dev_blocks": 1476,
+     "val_mean": 4.078351764544105,
+     "val_t": 2.3585630791116126,
+     "val_blocks": 687
+    },
+    {
+     "variant": "SP1H|BANKNIFTY|option|policy",
+     "verdict": "NOT_CONFIRMED",
+     "dev_mean": 289.4182991648048,
+     "dev_t": 2.2289595611626916,
+     "dev_blocks": 1476,
+     "val_mean": 396.5419907860561,
+     "val_t": 1.7139466972444461,
+     "val_blocks": 687
+    },
+    {
+     "variant": "SP1H|BOOK|option|sized",
+     "verdict": "NOT_CONFIRMED",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": 56.897669619774156,
+     "val_t": 1.3449878480652486,
+     "val_blocks": 687
+    }
+   ]
   },
   {
    "id": "SP3",
@@ -2823,7 +6391,49 @@
    "plain_name": "the positional playbook",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": true
+   "in_lock": true,
+   "top_variants": [
+    {
+     "variant": "STOCK|trade|exit_choice",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": -0.007455218263485292,
+     "dev_t": -1.5513536627777524,
+     "dev_blocks": 31,
+     "val_mean": -0.028631791339636285,
+     "val_t": -2.24291000906338,
+     "val_blocks": 20
+    },
+    {
+     "variant": "INDEX|NIFTY|policy",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": 3.333062054470505e-05,
+     "dev_t": 0.1506669203316328,
+     "dev_blocks": 32,
+     "val_mean": 0.00037949170810246195,
+     "val_t": 1.3439829917027062,
+     "val_blocks": 24
+    },
+    {
+     "variant": "INDEX|BANKNIFTY|vs_intercept_only",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": -0.00011279836484963495,
+     "dev_t": -0.570803765783715,
+     "dev_blocks": 32,
+     "val_mean": -0.0003599399958713519,
+     "val_t": -1.3183147567574556,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STOCK|book|vs_nifty",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": -0.00010404538838173408,
+     "dev_t": -0.35162563108663836,
+     "dev_blocks": 32,
+     "val_mean": -0.0004591916042653686,
+     "val_t": -1.1259744272371315,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "SR1",
@@ -2851,7 +6461,49 @@
    "plain_name": "Ananta's support-and-resistance test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "STK|break60|net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.009500405595554956,
+     "dev_t": -4.572658461191364,
+     "dev_blocks": 70,
+     "val_mean": -0.00541683516223117,
+     "val_t": -2.881487014348791,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|break20|net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.010825516502873944,
+     "dev_t": -4.2871648925305745,
+     "dev_blocks": 70,
+     "val_mean": -0.004945850640468159,
+     "val_t": -1.9703177169497947,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|breakdown60|net20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0007667612674851641,
+     "dev_t": 0.2210359743674867,
+     "dev_blocks": 70,
+     "val_mean": 0.004943713075035521,
+     "val_t": 1.5106364737949938,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|bounce60|net20|absolute",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00933257042899779,
+     "dev_t": 1.461449850763797,
+     "dev_blocks": 70,
+     "val_mean": 0.008576247354511098,
+     "val_t": 0.9798364411014104,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "SZ2",
@@ -2878,7 +6530,49 @@
    "plain_name": "the sizing study",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": true
+   "in_lock": true,
+   "top_variants": [
+    {
+     "variant": "LONG_ATM|0.02",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0,
+     "dev_t": NaN,
+     "dev_blocks": 28,
+     "val_mean": 0.0,
+     "val_t": NaN,
+     "val_blocks": 12
+    },
+    {
+     "variant": "LONG_OTM1|0.02",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 5.154045297812005e-05,
+     "dev_t": 1.1593081343307903,
+     "dev_blocks": 28,
+     "val_mean": 0.0,
+     "val_t": NaN,
+     "val_blocks": 12
+    },
+    {
+     "variant": "SPREAD_NARROW|0.02",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0,
+     "dev_t": NaN,
+     "dev_blocks": 28,
+     "val_mean": 0.0,
+     "val_t": NaN,
+     "val_blocks": 12
+    },
+    {
+     "variant": "SPREAD_WIDE|0.02",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0,
+     "dev_t": NaN,
+     "dev_blocks": 28,
+     "val_mean": 0.0,
+     "val_t": NaN,
+     "val_blocks": 12
+    }
+   ]
   },
   {
    "id": "T-OPT-H16",
@@ -2905,7 +6599,49 @@
    "plain_name": "Weekly straddle: naked versus winged",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|naked_minus_winged",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": 0.018845007602530665,
+     "val_t": 1.9345889952411897,
+     "val_blocks": 20
+    },
+    {
+     "variant": "BANKNIFTY|naked",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.005031856927410332,
+     "dev_t": 0.22682446650252552,
+     "dev_blocks": 7,
+     "val_mean": 0.028633387940265004,
+     "val_t": 1.925672084207559,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|naked_minus_winged",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.008776148883496116,
+     "dev_t": 0.5298768883289119,
+     "dev_blocks": 7,
+     "val_mean": 0.019305897389305174,
+     "val_t": 1.7553538795783368,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|naked",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": 0.014111861585213195,
+     "val_t": 1.0726208654269873,
+     "val_blocks": 20
+    }
+   ]
   },
   {
    "id": "T-OPT-H17",
@@ -2933,7 +6669,49 @@
    "plain_name": "Overnight expiry-eve strangle",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY|200pt_wings550",
+     "verdict": "REJECTED",
+     "dev_mean": 4.0608913223326687e-05,
+     "dev_t": 0.047471181605327636,
+     "dev_blocks": 35,
+     "val_mean": -0.0018679966214585134,
+     "val_t": -1.1551388195834043,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|0.7pct",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0034786163071910165,
+     "dev_t": 2.339322341584275,
+     "dev_blocks": 35,
+     "val_mean": -0.0011744310833540436,
+     "val_t": -0.3070396361994484,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|0.7pct",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0023550472069862713,
+     "dev_t": 2.519370618941035,
+     "dev_blocks": 59,
+     "val_mean": 0.0010478365656889242,
+     "val_t": 0.6013412799093493,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|200pt",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0028874540316043682,
+     "dev_t": 3.846908383619212,
+     "dev_blocks": 35,
+     "val_mean": 0.0008495503651532818,
+     "val_t": 0.43275236797827676,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H20",
@@ -2960,7 +6738,49 @@
    "plain_name": "VIX level and premium selling",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|vix_lt14",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.06587315950287365,
+     "dev_t": -1.6657020436007766,
+     "dev_blocks": 8,
+     "val_mean": -0.036346498229238494,
+     "val_t": -1.0641421167974674,
+     "val_blocks": 13
+    },
+    {
+     "variant": "BANKNIFTY|vix_lt14",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.020879470655039492,
+     "dev_t": -0.4182637247222497,
+     "dev_blocks": 8,
+     "val_mean": -0.0335110798785287,
+     "val_t": -0.8466640696765638,
+     "val_blocks": 13
+    },
+    {
+     "variant": "BANKNIFTY|vix_gt20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0012495087361427612,
+     "dev_t": -0.033081283598050785,
+     "dev_blocks": 19,
+     "val_mean": -0.022166483147434142,
+     "val_t": -0.6298121306280727,
+     "val_blocks": 12
+    },
+    {
+     "variant": "NIFTY|vix_gt20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.03528891094684443,
+     "dev_t": 1.5112197839912065,
+     "dev_blocks": 19,
+     "val_mean": 0.01938016285536575,
+     "val_t": 0.5045109512031589,
+     "val_blocks": 11
+    }
+   ]
   },
   {
    "id": "T-OPT-H21",
@@ -2988,7 +6808,49 @@
    "plain_name": "Rising VIX hurts premium sellers",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|vix_rising",
+     "verdict": "REJECTED",
+     "dev_mean": 0.007741329187786897,
+     "dev_t": 0.3593601286528089,
+     "dev_blocks": 30,
+     "val_mean": 0.028252514993164196,
+     "val_t": 0.9890791506117079,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|vix_rising",
+     "verdict": "REJECTED",
+     "dev_mean": 0.020284582954412402,
+     "dev_t": 0.559066468358799,
+     "dev_blocks": 30,
+     "val_mean": -0.0003727349011990108,
+     "val_t": -0.010602669312797412,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|vix_rising_from_low",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.15745299281351566,
+     "dev_t": 2.4869436379928582,
+     "dev_blocks": 4,
+     "val_mean": 0.13209589764786425,
+     "val_t": 2.005695912280951,
+     "val_blocks": 9
+    },
+    {
+     "variant": "NIFTY|vix_rising_from_low",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 1,
+     "val_mean": 0.03996181290404789,
+     "val_t": 0.5658493445925996,
+     "val_blocks": 7
+    }
+   ]
   },
   {
    "id": "T-OPT-H24",
@@ -3015,7 +6877,29 @@
    "plain_name": "Flat through binary events",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY|event_nights",
+     "verdict": "REJECTED",
+     "dev_mean": -0.010134739824278389,
+     "dev_t": -1.0829394269319688,
+     "dev_blocks": 18,
+     "val_mean": -0.008922784061062148,
+     "val_t": -1.9399879720073314,
+     "val_blocks": 23
+    },
+    {
+     "variant": "NIFTY|event_nights",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0002837150668671128,
+     "dev_t": -0.1134228380828736,
+     "dev_blocks": 19,
+     "val_mean": -0.00374696608978071,
+     "val_t": -0.6988834163882736,
+     "val_blocks": 22
+    }
+   ]
   },
   {
    "id": "T-OPT-H25",
@@ -3043,7 +6927,49 @@
    "plain_name": "OI band contains the expiry",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|k1",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.20833333333333334,
+     "dev_t": -5.716725054357578,
+     "dev_blocks": 60,
+     "val_mean": -0.10515873015873016,
+     "val_t": -4.290625824720956,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|k1",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.1538943512627723,
+     "dev_t": -4.094241194960601,
+     "dev_blocks": 38,
+     "val_mean": -0.06494200244200245,
+     "val_t": -2.752213666958876,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|k5",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.13888888888888887,
+     "dev_t": -3.7338182689821013,
+     "dev_blocks": 60,
+     "val_mean": -0.028693528693528692,
+     "val_t": -1.017877883398334,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|k5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0660749506903353,
+     "dev_t": -1.5479216362887838,
+     "dev_blocks": 39,
+     "val_mean": -0.06868131868131867,
+     "val_t": -3.1465186613327045,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H26",
@@ -3070,7 +6996,29 @@
    "plain_name": "OI band contains tomorrow",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.17722507914145536,
+     "dev_t": -6.71221194326993,
+     "dev_blocks": 40,
+     "val_mean": -0.12735177988007493,
+     "val_t": -8.641237077283089,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.19877180392997618,
+     "dev_t": -13.75873463779429,
+     "dev_blocks": 60,
+     "val_mean": -0.10978882537003591,
+     "val_t": -7.763108504123066,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H27",
@@ -3097,7 +7045,29 @@
    "plain_name": "OI levels fail when VIX is high",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY|vix_ge20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.05233252590419746,
+     "dev_t": -1.142351539101103,
+     "dev_blocks": 24,
+     "val_mean": 0.14660094157061743,
+     "val_t": 2.709055545507153,
+     "val_blocks": 14
+    },
+    {
+     "variant": "NIFTY|vix_ge20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.04105080939192829,
+     "dev_t": -1.378036940802095,
+     "dev_blocks": 24,
+     "val_mean": 0.13415305998604543,
+     "val_t": 2.3363631912657326,
+     "val_blocks": 14
+    }
+   ]
   },
   {
    "id": "T-OPT-H28",
@@ -3125,7 +7095,49 @@
    "plain_name": "PCR and direction",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|c_lt0.7|d5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.015194300017370535,
+     "dev_t": 1.5293928696925991,
+     "dev_blocks": 26,
+     "val_mean": 0.003656234830367429,
+     "val_t": 0.975821083762907,
+     "val_blocks": 20
+    },
+    {
+     "variant": "NIFTY|c_lt0.7|d1",
+     "verdict": "REJECTED",
+     "dev_mean": 0.002011563390840141,
+     "dev_t": 0.646141271927811,
+     "dev_blocks": 26,
+     "val_mean": 0.0007105982257063512,
+     "val_t": 0.9616577816731939,
+     "val_blocks": 20
+    },
+    {
+     "variant": "BANKNIFTY|a_gt1.2|d5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0002490606461964095,
+     "dev_t": 0.03755363100177002,
+     "dev_blocks": 33,
+     "val_mean": 0.0034114056703202795,
+     "val_t": 0.9019512785397725,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|c_lt0.7|d5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.006240883156496443,
+     "dev_t": 1.1670981235225795,
+     "dev_blocks": 41,
+     "val_mean": 0.002013081537456473,
+     "val_t": 0.5113530475868079,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H29",
@@ -3152,7 +7164,39 @@
    "plain_name": "PCR near 1 means a quiet day",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY|d1",
+     "verdict": "REJECTED",
+     "dev_mean": -0.002234720715507843,
+     "dev_t": -0.9178547049714462,
+     "dev_blocks": 33,
+     "val_mean": -0.0022371479018018,
+     "val_t": -0.9517722125035412,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|d1",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00027671116237200366,
+     "dev_t": 0.15117452433636822,
+     "dev_blocks": 48,
+     "val_mean": -0.0011758517276194806,
+     "val_t": -0.8257940041381521,
+     "val_blocks": 21
+    },
+    {
+     "variant": "NIFTY|d5",
+     "verdict": "REJECTED",
+     "dev_mean": 9.072675024920235e-05,
+     "dev_t": 0.02110408563375446,
+     "dev_blocks": 48,
+     "val_mean": -5.9926847570508646e-05,
+     "val_t": -0.013502265046547262,
+     "val_blocks": 21
+    }
+   ]
   },
   {
    "id": "T-OPT-H30",
@@ -3179,7 +7223,49 @@
    "plain_name": "OI change near the money",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|bear|d1",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0005154499688527806,
+     "dev_t": -0.6934457418099682,
+     "dev_blocks": 60,
+     "val_mean": 0.0006924557691556162,
+     "val_t": 0.9064793312623367,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|bull|d5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0006752810986813038,
+     "dev_t": 0.27742805796066616,
+     "dev_blocks": 59,
+     "val_mean": -0.0018342367313700805,
+     "val_t": -0.8524246760372959,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|bear|d5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.001771972268185134,
+     "dev_t": 0.7174932383391266,
+     "dev_blocks": 60,
+     "val_mean": 0.0020692354661996553,
+     "val_t": 0.7156585907531755,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|bear|d5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0030902790039320236,
+     "dev_t": -0.7454716378672454,
+     "dev_blocks": 37,
+     "val_mean": -0.003211739666916823,
+     "val_t": -0.7079096306423057,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H31",
@@ -3206,7 +7292,49 @@
    "plain_name": "Max-OI pinning",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY|k1",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.033355334247126577,
+     "dev_t": 8.01867171045108,
+     "dev_blocks": 43,
+     "val_mean": 0.007800006495884799,
+     "val_t": 6.452229726182091,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|k1",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.019450461046198464,
+     "dev_t": 6.6781136960594365,
+     "dev_blocks": 60,
+     "val_mean": 0.007624121093666333,
+     "val_t": 4.667218640906698,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|k3",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.026885158195564175,
+     "dev_t": 7.391610254791636,
+     "dev_blocks": 43,
+     "val_mean": 0.00564316742295166,
+     "val_t": 4.454705802633735,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|k3",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.015679249484151735,
+     "dev_t": 7.236420028574968,
+     "dev_blocks": 60,
+     "val_mean": 0.007969347524373024,
+     "val_t": 4.161348717256775,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H32",
@@ -3233,7 +7361,29 @@
    "plain_name": "OI the day after expiry",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.039560439560439566,
+     "dev_t": 1.1851684595265974,
+     "dev_blocks": 7,
+     "val_mean": 0.045350482850482855,
+     "val_t": 1.715077165756194,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": 0.01052697302697303,
+     "val_t": 0.3261855826726501,
+     "val_blocks": 20
+    }
+   ]
   },
   {
    "id": "T-OPT-H41",
@@ -3260,7 +7410,49 @@
    "plain_name": "Early profit-taking",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY|take65",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0007866824200105207,
+     "dev_t": 0.32035968372801005,
+     "dev_blocks": 7,
+     "val_mean": -0.00026727901126753783,
+     "val_t": -1.2228680521387896,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|take75",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0,
+     "dev_t": NaN,
+     "dev_blocks": 7,
+     "val_mean": 0.0,
+     "val_t": NaN,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|take90",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0,
+     "dev_t": NaN,
+     "dev_blocks": 7,
+     "val_mean": 0.0,
+     "val_t": NaN,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|take65",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": -0.00021091474095961108,
+     "val_t": -0.9999999999999999,
+     "val_blocks": 20
+    }
+   ]
   },
   {
    "id": "T-OPT-H42",
@@ -3288,7 +7480,49 @@
    "plain_name": "Monthly put ratio spread 1:2",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|all",
+     "verdict": "REJECTED",
+     "dev_mean": 0.015821470260221203,
+     "dev_t": 1.2850946508147967,
+     "dev_blocks": 60,
+     "val_mean": 0.034346580591537605,
+     "val_t": 0.7434605962131208,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|all",
+     "verdict": "REJECTED",
+     "dev_mean": 0.020958819668602805,
+     "dev_t": 0.9522255635002097,
+     "dev_blocks": 50,
+     "val_mean": -0.016899615888501727,
+     "val_t": -0.3247173040889503,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|credit_vs_debit",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 2,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 0
+    },
+    {
+     "variant": "NIFTY|vix_gt20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.06271969922541822,
+     "dev_t": 2.4000118768754586,
+     "dev_blocks": 19,
+     "val_mean": 0.29297726411029196,
+     "val_t": 2.8611369454953413,
+     "val_blocks": 11
+    }
+   ]
   },
   {
    "id": "T-OPT-H45",
@@ -3315,7 +7549,29 @@
    "plain_name": "Implied probabilities are well calibrated",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.016699967352212883,
+     "dev_t": -3.5350304094383795,
+     "dev_blocks": 51,
+     "val_mean": -0.02493759402743348,
+     "val_t": -10.68041863869516,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.04292699835301827,
+     "dev_t": -5.380145522302113,
+     "dev_blocks": 60,
+     "val_mean": -0.014739635793197599,
+     "val_t": -5.033998079409125,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H47",
@@ -3342,7 +7598,29 @@
    "plain_name": "Buying after an IV spike loses",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|vix_jump25_gt30",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.21718978653119111,
+     "dev_t": 0.761958646331877,
+     "dev_blocks": 4,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 2
+    },
+    {
+     "variant": "NIFTY|vix_jump25",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.007712229212001986,
+     "dev_t": 0.0680283354579582,
+     "dev_blocks": 15,
+     "val_mean": -0.06522670742889605,
+     "val_t": -0.1783529455705272,
+     "val_blocks": 8
+    }
+   ]
   },
   {
    "id": "T-OPT-H48",
@@ -3371,7 +7649,49 @@
    "plain_name": "Range breakouts",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stk20|net10",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.006264521418366291,
+     "dev_t": -2.4920482636658923,
+     "dev_blocks": 69,
+     "val_mean": -0.0031132634002645795,
+     "val_t": -0.9916337062342454,
+     "val_blocks": 24
+    },
+    {
+     "variant": "stk20|net5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.001465397270825266,
+     "dev_t": -0.8513347155277122,
+     "dev_blocks": 69,
+     "val_mean": -0.003085839159957774,
+     "val_t": -1.4565164300466036,
+     "val_blocks": 24
+    },
+    {
+     "variant": "stk60_vs_20|net10",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0021838666203263363,
+     "dev_t": 0.8008222525764852,
+     "dev_blocks": 41,
+     "val_mean": -0.0075238464364447465,
+     "val_t": -1.3092444963812684,
+     "val_blocks": 21
+    },
+    {
+     "variant": "nifty20|nfwd10",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.000895935174891848,
+     "dev_t": -0.14463644210250695,
+     "dev_blocks": 10,
+     "val_mean": -0.012193289492717179,
+     "val_t": -2.2625099967708975,
+     "val_blocks": 11
+    }
+   ]
   },
   {
    "id": "T-OPT-H49",
@@ -3398,7 +7718,29 @@
    "plain_name": "Big red day without follow-through",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "p3net5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00041846599823617517,
+     "dev_t": -0.3024158886603054,
+     "dev_blocks": 67,
+     "val_mean": -0.001964305968297993,
+     "val_t": -1.3316811054909277,
+     "val_blocks": 24
+    },
+    {
+     "variant": "p3net20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0015024463246896453,
+     "dev_t": -0.899272530945334,
+     "dev_blocks": 67,
+     "val_mean": -0.0008761779347017995,
+     "val_t": -0.4729022626308997,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H50",
@@ -3425,7 +7767,39 @@
    "plain_name": "Swing-low invalidation",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.005089355485925308,
+     "dev_t": 1.473146075296976,
+     "dev_blocks": 70,
+     "val_mean": 0.01021535730664537,
+     "val_t": 2.37397621822492,
+     "val_blocks": 24
+    },
+    {
+     "variant": "net10",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0018617439424345327,
+     "dev_t": 0.9035624663910722,
+     "dev_blocks": 70,
+     "val_mean": 0.0023349387454376386,
+     "val_t": 0.6259236627039437,
+     "val_blocks": 24
+    },
+    {
+     "variant": "net5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0009992665260507275,
+     "dev_t": 0.9459239177127035,
+     "dev_blocks": 70,
+     "val_mean": 0.0010827175604336788,
+     "val_t": 0.4634353894086576,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H51",
@@ -3453,7 +7827,49 @@
    "plain_name": "New all-time highs",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stk|net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.01905230159701903,
+     "dev_t": -2.9830644498479124,
+     "dev_blocks": 65,
+     "val_mean": -0.00827015535660655,
+     "val_t": -1.6621348287784778,
+     "val_blocks": 24
+    },
+    {
+     "variant": "stk|net10",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.009003986277623676,
+     "dev_t": -2.3531824116991635,
+     "dev_blocks": 65,
+     "val_mean": -0.00482746414839384,
+     "val_t": -1.5330953710518231,
+     "val_blocks": 24
+    },
+    {
+     "variant": "stk|net5",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.005255641797226306,
+     "dev_t": -2.7116844469195986,
+     "dev_blocks": 65,
+     "val_mean": -0.003456493069747712,
+     "val_t": -1.4816167111236613,
+     "val_blocks": 24
+    },
+    {
+     "variant": "nifty|nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.019174735158814894,
+     "dev_t": -1.77036572225073,
+     "dev_blocks": 28,
+     "val_mean": -0.008875644959408596,
+     "val_t": -0.8604509159666998,
+     "val_blocks": 13
+    }
+   ]
   },
   {
    "id": "T-OPT-H52",
@@ -3480,7 +7896,19 @@
    "plain_name": "Broken resistance holds on the first retest",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "first_retest|net10",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.006212728331048631,
+     "dev_t": -3.0372531544935253,
+     "dev_blocks": 69,
+     "val_mean": -0.0017378414497954298,
+     "val_t": -0.9395423069834021,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-OPT-H58",
@@ -3507,7 +7935,29 @@
    "plain_name": "Holiday weeks decay faster",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.08878020312523649,
+     "dev_t": 2.3353948784265772,
+     "dev_blocks": 6,
+     "val_mean": 0.02203078267088271,
+     "val_t": 0.6843958321994539,
+     "val_blocks": 23
+    },
+    {
+     "variant": "NIFTY",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": -0.0014378610750066852,
+     "val_t": -0.04357130996300834,
+     "val_blocks": 19
+    }
+   ]
   },
   {
    "id": "T-OPT-H59",
@@ -3534,7 +7984,49 @@
    "plain_name": "Next week's straddle sold on expiry day",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY|next_open",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.00820020268677099,
+     "dev_t": -1.896207256751097,
+     "dev_blocks": 7,
+     "val_mean": -0.013684788938485919,
+     "val_t": -4.035123764916206,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|next_close",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0007529373834215399,
+     "dev_t": -0.22549276015429762,
+     "dev_blocks": 7,
+     "val_mean": -0.015054758383208655,
+     "val_t": -3.132019825348088,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|next_open",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": -0.012990540885193913,
+     "val_t": -2.929959489834533,
+     "val_blocks": 20
+    },
+    {
+     "variant": "NIFTY|next_close",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": -0.008381756802864234,
+     "val_t": -1.35450177463775,
+     "val_blocks": 20
+    }
+   ]
   },
   {
    "id": "T-TWT-H01",
@@ -3561,7 +8053,49 @@
    "plain_name": "Low breadth hurts breakouts",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "lt30|net20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.019097707032743317,
+     "dev_t": 0.9393174234284537,
+     "dev_blocks": 25,
+     "val_mean": 0.03638533615716304,
+     "val_t": 2.2082834416443498,
+     "val_blocks": 9
+    },
+    {
+     "variant": "lt25|net20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0010551650477147734,
+     "dev_t": -0.046400932293557406,
+     "dev_blocks": 17,
+     "val_mean": 0.04850193170611777,
+     "val_t": 2.0143742175962926,
+     "val_blocks": 5
+    },
+    {
+     "variant": "lt35|net20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.01822941733219611,
+     "dev_t": 0.9625552754093442,
+     "dev_blocks": 28,
+     "val_mean": 0.029587552147141573,
+     "val_t": 1.9031234309425133,
+     "val_blocks": 10
+    },
+    {
+     "variant": "lt25|net60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0046863175921511985,
+     "dev_t": 0.08267072227820005,
+     "dev_blocks": 16,
+     "val_mean": 0.10782926323803319,
+     "val_t": 1.6668873828056436,
+     "val_blocks": 5
+    }
+   ]
   },
   {
    "id": "T-TWT-H02",
@@ -3588,7 +8122,39 @@
    "plain_name": "Index below both averages hurts breakouts",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.019019413458422126,
+     "dev_t": 0.3824806843376629,
+     "dev_blocks": 17,
+     "val_mean": 0.07079374855662517,
+     "val_t": 1.5497067403889893,
+     "val_blocks": 12
+    },
+    {
+     "variant": "fail5",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.018151946416706144,
+     "dev_t": 0.42332629808951877,
+     "dev_blocks": 18,
+     "val_mean": 0.029407220686782476,
+     "val_t": 0.6897237571727499,
+     "val_blocks": 12
+    },
+    {
+     "variant": "net20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.010993562647617448,
+     "dev_t": -0.47236254605556866,
+     "dev_blocks": 18,
+     "val_mean": 0.000891048919009047,
+     "val_t": 0.03169696776737116,
+     "val_blocks": 12
+    }
+   ]
   },
   {
    "id": "T-TWT-H04",
@@ -3615,7 +8181,39 @@
    "plain_name": "Top-RS sectors lead",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "top3|xs21",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0037408707356006354,
+     "dev_t": 1.4777429417445003,
+     "dev_blocks": 59,
+     "val_mean": 0.003277451590184556,
+     "val_t": 0.6507071780278548,
+     "val_blocks": 24
+    },
+    {
+     "variant": "top3|xs126",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00982911562312439,
+     "dev_t": 1.267081272259657,
+     "dev_blocks": 59,
+     "val_mean": 0.006232233844605067,
+     "val_t": 0.47844589874200805,
+     "val_blocks": 22
+    },
+    {
+     "variant": "top3|xs63",
+     "verdict": "REJECTED",
+     "dev_mean": 0.002067857169568621,
+     "dev_t": 0.3264180507740378,
+     "dev_blocks": 59,
+     "val_mean": 0.003444210712198324,
+     "val_t": 0.4234058477676305,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "T-TWT-H05",
@@ -3642,7 +8240,49 @@
    "plain_name": "Strong-structure sectors outperform, weak ones lag",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "weak|xs63",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0008121370109463055,
+     "dev_t": 0.10691474117344082,
+     "dev_blocks": 52,
+     "val_mean": 0.015727141714017085,
+     "val_t": 1.962703344363342,
+     "val_blocks": 22
+    },
+    {
+     "variant": "weak|xs126",
+     "verdict": "REJECTED",
+     "dev_mean": -0.006883439232473277,
+     "dev_t": -0.6971611784564006,
+     "dev_blocks": 52,
+     "val_mean": 0.015718712125451038,
+     "val_t": 1.478872928135804,
+     "val_blocks": 22
+    },
+    {
+     "variant": "strong|xs21",
+     "verdict": "REJECTED",
+     "dev_mean": 0.003867548962197232,
+     "dev_t": 1.4771941044769816,
+     "dev_blocks": 58,
+     "val_mean": -0.004014280005370053,
+     "val_t": -1.3985685778304056,
+     "val_blocks": 24
+    },
+    {
+     "variant": "weak|xs21",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0022487987300248476,
+     "dev_t": -0.7088582575341066,
+     "dev_blocks": 52,
+     "val_mean": 0.005953947277348276,
+     "val_t": 1.1646054837321007,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "T-TWT-H09",
@@ -3670,7 +8310,29 @@
    "plain_name": "50 DMA pullback in leaders",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net60",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00020034090523638156,
+     "dev_t": 0.03973675625002519,
+     "dev_blocks": 52,
+     "val_mean": -0.0026443045592897674,
+     "val_t": -0.5758763099440125,
+     "val_blocks": 22
+    },
+    {
+     "variant": "net20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0071630879646288935,
+     "dev_t": 2.0605768848200676,
+     "dev_blocks": 53,
+     "val_mean": 0.0019108375863388161,
+     "val_t": 0.9520382991873932,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "T-TWT-H10",
@@ -3700,7 +8362,49 @@
    "plain_name": "Don't chase: extension above the 50 DMA",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "gt15|minfwd60",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.05485057755230478,
+     "dev_t": -14.266415264342502,
+     "dev_blocks": 67,
+     "val_mean": -0.04894083730694792,
+     "val_t": -8.424239269350117,
+     "val_blocks": 24
+    },
+    {
+     "variant": "gt8|net20",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.013240355610664752,
+     "dev_t": -4.382120480705182,
+     "dev_blocks": 67,
+     "val_mean": -0.008755298079987922,
+     "val_t": -2.4073647727364964,
+     "val_blocks": 24
+    },
+    {
+     "variant": "gt10|net20",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.014203503475012874,
+     "dev_t": -4.2269384230864855,
+     "dev_blocks": 67,
+     "val_mean": -0.009731107129187296,
+     "val_t": -2.3393712973467395,
+     "val_blocks": 24
+    },
+    {
+     "variant": "gt15|net20",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.01645150795547491,
+     "dev_t": -3.9036987265381264,
+     "dev_blocks": 67,
+     "val_mean": -0.012291794718524552,
+     "val_t": -2.12661037289962,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H11",
@@ -3728,7 +8432,49 @@
    "plain_name": "Breakouts on volume",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "vol1.5|fail5",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.032444014453453504,
+     "dev_t": -2.957873133097145,
+     "dev_blocks": 69,
+     "val_mean": -0.09985694735433996,
+     "val_t": -7.924382974067975,
+     "val_blocks": 24
+    },
+    {
+     "variant": "vol1.0|net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.021078312212850482,
+     "dev_t": -4.1666407747700385,
+     "dev_blocks": 69,
+     "val_mean": -0.008447521982850282,
+     "val_t": -2.1080061011505666,
+     "val_blocks": 24
+    },
+    {
+     "variant": "vol2.0|net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.01931001082952998,
+     "dev_t": -5.716275784041296,
+     "dev_blocks": 69,
+     "val_mean": -0.006033094895582221,
+     "val_t": -1.7747069139365903,
+     "val_blocks": 24
+    },
+    {
+     "variant": "vol1.5|net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.02173451175241004,
+     "dev_t": -5.3994143998865365,
+     "dev_blocks": 69,
+     "val_mean": -0.004832319916911865,
+     "val_t": -1.3473275419794861,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H12",
@@ -3757,7 +8503,49 @@
    "plain_name": "The breakout bar's shape",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "good|fail5",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.12392259257452902,
+     "dev_t": -11.087060567336444,
+     "dev_blocks": 68,
+     "val_mean": -0.1776017599297652,
+     "val_t": -8.761212502330732,
+     "val_blocks": 24
+    },
+    {
+     "variant": "good|net5",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.004027571460507768,
+     "dev_t": -1.808535528430916,
+     "dev_blocks": 68,
+     "val_mean": -0.0005873984313558066,
+     "val_t": -0.23132061213749006,
+     "val_blocks": 24
+    },
+    {
+     "variant": "wicky|net20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.008129210877153223,
+     "dev_t": 1.6611886087183763,
+     "dev_blocks": 59,
+     "val_mean": -0.007145339747113053,
+     "val_t": -1.2297487065562016,
+     "val_blocks": 23
+    },
+    {
+     "variant": "good|net10",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0032222380084912646,
+     "dev_t": -1.1066128282480845,
+     "dev_blocks": 68,
+     "val_mean": 0.001668309670113859,
+     "val_t": 0.497679555221099,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H12F",
@@ -3785,7 +8573,29 @@
    "plain_name": "Follow-up: do the good breakout bars pay later?",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "good|p5net60",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.023423471012265967,
+     "dev_t": -4.030289035866749,
+     "dev_blocks": 67,
+     "val_mean": -0.0034280724629582302,
+     "val_t": -0.41401755454738665,
+     "val_blocks": 23
+    },
+    {
+     "variant": "good|p5net20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.007759609063421326,
+     "dev_t": -2.15677119074778,
+     "dev_blocks": 68,
+     "val_mean": 0.002312259189542492,
+     "val_t": 0.5199611816660876,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H13",
@@ -3812,7 +8622,29 @@
    "plain_name": "RS line at a high confirms the breakout",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net60",
+     "verdict": "REJECTED",
+     "dev_mean": 0.008959683510606949,
+     "dev_t": 1.0822584843440397,
+     "dev_blocks": 54,
+     "val_mean": 0.02514171693918563,
+     "val_t": 4.568821744722198,
+     "val_blocks": 23
+    },
+    {
+     "variant": "net20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.004949572405969957,
+     "dev_t": 1.0993089751215395,
+     "dev_blocks": 55,
+     "val_mean": 0.008611066796770005,
+     "val_t": 2.3568101039202016,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H14",
@@ -3839,7 +8671,29 @@
    "plain_name": "RS new high before price",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net120",
+     "verdict": "REJECTED",
+     "dev_mean": -0.007262086929317193,
+     "dev_t": -0.5279716997884084,
+     "dev_blocks": 54,
+     "val_mean": 0.022935933071860662,
+     "val_t": 3.0305928988737953,
+     "val_blocks": 22
+    },
+    {
+     "variant": "net60",
+     "verdict": "REJECTED",
+     "dev_mean": -0.011342074598436613,
+     "dev_t": -1.1362772068089648,
+     "dev_blocks": 55,
+     "val_mean": 0.00831102532591883,
+     "val_t": 1.7833454237664055,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "T-TWT-H15",
@@ -3868,7 +8722,49 @@
    "plain_name": "Near highs beats far below",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "deep|fall40",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.041529950791827246,
+     "dev_t": 3.2942558162168796,
+     "dev_blocks": 67,
+     "val_mean": 0.08947172714374008,
+     "val_t": 3.882395054135416,
+     "val_blocks": 24
+    },
+    {
+     "variant": "near|net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.018654820458838983,
+     "dev_t": -2.7225219496501873,
+     "dev_blocks": 68,
+     "val_mean": -0.015204389468899659,
+     "val_t": -2.0740924408593595,
+     "val_blocks": 24
+    },
+    {
+     "variant": "near|net60",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.026743901324377914,
+     "dev_t": -1.7167414916187453,
+     "dev_blocks": 67,
+     "val_mean": -0.006295612448436526,
+     "val_t": -0.33151315397071157,
+     "val_blocks": 23
+    },
+    {
+     "variant": "near|net120",
+     "verdict": "REJECTED",
+     "dev_mean": -0.01439410571073221,
+     "dev_t": -0.5852975465433992,
+     "dev_blocks": 66,
+     "val_mean": 0.0006677913141373451,
+     "val_t": 0.025901253904686523,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "T-TWT-H17",
@@ -3895,7 +8791,29 @@
    "plain_name": "Breakout follow-through",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "p5net20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00315893462607817,
+     "dev_t": -0.9334570877132962,
+     "dev_blocks": 68,
+     "val_mean": -0.0049530802654991655,
+     "val_t": -1.441521136083949,
+     "val_blocks": 24
+    },
+    {
+     "variant": "p5net60",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00620063815991983,
+     "dev_t": -1.0932574222834528,
+     "dev_blocks": 67,
+     "val_mean": -0.0041925402343363635,
+     "val_t": -0.5628793165903964,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "T-TWT-H18",
@@ -3922,7 +8840,29 @@
    "plain_name": "Quiet pullbacks after a breakout",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "shallow|newhigh15",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.15165870359080025,
+     "dev_t": 16.087408776748166,
+     "dev_blocks": 68,
+     "val_mean": 0.15233294512645834,
+     "val_t": 11.787918950850582,
+     "val_blocks": 24
+    },
+    {
+     "variant": "quiet_hold|newhigh15",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.09958055445503514,
+     "dev_t": 14.451454730834897,
+     "dev_blocks": 69,
+     "val_mean": 0.10871561792139876,
+     "val_t": 9.537555189954482,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H18F",
@@ -3950,7 +8890,49 @@
    "plain_name": "Follow-up: do quiet pullbacks pay?",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "shallow|net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.006103708601382926,
+     "dev_t": -1.727497149617508,
+     "dev_blocks": 68,
+     "val_mean": -0.002019849462105727,
+     "val_t": -0.73467965557858,
+     "val_blocks": 24
+    },
+    {
+     "variant": "quiet_hold|net20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00015585247012285384,
+     "dev_t": 0.06378802095223261,
+     "dev_blocks": 69,
+     "val_mean": -0.0026046965031468958,
+     "val_t": -0.7106166021728295,
+     "val_blocks": 24
+    },
+    {
+     "variant": "quiet_hold|net5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00021712958050793807,
+     "dev_t": 0.14416400297340254,
+     "dev_blocks": 69,
+     "val_mean": -0.00021313715636479217,
+     "val_t": -0.17417231037336434,
+     "val_blocks": 24
+    },
+    {
+     "variant": "shallow|net5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.001995627216845962,
+     "dev_t": -1.1778064551980678,
+     "dev_blocks": 68,
+     "val_mean": -1.8648173989419387e-05,
+     "val_t": -0.01212859622935029,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H22",
@@ -3979,7 +8961,49 @@
    "plain_name": "Staged stop -3/-5/-7 versus one -7% stop",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "single7_vs_none|hold60",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.020364136403716496,
+     "dev_t": -1.6664741488537456,
+     "dev_blocks": 69,
+     "val_mean": -0.02254039639831345,
+     "val_t": -1.6432068760101295,
+     "val_blocks": 23
+    },
+    {
+     "variant": "staged_vs_single|hold60",
+     "verdict": "REJECTED",
+     "dev_mean": -0.003169729540563453,
+     "dev_t": -1.5065847648514243,
+     "dev_blocks": 69,
+     "val_mean": -0.002798113242139283,
+     "val_t": -0.9100911858767347,
+     "val_blocks": 23
+    },
+    {
+     "variant": "staged_vs_single|hold20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.000688561786688471,
+     "dev_t": 0.7116554973442596,
+     "dev_blocks": 69,
+     "val_mean": 0.000614782789191199,
+     "val_t": 0.4830192666326202,
+     "val_blocks": 23
+    },
+    {
+     "variant": "staged_vs_single|hold60|weak_breadth",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.006862172199582913,
+     "dev_t": -1.43613893817462,
+     "dev_blocks": 32,
+     "val_mean": -0.0050675655022081635,
+     "val_t": -1.2975445669040786,
+     "val_blocks": 13
+    }
+   ]
   },
   {
    "id": "T-TWT-H23",
@@ -4006,7 +9030,29 @@
    "plain_name": "Structure exits",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "vs_target15_stop7",
+     "verdict": "REJECTED",
+     "dev_mean": 0.009739686100586356,
+     "dev_t": 1.4070580928152998,
+     "dev_blocks": 68,
+     "val_mean": 0.004269707363867482,
+     "val_t": 0.7452026860583834,
+     "val_blocks": 23
+    },
+    {
+     "variant": "vs_tight3",
+     "verdict": "REJECTED",
+     "dev_mean": 0.007643557049784068,
+     "dev_t": 1.159707655310684,
+     "dev_blocks": 68,
+     "val_mean": 0.003854520529498106,
+     "val_t": 0.6555716553091748,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "T-TWT-H24",
@@ -4033,7 +9079,29 @@
    "plain_name": "Three-step exit for big winners",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "vs_hold250",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.14750909863167547,
+     "dev_t": -3.9552581823698105,
+     "dev_blocks": 66,
+     "val_mean": -0.17615568373702875,
+     "val_t": -3.1397435097775896,
+     "val_blocks": 20
+    },
+    {
+     "variant": "vs_full_50dma",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.02399604887120226,
+     "dev_t": -3.592097172787809,
+     "dev_blocks": 66,
+     "val_mean": -0.013533989645312475,
+     "val_t": -1.412795228903326,
+     "val_blocks": 20
+    }
+   ]
   },
   {
    "id": "T-TWT-H26",
@@ -4060,7 +9128,29 @@
    "plain_name": "During index pullbacks, sell weak losers",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net60",
+     "verdict": "REJECTED",
+     "dev_mean": -0.016215898065868494,
+     "dev_t": -1.5699530744164212,
+     "dev_blocks": 46,
+     "val_mean": -0.01771960848515504,
+     "val_t": -2.1664530124754027,
+     "val_blocks": 22
+    },
+    {
+     "variant": "net20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0011257757648441662,
+     "dev_t": -0.27301491348397794,
+     "dev_blocks": 47,
+     "val_mean": -0.0018005930202996021,
+     "val_t": -0.3936413100379031,
+     "val_blocks": 22
+    }
+   ]
   },
   {
    "id": "T-TWT-H27",
@@ -4087,7 +9177,49 @@
    "plain_name": "Stage 2 stocks",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "stage2|net120",
+     "verdict": "REJECTED",
+     "dev_mean": -0.03317416605414735,
+     "dev_t": -1.736492423517715,
+     "dev_blocks": 54,
+     "val_mean": 0.015949630369447625,
+     "val_t": 1.8081206153733127,
+     "val_blocks": 23
+    },
+    {
+     "variant": "range_brk_in_stage2|net60",
+     "verdict": "REJECTED",
+     "dev_mean": -0.011322753290795084,
+     "dev_t": -1.056579768388883,
+     "dev_blocks": 63,
+     "val_mean": 0.020943769284918895,
+     "val_t": 1.5831931070830974,
+     "val_blocks": 23
+    },
+    {
+     "variant": "range_brk_in_stage2|net120",
+     "verdict": "REJECTED",
+     "dev_mean": -0.013149494931823142,
+     "dev_t": -0.6539621671030068,
+     "dev_blocks": 63,
+     "val_mean": 0.023513272567747514,
+     "val_t": 1.3499954754174546,
+     "val_blocks": 23
+    },
+    {
+     "variant": "stage2|net60",
+     "verdict": "REJECTED",
+     "dev_mean": -0.023382360524869337,
+     "dev_t": -1.9695850545733933,
+     "dev_blocks": 55,
+     "val_mean": 0.0023824754743035845,
+     "val_t": 0.2952031086064586,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H28",
@@ -4114,7 +9246,29 @@
    "plain_name": "Correction leaders",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net120",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0030542921202618527,
+     "dev_t": 0.09622824767852758,
+     "dev_blocks": 32,
+     "val_mean": 0.010752026880133552,
+     "val_t": 0.3871464219665642,
+     "val_blocks": 10
+    },
+    {
+     "variant": "net60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.008556585949327325,
+     "dev_t": 0.43343081380816206,
+     "dev_blocks": 33,
+     "val_mean": -0.008692914606015577,
+     "val_t": -0.28122287643468874,
+     "val_blocks": 10
+    }
+   ]
   },
   {
    "id": "T-TWT-H29",
@@ -4141,7 +9295,29 @@
    "plain_name": "Sectors that fall least lead the rebound",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "xs126",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0423451213229636,
+     "dev_t": -0.8813186879757777,
+     "dev_blocks": 26,
+     "val_mean": -0.02013933579115145,
+     "val_t": -0.6495785814093691,
+     "val_blocks": 8
+    },
+    {
+     "variant": "xs63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.018855184343070805,
+     "dev_t": -0.6271377253962265,
+     "dev_blocks": 26,
+     "val_mean": 0.0024093168702826167,
+     "val_t": 0.16592830991063057,
+     "val_blocks": 8
+    }
+   ]
   },
   {
    "id": "T-TWT-H30",
@@ -4170,7 +9346,39 @@
    "plain_name": "Swing-structure breadth",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "lt35|nfwd21",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.024068611583968388,
+     "dev_t": 2.2884646536578725,
+     "dev_blocks": 44,
+     "val_mean": 0.02329032507438132,
+     "val_t": 2.049740271733466,
+     "val_blocks": 17
+    },
+    {
+     "variant": "lt35|nrv_fwd21",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0005470475247892122,
+     "dev_t": -0.36367088582557733,
+     "dev_blocks": 44,
+     "val_mean": 0.0013680360297030694,
+     "val_t": 0.8224247588602525,
+     "val_blocks": 17
+    },
+    {
+     "variant": "lt20_near_high|n_mdd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.000800876211469459,
+     "dev_t": -0.04194851605823077,
+     "dev_blocks": 11,
+     "val_mean": -0.01547612368817964,
+     "val_t": -0.6096566976257362,
+     "val_blocks": 3
+    }
+   ]
   },
   {
    "id": "T-TWT-H31",
@@ -4197,7 +9405,29 @@
    "plain_name": "New highs on thin breadth",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "dd4|63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.20297243652529318,
+     "dev_t": 0.74925413784685,
+     "dev_blocks": 3,
+     "val_mean": 0.2881769374416432,
+     "val_t": 1.531620134412108,
+     "val_blocks": 6
+    },
+    {
+     "variant": "dd4|21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.27608111218149395,
+     "dev_t": 1.1769569369333708,
+     "dev_blocks": 3,
+     "val_mean": 0.004823866999126125,
+     "val_t": 0.025097860264425013,
+     "val_blocks": 6
+    }
+   ]
   },
   {
    "id": "T-TWT-H32",
@@ -4225,7 +9455,49 @@
    "plain_name": "Short-term breadth damage, long-term intact",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "v1|nfwd21",
+     "verdict": "REJECTED",
+     "dev_mean": -0.006305838433738815,
+     "dev_t": -0.5207271472348587,
+     "dev_blocks": 41,
+     "val_mean": -0.016522412010546342,
+     "val_t": -1.006120208696165,
+     "val_blocks": 16
+    },
+    {
+     "variant": "v2|nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.009359325003168537,
+     "dev_t": 0.6991064729209958,
+     "dev_blocks": 20,
+     "val_mean": 0.026849418981833767,
+     "val_t": 1.308558886573046,
+     "val_blocks": 7
+    },
+    {
+     "variant": "v3|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.00913104229605581,
+     "dev_t": 0.35475788096754923,
+     "dev_blocks": 28,
+     "val_mean": 0.025548143592936674,
+     "val_t": 0.930482689646325,
+     "val_blocks": 12
+    },
+    {
+     "variant": "v2|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0014428964990012352,
+     "dev_t": 0.05120691392635989,
+     "dev_blocks": 20,
+     "val_mean": 0.03559923582338539,
+     "val_t": 0.8582422711269715,
+     "val_blocks": 6
+    }
+   ]
   },
   {
    "id": "T-TWT-H33",
@@ -4252,7 +9524,49 @@
    "plain_name": "Breadth washouts",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "b200le20|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.03151681867998369,
+     "dev_t": 0.5023208205082472,
+     "dev_blocks": 11,
+     "val_mean": 0.11933180836234013,
+     "val_t": 3.244118004571597,
+     "val_blocks": 5
+    },
+    {
+     "variant": "b50le11|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.029363286489682817,
+     "dev_t": 0.5253293999474634,
+     "dev_blocks": 15,
+     "val_mean": 0.08711685808580374,
+     "val_t": 2.1224163086003274,
+     "val_blocks": 6
+    },
+    {
+     "variant": "b50le11|nfwd126",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.10563549556197335,
+     "dev_t": 1.0345959553195045,
+     "dev_blocks": 9,
+     "val_mean": 0.10758897762090648,
+     "val_t": 1.749699587491255,
+     "val_blocks": 4
+    },
+    {
+     "variant": "b200le20|nfwd126",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.13949850478086767,
+     "dev_t": 1.2223130283279005,
+     "dev_blocks": 6,
+     "val_mean": 0.10745498181364042,
+     "val_t": 1.220784475044387,
+     "val_blocks": 3
+    }
+   ]
   },
   {
    "id": "T-TWT-H35",
@@ -4279,7 +9593,29 @@
    "plain_name": "Bear-market rallies fail near the 50 DMA",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.022793089172820982,
+     "dev_t": 1.8807194747786955,
+     "dev_blocks": 19,
+     "val_mean": 0.026292656826276427,
+     "val_t": 1.6153569169021424,
+     "val_blocks": 6
+    },
+    {
+     "variant": "nfwd10",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.01367275595977899,
+     "dev_t": 1.8724590319951282,
+     "dev_blocks": 19,
+     "val_mean": 0.018443792787011328,
+     "val_t": 1.5883548776239924,
+     "val_blocks": 6
+    }
+   ]
   },
   {
    "id": "T-TWT-H36",
@@ -4306,7 +9642,49 @@
    "plain_name": "Deep below the 200 DMA",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "b8_14|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.024963135092135436,
+     "dev_t": 0.5047535212559902,
+     "dev_blocks": 15,
+     "val_mean": 0.05545226220956785,
+     "val_t": 1.4307767780692096,
+     "val_blocks": 4
+    },
+    {
+     "variant": "b8_14|nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.04037082630019976,
+     "dev_t": 1.7821056454081605,
+     "dev_blocks": 15,
+     "val_mean": 0.013216015918521192,
+     "val_t": 0.2939227606024923,
+     "val_blocks": 4
+    },
+    {
+     "variant": "b9_10|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.015572531940148703,
+     "dev_t": -0.32959106794712056,
+     "dev_blocks": 12,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 2
+    },
+    {
+     "variant": "b9_10|nfwd126",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0062392029354683826,
+     "dev_t": 0.07934459790212509,
+     "dev_blocks": 8,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 2
+    }
+   ]
   },
   {
    "id": "T-TWT-H37",
@@ -4333,7 +9711,49 @@
    "plain_name": "India VIX spikes above 28",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "ge28|nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.061866042845048444,
+     "dev_t": 3.8792553149811524,
+     "dev_blocks": 13,
+     "val_mean": 0.0415199864676007,
+     "val_t": 2.837156956314195,
+     "val_blocks": 6
+    },
+    {
+     "variant": "peak_turn|nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.030776630656972035,
+     "dev_t": 1.4880691594833126,
+     "dev_blocks": 13,
+     "val_mean": 0.026548601062823807,
+     "val_t": 1.457081140611041,
+     "val_blocks": 6
+    },
+    {
+     "variant": "ge28|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.06968081439271068,
+     "dev_t": 1.593838022339814,
+     "dev_blocks": 13,
+     "val_mean": 0.0551791605399197,
+     "val_t": 1.3227489455529315,
+     "val_blocks": 6
+    },
+    {
+     "variant": "peak_turn|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0348905670740329,
+     "dev_t": 0.6909015726848236,
+     "dev_blocks": 13,
+     "val_mean": 0.04734949254053771,
+     "val_t": 0.8417392037455569,
+     "val_blocks": 6
+    }
+   ]
   },
   {
    "id": "T-TWT-H38",
@@ -4360,7 +9780,39 @@
    "plain_name": "VIX waking up from low levels",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "wake14|n_mdd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 0
+    },
+    {
+     "variant": "jump30|n_mdd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.002632761180561761,
+     "dev_t": 0.2938795956166823,
+     "dev_blocks": 12,
+     "val_mean": -0.03324833856181249,
+     "val_t": -1.0295056637581963,
+     "val_blocks": 5
+    },
+    {
+     "variant": "gt17_vs_lt14|n_mdd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.010697108735795581,
+     "dev_t": -2.720284272637455,
+     "dev_blocks": 9,
+     "val_mean": 0.0022959024035284006,
+     "val_t": 0.1496036386473963,
+     "val_blocks": 12
+    }
+   ]
   },
   {
    "id": "T-TWT-H39",
@@ -4389,7 +9841,49 @@
    "plain_name": "Small caps' turn",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "above50|slfwd63",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.03128331688503862,
+     "dev_t": -2.240299313247215,
+     "dev_blocks": 50,
+     "val_mean": -0.0020733162943050287,
+     "val_t": -0.08305596529142655,
+     "val_blocks": 19
+    },
+    {
+     "variant": "ret40|slfwd63",
+     "verdict": "REJECTED",
+     "dev_mean": -0.024999581017008235,
+     "dev_t": -1.7698482161332938,
+     "dev_blocks": 50,
+     "val_mean": 0.004220202748325514,
+     "val_t": 0.17408184228632947,
+     "val_blocks": 19
+    },
+    {
+     "variant": "ret40|slfwd126",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.021605280292055187,
+     "dev_t": -0.6014456068135927,
+     "dev_blocks": 14,
+     "val_mean": -0.024568196512757642,
+     "val_t": -0.308100995093891,
+     "val_blocks": 6
+    },
+    {
+     "variant": "above50|slfwd126",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.024843915390148158,
+     "dev_t": -0.6732438897178755,
+     "dev_blocks": 14,
+     "val_mean": -0.021701191912732475,
+     "val_t": -0.27328440378176794,
+     "val_blocks": 6
+    }
+   ]
   },
   {
    "id": "T-TWT-H40",
@@ -4416,7 +9910,29 @@
    "plain_name": "Index contraction on a rising 50 DMA",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nfwd10",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.0321415145475386,
+     "dev_t": 1.7770152223716662,
+     "dev_blocks": 6,
+     "val_mean": 0.005342637283601554,
+     "val_t": 0.24398257049046626,
+     "val_blocks": 3
+    },
+    {
+     "variant": "nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.046880338557279515,
+     "dev_t": 1.2899223157083866,
+     "dev_blocks": 6,
+     "val_mean": 0.006319400758955235,
+     "val_t": 0.12794027783259643,
+     "val_blocks": 3
+    }
+   ]
   },
   {
    "id": "T-TWT-H42",
@@ -4443,7 +9959,49 @@
    "plain_name": "A strong dollar hurts the Nifty",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "up5|nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.008442142451366699,
+     "dev_t": -0.40709278799718707,
+     "dev_blocks": 15,
+     "val_mean": 0.021728393631822964,
+     "val_t": 1.2825499631788093,
+     "val_blocks": 9
+    },
+    {
+     "variant": "up5|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.024530818839982222,
+     "dev_t": 0.5612465571092453,
+     "dev_blocks": 15,
+     "val_mean": 0.04173862796021695,
+     "val_t": 1.0973871311890562,
+     "val_blocks": 9
+    },
+    {
+     "variant": "break3y|nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.008641878903687684,
+     "dev_t": 0.4283108086701148,
+     "dev_blocks": 10,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 2
+    },
+    {
+     "variant": "break3y|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.06059912392441251,
+     "dev_t": 0.8564472278910383,
+     "dev_blocks": 10,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 2
+    }
+   ]
   },
   {
    "id": "T-TWT-H43",
@@ -4471,7 +10029,49 @@
    "plain_name": "Strong crude hurts the Nifty",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "above50|nfwd63",
+     "verdict": "REJECTED",
+     "dev_mean": -0.011074865900369074,
+     "dev_t": -0.49929390899684833,
+     "dev_blocks": 48,
+     "val_mean": -0.021658741766264113,
+     "val_t": -0.8041162548648049,
+     "val_blocks": 20
+    },
+    {
+     "variant": "above50|nfwd21",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0040224906364479,
+     "dev_t": -0.47879860899462584,
+     "dev_blocks": 48,
+     "val_mean": -0.0009594594408538718,
+     "val_t": -0.08999600654647011,
+     "val_blocks": 21
+    },
+    {
+     "variant": "ge100|nfwd21",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.008366003694612795,
+     "dev_t": -0.8251921550993867,
+     "dev_blocks": 18,
+     "val_mean": 0.012448817686922905,
+     "val_t": 0.6095976790543575,
+     "val_blocks": 3
+    },
+    {
+     "variant": "ge100|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0603282586132435,
+     "dev_t": -2.1216219860580616,
+     "dev_blocks": 18,
+     "val_mean": -0.01405117888973579,
+     "val_t": -0.3268100809884693,
+     "val_blocks": 3
+    }
+   ]
   },
   {
    "id": "T-TWT-H44",
@@ -4500,7 +10100,49 @@
    "plain_name": "US weakness leads the Nifty lower",
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "below50|nfwd21",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.020780131277992206,
+     "dev_t": 2.32301032756267,
+     "dev_blocks": 49,
+     "val_mean": 0.016284841991061907,
+     "val_t": 1.4631142663161516,
+     "val_blocks": 23
+    },
+    {
+     "variant": "below50|nfwd63",
+     "verdict": "REJECTED",
+     "dev_mean": 0.01520893850800746,
+     "dev_t": 0.6463864299435099,
+     "dev_blocks": 49,
+     "val_mean": 0.041262320132783394,
+     "val_t": 1.5452181635321562,
+     "val_blocks": 22
+    },
+    {
+     "variant": "reclaim|nfwd21",
+     "verdict": "REJECTED",
+     "dev_mean": -0.010906019667881937,
+     "dev_t": -0.920261864634941,
+     "dev_blocks": 40,
+     "val_mean": -0.002183649438025818,
+     "val_t": -0.22897111477324844,
+     "val_blocks": 19
+    },
+    {
+     "variant": "reclaim|nfwd42",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0029391691430423923,
+     "dev_t": -0.15834855477169707,
+     "dev_blocks": 40,
+     "val_mean": 0.00012809426823529382,
+     "val_t": 0.006964836855139129,
+     "val_blocks": 19
+    }
+   ]
   },
   {
    "id": "T-TWT-H46",
@@ -4528,7 +10170,49 @@
    "plain_name": "Bank Nifty leads",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "above200|nfwd21",
+     "verdict": "REJECTED",
+     "dev_mean": -0.016380501148377108,
+     "dev_t": -1.4545931501490095,
+     "dev_blocks": 27,
+     "val_mean": -0.030595754519217273,
+     "val_t": -2.4041652404493408,
+     "val_blocks": 16
+    },
+    {
+     "variant": "wk35|breadth_fwd21",
+     "verdict": "REJECTED",
+     "dev_mean": -0.009997455211883537,
+     "dev_t": -0.602153077241484,
+     "dev_blocks": 52,
+     "val_mean": 0.002514674609334858,
+     "val_t": 0.11111731441965354,
+     "val_blocks": 22
+    },
+    {
+     "variant": "wk35|nfwd21",
+     "verdict": "REJECTED",
+     "dev_mean": -0.006689184588421573,
+     "dev_t": -0.8853971975814652,
+     "dev_blocks": 58,
+     "val_mean": -0.0005204368388588513,
+     "val_t": -0.05161321382194223,
+     "val_blocks": 22
+    },
+    {
+     "variant": "above200|nfwd63",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.009112558887773518,
+     "dev_t": -0.3433664163427246,
+     "dev_blocks": 27,
+     "val_mean": -0.07065495636626902,
+     "val_t": -2.784655469215692,
+     "val_blocks": 15
+    }
+   ]
   },
   {
    "id": "T-TWT-H49",
@@ -4555,7 +10239,29 @@
    "plain_name": "Stochastic pullback with filters",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net10",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.0054695367368547505,
+     "dev_t": -1.7449755063723342,
+     "dev_blocks": 69,
+     "val_mean": -0.005273621382661003,
+     "val_t": -2.9435811845526456,
+     "val_blocks": 24
+    },
+    {
+     "variant": "net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.01150011128879475,
+     "dev_t": -2.1943281145543962,
+     "dev_blocks": 69,
+     "val_mean": -0.010979720387238124,
+     "val_t": -2.3333302077757914,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H50",
@@ -4582,7 +10288,29 @@
    "plain_name": "Confirmed Heikin Ashi entries",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net10",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0010534508678543906,
+     "dev_t": -0.9439648379505806,
+     "dev_blocks": 71,
+     "val_mean": 0.0027513909634062626,
+     "val_t": 2.354193804454154,
+     "val_blocks": 24
+    },
+    {
+     "variant": "net20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0009859943848301112,
+     "dev_t": -0.5645732998964109,
+     "dev_blocks": 71,
+     "val_mean": 0.0019216636885004584,
+     "val_t": 1.746694883031868,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H51",
@@ -4609,7 +10337,39 @@
    "plain_name": "Hidden bullish divergence",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.00975779905287665,
+     "dev_t": 0.9010819004364164,
+     "dev_blocks": 27,
+     "val_mean": 0.02649822749751568,
+     "val_t": 1.2297421251524914,
+     "val_blocks": 5
+    },
+    {
+     "variant": "net5",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.006124195724547525,
+     "dev_t": 1.6796013826016207,
+     "dev_blocks": 27,
+     "val_mean": -0.0025566722973118148,
+     "val_t": -0.17318598230069182,
+     "val_blocks": 5
+    },
+    {
+     "variant": "net10",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.009611751411724134,
+     "dev_t": 1.4350863233857682,
+     "dev_blocks": 27,
+     "val_mean": 0.0005380768175014059,
+     "val_t": 0.04111664650144538,
+     "val_blocks": 5
+    }
+   ]
   },
   {
    "id": "T-TWT-H52",
@@ -4636,7 +10396,29 @@
    "plain_name": "Ichimoku: all elements aligned",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0013470053526309436,
+     "dev_t": 0.3224178081911608,
+     "dev_blocks": 69,
+     "val_mean": 0.008922632100779069,
+     "val_t": 1.7455714061331693,
+     "val_blocks": 24
+    },
+    {
+     "variant": "net10",
+     "verdict": "REJECTED",
+     "dev_mean": 0.001770684552922086,
+     "dev_t": 0.4786390922256548,
+     "dev_blocks": 69,
+     "val_mean": 0.003727599622667258,
+     "val_t": 0.8771823571788065,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H53",
@@ -4664,7 +10446,49 @@
    "plain_name": "Weekly outside reversal bars",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "bull|net10",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0013132850038820294,
+     "dev_t": 0.2846971130791147,
+     "dev_blocks": 69,
+     "val_mean": 0.004143426934005786,
+     "val_t": 0.870955723794267,
+     "val_blocks": 23
+    },
+    {
+     "variant": "bull|net20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.004960045149643724,
+     "dev_t": 0.778619099904987,
+     "dev_blocks": 69,
+     "val_mean": 0.00387496380128646,
+     "val_t": 0.5939931814537607,
+     "val_blocks": 23
+    },
+    {
+     "variant": "bear|net20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.01755817938927376,
+     "dev_t": -3.364521244543997,
+     "dev_blocks": 70,
+     "val_mean": -0.011290306279526518,
+     "val_t": -1.4414549937218089,
+     "val_blocks": 24
+    },
+    {
+     "variant": "bull_vol52|net20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.004988601907709189,
+     "dev_t": -0.24057274058789146,
+     "dev_blocks": 18,
+     "val_mean": -0.0032397660367904347,
+     "val_t": -0.2277194220631826,
+     "val_blocks": 9
+    }
+   ]
   },
   {
    "id": "T-TWT-H54",
@@ -4691,7 +10515,29 @@
    "plain_name": "ADX trend pullback to the 20 EMA",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "net10",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.005778423063751247,
+     "dev_t": -2.246522668841515,
+     "dev_blocks": 70,
+     "val_mean": -0.005885297799309449,
+     "val_t": -1.8071608287025047,
+     "val_blocks": 24
+    },
+    {
+     "variant": "net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.01353548954627278,
+     "dev_t": -3.2036550044115213,
+     "dev_blocks": 70,
+     "val_mean": -0.0072863416475044225,
+     "val_t": -1.0853707112174396,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "T-TWT-H59",
@@ -4719,7 +10565,49 @@
    "plain_name": "Opening outside yesterday's range",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "BANKNIFTY|continuation",
+     "verdict": "REJECTED",
+     "dev_mean": 0.01168776788652573,
+     "dev_t": 0.5051017289599906,
+     "dev_blocks": 48,
+     "val_mean": -0.037696126531505135,
+     "val_t": -1.433139281854721,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|continuation",
+     "verdict": "REJECTED",
+     "dev_mean": 0.023534899109343546,
+     "dev_t": 1.0709788797404192,
+     "dev_blocks": 29,
+     "val_mean": -0.02703432258221526,
+     "val_t": -0.8835048597976474,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|range",
+     "verdict": "REJECTED",
+     "dev_mean": 0.03535818005563843,
+     "dev_t": 0.7589865497958692,
+     "dev_blocks": 29,
+     "val_mean": -0.022156643973403806,
+     "val_t": -0.5629503120271654,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANKNIFTY|range",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.08932662047746853,
+     "dev_t": 2.7793681320409176,
+     "dev_blocks": 48,
+     "val_mean": 0.030525478801135333,
+     "val_t": 0.8601424612197021,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "TS1",
@@ -4748,7 +10636,49 @@
    "plain_name": "Ananta's trailing-stop test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "PULL|trail2atr_vs_fixed2atr",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.024907984738823018,
+     "dev_t": -2.9695035032583412,
+     "dev_blocks": 71,
+     "val_mean": -0.030395023377628318,
+     "val_t": -2.58427488884778,
+     "val_blocks": 23
+    },
+    {
+     "variant": "ANY|trail2atr_vs_fixed2atr",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.023791085090668754,
+     "dev_t": -2.639378253042483,
+     "dev_blocks": 71,
+     "val_mean": -0.01765869710550074,
+     "val_t": -1.8272265042636482,
+     "val_blocks": 23
+    },
+    {
+     "variant": "ANY|trail10_vs_fixed7",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.015985660723852328,
+     "dev_t": -2.7327982364293666,
+     "dev_blocks": 71,
+     "val_mean": -0.009310701334482608,
+     "val_t": -1.7232018653787127,
+     "val_blocks": 23
+    },
+    {
+     "variant": "BRK|trail2atr_vs_fixed2atr",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.015092205777444464,
+     "dev_t": -2.0382707077885156,
+     "dev_blocks": 71,
+     "val_mean": -0.015501562925483006,
+     "val_t": -1.578797096333359,
+     "val_blocks": 23
+    }
+   ]
   },
   {
    "id": "V01",
@@ -4777,7 +10707,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "abs_reaction_excess",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.004800618613911538,
+     "dev_t": 6.408432688022787,
+     "dev_blocks": 24,
+     "val_mean": 0.011018007304090601,
+     "val_t": 7.9495223390274,
+     "val_blocks": 24
+    },
+    {
+     "variant": "drift_signed",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0005173149002185841,
+     "dev_t": 0.3117593913775638,
+     "dev_blocks": 24,
+     "val_mean": 0.005869318772936632,
+     "val_t": 3.1170117056658175,
+     "val_blocks": 24
+    },
+    {
+     "variant": "drift_after_down",
+     "verdict": "REJECTED",
+     "dev_mean": 0.006716669283880595,
+     "dev_t": 0.8520637607210189,
+     "dev_blocks": 24,
+     "val_mean": -0.009932614020006463,
+     "val_t": -1.2945469196070067,
+     "val_blocks": 24
+    },
+    {
+     "variant": "drift_after_up",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.013055451315503813,
+     "dev_t": 1.9345095643202865,
+     "dev_blocks": 24,
+     "val_mean": 0.013251386521982322,
+     "val_t": 1.5153191863502125,
+     "val_blocks": 24
+    }
+   ]
   },
   {
    "id": "V02",
@@ -4806,7 +10778,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "band_hit_low",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.07535366107167966,
+     "dev_t": -6.2523318735771145,
+     "dev_blocks": 31,
+     "val_mean": -0.031160208302800096,
+     "val_t": -2.688976452566589,
+     "val_blocks": 24
+    },
+    {
+     "variant": "rating",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0041746954029021595,
+     "dev_t": 0.7570729631200432,
+     "dev_blocks": 31,
+     "val_mean": -0.012502912779138118,
+     "val_t": -1.5714861136122629,
+     "val_blocks": 22
+    },
+    {
+     "variant": "bonus_split",
+     "verdict": "REJECTED",
+     "dev_mean": -0.023649792598493893,
+     "dev_t": -3.256855002505194,
+     "dev_blocks": 30,
+     "val_mean": 0.013219928746566585,
+     "val_t": 1.1007584366594727,
+     "val_blocks": 22
+    },
+    {
+     "variant": "legal",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00791125224172641,
+     "dev_t": 0.8893098349765416,
+     "dev_blocks": 31,
+     "val_mean": -0.03362337902528321,
+     "val_t": -1.039083573590498,
+     "val_blocks": 18
+    }
+   ]
   },
   {
    "id": "V03",
@@ -4835,7 +10849,49 @@
    "plain_name": null,
    "in_readmodel": false,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "listing_gain",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.26194012840718534,
+     "dev_t": 2.3191048449965037,
+     "dev_blocks": 9,
+     "val_mean": 0.21138922382021866,
+     "val_t": 4.3328330796247325,
+     "val_blocks": 22
+    },
+    {
+     "variant": "weak_listing_ab60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.0017340698535771712,
+     "dev_t": -0.03227778165492167,
+     "dev_blocks": 9,
+     "val_mean": 0.1251435203960146,
+     "val_t": 2.4243312702327326,
+     "val_blocks": 21
+    },
+    {
+     "variant": "buy_day1_ab60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.049971650762087635,
+     "dev_t": 1.0732601953892462,
+     "dev_blocks": 9,
+     "val_mean": 0.06619592806967413,
+     "val_t": 1.6286770619720456,
+     "val_blocks": 22
+    },
+    {
+     "variant": "buy_day1_ab20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.005844771417268651,
+     "dev_t": -0.2571371030592121,
+     "dev_blocks": 9,
+     "val_mean": -0.007876835095907727,
+     "val_t": -0.378749915624389,
+     "val_blocks": 22
+    }
+   ]
   },
   {
    "id": "VL1",
@@ -4862,7 +10918,49 @@
    "plain_name": "Ananta's valuation test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|pe_top10|fwd60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.06737270408354908,
+     "dev_t": -3.0094426100657587,
+     "dev_blocks": 21,
+     "val_mean": -0.09122963784156861,
+     "val_t": -1.9399443159225283,
+     "val_blocks": 3
+    },
+    {
+     "variant": "NIFTY|pe_bottom10|fwd60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.13610995258929187,
+     "dev_t": 2.2227872057783475,
+     "dev_blocks": 7,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 0
+    },
+    {
+     "variant": "NIFTY|pb_top10|fwd60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": -0.02008195730840473,
+     "dev_t": -0.5061146739538476,
+     "dev_blocks": 11,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 0
+    },
+    {
+     "variant": "NIFTY|dy_top10|fwd60",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.06752660043035419,
+     "dev_t": 1.0889305966091818,
+     "dev_blocks": 4,
+     "val_mean": NaN,
+     "val_t": NaN,
+     "val_blocks": 0
+    }
+   ]
   },
   {
    "id": "XO1",
@@ -4891,7 +10989,49 @@
    "plain_name": "Ananta's moving-average crossover test",
    "in_readmodel": true,
    "in_exam": false,
-   "in_lock": false
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "STK|converge|abs20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.012880563803755718,
+     "dev_t": -2.7725653294300145,
+     "dev_blocks": 66,
+     "val_mean": -0.009471387136042834,
+     "val_t": -2.8890608897896817,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|gc|net60",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.027418247572601726,
+     "dev_t": -2.6370423417505666,
+     "dev_blocks": 64,
+     "val_mean": -0.02752388504920084,
+     "val_t": -2.232433257083575,
+     "val_blocks": 23
+    },
+    {
+     "variant": "STK|x2050up|net20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.007384643855120889,
+     "dev_t": -2.1020661551203443,
+     "dev_blocks": 70,
+     "val_mean": -0.005421043129925034,
+     "val_t": -1.2288664303853125,
+     "val_blocks": 24
+    },
+    {
+     "variant": "STK|macdup|net20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.002282177486511804,
+     "dev_t": 0.9893615007438494,
+     "dev_blocks": 70,
+     "val_mean": 0.004252973852675237,
+     "val_t": 1.543917749568114,
+     "val_blocks": 24
+    }
+   ]
   }
  ],
  "gaps": [

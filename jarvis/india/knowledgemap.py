@@ -80,6 +80,19 @@ def _full_scale(results: list[dict]) -> str:
     return "thin"
 
 
+def _top(res: list[dict], n: int = 4) -> list[dict]:
+    """The strongest variants (by verdict rank, then validation t), with their numbers, so the voice can say size and direction."""
+    last = {}
+    for r in res:                                           # the newest result per variant
+        last[r.get("variant")] = r
+    rs = sorted(last.values(), key=lambda r: (-RANK.get(r.get("verdict"), -1), -abs((r.get("val") or [0, 0, 0])[1] or 0)))
+    out = []
+    for r in rs[:n]:
+        d, v = r.get("dev") or [None, None, 0], r.get("val") or [None, None, 0]
+        out.append({"variant": r.get("variant"), "verdict": r.get("verdict"), "dev_mean": d[0], "dev_t": d[1], "dev_blocks": d[2], "val_mean": v[0], "val_t": v[1], "val_blocks": v[2]})
+    return out
+
+
 def _tokens(text: str, ids: list[str]) -> set[str]:
     """Which study ids appear in a text as whole tokens (T-TWT-H10 also matches as TWT-H10)."""
     found = set()
@@ -201,7 +214,8 @@ def build() -> dict:
                "tracker_state": (tracker.get(sid) or tracker.get(base) or {}).get("state"), "hypotheses": hyp_by_study.get(base, [])[:6],
                "in_paper": sid in paper_ids or sid in paper_refs or base in paper_refs, "paper_role": paper_refs.get(sid) or paper_refs.get(base),
                "in_facts": sid in facts_ids, "plain_name": names.get(sid) or names.get(base) or names.get(sid.replace("T-", "", 1)),
-               "in_readmodel": sid in rm_ids, "in_exam": sid in exam_ids, "in_lock": sid in lock_ids or base in lock_ids}
+               "in_readmodel": sid in rm_ids, "in_exam": sid in exam_ids, "in_lock": sid in lock_ids or base in lock_ids,
+               "top_variants": _top(res)}
         rows.append(row)
 
     # ----------------------------------------------------------------------------------------------- the gaps
@@ -300,7 +314,10 @@ def lookup(question: str, limit: int = 6) -> list[dict]:
             out.append((score, r))
     out.sort(key=lambda t: (-t[0], t[1]["id"]))
     return [{"id": r["id"], "name": r.get("plain_name") or r["id"], "title": r.get("title"), "verdict": r.get("best_verdict"), "scale": r.get("scale"),
-             "in_paper_rules": r.get("in_paper"), "paper_role": r.get("paper_role"), "results_page": r.get("results_page")} for _, r in out[:limit]]
+             "in_paper_rules": r.get("in_paper"), "paper_role": r.get("paper_role"), "results_page": r.get("results_page"),
+             "numbers": [{"variant": t["variant"], "verdict": t["verdict"], "mean_2000_2017": t["dev_mean"], "mean_2018_2023": t["val_mean"], "t": [t["dev_t"], t["val_t"]]}
+                         for t in (r.get("top_variants") or [])[:3]],
+             "numbers_meaning": "means are per event in return units (0.01 = 1%) unless the variant says otherwise; t beyond about 3.6 clears the bar"} for _, r in out[:limit]]
 
 
 if __name__ == "__main__":

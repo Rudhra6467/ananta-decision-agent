@@ -231,6 +231,30 @@ def run(rerun_reason: str | None = None) -> dict:
     return out
 
 
+TAKEAWAY = [      # written after the run of 29-30 Oct 2026, from the numbers in the table below
+    "**Expiry-day decay is real from the selling side too, but at Rs 50,000 it is not capturable: the bought wings that make the trade affordable cost about "
+    "as much as the decay earns, and four legs of spread and charges take the rest. Nothing here passes.**",
+    "- **Naked short straddle at the expiry-day open, bought back at the close (315 Nifty and 424 Bank Nifty expiry days):** +10.8% and +13.0% of the premium "
+    "in 2018-23 (t +2.7 and +4.1; Rs +689 and Rs +1,396 a lot on a median credit of Rs 5,250-6,060; 65% winners) but about -8% and -2% in 2014-17 (monthly "
+    "expiries only for Nifty): REJECTED at the two-period bar. Worst day Rs -25,000 a lot, 5th percentile Rs -6,000 to -8,600, and the margin is about "
+    "Rs 1-1.5 lakh a lot: out of reach for the options sleeve whatever the verdict.",
+    "- **Iron fly with wings 1% away (the affordable version, margin about Rs 10,000):** the wings cost about Rs 700-1,250 a structure plus two more legs of "
+    "spread and charges; net Rs -159 (Nifty, OPPOSITE) and Rs -135 (Bank Nifty) a structure, 53-55% winners, longest losing run 7-9.",
+    "- **Iron fly with wings 2% away (margin about Rs 17,500-18,750):** Rs +119 and Rs +358 a structure (t +1.3 in validation), 60% winners: positive but far "
+    "under the bar, and March 2020 cost Rs -15,300 (Nifty) in a month.",
+    "- **Iron condor, short 1% out, long 2% out:** credit only Rs 330-700 a structure; Nifty lost (OPPOSITE, 35% winners, an 18-trade losing run), Bank Nifty "
+    "about zero.",
+    "- **The control (the same structures three sessions before expiry, closed the same day):** every defined-risk version lost 4-16% of the width in both "
+    "periods (VALIDATED the wrong way, 20-37% winners): without expiry-day decay, four legs of friction are a steady loss. So the expiry-day effect is real "
+    "and specific; the friction is what kills the affordable version of it.",
+    "- **Fills:** each leg at the exchange file's daily open and close. The open is a thin print (dropped where a wing's credit reached the width: 0-20 cases "
+    "a variant); an intraday entry after the first 15 minutes, or a stop, is not modelled and could move these numbers either way.",
+    "- **What Ananta does with this:** no paper trial of expiry-day selling at the sleeve's size; the finding joins the exit book as a fact ('the decay is "
+    "there, the price of the insurance eats it'). If the sleeve ever grows past Rs 1.5 lakh the naked straddle's 2018-23 record could be re-examined with "
+    "intraday fills from the live recorder, which has been collecting real option quotes since 18 Oct. No rule changes.",
+]
+
+
 def table(out: dict | None = None) -> Path:
     if out is None:
         out = json.loads((paths.manifest_dir() / "lab5_dr1.json").read_text())
@@ -241,6 +265,7 @@ def table(out: dict | None = None) -> Path:
          "option is a thin fill (a known weakness, carried over from GK1). ret = net rupees / premium received for the naked straddle, net rupees / capital at risk "
          "(net rupees / wing width x lot, about the exchange margin of a spread) for the defined-risk structures; a structure whose credit is 90%+ of the width (a bad wing print) is dropped and counted. exp3 rows are the control: the same structures three "
          "sessions before expiry.", "",
+         "## In plain words", "", *TAKEAWAY, "", "## The rows", "",
          "Verdicts: VALIDATED and CONDITIONAL would be passes; OPPOSITE means significantly the other way round; INCONCLUSIVE means too few independent blocks "
          "(16 needed per period) or a reading below the bar. A control row (expected 0) that comes out REJECTED or INCONCLUSIVE is a clean control.", "",
          "| variant | expected | verdict | dev mean | dev t | dev blocks | val mean | val t | val blocks | trades | win | mean Rs | worst Rs | p5 Rs | max DD Rs | losing run | Mar-2020 Rs |",

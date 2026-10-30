@@ -45,18 +45,41 @@ def test_pieces_start_small_then_about_200_characters():
     assert iv.pieces(["One long first sentence that is well over forty characters long."]) == [[0]]
 
 
-def test_a_long_first_sentence_speaks_its_opening_clause_first():
+def test_the_first_piece_is_a_whole_sentence_and_the_next_pieces_ramp_up():
+    """30 Oct (Madhav: "voice cuts after the first 4-5 words in every answer"): the opening-clause cut is off. A 4-word clause was 2 s of audio
+    and the next piece took 3.5-8 s to make on a busy GPU, so the voice went silent mid-sentence. Now piece 0 is the whole first sentence,
+    piece 1 is small (about 110 characters), piece 2 about 160, then about 200."""
     long0 = ("A stop-loss order is an instruction to your broker to sell automatically, once the price falls to a level you set in "
              "advance, so one bad trade cannot grow.")
-    p = iv.plan([long0, "For example, buy at 100 and set the stop at 93.", "It limits damage; it does not raise returns."])
-    head, rest = p[0][0][1], p[1][0][1]
-    assert p[0] == [(0, head)] and 30 <= len(head) <= 90 and head.endswith(",") and p[1][0][0] == 0
-    assert (head + " " + rest).replace("  ", " ") == long0                 # nothing lost, nothing repeated
+    rest = ["For example, buy at 100 and set the stop at 93.", "It limits damage; it does not raise returns.", "Sir, that is the whole idea of it.",
+            "A trailing stop moves up with the price.", "Ananta's tests found the fixed stop did better.", "So use a fixed one.", "Nothing is placed from chat."]
+    p = iv.plan([long0] + rest)
+    assert p[0] == [(0, long0)]                                           # no clause cut: sentence 0 is one piece
+    assert [i for g in p for i, _ in g] == list(range(1 + len(rest)))     # nothing lost, nothing repeated
+    assert sum(len(t) for _, t in p[1]) <= iv.STREAM_RAMP[0] + 60 and len(p[1]) <= 3      # small second piece
     fake = FakeVoice()
-    key = iv.start_stream([" ".join([long0, "For example, buy at 100 and set the stop at 93."])], 1.0, fake, background=False)
-    assert fake.calls[0]["sentences"] == [head] and fake.calls[0]["tail"] == iv.HEAD_TAIL_S
+    key = iv.start_stream([" ".join([long0] + rest)], 1.0, fake, background=False)
+    assert fake.calls[0]["sentences"] == [long0] and fake.calls[0]["tail"] == iv.STREAM_TAIL_S
     m = iv.answer_meta(key)
-    assert m["segments"][1]["first"] == 0                                 # the rest of sentence 0 opens piece 1: highlights stay on sentence 0
+    assert m["segments"][1]["first"] == 1
+
+
+def test_a_slow_first_piece_is_held_for_the_second(monkeypatch):
+    """When the GPU made piece 0 slower than it plays, the stream's meta (what the phone waits for) also waits, bounded, for piece 1."""
+    import threading
+    key = iv.start_stream([TEXT], 1.0, FakeVoice(), background=False)
+    s = iv._streams[key]
+    s["segs"][0]["ms"], s["segs"][0]["duration"] = 4000, 2.0           # 4 s to make 2 s of audio: busy
+    s["events"][1].clear()
+    waited = []
+    orig = s["events"][1].wait
+    monkeypatch.setattr(s["events"][1], "wait", lambda t=None: (waited.append(t), orig(0))[1])
+    iv.stream_meta(key)
+    assert waited and 0 < waited[0] <= iv.STREAM_HOLD_S
+    s["segs"][0]["ms"], s["segs"][0]["duration"] = 500, 6.0            # idle: no hold
+    waited.clear()
+    iv.stream_meta(key)
+    assert not waited
 
 
 def test_stream_meta_audio_and_pieces_in_order_same_voice():

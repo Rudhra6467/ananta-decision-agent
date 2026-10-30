@@ -56,6 +56,9 @@ def _speak(sents: list[str], speed: float = 1.0, post=None, tail: float = 0.0) -
 # says it can play pieces (tts.stream) gets a stream; an older client still gets one file.
 STREAM_FIRST_CHARS = 120          # the first piece: the first sentence, plus the next when the first is very short
 STREAM_PIECE_CHARS = 200          # then about this much per piece (at most 3 sentences): short enough to keep ahead of playback on a busy GPU
+STREAM_RAMP = (110, 160)          # 30 Oct: the second and third pieces are smaller still, so each is made while the one before it plays
+STREAM_HOLD_S = 4.0               # 30 Oct: when piece 0 was made slower than it plays (busy GPU), hold it up to this long for piece 1, so the
+                                  # voice starts a little later instead of going silent after its first sentence
 STREAM_WAIT_S = 45.0              # how long a request for a piece waits for it to be made (27 Oct: 30 s ran out once while the GPU was saturated)
 STREAM_TAIL_S = 0.32              # the pause after a piece, so pieces join like sentences
 _streams: OrderedDict[str, dict] = OrderedDict()
@@ -63,7 +66,9 @@ _streams: OrderedDict[str, dict] = OrderedDict()
 
 CLAUSE = re.compile(r"[,;:]\s+|\s[—–-]\s+")
 JOIN = re.compile(r"\s(?=(?:if|because|but|so|when|which|while|unless|though|although)\b)", re.I)
-HEAD_SPLIT_OVER = 80              # a first sentence longer than this speaks its opening clause first, the rest next
+HEAD_SPLIT_OVER = 10_000          # 30 Oct (Madhav: "voice cuts after the first 4-5 words"): the opening-clause cut is off. A 4-word clause is
+                                  # 2 s of audio, and the next piece took 3.5-8 s to make with the GPU busy, so the voice went silent mid-sentence
+                                  # after every opening. The first piece is now a whole sentence; STREAM_RAMP keeps the pieces after it small.
 HEAD_TAIL_S = 0.12                # the short breath after that opening clause (mid-sentence, not a full stop)
 
 
@@ -95,7 +100,8 @@ def plan(sents: list[str]) -> list[list[tuple[int, str]]]:
     for it in items:
         cur.append(it)
         n += len(it[1])
-        if n >= STREAM_PIECE_CHARS or len(cur) >= 3:
+        limit = STREAM_RAMP[len(out) - 1] if len(out) - 1 < len(STREAM_RAMP) else STREAM_PIECE_CHARS
+        if n >= limit or len(cur) >= 3:
             out.append(cur)
             cur, n = [], 0
     if cur:
@@ -178,6 +184,14 @@ def stream_meta(key: str) -> dict:
     a = _piece(key, 0)
     with _lock:
         s = _streams[key]
+    # 30 Oct: a busy GPU makes audio slower than it plays; then the phone would finish piece 0 before piece 1 exists. Hold piece 0 (bounded)
+    # until piece 1 is made, so the answer starts a moment later but does not stop after its first sentence.
+    try:
+        ms0, dur0 = float(a.get("ms") or 0), float(a.get("duration") or 0)
+        if len(s["pieces"]) > 1 and ms0 > 0 and dur0 > 0 and ms0 > 0.6 * dur0 * 1000:
+            s["events"][1].wait(min(STREAM_HOLD_S, max(0.0, ms0 / 1000.0 * 1.6 - dur0 + 1.5)))
+    except Exception:  # noqa: BLE001
+        pass
     return {"id": key, "stream": True, "offsets": a["offsets"], "duration": a["duration"], "engine": a["engine"], "voice": a["voice"], "mime": a["mime"],
             "bytes": len(a["audio"]), "ms": a.get("ms"), "sentences": len(s["sents"]),
             "segments": [{"id": f"{key}.{i}", "first": idx[0], "count": len(idx)} for i, idx in enumerate(s["pieces"])]}

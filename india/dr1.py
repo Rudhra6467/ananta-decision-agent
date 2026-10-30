@@ -97,7 +97,7 @@ def _nearest(strikes: list[float], target: float, above: bool) -> float | None:
 
 def structures() -> pd.DataFrame:
     o, opn = _chains()
-    out = []
+    out, dropped = [], []
     for (sym, day, kind), g in o.groupby(["symbol", "date", "kind"]):
         spot = opn.get((SYM_IDX[sym], day))
         if spot is None or not (spot > 0):
@@ -128,8 +128,11 @@ def structures() -> pd.DataFrame:
             net = s_ce + s_pe + b_ce + b_pe
             net_credit = credit - pc - pp
             width = min(kc - K, K - kp) * lot
-            risk = max(width - net_credit, 1.0)
-            out.append({**base, "struct": name, "net_rs": net, "credit_rs": net_credit, "risk_rs": risk, "ret": net / risk, "wing_c": kc, "wing_p": kp})
+            risk = width - net_credit
+            if risk < 0.1 * width:   # a credit near or above the width is a bad opening print on a wing, not a free trade: dropped and counted
+                dropped.append({**base, "struct": name, "why": "credit_vs_width"})
+                continue
+            out.append({**base, "struct": name, "net_rs": net, "credit_rs": net_credit, "risk_rs": risk, "width_rs": width, "ret": net / width, "wing_c": kc, "wing_p": kp})
         # iron condor: short ~1% out, long ~2% out
         sc, sp_ = _nearest(list(ce.index), K * 1.01, True), _nearest(list(pe.index), K * 0.99, False)
         lc, lp = _nearest(list(ce.index), K * 1.02, True), _nearest(list(pe.index), K * 0.98, False)
@@ -141,9 +144,14 @@ def structures() -> pd.DataFrame:
             net = a + b + c + d
             net_credit = pa + pb - pcc - pd_
             width = min(lc - sc, sp_ - lp) * lot
-            risk = max(width - net_credit, 1.0)
-            out.append({**base, "struct": "condor_1_2", "net_rs": net, "credit_rs": net_credit, "risk_rs": risk, "ret": net / risk, "short_c": sc, "short_p": sp_, "wing_c": lc, "wing_p": lp})
-    return pd.DataFrame(out)
+            risk = width - net_credit
+            if risk < 0.1 * width:
+                dropped.append({**base, "struct": "condor_1_2", "why": "credit_vs_width"})
+            else:
+                out.append({**base, "struct": "condor_1_2", "net_rs": net, "credit_rs": net_credit, "risk_rs": risk, "width_rs": width, "ret": net / width, "short_c": sc, "short_p": sp_, "wing_c": lc, "wing_p": lp})
+    df = pd.DataFrame(out)
+    df.attrs["dropped"] = pd.DataFrame(dropped)
+    return df
 
 
 def _tail(d: pd.DataFrame) -> dict:
@@ -182,6 +190,9 @@ def results(counts_only: bool = False) -> dict:
                     continue
                 r = _absolute(d, "ret", "Q")
                 r["extra"].update(_tail(d))
+                dr = S.attrs.get("dropped")
+                if dr is not None and len(dr):
+                    r["extra"]["dropped_bad_prints"] = int(((dr["symbol"] == sym) & (dr["kind"] == kind) & (dr["struct"] == st)).sum())
                 out[key] = r
     if not counts_only:
         p = paths.gold() / "studies"
@@ -223,7 +234,7 @@ def table(out: dict | None = None) -> Path:
          f"k = {out['k']}, z = {registry.threshold(out['k']):.2f}. Development 2014-2017, validation 2018-2023; nothing from 2024 on. HISTORICAL BACKTEST, paper only.", "",
          "Fills: every leg at its daily open and daily close in the exchange file, with the half-spread model and the option charges of the day. The opening print of an "
          "option is a thin fill (a known weakness, carried over from GK1). ret = net rupees / premium received for the naked straddle, net rupees / capital at risk "
-         "(wing width minus net credit, about the exchange margin of a spread) for the defined-risk structures. exp3 rows are the control: the same structures three "
+         "(net rupees / wing width x lot, about the exchange margin of a spread) for the defined-risk structures; a structure whose credit is 90%+ of the width (a bad wing print) is dropped and counted. exp3 rows are the control: the same structures three "
          "sessions before expiry.", "",
          "Verdicts: VALIDATED and CONDITIONAL would be passes; OPPOSITE means significantly the other way round; INCONCLUSIVE means too few independent blocks "
          "(16 needed per period) or a reading below the bar. A control row (expected 0) that comes out REJECTED or INCONCLUSIVE is a clean control.", "",

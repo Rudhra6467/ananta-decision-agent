@@ -16,8 +16,8 @@
  },
  "definitions": {
   "straddle": "sell the at-the-money call and put of the expiring series (strike nearest the index open, within 2%) at their daily open, buy both back at their daily close; ret = net rupees / premium received",
-  "fly_w1 / fly_w2": "the straddle plus a bought call 1% (2%) above and a bought put 1% (2%) below the strike (nearest listed strikes with a traded open and close); ret = net rupees / capital at risk, where capital at risk = (wing width - net credit) x lot",
-  "condor_1_2": "sell the call and put about 1% out of the money, buy the call and put about 2% out; ret = net rupees / capital at risk as above",
+  "fly_w1 / fly_w2": "the straddle plus a bought call 1% (2%) above and a bought put 1% (2%) below the strike (nearest listed strikes with a traded open and close); ret = net rupees / (wing width x lot), the margin a spread needs; a structure whose net credit is 90% or more of the width is a bad opening print on a wing and is dropped and counted",
+  "condor_1_2": "sell the call and put about 1% out of the money, buy the call and put about 2% out; ret = net rupees / (wing width x lot) as above",
   "exp0 / exp3": "exp0 = opened and closed on the expiry day; exp3 = the same structure on the session three trading days before that expiry (the same series must be the nearest expiry that day), the control",
   "fills_and_costs": "each leg at its daily open and daily close with the half-spread model max(tick floor, 0.25% of premium) per leg per side (sp1.OPT_HALF), india.costs option charges with the STT of the day on every sell; a structure needs every leg to have a traded open and close",
   "not_modelled": "intraday stops (daily open and close only), the opening print's thinness (a known weakness, labelled), assignment (index options are cash settled), the exchange margin (a defined-risk spread's margin is about the width x lot; the naked straddle needs Rs 1-1.5 lakh a lot and is a reference only)"

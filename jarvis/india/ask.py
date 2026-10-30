@@ -467,6 +467,24 @@ def allocation_rule_facts() -> dict:
             "decided": a.get("decided"), "version": a.get("version")}
 
 
+def _managed_book() -> dict:
+    """The managed paper book (india/managed.py): what it holds, today's fills, the plan for the next session, the clock. The answer to
+    'what would you replace X with' and 'what will you change tomorrow' comes from plan.buys / plan.cuts, never invented."""
+    try:
+        v = json.loads((DATA / "paper" / "managed" / "view.json").read_text())
+    except (OSError, ValueError):
+        return {"status": "not started", "words": "the managed book has not started yet; until it does Ananta does not pick replacements"}
+    p = v.get("plan") or {}
+    return {"status": "ok", "paper": True, "words": v.get("words"), "clock": (v.get("clock") or {}).get("words"), "value_inr": v.get("value_inr"), "return_pct": v.get("return_pct"),
+            "start_day": v.get("start_day"), "replacements_held": [{"symbol": r["symbol"], "entered": r.get("entered"), "for_cut": r.get("for_cut"), "pnl_pct": r.get("pnl_pct"), "stop": r.get("stop"), "held_sessions": r.get("held_sessions")} for r in v.get("replacements") or []],
+            "filled_today": [{k: t.get(k) for k in ("side", "symbol", "qty", "price", "skipped", "for_cut")} for t in v.get("filled_today") or []],
+            "plan": {"for_session": p.get("for_session"), "brief": p.get("brief"), "no_change": p.get("no_change"), "error": p.get("error"),
+                     "cuts": [{"symbol": x.get("symbol"), "kind": x.get("kind"), "inr": x.get("inr"), "why": x.get("why")} for x in p.get("cuts") or []],
+                     "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons"), "also_considered": b.get("also_considered"), "stop_pct": b.get("stop_pct")} for b in p.get("buys") or []],
+                     "notes": p.get("notes")},
+            "rule": "a replacement is chosen from the Nifty 500 by the proved not-losing filters (above its 50- and 200-day averages, not stretched, not a 40%-down name, calm, liquid, sector not over 25%), one per cut for the same rupees, at most three new names a week, a 7% fixed stop, a 20-session minimum hold; fills at the next open, a buy gapping over 2% is skipped; judged only after 60 sessions"}
+
+
 def _twin_benchmark() -> dict:
     try:
         v = json.loads((DATA / "paper" / "account" / "view.json").read_text()).get("benchmark") or {}
@@ -488,6 +506,8 @@ def _alloc_facts() -> dict:
             "cut_list_rule": "the holdings to cut are exactly cut_list (REDUCE or TRIM), in this order; TIDY and WATCH are not cuts",
             # 30 Oct (Phase 5): the twin against the frozen holdings and the Nifty 500, one row a session; nothing read into the gap before 60 sessions
             "twin_vs_frozen_vs_nifty500": _twin_benchmark(),
+            # 30 Oct evening (Madhav: "pick the replacements and trade them in paper"): the managed book acts on the cut list and buys replacements
+            "managed_book": _managed_book(),
             "meaning": "advisory = options fixed at Rs 50,000, stocks as in the account, Ananta rates/ranks/suggests and moves nothing; autonomous = Ananta moves capital between stocks, options and cash on paper inside the regime table; grades A>=70, B>=55, C>=40, D below",
             # 25 Oct chat: "JIOFIN Rs 9,900 into cash" (the day's move) and "sell half of JIOFIN, about Rs 12,200" (the suggestion) both came out as
             # "the plan" in two answers ten minutes apart. They are two different things and are now named apart.

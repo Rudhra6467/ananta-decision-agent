@@ -59,6 +59,15 @@ JARGON = [
     (re.compile(r"\bno (?:rule )?family was positioned for\b"), "no rule was watching for"),
     (re.compile(r"\bno (?:rule )?family was positioned\b"), "no rule was watching"),
     (re.compile(r"\s*\((?:[a-z_]+ ?)+\.[a-z_]+\)"), ""),
+    # 30 Oct outside grade of the v2 prompt (B+): the terms the grader called jargon
+    (re.compile(r"\bcontrol stocks?\b"), "random-pick stocks (the control, to tell skill from luck)"),
+    (re.compile(r"\b(?:the )?index options line\b"), "the options line (one index option lot a day on paper)"),
+    (re.compile(r"\brealistic prices\b"), "prices with the usual slippage"),
+    (re.compile(r"\breference traders?\b"), "the comparison traders (hindsight, informed and random picks)"),
+    (re.compile(r"\boversold[- ]reversal exits?\b"), "exits of the reversal buys (bought when oversold)"),
+    (re.compile(r"\btrial sessions?\b"), "practice sessions of the 20 needed"),
+    (re.compile(r"\bthe reviewer's second opinion\b"), "the second opinion (an independent reviewer checks the morning note)"),
+    (re.compile(r"\bflag (\d+)\b"), r"the fix request (number \1)"),
     # the model's decision stamp (answer_guide: no labels), only at the start of a sentence
     (re.compile(r"(^|[.!?]\s+)(?:Decision|My read)\s*:\s*([a-z])"), lambda m: m.group(1) + m.group(2).upper()),
 ]

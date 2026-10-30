@@ -785,6 +785,8 @@ def finish(reply: dict, question: str, model: bool) -> dict:
     only where the question is about trading (the prompt already says so; the model kept adding it to every answer). 27 Oct: every code and
     field name is put into words (jarvis/india/askwords.py) before the answer is shown or spoken; the codes stay in "evidence"."""
     a = askwords.words(plain_codes(str(reply.get("answer") or "")))
+    # 30 Oct outside grade (cv5.2): an answer that ends by promising an example or a list and gives none loses the dangling promise
+    a = re.sub(r"\s*(?:Here(?:'s| is) (?:a |an )?(?:made-up |quick |simple )?example|For example|An example)[:.]?\s*$", "", a).rstrip()
     if model and not _TRADE_Q.search(question or ""):
         for _ in range(2):
             b = _SIGNOFF.sub("", a).rstrip()

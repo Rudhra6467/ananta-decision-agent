@@ -609,6 +609,29 @@ def morning_shadow(b: ShadowPlan, who: str = Depends(signed_in)) -> dict:
     return {"ok": True, "session": b.session, "sha256": rec["sha256"], "forecast_id": fid, "forecast_note": why}
 
 
+CHART_ALIAS = {"NIFTY": "NIFTY 50", "NIFTY50": "NIFTY 50", "BANKNIFTY": "NIFTY BANK", "BANK": "NIFTY BANK", "VIX": "INDIA VIX", "INDIAVIX": "INDIA VIX"}
+
+
+@r.get("/v3/chart/{name}")
+def chart(name: str, who: str = Depends(signed_in)) -> dict:
+    """The chart of one index or stock with its support and resistance zones (Phase 4.5, 30 Oct 2026): the last 120 closes, the 50- and 200-day
+    averages and the swing levels, from the technicals panel (daily closes, display only; the same pivots the Ask describes). Everyone may read it."""
+    p = india_views.DATA / "manifests" / "technicals.json"
+    try:
+        j = json.loads(p.read_text())
+    except (OSError, ValueError):
+        raise HTTPException(status_code=404, detail="the technicals panel is not built yet")
+    key = name.upper().replace("%20", " ").strip()
+    key = CHART_ALIAS.get(key.replace(" ", ""), key)
+    panel = (j.get("indices") or {}).get(key) or (j.get("stocks") or {}).get(key)
+    if not panel:
+        raise HTTPException(status_code=404, detail=f"no chart for {name}: the panel covers the indices and the picks of the day")
+    ch = panel.get("chart") or {}
+    return {"name": panel.get("name"), "kind": panel.get("kind"), "as_of": panel.get("as_of"), "close": panel.get("close"), "chart": ch,
+            "support": panel.get("support"), "resistance": panel.get("resistance"), "words": panel.get("words"),
+            "note": "daily closes as of the last session; zones are swing levels plus or minus half a round step; a description, never a rule"}
+
+
 @r.get("/v3/{name:path}")
 def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     fn = india_views.ROUTES.get(name)

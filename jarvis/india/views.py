@@ -1214,7 +1214,39 @@ def morning() -> dict:
             "picks": (f.get("plan") or {}).get("picks") or [], "options_line": (f.get("plan") or {}).get("options_line"), "holdings_suggestions": (f.get("plan") or {}).get("holdings_suggestions") or [],
             "scorecard": {"forecasts": sc.get("forecasts"), "daily_call": sc.get("daily_call"), "options_sessions": sc.get("options_sessions"), "words": sc.get("words")},
             "lessons": f.get("lessons_for_writer") or [], "paper": True,
+            # 30 Oct (Phase 4.5): the Today card's three parts and the shadow trader's state (after the session only; nothing before 20 sessions)
+            "premarket": f.get("premarket"), "sealed": f.get("sealed"), "waiting": _waiting_count(),
+            "shadow": _shadow_public(f.get("session")),
             "read": "Paper only, not advice. Every number comes from Ananta's own files; the odds are base rates beside their baseline until a rule proves itself."}
+
+
+def _waiting_count() -> dict:
+    """How many things wait for Madhav's yes, the same number as the bar (the drafts total)."""
+    try:
+        d = drafts()["drafts"]
+        return {"count": len(d), "words": f"{len(d)} draft{'s' if len(d) != 1 else ''} waiting for your yes" if d else "nothing waits for your yes"}
+    except Exception:  # noqa: BLE001
+        return {"count": None, "words": "the waiting count is not available"}
+
+
+def _shadow_public(session: str | None) -> dict:
+    """The shadow trader's summary, and the session's plan only once that session has closed (it is sealed before the open and read after)."""
+    out = {"words": None, "plan": None}
+    try:
+        out["words"] = json.loads((DATA / "paper" / "shadow" / "summary.json").read_text()).get("words")
+    except (OSError, ValueError):
+        return out
+    try:
+        import datetime as _dt
+        ist = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=5, minutes=30)))
+        if session and (session < ist.date().isoformat() or (session == ist.date().isoformat() and ist.hour >= 16)):
+            rec = json.loads((DATA / "paper" / "shadow" / f"{session}.json").read_text())
+            pl = rec.get("plan") or {}
+            out["plan"] = {"stance": pl.get("stance"), "stance_why": pl.get("stance_why"), "silent": pl.get("silent"), "blind_spot": pl.get("blind_spot"),
+                           "watch": pl.get("watch"), "take": pl.get("take"), "sealed_at": rec.get("made_at")}
+    except (OSError, ValueError):
+        pass
+    return out
 
 
 def morning_facts() -> dict:

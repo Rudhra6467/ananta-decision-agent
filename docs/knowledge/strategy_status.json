@@ -185,7 +185,7 @@
   },
   "RBD": {
    "name": "Rebound off a recent low at support (closed reversal candle), shadow",
-   "status": "EVIDENCE",
+   "status": "PARKED",
    "verdict": "will_try_again",
    "watches": [
     "RBD",
@@ -194,7 +194,14 @@
    ],
    "wakes_brain": false,
    "why": "Drafted 24 Oct 2026 (Madhav, 10:42: \"Yes do it\" to the reconstruction's MISS_PATTERN row, \"looking for good trade setups\"): the day's low is the 5-day low inside a support zone mapped from earlier closes, then a green close in the top 40% of the day, Bitcoin above its 50-day; entry next open, stop half a daily range under the low (no trade past 8%), the protect rule, out after 10 days. Unlike the paused zone touch it never buys a falling price. Shadow books only, judged against RANDOM_10D and the market after 20 sessions. Live paper record so far: {closed} closed, {won} won ({net}).",
-   "since": "2026-10-24"
+   "since": "2026-10-24",
+   "status_before_park": "EVIDENCE",
+   "parked": {
+    "date": "2026-10-30",
+    "by": "Madhav (in chat, 30 Oct 2026 11:01 Toronto: \"yes for RBD\")",
+    "why": "Discipline v1 book-bleed check: RBD and its two tiers closed 43 trades, won 0, net -$312, all stopped on 29 Oct when the whole market fell. Paused: no new paper trades; open ones run to their exits. Unpark with Madhav's yes.",
+    "lesson": "43 trades were one bet: the setup fired on dozens of coins that move together, so one market drop stopped every one. If it returns after 14 Dec (Rule B), it comes back with at most one new entry a day across the tiers."
+   }
   }
  },
  "evidence_window": {

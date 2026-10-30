@@ -88,7 +88,7 @@
    "files": [
     "docs/knowledge/strategy_status.json"
    ],
-   "sha256": "50bde676db712f0d06340c54670143a7c83556bd30fb1d19b8f4dbece5196f7e",
+   "sha256": "e97dff73666a15488daf08b3d5c8f9ec763e7708b0b6d8fc8500feaeece0a491",
    "history": [
     {
      "date": "2026-10-15",
@@ -119,6 +119,12 @@
      "approved_by": "Madhav (in chat)",
      "sha256": "50bde676db712f0d06340c54670143a7c83556bd30fb1d19b8f4dbece5196f7e",
      "note": "H07 PARKED (discipline v1 book-bleed: 18 closed, net -$54 in 7 days against the -$36 bar; no new paper trades, open ones run out). Madhav said yes on the Needs-you card (\"Yes pauses this book\") and, 2026-10-28 17:15 Toronto: \"I have approved from my side on crypto, Set the remaining things to complete as well.\""
+    },
+    {
+     "date": "2026-10-30",
+     "approved_by": "Madhav (in chat)",
+     "sha256": "e97dff73666a15488daf08b3d5c8f9ec763e7708b0b6d8fc8500feaeece0a491",
+     "note": "RBD PARKED (discipline v1 book-bleed: RBD, RBD-UA, RBD-UB 43 closed, 0 won, net -$312, all stopped on 29 Oct; no new paper trades, open ones run out). Madhav, 2026-10-30 11:01 Toronto: \"yes for RBD\". BRK and JARVIS_BOLD keep running (his yes to the recommendation of 08:03)."
     }
    ]
   },

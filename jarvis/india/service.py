@@ -546,6 +546,61 @@ def morning_facts(who: str = Depends(signed_in)) -> dict:
     raise HTTPException(status_code=403, detail="owner only")
 
 
+BLIND_DROP = ("plan", "words", "review", "reviewer_scenarios", "lessons_for_writer", "opening", "sources", "words_at")
+
+
+@r.get("/v3/morning/facts_blind")
+def morning_facts_blind(who: str = Depends(signed_in)) -> dict:
+    """The facts without Ananta's own plan, words, review and lessons: what the shadow trader reads (Phase 4.3, 30 Oct 2026). The plain lines keep
+    only the view (not the plan or the chances written from Ananta's side). A sha256 of what was served goes back so the seal can name it."""
+    import hashlib
+
+    if not (who == "owner" or not who.startswith("guest:")):
+        raise HTTPException(status_code=403, detail="owner only")
+    f = {k: v for k, v in india_views.morning_facts().items() if k not in BLIND_DROP}
+    if isinstance(f.get("lines"), dict):
+        f["lines"] = {"view": f["lines"].get("view")}
+    f["facts_sha"] = hashlib.sha256(json.dumps(f, sort_keys=True, default=str).encode()).hexdigest()
+    return f
+
+
+class ShadowPlan(BaseModel):
+    session: str
+    plan: dict            # take {bull, bear, neutral}, stance, stance_why, watch [{symbol, direction, why}], blind_spot, silent
+    facts_sha: str
+    model: str = ""
+    raw: str = ""
+
+
+@r.post("/v3/morning/shadow")
+def morning_shadow(b: ShadowPlan, who: str = Depends(signed_in)) -> dict:
+    """Seals the shadow trader's plan for the session (owner; scripts/india_shadow_trader.py over loopback): the take goes to the forecast ledger
+    with basis "shadow: ..." (refused after 09:15 IST by the ledger itself), the whole plan to paper/shadow/<session>.json with its sha256.
+    Nothing here can trade; the plan is read only after the session and scored by india.shadow."""
+    if not (who == "owner" or not who.startswith("guest:")):
+        raise HTTPException(status_code=403, detail="owner only")
+    from india import forecast as _fc
+    from india import shadow as _sh
+
+    if _sh.sealed(b.session):
+        raise HTTPException(status_code=409, detail=f"a shadow plan for {b.session} is already sealed")
+    take = b.plan.get("take") or {}
+    fid, why = None, ""
+    try:
+        tot = sum(float(take.get(k, 0)) for k in ("bull", "bear", "neutral"))
+        sc = {k: float(take.get(k, 0)) / tot for k in ("bull", "bear", "neutral")} if tot > 0 else None
+        if sc:
+            row = _fc.write("NIFTY 50", b.session, sc, 1, "none", "shadow: " + str(b.plan.get("stance_why") or "an independent model's plan, blind to Ananta's")[:200])
+            fid = row.get("forecast_id")
+    except Exception as e:  # noqa: BLE001
+        why = str(e)[:160]
+    try:
+        rec = _sh.seal(b.session, b.plan, b.facts_sha, b.model, fid, b.raw)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    return {"ok": True, "session": b.session, "sha256": rec["sha256"], "forecast_id": fid, "forecast_note": why}
+
+
 @r.get("/v3/{name:path}")
 def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     fn = india_views.ROUTES.get(name)

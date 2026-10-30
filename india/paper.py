@@ -330,6 +330,18 @@ def input_check(ctx: dict, stocks_on_date: int, asof: pd.Timestamp) -> dict:
     return {"stale": stale, "marked": bool(stale), "rule": "stale inputs are marked, never stopped or dropped (Madhav, 25 Oct 2026)"}
 
 
+def _chased(camp: str, r, nc: dict | None) -> bool:
+    """True when the candidate is extended (more than max_dist_sma50 above its 50-day, or up more than max_ret_20 in 20 sessions) or overbought
+    (RSI(14) over max_rsi14) and its campaign is filtered; a missing value never filters."""
+    if not nc or camp not in (nc.get("campaigns") or []):
+        return False
+    def v(k):
+        x = r.get(k) if hasattr(r, "get") else None
+        return float(x) if x is not None and x == x else None
+    d50, r20, rsi = v("dist_sma50"), v("ret_20"), v("rsi14")
+    return bool((d50 is not None and d50 > nc["max_dist_sma50"]) or (r20 is not None and r20 > nc["max_ret_20"]) or (rsi is not None and rsi > nc["max_rsi14"]))
+
+
 def decide(state: dict | None = None, raw: pd.DataFrame | None = None, write: bool = True, asof: str | None = None) -> dict:
     state = state or _state()
     cfg = settings.load()
@@ -362,6 +374,8 @@ def decide(state: dict | None = None, raw: pd.DataFrame | None = None, write: bo
                 reason = "open_position"
             elif k in recent and (last - pd.Timestamp(recent[k])).days < s["reentry_days"]:
                 reason = "reentry_gap"
+            elif _chased(camp, r, s.get("no_chase")):
+                reason = "no_chase"   # 30 Oct 2026 (Madhav's yes): E04 saturation and RSI over 70 as no-entry filters; the control CTL is exempt
             elif n >= s["caps"][camp]:
                 reason = "cap_reached"
             else:

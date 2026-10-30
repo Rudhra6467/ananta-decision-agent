@@ -1,5 +1,5 @@
 {
- "version": "cfg-2026-10-19c",
+ "version": "cfg-2026-10-19c + cfg-2026-10-30a (no_chase)",
  "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file. cfg-2026-10-19a (Madhav, 19 Oct 18:20 Toronto): the India book is Rs 60,000 to start; risk per trade is not fixed: entries, exits, holding time and size are research outputs per market scenario. cfg-2026-10-19b (Madhav, 19 Oct 18:28): survival limits 5% a day and a pause at 22% drawdown; index views through options in the book; futures and forex tracked in shadow paper books. cfg-2026-10-19c (Madhav, 19 Oct 21:01): the 22% pause stays as the rule, and on paper it does not stop anything: everything keeps running and everything is noted and tracked (the pause date, and the book both as the rule would have it and as it ran); the rule is revisited as evidence comes. Kite's margin calculator (POST /margins/basket, a calculation) is allowed for the sizing margin check.",
  "stock": {
   "sizing": "fixed_notional",
@@ -15,7 +15,20 @@
   "liq_top": 250,
   "min_price": 10,
   "ctl_draw": 40,
-  "note": "notional_inr and risk_inr are the research book's scale unit (results in % and R), not Madhav's capital; the real capital is book_inr"
+  "note": "notional_inr and risk_inr are the research book's scale unit (results in % and R), not Madhav's capital; the real capital is book_inr",
+  "no_chase": {
+   "campaigns": [
+    "BRK",
+    "PULL",
+    "REV"
+   ],
+   "max_dist_sma50": 0.2,
+   "max_ret_20": 0.25,
+   "max_rsi14": 70,
+   "basis": "E04 (VALIDATED: more than 20% above the 50-day or up more than 25% in 20 sessions earn 2-3% less over 20 sessions) and P01 (RSI(14) over 70 VALIDATED the other way); held under the 29 Oct no-jump re-run and inside every market state in CL1",
+   "control_exempt": "CTL is the random control and is never filtered",
+   "approved": "Madhav, 30 Oct 2026 08:03 Toronto: 'Yes to all your recommendations' (one-yes list item 1, claude/phase7-2026-10-30-rebenchmark-and-one-yes-list.md)"
+  }
  },
  "options": {
   "capital_inr": 60000,

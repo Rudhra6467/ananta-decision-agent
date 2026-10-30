@@ -128,7 +128,8 @@ def _code_strings(tree: ast.AST) -> list[str]:
 
 
 REVIEW_MODULES = {REVIEW_MODULE: ("paper_review", "read_review"),      # the missed-movers review (20 Oct 2026)
-                  "others.py": ("others_review", "read_others")}       # the reference-traders review (22 Oct 2026)
+                  "others.py": ("others_review", "read_others"),       # the reference-traders review (22 Oct 2026)
+                  "shadow.py": ("shadow_score", "read_shadow")}        # the shadow trader's scoring (Madhav 30 Oct 2026, one-yes item 3)
 
 
 def check_paper_review(here: Path | None = None) -> tuple[bool, str]:

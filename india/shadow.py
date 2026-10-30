@@ -60,15 +60,24 @@ def seal(session: str, plan: dict, facts_sha: str, model: str, forecast_id: str 
 
 
 def _closes():
-    """Index closes per (symbol, date) on live paper days through the paper-context reader. Stock watch names are recorded but not scored:
-    reading live stock rows needs a review module registered in the pinned leak check (india/leakcheck.py), which waits for Madhav's yes."""
+    """Close per (symbol, date) on live paper days: stocks through the shadow's own sealed reader (purpose shadow_score, admitted in the leak
+    check by Madhav's yes of 30 Oct 2026) and the two indices through the paper-context reader, so index and stock watch names are both scored."""
     import pandas as pd
+    parts = []
     try:
-        df = sealed.read_index("paper_context", SHADOW_START, ["NIFTY 50", "NIFTY BANK"])
+        parts.append(sealed.read_shadow("shadow_score", SHADOW_START))
     except Exception:  # noqa: BLE001
+        pass
+    try:   # the indices from the technicals panel's chart block (already built nightly); a review module calls only its own sealed reader
+        tj = json.loads((paths.manifest_dir() / "technicals.json").read_text())
+        for name, sym in (("NIFTY 50", "NIFTY"), ("NIFTY BANK", "BANKNIFTY")):
+            ch = ((tj.get("indices") or {}).get(name) or {}).get("chart") or {}
+            parts.append(pd.DataFrame({"symbol": sym, "date": ch.get("dates") or [], "close": ch.get("closes") or []}))
+    except (OSError, ValueError):
+        pass
+    if not parts:
         return None
-    df = df.rename(columns={"index_name": "symbol"})[["symbol", "date", "close"]].copy()
-    df["symbol"] = df["symbol"].map({"NIFTY 50": "NIFTY", "NIFTY BANK": "BANKNIFTY"})
+    df = pd.concat(parts, ignore_index=True)
     df["date"] = pd.to_datetime(df["date"]).dt.date
     return df
 
@@ -118,7 +127,9 @@ def score() -> dict:
                     sym = str(w.get("symbol", "")).upper()
                     if sym in uni.index:
                         r = float(uni[sym]) * (1 if w.get("direction", "up") == "up" else -1)
-                        rows.append({"symbol": sym, "direction": w.get("direction", "up"), "signed_return": r, "right_way": bool(r > 0)})
+                        u = float(uni.drop(["NIFTY", "BANKNIFTY"], errors="ignore").mean()) if len(uni) else 0.0
+                        rows.append({"symbol": sym, "direction": w.get("direction", "up"), "signed_return": r, "right_way": bool(r > 0),
+                                     "beat_universe": bool(r > u * (1 if w.get("direction", "up") == "up" else -1))})
                 rec["scores"].append({"what": key, "from": str(d0), "to": str(dh), "universe_mean": float(uni.mean()) if len(uni) else None, "names": rows,
                                       "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")})
                 changed = True
@@ -141,7 +152,8 @@ def summary() -> dict:
          "stance_scored": len(stance), "stance_hits": sum(1 for x in stance if x["hit"]),
          "watch_1_names": len(watch1), "watch_1_right_way": sum(1 for x in watch1 if x.get("right_way")),
          "watch_5_names": len(watch5), "watch_5_right_way": sum(1 for x in watch5 if x.get("right_way")),
-         "note": "index watch names (NIFTY, BANKNIFTY) are scored by direction; stock names are recorded, not scored, until the leak check admits a reader (Madhav's yes)",
+         "watch_1_beat_universe": sum(1 for x in watch1 if x.get("beat_universe")),
+         "note": "watch names scored by direction and against the average stock (stocks through the shadow's own sealed reader, admitted 30 Oct)",
          "blind_spots": [r["plan"].get("blind_spot") for r in recs[-5:] if r["plan"].get("blind_spot")],
          "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
     if n == 0:

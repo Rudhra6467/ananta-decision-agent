@@ -212,6 +212,24 @@ def read_others(purpose: str, since: str, until: str | None = None) -> dict:
     return {"cash": cash, "oi": oi}
 
 
+ALLOWED_SHADOW = {"shadow_score"}
+
+
+def read_shadow(purpose: str, since: str, until: str | None = None) -> pd.DataFrame:
+    """Live paper days for the shadow trader's scoring (purpose shadow_score, Madhav 30 Oct 2026: one-yes list item 3; india/shadow.py is the
+    only caller india/leakcheck.py allows, with a constant start on or after PAPER_REVIEW_START): symbol, date and close of the cash rows
+    since..until. The shadow's watch names are compared with the universe on live sessions only; nothing on history and no rule is scored. Logged."""
+    if purpose not in ALLOWED_SHADOW:
+        raise PermissionError(f"sealed shadow read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED_SHADOW)}")
+    since_d = pd.Timestamp(since).date()
+    if since_d < PAPER_REVIEW_START:
+        raise PermissionError(f"sealed shadow read refused: start {since_d} is before the paper's first day {PAPER_REVIEW_START} (live paper days only)")
+    until_d = pd.Timestamp(until).date() if until else None
+    if until_d is not None and until_d < since_d:
+        raise PermissionError(f"sealed shadow read refused: end {until_d} is before start {since_d}")
+    return _live_cash(purpose, since_d, until_d)[["symbol", "date", "close"]]
+
+
 def _live_cash(purpose: str, since_d: dt.date, until_d: dt.date | None) -> pd.DataFrame:
     """The cash rows of live paper days (series EQ), shared by read_review and read_others; the callers have already checked the window."""
     root = paths.data_dir()

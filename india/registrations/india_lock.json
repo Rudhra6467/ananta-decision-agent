@@ -17,13 +17,19 @@
  "pins": {
   "paper_rules": {
    "what": "The stock paper book's rules as configured (india/paper_config.json): families, exits, slots, the Rs 60,000 book and the survival rules (5% day, 22% pause, record-only on paper).",
-   "sha256": "a559ff407d642b043d5c2293b145eb9cea087ab52c0428fc2b3c824e45bff01e",
+   "sha256": "8364d4ca2a699e4aa58ac8aff25ece79ec6ddfdc815ea5e92773bfb74143b9d0",
    "history": [
     {
      "date": "2026-10-23",
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-10-23 (in chat, to \"Lock India like crypto\"): \"Yes\". Drafted at the start of the India lock; docs/INDIA_LOCK.md lists every pinned item and what waits for lock day (about 1 Nov).",
      "sha256": "a559ff407d642b043d5c2293b145eb9cea087ab52c0428fc2b3c824e45bff01e"
+    },
+    {
+     "date": "2026-10-30",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-30 08:03 Toronto (in chat), to the one-yes list of claude/phase7-2026-10-30-rebenchmark-and-one-yes-list.md: \"Yes to all your recommendations\". Item 1: the no-chase filters (E04: more than 20% above the 50-day or up more than 25% in 20 sessions; P01: RSI(14) over 70) become no-entry filters on BRK, PULL and REV (stock.no_chase, cfg-2026-10-30a); the control CTL is exempt. Restarts those books' 20-session clocks.",
+     "sha256": "8364d4ca2a699e4aa58ac8aff25ece79ec6ddfdc815ea5e92773bfb74143b9d0"
     }
    ]
   },
@@ -89,7 +95,7 @@
   },
   "no_order_rule": {
    "what": "The leak check that forbids every order call until the gate (india/leakcheck.py, lines of code).",
-   "sha256": "554697f5b6f83aad4237261e0473eb0453faceee1f9bbcb1f6eef94fa8dc62a4",
+   "sha256": "24a88b5f0f8b81bd7289005b34fee80ecc6e342e3eff0ba18d2420991c83bcc6",
    "history": [
     {
      "date": "2026-10-23",
@@ -102,6 +108,12 @@
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-10-23 14:47 Toronto (in chat), on the reconstruction design (claude/design-2026-10-23-india-reconstruction-process.md, section 8.1: 'the leak check gains a row for it'): \"I agree with you on everything\". The change adds reconstruct.py, allocator.py and account.py to SAFE_FILES (the sealed-folder scan): stricter, no order path added.",
      "sha256": "554697f5b6f83aad4237261e0473eb0453faceee1f9bbcb1f6eef94fa8dc62a4"
+    },
+    {
+     "date": "2026-10-30",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-30 08:03 Toronto (in chat), to the one-yes list of claude/phase7-2026-10-30-rebenchmark-and-one-yes-list.md: \"Yes to all your recommendations\". Item 3: india/shadow.py becomes the third review module (purpose shadow_score, reader sealed.read_shadow, constant start 2026-10-30), so the shadow trader's stock calls are scored on live paper days. Stricter-or-equal: no order path added.",
+     "sha256": "24a88b5f0f8b81bd7289005b34fee80ecc6e342e3eff0ba18d2420991c83bcc6"
     }
    ]
   },

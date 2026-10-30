@@ -71,7 +71,8 @@ def trade_rows(state: dict, policy: str = REF_POLICY) -> list[dict]:
         if ret is None:
             continue
         rf = t.get("risk_frac")
-        rows.append({"family": t.get("campaign"), "closed": closed, "ret": float(ret), "R": (float(ret) / rf) if rf else None, "notional": float(t.get("notional") or 0)})
+        rows.append({"family": t.get("campaign"), "closed": closed, "ret": float(ret), "R": (float(ret) / rf) if rf else None, "notional": float(t.get("notional") or 0),
+                     "reason": t.get("exit_reason") if closed else None, "bars_seen": int(t.get("bars_seen") or 0)})
     return rows
 
 
@@ -97,7 +98,19 @@ def split(rows: list[dict]) -> dict:
             out["total"] = rec
     t = out["total"]
     c, o = t["closed"], t["open"]
-    out["words"] = (f"win rate counts closed trades only: {c['winners']} of {c['n']} closed won (avg {_pct(c['avg'])}); "
+    # 29 Oct audit: early in a book every close is a stop by construction (no trade has reached its hold yet), and "0 of 37 won" read as a
+    # losing book; the words say what the closes were and whether any trade has had the chance to win by time
+    stops = sum(1 for r in rows if r["closed"] and r["reason"] == "stop")
+    by_time = sum(1 for r in rows if r["closed"] and r["reason"] in ("time", "target"))
+    longest = max((r["bars_seen"] for r in rows), default=0)
+    out["closes"] = {"stops": stops, "time_or_target": by_time, "other": c["n"] - stops - by_time, "longest_open_sessions": longest}
+    how = ""
+    if c["n"] and stops == c["n"]:
+        how = (" - every close so far is a stop-loss; no trade has reached its hold yet, so none has had the chance to win by time"
+               if by_time == 0 else " - all closes so far are stop-losses")
+    elif c["n"] and (stops or by_time):
+        how = f" ({stops} by stop-loss, {by_time} by time or target)"
+    out["words"] = (f"win rate counts closed trades only: {c['winners']} of {c['n']} closed won (avg {_pct(c['avg'])}){how}; "
                     f"of {o['n']} open, {o['winners']} are up (avg {_pct(o['avg'])})") if c["n"] or o["n"] else "no trades in the reference book yet"
     out["per_family_words"] = {f: (f"{FAMILY_WORDS.get(f, f)}: {r['closed']['winners']} of {r['closed']['n']} closed won (avg {_pct(r['closed']['avg'])}); "
                                    f"{r['open']['winners']} of {r['open']['n']} open are up (avg {_pct(r['open']['avg'])})") for f, r in out["by_family"].items()}

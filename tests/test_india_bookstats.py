@@ -124,3 +124,18 @@ def test_beta_and_volatility_per_holding():
     jumpy = prices.copy()
     jumpy.loc[(jumpy["symbol"] == "LO") & (jumpy["date"] >= days[100]), "adj_close"] *= 0.5     # a missed corporate action
     assert bs.beta_vol(jumpy, pd.DataFrame({"date": days, "close": nifty}), ["LO"])["per_holding"]["LO"].get("unreliable")
+
+
+def test_words_say_when_every_close_is_a_stop_and_no_trade_reached_its_hold():
+    """29 Oct audit: '0 of 37 closed won' read as a losing book when every close was a stop by construction."""
+    st = {"trades": {
+        "a": {"book": "exec", "policy": "hold_20d", "campaign": "PULL", "status": "closed", "net_ret": -0.08, "exit_reason": "stop", "bars_seen": 3, "risk_frac": 0.08},
+        "b": {"book": "exec", "policy": "hold_20d", "campaign": "PULL", "status": "closed", "net_ret": -0.07, "exit_reason": "stop", "bars_seen": 5, "risk_frac": 0.08},
+        "c": {"book": "exec", "policy": "hold_20d", "campaign": "REV", "status": "open", "entry_adj": 100, "last_close_adj": 103, "bars_seen": 7, "risk_frac": 0.08},
+    }}
+    s = bs.split(bs.trade_rows(st, "hold_20d"))
+    assert s["closes"] == {"stops": 2, "time_or_target": 0, "other": 0, "longest_open_sessions": 7}
+    assert "every close so far is a stop-loss; no trade has reached its hold yet" in s["words"]
+    st["trades"]["b"]["exit_reason"] = "time"
+    s = bs.split(bs.trade_rows(st, "hold_20d"))
+    assert "(1 by stop-loss, 1 by time or target)" in s["words"]

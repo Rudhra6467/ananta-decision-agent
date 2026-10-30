@@ -177,7 +177,28 @@ def shortlist(rows: list[dict]) -> list[dict]:
     return sorted(ok, key=lambda x: -(x["val_t"] or 0))[:10]
 
 
-TAKEAWAY: list[str] = []
+TAKEAWAY: list[str] = [   # written after the v2 run of 30 Oct 2026, from the table and manifests/lab5_cl1.json
+    "**No pair beats its parts. The lab, run honestly (one bar over all 30 tries, a plateau, year-by-year consistency, a random control), shortlists "
+    "nothing: the found single filters do the work, and adding a market state to them adds nothing or subtracts.**",
+    "- **The control held:** a random stock flag inside each market state earned +0.03% / +0.01% (t 0.2 / 0.1) and -0.05% / +0.28% (t -0.2 / +1.0): the "
+    "pipeline finds nothing in noise. (The first version of the metric was biased and the control caught it; v2 is an ordinary on/off comparison "
+    "inside the state, quarter by quarter.)",
+    "- **'Not extended' (no more than 20% above the 50-day, up no more than 25% in 20 sessions) is VALIDATED inside two market states** (+1.5% / +1.8% "
+    "a trade given Nifty above its 200-day, t 4.6 / 3.4; +1.3% / +2.1% given small-cap leadership, t 3.4 / 3.2; plateau holds, 76% and 55% of "
+    "years): that is E04's no-chase filter again, working in any market. The market state itself subtracts given the setup (-4.1% and -3.2% in "
+    "2018-23: inside a quarter, the sessions with the Nifty above its 200-day were worse to buy than those below, the weak-market entry effect of "
+    "E08/C01). So: keep the filter, ignore the state.",
+    "- **Delivery share over 60% inside small-cap leadership:** +0.9% / +1.9% a trade (t 3.3 / 4.1), 65% of years, plateau holds; the state adds nothing "
+    "given the setup (-1.1%, t -1.3). The single delivery effect (C02) stands; the pair is not more than it.",
+    "- **Oversold (RSI under 30) in a washed-out or fearful market** (under 30% of stocks above their 200-day; India VIX above 20): the only pairs where each "
+    "side added to the other (+1.8% / +1.9% a trade given the state in 2018-23, +10% / +7% given the setup), but fear states are rare: 8-10 "
+    "validation quarters against 16 needed, INCONCLUSIVE, and not on the shortlist. Worth a look again when the sealed years can be opened, not before.",
+    "- **Healthy pullbacks and 60-session washouts** added nothing in any state; the breadth-thrust state is too rare to test (0-4 quarters).",
+    "- **Note on the table:** pooled means over all years are not comparable between groups (extended stocks cluster in roaring quarters); the quarter-paired "
+    "numbers are the statistic.",
+    "- **What Ananta does with this:** no paper trial from this lab; the two single filters it re-confirmed (not extended; delivery over 60%) are already on "
+    "the one-yes list for the paper rules (map class C). The combination question is closed for this version; it is not re-opened with more pairs.",
+]
 
 
 def table(out: dict | None = None) -> Path:

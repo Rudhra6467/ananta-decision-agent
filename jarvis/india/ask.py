@@ -433,6 +433,10 @@ def guardrail_facts(rm: dict) -> dict:
             "reentry_days": (cfg.get("stock") or {}).get("reentry_days"),
             "reentry_rule": (f"a stock already signalled by the same campaign in the last {(cfg.get('stock') or {}).get('reentry_days')} days is not entered again "
                              "(the candidate is written to the decision journal as rejected: reentry_gap)") if (cfg.get("stock") or {}).get("reentry_days") else None,
+            # 30 Oct (Madhav's yes): the no-chase filters in the paper rules
+            "no_chase_rule": ("from 30 Oct the practice book does not buy a breakout, pullback or reversal stock that is more than 20% above its 50-day average, "
+                              "up more than 25% in 20 sessions, or at RSI over 70 (Ananta's tests: such buys earned 2-3% less over 20 sessions); the random control is not filtered")
+                             if (cfg.get("stock") or {}).get("no_chase") else None,
             "daily_5pct": s.get("daily_basis"), "pause_22pct": s.get("pause_basis"),
             "on_paper_now": {"daily": s.get("daily_on_paper"), "pause": s.get("pause_on_paper")}, "note": s.get("note"),
             "resume": "Madhav resumes after a 22% pause by telling Ananta (chat or voice) or in the app; on paper the books keep trading and log the pause "

@@ -23,6 +23,8 @@ STUDIES = {
     "F01": "the sell-a-straddle test", "F02": "the expiry-eve strangle test", "F03": "the option-chain shape test", "F04": "the futures open-interest test",
     "GK1": "the time-decay test", "I01": "the first-hour test", "I05": "the expiry-afternoon test", "IB1": "the opening-range breakout test",
     "MS1": "the intraday-patterns test", "V03": "the IPO test",
+    # 30 Oct, Phase 3 of the plan
+    "DR1": "the expiry-day option-selling test", "FP1": "the long-term factor test", "CL1": "the combination lab",
     "G01": "the exit book", "RX1": "Ananta's test of the 12 reconstruction drafts", "G02": "the gate", "K02": "the daily-call study", "R01": "the calibration check", "PW-HF-CHRONOS": "the Chronos forecast study",
 }
 VERDICTS = {"VALIDATED": "held up", "CONDITIONAL": "held up, weaker in one period", "REJECTED": "did not hold",

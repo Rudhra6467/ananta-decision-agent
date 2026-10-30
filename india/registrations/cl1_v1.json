@@ -1,0 +1,62 @@
+{
+ "study": "CL1",
+ "family": "combination",
+ "version": 1,
+ "written": "2026-10-30",
+ "asked_by": "Madhav, 29 Oct 2026 (the reverse-engineering plan: 'indicator combinations, verify the top 1-2%'; done as agreed in the blueprint: bounded families with a reason, small grids, plateaus, consistency, a trial penalty and a negative control, not a search over millions)",
+ "title": "The combination lab: does a stock setup together with a market state earn more over 20 sessions than the better of the two alone? Five stock setups x five market states on the random (ANY) entries, 2000-2023",
+ "hypothesis": "For each pair, trades signalled while BOTH the stock setup and the market state are on earn more over the next 20 sessions (net) than trades signalled while the better of the two is on by itself (the interaction), within quarters, in both periods. A random stock flag with the same frequency paired with the same market state earns nothing in particular.",
+ "why_it_might_work": "Each stock setup is a found or plausible single effect (oversold RSI, not extended, a healthy pullback, high delivery, a 60-session washout) and each market state changes who is buying (trend, breadth washout, fear, small-cap leadership, a breadth thrust); the textbook claim is that the right stock in the right market is worth more than either. Who is on the other side: traders who read one of the two and ignore the other.",
+ "why_it_might_not": "Twenty-five pairs is already a search; a pair that passes only at one threshold is a peak, not a plateau; both-on samples are thin in some quarters (5 trades a side minimum); the single effects were small, so their sum may be too.",
+ "data": {
+  "trades": "gold/studies/E02-ANY_trades.parquet: 151,836 random liquid-stock entries 2000-2023 with the 20-session hold, net of costs (the null entry set, so the setups and states are the only information)",
+  "features": "gold/features/daily: ret_20, ret_60, dist_sma20, dist_sma50, vol_ratio20, deliv_pct per stock-day",
+  "indicators": "RSI(14) from gold/bars (india.studies2._indicators)",
+  "market": "india.conditions.context_table / apply_market: Nifty vs its 200-day, breadth above the 200-day, India VIX, small-cap leadership, the breadth thrust",
+  "nothing_sealed": "no 2024+ row, no sealed folder"
+ },
+ "definitions": {
+  "stock_setups": {
+   "rsi_lt30": "RSI(14) under 30 (plateau: under 25 / 30 / 35)",
+   "not_extended": "close no more than 20% above the 50-day average and up no more than 25% in 20 sessions (plateau: 15/20 ; 20/25 ; 25/30)",
+   "pull_healthy": "5-12% under the 20-day average, above the 50-day, volume under its 20-day average (plateau: volume under 0.9 / 1.0 / 1.2 x)",
+   "deliv_high": "delivery share above 60% (plateau: 50 / 60 / 70)",
+   "washout60": "down more than 30% in 60 sessions (plateau: 25 / 30 / 35)"
+  },
+  "market_states": {
+   "nifty_gt200d": "Nifty 50 above its 200-day average on the signal day",
+   "breadth_lt30": "under 30% of the liquid universe above its 200-day",
+   "vix_gt20": "India VIX above 20",
+   "small_lead": "Nifty Smallcap 100 / Nifty 100 above its 50-day average",
+   "breadth_thrust": "share above the 200-day up 20 points in 10 sessions"
+  },
+  "interaction": "per calendar quarter: mean net 20-session return of trades with both on, minus the larger of (mean with the stock setup on, any market) and (mean with the market state on, any stock); quarters with fewer than 5 trades in any of the three groups are skipped",
+  "plateau": "the interaction re-computed at the loose and the tight threshold of the stock setup; a pair 'holds on a plateau' when the validation-period interaction is positive at all three settings (reported in extra, not part of the verdict)",
+  "consistency": "share of calendar years (with at least 10 both-on trades) in which the both-on mean beat the better single (reported)",
+  "control": "for each market state, a random stock flag drawn once with a fixed seed at the base setup's frequency (about the share of trades flagged by not_extended), paired the same way: expected 0"
+ },
+ "statistics": {
+  "blocks": "calendar quarters; t across quarters of the interaction",
+  "periods": "development 2000-2017, validation 2018-2023; nothing from 2024 on",
+  "verdict": "india/registry.record standard rule; 16 blocks per period; expected +1 for every pair, 0 for the controls",
+  "trial_penalty": "the family bar is over all 30 variants (k frozen at 30), so each pair pays for the 29 others tried"
+ },
+ "bar": {
+  "union_k": 30,
+  "z": 3.144,
+  "bar_families": [
+   "combination"
+  ],
+  "note": "a new family: 25 pairs plus 5 controls; k frozen at 30"
+ },
+ "variants": {
+  "rsi_lt30|nifty_gt200d": 1, "rsi_lt30|breadth_lt30": 1, "rsi_lt30|vix_gt20": 1, "rsi_lt30|small_lead": 1, "rsi_lt30|breadth_thrust": 1,
+  "not_extended|nifty_gt200d": 1, "not_extended|breadth_lt30": 1, "not_extended|vix_gt20": 1, "not_extended|small_lead": 1, "not_extended|breadth_thrust": 1,
+  "pull_healthy|nifty_gt200d": 1, "pull_healthy|breadth_lt30": 1, "pull_healthy|vix_gt20": 1, "pull_healthy|small_lead": 1, "pull_healthy|breadth_thrust": 1,
+  "deliv_high|nifty_gt200d": 1, "deliv_high|breadth_lt30": 1, "deliv_high|vix_gt20": 1, "deliv_high|small_lead": 1, "deliv_high|breadth_thrust": 1,
+  "washout60|nifty_gt200d": 1, "washout60|breadth_lt30": 1, "washout60|vix_gt20": 1, "washout60|small_lead": 1, "washout60|breadth_thrust": 1,
+  "RANDOM|nifty_gt200d": 0, "RANDOM|breadth_lt30": 0, "RANDOM|vix_gt20": 0, "RANDOM|small_lead": 0, "RANDOM|breadth_thrust": 0
+ },
+ "rating": "a pair is rated for a 20-session paper trial only if its verdict is VALIDATED or CONDITIONAL, it holds on the plateau, and its consistency is at least 60%; the top pairs by validation t among those (at most 10) are the shortlist",
+ "not_claimed": "A shortlisted pair goes to a 20-session paper trial (a filter on the existing campaigns, never a new book) and then to Madhav's yes; nothing here changes a rule. The lab is bounded by design: no further pairs or thresholds will be added to this version."
+}

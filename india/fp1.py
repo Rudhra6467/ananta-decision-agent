@@ -213,7 +213,27 @@ def run(rerun_reason: str | None = None) -> dict:
     return out
 
 
-TAKEAWAY: list[str] = []   # written after the run, from the table
+TAKEAWAY: list[str] = [   # written after the run of 30 Oct 2026, from the table and gold/studies/FP1_monthly.parquet
+    "**The two best-known factor tilts show their known shape in Indian data, but neither passes the strict bar on monthly excess return: momentum earned "
+    "more (clearly in 2018-23, barely in 2000-17) with the deepest crashes; low volatility earned the same as the universe with half the swings and a third "
+    "of the drawdown. Nothing is a rule from this; the low-swing shape is the useful fact for the long-term money.**",
+    "- **Momentum (top 50 of 500 by 12-month return, monthly):** 16.1% a year in 2000-17 and 25.1% in 2018-23 after costs (turnover 31% a month, costs "
+    "1.7% a year), against 14.4% and 12.8% for the equal-weight universe and 20.4% (2003-17) and 12.5% for the Nifty 500. Monthly excess over the universe "
+    "+0.23% (t +0.7) and +0.93% (t +2.3, bar 2.73): REJECTED. Worst months -36% (Sep 2008), -31% (Mar 2000), -28% (Feb 2020); maximum drawdown -76%.",
+    "- **Low volatility (the 50 calmest):** 13.8% and 14.9% a year, the same as the universe (excess -0.3% and -0.0% a month, REJECTED as a return claim) "
+    "with annual swings of 19% and 15% against 32% and 25%, and a maximum drawdown of -49% and -18% against -72% and -51%. Turnover 13% a month, "
+    "costs 0.8% a year.",
+    "- **Combined (average rank):** 16.6% and 18.7% a year, drawdown -61% and -21%; excess over the Nifty 500 +0.45% a month in 2018-23 (t +1.9), under the bar.",
+    "- **The bottom momentum decile** lost 5-7% a year (CONDITIONAL the expected way): the losers keep losing, which is the same fact as 'don't catch "
+    "falling knives' in the exit book.",
+    "- **The control:** a random decile matched the universe before costs (-0.00% and -0.05% a month, t 0.0 and -0.3: the pipeline finds nothing in "
+    "noise) and lost 4.9% a year after costs because a random decile turns over 90% a month. The registered row shows that cost, not a flaw: the "
+    "benchmarks carry no trading cost, so every net row above is a little harsh on the portfolio (the universe's own turnover is a few percent a month).",
+    "- **Not covered:** quality and value need the point-in-time fundamentals, which start in 2017 (too short for this test); the Nifty 500 is the price "
+    "index (dividends of about 1.2-1.5% a year would narrow the gap to it).",
+    "- **What Ananta does with this:** no rule change. For Phase 5 (the long-term money on paper) the honest candidate is the low-volatility or combined "
+    "tilt judged on drawdown as much as return, run as a paper twin for at least 12 months before any yes; momentum alone is a crash-prone bet.",
+]
 
 
 def table(out: dict | None = None) -> Path:

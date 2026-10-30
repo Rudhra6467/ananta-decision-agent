@@ -430,9 +430,9 @@ def guardrail_facts(rm: dict) -> dict:
             # 29 Oct audit (map class D): the book size and the re-entry rule were in the paper rules but not in the facts
             "book_inr": cfg.get("capital_inr") or cfg.get("book_inr"),
             "book_rule": f"the India paper book is Rs {int(cfg.get('capital_inr') or 60000):,} to start (Madhav, 19 Oct); the practice book's Rs 50,000 a trade is research scale, not money",
-            "reentry_days": cfg.get("reentry_days"),
-            "reentry_rule": (f"a stock already signalled by the same campaign in the last {cfg.get('reentry_days', 14)} days is not entered again "
-                             "(the candidate is written to the decision journal as rejected: reentry_gap)") if cfg.get("reentry_days") else None,
+            "reentry_days": (cfg.get("stock") or {}).get("reentry_days"),
+            "reentry_rule": (f"a stock already signalled by the same campaign in the last {(cfg.get('stock') or {}).get('reentry_days')} days is not entered again "
+                             "(the candidate is written to the decision journal as rejected: reentry_gap)") if (cfg.get("stock") or {}).get("reentry_days") else None,
             "daily_5pct": s.get("daily_basis"), "pause_22pct": s.get("pause_basis"),
             "on_paper_now": {"daily": s.get("daily_on_paper"), "pause": s.get("pause_on_paper")}, "note": s.get("note"),
             "resume": "Madhav resumes after a 22% pause by telling Ananta (chat or voice) or in the app; on paper the books keep trading and log the pause "

@@ -6,64 +6,74 @@ Rule: an options result can feed a decision only if it is positive at 2x, and it
 
 | study | group | period | trades | ret 0x | ret 1x (t) | ret 2x (t) | ret 4x | spread share of gross | breakeven x (half-spread %) | measured x | verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| F01 | F01 k1|BANKNIFTY | dev 2005-2017 | 175 | -0.330% | -0.368% (-0.6) | -0.406% (-0.7) | -0.481% | n/a | below zero | not measured | no edge even with zero spread |
-| F01 | F01 k1|BANKNIFTY | val 2018-2023 | 312 | +1.543% | +1.478% (+2.3) | +1.412% (+2.2) | +1.280% | 4% | 23.2x (9.26%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k1|NIFTY | dev 2001-2017 | 194 | +0.716% | +0.686% (+1.8) | +0.657% (+1.7) | +0.598% | 5% | 20.3x (8.13%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k1|NIFTY | val 2018-2023 | 267 | +0.397% | +0.343% (+0.6) | +0.290% (+0.5) | +0.182% | 15% | 6.7x (2.70%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k2|BANKNIFTY | dev 2005-2017 | 177 | -0.598% | -0.660% (-0.8) | -0.723% (-0.9) | -0.848% | n/a | below zero | not measured | no edge even with zero spread |
-| F01 | F01 k2|BANKNIFTY | val 2018-2023 | 312 | +2.849% | +2.756% (+2.7) | +2.662% (+2.7) | +2.475% | 3% | 30.3x (12.13%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k2|NIFTY | dev 2001-2017 | 194 | +0.044% | +0.007% (+0.0) | -0.030% (-0.1) | -0.104% | 223% | 0.4x (0.18%) | not measured | fragile: gone at 2x the assumed spread |
-| F01 | F01 k2|NIFTY | val 2018-2023 | 267 | +1.339% | +1.262% (+1.7) | +1.185% (+1.6) | +1.032% | 8% | 12.9x (5.16%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k3|BANKNIFTY | dev 2005-2017 | 176 | -0.542% | -0.610% (-0.6) | -0.679% (-0.7) | -0.816% | n/a | below zero | not measured | no edge even with zero spread |
-| F01 | F01 k3|BANKNIFTY | val 2018-2023 | 311 | +4.143% | +4.026% (+2.9) | +3.910% (+2.9) | +3.678% | 3% | 35.6x (14.25%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k3|NIFTY | dev 2001-2017 | 194 | +0.404% | +0.360% (+0.6) | +0.315% (+0.5) | +0.225% | 27% | 3.7x (1.49%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k3|NIFTY | val 2018-2023 | 267 | +1.172% | +1.076% (+0.9) | +0.980% (+0.8) | +0.788% | 17% | 5.8x (2.33%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k5|BANKNIFTY | dev 2005-2017 | 177 | -1.471% | -1.561% (-0.9) | -1.651% (-1.0) | -1.831% | n/a | below zero | not measured | no edge even with zero spread |
-| F01 | F01 k5|BANKNIFTY | val 2018-2023 | 311 | +1.307% | +1.160% (+0.7) | +1.014% (+0.6) | +0.722% | 12% | 8.3x (3.32%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k5|NIFTY | dev 2001-2017 | 194 | +0.387% | +0.330% (+0.4) | +0.273% (+0.4) | +0.160% | 13% | 7.8x (3.13%) | not measured | survives 2x; unproven: spread not measured |
-| F01 | F01 k5|NIFTY | val 2018-2023 | 266 | -0.808% | -0.931% (-0.7) | -1.055% (-0.8) | -1.302% | n/a | below zero | not measured | no edge even with zero spread |
-| F02 | F02 eve_strangle|BANKNIFTY | dev 2008-2017 | 168 | +0.026% | +0.009% (+0.0) | -0.009% (-0.0) | -0.043% | n/a | below zero | not measured | fragile: gone at 2x the assumed spread |
-| F02 | F02 eve_strangle|BANKNIFTY | val 2018-2023 | 312 | +0.516% | +0.491% (+1.5) | +0.466% (+1.4) | +0.415% | 5% | 20.5x (8.20%) | not measured | survives 2x; unproven: spread not measured |
-| F02 | F02 eve_strangle|NIFTY | dev 2001-2017 | 179 | +0.462% | +0.423% (+3.4) | +0.384% (+3.1) | +0.306% | 9% | 11.5x (4.60%) | not measured | survives 2x; unproven: spread not measured |
-| F02 | F02 eve_strangle|NIFTY | val 2018-2023 | 267 | +0.305% | +0.275% (+1.5) | +0.245% (+1.3) | +0.184% | 12% | 8.6x (3.44%) | not measured | survives 2x; unproven: spread not measured |
-| F05 | F05 stop0.5_trail0.25_nb14:45 | dev 2015-2017 | 136 | -0.826% | -0.883% (-4.5) | -0.940% (-4.8) | -1.054% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.5_trail0.25_nb14:45 | val 2018-2023 | 792 | -1.076% | -1.153% (-12.0) | -1.230% (-12.8) | -1.384% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.5_trail0.25_nb15:15 | dev 2015-2017 | 136 | -0.848% | -0.905% (-4.6) | -0.962% (-4.9) | -1.076% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.5_trail0.25_nb15:15 | val 2018-2023 | 792 | -1.084% | -1.161% (-11.8) | -1.238% (-12.6) | -1.392% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.5_trail0.35_nb14:45 | dev 2015-2017 | 136 | -0.780% | -0.838% (-2.8) | -0.895% (-3.0) | -1.010% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.5_trail0.35_nb14:45 | val 2018-2023 | 792 | -1.078% | -1.155% (-8.4) | -1.232% (-8.9) | -1.387% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.5_trail0.35_nb15:15 | dev 2015-2017 | 136 | -0.803% | -0.860% (-2.9) | -0.917% (-3.1) | -1.032% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.5_trail0.35_nb15:15 | val 2018-2023 | 792 | -1.090% | -1.167% (-8.4) | -1.244% (-8.9) | -1.399% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.6_trail0.25_nb14:45 | dev 2015-2017 | 136 | -0.826% | -0.883% (-4.5) | -0.940% (-4.8) | -1.054% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.6_trail0.25_nb14:45 | val 2018-2023 | 792 | -1.076% | -1.153% (-12.0) | -1.230% (-12.8) | -1.384% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.6_trail0.25_nb15:15 | dev 2015-2017 | 136 | -0.837% | -0.894% (-4.5) | -0.952% (-4.8) | -1.066% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.6_trail0.25_nb15:15 | val 2018-2023 | 792 | -1.082% | -1.159% (-11.9) | -1.236% (-12.7) | -1.390% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.6_trail0.35_nb14:45 | dev 2015-2017 | 136 | -0.779% | -0.836% (-2.8) | -0.893% (-3.0) | -1.008% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.6_trail0.35_nb14:45 | val 2018-2023 | 792 | -1.078% | -1.155% (-8.4) | -1.232% (-8.9) | -1.387% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.6_trail0.35_nb15:15 | dev 2015-2017 | 136 | -0.791% | -0.848% (-2.9) | -0.905% (-3.1) | -1.020% | n/a | below zero | not measured | no edge even with zero spread |
-| F05 | F05 stop0.6_trail0.35_nb15:15 | val 2018-2023 | 792 | -1.086% | -1.163% (-8.4) | -1.240% (-9.0) | -1.394% | n/a | below zero | not measured | no edge even with zero spread |
+| F01 | F01 k1|BANKNIFTY | dev 2005-2017 | 175 | -0.330% | -0.368% (-0.6) | -0.406% (-0.7) | -0.481% | n/a | below zero | 0.71 | no edge even with zero spread |
+| F01 | F01 k1|BANKNIFTY | val 2018-2023 | 312 | +1.543% | +1.478% (+2.3) | +1.412% (+2.2) | +1.280% | 4% | 23.2x (9.26%) | 0.71 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k1|NIFTY | dev 2001-2017 | 194 | +0.716% | +0.686% (+1.8) | +0.657% (+1.7) | +0.598% | 5% | 20.3x (8.13%) | 0.60 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k1|NIFTY | val 2018-2023 | 267 | +0.397% | +0.343% (+0.6) | +0.290% (+0.5) | +0.182% | 15% | 6.7x (2.70%) | 0.60 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k2|BANKNIFTY | dev 2005-2017 | 177 | -0.598% | -0.660% (-0.8) | -0.723% (-0.9) | -0.848% | n/a | below zero | 0.83 | no edge even with zero spread |
+| F01 | F01 k2|BANKNIFTY | val 2018-2023 | 312 | +2.849% | +2.756% (+2.7) | +2.662% (+2.7) | +2.475% | 3% | 30.3x (12.13%) | 0.83 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k2|NIFTY | dev 2001-2017 | 194 | +0.044% | +0.007% (+0.0) | -0.030% (-0.1) | -0.104% | 223% | 0.4x (0.18%) | 0.60 | fragile: gone at 2x the assumed spread |
+| F01 | F01 k2|NIFTY | val 2018-2023 | 267 | +1.339% | +1.262% (+1.7) | +1.185% (+1.6) | +1.032% | 8% | 12.9x (5.16%) | 0.60 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k3|BANKNIFTY | dev 2005-2017 | 176 | -0.542% | -0.610% (-0.6) | -0.679% (-0.7) | -0.816% | n/a | below zero | 0.88 | no edge even with zero spread |
+| F01 | F01 k3|BANKNIFTY | val 2018-2023 | 311 | +4.143% | +4.026% (+2.9) | +3.910% (+2.9) | +3.678% | 3% | 35.6x (14.25%) | 0.88 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k3|NIFTY | dev 2001-2017 | 194 | +0.404% | +0.360% (+0.6) | +0.315% (+0.5) | +0.225% | 27% | 3.7x (1.49%) | 0.61 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k3|NIFTY | val 2018-2023 | 267 | +1.172% | +1.076% (+0.9) | +0.980% (+0.8) | +0.788% | 17% | 5.8x (2.33%) | 0.61 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k5|BANKNIFTY | dev 2005-2017 | 177 | -1.471% | -1.561% (-0.9) | -1.651% (-1.0) | -1.831% | n/a | below zero | 0.98 | no edge even with zero spread |
+| F01 | F01 k5|BANKNIFTY | val 2018-2023 | 311 | +1.307% | +1.160% (+0.7) | +1.014% (+0.6) | +0.722% | 12% | 8.3x (3.32%) | 0.98 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k5|NIFTY | dev 2001-2017 | 194 | +0.387% | +0.330% (+0.4) | +0.273% (+0.4) | +0.160% | 13% | 7.8x (3.13%) | 0.66 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k5|NIFTY | val 2018-2023 | 266 | -0.808% | -0.931% (-0.7) | -1.055% (-0.8) | -1.302% | n/a | below zero | 0.66 | no edge even with zero spread |
+| F02 | F02 eve_strangle|BANKNIFTY | dev 2008-2017 | 168 | +0.026% | +0.009% (+0.0) | -0.009% (-0.0) | -0.043% | n/a | below zero | 0.77 | fragile: gone at 2x the assumed spread |
+| F02 | F02 eve_strangle|BANKNIFTY | val 2018-2023 | 312 | +0.516% | +0.491% (+1.5) | +0.466% (+1.4) | +0.415% | 5% | 20.5x (8.20%) | 0.77 | spread-robust (breakeven > 1.5x measured) |
+| F02 | F02 eve_strangle|NIFTY | dev 2001-2017 | 179 | +0.462% | +0.423% (+3.4) | +0.384% (+3.1) | +0.306% | 9% | 11.5x (4.60%) | 0.68 | spread-robust (breakeven > 1.5x measured) |
+| F02 | F02 eve_strangle|NIFTY | val 2018-2023 | 267 | +0.305% | +0.275% (+1.5) | +0.245% (+1.3) | +0.184% | 12% | 8.6x (3.44%) | 0.68 | spread-robust (breakeven > 1.5x measured) |
+| F05 | F05 stop0.5_trail0.25_nb14:45 | dev 2015-2017 | 136 | -0.826% | -0.883% (-4.5) | -0.940% (-4.8) | -1.054% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.5_trail0.25_nb14:45 | val 2018-2023 | 792 | -1.076% | -1.153% (-12.0) | -1.230% (-12.8) | -1.384% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.5_trail0.25_nb15:15 | dev 2015-2017 | 136 | -0.848% | -0.905% (-4.6) | -0.962% (-4.9) | -1.076% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.5_trail0.25_nb15:15 | val 2018-2023 | 792 | -1.084% | -1.161% (-11.8) | -1.238% (-12.6) | -1.392% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.5_trail0.35_nb14:45 | dev 2015-2017 | 136 | -0.780% | -0.838% (-2.8) | -0.895% (-3.0) | -1.010% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.5_trail0.35_nb14:45 | val 2018-2023 | 792 | -1.078% | -1.155% (-8.4) | -1.232% (-8.9) | -1.387% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.5_trail0.35_nb15:15 | dev 2015-2017 | 136 | -0.803% | -0.860% (-2.9) | -0.917% (-3.1) | -1.032% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.5_trail0.35_nb15:15 | val 2018-2023 | 792 | -1.090% | -1.167% (-8.4) | -1.244% (-8.9) | -1.399% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.6_trail0.25_nb14:45 | dev 2015-2017 | 136 | -0.826% | -0.883% (-4.5) | -0.940% (-4.8) | -1.054% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.6_trail0.25_nb14:45 | val 2018-2023 | 792 | -1.076% | -1.153% (-12.0) | -1.230% (-12.8) | -1.384% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.6_trail0.25_nb15:15 | dev 2015-2017 | 136 | -0.837% | -0.894% (-4.5) | -0.952% (-4.8) | -1.066% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.6_trail0.25_nb15:15 | val 2018-2023 | 792 | -1.082% | -1.159% (-11.9) | -1.236% (-12.7) | -1.390% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.6_trail0.35_nb14:45 | dev 2015-2017 | 136 | -0.779% | -0.836% (-2.8) | -0.893% (-3.0) | -1.008% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.6_trail0.35_nb14:45 | val 2018-2023 | 792 | -1.078% | -1.155% (-8.4) | -1.232% (-8.9) | -1.387% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.6_trail0.35_nb15:15 | dev 2015-2017 | 136 | -0.791% | -0.848% (-2.9) | -0.905% (-3.1) | -1.020% | n/a | below zero | 0.60 | no edge even with zero spread |
+| F05 | F05 stop0.6_trail0.35_nb15:15 | val 2018-2023 | 792 | -1.086% | -1.163% (-8.4) | -1.240% (-9.0) | -1.394% | n/a | below zero | 0.60 | no edge even with zero spread |
 
 ## What this means
 
-- validation-period groups: survives 2x; unproven: spread not measured: 9; no edge even with zero spread: 9
+- validation-period groups: spread-robust (breakeven > 1.5x measured): 9; no edge even with zero spread: 9
 - Spread is not what decides F01/F02: where they are positive, the assumed spread is 3-15% of the gross edge and the breakeven is 6-35x the assumption. What decides them is whether the settlement price was a price anyone could trade, and the tail (worst days in the F01/F02 study notes).
 - F05 (O-04 synthetic) loses even with zero spread, so spread realism cannot rescue it; its doubt is the synthetic price itself (flat IV through the afternoon, which if anything flatters a long straddle, since implied volatility usually falls into expiry). R01 on recorded expiry days settles it.
 - Nothing options-related feeds a decision until (a) measured spreads exist (india.spreads, needs a Kite sign-in after 20:30 Toronto) and (b) the expiry-eve settle check below has rows.
 
-## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-10-22, 9143 contract-days, 22 sessions)
+## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-10-29, 12625 contract-days, 27 sessions)
 
 Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule scored) against the volume-weighted price actually traded in the last 30 minutes (Kite minutes from the recorder). Signed gap > 0: settle above what traded (overstates a seller's credit).
 
 | index | expiry eve/day | premium Rs | contract-days | no trade in last 30 min | median signed gap | median abs gap | p90 abs gap |
 |---|---|---|---|---|---|---|---|
-| BANKNIFTY | no | 20-50 | 5 | 0.0% | +1.22% | 1.37% | 2.35% |
-| BANKNIFTY | no | 50-150 | 133 | 0.0% | +0.29% | 0.96% | 4.02% |
-| BANKNIFTY | no | 150+ | 3590 | 24.4% | +0.00% | 0.56% | 2.38% |
-| NIFTY | no | <2 | 47 | 0.0% | +2.12% | 3.00% | 9.06% |
-| NIFTY | no | 2-5 | 85 | 0.0% | +0.58% | 2.27% | 9.13% |
-| NIFTY | no | 5-20 | 342 | 0.6% | -0.27% | 1.51% | 5.21% |
-| NIFTY | no | 20-50 | 493 | 1.8% | -0.28% | 1.22% | 4.04% |
-| NIFTY | no | 50-150 | 1184 | 6.8% | -0.16% | 1.00% | 3.57% |
-| NIFTY | no | 150+ | 3182 | 16.8% | +0.00% | 0.58% | 2.64% |
-| NIFTY | yes | 150+ | 82 | 1.2% | +140433.39% | 140433.39% | 30106984.99% |
+| BANKNIFTY | no | 5-20 | 4 | 0.0% | -1.76% | 1.76% | 2.78% |
+| BANKNIFTY | no | 20-50 | 52 | 0.0% | -0.13% | 1.31% | 4.66% |
+| BANKNIFTY | no | 50-150 | 190 | 0.0% | -0.03% | 1.06% | 4.00% |
+| BANKNIFTY | no | 150+ | 4861 | 26.0% | +0.00% | 0.55% | 2.37% |
+| BANKNIFTY | yes | 5-20 | 13 | 0.0% | +0.22% | 1.09% | 3.04% |
+| BANKNIFTY | yes | 20-50 | 9 | 0.0% | -4.62% | 4.62% | 7.09% |
+| BANKNIFTY | yes | 50-150 | 9 | 0.0% | -4.87% | 4.87% | 6.34% |
+| BANKNIFTY | yes | 150+ | 99 | 1.0% | +5744.74% | 5744.74% | 8843140.74% |
+| NIFTY | no | <2 | 52 | 0.0% | +1.84% | 2.88% | 8.56% |
+| NIFTY | no | 2-5 | 120 | 0.0% | +0.72% | 2.41% | 8.01% |
+| NIFTY | no | 5-20 | 461 | 1.1% | -0.07% | 1.48% | 5.18% |
+| NIFTY | no | 20-50 | 687 | 3.5% | -0.15% | 1.22% | 4.06% |
+| NIFTY | no | 50-150 | 1581 | 7.3% | -0.07% | 1.03% | 3.91% |
+| NIFTY | no | 150+ | 4241 | 17.9% | +0.00% | 0.62% | 3.14% |
+| NIFTY | yes | <2 | 8 | 0.0% | +0.62% | 2.28% | 4.72% |
+| NIFTY | yes | 2-5 | 11 | 0.0% | -4.15% | 4.15% | 4.28% |
+| NIFTY | yes | 5-20 | 11 | 0.0% | -6.77% | 6.77% | 8.51% |
+| NIFTY | yes | 20-50 | 6 | 0.0% | -3.20% | 6.39% | 8.89% |
+| NIFTY | yes | 50-150 | 9 | 0.0% | -4.83% | 4.83% | 7.53% |
+| NIFTY | yes | 150+ | 201 | 2.0% | +11432.40% | 11432.40% | 28650913.07% |
 

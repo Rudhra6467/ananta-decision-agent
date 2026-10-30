@@ -427,7 +427,7 @@ def lines(f: dict) -> dict:
     if rt.get("results_today"):
         names = rt["results_today"]
         held = rt.get("held_with_results_today") or []
-        watch.append(f"Results today: {', '.join(names[:8])}{' and more' if len(names) > 8 else ''}" + (f" - held: {', '.join(held)}" if held else "") + ". A results day can gap either way; the practice book does not add a position on its results day.")
+        watch.append(f"Results today: {', '.join(names[:8])}{' and more' if len(names) > 8 else ''}" + (f" - held: {', '.join(held)}" if held else "") + ". A results day can gap either way; no rule in the practice book reads results yet.")
     if rt.get("held_with_results_published"):
         watch.append(f"Results came out after yesterday's close for held names: {', '.join(rt['held_with_results_published'][:8])}.")
     bl = (pm.get("ban_list") or {}).get("symbols")

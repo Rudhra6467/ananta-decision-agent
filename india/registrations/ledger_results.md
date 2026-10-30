@@ -1,4 +1,4 @@
-# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-10-29)
+# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-10-30)
 
 HISTORICAL BACKTEST only: development 2000-2017, validation 2018-2023; the 2024+ years are sealed. A verdict here is the registry's rule applied to the registered numbers (one family-wide bar for every variant ever tried in that family); it is evidence, not a decision, and nothing is in the paper book because of this page. A researcher's write-up (the *_results_v1.md pages) is the better source where one exists; this page exists so that no finished study is unwritten.
 
@@ -42,6 +42,18 @@ Outcome: 14 not supported on seen years across 14 variants.
 ### SZ2: Sizing v2: fraction x structure for SP1's option line (sz2-v1-2026-10-19-frozen), at Rs 60,000
 Claim before the run: exploratory: each variant's daily log growth on the historical paused path (2017-2023 dev, 2024-01-01..2026-10-16 seen); the selection is counted, never confirmed
 Outcome: 20 had too little data to judge across 20 variants.
+
+## combination (1 studies)
+
+### CL1: The combination lab: does a stock setup together with a market state earn more over 20 sessions than the better of the two alone? Five stock setups x five market states on the random (ANY) entries, 2000-2023
+Claim before the run: For each pair, trades signalled while BOTH the stock setup and the market state are on earn more over the next 20 sessions (net) than trades signalled while the better of the two is on by itself (the interaction), within quarters, in both periods. A random stock flag with the same frequency paired with the same market state earns nothing in particular.
+Outcome: 24 had too little data to judge, 3 did not hold, 3 held up in both periods across 30 variants.
+
+| variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
+|---|---|---|---|---|---|---|
+| deliv_high · small_lead | VALIDATED | +0.95% | +3.3 | +1.92% | +4.1 | 3.144 |
+| not_extended · nifty_gt200d | VALIDATED | +1.54% | +4.6 | +1.81% | +3.4 | 3.144 |
+| not_extended · small_lead | VALIDATED | +1.29% | +3.4 | +2.05% | +3.2 | 3.144 |
 
 ## context (21 studies)
 
@@ -301,6 +313,17 @@ Outcome: 2 came out the opposite way, 1 did not hold across 3 variants.
 Claim before the run: Leaving at the next open after the stock hits its lower price band raises net return per trade against the same policy without it.
 Outcome: 3 did not hold across 3 variants.
 
+## factor_monthly (1 studies)
+
+### FP1: Monthly factor portfolios for the long-term money: 12-month momentum, low volatility and the two combined, top decile of the 500 most traded stocks, rebalanced monthly, against the equal-weight universe and the Nifty 500, after costs (2000-2023)
+Claim before the run: Among the 500 most traded NSE stocks, the top decile by 12-month momentum (skipping the latest month) earns more over the next month than the equal-weight universe and than the Nifty 500 index, after monthly rebalancing costs; the top decile by low volatility (lowest 12-month daily volatility) earns at least as much with a smaller drawdown; the two combined (average rank) earn more than either benchmark; the bottom momentum decile earns less than the universe; and a random decile earns nothing in particular.
+Outcome: 6 did not hold, 2 held up, weaker in one period across 8 variants.
+
+| variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
+|---|---|---|---|---|---|---|
+| MOM_bottom · vs_EW | CONDITIONAL | -1.17% | -2.9 | -1.27% | -2.7 | 2.734 |
+| RANDOM · vs_EW | CONDITIONAL | -0.41% | -3.7 | -0.47% | -2.5 | 2.734 |
+
 ## filter (4 studies)
 
 ### E04-ANY: Saturation after long runs and declines (M-03/04/13) as a no-entry filter (ANY entries)
@@ -522,7 +545,22 @@ Outcome: 4 did not hold, 1 had too little data to judge, 1 held up, weaker in on
 Claim before the run: Does a financial-news model's reading of NSE company announcements predict the stock's drift over the next 5 and 20 sessions, beyond the announcement's category?
 Outcome: 7 did not hold, 1 had too little data to judge across 8 variants.
 
-## options_eod (5 studies)
+## options_eod (6 studies)
+
+### DR1: Defined-risk option selling on expiry day: the short straddle, the iron fly and the iron condor on Nifty and Bank Nifty, opened at the expiry-day open and closed at the close (2014-2023 real prices), against the same structures three sessions before expiry
+Claim before the run: Expiry-day time decay (GK1: option buyers lost 15-19% of the premium between the open and the close in 2018-23) is capturable from the selling side after costs and spreads: a short at-the-money straddle opened at the expiry-day open and bought back at the close earns more than zero net; the iron fly (the same straddle with bought wings 1% or 2% from the strike) keeps most of that while capping the loss at the wing width; the iron condor (short 1% out, long 2% out) earns more than zero on the capital at risk; and the same four structures opened three sessions before expiry and closed that day (the control) earn nothing in particular.
+Outcome: 6 did not hold, 6 held up in both periods, 2 had too little data to judge, 2 came out the opposite way across 16 variants.
+
+| variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
+|---|---|---|---|---|---|---|
+| NIFTY · exp3 · fly_w1 | VALIDATED | -10.60% | -6.2 | -11.08% | -6.5 | 3.351 |
+| NIFTY · exp3 · fly_w2 | VALIDATED | -6.92% | -3.8 | -4.28% | -5.4 | 3.351 |
+| BANK · exp3 · fly_w1 | VALIDATED | -13.26% | -5.3 | -16.33% | -5.2 | 3.351 |
+| BANK · exp3 · fly_w2 | VALIDATED | -7.83% | -3.9 | -6.77% | -5.0 | 3.351 |
+| BANK · exp3 · condor_1_2 | VALIDATED | -11.48% | -5.9 | -13.36% | -4.9 | 3.351 |
+| NIFTY · exp3 · condor_1_2 | VALIDATED | -12.46% | -4.8 | -4.91% | -4.7 | 3.351 |
+| NIFTY · exp0 · condor_1_2 | OPPOSITE | -6.61% | -3.5 | -2.04% | -2.1 | 3.351 |
+| NIFTY · exp0 · fly_w1 | OPPOSITE | -7.29% | -1.8 | -0.71% | -0.4 | 3.351 |
 
 ### F01: Short ATM straddle held to expiry, from k sessions before (NIFTY, BANKNIFTY)
 Claim before the run: Premium decays faster than the index moves: selling the at-the-money straddle k sessions before expiry and holding to expiry earns more than zero net of costs and a half-spread (M-07/M-08).

@@ -1,6 +1,6 @@
 # GP1 results: The opening gap: does buying the open after a gap-down (mean reversion) or after a gap-up (follow-through) beat ordinary days, after costs?
 
-Registered 2026-10-27T00:37:41+00:00 (spec `gp1_v1.json`, written before the run); family gaps, k = 10, z = 2.81. Development to 2017, validation 2018-2023; nothing from 2024 on.
+Registered 2026-10-30T02:04:52+00:00 (spec `gp1_v1.json`, written before the run); family gaps, k = 10, z = 2.81. Development to 2017, validation 2018-2023; nothing from 2024 on.
 
 ## In plain words
 

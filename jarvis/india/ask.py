@@ -1437,8 +1437,11 @@ def bulk_draft_flow(text: str, who: str) -> dict | None:
             w = re.sub(r"^(?:an?|the)\s+", "", w, flags=re.I)
             return w[:1].lower() + w[1:]
         kw = ", ".join(f"{n} {_kind(k)}" for k, n in kinds.items())
-        return _reply(f"Sir, to be sure: {len(d)} drafts are waiting ({kw}). Yes to all registers {len(d)} studies, each written down first and tested on "
-                      "2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first.",
+        n_ = len(d)   # 30 Oct replay: "1 drafts are waiting ... registers 1 studies" read as garbled; one draft is said in the singular
+        return _reply((f"Sir, to be sure: one draft is waiting ({kw}). Saying yes registers it as one study, written down first and tested on "
+                       "2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first.") if n_ == 1 else
+                      (f"Sir, to be sure: {n_} drafts are waiting ({kw}). Yes to all registers {n_} studies, each written down first and tested on "
+                       "2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first."),
                       ["Approve all drafts", "Read the drafts"], ["paper/reconstruction queue"])
     import datetime as _dt
     dec = "SKIPPED" if skip else "APPROVED"
@@ -1450,10 +1453,11 @@ def bulk_draft_flow(text: str, who: str) -> dict | None:
             f.write(json.dumps({"key": x["key"], "decision": dec, "by": who, "words": text[:300], "at": at, "bulk": True}) + "\n")
     _WAIT_CACHE.update(t=0.0)
     if dec == "APPROVED":
-        return _reply(f"Approved, sir: all {len(d)} drafts go to registration. Each study is written down before it runs, tested on 2000-2023 only, "
-                      "and climbs the staircase only if it passes; nothing trades from this.", ["What happens after a study is registered?", "What's waiting?"],
+        return _reply((f"Approved, sir: the draft goes to registration. " if len(d) == 1 else f"Approved, sir: all {len(d)} drafts go to registration. ")
+                      + ("The study is" if len(d) == 1 else "Each study is") + " written down before it runs, tested on 2000-2023 only, and moves up the fixed steps "
+                      "a rule must pass (the evidence staircase) only if it passes; nothing trades from this.", ["What happens after a study is registered?", "What's waiting?"],
                       ["paper/reconstruction/decisions.jsonl"])
-    return _reply(f"Skipped, sir: all {len(d)} drafts are closed and will not be filed again.", ["What's waiting?"], ["paper/reconstruction/decisions.jsonl"])
+    return _reply(("Skipped, sir: the draft is closed and will not be filed again." if len(d) == 1 else f"Skipped, sir: all {len(d)} drafts are closed and will not be filed again."), ["What's waiting?"], ["paper/reconstruction/decisions.jsonl"])
 
 
 def draft_flow(text: str, who: str) -> dict | None:

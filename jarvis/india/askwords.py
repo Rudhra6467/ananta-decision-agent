@@ -54,6 +54,11 @@ JARGON = [
     (re.compile(r"\b(?:the |a )?22% pause\b"), "the rule that pauses trading after a 22% fall"),
     # 27 Oct second review: no 'flexi-cap index fund' exists; the broad-market index fund is a Nifty 500 index fund
     (re.compile(r"\bflexi[- ]?cap index funds?\b", re.I), "Nifty 500 index fund"),
+    # 30 Oct replay (JARGON): "climbs the staircase", "no family was positioned", and a facts key echoed in brackets "(drafts waiting total.count)"
+    (re.compile(r"\bclimbs? the (?:evidence )?staircase\b"), "moves up the fixed steps a rule must pass (the evidence staircase)"),
+    (re.compile(r"\bno (?:rule )?family was positioned for\b"), "no rule was watching for"),
+    (re.compile(r"\bno (?:rule )?family was positioned\b"), "no rule was watching"),
+    (re.compile(r"\s*\((?:[a-z_]+ ?)+\.[a-z_]+\)"), ""),
     # the model's decision stamp (answer_guide: no labels), only at the start of a sentence
     (re.compile(r"(^|[.!?]\s+)(?:Decision|My read)\s*:\s*([a-z])"), lambda m: m.group(1) + m.group(2).upper()),
 ]

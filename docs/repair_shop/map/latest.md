@@ -1,6 +1,6 @@
-# The one map (2026-10-29T22:17)
+# The one map (2026-10-30T11:16)
 
-The map holds 165 studies and 1333 variants. 77 mismatches between layers: 23 planned, not done, 16 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 16 need Madhav's yes.
+The map holds 168 studies and 1387 variants. 73 mismatches between layers: 23 planned, not done, 12 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 12 need Madhav's yes.
 
 ## Mismatches
 
@@ -29,16 +29,12 @@ The map holds 165 studies and 1333 variants. 77 mismatches between layers: 23 pl
 | A planned, not done | V04 | tracker: BLOCKED: Red flags as a hard gate: surveillance lists, pledge, exchange actions | SAFE | build it, or mark it dropped with a reason |
 | A planned, not done | V05 | tracker: BLOCKED: Quality and mispricing, peer-relative (M-15); quality score and timing score kept apart | SAFE | build it, or mark it dropped with a reason |
 | A planned, not done | V06 | tracker: BLOCKED: Portfolio ranking, replacement finder and concentration (M-16); first run on the father's holdings,  | SAFE | build it, or mark it dropped with a reason |
-| C proved, not in the paper rules | C02-PULL | CONDITIONAL: Volume heat, delivery share and own volatility at entry (crypto H1/H2 port, M-10) (PULL en | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
 | C proved, not in the paper rules | C05-PULL | CONDITIONAL: India VIX regimes at entry (PULL entries) | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
-| C proved, not in the paper rules | E04-ANY | VALIDATED: Saturation after long runs and declines (M-03/04/13) as a no-entry filter (ANY entries) | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
-| C proved, not in the paper rules | E04-BRK | CONDITIONAL: Saturation after long runs and declines (M-03/04/13) as a no-entry filter (BRK entries) | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
 | C proved, not in the paper rules | F05-O04 | CONDITIONAL: O-04 expiry-day straddle reconstructed on index minutes (synthetic prices) | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
 | C proved, not in the paper rules | GP1 | VALIDATED: The opening gap: does buying the open after a gap-down (mean reversion) or after a gap-up  | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
 | C proved, not in the paper rules | IB1 | VALIDATED: Intraday breakouts: on Nifty, Bank Nifty and liquid stocks, does trading the break of the  | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
 | C proved, not in the paper rules | MS1 | CONDITIONAL: Intraday patterns: does the first 15 minutes' direction carry through the rest of the day  | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
 | C proved, not in the paper rules | OC1 | VALIDATED: Opening Decision Protocol V1 (Madhav): primary tests | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
-| C proved, not in the paper rules | T-TWT-H10 | VALIDATED: Trade With Trend (Raunak A) · TWT-H10 Don't chase: extension above the 50 DMA | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
 | C proved, not in the paper rules | T-TWT-H11 | CONDITIONAL: Trade With Trend (Raunak A) · TWT-H11 Breakouts on volume | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
 | C proved, not in the paper rules | T-TWT-H12 | VALIDATED: Trade With Trend (Raunak A) · TWT-H12 The breakout bar's shape | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
 | C proved, not in the paper rules | T-TWT-H15 | CONDITIONAL: Trade With Trend (Raunak A) · TWT-H15 Near highs beats far below | DECISION | decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason |
@@ -115,8 +111,10 @@ The map holds 165 studies and 1333 variants. 77 mismatches between layers: 23 pl
 | CEV-ANY | the lab | INCONCLUSIVE | 30 | thin | yes | - | - | - | - | - | - | - |
 | CEV-BRK | the lab | INCONCLUSIVE | 30 | thin | yes | - | - | - | - | - | - | - |
 | CEV-PULL | the lab | INCONCLUSIVE | 30 | thin | yes | - | - | - | - | - | - | - |
+| CL1 | the lab | VALIDATED | 30 | full | yes | yes | - | yes | yes | - | - | - |
 | CP1 | the lab | REJECTED | 8 | full | yes | - | yes | yes | yes | - | - | - |
 | DII1 | the lab | REJECTED | 10 | full | yes | - | yes | yes | yes | - | - | - |
+| DR1 | the lab | VALIDATED | 16 | full | yes | yes | - | yes | yes | - | - | - |
 | E01-ANY | the lab | REJECTED | 5 | full | yes | - | - | - | - | - | - | READY |
 | E01-BRK | the lab | REJECTED | 5 | full | yes | - | - | - | - | - | - | READY |
 | E01-PULL | the lab | REJECTED | 5 | full | yes | - | - | - | - | - | - | READY |
@@ -126,9 +124,9 @@ The map holds 165 studies and 1333 variants. 77 mismatches between layers: 23 pl
 | E03-ANY | the lab | OPPOSITE | 6 | full | yes | yes | - | - | - | - | - | READY |
 | E03-BRK | the lab | REJECTED | 6 | full | yes | yes | - | - | - | - | - | READY |
 | E03-PULL | the lab | OPPOSITE | 6 | full | yes | yes | - | - | yes | - | - | READY |
-| E04-ANY | the lab | VALIDATED | 20 | full | yes | - | - | yes | yes | - | - | READY |
-| E04-BRK | the lab | CONDITIONAL | 20 | full | yes | - | - | yes | yes | - | - | READY |
-| E04-PULL | the lab | INCONCLUSIVE | 20 | thin | yes | - | - | yes | - | - | - | READY |
+| E04-ANY | the lab | VALIDATED | 20 | full | yes | yes | - | yes | yes | - | - | READY |
+| E04-BRK | the lab | CONDITIONAL | 20 | full | yes | yes | - | yes | yes | - | - | READY |
+| E04-PULL | the lab | INCONCLUSIVE | 20 | thin | yes | yes | - | yes | - | - | - | READY |
 | E05-PULL | the lab | REJECTED | 25 | full | yes | - | - | - | - | - | - | READY |
 | E06-ANY | the lab | OPPOSITE | 3 | full | yes | - | - | - | yes | - | - | READY |
 | E06-BRK | the lab | REJECTED | 3 | full | yes | - | - | - | - | - | - | READY |
@@ -157,6 +155,7 @@ The map holds 165 studies and 1333 variants. 77 mismatches between layers: 23 pl
 | F06-BRK | the lab | REJECTED | 4 | full | yes | - | - | yes | - | - | - | READY |
 | F06-PULL | the lab | REJECTED | 4 | full | yes | - | - | yes | - | - | - | READY |
 | FII1 | the lab | REJECTED | 8 | full | yes | - | yes | yes | yes | - | - | - |
+| FP1 | the lab | CONDITIONAL | 8 | full | yes | yes | - | yes | yes | - | - | - |
 | FX1 | the lab | REJECTED | 10 | full | yes | - | yes | yes | yes | - | - | - |
 | GK1 | the lab | OPPOSITE | 8 | full | yes | - | yes | yes | yes | - | - | - |
 | GP1 | the lab | VALIDATED | 10 | full | yes | - | yes | yes | yes | - | - | - |
@@ -209,7 +208,7 @@ The map holds 165 studies and 1333 variants. 77 mismatches between layers: 23 pl
 | T-TWT-H04 | teacher card | REJECTED | 3 | full | yes | - | yes | yes | - | - | - | - |
 | T-TWT-H05 | teacher card | REJECTED | 6 | full | yes | - | yes | yes | - | - | - | - |
 | T-TWT-H09 | teacher card | REJECTED | 2 | full | yes | - | yes | yes | yes | - | - | - |
-| T-TWT-H10 | teacher card | VALIDATED | 9 | full | yes | - | yes | yes | yes | - | - | - |
+| T-TWT-H10 | teacher card | VALIDATED | 9 | full | yes | yes | yes | yes | yes | - | - | - |
 | T-TWT-H11 | teacher card | CONDITIONAL | 4 | full | yes | - | yes | yes | yes | - | - | - |
 | T-TWT-H12 | teacher card | VALIDATED | 5 | full | yes | - | yes | yes | yes | - | - | - |
 | T-TWT-H12F | teacher card | OPPOSITE | 2 | full | yes | - | yes | yes | yes | - | - | - |

@@ -1215,9 +1215,25 @@ def morning() -> dict:
             "scorecard": {"forecasts": sc.get("forecasts"), "daily_call": sc.get("daily_call"), "options_sessions": sc.get("options_sessions"), "words": sc.get("words")},
             "lessons": f.get("lessons_for_writer") or [], "paper": True,
             # 30 Oct (Phase 4.5): the Today card's three parts and the shadow trader's state (after the session only; nothing before 20 sessions)
-            "premarket": f.get("premarket"), "sealed": f.get("sealed"), "waiting": _waiting_count(),
+            "premarket": f.get("premarket"), "sealed": f.get("sealed"), "waiting": _waiting_count(), "clocks": _clocks(),
             "shadow": _shadow_public(f.get("session")),
             "read": "Paper only, not advice. Every number comes from Ananta's own files; the odds are base rates beside their baseline until a rule proves itself."}
+
+
+def _clocks() -> list[str]:
+    """The running trials in one line each (manifests/trials.json), for the Today card."""
+    try:
+        t = json.loads((DATA / "manifests" / "trials.json").read_text()).get("trials") or []
+    except (OSError, ValueError):
+        return []
+    out = []
+    for r in t:
+        if r.get("complete"):
+            out.append(f"{r['name']}: complete.")
+        else:
+            fin = r.get("expected_finish")
+            out.append(f"{r['name']}: {r['done']} of {r['need']} {r['unit']}, about {_day_words(fin) if fin else 'unknown'}.")
+    return out
 
 
 def _waiting_count() -> dict:

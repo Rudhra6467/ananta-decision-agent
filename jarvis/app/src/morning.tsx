@@ -140,6 +140,7 @@ export function MorningCard() {
       <Part title="What Ananta found" lines={found} openByDefault />
       <Part title="What it would do" lines={would} />
       <Part title="What it is waiting for" lines={waiting} />
+      <Part title="The clocks (trials running)" lines={(m.clocks ?? []) as string[]} />
       {m.sealed ? <T faint small>{m.sealed.before_open ? "Written and sealed before the open." : "Written after the open."}</T> : null}
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Act tight label="Ask ›" onPress={() => askAbout({ screen: "home", label: "the morning view" }, "Good morning. What is the view for today, and what are our chances?")} />

@@ -1,21 +1,21 @@
 {
  "summary": {
-  "built_at": "2026-10-29T22:17:14",
-  "studies": 165,
-  "variants": 1333,
+  "built_at": "2026-10-30T11:16:37",
+  "studies": 168,
+  "variants": 1387,
   "gap_counts": {
    "A planned, not done": 23,
    "B done, not noted": 0,
-   "C proved, not in the paper rules": 16,
+   "C proved, not in the paper rules": 12,
    "D in the paper rules, not in the voice's facts": 0,
    "E tested, but not at full scale": 36,
    "F the voice has it, but no plain-words name": 0,
    "G a result the screens do not show": 2
   },
-  "gaps_total": 77,
-  "needs_yes": 16,
-  "seconds": 1.2,
-  "words": "The map holds 165 studies and 1333 variants. 77 mismatches between layers: 23 planned, not done, 16 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 16 need Madhav's yes."
+  "gaps_total": 73,
+  "needs_yes": 12,
+  "seconds": 1.1,
+  "words": "The map holds 168 studies and 1387 variants. 73 mismatches between layers: 23 planned, not done, 12 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 12 need Madhav's yes."
  },
  "rows": [
   {
@@ -31,6 +31,7 @@
     "REJECTED": 4
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-27T13:26:39+00:00",
    "spec_file": true,
@@ -100,6 +101,7 @@
     "INCONCLUSIVE": 15
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:23:36+00:00",
    "spec_file": false,
@@ -176,6 +178,7 @@
     "INCONCLUSIVE": 15
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:23:34+00:00",
    "spec_file": false,
@@ -252,6 +255,7 @@
     "INCONCLUSIVE": 15
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:23:35+00:00",
    "spec_file": false,
@@ -329,6 +333,7 @@
     "INCONCLUSIVE": 12
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:00+00:00",
    "spec_file": false,
@@ -405,6 +410,7 @@
     "REJECTED": 34
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:58+00:00",
    "spec_file": false,
@@ -482,6 +488,7 @@
     "CONDITIONAL": 1
    },
    "best_verdict": "CONDITIONAL",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:59+00:00",
    "spec_file": false,
@@ -558,6 +565,7 @@
     "INCONCLUSIVE": 5
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:56:54+00:00",
    "spec_file": false,
@@ -632,6 +640,7 @@
     "INCONCLUSIVE": 5
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:56:52+00:00",
    "spec_file": false,
@@ -705,6 +714,7 @@
     "INCONCLUSIVE": 10
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:56:53+00:00",
    "spec_file": false,
@@ -779,6 +789,7 @@
     "REJECTED": 11
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:02+00:00",
    "spec_file": false,
@@ -854,6 +865,7 @@
     "REJECTED": 20
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:00+00:00",
    "spec_file": false,
@@ -930,6 +942,7 @@
     "CONDITIONAL": 3
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-18T23:08:01+00:00",
    "spec_file": false,
@@ -1006,6 +1019,7 @@
     "REJECTED": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-19T20:42:34+00:00",
    "spec_file": false,
@@ -1079,6 +1093,7 @@
     "OPPOSITE": 15
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:03+00:00",
    "spec_file": false,
@@ -1156,6 +1171,7 @@
     "OPPOSITE": 15
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:02+00:00",
    "spec_file": false,
@@ -1232,6 +1248,7 @@
     "INCONCLUSIVE": 20
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:08:03+00:00",
    "spec_file": false,
@@ -1308,6 +1325,7 @@
     "INCONCLUSIVE": 60
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:08:06+00:00",
    "spec_file": false,
@@ -1383,6 +1401,7 @@
     "INCONCLUSIVE": 60
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:08:04+00:00",
    "spec_file": false,
@@ -1458,6 +1477,7 @@
     "INCONCLUSIVE": 60
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:08:05+00:00",
    "spec_file": false,
@@ -1535,6 +1555,7 @@
     "INCONCLUSIVE": 40
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:09+00:00",
    "spec_file": false,
@@ -1612,6 +1633,7 @@
     "INCONCLUSIVE": 40
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:07+00:00",
    "spec_file": false,
@@ -1689,6 +1711,7 @@
     "INCONCLUSIVE": 45
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:07+00:00",
    "spec_file": false,
@@ -1767,6 +1790,7 @@
     "REJECTED": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-27T13:26:35+00:00",
    "spec_file": true,
@@ -1836,6 +1860,7 @@
     "INCONCLUSIVE": 30
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:25:27+00:00",
    "spec_file": false,
@@ -1905,6 +1930,7 @@
     "INCONCLUSIVE": 30
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:25:28+00:00",
    "spec_file": false,
@@ -1974,6 +2000,7 @@
     "INCONCLUSIVE": 30
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:25:30+00:00",
    "spec_file": false,
@@ -2031,6 +2058,79 @@
    ]
   },
   {
+   "id": "CL1",
+   "family": "combination",
+   "source": "the lab",
+   "title": "The combination lab: does a stock setup together with a market state earn more over 20 sessions than the better of the two alone? Five stock setups x five marke",
+   "registered": true,
+   "registered_at": "2026-10-30",
+   "versions": 2,
+   "variants": 30,
+   "verdicts": {
+    "OPPOSITE": 6,
+    "INCONCLUSIVE": 46,
+    "VALIDATED": 5,
+    "REJECTED": 3
+   },
+   "best_verdict": "VALIDATED",
+   "proved": true,
+   "scale": "full",
+   "last_result": "2026-10-30T02:41:57+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": true,
+   "paper_role": "closed: no pair beat its parts (nothing to embed)",
+   "in_facts": false,
+   "plain_name": "the combination lab",
+   "in_readmodel": true,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "deliv_high|small_lead",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.009499004106886737,
+     "dev_t": 3.285107084016016,
+     "dev_blocks": 50,
+     "val_mean": 0.019203444662627737,
+     "val_t": 4.103156529565434,
+     "val_blocks": 20
+    },
+    {
+     "variant": "not_extended|nifty_gt200d",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.015444162753709391,
+     "dev_t": 4.606339827807956,
+     "dev_blocks": 50,
+     "val_mean": 0.018060458416143912,
+     "val_t": 3.4405268117776875,
+     "val_blocks": 22
+    },
+    {
+     "variant": "not_extended|small_lead",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.01286178921644325,
+     "dev_t": 3.4040968533790332,
+     "dev_blocks": 46,
+     "val_mean": 0.020502664928246955,
+     "val_t": 3.1582644197967866,
+     "val_blocks": 19
+    },
+    {
+     "variant": "RANDOM|small_lead",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0004870854359685644,
+     "dev_t": -0.23449983081592254,
+     "dev_blocks": 47,
+     "val_mean": 0.0028131368074813374,
+     "val_t": 0.9933458040711631,
+     "val_blocks": 20
+    }
+   ]
+  },
+  {
    "id": "CP1",
    "family": "technical",
    "source": "the lab",
@@ -2044,6 +2144,7 @@
     "INCONCLUSIVE": 5
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-27T13:26:32+00:00",
    "spec_file": true,
@@ -2113,6 +2214,7 @@
     "REJECTED": 10
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-26T17:00:53+00:00",
    "spec_file": true,
@@ -2170,6 +2272,80 @@
    ]
   },
   {
+   "id": "DR1",
+   "family": "options_eod",
+   "source": "the lab",
+   "title": "Defined-risk option selling on expiry day: the short straddle, the iron fly and the iron condor on Nifty and Bank Nifty, opened at the expiry-day open and close",
+   "registered": true,
+   "registered_at": "2026-10-30",
+   "versions": 3,
+   "variants": 16,
+   "verdicts": {
+    "REJECTED": 19,
+    "INCONCLUSIVE": 4,
+    "CONDITIONAL": 1,
+    "OPPOSITE": 2,
+    "VALIDATED": 6
+   },
+   "best_verdict": "VALIDATED",
+   "proved": false,
+   "scale": "full",
+   "last_result": "2026-10-30T02:27:16+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": true,
+   "paper_role": "closed: no (the affordable version does not pay)",
+   "in_facts": false,
+   "plain_name": "the expiry-day option-selling test",
+   "in_readmodel": true,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "NIFTY|exp3|fly_w1",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.1060206529090868,
+     "dev_t": -6.183993810231907,
+     "dev_blocks": 16,
+     "val_mean": -0.11076218026555572,
+     "val_t": -6.539513977731062,
+     "val_blocks": 24
+    },
+    {
+     "variant": "NIFTY|exp3|fly_w2",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.06916165031343885,
+     "dev_t": -3.792848671551126,
+     "dev_blocks": 16,
+     "val_mean": -0.04282023021064035,
+     "val_t": -5.363636593655634,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANK|exp3|fly_w1",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.13255969200907497,
+     "dev_t": -5.261209339338696,
+     "dev_blocks": 16,
+     "val_mean": -0.16325902033542286,
+     "val_t": -5.22116866465178,
+     "val_blocks": 24
+    },
+    {
+     "variant": "BANK|exp3|fly_w2",
+     "verdict": "VALIDATED",
+     "dev_mean": -0.07825455404033067,
+     "dev_t": -3.864339067229686,
+     "dev_blocks": 16,
+     "val_mean": -0.06774616699755416,
+     "val_t": -5.0199275478907825,
+     "val_blocks": 24
+    }
+   ]
+  },
+  {
    "id": "E01-ANY",
    "family": "stop",
    "source": "the lab",
@@ -2183,6 +2359,7 @@
     "INCONCLUSIVE": 20
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:06:49+00:00",
    "spec_file": false,
@@ -2254,6 +2431,7 @@
     "REJECTED": 25
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:05:18+00:00",
    "spec_file": false,
@@ -2326,6 +2504,7 @@
     "INCONCLUSIVE": 15
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:05:30+00:00",
    "spec_file": false,
@@ -2399,6 +2578,7 @@
     "OPPOSITE": 38
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:05:01+00:00",
    "spec_file": false,
@@ -2472,6 +2652,7 @@
     "INCONCLUSIVE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:03:36+00:00",
    "spec_file": false,
@@ -2545,6 +2726,7 @@
     "OPPOSITE": 25
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:03:46+00:00",
    "spec_file": false,
@@ -2617,6 +2799,7 @@
     "OPPOSITE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:49+00:00",
    "spec_file": false,
@@ -2689,6 +2872,7 @@
     "REJECTED": 30
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:06:59+00:00",
    "spec_file": false,
@@ -2762,6 +2946,7 @@
     "REJECTED": 13
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:05+00:00",
    "spec_file": false,
@@ -2837,6 +3022,7 @@
     "REJECTED": 8
    },
    "best_verdict": "VALIDATED",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-18T23:07:57+00:00",
    "spec_file": false,
@@ -2847,8 +3033,8 @@
     "M-04",
     "M-13"
    ],
-   "in_paper": false,
-   "paper_role": null,
+   "in_paper": true,
+   "paper_role": "the no-chase filter (extended stocks are not bought), cfg-2026-10-30a",
    "in_facts": false,
    "plain_name": "the exit test",
    "in_readmodel": true,
@@ -2912,6 +3098,7 @@
     "CONDITIONAL": 3
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-18T23:07:55+00:00",
    "spec_file": false,
@@ -2922,8 +3109,8 @@
     "M-04",
     "M-13"
    ],
-   "in_paper": false,
-   "paper_role": null,
+   "in_paper": true,
+   "paper_role": "the no-chase filter (extended stocks are not bought), cfg-2026-10-30a",
    "in_facts": false,
    "plain_name": "the exit test",
    "in_readmodel": true,
@@ -2985,6 +3172,7 @@
     "INCONCLUSIVE": 80
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:07:55+00:00",
    "spec_file": false,
@@ -2995,8 +3183,8 @@
     "M-04",
     "M-13"
    ],
-   "in_paper": false,
-   "paper_role": null,
+   "in_paper": true,
+   "paper_role": "the no-chase filter (extended stocks are not bought), cfg-2026-10-30a",
    "in_facts": false,
    "plain_name": "the exit test",
    "in_readmodel": false,
@@ -3059,6 +3247,7 @@
     "INCONCLUSIVE": 23
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:57+00:00",
    "spec_file": false,
@@ -3134,6 +3323,7 @@
     "REJECTED": 4
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:59+00:00",
    "spec_file": false,
@@ -3197,6 +3387,7 @@
     "REJECTED": 12
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:18+00:00",
    "spec_file": false,
@@ -3260,6 +3451,7 @@
     "OPPOSITE": 12
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:08:23+00:00",
    "spec_file": false,
@@ -3325,6 +3517,7 @@
     "OPPOSITE": 8
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:49+00:00",
    "spec_file": false,
@@ -3400,6 +3593,7 @@
     "INCONCLUSIVE": 5
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:06:59+00:00",
    "spec_file": false,
@@ -3475,6 +3669,7 @@
     "REJECTED": 6
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:05+00:00",
    "spec_file": false,
@@ -3550,6 +3745,7 @@
     "OPPOSITE": 25
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:52+00:00",
    "spec_file": false,
@@ -3623,6 +3819,7 @@
     "OPPOSITE": 25
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:51+00:00",
    "spec_file": false,
@@ -3697,6 +3894,7 @@
     "REJECTED": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:07:51+00:00",
    "spec_file": false,
@@ -3769,6 +3967,7 @@
     "OPPOSITE": 8
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:09:08+00:00",
    "spec_file": false,
@@ -3821,6 +4020,7 @@
     "REJECTED": 8
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:09:04+00:00",
    "spec_file": false,
@@ -3873,6 +4073,7 @@
     "OPPOSITE": 8
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:09:05+00:00",
    "spec_file": false,
@@ -3925,6 +4126,7 @@
     "REJECTED": 4
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:15:00+00:00",
    "spec_file": false,
@@ -3996,6 +4198,7 @@
     "REJECTED": 4
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:14:47+00:00",
    "spec_file": false,
@@ -4067,6 +4270,7 @@
     "REJECTED": 4
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:14:52+00:00",
    "spec_file": false,
@@ -4138,6 +4342,7 @@
     "REJECTED": 3
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:27:48+00:00",
    "spec_file": false,
@@ -4198,6 +4403,7 @@
     "REJECTED": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:27:27+00:00",
    "spec_file": false,
@@ -4257,6 +4463,7 @@
     "REJECTED": 3
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:27:30+00:00",
    "spec_file": false,
@@ -4318,6 +4525,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-19T13:01:37+00:00",
    "spec_file": false,
@@ -4395,6 +4603,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-19T13:01:40+00:00",
    "spec_file": false,
@@ -4449,6 +4658,7 @@
     "OPPOSITE": 3
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:21:30+00:00",
    "spec_file": false,
@@ -4527,6 +4737,7 @@
     "OPPOSITE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T22:50:49+00:00",
    "spec_file": false,
@@ -4601,6 +4812,7 @@
     "CONDITIONAL": 8
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-18T22:44:28+00:00",
    "spec_file": false,
@@ -4673,6 +4885,7 @@
     "REJECTED": 12
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:37:50+00:00",
    "spec_file": false,
@@ -4749,6 +4962,7 @@
     "REJECTED": 12
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:36:19+00:00",
    "spec_file": false,
@@ -4825,6 +5039,7 @@
     "REJECTED": 12
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:37:04+00:00",
    "spec_file": false,
@@ -4901,6 +5116,7 @@
     "REJECTED": 8
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-26T15:31:12+00:00",
    "spec_file": true,
@@ -4958,6 +5174,77 @@
    ]
   },
   {
+   "id": "FP1",
+   "family": "factor_monthly",
+   "source": "the lab",
+   "title": "Monthly factor portfolios for the long-term money: 12-month momentum, low volatility and the two combined, top decile of the 500 most traded stocks, rebalanced ",
+   "registered": true,
+   "registered_at": "2026-10-30",
+   "versions": 1,
+   "variants": 8,
+   "verdicts": {
+    "REJECTED": 6,
+    "CONDITIONAL": 2
+   },
+   "best_verdict": "CONDITIONAL",
+   "proved": true,
+   "scale": "full",
+   "last_result": "2026-10-30T02:33:49+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": true,
+   "paper_role": "the long-term tilt book (india.factorbook, shadow, 30 Oct)",
+   "in_facts": false,
+   "plain_name": "the long-term factor test",
+   "in_readmodel": true,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "MOM_bottom|vs_EW",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.011741259696136406,
+     "dev_t": -2.878502448033649,
+     "dev_blocks": 69,
+     "val_mean": -0.012669998578696051,
+     "val_t": -2.6880158835901593,
+     "val_blocks": 24
+    },
+    {
+     "variant": "RANDOM|vs_EW",
+     "verdict": "CONDITIONAL",
+     "dev_mean": -0.004056009523635463,
+     "dev_t": -3.663897631425616,
+     "dev_blocks": 69,
+     "val_mean": -0.0046559668547018224,
+     "val_t": -2.4700211438464956,
+     "val_blocks": 24
+    },
+    {
+     "variant": "MOM|vs_EW",
+     "verdict": "REJECTED",
+     "dev_mean": 0.002284006873931419,
+     "dev_t": 0.7072408649102176,
+     "dev_blocks": 69,
+     "val_mean": 0.009279733470300264,
+     "val_t": 2.3378636885216655,
+     "val_blocks": 24
+    },
+    {
+     "variant": "COMBO|vs_N500",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0015325603772631889,
+     "dev_t": 0.6612425236775555,
+     "dev_blocks": 57,
+     "val_mean": 0.004510953951924268,
+     "val_t": 1.906298419385308,
+     "val_blocks": 24
+    }
+   ]
+  },
+  {
    "id": "FX1",
    "family": "fx",
    "source": "the lab",
@@ -4971,6 +5258,7 @@
     "INCONCLUSIVE": 4
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-26T15:31:11+00:00",
    "spec_file": true,
@@ -5041,6 +5329,7 @@
     "OPPOSITE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-27T22:35:59+00:00",
    "spec_file": true,
@@ -5114,6 +5403,7 @@
     "INCONCLUSIVE": 4
    },
    "best_verdict": "VALIDATED",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-27T00:37:42+00:00",
    "spec_file": true,
@@ -5184,6 +5474,7 @@
     "INCONCLUSIVE": 3
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T21:51:41+00:00",
    "spec_file": false,
@@ -5254,6 +5545,7 @@
     "INCONCLUSIVE": 1
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T22:55:44+00:00",
    "spec_file": false,
@@ -5325,6 +5617,7 @@
     "CONDITIONAL": 1
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-27T00:37:55+00:00",
    "spec_file": true,
@@ -5395,6 +5688,7 @@
     "INCONCLUSIVE": 5
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T22:47:33+00:00",
    "spec_file": false,
@@ -5468,6 +5762,7 @@
     "REJECTED": 7
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:53:29+00:00",
    "spec_file": false,
@@ -5538,6 +5833,7 @@
     "REJECTED": 4
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T22:47:43+00:00",
    "spec_file": false,
@@ -5611,6 +5907,7 @@
     "CONDITIONAL": 6
    },
    "best_verdict": "VALIDATED",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-27T22:37:31+00:00",
    "spec_file": true,
@@ -5682,6 +5979,7 @@
     "CONDITIONAL": 2
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-27T22:37:36+00:00",
    "spec_file": true,
@@ -5754,6 +6052,7 @@
     "VALIDATED": 8
    },
    "best_verdict": "VALIDATED",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-19T22:11:13+00:00",
    "spec_file": false,
@@ -5824,6 +6123,7 @@
     "INCONCLUSIVE": 3
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-27T13:26:49+00:00",
    "spec_file": true,
@@ -5897,6 +6197,7 @@
     "OPPOSITE": 4
    },
    "best_verdict": "VALIDATED",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-18T23:39:17+00:00",
    "spec_file": false,
@@ -5975,6 +6276,7 @@
     "REJECTED": 5
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-18T23:39:15+00:00",
    "spec_file": false,
@@ -6052,6 +6354,7 @@
     "REJECTED": 5
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-18T23:39:16+00:00",
    "spec_file": false,
@@ -6131,6 +6434,7 @@
     "OPPOSITE": 4
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-28T16:31:04+00:00",
    "spec_file": true,
@@ -6200,6 +6504,7 @@
     "OPPOSITE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-29T12:39:23+00:00",
    "spec_file": true,
@@ -6241,6 +6546,7 @@
     "INCONCLUSIVE": 1
    },
    "best_verdict": "SUPPORTED_SEEN",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-19T23:45:38+00:00",
    "spec_file": true,
@@ -6310,6 +6616,7 @@
     "NOT_CONFIRMED": 5
    },
    "best_verdict": "NOT_CONFIRMED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-20T00:09:44+00:00",
    "spec_file": false,
@@ -6379,6 +6686,7 @@
     "NOT_SUPPORTED_SEEN": 14
    },
    "best_verdict": "NOT_SUPPORTED_SEEN",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T16:54:00+00:00",
    "spec_file": true,
@@ -6449,6 +6757,7 @@
     "OPPOSITE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-26T16:24:48+00:00",
    "spec_file": true,
@@ -6518,6 +6827,7 @@
     "INCONCLUSIVE": 40
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T17:48:38+00:00",
    "spec_file": true,
@@ -6587,6 +6897,7 @@
     "INCONCLUSIVE": 4
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:45+00:00",
    "spec_file": false,
@@ -6657,6 +6968,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:48+00:00",
    "spec_file": false,
@@ -6726,6 +7038,7 @@
     "INCONCLUSIVE": 4
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:49+00:00",
    "spec_file": false,
@@ -6796,6 +7109,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:49+00:00",
    "spec_file": false,
@@ -6865,6 +7179,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:35:07+00:00",
    "spec_file": false,
@@ -6915,6 +7230,7 @@
     "REJECTED": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:35:09+00:00",
    "spec_file": false,
@@ -6984,6 +7300,7 @@
     "OPPOSITE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:35:22+00:00",
    "spec_file": false,
@@ -7033,6 +7350,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:35:22+00:00",
    "spec_file": false,
@@ -7083,6 +7401,7 @@
     "REJECTED": 5
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:35:22+00:00",
    "spec_file": false,
@@ -7152,6 +7471,7 @@
     "REJECTED": 3
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:35:22+00:00",
    "spec_file": false,
@@ -7211,6 +7531,7 @@
     "REJECTED": 6
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:35:22+00:00",
    "spec_file": false,
@@ -7280,6 +7601,7 @@
     "OPPOSITE": 4
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:35:23+00:00",
    "spec_file": false,
@@ -7349,6 +7671,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:35:24+00:00",
    "spec_file": false,
@@ -7398,6 +7721,7 @@
     "INCONCLUSIVE": 6
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:35:24+00:00",
    "spec_file": false,
@@ -7468,6 +7792,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:35:24+00:00",
    "spec_file": false,
@@ -7537,6 +7862,7 @@
     "OPPOSITE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:35:25+00:00",
    "spec_file": false,
@@ -7586,6 +7912,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:35:25+00:00",
    "spec_file": false,
@@ -7637,6 +7964,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:33+00:00",
    "spec_file": false,
@@ -7706,6 +8034,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:34+00:00",
    "spec_file": false,
@@ -7755,6 +8084,7 @@
     "REJECTED": 3
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:34+00:00",
    "spec_file": false,
@@ -7815,6 +8145,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:35+00:00",
    "spec_file": false,
@@ -7884,6 +8215,7 @@
     "OPPOSITE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:36+00:00",
    "spec_file": false,
@@ -7923,6 +8255,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:35:26+00:00",
    "spec_file": false,
@@ -7972,6 +8305,7 @@
     "INCONCLUSIVE": 4
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:35:28+00:00",
    "spec_file": false,
@@ -8041,6 +8375,7 @@
     "INCONCLUSIVE": 9
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:19+00:00",
    "spec_file": false,
@@ -8110,6 +8445,7 @@
     "INCONCLUSIVE": 3
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:19+00:00",
    "spec_file": false,
@@ -8169,6 +8505,7 @@
     "REJECTED": 3
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:19+00:00",
    "spec_file": false,
@@ -8228,6 +8565,7 @@
     "REJECTED": 6
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:19+00:00",
    "spec_file": false,
@@ -8298,6 +8636,7 @@
     "REJECTED": 1
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:20+00:00",
    "spec_file": false,
@@ -8350,14 +8689,15 @@
     "VALIDATED": 1
    },
    "best_verdict": "VALIDATED",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-25T15:34:21+00:00",
    "spec_file": false,
    "results_page": true,
    "tracker_state": null,
    "hypotheses": [],
-   "in_paper": false,
-   "paper_role": null,
+   "in_paper": true,
+   "paper_role": "the no-chase filter (don't chase), cfg-2026-10-30a",
    "in_facts": true,
    "plain_name": "Don't chase: extension above the 50 DMA",
    "in_readmodel": true,
@@ -8420,6 +8760,7 @@
     "CONDITIONAL": 1
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-25T15:34:21+00:00",
    "spec_file": false,
@@ -8491,6 +8832,7 @@
     "VALIDATED": 1
    },
    "best_verdict": "VALIDATED",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-25T15:34:21+00:00",
    "spec_file": false,
@@ -8561,6 +8903,7 @@
     "OPPOSITE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T16:48:16+00:00",
    "spec_file": false,
@@ -8610,6 +8953,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:21+00:00",
    "spec_file": false,
@@ -8659,6 +9003,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:22+00:00",
    "spec_file": false,
@@ -8710,6 +9055,7 @@
     "CONDITIONAL": 1
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-25T15:34:23+00:00",
    "spec_file": false,
@@ -8779,6 +9125,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:23+00:00",
    "spec_file": false,
@@ -8828,6 +9175,7 @@
     "VALIDATED": 2
    },
    "best_verdict": "VALIDATED",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-25T15:34:23+00:00",
    "spec_file": false,
@@ -8878,6 +9226,7 @@
     "OPPOSITE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T16:48:16+00:00",
    "spec_file": false,
@@ -8949,6 +9298,7 @@
     "OPPOSITE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:26+00:00",
    "spec_file": false,
@@ -9018,6 +9368,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:26+00:00",
    "spec_file": false,
@@ -9067,6 +9418,7 @@
     "OPPOSITE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:27+00:00",
    "spec_file": false,
@@ -9116,6 +9468,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:27+00:00",
    "spec_file": false,
@@ -9165,6 +9518,7 @@
     "REJECTED": 4
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:28+00:00",
    "spec_file": false,
@@ -9234,6 +9588,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:28+00:00",
    "spec_file": false,
@@ -9283,6 +9638,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:28+00:00",
    "spec_file": false,
@@ -9334,6 +9690,7 @@
     "INCONCLUSIVE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:28+00:00",
    "spec_file": false,
@@ -9393,6 +9750,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:28+00:00",
    "spec_file": false,
@@ -9443,6 +9801,7 @@
     "INCONCLUSIVE": 5
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:28+00:00",
    "spec_file": false,
@@ -9512,6 +9871,7 @@
     "INCONCLUSIVE": 6
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:28+00:00",
    "spec_file": false,
@@ -9581,6 +9941,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:28+00:00",
    "spec_file": false,
@@ -9630,6 +9991,7 @@
     "INCONCLUSIVE": 4
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:29+00:00",
    "spec_file": false,
@@ -9699,6 +10061,7 @@
     "INCONCLUSIVE": 5
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:29+00:00",
    "spec_file": false,
@@ -9768,6 +10131,7 @@
     "INCONCLUSIVE": 3
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:29+00:00",
    "spec_file": false,
@@ -9829,6 +10193,7 @@
     "OPPOSITE": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:29+00:00",
    "spec_file": false,
@@ -9898,6 +10263,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:29+00:00",
    "spec_file": false,
@@ -9947,6 +10313,7 @@
     "INCONCLUSIVE": 4
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:29+00:00",
    "spec_file": false,
@@ -10017,6 +10384,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:29+00:00",
    "spec_file": false,
@@ -10088,6 +10456,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:29+00:00",
    "spec_file": false,
@@ -10158,6 +10527,7 @@
     "INCONCLUSIVE": 1
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:30+00:00",
    "spec_file": false,
@@ -10227,6 +10597,7 @@
     "OPPOSITE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:30+00:00",
    "spec_file": false,
@@ -10276,6 +10647,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:31+00:00",
    "spec_file": false,
@@ -10325,6 +10697,7 @@
     "INCONCLUSIVE": 3
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-25T15:34:31+00:00",
    "spec_file": false,
@@ -10384,6 +10757,7 @@
     "REJECTED": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:31+00:00",
    "spec_file": false,
@@ -10434,6 +10808,7 @@
     "INCONCLUSIVE": 2
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:32+00:00",
    "spec_file": false,
@@ -10503,6 +10878,7 @@
     "OPPOSITE": 2
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:32+00:00",
    "spec_file": false,
@@ -10553,6 +10929,7 @@
     "INCONCLUSIVE": 1
    },
    "best_verdict": "REJECTED",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-25T15:34:33+00:00",
    "spec_file": false,
@@ -10624,6 +11001,7 @@
     "REJECTED": 1
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-27T00:38:38+00:00",
    "spec_file": true,
@@ -10695,6 +11073,7 @@
     "VALIDATED": 1
    },
    "best_verdict": "VALIDATED",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-18T22:56:29+00:00",
    "spec_file": false,
@@ -10766,6 +11145,7 @@
     "CONDITIONAL": 2
    },
    "best_verdict": "CONDITIONAL",
+   "proved": true,
    "scale": "full",
    "last_result": "2026-10-25T16:36:48+00:00",
    "spec_file": false,
@@ -10835,6 +11215,7 @@
     "INCONCLUSIVE": 5
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-18T23:56:19+00:00",
    "spec_file": false,
@@ -10906,6 +11287,7 @@
     "INCONCLUSIVE": 6
    },
    "best_verdict": "INCONCLUSIVE",
+   "proved": false,
    "scale": "thin",
    "last_result": "2026-10-27T13:26:33+00:00",
    "spec_file": true,
@@ -10977,6 +11359,7 @@
     "OPPOSITE": 3
    },
    "best_verdict": "OPPOSITE",
+   "proved": false,
    "scale": "full",
    "last_result": "2026-10-26T15:31:11+00:00",
    "spec_file": true,
@@ -11058,14 +11441,6 @@
    "what": "every variant short of the registry's block count in a period (INCONCLUSIVE for want of data)",
    "lane": "SAFE",
    "fix": "say so in the facts; re-run when the data allows"
-  },
-  {
-   "class": "C",
-   "meaning": "proved, not in the paper rules",
-   "id": "C02-PULL",
-   "what": "CONDITIONAL: Volume heat, delivery share and own volatility at entry (crypto H1/H2 port, M-10) (PULL en",
-   "lane": "DECISION",
-   "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
    "class": "G",
@@ -11154,22 +11529,6 @@
    "what": "OPPOSITE result that neither the read model nor the facts carry",
    "lane": "SAFE",
    "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "C",
-   "meaning": "proved, not in the paper rules",
-   "id": "E04-ANY",
-   "what": "VALIDATED: Saturation after long runs and declines (M-03/04/13) as a no-entry filter (ANY entries)",
-   "lane": "DECISION",
-   "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
-  },
-  {
-   "class": "C",
-   "meaning": "proved, not in the paper rules",
-   "id": "E04-BRK",
-   "what": "CONDITIONAL: Saturation after long runs and declines (M-03/04/13) as a no-entry filter (BRK entries)",
-   "lane": "DECISION",
-   "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
    "class": "E",
@@ -11306,14 +11665,6 @@
    "what": "every variant short of the registry's block count in a period (INCONCLUSIVE for want of data)",
    "lane": "SAFE",
    "fix": "say so in the facts; re-run when the data allows"
-  },
-  {
-   "class": "C",
-   "meaning": "proved, not in the paper rules",
-   "id": "T-TWT-H10",
-   "what": "VALIDATED: Trade With Trend (Raunak A) · TWT-H10 Don't chase: extension above the 50 DMA",
-   "lane": "DECISION",
-   "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
    "class": "C",

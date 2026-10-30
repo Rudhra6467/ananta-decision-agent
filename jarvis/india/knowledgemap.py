@@ -38,7 +38,10 @@ RANK = {"VALIDATED": 5, "CONDITIONAL": 4, "OPPOSITE": 3, "REJECTED": 2, "SUPPORT
 # the paper rules and what backs them (the paper config does not name its studies; these links are from the tracker's own notes)
 PAPER_LINKS = {"E02": "the BRK and PULL entry sets and their exits", "E03": "the BRK and PULL exits", "G01": "the exit book (hold_20d reference exit)",
                "P01": "the REV family (RSI under 30), rules v1.2", "SP1": "the index options line", "SP1P": "the options line on paper", "SZ2": "the options line's sizing",
-               "SP3": "the positional playbook (registered, not in a book)", "HG1": "the allocation rule's cash by regime (informs it)", "RX1": "the RX1 paper trial"}
+               "SP3": "the positional playbook (registered, not in a book)", "HG1": "the allocation rule's cash by regime (informs it)", "RX1": "the RX1 paper trial",
+               # 30 Oct (Madhav's yes): the no-chase filters in the paper rules (stock.no_chase); the teacher cards of the same family
+               "E04": "the no-chase filter (extended stocks are not bought), cfg-2026-10-30a", "T-TWT-H10": "the no-chase filter (don't chase), cfg-2026-10-30a",
+               "FP1": "the long-term tilt book (india.factorbook, shadow, 30 Oct)", "CL1": "closed: no pair beat its parts (nothing to embed)", "DR1": "closed: no (the affordable version does not pay)"}
 GLOSS = {"A": "planned, not done", "B": "done, not noted", "C": "proved, not in the paper rules", "D": "in the paper rules, not in the voice's facts",
          "E": "tested, but not at full scale", "F": "the voice has it, but no plain-words name", "G": "a result the screens do not show"}
 
@@ -67,6 +70,31 @@ def _source(sid: str) -> str:
     if sid.startswith("HF"):
         return "Hugging Face model"
     return "the lab"
+
+
+CONTROL_VARIANT = re.compile(r"(?:^|\|)(?:RANDOM|exp3|CTL|RANDOM_\w+)(?:\||$)")
+
+
+def _proved(res: list[dict]) -> bool:
+    """A study is proved when its latest row for some non-control variant is VALIDATED or CONDITIONAL in the registered direction: expect > 0
+    with a positive dev mean, expect < 0 with a negative one; rows without an expect (before 29 Oct) count as before."""
+    latest: dict = {}
+    for r in res:
+        latest[r.get("variant")] = r
+    for var, r in latest.items():
+        if r.get("verdict") not in ("VALIDATED", "CONDITIONAL") or CONTROL_VARIANT.search(str(var or "")):
+            continue
+        exp = r.get("expect")
+        if exp is None:
+            return True
+        try:
+            mean = float((r.get("dev") or [0])[0])
+        except (TypeError, ValueError):
+            mean = 0.0
+        if exp == 0 or (exp > 0 and mean > 0) or (exp < 0 and mean < 0):
+            if exp != 0:
+                return True
+    return False
 
 
 def _full_scale(results: list[dict]) -> str:
@@ -206,10 +234,13 @@ def build() -> dict:
         res = results.get(sid) or []
         vc = Counter(r.get("verdict") for r in res)
         best = max((v for v in vc if v), key=lambda v: RANK.get(v, -1), default=None)
+        # 30 Oct: "proved" means held up in the EXPECTED direction on a real variant. A control row (RANDOM, exp3, expected 0) or a pass the
+        # wrong way (the dev mean against the registered direction) is evidence about the method, not an edge; the latest row per variant counts
+        proved = _proved(res)
         base = sid.split("-")[0]
         row = {"id": sid, "family": (reg[-1].get("family") if reg else (res[-1].get("family") if res else None)), "source": _source(sid),
                "title": ((reg[-1].get("title") if reg else "") or "")[:160], "registered": bool(reg), "registered_at": (reg[0].get("at") if reg else None)[:10] if reg else None,
-               "versions": len(reg), "variants": len({r.get("variant") for r in res}), "verdicts": dict(vc), "best_verdict": best, "scale": _full_scale(res),
+               "versions": len(reg), "variants": len({r.get("variant") for r in res}), "verdicts": dict(vc), "best_verdict": best, "proved": proved, "scale": _full_scale(res),
                "last_result": max((r.get("at") or "" for r in res), default=None), "spec_file": base in specs or sid in specs, "results_page": sid in pages,
                "tracker_state": (tracker.get(sid) or tracker.get(base) or {}).get("state"), "hypotheses": hyp_by_study.get(base, [])[:6],
                "in_paper": sid in paper_ids or sid in paper_refs or base in paper_refs, "paper_role": paper_refs.get(sid) or paper_refs.get(base),
@@ -230,7 +261,7 @@ def build() -> dict:
             gap("A", sid, "registered, no result recorded", "SAFE", "run it or withdraw the registration with a note")
         if row["variants"] and not (row["results_page"] or row["in_facts"] or row["plain_name"]):
             gap("B", sid, f"{row['variants']} variants recorded ({best}), no results page, not in the facts, no plain name", "SAFE", "write the results page and a plain-words name")
-        if best in ("VALIDATED", "CONDITIONAL") and not row["in_paper"]:
+        if row.get("proved") and not row["in_paper"]:
             gap("C", sid, f"{best}: {row['title'][:90]}", "DECISION", "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason")
         if row["scale"] == "thin" and row["variants"]:
             gap("E", sid, "every variant short of the registry's block count in a period (INCONCLUSIVE for want of data)", "SAFE", "say so in the facts; re-run when the data allows")

@@ -144,7 +144,7 @@ def index_cross_dates(purpose: str, names: list[str], since: str = "2015-01-01")
     return out
 
 PAPER_REVIEW_START = dt.date(2026, 10, 16)   # the stock paper's first decision (data of Fri 16 Oct 2026); no review row is older
-ALLOWED_REVIEW = {"paper_review", "shadow_score"}   # shadow_score (30 Oct 2026, Phase 4.3): the shadow trader's watch names scored on live paper days only
+ALLOWED_REVIEW = {"paper_review"}
 
 
 def read_review(purpose: str, since: str, until: str | None = None) -> pd.DataFrame:

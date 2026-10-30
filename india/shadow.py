@@ -19,11 +19,12 @@ import json
 import sys
 from pathlib import Path
 
-from india import paths
+from india import paths, sealed
 
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 STANCES = ("trade_as_planned", "stand_down", "reduce_risk")
 NEED = 20
+SHADOW_START = "2026-10-30"   # the first sealed shadow plan; a constant start, as india/leakcheck.py requires of a review module
 
 
 def _dir() -> Path:
@@ -59,15 +60,15 @@ def seal(session: str, plan: dict, facts_sha: str, model: str, forecast_id: str 
 
 
 def _closes():
-    """Close per (symbol, date) from the live cash files through the paper-context reader (the forward period, read-only)."""
-    from india import sealed
+    """Index closes per (symbol, date) on live paper days through the paper-context reader. Stock watch names are recorded but not scored:
+    reading live stock rows needs a review module registered in the pinned leak check (india/leakcheck.py), which waits for Madhav's yes."""
     import pandas as pd
-    since = max(sealed.PAPER_REVIEW_START, dt.date.today() - dt.timedelta(days=60)).isoformat()
     try:
-        df = sealed.read_review("shadow_score", since)   # live paper days only (the sealed firewall's review reader)
+        df = sealed.read_index("paper_context", SHADOW_START, ["NIFTY 50", "NIFTY BANK"])
     except Exception:  # noqa: BLE001
         return None
-    df = df[["symbol", "date", "close"]].copy()
+    df = df.rename(columns={"index_name": "symbol"})[["symbol", "date", "close"]].copy()
+    df["symbol"] = df["symbol"].map({"NIFTY 50": "NIFTY", "NIFTY BANK": "BANKNIFTY"})
     df["date"] = pd.to_datetime(df["date"]).dt.date
     return df
 
@@ -117,7 +118,7 @@ def score() -> dict:
                     sym = str(w.get("symbol", "")).upper()
                     if sym in uni.index:
                         r = float(uni[sym]) * (1 if w.get("direction", "up") == "up" else -1)
-                        rows.append({"symbol": sym, "direction": w.get("direction", "up"), "signed_return": r, "beat_universe": bool(r > float(uni.mean()))})
+                        rows.append({"symbol": sym, "direction": w.get("direction", "up"), "signed_return": r, "right_way": bool(r > 0)})
                 rec["scores"].append({"what": key, "from": str(d0), "to": str(dh), "universe_mean": float(uni.mean()) if len(uni) else None, "names": rows,
                                       "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")})
                 changed = True
@@ -138,8 +139,9 @@ def summary() -> dict:
     silent = sum(1 for r in recs if r["plan"].get("silent"))
     s = {"sessions_sealed": n, "need": NEED, "complete": n >= NEED, "stances": stances, "silent_days": silent,
          "stance_scored": len(stance), "stance_hits": sum(1 for x in stance if x["hit"]),
-         "watch_1_names": len(watch1), "watch_1_beat_universe": sum(1 for x in watch1 if x["beat_universe"]),
-         "watch_5_names": len(watch5), "watch_5_beat_universe": sum(1 for x in watch5 if x["beat_universe"]),
+         "watch_1_names": len(watch1), "watch_1_right_way": sum(1 for x in watch1 if x.get("right_way")),
+         "watch_5_names": len(watch5), "watch_5_right_way": sum(1 for x in watch5 if x.get("right_way")),
+         "note": "index watch names (NIFTY, BANKNIFTY) are scored by direction; stock names are recorded, not scored, until the leak check admits a reader (Madhav's yes)",
          "blind_spots": [r["plan"].get("blind_spot") for r in recs[-5:] if r["plan"].get("blind_spot")],
          "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
     if n == 0:
@@ -149,7 +151,7 @@ def summary() -> dict:
                       f"So far: {stances['trade_as_planned']} 'trade as planned', {stances['stand_down']} 'stand down', {stances['reduce_risk']} 'reduce risk'")
     else:
         s["words"] = (f"the shadow trader has {n} sessions: its stance was right on {s['stance_hits']} of {s['stance_scored']} scored days; "
-                      f"its watch names beat the average stock {s['watch_1_beat_universe']} of {s['watch_1_names']} times the next day")
+                      f"its index calls went the right way {s['watch_1_right_way']} of {s['watch_1_names']} times the next day")
     (_dir() / "summary.json").write_text(json.dumps(s, indent=1, default=str))
     return s
 

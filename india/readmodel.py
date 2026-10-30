@@ -395,6 +395,12 @@ def build(day: str | None = None) -> dict:
                                  "rows": [{k: r[k] for k in ("study", "family", "variant", "verdict", "title", "words")} for r in nb]}
     except Exception as e:   # noqa: BLE001
         rm["notable_results"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
+    try:   # 30 Oct (Phase 4.3): the shadow trader's record, read only after the session; nothing is read into it before 20 sessions
+        from india import shadow as _shadow
+
+        rm["shadow_trader"] = {"status": "ok", **_shadow.summary()}
+    except Exception as e:   # noqa: BLE001
+        rm["shadow_trader"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
     try:   # 26 Oct: the market-context feed (rupee, dollar, crude, US yields and indices, the fear gauges, institutions' flows): explanation only
         from india import marketcontext
 

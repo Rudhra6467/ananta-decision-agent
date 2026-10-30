@@ -217,7 +217,7 @@ def scorecard(rm: dict) -> dict:
     fcs = {r["forecast_id"]: r for r in rows if r.get("kind") == "forecast"}
     scores = [r for r in rows if r.get("kind") == "score"]
     rec = {"rule": {"n": 0, "hits": 0, "brier": []}, "reviewer": {"n": 0, "hits": 0, "brier": []}, "chronos": {"n": 0, "hits": 0, "brier": []},
-           "coin_flip_brier": []}
+           "shadow": {"n": 0, "hits": 0, "brier": []}, "coin_flip_brier": []}
     for s in scores:
         f = fcs.get(s.get("ref")) or {}
         who = _who(f)
@@ -229,7 +229,7 @@ def scorecard(rm: dict) -> dict:
             rec[who]["brier"].append(float(s["brier"]))
         if s.get("brier_coin_flip") is not None and who == "rule":
             rec["coin_flip_brier"].append(float(s["brier_coin_flip"]))
-    for k in ("rule", "reviewer", "chronos"):
+    for k in ("rule", "reviewer", "chronos", "shadow"):
         b = rec[k].pop("brier")
         rec[k]["brier_mean"] = round(sum(b) / len(b), 3) if b else None
     cf = rec.pop("coin_flip_brier")
@@ -250,7 +250,7 @@ def scorecard(rm: dict) -> dict:
 def _who(f: dict) -> str:
     """Who wrote a forecast: the morning-view reviewer, the Hugging Face Chronos model (25 Oct 2026), or Ananta's rule (the day plan)."""
     b = str(f.get("basis", ""))
-    return "reviewer" if b.startswith("reviewer") else ("chronos" if b.startswith("chronos") else "rule")
+    return "reviewer" if b.startswith("reviewer") else ("chronos" if b.startswith("chronos") else ("shadow" if b.startswith("shadow") else "rule"))
 
 
 def _chances_words(rec: dict, call: dict, book: dict, opt_sessions: int) -> str:
@@ -266,6 +266,9 @@ def _chances_words(rec: dict, call: dict, book: dict, opt_sessions: int) -> str:
     ch = rec.get("chronos") or {}
     if ch.get("n"):
         bits.append(f"the Chronos model (a free Hugging Face forecaster) {ch['hits']} of {ch['n']}")
+    sh = rec.get("shadow") or {}
+    if sh.get("n"):
+        bits.append(f"the shadow trader (a second model, blind to Ananta's plan) {sh['hits']} of {sh['n']}")
     if call.get("scored"):
         bits.append(f"the daily call {call['hits']} of {call['scored']} against {call['coin_flip_hits']} for the coin flip")
     closed = sum(b.get("closed", 0) for b in book.values())

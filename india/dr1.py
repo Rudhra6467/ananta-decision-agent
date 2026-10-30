@@ -197,7 +197,12 @@ def results(counts_only: bool = False) -> dict:
     if not counts_only:
         p = paths.gold() / "studies"
         p.mkdir(parents=True, exist_ok=True)
-        S.to_parquet(p / "DR1_structures.parquet", index=False)
+        dr = S.attrs.get("dropped")
+        S2 = S.copy()
+        S2.attrs = {}
+        S2.to_parquet(p / "DR1_structures.parquet", index=False)
+        if dr is not None and len(dr):
+            dr.to_parquet(p / "DR1_dropped.parquet", index=False)
     return out
 
 

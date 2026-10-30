@@ -41,6 +41,8 @@ If you trade today
 Lessons from yesterday
   1-2 sentences: what was predicted, what happened, what changes in how you read today.
 Keep it under 330 words. No bullet symbols; short lines. No internal names or codes (say "the options line", "the research book", "the daily call").
+Staying silent is a first-class answer: if the facts you need are missing (no US close, no flows, the data a session behind) or contradict each other, open
+"The view" with "No take today:" and the reason in one line, give the base rates only, and keep every other part factual; never fill a gap with a guess.
 LESSONS YOU MUST FOLLOW TODAY:
 {lessons}
 

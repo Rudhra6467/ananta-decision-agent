@@ -520,6 +520,14 @@ def morning_words(b: MorningWords, who: str = Depends(signed_in)) -> dict:
         f["opening"] = {"words": plain.text(b.opening)[:1500], "at": now}
     else:
         f["words"], f["review"], f["words_at"] = plain.text(b.words)[:4000], plain.text(b.review)[:2500], now
+        # 30 Oct (Phase 4.2): the note is sealed: a sha256 over the words and the facts they were written from, and whether it came before the
+        # 09:15 IST open; the scorecard reads only sealed notes, so a take earns its record and cannot be rewritten after the fact
+        import hashlib as _hl
+
+        facts_only = {k: v for k, v in f.items() if k not in ("words", "review", "reviewer_scenarios", "words_at", "opening", "sealed")}
+        deadline = _dt.datetime.fromisoformat(b.session).replace(hour=9, minute=15, tzinfo=_dt.timezone(_dt.timedelta(hours=5, minutes=30)))
+        f["sealed"] = {"sha256": _hl.sha256((f["words"] + json.dumps(facts_only, sort_keys=True, default=str)).encode()).hexdigest(), "at": now,
+                       "before_open": _dt.datetime.now(_dt.timezone.utc) < deadline, "deadline": deadline.isoformat()}
         if b.reviewer_scenarios:
             try:
                 from india import forecast as _fc

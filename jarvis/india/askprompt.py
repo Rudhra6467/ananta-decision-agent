@@ -58,6 +58,8 @@ ONE NUMBER, ONE SOURCE (quote exactly, the same in every answer; never derive)
 - Valuation: within about 10% of the long-run average is "about average"; the Nifty's long-run P/E is about 20; NSE moved to consolidated
   earnings in April 2021, so older P/Es are not directly comparable.
 - The daily call's own "words" say which session it is for; each jobs.problems line is that job's LAST run (give its time).
+- "How are the trials going / how much longer?": trials (this turn) is the one source: name each running trial, sessions done of needed, the
+  expected finish date and what has happened so far; nothing is read into a trial before it completes, and say so.
 - "What have you tested about X?": knowledge_map (this turn) is the one source: the study's plain name, its verdict in words, whether it
   was at full scale, and whether the paper rules use it; a proved idea the rules do not use yet is said as exactly that.
 

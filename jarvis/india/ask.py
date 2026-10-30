@@ -850,6 +850,17 @@ def _offline(question: str, f: dict, why: str) -> dict:
 
 
 ACT = re.compile(r"\b(buy|sell|place|book|exit|close|order|short)\b", re.I)
+TRIAL_TOPIC = re.compile(r"\b(?:trials?|how (?:much )?longer|how long|time needed|how far along|progress|status of|where (?:are|is) (?:we|the)|"
+                         r"what (?:is|are) (?:you|it) doing|till now|so far|sessions? (?:left|to go|done)|20[- ]session|shadow trader|no[- ]chase|tilt book|twin)\b", re.I)
+
+
+def _load_trials() -> list:
+    try:
+        return json.loads((DATA / "manifests" / "trials.json").read_text()).get("trials") or []
+    except (OSError, ValueError):
+        return []
+
+
 MAP_TOPIC = re.compile(r"\b(?:tested|test|tests|study|studies|studied|research\w*|proved?|proven|validated|held up|evidence for|what do you know about|"
                        r"have you (?:looked|checked)|does .{3,40} work|is .{3,40} real)\b", re.I)
 SYS_TOPIC = re.compile(r"\b(watch ?dog|health|repair|fix(?:es|ed)?|flags?|jobs?|restart\w*|broke\w*|breaks?|outage|down|stall\w*|monitor\w*|"
@@ -1082,6 +1093,10 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
     if SYS_TOPIC.search(text) or SYS_TOPIC.search(recent):   # 28 Oct (grader): the watchdog and a fix's life after it is built were not in the facts
         f["system_care"] = SYSTEM_CARE
+    if TRIAL_TOPIC.search(text) or TRIAL_TOPIC.search(recent):   # 30 Oct (Madhav): "what is the status of the trials, how much longer?" from the clocks
+        f["trials"] = _load_trials()
+        f["trials_meaning"] = ("every running trial: what it is, sessions done of needed, the expected finish date and what has happened so far; answer "
+                               "with the numbers and the date, say what is being judged, and that nothing is read into a trial before it completes")
     if MAP_TOPIC.search(text):                                 # 29 Oct (the one map): "what have you tested about X?" is answered from one source
         try:
             rows = knowledgemap.lookup(text)

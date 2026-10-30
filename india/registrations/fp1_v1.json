@@ -1,0 +1,58 @@
+{
+ "study": "FP1",
+ "family": "factor_monthly",
+ "version": 1,
+ "written": "2026-10-29",
+ "asked_by": "Madhav, 29 Oct 2026 (the reverse-engineering plan, Phase 3.3: a monthly factor portfolio for the long-term money, judged against the broad index)",
+ "title": "Monthly factor portfolios for the long-term money: 12-month momentum, low volatility and the two combined, top decile of the 500 most traded stocks, rebalanced monthly, against the equal-weight universe and the Nifty 500, after costs (2000-2023)",
+ "hypothesis": "Among the 500 most traded NSE stocks, the top decile by 12-month momentum (skipping the latest month) earns more over the next month than the equal-weight universe and than the Nifty 500 index, after monthly rebalancing costs; the top decile by low volatility (lowest 12-month daily volatility) earns at least as much with a smaller drawdown; the two combined (average rank) earn more than either benchmark; the bottom momentum decile earns less than the universe; and a random decile earns nothing in particular.",
+ "why_it_might_work": "Momentum and low volatility are the two best documented cross-sectional premia in Indian equities (NSE's own factor indices, academic work since 2006). The other side: investors who sell winners early and chase lottery-like volatile names; a monthly horizon with 50 names is too slow and too diversified for the intraday crowd to arbitrage.",
+ "why_it_might_not": "Momentum crashes (2009 rebound, 2020 recovery); turnover of a monthly top decile is 30-50% a month, and delivery costs plus spread in mid-caps can eat the premium; the equal-weight universe is itself a strong benchmark in India (small-cap tilt); unrecorded splits in the price history (29 Oct audit) can make a fake winner or loser, so a name with a one-day move over 40% in the lookback is left out.",
+ "data": {
+  "bars": "gold/bars/adj_daily 1995-2023: adjusted daily closes per stock",
+  "universe": "gold/universe/u_liq_in: the 500 most traded names by 60-day median turnover as of each session (previous-session rank, no look-ahead)",
+  "index": "silver/kite_index day: NIFTY 500 close (price index; dividends of about 1.2-1.5% a year are not in it and are stated, not added)",
+  "costs": "india.costs v1.2: delivery charges by date and the half-spread by turnover rank, charged on the weight that turns over each month",
+  "nothing_sealed": "no 2024+ row, no sealed folder"
+ },
+ "definitions": {
+  "month_end": "the last trading session of each calendar month; signals use closes up to and including it; the portfolio is held from that close to the next month-end close",
+  "eligible": "in the top 500 by turnover rank on the month-end session, close >= Rs 10, at least 252 sessions of history, and no one-day close-to-close move over 40% in the past 252 sessions (data hygiene)",
+  "MOM": "close at the end of the previous month divided by the close 12 months before that, minus 1 (months t-12 to t-1); top decile = the 10% of eligible names with the highest value",
+  "LOWVOL": "standard deviation of daily returns over the past 252 sessions; top decile = the 10% with the lowest",
+  "COMBO": "average of the MOM percentile rank and the LOWVOL percentile rank (low volatility ranked high); top decile",
+  "MOM_bottom": "the bottom momentum decile, held long (the short leg's return)",
+  "RANDOM": "a decile drawn at random among eligible names each month with a fixed seed (the negative control)",
+  "portfolio_return": "equal-weight mean of the names' next-month close-to-close returns; a name without a next month-end close is closed at its last available close",
+  "costs": "each month, every name that enters is bought and every name that leaves is sold at its weight of a Rs 10 lakh portfolio, charged the delivery charges of the day (including the flat DP charge per sale) and the half-spread of the name's turnover rank",
+  "EW": "equal-weight mean next-month return of every eligible name (the fair control for a stock-picking tilt)",
+  "N500": "the Nifty 500 price index month-end to month-end",
+  "excess": "portfolio net monthly return minus the benchmark's monthly return"
+ },
+ "statistics": {
+  "blocks": "calendar-quarter means of the monthly excess return (three months a quarter); t across quarters",
+  "periods": "development 2000-2017 (72 quarters), validation 2018-2023 (24 quarters); nothing from 2024 on",
+  "verdict": "india/registry.record standard rule; 16 blocks per period",
+  "also_reported": "annualised return, volatility, max drawdown and turnover of each portfolio and benchmark per period; the cost drag in % a year; the worst 3 months"
+ },
+ "bar": {
+  "union_k": 8,
+  "z": 2.734,
+  "bar_families": [
+   "factor_monthly"
+  ],
+  "note": "a new family (monthly, cross-sectional, long-term money): these 8 variants; k frozen at 8"
+ },
+ "variants": {
+  "MOM|vs_EW": 1,
+  "MOM|vs_N500": 1,
+  "LOWVOL|vs_EW": 1,
+  "LOWVOL|vs_N500": 1,
+  "COMBO|vs_EW": 1,
+  "COMBO|vs_N500": 1,
+  "MOM_bottom|vs_EW": -1,
+  "RANDOM|vs_EW": 0
+ },
+ "not_claimed": "A pass is evidence for a paper twin of the long-term money run on this rule (Phase 5), judged over at least 12 months; it is not a rule change and never a live trade. Quality and value factors wait for the point-in-time fundamentals (2017 on), too short for this test.",
+ "negative_control": "the RANDOM row: the same code with the signal replaced by a seeded random draw; a pipeline that finds a premium there is finding something other than the factor"
+}

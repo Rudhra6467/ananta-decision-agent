@@ -62,7 +62,19 @@ def say_names(text: str) -> str:
     of it (JIOFIN, Jiofin), and a possessive stays ("JIOFIN's" -> "Jio Financial's")."""
     global _say_rx
     if _say_rx is None:
-        m = dict(SAY_NAMES)
+        m = {}
+        try:    # every Nifty 500 name from NSE's own list ("Ajanta Pharma Ltd." -> "Ajanta Pharma"), so a replacement the managed book picks is said as a company
+            import csv
+            d = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "bronze" / "indices"
+            f = sorted(d.glob("nifty500_*.csv"))[-1]
+            for row in csv.DictReader(open(f, newline="")):
+                sym, name = (row.get("Symbol") or "").strip(), (row.get("Company Name") or "").strip()
+                name = re.sub(r"\s*\b(?:Ltd\.?|Limited)\s*$", "", name).replace("&", " and ").strip(" .")
+                if sym and name:
+                    m[sym.upper()] = name
+        except Exception:  # noqa: BLE001 - no list: the hand list alone
+            pass
+        m.update(SAY_NAMES)
         try:
             extra = json.loads((Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "say_names.json").read_text())
             m.update({str(k).upper(): str(v) for k, v in extra.items() if v})

@@ -387,6 +387,14 @@ def build(day: str | None = None) -> dict:
         rm["indicator_knowledge"] = technicals.knowledge()
     except Exception as e:   # noqa: BLE001 - the read model must build even if the panel fails; the section says why
         rm["technicals"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
+    try:   # 29 Oct audit (map class G): every notable registry result, not only the indicator families, so the screens and the voice carry all of them
+        from india import writeups
+
+        nb = writeups.notable()
+        rm["notable_results"] = {"status": "ok", "n": len(nb), "note": "latest VALIDATED / CONDITIONAL / OPPOSITE result per study and variant, from the ledger; evidence, not decisions",
+                                 "rows": [{k: r[k] for k in ("study", "family", "variant", "verdict", "title", "words")} for r in nb]}
+    except Exception as e:   # noqa: BLE001
+        rm["notable_results"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
     try:   # 26 Oct: the market-context feed (rupee, dollar, crude, US yields and indices, the fear gauges, institutions' flows): explanation only
         from india import marketcontext
 

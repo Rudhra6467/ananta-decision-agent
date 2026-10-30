@@ -1,0 +1,60 @@
+{
+ "study": "DR1",
+ "family": "options_eod",
+ "version": 1,
+ "written": "2026-10-29",
+ "asked_by": "Madhav, 29 Oct 2026 (the reverse-engineering plan, Phase 3.1: find where an edge could come from; option premium selling with defined risk named as the highest prior-plausibility family)",
+ "title": "Defined-risk option selling on expiry day: the short straddle, the iron fly and the iron condor on Nifty and Bank Nifty, opened at the expiry-day open and closed at the close (2014-2023 real prices), against the same structures three sessions before expiry",
+ "hypothesis": "Expiry-day time decay (GK1: option buyers lost 15-19% of the premium between the open and the close in 2018-23) is capturable from the selling side after costs and spreads: a short at-the-money straddle opened at the expiry-day open and bought back at the close earns more than zero net; the iron fly (the same straddle with bought wings 1% or 2% from the strike) keeps most of that while capping the loss at the wing width; the iron condor (short 1% out, long 2% out) earns more than zero on the capital at risk; and the same four structures opened three sessions before expiry and closed that day (the control) earn nothing in particular.",
+ "why_it_might_work": "Sellers are paid for the gap risk and the intraday whipsaw; on expiry day the remaining time value must reach zero by the close, so the seller's edge is the implied intraday move minus the realised one. Who is on the other side: buyers of same-day lottery tickets (GK1's losers) and hedgers who must own the wings.",
+ "why_it_might_not": "The loss on a trend day is many times the credit; the open print of an option is a poor fill; 2014-17 has only monthly Nifty expiries; margin for the naked straddle is out of reach at Rs 50,000 so only the defined-risk versions could ever be traded; the control may also earn because any short premium earns some decay.",
+ "data": {
+  "options_daily": "silver/fo_bhavcopy 2014-2023: NIFTY and BANKNIFTY OPTIDX daily open and close per strike and expiry (real traded prices), lot size from the nearest future",
+  "index": "silver/kite_index day: the index open per session, to pick the at-the-money strike",
+  "expiries": "silver/fo_calendar expiries: the actual expiry of each series (weekly Bank Nifty from 27 May 2016, weekly Nifty from 11 Feb 2019; monthly before)",
+  "nothing_sealed": "no 2024+ row, no sealed folder, no holdout row"
+ },
+ "definitions": {
+  "straddle": "sell the at-the-money call and put of the expiring series (strike nearest the index open, within 2%) at their daily open, buy both back at their daily close; ret = net rupees / premium received",
+  "fly_w1 / fly_w2": "the straddle plus a bought call 1% (2%) above and a bought put 1% (2%) below the strike (nearest listed strikes with a traded open and close); ret = net rupees / capital at risk, where capital at risk = (wing width - net credit) x lot",
+  "condor_1_2": "sell the call and put about 1% out of the money, buy the call and put about 2% out; ret = net rupees / capital at risk as above",
+  "exp0 / exp3": "exp0 = opened and closed on the expiry day; exp3 = the same structure on the session three trading days before that expiry (the same series must be the nearest expiry that day), the control",
+  "fills_and_costs": "each leg at its daily open and daily close with the half-spread model max(tick floor, 0.25% of premium) per leg per side (sp1.OPT_HALF), india.costs option charges with the STT of the day on every sell; a structure needs every leg to have a traded open and close",
+  "not_modelled": "intraday stops (daily open and close only), the opening print's thinness (a known weakness, labelled), assignment (index options are cash settled), the exchange margin (a defined-risk spread's margin is about the width x lot; the naked straddle needs Rs 1-1.5 lakh a lot and is a reference only)"
+ },
+ "statistics": {
+  "absolute": "calendar-quarter means of ret, t across quarters (lab4._absolute with freq Q)",
+  "periods": "development 2014-2017, validation 2018-2023; nothing from 2024 on",
+  "verdict": "india/registry.record standard rule; 16 blocks per period",
+  "also_reported": "net rupees per structure, win share, worst, 5th percentile, max drawdown in rupees, longest losing run, March 2020 rows, rupees per lot on the margin as labelled"
+ },
+ "bar": {
+  "union_k": 62,
+  "z": 3.351,
+  "bar_families": [
+   "options_intraday",
+   "options_eod"
+  ],
+  "note": "families 'options_intraday' (16) and 'options_eod' (30: F01, F02, F03, GK1, OS1) = 46, plus these 16; k frozen at 62"
+ },
+ "variants": {
+  "NIFTY|exp0|straddle": 1,
+  "BANK|exp0|straddle": 1,
+  "NIFTY|exp0|fly_w1": 1,
+  "BANK|exp0|fly_w1": 1,
+  "NIFTY|exp0|fly_w2": 1,
+  "BANK|exp0|fly_w2": 1,
+  "NIFTY|exp0|condor_1_2": 1,
+  "BANK|exp0|condor_1_2": 1,
+  "NIFTY|exp3|straddle": 0,
+  "BANK|exp3|straddle": 0,
+  "NIFTY|exp3|fly_w1": 0,
+  "BANK|exp3|fly_w1": 0,
+  "NIFTY|exp3|fly_w2": 0,
+  "BANK|exp3|fly_w2": 0,
+  "NIFTY|exp3|condor_1_2": 0,
+  "BANK|exp3|condor_1_2": 0
+ },
+ "not_claimed": "A pass is evidence for a 20-session paper trial of the defined-risk version at the options sleeve's size, with the tail scenarios shown first; it is not a rule change (change control until Phase 7) and never a live trade.",
+ "negative_control": "the exp3 rows: the same code on sessions where the expiry-day decay is absent; a pipeline that finds the same thing there is finding something other than expiry-day decay"
+}

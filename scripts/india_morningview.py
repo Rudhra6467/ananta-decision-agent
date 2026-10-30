@@ -99,6 +99,27 @@ def _numbers(s: str) -> set[str]:
     return {x.replace(",", "") for x in re.findall(r"\d[\d,]*\.?\d*", s)}
 
 
+def _parse_review(raw: str) -> dict | None:
+    """The reviewer's JSON object, read tolerantly: code fences, smart quotes and trailing commas are repaired; a bare quote inside a string
+    (the 29 Oct failure) is caught by trying every closing brace from the end. None when nothing parses."""
+    s = raw.strip()
+    s = re.sub(r"^```(?:json)?\s*|\s*```$", "", s)
+    s = s.replace("“", "'").replace("”", "'").replace("‘", "'").replace("’", "'")  # quotes inside strings become apostrophes, never JSON quotes
+    start = s.find("{")
+    if start < 0:
+        return None
+    ends = [i for i, ch in enumerate(s) if ch == "}"]
+    for end in reversed(ends):
+        cand = re.sub(r",\s*([}\]])", r"\1", s[start:end + 1])
+        try:
+            obj = json.loads(cand)
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and "verdict" in obj:
+            return obj
+    return None
+
+
 def _ist_today() -> str:
     import datetime as _dt
     return _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=5, minutes=30))).date().isoformat()
@@ -125,8 +146,15 @@ def morning() -> int:
     review = {"corrections": [], "missing": [], "verdict": "", "scenarios": None, "basis": ""}
     try:
         raw = claude(REVIEWER.format(facts=_facts_for_prompt(f), note=note), REVIEW_MODEL, 2500)
-        m = re.search(r"\{.*\}", raw, re.S)
-        review = json.loads(m.group(0)) if m else review
+        parsed = _parse_review(raw)
+        if parsed is None:  # 29 Oct audit: one malformed answer (a stray quote inside a string) lost the whole review for 29 Oct; ask once more, JSON only
+            raw = claude(REVIEWER.format(facts=_facts_for_prompt(f), note=note) + "\n\nReply with one valid JSON object and nothing else; escape any double quote inside a string.",
+                         REVIEW_MODEL, 2500)
+            parsed = _parse_review(raw)
+        if parsed is None:  # keep the reviewer's words rather than nothing; the scenarios stay empty and are not scored
+            review["verdict"] = "the reviewer answered but not in a readable form; its words: " + re.sub(r"\s+", " ", raw)[:600]
+        else:
+            review = {**review, **parsed}
     except Exception as exc:  # noqa: BLE001
         review["verdict"] = f"the reviewer could not run: {str(exc)[:100]}"
     sc = review.get("scenarios") or {}

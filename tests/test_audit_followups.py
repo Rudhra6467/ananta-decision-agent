@@ -92,7 +92,33 @@ def test_each_unlogged_rebuilt_signal_is_explained_by_one_named_reason_or_not_at
     assert U.explain_unlogged(j, "H07-UA", "ADA", started - DAY, started) == "before_books_started"
     monkeypatch.setattr(registry, "tier_of", lambda jj, c: "B")
     assert U.explain_unlogged(j, "H07-UA", "ADA", t, started) == "tier_changed"
-    assert set(U.EXPLAINED_BY) == {"busy", "same_episode", "held_back_by_trade_guard", "before_books_started", "tier_changed"}
+    assert set(U.EXPLAINED_BY) == {"busy", "same_episode", "held_back_by_trade_guard", "parked", "before_books_started", "tier_changed"}
+
+
+def test_a_rule_madhav_parked_explains_its_unlogged_signals_only_after_the_park_day(tmp_path, monkeypatch):
+    """30 Oct 2026: H07 was parked on 28 Oct; run_rules skips a parked rule without asking the guard, so its signals of the 28 Oct
+    candle on were never logged and the rebuild called them a mismatch (ops_reconstructable FAIL). They are now 'parked'; a candle
+    judged before the park day (the 27 Oct candle, judged 28 Oct 00:05 UTC) is not explained by it."""
+    import calendar
+
+    from jarvis.service import registry, strategy_status, trade_guard, universe_watch as U, watch_engine as W
+
+    j = _j(tmp_path)
+    W._table(j)
+    trade_guard._table(j.db)
+    monkeypatch.setattr(registry, "tier_of", lambda jj, c: "A")
+    park = calendar.timegm(time.strptime("2026-10-28", "%Y-%m-%d"))
+    started = park - 30 * DAY
+    strats = {"strategies": {"H07": {"status": "PARKED", "watches": ["H07", "H07-UA", "H07-UB"], "status_before_park": "ACTIVE",
+                                     "parked": {"date": "2026-10-28"}}}}
+    monkeypatch.setattr(strategy_status, "load", lambda: strats)
+    assert U.explain_unlogged(j, "H07-UA", "LINK", park, started) == "parked"            # the 28 Oct candle, judged 29 Oct
+    assert U.explain_unlogged(j, "H07-UC", "EDU", park + DAY, started) == "parked"       # tier C by prefix, the 29 Oct candle
+    assert U.explain_unlogged(j, "H07-UA", "LINK", park - DAY, started) is None          # judged 28 Oct 00:05 UTC, before the park
+    del strats["strategies"]["H07"]["parked"]
+    assert U.explain_unlogged(j, "H07-UA", "LINK", park, started) is None                # a park without a date explains nothing
+    strats["strategies"]["H07"].update(status="ACTIVE", parked={"date": "2026-10-28"})
+    assert U.explain_unlogged(j, "H07-UA", "LINK", park, started) is None                # unparked: a missing signal is a mismatch again
 
 
 # ---------------------------------------------------------------------------

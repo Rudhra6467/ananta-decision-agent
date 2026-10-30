@@ -266,14 +266,15 @@ def tick(j, px: dict[str, float]) -> dict:
 # ---------------------------------------------------------------------------
 # reconstruction: the rules re-run on the stored candles, compared with the ledger
 # ---------------------------------------------------------------------------
-EXPLAINED_BY = ("busy", "same_episode", "held_back_by_trade_guard", "before_books_started", "tier_changed")
+EXPLAINED_BY = ("busy", "same_episode", "held_back_by_trade_guard", "parked", "before_books_started", "tier_changed")
 
 
 def explain_unlogged(j, w: str, c: str, t: int, started: int) -> str | None:
     """Why a signal the rebuild finds is not in the ledger: one of EXPLAINED_BY, or None when nothing explains it (a mismatch).
     busy = a trade on that rule and coin was already open; same_episode = a read fired again inside its episode;
-    held_back_by_trade_guard = the guard refused the buy (kill switch on or unread); before_books_started; tier_changed = the coin
-    moved tier since. Checked in this order."""
+    held_back_by_trade_guard = the guard refused the buy (kill switch on or unread); parked = Madhav parked the rule's strategy
+    (run_rules skips it without asking the guard, so nothing is logged); before_books_started; tier_changed = the coin moved tier
+    since. Checked in this order."""
     from jarvis.service import registry, watch_engine
 
     if j.db.execute("SELECT 1 FROM evidence_trades WHERE watch=? AND coin=? AND signal_t < ? AND (exit_t IS NULL OR exit_t >= ?)", (w, c, t, t)).fetchone():
@@ -283,11 +284,33 @@ def explain_unlogged(j, w: str, c: str, t: int, started: int) -> str | None:
         return "same_episode"
     if j.db.execute("SELECT 1 FROM trade_guard_log WHERE book=? AND coin=? AND t >= ? AND t < ?", (w, c, t, t + 11 * DAY)).fetchone():
         return "held_back_by_trade_guard"
+    if parked_when_judged(w, t):
+        return "parked"
     if t < started:
         return "before_books_started"
     if w[-1] != (registry.tier_of(j, c) or "C"):
         return "tier_changed"
     return None
+
+
+def parked_when_judged(w: str, t: int) -> bool:
+    """True when the rule's strategy is PARKED in strategy_status.json with a park date, and the candle that opened at t was judged
+    after that day began. The daily rules judge a candle just after it closes (t + 1 day, about 00:05 UTC) and run_rules leaves a
+    parked rule out (strategy_status.trades), so a park dated D first silences the judging of D + 1 00:05 UTC (30 Oct 2026: H07,
+    parked by Madhav on 28 Oct, showed as 11 unexplained rebuild signals and turned ops_reconstructable to FAIL). A park without a
+    date explains nothing. Reporting only: nothing here decides a trade."""
+    import calendar
+
+    from jarvis.service import strategy_status
+
+    try:
+        if strategy_status.trades(w):
+            return False
+        e = strategy_status.of_watch(w)
+        day = (e[1].get("parked") or {}).get("date") if e and e[1].get("status") == "PARKED" else None
+        return bool(day) and int(t) + DAY > calendar.timegm(time.strptime(str(day), "%Y-%m-%d"))
+    except Exception:  # noqa: BLE001  an unreadable file explains nothing (the rebuild then shows a mismatch)
+        return False
 
 
 def monday_of(t: int) -> int:

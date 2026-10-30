@@ -1,6 +1,6 @@
 {
  "version": "status_cards.v1",
- "updated": "2026-10-21",
+ "updated": "2026-10-29",
  "meaning": {
   "evidence": {
    "SUPPORTED": "passed its pre-registered test in both periods after costs on its tier",
@@ -97,8 +97,8 @@
    "name": "Short dip trade (H07)",
    "kind": "strategy",
    "evidence": "SUPPORTED",
-   "permission": "PAPER",
-   "reason": "One measured cell: tier-A coins while the exposure dial is CLOSED, +5.1% a trade over random after costs in both periods (review #26), confirmed point-in-time on all 530 Binance pairs with dead coins and live costs, +6.3% a trade expected (review #29); no stop, 10-day exit (#27). On the broad 120, in other tiers, or with the dial open: no measured edge. Its live book's 8-for-8 was one signal day (Oct 8), dial open, outside the measured cell: 1 independent event.",
+   "permission": "CONTEXT",
+   "reason": "One measured cell: tier-A coins while the exposure dial is CLOSED, +5.1% a trade over random after costs in both periods (review #26), confirmed point-in-time on all 530 Binance pairs with dead coins and live costs, +6.3% a trade expected (review #29); no stop, 10-day exit (#27). On the broad 120, in other tiers, or with the dial open: no measured edge. Its live book's 8-for-8 was one signal day (Oct 8), dial open, outside the measured cell: 1 independent event. [H07 parked 2026-10-29: no longer a reason to buy]",
    "reviews": [
     "#13",
     "#14",

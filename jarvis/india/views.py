@@ -1232,7 +1232,8 @@ def _clocks() -> list[str]:
             out.append(f"{r['name']}: complete.")
         else:
             fin = r.get("expected_finish")
-            out.append(f"{r['name']}: {r['done']} of {r['need']} {r['unit']}, about {_day_words(fin) if fin else 'unknown'}.")
+            when = (_day_words(fin) + (f" {fin[:4]}" if fin[:4] != str(datetime.date.today().year) else "")) if fin else "unknown"
+            out.append(f"{r['name']}: {r['done']} of {r['need']} {r['unit']}, about {when}.")
     return out
 
 

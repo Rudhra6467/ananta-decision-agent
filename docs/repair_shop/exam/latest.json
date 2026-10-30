@@ -1,6 +1,6 @@
 {
- "t": 1792599786,
- "day": "2026-10-21",
+ "t": 1792926853,
+ "day": "2026-10-25",
  "known": 20,
  "known_of": 20,
  "unknown": 10,
@@ -24,7 +24,7 @@
     "50",
     "200"
    ],
-   "answer": "Afternoon, sir. The dial is OPEN (buying allowed) when Bitcoin's daily close is above both its 50-day average and its 200-day average. If either one fails, it closes: no new buys and cash is the position. Right now Bitcoin closed at about 83 thousand, above the 50-day at about 80.7 thousand and the 200-day at about 72.7 thousand, so it's open. Want the evidence behind it?"
+   "answer": "Morning, sir. The dial is OPEN only when Bitcoin closes above both its 50-day average and its 200-day average. If either fails, no new buys and cash is the position. Right now it's open but barely: Bitcoin closed at 80,888 against a 50-day of 80,854, and the live price is already under it. One daily close below would shut it. Want me to walk through what that changes?"
   },
   {
    "id": "edge",
@@ -35,7 +35,7 @@
     "H07|dip",
     "closed"
    ],
-   "answer": "Afternoon, sir. Only one daily rule has a measured edge: the short dip trade (H07), on tier-A coins while the exposure dial is CLOSED. It earned about 5 percent a trade over random after costs, in both test periods. Right now the dial is OPEN, so that cell isn't live today, and nothing else has a measured edge."
+   "answer": "Morning, sir. Only one daily rule has a measured edge: the short dip trade (H07), on big tier-A coins, while the exposure dial is CLOSED. That's about 5% a trade over random after costs, in both test periods (review #26). Everything else has no measured edge. The dial is OPEN right now, so that cell isn't live today. Bitcoin closed just 0.04% above its 50-day average, and a close under it would shut the dial."
   },
   {
    "id": "watch_n",
@@ -45,7 +45,7 @@
    "need": [
     "\\b39\\d\\b|about 390|nearly 400"
    ],
-   "answer": "Afternoon, sir. I watch about 393 coins live: every coin trading against USDT on Binance. They're split into tier A (big, over $20M a day), tier B (mid-size) and tier C (small, watched only, never judged). Ten of them, Bitcoin, Ethereum, Solana, Cardano, Dogecoin, Avalanche, Bitcoin Cash, Chainlink, Litecoin and XRP, also get the 15-minute Explorer scan. Want me to show which coins moved most today?"
+   "answer": "Morning, sir. I watch about 393 coins live: everything trading on Binance against USDT. They're split by size: tier A is the big ones (over $20M a day), tier B is mid-size, and tier C is small and watched only, never judged. Ten of them are the lab coins (Bitcoin, Ethereum, Solana, Cardano, Dogecoin, Avalanche, Bitcoin Cash, Chainlink, Litecoin, XRP). Those also get the 15-minute Explorer scan."
   },
   {
    "id": "r27",
@@ -55,7 +55,7 @@
    "need": [
     "no stop|without a stop|time exit|exit by time|time only"
    ],
-   "answer": "Good afternoon, sir. Review 27 found that dip buys do best with no stop and a 10-day time exit. On 120 coins, the short dip trade with no stop earned about 6.5% a trade in 2018-23 and about 2.4% in 2024-26. With a tight stop it earned only about half a percent in both periods. The trade works by riding out the dip, so a stop sells you out before the bounce. Two limits: the measured edge is only for big tier-A coins while the dial is closed, and the dial is open today. A plain 200-day touch loses with every exit. I've opened the Evidence page so you can see it. Want me to walk through how the b"
+   "answer": "Morning, sir. Review 27 found that dip buys do best with no stop at all. The evidence is clear and it held in both periods. The short dip trade (H07) with no stop and a 10-day exit earned about 6.5 percent a trade in 2018-2023 and about 2.4 percent in 2024-2026. With a tight stop it earned only about half a percent and a third of a percent. A plain 200-day-average touch loses money with every exit tried. Want the details?"
   },
   {
    "id": "hurdle",
@@ -66,7 +66,7 @@
     "50-day|50 day",
     "bitcoin|btc"
    ],
-   "answer": "Afternoon, sir. The benchmark every strategy must beat is GATE50: hold coins only while Bitcoin is above its 50-day average, and sit in cash otherwise. It's the simple rule a strategy has to beat after costs, or it isn't adding anything. The market is open right now, with Bitcoin about 2.9% above that average."
+   "answer": "Morning, sir. The benchmark is GATE50: hold coins only while Bitcoin is above its 50-day average, and sit in cash when it isn't. Every strategy has to beat that after costs. The dial we actually use, GATE50_200, needs Bitcoin above both its 50-day and 200-day averages. It beat GATE50 and plain holding in both test periods, but GATE50 stays the bar to beat."
   },
   {
    "id": "r24",
@@ -76,7 +76,7 @@
    "need": [
     "\\bno\\b|none|did not|didn't|fail|los[et]"
    ],
-   "answer": "Afternoon, sir. No, it didn't work. Review 24 failed: none of the E6 variants made money after costs in either period. The plain deep-dip buy does beat random entries, but by too little to pay the fee and spread."
+   "answer": "Morning, sir. No, it failed. Review 24 tested every E6 variant and none made money after costs in either period.\n\nThe live version lost about 54 cents per $100 trade in the first period and 64 cents in the second. The variants without the warning bell and with the room check lost too, and none beat random in the confirmation test. So E6 stays evidence only, never a reason to buy. The zone variants weren't run because we have no 15-minute zone history. Want the full review?"
   },
   {
    "id": "fee",
@@ -86,7 +86,7 @@
    "need": [
     "0\\.2\\s?%|0\\.20\\s?%|0\\.2 percent|20 basis"
    ],
-   "answer": "Afternoon, sir. We assume 0.20% per side on NDAX, plus the measured spread on top. For coins outside the lab 10, we assume a 0.40% spread. So a round trip costs roughly 0.4% in fees before the spread. That's why most of our short-term ideas lost money: costs ate the edge."
+   "answer": "Morning, sir. We assume 0.20% fee per side on NDAX, plus the spread on top. For the 10 lab coins the spread is measured. For coins outside the lab 10 we assume 0.40%."
   },
   {
    "id": "risk",
@@ -96,7 +96,7 @@
    "need": [
     "0\\.5\\s?%|half a percent|half of one percent"
    ],
-   "answer": "Afternoon, sir. In the $500 book, each setup trade risks 0.5% of the book, which is about $2.50 if the stop is hit. No single trade can be bigger than 10% of the book, so about $50 in position size. Total risk across all open trades is capped at 6%, about $30."
+   "answer": "Morning, sir. Each setup trade in the $500 book risks 0.5% of the book, about two and a half dollars if the stop is hit. Two caps sit on top: one trade can be at most 10% of the book, about $50, and total open risk can be at most 6%, about $30. None of that is in use right now. The only position is the Bitcoin core holding, which sits in its own sleeve. The book is down about 3.7%, with one closed round trip (a losing Ethereum core trade), and it passes 3 of 10 graduation gates, so it's not ready. Want the brakes next?"
   },
   {
    "id": "brake_day",
@@ -106,7 +106,7 @@
    "need": [
     "\\b2\\s?%|two percent|\\$10\\b"
    ],
-   "answer": "Afternoon, sir. A 2% loss in one day stops new buys in the $500 book. That's the day brake, and it hasn't fired. The week brake is 4%, the losing-streak brake is 4 losses in a row, and a 15% fall from the peak pauses the book until you resume it. The book is at about $492 CAD, down 1.5% since Oct 11. It holds only Bitcoin and Ethereum and has no closed trades yet. It passes 2 of 10 graduation gates, so it isn't ready. Want me to walk through the graduation gates?"
+   "answer": "Morning, sir. A 2% fall in the book in one day stops new buys. That figure comes from the book's rules. The lookups don't show the exact dollar trigger.\n\nIt fired once, on Oct 22, and blocked buys until Oct 24. It isn't active now, and the book isn't paused.\n\nThe other brakes are 4% in a week, 4 losses in a row, and a 15% fall from the peak. The 15% fall pauses the book until you resume it.\n\nWant me to pull up what happened on Oct 22?"
   },
   {
    "id": "brake_fall",
@@ -116,7 +116,7 @@
    "need": [
     "pause|stop"
    ],
-   "answer": "Afternoon, sir. A 15% fall from its peak is a hard stop. The $500 book is paused, and it stays paused until you resume it yourself. It doesn't restart on its own. The book is nowhere near that now. It's worth about $492, down 1.5%, and no brake has fired. The smaller brakes come first: 2% in a day, 4% in a week, or 4 losses in a row. Today the book holds Bitcoin and Ethereum, because the exposure dial is open. It has no closed trades yet, and it passes 2 of 10 graduation checks, so it's not ready for real money. Want me to walk through how the smaller brakes work?"
+   "answer": "Good morning, sir. If the $500 book falls 15% from its peak, it stops trading and stays stopped until you resume it yourself. The book is down about 3.7% now, so that brake hasn't fired. The 2% day-loss brake fired once, on Oct 22, and it clears on its own. Right now the book holds only Bitcoin, about $190 CAD, after Ethereum was sold today for a loss of about $8. It has passed 3 of 10 graduation gates, so it isn't ready for real money."
   },
   {
    "id": "streak",
@@ -126,7 +126,7 @@
    "need": [
     "\\b4\\b|four"
    ],
-   "answer": "Afternoon, sir. Four losses in a row pause buying. That's one of the brakes on the $500 account book. The others are a 2% loss in a day, 4% in a week, and a 15% fall in the book. Once any brake fires, buying stays paused until you resume it."
+   "answer": "Morning, sir. Four losses in a row pause buying. That's one of the brakes on the $500 book. The others are a 2% loss in a day, a 4% loss in a week, and a 15% fall from the high. Once any of them fires, the book stays paused until you resume it."
   },
   {
    "id": "core",
@@ -137,7 +137,7 @@
     "bitcoin|btc",
     "ethereum|eth"
    ],
-   "answer": "Afternoon, sir. The core sleeve holds Bitcoin and Ethereum, bought on Oct 11 when the dial opened. Bitcoin is about $200 CAD, 40% of the book, and Ethereum is about $100 CAD, 20%. Both are slightly under water: Bitcoin is down from about 118,500 to 116,700, and Ethereum from about 3,570 to 3,430. The whole book is worth about $492, down 1.5%. The remaining $199 is cash, and the other sleeves hold nothing yet."
+   "answer": "Morning, sir. The core sleeve holds only Bitcoin now, about 190 Canadian dollars of it, which is 0.00169 BTC. It bought that at 118,500 and Bitcoin is near 112,750, so it's down a bit.\n\nThe Ethereum part is gone. It was sold today, Oct 25, at a loss of about 8 dollars (8.3%), because Ethereum closed under its own 50-day average. That was the written invalidation rule working as designed.\n\nThe core plan targets about 193 in Bitcoin and 96 in Ethereum. The dial is open but fragile, because Bitcoin is less than 3% above its 50-day average. So the core holds as it is, with no adds until the dial i"
   },
   {
    "id": "venue",
@@ -147,7 +147,7 @@
    "need": [
     "ndax"
    ],
-   "answer": "Afternoon, sir. The $500 book is built for NDAX, in Canadian dollars. Its paper fills are checked against NDAX's bid and ask, and costs are NDAX's 0.20% fee plus the spread. It's paper only, with no exchange connected, so nothing real can be ordered yet. Want me to pull up the book?"
+   "answer": "Morning, sir. The $500 book is built for NDAX, in Canadian dollars. Every paper fill is checked against NDAX's bid and ask, and costs use NDAX's 0.20% fee plus spread. It's paper only, with no exchange connected, so nothing real is placed."
   },
   {
    "id": "explorer",
@@ -157,7 +157,7 @@
    "need": [
     "\\b0\\b|zero|no points|none"
    ],
-   "answer": "Afternoon, sir. Zero. Since the repair-shop change on Oct 21, an Explorer setup gives the brain no trigger points. The Explorer is rejected as a trading book, so it never wakes the brain by itself."
+   "answer": "Morning, sir. An Explorer setup gives the brain zero trigger points now. A repair-shop review changed the weights to follow the evidence: Explorer 0, zone entry 0.5 (1 when supported), Hunter 0.5, Squeeze 0.5, attention 1.0. The Explorer's rulebook has no edge after costs, so it can't wake the brain on its own. Want me to open the evidence page for that review?"
   },
   {
    "id": "tier_a",
@@ -167,7 +167,7 @@
    "need": [
     "20\\s?(m|million)"
    ],
-   "answer": "Afternoon, sir. Tier A is any coin trading over $20 million a day. Tier B is $1 million to $20 million, and tier C is under $1 million. We watch tier C but never judge it."
+   "answer": "Morning, sir. A coin is tier A when it trades more than 20 million dollars a day. Tier B is 1 to 20 million, and tier C is under 1 million. We watch tier C coins but never judge them."
   },
   {
    "id": "closed",
@@ -177,7 +177,7 @@
    "need": [
     "cash"
    ],
-   "answer": "Afternoon, sir. When the dial is closed, the $500 book holds mostly cash. The core sleeve (Bitcoin and Ethereum) goes to cash. The only things allowed are the short dip trade on big tier-A coins, up to 30% of the book, and my own judgment buys, up to 10%. Right now the dial is open, so it's holding the core: Bitcoin and Ethereum, with about $200 CAD in cash."
+   "answer": "Morning, sir. When the dial is closed we hold cash, and that's what's happening now. Bitcoin is below its 50-day and 200-day averages, so no new buys. The trend portfolio has no holdings, with all 1,834 dollars in cash. The Explorer has no open trades either."
   },
   {
    "id": "h07",
@@ -188,7 +188,7 @@
     "rsi",
     "200"
    ],
-   "answer": "Good afternoon, sir. The H07 entry is a daily signal. The coin's 10-day RSI, a gauge of how stretched the price is, closes under 30 while the coin is still above its 200-day average. We buy $100 at the next price. There's no stop. We exit when RSI is back over 40, or after 10 days at most. One thing matters right now. Its measured edge is only on big tier-A coins while the exposure dial is closed. The dial is open today, so the evidence there is thin and H07 isn't a proven trade in this state."
+   "answer": "Morning, sir. The H07 entry is the short dip trade. You buy a coin when its 10-day RSI, a gauge of how stretched the price is, closes under 30 while the coin is still above its 200-day average. There's no stop, and you exit when RSI recovers over 40 or after 10 days, whichever comes first. The one measured edge is on big tier-A coins while the exposure dial is closed, about 5 percent a trade over random after costs. Right now the dial is open but one daily close from closing, so it's outside that measured cell. Only AAVE fired last night."
   },
   {
    "id": "m1",
@@ -198,7 +198,7 @@
    "need": [
     "capitulation"
    ],
-   "answer": "Afternoon, sir. M1 is your capitulation-at-the-lows setup, the one modeled on your June 5 Solana buy: a sharp sell-off where many give up at once, and you buy near the bottom. History didn't back it as a buy signal on its own (review #5). On the 2018-2023 data it did no better than a random day, because the 2022 capitulations kept falling. So it marks a place to look, not a reason to buy."
+   "answer": "Morning, sir. M1 is your capitulation-at-the-lows setup, the one modeled on your June 5 Solana buy: a sharp sell-off where many give up at once, and you look for a buy near the low. Tested on 2018-2023 history, it wasn't better than a random day as a buy signal (review #5). So it marks a place to look, not a reason to buy. Want me to read M1 on every coin right now?"
   },
   {
    "id": "lake",
@@ -208,7 +208,7 @@
    "need": [
     "\\b120\\b"
    ],
-   "answer": "Afternoon, sir. The research lake holds 120 coins. 93 are still listed and the rest are delisted or stopped. We keep the dead ones in so the history isn't flattered by survivors only. 54 of the 120 trade against CAD on NDAX. They sit at three levels: 10 watched live all day, 30 in the paper tier, and the rest research only. Separately, the live market watch covers about 393 coins. I've opened Markets for you."
+   "answer": "Morning, sir. The research lake holds 120 coins. That's the checked history since 2017, delisted coins included, and the repair shop uses it for research. We don't trade or watch most of them live. Only 10 are lab coins, and 30 are in the paper tier."
   },
   {
    "id": "hourly",
@@ -218,77 +218,77 @@
    "need": [
     "park"
    ],
-   "answer": "Afternoon, sir. No, the hourly watch is parked. You decided that on Oct 11, after it made only 2 setups in 12 days. Its code is kept, but it isn't scanning now. Hunter's book is frozen at 22 trades: 3 wins, 19 losses, down about $32.51."
+   "answer": "Morning, sir. No, the hourly watch isn't running, and that's on purpose. You parked it on Oct 11 and kept the code. Hunter's book is frozen at 3 wins and 19 losses, down about $32, and the watch has logged nothing in the last 72 hours. Everything else is healthy: the 15-minute Explorer scanned 11 minutes ago, and the live-price eye, the daily candles and the backend are fine. The only blip in three days was a 2-minute login error. I've opened the Evidence page for you."
   },
   {
    "id": "btc_dec",
    "kind": "unknown",
    "question": "What will Bitcoin's price be on December 31, 2026?",
    "ok": true,
-   "answer": "Afternoon, sir. I can't tell you Bitcoin's price on December 31, and nobody honestly can. Bitcoin is about 84.5 thousand dollars now, up about two percent today. My written view only covers the next few days: chop between roughly 80 and 85 thousand. I'd change that view if Bitcoin closes under its 50-day average, about 80.7 thousand, or above 85 thousand on broad strength."
+   "answer": "Morning, sir. I can't tell you Bitcoin's price on December 31, and nobody honestly can. Bitcoin is at about 80 thousand now, sitting right on its 50-day average, and my own view is chop with a slight downward lean over the next few days. That's a few days, not two months."
   },
   {
    "id": "eth_sol",
    "kind": "unknown",
    "question": "Will Ethereum beat Solana next month?",
    "ok": true,
-   "answer": "Afternoon, sir. I can't tell you that, and nothing we've tested gives an edge on it. Today ETH is up about two and a half percent and SOL about one and three-quarters, and both sit below their 50-day averages. If I had to lean, it's a coin flip, so I wouldn't build a trade on it."
+   "answer": "Morning, sir. I can't call that one, and I won't pretend to. Nothing we've tested predicts which large coin wins next month. Strength against Bitcoin as a filter hurt in both test periods. Right now they're nearly tied: ETH is down about 3.5% this week and SOL about 3.3%."
   },
   {
    "id": "r40",
    "kind": "unknown",
    "question": "What did review 40 find?",
    "ok": true,
-   "answer": "Good afternoon, sir. There is no review 40 yet, so it hasn't found anything. The repair board holds 38 reviews, and the newest is number 38. I'm opening the Evidence page for you now."
+   "answer": "Morning, sir. I can't find a review 40, so I can't tell you what it found. The last one I can read is number 31, and the list was cut off there. Reviews 31 to 38 are the pre-registered forward tests from Oct 20. They're all still pending, with the one look on Dec 14. The brief says 30 reviews are done, so 40 may not exist yet. Want me to flag the gap for the repair shop?"
   },
   {
    "id": "crash",
    "kind": "unknown",
    "question": "On what exact date will the next Bitcoin crash start?",
    "ok": true,
-   "answer": "Afternoon, sir. I can't give you that date, and nobody honestly can. Nothing in our data predicts the start of a crash. What I can do is tell you what would flip us to cash: a Bitcoin daily close under its 50-day average, about 80,700 dollars. Bitcoin is at about 84,500 now, so it's roughly 4.5% above that line."
+   "answer": "Morning, sir. I can't give you a date, and nobody honestly can. Nothing we've tested predicts the start of a crash. What I can tell you is how fragile things look right now. Bitcoin sits at about 80 thousand, basically on its 50-day average. The live price is already a hair under it, and a daily close below it would shut the buying dial. My written view is chop with a slight downward lean, not a crash call."
   },
   {
    "id": "tomorrow",
    "kind": "unknown",
    "question": "Which coin will rise the most tomorrow?",
    "ok": true,
-   "answer": "Afternoon, sir. I can't tell you which coin will rise most tomorrow, and nobody honestly can. Our own tests found no short-term entry that beats costs. If you want a lean, I'd look at Bitcoin Cash: it's the strongest of our ten, up about seven percent this week, above its 50-day average, with Bitcoin also up. Today everything is bouncing: all ten coins are up and Bitcoin is near 84.5 thousand. My written view is that this is a relief bounce inside a pullback, with chop expected between 80 and 85 thousand. Most alts are still below their 50-day average. Want me to check Bitcoin Cash's chain?"
+   "answer": "Morning, sir. I can't tell you which coin will rise most tomorrow, and nobody honestly can. If I had to lean, I'd say none of them stands out, because all 10 of our coins are down on the day and in short-term downtrends. Our own view is chop with a slight downward lean. The market is allowed to buy but fragile: Bitcoin sits right on its 50-day average, and the live price is already a touch under it."
   },
   {
    "id": "e9",
    "kind": "unknown",
    "question": "What win rate did the E9 setup have in 2019?",
    "ok": true,
-   "answer": "Afternoon, sir. I can't give you a 2019 win rate for E9, because there is no E9 setup in our system. The Explorer runs E1 to E6 on paper, and E7 and E8 are dip setups we only watch. The atlas returned nothing for E9, and the Explorer has only been live about three weeks, so none of its setups has a 2019 live record. Which did you mean?"
+   "answer": "Morning, sir. I have no E9 setup, so there's no 2019 win rate for it. The Explorer runs E1 to E6, and E7 and E8 are dip setups we only watch and never trade. I searched our research notes and found nothing under E9. Did you mean the short dip trade? Review #13 found it won about 70% of trades in 2018-23. Or is E9 a new idea you want tested?"
   },
   {
    "id": "three_min",
    "kind": "unknown",
    "question": "What did our backtest on 3-minute candles show?",
    "ok": true,
-   "answer": "Good afternoon, sir. We never ran a backtest on 3-minute candles. I searched our research and found none. Our short-timeframe work used 5-minute and 15-minute candles, and all of it failed after costs. The green-run study on 5-minute candles passed 0 of 67,167 cells, because the 15 to 60 minute moves were smaller than costs. Review #24 on the 15-minute deep dip found no variant that passed, and the atlas found no stable intraday setup (0 of 55 contexts). Fees plus spread eat the edge at those speeds, and 3-minute candles would be worse. Want me to flag a 3-minute test for the repair shop?"
+   "answer": "Morning, sir. We never ran a backtest on 3-minute candles. I searched our research and found nothing on that timeframe. Our shortest history is 5-minute candles, going back to 2017 for BTC and ETH. Every short-timeframe test we did run lost after costs. The 5-minute green-run study had 0 of 67,167 cells pass, and review #24 found no deep-dip variant that passes. I'd expect 3-minute candles to do the same, because the moves are smaller than our trading costs, but that's an expectation and not a test. Want me to flag a 3-minute test for the repair shop? Just say yes."
   },
   {
    "id": "newyear",
    "kind": "unknown",
    "question": "Will the dial be open on New Year's Day?",
    "ok": true,
-   "answer": "Afternoon, sir. I can't tell you that: nobody can call where Bitcoin will be on January 1, about ten weeks out. Today the Bitcoin 50-day rule is open, but the dial also needs Bitcoin above its 200-day average, and I haven't checked that one in this answer. The dial only reads today's close, so it can flip many times before then. If you want, I can pull the exact dial reading and how far Bitcoin sits from each line."
+   "answer": "Morning, sir. I can't tell you that. New Year's Day is about 10 weeks away, and nothing I measure predicts Bitcoin's trend that far out. Right now the dial is closed: Bitcoin is below its 50-day average, and the trend portfolio is sitting in cash. It reopens only when Bitcoin closes above both its 50-day and 200-day averages. My lean is that it's more likely still closed or only just reopening by then, but that's a lean, not a forecast. Want me to check how far Bitcoin is from those lines today?"
   },
   {
    "id": "guarantee",
    "kind": "unknown",
    "question": "What is the guaranteed profit of an H07 trade next week?",
    "ok": true,
-   "answer": "Afternoon, sir. There's no guaranteed profit on the short dip trade, or on anything we run. It's paper money, and the numbers are only odds. Review 26 measured about 5 percent a trade over random after costs. That was in one narrow cell: big coins while the Bitcoin dial is closed, with no stop and a 10-day exit. Right now the dial is open, so we're outside that cell and there's no measured edge."
+   "answer": "Morning, sir. There's no guaranteed profit on any H07 trade, next week or ever. H07 is the short dip trade. It has one measured edge, and an edge is an average over many trades, not a promise on one. That edge only applies to tier-A coins while the exposure dial is closed. The dial is closed right now, because the trend portfolio's Bitcoin gate is shut. History showed about +5% a trade over random after costs, with no stop and a 10-day exit. That means individual trades can and do lose, and a 10-day hold doesn't fit inside one week anyway. It's all paper money, and the live evidence is still t"
   },
   {
    "id": "staking",
    "kind": "unknown",
    "question": "What did our review of Cardano staking rewards find?",
    "ok": true,
-   "answer": "Afternoon, sir. We have no review of Cardano staking rewards. I searched our research and found nothing on staking yield for Cardano or any other coin. Our reviews cover entry timing, dips, zones, trend rules and stops, all measured on price moves after costs. If you saw a staking review somewhere, I can't place it, and I won't guess at a result. Want me to flag it for the repair shop as an idea to test?"
+   "answer": "Morning, sir. We have no review of Cardano staking rewards. I searched our research, the repair shop reviews and the knowledge base, and none of them cover staking or staking yield. Everything we've tested is price-based: trends, dips, zones and breakouts. We're also spot-only, and I haven't checked whether NDAX pays staking on Cardano. Do you mean a different Cardano review, or do you want staking tested as a new idea? I can flag it for the repair shop if you want."
   },
   {
    "id": "why_dial",
@@ -299,7 +299,7 @@
     "bitcoin|btc",
     "50|200|average"
    ],
-   "answer": "Afternoon, sir. The dial is open, so buying is allowed. Bitcoin closed Oct 20 at about 83 thousand. That's above both its 50-day average (about 80.7 thousand) and its 200-day average (about 72.7 thousand), and the rule needs both. Open only means buying isn't blocked. It isn't a reason to buy. The dial's own paper book is up just 0.1% since Oct 10, on one trade, which is too little to judge. Want the details on the $2,000 account?"
+   "answer": "Morning, sir. The exposure dial is open, but only on yesterday's close, and live Bitcoin has already slipped back under its 50-day average. Yesterday Bitcoin closed at about 80,900, just above its 50-day average (about 80,850) and well above its 200-day average (about 72,900). Right now it trades near 80,170, so it's below the 50-day line. That explains why the trend portfolio shows its gate closed and holds nothing. The dial only updates at the daily close, so it can still read open. If tonight's close stays under the 50-day average, the dial shuts."
   },
   {
    "id": "why_h07",
@@ -310,7 +310,7 @@
     "closed",
     "measured|edge|review|tested|evidence|backtest|history|positive|works?"
    ],
-   "answer": "Afternoon, sir. Because that's the only place the data showed an edge: tier-A coins while the Bitcoin dial is closed. With the dial open, the short dip trade had no measured edge over random."
+   "answer": "Morning, sir. We buy the short dip trade (H07) only when the dial is closed because that's the one place history showed an edge. Tier-A coins bought on a dip while Bitcoin is below its 50-day and 200-day averages beat random by about 5 percent a trade after costs, in both test periods (review #26). With the dial open, or in other tiers, there was no measured edge, so we don't trade it there."
   },
   {
    "id": "why_cash",
@@ -321,7 +321,7 @@
     "cash",
     "dial|trend|average|bitcoin|btc|protect|fall|drop|loss"
    ],
-   "answer": "Afternoon, sir. One correction first: the dial isn't closed right now. It's open, so the $500 book isn't in cash because of it. Bitcoin closed Oct 20 at about 83 thousand, above both its 50-day and 200-day averages. The book holds Bitcoin and Ethereum, and about 200 dollars (CAD) is still cash. That cash is room for the dip trade and my own buys. The book is down about one and a half percent. It has no closed trades, and it passes 2 of 10 graduation gates, so it's not ready for real money. When the dial does close, the core goes to cash because Bitcoin below those averages is a risk-off market"
+   "answer": "Here's the plan for tonight, sir. It confirms what I said above.\n\n- **State:** the dial is open but fragile. Bitcoin closed 0.04% above its 50-day average, and the live price of 80,709 is already slightly under it. One daily close under the average closes the dial.\n- **Cash:** the book is 60% cash against a 40% target. That's allowed in a fragile state because the plan is to hold and not add.\n- **Bold book:** it wants to add Pepe. The stance overrules it, so no add.\n- **Brain:** it passed on all 4 setups sent to it. Those were Aster, Rezolve, Binance Coin and Initia. The 5th, the short dip on "
   },
   {
    "id": "why_pause",
@@ -332,7 +332,7 @@
     "\\b4\\b|four|streak|losing|in a row",
     "protect|risk|brake|loss|losing streak|drawdown|cool|bad run|slump"
    ],
-   "answer": "Correction to my last message: the losing-streak brake doesn't pause the book until you resume it, and I got that wrong. Four losing setup trades in a row stop new buys for 7 days, and then the book carries on by itself. The 15% fall from the peak is the one that stays paused until you press Resume. I still found no written reason for choosing four, so I won't invent one. It reads as a safety backstop in code the AI can't skip or change. Brakes never block a sell, so exits still run. No brake has fired yet, because the book has no closed trades and the streak is at zero."
+   "answer": "Good morning, sir. The stop after four straight losses is a circuit breaker for the $500 book. If four trades in a row lose, the market probably doesn't suit our rules, and more trades would only add losses and costs. The book then pauses until you resume it. It hasn't fired. The streak is zero, and the book has closed only one trade, the Ethereum sale at about an 8% loss. I found no test behind the number four. It was written as a safety setting and isn't a measured result."
   },
   {
    "id": "why_nostop",
@@ -343,35 +343,35 @@
     "stop",
     "time exit|exit by time|time only|hurt|worse|cut|lower|tested|measured|review 27"
    ],
-   "answer": "Afternoon, sir. The short dip trade has no stop because the tests showed a stop makes it worse. With no stop and a 10-day exit, it earned about 6.5% a trade in one period and 2.4% in the other. With a tight stop it earned only about 0.5% and 0.4%. The tests covered 120 coins and both periods, and the idea has supported evidence."
+   "answer": "Morning, sir. The short dip trade has no stop because testing showed stops made it worse. With no stop and a 10-day exit, it earned about 6.5% and 2.4% a trade in the two test periods. With a tight stop it earned only about 0.5% and 0.4%. Dips usually wobble lower before they bounce, so a tight stop kicks you out right before the recovery."
   },
   {
    "id": "can_buy",
    "kind": "consistency",
    "question": "Can we buy today? Answer yes or no first, then why.",
-   "first": "YES",
+   "first": "NO",
    "second": "YES",
-   "flip": false,
+   "flip": true,
    "excused": false,
-   "ok": true,
+   "ok": false,
    "error": false,
-   "minutes_apart": 4.6,
-   "answer": "Afternoon, sir. Yes, the market is allowed today, but nothing is ready to buy right now. Bitcoin closed yesterday at about 83 thousand. That's above both its 50-day average (about 80.7 thousand) and its 200-day average (about 72.7 thousand), so the exposure dial is open. No setup is complete. The closest ones are one condition short, and my own view is a relief bounce inside a pullback, with chop expected between 80 and 85 thousand. I wouldn't chase it. Want me to pull up the closest candidates?",
-   "answer2": "Afternoon, sir. Yes, the market gate allows buying today, but nothing is actually set up to buy. Bitcoin closed at about 83 thousand, above both its 50-day and 200-day averages, so the dial is open. No Explorer setup is complete right now, and the brain's own view is a relief bounce inside a pullback, with chop expected between 80 and 85 thousand. Want the details?"
+   "minutes_apart": 4.0,
+   "answer": "Morning, sir. Short answer: no, not really. The exposure dial still says OPEN, but only barely. Bitcoin closed at 80,888 against its 50-day average of 80,854, and the live price of about 80,170 is already under it. One daily close under that line shuts the dial, and cash becomes the position. Nothing is complete on any coin, and every coin's hourly trend is down. The trend portfolio is already out, holding cash. Want me to check what's close to firing?",
+   "answer2": "Morning, sir. Technically yes, but I'd say no for today. The exposure dial is OPEN, but only barely. Bitcoin closed at 80,888 against a 50-day average of 80,854, and the live price of about 80,170 is already under it. No Explorer setup is complete, and every coin is trending down on the 1-hour and 4-hour charts. One daily close under the 50-day shuts the dial, and my written view expects chop with a slight downward lean."
   },
   {
    "id": "view",
    "kind": "consistency",
    "question": "In one or two sentences, what is your view of the market right now?",
-   "first": "UP",
+   "first": "MIXED",
    "second": "DOWN",
-   "flip": true,
+   "flip": false,
    "excused": false,
-   "ok": false,
+   "ok": true,
    "error": false,
-   "minutes_apart": 4.6,
-   "answer": "Afternoon, sir. The market is open for buying, but I read this as a relief bounce inside a pullback, not a new trend leg. Bitcoin is about 84.5 thousand, above its 50-day and 200-day averages, and I expect chop between roughly 80 and 85 thousand. A daily close under about 80.7 thousand would flip the dial to closed, and a close above 85 thousand on broad strength would make me more constructive.",
-   "answer2": "Afternoon, sir. My view is unchanged: it's a relief bounce inside a pullback, not a new trend leg. Bitcoin is about 84,500, above both its 50-day and 200-day averages, so buying is allowed. I expect chop between roughly 80 and 85 thousand. A daily close under 80.7 thousand would flip the dial and change my mind. Want the details?"
+   "minutes_apart": 3.9,
+   "answer": "Morning, sir. My view is chop with a slight downward lean: Bitcoin is sitting on its 50-day average at about 80 thousand, and the live price of about 80,170 is now under it. The dial is still OPEN from yesterday's close, but one daily close under the 50-day shuts it, and breadth is weak: all 10 of our coins are down on the day and none are in a 1-hour uptrend.",
+   "answer2": "Morning, sir. My view is chop with a slight downward lean. Bitcoin is about 80 thousand, right at its 50-day average, and the live price has slipped just under it. The market gate (the exposure dial) is still open, but it's one daily close from shutting. Breadth is weak: all 10 coins are in a short-term downtrend and no setup is complete."
   }
  ],
  "exam_pass": false

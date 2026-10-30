@@ -258,6 +258,33 @@ def read_marks(purpose: str, day: str, symbols: list[str]) -> pd.DataFrame:
     return df.drop_duplicates("symbol", keep="last")
 
 
+ALLOWED_CHAIN = {"chain_brief"}
+
+
+def read_chain(purpose: str, day: str, symbols: list[str] | None = None) -> pd.DataFrame:
+    """The index option chain of ONE live session for the pre-market brief (purpose chain_brief, 30 Oct 2026, Phase 4.1): strike, type, expiry,
+    close, open interest and volume of NIFTY and BANKNIFTY options on that day, read from the F&O file (sealed since 2024). The day must be a
+    live paper day (on or after PAPER_REVIEW_START, not in the future); the brief computes the put-call ratio, max pain and the biggest
+    open-interest strikes of the nearest expiry and scores nothing. india/premarket.py is the only caller. Logged."""
+    if purpose not in ALLOWED_CHAIN:
+        raise PermissionError(f"sealed chain read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED_CHAIN)}")
+    d = pd.Timestamp(day).date()
+    if d < PAPER_REVIEW_START or d > dt.date.today():
+        raise PermissionError(f"sealed chain read refused: {d} is not a live paper day")
+    syms = sorted(symbols or ["NIFTY", "BANKNIFTY"])
+    root = paths.data_dir()
+    files = [str(p) for p in list((root / "silver/fo_bhavcopy").glob(f"year={d.year}/part.parquet")) + list((root / "sealed/silver/fo_bhavcopy").glob(f"year={d.year}/part.parquet"))]
+    if not files:
+        _log(purpose, "fo_bhavcopy OPTIDX chain (no files)", str(d), 0)
+        return pd.DataFrame(columns=["symbol", "expiry", "strike", "opt_type", "close", "open_interest", "volume", "underlying"])
+    con = duckdb.connect()
+    df = con.execute("select symbol, expiry, strike, opt_type, close, open_interest, volume, underlying from read_parquet(" + repr(files) + ", union_by_name=true) "
+                     "where instrument = 'OPTIDX' and cast(date as date) = ? and list_contains(?, symbol)", [d, syms]).df()
+    con.close()
+    _log(purpose, f"fo_bhavcopy OPTIDX chain of {len(syms)} indices", str(d), len(df))
+    return df
+
+
 ALLOWED_SZ2 = {"sz2_selection"}
 SZ2_WINDOW = ("2024-01-01", "2026-10-16")
 SZ2_APPROVAL = ("Madhav, 23 Oct 2026 (docs/INDIA_LOCK.md, SZ2 decision (a)): 'yes, logged': a logged sealed purpose for the completed SP1 holdout "

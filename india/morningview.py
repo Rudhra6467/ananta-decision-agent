@@ -338,6 +338,16 @@ def lessons_for_writer(sc: dict, y: dict) -> list[str]:
 
 # ------------------------------------------------------------------------------------------------------------------------------ plain lines
 
+def premarket_inputs() -> dict:
+    """The two free inputs added on 30 Oct 2026 (india.premarket, run before this build): the index option chain's end-of-day shape (PCR,
+    max pain, the open-interest walls; F03 found no edge in them, so context only) and the F&O ban list for the session."""
+    ch = _load(_data() / "manifests" / "premarket_chain.json", {}) or {}
+    bn = _load(_data() / "manifests" / "fo_ban.json", {}) or {}
+    return {"option_chain": {k: {kk: v.get(kk) for kk in ("nearest_expiry", "pcr_oi", "max_pain", "call_walls", "put_walls", "words")} for k, v in (ch.get("indices") or {}).items()},
+            "option_chain_day": ch.get("day"), "option_chain_note": ch.get("note"),
+            "ban_list": {"symbols": bn.get("symbols"), "words": bn.get("words"), "fetched_at": bn.get("fetched_at")}}
+
+
 def lines(f: dict) -> dict:
     """The view in plain words, by rule, so the morning exists even without a model. Four short parts and a watch list."""
     ov, s, p, sc, y = f["overnight"], f["setup"], f["plan"], f["scorecard"], f["yesterday"]
@@ -392,6 +402,21 @@ def lines(f: dict) -> dict:
         stale_lines = n.get("plan_date") and lv.get("set_from_date") and str(lv["set_from_date"]) < str(n.get("date"))
         watch.append(f"The lines that decide the day's label: above {lv['up_above']:,.0f} is an up day, below {lv['down_below']:,.0f} a down day"
                      + (f" (set when the day's forecast was written, from the {_dw(lv['set_from_date'])} close of {lv['set_from_close']:,.0f}, not the newer {_dw(n.get('date'))} close)." if stale_lines else "."))
+    pm = f.get("premarket") or {}
+    oc = pm.get("option_chain") or {}
+    if oc:
+        bits = []
+        for sym, v in oc.items():
+            if v.get("pcr_oi") is not None:
+                bits.append(f"{'Nifty' if sym == 'NIFTY' else 'Bank Nifty'}: puts/calls open {v['pcr_oi']:.2f}, max pain {v['max_pain']:,.0f}, "
+                            f"biggest call wall {v['call_walls'][0]['strike']:,.0f}, put wall {v['put_walls'][0]['strike']:,.0f}")
+        if bits:
+            watch.append("Option chain at yesterday's close (context only; no edge found in it): " + "; ".join(bits) + ".")
+    bl = (pm.get("ban_list") or {}).get("symbols")
+    if bl:
+        watch.append(f"F&O ban list today: {', '.join(bl[:8])} (no new futures or options positions in these; the cash book is not affected).")
+    elif bl == []:
+        watch.append("F&O ban list today: empty.")
     watch.append("Guardrails: a 5% loss stops the day; 22% below the peak pauses new buys.")
     yest = []
     if y.get("lessons"):
@@ -435,6 +460,7 @@ def build(session: str | None = None) -> dict:
     f = {"rules": RULES, "session": session, "built_at": _now(), "data_through": rm.get("data_through"), "paper": True,
          "overnight": overnight(plan, session), "setup": setup(session, plan, rm), "plan": plan_today(session, rm), "scorecard": scorecard(rm), "yesterday": yesterday(rm)}
     f["lessons_for_writer"] = lessons_for_writer(f["scorecard"], f["yesterday"])
+    f["premarket"] = premarket_inputs()   # 30 Oct (Phase 4.1): the option chain's end-of-day shape and the F&O ban list, context only
     fg = ((f["overnight"].get("india") or {}).get("fear gauge")) or {}
     if fg.get("close") is not None and fg.get("date") and str(fg["date"]) > str(f.get("data_through") or ""):      # the setup's VIX is never older than the view's
         f["setup"]["vix"], f["setup"]["vix_vs_sma50"] = fg["close"], fg.get("vs_sma50")

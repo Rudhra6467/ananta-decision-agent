@@ -395,6 +395,12 @@ def build(day: str | None = None) -> dict:
                                  "rows": [{k: r[k] for k in ("study", "family", "variant", "verdict", "title", "words")} for r in nb]}
     except Exception as e:   # noqa: BLE001
         rm["notable_results"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
+    try:   # 30 Oct (Madhav: "tell me how much more time is needed and what has happened till now"): every running trial with its clock
+        from india import trials as _trials
+
+        rm["trials"] = {"status": "ok", **_trials.build()}
+    except Exception as e:   # noqa: BLE001
+        rm["trials"] = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
     try:   # 30 Oct (Madhav's yes, one-yes item 5): the long-term tilt book (LOWVOL, COMBO, EW), paper only, judged over 12 months
         fb = json.loads((paths.data_dir() / "paper" / "factorbook" / "view.json").read_text())
         rm["factor_book"] = {"status": "ok", **{k: fb.get(k) for k in ("started", "data_through", "lines", "drawdown_pct", "sessions", "pending", "words")}}

@@ -63,7 +63,7 @@ def real_turns(since: float, until: float | None = None) -> list[dict]:
     until = until or time.time()
     out = []
     for f in sorted(Path(ask.ASK_DIR).glob("*.jsonl")):
-        if f.name in ("threads.jsonl",) or f.name.startswith("dry_"):
+        if f.name in ("threads.jsonl",) or f.name.startswith(("dry_", "ot", "rp")):
             continue
         rows = []
         for line in f.read_text().splitlines():

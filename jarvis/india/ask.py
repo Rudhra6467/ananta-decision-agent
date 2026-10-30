@@ -477,8 +477,13 @@ def _index() -> list[dict]:
         return []
 
 
+TEST_THREAD = ("ot", "rp")         # 29 Oct: outsider-test ("ot...") and replay ("rp...") conversations never enter his conversation list
+
+
 def _touch_index(thread: str, title: str, voice: bool) -> None:
     ASK_DIR.mkdir(parents=True, exist_ok=True)
+    if str(thread).startswith(TEST_THREAD):
+        return
     old = next((r for r in _index() if r.get("thread") == thread), {})
     rows = [r for r in _index() if r.get("thread") != thread]
     n = sum(1 for m in thread_messages(thread) if m.get("role") == "user")

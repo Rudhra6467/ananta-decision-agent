@@ -422,10 +422,17 @@ def guardrail_facts(rm: dict) -> dict:
     """26 Oct chat: asked what happens to open positions at the 5% line and who restarts after the 22% pause, the Ask said "the facts don't
     say": it had only the one-line summary. The survival rules are written in full in india/paper_config.json (pinned, read only here)."""
     try:
-        s = json.loads((RECORDS / "india" / "paper_config.json").read_text()).get("survival") or {}
+        cfg = json.loads((RECORDS / "india" / "paper_config.json").read_text())
+        s = cfg.get("survival") or {}
     except (OSError, ValueError):
-        s = {}
+        cfg, s = {}, {}
     return {"words": (rm.get("guardrails") or {}).get("words"),
+            # 29 Oct audit (map class D): the book size and the re-entry rule were in the paper rules but not in the facts
+            "book_inr": cfg.get("capital_inr") or cfg.get("book_inr"),
+            "book_rule": f"the India paper book is Rs {int(cfg.get('capital_inr') or 60000):,} to start (Madhav, 19 Oct); the practice book's Rs 50,000 a trade is research scale, not money",
+            "reentry_days": cfg.get("reentry_days"),
+            "reentry_rule": (f"a stock already signalled by the same campaign in the last {cfg.get('reentry_days', 14)} days is not entered again "
+                             "(the candidate is written to the decision journal as rejected: reentry_gap)") if cfg.get("reentry_days") else None,
             "daily_5pct": s.get("daily_basis"), "pause_22pct": s.get("pause_basis"),
             "on_paper_now": {"daily": s.get("daily_on_paper"), "pause": s.get("pause_on_paper")}, "note": s.get("note"),
             "resume": "Madhav resumes after a 22% pause by telling Ananta (chat or voice) or in the app; on paper the books keep trading and log the pause "

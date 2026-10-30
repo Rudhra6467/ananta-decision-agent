@@ -1,21 +1,21 @@
 {
  "summary": {
-  "built_at": "2026-10-29T21:40:13",
+  "built_at": "2026-10-29T22:17:14",
   "studies": 165,
   "variants": 1333,
   "gap_counts": {
    "A planned, not done": 23,
-   "B done, not noted": 23,
+   "B done, not noted": 0,
    "C proved, not in the paper rules": 16,
-   "D in the paper rules, not in the voice's facts": 2,
+   "D in the paper rules, not in the voice's facts": 0,
    "E tested, but not at full scale": 36,
-   "F the voice has it, but no plain-words name": 10,
-   "G a result the screens do not show": 26
+   "F the voice has it, but no plain-words name": 0,
+   "G a result the screens do not show": 2
   },
-  "gaps_total": 136,
+  "gaps_total": 77,
   "needs_yes": 16,
-  "seconds": 1.4,
-  "words": "The map holds 165 studies and 1333 variants. 136 mismatches between layers: 23 planned, not done, 23 done, not noted, 16 proved, not in the paper rules, 2 in the paper rules, not in the voice's facts, 36 tested, but not at full scale, 10 the voice has it, but no plain-words name, 26 a result the screens do not show; 16 need Madhav's yes."
+  "seconds": 1.2,
+  "words": "The map holds 165 studies and 1333 variants. 77 mismatches between layers: 23 planned, not done, 16 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 16 need Madhav's yes."
  },
  "rows": [
   {
@@ -782,7 +782,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:08:02+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H37",
@@ -857,7 +857,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:08:00+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H37",
@@ -945,7 +945,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -1096,7 +1096,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -1173,7 +1173,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -1235,7 +1235,7 @@
    "scale": "thin",
    "last_result": "2026-10-18T23:08:03+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H04",
@@ -1311,7 +1311,7 @@
    "scale": "thin",
    "last_result": "2026-10-18T23:08:06+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H01",
@@ -1386,7 +1386,7 @@
    "scale": "thin",
    "last_result": "2026-10-18T23:08:04+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H01",
@@ -1461,7 +1461,7 @@
    "scale": "thin",
    "last_result": "2026-10-18T23:08:05+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H01",
@@ -1839,7 +1839,7 @@
    "scale": "thin",
    "last_result": "2026-10-18T23:25:27+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": null,
    "hypotheses": [],
    "in_paper": false,
@@ -1908,7 +1908,7 @@
    "scale": "thin",
    "last_result": "2026-10-18T23:25:28+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": null,
    "hypotheses": [],
    "in_paper": false,
@@ -1977,7 +1977,7 @@
    "scale": "thin",
    "last_result": "2026-10-18T23:25:30+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": null,
    "hypotheses": [],
    "in_paper": false,
@@ -2186,7 +2186,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:06:49+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "M-06"
@@ -2257,7 +2257,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:05:18+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "M-06"
@@ -2329,7 +2329,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:05:30+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "M-06"
@@ -2484,7 +2484,7 @@
    "paper_role": "the BRK and PULL entry sets and their exits",
    "in_facts": false,
    "plain_name": "the exit test",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -2557,7 +2557,7 @@
    "paper_role": "the BRK and PULL entry sets and their exits",
    "in_facts": false,
    "plain_name": "the exit test",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -2620,7 +2620,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:07:49+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H17",
@@ -2692,7 +2692,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:06:59+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H17",
@@ -2775,7 +2775,7 @@
    "paper_role": "the BRK and PULL exits",
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -2926,7 +2926,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": "the exit test",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -2988,7 +2988,7 @@
    "scale": "thin",
    "last_result": "2026-10-18T23:07:55+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "M-03",
@@ -3062,7 +3062,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:07:57+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H09",
@@ -3148,7 +3148,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -3200,7 +3200,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:08:18+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H24",
@@ -3274,7 +3274,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -3340,7 +3340,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -3403,7 +3403,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:06:59+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H19",
@@ -3490,7 +3490,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -3563,7 +3563,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -3636,7 +3636,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -3710,7 +3710,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -3782,7 +3782,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -3824,7 +3824,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:09:04+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H20",
@@ -3886,7 +3886,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -3928,7 +3928,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:15:00+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H25"
@@ -3999,7 +3999,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:14:47+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H25"
@@ -4070,7 +4070,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:14:52+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H25"
@@ -4141,7 +4141,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:27:48+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [],
    "in_paper": false,
@@ -4208,7 +4208,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -4260,7 +4260,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:27:30+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [],
    "in_paper": false,
@@ -4334,7 +4334,7 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
+   "plain_name": "the sell-a-straddle test",
    "in_readmodel": false,
    "in_exam": false,
    "in_lock": false,
@@ -4408,7 +4408,7 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
+   "plain_name": "the expiry-eve strangle test",
    "in_readmodel": false,
    "in_exam": false,
    "in_lock": false,
@@ -4465,8 +4465,8 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
-   "in_readmodel": false,
+   "plain_name": "the option-chain shape test",
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -4540,8 +4540,8 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
-   "in_readmodel": false,
+   "plain_name": "the futures open-interest test",
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -4614,7 +4614,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -5050,7 +5050,7 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
+   "plain_name": "the time-decay test",
    "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
@@ -5407,7 +5407,7 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
+   "plain_name": "the first-hour test",
    "in_readmodel": false,
    "in_exam": false,
    "in_lock": false,
@@ -5549,7 +5549,7 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
+   "plain_name": "the expiry-afternoon test",
    "in_readmodel": false,
    "in_exam": false,
    "in_lock": false,
@@ -5620,7 +5620,7 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
+   "plain_name": "the opening-range breakout test",
    "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
@@ -5691,7 +5691,7 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
+   "plain_name": "the intraday-patterns test",
    "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
@@ -5764,7 +5764,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -5992,7 +5992,7 @@
    "paper_role": "the REV family (RSI under 30), rules v1.2",
    "in_facts": false,
    "plain_name": "the entry test",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -6055,7 +6055,7 @@
    "scale": "full",
    "last_result": "2026-10-18T23:39:16+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "TWT-H49",
@@ -6141,7 +6141,7 @@
    "paper_role": "the RX1 paper trial",
    "in_facts": false,
    "plain_name": "Ananta's test of the 12 reconstruction drafts",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -6210,7 +6210,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -6925,7 +6925,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "OI band contains the expiry",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -6994,7 +6994,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "OI band contains tomorrow",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -7290,7 +7290,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "Max-OI pinning",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -7647,7 +7647,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "Range breakouts",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -7825,7 +7825,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "New all-time highs",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -8571,7 +8571,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "Follow-up: do the good breakout bars pay later?",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -8620,7 +8620,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "RS line at a high confirms the breakout",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -8720,7 +8720,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "Near highs beats far below",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -9077,7 +9077,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "Three-step exit for big winners",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -9839,7 +9839,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "Small caps' turn",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -10098,7 +10098,7 @@
    "paper_role": null,
    "in_facts": true,
    "plain_name": "US weakness leads the Nifty lower",
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -10705,7 +10705,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -10776,7 +10776,7 @@
    "paper_role": null,
    "in_facts": false,
    "plain_name": null,
-   "in_readmodel": false,
+   "in_readmodel": true,
    "in_exam": false,
    "in_lock": false,
    "top_variants": [
@@ -10838,7 +10838,7 @@
    "scale": "thin",
    "last_result": "2026-10-18T23:56:19+00:00",
    "spec_file": false,
-   "results_page": false,
+   "results_page": true,
    "tracker_state": "READY",
    "hypotheses": [
     "M-14"
@@ -10846,7 +10846,7 @@
    "in_paper": false,
    "paper_role": null,
    "in_facts": true,
-   "plain_name": null,
+   "plain_name": "the IPO test",
    "in_readmodel": false,
    "in_exam": false,
    "in_lock": false,
@@ -11084,22 +11084,6 @@
    "fix": "say so in the facts; re-run when the data allows"
   },
   {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "C05-ANY",
-   "what": "10 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "C05-BRK",
-   "what": "10 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
    "class": "C",
    "meaning": "proved, not in the paper rules",
    "id": "C05-PULL",
@@ -11108,52 +11092,12 @@
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "C05-PULL",
-   "what": "CONDITIONAL result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "C07-ANY",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "C07-BRK",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "C07-PULL",
-   "what": "5 variants recorded (INCONCLUSIVE), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
    "class": "E",
    "meaning": "tested, but not at full scale",
    "id": "C07-PULL",
    "what": "every variant short of the registry's block count in a period (INCONCLUSIVE for want of data)",
    "lane": "SAFE",
    "fix": "say so in the facts; re-run when the data allows"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "C08-ANY",
-   "what": "15 variants recorded (INCONCLUSIVE), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
   },
   {
    "class": "E",
@@ -11164,28 +11108,12 @@
    "fix": "say so in the facts; re-run when the data allows"
   },
   {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "C08-BRK",
-   "what": "15 variants recorded (INCONCLUSIVE), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
    "class": "E",
    "meaning": "tested, but not at full scale",
    "id": "C08-BRK",
    "what": "every variant short of the registry's block count in a period (INCONCLUSIVE for want of data)",
    "lane": "SAFE",
    "fix": "say so in the facts; re-run when the data allows"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "C08-PULL",
-   "what": "15 variants recorded (INCONCLUSIVE), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
   },
   {
    "class": "E",
@@ -11196,28 +11124,12 @@
    "fix": "say so in the facts; re-run when the data allows"
   },
   {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "CEV-ANY",
-   "what": "30 variants recorded (INCONCLUSIVE), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
    "class": "E",
    "meaning": "tested, but not at full scale",
    "id": "CEV-ANY",
    "what": "every variant short of the registry's block count in a period (INCONCLUSIVE for want of data)",
    "lane": "SAFE",
    "fix": "say so in the facts; re-run when the data allows"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "CEV-BRK",
-   "what": "30 variants recorded (INCONCLUSIVE), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
   },
   {
    "class": "E",
@@ -11228,14 +11140,6 @@
    "fix": "say so in the facts; re-run when the data allows"
   },
   {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "CEV-PULL",
-   "what": "30 variants recorded (INCONCLUSIVE), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
    "class": "E",
    "meaning": "tested, but not at full scale",
    "id": "CEV-PULL",
@@ -11244,73 +11148,9 @@
    "fix": "say so in the facts; re-run when the data allows"
   },
   {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E01-ANY",
-   "what": "5 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E01-BRK",
-   "what": "5 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E01-PULL",
-   "what": "5 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E02-BRK",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E02-PULL",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E03-ANY",
-   "what": "6 variants recorded (OPPOSITE), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
    "class": "G",
    "meaning": "a result the screens do not show",
    "id": "E03-ANY",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E03-BRK",
-   "what": "6 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E03-PULL",
    "what": "OPPOSITE result that neither the read model nor the facts carry",
    "lane": "SAFE",
    "fix": "surface it in indicator_knowledge or the teacher cards"
@@ -11332,204 +11172,12 @@
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E04-BRK",
-   "what": "CONDITIONAL result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
    "class": "E",
    "meaning": "tested, but not at full scale",
    "id": "E04-PULL",
    "what": "every variant short of the registry's block count in a period (INCONCLUSIVE for want of data)",
    "lane": "SAFE",
    "fix": "say so in the facts; re-run when the data allows"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E05-PULL",
-   "what": "25 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E06-ANY",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E06-BRK",
-   "what": "3 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E06-PULL",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E07-ANY",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E07-BRK",
-   "what": "4 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E07-PULL",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E08-ANY",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E08-BRK",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E08-PULL",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E09-ANY",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E09-BRK",
-   "what": "2 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E09-PULL",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E10-ANY",
-   "what": "4 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E10-BRK",
-   "what": "4 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E10-PULL",
-   "what": "4 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E11-ANY",
-   "what": "3 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "E11-BRK",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "B",
-   "meaning": "done, not noted",
-   "id": "E11-PULL",
-   "what": "3 variants recorded (REJECTED), no results page, not in the facts, no plain name",
-   "lane": "SAFE",
-   "fix": "write the results page and a plain-words name"
-  },
-  {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "F01",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
-  },
-  {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "F02",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
-  },
-  {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "F03",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
-  },
-  {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "F04",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
   },
   {
    "class": "C",
@@ -11540,44 +11188,12 @@
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "F05-O04",
-   "what": "CONDITIONAL result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "GK1",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
-  },
-  {
    "class": "C",
    "meaning": "proved, not in the paper rules",
    "id": "GP1",
    "what": "VALIDATED: The opening gap: does buying the open after a gap-down (mean reversion) or after a gap-up ",
    "lane": "DECISION",
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
-  },
-  {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "I01",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
-  },
-  {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "I05",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
   },
   {
    "class": "C",
@@ -11588,14 +11204,6 @@
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "IB1",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
-  },
-  {
    "class": "C",
    "meaning": "proved, not in the paper rules",
    "id": "MS1",
@@ -11604,52 +11212,12 @@
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "MS1",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
-  },
-  {
    "class": "C",
    "meaning": "proved, not in the paper rules",
    "id": "OC1",
    "what": "VALIDATED: Opening Decision Protocol V1 (Madhav): primary tests",
    "lane": "DECISION",
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "OC1",
-   "what": "VALIDATED result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "P01-BRK",
-   "what": "CONDITIONAL result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "RX1",
-   "what": "CONDITIONAL result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "RX2",
-   "what": "OPPOSITE result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
   },
   {
    "class": "E",
@@ -11876,14 +11444,6 @@
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "V01",
-   "what": "VALIDATED result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
    "class": "C",
    "meaning": "proved, not in the paper rules",
    "id": "V02",
@@ -11892,28 +11452,12 @@
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
-   "class": "G",
-   "meaning": "a result the screens do not show",
-   "id": "V02",
-   "what": "CONDITIONAL result that neither the read model nor the facts carry",
-   "lane": "SAFE",
-   "fix": "surface it in indicator_knowledge or the teacher cards"
-  },
-  {
    "class": "E",
    "meaning": "tested, but not at full scale",
    "id": "V03",
    "what": "every variant short of the registry's block count in a period (INCONCLUSIVE for want of data)",
    "lane": "SAFE",
    "fix": "say so in the facts; re-run when the data allows"
-  },
-  {
-   "class": "F",
-   "meaning": "the voice has it, but no plain-words name",
-   "id": "V03",
-   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
-   "lane": "SAFE",
-   "fix": "add a name to askwords.STUDIES"
   },
   {
    "class": "E",
@@ -12106,22 +11650,6 @@
    "what": "tracker: BLOCKED: Two families validated on development plus validation years; holdout opened once per family, and the",
    "lane": "SAFE",
    "fix": "build it, or mark it dropped with a reason"
-  },
-  {
-   "class": "D",
-   "meaning": "in the paper rules, not in the voice's facts",
-   "id": "paper_rules",
-   "what": "the Rs 60,000 book is not described in the facts the voice reads",
-   "lane": "SAFE",
-   "fix": "add it to guardrail_facts / the paper rules part of the facts"
-  },
-  {
-   "class": "D",
-   "meaning": "in the paper rules, not in the voice's facts",
-   "id": "paper_rules",
-   "what": "the 14-session re-entry rule is not described in the facts the voice reads",
-   "lane": "SAFE",
-   "fix": "add it to guardrail_facts / the paper rules part of the facts"
   }
  ]
 }

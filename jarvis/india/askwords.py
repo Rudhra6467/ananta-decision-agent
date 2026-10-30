@@ -19,6 +19,10 @@ STUDIES = {
     "OS1": "Ananta's option-spread test", "CA1": "Ananta's corporate-actions test", "F06": "the put-protection test", "E02": "the exit test",
     "E04": "the exit test", "C06": "the futures-positioning test", "P01": "the entry test", "H12F": "a follow-up test of a teacher's idea",
     "H18F": "a follow-up test of a teacher's idea", "SP1": "the options line", "SP3": "the positional playbook", "SZ2": "the sizing study",
+    # 29 Oct audit (map class F): studies the voice's facts carry that had no plain name
+    "F01": "the sell-a-straddle test", "F02": "the expiry-eve strangle test", "F03": "the option-chain shape test", "F04": "the futures open-interest test",
+    "GK1": "the time-decay test", "I01": "the first-hour test", "I05": "the expiry-afternoon test", "IB1": "the opening-range breakout test",
+    "MS1": "the intraday-patterns test", "V03": "the IPO test",
     "G01": "the exit book", "RX1": "Ananta's test of the 12 reconstruction drafts", "G02": "the gate", "K02": "the daily-call study", "R01": "the calibration check", "PW-HF-CHRONOS": "the Chronos forecast study",
 }
 VERDICTS = {"VALIDATED": "held up", "CONDITIONAL": "held up, weaker in one period", "REJECTED": "did not hold",

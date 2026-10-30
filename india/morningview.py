@@ -352,7 +352,9 @@ def premarket_inputs() -> dict:
     max pain, the open-interest walls; F03 found no edge in them, so context only) and the F&O ban list for the session."""
     ch = _load(_data() / "manifests" / "premarket_chain.json", {}) or {}
     bn = _load(_data() / "manifests" / "fo_ban.json", {}) or {}
-    return {"option_chain": {k: {kk: v.get(kk) for kk in ("nearest_expiry", "pcr_oi", "max_pain", "call_walls", "put_walls", "words")} for k, v in (ch.get("indices") or {}).items()},
+    rs = _load(_data() / "manifests" / "results_today.json", {}) or {}
+    return {"results_today": {k: rs.get(k) for k in ("session", "results_today", "results_published_since_close", "held_with_results_today", "held_with_results_published", "words")},
+            "option_chain": {k: {kk: v.get(kk) for kk in ("nearest_expiry", "pcr_oi", "max_pain", "call_walls", "put_walls", "words")} for k, v in (ch.get("indices") or {}).items()},
             "option_chain_day": ch.get("day"), "option_chain_note": ch.get("note"),
             "ban_list": {"symbols": bn.get("symbols"), "words": bn.get("words"), "fetched_at": bn.get("fetched_at")}}
 
@@ -421,6 +423,13 @@ def lines(f: dict) -> dict:
                             f"biggest call wall {v['call_walls'][0]['strike']:,.0f}, put wall {v['put_walls'][0]['strike']:,.0f}")
         if bits:
             watch.append("Option chain at yesterday's close (context only; no edge found in it): " + "; ".join(bits) + ".")
+    rt = pm.get("results_today") or {}
+    if rt.get("results_today"):
+        names = rt["results_today"]
+        held = rt.get("held_with_results_today") or []
+        watch.append(f"Results today: {', '.join(names[:8])}{' and more' if len(names) > 8 else ''}" + (f" - held: {', '.join(held)}" if held else "") + ". A results day can gap either way; the practice book does not add a position on its results day.")
+    if rt.get("held_with_results_published"):
+        watch.append(f"Results came out after yesterday's close for held names: {', '.join(rt['held_with_results_published'][:8])}.")
     bl = (pm.get("ban_list") or {}).get("symbols")
     if bl:
         watch.append(f"F&O ban list today: {', '.join(bl[:8])} (no new futures or options positions in these; the cash book is not affected).")

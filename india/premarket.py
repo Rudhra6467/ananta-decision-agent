@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -114,6 +115,85 @@ def ban() -> dict:
     return out
 
 
+MONTHS = "january|february|march|april|may|june|july|august|september|october|november|december"
+DATE_RE = re.compile(rf"(\d{{1,2}})(?:st|nd|rd|th)?\s*(?:day of\s*)?({MONTHS})[,\s]+(\d{{4}})|({MONTHS})\s+(\d{{1,2}})(?:st|nd|rd|th)?[,\s]+(\d{{4}})", re.I)
+
+
+def _dates_in(text: str) -> list[dt.date]:
+    out = []
+    for m in DATE_RE.finditer(text):
+        try:
+            if m.group(1):
+                out.append(dt.datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", "%d %B %Y").date())
+            else:
+                out.append(dt.datetime.strptime(f"{m.group(5)} {m.group(4)} {m.group(6)}", "%d %B %Y").date())
+        except ValueError:
+            continue
+    return out
+
+
+def results(session: str | None = None) -> dict:
+    """Which stocks have results today (Madhav, 30 Oct: the per-stock 'results today' flag): from the last three days of raw NSE announcements
+    (bronze/announce_api), (a) a board meeting scheduled on the session to consider financial results, (b) results published since the last
+    close (an 'Outcome of Board Meeting' with financial results). Names in the practice book or the account twin are flagged first."""
+    import glob
+    import gzip
+    session_d = dt.date.fromisoformat(session) if session else None
+    if session_d is None:
+        try:
+            session_d = dt.date.fromisoformat(json.loads((paths.data_dir() / "readmodel" / "latest.json").read_text()).get("next_session"))
+        except Exception:  # noqa: BLE001
+            session_d = dt.date.today()
+    files = sorted(glob.glob(str(paths.bronze("announce_api") / "*" / "*.json.gz")))[-10:]   # intimations come days ahead
+    try:
+        through = json.loads((paths.data_dir() / "readmodel" / "latest.json").read_text()).get("data_through")
+    except Exception:  # noqa: BLE001
+        through = None
+    since_close = f"{through} 15:30" if through else "0000"   # results count as "published since the close" only after the last session's close
+    today_meet, published = {}, {}
+    for f in files:
+        try:
+            rows = json.loads(gzip.open(f).read())
+        except (OSError, ValueError):
+            continue
+        for x in rows:
+            sym, desc, text = x.get("symbol") or "", x.get("desc") or "", (x.get("attchmntText") or "")
+            low = text.lower()
+            if "financial result" not in low and "financial results" not in low:
+                continue
+            if desc == "Outcome of Board Meeting" or ("outcome" in low and "result" in low and "enclos" in low):
+                when = x.get("an_dt") or ""
+                try:
+                    when_iso = dt.datetime.strptime(when, "%d-%b-%Y %H:%M:%S").strftime("%Y-%m-%d %H:%M")
+                except ValueError:
+                    when_iso = ""
+                if when_iso >= since_close:
+                    published[sym] = when_iso
+            elif "board" in low and ("scheduled" in low or "will be held" in low or "to be held" in low or "intimat" in low):
+                if session_d in _dates_in(text):
+                    today_meet[sym] = (x.get("an_dt") or "")[:20]
+    held = set()
+    try:
+        st = json.loads((paths.data_dir() / "paper" / "state.json").read_text())
+        held |= {t.get("symbol") for t in st.get("trades", {}).values() if t.get("status") == "open"}
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        held |= set(json.loads((paths.data_dir() / "paper" / "account" / "state.json").read_text()).get("positions") or {})
+    except Exception:  # noqa: BLE001
+        pass
+    meet = sorted(today_meet)
+    pub = sorted(published)
+    out = {"session": session_d.isoformat(), "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "files": [Path(f).name for f in files],
+           "results_today": meet, "results_published_since_close": pub,
+           "held_with_results_today": sorted(s for s in meet if s in held), "held_with_results_published": sorted(s for s in pub if s in held),
+           "words": ((f"Results today: {len(meet)} companies" + (f", including held {', '.join(sorted(s for s in meet if s in held))}" if any(s in held for s in meet) else "") + ". ")
+                     if meet else "No company in the announcements has a results board meeting today. ")
+                    + (f"Results published since the last close: {len(pub)}" + (f", including held {', '.join(sorted(s for s in pub if s in held))}" if any(s in held for s in pub) else "") + "." if pub else "")}
+    (_man() / "results_today.json").write_text(json.dumps(out, indent=1))
+    return out
+
+
 def gaps() -> dict:
     """The routine against the inputs Ananta has, read from the manifests as they stand."""
     dc = {}
@@ -146,7 +226,7 @@ def gaps() -> dict:
         {"input": "India VIX", "have": "yes", "source": "Kite index day file, evening", "status": st("market context: india_vix"), "decision": "in the brief"},
         {"input": "Option chain: PCR, max pain, OI walls", "have": "yes (added 30 Oct)", "source": "NSE F&O file, end of the last session, through the sealed firewall (chain_brief)", "status": ch.get("status", "not built"), "decision": "in the brief as context only (F03: no edge in PCR extremes or the pin)"},
         {"input": "Live option chain before the open", "have": "no", "source": "Kite quotes exist only from 09:15 (the recorder)", "status": "-", "decision": "left out before the open; the options line reads live quotes from 09:15"},
-        {"input": "Results calendar and announcements", "have": "partly", "source": "NSE announcements (bronze daily, table built evening); board-meeting dates in the PR file", "status": st("announcements"), "decision": "the announcements table is in the Ask; a per-stock 'results today' flag is Phase 4 follow-up"},
+        {"input": "Results calendar and announcements", "have": "yes (flag added 30 Oct)", "source": "NSE announcements (bronze daily): board meetings scheduled for the session to consider results, and results published since the close", "status": st("announcements"), "decision": "in the brief: results today and results published, held names first (manifests/results_today.json)"},
         {"input": "F&O ban list", "have": "yes (added 30 Oct)", "source": "NSE fo_secban.csv, free, each evening for the next session", "status": (bn.get("words") or "not fetched")[:80], "decision": "in the brief; the paper book should not enter a banned name's F&O (it trades cash only, so a note)"},
         {"input": "Pre-open indicative (09:00-09:08 IST)", "have": "no", "source": "NSE site only; Kite stock quotes in pre-open possible, the index indicative is not", "status": "-", "decision": "left out; the opening update covers the open"},
         {"input": "Yesterday's practice book and the scorecard", "have": "yes", "source": "marks, forecasts ledger, daily call", "status": "ok", "decision": "in the brief ('our chances, honestly')"},
@@ -172,8 +252,10 @@ if __name__ == "__main__":
         print(json.dumps(ban(), indent=1))
     elif cmd == "gaps":
         print(json.dumps(gaps()["summary"], indent=1))
+    elif cmd == "results":
+        print(json.dumps(results(sys.argv[2] if len(sys.argv) > 2 else None), indent=1))
     elif cmd == "all":
-        for fn in (chain, ban, gaps):
+        for fn in (chain, ban, results, gaps):
             try:
                 r = fn()
                 print(fn.__name__, (r.get("status") or r.get("words") or r.get("summary")))

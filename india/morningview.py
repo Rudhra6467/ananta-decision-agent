@@ -243,7 +243,16 @@ def scorecard(rm: dict) -> dict:
     book = {FAMILY.get(k, k): {"closed": v.get("closed", 0), "open": v.get("open", 0), "realised_inr": round(v.get("realised_inr") or 0), "win_rate": v.get("win_rate")} for k, v in marks.items()}
     sp1 = (rm.get("sp1") or {}).get("book") or {}
     st = _load(REG / "evidence_staircase.json", {}) or {}
-    return {"forecasts": rec, "daily_call": call, "stock_book": book, "options_sessions": sp1.get("sessions") or 0, "staircase_words": st.get("words"),
+    # 30 Oct: the win rate over closed trades alone misled both the writer and the shadow trader ("0% win rate on 38 closed trades") when every close
+    # so far was a stop by construction; the book's own words (bookstats.split) say how the closes happened and whether any trade reached its hold
+    note = None
+    try:
+        from india import bookstats as _bs
+        stt = _load(_paper() / "state.json", {}) or {}
+        note = _bs.split(_bs.trade_rows(stt, REF_POLICY)).get("words")
+    except Exception:  # noqa: BLE001
+        pass
+    return {"forecasts": rec, "daily_call": call, "stock_book": book, "stock_book_note": note, "options_sessions": sp1.get("sessions") or 0, "staircase_words": st.get("words"),
             "words": _chances_words(rec, call, book, sp1.get("sessions") or 0)}
 
 

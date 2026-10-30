@@ -1,0 +1,212 @@
+{
+ "day": "2026-10-30",
+ "window_days": 14,
+ "rule": "process only; Rule B (no new crypto study or rule change before 14 Dec); H07 parked",
+ "decisions": {
+  "total": 81,
+  "by_action": {
+   "PASS": 81
+  },
+  "pass_with_wait_for": 57,
+  "pass_wait_share": 0.7
+ },
+ "guard": {
+  "refusals": 164,
+  "by_reason": {
+   "paused by Madhav: the strategy is PARKED": 148,
+   "the kill switch could not be read": 16
+  },
+  "by_day": {
+   "2026-10-16": 1,
+   "2026-10-17": 15,
+   "2026-10-24": 19,
+   "2026-10-25": 26,
+   "2026-10-26": 3,
+   "2026-10-28": 29,
+   "2026-10-29": 66,
+   "2026-10-30": 5
+  }
+ },
+ "officer": {
+  "nights": 14,
+  "nights_with_plan_line": 6,
+  "fails_by_check": {
+   "book_bleed": 3,
+   "idle_cash": 1
+  },
+  "rows": [
+   {
+    "day": "2026-10-17",
+    "checks": {},
+    "plan_line": false,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-18",
+    "checks": {},
+    "plan_line": false,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-19",
+    "checks": {},
+    "plan_line": false,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-20",
+    "checks": {},
+    "plan_line": false,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-21",
+    "checks": {},
+    "plan_line": false,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-22",
+    "checks": {},
+    "plan_line": false,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-23",
+    "checks": {},
+    "plan_line": false,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-24",
+    "checks": {},
+    "plan_line": false,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-25",
+    "checks": {
+     "idle_cash": "OK",
+     "core_exit": "OK",
+     "book_bleed": "DECIDED",
+     "explorer_costs": "OK"
+    },
+    "plan_line": true,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-26",
+    "checks": {
+     "idle_cash": "OK",
+     "core_exit": "OK",
+     "book_bleed": "FAIL",
+     "explorer_costs": "OK"
+    },
+    "plan_line": true,
+    "wait_arrived": 4
+   },
+   {
+    "day": "2026-10-27",
+    "checks": {
+     "idle_cash": "OK",
+     "core_exit": "OK",
+     "book_bleed": "FAIL",
+     "explorer_costs": "OK"
+    },
+    "plan_line": true,
+    "wait_arrived": 3
+   },
+   {
+    "day": "2026-10-28",
+    "checks": {
+     "idle_cash": "OK",
+     "core_exit": "OK",
+     "book_bleed": "OK",
+     "explorer_costs": "OK"
+    },
+    "plan_line": true,
+    "wait_arrived": 1
+   },
+   {
+    "day": "2026-10-29",
+    "checks": {
+     "idle_cash": "OK",
+     "core_exit": "OK",
+     "book_bleed": "OK",
+     "explorer_costs": "OK"
+    },
+    "plan_line": true,
+    "wait_arrived": 0
+   },
+   {
+    "day": "2026-10-30",
+    "checks": {
+     "idle_cash": "FAIL",
+     "core_exit": "OK",
+     "book_bleed": "FAIL",
+     "explorer_costs": "OK"
+    },
+    "plan_line": true,
+    "wait_arrived": 6
+   }
+  ]
+ },
+ "reconstruction": {
+  "cards": 7,
+  "findings_by_kind": {
+   "GAVE_BACK": 6,
+   "MISS_PATTERN": 7,
+   "BOOK_BLEED": 7,
+   "LAYER_CONFLICT": 1,
+   "WAIT_ARRIVED": 22
+  },
+  "queue": {
+   "GAVE_BACK | SAFE | FILED": 1,
+   "MISS_PATTERN | DECISION | DECIDED": 1,
+   "BOOK_BLEED | DECISION | DECIDED": 3,
+   "WAIT_ARRIVED | SAFE | DONE": 22,
+   "BOOK_BLEED | DECISION | OPEN": 3
+  },
+  "open_for_madhav": [
+   "BRK: 6 closed, net $-15 in 7 days (the bar is -$12); pause it, or say why it keeps running",
+   "JARVIS_BOLD: 5 closed, net $-51 in 7 days (the bar is -$10); pause it, or say why it keeps running",
+   "RBD: 38 closed, net $-286 in 7 days (the bar is -$76); pause it, or say why it keeps running"
+  ]
+ },
+ "ask": {
+  "misunderstood": 5,
+  "by_kind": {
+   "clarify": 5
+  },
+  "samples": [
+   "What win rate did the E9 setup have in 2019?",
+   "Like it's a standalone trading brain. One question at a time. Then I'll review its answer. Question ",
+   "Sure thing. Question one. What's your short testable definition of noise in that first 15, 30 minute",
+   "Quick check and I'll pin it down.",
+   "What win rate did the E9 setup have in 2019?"
+  ]
+ },
+ "explorer": {
+  "compares": 28,
+  "agreement_pct_last": 69.1,
+  "agreement_pct_mean": 42.6
+ },
+ "data_gaps": [
+  {
+   "what": "kill switch unreadable (new entries paused, exits unaffected)",
+   "when": [
+    "2026-10-16",
+    "2026-10-17"
+   ],
+   "state": "not seen since discipline v1 (24 Oct)"
+  }
+ ],
+ "words": [
+  "In the last 14 days the brain made 81 decisions: 81 passes, 0 takes; 57 of the passes said what would make them a take (70% - item 6 is working).",
+  "The guard refused 164 entries: 148 against a parked strategy (the right refusal) and 16 for other reasons (the kill switch could not be read).",
+  "The officer wrote 14 nightly notes, 6 of the 7 since the plan line exists (24 Oct) with the one plan line; checks that failed: book_bleed on 3 nights, idle_cash on 1 night.",
+  "The reconstruction filed 7 cards: 6 GAVE_BACK, 7 MISS_PATTERN, 7 BOOK_BLEED, 1 LAYER_CONFLICT, 22 WAIT_ARRIVED; 3 decision rows wait for Madhav.",
+  "The Ask could not read 5 questions (5 clarify).",
+  "Money is not judged here (Rule B); the paused books' old trades keep closing and are shown as 'already paused'."
+ ]
+}

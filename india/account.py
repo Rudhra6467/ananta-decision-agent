@@ -226,8 +226,74 @@ def run() -> dict:
                       + (f"{len(book['trades'])} paper trade{'s' if len(book['trades']) != 1 else ''} so far." if book["trades"] else "No paper trades yet.")
                       + (" Today's move fills after the session closes." if pending else "")
                       + (" It buys a new stock only once a rule has proved itself on paper and you say yes." if not adm else ""))}
+    try:   # 30 Oct (Phase 5): the frozen "as he had it" portfolio and the Nifty 500 beside the twin, every run
+        view["benchmark"] = benchmark(book, marks)
+    except Exception as e:  # noqa: BLE001
+        view["benchmark"] = {"status": "unavailable", "why": f"{type(e).__name__}: {str(e)[:120]}"}
     (_dir() / "view.json").write_text(json.dumps(view, indent=1))
     return view
+
+
+# ----------------------------------------------------------------------------------------------- Phase 5: the twin against the frozen portfolio and the index
+
+def frozen(book: dict) -> dict:
+    """The holdings as they were when the twin opened, frozen: never traded, only marked. Written once from the opening snapshot."""
+    p = _dir() / "frozen.json"
+    f = _load(p)
+    if f:
+        return f
+    snap = _load(Path(book["opened_from"]), {}) or {}
+    pos = {h["tradingsymbol"]: {"qty": int(h["quantity"]), "avg": float(h.get("average_price") or 0), "last_at_open": float(h.get("last_price") or 0)}
+           for h in snap.get("holdings") or [] if (h.get("quantity") or 0) > 0}
+    eq = ((snap.get("margins") or {}).get("equity") or {}).get("available") or {}
+    cash = float(eq.get("live_balance", eq.get("cash", 0)) or 0)
+    opt = float(book.get("opened_value_inr") or 0) - sum(v["qty"] * v["last_at_open"] for v in pos.values()) - cash
+    f = {"frozen_at": _now(), "from": book["opened_from"], "day": book.get("snapshot_day"), "positions": pos, "cash_inr": round(cash, 2), "options_inr": round(opt, 2),
+         "start_inr": book.get("opened_value_inr"), "note": "Madhav's holdings as they stood when the twin opened; never traded, marked at the same prices as the twin"}
+    p.write_text(json.dumps(f, indent=1))
+    return f
+
+
+def benchmark(book: dict, marks: dict) -> dict:
+    """One row a session in paper/account/benchmark.jsonl: the twin, the frozen portfolio and the Nifty 500 (price index; dividends of about
+    1.2-1.5% a year are not in it and are said) since the day the twin opened. Words for the view and the facts."""
+    from india import sealed
+    f = frozen(book)
+    last = {s: pos["last"] for s, pos in book["positions"].items()}
+    nse = {}
+    try:
+        snap = allocator.account()
+        nse, _m = stale_marks(snap, list(f["positions"]))
+    except Exception:  # noqa: BLE001
+        pass
+    px = {**{s: v.get("last_at_open", 0) for s, v in f["positions"].items()}, **{s: v for s, v in nse.items() if v}, **{s: v for s, v in last.items() if v}}
+    frozen_val = sum(v["qty"] * px.get(s, v["last_at_open"]) for s, v in f["positions"].items()) + f["cash_inr"] + f["options_inr"]
+    twin_val = sum(v["qty"] * v["last"] for v in book["positions"].values()) + book["cash_inr"] + book["options_inr"]
+    start = float(f.get("start_inr") or book.get("opened_value_inr") or twin_val)
+    day = marks.get("last_session") or marks.get("snapshot_day")
+    n500 = None
+    try:
+        ix = sealed.read_index("paper_context", f["day"], ["NIFTY 500"])
+        ix = ix.sort_values("date")
+        if len(ix):
+            first = float(ix.iloc[0]["close"])
+            lastrow = ix[ix["date"].astype(str) <= str(day)]
+            n500 = {"from": str(ix.iloc[0]["date"]), "to": str(lastrow.iloc[-1]["date"]) if len(lastrow) else None, "ret_pct": round(100 * (float(lastrow.iloc[-1]["close"]) / first - 1), 2) if len(lastrow) else None}
+    except Exception as e:  # noqa: BLE001
+        n500 = {"error": f"{type(e).__name__}: {str(e)[:80]}"}
+    row = {"day": day, "at": _now(), "twin_inr": round(twin_val), "frozen_inr": round(frozen_val), "start_inr": round(start),
+           "twin_ret_pct": round(100 * (twin_val / start - 1), 2), "frozen_ret_pct": round(100 * (frozen_val / start - 1), 2),
+           "nifty500_ret_pct": (n500 or {}).get("ret_pct"), "twin_minus_frozen_pct": round(100 * (twin_val - frozen_val) / start, 2)}
+    p = _dir() / "benchmark.jsonl"
+    rows = [json.loads(x) for x in p.read_text().splitlines() if x.strip()] if p.exists() else []
+    rows = [r for r in rows if r.get("day") != day] + [row]
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    sessions = len(rows)
+    words = (f"Since {f['day']} ({sessions} session{'s' if sessions != 1 else ''}): the twin {row['twin_ret_pct']:+.2f}%, your holdings left as they were {row['frozen_ret_pct']:+.2f}%, "
+             f"the Nifty 500 {row['nifty500_ret_pct']:+.2f}% (price index, dividends not in it). " if row.get("nifty500_ret_pct") is not None else
+             f"Since {f['day']} ({sessions} sessions): the twin {row['twin_ret_pct']:+.2f}%, your holdings left as they were {row['frozen_ret_pct']:+.2f}%. ")
+    words += "Nothing is read into the gap before 60 sessions; the twin's changes so far are the allocator's sleeve and weak-holding moves."
+    return {"status": "ok", **row, "sessions": sessions, "frozen_day": f["day"], "words": words}
 
 
 if __name__ == "__main__":

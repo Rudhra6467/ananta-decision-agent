@@ -284,6 +284,10 @@ def benchmark(book: dict, marks: dict) -> dict:
     row = {"day": day, "at": _now(), "twin_inr": round(twin_val), "frozen_inr": round(frozen_val), "start_inr": round(start),
            "twin_ret_pct": round(100 * (twin_val / start - 1), 2), "frozen_ret_pct": round(100 * (frozen_val / start - 1), 2),
            "nifty500_ret_pct": (n500 or {}).get("ret_pct"), "twin_minus_frozen_pct": round(100 * (twin_val - frozen_val) / start, 2)}
+    managed = _load(paths.data_dir() / "paper" / "managed" / "view.json")      # 30 Oct (Madhav's yes): the managed book, the fourth column
+    if managed and managed.get("value_inr"):
+        row.update({"managed_inr": managed["value_inr"], "managed_ret_pct": managed.get("return_pct"), "managed_start_day": managed.get("start_day"),
+                    "managed_sessions": (managed.get("clock") or {}).get("sessions"), "managed_minus_frozen_pct": round(100 * (managed["value_inr"] - frozen_val) / start, 2)})
     p = _dir() / "benchmark.jsonl"
     rows = [json.loads(x) for x in p.read_text().splitlines() if x.strip()] if p.exists() else []
     rows = [r for r in rows if r.get("day") != day] + [row]
@@ -292,6 +296,8 @@ def benchmark(book: dict, marks: dict) -> dict:
     words = (f"Since {f['day']} ({sessions} session{'s' if sessions != 1 else ''}): the twin {row['twin_ret_pct']:+.2f}%, your holdings left as they were {row['frozen_ret_pct']:+.2f}%, "
              f"the Nifty 500 {row['nifty500_ret_pct']:+.2f}% (price index, dividends not in it). " if row.get("nifty500_ret_pct") is not None else
              f"Since {f['day']} ({sessions} sessions): the twin {row['twin_ret_pct']:+.2f}%, your holdings left as they were {row['frozen_ret_pct']:+.2f}%. ")
+    if row.get("managed_ret_pct") is not None:
+        words += f"The managed book (cuts replaced on paper, since {row.get('managed_start_day')}, session {row.get('managed_sessions')} of 60): {row['managed_ret_pct']:+.2f}%. "
     words += "Nothing is read into the gap before 60 sessions; the twin's changes so far are the allocator's sleeve and weak-holding moves."
     return {"status": "ok", **row, "sessions": sessions, "frozen_day": f["day"], "words": words}
 

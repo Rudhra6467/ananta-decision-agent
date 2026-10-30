@@ -1,5 +1,5 @@
 {
- "version": "cfg-2026-10-19c + cfg-2026-10-30a (no_chase)",
+ "version": "cfg-2026-10-19c + cfg-2026-10-30a (no_chase) + managed-v1 (2026-10-30, books.managed)",
  "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file. cfg-2026-10-19a (Madhav, 19 Oct 18:20 Toronto): the India book is Rs 60,000 to start; risk per trade is not fixed: entries, exits, holding time and size are research outputs per market scenario. cfg-2026-10-19b (Madhav, 19 Oct 18:28): survival limits 5% a day and a pause at 22% drawdown; index views through options in the book; futures and forex tracked in shadow paper books. cfg-2026-10-19c (Madhav, 19 Oct 21:01): the 22% pause stays as the rule, and on paper it does not stop anything: everything keeps running and everything is noted and tracked (the pause date, and the book both as the rule would have it and as it ran); the rule is revisited as evidence comes. Kite's margin calculator (POST /margins/basket, a calculation) is allowed for the sizing margin check.",
  "stock": {
   "sizing": "fixed_notional",
@@ -78,6 +78,33 @@
    "capital": "unconstrained (tracking)",
    "survival": false,
    "note": "recorded at 1 minute from 21 Oct 2026; research phase SP-FX before any forex decisions (Madhav 19 Oct)"
+  },
+  "managed": {
+   "version": "managed-v1 (30 Oct 2026)",
+   "what": "The managed paper book: starts from the account twin's holdings and acts on the evening cut list; each cut's rupees buy a replacement from the Nifty 500 chosen by the proved not-losing rules; tracked against the twin, the frozen portfolio and the Nifty 500 (india/managed.py).",
+   "universe": "Nifty 500 (NSE's newest constituent list, bronze/indices)",
+   "one_replacement_per_cut_same_rupees": true,
+   "max_new_per_week": 3,
+   "stop_pct": 7.0,
+   "min_hold_sessions": 20,
+   "judge_after_sessions": 60,
+   "reentry_sessions": 20,
+   "max_gap_pct": 2.0,
+   "slippage_pct": 0.1,
+   "max_rsi14": 70,
+   "max_dist_sma50_pct": 8.0,
+   "max_ret_20_pct": 25.0,
+   "min_price_inr": 10,
+   "min_turnover_cr": 5.0,
+   "max_sector_pct": 25.0,
+   "min_buy_inr": 3000,
+   "fills": "at the session's official open from the exchange bhavcopy, plus slippage_pct and delivery costs; a buy opening more than max_gap_pct above the last close is skipped (no chase)",
+   "exits_for_replacements": "a close at or under the fixed stop; after min_hold_sessions a close under the 200-day average; the twin's original holdings leave only through the cut list",
+   "survival": false,
+   "capital": "the twin's value at start (paper)",
+   "approved": "Madhav, 30 Oct 2026 19:17 Toronto (in chat), to the plan in claude/review-2026-10-30-outsider-conversation-and-managed-book-plan.md (defaults: Nifty 500, one replacement per cut for the same rupees, at most three new names a week, 7% fixed stop, 20-session minimum hold, 60 sessions before judgement): \"yes, sounds reasonable. lets do it\"",
+   "min_cut_inr": 1000,
+   "min_shares": 3
   }
  }
 }

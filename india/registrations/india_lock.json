@@ -17,7 +17,7 @@
  "pins": {
   "paper_rules": {
    "what": "The stock paper book's rules as configured (india/paper_config.json): families, exits, slots, the Rs 60,000 book and the survival rules (5% day, 22% pause, record-only on paper).",
-   "sha256": "8364d4ca2a699e4aa58ac8aff25ece79ec6ddfdc815ea5e92773bfb74143b9d0",
+   "sha256": "7484d8d8943d1e37687d5467a65fb15a13ec38bed5ac5975d8348cc13850ef91",
    "history": [
     {
      "date": "2026-10-23",
@@ -30,6 +30,12 @@
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-10-30 08:03 Toronto (in chat), to the one-yes list of claude/phase7-2026-10-30-rebenchmark-and-one-yes-list.md: \"Yes to all your recommendations\". Item 1: the no-chase filters (E04: more than 20% above the 50-day or up more than 25% in 20 sessions; P01: RSI(14) over 70) become no-entry filters on BRK, PULL and REV (stock.no_chase, cfg-2026-10-30a); the control CTL is exempt. Restarts those books' 20-session clocks.",
      "sha256": "8364d4ca2a699e4aa58ac8aff25ece79ec6ddfdc815ea5e92773bfb74143b9d0"
+    },
+    {
+     "date": "2026-10-30",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-10-30 19:17 Toronto (in chat), to the managed paper book plan (claude/review-2026-10-30-outsider-conversation-and-managed-book-plan.md): \"yes, sounds reasonable. lets do it\". Adds books.managed (managed-v1): the fourth paper book that acts on the cut list and buys replacements from the Nifty 500 by the proved not-losing rules; Nifty 500, one replacement per cut for the same rupees, at most three new names a week, 7% fixed stop, 20-session minimum hold, 60 sessions before judgement. No other rule changes. Two small settings added while building: partial cuts under Rs 1,000 are ignored as noise (min_cut_inr), and a replacement must afford at least 3 shares (min_shares).",
+     "sha256": "7484d8d8943d1e37687d5467a65fb15a13ec38bed5ac5975d8348cc13850ef91"
     }
    ]
   },

@@ -206,8 +206,16 @@ def plan_today(session: str, rm: dict) -> dict:
     av = _load(_paper() / "allocation_view.json", {}) or {}
     sug = [{"symbol": s.get("symbol"), "action": s.get("action"), "why": s.get("why")} for s in (av.get("suggestions") or [])[:4]]
     ab = _load(_paper() / "account" / "view.json", {}) or {}
+    mb = _load(_paper() / "managed" / "view.json", {}) or {}          # 30 Oct (Madhav's yes): the managed book's plan for this session
+    mp = mb.get("plan") or {}
+    managed = ({"for_session": mp.get("for_session"), "brief": mp.get("brief"), "words": mp.get("words"), "no_change": mp.get("no_change"),
+                "cuts": [x.get("symbol") for x in mp.get("cuts") or []], "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr")} for b in mp.get("buys") or []],
+                "clock": (mb.get("clock") or {}).get("words"), "book_words": mb.get("words")}
+               if mp and not mp.get("error") and mp.get("for_session") == session else
+               {"for_session": session, "brief": ("The managed book has no plan for this session" + (f": {mp['error']}" if mp.get("error") else "") + ".") if mb else "The managed book has not started yet."})
     return {"status": "ok" if d else "missing", "decided_on": day, "picks": picks, "picks_by_family": dict(by), "random_picks": n_ctl, "options_line": opt,
-            "holdings_suggestions": sug, "allocation_headline": av.get("headline"), "account_words": ab.get("words"), "moves_today": [m.get("why") for m in (av.get("moves") or [])][:2]}
+            "holdings_suggestions": sug, "allocation_headline": av.get("headline"), "account_words": ab.get("words"), "moves_today": [m.get("why") for m in (av.get("moves") or [])][:2],
+            "managed_book": managed}
 
 
 def scorecard(rm: dict) -> dict:
@@ -397,6 +405,9 @@ def lines(f: dict) -> dict:
         plan.append("Your money: " + p["moves_today"][0] + ".")
     if p.get("holdings_suggestions"):
         plan.append("On your holdings it suggests: " + "; ".join(f"{x['action'].lower()} {x['symbol']}" for x in p["holdings_suggestions"][:3]) + ".")
+    mb = p.get("managed_book") or {}          # 30 Oct: the managed book acts on those suggestions on paper and buys replacements
+    if mb.get("brief"):
+        plan.append("The managed book (your holdings with the cuts replaced, on paper): " + mb["brief"])
     chances = [sc.get("words", "")]
     watch = []
     ex = s.get("expiry") or {}

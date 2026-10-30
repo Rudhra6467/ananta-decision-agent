@@ -168,7 +168,13 @@ def panel(name: str, df: pd.DataFrame, kind: str) -> dict:
                         "round": _f(math.ceil(last / step) * step if last % step else last + step)},
          "sr_basis": ("daily closes (index highs and lows are not in the reader)" if kind == "index" else "daily highs and lows") + f", pivots of {PIVOT} sessions each side in the last {SR_WINDOW}",
          "volume": vol if kind == "stock" else {"note": "not available: Kite reports 0 volume for indices"},
-         "big_jump": jump[0] if jump else None}
+         "big_jump": jump[0] if jump else None,
+         # 30 Oct (Phase 4.5): the last 120 closes and the swing levels around the price, so the app can draw the chart with its support and
+         # resistance zones on request (display only; the same pivots as above)
+         "chart": {"dates": [str(d.date()) for d in dates.tail(120)], "closes": [_f(x) for x in c.tail(120)],
+                   "sma50": [_f(x) if x == x else None for x in s50.tail(120)], "sma200": [_f(x) if x == x else None for x in s200.tail(120)],
+                   "support": [_f(v) for v, _i in sup[:3]], "resistance": [_f(v) for v, _i in res[:3]],
+                   "zone_width": _f(step / 2), "basis": "daily closes; a zone is a swing level plus or minus half a round step"}}
     p["words"] = words(p)
     return p
 

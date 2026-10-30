@@ -1672,6 +1672,7 @@
     "jarvis/india/marketcontext.py",
     "jarvis/india/askwords.py",
     "jarvis/india/askprompt.py",
+    "jarvis/india/knowledgemap.py",
     "jarvis/india/mind.py",
     "jarvis/india/replay.py",
     "jarvis/india/speaker.py",

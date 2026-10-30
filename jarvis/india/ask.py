@@ -18,7 +18,7 @@ from pathlib import Path
 
 import requests
 
-from jarvis.india import answerguide, appmap, askwords, lookup, marketcontext, mind, speaker, technicals, views, voiceid
+from jarvis.india import answerguide, appmap, askwords, knowledgemap, lookup, marketcontext, mind, speaker, technicals, views, voiceid
 
 # "my mom asks ...", "she wants to know ...": Madhav relaying for the guest, so his voice does not end the handover
 RELAY = re.compile(r"\b(?:my (?:mom|mother|amma|dad|father|nanna|pinni)|she|he|they|the grader)\s+(?:asks?|is asking|wants to know|says|said)\b", re.I)
@@ -263,6 +263,7 @@ def facts(owner: bool = False) -> dict:
             "reconstruction_last_night": {k: (rm.get("reconstruction") or {}).get(k) for k in ("headline", "people_words", "not_done_words", "league_words", "reviews", "findings")} | {"staircase": ((rm.get("reconstruction") or {}).get("staircase") or {}).get("words"),
                                           "meaning": "the nightly reconstruction card (what the market and other participants did, what Ananta did and did not do, trade reviews, findings); SAFE findings go to the repair board by themselves, DECISION findings wait for Madhav; the staircase says what the allocated capital may use (ADMITTED only; nothing yet)"},
             "teacher_libraries": _library_facts(),
+            "knowledge_map_summary": _map_summary(),     # 29 Oct: the one map's state (studies, variants, mismatches between layers)
             "technicals": technicals.facts_part(rm),     # 26 Oct: averages, crossovers, RSI, MACD, support/resistance, volume + what was tested
             "book_stats": book_stats_facts(rm),     # 26 Oct (Madhav: yes to all): expectancy, Sharpe-like ratio, holdings correlation, slippage, each with its "too few" flag
             "market_context": marketcontext.facts_part(rm),     # 26 Oct: rupee, dollar, crude, US yields/indices, fear gauges, FII/DII: to explain, never to predict
@@ -293,6 +294,12 @@ def _rx1_trial() -> dict:
     except (OSError, ValueError):
         return {"words": "The RX1 paper trial starts with the 28 Oct close; its first scored session is 29 Oct."}
     return {k: d.get(k) for k in ("words", "scored", "need", "complete", "mean_diff", "history")}
+
+
+def _map_summary() -> dict:
+    m = knowledgemap._json(knowledgemap.OUT_JSON, {}) or {}
+    sm = m.get("summary") or {}
+    return {k: sm.get(k) for k in ("built_at", "studies", "variants", "gap_counts", "needs_yes", "words")} if sm else {"words": "the one map has not been built yet"}
 
 
 def _drafts_total() -> dict:
@@ -822,6 +829,8 @@ def _offline(question: str, f: dict, why: str) -> dict:
 
 
 ACT = re.compile(r"\b(buy|sell|place|book|exit|close|order|short)\b", re.I)
+MAP_TOPIC = re.compile(r"\b(?:tested|test|tests|study|studies|studied|research\w*|proved?|proven|validated|held up|evidence for|what do you know about|"
+                       r"have you (?:looked|checked)|does .{3,40} work|is .{3,40} real)\b", re.I)
 SYS_TOPIC = re.compile(r"\b(watch ?dog|health|repair|fix(?:es|ed)?|flags?|jobs?|restart\w*|broke\w*|breaks?|outage|down|stall\w*|monitor\w*|"
                        r"self[- ]heal\w*|alerts?|notif\w*|what happens (?:to|after)|deploy\w*)\b", re.I)
 SYSTEM_CARE = {
@@ -1052,6 +1061,15 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
     if SYS_TOPIC.search(text) or SYS_TOPIC.search(recent):   # 28 Oct (grader): the watchdog and a fix's life after it is built were not in the facts
         f["system_care"] = SYSTEM_CARE
+    if MAP_TOPIC.search(text):                                 # 29 Oct (the one map): "what have you tested about X?" is answered from one source
+        try:
+            rows = knowledgemap.lookup(text)
+            if rows:
+                f["knowledge_map"] = {"rows": rows, "meaning": "the one map: for each study, its verdict (VALIDATED/CONDITIONAL = held up, REJECTED = did not hold, "
+                                      "OPPOSITE = the reverse showed up, INCONCLUSIVE = too little data), whether it is at full scale, whether the paper "
+                                      "rules use it and how; quote these, in plain words, and say when a proved idea is not used by the paper rules yet"}
+        except Exception:  # noqa: BLE001
+            pass
     if wait is not None:                                       # 28 Oct: what waits for his yes, so "can you start on them?" is answered from it
         f["waiting_for_you"] = {"count": wait.get("count"), "line": wait.get("line"),
                                 "items": [{k: x.get(k) for k in ("title", "line", "say")} for x in (wait.get("items") or [])[:6]],
@@ -1086,7 +1104,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
-        per_turn = ("talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you")
+        per_turn = ("talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map")
         facts_text = (f"FACTS (India read model, data through {f.get('data_through')}). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"

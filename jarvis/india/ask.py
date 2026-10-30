@@ -226,7 +226,11 @@ def facts(owner: bool = False) -> dict:
     return {"data_through": rm.get("data_through"), "next_session": rm.get("next_session"), "built_at": rm.get("built_at"), "brief": rm.get("brief"),
             "latest_closes": latest_closes(rm),
             "market": {k: (rm.get("market") or {}).get(k) for k in ("nifty_close", "nifty_vs_sma50", "nifty_vs_sma200", "trend_state", "vix_close", "breadth_200d_liquid", "words")},
-            "daily_call": call_state(rm),
+            "daily_call": {**call_state(rm),
+                           # 30 Oct outside grade (jd2, lv2, cv1.2): two records with near-identical numbers were read as one. They are two things:
+                           "not_the_same_as": "the morning view's 'rule forecast' (base-rate odds for up/down/flat, no skill claimed, scored by error score) "
+                                              "is a different record from this daily call (an up-or-down call from a mechanical rule, scored by hits). "
+                                              "Quote one, name it, never add them up."},
             "stock_book": {"rules": sb.get("rules"), "open_positions": sb.get("open_positions"),
                            # flag 44 (26 Oct): a win rate over closed trades alone hides the open winners; always say the two counts together
                            "closed_vs_open": sb.get("closed_vs_open"),
@@ -239,7 +243,10 @@ def facts(owner: bool = False) -> dict:
                            "by_campaign": {c: {**{k: m.get(k) for k in ("open", "closed", "realised_inr", "open_unrealised_inr", "win_rate")},
                                                "avg_pct_per_closed_trade": views.per_trade_pct(m)} for c, m in marks.items()},
                            "campaign_meaning": views.CAMPAIGN_WHY, "top_positions": [{"symbol": p["coin"], "campaign": p["campaign"], "since": p["since"], "pnl_pct": p["pnl_pct"]} for p in pos[:12]],
-                           "recent_closed": [{"symbol": c["coin"], "campaign": c["campaign"], "net_inr": c["net_usd"], "why": c["why"], "exit_date": c["exit_date"]} for c in views.closed_trades(8)]},
+                           "recent_closed": [{"symbol": c["coin"], "campaign": c["campaign"], "net_inr": c["net_usd"], "why": c["why"], "exit_date": c["exit_date"]} for c in views.closed_trades(8)],
+                           # 30 Oct outside grade (sy7): "why did the book buy ACUTAAS?" could not find a buy from two sessions before; the last five
+                           # sessions' practice buys stay in the facts with the numbers they were bought on
+                           "recent_buys": _recent_buys(5)},
             "decisions_for_next_session": {"rules": d.get("rules"), "decided_at": d.get("decided_at"), "candidates": d.get("candidates"),
                                            "stale_inputs": d.get("inputs"),
                                            # 26 Oct chat: "the Nifty input is marked stale (last row 22 Oct)" was repeated in every answer as if the market
@@ -476,6 +483,9 @@ def _alloc_facts() -> dict:
             "holdings_ranked": [{"rank": x["rank"], "symbol": x["symbol"], "grade": x["grade"], "score": x["score"], "action": x["action"], "value_inr": x["value_inr"], "weight_pct": x["weight_pct"],
                                  "pnl_pct": x["pnl_pct"], "suggest_inr": x["suggest_inr"], "why": x["why"], "wrong_if": x["wrong_if"]} for x in p.get("holdings", [])],
             "paper_moves_today": p.get("moves"), "moves_applied": p.get("moves_applied"), "watching": p.get("watch"), "snapshot": p.get("snapshot"),
+            # 30 Oct outside grade (lv3 vs jd3 named two and four holdings to cut): one list, in one order, for every answer
+            "cut_list": [x["symbol"] for x in p.get("holdings", []) if x.get("action") in ("REDUCE", "TRIM")],
+            "cut_list_rule": "the holdings to cut are exactly cut_list (REDUCE or TRIM), in this order; TIDY and WATCH are not cuts",
             # 30 Oct (Phase 5): the twin against the frozen holdings and the Nifty 500, one row a session; nothing read into the gap before 60 sessions
             "twin_vs_frozen_vs_nifty500": _twin_benchmark(),
             "meaning": "advisory = options fixed at Rs 50,000, stocks as in the account, Ananta rates/ranks/suggests and moves nothing; autonomous = Ananta moves capital between stocks, options and cash on paper inside the regime table; grades A>=70, B>=55, C>=40, D below",
@@ -1803,6 +1813,23 @@ def book_flow(text: str) -> dict | None:
 
 
 DECIDE_Q = re.compile(r"^\s*(?:hey ananta,?\s*)?what (?:did you|have you|has ananta|did ananta) (?:decide|decided|pick|picked|choose|chosen)\b[^?]{0,20}\b(?:next|tomorrow'?s?|monday'?s?|the) (?:session|open|day)\b[^?]{0,20}\??\s*$", re.I)
+
+
+def _recent_buys(n_sessions: int = 5) -> list[dict]:
+    """The practice buys of the last n decision days, with the numbers each was bought on (from the decision journal), newest first."""
+    out = []
+    try:
+        st = json.loads((DATA / "paper" / "state.json").read_text())
+        days = sorted(st.get("decisions") or {})[-n_sessions:]
+        for d in reversed(days):
+            dec = json.loads((DATA / "paper" / "decisions" / f"{d}.json").read_text())
+            for r in dec.get("journal") or []:
+                if r.get("status") == "chosen":
+                    out.append({"decided_on": d, "symbol": r.get("symbol"), "campaign": r.get("campaign"), "close": r.get("close"), "rsi14": r.get("rsi14"),
+                                "dist_sma50": r.get("dist_sma50"), "ret_20": r.get("ret_20"), "why": r.get("why")})
+    except (OSError, ValueError):
+        pass
+    return out[:60]
 
 
 def call_state(rm: dict) -> dict:

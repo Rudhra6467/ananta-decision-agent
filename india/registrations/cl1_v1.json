@@ -30,9 +30,9 @@
    "small_lead": "Nifty Smallcap 100 / Nifty 100 above its 50-day average",
    "breadth_thrust": "share above the 200-day up 20 points in 10 sessions"
   },
-  "interaction": "per calendar quarter: mean net 20-session return of trades with both on, minus the larger of (mean with the stock setup on, any market) and (mean with the market state on, any stock); quarters with fewer than 5 trades in any of the three groups are skipped",
+  "interaction": "v2 (30 Oct, before any conclusion was drawn; the v1 'both minus the larger single' was biased downward and the control showed it): per calendar quarter, mean net 20-session return of trades with both on, minus the mean of trades with the market state on and the setup off (the setup's added value given the state); quarters with fewer than 5 trades in either group are skipped; the state's added value given the setup (both minus setup-on-state-off) is reported beside it and the shortlist needs both positive in validation",
   "plateau": "the interaction re-computed at the loose and the tight threshold of the stock setup; a pair 'holds on a plateau' when the validation-period interaction is positive at all three settings (reported in extra, not part of the verdict)",
-  "consistency": "share of calendar years (with at least 10 both-on trades) in which the both-on mean beat the better single (reported)",
+  "consistency": "share of calendar years (with at least 10 both-on trades) in which the both-on mean beat the state-alone mean (reported)",
   "control": "for each market state, a random stock flag drawn once with a fixed seed at the base setup's frequency (about the share of trades flagged by not_extended), paired the same way: expected 0"
  },
  "statistics": {
@@ -57,6 +57,6 @@
   "washout60|nifty_gt200d": 1, "washout60|breadth_lt30": 1, "washout60|vix_gt20": 1, "washout60|small_lead": 1, "washout60|breadth_thrust": 1,
   "RANDOM|nifty_gt200d": 0, "RANDOM|breadth_lt30": 0, "RANDOM|vix_gt20": 0, "RANDOM|small_lead": 0, "RANDOM|breadth_thrust": 0
  },
- "rating": "a pair is rated for a 20-session paper trial only if its verdict is VALIDATED or CONDITIONAL, it holds on the plateau, and its consistency is at least 60%; the top pairs by validation t among those (at most 10) are the shortlist",
+ "rating": "a pair is rated for a 20-session paper trial only if its verdict is VALIDATED or CONDITIONAL, it holds on the plateau, both added values are positive in validation, and its consistency is at least 60%; the top pairs by validation t among those (at most 10) are the shortlist",
  "not_claimed": "A shortlisted pair goes to a 20-session paper trial (a filter on the existing campaigns, never a new book) and then to Madhav's yes; nothing here changes a rule. The lab is bounded by design: no further pairs or thresholds will be added to this version."
 }

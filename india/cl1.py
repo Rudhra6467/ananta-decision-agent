@@ -79,26 +79,33 @@ def _interaction(tr: pd.DataFrame, s_on: pd.Series, m_on: pd.Series) -> tuple[pd
     t = tr[ok]
     s, m = s_on[ok].astype(bool), m_on[ok].astype(bool)
     both = s & m
-    g = pd.DataFrame({"q": t["q"], "y": t["y"], "r": t["net_ret"], "both": both, "s": s, "m": m})
-    agg = {}
-    for name, flag in (("both", both), ("s", s), ("m", m)):
-        x = g[flag].groupby("q")["r"].agg(["mean", "size"])
-        agg[name] = x
-    idx = agg["both"].index.intersection(agg["s"].index).intersection(agg["m"].index)
+    m_only, s_only = m & ~s, s & ~m
+    g = pd.DataFrame({"q": t["q"], "y": t["y"], "r": t["net_ret"], "both": both, "m_only": m_only, "s_only": s_only})
+    # 30 Oct, v2: the v1 metric (both minus the larger of the two single means) was biased downward: the larger of two noisy means sits above
+    # either's expectation, and the random control came out "VALIDATED" negative. The verdict stat is now the setup's added value given the
+    # state: mean(both) - mean(state on, setup off), an ordinary on/off comparison; the state's added value given the setup is reported beside it.
+    agg = {name: g[flag].groupby("q")["r"].agg(["mean", "size"]) for name, flag in (("both", both), ("m_only", m_only), ("s_only", s_only))}
+    idx = agg["both"].index.intersection(agg["m_only"].index)
     rows = []
     for q in idx:
-        b, sa, ma = agg["both"].loc[q], agg["s"].loc[q], agg["m"].loc[q]
-        if min(b["size"], sa["size"], ma["size"]) < MIN_SIDE:
+        b, mo = agg["both"].loc[q], agg["m_only"].loc[q]
+        if min(b["size"], mo["size"]) < MIN_SIDE:
             continue
-        rows.append((q, b["mean"] - max(sa["mean"], ma["mean"])))
+        rows.append((q, b["mean"] - mo["mean"]))
     ser = pd.Series({q: v for q, v in rows}, dtype=float)
-    # consistency by year
+    idx2 = agg["both"].index.intersection(agg["s_only"].index)
+    rows2 = [(q, agg["both"].loc[q, "mean"] - agg["s_only"].loc[q, "mean"]) for q in idx2 if min(agg["both"].loc[q, "size"], agg["s_only"].loc[q, "size"]) >= MIN_SIDE]
+    ser2 = pd.Series({q: v for q, v in rows2}, dtype=float)
+    # consistency by year: both-on beats the state alone
     yb = g[both].groupby("y")["r"].agg(["mean", "size"])
-    ys, ym = g[s].groupby("y")["r"].mean(), g[m].groupby("y")["r"].mean()
-    years = [y for y in yb.index if yb.loc[y, "size"] >= MIN_YEAR_TRADES and y in ys.index and y in ym.index]
-    wins = sum(1 for y in years if yb.loc[y, "mean"] > max(ys[y], ym[y]))
-    info = {"n_both": int(both.sum()), "n_s": int(s.sum()), "n_m": int(m.sum()), "mean_both": float(g.loc[both, "r"].mean()) if both.any() else None,
-            "mean_s": float(g.loc[s, "r"].mean()) if s.any() else None, "mean_m": float(g.loc[m, "r"].mean()) if m.any() else None,
+    ym = g[m_only].groupby("y")["r"].mean()
+    years = [y for y in yb.index if yb.loc[y, "size"] >= MIN_YEAR_TRADES and y in ym.index]
+    wins = sum(1 for y in years if yb.loc[y, "mean"] > ym[y])
+    v2 = ser2[[q.year >= SPLIT for q in ser2.index]] if len(ser2) else ser2
+    info = {"n_both": int(both.sum()), "n_state_only": int(m_only.sum()), "n_setup_only": int(s_only.sum()),
+            "mean_both": float(g.loc[both, "r"].mean()) if both.any() else None,
+            "mean_state_only": float(g.loc[m_only, "r"].mean()) if m_only.any() else None, "mean_setup_only": float(g.loc[s_only, "r"].mean()) if s_only.any() else None,
+            "state_given_setup_val": {"mean": float(v2.mean()) if len(v2) else None, "t": _stat(v2)[1], "q": int(len(v2))},
             "years_scored": len(years), "consistency": (wins / len(years)) if years else None}
     return ser, info
 
@@ -130,6 +137,7 @@ def results(counts_only: bool = False) -> dict:
                     plat[k] = {"val_mean": float(v2.mean()) if len(v2) else None, "val_t": _stat(v2)[1], "dev_mean": float(d2.mean()) if len(d2) else None}
                 extra["plateau"] = plat
                 extra["plateau_holds"] = bool(len(val) and val.mean() > 0 and all((plat[k]["val_mean"] or 0) > 0 for k in plat))
+                extra["synergy_both_ways_val"] = bool(len(val) and val.mean() > 0 and (info["state_given_setup_val"]["mean"] or 0) > 0)
             out[key] = {"dev": _stat(dev), "val": _stat(val), "extra": extra}
     return out
 
@@ -164,7 +172,7 @@ def shortlist(rows: list[dict]) -> list[dict]:
     ok = []
     for r in rows:
         e = r["extra"] or {}
-        if r["verdict"] in ("VALIDATED", "CONDITIONAL") and e.get("plateau_holds") and (e.get("consistency") or 0) >= 0.6 and not r["variant"].startswith("RANDOM"):
+        if r["verdict"] in ("VALIDATED", "CONDITIONAL") and e.get("plateau_holds") and e.get("synergy_both_ways_val") and (e.get("consistency") or 0) >= 0.6 and not r["variant"].startswith("RANDOM"):
             ok.append({"variant": r["variant"], "verdict": r["verdict"], "val_t": r["val"][1], "val_mean": r["val"][0], "consistency": e.get("consistency"), "n_both": e.get("n_both")})
     return sorted(ok, key=lambda x: -(x["val_t"] or 0))[:10]
 
@@ -178,8 +186,9 @@ def table(out: dict | None = None) -> Path:
     s = spec()
     L = [f"# CL1 results: {s['title']}", "", f"Registered {out['registered_at']} (spec `cl1_v1.json`, written before the run); family {s['family']}, "
          f"k = {out['k']}, z = {registry.threshold(out['k']):.2f}. Development 2000-2017, validation 2018-2023; nothing from 2024 on. HISTORICAL BACKTEST, paper only.", "",
-         "The interaction = mean net 20-session return with both on, minus the better of the two singles, per quarter; t across quarters. Plateau = the same at the "
-         "loose and tight thresholds of the stock setup (validation period). Consistency = share of years in which both-on beat the better single.", ""]
+         "The verdict stat (v2) = mean net 20-session return with both on, minus the mean with the market state on and the setup off, per quarter; t across quarters "
+         "(the setup's added value given the state). The state's added value given the setup is in the manifest; the shortlist needs both positive in validation. "
+         "Plateau = the same at the loose and tight thresholds of the stock setup (validation period). Consistency = share of years in which both-on beat the state alone.", ""]
     if TAKEAWAY:
         L += ["## In plain words", ""] + TAKEAWAY + [""]
     sl = out.get("shortlist") or []

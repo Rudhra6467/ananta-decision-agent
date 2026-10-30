@@ -456,6 +456,14 @@ def allocation_rule_facts() -> dict:
             "decided": a.get("decided"), "version": a.get("version")}
 
 
+def _twin_benchmark() -> dict:
+    try:
+        v = json.loads((DATA / "paper" / "account" / "view.json").read_text()).get("benchmark") or {}
+        return {k: v.get(k) for k in ("day", "sessions", "twin_ret_pct", "frozen_ret_pct", "nifty500_ret_pct", "twin_minus_frozen_pct", "words")}
+    except (OSError, ValueError):
+        return {"words": "the twin's benchmark row is not built yet"}
+
+
 def _alloc_facts() -> dict:
     p = views.allocation_plan(full=True)
     if not p.get("ready"):
@@ -464,6 +472,8 @@ def _alloc_facts() -> dict:
             "holdings_ranked": [{"rank": x["rank"], "symbol": x["symbol"], "grade": x["grade"], "score": x["score"], "action": x["action"], "value_inr": x["value_inr"], "weight_pct": x["weight_pct"],
                                  "pnl_pct": x["pnl_pct"], "suggest_inr": x["suggest_inr"], "why": x["why"], "wrong_if": x["wrong_if"]} for x in p.get("holdings", [])],
             "paper_moves_today": p.get("moves"), "moves_applied": p.get("moves_applied"), "watching": p.get("watch"), "snapshot": p.get("snapshot"),
+            # 30 Oct (Phase 5): the twin against the frozen holdings and the Nifty 500, one row a session; nothing read into the gap before 60 sessions
+            "twin_vs_frozen_vs_nifty500": _twin_benchmark(),
             "meaning": "advisory = options fixed at Rs 50,000, stocks as in the account, Ananta rates/ranks/suggests and moves nothing; autonomous = Ananta moves capital between stocks, options and cash on paper inside the regime table; grades A>=70, B>=55, C>=40, D below",
             # 25 Oct chat: "JIOFIN Rs 9,900 into cash" (the day's move) and "sell half of JIOFIN, about Rs 12,200" (the suggestion) both came out as
             # "the plan" in two answers ten minutes apart. They are two different things and are now named apart.

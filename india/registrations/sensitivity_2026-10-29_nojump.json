@@ -1,0 +1,247 @@
+{
+ "compared": 204,
+ "same": 191,
+ "changed": [
+  {
+   "study": "E02-BRK",
+   "variant": "hold_10d",
+   "before": "REJECTED",
+   "after": "OPPOSITE",
+   "dev_t": [
+    -0.59,
+    -1.76
+   ],
+   "val_t": [
+    0.68,
+    -0.03
+   ]
+  },
+  {
+   "study": "E02-BRK",
+   "variant": "hold_60d",
+   "before": "REJECTED",
+   "after": "OPPOSITE",
+   "dev_t": [
+    -1.4,
+    -1.65
+   ],
+   "val_t": [
+    0.6,
+    -0.03
+   ]
+  },
+  {
+   "study": "E02-BRK",
+   "variant": "swing_low_10",
+   "before": "OPPOSITE",
+   "after": "REJECTED",
+   "dev_t": [
+    -1.68,
+    -1.61
+   ],
+   "val_t": [
+    -2.41,
+    -2.34
+   ]
+  },
+  {
+   "study": "E02-PULL",
+   "variant": "target_2R",
+   "before": "REJECTED",
+   "after": "OPPOSITE",
+   "dev_t": [
+    -1.64,
+    -1.73
+   ],
+   "val_t": [
+    -3.55,
+    -3.65
+   ]
+  },
+  {
+   "study": "E02-ANY",
+   "variant": "swing_low_5",
+   "before": "REJECTED",
+   "after": "OPPOSITE",
+   "dev_t": [
+    -0.66,
+    -2.17
+   ],
+   "val_t": [
+    -0.89,
+    -1.97
+   ]
+  },
+  {
+   "study": "E02-ANY",
+   "variant": "swing_low_10",
+   "before": "OPPOSITE",
+   "after": "REJECTED",
+   "dev_t": [
+    -2.92,
+    -1.48
+   ],
+   "val_t": [
+    -1.01,
+    -2.42
+   ]
+  },
+  {
+   "study": "E04-BRK",
+   "variant": "ext_ret20_gt25|hold_20d",
+   "before": "CONDITIONAL",
+   "after": "INCONCLUSIVE",
+   "dev_t": [
+    -2.72,
+    -2.57
+   ],
+   "val_t": [
+    -3.5,
+    -3.24
+   ]
+  },
+  {
+   "study": "E04-ANY",
+   "variant": "ext_ret20_gt25|swing_low_20",
+   "before": "INCONCLUSIVE",
+   "after": "VALIDATED",
+   "dev_t": [
+    -3.14,
+    -3.45
+   ],
+   "val_t": [
+    -3.44,
+    -3.47
+   ]
+  },
+  {
+   "study": "E04-ANY",
+   "variant": "decline_ret60_lt_m30|hold_60d",
+   "before": "REJECTED",
+   "after": "INCONCLUSIVE",
+   "dev_t": [
+    1.5,
+    2.21
+   ],
+   "val_t": [
+    0.69,
+    0.45
+   ]
+  },
+  {
+   "study": "P01-ANY",
+   "variant": "rsi_lt30|hold_20d",
+   "before": "VALIDATED",
+   "after": "CONDITIONAL",
+   "dev_t": [
+    4.21,
+    4.62
+   ],
+   "val_t": [
+    3.43,
+    2.91
+   ]
+  },
+  {
+   "study": "P01-ANY",
+   "variant": "rsi_lt30|hold_60d",
+   "before": "INCONCLUSIVE",
+   "after": "CONDITIONAL",
+   "dev_t": [
+    2.63,
+    3.54
+   ],
+   "val_t": [
+    2.54,
+    2.45
+   ]
+  },
+  {
+   "study": "P01-ANY",
+   "variant": "rsi_lt30|sma_close_50",
+   "before": "INCONCLUSIVE",
+   "after": "CONDITIONAL",
+   "dev_t": [
+    2.78,
+    3.53
+   ],
+   "val_t": [
+    2.77,
+    2.61
+   ]
+  },
+  {
+   "study": "P01-ANY",
+   "variant": "rsi_lt30|swing_low_20",
+   "before": "INCONCLUSIVE",
+   "after": "CONDITIONAL",
+   "dev_t": [
+    2.82,
+    3.78
+   ],
+   "val_t": [
+    2.53,
+    2.3
+   ]
+  }
+ ],
+ "not_rerun": [],
+ "per_study": {
+  "E02-BRK": {
+   "same": 15,
+   "changed": 3
+  },
+  "E02-PULL": {
+   "same": 17,
+   "changed": 1
+  },
+  "E02-ANY": {
+   "same": 16,
+   "changed": 2
+  },
+  "E04-BRK": {
+   "same": 19,
+   "changed": 1
+  },
+  "E04-PULL": {
+   "same": 20,
+   "changed": 0
+  },
+  "E04-ANY": {
+   "same": 18,
+   "changed": 2
+  },
+  "V01": {
+   "same": 4,
+   "changed": 0
+  },
+  "P01-BRK": {
+   "same": 20,
+   "changed": 0
+  },
+  "P01-PULL": {
+   "same": 20,
+   "changed": 0
+  },
+  "P01-ANY": {
+   "same": 16,
+   "changed": 4
+  },
+  "T-TWT-H10": {
+   "same": 9,
+   "changed": 0
+  },
+  "T-TWT-H12": {
+   "same": 5,
+   "changed": 0
+  },
+  "T-TWT-H18": {
+   "same": 2,
+   "changed": 0
+  },
+  "GP1": {
+   "same": 10,
+   "changed": 0
+  }
+ }
+}

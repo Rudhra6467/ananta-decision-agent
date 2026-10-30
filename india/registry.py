@@ -154,7 +154,8 @@ def record(reg: dict, variant: str, dev: tuple, val: tuple, extra: dict | None =
     if code_id and code.get("dirty_fingerprint"):
         code_id += f"+dirty:{code['dirty_fingerprint']}"
     line = {"kind": "result", "study": reg["study"], "family": fam, "variant": variant, "k_in_family": k, "k_source": k_src, "z": round(z, 3), "dev": list(dev), "val": list(val),
-            "verdict": v, "rule": rule, "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "registered_at": reg.get("at"),
+            "verdict": v, "rule": rule, "expect": int(expect), "extra": extra or {}, "at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "registered_at": reg.get("at"),
+            # 29 Oct audit: the expected direction is written with the row, so any verdict can be recomputed from the row alone (rows before this date lack it)
             # 25 Oct audit: uncommitted code shows as git+dirty fingerprint, so a result can always be traced to the exact code that made it
             "code": code_id}
     if reg.get("version"):

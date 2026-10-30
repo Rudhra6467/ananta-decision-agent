@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import os
 import re
 import threading
@@ -39,9 +40,41 @@ def _key(sents: list[str], voice: str, speed: float) -> str:
     return hashlib.sha1(("|".join(sents) + f"|{voice}|{speed}").encode()).hexdigest()[:16]
 
 
+# 30 Oct (Madhav: "it's about you pronouncing them ... while saying you have to say Jio Financial"): the screen keeps the ticker, the voice says
+# the company name. Applied to every India sentence just before it is made into audio, so the shown text, the sentence count and the
+# highlights are unchanged. Letters said one by one are spaced ("I E X"), never dotted, so a sentence does not split. ~/ananta_data/india/
+# say_names.json (ticker -> spoken name) adds to or overrides this list without a code change.
+SAY_NAMES = {"JIOFIN": "Jio Financial", "TATAPOWER": "Tata Power", "TATACHEM": "Tata Chemicals", "TATAMOTORS": "Tata Motors",
+             "TMPV": "Tata Motors Passenger Vehicles", "TMCV": "Tata Motors Commercial Vehicles", "MARICO": "Marico", "NATIONALUM": "National Aluminium",
+             "IDEA": "Vodafone Idea", "LICI": "L I C", "UNITDSPR": "United Spirits", "KARURVYSYA": "Karur Vysya Bank", "IRFC": "I R F C", "IEX": "I E X",
+             "NETWORK18": "Network Eighteen", "ADANIPORTS": "Adani Ports", "GESHIP": "G E Shipping", "KOTAKBANK": "Kotak Bank", "IFCI": "I F C I",
+             "HDFCBANK": "H D F C Bank", "ICICIBANK": "I C I C I Bank", "SBIN": "State Bank of India", "RELIANCE": "Reliance", "INFY": "Infosys",
+             "TCS": "T C S", "ITC": "I T C", "LT": "L and T", "HINDUNILVR": "Hindustan Unilever", "BHARTIARTL": "Bharti Airtel", "AXISBANK": "Axis Bank",
+             "BAJFINANCE": "Bajaj Finance", "MARUTI": "Maruti", "SUNPHARMA": "Sun Pharma", "ONGC": "O N G C", "NTPC": "N T P C", "COALINDIA": "Coal India",
+             "POWERGRID": "Power Grid", "ULTRACEMCO": "Ultratech Cement", "ASIANPAINT": "Asian Paints", "WIPRO": "Wipro", "HCLTECH": "H C L Tech",
+             "TECHM": "Tech Mahindra", "TITAN": "Titan", "NESTLEIND": "Nestle India", "BANKNIFTY": "Bank Nifty", "FINNIFTY": "Fin Nifty"}
+_say_rx: tuple[re.Pattern, dict] | None = None
+
+
+def say_names(text: str) -> str:
+    """The spoken form of a sentence: tickers replaced by company names (SAY_NAMES plus say_names.json). Whole words only, case kept out
+    of it (JIOFIN, Jiofin), and a possessive stays ("JIOFIN's" -> "Jio Financial's")."""
+    global _say_rx
+    if _say_rx is None:
+        m = dict(SAY_NAMES)
+        try:
+            extra = json.loads((Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "say_names.json").read_text())
+            m.update({str(k).upper(): str(v) for k, v in extra.items() if v})
+        except Exception:  # noqa: BLE001 - no file, or a bad one: the built-in list
+            pass
+        _say_rx = (re.compile(r"\b(" + "|".join(sorted(map(re.escape, m), key=len, reverse=True)) + r")\b"), m)
+    rx, m = _say_rx
+    return rx.sub(lambda mo: m.get(mo.group(1).upper(), mo.group(1)), text or "")
+
+
 def _speak(sents: list[str], speed: float = 1.0, post=None, tail: float = 0.0) -> dict:
     post = post or (lambda url, body: requests.post(url, json=body, timeout=300).json())
-    body = {"sentences": sents, "voice": INDIA_VOICE, "speed": max(0.6, min(1.5, float(speed or 1.0)))}
+    body = {"sentences": [say_names(x) for x in sents], "voice": INDIA_VOICE, "speed": max(0.6, min(1.5, float(speed or 1.0)))}
     if tail:
         body["tail"] = tail
     j = post(f"{VOICE_URL}/speak", body)

@@ -154,3 +154,16 @@ def test_claude_caches_the_facts_as_a_second_system_part(monkeypatch):
     monkeypatch.setattr(ia, "_claude", lambda system, history, user, post=None: got.append(user) or ("{}", {"model": "fake"}))
     ia._call("SYS", [], "OLD USER WITH FACTS", cached=("FACTS BLOCK", "QUESTION ONLY"))
     assert got == ["OLD USER WITH FACTS"]
+
+
+def test_the_voice_says_company_names_but_the_screen_keeps_the_ticker():
+    """30 Oct (Madhav: "it's about you pronouncing them"): tickers are spoken as company names; the shown text and the sentence count are unchanged."""
+    fake = FakeVoice()
+    text = "Sell half of JIOFIN (about Rs 12,200) and trim TATAPOWER. IEX and IDEA are tiny. KOTAKBANK's RSI is 69."
+    key = iv.start_stream([text], 1.0, fake, background=False)
+    said = [x for c in fake.calls for x in c["sentences"]]
+    assert said[0].startswith("Sell half of Jio Financial (about Rs 12,200) and trim Tata Power.")
+    assert "I E X and Vodafone Idea are tiny." in said and "Kotak Bank's RSI is 69." in said
+    assert len(said) == len(iv.sentences([text])) == 3
+    assert iv._streams[key]["sents"][0].startswith("Sell half of JIOFIN")            # the shown sentences keep the tickers
+    assert iv.say_names("The Nifty and Bank Nifty closed up; MARICO held.") == "The Nifty and Bank Nifty closed up; Marico held."

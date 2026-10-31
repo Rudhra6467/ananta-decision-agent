@@ -19,7 +19,8 @@ import json
 import sys
 from pathlib import Path
 
-from india import paths, sealed
+from india import paths   # india.sealed (duckdb) is imported inside _closes only: the India web service seals plans without duckdb, and the name
+                         # sealed at module level is the plan check below (a module-level import was shadowed by it)
 
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 STANCES = ("trade_as_planned", "stand_down", "reduce_risk")
@@ -63,6 +64,8 @@ def _closes():
     """Close per (symbol, date) on live paper days: stocks through the shadow's own sealed reader (purpose shadow_score, admitted in the leak
     check by Madhav's yes of 30 Oct 2026) and the two indices through the paper-context reader, so index and stock watch names are both scored."""
     import pandas as pd
+
+    from india import sealed   # the module, not the plan check of the same name above
     parts = []
     try:
         parts.append(sealed.read_shadow("shadow_score", SHADOW_START))

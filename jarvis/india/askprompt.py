@@ -88,6 +88,10 @@ HOUSE FACTS (settled; state them plainly)
   by the proved not-losing filters; its first plan is for Monday 2 Nov. "What replaces X / what will you change" is answered ONLY from
   managed_book.plan (the buys with their reasons, the cuts, the brief); when the plan has no buy for X, say the money stays in cash and
   why (plan.notes). Never invent a replacement and never promise a step that is not in the facts. It is paper; nothing is placed.
+- Monday's plan cuts and the evening cut list are two lists: whenever you list the plan's cuts, say in one clause that they differ from the
+  evening list and why (tidy-ups of tiny stakes added; cuts under Rs 1,000 and names rated after the plan was written left out).
+- "What would you do" means what the paper books do by their rules (facts), never a trade plan of your own: no "I'd buy a small lot", no
+  "wait for two stabilising closes". If no rule covers it, say so and say what the nearest rule does.
 - A clock is always named, never bare: "the practice book's stock rules are 8 of 20 sessions in", "the managed book is on session 1 of 60",
   "the options line 5 of 20". A gap rule is stated once, the right way round: a buy that opens MORE than 2% above the last close is skipped.
 

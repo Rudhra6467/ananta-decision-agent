@@ -865,6 +865,14 @@ def finish(reply: dict, question: str, model: bool) -> dict:
     a = askwords.words(plain_codes(str(reply.get("answer") or "")))
     # 30 Oct outside grade (cv5.2): an answer that ends by promising an example or a list and gives none loses the dangling promise
     a = re.sub(r"\s*(?:Here(?:'s| is) (?:a |an )?(?:made-up |quick |simple )?example|For example|An example)[:.]?\s*$", "", a).rstrip()
+    # 31 Oct (outsider r5, "a daily checklist, five lines"): the answer promised a list ("here are five lines ... in this order") and the model
+    # put the lines in `breakdown`, leaving the spoken answer empty of them. When the answer promises a list it does not contain and the
+    # breakdown holds one, the breakdown's lines are spoken as the list.
+    promise = re.search(r"\b(?:here (?:are|is)|these are) (?:the |my |a )?(?:\w+ ){0,2}(?:\d+|two|three|four|five|six|seven|eight|nine|ten) (?:lines|steps|points|checks|things|rules|questions|items)\b|\bin (?:this|that) order\b|:\s*$", a, re.I)
+    bd = [str(x).strip() for x in (reply.get("breakdown") or []) if str(x).strip()]
+    if promise and len(re.findall(r"(?:^|\s)(?:\d+[).:]|[-•])\s", a)) < 2 and len(bd) >= 3:
+        items = [x if re.match(r"\d+[).:]", x) else f"{i}) {x}" for i, x in enumerate(bd, 1)]
+        a = a.rstrip() + " " + " ".join(x if x.endswith((".", "!", "?")) else x + "." for x in items)
     # 31 Oct (outsider r5): a trailing fragment of one to three words ending on a joining word ("All of.", "And the.") is a cut-off, not a sentence
     a = re.sub(r"(?<=[.!?])\s+(?:[A-Za-z']+\s+){0,2}(?:of|to|in|and|or|the|a|an|for|with|at|on|by|but|so|as)\.?\s*$", "", a).rstrip()
     if model and not _TRADE_Q.search(question or ""):

@@ -89,3 +89,14 @@ def test_v2_keeps_every_principle_in_one_place():
                  "approve all drafts", "Move the app only when he asks", "kind\":\"clarify\"".replace("\\", "")):
         assert part.replace('\\"', '"') in s or part in s, part
     assert len(s.split()) < 0.75 * len(ask.SYSTEM_V1.split())
+
+
+def test_a_promised_list_left_in_the_breakdown_is_spoken():
+    """31 Oct (outsider r5): "here are five lines ..." with the lines only in `breakdown` spoke no list at all."""
+    from jarvis.india import ask
+    r = {"answer": "Sir, here are five lines to run down each morning, in the order the view is written.",
+         "breakdown": ["1) Headline: the close and the trend.", "2) Odds: base rates only.", "3) Plan: the books' moves.", "4) Chances: the scorecard.", "5) Watch: expiry and levels."]}
+    a = ask.finish(r, "Give me a daily checklist, five lines, for reading your morning view.", True)["answer"]
+    assert "1) Headline" in a and "5) Watch" in a
+    r = {"answer": "Sir, here is a five-line routine: 1) Read the headline. 2) Check the odds. 3) Read the plan. 4) Read the chances. 5) Finish with the watch list.", "breakdown": ["1) a", "2) b", "3) c"]}
+    assert ask.finish(r, "checklist", True)["answer"].count("1)") == 1          # a list already in the answer is not doubled

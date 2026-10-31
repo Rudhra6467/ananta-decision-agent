@@ -467,6 +467,18 @@ def allocation_rule_facts() -> dict:
             "decided": a.get("decided"), "version": a.get("version")}
 
 
+def _not_a_repeat(r: dict | None, thread: str) -> dict | None:
+    """31 Oct: an instant answer identical to the thread's last answer is dropped, so the model answers instead of the same text a second time
+    (the grader's "it's not connecting that RSI is 28" got the same chart reading back)."""
+    if not r:
+        return None
+    try:
+        last = next((m.get("answer") for m in reversed(thread_messages(thread)) if m.get("role") == "assistant"), None)
+    except Exception:  # noqa: BLE001
+        last = None
+    return None if last and str(r.get("answer") or "").strip() == str(last).strip() else r
+
+
 def _day_words_safe(d) -> str:
     try:
         return dt.date.fromisoformat(str(d)).strftime("%A %-d %b")
@@ -512,6 +524,9 @@ def _managed_book() -> dict:
                               "night: the reconstruction replays the day like a coach (what it held, missed, and what to look into), and the nightly exam re-asks the day's questions",
                               "08:30 IST: the morning view with the plan, the levels to watch and the managed book's brief; 09:15-10:15 IST: the options line decides one index lot",
                               "nothing is placed from chat at any step; all books are paper"],
+            "plan_vs_cut_list": ("two different lists, say them apart: cut_list (REDUCE or TRIM on the holdings) is the evening's advice; the managed plan's cuts are "
+                                 "that list's REDUCE/TRIM over Rs 1,000 PLUS the tidy-ups (TIDY: stakes too small to matter, sold whole), so the plan usually has more names"),
+            "stops_whose": "the 7% fixed stop belongs to the managed book's replacements only; the practice book's trades exit by their own rule's exit; the 5% day loss limit and the 22% pause are the survival rules of the research book",
             "clocks_named": "when citing a clock, name whose it is: the practice book's stock rules (20 sessions, started 30 Oct after the no-chase change), the options line (20), the managed book (60), the twin against the frozen portfolio (60)",
             "rule": "a replacement is chosen from the Nifty 500 by the proved not-losing filters (above its 50- and 200-day averages, not stretched, not a 40%-down name, calm, liquid, sector not over 25%), one per cut for the same rupees, at most three new names a week, a 7% fixed stop, a 20-session minimum hold; fills at the next open, a buy gapping over 2% is skipped; judged only after 60 sessions"}
 
@@ -1063,7 +1078,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         """The code answers, in order. commands=False leaves out every command flow (flags, picks, drafts, waiting, mode, navigation)."""
         return ((waiting_flow(t, wait) if (commands and owner_here) else None) or garbled_flow(t) or (nav_flow(t) if commands else None)
                 or (fix_flow(t, thread, token, context, post=flag_post, get=flag_get) if (commands and owner_here) else None)
-                or fragment_flow(t) or morning_flow(t, who) or technicals.technicals_flow(t) or marketcontext.market_context_flow(t)
+                or fragment_flow(t) or morning_flow(t, who) or _not_a_repeat(technicals.technicals_flow(t), thread) or marketcontext.market_context_flow(t)
                 or (allocation_flow(t, who) if (commands and owner_here) else None) or (_and_question(draft_flow(t, who), t) if commands else None)
                 or portfolio_flow(t, who) or mover_flow(t) or book_flow(t) or decide_flow(t))
 

@@ -169,3 +169,15 @@ def test_the_grader_gap_families_are_answered_from_the_registry(monkeypatch):
     assert "time decay hits hardest on expiry day" in _a("Is theta decay on expiry day tested?")
     assert "beat a random entry" in _a("Is the opening range breakout tested?")
     assert "does not carry to the close" in _a("Is the first 15 minutes tested?")
+
+
+def test_hypotheticals_decisions_and_comments_go_to_the_model(rm):
+    """31 Oct (the grader's morning): "if RSI's 28 on the daily, what does it say?" got Nifty's real RSI of 54 three times; a hypothetical, a
+    decision question or a comment is not a request for today's reading."""
+    for q in ["If RSI's 28 on the daily, what does it say?", "On a sideways day with low volume, what does it do? Trade or stay out?",
+              "Fair, but it's not connecting that RSI is 28, which is oversold territory. Next.",
+              "if the Nifty 50 closes more than 20% above its 50-day moving average, what's the typical edge or lack of it?",
+              "What would make it say no trade, not just chart reading?"]:
+        assert technicals.technicals_flow(q) is None, q
+    assert technicals.technicals_flow("What is Nifty's RSI?") is not None
+    assert technicals.technicals_flow("what does MACD say for nifty") is not None

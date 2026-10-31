@@ -467,6 +467,26 @@ def allocation_rule_facts() -> dict:
             "decided": a.get("decided"), "version": a.get("version")}
 
 
+def _day_words_safe(d) -> str:
+    try:
+        return dt.date.fromisoformat(str(d)).strftime("%A %-d %b")
+    except (TypeError, ValueError):
+        return "the next session"
+
+
+def _managed_mention(text: str) -> str:
+    """An order request naming a stock that is in the managed book's plan: say where it stands on paper."""
+    mb = _managed_book()
+    p = mb.get("plan") or {}
+    for b in p.get("buys") or []:
+        if re.search(r"\b" + re.escape(b["symbol"]) + r"\b", text, re.I) or re.search(re.escape(b["symbol"][:5]), text, re.I):
+            return f" {b['symbol']} is already in the managed book's paper plan for {_day_words_safe(p.get('for_session'))}: about Rs {float(b.get('inr') or 0):,.0f} at the open with a 7% stop. A real order would be yours to place."
+    for c in p.get("cuts") or []:
+        if re.search(r"\b" + re.escape(c["symbol"]) + r"\b", text, re.I):
+            return f" {c['symbol']} is on the managed book's paper cut list for {_day_words_safe(p.get('for_session'))}. A real order would be yours to place."
+    return ""
+
+
 def _managed_book() -> dict:
     """The managed paper book (india/managed.py): what it holds, today's fills, the plan for the next session, the clock. The answer to
     'what would you replace X with' and 'what will you change tomorrow' comes from plan.buys / plan.cuts, never invented."""
@@ -482,6 +502,17 @@ def _managed_book() -> dict:
                      "cuts": [{"symbol": x.get("symbol"), "kind": x.get("kind"), "inr": x.get("inr"), "why": x.get("why")} for x in p.get("cuts") or []],
                      "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons"), "also_considered": b.get("also_considered"), "stop_pct": b.get("stop_pct")} for b in p.get("buys") or []],
                      "notes": p.get("notes")},
+            "tracked": ("Two places. The replacement ledger scores every cut and every replacement 5 and 20 sessions after the fill: did the cut name fall "
+                        "(the cut was right), did the replacement rise, and replacement minus cut. And the daily benchmark row puts the managed book beside the "
+                        "twin (the allocator's paper copy of the account), the frozen portfolio (the holdings left as they were) and the Nifty 500; "
+                        "all four start from the same holdings. Both are under Your money; judged at session 60, nothing read before."),
+            "daily_process": ["evening (after the 15:30 IST close; 19:00 Toronto): the day's prices, flows and the Zerodha snapshot come in; every holding is re-rated and the cut list written",
+                              "then the managed book fills yesterday's plan at today's official open (a buy that opened more than 2% up is skipped), marks every position, checks the 7% stops, and writes tomorrow's plan: each cut's rupees into a replacement from the Nifty 500 by the proved filters",
+                              "then the research book records the next session's practice picks and the daily call; the replacement ledger is scored at +5 and +20 sessions",
+                              "night: the reconstruction replays the day like a coach (what it held, missed, and what to look into), and the nightly exam re-asks the day's questions",
+                              "08:30 IST: the morning view with the plan, the levels to watch and the managed book's brief; 09:15-10:15 IST: the options line decides one index lot",
+                              "nothing is placed from chat at any step; all books are paper"],
+            "clocks_named": "when citing a clock, name whose it is: the practice book's stock rules (20 sessions, started 30 Oct after the no-chase change), the options line (20), the managed book (60), the twin against the frozen portfolio (60)",
             "rule": "a replacement is chosen from the Nifty 500 by the proved not-losing filters (above its 50- and 200-day averages, not stretched, not a 40%-down name, calm, liquid, sector not over 25%), one per cut for the same rupees, at most three new names a week, a 7% fixed stop, a 20-session minimum hold; fills at the next open, a buy gapping over 2% is skipped; judged only after 60 sessions"}
 
 
@@ -1147,7 +1178,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     asks = "?" in text or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", text, re.I)
     if ACT.search(text) and not asks and re.search(r"\b(now|please|for me|this|it|today)\b", text, re.I) and len(text) < 90:
         reply = {"kind": "answer", "stage": "observation", "answer": "Paper only, sir: nothing is placed, changed or closed from chat. The stock book and the index line decide by their rules, and every decision is in the Home feed."
-                 + order_conflict(text),
+                 + order_conflict(text) + _managed_mention(text),
                  "breakdown": [], "evidence": ["India leakcheck: no order path exists in this service"], "assumption": "", "follow_ups": ["What did you decide for the next session?", "What are the guardrails?"],
                  "next_action": {}, "show": [], "options": [], "points": [], "actions": [], "ui": [], "route": "india"}
         usage = {"model": "rule"}
@@ -1478,7 +1509,10 @@ def bulk_draft_flow(text: str, who: str) -> dict | None:
         return _reply("Only Madhav decides on drafts.", [], [])
     d = views.drafts()["drafts"]
     if not d:
-        return _reply("No drafts are waiting for your yes, sir; nothing to approve.", ["What did you learn last night?"], [])
+        mb = _managed_book()
+        extra = (f" The managed book's plan for {_day_words_safe((mb.get('plan') or {}).get('for_session'))} needs no yes: it runs on paper by itself at the open."
+                 if mb.get("status") == "ok" and (mb.get("plan") or {}).get("brief") else "")
+        return _reply("No drafts are waiting for your yes, sir; nothing to approve." + extra, ["What did you learn last night?"], [])
     if not (explicit or skip):
         kinds = {}
         for x in d:

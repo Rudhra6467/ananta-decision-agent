@@ -106,14 +106,18 @@ def build() -> dict:
     # 5. your portfolio: the twin against the frozen holdings and the Nifty 500
     acc = (_load(D / "paper" / "account" / "view.json", {}) or {}).get("benchmark") or {}
     if acc.get("frozen_day"):
-        add("your portfolio's twin against the frozen original", "the allocator's paper changes beside your holdings left as they were, and the Nifty 500", acc["frozen_day"], 60,
-            _done(days, dt.date.fromisoformat(acc["frozen_day"]), through), acc.get("words"), judge="return and drawdown after costs; nothing read before 60 sessions")
+        # 31 Oct (outsider r5): the clock and the benchmark row must agree. Session 1 is the first session AFTER the frozen day (the snapshot
+        # is taken after that day's close), so the trial starts the next day and 'done' is the benchmark's own count.
+        start = next((d for d in days if d > dt.date.fromisoformat(acc["frozen_day"])), dt.date.fromisoformat(acc["frozen_day"]))
+        add("your portfolio's twin against the frozen original", "the allocator's paper changes beside your holdings left as they were, and the Nifty 500", start, 60,
+            int(acc.get("sessions") or _done(days, start, through)), acc.get("words"), judge="return and drawdown after costs; nothing read before 60 sessions")
 
     # 5b. the managed book (Madhav's yes, 30 Oct evening): the cuts replaced on paper
     mb = _load(D / "paper" / "managed" / "view.json", {}) or {}
     if mb.get("start_day"):
+        start = next((d for d in days if d > dt.date.fromisoformat(mb["start_day"])), dt.date.fromisoformat(mb["start_day"]))   # session 1 = the first plan's session
         add("the managed book (cuts replaced on paper)", "your holdings with each cut's money moved into a replacement chosen by the proved not-losing filters, beside the twin, the frozen original and the Nifty 500",
-            mb["start_day"], 60, int((mb.get("clock") or {}).get("sessions") or 0), mb.get("words"), judge="return and drawdown after costs against the frozen original; the replacement ledger (cut right, replacement rose); nothing read before 60 sessions")
+            start, 60, int((mb.get("clock") or {}).get("sessions") or 0), mb.get("words"), judge="return and drawdown after costs against the frozen original; the replacement ledger (cut right, replacement rose); nothing read before 60 sessions")
 
     # 6. the long-term tilt book
     fb = _load(D / "paper" / "factorbook" / "view.json", {}) or {}

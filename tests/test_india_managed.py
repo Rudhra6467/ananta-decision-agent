@@ -59,7 +59,7 @@ def test_the_plan_cuts_the_weak_names_and_buys_a_calm_replacement_before_the_ope
     assert p["buys"][0]["for_cut"] == "WEAK" and p["buys"][0]["inr"] == 5000 and "calm" in p["buys"][0]["why"]
     assert p["sha"] and p["prev_sha"] == "" and m.chain_ok()[0]
     assert "replaces WEAK" in p["brief"] and "7% stop" in p["brief"]
-    assert v["clock"]["sessions"] == 1 and v["clock"]["of"] == 60 and "session 60" in v["clock"]["words"]
+    assert v["clock"]["sessions"] == 0 and v["clock"]["of"] == 60 and "session 1 of 60 is Monday 2 Nov" in v["clock"]["words"]   # session 1 = the first plan's day
 
 
 def test_fills_at_the_next_open_with_the_no_chase_check_and_the_stop(world, monkeypatch):

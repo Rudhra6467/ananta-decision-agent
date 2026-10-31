@@ -489,13 +489,14 @@ def run(day: str | None = None) -> dict:
 def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, opened: bool = False) -> dict:
     value = value_of(book)
     start = float(book["start_inr"])
-    n = len(book["sessions"])
+    n = sessions_between(book["start_day"], day) if day > book["start_day"] else 0      # 31 Oct: session 1 is the first session the book trades (its first plan's day), not the evening it opened
     reps = [{"symbol": s, **{k: round(v, 2) if isinstance(v, float) else v for k, v in p.items()}, "value_inr": round(p["qty"] * p["last"]),
              "pnl_pct": round(100 * (p["last"] / p["avg"] - 1), 1), "held_sessions": sessions_between(p["entered"], day) if p.get("entered") and p["entered"] < day else 0}
             for s, p in book["positions"].items() if p.get("source") == "replacement"]
     ok, chain = chain_ok()
     clock = {"sessions": n, "of": c["judge_after_sessions"], "left": max(0, c["judge_after_sessions"] - n), "start_day": book["start_day"],
-             "words": f"Session {n} of {c['judge_after_sessions']} for the managed book; nothing is read into its result before session {c['judge_after_sessions']}."}
+             "words": (f"Session {n} of {c['judge_after_sessions']} for the managed book; nothing is read into its result before session {c['judge_after_sessions']}." if n
+                       else f"The managed book has not traded a session yet: session 1 of {c['judge_after_sessions']} is {_dw(next_session(dt.date.fromisoformat(day)).isoformat())}, its first plan's day.")}
     words = (f"The managed book (paper): ₹{value:,.0f}, {100 * (value / start - 1):+.2f}% since {book['start_day']}; "
              f"{len(reps)} replacement{'s' if len(reps) != 1 else ''} held, {sum(1 for t in book['trades'] if t.get('filled'))} fills so far. ")
     if filled:

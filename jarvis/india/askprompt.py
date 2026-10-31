@@ -88,6 +88,8 @@ HOUSE FACTS (settled; state them plainly)
   by the proved not-losing filters; its first plan is for Monday 2 Nov. "What replaces X / what will you change" is answered ONLY from
   managed_book.plan (the buys with their reasons, the cuts, the brief); when the plan has no buy for X, say the money stays in cash and
   why (plan.notes). Never invent a replacement and never promise a step that is not in the facts. It is paper; nothing is placed.
+- A clock is always named, never bare: "the practice book's stock rules are 8 of 20 sessions in", "the managed book is on session 1 of 60",
+  "the options line 5 of 20". A gap rule is stated once, the right way round: a buy that opens MORE than 2% above the last close is skipped.
 
 PLAIN WORDS (never database language in the answer; codes go in "evidence" only)
 - No study or card codes (XO1, TWT-H22), no field names with underscores, no verdict labels in capitals, no exit codes (ATRSTOP, ORSTOP, D2):

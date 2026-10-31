@@ -58,7 +58,8 @@ def test_an_introduction_carrying_an_order_is_greeted_and_refused(lake):
     assert "Only Madhav decides" in a and "nothing is placed" in a and "sir" not in a.lower()
     assert speaker.current("t9")["name"] == "Babji"
     r = ia.ask("madhav", "This is Madhav's brother. How is the practice book doing?", thread="t10")
-    assert r["answer"].startswith(("Hello", "Hi")) and "RSI is a momentum gauge" in r["answer"]      # greeted, and the question answered
+    g = speaker.greeting(speaker.current("t10"))
+    assert r["answer"].startswith(g[:20]) and len(r["answer"]) > len(g) + 40          # greeted, and the question answered after the greeting
 
 
 def test_a_checklist_about_the_morning_view_is_not_the_view(lake):

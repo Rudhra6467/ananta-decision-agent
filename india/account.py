@@ -292,7 +292,12 @@ def benchmark(book: dict, marks: dict) -> dict:
     rows = [json.loads(x) for x in p.read_text().splitlines() if x.strip()] if p.exists() else []
     rows = [r for r in rows if r.get("day") != day] + [row]
     p.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
-    sessions = len(rows)
+    try:                                   # 30 Oct outsider r4: "since 22 Oct (2 sessions)" counted benchmark rows, while the clock said 6: count trading days
+        from india import managed
+        sessions = managed.sessions_between(f["day"], str(day)) if day and str(day) > f["day"] else 0
+    except Exception:  # noqa: BLE001
+        sessions = len(rows)
+    row["sessions"] = sessions
     words = (f"Since {f['day']} ({sessions} session{'s' if sessions != 1 else ''}): the twin {row['twin_ret_pct']:+.2f}%, your holdings left as they were {row['frozen_ret_pct']:+.2f}%, "
              f"the Nifty 500 {row['nifty500_ret_pct']:+.2f}% (price index, dividends not in it). " if row.get("nifty500_ret_pct") is not None else
              f"Since {f['day']} ({sessions} sessions): the twin {row['twin_ret_pct']:+.2f}%, your holdings left as they were {row['frozen_ret_pct']:+.2f}%. ")

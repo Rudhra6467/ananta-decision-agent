@@ -512,7 +512,9 @@ def _managed_book() -> dict:
             "filled_today": [{k: t.get(k) for k in ("side", "symbol", "qty", "price", "skipped", "for_cut")} for t in v.get("filled_today") or []],
             "plan": {"for_session": p.get("for_session"), "brief": p.get("brief"), "no_change": p.get("no_change"), "error": p.get("error"),
                      "cuts": [{"symbol": x.get("symbol"), "kind": x.get("kind"), "inr": x.get("inr"), "why": x.get("why")} for x in p.get("cuts") or []],
-                     "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons"), "also_considered": b.get("also_considered"), "stop_pct": b.get("stop_pct")} for b in p.get("buys") or []],
+                     "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons"), "also_considered": b.get("also_considered"), "stop_pct": b.get("stop_pct"),
+                               **({"pooled_from": str(b.get("for_cut")).split("+"), "why_pooled": f"each of these cuts frees under Rs 3,000, too little for a name of its own, so together they buy one ({len(str(b.get('for_cut')).split('+'))} names: the tidy-ups plus any small reduce)"} if "+" in str(b.get("for_cut")) else {})}
+                              for b in p.get("buys") or []],
                      "notes": p.get("notes")},
             "tracked": ("Two places. The replacement ledger scores every cut and every replacement 5 and 20 sessions after the fill: did the cut name fall "
                         "(the cut was right), did the replacement rise, and replacement minus cut. And the daily benchmark row puts the managed book beside the "

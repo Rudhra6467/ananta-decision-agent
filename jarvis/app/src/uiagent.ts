@@ -108,6 +108,14 @@ export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).map((x)
 
 // Point at things in time with the words: spoken (voice: waits until the voice has finished or was stopped)
 // or paced by reading speed (text).
+// 1 Nov 2026 (the voice-first Ask): what is being spoken right now, sentence by sentence, for the screen to light the live sentence
+type Spoken = { parts: string[]; i: number; text: string };
+let spokenNow: Spoken = { parts: [], i: -1, text: "" };
+const spokenSubs = new Set<() => void>();
+const setSpokenNow = (v: Spoken) => { spokenNow = v; spokenSubs.forEach((f) => f()); };
+export const getSpoken = () => spokenNow;
+export function subscribeSpoken(f: () => void) { spokenSubs.add(f); return () => { spokenSubs.delete(f); }; }
+
 export async function pointAlong(answer: string, points: { spot: string; sentence: number }[] = [],
   speak?: (parts: string[], onPart: (i: number) => void) => Promise<unknown> | void) {
   const parts = sentences(answer);
@@ -116,12 +124,17 @@ export async function pointAlong(answer: string, points: { spot: string; sentenc
     // Each highlight belongs to its sentence: when the voice reaches a sentence with nothing to point at, the previous item
     // stops glowing (it used to stay lit while the next items in a list were being read out).
     let lit: string | null = null;
+    setSpokenNow({ parts, i: 0, text: answer });
     try {
       await speak(parts, (i) => {
+        if (i !== spokenNow.i) setSpokenNow({ parts, i, text: answer });
         const s = at(i);
         if (s && s !== lit) { lit = s; focusSpot(s); } else if (!s && lit) { lit = null; clearSpot(); }
       });
-    } finally { if (points.length) setTimeout(clearSpot, 1500); }
+    } finally {
+      if (points.length) setTimeout(clearSpot, 1500);
+      setSpokenNow({ parts, i: parts.length, text: answer });     // finished: every sentence said
+    }
     return;
   }
   if (!points.length) return;

@@ -2,7 +2,8 @@ import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
 import { requestRecordingPermissionsAsync } from "expo-audio";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router";
+import { VoiceIdle, VoiceStage } from "../../src/voicestage";
 import { getScreen, getVoiceOrigin, goTab, setNarrating, setScreen, setVoiceApi, setVoiceFeed, setVoiceLive, setVoiceOrigin, setVoicePhase, takeSection,
   tourCommand, useNarrating, useScreen, type SectionReq } from "../../src/context";
 import { showToast } from "../../src/blocks";
@@ -259,6 +260,10 @@ export default function Ananta() {
   const live = phase !== "off";
   const [note, setNote] = useState("");
   const [sessions, setSessions] = useState(false);
+  // 1 Nov 2026: the voice-first Ask in the new look (src/voicestage.tsx); the classic screen is unchanged
+  const isNew = usePathname().startsWith("/new");
+  const [showChat, setShowChat] = useState(false);
+  useEffect(() => { if (!live) setShowChat(false); }, [live]);
   useEffect(() => { if (params.sessions) setSessions(true); }, [params.sessions, params.t]);          // Oct 15: the side drawer's "Sessions"
   const [qcat, setQcat] = useState("new");
   const [err, setErr] = useState<string | null>(null);
@@ -787,6 +792,20 @@ export default function Ananta() {
     }} />;
   }
   if (tabv === "now") return <View style={{ flex: 1, backgroundColor: C.bg }}>{top}<AnantaNow />{drawer}</View>;
+  if (isNew && live && !showChat) {
+    const lastQ = [...msgs].reverse().find((m) => m.role === "user");
+    const lastA = [...msgs].reverse().find((m) => m.role !== "user" && (m.answer || m.error));
+    const qIdx = lastQ ? msgs.lastIndexOf(lastQ) : -1, aIdx = lastA ? msgs.lastIndexOf(lastA) : -1;
+    const fresh = aIdx > qIdx;                                   // the answer belongs to the last question (not an older one)
+    return (
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <VoiceStage question={lastQ?.text} answer={fresh ? String(lastA?.answer ?? lastA?.error ?? "") : undefined}
+          followUps={fresh ? ((lastA as any)?.follow_ups ?? []) : []} phase={phase} hearing={hearing} ready={micLive || hearing} level={mic.level}
+          note={voiceNote} onOrb={() => { Haptics.soft(); loop.tap(); }} onEnd={endLive} onPick={(q) => loop.onText(q)}
+          onShowChat={() => setShowChat(true)} talkingWith={speaker && !me?.guest ? speaker.name : undefined} />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
@@ -820,7 +839,12 @@ export default function Ananta() {
       <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 24 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive"
         onScroll={(e) => { sst.offset.y = e.nativeEvent.contentOffset.y; checkEnd(); }} scrollEventThrottle={64}
         onLayout={(e) => { sst.height.h = e.nativeEvent.layout.height; checkEnd(); }} onContentSizeChange={(_, h) => { sst.content.h = h; checkEnd(); }}>
-        {msgs.length === 0 ? (
+        {msgs.length === 0 && isNew ? (
+          <View style={{ minHeight: 480 }}>
+            <VoiceIdle onTalk={startLive} starters={qs} onPick={(q) => send(q)} prevTitle={prev?.thread ? (prev.title || "your last conversation") : undefined}
+              onPrev={prev?.thread ? () => { setPrev(null); openSession(prev.thread); } : undefined} />
+          </View>
+        ) : msgs.length === 0 ? (
           <View style={{ gap: 8, paddingTop: 20 }}>
             <Text style={{ color: C.text, fontSize: 24, fontWeight: "700" }}>{me?.guest ? `Hi ${me?.name || "there"}` : "Hello, sir"}</Text>
             <T dim>{me?.guest ? "Ask me about your coins, your practice book, or the market. Type, tap the mic to dictate, or tap the wave and just talk."
@@ -882,7 +906,7 @@ export default function Ananta() {
       ) : null}
       </View>
 
-      {!live ? (
+      {!live && !(isNew && msgs.length === 0) ? (
         <View style={{ gap: 6, paddingBottom: 6 }}>
           <View style={{ flexDirection: "row", gap: 6, paddingHorizontal: 12 }}>
             {(me?.guest ? [] : [["new", "New here"], ["portfolio", "Our portfolio"], ["market", "Market & scans"]]).map(([k, l]) => (

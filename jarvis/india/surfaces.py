@@ -34,6 +34,16 @@ def _dw(d: str | None) -> str:
         return str(d or "")
 
 
+def _inr(v: float) -> str:
+    """Indian grouping: ₹1,60,622."""
+    n = str(int(round(v)))
+    head, tail = n[:-3], n[-3:]
+    while len(head) > 2:
+        tail = head[-2:] + "," + tail
+        head = head[:-2]
+    return "₹" + (head + "," if head else "") + tail
+
+
 def _nifty(rm: dict) -> dict:
     p = ((rm.get("technicals") or {}).get("indices") or {}).get("NIFTY 50") or {}
     m = rm.get("market") or {}
@@ -69,6 +79,24 @@ def today(full: bool = True) -> dict:
     decision = plan.get("brief") if plan.get("for_session") == session and not plan.get("error") else None
     if not decision and plan.get("brief"):
         decision = plan["brief"]
+    if plan.get("buys") is not None and not plan.get("error") and plan.get("brief"):     # 1 Nov: a sentence, not a list of ten tickers
+        try:
+            from jarvis.india.voice import say_names
+        except Exception:  # noqa: BLE001
+            say_names = lambda x: x  # noqa: E731
+        buys = plan.get("buys") or []
+        n_cuts = len(plan.get("cuts") or [])
+        freed = sum(float(c.get("inr") or 0) for c in plan.get("cuts") or [])
+        day = dt.date.fromisoformat(plan["for_session"]).strftime("%A") if plan.get("for_session") else "the next session"
+        if plan.get("no_change"):
+            decision = f"No change on {day}: nothing is on the cut list."
+        elif buys:
+            swaps = ", ".join(f"{say_names(b['symbol'])} for {say_names(str(b.get('for_cut')).split('+')[0])}" + (" and the small stakes" if "+" in str(b.get("for_cut")) else "") for b in buys)
+            import re as _re
+            swaps = _re.sub(r"\b([A-Z]) (?=[A-Z]\b)", r"\1", swaps)          # the voice's "L I C" is "LIC" on screen
+            decision = f"On {day}, {n_cuts} cuts free about ₹{freed:,.0f}: {swaps}. Each with a 7% stop."
+        else:
+            decision = f"On {day}, {n_cuts} cuts free about ₹{freed:,.0f}; the money stays in cash this time."
     if not decision:
         decision = m.get("headline") or "No plan is written yet."
     source = (f"From the plan written {_dw(plan.get('written_day'))} · fills at the open · nothing is placed" if plan.get("brief")
@@ -100,7 +128,7 @@ def today(full: bool = True) -> dict:
             "decision": decision, "decision_source": source,
             "numbers": [{"label": "Nifty · " + _dw(_nifty(rm).get("as_of")), "value": (f"{_nifty(rm)['close']:,.0f}" if isinstance(_nifty(rm).get("close"), (int, float)) else "—"),
                          "sub": _nifty(rm)["line"].split(" · ", 1)[-1] if " · " in _nifty(rm)["line"] else ""},
-                        {"label": "Your account", "value": (f"₹{acct['value_inr']:,.0f}" if acct.get("value_inr") else "—"),
+                        {"label": "Your account", "value": (_inr(acct["value_inr"]) if acct.get("value_inr") else "—"),
                          "sub": f"NSE close · {acct.get('positions') and len(acct['positions'])} stocks, ₹{acct.get('options_inr', 0):,.0f} options" if acct else "no snapshot yet"}],
             "waiting": {"count": waiting.get("count") or 0, "words": waiting.get("words")},
             "running": {"ok": bool(health.get("all_ok")), "words": "Everything is running" if health.get("all_ok") else f"{len(health.get('down') or [])} part{'s' if len(health.get('down') or []) != 1 else ''} down",

@@ -2,8 +2,7 @@
 // only). Only Madhav decides; everyone else can ask.
 import { Text, View } from "react-native";
 import { router } from "expo-router";
-import { useData } from "../../src/useData";
-import { NScreen } from "../../src/newscreen";
+import { NScreen, useSurface } from "../../src/newscreen";
 import { Body, Btn, Chev, LockIcon, Meta, NCard, TY } from "../../src/newui";
 import { C } from "../../src/theme";
 import { ScreenError } from "../../src/safe";
@@ -11,7 +10,7 @@ import { ScreenError } from "../../src/safe";
 export const ErrorBoundary = ScreenError;
 
 export default function People() {
-  const { data: d, err, loading, reload } = useData<any>("/v3/people", 300000);
+  const { data: d, err, loading, reload } = useSurface("people", 300000);
   return (
     <NScreen title="People" loading={loading} onRefresh={reload} err={err}>
       {d ? (

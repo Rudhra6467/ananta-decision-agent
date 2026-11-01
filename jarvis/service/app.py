@@ -1465,6 +1465,20 @@ def situations(days: int = 7, who: str = Depends(owner)) -> dict:
     return _run(learning.weekly_review, J(), days, False)
 
 
+@app.get("/v3/surface/{name}")
+def surface(name: str, who: str = Depends(owner)) -> dict:
+    """The new look's four surfaces for crypto (Madhav, 1 Nov 2026); India answers the same addresses. Read-only."""
+    from jarvis.service import surfaces
+
+    if name == "people":
+        return surfaces.people(_main(), is_owner=not is_guest(who))
+    if name not in ("today", "money", "proof"):
+        raise HTTPException(status_code=404, detail="No such surface.")
+    if is_guest(who):
+        return {"ready": False, "words": "The new look shows Madhav's account; a guest's own book is on the classic screens for now."}
+    return getattr(surfaces, name)(_main())
+
+
 @app.get("/v3/book500")
 def book500(who: str = Depends(owner)) -> dict:
     from jarvis.service import ndax_book

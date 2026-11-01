@@ -31,8 +31,11 @@ export const H = ({ children, style }: { children: React.ReactNode; style?: any 
 export const Title = ({ children }: { children: React.ReactNode }) => <Text style={[TY.title, { color: C.text }]}>{children}</Text>;
 
 export function NCard({ children, style, onPress, pad = 16 }: { children: React.ReactNode; style?: ViewStyle; onPress?: () => void; pad?: number }) {
-  const inner = <View style={[{ backgroundColor: C.card, borderRadius: 16, padding: pad }, style]}>{children}</View>;
-  return onPress ? <Pressable onPress={onPress} accessibilityRole="button">{inner}</Pressable> : inner;
+  const { flex: _f, flexBasis: _b, minWidth: _m, ...rest } = (style || {}) as any;
+  const inner = <View style={[{ backgroundColor: C.card, borderRadius: 16, padding: pad }, onPress && style?.flex != null ? [rest, { flexGrow: 1 }] : style]}>{children}</View>;
+  // 1 Nov: a tappable card in a row takes its share of the row on the Pressable, or the row overflows and the card collapses
+  const outer: ViewStyle | undefined = style?.flex != null ? { flex: style.flex, flexBasis: style.flexBasis ?? 0, minWidth: 0 } : undefined;
+  return onPress ? <Pressable onPress={onPress} accessibilityRole="button" style={outer}>{inner}</Pressable> : inner;
 }
 
 export function NumberTile({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "good" | "bad" }) {
@@ -46,12 +49,12 @@ export function NumberTile({ label, value, sub, tone }: { label: string; value: 
 }
 
 const pctWords = (p: number | null | undefined) => (p == null ? null : `${p > 0 ? "+" : ""}${p.toFixed(2)}%`);
-export function BookRow({ books, clock, note, onAsk }: { books: { id: string; label: string; ret_pct?: number | null; words?: string | null }[]; clock?: string | null; note?: string; onAsk?: () => void }) {
+export function BookRow({ books, clock, note, onAsk, title }: { title?: string | null; books: { id: string; label: string; ret_pct?: number | null; words?: string | null }[]; clock?: string | null; note?: string; onAsk?: () => void }) {
   const colorOf: Record<string, string> = { yours: C.dim, twin: G.twin(), managed: G.gold(), index: C.faint };
   return (
     <NCard>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-        <H>Four books, one start</H>
+        <H>{title || "Four books, one start"}</H>
         {clock ? <Meta>{clock}</Meta> : null}
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
@@ -76,7 +79,7 @@ export function GradeChip({ grade, word }: { grade?: string | null; word?: strin
   const [bg, fg] = g === "A" ? [C.goodSoft, C.good] : g === "C" ? [C.warnSoft, C.warn] : g === "D" ? [C.badSoft, C.bad] : [C.card2, C.text];
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8, backgroundColor: bg }}>
-      <Text style={{ color: fg, fontSize: 15, fontWeight: "700" }}>{g || "·"}</Text>
+      {g || !word ? <Text style={{ color: fg, fontSize: 15, fontWeight: "700" }}>{g || "·"}</Text> : null}
       {word ? <Text style={[TY.meta, { color: fg }]}>{word}</Text> : null}
     </View>
   );
@@ -120,6 +123,7 @@ const I = ({ size = 22, color, children }: { size?: number; color: string; child
 export const Chev = ({ color }: { color?: string }) => <I color={color ?? C.dim}><Path d="m9 6 6 6-6 6" /></I>;
 export const SunIcon = ({ color, size }: { color: string; size?: number }) => <I color={color} size={size}><Circle cx={12} cy={12} r={4} /><Path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" /></I>;
 export const RupeeIcon = ({ color, size }: { color: string; size?: number }) => <I color={color} size={size}><Path d="M7 4h10M7 9h10M7 4c5 0 7 2 7 5s-2 5-7 5l7 6" /></I>;
+export const DollarIcon = ({ color, size }: { color: string; size?: number }) => <I color={color} size={size}><Path d="M12 3v18M16.5 7.5C16 6 14.3 5 12 5c-2.6 0-4.5 1.3-4.5 3.3 0 4.4 9 2.6 9 7 0 2-1.9 3.7-4.5 3.7-2.4 0-4.2-1.1-4.7-2.8" /></I>;
 export const CheckIcon2 = ({ color, size }: { color: string; size?: number }) => <I color={color} size={size}><Circle cx={12} cy={12} r={9} /><Path d="m8.5 12 2.5 2.5 4.5-5" /></I>;
 export const PeopleIcon = ({ color, size }: { color: string; size?: number }) => <I color={color} size={size}><Circle cx={9} cy={8} r={3.5} /><Path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" /><Circle cx={17} cy={9} r={2.5} /><Path d="M15.5 14.5c3 0 6 2 6 5.5" /></I>;
 export const MicIcon2 = ({ color, size }: { color: string; size?: number }) => <I color={color} size={size}><Rect x={9} y={3} width={6} height={11} rx={3} /><Path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" /></I>;

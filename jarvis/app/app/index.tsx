@@ -14,8 +14,8 @@ export default function Index() {
         const me = await loadMe();
         if (me?.guest) { setTo("/(tabs)/today"); return; }
         const m = await loadMarket();
-        const look = await loadLook();                     // 31 Oct: the redesign, when this device chose it (India only for now)
-        setTo(m === "india" && look === "new" ? newHome : m ? homeOf(m) : "/market");
+        const look = await loadLook();                     // 31 Oct: the redesign, when this device chose it (both markets from 1 Nov)
+        setTo(m && look === "new" ? newHome : m ? homeOf(m) : "/market");
       } catch { setTo("/(tabs)/today"); }
     })();
   }, []);

@@ -31,7 +31,7 @@ export default function MarketScreen() {
   const pick = async (m: Market) => {                    // 1 Nov: India opens in the new look when this device chose it
     await setMarket(m);
     const { loadLook, newHome } = await import("../src/look");
-    router.replace((m === "india" && (await loadLook()) === "new" ? newHome : homeOf(m)) as any);
+    router.replace(((await loadLook()) === "new" ? newHome : homeOf(m)) as any);
   };
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: SPACE.screen, paddingTop: top + 28, maxWidth: 720, alignSelf: "center", width: "100%" }}>

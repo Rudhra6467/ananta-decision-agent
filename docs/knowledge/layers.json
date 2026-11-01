@@ -871,6 +871,7 @@
     "jarvis/service/strategy_status.py",
     "jarvis/service/needs.py",
     "jarvis/service/officer.py",
+    "jarvis/service/surfaces.py",
     "jarvis/service/exam.py",
     "jarvis/voice/telugu_server.py",
     "jarvis/service/knowledge_build.py"
@@ -1664,6 +1665,7 @@
    "files": [
     "jarvis/india/service.py",
     "jarvis/india/views.py",
+    "jarvis/india/surfaces.py",
     "jarvis/india/ask.py",
     "jarvis/india/voice.py",
     "jarvis/india/plain.py",

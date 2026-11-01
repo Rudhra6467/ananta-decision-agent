@@ -214,7 +214,7 @@ function Cockpit() {
         </View>
       </Card>
 
-      {getMarket() === "india" ? (                                                               // 31 Oct: the redesign, behind a switch (src/look.ts)
+      {getMarket() ? (                                                                         // 31 Oct: the redesign, behind a switch (src/look.ts); crypto too from 1 Nov
         <Card>
           <SwitchRow label="New look" help="Today · Money · Ask · Proof · People, voice first. Off: the classic tabs. This device remembers." on={look === "new"} last
             onChange={(v) => { setLook(v ? "new" : "classic").then(() => { if (v) router.replace(newHome as any); }); }} />

@@ -3,11 +3,14 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native"
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "../src/theme";
-import { Body, Title } from "./newui";
+import { Body, G, Title } from "./newui";
+import { useMarket } from "./market";
+import { useData } from "./useData";
 
 export function NScreen({ title, children, loading, onRefresh, err, scrollRef }: { title: string; children: React.ReactNode; loading?: boolean; onRefresh?: () => void; err?: string | null; scrollRef?: React.RefObject<ScrollView | null> }) {
   useThemeVersion();
   const ins = useSafeAreaInsets();
+  const mk = useMarket();
   return (
     <ScrollView ref={scrollRef as any} style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingTop: ins.top + 12, paddingHorizontal: 16, paddingBottom: 120, gap: 12 }}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!loading} onRefresh={onRefresh} tintColor={C.dim} /> : undefined}>
@@ -17,8 +20,8 @@ export function NScreen({ title, children, loading, onRefresh, err, scrollRef }:
           {/* 1 Nov (Madhav: "where is the market switch button?"): the same switch as the classic header */}
           <Pressable onPress={() => router.push("/market" as any)} accessibilityRole="button" accessibilityLabel="Switch market"
             style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.card2, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, minHeight: 30 }}>
-            <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: C.india }} />
-            <Text style={{ color: C.dim, fontSize: 11, fontWeight: "700", letterSpacing: 0.3 }}>INDIAN MARKET ⇄</Text>
+            <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: mk === "crypto" ? G.twin() : C.india }} />
+            <Text style={{ color: C.dim, fontSize: 11, fontWeight: "700", letterSpacing: 0.3 }}>{mk === "crypto" ? "CRYPTO" : "INDIAN MARKET"} ⇄</Text>
           </Pressable>
         </View>
         <Pressable onPress={() => router.push("/more" as any)} accessibilityRole="button" accessibilityLabel="More"
@@ -30,6 +33,13 @@ export function NScreen({ title, children, loading, onRefresh, err, scrollRef }:
       {children}
     </ScrollView>
   );
+}
+
+// 1 Nov: both markets read /v3/surface/<name> (crypto service, or India through /india); the market rides in the address so a
+// switch of market reloads every mounted tab instead of showing the other market's numbers
+export function useSurface(name: "today" | "money" | "proof" | "people", refreshMs: number) {
+  const mk = useMarket();
+  return useData<any>(mk ? `/v3/surface/${name}?m=${mk}` : null, refreshMs);
 }
 
 // 1 Nov (Madhav): a link into a surface opens it AT the section asked for, with the question sent when it is Ask

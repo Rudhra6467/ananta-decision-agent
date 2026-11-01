@@ -240,3 +240,5 @@ def people(full: bool = True) -> dict:
 
 
 views.ROUTES.update({"today": today, "money": money, "proof": proof, "people": people})
+# 1 Nov: both markets' new screens read /v3/surface/<name> (crypto's /v3/people already means something else)
+views.ROUTES.update({"surface/today": today, "surface/money": money, "surface/proof": proof, "surface/people": people})

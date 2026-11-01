@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useData } from "../../src/useData";
-import { NScreen, askHref } from "../../src/newscreen";
+import { NScreen, askHref, useSurface } from "../../src/newscreen";
 import { Body, BookRow, Btn, G, GradeChip, H, Meta, NCard, TY, inr, pctS } from "../../src/newui";
 import { C } from "../../src/theme";
 import { ScreenError } from "../../src/safe";
@@ -13,7 +12,7 @@ export const ErrorBoundary = ScreenError;
 const WORD: Record<string, string> = { hold: "hold", watch: "watch", trim: "trim", reduce: "reduce", tidy: "tidy", add: "add" };
 
 export default function Money() {
-  const { data: d, err, loading, reload } = useData<any>("/v3/money", 60000);
+  const { data: d, err, loading, reload } = useSurface("money", 60000);
   const askIt = (q: string) => router.navigate(askHref(q));
   const plan = d?.plan;
   // 1 Nov (Madhav): Today's account box opens straight at Your holdings, the Nifty box at the options
@@ -31,26 +30,27 @@ export default function Money() {
   }, [p.focus, p.t, d]);
   const mark = (k: string) => (e: any) => { const y = e?.nativeEvent?.layout?.y; if (y != null && ys[k] !== y) setYs((o) => ({ ...o, [k]: y })); };
   const ob = d?.options_book;
+  const dl = d?.dial_block;
   return (
     <NScreen title="Money" loading={loading} onRefresh={reload} err={err} scrollRef={ref}>
       {d ? (
         <>
           <View>
-            <Text style={[TY.hero, { color: C.text }]}>{inr(d.value_inr)}</Text>
-            <Meta>{d.as_of ? d.as_of + " · " : ""}{inr(d.stocks_inr)} stocks · {inr(d.options_inr)} options · {inr(d.cash_inr)} cash</Meta>
+            <Text style={[TY.hero, { color: C.text }]}>{d.value_words ?? inr(d.value_inr)}</Text>
+            <Meta>{d.sub_words ?? `${d.as_of ? d.as_of + " · " : ""}${inr(d.stocks_inr)} stocks · ${inr(d.options_inr)} options · ${inr(d.cash_inr)} cash`}</Meta>
           </View>
-          <BookRow books={d.books || []} clock={d.clock?.words ? `${d.clock.words}` : null} note={d.books_note}
-            onAsk={() => askIt("Explain the four books in detail: what each one is, how each started, what the numbers mean today, what the 60-session clock is for, and what would tell us the managed book is working.")} />
+          <BookRow title={d.books_title} books={d.books || []} clock={d.clock?.words ? `${d.clock.words}` : null} note={d.books_note}
+            onAsk={() => askIt(d.books_ask || "Explain the four books in detail: what each one is, how each started, what the numbers mean today, what the 60-session clock is for, and what would tell us the managed book is working.")} />
           {plan && !plan.error ? (
             <NCard pad={14}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <H>Next session's plan</H>
-                <Meta color={G.gold()}>{plan.no_change ? "no change" : `${plan.cuts} cuts · ${plan.buys?.length || 0} buys`}</Meta>
+                <H>{plan.title || "Next session's plan"}</H>
+                <Meta color={G.gold()}>{plan.tag || (plan.no_change ? "no change" : `${plan.cuts} cuts · ${plan.buys?.length || 0} buys`)}</Meta>
               </View>
               <Body style={{ marginTop: 4 }}>{plan.brief}</Body>
               <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-                <Btn label="Why these" kind="s" onPress={() => askIt("Why these replacements? What else passed the filters?")} style={{ paddingVertical: 8, minHeight: 40 }} />
-                <Btn label="Ask about it" kind="t" onPress={() => askIt("What will you change in my portfolio next session, and why?")} style={{ paddingVertical: 8, minHeight: 40 }} />
+                {(plan.asks || [{ label: "Why these", q: "Why these replacements? What else passed the filters?" }, { label: "Ask about it", q: "What will you change in my portfolio next session, and why?" }])
+                  .map((a: any, i: number) => <Btn key={a.label} label={a.label} kind={i ? "t" : "s"} onPress={() => askIt(a.q)} style={{ paddingVertical: 8, minHeight: 40 }} />)}
               </View>
             </NCard>
           ) : plan?.error ? <NCard pad={14}><Meta>No plan could be written</Meta><Body dim style={{ marginTop: 4 }}>{plan.error}</Body></NCard> : null}
@@ -66,21 +66,47 @@ export default function Money() {
             </NCard>
           ) : null}
           <View onLayout={mark("holdings")} style={{ backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16, paddingTop: 12 }}>
-            <H>Your holdings</H>
+            <H>{d.holdings_title || "Your holdings"}</H>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: C.line }}>
-              <Meta>Holding · value · on cost</Meta><Meta>Ananta's decision</Meta>
+              <Meta>{d.holdings_head?.[0] || "Holding · value · on cost"}</Meta><Meta>{d.holdings_head?.[1] || "Ananta's decision"}</Meta>
             </View>
             {(d.holdings || []).map((h: any, i: number) => (
               <View key={h.symbol} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={[TY.figure, { color: C.text }]}>{h.symbol} <Meta>{h.weight_pct != null ? `${h.weight_pct}% of stocks` : ""}</Meta></Text>
-                  <Meta faint>{inr(h.value_inr)}{h.pnl_pct != null ? ` · ${pctS(h.pnl_pct, 0)} on cost` : ""}</Meta>
+                  <Text style={[TY.figure, { color: C.text }]}>{h.symbol} <Meta>{h.weight_pct != null ? `${h.weight_pct}% ${h.weight_of || "of stocks"}` : ""}</Meta></Text>
+                  <Meta faint>{h.value_words ?? inr(h.value_inr)}{h.pnl_pct != null ? ` · ${pctS(h.pnl_pct, 0)} on cost` : ""}</Meta>
                 </View>
-                <GradeChip grade={h.grade} word={(WORD[h.action] || h.action || "") + (h.suggest_inr ? ` ${inr(h.suggest_inr)}` : "")} />
+                <GradeChip grade={h.grade} word={h.chip || (WORD[h.action] || h.action || "") + (h.suggest_inr ? ` ${inr(h.suggest_inr)}` : "")} />
               </View>
             ))}
+            {!(d.holdings || []).length && d.holdings_empty ? <View style={{ paddingVertical: 12 }}><Body dim>{d.holdings_empty}</Body></View> : null}
             <View style={{ paddingVertical: 12 }}><Meta faint>{d.holdings_note}</Meta></View>
           </View>
+          {dl ? (
+            <View onLayout={mark("dial")} style={{ backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}><H>The dial</H><Meta color={dl.state === "open" ? C.good : C.warn}>{dl.state}</Meta></View>
+              <Body style={{ marginTop: 4 }}>{dl.words}</Body>
+              {(dl.why || []).map((w: string) => <Meta key={w} style={{ marginTop: 4 }}>· {w}</Meta>)}
+              {dl.brake ? <Meta color={C.warn} style={{ marginTop: 6 }}>Also, {dl.brake}.</Meta> : null}
+              <Meta faint style={{ marginTop: 6 }}>{dl.rule} As of the daily close {dl.as_of}.</Meta>
+              <Btn label="Ask Ananta about the dial" kind="s" style={{ marginTop: 10, paddingVertical: 8, minHeight: 40 }}
+                onPress={() => askIt("Explain the dial in detail: what it reads, why it is " + dl.state + " today, how close Bitcoin is to changing it, and what the $500 book does in each state.")} />
+              {(dl.closed || []).length ? (
+                <>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 14, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: C.line }}>
+                    <Meta>Closed so far · {dl.closed.length}</Meta><Meta>Result</Meta>
+                  </View>
+                  {dl.closed.map((c: any, i: number) => (
+                    <View key={c.coin + c.out + i} style={{ flexDirection: "row", justifyContent: "space-between", gap: 8, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
+                      <View style={{ flex: 1 }}><Text style={[TY.figure, { color: C.text }]}>{c.coin} <Meta>{c.in} → {c.out}</Meta></Text><Meta faint numberOfLines={2}>{c.why}</Meta></View>
+                      <Text style={[TY.figure, { color: (c.pnl || 0) >= 0 ? C.good : C.bad }]}>{c.pnl_words}</Text>
+                    </View>
+                  ))}
+                </>
+              ) : null}
+              {dl.graduation?.of ? <Meta faint style={{ marginTop: 6 }}>Graduation: {dl.graduation.passed} of {dl.graduation.of} gates passed, {dl.graduation.verdict}. No real money before 14 Dec at the earliest.</Meta> : null}
+            </View>
+          ) : null}
           {ob ? (
             <View onLayout={mark("options")} style={{ backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}><H>Your options</H><Meta>{inr(ob.set_aside_inr)} set aside</Meta></View>

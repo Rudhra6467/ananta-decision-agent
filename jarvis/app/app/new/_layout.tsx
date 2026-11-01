@@ -4,7 +4,8 @@ import { Tabs } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "../../src/theme";
-import { CheckIcon2, G, Orb, PeopleIcon, RupeeIcon, SunIcon, TY } from "../../src/newui";
+import { CheckIcon2, DollarIcon, G, Orb, PeopleIcon, RupeeIcon, SunIcon, TY } from "../../src/newui";
+import { useMarket } from "../../src/market";
 import { ScreenError } from "../../src/safe";
 
 export const ErrorBoundary = ScreenError;
@@ -18,6 +19,7 @@ function Bar({ state, navigation }: any) {
   useThemeVersion();
   const ins = useSafeAreaInsets();
   const active = state.routes[state.index]?.name;
+  const mk = useMarket();
   return (
     <View style={{ backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.line, paddingBottom: Math.max(ins.bottom, 10), paddingTop: 10, paddingHorizontal: 8, flexDirection: "row", justifyContent: "space-around" }}>
       {TABS.map((t) => {
@@ -30,7 +32,7 @@ function Bar({ state, navigation }: any) {
         }
         const on = active === t.name;
         const col = on ? G.gold() : C.dim;
-        const Icon = t.Icon;
+        const Icon = t.name === "money" && mk === "crypto" ? DollarIcon : t.Icon;   // 1 Nov: crypto's money is in dollars
         return (
           <Pressable key={t.name} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: on }}
             onPress={() => navigation.navigate(t.name)} style={{ width: 64, alignItems: "center", gap: 4, minHeight: 44 }}>

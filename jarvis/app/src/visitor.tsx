@@ -51,7 +51,7 @@ export async function routeAfterSignIn() {
     const mk = await loadMarket();
     const { loadLook, newHome } = await import("./look");                                 // 1 Nov: the new look, when this device chose it
     const lk = await loadLook();
-    router.replace((mk === "india" && lk === "new" ? newHome : mk ? homeOf(mk) : "/market") as any);
+    router.replace((mk && lk === "new" ? newHome : mk ? homeOf(mk) : "/market") as any);
   }
 }
 

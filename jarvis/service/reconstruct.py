@@ -202,8 +202,16 @@ def findings(j, day0: int, market: dict, ananta: dict, not_done: dict, reviews: 
         out.append(_f("LAYER_CONFLICT", f"conflict:{cf.get('between')}", cf.get("words") or "", cf))
     for d in not_done.get("floor_refused") or []:
         out.append(_f("SELECTION", f"floor:{d['coin']}", f"the brain wanted {d['coin']}; the selection floor refused it (tier, zone top or stop)", d))
+    closed = str((market or {}).get("dial_state") or "").upper() == "CLOSED"
+    try:                                                 # 1 Nov: words only; a wake-up already on last night's card says so
+        prev = j.db.execute("SELECT card FROM rx_cards WHERE day < ? ORDER BY day DESC LIMIT 1", (time.strftime("%Y-%m-%d", time.gmtime(day0)),)).fetchone()
+        seen = {f.get("key") for f in (json.loads(prev[0]).get("findings") or [])} if prev else set()
+    except Exception:  # noqa: BLE001
+        seen = set()
     for a in not_done.get("wait_for_arrived") or []:
-        out.append(_f("WAIT_ARRIVED", f"wait:{a['decision']}", f"a pass's condition came true ({'; '.join(a.get('hit') or [])}): the brain is woken again", a))
+        key = f"wait:{a['decision']}"
+        what = ("noted, but the closed dial holds it back from a new review" if closed else "the brain is woken again")
+        out.append(_f("WAIT_ARRIVED", key, f"a pass's condition came true ({'; '.join(a.get('hit') or [])}): {what}" + (" (also on last night's card)" if key in seen else ""), a))
     return out
 
 

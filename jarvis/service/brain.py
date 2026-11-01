@@ -854,6 +854,19 @@ def can_decide(j) -> tuple[bool, str]:
     return True, ""
 
 
+def _gate_words(trig: str) -> str:
+    """Why the closed dial held a moment back, in words that agree with the evidence (1 Nov 2026, the outsider crypto round: the one reason
+    said "no measured edge in a closed market" even for the short dip H07, whose one measured edge IS a big coin with the dial closed; H07 is
+    held back because it is parked). Words only: the decision is the same branch as before (Rule B, no rule change before 14 Dec)."""
+    t = str(trig or "")
+    for fam, name in (("H07", "the short dip in an uptrend"), ("RBD", "the rebound off a recent low")):
+        if fam in t:
+            return (f"the exposure dial is closed and {name} ({fam}) is parked (it bled past the bar; Madhav's yes, 28-30 Oct) until the "
+                    "14 Dec review, so it is not reviewed")
+    return ("the exposure dial is closed (Bitcoin under its 50-day or 200-day average) and this kind of moment has no measured edge in a "
+            "closed market")
+
+
 def _dial(j) -> float | None:
     """The exposure dial (jarvis/service/exposure.py): 1 open, 0 closed, None when unknown (then nothing is blocked)."""
     try:
@@ -1106,8 +1119,7 @@ def process(j, call: Callable | None = None, push: Callable | None = None, max_n
                 _unreviewed(j, qid, t, coin, trig, None, mon)
             continue
         if dial == 0 and _ev(j, coin, trig) <= 0:       # engine fix 1: dial closed; only moments with a measured edge there (review #26)
-            _unreviewed(j, qid, t, coin, trig, None, "the exposure dial is closed (Bitcoin under its 50-day or 200-day average) and this "
-                                                     "kind of moment has no measured edge in a closed market")
+            _unreviewed(j, qid, t, coin, trig, None, _gate_words(trig))
             continue
         if now - t > STALE_S:
             sc, _ = score(j, coin, trig, detail)

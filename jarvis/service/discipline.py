@@ -404,7 +404,14 @@ def plan_line(j, day: str | None = None) -> dict:
 
         b = setups.latest(j)
         if b:
-            parts.append("Setups: " + b.get("words", "") + (f" Sent to the brain: {', '.join(b['woke'])}." if b.get("woke") else ""))
+            held = False
+            try:                                        # 1 Nov: words only; the brain does not review them while the dial is closed
+                from jarvis.service import brain as _br
+                held = _br._dial(j) == 0
+            except Exception:  # noqa: BLE001
+                held = False
+            parts.append("Setups: " + b.get("words", "") + ((f" Held back by the closed dial (the brain reviews them only when the dial reopens): {', '.join(b['woke'])}."
+                                                             if held else f" Sent to the brain: {', '.join(b['woke'])}.") if b.get("woke") else ""))
             touched = setups.touched_today(j)
             if touched:
                 parts.append("Touched their trigger today: " + ", ".join(f"{t['coin']} ({t['family']})" for t in touched[:4]) + ".")

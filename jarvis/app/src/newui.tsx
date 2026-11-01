@@ -136,5 +136,5 @@ export function Orb({ size = 56, onPress, label = "Ask Ananta" }: { size?: numbe
   );
 }
 
-export const inr = (v: number | null | undefined) => (v == null ? "—" : "₹" + Math.round(v).toLocaleString("en-IN"));
+export const inr = (v: number | null | undefined) => (v == null ? "—" : (v < 0 ? "−₹" : "₹") + Math.abs(Math.round(v)).toLocaleString("en-IN"));
 export const pctS = (p: number | null | undefined, nd = 1) => (p == null ? "—" : `${p > 0 ? "+" : ""}${p.toFixed(nd)}%`);

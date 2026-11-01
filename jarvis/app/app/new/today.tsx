@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useData } from "../../src/useData";
-import { NScreen } from "../../src/newscreen";
+import { NScreen, askHref } from "../../src/newscreen";
 import { Body, Dot, G, H, Meta, NCard, NumberTile, PillLink, RowLink, TY } from "../../src/newui";
 import { C } from "../../src/theme";
 import { ScreenError } from "../../src/safe";
@@ -14,7 +14,7 @@ export const ErrorBoundary = ScreenError;
 
 export default function Today() {
   const { data: d, err, loading, reload } = useData<any>("/v3/today", 60000);
-  const askIt = (q: string) => router.navigate({ pathname: "/new/ask", params: { q } } as any);
+  const askIt = (q: string) => router.navigate(askHref(q));
   return (
     <NScreen title="Today" loading={loading} onRefresh={reload} err={err}>
       {d ? (
@@ -25,7 +25,7 @@ export default function Today() {
           <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
             {(d.numbers || []).map((n: any, i: number) => (
               <Pressable key={n.label} style={{ flex: 1 }} accessibilityRole="button" accessibilityLabel={n.label}
-                onPress={() => (i === 1 ? router.navigate("/new/money" as any) : askIt("How is the Nifty doing, and what does it mean for my holdings?"))}>
+                onPress={() => router.navigate({ pathname: "/new/money", params: { focus: i === 1 ? "holdings" : "options", t: String(Date.now()) } } as any)}>
                 <NumberTile label={n.label + " ›"} value={n.value} sub={n.sub} />
               </Pressable>
             ))}

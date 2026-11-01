@@ -3,7 +3,7 @@
 import { Text, View } from "react-native";
 import { router } from "expo-router";
 import { useData } from "../../src/useData";
-import { NScreen } from "../../src/newscreen";
+import { NScreen, askHref } from "../../src/newscreen";
 import { Body, Btn, G, H, Meta, NCard, PillLink, TY } from "../../src/newui";
 import { C } from "../../src/theme";
 import { ScreenError } from "../../src/safe";
@@ -12,7 +12,7 @@ export const ErrorBoundary = ScreenError;
 
 export default function Proof() {
   const { data: d, err, loading, reload } = useData<any>("/v3/proof", 120000);
-  const askIt = (q: string) => router.navigate({ pathname: "/new/ask", params: { q } } as any);
+  const askIt = (q: string) => router.navigate(askHref(q));
   return (
     <NScreen title="Proof" loading={loading} onRefresh={reload} err={err}>
       {d ? (

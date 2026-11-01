@@ -5,11 +5,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "../src/theme";
 import { Body, Title } from "./newui";
 
-export function NScreen({ title, children, loading, onRefresh, err }: { title: string; children: React.ReactNode; loading?: boolean; onRefresh?: () => void; err?: string | null }) {
+export function NScreen({ title, children, loading, onRefresh, err, scrollRef }: { title: string; children: React.ReactNode; loading?: boolean; onRefresh?: () => void; err?: string | null; scrollRef?: React.RefObject<ScrollView | null> }) {
   useThemeVersion();
   const ins = useSafeAreaInsets();
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingTop: ins.top + 12, paddingHorizontal: 16, paddingBottom: 120, gap: 12 }}
+    <ScrollView ref={scrollRef as any} style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingTop: ins.top + 12, paddingHorizontal: 16, paddingBottom: 120, gap: 12 }}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!loading} onRefresh={onRefresh} tintColor={C.dim} /> : undefined}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <Title>{title}</Title>
@@ -23,3 +23,6 @@ export function NScreen({ title, children, loading, onRefresh, err }: { title: s
     </ScrollView>
   );
 }
+
+// 1 Nov (Madhav): a link into a surface opens it AT the section asked for, with the question sent when it is Ask
+export const askHref = (q: string) => ({ pathname: "/new/ask", params: { q, t: String(Date.now()) } }) as any;

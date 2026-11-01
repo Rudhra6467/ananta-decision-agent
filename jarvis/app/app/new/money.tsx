@@ -1,9 +1,10 @@
 // Money (the new look): the account in hero, the four books with their clock, the next session's managed plan, every holding ranked
 // with its grade and action. Data: /india/v3/money (jarvis/india/surfaces.py). Paper only: a suggestion is advice, the managed book acts on it on paper.
-import { Text, View } from "react-native";
-import { router } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { ScrollView, Text, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { useData } from "../../src/useData";
-import { NScreen } from "../../src/newscreen";
+import { NScreen, askHref } from "../../src/newscreen";
 import { Body, BookRow, Btn, G, GradeChip, H, Meta, NCard, TY, inr, pctS } from "../../src/newui";
 import { C } from "../../src/theme";
 import { ScreenError } from "../../src/safe";
@@ -13,10 +14,20 @@ const WORD: Record<string, string> = { hold: "hold", watch: "watch", trim: "trim
 
 export default function Money() {
   const { data: d, err, loading, reload } = useData<any>("/v3/money", 60000);
-  const askIt = (q: string) => router.navigate({ pathname: "/new/ask", params: { q } } as any);
+  const askIt = (q: string) => router.navigate(askHref(q));
   const plan = d?.plan;
+  // 1 Nov (Madhav): Today's account box opens straight at Your holdings, the Nifty box at the options
+  const p = useLocalSearchParams<{ focus?: string; t?: string }>();
+  const ref = useRef<ScrollView | null>(null);
+  const [ys, setYs] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const y = p.focus ? ys[p.focus] : undefined;
+    if (d && y != null) setTimeout(() => ref.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }), 60);
+  }, [p.focus, p.t, d, ys.holdings, ys.options]);
+  const mark = (k: string) => (e: any) => { const y = e?.nativeEvent?.layout?.y; if (y != null && ys[k] !== y) setYs((o) => ({ ...o, [k]: y })); };
+  const ob = d?.options_book;
   return (
-    <NScreen title="Money" loading={loading} onRefresh={reload} err={err}>
+    <NScreen title="Money" loading={loading} onRefresh={reload} err={err} scrollRef={ref}>
       {d ? (
         <>
           <View>
@@ -49,7 +60,7 @@ export default function Money() {
               ))}
             </NCard>
           ) : null}
-          <View style={{ backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16, paddingTop: 12 }}>
+          <View onLayout={mark("holdings")} style={{ backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16, paddingTop: 12 }}>
             <H>Your holdings</H>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: C.line }}>
               <Meta>Holding · value · on cost</Meta><Meta>Ananta's decision</Meta>
@@ -65,6 +76,30 @@ export default function Money() {
             ))}
             <View style={{ paddingVertical: 12 }}><Meta faint>{d.holdings_note}</Meta></View>
           </View>
+          {ob ? (
+            <View onLayout={mark("options")} style={{ backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}><H>Your options</H><Meta>{inr(ob.set_aside_inr)} set aside</Meta></View>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: C.line }}>
+                <Meta>Open now</Meta><Meta>Closes</Meta>
+              </View>
+              {(ob.open || []).length ? ob.open.map((x: any) => (
+                <View key={x.index + x.point} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 12 }}>
+                  <Text style={[TY.figure, { color: C.text }]}>{x.index === "BANKNIFTY" ? "Bank Nifty" : "Nifty"} <Meta>{x.lots} lot · paper</Meta></Text>
+                  <Meta>at the next open</Meta>
+                </View>
+              )) : <View style={{ paddingVertical: 12 }}><Body dim>No open option positions.</Body></View>}
+              <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderTopWidth: 1, borderTopColor: C.line }}>
+                <Meta>The options line · {ob.sessions} sessions</Meta><Meta>with real fills</Meta>
+              </View>
+              {(ob.by_index || []).map((r: any) => (
+                <View key={r.index} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 8 }}>
+                  <Body>{r.index === "BANKNIFTY" ? "Bank Nifty" : "Nifty"} <Meta>{r.trades} trades</Meta></Body>
+                  <Text style={[TY.figure, { color: (r.rupees || 0) > 0 ? C.good : (r.rupees || 0) < 0 ? C.bad : C.text }]}>{inr(r.rupees)}</Text>
+                </View>
+              ))}
+              <Meta faint style={{ marginTop: 6 }}>{ob.words}</Meta>
+            </View>
+          ) : null}
         </>
       ) : null}
     </NScreen>

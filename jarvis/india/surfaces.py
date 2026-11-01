@@ -162,7 +162,25 @@ def money(full: bool = True) -> dict:
             "plan": {"for_session": plan.get("for_session"), "brief": plan_sentence(plan) if not plan.get("error") else plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],
                      "no_change": plan.get("no_change"), "error": plan.get("error")} if plan else None,
             "managed": {"value_inr": mb.get("value_inr"), "return_pct": mb.get("return_pct"), "clock": (mb.get("clock") or {}).get("words"), "replacements": mb.get("replacements") or []},
+            "options_book": _options_block(acct),
             "holdings": holdings, "holdings_note": "Ranked by Ananta's grade; a suggestion is advice, the managed book acts on it on paper.", "options": alloc.get("options"), "headline": alloc.get("headline")}
+
+
+def _options_block(acct: dict) -> dict:
+    """The options side for Money (1 Nov: the Nifty box on Today opens here): the money set aside, the options line's record by index,
+    what it decided on the last session and what is open now."""
+    try:
+        o = views.options()
+    except Exception:  # noqa: BLE001
+        o = {}
+    by = o.get("by_index") or {}
+    last = [x for x in (o.get("decisions_today") or []) if x.get("action")]
+    open_now = [{"index": x.get("index"), "point": x.get("point"), "exit": x.get("exit"), "lots": 1} for x in last if str(x.get("exit") or "").upper() == "NEXTOPEN"]
+    rows = [{"index": k, "sessions": v.get("sessions"), "trades": v.get("trades"), "rupees": v.get("option_1lot_rs_realistic_fill")} for k, v in by.items()]
+    return {"set_aside_inr": acct.get("options_inr"), "book_value_inr": o.get("value_inr"), "book_capital_inr": o.get("capital_inr"), "pnl_inr": o.get("pnl_inr"),
+            "sessions": o.get("sessions"), "by_index": rows, "open": open_now,
+            "open_words": (f"{len(open_now)} position{'s' if len(open_now) != 1 else ''} open, closing at the next open" if open_now else "No open option positions"),
+            "words": f"One index option lot a session on paper, decided between 09:15 and 10:15 Indian time. {o.get('sessions') or 0} sessions so far; graded after 20."}
 
 
 def proof(full: bool = True) -> dict:

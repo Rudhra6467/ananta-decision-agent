@@ -13,7 +13,7 @@ const WORD: Record<string, string> = { hold: "hold", watch: "watch", trim: "trim
 
 export default function Money() {
   const { data: d, err, loading, reload } = useData<any>("/v3/money", 60000);
-  const askIt = (q: string) => router.navigate({ pathname: "/(new)/ask", params: { q } } as any);
+  const askIt = (q: string) => router.navigate({ pathname: "/new/ask", params: { q } } as any);
   const plan = d?.plan;
   return (
     <NScreen title="Money" loading={loading} onRefresh={reload} err={err}>

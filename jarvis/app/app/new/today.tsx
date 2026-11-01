@@ -13,7 +13,7 @@ export const ErrorBoundary = ScreenError;
 
 export default function Today() {
   const { data: d, err, loading, reload } = useData<any>("/v3/today", 60000);
-  const askIt = (q: string) => router.navigate({ pathname: "/(new)/ask", params: { q } } as any);
+  const askIt = (q: string) => router.navigate({ pathname: "/new/ask", params: { q } } as any);
   return (
     <NScreen title="Today" loading={loading} onRefresh={reload} err={err}>
       {d ? (

@@ -1,5 +1,5 @@
 // The "new look" switch (Madhav, 31 Oct 2026: "Time to give it a proper, premium and precise look"; gates 1 and 2 passed the same night).
-// The redesign lives in app/(new)/ beside the classic tabs; this device remembers the choice; classic stays the default until the new look
+// The redesign lives in app/new/ (its own address, /new/...) beside the classic tabs; this device remembers the choice; classic stays the default until the new look
 // is better on every screen it replaces. Nothing in the classic app changes while the switch is off.
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
@@ -33,4 +33,4 @@ export function useLook(): Look {
   }, []);
   return l;
 }
-export const newHome = "/(new)/today";
+export const newHome = "/new/today";

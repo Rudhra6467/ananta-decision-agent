@@ -54,11 +54,11 @@ export function BookRow({ books, clock, note }: { books: { id: string; label: st
         <H>Four books, one start</H>
         {clock ? <Meta>{clock}</Meta> : null}
       </View>
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
         {books.map((b) => {
           const v = b.words ?? pctWords(b.ret_pct) ?? "—";
           return (
-            <View key={b.id} style={{ flex: 1, backgroundColor: C.card2, borderRadius: 12, padding: 10, borderTopWidth: 3, borderTopColor: colorOf[b.id] ?? C.dim, borderStyle: b.id === "index" ? "dashed" : "solid" }}>
+            <View key={b.id} style={{ flexBasis: "47%", flexGrow: 1, backgroundColor: C.card2, borderRadius: 12, padding: 10, borderTopWidth: 3, borderTopColor: colorOf[b.id] ?? C.dim, borderStyle: b.id === "index" ? "dashed" : "solid" }}>
               <Meta numberOfLines={1}>{b.label}</Meta>
               <Text style={[TY.figure, { color: b.ret_pct != null ? (b.ret_pct > 0 ? C.good : b.ret_pct < 0 ? C.bad : C.text) : C.text, marginTop: 2 }]} numberOfLines={1}>{v}</Text>
             </View>

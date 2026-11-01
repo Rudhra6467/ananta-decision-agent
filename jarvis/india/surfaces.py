@@ -65,6 +65,26 @@ def _account_view() -> dict:
     return _json(DATA / "paper" / "account" / "view.json", {}) or {}
 
 
+def plan_sentence(plan: dict) -> str:
+    """The managed plan as one sentence with company names (1 Nov: "a sentence, not a list of ten tickers")."""
+    import re as _re
+    try:
+        from jarvis.india.voice import say_names
+    except Exception:  # noqa: BLE001
+        say_names = lambda x: x  # noqa: E731
+    buys = plan.get("buys") or []
+    n_cuts = len(plan.get("cuts") or []) if isinstance(plan.get("cuts"), list) else int(plan.get("cuts") or 0)
+    freed = sum(float(c.get("inr") or 0) for c in plan.get("cuts") or []) if isinstance(plan.get("cuts"), list) else float(plan.get("freed_inr") or 0)
+    day = dt.date.fromisoformat(plan["for_session"]).strftime("%A") if plan.get("for_session") else "the next session"
+    if plan.get("no_change"):
+        return f"No change on {day}: nothing is on the cut list."
+    if not buys:
+        return f"On {day}, {n_cuts} cuts free about ₹{freed:,.0f}; the money stays in cash this time."
+    swaps = ", ".join(f"{say_names(b['symbol'])} for {say_names(str(b.get('for_cut')).split('+')[0])}" + (" and the small stakes" if "+" in str(b.get("for_cut")) else "") for b in buys)
+    swaps = _re.sub(r"\b([A-Z]) (?=[A-Z]\b)", r"\1", swaps)
+    return f"On {day}, {n_cuts} cuts free about ₹{freed:,.0f}: {swaps}. Each with a 7% stop."
+
+
 def today(full: bool = True) -> dict:
     rm = views.readmodel()
     m = views.morning()
@@ -79,24 +99,8 @@ def today(full: bool = True) -> dict:
     decision = plan.get("brief") if plan.get("for_session") == session and not plan.get("error") else None
     if not decision and plan.get("brief"):
         decision = plan["brief"]
-    if plan.get("buys") is not None and not plan.get("error") and plan.get("brief"):     # 1 Nov: a sentence, not a list of ten tickers
-        try:
-            from jarvis.india.voice import say_names
-        except Exception:  # noqa: BLE001
-            say_names = lambda x: x  # noqa: E731
-        buys = plan.get("buys") or []
-        n_cuts = len(plan.get("cuts") or [])
-        freed = sum(float(c.get("inr") or 0) for c in plan.get("cuts") or [])
-        day = dt.date.fromisoformat(plan["for_session"]).strftime("%A") if plan.get("for_session") else "the next session"
-        if plan.get("no_change"):
-            decision = f"No change on {day}: nothing is on the cut list."
-        elif buys:
-            swaps = ", ".join(f"{say_names(b['symbol'])} for {say_names(str(b.get('for_cut')).split('+')[0])}" + (" and the small stakes" if "+" in str(b.get("for_cut")) else "") for b in buys)
-            import re as _re
-            swaps = _re.sub(r"\b([A-Z]) (?=[A-Z]\b)", r"\1", swaps)          # the voice's "L I C" is "LIC" on screen
-            decision = f"On {day}, {n_cuts} cuts free about ₹{freed:,.0f}: {swaps}. Each with a 7% stop."
-        else:
-            decision = f"On {day}, {n_cuts} cuts free about ₹{freed:,.0f}; the money stays in cash this time."
+    if plan.get("buys") is not None and not plan.get("error") and plan.get("brief"):
+        decision = plan_sentence(plan)
     if not decision:
         decision = m.get("headline") or "No plan is written yet."
     source = (f"From the plan written {_dw(plan.get('written_day'))} · fills at the open · nothing is placed" if plan.get("brief")
@@ -155,7 +159,7 @@ def money(full: bool = True) -> dict:
             "as_of": f"NSE close {_dw((acct.get('marks') or {}).get('last_session'))}" if acct.get("marks") else None,
             "books": books, "clock": {"sessions": bm.get("sessions"), "of": 60, "finish_words": None, "words": f"Session {bm.get('sessions')} of 60" if bm.get("sessions") is not None else None, "since": bm.get("frozen_day")},
             "books_note": "Same start, same prices for all four. Nothing is read into the gap before session 60.",
-            "plan": {"for_session": plan.get("for_session"), "brief": plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],
+            "plan": {"for_session": plan.get("for_session"), "brief": plan_sentence(plan) if not plan.get("error") else plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],
                      "no_change": plan.get("no_change"), "error": plan.get("error")} if plan else None,
             "managed": {"value_inr": mb.get("value_inr"), "return_pct": mb.get("return_pct"), "clock": (mb.get("clock") or {}).get("words"), "replacements": mb.get("replacements") or []},
             "holdings": holdings, "holdings_note": "Ranked by Ananta's grade; a suggestion is advice, the managed book acts on it on paper.", "options": alloc.get("options"), "headline": alloc.get("headline")}

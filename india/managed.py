@@ -351,6 +351,7 @@ def reasons(r: pd.Series, n500_ret120: float | None) -> list[str]:
 def make_plan(book: dict, day: str, feats: pd.DataFrame, exit_rows: list[dict], c: dict) -> dict:
     for_session = next_session(dt.date.fromisoformat(day)).isoformat()
     cuts = exit_rows + cut_list(book, day, c)
+    cuts.sort(key=lambda x: (x.get("kind") not in ("stop", "weak"), -float(x.get("inr") or 0)))   # 31 Oct: exits first, then the biggest cut gets the first replacement
     sectors = nifty500()
     n500 = None
     try:
@@ -451,7 +452,11 @@ def refuse_late(for_session: str) -> None:
 
 # ------------------------------------------------------------------------------------------------------------------------ run, score, view
 
-def run(day: str | None = None) -> dict:
+class _Kept(Exception):
+    pass
+
+
+def run(day: str | None = None, replan: bool = False) -> dict:
     c = cfg()
     df = bars()
     last = str(df["date"].max().date())
@@ -470,14 +475,25 @@ def run(day: str | None = None) -> dict:
     ex = exits(book, day, feats, c)
     plan = None
     try:
+        # 31 Oct: a plan for a session is written ONCE. Saturday's evening run re-rated the holdings and silently replaced Monday's plan, so the
+        # voice had told Madhav one set of replacements on Friday and another on Saturday. An existing plan without an error is kept; a
+        # re-plan is explicit (`python -m india.managed run --replan`).
+        nxt = next_session(dt.date.fromisoformat(day)).isoformat()
+        kept = next((r for r in _plans() if r.get("for_session") == nxt and not r.get("error") and not replan), None)
+        if kept:
+            plan = dict(kept, kept=True)
+            raise _Kept()
         p = make_plan(book, day, feats, ex, c)
         refuse_late(p["for_session"])
         rows = [r for r in _plans() if r.get("for_session") != p["for_session"]]
-        if rows and rows[-1]["sha"] != p["prev_sha"]:
-            p["prev_sha"] = rows[-1]["sha"]
+        want = rows[-1]["sha"] if rows else ""
+        if p["prev_sha"] != want:                      # a replaced row is not a link: the chain continues from the row before it
+            p["prev_sha"] = want
             p["sha"] = _sha(p)
         _write_jsonl(_dir() / "plans.jsonl", rows + [p])
         plan = p
+    except _Kept:
+        pass
     except Exception as e:  # noqa: BLE001
         plan = {"error": f"{type(e).__name__}: {str(e)[:160]}", "for_session": next_session(dt.date.fromisoformat(day)).isoformat()}
     st.write_text(json.dumps(book, indent=1))
@@ -564,7 +580,8 @@ def show() -> None:
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "show"
     if cmd == "run":
-        run(sys.argv[2] if len(sys.argv) > 2 else None)
+        args = [a for a in sys.argv[2:] if not a.startswith("--")]
+        run(args[0] if args else None, replan="--replan" in sys.argv)
         show()
     elif cmd == "score":
         print(json.dumps(score(), indent=1))

@@ -217,7 +217,13 @@ function Cockpit() {
       {getMarket() ? (                                                                         // 31 Oct: the redesign, behind a switch (src/look.ts); crypto too from 1 Nov
         <Card>
           <SwitchRow label="New look" help="Today · Money · Ask · Proof · People, voice first. Off: the classic tabs. This device remembers." on={look === "new"} last
-            onChange={(v) => { setLook(v ? "new" : "classic").then(() => { if (v) router.replace(newHome as any); }); }} />
+            onChange={(v) => { setLook(v ? "new" : "classic").then(async () => { if (v) { const { ownerNeedsFirstRun } = await import("../../src/onboard"); router.replace(((await ownerNeedsFirstRun()) ? "/onboard" : newHome) as any); } }); }} />
+          {look === "new" ? (
+            <Pressable onPress={async () => { const { setOwnerStep } = await import("../../src/onboard"); await setOwnerStep(0); router.push("/onboard" as any); }}
+              accessibilityRole="button" style={{ paddingTop: 12, minHeight: 44, justifyContent: "center" }}>
+              <T small>Replay the first run ›</T>
+            </Pressable>
+          ) : null}
         </Card>
       ) : null}
       <Spot id="cockpit.controls">

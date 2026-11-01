@@ -1044,6 +1044,63 @@ def onboard_restart(who: str = Depends(owner)) -> dict:
     return onboard.prompt(J())
 
 
+@app.get("/v3/onboard/owner")
+def onboard_owner(who: str = Depends(owner)) -> dict:
+    """The owner's first run in the new look (1 Nov 2026, canvas 'Your first run'): what is already set up, read-only.
+    Voice taught or not, Zerodha connected read-only or not (no names, no tokens), the people who may talk to Ananta,
+    and when the next morning view arrives. Nothing here changes anything; each step links to the screen that does."""
+    _owner_only(who)
+    import datetime as _dt
+    import re as _re
+    from zoneinfo import ZoneInfo
+
+    out: dict = {"voice": None, "zerodha": None, "people": []}
+    try:
+        st = _speaker("status")
+        out["voice"] = {"enrolled": bool(st.get("enrolled")), "when": str(st.get("enrolled_at") or "")[:10] or None}
+    except Exception:  # noqa: BLE001
+        out["voice"] = {"enrolled": None, "when": None}
+    try:
+        from src.india import kite_auth
+
+        k = kite_auth.status()
+        until = None
+        if k.get("connected") and k.get("expires_at_ist"):
+            try:
+                until = _dt.datetime.strptime(str(k["expires_at_ist"])[:16], "%Y-%m-%d %H:%M").strftime("%a %-d %b, %H:%M") + " Indian time"
+            except ValueError:
+                until = str(k["expires_at_ist"])
+        out["zerodha"] = {"connected": bool(k.get("connected")), "until": until}
+    except Exception:  # noqa: BLE001
+        out["zerodha"] = {"connected": None, "until": None}
+    try:
+        from jarvis.service import people as _ppl
+
+        for p in (_ppl.load() or {}).get("people") or []:
+            names = p.get("names") or []
+            if not names:
+                continue
+            rel = str(p.get("relation") or "")
+            m = _re.search(r"\(([^)]*)\)", rel)
+            rel = (m.group(1) if m else rel).replace("Madhav's ", "")
+            rel = _re.split(r"[;,]", rel)[0].strip()
+            out["people"].append({"name": names[0], "relation": rel})
+    except Exception:  # noqa: BLE001
+        pass
+    ist, tor = ZoneInfo("Asia/Kolkata"), ZoneInfo("America/Toronto")
+    now = _dt.datetime.now(ist)
+    day = now.date() if now.time() < _dt.time(8, 30) else now.date() + _dt.timedelta(days=1)
+    while day.weekday() >= 5:
+        day += _dt.timedelta(days=1)
+    at = _dt.datetime.combine(day, _dt.time(8, 30), ist)
+    lt = at.astimezone(tor)
+    clock = lt.strftime("%-I:%M %p").replace(":00", "").replace("AM", "am").replace("PM", "pm")
+    today_tor = _dt.datetime.now(tor).date()
+    when = f"tonight, {clock}" if lt.date() == today_tor and lt.hour >= 17 else f"today, {clock}" if lt.date() == today_tor else f"{lt.strftime('%a')} {clock}"
+    out["morning"] = {"day": day.isoformat(), "words": f"{at.strftime('%A %-d %b')} at 08:30 Indian time ({when} Toronto)"}
+    return out
+
+
 class OnboardCapital(BaseModel):
     amount: int
 

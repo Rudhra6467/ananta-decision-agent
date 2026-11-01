@@ -43,7 +43,10 @@ export async function setup(body: object) {
 // Where a signed-in person should be: a visitor who has not finished setup goes to the welcome steps.
 export async function routeAfterSignIn() {
   const m = await loadMe();
-  if (m?.guest && m.onboard && m.onboard !== "done") router.replace("/(tabs)/ask");          // Phase 5: the first conversation
+  if (m?.guest && m.onboard && m.onboard !== "done") {                                        // Phase 5: the first conversation, after hello (1 Nov)
+    const { helloSeen } = await import("./onboard");
+    router.replace((await helloSeen()) ? "/(tabs)/ask" : ("/hello" as any));
+  }
   else if (m?.guest && m.stage === "tour") router.replace("/(tabs)/today");
   else if (m?.guest) router.replace("/(tabs)/today");
   else {                                                                                   // the owner: the chosen market, or choose one (22 Oct)
@@ -51,6 +54,8 @@ export async function routeAfterSignIn() {
     const mk = await loadMarket();
     const { loadLook, newHome } = await import("./look");                                 // 1 Nov: the new look, when this device chose it
     const lk = await loadLook();
+    const { ownerNeedsFirstRun } = await import("./onboard");
+    if (lk === "new" && (await ownerNeedsFirstRun())) { router.replace("/onboard" as any); return; }
     router.replace((mk && lk === "new" ? newHome : mk ? homeOf(mk) : "/market") as any);
   }
 }

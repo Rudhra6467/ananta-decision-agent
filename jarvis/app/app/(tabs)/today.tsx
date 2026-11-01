@@ -64,7 +64,7 @@ function OwnerHome() {
   const m = d.mission ?? {};
   const feed = all ? d.feed : d.feed.slice(0, 8);
   const actOpen = showActivity || activityLit;
-  const dec = homeDecision(m, count.total);
+  const dec = homeDecision(m, count.needs);                   // 1 Nov (Madhav: "they are reviewed, still showing?"): only decisions "need" him; findings are news
   const india = getMarket() === "india";
   return (
     <Screen loading={loading} onRefresh={reload}>
@@ -73,12 +73,13 @@ function OwnerHome() {
           <T small>{s.date} · paper money</T>
           <Text style={st.h}>{hello(undefined, true)}</Text>
         </View>
-        <AnantaButton count={count.total} onPress={() => setAnanta(true)} />
+        <AnantaButton count={count.needs} onPress={() => setAnanta(true)} />
       </View>
       <AnantaSheet open={ananta} onClose={() => setAnanta(false)} home={d} onChanged={reload} />
 
       <Decision spot="home.decision" verb={dec.verb} rest={dec.rest} why={dec.why}
-        action={count.total ? { label: `${count.total} thing${count.total === 1 ? "" : "s"} need${count.total === 1 ? "s" : ""} you ›`, onPress: () => setAnanta(true) }
+        action={count.needs ? { label: `${count.needs} thing${count.needs === 1 ? "" : "s"} need${count.needs === 1 ? "s" : ""} you ›`, onPress: () => setAnanta(true) }
+          : count.findings ? { label: `${count.findings} new finding${count.findings === 1 ? "" : "s"} ›`, onPress: () => setAnanta(true) }
           : { label: "Trades ›", onPress: () => router.push({ pathname: "/(tabs)/watchlists", params: { tab: "ananta", sub: "mine" } } as any) }} />
 
       {india && m.account?.started ? <Spot id="home.value"><IndiaPortfolio a={m.account} /></Spot> : null}

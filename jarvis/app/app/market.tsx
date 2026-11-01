@@ -28,7 +28,11 @@ export default function MarketScreen() {
     api("/health", undefined, 8000, true).then((h: any) => setCrypto(h?.ok ? "running · paper · 60-day evidence window" : "not answering")).catch(() => setCrypto("not reachable right now"));
     api("/india/health", undefined, 8000, true).then((h: any) => setIndia(h?.ok ? `running · paper · data through ${h.data_through}` : "no read model yet")).catch(() => setIndia("not reachable right now"));
   }, []);
-  const pick = async (m: Market) => { await setMarket(m); router.replace(homeOf(m) as any); };
+  const pick = async (m: Market) => {                    // 1 Nov: India opens in the new look when this device chose it
+    await setMarket(m);
+    const { loadLook, newHome } = await import("../src/look");
+    router.replace((m === "india" && (await loadLook()) === "new" ? newHome : homeOf(m)) as any);
+  };
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: SPACE.screen, paddingTop: top + 28, maxWidth: 720, alignSelf: "center", width: "100%" }}>
       <Text style={{ color: C.text, fontSize: TYPE.number, fontWeight: "800" }}>Which Ananta?</Text>

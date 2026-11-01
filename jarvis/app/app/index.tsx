@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Redirect } from "expo-router";
 import { homeOf, loadMarket } from "../src/market";
 import { loadMe } from "../src/visitor";
+import { loadLook, newHome } from "../src/look";
 
 export default function Index() {
   const [to, setTo] = useState<string | null>(null);
@@ -13,7 +14,8 @@ export default function Index() {
         const me = await loadMe();
         if (me?.guest) { setTo("/(tabs)/today"); return; }
         const m = await loadMarket();
-        setTo(m ? homeOf(m) : "/market");
+        const look = await loadLook();                     // 31 Oct: the redesign, when this device chose it (India only for now)
+        setTo(m === "india" && look === "new" ? newHome : m ? homeOf(m) : "/market");
       } catch { setTo("/(tabs)/today"); }
     })();
   }, []);

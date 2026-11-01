@@ -20,6 +20,7 @@ import { Btn, Busy, Card, Divider, ErrorBox, Line, ListState, Screen, Section, S
 import { useData } from "../../src/useData";
 import { getMarket } from "../../src/market";
 import { C } from "../../src/theme";
+import { newHome, setLook, useLook } from "../../src/look";
 import { ExplainSheet, VERDICT, showToast } from "../../src/blocks";
 import { clearMe, loadMe, useMe } from "../../src/visitor";
 import * as TTS from "../../src/tts";
@@ -151,6 +152,7 @@ function VisitorCockpit() {
 // ---- Madhav's More ----
 function Cockpit() {
   useFocusEffect(useCallback(() => { setScreen({ screen: "cockpit", label: "More: controls, voice and model, evidence, system" }); }, []));
+  const look = useLook();
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
   const { data: sp, reload: reloadSpend } = useData("/v3/spend");
   const { data: ev } = useData("/v3/evidence/collected", 600000);
@@ -212,6 +214,12 @@ function Cockpit() {
         </View>
       </Card>
 
+      {getMarket() === "india" ? (                                                               // 31 Oct: the redesign, behind a switch (src/look.ts)
+        <Card>
+          <SwitchRow label="New look" help="Today · Money · Ask · Proof · People, voice first. Off: the classic tabs. This device remembers." on={look === "new"} last
+            onChange={(v) => { setLook(v ? "new" : "classic").then(() => { if (v) router.replace(newHome as any); }); }} />
+        </Card>
+      ) : null}
       <Spot id="cockpit.controls">
         <Section title="Controls" />
         <Card>

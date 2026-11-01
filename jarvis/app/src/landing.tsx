@@ -24,12 +24,12 @@ function Phone({ st }: { st: any }) {
             <Text style={{ color: K.gold, fontSize: 11, fontWeight: "800" }}>PAPER</Text>
           </View>
         </View>
-        <Text style={{ color: K.dim, fontSize: 12 }}>Watching {n(st?.coins_watched, "393")} coins · every rule on every coin</Text>
+        <Text style={{ color: K.dim, fontSize: 12 }}>The Indian market · your holdings rated every evening</Text>
 
         <View style={{ backgroundColor: K.surface, borderRadius: 18, padding: 14, gap: 8, borderWidth: 1, borderColor: K.line }}>
           <Text style={{ color: K.gold, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>DECISION CARD · EXAMPLE</Text>
-          {[["Found", "A short dip in an uptrend"], ["Why", "History favours this setup on big coins"], ["Wrong if", "It closes under the support zone"],
-            ["Doing", "$100 paper trade, stop set"]].map(([k, v]) => (
+          {[["Found", "A holding 14% under its long-term average"], ["Why", "Weak trend, 22% of the stocks"], ["Wrong if", "It closes back above its one-month average"],
+            ["Doing", "Paper: trim it, buy a calmer name, 7% stop"]].map(([k, v]) => (
             <View key={k} style={{ flexDirection: "row", gap: 8 }}>
               <Text style={{ color: K.faint, fontSize: 12, width: 58 }}>{k}</Text>
               <Text style={{ color: K.text, fontSize: 12, flex: 1 }}>{v}</Text>
@@ -120,7 +120,7 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
               The AI trading partner that <Text style={{ color: K.gold }}>shows its work.</Text>
             </Text>
             <Text style={{ color: K.dim, fontSize: wide ? 20 : 17, lineHeight: wide ? 30 : 26, textAlign: wide ? "left" : "center", maxWidth: 520 }}>
-              It watches the whole crypto market, explains every idea, and proves each rule on paper before it ever trades.
+              It reads the Indian market and your holdings every evening, explains every idea in plain words and by voice, and proves each rule on paper before it ever trades.
             </Text>
             <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap", justifyContent: wide ? "flex-start" : "center" }}>
               <Btn label="Request an invite" onPress={invite} />
@@ -144,7 +144,7 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
         </Text>
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 40 }}>
-          <Reason mark="◎" title="Watches everything" text="Every coin, every rule, around the clock. You choose: it tells you, asks first, or takes the paper trade." />
+          <Reason mark="◎" title="Does the homework" text="Every evening it re-rates your holdings, writes the cut list and picks replacements on paper. Every morning, the plan." />
           <Reason mark="?" title="Explains every idea" text="What it found, why, what would prove it wrong, and what it is doing. Ask “why?” by voice or text." />
           <Reason mark="✓" title="Proves before it trades" text={`Each rule is tested on years of prices (${n(st?.reviews, "23")} tests so far) and must beat random entries.`} />
         </View>

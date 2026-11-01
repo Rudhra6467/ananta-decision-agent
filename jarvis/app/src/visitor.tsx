@@ -49,7 +49,9 @@ export async function routeAfterSignIn() {
   else {                                                                                   // the owner: the chosen market, or choose one (22 Oct)
     const { loadMarket, homeOf } = await import("./market");
     const mk = await loadMarket();
-    router.replace((mk ? homeOf(mk) : "/market") as any);
+    const { loadLook, newHome } = await import("./look");                                 // 1 Nov: the new look, when this device chose it
+    const lk = await loadLook();
+    router.replace((mk === "india" && lk === "new" ? newHome : mk ? homeOf(mk) : "/market") as any);
   }
 }
 

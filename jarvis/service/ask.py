@@ -679,7 +679,12 @@ def keep_cards_honest(reply: dict, created: list, log: list, brief_keys=()) -> d
     if not created and CARD_CLAIM.search(ans):
         sents = re.split(r"(?<=[.!?])\s+", ans)
         keep = [s for s in sents if not CARD_CLAIM.search(s)]
-        ans = " ".join(keep).strip() + (" " if keep else "") + "No card was made yet; say 'prepare it' if you want one to confirm."
+        # 1 Nov (outsider crypto round): the fixed tail was glued onto unrelated answers ("what's waiting for my yes?" ended "No card was
+        # made yet; say 'prepare it'..."). The false claim is still removed; the tail is added only when the answer is about an order.
+        about_order = re.search(r"\b(buy|sell|order|trade|position|paper (?:buy|sell)|prepare|stop|target|entry|my pick)\b", " ".join(keep), re.I)
+        ans = " ".join(keep).strip()
+        if not keep or about_order:
+            ans = (ans + " " if ans else "") + "No order card was made; say 'prepare it' if you want one to confirm."
         checks.append("card claim removed: no card was made in this answer")
     used = {x.get("tool") for x in log or [] if isinstance(x, dict)}
     if len(PLAN_LEVELS.findall(ans)) >= 2 and not (used & PRICE_LOOKUPS) and not brief_keys:

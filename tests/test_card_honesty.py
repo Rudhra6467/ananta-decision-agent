@@ -9,7 +9,7 @@ INCIDENT = ("Afternoon, sir. My pick is Bitcoin: a breakout after a quiet period
 def test_the_incident_answer_is_corrected():
     r = keep_cards_honest({"answer": INCIDENT, "breakdown": []}, created=[], log=[{"tool": "knowledge"}])
     assert "card is waiting" not in r["answer"]
-    assert "No card was made yet" in r["answer"]
+    assert "No order card was made" in r["answer"]
     assert "The evidence on this setup is thin." in r["answer"]
     assert any("not checked" in b for b in r["breakdown"])
     assert len(r["checks"]) == 2
@@ -24,3 +24,10 @@ def test_an_offer_is_not_a_claim_and_a_live_brief_backs_prices():
     a = "I can prepare a card for you to confirm with Face ID if you want: entry at about 83,800, stop near 81,300."
     r = keep_cards_honest({"answer": a}, created=[], log=[], brief_keys=["MARKET_BRIEF"])
     assert r["answer"] == a and "checks" not in r
+
+
+def test_the_tail_is_not_glued_onto_an_answer_that_is_not_about_an_order():
+    """1 Nov (outsider crypto round): "what's waiting for my yes?" ended with "No card was made yet; say 'prepare it'..."."""
+    a = "Nothing is waiting for your yes right now. The card is waiting for your Face ID."
+    r = keep_cards_honest({"answer": a}, created=[], log=[])
+    assert r["answer"] == "Nothing is waiting for your yes right now."

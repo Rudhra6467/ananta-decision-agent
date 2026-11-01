@@ -149,7 +149,7 @@ def money(full: bool = True) -> dict:
     mb = _managed()
     plan = mb.get("plan") or {}
     books = [{"id": "yours", "label": "As you have it", "ret_pct": bm.get("frozen_ret_pct")}, {"id": "twin", "label": "The twin", "ret_pct": bm.get("twin_ret_pct")},
-             {"id": "managed", "label": "Managed", "ret_pct": mb.get("return_pct") if (mb.get("clock") or {}).get("sessions") else None, "words": None if (mb.get("clock") or {}).get("sessions") else f"starts {_dw(plan.get('for_session'))}"},
+             {"id": "managed", "label": "Managed", "ret_pct": mb.get("return_pct") if (mb.get("clock") or {}).get("sessions") else None, "words": None if (mb.get("clock") or {}).get("sessions") else f"starts {_dw(plan.get('for_session')).split(' ')[0]}"},
              {"id": "index", "label": "Nifty 500", "ret_pct": bm.get("nifty500_ret_pct")}]
     holdings = []
     for x in (alloc.get("holdings") or []) if full else []:

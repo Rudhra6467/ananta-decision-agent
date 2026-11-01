@@ -39,7 +39,7 @@ export function NumberTile({ label, value, sub, tone }: { label: string; value: 
   return (
     <NCard style={{ flex: 1 }}>
       <Meta>{label}</Meta>
-      <Text style={[TY.number, { color: tone === "good" ? C.good : tone === "bad" ? C.bad : C.text, marginTop: 4 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{value}</Text>
+      <Text style={[TY.number, value.length > 7 ? { fontSize: 26, lineHeight: 34 } : null, { color: tone === "good" ? C.good : tone === "bad" ? C.bad : C.text, marginTop: 4 }]} numberOfLines={1}>{value}</Text>
       {sub ? <Meta faint style={{ marginTop: 4 }}>{sub}</Meta> : null}
     </NCard>
   );

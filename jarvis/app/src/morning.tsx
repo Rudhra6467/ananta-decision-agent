@@ -104,9 +104,9 @@ function PreMarketOverlay({ ready, session }: { ready: boolean; session?: string
   if (dismissed || !preMarket || (ready && session === istToday)) return null;
   return (
     <Modal visible transparent animationType="fade" onRequestClose={() => setDismissed(true)}>
-      <Pressable onPress={() => setDismissed(true)} style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", padding: 24, gap: 10 }}>
-        <Text style={{ fontSize: 20, fontWeight: "700", color: "#111" }}>Ananta is reading the market</Text>
-        <Text style={{ fontSize: 15, color: "#444", textAlign: "center" }}>The view for today lands by 08:30 Indian time and this screen closes by itself. Tap to look around meanwhile.</Text>
+      <Pressable onPress={() => setDismissed(true)} style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center", padding: 24, gap: 10 }}>
+        <Text style={{ fontSize: 20, fontWeight: "700", color: C.text }}>Ananta is reading the market</Text>
+        <Text style={{ fontSize: 15, color: C.dim, textAlign: "center" }}>The view for today lands by 08:30 Indian time and this screen closes by itself. Tap to look around meanwhile.</Text>
       </Pressable>
     </Modal>
   );

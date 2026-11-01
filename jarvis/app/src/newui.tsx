@@ -7,11 +7,7 @@ import { C } from "./theme";
 
 // tokens the palettes do not carry yet (gold is C.accent in Bat, blue in Light: here the brand is gold in both)
 export const G = {
-  gold: () => (C.bar === "light" ? C.accent : "#7A5E0F"),
-  goldSoft: () => (C.bar === "light" ? C.accentSoft : "#FBF3D6"),
-  onGold: () => (C.bar === "light" ? "#141518" : "#FFFFFF"),
-  twin: () => (C.bar === "light" ? "#8CA6E8" : "#4A6FD6"),
-  glow: () => (C.bar === "light" ? "#F2CF6633" : "#7A5E0F22"),
+  gold: () => C.gold, goldSoft: () => C.goldSoft, onGold: () => C.onGold, twin: () => C.twin, glow: () => C.glow,
 };
 export const TY = {
   hero: { fontSize: 40, lineHeight: 44, fontWeight: "700" as const, letterSpacing: -0.8, fontVariant: ["tabular-nums"] as any },
@@ -132,7 +128,7 @@ export function Orb({ size = 56, onPress, label = "Ask Ananta" }: { size?: numbe
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
       style={{ width: size, height: size, borderRadius: 999, backgroundColor: G.gold(), alignItems: "center", justifyContent: "center",
-        shadowColor: C.bar === "light" ? "#F2CF66" : "#7A5E0F", shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 }}>
+        shadowColor: C.gold, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 }}>
       <View style={{ position: "absolute", left: -9, top: -9, right: -9, bottom: -9, borderRadius: 999, borderWidth: 2, borderColor: G.glow() }} />
       <MicIcon2 color={G.onGold()} size={Math.round(size * 0.43)} />
     </Pressable>

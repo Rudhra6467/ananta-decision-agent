@@ -46,7 +46,7 @@ export function NumberTile({ label, value, sub, tone }: { label: string; value: 
 }
 
 const pctWords = (p: number | null | undefined) => (p == null ? null : `${p > 0 ? "+" : ""}${p.toFixed(2)}%`);
-export function BookRow({ books, clock, note }: { books: { id: string; label: string; ret_pct?: number | null; words?: string | null }[]; clock?: string | null; note?: string }) {
+export function BookRow({ books, clock, note, onAsk }: { books: { id: string; label: string; ret_pct?: number | null; words?: string | null }[]; clock?: string | null; note?: string; onAsk?: () => void }) {
   const colorOf: Record<string, string> = { yours: C.dim, twin: G.twin(), managed: G.gold(), index: C.faint };
   return (
     <NCard>
@@ -66,6 +66,7 @@ export function BookRow({ books, clock, note }: { books: { id: string; label: st
         })}
       </View>
       {note ? <Meta faint style={{ marginTop: 10 }}>{note}</Meta> : null}
+      {onAsk ? <Btn label="Ask Ananta to explain this" kind="s" onPress={onAsk} style={{ marginTop: 12, paddingVertical: 8, minHeight: 40 }} /> : null}
     </NCard>
   );
 }

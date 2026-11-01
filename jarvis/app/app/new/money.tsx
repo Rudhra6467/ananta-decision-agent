@@ -23,7 +23,8 @@ export default function Money() {
             <Text style={[TY.hero, { color: C.text }]}>{inr(d.value_inr)}</Text>
             <Meta>{d.as_of ? d.as_of + " · " : ""}{inr(d.stocks_inr)} stocks · {inr(d.options_inr)} options · {inr(d.cash_inr)} cash</Meta>
           </View>
-          <BookRow books={d.books || []} clock={d.clock?.words ? `${d.clock.words}` : null} note={d.books_note} />
+          <BookRow books={d.books || []} clock={d.clock?.words ? `${d.clock.words}` : null} note={d.books_note}
+            onAsk={() => askIt("Explain the four books in detail: what each one is, how each started, what the numbers mean today, what the 60-session clock is for, and what would tell us the managed book is working.")} />
           {plan && !plan.error ? (
             <NCard pad={14}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -49,9 +50,12 @@ export default function Money() {
             </NCard>
           ) : null}
           <View style={{ backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16, paddingTop: 12 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}><H>Your holdings</H><Meta>{(d.holdings || []).length} ranked</Meta></View>
+            <H>Your holdings</H>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: C.line }}>
+              <Meta>Holding · value · on cost</Meta><Meta>Ananta's decision</Meta>
+            </View>
             {(d.holdings || []).map((h: any, i: number) => (
-              <View key={h.symbol} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: C.line, marginTop: i ? 0 : 6 }}>
+              <View key={h.symbol} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={[TY.figure, { color: C.text }]}>{h.symbol} <Meta>{h.weight_pct != null ? `${h.weight_pct}% of stocks` : ""}</Meta></Text>
                   <Meta faint>{inr(h.value_inr)}{h.pnl_pct != null ? ` · ${pctS(h.pnl_pct, 0)} on cost` : ""}</Meta>

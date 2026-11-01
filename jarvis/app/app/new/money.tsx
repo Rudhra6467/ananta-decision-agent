@@ -20,10 +20,15 @@ export default function Money() {
   const p = useLocalSearchParams<{ focus?: string; t?: string }>();
   const ref = useRef<ScrollView | null>(null);
   const [ys, setYs] = useState<Record<string, number>>({});
+  const ysRef = useRef<Record<string, number>>({});
+  ysRef.current = ys;
   useEffect(() => {
-    const y = p.focus ? ys[p.focus] : undefined;
-    if (d && y != null) setTimeout(() => ref.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }), 60);
-  }, [p.focus, p.t, d, ys.holdings, ys.options]);
+    if (!d || !p.focus) return;
+    // the section's place settles as fonts and cards finish laying out: aim three times, each at its latest position
+    const go = () => { const y = ysRef.current[p.focus as string]; if (y != null) ref.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }); };
+    const ts = [80, 400, 900].map((ms) => setTimeout(go, ms));
+    return () => ts.forEach(clearTimeout);
+  }, [p.focus, p.t, d]);
   const mark = (k: string) => (e: any) => { const y = e?.nativeEvent?.layout?.y; if (y != null && ys[k] !== y) setYs((o) => ({ ...o, [k]: y })); };
   const ob = d?.options_book;
   return (

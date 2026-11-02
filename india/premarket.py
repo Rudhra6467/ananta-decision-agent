@@ -187,9 +187,9 @@ def results(session: str | None = None) -> dict:
     out = {"session": session_d.isoformat(), "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "files": [Path(f).name for f in files],
            "results_today": meet, "results_published_since_close": pub,
            "held_with_results_today": sorted(s for s in meet if s in held), "held_with_results_published": sorted(s for s in pub if s in held),
-           "words": ((f"Results today: {len(meet)} companies" + (f", including held {', '.join(sorted(s for s in meet if s in held))}" if any(s in held for s in meet) else "") + ". ")
+           "words": ((f"Results today: {len(meet)} companies" + (f", including names held on paper or in your account: {', '.join(sorted(s for s in meet if s in held))}" if any(s in held for s in meet) else "") + ". ")
                      if meet else "No company in the announcements has a results board meeting today. ")
-                    + (f"Results published since the last close: {len(pub)}" + (f", including held {', '.join(sorted(s for s in pub if s in held))}" if any(s in held for s in pub) else "") + "." if pub else "")}
+                    + (f"Results published since the last close: {len(pub)}" + (f", including names held on paper or in your account: {', '.join(sorted(s for s in pub if s in held))}" if any(s in held for s in pub) else "") + "." if pub else "")}
     (_man() / "results_today.json").write_text(json.dumps(out, indent=1))
     return out
 

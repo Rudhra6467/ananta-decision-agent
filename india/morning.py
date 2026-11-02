@@ -68,7 +68,9 @@ def next_signin(now: dt.datetime, hol: set | None = None) -> str:
         return window
     if auto["ok"]:
         # audit 25 Oct: the page kept telling Madhav to sign in by hand after the automatic sign-in started working
-        return f"automatic at 21:40 Toronto (last automatic sign-in ok {auto['at']}); by hand only if it fails, {window}"
+        # 2 Nov independent audit: "21:40 Toronto" was summer time; the job keeps 07:10 IST, so say it in today's Toronto time
+        at = dt.datetime.combine(day, dt.time(7, 10), IST).astimezone(TOR)
+        return f"automatic at {at:%H:%M} Toronto, 07:10 IST (last automatic sign-in ok {auto['at']}); by hand only if it fails, {window}"
     return f"{window}; the automatic sign-in is failing ({auto['why'][:120]})"
 
 

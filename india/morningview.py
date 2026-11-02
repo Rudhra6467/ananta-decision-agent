@@ -438,9 +438,10 @@ def lines(f: dict) -> dict:
     if rt.get("results_today"):
         names = rt["results_today"]
         held = rt.get("held_with_results_today") or []
-        watch.append(f"Results today: {', '.join(names[:8])}{' and more' if len(names) > 8 else ''}" + (f" - held: {', '.join(held)}" if held else "") + ". A results day can gap either way; no rule in the practice book reads results yet.")
+        watch.append(f"Results today: {', '.join(names[:8])}{' and more' if len(names) > 8 else ''}" + (f" - held in the practice book or your account: {', '.join(held)}" if held else "") + ". A results day can gap either way; no rule in the practice book reads results yet.")
     if rt.get("held_with_results_published"):
-        watch.append(f"Results came out after yesterday's close for held names: {', '.join(rt['held_with_results_published'][:8])}.")
+        # 2 Nov independent audit: "held names" read as Madhav's stocks; these are the practice book's open trades plus the account copy
+        watch.append(f"Results came out after yesterday's close for names held in the practice book or your account: {', '.join(rt['held_with_results_published'][:8])}.")
     bl = (pm.get("ban_list") or {}).get("symbols")
     if bl:
         watch.append(f"F&O ban list today: {', '.join(bl[:8])} (no new futures or options positions in these; the cash book is not affected).")

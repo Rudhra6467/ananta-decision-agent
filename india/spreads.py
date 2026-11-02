@@ -93,7 +93,7 @@ def sample(interval_s: int = 60) -> dict:
     try:
         k = kite.Kite(rate_per_s=1.0)
     except kite.NeedLogin as e:
-        kite._ntfy("Option spreads not captured tonight: Kite sign-in needed after 20:30 Toronto (06:00 IST) for the IST session")
+        kite._ntfy("Option spreads not captured tonight: Kite sign-in needed after 06:00 IST (7:30 pm Toronto in winter, 8:30 pm in summer) for the IST session")
         return {"ok": False, "why": str(e)}
     while dt.datetime.now(IST).time() < START:
         time.sleep(20)
@@ -162,7 +162,7 @@ def build() -> pd.DataFrame:
 def table() -> pd.DataFrame:
     p = paths.data_dir() / "silver" / "option_spreads" / "spreads.parquet"
     if not p.exists():
-        print("no spreads recorded yet: needs a Kite sign-in after 20:30 Toronto so the IST session is covered", flush=True)
+        print("no spreads recorded yet: needs a Kite sign-in after 06:00 IST so the IST session is covered", flush=True)
         return pd.DataFrame()
     df = pd.read_parquet(p)
     df = df[df["two_sided"]]

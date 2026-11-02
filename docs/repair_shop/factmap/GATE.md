@@ -20,3 +20,13 @@ one-off reads; new files and features kept arriving after them. These four piece
 No new India feature, screen or data file is merged until the gate is green AND the new thing has its route in the fact map
 and at least one moment question in the harness. Fixes to gaps the gate or the auditor find are allowed and come first.
 Crypto stays under Rule B (no new studies or rule changes before 14 Dec 2026).
+
+## Added after the independent audit (2 Nov evening)
+The first outside audit found 16 gaps the four pieces above did not catch, because they checked that data has a ROUTE, not that it is FRESH
+when Madhav asks. So the gate also holds:
+5. Freshness — factmap.stale_summaries(): a summary (market summary, quote book) built before its own inputs fails.
+6. One clock for times — jarvis/india/schedule.py day_words()/at(): every job time Ananta or a screen says is read from the launchd jobs;
+   tests/test_no_handwritten_toronto_times.py fails on a hand-written Toronto clock time.
+7. Lint before commit — `~/ananta_runs/lintenv/bin/pyflakes <changed files>`: no undefined names (a missing import silently turned the
+   live stock price off on 2 Nov until it was caught).
+8. A fresh outside audit after every large change (brief: goal and rules only, report only; dry Ask: ~/ananta_runs/audit_ask.py).

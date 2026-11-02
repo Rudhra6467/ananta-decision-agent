@@ -8,9 +8,11 @@ Nifty gap down?" goes to the model, which has the same section in its facts and 
 """
 from __future__ import annotations
 
+import json
 import re
 
 from jarvis.india import views
+from jarvis.india.views import DATA
 
 WHAT = {
     "rupee": r"\brupee\b|\busd ?/? ?inr\b|\bdollar[- ]rupee\b|\brupee[- ]dollar\b|\binr\b",
@@ -41,8 +43,49 @@ def _dw(d) -> str:
         return str(d)
 
 
+def _mc(rm: dict) -> dict:
+    """The market summary: the file itself when it is newer than the read model's copy. Independent audit, 2 Nov: the copy is taken when the read
+    model is built, and the nightly chain refreshes the summary after that, so Ananta said "Monday's P/E isn't in yet" for six hours."""
+    copy = rm.get("market_context") or {}
+    try:
+        f = json.loads((DATA / "manifests" / "market_context.json").read_text())
+        if str(f.get("built_at") or "") > str(copy.get("built_at") or ""):
+            return f
+    except Exception:  # noqa: BLE001
+        pass
+    return copy
+
+
+def _poi(p) -> dict:
+    import csv
+    rows = list(csv.reader(p.read_text(errors="ignore").splitlines()[1:]))
+    head = [re.sub(r"\s+", " ", c).strip() for c in rows[0]]
+    il, ish = head.index("Future Index Long"), head.index("Future Index Short")
+    return {r[0].strip(): int(float(r[il])) - int(float(r[ish])) for r in rows[1:] if r and r[0].strip() in ("FII", "DII", "Client", "Pro")}
+
+
+def futures_positions() -> dict:
+    """Independent audit, 2 Nov: who holds the index futures reached the Ask only through the 08:00 IST reconstruction, though NSE's file lands at
+    12:47 pm Toronto, so Ananta said "Monday's positions are not published". The newest file on disk, net index futures per participant and the
+    change on the file before. Explains a move; the tests found no edge in it."""
+    import datetime as _dt
+    files = sorted((DATA / "bronze" / "flows" / "participant_oi").glob("*/fao_participant_oi_*.csv"),
+                   key=lambda p: _dt.datetime.strptime(p.stem[-8:], "%d%m%Y"))
+    if not files:
+        return {"status": "missing"}
+    try:
+        now, prev = _poi(files[-1]), (_poi(files[-2]) if len(files) > 1 else {})
+    except Exception as e:  # noqa: BLE001
+        return {"status": "missing", "why": f"{type(e).__name__}"}
+    day = _dt.datetime.strptime(files[-1].stem[-8:], "%d%m%Y").date()
+    name = {"FII": "foreign institutions", "DII": "domestic institutions", "Client": "clients (retail and others)", "Pro": "proprietary traders"}
+    bits = [f"{name[k]} net {'long' if v >= 0 else 'short'} {abs(v):,} contracts" + (f" ({v - prev[k]:+,} on the day)" if k in prev else "") for k, v in now.items()]
+    return {"status": "ok", "as_of": day.isoformat(), "net_index_futures": now,
+            "words": f"Index futures positions at the close of {_dw(day)} (NSE participant-wise open interest): " + "; ".join(bits) + "."}
+
+
 def facts_part(rm: dict) -> dict:
-    mc = rm.get("market_context") or {}
+    mc = _mc(rm)
     if mc.get("status") != "ok":
         return {"status": mc.get("status", "missing"), "how_to_say_it": "the market-context feed is not built: say so; never state a rupee, crude, yield or US-market reading from memory"}
     def r(x):   # one reading, trimmed
@@ -52,6 +95,7 @@ def facts_part(rm: dict) -> dict:
             "india_vix": r(mc.get("india_vix")), "flows": mc.get("flows"), "gift_nifty": mc.get("gift_nifty"),
             "opening_gaps": mc.get("opening_gaps"),     # 26 Oct: each index's open against the previous close, with the GP1 tested line
             "valuation": mc.get("valuation"),           # 27 Oct: Nifty 50 / 500 / Bank P/E, P/B, yield and their percentiles in 2024-free history
+            "futures_positions": futures_positions(),   # 2 Nov audit: the newest participant file (current observation, like the reconstruction reads it)
             "how_to_say_it": mc.get("how_to_say_it")}
 
 
@@ -79,7 +123,7 @@ def market_context_flow(text: str) -> dict | None:
     if not kinds:
         return None
     rm = views.readmodel()
-    mc = rm.get("market_context") or {}
+    mc = _mc(rm)
     if mc.get("status") != "ok":
         return None
     macro, parts = mc.get("macro") or {}, []

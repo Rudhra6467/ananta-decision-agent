@@ -6,8 +6,16 @@ import datetime as dt
 from jarvis.india import answerguide as G
 from jarvis.india import ask as A
 from jarvis.india import askwords as W
+import pytest
+
 from jarvis.india import marketcontext as MC
 
+
+
+@pytest.fixture(autouse=True)
+def _no_live_summary_file(tmp_path, monkeypatch):
+    """These tests hand the summary in through the read model; the live file on the Mac (newer, 2 Nov) must not take its place."""
+    monkeypatch.setattr(MC, "DATA", tmp_path)
 
 def test_the_horizon_decides_which_evidence_fits():
     assert G.horizon("Should I take a personal loan to buy stocks while the market is down?") == "personal_finance"

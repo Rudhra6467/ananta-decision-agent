@@ -8,6 +8,12 @@ TESTED = ("Tested 26 Oct (studies XO1, FX1, FII1, DII1 and the crude card TWT-H4
           "Use them to explain a move, never to trade.")
 
 
+
+@pytest.fixture(autouse=True)
+def _no_live_summary_file(tmp_path, monkeypatch):
+    """These tests hand the summary in through the read model; the live file on the Mac (newer, 2 Nov) must not take its place."""
+    monkeypatch.setattr(marketcontext, "DATA", tmp_path)
+
 def _m(label, value, as_of, lag, c1, c5, unit=None, kind="pct", src="FRED"):
     return {"label": label, "status": "ok", "as_of": as_of, "lag_days": lag, "value": value, "unit": unit, "change_1": c1, "change_5": c5,
             "change_kind": kind, "source": src}
@@ -84,3 +90,26 @@ def test_facts_part_is_compact_and_carries_the_tested_line(rm):
     f = marketcontext.facts_part(RM)
     assert f["tested"] == TESTED and f["rupee_same_day"]["value"] == 95.19 and set(f["macro"]) >= {"DEXINUS", "SP500", "DCOILBRENTEU", "DGS10"}
     assert f["macro"]["DCOILBRENTEU"]["lag_days"] == 6 and f["gift_nifty"] == "no free source"
+
+
+def test_the_newer_summary_file_wins_over_the_read_models_copy(tmp_path):
+    """Independent audit, 2 Nov: the read model copied the summary before the nightly chain refreshed it ("Monday's P/E isn't in yet")."""
+    import json
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "manifests" / "market_context.json").write_text(json.dumps({"status": "ok", "built_at": "2026-11-02T22:01:25+00:00", "words": "Valuation on Mon 2 Nov"}))
+    rm = {"market_context": {"status": "ok", "built_at": "2026-11-02T17:38:00+00:00", "words": "Valuation on Fri 30 Oct"}}
+    assert marketcontext.facts_part(rm)["words"] == "Valuation on Mon 2 Nov"
+    rm["market_context"]["built_at"] = "2026-11-03T00:00:00+00:00"
+    assert marketcontext.facts_part(rm)["words"] == "Valuation on Fri 30 Oct"
+
+
+def test_futures_positions_read_the_newest_participant_file(tmp_path):
+    """Independent audit, 2 Nov: Monday's positions landed at 12:47 pm Toronto but reached the Ask only with the 08:00 IST reconstruction."""
+    d = tmp_path / "bronze" / "flows" / "participant_oi" / "2026"
+    d.mkdir(parents=True)
+    head = '""Participant wise Open Interest as on Nov 02, 2026"",,\nClient Type,Future Index Long,Future Index Short\n'
+    (d / "fao_participant_oi_30102026.csv").write_text(head + "Client,200,100\nFII,100,300\n")
+    (d / "fao_participant_oi_02112026.csv").write_text(head + "Client,240563,61113\nFII,50000,300000\n")
+    f = marketcontext.futures_positions()
+    assert f["as_of"] == "2026-11-02" and f["net_index_futures"]["FII"] == -250000
+    assert "foreign institutions net short 250,000 contracts (-249,800 on the day)" in f["words"] and "Mon 2 Nov" in f["words"]

@@ -1271,11 +1271,23 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         lk = lookup.facts_for(text_q)
     except Exception as e:  # noqa: BLE001  a lookup never breaks the answer
         lk = {"lookup_error": type(e).__name__}
+    # 2 Nov audit re-check: a stock named one question ago dropped out of the facts, and the next answer "corrected" a right Cipla price as not in
+    # its data; the stocks of the previous question stay for one more turn
+    if not lk.get("stocks"):
+        try:
+            prev_q = [m.get("text") or "" for m in thread_messages(thread) if m.get("role") == "user"][-2:-1]
+            lk_prev = lookup.facts_for(prev_q[0]) if prev_q else {}
+            if lk_prev.get("stocks"):
+                lk = {**lk, "stocks": lk_prev["stocks"], "stocks_as_of": lk_prev.get("stocks_as_of"), "stocks_from": "named in the previous question",
+                      "how_to_say_it": lk.get("how_to_say_it") or lk_prev.get("how_to_say_it")}
+        except Exception:  # noqa: BLE001
+            pass
     if lk.get("stocks") and LIVE_OVERRIDE is None:   # independent audit, 2 Nov: a named stock's price now, not only last night's close
         try:
+            from jarvis.india import livesession as _ls
             clk = (f.get("today_live") or {}).get("clock")
             if clk:
-                lk["stocks_now"] = livesession.stocks_now(clk, list(lk["stocks"].keys()))
+                lk["stocks_now"] = _ls.stocks_now(clk, list(lk["stocks"].keys()))
         except Exception as e:  # noqa: BLE001
             lk["stocks_now"] = {"error": type(e).__name__}
     if lk:

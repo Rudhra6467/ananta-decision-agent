@@ -52,3 +52,23 @@ def test_blind_facts_drop_ananta_plan_and_words():
     from jarvis.india import service
     for k in ("plan", "words", "review", "lessons_for_writer", "reviewer_scenarios", "opening"):
         assert k in service.BLIND_DROP
+
+
+def test_already_sealed_session_is_not_a_failure():
+    """2 Nov 2026: the Sunday run found Monday's plan sealed by Saturday's run and exited 1 on the 409; a 409 now means nothing to do."""
+    import urllib.error
+
+    def conflict(url, body):
+        raise urllib.error.HTTPError(url, 409, "Conflict", {}, None)
+
+    def server_error(url, body):
+        raise urllib.error.HTTPError(url, 500, "Error", {}, None)
+
+    assert st._seal({"session": "2026-11-02"}, post=conflict) is None
+    assert st._seal({"session": "2026-11-02"}, post=lambda url, body: {"sha256": "ab"}) == {"sha256": "ab"}
+    try:
+        st._seal({"session": "2026-11-02"}, post=server_error)
+    except urllib.error.HTTPError as e:
+        assert e.code == 500
+    else:
+        raise AssertionError("a 500 must still fail the run")

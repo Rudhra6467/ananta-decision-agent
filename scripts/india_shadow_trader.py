@@ -95,6 +95,18 @@ def _symbols_in(f: dict) -> set[str]:
     return set(re.findall(r"\b[A-Z][A-Z0-9&-]{2,}\b", json.dumps(f, default=str))) | {"NIFTY", "BANKNIFTY"}
 
 
+def _seal(body: dict, post=None) -> dict | None:
+    """Posts the plan to be sealed. None when the service answers 409 (that session's plan is already sealed, by design once per session):
+    a later run on the same session (the Saturday run seals Monday, the Sunday run finds it sealed) is not a failure (fix of 2 Nov 2026)."""
+    import urllib.error
+    try:
+        return (post or _post)(INDIA + "/v3/morning/shadow", body)
+    except urllib.error.HTTPError as e:
+        if e.code == 409:
+            return None
+        raise
+
+
 def main() -> int:
     f = _get("/v3/morning/facts_blind")
     session = f.get("session")
@@ -119,7 +131,10 @@ def main() -> int:
     fact_nums = {x.replace(",", "") for x in re.findall(r"\d[\d,]*\.?\d*", json.dumps(f, default=str))}
     stray = [n for n in re.findall(r"\d[\d,]*\.?\d*", json.dumps({k: plan.get(k) for k in ("take_basis", "stance_why", "blind_spot")})) if n.replace(",", "") not in fact_nums and len(n) > 2]
     plan["numbers_not_in_facts"] = stray[:8]
-    res = _post(INDIA + "/v3/morning/shadow", {"session": session, "plan": plan, "facts_sha": f.get("facts_sha", ""), "model": MODEL, "raw": raw[-400:]})
+    res = _seal({"session": session, "plan": plan, "facts_sha": f.get("facts_sha", ""), "model": MODEL, "raw": raw[-400:]})
+    if res is None:
+        print(f"shadow trader: {session} was already sealed by an earlier run; the seal is once per session, nothing to do")
+        return 0
     print(f"shadow trader: {session} sealed {res.get('sha256', '')[:12]} stance {plan.get('stance')} silent {plan.get('silent')} forecast {res.get('forecast_id')} {res.get('forecast_note', '')}")
     return 0
 

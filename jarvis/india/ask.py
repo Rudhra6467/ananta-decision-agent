@@ -212,6 +212,40 @@ def latest_closes(rm: dict) -> dict:
                              "day); breadth and the books stay on data_through and say that date when it is older"}
 
 
+IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
+
+
+def session_now(rm: dict, now: dt.datetime | None = None) -> dict:
+    """Where the NSE day stands right now (flag 141, 2 Nov 2026): at 16:39 IST on a Monday Ask said "Monday's session is happening" although it
+    had closed at 15:30, because its facts carried no clock. This states the India time, whether today is a session, whether it is before, during
+    or after the session, and whether today's close is in the data yet. It adds no prices: Ask still has no intraday feed and says so."""
+    ist = (now or dt.datetime.now(dt.timezone.utc)).astimezone(IST)
+    today = ist.date()
+    through = str(rm.get("data_through") or "")[:10]
+    session_day = today.weekday() < 5 and today not in answerguide._holidays()
+    minute = ist.hour * 60 + ist.minute
+    if not session_day:
+        state, said = "no_session", "there is no NSE session today (weekend or exchange holiday)"
+    elif minute < 9 * 60 + 15:
+        state, said = "before_open", "today's NSE session opens at 09:15 IST"
+    elif minute < 15 * 60 + 30:
+        state, said = "open", "today's NSE session is open now (09:15 to 15:30 IST)"
+    else:
+        state, said = "closed", "today's NSE session closed at 15:30 IST"
+    in_data = bool(through) and through >= today.isoformat()
+    newest = answerguide.day_words(through) if through else "none"
+    if session_day and state != "before_open":
+        data = ("today's close is already in my data" if in_data else
+                f"today's {'prices are' if state == 'open' else 'closing prices are'} not in my data yet; the newest finished day I hold is {newest}"
+                + ("" if state == "open" else "; today's close arrives with tonight's fetch"))
+    else:
+        data = f"the newest finished day I hold is {newest}"
+    return {"ist_now": ist.strftime("%a %-d %b %H:%M IST"), "today_is_session": session_day, "state": state, "today_in_data": in_data,
+            "words": f"It is {ist.strftime('%A %-d %b, %H:%M')} in India: {said}; {data}. I have no intraday prices.",
+            "how_to_say_it": "use this for 'is the market open', 'what about today' and every 'today' question: never say a session is still going "
+                             "after 15:30 IST, and when today's close is not in the data say that plainly with the newest day you do hold"}
+
+
 def facts(owner: bool = False) -> dict:
     """The read model, trimmed to what a question can use (about 3-4k tokens). The owner's facts also carry the account allocation plan."""
     rm = views.readmodel()
@@ -224,6 +258,7 @@ def facts(owner: bool = False) -> dict:
     pos = views.open_positions()
     marks = views.exec_marks()
     return {"data_through": rm.get("data_through"), "next_session": rm.get("next_session"), "built_at": rm.get("built_at"), "brief": rm.get("brief"),
+            "session_now": session_now(rm),
             "latest_closes": latest_closes(rm),
             "market": {k: (rm.get("market") or {}).get(k) for k in ("nifty_close", "nifty_vs_sma50", "nifty_vs_sma200", "trend_state", "vix_close", "breadth_200d_liquid", "words")},
             "daily_call": {**call_state(rm),

@@ -139,3 +139,18 @@ def test_a_research_note_has_no_menu_and_the_same_topic_is_added_not_refiled(tmp
     assert c["num"] != a["num"] and not c["updated"]
     assert fixflow.pending(j) == []                                  # nothing for the repair worker to build
     assert requests_log.get(j, a["num"])["status"] == "OPEN"
+
+
+def test_owner_flags_are_noted_only_and_take_comments(tmp_path):
+    """Madhav, 2 Nov 2026: "lets set it back to where just ananta notes it. and we here work on it. it can add a comment if i ask it to." """
+    from jarvis.service import fixflow
+    j = _j(tmp_path)
+    r = fixflow.flag(j, "the options card shows a stale plan", market="india", screen="Home", notes_only=True)
+    assert r["noted"] and r["options"] == [] and r["say"].startswith("Noted as")
+    row = j.db.execute("SELECT state FROM fix_flow WHERE num=?", (r["num"],)).fetchone()
+    assert row[0] == "noted"
+    c = fixflow.comment(j, r["num"], "it happens only after the 10:20 update")
+    assert "Added your comment" in c["say"]
+    import json as _json
+    body = _json.loads(j.db.execute("SELECT options FROM fix_flow WHERE num=?", (r["num"],)).fetchone()[0])
+    assert "10:20 update" in body["note"] and body["comments"][0]["words"].startswith("it happens")

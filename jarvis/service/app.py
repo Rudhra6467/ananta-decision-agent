@@ -1387,8 +1387,24 @@ def flags_new(b: FlagIn, who: str = Depends(owner)) -> dict:
         r = _run(fixflow.note, J(), b.text, b.note, b.market, b.screen, b.route)
         J().audit(who, "flag.note", f"#{r['num']} {b.market} {'added' if r.get('updated') else 'new'}", "OK")
         return r
-    r = _run(fixflow.flag, J(), b.text, b.market, b.screen, b.route)
-    J().audit(who, "flag.new", f"#{r['num']} {b.market} {b.screen}", "OK")
+    # 2 Nov 2026 (Madhav): his flags are noted only; no fix menu, no repair worker (fixflow.flag notes_only)
+    r = _run(fixflow.flag, J(), b.text, b.market, b.screen, b.route, None, False, True)
+    J().audit(who, "flag.new", f"#{r['num']} {b.market} {b.screen} noted", "OK")
+    return r
+
+
+class FlagComment(BaseModel):
+    words: str
+
+
+@app.post("/v3/flags/{num}/comment")
+def flags_comment(num: int, b: FlagComment, who: str = Depends(owner)) -> dict:
+    """A comment on a flag, added only when Madhav asks (2 Nov 2026)."""
+    from jarvis.service import fixflow
+
+    _owner_only(who)
+    r = _run(fixflow.comment, J(), num, b.words)
+    J().audit(who, "flag.comment", f"#{num}", "OK")
     return r
 
 

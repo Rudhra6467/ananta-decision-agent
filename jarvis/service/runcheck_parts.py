@@ -293,10 +293,10 @@ PARTS: list[dict] = [
     {"id": "india_report", "name": "India evening portfolio report", "job": "com.ananta.india.evening", "area": "india", "severity": "low",
      "since": "2026-10-19", "cadence": {"daily": "19:00", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
      "proof": {"files": "{india}/reports/portfolio_{date}.md", "min_bytes": 200}},
-    # 2 Nov independent audit: was "21:40 Toronto, Sun-Thu" (summer time); the job keeps 07:10 IST (jarvis/india/schedule.py), so check it in IST
-    {"id": "india_autologin", "name": "India Kite auto sign-in (07:10 and 07:22 IST, Mon-Fri)", "job": "com.ananta.india.autologin",
+    # 2 Nov independent audit: was "21:40 Toronto, Sun-Thu" (summer time); the job keeps 06:05 IST (jarvis/india/schedule.py), so check it in IST
+    {"id": "india_autologin", "name": "India Kite auto sign-in (06:05 IST, retries 06:20 and 07:10)", "job": "com.ananta.india.autologin",
      "area": "india", "severity": "high", "since": "2026-10-23", "from_first": True,
-     "cadence": {"daily": "07:10", "tz": IST, "days": "01234", "grace": 3600}, "min_work": 1,
+     "cadence": {"daily": "06:05", "tz": IST, "days": "01234", "grace": 3 * 3600}, "min_work": 1,
      "proof": {"log": "{runs}/kite_autologin.log", "regex": r"^(?P<t>\d{4}-\d\d-\d\dT\d\d:\d\d)[^ ]* auto sign-in (?P<err>FAILED.{0,120})?",
                "time_format": "%Y-%m-%dT%H:%M", "tz": "UTC", "before_first": "no dated sign-in record yet; the first run writes it"}},
 

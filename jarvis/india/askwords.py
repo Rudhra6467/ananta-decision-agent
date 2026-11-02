@@ -67,7 +67,7 @@ JARGON = [
     (re.compile(r"\boversold[- ]reversal exits?\b"), "exits of the reversal buys (bought when oversold)"),
     (re.compile(r"\btrial sessions?\b"), "practice sessions of the 20 needed"),
     (re.compile(r"\bthe reviewer's second opinion\b"), "the second opinion (an independent reviewer checks the morning note)"),
-    (re.compile(r"\bflag (\d+)\b"), r"the fix request (number \1)"),
+    # 2 Nov: "flag 60" stays as it is, the same number My flags shows (it was spoken as "the fix request (number 60)", a second name)
     (re.compile(r"\bcount fires\b"), "count how often it fires"),
     (re.compile(r"\b(?:the )?strict bar\b"), "the strict pass mark"),
     (re.compile(r"\breference traders' best trips\b"), "the comparison traders' best trades"),

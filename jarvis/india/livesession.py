@@ -208,8 +208,8 @@ def stocks_now(clk: dict, symbols: list[str], fetch=None) -> dict:
 
 
 def _closing_bars(clk: dict) -> dict | None:
-    """Independent audit, 2 Nov: Zerodha's sign-in lapses at 06:00 IST and the automatic sign-in runs at 07:10 IST, so from 7:30 to 8:40 pm Toronto
-    (winter) live prices fail. Outside the session the closing bars already on disk (manifests/technicals.json, from Kite's index bars after the
+    """Independent audit, 2 Nov: Zerodha's sign-in lapses at 06:00 IST and the automatic sign-in ran at 07:10 IST, so from 7:30 to 8:40 pm Toronto
+    (winter) live prices failed. It runs at 06:05 IST from 2 Nov; this still covers a failed sign-in. Outside the session the closing bars already on disk (manifests/technicals.json, from Kite's index bars after the
     close) give the same closes, so say those, with their date."""
     if clk["state"] == "open":
         return None

@@ -106,7 +106,7 @@ def test_v3_contract_routes_fill_from_the_read_model(lake, monkeypatch):
     monkeypatch.setattr(views, "REG", lake / "registrations")
     c = TestClient(service.app, client=("127.0.0.1", 50000))
     h = c.get("/v3/home").json()
-    assert set(h) >= {"summary", "feed", "mission"} and h["mission"]["account"]["start_cad"] == 60000.0 and h["mission"]["market"]["btc"] == 22811.35
+    assert set(h) >= {"summary", "feed", "mission"} and h["mission"]["account"]["start_cad"] == 50000.0 and h["mission"]["market"]["btc"] == 22811.35
     assert h["mission"]["market"]["regime"] == "DOWNTREND" and h["summary"]["portfolio"]["mode"] == "PAPER"
     b = c.get("/india/v3/books").json()
     assert b["account"]["book"]["currency"] == "INR" and isinstance(b["trades"], list) and isinstance(b["closed"], list)
@@ -211,6 +211,8 @@ def test_india_ask_fix_flow_files_offers_and_queues_by_words(lake, monkeypatch):
         sent.append((url, body))
         if url.endswith("/v3/flags"):
             return R({"num": 83, "diagnosis": "The Options card shows a stale plan.", "options": [{"title": "Refresh the plan every minute", "lane": "SAFE"}, {"title": "Change the plan's sizing", "lane": "DECISION"}]})
+        if url.endswith("/comment"):
+            return R({"num": 83, "label": "flag 2", "comment": body["words"]})
         return R({"state": "queued"})
 
     def fget(url):
@@ -219,9 +221,11 @@ def test_india_ask_fix_flow_files_offers_and_queues_by_words(lake, monkeypatch):
     th = "t1"
     # 26 Oct: a flag needs a request ("flag this"); a complaint alone is answered (10 unasked flags in 15 minutes that morning)
     r = ia.ask("madhav", "flag this: the options card on home is not working, the plan is stale", thread=th, token="tok", flag_post=fpost, flag_get=fget)
-    assert r["provider"] == "rule" and ("flag 2" in r["answer"] or "number 2" in r["answer"]) and r["follow_ups"][0].startswith("Fix 1:")   # 30 Oct plain words: "the fix request (number 2)" and sent[0][1]["market"] == "india"
-    r2 = ia.ask("madhav", "the first", thread=th, token="tok", flag_post=fpost, flag_get=fget)
-    assert "queued" in r2["answer"] and sent[-1][0].endswith("/v3/flags/83/choose") and sent[-1][1]["option"] == 0
+    # 2 Nov (Madhav: "just ananta notes it ... it can add a comment if i ask it to"): noted, no fix menu, no choice queued
+    assert r["provider"] == "rule" and r["answer"].startswith("Noted as") and not any(f.startswith("Fix") for f in r["follow_ups"]) and sent[0][1]["market"] == "india"
+    r2 = ia.ask("madhav", "add a comment to flag 2: it happens only after the 10:20 update", thread=th, token="tok", flag_post=fpost, flag_get=fget)
+    assert sent[-1][0].endswith("/v3/flags/83/comment") and sent[-1][1]["words"] == "it happens only after the 10:20 update"
+    assert "Added your comment to flag 2" in r2["answer"]
     r3 = ia.ask("madhav", "what happened to my flag?", thread=th, token="tok", flag_post=fpost, flag_get=fget)
     assert "request 83: queued" in r3["answer"]
     assert ia.fix_flow("what did you decide?", th, "tok", None, post=fpost, get=fget) is None          # an ordinary question goes to the model

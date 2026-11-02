@@ -31,7 +31,9 @@ WEEKDAYS = (0, 1, 2, 3, 4)          # Mon-Fri in India (Python weekday numbers)
 # label: (Indian times, Indian weekdays or None for every day). The order of the morning chain matters: sign-in, the options plan, the practice
 # book, spreads, net notes, findings, the morning view (08:30), the shadow trader, the opening update after the first hour; then the post-close fetch.
 TARGETS: dict[str, tuple[list[str], tuple[int, ...] | None]] = {
-    "com.ananta.india.autologin": (["07:10", "07:22"], None),
+    # 2 Nov (Madhav: "yes"): the sign-in lapses at 06:00 IST; signing in at 06:05 closes the evening gap (7:30-8:40 pm Toronto) when live
+    # prices failed. 06:20 retries; 07:10 is the old time, kept as a backup (the job skips when the token is still valid)
+    "com.ananta.india.autologin": (["06:05", "06:20", "07:10"], None),
     "com.ananta.india.sp1paper": (["07:30"], None),
     "com.ananta.india.paper": (["08:00"], None),
     "com.ananta.india.spreads": (["08:05"], WEEKDAYS),

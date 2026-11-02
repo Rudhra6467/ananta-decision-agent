@@ -21,7 +21,7 @@ RECORDS = Path(os.getenv("ANANTA_RECORDS", os.path.expanduser("~/code/ananta-rec
 REG = RECORDS / "india" / "registrations"
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 TOR = dt.timezone(dt.timedelta(hours=-4))
-ACCOUNT_START = 60000.0            # the India book (Madhav, 19 Oct): Rs 60,000 to start, the SP1 index line
+ACCOUNT_START = 50000.0            # the options line: one amount, Rs 50,000 (Madhav, 2 Nov: "50k. only one amount"; it was 60,000 from 19 Oct)
 ACCOUNT_SINCE = "2026-10-21"       # SP1 paper start (sessions so far are what the ledger says)
 NOTIONAL = 50000.0                 # the stock research book's scale unit per trade
 CAPS = {"BRK": 10, "PULL": 10, "REV": 10, "CTL": 5}
@@ -262,7 +262,7 @@ def _book() -> dict:
 
 def _account(rm: dict) -> dict:
     """The India account. Since 23 Oct (Madhav: "on the home tab it shows it trades on allocation") it is the account book, the paper twin of his
-    account (stocks, options sleeve, cash) traded by the allocator; before the book exists, the Rs 60,000 SP1 index line.
+    account (stocks, options sleeve, cash) traded by the allocator; before the book exists, the Rs 50,000 options line.
     dial = the guardrail state (OPEN when no rule has fired); brakes = the 5%-day and 22%-pause rules."""
     a = _account_sp1(rm)
     ab = _book()
@@ -1144,7 +1144,7 @@ def sp1_live(rm: dict | None = None) -> dict:
 
 
 def options() -> dict:
-    """India's options section on Home: the Rs 60,000 index line (SP1), today's plan, the session's decisions, the option book, the recorder's paper book."""
+    """India's options section on Home: the Rs 50,000 options line (SP1), today's plan, the session's decisions, the option book, the recorder's paper book."""
     rm = readmodel()
     s = sp1_live(rm)
     book = (s.get("book") or {})

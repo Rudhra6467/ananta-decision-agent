@@ -119,7 +119,7 @@ while it is far above its 50-day); only then, if useful, map it to a real holdin
 Nothing here is financial advice; Ananta's own trades are paper (his savings, emergency fund and real investments are real money);
 you cannot place, change or close a trade from chat: say "paper only; nothing is placed from chat" ONLY when he asks you to trade, never as a sign-off on other answers.
 Flags, research notes and fix choices are handled in code before you see a message (26 Oct): a request to research or note something is saved as a detailed
-note with no fix menu, and an app problem is flagged with fixes. Never say a flag or a note cannot be filed from chat; never offer fixes for a research request,
+note, and an app problem is noted as a flag with no fix menu (2 Nov: they are worked on outside the app). Never say a flag or a note cannot be filed from chat; never offer fixes for a flag,
 never tell him to say "fix N" to save a note, and never bring up flags or notes unless he asks about them. If the QUESTION starts with a note line, it was
 already saved: just answer the question. If his message only remarks on your last answer or says he is ready (no question in it), reply in one short line
 and wait; if a question he asked earlier is still unanswered, answer it. "teacher_libraries" holds the YouTube teachers' classes (Optionables = the options
@@ -315,7 +315,7 @@ def facts(owner: bool = False) -> dict:
                                                                    "the market section above, which is current through data_through. Mention it only when asked about "
                                                                    "the picks or the data, once.",
                                            "chosen": [{"symbol": x.get("symbol"), "campaign": x.get("campaign"), "close": x.get("close"), "why": x.get("why")} for x in d.get("chosen", [])]},
-            "index_line_sp1": (lambda s1: {"capital_inr": 60000, **{k: s1.get(k) for k in ("status", "words", "decisions", "errors", "date")}, "sessions": (s1.get("book") or {}).get("sessions")})(views.sp1_live(rm)),
+            "index_line_sp1": (lambda s1: {"capital_inr": int(views.ACCOUNT_START), **{k: s1.get(k) for k in ("status", "words", "decisions", "errors", "date")}, "sessions": (s1.get("book") or {}).get("sessions")})(views.sp1_live(rm)),
             "reference_traders_league": {"h1": lg.get("h1"), "informed": lg.get("informed"), "meaning": "HINDSIGHT = best trips the session offered; RANDOM = chance; MARKET = the liquid 250; coverage = of the top 20 trips, how many Ananta took / passed / had no rule for"},
             "missed_movers": (L.get("missed") or {}).get("line"),
             # 28 Oct outside round 3 re-grade: "3 open drafts" (this missed-moves file) contradicted the 12 waiting in the whole queue
@@ -499,8 +499,9 @@ def guardrail_facts(rm: dict) -> dict:
         cfg, s = {}, {}
     return {"words": (rm.get("guardrails") or {}).get("words"),
             # 29 Oct audit (map class D): the book size and the re-entry rule were in the paper rules but not in the facts
-            "book_inr": cfg.get("capital_inr") or cfg.get("book_inr"),
-            "book_rule": f"the India paper book is Rs {int(cfg.get('capital_inr') or 60000):,} to start (Madhav, 19 Oct); the practice book's Rs 50,000 a trade is research scale, not money",
+            "book_inr": (cfg.get("options") or {}).get("capital_inr") or cfg.get("book_inr"),
+            "book_rule": (f"options are one amount, Rs {int((cfg.get('options') or {}).get('capital_inr') or 50000):,}, in every book (Madhav, 2 Nov: '50k. only one amount'); "
+                          "the practice book's Rs 50,000 a trade is research scale, not money"),
             "reentry_days": (cfg.get("stock") or {}).get("reentry_days"),
             "reentry_rule": (f"a stock already signalled by the same campaign in the last {(cfg.get('stock') or {}).get('reentry_days')} days is not entered again "
                              "(the candidate is written to the decision journal as rejected: reentry_gap)") if (cfg.get("stock") or {}).get("reentry_days") else None,
@@ -628,7 +629,7 @@ def _alloc_facts() -> dict:
             "twin_vs_frozen_vs_nifty500": _twin_benchmark(),
             # 30 Oct evening (Madhav: "pick the replacements and trade them in paper"): the managed book acts on the cut list and buys replacements
             "managed_book": _managed_book(),
-            "meaning": "advisory = options fixed at Rs 50,000, stocks as in the account, Ananta rates/ranks/suggests and moves nothing; autonomous = Ananta moves capital between stocks, options and cash on paper inside the regime table; grades A>=70, B>=55, C>=40, D below",
+            "meaning": "advisory = options fixed at Rs 50,000, stocks as in the account, Ananta rates/ranks/suggests and moves nothing; autonomous = options stay one fixed Rs 50,000 (Madhav, 2 Nov) and Ananta moves capital between stocks and cash on paper inside the regime table; grades A>=70, B>=55, C>=40, D below",
             # 25 Oct chat: "JIOFIN Rs 9,900 into cash" (the day's move) and "sell half of JIOFIN, about Rs 12,200" (the suggestion) both came out as
             # "the plan" in two answers ten minutes apart. They are two different things and are now named apart.
             "two_numbers": "suggest_inr on a holding is Ananta's full suggestion for it (what it would change, e.g. halve it); paper_moves_today is what the paper copy "
@@ -1042,11 +1043,9 @@ SYSTEM_CARE = {
                  "once an hour. It never touches trading, rules or data. It found the 27 Oct stall (Jarvis stopped answering 11:40-12:37 Toronto, "
                  "flag 48)."),
     "inside_checks": "Jarvis's own health checks run every few minutes (each job's last run, data freshness, the sign-in); Home's status line shows them.",
-    "fix_life": ("A flag gets up to three fix options, each in a lane decided by code. SAFE (words, screens, voice, reports, display bugs): when "
-                 "Madhav picks it, the repair worker takes it within about two minutes, writes the change, runs the test suite, and only if the "
-                 "tests pass commits it and puts it live (deployed); then the phone gets 'Fixed: flag N' and My flags shows 'fixed and live' with "
-                 "the commit. If the checks fail, nothing changes and the flag says so. DECISION (anything near trading, a rule, size, stop, cost "
-                 "or a pinned file): the worker writes a plan only and it waits for Madhav's yes. The worker builds at most a few fixes a day."),
+    "fix_life": ("Since 2 Nov (Madhav: 'just ananta notes it. and we here work on it'), a flag Madhav raises is noted in his words on My flags with "
+                 "no fix menu; he works on it with Claude outside the app, and Ananta adds a comment to a flag only when he asks. The automatic "
+                 "findings (the nightly reconstruction, the officer checks) still go to the repair board as before."),
 }
 ACCOUNTISH = re.compile(r"\b(?:my|our|your|his)\s+(?:account|portfolio|holdings?|stocks|money|capital|book|books|positions?|flags?|plan)\b|"
                         r"\b(?:practice book|paper book|holdings?|approve|approval|drafts?|allocation|flag|fix)\b", re.I)
@@ -1177,6 +1176,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     def chain(t: str, commands: bool = True) -> dict | None:
         """The code answers, in order. commands=False leaves out every command flow (flags, picks, drafts, waiting, mode, navigation)."""
         return ((waiting_flow(t, wait) if (commands and owner_here) else None) or garbled_flow(t) or (nav_flow(t) if commands else None)
+                or (comment_flow(t, thread, token, post=flag_post, get=flag_get) if (commands and owner_here) else None)
                 or (fix_flow(t, thread, token, context, post=flag_post, get=flag_get) if (commands and owner_here) else None)
                 or fragment_flow(t) or morning_flow(t, who) or _not_a_repeat(technicals.technicals_flow(t), thread) or marketcontext.market_context_flow(t)
                 or (allocation_flow(t, who) if (commands and owner_here) else None) or (_and_question(draft_flow(t, who), t) if commands else None)
@@ -1319,7 +1319,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if wait is not None:                                       # 28 Oct: what waits for his yes, so "can you start on them?" is answered from it
         f["waiting_for_you"] = {"count": wait.get("count"), "line": wait.get("line"),
                                 "items": [{k: x.get(k) for k in ("title", "line", "say", "market", "fixes", "review")} for x in (wait.get("items") or [])[:6]],
-                                "how": "He can approve in chat: 'approve all drafts', 'approve draft 2', 'skip draft 3', or pick a flag's fix by number."}
+                                "how": "He can approve in chat: 'approve all drafts', 'approve draft 2', 'skip draft 3'. His own flags are noted only; nothing to pick."}
     t0 = time.time()
     # 27 Oct: "How did the Nifty close today?" is a question, not an order (the model still never places anything)
     asks = "?" in text or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", text, re.I)
@@ -2347,13 +2347,50 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         j = r.json() if hasattr(r, "json") else r
         if not j.get("num"):
             return _reply(f"I could not file that, sir: {str(j.get('detail') or j)[:120]}", [], [])
-        opts = j.get("options") or []
-        lines = [f"{i + 1}. {o.get('title')} - {'I fix it and put it live' if o.get('lane') == 'SAFE' else 'near trading: a plan for your yes'}" for i, o in enumerate(opts)]
-        _set_pending(thread, {"num": j["num"], "at": int(time.time()), "options": [{"title": o.get("title"), "lane": o.get("lane")} for o in opts]})
+        # 2 Nov 2026 (Madhav): "lets set it back to where just ananta notes it. and we here work on it. it can add a comment if i ask it to."
+        # The flag is noted in his words, no fix menu and no repair worker; it is worked on with Claude outside the app
         name = j.get("label") or f"flag {j['num'] - 81}"
         q = other_question(text)
-        if q:                                        # 26 Oct: a question in the same message is answered; the fixes wait in My flags
-            return {"_then": q, "_prefix": f"Flagged as {name}, sir; its fixes are waiting in My flags.", "_note": j}
-        a = f"Flagged as {name}, sir. " + (f"{j.get('diagnosis')} " if j.get("diagnosis") else "") + ("Fixes: " + " ".join(lines) + " Say a number or tap one." if lines else "I'll tell you when it's fixed.")
-        return _reply(a, [f"Fix {i + 1}: {o.get('title')}" for i, o in enumerate(opts)], [f"fix flow: {name} filed on the shared board"], {"flag": j})
+        if q:                                        # 26 Oct: a question in the same message is answered after the note
+            return {"_then": q, "_prefix": f"Noted as {name}, sir.", "_note": j}
+        return _reply(f"Noted as {name}, sir. It's in My flags, and it gets worked on from there.", ["Show my flags", "Add a comment to that flag"],
+                      [f"flag noted: {name} (no fix menu; worked on outside the app)"], {"flag": j})
     return None
+
+
+# 2 Nov 2026: "it can add a comment if i ask it to". "add a comment to flag 60: ...", "comment on that flag: ...", "add to the last flag that ..."
+COMMENT = re.compile(r"\b(?:add (?:a |this |my )?comment|comment)\s+(?:to|on)\s+(?:the |that |this |my |last |latest )?(?:flag|request|it|that)(?:\s+(?:number\s+)?(?P<n>\d{1,4}))?\s*(?:saying|that says|that)?\s*[:,-]?\s*(?P<words>.*)$", re.I | re.S)
+
+
+def comment_flow(text: str, thread: str, token: str | None, post=None, get=None) -> dict | None:
+    """Adds his comment to a flag, only when he asks; the flag is the number he names, else the last one noted in this conversation."""
+    m = COMMENT.search(text or "")
+    if not m or not token:
+        return None
+    H = {"Authorization": f"Bearer {token}", "X-Ananta-Quiet": "1"}
+    post = post or (lambda url, body: requests.post(url, json=body, headers=H, timeout=30))
+    get = get or (lambda url: requests.get(url, headers=H, timeout=30))
+    words = (m.group("words") or "").strip().strip('"')
+    num = None
+    if m.group("n"):
+        num = int(m.group("n")) + 81                 # he says the Flag number (as My flags shows it); the board keeps the request number
+    else:
+        for x in reversed(thread_messages(thread)[-12:]):
+            f = (x.get("flag") or {}) if isinstance(x.get("flag"), dict) else {}
+            if f.get("num"):
+                num = int(f["num"])
+                break
+        if num is None:
+            r = get(f"{JARVIS_URL}/v3/flags")
+            j = r.json() if hasattr(r, "json") else r
+            mine = [f for f in (j.get("flags") or []) if str(f.get("market", "")).startswith("ind")]
+            num = int(mine[0]["num"]) if mine else None
+    if num is None:
+        return _reply("Which flag should I add it to, sir? Say its number from My flags.", ["Show my flags"], ["flag comment: no flag found"])
+    if len(words) < 3:
+        return _reply("What should the comment say, sir?", [], ["flag comment: no words"])
+    r = post(f"{JARVIS_URL}/v3/flags/{num}/comment", {"words": words[:1500]})
+    j = r.json() if hasattr(r, "json") else r
+    if not j.get("num"):
+        return _reply(f"I could not add that comment, sir: {str(j.get('detail') or j)[:120]}", [], [])
+    return _reply(f"Added your comment to {j.get('label')}, sir.", ["Show my flags"], [f"flag comment on {j.get('label')}"], {"flag": j})

@@ -286,7 +286,7 @@ def build() -> dict:
     # in the paper rules, not in the voice's facts: the rule elements the facts should describe
     cfg = _json(RECORDS / "india" / "paper_config.json", {}) or {}
     st = cfg.get("stock") or {}
-    checks = [("the Rs 50,000 research scale unit per trade", "50,000"), ("the Rs 60,000 book", "60,000"), ("the 250 most traded stocks (liq_top)", "250"),
+    checks = [("the Rs 50,000 research scale unit per trade", "50,000"), ("the Rs 50,000 options amount", "50,000"), ("the 250 most traded stocks (liq_top)", "250"),
               ("the 14-session re-entry rule", "re-entry" if "re-entry" in facts else "reentry"), ("the 2-ATR initial stop", "2 ATR" if "2 ATR" in facts else "2-ATR"),
               ("the hold_20d reference exit", "20 sessions" if "20 sessions" in facts else "hold_20d"), ("the random control's 40-name draw", "random control"),
               ("the per-family caps (10/10/10/5)", "cap")]

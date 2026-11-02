@@ -32,7 +32,7 @@ STATES = ("triaged", "queued", "plan", "working", "deployed", "needs_decision", 
 STATE_WORDS = {"triaged": "waiting for your choice", "queued": "queued for the repair worker", "plan": "the worker is writing a plan for your yes",
                "working": "the repair worker is on it", "deployed": "fixed and live", "needs_decision": "needs your yes",
                "failed": "the fix did not pass its checks; nothing changed", "cancelled": "cancelled",
-               "noted": "research note saved for you to read",
+               "noted": "noted; worked on with Claude outside the app",
                "decided": "you already said yes; it is being done"}
 
 # Words that put a fix near trading: such a fix is never built by the worker, only planned (DECISION lane).
@@ -94,8 +94,10 @@ def _fallback(text: str) -> dict:
                         {"title": "Investigate and tell me first", "what": "The worker finds the cause and writes a plan; nothing changes until you say yes."}]}
 
 
-def flag(j, text: str, market: str = "crypto", screen: str = "", route: str = "", post=None, use_ai: bool = True) -> dict:
-    """File the request now and offer the fixes. Returns the request number, the diagnosis and the options with their lanes."""
+def flag(j, text: str, market: str = "crypto", screen: str = "", route: str = "", post=None, use_ai: bool = True, notes_only: bool = False) -> dict:
+    """File the request now and offer the fixes. Returns the request number, the diagnosis and the options with their lanes.
+    notes_only (Madhav, 2 Nov 2026: "lets set it back to where just ananta notes it. and we here work on it. it can add a comment if i ask it
+    to"): his own flags are noted with his words and nothing else: no fix menu, no repair worker; they are worked on with Claude outside the app."""
     from jarvis.service import requests_log
 
     _table(j)
@@ -109,6 +111,15 @@ def flag(j, text: str, market: str = "crypto", screen: str = "", route: str = ""
     old = j.db.execute("SELECT options FROM fix_flow WHERE num=?", (num,)).fetchone()
     if old:                                                   # the same words again: the same request and its options
         return {"num": num, "duplicate": True, **json.loads(old[0])}
+    if notes_only:
+        now = int(time.time())
+        body = {"diagnosis": "", "title": text[:160], "note": text, "options": []}
+        j.db.execute(f"INSERT OR REPLACE INTO fix_flow ({', '.join(COLS)}) VALUES ({', '.join('?' * len(COLS))})",
+                     (num, market, screen[:80], route[:120], lane_of(text), json.dumps(body), None, "noted",
+                      json.dumps([[now, "noted; worked on outside the app"]]), 0.0, None, None, now, now))
+        j.db.commit()
+        return {"num": num, "no": requests_log.flag_no(num), "label": requests_log.label(num), "noted": True,
+                "say": f"Noted as {requests_log.label(num)}.", **body}
     cost = 0.0
     tri = None
     if use_ai and _spent_today(j) < TRIAGE_DAILY:
@@ -130,6 +141,27 @@ def flag(j, text: str, market: str = "crypto", screen: str = "", route: str = ""
                   json.dumps([[now, "flagged; options offered"]]), cost, None, None, now, now))
     j.db.commit()
     return {"num": num, "no": requests_log.flag_no(num), "label": requests_log.label(num), "say": f"Flagged as {requests_log.label(num)}. Choose how to fix it.", **body}
+
+
+def comment(j, num: int, words: str) -> dict:
+    """A comment on a flag, only when Madhav asks Ananta to add one (2 Nov 2026). Added to the flag's note and its log with the time."""
+    from jarvis.service import requests_log
+
+    _table(j)
+    words = (words or "").strip()[:1500]
+    if not words:
+        raise ValueError("say the comment")
+    row = j.db.execute("SELECT options FROM fix_flow WHERE num=?", (int(num),)).fetchone()
+    if not row:
+        raise ValueError(f"no {requests_log.label(num)} on the board")
+    body = json.loads(row[0] or "{}")
+    stamp = time.strftime("%d %b %H:%M")
+    body["note"] = (str(body.get("note") or "") + f"\n\nComment {stamp}: " + words)[-8000:]
+    body.setdefault("comments", []).append({"t": int(time.time()), "words": words})
+    j.db.execute("UPDATE fix_flow SET options=?, updated_t=? WHERE num=?", (json.dumps(body), int(time.time()), int(num)))
+    j.db.commit()
+    _log(j, int(num), "comment added: " + words[:120])
+    return {"num": int(num), "no": requests_log.flag_no(num), "label": requests_log.label(num), "comment": words, "say": f"Added your comment to {requests_log.label(num)}."}
 
 
 NOTE_WINDOW = 45 * 60          # a second note on the same topic within 45 minutes is added to the first one, not filed again

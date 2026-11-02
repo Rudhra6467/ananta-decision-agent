@@ -1,6 +1,6 @@
 {
- "version": "cfg-2026-10-19c + cfg-2026-10-30a (no_chase) + managed-v1 (2026-10-30, books.managed)",
- "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file. cfg-2026-10-19a (Madhav, 19 Oct 18:20 Toronto): the India book is Rs 60,000 to start; risk per trade is not fixed: entries, exits, holding time and size are research outputs per market scenario. cfg-2026-10-19b (Madhav, 19 Oct 18:28): survival limits 5% a day and a pause at 22% drawdown; index views through options in the book; futures and forex tracked in shadow paper books. cfg-2026-10-19c (Madhav, 19 Oct 21:01): the 22% pause stays as the rule, and on paper it does not stop anything: everything keeps running and everything is noted and tracked (the pause date, and the book both as the rule would have it and as it ran); the rule is revisited as evidence comes. Kite's margin calculator (POST /margins/basket, a calculation) is allowed for the sizing margin check.",
+ "version": "cfg-2026-10-19c + cfg-2026-10-30a (no_chase) + managed-v1 (2026-10-30, books.managed) + cfg-2026-11-02a (options Rs 50,000, one amount)",
+ "note": "Paper-book settings. Sizing is a scale only: the research reads returns in % and R, so a change here never changes a finding. Every decision and trade records the sha of this file. cfg-2026-10-19a (Madhav, 19 Oct 18:20 Toronto): the India book is Rs 60,000 to start; risk per trade is not fixed: entries, exits, holding time and size are research outputs per market scenario. cfg-2026-10-19b (Madhav, 19 Oct 18:28): survival limits 5% a day and a pause at 22% drawdown; index views through options in the book; futures and forex tracked in shadow paper books. cfg-2026-10-19c (Madhav, 19 Oct 21:01): the 22% pause stays as the rule, and on paper it does not stop anything: everything keeps running and everything is noted and tracked (the pause date, and the book both as the rule would have it and as it ran); the rule is revisited as evidence comes. Kite's margin calculator (POST /margins/basket, a calculation) is allowed for the sizing margin check. cfg-2026-11-02a (Madhav, 2026-11-02 18:08 Toronto (in chat), asked which options amount is real (Rs 60,000 options line, Rs 50,000 allocation, Rs 34,000 twin): \"50k. only one amount. no 2-3 setups.\"): the options line's capital, the main book and book_inr are Rs 50,000, the same one amount as the allocation rule's options; the Rs 60,000 figure is retired. The options line still trades one lot.",
  "stock": {
   "sizing": "fixed_notional",
   "notional_inr": 50000,
@@ -31,7 +31,7 @@
   }
  },
  "options": {
-  "capital_inr": 60000,
+  "capital_inr": 50000,
   "lots": 1,
   "o03_max_loss_frac": 0.01
  },
@@ -44,7 +44,7 @@
   "sizing": "learned per scenario by the research (not a fixed rupee amount)",
   "note": "Rs 1,000 cap withdrawn by Madhav 19 Oct 2026 18:20; it was 2% of a Rs 50,000 book carried over from the crypto lab"
  },
- "book_inr": 60000,
+ "book_inr": 50000,
  "survival": {
   "daily_loss_limit_pct": 5.0,
   "daily_basis": "equity at the start of the session; when realised plus open loss reaches it, every position is closed and no new entry that day",
@@ -56,7 +56,7 @@
  },
  "books": {
   "main": {
-   "capital_inr": 60000,
+   "capital_inr": 50000,
    "instruments": [
     "index options (NIFTY, BANKNIFTY weekly)",
     "stocks (intraday and delivery)"

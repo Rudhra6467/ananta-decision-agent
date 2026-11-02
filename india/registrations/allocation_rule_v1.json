@@ -6,11 +6,20 @@
  "evidence_sessions": 20,
  "unproven_options_max": 0.2,
  "regime_table": {
-  "above_both": {"options_max": 0.35, "cash_min": 0.05},
-  "mixed": {"options_max": 0.30, "cash_min": 0.10},
-  "below_both": {"options_max": 0.20, "cash_min": 0.20}
+  "above_both": {
+   "options_max": 0.35,
+   "cash_min": 0.05
+  },
+  "mixed": {
+   "options_max": 0.3,
+   "cash_min": 0.1
+  },
+  "below_both": {
+   "options_max": 0.2,
+   "cash_min": 0.2
+  }
  },
- "max_shift_frac": 0.10,
+ "max_shift_frac": 0.1,
  "band_frac": 0.03,
  "min_move_inr": 2000,
  "weight_ok_pct": 15,
@@ -19,9 +28,22 @@
  "tiny_inr": 2000,
  "unrated_cap": 62,
  "rating_weights": {
-  "above_200d": 15, "above_20d": 10, "rsi_healthy": 10,
-  "regime_fit": 20, "volatility": 10, "liquidity": 10,
-  "concentration": 10, "result": 15
+  "above_200d": 15,
+  "above_20d": 10,
+  "rsi_healthy": 10,
+  "regime_fit": 20,
+  "volatility": 10,
+  "liquidity": 10,
+  "concentration": 10,
+  "result": 15
  },
- "paper_only": true
+ "paper_only": true,
+ "options_fixed": true,
+ "amended": [
+  {
+   "date": "2026-11-02",
+   "by": "Madhav, 2026-11-02 18:08 Toronto (in chat), asked which options amount is real (Rs 60,000 options line, Rs 50,000 allocation, Rs 34,000 twin): \"50k. only one amount. no 2-3 setups.\"",
+   "change": "options_fixed: true. Options are one fixed Rs 50,000 in both modes; in autonomous mode the allocator manages stocks and cash only, never moves money out of options, and puts back from cash what the 22 Oct session moved out (Rs 16,000)."
+  }
+ ]
 }

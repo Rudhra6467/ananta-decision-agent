@@ -184,7 +184,7 @@ def stock_book(day: str) -> dict:
         cvo = {"status": "unavailable", "why": f"{type(e).__name__}: {e}"[:160]}
     return {"status": "ok", "source": f"{pdir / 'state.json'} (exec book) and {pdir / 'marks.jsonl'} (policy {REF_POLICY})", "rules": st.get("version"),
             "open_positions": len(positions), "positions": positions[:40], "by_campaign": by_campaign, "closed_vs_open": cvo,
-            "note": "the research book's scale unit is Rs 50,000 per trade (results in % and R); the real paper capital is Rs 60,000 and sits in the SP1 line"}
+            "note": "the research book's scale unit is Rs 50,000 per trade (results in % and R); the options line's paper capital is Rs 50,000 (one amount, Madhav 2 Nov)"}
 
 
 def decisions_today(day: str) -> dict:
@@ -265,7 +265,7 @@ def sp1(day: str) -> dict:
     if scored:
         words += f". Book over {book.get('sessions')} scored session(s): {scored}"
     return {"status": status, "date": newest, "source": f"{d / 'decisions.jsonl'} and {d / 'book.json'}", "decisions": decisions, "errors": errors[:3],
-            "book": {"sessions": book.get("sessions"), "by_index": bi}, "capital_inr": 60000, "words": words}
+            "book": {"sessions": book.get("sessions"), "by_index": bi}, "capital_inr": _options_capital(), "words": words}
 
 
 def learning(day: str) -> dict:
@@ -340,6 +340,15 @@ def guardrails() -> dict:
 
 
 # ---------------------------------------------------------------------------------------------------------------- build and render
+
+
+def _options_capital() -> int:
+    """The options line's capital from the paper rules (one amount, Rs 50,000 from 2 Nov; it was written here as 60,000)."""
+    try:
+        from india import settings
+        return int(settings.load()["options"]["capital_inr"])
+    except Exception:  # noqa: BLE001
+        return 50000
 
 def latest_day() -> str:
     """The last session with a stock-book decision file (the 22:30 Toronto job writes it): the day the read model describes."""

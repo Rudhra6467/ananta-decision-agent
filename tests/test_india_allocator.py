@@ -57,7 +57,24 @@ def test_advisory_rates_ranks_and_moves_nothing(lake):
     assert v["sleeves"]["now"]["options"] == 50000 and v["sleeves"]["now"]["stocks"] == 100 * 120 + 100 * 70 + 200 * 90 + 40
 
 
-def test_autonomous_moves_on_paper_conserves_the_pool_and_obeys_the_table(lake):
+
+def _unfixed(monkeypatch):
+    base = allocator.rule()
+    monkeypatch.setattr(allocator, "rule", lambda: {**base, "options_fixed": False})
+
+
+def test_options_fixed_at_one_amount_puts_back_and_never_takes_out(lake):
+    """Madhav, 2 Nov: "50k. only one amount. no 2-3 setups." Options stay Rs 50,000 in autonomous mode; what an earlier session moved out comes back."""
+    _mode(lake, "autonomous")
+    assert allocator.rule()["options_fixed"] is True
+    v = allocator.run()
+    s = v["sleeves"]
+    assert s["after"]["options"] == 50000 and not any(m["from"] == "options" for m in v["moves"])
+    assert sum(s["after"].values()) == sum(s["now"].values())
+    assert "one fixed" in v["headline"]
+
+def test_autonomous_moves_on_paper_conserves_the_pool_and_obeys_the_table(lake, monkeypatch):
+    _unfixed(monkeypatch)     # the regime table's options ceiling as it worked before options were fixed (2 Nov)
     _mode(lake, "autonomous")
     v = allocator.run()
     s = v["sleeves"]
@@ -71,7 +88,8 @@ def test_autonomous_moves_on_paper_conserves_the_pool_and_obeys_the_table(lake):
     assert v["regime"]["options"] == 0.2, "below both averages, with too few sessions: options at most 20%"
 
 
-def test_rerunning_the_same_day_is_idempotent_and_next_day_builds_on_it(lake):
+def test_rerunning_the_same_day_is_idempotent_and_next_day_builds_on_it(lake, monkeypatch):
+    _unfixed(monkeypatch)     # the regime table's options ceiling as it worked before options were fixed (2 Nov)
     _mode(lake, "autonomous")
     a = allocator.run()
     b = allocator.run()

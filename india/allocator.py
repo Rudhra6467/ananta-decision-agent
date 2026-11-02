@@ -265,7 +265,14 @@ def _moves(sleeves: dict, tg: dict, ratings: list[dict], cands: list[dict], r: d
     budget = r["max_shift_frac"] * pool
     band = r["band_frac"] * pool
     moves: list[dict] = []
-    opt_gap = sleeves["options"] - tg["options"] * pool
+    if r.get("options_fixed"):
+        # Madhav, 2 Nov 2026: "50k. only one amount. no 2-3 setups." Options are one fixed Rs 50,000 in every book: the allocator never moves
+        # money out of options, and puts back from cash what an earlier session moved out (22 Oct: Rs 16,000 to cash)
+        back = round(r["options_inr"] - sleeves["options"])
+        if back >= r["min_move_inr"] and sleeves["cash"] >= back:
+            moves.append({"kind": "sleeve", "from": "cash", "to": "options", "inr": back,
+                          "why": f"options are one fixed Rs {r['options_inr']:,.0f} (Madhav, 2 Nov); this puts back what an earlier session moved to cash"})
+    opt_gap = (sleeves["options"] - tg["options"] * pool) if not r.get("options_fixed") else 0
     if opt_gap > band:
         amt = min(opt_gap, budget)
         amt = round(amt / 100) * 100
@@ -357,6 +364,9 @@ def build(day: str | None = None) -> dict:
     sleeves = {"stocks": round(stock_value + adj["stocks"]), "options": round(opt_base + adj["options"]), "cash": round(snap["cash_inr"] + adj["cash"])}
     pool = sum(sleeves.values())
     tg = targets(r, trend, sessions, fired)
+    if r.get("options_fixed") and pool:          # 2 Nov: options are one fixed amount, so their share is that amount and stocks are the rest less cash
+        tg["options"] = round(r["options_inr"] / pool, 4)
+        tg["stocks"] = round(1 - tg["options"] - tg["cash_min"], 4)
     opts = rate_options(rm, r, sleeves["options"])
     dt_ = rm.get("decisions_today")
     chosen = (dt_.get("chosen") if isinstance(dt_, dict) else dt_) or []
@@ -387,10 +397,13 @@ def build(day: str | None = None) -> dict:
     regime = {"below_both": "in a downtrend", "above_both": "in an uptrend", "mixed": "with no clear trend"}.get(trend, "")
     if cfg["mode"] == "advisory":
         headline = (f"Advisory: Ananta only suggests. Options are fixed at ₹{opt_base:,.0f}; your stocks stay as they are (₹{sleeves['stocks']:,.0f}). "
-                    f"{len(suggestions)} of your {len(ratings)} holdings have a suggested change. {regime.capitalize()}, it would keep options at or under {100 * tg['options']:.0f}% of your money; they are {pct(sleeves['options']):.0f}%.")
+                    f"{len(suggestions)} of your {len(ratings)} holdings have a suggested change."
+                    + ("" if r.get("options_fixed") else f" {regime.capitalize()}, it would keep options at or under {100 * tg['options']:.0f}% of your money; they are {pct(sleeves['options']):.0f}%."))
     else:
         moved = ", ".join(f"₹{m['inr']:,.0f} {m['from']} → {m['to']}" + (f" ({m['symbol']})" if m.get("symbol") else "") for m in moves)
-        headline = (f"Ananta manages the split on paper. {regime.capitalize()}, it keeps options at or under {100 * tg['options']:.0f}% and at least {100 * tg['cash_min']:.0f}% in cash. "
+        split = (f"Options stay one fixed ₹{r['options_inr']:,.0f}; {regime}, it keeps at least {100 * tg['cash_min']:.0f}% in cash. " if r.get("options_fixed")
+                 else f"{regime.capitalize()}, it keeps options at or under {100 * tg['options']:.0f}% and at least {100 * tg['cash_min']:.0f}% in cash. ")
+        headline = (f"Ananta manages the split on paper. {split}"
                     + (f"Today it moved {moved}." if moves else "Nothing to move today: every part is within its band."))
     view = {"rules": r["version"], "day": day, "for_session": rm.get("next_session"), "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
             "mode": cfg["mode"], "paper": True, "headline": headline,

@@ -111,21 +111,26 @@ def _front_usdinr() -> tuple[str | None, list[list]]:
     cands = []
     for p in glob.glob(str(root / "*" / "USDINR*FUT.jsonl.gz")):
         name = p.rsplit("/", 1)[-1][: -len(".jsonl.gz")]
+        # 2 Nov independent audit: after the October monthly expired the recorder kept only weeklies (USDINR26N06FUT), which Kite returns no
+        # candles for, so the rupee stayed on 28 Oct. The recorder now always keeps the nearest monthly too (india/recorder.py)
         if re.fullmatch(r"USDINR\d\d[A-Z]{3}FUT", name):
             cands.append((p.rsplit("/", 2)[-2], name, p))
     if not cands:
         return None, []
     cands.sort()
     today = dt.date.today().isoformat()
-    live = [c for c in cands if c[0] >= today] or cands[-1:]
-    folder, name, p = live[0]
-    last = None
-    with gzip.open(p, "rt") as fh:
-        for line in fh:
-            if line.strip():
-                last = line
-    j = json.loads(last) if last else {}
-    return name, j.get("candles") or []
+    live = [c for c in cands if c[0] >= today]
+    # nearest unexpired contract that has candles (Kite gives none for the weeklies), then the newest expired one that has
+    for folder, name, p in live + cands[::-1]:
+        last = None
+        with gzip.open(p, "rt") as fh:
+            for line in fh:
+                if line.strip():
+                    last = line
+        candles = (json.loads(last) if last else {}).get("candles") or []
+        if candles:
+            return name, candles
+    return None, []
 
 
 def rupee_same_day() -> dict:

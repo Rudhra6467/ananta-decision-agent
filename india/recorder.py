@@ -17,6 +17,7 @@ import datetime as dt
 import gzip
 import io
 import json
+import re
 import sys
 import time
 
@@ -90,7 +91,13 @@ def run(days_back: int = 29) -> dict:
     try:
         cds = _cds(k)
         for name in CURRENCIES:
-            futs = sorted((r for r in cds if r["name"] == name and r["instrument_type"] == "FUT" and r["expiry"] >= today.isoformat()), key=lambda r: r["expiry"])[:2]
+            live_futs = sorted((r for r in cds if r["name"] == name and r["instrument_type"] == "FUT" and r["expiry"] >= today.isoformat()), key=lambda r: r["expiry"])
+            futs = live_futs[:2]
+            # 2 Nov independent audit: the two nearest are now weeklies (USDINR26N06FUT) and Kite returns no candles for them, so the rupee
+            # stopped at 28 Oct; always add the nearest monthly (USDINR26NOVFUT), the liquid one
+            monthly = next((r for r in live_futs if re.fullmatch(rf"{name}\d\d[A-Z]{{3}}FUT", r["tradingsymbol"])), None)
+            if monthly and monthly not in futs:
+                futs.append(monthly)
             picks.extend((r["tradingsymbol"], int(r["instrument_token"]), "cds/" + r["expiry"]) for r in futs)
     except kite.NeedLogin:
         raise

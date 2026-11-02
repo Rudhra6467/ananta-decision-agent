@@ -215,35 +215,41 @@ def latest_closes(rm: dict) -> dict:
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 
 
-def session_now(rm: dict, now: dt.datetime | None = None) -> dict:
-    """Where the NSE day stands right now (flag 141, 2 Nov 2026): at 16:39 IST on a Monday Ask said "Monday's session is happening" although it
-    had closed at 15:30, because its facts carried no clock. This states the India time, whether today is a session, whether it is before, during
-    or after the session, and whether today's close is in the data yet. It adds no prices: Ask still has no intraday feed and says so."""
-    ist = (now or dt.datetime.now(dt.timezone.utc)).astimezone(IST)
-    today = ist.date()
-    through = str(rm.get("data_through") or "")[:10]
-    session_day = today.weekday() < 5 and today not in answerguide._holidays()
-    minute = ist.hour * 60 + ist.minute
-    if not session_day:
-        state, said = "no_session", "there is no NSE session today (weekend or exchange holiday)"
-    elif minute < 9 * 60 + 15:
-        state, said = "before_open", "today's NSE session opens at 09:15 IST"
-    elif minute < 15 * 60 + 30:
-        state, said = "open", "today's NSE session is open now (09:15 to 15:30 IST)"
-    else:
-        state, said = "closed", "today's NSE session closed at 15:30 IST"
-    in_data = bool(through) and through >= today.isoformat()
-    newest = answerguide.day_words(through) if through else "none"
-    if session_day and state != "before_open":
-        data = ("today's close is already in my data" if in_data else
-                f"today's {'prices are' if state == 'open' else 'closing prices are'} not in my data yet; the newest finished day I hold is {newest}"
-                + ("" if state == "open" else "; today's close arrives with tonight's fetch"))
-    else:
-        data = f"the newest finished day I hold is {newest}"
-    return {"ist_now": ist.strftime("%a %-d %b %H:%M IST"), "today_is_session": session_day, "state": state, "today_in_data": in_data,
-            "words": f"It is {ist.strftime('%A %-d %b, %H:%M')} in India: {said}; {data}. I have no intraday prices.",
-            "how_to_say_it": "use this for 'is the market open', 'what about today' and every 'today' question: never say a session is still going "
-                             "after 15:30 IST, and when today's close is not in the data say that plainly with the newest day you do hold"}
+GUARD_LOG = DATA / "reports" / "ask_guard.jsonl"
+
+
+def _guard_log(thread: str, question: str, problems: list, outcome: str | None) -> None:
+    """Every answer the guard caught (2 Nov 2026): read by the nightly replay and the morning review, so a repeat is seen the next day."""
+    try:
+        GUARD_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with GUARD_LOG.open("a") as fh:
+            fh.write(json.dumps({"t": int(time.time()), "thread": thread, "question": str(question)[:300], "problems": problems, "outcome": outcome}) + "\n")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+LIVE_OVERRIDE: dict | None = None     # the nightly replay re-asks an old message with the today-block it was first answered with
+
+
+def live_record(live: dict | None) -> dict | None:
+    """The part of today's block kept with each answer, so the replay can re-ask it at its own moment."""
+    if not isinstance(live, dict) or "clock" not in live:
+        return None
+    return {"clock": live["clock"], "index_now": {k: (live.get("index_now") or {}).get(k) for k in ("live", "rows", "words", "error", "kind", "as_of")},
+            "options_today": {k: (live.get("options_today") or {}).get(k) for k in ("day", "decisions", "taken", "passed", "words")},
+            "holdings_today": {"words": (live.get("holdings_today") or {}).get("words")}, "managed_today": {"words": (live.get("managed_today") or {}).get("words")},
+            "data_timing": live.get("data_timing"), "words": live.get("words"), "how_to_say_it": live.get("how_to_say_it")}
+
+
+def _today_live(rm: dict, now: dt.datetime | None = None) -> dict:
+    """Today's block for the facts; never raises into an answer."""
+    if LIVE_OVERRIDE is not None:
+        return LIVE_OVERRIDE
+    try:
+        from jarvis.india import livesession
+        return livesession.today(rm, now)
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"{type(exc).__name__}: {str(exc)[:120]}", "words": "Today's live block could not be read; say so before using older numbers."}
 
 
 def facts(owner: bool = False) -> dict:
@@ -258,7 +264,9 @@ def facts(owner: bool = False) -> dict:
     pos = views.open_positions()
     marks = views.exec_marks()
     return {"data_through": rm.get("data_through"), "next_session": rm.get("next_session"), "built_at": rm.get("built_at"), "brief": rm.get("brief"),
-            "session_now": session_now(rm),
+            # 2 Nov 2026 (Madhav: "huge mistakes ... make sure these things don't repeat"): today, read directly - the clock, Kite's index prices,
+            # the options line's own ledger, his stocks and the managed plan at today's prices (jarvis/india/livesession.py)
+            "today_live": _today_live(rm),
             "latest_closes": latest_closes(rm),
             "market": {k: (rm.get("market") or {}).get(k) for k in ("nifty_close", "nifty_vs_sma50", "nifty_vs_sma200", "trend_state", "vix_close", "breadth_200d_liquid", "words")},
             "daily_call": {**call_state(rm),
@@ -1185,6 +1193,15 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         prefix, text_q, carry_ui, fixed = fixed["_prefix"], fixed["_then"], fixed.get("_ui") or [], None
     if fixed is not None:
         fixed = finish(fixed, text, model=False)
+        try:                                           # 2 Nov 2026: the rule answers pass the same check against today as the model's
+            from jarvis.india import livesession as _ls
+            _live = _today_live(views.readmodel())
+            _p = _ls.check(str(fixed.get("answer") or ""), _live, text)
+            if _p:
+                fixed["answer"] = _ls.scrub(str(fixed.get("answer") or ""), _live)
+                _guard_log(thread, text, _p, "scrubbed-rule")
+        except Exception as e:  # noqa: BLE001
+            _guard_log(thread, text, [f"guard error: {str(e)[:120]}"], "error")
         if guest and not early:
             fixed["answer"] = speaker.address(fixed.get("answer"), guest)
         if stranger:
@@ -1200,6 +1217,10 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": said, "t": int(time.time()), "voice": voice})
         rid = uuid.uuid4().hex[:12]
+        try:
+            fixed["live"] = live_record(_live)
+        except NameError:
+            pass
         row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "rule", "ms": 0, "rating": None, **fixed,
                "model_label": "Instant" if fixed.get("mode") in ("nav", "people") else "Ananta (rules)", "mode": fixed.get("mode") or mode or "auto", "cost_usd": 0.0, "thread": thread,
                "talking_to": speaker.label(thread)}
@@ -1244,7 +1265,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             pass
     if wait is not None:                                       # 28 Oct: what waits for his yes, so "can you start on them?" is answered from it
         f["waiting_for_you"] = {"count": wait.get("count"), "line": wait.get("line"),
-                                "items": [{k: x.get(k) for k in ("title", "line", "say")} for x in (wait.get("items") or [])[:6]],
+                                "items": [{k: x.get(k) for k in ("title", "line", "say", "market", "fixes", "review")} for x in (wait.get("items") or [])[:6]],
                                 "how": "He can approve in chat: 'approve all drafts', 'approve draft 2', 'skip draft 3', or pick a flag's fix by number."}
     t0 = time.time()
     # 27 Oct: "How did the Nifty close today?" is a question, not an order (the model still never places anything)
@@ -1272,12 +1293,12 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             who_note += ("\n\n[The voice print says this speaker is NOT Madhav and no handover is active: do not call them sir; answer the question "
                          "neutrally and just as plainly. Approvals, flags and changes stay Madhav's. Do not mention the voice print or who is "
                          "speaking unless they ask or they ask for something only Madhav can give.]")
-        user = (f"QUESTION: {text_q}{length}{who_note}\n\nFACTS (India read model, data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\n"
+        user = (f"QUESTION: {text_q}{length}{who_note}\n\nFACTS (today_live is today; the rest is the nightly read model, full data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\n"
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
-        per_turn = ("talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map")
-        facts_text = (f"FACTS (India read model, data through {f.get('data_through')}). This is the FACTS block your rules refer to; this turn's few "
+        per_turn = ("today_live", "talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map")
+        facts_text = (f"FACTS (the nightly read model, full data through {f.get('data_through')}; today_live, in the user turn, is today). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"
                   f"{json.dumps({k: f[k] for k in per_turn if k in f}, default=str)}\n\n"
@@ -1316,6 +1337,31 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         except Exception as e:  # noqa: BLE001
             reply = _offline(text, f, str(e)[:120])
             usage = {"model": "none"}
+        # 2 Nov 2026 (Madhav: "these are huge mistakes ... make sure these things don't repeat"): before anything is spoken, the answer is
+        # checked against today's block (the clock, today's prices, the options line's ledger). A contradiction gets one re-answer with the
+        # correction; if that is still wrong, the contradicting sentences are dropped and today's block leads. Every catch is logged.
+        try:
+            from jarvis.india import livesession as _ls
+            live = f.get("today_live") or {}
+            probs = _ls.check(str(reply.get("answer") or ""), live, text_q)
+            if probs and usage.get("model") not in ("rule", "none"):
+                note = _ls.correction_note(probs, live)
+                raw2, usage2 = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user + "\n\n" + note, post=post, max_tokens=budget,
+                                     cached=(facts_text, user_c + "\n\n" + note))
+                reply2 = _parse(raw2)
+                left = _ls.check(str(reply2.get("answer") or ""), live, text_q)
+                if str(reply2.get("answer") or "").strip() and not left:
+                    reply = {**reply, **reply2}
+                    usage = {**usage2, "guard": "re-answered"}
+                else:
+                    reply["answer"] = _ls.scrub(str((reply2.get("answer") if str(reply2.get("answer") or "").strip() else reply.get("answer")) or ""), live)
+                    usage = {**usage, "guard": "scrubbed"}
+                _guard_log(thread, text_q, probs, usage.get("guard"))
+            elif probs:
+                reply["answer"] = _ls.scrub(str(reply.get("answer") or ""), live)
+                _guard_log(thread, text_q, probs, "scrubbed-rule")
+        except Exception as e:  # noqa: BLE001
+            _guard_log(thread, text_q, [f"guard error: {str(e)[:120]}"], "error")
     reply = finish(reply, text, model=usage.get("model") not in ("rule", "none"))
     if not str(reply.get("answer") or "").strip():
         reply["answer"] = EMPTY_FALLBACK                       # never an empty answer (27 Oct)
@@ -1348,7 +1394,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     rid = uuid.uuid4().hex[:12]
     row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "claude" if usage.get("model") not in ("rule", "none") else usage.get("model"), "ms": ms, "rating": None, **reply,
            "model_label": "Claude Sonnet" if usage.get("model") not in ("rule", "none") else "Ananta (rules)", "mode": mode or "auto", "cost_usd": round((usage.get("in", 0) * 3 + usage.get("out", 0) * 15) / 1e6, 5),
-           "usage": usage, "thread": thread, "talking_to": speaker.label(thread)}
+           "usage": usage, "thread": thread, "talking_to": speaker.label(thread), "live": live_record(f.get("today_live"))}
     _append(thread, row)
     _touch_index(thread, said[:60], voice)
     return {**row, "id": rid, "thread": thread, "timing": {"ms": ms}}
@@ -1360,7 +1406,7 @@ def thread_view(thread: str) -> list[dict]:
         if m.get("role") == "user":
             out.append({"id": m.get("id"), "role": "user", "text": m.get("text"), "voice": bool(m.get("voice"))})
         else:
-            out.append({k: v for k, v in m.items() if k not in ("usage",)})
+            out.append({k: v for k, v in m.items() if k not in ("usage", "live")})
     return out
 
 
@@ -1449,6 +1495,35 @@ def write_note(text: str, thread: str, post=None) -> dict:
 
 STATUS = re.compile(r"\b(my (flags?|requests?)|what happened to (my|the) (flag|request)|is it fixed|did you fix)\b", re.I)
 BARE_FLAG = re.compile(r"^\s*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|please|so|then|go ahead|do it)[\s,.!]*)*(?:flag|file|log|report)\s+(?:it|this|that)(?:\s+(?:please|now|then|for me))?[\s.!]*$", re.I)
+# 2 Nov 2026 ("Flag them issue. We will work it on the back end." filed a flag about nothing, with fixes for a confirmation button): a short
+# flag request that points back ("it", "them", "the issue", "this gap") takes its subject from the conversation, like a bare "flag it"
+VAGUE_FLAG = re.compile(r"^(?=.{0,110}$).*\b(?:flag|file|log|report|note)\b.{0,30}\b(?:it|this|that|them|these|those|the (?:issue|problem|gap|thing|bug)s?|issues?)\b", re.I | re.S)
+
+
+FILLER = set("""flag flags flagged file log report note it its it's this that them these those the a an issue issues problem problems gap gaps thing things bug
+bugs please we will we'll work working on back end backend yeah yes yep ok okay so and to for me now later can you let's lets just i i'll want need fix
+look into at do go ahead be up raise put down there here as one all of with team side""".split())
+
+
+def _refers_back(text: str) -> bool:
+    if BARE_FLAG.match(text or ""):
+        return True
+    if not VAGUE_FLAG.match(text or ""):
+        return False
+    content = [w for w in re.findall(r"[a-z0-9%']+", (text or "").lower()) if w not in FILLER]
+    return len(content) <= 2
+
+
+def _subject_from_context(thread: str, text: str) -> str:
+    """What a pointing-back flag is about: his previous message(s) and the start of Ananta's last answer (which usually names the problem)."""
+    prev = thread_messages(thread)[-6:]
+    his = [str(x.get("text") or "") for x in prev if x.get("role") == "user" and not _refers_back(str(x.get("text") or ""))][-2:]
+    ans = next((str(a.get("answer") or "") for a in reversed([x for x in prev if x.get("role") == "assistant"])), "")
+    lead = " ".join(re.split(r"(?<=[.!?])\s+", ans)[:3])[:400]
+    body = " / ".join(his)
+    return (f"{body} (Ananta had said: {lead})" if lead else body)[:700] or text
+
+
 WORDS = {"first": 1, "one": 1, "1": 1, "second": 2, "two": 2, "2": 2, "third": 3, "three": 3, "3": 3}
 # Picking a fix by voice (24 Oct, from Madhav's own chat): "Second bot's answer is basically the same" was taken as "fix 2" and queued a fix he
 # never chose, while "maybe two will do good" and "we will go with the Pixels 1 and 2" (the voice's "fixes") were missed. A pick now needs the
@@ -2056,8 +2131,25 @@ def waiting_now(token: str | None, get=None) -> dict | None:
     return v
 
 
+def _unsettled(w: dict | None) -> dict | None:
+    """2 Nov 2026: the opener no longer pushes flags the morning review has already settled (no change needed, or a reporting fix proposed);
+    they stay in "what's waiting" and My flags with the review's words."""
+    if not w:
+        return w
+    items = [x for x in (w.get("items") or []) if not ((x.get("review") or {}).get("settled"))]
+    if not items:
+        return {**w, "items": [], "line": ""}
+    parts = []
+    for x in items[:3]:
+        parts.append(f"{x['count']} research drafts" if x.get("kind") == "drafts" else str(x.get("title") or "").split(":")[0].lower() or "a decision")
+    words = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+    return {**w, "items": items, "line": f"{words[:1].upper()}{words[1:]} {'is' if len(parts) == 1 and not parts[0][:1].isdigit() else 'are'} waiting for your yes.",
+            "key": (w.get("key") or "") + ":" + str(len(items))}
+
+
 def waiting_nudge(thread: str, w: dict | None) -> str:
     """Once per conversation, and not again within 3 hours for the same list, one short line at the end of the answer."""
+    w = _unsettled(w)
     if not w or not w.get("items") or not w.get("line"):
         return ""
     p = Path(ASK_DIR) / "waiting_told.json"
@@ -2079,6 +2171,19 @@ def waiting_nudge(thread: str, w: dict | None) -> str:
             + (", or \"approve all drafts\"." if drafts else "."))
 
 
+def _cut(t: str, n: int) -> str:
+    t = str(t or "").strip().rstrip(".")
+    return t if len(t) <= n else t[:n].rsplit(" ", 1)[0].rstrip(",;:(") + "…"
+
+
+def _review_gist(words: str) -> str:
+    """The review's verdict in one sentence (2 Nov: the whole note was read out and cut mid-word)."""
+    body = re.split(r"\bProposal\b", str(words or ""))[0]
+    sents = [x.strip() for x in re.split(r"(?<=[.!?])\s+", body) if x.strip()]
+    pick = next((x for x in sents if re.search(r"rules working|rule held|card misleads|no change|nothing (?:is )?wrong|works as", x, re.I)), sents[0] if sents else "")
+    return _cut(plain_codes(pick), 200)
+
+
 def waiting_flow(text: str, w: dict | None) -> dict | None:
     if not WAITING_Q.search(text or "") or len(text) > 120:
         return None
@@ -2086,7 +2191,21 @@ def waiting_flow(text: str, w: dict | None) -> dict | None:
         return None                                   # no list (no sign-in token): the drafts flow or the model answers
     if not w.get("items"):
         return _reply("Nothing is waiting for your yes, sir.", ["What did you learn last night?"], ["/v3/waiting: empty"])
-    lines = [f"{i + 1}. {x['title']}" + (f" ({x['line']})" if x.get("kind", "").startswith("flag") and x.get("line") else "") + "." for i, x in enumerate(w["items"][:6])]
+    lines = []
+    for i, x in enumerate(w["items"][:6]):
+        s = f"{i + 1}. {x['title']}"
+        if x.get("kind", "").startswith("flag"):
+            what = re.sub(r"\s*\([A-Z][A-Z_]{3,}\)", "", re.sub(r"^\[[^\]]*\]\s*", "", str(x.get("line") or "")))
+            mk = {"crypto": "crypto", "india": "Indian market"}.get(str(x.get("market") or ""), "")
+            s += f" ({mk + ': ' if mk else ''}{plain_codes(what)})" if what else ""
+            rv = x.get("review") or {}
+            if rv.get("words"):
+                s += f". The morning review: {_review_gist(rv['words'])}"
+                if rv.get("proposal"):
+                    s += f"; it proposes: {_cut(plain_codes(rv['proposal']), 180)}"
+            if x.get("fixes"):
+                s += ". The fixes: " + "; ".join(f"{k + 1}, {t}" for k, t in enumerate(x["fixes"]))
+        lines.append(s + ".")
     tail = []
     if any(x.get("kind") == "drafts" for x in w["items"]):
         tail.append("For the drafts, say \"approve all drafts\", \"read the drafts\", or \"approve draft 2\"; yes registers a study and nothing trades from it.")
@@ -2132,7 +2251,7 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
                       {"ui": [{"do": "go_to", "target": "flags", "label": "My flags"}]})
     # 27 Oct (14:42 chat): a bare "Flag it" is 7 characters, so the old length guard (>= 8) sent it to the model and nothing was filed
     intent = flag_intent(text) if (len(text.strip()) >= 8 or BARE_FLAG.match(text)) else None
-    if intent and BARE_FLAG.match(text):          # "yeah, flag it": what it is about is in his last messages
+    if intent and _refers_back(text):            # "yeah, flag it" / "flag them issue": what it is about is in his last messages
         ctx = " ".join(str(x.get("text") or "") for x in thread_messages(thread)[-4:] if x.get("role") == "user")
         if RESEARCH.search(ctx) and not APP_BUG.search(ctx):
             intent = {"kind": "research"}
@@ -2141,9 +2260,8 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         # and any question in the same message is answered after it
         screen = str((context or {}).get("here", {}).get("label") if isinstance((context or {}).get("here"), dict) else (context or {}).get("screen") or "")[:80]
         about = text
-        if BARE_FLAG.match(text):
-            his = [str(x.get("text") or "") for x in thread_messages(thread)[-6:] if x.get("role") == "user" and not BARE_FLAG.match(str(x.get("text") or ""))]
-            about = " / ".join(his[-2:]) or text
+        if _refers_back(text):
+            about = _subject_from_context(thread, text)
         n = write_note(about, thread)
         r = post(f"{JARVIS_URL}/v3/flags", {"text": n["title"], "note": n["note"], "market": "india", "screen": screen or "research note", "route": "ask"})
         j = r.json() if hasattr(r, "json") else r
@@ -2160,14 +2278,14 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
     if intent and intent["kind"] == "bug":
         screen = str((context or {}).get("here", {}).get("label") if isinstance((context or {}).get("here"), dict) else (context or {}).get("screen") or "")[:80]
         body = text
-        if BARE_FLAG.match(text):
+        if _refers_back(text):
             # 25 Oct chat: "Yeah, flag it." filed a flag whose whole text was "Yeah, flag it." The problem is in the turns before it: Ananta's
             # own suggested wording ('say "flag it: ..."') if it gave one, else his last message(s).
             prev = thread_messages(thread)[-6:]
             said = next((m.group(1) for a in reversed([x for x in prev if x.get("role") == "assistant"])
                          for m in [re.search(r'flag it:\s*([^"”]{8,300})["”]', str(a.get("answer") or ""))] if m), None)
             his = [str(x.get("text") or "") for x in prev if x.get("role") == "user" and not BARE_FLAG.match(str(x.get("text") or ""))][-1:]   # the message just before
-            body = (said or " / ".join(his) or text)[:600]
+            body = (said or (_subject_from_context(thread, text) if not BARE_FLAG.match(text) else None) or " / ".join(his) or text)[:600]
         r = post(f"{JARVIS_URL}/v3/flags", {"text": body[:600], "market": "india", "screen": screen, "route": "ask"})
         j = r.json() if hasattr(r, "json") else r
         if not j.get("num"):

@@ -1,0 +1,369 @@
+"""Today's India session as it is right now: the clock, the live index, today's own decisions, today's plan at the open.
+
+Why (Madhav, 2 Nov 2026, "these are huge mistakes ... make sure these things don't repeat again"): at 16:38 IST on Monday the Ask said
+"Monday's session is happening" an hour after the close, said it had "no record" of what the options line decided although the decisions had
+been written at 09:15-09:45 IST, and said it could not see the live market although the read-only Kite connection reads it. The opening update
+at 11:20 IST said "no record" too. The facts only carried the nightly read model, so anything that happened today was invisible.
+
+This module reads today directly:
+  clock        India time and Toronto time, whether today is a session, before/open/closed, the latest session that has started, and how
+               Madhav's Toronto 'today'/'yesterday' maps onto Indian sessions
+  index_now    Nifty, Bank Nifty and India VIX from Kite (read-only GET /quote/ohlc), cached for 60 seconds
+  options      today's decisions from the options line's own ledger (paper/sp1/decisions.jsonl), with the option's price now
+  holdings     the paper copy of the account ('as you have it') moved by today's prices
+  managed      today's managed-book plan against today's opening prices (fills are booked by the 19:00 Toronto job)
+  data_timing  when each kind of data lands
+
+Read-only: Kite is used through the records repo's GET-only client (india.kite), quotes only; nothing here places, changes or cancels anything.
+"""
+from __future__ import annotations
+
+import datetime as dt
+import json
+import os
+import re
+import sys
+import threading
+import time
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+IST = ZoneInfo("Asia/Kolkata")
+TOR = ZoneInfo("America/Toronto")
+DATA = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india")))
+RECORDS = Path(os.getenv("ANANTA_RECORDS", os.path.expanduser("~/code/ananta-records")))
+INDEX = {"NIFTY 50": "NSE:NIFTY 50", "NIFTY BANK": "NSE:NIFTY BANK", "INDIA VIX": "NSE:INDIA VIX"}
+_CACHE: dict = {}
+_LOCK = threading.Lock()
+TTL_S = 60
+
+
+def _holidays() -> set:
+    try:
+        from jarvis.india import answerguide
+        return set(answerguide._holidays())
+    except Exception:  # noqa: BLE001
+        return set()
+
+
+def is_session(d: dt.date, hol: set | None = None) -> bool:
+    hol = _holidays() if hol is None else hol
+    return d.weekday() < 5 and d not in hol and d.isoformat() not in hol
+
+
+def prev_session(d: dt.date, hol: set | None = None) -> dt.date:
+    hol = _holidays() if hol is None else hol
+    x = d - dt.timedelta(days=1)
+    while not is_session(x, hol):
+        x -= dt.timedelta(days=1)
+    return x
+
+
+def _dw(d: dt.date) -> str:
+    return d.strftime("%A %-d %b")
+
+
+def clock(data_through: str | None, now: dt.datetime | None = None) -> dict:
+    """Where the NSE day stands. data_through is the newest finished day in the nightly data (the read model)."""
+    now = (now or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone.utc)
+    ist, tor = now.astimezone(IST), now.astimezone(TOR)
+    hol = _holidays()
+    today = ist.date()
+    session_day = is_session(today, hol)
+    minute = ist.hour * 60 + ist.minute
+    if not session_day:
+        state = "no_session"
+    elif minute < 9 * 60:
+        state = "before_open"
+    elif minute < 9 * 60 + 15:
+        state = "pre_open"            # NSE's pre-open order collection, 09:00-09:08, matching to 09:15
+    elif minute < 15 * 60 + 30:
+        state = "open"
+    else:
+        state = "closed"
+    # the latest session that has started: today once 09:15 has passed on a session day, else the previous session
+    latest = today if (session_day and state in ("open", "closed")) else prev_session(today, hol)
+    nxt = today if (session_day and state in ("before_open", "pre_open")) else None
+    if nxt is None:
+        nxt = today + dt.timedelta(days=1)
+        while not is_session(nxt, hol):
+            nxt += dt.timedelta(days=1)
+    through = str(data_through or "")[:10]
+    latest_in_nightly = bool(through) and through >= latest.isoformat()
+    said = {"no_session": f"there is no NSE session today ({_dw(today)} is a weekend or exchange holiday)",
+            "before_open": "today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00)",
+            "pre_open": "NSE is in its pre-open (09:00-09:15 IST); trading starts at 09:15",
+            "open": "today's NSE session is OPEN now (09:15 to 15:30 IST)",
+            "closed": "today's NSE session has CLOSED (it closed at 15:30 IST)"}[state]
+    if state == "closed":
+        mins = minute - (15 * 60 + 30)
+        said += f", {mins // 60} h {mins % 60} min ago" if mins >= 60 else f", {mins} min ago"
+    tor_words = tor.strftime("%A %-d %b, %-I:%M %p").replace("AM", "am").replace("PM", "pm")
+    ist_words = ist.strftime("%A %-d %b, %H:%M")
+    tail = (f"{_dw(latest)}, today in India ({'still trading' if state == 'open' else 'finished'})" if latest == today else _dw(latest))
+    rel = (f"Madhav is in Toronto ({tor_words}). When he says 'today', 'yesterday', 'this morning' or 'the market' about India, he means the "
+           f"latest Indian session that has started: {tail}. Never answer with an older session without saying why.")
+    if session_day and state in ("before_open", "pre_open"):
+        rel += (f" Today's session ({_dw(today)}) has not started yet: 'today' and 'now' are about what is coming at 09:15 IST "
+                f"(the plan, the levels to watch, what happened overnight), and the last finished session is {_dw(latest)}.")
+    return {"ts": now.timestamp(), "ist_now": ist_words + " IST", "toronto_now": tor_words, "today_india": today.isoformat(), "today_is_session": session_day, "state": state,
+            "latest_session": latest.isoformat(), "latest_session_words": _dw(latest), "next_session": nxt.isoformat(), "next_session_words": _dw(nxt),
+            "nightly_data_through": through or None, "latest_session_in_nightly_data": latest_in_nightly,
+            "words": f"It is {ist_words} in India ({tor_words} in Toronto): {said}.",
+            "relative_days": rel}
+
+
+def data_timing(clk: dict) -> str:
+    return ("When data lands (Toronto time): live index prices from Kite any time during the session and the closing prices minutes after 15:30 IST; "
+            "the 1-minute index bars at 6:20 am; the official NSE day file (every stock) with the 12:45 pm run; the paper books, the managed book's "
+            "fills and the evening review at 7 pm. The options line decides live at 09:15, 09:30 and 09:45 IST and its decisions are in its ledger "
+            "the moment they are made.")
+
+
+def _kite():
+    if str(RECORDS) not in sys.path:
+        sys.path.append(str(RECORDS))
+    from india import kite          # the records repo's GET-only client; it never prints or returns the token
+    return kite.Kite(rate_per_s=5.0)
+
+
+def quotes(symbols: list[str], fetch=None) -> dict:
+    """GET /quote/ohlc for up to 500 instruments (e.g. 'NSE:NIFTY 50', 'NSE:TCS', 'NFO:...'): last price, open, high, low and the previous
+    close. Cached for TTL_S; a failure returns {'error': ...} and is never raised into an answer."""
+    syms = sorted({s for s in symbols if s})
+    if not syms:
+        return {}
+    key = tuple(syms)
+    with _LOCK:
+        hit = _CACHE.get(key)
+        if hit and time.time() - hit[0] < TTL_S:
+            return hit[1]
+    try:
+        raw = fetch(syms) if fetch else _kite().get("/quote/ohlc", params={"i": syms[:500]})
+        out = {s: {"last": v.get("last_price"), "open": (v.get("ohlc") or {}).get("open"), "high": (v.get("ohlc") or {}).get("high"),
+                   "low": (v.get("ohlc") or {}).get("low"), "prev_close": (v.get("ohlc") or {}).get("close")} for s, v in (raw or {}).items()}
+        out = {"rows": out, "at": time.time()}
+    except Exception as exc:  # noqa: BLE001
+        out = {"error": f"{type(exc).__name__}: {str(exc)[:120]}", "rows": {}, "at": time.time()}
+    with _LOCK:
+        _CACHE[key] = (time.time(), out)
+    return out
+
+
+def _pct(a, b):
+    return round(100 * (a / b - 1), 2) if isinstance(a, (int, float)) and isinstance(b, (int, float)) and b else None
+
+
+def index_now(clk: dict, fetch=None) -> dict:
+    if not clk["today_is_session"] or clk["state"] in ("before_open", "pre_open"):
+        return {"live": False, "words": "No live index prices: today's session has not started" if clk["today_is_session"] else "No session today."}
+    q = quotes(list(INDEX.values()), fetch)
+    if q.get("error"):
+        return {"live": False, "error": q["error"], "words": "I could not reach the live prices from Kite just now (" + q["error"][:60] + "); say so, do not guess."}
+    rows = {}
+    for name, sym in INDEX.items():
+        r = q["rows"].get(sym) or {}
+        if r.get("last") is None:
+            continue
+        rows[name] = {**r, "change_pct": _pct(r["last"], r.get("prev_close")), "from_open_pct": _pct(r["last"], r.get("open"))}
+    ts = q["at"] if abs(q["at"] - clk.get("ts", q["at"])) < 300 else clk["ts"]     # a replayed moment keeps its own time
+    at = dt.datetime.fromtimestamp(ts, IST).strftime("%H:%M IST")
+    kind = f"live at {at}" if clk["state"] == "open" else "at today's close (Kite's closing price; the official NSE file lands later the same day)"
+    parts = []
+    for name, r in rows.items():
+        label = {"NIFTY 50": "Nifty", "NIFTY BANK": "Bank Nifty", "INDIA VIX": "India VIX"}[name]
+        ch = r.get("change_pct")
+        parts.append(f"{label} {r['last']:,.2f}" + (f" ({'+' if ch >= 0 else ''}{ch:.2f}% on the previous close {r['prev_close']:,.2f}; opened {r['open']:,.2f})" if ch is not None else ""))
+    return {"live": clk["state"] == "open", "as_of": at, "kind": kind, "rows": rows,
+            "words": f"Today, {clk['latest_session_words']}, {kind}: " + "; ".join(parts) + "." if parts else "No index prices came back from Kite."}
+
+
+def _jsonl(p: Path) -> list[dict]:
+    try:
+        return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+    except Exception:  # noqa: BLE001
+        return []
+
+
+EXIT_WORDS = {"NEXTOPEN": "closing at the next session's open", "T1130": "closing at 11:30 IST", "T1515": "closing at 15:15 IST"}
+
+
+def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
+    """The options line's decisions for the latest session, straight from its ledger, with the chosen option's price now."""
+    day = clk["latest_session"]
+    rows = [r for r in _jsonl(path or DATA / "paper" / "sp1" / "decisions.jsonl") if r.get("date") == day]
+    plan = next((r for r in rows if r.get("kind") == "plan"), None)
+    dec = [r for r in rows if r.get("kind") == "decision"]
+    if not dec:
+        if clk["state"] in ("open", "closed") and clk["latest_session"] == clk["today_india"]:
+            w = (f"The options line has a plan for today (made {str(plan.get('made_at'))[11:16]} IST) but no decision is in its ledger yet."
+                 if plan else "The options line has no plan and no decision in its ledger for today: it did not run; say so.")
+        else:
+            w = f"No options decisions in the ledger for {clk['latest_session_words']}."
+        return {"day": day, "decisions": [], "taken": [], "words": w}
+    taken, passed = [], []
+    for r in dec:
+        ch = r.get("choice")
+        t = str(r.get("decided_at") or "")[11:16]
+        if ch:
+            opt = ((r.get("contracts") or {}).get("option") or {})
+            qd = r.get("quotes_at_decision") or {}
+            osym = f"NFO:{opt.get('tradingsymbol')}" if opt.get("tradingsymbol") else None
+            taken.append({"index": r.get("index"), "point": r.get("point"), "at": t, "direction": "long" if ch.get("dir", 1) > 0 else "short",
+                          "exit": ch.get("exit"), "exit_words": EXIT_WORDS.get(str(ch.get("exit")), str(ch.get("exit"))), "index_level": r.get("entry_estimate"),
+                          "option": (f"{opt.get('strike'):.0f} {opt.get('type')}" if opt.get("strike") else None), "option_symbol": osym,
+                          "option_price_at_decision": qd.get(osym) if osym else None, "lot": opt.get("lot"), "expiry": opt.get("expiry")})
+        else:
+            passed.append(f"{ {'NIFTY': 'Nifty', 'BANKNIFTY': 'Bank Nifty'}.get(r.get('index'), r.get('index')) } at {t}")
+    if taken:
+        q = quotes([x["option_symbol"] for x in taken if x["option_symbol"]], fetch)
+        for x in taken:
+            now = ((q.get("rows") or {}).get(x["option_symbol"]) or {}).get("last") if x["option_symbol"] else None
+            x["option_price_now"] = now
+            if now is not None and x["option_price_at_decision"] and x["lot"]:
+                x["paper_move_inr_per_lot"] = round((now - x["option_price_at_decision"]) * x["lot"])
+    name = {"NIFTY": "Nifty", "BANKNIFTY": "Bank Nifty"}
+    tw = []
+    for x in taken:
+        s = f"{name.get(x['index'], x['index'])} {x['direction']} at {x['at']} IST (index near {x['index_level']:,.0f}"
+        if x["option"]:
+            s += f"; the {x['option']} option at about Rs {x['option_price_at_decision']}" if x["option_price_at_decision"] else f"; the {x['option']} option"
+        s += f"), {x['exit_words']}"
+        if x.get("paper_move_inr_per_lot") is not None:
+            s += f"; the option is at Rs {x['option_price_now']} now, about Rs {x['paper_move_inr_per_lot']:+,} a lot on paper"
+        tw.append(s)
+    words = (f"The options line on {clk['latest_session_words']} decided at {len(dec)} points: " + ("took " + "; ".join(tw) if tw else "took nothing")
+             + (f"; passed on {', '.join(passed)}" if passed else "") + ". Paper only; one lot each.")
+    return {"day": day, "decisions": len(dec), "taken": taken, "passed": passed, "words": words}
+
+
+def holdings_today(clk: dict, positions: list[dict], fetch=None) -> dict:
+    """The paper copy of the account ('as you have it') moved by today's prices."""
+    if not clk["today_is_session"] or clk["state"] in ("before_open", "pre_open") or not positions:
+        return {"words": None}
+    q = quotes([f"NSE:{p['symbol']}" for p in positions if p.get("symbol")], fetch)
+    if q.get("error"):
+        return {"error": q["error"], "words": "I could not reach today's prices for the holdings just now."}
+    move, base, rows = 0.0, 0.0, []
+    for p in positions:
+        r = (q.get("rows") or {}).get(f"NSE:{p.get('symbol')}") or {}
+        if r.get("last") is None or not r.get("prev_close") or not p.get("qty"):
+            continue
+        d = p["qty"] * (r["last"] - r["prev_close"])
+        move += d
+        base += p["qty"] * r["prev_close"]
+        rows.append({"symbol": p["symbol"], "change_pct": _pct(r["last"], r["prev_close"]), "move_inr": round(d)})
+    if not rows:
+        return {"words": None}
+    rows.sort(key=lambda x: x["move_inr"])
+    pct = 100 * move / base if base else 0
+    up = [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in rows[::-1][:3] if x["move_inr"] > 0]
+    dn = [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in rows[:3] if x["move_inr"] < 0]
+    when = "so far today" if clk["state"] == "open" else "today"
+    return {"move_inr": round(move), "move_pct": round(pct, 2), "rows": rows,
+            "words": f"Your stocks (the paper copy of the account) are {'up' if move >= 0 else 'down'} about Rs {abs(move):,.0f} ({pct:+.2f}%) {when}"
+                     + (f"; best {', '.join(up)}" if up else "") + (f"; worst {', '.join(dn)}" if dn else "") + "."}
+
+
+def managed_today(clk: dict, plan: dict, fetch=None) -> dict:
+    """Today's managed-book plan against today's opening prices. The fills themselves are booked by the 19:00 Toronto job from the official day file."""
+    if not plan or plan.get("for_session") != clk["latest_session"] or clk["state"] in ("before_open", "pre_open", "no_session"):
+        return {"words": None}
+    buys = [b for b in plan.get("buys") or [] if b.get("symbol")]
+    cuts = [c for c in plan.get("cuts") or [] if c.get("symbol")]
+    q = quotes([f"NSE:{x['symbol']}" for x in buys + cuts], fetch)
+    if q.get("error"):
+        return {"words": "The managed book's plan for today is written; I could not reach today's opening prices just now."}
+    skip, ok = [], []
+    for b in buys:
+        r = (q.get("rows") or {}).get(f"NSE:{b['symbol']}") or {}
+        g = _pct(r.get("open"), r.get("prev_close"))
+        if g is None:
+            continue
+        (skip if g > 2.0 else ok).append(f"{b['symbol']} opened {g:+.1f}%")
+    return {"buys_opening": ok, "buys_skipped_by_rule": skip,
+            "words": (f"The managed book's first plan was for today: {len(cuts)} cuts and {len(buys)} buys at the open. At today's opening prices "
+                      + (f"these buys stay in ({'; '.join(ok)})" if ok else "no buy stays in")
+                      + (f" and these are skipped by the 2% rule ({'; '.join(skip)})" if skip else "")
+                      + ". The fills are booked from the official NSE day file by the 7 pm Toronto run, so the book's result arrives then.")}
+
+
+def today(rm: dict | None = None, now: dt.datetime | None = None, fetch=None, positions: list | None = None, plan: dict | None = None) -> dict:
+    """Everything above in one block, for the Ask's facts, the opening update and /v3/live."""
+    if rm is None:
+        from jarvis.india import views
+        rm = views.readmodel()
+    clk = clock(rm.get("data_through"), now)
+    if positions is None or plan is None:
+        try:
+            from jarvis.india import surfaces
+            positions = surfaces._account_view().get("positions") or [] if positions is None else positions
+            plan = (surfaces._managed().get("plan") or {}) if plan is None else plan
+        except Exception:  # noqa: BLE001
+            positions, plan = positions or [], plan or {}
+    out = {"clock": clk, "data_timing": data_timing(clk), "index_now": index_now(clk, fetch), "options_today": options_today(clk, fetch),
+           "holdings_today": holdings_today(clk, positions, fetch), "managed_today": managed_today(clk, plan, fetch)}
+    out["words"] = " ".join(x for x in (clk["words"], out["index_now"].get("words"), out["options_today"].get("words"),
+                                        out["holdings_today"].get("words"), out["managed_today"].get("words")) if x)
+    out["how_to_say_it"] = ("This block is the truth about today. For any question about today, now, this morning, 'yesterday' (from Toronto) or "
+                            "'the market', answer about clock.latest_session using index_now, options_today, holdings_today and managed_today. "
+                            "Never say a session is open after 15:30 IST or not yet open after 09:15 IST; never say there is 'no record' of what the "
+                            "options line decided when options_today lists decisions; never say you cannot see today's prices when index_now has rows. "
+                            "Breadth, the research book and the reconstruction are on nightly_data_through: say that date when you use them.")
+    return out
+
+
+
+# ---- the answer guard (2 Nov 2026): every answer is checked against today's block before it is spoken -------------------------------------
+
+SAYS_OPEN = re.compile(r"\b(?:session|market|trading)\s+(?:is|'s)\s+(?:still\s+)?(?:happening|going on|open|underway|in progress|live|running)\b"
+                       r"|\b(?:is|are)\s+still\s+(?:open|trading|going on|happening)\b|\bhas(?:n't| not)\s+(?:closed|finished|ended)\b|\bno close yet\b"
+                       r"|\bclose\s+(?:arrives|comes|lands)\b[^.]{0,40}\bafter 15:30\b|\bwhile the market (?:is|was) still open\b(?![^.]{0,40}\bearlier\b)", re.I)
+SAYS_NOT_OPENED = re.compile(r"\b(?:has(?:n't| not)|did(?:n't| not))\s+(?:opened|started)\b|\bnot (?:yet )?open(?:ed)?\b", re.I)
+SAYS_OPEN_BEFORE = re.compile(r"\b(?:market|session)\s+is\s+(?:open|trading)\b|\bhas opened\b|\bso far today\b", re.I)
+SAYS_NO_RECORD = re.compile(r"\bno record of what\b|\b(?:don't|do not|haven't|have not)\s+(?:got |have )?(?:a |any )?record of (?:what|the options)"
+                            r"|\bno record of (?:either|the options line|its decision)|\b(?:can't|cannot) tell (?:you )?what the options line", re.I)
+SAYS_NO_PRICES = re.compile(r"\b(?:can't|cannot|can not|don't|do not|unable to)\s+(?:see|have|get|access)\s+(?:the\s+)?(?:any\s+)?(?:live|intraday|today's|current|real-time)\s+"
+                            r"(?:prices?|data|market|session|numbers?|feed)|\bno (?:intraday|live) (?:prices|data|feed)\b|\bnothing intraday\b"
+                            r"|\b(?:session|market) is invisible\b|\bonly (?:from|on) daily closing data\b|\bno (?:monday|tuesday|wednesday|thursday|friday) prices\b", re.I)
+TODAY_Q = re.compile(r"\b(?:today|now|right now|yesterday|this morning|tonight|what happened|how did (?:the )?market|market (?:today|now)|how is (?:it|the market) going)\b", re.I)
+WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+
+
+def check(answer: str, live: dict | None, question: str = "") -> list[str]:
+    """What the answer says that today's block contradicts. Empty = fine."""
+    if not answer or not isinstance(live, dict) or "clock" not in live:
+        return []
+    clk, out = live["clock"], []
+    state = clk.get("state")
+    if state == "closed" and SAYS_OPEN.search(answer):
+        out.append(f"It said the session is still going, but {clk['words']}")
+    if state == "open" and SAYS_NOT_OPENED.search(answer):
+        out.append(f"It said the session has not opened, but {clk['words']}")
+    if state in ("before_open", "pre_open", "no_session") and SAYS_OPEN_BEFORE.search(answer):
+        out.append(f"It spoke as if a session were trading, but {clk['words']}")
+    if (live.get("options_today") or {}).get("decisions") and SAYS_NO_RECORD.search(answer):
+        out.append("It said it has no record of the options line's decisions, but options_today lists them: " + live["options_today"]["words"])
+    if ((live.get("index_now") or {}).get("rows")) and SAYS_NO_PRICES.search(answer):
+        out.append("It said it cannot see today's prices, but index_now has them: " + live["index_now"]["words"])
+    if (question and TODAY_Q.search(question) and clk.get("latest_session") == clk.get("today_india") and state in ("open", "closed")):
+        latest_wd = clk.get("latest_session_words", "").split(" ")[0].lower()
+        low = answer.lower()
+        older = [w for w in WEEKDAYS if w != latest_wd and re.search(rf"\b{w}\b", low)]
+        if older and latest_wd not in low and "today" not in low:
+            out.append(f"He asked about today; it answered about {older[0].title()} and never about today, {clk['latest_session_words']}.")
+    return out
+
+
+def correction_note(problems: list[str], live: dict) -> str:
+    return ("CORRECTION (your draft answer was wrong and was not shown): " + " ".join(problems)
+            + " Answer the question again from FACTS.today_live first. Today's block in short: " + str(live.get("words") or "")[:1500])
+
+
+def scrub(answer: str, live: dict) -> str:
+    """Last resort when a re-answer is still wrong: drop the sentences that contradict today and lead with today's block."""
+    sents = re.split(r"(?<=[.!?])\s+", str(answer or ""))
+    bad = (SAYS_OPEN, SAYS_NOT_OPENED, SAYS_OPEN_BEFORE, SAYS_NO_RECORD, SAYS_NO_PRICES)
+    keep = [s for s in sents if not any(p.search(s) for p in bad)]
+    lead = " ".join(x for x in ((live.get("clock") or {}).get("words"), (live.get("index_now") or {}).get("words"), (live.get("options_today") or {}).get("words")) if x)
+    return (lead + " " + " ".join(keep)).strip()

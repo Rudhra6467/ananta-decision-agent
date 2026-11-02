@@ -1,8 +1,8 @@
 """The morning view's words (Madhav, 23 Oct 2026): a trader's morning note written from Ananta's facts, checked by a separate reviewer, and the
 reviewer's own odds put on the record; then the opening update after the first hour.
 
-  python scripts/india_morningview.py morning     (launchd com.ananta.india.morningview, 23:00 Toronto = 08:30 Indian time, after the facts are built)
-  python scripts/india_morningview.py opening     (launchd com.ananta.india.openingview, 00:50 Toronto = 10:20 Indian time)
+  python scripts/india_morningview.py morning     (launchd com.ananta.india.morningview, 08:30 Indian time, after the facts are built; jarvis/india/schedule.py keeps it there across Toronto's clock changes)
+  python scripts/india_morningview.py opening     (launchd com.ananta.india.openingview, 10:20 Indian time)
 
 Both run through ~/ananta_runs/svc_env_run.py (the service's environment holds the model key and the phone-push topic). They read the facts from
 the India service over loopback (GET /v3/morning/facts), never the lake. Rules, in the prompts and checked after: every number comes from the facts;
@@ -63,8 +63,9 @@ NOTE:
 {note}"""
 
 OPENING = """You are Ananta, writing Madhav's opening update after the first hour of the NSE session (it is about 10:20 Indian time). From the FACTS only, in 2-3 short sentences,
-address him as "sir" once: what the options line decided at its decision points (or that it could not run and why), and what the morning view said to watch. If the facts hold no
-opening data, say so in one sentence and do not guess what the market did. Paper only, never advice, no internal codes.
+address him as "sir" once: where the Nifty and Bank Nifty are now against the previous close (opening_decisions.index_now), what the options line decided at its
+decision points (opening_decisions.options_today: quote it; it is the line's own ledger), and what the morning view said to watch. Only if opening_decisions says a part could
+not be read, say that in one clause; never say there is "no record" when options_today lists decisions. Paper only, never advice, no internal codes.
 
 FACTS:
 {facts}"""
@@ -190,19 +191,35 @@ def opening() -> int:
     facts = {"session": f["session"], "watch": (f.get("lines") or {}).get("watch"), "options_line_plan": (f.get("plan") or {}).get("options_line"),
              "opening_decisions": _opening_rows(f["session"]), "scenario_levels": (f.get("setup") or {}).get("scenario_levels")}
     words = claude(OPENING.format(facts=json.dumps(facts, default=str)[:6000]), MODEL, 1500)
+    # 2 Nov 2026: the same check the Ask runs - nothing goes out that contradicts today's clock, prices or the options line's ledger
+    try:
+        from jarvis.india import livesession as _ls
+        live = _get("/v3/live")
+        probs = _ls.check(words, live, "opening update today")
+        if probs:
+            words = claude(OPENING.format(facts=json.dumps(facts, default=str)[:6000]) + "\n\n" + _ls.correction_note(probs, live), MODEL, 1500)
+            if _ls.check(words, live, "opening update today"):
+                words = _ls.scrub(words, live)
+            print("opening update: guard caught", probs)
+    except Exception as exc:  # noqa: BLE001
+        print(f"opening update: guard skipped ({exc})")
     _post(INDIA + "/v3/morning/words", {"session": f["session"], "words": "", "opening": words})
     _push(f"Opening · {f['session'][5:]}", words[:220])
     print(f"opening update {f['session']}: {words[:120]}")
     return 0
 
 
-def _opening_rows(session: str) -> list[dict]:
-    """The options line's decision rows for the session, read through the India service's facts (the service holds the ledger paths)."""
+def _opening_rows(session: str) -> list[dict] | dict:
+    """Today's session as it is now (2 Nov 2026: this update said "no record of what it decided" although the options line's ledger held the
+    decisions from 09:15 IST, because it read the nightly read model): the clock, the live index and the options line's own ledger, read
+    through the India service's /v3/live."""
     try:
-        o = _get("/v3/options")
-        return [x for x in (o.get("decisions_today") or [])] or [{"note": o.get("words")}]
+        t = _get("/v3/live")
+        return {"clock": (t.get("clock") or {}).get("words"), "index_now": (t.get("index_now") or {}).get("words"),
+                "options_today": (t.get("options_today") or {}).get("words"), "decisions": (t.get("options_today") or {}).get("taken"),
+                "holdings_today": (t.get("holdings_today") or {}).get("words"), "managed_today": (t.get("managed_today") or {}).get("words")}
     except Exception as exc:  # noqa: BLE001
-        return [{"note": f"no opening data: {str(exc)[:80]}"}]
+        return [{"note": f"today's live block could not be read: {str(exc)[:80]}"}]
 
 
 def _push(title: str, body: str) -> None:

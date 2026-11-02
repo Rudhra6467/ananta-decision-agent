@@ -242,3 +242,18 @@ def people(full: bool = True) -> dict:
 views.ROUTES.update({"today": today, "money": money, "proof": proof, "people": people})
 # 1 Nov: both markets' new screens read /v3/surface/<name> (crypto's /v3/people already means something else)
 views.ROUTES.update({"surface/today": today, "surface/money": money, "surface/proof": proof, "surface/people": people})
+
+
+def live(full: bool = True) -> dict:
+    """Today's session as it is right now (jarvis/india/livesession.py, 2 Nov 2026): the clock, the live index, today's options decisions,
+    the holdings and the managed plan at today's prices. A guest gets the clock, the index and the options line, not the account."""
+    from jarvis.india import livesession
+    t = livesession.today(views.readmodel())
+    if not full:
+        t = {k: v for k, v in t.items() if k not in ("holdings_today", "managed_today")}
+        t["words"] = " ".join(x for x in (t["clock"]["words"], t["index_now"].get("words"), t["options_today"].get("words")) if x)
+    return t
+
+
+views.ROUTES.update({"live": live})
+

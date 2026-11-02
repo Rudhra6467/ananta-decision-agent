@@ -74,13 +74,15 @@ def real_turns(since: float, until: float | None = None) -> list[dict]:
         users = [r for r in rows if r.get("role") == "user"]
         if not users or not any(since <= float(r.get("t", 0)) <= until for r in users):
             continue
-        answers = {}
+        answers, lives = {}, {}
         for i, r in enumerate(rows):
             if r.get("role") == "user":
                 nxt = next((x for x in rows[i + 1:] if x.get("role") == "assistant"), None)
                 answers[r.get("id")] = (nxt or {}).get("answer")
+                lives[r.get("id")] = (nxt or {}).get("live")        # 2 Nov: the today-block the answer was given with, so the replay is at its own moment
         out.append({"thread": f.stem, "turns": [{"text": u.get("text") or "", "voice": bool(u.get("voice")), "t": u.get("t"),
-                                                 "original_answer": answers.get(u.get("id"))} for u in users if (u.get("text") or "").strip()]})
+                                                 "original_answer": answers.get(u.get("id")), "live": lives.get(u.get("id"))}
+                                                for u in users if (u.get("text") or "").strip()]})
     return out
 
 
@@ -105,18 +107,27 @@ def replay_conversation(turns: list[dict], tag: str) -> list[dict]:
     """Re-ask each turn, in order, in one replay thread. Returns the turns with the new answers."""
     thread = f"rp{tag}"[:12]
     out = []
+    from jarvis.india import livesession
     for t in turns:
+        ask.LIVE_OVERRIDE = t.get("live") if isinstance(t.get("live"), dict) else None
         try:
             r = ask.ask("owner", t["text"], thread=thread, voice=t.get("voice", False), token="replay", flag_post=_fake_post, flag_get=_fake_get)
-            out.append({**t, "answer": r.get("answer"), "kind": r.get("kind"), "provider": r.get("provider"), "talking_to": r.get("talking_to"),
-                        "ms": (r.get("timing") or {}).get("ms")})
+            row = {**t, "answer": r.get("answer"), "kind": r.get("kind"), "provider": r.get("provider"), "talking_to": r.get("talking_to"),
+                   "ms": (r.get("timing") or {}).get("ms")}
+            if ask.LIVE_OVERRIDE:                               # 2 Nov: the answer must not contradict the moment it was asked at
+                row["today_problems"] = livesession.check(str(r.get("answer") or ""), ask.LIVE_OVERRIDE, t["text"])
+            out.append(row)
         except Exception as e:  # noqa: BLE001  a crash is itself a finding
             out.append({**t, "answer": None, "error": f"{type(e).__name__}: {str(e)[:200]}"})
+        finally:
+            ask.LIVE_OVERRIDE = None
     return out
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------- grade
 def judge(history: list[dict], turn: dict, post=None) -> dict:
+    if turn.get("today_problems"):                               # the clock/ledger check is decisive; no model needed to see it
+        return {"pass": False, "problems": [{"code": "TODAY_WRONG", "why": p} for p in turn["today_problems"]]}
     if turn.get("error") or not str(turn.get("answer") or "").strip():
         return {"pass": False, "problems": [{"code": "CRASH" if turn.get("error") else "EMPTY", "why": turn.get("error") or "no answer"}]}
     convo = "\n".join(f"MADHAV: {h['text'][:600]}\nANANTA: {str(h.get('answer') or '')[:900]}" for h in history[-3:])
@@ -214,6 +225,13 @@ def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
             b["passes_in_a_row"] = (b.get("passes_in_a_row", 0) + 1) if g["pass"] else 0
             if b["passes_in_a_row"] >= FIXED_AFTER:
                 b["status"] = "fixed"
+        # 2 Nov 2026: Madhav's conversations of 1-2 Nov, re-asked every night at their own moment; they never retire (jarvis/india/neveragain.py)
+        try:
+            from jarvis.india import neveragain
+            results += neveragain.run(ask, replay_conversation, judge)
+        except Exception as e:  # noqa: BLE001
+            results.append({"source": "never_again", "case": "crash", "text": "never-again cases", "answer": None, "pass": False,
+                            "problems": [{"code": "CRASH", "why": f"{type(e).__name__}: {str(e)[:200]}"}]})
     finally:
         ask.ASK_DIR, ask.DRY_RUN = real_dir, False
     if use_bank:
@@ -226,16 +244,19 @@ def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
     summary = {"night": night, "hours": hours, "today_turns": sum(1 for r in results if r["source"] == "today"),
                "today_failed": len(today_fail), "bank_checked": sum(1 for r in results if r["source"] == "bank"),
                "bank_failed": sum(1 for r in results if r["source"] == "bank" and not r["pass"]),
-               "bank_open": sum(1 for b in bank() if b.get("status") != "fixed"), "bank_fixed": sum(1 for b in bank() if b.get("status") == "fixed")}
+               "bank_open": sum(1 for b in bank() if b.get("status") != "fixed"), "bank_fixed": sum(1 for b in bank() if b.get("status") == "fixed"),
+               "never_again_checked": sum(1 for r in results if r["source"] == "never_again"),
+               "never_again_failed": sum(1 for r in results if r["source"] == "never_again" and not r["pass"])}
     summary["words"] = (f"Nightly check {night}: {summary['today_turns'] - summary['today_failed']} of {summary['today_turns']} of today's answers passed; "
                         f"the regression bank: {summary['bank_checked'] - summary['bank_failed']} of {summary['bank_checked']} passed "
-                        f"({summary['bank_fixed']} fixed for good, {summary['bank_open']} still open).")
+                        f"({summary['bank_fixed']} fixed for good, {summary['bank_open']} still open); the never-again cases of 1-2 Nov: "
+                        f"{summary['never_again_checked'] - summary['never_again_failed']} of {summary['never_again_checked']} passed.")
     OUT.mkdir(parents=True, exist_ok=True)
     rep = {"summary": summary, "failures": [{k: r.get(k) for k in ("source", "text", "answer", "problems", "error")} for r in results if not r["pass"]],
            "results": [{k: r.get(k) for k in ("source", "text", "answer", "pass", "problems", "ms")} for r in results]}
     (OUT / f"{night}.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False))
     (OUT / "latest.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False))
-    if notify and (summary["today_failed"] or summary["bank_failed"]):
+    if notify and (summary["today_failed"] or summary["bank_failed"] or summary["never_again_failed"]):
         try:
             notify("Ananta nightly check", summary["words"])
         except Exception:  # noqa: BLE001

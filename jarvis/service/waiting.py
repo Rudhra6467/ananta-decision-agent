@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import os
 import time
 from pathlib import Path
@@ -31,13 +32,26 @@ def _flags(j, now: float) -> list[dict]:
             continue
         r = requests_log.get(j, f["num"]) or {}
         no = requests_log.flag_no(f["num"])
-        what = (r.get("text") or "").strip().split("\n")[0][:90]
+        what = (r.get("text") or "").strip().split("\n")[0]
+        if len(what) > 160:                                   # 2 Nov: never cut mid-word ("against a 70% t")
+            what = what[:160].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+        # 2 Nov 2026 (India voice: "I don't have the wording of the three fixes in front of me"): each flag carries its fixes' wording and the
+        # morning review's note, so Ananta can say what each fix does and what the review found, and stop pushing a flag the review settled
+        fixes = [str(o.get("title") or "") for o in ((f.get("options") or {}).get("options") or []) if o.get("title")][:3]
+        note = str(r.get("note") or "")
+        review = None
+        if note.startswith("Review"):
+            body = note.split(":", 1)[-1].strip()
+            m = re.search(r"Proposal[^:]{0,60}:\s*(.+)", body, re.S)
+            prop = re.split(r"(?<=[.;])\s+", m.group(1).strip())[0] if m else None
+            review = {"words": body[:600], "proposal": prop,
+                      "settled": bool(re.search(r"\b(no change|the rules working|the rule held|card misleads|parked|after it|in the window)\b", body, re.I))}
+        mkt = f.get("market") or ("crypto" if what.startswith("[Crypto") else "india" if "Indian market" in what else "")
+        base = {"id": f"flag:{f['num']}", "market": mkt, "count": 1, "t": f.get("t"), "line": what, "route": "flags", "fixes": fixes, "review": review}
         if f["state"] == "triaged":
-            out.append({"id": f"flag:{f['num']}", "market": f.get("market") or "", "kind": "flag_pick", "count": 1, "t": f.get("t"),
-                        "title": f"Flag {no}: pick a fix", "line": what, "route": "flags", "say": "fix 1, fix 2 or fix 3"})
+            out.append({**base, "kind": "flag_pick", "title": f"Flag {no}: pick a fix", "say": "fix 1, fix 2 or fix 3"})
         else:
-            out.append({"id": f"flag:{f['num']}", "market": f.get("market") or "", "kind": "flag_decision", "count": 1, "t": f.get("t"),
-                        "title": f"Flag {no}: a plan needs your yes", "line": what, "route": "flags", "say": "open My flags"})
+            out.append({**base, "kind": "flag_decision", "title": f"Flag {no}: a plan needs your yes", "say": "open My flags"})
     return out
 
 

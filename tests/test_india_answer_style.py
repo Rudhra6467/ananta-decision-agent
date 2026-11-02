@@ -100,3 +100,10 @@ def test_a_promised_list_left_in_the_breakdown_is_spoken():
     assert "1) Headline" in a and "5) Watch" in a
     r = {"answer": "Sir, here is a five-line routine: 1) Read the headline. 2) Check the odds. 3) Read the plan. 4) Read the chances. 5) Finish with the watch list.", "breakdown": ["1) a", "2) b", "3) c"]}
     assert ask.finish(r, "checklist", True)["answer"].count("1)") == 1          # a list already in the answer is not doubled
+
+
+def test_sign_off_inside_a_bracket_leaves_no_empty_bracket():
+    """Moment harness, 2 Nov: '... closing at today's open (paper only, not advice).' was spoken as '... closing at today's open (.'"""
+    from jarvis.india import ask
+    r = ask.finish({"answer": "Sir, the trade is 209 points against it, closing at today's open (paper only, not advice)."}, "What did you watch?", True)
+    assert r["answer"].endswith("closing at today's open.")

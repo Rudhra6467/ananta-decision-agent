@@ -1,10 +1,12 @@
-# Fact map 2026-11-02T16:35
+# Fact map 2026-11-02T17:38
 
-Fact map 2026-11-02T16:35: 141 kinds of file written in 8 days; 41 read live, 16 after the nightly build, 6 feed another file, 7 copied into words by hand, 71 internal, 0 with no route. No FAIL.
+Fact map 2026-11-02T17:38: 140 kinds of file written in 8 days; 42 read live, 16 after the nightly build, 5 feed another file, 6 copied into words by hand, 71 internal, 0 with no route. No FAIL.
 
 | check | state | words |
 |---|---|---|
-| Today screen Nifty = what Ananta says | PASS | screen Nifty · Mon 2 Nov 23,441; Ananta 23,440.80 (at the close of Monday 2 Nov, the last session (the next opens Tuesday 3 Nov 09:15 IST)) |
+| fresh: manifests/market_context.json | PASS | manifests/market_context.json is newer than all its inputs |
+| fresh: manifests/quotebook.json | PASS | manifests/quotebook.json is newer than all its inputs |
+| Today screen Nifty = what Ananta says | PASS | screen Nifty · Mon 2 Nov close 23,441; Ananta 23,440.80 (at the close of Monday 2 Nov, the last session (the next opens Tuesday 3 Nov 09:15 IST)) |
 | Money screen managed buys = what Ananta says | PASS | screen ['AJANTPHARM', 'CIPLA', 'ETERNAL']; Ananta ['AJANTPHARM', 'CIPLA', 'ETERNAL'] |
 | options screen trades = the options ledger | PASS | screen [('BANKNIFTY', 'D1'), ('NIFTY', 'D2')]; ledger (2026-11-02) [('BANKNIFTY', 'D1'), ('NIFTY', 'D2')] |
 
@@ -36,7 +38,6 @@ Fact map 2026-11-02T16:35: 141 kinds of file written in 8 days; 41 read live, 16
 | manifests/gaplab_hg1.json | internal | 2026-10-26T20:37 | research results: through the registry and the one map |
 | manifests/gaplab_ts1.json | internal | 2026-10-26T20:38 | research results: through the registry and the one map |
 | manifests/hf_chronos_forward.json | internal | 2026-11-01T19:07 | the forecast record, spoken through the morning view |
-| manifests/hf_chronos_results.json | copied | 2026-10-25T17:51 | its findings are written into india/morningview.py by hand: a re-run must update those words |
 | manifests/hf_news_results.json | copied | 2026-10-25T18:55 | its findings are written into jarvis/india/ask.py by hand: a re-run must update those words |
 | manifests/holdout_candidates.json | internal | 2026-11-01T19:08 | research workfile (sealed holdout list) |
 | manifests/impact.json | internal | 2026-11-01T19:08 | ops: lineage impact |
@@ -61,8 +62,8 @@ Fact map 2026-11-02T16:35: 141 kinds of file written in 8 days; 41 read live, 16
 | manifests/lab5_rx2.json | internal | 2026-10-29T08:39 | research results: reach the Ask through the registry and the one map (knowledgemap) |
 | manifests/leakcheck.json | nightly | 2026-11-01T19:09 |  |
 | manifests/lineage.json | nightly | 2026-11-01T19:09 |  |
-| manifests/macro.jsonl | internal | 2026-11-02T12:38 | an ingest or run log; the data it records reaches Ananta through the built tables |
-| manifests/market_context.json | live | 2026-11-02T12:38 |  |
+| manifests/macro.jsonl | internal | 2026-11-02T17:03 | an ingest or run log; the data it records reaches Ananta through the built tables |
+| manifests/market_context.json | live | 2026-11-02T17:03 |  |
 | manifests/mf_history.jsonl | internal | 2026-11-01T19:10 | an ingest or run log; the data it records reaches Ananta through the built tables |
 | manifests/mf_schemes.json | live | 2026-11-02T06:21 |  |
 | manifests/missed_DATE.json | internal | 2026-11-01T22:30 | missed movers; reaches the Ask through the read model's learning section |
@@ -73,12 +74,12 @@ Fact map 2026-11-02T16:35: 141 kinds of file written in 8 days; 41 read live, 16
 | manifests/pr_zip.jsonl | internal | 2026-10-31T02:32 | an ingest or run log; the data it records reaches Ananta through the built tables |
 | manifests/premarket_chain.json | nightly | 2026-11-01T23:00 |  |
 | manifests/premarket_inputs.json | internal | 2026-11-01T23:00 | input to the morning view's build |
-| manifests/quotebook.json | live | 2026-11-02T06:21 |  |
-| manifests/quotebook_names.json | live | 2026-11-02T06:21 |  |
+| manifests/quotebook.json | live | 2026-11-02T17:00 |  |
+| manifests/quotebook_names.json | live | 2026-11-02T17:00 |  |
 | manifests/r2_verify.json | internal | 2026-11-02T12:52 | ops: backup check |
 | manifests/results_index_integrated_v2.jsonl | internal | 2026-11-02T12:46 | an ingest or run log; the data it records reaches Ananta through the built tables |
 | manifests/results_today.json | nightly | 2026-11-01T23:00 |  |
-| manifests/sealed_access.jsonl | internal | 2026-11-02T16:32 | an ingest or run log; the data it records reaches Ananta through the built tables |
+| manifests/sealed_access.jsonl | internal | 2026-11-02T17:38 | an ingest or run log; the data it records reaches Ananta through the built tables |
 | manifests/sectormap.jsonl | internal | 2026-11-02T12:50 | an ingest or run log; the data it records reaches Ananta through the built tables |
 | manifests/sectormap_build.json | internal | 2026-11-02T12:50 | a build receipt |
 | manifests/sensitivity_compare.json | internal | 2026-10-29T22:12 | research workfile |
@@ -92,18 +93,18 @@ Fact map 2026-11-02T16:35: 141 kinds of file written in 8 days; 41 read live, 16
 | manifests/us_close.jsonl | nightly | 2026-11-01T22:00 |  |
 | manifests/valuation.jsonl | internal | 2026-11-02T12:50 | an ingest or run log; the data it records reaches Ananta through the built tables |
 | manifests/valuation_build.json | internal | 2026-11-02T12:50 | a build receipt |
-| manifests/voice_check_history.jsonl | live | 2026-11-02T13:42 |  |
-| manifests/voice_check_latest.json | live | 2026-11-02T13:42 |  |
+| manifests/voice_check_history.jsonl | live | 2026-11-02T17:35 |  |
+| manifests/voice_check_latest.json | live | 2026-11-02T17:35 |  |
 | manifests/xstudies_fii1.json | copied | 2026-10-26T11:31 | its findings are written into jarvis/india/marketcontext.py by hand: a re-run must update those words |
 | manifests/xstudies_fx1.json | copied | 2026-10-26T11:31 | its findings are written into jarvis/india/marketcontext.py by hand: a re-run must update those words |
 | manifests/xstudies_sr1.json | copied | 2026-10-26T12:24 | its findings are written into jarvis/india/marketcontext.py by hand: a re-run must update those words |
 | manifests/xstudies_xo1.json | copied | 2026-10-26T11:31 | its findings are written into jarvis/india/marketcontext.py by hand: a re-run must update those words |
-| paper/account/benchmark.jsonl | feeds (daytime) | 2026-11-02T16:32 | input to paper/account/view.json (india.account run) |
-| paper/account/frozen.json | feeds (daytime) | 2026-10-29T23:08 | input to paper/account/view.json (india.account run) |
-| paper/account/state.json | live (daytime) | 2026-11-02T16:32 |  |
-| paper/account/view.json | live (daytime) | 2026-11-02T16:32 |  |
-| paper/allocation_ledger.jsonl | internal | 2026-11-02T16:32 | the allocator's ledger (its view is what is read) |
-| paper/allocation_view.json | live (daytime) | 2026-11-02T16:32 |  |
+| paper/account/benchmark.jsonl | feeds (daytime) | 2026-11-02T17:38 | input to paper/account/view.json (india.account run) |
+| paper/account/frozen.json | live (daytime) | 2026-10-29T23:08 |  |
+| paper/account/state.json | live (daytime) | 2026-11-02T17:38 |  |
+| paper/account/view.json | live (daytime) | 2026-11-02T17:38 |  |
+| paper/allocation_ledger.jsonl | internal | 2026-11-02T17:38 | the allocator's ledger (its view is what is read) |
+| paper/allocation_view.json | live (daytime) | 2026-11-02T17:38 |  |
 | paper/baseline.parquet | nightly | 2026-11-01T22:30 |  |
 | paper/baseline_closed.parquet | internal | 2026-11-01T22:30 | research book workfile |
 | paper/calls.jsonl | live | 2026-10-30T19:12 |  |
@@ -149,5 +150,5 @@ Fact map 2026-11-02T16:35: 141 kinds of file written in 8 days; 41 read live, 16
 | readmodel/DATE.json | internal | 2026-11-02T12:53 | the read model itself |
 | readmodel/latest.json | live | 2026-11-02T12:53 |  |
 | reports/DATE.md | internal | 2026-11-01T22:30 | a written report for Madhav (the morning review page) |
-| reports/ask_guard.jsonl | live | 2026-11-02T13:40 |  |
+| reports/ask_guard.jsonl | live | 2026-11-02T16:37 |  |
 | reports/portfolio_DATE.md | internal | 2026-11-01T19:09 | a written report for Madhav (the morning review page) |

@@ -3,7 +3,7 @@
   "case": "2nov-0608-after-close",
   "i": 0,
   "text": "Hey Ananta. What happened with the market yesterday? What did we do and what did you see and what did you find?",
-  "answer": "Sir, yesterday (Monday 2 Nov, now closed) the Nifty rose 1.7% to 23,440, opening up and climbing all day, while Bank Nifty gained 0.6% to 55,002. We took two paper option trades, one Bank Nifty and one Nifty call, each held to the next open, and passed on the other three decision points. Your stocks were up about Rs 2,172 (+2.2%), led by JIOFIN (+4.3%) and TATAPOWER (+3.1%), with KARURVYSYA the one real loser (-3.3%). The managed book's first plan (10 cuts, 3 buys) was due to fill at the open, but the official fill numbers only land with tonight's run, so I can't say yet how it did.",
+  "answer": "Sir, today's session (Mon 2 Nov) closed an hour ago: the Nifty rose 1.7% to 23,441 after opening 0.7% higher, Bank Nifty gained 0.6% to 55,002, and the fear gauge stayed near 15.5. We took two paper options trades: Bank Nifty long at 09:30 (55000 call) and Nifty long at 09:45 (23300 call), both to close at the next open, and the index is above the entry level on both. Your stocks are up about Rs 2,172 (+2.2%) today, led by JIOFIN +4.3% and TATAPOWER +3.1%, with KARURVYSYA the one real laggard at -3.3%. The managed book's first plan (10 cuts, 3 buys) was for today, but its fills are only booked in the evening run, so I have no result for it yet.",
   "pass": true,
   "problems": []
  },
@@ -11,20 +11,15 @@
   "case": "2nov-0608-after-close",
   "i": 1,
   "text": "So, what happened on the Monday market? Why are you still telling about the Friday? What about the Monday?",
-  "answer": "Sir, Monday 2 Nov is now closed: the Nifty rose 1.7% to 23,441, opened at 23,222 and closed at its high, while Bank Nifty gained 0.6% to 55,002. The options line took two paper trades, a Bank Nifty 55000 call at 09:30 and a Nifty 23300 call at 09:45, both to close at the next open, and passed on the other three decision points. Your stocks are up about Rs 2,172 (+2.2%), led by JIOFIN (+4.3%) and TATAPOWER (+3.1%), with KARURVYSYA the one loser (-3.3%). The part about what we missed and what I found still comes from Friday 30 Oct, because Monday's review is only written tonight after the official data lands.",
-  "pass": false,
-  "problems": [
-   {
-    "code": "INCONSISTENT",
-    "why": "The earlier answer gave the Nifty close as 23,440 and this one says 23,441, with no explanation for the change."
-   }
-  ]
+  "answer": "Sir, Monday 2 Nov: the Nifty closed at 23,441, up 1.7% after opening 0.7% higher and rising through the day, and Bank Nifty closed at 55,002, up 0.6%. We took two paper options trades, Bank Nifty long at 09:30 and Nifty long at 09:45, one lot each, both to close at tomorrow's open, and the index is above our entry on both (49 and 137 points). Your stocks are up about Rs 2,172 (+2.2%), led by JIOFIN +4.3% and TATAPOWER +3.1%, with KARURVYSYA down 3.3%. The review of the day and the managed book's fills are only written in tonight's run, so any findings I could quote now are Friday's, and Monday's are not written yet.",
+  "pass": true,
+  "problems": []
  },
  {
   "case": "2nov-0608-after-close",
   "i": 2,
   "text": "But Monday, Monday already happened in India, right? Why didn't you have that data?",
-  "answer": "Yes, sir, Monday's session closed at 15:30 IST, and I did have its prices and the options trades because those come in live from the market. What I didn't have was the nightly review: the official NSE day file for every stock arrives with the 12:45 pm Toronto run, and the books, the managed book's fills and the \"what we missed, what I found\" review come at 7 pm Toronto. So the review and findings I gave you were still Friday's, and I should have said that plainly instead of mixing them in. Monday's review will be ready tonight after that 7 pm run.",
+  "answer": "Yes, sir, Monday has already happened in India: the session closed at 15:30 IST, and I do have its prices (Nifty 23,441, up 1.7%) and the options trades, because those come live from the exchange. What I don't have yet is the reviewed picture, because that comes from the big evening run, which lands at 7 pm Toronto (05:30 IST), and my full read is only built through Friday 30 Oct. The managed book's fills and what I found on Monday are written in that run, so I answered with Friday's findings first when I should have said clearly that they are Friday's.",
   "pass": true,
   "problems": []
  },
@@ -32,23 +27,37 @@
   "case": "1nov-2218-before-open",
   "i": 0,
   "text": "What's up with the market now? Ananta, how is it going? What did you watch?",
-  "answer": "Sir, today's session hasn't opened yet (09:15 IST, about 27 minutes away), so this is Friday 30 Oct's close. The Nifty closed at 23,053 (+0.5%) and Bank Nifty at 54,687 (-0.4%). The Nifty is still in a downtrend, 0.9% under its 50-day average and 4.1% under its 200-day. Wall Street fell after India closed on Friday (S&P 500 -1.8%), so the open could be weak. What I watched: on Friday the options line took one paper Bank Nifty call (the 54900 strike, about Rs 869) at 09:15, to close at today's open, and passed on the Nifty all four times.",
-  "pass": true,
-  "problems": []
+  "answer": "Sir, India's market hasn't opened yet; it opens at 09:15 IST, about 27 minutes from now. Friday's close was Nifty 23,053 (+0.5%), still in a downtrend, 0.9% under its 50-day average and 4.1% under its 200-day. Bank Nifty closed at 54,687 (-0.4%) and the fear gauge was 15.3. Wall Street fell after India closed (S&P 500 -1.8%), so a weak open is possible. What I watched on Friday: the options line took one Bank Nifty long at 09:15 and passed on Nifty four times, and that Bank Nifty trade is 209 points against it, closing at today's open (.",
+  "pass": false,
+  "problems": [
+   {
+    "code": "MISREAD",
+    "why": "The answer breaks off mid-sentence at 'closing at today's open (.', so the last point about the Bank Nifty trade is unfinished and unclear."
+   },
+   {
+    "code": "JARGON",
+    "why": "Terms like 'the options line', 'passed on Nifty four times' and 'fear gauge' are given without explanation, and '209 points against it' is unclear to a beginner."
+   }
+  ]
  },
  {
   "case": "1nov-2218-before-open",
   "i": 1,
   "text": "As the Indian market is going to start in 30-40 minutes, I want to know what is that you are ready for.",
-  "answer": "Sir, three paper plans are ready for the 09:15 open, and nothing is placed from chat. The options line decides between 09:15 and 10:15 on one Nifty or Bank Nifty lot, and only trades if the opening move clears the option's cost. It also closes Friday's Bank Nifty call at today's open. The practice book has 11 practice buys queued (3 breakouts, 6 pullbacks, 2 reversals), and the managed book plans to swap JIOFIN, TATAPOWER and LICI for AJANTPHARM, ETERNAL and CIPLA, skipping any buy that opens more than 2% above the last close. I'm also watching for a weak open, since Wall Street fell after India closed on Friday.",
-  "pass": true,
-  "problems": []
+  "answer": "Sir, three things are lined up for the 09:15 open, all on paper. First, Friday's Bank Nifty option trade closes at the open. Second, the options line decides between 09:15 and 10:15 and takes one Nifty or Bank Nifty lot only if the opening move clears the option's cost. Third, the managed book fills its first plan at the open: 10 cuts, with AJANTPHARM, ETERNAL and CIPLA bought to replace JIOFIN, TATAPOWER and LICI, and any buy that opens more than 2% above Friday's close is skipped. Wall Street fell after India closed on Friday (S&P 500 -1.8%), so a weak open is possible, and nothing is placed from chat.",
+  "pass": false,
+  "problems": [
+   {
+    "code": "JARGON",
+    "why": "\"The managed book fills its first plan at the open: 10 cuts\" is unexplained shorthand. A beginner can't tell what the 10 cuts are, or how they relate to the three swaps named (AJANTPHARM, ETERNAL and CIPLA replacing JIOFIN, TATAPOWER and LICI)."
+   }
+  ]
  },
  {
   "case": "2nov-1130ist-mid-session-fixture",
   "i": 0,
   "text": "How is the market doing right now?",
-  "answer": "Sir, the market is up today: at 11:30 IST the Nifty is 23,331, up 1.2% on Friday's close of 23,053, and it has held near its highs since opening at 23,222. Bank Nifty is up less, +0.4% at 54,911, so the banks are lagging the broader index. The fear gauge (India VIX) is slightly lower at 15.1, so options are not pricing extra worry. Today's session is still open, so these are live prices, not a close.",
+  "answer": "Sir, the market is up and calm at 11:30 IST on Monday 2 Nov: the Nifty is at about 23,331, up 1.2% on Friday's close of 23,053, after opening at 23,222. Bank Nifty is up less, at about 54,911 (+0.4%). The fear gauge (India VIX) has eased to 15.1 from 15.3, so options are not pricing extra stress. The session is still open until 15:30 IST, so these numbers can change.",
   "pass": true,
   "problems": []
  },
@@ -56,20 +65,15 @@
   "case": "2nov-1130ist-mid-session-fixture",
   "i": 1,
   "text": "What did the options line do this morning?",
-  "answer": "Sir, the options line took two paper trades this morning, one lot each, and passed on three other decision points. At 09:30 IST it went long Bank Nifty through the 55000 call at about Rs 883, and at 09:45 it went long Nifty through the 23300 call at about Rs 111. Both are set to close at the next session's open, and it passed on Nifty and Bank Nifty at 09:15 and on Nifty at 09:30. Both indexes are up since then (Nifty 23,331 against 23,304 at entry, Bank Nifty 54,911 against 54,953), but I have no live option price yet, so there is no profit or loss figure; the options line is at 6 sessions, too early to grade.",
-  "pass": false,
-  "problems": [
-   {
-    "code": "INCONSISTENT",
-    "why": "It says both indexes are up since entry, but its own figures show Bank Nifty at 54,911 against 54,953 at entry, which is down, so the status contradicts the numbers."
-   }
-  ]
+  "answer": "Sir, the options line took two paper trades this morning and passed on three decision points. At 09:30 IST it went long Bank Nifty (55000 call, about Rs 882.85, one lot of 30), and that one is slightly against it, with the index 42 points below its entry. At 09:45 it went long Nifty (23300 call, about Rs 110.55, one lot of 65), which is slightly for it, with the index 27 points above its entry. Both close at the next session's open, and it passed on Nifty and Bank Nifty at 09:15 and Nifty at 09:30. The options line is 6 sessions in of the 20 needed before it is graded.",
+  "pass": true,
+  "problems": []
  },
  {
   "case": "moment: pre-open (Sun 10:15 pm Toronto)",
   "i": 0,
   "text": "Ananta how is the market right now, like where is the Nifty?",
-  "answer": "Sir, the Nifty is not trading yet: it is 08:45 in India and the market opens at 09:15 IST. It last closed at 23,053 on Friday 30 Oct, up 0.5% on the day. That close is still about 0.9% below its 50-day average and 4.1% below its 200-day, so the trend is still down. Wall Street fell sharply on Friday (S&P 500 -1.8%), so the open could be shaky.",
+  "answer": "Sir, today's session hasn't opened yet (it opens at 09:15 IST, 30 minutes from now), so the latest figure is Friday 30 Oct's close: the Nifty at 23,053, up 0.5%. It is still in a downtrend, 0.9% below its 50-day average and 4.1% below its 200-day. Bank Nifty closed at 54,687 (down 0.4%) and the fear gauge, India VIX, at 15.3. Wall Street fell after India closed on Friday (S&P 500 down 1.8%, Nasdaq down 3.5%), so a soft open is possible.",
   "pass": true,
   "problems": []
  },
@@ -77,7 +81,7 @@
   "case": "moment: pre-open (Sun 10:15 pm Toronto)",
   "i": 1,
   "text": "Hey Ananta, what happened today in the market and what did we do?",
-  "answer": "Sir, today's session has not started yet: it is 08:45 in India and the market opens at 09:15 IST. The last session was Friday 30 Oct: the Nifty closed at 23,053 (+0.5%), Bank Nifty fell 0.4% to 54,687, and India VIX (the fear gauge) rose to 15.3. On Friday the options line took one paper lot of a Bank Nifty 54900 call at 09:15, to be closed at today's open, and passed on Nifty at all four decision points. Nothing else was traded from chat; it is all paper.",
+  "answer": "Sir, today's session (Monday 2 Nov) opens at 09:15 IST, 30 minutes from now, so I'm answering about Friday 30 Oct. The Nifty closed at 23,053, up 0.5%, while Bank Nifty slipped 0.4% to 54,687 and the fear gauge (India VIX) rose to 15.3. On paper, the options line took one Bank Nifty call lot at 09:15 (the 54900 call, about Rs 869) and passed on the Nifty at all four decision points. That trade is against us, with Bank Nifty 209 points below the entry, and it closes at this morning's open.",
   "pass": true,
   "problems": []
  },
@@ -85,7 +89,7 @@
   "case": "moment: pre-open (Sun 10:15 pm Toronto)",
   "i": 2,
   "text": "Is the Indian market open now or closed? When does it open next?",
-  "answer": "Sir, the Indian market is closed right now: it is 08:45 on Monday 2 Nov in India, and today's session has not started. Pre-open begins at 09:00 IST and normal trading opens at 09:15 IST, which is 30 minutes from now. It closes at 15:30 IST, and the last session was Friday 30 Oct.",
+  "answer": "Sir, the Indian market is closed right now: it is Monday 2 Nov, 08:45 in India, and today's session has not started. Pre-open begins at 09:00 IST and normal trading opens at 09:15 IST, 30 minutes from now, closing at 15:30 IST. The last finished session was Friday 30 Oct, when the Nifty closed at 23,053.",
   "pass": true,
   "problems": []
  },
@@ -93,7 +97,7 @@
   "case": "moment: NSE pre-open 09:05 IST",
   "i": 0,
   "text": "Ananta how is the market right now, like where is the Nifty?",
-  "answer": "Sir, the market hasn't opened yet: it is 09:05 in India, in the pre-open, and trading starts at 09:15. The Nifty's last close was 23,053 on Friday 30 Oct, up 0.5%, and the pre-open reading shows the same level. It is still in a downtrend, about 0.9% under its 50-day average and 4.1% under its 200-day. I can give you a live level once trading starts.",
+  "answer": "Sir, the Nifty last closed at 23,053 on Friday 30 Oct, up 0.5%. Today's session hasn't started: it is 09:05 in India, NSE is in its pre-open, and trading begins at 09:15. That close is still in a downtrend, 0.9% under its 50-day average and 4.1% under its 200-day. Bank Nifty was at 54,687 (-0.4%) and the fear gauge at 15.3.",
   "pass": true,
   "problems": []
  },
@@ -101,7 +105,7 @@
   "case": "moment: NSE pre-open 09:05 IST",
   "i": 1,
   "text": "Hey Ananta, what happened today in the market and what did we do?",
-  "answer": "Sir, today's session hasn't started yet (it is 09:05 in India and trading begins at 09:15), so the latest session is Friday 30 Oct. The Nifty closed at 23,053, up 0.5%, while Bank Nifty fell 0.4% to 54,687. On that day the options line took one paper Bank Nifty call lot at 09:15 (the 54900 call at about Rs 869), set to close at today's open, and passed on the Nifty at all four of its decision points.",
+  "answer": "Sir, today's session hasn't started: it is 09:05 in India, NSE is in its pre-open, and trading begins at 09:15. The last finished session was Friday 30 Oct: the Nifty closed at 23,053 (+0.5%) and Bank Nifty at 54,687 (-0.4%), with the fear gauge at 15.3. What we did that day: the options line (paper only) bought one Bank Nifty call lot at 09:15, the 54,900 call at about Rs 869, and passed on the Nifty at all four decision points. Bank Nifty then sat 209 points below that entry, which is against the trade, and the line closes it at today's open.",
   "pass": true,
   "problems": []
  },
@@ -109,7 +113,7 @@
   "case": "moment: NSE pre-open 09:05 IST",
   "i": 2,
   "text": "Is the Indian market open now or closed? When does it open next?",
-  "answer": "Sir, the market is not open yet: it is 09:05 on Monday 2 Nov in India, and NSE is in its pre-open (09:00-09:15). Trading starts at 09:15, in about 10 minutes, and the session runs until 15:30 IST. After that the next session is Tuesday 3 Nov at 09:15.",
+  "answer": "Sir, the market is not open yet: it is Monday 2 Nov, 09:05 in India, and NSE is in its pre-open (09:00-09:15 IST). Trading starts at 09:15, in about 10 minutes. The regular session then runs until 15:30 IST.",
   "pass": true,
   "problems": []
  },
@@ -117,7 +121,7 @@
   "case": "moment: mid-session 11:30 IST (stand-in prices)",
   "i": 0,
   "text": "Ananta how is the market right now, like where is the Nifty?",
-  "answer": "Sir, the Nifty is at about 23,331 as of 11:30 IST today (Monday 2 Nov), up 1.2% on Friday's close of 23,053. It opened at 23,222 and has stayed near its high of the day. Bank Nifty is up 0.4% at about 54,911, and the fear gauge (India VIX) is easing at 15.1. The market is still open until 15:30 IST, so these numbers will keep moving.",
+  "answer": "Sir, the Nifty is at about 23,331 as of 11:30 IST today, up 1.2% on Friday's close of 23,053; it opened at 23,222 and has risen since. Bank Nifty is at about 54,911, up 0.4%, and the fear gauge (India VIX) is easing at 15.1. The session is still open until 15:30 IST, so these numbers will move.",
   "pass": true,
   "problems": []
  },
@@ -125,7 +129,7 @@
   "case": "moment: mid-session 11:30 IST (stand-in prices)",
   "i": 1,
   "text": "Hey Ananta, what happened today in the market and what did we do?",
-  "answer": "Sir, as of 11:30 IST the Nifty is at about 23,331, up 1.2% on Friday's close and holding near its high of the day, with Bank Nifty up 0.4% at about 54,911. For us, the options line took two paper lots: Bank Nifty long at 09:30 (the 55000 call, about Rs 883) and Nifty long at 09:45 (the 23300 call, about Rs 111), both to be closed at tomorrow's open, and it passed on the other three decision points. The managed book's first plan (10 cuts, 3 buys) was for today's open, and the buys stay in at the opening prices, but the fills are only booked after tonight's run. The session is still open until 15:30 IST, so all of this can change.",
+  "answer": "Sir, as of 11:30 IST the Nifty is about 23,331, up 1.2% on Friday after opening at 23,222, and Bank Nifty is about 54,911, up 0.4%; the session is open till 15:30. On the paper options line, we took Bank Nifty long at 09:30 (the 55000 call), which is 42 points against us now, and Nifty long at 09:45 (the 23300 call), which is 27 points in our favour; both close at tomorrow's open and are one lot each. The managed book's first plan (10 cuts, 3 buys: AJANTPHARM, ETERNAL, CIPLA) goes in at today's open, but its fills are only booked in tonight's run.",
   "pass": true,
   "problems": []
  },
@@ -133,7 +137,7 @@
   "case": "moment: mid-session 11:30 IST (stand-in prices)",
   "i": 2,
   "text": "Is the Indian market open now or closed? When does it open next?",
-  "answer": "Yes, sir, the Indian market is open now: it is 11:30 IST on Monday 2 Nov, and the NSE session runs 09:15 to 15:30 IST. It closes in about four hours. The next session after today is Tuesday 3 Nov, opening at 09:15 IST.",
+  "answer": "Sir, the Indian market is open right now: it is 11:30 IST on Monday 2 Nov, and the NSE session runs from 09:15 to 15:30 IST. It closes in about four hours, and the next session opens at 09:15 IST on Tuesday 3 Nov. Tuesday is also the Nifty weekly expiry day.",
   "pass": true,
   "problems": []
  },
@@ -141,7 +145,7 @@
   "case": "moment: just after the close 15:45 IST",
   "i": 0,
   "text": "Ananta how is the market right now, like where is the Nifty?",
-  "answer": "Sir, the Nifty closed today (Monday 2 Nov) at 23,441, up 1.7% on Friday's 23,053; it opened at 23,222 and rose through the day, closing at its high. Bank Nifty closed at 55,002, up 0.6%, and the fear gauge (India VIX) is about 15.5. The NSE session ended at 15:30 IST, so these are closing prices. The Nifty is still about 2.4% below its 200-day average, though now about 0.9% above its 50-day.",
+  "answer": "Sir, the Nifty closed today (Monday 2 Nov) at 23,441, up 1.7% on Friday's 23,053, after opening at 23,222 and rising through the day. Bank Nifty closed at 55,002, up 0.6%, and the fear gauge (India VIX) is 15.5, little changed. The Nifty is about 0.9% above its 50-day average and 2.4% below its 200-day, so it is still under the long-term line.",
   "pass": true,
   "problems": []
  },
@@ -149,7 +153,7 @@
   "case": "moment: just after the close 15:45 IST",
   "i": 1,
   "text": "Hey Ananta, what happened today in the market and what did we do?",
-  "answer": "Sir, the Nifty rose 1.7% today to 23,441, opening with a gap-up and climbing to close at its high; Bank Nifty gained 0.6% to 55,002. On our side, your paper stocks are up about Rs 2,172 (+2.2%), led by JIOFIN +4.3% and TATAPOWER +3.1%, with KARURVYSYA the one real drag at -3.3%. The options line took two paper long calls: Bank Nifty at 09:30 and Nifty at 09:45, both to be closed at tomorrow's open, and passed on the other three decision points. The managed book's first plan (10 cuts, 3 buys) was due at the open, but its fills are only booked by the 7 pm Toronto run, so I can't give you its result yet.",
+  "answer": "Sir, the Nifty rose 1.7% today (Monday 2 Nov) to close at 23,441, opening at 23,222 and climbing through the day, while Bank Nifty gained 0.6% to 55,002. On our side, the options line took two paper lots: Bank Nifty long at 09:30 and Nifty long at 09:45, both to be closed at tomorrow's open, and both indexes are above where they were taken. Your stocks (the paper copy) are up about Rs 2,172, or 2.24%, led by JIOFIN +4.3% and TATAPOWER +3.1%, with KARURVYSYA the one drag at -3.3%. The managed book's first plan (10 cuts, 3 buys) was meant for this morning's open, but its paper buys and sells are booked by tonight's evening run, so there is nothing to report on them yet.",
   "pass": true,
   "problems": []
  },
@@ -157,7 +161,7 @@
   "case": "moment: just after the close 15:45 IST",
   "i": 2,
   "text": "Is the Indian market open now or closed? When does it open next?",
-  "answer": "Sir, the Indian market is closed now: today's NSE session ended at 15:30 IST, about 15 minutes ago (it is 15:45 IST in India). It opens next on Tuesday 3 Nov, with trading starting at 09:15 IST, which is 10:45 pm tonight in Toronto. Today's close was Nifty 23,441, up 1.7%.",
+  "answer": "Sir, the Indian market is closed now: today's NSE session (Monday 2 Nov) ended at 15:30 IST, and it is 15:45 IST. It opens next on Tuesday 3 Nov at 09:15 IST, which is 10:45 pm tonight in Toronto (Monday).",
   "pass": true,
   "problems": []
  },
@@ -165,7 +169,7 @@
   "case": "moment: evening India, 8:30 am Toronto",
   "i": 0,
   "text": "Ananta how is the market right now, like where is the Nifty?",
-  "answer": "Sir, the Nifty closed today (Monday 2 Nov) at 23,441, up 1.7% on Friday's 23,053, after opening at 23,222 and rising through the day. It is about 0.9% above its 50-day average but still 2.4% below its 200-day, so the bigger trend is still weak. Bank Nifty closed at 55,002 (+0.6%), and the fear gauge (India VIX) is about 15.5, little changed.",
+  "answer": "Sir, the Nifty closed today (Monday 2 Nov) at 23,441, up 1.7% on Friday's 23,053; it opened at 23,222 and kept climbing to finish at its high of the day. Bank Nifty closed at 55,002, up 0.6%, and the fear gauge (India VIX) is about 15.5. The Nifty is now just above its 50-day average (+0.9%) but still 2.4% below its 200-day, so the longer trend is still weak.",
   "pass": true,
   "problems": []
  },
@@ -173,7 +177,7 @@
   "case": "moment: evening India, 8:30 am Toronto",
   "i": 1,
   "text": "Hey Ananta, what happened today in the market and what did we do?",
-  "answer": "Sir, the Nifty rallied today (Monday 2 Nov): it opened at 23,222 and closed at 23,441, up 1.7%, with Bank Nifty up 0.6% to 55,002. On the options line, we took one paper lot of Bank Nifty 55000 calls at 09:30 and one of Nifty 23300 calls at 09:45, both to close at tomorrow's open, and we passed on the other three decision points. Your stocks (the paper copy) are up about Rs 2,172 (+2.24%), led by JIOFIN (+4.3%) and TATAPOWER (+3.1%), with KARURVYSYA the one real loser at -3.3%. The managed book's first plan (10 cuts, 3 buys) was due at today's open, and the buys held up at the opening prices, but the actual fills are only booked in tonight's run, so I can't confirm them yet.",
+  "answer": "Sir, the market rose today: the Nifty closed at 23,441, up 1.7%, after opening at 23,222 and finishing at its high of the day, and Bank Nifty closed at 55,002, up 0.6%. On our side, the options line took two paper trades, one Bank Nifty long at 09:30 and one Nifty long at 09:45, both held to tomorrow's open, and both are in profit so far with the indexes above where they were taken. Your stocks on paper are up about Rs 2,172 (+2.2%), led by JIOFIN +4.3% and TATAPOWER +3.1%, with KARURVYSYA the one loser at -3.3%. The managed book's first plan (10 cuts, 3 buys) was due at today's open, and its paper buys and sells will be booked tonight by the evening run.",
   "pass": true,
   "problems": []
  },
@@ -181,7 +185,7 @@
   "case": "moment: evening India, 8:30 am Toronto",
   "i": 2,
   "text": "Is the Indian market open now or closed? When does it open next?",
-  "answer": "Sir, the Indian market is closed now: today's NSE session (Monday 2 Nov) ended at 15:30 IST, about 3.5 hours ago, and it is 19:00 in India. The next session is tomorrow, Tuesday 3 Nov, and the market opens at 09:15 IST, which is 10:45 pm tonight in Toronto.",
+  "answer": "Sir, the market is closed now: today's NSE session ended at 15:30 IST, and it is 19:00 in India. It opens next on Tuesday 3 Nov at 09:15 IST, which is 10:45 pm tonight in Toronto (Monday 2 Nov).",
   "pass": true,
   "problems": []
  },
@@ -189,7 +193,7 @@
   "case": "moment: after India's midnight, 2 pm Toronto",
   "i": 0,
   "text": "Ananta how is the market right now, like where is the Nifty?",
-  "answer": "Sir, the Nifty closed Monday 2 Nov at 23,441, up 1.7% on the day (it opened at 23,222 and rose through the session). That is about 0.9% above its 50-day average and 2.4% below its 200-day, so it is still under the long-term line. Bank Nifty closed at 55,002, up 0.6%, and the fear gauge (India VIX) is about 15.5. It is 00:30 in India now, so the next session opens at 09:15 IST on Tuesday.",
+  "answer": "Sir, the Nifty closed Monday 2 Nov at 23,441, up 1.7% on the day; it opened at 23,222 and rose through the session. It is now about 0.9% above its 50-day average and 2.4% below its 200-day. Bank Nifty closed at 55,002 (+0.6%) and the fear gauge is 15.5. It is 00:30 in India, so the next session opens at 09:15 IST on Tuesday.",
   "pass": true,
   "problems": []
  },
@@ -197,7 +201,7 @@
   "case": "moment: after India's midnight, 2 pm Toronto",
   "i": 1,
   "text": "Hey Ananta, what happened today in the market and what did we do?",
-  "answer": "Sir, Monday 2 Nov was a strong day: the Nifty closed at 23,441, up 1.7% (it opened at 23,222 and kept rising), and Bank Nifty closed at 55,002, up 0.6%. On our side, the options line took two paper lots, Bank Nifty long at 09:30 and Nifty long at 09:45, both to close at the next session's open, and passed on the other three decision points. Your stocks (the paper copy) rose about Rs 2,172 (+2.24%), led by JIOFIN +4.3% and TATAPOWER +3.1%, with KARURVYSYA the one drag at -3.3%. The managed book's first plan (10 cuts, 3 buys) was also due at today's open; its fills are booked by the 7 pm Toronto run, so I can't give you the filled prices yet.",
+  "answer": "Sir, Monday 2 Nov was a strong day: the Nifty closed at 23,441, up 1.7%, after opening at 23,222, and Bank Nifty rose 0.6% to 55,002. On our side, the options line took two paper trades: a Bank Nifty call at 09:30 and a Nifty call at 09:45, both held to the next open, and both indexes ended above where they were taken (+49 and +137 points). Your stocks were up about Rs 2,172 (+2.24%), led by JIOFIN +4.3% and TATAPOWER +3.1%, with KARURVYSYA the one drag at -3.3%. The managed book's first plan (10 cuts, 3 buys) was meant to trade at today's open, but its fills are only booked in the evening run, so I can't confirm them yet.",
   "pass": true,
   "problems": []
  },
@@ -205,7 +209,7 @@
   "case": "moment: after India's midnight, 2 pm Toronto",
   "i": 2,
   "text": "Is the Indian market open now or closed? When does it open next?",
-  "answer": "Sir, the Indian market is closed right now: it is 00:30 IST on Tuesday 3 Nov, and Monday's session ended at 15:30 IST. It opens next today, Tuesday 3 Nov, with pre-open from 09:00 and trading from 09:15 IST, which is about 8 hours 45 minutes from now. For you in Toronto that is Monday night, around 10:45 pm.",
+  "answer": "Sir, the Indian market is closed right now. It is 00:30 IST on Tuesday 3 Nov, and Monday's session ended at 15:30 IST with the Nifty at 23,441. The next session opens at 09:15 IST on Tuesday 3 Nov (pre-open from 09:00), about 8 h 45 min from now. For you in Toronto that is 10:45 pm tonight.",
   "pass": true,
   "problems": []
  },
@@ -213,7 +217,7 @@
   "case": "moment: weekend, Sat 10 am Toronto",
   "i": 0,
   "text": "Ananta how is the market right now, like where is the Nifty?",
-  "answer": "Sir, the market is shut today (Saturday), and the Nifty last closed at 23,053 on Friday 30 Oct, up 0.5% on the day. Bank Nifty closed at 54,687, down 0.4%, and the fear gauge (India VIX) was 15.3. The Nifty is still under its 50-day average (by 0.9%) and its 200-day average (by 4.1%), so the trend is down. The next session opens Monday 2 Nov at 09:15 IST.",
+  "answer": "Sir, the market is closed today (Saturday), and the Nifty ended Friday 30 Oct at 23,053, up 0.5%. It is still in a downtrend, about 0.9% under its 50-day average and 4.1% under its 200-day. Bank Nifty closed at 54,687 (down 0.4%) and the fear gauge, India VIX, was 15.3. The next session opens Monday 2 Nov at 09:15 IST.",
   "pass": true,
   "problems": []
  },
@@ -221,7 +225,7 @@
   "case": "moment: weekend, Sat 10 am Toronto",
   "i": 1,
   "text": "Hey Ananta, what happened today in the market and what did we do?",
-  "answer": "Sir, there is no session today (Saturday), so this is Friday 30 Oct: the Nifty closed at 23,053, up 0.5%, while Bank Nifty slipped 0.4% to 54,687 and the fear gauge (India VIX) rose 2% to 15.3. The options line took one paper trade, a Bank Nifty call (the 54900 CE, about Rs 869 a share, one lot) at 09:15. It is set to close at Monday's open, so there is no result yet. It passed on the Nifty at all four decision points, and nothing is placed from chat.",
+  "answer": "Sir, there was no session today (Saturday 31 Oct), so this is Friday 30 Oct, the last one: the Nifty closed at 23,053, up 0.5%, while Bank Nifty fell 0.4% to 54,687 and the fear gauge, India VIX, rose to 15.3. What we did: the options line took one paper Bank Nifty call lot at 09:15 (the 54900 call, about Rs 869, to be closed at the next open) and passed on the Nifty at all four points. That Bank Nifty trade is against us so far, with the index 209 points below where it was taken, and the next session opens Monday 2 Nov at 09:15 IST.",
   "pass": true,
   "problems": []
  },
@@ -229,7 +233,7 @@
   "case": "moment: weekend, Sat 10 am Toronto",
   "i": 2,
   "text": "Is the Indian market open now or closed? When does it open next?",
-  "answer": "Sir, the Indian market is closed: it is Saturday 31 Oct, 19:30 in India, and NSE does not trade on weekends. It opens next on Monday 2 Nov at 09:15 IST, which is Sunday 3 Nov... correction: that is Sunday night 22:45 in Toronto. The session runs until 15:30 IST.",
+  "answer": "Sir, the Indian market is closed now: it is Saturday 31 Oct, 19:30 in India, and NSE does not trade on weekends. The last session was Friday 30 Oct, when the Nifty closed at 23,053. The next session opens Monday 2 Nov at 09:15 IST and runs until 15:30 IST.",
   "pass": true,
   "problems": []
  },
@@ -237,7 +241,7 @@
   "case": "moment: clock-change Sunday, noon Toronto",
   "i": 0,
   "text": "Ananta how is the market right now, like where is the Nifty?",
-  "answer": "Sir, the market is shut today (Sunday), so the latest figure is Friday 30 Oct's close: the Nifty at 23,053, up 0.5% on the day. Bank Nifty closed at 54,687, down 0.4%, and the fear gauge (India VIX) was 15.3. The Nifty is still below both its 50-day average (by 0.9%) and its 200-day average (by 4.1%), so the longer trend is down even after Friday's rise. The next session opens Monday 2 Nov at 09:15 IST.",
+  "answer": "Sir, the market is shut today (Sunday), so the latest figure is Friday 30 Oct's close: the Nifty at about 23,053, up 0.5% on the day. It is still below both its 50-day average (by 0.9%) and its 200-day average (by 4.1%), so the trend is down. The fear gauge (India VIX) closed at 15.3. The next session opens Monday 2 Nov at 09:15 IST.",
   "pass": true,
   "problems": []
  },
@@ -245,7 +249,7 @@
   "case": "moment: clock-change Sunday, noon Toronto",
   "i": 1,
   "text": "Hey Ananta, what happened today in the market and what did we do?",
-  "answer": "Sir, there is no session today (Sunday), so this is about Friday 30 Oct. The Nifty closed at 23,053, up 0.5%, while Bank Nifty slipped 0.4% to 54,687 and the fear gauge (India VIX) rose to 15.3. On our side, the options line took one paper Bank Nifty lot long at 09:15 (the 54900 call, about Rs 869), to close at Monday's open, and passed on all four Nifty decision points. Nothing is placed from chat, and that trade's result is not known until Monday's open.",
+  "answer": "Sir, there was no session today (Sunday), so this is Friday 30 Oct: the Nifty closed at 23,053, up 0.5%, while Bank Nifty slipped 0.4% to 54,687 and the fear gauge (India VIX) rose to 15.3. What we did: the options line took one paper Bank Nifty call lot at 09:15 (the 54900 call, about Rs 869, to be closed at Monday's open) and passed on the Nifty at all four decision points. That Bank Nifty trade is against us so far, with the index 209 points below our entry.",
   "pass": true,
   "problems": []
  },
@@ -253,7 +257,7 @@
   "case": "moment: clock-change Sunday, noon Toronto",
   "i": 2,
   "text": "Is the Indian market open now or closed? When does it open next?",
-  "answer": "Sir, the market is closed right now: it is Sunday 1 Nov, 22:30 in India, and NSE has no session on a weekend. The last session was Friday 30 Oct, and the next one opens Monday 2 Nov at 09:15 IST, which is Sunday 11:45 pm in Toronto. Trading runs 09:15 to 15:30 IST on weekdays.",
+  "answer": "Sir, the market is closed right now: it is Sunday 22:30 in India and there is no NSE session today. The last session was Friday 30 Oct, and the next one opens Monday 2 Nov at 09:15 IST, closing at 15:30 IST. For you in Toronto, that is Sunday night at 11:45 pm.",
   "pass": true,
   "problems": []
  }

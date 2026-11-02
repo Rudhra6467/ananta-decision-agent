@@ -894,7 +894,9 @@ def _close_cut(s: str) -> str:
     """27 Oct night (outside review: answers ending "... not a tested edge;" and "... Ananta hasn't tested gold or SIPs, and"): the sign-off
     remover takes the trailing "paper only, not advice." clause even when it is the end of a longer sentence; what is left must not end on a
     connector. The trailing ', and' / ';' / ' but' is dropped and the sentence closed."""
-    s = re.sub(r"(?:[\s,;:–—-]*\b(?:and|but|so|or|while|as|though|although|because)\b)*[\s,;:–—-]*$", "", s or "")
+    # 2 Nov moment harness: "... closing at today's open (paper only, not advice)." lost its bracket's inside and ended "(."
+    s = re.sub(r"\s*\(\s*\)?[\s.]*$", "", s or "")
+    s = re.sub(r"(?:[\s,;:–—-]*\b(?:and|but|so|or|while|as|though|although|because)\b)*[\s,;:–—-]*$", "", s)
     return s + "." if s and s[-1] not in ".!?\"'”)" else s
 
 

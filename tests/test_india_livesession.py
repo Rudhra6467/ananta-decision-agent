@@ -137,4 +137,32 @@ def test_before_the_open_an_answer_about_friday_is_right(ledger, monkeypatch):
 def test_scrub_drops_the_wrong_sentences_and_leads_with_today(ledger, monkeypatch):
     live = _live(AT_0608_TORONTO, ledger, monkeypatch)
     out = L.scrub("Yes, sir, Monday's session is happening in India. The levels were 23,122 and 22,984.", live)
-    assert "happening" not in out and "CLOSED" in out and "23,122" in out and "Nifty 23,440.80" in out
+    assert "happening" not in out and "CLOSED" in out and "23,122" in out and "Nifty 23,440.80" not in out     # only the fact that was wrong
+    out = L.scrub("Sir, I can't see where the Nifty is trading. The levels were 23,122 and 22,984.", live)
+    assert "Nifty 23,440.80" in out and "can't see" not in out
+
+
+def test_indicator_answers_on_daily_data_are_not_price_claims(ledger, monkeypatch):
+    """2 Nov round: the indicator panel's honest "Ananta's own daily data, nothing intraday" was taken for "can't see today's prices"."""
+    live = _live(AT_0608_TORONTO, ledger, monkeypatch)
+    a = "Sir, as of the Fri 30 Oct close (Ananta's own daily data, nothing intraday): the Nifty's RSI is 48. Studies use daily closing data only."
+    assert L.check(a, live, "What is the Nifty's RSI?") == []
+    assert L.scrub(a, live) == a
+
+
+def test_tomorrow_is_not_an_older_session(ledger, monkeypatch):
+    live = _live(AT_0608_TORONTO, ledger, monkeypatch)
+    a = "Yes, sir, the Bank Nifty trade is down on paper, about Rs -2,154. Both close at tomorrow's (Tue 3 Nov) open, Tuesday."
+    assert L.check(a, live, "the options trades you took this morning, is it in loss now?") == []
+
+
+def test_toronto_afternoon_after_india_midnight_still_means_mondays_session(ledger):
+    """2 Nov round, 13:30 Toronto = 00:00 IST Tuesday: 'today' is still Monday for Madhav, and Monday's close, high and low stay readable."""
+    at = dt.datetime(2026, 11, 2, 18, 33, tzinfo=UTC)
+    c = L.clock("2026-10-30", at)
+    assert c["state"] == "before_open" and c["latest_session"] == "2026-11-02" and c["today_india"] == "2026-11-03"
+    assert "still mean Monday 2 Nov's session" in c["relative_days"] and "'tomorrow' means Tuesday 3 Nov" in c["relative_days"]
+    i = L.index_now(c, _quote_stub)
+    assert "at the close of Monday 2 Nov" in i["words"] and i["rows"]["NIFTY 50"]["high"] == 23440.8
+    assert L.options_today(c, _quote_stub, path=ledger)["taken"]
+

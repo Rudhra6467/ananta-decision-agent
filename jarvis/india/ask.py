@@ -924,6 +924,9 @@ def finish(reply: dict, question: str, model: bool) -> dict:
             if not b or b == a:
                 break
             a = _close_cut(b)
+    # 2 Nov (Madhav-style round, "... don't chase. All of."): removing the sign-off "this is paper only" out of "All of this is paper only"
+    # left a fragment; the cut-off check runs again after the sign-off is taken
+    a = re.sub(r"(?<=[.!?])\s+(?:[A-Za-z']+\s+){0,2}(?:of|to|in|and|or|the|a|an|for|with|at|on|by|but|so|as|is|it|this)\.?\s*$", "", a).rstrip()
     reply["answer"] = tidy_end(one_hedge(a))
     opts = [str(o) for o in (reply.get("options") or []) if isinstance(o, str) and o.strip()][:4]
     if reply.get("kind") == "clarify" and opts and not any(o[:24].lower() in reply["answer"].lower() for o in opts):

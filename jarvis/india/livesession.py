@@ -95,6 +95,9 @@ def clock(data_through: str | None, now: dt.datetime | None = None) -> dict:
             "pre_open": "NSE is in its pre-open (09:00-09:15 IST); trading starts at 09:15",
             "open": "today's NSE session is OPEN now (09:15 to 15:30 IST)",
             "closed": "today's NSE session has CLOSED (it closed at 15:30 IST)"}[state]
+    if state in ("before_open", "pre_open"):
+        to_open = 9 * 60 + 15 - minute
+        said += f" ({to_open // 60} h {to_open % 60} min from now)" if to_open >= 60 else f" ({to_open} min from now)"
     if state == "closed":
         mins = minute - (15 * 60 + 30)
         said += f", {mins // 60} h {mins % 60} min ago" if mins >= 60 else f", {mins} min ago"
@@ -103,7 +106,14 @@ def clock(data_through: str | None, now: dt.datetime | None = None) -> dict:
     tail = (f"{_dw(latest)}, today in India ({'still trading' if state == 'open' else 'finished'})" if latest == today else _dw(latest))
     rel = (f"Madhav is in Toronto ({tor_words}). When he says 'today', 'yesterday', 'this morning' or 'the market' about India, he means the "
            f"latest Indian session that has started: {tail}. Never answer with an older session without saying why.")
-    if session_day and state in ("before_open", "pre_open"):
+    tor_day = tor.date()
+    if tor_day == latest and latest != today:
+        # 2 Nov round (13:30 Toronto = 00:00 IST Tuesday): it is past midnight in India but still that afternoon/evening in Toronto, so his
+        # 'today' is the session that just finished and 'tomorrow' is the next one
+        rel = (f"Madhav is in Toronto ({tor_words}). It is already {_dw(today)} in India, but for him 'today' and 'the market today' still mean "
+               f"{_dw(latest)}'s session, which has finished; 'tomorrow' means {_dw(nxt)} (opens 09:15 IST). Never answer with an older session "
+               "without saying why.")
+    elif session_day and state in ("before_open", "pre_open"):
         rel += (f" Today's session ({_dw(today)}) has not started yet: 'today' and 'now' are about what is coming at 09:15 IST "
                 f"(the plan, the levels to watch, what happened overnight), and the last finished session is {_dw(latest)}.")
     return {"ts": now.timestamp(), "ist_now": ist_words + " IST", "toronto_now": tor_words, "today_india": today.isoformat(), "today_is_session": session_day, "state": state,
@@ -155,8 +165,8 @@ def _pct(a, b):
 
 
 def index_now(clk: dict, fetch=None) -> dict:
-    if not clk["today_is_session"] or clk["state"] in ("before_open", "pre_open"):
-        return {"live": False, "words": "No live index prices: today's session has not started" if clk["today_is_session"] else "No session today."}
+    # 2 Nov round: before the open (and on a day with no session) Kite still gives the latest session's close, high and low; only the label
+    # changes ("no live prices" before the open made Ananta say it had no high or low for the day that had just finished)
     q = quotes(list(INDEX.values()), fetch)
     if q.get("error"):
         return {"live": False, "error": q["error"], "words": "I could not reach the live prices from Kite just now (" + q["error"][:60] + "); say so, do not guess."}
@@ -168,14 +178,21 @@ def index_now(clk: dict, fetch=None) -> dict:
         rows[name] = {**r, "change_pct": _pct(r["last"], r.get("prev_close")), "from_open_pct": _pct(r["last"], r.get("open"))}
     ts = q["at"] if abs(q["at"] - clk.get("ts", q["at"])) < 300 else clk["ts"]     # a replayed moment keeps its own time
     at = dt.datetime.fromtimestamp(ts, IST).strftime("%H:%M IST")
-    kind = f"live at {at}" if clk["state"] == "open" else "at today's close (Kite's closing price; the official NSE file lands later the same day)"
+    if clk["state"] == "open":
+        kind = f"live at {at}"
+    elif clk["state"] == "pre_open":
+        kind = f"in the pre-open at {at} (indicative; trading starts 09:15 IST)"
+    elif clk["latest_session"] == clk["today_india"]:
+        kind = "at today's close (Kite's closing price; the official NSE file lands later the same day)"
+    else:
+        kind = f"at the close of {clk['latest_session_words']}, the last session (the next opens {clk['next_session_words']} 09:15 IST)"
     parts = []
     for name, r in rows.items():
         label = {"NIFTY 50": "Nifty", "NIFTY BANK": "Bank Nifty", "INDIA VIX": "India VIX"}[name]
         ch = r.get("change_pct")
         parts.append(f"{label} {r['last']:,.2f}" + (f" ({'+' if ch >= 0 else ''}{ch:.2f}% on the previous close {r['prev_close']:,.2f}; opened {r['open']:,.2f})" if ch is not None else ""))
     return {"live": clk["state"] == "open", "as_of": at, "kind": kind, "rows": rows,
-            "words": f"Today, {clk['latest_session_words']}, {kind}: " + "; ".join(parts) + "." if parts else "No index prices came back from Kite."}
+            "words": f"{clk['latest_session_words']}, {kind}: " + "; ".join(parts) + "." if parts else "No index prices came back from Kite."}
 
 
 def _jsonl(p: Path) -> list[dict]:
@@ -239,7 +256,7 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
 
 def holdings_today(clk: dict, positions: list[dict], fetch=None) -> dict:
     """The paper copy of the account ('as you have it') moved by today's prices."""
-    if not clk["today_is_session"] or clk["state"] in ("before_open", "pre_open") or not positions:
+    if not positions or clk["state"] == "pre_open":
         return {"words": None}
     q = quotes([f"NSE:{p['symbol']}" for p in positions if p.get("symbol")], fetch)
     if q.get("error"):
@@ -259,7 +276,7 @@ def holdings_today(clk: dict, positions: list[dict], fetch=None) -> dict:
     pct = 100 * move / base if base else 0
     up = [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in rows[::-1][:3] if x["move_inr"] > 0]
     dn = [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in rows[:3] if x["move_inr"] < 0]
-    when = "so far today" if clk["state"] == "open" else "today"
+    when = ("so far today" if clk["state"] == "open" else "today" if clk["latest_session"] == clk["today_india"] else f"on {clk['latest_session_words']}")
     return {"move_inr": round(move), "move_pct": round(pct, 2), "rows": rows,
             "words": f"Your stocks (the paper copy of the account) are {'up' if move >= 0 else 'down'} about Rs {abs(move):,.0f} ({pct:+.2f}%) {when}"
                      + (f"; best {', '.join(up)}" if up else "") + (f"; worst {', '.join(dn)}" if dn else "") + "."}
@@ -267,13 +284,14 @@ def holdings_today(clk: dict, positions: list[dict], fetch=None) -> dict:
 
 def managed_today(clk: dict, plan: dict, fetch=None) -> dict:
     """Today's managed-book plan against today's opening prices. The fills themselves are booked by the 19:00 Toronto job from the official day file."""
-    if not plan or plan.get("for_session") != clk["latest_session"] or clk["state"] in ("before_open", "pre_open", "no_session"):
+    if not plan or plan.get("for_session") != clk["latest_session"]:
         return {"words": None}
     buys = [b for b in plan.get("buys") or [] if b.get("symbol")]
     cuts = [c for c in plan.get("cuts") or [] if c.get("symbol")]
     q = quotes([f"NSE:{x['symbol']}" for x in buys + cuts], fetch)
     if q.get("error"):
         return {"words": "The managed book's plan for today is written; I could not reach today's opening prices just now."}
+    pairs = "; ".join(f"{b.get('for_cut')} -> {b['symbol']}" for b in buys if b.get("for_cut"))
     skip, ok = [], []
     for b in buys:
         r = (q.get("rows") or {}).get(f"NSE:{b['symbol']}") or {}
@@ -282,7 +300,8 @@ def managed_today(clk: dict, plan: dict, fetch=None) -> dict:
             continue
         (skip if g > 2.0 else ok).append(f"{b['symbol']} opened {g:+.1f}%")
     return {"buys_opening": ok, "buys_skipped_by_rule": skip,
-            "words": (f"The managed book's first plan was for today: {len(cuts)} cuts and {len(buys)} buys at the open. At today's opening prices "
+            "pairs": pairs,
+            "words": (f"The managed book's plan for {clk['latest_session_words']}: {len(cuts)} cuts and {len(buys)} buys at the open, each buy replacing a cut ({pairs}). At today's opening prices "
                       + (f"these buys stay in ({'; '.join(ok)})" if ok else "no buy stays in")
                       + (f" and these are skipped by the 2% rule ({'; '.join(skip)})" if skip else "")
                       + ". The fills are booked from the official NSE day file by the 7 pm Toronto run, so the book's result arrives then.")}
@@ -309,7 +328,11 @@ def today(rm: dict | None = None, now: dt.datetime | None = None, fetch=None, po
                             "'the market', answer about clock.latest_session using index_now, options_today, holdings_today and managed_today. "
                             "Never say a session is open after 15:30 IST or not yet open after 09:15 IST; never say there is 'no record' of what the "
                             "options line decided when options_today lists decisions; never say you cannot see today's prices when index_now has rows. "
-                            "Breadth, the research book and the reconstruction are on nightly_data_through: say that date when you use them.")
+                            "Breadth, the research book and the reconstruction are on nightly_data_through: say that date when you use them. "
+                            "'What did we do / what did you do' means all of Ananta's own books: the options line (options_today), the managed book "
+                            "(managed_today: what it sold and what it bought in its place, and when its fills are booked) and the practice book; never "
+                            "only one of them. A question about the managed book names its pairs (sold -> bought) and where each stands today. Before "
+                            "the open, say how long until 09:15 IST.")
     return out
 
 
@@ -323,9 +346,12 @@ SAYS_NOT_OPENED = re.compile(r"\b(?:has(?:n't| not)|did(?:n't| not))\s+(?:opened
 SAYS_OPEN_BEFORE = re.compile(r"\b(?:market|session)\s+is\s+(?:open|trading)\b|\bhas opened\b|\bso far today\b", re.I)
 SAYS_NO_RECORD = re.compile(r"\bno record of what\b|\b(?:don't|do not|haven't|have not)\s+(?:got |have )?(?:a |any )?record of (?:what|the options)"
                             r"|\bno record of (?:either|the options line|its decision)|\b(?:can't|cannot) tell (?:you )?what the options line", re.I)
-SAYS_NO_PRICES = re.compile(r"\b(?:can't|cannot|can not|don't|do not|unable to)\s+(?:see|have|get|access)\s+(?:the\s+)?(?:any\s+)?(?:live|intraday|today's|current|real-time)\s+"
-                            r"(?:prices?|data|market|session|numbers?|feed)|\bno (?:intraday|live) (?:prices|data|feed)\b|\bnothing intraday\b"
-                            r"|\b(?:session|market) is invisible\b|\bonly (?:from|on) daily closing data\b|\bno (?:monday|tuesday|wednesday|thursday|friday) prices\b", re.I)
+# 2 Nov (Madhav-style round): "nothing intraday" / "daily closing data" are true of the studies and the indicator panel, so they are not claims
+# about today's prices; only a claim that today's or the live session's prices cannot be seen is caught
+SAYS_NO_PRICES = re.compile(r"\b(?:can't|cannot|can not|don't|do not|unable to)\s+(?:see|have|get|access|tell you)\s+(?:the\s+)?(?:any\s+)?(?:live|today's|current|real-time)\s+"
+                            r"(?:prices?|market|session|numbers?|feed|level)|\b(?:can't|cannot)\s+see\s+where\s+the\s+(?:nifty|market|index)\b"
+                            r"|\bno live (?:prices|feed)\b|\b(?:session|market) is invisible\b|\bno (?:monday|tuesday|wednesday|thursday|friday|today's) prices\b"
+                            r"|\b(?:can't|cannot) tell you how (?:monday|tuesday|wednesday|thursday|friday|today)'?s? market went\b", re.I)
 TODAY_Q = re.compile(r"\b(?:today|now|right now|yesterday|this morning|tonight|what happened|how did (?:the )?market|market (?:today|now)|how is (?:it|the market) going)\b", re.I)
 WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
@@ -349,7 +375,12 @@ def check(answer: str, live: dict | None, question: str = "") -> list[str]:
     if (question and TODAY_Q.search(question) and clk.get("latest_session") == clk.get("today_india") and state in ("open", "closed")):
         latest_wd = clk.get("latest_session_words", "").split(" ")[0].lower()
         low = answer.lower()
-        older = [w for w in WEEKDAYS if w != latest_wd and re.search(rf"\b{w}\b", low)]
+        try:                                       # only the sessions BEFORE today count as "an older session" ("tomorrow, Tuesday" is fine)
+            lt = dt.date.fromisoformat(clk["latest_session"])
+            before = {(lt - dt.timedelta(days=k)).strftime("%A").lower() for k in range(1, 5)} - {latest_wd}
+        except Exception:  # noqa: BLE001
+            before = set(WEEKDAYS) - {latest_wd}
+        older = [w for w in WEEKDAYS if w in before and re.search(rf"\b{w}\b", low)]
         if older and latest_wd not in low and "today" not in low:
             out.append(f"He asked about today; it answered about {older[0].title()} and never about today, {clk['latest_session_words']}.")
     return out
@@ -361,9 +392,23 @@ def correction_note(problems: list[str], live: dict) -> str:
 
 
 def scrub(answer: str, live: dict) -> str:
-    """Last resort when a re-answer is still wrong: drop the sentences that contradict today and lead with today's block."""
+    """Last resort when a re-answer is still wrong: drop the sentences that contradict today and put the right fact in their place, only the
+    fact that was contradicted (2 Nov round: a whole status block in front of a good answer read as a data dump)."""
     sents = re.split(r"(?<=[.!?])\s+", str(answer or ""))
-    bad = (SAYS_OPEN, SAYS_NOT_OPENED, SAYS_OPEN_BEFORE, SAYS_NO_RECORD, SAYS_NO_PRICES)
-    keep = [s for s in sents if not any(p.search(s) for p in bad)]
-    lead = " ".join(x for x in ((live.get("clock") or {}).get("words"), (live.get("index_now") or {}).get("words"), (live.get("options_today") or {}).get("words")) if x)
-    return (lead + " " + " ".join(keep)).strip()
+    pats = {"clock": (SAYS_OPEN, SAYS_NOT_OPENED, SAYS_OPEN_BEFORE), "options": (SAYS_NO_RECORD,), "index": (SAYS_NO_PRICES,)}
+    hit, keep = set(), []
+    for s in sents:
+        which = [k for k, ps in pats.items() if any(p.search(s) for p in ps)]
+        hit.update(which)
+        if not which:
+            keep.append(s)
+    if not hit:
+        return str(answer or "")
+    lead = []
+    if "clock" in hit:
+        lead.append((live.get("clock") or {}).get("words"))
+    if "index" in hit:
+        lead.append((live.get("index_now") or {}).get("words"))
+    if "options" in hit:
+        lead.append((live.get("options_today") or {}).get("words"))
+    return (" ".join(x for x in lead if x) + " " + " ".join(keep)).strip()

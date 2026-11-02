@@ -26,6 +26,7 @@ def _stub(table: dict):
 
 
 CLOSE_2NOV = {"NSE:NIFTY 50": (23440.8, 23222.3, 23053.1), "NSE:NIFTY BANK": (55002.2, 54837.2, 54686.95), "NSE:INDIA VIX": (15.5, 15.3, 15.3)}
+FRI_30OCT_CLOSE = {"NSE:NIFTY 50": (23053.1, 22937.0, 22937.0), "NSE:NIFTY BANK": (54686.95, 54906.6, 54906.6), "NSE:INDIA VIX": (15.3, 15.0, 15.0)}   # last; open, previous close as a stand-in
 MID_2NOV_FIXTURE = {"NSE:NIFTY 50": (23331.4, 23222.3, 23053.1), "NSE:NIFTY BANK": (54910.6, 54837.2, 54686.95), "NSE:INDIA VIX": (15.1, 15.3, 15.3)}
 
 
@@ -55,7 +56,7 @@ CASES = [
          {"text": "But Monday, Monday already happened in India, right? Why didn't you have that data?", "voice": True,
           "must": [r"\bclos(ed|e)\b"], "must_not": [r"\bno monday (prices|data)\b"]},
      ]},
-    {"id": "1nov-2218-before-open", "when": dt.datetime(2026, 11, 2, 3, 18, tzinfo=UTC), "table": None,
+    {"id": "1nov-2218-before-open", "when": dt.datetime(2026, 11, 2, 3, 18, tzinfo=UTC), "table": FRI_30OCT_CLOSE,
      "turns": [
          {"text": "What's up with the market now? Ananta, how is it going? What did you watch?", "voice": True,
           "must": [r"09:15|before the open|not (yet )?(open|started)|opens\b|has not started"]},

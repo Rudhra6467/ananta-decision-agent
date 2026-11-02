@@ -25,7 +25,7 @@ STOCK_ALIASES = {"TATAPOWER": r"\btata ?power\b", "JIOFIN": r"\bjio ?fin(?:ancia
 # symbols that are also English words count only when written in capitals ("any idea what the RSI is" is not about Vodafone Idea)
 WORD_SYMBOLS = {"IDEA", "SAIL", "GAIL", "BEL", "ITC", "TRENT", "PAGE", "CAN", "ONE", "ALL", "HOME", "STAR", "BASF", "IRB", "IEX"}
 WHAT = {
-    "cross": r"\bcross(?:ed|es|ing|over|overs)?\b|\bgolden\b|\bdeath cross|\b(?:20|50|200)[- ]?(?:day|dma|d)\b|\bmoving averages?\b|\bdma\b|\bsma\b",
+    "cross": r"\bcross(?:ed|es|ing|over|overs)?\b(?![- ]?(?:verify|verified|verifying|check|checked|checking|examine|reference))|\bgolden\b|\bdeath cross|\b(?:20|50|200)[- ]?(?:day|dma|d)\b|\bmoving averages?\b|\bdma\b|\bsma\b",
     "rsi": r"\brsi\b|\boverbought\b|\boversold\b",
     "macd": r"\bmacd\b",
     "sr": r"\bsupport\b|\bresistance\b",

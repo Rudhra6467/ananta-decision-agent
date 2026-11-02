@@ -71,6 +71,11 @@ BACK = re.compile(LEAD + r"(?:go back|take me back|back|previous (?:page|screen)
 HOME = re.compile(LEAD + r"(?:take me|go|bring me|head)\s+(?:back\s+)?home(?:\s+please)?[.!?]*\s*$", re.I)
 SCROLL = re.compile(LEAD + r"scroll (?P<dir>up|down|to the top|to the bottom)(?:\s+please)?[.!?]*\s*$", re.I)
 WHERE = re.compile(r"\bwhere (?:is|are|can i (?:see|find)|do i (?:see|find))\s+(?:the |my |our )?(?P<what>[a-z' ]+?)\s*\??\s*$", re.I)
+# Only a sentence that is just "where is X?" navigates; "how is the market right now, like where is the Nifty?" is a question to answer.
+WHERE_ALONE = re.compile(LEAD + r"where (?:is|are|can i (?:see|find)|do i (?:see|find))\s+(?:the |my |our )?(?P<what>[a-z' ]+?)"
+                         r"(?:\s+(?:screen|page|tab|sheet|card|section|box))?\s*\??\s*$", re.I)
+# "Where is the Nifty?" means "what level is it at" — never a screen.
+INDEX_LEVEL = re.compile(r"\b(?:nifty|sensex|bank ?nifty|fin ?nifty|vix)\b", re.I)
 
 
 def action(target: str) -> dict:
@@ -117,9 +122,11 @@ def quick_command(text: str) -> dict | None:
         return plan("home")
     if BACK.match(t):
         return {"ui": [{"do": "back", "label": "Back"}], "points": [], "say": "Going back, sir."}
-    m = NAV.match(t) or WHERE.search(t)
+    m = NAV.match(t) or WHERE_ALONE.match(t)
     if not m:
         return None
+    if m.re is WHERE_ALONE and INDEX_LEVEL.search(m.group("what")):
+        return None     # "where is the Nifty?" asks for its level, not a screen (moment harness, 2 Nov)
     target = resolve(m.group("what"))
     return plan(target) if target else None
 

@@ -65,6 +65,25 @@ def _account_view() -> dict:
     return _json(DATA / "paper" / "account" / "view.json", {}) or {}
 
 
+def _nifty_tile(rm: dict) -> dict:
+    """The Nifty box on Today (2 Nov fact map: it showed the nightly close, Friday's, while the voice said Monday's): Kite's price for the latest
+    session when it is readable (live in the session, the close after it), else the nightly close."""
+    try:
+        from jarvis.india import livesession
+        clk = livesession.clock(rm.get("data_through"))
+        n = (livesession.index_now(clk).get("rows") or {}).get("NIFTY 50") or {}
+        if n.get("last") is not None:
+            ch = n.get("change_pct")
+            when = "live" if clk["state"] == "open" else "close"
+            return {"label": f"Nifty · {_dw(clk['latest_session'])} {when}", "value": f"{n['last']:,.0f}",
+                    "sub": (f"{'+' if ch >= 0 else ''}{ch:.1f}% on the day" if ch is not None else "")}
+    except Exception:  # noqa: BLE001
+        pass
+    nf = _nifty(rm)
+    return {"label": "Nifty · " + _dw(nf.get("as_of")), "value": (f"{nf['close']:,.0f}" if isinstance(nf.get("close"), (int, float)) else "—"),
+            "sub": nf["line"].split(" · ", 1)[-1] if " · " in nf["line"] else ""}
+
+
 def plan_sentence(plan: dict) -> str:
     """The managed plan as one sentence with company names (1 Nov: "a sentence, not a list of ten tickers")."""
     import re as _re
@@ -130,8 +149,7 @@ def today(full: bool = True) -> dict:
     when = ("before the open" if before_open else "after the close" if after_close else "market hours")
     return {"ready": True, "session": session, "session_words": m.get("session_words"), "when": when, "now_words": now.strftime("%A %-d %b, %H:%M IST"),
             "decision": decision, "decision_source": source,
-            "numbers": [{"label": "Nifty · " + _dw(_nifty(rm).get("as_of")), "value": (f"{_nifty(rm)['close']:,.0f}" if isinstance(_nifty(rm).get("close"), (int, float)) else "—"),
-                         "sub": _nifty(rm)["line"].split(" · ", 1)[-1] if " · " in _nifty(rm)["line"] else ""},
+            "numbers": [_nifty_tile(rm),
                         {"label": "Your account", "value": (_inr(acct["value_inr"]) if acct.get("value_inr") else "—"),
                          "sub": f"NSE close · {acct.get('positions') and len(acct['positions'])} stocks, ₹{acct.get('options_inr', 0):,.0f} options" if acct else "no snapshot yet"}],
             "waiting": {"count": waiting.get("count") or 0, "words": waiting.get("words")},

@@ -71,6 +71,55 @@ CASES = [
 ]
 
 
+# ---- the moment harness (2 Nov, Madhav: "make sure these things don't repeat"): the same kinds of question at eight moments of the Indian day,
+# each checked against that moment's today-block. The 2 Nov errors were all about WHEN the question was asked, so the moments are the test.
+MON_HOLD = CASES[0]["holdings"]
+MON_MANAGED = CASES[0]["managed"]
+MOMENTS = [
+    ("pre-open (Sun 10:15 pm Toronto)", dt.datetime(2026, 11, 2, 3, 15, tzinfo=UTC), FRI_30OCT_CLOSE, None, None),
+    ("NSE pre-open 09:05 IST", dt.datetime(2026, 11, 2, 3, 35, tzinfo=UTC), FRI_30OCT_CLOSE, None, None),
+    ("mid-session 11:30 IST (stand-in prices)", dt.datetime(2026, 11, 2, 6, 0, tzinfo=UTC), MID_2NOV_FIXTURE, None, MON_MANAGED),
+    ("just after the close 15:45 IST", dt.datetime(2026, 11, 2, 10, 15, tzinfo=UTC), CLOSE_2NOV, MON_HOLD, MON_MANAGED),
+    ("evening India, 8:30 am Toronto", dt.datetime(2026, 11, 2, 13, 30, tzinfo=UTC), CLOSE_2NOV, MON_HOLD, MON_MANAGED),
+    ("after India's midnight, 2 pm Toronto", dt.datetime(2026, 11, 2, 19, 0, tzinfo=UTC), CLOSE_2NOV, MON_HOLD, MON_MANAGED),
+    ("weekend, Sat 10 am Toronto", dt.datetime(2026, 10, 31, 14, 0, tzinfo=UTC), FRI_30OCT_CLOSE, None, None),
+    ("clock-change Sunday, noon Toronto", dt.datetime(2026, 11, 1, 17, 0, tzinfo=UTC), FRI_30OCT_CLOSE, None, None),
+]
+MOMENT_QS = ["Ananta how is the market right now, like where is the Nifty?",
+             "Hey Ananta, what happened today in the market and what did we do?",
+             "Is the Indian market open now or closed? When does it open next?"]
+
+
+def _moment_checks(q_i: int, answer: str, live: dict) -> list[dict]:
+    """What any right answer at this moment must carry, worked out from the moment itself (not a fixed text)."""
+    a, clk, out = answer.lower(), live["clock"], []
+    rows = (live.get("index_now") or {}).get("rows") or {}
+    n = (rows.get("NIFTY 50") or {}).get("last")
+    latest_wd = clk["latest_session_words"].split(" ")[0].lower()
+    if q_i == 0 and n is not None and not re.search(re.escape(f"{n:,.0f}"[:4]), answer):
+        out.append({"code": "MISSING", "why": f"the Nifty at this moment is {n:,.2f} ({live['index_now'].get('kind')}); the answer does not give it"})
+    if q_i == 1 and latest_wd not in a and "today" not in a:
+        out.append({"code": "MISSING", "why": f"'today' here means {clk['latest_session_words']}; the answer names neither"})
+    if q_i == 2:
+        want = {"open": r"\bopen\b", "closed": r"\bclosed?\b", "before_open": r"09:15|9:15|not (?:yet )?open|opens", "pre_open": r"pre-?open|09:15|9:15",
+                "no_session": r"no (?:nse )?session|closed|weekend|holiday|opens"}[clk["state"]]
+        if not re.search(want, a):
+            out.append({"code": "MISSING", "why": f"the market is {clk['state'].replace('_', ' ')} at this moment ({clk['words']}); the answer does not say so"})
+    return out
+
+
+def run_moments(replay_conversation) -> list[dict]:
+    out = []
+    for name, when, table, hold, managed in MOMENTS:
+        live = live_at(when, table, hold, managed)
+        turns = [{"text": q, "voice": True, "live": live} for q in MOMENT_QS]
+        done = replay_conversation(turns, f"mo{when.strftime('%d%H%M')}")
+        for i, d in enumerate(done):
+            probs = [{"code": "TODAY_WRONG", "why": p} for p in (d.get("today_problems") or [])] + _moment_checks(i, str(d.get("answer") or ""), live)
+            out.append({"source": "never_again", "case": f"moment: {name}", "i": i, **d, "live": None, "pass": not probs, "problems": probs})
+    return out
+
+
 def run(ask_mod, replay_conversation, judge) -> list[dict]:
     """Re-ask every case at its own moment. Returns one result row per turn (source 'never_again')."""
     out = []
@@ -85,7 +134,7 @@ def run(ask_mod, replay_conversation, judge) -> list[dict]:
             probs += [{"code": "FORBIDDEN", "why": f"must not say /{m}/"} for m in t.get("must_not", []) if re.search(m, a, re.I)]
             g = judge(done[:i], d) if not probs else {"pass": False, "problems": probs}
             out.append({"source": "never_again", "case": c["id"], "i": i, **d, "live": None, **g})
-    return out
+    return out + run_moments(replay_conversation)
 
 
 def main() -> int:

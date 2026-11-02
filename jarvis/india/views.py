@@ -1122,10 +1122,25 @@ def decisions_recent(n: int = 10) -> dict:
     return {"decisions": out[:n], "page": "/jarvis", "data_through": rm.get("data_through")}
 
 
+def sp1_live(rm: dict | None = None) -> dict:
+    """The options line read from its own ledger and book at call time (2 Nov fact map: the line decides and books during the session, 09:15-09:45
+    IST, but the screens and the Ask read it from the nightly read model, so all day they showed the previous session). Falls back to the read model."""
+    rm = rm if rm is not None else readmodel()
+    try:
+        import sys as _sys
+        rec = str(Path(os.getenv("ANANTA_RECORDS", os.path.expanduser("~/code/ananta-records"))))
+        if rec not in _sys.path:
+            _sys.path.append(rec)
+        from india import readmodel as _rmb
+        return _rmb.sp1(str(rm.get("data_through") or ""))
+    except Exception:  # noqa: BLE001
+        return rm.get("sp1") or {}
+
+
 def options() -> dict:
     """India's options section on Home: the Rs 60,000 index line (SP1), today's plan, the session's decisions, the option book, the recorder's paper book."""
     rm = readmodel()
-    s = rm.get("sp1") or {}
+    s = sp1_live(rm)
     book = (s.get("book") or {})
     plans = sorted((DATA / "paper" / "dayplans").glob("*.json")) if (DATA / "paper" / "dayplans").exists() else []
     plan = _json(plans[-1], {}) if plans else {}

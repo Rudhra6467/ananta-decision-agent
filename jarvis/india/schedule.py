@@ -41,6 +41,8 @@ TARGETS: dict[str, tuple[list[str], tuple[int, ...] | None]] = {
     "com.ananta.india.shadowtrader": (["08:36"], None),
     "com.ananta.india.openingview": (["10:20"], None),
     "com.ananta.india.postclose": (["15:50"], WEEKDAYS),
+    # 2 Nov: the fact map at three moments - mid-session, after the close before the day's file, after the nightly build
+    "com.ananta.india.factmap": (["00:05", "11:00", "16:10"], None),
 }
 
 

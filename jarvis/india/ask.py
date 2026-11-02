@@ -241,6 +241,20 @@ def live_record(live: dict | None) -> dict | None:
             "data_timing": live.get("data_timing"), "words": live.get("words"), "how_to_say_it": live.get("how_to_say_it")}
 
 
+def _self_check() -> dict:
+    """2 Nov fact map: Ananta's own exam (manifests/exam_latest.json, weekly) and the voice check were written and read by nothing, so
+    'cross verify yourself' had no answer from its own record."""
+    e = _json_file(DATA / "manifests" / "exam_latest.json") or {}
+    v = _json_file(DATA / "manifests" / "voice_check_latest.json") or {}
+    parts = e.get("passes") or {}
+    return {"exam": {"day": e.get("day") or e.get("at") or e.get("t"), "passed": e.get("exam_pass"),
+                     "parts": {k: f"{e.get(k)}/{e.get(k + '_of', e.get('of'))} (pass mark {(e.get('pass_marks') or {}).get(k)}){'' if ok else ' FAILED'}" for k, ok in parts.items()},
+                     "failed_questions": [r.get("question") for r in (e.get("rows") or []) if r.get("ok") is False][:6]} if e else None,
+            "voice_check": {k: v.get(k) for k in ("day", "at", "passed", "words", "summary") if k in v} or None,
+            "how_to_say_it": "for 'cross verify yourself' or 'how competent are you': this is your own record (the weekly exam and the voice check), "
+                             "with its date; say it plainly, part by part, and what failed"}
+
+
 def _today_live(rm: dict, now: dt.datetime | None = None) -> dict:
     """Today's block for the facts; never raises into an answer."""
     if LIVE_OVERRIDE is not None:
@@ -298,7 +312,7 @@ def facts(owner: bool = False) -> dict:
                                                                    "the market section above, which is current through data_through. Mention it only when asked about "
                                                                    "the picks or the data, once.",
                                            "chosen": [{"symbol": x.get("symbol"), "campaign": x.get("campaign"), "close": x.get("close"), "why": x.get("why")} for x in d.get("chosen", [])]},
-            "index_line_sp1": {"capital_inr": 60000, **{k: (rm.get("sp1") or {}).get(k) for k in ("status", "words", "decisions", "errors")}, "sessions": ((rm.get("sp1") or {}).get("book") or {}).get("sessions")},
+            "index_line_sp1": (lambda s1: {"capital_inr": 60000, **{k: s1.get(k) for k in ("status", "words", "decisions", "errors", "date")}, "sessions": (s1.get("book") or {}).get("sessions")})(views.sp1_live(rm)),
             "reference_traders_league": {"h1": lg.get("h1"), "informed": lg.get("informed"), "meaning": "HINDSIGHT = best trips the session offered; RANDOM = chance; MARKET = the liquid 250; coverage = of the top 20 trips, how many Ananta took / passed / had no rule for"},
             "missed_movers": (L.get("missed") or {}).get("line"),
             # 28 Oct outside round 3 re-grade: "3 open drafts" (this missed-moves file) contradicted the 12 waiting in the whole queue
@@ -313,6 +327,10 @@ def facts(owner: bool = False) -> dict:
             "reconstruction_last_night": {k: (rm.get("reconstruction") or {}).get(k) for k in ("headline", "people_words", "not_done_words", "league_words", "reviews", "findings")} | {"staircase": ((rm.get("reconstruction") or {}).get("staircase") or {}).get("words"),
                                           "meaning": "the nightly reconstruction card (what the market and other participants did, what Ananta did and did not do, trade reviews, findings); SAFE findings go to the repair board by themselves, DECISION findings wait for Madhav; the staircase says what the allocated capital may use (ADMITTED only; nothing yet)"},
             "teacher_libraries": _library_facts(),
+            "self_check": _self_check(),
+            # 2 Nov fact map: the teachers' forward books were tracked nightly but their summaries were read by nothing
+            "teacher_forward": {"stock_rules": [{k: r.get(k) for k in ("card", "words", "stage")} for r in ((_json_file(DATA / "paper" / "teachers" / "live_summary.json") or {}).get("rules") or [])[:8]],
+                                "option_systems": {k: {x: v.get(x) for x in ("card", "stage", "forward_total_inr")} for k, v in list(((_json_file(DATA / "paper" / "teachers" / "forward_options_summary.json") or {}).get("systems") or {}).items())[:6]}},
             "knowledge_map_summary": _map_summary(),     # 29 Oct: the one map's state (studies, variants, mismatches between layers)
             "technicals": technicals.facts_part(rm),     # 26 Oct: averages, crossovers, RSI, MACD, support/resistance, volume + what was tested
             "book_stats": book_stats_facts(rm),     # 26 Oct (Madhav: yes to all): expectancy, Sharpe-like ratio, holdings correlation, slippage, each with its "too few" flag
@@ -559,6 +577,8 @@ def _managed_book() -> dict:
                                **({"pooled_from": str(b.get("for_cut")).split("+"), "why_pooled": f"each of these cuts frees under Rs 3,000, too little for a name of its own, so together they buy one ({len(str(b.get('for_cut')).split('+'))} names: the tidy-ups plus any small reduce)"} if "+" in str(b.get("for_cut")) else {})}
                               for b in p.get("buys") or []],
                      "notes": p.get("notes")},
+            # 2 Nov fact map: the replacement ledger's score file was written nightly and read by nothing
+            "score": _json_file(DATA / "paper" / "managed" / "score.json"),
             "tracked": ("Two places. The replacement ledger scores every cut and every replacement 5 and 20 sessions after the fill: did the cut name fall "
                         "(the cut was right), did the replacement rise, and replacement minus cut. And the daily benchmark row puts the managed book beside the "
                         "twin (the allocator's paper copy of the account), the frozen portfolio (the holdings left as they were) and the Nifty 500; "

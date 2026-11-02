@@ -190,7 +190,9 @@ def index_now(clk: dict, fetch=None) -> dict:
     for name, r in rows.items():
         label = {"NIFTY 50": "Nifty", "NIFTY BANK": "Bank Nifty", "INDIA VIX": "India VIX"}[name]
         ch = r.get("change_pct")
-        parts.append(f"{label} {r['last']:,.2f}" + (f" ({'+' if ch >= 0 else ''}{ch:.2f}% on the previous close {r['prev_close']:,.2f}; opened {r['open']:,.2f})" if ch is not None else ""))
+        # 2 Nov moment harness: one turn said 23,440 and the next 23,441 for 23,440.80; give the one rounded figure to say
+        say = f", say {round(r['last']):,}" if label != "India VIX" else ""
+        parts.append(f"{label} {r['last']:,.2f}{say}" + (f" ({'+' if ch >= 0 else ''}{ch:.2f}% on the previous close {r['prev_close']:,.2f}; opened {r['open']:,.2f})" if ch is not None else ""))
     return {"live": clk["state"] == "open", "as_of": at, "kind": kind, "rows": rows,
             "words": f"{clk['latest_session_words']}, {kind}: " + "; ".join(parts) + "." if parts else "No index prices came back from Kite."}
 
@@ -232,13 +234,22 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
                           "option_price_at_decision": qd.get(osym) if osym else None, "lot": opt.get("lot"), "expiry": opt.get("expiry")})
         else:
             passed.append(f"{ {'NIFTY': 'Nifty', 'BANKNIFTY': 'Bank Nifty'}.get(r.get('index'), r.get('index')) } at {t}")
+    idx_sym = {"NIFTY": "NSE:NIFTY 50", "BANKNIFTY": "NSE:NIFTY BANK"}
     if taken:
-        q = quotes([x["option_symbol"] for x in taken if x["option_symbol"]], fetch)
+        q = quotes([x["option_symbol"] for x in taken if x["option_symbol"]] + sorted({idx_sym[x["index"]] for x in taken if x["index"] in idx_sym}), fetch)
+        rows = q.get("rows") or {}
         for x in taken:
-            now = ((q.get("rows") or {}).get(x["option_symbol"]) or {}).get("last") if x["option_symbol"] else None
+            now = (rows.get(x["option_symbol"]) or {}).get("last") if x["option_symbol"] else None
             x["option_price_now"] = now
             if now is not None and x["option_price_at_decision"] and x["lot"]:
                 x["paper_move_inr_per_lot"] = round((now - x["option_price_at_decision"]) * x["lot"])
+            # 2 Nov moment harness: the model said "both indexes are up since entry" while Bank Nifty was below its entry; say it here, in code
+            lvl = (rows.get(idx_sym.get(x["index"], "")) or {}).get("last")
+            if lvl is not None and x["index_level"]:
+                pts = lvl - x["index_level"]
+                x["index_now"], x["index_since_entry_pts"] = lvl, round(pts)
+                x["index_since_entry_words"] = (f"the index is {abs(pts):,.0f} points {'above' if pts >= 0 else 'below'} where it was taken"
+                                                f" ({lvl:,.0f} against {x['index_level']:,.0f}), which is {'for' if (pts >= 0) == (x['direction'] == 'long') else 'against'} the trade")
     name = {"NIFTY": "Nifty", "BANKNIFTY": "Bank Nifty"}
     tw = []
     for x in taken:
@@ -247,7 +258,10 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
             s += f"; the {x['option']} option at about Rs {x['option_price_at_decision']}" if x["option_price_at_decision"] else f"; the {x['option']} option"
         s += f"), {x['exit_words']}"
         if x.get("paper_move_inr_per_lot") is not None:
-            s += f"; the option is at Rs {x['option_price_now']} now, about Rs {x['paper_move_inr_per_lot']:+,} a lot on paper"
+            s += (f"; the option is at Rs {x['option_price_now']} now, about Rs {x['paper_move_inr_per_lot']:+,} a lot on paper"
+                  f" ({'in profit' if x['paper_move_inr_per_lot'] > 0 else 'in loss' if x['paper_move_inr_per_lot'] < 0 else 'flat'})")
+        if x.get("index_since_entry_words"):
+            s += f"; {x['index_since_entry_words']}"
         tw.append(s)
     words = (f"The options line on {clk['latest_session_words']} decided at {len(dec)} points: " + ("took " + "; ".join(tw) if tw else "took nothing")
              + (f"; passed on {', '.join(passed)}" if passed else "") + ". Paper only; one lot each.")
@@ -353,6 +367,8 @@ SAYS_NO_PRICES = re.compile(r"\b(?:can't|cannot|can not|don't|do not|unable to)\
                             r"|\bno live (?:prices|feed)\b|\b(?:session|market) is invisible\b|\bno (?:monday|tuesday|wednesday|thursday|friday|today's) prices\b"
                             r"|\b(?:can't|cannot) tell you how (?:monday|tuesday|wednesday|thursday|friday|today)'?s? market went\b", re.I)
 TODAY_Q = re.compile(r"\b(?:today|now|right now|yesterday|this morning|tonight|what happened|how did (?:the )?market|market (?:today|now)|how is (?:it|the market) going)\b", re.I)
+# Words that put an answer in today's session even when it names an older day as the base ("+1.2% on Friday's close, as of 11:30 IST").
+TODAY_MARK = re.compile(r"\b(?:right now|this (?:morning|afternoon|session)|as of \d{1,2}:\d{2}|at \d{1,2}:\d{2}\s*ist)\b", re.I)
 WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
 
@@ -381,7 +397,12 @@ def check(answer: str, live: dict | None, question: str = "") -> list[str]:
         except Exception:  # noqa: BLE001
             before = set(WEEKDAYS) - {latest_wd}
         older = [w for w in WEEKDAYS if w in before and re.search(rf"\b{w}\b", low)]
-        if older and latest_wd not in low and "today" not in low:
+        # "+1.2% on Friday's close, live as of 11:30 IST" IS about today: Friday is only the base (moment harness, 2 Nov)
+        try:
+            day_tag = re.search(rf"\b{lt.day}\s+{lt.strftime('%b').lower()}", low)
+        except Exception:  # noqa: BLE001
+            day_tag = None
+        if older and latest_wd not in low and "today" not in low and not TODAY_MARK.search(low) and not day_tag:
             out.append(f"He asked about today; it answered about {older[0].title()} and never about today, {clk['latest_session_words']}.")
     return out
 

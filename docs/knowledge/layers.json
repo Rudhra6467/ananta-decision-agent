@@ -1668,6 +1668,7 @@
     "jarvis/india/surfaces.py",
     "jarvis/india/livesession.py",
     "jarvis/india/neveragain.py",
+    "jarvis/india/factmap.py",
     "jarvis/india/schedule.py",
     "jarvis/india/ask.py",
     "jarvis/india/voice.py",

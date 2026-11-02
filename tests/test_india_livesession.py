@@ -91,7 +91,7 @@ def test_no_decision_yet_is_said_plainly(tmp_path):
 def test_index_now_has_todays_close_after_the_close_and_says_a_failure():
     clk = L.clock("2026-10-30", AT_0608_TORONTO)
     i = L.index_now(clk, _quote_stub)
-    assert "Nifty 23,440.80 (+1.68%" in i["words"] and "today's close" in i["words"]
+    assert "Nifty 23,440.80, say 23,441 (+1.68%" in i["words"] and "today's close" in i["words"]
     L._CACHE.clear()
     bad = L.index_now(clk, lambda syms: (_ for _ in ()).throw(RuntimeError("Kite down")))
     assert not bad.get("rows") and "could not reach the live prices" in bad["words"]
@@ -166,3 +166,31 @@ def test_toronto_afternoon_after_india_midnight_still_means_mondays_session(ledg
     assert "at the close of Monday 2 Nov" in i["words"] and i["rows"]["NIFTY 50"]["high"] == 23440.8
     assert L.options_today(c, _quote_stub, path=ledger)["taken"]
 
+
+
+def test_friday_as_the_base_of_a_live_number_is_about_today(ledger, monkeypatch):
+    """Moment harness, 2 Nov 11:30 IST: '+1.2% on Friday's close, as of 11:30 IST' answers about today; Friday is only the base."""
+    live = _live(AT_0608_TORONTO, ledger, monkeypatch)
+    a = "Sir, at 11:30 IST the Nifty is at 23,331, up 1.2% on Friday's close."
+    assert L.check(a, live, "How is the market doing right now?") == []
+    wrong = "Sir, the Nifty closed at 23,053 on Friday, down 0.4%."
+    assert L.check(wrong, live, "How is the market doing right now?")
+
+
+def test_where_is_the_nifty_is_answered_not_navigated():
+    """Moment harness, 2 Nov: 'how is the market right now, like where is the Nifty?' got 'Taking you to Markets'."""
+    from jarvis.india import appmap
+    assert appmap.quick_command("Ananta how is the market right now, like where is the Nifty?") is None
+    assert appmap.quick_command("Where is the Nifty?") is None
+    assert appmap.quick_command("where are my options?")          # a plain "where is X" for a screen still navigates
+    assert appmap.quick_command("take me to markets")
+
+
+def test_options_today_says_in_code_whether_each_index_is_for_or_against_the_trade(ledger):
+    """Moment harness, 2 Nov: the model said 'both indexes are up since entry' while Bank Nifty was below its entry."""
+    c = L.clock("2026-10-30", AT_0608_TORONTO)
+    o = L.options_today(c, _quote_stub, path=ledger)
+    bn = next(x for x in o["taken"] if x["index"] == "BANKNIFTY")
+    nf = next(x for x in o["taken"] if x["index"] == "NIFTY")
+    assert bn["index_since_entry_pts"] == 49 and "above where it was taken" in bn["index_since_entry_words"] and "for the trade" in bn["index_since_entry_words"]
+    assert nf["index_since_entry_pts"] == 137 and "in loss" in o["words"]

@@ -47,7 +47,7 @@ CASES = [
     {"id": "2nov-0608-after-close", "when": dt.datetime(2026, 11, 2, 11, 8, tzinfo=UTC), "table": CLOSE_2NOV,
      "holdings": "Your stocks (the paper copy of the account) are up about Rs 2,172 (+2.24%) today; best TATAPOWER +3.1%, JIOFIN +4.3%, LICI +1.5%; worst KARURVYSYA -3.3%.",
      "managed": "The managed book's first plan was for today: 10 cuts and 3 buys at the open. At today's opening prices these buys stay in (AJANTPHARM opened -0.9%; "
-                "ETERNAL opened -0.1%; CIPLA opened +0.3%). The fills are booked from the official NSE day file by the 7 pm Toronto run.",
+                "ETERNAL opened -0.1%; CIPLA opened +0.3%). The fills are booked from the official NSE day file by the evening run at 7 pm Toronto (05:30 IST).",
      "turns": [
          {"text": "Hey Ananta. What happened with the market yesterday? What did we do and what did you see and what did you find?", "voice": True,
           "must": [r"\b(monday|today)\b", r"23,4[34]\d|1\.7\s?%|1\.68\s?%", r"\b(options line|bank nifty)\b"]},

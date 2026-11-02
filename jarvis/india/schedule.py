@@ -111,6 +111,61 @@ def words(changed: list[dict]) -> str:
         f"{c['label'].rsplit('.', 1)[-1]} {first(c.get('have') or [])} -> {first(c['want'])} Toronto" for c in changed)
 
 
+# ---- when things happen, in words, from the jobs themselves -------------------------------------------------------------------------------------
+# Independent audit, 2 Nov: Ananta told Madhav "the picks come with the 7 pm run" (they come at 9:30 pm), "the day file lands at 7 pm" (12:45 pm),
+# and Toronto times written by hand did not move with the clock change. Every time Ananta says is now read from the launchd jobs.
+DAY = [   # (job, what it brings), in the order of Madhav's evening and night
+    ("com.ananta.india.postclose", "the closing index bars, the chart readings and a first market summary"),
+    ("com.ananta.india.recorder_noon", "the day's 1-minute options and currency bars"),
+    ("com.ananta.india.nightly", "the official NSE day file (every stock's close), the chart readings, the stock quote book and the market summary (P/E, futures positions)"),
+    ("com.ananta.india.evening", "the big evening run: FII/DII flows and big deals, the Zerodha snapshot, the managed book's fills and its next plan, the options line's score, the teachers' forward checks"),
+    ("com.ananta.india.autologin", "the morning sign-in to Zerodha"),
+    ("com.ananta.india.sp1paper", "the options line's plan for the session"),
+    ("com.ananta.india.paper", "the practice book's picks for the session, the daily call, the missed moves, the comparison traders and the reconstruction (the coach's replay)"),
+    ("com.ananta.india.findings", "the night's findings"),
+    ("com.ananta.india.morningview", "the morning view (plan, levels to watch, honest chances)"),
+    ("com.ananta.india.openingview", "the opening update after the first hour"),
+]
+
+
+def toronto_times(label: str) -> list[str]:
+    """The job's actual Toronto times from its launchd file ('HH:MM'), whatever the season."""
+    try:
+        d = plistlib.loads((AGENTS / f"{label}.plist").read_bytes())
+    except Exception:  # noqa: BLE001
+        return []
+    sci = d.get("StartCalendarInterval")
+    sci = sci if isinstance(sci, list) else ([sci] if sci else [])
+    return sorted({f"{int(x.get('Hour', 0)):02d}:{int(x.get('Minute', 0)):02d}" for x in sci})
+
+
+def _say(hhmm: str) -> str:
+    h, m = map(int, hhmm.split(":"))
+    return f"{(h % 12) or 12}{':%02d' % m if m else ''} {'am' if h < 12 else 'pm'}"
+
+
+def ist_of(hhmm: str, on: dt.date | None = None) -> str:
+    on = on or dt.datetime.now(TOR).date()
+    h, m = map(int, hhmm.split(":"))
+    return dt.datetime.combine(on, dt.time(h, m), TOR).astimezone(IST).strftime("%H:%M IST")
+
+
+def at(label: str) -> str:
+    """'9:30 pm Toronto (08:00 IST)' for a job; the first time when it runs more than once ('' when the job is missing)."""
+    ts = toronto_times(label)
+    if label == "com.ananta.india.nightly":
+        ts = [t for t in ts if t >= "06:00"] or ts         # its 02:30 run is a catch-up
+    return f"{_say(ts[0])} Toronto ({ist_of(ts[0])})" if ts else ""
+
+
+def day_words() -> str:
+    """The evening-and-night chain in Toronto time, read from the jobs."""
+    parts = [f"{at(job)}: {what}" for job, what in DAY if at(job)]
+    return ("When things land (Toronto time, read from the jobs themselves): live index and stock prices from Zerodha any time during the "
+            "session (09:15-15:30 IST) and the closing prices minutes after the close; " + "; ".join(parts) + ". The options line decides live at "
+            "09:15, 09:30 and 09:45 IST, in its ledger the moment it decides.")
+
+
 def main() -> int:
     if (sys.argv[1:] or ["audit"])[0] == "fix":
         ch = fix()

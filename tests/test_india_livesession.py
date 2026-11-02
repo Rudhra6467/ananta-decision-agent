@@ -88,7 +88,8 @@ def test_no_decision_yet_is_said_plainly(tmp_path):
     assert o["decisions"] == [] and "no decision is in its ledger yet" in o["words"]
 
 
-def test_index_now_has_todays_close_after_the_close_and_says_a_failure():
+def test_index_now_has_todays_close_after_the_close_and_says_a_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(L, "DATA", tmp_path)            # no closing bars on file: the failure is said plainly
     clk = L.clock("2026-10-30", AT_0608_TORONTO)
     i = L.index_now(clk, _quote_stub)
     assert "Nifty 23,440.80, say 23,441 (+1.68%" in i["words"] and "today's close" in i["words"]
@@ -194,3 +195,59 @@ def test_options_today_says_in_code_whether_each_index_is_for_or_against_the_tra
     nf = next(x for x in o["taken"] if x["index"] == "NIFTY")
     assert bn["index_since_entry_pts"] == 49 and "above where it was taken" in bn["index_since_entry_words"] and "for the trade" in bn["index_since_entry_words"]
     assert nf["index_since_entry_pts"] == 137 and "in loss" in o["words"]
+
+
+def test_practice_today_prices_the_open_trades_and_the_picks_bought_at_the_open(tmp_path):
+    """Independent audit, 2 Nov: after the close Ananta could not say how the practice book did today (booked only at 08:00 IST next morning)."""
+    (tmp_path / "decisions").mkdir()
+    st = {"trades": {"a": {"book": "exec", "policy": "hold_20d", "status": "open", "campaign": "BRK", "symbol": "TCS", "entry_adj": 2900.0,
+                           "last_close_adj": 3000.0, "last_date": "2026-10-30", "notional": 50000.0},
+                     "c": {"book": "exec", "policy": "hold_20d", "status": "open", "campaign": "CTL", "symbol": "TCS", "entry_adj": 2900.0,
+                           "last_close_adj": 3000.0, "last_date": "2026-10-30", "notional": 50000.0}},
+          "decisions": {"2026-10-30": {"status": "pending"}}}
+    (tmp_path / "state.json").write_text(json.dumps(st))
+    (tmp_path / "decisions" / "2026-10-30.json").write_text(json.dumps({"signals": [{"symbol": "TCS", "campaign": "PULL"}, {"symbol": "TCS", "campaign": "CTL"}]}))
+    c = L.clock("2026-10-30", AT_0608_TORONTO)
+    p = L.practice_today(c, _quote_stub, path=tmp_path / "state.json")
+    assert p["held"] == 1 and p["held_move_inr"] == round(50000 * 3000 / 2900 * (3100 / 3000 - 1))     # the control (CTL) is left out
+    assert len(p["picks_filled"]) == 1 and p["picks_move_inr"] == round(50000 * (3100 / 3000 - 1))
+    assert "practice book" in p["words"] and "today" in p["words"]
+
+
+def test_holdings_today_reads_the_frozen_holdings_and_names_the_book(tmp_path, monkeypatch):
+    (tmp_path / "paper" / "account").mkdir(parents=True)
+    (tmp_path / "paper" / "account" / "frozen.json").write_text(json.dumps({"positions": {"TCS": {"qty": 10, "avg": 2000.0}}}))
+    monkeypatch.setattr(L, "DATA", tmp_path)
+    pos = L._frozen_positions()
+    assert pos == [{"symbol": "TCS", "qty": 10}]
+    h = L.holdings_today(L.clock("2026-10-30", AT_0608_TORONTO), pos, _quote_stub)
+    assert "As you have it" in h["words"] and "not the twin" in h["words"]
+
+
+def test_guard_also_checks_today_after_india_midnight(ledger):
+    """Independent audit, 2 Nov: from IST midnight to the open (Madhav's evening) the older-session check was off."""
+    at = dt.datetime(2026, 11, 2, 22, 30, tzinfo=UTC)          # Monday 17:30 Toronto = Tuesday 04:00 IST
+    c = L.clock("2026-10-30", at)
+    live = {"clock": c, "index_now": L.index_now(c, _quote_stub), "options_today": L.options_today(c, _quote_stub, path=ledger)}
+    assert c["state"] == "before_open" and c["latest_session"] == "2026-11-02"
+    assert L.check("Sir, the Nifty closed at 23,053 on Friday, up 0.5%.", live, "How did the market do today?")
+    assert L.check("Sir, Monday's session closed with the Nifty at 23,441, up 1.7% on Friday.", live, "How did the market do today?") == []
+
+
+def test_holidays_ahead_reads_the_nse_list(tmp_path, monkeypatch):
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "manifests" / "nse_holidays.json").write_text(json.dumps({"CM": [
+        {"tradingDate": "08-Nov-2026", "description": "Diwali Laxmi Pujan*"}, {"tradingDate": "10-Nov-2026", "description": "Diwali-Balipratipada"}]}))
+    monkeypatch.setattr(L, "DATA", tmp_path)
+    h = L.holidays_ahead(L.clock("2026-10-30", AT_0608_TORONTO))
+    assert len(h["rows"]) == 2 and "Muhurat" in h["words"] and "Tuesday 10 Nov: Diwali-Balipratipada" in h["words"]
+
+
+def test_index_now_falls_back_to_the_closing_bars_when_zerodha_is_signed_out(tmp_path, monkeypatch):
+    """Independent audit, 2 Nov: from 06:00 IST (sign-in lapses) to 07:10 IST (automatic sign-in) live prices fail every evening in Toronto."""
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "manifests" / "technicals.json").write_text(json.dumps({"indices": {"NIFTY 50": {"close": 23440.8, "prev_close": 23053.1, "as_of": "2026-11-02"}}}))
+    monkeypatch.setattr(L, "DATA", tmp_path)
+    c = L.clock("2026-10-30", dt.datetime(2026, 11, 3, 0, 40, tzinfo=UTC))      # Mon 19:40 Toronto = Tue 06:10 IST
+    i = L.index_now(c, lambda syms: (_ for _ in ()).throw(RuntimeError("TokenException")))
+    assert i["rows"]["NIFTY 50"]["last"] == 23440.8 and "closing bars" in i["words"] and "Monday 2 Nov" in i["words"]

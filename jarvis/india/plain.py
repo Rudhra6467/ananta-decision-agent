@@ -61,7 +61,7 @@ SENTENCES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\b200-day\b"), "long-term average"),
     (re.compile(r"\bRSI(?:14)?\b"), "momentum"),
     (re.compile(r"\bthe fear gauge \((?:the )?(?:India )?VIX\b,?\s*", re.I), "the fear gauge ("),
-    (re.compile(r"\bINDIA VIX\b|\bVIX\b"), "the fear gauge"),
+    (re.compile(r"\b(?:INDIA|India) VIX\b|\bVIX\b"), "the fear gauge"),     # 2 Nov audit: "India VIX 15.50" read "India the fear gauge"
     (re.compile(r"\bthe fear gauge \(the fear gauge,?\s*"), "the fear gauge ("),
     (re.compile(r"\bH1 trips\b"), "one-session trades"),
     (re.compile(r"\bH(1|5|20)\b"), lambda m: {"1": "one-session", "5": "five-session", "20": "20-session"}[m.group(1)]),

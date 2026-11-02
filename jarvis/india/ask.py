@@ -18,7 +18,7 @@ from pathlib import Path
 
 import requests
 
-from jarvis.india import answerguide, appmap, askwords, knowledgemap, lookup, marketcontext, mind, speaker, technicals, views, voiceid
+from jarvis.india import answerguide, appmap, askwords, knowledgemap, lookup, marketcontext, mind, schedule, speaker, technicals, views, voiceid
 
 # "my mom asks ...", "she wants to know ...": Madhav relaying for the guest, so his voice does not end the handover
 RELAY = re.compile(r"\b(?:my (?:mom|mother|amma|dad|father|nanna|pinni)|she|he|they|the grader)\s+(?:asks?|is asking|wants to know|says|said)\b", re.I)
@@ -219,7 +219,10 @@ GUARD_LOG = DATA / "reports" / "ask_guard.jsonl"
 
 
 def _guard_log(thread: str, question: str, problems: list, outcome: str | None) -> None:
-    """Every answer the guard caught (2 Nov 2026): read by the nightly replay and the morning review, so a repeat is seen the next day."""
+    """Every answer the guard caught (2 Nov 2026): read by the nightly replay and the morning review, so a repeat is seen the next day.
+    A dry run (replay, audit) writes nothing here: the real log is only for real conversations (independent audit, 2 Nov)."""
+    if DRY_RUN:
+        return
     try:
         GUARD_LOG.parent.mkdir(parents=True, exist_ok=True)
         with GUARD_LOG.open("a") as fh:
@@ -388,7 +391,7 @@ RX_TOPIC = re.compile(r"\bwhy (did|is|was|has)\b[^?]{0,40}\b(fall|fell|drop|drop
 
 RX_EXPLAINER = """THE RECONSTRUCTION PROCESS (RX-IN v1, built 23 Oct 2026; Madhav agreed to every part of the design the same day). Plain words, for explaining:
 - Why it exists: Ananta is judged by the quality of its decisions. Every night it replays the day like a coach replaying a match: what the market did, what other people did, what Ananta did, what it did not do, and whether each of those was right. What it learns goes to the repair shop; what survives testing climbs a staircase until the allocated paper capital may use it.
-- When: every evening at 22:30 Toronto, after the paper engine, the missed-movers review and the reference-traders league; the SAFE findings are filed on the repair board at 22:50.
+- When: every night at 08:00 IST (9:30 pm Toronto in winter, 10:30 pm in summer), with the paper engine, the missed-movers review and the reference-traders league; the SAFE findings are filed on the repair board at 08:20 IST.
 - The card has seven parts. A, the market: the trend, how many stocks are healthy (breadth), the fear gauge (VIX), the biggest movers. B, what people did: public records only, each stamped at the minute it became public: big single-client trades (bulk and block deals), foreign and domestic institutions' buying and selling (FII/DII), who holds the futures (participant open interest), company announcements, registered world events, and the reference traders (HINDSIGHT = the best trips the day offered, the ceiling; RANDOM = pure chance; MARKET = the average stock). These are a yardstick, never something to copy: in crypto, copying traders' timing failed every test. C, what Ananta did: what it chose, what it rejected and why, fills, exits, the daily call, the index line, the allocation moves. D, what it did not do: the big moves it missed (class a: a rule fired but was rejected or had already exited; class b: no rule was positioned for it; class c: it could not be traded), the falls it held into, and every rejected candidate followed forward by the shadow (baseline) book to see whether the pass was right; that is hindsight and only ever raises a question, never a verdict. E, trade reviews: three sessions after a trade closes, it is tagged in units of its own risk (R = entry minus the signal bar's low): STOPPED_THEN_RAN (stopped out and then the price rose a full R above the entry: stop too tight or early entry), GAVE_BACK (was up 1.5R and still closed at or under the entry: no plan to protect the winner), NEVER_WORKED (never got a quarter R above the entry: poor timing), LEFT_ON_TABLE (a win, then the price went another R higher within three sessions: sold too early), COSTS_ATE (moved less than the charges), CLEAN (a win that kept at least half of its best move). F, findings: only fixed counts make a finding, never one day's story: the same missed situation on 3 of 7 sessions, the same review tag on 5 trades of one family in 20 sessions, a family holding into 5 of the top falls on 3 of 7 sessions, the daily call below a coin flip over 20 sessions, allocation moves wrong 3 times in 20, missing data, failed jobs, the sign-in. G, forwarding: SAFE findings (data, jobs, words, screens) go to the repair board by themselves, at most 3 a night, and the repair worker fixes them; DECISION findings (anything touching a rule, size, stop, exit, book, allocation) go to a queue for Madhav's weekly yes. Code decides the lane, never the AI.
 - The evidence staircase, each bar fixed before any data: NOTED (on a card) -> DRAFT (its count fired) -> REGISTERED (Madhav says yes; the study is written down before it runs) -> TESTED (run on 2000-2023 only; it must pass the registry's strict bar for every variant ever tried) -> SHADOW (a paper book runs it on live sessions; 20 recorded sessions) -> ADMITTED (beats RANDOM and MARKET on 10 separate sessions after costs, the leak check passes, pinned in the lock, Madhav says yes; only now may the allocated capital use it) -> LIVE_ELIGIBLE (the India gate and Madhav's yes).
 - Rules on the process itself: it never reads the sealed 2024+ data, never calls the broker, never places a trade; every number names its file; a missing source says missing; the same finding is never filed twice while open; sessions, not trades, are the unit of evidence because stocks move together on a day.
@@ -583,11 +586,17 @@ def _managed_book() -> dict:
                         "(the cut was right), did the replacement rise, and replacement minus cut. And the daily benchmark row puts the managed book beside the "
                         "twin (the allocator's paper copy of the account), the frozen portfolio (the holdings left as they were) and the Nifty 500; "
                         "all four start from the same holdings. Both are under Your money; judged at session 60, nothing read before."),
-            "daily_process": ["evening (after the 15:30 IST close; 19:00 Toronto): the day's prices, flows and the Zerodha snapshot come in; every holding is re-rated and the cut list written",
-                              "then the managed book fills yesterday's plan at today's official open (a buy that opened more than 2% up is skipped), marks every position, checks the 7% stops, and writes tomorrow's plan: each cut's rupees into a replacement from the Nifty 500 by the proved filters",
-                              "then the research book records the next session's practice picks and the daily call; the replacement ledger is scored at +5 and +20 sessions",
-                              "night: the reconstruction replays the day like a coach (what it held, missed, and what to look into), and the nightly exam re-asks the day's questions",
-                              "08:30 IST: the morning view with the plan, the levels to watch and the managed book's brief; 09:15-10:15 IST: the options line decides one index lot",
+            # independent audit, 2 Nov: the times are read from the launchd jobs (jarvis/india/schedule.py), not written by hand
+            "daily_process": [f"{schedule.at('com.ananta.india.nightly')}: the official NSE day file (every stock's close) lands",
+                              f"{schedule.at('com.ananta.india.evening')}: flows and the Zerodha snapshot come in; every holding is re-rated and the cut list written; "
+                              "the managed book fills yesterday's plan at today's official open (a buy that opened more than 2% up is skipped), marks every position, "
+                              "checks the 7% stops, and writes the next plan: each cut's rupees into a replacement from the Nifty 500 by the proved filters; "
+                              "the replacement ledger is scored at +5 and +20 sessions",
+                              f"{schedule.at('com.ananta.india.paper')}: the research book records the session's practice picks and the daily call, and the "
+                              "reconstruction replays the day like a coach (what it held, missed, and what to look into)",
+                              f"{schedule.at('com.ananta.india.morningview')}: the morning view with the plan, the levels to watch and the managed book's brief; "
+                              "09:15-09:45 IST: the options line decides one index lot",
+                              f"{schedule.at('com.ananta.india.replay')}: the nightly exam re-asks the day's questions",
                               "nothing is placed from chat at any step; all books are paper"],
             "plan_vs_cut_list": ("two different lists, say them apart: cut_list (REDUCE or TRIM on the holdings) is the evening's advice; the managed plan's cuts are "
                                  "that list's REDUCE/TRIM over Rs 1,000 PLUS the tidy-ups (TIDY: stakes too small to matter, sold whole), so the plan usually has more names"),
@@ -1262,6 +1271,13 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         lk = lookup.facts_for(text_q)
     except Exception as e:  # noqa: BLE001  a lookup never breaks the answer
         lk = {"lookup_error": type(e).__name__}
+    if lk.get("stocks") and LIVE_OVERRIDE is None:   # independent audit, 2 Nov: a named stock's price now, not only last night's close
+        try:
+            clk = (f.get("today_live") or {}).get("clock")
+            if clk:
+                lk["stocks_now"] = livesession.stocks_now(clk, list(lk["stocks"].keys()))
+        except Exception as e:  # noqa: BLE001
+            lk["stocks_now"] = {"error": type(e).__name__}
     if lk:
         f["lookup"] = lk
     f["answer_guide"] = answerguide.guide(text_q, f)
@@ -1516,7 +1532,11 @@ def write_note(text: str, thread: str, post=None) -> dict:
     return {"title": " ".join(words.split()[:10])[:120], "note": f"QUESTION\n{words}\n\nRECENT CONVERSATION\n{convo[-2500:]}", "by": "words"}
 
 
-STATUS = re.compile(r"\b(my (flags?|requests?)|what happened to (my|the) (flag|request)|is it fixed|did you fix)\b", re.I)
+# independent audit, 2 Nov: "Did you log the issue I flagged this morning? What number is it?" filed a NEW flag; asking about a flag is a status question
+STATUS = re.compile(r"\b(my (flags?|requests?)|what happened to (my|the) (flag|request)|is it fixed|did you fix"
+                    r"|did you (?:log|flag|file|note|record|save|register) (?:it|that|this|the (?:issue|problem|flag|bug|request)|what i (?:flagged|raised|reported))"
+                    r"|(?:the )?(?:issue|problem|thing|bug) i (?:flagged|raised|reported|filed|logged)"
+                    r"|(?:what|which) number is (?:it|that|the (?:flag|issue|request))|the flag i (?:raised|filed|made|logged))\b", re.I)
 BARE_FLAG = re.compile(r"^\s*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|please|so|then|go ahead|do it)[\s,.!]*)*(?:flag|file|log|report)\s+(?:it|this|that)(?:\s+(?:please|now|then|for me))?[\s.!]*$", re.I)
 # 2 Nov 2026 ("Flag them issue. We will work it on the back end." filed a flag about nothing, with fixes for a confirmation button): a short
 # flag request that points back ("it", "them", "the issue", "this gap") takes its subject from the conversation, like a bare "flag it"

@@ -44,3 +44,12 @@ def test_whats_waiting_says_the_fixes_and_the_review():
     assert "The fixes: 1, Fix it as I described; 2, Investigate and tell me first" in a
     assert "The morning review: 90% cash is the rules working" in a and "it proposes: count only trades" in a
     assert "crypto: Officer check" in a
+
+
+def test_asking_about_an_earlier_flag_is_a_status_question_not_a_new_flag():
+    """Independent audit, 2 Nov: 'Did you log the issue I flagged this morning? What number is it?' filed a new flag."""
+    from jarvis.india import ask
+    for q in ("Did you log the issue I flagged this morning? What number is it?", "did you flag it?", "what number is that flag?",
+              "Is the problem I reported fixed?"):
+        assert ask.STATUS.search(q), q
+    assert not ask.STATUS.search("Flag this: the Money screen shows the wrong total")

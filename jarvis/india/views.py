@@ -35,6 +35,12 @@ JOB_WORDS = {"autologin": "morning sign-in", "evening": "evening data", "morning
 
 # ---------------------------------------------------------------------------------------------------------------- files
 
+
+def _sched():
+    """Job times in words, read from the launchd jobs (independent audit, 2 Nov: hand-written Toronto times went stale)."""
+    from jarvis.india import schedule
+    return schedule
+
 def _json(p: Path, default=None):
     try:
         return json.loads(p.read_text())
@@ -652,7 +658,7 @@ def evidence_live() -> dict:
     cnt = r.get("gate_counters") or {}
     return {"as_of": rm.get("data_through"), "days": days, "rules": "rules as of 23 Oct", "since": "2026-10-16",
             "health": {**_health(rm), "summary": "", "outages_3d": []},
-            "clocks": [{"cadence": "daily", "name": "stock picks", "scope": "research book", "n": days, "unit": "sessions", "detail": "picked every evening at 22:30 Toronto"},
+            "clocks": [{"cadence": "daily", "name": "stock picks", "scope": "research book", "n": days, "unit": "sessions", "detail": f"picked every evening at {_sched().at('com.ananta.india.paper')}"},
                        {"cadence": "daily", "name": "other traders", "scope": "comparison", "n": days, "unit": "sessions", "detail": "the day's best trades over 1, 5 and 20 sessions"},
                        {"cadence": "daily", "name": "options line", "scope": "Nifty and Bank Nifty", "n": ((rm.get("sp1") or {}).get("book") or {}).get("sessions") or 0, "unit": "sessions", "detail": "needs the morning sign-in"},
                        {"cadence": "nightly", "name": "the gate", "scope": "to real money", "n": 0, "unit": "of 30", "detail": "waiting on " + " and ".join(str(v) for v in cnt.values()) if isinstance(cnt, dict) and cnt else "waiting"}],
@@ -778,7 +784,7 @@ def _rebuild(rm: dict, h1: dict, days: int) -> dict:
         chain.append({"id": k, "step": r.get("step"), "steps": [STEP_WORDS[x] for x in steps], "words": _rule_line(k, r)})
     f = rx.get("findings") or []
     return {"books": [{"book": "the nightly review", "runs": len(cards), "mismatches": 0, "what": "the market · what other traders did · what Ananta did and did not do · trade reviews · findings"}],
-            "nightly": {"runs": len(cards), "first": cards[0].stem if cards else "", "mismatches": 0, "every": "every night at 22:30 Toronto, after the day's picks"},
+            "nightly": {"runs": len(cards), "first": cards[0].stem if cards else "", "mismatches": 0, "every": f"every night at {_sched().at('com.ananta.india.paper')}, with the day's picks"},
             "asked": {"runs": 0, "mismatches": 0, "last": "", "how": "ask Ananta: what did you learn last night?"}, "total": len(cards), "mismatches": 0,
             "last": {"when": rx.get("built_at") or "", "match": True, "checked": len(f), "rebuilt": len(cards), "headline": rx.get("headline") or "no review yet"},
             "how": "Every night Ananta replays the day: what the market did, what other traders did, what it did and did not do. A pattern needs to repeat (3 days in 7) before it becomes an idea.",
@@ -824,7 +830,7 @@ def reconstruction() -> dict:
     rm = readmodel()
     rx = rm.get("reconstruction") or {}
     if not c:
-        return {"ready": False, "headline": "No reconstruction card yet: the first one is written tonight at 22:30 Toronto.", "staircase": rx.get("staircase") or {}}
+        return {"ready": False, "headline": f"No reconstruction card yet: the first one is written tonight at {_sched().at('com.ananta.india.paper')}.", "staircase": rx.get("staircase") or {}}
     return {"ready": True, "day": c.get("day"), "rules": c.get("rules"), "built_at": c.get("built_at"), "headline": c.get("headline"),
             "sections": {"market": c.get("market"), "people": c.get("people"), "ananta": c.get("ananta"), "not_done": c.get("not_done"), "reviews": c.get("reviews")},
             "findings": [{**x, "words": finding_words(x), "type_words": FINDING_WORDS.get(x.get("type"), x.get("type")), "state_words": STATE_WORDS.get(x.get("state"), x.get("state"))} for x in (c.get("findings") or [])],
@@ -997,7 +1003,7 @@ def alerts() -> dict:
     s = rm.get("sp1") or {}
     if s.get("status") == "lost":
         out.append({"id": "sp1-lost", "t": _ts(rm.get("built_at")), "kind": "system", "coin": "NIFTY", "value": None, "setup": "SP1", "note": "The morning sign-in to Zerodha was missing, so the options line could not trade.", "status": "open",
-                    "fired_t": _ts(rm.get("built_at")), "message": "Options line missed its session", "what": "sign in to Zerodha before 09:10 Indian time (19:40 Toronto the evening before)"})
+                    "fired_t": _ts(rm.get("built_at")), "message": "Options line missed its session", "what": f"the automatic Zerodha sign-in runs at {_sched().at('com.ananta.india.autologin')}; if it failed, sign in by hand before 09:10 IST"})
     for x in (rm.get("missing") or []):
         out.append({"id": f"missing-{x}", "t": _ts(rm.get("built_at")), "kind": "system", "coin": None, "value": None, "setup": x, "note": f"The daily summary has no '{x}' part today.", "status": "open",
                     "fired_t": _ts(rm.get("built_at")), "message": f"Part of the daily summary is missing: {x}", "what": "the evening jobs rebuild it; Ananta files it on the repair shop if it stays missing"})
@@ -1219,7 +1225,7 @@ def morning() -> dict:
     opinion, the scorecard of yesterday's predictions, and the opening update once the first hour is in. Built before the open; everyone may read it."""
     f = _mv_latest()
     if not f:
-        return {"ready": False, "headline": "The morning view is written before each Indian open (08:30 Indian time, 23:00 Toronto).", "session": None}
+        return {"ready": False, "headline": f"The morning view is written before each Indian open, at {_sched().at('com.ananta.india.morningview')}.", "session": None}
     L = f.get("lines") or {}
     sc = f.get("scorecard") or {}
     return {"ready": True, "session": f.get("session"), "session_words": _day_words(f.get("session")), "built_at": f.get("built_at"), "data_through": f.get("data_through"),
@@ -1256,7 +1262,10 @@ def _waiting_count() -> dict:
     """How many things wait for Madhav's yes, the same number as the bar (the drafts total)."""
     try:
         d = drafts()["drafts"]
-        return {"count": len(d), "words": f"{len(d)} draft{'s' if len(d) != 1 else ''} waiting for your yes" if d else "nothing waits for your yes"}
+        # independent audit, 2 Nov: this said "nothing waits for your yes" while the Ask (from /v3/waiting) named two flags waiting; this count is
+        # the research drafts only, so it says so
+        return {"count": len(d), "words": (f"{len(d)} research draft{'s' if len(d) != 1 else ''} waiting for your yes (fix requests are on My flags)" if d
+                                           else "no research drafts wait for your yes (fix requests are on My flags)")}
     except Exception:  # noqa: BLE001
         return {"count": None, "words": "the waiting count is not available"}
 

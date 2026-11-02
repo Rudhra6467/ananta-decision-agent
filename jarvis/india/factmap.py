@@ -175,6 +175,37 @@ def behind(rows: list[dict], built_at: str | None) -> list[dict]:
     return out
 
 
+# Independent audit, 2 Nov: a route alone is not enough. The market summary was built at 12:38 Toronto and its inputs (futures positions, P/E, flows)
+# landed at 12:47-12:50, so Ananta denied data it had for six hours; the route check passed. A summary must be newer than what it summarises.
+SUMMARIES = [   # (summary file, the inputs it is built from)
+    ("manifests/market_context.json", ["manifests/valuation.jsonl", "manifests/flows_participant_oi.jsonl", "manifests/fii_dii_cash.jsonl"]),
+    ("manifests/quotebook.json", ["manifests/cm_bhavcopy.jsonl"]),
+]
+
+
+def stale_summaries(data: Path | None = None) -> list[dict]:
+    data = data or DATA
+    out = []
+    for summ, inputs in SUMMARIES:
+        try:
+            built = (data / summ).stat().st_mtime
+        except OSError:
+            out.append({"check": f"fresh: {summ}", "state": "FAIL", "words": f"{summ} is missing"})
+            continue
+        newer = []
+        for i in inputs:
+            try:
+                m = (data / i).stat().st_mtime
+            except OSError:
+                continue
+            if m - built > 120:
+                newer.append(f"{i} ({(m - built) / 60:.0f} min newer)")
+        out.append({"check": f"fresh: {summ}", "state": "FAIL" if newer else "PASS",
+                    "words": (f"{summ} was built before its inputs changed: {', '.join(newer)}; Ananta would deny data that is on disk" if newer
+                              else f"{summ} is newer than all its inputs")})
+    return out
+
+
 def same_number() -> list[dict]:
     """The screens against the Ask's today-block, on the numbers both show."""
     from jarvis.india import livesession, surfaces, views
@@ -214,6 +245,7 @@ def run() -> dict:
     checks = [{"check": f"route: {r['pattern']}", "state": "FAIL", "words": f"{r['pattern']} (e.g. {r['example']}) is written by a job but nothing Ananta "
                "reads uses it and it is not marked internal: a fact Ananta cannot say"} for r in rows if r["route"] == "NONE"]
     checks += behind(rows, rm.get("built_at"))
+    checks += stale_summaries()
     try:
         checks += same_number()
     except Exception as e:  # noqa: BLE001

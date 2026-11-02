@@ -112,8 +112,15 @@ def today(full: bool = True) -> dict:
     acct = _account_view()
     now = dt.datetime.now(IST)
     session = m.get("session")
-    before_open = bool(session) and (now.date() < dt.date.fromisoformat(session) or (now.date() == dt.date.fromisoformat(session) and now.time() < dt.time(9, 15)))
-    after_close = now.time() >= dt.time(15, 30) or now.weekday() >= 5
+    # independent audit, 2 Nov: from IST midnight to 08:30 IST this said "market hours" (it tested only the clock time); the state now comes from
+    # the same market clock the voice uses
+    try:
+        from jarvis.india import livesession
+        clk = livesession.clock(rm.get("data_through"))
+        state = clk["state"]
+    except Exception:  # noqa: BLE001
+        clk, state = {}, ("closed" if now.time() >= dt.time(15, 30) or now.weekday() >= 5 else "open")
+    view_is_current = bool(session) and session == clk.get("today_india", session) and state in ("before_open", "pre_open", "open")
     # the decision line: the managed book's brief for the next session, else the morning view's headline
     decision = plan.get("brief") if plan.get("for_session") == session and not plan.get("error") else None
     if not decision and plan.get("brief"):
@@ -131,7 +138,8 @@ def today(full: bool = True) -> dict:
         cards.append({"kind": "plan", "label": f"{_dw(plan.get('for_session'))}'s plan · managed book", "text": plan["words"], "accent": True,
                       "foot": f"{len(plan.get('cuts') or [])} cuts · {len(plan.get('buys') or [])} buys · a buy opening over 2% up is skipped"})
     if m.get("view"):
-        cards.append({"kind": "market", "label": "The market", "text": " ".join(m["view"][:2])})
+        label = "The market" if view_is_current else f"The morning view written before the {m.get('session_words') or 'last'} open"
+        cards.append({"kind": "market", "label": label, "text": " ".join(m["view"][:2])})
     hs = m.get("holdings_suggestions") or []
     if hs:
         cards.append({"kind": "holdings", "label": "Your holdings", "text": "Cut list: " + ", ".join(x.get("symbol") for x in hs if x.get("symbol")),
@@ -146,18 +154,20 @@ def today(full: bool = True) -> dict:
         evening = {"label": f"What the managed book did on {_dw(mb.get('day'))}",
                    "text": "; ".join((f"{'bought' if t.get('side') == 'BUY' else 'sold'} {t.get('qty')} {t.get('symbol')} at ₹{t.get('price'):,.2f}" if t.get("filled")
                                       else f"skipped {t.get('symbol')} ({t.get('skipped')})") for t in fills)}
-    when = ("before the open" if before_open else "after the close" if after_close else "market hours")
+    when = {"before_open": "before the open", "pre_open": "before the open", "open": "market hours", "closed": "after the close",
+            "no_session": "no session today"}.get(state, "after the close")
     return {"ready": True, "session": session, "session_words": m.get("session_words"), "when": when, "now_words": now.strftime("%A %-d %b, %H:%M IST"),
             "decision": decision, "decision_source": source,
             "numbers": [_nifty_tile(rm),
                         {"label": "Your account", "value": (_inr(acct["value_inr"]) if acct.get("value_inr") else "—"),
                          "sub": f"NSE close · {acct.get('positions') and len(acct['positions'])} stocks, ₹{acct.get('options_inr', 0):,.0f} options" if acct else "no snapshot yet"}],
             "waiting": {"count": waiting.get("count") or 0, "words": waiting.get("words")},
-            "running": {"ok": bool(health.get("all_ok")), "words": "Everything is running" if health.get("all_ok") else f"{len(health.get('down') or [])} part{'s' if len(health.get('down') or []) != 1 else ''} down",
+            # independent audit, 2 Nov: "Everything is running" beside "checked 234 min ago"; an old check now says it is old
+            "running": {"ok": bool(health.get("all_ok")), "words": ("Everything was running at the last check" if (health.get("checked_s_ago") or 0) > 3600 else "Everything is running") if health.get("all_ok") else f"{len(health.get('down') or [])} part{'s' if len(health.get('down') or []) != 1 else ''} down",
                         "checked": f"checked {int((health.get('checked_s_ago') or 0) // 60)} min ago" if health.get("checked_s_ago") is not None else ""},
             "cards": cards, "evening": evening, "clock": (mb.get("clock") or {}).get("words"),
             "suggested": ["What replaces Jio Financial?", "How are the trials going?", "What's waiting for my yes?"],
-            "next_view": "The morning view arrives at 08:30 Indian time (23:00 Toronto)." if not m.get("ready") else None, "paper": True}
+            "next_view": f"The morning view arrives at {views._sched().at('com.ananta.india.morningview')}." if not m.get("ready") else None, "paper": True}
 
 
 def money(full: bool = True) -> dict:

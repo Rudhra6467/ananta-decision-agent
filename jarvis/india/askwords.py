@@ -71,6 +71,12 @@ JARGON = [
     (re.compile(r"\bcount fires\b"), "count how often it fires"),
     (re.compile(r"\b(?:the )?strict bar\b"), "the strict pass mark"),
     (re.compile(r"\breference traders' best trips\b"), "the comparison traders' best trades"),
+    # 2 Nov moment harness (JARGON): "for three families", "the managed book's first fills", "the 7 pm Toronto run"
+    (re.compile(r"\b(two|three|four|five|six|several|\d+) (?:rule |strategy )?families\b"), r"\1 kinds of buy rule"),
+    (re.compile(r"\b(?:rule |strategy )?families\b"), "kinds of buy rule"),
+    (re.compile(r"\bfirst fills\b"), "first paper buys"),
+    (re.compile(r"\bfills\b(?= (?:are|were|will be) (?:booked|recorded))"), "paper buys and sells"),
+    (re.compile(r"\bthe (\d{1,2}(?::\d{2})? ?[ap]m) Toronto run\b"), r"the evening review at \1 Toronto time"),
     # the model's decision stamp (answer_guide: no labels), only at the start of a sentence
     (re.compile(r"(^|[.!?]\s+)(?:Decision|My read)\s*:\s*([a-z])"), lambda m: m.group(1) + m.group(2).upper()),
 ]

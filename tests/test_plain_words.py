@@ -60,3 +60,10 @@ def test_every_v3_answer_goes_through_the_rewriter():
     from jarvis.service import app as A
     assert any(getattr(m, "kwargs", {}).get("dispatch").__name__ == "plain_words" for m in A.app.user_middleware
                if getattr(m, "kwargs", {}).get("dispatch")), "plain_words middleware missing"
+
+
+def test_moment_harness_jargon_of_2_nov_is_put_in_plain_words():
+    from jarvis.india import askwords
+    s = askwords.words("It flagged holding into big falls for three families; the managed book's first fills are booked by the 7 pm Toronto run.")
+    assert "families" not in s and "fills" not in s and "Toronto run" not in s
+    assert "three kinds of buy rule" in s and "first paper buys" in s and "the evening review at 7 pm Toronto time" in s

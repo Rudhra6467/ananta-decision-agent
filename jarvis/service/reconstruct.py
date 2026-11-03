@@ -166,6 +166,38 @@ def _f(kind: str, key: str, words: str, evidence: dict) -> dict:
     return {"kind": kind, "lane": LANE[kind], "key": key, "words": words, "evidence": evidence, "rule": RULES}
 
 
+PROTECT_SINCE = 1792800000      # 2026-10-24 00:00 UTC: the protect rule went in (discipline item 3, Madhav's "Yes to all")
+
+
+def _be_r() -> float:
+    from jarvis.service import discipline
+
+    return float((discipline.rules().get("protect") or {}).get("breakeven_r", 1.5))
+
+
+def gave_back_past_protect(j, since: int) -> dict[str, int]:
+    """#140 (Madhav's yes, 3 Nov 2026): the GAVE_BACK finding says the protect rule is not holding, so it counts only the trades the rule
+    could act on: entered on or after 24 Oct (the rule's start), with a first stop under the entry, whose best price reached +1.5 R (the
+    rule's break-even step), and still closed at a loss. Before, every 'was up 3%' trade counted, and with stops 4-18% away none of the 10
+    on 2 Nov had reached +1.5 R: the card said the rule failed where it never applied. {book: n}, by the trade's watch."""
+    be = _be_r()
+    out: dict[str, int] = {}
+    rows = j.db.execute("SELECT r.watch, r.entry, r.best_pct, r.net_usd, e.stop, e.detail, e.entry_t FROM trade_reviews r "
+                        "JOIN evidence_trades e ON r.id = 'ev:' || e.id WHERE r.t >= ? AND r.tags LIKE '%GAVE_BACK%'", (since,)).fetchall()
+    for watch, entry, best, net, stop, det, entry_t in rows:
+        try:
+            d = json.loads(det or "{}")
+            stop0 = float(d.get("stop0") or stop or 0)
+            entry, best = float(entry), float(best)
+        except (TypeError, ValueError):
+            continue
+        if not entry_t or int(entry_t) < PROTECT_SINCE or not stop0 or stop0 >= entry or (net or 0) >= 0:
+            continue
+        if (best / 100 * entry) / (entry - stop0) >= be:
+            out[watch] = out.get(watch, 0) + 1
+    return out
+
+
 def findings(j, day0: int, market: dict, ananta: dict, not_done: dict, reviews: dict) -> list[dict]:
     from jarvis.service import discipline, missed
 
@@ -173,11 +205,10 @@ def findings(j, day0: int, market: dict, ananta: dict, not_done: dict, reviews: 
     b = BARS
     try:  # GAVE_BACK: 3+ in one book over 7 days, after the protect rule went in (so a repeat says the rule is not holding)
         since = day0 - b["gave_back_days"] * DAY
-        rows = j.db.execute("SELECT book, COUNT(*) FROM trade_reviews WHERE t >= ? AND tags LIKE '%GAVE_BACK%' GROUP BY book", (since,)).fetchall()
-        for book, n in rows:
+        for book, n in gave_back_past_protect(j, since).items():
             if n >= b["gave_back_n"]:
-                out.append(_f("GAVE_BACK", f"gave_back:{book}", f"{book}: {n} trades were up and gave it back in {b['gave_back_days']} days; the protect rule should hold these",
-                              {"book": book, "n": n, "days": b["gave_back_days"]}))
+                out.append(_f("GAVE_BACK", f"gave_back:{book}", f"{book}: {n} trades reached the protect rule's +{_be_r():g} R and still closed at a loss in "
+                              f"{b['gave_back_days']} days; the protect rule should hold these", {"book": book, "n": n, "days": b["gave_back_days"]}))
     except Exception:  # noqa: BLE001
         pass
     try:  # MISS_PATTERN: the same kind of move missed 3+ times in 30 days -> a family to draft (Madhav decides)

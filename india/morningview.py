@@ -358,6 +358,13 @@ def premarket_inputs() -> dict:
             "ban_list": {"symbols": bn.get("symbols"), "words": bn.get("words"), "fetched_at": bn.get("fetched_at")}}
 
 
+def blind_spots(us_date: str) -> str:
+    """What the morning view cannot see before the open, said every day."""
+    return ((f"What Ananta cannot see: the US close on file is for {us_date}" if us_date else "What Ananta cannot see: no US close is on file")
+            + "; there is no GIFT Nifty and no live Asian feed, so anything that moved overnight shows only at the 09:15 IST open; "
+            "crude, the dollar and the rupee readings lag several days.")
+
+
 def lines(f: dict) -> dict:
     """The view in plain words, by rule, so the morning exists even without a model. Four short parts and a watch list."""
     ov, s, p, sc, y = f["overnight"], f["setup"], f["plan"], f["scorecard"], f["yesterday"]
@@ -438,6 +445,9 @@ def lines(f: dict) -> dict:
         watch.append(f"F&O ban list today: {', '.join(bl[:8])} (no new futures or options positions in these; the cash book is not affected).")
     elif bl == []:
         watch.append("F&O ban list today: empty.")
+    # 3 Nov (outside trader grade): the view must say what it cannot see overnight (no GIFT Nifty, a day-old US close, lagging crude and rupee)
+    us_d = max((str(v.get("date") or "") for v in (ov.get("us") or {}).values()), default="")
+    watch.append(blind_spots(us_d))
     watch.append("Guardrails: a 5% loss stops the day; 22% below the peak pauses new buys.")
     yest = []
     if y.get("lessons"):

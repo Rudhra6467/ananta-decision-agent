@@ -411,7 +411,7 @@ def make_plan(book: dict, day: str, feats: pd.DataFrame, exit_rows: list[dict], 
 def plan_brief(p: dict) -> str:
     """One or two sentences for the voice; the full words are in the view."""
     if p.get("no_change"):
-        return f"No change for {_dw(p['for_session'])}: nothing is on the cut list."
+        return f"No change for {_dw(p['for_session'])}: the managed book has nothing new to cut or buy (the cut list's names it already cut stay cut)."   # 3 Nov: 'nothing is on the cut list' contradicted the cut list
     cuts, buys = p.get("cuts") or [], p.get("buys") or []
     w = f"For {_dw(p['for_session'])}: {len(cuts)} cut{'s' if len(cuts) != 1 else ''} ({', '.join(x['symbol'] for x in cuts)}) freeing about ₹{float(p.get('freed_inr') or 0):,.0f}"
     if buys:

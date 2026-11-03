@@ -1,0 +1,38 @@
+{
+ "study": "RX3",
+ "family": "rx_drafts",
+ "version": 1,
+ "written": "2026-11-02",
+ "asked_by": "Madhav approved the draft MISS_PATTERN:up:breakout_base:intraday_run on 30 Oct 2026 (22:38 UTC, app); it was not run until Madhav's \"Yes , let's continue\" of 2 Nov 2026 19:20 Toronto.",
+ "title": "Breaking out of a tight base: is there a rule, known at the close, for the next session's run?",
+ "hypothesis": "A liquid stock that closes above its previous 20-session high out of a tight base (previous 20-session range under 15% of the price), or that sits in such a base near its top, earns more than the average liquid stock the next session (open to close) and over 5 sessions.",
+ "closed_without_a_new_study": "The three HELD_INTO_FALL drafts approved 31 Oct (CTL, PULL, REV) ask whether a faster exit is justified. RX1 (X|PULL, X|CTL, X|CTL_downtrend) and RX2 (X|REV) already tested the faster exit the reconstruction can propose (out at the 4th session's open when the first 3 sessions never reached a quarter of the risk): all OPPOSITE. They are recorded as answered, not re-tested, so no variant is spent on them.",
+ "data": {
+  "stock_panel": "gold/teachers/stock_panel.parquet 2000-2023 (o, h, l, c, liq_rank, breakout20, pos20, fwd5), as RX1",
+  "nothing_sealed": "no 2024+ row, no sealed folder"
+ },
+ "definitions": {
+  "universe": "liquid stocks: liq_rank <= 250 on the signal day; the base for every comparison is all liquid stocks on the same next session (RX1's level rule)",
+  "base20": "(highest high - lowest low of the previous 20 sessions) / the previous close; tight = base20 <= 0.15 (the missed-movers rule, india/missed.py BASE_TIGHT)",
+  "breakout_base": "close above the highest high of the previous 20 sessions and tight base20, with a consecutive previous bar",
+  "base_near_top": "tight base20, not a breakout, and the close in the top fifth of the 20-session range (pos20 >= 0.8): the setup visible before a breakout",
+  "outcomes": "next_oc = next session open to close; fwd5 = close to the close 5 sessions later (as RX1); next-session moves over 50% dropped"
+ },
+ "statistics": {
+  "level": "india.teachers_stock.level: per calendar quarter, signal mean minus all liquid stocks' mean; t across quarters",
+  "periods": "development 2000-2017, validation 2018-2023",
+  "verdict": "india/registry.record standard rule"
+ },
+ "bar": {
+  "union_k": 155,
+  "z": 3.596,
+  "bar_families": ["technical", "exit", "rx_drafts"],
+  "note": "RX2's 152 plus these 3; k frozen at 155"
+ },
+ "variants": {
+  "U|breakout_base|next_oc": 1,
+  "L|breakout_base|fwd5": 1,
+  "U|base_near_top|next_oc": 1
+ },
+ "not_claimed": "Research only; no rule changes. A pass would be a proposal for a 20-session paper trial and Madhav's yes."
+}

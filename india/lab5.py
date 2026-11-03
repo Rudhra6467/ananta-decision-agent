@@ -242,7 +242,52 @@ def run2(counts_only: bool = False) -> dict:
     return out
 
 
+def frame3() -> pd.DataFrame:
+    """RX3 (2 Nov): RX1's frame plus the tight-base states, exactly as registrations/rx3_v1.json defines them."""
+    P = frame()
+    g = P.groupby("sid", sort=False)
+    ph = g["h"].transform(lambda s: s.shift(1).rolling(20, min_periods=20).max())
+    pl = g["l"].transform(lambda s: s.shift(1).rolling(20, min_periods=20).min())
+    prev_c = g["c"].shift(1)
+    prev = (g["n"].shift(1) == P["n"] - 1)
+    base = (ph - pl) / prev_c
+    tight = base <= 0.15
+    P["breakout_base"] = (P["c"] > ph) & tight & prev
+    P["base_near_top"] = tight & ~(P["c"] > ph) & (P["pos20"] >= 0.8) & prev
+    return P
+
+
+RX3_PLAN = [("U|breakout_base|next_oc", "breakout_base", "next_oc"), ("L|breakout_base|fwd5", "breakout_base", "fwd5"),
+            ("U|base_near_top|next_oc", "base_near_top", "next_oc")]
+
+
+def run3(counts_only: bool = False) -> dict:
+    """RX3 (2 Nov): the breakout-base draft approved 30 Oct, spec registrations/rx3_v1.json (committed before the run)."""
+    s = json.loads((REG_DIR / "rx3_v1.json").read_text())
+    k = int(s["bar"]["union_k"])
+    if abs(registry.threshold(k) - float(s["bar"]["z"])) > 0.01:
+        raise ValueError(f"RX3: the spec's z {s['bar']['z']} does not match k {k}")
+    P = frame3()
+    L = P[P["liq"]]
+    if counts_only:
+        return {key: _counts(L.dropna(subset=[col]).loc[lambda d: d[ev].fillna(False).astype(bool), "date"]) for key, ev, col in RX3_PLAN}
+    reg = registry.register("RX3", family=s["family"], title=s["title"], hypothesis=s["hypothesis"], variants=list(s["variants"]),
+                            note="spec india/registrations/rx3_v1.json (written and committed before the run)", bar_families=s["bar"].get("bar_families"), union_k=k)
+    rows = []
+    for key, ev, col in RX3_PLAN:
+        d = L.dropna(subset=[col])
+        on = d[ev].fillna(False).astype(bool)
+        r = ts.level(d, on, col)
+        extra = {**r["extra"], **_counts(d.loc[on, "date"])}
+        line = registry.record(reg, key, tuple(r["dev"]), tuple(r["val"]), extra=_clean(extra), expect=s["variants"][key])
+        rows.append({"variant": key, "verdict": line["verdict"], "dev": _clean(list(line["dev"])), "val": _clean(list(line["val"])), "extra": _clean(line["extra"])})
+    out = {"study": "RX3", "registered_at": reg["at"], "k": k, "rows": rows}
+    (paths.manifest_dir() / "lab5_rx3.json").write_text(json.dumps(out, indent=1, default=str))
+    registry.mirror_to_catalog()
+    return out
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "check"
-    res = {"check": check, "run": run, "check2": lambda: run2(True), "run2": run2}[cmd]()
+    res = {"check": check, "run": run, "check2": lambda: run2(True), "run2": run2, "check3": lambda: run3(True), "run3": run3}[cmd]()
     print(json.dumps(_clean(res), indent=1, default=str)[:6000])

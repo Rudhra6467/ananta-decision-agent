@@ -44,6 +44,26 @@ Outcome: 14 not supported on seen years across 14 variants.
 Claim before the run: exploratory: each variant's daily log growth on the historical paused path (2017-2023 dev, 2024-01-01..2026-10-16 seen); the selection is counted, never confirmed
 Outcome: 20 had too little data to judge across 20 variants.
 
+## W500 (1 studies)
+
+### W500: W500: do the narrow-universe results (OC1, IB1, GP1) carry to the next band of stocks?
+Claim before the run: each VALIDATED stock variant of OC1 (top 100), IB1 (top 50) and GP1 (top 250), with its frozen rule, costs and periods, has the same sign with t >= 2.0 in both periods on the next band of stocks alone
+Outcome: 11 held up in both periods across 11 variants.
+
+| variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
+|---|---|---|---|---|---|---|
+| OC1 · STOCKS · k15 · E2 · X2 · vs_base | VALIDATED | +23.38 | +28.3 | +22.19 | +34.8 | 2.838 |
+| OC1 · STOCKS · k30 · E2 · X2 · vs_base | VALIDATED | +23.00 | +23.6 | +22.66 | +31.7 | 2.838 |
+| OC1 · STOCKS · k15 · E2 · X1 · vs_base | VALIDATED | +24.39 | +23.5 | +23.10 | +30.1 | 2.838 |
+| OC1 · STOCKS · k30 · E2 · X1 · vs_base | VALIDATED | +24.34 | +17.8 | +23.48 | +26.5 | 2.838 |
+| OC1 · STOCKS · k15 · E1 · X2 · vs_base | VALIDATED | +20.68 | +19.3 | +21.54 | +25.0 | 2.838 |
+| OC1 · STOCKS · k30 · E1 · X2 · vs_base | VALIDATED | +21.87 | +17.9 | +22.11 | +24.0 | 2.838 |
+| OC1 · STOCKS · k15 · E1 · X1 · vs_base | VALIDATED | +20.49 | +15.3 | +21.77 | +22.0 | 2.838 |
+| OC1 · STOCKS · k30 · E1 · X1 · vs_base | VALIDATED | +20.43 | +12.6 | +22.82 | +19.7 | 2.838 |
+| IB1 · STK · orb30 · net | VALIDATED | +0.17% | +10.4 | +0.11% | +10.4 | 2.838 |
+| GP1 · STK · gapdown2 · open · hold1 | VALIDATED | +2.24% | +19.6 | +0.89% | +9.3 | 2.838 |
+| IB1 · STK · orb15 · net | VALIDATED | +0.16% | +10.9 | +0.10% | +8.8 | 2.838 |
+
 ## combination (1 studies)
 
 ### CL1: The combination lab: does a stock setup together with a market state earn more over 20 sessions than the better of the two alone? Five stock setups x five market states on the random (ANY) entries, 2000-2023

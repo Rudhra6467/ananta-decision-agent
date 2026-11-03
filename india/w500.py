@@ -144,6 +144,21 @@ def run() -> dict:
     return out
 
 
+TAKEAWAY = [   # 3 Nov 2026, after the run
+    "- Every one of these is a RELATIVE result, and each one carries: the effect is not confined to the most traded names. None of them is a "
+    "way to make money by itself.",
+    "- OC1: on ranks 101-250 the filtered trades still lose about 25-33 bps per trade after costs in both periods (the baseline loses about "
+    "24-29). 'vs_base' is positive because the filters skip many losing trades. The protocol tells you when NOT to trade a stock at the open; "
+    "it does not find trades that pay.",
+    "- IB1: on ranks 51-150 the breakout trades lose about 0.10-0.14% per trade after costs, against about 0.25% for random intraday entries. "
+    "Better than random, but still a loss.",
+    "- GP1: buying the open after a 2% gap-down earns on paper on ranks 251-500 too (about +2.0% dev, +0.3% val per trade after costs). The "
+    "GP1 results page already says it cannot be traded as defined (the gap is known only once the open prints) and that the edge has faded; "
+    "a wider universe does not change that.",
+    "- So: no rule, book or paper position changes. The finding goes into each study's write-up as 'holds beyond the most traded names'.",
+]
+
+
 def _orig() -> dict:
     o = {}
     for r in registry._rows():
@@ -164,7 +179,7 @@ def page(out: dict) -> Path:
         L.append(f"| {r['variant'].replace('|', ' · ')} | {o.get('dev', [None, None])[1] or 0:+.1f} | {o.get('val', [None, None])[1] or 0:+.1f} | "
                  f"{f(r['dev'][0])} | {(r['dev'][1] or 0):+.1f} | {f(r['val'][0])} | {(r['val'][1] or 0):+.1f} | {'yes' if r['carries'] else 'no'} | {r['verdict']} |")
     n = sum(1 for r in out["rows"] if r["carries"])
-    L += ["", f"{n} of {len(out['rows'])} variants carry to the next band.", ""]
+    L += ["", f"{n} of {len(out['rows'])} variants carry to the next band.", "", "## What 'carries' does and does not mean (written after the run, from the ledger extras)", ""] + TAKEAWAY + [""]
     RESULTS.write_text("\n".join(L))
     return RESULTS
 

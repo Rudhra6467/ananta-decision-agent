@@ -88,8 +88,9 @@ def test_costs_arithmetic():
         return
     g, ek, xk = np.array([0.03]), np.array([0], np.int8), np.array([gr.KIND_TARGET], np.int8)
     n = gr.net_of(g, ek, xk, "BTC", "NDAX_NOW")[0]
-    assert abs(n - (0.03 - (0.002 + 0.00178) - 1.03 * 0.002)) < 1e-6
-    assert abs(gr.net_of(g, ek, xk, "BTC", "ZERO_FEE")[0] - (0.03 - 0.00178)) < 1e-6
+    hs = gr.HALF_SPREAD["BTC"]                                   # the dated cost table (ndax_costs)
+    assert abs(n - (0.03 - (0.002 + hs) - 1.03 * 0.002)) < 1e-6
+    assert abs(gr.net_of(g, ek, xk, "BTC", "ZERO_FEE")[0] - (0.03 - hs)) < 1e-6
 
 
 def test_holdout_is_never_loaded():

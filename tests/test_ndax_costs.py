@@ -11,8 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # The numbers as they stood in every copy before the merge (the median of 5 NDAX snapshots, 2026-09-29). This is the independent reference:
 # if someone edits the shared table, this test says so, and the edit has to be a dated decision, not a drive-by.
-FROZEN = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
-          "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
+SEP29 = {"BTC": 0.00178, "ETH": 0.00084, "SOL": 0.00289, "ADA": 0.00273, "DOGE": 0.00307,
+         "AVAX": 0.00370, "BCH": 0.00400, "LINK": 0.00341, "LTC": 0.00334, "XRP": 0.00251}
+# 2026-11-03 SPREAD-REFRESH (Madhav's yes of 26 Oct on #108, applied 3 Nov): the measured p75 half-spreads, 14 full days to 2 Nov
+FROZEN = {"BTC": 0.00228, "ETH": 0.00240, "SOL": 0.00304, "ADA": 0.00282, "DOGE": 0.00331,
+          "AVAX": 0.00414, "BCH": 0.00400, "LINK": 0.00377, "LTC": 0.00404, "XRP": 0.00268}
 
 # (module, the name that module used for the table before the merge)
 OLD_NAMES = [("src.intelligence.explorer_engine", "HALF_SPREAD"), ("src.research.portfolio_trend", "HALF_SPREAD"),
@@ -24,14 +27,16 @@ OLD_NAMES = [("src.intelligence.explorer_engine", "HALF_SPREAD"), ("src.research
 
 def test_the_shared_table_is_the_dated_snapshot():
     assert N.HALF_SPREAD == FROZEN
+    assert N.HALF_SPREAD_2026_09_29 == SEP29                     # the old table stays on record, so earlier results can be traced
     assert N.NDAX_FEE == 0.0020 and N.DEFAULT_HS == 0.0040 and N.EXPENSIVE_HS == 0.0030
     assert N.SNAPSHOT["taken"] == "2026-09-29" and N.SNAPSHOT["samples"] == 5
+    assert N.REFRESHES[-1]["date"] == "2026-11-03" and "Madhav" in N.REFRESHES[-1]["approved"]
 
 
 def test_no_second_copy_of_the_table_exists():
     """A literal copy anywhere under src/ or jarvis/ (the BTC and ETH entries are the fingerprint) fails the test."""
     me = Path(N.__file__).resolve()
-    fingerprint = re.compile(r'"BTC"\s*:\s*0\.00178|"ETH"\s*:\s*0\.00084')
+    fingerprint = re.compile(r'"BTC"\s*:\s*0\.00(?:178|228)|"ETH"\s*:\s*0\.00(?:084|240)')
     copies = [str(p.relative_to(ROOT)) for d in ("src", "jarvis") for p in (ROOT / d).rglob("*.py")
               if p.resolve() != me and fingerprint.search(p.read_text(errors="ignore"))]
     assert copies == [], f"a second copy of the NDAX half-spread table: {copies}; import src.intelligence.ndax_costs instead"
@@ -52,4 +57,4 @@ def test_explorer_engine_still_exports_the_cost_names():
     from src.intelligence import explorer_engine as xe
 
     assert (xe.NDAX_FEE, xe.DEFAULT_HS, xe.EXPENSIVE_HS) == (0.0020, 0.0040, 0.0030)
-    assert xe.HALF_SPREAD["BTC"] == 0.00178
+    assert xe.HALF_SPREAD["BTC"] == 0.00228

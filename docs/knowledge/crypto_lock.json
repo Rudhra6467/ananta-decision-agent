@@ -58,13 +58,19 @@
     "jarvis/service/registry.py",
     "src/intelligence/paper_exit.py"
    ],
-   "sha256": "e267fcc357a6db4841c8206344510006956d77609fd8c3224e277008df060c0b",
+   "sha256": "4bbb18acf2fc65fc768ab4a257aec900cf04551908ecb6e48dfc5726f6447824",
    "history": [
     {
      "date": "2026-10-15",
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
      "sha256": "e267fcc357a6db4841c8206344510006956d77609fd8c3224e277008df060c0b"
+    },
+    {
+     "date": "2026-11-03",
+     "approved_by": "Madhav (in chat)",
+     "sha256": "4bbb18acf2fc65fc768ab4a257aec900cf04551908ecb6e48dfc5726f6447824",
+     "note": "SPREAD-REFRESH: the measured NDAX spreads into the cost table (src/intelligence/ndax_costs.py HALF_SPREAD, the p75 half-spread of the 14 full days 2026-10-20..2026-11-02; BCH unmeasured, unchanged; the 29 Sep table kept as HALF_SPREAD_2026_09_29). Madhav, 2026-10-26 on #108: \"yes. Keep the coin list unchanged; take the measured spreads into the cost table at SPREAD-REFRESH\"; applied with \"yes to 5\", 2026-11-03."
     }
    ]
   },

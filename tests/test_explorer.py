@@ -190,7 +190,7 @@ def test_costs_net():
     v.exit_px, v.exit_kind = 104.0, "LIMIT"
     assert abs(xe.net_usd(tr, v) - 100 * (0.04 - 0.002 - 1.04 * 0.002)) < 1e-9
     v.exit_kind = "MARKET"
-    assert abs(xe.net_usd(tr, v) - 100 * (0.04 - 0.002 - 1.04 * (0.002 + 0.00178))) < 1e-9
+    assert abs(xe.net_usd(tr, v) - 100 * (0.04 - 0.002 - 1.04 * (0.002 + xe.HALF_SPREAD["BTC"]))) < 1e-9   # the dated cost table (ndax_costs)
 
 
 def test_replay_and_scorecard_smoke():

@@ -44,7 +44,7 @@ the "as a trade / as a long-term holding" split only when the horizon is unknown
 ONE NUMBER, ONE SOURCE (28 Oct re-grade): quote these exactly and never derive them: drafts_waiting_total.count (what waits for his yes);
 daily_call scored/hits/null_hits (never work out how often the Nifty rose or fell from them); a holding's value_inr (what it is worth) versus
 suggest_inr (the amount to move), naming which; the holdings to cut are the account_allocation rows whose action is REDUCE or TRIM, in its order.
-TRADER DESK (3 Nov, outside trader grade): trader_desk holds the session facts a trader uses; use it. (1) "Check the link / is data coming through": say each feed in trader_desk.feeds with its last day, and name any that is behind; never only "prices are coming through". (2) "What happened today": the high, low and close, the gap, VIX, the institutions' flows if in the facts, your holdings against the Nifty (say plainly when they lagged), and why a holding moved 3% or more from trader_desk.moves (its filing and time, or "no company filing found"). (3) "Plan for tomorrow / what will you watch": answer from trader_desk.prep as scenarios (prep.how_to_use): previous high/low/close, gap up/flat/down, the option-interest walls with their date, the expected move from VIX, open option trades with contract and expiry (open and marked, not a result), expiries, holidays, results ahead and events; then name a few stocks from trader_desk.radar with the reason each, saying they are names to look at, not picks; never "no plan of its own" or "no names yet". (4) "Do we have X data / is our data enough": answer from trader_desk.data_we_have: what is on file with years and how complete, then where it is thin; never "no announcement dates" or "no results" (they are on file; results are partly parsed). (5) Indicators and option buying: use trader_desk.basics (momentum is not RSI; option-buyer arithmetic; no trade is often right) together with Ananta's own tests, and say which is which. (5b) Option-interest walls are from the session named in their date and are context only: never say an index must hold max pain or a wall. (5c) "What do you do before the market starts": say what Ananta reads and looks for (trader_desk.basics.routine), not only the job times, and name all four decision points 09:15, 09:30, 09:45 and 10:15 IST. (5d) Expiry days: say them as trader_desk.prep.expiries words (the weekday and why when moved). (5e) Say the options line's rule as trader_desk.prep.options_line_rule and today's trades with options_line_today's numbers (predicted move, cost, bar in index points); never 'the move clears the option's cost'. (5f) Cut list vs managed book: the cut list is the evening's advice on your real holdings (account_allocation cut_list); the managed book's plan is what the paper managed book does next; say both apart and never 'nothing is on the cut list' while cut_list has names. (5g) After the close, say holdings_vs_nifty and, for tomorrow, prep.overnight_cues and prep.toronto_times. (5h) Words: say India VIX, not 'the fear gauge'; full company names (Marico, National Aluminium, Petronet LNG), not tickers; on the cut list 'trim', 'halve' and 'a tiny stake to tidy up' in words; the F&O ban stops new futures and options positions in that stock, its shares trade normally; a gap up helps a bought call, a gap down hurts it. (5i) 'Why did it buy Bank Nifty / is the rule safe': say plainly that Bank Nifty's safety margin is five times looser than Nifty's (c 0.5 against 2.5), that the rule predicts the index, not the option (the option's price and implied volatility are not inputs), and that the 20-session review grades each index separately. (5j) 'How are we doing': the daily call's record against a coin flip, the options line's result per index, and holdings_vs_nifty, without being asked for each. (6) The options line takes at most one trade per index per session, so two trades in a day (one Nifty, one Bank Nifty) is the rule, not a break. (7) "Register / note / notify me": the note is filed in code before you see the message; never say you cannot confirm it is saved or ask him to check. ONE FORECAST (3 Nov, Madhav: yes): the daily call is Ananta's one forecast; Chronos was stopped on 3 Nov after 0 of 5 and the rule forecast, the reviewer and the shadow trader are records on Proof, not forecasts to quote; if he asks about one, say so. QUIET BOOKS (3 Nov, Madhav: yes): the teachers' forward books, the long-term tilt book and the paper trials live on Proof: bring them up only when he asks about them or when one's clock has ended, never in a greeting, a day summary or an opener. Add an "I'd reverse this if ..." line
+TRADER DESK (3 Nov, outside trader grade): trader_desk holds the session facts a trader uses; use it. (1) "Check the link / is data coming through": say each feed in trader_desk.feeds with its last day, and name any that is behind; never only "prices are coming through". (2) "What happened today": the high, low and close, the gap, VIX, the institutions' flows if in the facts, your holdings against the Nifty (say plainly when they lagged), and why a holding moved 3% or more from trader_desk.moves (its filing and time, or "no company filing found"). (3) "Plan for tomorrow / what will you watch": answer from trader_desk.prep as scenarios (prep.how_to_use): previous high/low/close, gap up/flat/down, the option-interest walls with their date, the expected move from VIX, open option trades with contract and expiry (open and marked, not a result), expiries, holidays, results ahead and events; then name a few stocks from trader_desk.radar with the reason each, saying they are names to look at, not picks; never "no plan of its own" or "no names yet". (4) "Do we have X data / is our data enough": answer from trader_desk.data_we_have: what is on file with years and how complete, then where it is thin; never "no announcement dates" or "no results" (they are on file; results are partly parsed). (5) Indicators and option buying: use trader_desk.basics (momentum is not RSI; option-buyer arithmetic; no trade is often right) together with Ananta's own tests, and say which is which. (5b) Option-interest walls are from the session named in their date and are context only: never say an index must hold max pain or a wall. (5c) "What do you do before the market starts": say what Ananta reads and looks for (trader_desk.basics.routine), not only the job times, and name all four decision points 09:15, 09:30, 09:45 and 10:15 IST. (5d) Expiry days: say them as trader_desk.prep.expiries words (the weekday and why when moved). (5e) Say the options line's rule as trader_desk.prep.options_line_rule and today's trades with options_line_today's numbers (predicted move, cost, bar in index points); never 'the move clears the option's cost'. (5f) Cut list vs managed book: the cut list is the evening's advice on your real holdings (account_allocation cut_list); the managed book's plan is what the paper managed book does next; say both apart and never 'nothing is on the cut list' while cut_list has names. (5g) After the close, say holdings_vs_nifty and, for tomorrow, prep.overnight_cues and prep.toronto_times. (5h) Words: say India VIX, not 'the fear gauge'; full company names (Marico, National Aluminium, Petronet LNG), not tickers; on the cut list 'trim', 'halve' and 'a tiny stake to tidy up' in words; the F&O ban stops new futures and options positions in that stock, its shares trade normally; a gap up helps a bought call, a gap down hurts it. (5i) 'Why did it buy Bank Nifty / is the rule safe': say plainly that Bank Nifty's safety margin is five times looser than Nifty's (c 0.5 against 2.5), that the rule predicts the index, not the option (the option's price and implied volatility are not inputs), and that the 20-session review grades each index separately. (5k) Clock times: when you say an IST time, put the Toronto time beside it from trader_desk.ist_in_toronto; never work one out. (5l) A suggested trim under Rs 1,000 is noise the managed book ignores (its min_cut_inr): say so, or leave it out. (5m) Say a list once: either the sentences or the numbered list, not both. (5j) 'How are we doing': from trader_desk.scorecard: the daily call against a coin flip, the options line's paper result per index and its sessions of 20, and holdings_vs_nifty, without being asked for each. (6) The options line takes at most one trade per index per session, so two trades in a day (one Nifty, one Bank Nifty) is the rule, not a break. (7) "Register / note / notify me": the note is filed in code before you see the message; never say you cannot confirm it is saved or ask him to check. ONE FORECAST (3 Nov, Madhav: yes): the daily call is Ananta's one forecast; Chronos was stopped on 3 Nov after 0 of 5 and the rule forecast, the reviewer and the shadow trader are records on Proof, not forecasts to quote; if he asks about one, say so. QUIET BOOKS (3 Nov, Madhav: yes): the teachers' forward books, the long-term tilt book and the paper trials live on Proof: bring them up only when he asks about them or when one's clock has ended, never in a greeting, a day summary or an opener. Add an "I'd reverse this if ..." line
 only when there is a real condition with a number in it. Buying an index dip: cite Ananta's gap-down study (Nifty and Bank Nifty gap-downs of
 1% or more were followed by a slightly better week, not reliably) from indicator_knowledge.
 A prediction question ("up or down tomorrow?", "what's your prediction?"): Ananta HAS a forecast, the daily call; give it (daily_call.call
@@ -992,7 +992,9 @@ def finish(reply: dict, question: str, model: bool) -> dict:
     # breakdown holds one, the breakdown's lines are spoken as the list.
     promise = re.search(r"\b(?:here (?:are|is)|these are) (?:the |my |a )?(?:\w+ ){0,2}(?:\d+|two|three|four|five|six|seven|eight|nine|ten) (?:lines|steps|points|checks|things|rules|questions|items)\b|\bin (?:this|that) order\b|:\s*$", a, re.I)
     bd = [str(x).strip() for x in (reply.get("breakdown") or []) if str(x).strip()]
-    if promise and len(re.findall(r"(?:^|\s)(?:\d+[).:]|[-•])\s", a)) < 2 and len(bd) >= 3:
+    named = lambda x: (re.findall(r"[A-Z][A-Z&-]{2,}", x) or [x.split(":")[0]])[0]  # noqa: E731  the item's first name
+    said_all = bd and all(named(x) in a for x in bd)        # 3 Nov (round 5): the list was spoken twice, as sentences and again numbered
+    if promise and len(re.findall(r"(?:^|\s)(?:\d+[).:]|[-•])\s", a)) < 2 and len(bd) >= 3 and not said_all:
         items = [x if re.match(r"\d+[).:]", x) else f"{i}) {x}" for i, x in enumerate(bd, 1)]
         a = a.rstrip() + " " + " ".join(x if x.endswith((".", "!", "?")) else x + "." for x in items)
     # 31 Oct (outsider r5): a trailing fragment of one to three words ending on a joining word ("All of.", "And the.") is a cut-off, not a sentence
@@ -1452,19 +1454,23 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         # correction; if that is still wrong, the contradicting sentences are dropped and today's block leads. Every catch is logged.
         try:
             from jarvis.india import livesession as _ls
+            from jarvis.india import numcheck as _nc
             live = f.get("today_live") or {}
-            probs = _ls.check(str(reply.get("answer") or ""), live, text_q)
+            # 3 Nov (outside grade): every rupee figure and every number of 100 or more must be in the facts (Rs 53,500 for a Rs 24,699 lot)
+            chk = lambda a: _ls.check(a, live, text_q) + (_nc.check(a, f, text_q) if usage.get("model") not in ("rule", "none") else [])  # noqa: E731
+            probs = chk(str(reply.get("answer") or ""))
             if probs and usage.get("model") not in ("rule", "none"):
                 note = _ls.correction_note(probs, live)
                 raw2, usage2 = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user + "\n\n" + note, post=post, max_tokens=budget,
                                      cached=(facts_text, user_c + "\n\n" + note))
                 reply2 = _parse(raw2)
-                left = _ls.check(str(reply2.get("answer") or ""), live, text_q)
+                left = chk(str(reply2.get("answer") or ""))
                 if str(reply2.get("answer") or "").strip() and not left:
                     reply = {**reply, **reply2}
                     usage = {**usage2, "guard": "re-answered"}
                 else:
-                    reply["answer"] = _ls.scrub(str((reply2.get("answer") if str(reply2.get("answer") or "").strip() else reply.get("answer")) or ""), live)
+                    base = str((reply2.get("answer") if str(reply2.get("answer") or "").strip() else reply.get("answer")) or "")
+                    reply["answer"] = _nc.scrub(_ls.scrub(base, live), _nc.figures(left if str(reply2.get("answer") or "").strip() else probs))
                     usage = {**usage, "guard": "scrubbed"}
                 _guard_log(thread, text_q, probs, usage.get("guard"))
             elif probs:
@@ -1583,6 +1589,24 @@ Reply with JSON only: {"title": "<6-10 plain words naming the topic>", "note": "
 QUESTION / WHY IT MATTERS / WHAT ANANTA KNOWS TODAY / DATA WE HAVE AND DATA MISSING / PROPOSED TEST (written down before any run: 2000-2017 then
 2018-2023, 2024+ sealed, the registry's strict bar, costs included, against a random or no-signal baseline) / RISKS AND CAVEATS>"}.
 Keep it under 450 words; short sentences; no markdown symbols."""
+
+
+ALSO = re.compile(r"\b(?:along with|as well|this one (?:is )?also|this one too|that one too|both of them|both|the first (?:one|thing)|your first thing)\b", re.I)
+OFFER = re.compile(r"\b(?:put (?:that|it) down|research item|register|note it|note that|list (?:that|it) as|as a research|written down|tell me which gap)\b", re.I)
+
+
+def _earlier_subject(thread: str, text: str) -> str | None:
+    """When he files 'this one too, along with the last one', the earlier request: his message before the one this refers to, when Ananta
+    had offered to note something then. None when the message names one thing only."""
+    if not ALSO.search(text or ""):
+        return None
+    msgs = thread_messages(thread)
+    users = [m for m in msgs if m.get("role") == "user" and str(m.get("text") or "").strip() != str(text).strip()]
+    asst = [m for m in msgs if m.get("role") == "assistant"]
+    back = re.search(r"\blast (?:one|conversation|thing|question)\b|\bfirst thing\b|\bearlier one\b|\bthe one before\b", text or "", re.I)
+    if len(users) < 2 or not (back or any(OFFER.search(str(a.get("answer") or "")) for a in asst[-3:])):
+        return None
+    return str(users[-2].get("text") or "")[:900] or None
 
 
 def write_note(text: str, thread: str, post=None) -> dict:
@@ -2391,15 +2415,26 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         about = text
         if _refers_back(text):
             about = _subject_from_context(thread, text)
-        n = write_note(about, thread)
-        r = post(f"{JARVIS_URL}/v3/flags", {"text": n["title"], "note": n["note"], "market": "india", "screen": screen or "research note", "route": "ask"})
-        j = r.json() if hasattr(r, "json") else r
-        if not j.get("num"):
-            return _reply(f"I could not save that note, sir: {str(j.get('detail') or j)[:120]}", [], [])
-        name = j.get("label") or f"note {j['num']}"
-        line = (f"Added to the research note on {j.get('title') or n['title']} ({name}), sir." if j.get("updated") else
-                f"Saved, sir, as {name} in My flags: {n['title']}. The next morning review takes it up first and says when it will be "
-                "done; you get a phone note when its status changes and when it is done.")
+        abouts = [about]
+        earlier = _earlier_subject(thread, text)
+        if earlier:                                      # 3 Nov (09:01 chat): "along with the last one ... this one is also to be registered"
+            abouts = [earlier, about]
+        saved = []
+        for ab in abouts:
+            n = write_note(ab, thread)
+            r = post(f"{JARVIS_URL}/v3/flags", {"text": n["title"], "note": n["note"], "market": "india", "screen": screen or "research note", "route": "ask"})
+            j = r.json() if hasattr(r, "json") else r
+            if not j.get("num"):
+                return _reply(f"I could not save that note, sir: {str(j.get('detail') or j)[:120]}", [], [])
+            saved.append((n, j, j.get("label") or f"note {j['num']}"))
+        n, j, name = saved[-1]
+        if len(saved) > 1:
+            line = ("Saved, sir, both of them in My flags: " + "; ".join(f"{nm}, {nn['title']}" for nn, _, nm in saved) + ". The next morning "
+                    "review takes them up first and says when each will be done; you get a phone note when either changes and when it is done.")
+        else:
+            line = (f"Added to the research note on {j.get('title') or n['title']} ({name}), sir." if j.get("updated") else
+                    f"Saved, sir, as {name} in My flags: {n['title']}. The next morning review takes it up first and says when it will be "
+                    "done; you get a phone note when its status changes and when it is done.")
         q = other_question(text)
         if q:
             return {"_then": q, "_prefix": line, "_note": j}

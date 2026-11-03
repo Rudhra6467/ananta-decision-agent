@@ -132,7 +132,9 @@ def moves(desk: dict, holdings_today: dict, named: list[str], nifty_pct: float |
                                              + (" (they lagged)" if hv.get("move_pct") < nifty_pct else " (they kept up)"))}
                                   if hv.get("move_pct") is not None and nifty_pct is not None else None),
             "rule": ("a move is explained only by a filing on file, with its time; results published after one close move the next session; "
-                     "with no filing, say 'no company filing found up to <last fetched day>' and name the sector or the market move instead")}
+                     "with no filing, say 'no company filing found up to <last fetched day>' and name the sector or the market move instead"),
+            "index_move_note": ("for the index's own move there is no filing; the day's FII/DII figures come with the evening run and breadth and "
+                                "sector moves with NSE's day file in the nightly build (times in schedule words), so before those say they are not in yet")}
 
 
 def expiry_words(day: str | None, hol: dict) -> dict | None:
@@ -179,6 +181,34 @@ def sp1_reasons(tl: dict) -> list[dict]:
             rows.append({"index": r.get("index"), "at": str(r.get("decided_at") or "")[11:16], "took": False,
                          "best_net_pts": pts(best.get("pred_net")) if best else None, "bar_pts": pts((r.get("c") or 0) * (best.get("se") or 0)) if best else None})
     return rows
+
+
+def scorecard(f: dict, mv: dict) -> dict:
+    """'How are we doing', in one place: the daily call against a coin flip, the options line's paper result per index, holdings vs the Nifty."""
+    dc = f.get("daily_call") or {}
+    try:
+        book = (views.sp1_live(views.readmodel()).get("book") or {})
+    except Exception:  # noqa: BLE001
+        book = {}
+    per = {k: {"sessions": v.get("sessions"), "trades": v.get("trades"), "result_inr_one_lot": v.get("option_1lot_rs_realistic_fill")}
+           for k, v in (book.get("by_index") or {}).items()}
+    return {"daily_call": {"right": dc.get("hits"), "of": dc.get("scored"), "coin_flip": dc.get("null_hits"), "below_coin_flip": dc.get("below_coin_flip")},
+            "options_line": {"sessions": book.get("sessions"), "of_needed": 20, "per_index": per,
+                             "note": "paper, one lot, realistic fills, scored trades only (the open trades are marked separately)"},
+            "holdings_vs_nifty": mv.get("holdings_vs_nifty")}
+
+
+def ist_in_toronto(on: dt.date | None = None) -> dict:
+    """IST clock times Ananta says, with the Toronto time beside each (worked out here, never by the model)."""
+    from zoneinfo import ZoneInfo
+    ist, tor = ZoneInfo("Asia/Kolkata"), ZoneInfo("America/Toronto")
+    on = on or dt.date.today() + dt.timedelta(days=1)
+    out = {}
+    for hhmm in ("06:05", "06:30", "06:50", "07:05", "07:30", "08:00", "08:30", "09:00", "09:15", "09:30", "09:45", "10:15", "10:20", "15:30", "15:50", "22:15", "23:15"):
+        h, m = map(int, hhmm.split(":"))
+        t = dt.datetime.combine(on, dt.time(h, m), ist).astimezone(tor)
+        out[f"{hhmm} IST"] = t.strftime("%-I:%M %p").lower() + " Toronto" + ("" if t.date() == on else " (the evening before)")
+    return out
 
 
 def toronto_times(on: dt.date | None = None) -> dict:
@@ -266,7 +296,13 @@ def data_we_have(desk: dict) -> dict:
     def note(i):
         r = rows.get(i) or {}
         return f"{r.get('item')}: {r.get('state')}; {r.get('note')}" if r else None
-    return {"source": "records india/desk.py inventory (manifests/data_inventory.json and the research tracker's data rows)",
+    audit = _json(views.DATA / "manifests" / "data_audit.json", {}) or {}
+    res = ((audit.get("results") or {}).get("by_year")) or {}
+    parsed = [y for y, v in sorted(res.items(), key=lambda kv: int(kv[0])) if (v.get("with_eps") or 0) > 0.5 * max(v.get("filings") or 1, 1)]
+    return {"source": "records india/desk.py inventory and india/dataaudit.py (manifests/data_audit.json, registrations/data_audit_v1.md)",
+            "audit": {"built_at": audit.get("built_at"), "findings": [f"{x['area']}: {x['finding']} So: {x['so']}" for x in audit.get("findings") or []],
+                      "widen_first": audit.get("widen_first"), "flag": "flag 63 (Madhav, 3 Nov: the data-set audit first)"} if audit else None,
+            "results_parsed_years": parsed,
             "have": {
                 "every stock's daily price and volume": "NSE cash day file 1994 onward (research to 2023; 2024 onward sealed, live days read for the paper books)",
                 "delivery share": "2003 onward",
@@ -293,7 +329,8 @@ def data_we_have(desk: dict) -> dict:
                 "most research uses the 250 most traded stocks of each day (chosen on that day, so delisted names are included), not the whole market",
                 "2024 onward is sealed for the one confirmatory test of each idea"],
             "rule": ("answer 'do we have X' from 'have' and 'thin_or_missing': say what is on file, its years and how complete it is; never say "
-                     "'no X' when X is on file but partly parsed or not yet used by a rule; quote these numbers and years exactly, the same in every "
+                     "'no X' when X is on file but partly parsed or not yet used by a rule; results carry revenue and EPS only for results_parsed_years; "
+                     "for 'how good is our data' lead with audit.findings and audit.widen_first (the data-set audit, flag 63); quote these numbers and years exactly, the same in every "
                      "answer (daily prices from 1994, F&O from 2000, indices from 2003, intraday stock bars from 2015, announcements as written here)")}
 
 
@@ -311,7 +348,8 @@ def block(f: dict, text: str = "") -> dict:
     tl = f.get("today_live") or {}
     nifty = (((tl.get("index_now") or {}).get("rows") or {}).get("NIFTY 50") or {}).get("change_pct")
     mv = moves(desk, tl.get("holdings_today") or {}, named, nifty)
-    out = {"built_at": desk.get("built_at"), "feeds": desk.get("feeds"), "prep": prep(f, desk), "moves": mv, "radar": radar(desk, mv), "named_symbols": named}
+    out = {"built_at": desk.get("built_at"), "feeds": desk.get("feeds"), "prep": prep(f, desk), "moves": mv, "radar": radar(desk, mv), "named_symbols": named,
+           "scorecard": scorecard(f, mv), "ist_in_toronto": ist_in_toronto()}
     if DATA_TOPIC.search(text or ""):
         out["data_we_have"] = data_we_have(desk)
     if BASICS_TOPIC.search(text or ""):

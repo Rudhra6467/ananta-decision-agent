@@ -76,7 +76,7 @@ def test_waiting_flow_and_nudge(tmp_path, monkeypatch):
     w = {"items": [{"id": "india:drafts", "kind": "drafts", "count": 12, "title": "12 research drafts wait for your yes or skip", "line": "", "say": ""}],
          "count": 12, "key": "k1", "line": "12 research drafts are waiting for your yes."}
     r = ask.waiting_flow("What's waiting for me?", w)
-    assert r and "12 things wait" in r["answer"] and "approve all drafts" in r["answer"]
+    assert r and "For the Indian market, 1 thing waits" in r["answer"] and "my advice: yes" in r["answer"]   # 3 Nov: one plain recommendation
     assert ask.waiting_flow("What is the waiting period for ELSS?", w) is None
     n1 = ask.waiting_nudge("thread-a", w)
     assert "12 research drafts are waiting" in n1 and "approve all drafts" in n1

@@ -54,6 +54,8 @@ FAMILY_OF = {"cross": "moving averages and crossovers", "rsi": "RSI and stochast
 DEFINE_Q = re.compile(r"^\s*(?:(?:okay|so|and|ananta|sir)[\s,]*)*(?:what(?:'s| is| are| does)|explain|define|meaning of|tell me what)\s+"
                       r"(?:(?:an? )?(?:rsi|macd|support|resistance|volume|beta)|(?:an? |the )?(?:moving averages?|golden cross(?:es)?|death cross(?:es)?|"
                       r"crossovers?|candlesticks?|52[- ]week high))(?:\s+(?:is|are|and what does it (?:mean|signal)|means?|signals?|indicates?|tells? you))?\s*\??\s*$", re.I)
+CONCEPT_Q = re.compile(r"\b(?:same (?:as|thing)|difference|differ|good thing|a good (?:thing|indicator|signal)|is (?:it|that|this) good|"
+                       r"better|worth (?:it|watching|waiting)|versus|vs\.?|momentum|how (?:good|useful|reliable)|should (?:i|we) (?:use|watch))\b", re.I)
 TESTED_Q = re.compile(r"\b(tested|test|evidence|proven|proof|work|works|working|edge|reliable|backtest(?:ed)?)\b", re.I)
 # 31 Oct (the grader's morning: "if RSI's 28 on the daily, what does it say?" got Nifty's real RSI of 54, three times): a hypothetical, a
 # decision question ("what does it do? trade or stay out?") or a comment ("Fair, but it's not connecting...") is for the model, which has
@@ -245,6 +247,8 @@ def technicals_flow(text: str) -> dict | None:
     if not text or len(text) > 200 or NOT_FOR_US.search(text):
         return None
     if DEFINE_Q.search(text):           # 27 Oct: "What is RSI?" wants the meaning, which the model gives briefly; a reading needs a name ("Nifty's RSI")
+        return None
+    if CONCEPT_Q.search(text):          # 3 Nov retest: "is momentum good, is the RSI thing the same as momentum" got a Nifty RSI reading
         return None
     if HYPOTHETICAL.search(text) or DECISION_Q.search(text) or not QUESTION.search(text):
         return None                     # 31 Oct: hypotheticals, "what does it do" and comments are for the model

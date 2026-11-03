@@ -1161,7 +1161,7 @@ def options() -> dict:
                      "vix": ((plan.get("overnight") or {}).get("INDIA VIX") or {}).get("close")},
             "decisions_today": s.get("decisions") or [], "errors": (s.get("errors") or [])[:1], "by_index": by_idx,
             # 3 Nov (Madhav: yes, the Map's change 4): the expiry-day paper book is no longer shown; the options line is the one options book
-            "suitability": "An option is bought only when the move it needs is bigger than what the option costs (its price, the spread and the daily decay).",
+            "suitability": "The options line books a trade only when its model's predicted index move after costs clears its bar (c times the prediction's uncertainty); the one-lot option is how it is booked on paper",
             "allocation": _allocation()}
 
 

@@ -38,12 +38,13 @@ def test_the_opener_skips_flags_the_review_settled():
     assert ask._unsettled({**W, "items": W["items"][:2]})["items"] == []
 
 
-def test_whats_waiting_says_the_fixes_and_the_review():
+def test_whats_waiting_gives_one_recommendation_and_no_fix_menu():
+    # 3 Nov (Madhav's chat and the outside grade): India first, crypto apart, one plain recommendation each, no fix menu, no commands
     r = ask.waiting_flow("What's waiting for my yes?", W)
     a = r["answer"]
-    assert "The fixes: 1, Fix it as I described; 2, Investigate and tell me first" in a
-    assert "The morning review: 90% cash is the rules working" in a and "it proposes: count only trades" in a
-    assert "crypto: Officer check" in a
+    assert a.startswith("For the Indian market") and "my advice:" in a
+    assert "The fixes:" not in a and "approve draft 2" not in a and "show my flags" not in a.lower()
+    assert "On the crypto side, separately" in a and a.index("Indian market") < a.index("crypto side")
 
 
 def test_asking_about_an_earlier_flag_is_a_status_question_not_a_new_flag():

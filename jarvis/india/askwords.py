@@ -61,7 +61,7 @@ JARGON = [
     (re.compile(r"\s*\((?:[a-z_]+ ?)+\.[a-z_]+\)"), ""),
     # 30 Oct outside grade of the v2 prompt (B+): the terms the grader called jargon
     (re.compile(r"\bcontrol stocks?\b"), "random-pick stocks (the control, to tell skill from luck)"),
-    (re.compile(r"\b(?:the )?index options line\b"), "the options line (one index option lot a day on paper)"),
+    (re.compile(r"\b(?:the )?index options line\b"), "the options line (at most one option lot per index a day on paper)"),
     (re.compile(r"\brealistic prices\b"), "prices with the usual slippage"),
     (re.compile(r"\breference traders?\b"), "the comparison traders (hindsight, informed and random picks)"),
     (re.compile(r"\boversold[- ]reversal exits?\b"), "exits of the reversal buys (bought when oversold)"),

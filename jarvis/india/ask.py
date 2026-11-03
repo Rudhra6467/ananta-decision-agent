@@ -44,7 +44,7 @@ the "as a trade / as a long-term holding" split only when the horizon is unknown
 ONE NUMBER, ONE SOURCE (28 Oct re-grade): quote these exactly and never derive them: drafts_waiting_total.count (what waits for his yes);
 daily_call scored/hits/null_hits (never work out how often the Nifty rose or fell from them); a holding's value_inr (what it is worth) versus
 suggest_inr (the amount to move), naming which; the holdings to cut are the account_allocation rows whose action is REDUCE or TRIM, in its order.
-ONE FORECAST (3 Nov, Madhav: yes): the daily call is Ananta's one forecast; Chronos was stopped on 3 Nov after 0 of 5 and the rule forecast, the reviewer and the shadow trader are records on Proof, not forecasts to quote; if he asks about one, say so. QUIET BOOKS (3 Nov, Madhav: yes): the teachers' forward books, the long-term tilt book and the paper trials live on Proof: bring them up only when he asks about them or when one's clock has ended, never in a greeting, a day summary or an opener. Add an "I'd reverse this if ..." line
+TRADER DESK (3 Nov, outside trader grade): trader_desk holds the session facts a trader uses; use it. (1) "Check the link / is data coming through": say each feed in trader_desk.feeds with its last day, and name any that is behind; never only "prices are coming through". (2) "What happened today": the high, low and close, the gap, VIX, the institutions' flows if in the facts, your holdings against the Nifty (say plainly when they lagged), and why a holding moved 3% or more from trader_desk.moves (its filing and time, or "no company filing found"). (3) "Plan for tomorrow / what will you watch": answer from trader_desk.prep as scenarios (prep.how_to_use): previous high/low/close, gap up/flat/down, the option-interest walls with their date, the expected move from VIX, open option trades with contract and expiry (open and marked, not a result), expiries, holidays, results ahead and events; then name a few stocks from trader_desk.radar with the reason each, saying they are names to look at, not picks; never "no plan of its own" or "no names yet". (4) "Do we have X data / is our data enough": answer from trader_desk.data_we_have: what is on file with years and how complete, then where it is thin; never "no announcement dates" or "no results" (they are on file; results are partly parsed). (5) Indicators and option buying: use trader_desk.basics (momentum is not RSI; option-buyer arithmetic; no trade is often right) together with Ananta's own tests, and say which is which. (5b) Option-interest walls are from the session named in their date and are context only: never say an index must hold max pain or a wall. (5c) "What do you do before the market starts": say what Ananta reads and looks for (trader_desk.basics.routine), not only the job times, and name all four decision points 09:15, 09:30, 09:45 and 10:15 IST. (5d) Expiry days: say them as trader_desk.prep.expiries words (the weekday and why when moved). (5e) Say the options line's rule as trader_desk.prep.options_line_rule and today's trades with options_line_today's numbers (predicted move, cost, bar in index points); never 'the move clears the option's cost'. (5f) Cut list vs managed book: the cut list is the evening's advice on your real holdings (account_allocation cut_list); the managed book's plan is what the paper managed book does next; say both apart and never 'nothing is on the cut list' while cut_list has names. (5g) After the close, say holdings_vs_nifty and, for tomorrow, prep.overnight_cues and prep.toronto_times. (5h) Words: say India VIX, not 'the fear gauge'; full company names (Marico, National Aluminium, Petronet LNG), not tickers; on the cut list 'trim', 'halve' and 'a tiny stake to tidy up' in words; the F&O ban stops new futures and options positions in that stock, its shares trade normally; a gap up helps a bought call, a gap down hurts it. (5i) 'Why did it buy Bank Nifty / is the rule safe': say plainly that Bank Nifty's safety margin is five times looser than Nifty's (c 0.5 against 2.5), that the rule predicts the index, not the option (the option's price and implied volatility are not inputs), and that the 20-session review grades each index separately. (5j) 'How are we doing': the daily call's record against a coin flip, the options line's result per index, and holdings_vs_nifty, without being asked for each. (6) The options line takes at most one trade per index per session, so two trades in a day (one Nifty, one Bank Nifty) is the rule, not a break. (7) "Register / note / notify me": the note is filed in code before you see the message; never say you cannot confirm it is saved or ask him to check. ONE FORECAST (3 Nov, Madhav: yes): the daily call is Ananta's one forecast; Chronos was stopped on 3 Nov after 0 of 5 and the rule forecast, the reviewer and the shadow trader are records on Proof, not forecasts to quote; if he asks about one, say so. QUIET BOOKS (3 Nov, Madhav: yes): the teachers' forward books, the long-term tilt book and the paper trials live on Proof: bring them up only when he asks about them or when one's clock has ended, never in a greeting, a day summary or an opener. Add an "I'd reverse this if ..." line
 only when there is a real condition with a number in it. Buying an index dip: cite Ananta's gap-down study (Nifty and Bank Nifty gap-downs of
 1% or more were followed by a slightly better week, not reliably) from indicator_knowledge.
 A prediction question ("up or down tomorrow?", "what's your prediction?"): Ananta HAS a forecast, the daily call; give it (daily_call.call
@@ -326,7 +326,7 @@ def facts(owner: bool = False) -> dict:
             "jobs": {"signin": j.get("signin"), "problems": [{"job": x["label"], "problems": x["problems"]} for x in j.get("jobs", []) if not x.get("ok")]},
             "guardrails": guardrail_facts(rm), "missing_sections": rm.get("missing"),
             "allocation_rule": allocation_rule_facts(),
-            "morning_view": {k: v for k, v in views.morning().items() if k in ("session_words", "headline", "view", "plan", "chances", "watch", "yesterday", "words", "review", "reviewer_scenarios", "scenarios", "opening", "lessons", "read")},
+            "morning_view": {k: _fresh_words(v) for k, v in views.morning().items() if k in ("session_words", "headline", "view", "plan", "chances", "watch", "yesterday", "words", "review", "reviewer_scenarios", "scenarios", "opening", "lessons", "read")},
             "reconstruction_last_night": {k: (rm.get("reconstruction") or {}).get(k) for k in ("headline", "people_words", "not_done_words", "league_words", "reviews", "findings")} | {"staircase": ((rm.get("reconstruction") or {}).get("staircase") or {}).get("words"),
                                           "meaning": "the nightly reconstruction card (what the market and other participants did, what Ananta did and did not do, trade reviews, findings); SAFE findings go to the repair board by themselves, DECISION findings wait for Madhav; the staircase says what the allocated capital may use (ADMITTED only; nothing yet)"},
             "teacher_libraries": _library_facts(),
@@ -590,7 +590,7 @@ def _managed_book() -> dict:
     return {"status": "ok", "paper": True, "words": v.get("words"), "clock": (v.get("clock") or {}).get("words"), "value_inr": v.get("value_inr"), "return_pct": v.get("return_pct"),
             "start_day": v.get("start_day"), "replacements_held": [{"symbol": r["symbol"], "entered": r.get("entered"), "for_cut": r.get("for_cut"), "pnl_pct": r.get("pnl_pct"), "stop": r.get("stop"), "held_sessions": r.get("held_sessions")} for r in v.get("replacements") or []],
             "filled_today": [{k: t.get(k) for k in ("side", "symbol", "qty", "price", "skipped", "for_cut")} for t in v.get("filled_today") or []],
-            "plan": {"for_session": p.get("for_session"), "brief": p.get("brief"), "no_change": p.get("no_change"), "error": p.get("error"),
+            "plan": {"for_session": p.get("for_session"), "brief": ("No change for that session: the managed book has nothing new to cut or buy (the cut list's names it already cut stay cut)" if p.get("no_change") else p.get("brief")), "no_change": p.get("no_change"),   # 3 Nov: the stored brief said "nothing is on the cut list" "error": p.get("error"),
                      "cuts": [{"symbol": x.get("symbol"), "kind": x.get("kind"), "inr": x.get("inr"), "why": x.get("why")} for x in p.get("cuts") or []],
                      "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons"), "also_considered": b.get("also_considered"), "stop_pct": b.get("stop_pct"),
                                **({"pooled_from": str(b.get("for_cut")).split("+"), "why_pooled": f"each of these cuts frees under Rs 3,000, too little for a name of its own, so together they buy one ({len(str(b.get('for_cut')).split('+'))} names: the tidy-ups plus any small reduce)"} if "+" in str(b.get("for_cut")) else {})}
@@ -619,6 +619,18 @@ def _managed_book() -> dict:
             "stops_whose": "the 7% fixed stop belongs to the managed book's replacements only; the practice book's trades exit by their own rule's exit; the 5% day loss limit and the 22% pause are the survival rules of the research book",
             "clocks_named": "when citing a clock, name whose it is: the practice book's stock rules (20 sessions, started 30 Oct after the no-chase change), the options line (20), the managed book against the frozen portfolio (60)",
             "rule": "a replacement is chosen from the Nifty 500 by the proved not-losing filters (above its 50- and 200-day averages, not stretched, not a 40%-down name, calm, liquid, sector not over 25%), one per cut for the same rupees, at most three new names a week, a 7% fixed stop, a 20-session minimum hold; fills at the next open, a buy gapping over 2% is skipped; judged only after 60 sessions"}
+
+
+def _fresh_words(v):
+    """3 Nov: the managed book's stored brief said 'nothing is on the cut list' while the cut list had four names (fixed at the source the same
+    day, india/managed.py); views written before the fix are read with the corrected words until they are rebuilt."""
+    if isinstance(v, str):
+        return v.replace("nothing is on the cut list", "the managed book has nothing new to cut or buy")
+    if isinstance(v, list):
+        return [_fresh_words(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _fresh_words(x) for k, x in v.items()}
+    return v
 
 
 def _account_value() -> dict:
@@ -994,6 +1006,8 @@ def finish(reply: dict, question: str, model: bool) -> dict:
     # 2 Nov (Madhav-style round, "... don't chase. All of."): removing the sign-off "this is paper only" out of "All of this is paper only"
     # left a fragment; the cut-off check runs again after the sign-off is taken
     a = re.sub(r"(?<=[.!?])\s+(?:[A-Za-z']+\s+){0,2}(?:of|to|in|and|or|the|a|an|for|with|at|on|by|but|so|as|is|it|this)\.?\s*$", "", a).rstrip()
+    # 3 Nov retest: "... too early to grade, and all of." (the sign-off taken from inside the last clause, after a comma)
+    a = re.sub(r",\s*(?:and|but|so)?\s*(?:[A-Za-z']+\s+){0,2}(?:of|to|in|the|a|an|and)\.?\s*$", ".", a).rstrip()
     reply["answer"] = tidy_end(one_hedge(a))
     opts = [str(o) for o in (reply.get("options") or []) if isinstance(o, str) and o.strip()][:4]
     if reply.get("kind") == "clarify" and opts and not any(o[:24].lower() in reply["answer"].lower() for o in opts):
@@ -1331,6 +1345,11 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         f["lookup"] = lk
     f["answer_guide"] = answerguide.guide(text_q, f)
     recent = " ".join(m.get("text") or "" for m in thread_messages(thread)[-4:] if m.get("role") == "user")
+    try:                                                       # 3 Nov (Madhav's chat, outside trader grade): the trader's desk, per turn
+        from jarvis.india import desk as _desk
+        f["trader_desk"] = _desk.block(f, f"{text_q} {recent}")
+    except Exception as e:  # noqa: BLE001  the desk never breaks the answer
+        f["trader_desk"] = {"error": type(e).__name__}
     if RX_TOPIC.search(text) or RX_TOPIC.search(recent) or str((context or {}).get("screen", "")).startswith(("reconstruction", "evidence", "missed")):
         try:
             f["reconstruction_detail"] = _rx_detail()
@@ -1354,7 +1373,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if wait is not None:                                       # 28 Oct: what waits for his yes, so "can you start on them?" is answered from it
         f["waiting_for_you"] = {"count": wait.get("count"), "line": wait.get("line"),
                                 "items": [{k: x.get(k) for k in ("title", "line", "say", "market", "fixes", "review")} for x in (wait.get("items") or [])[:6]],
-                                "how": "He can approve in chat: 'approve all drafts', 'approve draft 2', 'skip draft 3'. His own flags are noted only; nothing to pick."}
+                                "how": ("say each item in plain words with one recommendation; Indian market first, crypto separately and short; no command "
+                                        "phrases to learn and no fix menu (his flags are noted only since 2 Nov)")}
     t0 = time.time()
     # 27 Oct: "How did the Nifty close today?" is a question, not an order (the model still never places anything)
     asks = "?" in text or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", text, re.I)
@@ -1385,7 +1405,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
-        per_turn = ("today_live", "talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map")
+        per_turn = ("today_live", "talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map", "trader_desk")
         facts_text = (f"FACTS (the nightly read model, full data through {f.get('data_through')}; today_live, in the user turn, is today). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"
@@ -1518,6 +1538,9 @@ FLAG_REQ = re.compile(
     r"(?:this|that|an?) (?:issue|problem|gap|idea|point|bug|question)|it down|this down|that down)\b"
     r"|(?:^|[.!?]\s+|\b(?:you|please|just|to|and|can you|could you)\s+)(?:keep|make|write|take) (?:a |the )?(?:detailed |technical |deep )?note\b"
     r"|\badd (?:it|this|that) to (?:the )?(?:repair shop|flags|research|list|back ?end)\b"
+    # 3 Nov (09:01 chat): "this one is also to be registered and somehow to be notified" filed nothing
+    r"|\b(?:register|registered|put (?:it|this|that) down|keep track of (?:it|this|that))\b(?![^.!?]{0,20}\b(?:account|login|user)\b)"
+    r"|\b(?:it|this|that|this one|that one)\s+(?:is\s+)?(?:also\s+)?(?:has |have )?(?:to|should|must|needs? to)\s+be\s+(?:registered|noted|logged|recorded|tracked)\b"
     r"|\b(?:that|this|it)(?:'s| is| was) (?:a bug|broken)\b", re.I)       # "is X not working?" is a question, answered, not a flag
 FLAG = FLAG_REQ                         # kept for callers and tests that import the old name
 NEG_BEFORE = re.compile(r"\b(?:don'?t|do not|no need to|not|never|stop|didn'?t|won'?t|no)\b[^.!?]{0,25}$", re.I)
@@ -2189,7 +2212,7 @@ def decide_flow(text: str) -> dict | None:
         a.append(cs["words"])
     sp = rm.get("sp1") or {}
     a.append("The index options line (one paper option lot on the Nifty or Bank Nifty, decided in the first hour) decides between 09:15 and 10:15 Indian time, "
-             "only if the opening move clears the option's cost; it needs that morning's Zerodha sign-in."
+             "only when its model's predicted move after costs clears its bar; it needs that morning's Zerodha sign-in."
              if sp.get("status") != "ok" else tidy_end("The index options line (one paper option lot on the Nifty or Bank Nifty, decided in the first hour), "
                                                        + str(sp.get("words") or "")))
     txt = re.sub(r"Rs\s*-\s*([\d,]+)", r"a loss of Rs \1", " ".join(a))        # 28 Oct outside round 3: "Rs -15,458"
@@ -2276,36 +2299,48 @@ def _review_gist(words: str) -> str:
     return _cut(plain_codes(pick), 200)
 
 
+def _advice(x: dict) -> str:
+    """One plain recommendation per waiting item (3 Nov outside grade: the list offered a fix menu next to "the rule held")."""
+    if x.get("kind") == "drafts":
+        return "my advice: yes, it only writes a study down to test on 2000-2023, and nothing trades from it"
+    rv = x.get("review") or {}
+    if rv.get("proposal"):
+        return f"my advice: {_cut(plain_codes(rv['proposal']), 170)}"
+    if re.search(r"rules working|rule held|no change|nothing (?:is )?wrong|works as", str(rv.get("words") or ""), re.I):
+        return "my advice: no change, the morning review found the rule working; it stays noted"
+    return "my advice: leave it noted until the morning review has looked at it"
+
+
 def waiting_flow(text: str, w: dict | None) -> dict | None:
+    """What waits for his yes (3 Nov, Madhav's chat and the outside grade): Indian market first; crypto told apart and short; one plain
+    recommendation per item; no fix menu (flags are noted only since 2 Nov) and no command phrases to learn."""
     if not WAITING_Q.search(text or "") or len(text) > 120:
         return None
     if w is None:
         return None                                   # no list (no sign-in token): the drafts flow or the model answers
     if not w.get("items"):
         return _reply("Nothing is waiting for your yes, sir.", ["What did you learn last night?"], ["/v3/waiting: empty"])
+    india = [x for x in w["items"] if str(x.get("market") or "india") != "crypto"]
+    crypto = [x for x in w["items"] if str(x.get("market") or "") == "crypto"]
     lines = []
-    for i, x in enumerate(w["items"][:6]):
-        s = f"{i + 1}. {x['title']}"
+    for i, x in enumerate(india[:5]):
+        what = x["title"]
         if x.get("kind", "").startswith("flag"):
-            what = re.sub(r"\s*\([A-Z][A-Z_]{3,}\)", "", re.sub(r"^\[[^\]]*\]\s*", "", str(x.get("line") or "")))
-            mk = {"crypto": "crypto", "india": "Indian market"}.get(str(x.get("market") or ""), "")
-            s += f" ({mk + ': ' if mk else ''}{plain_codes(what)})" if what else ""
-            rv = x.get("review") or {}
-            if rv.get("words"):
-                s += f". The morning review: {_review_gist(rv['words'])}"
-                if rv.get("proposal"):
-                    s += f"; it proposes: {_cut(plain_codes(rv['proposal']), 180)}"
-            if x.get("fixes"):
-                s += ". The fixes: " + "; ".join(f"{k + 1}, {t}" for k, t in enumerate(x["fixes"]))
-        lines.append(s + ".")
-    tail = []
-    if any(x.get("kind") == "drafts" for x in w["items"]):
-        tail.append("For the drafts, say \"approve all drafts\", \"read the drafts\", or \"approve draft 2\"; yes registers a study and nothing trades from it.")
-    if any(x.get("kind", "").startswith("flag") for x in w["items"]):
-        tail.append("For a flag, open My flags or say \"show my flags\".")
-    fu = (["Approve all drafts", "Read the drafts"] if any(x.get("kind") == "drafts" for x in w["items"]) else []) + ["Show my flags"]
-    return _reply(f"{w['count']} thing{'s' if w['count'] != 1 else ''} wait for your yes, sir. " + " ".join(lines) + " " + " ".join(tail),
-                  fu[:3], ["/v3/waiting (jarvis/service/waiting.py)"])
+            line = re.sub(r"\s*\([A-Z][A-Z_]{3,}\)", "", re.sub(r"^\[[^\]]*\]\s*", "", str(x.get("line") or "")))
+            what = f"{x['title']} ({plain_codes(line)})" if line else x["title"]
+        lines.append(f"{i + 1}. {what}: {_advice(x)}.")
+    head = (f"For the Indian market, {len(india)} thing{'s' if len(india) != 1 else ''} wait{'' if len(india) != 1 else 's'} for your yes, sir. "
+            if india else "Nothing for the Indian market is waiting for your yes, sir. ")
+    tail = ""
+    if crypto:
+        working = all(re.search(r"rules? (?:is |are )?working|rule held|no change|works as", str((x.get("review") or {}).get("words") or ""), re.I) for x in crypto)
+        what = "; ".join(_cut(plain_codes(re.sub(r"^\[[^\]]*\]\s*", "", str(x.get("line") or x.get("title")))), 70) for x in crypto[:3])
+        n = len(crypto)
+        tail = (f" On the crypto side, separately: {n} flag{'s' if n != 1 else ''} ({what}). "
+                + ("The morning review found the rules working on " + ("both" if n == 2 else "each") + ", so my advice is no change; they stay noted."
+                   if working else " ".join(f"{x['title']}: {_advice(x)}." for x in crypto[:3])))
+    fu = (["Read the drafts"] if any(x.get("kind") == "drafts" for x in india) else []) + ["Show my flags"]
+    return _reply(head + " ".join(lines) + tail, fu[:3], ["/v3/waiting (jarvis/service/waiting.py)"])
 
 
 def fix_flow(text: str, thread: str, token: str | None, context: dict | None, post=None, get=None) -> dict | None:
@@ -2361,11 +2396,12 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
             return _reply(f"I could not save that note, sir: {str(j.get('detail') or j)[:120]}", [], [])
         name = j.get("label") or f"note {j['num']}"
         line = (f"Added to the research note on {j.get('title') or n['title']} ({name}), sir." if j.get("updated") else
-                f"Noted for research, sir: {n['title']}. The full note is in My flags as {name}.")
+                f"Saved, sir, as {name} in My flags: {n['title']}. The 7:45 am Toronto morning review takes it up first and says when it will be "
+                "done; you get a phone note when its status changes and when it is done.")
         q = other_question(text)
         if q:
             return {"_then": q, "_prefix": line, "_note": j}
-        return _reply(line + " Ready for your next question.", ["Show my flags", "What did you decide for the next session?"],
+        return _reply(line, ["Show my flags", "What did you decide for the next session?"],
                       [f"research note {name} ({'added to' if j.get('updated') else 'new'}; written by {n['by']})"], {"flag": j})
     if intent and intent["kind"] == "bug":
         screen = str((context or {}).get("here", {}).get("label") if isinstance((context or {}).get("here"), dict) else (context or {}).get("screen") or "")[:80]

@@ -96,7 +96,7 @@ def plan_sentence(plan: dict) -> str:
     freed = sum(float(c.get("inr") or 0) for c in plan.get("cuts") or []) if isinstance(plan.get("cuts"), list) else float(plan.get("freed_inr") or 0)
     day = dt.date.fromisoformat(plan["for_session"]).strftime("%A") if plan.get("for_session") else "the next session"
     if plan.get("no_change"):
-        return f"No change on {day}: nothing is on the cut list."
+        return f"No change on {day}: the managed book has nothing new to cut or buy."   # 3 Nov: not "nothing is on the cut list"
     if not buys:
         return f"On {day}, {n_cuts} cuts free about ₹{freed:,.0f}; the money stays in cash this time."
     swaps = ", ".join(f"{say_names(b['symbol'])} for {say_names(str(b.get('for_cut')).split('+')[0])}" + (" and the small stakes" if "+" in str(b.get("for_cut")) else "") for b in buys)
@@ -215,7 +215,7 @@ def _options_block(acct: dict) -> dict:
     return {"set_aside_inr": acct.get("options_inr"), "book_value_inr": o.get("value_inr"), "book_capital_inr": o.get("capital_inr"), "pnl_inr": o.get("pnl_inr"),
             "sessions": o.get("sessions"), "by_index": rows, "open": open_now,
             "open_words": (f"{len(open_now)} position{'s' if len(open_now) != 1 else ''} open, closing at the next open" if open_now else "No open option positions"),
-            "words": f"One index option lot a session on paper, decided between 09:15 and 10:15 Indian time. {o.get('sessions') or 0} sessions so far; graded after 20."}
+            "words": f"At most one index option lot per index a session on paper (so up to two: Nifty and Bank Nifty), decided between 09:15 and 10:15 Indian time. {o.get('sessions') or 0} sessions so far; graded after 20."}
 
 
 def proof(full: bool = True) -> dict:

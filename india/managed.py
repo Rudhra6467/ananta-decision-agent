@@ -471,6 +471,7 @@ def run(day: str | None = None, replan: bool = False) -> dict:
             return {"status": "missing", "words": "the account twin has not opened yet, so the managed book cannot start"}
     filled = fill(book, day, df, c) if day in set(df["date"].dt.strftime("%Y-%m-%d")) else []
     mark(book, day, df)
+    _options_one_amount(book, day)
     feats = features(df, day)
     ex = exits(book, day, feats, c)
     plan = None
@@ -500,6 +501,26 @@ def run(day: str | None = None, replan: bool = False) -> dict:
     v = view(book, day, plan, filled, c, opened)
     (_dir() / "view.json").write_text(json.dumps(v, indent=1))
     return v
+
+
+def _options_one_amount(book: dict, day: str) -> None:
+    """Madhav, 2 Nov 2026: "50k. only one amount. no 2-3 setups." The managed book opened with the twin's options money (Rs 34,000 after the
+    22 Oct move); when the allocation rule fixes options, the book's options are set to that one amount from its own cash, once, and the move is
+    recorded in sleeve_moves (it is not a fill and buys or sells nothing)."""
+    try:
+        r = allocator.rule()
+    except Exception:  # noqa: BLE001
+        return
+    if not r.get("options_fixed"):
+        return
+    want = float(r["options_inr"])
+    diff = round(want - float(book["options_inr"]), 2)
+    if abs(diff) < 1 or (diff > 0 and book["cash_inr"] < diff):
+        return
+    book["cash_inr"] = round(book["cash_inr"] - diff, 2)
+    book["options_inr"] = want
+    book.setdefault("sleeve_moves", []).append({"day": day, "from": "cash" if diff > 0 else "options", "to": "options" if diff > 0 else "cash",
+                                                "inr": abs(diff), "why": f"options are one fixed Rs {want:,.0f} (Madhav, 2 Nov)", "at": _now()})
 
 
 def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, opened: bool = False) -> dict:

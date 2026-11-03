@@ -120,3 +120,14 @@ def test_the_ledger_scores_cut_right_and_replacement_rose(world, monkeypatch):
     assert all("+5" in r["scored"] and "+20" in r["scored"] for r in rows)
     buy = next(r for r in rows if r["side"] == "BUY")
     assert "minus_cut_pct" in buy["scored"]["+20"] and out["fills"] == 2 and out["cuts_scored_5"] == 1
+
+
+def test_options_are_set_to_the_one_amount_from_cash_once(monkeypatch):
+    """Madhav, 2 Nov 2026: "50k. only one amount." The book opened with the twin's Rs 34,000; it moves to Rs 50,000 from its own cash, once."""
+    from india import allocator, managed
+    monkeypatch.setattr(allocator, "rule", lambda: {"options_fixed": True, "options_inr": 50000})
+    book = {"cash_inr": 43614.0, "options_inr": 34000.0, "positions": {}}
+    managed._options_one_amount(book, "2026-11-03")
+    assert book["options_inr"] == 50000 and book["cash_inr"] == 27614.0 and book["sleeve_moves"][0]["inr"] == 16000.0
+    managed._options_one_amount(book, "2026-11-04")
+    assert len(book["sleeve_moves"]) == 1

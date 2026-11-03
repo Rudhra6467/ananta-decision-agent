@@ -34,7 +34,7 @@ TOKEN_WORDS = ("TokenException", "NeedLogin", "Kite login needed", "no Kite toke
 MARK = "=== "   # a run marker line a chained job may print to its error log; the summary reads the error log from the last marker on
 GRACE = dt.timedelta(minutes=10)
 STUCK = dt.timedelta(hours=12)   # 3 Nov: running with no output this long is a stuck job (the fill's quiet windows are under 9 h)
-DEFAULT_DUE = {"paper": {"Hour": 22, "Minute": 30}, "evening": {"Hour": 19, "Minute": 0}}   # used when a plist is missing
+DEFAULT_DUE = {"paper": {"Hour": 22, "Minute": 30}, "evening": {"Hour": 19, "Minute": 0}, "evening_zerodha": {"Hour": 20, "Minute": 0}}   # used when a plist is missing
 
 
 # ----------------------------------------------------------------------------------------------------------------------------- helpers
@@ -189,6 +189,8 @@ def _errors(lines: list[str]) -> list[str]:
         if re.match(r"^[\w.]+(Error|Exception|NeedLogin|Exit)\b.*:", x) or re.match(r"^[\w.]*\.(NeedLogin|CatalogException)", x):
             out.append(f"{mod or '?'}: {x.strip()[:200]}")
             mod = None
+        elif re.match(r"^[A-Za-z][\w .-]{1,40} failed$", x.strip()):    # 3 Nov: a chained step's own "<step> failed" line (print -u2)
+            out.append(f"step: {x.strip()}")
     return out
 
 
@@ -277,17 +279,16 @@ def proof(label: str, due: dt.datetime | None, ctx: dict) -> tuple[bool | None, 
         folder = D / "bronze" / "kite_depth" / f"date={ist_day}"
         n = len(list(folder.glob("*"))) if folder.exists() else 0
         return n > 0, f"IST {ist_day}: {n} depth snapshots"
-    if name in ("recorder_noon", "evening"):
+    if name == "evening":
+        # 3 Nov (the Map's change 8): the evening run no longer fetches from Zerodha (evening_zerodha does); its proof is the next day plan
+        nxt = next_session(d + dt.timedelta(days=1), hol)
+        plan = (D / "paper" / "dayplans" / f"{nxt}.json").exists()
+        return plan, f"day plan for {nxt}: {'yes' if plan else 'no'}"
+    if name in ("recorder_noon", "evening_zerodha"):
         lo = due.astimezone(dt.timezone.utc).isoformat(timespec="seconds")
         hi = (due + dt.timedelta(hours=12)).astimezone(dt.timezone.utc).isoformat(timespec="seconds")
         rows = [r for r in _json_lines(D / "manifests" / "kite_1m_fo.jsonl", 6000) if r.get("status") == "ok" and lo <= str(r.get("fetched_at", "")) < hi]
-        txt = f"recorder: {len(rows)} contracts saved since {due:%H:%M}"
-        if name == "evening":
-            nxt = next_session(d + dt.timedelta(days=1), hol)
-            plan = (D / "paper" / "dayplans" / f"{nxt}.json").exists()
-            txt += f"; day plan for {nxt}: {'yes' if plan else 'no'}"
-            return (len(rows) > 0 and plan), txt
-        return len(rows) > 0, txt
+        return len(rows) > 0, f"recorder: {len(rows)} contracts saved since {due:%H:%M}"
     if name == "nightly":
         blk = _last_json_block(out_lines)
         if not blk:
@@ -413,7 +414,7 @@ def build(now: dt.datetime | None = None, launchctl_text: str | None = None, age
             lost.append(f"reference traders {mday}: {oman.get('status')}")
     else:
         lost.append(f"reference traders: no manifest for {mday} (india.others did not run after the paper run)")
-    rday = due_of("evening").date()
+    rday = due_of("evening_zerodha").date()          # 3 Nov: the SP1 replay moved to the Zerodha part of the evening (06:30 IST)
     rp = D / "manifests" / "sp1_nightly_replay.json"
     replay = json.loads(rp.read_text()) if rp.exists() else None
     history = _json_lines(D / "manifests" / "sp1_nightly_replay.jsonl", 400) + ([replay] if replay else [])

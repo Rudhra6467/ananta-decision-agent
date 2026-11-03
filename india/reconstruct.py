@@ -510,7 +510,7 @@ def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fw
         if j.get("ok"):
             continue
         text = "; ".join(j.get("problems") or [])
-        if any(w in text.lower() for w in ("token", "sign-in", "kite", "depth snapshots", "recorder")) or j.get("label") in ("autologin", "evening"):
+        if any(w in text.lower() for w in ("token", "sign-in", "kite", "depth snapshots", "recorder")) or j.get("label") in ("autologin", "evening", "evening_zerodha"):
             signin_jobs.append(j.get("label"))                                              # one root cause, one row: the sign-in
             continue
         add("JOB_FAIL", f"JOB_FAIL:{j.get('label')}", f"One of Ananta's India jobs ('{j.get('label')}') did not finish properly. It needs checking.", "SAFE", {"job": j, "problem": text[:300]})

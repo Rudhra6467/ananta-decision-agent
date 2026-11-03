@@ -43,3 +43,9 @@ def test_running_and_writing_is_not_stuck(tmp_path):
     lab = _fake(agents, logs, dt.datetime(2026, 11, 3, 7, 40, tzinfo=TOR).timestamp())
     r = morning.job_report(lab, {"pid": 96520, "last_exit": 0}, agents, now, {"signin": "x", "data": tmp_path, "hol": set()})
     assert not [p for p in r["problems"] if p.startswith("stuck")]
+
+
+def test_a_chained_steps_own_failed_line_is_an_error():
+    # 3 Nov (the Map's change 8): on 2 Nov the evening's Zerodha calls failed at 05:30 IST and nobody noticed; each step now prints "<step> failed"
+    assert morning._errors(["=== 2026-11-03_20:00:04 evening_zerodha", "recorder failed", "some output"]) == ["step: recorder failed"]
+    assert morning._errors(["the recorder saved 449 contracts, none failed today"]) == []

@@ -25,7 +25,7 @@ from india import nse, paths
 # label on the page (lower case, spaces squeezed) -> key, first match wins per key
 LABELS = [
     (r"^net sales ?/ ?income from operations?", "revenue"), (r"^revenue from operations", "revenue"), (r"^net income from operations", "revenue"),
-    (r"^income from operations", "revenue"), (r"^total income from operations", "revenue_total"),
+    (r"^income from operations", "revenue"), (r"^net income from sales ?/ ?services", "revenue"), (r"^total income from operations", "revenue_total"),
     (r"^other operating income", "other_operating_income"), (r"^other income", "other_income"),
     (r"^total expenditure", "expenses"), (r"^total expenses", "expenses"),
     (r"^employees? (?:benefit )?(?:cost|expense)", "employee_cost"), (r"^depreciation", "depreciation"),

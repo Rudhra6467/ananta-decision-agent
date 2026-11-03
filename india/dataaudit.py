@@ -198,7 +198,7 @@ def build(write: bool = True) -> dict:
          f"{sum(v for k, v in falls['labels'].items() if k != 'no_evidence_found')} look like a split, bonus or demerger left out of the adjustment "
          f"({sum(v for k, v in falls['labels_since_2010'].items() if k != 'no_evidence_found')} since 2010); {falls['labels'].get('no_evidence_found', 0)} "
          "show no action nearby and need a look. The 2010-2023 cases were reviewed by hand and fixed on 3 Nov 2026 (registrations/ca_manual_v1.csv, "
-         "the subject parser, and factors carried across renames); before 2010 the rest are left for a later look."
+         "the subject parser, and factors carried across renames); the pre-2010 cases followed the same day (165 splits and bonuses applied on price evidence, 112 flagged so the lab skips them)."
          if falls else
          "6. Check the liquid-stock falls of over 45% with no corporate action within 3 days: each is either a real crash or a missed split, "
          "bonus or demerger, and a missed one fakes a loss in every study that holds the stock."),

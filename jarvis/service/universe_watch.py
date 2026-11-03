@@ -117,11 +117,30 @@ def run_rules(j) -> dict:
         from jarvis.service import strategy_status
 
         names = [w for w in (wid(r, tier) for r in RULES_ALL + list(RANDOMS)) if strategy_status.trades(w)]   # Oct 13: retired rules sit out
-        r = watch_engine.run(j, watches=names, coins=coins, daily_fn=lambda jj, c: _daily(jj, c), live_trades=False)
+        r = watch_engine.run(j, watches=names, coins=coins, daily_fn=lambda jj, c: _daily(jj, c), live_trades=False,
+                             day_ok=_in_tier_on(j, tier))
         r["managed_live"] = manage_live_rows(j, tier, coins)
         out[tier] = {k: len(v) if isinstance(v, list) else v for k, v in r.items()}
         out[tier]["opened_list"] = r.get("opened", [])
     return out
+
+
+def _in_tier_on(j, tier: str):
+    """day_ok for watch_engine.run (#105/#138, 3 Nov 2026): was the coin in this tier on the week of the candle at t? The same rule as the
+    rebuild (tier_at on the stored daily traded value), so the ledger and the rebuild cannot disagree on a catch-up day. BTC rides in
+    tier A as the market's anchor and is always allowed there."""
+    from jarvis.service import feed
+
+    cache: dict[str, list] = {}
+
+    def ok(c: str, t: int) -> bool:
+        if tier == "A" and c == "BTC":
+            return True
+        if c not in cache:
+            cache[c] = feed.daily_qv(j, c)
+        return tier_at(cache[c], t) == tier
+
+    return ok
 
 
 def manage_live_rows(j, tier: str, coins: list[str]) -> int:

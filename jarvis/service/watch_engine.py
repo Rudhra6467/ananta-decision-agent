@@ -266,7 +266,8 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
     return out
 
 
-def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, daily_fn=None, live_trades: bool = True) -> dict:
+def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, daily_fn=None, live_trades: bool = True,
+        day_ok=None) -> dict:
     """Catch up every closed daily candle not processed yet (at most the last 10 days), then manage open trades.
 
     Tier watches (a "tier" in DAILY) run only when named, with their own candles (daily_fn) and coins; live_trades=False keeps
@@ -299,6 +300,11 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, 
         for i in range(start, len(D)):
             t = D[i][0]
             if t <= last_done:
+                continue
+            # #105/#138 (Madhav's yes, 3 Nov 2026): a coin that comes back into a tier with an old cursor catches up its last 10 days, and
+            # wrote signals for days it was not in that tier (MITO's 18 Oct candle under tier C as well as B). The tier runs pass day_ok,
+            # the coin's own tier that week (universe_watch.tier_at, the rule the rebuild uses), so a day outside the tier opens nothing.
+            if day_ok is not None and not day_ok(c, t):
                 continue
             for w in names:
                 spec = DAILY[w]

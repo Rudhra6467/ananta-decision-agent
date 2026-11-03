@@ -47,6 +47,7 @@ INTERNAL = [
     ("manifests/gaplab_*.json", "research results: through the registry and the one map"), ("manifests/sensitivity_*.json", "research workfile"),
     ("manifests/holdout_candidates.json", "research workfile (sealed holdout list)"), ("manifests/settle_vs_tradable.json", "research workfile"),
     ("manifests/options_realism.json", "research workfile behind the options line's realistic fills"),
+    ("manifests/big_falls.json", "data audit step 6 workfile; its counts reach the Ask through data_audit.json (the desk's data_we_have)"),
     ("manifests/premarket_chain.json", "input to the morning view's build"), ("manifests/premarket_inputs.json", "input to the morning view's build"),
     ("manifests/hf_chronos_forward.json", "the forecast record, spoken through the morning view"), ("manifests/sp1_nightly_replay.json", "ops: the options line's replay check"),
     ("manifests/others_*.json", "the reference traders; reaches the Ask through the read model's learning section"),

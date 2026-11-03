@@ -298,7 +298,8 @@ def data_we_have(desk: dict) -> dict:
         return f"{r.get('item')}: {r.get('state')}; {r.get('note')}" if r else None
     audit = _json(views.DATA / "manifests" / "data_audit.json", {}) or {}
     res = ((audit.get("results") or {}).get("by_year")) or {}
-    parsed = [y for y, v in sorted(res.items(), key=lambda kv: int(kv[0])) if (v.get("with_eps") or 0) > 0.5 * max(v.get("filings") or 1, 1)]
+    # a year counts when it has a real number of filings (2017 holds 12 late filers) and most carry EPS
+    parsed = [y for y, v in sorted(res.items(), key=lambda kv: int(kv[0])) if (v.get("filings") or 0) >= 500 and (v.get("with_eps") or 0) > 0.5 * v["filings"]]
     return {"source": "records india/desk.py inventory and india/dataaudit.py (manifests/data_audit.json, registrations/data_audit_v1.md)",
             "audit": {"built_at": audit.get("built_at"), "findings": [f"{x['area']}: {x['finding']} So: {x['so']}" for x in audit.get("findings") or []],
                       "widen_first": audit.get("widen_first"), "flag": "flag 63 (Madhav, 3 Nov: the data-set audit first)"} if audit else None,
@@ -320,10 +321,14 @@ def data_we_have(desk: dict) -> dict:
                 "sector map, IPOs, corporate actions, F&O ban list, bulk and block deals (forward from 23 Oct 2026)": "yes",
                 "live": "Zerodha read-only quotes in the session, the 1-minute options recorder since 18 Oct 2026, option bid-ask depth samples"},
             "thin_or_missing": [
-                "company results: filed and indexed, but revenue and EPS are parsed for only part of the companies, so per-stock P/E history is not a "
-                "ready series yet; no analyst estimates, so no 'beat or miss'",
+                (f"company results: revenue and EPS are read for {parsed[0]}-{parsed[-1]}; before 2018 the filings are HTML pages, not read yet; "
+                 "no analyst estimates, so no 'beat or miss'" if parsed else
+                 "company results: filed and indexed, but revenue and EPS are parsed for only part of the companies, so per-stock P/E history is not a "
+                 "ready series yet; no analyst estimates, so no 'beat or miss'"),
                 "competitors: only the sector map; no peer financial comparison",
-                "NSE's board-meetings calendar is not fetched, so results dates ahead come only from filings that name them",
+                ("NSE's board-meetings calendar: fetched every night for the next 60 days, with history from 2010"
+                 if str(desk.get("results_ahead_note") or "").startswith("NSE's board-meetings calendar (fetched") else
+                 "NSE's board-meetings calendar is not fetched, so results dates ahead come only from filings that name them"),
                 "GIFT Nifty and live Asian markets: no free feed; the US close is a day old and crude, dollar and rupee lag several days",
                 "bulk and block deals: no history before 23 Oct 2026",
                 "most research uses the 250 most traded stocks of each day (chosen on that day, so delisted names are included), not the whole market",

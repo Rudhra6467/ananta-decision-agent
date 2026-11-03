@@ -1,0 +1,78 @@
+{
+ "study": "HFN1T",
+ "family": "news_tone",
+ "frozen_at": "2026-11-03T17:19:29+00:00",
+ "approved": "Madhav, 3 Nov 2026 (chat: 'yes to all your recommendations and next steps'; the data audit named V02 and HFN1 as readers of the thin PR files)",
+ "title": "HFN1 on the timestamped announcements: does FinBERT's reading tell where the stock goes next?",
+ "model": {
+  "id": "ProsusAI/finbert",
+  "revision": "0bc2ac10dda6929bcb1f77ccc43c7ec5c424f031",
+  "source": "Hugging Face, downloaded 25 Oct 2026, run locally on the Mac (no fitting, no fine-tuning: zero-shot)",
+  "labels": {
+   "0": "positive",
+   "1": "negative",
+   "2": "neutral"
+  },
+  "input": "the announcement's text field (silver/pr/announcements.parquet column text: subject plus body as the PR zip gives it), first 128 tokens",
+  "output": "p_positive, p_negative, p_neutral; label = the largest; tone = p_positive - p_negative",
+  "second_model": "none (yiyanghkust/finbert-tone was considered and NOT registered, so it is not run)"
+ },
+ "variants": {
+  "pos|drift5": {
+   "expect": 1,
+   "what": "mean drift5 of positive stock-days (quarter means, t over quarters)"
+  },
+  "pos|drift20": {
+   "expect": 1,
+   "what": "mean drift20 of positive stock-days"
+  },
+  "neg|drift5": {
+   "expect": -1,
+   "what": "mean drift5 of negative stock-days"
+  },
+  "neg|drift20": {
+   "expect": -1,
+   "what": "mean drift20 of negative stock-days"
+  },
+  "spread|drift5": {
+   "expect": 1,
+   "what": "per quarter: mean drift5 of positive minus negative stock-days"
+  },
+  "spread|drift20": {
+   "expect": 1,
+   "what": "per quarter: mean drift20 of positive minus negative stock-days"
+  },
+  "within_cat|drift20": {
+   "expect": 1,
+   "what": "per quarter: inside each category, mean drift20 of positive minus negative stock-days, averaged over the categories that have both (beyond the category)"
+  },
+  "rank|drift20": {
+   "expect": 1,
+   "what": "per quarter: Spearman rank correlation between stock-day tone and drift20 across that quarter's stock-days"
+  }
+ },
+ "statistics": "quarter blocks (calendar quarter of day d), t over quarter means; dev 2010-2017, validation 2018-2023; at least 16 quarters per period (registry MIN_DATES)",
+ "aggregation": {
+  "stock_day_tone": "the mean tone of that stock's announcements that day",
+  "stock_day_label": "positive = at least one positive and no negative announcement; negative = at least one negative and no positive; mixed = both; neutral = all neutral"
+ },
+ "source": "silver/announce/announcements.parquet (NSE corporate announcements API), to 2023-12-29",
+ "timing": "(the one rule that differs, because the source has a time of day): an announcement disseminated on a trading day at or before 15:30 IST\nis known before that session's close, so its outcome runs from that close (as the PR file of day d after the close of d); after 15:30, or on a\nnon-trading day, from the close of the next session.",
+ "categories": "as V02T; nav and share_cert left out (as HFN1)",
+ "bar": {
+  "family": "news_tone",
+  "bar_families": [
+   "events",
+   "news_tone"
+  ],
+  "union_k": 58,
+  "z": 3.332,
+  "why": "37 distinct events and news_tone rows today, plus V02T's 13 and these 8"
+ },
+ "code_sha": {
+  "india/annstudies.py": "0dd7f7d1c1806bd0",
+  "india/vstudies.py": "b711ebc2165395b5",
+  "india/hf_news.py": "596bb60fe05f333b",
+  "india/przip.py": "2acdf11c87b4e47a"
+ }
+}

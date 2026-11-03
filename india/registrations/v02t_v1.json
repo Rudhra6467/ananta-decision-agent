@@ -1,0 +1,35 @@
+{
+ "study": "V02T",
+ "family": "events",
+ "frozen_at": "2026-11-03T17:19:29+00:00",
+ "approved": "Madhav, 3 Nov 2026 (chat: 'yes to all your recommendations and next steps'; the data audit named V02 and HFN1 as readers of the thin PR files)",
+ "title": "V02 on the timestamped announcements: announcement categories, 20-session drift after the day (top-500 stocks)",
+ "hypothesis": "After an announcement of a given category, the stock's 20-session return beyond Nifty differs from zero in the stated direction (V02's rule, on NSE's timestamped announcements instead of the PR files)",
+ "variants": {
+  "analyst_meet": 0,
+  "bonus_split": 1,
+  "buyback": 1,
+  "dividend": 1,
+  "fund_raising": -1,
+  "insider_trading": 0,
+  "legal": -1,
+  "management": 0,
+  "merger": 0,
+  "order_win": 1,
+  "pledge": -1,
+  "rating": 0,
+  "results": 0
+ },
+ "source": "silver/announce/announcements.parquet (NSE corporate announcements API), to 2023-12-29",
+ "category_rule": "india.przip._cat on NSE's category plus the subject text (the PR files' keyword rules); price-band hits are left out (not announcements)",
+ "timing": "(the one rule that differs, because the source has a time of day): an announcement disseminated on a trading day at or before 15:30 IST\nis known before that session's close, so its outcome runs from that close (as the PR file of day d after the close of d); after 15:30, or on a\nnon-trading day, from the close of the next session.",
+ "outcome": "as V02: close of the event session to close 20 sessions later, minus Nifty; |drift| above 100% dropped",
+ "bar": "the registry's standard family rule (family events, all rows ever counted)",
+ "periods": "2010-2017 dev, 2018-2023 val; quarter blocks",
+ "code_sha": {
+  "india/annstudies.py": "0dd7f7d1c1806bd0",
+  "india/vstudies.py": "b711ebc2165395b5",
+  "india/hf_news.py": "596bb60fe05f333b",
+  "india/przip.py": "2acdf11c87b4e47a"
+ }
+}

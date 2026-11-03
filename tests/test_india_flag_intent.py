@@ -51,10 +51,10 @@ def test_research_note_is_saved_without_a_menu(monkeypatch, tmp_path):
         sent.update(body)
         return {"num": 140, "label": "note 59", "noted": True}
     r = A.fix_flow("So flag it. We have to do research about FII influence on stock prices. No fixes.", "t1", "tok", {}, post=post, get=lambda u: {})
-    assert sent.get("note") and "Fixes" not in r["answer"] and "Noted for research" in r["answer"]
+    assert sent.get("note") and "Fixes" not in r["answer"] and "Saved, sir, as" in r["answer"] and "phone note" in r["answer"]   # 3 Nov: the reply says it is saved and how he is told
     r2 = A.fix_flow("Flag this for research: rupee against dollar. Question 12: if FII flows turn sharply negative, what's your first move?", "t1", "tok", {},
                     post=post, get=lambda u: {})
-    assert r2.get("_then") and "FII flows" in r2["_then"] and r2["_prefix"].startswith("Noted for research")
+    assert r2.get("_then") and "FII flows" in r2["_then"] and r2["_prefix"].startswith("Saved, sir, as")
 
 
 def test_garbled_recording_is_not_answered():

@@ -10,7 +10,9 @@
    "the India gate's definition (G02 plus the operational rows)",
    "the India exam's judges and pass marks",
    "the read model's rules version (india/readmodel.py RULES)"
-  ]
+  ],
+  "locked": "2026-11-03",
+  "note": "Locked 3 Nov 2026 on Madhav's yes; every item of pinned_then is now a pin (lock_day_record, g01_exit_book, india_gate, india_exam, read_model_rules)."
  },
  "what": "The India lock. Each pin is a hash of something that must not change on India's paper books during their evidence window without Madhav's recorded yes. docs/INDIA_LOCK.md explains each one; tests/test_india_lock.py checks them.",
  "how_to_change_a_pin": "Only on Madhav's decision: append an entry to that pin's history (date, approved_by starting with Madhav, a note quoting his words, the new sha256) and set the pin's sha256 to the same value. Run `python tests/test_india_lock.py` for the current hashes.",
@@ -144,6 +146,66 @@
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-11-02 18:08 Toronto (in chat), asked which options amount is real (Rs 60,000 options line, Rs 50,000 allocation rule, Rs 34,000 in the twin after the 22 Oct move): \"50k. only one amount. no 2-3 setups.\" options_fixed: true: options are one fixed Rs 50,000 in both modes; the allocator manages stocks and cash only and puts back from cash the Rs 16,000 moved out on 22 Oct. No other rule changes.",
      "sha256": "366af779bcfadfc5f2ab8947e1f9b8345344c6537068f17c251af481d9bbc095"
+    }
+   ]
+  },
+  "lock_day_record": {
+   "what": "The lock day's recorded decisions (india/registrations/lock_day_2026-11-03.json): SP1's option line stays shadow-only for sizing (no SZ2 variant selected); SP3: no playbook change, the baseline hold stays.",
+   "sha256": "34ff5b0e64ad79fb5f89fcec4c9111160dcf40a3e158da114b32943410024138",
+   "history": [
+    {
+     "date": "2026-11-03",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-11-03 (in chat), to the 3 Nov morning review's Waiting list (lock day: recommend yes; the India exam marks: recommend keep 9 of 9): \"Yes for all. Complete everything and make sure they are integrated well after completion. Test it\". Pinned on lock day (planned 1 Nov); see india/registrations/lock_day_2026-11-03.json.",
+     "sha256": "34ff5b0e64ad79fb5f89fcec4c9111160dcf40a3e158da114b32943410024138"
+    }
+   ]
+  },
+  "g01_exit_book": {
+   "what": "The G01 exit book as the stock book uses it (india/registrations/g01_exit_book_v1.json, copied from manifests/g01_exit_book.json of 22 Oct).",
+   "sha256": "2071813d319769a35750fe1dccc99d627690138158b45f9e734226691b1c4dfe",
+   "history": [
+    {
+     "date": "2026-11-03",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-11-03 (in chat), to the 3 Nov morning review's Waiting list (lock day: recommend yes; the India exam marks: recommend keep 9 of 9): \"Yes for all. Complete everything and make sure they are integrated well after completion. Test it\". Pinned on lock day (planned 1 Nov); see india/registrations/lock_day_2026-11-03.json.",
+     "sha256": "2071813d319769a35750fe1dccc99d627690138158b45f9e734226691b1c4dfe"
+    }
+   ]
+  },
+  "india_gate": {
+   "what": "The India gate's definition (india/registrations/india_gate_v1.json) and what counts as 30 clean sessions in a row (india/tracker.py consecutive_sessions).",
+   "sha256": "dac0d167f125f4139ec67936065dc708bdc3ae77af7d6058702d6778ec253e7a",
+   "history": [
+    {
+     "date": "2026-11-03",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-11-03 (in chat), to the 3 Nov morning review's Waiting list (lock day: recommend yes; the India exam marks: recommend keep 9 of 9): \"Yes for all. Complete everything and make sure they are integrated well after completion. Test it\". Pinned on lock day (planned 1 Nov); see india/registrations/lock_day_2026-11-03.json.",
+     "sha256": "dac0d167f125f4139ec67936065dc708bdc3ae77af7d6058702d6778ec253e7a"
+    }
+   ]
+  },
+  "india_exam": {
+   "what": "The India exam's judges (india/exam.py, lines of code) and its questions and pass marks (india/registrations/india_exam_v1.json; answers and decides 9 of 9).",
+   "sha256": "ff5c5d750bb7ef30b68e6bfbf6d9649def6a52080914882b12af3e50b31bc3a8",
+   "history": [
+    {
+     "date": "2026-11-03",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-11-03 (in chat), to the 3 Nov morning review's Waiting list (lock day: recommend yes; the India exam marks: recommend keep 9 of 9): \"Yes for all. Complete everything and make sure they are integrated well after completion. Test it\". Pinned on lock day (planned 1 Nov); see india/registrations/lock_day_2026-11-03.json.",
+     "sha256": "ff5c5d750bb7ef30b68e6bfbf6d9649def6a52080914882b12af3e50b31bc3a8"
+    }
+   ]
+  },
+  "read_model_rules": {
+   "what": "The read model's rules version (india/readmodel.py RULES).",
+   "sha256": "8484673854a22f390f3f396fb0453e28cd43a9dfd3a6b7cd4736b535e2af98f3",
+   "history": [
+    {
+     "date": "2026-11-03",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-11-03 (in chat), to the 3 Nov morning review's Waiting list (lock day: recommend yes; the India exam marks: recommend keep 9 of 9): \"Yes for all. Complete everything and make sure they are integrated well after completion. Test it\". Pinned on lock day (planned 1 Nov); see india/registrations/lock_day_2026-11-03.json.",
+     "sha256": "8484673854a22f390f3f396fb0453e28cd43a9dfd3a6b7cd4736b535e2af98f3"
     }
    ]
   }

@@ -1,10 +1,10 @@
-# The India lock (draft of 2026-10-23; lock day about 2026-11-01)
+# The India lock (drafted 2026-10-23; locked 2026-11-03)
 
 On 2026-10-23 Madhav chose to bring India Ananta to the same place as crypto: *"Remaining all should be done … I open the website, login and see 2 options."* Asked whether India's "done" line is a lock like crypto's (freeze the paper rules, gate them, put everything that does not change a paper rule on an after-the-window list), he answered **yes**. This page is India's `docs/LOCK.md` (the crypto lock lives in the agent repo). It says what runs, what is frozen, what decides success, who may change what, what waits for Madhav and what waits for the end of the window. It is checked by `tests/test_india_lock.py` (the frozen items, `india/registrations/india_lock.json`).
 
 Madhav's standard for every judgement (Oct 20): *"It's not about how much money we make. It's about taking the right and best decision in the given scenario."* So: nothing on paper is tuned on early numbers; it is recorded and waits.
 
-**Status: a draft.** The pins already declared frozen are recorded today (section 3). Lock day is when SP3's remaining parts and the SZ2 selection are in and the India gate reads daily in the app; then the items in "pinned on lock day" are added and this page loses the word draft. Until then every India job runs as it is.
+**Status: locked 3 Nov 2026** (Madhav, in chat: "Yes for all"). SP3's remaining parts and the SZ2 selection are in, the gate reads daily in the app, and every item that waited for lock day is now a pin (section 3; the day's record is `india/registrations/lock_day_2026-11-03.json`).
 
 ## 1. The window and the rules that end it
 
@@ -27,7 +27,8 @@ Madhav's standard for every judgement (Oct 20): *"It's not about how much money 
 | 07:25 / 07:45 | the two morning reviews (crypto, India). The crypto review's lost-runs checker reads India's session proofs (section 4) since Oct 23. Once India locks, one review writes both halves of one page. |
 | 12:30 (22:00) | `com.ananta.india.recorder_noon`: option minutes, the ledger snapshot (D16), index candles. |
 | 12:45 (22:15), weekdays | `com.ananta.india.nightly` again (since 24 Oct 2026): fetches the session that just closed, so the 19:00 and 22:30 jobs plan the next session on its close; the 02:30 run stays as the heal run. |
-| 19:00 (04:30) | `com.ananta.india.evening`: recorder, SP1 nightly replay, US close, forecast score, day plan, option book, calibration, selection report, evidence, report, portfolio, FII/DII and deals captures. |
+| 06:30 IST (20:00 winter, 21:00 summer) | `com.ananta.india.evening_zerodha` (since 3 Nov): the Zerodha part of the evening, after the 06:05 IST sign-in: account snapshot, recorder, SP1 nightly replay, index bars. Each step prints "<step> failed" when it fails. |
+| 06:50 IST (20:20 winter, 21:20 summer) | `com.ananta.india.evening`: US close, day plan, option book, calibration, selection report, evidence, report, portfolio, FII/DII and deals captures, the managed book. Until 3 Nov one 47-step run at 19:00 Toronto; on 2 Nov, the first day of winter time, it ran at 05:30 IST and its Zerodha calls failed on the lapsing token. |
 | Sundays | the agent exam (crypto's `com.ananta.exam`; the India exam joins it in Phase 2); the voice exam on Mondays. |
 
 ## 3. What is frozen
@@ -44,7 +45,7 @@ Pinned today (`india/registrations/india_lock.json`, each with Madhav's recorded
 | `learning_rules` | The league's horizons (1, 5, 20), top 20, 200 random draws, Rs 50,000 notional, participants, 20-session window and the four coverage classes; the missed-movers bands, base and thin-day rules, families and control. The 3-in-7 pattern rule files a DRAFT, never a rule. | `india/others.py`, `india/missed.py` |
 | `no_order_rule` | The leak check: Kite GET and the margin calculator only, no order call anywhere, the sealed holdout refused without a recorded purpose (lines of code). | `india/leakcheck.py` |
 
-**Pinned on lock day (about 1 Nov):** the G01 exit book as the stock book uses it (copied from `manifests/g01_exit_book.json` into registrations); the SP1 line's sizing after the SZ2 selection; the SP3 frozen list, or the recorded "no playbook change: the baseline hold stays" (its dev and validation runs say the situation policy does not beat `hold_60d_nostop`); the India gate's definition; the India exam's judges and pass marks; the read model's rules version.
+**Pinned on lock day (3 Nov; planned 1 Nov), now pins `lock_day_record`, `g01_exit_book`, `india_gate`, `india_exam`, `read_model_rules`:** the G01 exit book as the stock book uses it (copied from `manifests/g01_exit_book.json` into registrations); the SP1 line's sizing after the SZ2 selection; the SP3 frozen list, or the recorded "no playbook change: the baseline hold stays" (its dev and validation runs say the situation policy does not beat `hold_60d_nostop`); the India gate's definition; the India exam's judges and pass marks; the read model's rules version.
 
 Not frozen, by design: every reading (books, counters, league pages, the read model's numbers), the research registry's results, and the after-the-window list.
 
@@ -129,6 +130,20 @@ Madhav, 25 Oct (in chat): "be marked when input data is stale. we will start imm
 | H12 and H18 (partly true by construction) | **registered money follow-ups TWT-H12F and TWT-H18F** in the same teacher bar | `india/teachers.py`; results in `teachers_results_v1.md`. |
 | SZ2 decision (a) of 23 Oct, carried out | **the logged purpose `sz2_selection` added** (Madhav's 23 Oct "yes, logged"; spec run as written) | `india/sealed.py read_sz2`: the completed SP1 holdout run's own policy trades 2024-01-01..2026-10-16 and, to price them as `sz2_v1.json` prescribes, their previous-session chains, their index minutes and the 16 Oct 2026 index closes; refused before that run is completed; every read logged in `manifests/sealed_access.jsonl`; the holdout-era trade table stays inside the sealed tree (`sealed.sz2_output_dir`). No SP1 rule is scored. SZ2 decision (b): IV shift 0, stated in `sz2_results.md`. Nothing live changes: `paper_config.json` sizing waits for Madhav on lock day. |
 | SP3's remaining parts | **run on dev and validation only** (the holdout stays sealed) | `india/sp3extra.py`: INDEX rows into the ledger (same frozen bar, union_k 742), 200 state-shuffle nulls, 10 ablations, 12 start months, reverse priority, filter slices; results appended to `sp3_results.md`. |
+
+### Decisions of 3 Nov
+
+Madhav, 3 Nov (in chat), to the morning review's Waiting list and the Map of Ananta India's 13 changes: "Yes for all. Complete everything and make sure they are integrated well after completion. Test it".
+
+| Item | Decision | Where |
+|---|---|---|
+| Firewall allowlist | **yes**: the 7 read-only references from the 2 Nov never-again files are allowed, each with its reason | `india/firewall.py ALLOWED_REFS` |
+| The SP1 replay's time (and the Map's change 8) | **yes**: the evening run is split; its Zerodha steps run at 06:30 IST, after the sign-in | `com.ananta.india.evening_zerodha`, `jarvis/india/schedule.py TARGETS` |
+| Kite candle fill | **yes**: the fill no longer waits for itself; the stuck run stopped and restarted; the morning check calls a job running 12 h with no output stuck | `india/kite_fill.py SERVICES`, `india/morning.py STUCK` |
+| Lock day | **yes**: SP1's option line stays shadow-only for sizing; SP3 no playbook change (the baseline hold stays); the G01 exit book, the gate, the exam and the read model rules pinned; "draft" dropped | `india/registrations/lock_day_2026-11-03.json`, `india_lock.json` |
+| The India exam's marks | **keep 9 of 9** for "answers and decides" | `india/registrations/india_exam_v1.json` (pinned) |
+| RX2 | **yes**, on 2000-2023 only | `india/registrations/` (RX2 results) |
+| The Map's 13 changes | **yes to all**; change 12 (paid web notes) read as **stop**. A stripped part stops running; its files stay | the Map doc; `claude/decision-2026-11-03-yes-for-all` in the project |
 
 ## 9. After the window
 

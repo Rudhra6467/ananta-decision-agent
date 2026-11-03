@@ -1,0 +1,14 @@
+{
+ "lock_day": "2026-11-03",
+ "planned": "2026-11-01",
+ "approved_by": "Madhav (in chat), 3 Nov 2026: \"Yes for all. Complete everything and make sure they are integrated well after completion. Test it\" (to the 3 Nov morning review's Waiting list: lock day recommended yes, the India exam marks recommended keep 9 of 9)",
+ "decisions": {
+  "sp1_sizing": "SP1's option line stays shadow-only for sizing: the SZ2 choice rule selected no variant eligible at all four tiers (india/registrations/sz2_results.md, 'The choice'). The options line keeps trading one lot on paper within the Rs 50,000 options money (paper_config.json options, Madhav 2 Nov: \"50k. only one amount.\"); no SZ2 variant sizes it. A change needs Madhav's yes.",
+  "sp3_playbook": "No playbook change: the baseline hold stays. On development and validation years the situation policy does not beat hold_60d_nostop (india/registrations/sp3_results.md). The SP3 holdout stays sealed (decision of 23 Oct: not yet).",
+  "g01_exit_book": "The G01 exit book as the stock book uses it, copied from manifests/g01_exit_book.json (22 Oct) to registrations/g01_exit_book_v1.json and pinned.",
+  "india_gate": "registrations/india_gate_v1.json and india/tracker.py consecutive_sessions, pinned.",
+  "india_exam": "The India exam's judges (india/exam.py) and pass marks (registrations/india_exam_v1.json), pinned; 'answers and decides' stays 9 of 9 (Madhav: keep).",
+  "read_model_rules": "india/readmodel.py RULES (readmodel-v0-2026-10-22), pinned."
+ },
+ "india_lock_md": "docs/INDIA_LOCK.md loses the word draft on this day."
+}

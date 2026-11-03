@@ -1,0 +1,19 @@
+{
+ "gate": "india_gate_v1",
+ "pinned": "2026-11-03",
+ "approved_by": "Madhav (in chat), 3 Nov 2026: \"Yes for all\" (lock day, item 4 of the 3 Nov morning review)",
+ "what": "The India gate's definition: G02 (the research tracker) plus the operational rows, read daily on the app's Proof screen and in the read model (research.gate). A pass can turn back into a fail. Real money stays behind Rule A whatever the gate says.",
+ "rows": [
+  {"id": "G01", "row": "exit book", "pass": "HELD cells written, READY"},
+  {"id": "D15", "row": "nightly builds", "pass": "30 clean sessions in a row (india/tracker.py consecutive_sessions: a session counts when a clean nightly run starts between 12:00 that day and 12:00 the next)"},
+  {"id": "D16", "row": "ledger snapshots", "pass": "30 in a row"},
+  {"id": "FAMILIES", "row": "two families validated", "pass": "development plus validation years, one holdout look each"},
+  {"id": "LOST_RUNS", "row": "lost or empty runs (India)", "pass": "the 24-hour line says none, 10 sessions in a row"},
+  {"id": "READ_MODEL", "row": "read model", "pass": "built after every session with no missing section, 10 in a row"},
+  {"id": "SIGN_IN", "row": "sign-in", "pass": "10 sessions with no 'token dead' line"},
+  {"id": "D32", "row": "the India exam", "pass": "every pass mark of india_exam_v1.json met in the same run (known 16, unknown 6, why 4, answers and decides 9 of 9, safety 39, plain words 36)"},
+  {"id": "NO_ORDER", "row": "no order path", "pass": "leakcheck passes every rule every night"},
+  {"id": "GUARDRAILS", "row": "guardrails", "pass": "recorded every session; the enforce switch built and off"},
+  {"id": "SENTENCE", "row": "Madhav's sentence", "pass": "written by Madhav"}
+ ]
+}

@@ -1,0 +1,136 @@
+{
+ "study": "G01",
+ "version": 2,
+ "built_at": "2026-10-23T00:21:49+00:00",
+ "split": 2018,
+ "slots": 10,
+ "rule": {
+  "dev_top": 3,
+  "val_top": 5,
+  "min_trades": 300,
+  "rank_by": "book_mar",
+  "held": "dev top-3 by book MAR; val top-5, val net>0, val book growth>0 (excess vs null reported, not required: E02)"
+ },
+ "situation": "Nifty 50 close vs 50- and 200-day averages at the signal close (SP3 stage_3_situation, first axis)",
+ "inputs": [
+  {
+   "file": "E02-BRK_trades.parquet",
+   "sha256": "df08d1dc2ef36b1734f5f4f9f815cd34e05fdb59c725dbde1149c2960f790e98",
+   "bytes": 20354974
+  },
+  {
+   "file": "E03-BRK_trades.parquet",
+   "sha256": "ae48d645a0318ceee79473473b14bc1daac766e67f51215dca2ff3ee049cd057",
+   "bytes": 11006665
+  },
+  {
+   "file": "E02-PULL_trades.parquet",
+   "sha256": "8f2f4f9f443a5bc4540a999a5ba9903e0203458f4a29c3ddd2044f3d91d1356b",
+   "bytes": 18029310
+  },
+  {
+   "file": "E03-PULL_trades.parquet",
+   "sha256": "1f8c766da86747b885803a9112b9e4b06e6a0b2861657601600a562f78494a13",
+   "bytes": 9856308
+  },
+  {
+   "file": "E02-ANY_trades.parquet",
+   "sha256": "e86e5f5d09a163966735838bdb22b33fa7aea10fabe8ee89426f3116f084e3a8",
+   "bytes": 144043195
+  },
+  {
+   "file": "E03-ANY_trades.parquet",
+   "sha256": "140911894f0db22ded707b8c439285f4141e2140ba6bceb36c050ed6c9358ed2",
+   "bytes": 74804957
+  }
+ ],
+ "cells": 720,
+ "leaders": 36,
+ "held": 11,
+ "not_held": 25,
+ "inconclusive": 0,
+ "chosen": {
+  "BRK/all": {
+   "policy": "sma_close_50",
+   "val_mar": 0.18839047890002952,
+   "val_net": 0.020310192206306386,
+   "val_excess": -0.00043288013482647926,
+   "held": 3,
+   "tried": 3
+  },
+  "BRK/above_both": {
+   "policy": "hold_60d",
+   "val_mar": 0.2676909989369221,
+   "val_net": 0.021687099632452543,
+   "val_excess": -2.3455687556201783e-06,
+   "held": 3,
+   "tried": 3
+  },
+  "BRK/mixed": {
+   "policy": "sma_close_50",
+   "val_mar": 0.20844270751105648,
+   "val_net": 0.022325620761984574,
+   "val_excess": -0.0006775378359834641,
+   "held": 3,
+   "tried": 3
+  },
+  "BRK/below_both": {
+   "policy": null,
+   "held": 0,
+   "tried": 3,
+   "why": "no dev leader held up in validation"
+  },
+  "PULL/all": {
+   "policy": null,
+   "held": 0,
+   "tried": 3,
+   "why": "no dev leader held up in validation"
+  },
+  "PULL/above_both": {
+   "policy": null,
+   "held": 0,
+   "tried": 3,
+   "why": "no dev leader held up in validation"
+  },
+  "PULL/mixed": {
+   "policy": "hold60+low20",
+   "val_mar": 0.07332455845711162,
+   "val_net": 0.0028855365276158657,
+   "val_excess": 0.0,
+   "held": 1,
+   "tried": 3
+  },
+  "PULL/below_both": {
+   "policy": null,
+   "held": 0,
+   "tried": 3,
+   "why": "no dev leader held up in validation"
+  },
+  "ANY/all": {
+   "policy": null,
+   "held": 0,
+   "tried": 3,
+   "why": "no dev leader held up in validation"
+  },
+  "ANY/above_both": {
+   "policy": null,
+   "held": 0,
+   "tried": 3,
+   "why": "no dev leader held up in validation"
+  },
+  "ANY/mixed": {
+   "policy": null,
+   "held": 0,
+   "tried": 3,
+   "why": "no dev leader held up in validation"
+  },
+  "ANY/below_both": {
+   "policy": "hold60+low20",
+   "val_mar": 0.22918620167596335,
+   "val_net": 0.03697995743317616,
+   "val_excess": 6.728636027867486e-06,
+   "held": 1,
+   "tried": 3
+  }
+ }
+}

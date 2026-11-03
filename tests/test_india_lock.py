@@ -116,6 +116,16 @@ def current() -> dict[str, str]:
         "allocation_rule": _sha(_json("india/registrations/allocation_rule_v1.json")),
         # no order path: the leak check that forbids every order call until the gate (lines of code)
         "no_order_rule": _sha(_code("india/leakcheck.py")),
+        # lock day, 3 Nov 2026 (Madhav: "Yes for all"): the record of the day's decisions (SP1 sizing shadow-only, SP3 baseline hold stays)
+        "lock_day_record": _sha(_json("india/registrations/lock_day_2026-11-03.json")),
+        # the G01 exit book as the stock book uses it (copied from manifests/g01_exit_book.json, 22 Oct)
+        "g01_exit_book": _sha(_json("india/registrations/g01_exit_book_v1.json")),
+        # the India gate's definition: its rows and what counts as 30 clean sessions in a row
+        "india_gate": _sha(_json("india/registrations/india_gate_v1.json") + "\n#--\n" + _top("india/tracker.py", ["consecutive_sessions"])),
+        # the India exam's judges (lines of code) and its pass marks and questions
+        "india_exam": _sha(_json("india/registrations/india_exam_v1.json") + "\n#--\n" + _code("india/exam.py")),
+        # the read model's rules version
+        "read_model_rules": _sha(_top("india/readmodel.py", ["RULES"])),
     }
 
 
@@ -137,6 +147,17 @@ def test_the_lock_names_what_waits_for_lock_day():
     lock = json.loads(LOCK.read_text())
     assert lock["lock_day"]["planned"] == "2026-11-01" and lock["lock_day"]["pinned_then"], "the lock day and its pins-to-come must be stated"
     assert "INDIA_LOCK.md" in lock["what"]
+
+
+def test_the_lock_is_no_longer_a_draft_and_the_live_exit_book_matches_its_pin():
+    # lock day 3 Nov 2026: INDIA_LOCK.md loses the word draft; the exit book the stock book reads must still be the pinned one
+    lock = json.loads(LOCK.read_text())
+    assert lock["lock_day"].get("locked") == "2026-11-03"
+    assert "**Status: locked" in (ROOT / "docs" / "INDIA_LOCK.md").read_text()
+    live = Path.home() / "ananta_data" / "india" / "manifests" / "g01_exit_book.json"
+    if live.exists():
+        pinned = json.loads(_src("india/registrations/g01_exit_book_v1.json"))
+        assert json.loads(live.read_text()).get("chosen") == pinned.get("chosen"), "the live G01 exit book changed after it was pinned"
 
 
 if __name__ == "__main__":

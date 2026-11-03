@@ -271,6 +271,11 @@ export default function Ananta() {
   const [qcat, setQcat] = useState("new");
   const [startersOn, setStartersOn] = useState(() => !startersDone());
   const [inH, setInH] = useState(44);
+  // one stable handler: react-native-web re-measures whenever the handler changes, so an inline one re-measured on every render
+  const onInSize = useCallback((e: any) => {
+    const next = Math.max(44, Math.min(180, Math.round(e?.nativeEvent?.contentSize?.height || 0)));
+    setInH((prev) => (Math.abs(prev - next) < 3 ? prev : next));
+  }, []);
   const dropStarters = () => { if (startersOn) { setStartersOn(false); markStartersDone(); } };
   useEffect(() => () => setTyping(false), []);
   const [err, setErr] = useState<string | null>(null);
@@ -957,7 +962,9 @@ export default function Ananta() {
           </Pressable>
           <TextInput value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"}
             onChangeText={(v) => { setText(v); if (v.trim()) dropStarters(); if (!v) setInH(44); }}
-            onContentSizeChange={(e) => setInH(Math.max(44, Math.min(180, Math.ceil(e.nativeEvent.contentSize.height) + 2)))}
+            // 3 Nov: the measured height is used as it is (no +2) and a change under 3 px is ignored: adding to the measure made the box grow by
+            // itself, re-measure and grow again until React stopped the screen (error 185)
+            onContentSizeChange={onInSize}
             onFocus={() => setTyping(true)} onBlur={() => setTyping(false)}
             placeholder="Ask Ananta…" placeholderTextColor={C.dim} multiline accessibilityLabel="Ask Ananta"
             style={{ flex: 1, height: text ? inH : 44, minHeight: 44, maxHeight: 180, fontSize: 15, lineHeight: 20, color: C.text, backgroundColor: C.bg, borderRadius: 22,

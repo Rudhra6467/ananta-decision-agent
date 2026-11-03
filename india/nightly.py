@@ -54,6 +54,16 @@ def _board_meetings():
     return out
 
 
+def _results_html():
+    # 3 Nov 2026 (D20b): the 2010-2017 HTML result pages, at most 1,000 a night, so the fetch keeps moving if the background run stops;
+    # resumable and skipped once every page is in (pages already fetched are never asked again). Never fails the build.
+    from india import results_html
+    try:
+        return {"fetch": results_html.fetch(2010, 2017, limit=1000), "build": results_html.build()}
+    except Exception as e:  # noqa: BLE001
+        return f"problem {type(e).__name__}: {e}"
+
+
 def _flows():
     from india import flows
     return flows.fetch(dt.date.today().year), flows.build()
@@ -132,6 +142,7 @@ def run(sync: bool = True) -> dict:
         ("results_integrated", lambda: _results_integrated(today - dt.timedelta(days=14))),
         ("fundamentals", _fundamentals),
         ("board_meetings", _board_meetings),
+        ("results_html", _results_html),
         ("flows", _flows),
         ("pr_silver", _pr_silver),
         ("surveillance", _surveil),

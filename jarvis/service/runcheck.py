@@ -333,6 +333,8 @@ def judge(part: dict, paths: dict, now: int, span: int) -> dict:
             continue
         mine = [e for e in events if lo <= e[0] < hi]
         errs = [e for e in mine if e[2]]
+        if errs and part.get("retry_ok") and any(not e[2] and e[1] > 0 and e[0] >= max(x[0] for x in errs) for e in mine):
+            errs = []                                    # 3 Nov: the job's own retry succeeded in the same run, so nothing was lost
         work = sum(e[1] for e in mine if not e[2])
         if part.get("errors_only"):
             if errs:

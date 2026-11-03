@@ -466,3 +466,27 @@ def test_a_chronos_forecast_written_by_hand_before_0420_is_not_an_empty_run(tmp_
 def _utc(t: int) -> str:
     import datetime as _dt
     return _dt.datetime.fromtimestamp(t, _dt.timezone.utc).strftime("%Y-%m-%d %H:%M")
+
+
+# ---------------------------------------------------------------------------- a failure its own retry fixed (3 Nov)
+def test_a_sign_in_failure_fixed_by_its_own_retry_is_not_a_miss(tmp_path):
+    """3 Nov 00:31 UTC: the Kite auto sign-in timed out once and signed in 2 seconds later; the checker called it a high miss.
+    A FAILED line followed by a success in the same run is fine; a FAILED line with no success after it is still a miss."""
+    import time as _t
+    paths = _paths(tmp_path)
+    lines = []
+    for d in range(8):
+        day = D0 - d * DAY
+        stamp = _t.strftime("%Y-%m-%dT00:36:07+00:00", _t.gmtime(day))
+        if d == 4:                                                                # Oct 16: failed, then the retry worked
+            lines += [f"{stamp} auto sign-in FAILED: HTTPSConnectionPool(host='kite.zerodha.com', port=443): Read timed out.",
+                      stamp.replace(":07+", ":09+") + " auto sign-in ok: user X until next day 06:00 IST"]
+        elif d == 5:                                                              # Oct 15: failed and stayed failed
+            lines.append(f"{stamp} auto sign-in FAILED: Read timed out.")
+        else:
+            lines.append(f"{stamp} auto sign-in ok: user X until next day 06:00 IST")
+    Path(paths["runs"], "kite_autologin.log").write_text("\n".join(lines) + "\n")
+    res = runcheck.run(paths, NOW, [_part("india_autologin", since="2026-10-01")])
+    ms = _misses(res)
+    assert [m["kind"] for m in ms] == ["errored"]
+    assert _t.strftime("%Y-%m-%d", _t.gmtime(ms[0]["t"])) == "2026-10-15"

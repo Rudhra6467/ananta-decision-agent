@@ -27,6 +27,8 @@ CUT = pd.Timestamp("2024-01-01")
 SPLIT = 2018
 YEARS = list(range(2014, 2024))
 SEED = 20261027
+# (lo, hi]: the IB1 / MS1 stock ranks (previous session). (0, 50) is the frozen universe; only W500 (3 Nov 2026) sets another band.
+STOCK_BAND = (0, 50)
 # minute index from 09:15 (index minute arrays: 0..374)
 M_0930, M_1000, M_1015, M_1100, M_1330, M_1400, M_1430, M_1525 = 15, 45, 60, 105, 255, 285, 315, 370
 
@@ -453,7 +455,7 @@ def _stock_days() -> dict:
     # itself, so the same-day rank would let a stock's own intraday move help it into the list (27 Oct re-run, see the results page)
     consec = (P["sid"] == P["sid"].shift(1)) & (P["n"] == P["n"].shift(1) + 1)
     P["liq_rank"] = P["liq_rank"].shift(1).where(consec)
-    P = P[(P["date"] >= "2015-01-01") & (P["liq_rank"] <= 50)][["symbol", "date", "liq_rank"]]
+    P = P[(P["date"] >= "2015-01-01") & (P["liq_rank"] > STOCK_BAND[0]) & (P["liq_rank"] <= STOCK_BAND[1])][["symbol", "date", "liq_rank"]]
     files = [str(D / "silver/kite_5m" / f"year={y}" / "part.parquet") for y in range(2015, 2024) if (D / "silver/kite_5m" / f"year={y}" / "part.parquet").exists()]
     con = duckdb.connect()
     con.register("p", P)

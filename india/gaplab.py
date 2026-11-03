@@ -26,6 +26,8 @@ CUT = pd.Timestamp("2024-01-01")
 SPLIT = ts.SPLIT
 IDX_COST = 0.0010            # index round trip (futures or ETF: charges plus slippage), fixed in the GP1 spec
 GAP_COOL_STOCK, GAP_COOL_INDEX = 10, 5
+# (lo, hi]: the GP1 stock ranks. (0, 250) is the frozen GP1 universe; only W500 (3 Nov 2026) sets another band.
+STOCK_BAND = (0, 250)
 
 
 def spec(study: str) -> dict:
@@ -80,7 +82,7 @@ def _gap_stock_frame() -> pd.DataFrame:
     P["g1"] = (c / o - 1 - P["cost"]).where(jump == 0)
     P["g5"] = (c4 / o - 1 - P["cost"]).where(win5 == 0)
     P["gap"] = gap
-    liq = (P["liq_rank"] <= 250)
+    liq = (P["liq_rank"] > STOCK_BAND[0]) & (P["liq_rank"] <= STOCK_BAND[1])
     P["liq"] = liq
     gv = gap.to_numpy(float)
     ok = pd.Series(np.isfinite(gv) & (np.abs(gv) < 0.5) & liq.to_numpy(), index=P.index)

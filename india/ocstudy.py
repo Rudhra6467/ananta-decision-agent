@@ -38,6 +38,8 @@ REPORT = HERE / "registrations" / "oc_v1_results.md"
 YEARS = list(range(2015, 2024))
 DEV_LAST = 2017
 IDX = {"NIFTY": "NIFTY 50", "BANKNIFTY": "NIFTY BANK"}
+# (lo, hi]: the stock ranks traded (previous session's rank). (0, 100) is the frozen OC1 universe; only W500 (3 Nov 2026) sets another band.
+STOCK_BAND = (0, 100)
 TICK = 0.05
 NMIN, NB5 = 375, 75          # 1-minute bars 09:15..15:29, 5-minute bars 09:15..15:25
 DEC_MIN, DEC_B5 = 59, 11     # last bar whose close is at or before 10:15 (1-minute bar 10:14, 5-minute bar 10:10)
@@ -334,7 +336,7 @@ def load_universe(days: list[dt.date]) -> pd.DataFrame:
     """rank on the previous session for each trading day 2015-2023."""
     D = paths.data_dir()
     con = duckdb.connect()
-    u = con.execute(f"select date, sid, symbol, rank from read_parquet('{D}/gold/universe/u_liq_in.parquet') where date >= '2014-11-01' and date <= '2023-12-31' and rank <= 100").df()
+    u = con.execute(f"select date, sid, symbol, rank from read_parquet('{D}/gold/universe/u_liq_in.parquet') where date >= '2014-11-01' and date <= '2023-12-31' and rank <= {max(STOCK_BAND[1], 100)}").df()
     con.close()
     u["date"] = pd.to_datetime(u["date"]).dt.date
     prev = {days[i]: days[i - 1] for i in range(1, len(days))}
@@ -473,8 +475,9 @@ def stock_pass(index: dict, days: list[dt.date], specials: set, m_table: dict | 
                     tails[e] = trp[i, -14:].copy()
             # eligibility
             rk = np.array([ranks.get(e, 10**9) for e in ents])
-            in100 = rk <= 100
-            cnt["stock_days_ranked"] += int(sum(1 for e in ranks if ranks[e] <= 100))
+            top = max(STOCK_BAND[1], 100)
+            in100 = rk <= top                     # the default band (0, 100) is the frozen OC1 universe; W500 widens it (breadth stays the top 50)
+            cnt["stock_days_ranked"] += int(sum(1 for e in ranks if ranks[e] <= top))
             blocked = np.array([(d, e) in ca for e in ents])
             bj = {}
             has_base = np.ones(n, bool)
@@ -483,13 +486,14 @@ def stock_pass(index: dict, days: list[dt.date], specials: set, m_table: dict | 
                 row = bt.loc[d] if d in bt.index else None
                 bj[j] = np.array([row.get(e, np.nan) if row is not None else np.nan for e in ents])
                 has_base &= ~np.isnan(bj[j]) & (bj[j] > 0)
-            elig = valid & in100 & ~blocked & has_base
-            cnt["no_link_or_data"] += int(sum(1 for e, rr in ranks.items() if rr <= 100) - int((valid & in100).sum()))
+            elig_all = valid & in100 & ~blocked & has_base
+            elig = elig_all & (rk > STOCK_BAND[0]) & (rk <= STOCK_BAND[1])
+            cnt["no_link_or_data"] += int(sum(1 for e, rr in ranks.items() if rr <= top) - int((valid & in100).sum()))
             cnt["ca_block"] += int((valid & in100 & blocked).sum())
             cnt["no_rvol_base"] += int((valid & in100 & ~blocked & ~has_base).sum())
             cnt["eligible"] += int(elig.sum())
             # breadth from the eligible top 50
-            b50 = elig & (rk <= 50)
+            b50 = elig_all & (rk <= 50)
             nb50 = int(b50.sum())
             if nb50 >= MIN_BREADTH_NAMES:
                 B5 = (A["c"][b50, :12] > A["o"][b50, 0:1]).mean(0)

@@ -1,0 +1,56 @@
+{
+ "study": "W500",
+ "family": "W500",
+ "frozen_at": "2026-11-03T17:03:40+00:00",
+ "approved": "Madhav, 3 Nov 2026 (chat: 'yes to all your recommendations and next steps', after the draft registrations/w500_v1_draft.md)",
+ "title": "W500: do the narrow-universe results (OC1, IB1, GP1) carry to the next band of stocks?",
+ "hypothesis": "each VALIDATED stock variant of OC1 (top 100), IB1 (top 50) and GP1 (top 250), with its frozen rule, costs and periods, has the same sign with t >= 2.0 in both periods on the next band of stocks alone",
+ "bands": {
+  "OC1": {
+   "ranks_above": 100,
+   "ranks_to": 250
+  },
+  "IB1": {
+   "ranks_above": 50,
+   "ranks_to": 150
+  },
+  "GP1": {
+   "ranks_above": 250,
+   "ranks_to": 500
+  }
+ },
+ "variants": {
+  "OC1|STOCKS|k15|E1|X1|vs_base": 1,
+  "OC1|STOCKS|k15|E1|X2|vs_base": 1,
+  "OC1|STOCKS|k15|E2|X1|vs_base": 1,
+  "OC1|STOCKS|k15|E2|X2|vs_base": 1,
+  "OC1|STOCKS|k30|E1|X1|vs_base": 1,
+  "OC1|STOCKS|k30|E1|X2|vs_base": 1,
+  "OC1|STOCKS|k30|E2|X1|vs_base": 1,
+  "OC1|STOCKS|k30|E2|X2|vs_base": 1,
+  "IB1|STK|orb15|net": 1,
+  "IB1|STK|orb30|net": 1,
+  "GP1|STK|gapdown2|open|hold1": 1
+ },
+ "pass_rule": {
+  "carries": "same sign as the original and t >= 2.0 in development and in validation"
+ },
+ "bar": {
+  "union_k": 11,
+  "z": 2.838
+ },
+ "periods": "each study's own: OC1 and IB1 2015-2017 / 2018-2023, GP1 2000-2017 / 2018-2023; nothing from 2024",
+ "fixed_choices": [
+  "universe chosen exactly as in each study (OC1 and IB1: the previous session's rank; GP1: the stock panel's rank)",
+  "OC1 breadth stays the eligible top 50 (it is a market-state filter, not the traded universe)",
+  "OC1 X2 uses the m values frozen in the OC1 run (manifests/oc_v1_results.json m_stocks), not refitted",
+  "costs as in each study, by the stock's own liquidity rank where the study does that",
+  "a failure is a finding about how wide the edge is, not a rejection of the original"
+ ],
+ "code_sha": {
+  "india/ocstudy.py": "5e74de5e580cc577",
+  "india/lab4.py": "534fcc290f482ff2",
+  "india/gaplab.py": "74427615045644e0",
+  "india/w500.py": "be59ad7d2ff34a5b"
+ }
+}

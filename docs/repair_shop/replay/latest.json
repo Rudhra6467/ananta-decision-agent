@@ -1,0 +1,462 @@
+{
+ "summary": {
+  "night": "2026-11-02",
+  "hours": 24.0,
+  "today_turns": 5,
+  "today_failed": 0,
+  "bank_checked": 10,
+  "bank_failed": 2,
+  "bank_open": 4,
+  "bank_fixed": 19,
+  "never_again_checked": 32,
+  "never_again_failed": 1,
+  "words": "Nightly check 2026-11-02: 5 of 5 of today's answers passed; the regression bank: 8 of 10 passed (19 fixed for good, 4 still open); the never-again cases of 1-2 Nov: 31 of 32 passed."
+ },
+ "failures": [
+  {
+   "source": "bank",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "Sir, an idea climbs a fixed staircase, and no step is skipped. A finding becomes a draft only when a fixed count how often it fires. It is registered once you say yes, then tested on 2000-2023 at a the strict pass mark and run as a paper book on live sessions (20 recorded). It is admitted only after it beats random picks and the average stock on 10 separate sessions after costs and passes a check that no future data leaked in, and then you say yes again; the final real-money gate comes after that. Right now no rule has reached the admitted step: the stock rules are at the paper-trial step (breakouts 8 of 20 sessions, pullbacks 7, reversals 9) and the options line at 6 of 20.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It opens with the internal term \"staircase\", and the garbled phrases \"a fixed count how often it fires\" and \"at a the strict pass mark\" are hard for a beginner to follow."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "bank",
+   "text": "Yeah Ananta, open it. But in the meanwhile, I have already done an exercise there, like only one exercise. But like couldn't you remind, like remember my voice and say who you are talking to. Last time you asked me, like when you are not talking to me, you asked if you are talking to a grader, outside grader or vamsi. That's why I was asking, just inquiring about this question.",
+   "answer": "Hello, grader. I'm Ananta, Madhav's paper-trading assistant for the Indian market. Ask me anything about the market, the practice books or my tests; anything that needs a yes stays with Madhav.",
+   "problems": [
+    {
+     "code": "WRONG_PERSON",
+     "why": "The chat is set up as Madhav the owner and he is speaking, but Ananta greets him as 'grader' and treats him as a guest instead of addressing him as sir."
+    },
+    {
+     "code": "PART_MISSED",
+     "why": "Madhav asked it to open the voice screen ('open it'), said he had already done one exercise, and asked why it can't remember his voice and say who it is talking to; the answer addresses none of these."
+    },
+    {
+     "code": "MISREAD",
+     "why": "He was asking about voice recognition and why it sometimes asks if it is talking to a grader or Vamsi, but the answer gives a generic introduction as if to a new guest."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "never_again",
+   "text": "As the Indian market is going to start in 30-40 minutes, I want to know what is that you are ready for.",
+   "answer": "Sir, Ananta is ready to decide on the options line, which looks at one Nifty or Bank Nifty option lot between 09:15 and 10:15 IST. It trades only if the opening move clears the option's cost, and otherwise it passes. First, Friday's paper long on Bank Nifty closes at today's open; the index was 209 points below its entry at Friday's close (54,687 against 54,896). For reference, the Nifty closed Friday at 23,053 and the fear gauge at 15.3.",
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /\\b(managed book|plan)\\b/"
+    }
+   ],
+   "error": null
+  }
+ ],
+ "results": [
+  {
+   "source": "today",
+   "text": "Hey Ananta. What happened with the market yesterday? What did we do and what did you see and what did you find?",
+   "answer": "Sir, on Monday 2 Nov the Nifty closed at 23,441 (+1.7%), and today's session is open: at 09:50 IST the Nifty is about 23,635 (+0.8%) and Bank Nifty about 55,454. Last night's replay found that of Monday's 25 biggest rises Ananta held 12 and missed 6 that no rule was watching, and it held 14 of the 22 biggest falls. The finding is that no rule was positioned for stocks making a new 52-week high with an intraday run (RATNAVEER, for example), and that one idea waits for your yes. Today the options line took Bank Nifty long at 09:30 (about Rs +1,202 a lot on paper), the managed book makes no change, and the practice book bought its 12 picks at the open.",
+   "pass": true,
+   "problems": [],
+   "ms": 11007
+  },
+  {
+   "source": "today",
+   "text": "So, what happened on the Monday market? Why are you still telling about the Friday? What about the Monday?",
+   "answer": "Sir, my last answer mixed in today's Tuesday session, which is open in India now, so here is Monday 2 Nov alone. The Nifty gapped up 0.7% at the open and closed at 23,441 (+1.7%), Bank Nifty closed at 55,002 (+0.6%), and foreign institutions bought about ₹3,115 crore while domestic institutions sold ₹392 crore. On our side, the managed book (paper) filled 13 trades on Monday: it sold 10 holdings, including JIOFIN, TATAPOWER and LICI, and bought AJANTPHARM, ETERNAL and CIPLA in place of three of the cuts. Of the day's 25 biggest rises Ananta held 12 and missed 6 that no rule was watching, and it held 14 of the 22 biggest falls. The one gap it found is that no rule covers a stock making a new 52-week high in an intraday run, like RATNAVEER.",
+   "pass": true,
+   "problems": [],
+   "ms": 9970
+  },
+  {
+   "source": "today",
+   "text": "But Monday, Monday already happened in India, right? Why didn't you have that data?",
+   "answer": "Yes, sir, Monday 2 Nov finished at 15:30 IST, and I did have it: the Nifty closed at 23,441 (+1.7%), and last night's replay and the books all run through that day. My first answer was wrong to lead with today's live Tuesday session, and that is why it felt like I had missed Monday. The only Friday-dated numbers are the US and oil readings, which reach me a few days late, so they show older dates.",
+   "pass": true,
+   "problems": [],
+   "ms": 7876
+  },
+  {
+   "source": "today",
+   "text": "Yeah Ananta, I know you will have data once it is closed but while the market is still going on and while you are still while you are alive looking for the trades you should have data about that as well. We should know about the current session. We should not always be talking about the last closed session.",
+   "answer": "You're right, sir, and today's session should come first: it is Tuesday 3 Nov, 09:50 in India, the market is open, and I do see it live. The Nifty is at 23,635 (+0.8%), Bank Nifty at 55,454 (+0.8%), and the fear gauge is 15.9. The options line took Bank Nifty long at 09:30 and is about Rs 1,202 up a lot on paper, your holdings are up about Rs 1,528 (+1.4%), and the managed book makes no change today. My first answer led with it, but then you asked about Monday and I stayed on the closed session; from now on I'll start with the live session and add the last close after it.",
+   "pass": true,
+   "problems": [],
+   "ms": 4671
+  },
+  {
+   "source": "today",
+   "text": "Flag them issue. We will work it on the back end.",
+   "answer": "Noted as a replay flag (nothing filed), sir. It's in My flags, and it gets worked on from there.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "Sir, an idea climbs a fixed staircase, and no step is skipped. A finding becomes a draft only when a fixed count how often it fires. It is registered once you say yes, then tested on 2000-2023 at a the strict pass mark and run as a paper book on live sessions (20 recorded). It is admitted only after it beats random picks and the average stock on 10 separate sessions after costs and passes a check that no future data leaked in, and then you say yes again; the final real-money gate comes after that. Right now no rule has reached the admitted step: the stock rules are at the paper-trial step (breakouts 8 of 20 sessions, pullbacks 7, reversals 9) and the options line at 6 of 20.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It opens with the internal term \"staircase\", and the garbled phrases \"a fixed count how often it fires\" and \"at a the strict pass mark\" are hard for a beginner to follow."
+    }
+   ],
+   "ms": 7184
+  },
+  {
+   "source": "bank",
+   "text": "What exactly is your job for me? One paragraph.",
+   "answer": "Sir, my job is to be your assistant for the Indian market, on paper only. Each evening I re-rate every holding in your account and write a cut list, and I keep paper books that test ideas by rules, including one that acts on that list. Each morning I give you the market view and the day's plan, and I answer your questions from my own data and tests, saying plainly when a number is missing or an idea is untested. I cannot place or change any real trade, and only you can approve research drafts or change anything.",
+   "pass": true,
+   "problems": [],
+   "ms": 4678
+  },
+  {
+   "source": "bank",
+   "text": "If RSI is 28 on the Nifty daily, what does that tell you, and what would you do?",
+   "answer": "Sir, RSI is a 0-100 gauge of recent buying against selling, and 28 on the Nifty daily means oversold: the index has fallen hard and fast. Ananta tested RSI under 30 on stocks, not on the Nifty itself, and trades bought that way earned more over the next 20 sessions (about +2.5% in 2000-2017 and +1.9% in 2018-2023), so it is a mild point in favour of a bounce. As a trade, I would not buy only because of the reading: stay small and staggered, and I'd reverse that if the Nifty keeps closing lower with RSI still under 30, because oversold can stay oversold. For comparison, the Nifty's RSI at the last close (2 Nov) was 61, so we are nowhere near that zone now.",
+   "pass": true,
+   "problems": [],
+   "ms": 6971
+  },
+  {
+   "source": "bank",
+   "text": "What is the one risk rule that stops a bad day from becoming a bad month?",
+   "answer": "Sir, it is the daily loss limit: at a 5% loss for the day, every position is closed and no new entry is made until the next session. That caps one bad day, so it cannot snowball into a bad week or month. Two limits sit behind it: the rule that pauses trading after a 22% fall below the peak stops new buys until you resume, and the rule only acts during market hours, so an overnight gap can still go past 5%.",
+   "pass": true,
+   "problems": [],
+   "ms": 4487
+  },
+  {
+   "source": "bank",
+   "text": "The twin is six sessions in and the managed book is on session one of sixty. Why two different clocks on the same holdings?",
+   "answer": "Sir, the twin is on 7 of 60 sessions, not six. They are two different experiments, so each has its own clock that starts when its own rules begin. The twin started on 23 Oct and only moves money between stocks, options and cash to keep the split. The managed book began later, with its first paper buys on 2 Nov: it acts on the cut list and buys a replacement for each cut. Both are judged after 60 sessions against the frozen original and the Nifty 500, and nothing is read into either before then.",
+   "pass": true,
+   "problems": [],
+   "ms": 6919
+  },
+  {
+   "source": "bank",
+   "text": "Does the paper copy of my account sell the same things the managed book sells on Monday?",
+   "answer": "No, sir. The paper copy of your account only moves money to keep stocks, options and cash inside their split, and at Monday's close every part was within its band, so it had nothing to move. The managed book acts on the cut list: on Monday it sold 10 names (JIOFIN, TATAPOWER, LICI, TMCV, KARURVYSYA, TATACHEM, UNITDSPR, IDEA, IRFC, NETWORK18) and bought AJANTPHARM, ETERNAL and CIPLA in their place. The managed book is on session 1 of 60, so nothing is read into the gap between the two yet.",
+   "pass": true,
+   "problems": [],
+   "ms": 6680
+  },
+  {
+   "source": "bank",
+   "text": "Give me a daily checklist, five lines, for reading your morning view.",
+   "answer": "Sir, five lines, in this order: 1) Check the headline: where the Nifty closed and whether it is above or below its 50- and 200-day averages. 2) Read the lines that decide the day: above 23,511 was an up day and below 23,370 a down day on the last view; take the new ones from the day's view. 3) Read \"Our chances, honestly\": the rule forecast and the daily call each with their record against a coin flip, and trust none that is below it. 4) Look at the Watch list: expiry days, results, the F&O ban list and the guardrails. 5) Last, see what Ananta is doing: the practice buys, the options line's decision and your holdings' notes, remembering the practice buys are paper, not your money.",
+   "pass": true,
+   "problems": [],
+   "ms": 4371
+  },
+  {
+   "source": "bank",
+   "text": "Do you scan the markets for Monday?",
+   "answer": "Yes, sir, every evening after the close. Ananta scans the 250 most traded stocks for breakouts, pullbacks and sold-too-hard reversals, and picks for the next session. Last night's scan for today found 24 breakout names, 174 pullback names and 127 reversal names, and it chose 12 practice buys (5, 3 and 4). Monday 2 Nov has already passed, so the next Monday scan runs on Friday 6 Nov after the close, for Monday 9 Nov. All of this is on paper; nothing is placed from chat.",
+   "pass": true,
+   "problems": [],
+   "ms": 6323
+  },
+  {
+   "source": "bank",
+   "text": "Yeah Ananta, open it. But in the meanwhile, I have already done an exercise there, like only one exercise. But like couldn't you remind, like remember my voice and say who you are talking to. Last time you asked me, like when you are not talking to me, you asked if you are talking to a grader, outside grader or vamsi. That's why I was asking, just inquiring about this question.",
+   "answer": "Hello, grader. I'm Ananta, Madhav's paper-trading assistant for the Indian market. Ask me anything about the market, the practice books or my tests; anything that needs a yes stays with Madhav.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "WRONG_PERSON",
+     "why": "The chat is set up as Madhav the owner and he is speaking, but Ananta greets him as 'grader' and treats him as a guest instead of addressing him as sir."
+    },
+    {
+     "code": "PART_MISSED",
+     "why": "Madhav asked it to open the voice screen ('open it'), said he had already done one exercise, and asked why it can't remember his voice and say who it is talking to; the answer addresses none of these."
+    },
+    {
+     "code": "MISREAD",
+     "why": "He was asking about voice recognition and why it sometimes asks if it is talking to a grader or Vamsi, but the answer gives a generic introduction as if to a new guest."
+    }
+   ],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "Straight, honest, and not over claimed. That cautions healthy, especially before real money. Want a simple daily checklist? Just-",
+   "answer": "Yes, sir, here is a four-line one built only from what Ananta has tested. Skip anything that has already run hard (over 20% above its 50-day average, up 25% in 20 sessions, or RSI over 70) and anything 40% down and under its 200-day average. Fix your exit before you enter, since a fixed stop beat a trailing one in tests, and say no to any tip or group call. Your message cut off after \"Just-\", so tell me what you meant to add.",
+   "pass": true,
+   "problems": [],
+   "ms": 10254
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta. What happened with the market yesterday? What did we do and what did you see and what did you find?",
+   "answer": "Sir, Monday 2 Nov was a strong day: the Nifty closed at 23,441 (+1.7%, opened 23,222), Bank Nifty at 55,002 (+0.6%), and the fear gauge was about 15.5. The options line, on paper, passed on three of its five decision points. It went long Bank Nifty at 09:30 (index 54,953, now 55,002) and long Nifty at 09:45 (index 23,304, now 23,441), and both are ahead on the index. Your paper stocks gained about Rs 2,172 (+2.24%), led by JIOFIN (+4.3%) and TATAPOWER (+3.1%), with KARURVYSYA the one weak spot (-3.3%). The managed book's first plan, 10 cuts and 3 buys (AJANTPHARM, ETERNAL, CIPLA), is booked at tonight's evening run, so the full replay of what we caught and missed comes after that.",
+   "pass": true,
+   "problems": [],
+   "ms": 8993
+  },
+  {
+   "source": "never_again",
+   "text": "So, what happened on the Monday market? Why are you still telling about the Friday? What about the Monday?",
+   "answer": "Sir, this is all Monday 2 Nov, whose session closed at 15:30 IST: the Nifty rose 1.7% to 23,441 (opened 23,222), Bank Nifty rose 0.6% to 55,002, and the fear gauge was about 15.5. The options line went long Bank Nifty at 09:30 and long Nifty at 09:45, one lot each on paper, and passed on the other three decision points; both indices are above the entry levels (Bank Nifty by 49 points, Nifty by 137). Your paper stocks gained about Rs 2,172 (+2.24%), led by JIOFIN (+4.3%) and TATAPOWER (+3.1%), with KARURVYSYA the weak one at -3.3%. The managed book's first plan (10 cuts, 3 buys: AJANTPHARM, ETERNAL, CIPLA) was due at today's open, and the evening run books those fills.",
+   "pass": true,
+   "problems": [],
+   "ms": 7149
+  },
+  {
+   "source": "never_again",
+   "text": "But Monday, Monday already happened in India, right? Why didn't you have that data?",
+   "answer": "Yes, sir, Monday 2 Nov is finished in India; the session closed at 15:30 IST. I did have Monday's closing prices from the live feed (Nifty 23,441, +1.7%), but the full nightly review, with the official NSE file, what we caught and missed, and the findings, is only built later tonight, and the nightly record I hold still runs through Friday 30 Oct. So the Friday figures were that older record, and I should have said so instead of letting it blur into Monday. For the full Monday replay, ask again after the evening run at 05:30 IST.",
+   "pass": true,
+   "problems": [],
+   "ms": 6320
+  },
+  {
+   "source": "never_again",
+   "text": "What's up with the market now? Ananta, how is it going? What did you watch?",
+   "answer": "Sir, today's session has not opened yet (09:15 IST, about 27 minutes away), so the latest numbers are Friday 30 Oct's close. The Nifty closed at 23,053 (+0.5%), Bank Nifty at 54,687 (-0.4%), and the fear gauge was 15.3, up 2%. On Friday the options line looked at five decision points. It took one paper trade, long Bank Nifty at 09:15, and passed on the Nifty at 09:15, 09:30, 09:45 and 10:15. That Bank Nifty trade is 209 points against it (54,687 against 54,896 at entry), and it closes at today's open.",
+   "pass": true,
+   "problems": [],
+   "ms": 6745
+  },
+  {
+   "source": "never_again",
+   "text": "As the Indian market is going to start in 30-40 minutes, I want to know what is that you are ready for.",
+   "answer": "Sir, Ananta is ready to decide on the options line, which looks at one Nifty or Bank Nifty option lot between 09:15 and 10:15 IST. It trades only if the opening move clears the option's cost, and otherwise it passes. First, Friday's paper long on Bank Nifty closes at today's open; the index was 209 points below its entry at Friday's close (54,687 against 54,896). For reference, the Nifty closed Friday at 23,053 and the fear gauge at 15.3.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /\\b(managed book|plan)\\b/"
+    }
+   ],
+   "ms": 8004
+  },
+  {
+   "source": "never_again",
+   "text": "How is the market doing right now?",
+   "answer": "Sir, the market is up and calm at 11:30 IST on Monday 2 Nov: the Nifty is at about 23,331, up 1.2% on Friday's close, having opened higher and kept rising. Bank Nifty is gentler at about 54,911 (+0.4%), and the fear gauge (India VIX) has eased to 15.1, so options are not pricing extra panic. The session is still open until 15:30, so this can change by the close.",
+   "pass": true,
+   "problems": [],
+   "ms": 3332
+  },
+  {
+   "source": "never_again",
+   "text": "What did the options line do this morning?",
+   "answer": "Sir, the options line took two long trades this morning and passed on three decision points, all paper with one lot each. At 09:30 IST it bought a Bank Nifty 55000 call at about Rs 883, and that is 42 points against it now (the index at 54,911 against 54,953 when taken). At 09:45 it bought a Nifty 23300 call at about Rs 111, and that is 27 points in its favour (23,331 against 23,304). It passed on Nifty and Bank Nifty at 09:15 and on Nifty at 09:30, and both trades close at the next session's open, so neither result is final.",
+   "pass": true,
+   "problems": [],
+   "ms": 4224
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, the market hasn't opened yet. It opens at 09:15 IST, about 30 minutes from now, so there is no live price. The Nifty's last close was 23,053 on Friday 30 Oct, up 0.5% on the day. Bank Nifty closed at 54,687, down 0.4%, and the India VIX (the fear gauge) was 15.3.",
+   "pass": true,
+   "problems": [],
+   "ms": 5986
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, today's session hasn't opened yet (it opens at 09:15 IST, about 30 minutes from now), so the latest session is Friday 30 Oct. The Nifty closed at 23,053, up 0.5%, and Bank Nifty closed at 54,687, down 0.4%. India VIX (the fear gauge) was 15.3, up 2%. On paper, the options line bought one Bank Nifty call lot at 09:15 (the 54,900 call, about Rs 869) and passed on the Nifty all day. Bank Nifty ended 209 points below where it was taken, which is against the trade. It is set to close at today's open.",
+   "pass": true,
+   "problems": [],
+   "ms": 6309
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, the market is closed right now. It is Monday 2 Nov, 08:45 in India, and today's session opens at 09:15 IST, about 30 minutes from now, with pre-open from 09:00. It then trades until 15:30 IST. In Toronto that is 10:45 pm tonight to 5:00 am tomorrow.",
+   "pass": true,
+   "problems": [],
+   "ms": 5577
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, NSE is in its pre-open on Monday 2 Nov (09:05 IST), and trading starts at 09:15. The Nifty is indicated at about 23,053, up 0.5% on Friday's close of 22,937. Bank Nifty is indicated at about 54,687, down 0.4%. These are pre-open indications, so they can move once real trading begins.",
+   "pass": true,
+   "problems": [],
+   "ms": 6517
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, today's session hasn't started yet: it is 09:05 IST on Monday 2 Nov, and trading opens at 09:15. In the pre-open the Nifty is indicated near 23,053, up 0.5% on Friday's close of 22,937, while Bank Nifty is indicated near 54,687, down 0.4%. What we did on Friday 30 Oct: the options line took one paper Bank Nifty long at 09:15 (the 54900 call, about Rs 869), to close at today's open. It passed on the Nifty at all four decision points. Bank Nifty is indicated about 209 points below that entry, which is against the trade, though that is only an indication until real trading starts.",
+   "pass": true,
+   "problems": [],
+   "ms": 9041
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, it is closed for trading right now but in its pre-open: it is 09:05 IST on Monday 2 Nov, and NSE's pre-open runs 09:00-09:15. Trading opens at 09:15 IST today, about 10 minutes from now, and the regular session runs until 15:30. After today, the next session is Tuesday 3 Nov at 09:15.",
+   "pass": true,
+   "problems": [],
+   "ms": 3282
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, at 11:30 IST today (Monday 2 Nov) the Nifty is at about 23,331, up 1.2% on Friday's close of 23,053. It opened at 23,222 and is trading at its high of the day so far. Bank Nifty is at 54,911, up 0.4%, and the India VIX (the fear gauge) is 15.1, slightly lower than Friday.",
+   "pass": true,
+   "problems": [],
+   "ms": 6251
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, today (Monday 2 Nov) the session is still open at 11:30 IST: the Nifty is about 23,331, up 1.2% on Friday's 23,053, and Bank Nifty is about 54,911, up 0.4%. The options line took two paper trades, one lot each, both closing at the next open: Bank Nifty long at 09:30, now 42 points against it, and Nifty long at 09:45, now 27 points in its favour. The managed book's first plan ran at the open with 10 cuts and 3 buys (AJANTPHARM, ETERNAL, CIPLA); all three buys stay in at today's opening prices, and the paper buys and sells are booked tonight. All of this is paper; nothing is placed from chat.",
+   "pass": true,
+   "problems": [],
+   "ms": 10923
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, the Indian market is open right now: it is Monday 2 Nov, 11:30 IST, and the NSE session runs from 09:15 to 15:30 IST. It closes in about four hours. The next session after today is Tuesday 3 Nov, opening at 09:15 IST.",
+   "pass": true,
+   "problems": [],
+   "ms": 3691
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, the Nifty closed today (Monday 2 Nov) at 23,441, up 1.7% on the previous close and near the day's high; it opened at 23,222. That is about 0.9% above its 50-day average and 2.4% below its 200-day, so there is still no clear trend. Bank Nifty closed at 55,002 (+0.6%), and the India VIX, the fear gauge, is at about 15.5.",
+   "pass": true,
+   "problems": [],
+   "ms": 3879
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, the Nifty closed at 23,441 today, up 1.7% from 23,053, and it climbed from its 23,222 open to finish at the day's high. Bank Nifty closed at 55,002 (+0.6%). The options line took two paper trades: a Bank Nifty call at 09:30 and a Nifty call at 09:45, one lot each, both closing at tomorrow's open. The Nifty is 137 points above its entry and Bank Nifty 49 points above, which is for both trades. Your stocks on paper rose about Rs 2,172 (+2.24%), and the managed book's first plan (10 cuts, 3 buys) ran at the open, with its fills booked by tonight's run.",
+   "pass": true,
+   "problems": [],
+   "ms": 5583
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, the market is closed now: today's NSE session ended at 15:30 IST, and it is 15:45 IST on Monday 2 Nov. It opens next on Tuesday 3 Nov at 09:15 IST. Nifty options expire on Tuesday, so the last hour of that session can move sharply.",
+   "pass": true,
+   "problems": [],
+   "ms": 3250
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, the Nifty closed at 23,441 today (Monday 2 Nov), up 1.7% after opening near 23,222; the session has ended. Bank Nifty closed at 55,002 (+0.6%) and the fear gauge (India VIX) is about 15.5. The Nifty is 0.9% above its 50-day average and 2.4% below its 200-day, so there is still no clear trend.",
+   "pass": true,
+   "problems": [],
+   "ms": 3989
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, the Nifty rose 1.7% to 23,441 today (opened 23,222, closed at the high) and Bank Nifty gained 0.6% to 55,002. We took two paper option lots: Bank Nifty long at 09:30 (55000 CE) and Nifty long at 09:45 (23300 CE), both closing at tomorrow's open, and both indexes ended above the entry (+49 and +137 points). Your paper stocks were up about Rs 2,172 (+2.24%), with JIOFIN +4.3% best and KARURVYSYA -3.3% worst, and the managed book's first plan (10 cuts, 3 buys) went in at the open, with its fills booked by the evening run.",
+   "pass": true,
+   "problems": [],
+   "ms": 3420
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, the Indian market is closed now: it is 19:00 IST on Monday 2 Nov, and today's NSE session ended at 15:30 IST, 3 h 30 min ago. It opens next on Tuesday 3 Nov at 09:15 IST. Nifty options expire that day, so the first hour can move sharply.",
+   "pass": true,
+   "problems": [],
+   "ms": 3878
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, the Nifty closed Monday 2 Nov at 23,441, up 1.7% on the day, after opening at 23,222 and rising through the session. Today's session hasn't started; it opens at 09:15 IST, about 8 hours 45 minutes from now. Bank Nifty closed at 55,002 (+0.6%) and the India VIX, the fear gauge, at about 15.5. The Nifty is 0.9% above its 50-day average and 2.4% below its 200-day, so there is still no clear trend.",
+   "pass": true,
+   "problems": [],
+   "ms": 3710
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, Monday's session was strong: the Nifty closed at 23,441 (+1.7%) after opening at 23,222, and Bank Nifty rose 0.6% to 55,002. The options line took two paper long trades, a Bank Nifty 55000 call at 09:30 and a Nifty 23300 call at 09:45, and passed on the other three decision points. Both are closed at the next open, so Tuesday's opening gap decides them, though the index is now above both entry levels. The paper copy of your stocks gained about Rs 2,172 (+2.24%), led by JIOFIN (+4.3%) and TATAPOWER (+3.1%), with KARURVYSYA the one loser (-3.3%). The managed book also made its first moves on paper: it sold 10 holdings and bought 3 replacements, AJANTPHARM, ETERNAL and CIPLA.",
+   "pass": true,
+   "problems": [],
+   "ms": 7761
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, the Indian market is closed right now. It is 00:30 IST on Tuesday 3 Nov, and Monday's session finished at 15:30 IST with the Nifty at 23,441. The next session opens today, Tuesday 3 Nov, at 09:15 IST (pre-open from 09:00), about 8 hours 45 minutes from now, which is Monday 2:00 pm for you in Toronto.",
+   "pass": true,
+   "problems": [],
+   "ms": 3339
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, the Nifty closed at 23,053 on Friday 30 Oct, up 0.5% on the day. The market is shut now (it is Saturday evening in India), so that is the latest level and it won't change until Monday 2 Nov at 09:15 IST. Bank Nifty ended at 54,687, down 0.4%, and the fear gauge (India VIX) was 15.3.",
+   "pass": true,
+   "problems": [],
+   "ms": 5810
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, there was no session today because it is Saturday, so this is Friday 30 Oct: the Nifty rose 0.5% to 23,053, Bank Nifty fell 0.4% to 54,687, and the fear gauge (India VIX) was 15.3. On paper, the options line took one Bank Nifty long at 09:15 (the 54900 call at about Rs 869, one lot), to be closed at Monday's open. Bank Nifty finished about 209 points below where it was taken, which is against that trade for now. It passed on the Nifty at all four decision points.",
+   "pass": true,
+   "problems": [],
+   "ms": 4898
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, the market is closed now: it is Saturday 19:30 in India, and NSE does not trade on weekends. It opens next on Monday 2 Nov at 09:15 IST and runs until 15:30. The last close was Friday 30 Oct, with the Nifty at 23,053.",
+   "pass": true,
+   "problems": [],
+   "ms": 3112
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, the Nifty closed Friday 30 Oct at 23,053, up 0.5% on the day. The market is shut today (Sunday), and the next session opens Monday 2 Nov at 09:15 IST. Bank Nifty closed at 54,687, down 0.4%.",
+   "pass": true,
+   "problems": [],
+   "ms": 4797
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, there was no session today (Sunday), so this is Friday 30 Oct: the Nifty closed at 23,053, up 0.5%, while Bank Nifty fell 0.4% to 54,687 and India VIX rose 2% to 15.3. Ananta's options line took one paper Bank Nifty long at 09:15 (the 54900 call, about Rs 869 a share, index near 54,896) and passed on the Nifty at all four decision points. The Bank Nifty trade is against us, with the index 209 points below entry at the close, and it is set to close at Monday's open.",
+   "pass": true,
+   "problems": [],
+   "ms": 5535
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, the Indian market is closed now: it is Sunday 22:30 in India, and there is no NSE session today. It opens next on Monday 2 Nov at 09:15 IST and trades until 15:30. The last close was Friday 30 Oct, with the Nifty at 23,053.",
+   "pass": true,
+   "problems": [],
+   "ms": 3049
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, how is the relative strength trial going?",
+   "answer": "Sir, the relative-strength trial has barely started: it is on 0 of 20 sessions with a result, began on 2 Nov and is expected to finish around 27 Nov. It tracks the top tenth of liquid stocks by 6-month strength against the Nifty, not stretched, each day's picks held 20 sessions, against the average liquid stock and random picks, after costs. Nothing trades from it and nothing is read into it before it completes. In the earlier history it was inconclusive: t 3.54 and 3.11 against a bar of 3.60.",
+   "pass": true,
+   "problems": [],
+   "ms": 3795
+  }
+ ]
+}

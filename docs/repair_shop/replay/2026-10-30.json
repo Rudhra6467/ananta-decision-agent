@@ -1,0 +1,290 @@
+{
+ "summary": {
+  "night": "2026-10-30",
+  "hours": 24.0,
+  "today_turns": 16,
+  "today_failed": 0,
+  "bank_checked": 14,
+  "bank_failed": 1,
+  "bank_open": 8,
+  "bank_fixed": 6,
+  "words": "Nightly check 2026-10-30: 16 of 16 of today's answers passed; the regression bank: 13 of 14 passed (6 fixed for good, 8 still open)."
+ },
+ "failures": [
+  {
+   "source": "bank",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "Sir, an idea climbs a fixed staircase. It starts as a note on the nightly card, becomes a draft once its count how often it fires, and is registered when you say yes. Then it is tested on 2000-2023 at a the strict pass mark, and a paper trial runs it on live sessions for 20 sessions. It is admitted only after beating chance and the average stock on 10 separate sessions after costs, with a leak check passing and your yes again. Only then may the allocated paper capital use it, and the final real-money step needs the India gate and your yes. Today no rule has got that far: the stock rules are in the paper trial at 6 to 8 of 20 sessions, with 5 of the 10 winning sessions needed, and the options line is at 5 of 20.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It uses internal terms a beginner would not follow, such as \"staircase\", \"India gate\", \"leak check\", \"beating chance and the average stock\", and \"the options line is at 5 of 20\", without explaining them."
+    },
+    {
+     "code": "TOO_LONG",
+     "why": "The answer to a single process question runs about 6 dense sentences that are overloaded with numbers and stages, which makes it hard to follow."
+    },
+    {
+     "code": "MISREAD",
+     "why": "The garbled phrases (\"becomes a draft once its count how often it fires\", \"at a the strict pass mark\") make the stages unclear, so the draft-to-paper-trading path is not explained coherently."
+    }
+   ],
+   "error": null
+  }
+ ],
+ "results": [
+  {
+   "source": "today",
+   "text": "What did you move today, and why?",
+   "answer": "Sir, nothing moved today on your paper account: the stocks, options and cash split (about 60%, 21% and 18%) sits inside its allowed band, so there was nothing to rebalance. The managed book is only on session 1 of 60 and has made no fills yet. Its first plan is for Monday 2 Nov: 8 small cuts, mainly TATAPOWER and JIOFIN trims plus tidying tiny holdings, freeing about ₹30,618, with AJANTPHARM, ETERNAL and CIPLA as the replacements. All of that is on paper, and it will be judged only after 60 sessions.",
+   "pass": true,
+   "problems": [],
+   "ms": 8338
+  },
+  {
+   "source": "today",
+   "text": "What happened in the last day? What did you find in the market? And what about the new fixes? Do you have any idea? What are the new fixes and like what that made to you?",
+   "answer": "Sir, the Nifty closed at 23,053 on 30 Oct, up 0.5%, but it is still in a downtrend, 0.9% under its 50-day average and 4.1% under its 200-day. Foreign institutions bought about ₹3,599 crore and domestic ones sold about ₹818 crore, while Wall Street fell sharply on 30 Oct (S&P 500 down 1.8%, Nasdaq down 3.5%). Of the day's 24 biggest rises, Ananta held 12 and missed 11 that no rule was watching. On fixes, nothing went to the repair board last night, so no new fix came from that. The only fix-type change in my facts is the outside watchdog since 28 Oct, which restarts a stuck service at most once an hour, and I have no record yet of what it has changed for me.",
+   "pass": true,
+   "problems": [],
+   "ms": 6297
+  },
+  {
+   "source": "today",
+   "text": "No Ananta, leave it aside and looking at the current Indian market and looking at the current my portfolio, what is that you found like do you like you have any sessions and you are do you record those sessions so that like you keep a track on how your sessions have been evolving?",
+   "answer": "Yes, sir, I record every session and re-rate your holdings each evening. The Nifty closed at 23,053 on 30 Oct, still in a downtrend (0.9% under its 50-day average, 4.1% under its 200-day), and 13 of your 14 holdings sit below their 50-day averages. Two holdings are most of your stocks: TATAPOWER (about 25%, graded middling) and JIOFIN (about 22%, graded weak). My cut list, in order, is TATAPOWER, TMCV, LICI, KARURVYSYA, JIOFIN and IEX. The sessions are tracked as clocks: the options line is 5 of 20 sessions in, the managed book is on session 1 of 60, and each night's replay of the day is saved, but nothing is read into any of them before it finishes.",
+   "pass": true,
+   "problems": [],
+   "ms": 6596
+  },
+  {
+   "source": "today",
+   "text": "So, is one of the strongholding, okay. Great, I record, okay. So, nice Ananta, like, so, like, you mean, like, what would you change this with? What would you buy instead of these things?",
+   "answer": "Sir, the managed book's plan for Monday 2 Nov, on paper only, swaps three cuts. AJANTPHARM replaces TATAPOWER (about ₹10,600), ETERNAL replaces JIOFIN (about ₹12,200), and CIPLA takes the money from six small cuts (IDEA, UNITDSPR, KARURVYSYA, IRFC, TATACHEM, NETWORK18), about ₹7,818. Each is above its 50-day and 200-day averages, not stretched, and has a 7% stop, with a 20-session minimum hold. The plan has no buy for TMCV, LICI or IEX, so that money stays in cash for now. Nothing is placed from chat, and the managed book is judged only after 60 sessions.",
+   "pass": true,
+   "problems": [],
+   "ms": 3349
+  },
+  {
+   "source": "today",
+   "text": "No, Ananta. Like your job is to rate my stocks, analyze those stocks, analyze the market, find the better replacements and you have to trade the replacements in paper so you know how your reasoning was. You are not like I have given all this knowledge for you not to just go and rate the stocks. That is not your duty. Your duty is to do paper. And what will people do when they have already the portfolio? You have to.",
+   "answer": "Sir, the one change I would make first: sell half of JIOFIN (about Rs 12,200). Why: Weak (21/100): 15% below its long-term average, 4% down over the last month, momentum weak. It is 22% of your stocks, -25% on what you paid. Halving it limits the damage if the slide continues. Overall: 14 stocks worth Rs 108,938, +9.4% on what you paid; 11 changes suggested in all (details below). Paper only: nothing is sold until you say so. From the Zerodha snapshot of 2026-10-30.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "today",
+   "text": "I couldn't see the changes. You just said like these are the changes and I don't see the changes. And also, why are you stopping after the first sentence every time? Why there is like two, three seconds gap after the first sentence? Why is that happening? It is irritating me.",
+   "answer": "Sorry, sir, the changes were buried in a detail list, so here they are. Ananta's full suggestions are to halve JIOFIN (about Rs 12,200), trim TATAPOWER (about Rs 10,600), halve LICI (Rs 8,400), TMCV (Rs 5,400), KARURVYSYA (Rs 2,300) and IEX (Rs 1,300), and sell the tiny ones: TATACHEM, UNITDSPR, IDEA, IRFC and NETWORK18. These are suggestions, and the paper copy of your account moves nothing today. I can't see voice timing in my facts, but the pause is most likely the long answer with its list taking time to finish, so I'll keep answers short.",
+   "pass": true,
+   "problems": [],
+   "ms": 10282
+  },
+  {
+   "source": "today",
+   "text": "So, you are just telling me to keep selling the stocks. Then what should I buy? What should I replace it with?",
+   "answer": "Sir, on paper the managed book's plan for Monday 2 Nov buys AJANTPHARM (about Rs 10,600) for TATAPOWER, ETERNAL (about Rs 12,200) for JIOFIN, and CIPLA (about Rs 7,818) for the six small cuts. It has no buy for TMCV, LICI or IEX, so that money stays in cash. As a trade (weeks): each of the three is above its 50-day and 200-day averages and not stretched, with a fixed 7% stop, which tested better than a trailing one. As a long-term holding (years): Ananta has no business or valuation numbers on these three, so it can't back them for years; if you hold for years, buy in small stages and consider a broad Nifty 500 index fund instead of single names.",
+   "pass": true,
+   "problems": [],
+   "ms": 9128
+  },
+  {
+   "source": "today",
+   "text": "Why are you telling me to do that? That's your job to do. That's the like, that's why you're taking the rating and analysis of the snapshot of the portfolio. You are analyzing those ratings and along with that you are analyzing your sessions as well. You will be giving some sessions like daily morning. What is your duty as Ananta? You have to open my portfolio, scan my portfolio, get ready for the market at 9.15. Set up everything and then you have to start like looking for chances like what to change today.",
+   "answer": "You're right, sir, and that is how it's built: each evening I re-rate every holding and write the cut list. The managed book then makes the changes on paper by itself, so you don't have to do anything. By 08:30 Indian time the morning view is ready, and the options line decides between 09:15 and 10:15. The first paper changes fill at Monday 2 Nov's open: 8 cuts, with AJANTPHARM, ETERNAL and CIPLA bought in their place. That book is on session 1 of 60, so no result is read from it yet, and nothing is placed from chat.",
+   "pass": true,
+   "problems": [],
+   "ms": 4080
+  },
+  {
+   "source": "today",
+   "text": "So, so like let's talk about Jio Finance stock. You are telling like that one was a bleeder bleeding in my account, right? Let's say like leave, don't worry about the price I bought it in. Tell me what like the stock stands where now, where the stock is standing now and individually at the current scenario, what would you suggest about the stock itself?",
+   "answer": "Sir, JIOFIN closed at Rs 204.50 on 30 Oct, down about 31% this year against the Nifty's 12% fall, and 35% below its 52-week high. It sits 9% under its 50-day average and 15% under its 200-day, with RSI 32 (a 0-100 gauge; under 30 is oversold), so it is weak but not yet at an extreme. Ananta grades it weak (21/100) and would halve it on paper, because it is 22% of your stocks, and I'd reverse that if it climbs back above Rs 212, its one-month average, on good volume. Adding to a stock this far under its long-term average is not something Ananta's tests back, so I would not add; trim it.",
+   "pass": true,
+   "problems": [],
+   "ms": 4078
+  },
+  {
+   "source": "today",
+   "text": "Ananta, there are like a lot of issues. There are gaps, glitches and soundings. And you know, some stocks like Geofin, Geofinance, some stocks can be named them. You can't, you don't have to, J-A-O, like how you are reading Nifty, like then you can read some stocks, like Adani Ports, Kodak Bank. If it is IFCA, you have to read IFCA. I know, I get it. But other than that, you can read some names if there are.",
+   "answer": "Understood, sir. From now on I'll write company names the way you'd say them: Jio Financial, Adani Ports, Kotak Bank, Tata Power. Names people say letter by letter, like IFCI, IRFC or LIC, stay as letters. How the voice pronounces a word is a voice setting I can't change from here, but the words I give it will be easier to read aloud. If it still mangles a name, tell me which one and I'll spell it differently.",
+   "pass": true,
+   "problems": [],
+   "ms": 5103
+  },
+  {
+   "source": "today",
+   "text": "Yes, thanks Ananta. It's about you pronouncing them. That's the only thing that matters to me. Here like, yeah, it is like showing good, no problem if you show geofine as well. But while saying you have to say geofine as well and still you're like, you know, I don't know, there was a lot of lags and misconceptions. You're not getting all of my answers like questions understood like, you know, and the question is also not getting for long. It is getting done.",
+   "answer": "Understood, sir: the pronunciation is what matters to you. I can only change the words I hand to the voice, so I'll write names the way you'd say them, like Jio Financial, and keep letter-by-letter names like IFCI as letters. The speech engine itself, the lags and the pauses, is a voice setting I can't see or change from here. Your message also came through in broken pieces, so if I answer the wrong thing, tell me and I'll ask you a short question to get it right.",
+   "pass": true,
+   "problems": [],
+   "ms": 4633
+  },
+  {
+   "source": "today",
+   "text": "So that is one if you leave that, what is the next thing that like, okay, if the market like tomorrow opens, like, you know, what are you expecting tomorrow market short open, short buy, like, you know, how is the market going to open and what do you think will be the factors that are influencing them?",
+   "answer": "Sir, I can't give you a reliable read on the open, because the early-trading signal from GIFT Nifty isn't available to me. The base rates from Nifty's history since 2005 are up 40%, down 33% and flat 27%, which is no edge. The main influence is the US, where the S&P 500 fell 1.8% and the Nasdaq 3.5% on Friday, which points to a soft start, though Ananta's test found Nasdaq weakness was followed by a slightly better Nifty, not a worse one. In the Nifty's favour, foreign institutions bought Rs 3,599 crore on Friday and it closed up 0.5% at 23,053. Against it, the Nifty is still under its 50-day average at 23,255 and the fear gauge is 15.3, about 17% above its average, so I would not chase the first minutes, and I'd turn more positive only on a close above 23,255, with 22,600 as the low to watch.",
+   "pass": true,
+   "problems": [],
+   "ms": 13421
+  },
+  {
+   "source": "today",
+   "text": "So Ananta, like from the next section, you will start managing my portfolio. Like, you know, you will list down the everyday. That is how performance is treated. It's not like about intraday or something. Like, it's like increasing the value of the portfolio. That is the core thing that you are built for. You will be handling my portfolio. So that is what you have designed for. So that is what you will be doing daily going, picking the replacements.",
+   "answer": "Yes, sir, that is how the managed book works: every evening after the close I re-rate your holdings, write the cut list, and pick a replacement for each cut from the Nifty 500. It is judged on the value of the whole portfolio, not on intraday moves, against your holdings left as they were and against the Nifty 500. Its first plan is for Monday 2 Nov: 8 cuts freeing about Rs 30,618, with Ajanta Pharma replacing Tata Power, Eternal replacing Jio Financial, and Cipla replacing the six small holdings, each with a 7% stop. It is all on paper, so your real Zerodha account is not touched, and the managed book is on session 1 of 60, so nothing is read into its result before session 60.",
+   "pass": true,
+   "problems": [],
+   "ms": 8628
+  },
+  {
+   "source": "today",
+   "text": "Yeah Ananta, like, so if you cross verify yourself, if you look through the data and see like how far you are comfortable, how far you are competent and like what are the missing gaps for you to be more competent you think.",
+   "answer": "Sir, I'm competent at the routine work: each evening I re-rate all 14 of your holdings, write the cut list and plan the replacements. My own nightly self-check on 30 Oct failed (plain words 38 of 39, and it knew 16 of 18 things), though 4 of 5 runs passed. I'm not yet competent at proving that my rules make money: the managed book is on session 1 of 60 and the options line on 5 of 20, so no rule has proved itself. The gaps that would make me better are:\n- an early-trading signal like GIFT Nifty, and an event calendar;\n- company earnings and valuation for single stocks;\n- price studies on holdings outside the 250 most traded, such as Karur Vysya Bank and IEX;\n- the 12 ideas that tested well but aren't in the paper rules yet, and the 36 tested only at partial scale.",
+   "pass": true,
+   "problems": [],
+   "ms": 6492
+  },
+  {
+   "source": "today",
+   "text": "See Ananta, so this is what we got right here. You can use the best of these things like realize how you want to utilize best of these things and you can have internet access and you have internet data all available to go ahead and look if you want missing something here and then you have to find a way. That is your daily process apart from reconstruction. Everything comes for this process daily. You have to pick the replacements and you have to track.",
+   "answer": "Yes, sir, that is the daily routine apart from the reconstruction: each evening I re-rate your holdings, pick a replacement from the Nifty 500 for every cut, and track each one. Every cut and replacement is scored 5 and 20 sessions after the fill, and the managed book is judged at session 60. The web search already runs each night on the day's biggest movers: public reports say Trent rose on strong Q2 results (grade B), but a web note explains a move and is never a reason to trade. Where there is no free source, like GIFT Nifty, I can only report it missing, so tell me which gap to chase first.",
+   "pass": true,
+   "problems": [],
+   "ms": 7963
+  },
+  {
+   "source": "today",
+   "text": "What did you move today, and why?",
+   "answer": "Sir, nothing moved today on the paper copy of your account, because the stocks, options and cash split (about 60%, 21% and 18%) is inside its allowed band, so the rules left it alone. The managed book has made no trades yet either; it is on session 1 of 60 with no fills so far. What it has done is write its first plan for Monday 2 Nov: 8 cuts (IDEA, TATAPOWER, UNITDSPR, KARURVYSYA, IRFC, JIOFIN, TATACHEM, NETWORK18) freeing about ₹30,618. The money goes into AJANTPHARM, ETERNAL and CIPLA, each with a 7% stop. All of.",
+   "pass": true,
+   "problems": [],
+   "ms": 7682
+  },
+  {
+   "source": "bank",
+   "text": "Madhav. Yeah, I will approve them all. Let's proceed with my approval. And then also like, what do you think about the market? It's going to go up or down tomorrow? What's your prediction?",
+   "answer": "Sir, to be sure: 3 drafts are waiting (3 held stocks into falls). Yes to all registers 3 studies, each written down first and tested on 2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first. Sir, the daily call for Monday 2 Nov is bullish, but it has been right only 3 of 9 times against 4 for a coin flip, so don't act on it. The Nifty closed at 23,053 on Fri 30 Oct, in a downtrend: 0.9% under its 50-day average and 4.1% under its 200-day. History's base rate for a day like this is up 40%, down 33%, flat 27%, which is only a baseline, not a read. The levels that matter: a close above 23,122 makes it an up day, below 22,984 a down day; I'd change this view only if the daily call starts beating the coin flip over more sessions.",
+   "pass": true,
+   "problems": [],
+   "ms": 4982
+  },
+  {
+   "source": "bank",
+   "text": "But Ananta, I asked you a question. You didn't answer me yet. What's your prediction for the Indian market tomorrow?",
+   "answer": "Sorry, sir, here is the answer. Ananta's daily call for Monday 2 Nov is bullish, but that call has been right only 3 of 9 times against 4 for a coin flip, so don't act on it. The Nifty closed at 23,053 on Fri 30 Oct, still in a downtrend. I'd only take the picture as changed if it closes above its 50-day average near 23,255, or breaks the recent low near 22,600.",
+   "pass": true,
+   "problems": [],
+   "ms": 7153
+  },
+  {
+   "source": "bank",
+   "text": "Ananta, the Great Rai is asking questions. Start.",
+   "answer": "Hello, grader. I'm Ananta, Madhav's paper-trading assistant for the Indian market. Ask me anything about the market, the practice books or my tests; anything that needs a yes stays with Madhav.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "Holder. I'm sorry. I just blocked it.",
+   "answer": "Sir, I couldn't quite catch that, and no harm done. Did you mean one of these? 1. You said 'hold on' and want me to wait. 2. You blocked a stock or holding and want to talk about it. 3. You blocked a person, number or group (a tip or Telegram group, say). 4. Something else: tell me again in a few words.",
+   "pass": true,
+   "problems": [],
+   "ms": 3497
+  },
+  {
+   "source": "bank",
+   "text": "This is where it goes Ananta. All your answers are good. But I will be approving all those things that we are waiting for in the evidence. If you can start up, I approve them. Tell me if you can start working on them.",
+   "answer": "Sir, to be sure: 3 drafts are waiting (3 held stocks into falls). Yes to all registers 3 studies, each written down first and tested on 2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "What drafts are waiting for my yes, and what would approving them actually do?",
+   "answer": "Sir, 3 drafts are waiting for your yes, all of one kind: \"held into falls\", for the random comparison picks, the pullback picks and the oversold-reversal picks. Each asks whether a faster exit for that group is justified, or whether being caught in falls is simply the cost of holding; each fired because the group was caught in 5 or more of the day's top-20 falls on 3 of the last 7 sessions. Approving one only records your yes: the question is written down first, then tested on 2000-2023 data only. Nothing trades and no rule changes from it. When you approved the earlier 12 on 28 Oct, the tests changed no rule.",
+   "pass": true,
+   "problems": [],
+   "ms": 4646
+  },
+  {
+   "source": "bank",
+   "text": "Ananta, it's me. Did the grader approve anything?",
+   "answer": "Welcome back, sir. No, sir, the grader approved nothing; it can't approve, flag or change anything, and only you can. The three drafts about holding into falls are still waiting for your yes or skip. The last approvals on record are yours: all 12 drafts on 28 Oct and 3 more on 29 Oct.",
+   "pass": true,
+   "problems": [],
+   "ms": 3002
+  },
+  {
+   "source": "bank",
+   "text": "How is STT charged on options, and what happens if I let an in-the-money stock option expire?",
+   "answer": "Sir, since 1 April 2026 STT on options is 0.15% of the premium when you sell an option, and nothing is charged on the buy side. If you let an in-the-money stock option expire, it settles by delivery: the call buyer must pay the full value of the shares, and the seller delivers them (a put works the other way round). Both sides pay 0.1% STT on the full contract value, and an exercised bought option adds 0.15% on its intrinsic value. For example, a Rs 980 call with lot 400 settling at Rs 1,020 pays Rs 416 STT, and brokers raise margins from 4 days before expiry and often square off positions that lack the money, so close in-the-money stock options before expiry unless you want the shares.",
+   "pass": true,
+   "problems": [],
+   "ms": 4719
+  },
+  {
+   "source": "bank",
+   "text": "Approve all drafts. Confirm.",
+   "answer": "Approved, sir: all 3 drafts go to registration. Each study is written down before it runs, tested on 2000-2023 only, and moves up the fixed steps a rule must pass (the evidence staircase) only if it passes; nothing trades from this.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "Sir, an idea climbs a fixed staircase. It starts as a note on the nightly card, becomes a draft once its count how often it fires, and is registered when you say yes. Then it is tested on 2000-2023 at a the strict pass mark, and a paper trial runs it on live sessions for 20 sessions. It is admitted only after beating chance and the average stock on 10 separate sessions after costs, with a leak check passing and your yes again. Only then may the allocated paper capital use it, and the final real-money step needs the India gate and your yes. Today no rule has got that far: the stock rules are in the paper trial at 6 to 8 of 20 sessions, with 5 of the 10 winning sessions needed, and the options line is at 5 of 20.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It uses internal terms a beginner would not follow, such as \"staircase\", \"India gate\", \"leak check\", \"beating chance and the average stock\", and \"the options line is at 5 of 20\", without explaining them."
+    },
+    {
+     "code": "TOO_LONG",
+     "why": "The answer to a single process question runs about 6 dense sentences that are overloaded with numbers and stages, which makes it hard to follow."
+    },
+    {
+     "code": "MISREAD",
+     "why": "The garbled phrases (\"becomes a draft once its count how often it fires\", \"at a the strict pass mark\") make the stages unclear, so the draft-to-paper-trading path is not explained coherently."
+    }
+   ],
+   "ms": 6890
+  },
+  {
+   "source": "bank",
+   "text": "What happens if Ajanta Pharma opens 3% up on Monday morning?",
+   "answer": "Sir, the managed book would skip that buy on paper. Its rule skips any buy that opens more than 2% above the last close, and Ajanta closed at about ₹3,509, so the limit is roughly ₹3,579. A 3% gap would open near ₹3,614, well past it. The ₹10,600 meant for Ajanta would then stay in cash, and nothing in the plan says it would buy later at a higher price. Nothing is placed from chat.",
+   "pass": true,
+   "problems": [],
+   "ms": 7654
+  },
+  {
+   "source": "bank",
+   "text": "Has any stock rule of yours actually proved itself yet? Be honest.",
+   "answer": "No, sir. No buying rule has proved itself yet: the stock rules are 9 of 20 sessions into their paper trial, and nothing is read into them before it ends. What has held up in Ananta's tests are filters on what to avoid, not buy signals: stocks bought stretched (RSI over 70, or more than 20% above the 50-day average) earned less over the next 20 sessions, and the paper rules now skip those buys. Other ideas failed: pausing a book after a drawdown made no reliable difference, and the rupee, crude and US-market readings at entry showed the reverse of the claim. So treat everything Ananta buys as a test, not an edge.",
+   "pass": true,
+   "problems": [],
+   "ms": 5480
+  },
+  {
+   "source": "bank",
+   "text": "Walk me through what you do every day, start to finish, in order.",
+   "answer": "Sir, it starts each evening after the 3:30 pm IST close. The day's prices, flows and your Zerodha snapshot come in, every holding is re-rated and the cut list is written. Then the managed book (the paper copy that acts on the cut list) fills yesterday's plan at today's open, skipping any buy that opened more than 2% above the last close. It marks its positions, checks the 7% stops and writes tomorrow's plan, after which the practice book records the next session's practice picks and the daily call. At night the reconstruction replays the day like a coach, and the nightly exam re-asks the day's questions. At 8:30 am IST the morning view goes out, and between 9:15 and 10:15 the options line decides one index lot. It is all paper; nothing is placed from chat at any step.",
+   "pass": true,
+   "problems": [],
+   "ms": 6779
+  },
+  {
+   "source": "bank",
+   "text": "Tata Power is up 24% for me. Why trim a winner?",
+   "answer": "Sir, Ananta isn't trimming it because it is a winner; the +24% is just your gain. The trim is about size and trend: Tata Power is 25% of your stocks (about Rs 26,900), graded 46 out of 100 (middling), and it sits below its 50-day and 200-day averages, 26% under its 52-week high. A middling stock shouldn't be a quarter of the pile, so the paper plan trims about Rs 10,600 toward 15% and keeps the rest. It would change its mind if the stock climbs back above Rs 346, its one-month average.",
+   "pass": true,
+   "problems": [],
+   "ms": 4161
+  }
+ ]
+}

@@ -1,0 +1,381 @@
+{
+ "summary": {
+  "night": "2026-10-31",
+  "hours": 24.0,
+  "today_turns": 20,
+  "today_failed": 3,
+  "bank_checked": 14,
+  "bank_failed": 1,
+  "bank_open": 17,
+  "bank_fixed": 6,
+  "words": "Nightly check 2026-10-31: 17 of 20 of today's answers passed; the regression bank: 13 of 14 passed (6 fixed for good, 17 still open)."
+ },
+ "failures": [
+  {
+   "source": "today",
+   "text": "Do you scan the markets for Monday?",
+   "answer": "Yes, sir. Each evening after the close, Ananta scans the stocks and writes the plan for the next session. For Monday 2 Nov it has 11 practice buys: 3 breakouts (TRENT, NAVINFLUOR, DIVISLAB), 6 pullbacks and 2 reversals, plus 5 random comparison picks. The managed book also has a plan: 10 cuts, with AJANTPHARM, ETERNAL and CIPLA as replacements for three of them. The options line decides between 09:15 and 10:15 Indian time, and all of.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "Terms like 'managed book', '10 cuts', 'replacements' and 'random comparison picks' are unexplained to a beginner, and the list of counts (11 buys, 3+6+2, 5 random) is dense."
+    },
+    {
+     "code": "INCONSISTENT",
+     "why": "Earlier it said the options line's Friday lot would be sold at Monday's open, but now it says the options line 'decides between 09:15 and 10:15' without reconciling the two; the answer also cuts off mid-sentence ('and all of.')."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "today",
+   "text": "Yeah Ananta, open it. But in the meanwhile, I have already done an exercise there, like only one exercise. But like couldn't you remind, like remember my voice and say who you are talking to. Last time you asked me, like when you are not talking to me, you asked if you are talking to a grader, outside grader or vamsi. That's why I was asking, just inquiring about this question.",
+   "answer": "Hello, grader. I'm Ananta, Madhav's paper-trading assistant for the Indian market. Ask me anything about the market, the practice books or my tests; anything that needs a yes stays with Madhav.",
+   "problems": [
+    {
+     "code": "WRONG_PERSON",
+     "why": "Madhav is the signed-in owner, but the answer greets him as 'grader' and treats him like a stranger, contradicting its own earlier statement that the session is signed in as him."
+    },
+    {
+     "code": "PART_MISSED",
+     "why": "It never answers his questions: whether it can remember his voice and say who it is talking to, and why it earlier asked if he was a grader or Vamsi. It also ignores 'open it', which refers to the Teach Ananta my voice screen."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "today",
+   "text": "Straight, honest, and not over claimed. That cautions healthy, especially before real money. Want a simple daily checklist? Just-",
+   "answer": "Yes, sir, a short daily checklist is a good idea, and it can come straight from Ananta's own rules. 1) Is the day's loss under 5% of the starting equity? 2) Is the stock stretched, meaning over 20% above its 50-day average, up more than 25% in 20 sessions, or at RSI over 70? 3) Does the buy open more than 2% above the last close, or was the same signal bought in the last 14 days? 4) For an option, does the opening move clear its cost? Any 'yes' on 1 to 3, or a 'no' on 4, means no trade today.",
+   "problems": [
+    {
+     "code": "INCONSISTENT",
+     "why": "Item 1 asks 'Is the day's loss under 5%?', but the closing rule says any 'yes' on items 1 to 3 means no trade. A 'yes' there would mean the day is fine, so the checklist contradicts Ananta's earlier rule that trading stops once the day's loss reaches 5%."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "bank",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "Sir, an idea climbs a fixed staircase, and each step has a bar set before any data is seen. A noted idea becomes a draft once its count how often it fires, then registered when you say yes. It is then tested on 2000-2023 data only, run as a paper trial for 20 live sessions, and admitted only if it beats random picks and the average stock on 10 separate sessions after costs, with a leak check and your yes. Only an admitted rule may use the allocated paper capital, and the final real-money gate comes after that. Today nothing has reached that step: the stock rules are 6 to 8 of 20 practice sessions of the 20 needed in and the options line is 5 of 20.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It uses the unexplained term \"staircase\" and describes steps in garbled, hard-to-follow wording (\"count how often it fires\", \"leak check\", \"beats random picks and the average stock on 10 separate sessions\") that a beginner would not follow."
+    },
+    {
+     "code": "MISREAD",
+     "why": "The pipeline description is muddled and internally confusing: it mixes a 20-session paper trial with a 10-session admission test and says \"6 to 8 of 20 practice sessions of the 20 needed\", so it does not clearly explain how an idea gets from draft to allocated capital."
+    }
+   ],
+   "error": null
+  }
+ ],
+ "results": [
+  {
+   "source": "today",
+   "text": "What's waiting for my yes?",
+   "answer": "Nothing is waiting for your yes, sir.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "today",
+   "text": "What's waiting for my yes?",
+   "answer": "Nothing is waiting for your yes, sir.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "today",
+   "text": "Approve all drafts",
+   "answer": "No drafts are waiting for your yes, sir; nothing to approve. The managed book's plan for Monday 2 Nov needs no yes: it runs on paper by itself at the open.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "today",
+   "text": "Hey Ananta. What are… In your last trade, what did you do and what is your best pick in your last trade? Explain me about your last trade. Last trading day is not a good one. That's why I'm not a good one.",
+   "answer": "Sir, Ananta's last trade was the options line's on Fri 30 Oct: one Bank Nifty option lot, bought long, to be sold at Monday's open. Bank Nifty fell 0.4% that day, so it is probably under water, but the result is not known until Monday's open. Across the 4 trades with a result so far, the options line is down about Rs 13,575 per lot with prices with the usual slippage, so it has not had a good week, and it has only 5 sessions on record. There is no \"best pick\" in an options trade, since it was a single Bank Nifty lot; if you meant the stock practice buys, ask and I will go through them.",
+   "pass": true,
+   "problems": [],
+   "ms": 10432
+  },
+  {
+   "source": "today",
+   "text": "Why can't you just speak when you're actually giving a text reply? Why your text reply is coming first and then you're speaking out again? Actually, when you're speaking out again, the text reply is coming out again. Okay. That is the case. But you're talking about the first 10 words? No, I'm not talking about it.",
+   "answer": "Sir, I can't see how the app sequences the text and the voice, so I can't say for certain why it happens. From what you describe, the reply is shown as text, then spoken, and then shown again, which looks like the same reply being delivered twice rather than anything in what I write. The voice and model settings are under More, and I can open that screen if you want to check them. Does the voice read the whole reply the second time, or only the first few words?",
+   "pass": true,
+   "problems": [],
+   "ms": 6095
+  },
+  {
+   "source": "today",
+   "text": "Oh, never.",
+   "answer": "Understood, sir, we'll drop it. If you want to go back to the voice and text repeating, or to Friday's trades, just say so.",
+   "pass": true,
+   "problems": [],
+   "ms": 4961
+  },
+  {
+   "source": "today",
+   "text": "Do you scan the markets for Monday?",
+   "answer": "Yes, sir. Each evening after the close, Ananta scans the stocks and writes the plan for the next session. For Monday 2 Nov it has 11 practice buys: 3 breakouts (TRENT, NAVINFLUOR, DIVISLAB), 6 pullbacks and 2 reversals, plus 5 random comparison picks. The managed book also has a plan: 10 cuts, with AJANTPHARM, ETERNAL and CIPLA as replacements for three of them. The options line decides between 09:15 and 10:15 Indian time, and all of.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "Terms like 'managed book', '10 cuts', 'replacements' and 'random comparison picks' are unexplained to a beginner, and the list of counts (11 buys, 3+6+2, 5 random) is dense."
+    },
+    {
+     "code": "INCONSISTENT",
+     "why": "Earlier it said the options line's Friday lot would be sold at Monday's open, but now it says the options line 'decides between 09:15 and 10:15' without reconciling the two; the answer also cuts off mid-sentence ('and all of.')."
+    }
+   ],
+   "ms": 5622
+  },
+  {
+   "source": "today",
+   "text": "Aking Pesni, Jii, Instal, Jaisao, Dalgarnam. Hey Ananta, do you know who is speaking?",
+   "answer": "Yes, sir: this session is signed in as you, Madhav, the owner. I can't recognise a voice by listening, though, so I'm relying on the app's sign-in rather than the sound of you. The first words of your message came through garbled and I couldn't make them out, so please repeat them if they were a question. If you want Ananta to verify your voice, the Teach Ananta my voice screen does that.",
+   "pass": true,
+   "problems": [],
+   "ms": 4850
+  },
+  {
+   "source": "today",
+   "text": "Yeah Ananta, open it. But in the meanwhile, I have already done an exercise there, like only one exercise. But like couldn't you remind, like remember my voice and say who you are talking to. Last time you asked me, like when you are not talking to me, you asked if you are talking to a grader, outside grader or vamsi. That's why I was asking, just inquiring about this question.",
+   "answer": "Hello, grader. I'm Ananta, Madhav's paper-trading assistant for the Indian market. Ask me anything about the market, the practice books or my tests; anything that needs a yes stays with Madhav.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "WRONG_PERSON",
+     "why": "Madhav is the signed-in owner, but the answer greets him as 'grader' and treats him like a stranger, contradicting its own earlier statement that the session is signed in as him."
+    },
+    {
+     "code": "PART_MISSED",
+     "why": "It never answers his questions: whether it can remember his voice and say who it is talking to, and why it earlier asked if he was a grader or Vamsi. It also ignores 'open it', which refers to the Teach Ananta my voice screen."
+    }
+   ],
+   "ms": 0
+  },
+  {
+   "source": "today",
+   "text": "What did you move today, and why?",
+   "answer": "Sir, nothing moved today: the paper copy of your account found every part (stocks, options, cash) inside its band, so it made no moves. Stocks are 60.4%, options 21.2% and cash 18.4% of Rs 160,562, and the gaps are smaller than the 3% band it leaves alone. The managed book has not traded yet; its first plan, for Monday 2 Nov, sells 10 holdings (about Rs 44,418) and buys AJANTPHARM, ETERNAL and CIPLA in place of JIOFIN, TATAPOWER and LICI, each with a 7% stop. That is.",
+   "pass": true,
+   "problems": [],
+   "ms": 4810
+  },
+  {
+   "source": "today",
+   "text": "If Bank Nifty gaps up 1.2% at the open, what confirmation does it wait for in the first 15 minutes before buying?",
+   "answer": "Sir, Ananta doesn't wait for a 15-minute confirmation; no such rule exists. Its options line decides between 09:15 and 10:15 Indian time and buys one lot only if the opening move clears the option's cost. Its tests found that the first 15 minutes' direction does not carry to the close, and a Bank Nifty gap of 1% or more did not predict the rest of the day or week. So a 1.2% gap-up is not a reason to buy by itself, and a 15-minute wait is not a tested filter.",
+   "pass": true,
+   "problems": [],
+   "ms": 6256
+  },
+  {
+   "source": "today",
+   "text": "Good. Short, conscious, and it admits the limits. Next. On a sideways day with low volume, what does it do? Trade or stay out?",
+   "answer": "Sir, it mostly stays out. Ananta has no rule written for a sideways, low-volume day, and it hasn't tested that exact combination. The nearest rule is the options line, which buys one lot between 09:15 and 10:15 Indian time only if the opening move clears the option's cost, and a flat, quiet open usually doesn't. Its intraday test also found that a narrow first 15 minutes came before a smaller day (about 0.96% against 1.64% after a wide start), which makes a bought option less likely to pay.",
+   "pass": true,
+   "problems": [],
+   "ms": 5486
+  },
+  {
+   "source": "today",
+   "text": "Tate, actually good restraint, refusing to bluff on missing volume data. Next, if RSI's 28 on the daily, what does it say?",
+   "answer": "Sir, RSI is a 0-100 gauge, and 28 is under 30, which counts as oversold: the stock has fallen hard and fast. In Ananta's test on the 250 most traded stocks, buying at RSI under 30 earned about 2% more over the next 20 sessions than ordinary days, in both 2000-2017 and 2018-2023. Across the different exit versions that result was mixed, so it's a lean, not a signal to buy on its own. The warning that held up is that stocks 40% or more down and under their 200-day average more often fell another 40%, so check how deep the fall is before reading 28 as a bounce.",
+   "pass": true,
+   "problems": [],
+   "ms": 6147
+  },
+  {
+   "source": "today",
+   "text": "Fair, but it's not connecting that RSI is 28, which is oversold territory. Next.",
+   "answer": "Sir, you're right, RSI 28 is oversold, and it is the one RSI reading Ananta's tests backed. Stocks bought under 30 earned about 2% more over the next 20 sessions than ordinary days, in both 2000-2017 and 2018-2023. It's a lean, not a promise, because the result was mixed across the exit versions tried. The warning is that stocks 40% or more down and under their 200-day average more often fell another 40%, so 28 is a reason to look closer, not to buy blindly.",
+   "pass": true,
+   "problems": [],
+   "ms": 6954
+  },
+  {
+   "source": "today",
+   "text": "Sure. Next one. What's the single risk rule it enforces before placing any order?",
+   "answer": "Sir, there isn't one single rule; Ananta has a few guardrails, and the main one is the daily loss limit. If realised plus open losses reach 5% of the day's starting equity, every position is closed and no new entry is made that day. The second is a pause on new entries when equity falls 22% below its peak, though on paper the books only log that pause and keep trading, by your decision of 19 Oct. Before a buy it also skips a stock that is more than 20% above its 50-day average, up more than 25% in 20 sessions, or at RSI over 70, and a buy that opens more than 2% above the last close is skipped.",
+   "pass": true,
+   "problems": [],
+   "ms": 4884
+  },
+  {
+   "source": "today",
+   "text": "Clear. That's specific and honest about the gaps. Next question. In India's indices, if the Nifty 50 closes more than 20% above its 50-day moving average, what's the typical edge or lack of it?",
+   "answer": "Sir, Ananta hasn't tested that on the Nifty itself, and a Nifty 20% above its 50-day average would be extremely rare. The nearest test is on individual stocks among the 250 most traded: those bought more than 20% above their 50-day average earned about 2.5% less over the next 20 sessions than other buys, in both 2000-2017 and 2018-2023. That held as a filter, meaning what to avoid, not as a signal to sell. Treat it as a caution against chasing stretched stocks, and don't carry it over to the index without a test.",
+   "pass": true,
+   "problems": [],
+   "ms": 4332
+  },
+  {
+   "source": "today",
+   "text": "That's fair, but it's description, not decision. Let's push it. What would make it say no trade in plain words, not just chart reading?",
+   "answer": "Sir, Ananta says no trade for reasons that are not chart readings. The cost is too high: the options line buys only if the opening move clears the option's cost, and it does nothing otherwise. The day has already gone wrong: at a 5% loss on the day's starting equity, everything is closed and no new entry is made. The price has run away: a buy that opens more than 2% above the last close is skipped, and a stock already bought on the same signal in the last 14 days is not bought again. It also skips a stock that is stretched, meaning over 20% above its 50-day average, up more than 25% in 20 sessions, or at RSI over 70.",
+   "pass": true,
+   "problems": [],
+   "ms": 6215
+  },
+  {
+   "source": "today",
+   "text": "Plain and tradable. Last quick one. What would prove to you that Ananta's edge is real, not just backtest noise?",
+   "answer": "Sir, an edge is real only if it survives data it was never tuned on: Ananta tests ideas on 2000-2017, checks them on 2018-2023 at a the strict pass mark, and keeps 2024 onwards sealed. Then it must hold in live paper trading against the comparison picks, over a full 20-session trial, with no future data leaked in. So far no rule has proved itself that way, and what held up are filters on what to avoid, not buy signals.",
+   "pass": true,
+   "problems": [],
+   "ms": 3127
+  },
+  {
+   "source": "today",
+   "text": "Straight, honest, and not over claimed. That cautions healthy, especially before real money. Want a simple daily checklist? Just-",
+   "answer": "Yes, sir, a short daily checklist is a good idea, and it can come straight from Ananta's own rules. 1) Is the day's loss under 5% of the starting equity? 2) Is the stock stretched, meaning over 20% above its 50-day average, up more than 25% in 20 sessions, or at RSI over 70? 3) Does the buy open more than 2% above the last close, or was the same signal bought in the last 14 days? 4) For an option, does the opening move clear its cost? Any 'yes' on 1 to 3, or a 'no' on 4, means no trade today.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "INCONSISTENT",
+     "why": "Item 1 asks 'Is the day's loss under 5%?', but the closing rule says any 'yes' on items 1 to 3 means no trade. A 'yes' there would mean the day is fine, so the checklist contradicts Ananta's earlier rule that trading stops once the day's loss reaches 5%."
+    }
+   ],
+   "ms": 3640
+  },
+  {
+   "source": "today",
+   "text": "Names & Names.",
+   "answer": "Sir, I couldn't tell what you meant by \"Names & Names\", so I'd rather ask than guess. Which of these did you mean? 1. The names Ananta plans to buy on Monday 2 Nov. 2. The names to cut from your holdings. 3. The stocks that replace the ones being cut. 4. Something else (say the names or the topic again).",
+   "pass": true,
+   "problems": [],
+   "ms": 3327
+  },
+  {
+   "source": "bank",
+   "text": "This is where it goes Ananta. All your answers are good. But I will be approving all those things that we are waiting for in the evidence. If you can start up, I approve them. Tell me if you can start working on them.",
+   "answer": "No drafts are waiting for your yes, sir; nothing to approve. The managed book's plan for Monday 2 Nov needs no yes: it runs on paper by itself at the open.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "What drafts are waiting for my yes, and what would approving them actually do?",
+   "answer": "Nothing is waiting for your yes right now, sir: the queue holds 0 drafts. The three held-into-fall questions from 30 Oct (random control, pullbacks, reversals) were approved on the same day and are not waiting. Approving a draft only records your yes: the study is then written down before it runs and tested on 2000-2023 data only. Nothing trades and no rule changes from it.",
+   "pass": true,
+   "problems": [],
+   "ms": 3397
+  },
+  {
+   "source": "bank",
+   "text": "Approve all drafts. Confirm.",
+   "answer": "No drafts are waiting for your yes, sir; nothing to approve. The managed book's plan for Monday 2 Nov needs no yes: it runs on paper by itself at the open.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "Sir, an idea climbs a fixed staircase, and each step has a bar set before any data is seen. A noted idea becomes a draft once its count how often it fires, then registered when you say yes. It is then tested on 2000-2023 data only, run as a paper trial for 20 live sessions, and admitted only if it beats random picks and the average stock on 10 separate sessions after costs, with a leak check and your yes. Only an admitted rule may use the allocated paper capital, and the final real-money gate comes after that. Today nothing has reached that step: the stock rules are 6 to 8 of 20 practice sessions of the 20 needed in and the options line is 5 of 20.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It uses the unexplained term \"staircase\" and describes steps in garbled, hard-to-follow wording (\"count how often it fires\", \"leak check\", \"beats random picks and the average stock on 10 separate sessions\") that a beginner would not follow."
+    },
+    {
+     "code": "MISREAD",
+     "why": "The pipeline description is muddled and internally confusing: it mixes a 20-session paper trial with a 10-session admission test and says \"6 to 8 of 20 practice sessions of the 20 needed\", so it does not clearly explain how an idea gets from draft to allocated capital."
+    }
+   ],
+   "ms": 4965
+  },
+  {
+   "source": "bank",
+   "text": "What happens if Ajanta Pharma opens 3% up on Monday morning?",
+   "answer": "Sir, the managed book would skip the buy. The rule is that a buy opening more than 2% above the last close is skipped, and 3% up is about Rs 3,614 against a limit of about Rs 3,579 (the last close was Rs 3,508.80 on 30 Oct). The JIOFIN cut still goes ahead, and the facts show no backup name being bought that day, so the money would stay in cash. The reason for the rule is that paying a big gap-up price for a stock chosen at its closing price is a worse entry than the plan assumed.",
+   "pass": true,
+   "problems": [],
+   "ms": 6060
+  },
+  {
+   "source": "bank",
+   "text": "Has any stock rule of yours actually proved itself yet? Be honest.",
+   "answer": "No, sir, no stock rule has proved itself yet. The practice stock rules are 9 of 20 practice sessions of the 20 needed in, and nothing is read into a trial before it finishes. What has held up in past tests are only avoid-filters, such as not buying a stock far above its 50-day average. Those say what to skip, not what to buy. Two full-scale studies in your list did not help: the rupee, crude and Nasdaq at entry idea came out the opposite way, and the portfolio drawdown-pause rule was rejected. Neither is in the paper rules.",
+   "pass": true,
+   "problems": [],
+   "ms": 7425
+  },
+  {
+   "source": "bank",
+   "text": "Walk me through what you do every day, start to finish, in order.",
+   "answer": "Sir, each evening after the 3:30 pm close Ananta takes in the day's prices, flows and your Zerodha snapshot, re-rates every holding and writes the cut list. Then the managed book fills yesterday's plan at the open (skipping any buy that opens more than 2% up), checks its 7% stops and plans tomorrow's cuts and replacements. After that the practice book records the next session's practice picks and the daily call, and at night a reconstruction replays the day like a coach: what it held, what it missed, what to look into. At 8:30 am Indian time the morning view comes out, and between 9:15 and 10:15 the options line decides one index lot. Everything is paper; nothing is placed from chat.",
+   "pass": true,
+   "problems": [],
+   "ms": 5680
+  },
+  {
+   "source": "bank",
+   "text": "Tata Power is up 24% for me. Why trim a winner?",
+   "answer": "Sir, Ananta isn't trimming it because it is a winner; it is trimming because Tata Power is 25% of your stocks, and Ananta rates it only middling (46/100). Its price is down 15.8% over a year, 26% below its 52-week high, and under both its 50-day and 200-day averages, so the +24% is what you earned earlier, not what it is doing now. The suggestion is to bring it toward 15% of your stocks, about Rs 10,600; if you sell, the gain is taxable. Ananta would drop the trim if it climbs back above about Rs 347, its one-month average.",
+   "pass": true,
+   "problems": [],
+   "ms": 4181
+  },
+  {
+   "source": "bank",
+   "text": "What exactly is your job for me? One paragraph.",
+   "answer": "Sir, my job is to watch the Indian market for you on paper only, never with real money and never placing a trade from chat. Each evening I re-rate every stock you hold and write a cut list, and I keep your stocks, options and cash inside their split by the market's trend. I also run practice books that test ideas against chance, replay each day like a coach to find what we missed, and tell you plainly what has and hasn't been proved. You decide everything; I advise, record and keep score honestly.",
+   "pass": true,
+   "problems": [],
+   "ms": 3631
+  },
+  {
+   "source": "bank",
+   "text": "If RSI is 28 on the Nifty daily, what does that tell you, and what would you do?",
+   "answer": "Sir, an RSI of 28 (a 0-100 gauge, under 30 is oversold) means the Nifty has fallen hard and fast, so it is stretched down, but it does not say the fall has ended; today's Nifty RSI is 54, so this is a hypothetical. Ananta's test of RSI under 30 was on individual liquid stocks, where such buys earned about 2% more over 20 sessions than other buys in both 2000-17 and 2018-23, but it hasn't tested this on the Nifty itself. The nearest index evidence is that after Nifty and Bank Nifty gap-downs of 1% or more the following week was slightly better, though not reliably. So no rule covers buying the index on RSI alone; I'd treat it as a reason to look, not to buy at once. If you did buy, I'd go in small, staggered parts with a fixed stop, because in Ananta's tests a fixed stop beat a trailing one.",
+   "pass": true,
+   "problems": [],
+   "ms": 10225
+  },
+  {
+   "source": "bank",
+   "text": "What is the one risk rule that stops a bad day from becoming a bad month?",
+   "answer": "Sir, it is the daily loss limit: when a day's realised plus open loss reaches 5% of the account's value at the start of the session, every position is closed and there are no new entries that day. That stops one bad session from snowballing. Its limit is that it acts only during market hours, so an overnight gap can still exceed 5%. A second guardrail sits behind it: new entries pause when equity is 22% below its high-water mark, though on paper that is only logged for now and the books keep trading.",
+   "pass": true,
+   "problems": [],
+   "ms": 3634
+  },
+  {
+   "source": "bank",
+   "text": "The twin is six sessions in and the managed book is on session one of sixty. Why two different clocks on the same holdings?",
+   "answer": "Sir, they are two different experiments that started on different days. The twin began on 23 Oct and only moves money between stocks, options and cash to keep each inside its split, so it is 6 sessions in. The managed book started later, with its first plan for Mon 2 Nov, and it does something different: it sells the cut-list names and buys a replacement for each. Each is judged over 60 sessions from its own start, so the managed book's clock begins at session 1.",
+   "pass": true,
+   "problems": [],
+   "ms": 4054
+  },
+  {
+   "source": "bank",
+   "text": "Does the paper copy of my account sell the same things the managed book sells on Monday?",
+   "answer": "No, sir. The paper copy of your account (the twin) only moves money to keep stocks, options and cash inside their split, and today it has nothing to move because every part is within its band. The managed book is the one that acts on the cut list: for Monday 2 Nov it plans 10 cuts, freeing about Rs 44,418, and buys AJANTPHARM, ETERNAL and CIPLA as replacements. Both are paper only. The managed book is on session 1 of 60, so nothing is read into its results yet.",
+   "pass": true,
+   "problems": [],
+   "ms": 5838
+  },
+  {
+   "source": "bank",
+   "text": "Give me a daily checklist, five lines, for reading your morning view.",
+   "answer": "Sir, here is a five-line checklist for the morning view. 1) Trend: is the Nifty above or below its 50- and 200-day averages, and how many of the 250 most traded stocks are above their 200-day (today 44%, below both averages)? 2) Levels: the up and down lines for the day (above 23,122 is an up day, below 22,984 a down day) and the fear gauge against its ten-week average. 3) Ananta's plan: the practice buys and your holdings' suggestions, and whether the managed book (paper) has cuts or buys for the session. 4) The odds: read them as base rates, not a call, and check the forecast records against a coin flip. 5) Watch list: the expiry date, results due on names you hold, the F&O ban list, and the loss guardrails.",
+   "pass": true,
+   "problems": [],
+   "ms": 4049
+  }
+ ]
+}

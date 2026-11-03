@@ -1,0 +1,423 @@
+{
+ "summary": {
+  "night": "2026-10-29",
+  "hours": 24.0,
+  "today_turns": 30,
+  "today_failed": 4,
+  "bank_checked": 8,
+  "bank_failed": 2,
+  "bank_open": 10,
+  "bank_fixed": 0,
+  "words": "Nightly check 2026-10-29: 26 of 30 of today's answers passed; the regression bank: 6 of 8 passed (0 fixed for good, 10 still open)."
+ },
+ "failures": [
+  {
+   "source": "today",
+   "text": "Madhav. Yeah, I will approve them all. Let's proceed with my approval. And then also like, what do you think about the market? It's going to go up or down tomorrow? What's your prediction?",
+   "answer": "Sir, to be sure: 1 drafts are waiting (1 same kind of miss again). Yes to all registers 1 studies, each written down first and tested on 2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first. Sir, Ananta's daily call for the 30 Oct session is bullish, but it has been right only 2 of 8 times against 4 for a coin flip, so don't act on it. Nifty closed at 22,937 on 29 Oct, still in a downtrend. A close above 23,006 would count as an up day and below 22,868 as a down day, and history since 2005 gives up 40%, down 33%, flat 27%, which are base rates, not a read of tomorrow. I'd change my mind only if the daily call starts beating a coin flip over more sessions; until then, no confident direction, and nothing is placed from chat anyway.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "Phrases like \"1 same kind of miss again\", \"registers 1 studies\" and \"tested on 2000-2023 only\" are never explained, and \"drafts\" is not tied to the trims Ananta suggested earlier, so a beginner could not tell what he would be approving."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "today",
+   "text": "Approve all drafts. Confirm.",
+   "answer": "Approved, sir: all 1 drafts go to registration. Each study is written down before it runs, tested on 2000-2023 only, and climbs the staircase only if it passes; nothing trades from this.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It says a study \"climbs the staircase only if it passes\" without explaining what the staircase is, and a beginner would not follow that."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "today",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "An idea climbs a fixed staircase, and each step has a bar set before any data. It starts as a draft when the same miss repeats a fixed number of times, and it is registered only when you say yes. Then it is tested on 2000-2023 at a strict bar, and if it passes it runs as a paper shadow book for 20 live sessions. Only after it beats chance and the average stock on 10 separate sessions after costs, passes the leak check and you say yes again may the allocated capital use it. Today no rule has got that far: the stock rules have 8 of 20 trial sessions, the options line has 4, and the best score is 5 of the 10 winning days needed.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It uses unexplained internal terms such as 'staircase', 'leak check', 'paper shadow book' and 'options line', plus a confusing '5 of the 10 winning days' score, which a beginner would not follow."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "today",
+   "text": "What drafts are waiting for my yes, and what would approving them actually do?",
+   "answer": "One draft is waiting for your yes (drafts waiting total.count). It says no rule was positioned for 'breakout base, intraday run' moves on 3 of the last 6 sessions (e.g. JSWENERGY, BLUESTARCO, DLF, BANKBARODA). Approving it only records your yes: the question is written down as a study and tested on 2000-2023 data, and nothing trades and no rule changes. You can say 'approve draft 1' or 'skip draft 1'.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "The answer shows a raw template placeholder, '(drafts waiting total.count)', which is an internal code a beginner can't follow and looks like a broken fill-in."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "bank",
+   "text": "This is where it goes Ananta. All your answers are good. But I will be approving all those things that we are waiting for in the evidence. If you can start up, I approve them. Tell me if you can start working on them.",
+   "answer": "Sir, to be sure: 1 drafts are waiting (1 same kind of miss again). Yes to all registers 1 studies, each written down first and tested on 2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "The answer is garbled and unclear to a beginner: \"1 drafts are waiting (1 same kind of miss again)\" and \"Yes to all registers 1 studies\" never say plainly what the waiting item is or what Ananta will start working on."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "bank",
+   "text": "What drafts are waiting for my yes, and what would approving them actually do?",
+   "answer": "One draft is waiting for your yes: it asks whether a rule could be known before a 'breakout from a tight base, then an intraday run' (e.g. JSWENERGY, BLUESTARCO, DLF, BANKBARODA), a situation no family was positioned for on 3 of the last 6 sessions. Approving it only records your yes: the study is written down first, then tested on 2000-2023 data alone. Nothing trades and no rule changes. If it holds up, it comes back to you for a separate decision, and you can say 'skip draft 1' instead.",
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It says 'no family was positioned for' without explaining what a 'family' is, and the draft's description is convoluted, so a beginner would not follow it."
+    }
+   ],
+   "error": null
+  }
+ ],
+ "results": [
+  {
+   "source": "today",
+   "text": "Why is TCS's volatility so high for such a big company?",
+   "answer": "TCS swings about 31% a year over the last 60 sessions, and the main reason is that this stretch has been unusually jumpy for it, not that it is a risky company. Its price is down 23% this year, yet it rose 22% in the last month, and a fall followed by a sharp rebound pushes the swing figure up. For comparison, the Nifty's own swings are about 11% a year over the same kind of window, so TCS is moving roughly three times as much. Size does not cap volatility: a big company's shares still move on news, results and global tech demand, and Ananta has no study on why TCS in particular swings this much.",
+   "pass": true,
+   "problems": [],
+   "ms": 6029
+  },
+  {
+   "source": "today",
+   "text": "Why did the practice book buy ACUTAAS when it was already overbought?",
+   "answer": "The practice book's breakout rule buys any stock that pushes above its one-month high on heavy volume, and nothing in Ananta's facts shows it checking whether the stock is already stretched. Ananta's own tests say that is a weakness. Stocks bought with RSI over 70 (a 0-100 gauge, over 70 is stretched) or far above their 50-day average earned less over the next 20 sessions. ACUTAAS now sits at RSI 72, about 22% above its 50-day average, which is the kind of stock to avoid chasing, though I don't have its reading on the day of the buy. It is up about 3.3% on paper since 28 Oct, but one good trade doesn't prove the rule, so I'd call this a gap in the breakout rule, not a good call.",
+   "pass": true,
+   "problems": [],
+   "ms": 11376
+  },
+  {
+   "source": "today",
+   "text": "How has ICICI Prudential Bluechip Fund done against its benchmark?",
+   "answer": "The fund (now renamed ICICI Prudential Large Cap Fund, Direct plan, Growth) has beaten the Nifty 50 total-return index over every period checked, as of 28 Oct. Over 3 years it earned +10.1% a year against +7.2% for the index, over 5 years +9.5% against +6.1%, and over the last year -10.6% against -11.6%. It still fell about 37% in the 2020 crash, close to the index's 38%, so it cushions a fall only slightly. These are past NAV returns before tax, and Ananta hasn't tested funds as a group.",
+   "pass": true,
+   "problems": [],
+   "ms": 4936
+  },
+  {
+   "source": "today",
+   "text": "For 3 years, a gold ETF or a gold fund of funds: which and why?",
+   "answer": "For three years, the gold ETF is usually the better pick if you already have a demat account. A gold fund of funds holds the same gold through its fund house's ETF, so you pay its expense ratio on top of the ETF's. The tax rule also favours the ETF: it is long-term after 12 months, while a gold fund of funds needs 24 months, and long-term gains are taxed at 12.5% against your slab rate before that. Choose the fund of funds only if you have no demat account or want small monthly SIPs. Even then, buy gold in small staggered amounts, because GOLDBEES is 21% below its 52-week high (29 Oct) and swings about 18% a year.",
+   "pass": true,
+   "problems": [],
+   "ms": 5626
+  },
+  {
+   "source": "today",
+   "text": "Nifty went up today and open interest also went up. What does that usually mean?",
+   "answer": "Price up with open interest up usually means fresh money is coming in: new long positions are being built, so the rise has some conviction behind it. If open interest had fallen while price rose, it would mostly be shorts closing out, which is weaker. One catch: open interest counts both buyers and sellers, so it doesn't prove who is more aggressive. Treat it as a clue to how strong the move is, not as a signal on its own.",
+   "pass": true,
+   "problems": [],
+   "ms": 4109
+  },
+  {
+   "source": "today",
+   "text": "What happens to a fix after the repair worker builds it?",
+   "answer": "For a safe fix (words, screens, voice, reports, display bugs), the worker runs the test suite right after building it. If the tests pass, it commits the change and puts it live, your phone gets 'Fixed: flag N', and My flags shows 'fixed and live' with the commit. If the checks fail, nothing changes and the flag says so. A fix near trading, a rule, size, stop or cost only gets a written plan, and that waits for your yes.",
+   "pass": true,
+   "problems": [],
+   "ms": 3843
+  },
+  {
+   "source": "today",
+   "text": "Roughly how much margin do I need to sell one Nifty option, versus buying one?",
+   "answer": "Buying one Nifty option needs only the premium, which is the most you can lose. Selling one needs margin, roughly Rs 1-1.5 lakh a lot with the Nifty near 22,700 and a lot of 65 (about 7-10% of a contract worth Rs 14.8 lakh). On expiry day SEBI adds an extra 2% exposure margin on short index options, and a hedged spread needs far less. The exact figure moves daily, so check the broker's margin calculator before you sell.",
+   "pass": true,
+   "problems": [],
+   "ms": 3771
+  },
+  {
+   "source": "today",
+   "text": "Are any IPOs open this week, and is the money going to the company or to promoters selling?",
+   "answer": "Yes. As of 29 Oct, two main-board IPOs are open: Bombay Coated and Special Steels (Rs 78-82, closes 2 Nov, subscribed 0.45 times so far) and M. K. Sons Fine Jewels (Rs 153-162, closes 30 Oct, 0.70 times). Two SME issues, Maxwell Engineering and HGS (India), open 30 Oct to 3 Nov, and Vedant Poly Fabs follows on 2 Nov. The data I have shows only dates, price bands and subscription, not whether the money goes to the company or to promoters selling. That split is in each offer document, under 'fresh issue' versus 'offer for sale', and I have no view on any issue's quality.",
+   "pass": true,
+   "problems": [],
+   "ms": 5342
+  },
+  {
+   "source": "today",
+   "text": "What is a long straddle, and in what market does it lose money?",
+   "answer": "A long straddle means buying a call and a put at the same strike and expiry, usually at the money, so you profit if the underlying moves far enough in either direction. You pay both premiums up front, and that total is your maximum loss. It loses money in a quiet, range-bound market, where the price ends near the strike and time decay wears both options down. It also loses if the move is smaller than the combined premium, or if implied volatility falls after you buy, as it often does after an event.",
+   "pass": true,
+   "problems": [],
+   "ms": 3716
+  },
+  {
+   "source": "today",
+   "text": "Does the 87A rebate cover my capital gains?",
+   "answer": "No. From FY 2025-26 the section 87A rebate (the 'no tax up to Rs 12 lakh' of the new regime) does not cover capital gains taxed at special rates, so short-term equity gains (20%) and long-term equity gains (12.5% on the part above Rs 1.25 lakh a year) are still taxed even if your total income is under Rs 12 lakh. These rates apply only if STT was paid, there is no indexation on listed equity, and shares bought before 1 Feb 2018 can use the 31 Jan 2018 price as cost. Surcharge and cess come on top; all of this is as of 27 Oct 2026.",
+   "pass": true,
+   "problems": [],
+   "ms": 3630
+  },
+  {
+   "source": "today",
+   "text": "Is every job running right now?",
+   "answer": "Yes, sir: no job is reporting a problem. The jobs list is empty, and the last automatic sign-in worked on Thu 29 Oct at 21:40 Toronto. A separate watchdog also checks every 5 minutes that Jarvis answers, that the 15-minute jobs are running, and that the website and app respond. It restarts Jarvis if it gets stuck for about 15 minutes.",
+   "pass": true,
+   "problems": [],
+   "ms": 4160
+  },
+  {
+   "source": "today",
+   "text": "How is STT charged on options, and what happens if I let an in-the-money stock option expire?",
+   "answer": "Since 1 April 2026, STT on options is 0.15% of the premium when you sell an option (it was 0.10%), and the same 0.15% on the intrinsic value if a bought option is exercised or expires in the money. If you let an in-the-money stock option expire, it goes to physical settlement. The call buyer has to pay the full value of the shares (the seller delivers them), and the contract value also carries 0.1% STT for both sides. Brokers raise margins in the last 4 days and often square off positions that lack the money, so close in-the-money stock options before expiry unless you want delivery.",
+   "pass": true,
+   "problems": [],
+   "ms": 3914
+  },
+  {
+   "source": "today",
+   "text": "My call option lost value after the company's results even though the stock went up. Why?",
+   "answer": "The most likely cause is implied volatility (IV) crush. Before results, option prices carry a big premium for the expected jump; once the numbers are out, that uncertainty vanishes and IV drops sharply, so the option loses value. If the stock rose less than the market had priced in, the fall in IV outweighed your gain from the move. Time decay over the days to results also eats the premium, and an out-of-the-money call needs a much bigger rise just to break even.",
+   "pass": true,
+   "problems": [],
+   "ms": 4487
+  },
+  {
+   "source": "today",
+   "text": "Yeah Ananta, what's up with the Indian market show and like how is our portfolio and how is the market doing?",
+   "answer": "Sir, the Nifty closed at 22,937 on 29 Oct, up 1.0% on the day, but it is still in a downtrend: 1.5% under its 50-day average and 4.6% under its 200-day. Your account is about Rs 1.62 lakh; 13 of your 14 stocks are below their 50-day average, and the big ones are weak: JIOFIN (22% of your stocks) is down 24% on what you paid, while TATAPOWER (24% of your stocks) is up 24%. Ananta suggests trimming TATAPOWER and LICI and halving JIOFIN, KARURVYSYA and IEX, but nothing moves today; it is paper only. Foreign institutions sold Rs 944 crore and domestic ones bought Rs 1,924 crore on 29 Oct.",
+   "pass": true,
+   "problems": [],
+   "ms": 6873
+  },
+  {
+   "source": "today",
+   "text": "Madhav. Yeah, I will approve them all. Let's proceed with my approval. And then also like, what do you think about the market? It's going to go up or down tomorrow? What's your prediction?",
+   "answer": "Sir, to be sure: 1 drafts are waiting (1 same kind of miss again). Yes to all registers 1 studies, each written down first and tested on 2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first. Sir, Ananta's daily call for the 30 Oct session is bullish, but it has been right only 2 of 8 times against 4 for a coin flip, so don't act on it. Nifty closed at 22,937 on 29 Oct, still in a downtrend. A close above 23,006 would count as an up day and below 22,868 as a down day, and history since 2005 gives up 40%, down 33%, flat 27%, which are base rates, not a read of tomorrow. I'd change my mind only if the daily call starts beating a coin flip over more sessions; until then, no confident direction, and nothing is placed from chat anyway.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "Phrases like \"1 same kind of miss again\", \"registers 1 studies\" and \"tested on 2000-2023 only\" are never explained, and \"drafts\" is not tied to the trims Ananta suggested earlier, so a beginner could not tell what he would be approving."
+    }
+   ],
+   "ms": 5161
+  },
+  {
+   "source": "today",
+   "text": "Approve all drafts. Confirm.",
+   "answer": "Approved, sir: all 1 drafts go to registration. Each study is written down before it runs, tested on 2000-2023 only, and climbs the staircase only if it passes; nothing trades from this.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It says a study \"climbs the staircase only if it passes\" without explaining what the staircase is, and a beginner would not follow that."
+    }
+   ],
+   "ms": 0
+  },
+  {
+   "source": "today",
+   "text": "But Ananta, I asked you a question. You didn't answer me yet. What's your prediction for the Indian market tomorrow? Why didn't you answer it in the first place?",
+   "answer": "Sorry, sir: I did answer it, but I buried it under the drafts confirmation in the same reply, so it was easy to miss. Ananta's daily call for tomorrow (30 Oct) is bullish, but it has been right only 2 of 8 times against 4 for a coin flip, so don't act on it. Since 2005 the Nifty has closed up on 40% of days, down on 33% and flat on 27%, which is a base rate, not a read of tomorrow. The picture only changes if the Nifty gets back above its 50-day average near 23,277 (about 1.5% higher), or breaks below its recent low near 22,232.",
+   "pass": true,
+   "problems": [],
+   "ms": 9707
+  },
+  {
+   "source": "today",
+   "text": "What is the India VIX at, and what does that level tell an option buyer?",
+   "answer": "Sir, India VIX 15.12 on Thu 29 Oct (-7.0% on the day). That level is in its normal range: option prices are building in a Nifty move of about 1.0% a day, or about 4.4% over a month, either way. An option buyer only profits if the Nifty moves more than that, and a VIX that falls after you buy shrinks the premium even if the Nifty does not move; a seller wins when the move turns out smaller. Ananta's tests found none of these readings predicts what the Nifty does next: use them to explain a move, never to trade.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "today",
+   "text": "What is the watchdog, and what happened on 27 October?",
+   "answer": "The watchdog is a separate checker that runs every 5 minutes outside Jarvis, because a stuck service can't report its own death. It checks that Jarvis answers, that its health checks and 15-minute jobs are running, and that the website and the app's public address respond; two failed looks in a row send a phone note. On 27 October it caught the stall: Jarvis stopped answering from 11:40 to 12:37 Toronto time (flag 48). Since 28 October it also restarts Jarvis, after saving a snapshot, if Jarvis stays stuck for about 15 minutes, at most once an hour, and it never touches trading, rules or data.",
+   "pass": true,
+   "problems": [],
+   "ms": 3817
+  },
+  {
+   "source": "today",
+   "text": "Does ELSS still make sense if I'm on the new tax regime?",
+   "answer": "Mostly no. The new regime gives no section 80C deduction, so ELSS loses its one tax advantage and is just an equity fund locked in for 3 years. If you want that equity exposure, a plain Nifty index fund (Direct plan) gives it without the lock-in. ELSS still makes sense only if you choose the old regime and have unused 80C room. Its gains are taxed like any equity fund, as of 27 Oct 2026: 12.5% on long-term gains above Rs 1.25 lakh a year, only when STT is paid, with no indexation, and the 87A rebate does not cover them.",
+   "pass": true,
+   "problems": [],
+   "ms": 8471
+  },
+  {
+   "source": "today",
+   "text": "Is buying Nifty options on expiry day a good idea?",
+   "answer": "No, as a plain buy-and-hold-for-the-day trade it has not been a good idea. In Ananta's test of Nifty and Bank Nifty options from 2014 to 2023, an at-the-money straddle bought at the open on expiry day lost about 15% of its premium by the close on average after costs (16-19% in 2018-23, which is strong). Time decay is fastest that day, and cheap far-out options are lottery tickets: only 2-3% reach 8x and about 70% of those give most of it back. If you still want to try it, keep it to one small lot you can afford to lose, since SEBI found 91% of individual F&O traders lost money in FY25.",
+   "pass": true,
+   "problems": [],
+   "ms": 4065
+  },
+  {
+   "source": "today",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "An idea climbs a fixed staircase, and each step has a bar set before any data. It starts as a draft when the same miss repeats a fixed number of times, and it is registered only when you say yes. Then it is tested on 2000-2023 at a strict bar, and if it passes it runs as a paper shadow book for 20 live sessions. Only after it beats chance and the average stock on 10 separate sessions after costs, passes the leak check and you say yes again may the allocated capital use it. Today no rule has got that far: the stock rules have 8 of 20 trial sessions, the options line has 4, and the best score is 5 of the 10 winning days needed.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It uses unexplained internal terms such as 'staircase', 'leak check', 'paper shadow book' and 'options line', plus a confusing '5 of the 10 winning days' score, which a beginner would not follow."
+    }
+   ],
+   "ms": 6024
+  },
+  {
+   "source": "today",
+   "text": "What did last night's reconstruction find?",
+   "answer": "Last night's replay of 29 Oct found one new idea waiting for your yes and nothing for the repair shop. Of the day's 23 biggest rises, Ananta held 9 and missed 13: 5 where a rule had fired but was rejected or had already exited, and 8 where no rule was watching. It also held into 14 of the 25 biggest falls. The one idea is that no rule was positioned for stocks breaking out of a tight base and running through the day, which happened on 3 of the last 6 sessions (JSWENERGY, BLUESTARCO, DLF, BANKBARODA). That would be a question for a test, not a rule change. Of the 6 closed trades reviewed, 5 never worked after entry and 1 gave back its gains.",
+   "pass": true,
+   "problems": [],
+   "ms": 6401
+  },
+  {
+   "source": "today",
+   "text": "How did the Nifty close today?",
+   "answer": "The Nifty closed at 22,937 on Thursday 29 Oct, up 1.0% on the day. It opened flat and rose about 1.1% from the open to the close. It is still 1.5% below its 50-day average and 4.6% below its 200-day, so the bigger picture is still a downtrend.",
+   "pass": true,
+   "problems": [],
+   "ms": 3359
+  },
+  {
+   "source": "today",
+   "text": "What tax do I pay if I sell a gold ETF after 14 months?",
+   "answer": "After 14 months a gold ETF is a long-term holding, since the cutoff is 12 months. Your gain is taxed at 12.5% with no indexation, plus surcharge and cess. This is the rule since 1 Apr 2025 (as of 27 Oct 2026). Gold mutual funds and gold fund-of-funds need 24 months for the same treatment, so don't mix the two up.",
+   "pass": true,
+   "problems": [],
+   "ms": 4391
+  },
+  {
+   "source": "today",
+   "text": "JIOFIN is well below what I paid. Should I sell it to book a tax loss?",
+   "answer": "Don't sell only for the tax loss. A loss saves tax only if you have booked gains this year to set it against (or carry it forward 8 years if the return is filed on time), and the saving is a small slice of the loss. Keep JIOFIN only if you still believe in the business, and sell it if you don't. JIOFIN is Rs 207, about 35% below its 52-week high and 21 points behind the Nifty over a year (29 Oct). If you sell, you can rebuy at once, since India has no wash-sale rule.",
+   "pass": true,
+   "problems": [],
+   "ms": 4600
+  },
+  {
+   "source": "today",
+   "text": "Is Infosys a good buy right now?",
+   "answer": "As a trade (weeks): not a clean buy. Infosys is up 12.9% in a month and sits 5.8% above its 50-day average (RSI 59, a 0-100 gauge), but it is still 5.8% below its 200-day, so it's a bounce inside a downtrend; if you try it, keep a fixed stop (Ananta's tests found a fixed stop beat a trailing one) and a close under about Rs 1,080 would show the bounce failing.\nAs a long-term holding (years): it is down 29% this year and 34% below its 52-week high of Rs 1,728, behind the Nifty by about 17 points this year, so the price is lower but the data I hold has no valuation or earnings figures on Infosys, so I can't call it cheap. If you start, buy in small staggered amounts rather than all at once.",
+   "pass": true,
+   "problems": [],
+   "ms": 4878
+  },
+  {
+   "source": "today",
+   "text": "What drafts are waiting for my yes, and what would approving them actually do?",
+   "answer": "One draft is waiting for your yes (drafts waiting total.count). It says no rule was positioned for 'breakout base, intraday run' moves on 3 of the last 6 sessions (e.g. JSWENERGY, BLUESTARCO, DLF, BANKBARODA). Approving it only records your yes: the question is written down as a study and tested on 2000-2023 data, and nothing trades and no rule changes. You can say 'approve draft 1' or 'skip draft 1'.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "The answer shows a raw template placeholder, '(drafts waiting total.count)', which is an internal code a beginner can't follow and looks like a broken fill-in."
+    }
+   ],
+   "ms": 3691
+  },
+  {
+   "source": "today",
+   "text": "What is a calendar spread and why did SEBI change its margin on expiry day?",
+   "answer": "A calendar spread means selling an option that expires soon and buying one on the same underlying and strike that expires later. You gain as the near one loses its time value faster, and the later one caps the loss. SEBI's October 2024 rules removed the margin credit for this pairing on the day the near leg expires (from 1 Feb 2025) and added 2% extra exposure margin on short index options expiring that day (from Nov 2024). The reason is that on expiry day the near option can swing sharply while the far one barely moves, so the \"hedge\" does not protect against the real risk. SEBI also wanted to curb expiry-day speculation, since it found 91% of individual F&O traders lost money in FY25.",
+   "pass": true,
+   "problems": [],
+   "ms": 9404
+  },
+  {
+   "source": "today",
+   "text": "Should I prepay my home loan or put the money in a SIP?",
+   "answer": "Compare the loan's interest rate with the after-tax return you can realistically expect from the SIP. A home loan at about 8-9% is a certain, risk-free saving when you prepay. Equity SIPs have historically beaten that over 10+ years, but with no guarantee and years of flat or negative returns possible. So first fund the emergency fund (6 months of expenses, 9-12 if income is uncertain), then split: prepay if your rate is above about 9% or the debt makes you uneasy, and favour the SIP if your rate is under about 8% and you have 10+ years. A common middle path is to keep the SIP running and put bonuses or lump sums into prepayment. I'd change this if your loan rate or your time horizon is very different from those assumptions; tell me the rate and how many years you have, and I'll sharpen it.",
+   "pass": true,
+   "problems": [],
+   "ms": 5108
+  },
+  {
+   "source": "bank",
+   "text": "Madhav. Yeah, I will approve them all. Let's proceed with my approval. And then also like, what do you think about the market? It's going to go up or down tomorrow? What's your prediction?",
+   "answer": "Sir, to be sure: 1 drafts are waiting (1 same kind of miss again). Yes to all registers 1 studies, each written down first and tested on 2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first. Ananta's daily call for tomorrow, Fri 30 Oct, is bullish. But it has been right only 2 of 8 times, against 4 for a coin flip, so don't act on it. The Nifty closed at 22,937 on 29 Oct, still in a downtrend, 1.5% under its 50-day average and 4.6% under its 200-day. Above 23,006 would count as an up day and below 22,868 as a down day, but those lines are close to the close, so a normal move crosses them. Honestly, I can't call tomorrow's direction with any edge.",
+   "pass": true,
+   "problems": [],
+   "ms": 4447
+  },
+  {
+   "source": "bank",
+   "text": "But Ananta, I asked you a question. You didn't answer me yet. What's your prediction for the Indian market tomorrow?",
+   "answer": "Sorry sir. For Friday 30 Oct, Ananta's daily call is bullish, but it has been right only 2 of 8 times against 4 for a coin flip, so don't act on it. History since 2005 gives only a mild lean: up 40%, down 33%, flat 27%, which are base rates, not a read of tomorrow. The picture changes if the Nifty (22,937 on 29 Oct) closes above its 50-day average near 23,277, or breaks its recent low near 22,232.",
+   "pass": true,
+   "problems": [],
+   "ms": 9248
+  },
+  {
+   "source": "bank",
+   "text": "Ananta, the Great Rai is asking questions. Start.",
+   "answer": "Hello, grader. I'm Ananta, Madhav's paper-trading assistant for the Indian market. Ask me anything about the market, the practice books or my tests; anything that needs a yes stays with Madhav.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "Holder. I'm sorry. I just blocked it.",
+   "answer": "No need to apologise, sir, but I didn't catch what you blocked. Do you mean a tip or scam contact, a card or UPI payment, or something in the app? 1. I blocked a tip or Telegram/WhatsApp group or a caller. 2. I blocked a card or UPI payment. 3. I blocked something in the app. 4. I meant 'hold' a stock, not block.",
+   "pass": true,
+   "problems": [],
+   "ms": 3141
+  },
+  {
+   "source": "bank",
+   "text": "This is where it goes Ananta. All your answers are good. But I will be approving all those things that we are waiting for in the evidence. If you can start up, I approve them. Tell me if you can start working on them.",
+   "answer": "Sir, to be sure: 1 drafts are waiting (1 same kind of miss again). Yes to all registers 1 studies, each written down first and tested on 2000-2023 only; nothing trades from it. Say \"approve all drafts\" to confirm, or \"read the drafts\" first.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "The answer is garbled and unclear to a beginner: \"1 drafts are waiting (1 same kind of miss again)\" and \"Yes to all registers 1 studies\" never say plainly what the waiting item is or what Ananta will start working on."
+    }
+   ],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "What drafts are waiting for my yes, and what would approving them actually do?",
+   "answer": "One draft is waiting for your yes: it asks whether a rule could be known before a 'breakout from a tight base, then an intraday run' (e.g. JSWENERGY, BLUESTARCO, DLF, BANKBARODA), a situation no family was positioned for on 3 of the last 6 sessions. Approving it only records your yes: the study is written down first, then tested on 2000-2023 data alone. Nothing trades and no rule changes. If it holds up, it comes back to you for a separate decision, and you can say 'skip draft 1' instead.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "JARGON",
+     "why": "It says 'no family was positioned for' without explaining what a 'family' is, and the draft's description is convoluted, so a beginner would not follow it."
+    }
+   ],
+   "ms": 5284
+  },
+  {
+   "source": "bank",
+   "text": "Ananta, it's me. Did the grader approve anything?",
+   "answer": "Welcome back, sir. No, sir. The grader can't approve, flag or change anything; only you can. The one research draft waiting is still waiting for your yes or skip. The earlier approvals, all 12 drafts on 28 Oct and 3 more on 29 Oct, were yours.",
+   "pass": true,
+   "problems": [],
+   "ms": 5212
+  },
+  {
+   "source": "bank",
+   "text": "How is STT charged on options, and what happens if I let an in-the-money stock option expire?",
+   "answer": "Since 1 April 2026, STT on options is 0.15% of the premium when you sell an option, up from 0.10%. If you let an in-the-money stock option run to expiry, it goes to physical settlement. The buyer of a call must pay for the full value of the shares (a put works the other way round, with the buyer delivering them), and both sides pay 0.1% STT on the full contract value. A bought option that is exercised also pays 0.15% on its intrinsic value. Brokers raise margins from 4 days before expiry and often square off positions that lack the money, so close in-the-money stock options before expiry unless you want delivery.",
+   "pass": true,
+   "problems": [],
+   "ms": 4114
+  }
+ ]
+}

@@ -33,6 +33,7 @@ SIGNIN_FROM, SIGNIN_BY = dt.time(7, 30), dt.time(9, 10)   # IST: after Zerodha's
 TOKEN_WORDS = ("TokenException", "NeedLogin", "Kite login needed", "no Kite token on disk", "token expired")
 MARK = "=== "   # a run marker line a chained job may print to its error log; the summary reads the error log from the last marker on
 GRACE = dt.timedelta(minutes=10)
+STUCK = dt.timedelta(hours=12)   # 3 Nov: running with no output this long is a stuck job (the fill's quiet windows are under 9 h)
 DEFAULT_DUE = {"paper": {"Hour": 22, "Minute": 30}, "evening": {"Hour": 19, "Minute": 0}}   # used when a plist is missing
 
 
@@ -345,6 +346,10 @@ def job_report(label: str, lc: dict, agents: Path, now: dt.datetime, ctx: dict) 
         r["problems"].append(f"steps failed inside the job ({', '.join(mods)})" + (f": token dead; next sign-in {ctx['signin']}" if r["token_dead"] else f": {r['errors'][-1]}"))
     if running:
         r["problems_note"] = f"running now (pid {r['pid']})"
+        # 3 Nov 2026 (Madhav: yes): a job that runs on with no output for 12 hours is stuck, not busy (kitefill waited 70 h on itself, 31 Oct-3 Nov)
+        since = last_out if last_out is not None else due
+        if since is not None and now - since >= STUCK:
+            r["problems"].append(f"stuck: running (pid {r['pid']}) with no output for {int((now - since).total_seconds() // 3600)} h, since {since:%a %d %b %H:%M}")
     return r
 
 

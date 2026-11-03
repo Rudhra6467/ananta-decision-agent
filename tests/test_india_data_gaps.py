@@ -73,3 +73,5 @@ def test_kite_fill_keeps_out_of_live_windows():
     busy = "PID\tStatus\tLabel\n123\t0\tcom.ananta.india.paper\n53541\t-15\tcom.ananta.india.web\n"
     idle = "PID\tStatus\tLabel\n-\t0\tcom.ananta.india.paper\n53541\t-15\tcom.ananta.india.web\n49120\t-15\tcom.ananta.explorer\n"
     assert kite_fill.india_job_running(busy) and not kite_fill.india_job_running(idle)
+    itself = "PID\tStatus\tLabel\n21251\t0\tcom.ananta.india.kitefill\n53541\t-15\tcom.ananta.india.web\n-\t0\tcom.ananta.india.paper\n"
+    assert not kite_fill.india_job_running(itself)          # 3 Nov: the fill does not wait for itself

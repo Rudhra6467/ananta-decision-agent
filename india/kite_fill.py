@@ -33,7 +33,8 @@ RATE = 2.0
 # Toronto clock. 18:50-02:45 covers the evening job, the token's expiry (06:00 IST = 20:30 EDT / 19:30 EST: a request on a dead token would make
 # india/kite.py sign in again, outside the schedule), the 21:40 sign-in, paper, spreads, the SP1 opening window and the nightly build.
 QUIET = [((12, 20), (13, 10)), ((18, 50), (24, 0)), ((0, 0), (2, 45))]
-SERVICES = ("com.ananta.india.web",)
+# 3 Nov 2026 (Madhav: yes): the fill's own job is running while it checks, so it must not count itself (it waited 70 h, 31 Oct-3 Nov)
+SERVICES = ("com.ananta.india.web", "com.ananta.india.kitefill")
 START = dt.date(2015, 1, 1)
 
 

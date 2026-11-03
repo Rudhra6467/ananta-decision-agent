@@ -59,6 +59,8 @@ INTERNAL = [
     ("paper/allocation_ledger.jsonl", "the allocator's ledger (its view is what is read)"),
     ("reports/*.md", "a written report for Madhav (the morning review page)"), ("reports/ask_guard.jsonl", "the answer guard's log (the morning review reads it)"),
     ("readmodel/*", "the read model itself"), ("paper/sp1/plans/*", "the options line's plan files (the decisions ledger is read live)"),
+    # 3 Nov (Madhav: yes, the Map's change 4): the expiry-day book stopped and is no longer shown; its old file ages out of the window
+    ("paper/options_trades.jsonl", "the expiry-day options book: stopped 3 Nov, kept on disk, not shown"),
 ]
 # Inputs to another file that IS read: (pattern, the file it feeds, the job that turns one into the other)
 FEEDS = [
@@ -81,7 +83,7 @@ COPIED = [
     ("manifests/hf_chronos_results.json", "india/morningview.py", "chronos"), ("manifests/hf_news_results.json", "jarvis/india/ask.py", "news"),
 ]
 # Written during the Indian session (09:00-15:30 IST): these must be read live, never only by the nightly build
-DAYTIME = ["paper/sp1/decisions.jsonl", "paper/sp1/book.json", "paper/options_trades.jsonl", "paper/morningview/*", "paper/account/*", "paper/allocation_view.json"]
+DAYTIME = ["paper/sp1/decisions.jsonl", "paper/sp1/book.json", "paper/morningview/*", "paper/account/*", "paper/allocation_view.json"]
 
 
 def _dated(rel: str) -> str:

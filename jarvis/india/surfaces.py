@@ -159,14 +159,17 @@ def today(full: bool = True) -> dict:
     return {"ready": True, "session": session, "session_words": m.get("session_words"), "when": when, "now_words": now.strftime("%A %-d %b, %H:%M IST"),
             "decision": decision, "decision_source": source,
             "numbers": [_nifty_tile(rm),
-                        {"label": "Your account", "value": (_inr(acct["value_inr"]) if acct.get("value_inr") else "—"),
-                         "sub": f"NSE close · {acct.get('positions') and len(acct['positions'])} stocks, ₹{acct.get('options_inr', 0):,.0f} options" if acct else "no snapshot yet"}],
+                        # 3 Nov (the Map's change 3): the account's value has one owner, the managed book (the twin is folded into it)
+                        ({"label": "Your account", "value": _inr(mb["value_inr"]),
+                          "sub": f"managed book · {mb.get('positions')} stocks, ₹{mb.get('options_inr') or 0:,.0f} options"} if mb.get("value_inr") else
+                         {"label": "Your account", "value": (_inr(acct["value_inr"]) if acct.get("value_inr") else "—"),
+                          "sub": f"NSE close · {acct.get('positions') and len(acct['positions'])} stocks, ₹{acct.get('options_inr', 0):,.0f} options" if acct else "no snapshot yet"})],
             "waiting": {"count": waiting.get("count") or 0, "words": waiting.get("words")},
             # independent audit, 2 Nov: "Everything is running" beside "checked 234 min ago"; an old check now says it is old
             "running": {"ok": bool(health.get("all_ok")), "words": ("Everything was running at the last check" if (health.get("checked_s_ago") or 0) > 3600 else "Everything is running") if health.get("all_ok") else f"{len(health.get('down') or [])} part{'s' if len(health.get('down') or []) != 1 else ''} down",
                         "checked": f"checked {int((health.get('checked_s_ago') or 0) // 60)} min ago" if health.get("checked_s_ago") is not None else ""},
             "cards": cards, "evening": evening, "clock": (mb.get("clock") or {}).get("words"),
-            "suggested": ["What replaces Jio Financial?", "How are the trials going?", "What's waiting for my yes?"],
+            "suggested": ["What replaces Jio Financial?", "What is the plan for today?", "What's waiting for my yes?"],   # 3 Nov (the Map change 13): the trials are on Proof, asked for there
             "next_view": f"The morning view arrives at {views._sched().at('com.ananta.india.morningview')}." if not m.get("ready") else None, "paper": True}
 
 
@@ -176,17 +179,21 @@ def money(full: bool = True) -> dict:
     bm = acct.get("benchmark") or {}
     mb = _managed()
     plan = mb.get("plan") or {}
-    books = [{"id": "yours", "label": "As you have it", "ret_pct": bm.get("frozen_ret_pct")}, {"id": "twin", "label": "The twin", "ret_pct": bm.get("twin_ret_pct")},
+    # 3 Nov (Madhav: "Yes for all", the Map's change 3): the twin is folded into the managed book, the one book that manages the account;
+    # Money shows three lines (as you have it, managed, Nifty 500) and the account's value is the managed book's
+    books = [{"id": "yours", "label": "As you have it", "ret_pct": bm.get("frozen_ret_pct")},
              {"id": "managed", "label": "Managed", "ret_pct": mb.get("return_pct") if (mb.get("clock") or {}).get("sessions") else None, "words": None if (mb.get("clock") or {}).get("sessions") else f"starts {_dw(plan.get('for_session')).split(' ')[0]}"},
              {"id": "index", "label": "Nifty 500", "ret_pct": bm.get("nifty500_ret_pct")}]
     holdings = []
     for x in (alloc.get("holdings") or []) if full else []:
         holdings.append({"symbol": x.get("symbol"), "value_inr": x.get("value_inr"), "weight_pct": x.get("weight_pct"), "pnl_pct": x.get("pnl_pct"), "grade": x.get("grade"),
                          "action": (x.get("action") or "").lower(), "suggest_inr": x.get("suggest_inr"), "why": x.get("why"), "wrong_if": x.get("wrong_if")})
-    return {"ready": True, "paper": True, "value_inr": acct.get("value_inr"), "stocks_inr": acct.get("stocks_inr"), "options_inr": acct.get("options_inr"), "cash_inr": acct.get("cash_inr"),
+    own = mb if mb.get("value_inr") else acct
+    return {"ready": True, "paper": True, "value_inr": own.get("value_inr"), "stocks_inr": own.get("stocks_inr"), "options_inr": own.get("options_inr"), "cash_inr": own.get("cash_inr"),
+            "value_owner": "the managed book" if own is mb else "the account book (the managed book has no value yet)",
             "as_of": f"NSE close {_dw((acct.get('marks') or {}).get('last_session'))}" if acct.get("marks") else None,
             "books": books, "clock": {"sessions": bm.get("sessions"), "of": 60, "finish_words": None, "words": f"Session {bm.get('sessions')} of 60" if bm.get("sessions") is not None else None, "since": bm.get("frozen_day")},
-            "books_note": "Same start, same prices for all four. Nothing is read into the gap before session 60.",
+            "books_note": "Same start, same prices for all three. Nothing is read into the gap before session 60.",
             "plan": {"for_session": plan.get("for_session"), "brief": plan_sentence(plan) if not plan.get("error") else plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],
                      "no_change": plan.get("no_change"), "error": plan.get("error")} if plan else None,
             "managed": {"value_inr": mb.get("value_inr"), "return_pct": mb.get("return_pct"), "clock": (mb.get("clock") or {}).get("words"), "replacements": mb.get("replacements") or []},

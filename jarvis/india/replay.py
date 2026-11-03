@@ -158,6 +158,20 @@ def _save_bank(rows: list[dict]) -> None:
     BANK.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
 
 
+def exam_line(path: Path | None = None) -> dict:
+    """The weekly India exam's last full run, for the one nightly report (the Map's change 11)."""
+    import json as _j
+    path = path or Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "manifests" / "exam_latest.json"
+    try:
+        ex = _j.loads(path.read_text())
+    except (OSError, ValueError):
+        return {"words": "The India exam has no full run on record."}
+    parts = [f"knows {ex.get('known')} of {ex.get('known_of')}", f"unknowns {ex.get('unknown')} of {ex.get('unknown_of')}", f"why {ex.get('why')} of {ex.get('why_of')}",
+             f"answers and decides {ex.get('style')} of {ex.get('style_of')}", f"safety {ex.get('safety')} of {ex.get('of')}", f"plain words {ex.get('plain')} of {ex.get('of')}"]
+    return {"day": ex.get("day"), "pass": bool(ex.get("exam_pass")),
+            "words": f"The India exam (weekly, last run {ex.get('day')}): {', '.join(parts)}: {'PASS' if ex.get('exam_pass') else 'FAIL'}."}
+
+
 def add_to_bank(context: list[dict], turn: dict, problems: list[dict], night: str, source: str = "replay") -> None:
     rows = bank()
     key = re.sub(r"\W+", " ", turn["text"].lower()).strip()[:200]
@@ -251,6 +265,10 @@ def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
                         f"the regression bank: {summary['bank_checked'] - summary['bank_failed']} of {summary['bank_checked']} passed "
                         f"({summary['bank_fixed']} fixed for good, {summary['bank_open']} still open); the never-again cases of 1-2 Nov: "
                         f"{summary['never_again_checked'] - summary['never_again_failed']} of {summary['never_again_checked']} passed.")
+    # 3 Nov (Madhav: "Yes for all", the Map's change 11): one question bank. The India exam's questions run from this job (weekly, when due,
+    # just before the replay) and its result is reported here, judged by its own pinned judges and pass marks (records india/exam.py)
+    summary["exam"] = exam_line()
+    summary["words"] += " " + summary["exam"]["words"]
     OUT.mkdir(parents=True, exist_ok=True)
     rep = {"summary": summary, "failures": [{k: r.get(k) for k in ("source", "text", "answer", "problems", "error")} for r in results if not r["pass"]],
            "results": [{k: r.get(k) for k in ("source", "text", "answer", "pass", "problems", "ms")} for r in results]}

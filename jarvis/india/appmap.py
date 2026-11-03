@@ -15,7 +15,7 @@ import re
 PLACES = {
     "home": {"name": "Home", "shows": "your account (total, gain or loss, the Stocks and Options boxes), the morning view, Ananta's decisions, Your money, activity"},
     "sheet:stocks": {"name": "your stocks", "shows": "every holding: quantity, price paid, price now, value, gain or loss, Ananta's grade and action, Ask"},
-    "sheet:options": {"name": "your options", "shows": "the options money, sessions traded, open positions, the last session, the expiry-day practice book"},
+    "sheet:options": {"name": "your options", "shows": "the options money, sessions traded, open positions, the last session (the options line is the one options book since 3 Nov)"},
     "sheet:money": {"name": "Your money", "shows": "how Ananta splits stocks, options and cash, the guardrails, the market call, every holding ranked"},
     "sheet:morning": {"name": "the morning view", "shows": "the market, Ananta's plan, the chances, what to watch, the reviewer's second opinion, yesterday's scorecard"},
     "markets": {"name": "Markets", "shows": "the Nifty and the market's health, the stocks Ananta watches and its research book"},

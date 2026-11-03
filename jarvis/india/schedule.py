@@ -29,7 +29,7 @@ LOG = Path(os.path.expanduser("~/ananta_runs/india_schedule.log"))
 WEEKDAYS = (0, 1, 2, 3, 4)          # Mon-Fri in India (Python weekday numbers)
 
 # label: (Indian times, Indian weekdays or None for every day). The order of the morning chain matters: sign-in, the options plan, the practice
-# book, spreads, net notes, findings, the morning view (08:30), the shadow trader, the opening update after the first hour; then the post-close fetch.
+# book, spreads, the morning view (08:30), the shadow trader, the opening update after the first hour; then the post-close fetch.
 TARGETS: dict[str, tuple[list[str], tuple[int, ...] | None]] = {
     # 2 Nov (Madhav: "yes"): the sign-in lapses at 06:00 IST; signing in at 06:05 closes the evening gap (7:30-8:40 pm Toronto) when live
     # prices failed. 06:20 retries; 07:10 is the old time, kept as a backup (the job skips when the token is still valid)
@@ -39,11 +39,13 @@ TARGETS: dict[str, tuple[list[str], tuple[int, ...] | None]] = {
     # The rest of the evening run follows once they are in.
     "com.ananta.india.evening_zerodha": (["06:30"], None),
     "com.ananta.india.evening": (["06:50"], None),
+    # 3 Nov (the Map's change 8): the studies and write-ups (trials, the tilt book, RX1 and RS trials, write-ups, the knowledge map) in their own job
+    "com.ananta.india.studies": (["07:05"], None),
     "com.ananta.india.sp1paper": (["07:30"], None),
     "com.ananta.india.paper": (["08:00"], None),
     "com.ananta.india.spreads": (["08:05"], WEEKDAYS),
-    "com.ananta.india.netnotes": (["08:10"], None),
-    "com.ananta.india.findings": (["08:20"], None),
+    # 3 Nov (Madhav: "Yes for all", the Map's changes 1 and 12): the findings job and the paid web notes are stopped; their plists are kept in
+    # ~/Library/LaunchAgents/stripped-2026-11-03 so either can come back
     "com.ananta.india.morningview": (["08:30"], None),
     "com.ananta.india.shadowtrader": (["08:36"], None),
     "com.ananta.india.openingview": (["10:20"], None),
@@ -124,14 +126,14 @@ def words(changed: list[dict]) -> str:
 DAY = [   # (job, what it brings), in the order of Madhav's evening and night
     ("com.ananta.india.postclose", "the closing index bars, the chart readings and a first market summary"),
     ("com.ananta.india.sp1paper.score", "the options line's score for the session (once a day)"),
-    ("com.ananta.india.recorder_noon", "the day's 1-minute options and currency bars"),
-    ("com.ananta.india.nightly", "the official NSE day file (every stock's close), the chart readings, the stock quote book and the market summary (P/E, futures positions)"),
+    ("com.ananta.india.recorder_noon", "the day's 1-minute options and currency bars and the Zerodha snapshot"),
+    ("com.ananta.india.nightly", "the official NSE day file (every stock's close), the chart readings, the stock quote book and the market summary (P/E, futures positions); the one place the quote book and the market summary are built (3 Nov)"),
     ("com.ananta.india.autologin", "the morning sign-in to Zerodha"),
     ("com.ananta.india.evening_zerodha", "the Zerodha part of the evening: the account snapshot, the options recorder's second fetch, the options line's replay check and the index bars"),
     ("com.ananta.india.evening", "the evening run: FII/DII flows and big deals, the managed book's fills and its next plan, the teachers' forward checks"),
+    ("com.ananta.india.studies", "the studies: the paper trials' clocks, the long-term tilt book, the write-ups and the knowledge map"),
     ("com.ananta.india.sp1paper", "the options line's plan for the session"),
     ("com.ananta.india.paper", "the practice book's picks for the session, the daily call, the missed moves, the comparison traders and the reconstruction (the coach's replay)"),
-    ("com.ananta.india.findings", "the night's findings"),
     ("com.ananta.india.morningview", "the morning view (plan, levels to watch, honest chances)"),
     ("com.ananta.india.openingview", "the opening update after the first hour"),
 ]

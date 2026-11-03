@@ -1144,7 +1144,7 @@ def sp1_live(rm: dict | None = None) -> dict:
 
 
 def options() -> dict:
-    """India's options section on Home: the Rs 50,000 options line (SP1), today's plan, the session's decisions, the option book, the recorder's paper book."""
+    """India's options section: the Rs 50,000 options line (SP1), the one options book (3 Nov), today's plan and the session's decisions."""
     rm = readmodel()
     s = sp1_live(rm)
     book = (s.get("book") or {})
@@ -1152,8 +1152,6 @@ def options() -> dict:
     plan = _json(plans[-1], {}) if plans else {}
     fc = plan.get("forecast") or {}
     sc = plan.get("scenarios_text") or {}
-    rec = [r for r in _jsonl(DATA / "paper" / "options_trades.jsonl") if r.get("kind") != "skip"]
-    rec_net = sum((r.get("net_inr") or 0) for r in rec)
     by_idx = book.get("by_index") or {}
     line_pnl = sum(float(v.get("option_1lot_rs_realistic_fill") or 0) for v in by_idx.values())
     sessions = book.get("sessions") or 0
@@ -1162,8 +1160,7 @@ def options() -> dict:
             "plan": {"session": plan.get("session"), "bull": fc.get("bull"), "bear": fc.get("bear"), "neutral": fc.get("neutral"), "scenarios": sc, "limits": plan.get("limits") or [],
                      "vix": ((plan.get("overnight") or {}).get("INDIA VIX") or {}).get("close")},
             "decisions_today": s.get("decisions") or [], "errors": (s.get("errors") or [])[:1], "by_index": by_idx,
-            "recorder": {"trades": len(rec), "net_inr": round(rec_net, 2), "last": [{"strategy": r.get("strategy"), "index": r.get("index"), "day": r.get("day"), "net_inr": round(r.get("net_inr") or 0), "exit": r.get("exit_reason")} for r in rec[-3:]],
-                         "what": "the expiry-day paper book, on real option prices (about ₹50,000 scale)"},
+            # 3 Nov (Madhav: yes, the Map's change 4): the expiry-day paper book is no longer shown; the options line is the one options book
             "suitability": "An option is bought only when the move it needs is bigger than what the option costs (its price, the spread and the daily decay).",
             "allocation": _allocation()}
 
@@ -1174,7 +1171,7 @@ def allocation_plan(full: bool = False) -> dict:
     a = _json(DATA / "paper" / "allocation.json", {}) or {}
     mode = {"fixed": "advisory", "ananta": "autonomous"}.get(a.get("mode"), a.get("mode") or "advisory")
     if not v:
-        return {"mode": mode, "ready": False, "headline": "The allocator has not built a plan yet; it runs every few minutes and each evening.", "paper": True}
+        return {"mode": mode, "ready": False, "headline": "The allocator has not built a plan yet; it runs once each evening.", "paper": True}
     out = {k: v.get(k) for k in ("mode", "day", "for_session", "built_at", "headline", "sleeves", "regime", "options", "moves", "moves_applied", "watch", "snapshot", "yardstick", "words", "paper")}
     out["mode"] = mode
     out["ready"] = True

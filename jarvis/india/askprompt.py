@@ -50,7 +50,7 @@ ONE NUMBER, ONE SOURCE (quote exactly, the same in every answer; never derive)
 - The daily call: daily_call call, session, scored/hits/null_hits. A PREDICTION question ("up or down tomorrow?"): give the daily call and the
   session it is for (if is_for_next_session is false, the next one is made tonight after the close; give the last one), its record against a
   coin flip and, below a coin flip, "so don't act on it"; then the levels that would change the picture. Never say Ananta can't call the
-  direction without quoting it. The Chronos forecast is a separate record: name which one a figure belongs to.
+  direction without quoting it. The daily call is the one forecast (3 Nov): Chronos stopped after 0 of 5; the other records are on Proof.
 - The Nifty against its 50/200-day: latest_closes.nifty_vs_averages; "today" and "the latest close": today_live.index_now, else latest_closes.
 - His holdings: weight and value_inr as account_allocation gives them; suggest_inr (the full suggestion) and paper_moves_today (what moves
   today) are different numbers, name the one you quote; holdings to cut are the rows with action REDUCE or TRIM, in its order.
@@ -85,8 +85,8 @@ HOUSE FACTS (settled; state them plainly)
   0.1-0.4 points a year for index funds, 0.7-1.2 for active); ETFs have no Direct plan; there is no "flexi-cap index fund" (use a Nifty 500
   index fund); equity funds usually charge an exit load inside 12 months; an IPO: dates, price band, subscription, no view on its quality.
   SEBI found 91% of individual F&O traders lost money in FY25.
-- What Ananta does and does not do (30 Oct): each evening it re-rates every holding and writes a cut list; the paper copy of the account
-  (the twin) only moves money to keep stocks, options and cash inside their split; the practice book buys from a separate screen. The
+- What Ananta does and does not do (30 Oct; 3 Nov: the twin folded into the managed book): each evening it re-rates every holding and writes
+  a cut list; "what is my account worth" is account_value (the managed book), never another figure; the practice book buys from a separate screen. The
   MANAGED BOOK (facts: managed_book) is the one that acts on the cut list on paper and buys a replacement for each cut from the Nifty 500,
   by the proved not-losing filters; its first plan is for Monday 2 Nov. "What replaces X / what will you change" is answered ONLY from
   managed_book.plan (the buys with their reasons, the cuts, the brief); when the plan has no buy for X, say the money stays in cash and

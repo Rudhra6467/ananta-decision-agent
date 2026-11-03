@@ -44,7 +44,7 @@ the "as a trade / as a long-term holding" split only when the horizon is unknown
 ONE NUMBER, ONE SOURCE (28 Oct re-grade): quote these exactly and never derive them: drafts_waiting_total.count (what waits for his yes);
 daily_call scored/hits/null_hits (never work out how often the Nifty rose or fell from them); a holding's value_inr (what it is worth) versus
 suggest_inr (the amount to move), naming which; the holdings to cut are the account_allocation rows whose action is REDUCE or TRIM, in its order.
-The Chronos forecast has its own record, separate from the daily call; name which one a figure belongs to. Add an "I'd reverse this if ..." line
+ONE FORECAST (3 Nov, Madhav: yes): the daily call is Ananta's one forecast; Chronos was stopped on 3 Nov after 0 of 5 and the rule forecast, the reviewer and the shadow trader are records on Proof, not forecasts to quote; if he asks about one, say so. QUIET BOOKS (3 Nov, Madhav: yes): the teachers' forward books, the long-term tilt book and the paper trials live on Proof: bring them up only when he asks about them or when one's clock has ended, never in a greeting, a day summary or an opener. Add an "I'd reverse this if ..." line
 only when there is a real condition with a number in it. Buying an index dip: cite Ananta's gap-down study (Nifty and Bank Nifty gap-downs of
 1% or more were followed by a slightly better week, not reliably) from indicator_knowledge.
 A prediction question ("up or down tomorrow?", "what's your prediction?"): Ananta HAS a forecast, the daily call; give it (daily_call.call
@@ -600,8 +600,8 @@ def _managed_book() -> dict:
             "score": _json_file(DATA / "paper" / "managed" / "score.json"),
             "tracked": ("Two places. The replacement ledger scores every cut and every replacement 5 and 20 sessions after the fill: did the cut name fall "
                         "(the cut was right), did the replacement rise, and replacement minus cut. And the daily benchmark row puts the managed book beside the "
-                        "twin (the allocator's paper copy of the account), the frozen portfolio (the holdings left as they were) and the Nifty 500; "
-                        "all four start from the same holdings. Both are under Your money; judged at session 60, nothing read before."),
+                        "frozen portfolio (the holdings left as they were) and the Nifty 500 (3 Nov: the twin is folded into the managed book); "
+                        "all three start from the same holdings. Both are under Your money; judged at session 60, nothing read before."),
             # independent audit, 2 Nov: the times are read from the launchd jobs (jarvis/india/schedule.py), not written by hand
             "daily_process": [f"{schedule.at('com.ananta.india.nightly')}: the official NSE day file (every stock's close) lands",
                               f"{schedule.at('com.ananta.india.evening')}: flows and the Zerodha snapshot come in; every holding is re-rated and the cut list written; "
@@ -617,8 +617,27 @@ def _managed_book() -> dict:
             "plan_vs_cut_list": ("two different lists, say them apart: cut_list (REDUCE or TRIM on the holdings) is the evening's advice; the managed plan's cuts are "
                                  "that list's REDUCE/TRIM over Rs 1,000 PLUS the tidy-ups (TIDY: stakes too small to matter, sold whole), so the plan usually has more names"),
             "stops_whose": "the 7% fixed stop belongs to the managed book's replacements only; the practice book's trades exit by their own rule's exit; the 5% day loss limit and the 22% pause are the survival rules of the research book",
-            "clocks_named": "when citing a clock, name whose it is: the practice book's stock rules (20 sessions, started 30 Oct after the no-chase change), the options line (20), the managed book (60), the twin against the frozen portfolio (60)",
+            "clocks_named": "when citing a clock, name whose it is: the practice book's stock rules (20 sessions, started 30 Oct after the no-chase change), the options line (20), the managed book against the frozen portfolio (60)",
             "rule": "a replacement is chosen from the Nifty 500 by the proved not-losing filters (above its 50- and 200-day averages, not stretched, not a 40%-down name, calm, liquid, sector not over 25%), one per cut for the same rupees, at most three new names a week, a 7% fixed stop, a 20-session minimum hold; fills at the next open, a buy gapping over 2% is skipped; judged only after 60 sessions"}
+
+
+def _account_value() -> dict:
+    """3 Nov (the Map's change 3): one owner for "what is my account worth": the managed book (paper/managed/view.json)."""
+    m = _json_file(DATA / "paper" / "managed" / "view.json") or {}
+    if not m.get("value_inr"):
+        return {"words": "the managed book has no value yet"}
+    return {"owner": "the managed book (the one book that manages your account on paper)", "value_inr": m.get("value_inr"), "return_pct": m.get("return_pct"),
+            "stocks_inr": m.get("stocks_inr"), "options_inr": m.get("options_inr"), "cash_inr": m.get("cash_inr"), "stocks": m.get("positions"), "day": m.get("day"),
+            "rule": "say this value for his account; the real holdings count comes from the Zerodha snapshot, said with its time"}
+
+
+def _books_benchmark() -> dict:
+    """The three books on Money from 3 Nov: as you have it (frozen), the managed book and the Nifty 500 (the twin's row is no longer spoken)."""
+    try:
+        v = json.loads((DATA / "paper" / "account" / "view.json").read_text()).get("benchmark") or {}
+        return {k: v.get(k) for k in ("day", "frozen_ret_pct", "managed_ret_pct", "managed_sessions", "managed_minus_frozen_pct", "nifty500_ret_pct")}
+    except (OSError, ValueError):
+        return {"words": "the benchmark row is not built yet"}
 
 
 def _twin_benchmark() -> dict:
@@ -640,8 +659,9 @@ def _alloc_facts() -> dict:
             # 30 Oct outside grade (lv3 vs jd3 named two and four holdings to cut): one list, in one order, for every answer
             "cut_list": [x["symbol"] for x in p.get("holdings", []) if x.get("action") in ("REDUCE", "TRIM")],
             "cut_list_rule": "the holdings to cut are exactly cut_list (REDUCE or TRIM), in this order; TIDY and WATCH are not cuts",
-            # 30 Oct (Phase 5): the twin against the frozen holdings and the Nifty 500, one row a session; nothing read into the gap before 60 sessions
-            "twin_vs_frozen_vs_nifty500": _twin_benchmark(),
+            # 3 Nov (Madhav: yes, the Map's change 3): the twin is folded into the managed book; the account's value is the managed book's
+            "account_value": _account_value(),
+            "books_vs_frozen_vs_nifty500": _books_benchmark(),
             # 30 Oct evening (Madhav: "pick the replacements and trade them in paper"): the managed book acts on the cut list and buys replacements
             "managed_book": _managed_book(),
             "meaning": "advisory = options fixed at Rs 50,000, stocks as in the account, Ananta rates/ranks/suggests and moves nothing; autonomous = options stay one fixed Rs 50,000 (Madhav, 2 Nov) and Ananta moves capital between stocks and cash on paper inside the regime table; grades A>=70, B>=55, C>=40, D below",

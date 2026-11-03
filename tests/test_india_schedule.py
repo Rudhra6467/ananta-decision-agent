@@ -25,7 +25,7 @@ def test_weekday_jobs_keep_indian_weekdays():
 def test_the_morning_chain_stays_in_order_and_before_the_open():
     for on in (dt.date(2026, 11, 2), dt.date(2026, 7, 1)):
         ist = [S.TARGETS[k][0][-1] for k in ("com.ananta.india.autologin", "com.ananta.india.sp1paper", "com.ananta.india.paper",
-                                              "com.ananta.india.findings", "com.ananta.india.morningview", "com.ananta.india.shadowtrader")]
+                                              "com.ananta.india.morningview", "com.ananta.india.shadowtrader")]   # findings stopped 3 Nov (the Map change 1)
         assert ist == sorted(ist) and ist[-1] < "09:15"
 
 
@@ -38,3 +38,9 @@ def test_evening_zerodha_steps_run_after_the_sign_in():
     assert S.wanted("com.ananta.india.evening", dt.date(2027, 4, 1)) == [{"Hour": 21, "Minute": 20}]            # summer: 9:20 pm Toronto
     order = [j for j, _ in S.DAY]
     assert order.index("com.ananta.india.autologin") < order.index("com.ananta.india.evening_zerodha") < order.index("com.ananta.india.evening")
+
+
+def test_studies_run_after_the_evening_and_before_the_options_plan():
+    # 3 Nov (the Map's change 8): studies and write-ups in their own job
+    ev, st, sp1 = (S.TARGETS[k][0][0] for k in ("com.ananta.india.evening", "com.ananta.india.studies", "com.ananta.india.sp1paper"))
+    assert ev < st < sp1

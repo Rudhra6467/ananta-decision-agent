@@ -1007,7 +1007,9 @@ def finish(reply: dict, question: str, model: bool) -> dict:
     # left a fragment; the cut-off check runs again after the sign-off is taken
     a = re.sub(r"(?<=[.!?])\s+(?:[A-Za-z']+\s+){0,2}(?:of|to|in|and|or|the|a|an|for|with|at|on|by|but|so|as|is|it|this)\.?\s*$", "", a).rstrip()
     # 3 Nov retest: "... too early to grade, and all of." (the sign-off taken from inside the last clause, after a comma)
-    a = re.sub(r",\s*(?:and|but|so)?\s*(?:[A-Za-z']+\s+){0,2}(?:of|to|in|the|a|an|and)\.?\s*$", ".", a).rstrip()
+    a = re.sub(r"[,;]\s*(?:and|but|so)?\s*(?:[A-Za-z']+\s+){0,2}(?:of|to|in|the|a|an|and)\.?\s*$", ".", a).rstrip()
+    # 3 Nov (outside grade): the cut list's codes were spoken from the breakdown ("1) TRIM: JIOFIN ...")
+    a = re.sub(r"\bTRIM\b", "trim", re.sub(r"\bREDUCE\b", "halve", re.sub(r"\bTIDY\b", "tidy-up", a)))
     reply["answer"] = tidy_end(one_hedge(a))
     opts = [str(o) for o in (reply.get("options") or []) if isinstance(o, str) and o.strip()][:4]
     if reply.get("kind") == "clarify" and opts and not any(o[:24].lower() in reply["answer"].lower() for o in opts):
@@ -2396,7 +2398,7 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
             return _reply(f"I could not save that note, sir: {str(j.get('detail') or j)[:120]}", [], [])
         name = j.get("label") or f"note {j['num']}"
         line = (f"Added to the research note on {j.get('title') or n['title']} ({name}), sir." if j.get("updated") else
-                f"Saved, sir, as {name} in My flags: {n['title']}. The 7:45 am Toronto morning review takes it up first and says when it will be "
+                f"Saved, sir, as {name} in My flags: {n['title']}. The next morning review takes it up first and says when it will be "
                 "done; you get a phone note when its status changes and when it is done.")
         q = other_question(text)
         if q:
@@ -2424,7 +2426,8 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         q = other_question(text)
         if q:                                        # 26 Oct: a question in the same message is answered after the note
             return {"_then": q, "_prefix": f"Noted as {name}, sir.", "_note": j}
-        return _reply(f"Noted as {name}, sir. It's in My flags, and it gets worked on from there.", ["Show my flags", "Add a comment to that flag"],
+        return _reply(f"Saved, sir, as {name} in My flags. The next morning review takes it up first and says when it will be done; "
+                      "you get a phone note when its status changes and when it is done.", ["Show my flags", "Add a comment to that flag"],
                       [f"flag noted: {name} (no fix menu; worked on outside the app)"], {"flag": j})
     return None
 

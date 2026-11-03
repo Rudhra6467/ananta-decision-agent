@@ -123,7 +123,7 @@ def test_bare_flag_it_files_the_previous_message(lake):
         sent.update(body)
         return {"num": 128, "label": "flag 47", "options": [{"title": "Add a retry button", "lane": "SAFE"}]}
     r = ia.fix_flow("Flag it", "f1", "tok", {}, post=post, get=lambda u: {})
-    assert r and "Noted as flag 47" in r["answer"] and "retry button" in sent["text"] and sent["market"] == "india"
+    assert r and "Saved, sir, as flag 47" in r["answer"] and "retry button" in sent["text"] and sent["market"] == "india"
     assert "Fix" not in r["answer"]                     # 2 Nov: noted only, no fix menu
 
 

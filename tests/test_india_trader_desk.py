@@ -119,3 +119,17 @@ def test_old_cut_list_words_are_read_corrected():
 def test_a_sign_off_cut_after_a_comma_leaves_no_fragment():
     r = ask.finish({"answer": "It has 7 sessions on record, so it is too early to grade, and all of this is paper only."}, "how many trades", True)
     assert not r["answer"].rstrip(".").endswith(("all of", "and")) and r["answer"].endswith(".")
+
+
+def test_semicolon_cut_and_codes_are_cleaned():
+    r = ask.finish({"answer": "Both are marked after the close and noisy; all of this is paper only."}, "is that risky", True)
+    assert "all of" not in r["answer"]
+    r = ask.finish({"answer": "Four are on the cut list: TRIM JIOFIN, REDUCE IEX, TIDY IDEA."}, "cut list", True)
+    assert "TRIM" not in r["answer"] and "halve IEX" in r["answer"] and "tidy-up IDEA" in r["answer"]
+
+
+def test_premium_paid_is_given_not_worked_out(monkeypatch, tmp_path):
+    monkeypatch.setattr(desk.views, "DATA", tmp_path)
+    f = {"today_live": {"index_now": {"rows": {}}, "options_today": {"taken": [{"index": "BANKNIFTY", "option": "55400 CE", "expiry": "2026-11-23", "lot": 30,
+                                                                              "option_price_at_decision": 823.3, "exit": "NEXTOPEN"}]}}}
+    assert desk.prep(f, {})["open_option_trades"][0]["premium_paid_inr_per_lot"] == 24699

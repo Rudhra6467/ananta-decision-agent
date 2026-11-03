@@ -215,6 +215,8 @@ def prep(f: dict, desk: dict) -> dict:
     out["options_line_today"] = sp1_reasons(tl)
     out["open_option_trades"] = [{"index": t.get("index"), "contract": t.get("option"), "expiry": t.get("expiry"), "lot": t.get("lot"),
                                   "bought_at": t.get("option_price_at_decision"), "now": t.get("option_price_now"), "paper_move_inr_per_lot": t.get("paper_move_inr_per_lot"),
+                                  "premium_paid_inr_per_lot": round(t["option_price_at_decision"] * t["lot"]) if t.get("option_price_at_decision") and t.get("lot") else None,
+                                  "max_loss": "the premium paid (premium_paid_inr_per_lot): quote that number, never work it out again",
                                   "index_since_entry_pts": t.get("index_since_entry_pts"),
                                   "state": ("open, marked at Zerodha's last price after the close, not a result; it closes at the next session's open. "
                                             "Option prices after the close are noisy (a lot can swing a few hundred rupees in the last minute), and a "

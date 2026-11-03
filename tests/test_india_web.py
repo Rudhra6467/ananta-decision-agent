@@ -222,7 +222,7 @@ def test_india_ask_fix_flow_files_offers_and_queues_by_words(lake, monkeypatch):
     # 26 Oct: a flag needs a request ("flag this"); a complaint alone is answered (10 unasked flags in 15 minutes that morning)
     r = ia.ask("madhav", "flag this: the options card on home is not working, the plan is stale", thread=th, token="tok", flag_post=fpost, flag_get=fget)
     # 2 Nov (Madhav: "just ananta notes it ... it can add a comment if i ask it to"): noted, no fix menu, no choice queued
-    assert r["provider"] == "rule" and r["answer"].startswith("Noted as") and not any(f.startswith("Fix") for f in r["follow_ups"]) and sent[0][1]["market"] == "india"
+    assert r["provider"] == "rule" and r["answer"].startswith("Saved, sir, as") and not any(f.startswith("Fix") for f in r["follow_ups"]) and sent[0][1]["market"] == "india"
     r2 = ia.ask("madhav", "add a comment to flag 2: it happens only after the 10:20 update", thread=th, token="tok", flag_post=fpost, flag_get=fget)
     assert sent[-1][0].endswith("/v3/flags/83/comment") and sent[-1][1]["words"] == "it happens only after the 10:20 update"
     assert "Added your comment to flag 2" in r2["answer"]

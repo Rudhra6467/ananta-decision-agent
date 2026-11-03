@@ -1,17 +1,67 @@
 {
- "at": "2026-11-02T17:38",
+ "at": "2026-11-02T19:33",
  "read_model_built": "2026-11-02T17:53:01+00:00",
- "files": 140,
+ "files": 142,
  "routes": {
-  "live": 42,
+  "live": 43,
   "nightly": 16,
   "feeds": 5,
-  "copied": 6,
-  "internal": 71,
+  "copied": 5,
+  "internal": 73,
   "NONE": 0
  },
  "fails": 0,
  "checks": [
+  {
+   "check": "behind: manifests/evidence_log.jsonl",
+   "state": "NOTE",
+   "words": "manifests/evidence_log.jsonl is 6.2 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
+  {
+   "check": "behind: manifests/integrity.json",
+   "state": "NOTE",
+   "words": "manifests/integrity.json is 6.2 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
+  {
+   "check": "behind: manifests/leakcheck.json",
+   "state": "NOTE",
+   "words": "manifests/leakcheck.json is 6.6 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
+  {
+   "check": "behind: manifests/lineage.json",
+   "state": "NOTE",
+   "words": "manifests/lineage.json is 6.2 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
+  {
+   "check": "behind: manifests/notable_results.json",
+   "state": "NOTE",
+   "words": "manifests/notable_results.json is 6.2 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
+  {
+   "check": "behind: manifests/us_close.jsonl",
+   "state": "NOTE",
+   "words": "manifests/us_close.jsonl is 6.1 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
+  {
+   "check": "behind: paper/factorbook/marks.jsonl",
+   "state": "NOTE",
+   "words": "paper/factorbook/marks.jsonl is 6.2 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
+  {
+   "check": "behind: paper/factorbook/state.json",
+   "state": "NOTE",
+   "words": "paper/factorbook/state.json is 6.2 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
+  {
+   "check": "behind: paper/factorbook/view.json",
+   "state": "NOTE",
+   "words": "paper/factorbook/view.json is 6.2 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
+  {
+   "check": "behind: paper/forecasts.jsonl",
+   "state": "NOTE",
+   "words": "paper/forecasts.jsonl is 6.1 h newer on disk than the read model Ananta answers from; it is seen after the next build"
+  },
   {
    "check": "fresh: manifests/market_context.json",
    "state": "PASS",
@@ -28,11 +78,6 @@
    "words": "screen Nifty · Mon 2 Nov close 23,441; Ananta 23,440.80 (at the close of Monday 2 Nov, the last session (the next opens Tuesday 3 Nov 09:15 IST))"
   },
   {
-   "check": "Money screen managed buys = what Ananta says",
-   "state": "PASS",
-   "words": "screen ['AJANTPHARM', 'CIPLA', 'ETERNAL']; Ananta ['AJANTPHARM', 'CIPLA', 'ETERNAL']"
-  },
-  {
    "check": "options screen trades = the options ledger",
    "state": "PASS",
    "words": "screen [('BANKNIFTY', 'D1'), ('NIFTY', 'D2')]; ledger (2026-11-02) [('BANKNIFTY', 'D1'), ('NIFTY', 'D2')]"
@@ -44,7 +89,7 @@
    "route": "internal",
    "daytime": false,
    "why": "an ingest or run log; the data it records reaches Ananta through the built tables",
-   "written": "2026-10-30T19:12"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "manifests/cm_bhavcopy.jsonl",
@@ -65,7 +110,7 @@
    "route": "internal",
    "daytime": false,
    "why": "ops: the data inventory (read by lineage and the morning review)",
-   "written": "2026-11-01T19:08"
+   "written": "2026-11-02T19:02"
   },
   {
    "pattern": "manifests/datacheck.json",
@@ -79,21 +124,21 @@
    "route": "internal",
    "daytime": false,
    "why": "an ingest or run log; the data it records reaches Ananta through the built tables",
-   "written": "2026-11-01T19:09"
+   "written": "2026-11-02T19:03"
   },
   {
    "pattern": "manifests/deals_build.json",
    "route": "internal",
    "daytime": false,
    "why": "a build receipt",
-   "written": "2026-11-01T19:10"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "manifests/deals_snapshot.jsonl",
    "route": "internal",
    "daytime": false,
    "why": "an ingest or run log; the data it records reaches Ananta through the built tables",
-   "written": "2026-11-01T19:10"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "manifests/delivery.jsonl",
@@ -114,7 +159,7 @@
    "route": "nightly",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T22:30"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "manifests/exam_history.jsonl",
@@ -135,14 +180,14 @@
    "route": "internal",
    "daytime": false,
    "why": "a build receipt",
-   "written": "2026-11-02T12:50"
+   "written": "2026-11-02T19:05"
   },
   {
    "pattern": "manifests/fii_dii_cash.jsonl",
    "route": "internal",
    "daytime": false,
    "why": "an ingest or run log; the data it records reaches Ananta through the built tables",
-   "written": "2026-11-01T19:10"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "manifests/fii_dii_coverage.json",
@@ -219,35 +264,28 @@
    "route": "internal",
    "daytime": false,
    "why": "the forecast record, spoken through the morning view",
-   "written": "2026-11-01T19:07"
-  },
-  {
-   "pattern": "manifests/hf_news_results.json",
-   "route": "copied",
-   "daytime": false,
-   "why": "its findings are written into jarvis/india/ask.py by hand: a re-run must update those words",
-   "written": "2026-10-25T18:55"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "manifests/holdout_candidates.json",
    "route": "internal",
    "daytime": false,
    "why": "research workfile (sealed holdout list)",
-   "written": "2026-11-01T19:08"
+   "written": "2026-11-02T19:02"
   },
   {
    "pattern": "manifests/impact.json",
    "route": "internal",
    "daytime": false,
    "why": "ops: lineage impact",
-   "written": "2026-11-01T19:08"
+   "written": "2026-11-02T19:02"
   },
   {
    "pattern": "manifests/integrity.json",
    "route": "nightly",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:09"
+   "written": "2026-11-02T19:03"
   },
   {
    "pattern": "manifests/kite_1m_fo.jsonl",
@@ -376,46 +414,60 @@
    "written": "2026-10-29T08:39"
   },
   {
+   "pattern": "manifests/lab5_rx3.json",
+   "route": "internal",
+   "daytime": false,
+   "why": "research results: reach the Ask through the registry and the one map (knowledgemap)",
+   "written": "2026-11-02T19:22"
+  },
+  {
+   "pattern": "manifests/lab6_rs1.json",
+   "route": "internal",
+   "daytime": false,
+   "why": "research results: reach the Ask through the registry and the one map (knowledgemap)",
+   "written": "2026-11-02T19:09"
+  },
+  {
    "pattern": "manifests/leakcheck.json",
    "route": "nightly",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:09"
+   "written": "2026-11-02T19:27"
   },
   {
    "pattern": "manifests/lineage.json",
    "route": "nightly",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:09"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "manifests/macro.jsonl",
    "route": "internal",
    "daytime": false,
    "why": "an ingest or run log; the data it records reaches Ananta through the built tables",
-   "written": "2026-11-02T17:03"
+   "written": "2026-11-02T19:05"
   },
   {
    "pattern": "manifests/market_context.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-02T17:03"
+   "written": "2026-11-02T19:05"
   },
   {
    "pattern": "manifests/mf_history.jsonl",
    "route": "internal",
    "daytime": false,
    "why": "an ingest or run log; the data it records reaches Ananta through the built tables",
-   "written": "2026-11-01T19:10"
+   "written": "2026-11-02T19:05"
   },
   {
    "pattern": "manifests/mf_schemes.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-02T06:21"
+   "written": "2026-11-02T19:05"
   },
   {
    "pattern": "manifests/missed_DATE.json",
@@ -429,21 +481,21 @@
    "route": "nightly",
    "daytime": false,
    "why": "read by india/readmodel.py (path built in code)",
-   "written": "2026-11-01T19:11"
+   "written": "2026-11-02T19:06"
   },
   {
    "pattern": "manifests/nse_holidays.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T22:00"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "manifests/options_realism.json",
    "route": "internal",
    "daytime": false,
    "why": "research workfile behind the options line's realistic fills",
-   "written": "2026-11-01T19:08"
+   "written": "2026-11-02T19:02"
   },
   {
    "pattern": "manifests/others_DATE.json",
@@ -478,14 +530,14 @@
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-02T17:00"
+   "written": "2026-11-02T19:05"
   },
   {
    "pattern": "manifests/quotebook_names.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-02T17:00"
+   "written": "2026-11-02T19:05"
   },
   {
    "pattern": "manifests/r2_verify.json",
@@ -513,7 +565,7 @@
    "route": "internal",
    "daytime": false,
    "why": "an ingest or run log; the data it records reaches Ananta through the built tables",
-   "written": "2026-11-02T17:38"
+   "written": "2026-11-02T19:33"
   },
   {
    "pattern": "manifests/sectormap.jsonl",
@@ -548,21 +600,21 @@
    "route": "internal",
    "daytime": false,
    "why": "research workfile",
-   "written": "2026-11-01T19:08"
+   "written": "2026-11-02T19:02"
   },
   {
    "pattern": "manifests/sp1_nightly_replay.json",
    "route": "internal",
    "daytime": false,
    "why": "ops: the options line's replay check",
-   "written": "2026-11-01T19:06"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "manifests/sp1_nightly_replay.jsonl",
    "route": "internal",
    "daytime": false,
    "why": "an ingest or run log; the data it records reaches Ananta through the built tables",
-   "written": "2026-11-01T19:06"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "manifests/technicals.json",
@@ -576,21 +628,21 @@
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-10-29T22:41"
+   "written": "2026-11-02T19:22"
   },
   {
    "pattern": "manifests/trials.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-02T12:53"
+   "written": "2026-11-02T19:29"
   },
   {
    "pattern": "manifests/us_close.jsonl",
    "route": "nightly",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T22:00"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "manifests/valuation.jsonl",
@@ -611,14 +663,14 @@
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-02T17:35"
+   "written": "2026-11-02T18:27"
   },
   {
    "pattern": "manifests/voice_check_latest.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-02T17:35"
+   "written": "2026-11-02T18:27"
   },
   {
    "pattern": "manifests/xstudies_fii1.json",
@@ -653,7 +705,7 @@
    "route": "feeds",
    "daytime": true,
    "why": "input to paper/account/view.json (india.account run)",
-   "written": "2026-11-02T17:38"
+   "written": "2026-11-02T19:33"
   },
   {
    "pattern": "paper/account/frozen.json",
@@ -667,28 +719,28 @@
    "route": "live",
    "daytime": true,
    "why": null,
-   "written": "2026-11-02T17:38"
+   "written": "2026-11-02T19:33"
   },
   {
    "pattern": "paper/account/view.json",
    "route": "live",
    "daytime": true,
    "why": null,
-   "written": "2026-11-02T17:38"
+   "written": "2026-11-02T19:33"
   },
   {
    "pattern": "paper/allocation_ledger.jsonl",
    "route": "internal",
    "daytime": false,
    "why": "the allocator's ledger (its view is what is read)",
-   "written": "2026-11-02T17:38"
+   "written": "2026-11-02T19:33"
   },
   {
    "pattern": "paper/allocation_view.json",
    "route": "live",
    "daytime": true,
    "why": null,
-   "written": "2026-11-02T17:38"
+   "written": "2026-11-02T19:33"
   },
   {
    "pattern": "paper/baseline.parquet",
@@ -709,14 +761,14 @@
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-10-30T19:12"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "paper/dayplans/DATE.json",
    "route": "live",
    "daytime": false,
    "why": "read by jarvis/india/views.py (path built in code)",
-   "written": "2026-10-30T19:09"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "paper/decisions/DATE.json",
@@ -744,21 +796,21 @@
    "route": "nightly",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:09"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "paper/factorbook/state.json",
    "route": "nightly",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:09"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "paper/factorbook/view.json",
    "route": "nightly",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:09"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "paper/filter_slices.csv",
@@ -772,42 +824,42 @@
    "route": "nightly",
    "daytime": false,
    "why": null,
-   "written": "2026-10-31T23:06"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "paper/managed/ledger.jsonl",
    "route": "internal",
    "daytime": false,
    "why": "the managed book's hash-chained ledger (its state and view are what is read)",
-   "written": "2026-11-01T19:11"
+   "written": "2026-11-02T19:06"
   },
   {
    "pattern": "paper/managed/plans.jsonl",
    "route": "internal",
    "daytime": false,
    "why": "the plan history (the latest plan is read through the managed view)",
-   "written": "2026-10-31T22:46"
+   "written": "2026-11-02T19:06"
   },
   {
    "pattern": "paper/managed/score.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:11"
+   "written": "2026-11-02T19:06"
   },
   {
    "pattern": "paper/managed/state.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:11"
+   "written": "2026-11-02T19:06"
   },
   {
    "pattern": "paper/managed/view.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:11"
+   "written": "2026-11-02T19:06"
   },
   {
    "pattern": "paper/marks.jsonl",
@@ -835,14 +887,14 @@
    "route": "internal",
    "daytime": false,
    "why": "the news model's daily read of movers: the record behind the news study",
-   "written": "2026-10-30T19:13"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "paper/news_read/log.jsonl",
    "route": "internal",
    "daytime": false,
    "why": "the news model's daily read of movers: the record behind the news study",
-   "written": "2026-10-30T19:13"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "paper/options_trades.jsonl",
@@ -894,25 +946,32 @@
    "written": "2026-10-30T22:40"
   },
   {
+   "pattern": "paper/rs_trial.json",
+   "route": "live",
+   "daytime": false,
+   "why": null,
+   "written": "2026-11-02T19:26"
+  },
+  {
    "pattern": "paper/rx1_trial.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:11"
+   "written": "2026-11-02T19:06"
   },
   {
    "pattern": "paper/shadow/DATE.json",
    "route": "live",
    "daytime": false,
    "why": "read by jarvis/india/views.py (path built in code)",
-   "written": "2026-10-31T23:06"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "paper/shadow/summary.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-02T12:53"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "paper/sp1/book.json",
@@ -961,28 +1020,28 @@
    "route": "live",
    "daytime": false,
    "why": "read by jarvis/india/views.py (path built in code)",
-   "written": "2026-10-30T19:09"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "paper/teachers/forward_options_summary.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:07"
+   "written": "2026-11-02T19:00"
   },
   {
    "pattern": "paper/teachers/live_signals.parquet",
    "route": "internal",
    "daytime": false,
    "why": "research book workfile",
-   "written": "2026-11-01T19:08"
+   "written": "2026-11-02T19:01"
   },
   {
    "pattern": "paper/teachers/live_summary.json",
    "route": "live",
    "daytime": false,
    "why": null,
-   "written": "2026-11-01T19:08"
+   "written": "2026-11-02T19:01"
   },
   {
    "pattern": "readmodel/DATE.json",
@@ -1003,7 +1062,7 @@
    "route": "internal",
    "daytime": false,
    "why": "a written report for Madhav (the morning review page)",
-   "written": "2026-11-01T22:30"
+   "written": "2026-11-02T19:04"
   },
   {
    "pattern": "reports/ask_guard.jsonl",
@@ -1017,8 +1076,8 @@
    "route": "internal",
    "daytime": false,
    "why": "a written report for Madhav (the morning review page)",
-   "written": "2026-11-01T19:09"
+   "written": "2026-11-02T19:04"
   }
  ],
- "words": "Fact map 2026-11-02T17:38: 140 kinds of file written in 8 days; 42 read live, 16 after the nightly build, 5 feed another file, 6 copied into words by hand, 71 internal, 0 with no route. No FAIL."
+ "words": "Fact map 2026-11-02T19:33: 142 kinds of file written in 8 days; 43 read live, 16 after the nightly build, 5 feed another file, 5 copied into words by hand, 73 internal, 0 with no route. No FAIL."
 }

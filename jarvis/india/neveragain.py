@@ -120,6 +120,25 @@ def run_moments(replay_conversation) -> list[dict]:
     return out
 
 
+# The gate (2 Nov): every new feature gets a question here; a right answer must carry what the feature's own file says, worked out from it.
+FEATURE_QS = [
+    ("relative-strength trial", "Ananta, how is the relative strength trial going?",
+     lambda f: [r"relative.strength|strength", rf"\b{int((f.get('rs_trial') or {}).get('scored') or 0)}\b|no scored|not (?:yet )?scored|first scored|starts"]),
+]
+
+
+def run_features(replay_conversation) -> list[dict]:
+    from jarvis.india import ask
+    facts = {"rs_trial": ask._rs_trial()}
+    out = []
+    for name, q, must in FEATURE_QS:
+        d = replay_conversation([{"text": q, "voice": True}], f"ft{abs(hash(name)) % 10**6}")[0]
+        a = str(d.get("answer") or "")
+        probs = [{"code": "MISSING", "why": f"must say /{m}/ (from the feature's own file)"} for m in must(facts) if not re.search(m, a, re.I)]
+        out.append({"source": "never_again", "case": f"feature: {name}", "i": 0, **d, "live": None, "pass": not probs, "problems": probs})
+    return out
+
+
 def run(ask_mod, replay_conversation, judge) -> list[dict]:
     """Re-ask every case at its own moment. Returns one result row per turn (source 'never_again')."""
     out = []
@@ -134,7 +153,7 @@ def run(ask_mod, replay_conversation, judge) -> list[dict]:
             probs += [{"code": "FORBIDDEN", "why": f"must not say /{m}/"} for m in t.get("must_not", []) if re.search(m, a, re.I)]
             g = judge(done[:i], d) if not probs else {"pass": False, "problems": probs}
             out.append({"source": "never_again", "case": c["id"], "i": i, **d, "live": None, **g})
-    return out + run_moments(replay_conversation)
+    return out + run_moments(replay_conversation) + run_features(replay_conversation)
 
 
 def main() -> int:

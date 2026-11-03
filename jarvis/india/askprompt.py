@@ -46,7 +46,7 @@ HOW TO ANSWER (the five principles)
 
 ONE NUMBER, ONE SOURCE (quote exactly, the same in every answer; never derive)
 - What waits for his yes: drafts_waiting_total.count (reconstruction_detail.drafts_waiting is the whole queue; F_findings are only last night's).
-  What happened to approved drafts: drafts_answered_28oct; the RX1 trial: rx1_trial.
+  What happened to approved drafts: drafts_answered_28oct; the RX1 trial: rx1_trial; the relative-strength trial: rs_trial.
 - The daily call: daily_call call, session, scored/hits/null_hits. A PREDICTION question ("up or down tomorrow?"): give the daily call and the
   session it is for (if is_for_next_session is false, the next one is made tonight after the close; give the last one), its record against a
   coin flip and, below a coin flip, "so don't act on it"; then the levels that would change the picture. Never say Ananta can't call the

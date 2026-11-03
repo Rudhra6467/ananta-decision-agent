@@ -355,7 +355,21 @@ RX1_WORDS = ("Madhav approved all 12 drafts on 28 Oct; Ananta's test of them (20
              "29 Oct: Madhav approved 3 more drafts; the two reference-trader gaps at the 5-session horizon are the same situations RX1 already "
              "tested at 5 sessions (answered, not re-tested), and the oversold-reversal 'never worked' lesson was tested the same morning (RX2): "
              "the day-3 time stop came out the opposite way (+0.08% a trade held 20 sessions against -0.43% with the stop), because reversals "
-             "need time. No rule changed; these situations are not drafted again until about 27 Jan 2027.")
+             "need time. No rule changed; these situations are not drafted again until about 27 Jan 2027. "
+             "2 Nov (RX3, Madhav: 'yes, let's continue'): the 'breaking out of a tight base' draft he approved on 30 Oct was tested: buying the "
+             "breakout close led to no next-day run (about the same as the average stock) and did slightly worse over 5 sessions; stocks sitting "
+             "tight near the top of a base, not yet broken out, lost a little less than the average stock the next day (0.27% in 2000-17, only "
+             "0.05% since 2018: less than the cost of a day trade), so no rule. The three 'held into falls' drafts of 31 Oct were already answered "
+             "by RX1 and RX2 (a faster exit did worse in every family) and are closed without a new test. Every draft he approved is now answered.")
+
+
+def _rs_trial() -> dict:
+    """The relative-strength paper trial's summary (records india/rstrial.py, paper/rs_trial.json), without the per-session rows."""
+    try:
+        d = json.loads((DATA / "paper" / "rs_trial.json").read_text())
+    except (OSError, ValueError):
+        return {"words": "The relative-strength paper trial starts with the 2 Nov universe; its first scored session is 3 Nov."}
+    return {k: d.get(k) for k in ("words", "scored", "need", "complete", "cum_rs_vs_avg", "cum_random_vs_avg", "history", "latest_picks", "what")}
 
 
 def _rx1_trial() -> dict:
@@ -420,6 +434,7 @@ def _rx_detail() -> dict:
             "drafts_waiting_count": len(dw),
             "drafts_answered_28oct": RX1_WORDS,
             "rx1_trial": _rx1_trial(),
+            "rs_trial": _rs_trial(),          # 2 Nov (Madhav: yes): RS1's near miss recorded forward (records india/rstrial.py)
             "drafts_meaning": ("drafts_waiting is the WHOLE queue waiting for Madhav's yes or skip, from every night so far (the same kind of "
                                "situation can be drafted on different days). When asked what is waiting, quote drafts_waiting_count and group "
                                "them by kind; F_findings are only last night's card. Approving one records his yes: the study is then written "

@@ -108,7 +108,7 @@ def _full_scale(results: list[dict]) -> str:
     return "thin"
 
 
-def _top(res: list[dict], n: int = 4) -> list[dict]:
+def _top(res: list[dict], n: int = 6) -> list[dict]:
     """The strongest variants (by verdict rank, then validation t), with their numbers, so the voice can say size and direction."""
     last = {}
     for r in res:                                           # the newest result per variant
@@ -348,7 +348,20 @@ def lookup(question: str, limit: int = 6) -> list[dict]:
              "in_paper_rules": r.get("in_paper"), "paper_role": r.get("paper_role"), "results_page": r.get("results_page"),
              "numbers": [{"variant": t["variant"], "verdict": t["verdict"], "mean_2000_2017": t["dev_mean"], "mean_2018_2023": t["val_mean"], "t": [t["dev_t"], t["val_t"]]}
                          for t in (r.get("top_variants") or [])[:3]],
+             "closest_to_passing": _closest(r.get("top_variants") or []),
              "numbers_meaning": "means are per event in return units (0.01 = 1%) unless the variant says otherwise; t beyond about 3.6 clears the bar"} for _, r in out[:limit]]
+
+
+def _closest(tv: list[dict]) -> dict | None:
+    """2 Nov (RS1): the voice summed up 'relative strength did not hold' and left out the version that came within a whisker of the bar, because
+    only the top three variants by verdict reached it. The variant pointing the same way in both periods with the strongest weaker t, said plainly."""
+    same = [t for t in tv if t.get("dev_t") and t.get("val_t") and (t["dev_t"] > 0) == (t["val_t"] > 0)]
+    if not same:
+        return None
+    c = max(same, key=lambda t: min(abs(t["dev_t"]), abs(t["val_t"])))
+    return {"variant": c["variant"], "verdict": c["verdict"], "mean_2000_2017": c["dev_mean"], "mean_2018_2023": c["val_mean"], "t": [c["dev_t"], c["val_t"]],
+            "words": (f"closest to passing: {c['variant']} ({c['verdict']}), the same direction in both periods, t {c['dev_t']:.2f} and {c['val_t']:.2f} "
+                      "against a bar of about 3.6; say it as 'came close but not proven'")}
 
 
 if __name__ == "__main__":

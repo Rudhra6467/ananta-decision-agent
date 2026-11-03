@@ -69,7 +69,8 @@ JARGON = [
     (re.compile(r"\bthe reviewer's second opinion\b"), "the second opinion (an independent reviewer checks the morning note)"),
     # 2 Nov: "flag 60" stays as it is, the same number My flags shows (it was spoken as "the fix request (number 60)", a second name)
     (re.compile(r"\bcount fires\b"), "count how often it fires"),
-    (re.compile(r"\b(?:the )?strict bar\b"), "the strict pass mark"),
+    (re.compile(r"\b(?:the |our )?strict bar\b"), "the strict pass mark"),
+    (re.compile(r"\bour the strict pass mark\b"), "the strict pass mark"),
     (re.compile(r"\breference traders' best trips\b"), "the comparison traders' best trades"),
     # 2 Nov moment harness (JARGON): "for three families", "the managed book's first fills", "the 7 pm Toronto run"
     (re.compile(r"\b(two|three|four|five|six|several|\d+) (?:rule |strategy )?families\b"), r"\1 kinds of buy rule"),

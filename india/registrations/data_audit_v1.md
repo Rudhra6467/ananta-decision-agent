@@ -32,7 +32,7 @@ Madhav asked for this before any new research (flag 63): how wide and how good e
 
 ## What the audit found
 
-- **company results** (high): results with revenue and EPS are parsed for 2022, 2023 only; earlier years hold the filing but not its numbers (2017: 2 of 12, 2018: 2 of 7638, 2019: 12 of 9362, 2020: 18 of 11268, 2021: 23 of 11525); the results index lists filings from 2007, but the parsed table starts in 2018, and the old HTML result pages before 2018 are not parsed at all (D20b). So: a per-stock P/E or results study can use 2022-2023 only today; that is too short for the registry's strict bar.
+- **company results** (high): results with revenue and EPS are parsed for 2017, 2018, 2019, 2020, 2021, 2022, 2023 only; earlier years hold the filing but not its numbers (); the results index lists filings from 2007, but the parsed table starts in 2018, and the old HTML result pages before 2018 are not parsed at all (D20b). So: a per-stock P/E or results study can use 2022-2023 only today; that is too short for the registry's strict bar.
 - **company announcements** (medium): years with under half the count of the years either side: 2022: 22,367 (2021: 113,496, 2023: 131,213). So: any study of announcements must leave out or flag those years; refetch them first.
 - **intraday stock bars (5-minute)** (medium): coverage of the day's 250 most traded rises from 56% in 2015 to 89% in 2023; lowest 2015. So: intraday stock studies before about 2019 see only part of the liquid market; say so or start them in 2019.
 - **the research universe** (medium): in 2023, 1,765 stocks had a liquidity rank and 362 were in the day's 250 most traded at some point; most studies use only those 250 of each day (chosen on that day, so delisted names are included). So: a finding on the 250 most traded says nothing about the other 1,000+ stocks; widen to the top 500 for the ideas that pass.
@@ -43,13 +43,13 @@ Madhav asked for this before any new research (flag 63): how wide and how good e
 
 | year | filings | companies | with EPS |
 |---|---|---|---|
-| 2017 | 12 | 8 | 2 |
-| 2018 | 7,638 | 1,606 | 2 |
-| 2019 | 9,362 | 1,665 | 12 |
-| 2020 | 11,268 | 1,703 | 18 |
-| 2021 | 11,525 | 1,811 | 23 |
-| 2022 | 11,882 | 1,904 | 7,451 |
-| 2023 | 9,890 | 1,959 | 9,734 |
+| 2017 | 12 | 8 | 12 |
+| 2018 | 7,638 | 1,606 | 7,537 |
+| 2019 | 9,362 | 1,665 | 9,164 |
+| 2020 | 11,268 | 1,703 | 11,060 |
+| 2021 | 11,525 | 1,811 | 11,367 |
+| 2022 | 11,882 | 1,904 | 11,706 |
+| 2023 | 9,890 | 1,959 | 9,736 |
 
 ## The research universe, by year
 

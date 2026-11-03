@@ -33,7 +33,8 @@ KEY = {"RevenueFromOperations": "revenue", "Income": "total_income", "Expenses":
        "InterestEarned": "interest_earned", "TotalIncome": "total_income_bank", "OperatingProfitBeforeProvisionAndContingencies": "operating_profit_bank",
        "ProvisionsOtherThanTaxAndContingencies": "provisions_bank", "GrossNonPerformingAssets": "gross_npa", "PercentageOfGrossNpa": "gross_npa_pct"}
 TEXT = {"NatureOfReportStandaloneConsolidated": "nature", "WhetherResultsAreAuditedOrUnaudited": "audited", "Symbol": "symbol_x", "ReportingQuarter": "reporting_quarter",
-        "DateOfStartOfReportingPeriod": "period_start", "DateOfEndOfReportingPeriod": "period_end", "LevelOfRoundingUsedInFinancialStatements": "rounding"}
+        "DateOfStartOfReportingPeriod": "period_start", "DateOfEndOfReportingPeriod": "period_end", "LevelOfRoundingUsedInFinancialStatements": "rounding",
+        "DateOfStartOfFinancialYear": "fy_start"}
 _CTX = re.compile(r'<xbrli:context id="([^"]+)">(.*?)</xbrli:context>', re.S)
 _FACT = re.compile(r'<in-bse-fin:([A-Za-z0-9]+)\s+([^>]*?)(?:/>|>(.*?)</in-bse-fin:\1>)', re.S)
 _ATTR = re.compile(r'(\w+)="([^"]*)"')
@@ -48,12 +49,23 @@ def parse(path: str) -> tuple[dict, list[dict]]:
         e = re.search(r"<xbrli:endDate>([^<]+)", body)
         i = re.search(r"<xbrli:instant>([^<]+)", body)
         ctx[cid] = {"dim": dim, "start": s.group(1) if s else None, "end": e.group(1) if e else (i.group(1) if i else None), "instant": bool(i)}
+    raw = [(tag, dict(_ATTR.findall(attrs)), val) for tag, attrs, val in _FACT.findall(txt)]
     head, facts = {}, []
-    for tag, attrs, val in _FACT.findall(txt):
-        a = dict(_ATTR.findall(attrs))
+    for tag, a, val in raw:
         c = ctx.get(a.get("contextRef", ""), {})
         if tag in TEXT and val is not None and not c.get("dim"):
             head.setdefault(TEXT[tag], val.strip())
+    # Older BSE files (most of 2018-2021, about half of 2022) use the plain contexts OneD / FourD / OneI / FourI without defining them.
+    # Their meaning, read from the files that do define them: OneD = the reporting period, FourD = financial-year start to period end,
+    # OneI / FourI = the instant at period end. Only ids the file leaves undefined are filled in.
+    ps, pe, fy = head.get("period_start"), head.get("period_end"), head.get("fy_start")
+    if pe:
+        for cid, spec in (("OneD", (ps, False)), ("FourD", (fy, False)), ("OneI", (None, True)), ("FourI", (None, True))):
+            start, inst = spec
+            if cid not in ctx and (inst or start):
+                ctx[cid] = {"dim": False, "start": start, "end": pe, "instant": inst, "implied": True}
+    for tag, a, val in raw:
+        c = ctx.get(a.get("contextRef", ""), {})
         if "unitRef" not in a or c.get("dim", True):
             continue
         try:

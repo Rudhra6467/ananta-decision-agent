@@ -70,6 +70,15 @@ def fetch(from_year: int = 2010) -> dict:
     return {"days": n, "rows": rows_total}
 
 
+def dedupe(df: pd.DataFrame) -> pd.DataFrame:
+    """One row per announcement. NSE gives a seq_id from 2013 on; most rows of 2010-2012 have none (3 Nov 2026: de-duplicating on seq_id alone
+    had collapsed all of them into one row, keeping 1,196 of 25,060 rows for 2010). Rows without a seq_id are matched on what they say instead."""
+    sid = df["seq_id"] if "seq_id" in df else pd.Series(None, index=df.index, dtype=object)
+    has = sid.notna() & ~sid.astype(str).isin(["", "None", "-", "nan"])
+    key = [c for c in ("symbol", "an_dt", "category", "text", "attchmntFile") if c in df]
+    return pd.concat([df[has].drop_duplicates("seq_id"), df[~has].drop_duplicates(key)]).sort_values("file_date", kind="stable").reset_index(drop=True)
+
+
 def build() -> dict:
     import pyarrow as pa
     import pyarrow.parquet as pq
@@ -89,7 +98,7 @@ def build() -> dict:
         frames.append(df)
     if not frames:
         return {"rows": 0}
-    df = pd.concat(frames, ignore_index=True).drop_duplicates("seq_id")
+    df = dedupe(pd.concat(frames, ignore_index=True))
     t = df["exchdisstime"].fillna(df["an_dt"])
     df["tradable_from"] = t.where(t.dt.time < dt.time(15, 30), t.dt.normalize() + pd.Timedelta(days=1))  # refined to the next session by the studies
     hold = pd.Timestamp(paths.HOLDOUT_START)

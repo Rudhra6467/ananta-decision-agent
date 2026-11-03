@@ -38,15 +38,16 @@ def intraday_stocks() -> dict:
     syms = {r[0]: set() for r in per}
     for y, s in _q(f"select distinct year, symbol from read_parquet('{f5}')"):
         syms[y].add(s)
-    u = pd.read_parquet(D / "gold/universe/u_liq_in.parquet", columns=["date", "symbol", "top50", "top250"])
+    u = pd.read_parquet(D / "gold/universe/u_liq_in.parquet", columns=["date", "symbol", "top50", "top100", "top250", "top500"])
     u["year"] = pd.to_datetime(u["date"]).dt.year
     cov = {}
     for y in sorted(syms):
         x = u[u["year"] == y]
         t250 = set(x.loc[x["top250"], "symbol"])
-        t50 = set(x.loc[x["top50"], "symbol"])
-        cov[int(y)] = {"symbols": len(syms[y]), "top250_names_that_year": len(t250), "top250_covered": round(len(t250 & syms[y]) / max(len(t250), 1), 3),
-                       "top50_covered": round(len(t50 & syms[y]) / max(len(t50), 1), 3)}
+        cov[int(y)] = {"symbols": len(syms[y]), "top250_names_that_year": len(t250), "top250_covered": round(len(t250 & syms[y]) / max(len(t250), 1), 3)}
+        for k in ("top50", "top100", "top500"):   # 3 Nov 2026 (audit step 5): each study's own universe, so its write-up can show its coverage
+            t = set(x.loc[x[k], "symbol"])
+            cov[int(y)][f"{k}_covered"] = round(len(t & syms[y]) / max(len(t), 1), 3)
     return {"by_year": cov, "bars": int(sum(r[2] for r in per)), "resolution": "5 minute, with volume", "first": "2015-02-02", "last_research": "2023-12-29"}
 
 

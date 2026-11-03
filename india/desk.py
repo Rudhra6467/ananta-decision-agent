@@ -201,12 +201,21 @@ def build(write: bool = True) -> dict:
         if d.weekday() < 5 and d not in hol:
             ahead.append(d)
     due = {a.isoformat(): sorted(s for s, ds in meets.items() if a.isoformat() in ds) for a in ahead}
+    # 3 Nov 2026 (audit step 3): NSE's own board-meetings calendar, fetched each night, joined to what the filings name
+    try:
+        from india import boardmeetings
+        nse_due, snap = boardmeetings.results_ahead(ahead)
+    except Exception:  # noqa: BLE001 - the filings list still stands on its own
+        nse_due, snap = {}, None
+    for k, syms in nse_due.items():
+        due[k] = sorted(set(due.get(k, [])) | set(syms))
     qb = _json(_man() / "quotebook.json", {}) or {}
     files = _announce_files()
     out = {"built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "rules": "desk-v1-2026-11-03",
            "news_days": [f.name[:8] for f in files], "news": by_sym, "results_ahead": due,
-           "results_ahead_note": ("read from the company announcements feed only (a meeting date named in the filing); NSE's own board-meetings "
-                                  "calendar is not fetched yet, so this list is incomplete"),
+           "results_ahead_note": (f"NSE's board-meetings calendar (fetched {snap}) joined to the meeting dates named in company filings" if snap else
+                                  "read from the company announcements feed only (a meeting date named in the filing); NSE's own board-meetings "
+                                  "calendar has not been fetched yet, so this list is incomplete"),
            "movers": movers(qb, by_sym),
            "feeds": feeds(), "inventory": inventory()}
     if write:

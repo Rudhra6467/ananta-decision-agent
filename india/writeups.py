@@ -22,6 +22,37 @@ VERB = {"VALIDATED": "held up in both periods", "CONDITIONAL": "held up, weaker 
         "REJECTED": "did not hold", "INCONCLUSIVE": "had too little data to judge", "SUPPORTED_SEEN": "supported on seen years (not confirmation)",
         "NOT_SUPPORTED_SEEN": "not supported on seen years", "CONFIRMED": "confirmed on the sealed years", "NOT_CONFIRMED": "not confirmed on the sealed years"}
 NOTABLE = ("VALIDATED", "CONDITIONAL", "OPPOSITE", "CONFIRMED")
+# 3 Nov 2026 (data audit step 5): the intraday stock studies and the universe each one used (from its spec), so the write-up shows how much of
+# that universe the 5-minute bars cover each year (Kite serves only instruments listed today: names delisted before the pull are missing)
+INTRADAY_STOCK = {"OC1": ("top100", "the 100 most traded"), "IB1": ("top50", "the 50 most traded"), "MS1": ("top50", "the 50 most traded")}
+
+
+def coverage_line(study: str, inv: dict | None = None) -> str | None:
+    if study not in INTRADAY_STOCK:
+        return None
+    if inv is None:
+        try:
+            inv = json.loads((paths.manifest_dir() / "data_inventory.json").read_text())
+        except (OSError, ValueError):
+            inv = {}
+    by = ((inv or {}).get("intraday_stocks") or {}).get("by_year") or {}
+    key, words = INTRADAY_STOCK[study]
+    vals = [(y, v.get(f"{key}_covered")) for y, v in sorted(by.items(), key=lambda kv: int(kv[0])) if v.get(f"{key}_covered") is not None]
+    if not vals:
+        return None
+    return (f"Intraday coverage: the 5-minute bars hold {', '.join(f'{y} {round(100 * c)}%' for y, c in vals)} of {words} each year "
+            "(names delisted before the pull are missing, so the early years lean towards survivors).")
+
+
+def coverage_page(inv: dict | None = None) -> str:
+    L = ["# Intraday coverage of each intraday stock study (3 Nov 2026, data audit step 5)", "",
+         "Share of each study's own universe (the names in it at any point that year) that the 5-minute bars hold. Kite serves only "
+         "instruments listed today, so the missing names are mostly ones that were delisted or renamed: low early years lean towards survivors.", ""]
+    for s in INTRADAY_STOCK:
+        line = coverage_line(s, inv)
+        if line:
+            L += [f"- **{s}**: {line}"]
+    return "\n".join(L + [""])
 AUTO_MARK = "generated from the ledger by india.writeups"
 
 
@@ -93,6 +124,9 @@ def build() -> dict:
                 lines.append(f"Claim before the run: {reg['hypothesis']}")
             lines.append("Outcome: " + ", ".join(f"{n} {VERB.get(k, k)}" for k, n in sorted(cnt.items(), key=lambda t: -t[1])) +
                          f" across {len(rows)} variants.")
+            cl = coverage_line(s)
+            if cl:
+                lines.append(cl)
             best = [r for r in rows if r["verdict"] in NOTABLE]
             if best:
                 lines.append("")
@@ -103,6 +137,7 @@ def build() -> dict:
             lines.append("")
     out_md = Path(__file__).resolve().parent / "registrations" / "ledger_results.md"
     out_md.write_text("\n".join(lines))
+    (out_md.parent / "intraday_coverage.md").write_text(coverage_page())
     nb = notable()
     (paths.manifest_dir() / "notable_results.json").write_text(json.dumps({"built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
                                                                            "n": len(nb), "rows": nb}, indent=1, default=str))

@@ -41,6 +41,19 @@ def _fundamentals():
     return fundamentals.build()
 
 
+def _board_meetings():
+    # 3 Nov 2026 (data audit step 3): NSE's board-meetings calendar, the next 60 days as known tonight, plus any month not yet in the history
+    # Like _data_gaps, an outside site's bad evening is reported as text and never fails the nightly build (the gate's clean-run count).
+    from india import boardmeetings
+    out = {}
+    for k, fn in (("ahead", lambda: boardmeetings.ahead().get("rows")), ("history", boardmeetings.history), ("build", boardmeetings.build)):
+        try:
+            out[k] = fn()
+        except Exception as e:  # noqa: BLE001
+            out[k] = f"problem {type(e).__name__}: {e}"
+    return out
+
+
 def _flows():
     from india import flows
     return flows.fetch(dt.date.today().year), flows.build()
@@ -118,6 +131,7 @@ def run(sync: bool = True) -> dict:
         ("kite_index_silver", _kite_index_silver),
         ("results_integrated", lambda: _results_integrated(today - dt.timedelta(days=14))),
         ("fundamentals", _fundamentals),
+        ("board_meetings", _board_meetings),
         ("flows", _flows),
         ("pr_silver", _pr_silver),
         ("surveillance", _surveil),

@@ -1,4 +1,4 @@
-# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-10-30)
+# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-11-03)
 
 HISTORICAL BACKTEST only: development 2000-2017, validation 2018-2023; the 2024+ years are sealed. A verdict here is the registry's rule applied to the registered numbers (one family-wide bar for every variant ever tried in that family); it is evidence, not a decision, and nothing is in the paper book because of this page. A researcher's write-up (the *_results_v1.md pages) is the better source where one exists; this page exists so that no finished study is unwritten.
 
@@ -7,6 +7,7 @@ HISTORICAL BACKTEST only: development 2000-2017, validation 2018-2023; the 2024+
 ### OC1: Opening Decision Protocol V1 (Madhav): primary tests
 Claim before the run: confirmed opening-range breaks (breadth 60%, index agreement, rvol 1.5x and VWAP for stocks) by 10:15 make money net of costs, and beat the same entries and exits without the filters; standing down on scheduled event days beats trading through
 Outcome: 50 did not hold, 13 came out the opposite way, 8 held up in both periods, 3 had too little data to judge across 74 variants.
+Intraday coverage: the 5-minute bars hold 2015 71%, 2016 75%, 2017 76%, 2018 77%, 2019 82%, 2020 87%, 2021 88%, 2022 88%, 2023 95% of the 100 most traded each year (names delisted before the pull are missing, so the early years lean towards survivors).
 
 | variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
 |---|---|---|---|---|---|---|
@@ -520,6 +521,7 @@ Outcome: 4 had too little data to judge, 4 did not hold across 8 variants.
 ### IB1: Intraday breakouts: on Nifty, Bank Nifty and liquid stocks, does trading the break of the opening range (first 15 or 30 minutes), the break of the first hour's range after 11:00, or a stock reclaiming its VWAP earn more after costs than a random intraday entry?
 Claim before the run: Breakouts within the day carry momentum: entering on the first break of the opening range (long above its high, short below its low for the indices; long only for stocks), with a stop at the other side and an exit near the close, earns more after costs than a random entry on the same days; so do a break of the first hour's range after 11:00 (indices) and a stock reclaiming its VWAP after trading below it.
 Outcome: 4 held up in both periods, 3 held up, weaker in one period, 1 did not hold across 8 variants.
+Intraday coverage: the 5-minute bars hold 2015 76%, 2016 80%, 2017 81%, 2018 78%, 2019 87%, 2020 89%, 2021 91%, 2022 91%, 2023 92% of the 50 most traded each year (names delisted before the pull are missing, so the early years lean towards survivors).
 
 | variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
 |---|---|---|---|---|---|---|
@@ -534,6 +536,7 @@ Outcome: 4 held up in both periods, 3 held up, weaker in one period, 1 did not h
 ### MS1: Intraday patterns: does the first 15 minutes' direction carry through the rest of the day (indices and liquid stocks), does the last hour extend the day's move, does a wide opening range come before a wide rest of the day, and are expiry-day afternoons more volatile?
 Claim before the run: The first 15 minutes set the day's direction (the rest of the day moves the same way), the last hour extends the move made until 14:30, a wide 09:15-09:30 range comes before a wider range for the rest of the day, and on an index's own expiry day the 13:30-15:30 move is bigger than on other days.
 Outcome: 4 did not hold, 1 had too little data to judge, 1 held up, weaker in one period across 6 variants.
+Intraday coverage: the 5-minute bars hold 2015 76%, 2016 80%, 2017 81%, 2018 78%, 2019 87%, 2020 89%, 2021 91%, 2022 91%, 2023 92% of the 50 most traded each year (names delisted before the pull are missing, so the early years lean towards survivors).
 
 | variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
 |---|---|---|---|---|---|---|
@@ -637,6 +640,12 @@ Outcome: 4 did not hold across 4 variants.
 Claim before the run: Closing everything when the book is 7-8% below its peak and pausing new entries raises the book's quarterly return (TWT-H25).
 Outcome: 4 did not hold across 4 variants.
 
+## relative_strength (1 studies)
+
+### RS1: Relative strength: do the liquid stocks beating the Nifty most keep beating the average stock?
+Claim before the run: Among the 250 most-traded stocks, those in the top tenth by their return relative to the Nifty over the last 6 months (or 3 months) earn more than the average liquid stock over the next 20 (or 60) sessions after delivery costs; the bottom tenth earns less.
+Outcome: 3 had too little data to judge, 3 did not hold across 6 variants.
+
 ## reposition (3 studies)
 
 ### E06-ANY: Ride and reposition vs hold, ANY entries
@@ -662,7 +671,7 @@ Outcome: 3 came out the opposite way across 3 variants.
 | rr_sma20_hh10 | OPPOSITE | -3.20% | -2.4 | -3.87% | -2.6 | 2.773 |
 | rr_sma20_sma20 | OPPOSITE | -2.45% | -2.2 | -3.04% | -2.2 | 2.773 |
 
-## rx_drafts (2 studies)
+## rx_drafts (3 studies)
 
 ### RX1: The 12 reconstruction drafts of 26-27 Oct: is there a rule, known at the previous close, for the situations no family was positioned for; would a time stop have fixed the pullback trades that never worked; and would a faster exit change the random control that held into falls?
 Claim before the run: Each missed situation has a version known before the move: a stock in that state at yesterday's close moves in the missed direction the next session more than the average liquid stock does (falls: breaking below its 20-day range, a 52-week low, a fall below the 200-day average, a pullback in an uptrend; rises: a rise below the 200-day average, a stock inside its range in an uptrend), and the reference traders' multi-day trips in the two gap situations beat the average stock over 5 sessions; for pullback-in-an-uptrend entries, leaving at the next open when a trade has not gained a quarter of its planned risk by the third close beats holding 20 sessions; the same time stop helps the random liquid picks, and more so while the Nifty is under its 200-day average.
@@ -683,6 +692,15 @@ Outcome: 1 came out the opposite way across 1 variants.
 | variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
 |---|---|---|---|---|---|---|
 | X · REV · unproven3_vs_hold20 | OPPOSITE | -0.41% | -2.5 | -0.63% | -2.4 | 3.591 |
+
+### RX3: Breaking out of a tight base: is there a rule, known at the close, for the next session's run?
+Claim before the run: A liquid stock that closes above its previous 20-session high out of a tight base (previous 20-session range under 15% of the price), or that sits in such a base near its top, earns more than the average liquid stock the next session (open to close) and over 5 sessions.
+Outcome: 1 came out the opposite way, 1 held up, weaker in one period, 1 did not hold across 3 variants.
+
+| variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
+|---|---|---|---|---|---|---|
+| U · base_near_top · next_oc | CONDITIONAL | +0.27% | +8.5 | +0.05% | +2.3 | 3.596 |
+| L · breakout_base · fwd5 | OPPOSITE | -0.40% | -2.6 | -0.12% | -0.6 | 3.596 |
 
 ## staging (3 studies)
 

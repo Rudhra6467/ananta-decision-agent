@@ -1,0 +1,370 @@
+date,symbol,sid,liq_rank,fall_pct,close_ratio,near_ratio,down_after_20,shares_traded_after_vs_before,unapplied_action,filing_nearby,label
+1995-05-24,TATAPOWER,TATAPOWER,39,-89.5,0.1048,,True,16.43,,,no_evidence_found
+1995-09-13,BLUESTAR,BLUESTAR,167,-48.3,0.5169,1:2 split or 1:1 bonus,True,0.56,,,no_evidence_found
+1995-11-08,FULLERKCP,FULLERKCP,152,-45.5,0.5446,,True,3.67,,,no_evidence_found
+1995-11-08,UNITEDPHOS,UNITEDPHOS,41,-51.4,0.4862,1:2 split or 1:1 bonus,True,4.33,,,likely_missed_action
+1995-11-15,ASIANPAINT,ASIANPAINT,93,-51.3,0.4867,1:2 split or 1:1 bonus,True,4.31,,,likely_missed_action
+1995-11-22,CHETNADCEM,CHETNADCEM,108,-51.6,0.4838,1:2 split or 1:1 bonus,True,1.25,,,no_evidence_found
+1996-01-24,ATCOIND,ATCOIND,228,-47.9,0.5207,,True,3.0,,,no_evidence_found
+1996-01-24,INDIACEM,INDIACEM,221,-53.9,0.4612,,True,11.11,,,no_evidence_found
+1996-05-08,BALRAMCHIN,BALRAMCHIN,94,-55.7,0.4431,,True,0.82,,,no_evidence_found
+1996-07-10,JINDALPOLY,JINDALPOLY,127,-50.3,0.4974,1:2 split or 1:1 bonus,True,1.85,,,likely_missed_action
+1996-08-07,CROSLANDS,CROSLANDS,230,-45.6,0.5439,,True,1.75,,,no_evidence_found
+1996-08-07,WIDIA,WIDIA,268,-49.8,0.5021,1:2 split or 1:1 bonus,True,0.71,,,no_evidence_found
+1996-09-04,ASIANELEC,ASIANELEC,332,-45.5,0.5448,,True,3.87,,,no_evidence_found
+1996-09-04,GRINWELNOR,GRINWELNOR,384,-47.8,0.5217,,True,4.25,,,no_evidence_found
+1996-10-09,ADANIEXPO,ADANIEXPO,64,-53.2,0.4678,,True,4.94,,,no_evidence_found
+1996-10-09,PIDILITIND,PIDILITIND,168,-51.6,0.484,1:2 split or 1:1 bonus,True,25.0,,,likely_missed_action
+1996-10-23,LAKME,LAKME,106,-46.5,0.5351,,True,22.42,,,no_evidence_found
+1996-11-20,SWARAJENG,SWARAJENG,65,-48.8,0.5123,1:2 split or 1:1 bonus,True,9.23,,,likely_missed_action
+1996-12-11,SUNDRMCLAY,SUNDRMCLAY,246,-46.6,0.5344,,True,1.36,,,no_evidence_found
+1996-12-11,WHEELS,WHEELS,186,-51.7,0.4834,1:2 split or 1:1 bonus,True,1.67,,,likely_missed_action
+1996-12-18,ANAGRAMFIN,ANAGRAMFIN,226,-46.4,0.5358,,True,4.27,,,no_evidence_found
+1997-01-24,MADRASALMN,MADRASALMN,482,-89.3,0.107,,True,10.53,,,no_evidence_found
+1997-02-26,BARODARAYN,BARODARAYN,394,-89.3,0.1072,,True,3.93,,,no_evidence_found
+1997-03-26,OUDHSUG,OUDHSUG,484,-90.4,0.0964,1:10 split,True,2.18,,,likely_missed_action
+1997-05-28,ZUARIAGRO,ZUARIAGRO,342,-47.8,0.5224,,True,1.92,,,no_evidence_found
+1997-08-20,INFOSYSTCH,INFOSYSTCH,34,-47.5,0.5248,,True,5.66,,,no_evidence_found
+1997-09-03,CENTURYTEX,CENTURYTEX,94,-48.5,0.5148,1:2 split or 1:1 bonus,True,0.42,,,no_evidence_found
+1997-09-10,MAHSCOOTER,MAHSCOOTER,260,-46.5,0.5351,,True,4.71,,,no_evidence_found
+1997-09-18,TATAUNISYS,TATAUNISYS,71,-46.6,0.534,,True,3.98,,,no_evidence_found
+1997-09-24,KERALACHEM,KERALACHEM,341,-49.6,0.504,1:2 split or 1:1 bonus,True,4.89,,,likely_missed_action
+1997-10-15,LAXMIMACH,LAXMIMACH,365,-49.3,0.5071,1:2 split or 1:1 bonus,True,2.38,,,likely_missed_action
+1997-10-22,WIPRO,WIPRO,62,-62.0,0.3803,,True,2.89,,,no_evidence_found
+1997-10-27,CENTENKA,CENTENKA,362,-89.4,0.1064,,True,8.33,,,no_evidence_found
+1997-11-05,RELIANCE,RELIANCE,2,-48.4,0.5157,1:2 split or 1:1 bonus,True,0.61,,,no_evidence_found
+1997-12-03,CENTURYTEX,CENTURYTEX,159,-91.0,0.0905,,True,38.79,,,no_evidence_found
+1998-02-11,PIRAMHELTH,PIRAMHELTH,322,-50.8,0.4923,1:2 split or 1:1 bonus,True,0.4,,,no_evidence_found
+1998-06-10,APTECH,APTECH,38,-47.3,0.5274,,True,3.13,,,no_evidence_found
+1998-06-10,SMITHKLPHA,SMITHKLPHA,95,-49.5,0.5051,1:2 split or 1:1 bonus,True,3.56,,,likely_missed_action
+1998-06-17,MAX,MAX,111,-45.3,0.5472,,True,0.1,,,no_evidence_found
+1998-08-12,HEROHONDA,HEROHONDA,43,-49.3,0.5075,1:2 split or 1:1 bonus,True,1.69,,,likely_missed_action
+1998-08-19,BOOTSPHARM,BOOTSPHARM,206,-48.0,0.5199,1:2 split or 1:1 bonus,True,8.03,,,likely_missed_action
+1998-08-19,JAYSREETEA,JAYSREETEA,231,-48.0,0.5198,1:2 split or 1:1 bonus,True,2.33,,,likely_missed_action
+1999-02-02,INDNIPPON,INDNIPPON,221,-58.5,0.4155,3:2 bonus,True,2.38,,,likely_missed_action
+1999-02-10,INFOSYSTCH,INFOSYSTCH,17,-51.0,0.4903,1:2 split or 1:1 bonus,True,1.34,,,no_evidence_found
+1999-03-08,BABABUSERV,BABABUSERV,263,-86.7,0.1328,,True,3.0,,,no_evidence_found
+1999-03-24,SOFTSOLINT,SOFTSOLINT,44,-45.8,0.5419,,True,3.13,,,no_evidence_found
+1999-05-12,CASTROL,CASTROL,24,-50.1,0.4994,1:2 split or 1:1 bonus,True,1.98,,,likely_missed_action
+1999-05-19,ACC,ACC,14,-90.3,0.097,1:10 split,True,7.75,,,likely_missed_action
+1999-08-04,FINCABLES,FINCABLES,57,-46.5,0.5353,,True,1.19,,,no_evidence_found
+1999-08-11,HDFC,HDFC,62,-89.5,0.1054,,True,21.06,,,no_evidence_found
+1999-08-11,PENTSFWARE,PENTSFWARE,2,-47.4,0.5262,,True,0.85,,,no_evidence_found
+1999-08-11,SATYAMCOMP,SATYAMCOMP,1,-46.1,0.5391,,True,0.77,,,no_evidence_found
+1999-08-18,ARCHIES,ARCHIES,151,-46.0,0.54,,True,0.78,,,no_evidence_found
+1999-09-01,HIMATSEIDE,HIMATSEIDE,238,-47.1,0.5287,,True,0.73,,,no_evidence_found
+1999-09-15,IOC,IOC,127,-46.0,0.54,,True,1.07,,,no_evidence_found
+1999-09-22,WIPRO,WIPRO,60,-78.4,0.216,,True,13.59,,,no_evidence_found
+1999-10-20,CIPLA,CIPLA,37,-64.0,0.36,,True,1.92,,,no_evidence_found
+1999-11-04,ENGINERSIN,ENGINERSIN,443,-64.0,0.36,,True,1.35,,,no_evidence_found
+1999-11-17,BANCOPROD,BANCOPROD,401,-46.0,0.5401,,True,4.41,,,no_evidence_found
+1999-11-24,MASTEK,MASTEK,57,-46.0,0.54,,True,2.51,,,no_evidence_found
+1999-12-15,GUJAMBCEM,GUJAMBCEM,49,-50.1,0.4995,1:2 split or 1:1 bonus,True,3.56,,,likely_missed_action
+2000-01-27,INFOSYSTCH,INFOSYSTCH,9,-47.6,0.5238,,True,1.27,,,no_evidence_found
+2000-01-27,RAMCOIND,RAMCOIND,65,-72.0,0.2796,,True,0.87,,,no_evidence_found
+2000-02-23,MIRZATAN,MIRZATAN,268,-46.9,0.531,,True,0.81,,,no_evidence_found
+2000-03-08,AUROPHARMA,AUROPHARMA,56,-47.2,0.5276,,True,0.88,,,no_evidence_found
+2000-03-08,SUNPHARMA,SUNPHARMA,58,-67.9,0.3212,1:3 / 2:1 bonus,True,1.91,,,likely_missed_action
+2000-05-02,EIDERTELE,EIDERTELE,249,-78.0,0.2204,,True,0.73,,,no_evidence_found
+2000-05-03,VLSFINANCE,VLSFINANCE,221,-58.3,0.4174,,True,1.31,,,no_evidence_found
+2000-05-10,MAX,MAX,56,-48.9,0.5108,1:2 split or 1:1 bonus,True,0.74,,,no_evidence_found
+2000-05-15,GPELECT,GPELECT,488,-45.8,,,False,,,,no_evidence_found
+2000-05-31,PIDILITIND,PIDILITIND,217,-45.5,0.5449,,True,4.48,,,no_evidence_found
+2000-06-21,ITIL,ITIL,27,-59.5,0.4053,3:2 bonus,True,0.12,,,no_evidence_found
+2000-07-19,PUNJABTRAC,PUNJABTRAC,49,-65.9,0.3414,1:3 / 2:1 bonus,True,1.17,,,no_evidence_found
+2000-08-02,ELGIEQUIP,ELGIEQUIP,259,-94.6,0.0543,,True,8.04,,,no_evidence_found
+2000-08-23,SHREEKRPET,SHREEKRPET,421,-50.0,0.5,1:2 split or 1:1 bonus,True,4.44,,,likely_missed_action
+2000-09-13,HUGHESSOFT,HUGHESSOFT,27,-48.2,0.5177,1:2 split or 1:1 bonus,True,1.82,,,likely_missed_action
+2000-09-20,WIDIA,WIDIA,291,-95.0,0.0504,1:20,True,2.84,,,likely_missed_action
+2000-09-27,ABBOTTLAB,ABBOTTLAB,277,-51.3,0.4874,1:2 split or 1:1 bonus,True,1.36,,,no_evidence_found
+2000-10-04,HOGANAS,HOGANAS,411,-50.0,0.4995,1:2 split or 1:1 bonus,True,1.13,,,no_evidence_found
+2000-10-11,COLORCHEM,COLORCHEM,312,-90.1,0.0989,1:10 split,True,7.32,,,likely_missed_action
+2000-11-01,HINDINKS,HINDINKS,221,-47.9,0.5207,,True,0.82,,,no_evidence_found
+2000-11-01,MASTEK,MASTEK,46,-49.5,0.5053,1:2 split or 1:1 bonus,True,1.36,,,no_evidence_found
+2000-11-01,VSNL,VSNL,37,-65.8,0.3424,1:3 / 2:1 bonus,True,3.79,,,likely_missed_action
+2000-11-15,COCHINREFN,COCHINREFN,157,-48.3,0.5174,1:2 split or 1:1 bonus,True,2.18,,,likely_missed_action
+2000-11-22,KIRLOSKCUM,KIRLOSKCUM,203,-80.0,0.1999,1:5 split,True,10.97,,,likely_missed_action
+2000-11-29,DABUR,DABUR,71,-89.4,0.1059,,True,13.73,,,no_evidence_found
+2000-11-29,ROOFITIND,ROOFITIND,159,-48.8,0.5115,1:2 split or 1:1 bonus,True,0.35,,,no_evidence_found
+2001-01-24,VIKASWSP,VIKASWSP,24,-89.9,0.1012,1:10 split,True,1.86,,,likely_missed_action
+2001-02-07,SUNEARTH,SUNEARTH,208,-51.2,0.4883,1:2 split or 1:1 bonus,True,0.34,,,no_evidence_found
+2001-03-07,ONWARDTEC,ONWARDTEC,177,-79.0,0.2099,,True,2.49,,,no_evidence_found
+2001-05-10,BABABUSERV,BABABUSERV,277,-96.4,0.0361,,True,13.44,,,no_evidence_found
+2001-07-02,ARCHIES,ARCHIES,139,-83.6,0.164,,True,0.48,,,no_evidence_found
+2001-07-02,ATCOIND,ATCOIND,74,-84.1,0.1594,,True,0.37,,,no_evidence_found
+2001-07-02,BFLSOFTWAR,BFLSOFTWAR,45,-78.9,0.2105,,True,0.03,,,no_evidence_found
+2001-07-02,BGFL,BGFL,224,-74.4,0.256,1:4 / 3:1 bonus,True,0.03,,,no_evidence_found
+2001-07-02,CITICORSEC,CITICORSEC,50,-73.3,0.2666,,True,0.07,,,no_evidence_found
+2001-07-02,CYBERTECH,CYBERTECH,33,-98.4,0.016,,True,0.06,,,no_evidence_found
+2001-07-02,ELECTCAST,ELECTCAST,153,-88.9,0.1108,,True,0.78,,,no_evidence_found
+2001-07-02,GLOBLTRUST,GLOBLTRUST,63,-64.5,0.3547,,True,0.17,,,no_evidence_found
+2001-07-02,INDUSINDBK,INDUSINDBK,111,-54.2,0.4577,,True,0.06,,,no_evidence_found
+2001-07-02,KLGSYSTEL,KLGSYSTEL,75,-92.6,0.0743,,True,0.11,,,no_evidence_found
+2001-07-02,KOTAKMAH,KOTAKMAH,83,-61.1,0.3888,3:2 bonus,True,0.05,,,no_evidence_found
+2001-07-02,LUPINLAB,LUPINLAB,32,-84.6,0.1535,,True,0.04,,,no_evidence_found
+2001-07-02,MAARSOFTW,MAARSOFTW,29,-96.3,0.0373,,True,0.04,,,no_evidence_found
+2001-07-02,MOREPENLAB,MOREPENLAB,43,-88.0,0.1203,,True,2.25,,,no_evidence_found
+2001-07-02,NAVNETPUBL,NAVNETPUBL,124,-70.2,0.2983,,True,0.13,,,no_evidence_found
+2001-07-02,ORCHIDCHEM,ORCHIDCHEM,56,-72.1,0.2795,,True,0.04,,,no_evidence_found
+2001-07-02,PENTACOMMU,PENTACOMMU,21,-88.2,0.1179,,True,0.11,,,no_evidence_found
+2001-07-02,SRIADIKARI,SRIADIKARI,46,-93.1,0.0694,,True,0.12,,,no_evidence_found
+2001-07-02,SUNDRMCLAY,SUNDRMCLAY,258,-75.5,0.245,1:4 / 3:1 bonus,True,1.12,,,no_evidence_found
+2001-07-02,TATAUNISYS,TATAUNISYS,72,-80.8,0.1918,,True,0.17,,,no_evidence_found
+2001-07-02,TORNTPHARM,TORNTPHARM,146,-67.1,0.3291,1:3 / 2:1 bonus,True,0.25,,,no_evidence_found
+2001-07-03,EXCELIND,EXCELIND,308,-67.4,0.3256,1:3 / 2:1 bonus,True,0.89,,,no_evidence_found
+2001-07-03,UNICHEMLAB,UNICHEMLAB,155,-70.5,0.2947,,True,0.24,,,no_evidence_found
+2001-07-24,ALBRMORARJ,ALBRMORARJ,439,-48.7,0.5539,3:4 bonus,False,3.05,,,no_evidence_found
+2001-08-09,SAITELE,SAITELE,337,-53.9,0.461,,False,100.0,,,no_evidence_found
+2001-08-13,BLUEDART,BLUEDART,192,-49.8,0.5024,1:2 split or 1:1 bonus,True,1.28,,,no_evidence_found
+2001-09-05,IVP,IVP,428,-55.0,,,False,,,,no_evidence_found
+2001-09-25,EMCOTRANS,EMCOTRANS,353,-61.9,0.3809,,True,2.19,,,no_evidence_found
+2001-10-08,SKFBEARING,SKFBEARING,301,-89.8,0.1022,1:10 split,True,9.71,,,likely_missed_action
+2001-10-15,DRREDDY,DRREDDY,10,-50.0,0.5002,1:2 split or 1:1 bonus,True,2.92,,,likely_missed_action
+2001-11-22,ONWARDTEC,ONWARDTEC,301,-45.1,0.5486,3:4 bonus,True,18.05,,,likely_missed_action
+2002-01-09,SOUNDCRAFT,SOUNDCRAFT,130,-82.7,0.1726,,True,0.03,,,no_evidence_found
+2002-01-09,STERLINTEA,STERLINTEA,279,-78.8,0.212,,True,34.59,,,no_evidence_found
+2002-05-15,FDC,FDC,362,-89.6,0.1038,1:10 split,True,9.04,,,likely_missed_action
+2002-08-14,MARICOIND,MARICOIND,324,-49.8,0.5021,1:2 split or 1:1 bonus,True,0.89,,,no_evidence_found
+2002-08-21,INFOTECENT,INFOTECENT,53,-50.9,0.4907,1:2 split or 1:1 bonus,True,0.26,,,no_evidence_found
+2002-09-25,BALAJITELE,BALAJITELE,54,-80.5,0.1946,1:5 split,True,9.51,,,likely_missed_action
+2002-10-09,ASAHIINDIA,ASAHIINDIA,478,-90.0,0.1002,1:10 split,True,8.6,,,likely_missed_action
+2002-10-18,KARURVYSYA,KARURVYSYA,82,-60.4,0.3963,3:2 bonus,True,0.42,,,no_evidence_found
+2002-10-25,KTKBANK,KTKBANK,100,-52.2,0.4777,,True,0.61,,,no_evidence_found
+2002-11-12,VAMORGANIC,VAMORGANIC,294,-48.3,0.5172,1:2 split or 1:1 bonus,True,1.21,,,no_evidence_found
+2002-12-12,HDFC,HDFC,43,-50.2,0.4977,1:2 split or 1:1 bonus,True,0.58,,,no_evidence_found
+2003-02-03,PANACEABIO,PANACEABIO,400,-89.0,0.1097,,True,30.02,,,no_evidence_found
+2003-04-10,MASTEK,MASTEK,4,-48.5,0.5152,1:2 split or 1:1 bonus,True,1.18,,,no_evidence_found
+2003-07-02,BFLSOFTWAR,BFLSOFTWAR,117,-47.5,0.5252,,True,1.76,,,no_evidence_found
+2003-07-03,CHLORIDIND,CHLORIDIND,199,-48.4,0.5161,1:2 split or 1:1 bonus,True,2.26,,,likely_missed_action
+2003-07-24,AMTEKAUTO,AMTEKAUTO,168,-54.3,0.4566,,True,0.83,,,no_evidence_found
+2003-09-05,I-FLEX,I-FLEX,24,-48.9,0.511,1:2 split or 1:1 bonus,True,1.08,,,no_evidence_found
+2003-10-25,AUROPHARMA,AUROPHARMA,55,-47.6,0.5238,,True,0.74,,,no_evidence_found
+2003-10-25,GLENMARK,GLENMARK,174,-77.1,0.2286,,False,6.08,,,no_evidence_found
+2003-11-07,MADRASCEM,MADRASCEM,278,-89.9,0.1008,1:10 split,True,16.85,,,likely_missed_action
+2003-11-27,MOSERBAER,MOSERBAER,57,-51.0,0.4896,1:2 split or 1:1 bonus,True,0.64,,,no_evidence_found
+2003-12-10,LGBROS,LGBROS,381,-94.7,0.0526,,True,39.66,,,no_evidence_found
+2003-12-15,MIRCELECTR,MIRCELECTR,245,-89.8,0.1023,1:10 split,True,12.88,,,likely_missed_action
+2003-12-19,JINDALSTEL,JINDALSTEL,90,-47.5,0.5252,,True,1.39,,,no_evidence_found
+2003-12-31,HAVELLS,HAVELLS,147,-49.9,0.5015,1:2 split or 1:1 bonus,True,0.83,,,no_evidence_found
+2004-01-08,RANEBRAKE,RANEBRAKE,329,-52.5,0.475,,True,0.36,,,no_evidence_found
+2004-01-19,KABRAEXTRU,KABRAEXTRU,412,-55.0,0.4503,,True,0.33,,,no_evidence_found
+2004-01-23,SUNDRMFAST,SUNDRMFAST,257,-89.2,0.1084,,True,5.5,,,no_evidence_found
+2004-03-16,MOTHERSUMI,MOTHERSUMI,313,-81.3,0.1875,,True,3.44,,,no_evidence_found
+2004-03-17,UNICHEMLAB,UNICHEMLAB,206,-77.8,0.2221,,True,0.77,,,no_evidence_found
+2004-03-24,BERGEPAINT,BERGEPAINT,261,-46.0,0.5401,,True,0.5,,,no_evidence_found
+2004-04-08,RADAAN,RADAAN,467,-77.0,0.2296,,True,39.89,,,no_evidence_found
+2004-04-29,BAJAJHIND,BAJAJHIND,272,-89.7,0.1032,1:10 split,True,12.2,,,likely_missed_action
+2004-04-29,WOCKPHARMA,WOCKPHARMA,111,-64.0,0.3603,,True,4.99,,,no_evidence_found
+2004-05-12,CIPLA,CIPLA,55,-79.5,0.2047,1:5 split,True,4.2,,,likely_missed_action
+2004-05-27,SUNPHARMA,SUNPHARMA,80,-47.8,0.5224,,True,1.88,,,no_evidence_found
+2004-06-25,WIPRO,WIPRO,15,-66.4,0.3358,1:3 / 2:1 bonus,True,2.94,,,likely_missed_action
+2004-06-29,ASHOKLEY,ASHOKLEY,77,-90.1,0.0992,1:10 split,True,6.96,,,likely_missed_action
+2004-07-08,PREMINSTR,PREMINSTR,265,-93.7,0.0633,,True,14.91,,,no_evidence_found
+2004-07-09,MICO,MICO,198,-89.6,0.1037,1:10 split,True,30.28,,,likely_missed_action
+2004-07-21,JAGSNPHARM,JAGSNPHARM,245,-84.0,0.1602,,True,3.81,,,no_evidence_found
+2004-07-27,SHANTIGEAR,SHANTIGEAR,260,-94.0,0.0601,,True,18.14,,,no_evidence_found
+2004-08-02,GEOMETRIC,GEOMETRIC,149,-49.2,0.5076,1:2 split or 1:1 bonus,True,1.63,,,likely_missed_action
+2004-08-06,NUCLEUS,NUCLEUS,318,-49.5,0.5054,1:2 split or 1:1 bonus,True,0.73,,,no_evidence_found
+2004-08-23,INDIANHUME,INDIANHUME,497,-90.2,0.0981,1:10 split,True,279.02,,,likely_missed_action
+2004-08-25,BERGEPAINT,BERGEPAINT,275,-78.8,0.2122,,True,19.74,,,no_evidence_found
+2004-08-25,KOTAKBANK,KOTAKBANK,181,-50.9,0.4915,1:2 split or 1:1 bonus,True,1.31,,,no_evidence_found
+2004-08-25,SONASTEER,SONASTEER,285,-79.2,0.2083,,True,8.53,,,no_evidence_found
+2004-08-31,TUBEINVEST,TUBEINVEST,276,-49.0,0.5098,1:2 split or 1:1 bonus,True,1.82,,,likely_missed_action
+2004-10-05,AMTEKAUTO,AMTEKAUTO,169,-78.2,0.2185,,True,8.77,,,no_evidence_found
+2004-10-14,SOFTSOLINT,SOFTSOLINT,66,-70.8,0.2922,,True,0.86,,,no_evidence_found
+2004-10-25,UCALFUEL,UCALFUEL,263,-51.5,0.4845,1:2 split or 1:1 bonus,True,0.44,,,no_evidence_found
+2004-11-29,FEDERALBNK,FEDERALBNK,71,-65.1,0.3491,,True,1.82,,,no_evidence_found
+2004-12-27,NICOLASPIR,NICOLASPIR,114,-78.9,0.2108,,True,7.61,,,no_evidence_found
+2005-01-13,KTKBANK,KTKBANK,70,-51.5,0.485,1:2 split or 1:1 bonus,True,0.34,,,no_evidence_found
+2005-01-13,MATRIXLABS,MATRIXLABS,73,-90.2,0.0983,1:10 split,True,10.5,,,likely_missed_action
+2005-02-09,AARTIIND,AARTIIND,138,-65.4,0.3463,1:3 / 2:1 bonus,True,0.73,,,no_evidence_found
+2005-02-09,GUJNRECOKE,GUJNRECOKE,62,-48.4,0.5161,1:2 split or 1:1 bonus,True,1.75,,,likely_missed_action
+2005-02-18,GEOINFO,GEOINFO,490,-89.5,0.105,,True,15.55,,,no_evidence_found
+2005-02-21,VYSYABANK,VYSYABANK,121,-66.5,0.3351,1:3 / 2:1 bonus,True,1.97,,,likely_missed_action
+2005-02-24,SURANATELE,SURANATELE,272,-49.4,0.5059,1:2 split or 1:1 bonus,True,0.47,,,no_evidence_found
+2005-02-25,VISHALEXPO,VISHALEXPO,172,-76.0,0.2401,1:4 / 3:1 bonus,True,3.23,,,likely_missed_action
+2005-03-03,KPIT,KPIT,333,-50.6,0.494,1:2 split or 1:1 bonus,True,4.35,,,likely_missed_action
+2005-03-04,GLENMARK,GLENMARK,54,-48.9,0.5111,1:2 split or 1:1 bonus,True,1.49,,,no_evidence_found
+2005-03-15,GAMMONIND,GAMMONIND,469,-79.0,0.2099,,True,152.2,,,no_evidence_found
+2005-03-18,STERLINBIO,STERLINBIO,94,-49.3,0.5075,1:2 split or 1:1 bonus,True,0.81,,,no_evidence_found
+2005-06-20,GUJAMBCEM,GUJAMBCEM,35,-86.9,0.1314,,True,6.23,,,no_evidence_found
+2005-07-08,HCL-INSYS,HCL-INSYS,322,-78.8,0.2117,,True,20.55,,,no_evidence_found
+2005-07-20,BHARATFORG,BHARATFORG,88,-78.9,0.2111,,True,2.9,,,no_evidence_found
+2005-07-25,RANBAXY,RANBAXY,17,-51.5,0.4853,1:2 split or 1:1 bonus,True,4.38,,,likely_missed_action
+2005-08-02,GEOMETRIC,GEOMETRIC,244,-78.3,0.217,,True,3.48,,,no_evidence_found
+2005-08-10,KIRLOSOIL,KIRLOSOIL,386,-79.7,0.2034,1:5 split,True,9.22,,,likely_missed_action
+2005-08-17,PRAJIND,PRAJIND,136,-89.5,0.105,,True,16.86,,,no_evidence_found
+2005-08-24,NAGARCONST,NAGARCONST,163,-78.8,0.2115,,True,4.8,,,no_evidence_found
+2005-08-24,NAVBARFERO,NAVBARFERO,302,-79.2,0.2082,,True,4.58,,,no_evidence_found
+2005-08-25,KOTAKBANK,KOTAKBANK,172,-56.4,0.4363,,True,3.49,,,no_evidence_found
+2005-08-30,HINDALC0,HINDALC0,50,-89.8,0.1023,1:10 split,True,15.13,,,likely_missed_action
+2005-09-01,ASAHIINDIA,ASAHIINDIA,336,-50.4,0.4961,1:2 split or 1:1 bonus,True,1.57,,,likely_missed_action
+2005-09-20,DCW,DCW,364,-80.3,0.1969,1:5 split,True,1.21,,,no_evidence_found
+2005-09-20,PIDILITIND,PIDILITIND,479,-89.3,0.1068,,True,57.26,,,no_evidence_found
+2005-09-21,ITC,ITC,12,-92.7,0.0727,,True,28.31,,,no_evidence_found
+2005-09-22,AHMEDFORGE,AHMEDFORGE,259,-68.1,0.3186,,True,0.39,,,no_evidence_found
+2005-09-27,UNIPHOS,UNIPHOS,240,-78.2,0.2183,,True,11.55,,,no_evidence_found
+2005-10-07,ASTRAMICRO,ASTRAMICRO,193,-89.5,0.105,,True,6.73,,,no_evidence_found
+2005-10-07,DCMSRMCONS,DCMSRMCONS,331,-89.5,0.105,,True,5.49,,,no_evidence_found
+2005-10-10,SINTEX,SINTEX,420,-80.8,0.1915,,True,3.14,,,no_evidence_found
+2005-10-13,LIBERTSHOE,LIBERTSHOE,257,-52.3,0.4771,,True,0.27,,,no_evidence_found
+2005-10-14,HIMATSEIDE,HIMATSEIDE,334,-75.0,0.2502,1:4 / 3:1 bonus,True,22.6,,,likely_missed_action
+2005-10-19,KAJARIACER,KAJARIACER,430,-80.6,0.1944,1:5 split,True,2.46,,,likely_missed_action
+2005-10-27,DALMIACEM,DALMIACEM,466,-79.0,0.21,,True,18.1,,,no_evidence_found
+2005-10-27,HELIOSMATH,HELIOSMATH,245,-51.7,0.483,1:2 split or 1:1 bonus,True,0.6,,,no_evidence_found
+2005-11-02,CRANESSOFT,CRANESSOFT,454,-89.6,0.1036,1:10 split,True,15.94,,,likely_missed_action
+2005-11-08,HINDCONS,HINDCONS,214,-89.9,0.1005,1:10 split,True,12.49,,,likely_missed_action
+2005-12-30,HINDSANIT,HINDSANIT,412,-59.8,0.4015,3:2 bonus,True,4.22,,,likely_missed_action
+2006-01-02,COROMNFERT,COROMNFERT,386,-79.6,0.204,1:5 split,True,8.42,,,likely_missed_action
+2006-01-06,RADICO,RADICO,215,-79.4,0.2059,1:5 split,True,4.11,,,likely_missed_action
+2006-01-27,KLGSYSTEL,KLGSYSTEL,321,-47.5,0.525,,True,1.09,,,no_evidence_found
+2006-02-02,MLL,MLL,157,-60.8,0.3916,3:2 bonus,True,0.35,,,no_evidence_found
+2006-02-07,KECINTL,KECINTL,191,-83.5,0.1653,,True,19.74,,,no_evidence_found
+2006-02-17,ARHAMFISCL,ARHAMFISCL,373,-51.6,0.4841,1:2 split or 1:1 bonus,True,0.11,,,no_evidence_found
+2006-03-17,JUBILANT,JUBILANT,329,-79.2,0.2079,1:5 split,True,7.25,,,likely_missed_action
+2006-03-27,MASTEK,MASTEK,228,-54.4,0.456,,True,1.14,,,no_evidence_found
+2006-03-31,THERMAX,THERMAX,192,-78.9,0.211,,True,13.9,,,no_evidence_found
+2006-04-13,JAYAGROGN,JAYAGROGN,393,-51.1,0.4889,1:2 split or 1:1 bonus,True,0.2,,,no_evidence_found
+2006-04-13,KALPATPOWR,KALPATPOWR,225,-53.4,0.4658,,True,0.3,,,no_evidence_found
+2006-05-05,STER,STER,42,-79.3,0.2075,1:5 split,True,5.47,,,likely_missed_action
+2006-06-12,CAROLINFO,CAROLINFO,463,-46.2,0.5376,,True,0.02,,,no_evidence_found
+2006-06-12,DUNCANSIND,DUNCANSIND,446,-64.2,0.3584,,True,0.21,,,no_evidence_found
+2006-06-12,KOPRAN,KOPRAN,178,-45.6,0.5441,,True,0.02,,,no_evidence_found
+2006-06-12,NAGPURENG,NAGPURENG,400,-64.4,0.3562,,True,0.08,,,no_evidence_found
+2006-06-12,NRC,NRC,347,-51.4,0.4856,1:2 split or 1:1 bonus,True,0.28,,,no_evidence_found
+2006-06-12,OILCOUNTUB,OILCOUNTUB,404,-48.7,0.5129,1:2 split or 1:1 bonus,True,0.15,,,no_evidence_found
+2006-06-12,RANASUG,RANASUG,239,-51.2,0.4881,1:2 split or 1:1 bonus,True,0.01,,,no_evidence_found
+2006-06-12,SB&TINTL,SB&TINTL,413,-57.7,0.4226,,True,0.16,,,no_evidence_found
+2006-06-12,SRIADIKARI,SRIADIKARI,393,-85.4,0.1464,,True,0.24,,,no_evidence_found
+2006-06-19,UPERGANGES,UPERGANGES,211,-55.9,0.4412,,True,0.05,,,no_evidence_found
+2006-06-23,UNITECH,UNITECH,169,-98.4,0.0162,,True,17.73,,,no_evidence_found
+2006-08-30,CADILAHC,CADILAHC,227,-49.1,0.5093,1:2 split or 1:1 bonus,True,0.83,,,no_evidence_found
+2006-09-07,BAGYAMETAL,BAGYAMETAL,380,-47.8,0.5221,,True,3.93,,,no_evidence_found
+2006-09-08,HOTELEELA,HOTELEELA,149,-76.2,0.2375,,True,6.54,,,no_evidence_found
+2006-09-12,EIHOTEL,EIHOTEL,274,-85.1,0.1488,,True,12.63,,,no_evidence_found
+2006-09-14,SONASTEER,SONASTEER,384,-47.2,0.5277,,True,3.37,,,no_evidence_found
+2006-09-20,NAGARCONST,NAGARCONST,77,-49.4,0.5061,1:2 split or 1:1 bonus,True,2.02,,,likely_missed_action
+2006-09-26,GEOJIT,GEOJIT,375,-90.8,0.092,,True,5.9,,,no_evidence_found
+2006-11-17,LAKSHVILAS,LAKSHVILAS,315,-48.7,0.5131,1:2 split or 1:1 bonus,True,1.81,BONUS DISAGREE,,known_action_not_applied
+2006-12-12,PANTALOONR,PANTALOONR,194,-80.2,0.1978,1:5 split,True,6.44,,,likely_missed_action
+2007-01-02,INDIABULLS,INDIABULLS,4,-53.8,0.4625,,True,0.88,,,no_evidence_found
+2007-01-04,KPIT,KPIT,221,-79.5,0.2053,1:5 split,True,16.65,,,likely_missed_action
+2007-01-04,SUNDRMFAST,SUNDRMFAST,346,-51.1,0.4893,1:2 split or 1:1 bonus,True,0.89,,,no_evidence_found
+2007-03-23,SUVEN,SUVEN,475,-74.1,0.2589,1:4 / 3:1 bonus,True,0.98,,,no_evidence_found
+2007-04-23,ANSALINFRA,ANSALINFRA,105,-47.5,0.525,,True,2.27,,,no_evidence_found
+2007-06-06,BOSCHCHASY,BOSCHCHASY,486,-51.7,0.4832,1:2 split or 1:1 bonus,True,1.63,,,likely_missed_action
+2007-07-23,SUNTV,SUNTV,114,-75.2,0.2482,1:4 / 3:1 bonus,True,2.24,,,likely_missed_action
+2007-09-19,AMARAJABAT,AMARAJABAT,340,-79.3,0.2068,1:5 split,True,7.42,,,likely_missed_action
+2007-09-28,GMRINFRA,GMRINFRA,5,-79.6,0.2043,1:5 split,True,3.02,,,likely_missed_action
+2007-12-03,JAICORPLTD,JAICORPLTD,289,-84.5,0.1545,,True,8.75,,,no_evidence_found
+2008-01-29,RAJESHEXPO,RAJESHEXPO,97,-82.9,0.1712,,True,2.14,,,no_evidence_found
+2008-02-01,GUJFLUORO,GUJFLUORO,392,-48.7,0.5126,1:2 split or 1:1 bonus,True,1.11,,,no_evidence_found
+2008-02-21,GBN,GBN,309,-79.6,0.2039,1:5 split,True,4.65,,,likely_missed_action
+2008-02-25,WALCHANNAG,WALCHANNAG,175,-89.5,0.105,,True,5.66,,,no_evidence_found
+2008-02-29,LLOYDSTEEL,LLOYDSTEEL,399,-57.1,0.4291,,True,0.19,,,no_evidence_found
+2008-02-29,MOREPENLAB,MOREPENLAB,368,-51.4,0.4861,1:2 split or 1:1 bonus,True,0.34,,,no_evidence_found
+2008-03-19,STCINDIA,STCINDIA,303,-55.0,0.45,,True,0.87,,,no_evidence_found
+2008-04-04,KNL,KNL,242,-89.6,0.1042,,True,7.05,,,no_evidence_found
+2008-04-16,CONCOR,CONCOR,201,-48.2,0.5176,1:2 split or 1:1 bonus,True,1.36,,,no_evidence_found
+2008-08-08,INDIAINFO,INDIAINFO,93,-79.3,0.2068,1:5 split,True,1.83,,,likely_missed_action
+2008-08-08,SESAGOA,SESAGOA,26,-94.7,0.0532,,True,5.79,,,no_evidence_found
+2008-09-08,JMFINANCIL,JMFINANCIL,401,-95.2,0.048,1:20,True,38.14,,,likely_missed_action
+2008-10-01,MADRASCEM,MADRASCEM,327,-94.7,0.0528,,True,16.66,,,no_evidence_found
+2008-10-13,COREPROTEC,COREPROTEC,96,-58.4,0.4161,,True,8.31,,,no_evidence_found
+2008-10-24,PURVA,PURVA,362,-45.5,0.5451,,True,6.39,,,no_evidence_found
+2008-10-24,UNITECH,UNITECH,30,-49.7,0.5032,1:2 split or 1:1 bonus,True,2.87,,,likely_missed_action
+2008-10-29,UNIPHOS,UNIPHOS,116,-49.0,0.5103,1:2 split or 1:1 bonus,True,0.51,,,no_evidence_found
+2008-12-01,DHAMPURSUG,DHAMPURSUG,307,-67.6,0.324,1:3 / 2:1 bonus,True,0.33,,,no_evidence_found
+2008-12-01,DWARKESH,DWARKESH,391,-67.1,0.3287,1:3 / 2:1 bonus,True,0.27,,,no_evidence_found
+2008-12-01,HMT,HMT,297,-66.2,0.3381,1:3 / 2:1 bonus,True,0.12,,,no_evidence_found
+2008-12-01,ITI,ITI,345,-61.5,0.3854,3:2 bonus,True,0.07,,,no_evidence_found
+2008-12-01,KCPSUGIND,KCPSUGIND,427,-52.7,0.4796,,True,0.04,,,no_evidence_found
+2008-12-01,MCDHOLDING,MCDHOLDING,468,-68.8,0.2423,1:4 / 3:1 bonus,True,0.53,,,no_evidence_found
+2008-12-01,SAKHTISUG,SAKHTISUG,216,-68.0,0.3197,,True,0.11,,,no_evidence_found
+2008-12-01,SELAN,SELAN,195,-51.5,0.4846,1:2 split or 1:1 bonus,True,0.03,,,no_evidence_found
+2008-12-01,UTTAMSUGAR,UTTAMSUGAR,402,-69.5,0.3049,,True,0.15,,,no_evidence_found
+2008-12-01,VISAKAIND,VISAKAIND,464,-48.1,0.3766,,True,0.19,,,no_evidence_found
+2009-01-01,TEXMACOLTD,TEXMACOLTD,356,-89.7,0.1033,1:10 split,True,12.38,,,likely_missed_action
+2009-01-07,SATYAMCOMP,SATYAMCOMP,24,-77.5,0.2249,,True,2.99,,,no_evidence_found
+2009-02-27,VITLINFO,VITLINFO,247,-89.2,0.1081,,True,27.94,,,no_evidence_found
+2009-03-26,AKRUTI,AKRUTI,42,-45.3,0.5471,,True,0.03,,,no_evidence_found
+2009-07-30,DIVISLAB,DIVISLAB,167,-50.5,0.4954,1:2 split or 1:1 bonus,True,4.52,,,likely_missed_action
+2009-08-20,GLODYNE,GLODYNE,448,-47.8,0.522,,True,3.59,,,no_evidence_found
+2009-10-01,GMRINFRA,GMRINFRA,65,-48.9,0.5107,1:2 split or 1:1 bonus,True,1.53,,,likely_missed_action
+2009-11-19,ALLCARGO,ALLCARGO,495,-80.6,0.1937,1:5 split,True,15.76,,,likely_missed_action
+2010-02-10,KRBL,KRBL,281,-88.2,0.1179,,True,10.78,,"Interim Dividend/Record Date Krbl Limited has informed the Exchange that the Board of Directors at their meeting held on January 28, 2010 ha",likely_missed_action
+2010-04-15,ZEENEWS,ZEENEWS,290,-75.6,0.2435,1:4 / 3:1 bonus,True,5.62,,"Updates on Scheme of Arrangement Zee News Limited has informed the Exchange vide its letter dated March 19, 2010 that ""The Hon'ble High Cour",likely_missed_action
+2010-05-06,ENGINERSIN,ENGINERSIN,154,-80.0,0.2,1:5 split,True,16.32,,Bonus/Sub-division/Dividend Engineers India Limited has informed the Exchange that the Board of Directors of the Company in its meeting held,likely_missed_action
+2010-08-13,MAGMA,MAGMA,374,-79.1,0.2088,,True,5.98,,Share Split Magma Fincorp Limited has informed the Exchange that the Directors of the Company vide Resolution passed by them by Circulation ,likely_missed_action
+2010-09-21,BHUSANSTL,BHUSANSTL,77,-80.4,0.1962,1:5 split,True,4.47,,"Notice of Postal Ballot Bhushan Steel Limited has informed the Exchange that pursuant to section 192A(2) of the Companies Act, 1956, read wi",likely_missed_action
+2010-11-08,ATLANTA,ATLANTA,313,-79.9,0.2012,1:5 split,True,5.8,,"Record Date Atlanta  Limited has informed the Exchange that the Board of Directors have fixed November 09, 2010 as the Record Date for the s",likely_missed_action
+2010-11-15,TEXMACOLTD,TEXMACOLTD,255,-59.9,0.4007,3:2 bonus,True,1.37,,"Change in Director(s) Texmaco Limited has informed the Exchange that ""pursuant to the Scheme of Arrangement u/s 391 and 394 of the Companies",likely_demerger
+2010-12-03,RAMSARUP,RAMSARUP,482,-61.9,0.3807,,True,24.36,,,no_evidence_found
+2011-03-07,HINDZINC,HINDZINC,112,-90.3,0.0974,1:10 split,True,12.5,SPLIT DISAGREE,"Bonus / Sub-division Hindustan Zinc Limited has informed the Exchange that the Board of Directors at their meeting held on January 19, 2011 ",known_action_not_applied
+2011-04-28,ALEMBICLTD,ALEMBICLTD,454,-67.4,0.3262,1:3 / 2:1 bonus,True,0.65,,"Record Date Alembic Limited has informed the Exchange that the Board of Directors of the Company in their meeting held on March 31, 2011 hav",likely_missed_action
+2011-05-03,TRIVENI,TRIVENI,251,-60.0,0.4004,3:2 bonus,True,0.46,,Scheme of Arrangement Triveni Engineering & Industries Limited has informed the Exchange that the Hon'ble High Court of Judicature at Allaha,likely_demerger
+2011-06-09,MANAPPURAM,MANAPPURAM,152,-49.3,0.5074,1:2 split or 1:1 bonus,True,0.61,,Results/Dividend/Bonus Manappuram General Finance & Leasing Limited has informed the Exchange that the Board of Directors of the Company at ,likely_missed_action
+2011-06-15,RAINCOM,RAINCOM,343,-81.0,0.1898,,True,3.32,,"Record Date Rain Commodities  Limited has informed the Exchange that the Company has fixed June 16,  2011 as the record date for sub divisio",likely_missed_action
+2011-06-20,GTL,GTL,410,-62.2,0.3782,,True,1389.03,,,no_evidence_found
+2012-03-13,KPIT,INE836A01035,281,-54.3,0.4573,,True,0.66,,Bonus Kpit Cummins Infosystems Limited has informed the Exchange that the Board of Directors of the Company at its meeting held on January 2,likely_missed_action
+2012-04-12,VAKRANSOFT,INE051B01013,320,-94.3,0.0572,,True,9.58,,Bonus / Sub-division Vakrangee Softwares Limited has informed the Exchange that the Board of Directors of the Company at its meeting held on,likely_missed_action
+2012-04-23,ZUARIAGRO,INE217A01012,441,-67.4,0.3263,1:3 / 2:1 bonus,True,0.5,,"Scheme of Arrangement Zuari Industries Limited has informed the Exchange that the High Court of Bombay at Goa,  has sanctioned the Scheme of",likely_demerger
+2012-05-22,DHFL,INE202B01012,233,-49.3,0.5066,1:2 split or 1:1 bonus,True,0.48,,Dividend Dewan Housing Finance Corporation Limited has informed the Exchange that the Board of Directors of the Company at its meeting held ,likely_missed_action
+2012-05-22,INVENTURE,INE878H01016,236,-76.5,0.2353,,True,4.3,,Bonus Inventure Growth & Securities Limited has informed the Exchange that the Board of Directors of the Company at its meeting held on Apri,likely_missed_action
+2012-07-17,SWELECTES,INE409B01013,434,-48.0,0.5204,,True,0.17,,,no_evidence_found
+2012-09-25,AMARAJABAT,INE885A01024,312,-48.3,0.5171,1:2 split or 1:1 bonus,True,2.78,,Record Date Amara Raja Batteries Limited has informed the Exchange that the Sub-Division and Allotment of Shares Committee of the board at i,likely_missed_action
+2012-11-29,BSLIMITED,INE043K01011,323,-94.9,0.0514,1:20,True,0.72,,,no_evidence_found
+2013-02-25,COREEDUTEC,INE247G01024,325,-62.4,0.376,,True,83.74,,,no_evidence_found
+2013-02-27,COREEDUTEC,INE247G01024,324,-45.8,0.5419,,True,51.49,,,no_evidence_found
+2013-08-01,FINANTECH,INE111B01023,95,-64.5,0.355,,True,17.08,,,no_evidence_found
+2013-11-27,VAKRANGEE,INE051B01013,285,-49.4,0.506,1:2 split or 1:1 bonus,True,1.39,,,no_evidence_found
+2013-12-19,STAR,INE939A01011,138,-57.6,0.4236,,True,0.75,,,no_evidence_found
+2014-06-09,GRUH,INE580B01011,290,-49.0,0.5098,1:2 split or 1:1 bonus,True,0.95,,Bonus Gruh Finance Limited has informed the Exchange that the Board approved the issue of Bonus Shares in the ratio of 1:1 ( ie one equity s,likely_missed_action
+2015-04-23,TWL,INE615H01012,101,-80.6,0.1939,1:5 split,True,1.03,,"TitagarRecord Daterh Wagons Limited has informed the Exchange that the Company has fixed Record Date as April 24, 2015 for ascertaining the ",likely_missed_action
+2015-06-03,ADANIENT,INE423A01024,35,-82.8,0.1723,,True,2.54,,"Scheme of Arrangement Adani Enterprises Limited has informed the Exchange that the Hon'ble High Court of Gujarat on May 7, 2015 considered a",likely_demerger
+2015-06-26,MASTEK,INE759A01021,165,-52.5,0.4753,,True,0.96,,Updates Mastek Limited has informed the Exchange that Hon. High Court of Gujarat and Hon. High Court of Bombay have approved the Scheme of A,likely_demerger
+2015-09-16,AEGISCHEM,INE208C01017,412,-90.1,0.0989,1:10 split,True,12.31,,"ARecord DateAegis Logistics Limited has informed the Exchange that the Company has fixed the Record Date as September 18, 2015 for the purpo",likely_missed_action
+2015-10-01,IDFC,INE043D01016,64,-57.2,0.4279,,True,0.99,,"Updates IDFC Limited has informed the Exchange regarding ""Scheme of Arrangement between IDFC Limited (""Transferor Company"") and IDFC Bank Li",likely_demerger
+2015-12-04,JSL,INE220G01021,393,-47.2,0.528,,True,0.58,,Updates Jindal Stainless Limited has informed the Exchange that the Composite Scheme of Arrangement among Jindal Stainless Limited and Jinda,likely_demerger
+2016-01-20,ABIRLANUVO,INE069A01017,100,-57.3,0.4271,,True,1.34,,"Record Date Aditya Birla Nuvo Limited has informed the Exchange that the Company has fixed Record Date as January 21, 2016 for determining t",likely_missed_action
+2016-03-15,CROMPGREAV,INE067A01029,68,-71.7,0.2833,,True,1.07,,"Record Date Crompton Greaves Limited has informed the Exchange that the Company has fixed Record Date as March 16, 2016 for the purpose of r",likely_demerger
+2016-03-16,TIDEWATER,INE484C01014,159,-75.7,0.2426,1:4 / 3:1 bonus,True,1.72,,TAllotment of SecuritiesTide Water Oil Company (India) Limited has informed the Exchange that the Board of Directors of the Company at their,likely_missed_action
+2016-05-25,FEL,INE623B01027,268,-81.7,0.1827,,True,0.73,,Scheme of Arrangement Future Retail Limited has informed the Exchange that Update on the Composite Scheme of Arrangement between the Company,likely_demerger
+2016-09-01,NBVENTURES,INE725A01022,260,-52.2,0.4784,,True,1.51,,"Record Date Nava Bharat Ventures Limited has informed the Exchange that the Company has fixed Record Date as September 3, 2016 for the purpo",likely_missed_action
+2016-09-12,TCI,INE688A01022,387,-50.0,0.4996,1:2 split or 1:1 bonus,True,0.28,,Scheme of Arrangement Transport Corporation of India Limited has informed the Exchange regarding Update on Scheme of Arrangement.,likely_demerger
+2017-02-07,DAAWAT,INE818H01012,495,-89.2,0.7467,,False,33.65,,,no_evidence_found
+2017-03-07,ENERGYDEV,INE306C01019,341,-47.3,0.5271,,True,0.88,,,no_evidence_found
+2017-05-25,SINTEX,INE429C01035,87,-75.2,0.2483,1:4 / 3:1 bonus,True,2.63,,"Record Date Sintex Industries Limited has informed the Exchange that the Company has fixed Record Date as May 26, 2017 for the purpose of re",likely_missed_action
+2017-06-27,OMKARCHEM,INE474L01016,420,-59.9,0.401,3:2 bonus,True,2.52,,Updates Omkar Speciality Chemicals Limited has informed the Exchange regarding Update on Composite Scheme of Arrangement between Omkar Speci,likely_missed_action
+2018-01-25,ORIENTPPR,INE592A01026,454,-72.5,0.2747,,True,1.67,,"Updates Orient Paper & Industries Limited has informed the Exchange regarding 'With reference to the captioned matter, we would like to info",likely_demerger
+2018-02-07,EXCEL,INE688J01015,459,-73.7,0.2633,,True,0.19,,"ExcelRecord Datel Realty N Infra Limited has informed the Exchange that the Company has fixed Record Date as January 24, 2018 for the purpos",likely_missed_action
+2018-04-12,TALWALKARS,INE502K01016,484,-55.2,0.4484,,True,1.74,,Updates Talwalkars Better Value Fitness Limited has informed the Exchange regarding 'Subject: Intimation of effective date of Scheme of Arra,likely_demerger
+2018-04-19,PHILIPCARB,INE602A01015,183,-79.0,0.21,,True,3.87,,Updates Phillips Carbon Black Limited has informed the Exchange regarding 'Pursuant to Regulation 47 of the SEBI (Listing Obligations and Di,likely_missed_action
+2018-06-01,VAKRANGEE,INE051B01013,106,-69.1,0.3089,,True,31.92,,,no_evidence_found
+2018-09-28,INFIBEAM,INE483S01012,84,-70.8,0.2917,,True,4.93,,,no_evidence_found
+2018-10-19,8KMILES,INE650K01013,256,-66.8,0.3317,1:3 / 2:1 bonus,True,0.76,,,no_evidence_found
+2018-10-30,BOMDYEING,INE032A01015,132,-56.1,0.4392,,True,1.55,,,no_evidence_found
+2018-11-28,ARVIND,INE034A01011,99,-65.1,0.3491,,True,2.03,,Scheme of Arrangement Arvind Limited has informed the Exchange that Pursuant to Regulation 30 of SEBI (Listing Obligations and Disclosure Re,likely_demerger
+2019-06-14,IIFL,INE530B01024,280,-60.6,0.3936,3:2 bonus,True,0.39,,Scheme of Arrangement IIFL Holdings Limited has informed the Exchange about Scheme of Arrangement,likely_demerger
+2019-06-25,ABAN,INE421A01028,363,-50.6,0.4942,1:2 split or 1:1 bonus,True,0.11,,,no_evidence_found
+2019-08-22,GFLLIMITED,INE538A01037,301,-93.8,0.062,,True,1.03,,Scheme of Arrangement Gujarat Fluorochemicals Limited has informed the Exchange about Scheme of Arrangement and informed about the Order of ,likely_demerger
+2019-09-03,HSIL,INE415A01038,402,-79.4,0.2063,1:5 split,True,2.12,,Scheme of Arrangement Scheme of Arrangement HSIL : HSIL Limited has informed the Exchange about Scheme of Arrangement merger,likely_missed_action
+2019-10-11,CENTURYTEX,INE055A01016,122,-55.4,0.4464,,True,1.79,,,no_evidence_found
+2019-12-19,THOMASCOOK,INE332A01027,316,-53.5,0.4649,,True,0.86,,Scheme of Arrangement Thomas Cook  (India)  Limited has informed the Exchange about Scheme of Arrangement,likely_demerger
+2020-02-03,SUVEN,INE495B01038,239,-91.1,0.0894,,True,1.77,,Scheme of Arrangement Suven Life Sciences Limited has informed the Exchange about Scheme of Arrangement,likely_demerger
+2020-03-04,TATACHEM,INE092A01019,120,-56.5,0.4347,,True,1.49,,Scheme of Arrangement Tata Chemicals Limited has informed the Exchange about Scheme of Arrangement between Tata Chemicals Limited and Tata G,likely_demerger
+2020-03-06,YESBANK,INE528G01019,11,-56.1,0.4389,,True,0.85,,,no_evidence_found
+2020-08-20,COFORGE,INE591G01017,119,-80.1,0.1985,1:5 split,True,0.21,,Updates NIIT Technologies Limited has informed the Exchange regarding 'Newspaper Publication  - Post offer public announcement regarding buy,likely_missed_action
+2020-11-09,HATHWAY,INE982F01028,357,-48.0,0.5203,,True,0.17,,,no_evidence_found
+2020-12-23,MAJESCO,INE898S01029,183,-98.8,0.0124,,True,0.04,,,no_evidence_found
+2021-03-18,INFIBEAM,INE483S01012,409,-57.2,0.4282,,True,0.65,,"Bonus Bonus INFIBEAM : Infibeam Avenues Limited has informed the Exchange that the Board of Directors at its meeting held on February 11, 20",likely_missed_action
+2021-11-11,ANGELONE,INE732I01013,197,-90.1,0.0988,1:10 split,True,0.7,,,no_evidence_found
+2022-01-13,PCBL,INE602A01015,272,-50.5,0.495,1:2 split or 1:1 bonus,True,0.62,,,no_evidence_found
+2022-03-14,INFIBEAM,INE483S01012,382,-52.0,0.4804,1:2 split or 1:1 bonus,True,2.46,,"Bonus Bonus INFIBEAM : Infibeam Avenues Limited has informed the Exchange that the Board of Directors at its meeting held on January 31, 202",likely_missed_action
+2022-06-09,MOTHERSON,INE775A01035,102,-55.4,0.4459,,True,0.71,,,no_evidence_found
+2022-07-29,NAVA,INE725A01022,315,-50.1,0.4986,1:2 split or 1:1 bonus,True,0.8,,,no_evidence_found
+2022-11-21,JTLIND,INE391J01024,490,-75.2,,,False,,,,no_evidence_found
+2022-12-20,SHRIRAMFIN,INE721A01013,112,-79.8,0.2025,1:5 split,True,0.43,,,no_evidence_found
+2023-04-18,MIRZAINT,INE771A01026,338,-83.5,0.1645,,True,2.01,,Scheme of Arrangement Mirza International Limited has informed the Exchange about Scheme of Arrangement Approval of the Composite Scheme of ,likely_demerger
+2023-06-22,NIITLTD,INE161A01038,462,-78.7,0.2131,,True,0.85,,"Updates NIIT Limited has informed the Exchange regarding 'This is in continuation to our earlier letter dated January 10, 2023 regarding the",likely_demerger
+2023-11-01,PATANJALI,INE619A01035,28,-59.2,0.4085,3:2 bonus,True,0.06,,,no_evidence_found

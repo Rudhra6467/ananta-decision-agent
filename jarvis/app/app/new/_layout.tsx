@@ -7,6 +7,7 @@ import { C, useThemeVersion } from "../../src/theme";
 import { CheckIcon2, DollarIcon, G, Orb, PeopleIcon, RupeeIcon, SunIcon, TY } from "../../src/newui";
 import { useMarket } from "../../src/market";
 import { ScreenError } from "../../src/safe";
+import { useTyping } from "../../src/once";
 
 export const ErrorBoundary = ScreenError;
 
@@ -20,12 +21,15 @@ function Bar({ state, navigation }: any) {
   const ins = useSafeAreaInsets();
   const active = state.routes[state.index]?.name;
   const mk = useMarket();
+  const typing = useTyping();
+  // Madhav, 3 Nov: while he types in Ask the bar (and its raised orb) steps aside, so the typing box is never covered
+  if (typing && active === "ask") return null;
   return (
     <View style={{ backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.line, paddingBottom: Math.max(ins.bottom, 10), paddingTop: 10, paddingHorizontal: 8, flexDirection: "row", justifyContent: "space-around" }}>
       {TABS.map((t) => {
         if (!t.Icon) {
           return (
-            <View key={t.name} style={{ width: 64, alignItems: "center", marginTop: -34 }}>
+            <View key={t.name} style={{ width: 64, alignItems: "center", marginTop: active === "ask" ? -14 : -34 }}>
               <Orb onPress={() => navigation.navigate("ask")} />
             </View>
           );

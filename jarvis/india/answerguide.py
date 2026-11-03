@@ -150,6 +150,11 @@ def rupee_lines(holdings: list[str]) -> dict:
     return {s: RUPEE_SENSITIVITY[s] for s in holdings if s in RUPEE_SENSITIVITY}
 
 
+# 3 Nov (Madhav): a plain "what happened" question gets the point-by-point day recap
+RECAP_Q = re.compile(r"\bwhat (?:happened|did (?:we|you|ananta) do)\b|\bhow did (?:the )?(?:market|nifty|we|ananta|it) (?:do|go|close)\b|"
+                     r"\b(?:update me|catch me up|give me (?:a |the )?(?:summary|recap|rundown|update))\b|\bwhat(?:'s| is) (?:new|the update)\b", re.I)
+
+
 def guide(text: str, f: dict | None = None) -> dict:
     """FACTS.answer_guide for this turn: the horizon, whether a decision was asked, whether the book may be quoted, and topic lines."""
     f = f or {}
@@ -219,11 +224,23 @@ def guide(text: str, f: dict | None = None) -> dict:
                  "extra numbers." + ("" if VALUE_Q.search(t) else " Mention valuation only if it decides the answer."))
     lines.append("LEVELS: name a level to watch only if it is at least 2% from the latest close or is a real average or recent low; never the "
                  "previous close or a level a normal day's move would cross.")
-    lines.append("NO LABELS: do not write 'Decision:' or 'My read:' as labels; say what to do in plain words.")
+    recap = bool(RECAP_Q.search(t)) and not dec
+    if recap:
+        # Madhav, 3 Nov: "for my simple question I want the answer simple ... point to point on what happened in the market? What happened with
+        # Ananta? We bought so and so for this reason. We updated our portfolio. Changed position x for y."
+        lines.append("DAY RECAP SHAPE: short lines, each on its own line (separate them with a line break), each starting with its word, in this "
+                     "order: 'Market:' the Nifty and Bank Nifty for the day he means (close and % change, from FACTS.today_live), and one reason "
+                     "only if FACTS gives one; 'Ananta:' what the options line did, each trade in a few words (index, direction, option, how it "
+                     "stands); 'Portfolio:' what changed in the managed book, as 'sold X, bought Y' with the reason in a few words (for example "
+                     "'swapped JIOFIN for AJANTPHARM: JIOFIN weak, AJANTPHARM passed the tested filters'), or 'no change'; 'Next:' the one thing "
+                     "for the next session. Leave out a line that has nothing. One line each, no other topics (no studies, trials, research, "
+                     "valuation or the practice book unless he asks).")
+    lines.append("NO LABELS: do not write 'Decision:' or 'My read:' as labels; say what to do in plain words."
+                 + (" The recap's 'Market:', 'Ananta:', 'Portfolio:' and 'Next:' words are the exception." if recap else ""))
     if not SIP_SAID.search(t):
         lines.append("Do not assume he (or his friend) has a SIP or already holds it; if it matters, say 'if you hold it' or 'if you start'.")
     n = 3 if (worry or SHORT_ASK.search(t)) else (5 if dec else 4)
-    lines.append(f"LENGTH: at most {n} sentences.")
+    lines.append("LENGTH: the four recap lines, each one short sentence." if recap else f"LENGTH: at most {n} sentences.")
     if h in ("long_term", "personal_finance") and re.search(r"\b(option|f&o|fno|20% in options|options share)\b", text or "", re.I):
         lines.append(EXTRA_LINES["options_sleeve"])
     out = {"horizon": h or "not stated", "decision_asked": decision_asked(text), "book_question": book_question(text), "lines": lines}

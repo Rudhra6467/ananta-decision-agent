@@ -26,6 +26,7 @@ import { CheckIcon, CopyIcon, MicIcon, RetryIcon, SendIcon, SpeakerIcon, StopIco
 import { loadMe, useMe } from "../../src/visitor";
 import { useMarket } from "../../src/market";
 import { MsgGuard, ScreenError } from "../../src/safe";
+import { markStartersDone, setTyping, startersDone } from "../../src/once";
 
 export const ErrorBoundary = ScreenError;               // 28 Oct (flag 49): never a blank conversation screen
 
@@ -99,10 +100,11 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
       </View>
     );
   }
-  // plan 4.2: a recommendation always carries a "Why?" chip (it explains the answer from its decision card and the chain)
+  // plan 4.2: a recommendation carries "Why?". Madhav, 3 Nov: it sits with "Break it down" and "Show evidence", and the box of suggested
+  // follow-up questions under every answer is gone (it covered the screen); a "Did you mean" answer keeps its choices
   const recommends = m.kind === "answer" && !!(m.next_action || m.card || (m.actions ?? []).length);
-  const chips: string[] = m.kind === "clarify" ? m.options ?? []
-    : [...(recommends && !(m.follow_ups ?? []).some((f: string) => /^why\b/i.test(f)) ? ["Why?"] : []), ...(m.follow_ups ?? [])];
+  const why = m.kind === "answer" && (recommends || (m.follow_ups ?? []).some((f: string) => /^why\b/i.test(f)) || !!m.breakdown?.length || !!m.evidence?.length);
+  const chips: string[] = m.kind === "clarify" ? m.options ?? [] : [];
   return (
     <Pressable onHoverIn={() => setHover(true)} onHoverOut={() => setHover(false)}
       style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 16, borderTopLeftRadius: 4, padding: 14, gap: 10, maxWidth: "96%" }}>
@@ -118,10 +120,11 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
       {m.assumption ? <T small>Assumed: {m.assumption}</T> : null}
       {m.outside ? <Text style={{ color: C.faint, fontSize: 11 }}>{m.outside.note}</Text> : null}
 
-      {m.kind === "answer" && (m.breakdown?.length || m.evidence?.length) ? (
-        <View style={{ flexDirection: "row", gap: 8 }}>
+      {m.kind === "answer" && (m.breakdown?.length || m.evidence?.length || why) ? (
+        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
           {m.breakdown?.length ? <Tab label="Break it down" on={layer === "breakdown"} onPress={() => setLayer(layer === "breakdown" ? "none" : "breakdown")} /> : null}
           {m.evidence?.length ? <Tab label="Show evidence" on={layer === "evidence"} onPress={() => setLayer(layer === "evidence" ? "none" : "evidence")} /> : null}
+          {why ? <Tab label="Why?" on={false} onPress={() => onPick("Why?")} /> : null}
         </View>
       ) : null}
       {layer === "breakdown" ? <View style={{ gap: 6 }}>{m.breakdown.map((b: string, i: number) => <Bullet key={i}>{b}</Bullet>)}</View> : null}
@@ -266,6 +269,10 @@ export default function Ananta() {
   useEffect(() => { if (!live) setShowChat(false); }, [live]);
   useEffect(() => { if (params.sessions) setSessions(true); }, [params.sessions, params.t]);          // Oct 15: the side drawer's "Sessions"
   const [qcat, setQcat] = useState("new");
+  const [startersOn, setStartersOn] = useState(() => !startersDone());
+  const [inH, setInH] = useState(44);
+  const dropStarters = () => { if (startersOn) { setStartersOn(false); markStartersDone(); } };
+  useEffect(() => () => setTyping(false), []);
   const [err, setErr] = useState<string | null>(null);
   const [ctx, setCtx] = useScreen();
   const { data: sg } = useData("/v3/ask/suggestions", 0);
@@ -494,6 +501,7 @@ export default function Ananta() {
   const send = async (q: string) => {
     q = q.trim();
     if (!q || busy) return;
+    dropStarters();
     setText("");
     setErr(null);
     setBusy(true);
@@ -664,6 +672,7 @@ export default function Ananta() {
 
   const startLive = async () => {
     if (loop.on) return;                                         // extra taps do nothing
+    dropStarters();
     const granted = await mic.open();                            // once per conversation, straight from the tap (Safari)
     if (!granted) { setErr(Platform.OS === "web" ? "The microphone is blocked for this site. Allow it in the browser's site settings, then tap the wave again."
       : "Microphone permission is off. Allow it for Expo Go in iPhone Settings."); return; }
@@ -678,6 +687,7 @@ export default function Ananta() {
   };
   const endLive = () => { if (narr.current) { stopSection(); return; } loop.end(); clearSpot(); };
   const dictate = async () => {
+    dropStarters();
     if (mic.status !== "idle") { mic.send(); return; }
     dictating.current = true;
     const ok = await mic.start();
@@ -868,7 +878,7 @@ export default function Ananta() {
                 <Text style={{ color: C.accent, fontWeight: "800", fontSize: 18 }}>›</Text>
               </Pressable>
             ) : null}
-            <T small>{me?.guest ? "Or try one of the questions below." : 'New here? Tap "New here" below for questions to start with.'}</T>
+            {startersOn ? <T small>{me?.guest ? "Or try one of the questions below." : 'New here? Tap "New here" below for questions to start with.'}</T> : null}
           </View>
         ) : null}
         {msgs.map((m, i) => (m.role === "user" ? <UserBubble key={i} text={m.text!} voice={m.voice} /> : (
@@ -906,7 +916,7 @@ export default function Ananta() {
       ) : null}
       </View>
 
-      {!live && !(isNew && msgs.length === 0) ? (
+      {!live && startersOn && !(isNew && msgs.length === 0) ? (
         <View style={{ gap: 6, paddingBottom: 6 }}>
           <View style={{ flexDirection: "row", gap: 6, paddingHorizontal: 12 }}>
             {(me?.guest ? [] : [["new", "New here"], ["portfolio", "Our portfolio"], ["market", "Market & scans"]]).map(([k, l]) => (
@@ -945,9 +955,13 @@ export default function Ananta() {
             backgroundColor: mic.status !== "idle" ? C.bad : C.card2 }}>
             {mic.status !== "idle" ? <StopIcon color={C.onInk} /> : <MicIcon color={C.text} />}
           </Pressable>
-          <TextInput value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"} onChangeText={setText}
+          <TextInput value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"}
+            onChangeText={(v) => { setText(v); if (v.trim()) dropStarters(); if (!v) setInH(44); }}
+            onContentSizeChange={(e) => setInH(Math.max(44, Math.min(180, Math.ceil(e.nativeEvent.contentSize.height) + 2)))}
+            onFocus={() => setTyping(true)} onBlur={() => setTyping(false)}
             placeholder="Ask Ananta…" placeholderTextColor={C.dim} multiline accessibilityLabel="Ask Ananta"
-            style={{ flex: 1, minHeight: 44, maxHeight: 110, fontSize: 15, color: C.text, backgroundColor: C.bg, borderRadius: 22, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 }} />
+            style={{ flex: 1, height: text ? inH : 44, minHeight: 44, maxHeight: 180, fontSize: 15, lineHeight: 20, color: C.text, backgroundColor: C.bg, borderRadius: 22,
+              paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 }} />
           {text.trim() ? (
             <Pressable onPress={() => send(text)} disabled={busy} accessibilityLabel="Send"
               style={{ backgroundColor: busy ? C.line : C.accent, borderRadius: 22, width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>

@@ -2,6 +2,7 @@
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 import { getMarket, loadMarket } from "./market";
+import { resetStarters } from "./once";
 
 const DEFAULT_SERVER: string = (Constants.expoConfig?.extra as any)?.defaultServer ?? "https://api.livetrading247.com";
 
@@ -79,5 +80,6 @@ export async function login(email: string, password: string): Promise<"ok" | "ex
   if (r?.expired) { expiredForm = r as ExpiredForm; await SecureStore.deleteItemAsync("jarvis_token"); return "expired"; }
   expiredForm = null;
   await SecureStore.setItemAsync("jarvis_token", r.token);
+  resetStarters();                               // 3 Nov: the suggested questions show once after each login
   return "ok";
 }

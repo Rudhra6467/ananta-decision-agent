@@ -271,29 +271,20 @@ def _who(f: dict) -> str:
 
 
 def _chances_words(rec: dict, call: dict, book: dict, opt_sessions: int) -> str:
-    r = rec["rule"]
+    """3 Nov 2026 (Madhav: "Yes for all", the Map's change 5): one daily call instead of five forecasters. The morning view speaks only
+    the daily call's record; the rule forecast, the reviewer, Chronos (stopped 3 Nov, 0 of 5) and the shadow trader (its own trial to
+    26 Nov) keep their rows in the forecast ledger and the scorecard (Proof), but are no longer spoken here."""
     bits = []
-    if r["n"]:
-        bits.append(f"Ananta's rule forecast has been right {r['hits']} of {r['n']} sessions" + (f" (its error score {r['brier_mean']} against {rec['coin_flip_brier_mean']} for a coin flip; lower is better)" if r.get("brier_mean") is not None and rec.get("coin_flip_brier_mean") is not None else ""))
-    else:
-        bits.append("Ananta's forecast has no scored session yet")
-    v = rec["reviewer"]
-    if v["n"]:
-        bits.append(f"the reviewer's forecast {v['hits']} of {v['n']}")
-    ch = rec.get("chronos") or {}
-    if ch.get("n"):
-        bits.append(f"the Chronos model (a free Hugging Face forecaster) {ch['hits']} of {ch['n']}")
-    sh = rec.get("shadow") or {}
-    if sh.get("n"):
-        bits.append(f"the shadow trader (a second model, blind to Ananta's plan) {sh['hits']} of {sh['n']}")
     if call.get("scored"):
-        bits.append(f"the daily call {call['hits']} of {call['scored']} against {call['coin_flip_hits']} for the coin flip")
+        bits.append(f"the daily call has been right {call['hits']} of {call['scored']} sessions against {call['coin_flip_hits']} for a coin flip")
+    else:
+        bits.append("the daily call has no scored session yet")
     closed = sum(b.get("closed", 0) for b in book.values())
     if closed:
         net = sum(b.get("realised_inr", 0) for b in book.values())
         bits.append(f"the research book has closed {closed} practice trades for {'+' if net >= 0 else '−'}₹{abs(net):,.0f} net")
     bits.append(f"the options line has {opt_sessions} session{'s' if opt_sessions != 1 else ''} on record")
-    return "; ".join(bits) + ". No rule has proved itself yet, so every chance here is a chance, not an edge."
+    return "; ".join(bits)[0].upper() + "; ".join(bits)[1:] + ". No rule has proved itself yet, so every chance here is a chance, not an edge."
 
 
 def yesterday(rm: dict) -> dict:

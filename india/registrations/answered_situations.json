@@ -71,6 +71,21 @@
    "verdict": "OPPOSITE (the control keeps its rules)",
    "until": "2027-01-27",
    "from": "2026-10-28"
+  },
+  {
+   "prefix": "HELD_INTO_FALL:",
+   "study": "RX1 (X|PULL, X|CTL, X|CTL_downtrend) and RX2 (X|REV)",
+   "verdict": "OPPOSITE: the faster exit (out at the 4th open when the first 3 sessions never reached a quarter of the risk) did worse in every family; holding into falls is the cost of holding",
+   "until": "2027-01-27",
+   "from": "2026-11-02",
+   "note": "2 Nov: the 31 Oct drafts for CTL, PULL and REV slipped past the old 'HELD_INTO_FALL:null' prefix (the family name was fixed after it was written)"
+  },
+  {
+   "prefix": "MISS_PATTERN:up:breakout_base",
+   "study": "RX3",
+   "verdict": "REJECTED next session, OPPOSITE over 5 sessions; a tight base near its top (before a breakout) loses less the next session (CONDITIONAL, +0.27% / +0.05%), too small to trade after costs",
+   "until": "2027-02-01",
+   "from": "2026-11-02"
   }
  ]
 }

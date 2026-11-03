@@ -566,10 +566,14 @@ Intraday coverage: the 5-minute bars hold 2015 76%, 2016 80%, 2017 81%, 2018 78%
 |---|---|---|---|---|---|---|
 | IDX · or15_top · dayrange | CONDITIONAL | +0.19% | +2.0 | +0.45% | +4.4 | 3.241 |
 
-## news_tone (1 studies)
+## news_tone (2 studies)
 
 ### HFN1: Does a financial-news model's reading of NSE company announcements predict the stock's drift over the next 5 and 20 sessions, beyond the announcement's category?
 Claim before the run: Does a financial-news model's reading of NSE company announcements predict the stock's drift over the next 5 and 20 sessions, beyond the announcement's category?
+Outcome: 7 did not hold, 1 had too little data to judge across 8 variants.
+
+### HFN1T: HFN1 on the timestamped announcements: does FinBERT's reading tell where the stock goes next?
+Claim before the run: HFN1 on the timestamped announcements: does FinBERT's reading tell where the stock goes next?
 Outcome: 7 did not hold, 1 had too little data to judge across 8 variants.
 
 ## options_eod (6 studies)

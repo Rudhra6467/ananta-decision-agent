@@ -180,22 +180,25 @@ def build(write: bool = True) -> dict:
     falls = _j(paths.manifest_dir() / "big_falls.json", {}) or {}
     xbrl_done = bool(parsed_years) and min(parsed_years) <= 2018
     widen = [
-        ("1. Done 3 Nov 2026 for 2018-2023 (the XBRL files). Left: the old HTML result pages for 2010-2017 (D20b)." if xbrl_done else
+        ("1. Done 3 Nov 2026 for 2018-2023 (the XBRL files). The old HTML result pages for 2010-2017 (D20b) are being fetched "
+         "(india.results_html, about 85,000 pages at NSE's polite rate) and parsed into silver/fundamentals/results_html.parquet." if xbrl_done else
          "1. Parse the downloaded results (XBRL) for 2018-2021 so revenue and EPS cover six years, then the old HTML pages for 2010-2017 (D20b): "
          "the base for any results or P/E study."),
         ("2. Refetch the announcement years that are under half the usual count, so studies of announcements do not have holes." if api_lows else
          "2. Done 3 Nov 2026: the timestamped announcements are complete for 2010-2023 (the 2022 hole is in the old PR files only, and the "
-         "2010-2012 rows lost to a de-duplication bug are back). Left: V02 and HFN1 on the timestamped source, as new registrations, if Madhav wants."),
+         "2010-2012 rows lost to a de-duplication bug are back). V02T and HFN1T re-ran V02 and HFN1 on the timestamped source: the same verdicts "
+         "(registrations/v02t_results_v1.md, hfn1t_results_v1.md)."),
         (f"3. Done 3 Nov 2026: NSE's board-meetings calendar is fetched every night (60 days ahead) with history from 2010 "
          f"({sum(bm.values()):,} meetings to 2023)." if bm else "3. Fetch NSE's board-meetings calendar each evening, so results days ahead are complete."),
-        ("4. Mapped 3 Nov 2026: most studies that held up already use the 500 most traded; the narrow ones are OC1 (100), IB1 (50) and GP1 (250). "
-         "Left: re-test those three on the next band of stocks, registered before the run (registrations/w500_v1_draft.md), on Madhav's yes."),
+        ("4. Done 3 Nov 2026: most studies that held up already use the 500 most traded; the narrow ones (OC1, IB1, GP1) were re-tested on the "
+         "next band (W500): all 11 variants carry, as relative results only (registrations/w500_results_v1.md)."),
         ("5. Done 3 Nov 2026: each intraday stock study's write-up now carries the 5-minute coverage of its own universe by year "
          "(registrations/intraday_coverage.md). Left: whether new intraday stock studies start in 2019 is Madhav's choice."),
         (f"6. Checked 3 Nov 2026 (registrations/big_falls_v1.md): of {falls['falls']} unexplained falls, "
          f"{sum(v for k, v in falls['labels'].items() if k != 'no_evidence_found')} look like a split, bonus or demerger left out of the adjustment "
          f"({sum(v for k, v in falls['labels_since_2010'].items() if k != 'no_evidence_found')} since 2010); {falls['labels'].get('no_evidence_found', 0)} "
-         "show no action nearby and need a look. Left: add the confirmed ones to the corporate-actions table (it changes past prices, so Madhav's decision)."
+         "show no action nearby and need a look. The 2010-2023 cases were reviewed by hand and fixed on 3 Nov 2026 (registrations/ca_manual_v1.csv, "
+         "the subject parser, and factors carried across renames); before 2010 the rest are left for a later look."
          if falls else
          "6. Check the liquid-stock falls of over 45% with no corporate action within 3 days: each is either a real crash or a missed split, "
          "bonus or demerger, and a missed one fakes a loss in every study that holds the stock."),

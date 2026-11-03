@@ -1,0 +1,43 @@
+{
+ "study": "RS1",
+ "family": "relative_strength",
+ "version": 1,
+ "written": "2026-11-02",
+ "asked_by": "Madhav, 2 Nov 2026 19:05 Toronto (in chat), after reviewing a Vivek Bajaj / order-block video write-up: \"Yes , set it up.\" (a registered test of relative strength against the Nifty on Indian stocks)",
+ "title": "Relative strength: do the liquid stocks beating the Nifty most keep beating the average stock?",
+ "hypothesis": "Among the 250 most-traded stocks, those in the top tenth by their return relative to the Nifty over the last 6 months (or 3 months) earn more than the average liquid stock over the next 20 (or 60) sessions after delivery costs; the bottom tenth earns less.",
+ "what_was_tried_before": "Relative strength was tested only inside other setups, as Trade With Trend cards (25 Oct): RS line at a high on breakouts (H13), RS new high before price (H14), leaders' 50-day pullbacks (H09), stage 2 (H27), correction leaders (H28), selling weak losers in pullbacks (H26). All REJECTED or INCONCLUSIVE; several were positive in 2018-23 and flat or negative in 2000-17. The plain cross-sectional ranking was never tested. Those 151 teacher variants count in this study's bar.",
+ "data": {
+  "stock_panel": "gold/teachers/stock_panel.parquet, rows dated before 2024-01-01 only (rs_ret126 and rs_ret63 = the stock's close over the Nifty 500, its change over 126 / 63 sessions; liq_rank; net20 / net60 = forward return after delivery costs; dist_sma50; nifty_below_both)",
+  "nothing_sealed": "no 2024+ row, no sealed folder"
+ },
+ "definitions": {
+  "universe": "each session, stocks with liq_rank <= 250 and a known ranking value",
+  "top10": "the stock's rank by the ranking value among that session's universe is in the top tenth (percentile >= 0.90)",
+  "bottom10": "percentile <= 0.10",
+  "rs126 / rs63": "ranking value rs_ret126 / rs_ret63",
+  "nochase": "top10 by rs126 and dist_sma50 <= 0.08 (the paper book's no-chase line: not more than 8% above the 50-day average)",
+  "nifty_down": "the session's Nifty is below both its 50- and 200-day averages (nifty_below_both); signal and base both restricted to those sessions",
+  "outcome": "net20 or net60 as named (after delivery costs)"
+ },
+ "statistics": {
+  "level": "india.teachers_stock.level: per calendar quarter, the signal rows' mean outcome minus all universe rows' mean outcome in the same quarter; t across quarters",
+  "periods": "development 2000-2017, validation 2018-2023",
+  "verdict": "india/registry.record standard rule (both periods, family bar)"
+ },
+ "bar": {
+  "union_k": 157,
+  "z": 3.6,
+  "bar_families": ["teacher_twt", "relative_strength"],
+  "note": "the 151 Trade With Trend variants (relative strength was tried there) plus these 6; k frozen at 157"
+ },
+ "variants": {
+  "top10|rs126|net20": 1,
+  "top10|rs63|net20": 1,
+  "top10|rs126|net60": 1,
+  "top10|rs126_nochase|net20": 1,
+  "bottom10|rs126|net20": -1,
+  "top10|rs126|net20|nifty_down": 1
+ },
+ "not_claimed": "Research only; no rule changes. A pass would become a proposal (a shadow paper trial against random picks and the market, then Madhav's yes), never a direct rule."
+}

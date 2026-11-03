@@ -34,6 +34,11 @@ TARGETS: dict[str, tuple[list[str], tuple[int, ...] | None]] = {
     # 2 Nov (Madhav: "yes"): the sign-in lapses at 06:00 IST; signing in at 06:05 closes the evening gap (7:30-8:40 pm Toronto) when live
     # prices failed. 06:20 retries; 07:10 is the old time, kept as a backup (the job skips when the token is still valid)
     "com.ananta.india.autologin": (["06:05", "06:20", "07:10"], None),
+    # 3 Nov (Madhav: "Yes for all", the Map's change 8): the 47-step evening run is split. Its Zerodha steps (the account snapshot, the
+    # options recorder, the SP1 replay, the index bars) run after the 06:05 sign-in; on 2 Nov they ran at 05:30 IST on a lapsing token and failed.
+    # The rest of the evening run follows once they are in.
+    "com.ananta.india.evening_zerodha": (["06:30"], None),
+    "com.ananta.india.evening": (["06:50"], None),
     "com.ananta.india.sp1paper": (["07:30"], None),
     "com.ananta.india.paper": (["08:00"], None),
     "com.ananta.india.spreads": (["08:05"], WEEKDAYS),
@@ -118,10 +123,12 @@ def words(changed: list[dict]) -> str:
 # and Toronto times written by hand did not move with the clock change. Every time Ananta says is now read from the launchd jobs.
 DAY = [   # (job, what it brings), in the order of Madhav's evening and night
     ("com.ananta.india.postclose", "the closing index bars, the chart readings and a first market summary"),
+    ("com.ananta.india.sp1paper.score", "the options line's score for the session (once a day)"),
     ("com.ananta.india.recorder_noon", "the day's 1-minute options and currency bars"),
     ("com.ananta.india.nightly", "the official NSE day file (every stock's close), the chart readings, the stock quote book and the market summary (P/E, futures positions)"),
-    ("com.ananta.india.evening", "the big evening run: FII/DII flows and big deals, the Zerodha snapshot, the managed book's fills and its next plan, the options line's score, the teachers' forward checks"),
     ("com.ananta.india.autologin", "the morning sign-in to Zerodha"),
+    ("com.ananta.india.evening_zerodha", "the Zerodha part of the evening: the account snapshot, the options recorder's second fetch, the options line's replay check and the index bars"),
+    ("com.ananta.india.evening", "the evening run: FII/DII flows and big deals, the managed book's fills and its next plan, the teachers' forward checks"),
     ("com.ananta.india.sp1paper", "the options line's plan for the session"),
     ("com.ananta.india.paper", "the practice book's picks for the session, the daily call, the missed moves, the comparison traders and the reconstruction (the coach's replay)"),
     ("com.ananta.india.findings", "the night's findings"),

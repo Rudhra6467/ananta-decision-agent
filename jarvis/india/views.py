@@ -29,7 +29,7 @@ REF_POLICY = "hold_20d"
 CAMPAIGN = {"BRK": "Breakout", "PULL": "Pullback", "REV": "Reversal", "CTL": "Random pick"}
 CAMPAIGN_WHY = {"BRK": "breaks above its one-month high on heavy volume", "PULL": "a strong stock resting at its one-month average",
                 "REV": "a stock sold too hard, due a bounce", "CTL": "picked at random, to compare Ananta's picks against"}
-JOB_WORDS = {"autologin": "morning sign-in", "evening": "evening data", "morning": "morning check", "nightly": "nightly checks", "paper": "stock picks",
+JOB_WORDS = {"autologin": "morning sign-in", "evening": "evening data", "evening_zerodha": "evening Zerodha data", "morning": "morning check", "nightly": "nightly checks", "paper": "stock picks",
              "recorder_noon": "option prices", "sp1paper": "options line", "sp1paper.score": "options scoring", "spreads": "option spreads", "allocator": "money split"}
 
 
@@ -242,7 +242,7 @@ def _health(rm: dict) -> dict:
     j = rm.get("jobs") or {}
     jobs = j.get("jobs") or []
     down = [x["label"] for x in jobs if not x.get("ok")]
-    signin = [x["label"] for x in jobs if not x.get("ok") and (x["label"] in ("autologin", "evening") or any(w in "; ".join(x.get("problems") or []).lower() for w in ("token", "sign-in", "kite", "depth snapshots", "recorder")))]
+    signin = [x["label"] for x in jobs if not x.get("ok") and (x["label"] in ("autologin", "evening", "evening_zerodha") or any(w in "; ".join(x.get("problems") or []).lower() for w in ("token", "sign-in", "kite", "depth snapshots", "recorder")))]
     if signin and len(signin) == len(down):
         down = [f"the Zerodha morning sign-in ({len(signin)} jobs waited for it)"]
     elif signin:

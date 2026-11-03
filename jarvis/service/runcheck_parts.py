@@ -290,8 +290,10 @@ PARTS: list[dict] = [
      "proof": {"log": "{india}/manifests/kite_1m_fo.jsonl",
                "regex": r'"fetched_at": "(?P<t>\d{4}-\d\d-\d\dT\d\d:\d\d)[^\n]*?"n": (?P<work>\d+), "status": "(?P<err>\w+)"',
                "time_format": "%Y-%m-%dT%H:%M", "tz": "UTC", "ok_err": "ok"}},
+    # 3 Nov (Madhav: "Yes for all", the Map's change 8): the evening run moved to 06:50 IST (8:20 pm Toronto in winter, 9:20 pm in summer: the
+    # grace covers both) and its Zerodha steps to their own job at 06:30 IST, after the 06:05 sign-in
     {"id": "india_report", "name": "India evening portfolio report", "job": "com.ananta.india.evening", "area": "india", "severity": "low",
-     "since": "2026-10-19", "cadence": {"daily": "19:00", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
+     "since": "2026-10-19", "cadence": {"daily": "20:20", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
      "proof": {"files": "{india}/reports/portfolio_{date}.md", "min_bytes": 200}},
     # 2 Nov independent audit: was "21:40 Toronto, Sun-Thu" (summer time); the job keeps 06:05 IST (jarvis/india/schedule.py), so check it in IST
     {"id": "india_autologin", "name": "India Kite auto sign-in (06:05 IST, retries 06:20 and 07:10)", "job": "com.ananta.india.autologin",
@@ -304,9 +306,13 @@ PARTS: list[dict] = [
     {"id": "india_nightly", "name": "India nightly", "job": "com.ananta.india.nightly", "area": "india", "severity": "medium",
      "since": "2026-10-18", "cadence": {"daily": "02:30", "tz": TOR, "grace": 2 * 3600}, "latest_only": True,
      "proof": {"mtime": "{runs}/india_nightly.log", "err_file": "{runs}/india_nightly.err"}},
-    {"id": "india_evening", "name": "India evening chain (17 steps; launchd sees only the last one's exit)", "job": "com.ananta.india.evening",
-     "area": "india", "severity": "medium", "since": "2026-10-19", "cadence": {"daily": "19:00", "tz": TOR, "grace": 2 * 3600},
+    {"id": "india_evening", "name": "India evening chain (launchd sees only the last step's exit)", "job": "com.ananta.india.evening",
+     "area": "india", "severity": "medium", "since": "2026-10-19", "cadence": {"daily": "20:20", "tz": TOR, "grace": 2 * 3600},
      "latest_only": True, "proof": {"mtime": "{runs}/india_evening.log", "err_file": "{runs}/india_evening.err"}},
+    {"id": "india_evening_zerodha", "name": "India evening, Zerodha part (account snapshot, recorder, SP1 replay, index bars; after the sign-in)",
+     "job": "com.ananta.india.evening_zerodha", "area": "india", "severity": "medium", "since": "2026-11-03",
+     "cadence": {"daily": "20:00", "tz": TOR, "grace": 2 * 3600},
+     "latest_only": True, "proof": {"mtime": "{runs}/india_evening_zerodha.log", "err_file": "{runs}/india_evening_zerodha.err"}},
     {"id": "india_recorder_noon", "name": "India noon recorder (weekdays)", "job": "com.ananta.india.recorder_noon", "area": "india",
      "severity": "medium", "since": "2026-10-19", "cadence": {"daily": "12:30", "tz": TOR, "days": "01234", "grace": 2 * 3600},
      "latest_only": True, "proof": {"mtime": "{runs}/india_recorder_noon.log", "err_file": "{runs}/india_recorder_noon.err"}},

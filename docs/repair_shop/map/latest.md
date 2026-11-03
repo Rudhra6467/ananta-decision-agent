@@ -1,6 +1,6 @@
-# The one map (2026-10-30T11:16)
+# The one map (2026-11-02T19:12)
 
-The map holds 168 studies and 1387 variants. 73 mismatches between layers: 23 planned, not done, 12 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 12 need Madhav's yes.
+The map holds 169 studies and 1393 variants. 77 mismatches between layers: 27 planned, not done, 12 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 12 need Madhav's yes.
 
 ## Mismatches
 
@@ -22,7 +22,11 @@ The map holds 168 studies and 1387 variants. 73 mismatches between layers: 23 pl
 | A planned, not done | EVC | tracker: BLOCKED: Event channel model: wars, unrest, oil and rupee shocks through GDELT conflict and unrest counts and | SAFE | build it, or mark it dropped with a reason |
 | A planned, not done | F05 | tracker: BLOCKED: O-04 straddle, estimated version, to be calibrated against the recorder before it is trusted | SAFE | 18 Oct: synthetic reconstruction 2015-2023 (928 expiry days): O-04 loses about 1% of the Rs 50,000 book per expiry day;  |
 | A planned, not done | G02 | tracker: BLOCKED: Two families validated on development plus validation years; holdout opened once per family, and the | SAFE | build it, or mark it dropped with a reason |
+| A planned, not done | HELD_INTO_FALL:CTL | an approved draft with no study answering it | SAFE | register and run it, or record why not |
+| A planned, not done | HELD_INTO_FALL:PULL | an approved draft with no study answering it | SAFE | register and run it, or record why not |
+| A planned, not done | HELD_INTO_FALL:REV | an approved draft with no study answering it | SAFE | register and run it, or record why not |
 | A planned, not done | K02 | tracker: BLOCKED: Daily scored call (M-11): bullish, bearish and neutral written before the open, scored at the checkp | SAFE | 18 Oct: daily mechanical Nifty call (rule v0 from E08/C01/E04) written each evening with a coin-flip null, scored at 1/5 |
+| A planned, not done | MISS_PATTERN:up:breakout_base:intraday_run | an approved draft with no study answering it | SAFE | register and run it, or record why not |
 | A planned, not done | R01 | tracker: BLOCKED: Calibrate synthetic option prices against the recorder: how wrong are they | SAFE | build it, or mark it dropped with a reason |
 | A planned, not done | R02 | tracker: BLOCKED: O-01 option leg, O-02 option legs, O-04 real: first look at 12 weeks of recording, tail at 26 | SAFE | build it, or mark it dropped with a reason |
 | A planned, not done | S08 | tracker: BLOCKED: Calls ledger and scoring | SAFE | build it, or mark it dropped with a reason |
@@ -172,6 +176,7 @@ The map holds 168 studies and 1387 variants. 73 mismatches between layers: 23 pl
 | P01-ANY | the lab | VALIDATED | 20 | full | yes | yes | - | yes | yes | - | - | READY |
 | P01-BRK | the lab | CONDITIONAL | 20 | full | yes | yes | - | yes | yes | - | - | READY |
 | P01-PULL | the lab | REJECTED | 20 | full | yes | yes | - | yes | - | - | - | READY |
+| RS1 | the lab | REJECTED | 6 | full | yes | - | - | - | - | - | - | - |
 | RX1 | reconstruction draft (Madhav's yes) | CONDITIONAL | 12 | full | yes | yes | - | yes | yes | - | - | - |
 | RX2 | reconstruction draft (Madhav's yes) | OPPOSITE | 1 | full | yes | - | - | - | yes | - | - | - |
 | SP1 | the playbook work (Madhav, 19-21 Oct) | SUPPORTED_SEEN | 7 | full | yes | yes | yes | yes | yes | - | yes | READY |

@@ -161,7 +161,7 @@ def _save_bank(rows: list[dict]) -> None:
 def exam_line(path: Path | None = None) -> dict:
     """The weekly India exam's last full run, for the one nightly report (the Map's change 11)."""
     import json as _j
-    path = path or Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "manifests" / "exam_latest.json"
+    path = path or ask.DATA / "manifests" / "exam_latest.json"          # read through the Ask's own data path (the firewall allows ask.py)
     try:
         ex = _j.loads(path.read_text())
     except (OSError, ValueError):

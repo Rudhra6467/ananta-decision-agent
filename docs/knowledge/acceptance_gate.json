@@ -1,6 +1,6 @@
 {
  "version": "acceptance_gate.v1",
- "updated": "2026-10-21",
+ "updated": "2026-11-03",
  "source": "Ananta Engine Acceptance Framework (Madhav, Oct 6)",
  "rule": "The engine is ready to lock (and go to the App Store) only when every check passes at the same time. Read daily; a pass can turn back into a fail.",
  "checks": [
@@ -12,9 +12,9 @@
    "pass_mark": "No unhandled flag; grade A or B",
    "status": "PASS",
    "note": "COCOS, BNX and LUNA cut",
-   "evidence_date": "2026-10-06",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "verdict written at the gate's start (COCOS and BNX cut in review #15, Oct 4)"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): lab10 grades BTC B, ETH B, SOL A, ADA B, DOGE A, AVAX A, BCH A, LINK A, LTC B, XRP B; 0 redenomination suspects; 0 broken daily candles across 392 members over 90 days"
   },
   {
    "id": "data_complete",
@@ -24,9 +24,9 @@
    "pass_mark": "Under 0.5% missing; stale data stops trading",
    "status": "PASS",
    "note": "",
-   "evidence_date": "2026-10-06",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "verdict written at the gate's start"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): 0.0% missing daily candles across 391 coins over the last 30 days"
   },
   {
    "id": "data_pit",
@@ -36,9 +36,9 @@
    "pass_mark": "Code tests plus review rule",
    "status": "PASS",
    "note": "",
-   "evidence_date": "2026-10-06",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "verdict written at the gate's start"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): the point-in-time tests pass (56); tier_at agrees with the registry on all 390 members; the new tier guard on catch-up (#105/#138) has its own tests"
   },
   {
    "id": "data_survivorship",
@@ -60,9 +60,9 @@
    "pass_mark": "All books",
    "status": "PASS",
    "note": "Hunter's book fixed Oct 5",
-   "evidence_date": "2026-10-06",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "verdict written at the gate's start (Hunter's book fixed Oct 5); the code reads PARTLY until S2"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): half-spreads refreshed to the 14-day p75 (Oct 20 to Nov 2, SPREAD-REFRESH, Madhav's Oct 26 yes); the live gate computes PASS (no lab10 coin dearer than the registry cost)"
   },
   {
    "id": "engine_reproducible",
@@ -81,9 +81,9 @@
    "pass_mark": "Tests pass",
    "status": "PASS",
    "note": "",
-   "evidence_date": "2026-10-06",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "verdict written at the gate's start"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): the no-lookahead tests pass (41)"
   },
   {
    "id": "engine_sizing",
@@ -123,9 +123,9 @@
    "pass_mark": "Pass in both periods",
    "status": "PASS",
    "note": "T3-B on 10 coins; the dip trade is weak",
-   "evidence_date": "2026-10-06",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "verdict written at the gate's start (reviews #4 and #20)"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): verdict files unchanged since the lock (reviews #4 and #20); crypto lock tests pass"
   },
   {
    "id": "strategy_universe",
@@ -135,9 +135,9 @@
    "pass_mark": "Pass on its own tier",
    "status": "PASS",
    "note": "#15",
-   "evidence_date": "2026-10-04",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "review #15"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): review #15 verdicts unchanged; the 30-day rebuild matches the ledger (124 signals, 0 unexplained) after the MITO clean-up"
   },
   {
    "id": "strategy_survivorship",
@@ -204,9 +204,9 @@
    "pass_mark": "100%",
    "status": "PASS",
    "note": "Jarvis's book",
-   "evidence_date": "2026-10-06",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "verdict written at the gate's start"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): 26 of 26 TAKE decisions carry a plan and a thesis; the 21 empty rows are ERROR rows from Oct 7-9, before the 8984907 fix"
   },
   {
    "id": "agent_cites",
@@ -234,9 +234,9 @@
    "pass_mark": "Tested",
    "status": "PASS",
    "note": "the Explorer stands still",
-   "evidence_date": "2026-10-06",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "verdict written at the gate's start"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): the stale-data tests pass (trade guard, evidence_live, explorer_live) and a direct test of the Explorer's STALE skip was added (tests/test_explorer_stale_skip.py)"
   },
   {
    "id": "ops_no_trade_unhealthy",
@@ -273,9 +273,9 @@
    "pass_mark": "100%",
    "status": "PASS",
    "note": "orders and switches",
-   "evidence_date": "2026-10-06",
+   "evidence_date": "2026-11-03",
    "expires_days": 30,
-   "evidence_what": "verdict written at the gate's start"
+   "evidence_what": "re-checked 2026-11-03 (GATE-REDATE): the confirm tests pass (3)"
   },
   {
    "id": "ux_why",

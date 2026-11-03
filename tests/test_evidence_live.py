@@ -611,7 +611,11 @@ def test_a_hand_written_pass_expires_like_the_exam(tmp_path):
     for c in g["checks"]:
         if c["id"] in hand:
             assert c["expires_days"] == (35 if c["id"] == "engine_risk" else 30) and c["evidence_what"]
-    j = types.SimpleNamespace(dir=tmp_path, db=sqlite3.connect(":memory:"), now=lambda: at("2026-12-01"))
+    from datetime import timedelta                                                 # the day after the last expiry in the file,
+    last = max(datetime.strptime(c["evidence_date"], "%Y-%m-%d") + timedelta(days=c["expires_days"])   # so a re-date
+               for c in g["checks"] if c["id"] in hand)                            # (GATE-REDATE) never breaks this
+    after = (last + timedelta(days=1)).strftime("%Y-%m-%d")
+    j = types.SimpleNamespace(dir=tmp_path, db=sqlite3.connect(":memory:"), now=lambda: at(after))
     gate = el._gate(j, {})
     by = {c["id"]: c for c in gate["checks"]}
     assert by["ux_confirm"]["status"] == "PARTLY" and by["strategy_oos"]["status"] == "PARTLY" and "expired" in by["ux_confirm"]["note"]

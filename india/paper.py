@@ -187,12 +187,25 @@ def _f(x) -> float | None:
     return None if x is None or not np.isfinite(x) else round(float(x), 6)
 
 
+def _n500(asof: pd.Timestamp) -> pd.Series | None:
+    """The Nifty 500's daily closes up to `asof` through the engine's market-context read (sealed.read_index, purpose paper_context), for the
+    universe file's relative strength (2 Nov 2026, the RS trial). None when it cannot be read; the universe file never fails on it."""
+    try:
+        ix = sealed.read_index("paper_context", (asof - pd.Timedelta(days=300)).strftime("%Y-%m-%d"), ["NIFTY 500"])
+        ix["date"] = pd.to_datetime(ix["date"])
+        ix = ix[ix["date"] <= asof]
+        return ix.set_index("date")["close"].astype(float).sort_index() if len(ix) else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def universe_snapshot(df: pd.DataFrame, f: pd.DataFrame, asof: pd.Timestamp, liq_top: int) -> list[dict]:
     """The executed book's universe on `asof` (liq_rank <= liq_top) with the derived numbers the missed-movers review describes a day's move with:
     the day's bar against the sessions before it (prior 20-session range, 250-session high and low, RSI and averages as of the close before).
     From rows dated on or before `asof` only; adjusted prices; no raw price is written."""
     liq = f[f["liq_rank"] <= liq_top].set_index("sid")
     d = df[(df["date"] <= asof) & df["sid"].isin(set(liq.index))]
+    n500 = _n500(asof)
     out = []
     for sid, g in d.groupby("sid", sort=False):
         if g["date"].iloc[-1] != asof or len(g) < 22:
@@ -211,8 +224,24 @@ def universe_snapshot(df: pd.DataFrame, f: pd.DataFrame, asof: pd.Timestamp, liq
                     "rsi14": _f(r["rsi14"]), "rsi14_prev": _f(_rsi14(c[:-1])),
                     "dist_sma20": _f(r["dist_sma20"]), "dist_sma20_prev": _f(c[-2] / np.mean(c[-21:-1]) - 1),
                     "dist_sma200": _f(r["dist_sma200"]), "dist_sma200_prev": _f(c[-2] / np.mean(c[-201:-1]) - 1) if len(c) >= 201 else None,
-                    "ret_20_prev": _f(c[-2] / c[-22] - 1), "atr_pct": _f(r["atr14"] / c[-1])})
+                    "ret_20_prev": _f(c[-2] / c[-22] - 1), "atr_pct": _f(r["atr14"] / c[-1]),
+                    # 2 Nov 2026 (the RS trial, RS1's definitions): the 50-day distance and the 6-month relative strength against the Nifty 500
+                    "dist_sma50": _f(c[-1] / np.mean(c[-50:]) - 1) if len(c) >= 50 else None,
+                    "rs_ret126": _rs126(c, g["date"].values, n500)})
     return sorted(out, key=lambda x: x["liq_rank"])
+
+
+def _rs126(c: np.ndarray, dates, n500: pd.Series | None) -> float | None:
+    """(close / Nifty 500) now over the same 126 sessions back, minus 1: the stock panel's rs_ret126 (india/teachers_stock.py)."""
+    if n500 is None or len(c) < 127:
+        return None
+    try:
+        a, b = n500.get(pd.Timestamp(dates[-1])), n500.get(pd.Timestamp(dates[-127]))
+        if not a or not b:
+            return None
+        return _f((c[-1] / a) / (c[-127] / b) - 1)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _write_universe(key: str, rows: list[dict], liq_top: int, source: str) -> None:

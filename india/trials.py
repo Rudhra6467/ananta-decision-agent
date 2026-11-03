@@ -97,6 +97,13 @@ def build() -> dict:
         add("the avoid-or-exit trial", "stocks falling 2% or more while below their 200-day average, the next session open to close against the 250 liquid stocks",
             rx.get("start"), int(rx.get("need") or 20), int(rx.get("scored") or 0), rx.get("words"), judge="the mean difference and its t across sessions; CONDITIONAL in history")
 
+    # 3b. the relative-strength trial (Madhav's yes, 2 Nov 19:20): RS1's near miss recorded forward
+    rs = _load(D / "paper" / "rs_trial.json", {}) or {}
+    if rs:
+        add("the relative-strength trial", "liquid stocks in the top tenth by 6-month strength against the Nifty, not stretched, each day's picks held 20 sessions, "
+            "against the average liquid stock and random picks, after costs", rs.get("start"), int(rs.get("need") or 20), int(rs.get("scored") or 0), rs.get("words"),
+            judge="the RS book's lead over the average stock and over random picks; INCONCLUSIVE in history (t 3.54 / 3.11 against a bar of 3.60)")
+
     # 4. the shadow trader
     sh = _load(D / "paper" / "shadow" / "summary.json", {}) or {}
     if sh:

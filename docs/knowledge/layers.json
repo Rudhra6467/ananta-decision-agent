@@ -1678,6 +1678,8 @@
     "jarvis/india/marketcontext.py",
     "jarvis/india/askwords.py",
     "jarvis/india/askprompt.py",
+    "jarvis/india/desk.py",
+    "jarvis/india/numcheck.py",
     "jarvis/india/knowledgemap.py",
     "jarvis/india/mind.py",
     "jarvis/india/replay.py",

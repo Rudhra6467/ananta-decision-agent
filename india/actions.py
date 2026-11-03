@@ -19,6 +19,7 @@ import json
 import re
 import sys
 from fractions import Fraction
+from pathlib import Path
 
 import pandas as pd
 import pyarrow as pa
@@ -57,11 +58,15 @@ def parse_subject(s: str) -> dict:
     """kind, ratio (price factor: old price / new price), amount (dividend per share) from NSE's subject text."""
     t = " ".join(s.lower().split())
     out: dict = {"kind": "OTHER", "ratio": None, "amount": None}
-    m = re.search(r"bonus\s*(\d+)\s*:\s*(\d+)", t)
+    # 3 Nov 2026 (big-falls review): "Bonus - 1:1" (a dash) and the abbreviated "Bon-2:1" were missed, so "Bonus - 1:1 And Face Value Split From
+    # Rs. 10 To Rs. 2" was read as a split of 5 instead of 10, and "Fv Spl-Rs10tors5/Bon-2:1" as OTHER
+    # "Bonus Issue 1 : 1", "Bonus Shares In The Ratio Of 1:1" too; bonus debentures (or preference shares) change no share count
+    # bonus debentures, preference shares and NCRPS (non-convertible redeemable preference shares) are not equity: no factor
+    m = None if re.search(r"\bbon(?:us)?\b\s*-?\s*(?:deb|pref|n\.?c\.?r\.?p|ncd|rps|red)", t) else re.search(r"\bbon(?:us)?\b[^0-9:/|]{0,28}?(\d+)\s*:\s*(\d+)", t)
     if m:
         a, b = int(m.group(1)), int(m.group(2))
         out.update(kind="BONUS", ratio=(a + b) / b if b else None)
-    m = re.search(r"(?:spli?t|sub-?division)[^0-9]*?(?:rs\.?|re\.?)?\s*" + _NUM + r"[^0-9]*?to\s*(?:face value)?\s*(?:rs\.?|re\.?)?\s*" + _NUM, t)
+    m = re.search(r"(?:spli?t|\bspl\b|sub-?division)[^0-9]*?(?:rs\.?|re\.?)?\s*" + _NUM + r"[^0-9]*?to\s*(?:face value)?\s*(?:rs\.?|re\.?)?\s*" + _NUM, t)
     if m:
         a, b = float(m.group(1)), float(m.group(2))
         if out["kind"] == "BONUS" and out["ratio"] and b:
@@ -169,10 +174,85 @@ def build_factors() -> dict:
         from a_only where ratio_a is not null and ratio_a = ratio5 and (ratio_a >= 1.3 or ratio_a <= 0.77)
         order by 1, 2""").df()
     df = confirm(df, con)
+    df = manual(df, con)
+    df = carry_entity(df, con)
     out = sd / "factors.parquet"
     pq.write_table(pa.Table.from_pandas(df, preserve_index=False), out)
     return {"rows": len(df), "status": df["status"].value_counts().to_dict(), "applied": df.groupby("status")["apply"].sum().astype(int).to_dict(),
             "ambiguous_inside_history": int((df["inside"] & ~df["apply"]).sum()), "path": str(out)}
+
+
+def carry_entity(df: pd.DataFrame, con) -> pd.DataFrame:
+    """3 Nov 2026 (big-falls review): factors are keyed by symbol, but the lab joins a company's symbols into one series (same entity through
+    the ISIN). A split after a rename adjusted only the new symbol's rows, so the series showed a fake fall on the rename day (COFORGE
+    2020-08-20 after its 2025 split, ANGELONE 2021, SHRIRAMFIN 2022, NAVA 2022 ...). Each applied factor is carried to the same company's other
+    symbols that traded before its ex-date (status <status>+ENTITY, inside False: it changes levels on the old symbol only)."""
+    glob = str(paths.data_dir() / "silver" / "cm_bhavcopy" / "year=*" / "part.parquet")
+    names = str(paths.data_dir() / "silver" / "security_master" / "names.parquet")
+    se = con.execute(f"""select c.symbol, e.entity, min(c.date) as first, max(c.date) as last from read_parquet('{glob}', union_by_name=true) c
+                         join (select distinct isin, entity from read_parquet('{names}')) e on e.isin = c.isin where c.series = 'EQ' group by 1, 2""").df()
+    se["first"], se["last"] = pd.to_datetime(se["first"]), pd.to_datetime(se["last"])
+    f = df[df["apply"].astype(bool) & df["factor"].notna() & (df["factor"] > 0) & (df["factor"] != 1)].copy()
+    f["ex_date"] = pd.to_datetime(f["ex_date"])
+    m = f.merge(se[["symbol", "entity"]], on="symbol").merge(se.rename(columns={"symbol": "symbol_o"}), on="entity")
+    # only a symbol that had stopped trading before the ex-date (a rename), never one trading alongside (a second line of the same company)
+    m = m[(m["symbol_o"] != m["symbol"]) & (m["last"] < m["ex_date"])]
+    have = df.assign(ex_date=pd.to_datetime(df["ex_date"]))[["symbol", "ex_date"]]
+    rows = []
+    for r in m.drop_duplicates(["symbol_o", "ex_date", "symbol"]).itertuples():
+        h = have[have["symbol"] == r.symbol_o]
+        if ((h["ex_date"] - r.ex_date).abs() <= pd.Timedelta(days=3)).any():
+            continue
+        rows.append({"symbol": r.symbol_o, "ex_date": r.ex_date, "kind": r.kind, "subject": r.subject, "status": f"{r.status}+ENTITY", "factor": r.factor,
+                     "inside": False, "apply": True, "basis": f"carried from {r.symbol} (the same company's earlier symbol)"})
+    if not rows:
+        return df
+    out = pd.concat([df, pd.DataFrame(rows)], ignore_index=True).sort_values(["symbol", "ex_date"]).reset_index(drop=True)
+    out["ex_date"] = pd.to_datetime(out["ex_date"]).astype("datetime64[us]")
+    return out
+
+
+MANUAL = Path(__file__).parent / "registrations" / "ca_manual_v1.csv"
+
+
+def manual(df: pd.DataFrame, con) -> pd.DataFrame:
+    """The big-falls review of 3 Nov 2026 (Madhav's yes; registrations/ca_manual_v1.csv, each row with its evidence). A row replaces any automatic
+    row of the same stock within 3 days of its ex-date:
+      apply  the stated factor, applied (status MANUAL)
+      price  a demerger: factor = last close before the ex-date / first close on or after it, any of the EQ, BE and BZ series (a demerged stock
+             often trades in BE for a while), applied (status MANUAL_DEMERGER); it takes the ex-day's own move out with the demerger
+      flag   not applied, marked inside the history (status MANUAL_FLAG), so gold/ca_flags lists it and the lab skips any window across it"""
+    if not MANUAL.exists():
+        return df
+    m = pd.read_csv(MANUAL)
+    m["ex_date"] = pd.to_datetime(m["ex_date"])
+    glob = str(paths.data_dir() / "silver" / "cm_bhavcopy" / "year=*" / "part.parquet")
+    rows = []
+    for r in m.itertuples():
+        before = con.execute(f"select close from read_parquet('{glob}', union_by_name=true) where symbol = ? and series in ('EQ','BE','BZ') and close > 0 "
+                             "and date < ? and date >= ? order by date desc limit 1", [r.symbol, r.ex_date, r.ex_date - pd.Timedelta(days=20)]).fetchone()
+        after = con.execute(f"select close from read_parquet('{glob}', union_by_name=true) where symbol = ? and series in ('EQ','BE','BZ') and close > 0 "
+                            "and date >= ? and date <= ? order by date limit 1", [r.symbol, r.ex_date, r.ex_date + pd.Timedelta(days=20)]).fetchone()
+        cb, ca = (before[0] if before else None), (after[0] if after else None)
+        if r.decision == "apply":
+            f, st, ap = float(r.factor), "MANUAL", True
+        elif r.decision == "price":
+            f = cb / ca if cb and ca else None
+            st, ap = "MANUAL_DEMERGER", f is not None and f > 1
+        else:
+            f, st, ap = None, "MANUAL_FLAG", False
+        rows.append({"symbol": r.symbol, "ex_date": r.ex_date, "kind": r.kind, "subject": r.evidence, "status": st, "factor": f, "close_before": cb,
+                     "close_after": ca, "inside": True, "raw_gap_cc": (cb / ca) if cb and ca else None, "apply": bool(ap),
+                     "basis": f"manual review 3 Nov 2026 ({r.decision}): {r.evidence}"})
+    mm = pd.DataFrame(rows)
+    df = df.copy()
+    df["ex_date"] = pd.to_datetime(df["ex_date"])
+    drop = pd.Series(False, index=df.index)
+    for r in mm.itertuples():
+        drop |= (df["symbol"] == r.symbol) & ((df["ex_date"] - r.ex_date).abs() <= pd.Timedelta(days=3))
+    out = pd.concat([df[~drop], mm], ignore_index=True).sort_values(["symbol", "ex_date"]).reset_index(drop=True)
+    out["ex_date"] = pd.to_datetime(out["ex_date"]).astype("datetime64[us]")    # the column's type as before the manual rows (timestamp[us])
+    return out
 
 
 def confirm(df: pd.DataFrame, con) -> pd.DataFrame:

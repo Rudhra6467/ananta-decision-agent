@@ -105,6 +105,9 @@ def test_nothing_that_decides_reads_the_news_record():
         if f.name in ("hf_news.py", "reconstruct.py"):
             continue
         t = f.read_text()
+        if f.name == "annstudies.py":     # 3 Nov 2026: HFN1T, research only: it uses the historical ratings, never the forward record
+            assert "news_read" not in t and "forward" not in t.replace("forward_", "")
+            continue
         if "news_read" in t or "hf_news" in t:
             readers.append(f.name)
     assert readers == [], readers                          # only the reconstruction card shows the counts, as a note

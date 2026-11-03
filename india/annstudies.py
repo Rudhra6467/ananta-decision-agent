@@ -42,6 +42,20 @@ def _sessions() -> pd.DatetimeIndex:
     return pd.DatetimeIndex(sorted(pd.to_datetime(cal.loc[cal["is_trading_day"], "date"])))
 
 
+def known_session(t: pd.Series, s: pd.DatetimeIndex) -> pd.Series:
+    """The session whose close is the first one after each dissemination time: the same session if it is a trading day and t <= 15:30, else
+    the next session (NaT past the calendar's end)."""
+    day = t.dt.normalize()
+    i = np.clip(s.searchsorted(day), 0, len(s) - 1)       # the first session on or after the day
+    on = np.asarray(s[i] == day)
+    j = np.where(on & (t.dt.time <= CLOSE).to_numpy(), i, np.where(on, i + 1, i))
+    j = np.where(np.asarray(s[np.clip(i, 0, len(s) - 1)] < day), len(s), j)   # the day is after the last session
+    out = pd.Series(pd.NaT, index=t.index, dtype="datetime64[ns]")
+    ok = j < len(s)
+    out[ok] = s[j[ok]]
+    return out
+
+
 def timestamped() -> pd.DataFrame:
     """The timestamped announcements, 2010 to 2023-12-29, each with the session whose close is the first one after it was disseminated, and the
     V02 category from the same keyword rules as the PR files (india.przip._cat on NSE's category and the subject text)."""
@@ -51,15 +65,8 @@ def timestamped() -> pd.DataFrame:
     a = a[a["file_date"] <= LAST]
     t = pd.to_datetime(a["exchdisstime"]).fillna(pd.to_datetime(a["an_dt"]))
     a = a.assign(t=t).dropna(subset=["t"])
-    s = _sessions()
-    day = a["t"].dt.normalize()
-    i = s.searchsorted(day)                                  # the first session on or after the day
-    i = np.clip(i, 0, len(s) - 1)
-    same = (s[i] == day) & (a["t"].dt.time <= CLOSE)
-    j = np.where(same, i, np.where(s[i] == day, i + 1, i))   # a trading day after 15:30 -> the next session; a non-trading day -> the next session
-    ok = j < len(s)
-    a = a[ok].copy()
-    a["date"] = s[j[ok]]
+    a["date"] = known_session(a["t"], _sessions())
+    a = a.dropna(subset=["date"]).copy()
     a = a[a["date"] <= LAST]
     a["nse_category"] = a["category"].astype(str)
     a["category"] = (a["nse_category"] + " " + a["text"].astype(str)).map(_cat)

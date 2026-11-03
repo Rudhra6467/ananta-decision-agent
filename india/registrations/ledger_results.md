@@ -203,7 +203,7 @@ Outcome: 30 had too little data to judge across 30 variants.
 Claim before the run: Entries signalled on the first day of a market state earn a different net return than entries signalled 21-40 sessions before it.
 Outcome: 30 had too little data to judge across 30 variants.
 
-## events (4 studies)
+## events (5 studies)
 
 ### CA1: Corporate actions: do stocks do better after a bonus or split, a buyback, or a large dividend, from the ex-date on?
 Claim before the run: Bonus issues and splits signal management confidence and widen ownership; buybacks signal the shares are cheap; a large dividend signals strong cash flow: each is followed by better 20-60 session returns than ordinary days.
@@ -229,6 +229,10 @@ Outcome: 11 did not hold, 3 had too little data to judge, 1 held up, weaker in o
 | variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
 |---|---|---|---|---|---|---|
 | band_hit_low | CONDITIONAL | -7.54% | -6.3 | -3.12% | -2.7 | 3.078 |
+
+### V02T: V02 on the timestamped announcements: announcement categories, 20-session drift after the day (top-500 stocks)
+Claim before the run: After an announcement of a given category, the stock's 20-session return beyond Nifty differs from zero in the stated direction (V02's rule, on NSE's timestamped announcements instead of the PR files)
+Outcome: 12 did not hold, 1 had too little data to judge across 13 variants.
 
 ### V03: IPOs: allotment gain, buying on day one, strong versus weak listings
 Claim before the run: Allottees gain on listing day; buying at the day-1 close lags Nifty over 20 and 60 sessions; strong and weak listings differ afterwards.

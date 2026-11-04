@@ -699,8 +699,28 @@ def admitted() -> set[str]:
 
 # ------------------------------------------------------------------------------------------------------------------------------- the evening run
 
+def _current_readmodel(rm: dict) -> dict:
+    """The read model for the newest stock-book decision day. The paper job writes that day's decision file and then runs this card
+    before it rebuilds the read model, so latest.json can still describe the session before (4 Nov 2026: the 3 Nov evening run built the
+    2 Nov card again and the 3 Nov card was never written). Rebuild it first in that case; reporting only, no rule is read differently."""
+    from india import readmodel
+
+    try:
+        newest = readmodel.latest_day()
+    except Exception:  # noqa: BLE001 - no decision file yet: keep what there is
+        return rm
+    if (rm.get("data_through") or "") >= newest:
+        return rm
+    try:
+        return readmodel.build(newest)
+    except Exception:  # noqa: BLE001 - a read model that cannot build leaves the card on the old one, as before
+        return rm
+
+
 def build(day: str | None = None) -> dict:
     rm = _load(_data() / "readmodel" / "latest.json", {}) or {}
+    if day is None:
+        rm = _current_readmodel(rm)
     sess = sessions()
     day = day or rm.get("data_through") or (sess[-1] if sess else dt.date.today().isoformat())
     st = _load(_paper() / "state.json", {}) or {}

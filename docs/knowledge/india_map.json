@@ -1,21 +1,21 @@
 {
  "summary": {
-  "built_at": "2026-11-02T19:12:17",
-  "studies": 169,
-  "variants": 1393,
+  "built_at": "2026-11-03T20:35:09",
+  "studies": 173,
+  "variants": 1428,
   "gap_counts": {
-   "A planned, not done": 27,
+   "A planned, not done": 23,
    "B done, not noted": 0,
-   "C proved, not in the paper rules": 12,
+   "C proved, not in the paper rules": 14,
    "D in the paper rules, not in the voice's facts": 0,
    "E tested, but not at full scale": 36,
    "F the voice has it, but no plain-words name": 0,
    "G a result the screens do not show": 2
   },
-  "gaps_total": 77,
-  "needs_yes": 12,
-  "seconds": 2.5,
-  "words": "The map holds 169 studies and 1393 variants. 77 mismatches between layers: 27 planned, not done, 12 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 12 need Madhav's yes."
+  "gaps_total": 75,
+  "needs_yes": 14,
+  "seconds": 2.6,
+  "words": "The map holds 173 studies and 1428 variants. 75 mismatches between layers: 23 planned, not done, 14 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 14 need Madhav's yes."
  },
  "rows": [
   {
@@ -6633,6 +6633,97 @@
    ]
   },
   {
+   "id": "HFN1T",
+   "family": "news_tone",
+   "source": "Hugging Face model",
+   "title": "HFN1 on the timestamped announcements: does FinBERT's reading tell where the stock goes next?",
+   "registered": true,
+   "registered_at": "2026-11-03",
+   "versions": 1,
+   "variants": 8,
+   "verdicts": {
+    "REJECTED": 7,
+    "INCONCLUSIVE": 1
+   },
+   "best_verdict": "REJECTED",
+   "proved": false,
+   "scale": "full",
+   "last_result": "2026-11-03T17:59:10+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": false,
+   "paper_role": null,
+   "in_facts": false,
+   "plain_name": null,
+   "in_readmodel": false,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "spread|drift5",
+     "verdict": "REJECTED",
+     "dev_mean": 0.00035601348124641514,
+     "dev_t": 0.22780938292380884,
+     "dev_blocks": 31,
+     "val_mean": -0.0039845847300245185,
+     "val_t": -1.9701501360984055,
+     "val_blocks": 24
+    },
+    {
+     "variant": "neg|drift5",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0009336728550093126,
+     "dev_t": -0.6767406838163684,
+     "dev_blocks": 31,
+     "val_mean": 0.004028037031579982,
+     "val_t": 1.8581502213907195,
+     "val_blocks": 24
+    },
+    {
+     "variant": "pos|drift20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.003963954186542447,
+     "dev_t": 1.1584642913789411,
+     "dev_blocks": 31,
+     "val_mean": 0.0017809745393162308,
+     "val_t": 0.44033281327421575,
+     "val_blocks": 24
+    },
+    {
+     "variant": "neg|drift20",
+     "verdict": "REJECTED",
+     "dev_mean": -0.0012376694426138892,
+     "dev_t": -0.35766040181844194,
+     "dev_blocks": 31,
+     "val_mean": 0.0022079706812874345,
+     "val_t": 0.356940073956572,
+     "val_blocks": 24
+    },
+    {
+     "variant": "within_cat|drift20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0011053779737878807,
+     "dev_t": 0.12681569764564415,
+     "dev_blocks": 31,
+     "val_mean": 0.0022382054994168087,
+     "val_t": 0.21812670948312493,
+     "val_blocks": 24
+    },
+    {
+     "variant": "spread|drift20",
+     "verdict": "REJECTED",
+     "dev_mean": 0.005201623629156336,
+     "dev_t": 2.1832667025255006,
+     "dev_blocks": 31,
+     "val_mean": -0.00042699614197120396,
+     "val_t": -0.10572344557501362,
+     "val_blocks": 24
+    }
+   ]
+  },
+  {
    "id": "HG1",
    "family": "hedge",
    "source": "the lab",
@@ -7889,6 +7980,68 @@
      "val_mean": -0.006276766437273866,
      "val_t": -2.415414183162027,
      "val_blocks": 71
+    }
+   ]
+  },
+  {
+   "id": "RX3",
+   "family": "rx_drafts",
+   "source": "reconstruction draft (Madhav's yes)",
+   "title": "Breaking out of a tight base: is there a rule, known at the close, for the next session's run?",
+   "registered": true,
+   "registered_at": "2026-11-03",
+   "versions": 1,
+   "variants": 3,
+   "verdicts": {
+    "REJECTED": 1,
+    "OPPOSITE": 1,
+    "CONDITIONAL": 1
+   },
+   "best_verdict": "CONDITIONAL",
+   "proved": true,
+   "scale": "full",
+   "last_result": "2026-11-03T00:22:17+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": false,
+   "paper_role": null,
+   "in_facts": false,
+   "plain_name": null,
+   "in_readmodel": true,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "U|base_near_top|next_oc",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.0026987792260062277,
+     "dev_t": 8.460901238811783,
+     "dev_blocks": 70,
+     "val_mean": 0.0004660333144191533,
+     "val_t": 2.2878988178453152,
+     "val_blocks": 24
+    },
+    {
+     "variant": "L|breakout_base|fwd5",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.003999751343540322,
+     "dev_t": -2.5933630494371247,
+     "dev_blocks": 70,
+     "val_mean": -0.001153055361755964,
+     "val_t": -0.6183956208891204,
+     "val_blocks": 24
+    },
+    {
+     "variant": "U|breakout_base|next_oc",
+     "verdict": "REJECTED",
+     "dev_mean": -8.462842901683119e-05,
+     "dev_t": -0.17565749987986734,
+     "dev_blocks": 70,
+     "val_mean": -0.00016306016288033598,
+     "val_t": -0.3753066564275088,
+     "val_blocks": 24
     }
    ]
   },
@@ -12914,6 +13067,97 @@
    ]
   },
   {
+   "id": "V02T",
+   "family": "events",
+   "source": "the lab",
+   "title": "V02 on the timestamped announcements: announcement categories, 20-session drift after the day (top-500 stocks)",
+   "registered": true,
+   "registered_at": "2026-11-03",
+   "versions": 1,
+   "variants": 13,
+   "verdicts": {
+    "INCONCLUSIVE": 1,
+    "REJECTED": 12
+   },
+   "best_verdict": "REJECTED",
+   "proved": false,
+   "scale": "full",
+   "last_result": "2026-11-03T17:28:50+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": false,
+   "paper_role": null,
+   "in_facts": false,
+   "plain_name": null,
+   "in_readmodel": false,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "buyback",
+     "verdict": "REJECTED",
+     "dev_mean": -0.006862955616349572,
+     "dev_t": -0.9138999894483194,
+     "dev_blocks": 31,
+     "val_mean": -0.0073552556011969375,
+     "val_t": -1.1195355576188477,
+     "val_blocks": 24
+    },
+    {
+     "variant": "rating",
+     "verdict": "REJECTED",
+     "dev_mean": 0.006021803283876598,
+     "dev_t": 0.8524897920405483,
+     "dev_blocks": 31,
+     "val_mean": -0.008127976827554563,
+     "val_t": -1.0593470739615898,
+     "val_blocks": 24
+    },
+    {
+     "variant": "management",
+     "verdict": "REJECTED",
+     "dev_mean": 0.001986263177980057,
+     "dev_t": 0.4160982193172149,
+     "dev_blocks": 31,
+     "val_mean": -0.0021548532241161666,
+     "val_t": -0.49675615717373,
+     "val_blocks": 24
+    },
+    {
+     "variant": "pledge",
+     "verdict": "REJECTED",
+     "dev_mean": -0.00759140242660632,
+     "dev_t": -0.4619929857987003,
+     "dev_blocks": 24,
+     "val_mean": -0.010326318677826315,
+     "val_t": -0.3977569364466946,
+     "val_blocks": 21
+    },
+    {
+     "variant": "bonus_split",
+     "verdict": "REJECTED",
+     "dev_mean": -0.015659404505313883,
+     "dev_t": -2.625127009767592,
+     "dev_blocks": 30,
+     "val_mean": 0.003058973981813155,
+     "val_t": 0.3972240174959487,
+     "val_blocks": 24
+    },
+    {
+     "variant": "dividend",
+     "verdict": "REJECTED",
+     "dev_mean": 0.0013659519587579988,
+     "dev_t": 0.35645849319581746,
+     "dev_blocks": 30,
+     "val_mean": -0.001939921496268534,
+     "val_t": -0.3879424457676519,
+     "val_blocks": 24
+    }
+   ]
+  },
+  {
    "id": "V03",
    "family": "events",
    "source": "the lab",
@@ -13082,6 +13326,96 @@
      "val_mean": NaN,
      "val_t": NaN,
      "val_blocks": 2
+    }
+   ]
+  },
+  {
+   "id": "W500",
+   "family": "W500",
+   "source": "the lab",
+   "title": "W500: do the narrow-universe results (OC1, IB1, GP1) carry to the next band of stocks?",
+   "registered": true,
+   "registered_at": "2026-11-03",
+   "versions": 1,
+   "variants": 11,
+   "verdicts": {
+    "VALIDATED": 11
+   },
+   "best_verdict": "VALIDATED",
+   "proved": true,
+   "scale": "full",
+   "last_result": "2026-11-03T17:06:16+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": false,
+   "paper_role": null,
+   "in_facts": false,
+   "plain_name": null,
+   "in_readmodel": true,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "OC1|STOCKS|k15|E2|X2|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 23.378068941968483,
+     "dev_t": 28.291798008710064,
+     "dev_blocks": 697,
+     "val_mean": 22.186051297168365,
+     "val_t": 34.79386974134946,
+     "val_blocks": 1475
+    },
+    {
+     "variant": "OC1|STOCKS|k30|E2|X2|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 23.00478649507502,
+     "dev_t": 23.641195103929018,
+     "dev_blocks": 697,
+     "val_mean": 22.664514663654533,
+     "val_t": 31.735125254381465,
+     "val_blocks": 1475
+    },
+    {
+     "variant": "OC1|STOCKS|k15|E2|X1|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 24.38586231397092,
+     "dev_t": 23.522765560056317,
+     "dev_blocks": 697,
+     "val_mean": 23.10307929505169,
+     "val_t": 30.104082047229674,
+     "val_blocks": 1475
+    },
+    {
+     "variant": "OC1|STOCKS|k30|E2|X1|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 24.337640566808776,
+     "dev_t": 17.806368181529553,
+     "dev_blocks": 697,
+     "val_mean": 23.477709007088443,
+     "val_t": 26.492590176266837,
+     "val_blocks": 1475
+    },
+    {
+     "variant": "OC1|STOCKS|k15|E1|X2|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 20.68102067646031,
+     "dev_t": 19.280229213245217,
+     "dev_blocks": 697,
+     "val_mean": 21.536522713833325,
+     "val_t": 25.002186304413925,
+     "val_blocks": 1475
+    },
+    {
+     "variant": "OC1|STOCKS|k30|E1|X2|vs_base",
+     "verdict": "VALIDATED",
+     "dev_mean": 21.868664077041817,
+     "dev_t": 17.944870619907206,
+     "dev_blocks": 697,
+     "val_mean": 22.11144714517088,
+     "val_t": 23.951685313012074,
+     "val_blocks": 1475
     }
    ]
   },
@@ -13340,6 +13674,14 @@
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
+   "class": "C",
+   "meaning": "proved, not in the paper rules",
+   "id": "RX3",
+   "what": "CONDITIONAL: Breaking out of a tight base: is there a rule, known at the close, for the next session's ",
+   "lane": "DECISION",
+   "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
+  },
+  {
    "class": "E",
    "meaning": "tested, but not at full scale",
    "id": "SZ2",
@@ -13580,6 +13922,14 @@
    "fix": "say so in the facts; re-run when the data allows"
   },
   {
+   "class": "C",
+   "meaning": "proved, not in the paper rules",
+   "id": "W500",
+   "what": "VALIDATED: W500: do the narrow-universe results (OC1, IB1, GP1) carry to the next band of stocks?",
+   "lane": "DECISION",
+   "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
+  },
+  {
    "class": "A",
    "meaning": "planned, not done",
    "id": "D14",
@@ -13762,38 +14112,6 @@
    "what": "tracker: BLOCKED: Two families validated on development plus validation years; holdout opened once per family, and the",
    "lane": "SAFE",
    "fix": "build it, or mark it dropped with a reason"
-  },
-  {
-   "class": "A",
-   "meaning": "planned, not done",
-   "id": "MISS_PATTERN:up:breakout_base:intraday_run",
-   "what": "an approved draft with no study answering it",
-   "lane": "SAFE",
-   "fix": "register and run it, or record why not"
-  },
-  {
-   "class": "A",
-   "meaning": "planned, not done",
-   "id": "HELD_INTO_FALL:CTL",
-   "what": "an approved draft with no study answering it",
-   "lane": "SAFE",
-   "fix": "register and run it, or record why not"
-  },
-  {
-   "class": "A",
-   "meaning": "planned, not done",
-   "id": "HELD_INTO_FALL:PULL",
-   "what": "an approved draft with no study answering it",
-   "lane": "SAFE",
-   "fix": "register and run it, or record why not"
-  },
-  {
-   "class": "A",
-   "meaning": "planned, not done",
-   "id": "HELD_INTO_FALL:REV",
-   "what": "an approved draft with no study answering it",
-   "lane": "SAFE",
-   "fix": "register and run it, or record why not"
   }
  ]
 }

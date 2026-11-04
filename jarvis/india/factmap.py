@@ -222,12 +222,20 @@ def same_number() -> list[dict]:
     def row(name, ok, words):
         out.append({"check": name, "state": "PASS" if ok else "FAIL", "words": words})
     # E1 the Nifty on the Today screen
-    tile = next((n for n in (surfaces.today().get("numbers") or []) if str(n.get("label", "")).startswith("Nifty")), {})
+    td = surfaces.today()
+    tile = next((n for n in (td.get("numbers") or []) if str(n.get("label", "")).startswith("Nifty")), {})
     live = ((t.get("index_now") or {}).get("rows") or {}).get("NIFTY 50") or {}
     if live.get("last") is not None:
         shown = float(re.sub(r"[^0-9.]", "", str(tile.get("value") or "0")) or 0)
         ok = abs(shown - live["last"]) < 1.0
         row("Today screen Nifty = what Ananta says", ok, f"screen {tile.get('label')} {tile.get('value')}; Ananta {live['last']:,.2f} ({t['index_now'].get('kind')})")
+    # E1b (4 Nov: the first box swipes up to Bank Nifty) the Bank Nifty page against what Ananta says
+    bank = next((p for x in td.get("tiles") or [] for p in x.get("pages") or [] if p.get("label") == "Bank Nifty"), {})
+    live_b = ((t.get("index_now") or {}).get("rows") or {}).get("NIFTY BANK") or {}
+    if live_b.get("last") is not None and bank:
+        shown = float(re.sub(r"[^0-9.]", "", str(bank.get("value") or "0")) or 0)
+        row("Today screen Bank Nifty = what Ananta says", abs(shown - live_b["last"]) < 1.0,
+            f"screen {bank.get('value')} ({bank.get('sub2')}); Ananta {live_b['last']:,.2f} ({t['index_now'].get('kind')})")
     # E2 the managed plan on Money against the today-block
     plan = (surfaces.money(full=True).get("plan") or {})
     scr = {b.get("symbol") for b in plan.get("buys") or []}

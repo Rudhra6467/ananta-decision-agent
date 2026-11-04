@@ -1,6 +1,7 @@
 // The public front page of livetrading247.com (signed-out visitors on the web): a product page, not an article. Black and gold
 // (the Bat palette, fixed here so the page looks the same for everyone), one headline, two buttons, the app itself in a phone
-// frame with live numbers, four live figures, three short reasons, then sign-in. Numbers come from /v3/public/status.
+// frame with live numbers, four live figures, three short reasons. Sign-in sits right under the hero's two buttons (4 Nov, Madhav).
+// Numbers come from /v3/public/status.
 import { useRef } from "react";
 import { LANDING } from "./theme";
 import { Linking, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
@@ -94,8 +95,9 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
   const { width } = useWindowDimensions();
   const wide = width >= 900;
   const scroll = useRef<ScrollView>(null);
-  const signY = useRef(0);
-  const toSignIn = () => scroll.current?.scrollTo({ y: Math.max(0, signY.current - 24), animated: true });
+  // where the sign-in box is in the page: the hero row's y, the text column's y in it, the box's y in the column (each onLayout is relative)
+  const at = useRef({ hero: 0, col: 0, form: 0 });
+  const toSignIn = () => scroll.current?.scrollTo({ y: Math.max(0, at.current.hero + at.current.col + at.current.form - 24), animated: true });
   const invite = () => Linking.openURL(`mailto:${contact}?subject=Ananta%20invite`);
   const pad = wide ? 48 : 20;
   return (
@@ -111,8 +113,9 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
           </Pressable>
         </View>
 
-        <View style={{ flexDirection: wide ? "row" : "column", alignItems: "center", gap: wide ? 56 : 36, paddingTop: wide ? 48 : 20, paddingBottom: 48 }}>
-          <View style={{ flex: wide ? 1 : undefined, gap: 22, alignItems: wide ? "flex-start" : "center" }}>
+        <View onLayout={(e) => { at.current.hero = e.nativeEvent.layout.y; }}
+          style={{ flexDirection: wide ? "row" : "column", alignItems: "center", gap: wide ? 56 : 36, paddingTop: wide ? 48 : 20, paddingBottom: 48 }}>
+          <View onLayout={(e) => { at.current.col = e.nativeEvent.layout.y; }} style={{ flex: wide ? 1 : undefined, width: wide ? undefined : "100%", gap: 22, alignItems: wide ? "flex-start" : "center" }}>
             <View style={{ backgroundColor: K.goldSoft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
               <Text style={{ color: K.gold, fontSize: 12, fontWeight: "800", letterSpacing: 1 }}>BUILT ON CLAUDE · PAPER TRADING</Text>
             </View>
@@ -125,6 +128,13 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
             <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap", justifyContent: wide ? "flex-start" : "center" }}>
               <Btn label="Request an invite" onPress={invite} />
               <Btn label="Sign in" onPress={toSignIn} ghost />
+            </View>
+            {/* 4 Nov (Madhav): the sign-in fields sit right under the two buttons, not at the end of the page */}
+            <View onLayout={(e) => { at.current.form = e.nativeEvent.layout.y; }} style={{ width: "100%", maxWidth: 420, alignSelf: wide ? "flex-start" : "center", gap: 10 }}>
+              {signIn}
+              <Text style={{ color: K.dim, fontSize: 14, textAlign: "center" }}>
+                No invite yet? <Text onPress={invite} style={{ color: K.gold, fontWeight: "700" }}>{contact}</Text>
+              </Text>
             </View>
           </View>
           <View style={{ flex: wide ? 1 : undefined, alignItems: "center" }}>
@@ -147,14 +157,6 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
           <Reason mark="◎" title="Does the homework" text="Every evening it re-rates your holdings, writes the cut list and picks replacements on paper. Every morning, the plan." />
           <Reason mark="?" title="Explains every idea" text="What it found, why, what would prove it wrong, and what it is doing. Ask “why?” by voice or text." />
           <Reason mark="✓" title="Proves before it trades" text={`Each rule is tested on years of prices (${n(st?.reviews, "23")} tests so far) and must beat random entries.`} />
-        </View>
-
-        <View onLayout={(e) => { signY.current = e.nativeEvent.layout.y; }} style={{ marginTop: 56, alignItems: "center", gap: 14 }}>
-          <Text style={{ color: K.text, fontSize: 28, fontWeight: "800", textAlign: "center" }}>Already invited?</Text>
-          <View style={{ width: "100%", maxWidth: 420 }}>{signIn}</View>
-          <Text style={{ color: K.dim, fontSize: 14, textAlign: "center" }}>
-            No invite yet? <Text onPress={invite} style={{ color: K.gold, fontWeight: "700" }}>{contact}</Text>
-          </Text>
         </View>
 
         <Text style={{ color: K.faint, fontSize: 12, lineHeight: 18, textAlign: "center", marginTop: 48 }}>

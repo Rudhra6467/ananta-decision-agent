@@ -30,7 +30,7 @@ BASICS = {
                  "expiring that day."),
     "session": ("Pre-open 09:00-09:08 IST takes orders and finds the opening price (index options do not trade in pre-open); normal trading "
                 "09:15-15:30 IST. In Toronto winter time that is 10:30 pm to 5:00 am; the options line's window 09:15-10:15 IST is 10:45 to "
-                "11:45 pm Toronto."),
+                "11:45 pm Toronto in winter (trader_desk.ist_in_toronto has the day's own times)."),
     "momentum_vs_rsi": ("RSI(14) measures a short-term stretch over about three weeks; momentum in the trader's sense is months-long "
                         "strength (3-12 months, often against the index). Ananta's breakout rule (a one-month high on volume) and the managed "
                         "book's filters (above the 50- and 200-day averages) are trend and momentum rules; RSI over 70 is used only as a "

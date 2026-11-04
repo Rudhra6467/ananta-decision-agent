@@ -84,6 +84,286 @@ def _nifty_tile(rm: dict) -> dict:
             "sub": nf["line"].split(" · ", 1)[-1] if " · " in nf["line"] else ""}
 
 
+# ---- 4 Nov (Madhav): "Total 2 boxes shows 4 informations. 2 in each shown with slide inside the box." -------------------------------------
+# Box 1: Nifty 50, swipe up for Bank Nifty. Box 2: the stocks' value, swipe up for the options line. One Kite call for both indexes and one
+# for the open option; each page falls back to the nightly files when Kite cannot be read. The old "numbers" stay for the fact map (E1).
+
+def _signed(x: float, nd: int = 0) -> str:
+    return ("+" if x > 0 else "−" if x < 0 else "") + f"{abs(x):,.{nd}f}"
+
+
+def _tone(x) -> str | None:
+    return None if not isinstance(x, (int, float)) or x == 0 else ("good" if x > 0 else "bad")
+
+
+def _index_page(name: str, last: float, prev: float | None, when: str) -> dict:
+    pts = (last - prev) if isinstance(prev, (int, float)) and prev else None
+    pct = 100 * pts / prev if pts is not None else None
+    return {"label": name, "value": f"{last:,.0f}", "tone": _tone(pts), "focus": "options",
+            "sub": (f"{_signed(pts)} ({_signed(pct, 1)}%)" if pts is not None else ""), "sub2": when}
+
+
+def _shared_fetch(clk: dict | None):
+    """One Kite call for the two indexes and the latest session's option contracts, shared by both boxes: two quote calls a few milliseconds
+    apart hit Kite's rate limit and the second (the option's price) came back empty. Returns a fetch in Kite's own shape, or None."""
+    if not clk:
+        return None
+    try:
+        from jarvis.india import livesession
+        syms = list(livesession.INDEX.values())
+        for r in livesession._jsonl(DATA / "paper" / "sp1" / "decisions.jsonl"):
+            opt = ((r.get("contracts") or {}).get("option") or {}) if r.get("date") == clk.get("latest_session") and r.get("choice") else {}
+            if opt.get("tradingsymbol"):
+                syms.append(f"NFO:{opt['tradingsymbol']}")
+        q = livesession.quotes(syms)
+        if q.get("error") or not q.get("rows"):
+            return None
+        got = q["rows"]
+        return lambda want: {s: {"last_price": got[s].get("last"), "ohlc": {"open": got[s].get("open"), "high": got[s].get("high"), "low": got[s].get("low"),
+                                                                           "close": got[s].get("prev_close")}} for s in want if s in got}
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _index_tile(rm: dict, clk: dict | None, fetch=None) -> dict:
+    pages = {}
+    if clk:
+        try:
+            from jarvis.india import livesession
+            rows = livesession.index_now(clk, fetch).get("rows") or {}
+            when = (f"Live · {dt.datetime.now(IST):%H:%M} IST" if clk["state"] == "open" else f"{_dw(clk['latest_session'])} close")
+            for key, name in (("NIFTY 50", "Nifty 50"), ("NIFTY BANK", "Bank Nifty")):
+                r = rows.get(key) or {}
+                if r.get("last") is not None:
+                    pages[key] = _index_page(name, r["last"], r.get("prev_close"), when)
+        except Exception:  # noqa: BLE001
+            pass
+    newer = (rm.get("market") or {}).get("newer_closes") or {}
+    tech = ((rm.get("technicals") or {}).get("indices")) or {}
+    for key, name in (("NIFTY 50", "Nifty 50"), ("NIFTY BANK", "Bank Nifty")):
+        if key in pages:
+            continue
+        n, t = newer.get(key) or {}, tech.get(key) or {}
+        close, d1, day = (n.get("close"), n.get("d1"), n.get("date")) if n.get("close") else (t.get("close"), t.get("change_1d"), t.get("as_of"))
+        if isinstance(close, (int, float)):
+            prev = close / (1 + d1) if isinstance(d1, (int, float)) else None
+            pages[key] = _index_page(name, close, prev, f"{_dw(day)} close")
+        else:
+            pages[key] = {"label": name, "value": "—", "sub": "no price on file", "focus": "options"}
+    return {"id": "market", "pages": [pages["NIFTY 50"], pages["NIFTY BANK"]]}
+
+
+def _option_open(x: dict, clk: dict) -> bool:
+    """A trade the options line took on the latest session is still open: one held to the next open until that open; an intraday one until
+    its exit time, during the session."""
+    ex = str(x.get("exit") or "").upper()
+    if ex == "NEXTOPEN":
+        return True
+    m = ex[1:] if ex.startswith("T") and ex[1:].isdigit() else None
+    if m and clk.get("state") == "open" and clk.get("latest_session") == clk.get("today_india"):
+        return dt.datetime.now(IST).strftime("%H%M") < m
+    return False
+
+
+def _account_tile(mb: dict, acct: dict, clk: dict | None, fetch=None) -> dict:
+    own = mb if mb.get("value_inr") else acct
+    is_mb = own is mb
+    n_st = mb.get("positions") if is_mb else len(acct.get("positions") or [])
+    stocks, cash = own.get("stocks_inr"), own.get("cash_inr")
+    p1 = {"label": "Stocks", "value": _inr(stocks) if isinstance(stocks, (int, float)) else "—", "focus": "holdings",
+          "sub": f"{n_st} stocks" if n_st else ("managed book" if is_mb else "account"),
+          "sub2": f"Cash {_inr(cash)}" if isinstance(cash, (int, float)) else ""}
+    opt = own.get("options_inr") or 0
+    p2 = {"label": "Options", "value": _inr(opt) if opt else "—", "focus": "options", "sub": "No open trade", "sub2": "One lot a trade"}
+    if clk:
+        try:
+            from jarvis.india import livesession
+            ot = livesession.options_today(clk, fetch)
+            taken = ot.get("taken") or []
+            live = [x for x in taken if _option_open(x, clk)]
+            name = {"NIFTY": "Nifty", "BANKNIFTY": "Bank Nifty"}
+            if live:
+                # a half-width box holds about 17 characters a line: "Open · Bank Nifty" over "55800 CE · +₹534" (the move coloured)
+                x = live[0]
+                mv = sum(y.get("paper_move_inr_per_lot") or 0 for y in live) if any(y.get("paper_move_inr_per_lot") is not None for y in live) else None
+                money = f"{_signed(mv)[0] if mv else ''}₹{abs(mv):,.0f}" if mv is not None else ""
+                if len(live) == 1:
+                    p2["sub"] = f"Open · {name.get(x.get('index'), x.get('index'))}"
+                    p2["sub2"] = " · ".join(v for v in (x.get("option") or "", money) if v)
+                else:
+                    p2["sub"] = f"{len(live)} open trades"
+                    p2["sub2"] = money or " and ".join(name.get(y.get("index"), str(y.get("index"))) for y in live)
+                p2["tone2"] = _tone(mv)
+            elif taken:
+                p2["sub2"] = f"{len(taken)} closed today" if clk.get("latest_session") == clk.get("today_india") else f"{len(taken)} closed {_dw(clk.get('latest_session')).split(' ')[0]}"
+        except Exception:  # noqa: BLE001
+            pass
+    return {"id": "account", "pages": [p1, p2]}
+
+
+# ---- 4 Nov (Madhav): "I didn't want paragraphs. Only point to point. Simple readable points." --------------------------------------------
+# The morning view and the cut list are written as sentences by their owners (records morningview.py, allocator.py); the screen says the same
+# facts as short points. Each known sentence has a short form; anything unknown is split, never dropped.
+import re as _re  # noqa: E402
+
+_MINUS = _re.compile(r"(?<![\w.])-(?=\d)")
+
+
+def _tidy(s: str) -> str:
+    s = _MINUS.sub("−", s.strip().rstrip(".").strip())
+    return s[:1].upper() + s[1:] if s else s
+
+
+def _split_points(text: str) -> list[str]:
+    """Sentences and top-level '; ' parts (not inside brackets), each a point."""
+    out, buf, depth = [], "", 0
+    t = str(text or "")
+    i = 0
+    while i < len(t):
+        ch = t[i]
+        depth += ch == "(" or ch == "["
+        depth -= (ch == ")" or ch == "]") and depth > 0
+        if depth == 0 and (t.startswith("; ", i) or (t.startswith(". ", i) and i + 2 < len(t) and (t[i + 2].isupper() or t[i + 2] in "₹"))):
+            out.append(buf)
+            buf, i = "", i + 2
+            continue
+        buf += ch
+        i += 1
+    out.append(buf)
+    return [_tidy(x) for x in out if x.strip(" .")]
+
+
+def _view_points(view: list[str]) -> list[str]:
+    first, rest = [], []
+    for s in view or []:
+        s = str(s).strip()
+        m = _re.match(r"US: the S&P 500 closed (\S+) \(([^)]*)\)(?:, the Nasdaq (\S+?))?\.?$", s)
+        if m:
+            first.append(_tidy(f"US: S&P 500 {m[1]}" + (f" · Nasdaq {m[3]}" if m[3] else "")))
+            continue
+        m = _re.match(r"Nifty closed at ([\d,]+) on ([^(]*?) ?\(([^)]*)\), (in an uptrend|in a downtrend|with no clear trend): (\S+) against its ten-week average, "
+                      r"(\S+) against its long-term average; (\d+)% of the 250 most-traded stocks are above their long-term average\.?$", s)
+        if m:
+            trend = {"in an uptrend": "uptrend", "in a downtrend": "downtrend", "with no clear trend": "no clear trend"}[m[4]]
+            first.insert(0, _tidy(f"Nifty closed {m[1]} ({m[3]}) on {m[2]} · {trend}"))
+            rest.append(_tidy(f"{m[7]}% of the 250 most-traded stocks are above their long-term average"))
+            rest.append(_tidy(f"Nifty is {m[5]} against its ten-week average, {m[6]} against its long-term average"))
+            continue
+        m = _re.match(r"The fear gauge is at ([\d.]+), (\S+) against its ten-week average( — options are pricing more movement than usual)?\.?$", s)
+        if m:
+            rest.insert(0, _tidy(f"India VIX {m[1]} ({m[2]} vs usual)" + (" · bigger swings priced in" if m[3] else "")))
+            continue
+        fl = _re.findall(r"(foreign|domestic) institutions (bought|sold) ₹([\d,]+) crore", s)
+        if fl and s.startswith("Yesterday"):
+            rest.insert(1 if rest else 0, _tidy(" · ".join(f"{'Foreign institutions' if w == 'foreign' and i == 0 else w} {v} ₹{a} cr" for i, (w, v, a) in enumerate(fl))))
+            continue
+        m = _re.match(r"Odds for today, from how Nifty has behaved since 2005: up (\d+)% \([^)]*\), down (\d+)% \([^)]*\), flat (\d+)%", s)
+        if m:
+            rest.append(f"History's odds for the day: up {m[1]}% · down {m[2]}% · flat {m[3]}% (base rates, not a forecast)")
+            continue
+        rest.extend(_split_points(s))
+    return first + rest
+
+
+def _watch_points(watch: list[str]) -> list[str]:
+    out = []
+    for s in watch or []:
+        s = str(s).strip()
+        m = _re.match(r"The lines that decide the day's label: above ([\d,]+) is an up day, below ([\d,]+) a down day", s)
+        if m:
+            out.append(f"Up day above {m[1]} · down day below {m[2]}")
+            continue
+        if s.startswith("Option chain"):
+            walls = _re.findall(r"(Bank Nifty|Nifty): puts/calls open [\d.]+, max pain ([\d,]+), biggest call wall ([\d,]+), put wall ([\d,]+)", s)
+            if walls:
+                out += [f"{ix} options: most calls at {c}, most puts at {p} (context only)" for ix, _mp, c, p in walls]
+                continue
+        m = _re.match(r"Results today: ([^.]+)\.", s)
+        if m:
+            out.append(f"Results today: {m[1]}")
+            continue
+        m = _re.match(r"Results came out after yesterday's close for names held in the practice book or your account: ([^.]+)", s)
+        if m:
+            names = [x.strip() for x in m[1].split(",") if x.strip()]
+            out.append("Results out for held names: " + ", ".join(names[:6]) + (f" and {len(names) - 6} more" if len(names) > 6 else ""))
+            continue
+        out.extend(_split_points(s))
+    return out
+
+
+_ACT = {"TRIM": "trim", "TIDY": "tidy up", "REDUCE": "halve", "CUT": "sell", "SELL": "sell", "EXIT": "sell", "HALVE": "halve"}
+
+
+def _why_point(sym: str, act: str, why: str) -> str:
+    w = str(why or "")
+    tiny = _re.search(r"Only ₹(\d[\d,]*\d|\d)", w)
+    if tiny:
+        return f"{sym}: only ₹{tiny[1]}, too small to matter"
+    wt = _re.search(r"(\d+)% of your stocks", w)
+    pnl = _re.search(r"([+-]\d+)% on what you paid", w)
+    to = _re.search(r"toward (\d+)%", w)
+    bits = [f"{wt[1]}% of your stocks" if wt else None, f"{pnl[1]}% on cost" if pnl else None]
+    tail = {"TRIM": f"trim to {to[1]}%" if to else "trim", "REDUCE": "halve it"}.get(act)
+    body = ", ".join(b for b in bits if b)
+    if body:
+        return _tidy(f"{sym}: {body}" + (f" · {tail}" if tail else ""))
+    return _tidy(f"{sym}: " + (_split_points(w) or [act.lower()])[0])
+
+
+def _holdings_points(hs: list[dict], bench: dict) -> list[str]:
+    groups: dict[str, list[str]] = {}
+    for x in hs:
+        if x.get("symbol"):
+            groups.setdefault(_ACT.get(str(x.get("action") or "").upper(), str(x.get("action") or "review").lower()), []).append(x["symbol"])
+    order = ["sell", "halve", "trim", "tidy up"]       # the bigger move first
+    keys = sorted(groups, key=lambda a: order.index(a) if a in order else len(order))
+    join = lambda xs: xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]   # noqa: E731
+    pts = [_tidy("; ".join(f"{a} {join(groups[a])}" for a in keys))] if groups else []
+    if bench.get("frozen_ret_pct") is not None and bench.get("nifty500_ret_pct") is not None:
+        pts.append(_tidy(f"Since {_dw(bench.get('frozen_day')).split(' ', 1)[-1]}: your holdings {bench['frozen_ret_pct']:+.2f}% · Nifty 500 {bench['nifty500_ret_pct']:+.2f}%"))
+    pts += [_why_point(x["symbol"], str(x.get("action") or "").upper(), x.get("why")) for x in hs if x.get("symbol")]
+    if bench.get("managed_ret_pct") is not None:
+        pts.append(_tidy(f"Managed book {bench['managed_ret_pct']:+.2f}% · session {bench.get('managed_sessions')} of 60"))
+    if bench.get("sessions") is not None:
+        pts.append("Nothing is judged before 60 sessions")
+    return pts
+
+
+def _plan_points(plan: dict) -> list[str]:
+    cuts = plan.get("cuts") if isinstance(plan.get("cuts"), list) else []
+    pts = []
+    if cuts:
+        freed = sum(float(c.get("inr") or 0) for c in cuts)
+        pts.append(_tidy(f"Sell {', '.join(str(c.get('symbol')) for c in cuts if c.get('symbol'))}" + (f" · frees about {_inr(freed)}" if freed else "")))
+    for b in plan.get("buys") or []:
+        pts.append(_tidy(f"Buy {b.get('symbol')} for {str(b.get('for_cut')).replace('+', ', ')}" + (f" · about {_inr(float(b['inr']))}" if b.get("inr") else "")
+                         + f" · {b.get('stop_pct') or 7}% stop"))
+    return pts or _split_points(plan.get("words") or "")
+
+
+def _day_ref(day: str | None, clk: dict) -> str:
+    try:
+        d = dt.date.fromisoformat(str(day)[:10])
+        t = dt.date.fromisoformat(str(clk.get("today_india"))[:10])
+    except (TypeError, ValueError):
+        return "next session"
+    return "today" if d == t else "tomorrow" if d == t + dt.timedelta(days=1) else "on " + d.strftime("%a")   # "on Wed": one line on a phone
+
+
+def headline(plan: dict, clk: dict) -> str:
+    """4 Nov (Madhav): "Like No change today … load more for details. One line." The full sentence is the Details."""
+    if not plan.get("for_session") or plan.get("error"):
+        return "No plan yet"
+    ref = _day_ref(plan["for_session"], clk)
+    buys = plan.get("buys") or []
+    n_cuts = len(plan.get("cuts") or []) if isinstance(plan.get("cuts"), list) else int(plan.get("cuts") or 0)
+    if plan.get("no_change") or not (buys or n_cuts):
+        return f"No change {ref}"
+    if buys:
+        return f"{len(buys)} swap{'s' if len(buys) != 1 else ''} {ref}"
+    return f"{n_cuts} cut{'s' if n_cuts != 1 else ''} {ref}, cash kept"
+
+
 def plan_sentence(plan: dict) -> str:
     """The managed plan as one sentence with company names (1 Nov: "a sentence, not a list of ten tickers")."""
     import re as _re
@@ -133,32 +413,39 @@ def today(full: bool = True) -> dict:
               else "From the morning view · nothing is placed")
     health = views._health(rm) if hasattr(views, "_health") else {}
     waiting = m.get("waiting") or views._waiting_count()
+    # 4 Nov (Madhav): every card is short points; the screen shows two and "Show more" opens the rest. "text" stays for older app builds.
     cards = []
-    if plan.get("words"):
+    if plan.get("words") and not plan.get("no_change"):   # a no-change plan is the headline itself; its card only repeated it
         cards.append({"kind": "plan", "label": f"{_dw(plan.get('for_session'))}'s plan · managed book", "text": plan["words"], "accent": True,
+                      "points": _plan_points(plan),
                       "foot": f"{len(plan.get('cuts') or [])} cuts · {len(plan.get('buys') or [])} buys · a buy opening over 2% up is skipped"})
     if m.get("view"):
         label = "The market" if view_is_current else f"The morning view written before the {m.get('session_words') or 'last'} open"
-        cards.append({"kind": "market", "label": label, "text": " ".join(m["view"][:2])})
+        cards.append({"kind": "market", "label": label, "text": " ".join(m["view"][:2]), "points": _view_points(m["view"])})
     hs = m.get("holdings_suggestions") or []
     if hs:
-        cards.append({"kind": "holdings", "label": "Your holdings", "text": "Cut list: " + ", ".join(x.get("symbol") for x in hs if x.get("symbol")),
-                      "foot": (acct.get("benchmark") or {}).get("words")})
+        cards.append({"kind": "holdings", "label": "Your holdings · the cut list", "text": "Cut list: " + ", ".join(x.get("symbol") for x in hs if x.get("symbol")),
+                      "points": _holdings_points(hs, acct.get("benchmark") or {})})
     if m.get("chances"):
-        cards.append({"kind": "chances", "label": "Our chances, honestly", "text": " ".join(m["chances"][:1])})
+        cards.append({"kind": "chances", "label": "Our chances, honestly", "text": " ".join(m["chances"][:1]), "points": _split_points(" ".join(m["chances"]))})
     if m.get("watch"):
-        cards.append({"kind": "watch", "label": "What to watch", "text": " ".join(m["watch"][:2])})
+        cards.append({"kind": "watch", "label": "What to watch", "text": " ".join(m["watch"][:2]), "points": _watch_points(m["watch"])})
     fills = mb.get("filled_today") or []
     evening = None
     if fills:
-        evening = {"label": f"What the managed book did on {_dw(mb.get('day'))}",
-                   "text": "; ".join((f"{'bought' if t.get('side') == 'BUY' else 'sold'} {t.get('qty')} {t.get('symbol')} at ₹{t.get('price'):,.2f}" if t.get("filled")
-                                      else f"skipped {t.get('symbol')} ({t.get('skipped')})") for t in fills)}
+        fill_words = [(f"{'Bought' if t.get('side') == 'BUY' else 'Sold'} {t.get('qty')} {t.get('symbol')} at ₹{t.get('price'):,.2f}" if t.get("filled")
+                       else f"Skipped {t.get('symbol')} ({t.get('skipped')})") for t in fills]
+        evening = {"label": f"What the managed book did on {_dw(mb.get('day'))}", "text": "; ".join(w[:1].lower() + w[1:] for w in fill_words), "points": fill_words}
     when = {"before_open": "before the open", "pre_open": "before the open", "open": "market hours", "closed": "after the close",
             "no_session": "no session today"}.get(state, "after the close")
+    fetch = _shared_fetch(clk or None)
+    tiles = [_index_tile(rm, clk or None, fetch), _account_tile(mb, acct, clk or None, fetch)]
+    nifty = tiles[0]["pages"][0]
     return {"ready": True, "session": session, "session_words": m.get("session_words"), "when": when, "now_words": now.strftime("%A %-d %b, %H:%M IST"),
             "decision": decision, "decision_source": source,
-            "numbers": [_nifty_tile(rm),
+            "headline": headline(plan, clk) if plan.get("brief") else ("No plan yet" if not m.get("headline") else "Today's morning view"),
+            "tiles": tiles,
+            "numbers": [{"label": "Nifty · " + str(nifty.get("sub2") or ""), "value": nifty.get("value"), "sub": nifty.get("sub")},
                         # 3 Nov (the Map's change 3): the account's value has one owner, the managed book (the twin is folded into it)
                         ({"label": "Your account", "value": _inr(mb["value_inr"]),
                           "sub": f"managed book · {mb.get('positions')} stocks, ₹{mb.get('options_inr') or 0:,.0f} options"} if mb.get("value_inr") else

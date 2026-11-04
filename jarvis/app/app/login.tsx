@@ -1,5 +1,5 @@
 // The front door. On the website (livetrading247.com) a signed-out visitor sees the product page (src/landing.tsx: black and gold,
-// the app in a phone frame, live numbers from /v3/public/status) with sign-in at the bottom. On the phone app it stays a plain
+// the app in a phone frame, live numbers from /v3/public/status) with sign-in under the hero's buttons. On the phone app it stays a plain
 // sign-in screen.
 import { useEffect, useState } from "react";
 import { router } from "expo-router";

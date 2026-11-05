@@ -763,9 +763,10 @@ def speak_text(reply: dict) -> str:
 class Lookups:
     """Read-only functions over Ananta's data. Each returns plain JSON-able data."""
 
-    def __init__(self, j, thread: str | None = None, here_t: str | None = None, guest: bool = False):
+    def __init__(self, j, thread: str | None = None, here_t: str | None = None, guest: bool = False, test: bool = False):
         self.j = j
         self.guest = guest                    # a friend's read-only view: may ask, may not prepare anything
+        self.test = test                      # a test question (source="eval"): reads everything, saves nothing (5 Nov)
         self.here_t = here_t                  # the place open on his screen right now
         self._ex = None
         self.thread = thread
@@ -798,7 +799,33 @@ class Lookups:
     # summarised and labelled, never presented as theirs, and its open positions, ids and dollar amounts are never handed over.
     GUEST_SCOPED = ("overview", "trades", "trade", "portfolio", "jarvis_book", "changes", "chain", "report", "mandate")
 
+    # A test question (source="eval": the outsider rounds, the Sunday exam, acceptance) reads everything but leaves nothing behind:
+    # no card in Madhav's approvals, no note, no watch, no research job. 5 Nov: the 1 Nov outsider round's "buy me some solana now"
+    # had left a real $100 Solana card worded "Madhav asked to buy Solana now", and Ananta offered it to him for four days.
+    TEST_WRITES = frozenset({"propose_paper_order", "propose_levels", "propose_switch", "propose_portfolio_decision", "propose_alert",
+                             "propose_alert_off", "propose_setting", "propose_mandate_change", "log_request", "comment_flag",
+                             "choose_fix", "remember", "watch", "change_watch", "start_research"})
+
+    def _test_write(self, name: str, args: dict) -> dict:
+        summary = name.replace("_", " ") + ": " + ", ".join(f"{k}={v}" for k, v in args.items() if v not in (None, ""))
+        if name == "propose_paper_order":
+            try:
+                from jarvis.service.manual import Manual
+
+                pv = Manual(self.j.db, self.j.now).preview({k: args.get(k) for k in ("side", "coin", "usd", "stop", "target", "reason")},
+                                                          self.j.prices())
+                summary = pv["summary"]
+            except ValueError as exc:
+                return {"error": str(exc)[:300]}
+        a = {"id": "TEST-" + uuid.uuid4().hex[:8], "kind": name, "summary": summary, "status": "TEST", "test": True}
+        if name.startswith("propose_"):
+            self.created.append(a)
+        return {("prepared" if name.startswith("propose_") else "done"): a, "test_run": True,
+                "note": "Test run: in a real conversation this would be saved for the owner. Nothing was saved."}
+
     def call(self, name: str, args: dict) -> Any:
+        if self.test and name in self.TEST_WRITES:
+            return self._test_write(name, args or {})
         if self.guest and name in self.GUEST_SCOPED:
             try:
                 return getattr(self, "g_" + name)(**(args or {}))
@@ -2568,7 +2595,7 @@ class Ask:
         try:
             can_escalate = key == "local" and mode_label == "auto"      # the router picked the Mac: a weak answer goes one level up
             try:
-                L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
+                L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                 raw, usage = self.providers[key](system, history, user_msg, L, log)
                 if can_escalate:
                     why = _local_doubt(raw, user_msg + " ".join(m["text"] for m in history) + usage.get("seen", ""))
@@ -2579,14 +2606,14 @@ class Ask:
                     used = self._next_level()
                     note = (note + "; " if note else "") + f"The Mac's model wasn't sure ({str(exc)[:60]}), so {MODELS[used]['label']} answered"
                     log.clear()
-                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
+                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     raw, usage = self.providers[used](system, history, user_msg, L, log)
                 # free Gemini busy: escalate once to Claude Haiku if allowed and within budget
                 elif key in ("gemini", "gemini_voice") and "haiku" in self.providers and self.spend()["left_usd"] > 0.02 and os.getenv("ANTHROPIC_API_KEY"):
                     used = "haiku"
                     note = (note + "; " if note else "") + "Gemini was busy, so Claude Haiku answered"
                     log.clear()
-                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
+                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     raw, usage = self.providers["haiku"](system, history, user_msg, L, log)
                 # Claude refused the call itself (no Anthropic credit left, overloaded, a bad key): free Gemini answers instead of nothing
                 elif MODELS[used]["provider"] == "claude" and "gemini" in self.providers and not L.created:
@@ -2594,7 +2621,7 @@ class Ask:
                     used = "gemini_voice" if voice and "gemini_voice" in self.providers else "gemini"
                     note = (note + "; " if note else "") + f"{why}, so Gemini answered"
                     log.clear()
-                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
+                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     raw, usage = self.providers[used](system, history, user_msg, L, log)
                 else:
                     raise exc
@@ -2606,7 +2633,7 @@ class Ask:
                     note = (note + "; " if note else "") + "Claude gave no words this time, so Gemini answered"
                     used = "gemini"
                     log.clear()
-                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"))
+                    L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     raw, usage = self.providers["gemini"](system, history, user_msg, L, log)
                     reply = parse(raw)
                 elif not L.created:

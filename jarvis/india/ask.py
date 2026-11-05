@@ -372,6 +372,33 @@ def _rs_trial() -> dict:
     return {k: d.get(k) for k in ("words", "scored", "need", "complete", "cum_rs_vs_avg", "cum_random_vs_avg", "history", "latest_picks", "what")}
 
 
+OPT_REVIEW = re.compile(r"\b(?:options? line|options? book|bank ?nifty|review|20 sessions|twenty sessions|gap|sizing|bar)\b", re.I)
+
+
+def _options_review() -> dict:
+    """5 Nov 2026 (Madhav: "yes to all", D): the four questions written down for the options line's 20-session review (records
+    india/registrations/sp1r_v1.json) and what its own 2017-2023 history said on each (manifests/lab7.json)."""
+    try:
+        s = json.loads((RECORDS / "india" / "registrations" / "sp1r_v1.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    hist = {}
+    try:
+        lab = json.loads((DATA / "manifests" / "lab7.json").read_text()).get("sp1r") or {}
+        for r in lab.get("rows") or []:
+            v, e = r.get("val") or [None, None, None], r.get("extra") or {}
+            hist[r["variant"]] = {"verdict": r.get("verdict"), "mean_net_bps_2018_23": v[0], "t": v[1], "trades_2018_23": e.get("signals_val"),
+                                  "one_lot_option_rs_2018_23": e.get("option_rs_sum_2018_23")}
+        hist["sizing"] = lab.get("sizing")
+    except (OSError, ValueError):
+        pass
+    return {"when": "at session 20 of the options line (about 27 Nov 2026)", "questions": s.get("questions"), "why": s.get("why"),
+            "history_2018_2023": hist,
+            "how_to_say_it": ("say the four questions in plain words and what the line's own 2018-2023 history said on each (those years shaped the "
+                              "line's design, so support there is never proof); nothing changes before the review, and any change after it needs "
+                              "Madhav's yes")}
+
+
 def _rx1_trial() -> dict:
     """The RX1 paper trial's own summary (records india/rx1trial.py, paper/rx1_trial.json), without the per-session rows."""
     try:
@@ -1536,6 +1563,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         f["trials"] = _load_trials()
         f["trials_meaning"] = ("every running trial: what it is, sessions done of needed, the expected finish date and what has happened so far; answer "
                                "with the numbers and the date, say what is being judged, and that nothing is read into a trial before it completes")
+    if TRIAL_TOPIC.search(text) or TRIAL_TOPIC.search(recent) or OPT_REVIEW.search(text):   # 5 Nov (D): the options line's review questions
+        f["options_line_review"] = _options_review()
     if MAP_TOPIC.search(text):                                 # 29 Oct (the one map): "what have you tested about X?" is answered from one source
         try:
             rows = knowledgemap.lookup(text)
@@ -1582,7 +1611,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
-        per_turn = ("today_live", "talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map", "trader_desk")
+        per_turn = ("today_live", "talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map", "trader_desk",
+                    "options_line_review")
         facts_text = (f"FACTS (the nightly read model, full data through {f.get('data_through')}; today_live, in the user turn, is today). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"

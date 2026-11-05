@@ -1686,7 +1686,8 @@
     "jarvis/india/speaker.py",
     "jarvis/india/voiceid.py",
     "jarvis/india/lookup.py",
-    "jarvis/india/answerguide.py"
+    "jarvis/india/answerguide.py",
+    "jarvis/india/preopen.py"
    ]
   },
   {

@@ -545,7 +545,14 @@ def today(rm: dict | None = None, now: dt.datetime | None = None, fetch=None, po
     out = {"clock": clk, "data_timing": data_timing(clk), "index_now": index_now(clk, fetch), "options_today": options_today(clk, fetch),
            "holdings_today": holdings_today(clk, positions, fetch), "managed_today": managed_today(clk, plan, fetch),
            "practice_today": practice_today(clk, fetch), "holidays_ahead": holidays_ahead(clk)}
-    out["words"] = " ".join(x for x in (clk["words"], out["index_now"].get("words"), out["options_today"].get("words"),
+    try:                                    # 5 Nov 2026 (Madhav: yes): the 09:08 IST pre-open read, until an hour after the open
+        from jarvis.india import preopen
+        po = preopen.today(clk)
+        if po:
+            out["preopen"] = po
+    except Exception:  # noqa: BLE001
+        pass
+    out["words"] = " ".join(x for x in (clk["words"], (out.get("preopen") or {}).get("words"), out["index_now"].get("words"), out["options_today"].get("words"),
                                         out["holdings_today"].get("words"), out["practice_today"].get("words"), out["managed_today"].get("words")) if x)
     out["how_to_say_it"] = ("This block is the truth about today. For any question about today, now, this morning, 'yesterday' (from Toronto) or "
                             "'the market', answer about clock.latest_session using index_now, options_today, holdings_today and managed_today. "

@@ -48,6 +48,8 @@ TARGETS: dict[str, tuple[list[str], tuple[int, ...] | None]] = {
     # ~/Library/LaunchAgents/stripped-2026-11-03 so either can come back
     "com.ananta.india.morningview": (["08:30"], None),
     "com.ananta.india.shadowtrader": (["08:36"], None),
+    # 5 Nov (Madhav: "yes to all"): the pre-open read, a minute after NSE's 09:00-09:08 IST pre-open has matched the opening prices
+    "com.ananta.india.preopen": (["09:09"], WEEKDAYS),
     "com.ananta.india.openingview": (["10:20"], None),
     "com.ananta.india.postclose": (["15:50"], WEEKDAYS),
     # 2 Nov: the fact map at three moments - mid-session, after the close before the day's file, after the nightly build

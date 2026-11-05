@@ -124,6 +124,9 @@ def run_moments(replay_conversation) -> list[dict]:
 FEATURE_QS = [
     ("relative-strength trial", "Ananta, how is the relative strength trial going?",
      lambda f: [r"relative.strength|strength", rf"\b{int((f.get('rs_trial') or {}).get('scored') or 0)}\b|no scored|not (?:yet )?scored|first scored|starts"]),
+    # 5 Nov 2026 (Madhav: "yes to all", C): the dated event calendar must reach the voice
+    ("event calendar", "Ananta, what big events are coming up that could move the market?",
+     lambda f: [r"\bRBI\b|Reserve Bank|\bFed\b|Federal Reserve|inflation|CPI|jobs report|GDP|budget"]),
 ]
 
 

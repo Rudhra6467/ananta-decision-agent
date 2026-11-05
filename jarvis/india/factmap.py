@@ -80,6 +80,8 @@ READ_BY = [
     ("paper/shadow/DATE.json", "jarvis/india/views.py", '"shadow"'), ("paper/teachers/forward_options.jsonl", "jarvis/india/views.py", "forward_options"),
     ("manifests/notable_results.json", "india/readmodel.py", "notable_results"),
     ("paper/sp1/book.json", "jarvis/india/views.py", "def sp1_live"), ("paper/sp1/decisions.jsonl", "jarvis/india/views.py", "def sp1_live"),
+    # 5 Nov 2026: the 09:08 IST pre-open read, said by the today block (livesession.today -> preopen.today) until 10:30 IST
+    ("paper/preopen/DATE.json", "jarvis/india/preopen.py", '"preopen"'),
 ]
 # Study results whose findings are written into the Ask's words by hand (not read): a re-run must update the words. Reported, not failed.
 COPIED = [

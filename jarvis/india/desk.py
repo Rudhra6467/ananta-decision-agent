@@ -53,7 +53,8 @@ BASICS = {
                 "their futures positions; the option-interest walls of the last session (context only); results and filings for its names; "
                 "holidays and expiry days; the F&O ban list. At 09:15 it reads the gap against the previous close; at 09:15, 09:30, 09:45 and "
                 "10:15 IST the options line decides from the move so far against the option's cost; the first 15-30 minutes' range tells a "
-                "trend day from a range day. It has no GIFT Nifty and no live Asian feed, so the gap is seen only at 09:15. Say the Toronto "
+                "trend day from a range day. It has no GIFT Nifty and no live Asian feed; since 5 Nov it reads NSE's pre-open at 09:08 IST "
+                "(the two indexes and ten heavy stocks), its first sight of the gap before 09:15. Say the Toronto "
                 "times too (trader_desk.prep.toronto_times)."),
     "gaps": ("A gap above the previous high: wait for the first 15-30 minutes to see if it holds (gap-and-go) or fills; flat open: the first "
              "range decides; a gap below the previous low: the same, the other way. The options line reads the gap at 09:15 and decides at "
@@ -61,9 +62,34 @@ BASICS = {
 }
 
 # Dated events from outside India that move the open (hand-written; each with its source)
+# 5 Nov 2026 (Madhav: "yes to all", C): the dated macro calendar, each date read from its owner's own published schedule on 5 Nov. "first_session"
+# is the first Indian session that can trade it (US releases at 8:30 am New York are 19:00 IST, after India's close). Re-check each source
+# when it changes; add the next quarter's dates before these run out (the FOMC's 2027 dates, the RBI's after February 2027).
 EVENTS = [
-    {"date": "2026-11-03", "what": "US midterm elections; results come in through the Indian session of Wednesday 4 Nov", "source": "US election calendar"},
+    {"date": "2026-11-03", "what": "US midterm elections; results came in through the Indian session of Wednesday 4 Nov", "source": "US election calendar"},
+    {"date": "2026-11-06", "what": "US jobs report for October (19:00 IST)", "first_session": "the Muhurat session on Sunday 8 Nov, then Monday 9 Nov",
+     "source": "BLS release schedule 2026 (bls.gov/schedule/2026)"},
     {"date": "2026-11-08", "what": "Diwali (Sunday): NSE holds a special Muhurat session; the time comes in NSE's circular", "source": "NSE holiday list"},
+    {"date": "2026-11-10", "what": "US inflation (CPI) for October (19:00 IST; India is closed that day)", "first_session": "Wednesday 11 Nov",
+     "source": "BLS release schedule 2026"},
+    {"date": "2026-11-12", "what": "India inflation (CPI) for October (MoSPI, usually 16:00 IST, after the close)", "first_session": "Friday 13 Nov",
+     "source": "MoSPI advance release calendar 2026-27 (Sept 2026 update)"},
+    {"date": "2026-11-28", "what": "India industrial production (IIP) for October (MoSPI; a Saturday)", "first_session": "Monday 30 Nov",
+     "source": "MoSPI advance release calendar 2026-27"},
+    {"date": "2026-11-30", "what": "India GDP for July-September (Q2 FY27) (MoSPI, usually 16:00 IST, after the close)", "first_session": "Tuesday 1 Dec",
+     "source": "MoSPI advance release calendar 2026-27"},
+    {"date": "2026-12-04", "what": "RBI monetary policy decision (meeting 2-4 Dec; usually announced about 10:00 IST, during the session)",
+     "first_session": "Friday 4 Dec itself", "source": "RBI press release, MPC schedule 2026-27"},
+    {"date": "2026-12-04", "what": "US jobs report for November (19:00 IST)", "first_session": "Monday 7 Dec", "source": "BLS release schedule 2026"},
+    {"date": "2026-12-09", "what": "US Federal Reserve rate decision (FOMC 8-9 Dec; 00:30 IST on 10 Dec)", "first_session": "Thursday 10 Dec",
+     "source": "federalreserve.gov, December 2026 calendar"},
+    {"date": "2026-12-10", "what": "US inflation (CPI) for November (19:00 IST)", "first_session": "Friday 11 Dec", "source": "BLS release schedule 2026"},
+    {"date": "2026-12-12", "what": "India inflation (CPI) for November (MoSPI; a Saturday)", "first_session": "Monday 14 Dec",
+     "source": "MoSPI advance release calendar 2026-27"},
+    {"date": "2027-01-07", "what": "India GDP first advance estimate for FY27 (MoSPI)", "source": "MoSPI advance release calendar 2026-27"},
+    {"date": "2027-02-01", "what": "Union Budget (by convention on 1 Feb; the date is confirmed by the government nearer the time)",
+     "source": "convention since 2017; not yet announced"},
+    {"date": "2027-02-05", "what": "RBI monetary policy decision (meeting 3-5 Feb)", "source": "RBI press release, MPC schedule 2026-27"},
 ]
 
 
@@ -260,12 +286,16 @@ def prep(f: dict, desk: dict) -> dict:
     out["results_ahead"] = {"by_session": desk.get("results_ahead"), "note": desk.get("results_ahead_note")}
     out["fo_ban"] = ban.get("words")
     today = dt.date.today().isoformat()
-    out["events"] = [e for e in EVENTS if e["date"] >= (dt.date.today() - dt.timedelta(days=1)).isoformat()][:4] or []
+    # 5 Nov (C): the next six dated events from the calendar above (macro releases, central banks, the budget), each with its source
+    out["events"] = [e for e in EVENTS if e["date"] >= (dt.date.today() - dt.timedelta(days=1)).isoformat()][:6] or []
+    out["events_how"] = ("these are the dated events Ananta keeps by hand from each owner's published schedule; say the event, its date, the "
+                         "first Indian session that can trade it and that it is context: no Ananta rule trades on events yet")
     out["toronto_times"] = toronto_times()
     us = next((x for x in desk.get("feeds") or [] if x.get("feed", "").startswith("US close")), {})
     out["overnight_cues"] = (f"the US close on file is for {us.get('last_day') or 'an earlier day'} (fetched {str(us.get('fetched_at') or '')[:16]} UTC); there "
-                             "is no GIFT Nifty and no live Asian feed, so anything that happens overnight is not "
-                             "visible until the 09:15 IST open; crude, the dollar and the rupee readings lag several days")
+                             "is no GIFT Nifty and no live Asian feed; from 5 Nov the first Indian prices of the day are the 09:08 IST pre-open read "
+                             "(today_live.preopen, the two indexes and ten heavy stocks, an indication of the gap), so before 09:08 IST anything "
+                             "overnight is not visible; crude, the dollar and the rupee readings lag several days")
     out["how_to_use"] = ("say tomorrow's plan as scenarios, not orders: the previous high, low and close; what a gap up, flat or gap down open would "
                          "mean (BASICS gaps); the option-interest walls with their date; the expected move from VIX; the open option trades with "
                          "contract, expiry and that they are marked, not closed; the expiries, holidays, results ahead and events; then what the "

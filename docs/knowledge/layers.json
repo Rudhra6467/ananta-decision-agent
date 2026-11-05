@@ -1077,6 +1077,7 @@
     "jarvis/service/speech.py",
     "jarvis/voice/server.py",
     "jarvis/voice/speaker.py",
+    "jarvis/voice/answertap.py",
     "jarvis/evals/run.py"
    ]
   },

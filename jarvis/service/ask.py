@@ -17,8 +17,10 @@ import json
 import math
 import os
 import re
+import threading
 import time
 import uuid
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Callable
 
@@ -768,6 +770,30 @@ def speak_text(reply: dict) -> str:
     if opts and not all(o.lower() in t.lower() for o in opts):
         t += " Did you mean " + (", ".join(opts[:-1]) + ", or " if len(opts) > 1 else "") + opts[-1] + "?"
     return t
+
+
+_LIVE_TURNS: "OrderedDict[str, dict]" = OrderedDict()
+_LIVE_LOCK = threading.Lock()
+
+
+class LiveSink:
+    """One live voice turn (5 Nov 2026): where its sentences go as they are written, and how many words were said, so the live voice keeps
+    the spoken answer's usual length (speak_text) and the finished answer knows its audio is already playing."""
+
+    def __init__(self, add):
+        self.add, self.words, self.full, self.off = add, 0, False, False
+
+    def __call__(self, text: str) -> None:
+        self.add(text)
+
+
+def live_turn_result(tk: str, wait: float = 60.0) -> dict:
+    """The whole checked answer of a live voice turn, for the screen (waits until it is written)."""
+    with _LIVE_LOCK:
+        box = _LIVE_TURNS[tk]                           # KeyError -> 404
+    if not box["event"].wait(wait):
+        raise TimeoutError("the answer is still being written")
+    return {**(box["out"] or {}), "voice_id": box["key"], "streaming": True}
 
 
 class Lookups:
@@ -2007,7 +2033,71 @@ def _post_opt(post, url, headers, body, opt_key: str, field_path: list[str]):
         raise
 
 
-def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post, model: str | None = None) -> tuple[str, dict]:
+def _claude_round_stream(url: str, headers: dict, body: dict, on_text) -> dict:
+    """5 Nov 2026 (Madhav: the crypto voice should speak while it writes, as India's does): one round of the tool loop, streamed. Text goes
+    to on_text as it arrives; the reply is rebuilt block by block (text, tool calls, thinking with its signature) as the unstreamed call
+    returns it, so the tool loop goes on unchanged."""
+    import requests
+
+    blocks: dict[int, dict] = {}
+    parts: dict[int, list[str]] = {}
+    usage: dict = {}
+    stop = None
+    try:
+        r = requests.post(url, headers=headers, json={**body, "stream": True}, timeout=(10, 120), stream=True)
+    except requests.RequestException as exc:
+        raise RuntimeError(f"503 network/timeout: {str(exc)[:120]}") from exc
+    with r:
+        if r.status_code >= 400:
+            raise RuntimeError(f"{r.status_code}: {r.text[:300]}")
+        for raw in r.iter_lines(decode_unicode=True):
+            if not raw or not raw.startswith("data:"):
+                continue
+            try:
+                ev = json.loads(raw[5:].strip())
+            except ValueError:
+                continue
+            t = ev.get("type")
+            if t == "message_start":
+                usage.update(((ev.get("message") or {}).get("usage")) or {})
+            elif t == "content_block_start":
+                i = ev.get("index", len(blocks))
+                blocks[i] = dict(ev.get("content_block") or {})
+            elif t == "content_block_delta":
+                i, d = ev.get("index", 0), ev.get("delta") or {}
+                b = blocks.setdefault(i, {"type": "text", "text": ""})
+                kind = d.get("type")
+                if kind == "text_delta":
+                    b["text"] = (b.get("text") or "") + (d.get("text") or "")
+                    try:
+                        on_text(d.get("text") or "")
+                    except Exception:  # noqa: BLE001  the voice never breaks the answer
+                        pass
+                elif kind == "input_json_delta":
+                    parts.setdefault(i, []).append(d.get("partial_json") or "")
+                elif kind == "thinking_delta":
+                    b["thinking"] = (b.get("thinking") or "") + (d.get("thinking") or "")
+                elif kind == "signature_delta":
+                    b["signature"] = (b.get("signature") or "") + (d.get("signature") or "")
+            elif t == "content_block_stop":
+                i = ev.get("index", 0)
+                b = blocks.get(i) or {}
+                if b.get("type") in ("tool_use", "server_tool_use") and i in parts:
+                    js = "".join(parts[i])
+                    try:
+                        b["input"] = json.loads(js) if js.strip() else {}
+                    except ValueError:
+                        b["input"] = {}
+            elif t == "message_delta":
+                usage.update(ev.get("usage") or {})
+                stop = (ev.get("delta") or {}).get("stop_reason") or stop
+            elif t == "error":
+                raise RuntimeError(f"529: {str((ev.get('error') or {}).get('message', 'stream error'))[:160]}")
+    return {"content": [blocks[i] for i in sorted(blocks)], "usage": usage, "stop_reason": stop}
+
+
+def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log: list, post=_post, model: str | None = None,
+               on_text=None) -> tuple[str, dict]:
     key = os.getenv("ANTHROPIC_API_KEY", "")
     if not key:
         raise RuntimeError("ANTHROPIC_API_KEY is not set")
@@ -2029,9 +2119,18 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
                 **({"tool_choice": {"type": "none"}} if rnd == MAX_TOOL_ROUNDS else {})}   # last round: answer with what you have
         if FAST["claude_effort"] and "haiku" not in model:
             body["output_config"] = {"effort": FAST["claude_effort"]}               # less thinking = faster answers
-        r = _post_opt(post, "https://api.anthropic.com/v1/messages",
-                      {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body, "claude_effort",
-                      ["output_config", "effort"])
+        hdrs = {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+        r = None
+        if on_text is not None and post is _post:                 # 5 Nov: a spoken answer streams, so its first sentence is said at once
+            try:
+                r = _claude_round_stream("https://api.anthropic.com/v1/messages", hdrs, body, on_text)
+                usage["streamed"] = True
+            except RuntimeError as exc:
+                if "credit balance" in str(exc).lower():
+                    raise
+                r, on_text = None, None                          # any other trouble: this round and the rest unstreamed, as before
+        if r is None:
+            r = _post_opt(post, "https://api.anthropic.com/v1/messages", hdrs, body, "claude_effort", ["output_config", "effort"])
         usage["rounds"] = usage.get("rounds", 0) + 1
         u = r.get("usage") or {}
         usage["in"] += u.get("input_tokens", 0)
@@ -2447,7 +2546,7 @@ class Ask:
         raise ValueError(f"unknown mode {mode}")
 
     def ask(self, who: str, text: str, thread: str | None = None, provider: str | None = None, mode: str | None = None,
-            second_of: str | None = None, context: dict | None = None, voice: bool = False, source: str = "") -> dict:
+            second_of: str | None = None, context: dict | None = None, voice: bool = False, source: str = "", speak_live=None) -> dict:
         text = (text or "").strip()[:2000]
         if not text:
             raise ValueError("empty question")
@@ -2643,7 +2742,13 @@ class Ask:
             can_escalate = key == "local" and mode_label == "auto"      # the router picked the Mac: a weak answer goes one level up
             try:
                 L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
-                raw, usage = self.providers[key](system, history, user_msg, L, log)
+                tap = None
+                if speak_live is not None and MODELS[key]["provider"] == "claude":
+                    from jarvis.voice.answertap import AnswerTap
+                    tap = AnswerTap(lambda x, _L=L: self._live_say(x, who, speak_live, getattr(_L, "created", None)))
+                raw, usage = self.providers[key](system, history, user_msg, L, log, **({"on_text": tap.feed} if tap else {}))
+                if tap:
+                    tap.close()
                 if can_escalate:
                     why = _local_doubt(raw, user_msg + " ".join(m["text"] for m in history) + usage.get("seen", ""))
                     if why:
@@ -2789,7 +2894,8 @@ class Ask:
         te = te if isinstance(te, str) and re.search(r"[\u0C00-\u0C7F]", te) else None
         if voice or te:
             reply["speak"] = speak_text({**reply, "answer": te} if te else reply)   # Telugu: the script version, so no conversion wait
-        vid = _pre_voice(context, reply.get("speak") or reply.get("answer"))
+        live_said = speak_live is not None and getattr(speak_live, "words", 0) > 0
+        vid = None if live_said else _pre_voice(context, reply.get("speak") or reply.get("answer"))   # spoken live: no second audio
         if vid:
             reply["voice_id"] = vid                                  # its audio is already being made: the phone fetches it directly
         # Oct 14: every answer names its language, so the app can label it (a Telugu/English switch is visible, never a surprise)
@@ -3064,7 +3170,99 @@ class Ask:
             heard = f"{prefix.strip()} {heard}".strip()
         if kind == "partial" and len(heard.split()) < 14:
             return {"heard": heard, "thread": thread, "partial": True}
+        tts = (context or {}).get("tts") if isinstance(context, dict) else None
+        if isinstance(tts, dict) and tts.get("stream") and tts.get("live") and tts.get("voice") and self._live_ok(who, thread):
+            return self._voice_live(who, heard, thread, mode, context, source, client_timing, tts)
         return asked(heard)
+
+    def _live_ok(self, who: str, thread: str | None) -> bool:
+        """Live speech for Madhav and his guests in English; a Telugu conversation keeps its own voice path."""
+        try:
+            from jarvis.service import people
+
+            return (people.voice_language(self.j, thread) != "te" and os.getenv("ASK_LIVE_VOICE", "1") == "1"
+                    and os.getenv("ANANTA_VOICE_LOCAL", "1") == "1")
+        except Exception:  # noqa: BLE001
+            return False
+
+    LIVE_SHOW = re.compile(r"\b(?:I(?:'ve| have) opened|I'm opening|I am opening|I've taken you|I have taken you|No order card was made)\b", re.I)
+
+    def _live_say(self, sentence: str, who: str, sink, created=None) -> None:
+        """One sentence of the answer as it is written, said at once (5 Nov): addressed as the whole answer will be (owner_address /
+        guest_address), within the spoken answer's length (VOICE_WORDS, as speak_text), never a line that claims a screen opened or a card
+        that was not made this turn (the finished answer's checks decide those), and never Telugu (that answer keeps its own voice)."""
+        s = (sentence or "").strip()
+        if not s or getattr(sink, "off", False) or getattr(sink, "full", False):
+            return
+        if self.LIVE_SHOW.search(s) or (not created and CARD_CLAIM.search(s)):
+            return
+        try:
+            from jarvis.service import speech
+
+            if speech.is_telugu([s]):
+                sink.off = True                     # the whole answer is then spoken as before, in the Telugu voice
+                return
+        except Exception:  # noqa: BLE001
+            pass
+        n, said = len(s.split()), getattr(sink, "words", 0)
+        if said and said + n > VOICE_WORDS:
+            sink.full = True                        # as speak_text: the rest stays on screen
+            return
+        s = guest_address(s) if str(who).startswith("guest:") else owner_address(s)
+        sink.words = said + n
+        sink(s)
+
+    def _voice_live(self, who: str, heard: str, thread: str | None, mode: str | None, context: dict | None, source: str,
+                    client_timing: dict | None, tts: dict) -> dict:
+        """5 Nov 2026 (Madhav's yes to all: the crypto voice catches up with India's): the question is answered on a worker thread and the
+        reply comes back as soon as the first sentence is written, with a live stream to play (jarvis/india/voice.py live_*, in the crypto
+        voice he chose); the whole checked answer for the screen comes from live_turn_result while the voice speaks."""
+        from jarvis.india import voice as iv
+
+        thread = thread or uuid.uuid4().hex[:12]
+        from jarvis.service import speech
+
+        key = iv.live_start(float(tts.get("speed") or 1.0), voice=str(tts.get("voice") or "Calm"), say=lambda x: speech.for_ear(x.strip()[:600]))
+        box = {"event": threading.Event(), "out": None, "said": 0, "key": key}
+
+        def add(text: str) -> None:
+            box["said"] += iv.live_add(key, text)
+
+        sink = LiveSink(add)
+
+        def run() -> None:
+            out = None
+            try:
+                try:
+                    self._turn_vmeta = getattr(self, "_vmeta", None) or None
+                    out = self.ask(who, heard, thread=thread, mode=mode, context=context, voice=True, source=source, speak_live=sink)
+                    self._keep_client_timing(out.get("thread") or thread, client_timing)
+                except ValueError as exc:
+                    out = {"error": str(exc), "thread": thread}
+                except Exception as exc:  # noqa: BLE001
+                    out = {"error": f"Sorry, sir, something went wrong while answering ({type(exc).__name__}). Please ask that again.", "thread": thread}
+                if box["said"] and out and str(out.get("speak") or out.get("answer") or "").strip():
+                    iv.live_finish(key, str(out.get("speak") or out.get("answer")))
+            finally:
+                iv.live_end(key)
+                box["out"] = {"heard": heard, **(out or {"error": "Sorry, sir, I couldn't answer that. Please ask again.", "thread": thread})}
+                box["event"].set()
+
+        threading.Thread(target=run, daemon=True).start()
+        t0 = time.time()
+        while not box["event"].is_set() and not box["said"] and time.time() - t0 < 50:
+            box["event"].wait(0.05)
+        if box["event"].is_set() and not box["said"]:       # an instant answer, Gemini, or an error: the whole reply, as before
+            return box["out"]
+        if box["event"].is_set():
+            out = dict(box["out"])
+            return {**out, "voice_id": key, "speak": out.get("speak") or out.get("answer"), "streaming": True}
+        tk = "t" + uuid.uuid4().hex[:16]
+        with _LIVE_LOCK:
+            _LIVE_TURNS[tk] = box
+            while len(_LIVE_TURNS) > 40:
+                _LIVE_TURNS.popitem(last=False)
+        return {"heard": heard, "thread": thread, "streaming": True, "pending": tk, "voice_id": key}
 
     def second(self, who: str, msg_id: str) -> dict:
         row = self.j.db.execute("SELECT thread, t, provider FROM ask_messages WHERE id=? AND role='assistant'", (msg_id,)).fetchone()

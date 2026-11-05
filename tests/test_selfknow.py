@@ -43,7 +43,7 @@ def test_about_ananta_has_changes_parts_and_the_self_check(tmp_path, monkeypatch
     assert set(a["parts"]) >= {"voice", "voice_print", "watchdog", "pre_open_read", "phase_study"}
     assert "not run yet" in a["not_right"][0]
     c = selfknow.about_ananta("what changed", "crypto")
-    assert "pre_open_read" not in c["parts"] and "Not yet on the crypto side" in c["parts"]["voice"]["speaks_while_writing"]
+    assert "pre_open_read" not in c["parts"] and "as soon as Claude writes it" in c["parts"]["voice"]["speaks_while_writing"]
 
 
 def test_voice_print_counts_from_enrolment(tmp_path, monkeypatch):

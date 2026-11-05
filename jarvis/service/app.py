@@ -2288,11 +2288,47 @@ def voice_answer(b: AnswerVoice, who: str = Depends(owner)) -> dict:
         raise HTTPException(status_code=503, detail=f"natural voice unavailable ({str(exc)[:80]})") from exc
 
 
+def _live_call(name: str, *a):
+    """5 Nov 2026 (Madhav's yes to all: the crypto voice speaks while it writes, as India's does): a live answer's audio is a stream made
+    piece by piece while the answer is still being written (jarvis/india/voice.py live_*, in the crypto voice); its ids start with "sL"."""
+    import requests as _rq
+
+    from jarvis.india import voice as _iv
+
+    try:
+        return getattr(_iv, name)(*a)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="unknown answer audio") from exc
+    except (_rq.RequestException, TimeoutError) as exc:
+        raise HTTPException(status_code=503, detail=f"natural voice unavailable ({str(exc)[:80]})") from exc
+
+
+@app.get("/v3/voice/turn/{tk}")
+def voice_turn_result(tk: str, who: str = Depends(owner)) -> dict:
+    """5 Nov 2026: a live voice turn's whole checked answer, for the screen, while the voice is already speaking it."""
+    from jarvis.service import ask as _ask
+
+    try:
+        return _ask.live_turn_result(tk)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="unknown voice turn") from exc
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail=str(exc)) from exc
+
+
+@app.get("/v3/voice/answer/{key}/more")
+def voice_answer_more(key: str, have: int = 0, who: str = Depends(owner)) -> dict:
+    """5 Nov 2026: the next pieces of a live answer (waits up to 30 s for one); done = no more will come."""
+    return _live_call("live_more", key, have)
+
+
 @app.get("/v3/voice/answer/{key}")
 def voice_answer_meta(key: str, who: str = Depends(owner)) -> dict:
     """Sentence start times etc. for audio that is already being made (e.g. right after an answer); waits until it is ready."""
     from jarvis.service import speech
 
+    if key.startswith("sL"):                         # 5 Nov: a live answer (or one of its pieces, "sL….N")
+        return _live_call("answer_meta", key)
     try:
         return speech.answer_meta(key, 30)
     except KeyError as exc:
@@ -2307,6 +2343,9 @@ def voice_answer_audio(key: str, who: str = Depends(owner)):
 
     from jarvis.service import speech
 
+    if key.startswith("sL"):                         # 5 Nov: a live answer's piece
+        body, ctype = _live_call("answer_audio", key)
+        return Response(content=body, media_type=ctype, headers={"Cache-Control": "private, max-age=600", "Content-Length": str(len(body))})
     try:
         body, ctype = speech.answer_audio(key, 30)
     except KeyError as exc:

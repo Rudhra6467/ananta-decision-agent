@@ -177,8 +177,10 @@ VOICE_PARTS = {
                          "the outside watchdog also restarts it when it stops answering (at most once in 20 minutes) and your phone gets a note."),
     },
     "crypto": {
-        "speaks_while_writing": ("Not yet on the crypto side: the answer is spoken once it is fully written. Since 25 Oct 'Got your question · "
-                                 "Ananta is thinking…' shows the moment the question lands."),
+        "speaks_while_writing": ("On since the afternoon of 5 Nov whenever the natural voice is on, as on the India side: each sentence is spoken "
+                                 "as soon as Claude writes it, in the voice you chose, with the same rules as the whole answer (about 60 words, no "
+                                 "'I've opened' or card line before it is true). Measured on the Mac: the first word after about 2.5 to 3.5 seconds "
+                                 "instead of about 7.5. An answer from Gemini or in Telugu is still spoken once it is fully written."),
         "voice": "Kokoro voice A for crypto; the phone's own voice only when the natural voice is down.",
         "hearing": ("Speech-to-text runs on the Mac (Whisper). One microphone stream per conversation; listening starts once the mic is live, "
                     "with 400 ms kept from just before (23 Oct)."),

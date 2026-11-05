@@ -85,14 +85,15 @@ def say_names(text: str) -> str:
     return rx.sub(lambda mo: m.get(mo.group(1).upper(), mo.group(1)), text or "")
 
 
-def _speak(sents: list[str], speed: float = 1.0, post=None, tail: float = 0.0) -> dict:
+def _speak(sents: list[str], speed: float = 1.0, post=None, tail: float = 0.0, voice: str | None = None, say=None) -> dict:
+    """say: how a sentence is said (India: tickers as company names; the crypto Ask passes its own, jarvis/service/speech.py for_ear)."""
     post = post or (lambda url, body: requests.post(url, json=body, timeout=300).json())
-    body = {"sentences": [say_names(x) for x in sents], "voice": INDIA_VOICE, "speed": max(0.6, min(1.5, float(speed or 1.0)))}
+    body = {"sentences": [(say or say_names)(x) for x in sents], "voice": voice or INDIA_VOICE, "speed": max(0.6, min(1.5, float(speed or 1.0)))}
     if tail:
         body["tail"] = tail
     j = post(f"{VOICE_URL}/speak", body)
     return {"audio": base64.b64decode(j["audio_b64"]), "mime": j.get("mime", "audio/mpeg"), "offsets": j.get("offsets", []), "duration": j.get("duration", 0.0),
-            "engine": "kokoro", "voice": INDIA_VOICE, "ms": j.get("ms")}
+            "engine": "kokoro", "voice": voice or INDIA_VOICE, "ms": j.get("ms")}
 
 
 # ---- 27 Oct (Madhav: "the time gap for replying in voice has become a new issue"): the answer spoken in pieces --------------------------
@@ -210,11 +211,13 @@ def start_stream(texts: list[str], speed: float = 1.0, post=None, background: bo
 # writing instead of the whole answer. The phone plays the pieces it knows and asks for more (live_more) until the stream says it is done.
 # Ids start with "s" like every stream, so the existing piece routes (s<key>.<i>) serve them.
 
-def live_start(speed: float = 1.0, post=None) -> str:
+def live_start(speed: float = 1.0, post=None, voice: str | None = None, say=None) -> str:
+    """voice: the crypto Ask's chosen voice (Calm, Friendly, ...); India's own voice when None (5 Nov: the crypto voice speaks live too).
+    say: the crypto Ask's spoken form of a sentence (dollars, coin names); India's ticker names when None."""
     import uuid
     key = "sL" + uuid.uuid4().hex[:16]
     with _lock:
-        _streams[key] = {"live": True, "sents": [], "pending": [], "plan": [], "pieces": [], "speed": max(0.6, min(1.5, float(speed or 1.0))),
+        _streams[key] = {"live": True, "voice": voice, "say": say, "sents": [], "pending": [], "plan": [], "pieces": [], "speed": max(0.6, min(1.5, float(speed or 1.0))),
                          "segs": [], "errors": [], "events": [], "done": False, "cond": threading.Condition()}
         while len(_streams) > 60:
             _streams.popitem(last=False)
@@ -310,7 +313,7 @@ def _live_worker(key: str, post=None) -> None:
             s["cond"].notify_all()
         for attempt in (1, 2):
             try:
-                s["segs"][i] = _speak([s["sents"][k] for k in take], s["speed"], post, tail=STREAM_TAIL_S)
+                s["segs"][i] = _speak([s["sents"][k] for k in take], s["speed"], post, tail=STREAM_TAIL_S, voice=s.get("voice"), say=s.get("say"))
                 s["errors"][i] = None
                 break
             except Exception as exc:  # noqa: BLE001 - the phone says this piece in its own voice

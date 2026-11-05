@@ -392,3 +392,17 @@ def test_ask_flags_name_old_data_mixed_signals_and_an_unusual_day(monkeypatch):
     rm.update({"data_through": "2026-10-23", "missing": [], "market": {"trend_state": "above_both", "breadth_200d_liquid": 0.7, "vix_close": 12}, "call": {"call": "BULLISH"}})
     assert views.ask_flags(today=dt.date(2026, 10, 24))["flags"] == [], "a clean day raises nothing"
     assert isinstance(service.v3("ask/flags", who="owner")["flags"], list), "served by the existing /v3/{name} route"
+
+
+def test_add_more_of_my_voice_reaches_the_speaker_service_from_the_india_side(monkeypatch):
+    """5 Nov 2026, 16:10: Madhav read "Add more of my voice" with the app on the Indian market; this route dropped {"add": true}, so the six
+    sentences started a fresh print instead of joining the one he had. Both markets now pass it on (crypto: jarvis/service/app.py)."""
+    from jarvis.india import voice as india_voice
+
+    calls = []
+    monkeypatch.setattr(india_voice, "speaker_call", lambda path, body=None, post=None: calls.append((path, body)) or {"ok": True})
+    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    for prefix in ("", "/india"):
+        assert c.post(f"{prefix}/v3/voice/speaker/start", json={"add": True}).status_code == 200
+        assert c.post(f"{prefix}/v3/voice/speaker/start").status_code == 200        # a fresh print (Teach Ananta my voice), as before
+    assert calls == [("start", {"add": True}), ("start", {"add": False})] * 2

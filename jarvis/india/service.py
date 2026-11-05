@@ -320,9 +320,11 @@ def speaker_status(who: str = Depends(signed_in)) -> dict:
 
 
 @r.post("/v3/voice/speaker/start")
-def speaker_start(who: str = Depends(signed_in)) -> dict:
+def speaker_start(b: dict | None = None, who: str = Depends(signed_in)) -> dict:
+    """{"add": true} (5 Nov 2026, "Add more of my voice"): the sentences join the print he already has. Until 16:10 on 5 Nov this India
+    route dropped the body, so his six new sentences (read with the app on the Indian market) started a fresh print instead of joining it."""
     _owner_only(who)
-    return _voice_run(india_voice.speaker_call, "start", {})
+    return _voice_run(india_voice.speaker_call, "start", {"add": bool((b or {}).get("add"))})
 
 
 @r.post("/v3/voice/speaker/enrol")

@@ -159,7 +159,9 @@ def _option_open(x: dict, clk: dict) -> bool:
     ex = str(x.get("exit") or "").upper()
     if ex == "NEXTOPEN":
         return True
-    m = ex[1:] if ex.startswith("T") and ex[1:].isdigit() else None
+    m = ex[1:] if ex.startswith("T") and ex[1:].isdigit() else ("1515" if ex in ("ATRSTOP", "ORSTOP", "TRAIL") else None)
+    if x.get("closed"):                                 # the line's own scoring says it ended (a stop hit)
+        return False
     if m and clk.get("state") == "open" and clk.get("latest_session") == clk.get("today_india"):
         return dt.datetime.now(IST).strftime("%H%M") < m
     return False

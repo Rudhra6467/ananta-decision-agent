@@ -268,7 +268,20 @@ def _jsonl(p: Path) -> list[dict]:
         return []
 
 
-EXIT_WORDS = {"NEXTOPEN": "closing at the next session's open", "T1130": "closing at 11:30 IST", "T1515": "closing at 15:15 IST"}
+EXIT_WORDS = {"NEXTOPEN": "closing at the next session's open", "T1130": "closing at 11:30 IST", "T1515": "closing at 15:15 IST",
+              # 5 Nov 2026 (Madhav's chat): "ATRSTOP" was said as a code, and a trade its stop had already closed was described as still open
+              "ATRSTOP": "with a stop half a day's average range against it, else closing at 15:15 IST",
+              "ORSTOP": "with a stop at the far side of the opening range, else closing at 15:15 IST",
+              "TRAIL": "with a trailing stop, else closing at 15:15 IST"}
+
+
+def _scored(day: str) -> dict:
+    """The options line's own scoring of a session (paper/sp1/outcomes.jsonl, written at 17:30 IST): how each trade actually ended."""
+    out = {}
+    for r in _jsonl(DATA / "paper" / "sp1" / "outcomes.jsonl"):
+        if r.get("date") == day:
+            out[(r.get("index"), r.get("point"))] = r
+    return out
 
 
 def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
@@ -315,12 +328,35 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
                 x["index_since_entry_words"] = (f"the index is {abs(pts):,.0f} points {'above' if pts >= 0 else 'below'} where it was taken"
                                                 f" ({lvl:,.0f} against {x['index_level']:,.0f}), which is {'for' if (pts >= 0) == (x['direction'] == 'long') else 'against'} the trade")
     name = {"NIFTY": "Nifty", "BANKNIFTY": "Bank Nifty"}
+    # 5 Nov 2026 (Madhav's chat at 10:44 Toronto): the Bank Nifty short had been closed by its stop at 11:30 IST (option sold near Rs 577, about
+    # Rs -7,253 after costs), but Ananta said "the option is at Rs 478 now, about Rs -8,782 on paper", marking a closed trade at the close.
+    # Once the line has scored the session, a trade's real ending is said, not today's price.
+    scored = _scored(day) if path is None else {}
+    for x in taken:
+        sc = scored.get((x["index"], x["point"]))
+        if not sc:
+            continue
+        ip, opt = sc.get("index_proxy") or {}, ((sc.get("legs") or {}).get("option") or {})
+        x["closed"] = bool(ip.get("stopped")) or str(x.get("exit")).upper() != "NEXTOPEN"
+        if x["closed"]:
+            x["result"] = {"stopped": bool(ip.get("stopped")), "option_entry": opt.get("entry_realistic"), "option_exit": opt.get("exit"),
+                           "net_inr": round(opt["net_rs_realistic"]) if opt.get("net_rs_realistic") is not None else None,
+                           "index_net_bps": ip.get("net_bps"), "how": opt.get("exit_rule")}
+            for k in ("paper_move_inr_per_lot", "option_price_now", "index_since_entry_words"):
+                x.pop(k, None)
     tw = []
     for x in taken:
         s = f"{name.get(x['index'], x['index'])} {x['direction']} at {x['at']} IST (index near {x['index_level']:,.0f}"
         if x["option"]:
             s += f"; the {x['option']} option at about Rs {x['option_price_at_decision']}" if x["option_price_at_decision"] else f"; the {x['option']} option"
         s += f"), {x['exit_words']}"
+        res = x.get("result")
+        if res:
+            s += ("; it is CLOSED: " + ("its stop was hit" if res["stopped"] else "it closed by its rule")
+                  + (f", the option sold near Rs {res['option_exit']:,.2f} (bought near Rs {res['option_entry']:,.2f} at the next minute's fill)"
+                     if res.get("option_exit") and res.get("option_entry") else "")
+                  + (f", a paper result of about Rs {res['net_inr']:+,} for the lot after costs" if res.get("net_inr") is not None else "")
+                  + "; say it as a closed trade with this result, never today's option price")
         if x.get("paper_move_inr_per_lot") is not None:
             s += (f"; the option is at Rs {x['option_price_now']} now, about Rs {x['paper_move_inr_per_lot']:+,} a lot on paper"
                   f" ({'in profit' if x['paper_move_inr_per_lot'] > 0 else 'in loss' if x['paper_move_inr_per_lot'] < 0 else 'flat'})")

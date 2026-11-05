@@ -264,7 +264,7 @@ def prep(f: dict, desk: dict) -> dict:
     out["toronto_times"] = toronto_times()
     us = next((x for x in desk.get("feeds") or [] if x.get("feed", "").startswith("US close")), {})
     out["overnight_cues"] = (f"the US close on file is for {us.get('last_day') or 'an earlier day'} (fetched {str(us.get('fetched_at') or '')[:16]} UTC); there "
-                             "is no GIFT Nifty and no live Asian feed, so anything that happens overnight (tonight the US midterm results) is not "
+                             "is no GIFT Nifty and no live Asian feed, so anything that happens overnight is not "
                              "visible until the 09:15 IST open; crude, the dollar and the rupee readings lag several days")
     out["how_to_use"] = ("say tomorrow's plan as scenarios, not orders: the previous high, low and close; what a gap up, flat or gap down open would "
                          "mean (BASICS gaps); the option-interest walls with their date; the expected move from VIX; the open option trades with "

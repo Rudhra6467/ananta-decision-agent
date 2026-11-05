@@ -204,9 +204,144 @@ def start_stream(texts: list[str], speed: float = 1.0, post=None, background: bo
     return key
 
 
+# ---- 5 Nov 2026 (Madhav: "the real fix is to have Ananta start speaking while it's still writing the answer ... do it please") -----------
+# A live stream: sentences arrive one by one while the model is still writing (jarvis/india/ask.py AnswerTap + live_sentence), and each piece
+# of audio is made as soon as there is text for it. The first piece is the first sentence alone, so the voice starts after one sentence of
+# writing instead of the whole answer. The phone plays the pieces it knows and asks for more (live_more) until the stream says it is done.
+# Ids start with "s" like every stream, so the existing piece routes (s<key>.<i>) serve them.
+
+def live_start(speed: float = 1.0, post=None) -> str:
+    import uuid
+    key = "sL" + uuid.uuid4().hex[:16]
+    with _lock:
+        _streams[key] = {"live": True, "sents": [], "pending": [], "plan": [], "pieces": [], "speed": max(0.6, min(1.5, float(speed or 1.0))),
+                         "segs": [], "errors": [], "events": [], "done": False, "cond": threading.Condition()}
+        while len(_streams) > 60:
+            _streams.popitem(last=False)
+    threading.Thread(target=_live_worker, args=(key, post), daemon=True).start()
+    return key
+
+
+def live_add(key: str, text: str) -> int:
+    """Queue one or more sentences to be spoken; returns how many were added."""
+    with _lock:
+        s = _streams.get(key)
+    if not s:
+        return 0
+    new = sentences([text])
+    with s["cond"]:
+        if s["done"]:
+            return 0
+        for x in new:
+            s["sents"].append(x)
+            s["pending"].append(len(s["sents"]) - 1)
+        s["cond"].notify_all()
+    return len(new)
+
+
+def live_end(key: str) -> None:
+    with _lock:
+        s = _streams.get(key)
+    if s:
+        with s["cond"]:
+            s["done"] = True
+            s["cond"].notify_all()
+
+
+def _words(x: str) -> set[str]:
+    return set(re.findall(r"[a-z0-9]+", (x or "").lower()))
+
+
+def _same(a: str, b: str) -> bool:
+    wa, wb = _words(a), _words(b)
+    if not wa or not wb:
+        return False
+    return len(wa & wb) / len(wa | wb) >= 0.6 or wa <= wb or wb <= wa
+
+
+def live_finish(key: str, final_answer: str) -> int:
+    """After the whole answer is checked: speak what the final text adds after the last sentence already spoken (a closing nudge, a line
+    added in code). Never a second telling: a sentence like one already spoken is skipped, and a re-written answer is not spoken again."""
+    with _lock:
+        s = _streams.get(key)
+    if not s:
+        return 0
+    final = sentences([final_answer or ""])
+    said = list(s["sents"])
+    hit = [j for j, x in enumerate(final) if any(_same(x, y) for y in said)]
+    start = (hit[-1] + 1) if hit else 0
+    if hit or not said:
+        rest = [x for x in final[start:] if not any(_same(x, y) for y in said)]
+    else:
+        rest = []                                     # nothing matched: the answer was re-written after the check; what was spoken stands
+    for x in rest:
+        live_add(key, x)
+    return len(rest)
+
+
+def _live_worker(key: str, post=None) -> None:
+    with _lock:
+        s = _streams.get(key)
+    if not s:
+        return
+    n = 0
+    while True:
+        with s["cond"]:
+            waited = 0.0
+            while not s["pending"] and not s["done"] and waited < 120:
+                s["cond"].wait(1.0)
+                waited += 1.0
+            if not s["pending"]:
+                s["done"] = True
+                s["cond"].notify_all()
+                return
+            limit = STREAM_FIRST_CHARS if n == 0 else (STREAM_RAMP[n - 1] if n - 1 < len(STREAM_RAMP) else STREAM_PIECE_CHARS)
+            take, size = [], 0
+            while s["pending"] and len(take) < 3 and (not take or size < limit) and (n > 0 or not take):
+                k = s["pending"].pop(0)
+                take.append(k)
+                size += len(s["sents"][k])
+            s["pieces"].append(take)
+            s["plan"].append([(k, s["sents"][k]) for k in take])
+            s["segs"].append(None)
+            s["errors"].append(None)
+            s["events"].append(threading.Event())
+            i = len(s["pieces"]) - 1
+            s["cond"].notify_all()
+        for attempt in (1, 2):
+            try:
+                s["segs"][i] = _speak([s["sents"][k] for k in take], s["speed"], post, tail=STREAM_TAIL_S)
+                s["errors"][i] = None
+                break
+            except Exception as exc:  # noqa: BLE001 - the phone says this piece in its own voice
+                s["errors"][i] = f"{type(exc).__name__}: {str(exc)[:120]}"
+        s["events"][i].set()
+        n += 1
+
+
+def _seg(key: str, i: int, s: dict) -> dict:
+    idx = s["pieces"][i]
+    return {"id": f"{key}.{i}", "first": idx[0], "count": len(idx), "text": " ".join(s["sents"][k] for k in idx)}
+
+
+def live_more(key: str, have: int, wait: float = 30.0) -> dict:
+    """The pieces after the first `have`, waiting (up to `wait` s) for one to be planned; done = no more will come."""
+    with _lock:
+        s = _streams[key]                           # KeyError -> 404
+    with s["cond"]:
+        if s.get("live"):
+            s["cond"].wait_for(lambda: len(s["pieces"]) > have or (s["done"] and not s["pending"]), timeout=wait)
+        segs = [_seg(key, i, s) for i in range(len(s["pieces"]))]
+        done = (not s.get("live")) or (s["done"] and not s["pending"])
+    return {"id": key, "segments": segs, "done": done}
+
+
 def _piece(key: str, i: int, wait: float = STREAM_WAIT_S) -> dict:
     with _lock:
         s = _streams[key]                           # KeyError -> 404
+    if s.get("live") and i >= len(s["pieces"]):
+        with s["cond"]:
+            s["cond"].wait_for(lambda: len(s["pieces"]) > i or (s["done"] and not s["pending"]), timeout=wait)
     if not 0 <= i < len(s["pieces"]):
         raise KeyError(f"{key}.{i}")
     if not s["events"][i].wait(wait):
@@ -230,6 +365,12 @@ def stream_meta(key: str) -> dict:
     a = _piece(key, 0)
     with _lock:
         s = _streams[key]
+    if s.get("live"):                                   # 5 Nov: a live stream says what it has so far; the phone asks for more as it plays
+        with s["cond"]:
+            segs = [_seg(key, i, s) for i in range(len(s["pieces"]))]
+            done = s["done"] and not s["pending"]
+        return {"id": key, "stream": True, "live": True, "done": done, "offsets": a["offsets"], "duration": a["duration"], "engine": a["engine"],
+                "voice": a["voice"], "mime": a["mime"], "bytes": len(a["audio"]), "ms": a.get("ms"), "sentences": len(s["sents"]), "segments": segs}
     # 30 Oct: a busy GPU makes audio slower than it plays; then the phone would finish piece 0 before piece 1 exists. Hold piece 0 (bounded)
     # until piece 1 is made, so the answer starts a moment later but does not stop after its first sentence.
     try:
@@ -438,8 +579,70 @@ def turn(who: str, audio_b64: str, mime: str, thread: str | None, mode: str | No
     if FILLER.match(heard.strip()):
         return {"heard": heard, "thread": thread, "ignored": "filler", "speaker": spk}
     ctx = {**(context or {}), "voice_id": spk}          # 27 Oct: who the voice belongs to, for the Ask's handover logic (jarvis/india/voiceid.py)
+    tts = (context or {}).get("tts") if isinstance(context, dict) else None
+    if isinstance(tts, dict) and tts.get("stream") and tts.get("live"):
+        return _turn_live(who, heard, spk, thread, mode, ctx, context, ask_fn, post, float(tts.get("speed") or 1.0))
     out = ask_fn(who, heard, thread=thread, mode=mode, context=ctx, voice=True)
     out = attach_stream(out, context, post)          # 27 Oct: the first piece of the spoken answer starts now, before the phone asks for it
     # 27 Oct: the speaker verdict is "speaker", never "voice_id": the app reads voice_id as the id of the answer's audio, and an object there sent
     # it to /v3/voice/answer/[object Object] (404) and so to the phone's female voice for every answer
     return {"heard": heard, "speaker": spk, **out}
+
+
+# ---- 5 Nov 2026: the live turn. The question is answered on a worker thread; the phone gets its reply as soon as the first sentence is
+# written (a live stream id to play) and fetches the whole checked answer for the screen with turn_result while the voice is speaking.
+_turns: OrderedDict[str, dict] = OrderedDict()
+LIVE_FIRST_WAIT_S = 50.0
+
+
+def _turn_live(who, heard, spk, thread, mode, ctx, context, ask_fn, post, speed) -> dict:
+    import time
+    import uuid
+    thread = thread or uuid.uuid4().hex[:12]
+    key = live_start(speed, post)
+    box = {"event": threading.Event(), "out": None, "said": 0, "key": key}
+
+    def sink(text: str) -> None:
+        box["said"] += live_add(key, text)
+
+    def run() -> None:
+        out = None
+        try:
+            try:
+                out = ask_fn(who, heard, thread=thread, mode=mode, context=ctx, voice=True, speak_live=sink)
+            except ValueError as exc:                   # the daily limit, an empty question
+                out = {"error": str(exc), "thread": thread}
+            except Exception as exc:  # noqa: BLE001
+                out = {"error": f"Sorry, sir, something went wrong while answering ({type(exc).__name__}). Please ask that again.", "thread": thread}
+            if box["said"] and out and str(out.get("answer") or "").strip():
+                live_finish(key, str(out.get("answer")))
+        finally:
+            live_end(key)
+            box["out"] = out or {"error": "Sorry, sir, I couldn't answer that. Please ask again.", "thread": thread}
+            box["event"].set()
+
+    threading.Thread(target=run, daemon=True).start()
+    t0 = time.time()
+    while not box["event"].is_set() and not box["said"] and time.time() - t0 < LIVE_FIRST_WAIT_S:
+        box["event"].wait(0.05)
+    if box["event"].is_set() and not box["said"]:       # a code answer (instant) or an error: the whole reply, as before
+        out = attach_stream(box["out"], context, post)
+        return {"heard": heard, "speaker": spk, **out}
+    if box["event"].is_set():                           # all written before we looked: one reply, playing the live stream
+        out = dict(box["out"])
+        return {"heard": heard, "speaker": spk, **out, "voice_id": key, "speak": out.get("answer"), "streaming": True}
+    tk = "t" + uuid.uuid4().hex[:16]
+    with _lock:
+        _turns[tk] = box
+        while len(_turns) > 40:
+            _turns.popitem(last=False)
+    return {"heard": heard, "speaker": spk, "thread": thread, "streaming": True, "pending": tk, "voice_id": key}
+
+
+def turn_result(tk: str, wait: float = 60.0) -> dict:
+    """The whole checked answer of a live turn, for the screen (waits until it is written)."""
+    with _lock:
+        box = _turns[tk]                                # KeyError -> 404
+    if not box["event"].wait(wait):
+        raise requests.Timeout("the answer is still being written")
+    return {**(box["out"] or {}), "voice_id": box["key"], "streaming": True}

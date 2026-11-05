@@ -74,7 +74,9 @@ export const sentences = (t: string) => (t || "").split(/(?<=[.!?])\s+/).map((x)
 
 // What the service needs to prepare the natural voice ahead of time (sent with each voice question).
 // stream (27 Oct): this phone plays an answer in pieces, the first piece first, so it starts talking in about a second.
-export const prepHint = () => (engine === "natural" ? { voice, speed: rate, stream: true } : undefined);
+// live (5 Nov, Madhav: "start speaking while it's still writing the answer"): the India service may reply as soon as the first sentence
+// is written, with a stream that grows while the answer is written; speakLive plays it.
+export const prepHint = () => (engine === "natural" && Date.now() > naturalDownUntil ? { voice, speed: rate, stream: true, live: true } : undefined);
 
 // ---- one active utterance at a time ----------------------------------------------------------
 let seq = 0;
@@ -99,8 +101,8 @@ export function stop() {
 // A service that can stream (India) answers with segments: piece 0 is ready first and plays at once; piece i+1 is fetched while
 // piece i plays, so the wait is the first sentence, not the whole answer. Every piece is the same voice (the service always
 // uses one voice), so pieces can't switch voices. A service without segments (crypto) still sends one file.
-type Seg = { id: string; first: number; count: number };
-type Meta = { id: string; offsets: number[]; duration: number; segments?: Seg[]; stream?: boolean };
+type Seg = { id: string; first: number; count: number; text?: string };
+type Meta = { id: string; offsets: number[]; duration: number; segments?: Seg[]; stream?: boolean; live?: boolean; done?: boolean };
 
 async function fetchMeta(parts: string[], id?: string): Promise<Meta> {
   if (id) return api<Meta>(`/v3/voice/answer/${id}`, undefined, 30000);       // already being made since the answer was written
@@ -129,8 +131,23 @@ async function playNatural(parts: string[], onPart: (i: number) => void, my: num
   }
   try { await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }); } catch { /* */ }
   if (my !== seq) return "stopped";
-  const segs = meta.segments && meta.segments.length > 1 ? meta.segments : null;
-  if (!segs) return playFile(file, meta.offsets, meta.duration, 0, onPart, my);
+  if (!meta.live && !(meta.segments && meta.segments.length > 1)) return playFile(file, meta.offsets, meta.duration, 0, onPart, my);
+  // 5 Nov: a live stream grows while the answer is still being written: when the known pieces run out, ask for more until it says done
+  let segs: Seg[] = meta.segments?.length ? meta.segments : [{ id: meta.id, first: 0, count: 1 }];
+  let done = meta.live ? !!meta.done : true;
+  let growing: Promise<void> | null = null;
+  const grow = (): Promise<void> => growing ?? (growing = (async () => {
+    try {
+      const m = await api<{ segments: Seg[]; done: boolean }>(`/v3/voice/answer/${meta.id}/more?have=${segs.length}`, undefined, 40000);
+      if (m.segments?.length > segs.length) segs = m.segments;
+      done = !!m.done;
+    } catch { done = true; }
+    finally { growing = null; }
+  })());
+  const segAt = async (k: number): Promise<Seg | null> => {
+    while (k >= segs.length && !done && my === seq) await grow();
+    return k < segs.length ? segs[k] : null;
+  };
   const fetchSeg = async (s: Seg): Promise<[Meta, File]> => {
     for (let a = 0; ; a++) {                       // one retry, then the phone voice says the rest
       try { return await Promise.all([api<Meta>(`/v3/voice/answer/${s.id}`, undefined, 50000), download(s.id, my)]); }
@@ -141,22 +158,35 @@ async function playNatural(parts: string[], onPart: (i: number) => void, my: num
   const phoneRest = async (i: number): Promise<"partial" | "stopped"> => {
     if (my !== seq) return "stopped";
     lastNote = "The natural voice stopped partway, so the phone voice finished the answer.";
+    if (segs[i]?.text !== undefined) {             // a live stream: each piece carries its words; keep asking for more
+      for (let k = i; ; k++) {
+        const s = await segAt(k);
+        if (!s || my !== seq) break;
+        if ((await playPhone([s.text ?? ""], () => onPart(s.first), my)) !== "ok") return "stopped";
+      }
+      return my === seq ? "partial" : "stopped";
+    }
     const from = segs[i].first;
     const r = await playPhone(parts.slice(from), (k) => onPart(from + k), my);
     return r === "ok" ? "partial" : "stopped";
   };
-  let next: Promise<[Meta, File]> | null = null;
-  for (let i = 0; i < segs.length; i++) {
+  type Got = [Meta, File] | null;
+  const prefetch = (k: number): Promise<Got> => segAt(k).then((s) => (s ? fetchSeg(s) : null));
+  let next: Promise<Got> | null = null;
+  for (let i = 0; ; i++) {
     let m: Meta = meta, f: File = file;
     if (i > 0) {
-      try { [m, f] = await next!; } catch { return phoneRest(i); }
+      let got: Got;
+      try { got = await next!; } catch { return phoneRest(i); }
+      if (!got) break;                                             // no more pieces
+      [m, f] = got;
       if (my !== seq) { try { f.delete(); } catch { /* */ } return "stopped"; }
     }
-    next = i + 1 < segs.length ? fetchSeg(segs[i + 1]) : null;     // the next piece downloads while this one plays
-    next?.catch(() => {});
+    next = prefetch(i + 1);                                         // the next piece downloads while this one plays
+    next.catch(() => {});
     const r = await playFile(f, m.offsets, m.duration, segs[i].first, onPart, my);
-    if (r === "stopped" || my !== seq) { drop(next); return "stopped"; }
-    if (r === "failed") { drop(next); return i === 0 ? "failed" : phoneRest(i); }
+    if (r === "stopped" || my !== seq) { drop(next as any); return "stopped"; }
+    if (r === "failed") { drop(next as any); return i === 0 ? "failed" : phoneRest(i); }
   }
   return "ok";
 }
@@ -253,6 +283,36 @@ export function speak(parts: string[], onPart: (i: number) => void = () => {}, i
 }
 
 export const speakText = (text: string) => speak(sentences(text));
+
+// 5 Nov (Madhav: "start speaking while it's still writing the answer"): play a live answer stream by its id while the service is still
+// writing it. If the Mac's voice can't start, the phone's voice says the same words, piece by piece, as they arrive.
+export function speakLive(id: string, onPart: (i: number) => void = () => {}): Promise<SpeakResult> {
+  stop();
+  const my = ++seq;
+  return new Promise<SpeakResult>((resolve) => {
+    let settled = false;
+    const settle = (r: SpeakResult) => { if (settled) return; settled = true; if (active?.id === my) active = null; resolve(r); };
+    active = { id: my, settle };
+    (async () => {
+      const r = await playNatural([], onPart, my, id);
+      if (r === "ok") { lastEngine = "natural"; lastNote = ""; return settle("done"); }
+      if (r === "partial") { lastEngine = "phone"; return settle("done"); }
+      if (r === "stopped" || my !== seq) return settle("stopped");
+      naturalDownUntil = Date.now() + 60000;
+      lastNote = "The natural voice didn't answer, so the phone voice spoke.";
+      for (let have = 0, done = false; !done && my === seq;) {     // the words of each piece, as they are written
+        let m: { segments: Seg[]; done: boolean };
+        try { m = await api(`/v3/voice/answer/${id}/more?have=${have}`, undefined, 40000); } catch { break; }
+        const fresh = (m.segments ?? []).slice(have);
+        for (const s of fresh) { if ((await playPhone([s.text ?? ""], () => onPart(s.first), my)) !== "ok") return settle("stopped"); }
+        have += fresh.length;
+        done = !!m.done;
+      }
+      lastEngine = "phone";
+      settle(my === seq ? "done" : "stopped");
+    })().catch(() => settle("done"));
+  });
+}
 
 // 5 Nov (Madhav's voice session: "no response at all"): when the turn itself failed, the Mac is not answering, so asking it for the natural
 // voice only adds another wait; the phone's own voice says the error at once, and keeps speaking for a minute

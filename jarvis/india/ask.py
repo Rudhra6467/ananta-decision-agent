@@ -784,7 +784,141 @@ def rate(mid: str, rating: int) -> dict:
 
 # ---------------------------------------------------------------------------------------------------------------- the model
 
-def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: int = 3000, cached: tuple[str, str] | None = None) -> tuple[str, dict]:
+def _claude_stream(key: str, body: dict, on_text) -> tuple[str, dict]:
+    """5 Nov 2026 (Madhav: "start speaking while it's still writing the answer"): the same request, streamed. Each piece of text is handed to
+    on_text as it arrives (the voice turns the answer's finished sentences into audio straight away); the whole text and the usage come back
+    as from _claude."""
+    hdr = {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+    parts: list[str] = []
+    usage: dict = {}
+    stop = None
+    with requests.post("https://api.anthropic.com/v1/messages", headers=hdr, json={**body, "stream": True}, timeout=(10, 90), stream=True) as r:
+        if r.status_code >= 400:
+            try:
+                err = r.json().get("error") or {}
+            except ValueError:
+                err = {}
+            raise RuntimeError(str(err.get("message") or f"HTTP {r.status_code}")[:160])
+        for raw in r.iter_lines(decode_unicode=True):
+            if not raw or not raw.startswith("data:"):
+                continue
+            try:
+                ev = json.loads(raw[5:].strip())
+            except ValueError:
+                continue
+            t = ev.get("type")
+            if t == "content_block_delta" and (ev.get("delta") or {}).get("type") == "text_delta":
+                piece = ev["delta"].get("text") or ""
+                parts.append(piece)
+                try:
+                    on_text(piece)
+                except Exception:  # noqa: BLE001  the voice never breaks the answer
+                    pass
+            elif t == "message_start":
+                usage.update(((ev.get("message") or {}).get("usage")) or {})
+            elif t == "message_delta":
+                usage.update(ev.get("usage") or {})
+                stop = (ev.get("delta") or {}).get("stop_reason") or stop
+            elif t == "error":
+                raise RuntimeError(str((ev.get("error") or {}).get("message", "stream error"))[:160])
+    return "".join(parts), {"in": usage.get("input_tokens", 0), "out": usage.get("output_tokens", 0), "cache_read": usage.get("cache_read_input_tokens", 0) or 0,
+                            "cache_write": usage.get("cache_creation_input_tokens", 0) or 0, "model": MODEL, "stop": stop, "streamed": True}
+
+
+class AnswerTap:
+    """Reads the "answer" string out of the model's JSON while it is being written, and hands each finished sentence on (5 Nov 2026).
+    The JSON is {"kind":..., "stage":..., "answer":"...", ...}; only the answer's characters are taken, JSON escapes decoded."""
+    START = re.compile(r'"answer"\s*:\s*"')
+    END_SENT = re.compile(r'(?<=[.!?])["”’)]?\s+(?=[A-Z0-9"“‘(₹])|\n+')
+
+    def __init__(self, emit):
+        self.emit, self.raw, self.pos, self.buf, self.done = emit, "", None, "", False
+
+    def feed(self, piece: str) -> None:
+        if self.done:
+            return
+        self.raw += piece
+        if self.pos is None:
+            m = self.START.search(self.raw)
+            if not m:
+                return
+            self.pos = m.end()
+        out, i, raw = [], self.pos, self.raw
+        while i < len(raw):
+            c = raw[i]
+            if c == "\\":
+                if i + 1 >= len(raw):
+                    break
+                n = raw[i + 1]
+                if n == "u":
+                    if i + 6 > len(raw):
+                        break
+                    try:
+                        out.append(chr(int(raw[i + 2:i + 6], 16)))
+                    except ValueError:
+                        pass
+                    i += 6
+                    continue
+                out.append({"n": "\n", "t": " ", "r": "", "b": "", "f": ""}.get(n, n))
+                i += 2
+                continue
+            if c == '"':
+                self.done = True
+                i += 1
+                break
+            out.append(c)
+            i += 1
+        self.pos = i
+        self.buf += "".join(out)
+        self._sentences(final=self.done)
+
+    ABBR = re.compile(r"(?:\b(?:Rs|vs|No|Dr|Mr|Mrs|St|approx|e\.g|i\.e|etc|Ltd|Inc|Co)\.)$", re.I)
+
+    def _sentences(self, final: bool = False) -> None:
+        start = 0
+        while True:
+            m = self.END_SENT.search(self.buf, start)
+            if not m:
+                break
+            head = self.buf[:m.start()]
+            if self.ABBR.search(head.rstrip("\"”’)")):         # "Rs. 478", "vs. 23,900": not the end of a sentence
+                start = m.end()
+                continue
+            closing = self.buf[m.start():m.end()].strip()
+            s, self.buf, start = (head + (closing if closing and closing in "\"”’)" else "")).strip(), self.buf[m.end():], 0
+            if s:
+                self.emit(s)
+        if final and self.buf.strip():
+            s, self.buf = self.buf.strip(), ""
+            self.emit(s)
+
+    def close(self) -> None:
+        self._sentences(final=True)
+
+
+SAY_SHOW = re.compile(r"\b(?:I(?:'ve| have) opened|I'm opening|I am opening|I've taken you|I have taken you)\b")
+
+
+def live_sentence(s: str, live: dict, f: dict, question: str) -> str | None:
+    """One sentence of a model answer, ready to be spoken while the rest is still being written (5 Nov 2026): the same plain words as the
+    whole answer gets (finish), and the same check against today (prices, the clock, the options ledger, every figure in the facts). A
+    sentence that fails the check is not spoken; the screen still shows the whole checked answer."""
+    a = askwords.words(plain_codes(str(s or "")))
+    a = re.sub(r"\bTRIM\b", "trim", re.sub(r"\bREDUCE\b", "halve", re.sub(r"\bTIDY\b", "tidy-up", a))).strip()
+    if not a or SAY_SHOW.search(a):
+        return None
+    try:
+        from jarvis.india import livesession as _ls
+        from jarvis.india import numcheck as _nc
+        if _ls.check(a, live or {}, question) or _nc.check(a, f, question):
+            return None
+    except Exception:  # noqa: BLE001  a check that cannot run does not stop the voice; the whole answer is still checked
+        pass
+    return a
+
+
+def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: int = 3000, cached: tuple[str, str] | None = None,
+            on_text=None) -> tuple[str, dict]:
     """cached (27 Oct, voice latency): (facts_text, user_text). The ~115 KB facts block, the same on every turn until the read model changes,
     goes after the instructions as a second cached system part, and the user turn carries only the question and this turn's few extras.
     Before, the facts sat in the user turn after the question, so about 50,000 input tokens were read fresh on every question (3,638 cached)."""
@@ -797,6 +931,16 @@ def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: 
         user = cached[1]
     msgs = [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": user}]
     body = {"model": MODEL, "max_tokens": int(max_tokens), "system": sysparts, "messages": msgs}   # the model thinks inside this budget too
+    if on_text is not None and post is None:
+        return _claude_stream(key, body, on_text)
+    if on_text is not None:                         # a test stand-in: the whole text at once, then the usual reply
+        r0 = post("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body)
+        t0 = "".join(c.get("text", "") for c in (r0.get("content") or []) if c.get("type") == "text") if isinstance(r0, dict) else ""
+        try:
+            on_text(t0)
+        except Exception:  # noqa: BLE001
+            pass
+        post = (lambda r: (lambda url, headers, body: r))(r0)
     post = post or (lambda url, headers, body: requests.post(url, headers=headers, json=body, timeout=90).json())
     r = post("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body)
     if r.get("error"):
@@ -807,9 +951,16 @@ def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: 
                   "cache_write": u.get("cache_creation_input_tokens", 0) or 0, "model": MODEL, "stop": r.get("stop_reason")}
 
 
-def _call(system: str, history: list[dict], user: str, post=None, max_tokens: int | None = None, cached: tuple[str, str] | None = None) -> tuple[str, dict]:
+def _call(system: str, history: list[dict], user: str, post=None, max_tokens: int | None = None, cached: tuple[str, str] | None = None,
+          on_text=None) -> tuple[str, dict]:
     """_claude with a bigger budget when asked (a batch of questions, a retry) and the facts cached when given; a stand-in without those
-    arguments still works (it gets the old single user turn, facts included)."""
+    arguments still works (it gets the old single user turn, facts included). on_text (5 Nov): the answer streamed as it is written."""
+    if on_text is not None:
+        try:
+            return _claude(system, history, user, post=post, **({"max_tokens": max_tokens} if max_tokens else {}),
+                           **({"cached": cached} if cached else {}), on_text=on_text)
+        except TypeError:                      # a stand-in _claude without on_text: no live voice, the answer as before
+            pass
     kw = {**({"max_tokens": max_tokens} if max_tokens else {}), **({"cached": cached} if cached else {})}
     if kw:
         try:
@@ -1141,7 +1292,9 @@ def garbled_flow(text: str) -> dict | None:
 
 
 def ask(who: str, text: str, thread: str | None = None, mode: str | None = None, context: dict | None = None, voice: bool = False, post=None,
-        token: str | None = None, flag_post=None, flag_get=None, split_post=None) -> dict:
+        token: str | None = None, flag_post=None, flag_get=None, split_post=None, speak_live=None) -> dict:
+    """speak_live (5 Nov 2026, the voice): called with each sentence of a model answer as soon as it is written and checked, so the voice can
+    start speaking before the whole answer is done. Code answers do not use it (they are instant)."""
     text = (text or "").strip()[:2000]
     if not text:
         raise ValueError("empty question")
@@ -1435,8 +1588,25 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"
                   f"{json.dumps({k: f[k] for k in per_turn if k in f}, default=str)}\n\n"
                   "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
+        tap = None
+        if speak_live is not None and not batch:
+            # 5 Nov 2026 (Madhav: "start speaking while it's still writing the answer"): what code already said (the flag line, the
+            # welcome) goes first, then each sentence of the model's answer as soon as it is written and has passed today's check.
+            # A guest or an unknown voice hears each sentence the way the whole answer is addressed to them (no "sir")
+            def _addr(c: str) -> str:
+                if guest:
+                    return speaker.address(c, guest)
+                return speaker.address(c, {"call": ""}) if stranger else c
+            lead = " ".join(x for x in (welcome, prefix) if x).strip()
+            if lead:
+                speak_live(_addr(lead))
+            live_now = f.get("today_live") or {}
+            tap = AnswerTap(lambda s: (lambda c: speak_live(_addr(c)) if c else None)(live_sentence(s, live_now, f, text_q)))
         try:
-            raw, usage = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post, max_tokens=budget, cached=(facts_text, user_c))
+            raw, usage = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post, max_tokens=budget, cached=(facts_text, user_c),
+                               on_text=tap.feed if tap else None)
+            if tap:
+                tap.close()
             reply = _parse(raw)
             # 27 Oct (14:40 / 14:44 chat): an empty answer is never shown. The answer is taken from the breakdown if only that came back; else
             # one retry with a bigger budget and a 'be brief' instruction; else a plain line saying so

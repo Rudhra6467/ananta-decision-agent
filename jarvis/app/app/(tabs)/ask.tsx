@@ -596,6 +596,8 @@ export default function Ananta() {
         prefixRef.current = null;
         if (r.thread) setThread(r.thread);
         if (r.heard) setMsgs((m) => [...m, { role: "user", text: r.heard, voice: true }]);
+        // 5 Nov: a live answer is already being spoken while it is written; its bubble fills in when the whole checked answer arrives
+        if (r.pending) setMsgs((m) => [...m, { role: "assistant", voice: true, kind: "answer", answer: "…", pendingId: r.pending, model_label: "Ananta" }]);
         if (r.answer || r.error || r.tour?.length) setMsgs((m) => [...m, { role: "assistant", voice: true, ...r }]);
         if (r.answer || r.error) feedFrom(r.heard, r);
         return r;
@@ -621,6 +623,25 @@ export default function Ananta() {
         if (r.tour?.length) {                                  // one step at a time; each step tells the watchdog it is still busy
           await UI.playTour(r.tour, (t) => { loopRef.current?.touch(); return TTS.speakText(t); }, current);
           if (current()) await comeBack();
+          return;
+        }
+        if (r.streaming && typeof r.voice_id === "string") {   // 5 Nov: speaking while the answer is still being written
+          const whole: Promise<any> = r.pending
+            ? api(`/v3/voice/turn/${r.pending}`, undefined, 90000).then((x: any) => {
+                setMsgs((m) => m.map((y: any) => (y.pendingId === r.pending ? { role: "assistant", voice: true, ...x } : y)));
+                feedFrom(r.heard, x);
+                return x;
+              }).catch(() => {
+                setMsgs((m) => m.map((y: any) => (y.pendingId === r.pending ? { ...y, answer: "(The full text did not arrive; the answer was spoken.)" } : y)));
+                return null;
+              })
+            : Promise.resolve(r);
+          await TTS.speakLive(r.voice_id);
+          const x = await whole;
+          if (x?.ui?.length && current()) {                    // a screen move the answer asked for, once it is known
+            const res = await UI.run(x.ui);
+            UI.report(x.id, res, x.points);
+          }
           return;
         }
         let failNote = "";

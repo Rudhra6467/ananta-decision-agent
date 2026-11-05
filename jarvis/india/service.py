@@ -359,6 +359,18 @@ def voice_answer_meta(key: str, who: str = Depends(signed_in)) -> dict:
     return _voice_run(india_voice.answer_meta, key)
 
 
+@r.get("/v3/voice/turn/{key}")
+def voice_turn_result(key: str, who: str = Depends(signed_in)) -> dict:
+    """5 Nov 2026: a live turn's whole checked answer, for the screen, while the voice is already speaking it."""
+    return _voice_run(india_voice.turn_result, key)
+
+
+@r.get("/v3/voice/answer/{key}/more")
+def voice_answer_more(key: str, have: int = 0, who: str = Depends(signed_in)) -> dict:
+    """5 Nov 2026: the next pieces of a live answer (waits up to 30 s for one); done = no more will come."""
+    return _voice_run(india_voice.live_more, key, have)
+
+
 @r.get("/v3/voice/answer/{key}/audio")
 def voice_answer_audio(key: str, who: str = Depends(signed_in)):
     body, ctype = _voice_run(india_voice.answer_audio, key)

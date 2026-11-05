@@ -1,0 +1,30 @@
+{
+ "study": "SP1R",
+ "family": "options_line_review",
+ "version": 1,
+ "written": "2026-11-05",
+ "asked_by": "Madhav, 5 Nov 2026 11:08 Toronto (in chat): \"yes to all\" to suggestion D of the trader review of his 10:44 chat: write the questions for the options line's 20-session review down now, before its results are in, so they cannot be fitted to them.",
+ "title": "The options line's 20-session review: four questions written down before the review",
+ "why": "On 5 Nov the line bought a Bank Nifty put at 09:15 against a 2.1% gap up on a predicted edge of 1.6 basis points after costs with a standard error of 2.5 (0.6 of a standard error); the stop closed it for about Rs -7,253, about 15% of the Rs 50,000 options money. After 9 sessions Bank Nifty had traded every session for about +Rs 802 in all, Nifty twice for about +Rs 12,406 (one lot, realistic fills).",
+ "questions": {
+  "Q1_banknifty_bar": "Should Bank Nifty use Nifty's stricter bar (a trade only when pred_net > 2.5 x se; Bank Nifty's c is 0.5 now)?",
+  "Q2_gap_fade": "Should the line skip a 09:15 trade that bets against an opening gap of 1% or more?",
+  "Q3_min_edge": "Should every trade need a predicted edge after costs of at least one standard error (pred_net >= 1.0 x se)?",
+  "Q4_sizing": "Should one trade's premium be capped at about a quarter of the options money (Rs 12,500 of Rs 50,000), taking a cheaper strike or no trade when one lot costs more?"
+ },
+ "historical_test": {
+  "rows": "gold/studies/SP1_policy_trades.parquet: the walk-forward policy's chosen trades, 2017-2023 (nothing 2024 or later); the opening gap from gold/scenario/index_states.parquet (2015-2023)",
+  "rule": "seen_val_only: these years shaped the line's design (SP1 review, 19 Oct), so 2018-2023 is scored and support is never confirmation",
+  "outcome": "net_bps (the index proxy after costs); the one-lot option result (opt_net_rs) is reported beside it",
+  "variants": {
+   "banknifty|below_nifty_bar|net_bps": -1,
+   "both|d0_gap_fade_1pct|net_bps": -1,
+   "both|edge_below_1se|net_bps": -1
+  },
+  "sizing": "descriptive only: how often one lot's premium was above Rs 12,500, and the worst single-trade option loss as a share of Rs 50,000",
+  "statistic": "teachers_stock.absolute: the trades' own mean, t across quarters"
+ },
+ "forward_review": "At session 20 (about 27 Nov 2026) the same four questions are counted on the line's own ledger (how many trades each change would have removed, and their result). Twenty sessions are too few for a verdict; the live counts are read beside the historical test above.",
+ "bar": {"union_k": 3, "z": 2.39, "bar_families": ["options_line_review"]},
+ "what_changes": "Nothing now. The line's rules are frozen until the 20-session review; any change after it needs Madhav's yes, recorded with the pin history."
+}

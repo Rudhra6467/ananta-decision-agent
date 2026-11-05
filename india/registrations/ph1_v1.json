@@ -1,0 +1,36 @@
+{
+ "study": "PH1",
+ "family": "market_phase",
+ "version": 1,
+ "written": "2026-11-05",
+ "asked_by": "Madhav, 5 Nov 2026 11:08 Toronto (in chat): \"yes to all\" to suggestion A of the trader review of his 10:44 chat (\"it's not about predicting the next move only. It's about predicting the next overall direction of the market ... going up or going down, sometimes in the same position, going up and down before breaking up or down ... it waits for certain news or events\").",
+ "title": "Market phase: does the Nifty's phase (trend up, trend down, range, squeeze) say how big and which way the next moves are, and how the options line does in each?",
+ "hypothesis": "A squeeze (the 20-session high-low range in the bottom fifth of its own past year) is followed by bigger 10-session moves than usual, but says nothing about their direction; trend phases carry on (up phases have higher 20-session returns, down phases lower); range phases are followed by smaller moves. The options line (it buys options, so it needs moves) does better after a squeeze than after a range.",
+ "what_was_tried_before": "Trend state (above or below the 50- and 200-day averages) is a filter inside several teacher and managed-book rules, never tested on its own as a phase; the US close, flows, rupee, crude, MACD and moving-average signals were tested for the next day's move (none predicted it). Range compression and volatility regimes were never tested.",
+ "definitions": {
+  "rows": "one row per index per trading day, NIFTY 50 and NIFTY BANK, from silver/kite_index/day (2003-2023 for the indexes, 2009-2023 for India VIX); nothing dated 2024 or later is read",
+  "known_at": "every label uses closes up to and including day t only; outcomes start after day t's close",
+  "trend_up": "close above both its 50- and 200-day averages",
+  "trend_down": "close below both",
+  "range": "neither (between the two averages)",
+  "squeeze": "rng20 = (highest high - lowest low of the last 20 sessions) / close, at or below the 20th percentile of its own last 252 sessions (at least 200 of them)",
+  "low_vix": "India VIX close at or below the 30th percentile of its own last 252 sessions",
+  "fwd10 / fwd20": "close 10 / 20 sessions later over close t, minus 1; abs_fwd10 = its size",
+  "options_line_rows": "gold/studies/SP1_policy_trades.parquet (2017-2023, the walk-forward policy's chosen trades), joined to the phase of the index at the previous session's close; outcome net_bps (index proxy after costs)",
+  "statistic": "teachers_stock.level: the signal days' mean outcome minus all days' mean in the same quarter, t across quarters; the options-line rows use teachers_stock.absolute (their own mean, t across quarters)"
+ },
+ "periods": {"dev": "2003-2017", "val": "2018-2023", "options_line_rule": "seen_val_only: 2017-2023 shaped the options line's design (SP1 review, 19 Oct), so only 2018-2023 is scored and support is never confirmation"},
+ "variants": {
+  "nifty|squeeze|abs_fwd10": 1,
+  "nifty|squeeze|fwd10": 0,
+  "nifty|trend_up|fwd20": 1,
+  "nifty|trend_down|fwd20": -1,
+  "nifty|range|abs_fwd10": -1,
+  "banknifty|squeeze|abs_fwd10": 1,
+  "nifty|squeeze_low_vix|abs_fwd10": 1,
+  "options_line|after_squeeze|net_bps": 1,
+  "options_line|after_range|net_bps": -1
+ },
+ "bar": {"union_k": 9, "z": 2.77, "bar_families": ["market_phase"], "note": "a new family; k is the 9 variants here"},
+ "what_changes": "Nothing trades and no rule changes from this study. A verdict is reported to Madhav; anything that held could become a paper trial only with his yes."
+}

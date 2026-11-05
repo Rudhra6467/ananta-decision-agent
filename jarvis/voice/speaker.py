@@ -116,6 +116,11 @@ def calibrate(prints: list[np.ndarray], negs: list[list[float]]) -> dict:
         loo.append(cos(e, m))
     avg = np.mean(prints, axis=0)
     neg = [cos(n, avg) for n in negs]
+    return _lines(loo, neg)
+
+
+def _lines(loo: list[float], neg: list[float]) -> dict:
+    """The accept and reject lines from his own clips' leave-one-out scores and the synthetic other voices' scores."""
     lo_self = float(np.min(loo)) if loo else None
     hi_neg = float(np.max(neg)) if neg else None
     accept = PROVISIONAL["accept"] if lo_self is None else float(np.clip(lo_self - 0.08, 0.45, 0.75))
@@ -183,6 +188,14 @@ def enrol(b: PcmReq) -> dict:
     if len(_pending) >= MAX_CLIPS:
         _pending.pop(0)
     _pending.append(embed(pcm).tolist())
+    if _ADD["on"] and _ADD["base"]:
+        out = {"ok": True, "count": len(_pending), "need": ADD_MIN, "done": False, "adding": True}
+        if len(_pending) >= ADD_MIN:
+            p = _add_to_print(_ADD["base"], _pending)
+            save_profile(p)
+            out.update({"done": True, "total": p["count"], "thresholds": {k: p["thresholds"][k] for k in ("accept", "reject", "provisional")},
+                        "self_scores": p["thresholds"]["added_loo"]})
+        return out
     out = {"ok": True, "count": len(_pending), "need": MIN_CLIPS, "done": False}
     if len(_pending) >= MIN_CLIPS:
         prints = [np.asarray(p, dtype=np.float32) for p in _pending]
@@ -213,11 +226,33 @@ def enrol_reset() -> dict:
     return {"ok": True, "enrolled": False}
 
 
+# 5 Nov 2026 (the 20-day synopsis: 20 of his 52 voice turns since 31 Oct came back unsure, a few long ones just under the line): adding
+# sentences to the print he already has. Only the averaged print is ever kept, so the new clips are folded into it, weighted by how many
+# clips made it; the old clips' leave-one-out scores (kept in the thresholds) count with the new ones for the accept line.
+_ADD: dict = {"on": False, "base": None}
+ADD_MIN, MAX_TOTAL = 3, 24
+
+
 @app.post("/enrol/start")
-def enrol_start() -> dict:
-    """A fresh enrolment (the old profile stays in use until the new one has MIN_CLIPS clips)."""
+def enrol_start(b: dict | None = None) -> dict:
+    """A fresh enrolment (the old profile stays in use until the new one has MIN_CLIPS clips), or {"add": true}: more sentences for the
+    print he already has (it changes after ADD_MIN of them)."""
     _pending.clear()
-    return {"ok": True, "pending": 0, "need": MIN_CLIPS}
+    base = load_profile() if (b or {}).get("add") else None
+    _ADD.update(on=base is not None, base=base)
+    return {"ok": True, "pending": 0, "need": ADD_MIN if base else MIN_CLIPS, "adding": base is not None}
+
+
+def _add_to_print(base: dict, clips: list[list[float]]) -> dict:
+    n0 = int(base.get("count") or 0)
+    units = [np.asarray(c, dtype=np.float32) / (np.linalg.norm(c) + 1e-9) for c in clips][: max(0, MAX_TOTAL - n0)]
+    total = np.asarray(base["print"], dtype=np.float32) * n0 + np.sum(units, axis=0)
+    avg = total / (np.linalg.norm(total) + 1e-9)
+    loo = [cos(u, total - u) for u in units]
+    old = [float(x) for x in ((base.get("thresholds") or {}).get("self_loo") or [])]
+    th = {**_lines(old + loo, [cos(n, avg) for n in negatives()]), "added_loo": [round(x, 3) for x in loo]}
+    return {"print": [round(float(x), 6) for x in avg], "count": n0 + len(units), "model": MODEL_ID, "enrolled_at": base.get("enrolled_at"),
+            "added_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "thresholds": th}
 
 
 @app.post("/negatives")

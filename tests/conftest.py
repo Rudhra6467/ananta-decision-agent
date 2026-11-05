@@ -91,3 +91,13 @@ def _no_live_split(monkeypatch):
     real = mind.split
     monkeypatch.setattr(mind, "split", lambda text, last_answer="", key="", post=None: real(text, last_answer, key=key, post=post) if post else
                         [{"kind": "unsure", "text": text}])
+
+
+@pytest.fixture(autouse=True)
+def _no_live_selfcheck(tmp_path, monkeypatch):
+    """5 Nov (the self-check): tests never read or write the live ~/ananta_data/selfcheck.json, so no answer in a test carries a real
+    'one thing that isn't right' line."""
+    from jarvis import selfcheck
+
+    monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
+    monkeypatch.setattr(selfcheck, "_credit", lambda post=None: [])     # and never call the Anthropic API

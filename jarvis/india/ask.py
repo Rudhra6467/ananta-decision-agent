@@ -392,7 +392,21 @@ def _options_review() -> dict:
         hist["sizing"] = lab.get("sizing")
     except (OSError, ValueError):
         pass
-    return {"when": "at session 20 of the options line (about 27 Nov 2026)", "questions": s.get("questions"), "why": s.get("why"),
+    # 5 Nov (synopsis): the review date was written as "about 27 Nov"; counted from the line's own sessions and NSE's holidays it is the
+    # 20th session's date (Mon 23 Nov on 5 Nov, if no session is lost)
+    when = "at session 20 of the options line"
+    try:
+        from jarvis.india import answerguide as _ag
+        done = int((json.loads((DATA / "paper" / "sp1" / "book.json").read_text()) or {}).get("sessions") or 0)
+        last = max(json.loads(x)["date"] for x in (DATA / "paper" / "sp1" / "outcomes.jsonl").read_text().splitlines() if x.strip())
+        d = dt.date.fromisoformat(last)
+        for _ in range(max(0, 20 - done)):
+            d = _ag.next_session_after(d)
+        when = (f"at session 20 of the options line: {done} of 20 sessions are done, so the 20th is {_ag.day_words(d)} if no session is "
+                "lost (weekends and NSE holidays skipped); the review reads it that evening")
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return {"when": when, "questions": s.get("questions"), "why": s.get("why"),
             "history_2018_2023": hist,
             "how_to_say_it": ("say the four questions in plain words and what the line's own 2018-2023 history said on each (those years shaped the "
                               "line's design, so support there is never proof); nothing changes before the review, and any change after it needs "
@@ -671,12 +685,20 @@ def _account_value() -> dict:
 
 
 def _books_benchmark() -> dict:
-    """The three books on Money from 3 Nov: as you have it (frozen), the managed book and the Nifty 500 (the twin's row is no longer spoken)."""
+    """The three books on Money from 3 Nov: as you have it (frozen), the managed book and the Nifty 500 (the twin's row is no longer spoken).
+    5 Nov (synopsis): compared over the same days (jarvis/india/compare.py); the frozen book's own longer run is context only."""
+    from jarvis.india import compare
+
+    sw = compare.same_window()
     try:
         v = json.loads((DATA / "paper" / "account" / "view.json").read_text()).get("benchmark") or {}
-        return {k: v.get(k) for k in ("day", "frozen_ret_pct", "managed_ret_pct", "managed_sessions", "managed_minus_frozen_pct", "nifty500_ret_pct")}
     except (OSError, ValueError):
-        return {"words": "the benchmark row is not built yet"}
+        v = {}
+    if not sw.get("ready"):
+        return {"words": sw.get("words"), "day": v.get("day")}
+    return {**sw, "how": ("compare the managed book only with these same-window numbers; never put its return beside the holdings' return "
+                          "since 22 Oct, which starts on a different day"),
+            "holdings_since_22_oct_pct": v.get("frozen_ret_pct"), "nifty500_since_22_oct_pct": v.get("nifty500_ret_pct")}
 
 
 def _twin_benchmark() -> dict:
@@ -1283,6 +1305,13 @@ MAP_TOPIC = re.compile(r"\b(?:tested|test|tests|study|studies|studied|research\w
                        r"have you (?:looked|checked)|does .{3,40} work|is .{3,40} real)\b", re.I)
 SYS_TOPIC = re.compile(r"\b(watch ?dog|health|repair|fix(?:es|ed)?|flags?|jobs?|restart\w*|broke\w*|breaks?|outage|down|stall\w*|monitor\w*|"
                        r"self[- ]heal\w*|alerts?|notif\w*|what happens (?:to|after)|deploy\w*)\b", re.I)
+# 5 Nov (Madhav: "how much Ananta does know about what we did here in the back end ... it can tell if something is not right"): a question
+# about Ananta itself gets its book about itself (jarvis/selfknow.py): the change book, how its parts work now, and the live self-check
+SELF_TOPIC = re.compile(r"\b(?:what(?:'s| is| has)? (?:new|changed)|chang(?:e|es|ed)\b|upgrad\w*|updat\w*|back ?end|improv\w*|new feature|"
+                        r"(?:fix|fixed|built|added) (?:it|that|this|the)|work(?:s|ing)? now|how (?:do|does|did) (?:you|ananta)\b|"
+                        r"your (?:voice|voice ?print|watchdog|jobs?|system|parts?|setup|health|memory)|voice ?print|recogni[sz]\w*|"
+                        r"who (?:is|am i) (?:speaking|talking)|pre-?open|event calendar|phase stud\w*|(?:anything|something) (?:wrong|not right|broken)|"
+                        r"not right|are you (?:ok|okay|healthy|working)|self[- ]?check|know (?:yourself|about yourself|what we did))", re.I)
 SYSTEM_CARE = {
     "watchdog": ("The outside watchdog (com.ananta.watchdog) runs every 5 minutes, separate from Jarvis, because a stuck service cannot report its "
                  "own death. It checks that Jarvis answers, that its inside health checks ran in the last 10 minutes, that the 15-minute jobs "
@@ -1290,7 +1319,9 @@ SYSTEM_CARE = {
                  "in a row send a phone note, and a note again when it is back. Since 28 Oct it also heals one thing: Jarvis not answering or its "
                  "15-minute jobs stuck for 3 looks in a row (about 15 minutes) gets a snapshot of what it was stuck on and a restart, at most "
                  "once an hour. It never touches trading, rules or data. It found the 27 Oct stall (Jarvis stopped answering 11:40-12:37 Toronto, "
-                 "flag 48)."),
+                 "flag 48). Since 5 Nov it also watches the India service: two failed looks 10 seconds apart get what it was stuck on written "
+                 "down, a restart (at most once in 20 minutes) and a phone note; the India service also restarts itself if it freezes for 45 "
+                 "seconds."),
     "inside_checks": "Jarvis's own health checks run every few minutes (each job's last run, data freshness, the sign-in); Home's status line shows them.",
     "fix_life": ("Since 2 Nov (Madhav: 'just ananta notes it. and we here work on it'), a flag Madhav raises is noted in his words on My flags with "
                  "no fix menu; he works on it with Claude outside the app, and Ananta adds a comment to a flag only when he asks. The automatic "
@@ -1499,6 +1530,10 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             nd = waiting_nudge(thread, wait)
             if nd:
                 fixed["answer"] = f"{str(fixed.get('answer') or '').rstrip()} {nd}".strip()
+        if not guest and not stranger and not early:
+            nd = oversight_nudge(thread)
+            if nd:
+                fixed["answer"] = f"{str(fixed.get('answer') or '').rstrip()} {nd}".strip()
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": said, "t": int(time.time()), "voice": voice})
         rid = uuid.uuid4().hex[:12]
@@ -1559,6 +1594,12 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
     if SYS_TOPIC.search(text) or SYS_TOPIC.search(recent):   # 28 Oct (grader): the watchdog and a fix's life after it is built were not in the facts
         f["system_care"] = SYSTEM_CARE
+    if SELF_TOPIC.search(text) or SYS_TOPIC.search(text):     # 5 Nov: what changed, how its parts work now, what is not right (jarvis/selfknow.py)
+        try:
+            from jarvis import selfknow
+            f["about_ananta"] = selfknow.about_ananta(text, "india")
+        except Exception as e:  # noqa: BLE001  the book about itself never breaks an answer
+            f["about_ananta"] = {"error": type(e).__name__}
     if TRIAL_TOPIC.search(text) or TRIAL_TOPIC.search(recent):   # 30 Oct (Madhav): "what is the status of the trials, how much longer?" from the clocks
         f["trials"] = _load_trials()
         f["trials_meaning"] = ("every running trial: what it is, sessions done of needed, the expected finish date and what has happened so far; answer "
@@ -1612,7 +1653,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
         per_turn = ("today_live", "talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map", "trader_desk",
-                    "options_line_review")
+                    "options_line_review", "about_ananta")
         facts_text = (f"FACTS (the nightly read model, full data through {f.get('data_through')}; today_live, in the user turn, is today). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"
@@ -1722,6 +1763,10 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         reply["answer"] = with_welcome(welcome, reply.get("answer"))
     if wait and not batch and not re.search(r"\b(?:drafts?|waiting for your yes)\b", str(reply.get("answer") or ""), re.I):
         nd = waiting_nudge(thread, wait)              # 28 Oct (Madhav): said once per conversation, at the end of the answer
+        if nd:
+            reply["answer"] = f"{str(reply.get('answer') or '').rstrip()} {nd}".strip()
+    if not guest and not stranger and not batch and "about_ananta" not in f:
+        nd = oversight_nudge(thread)                  # 5 Nov (Madhav: "it can tell if something is not right"): once per conversation
         if nd:
             reply["answer"] = f"{str(reply.get('answer') or '').rstrip()} {nd}".strip()
     if prev:
@@ -2515,6 +2560,16 @@ def _unsettled(w: dict | None) -> dict | None:
     words = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
     return {**w, "items": items, "line": f"{words[:1].upper()}{words[1:]} {'is' if len(parts) == 1 and not parts[0][:1].isdigit() else 'are'} waiting for your yes.",
             "key": (w.get("key") or "") + ":" + str(len(items))}
+
+
+def oversight_nudge(thread: str) -> str:
+    """5 Nov (Madhav: "it can oversee ... it can tell if something is not right"): what the live self-check found (jarvis/selfcheck.py), once
+    per conversation and not again within 3 hours for the same findings, at the end of an answer to Madhav."""
+    try:
+        from jarvis import selfcheck
+        return selfcheck.nudge("india", Path(ASK_DIR) / "oversight_told.json", thread)
+    except Exception:  # noqa: BLE001  oversight never breaks an answer
+        return ""
 
 
 def waiting_nudge(thread: str, w: dict | None) -> str:

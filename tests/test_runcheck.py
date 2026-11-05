@@ -258,7 +258,7 @@ def test_worker_days_are_judged_only_once_they_have_arrived(tmp_path):
 def test_india_job_that_wrote_stderr_during_its_run_is_errored(tmp_path):
     import os
     paths = _paths(tmp_path)
-    run_t = calendar.timegm((2026, 10, 20, 0, 20, 0))                             # Oct 19 20:20 Toronto (the evening run's time since 3 Nov)
+    run_t = calendar.timegm((2026, 10, 20, 1, 20, 0))                             # 06:50 IST (Oct 19 21:20 Toronto in daylight time; 20:20 in winter)
     log, err = Path(paths["runs"], "india_evening.log"), Path(paths["runs"], "india_evening.err")
     log.write_text("# Ananta India daily report\n")
     err.write_text("india.kite.NeedLogin: Kite token rejected (TokenException): sign in again\n")
@@ -273,7 +273,7 @@ def test_india_job_that_wrote_stderr_during_its_run_is_errored(tmp_path):
 def test_india_job_whose_stderr_holds_only_its_own_start_line_is_not_errored(tmp_path):
     import os
     paths = _paths(tmp_path)
-    run_t = calendar.timegm((2026, 10, 20, 0, 20, 0))                             # Oct 19 20:20 Toronto (the evening run's time since 3 Nov)
+    run_t = calendar.timegm((2026, 10, 20, 1, 20, 0))                             # 06:50 IST (Oct 19 21:20 Toronto in daylight time; 20:20 in winter)
     log, err = Path(paths["runs"], "india_evening.log"), Path(paths["runs"], "india_evening.err")
     log.write_text("# Ananta India daily report\n")
     err.write_text("=== 2026-10-18_20:20:04 evening\nTraceback (most recent call last):\nindia.kite.NeedLogin: old run\n=== 2026-10-19_20:20:04 evening\n")

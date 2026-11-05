@@ -333,3 +333,39 @@ PARTS: list[dict] = [
      "since": "2026-10-20", "cadence": {"daily": "07:00", "tz": TOR, "grace": 2 * 3600}, "latest_only": True,
      "proof": {"mtime": "{runs}/sp1paper/score.log", "err_file": "{runs}/sp1paper/score.err"}},
 ]
+
+
+def _on_indian_time(parts: list[dict]) -> list[dict]:
+    """5 Nov 2026 (the self-check's first run): the India jobs run on Indian time, and jarvis/india/schedule.py TARGETS is the one owner of
+    those times. Parts written in Toronto time went stale when Toronto left daylight time on 1 Nov: the stock paper book "did not run at
+    22:30 Toronto" because it now runs at 21:30 (08:00 IST). A daily India part whose Toronto time is its job's Indian time in either
+    season (EDT, UTC-4, or EST, UTC-5) is judged at that Indian time instead, its days moved to Indian dates. Only parts proved by a
+    log's modification time move: a part proved by a dated file finds its file by the Toronto date whatever the hour."""
+    try:
+        from jarvis.india.schedule import TARGETS
+    except Exception:  # noqa: BLE001  the checker never breaks over this
+        return parts
+    for p in parts:
+        cad = p.get("cadence") or {}
+        times = (TARGETS.get(p.get("job") or "") or ([], None))[0]
+        if p.get("area") != "india" or cad.get("tz") != TOR or "daily" not in cad or not times:
+            continue
+        if set(p.get("proof") or {}) - {"mtime", "err_file"}:
+            continue                                                 # a dated file or log is keyed by the Toronto date: leave it
+        hh, mm = (int(x) for x in str(cad["daily"]).split(":"))
+        tor = hh * 60 + mm
+        for ist in times:
+            ih, im = (int(x) for x in ist.split(":"))
+            for off in (570, 630):                                   # IST minus Toronto in summer, in winter
+                if (ih * 60 + im - off) % 1440 == tor:
+                    shift = 1 if tor + off >= 1440 else 0            # a Toronto evening is the next Indian morning
+                    cad["daily"], cad["tz"] = ist, IST
+                    if "days" in cad:
+                        cad["days"] = "".join(sorted(str((int(d) + shift) % 7) for d in cad["days"]))
+                    break
+            if cad["tz"] == IST:
+                break
+    return parts
+
+
+PARTS = _on_indian_time(PARTS)

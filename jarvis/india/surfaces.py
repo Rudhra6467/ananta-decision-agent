@@ -321,10 +321,16 @@ def _holdings_points(hs: list[dict], bench: dict) -> list[str]:
     keys = sorted(groups, key=lambda a: order.index(a) if a in order else len(order))
     join = lambda xs: xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]   # noqa: E731
     pts = [_tidy("; ".join(f"{a} {join(groups[a])}" for a in keys))] if groups else []
-    if bench.get("frozen_ret_pct") is not None and bench.get("nifty500_ret_pct") is not None:
+    from jarvis.india import compare as _cmp
+    sw = _cmp.same_window()                                   # 5 Nov: one window for all three (jarvis/india/compare.py)
+    if sw.get("ready"):
+        pts.append(_tidy(f"Since {sw['since_words']}: managed {sw['managed_pct']:+.2f}% · your holdings {sw['yours_pct']:+.2f}% · Nifty 500 {sw['nifty500_pct']:+.2f}%"))
+    elif bench.get("frozen_ret_pct") is not None and bench.get("nifty500_ret_pct") is not None:
         pts.append(_tidy(f"Since {_dw(bench.get('frozen_day')).split(' ', 1)[-1]}: your holdings {bench['frozen_ret_pct']:+.2f}% · Nifty 500 {bench['nifty500_ret_pct']:+.2f}%"))
     pts += [_why_point(x["symbol"], str(x.get("action") or "").upper(), x.get("why")) for x in hs if x.get("symbol")]
-    if bench.get("managed_ret_pct") is not None:
+    if sw.get("ready"):
+        pts.append(_tidy(f"Managed book: session {sw['sessions']} of 60"))
+    elif bench.get("managed_ret_pct") is not None:
         pts.append(_tidy(f"Managed book {bench['managed_ret_pct']:+.2f}% · session {bench.get('managed_sessions')} of 60"))
     if bench.get("sessions") is not None:
         pts.append("Nothing is judged before 60 sessions")
@@ -473,6 +479,15 @@ def money(full: bool = True) -> dict:
     books = [{"id": "yours", "label": "As you have it", "ret_pct": bm.get("frozen_ret_pct")},
              {"id": "managed", "label": "Managed", "ret_pct": mb.get("return_pct") if (mb.get("clock") or {}).get("sessions") else None, "words": None if (mb.get("clock") or {}).get("sessions") else f"starts {_dw(plan.get('for_session')).split(' ')[0]}"},
              {"id": "index", "label": "Nifty 500", "ret_pct": bm.get("nifty500_ret_pct")}]
+    # 5 Nov (synopsis): the three lines had three different start days under a note saying "same start"; now all from the managed start
+    from jarvis.india import compare as _cmp
+    sw = _cmp.same_window()
+    books_note = "Nothing is read into the gap before session 60."
+    clock = {"sessions": bm.get("sessions"), "of": 60, "finish_words": None, "words": f"Session {bm.get('sessions')} of 60" if bm.get("sessions") is not None else None, "since": bm.get("frozen_day")}
+    if sw.get("ready"):
+        books[0]["ret_pct"], books[1]["ret_pct"], books[2]["ret_pct"] = sw["yours_pct"], sw["managed_pct"], sw["nifty500_pct"]
+        books_note = f"All three from the {sw['since_words']} close, when the managed book started, at the same prices. Nothing is read into the gap before session 60."
+        clock = {"sessions": sw["sessions"], "of": 60, "finish_words": None, "words": f"Session {sw['sessions']} of 60", "since": sw["since"]}
     holdings = []
     for x in (alloc.get("holdings") or []) if full else []:
         holdings.append({"symbol": x.get("symbol"), "value_inr": x.get("value_inr"), "weight_pct": x.get("weight_pct"), "pnl_pct": x.get("pnl_pct"), "grade": x.get("grade"),
@@ -481,8 +496,8 @@ def money(full: bool = True) -> dict:
     return {"ready": True, "paper": True, "value_inr": own.get("value_inr"), "stocks_inr": own.get("stocks_inr"), "options_inr": own.get("options_inr"), "cash_inr": own.get("cash_inr"),
             "value_owner": "the managed book" if own is mb else "the account book (the managed book has no value yet)",
             "as_of": f"NSE close {_dw((acct.get('marks') or {}).get('last_session'))}" if acct.get("marks") else None,
-            "books": books, "clock": {"sessions": bm.get("sessions"), "of": 60, "finish_words": None, "words": f"Session {bm.get('sessions')} of 60" if bm.get("sessions") is not None else None, "since": bm.get("frozen_day")},
-            "books_note": "Same start, same prices for all three. Nothing is read into the gap before session 60.",
+            "books": books, "clock": clock,
+            "books_note": books_note,
             "plan": {"for_session": plan.get("for_session"), "brief": plan_sentence(plan) if not plan.get("error") else plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],
                      "no_change": plan.get("no_change"), "error": plan.get("error")} if plan else None,
             "managed": {"value_inr": mb.get("value_inr"), "return_pct": mb.get("return_pct"), "clock": (mb.get("clock") or {}).get("words"), "replacements": mb.get("replacements") or []},

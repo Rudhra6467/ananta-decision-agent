@@ -390,8 +390,8 @@ def _spk_call(fn):
 
 
 @app.post("/speaker/start")
-def speaker_start() -> dict:
-    return _spk_call(lambda: _spk_post("/enrol/start", {}))
+def speaker_start(b: dict | None = None) -> dict:
+    return _spk_call(lambda: _spk_post("/enrol/start", {"add": bool((b or {}).get("add"))}))      # 5 Nov: {"add": true} adds sentences
 
 
 @app.post("/speaker/enrol")

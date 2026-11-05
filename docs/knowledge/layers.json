@@ -1,6 +1,6 @@
 {
  "version": "layers.v1",
- "updated": "2026-10-23",
+ "updated": "2026-11-05",
  "meaning": {
   "layer": "0 = highest authority. A lower number overrides a higher one; data errors (1) poison everything above them.",
   "status": {
@@ -1460,7 +1460,8 @@
     "jarvis/service/ndax_spreads.py",
     "jarvis/service/realism.py",
     "jarvis/service/sayshow.py",
-    "scripts/jarvis_watchdog.py"
+    "scripts/jarvis_watchdog.py",
+    "jarvis/selfcheck.py"
    ]
   },
   {
@@ -1687,7 +1688,8 @@
     "jarvis/india/voiceid.py",
     "jarvis/india/lookup.py",
     "jarvis/india/answerguide.py",
-    "jarvis/india/preopen.py"
+    "jarvis/india/preopen.py",
+    "jarvis/india/compare.py"
    ]
   },
   {
@@ -1770,6 +1772,26 @@
    "evidence": "Madhav, 24 Oct 2026 10:42: 'make sure we are tracking the market completely, looking for good trade setups'; rules only, no model call",
    "files": [
     "jarvis/service/setups.py"
+   ]
+  },
+  {
+   "id": "SELF_BOOK",
+   "name": "Ananta's book about itself: the change book, how its parts work now, the live self-check (both Asks)",
+   "layer": 8,
+   "status": "ACTIVE",
+   "acts": false,
+   "regime": "ALL",
+   "depends_on": [
+    "HEALTH",
+    "REPAIR_SHOP"
+   ],
+   "feeds": [
+    "ASK",
+    "INDIA_APP"
+   ],
+   "evidence": "from 2026-11-05 (Madhav: 'how much Ananta does know about what we did here in the back end? That should always be there'): every code commit adds its plain line (commit-msg hook, tests/test_changebook.py)",
+   "files": [
+    "jarvis/selfknow.py"
    ]
   }
  ],

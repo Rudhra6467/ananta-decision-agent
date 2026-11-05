@@ -304,6 +304,12 @@ def _snapshots() -> None:
                 STATE_W["waiting"] = _WT.remind(_main(), push=_push, web=lambda t, b: _N0.notify(_main(), t, b, url="/ask"))
             except Exception as exc:  # noqa: BLE001
                 STATE_W["waiting_error"] = str(exc)[:200]
+            try:                                          # 5 Nov (Madhav: "it can tell if something is not right"): the live self-check
+                from jarvis import selfcheck as _SC      # both Asks read (jarvis/selfcheck.py); its own thread, so a stuck server shows up
+
+                STATE_W["selfcheck"] = len(_SC.refresh()["items"])
+            except Exception as exc:  # noqa: BLE001
+                STATE_W["selfcheck_error"] = str(exc)[:200]
             try:                                          # build plan 1.4b: every account's watches and positions, one shared snapshot
                 from jarvis.service import watches as _W
 
@@ -2239,8 +2245,8 @@ def speaker_status(who: str = Depends(owner)) -> dict:
 
 
 @app.post("/v3/voice/speaker/start")
-def speaker_start(who: str = Depends(owner)) -> dict:
-    return _speaker("start", {})
+def speaker_start(b: dict | None = None, who: str = Depends(owner)) -> dict:
+    return _speaker("start", {"add": bool((b or {}).get("add"))})          # 5 Nov: {"add": true} adds sentences to his print
 
 
 @app.post("/v3/voice/speaker/enrol")

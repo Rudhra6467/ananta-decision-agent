@@ -32,7 +32,9 @@ HS = [{"symbol": "UNITDSPR", "action": "TIDY", "why": "Only ₹1,381, +53% on wh
 BENCH = {"frozen_ret_pct": 1.15, "nifty500_ret_pct": 3.79, "frozen_day": "2026-10-22", "managed_ret_pct": 1.07, "managed_sessions": 2, "sessions": 8}
 
 
-def test_holdings_points():
+def test_holdings_points(monkeypatch):
+    from jarvis.india import compare
+    monkeypatch.setattr(compare, "same_window", lambda *a, **k: {"ready": False})
     p = s._holdings_points(HS, BENCH)
     assert p[0] == "Halve IEX; trim JIOFIN; tidy up UNITDSPR", "the bigger move first"
     assert p[1] == "Since 22 Oct: your holdings +1.15% · Nifty 500 +3.79%"
@@ -40,6 +42,32 @@ def test_holdings_points():
     assert "JIOFIN: 23% of your stocks, −21% on cost · trim to 15%" in p
     assert "IEX: 2% of your stocks, −55% on cost · halve it" in p
     assert "Managed book +1.07% · session 2 of 60" in p
+
+
+def test_holdings_points_compare_the_same_days(monkeypatch):
+    """5 Nov (synopsis): the managed book (from 29 Oct) was put beside your holdings from 22 Oct; one window now."""
+    from jarvis.india import compare
+    monkeypatch.setattr(compare, "same_window", lambda *a, **k: {"ready": True, "since_words": "29 Oct", "managed_pct": 1.51, "yours_pct": 3.78,
+                                                                 "nifty500_pct": 3.78, "sessions": 3})
+    p = s._holdings_points(HS, BENCH)
+    assert p[1] == "Since 29 Oct: managed +1.51% · your holdings +3.78% · Nifty 500 +3.78%"
+    assert "Managed book: session 3 of 60" in p and not any("Since 22 Oct" in x for x in p)
+
+
+def test_same_window_counts_all_three_from_the_managed_start(tmp_path):
+    import json
+    from jarvis.india import compare
+    acct = tmp_path / "paper" / "account"
+    acct.mkdir(parents=True)
+    (acct / "view.json").write_text(json.dumps({"benchmark": {"managed_start_day": "2026-10-30", "managed_sessions": 3}}))
+    rows = [{"day": "2026-10-29", "frozen_inr": 160536, "nifty500_ret_pct": 1.13, "managed_ret_pct": None},
+            {"day": "2026-10-30", "frozen_inr": 163076, "nifty500_ret_pct": 0.92, "managed_ret_pct": 0.04},
+            {"day": "2026-11-04", "frozen_inr": 166606, "nifty500_ret_pct": 4.95, "managed_ret_pct": 1.51}]
+    (acct / "benchmark.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    w = compare.same_window(tmp_path)
+    assert w["ready"] and w["since"] == "2026-10-29" and w["managed_pct"] == 1.51
+    assert w["yours_pct"] == 3.78 and w["nifty500_pct"] == 3.78 and w["managed_minus_yours_pts"] == -2.27
+    assert "29 Oct close" in w["words"] and "session 3 of 60" in w["words"].lower()
 
 
 def test_watch_points():

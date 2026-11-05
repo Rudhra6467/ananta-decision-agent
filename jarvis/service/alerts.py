@@ -7,6 +7,7 @@ Briefings (morning 08:00 and evening 21:30 Toronto) are written once each by the
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 from datetime import datetime
@@ -180,13 +181,18 @@ class Alerts:
 
     def write_brief(self, kind: str, ask_fn: Callable[[str], dict], push: Callable[[str, str], Any] | None = None) -> dict | None:
         day = datetime.fromtimestamp(self.now(), _tz()).strftime("%Y-%m-%d")
-        q = ("Give me my morning briefing: what changed overnight, the portfolio, open trades, setups that are close, active alerts, "
-             "and anything waiting for my approval. Keep the answer to 3 short sentences.") if kind == "morning" else \
-            ("Give me my evening wrap-up: what happened today (buys, sells, portfolio, evidence collected), what is close to triggering, "
-             "and anything waiting for me. Keep the answer to 3 short sentences.")
+        # 5 Nov (synopsis): the briefs ran to five or six sentences and left out the $500 account, though its core had bought Bitcoin and
+        # Ethereum overnight. Now: the account first, then the market, then what needs him; three sentences, the rest in the points.
+        q = ("Give me my morning briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold "
+             "since last night), then what changed overnight in the market and the dial, then the one thing that needs me today, or that "
+             "nothing does. Open trades, close setups, alerts and the other books go in the points, not the sentences.") if kind == "morning" else \
+            ("Give me my evening wrap-up in exactly 3 short sentences: first my $500 account today (its value in C$ and any buy or sell), "
+             "then what happened in the market and the other books, then what is close to triggering or waits for me, or that nothing does. "
+             "Evidence collected and the details go in the points, not the sentences.")
         r = ask_fn(q)
         if r.get("error"):
             return None
+        r = three_sentences(r)
         bid = "B" + uuid.uuid4().hex[:9]
         self.db.execute("INSERT INTO briefings VALUES (?,?,?,?,?,?)", (bid, int(self.now()), kind, day, r.get("answer", ""), json.dumps(r, default=str)))
         self.db.commit()
@@ -196,3 +202,19 @@ class Alerts:
             except Exception:  # noqa: BLE001
                 pass
         return {"id": bid, "kind": kind, "text": r.get("answer")}
+
+
+GREETING = re.compile(r"^(?:good )?(?:morning|evening|afternoon|hi|hello|hey)\b[^.!?]{0,15}[.!?]$", re.I)
+ORDER_TAIL = re.compile(r"\s*No order card was made[^.]*\.\s*", re.I)
+
+
+def three_sentences(r: dict) -> dict:
+    """A briefing keeps three sentences; anything longer moves to the front of its points (5 Nov). The stock tail about order cards goes:
+    a briefing never offers an order."""
+    ans = ORDER_TAIL.sub(" ", str(r.get("answer") or "")).strip()
+    parts = [x for x in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(])", ans) if x.strip()]
+    keep = 4 if parts and GREETING.match(parts[0]) else 3          # "Morning, sir." is not one of the three
+    if len(parts) > keep:
+        r = {**r, "breakdown": parts[keep:] + [b for b in (r.get("breakdown") or []) if b not in parts[keep:]]}
+        ans = " ".join(parts[:keep])
+    return {**r, "answer": ans}

@@ -80,6 +80,26 @@ def test_enrol_one_voice_then_it_scores_above_the_others(S, clips):
     assert all(s["ms"] < 1500 for s in same)
 
 
+def test_adding_sentences_folds_them_into_the_print(S, clips):
+    """5 Nov (synopsis): "Add more of my voice" keeps the print he has and folds new sentences in; three are enough to change it."""
+    from fastapi.testclient import TestClient
+    c = TestClient(S.app)
+    before = S.load_profile()
+    assert c.post("/enrol/start", json={"add": True}).json()["adding"] is True
+    for i in (6, 7):
+        r = c.post("/enrol", json={"pcm_b64": _b64(clips["Aman"][i])}).json()
+        assert r["ok"] and r["adding"] and not r["done"]
+    assert S.load_profile()["count"] == before["count"], "the print does not change before three new sentences"
+    r = c.post("/enrol", json={"pcm_b64": _b64(clips["Aman"][0])}).json()
+    assert r["done"] and r["total"] == before["count"] + 3
+    p = S.load_profile()
+    assert p["count"] == before["count"] + 3 and p["enrolled_at"] == before["enrolled_at"] and p.get("added_at")
+    assert len(p["thresholds"]["self_loo"]) == len(before["thresholds"]["self_loo"]) + 3
+    other = [c.post("/score", json={"pcm_b64": _b64(x)}).json() for x in clips["Daniel"][6:]]
+    assert all(o["speaker"] == "not_madhav" for o in other), other
+    assert c.post("/enrol/start", json={}).json()["adding"] is False
+
+
 def test_short_clips_are_unknown_and_reset_forgets(S, clips):
     from fastapi.testclient import TestClient
     c = TestClient(S.app)

@@ -27,11 +27,12 @@ def test_a_plain_flag_has_no_question():
     assert ask.other_question("Flag that the chart is cut off on the money screen.") == ""
 
 
-def test_watchdog_restarts_a_frozen_india_service_once_with_its_stack():
+def test_watchdog_restarts_a_frozen_india_service_once_with_its_stack(tmp_path, monkeypatch):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
     import jarvis_watchdog as w
+    monkeypatch.setattr(w, "STALLS", tmp_path / "stalls")    # 5 Nov: the test had written a real stall file dated 2001
 
     class R:
         def __init__(self, out=""):

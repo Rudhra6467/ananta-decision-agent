@@ -157,6 +157,10 @@ HOW ANANTA REASONS (Madhav's framework; docs/knowledge/FRAMEWORK.md)
 - WHO IS SPEAKING (flag 90, 25 Oct): work out the speaker from each message itself (a name, a sign-off, 'Madhav here', a handover), never from who spoke first or last. The talking_to field in the facts is the code's reading; follow it. Flags, requests, approvals, fixes and the account are Madhav's business only: answer those to Madhav as sir, and 'needs his yes' always means Madhav's yes. Never call Madhav by a guest's name. If you cannot tell who is speaking, ask in one short line: 'Who am I speaking with?' instead of guessing.
 - THE INDIAN MARKET (26 Oct): India has its own, separate Ananta on paper since 22 Oct 2026 (research lake, tests on 2000-2023, stock picks, an index options line, a daily Nifty call), behind the market chip at the top of every tab. You are the CRYPTO Ananta and keep none of its data by design. For any question about Nifty, Sensex, NSE/BSE stocks, Zerodha or his Indian holdings, never answer from the web as if it were ours and never say India research was not done or does not exist: say it is on the India side and that 'switch to the Indian market' (or the chip) takes him there.
 - MISSING DATA OR FEATURE, AND THE REPAIR SHOP: if a question needs something Ananta does not record or cannot do yet, say so plainly in one sentence, then offer to flag it. When he says "flag this", "log it", "add this to the repair shop", "fix it next time", or "that was wrong / that's a bug" about your last answer (then use last_answer=true), call log_request, and confirm with its flag number in one sentence: "Noted as flag 6." Offer no fixes: his flags are noted and worked on outside the app (Madhav, 2 Nov). Add a comment to a flag only when he asks (comment_flag). Never say "I can't do that" without offering this. "What's happening with my requests?" -> my_requests. When the question notes carry REPAIR SHOP NEWS, add it once, briefly, at the end of your answer ("By the way, flag 4 is fixed: ...").
+- ANANTA ITSELF (5 Nov, Madhav: "how much Ananta does know about what we did here in the back end? That should always be there"): for what changed in Ananta, whether a request or problem was fixed, how your voice, voice print or watchdog work now, and whether anything is wrong, call about_ananta with his words as the topic. It covers BOTH markets' back-end changes since 9 Oct (the change book, written with every change), how your parts work now, and the live self-check (not_right). The changes lookup is trading events, not changes to Ananta. Never say a change log only covers a few days or that you cannot know what was done in the back end. For a request he raised, my_requests with a topic finds it in the whole history with its fix note and the change-book lines that answer it.
+- MONEY UNITS (5 Nov): the $500 NDAX account is in CANADIAN dollars, so its coin prices and lines (the core's 50-day lines, its fills) are C$: Bitcoin near C$112,000 is about US$80,000. The dial, the setups board, the brain and the evidence books are in US dollars. A C$ figure and a US$ figure for the same coin differ by the exchange rate; that is never a data mismatch. Name the currency with every price.
+- LIVE BEFORE LEVELS (5 Nov): when you say where price is against a line (the 50-day, a trigger, a stop), take the live price (market or prices lookup) and say "now"; a figure from last night's close is said as "at last night's close". On 5 Nov an answer put Bitcoin 356 above its 50-day from the close when it was about 4,000 under it live.
+- ONE NAME FOR THE GATE: call it "the dial" (the exposure dial) every time, never "market gate", "buy dial" or "market dial".
 - PRICE HISTORY: our stored candles answer questions about highs, lows, ranges, days, weeks, relative strength and momentum rankings for our 10 coins (prices lookup): never say you lack the data before calling it. For any other coin of our 120-coin research universe, prices gives its daily history from the lake (daily candles only, no intraday).
 - KNOW THIS COLD (your own system; answer without a lookup, then offer detail):
   * THE CLOCKS and who may issue a paper trade: the eye (live prices every 10 seconds: your stops and alerts, Bitcoin shocks, zone entries; it opens only the zone-touch evidence trade), the Explorer (every 15 minutes: setups E1-E6, $100 paper trades within its caps), the hourly watch (Hunter and Squeeze into Hunter's book), the daily engine (after each daily close: your setups M1a-M3b, the short dip trade H07 and H07-T30, the random baselines; each signal a $100 evidence trade), the trend portfolio (daily ratings and changes, 10-coin and 30-coin books), Jarvis's brain (woken by any of these; its own book, each trade with a random twin). Every clock that trades is paper only; none can place a real order.
@@ -241,7 +245,8 @@ TOOLS = [
     ("system_health", "Is every part running: the Explorer (its last real scan), the hourly watch, the eye, the 15-minute jobs, the daily candles, the voice server, Hands (answers, and accepts the agent's login), the 30-coin tier's daily pull, the tunnel and disk space, checked every 2 minutes; plus outages in the last 3 days. Use for 'is everything running', 'anything down', 'why no updates'.", OFF),
     ("comment_flag", "Add the owner's comment to one of his flags, only when he asks ('add a comment to flag 6: ...', 'comment on that flag: ...'). num is the flag number he says; without one, the flag you noted last in this conversation.", _schema({"num": {"type": "number", "description": "the flag number (as My flags shows it)"}, "words": {"type": "string", "description": "the comment, in his words"}}, ["num", "words"])),
     ("choose_fix", "After log_request offered numbered fixes, the owner picks one ('the first', 'fix 2', its title): queue that fix. option is 1-based.", _schema({"num": {"type": "number", "description": "the flag number from log_request (the number he hears and says)"}, "option": {"type": "number", "description": "which fix, 1-based"}, "words": {"type": "string", "description": "his words, optional"}}, ["num", "option"])),
-    ("my_requests","The owner's requests to the repair shop with their numbers and status (open, planned, fixed, closed) and the work session's notes. Use for 'what's happening with my requests', 'did you fix X', 'what's on the list'.", OFF),
+    ("my_requests","The owner's requests to the repair shop, from the very first one: number, status (open, planned, fixed, closed), the work session's note on what was done, and the change-book lines that answer it. With topic (his words: 'voice lag', 'wrong screen', 'who is speaking'), it searches the whole history, before and after the 23 Oct renumbering; without, the 15 newest and the counts. Use for 'what's happening with my requests', 'did you fix X', 'what's on the list'.", _schema({"topic": {"type": "string", "description": "what the request was about, in his words"}, "status": {"type": "string", "description": "OPEN, PLANNED, DONE or WONT"}})),
+    ("about_ananta", "Ananta's book about itself (5 Nov): what changed in Ananta and when (the change book: every back-end change since 9 Oct, both markets, live or not), how its own parts work right now (the voice, the voice print, the watchdog) and the live self-check of what is not right (not_right). Use for 'what changed', 'what's new', 'was X fixed', 'how does your voice work now', 'is anything wrong', 'what did we do in the back end'. NOT trading events (that is changes).", _schema({"topic": {"type": "string", "description": "what he asked about, in his words"}})),
     ("idea_status", "Status cards: for any idea, setup, filter, indicator or rule Ananta knows (e.g. buying pressure, funding, the short dip trade, zones, your setups, Fear & Greed): how strong its evidence is (SUPPORTED / WEAK / CONFLICTING / INSUFFICIENT / REJECTED / UNTESTED), what it may do (PAPER / CONTEXT / OFF), why, and which reviews. Without idea: all cards. Use for 'can we trade on X', 'is X proven', 'why don't we use X', 'what is allowed to make trades'.", _schema({"idea": {"type": "string", "description": "Optional: name, id or alias"}})),
     ("universe", "Our 120-coin universe (the research lake), at three levels: LIVE 10, PAPER TIER 30, RESEARCH 120. With coin (symbol or name, e.g. SUI, Pepe, POL): what Ananta does with it, history and data quality, trading costs, whether NDAX lists it against CAD, price now and 7/30/90/365-day change, distance from its all-time high, volatility, volume, buying pressure, futures funding and open interest (context), the 30-coin tier's T3-B rating and H07-T30 trades, and what each research review found on its tier; says plainly when a coin is not in the 120. Without coin: a tier's coins (tier LAB10 | TOP30 | ALL), optionally ranked (rank_by change | from_ath | volatility | volume | funding; days for change, default 30). Use for 'what do we know about X', 'is X in our data', 'which of the 30 is strongest', 'which coins are on NDAX', 'what is the 30-coin book holding'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for a tier view"}, "tier": {"type": "string"}, "rank_by": {"type": "string"}, "days": {"type": "number"}, "top": {"type": "number"}})),
     ("exposure", "The exposure dial and the scoreboard every strategy is judged against (engine fixes 1-4, reviews #25 and #26). Returns: the dial now (OPEN = buying allowed, CLOSED = no new buys, cash is the position; v1 = Bitcoin above its 50-day AND 200-day averages) and why; the paper books since the dial started (HOLD, GATE50 = the benchmark/hurdle, GATE50_200 = the dial, GATE50_VOL = challenger); the measured-edge table (which daily rule has an edge in which market state and tier, % per trade over random after costs; anything missing has none); and the would-be $2,000 account in R against the hurdle. Use for 'can we buy today', 'why no trades', 'are we beating the benchmark', 'which setups actually have an edge', 'how much should one trade risk'.", _schema({})),
@@ -341,7 +346,7 @@ def _stt_names() -> list[str]:
         return ["Madhav", "Ananta"]
 
 
-def _local_stt(audio_b64: str, mime: str, language: str = "en") -> str | None:
+def _local_stt(audio_b64: str, mime: str, language: str = "en", meta: dict | None = None) -> str | None:
     """Whisper on this Mac (free, ~1 s). None when the local voice server is not running, so Gemini is used instead."""
     if os.getenv("ANANTA_VOICE_LOCAL", "1") != "1":
         return None
@@ -350,7 +355,12 @@ def _local_stt(audio_b64: str, mime: str, language: str = "en") -> str | None:
     try:
         r = requests.post(os.getenv("ANANTA_VOICE_URL", "http://127.0.0.1:8200") + "/stt",
                           json={"audio_b64": audio_b64, "mime": mime, "language": language, "names": ", ".join(_stt_names())}, timeout=30)
-        return r.json()["text"] if r.status_code == 200 else None
+        if r.status_code != 200:
+            return None
+        d = r.json()
+        if meta is not None and isinstance(d.get("speaker"), dict):     # 5 Nov: who is speaking, from the voice print
+            meta.update(d["speaker"])
+        return d["text"]
     except Exception:  # noqa: BLE001
         return None
 
@@ -1386,13 +1396,50 @@ class Lookups:
 
         return health.status(self.j)
 
-    def t_my_requests(self) -> dict:
+    def t_my_requests(self, topic: str | None = None, status: str | None = None) -> dict:
+        """5 Nov (synopsis): it showed only the 15 newest requests, so it told Madhav it "can't find" the voice, screen, lag and speaker
+        problems he raised on 20-24 Oct, all fixed 20-25 Oct. Now the whole history, by topic, with each fix note and its change-book lines."""
+        from jarvis import selfknow
         from jarvis.service import requests_log
 
-        rows = requests_log.list_(self.j)
-        return {"open": sum(r["status"] in ("OPEN", "PLANNED") for r in rows),
-                "requests": [{k: r.get(k) for k in ("label", "no", "num", "kind", "text", "status", "status_words", "note")} for r in rows[:15]],
-                "note": "Say the flag number ('flag 15'), not the stored number."}
+        if self.guest:
+            return {"error": "Requests are the owner's; a visitor cannot see them."}
+        every = requests_log.list_(self.j)
+        rows = every
+        st = (status or "").strip().upper()
+        if st in requests_log.STATUSES:
+            rows = [r for r in rows if r["status"] == st]
+        if topic:
+            t = topic.lower()
+            syn = {w for a, ws in selfknow.SYN.items() if any(w in t for w in ws) for w in ws}
+            words = {w for w in re.findall(r"[a-z][a-z0-9'-]{3,}", t) if w not in selfknow.STOP}
+
+            def score(r: dict) -> int:
+                blob = f"{r.get('text') or ''} {r.get('about') or ''} {r.get('note') or ''}".lower()
+                return sum(1 for w in words if w in blob) + sum(1 for w in syn if w in blob)
+            rows = sorted((r for r in rows if score(r) > 0), key=lambda r: (-score(r), -(r.get("t") or 0)))[:12]
+        else:
+            rows = rows[:15]
+
+        def one(r: dict) -> dict:
+            d = {k: r.get(k) for k in ("label", "num", "kind", "status", "status_words", "note")}
+            d["what"] = str(r.get("text") or "")[:300]
+            d["raised"] = time.strftime("%d %b", time.localtime(r.get("t") or 0))
+            d["updated"] = time.strftime("%d %b", time.localtime(r.get("updated_t") or r.get("t") or 0))
+            d["change_book"] = [selfknow.say(c) for c in selfknow.for_request(r.get("num"), r.get("no"))][:3]
+            return d
+        return {"total": len(every), "open": sum(r["status"] in ("OPEN", "PLANNED") for r in every),
+                "by_status": {s: sum(r["status"] == s for r in every) for s in requests_log.STATUSES},
+                "requests": [one(r) for r in rows], "searched_for": topic or None,
+                "note": ("Say each one by its label: 'flag 7' (after the 23 Oct renumbering request 88 became flag 7) or 'request 73' (before it). "
+                         "'note' is the work session's own words on what was done; change_book lines are the plain record of the change.")}
+
+    def t_about_ananta(self, topic: str = "") -> dict:
+        if self.guest:
+            return {"note": "For a visitor: Ananta is improved often; the details are the owner's, so do not share them."}
+        from jarvis import selfknow
+
+        return selfknow.about_ananta(topic or "", "crypto")
 
     def t_prices(self, coin: str | None = None, days: float | None = None, start: str | None = None, end: str | None = None,
                  what: str | None = None) -> dict:
@@ -2674,6 +2721,16 @@ class Ask:
         else:
             reply["answer"] = owner_address(reply.get("answer") or "")
         keep_cards_honest(reply, L.created, log, [k for k in (brief or {}) if re.search(r"price|market|setup|zone|trade", str(k), re.I)])
+        if source != "eval" and mode != "worker" and not str(who).startswith(("guest:", "ananta")) and \
+                not any(x.get("tool") == "about_ananta" for x in log):
+            try:                                                 # 5 Nov (Madhav: "it can tell if something is not right"): once per conversation
+                from jarvis import selfcheck as _sc
+
+                nd = _sc.nudge("crypto", Path(self.j.dir) / "oversight_told.json", thread or "")
+                if nd:
+                    reply["answer"] = f"{(reply.get('answer') or '').rstrip()} {nd}"
+            except Exception:  # noqa: BLE001  oversight never breaks an answer
+                pass
         if source != "eval" and mode != "worker" and not str(who).startswith("guest:"):
             _self_flag(self.j, text, reply, log, thread)                 # "I don't have that" -> a numbered request, said once
         try:
@@ -2788,12 +2845,23 @@ class Ask:
     def _people_route(self, who: str, text: str, thread: str, voice: bool, source: str, context=None) -> dict | None:
         """Madhav hands the conversation to one of his people, relays their question, or comes back (Batch 2, Oct 11). A handover is
         answered instantly with his opener, word for word; a relay or a return only adds a note for the AI."""
-        if str(who).startswith("guest:") or source == "eval":
+        if str(who).startswith("guest:"):
             return None
         try:
+            from jarvis.india import voiceid
             from jarvis.service import people
 
-            r = people.route(self.j, thread, text)
+            # a test question may meet the grader (it writes nothing), never a new person (that writes the private people note)
+            r = people.observer_route(text) if source == "eval" else people.route(self.j, thread, text)
+            # 5 Nov (synopsis): the voice print, as India has used it since 27 Oct: his voice ends a handover by itself; a voice that is
+            # clearly not his, with no handover, is asked who it is before anything only Madhav can give
+            vm = self.__dict__.pop("_turn_vmeta", None) if voice else None
+            vid = voiceid.identify(vm) if vm else "unknown"
+            here = people.talking_to(self.j, thread)
+            if vid == "madhav" and here and not r and not people.RELAY.search(text):
+                r = {"kind": "back"}
+            elif vid == "other" and not here and not r and voiceid.needs_owner_check(text, vm, False):
+                return self._instant(text, thread, voice, "Who am I speaking with? If it's you, sir, say \"it's me\".", "Asked who is speaking")
         except Exception:  # noqa: BLE001
             return None
         if not r:
@@ -2813,6 +2881,9 @@ class Ask:
         if r.get("same"):
             return None
         people.set_speaker(self.j, thread, p)
+        if r.get("rest"):                                  # "Grader here. <question>": noted, and the question is answered to the grader
+            self._people_note = f"[{name} introduced themselves in this message; answer the rest of it to them directly.]"
+            return None
         say = people.opener(p)
         now = int(self.j.now())
         uid, aid = uuid.uuid4().hex[:12], uuid.uuid4().hex[:12]
@@ -2828,6 +2899,22 @@ class Ask:
         vid = _pre_voice(context, say)
         if vid:
             reply["speak"], reply["voice_id"] = say, vid
+        return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply,
+                "talking_to": _speaker(self.j, thread)}
+
+    def _instant(self, text: str, thread: str, voice: bool, say: str, note: str) -> dict:
+        """An answer given by code at once (no model), stored like any other."""
+        now = int(self.j.now())
+        uid, aid = uuid.uuid4().hex[:12], uuid.uuid4().hex[:12]
+        reply = {"kind": "answer", "stage": "", "answer": say, "breakdown": [], "evidence": [], "assumption": "", "options": [],
+                 "follow_ups": [], "show": [], "actions": [], "ui": [], "tour": None, "model_label": "Instant", "mode": "people", "cost_usd": 0.0,
+                 "note": note, "route": "people", "timing": {"brief_ms": 0, "model_ms": 0, "rounds": 0, "lookups": 0, "out_tokens": 0}}
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
+                          (uid, thread, now, "user", text, "local", ("voice:" if voice else "") + "people"))
+        self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
+                          "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0,
+                                                                   "[]", 0.0, "people", "people"))
+        self.j.db.commit()
         return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply,
                 "talking_to": _speaker(self.j, thread)}
 
@@ -2887,7 +2974,8 @@ class Ask:
             te = _local_stt(audio_b64, mime, "te")
             local = te if te and not _degenerate(te) else None    # Oct 11: the Mac's Telugu pass looped ("kaani kaani kaani..."): ask Gemini
         else:
-            local = _local_stt(audio_b64, mime, "en")
+            self._vmeta = {}
+            local = _local_stt(audio_b64, mime, "en", meta=self._vmeta)
         if local is not None:
             return local
         key = os.getenv("GEMINI_API_KEY", "")
@@ -2952,10 +3040,12 @@ class Ask:
     def voice_turn(self, who: str, audio_b64: str, mime: str, thread: str | None, mode: str | None, context: dict | None, source: str = "",
                    prefix: str = "", client_timing: dict | None = None) -> dict:
         def asked(text: str, **extra) -> dict:
+            self._turn_vmeta = getattr(self, "_vmeta", None) or None     # 5 Nov: the voice print's verdict for this turn
             out = self.ask(who, text, thread=thread, mode=mode, context=context, voice=True, source=source)
             self._keep_client_timing(out.get("thread") or thread, client_timing)
             return {"heard": heard, **extra, **out}
 
+        self._vmeta = None
         heard = self.transcribe(audio_b64, mime, thread=thread)
         if not heard:
             return {"heard": "", "thread": thread, "error": "I didn't catch any words. Try again a little closer to the phone."}

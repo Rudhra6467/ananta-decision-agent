@@ -45,10 +45,46 @@ def _norm(s: str) -> str:
     return " ".join((s or "").lower().replace(".", " ").split())
 
 
+# 5 Nov 2026 (the 20-day synopsis): the grader, the outside examiner Madhav brings in to test Ananta, was called "sir" through every crypto
+# session; India has had an observer handover since 27 Oct (jarvis/india/speaker.py, which owns the grader's words and how speech-to-text
+# spells them). The grader is built in and never written to the private people note: an observer hears what Madhav would hear, and
+# approvals, flags, requests and changes stay Madhav's.
+GRADER = {"id": "grader", "names": ["the grader", "grader"], "relation": "the outside examiner Madhav brings in to test Ananta", "call": "grader",
+          "language": "english", "group": "observer", "observer": True,
+          "style": ("Plain and exact: answer the question asked, give a decision when one is asked, cite your own tests with dates and numbers, "
+                    "label general knowledge apart from Ananta's data, and say plainly when the facts do not cover something. Short."),
+          "opener": "Hello, grader. Go ahead with your question; anything that needs a yes stays with Madhav.",
+          "talk_about": ["the market, the books, the rules and how Ananta works, exactly as Madhav would hear it"],
+          "avoid": ["approving, flagging or changing anything: that needs Madhav"]}
+
+
+def observer_route(text: str) -> dict | None:
+    """The grader taking over, introducing itself, or being relayed ("talk to the grader", "Grader here.", "I'm the grader", "the grader
+    asks ..."). Reads only; never writes the people note, so test questions may use it."""
+    from jarvis.india.speaker import OBSERVER
+
+    t = (text or "").replace("’", "'")
+    m = OBSERVER.search(t)
+    if not m or m.group("role").lower() not in ("grader", "greater", "grater", "grade her", "great rai", "great ray", "greyder", "examiner"):
+        return None
+    role = re.escape(m.group("role"))
+    det = r"(?:the |our |my |your |an? )?"
+    intro = re.search(r"\b(?:talk|speak|chat)\s+(?:to|with)\s+" + det + role + r"\b|\b(?:i'?m|i am|this is|it'?s|it is)\s+" + det + role + r"\b|"
+                      r"\b" + role + r"\s+(?:here|speaking|is here|on the line|again)\b|^\W*" + role + r"\W*$", t, re.I)
+    if intro:
+        rest = t[intro.end():].lstrip(" .,:;!-")
+        return {"kind": "handover", "person": GRADER, "rest": rest if len(rest) >= 12 else ""}
+    if re.search(r"\b" + role + r"\s+(?:asks|is asking|asked|wants to know|says)\b", t, re.I):
+        return {"kind": "relay", "person": GRADER}
+    return None
+
+
 def find(name: str) -> dict | None:
     n = _norm(name)
     if not n:
         return None
+    if n in ("grader", "the grader"):
+        return GRADER
     people = load().get("people") or []
     for p in people:                                   # exact name first ("Ravi Kumar" must not match Dad)
         if any(_norm(x) == n for x in p.get("names") or []) or _norm(p.get("id", "")) == n:
@@ -181,8 +217,12 @@ def route(j, thread: str | None, text: str) -> dict | None:
     {"kind": "back"} | {"kind": "handover", "person"} | {"kind": "relay", "person"} | None."""
     t = (text or "").replace("’", "'")
     now = talking_to(j, thread)
-    if BACK.search(t) or _madhav_in_english(now, t) or (now and OWNER_TOPIC.search(t) and not RELAY.search(t)):
+    # an observer asking about approvals or flags is still the observer (it is told those need Madhav); for family, such words mean Madhav
+    if BACK.search(t) or _madhav_in_english(now, t) or (now and not now.get("observer") and OWNER_TOPIC.search(t) and not RELAY.search(t)):
         return {"kind": "back"} if now else None
+    ob = observer_route(t)
+    if ob:
+        return {**ob, "same": bool(now and now.get("id") == "grader")}
     newp = new_person_like(t)
     if newp:
         add_person(newp)
@@ -279,9 +319,9 @@ LANG = {"telugu": "Telugu in English letters, with English only for trading word
 
 def prompt_note(j, thread: str | None) -> str:
     d = load()
-    if not d.get("people"):
-        return ""
     p = talking_to(j, thread)
+    if not d.get("people") and not p:
+        return ""
     if not p:
         who = "; ".join(f"{' / '.join(x['names'][:3])} ({x.get('relation', '')}"
                         + (f": {x['about'][:200]}" if x.get("about") else f": {(x.get('style') or '').split('. ')[0][:140]}" if x.get("style") else "")
@@ -310,6 +350,10 @@ def prompt_note(j, thread: str | None) -> str:
                      + ", ".join(f"{k} = {v}" for k, v in (g.get("words") or {}).items()))
     if p.get("group") == "family_kid":
         lines.append("This is a child: short, gentle, playful, age-appropriate; no money, trading or investing; never ask for personal details.")
+    if p.get("observer"):
+        lines.append("OBSERVER: the grader hears everything Madhav would hear (his books, the rules, the numbers, Ananta's record) and is "
+                     "tested on it, so answer fully and exactly. Only approvals, flags, requests and changes stay Madhav's: if the grader "
+                     "asks for one, say it needs Madhav's yes. Never call the grader sir.")
     if p.get("confirmed") is False:
         lines.append(f"NAME CHECK: '{p['names'][0]}' came from speech-to-text and is not confirmed. If they say their name differently, use their "
                      "version from now on, and tell Madhav when he is back so he can fix the people note. Never use this person's name for "

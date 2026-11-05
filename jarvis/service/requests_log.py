@@ -74,6 +74,9 @@ def get(j, ref: str | int) -> dict | None:
     """By id, by flag number ("flag 15", "15") or by stored number ("request 96", "96"). A small number is a flag number when that
     flag exists (every request before the reset is closed)."""
     s = str(ref).strip().lower().lstrip("#")
+    rows = _select(j, "WHERE id=?", (s,))      # 5 Nov 2026: an id can be all digits ("08332008"); an exact id is never read as a number
+    if rows:
+        return rows[0]
     m = re.fullmatch(r"(flag|request)?\s*#?\s*(\d+)", s)
     if m:
         n = int(m.group(2))
@@ -83,8 +86,7 @@ def get(j, ref: str | int) -> dict | None:
                 return rows[0]
         rows = _select(j, "WHERE num=?", (n,))
         return rows[0] if rows else None
-    rows = _select(j, "WHERE id=?", (s,))
-    return rows[0] if rows else None
+    return None
 
 
 def add(j, kind: str, text: str, about: str | None = None, by: str = "owner", thread: str | None = None) -> dict:

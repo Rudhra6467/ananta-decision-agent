@@ -276,3 +276,20 @@ def test_ananta_can_log_a_request_for_the_repair_shop(tmp_path):
     assert rows[0]["status"] == "OPEN" and rows[0]["kind"] == "data" and rows[0]["about"] == "XRP trade"
     RL.set_status(j, rows[0]["id"], "DONE", "shown on each trade page")
     assert RL.list_(j, include_done=False) == []
+
+
+def test_a_request_whose_id_is_all_digits_is_still_found(tmp_path, monkeypatch):
+    """5 Nov 2026: 3 of 146 real requests have ids made only of digits (flags 7, 12 and 56, all closed). get() read such an id as a number
+    and found nothing, so a work session could not move that request on (and the test above failed about 1 run in 40)."""
+    import uuid as _uuid
+
+    from jarvis.service import requests_log as RL
+    from tests.test_reads import _fake_jarvis
+
+    j = _fake_jarvis(tmp_path, {"BTC": _walk(300, seed=81)}, {})
+    monkeypatch.setattr(RL.uuid, "uuid4", lambda: _uuid.UUID("08332008" + "0" * 24))
+    out = RL.add(j, "data", "Track the highest price while a trade is open")
+    assert out["id"] == "08332008"
+    assert RL.get(j, "08332008")["num"] == out["num"] and RL.get(j, str(out["num"]))["id"] == "08332008"
+    RL.set_status(j, "08332008", "DONE", "shown on each trade page")
+    assert RL.get(j, "08332008")["status"] == "DONE"

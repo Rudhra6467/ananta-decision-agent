@@ -1038,9 +1038,27 @@ def with_welcome(welcome: str, answer: str | None) -> str:
     return f"{welcome} {a[:1].upper() + a[1:]}".strip()
 
 
+# 5 Nov 2026 voice session: "I want to know what's in detail." was not read as "more on that" (the phrase was not at the start), so the
+# second answer was a fresh one that said the first again. A short message whose only content is "more detail" now is: what is left after
+# the detail phrase and the filler words must be nothing (a new subject, "Jio Financial in detail", stays a new question)
+DETAIL_ANY = re.compile(r"\b(?:in (?:more |full |greater )?detail|more details?|the details?|explain (?:more|further|it|that|this)|elaborate|tell me more|go deeper|"
+                        r"dig deeper|break (?:it|that|this) down|say more|expand on (?:it|that|this))\b", re.I)
+DETAIL_FILL = re.compile(r"\b(?:i|want|wanted|would|like|to|know|what'?s|what|is|it|that|this|was|the|a|an|me|please|can|could|you|just|so|and|ok(?:ay)?|"
+                         r"ananta|sir|now|then|give|tell|explain|show|about|on|of|all|everything|more|happened|bit|little|little bit|go|through|"
+                         r"walk|yes|yeah|actually|really|exactly|for|do|did|we|us|in)\b", re.I)
+
+
+def wants_detail(text: str) -> bool:
+    t = text or ""
+    if len(t.split()) > 14 or not DETAIL_ANY.search(t):
+        return False
+    rest = DETAIL_FILL.sub(" ", DETAIL_ANY.sub(" ", t))
+    return not re.sub(r"[\W_]+", "", rest)
+
+
 def expand_of(text: str, thread: str) -> str | None:
     """The previous answer, when this message asks for more of it ('explain more', 'tell me more', 'why?'); else None."""
-    if len((text or "").split()) > 14 or not EXPAND.search(text or ""):
+    if len((text or "").split()) > 14 or not (EXPAND.search(text or "") or wants_detail(text)):
         return None
     for m in reversed(thread_messages(thread)):
         if m.get("role") == "assistant" and m.get("answer"):
@@ -1391,7 +1409,9 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     else:
         length = (f"\n\nEXPAND: he asked for more on your previous answer, which was: \"{prev[:1500]}\". Give the fuller version now: up to 8-10 short "
                   "sentences or a short list, still plain words and no codes; add the reasons, numbers and caveats you left out, and do not repeat the first "
-                  "answer word for word." if prev else
+                  "answer word for word. 5 Nov (Madhav: \"you are just repeating yourself\"): do not restate any fact the first answer already gave "
+                  "(the index closes, the trade, the rupee result); start straight with what is new: why it happened, how the decision was made, "
+                  "which holdings moved and why, and what it means next." if prev else
                   "\n\nSHORT MODE: 2-4 short sentences, the answer first (a decision: about 4); he will say 'explain more' when he wants the detail.")
         b_end, budget = None, None
         if batch:
@@ -1578,8 +1598,17 @@ def other_question(text: str) -> str:
     m = re.search(r"\bquestion\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen)\b[.:,]?\s*(.{12,})$", text, re.I | re.S)
     if m and "?" in m.group(1):
         return m.group(1).strip()
-    qs = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip().endswith("?") and not FLAG_REQ.search(s) and len(s.split()) >= 5]
-    return " ".join(qs)
+    # 5 Nov 2026 voice session: "Flag that as well. And then just tell me what are the flags that are waiting for me and what are they in
+    # detail." The request had no question mark, so only a complaint ("Why would I need the same answer twice?") was answered and the flags
+    # he asked for were never read out. A request ("tell me / show me / list / explain ...") counts as a question too, and comes first.
+    sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+    asks = [s for s in sents if ASK_LIKE.match(s) and not FLAG_REQ.search(s) and len(s.split()) >= 5]
+    qs = [s for s in sents if s.endswith("?") and not FLAG_REQ.search(s) and len(s.split()) >= 5 and s not in asks]
+    return " ".join(asks + qs)
+
+
+ASK_LIKE = re.compile(r"^(?:(?:and|then|so|now|just|also|please|ananta|sir)[\s,]+)*(?:can you |could you )?(?:tell|show|give|list|explain|read|walk|say|"
+                      r"remind|go through)\b", re.I)
 
 
 NOTE_SYSTEM = """You write research notes for Madhav (owner of Ananta, a paper-trading agent for the Indian market) to read later in the back end.

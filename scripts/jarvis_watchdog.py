@@ -118,6 +118,7 @@ def main(argv: list[str], get=None, now: float | None = None, send=push, heal_ru
             out["sent"] = send("Still down: Jarvis", f"Down for {(now - st['down_t']) / 3600:.1f} hours. " + body)
     if get is None:                                       # Oct 11 (G23): the website and the public address are watched too
         st["sites"] = sites(st.get("sites") or {}, now, send, out)
+        st["india"] = india(st.get("india") or {}, now, send, out)
     else:
         st.pop("sites", None)
     STATE.parent.mkdir(parents=True, exist_ok=True)
@@ -158,6 +159,55 @@ def sites(st: dict, now: float, send, out: dict, opener=None) -> dict:
             out.setdefault("sites_sent", []).append(send(f"Still down: {name}", f"Down for {(now - s['down_t']) / 3600:.1f} hours."))
         st[name] = s
     return st
+
+
+INDIA_URL = os.getenv("INDIA_HEALTH_URL", "http://127.0.0.1:8110/health")
+INDIA_GAP_S = 20 * 60                                    # at most one India restart every 20 minutes
+
+
+def india_up(opener=None) -> bool:
+    try:
+        with (opener or urllib.request.urlopen)(INDIA_URL, timeout=8) as r:  # noqa: S310 (localhost)
+            return r.status == 200
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def india(st: dict, now: float, send, out: dict, opener=None, run=None, pause=time.sleep) -> dict:
+    """5 Nov 2026 (Madhav's voice session, 08:38 Toronto): the India service froze (one pattern match spinning at 100% CPU) and every
+    question after it went unanswered until it was restarted by hand. Two failed looks 10 s apart: the Python stack goes to its log
+    (SIGUSR1, jarvis/india/service.py), a copy to ananta_runs/stalls, launchd restarts it, and the phone gets a note."""
+    import subprocess
+
+    if india_up(opener):
+        return {}
+    pause(10)
+    if india_up(opener):
+        return {}
+    if st.get("heal_t") and now - st["heal_t"] < INDIA_GAP_S:
+        return st
+    run = run or subprocess.run
+    stamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime(now))
+    log = Path(os.path.expanduser("~/ananta_runs/india_web.log"))
+    try:
+        pids = run(["pgrep", "-f", "uvicorn jarvis.india.service:app"], capture_output=True, text=True, timeout=10).stdout.split()
+        for pid in pids[:1]:
+            run(["kill", "-USR1", pid], capture_output=True, timeout=10)
+        pause(2)
+        STALLS.mkdir(parents=True, exist_ok=True)
+        tail = log.read_text(errors="replace")[-20000:] if log.exists() else ""
+        (STALLS / f"india_{stamp}.txt").write_text(tail)
+    except Exception:  # noqa: BLE001  the snapshot is a bonus; the restart matters
+        pass
+    try:
+        r = run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/com.ananta.india.web"], capture_output=True, text=True, timeout=30)
+        res = "restarted" if r.returncode == 0 else f"restart failed ({r.returncode})"
+    except Exception as exc:  # noqa: BLE001
+        res = f"restart failed ({type(exc).__name__})"
+    out["india"] = res
+    out.setdefault("sites_sent", []).append(send("Ananta restarted the India service", f"It stopped answering, so the watchdog restarted it ({res}). "
+                                                 "What it was stuck on is in ananta_runs/stalls.", "3"))
+    return {"heal_t": now}
 
 
 def line(out: dict, now: float | None = None) -> str:

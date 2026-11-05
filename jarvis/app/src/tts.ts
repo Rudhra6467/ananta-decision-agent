@@ -254,6 +254,10 @@ export function speak(parts: string[], onPart: (i: number) => void = () => {}, i
 
 export const speakText = (text: string) => speak(sentences(text));
 
+// 5 Nov (Madhav's voice session: "no response at all"): when the turn itself failed, the Mac is not answering, so asking it for the natural
+// voice only adds another wait; the phone's own voice says the error at once, and keeps speaking for a minute
+export function phoneForAMinute() { naturalDownUntil = Date.now() + 60000; }
+
 // Older callback style (kept for screens that use it).
 export function sayParts(parts: string[], onPart: (i: number) => void, done?: () => void) {
   speak(parts, onPart).then(() => done?.());

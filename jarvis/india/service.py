@@ -18,8 +18,18 @@ import os
 import sys
 from pathlib import Path
 
+import faulthandler
+import signal
+
 import requests
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request
+
+# 5 Nov 2026 (Madhav's voice session froze at 08:38 Toronto: one pattern match spun at 100% CPU and held the whole service): "kill -USR1 <pid>"
+# writes every thread's Python stack to the service log, even while it is stuck; the watchdog does that before it restarts the service
+try:
+    faulthandler.register(signal.SIGUSR1, file=sys.stderr, all_threads=True)
+except (AttributeError, ValueError, RuntimeError):     # no SIGUSR1 on this platform, or not the main thread
+    pass
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
@@ -658,3 +668,30 @@ def history(days: int = 30, who: str = Depends(signed_in)) -> dict:
 
 app.include_router(r)                      # on this Mac: http://127.0.0.1:8110/...
 app.include_router(r, prefix="/india")     # through the tunnel: https://api.livetrading247.com/india/... (same token as the crypto app)
+
+
+# 5 Nov 2026 (Madhav's voice session froze at 08:38 Toronto and stayed frozen until restarted by hand): one pattern match held Python's
+# lock at 100% CPU, so the service could not answer anything, not even /health. Every endpoint here is a plain function run on a worker
+# thread, so the event loop only waits on the network; if it cannot run for STALL_S, the process is stuck. A heartbeat re-arms a timer
+# that lives outside Python every 5 s; when it fires it writes every thread's stack to the log and ends the process, and launchd (KeepAlive)
+# starts a fresh one about 10 s later. Off under pytest (the test client's loop stops between tests).
+STALL_S = int(os.getenv("ANANTA_INDIA_STALL_S", "45"))
+
+
+async def _heartbeat() -> None:
+    import asyncio
+    while True:
+        faulthandler.dump_traceback_later(STALL_S, exit=True, file=sys.stderr)
+        await asyncio.sleep(5)
+
+
+@app.on_event("startup")
+async def _start_heartbeat() -> None:
+    import asyncio
+    if "pytest" not in sys.modules and STALL_S > 0:
+        app.state.heartbeat = asyncio.get_running_loop().create_task(_heartbeat())
+
+
+@app.on_event("shutdown")
+async def _stop_heartbeat() -> None:
+    faulthandler.cancel_dump_traceback_later()

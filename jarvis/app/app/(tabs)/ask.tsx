@@ -576,9 +576,12 @@ export default function Ananta() {
         try {
           r = await api("/v3/voice/turn", { audio_b64: b64, mime: micMime(), thread: threadRef.current,
             mode: modeRef.current, context: where(true), prefix: pre || undefined,
-            client_timing: micRef.current?.clientTiming(loopRef.current?.lastGapMs) ?? undefined }, 60000);
+            client_timing: micRef.current?.clientTiming(loopRef.current?.lastGapMs) ?? undefined }, 45000);   // 5 Nov: 60 s of silence was too long
         } catch (e: any) {
-          r = { error: e?.message ?? String(e) };
+          // 5 Nov voice session: a turn that got no answer was silent; say so plainly, in the phone's own voice, straight away
+          TTS.phoneForAMinute();
+          r = { error: e?.status ? `Sorry, sir, something went wrong on my side (${e.status}). Please ask that again.`
+            : "Sorry, sir, I couldn't get an answer just now. Please ask that again." };
         } finally {
           clearTimeout(ack);
         }

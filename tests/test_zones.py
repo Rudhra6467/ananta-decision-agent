@@ -279,7 +279,7 @@ def test_ananta_can_log_a_request_for_the_repair_shop(tmp_path):
 
 
 def test_a_request_whose_id_is_all_digits_is_still_found(tmp_path, monkeypatch):
-    """5 Nov 2026: 3 of 146 real requests have ids made only of digits (flags 7, 12 and 56, all closed). get() read such an id as a number
+    """5 Nov 2026: 3 of 146 real requests have ids made only of digits (requests 7, 12 and 56, from before the flag numbers restarted, all closed). get() read such an id as a number
     and found nothing, so a work session could not move that request on (and the test above failed about 1 run in 40)."""
     import uuid as _uuid
 

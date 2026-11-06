@@ -94,14 +94,27 @@ def test_findings_fire_on_counts_collapse_the_signin_and_never_refile_an_open_ke
         (lake / "manifests" / f"others_{d}.json").write_text((lake / "manifests" / "others_2026-10-23.json").read_text())
         c = rx.evening(d)
     kinds = {f["type"]: f for f in c["findings"]}
-    assert kinds["MISS_PATTERN"]["lane"] == "DECISION" and kinds["MISS_PATTERN"]["state"] == "DRAFT" and len(kinds["MISS_PATTERN"]["evidence"]["days"]) >= 3
-    assert kinds["LEAGUE_GAP"]["lane"] == "DECISION"
+    # 6 Nov 2026 (v2, Madhav's yes): at 3 of 7 a miss pattern is NOTED on the card, not asked; RX1-RX3 answered that kind of question
+    assert kinds["MISS_PATTERN"]["lane"] == "DECISION" and kinds["MISS_PATTERN"]["state"] == "NOTE" and len(kinds["MISS_PATTERN"]["evidence"]["days"]) >= 3
+    assert "Noted, not asked" in kinds["MISS_PATTERN"]["words"]
+    assert kinds["LEAGUE_GAP"]["lane"] == "DECISION" and kinds["LEAGUE_GAP"]["state"] == "DRAFT"
     q = rx.queue()
     assert sum(1 for r in q if r["key"] == kinds["MISS_PATTERN"]["key"]) == 1
     c2 = rx.evening("2026-10-27")
     q2 = rx.queue()
     assert sum(1 for r in q2 if r["key"] == kinds["MISS_PATTERN"]["key"]) == 1, "an open key is never queued twice"
     assert any(f["key"] == kinds["MISS_PATTERN"]["key"] for f in c2["findings"]) and c2["reruns"] == 1, "a re-run keeps the first run's findings on the card"
+    # two more sessions with the same situation: 5 of 10, and the note rises to a draft for Madhav, still one queue row
+    for d in ("2026-10-28", "2026-10-29"):
+        (lake / "paper" / "decisions" / f"{d}.json").write_text((lake / "paper" / "decisions" / "2026-10-23.json").read_text().replace("2026-10-23", d))
+        (lake / "manifests" / f"missed_{d}.json").write_text((lake / "manifests" / "missed_2026-10-23.json").read_text())
+        (lake / "manifests" / f"others_{d}.json").write_text((lake / "manifests" / "others_2026-10-23.json").read_text())
+        c3 = rx.evening(d)
+    mp = [f for f in c3["findings"] if f["type"] == "MISS_PATTERN"]
+    assert mp and mp[0]["state"] == "DRAFT" and len(mp[0]["evidence"]["days"]) >= 5 and "registered study" in mp[0]["words"]
+    q3 = rx.queue()
+    assert [r["state"] for r in q3 if r["key"] == mp[0]["key"]] == ["DRAFT"], "the draft replaced the note; one row per key"
+    assert "Value since 22 Oct" in c3["headline"] and c3["value"]["rules_changed"] == [], "the card measures its own value (E3)"
 
 
 def test_staircase_admits_nothing_without_madhav_and_the_allocator_obeys(lake, monkeypatch):

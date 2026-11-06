@@ -33,13 +33,14 @@ import datetime as dt
 import gzip
 import hashlib
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
 from india import paths
 
-RULES = "rx-in-v1-2026-10-23"
+RULES = "rx-in-v2-2026-11-06"   # v2 (Madhav's yes, 6 Nov 2026, the reconstruction audit E1/E3): a miss pattern is noted at 3 of 7 and asked at 5 of 10; the card measures its own value
 REG = Path(__file__).parent / "registrations"
 QUEUE = REG / "reconstruction_queue.jsonl"
 STAIRS_FILE = REG / "evidence_staircase.json"
@@ -55,7 +56,7 @@ TAG_WORDS = {"STOPPED_THEN_RAN": "stopped out, then the price was a full risk un
              "COSTS_ATE": "the price moved less than the round-trip costs (the trade could not pay)",
              "CLEAN": "a win that kept at least half of its best move",
              "LOST_SMALL": "a loss smaller than a risk unit with no better path on record"}
-BARS = {"pattern_days": 3, "pattern_window": 7, "exit_lesson_n": 5, "exit_lesson_window": 20, "held_into_fall_n": 5, "held_days": 3, "held_window": 7,
+BARS = {"pattern_days": 3, "pattern_window": 7, "pattern_ask_days": 5, "pattern_ask_window": 10, "exit_lesson_n": 5, "exit_lesson_window": 20, "held_into_fall_n": 5, "held_days": 3, "held_window": 7,
         "call_window": 20, "alloc_wrong_n": 3, "alloc_window": 20, "alloc_horizon": 5, "options_n": 5, "options_window": 10, "event_notes_to_draft": 3,
         "safe_per_night": 3, "safe_refile_sessions": 7, "data_stale_sessions": 2}
 STAIRS = {"version": "stairs-v1-2026-10-23", "shadow_sessions": 20, "admitted_independent_sessions": 10,
@@ -488,8 +489,10 @@ def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fw
 
     answered = _answered(day)
 
+    noted_keys = {q["key"] for q in queue_rows if q.get("state") == "NOTE" and q.get("type") == "MISS_PATTERN"}
+
     def add(kind, key, words, lane, evidence, state=None, extra=None):
-        if key in open_keys or key in recent_safe:
+        if (key in open_keys or key in recent_safe) and not (key in noted_keys and state is None and kind == "MISS_PATTERN"):   # 6 Nov: a noted miss pattern may rise to a draft
             return
         if lane == "DECISION" and any(key.startswith(p) or fnmatch.fnmatchcase(key, p + "*") for p in answered):   # 28 Oct (Madhav's yes): an answered situation is not asked again
             return
@@ -556,19 +559,30 @@ def findings(day: str, card: dict, prior: list[dict], queue_rows: list[dict], fw
 
     # DECISION: miss patterns (the missed-movers rule, counted over the last 7 cards) and league gaps
     win = (prior + [card])[-BARS["pattern_window"]:]
+    win_ask = (prior + [card])[-BARS["pattern_ask_window"]:]
     seen_b: dict[str, list[str]] = defaultdict(list)
+    seen_b_ask: dict[str, list[str]] = defaultdict(list)
     seen_league: dict[str, list[str]] = defaultdict(list)
     for c in win:
         for k in ((c.get("not_done") or {}).get("b_situations") or {}):
             seen_b[k].append(c.get("day"))
         for k in (((c.get("people") or {}).get("league") or {}).get("not_covered_situations") or {}):
             seen_league[k].append(c.get("day"))
+    for c in win_ask:
+        for k in ((c.get("not_done") or {}).get("b_situations") or {}):
+            seen_b_ask[k].append(c.get("day"))
+    # 6 Nov 2026, v2 (Madhav's yes to the reconstruction audit, E1): RX1, RX2 and RX3 tested 16 missed situations drafted at 3 of 7 sessions and found no
+    # entry rule knowable before the move. A miss pattern is still NOTED on the card at 3 of 7, but it is DRAFTED for Madhav only at 5 of 10 sessions.
     for k, days in seen_b.items():
         if len(days) >= BARS["pattern_days"]:
             ex = ((card.get("not_done") or {}).get("b_situations") or {}).get(k) or []
-            add("MISS_PATTERN", f"MISS_PATTERN:{k}", f"No family was positioned for '{k.split(':', 1)[1].replace(':', ', ').replace('_', ' ')}' on {len(days)} of the last {len(win)} sessions (e.g. {', '.join(ex[:4])}). "
-                "Question for a registered study: is there an entry rule, known before the move, for this situation? Development and validation years only.", "DECISION",
-                {"days": days, "examples": ex[:8], "rule": f"{BARS['pattern_days']} of {BARS['pattern_window']} sessions"})
+            days_ask = seen_b_ask.get(k) or days
+            ask = len(days_ask) >= BARS["pattern_ask_days"]
+            add("MISS_PATTERN", f"MISS_PATTERN:{k}", f"No family was positioned for '{k.split(':', 1)[1].replace(':', ', ').replace('_', ' ')}' on {len(days_ask if ask else days)} of the last {len(win_ask if ask else win)} sessions (e.g. {', '.join(ex[:4])}). "
+                + ("Question for a registered study: is there an entry rule, known before the move, for this situation? Development and validation years only."
+                   if ask else f"Noted, not asked: RX1-RX3 found no entry rule knowable before the move for situations of this kind; it becomes a draft at {BARS['pattern_ask_days']} of {BARS['pattern_ask_window']} sessions."),
+                "DECISION", {"days": days_ask if ask else days, "examples": ex[:8], "rule": (f"{BARS['pattern_ask_days']} of {BARS['pattern_ask_window']} sessions" if ask else f"noted at {BARS['pattern_days']} of {BARS['pattern_window']}; asked at {BARS['pattern_ask_days']} of {BARS['pattern_ask_window']}")},
+                state=None if ask else "NOTE")
     for k, days in seen_league.items():
         if len(days) >= BARS["pattern_days"]:
             add("LEAGUE_GAP", f"LEAGUE_GAP:{k}", f"The reference traders' best trips were '{(((card.get('people') or {}).get('league') or {}).get('not_covered_situations') or {}).get(k, k)}' with no Ananta rule on {len(days)} of {len(win)} sessions. "
@@ -650,6 +664,10 @@ def write_queue(rows: list[dict]) -> list[dict]:
     written = []
     for r in rows:
         row = {**r, "written_at": _now(), "rules": RULES}
+        if r.get("type") == "MISS_PATTERN" and r.get("state") == "DRAFT":      # 6 Nov 2026 (v2): the draft replaces the NOTE row of the same key, so the key stays single
+            old = _jsonl(QUEUE)
+            if any(q.get("key") == r.get("key") and q.get("state") == "NOTE" for q in old):
+                QUEUE.write_text("".join(json.dumps(q, default=str) + "\n" for q in old if not (q.get("key") == r.get("key") and q.get("state") == "NOTE")))
         _append(QUEUE, row)
         written.append(row)
     return written
@@ -741,10 +759,53 @@ def build(day: str | None = None) -> dict:
             "not_done": safe(section_not_done, day, rm), "reviews": safe(reviews, day, st, sess)}
     prior = _recent_cards(day, BARS["exit_lesson_window"])
     card["findings"] = findings(day, card, prior, queue(), forwarded(), rm, sess)
+    try:
+        card["value"] = value_line(day)
+    except Exception as e:  # noqa: BLE001
+        card["value"] = {"status": "error", "error": f"{e.__class__.__name__}: {str(e)[:140]}"}
     inputs = {"decision": str(_paper() / "decisions" / f"{day}.json"), "missed": str(_data() / "manifests" / f"missed_{day}.json"), "others": str(_data() / "manifests" / f"others_{day}.json"), "state": str(_paper() / "state.json")}
     card["inputs_sha"] = {k: (hashlib.sha256(Path(v).read_bytes()).hexdigest()[:16] if Path(v).exists() else None) for k, v in inputs.items()}
     card["headline"] = _headline(card)
     return card
+
+
+def value_line(sess_day: str | None = None) -> dict:
+    """6 Nov 2026 (Madhav's yes, the reconstruction audit E3): one line per card that measures the job's own value, so it is counted, not argued:
+    how many findings changed a rule (a reconstruction-born rule that reached ADMITTED), how many studies the findings started, what is in a trial."""
+    try:
+        dec = {d.get("key"): d for d in _jsonl(_rx() / "decisions.jsonl")}
+    except Exception:  # noqa: BLE001
+        dec = {}
+    approved = [k for k, d in dec.items() if d.get("decision") == "APPROVED"]
+    skipped = [k for k, d in dec.items() if d.get("decision") == "SKIPPED"]
+    studies = []
+    try:
+        p = Path(__file__).resolve().parent / "registrations" / "answered_situations.json"
+        for r in json.loads(p.read_text()).get("answered") or []:
+            for s in re.findall(r"\bRX\d\b|\bK\d\d-R\d\b", str(r.get("study") or "")):
+                if s not in studies:
+                    studies.append(s)
+    except (OSError, ValueError):
+        pass
+    if (Path(__file__).resolve().parent / "registrations" / "k02_review_v1.json").exists() and "K02-R1" not in studies:
+        studies.append("K02-R1")
+    trials = []
+    for name, label in (("rx1_trial.json", "falls under the 200-day (RX1)"), ("rs_trial.json", "relative strength (RS)")):
+        tr = _load(_paper() / name, {}) or {}
+        if tr and not tr.get("complete"):
+            trials.append(f"{label} {tr.get('scored', 0)}/{tr.get('need', 20)}")
+    try:
+        adm = admitted()
+    except Exception:  # noqa: BLE001
+        adm = set()
+    changed = sorted(r for r in adm if str(r).startswith("rx:"))     # a reconstruction-born rule is admitted under the rx: prefix; none yet
+    first = "22 Oct"
+    words = (f"Value since {first}: {len(changed)} finding{'s' if len(changed) != 1 else ''} changed a rule"
+             + (f" ({', '.join(changed)})" if changed else "")
+             + f"; {len(approved)} approved and {len(skipped)} skipped drafts started {len(studies)} stud{'ies' if len(studies) != 1 else 'y'}"
+             + (f" ({', '.join(studies)})" if studies else "")
+             + (f"; in a paper trial: {'; '.join(trials)}" if trials else "") + ".")
+    return {"rules_changed": changed, "approved": len(approved), "skipped": len(skipped), "studies": studies, "trials": trials, "words": words}
 
 
 def _headline(c: dict) -> str:
@@ -777,6 +838,8 @@ def _headline(c: dict) -> str:
     tail = (f"; {new_w}; {waiting} draft{'s' if waiting != 1 else ''} wait{'s' if waiting == 1 else ''} for your yes or skip." if waiting
             else f"; {new_w}; nothing waits for you.")
     parts.append((f"{safe} small fix{'es' if safe != 1 else ''} went to the repair shop" if safe else "Nothing went to the repair shop") + tail)
+    if (c.get("value") or {}).get("words"):
+        parts.append(c["value"]["words"])
     return " ".join(parts)
 
 

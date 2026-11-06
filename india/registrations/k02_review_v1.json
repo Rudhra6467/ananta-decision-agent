@@ -1,0 +1,20 @@
+{
+ "study": "K02-R1",
+ "family": "knowledge",
+ "version": 1,
+ "written": "2026-11-06",
+ "asked_by": "The reconstruction card of 4 Nov 2026 (CALL_DRIFT:K02: 'The daily call was right 9 of its last 20 scored sessions, below the coin flip. The K02 study decides whether the rule stays.'); Madhav, 6 Nov 2026 12:23 Toronto: \"Yes to all your recommendations\" (approve the K02 draft)",
+ "title": "Does the daily call (call-v0, K02 / M-11, forward record from 19 Oct 2026) beat its own coin-flip null, and does the rule stay?",
+ "what_is_reviewed": "india/dailycall.py RULE call-v0-2026-10-18: BULLISH when Nifty is below its 50-day average or fell more than 1.5% on the day; BEARISH when more than 5% above its 50-day; NEUTRAL otherwise. A seeded coin flip is written beside each call as the null. Scored at 1, 5 and 20 sessions in paper/calls.jsonl.",
+ "state_at_registration": "14 calls written; 1-session horizon: 10 decided calls, 4 right, null 8 right; 5-session: 9 decided, 6 right, null 5 right; 20-session: none scored yet (6 Nov 2026).",
+ "rule_fixed_before_the_result": {
+  "when": "at 60 decided calls on the 1-session horizon (about the end of January 2027), and again at 120",
+  "measure": "hit rate on decided calls (NEUTRAL calls counted apart) minus the null's hit rate over the same calls, at the 1-session and the 5-session horizon",
+  "retire_if": "the call's hit rate is not above the null's at both horizons (difference <= 0 at 1 and at 5 sessions): call-v0 is retired and the daily call reads 'no view' until a new rule is registered",
+  "keep_if": "above the null at either horizon: the rule stays and is reviewed again at 120 decided calls",
+  "no_early_look": "the forward record is read only at the two review points; the nightly card may count hits (as it does now) but no verdict is drawn before 60"
+ },
+ "nothing_trades": "the daily call is a written view (knowledge layer); no book, rule or position depends on it",
+ "where_the_result_goes": "india/registrations/k02_review_v1_results.md, the research tracker row K02, and the reconstruction's answered list (CALL_DRIFT:K02 is not drafted again before the first review point)",
+ "owner": "the India paper job scores the calls nightly (india.dailycall run); Claude writes the review at the two points; Madhav decides on retire or keep"
+}

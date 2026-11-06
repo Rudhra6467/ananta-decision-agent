@@ -75,7 +75,7 @@ def test_self_check_says_what_is_not_right_and_when_it_is_stale(tmp_path, monkey
     c = selfcheck.refresh(now=1793906451, opener=down)
     assert c["items"][0]["severity"] == "high" and "not answering" in c["items"][0]["what"]
     india = selfcheck.check("india", now=1793906451 + 60)
-    assert all(x["market"] in ("india", "both") for x in india["items"])
+    assert india["items"][0]["market"] in ("india", "both"), "this market's items first; the other side's follow, named by side (5 Nov evening audit)"
     assert selfcheck.headline(india).startswith("Before we start: the India service is not answering")
     stale = selfcheck.check("crypto", now=1793906451 + 3 * 3600)
     assert "may be out of date" in stale["items"][0]["what"]

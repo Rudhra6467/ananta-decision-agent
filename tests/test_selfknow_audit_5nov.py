@@ -42,14 +42,14 @@ def test_what_the_self_check_found_fine_is_said_too(tmp_path, monkeypatch):
     c = {"at": 1, "at_words": "5 Nov 19:59 Toronto", "items": [{"market": "india", "severity": "medium", "source": "watchdog", "what": "x"},
                                                               {"market": "both", "severity": "low", "source": "nightly replay", "what": "y"}]}
     fine = selfcheck.fine(c)
-    assert len(fine) == 1 and fine[0].startswith("checked 5 Nov 19:59 Toronto: ")
+    assert len(fine) == 1 and fine[0].startswith("the same check (5 Nov 19:59 Toronto) found 2 items not right")
     assert "Claude answers" in fine[0] and "four services" in fine[0] and "no test card" in fine[0]
     assert "watchdog" not in fine[0] and "replay" not in fine[0]
     assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 5
     monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
     (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": []}))
     a = selfknow.about_ananta("is anything wrong", "crypto")
-    assert a["checked_fine"] and "checked now" in a["checked_fine"][0] and "Nothing is wrong" in a["not_right"][0]
+    assert a["checked_fine"] and a["checked_fine"][0].startswith("checked now, all in order") and "Nothing is wrong" in a["not_right"][0]
 
 
 def test_the_voice_print_words_count_the_added_sentences(tmp_path, monkeypatch):
@@ -87,3 +87,21 @@ def test_the_india_freeze_guard_counts_the_services_own_cpu_time(monkeypatch):
     service._install_stall_guard()
     assert ("default", signal.SIGPROF, signal.SIG_DFL) in registered
     assert registered[-1][0] == signal.SIGPROF and registered[-1][1]["all_threads"] and registered[-1][1]["chain"], "dump every thread, then end"
+
+
+def test_both_sides_see_the_whole_self_check_own_market_first(tmp_path, monkeypatch):
+    """The blind grade: the crypto voice said "one item" and the India voice "two things" about the same check (each saw only its own side),
+    and "found everything fine" was computed from that filtered list. Ananta is one system: every item on both sides, this market's first."""
+    monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
+    (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": [
+        {"market": "crypto", "severity": "medium", "source": "lost-runs check", "what": "a part was down"},
+        {"market": "india", "severity": "medium", "source": "watchdog", "what": "the India service froze"},
+        {"market": "india", "severity": "low", "source": "nightly replay", "what": "2 answers wrong"}]}))
+    c = selfcheck.check("crypto")
+    assert [x["market"] for x in c["items"]] == ["crypto", "india", "india"]
+    assert selfcheck.words(c)[0].startswith("crypto side: a part was down") and selfcheck.words(c)[1].startswith("India side: the India service froze")
+    i = selfcheck.check("india")
+    assert [x["market"] for x in i["items"]] == ["india", "india", "crypto"]
+    f = selfcheck.fine(c)[0]
+    assert f.startswith("the same check (now) found 3 items not right") and "no watchdog restart" not in f and "Claude answers" in f
+    assert selfcheck.fine({"at_words": "now", "items": []})[0].startswith("checked now, all in order: ")

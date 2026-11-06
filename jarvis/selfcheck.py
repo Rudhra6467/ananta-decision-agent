@@ -183,11 +183,18 @@ def check(market: str | None = None, now: float | None = None) -> dict:
     except (OSError, ValueError):
         return {"at": None, "items": [{"market": "both", "severity": "medium", "source": "self-check",
                                        "what": "the self-check has not run yet (it runs with the crypto service's 15-minute jobs)"}]}
-    items = [x for x in c.get("items") or [] if market is None or x.get("market") in (market, "both")]
+    # 5 Nov evening audit (the blind grade): each side reported only its own market's items, so the crypto voice said "one item" and the India
+    # voice "two things" about the same check. Ananta is one system: every item is told on both sides, this market's first, each named by side.
+    own = [x for x in c.get("items") or [] if market is None or x.get("market") in (market, "both")]
+    other = [x for x in c.get("items") or [] if x not in own]
+    items = own + other
     if now - (c.get("at") or 0) > STALE_S:
         items.insert(0, {"market": "both", "severity": "medium", "source": "self-check",
                          "what": f"the self-check last ran at {c.get('at_words')}, so this may be out of date"})
     return {"at": c.get("at"), "at_words": c.get("at_words"), "items": items}
+
+
+SIDE = {"india": "India side: ", "crypto": "crypto side: ", "both": ""}
 
 
 def words(c: dict) -> list[str]:
@@ -195,7 +202,7 @@ def words(c: dict) -> list[str]:
     if not items:
         return [f"Nothing is wrong right now (checked {c.get('at_words')}): every scheduled part ran in the last 24 hours, the services "
                 "answer, last night's replay passed and no test card is waiting."]
-    return [f"{x['what']} ({x['severity']}, from the {x['source']})" for x in items]
+    return [f"{SIDE.get(x.get('market'), '')}{x['what']} ({x['severity']}, from the {x['source']})" for x in items]
 
 
 CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hours"), ("services", "the four services answer (crypto, India, voice, voice print)"),
@@ -213,7 +220,9 @@ def fine(c: dict) -> list[str]:
     bad = {SOURCE_CHECK.get(str(x.get("source")), str(x.get("source"))) for x in c.get("items") or []}
     ok = [w for k, w in CHECKS if k not in bad]
     when = c.get("at_words") or "not run yet"
-    return [f"checked {when}: " + "; ".join(ok)] if ok else [f"checked {when}"]
+    n = len([x for x in c.get("items") or [] if x.get("source") != "self-check"])
+    head = f"the same check ({when}) found {n} item{'s' if n != 1 else ''} not right (listed in not_right) and the rest in order: " if n else f"checked {when}, all in order: "
+    return [head + "; ".join(ok)] if ok else [f"checked {when}"]
 
 
 def headline(c: dict) -> str | None:

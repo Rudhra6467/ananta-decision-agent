@@ -42,8 +42,9 @@ HOW = ("Ananta's book about itself. changes_on_this and changes_last_7_days come
        "date. A change on the other market's side can be told too: it is about the system, not market data. parts says how the voice, the "
        "voice print, the watchdog and the morning reads work right now, read from their own files, and parts.database is the database: what is "
        "kept where, with live counts (answer 'what do you keep', 'where does my data live', 'what tables' from it). not_right is the live "
-       "self-check: say its items plainly when asked whether anything is wrong; checked_fine is what the same check found in order, with its "
-       "time, so a problem that is no longer listed (the Claude credit, a service) is over. Never say you cannot know what was done in the back "
+       "self-check of the WHOLE system, this market's items first and the other side's named by side: say them all plainly when asked whether "
+       "anything is wrong, with the count. checked_fine is what else the same check found in order, with its time, so a problem no longer "
+       "listed (the Claude credit, a service) is over; it never means everything is fine while not_right lists items. Never say you cannot know what was done in the back "
        "end: say what the change book has, and if it has nothing on that, say so in one line.")
 
 _CACHE: dict = {}

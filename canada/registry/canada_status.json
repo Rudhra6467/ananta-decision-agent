@@ -127,6 +127,28 @@
    "proposed_on": "2026-10-15",
    "approved": "Madhav in chat, 2026-10-15 03:06 ET: 'Approve a1'",
    "approved_on": "2026-10-15"
+  },
+  {
+   "id": "A2",
+   "file": "tests/test_canada_isolation.py",
+   "old_sha256": "85a52de2275c92b45c3097f941a5e0b195d8df4534b76e8cacd9ba243d6e7377",
+   "new_sha256": "256564badaf54af8baf0008632023b073c24289a3aacda8c27d74cd726af3d2b",
+   "reason": "Name collision: India corporate-actions study CA1 (records india/registrations/ca1_v1.json, 27 Oct) reached docs/knowledge/india_map.json on 4 Nov and tripped the bare-id marker. The marker becomes Canada's own artefacts (canada_lake, canada/registrations, canada/registry). Criteria unchanged.",
+   "criteria_changed": false,
+   "proposed_on": "2026-11-06",
+   "approved": "Madhav, 6 Nov 2026 12:23 Toronto, in chat: \"Yes to all your recommendations\" (the recommendation: amend the Canada test, A2)",
+   "approved_on": "2026-11-06"
+  },
+  {
+   "id": "A3",
+   "file": "tests/test_canada_isolation.py",
+   "old_sha256": "256564badaf54af8baf0008632023b073c24289a3aacda8c27d74cd726af3d2b",
+   "new_sha256": "1e9c5d016d8f239502e22e46fd61e6f80cf485b1015f0819d72800ab03ef1e40",
+   "reason": "A2 was still too broad: docs/knowledge/audit_register.json cites the Canada C0 document path as evidence. The markers are now Canada data (canada_lake), the Canada registry record (namespace CA), and the id CA1 only beside the word canada. Criteria unchanged.",
+   "criteria_changed": false,
+   "proposed_on": "2026-11-06",
+   "approved": "Madhav, 6 Nov 2026 12:23 Toronto, in chat: \"Yes to all your recommendations\" (the recommendation: amend the Canada test)",
+   "approved_on": "2026-11-06"
   }
  ]
 }

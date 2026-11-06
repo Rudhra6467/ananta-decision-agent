@@ -29,7 +29,11 @@ def test_canada_is_outside_the_agents_reading_folders():
     assert not (ROOT / "docs" / "canada").exists() and not (ROOT / "docs" / "research" / "canada").exists()
     for f in (ROOT / "docs" / "knowledge").glob("*.json"):
         t = f.read_text(errors="ignore")
-        assert "canada_lake" not in t and '"CA1"' not in t, f"{f.name} mentions Canada"
+        # 6 Nov 2026 (amendments A2-A3, Madhav's yes): India's corporate-actions study is also called CA1, so the bare id
+        # marks Canada only beside the word "canada"; the audit register may cite a Canada document path, so a path is
+        # not a marker either. Canada's data (canada_lake) and its registry record (namespace CA) always are.
+        assert "canada_lake" not in t and '"namespace": "CA"' not in t, f"{f.name} holds Canada data or registry"
+        assert not ('"CA1"' in t and "canada" in t.lower()), f"{f.name} mentions Canada's CA1"
 
 
 def test_data_folder_must_sit_outside_crypto(tmp_path, monkeypatch):

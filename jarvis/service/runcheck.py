@@ -396,7 +396,12 @@ def _err_written(ef: Path) -> bool:
         tail = f.read().decode(errors="ignore")
     lines = tail.splitlines()
     starts = [i for i, ln in enumerate(lines) if ln.startswith("=== ")]
-    return any(ln.strip() for ln in (lines[starts[-1] + 1:] if starts else lines))
+    return any(ln.strip() and not _OS_NOISE.search(ln) for ln in (lines[starts[-1] + 1:] if starts else lines))
+
+# Nov 6: macOS prints "Python(<pid>) MallocStackLogging: can't turn off malloc stack logging because it was not enabled." to
+# stderr for every child process when the variable is inherited; it is the OS talking, not the job (the clean Nov 5 evening
+# chain read 'errored' on 355 such lines and nothing else).
+_OS_NOISE = re.compile(r"^\S+\(\d+\) MallocStackLogging: ")
 
 def run(paths: dict | None = None, now: float | None = None, parts: list[dict] | None = None) -> dict:
     """Every part, both windows, read-only. Returns {now, windows: {"24h": {...}, "7d": {...}}}."""

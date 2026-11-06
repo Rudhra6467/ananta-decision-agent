@@ -286,6 +286,23 @@ def test_india_job_whose_stderr_holds_only_its_own_start_line_is_not_errored(tmp
     assert len(ms) == 1 and ms[0]["kind"] == "errored"
 
 
+def test_india_job_whose_stderr_holds_only_macos_malloc_noise_is_not_errored(tmp_path):
+    import os
+    paths = _paths(tmp_path)
+    run_t = calendar.timegm((2026, 10, 20, 1, 20, 0))
+    log, err = Path(paths["runs"], "india_evening.log"), Path(paths["runs"], "india_evening.err")
+    log.write_text("# Ananta India daily report\n")
+    noise = "".join(f"Python({n}) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.\n" for n in range(53560, 53600))
+    err.write_text("=== 2026-10-19_20:20:04 evening\n" + noise)
+    os.utime(log, (run_t + 78, run_t + 78))
+    os.utime(err, (run_t + 6, run_t + 6))
+    assert _misses(runcheck.run(paths, NOW, [_part("india_evening")]), "24h") == []
+    err.write_text(err.read_text() + "Traceback (most recent call last):\nrequests.exceptions.HTTPError: 403\n")
+    os.utime(err, (run_t + 8, run_t + 8))
+    ms = _misses(runcheck.run(paths, NOW, [_part("india_evening")]), "24h")
+    assert len(ms) == 1 and ms[0]["kind"] == "errored"
+
+
 def _india_calendar(paths: dict, holidays: list[str]) -> None:
     import json
     p = Path(paths["india"], "manifests", "nse_holidays_2026.json")

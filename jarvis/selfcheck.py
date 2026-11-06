@@ -280,12 +280,23 @@ def headline(c: dict) -> str | None:
     return "Before we start: " + "; and ".join(x["what"] for x in top) + "."
 
 
-def nudge(market: str, state: Path, thread: str, now: float | None = None) -> str:
+def already_said(items: list[dict], answer: str) -> bool:
+    """True when the answer itself already tells these items (5 Nov evening: with the book in short on every India turn, an answer that
+    listed the self-check got the same item again as a nudge)."""
+    words = set(re.findall(r"[a-z0-9]+", (answer or "").lower()))
+    for x in items:
+        mine = [w for w in re.findall(r"[a-z0-9]+", str(x.get("what") or "").lower()) if len(w) > 3]
+        if mine and sum(1 for w in mine if w in words) >= 0.6 * len(mine):
+            return True
+    return False
+
+
+def nudge(market: str, state: Path, thread: str, now: float | None = None, answer: str = "") -> str:
     """Once per conversation, and not again within 3 hours for the same findings, one line at the end of an answer to Madhav naming what
-    is not right (high and medium only; the details come when he asks "is anything wrong")."""
+    is not right (high and medium only; the details come when he asks "is anything wrong"). Never when the answer already says it."""
     now = now or time.time()
     top = [x for x in check(market, now).get("items") or [] if x.get("severity") in ("high", "medium") and x.get("source") != "self-check"][:2]
-    if not top:
+    if not top or already_said(top, answer):
         return ""
     key = "|".join(x["what"] for x in top)
     try:

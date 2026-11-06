@@ -140,3 +140,12 @@ def test_the_india_side_gets_the_book_in_short_on_every_turn(tmp_path, monkeypat
     assert len(json.dumps(b)) < 4500, "small enough for every turn"
     src = open(india_ask.__file__).read()
     assert 'f["ananta_brief"] = selfknow.brief("india")' in src and '"ananta_brief")' in src
+
+
+def test_no_nudge_when_the_answer_already_says_it(tmp_path, monkeypatch):
+    monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
+    (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": [
+        {"market": "india", "severity": "medium", "source": "watchdog", "what": "the India service froze and the watchdog restarted it at 5 Nov 19:34 Toronto"}]}))
+    said = "Sir, the India service froze and the watchdog restarted it at 7:34 pm Toronto tonight; it is running again."
+    assert selfcheck.nudge("india", tmp_path / "told.json", "t1", answer=said) == ""
+    assert selfcheck.nudge("india", tmp_path / "told.json", "t1", answer="The Nifty closed at 24,537.") != ""

@@ -2832,7 +2832,7 @@ class Ask:
             try:                                                 # 5 Nov (Madhav: "it can tell if something is not right"): once per conversation
                 from jarvis import selfcheck as _sc
 
-                nd = _sc.nudge("crypto", Path(self.j.dir) / "oversight_told.json", thread or "")
+                nd = _sc.nudge("crypto", Path(self.j.dir) / "oversight_told.json", thread or "", answer=str(reply.get("answer") or ""))
                 if nd:
                     reply["answer"] = f"{(reply.get('answer') or '').rstrip()} {nd}"
             except Exception:  # noqa: BLE001  oversight never breaks an answer

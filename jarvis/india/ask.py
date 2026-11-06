@@ -1470,7 +1470,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             if nd:
                 fixed["answer"] = f"{str(fixed.get('answer') or '').rstrip()} {nd}".strip()
         if not guest and not stranger and not early:
-            nd = oversight_nudge(thread)
+            nd = oversight_nudge(thread, str(fixed.get("answer") or ""))
             if nd:
                 fixed["answer"] = f"{str(fixed.get('answer') or '').rstrip()} {nd}".strip()
         uid = uuid.uuid4().hex[:12]
@@ -1709,7 +1709,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         if nd:
             reply["answer"] = f"{str(reply.get('answer') or '').rstrip()} {nd}".strip()
     if not guest and not stranger and not batch and "about_ananta" not in f:
-        nd = oversight_nudge(thread)                  # 5 Nov (Madhav: "it can tell if something is not right"): once per conversation
+        nd = oversight_nudge(thread, str(reply.get("answer") or ""))   # 5 Nov (Madhav: "it can tell if something is not right"): once per conversation
         if nd:
             reply["answer"] = f"{str(reply.get('answer') or '').rstrip()} {nd}".strip()
     if prev:
@@ -2505,12 +2505,12 @@ def _unsettled(w: dict | None) -> dict | None:
             "key": (w.get("key") or "") + ":" + str(len(items))}
 
 
-def oversight_nudge(thread: str) -> str:
+def oversight_nudge(thread: str, answer: str = "") -> str:
     """5 Nov (Madhav: "it can oversee ... it can tell if something is not right"): what the live self-check found (jarvis/selfcheck.py), once
-    per conversation and not again within 3 hours for the same findings, at the end of an answer to Madhav."""
+    per conversation and not again within 3 hours for the same findings, at the end of an answer to Madhav; never when the answer says it."""
     try:
         from jarvis import selfcheck
-        return selfcheck.nudge("india", Path(ASK_DIR) / "oversight_told.json", thread)
+        return selfcheck.nudge("india", Path(ASK_DIR) / "oversight_told.json", thread, answer=answer)
     except Exception:  # noqa: BLE001  oversight never breaks an answer
         return ""
 

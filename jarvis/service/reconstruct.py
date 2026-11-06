@@ -21,16 +21,20 @@ Paper only. Nothing here reads the broker or writes a trade; it only wakes the b
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import re
 import time
 import uuid
 
 DAY = 86400
-RULES = "rx-cr-v1-2026-10-24"
+RULES = "rx-cr-v2-2026-11-06"   # v2 (Madhav's yes, 6 Nov 2026, the reconstruction audit E2/E3/E5): Rule B answers new-family questions, wakes are a count, the card measures its value
 BARS = {"gave_back_n": 3, "gave_back_days": 7, "miss_pattern_n": 3, "miss_pattern_days": 30, "bleed_pct": 0.02, "bleed_days": 7,
         "bleed_min_closed": 5, "selection_n": 1, "safe_per_night": 3}
 KIND_WORDS = {"GAVE_BACK": "winners that became losers (no plan protected them)", "MISS_PATTERN": "a kind of move we keep missing",
               "BOOK_BLEED": "a book losing more than its bar over a week", "LAYER_CONFLICT": "two layers wanting different things",
               "SELECTION": "a buy the selection floor refused", "WAIT_ARRIVED": "a pass whose condition came true"}
+REPO = Path(__file__).resolve().parents[2]
+RULE_B_ENDS = "2026-12-14"      # Rule B (15 Oct lock): no new crypto families before the day-60 checkpoint
 LANE = {"GAVE_BACK": "SAFE", "MISS_PATTERN": "DECISION", "BOOK_BLEED": "DECISION", "LAYER_CONFLICT": "NOTE", "SELECTION": "NOTE",
         "WAIT_ARRIVED": "SAFE"}
 
@@ -252,12 +256,24 @@ def findings(j, day0: int, market: dict, ananta: dict, not_done: dict, reviews: 
 def forward(j, day: str, rows: list[dict]) -> dict:
     from jarvis.service import brain, fixflow
 
-    out = {"safe": [], "decision": [], "note": 0, "skipped": []}
+    out = {"safe": [], "decision": [], "note": 0, "skipped": [], "woken": 0, "rule_b": []}
     safe_n = 0
     for f in rows:
         key = f["key"]
         if f["lane"] == "NOTE":
             out["note"] += 1
+            continue
+        if f["kind"] == "WAIT_ARRIVED":                           # item 6: wake the brain again, no repair request
+            # 6 Nov 2026 (Madhav's yes, the reconstruction audit E5): a wake is counted on the card, not kept as a queue row (38 of the
+            # first 48 rows were wakes and crowded the queue and the Ask's answers); the brain is still woken exactly as before.
+            try:
+                did = (f.get("evidence") or {}).get("decision")
+                r = j.db.execute("SELECT coin FROM brain_decisions WHERE id=?", (did,)).fetchone()
+                if r:
+                    brain.wake(j, r[0], "wait_arrived", {"decision": did, "hit": (f.get("evidence") or {}).get("hit")})
+            except Exception:  # noqa: BLE001
+                pass
+            out["woken"] += 1
             continue
         if j.db.execute("SELECT 1 FROM rx_queue WHERE key=? AND state IN ('OPEN','FILED')", (key,)).fetchone():
             out["skipped"].append(key)
@@ -266,19 +282,18 @@ def forward(j, day: str, rows: list[dict]) -> dict:
             out["skipped"].append(f"{key}: decided this week")        # a decision is not asked again for 7 days
             continue
         rid = uuid.uuid4().hex[:10]
-        if f["lane"] == "SAFE":
-            if f["kind"] == "WAIT_ARRIVED":                       # item 6: wake the brain again, no repair request
-                try:
-                    did = (f.get("evidence") or {}).get("decision")
-                    r = j.db.execute("SELECT coin FROM brain_decisions WHERE id=?", (did,)).fetchone()
-                    if r:
-                        brain.wake(j, r[0], "wait_arrived", {"decision": did, "hit": (f.get("evidence") or {}).get("hit")})
-                except Exception:  # noqa: BLE001
-                    pass
-                j.db.execute("INSERT INTO rx_queue VALUES (?,?,?,?,?,?,?,?,?,?,?)", (rid, day, int(j.now()), f["kind"], "SAFE", key, f["words"],
-                                                                                  json.dumps(f["evidence"], default=str), "DONE", int(j.now()), "the brain was woken again"))
-                out["safe"].append(key)
+        if f["lane"] == "DECISION" and f["kind"] == "MISS_PATTERN" and day < RULE_B_ENDS:
+            # 6 Nov 2026 (Madhav's yes, E2): under Rule B no new crypto family is drafted before 14 Dec, so the job answers a new-family
+            # question itself instead of leaving it in Needs you; the same key is not asked again inside the window; after 14 Dec it is OPEN again.
+            if j.db.execute("SELECT 1 FROM rx_queue WHERE key=? AND decision LIKE 'Rule B:%'", (key,)).fetchone():
+                out["skipped"].append(f"{key}: Rule B")
                 continue
+            j.db.execute("INSERT INTO rx_queue VALUES (?,?,?,?,?,?,?,?,?,?,?)", (rid, day, int(j.now()), f["kind"], "DECISION", key, f["words"],
+                                                                              json.dumps(f["evidence"], default=str), "DECIDED", int(j.now()),
+                                                                              f"Rule B: snoozed to {RULE_B_ENDS} (no new crypto family before the day-60 checkpoint); answered by the job, Madhav's yes of 6 Nov"))
+            out["rule_b"].append(key)
+            continue
+        if f["lane"] == "SAFE":
             if safe_n >= BARS["safe_per_night"]:
                 out["skipped"].append(key)
                 continue
@@ -318,15 +333,48 @@ def evening(j, force: bool = False) -> dict | None:
     reviews = section_reviews(j, day0)
     rows = findings(j, day0, market, ananta, not_done, reviews)
     fwd = forward(j, day, rows)
-    head = _headline(market, ananta, reviews, rows)
+    wakes = [r for r in rows if r["kind"] == "WAIT_ARRIVED"]                 # 6 Nov (E5): wakes are one count on the card, not findings
+    rows = [r for r in rows if r["kind"] != "WAIT_ARRIVED"]
+    value = value_line(j)
+    head = _headline(market, ananta, reviews, rows, len(wakes), value)
     card = {"day": day, "about_day": _day(day0), "t": now, "rules": RULES, "bars": BARS, "headline": f"About {_day(day0)}: {head}", "market": market,
-            "ananta": ananta, "not_done": not_done, "reviews": reviews, "findings": rows, "forwarding": fwd}
+            "ananta": ananta, "not_done": not_done, "reviews": reviews, "findings": rows, "wakes": {"n": len(wakes), "items": wakes}, "value": value,
+            "forwarding": fwd}
     j.db.execute("INSERT OR REPLACE INTO rx_cards VALUES (?,?,?,?)", (day, now, RULES, json.dumps(card, default=str)))
     j.db.commit()
     return {"day": day, "about_day": _day(day0), "findings": len(rows), "forwarded": fwd, "headline": card["headline"]}
 
 
-def _headline(market: dict, ananta: dict, reviews: dict, rows: list[dict]) -> str:
+def value_line(j) -> dict:
+    """6 Nov 2026 (Madhav's yes, the reconstruction audit E3): one line per card that measures the job's own value, counted, not argued:
+    findings that changed a rule (none can, without Madhav), decisions that changed what runs (a book paused on a finding), families drafted."""
+    _table(j)
+    try:
+        rows = j.db.execute("SELECT kind, key, decision, day FROM rx_queue WHERE state='DECIDED' ORDER BY decided_t").fetchall()
+    except Exception:  # noqa: BLE001
+        rows = []
+    try:                                                   # what runs is read from the status book, never from the words of a decision
+        status = {k: (v.get("status") if isinstance(v, dict) else "") for k, v in (json.loads((REPO / "docs" / "knowledge" / "strategy_status.json").read_text()).get("strategies") or {}).items()}
+    except Exception:  # noqa: BLE001
+        status = {}
+    paused = []
+    for kind, k, dec, d in rows:
+        if kind != "BOOK_BLEED" or (dec or "").startswith("superseded"):
+            continue
+        book = k.split(":", 1)[-1].split(":")[0].strip()
+        st = status.get(book) or status.get(book.replace("JARVIS_", "")) or ""
+        if st in ("PARKED", "RETIRED"):
+            paused.append(f"{book} {st.lower()} ({d})")
+    drafted = [m.group(1) for kind, k, dec, d in rows if kind == "MISS_PATTERN" and dec and (m := re.search(r"drafted as (\w+)", dec))]
+    drafted = [f"{x} ({status.get(x, 'unknown').lower()})" for x in drafted]
+    rule_b = sum(1 for kind, k, dec, d in rows if dec and dec.startswith("Rule B:"))
+    words = (f"Value since 24 Oct: 0 findings changed a rule; {len(paused)} decision{'s' if len(paused) != 1 else ''} changed what runs"
+             + (f" ({', '.join(paused)})" if paused else "") + f"; {len(drafted)} famil{'ies' if len(drafted) != 1 else 'y'} drafted from a finding" + (f" ({', '.join(drafted)})" if drafted else "")
+             + (f"; {rule_b} new-family question{'s' if rule_b != 1 else ''} held by Rule B until {RULE_B_ENDS}" if rule_b else "") + ".")
+    return {"rules_changed": 0, "paused_books": paused, "families_drafted": drafted, "held_by_rule_b": rule_b, "words": words}
+
+
+def _headline(market: dict, ananta: dict, reviews: dict, rows: list[dict], wakes: int = 0, value: dict | None = None) -> str:
     bits = [market.get("dial_words") or "dial unread"]
     br = ananta.get("brain") or {}
     if br.get("n"):
@@ -337,7 +385,12 @@ def _headline(market: dict, ananta: dict, reviews: dict, rows: list[dict]) -> st
     for r in rows:
         kinds[r["kind"]] = kinds.get(r["kind"], 0) + 1
     bits.append(("findings: " + ", ".join(f"{k} {n}" for k, n in sorted(kinds.items()))) if kinds else "no findings")
-    return "; ".join(bits) + "."
+    if wakes:
+        bits.append(f"woke the brain {wakes} time{'s' if wakes != 1 else ''} for a wait that came true")
+    out = "; ".join(bits) + "."
+    if value and value.get("words"):
+        out += " " + value["words"]
+    return out
 
 
 def latest(j) -> dict | None:

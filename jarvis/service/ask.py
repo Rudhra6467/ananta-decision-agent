@@ -1365,7 +1365,10 @@ class Lookups:
                                              "decided": [{"day": r["day"], "kind": r["kind"], "key": r["key"], "decision": (r.get("decision") or "")[:160]}
                                                          for r in q if r["state"] not in ("OPEN", "DONE")][:20],
                                              "note": ("A card is stamped with the UTC morning it was made and (since 6 Nov) says which day it is about; "
-                                                      "WAIT_ARRIVED DONE rows are passes whose condition came true and woke the brain again. Before "
+                                                      "WAIT_ARRIVED DONE rows (before 6 Nov evening) are passes whose condition came true and woke the brain again; "
+                                                      "since then a wake is a count on the card ('wakes'), not a row. A 'Rule B:' decision is the job answering a "
+                                                      "new-family question itself under Rule B until 14 Dec (Madhav's yes, 6 Nov); each card's 'value' line counts "
+                                                      "what the job changed. Before "
                                                       "6 Nov the cards' 'what Ananta did' and missed-moves parts were blank (a window bug found by "
                                                       "the 6 Nov audit); the typed findings were not affected.")}
         if part in ("queue", "all"):

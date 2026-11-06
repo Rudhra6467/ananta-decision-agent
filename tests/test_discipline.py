@@ -270,3 +270,42 @@ def test_the_crypto_card_describes_the_closed_day_and_is_made_after_the_missed_r
     app = (root / "jarvis" / "service" / "app.py").read_text()
     i_missed, i_card = app.index("out[\"missed\"] = missed.run(J())"), app.index("out[\"reconstruction\"] = reconstruct.evening(J())")
     assert i_missed < i_card, "the card comes after the day's missed moves are reviewed"
+
+
+def test_rx_cr_v2_rule_b_answers_new_family_questions_wakes_are_a_count_and_the_card_measures_its_value(monkeypatch):
+    """6 Nov 2026 (Madhav's yes to the reconstruction audit, E2 / E3 / E5): under Rule B a new-family question (MISS_PATTERN) is answered by
+    the job itself as 'Rule B: snoozed to 2026-12-14' and never sits in Needs you; a wait that came true still wakes the brain but is a count
+    on the card, not a queue row; and every card carries a value line that counts what the job changed."""
+    import json as _json
+
+    from jarvis.service import brain, reconstruct
+
+    j = _J()
+    reconstruct._table(j)
+    j.db.execute("CREATE TABLE IF NOT EXISTS brain_decisions (id TEXT, t INTEGER, coin TEXT, action TEXT, confidence REAL, plan TEXT, note TEXT, triggers TEXT)")
+    j.db.execute("INSERT INTO brain_decisions (id, t, coin, action, confidence, plan, note, triggers) VALUES ('d7', 1, 'SOL', 'PASS', 0.5, '{}', '', '')")
+    j.db.commit()
+    woken = []
+    monkeypatch.setattr(brain, "wake", lambda j_, coin, why, ev: woken.append((coin, why)))
+    rows = [reconstruct._f("WAIT_ARRIVED", "wait:d7", "a pass's condition came true", {"decision": "d7", "hit": ["x"]}),
+            reconstruct._f("MISS_PATTERN", "miss:a rebound test", "we keep missing: a rebound test", {"said": "a rebound test", "times": 3}),
+            reconstruct._f("BOOK_BLEED", "bleed:XYZ", "XYZ: 6 closed, net $-40 in 7 days", {"book": "XYZ"})]
+    fwd = reconstruct.forward(j, "2026-11-07", rows)
+    assert woken == [("SOL", "wait_arrived")] and fwd["woken"] == 1
+    assert not j.db.execute("SELECT 1 FROM rx_queue WHERE kind='WAIT_ARRIVED'").fetchone(), "a wake is counted, not queued"
+    rb = j.db.execute("SELECT state, decision FROM rx_queue WHERE key='miss:a rebound test'").fetchone()
+    assert rb[0] == "DECIDED" and rb[1].startswith("Rule B: snoozed to 2026-12-14") and fwd["rule_b"] == ["miss:a rebound test"]
+    assert j.db.execute("SELECT state FROM rx_queue WHERE key='bleed:XYZ'").fetchone()[0] == "OPEN", "a book past its bar still asks Madhav"
+    fwd2 = reconstruct.forward(j, "2026-11-08", rows[1:2])
+    assert fwd2["skipped"][0].startswith("miss:a rebound test") and j.db.execute("SELECT count(*) FROM rx_queue WHERE key='miss:a rebound test'").fetchone()[0] == 1
+    j.db.execute("UPDATE rx_queue SET decided_t=decided_t-10*86400 WHERE key='miss:a rebound test'")        # older than the 7-day rule: Rule B still holds it
+    fwd2b = reconstruct.forward(j, "2026-11-20", rows[1:2])
+    assert fwd2b["skipped"] == ["miss:a rebound test: Rule B"] and j.db.execute("SELECT count(*) FROM rx_queue WHERE key='miss:a rebound test'").fetchone()[0] == 1
+    fwd3 = reconstruct.forward(j, "2026-12-15", [reconstruct._f("MISS_PATTERN", "miss:after rule b", "w", {})])
+    assert fwd3["decision"] == ["miss:after rule b"], "after 14 Dec a new-family question is OPEN for Madhav again"
+    v = reconstruct.value_line(j)
+    assert v["words"].startswith("Value since 24 Oct: 0 findings changed a rule") and v["held_by_rule_b"] == 1
+    out = reconstruct.evening(j, force=True)
+    card = _json.loads(j.db.execute("SELECT card FROM rx_cards WHERE day=?", (out["day"],)).fetchone()[0])
+    assert "value" in card and card["value"]["rules_changed"] == 0 and "Value since 24 Oct" in card["headline"]
+    assert "wakes" in card and not [f for f in card["findings"] if f["kind"] == "WAIT_ARRIVED"]

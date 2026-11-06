@@ -206,6 +206,49 @@ def _gates(manifests: Path = INDIA_MANIFESTS) -> list[dict]:
     return out
 
 
+INDIA_PAPER = HOME / "ananta_data" / "india" / "paper"
+
+
+def _rx_order(paper: Path = INDIA_PAPER, db: Path = CRYPTO_DB) -> list[dict]:
+    """6 Nov 2026 (Madhav's yes to the reconstruction audit, E4): both bugs the audit found were ordering bugs (the India trials scored a night
+    after the card; the crypto card made before the day's missed moves were reviewed), so the order is checked every 15 minutes:
+    India: the newest card's session has a scored row in both trial files; crypto: the newest card is about the closed day and was made
+    at or after 00:30 UTC. A reorder of a launchd chain or the job loop can no longer undo the fix silently."""
+    out = []
+    try:
+        card = _read_json(paper / "reconstruction" / "latest.json") or {}
+        day = str(card.get("day") or "")
+        if day:
+            late = []
+            for name, label in (("rx1_trial.json", "RX1"), ("rs_trial.json", "RS")):
+                tr = _read_json(paper / name) or {}
+                scored_on = max((str(s.get("scored_on") or s.get("day") or "") for s in tr.get("sessions") or []), default="")
+                if tr and not tr.get("complete") and tr.get("start", "0") < day and scored_on < day:     # a session's picks are scored on the next session, so the newest scored_on is the card's day
+                    late.append(label)
+            if late:
+                out.append({"market": "india", "severity": "low", "source": "reconstruction order",
+                            "what": f"the India card of {day} was built before the {' and '.join(late)} trial{'s' if len(late) > 1 else ''} scored that session "
+                                    "(the trials run inside the 08:00 IST paper job, before the card); the trial is a night behind until the next run"})
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
+        try:
+            r = con.execute("SELECT day, t, card FROM rx_cards ORDER BY day DESC LIMIT 1").fetchone()
+        finally:
+            con.close()
+        if r:
+            day, t_, card = r[0], int(r[1] or 0), json.loads(r[2] or "{}")
+            about = card.get("about_day")
+            if about and t_ and (about >= day or t_ % 86400 < 1800):
+                out.append({"market": "crypto", "severity": "low", "source": "reconstruction order",
+                            "what": f"the crypto card of {day} was made at {time.strftime('%H:%M', time.gmtime(t_))} UTC about {about}; "
+                                    "it should describe the closed day and come after the 00:30 UTC missed-move review"})
+    except (sqlite3.Error, ValueError, TypeError):
+        pass
+    return out
+
+
 def _read_json(p: Path):
     try:
         return json.loads(p.read_text())
@@ -244,7 +287,7 @@ def refresh(now: float | None = None, opener=None, write: bool = True, post=None
     now = now or time.time()
     items: list[dict] = []
     for name, fn in (("runs", lambda: _runs(now)), ("services", lambda: _services(opener)), ("answers", _answers),
-                     ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac), ("gates", _gates)):
+                     ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac), ("gates", _gates), ("rx_order", _rx_order)):
         try:
             items += fn()
         except Exception as exc:  # noqa: BLE001  one check failing is itself a finding, never a crash
@@ -292,11 +335,13 @@ def words(c: dict) -> list[str]:
 CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hours"), ("services", "the four services answer (crypto, India, voice, voice print)"),
           ("answers", "last night's replay of real answers and the fact map"), ("leftovers", "no test card is waiting in approvals"),
           ("watchdog", "no watchdog restart"), ("credit", "Claude answers (the API credit is there)"),
-          ("mac", "the Mac has memory and CPU to spare"), ("gates", "the India firewall, leak check and integrity check pass"))
+          ("mac", "the Mac has memory and CPU to spare"), ("gates", "the India firewall, leak check and integrity check pass"),
+          ("rx_order", "the reconstruction cards come after the trials (India) and the missed-move review (crypto)"))
 
 
 SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",
-                "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac", "firewall": "gates", "leakcheck": "gates", "integrity": "gates"}
+                "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac", "firewall": "gates", "leakcheck": "gates", "integrity": "gates",
+                "reconstruction order": "rx_order"}
 
 
 def fine(c: dict) -> list[str]:

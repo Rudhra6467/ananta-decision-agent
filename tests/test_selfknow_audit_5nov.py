@@ -47,7 +47,7 @@ def test_what_the_self_check_found_fine_is_said_too(tmp_path, monkeypatch):
     assert len(fine) == 1 and fine[0].startswith("the same check (5 Nov 19:59 Toronto) found 2 items not right")
     assert "Claude answers" in fine[0] and "four services" in fine[0] and "no test card" in fine[0]
     assert "watchdog" not in fine[0] and "replay" not in fine[0]
-    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 7   # eight checks since the Mac-load and gates ones
+    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 8   # nine checks since the Mac-load, gates and reconstruction-order ones
     monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
     (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": []}))
     a = selfknow.about_ananta("is anything wrong", "crypto")
@@ -162,7 +162,7 @@ def test_the_self_check_reads_the_india_gates(tmp_path):
     assert "gates" in [k for k, _ in selfcheck.CHECKS] and selfcheck.SOURCE_CHECK["firewall"] == "gates"
     (tmp_path / "firewall.json").write_text(json.dumps({"static_scan": {"ok": True}, "_at": "x"}))
     assert selfcheck._gates(tmp_path) == []
-    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 7
+    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 8
 
 
 # ---- 6 Nov: the reconstruction audit ----
@@ -197,3 +197,27 @@ def test_a_trials_question_is_not_a_moving_average_reading():
     from jarvis.india import technicals
 
     assert technicals.technicals_flow("How are the two paper trials going, the one about falls under the 200-day and the relative strength one?") is None
+
+
+def test_the_self_check_watches_the_reconstruction_order(tmp_path):
+    """6 Nov (Madhav's yes, E4): the India card after its trials are scored; the crypto card about the closed day, from 00:30 UTC."""
+    import sqlite3 as _sq
+
+    paper = tmp_path / "paper"
+    (paper / "reconstruction").mkdir(parents=True)
+    (paper / "reconstruction" / "latest.json").write_text(json.dumps({"day": "2026-11-06"}))
+    (paper / "rx1_trial.json").write_text(json.dumps({"start": "2026-10-28", "complete": False, "sessions": [{"day": "2026-11-04", "scored_on": "2026-11-05"}]}))
+    (paper / "rs_trial.json").write_text(json.dumps({"start": "2026-11-02", "complete": False, "sessions": [{"day": "2026-11-06"}]}))
+    db = tmp_path / "j.sqlite"
+    con = _sq.connect(db)
+    con.execute("CREATE TABLE rx_cards (day TEXT PRIMARY KEY, t INTEGER, rules TEXT, card TEXT)")
+    con.execute("INSERT INTO rx_cards VALUES ('2026-11-07', ?, 'rx-cr-v2', ?)", (1762473900, json.dumps({"about_day": "2026-11-06"})))   # 00:05 UTC on 7 Nov
+    con.commit(); con.close()
+    items = selfcheck._rx_order(paper, db)
+    assert [i["market"] for i in items] == ["india", "crypto"] and "RX1" in items[0]["what"] and "RS" not in items[0]["what"] and "00:05 UTC" in items[1]["what"]
+    (paper / "rx1_trial.json").write_text(json.dumps({"start": "2026-10-28", "complete": False, "sessions": [{"day": "2026-11-05", "scored_on": "2026-11-06"}]}))
+    con = _sq.connect(db)
+    con.execute("UPDATE rx_cards SET t=?", (1762475400,))        # 00:30 UTC
+    con.commit(); con.close()
+    assert selfcheck._rx_order(paper, db) == []
+    assert "rx_order" in [k for k, _ in selfcheck.CHECKS] and selfcheck.SOURCE_CHECK["reconstruction order"] == "rx_order"

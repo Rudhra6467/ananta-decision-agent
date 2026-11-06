@@ -23,7 +23,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CHANGES = ROOT / "docs" / "knowledge" / "changes.jsonl"
 HOME = Path.home()
-INDIA = HOME / "ananta_data" / "india"
 VOICE = HOME / "ananta_data" / "voice"
 RUNS = HOME / "ananta_runs"
 
@@ -266,18 +265,6 @@ def _watchdog(now: float | None = None) -> dict:
             "restarts_last_7_days": snaps or ["none"]}
 
 
-def _preopen() -> dict:
-    files = sorted((INDIA / "paper" / "preopen").glob("*.json")) if (INDIA / "paper" / "preopen").exists() else []
-    base = ("Every weekday at 09:09 IST (10:39 pm Toronto the evening before), since Friday 6 Nov, Ananta reads NSE's pre-open indicative "
-            "prices for the Nifty, Bank Nifty and the ten heaviest stocks, and the morning answers use them as the first sight of the gap.")
-    if not files:
-        return {"words": base + " It has not run yet; the first read is Friday 6 Nov."}
-    d = _json(files[-1]) or {}
-    ok = not d.get("error") and any((v or {}).get("last") for v in (d.get("indexes") or {}).values())
-    return {"words": base + f" Last read: {_day(files[-1].stem)}, {'with prices' if ok else 'empty (no prices came back)'}.", "last": files[-1].stem,
-            "ok": ok}
-
-
 PHASE_STUDY = {
     "when": "registered and run 5 Nov 2026 on 2003-2023 (Madhav's yes to all, 11:08 Toronto); nothing from 2024 on was used",
     "words": ("The market's phase, Nifty 2003-2023: after an up-trend phase the next 20 sessions did worse than usual (-1.7% in 2003-17, "
@@ -285,7 +272,7 @@ PHASE_STUDY = {
               "than usual, not smaller; the squeeze (a narrowing range) did not lead to bigger moves after 2018. So phases tend to turn rather "
               "than continue. Of all days, 59% were up-trend, 18% down-trend, 23% range and 25% squeeze. This is a finding, not a trading rule: "
               "the options line and the stock rules do not use it, and the options line did no better after a squeeze or a range."),
-    "source": "ananta-records india/registrations/ph1_results_v1.md",
+    "source": "the India registrations page ph1_results_v1.md (the records checkout)",
 }
 
 
@@ -341,35 +328,6 @@ def _crypto_database() -> dict:
             "tables_by_group": groups, "other_tables": other, "chat_history": "ask_messages (chat and voice turns, with the answer, the model and the cost)"}
 
 
-def _india_database() -> dict:
-    """Where India's data lives: folders on the Mac, with file counts and the newest file (read-only)."""
-    places = {
-        "bronze/": "the raw lake: every file as downloaded from NSE and Zerodha (daily prices since 1994, futures and options since 2000, indices, intraday bars, filings, flows)",
-        "silver/": "the cleaned tables built from bronze (one per kind)", "gold/": "the study-ready tables (returns, features, the 20-session windows)",
-        "india.duckdb": "the query database over silver and gold that the studies and the fact map read",
-        "readmodel/": "the read model: the one JSON the app and the Ask answer from (rebuilt after each run)",
-        "paper/": "the paper books: your holdings' ratings, the managed book, the practice picks, the options line, the pre-open reads",
-        "manifests/": "each job's run record (what it read, what it wrote, errors), the voice check and the trials",
-        "ask/": "every conversation (one JSONL file per thread), your flags' pending picks, the oversight nudges, the Ask's own notes",
-        "reports/": "the daily reports", "sealed/": "2024 onwards, kept sealed from research", "mf_cache/": "mutual-fund data cache",
-    }
-    out = {}
-    for name, w in places.items():
-        p = INDIA / name.rstrip("/")
-        try:
-            if p.is_dir():
-                files = [x for x in p.rglob("*") if x.is_file()]
-                newest = max((x.stat().st_mtime for x in files), default=0)
-                out[name] = f"{w} ({len(files):,} files, newest {time.strftime('%d %b %H:%M', time.localtime(newest))})" if files else f"{w} (empty)"
-            elif p.exists():
-                out[name] = f"{w} (updated {time.strftime('%d %b %H:%M', time.localtime(p.stat().st_mtime))})"
-        except OSError:
-            out[name] = w
-    return {"words": ("India's data is files on the Mac under ananta_data/india, written only by the India jobs (the lake, the studies, the paper books) "
-                      "and the India service (conversations, flags). Your Zerodha account is read only; nothing here places an order."),
-            "places": out, "chat_history": "ask/ (one file per conversation)"}
-
-
 _DB_CACHE: dict = {}
 
 
@@ -380,7 +338,12 @@ def database(market: str, now: float | None = None) -> dict:
         hit = _DB_CACHE.get(market)
         if hit and now - hit[0] < 600:
             return hit[1]
-        out = _crypto_database() if market == "crypto" else _india_database()
+        if market == "crypto":
+            out = _crypto_database()
+        else:                                        # the India folders are read by the India app's own module (the firewall's allowlist is per file)
+            from jarvis.india import selfparts
+
+            out = selfparts.india_database()
         _DB_CACHE[market] = (now, out)
         return out
     except Exception as exc:  # noqa: BLE001  the map never breaks an answer
@@ -391,7 +354,9 @@ def parts(market: str = "india") -> dict:
     out = {"voice": VOICE_PARTS.get(market, VOICE_PARTS["india"]), "voice_print": _voice_print(), "watchdog": _watchdog(),
            "database": database(market)}
     if market == "india":
-        out["pre_open_read"] = _preopen()
+        from jarvis.india import selfparts
+
+        out["pre_open_read"] = selfparts.preopen()
         out["phase_study"] = PHASE_STUDY
     return out
 

@@ -36,7 +36,9 @@ def test_about_ananta_has_changes_parts_and_the_self_check(tmp_path, monkeypatch
     _book(tmp_path, monkeypatch)
     monkeypatch.setattr(selfknow, "VOICE", tmp_path / "voice")
     monkeypatch.setattr(selfknow, "RUNS", tmp_path / "runs")
-    monkeypatch.setattr(selfknow, "INDIA", tmp_path / "india")
+    from jarvis.india import selfparts
+
+    monkeypatch.setattr(selfparts, "INDIA", tmp_path / "india")
     monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
     a = selfknow.about_ananta("what changed in your voice", "india")
     assert a["changes_on_this"] and "first sentence" in a["changes_on_this"][0]

@@ -1992,6 +1992,13 @@ def background_jobs() -> dict:
             out["missed"] = missed.run(J())
     except Exception as exc:  # noqa: BLE001
         out["missed_error"] = str(exc)[:200]
+    try:  # 6 Nov 2026 (the reconstruction audit): the card is made here, AFTER the day's missed moves are reviewed, once per UTC day
+        from jarvis.service import reconstruct
+
+        if _t.time() % 86400 >= 1800:
+            out["reconstruction"] = reconstruct.evening(J())
+    except Exception as exc:  # noqa: BLE001
+        out["reconstruction_error"] = str(exc)[:200]
     try:
         from jarvis.service import evidence_live
 

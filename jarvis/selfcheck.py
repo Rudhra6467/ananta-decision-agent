@@ -12,6 +12,7 @@ What it looks at:
   watchdog    restarts in the last 24 hours
   credit      a one-word Claude call: an empty API balance is refused at once (5 Nov 14:53)
   mac         free memory, swap and load on the Mac: a starved service looks frozen (5 Nov 19:34)
+  gates       the India firewall, leak check and integrity check, from their manifests (6 Nov: the firewall had failed unseen for a day)
 """
 from __future__ import annotations
 
@@ -186,6 +187,32 @@ def _mac(stats: dict | None = None) -> list[dict]:
                       "and the answers can be slow, and a service can be starved for a while, as the India service was at 19:34 on 5 Nov")}]
 
 
+GATES = (("firewall", "the sealed-data firewall"), ("leakcheck", "the leak check"), ("integrity", "the data integrity check"))
+INDIA_MANIFESTS = HOME / "ananta_data" / "india" / "manifests"
+
+
+def _gates(manifests: Path = INDIA_MANIFESTS) -> list[dict]:
+    """6 Nov 2026 (the reconstruction audit): the firewall's static scan had failed since the evening of 5 Nov (a new module read the India
+    folder without its allowlist line) and nothing in front of the voice said so. The three India gates, from their own manifests."""
+    out = []
+    for name, words in GATES:
+        d = _read_json(manifests / f"{name}.json") if (manifests / f"{name}.json").exists() else None
+        if not isinstance(d, dict):
+            continue
+        failed = [k for k, v in d.items() if isinstance(v, dict) and v.get("ok") is False]
+        if failed:
+            out.append({"market": "india", "severity": "high" if name == "firewall" else "medium", "source": name,
+                        "what": f"{words} fails on {', '.join(failed)} (as of {str(d.get('_at') or '')[:16]}); nothing trades, but the record is not clean until it passes"})
+    return out
+
+
+def _read_json(p: Path):
+    try:
+        return json.loads(p.read_text())
+    except (OSError, ValueError):
+        return None
+
+
 def _credit(post=None) -> list[dict]:
     """5 Nov 2026, 14:53 Toronto: the Anthropic credit ran out and nothing said so; India's answers fell back to its rules and crypto's to
     Gemini. A one-token call with the services' own key says whether Claude still answers (an empty balance is refused at once, free)."""
@@ -217,7 +244,7 @@ def refresh(now: float | None = None, opener=None, write: bool = True, post=None
     now = now or time.time()
     items: list[dict] = []
     for name, fn in (("runs", lambda: _runs(now)), ("services", lambda: _services(opener)), ("answers", _answers),
-                     ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac)):
+                     ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac), ("gates", _gates)):
         try:
             items += fn()
         except Exception as exc:  # noqa: BLE001  one check failing is itself a finding, never a crash
@@ -265,11 +292,11 @@ def words(c: dict) -> list[str]:
 CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hours"), ("services", "the four services answer (crypto, India, voice, voice print)"),
           ("answers", "last night's replay of real answers and the fact map"), ("leftovers", "no test card is waiting in approvals"),
           ("watchdog", "no watchdog restart"), ("credit", "Claude answers (the API credit is there)"),
-          ("mac", "the Mac has memory and CPU to spare"))
+          ("mac", "the Mac has memory and CPU to spare"), ("gates", "the India firewall, leak check and integrity check pass"))
 
 
 SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",
-                "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac"}
+                "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac", "firewall": "gates", "leakcheck": "gates", "integrity": "gates"}
 
 
 def fine(c: dict) -> list[str]:

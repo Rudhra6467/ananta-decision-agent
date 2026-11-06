@@ -1078,6 +1078,7 @@
     "jarvis/voice/server.py",
     "jarvis/voice/speaker.py",
     "jarvis/voice/answertap.py",
+    "jarvis/india/selfparts.py",
     "jarvis/evals/run.py"
    ]
   },

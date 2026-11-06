@@ -238,3 +238,35 @@ def test_book_bleed_counts_tier_c_apart(monkeypatch):
     c = next(x for x in discipline.officer_checks(j) if x["id"] == "book_bleed")
     assert c["state"] == "OK" and c["books"] == []
     assert "Watched only (tier C, never judged): H07 11 closed, $-55" in c["words"]
+
+
+def test_the_crypto_card_describes_the_closed_day_and_is_made_after_the_missed_review(monkeypatch):
+    """6 Nov 2026 (the reconstruction audit): every scheduled card had read `t >= today 00:00` at 00:05 UTC, so "what Ananta did" held the
+    new day's first five minutes (0 brain decisions on 13 cards) and the missed moves were read before the nightly review found them.
+    The card's window is the closed UTC day, it says which day it is about, and the 15-minute loop makes it from 00:30 UTC."""
+    import json as _json
+    import pathlib
+    import time as _time
+
+    from jarvis.service import reconstruct
+
+    j = _J()
+    reconstruct._table(j)
+    now = int(j.now())
+    day0 = now - now % 86400 - 86400                    # the closed day
+    j.db.execute("CREATE TABLE IF NOT EXISTS brain_decisions (id TEXT, t INTEGER, coin TEXT, action TEXT, confidence REAL, plan TEXT, note TEXT, triggers TEXT)")
+    j.db.execute("INSERT INTO brain_decisions (id, t, coin, action, confidence, plan, note, triggers) VALUES ('d1', ?, 'BTC', 'PASS', 0.5, '{}', '', '')", (day0 + 3600,))
+    j.db.execute("INSERT INTO brain_decisions (id, t, coin, action, confidence, plan, note, triggers) VALUES ('d2', ?, 'ETH', 'PASS', 0.5, '{}', '', '')", (day0 + 86400 + 60,))
+    j.db.commit()
+    a = reconstruct.section_ananta(j, day0)
+    assert a["brain"]["n"] == 1 and a["brain"]["decisions"][0]["id"] == "d1", "the closed day's decisions, not the new day's"
+    out = reconstruct.evening(j, force=True)
+    assert out["about_day"] == reconstruct._day(day0) and out["headline"].startswith(f"About {reconstruct._day(day0)}: ")
+    card = _json.loads(j.db.execute("SELECT card FROM rx_cards WHERE day=?", (out["day"],)).fetchone()[0])
+    assert card["about_day"] == reconstruct._day(day0) and card["ananta"]["brain"]["n"] == 1
+    root = pathlib.Path(__file__).resolve().parents[1]
+    uw = (root / "jarvis" / "service" / "universe_watch.py").read_text()
+    assert "reconstruct.evening(j)" not in uw, "run_daily no longer makes the card at 00:05"
+    app = (root / "jarvis" / "service" / "app.py").read_text()
+    i_missed, i_card = app.index("out[\"missed\"] = missed.run(J())"), app.index("out[\"reconstruction\"] = reconstruct.evening(J())")
+    assert i_missed < i_card, "the card comes after the day's missed moves are reviewed"

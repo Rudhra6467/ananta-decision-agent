@@ -28,7 +28,9 @@ def test_the_database_is_in_the_book_about_itself_for_both_markets(tmp_path, mon
     (india / "ask").mkdir(parents=True)
     (india / "ask" / "t1.jsonl").write_text("{}\n")
     (india / "bronze").mkdir()
-    monkeypatch.setattr(selfknow, "INDIA", india)
+    from jarvis.india import selfparts
+
+    monkeypatch.setattr(selfparts, "INDIA", india)
     selfknow._DB_CACHE.clear()
     i = selfknow.database("india")
     assert i["places"]["ask/"].endswith("(1 files, newest " + time.strftime("%d %b") + " " + time.strftime("%H") + ":" + time.strftime("%M") + ")") or "1 files" in i["places"]["ask/"]
@@ -45,7 +47,7 @@ def test_what_the_self_check_found_fine_is_said_too(tmp_path, monkeypatch):
     assert len(fine) == 1 and fine[0].startswith("the same check (5 Nov 19:59 Toronto) found 2 items not right")
     assert "Claude answers" in fine[0] and "four services" in fine[0] and "no test card" in fine[0]
     assert "watchdog" not in fine[0] and "replay" not in fine[0]
-    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 6   # seven checks since the Mac-load one
+    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 7   # eight checks since the Mac-load and gates ones
     monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
     (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": []}))
     a = selfknow.about_ananta("is anything wrong", "crypto")
@@ -149,3 +151,15 @@ def test_no_nudge_when_the_answer_already_says_it(tmp_path, monkeypatch):
     said = "Sir, the India service froze and the watchdog restarted it at 7:34 pm Toronto tonight; it is running again."
     assert selfcheck.nudge("india", tmp_path / "told.json", "t1", answer=said) == ""
     assert selfcheck.nudge("india", tmp_path / "told.json", "t1", answer="The Nifty closed at 24,537.") != ""
+
+
+def test_the_self_check_reads_the_india_gates(tmp_path):
+    """6 Nov: the firewall's static scan failed from the evening of 5 Nov to the morning of 6 Nov and nothing said so."""
+    (tmp_path / "firewall.json").write_text(json.dumps({"static_scan": {"ok": False, "note": "2 references outside the allowlist"}, "canary": {"ok": True}, "_at": "2026-11-05T17:57:35"}))
+    (tmp_path / "leakcheck.json").write_text(json.dumps({"sealed_files": {"ok": True}, "_at": "2026-11-05"}))
+    items = selfcheck._gates(tmp_path)
+    assert len(items) == 1 and items[0]["severity"] == "high" and items[0]["source"] == "firewall" and "static_scan" in items[0]["what"]
+    assert "gates" in [k for k, _ in selfcheck.CHECKS] and selfcheck.SOURCE_CHECK["firewall"] == "gates"
+    (tmp_path / "firewall.json").write_text(json.dumps({"static_scan": {"ok": True}, "_at": "x"}))
+    assert selfcheck._gates(tmp_path) == []
+    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 7

@@ -75,7 +75,7 @@ def section_ananta(j, day0: int) -> dict:
 
     out: dict = {}
     try:
-        rows = j.db.execute("SELECT id, coin, action, confidence, plan, note FROM brain_decisions WHERE t >= ? ORDER BY t", (day0,)).fetchall()
+        rows = j.db.execute("SELECT id, coin, action, confidence, plan, note FROM brain_decisions WHERE t >= ? AND t < ? ORDER BY t", (day0, day0 + DAY)).fetchall()
         dec = []
         for did, coin, action, conf, plan, note in rows:
             w = discipline._wait_for(plan)
@@ -91,14 +91,15 @@ def section_ananta(j, day0: int) -> dict:
         out["bold"] = None
     try:
         s = ndax_book._get(j, "state") or {}
-        fills = j.db.execute("SELECT coin, side, sleeve, qty, px, why FROM book500_fills WHERE t >= ? ORDER BY t", (day0,)).fetchall()
+        fills = j.db.execute("SELECT coin, side, sleeve, qty, px, why FROM book500_fills WHERE t >= ? AND t < ? ORDER BY t", (day0, day0 + DAY)).fetchall()
         out["account"] = {"value_cad": s.get("value"), "cash_cad": round(float(s.get("cash") or 0), 2), "core_plan": (s.get("core_plan") or {}).get("words"),
                           "dial_state": (s.get("core_plan") or {}).get("state"), "fills_today": [{"coin": c, "side": sd, "sleeve": sl, "cad": round(q * p, 2), "why": w} for c, sd, sl, q, p, w in fills]}
     except Exception as exc:  # noqa: BLE001
         out["account_error"] = str(exc)[:120]
     try:
-        opened = j.db.execute("SELECT watch, COUNT(*) FROM evidence_trades WHERE signal_t >= ? GROUP BY watch", (day0,)).fetchall()
-        closed = j.db.execute("SELECT watch, COUNT(*), ROUND(SUM(net_usd),2) FROM evidence_trades WHERE status='CLOSED' AND exit_t >= ? GROUP BY watch", (day0,)).fetchall()
+        opened = j.db.execute("SELECT watch, COUNT(*) FROM evidence_trades WHERE signal_t >= ? AND signal_t < ? GROUP BY watch", (day0, day0 + DAY)).fetchall()
+        closed = j.db.execute("SELECT watch, COUNT(*), ROUND(SUM(net_usd),2) FROM evidence_trades WHERE status='CLOSED' AND exit_t >= ? AND exit_t < ? GROUP BY watch",
+                              (day0, day0 + DAY)).fetchall()
         prot = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE status='OPEN' AND detail LIKE '%protect:%'").fetchone()[0]
         out["books"] = {"opened": {w: n for w, n in opened}, "closed": {w: {"n": n, "net_usd": net} for w, n, net in closed}, "open_with_protected_stop": prot}
     except Exception as exc:  # noqa: BLE001
@@ -146,7 +147,7 @@ def section_not_done(j, day0: int, ananta: dict) -> dict:
 def section_reviews(j, day0: int) -> dict:
     out: dict = {"by_tag": {}, "by_book": {}, "rows": []}
     try:
-        rows = j.db.execute("SELECT book, watch, coin, net_usd, best_pct, tags FROM trade_reviews WHERE t >= ? ORDER BY t", (day0,)).fetchall()
+        rows = j.db.execute("SELECT book, watch, coin, net_usd, best_pct, tags FROM trade_reviews WHERE t >= ? AND t < ? ORDER BY t", (day0, day0 + 2 * DAY)).fetchall()
         for book, watch, coin, net, best, tags in rows:
             tg = [t for t in str(tags or "").replace("[", "").replace("]", "").replace('"', "").split(",") if t.strip()]
             tg = [t.strip() for t in tg]
@@ -300,12 +301,17 @@ def forward(j, day: str, rows: list[dict]) -> dict:
 # ------------------------------------------------------------------------------------------------------------------------- the card
 
 def evening(j, force: bool = False) -> dict | None:
+    """One card per UTC day (the `day` it is made on, after the close); its sections describe the UTC day that just CLOSED (about_day).
+    6 Nov 2026 (the reconstruction audit): since the card went live every scheduled card had read `t >= today 00:00` at 00:05, so "what
+    Ananta did" held the new day's first five minutes (0 brain decisions on 13 cards) and the missed moves were read before the nightly
+    review had found them (0 moves on every card). The window is now [closed day 00:00, closed day 24:00), and the 15-minute loop makes
+    the card after that review (00:30 UTC or later), not run_daily at 00:05."""
     _table(j)
     now = int(j.now())
     day = _day(now)
     if not force and j.db.execute("SELECT 1 FROM rx_cards WHERE day=?", (day,)).fetchone():
         return None
-    day0 = now - now % DAY
+    day0 = now - now % DAY - DAY                 # the closed UTC day
     market = section_market(j, day0)
     ananta = section_ananta(j, day0)
     not_done = section_not_done(j, day0, ananta)
@@ -313,11 +319,11 @@ def evening(j, force: bool = False) -> dict | None:
     rows = findings(j, day0, market, ananta, not_done, reviews)
     fwd = forward(j, day, rows)
     head = _headline(market, ananta, reviews, rows)
-    card = {"day": day, "t": now, "rules": RULES, "bars": BARS, "headline": head, "market": market, "ananta": ananta, "not_done": not_done,
-            "reviews": reviews, "findings": rows, "forwarding": fwd}
+    card = {"day": day, "about_day": _day(day0), "t": now, "rules": RULES, "bars": BARS, "headline": f"About {_day(day0)}: {head}", "market": market,
+            "ananta": ananta, "not_done": not_done, "reviews": reviews, "findings": rows, "forwarding": fwd}
     j.db.execute("INSERT OR REPLACE INTO rx_cards VALUES (?,?,?,?)", (day, now, RULES, json.dumps(card, default=str)))
     j.db.commit()
-    return {"day": day, "findings": len(rows), "forwarded": fwd, "headline": head}
+    return {"day": day, "about_day": _day(day0), "findings": len(rows), "forwarded": fwd, "headline": card["headline"]}
 
 
 def _headline(market: dict, ananta: dict, reviews: dict, rows: list[dict]) -> str:

@@ -856,12 +856,8 @@ def run_daily(j) -> dict:
         out["officer_note"] = (officer.write(j, out, push=_phone_push()) or {}).get("ok")
     except Exception as exc:  # noqa: BLE001
         out["officer_error"] = str(exc)[:200]
-    try:  # RX-CR v1 (Madhav, 24 Oct 2026, discipline item 9): the reconstruction card, its findings and where they went
-        from jarvis.service import reconstruct
-
-        out["reconstruction"] = reconstruct.evening(j)
-    except Exception as exc:  # noqa: BLE001
-        out["reconstruction_error"] = str(exc)[:200]
+    # RX-CR v1 (Madhav, 24 Oct 2026, discipline item 9): the reconstruction card is made by the 15-minute loop (jarvis/service/app.py)
+    # from 00:30 UTC, after the day's missed moves are reviewed; made here at 00:05 it saw none of them (6 Nov 2026 audit)
     try:  # OD-SHADOW-LANE (Oct 20): the blind shadow lane logs each pre-registered rule's trigger state; it shows no result and touches no book
         from jarvis.service import shadow
 

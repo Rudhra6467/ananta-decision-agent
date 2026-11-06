@@ -307,7 +307,10 @@ def _snapshots() -> None:
             try:                                          # 5 Nov (Madhav: "it can tell if something is not right"): the live self-check
                 from jarvis import selfcheck as _SC      # both Asks read (jarvis/selfcheck.py); its own thread, so a stuck server shows up
 
-                STATE_W["selfcheck"] = len(_SC.refresh()["items"])
+                from jarvis.service import notify as _N1
+
+                _m = _main()
+                STATE_W["selfcheck"] = len(_SC.refresh(push=lambda t, b: _N1.notify(_m, t, b, url="/ask"))["items"])   # 6 Nov: a HIGH item reaches his phone once a day
             except Exception as exc:  # noqa: BLE001
                 STATE_W["selfcheck_error"] = str(exc)[:200]
             try:                                          # build plan 1.4b: every account's watches and positions, one shared snapshot

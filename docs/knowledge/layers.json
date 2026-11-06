@@ -1463,7 +1463,8 @@
     "jarvis/service/realism.py",
     "jarvis/service/sayshow.py",
     "scripts/jarvis_watchdog.py",
-    "jarvis/selfcheck.py"
+    "jarvis/selfcheck.py",
+    "jarvis/selfscan.py"
    ]
   },
   {

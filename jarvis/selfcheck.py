@@ -283,11 +283,51 @@ def credit_probe(key: str, post=None) -> list[dict]:
     return []
 
 
-def refresh(now: float | None = None, opener=None, write: bool = True, post=None) -> dict:
+def _agree(now: float) -> list[dict]:
+    """6 Nov 2026 (Madhav: Ananta scans itself the way it scans the market): do the parts agree with each other (jarvis/selfscan.py)."""
+    from jarvis import selfscan
+
+    return selfscan.scan(now=now)
+
+
+TOLD = Path(os.getenv("ANANTA_SELFCHECK_TOLD", str(HOME / "ananta_data" / "selfcheck_told.json")))
+
+
+def tell(items: list[dict], push, now: float, state: Path = TOLD, every: float = 86400) -> list[str]:
+    """6 Nov 2026 (Madhav: "it should also be able to tell us ... there is something issue going on, you have to look at it"): a HIGH item
+    reaches his phone once a day (web push through the crypto service); the rest wait for the morning review or his next question."""
+    try:
+        told = json.loads(state.read_text())
+    except (OSError, ValueError):
+        told = {}
+    sent = []
+    for x in items:
+        if x.get("severity") != "high":
+            continue
+        key = re.sub(r"\d", "", str(x.get("what") or ""))[:120]
+        if now - float(told.get(key) or 0) < every:
+            continue
+        try:
+            push("Ananta: something is not right", f"{x['what']} (from the {x.get('source')}). Ask me what's wrong for the rest.")
+            told[key] = now
+            sent.append(key)
+        except Exception:  # noqa: BLE001  a phone that cannot be reached never stops the check
+            pass
+    if sent:
+        try:
+            state.parent.mkdir(parents=True, exist_ok=True)
+            state.write_text(json.dumps({k: v for k, v in told.items() if now - float(v) < 7 * every}))
+        except OSError:
+            pass
+    return sent
+
+
+def refresh(now: float | None = None, opener=None, write: bool = True, post=None, push=None) -> dict:
     now = now or time.time()
     items: list[dict] = []
     for name, fn in (("runs", lambda: _runs(now)), ("services", lambda: _services(opener)), ("answers", _answers),
-                     ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac), ("gates", _gates), ("rx_order", _rx_order)):
+                     ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac), ("gates", _gates), ("rx_order", _rx_order),
+                     ("agree", lambda: _agree(now))):
         try:
             items += fn()
         except Exception as exc:  # noqa: BLE001  one check failing is itself a finding, never a crash
@@ -299,6 +339,8 @@ def refresh(now: float | None = None, opener=None, write: bool = True, post=None
         tmp = FILE.with_suffix(".tmp")
         tmp.write_text(json.dumps(out, indent=1))
         tmp.replace(FILE)
+    if push is not None:
+        out["told"] = tell(items, push, now)
     return out
 
 
@@ -336,12 +378,13 @@ CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hour
           ("answers", "last night's replay of real answers and the fact map"), ("leftovers", "no test card is waiting in approvals"),
           ("watchdog", "no watchdog restart"), ("credit", "Claude answers (the API credit is there)"),
           ("mac", "the Mac has memory and CPU to spare"), ("gates", "the India firewall, leak check and integrity check pass"),
-          ("rx_order", "the reconstruction cards come after the trials (India) and the missed-move review (crypto)"))
+          ("rx_order", "the reconstruction cards come after the trials (India) and the missed-move review (crypto)"),
+          ("agree", "the parts agree with each other: the right day, matching counts, no number stuck at zero, nothing waiting over a week"))
 
 
 SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",
                 "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac", "firewall": "gates", "leakcheck": "gates", "integrity": "gates",
-                "reconstruction order": "rx_order"}
+                "reconstruction order": "rx_order", "self-scan": "agree"}
 
 
 def fine(c: dict) -> list[str]:

@@ -71,6 +71,9 @@ ALLOWED_REFS = {
     ("tests/test_factmap.py", r"ananta_data/india"): "a test of the fact map, skipped where the India data is absent",
     ("jarvis/india/preopen.py", r"ananta_data/india"): ("the 09:09 IST pre-open read (Madhav's yes of 5 Nov) keeps its own files under "
                                                         "paper/preopen/; added 6 Nov, the module had shipped without its allowlist line"),
+    ("jarvis/india/selfparts.py", r"ananta_data/india"): ("the India-side parts of Ananta's book about itself (6 Nov): where India's data lives "
+                                                          "(folder names, file counts, newest file) and the pre-open read; read-only"),
+    ("jarvis/india/selfparts.py", r"india\.duckdb"): "the same map names the query database by its file name; it never opens it",
 }
 CANARY_FILE = paths.manifest_dir() / "firewall_canary.txt"
 

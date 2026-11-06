@@ -767,8 +767,16 @@ def _headline(c: dict) -> str:
     if rv.get("count"):
         tags = ", ".join(f"{v} {k.lower().replace('_', ' ')}" for k, v in (rv.get("tags") or {}).items())
         parts.append(f"{rv['count']} closed trade{'s' if rv['count'] != 1 else ''} reviewed ({tags}).")
-    parts.append((f"{safe} small fix{'es' if safe != 1 else ''} went to the repair shop" if safe else "Nothing went to the repair shop")
-                 + (f"; {dec} idea{'s' if dec != 1 else ''} wait{'s' if dec == 1 else ''} for your yes." if dec else "; nothing waits for you."))
+    # 6 Nov 2026 (the reconstruction audit): "nothing waits for you" counted only tonight's new drafts, while 3 earlier drafts still waited
+    # (the nightly replay had marked a "nothing is waiting" answer wrong). The tail now counts every draft still undecided.
+    try:
+        waiting = sum(1 for q in queue() if q.get("lane") == "DECISION" and q.get("state") == "DRAFT")
+    except Exception:  # noqa: BLE001
+        waiting = dec
+    new_w = f"{dec} new idea{'s' if dec != 1 else ''} tonight" if dec else "no new idea tonight"
+    tail = (f"; {new_w}; {waiting} draft{'s' if waiting != 1 else ''} wait{'s' if waiting == 1 else ''} for your yes or skip." if waiting
+            else f"; {new_w}; nothing waits for you.")
+    parts.append((f"{safe} small fix{'es' if safe != 1 else ''} went to the repair shop" if safe else "Nothing went to the repair shop") + tail)
     return " ".join(parts)
 
 

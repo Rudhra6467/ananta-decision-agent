@@ -86,6 +86,13 @@
    "verdict": "REJECTED next session, OPPOSITE over 5 sessions; a tight base near its top (before a breakout) loses less the next session (CONDITIONAL, +0.27% / +0.05%), too small to trade after costs",
    "until": "2027-02-01",
    "from": "2026-11-02"
+  },
+  {
+   "prefix": "CALL_DRIFT:K02",
+   "study": "K02-R1",
+   "verdict": "under review (retire-or-keep rule fixed in k02_review_v1.json; first read at 60 decided calls)",
+   "from": "2026-11-06",
+   "until": "2027-01-31"
   }
  ]
 }

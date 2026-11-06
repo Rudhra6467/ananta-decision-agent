@@ -687,7 +687,7 @@ app.include_router(r, prefix="/india")     # through the tunnel: https://api.liv
 # 5 Nov 2026 (Madhav's voice session froze at 08:38 Toronto and stayed frozen until restarted by hand): one pattern match held Python's
 # lock at 100% CPU, so the service could not answer anything, not even /health. Every endpoint here is a plain function run on a worker
 # thread, so the event loop only waits on the network; if it cannot run for STALL_S, the process is stuck. A heartbeat re-arms a timer
-# every 5 s; when it fires, the stacks of every thread go to the log and the process ends, and launchd (KeepAlive) starts a fresh one
+# every 2 s; when it fires, the stacks of every thread go to the log and the process ends, and launchd (KeepAlive) starts a fresh one
 # about 10 s later. Off under pytest (the test client's loop stops between tests).
 # 5 Nov evening (the self-knowledge audit): the timer counted wall-clock time, and at 19:34 it fired with every thread idle, so the service
 # had not been stuck: it had been starved (the Mac swapping under the voice models and the 15-minute jobs) and the dump caught it waking.
@@ -711,7 +711,7 @@ async def _heartbeat() -> None:
     import asyncio
     while True:
         _arm_stall_timer()
-        await asyncio.sleep(5)
+        await asyncio.sleep(2)      # 2 s, not 5: the budget is CPU time of ALL threads, so a 10-core burst of real work must never reach 45 s between re-arms
 
 
 @app.on_event("startup")

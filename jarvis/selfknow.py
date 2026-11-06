@@ -345,7 +345,7 @@ def _india_database() -> dict:
     places = {
         "bronze/": "the raw lake: every file as downloaded from NSE and Zerodha (daily prices since 1994, futures and options since 2000, indices, intraday bars, filings, flows)",
         "silver/": "the cleaned tables built from bronze (one per kind)", "gold/": "the study-ready tables (returns, features, the 20-session windows)",
-        "india.duckdb": "the query database over silver and gold that the studies and the Ask's facts read",
+        "india.duckdb": "the query database over silver and gold that the studies and the fact map read",
         "readmodel/": "the read model: the one JSON the app and the Ask answer from (rebuilt after each run)",
         "paper/": "the paper books: your holdings' ratings, the managed book, the practice picks, the options line, the pre-open reads",
         "manifests/": "each job's run record (what it read, what it wrote, errors), the voice check and the trials",

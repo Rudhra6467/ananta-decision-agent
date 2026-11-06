@@ -198,6 +198,24 @@ def words(c: dict) -> list[str]:
     return [f"{x['what']} ({x['severity']}, from the {x['source']})" for x in items]
 
 
+CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hours"), ("services", "the four services answer (crypto, India, voice, voice print)"),
+          ("answers", "last night's replay of real answers and the fact map"), ("leftovers", "no test card is waiting in approvals"),
+          ("watchdog", "no watchdog restart"), ("credit", "Claude answers (the API credit is there)"))
+
+
+SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",
+                "watchdog": "watchdog", "Claude credit": "credit"}
+
+
+def fine(c: dict) -> list[str]:
+    """What the last self-check looked at and found in order (5 Nov evening audit: an answer said 'please check the credit was topped up'
+    hours after it was, because only the problems were in front of the model)."""
+    bad = {SOURCE_CHECK.get(str(x.get("source")), str(x.get("source"))) for x in c.get("items") or []}
+    ok = [w for k, w in CHECKS if k not in bad]
+    when = c.get("at_words") or "not run yet"
+    return [f"checked {when}: " + "; ".join(ok)] if ok else [f"checked {when}"]
+
+
 def headline(c: dict) -> str | None:
     """One sentence for the start of a conversation: only high or medium items, at most two."""
     top = [x for x in c.get("items") or [] if x.get("severity") in ("high", "medium") and x.get("source") != "self-check"][:2]

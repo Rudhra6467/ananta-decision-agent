@@ -1236,14 +1236,20 @@ def _load_trials() -> list:
 MAP_TOPIC = re.compile(r"\b(?:tested|test|tests|study|studies|studied|research\w*|proved?|proven|validated|held up|evidence for|what do you know about|"
                        r"have you (?:looked|checked)|does .{3,40} work|is .{3,40} real)\b", re.I)
 SYS_TOPIC = re.compile(r"\b(watch ?dog|health|repair|fix(?:es|ed)?|flags?|jobs?|restart\w*|broke\w*|breaks?|outage|down|stall\w*|monitor\w*|"
-                       r"self[- ]heal\w*|alerts?|notif\w*|what happens (?:to|after)|deploy\w*)\b", re.I)
+                       r"self[- ]heal\w*|alerts?|notif\w*|what happens (?:to|after|if|when)|deploy\w*|freez\w*|froze\w*|frozen|hangs?|hung|crash\w*)\b", re.I)
 # 5 Nov (Madhav: "how much Ananta does know about what we did here in the back end ... it can tell if something is not right"): a question
 # about Ananta itself gets its book about itself (jarvis/selfknow.py): the change book, how its parts work now, and the live self-check
 SELF_TOPIC = re.compile(r"\b(?:what(?:'s| is| has)? (?:new|changed)|chang(?:e|es|ed)\b|upgrad\w*|updat\w*|back ?end|improv\w*|new feature|"
                         r"(?:fix|fixed|built|added) (?:it|that|this|the)|work(?:s|ing)? now|how (?:do|does|did) (?:you|ananta)\b|"
                         r"your (?:voice|voice ?print|watchdog|jobs?|system|parts?|setup|health|memory)|voice ?print|recogni[sz]\w*|"
                         r"who (?:is|am i) (?:speaking|talking)|pre-?open|event calendar|phase stud\w*|(?:anything|something) (?:wrong|not right|broken)|"
-                        r"not right|are you (?:ok|okay|healthy|working)|self[- ]?check|know (?:yourself|about yourself|what we did))", re.I)
+                        r"not right|are you (?:ok|okay|healthy|working)|self[- ]?check|know (?:yourself|about yourself|what we did)|"
+                        # 5 Nov evening (the self-knowledge audit): "what went wrong", "my voice sentences", "where does my data live" and
+                        # "did you fix X" reached the model without the book about itself
+                        r"went wrong|what happened (?:to|with|when|the first)|(?:my|the) (?:new )?voice(?: sentences| clips| recording)?s?\b|"
+                        r"add(?:ed|ing)? more of my voice|teach ananta|enrol\w*|database|tables?|where (?:does|is|do) (?:my|your|the) data|"
+                        r"your data|(?:do|did) you (?:keep|store|save|record)|did you fix|is (?:it|that|this) fixed|was (?:it|that|this) fixed|"
+                        r"change ?book|self[- ]?knowledge)", re.I)
 SYSTEM_CARE = {
     "watchdog": ("The outside watchdog (com.ananta.watchdog) runs every 5 minutes, separate from Jarvis, because a stuck service cannot report its "
                  "own death. It checks that Jarvis answers, that its inside health checks ran in the last 10 minutes, that the 15-minute jobs "
@@ -1252,8 +1258,9 @@ SYSTEM_CARE = {
                  "15-minute jobs stuck for 3 looks in a row (about 15 minutes) gets a snapshot of what it was stuck on and a restart, at most "
                  "once an hour. It never touches trading, rules or data. It found the 27 Oct stall (Jarvis stopped answering 11:40-12:37 Toronto, "
                  "flag 48). Since 5 Nov it also watches the India service: two failed looks 10 seconds apart get what it was stuck on written "
-                 "down, a restart (at most once in 20 minutes) and a phone note; the India service also restarts itself if it freezes for 45 "
-                 "seconds."),
+                 "down, a restart (at most once in 20 minutes) and a phone note; the India service also restarts itself if it is stuck in its own "
+                 "work for 45 seconds of CPU time (since the evening of 5 Nov it counts its own CPU time, not the clock: at 19:34 on 5 Nov "
+                 "the clock version ended it while it was only waiting for a busy Mac)."),
     "inside_checks": "Jarvis's own health checks run every few minutes (each job's last run, data freshness, the sign-in); Home's status line shows them.",
     "fix_life": ("Since 2 Nov (Madhav: 'just ananta notes it. and we here work on it'), a flag Madhav raises is noted in his words on My flags with "
                  "no fix menu; he works on it with Claude outside the app, and Ananta adds a comment to a flag only when he asks. The automatic "
@@ -1526,7 +1533,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
     if SYS_TOPIC.search(text) or SYS_TOPIC.search(recent):   # 28 Oct (grader): the watchdog and a fix's life after it is built were not in the facts
         f["system_care"] = SYSTEM_CARE
-    if SELF_TOPIC.search(text) or SYS_TOPIC.search(text):     # 5 Nov: what changed, how its parts work now, what is not right (jarvis/selfknow.py)
+    if SELF_TOPIC.search(text) or SYS_TOPIC.search(text) or SELF_TOPIC.search(recent):   # 5 Nov: what changed, how its parts work now, what is not right (jarvis/selfknow.py)
         try:
             from jarvis import selfknow
             f["about_ananta"] = selfknow.about_ananta(text, "india")
@@ -2609,7 +2616,9 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         else:
             a = f"{name.capitalize()}: {state or j.get('detail') or 'recorded'}."
         return _reply(a, ["What happened to my flag?", "Show my flags"], [f"fix flow: {name}, {which}, state {state}"])
-    if STATUS.search(text):
+    if STATUS.search(text) and not (re.search(r"\b(?:did you fix|is (?:it|that|this) fixed)\b", text, re.I) and len(text.split()) > 6):
+        # 5 Nov evening audit: "did you fix the problem where a flag could not be found by its id?" got the flag board ("No flags on the
+        # board yet"); a question that names what was fixed goes to the model with the change book (SELF_TOPIC)
         r = get(f"{JARVIS_URL}/v3/flags")
         j = r.json() if hasattr(r, "json") else r
         flags = [f for f in (j.get("flags") or []) if str(f.get("market", "")).startswith("ind") or "Indian market" in str(f.get("text", ""))][:5] or (j.get("flags") or [])[:5]

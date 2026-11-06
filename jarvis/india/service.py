@@ -687,15 +687,30 @@ app.include_router(r, prefix="/india")     # through the tunnel: https://api.liv
 # 5 Nov 2026 (Madhav's voice session froze at 08:38 Toronto and stayed frozen until restarted by hand): one pattern match held Python's
 # lock at 100% CPU, so the service could not answer anything, not even /health. Every endpoint here is a plain function run on a worker
 # thread, so the event loop only waits on the network; if it cannot run for STALL_S, the process is stuck. A heartbeat re-arms a timer
-# that lives outside Python every 5 s; when it fires it writes every thread's stack to the log and ends the process, and launchd (KeepAlive)
-# starts a fresh one about 10 s later. Off under pytest (the test client's loop stops between tests).
+# every 5 s; when it fires, the stacks of every thread go to the log and the process ends, and launchd (KeepAlive) starts a fresh one
+# about 10 s later. Off under pytest (the test client's loop stops between tests).
+# 5 Nov evening (the self-knowledge audit): the timer counted wall-clock time, and at 19:34 it fired with every thread idle, so the service
+# had not been stuck: it had been starved (the Mac swapping under the voice models and the 15-minute jobs) and the dump caught it waking.
+# The timer now counts the service's OWN CPU time (ITIMER_PROF): a process that is stuck in a loop burns 45 s of CPU and is ended; a
+# process that was merely waiting for the Mac burns none and is left alone (the outside watchdog still restarts it if it stops answering).
 STALL_S = int(os.getenv("ANANTA_INDIA_STALL_S", "45"))
+
+
+def _arm_stall_timer(seconds: float = STALL_S) -> None:
+    """(Re)arm: SIGPROF fires after `seconds` of this process's CPU time unless re-armed first."""
+    signal.setitimer(signal.ITIMER_PROF, seconds)
+
+
+def _install_stall_guard() -> None:
+    """faulthandler writes every thread's stack on SIGPROF from outside Python's lock, then re-raises it with the default action (terminate)."""
+    signal.signal(signal.SIGPROF, signal.SIG_DFL)
+    faulthandler.register(signal.SIGPROF, file=sys.stderr, all_threads=True, chain=True)
 
 
 async def _heartbeat() -> None:
     import asyncio
     while True:
-        faulthandler.dump_traceback_later(STALL_S, exit=True, file=sys.stderr)
+        _arm_stall_timer()
         await asyncio.sleep(5)
 
 
@@ -703,9 +718,13 @@ async def _heartbeat() -> None:
 async def _start_heartbeat() -> None:
     import asyncio
     if "pytest" not in sys.modules and STALL_S > 0:
+        _install_stall_guard()
         app.state.heartbeat = asyncio.get_running_loop().create_task(_heartbeat())
 
 
 @app.on_event("shutdown")
 async def _stop_heartbeat() -> None:
-    faulthandler.cancel_dump_traceback_later()
+    try:
+        signal.setitimer(signal.ITIMER_PROF, 0)
+    except (ValueError, OSError):
+        pass

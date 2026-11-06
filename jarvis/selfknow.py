@@ -40,9 +40,11 @@ MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
 HOW = ("Ananta's book about itself. changes_on_this and changes_last_7_days come from the change book: one plain line per back-end change since "
        "9 Oct, with its date, market and whether it is live. Answer 'what changed', 'was X fixed', 'how does X work now' from it and say the "
        "date. A change on the other market's side can be told too: it is about the system, not market data. parts says how the voice, the "
-       "voice print, the watchdog and the morning reads work right now, read from their own files. not_right is the live self-check: say "
-       "its items plainly when asked whether anything is wrong. Never say you cannot know what was done in the back end: say what the change "
-       "book has, and if it has nothing on that, say so in one line.")
+       "voice print, the watchdog and the morning reads work right now, read from their own files, and parts.database is the database: what is "
+       "kept where, with live counts (answer 'what do you keep', 'where does my data live', 'what tables' from it). not_right is the live "
+       "self-check: say its items plainly when asked whether anything is wrong; checked_fine is what the same check found in order, with its "
+       "time, so a problem that is no longer listed (the Claude credit, a service) is over. Never say you cannot know what was done in the back "
+       "end: say what the change book has, and if it has nothing on that, say so in one line.")
 
 _CACHE: dict = {}
 
@@ -50,6 +52,18 @@ _CACHE: dict = {}
 def _day(d) -> str:
     m = re.match(r"(\d{4})-(\d{2})-(\d{2})", str(d or ""))
     return f"{int(m.group(3))} {MONTHS[int(m.group(2)) - 1]}" if m else str(d or "")
+
+
+def _local_day(stamp: str) -> str:
+    """A UTC ISO stamp ('2026-11-06T00:50:20+00:00') as its Toronto day in words ('5 Nov')."""
+    try:
+        from datetime import datetime
+
+        t = datetime.fromisoformat(str(stamp)).timestamp()
+        lt = time.localtime(t)
+        return f"{lt.tm_mday} {MONTHS[lt.tm_mon - 1]}"
+    except (TypeError, ValueError, OverflowError):
+        return _day(str(stamp or "")[:10])
 
 
 def changes() -> list[dict]:
@@ -173,8 +187,10 @@ VOICE_PARTS = {
         "voice": "A male voice (Kokoro, 'bm_lewis') for India; the phone's own voice only when the natural voice is down.",
         "hearing": ("Speech-to-text runs on the Mac (Whisper). One microphone stream per conversation; listening starts once the mic is live, "
                     "with 400 ms kept from just before (23 Oct)."),
-        "freeze_guard": ("Since 5 Nov: if the India service freezes for 45 seconds it writes down where it was stuck and restarts itself; "
-                         "the outside watchdog also restarts it when it stops answering (at most once in 20 minutes) and your phone gets a note."),
+        "freeze_guard": ("Since 5 Nov: if the India service is stuck in its own work for 45 seconds of CPU time it writes down where it was stuck and "
+                         "restarts itself (since the evening of 5 Nov it counts its own CPU time, not the clock, so a service merely waiting for a "
+                         "busy Mac is left alone); the outside watchdog also restarts it when it stops answering (at most once in 20 minutes) and "
+                         "your phone gets a note."),
     },
     "crypto": {
         "speaks_while_writing": ("On since the afternoon of 5 Nov whenever the natural voice is on, as on the India side: each sentence is spoken "
@@ -209,10 +225,13 @@ def _voice_print(now: float | None = None) -> dict:
         c[r["speaker"]] += 1
         if r["speaker"] == "unknown" and (r.get("speech_s") or 0) >= 1.5:
             unsure_long += 1
-    d = _day(str(p.get("enrolled_at") or "")[:10])
-    return {"enrolled": True, "enrolled_on": d, "clips": p.get("count"), "accept_at": th.get("accept"), "reject_below": th.get("reject"),
-            "last_7_days": c, "unsure_long_clips": unsure_long,
-            "words": (f"Your voice print has been on since {d}, from {p.get('count')} enrolment clips. "
+    d = _local_day(p.get("enrolled_at"))
+    added = len(th.get("added_loo") or [])
+    clips = (f"{p.get('count')} clips ({p.get('count', 0) - added} read on {d}, {added} more added with 'Add more of my voice' on "
+             f"{_local_day(p.get('added_at'))})" if added and p.get("added_at") else f"{p.get('count')} enrolment clips")
+    return {"enrolled": True, "enrolled_on": d, "clips": p.get("count"), "added_clips": added, "added_on": _local_day(p.get("added_at")) if added else None,
+            "accept_at": th.get("accept"), "reject_below": th.get("reject"), "last_7_days": c, "unsure_long_clips": unsure_long,
+            "words": (f"Your voice print has been on since {d}, from {clips}. "
                       f"{'Since then' if since > week else 'In the last 7 days'} {c['madhav']} voice "
                       f"turns were recognised as you, {c['unknown']} came back unsure ({unsure_long} of them 1.5 seconds or longer; shorter "
                       f"clips are always unsure) and {c['not_madhav']} as someone else. Your voice ends a handover by itself; an unknown voice "
@@ -269,8 +288,107 @@ PHASE_STUDY = {
 }
 
 
+CRYPTO_DB = HOME / "code" / "ananta-decision-agent" / "jarvis.sqlite"
+# 5 Nov 2026 evening (the self-knowledge audit: asked what tables it keeps, the crypto Ask said "none of my lookups expose the schema"):
+# the crypto database in plain words, table by table, with its live row counts. Read-only.
+CRYPTO_TABLES = {
+    "conversations": {"ask_messages": "every chat and voice turn with its answer, model, cost and time", "ask_chips": "the follow-up chips shown and tapped",
+                      "ask_misunderstood": "questions it did not understand", "people_session": "who it is talking to in each conversation"},
+    "your requests and approvals": {"owner_requests": "your flags and requests with their status and fix notes", "fix_flow": "the fix options offered for a flag and your pick",
+                                    "pending_actions": "cards waiting for your yes (paper orders, settings, mandate changes)", "journal": "notes you asked it to remember"},
+    "paper books and trades": {"evidence_trades": "every $100 evidence trade of the setups", "manual_fills": "your own paper fills", "manual_orders": "your own paper orders",
+                               "book500": "the $500 NDAX book", "book500_fills": "its fills", "trade_reviews": "the review of each closed trade", "trade_guard_log": "every refusal by the trade guard",
+                               "stance": "the brain's stance by coin", "bold_decisions": "the brain's bolder decisions and their twins"},
+    "the brain and the setups": {"brain_decisions": "each decision the brain took", "brain_queue": "everything that woke the brain", "brain_unreviewed": "decisions not yet reviewed",
+                                 "setups_board": "the setups board", "engine_state": "each engine's state by coin", "eye_events": "what the eye saw (stops, shocks, zone touches)",
+                                 "zone_visits": "every visit to a zone", "read_fires": "your setups' fires", "shadow_h07": "the short dip trade's shadow"},
+    "learning and reviews": {"daily_reviews": "the daily reviews", "rx_cards": "the nightly reconstruction cards", "rx_queue": "their findings for you or the repair shop",
+                             "missed_moves": "every big move not caught, with its class", "learning_lessons": "lessons kept from reviews", "expectations": "what it expected and what came",
+                             "strategy_verdicts": "your verdict on each strategy", "explorer_compare": "the Explorer replayed against its live log", "rebuild_log": "the nightly self-rebuild",
+                             "officer_notes": "the officer's nightly notes", "credit_records": "credit given to each part for an outcome", "universe_rebuilds": "rebuilds of the 120-coin universe"},
+    "alerts, news and watches": {"alerts": "your alerts", "news_log": "the daily AI news check per coin", "account_watches": "watches on the account", "account_activity": "account activity seen",
+                                 "needs_snooze": "needs snoozed", "briefings": "the morning and evening briefs"},
+    "health and jobs": {"health_log": "outages", "health_state": "each part's last state", "jobs": "research jobs you started", "snapshots": "the account value every 15 minutes",
+                        "audit": "every action with who and when", "settings": "your settings"},
+    "people and sign-in": {"users": "accounts", "sessions": "sign-ins", "failed_logins": "failed sign-ins", "invites": "practice invites", "visitor_profile": "visitors' profiles",
+                           "feedback": "visitors' feedback", "push_tokens": "phone push tokens", "web_push_subs": "web push", "owner_auth": "owner sign-in state", "mandate": "your mandate"},
+}
+
+
+def _crypto_database() -> dict:
+    """The crypto database, table by table, with live row counts (read-only)."""
+    import sqlite3
+
+    counts: dict = {}
+    try:
+        con = sqlite3.connect(f"file:{CRYPTO_DB}?mode=ro", uri=True)
+        try:
+            for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table'"):
+                try:
+                    counts[t] = con.execute(f"SELECT count(*) FROM [{t}]").fetchone()[0]
+                except sqlite3.Error:
+                    counts[t] = None
+        finally:
+            con.close()
+    except sqlite3.Error as exc:
+        return {"words": f"the crypto database could not be read ({type(exc).__name__})"}
+    named = {t for g in CRYPTO_TABLES.values() for t in g}
+    groups = {g: {t: f"{w} ({counts[t]:,} rows)" if counts.get(t) is not None else w for t, w in ts.items() if t in counts} for g, ts in CRYPTO_TABLES.items()}
+    other = sorted(t for t in counts if t not in named and t != "sqlite_sequence")
+    return {"words": (f"One SQLite file on the Mac (jarvis.sqlite) with {len(counts)} tables, read and written only by the crypto service and its "
+                      "jobs; every paper book, decision, chat turn, request and sign-in lives there. Nothing in it is a real order."),
+            "tables_by_group": groups, "other_tables": other, "chat_history": "ask_messages (chat and voice turns, with the answer, the model and the cost)"}
+
+
+def _india_database() -> dict:
+    """Where India's data lives: folders on the Mac, with file counts and the newest file (read-only)."""
+    places = {
+        "bronze/": "the raw lake: every file as downloaded from NSE and Zerodha (daily prices since 1994, futures and options since 2000, indices, intraday bars, filings, flows)",
+        "silver/": "the cleaned tables built from bronze (one per kind)", "gold/": "the study-ready tables (returns, features, the 20-session windows)",
+        "india.duckdb": "the query database over silver and gold that the studies and the Ask's facts read",
+        "readmodel/": "the read model: the one JSON the app and the Ask answer from (rebuilt after each run)",
+        "paper/": "the paper books: your holdings' ratings, the managed book, the practice picks, the options line, the pre-open reads",
+        "manifests/": "each job's run record (what it read, what it wrote, errors), the voice check and the trials",
+        "ask/": "every conversation (one JSONL file per thread), your flags' pending picks, the oversight nudges, the Ask's own notes",
+        "reports/": "the daily reports", "sealed/": "2024 onwards, kept sealed from research", "mf_cache/": "mutual-fund data cache",
+    }
+    out = {}
+    for name, w in places.items():
+        p = INDIA / name.rstrip("/")
+        try:
+            if p.is_dir():
+                files = [x for x in p.rglob("*") if x.is_file()]
+                newest = max((x.stat().st_mtime for x in files), default=0)
+                out[name] = f"{w} ({len(files):,} files, newest {time.strftime('%d %b %H:%M', time.localtime(newest))})" if files else f"{w} (empty)"
+            elif p.exists():
+                out[name] = f"{w} (updated {time.strftime('%d %b %H:%M', time.localtime(p.stat().st_mtime))})"
+        except OSError:
+            out[name] = w
+    return {"words": ("India's data is files on the Mac under ananta_data/india, written only by the India jobs (the lake, the studies, the paper books) "
+                      "and the India service (conversations, flags). Your Zerodha account is read only; nothing here places an order."),
+            "places": out, "chat_history": "ask/ (one file per conversation)"}
+
+
+_DB_CACHE: dict = {}
+
+
+def database(market: str, now: float | None = None) -> dict:
+    """Cached for 10 minutes: the India walk reads a lake of 230,000 files."""
+    now = now or time.time()
+    try:
+        hit = _DB_CACHE.get(market)
+        if hit and now - hit[0] < 600:
+            return hit[1]
+        out = _crypto_database() if market == "crypto" else _india_database()
+        _DB_CACHE[market] = (now, out)
+        return out
+    except Exception as exc:  # noqa: BLE001  the map never breaks an answer
+        return {"words": f"the database map could not be read ({type(exc).__name__})"}
+
+
 def parts(market: str = "india") -> dict:
-    out = {"voice": VOICE_PARTS.get(market, VOICE_PARTS["india"]), "voice_print": _voice_print(), "watchdog": _watchdog()}
+    out = {"voice": VOICE_PARTS.get(market, VOICE_PARTS["india"]), "voice_print": _voice_print(), "watchdog": _watchdog(),
+           "database": database(market)}
     if market == "india":
         out["pre_open_read"] = _preopen()
         out["phase_study"] = PHASE_STUDY
@@ -285,7 +403,9 @@ def about_ananta(text: str, market: str, check: bool = True) -> dict:
         try:
             from jarvis import selfcheck
 
-            out["not_right"] = selfcheck.words(selfcheck.check(market))
+            c = selfcheck.check(market)
+            out["not_right"] = selfcheck.words(c)
+            out["checked_fine"] = selfcheck.fine(c)
         except Exception as exc:  # noqa: BLE001  the self-check never breaks an answer
             out["not_right"] = [f"the self-check could not run ({type(exc).__name__})"]
     return out

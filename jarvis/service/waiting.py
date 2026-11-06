@@ -31,6 +31,8 @@ def _flags(j, now: float) -> list[dict]:
         if not f or now - float(f.get("t") or 0) > FLAG_DAYS * 86400:
             continue
         r = requests_log.get(j, f["num"]) or {}
+        if r.get("status") in ("DONE", "WONT", "PLANNED"):   # 6 Nov: flags 58 and 59 were done or planned on 3-4 Nov, yet "pick a fix" still waited
+            continue
         no = requests_log.flag_no(f["num"])
         what = (r.get("text") or "").strip().split("\n")[0]
         if len(what) > 160:                                   # 2 Nov: never cut mid-word ("against a 70% t")

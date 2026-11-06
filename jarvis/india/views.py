@@ -937,14 +937,14 @@ def evidence_collected() -> dict:
                               "why": finding_words(q), "question": "sent to the repair shop" + (f" as request #{q['request']}" if q.get("request") else " (tonight)") if q.get("state") != "closed" else "closed: a false alarm", "result": STATE_WORDS.get(q.get("state"), q.get("state")), "changed": ""})
     running = [{"id": k, "status": STEP_WORDS.get(r.get("step"), r.get("step")), "title": RULE_WORDS.get(k, k), "waiting_for": f"{r.get('shadow_sessions', 0)} of {r.get('shadow_bar', 20)} trial sessions; beat chance and the market on {r.get('beats', 0)} of {r.get('beats_bar', 10)} days",
                 "why": "a rule must prove itself on paper before it can use your money", "metric": "trial sessions", "goal": r.get("shadow_bar", 20)} for k, r in (st.get("rules") or {}).items()]
-    waiting = [{"id": q.get("key"), "status": STATE_WORDS.get(q.get("state"), q.get("state")), "title": f"{FINDING_WORDS.get(q.get('type'), q.get('type'))} ({_day_words(q.get('day'))})", "waiting_for": "your yes" if q.get("lane") == "DECISION" else "the repair shop",
-                "why": finding_words(q)[:200], "metric": "needs you" if q.get("lane") == "DECISION" else "fixed by itself", "goal": None} for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]
+    waiting = [{"id": q.get("key"), "status": STATE_WORDS.get(q.get("state"), q.get("state")), "title": f"{FINDING_WORDS.get(q.get('type'), q.get('type'))} ({_day_words(q.get('day'))})", "waiting_for": ("nothing: noted on the card" if q.get("state") == "NOTE" else "your yes") if q.get("lane") == "DECISION" else "the repair shop",
+                "why": finding_words(q)[:200], "metric": ("noted" if q.get("state") == "NOTE" else "needs you") if q.get("lane") == "DECISION" else "fixed by itself", "goal": None} for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]
     done = [{"id": k, "status": "proved", "title": RULE_WORDS.get(k, k), "waiting_for": "", "why": "you said yes", "metric": "", "goal": None} for k in (st.get("admitted") or [])]
     tracker.append({"key": "cards", "label": "Nightly reviews", "value": len(_rx_cards()), "explain": "one every evening since 22 Oct"})
     st_s = r.get("stale_input_sessions") or []
     tracker.append({"key": "stale", "label": "Picks made on stale data", "value": len(st_s),
                     "explain": ("marked, never dropped: " + ", ".join(x["day"] for x in st_s[-3:])) if st_s else "none so far"})
-    tracker.append({"key": "findings", "label": "Things found", "value": len([q for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]), "explain": "small ones fixed by themselves; trading ones wait for you"})
+    tracker.append({"key": "findings", "label": "Things found", "value": len([q for q in rows if q.get("state") in ("DRAFT", "NOTE", "to_file", "filed")]), "explain": "small ones fixed by themselves; trading ones wait for you (a noted miss waits for nothing: since 6 Nov it is asked only at 5 of 10 sessions)"})
     shop = {"running": running, "waiting": waiting, "done": done, "summary": _stairs_words(st)}
     return {"collected": collected, "tracker": tracker, "forwarded": forwarded, "shop": shop}
 

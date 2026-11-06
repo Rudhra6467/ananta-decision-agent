@@ -251,7 +251,7 @@ def money(j) -> dict:
             "options_book": None}
 
 
-FINDING_WORDS = {"MISS_PATTERN": ("repeated miss", "repeated misses"), "WAIT_ARRIVED": ("wait that came true", "waits that came true"),
+FINDING_WORDS = {"MISS_PATTERN": ("repeated miss", "repeated misses"), "WAIT_ARRIVED": ("wait that came true (woke the brain)", "waits that came true (each woke the brain)"),   # 6 Nov: older cards only; new cards count wakes apart
                  "GAVE_BACK": ("gain given back", "gains given back"), "BLEED": ("book losing steadily", "books losing steadily"),
                  "SELECTION": ("selection slip", "selection slips")}
 

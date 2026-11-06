@@ -285,7 +285,7 @@ def forward(j, day: str, rows: list[dict]) -> dict:
         if f["lane"] == "DECISION" and f["kind"] == "MISS_PATTERN" and day < RULE_B_ENDS:
             # 6 Nov 2026 (Madhav's yes, E2): under Rule B no new crypto family is drafted before 14 Dec, so the job answers a new-family
             # question itself instead of leaving it in Needs you; the same key is not asked again inside the window; after 14 Dec it is OPEN again.
-            if j.db.execute("SELECT 1 FROM rx_queue WHERE key=? AND decision LIKE 'Rule B:%'", (key,)).fetchone():
+            if j.db.execute("SELECT 1 FROM rx_queue WHERE key=? AND decision LIKE '%Rule B:%'", (key,)).fetchone():
                 out["skipped"].append(f"{key}: Rule B")
                 continue
             j.db.execute("INSERT INTO rx_queue VALUES (?,?,?,?,?,?,?,?,?,?,?)", (rid, day, int(j.now()), f["kind"], "DECISION", key, f["words"],
@@ -367,7 +367,7 @@ def value_line(j) -> dict:
             paused.append(f"{book} {st.lower()} ({d})")
     drafted = [m.group(1) for kind, k, dec, d in rows if kind == "MISS_PATTERN" and dec and (m := re.search(r"drafted as (\w+)", dec))]
     drafted = [f"{x} ({status.get(x, 'unknown').lower()})" for x in drafted]
-    rule_b = sum(1 for kind, k, dec, d in rows if dec and dec.startswith("Rule B:"))
+    rule_b = sum(1 for kind, k, dec, d in rows if dec and "Rule B:" in dec)   # a hand decision through decide() is prefixed "<by>: "
     words = (f"Value since 24 Oct: 0 findings changed a rule; {len(paused)} decision{'s' if len(paused) != 1 else ''} changed what runs"
              + (f" ({', '.join(paused)})" if paused else "") + f"; {len(drafted)} famil{'ies' if len(drafted) != 1 else 'y'} drafted from a finding" + (f" ({', '.join(drafted)})" if drafted else "")
              + (f"; {rule_b} new-family question{'s' if rule_b != 1 else ''} held by Rule B until {RULE_B_ENDS}" if rule_b else "") + ".")

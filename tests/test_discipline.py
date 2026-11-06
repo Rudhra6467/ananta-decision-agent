@@ -309,3 +309,17 @@ def test_rx_cr_v2_rule_b_answers_new_family_questions_wakes_are_a_count_and_the_
     card = _json.loads(j.db.execute("SELECT card FROM rx_cards WHERE day=?", (out["day"],)).fetchone()[0])
     assert "value" in card and card["value"]["rules_changed"] == 0 and "Value since 24 Oct" in card["headline"]
     assert "wakes" in card and not [f for f in card["findings"] if f["kind"] == "WAIT_ARRIVED"]
+
+
+def test_rule_b_counts_a_hand_decision_too():
+    """6 Nov follow-up: decide() prefixes '<by>: ', so a Rule B answer given by hand is matched anywhere in the text."""
+    from jarvis.service import reconstruct
+
+    j = _J()
+    reconstruct._table(j)
+    j.db.execute("INSERT INTO rx_queue VALUES (?,?,?,?,?,?,?,?,?,?,?)", ("h1", "2026-11-01", 1, "MISS_PATTERN", "DECISION", "miss:hand", "w", "{}", "OPEN", None, None))
+    reconstruct.decide(j, "h1", "Rule B: snoozed to 2026-12-14", by="owner")
+    assert reconstruct.value_line(j)["held_by_rule_b"] == 1
+    j.db.execute("UPDATE rx_queue SET decided_t=decided_t-10*86400 WHERE id='h1'")          # past the 7-day rule: Rule B alone holds it
+    fwd = reconstruct.forward(j, "2026-11-20", [reconstruct._f("MISS_PATTERN", "miss:hand", "w", {})])
+    assert fwd["skipped"] == ["miss:hand: Rule B"]

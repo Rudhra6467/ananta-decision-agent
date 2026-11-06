@@ -69,6 +69,8 @@ ALLOWED_REFS = {
     ("jarvis/india/factmap.py", r"ananta_data/india"): "the fact map lists which India files reach the Ask (read-only); it writes only under the agent's docs/repair_shop/factmap",
     ("jarvis/india/factmap.py", r"ananta-records"): "the fact map reads the records checkout's build modules to see which files they read (read-only)",
     ("tests/test_factmap.py", r"ananta_data/india"): "a test of the fact map, skipped where the India data is absent",
+    ("jarvis/india/preopen.py", r"ananta_data/india"): ("the 09:09 IST pre-open read (Madhav's yes of 5 Nov) keeps its own files under "
+                                                        "paper/preopen/; added 6 Nov, the module had shipped without its allowlist line"),
 }
 CANARY_FILE = paths.manifest_dir() / "firewall_canary.txt"
 

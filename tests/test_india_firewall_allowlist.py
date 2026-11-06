@@ -34,3 +34,10 @@ def test_order_endpoint_on_a_base_constant_is_caught(tmp_path, monkeypatch):
     ka.write_text(ka.read_text() + 'w = f"{KITE_WEB}/oms/orders/regular"\n')
     ok, note, _ = firewall.check_kite_auth()
     assert not ok and "oms/orders" in note
+
+
+def test_preopen_read_is_named_with_its_reason():
+    """6 Nov morning review: jarvis/india/preopen.py (5 Nov) shipped without its allowlist line and the static scan failed on it."""
+    reason = firewall.ALLOWED_REFS[("jarvis/india/preopen.py", r"ananta_data/india")]
+    assert "paper/preopen" in reason
+    assert ("jarvis/selfknow.py", r"ananta_data/india") not in firewall.ALLOWED_REFS   # outside the India app: Madhav's call, not allowed here

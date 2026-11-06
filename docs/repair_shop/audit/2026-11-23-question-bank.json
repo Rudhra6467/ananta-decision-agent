@@ -1,0 +1,705 @@
+{
+ "written": "2026-11-06",
+ "for": "the 23 Nov audit (scheduled task 'Audit the reverse-engineering pass (fresh agent)')",
+ "how_to_grade": [
+  "A separate grader: an agent that did not build Ananta and did not ask the questions grades the answers blind, against a ground-truth sheet built on the day from the running system (files, database, endpoints, launchd), not from memory.",
+  "Each answer gets: right / partly / wrong / wrong route (answered a different question) / refused, plus one line of why and the evidence path.",
+  "Compare with the two earlier runs: the 3 Nov independent audit (34 findings: 10 high, 12 medium, 12 low; docs/repair_shop/audit/2026-11-03-independent.md) and the 5 Nov self-knowledge audit (claude/review-2026-11-05-self-knowledge-audit.md in the project; answers in ~/ananta_runs/audit_selfknow/answers_after*.json).",
+  "India questions: dry run in a throwaway folder (~/ananta_runs/audit_ask.py or the runner pattern in /tmp/audit1103/run.py with LIVE_OVERRIDE for the other moments); crypto questions: source='eval' (nothing saved). Voice on for India.",
+  "The 73 India questions of 3 Nov are asked at the same moments as then: the real moment (about 9:25 pm Toronto, before and just after the 9:30 pm job) and the five 'as if' moments listed per block."
+ ],
+ "blocks": [
+  {
+   "name": "india_3nov_m0",
+   "market": "india",
+   "source": "3 Nov independent audit",
+   "moment": "the real moment: about 9:25 pm Toronto (07:55 IST), before the 9:30 pm paper job",
+   "when": null,
+   "table": null,
+   "hold": null,
+   "managed": null,
+   "questions": [
+    {
+     "id": "IA01",
+     "thread": "A",
+     "q": "Hey Ananta, what time is it in India right now and how long till the market opens?"
+    },
+    {
+     "id": "IA02",
+     "thread": "A",
+     "q": "Is today an expiry day? Which one expires today, Nifty or Bank Nifty?"
+    },
+    {
+     "id": "IA03",
+     "thread": "A",
+     "q": "Ananta, how did the market close today? Like where did the Nifty end and how much did it move?"
+    },
+    {
+     "id": "IA04",
+     "thread": "A",
+     "q": "And Bank Nifty and the VIX, how much did they move?"
+    },
+    {
+     "id": "IA05",
+     "thread": "A",
+     "q": "So what do you expect when it opens in a bit?"
+    },
+    {
+     "id": "IA06",
+     "thread": "B",
+     "q": "Ananta, what did you do today? Like all of it, the options, the managed book, the practice book."
+    },
+    {
+     "id": "IA07",
+     "thread": "B",
+     "q": "So the options line, are those two trades still open? How much are we down on them?"
+    },
+    {
+     "id": "IA08",
+     "thread": "B",
+     "q": "The Nifty option you took, doesn't it expire today? What happens to it at the open?"
+    },
+    {
+     "id": "IA09",
+     "thread": "B",
+     "q": "But the money screen says no open option positions. Which one is right?"
+    },
+    {
+     "id": "IA10",
+     "thread": "B",
+     "q": "How much money is in the options book now, 34,000 or 50,000? I said 50,000 yesterday."
+    },
+    {
+     "id": "IA11",
+     "thread": "B",
+     "q": "Overall how much has the options line made or lost since it started?"
+    },
+    {
+     "id": "IA12",
+     "thread": "C",
+     "q": "What did the managed book sell and what did it buy in place of them?"
+    },
+    {
+     "id": "IA13",
+     "thread": "C",
+     "q": "Why did you sell ten stocks but buy only three? Where is the rest of the money sitting?"
+    },
+    {
+     "id": "IA14",
+     "thread": "C",
+     "q": "What replaced Jio Finance and how is it doing?"
+    },
+    {
+     "id": "IA15",
+     "thread": "C",
+     "q": "And what replaced Tata Power?"
+    },
+    {
+     "id": "IA16",
+     "thread": "C",
+     "q": "How did my stocks do today? Which was the best and which was the worst?"
+    },
+    {
+     "id": "IA17",
+     "thread": "C",
+     "q": "How much is my account worth right now?"
+    },
+    {
+     "id": "IA18",
+     "thread": "C",
+     "q": "The today screen says cut list Unitdspr, Tata Power, Idea, TMCV but the plan says nothing on the cut list. So what will you cut tomorrow?"
+    },
+    {
+     "id": "IA19",
+     "thread": "C",
+     "q": "And the allocator wants to sell IEX and Jio Fin into cash. Is that happening? When?"
+    },
+    {
+     "id": "IA20",
+     "thread": "C",
+     "q": "How many stocks do I hold right now, 13 or 14?"
+    },
+    {
+     "id": "IA21",
+     "thread": "D",
+     "q": "How did the practice book do today? Which picks are working?"
+    },
+    {
+     "id": "IA22",
+     "thread": "D",
+     "q": "How many open trades does the practice book have and how much is it up or down overall?"
+    },
+    {
+     "id": "IA23",
+     "thread": "D",
+     "q": "When does the practice book pick for tomorrow, in my time?"
+    },
+    {
+     "id": "IA24",
+     "thread": "E",
+     "q": "What's waiting for my yes?"
+    },
+    {
+     "id": "IA25",
+     "thread": "E",
+     "q": "Any flags I raised still open? What happened to the one about the Monday data?"
+    },
+    {
+     "id": "IA26",
+     "thread": "F",
+     "q": "How good is your forecast? How many times were you right?"
+    },
+    {
+     "id": "IA27",
+     "thread": "F",
+     "q": "The shadow trader, how many sessions does it have and what did it say?"
+    },
+    {
+     "id": "IA28",
+     "thread": "F",
+     "q": "When will the options line be graded? How many sessions are on record?"
+    },
+    {
+     "id": "IA29",
+     "thread": "F",
+     "q": "Is everything running fine? Did any job fail tonight?"
+    },
+    {
+     "id": "IA30",
+     "thread": "F",
+     "q": "Did the Zerodha snapshot work tonight?"
+    },
+    {
+     "id": "IA31",
+     "thread": "F",
+     "q": "What did you find in the market today? What did the reconstruction say for Monday?"
+    },
+    {
+     "id": "IA32",
+     "thread": "F",
+     "q": "What was the FII and DII flow today?"
+    },
+    {
+     "id": "IA33",
+     "thread": "G",
+     "q": "How's Jio Fin doing? And Eternal, the Zomato one?"
+    },
+    {
+     "id": "IA34",
+     "thread": "G",
+     "q": "What about Karur Vysya bank and United Spirits?"
+    },
+    {
+     "id": "IA35",
+     "thread": "G",
+     "q": "Tell me about Ajanta Pharma, why did you buy it?"
+    },
+    {
+     "id": "IA36",
+     "thread": "G",
+     "q": "And Network 18 and National Aluminium, are they still in my account?"
+    },
+    {
+     "id": "IA37",
+     "thread": "H",
+     "q": "Next week is Diwali right, is the market open on Tuesday? And is there Muhurat trading?"
+    },
+    {
+     "id": "IA38",
+     "thread": "H",
+     "q": "When is the next Nifty expiry after today, with the holiday?"
+    },
+    {
+     "id": "IA39",
+     "thread": "H",
+     "q": "What time is your morning sign-in to Zerodha in my time?"
+    },
+    {
+     "id": "IA40",
+     "thread": "H",
+     "q": "When will I hear the opening update tonight, in Toronto time?"
+    },
+    {
+     "id": "IA41",
+     "thread": "H",
+     "q": "When does the clock change again and will your jobs move?"
+    },
+    {
+     "id": "IA42",
+     "thread": "I",
+     "q": "Ananta, quickly, where's the Nifty, what did we trade, what is waiting for me, and what's the plan for tomorrow?"
+    },
+    {
+     "id": "IA43",
+     "thread": "I",
+     "q": "Compare the four books for me, mine, the twin, the managed and the Nifty 500, since we started."
+    },
+    {
+     "id": "IA44",
+     "thread": "I",
+     "q": "Why is the managed book plus 0.51 percent since 30 October if it only started trading on Monday?"
+    }
+   ]
+  },
+  {
+   "name": "india_3nov_m1",
+   "market": "india",
+   "source": "3 Nov independent audit",
+   "moment": "Sun 1 Nov 11:50 pm Toronto = Mon 2 Nov 10:20 IST, mid-session (stand-in prices)",
+   "when": "2026-11-02T04:50:00+00:00",
+   "table": "MID",
+   "hold": null,
+   "managed": "MON_MANAGED",
+   "questions": [
+    {
+     "id": "IA45",
+     "thread": "A",
+     "q": "Ananta, it's almost midnight here, is the Indian market open now? Where is the Nifty?"
+    },
+    {
+     "id": "IA46",
+     "thread": "A",
+     "q": "How long until it closes?"
+    },
+    {
+     "id": "IA47",
+     "thread": "A",
+     "q": "What did the options line do this morning?"
+    },
+    {
+     "id": "IA48",
+     "thread": "A",
+     "q": "What did the managed book buy at the open?"
+    },
+    {
+     "id": "IA49",
+     "thread": "A",
+     "q": "Is today an expiry day?"
+    },
+    {
+     "id": "IA50",
+     "thread": "A",
+     "q": "When will you book the practice picks?"
+    },
+    {
+     "id": "IA51",
+     "thread": "B",
+     "q": "What did you find last night?"
+    },
+    {
+     "id": "IA52",
+     "thread": "B",
+     "q": "What's waiting for my yes?"
+    },
+    {
+     "id": "IA53",
+     "thread": "B",
+     "q": "Did you buy anything for me today?"
+    }
+   ]
+  },
+  {
+   "name": "india_3nov_m2",
+   "market": "india",
+   "source": "3 Nov independent audit",
+   "moment": "Mon 2 Nov 8:30 am Toronto = 19:00 IST, after the close",
+   "when": "2026-11-02T13:30:00+00:00",
+   "table": "CLOSE",
+   "hold": "MON_HOLD",
+   "managed": "MON_MANAGED",
+   "questions": [
+    {
+     "id": "IA54",
+     "thread": "A",
+     "q": "Good morning Ananta, what happened in the Indian market today and what did we do?"
+    },
+    {
+     "id": "IA55",
+     "thread": "A",
+     "q": "How much did the Nifty move today, in points?"
+    },
+    {
+     "id": "IA56",
+     "thread": "A",
+     "q": "Are the options trades closed? How much did they make?"
+    },
+    {
+     "id": "IA57",
+     "thread": "A",
+     "q": "What replaced Jio Finance?"
+    },
+    {
+     "id": "IA58",
+     "thread": "A",
+     "q": "When will the managed book's fills be booked?"
+    },
+    {
+     "id": "IA59",
+     "thread": "B",
+     "q": "How did my stocks do today?"
+    },
+    {
+     "id": "IA60",
+     "thread": "B",
+     "q": "What's the plan for tomorrow?"
+    },
+    {
+     "id": "IA61",
+     "thread": "B",
+     "q": "What was the FII DII today?"
+    },
+    {
+     "id": "IA62",
+     "thread": "B",
+     "q": "When does the market open tomorrow in my time?"
+    },
+    {
+     "id": "IA63",
+     "thread": "B",
+     "q": "Is tomorrow an expiry day?"
+    }
+   ]
+  },
+  {
+   "name": "india_3nov_m3",
+   "market": "india",
+   "source": "3 Nov independent audit",
+   "moment": "Mon 9 Nov 10 pm Toronto = Tue 10 Nov 08:30 IST, NSE holiday (stand-in prices)",
+   "when": "2026-11-10T03:00:00+00:00",
+   "table": "CLOSE",
+   "hold": null,
+   "managed": null,
+   "questions": [
+    {
+     "id": "IA64",
+     "thread": "A",
+     "q": "Hey Ananta, the market opens in 45 minutes right? What's the plan?"
+    },
+    {
+     "id": "IA65",
+     "thread": "A",
+     "q": "Is today an expiry day?"
+    },
+    {
+     "id": "IA66",
+     "thread": "A",
+     "q": "When is the next session?"
+    },
+    {
+     "id": "IA67",
+     "thread": "A",
+     "q": "Will the options line trade today?"
+    },
+    {
+     "id": "IA68",
+     "thread": "B",
+     "q": "What time is it in India now?"
+    },
+    {
+     "id": "IA69",
+     "thread": "B",
+     "q": "When does the practice book pick next?"
+    },
+    {
+     "id": "IA70",
+     "thread": "B",
+     "q": "The Muhurat trading on Sunday, did we trade it?"
+    }
+   ]
+  },
+  {
+   "name": "india_3nov_m4",
+   "market": "india",
+   "source": "3 Nov independent audit",
+   "moment": "Sun 14 Mar 2027 10:30 pm Toronto (first night of summer time) = Mon 15 Mar 08:00 IST (stand-in prices)",
+   "when": "2027-03-15T02:30:00+00:00",
+   "table": "CLOSE",
+   "hold": null,
+   "managed": null,
+   "questions": [
+    {
+     "id": "IA71",
+     "thread": "A",
+     "q": "What time is it in India and when does the market open, in my time?"
+    },
+    {
+     "id": "IA72",
+     "thread": "A",
+     "q": "How many hours ahead is India now?"
+    },
+    {
+     "id": "IA73",
+     "thread": "A",
+     "q": "When does the morning view come, in my time?"
+    },
+    {
+     "id": "IA74",
+     "thread": "A",
+     "q": "When is the opening update tonight?"
+    }
+   ]
+  },
+  {
+   "name": "india_3nov_m5",
+   "market": "india",
+   "source": "3 Nov independent audit",
+   "moment": "Sun 8 Nov 8 am Toronto = 18:30 IST, Diwali Muhurat Sunday (stand-in prices)",
+   "when": "2026-11-08T13:00:00+00:00",
+   "table": "CLOSE",
+   "hold": null,
+   "managed": null,
+   "questions": [
+    {
+     "id": "IA75",
+     "thread": "A",
+     "q": "Is the Muhurat session going on now? Are you trading it?"
+    },
+    {
+     "id": "IA76",
+     "thread": "A",
+     "q": "Is the market open tomorrow?"
+    },
+    {
+     "id": "IA77",
+     "thread": "A",
+     "q": "What did we do on Friday?"
+    }
+   ]
+  },
+  {
+   "name": "india_3nov_m6",
+   "market": "india",
+   "source": "3 Nov independent audit",
+   "moment": "the real moment, just after the 9:30 pm paper job (about 9:33 pm Toronto)",
+   "when": null,
+   "table": null,
+   "hold": null,
+   "managed": null,
+   "questions": [
+    {
+     "id": "IA78",
+     "thread": "R",
+     "q": "Ananta, what did you do today? The options, the managed book, the practice book, all of it."
+    },
+    {
+     "id": "IA79",
+     "thread": "R",
+     "q": "How did the practice book do today and how many open trades does it have now?"
+    },
+    {
+     "id": "IA80",
+     "thread": "R",
+     "q": "What did the reconstruction find for Monday?"
+    },
+    {
+     "id": "IA81",
+     "thread": "R",
+     "q": "What's the daily call for today, and how many of your calls were right so far?"
+    },
+    {
+     "id": "IA82",
+     "thread": "R",
+     "q": "Is everything running fine tonight? Did the evening run have any errors?"
+    },
+    {
+     "id": "IA83",
+     "thread": "R",
+     "q": "When did you sign in to Zerodha tonight?"
+    },
+    {
+     "id": "IA84",
+     "thread": "R",
+     "q": "Are there any new picks for the open today? Which ones?"
+    }
+   ]
+  },
+  {
+   "name": "self_knowledge_5nov",
+   "source": "5 Nov self-knowledge audit",
+   "moment": "the real moment",
+   "questions": [
+    {
+     "id": "AI1",
+     "market": "india",
+     "q": "What changed in you today?"
+    },
+    {
+     "id": "AI2",
+     "market": "india",
+     "q": "How does your voice work now? Do you start speaking before the answer is finished?",
+     "voice": true
+    },
+    {
+     "id": "AI3",
+     "market": "india",
+     "q": "Is anything not right with you right now?"
+    },
+    {
+     "id": "AI4",
+     "market": "india",
+     "q": "What do you keep in your database, and where does my data live?"
+    },
+    {
+     "id": "AI5",
+     "market": "india",
+     "q": "What jobs run for the Indian market each day, and when?"
+    },
+    {
+     "id": "AI6",
+     "market": "india",
+     "q": "How do you know who is speaking, and how good is my voice print now?"
+    },
+    {
+     "id": "AI7",
+     "market": "india",
+     "q": "What is the change book, and how do I know a change was really done?"
+    },
+    {
+     "id": "AI8",
+     "market": "india",
+     "q": "Did you fix the problem where a flag could not be found by its id?"
+    },
+    {
+     "id": "AI9",
+     "market": "india",
+     "q": "Grader here. What did Madhav's team change in your back end this week, and how would I verify it?"
+    },
+    {
+     "id": "AI10",
+     "market": "india",
+     "q": "What happens if the India service freezes at night?"
+    },
+    {
+     "id": "AI11",
+     "market": "india",
+     "q": "What did the self-check find today?"
+    },
+    {
+     "id": "AI12",
+     "market": "india",
+     "q": "How did my six new voice sentences get added today, and what went wrong the first time?"
+    },
+    {
+     "id": "AC1",
+     "market": "crypto",
+     "q": "What changed in you today?"
+    },
+    {
+     "id": "AC2",
+     "market": "crypto",
+     "q": "Does the crypto voice speak while it writes now?",
+     "voice": true
+    },
+    {
+     "id": "AC3",
+     "market": "crypto",
+     "q": "Is anything not right with you right now?"
+    },
+    {
+     "id": "AC4",
+     "market": "crypto",
+     "q": "What tables do you keep in your database, and what is in them?"
+    },
+    {
+     "id": "AC5",
+     "market": "crypto",
+     "q": "What runs every 15 minutes, and what runs at night?"
+    },
+    {
+     "id": "AC6",
+     "market": "crypto",
+     "q": "How good is my voice print now?"
+    },
+    {
+     "id": "AC7",
+     "market": "crypto",
+     "q": "Was the Solana test card cleaned up, and can a test question still make a card?"
+    },
+    {
+     "id": "AC8",
+     "market": "crypto",
+     "q": "Did the Claude credit run out today, and what did you do about it?"
+    },
+    {
+     "id": "AC9",
+     "market": "crypto",
+     "q": "Grader here. List what changed in Ananta this week on both markets, and tell me how you know."
+    },
+    {
+     "id": "AC10",
+     "market": "crypto",
+     "q": "What is the change book?"
+    },
+    {
+     "id": "AC11",
+     "market": "crypto",
+     "q": "How are your layers connected? What does the dial rest on?"
+    },
+    {
+     "id": "AC12",
+     "market": "crypto",
+     "q": "What does your self-check look at every 15 minutes?"
+    }
+   ]
+  },
+  {
+   "name": "reconstruction_6nov",
+   "source": "6 Nov reconstruction audit",
+   "moment": "the real moment",
+   "questions": [
+    {
+     "id": "RI1",
+     "market": "india",
+     "q": "How does the nightly reconstruction work, and what did last night's card say?"
+    },
+    {
+     "id": "RI2",
+     "market": "india",
+     "q": "What has the reconstruction found since it started, and what came of its findings?"
+    },
+    {
+     "id": "RI3",
+     "market": "india",
+     "q": "Which research drafts from the reconstruction are waiting for me, and how long have they waited?"
+    },
+    {
+     "id": "RI4",
+     "market": "india",
+     "q": "How are the two paper trials going, the one about falls under the 200-day and the relative strength one?"
+    },
+    {
+     "id": "RI5",
+     "market": "india",
+     "q": "Is the reconstruction worth its cost? What would you change about it?"
+    },
+    {
+     "id": "RC1",
+     "market": "crypto",
+     "q": "What did last night's reconstruction card say, and which day was it about?"
+    },
+    {
+     "id": "RC2",
+     "market": "crypto",
+     "q": "What has the crypto reconstruction found since 24 Oct, and what happened to each finding?"
+    },
+    {
+     "id": "RC3",
+     "market": "crypto",
+     "q": "Is anything from the reconstruction waiting for my decision?"
+    },
+    {
+     "id": "RC4",
+     "market": "crypto",
+     "q": "What did the brain decide yesterday, and did the reconstruction card record it?"
+    }
+   ]
+  }
+ ],
+ "counts": {
+  "india_3nov": 84,
+  "self_knowledge": 24,
+  "reconstruction": 9,
+  "total": 117
+ },
+ "note": "The 3 Nov audit counted 73 questions; the 84 here include the follow-ups asked in the same threads."
+}

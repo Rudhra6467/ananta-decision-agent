@@ -838,6 +838,45 @@ def reconstruction() -> dict:
             "net_notes": netnotes(c.get("day")), "drafts": drafts()["drafts"]}
 
 
+def rx_history() -> dict:
+    """6 Nov 2026 (the reconstruction audit): the whole record in counts, so an answer never adds them up from the rows (one said "12 findings,
+    8 approved, 1 to the repair board" against 29, 19 and 4). Read from every card, the queue, the forwarded list and the decisions."""
+    import json as _json
+    from collections import Counter
+
+    cards = _rx_cards()
+    by_lane: Counter = Counter()
+    by_type: Counter = Counter()
+    total = 0
+    for p in cards:
+        try:
+            c = _json.loads(p.read_text())
+        except (OSError, ValueError):
+            continue
+        for f in c.get("findings") or []:
+            total += 1
+            by_lane[f.get("lane")] += 1
+            by_type[f.get("type")] += 1
+    rows = _queue_rows()
+    dec = [r for r in rows if r.get("lane") == "DECISION"]
+    fwd = _jsonl(DATA / "paper" / "reconstruction" / "forwarded.jsonl")
+    filed = [f for f in fwd if str(f.get("note") or "").startswith("filed")]
+    already = [f for f in fwd if str(f.get("note") or "").startswith("closed")]
+    waiting = [r for r in dec if r.get("state") == "DRAFT"]
+    return {"cards": len(cards), "first_card": cards[0].stem if cards else None, "last_card": cards[-1].stem if cards else None,
+            "findings_total": total, "by_lane": dict(by_lane), "by_type": dict(by_type),
+            "safe_to_repair_board": {"filed_as_flags": len(filed), "already_fixed_when_filed": len(already)},
+            "decision_rows": {"total": len(dec), "approved": sum(1 for r in dec if r.get("state") == "APPROVED"),
+                              "skipped": sum(1 for r in dec if r.get("state") == "SKIPPED"), "waiting": len(waiting),
+                              "waiting_since": min((r.get("day") or "" for r in waiting), default=None)},
+            "words": (f"{len(cards)} nightly cards ({cards[0].stem if cards else '-'} to {cards[-1].stem if cards else '-'}): {total} findings, "
+                      f"{by_lane.get('SAFE', 0)} operational (SAFE: {len(filed)} filed as flags, {len(already)} already fixed when filed) and "
+                      f"{by_lane.get('DECISION', 0)} research questions (DECISION: {sum(1 for r in dec if r.get('state') == 'APPROVED')} approved, "
+                      f"{len(waiting)} waiting). Tested so far: RX1 (12 questions, 1 CONDITIONAL now in the 20-session trial), RX2 (1, OPPOSITE), "
+                      f"RX3 (breakout base: REJECTED next session, OPPOSITE over 5 sessions, CONDITIONAL inside a tight base at 0.05%), and 3 "
+                      f"held-into-falls drafts closed as already answered by RX1 and RX2. No rule has changed from any finding.")}
+
+
 def _queue_rows() -> list[dict]:
     q = REG / "reconstruction_queue.jsonl"
     rows = _jsonl(q)

@@ -473,7 +473,7 @@ def _rx_detail() -> dict:
             "web_notes": views.netnotes(c.get("day")), "drafts_waiting": (dw := views.drafts()["drafts"]),
             # 28 Oct outside round 3: one answer said 6 drafts (last night's findings) while the app's bar said 12 (the whole queue)
             "drafts_waiting_count": len(dw),
-            "drafts_answered_28oct": RX1_WORDS,
+            "drafts_answered_28oct": RX1_WORDS, "history": views.rx_history(),
             "rx1_trial": _rx1_trial(),
             "rs_trial": _rs_trial(),          # 2 Nov (Madhav: yes): RS1's near miss recorded forward (records india/rstrial.py)
             "drafts_meaning": ("drafts_waiting is the WHOLE queue waiting for Madhav's yes or skip, from every night so far (the same kind of "

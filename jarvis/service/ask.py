@@ -1348,9 +1348,26 @@ class Lookups:
             out["rules"] = {"version": r.get("version"), "decided": r.get("decided"), "items": r.get("items")}
         if part in ("reconstruction", "all"):
             c = reconstruct.latest(self.j)
-            out["reconstruction_last_night"] = ({"day": c.get("day"), "headline": c.get("headline"), "findings": c.get("findings"), "not_done": c.get("not_done"),
-                                                "reviews_by_tag": (c.get("reviews") or {}).get("by_tag"), "forwarding": c.get("forwarding")} if c else
+            out["reconstruction_last_night"] = ({"day": c.get("day"), "about_day": c.get("about_day"), "headline": c.get("headline"), "findings": c.get("findings"),
+                                                "not_done": c.get("not_done"), "reviews_by_tag": (c.get("reviews") or {}).get("by_tag"), "forwarding": c.get("forwarding")} if c else
                                                "no card yet: the first one is written after the next daily close")
+            # 6 Nov 2026 (the reconstruction audit): asked what it had found since 24 Oct, the Ask said it could see only last night's card.
+            # Every card's headline and finding kinds, and every queue row with what became of it.
+            from collections import Counter
+
+            hist = []
+            for cd in reconstruct.cards(self.j, 30):
+                hist.append({"day": cd.get("day"), "about_day": cd.get("about_day") or "the day before (cards before 6 Nov were stamped with the morning they were made)",
+                             "findings": dict(Counter(f.get("kind") for f in cd.get("findings") or [])), "headline": (cd.get("headline") or "")[:160]})
+            q = reconstruct.queue(self.j, 200)
+            out["reconstruction_history"] = {"cards": len(hist), "cards_by_day": hist,
+                                             "queue_outcomes": {f"{k} {ln} {st}": n for (k, ln, st), n in Counter((r["kind"], r["lane"], r["state"]) for r in q).items()},
+                                             "decided": [{"day": r["day"], "kind": r["kind"], "key": r["key"], "decision": (r.get("decision") or "")[:160]}
+                                                         for r in q if r["state"] not in ("OPEN", "DONE")][:20],
+                                             "note": ("A card is stamped with the UTC morning it was made and (since 6 Nov) says which day it is about; "
+                                                      "WAIT_ARRIVED DONE rows are passes whose condition came true and woke the brain again. Before "
+                                                      "6 Nov the cards' 'what Ananta did' and missed-moves parts were blank (a window bug found by "
+                                                      "the 6 Nov audit); the typed findings were not affected.")}
         if part in ("queue", "all"):
             out["queue_for_madhav"] = [q for q in reconstruct.queue(self.j) if q["state"] == "OPEN"][:10]
         return out

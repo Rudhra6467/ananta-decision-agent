@@ -163,3 +163,37 @@ def test_the_self_check_reads_the_india_gates(tmp_path):
     (tmp_path / "firewall.json").write_text(json.dumps({"static_scan": {"ok": True}, "_at": "x"}))
     assert selfcheck._gates(tmp_path) == []
     assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 7
+
+
+# ---- 6 Nov: the reconstruction audit ----
+
+def test_the_india_ask_has_the_reconstructions_whole_record_in_counts(tmp_path, monkeypatch):
+    import json as _json
+
+    from jarvis.india import views
+
+    data = tmp_path / "india"
+    (data / "paper" / "reconstruction").mkdir(parents=True)
+    reg = tmp_path / "reg"
+    reg.mkdir()
+    (data / "paper" / "reconstruction" / "2026-11-04.json").write_text(_json.dumps({"findings": [
+        {"type": "MISS_PATTERN", "lane": "DECISION", "key": "a"}, {"type": "JOB_FAIL", "lane": "SAFE", "key": "b"}]}))
+    (data / "paper" / "reconstruction" / "2026-11-05.json").write_text(_json.dumps({"findings": []}))
+    (reg / "reconstruction_queue.jsonl").write_text("\n".join(_json.dumps(r) for r in [
+        {"type": "MISS_PATTERN", "lane": "DECISION", "key": "a", "state": "DRAFT", "day": "2026-11-04"},
+        {"type": "JOB_FAIL", "lane": "SAFE", "key": "b", "state": "to_file", "day": "2026-11-04"}]) + "\n")
+    (data / "paper" / "reconstruction" / "forwarded.jsonl").write_text(_json.dumps({"key": "b", "num": 7, "note": "filed"}) + "\n")
+    (data / "paper" / "reconstruction" / "decisions.jsonl").write_text("")
+    monkeypatch.setattr(views, "DATA", data)
+    monkeypatch.setattr(views, "REG", reg)
+    h = views.rx_history()
+    assert h["cards"] == 2 and h["findings_total"] == 2 and h["by_lane"] == {"DECISION": 1, "SAFE": 1}
+    assert h["safe_to_repair_board"]["filed_as_flags"] == 1 and h["decision_rows"]["waiting"] == 1
+    assert h["words"].startswith("2 nightly cards (2026-11-04 to 2026-11-05): 2 findings, 1 operational")
+
+
+def test_a_trials_question_is_not_a_moving_average_reading():
+    """RI4: "how are the two paper trials going, the one about falls under the 200-day ..." got the Nifty crossover reading (0.0 s)."""
+    from jarvis.india import technicals
+
+    assert technicals.technicals_flow("How are the two paper trials going, the one about falls under the 200-day and the relative strength one?") is None

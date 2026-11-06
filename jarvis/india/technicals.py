@@ -65,7 +65,7 @@ HYPOTHETICAL = re.compile(r"\b(?:if|what if|suppose|supposing|imagine|were to|wo
 DECISION_Q = re.compile(r"\bwhat (?:does|would|will) (?:it|ananta|you) (?:do|say|decide)\b|\btrade or (?:stay|sit|wait)\b|\bstay out\b|\bsit out\b|"
                         r"\bno trade\b|\bconfirmation\b|\btypical edge\b|\black of it\b", re.I)
 QUESTION = re.compile(r"\?|^\s*(?:(?:okay|ok|so|and|ananta|sir|next|good|fair|sure)[\s,.!]*)*(?:what|where|has|have|is|are|does|do|how|show|give|tell|which|when)\b", re.I)
-NOT_FOR_US = re.compile(r"\b(stocks above|shares? of (the )?(liquid|stocks)|how many (stocks|shares)|breadth|research|study|studies|analy[sz]e|flag|log it|note it|should|let'?s|plan to|later|buy|sell|why|too late|enter|entry|"
+NOT_FOR_US = re.compile(r"\b(trials?|paper trial|reconstruction|stocks above|shares? of (the )?(liquid|stocks)|how many (stocks|shares)|breadth|research|study|studies|analy[sz]e|flag|log it|note it|should|let'?s|plan to|later|buy|sell|why|too late|enter|entry|"
                         r"earnings|results|worth|good time|what do you think|your read|hold|add|trim|exit)\b", re.I)
 # 27 Oct: "TCS gapped up 4% after earnings. Is it too late to enter?" got NIFTY's support and resistance. A name Ananta has no panel for (an
 # upper-case ticker or a well-known company word) means the question is not about the Nifty: the model answers (it says what it has).

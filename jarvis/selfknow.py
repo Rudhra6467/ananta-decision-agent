@@ -396,6 +396,34 @@ def parts(market: str = "india") -> dict:
     return out
 
 
+def brief(market: str, now: float | None = None) -> dict:
+    """The book about itself in short, for every turn (5 Nov evening, Madhav's yes to the audit's recommendation: the India side opened the
+    book by word lists, so a question phrased another way answered without it). About 1,500 characters: the last 3 days' changes in one
+    line each, the live self-check, and one line per part. The full book (about_ananta) still comes with a clear question about Ananta."""
+    out = {"how": ("Ananta's book about itself, in short, present on every turn: use it ONLY when the question is about Ananta itself (what "
+                   "changed, is anything wrong, how does a part work, what do you keep); the full book (about_ananta) comes with a clear "
+                   "question about Ananta. Never say you cannot know what was done in the back end.")}
+    rows = recent(3, now=now)[-8:]
+    out["changes_last_3_days"] = [say(r)[:160] for r in rows]
+    try:
+        from jarvis import selfcheck
+
+        c = selfcheck.check(market, now)
+        out["not_right"] = selfcheck.words(c)
+        out["checked_fine"] = selfcheck.fine(c)
+    except Exception as exc:  # noqa: BLE001
+        out["not_right"] = [f"the self-check could not be read ({type(exc).__name__})"]
+    vp = _voice_print(now)
+    db = database(market, now)
+    out["parts_in_one_line"] = {
+        "voice": "speaks each sentence as it is written (since 5 Nov, both markets); ask for how it works",
+        "voice_print": vp.get("words", "")[:220],
+        "watchdog": "the outside watchdog every 5 minutes restarts a service that stops answering; the India service also ends itself if stuck in its own work",
+        "database": db.get("words", "")[:220],
+    }
+    return out
+
+
 def about_ananta(text: str, market: str, check: bool = True) -> dict:
     """The block an Ask adds when a question is about Ananta itself."""
     out = {"how": HOW, "changes_on_this": [say(r) for r in search(text)], "changes_last_7_days": [say(r) for r in recent(7)][-15:],

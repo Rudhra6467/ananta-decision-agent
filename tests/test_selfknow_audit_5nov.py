@@ -45,7 +45,7 @@ def test_what_the_self_check_found_fine_is_said_too(tmp_path, monkeypatch):
     assert len(fine) == 1 and fine[0].startswith("the same check (5 Nov 19:59 Toronto) found 2 items not right")
     assert "Claude answers" in fine[0] and "four services" in fine[0] and "no test card" in fine[0]
     assert "watchdog" not in fine[0] and "replay" not in fine[0]
-    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 5
+    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 6   # seven checks since the Mac-load one
     monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
     (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": []}))
     a = selfknow.about_ananta("is anything wrong", "crypto")
@@ -105,3 +105,38 @@ def test_both_sides_see_the_whole_self_check_own_market_first(tmp_path, monkeypa
     f = selfcheck.fine(c)[0]
     assert f.startswith("the same check (now) found 3 items not right") and "no watchdog restart" not in f and "Claude answers" in f
     assert selfcheck.fine({"at_words": "now", "items": []})[0].startswith("checked now, all in order: ")
+
+
+# ---- 5 Nov evening, Madhav: "Yes to all your recommendations" ----
+
+def test_the_self_check_watches_the_macs_memory_and_load():
+    """The 19:34 false restart came from a starved Mac and nothing watched that."""
+    assert selfcheck._mac({"free_pct": 40, "swap_gb": 2.0, "load5": 3.0, "cores": 10}) == []
+    low = selfcheck._mac({"free_pct": 26, "swap_gb": 14.3, "load5": 2.5, "cores": 10})
+    assert low[0]["severity"] == "low" and "14.3 GB of swap" in low[0]["what"] and low[0]["source"] == "Mac load"
+    med = selfcheck._mac({"free_pct": 8, "swap_gb": 13.5, "load5": 21.0, "cores": 10})
+    assert med[0]["severity"] == "medium" and "8% of memory free" in med[0]["what"] and "load 21.0 on 10 cores" in med[0]["what"]
+    assert selfcheck._mac({"cores": 10}) == [], "nothing readable: no finding"
+    fine = selfcheck.fine({"at_words": "now", "items": med})
+    assert "memory and CPU to spare" not in fine[0] and "Claude answers" in fine[0]
+    assert "memory and CPU to spare" in selfcheck.fine({"at_words": "now", "items": []})[0]
+
+
+def test_the_saturday_kite_fill_is_on_the_watch_list():
+    from jarvis.service import runcheck_parts as RP
+
+    p = [x for x in RP.PARTS if x["id"] == "india_kite_fill"]
+    assert p and p[0]["job"] == "com.ananta.india.kitefill" and p[0]["cadence"]["weekly"] == 5 and p[0]["cadence"]["tz"] == "Asia/Kolkata"
+    assert p[0]["proof"] == {"mtime": "{runs}/kite_fill_weekly.log", "err_file": "{runs}/kite_fill_weekly.err"}
+
+
+def test_the_india_side_gets_the_book_in_short_on_every_turn(tmp_path, monkeypatch):
+    monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
+    (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": []}))
+    b = selfknow.brief("india")
+    assert set(b) == {"how", "changes_last_3_days", "not_right", "checked_fine", "parts_in_one_line"}
+    assert b["changes_last_3_days"] and all(len(x) <= 160 for x in b["changes_last_3_days"])
+    assert "Nothing is wrong" in b["not_right"][0] and set(b["parts_in_one_line"]) == {"voice", "voice_print", "watchdog", "database"}
+    assert len(json.dumps(b)) < 4500, "small enough for every turn"
+    src = open(india_ask.__file__).read()
+    assert 'f["ananta_brief"] = selfknow.brief("india")' in src and '"ananta_brief")' in src

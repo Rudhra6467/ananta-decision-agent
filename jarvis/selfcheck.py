@@ -10,10 +10,13 @@ What it looks at:
   answers     the nightly replay of real answers and the fact map (docs/repair_shop/replay, docs/repair_shop/factmap)
   leftovers   a test card waiting in Madhav's approvals (5 Nov: one sat there for four days)
   watchdog    restarts in the last 24 hours
+  credit      a one-word Claude call: an empty API balance is refused at once (5 Nov 14:53)
+  mac         free memory, swap and load on the Mac: a starved service looks frozen (5 Nov 19:34)
 """
 from __future__ import annotations
 
 import json
+import re
 import os
 import sqlite3
 import time
@@ -129,6 +132,49 @@ def _restarts(now: float) -> list[dict]:
     return out
 
 
+def mac_stats() -> dict:
+    """Free memory (%), swap in use (GB), load (5-minute) and cores, read from the Mac (read-only, about 0.1 s)."""
+    import subprocess
+
+    out: dict = {"cores": os.cpu_count() or 1}
+    try:
+        out["load1"], out["load5"], _ = (round(x, 1) for x in os.getloadavg())
+    except OSError:
+        pass
+    try:
+        txt = subprocess.run(["memory_pressure"], capture_output=True, text=True, timeout=5).stdout
+        m = re.search(r"free percentage:\s*(\d+)%", txt)
+        if m:
+            out["free_pct"] = int(m.group(1))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        txt = subprocess.run(["sysctl", "-n", "vm.swapusage"], capture_output=True, text=True, timeout=5).stdout
+        m = re.search(r"used\s*=\s*([\d.]+)([MG])", txt)
+        if m:
+            out["swap_gb"] = round(float(m.group(1)) / (1024 if m.group(2) == "M" else 1), 1)
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
+def _mac(stats: dict | None = None) -> list[dict]:
+    """5 Nov 2026 evening (Madhav's yes to the audit's recommendations): the 19:34 false restart came from a starved Mac (swapping under the
+    voice models and the jobs) and nothing watched that. Medium when memory is nearly gone or the load is twice the cores; low when it is
+    getting tight. Words carry the numbers, so the voice can say them."""
+    st = stats if stats is not None else mac_stats()
+    free, swap, load5, cores = st.get("free_pct"), st.get("swap_gb"), st.get("load5"), st.get("cores") or 1
+    medium = (free is not None and free < 10) or (load5 is not None and load5 >= 2 * cores)
+    low = (free is not None and free < 20) or (swap is not None and swap >= 8) or (load5 is not None and load5 >= cores)
+    if not (medium or low):
+        return []
+    bits = [f"{free}% of memory free" if free is not None else None, f"{swap} GB of swap in use" if swap is not None else None,
+            f"load {load5} on {cores} cores" if load5 is not None else None]
+    return [{"market": "both", "severity": "medium" if medium else "low", "source": "Mac load",
+             "what": (f"the Mac is {'short of memory or overloaded' if medium else 'getting tight'} ({', '.join(b for b in bits if b)}): the voice "
+                      "and the answers can be slow, and a service can be starved for a while, as the India service was at 19:34 on 5 Nov")}]
+
+
 def _credit(post=None) -> list[dict]:
     """5 Nov 2026, 14:53 Toronto: the Anthropic credit ran out and nothing said so; India's answers fell back to its rules and crypto's to
     Gemini. A one-token call with the services' own key says whether Claude still answers (an empty balance is refused at once, free)."""
@@ -160,7 +206,7 @@ def refresh(now: float | None = None, opener=None, write: bool = True, post=None
     now = now or time.time()
     items: list[dict] = []
     for name, fn in (("runs", lambda: _runs(now)), ("services", lambda: _services(opener)), ("answers", _answers),
-                     ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post))):
+                     ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac)):
         try:
             items += fn()
         except Exception as exc:  # noqa: BLE001  one check failing is itself a finding, never a crash
@@ -207,11 +253,12 @@ def words(c: dict) -> list[str]:
 
 CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hours"), ("services", "the four services answer (crypto, India, voice, voice print)"),
           ("answers", "last night's replay of real answers and the fact map"), ("leftovers", "no test card is waiting in approvals"),
-          ("watchdog", "no watchdog restart"), ("credit", "Claude answers (the API credit is there)"))
+          ("watchdog", "no watchdog restart"), ("credit", "Claude answers (the API credit is there)"),
+          ("mac", "the Mac has memory and CPU to spare"))
 
 
 SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",
-                "watchdog": "watchdog", "Claude credit": "credit"}
+                "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac"}
 
 
 def fine(c: dict) -> list[str]:

@@ -304,6 +304,11 @@ PARTS: list[dict] = [
                "time_format": "%Y-%m-%dT%H:%M", "tz": "UTC", "before_first": "no dated sign-in record yet; the first run writes it"}},
 
     # ---------------------------------------------------------------- India (read-only; each job's latest run)
+    # 5 Nov 2026 evening (Madhav's yes to the audit's recommendations): the one scheduled job the self-check did not watch
+    {"id": "india_kite_fill", "name": "India Kite fill (Saturdays): the week's minute bars pulled and the intraday store rebuilt",
+     "job": "com.ananta.india.kitefill", "area": "india", "severity": "low", "since": "2026-10-18",
+     "cadence": {"weekly": 5, "at": "10:00", "tz": IST, "grace": 4 * 3600}, "latest_only": True,
+     "proof": {"mtime": "{runs}/kite_fill_weekly.log", "err_file": "{runs}/kite_fill_weekly.err"}},
     {"id": "india_nightly", "name": "India nightly", "job": "com.ananta.india.nightly", "area": "india", "severity": "medium",
      "since": "2026-10-18", "cadence": {"daily": "02:30", "tz": TOR, "grace": 2 * 3600}, "latest_only": True,
      "proof": {"mtime": "{runs}/india_nightly.log", "err_file": "{runs}/india_nightly.err"}},

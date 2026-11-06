@@ -1533,11 +1533,15 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
     if SYS_TOPIC.search(text) or SYS_TOPIC.search(recent):   # 28 Oct (grader): the watchdog and a fix's life after it is built were not in the facts
         f["system_care"] = SYSTEM_CARE
+    try:                                                      # 5 Nov evening (Madhav's yes): the book in short on EVERY turn, so no phrasing misses it
+        from jarvis import selfknow
+        f["ananta_brief"] = selfknow.brief("india")
+    except Exception as e:  # noqa: BLE001  the book about itself never breaks an answer
+        f["ananta_brief"] = {"error": type(e).__name__}
     if SELF_TOPIC.search(text) or SYS_TOPIC.search(text) or SELF_TOPIC.search(recent):   # 5 Nov: what changed, how its parts work now, what is not right (jarvis/selfknow.py)
         try:
-            from jarvis import selfknow
             f["about_ananta"] = selfknow.about_ananta(text, "india")
-        except Exception as e:  # noqa: BLE001  the book about itself never breaks an answer
+        except Exception as e:  # noqa: BLE001
             f["about_ananta"] = {"error": type(e).__name__}
     if TRIAL_TOPIC.search(text) or TRIAL_TOPIC.search(recent):   # 30 Oct (Madhav): "what is the status of the trials, how much longer?" from the clocks
         f["trials"] = _load_trials()
@@ -1592,7 +1596,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
         per_turn = ("today_live", "talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map", "trader_desk",
-                    "options_line_review", "about_ananta")
+                    "options_line_review", "about_ananta", "ananta_brief")
         facts_text = (f"FACTS (the nightly read model, full data through {f.get('data_through')}; today_live, in the user turn, is today). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"

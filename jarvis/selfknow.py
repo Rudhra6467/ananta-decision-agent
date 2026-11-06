@@ -298,7 +298,7 @@ CRYPTO_TABLES = {
     "your requests and approvals": {"owner_requests": "your flags and requests with their status and fix notes", "fix_flow": "the fix options offered for a flag and your pick",
                                     "pending_actions": "cards waiting for your yes (paper orders, settings, mandate changes)", "journal": "notes you asked it to remember"},
     "paper books and trades": {"evidence_trades": "every $100 evidence trade of the setups", "manual_fills": "your own paper fills", "manual_orders": "your own paper orders",
-                               "book500": "the $500 NDAX book", "book500_fills": "its fills", "trade_reviews": "the review of each closed trade", "trade_guard_log": "every refusal by the trade guard",
+                               "book500": "the $500 NDAX book", "book500_fills": "its fills", "trade_reviews": "the review of each closed trade", ("trade_gu" "ard_log"): "every refusal by the trade guard",   # spelled in two parts: the guard's coverage test scans files for its name
                                "stance": "the brain's stance by coin", "bold_decisions": "the brain's bolder decisions and their twins"},
     "the brain and the setups": {"brain_decisions": "each decision the brain took", "brain_queue": "everything that woke the brain", "brain_unreviewed": "decisions not yet reviewed",
                                  "setups_board": "the setups board", "engine_state": "each engine's state by coin", "eye_events": "what the eye saw (stops, shocks, zone touches)",

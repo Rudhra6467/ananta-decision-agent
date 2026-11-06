@@ -55,17 +55,28 @@ def _get(url: str, opener=None) -> dict | None:
         return None
 
 
+def _plain_detail(detail) -> str:
+    """The lost-runs detail in words Madhav reads (6 Nov replay and exam: '1x india_evening.err written during the run' and a job name
+    with '(launchd sees only the last step's exit)' reached his answers). File names, paths and code names are dropped; the full detail
+    stays in the lost-runs page."""
+    det = str(detail or "").split(" (")[0][:120]
+    if re.search(r"[_/\\]|\.(err|log|json|jsonl|py|plist|txt)\b|launchd|\bpid\b", det, re.I):
+        return ""
+    return det
+
+
 def _runs(now: float) -> list[dict]:
     from jarvis.service import runcheck
 
     out = []
     r = runcheck.run(now=now)
     for m in (r.get("windows") or {}).get("24h", {}).get("misses") or []:
-        det = str(m.get("detail") or "").split(" (")[0][:120]
+        det = _plain_detail(m.get("detail"))
+        name = str(m.get("name") or "a scheduled job").split(" (")[0]
         if m.get("kind") == "down":
             what = f"a part was down at {_when(m.get('t') or now)}" + (f" ({det})" if det else "")
         else:
-            what = f"{m.get('name')} {KIND_WORDS.get(m.get('kind'), m.get('kind'))} at {_when(m.get('t') or now)}" + (f" ({det})" if det else "")
+            what = f"{name} {KIND_WORDS.get(m.get('kind'), m.get('kind'))} at {_when(m.get('t') or now)}" + (f" ({det})" if det else "")
         out.append({"market": m.get("area") or "both", "severity": m.get("severity") or "medium", "source": "lost-runs check", "what": what})
     return out
 
@@ -128,7 +139,7 @@ def _restarts(now: float) -> list[dict]:
             continue
         which = "India" if f.name.startswith("india_") else "crypto (Jarvis)"
         out.append({"market": "india" if which == "India" else "crypto", "severity": "medium", "source": "watchdog",
-                    "what": f"the {which} service froze and the watchdog restarted it at {_when(f.stat().st_mtime)}"})
+                    "what": f"the {which} service froze and was restarted automatically at {_when(f.stat().st_mtime)}"})
     return out
 
 

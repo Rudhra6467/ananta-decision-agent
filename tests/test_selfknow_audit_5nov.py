@@ -136,7 +136,7 @@ def test_the_india_side_gets_the_book_in_short_on_every_turn(tmp_path, monkeypat
     monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
     (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": []}))
     b = selfknow.brief("india")
-    assert set(b) == {"how", "changes_last_3_days", "not_right", "checked_fine", "parts_in_one_line"}
+    assert set(b) == {"how", "changes_last_3_days", "not_right", "checked_fine", "parts_in_one_line", "audits_and_reviews_last_7_days"}
     assert b["changes_last_3_days"] and all(len(x) <= 160 for x in b["changes_last_3_days"])
     assert "Nothing is wrong" in b["not_right"][0] and set(b["parts_in_one_line"]) == {"voice", "voice_print", "watchdog", "database"}
     assert len(json.dumps(b)) < 4500, "small enough for every turn"
@@ -221,3 +221,33 @@ def test_the_self_check_watches_the_reconstruction_order(tmp_path):
     con.commit(); con.close()
     assert selfcheck._rx_order(paper, db) == []
     assert "rx_order" in [k for k, _ in selfcheck.CHECKS] and selfcheck.SOURCE_CHECK["reconstruction order"] == "rx_order"
+
+
+# ---- 6 Nov evening: the extra check Madhav asked for ("ask a question about the auditing ... see if there are any leaks") ----
+
+def test_the_book_tells_the_audits_apart_and_fits_under_the_tool_cap(tmp_path, monkeypatch):
+    """The crypto voice, asked about 'yesterday's audit of your own knowledge', answered with the reconstruction audit, and its self-check
+    was cut off: the about-Ananta block ran past the Ask's 20,000-character tool cap. One line per audit or review; the self-check first."""
+    import json as _json
+    import time as _time
+
+    from jarvis import selfknow
+
+    book = tmp_path / "changes.jsonl"
+    rows = [{"date": "2026-11-05", "market": "both", "area": "self_knowledge", "words": "w1", "why": "the reverse-engineering audit of the self-knowledge work, 5 Nov evening", "status": "live"},
+            {"date": "2026-11-05", "market": "india", "area": "ask", "words": "w2", "why": "the self-knowledge audit: 3 of 12 India questions missed the book", "status": "live"},
+            {"date": "2026-11-05", "market": "both", "area": "watchdog", "words": "w3", "why": "Madhav's yes to the audit's recommendations, 5 Nov 21:37", "status": "live"},
+            {"date": "2026-11-06", "market": "crypto", "area": "reconstruction", "words": "w4", "why": "the reconstruction audit, 6 Nov", "status": "live"},
+            {"date": "2026-11-06", "market": "both", "area": "ask", "words": "w5", "why": "nothing to do with a review", "status": "live"}]
+    book.write_text("".join(_json.dumps(r) + "\n" for r in rows))
+    monkeypatch.setattr(selfknow, "CHANGES", book)
+    selfknow._CACHE.clear()
+    now = _time.mktime(_time.strptime("2026-11-06 17:00", "%Y-%m-%d %H:%M"))
+    rv = selfknow.reviews(7, now=now)
+    assert rv == ["5 Nov: the self-knowledge audit (3 changes: ask, self knowledge, watchdog)", "6 Nov: the reconstruction audit (1 change: reconstruction)"]
+    b = selfknow.brief("crypto", now=now)
+    assert b["audits_and_reviews_last_7_days"] == rv
+    o = selfknow.about_ananta("what did yesterday's audit of your own knowledge find", "crypto", check=False)
+    keys = list(o.keys())
+    assert keys.index("audits_and_reviews_last_7_days") < keys.index("parts") and "changes_on_this" in o
+    assert len(_json.dumps(o, default=str)) < 20000, "the whole block must fit the Ask's tool cap with room to spare"

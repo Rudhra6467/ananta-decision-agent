@@ -361,6 +361,32 @@ def parts(market: str = "india") -> dict:
     return out
 
 
+_REVIEW_RE = re.compile(r"(self-knowledge audit|reconstruction audit|independent audit|data audit|outsider (?:round|test|review)|morning review|audit)", re.I)
+
+
+def reviews(days: float = 7, now: float | None = None) -> list[str]:
+    """6 Nov 2026 (the extra check after the two audits): the crypto voice, asked about 'yesterday's audit of your own knowledge', answered with
+    the reconstruction audit: the brief held only the last 8 lines and each line lost its 'why' at 160 characters. One line per audit or review
+    in the window: its date, its name and how many changes it made, so the two audits are told apart."""
+    groups: dict = {}
+    rows = [(r, m) for r in recent(days, now=now, limit=400) if (m := _REVIEW_RE.search(str(r.get("why") or "")))]
+    rows.sort(key=lambda x: x[1].group(1).lower() == "audit")      # the named ones first, so "the audit's recommendations" joins the day's named audit
+    for r, m in rows:
+        name = m.group(1).lower()
+        if name == "audit":
+            named = [k[1] for k in groups if k[0] == str(r.get("date")) and k[1] != "audit"]
+            name = named[-1] if named else "audit"
+        key = (str(r.get("date")), name)
+        g = groups.setdefault(key, {"n": 0, "areas": []})
+        g["n"] += 1
+        if r.get("area") and r["area"] not in g["areas"]:
+            g["areas"].append(r["area"])
+    out = []
+    for (day, name), g in sorted(groups.items()):
+        out.append(f"{_day(day)}: the {name} ({g['n']} change{'s' if g['n'] != 1 else ''}: {', '.join(a.replace('_', ' ') for a in g['areas'][:6])})")
+    return out
+
+
 def brief(market: str, now: float | None = None) -> dict:
     """The book about itself in short, for every turn (5 Nov evening, Madhav's yes to the audit's recommendation: the India side opened the
     book by word lists, so a question phrased another way answered without it). About 1,500 characters: the last 3 days' changes in one
@@ -370,6 +396,7 @@ def brief(market: str, now: float | None = None) -> dict:
                    "question about Ananta. Never say you cannot know what was done in the back end.")}
     rows = recent(3, now=now)[-8:]
     out["changes_last_3_days"] = [say(r)[:160] for r in rows]
+    out["audits_and_reviews_last_7_days"] = reviews(7, now=now)[-6:]
     try:
         from jarvis import selfcheck
 
@@ -391,8 +418,9 @@ def brief(market: str, now: float | None = None) -> dict:
 
 def about_ananta(text: str, market: str, check: bool = True) -> dict:
     """The block an Ask adds when a question is about Ananta itself."""
-    out = {"how": HOW, "changes_on_this": [say(r) for r in search(text)], "changes_last_7_days": [say(r) for r in recent(7)][-15:],
-           "parts": parts(market)}
+    # 6 Nov 2026: the whole block for crypto ran to 21,000 characters and the Ask's 20,000-character tool cap cut off the self-check at its
+    # end ("the output was cut off, so I can't give you its full count"): the self-check comes first, each line is capped, the lists shorter.
+    out = {"how": HOW}
     if check:
         try:
             from jarvis import selfcheck
@@ -402,4 +430,8 @@ def about_ananta(text: str, market: str, check: bool = True) -> dict:
             out["checked_fine"] = selfcheck.fine(c)
         except Exception as exc:  # noqa: BLE001  the self-check never breaks an answer
             out["not_right"] = [f"the self-check could not run ({type(exc).__name__})"]
+    out["audits_and_reviews_last_7_days"] = reviews(7)[-6:]
+    out["changes_on_this"] = [say(r)[:320] for r in search(text, limit=8)]
+    out["changes_last_7_days"] = [say(r)[:200] for r in recent(7)][-10:]
+    out["parts"] = parts(market)
     return out

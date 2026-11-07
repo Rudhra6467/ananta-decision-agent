@@ -139,7 +139,7 @@ def test_the_india_side_gets_the_book_in_short_on_every_turn(tmp_path, monkeypat
     assert set(b) == {"how", "changes_last_3_days", "not_right", "checked_fine", "parts_in_one_line", "audits_and_reviews_last_7_days", "morning_review"}
     assert b["changes_last_3_days"] and all(len(x) <= 160 for x in b["changes_last_3_days"])
     assert "Nothing is wrong" in b["not_right"][0] and set(b["parts_in_one_line"]) == {"voice", "voice_print", "watchdog", "database"}
-    assert len(json.dumps(b)) < 5000, "small enough for every turn (7 Nov: the audits list and the morning review in short were added)"
+    assert len(json.dumps(b)) < 5600, "small enough for every turn (7 Nov: the audits list and the morning review in short were added)"
     src = open(india_ask.__file__).read()
     assert 'f["ananta_brief"] = selfknow.brief("india")' in src and '"ananta_brief")' in src
 

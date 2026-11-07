@@ -388,7 +388,7 @@ def reviews(days: float = 7, now: float | None = None) -> list[str]:
     return out
 
 
-REVIEW_KEEP = ("Overnight", "Never again", "Ananta on itself", "Waiting for Madhav", "Fixed today", "Evidence", "Board")   # in budget order
+REVIEW_KEEP = ("Overnight", "Ananta on itself", "Never again", "Evidence", "Fixed today", "Waiting for Madhav", "Board")   # in budget order
 CRYPTO_REVIEWS = REPO / "docs" / "repair_shop" / "daily"
 
 
@@ -435,7 +435,7 @@ def brief(market: str, now: float | None = None) -> dict:
     out["audits_and_reviews_last_7_days"] = reviews(7, now=now)[-6:]
     try:
         if market == "crypto":
-            out["morning_review"] = review_page(CRYPTO_REVIEWS, per_section=2, cap=650)
+            out["morning_review"] = review_page(CRYPTO_REVIEWS, per_section=4, cap=1300)
         else:
             from jarvis.india import selfparts
 

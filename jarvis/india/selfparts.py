@@ -154,4 +154,4 @@ def morning_review(full: bool = False) -> dict:
     from jarvis import selfknow
     from jarvis.india import views
 
-    return selfknow.review_page(views.REG / "reviews") if full else selfknow.review_page(views.REG / "reviews", per_section=2, cap=650)
+    return selfknow.review_page(views.REG / "reviews") if full else selfknow.review_page(views.REG / "reviews", per_section=4, cap=1300)

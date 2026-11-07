@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useScrollToTop } from "expo-router";
 import { NScreen, askHref, useSurface } from "../../src/newscreen";
 import { Body, BookRow, Btn, G, GradeChip, H, Meta, NCard, TY, inr, pctS } from "../../src/newui";
 import { C } from "../../src/theme";
@@ -18,6 +19,7 @@ export default function Money() {
   // 1 Nov (Madhav): Today's account box opens straight at Your holdings, the Nifty box at the options
   const p = useLocalSearchParams<{ focus?: string; t?: string }>();
   const ref = useRef<ScrollView | null>(null);
+  useScrollToTop(ref);                          // 7 Nov: the Money button, pressed again, goes back to the top
   const [ys, setYs] = useState<Record<string, number>>({});
   const ysRef = useRef<Record<string, number>>({});
   ysRef.current = ys;

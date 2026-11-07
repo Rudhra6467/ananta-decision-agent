@@ -7,7 +7,7 @@ import { C, useThemeVersion } from "../../src/theme";
 import { CheckIcon2, DollarIcon, G, Orb, PeopleIcon, RupeeIcon, SunIcon, TY } from "../../src/newui";
 import { useMarket } from "../../src/market";
 import { ScreenError } from "../../src/safe";
-import { useTyping } from "../../src/once";
+import { pressOrb, useTyping } from "../../src/once";
 
 export const ErrorBoundary = ScreenError;
 
@@ -30,7 +30,8 @@ function Bar({ state, navigation }: any) {
         if (!t.Icon) {
           return (
             <View key={t.name} style={{ width: 64, alignItems: "center", marginTop: active === "ask" ? -14 : -34 }}>
-              <Orb onPress={() => navigation.navigate("ask")} />
+              {/* 7 Nov (Madhav): first press opens Ask; on Ask already, the same press starts the voice */}
+              <Orb label={active === "ask" ? "Talk to Ananta" : "Ask Ananta"} onPress={() => { if (active === "ask") pressOrb(); else navigation.navigate("ask"); }} />
             </View>
           );
         }
@@ -39,7 +40,13 @@ function Bar({ state, navigation }: any) {
         const Icon = t.name === "money" && mk === "crypto" ? DollarIcon : t.Icon;   // 1 Nov: crypto's money is in dollars
         return (
           <Pressable key={t.name} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: on }}
-            onPress={() => navigation.navigate(t.name)} style={{ width: 64, alignItems: "center", gap: 4, minHeight: 44 }}>
+            onPress={() => {
+              // 7 Nov (Madhav): the tab's own button, pressed while on that tab, takes the page back to the top (the screens listen with
+              // useScrollToTop); the event is the one React Navigation's bar would send, so a screen can also prevent the switch
+              const route = state.routes.find((r: any) => r.name === t.name);
+              const ev = navigation.emit({ type: "tabPress", target: route?.key, canPreventDefault: true });
+              if (!on && !ev.defaultPrevented) navigation.navigate(t.name);
+            }} style={{ width: 64, alignItems: "center", gap: 4, minHeight: 44 }}>
             <Icon color={col} />
             <Text style={[TY.tab, { color: col }]}>{t.label}</Text>
           </Pressable>

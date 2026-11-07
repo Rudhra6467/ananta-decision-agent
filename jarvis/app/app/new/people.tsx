@@ -1,7 +1,9 @@
 // People (the new look): who can talk to Ananta and what each may do; teach my voice; invite. Data: /india/v3/people (names and relations
 // only). Only Madhav decides; everyone else can ask.
-import { Text, View } from "react-native";
+import { useRef } from "react";
+import { ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
+import { useScrollToTop } from "expo-router";
 import { NScreen, useSurface } from "../../src/newscreen";
 import { Body, Btn, Chev, LockIcon, Meta, NCard, TY } from "../../src/newui";
 import { C } from "../../src/theme";
@@ -11,8 +13,10 @@ export const ErrorBoundary = ScreenError;
 
 export default function People() {
   const { data: d, err, loading, reload } = useSurface("people", 300000);
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);                    // 7 Nov: the People button, pressed again, goes back to the top
   return (
-    <NScreen title="People" loading={loading} onRefresh={reload} err={err}>
+    <NScreen title="People" loading={loading} onRefresh={reload} err={err} scrollRef={scrollRef}>
       {d ? (
         <>
           <Body dim>{d.rule}</Body>

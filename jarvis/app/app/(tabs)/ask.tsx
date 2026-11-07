@@ -26,7 +26,7 @@ import { CheckIcon, CopyIcon, MicIcon, RetryIcon, SendIcon, SpeakerIcon, StopIco
 import { loadMe, useMe } from "../../src/visitor";
 import { useMarket } from "../../src/market";
 import { MsgGuard, ScreenError } from "../../src/safe";
-import { markStartersDone, setTyping, startersDone } from "../../src/once";
+import { markStartersDone, onOrbPress, setTyping, startersDone } from "../../src/once";
 
 export const ErrorBoundary = ScreenError;               // 28 Oct (flag 49): never a blank conversation screen
 
@@ -275,6 +275,20 @@ export default function Ananta() {
   const onInSize = useCallback((e: any) => {
     const next = Math.max(44, Math.min(180, Math.round(e?.nativeEvent?.contentSize?.height || 0)));
     setInH((prev) => (Math.abs(prev - next) < 3 ? prev : next));
+  }, []);
+  // 7 Nov (Madhav: "the chat box is only expanding, not reducing its size when the text was removed"): on the web the box's measured
+  // content can never be smaller than the box itself, so once grown it never shrank. After the text gets shorter the box is set to its
+  // smallest and measured again from its real content, in the same frame.
+  const inRef = useRef<any>(null);
+  const refit = useCallback(() => {
+    if (Platform.OS !== "web") return;
+    const n: any = inRef.current;
+    if (!n || typeof n.scrollHeight !== "number") return;
+    const was = n.style.height;
+    n.style.height = "44px";
+    const h = Math.max(44, Math.min(180, Math.round(n.scrollHeight)));
+    n.style.height = was;
+    setInH((prev) => (Math.abs(prev - h) < 3 ? prev : h));
   }, []);
   const dropStarters = () => { if (startersOn) { setStartersOn(false); markStartersDone(); } };
   useEffect(() => () => setTyping(false), []);
@@ -755,6 +769,14 @@ export default function Ananta() {
     }
   }, [params.q, params.t]);
 
+  // 7 Nov (Madhav): the orb on the bar, pressed while already on Ask, starts the voice (the same as the wave button); pressed while
+  // the voice is on, it is the orb's own tap (speak now / done). Run straight from the press, so Safari allows the microphone.
+  const startLiveRef = useRef<() => Promise<void>>(async () => {});
+  const liveTapRef = useRef<() => void>(() => {});
+  startLiveRef.current = startLive;
+  liveTapRef.current = () => { Haptics.soft(); loop.tap(); };
+  useEffect(() => onOrbPress(() => { if (loopRef.current?.on) liveTapRef.current(); else void startLiveRef.current(); }), []);
+
   // "Start trading -> Use Ananta" (a visitor): Ananta opens the conversation by asking whether to find a trade.
   const lastIntro = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -984,8 +1006,8 @@ export default function Ananta() {
             backgroundColor: mic.status !== "idle" ? C.bad : C.card2 }}>
             {mic.status !== "idle" ? <StopIcon color={C.onInk} /> : <MicIcon color={C.text} />}
           </Pressable>
-          <TextInput value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"}
-            onChangeText={(v) => { setText(v); if (v.trim()) dropStarters(); if (!v) setInH(44); }}
+          <TextInput ref={inRef} value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"}
+            onChangeText={(v) => { setText(v); if (v.trim()) dropStarters(); if (!v) setInH(44); else if (v.length < text.length) requestAnimationFrame(refit); }}
             // 3 Nov: the measured height is used as it is (no +2) and a change under 3 px is ignored: adding to the measure made the box grow by
             // itself, re-measure and grow again until React stopped the screen (error 185)
             onContentSizeChange={onInSize}

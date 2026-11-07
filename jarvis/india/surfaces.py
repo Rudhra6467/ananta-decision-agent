@@ -548,8 +548,10 @@ def proof(full: bool = True) -> dict:
         recon = None
     return {"ready": True, "paper": True,
             "studies": {"run": research.get("versions_tested"), "held_up": (research.get("verdicts") or {}).get("VALIDATED"), "conditional": (research.get("verdicts") or {}).get("CONDITIONAL"),
-                        "words": f"{research.get('versions_tested')} versions tested; {(research.get('verdicts') or {}).get('VALIDATED')} held up, {(research.get('verdicts') or {}).get('CONDITIONAL')} with conditions", "basis": "2000–2023 only; 2024 on is sealed"},
-            "exam": {"grade": (exam.get("outsider_r5") or exam.get("outsider_r4") or {}).get("overall") if isinstance(exam.get("outsider_r5") or exam.get("outsider_r4"), dict) else None, "words": replay.get("words") if replay else None},
+                        "words": f"{research.get('versions_tested')} versions tested; {(research.get('verdicts') or {}).get('VALIDATED')} held up, {(research.get('verdicts') or {}).get('CONDITIONAL')} with conditions", "basis": "2000–2023 only; 2024 on is sealed",
+                        "explain": studies_explain(rm)},      # 7 Nov (Madhav): the card opens an explanation, updated nightly, with an Ask Ananta button
+            "exam": {"grade": (exam.get("outsider_r5") or exam.get("outsider_r4") or {}).get("overall") if isinstance(exam.get("outsider_r5") or exam.get("outsider_r4"), dict) else None, "words": replay.get("words") if replay else None,
+                     "explain": exam_explain(replay, research)},
             "clocks": clocks, "missed": {"words": (missed or {}).get("words") or (missed or {}).get("headline"), "day": (missed or {}).get("day")} if missed else None,
             "last_night": {"words": (recon or {}).get("words") or (recon or {}).get("headline")} if recon else None,
             "links": [{"label": "Teachers, tested", "route": "/teachers"}, {"label": "The repair board", "route": "/flags"}, {"label": "Last night's card", "route": "/reconstruction"}, {"label": "What we missed", "route": "/missed"}]}
@@ -596,3 +598,95 @@ def live(full: bool = True) -> dict:
 
 views.ROUTES.update({"live": live})
 
+
+
+
+# ------------------------------------------------------------------------------------------ 7 Nov 2026 (Madhav): charts and explanations
+# "The Nifty 50 and Bank Nifty will be clickable into charts ... Same with our portfolio values box, it shows our portfolio performance
+# over time." The index chart is /v3/chart/NIFTY (the technicals panel); the portfolio chart is this, from the account benchmark the
+# nightly job writes (paper/account/benchmark.jsonl): your holdings on paper, the untouched original, the managed book, the Nifty 500.
+
+def portfolio_chart(data: Path | None = None) -> dict:
+    data = data or DATA
+    try:
+        rows = [json.loads(x) for x in (data / "paper" / "account" / "benchmark.jsonl").read_text().splitlines() if x.strip()]
+    except (OSError, ValueError):
+        rows = []
+    rows = [r for r in rows if r.get("day")]
+    if not rows:
+        return {"name": "Your portfolio", "kind": "portfolio", "as_of": None, "chart": {"dates": [], "yours": [], "untouched": [], "managed": [], "nifty500": []},
+                "words": "The portfolio record starts with the first nightly benchmark; nothing to draw yet.", "note": "paper only; the values are the nightly closes"}
+    start = float(rows[0].get("start_inr") or rows[0].get("twin_inr") or 0) or None
+    dates = [str(r["day"]) for r in rows]
+    yours = [r.get("twin_inr") for r in rows]
+    untouched = [r.get("frozen_inr") for r in rows]
+    managed = [r.get("managed_inr") for r in rows]
+    n500 = [round(start * (1 + float(r["nifty500_ret_pct"]) / 100)) if start and r.get("nifty500_ret_pct") is not None else None for r in rows]
+    last = rows[-1]
+    words = (f"From {_dw(dates[0])} to {_dw(dates[-1])}: your holdings on paper {_inr(last['twin_inr'])} ({last.get('twin_ret_pct', 0):+.2f}%), "
+             f"left untouched {_inr(last['frozen_inr'])} ({last.get('frozen_ret_pct', 0):+.2f}%)"
+             + (f", the managed book {_inr(last['managed_inr'])} ({last.get('managed_ret_pct', 0):+.2f}% over {last.get('managed_sessions', 0)} sessions)" if last.get("managed_inr") else "")
+             + (f"; the Nifty 500 {last['nifty500_ret_pct']:+.2f}% from the same start." if last.get("nifty500_ret_pct") is not None else "."))
+    return {"name": "Your portfolio", "kind": "portfolio", "as_of": dates[-1], "start_inr": start, "sessions": len(rows),
+            "chart": {"dates": dates, "yours": yours, "untouched": untouched, "managed": managed, "nifty500": n500},
+            "legend": {"yours": "your holdings on paper (the twin Ananta tends)", "untouched": "the same holdings left alone", "managed": "the managed book", "nifty500": "the Nifty 500 from the same start"},
+            "words": words, "note": "paper only, one point per session at the close; the managed book starts on its own first day"}
+
+
+def studies_explain(rm: dict) -> dict:
+    """The 'Versions tested' card's explanation, from the read model (updated with it every night): what a version is, the counts, what
+    held up and what did not, in plain words, with the question the Ask Ananta button sends."""
+    research = rm.get("research") or {}
+    v = research.get("verdicts") or {}
+    ik = rm.get("indicator_knowledge") or {}
+    held, failed = [], []
+
+    def _verdicts(t: dict) -> set:
+        v = t.get("verdict")
+        return set(v.keys()) if isinstance(v, dict) else ({str(v)} if v else set())
+
+    for fam, blk in (ik.get("families") or {}).items():
+        tested = blk.get("tested") or [] if isinstance(blk, dict) else []
+        ok = [t.get("what") for t in tested if _verdicts(t) & {"VALIDATED", "CONDITIONAL"} and t.get("what") and not str(t.get("what")).startswith("study ")]
+        seen = set().union(*[_verdicts(t) for t in tested]) if tested else set()
+        if ok:
+            held.append(ok[0])
+        elif seen and not (seen & {"VALIDATED", "CONDITIONAL"}) and (seen & {"REJECTED", "OPPOSITE"}):
+            failed.append(fam)
+    points = ["A version is one exact way of stating an idea, such as 'RSI over 70' against 'RSI over 80'; one idea can have several versions.",
+              f"{research.get('versions_tested') or 0} versions were tested on 2000-2017 and then checked on 2018-2023; 2024 onward is sealed and never looked at.",
+              f"{v.get('VALIDATED', 0)} held up in both periods, {v.get('CONDITIONAL', 0)} held with conditions, {v.get('REJECTED', 0)} did not hold, "
+              f"{v.get('OPPOSITE', 0)} showed the opposite of the claim, {v.get('INCONCLUSIVE', 0)} had too little data to judge."]
+    if held:
+        points.append("What held up and matters for your money, as filters on what to avoid rather than buy signals: " + "; ".join(held[:4]) + ".")
+    if failed:
+        points.append("What did not hold, so nothing trades on it: " + ", ".join(failed[:5]) + ".")
+    points.append("A result that held is evidence, not a rule: a rule changes only with Madhav's yes, and nothing here trades by itself.")
+    return {"points": points, "updated": _dw(rm.get("data_through")) + " close" if rm.get("data_through") else "", "source": "the nightly read model and the test ledger",
+            "ask": "Explain the versions tested: what a version is, how many held up and on what data, which ones matter for my money, and what was rejected."}
+
+
+def exam_explain(replay: dict | None, research: dict) -> dict:
+    """The 'Nightly check' card's explanation: what is re-asked every night, how it is graded, last night's result, the weekly exam."""
+    s = replay or {}
+    ex = (research.get("exam") or {}).get("last") or {}
+    points = ["Every night Ananta re-asks the real questions of the day and a bank of past questions, and grades each answer against that day's facts: "
+              "a wrong day, a wrong number, a missing part or jargon counts as a fail."]
+    if s.get("night"):
+        points.append(f"Last night ({_dw(s['night'])}): {(s.get('today_turns') or 0) - (s.get('today_failed') or 0)} of {s.get('today_turns') or 0} of the day's answers passed; "
+                      f"the regression bank {(s.get('bank_checked') or 0) - (s.get('bank_failed') or 0)} of {s.get('bank_checked') or 0} ({s.get('bank_fixed') or 0} fixed for good, {s.get('bank_open') or 0} still open); "
+                      f"the never-again cases {(s.get('never_again_checked') or 0) - (s.get('never_again_failed') or 0)} of {s.get('never_again_checked') or 0}.")
+    else:
+        points.append("The nightly check has not written a result yet.")
+    if ex.get("day"):
+        points.append(f"The weekly India exam ({_dw(ex['day'])}): knows {ex.get('known')} of {ex.get('known_of')}, says 'I don't know' when it should {ex.get('unknown')} of {ex.get('unknown_of')}, "
+                      f"explains why {ex.get('why')} of {ex.get('why_of')}, safety {ex.get('safety')} of {ex.get('of')}, plain words {ex.get('plain')} of {ex.get('of')}: "
+                      f"{'PASS' if ex.get('exam_pass') else 'FAIL'}; {research.get('exam', {}).get('passed', 0)} of {research.get('exam', {}).get('runs', 0)} runs passed so far.")
+    if s.get("bank_open"):
+        points.append(f"Still open: {s['bank_open']} past answers that failed again last night; each is on the repair board until it passes.")
+    points.append("A failed check changes an answer, never a trade: the paper books decide by their rules whatever the check says.")
+    return {"points": points, "updated": (_dw(s["night"]) + " night") if s.get("night") else "", "source": "docs/repair_shop/replay/latest.json and the weekly exam",
+            "ask": "Explain the nightly check: what it re-asks every night, how it is graded, what failed recently and what is still open."}
+
+
+views.ROUTES["chart/portfolio"] = portfolio_chart   # 7 Nov: also reachable as a plain view

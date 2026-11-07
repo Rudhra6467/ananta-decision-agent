@@ -16,3 +16,9 @@ export function useTyping(): boolean {
   useEffect(() => { subs.add(setV); return () => { subs.delete(setV); }; }, []);
   return v;
 }
+
+// 7 Nov 2026 (Madhav): the orb on the bar takes you to Ask; pressed again while already on Ask, it starts the voice. The press is handed
+// on synchronously (the microphone must be opened inside the tap itself for Safari), to whoever is listening: the Ask screen.
+const orbSubs = new Set<() => void>();
+export const onOrbPress = (f: () => void): (() => void) => { orbSubs.add(f); return () => { orbSubs.delete(f); }; };
+export const pressOrb = (): boolean => { orbSubs.forEach((f) => f()); return orbSubs.size > 0; };

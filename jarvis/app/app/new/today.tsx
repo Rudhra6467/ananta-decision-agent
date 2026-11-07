@@ -6,10 +6,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { router } from "expo-router";
+import { useScrollToTop } from "expo-router";
 import { NScreen, askHref, useSurface } from "../../src/newscreen";
 import { Body, Dot, G, H, Meta, NCard, PillLink, RowLink, TY } from "../../src/newui";
 import { C } from "../../src/theme";
 import { ScreenError } from "../../src/safe";
+import { ChartSheet, chartFor, type ChartKind } from "../../src/newcharts";
+import { useMarket } from "../../src/market";
 
 export const ErrorBoundary = ScreenError;
 
@@ -20,10 +23,18 @@ export default function Today() {
   const { data: d, err, loading, reload } = useSurface("today", 60000);
   const askIt = (q: string) => router.navigate(askHref(q));
   const openMoney = (focus?: string) => router.navigate({ pathname: "/new/money", params: { focus: focus || "holdings", t: String(Date.now()) } } as any);
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);                    // 7 Nov: the Today button, pressed again, goes back to the top
+  const mk = useMarket();
+  // 7 Nov (Madhav): the index box opens the Nifty 50 / Bank Nifty chart, the portfolio box its performance over time (India; crypto's boxes
+  // still open Money)
+  const [chart, setChart] = useState<{ kind: ChartKind; which: string; focus?: string } | null>(null);
+  const openTile = (p: Page) => { if (mk === "india") setChart({ ...chartFor(p.label), focus: p.focus }); else openMoney(p.focus); };
   // older surfaces (the crypto one) still send two single numbers: each becomes a one-page box
   const tiles: Tile[] = d?.tiles || (d?.numbers || []).map((n: any, i: number) => ({ id: n.label, pages: [{ ...n, focus: n.focus || (i === 1 ? "holdings" : "options") }] }));
   return (
-    <NScreen title="Today" loading={loading} onRefresh={reload} err={err}>
+    <NScreen title="Today" loading={loading} onRefresh={reload} err={err} scrollRef={scrollRef}>
+      {chart ? <ChartSheet kind={chart.kind} which={chart.which} onClose={() => setChart(null)} onAsk={askIt} onOpenMoney={() => openMoney(chart.focus)} /> : null}
       {d ? (
         <>
           <Meta>{d.now_words}{d.when ? ` · ${d.when}` : ""}</Meta>
@@ -34,7 +45,7 @@ export default function Today() {
             </>
           )}
           <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
-            {tiles.map((t, i) => <SwipeTile key={t.id} pages={t.pages} hint={i === 0} onOpen={(p) => openMoney(p.focus)} />)}
+            {tiles.map((t, i) => <SwipeTile key={t.id} pages={t.pages} hint={i === 0} onOpen={openTile} />)}
           </View>
           <RowLink onPress={() => askIt("What's waiting for my yes?")} left={<><Dot color={d.waiting?.count ? C.warn : C.faint} /><H>{d.waiting?.count ? `${d.waiting.count} thing${d.waiting.count === 1 ? "" : "s"} wait${d.waiting.count === 1 ? "s" : ""} for your yes` : "Nothing waits for your yes"}</H></>} />
           <RowLink onPress={() => askIt("Is everything running?")} left={<><Dot color={d.running?.ok ? C.good : C.bad} /><H>{d.running?.words}</H></>} right={<Meta>{d.running?.checked}</Meta>} />

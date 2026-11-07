@@ -641,12 +641,16 @@ CHART_ALIAS = {"NIFTY": "NIFTY 50", "NIFTY50": "NIFTY 50", "BANKNIFTY": "NIFTY B
 def chart(name: str, who: str = Depends(signed_in)) -> dict:
     """The chart of one index or stock with its support and resistance zones (Phase 4.5, 30 Oct 2026): the last 120 closes, the 50- and 200-day
     averages and the swing levels, from the technicals panel (daily closes, display only; the same pivots the Ask describes). Everyone may read it."""
+    key = name.upper().replace("%20", " ").strip()
+    if key == "PORTFOLIO":                                     # 7 Nov 2026 (Madhav): the portfolio box opens its performance over time
+        from jarvis.india import surfaces as _sf
+
+        return _sf.portfolio_chart()
     p = india_views.DATA / "manifests" / "technicals.json"
     try:
         j = json.loads(p.read_text())
     except (OSError, ValueError):
         raise HTTPException(status_code=404, detail="the technicals panel is not built yet")
-    key = name.upper().replace("%20", " ").strip()
     key = CHART_ALIAS.get(key.replace(" ", ""), key)
     panel = (j.get("indices") or {}).get(key) or (j.get("stocks") or {}).get(key)
     if not panel:

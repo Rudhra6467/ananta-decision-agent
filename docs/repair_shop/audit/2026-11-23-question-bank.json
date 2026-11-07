@@ -639,6 +639,13 @@
      "id": "AC12",
      "market": "crypto",
      "q": "What does your self-check look at every 15 minutes?"
+    },
+    {
+     "id": "AI13",
+     "market": "india",
+     "q": "What is the nightly check, and how is it different from the weekly exam?",
+     "expect": "Two different things: the nightly replay (23:20 Toronto, every night) re-asks the day's real questions, a bank of past questions and the never-again cases and grades them against that day's facts; the weekly India exam (six parts: knows, I don't know, why, answers and decides, safety, plain words) runs once a week with pass marks per part. Marked 7 Nov: asked from the Proof card, Ananta described the exam's six parts as the nightly check.",
+     "added": "2026-11-07 (Proof card Ask button check)"
     }
    ]
   },
@@ -697,9 +704,9 @@
  ],
  "counts": {
   "india_3nov": 84,
-  "self_knowledge": 24,
+  "self_knowledge": 25,
   "reconstruction": 9,
-  "total": 117
+  "total": 118
  },
  "note": "The 3 Nov audit counted 73 questions; the 84 here include the follow-ups asked in the same threads."
 }

@@ -69,8 +69,8 @@ EVENTS = [
     {"date": "2026-11-03", "what": "US midterm elections; results came in through the Indian session of Wednesday 4 Nov", "source": "US election calendar"},
     {"date": "2026-11-06", "what": "US jobs report for October (19:00 IST)", "first_session": "the Muhurat session on Sunday 8 Nov, then Monday 9 Nov",
      "source": "BLS release schedule 2026 (bls.gov/schedule/2026)"},
-    {"date": "2026-11-08", "what": "Diwali (Sunday): NSE's special Muhurat session, pre-open 14:05, normal market 14:20 to 15:30 IST (3:50 to 5:00 am Toronto), "
-                                   "closing auction to 15:35; Ananta's paper books and the options line trade regular sessions only, so it watches and records, nothing more",
+    {"date": "2026-11-08", "what": "Diwali (Sunday): NSE's special Muhurat session, pre-open 14:05, normal market 14:20 to 15:30 IST, closing auction to 15:35 "
+                                   "(the Toronto hours are in the holidays line); Ananta's paper books and the options line trade regular sessions only, so it watches and records, nothing more",
      "source": "NSE circulars CMTR76941 and FAOP76940 of 19 Oct 2026"},
     {"date": "2026-11-10", "what": "US inflation (CPI) for October (19:00 IST; India is closed that day)", "first_session": "Wednesday 11 Nov",
      "source": "BLS release schedule 2026"},

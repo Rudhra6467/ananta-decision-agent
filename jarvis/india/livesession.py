@@ -432,8 +432,19 @@ def managed_today(clk: dict, plan: dict, fetch=None) -> dict:
 
 
 # 7 Nov 2026 (Ananta asked Madhav for it): the special sessions NSE has announced, by date, in plain words
-MUHURAT = {"2026-11-08": "the special Muhurat session: pre-open 14:05, normal market 14:20 to 15:30 IST, 3:50 to 5:00 am Toronto; "
-                         "Ananta's paper books and the options line trade regular sessions only, so it watches and records"}
+MUHURAT_IST = {"2026-11-08": ("14:05", "14:20", "15:30")}      # pre-open, normal market open and close (NSE circulars CMTR76941 / FAOP76940, 19 Oct 2026)
+
+
+def _muhurat_words(day: str) -> str:
+    from jarvis.india import schedule as _sch
+
+    pre, o, c = MUHURAT_IST[day]
+    d = dt.date.fromisoformat(day)
+    return (f"the special Muhurat session: pre-open {pre}, normal market {o} to {c} IST, {_sch.toronto_of(o, d)} to {_sch.toronto_of(c, d)} Toronto; "
+            "Ananta's paper books and the options line trade regular sessions only, so it watches and records")
+
+
+MUHURAT = MUHURAT_IST
 
 def holidays_ahead(clk: dict, days: int = 45) -> dict:
     """Independent audit, 2 Nov: Ananta said "the facts hold no holiday calendar" although NSE's holiday master is on disk. The NSE cash-market
@@ -455,7 +466,7 @@ def holidays_ahead(clk: dict, days: int = 45) -> dict:
             continue
         if start <= day <= start + dt.timedelta(days=days):
             desc = str(x.get("description") or "").strip()
-            note = ((" (" + MUHURAT[day.isoformat()] + ")") if day.isoformat() in MUHURAT else
+            note = ((" (" + _muhurat_words(day.isoformat()) + ")") if day.isoformat() in MUHURAT_IST else
                     " (NSE will announce a special Muhurat trading session; the time comes in its circular)") if desc.endswith("*") else ""
             rows.append({"date": day.isoformat(), "what": desc.rstrip("*").strip(), "words": f"{_dw(day)}: {desc.rstrip('*').strip()}{note}"
                          + (" (a weekend anyway)" if day.weekday() >= 5 else "")})

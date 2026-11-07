@@ -157,6 +157,12 @@ def _say(hhmm: str) -> str:
     return f"{(h % 12) or 12}{':%02d' % m if m else ''} {'am' if h < 12 else 'pm'}"
 
 
+def toronto_of(ist_hhmm: str, on: dt.date) -> str:
+    """'3:50 am' Toronto for an IST clock time on a given Indian date (7 Nov 2026: the Muhurat session's hours, never hand-written)."""
+    h, m = map(int, ist_hhmm.split(":"))
+    return _say(dt.datetime.combine(on, dt.time(h, m), IST).astimezone(TOR).strftime("%H:%M"))
+
+
 def ist_of(hhmm: str, on: dt.date | None = None) -> str:
     on = on or dt.datetime.now(TOR).date()
     h, m = map(int, hhmm.split(":"))

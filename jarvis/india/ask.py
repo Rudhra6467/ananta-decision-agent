@@ -1112,6 +1112,13 @@ def one_hedge(a: str) -> str:
     return out
 
 
+def _show_item(s: str) -> dict:
+    """An app-map spot or place name as the {screen, label} item the app's "open" chip expects (jarvis/india/appmap.py names them)."""
+    screen = s.split(".")[0].split(":")[0]
+    words = appmap.SPOTS.get(s) or (appmap.PLACES.get(s) or {}).get("name") or (appmap.PLACES.get(screen) or {}).get("name") or s
+    return {"screen": screen, "spot": s, "label": f"Open {words}"}
+
+
 def finish(reply: dict, question: str, model: bool) -> dict:
     """The one exit every answer passes (25 Oct refinement): plain words on the answer and its breakdown, and the paper-only sign-off kept
     only where the question is about trading (the prompt already says so; the model kept adding it to every answer). 27 Oct: every code and
@@ -1149,6 +1156,8 @@ def finish(reply: dict, question: str, model: bool) -> dict:
     if reply.get("kind") == "clarify" and opts and not any(o[:24].lower() in reply["answer"].lower() for o in opts):
         # 28 Oct voice session: "Could you say which of these it is?" was spoken with no choices (they were only buttons on the screen)
         reply["answer"] = (reply["answer"].rstrip() + " " + " ".join(f"{i + 1}. {o.rstrip('.')}." for i, o in enumerate(opts))).strip()
+    if isinstance(reply.get("show"), list):          # 7 Nov: a code answer's "show" spot ("home.books") reached the screen as "undefined ›"
+        reply["show"] = [_show_item(s) if isinstance(s, str) else s for s in reply["show"] if s]
     if isinstance(reply.get("breakdown"), list):
         reply["breakdown"] = [askwords.words(plain_codes(x)) if isinstance(x, str) else x for x in reply["breakdown"]]
     if isinstance(reply.get("follow_ups"), list):

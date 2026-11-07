@@ -549,9 +549,9 @@ def proof(full: bool = True) -> dict:
     return {"ready": True, "paper": True,
             "studies": {"run": research.get("versions_tested"), "held_up": (research.get("verdicts") or {}).get("VALIDATED"), "conditional": (research.get("verdicts") or {}).get("CONDITIONAL"),
                         "words": f"{research.get('versions_tested')} versions tested; {(research.get('verdicts') or {}).get('VALIDATED')} held up, {(research.get('verdicts') or {}).get('CONDITIONAL')} with conditions", "basis": "2000–2023 only; 2024 on is sealed",
-                        "explain": studies_explain(rm)},      # 7 Nov (Madhav): the card opens an explanation, updated nightly, with an Ask Ananta button
+                        "explain": _safe(studies_explain, rm)},      # 7 Nov (Madhav): the card opens an explanation, updated nightly, with an Ask Ananta button
             "exam": {"grade": (exam.get("outsider_r5") or exam.get("outsider_r4") or {}).get("overall") if isinstance(exam.get("outsider_r5") or exam.get("outsider_r4"), dict) else None, "words": replay.get("words") if replay else None,
-                     "explain": exam_explain(replay, research)},
+                     "explain": _safe(exam_explain, replay, research)},
             "clocks": clocks, "missed": {"words": (missed or {}).get("words") or (missed or {}).get("headline"), "day": (missed or {}).get("day")} if missed else None,
             "last_night": {"words": (recon or {}).get("words") or (recon or {}).get("headline")} if recon else None,
             "links": [{"label": "Teachers, tested", "route": "/teachers"}, {"label": "The repair board", "route": "/flags"}, {"label": "Last night's card", "route": "/reconstruction"}, {"label": "What we missed", "route": "/missed"}]}
@@ -623,14 +623,23 @@ def portfolio_chart(data: Path | None = None) -> dict:
     managed = [r.get("managed_inr") for r in rows]
     n500 = [round(start * (1 + float(r["nifty500_ret_pct"]) / 100)) if start and r.get("nifty500_ret_pct") is not None else None for r in rows]
     last = rows[-1]
-    words = (f"From {_dw(dates[0])} to {_dw(dates[-1])}: your holdings on paper {_inr(last['twin_inr'])} ({last.get('twin_ret_pct', 0):+.2f}%), "
-             f"left untouched {_inr(last['frozen_inr'])} ({last.get('frozen_ret_pct', 0):+.2f}%)"
-             + (f", the managed book {_inr(last['managed_inr'])} ({last.get('managed_ret_pct', 0):+.2f}% over {last.get('managed_sessions', 0)} sessions)" if last.get("managed_inr") else "")
-             + (f"; the Nifty 500 {last['nifty500_ret_pct']:+.2f}% from the same start." if last.get("nifty500_ret_pct") is not None else "."))
+    pct = lambda k: float(last.get(k) or 0)                       # a partial last row (a key missing or null) still reads
+    words = (f"From {_dw(dates[0])} to {_dw(dates[-1])}: your holdings on paper {_inr(last.get('twin_inr') or 0)} ({pct('twin_ret_pct'):+.2f}%), "
+             f"left untouched {_inr(last.get('frozen_inr') or 0)} ({pct('frozen_ret_pct'):+.2f}%)"
+             + (f", the managed book {_inr(last.get('managed_inr') or 0)} ({pct('managed_ret_pct'):+.2f}% over {last.get('managed_sessions') or 0} sessions)" if last.get("managed_inr") else "")
+             + (f"; the Nifty 500 {pct('nifty500_ret_pct'):+.2f}% on its own path." if last.get("nifty500_ret_pct") is not None else "."))
     return {"name": "Your portfolio", "kind": "portfolio", "as_of": dates[-1], "start_inr": start, "sessions": len(rows),
             "chart": {"dates": dates, "yours": yours, "untouched": untouched, "managed": managed, "nifty500": n500},
-            "legend": {"yours": "your holdings on paper (the twin Ananta tends)", "untouched": "the same holdings left alone", "managed": "the managed book", "nifty500": "the Nifty 500 from the same start"},
+            "legend": {"yours": "your holdings on paper (the twin Ananta tends)", "untouched": "the same holdings left alone", "managed": "the managed book", "nifty500": "the Nifty 500, same rupees at its reference day"},
             "words": words, "note": "paper only, one point per session at the close; the managed book starts on its own first day"}
+
+
+def _safe(fn, *a):
+    """An explanation that cannot be built leaves the card without one (the app shows the card alone) instead of blanking Proof."""
+    try:
+        return fn(*a)
+    except Exception:
+        return None
 
 
 def studies_explain(rm: dict) -> dict:

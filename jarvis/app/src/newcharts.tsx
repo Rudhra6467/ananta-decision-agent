@@ -21,11 +21,18 @@ export function chartFor(label: string): { kind: ChartKind; which: string } {
   return { kind: "portfolio", which: "PORTFOLIO" };
 }
 
-export function ChartSheet({ kind, which, onClose, onAsk, onOpenMoney }: {
+export function ChartSheet(props: {
   kind: ChartKind; which: string; onClose: () => void; onAsk: (q: string) => void; onOpenMoney?: () => void;
 }) {
-  const [cur, setCur] = useState(which);
-  const path = kind === "index" ? `/v3/chart/${cur}` : "/v3/chart/PORTFOLIO";
+  const [cur, setCur] = useState(props.which);
+  const path = props.kind === "index" ? `/v3/chart/${cur}` : "/v3/chart/PORTFOLIO";
+  // keyed on the path: switching the index mounts a fresh load, so a tap during the first fetch is never dropped (review, 7 Nov)
+  return <ChartBody key={path} {...props} cur={cur} setCur={setCur} path={path} />;
+}
+
+function ChartBody({ kind, cur, setCur, path, onClose, onAsk, onOpenMoney }: {
+  kind: ChartKind; cur: string; setCur: (k: string) => void; path: string; onClose: () => void; onAsk: (q: string) => void; onOpenMoney?: () => void;
+}) {
   const { data: d, loading, err } = useData<any>(path, 300000);
   const ch = d?.chart ?? {};
   const dates: string[] = ch.dates ?? [];

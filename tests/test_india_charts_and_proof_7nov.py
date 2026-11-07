@@ -22,7 +22,13 @@ def test_the_portfolio_chart_comes_from_the_benchmark_with_a_nifty_500_line_from
     assert c["kind"] == "portfolio" and c["as_of"] == "2026-11-06" and c["sessions"] == 3
     assert c["chart"]["dates"] == ["2026-10-29", "2026-10-30", "2026-11-06"] and c["chart"]["yours"] == [160499, 162645, 165383]
     assert c["chart"]["managed"] == [None, 162572, 163885] and c["chart"]["nifty500"] == [164345, 164004, 175705]
-    assert "your holdings on paper ₹1,65,383 (+1.77%)" in c["words"] and "the Nifty 500 +8.12% from the same start" in c["words"]
+    assert "your holdings on paper ₹1,65,383 (+1.77%)" in c["words"] and "the Nifty 500 +8.12% on its own path" in c["words"]
+    # a partial last row (a key missing, a null pct) still draws and reads instead of a 500 (review, 7 Nov)
+    with (acct / "benchmark.jsonl").open("a") as f:
+        f.write(json.dumps({"day": "2026-11-07", "twin_inr": 165900, "frozen_inr": None, "frozen_ret_pct": None, "nifty500_ret_pct": None}) + "\n")
+    c2 = surfaces.portfolio_chart(tmp_path)
+    assert c2["sessions"] == 4 and c2["chart"]["untouched"][-1] is None and c2["chart"]["nifty500"][-1] is None
+    assert "left untouched ₹0 (+0.00%)" in c2["words"] and c2["words"].endswith("sessions).") is False
     assert surfaces.portfolio_chart(tmp_path / "nowhere")["chart"]["dates"] == []
 
 

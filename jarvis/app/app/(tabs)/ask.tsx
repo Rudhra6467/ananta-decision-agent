@@ -321,6 +321,11 @@ export default function Ananta() {
       }
     } catch { /* the box is optional */ }
   }, []);
+  const focusedRef = useRef(false);                 // the orb (new look) starts voice only on the Ask screen that is on screen
+  useFocusEffect(useCallback(() => {
+    focusedRef.current = true;
+    return () => { focusedRef.current = false; };
+  }, []));
   useFocusEffect(useCallback(() => {
     setScreen({ screen: "ananta", label: "Ananta tab: this conversation" }); setScroller({ ref: scroll, ...sst }); checkFresh();
     Promise.all([SecureStore.getItemAsync("ask_auto"), SecureStore.getItemAsync("ask_google")]).then(([a, g]) => {
@@ -775,7 +780,10 @@ export default function Ananta() {
   const liveTapRef = useRef<() => void>(() => {});
   startLiveRef.current = startLive;
   liveTapRef.current = () => { Haptics.soft(); loop.tap(); };
-  useEffect(() => onOrbPress(() => { if (loopRef.current?.on) liveTapRef.current(); else void startLiveRef.current(); }), []);
+  useEffect(() => onOrbPress(() => {
+    if (!focusedRef.current) return;                // a second Ask screen left under the classic tabs stays quiet
+    if (loopRef.current?.on) liveTapRef.current(); else void startLiveRef.current();
+  }), []);
 
   // "Start trading -> Use Ananta" (a visitor): Ananta opens the conversation by asking whether to find a trade.
   const lastIntro = useRef<string | undefined>(undefined);

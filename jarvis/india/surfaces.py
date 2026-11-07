@@ -624,7 +624,13 @@ def portfolio_chart(data: Path | None = None) -> dict:
     n500 = [round(start * (1 + float(r["nifty500_ret_pct"]) / 100)) if start and r.get("nifty500_ret_pct") is not None else None for r in rows]
     last = rows[-1]
     pct = lambda k: float(last.get(k) or 0)                       # a partial last row (a key missing or null) still reads
-    words = (f"From {_dw(dates[0])} to {_dw(dates[-1])}: your holdings on paper {_inr(last.get('twin_inr') or 0)} ({pct('twin_ret_pct'):+.2f}%), "
+    try:                                                          # the returns count from the account's starting snapshot, not the first drawn point
+        since = str(json.loads((data / "paper" / "account" / "frozen.json").read_text()).get("day") or "")
+    except (OSError, ValueError):
+        since = ""
+    words = (f"Drawn from {_dw(dates[0])} to {_dw(dates[-1])}; the returns count from the start"
+             + (f" ({_dw(since)}, {_inr(start)})" if since and start else "") + ". "
+             f"Your holdings on paper {_inr(last.get('twin_inr') or 0)} ({pct('twin_ret_pct'):+.2f}%), "
              f"left untouched {_inr(last.get('frozen_inr') or 0)} ({pct('frozen_ret_pct'):+.2f}%)"
              + (f", the managed book {_inr(last.get('managed_inr') or 0)} ({pct('managed_ret_pct'):+.2f}% over {last.get('managed_sessions') or 0} sessions)" if last.get("managed_inr") else "")
              + (f"; the Nifty 500 {pct('nifty500_ret_pct'):+.2f}% on its own path." if last.get("nifty500_ret_pct") is not None else "."))
@@ -671,7 +677,7 @@ def studies_explain(rm: dict) -> dict:
     if failed:
         points.append("What did not hold, so nothing trades on it: " + ", ".join(failed[:5]) + ".")
     points.append("A result that held is evidence, not a rule: a rule changes only with Madhav's yes, and nothing here trades by itself.")
-    return {"points": points, "updated": _dw(rm.get("data_through")) + " close" if rm.get("data_through") else "", "source": "the nightly read model and the test ledger",
+    return {"points": points, "updated": _dw(rm.get("data_through")) + " close" if rm.get("data_through") else "", "source": "the nightly research files and the test ledger",
             "ask": "Explain the versions tested: what a version is, how many held up and on what data, which ones matter for my money, and what was rejected."}
 
 
@@ -683,7 +689,7 @@ def exam_explain(replay: dict | None, research: dict) -> dict:
               "a wrong day, a wrong number, a missing part or jargon counts as a fail."]
     if s.get("night"):
         points.append(f"Last night ({_dw(s['night'])}): {(s.get('today_turns') or 0) - (s.get('today_failed') or 0)} of {s.get('today_turns') or 0} of the day's answers passed; "
-                      f"the regression bank {(s.get('bank_checked') or 0) - (s.get('bank_failed') or 0)} of {s.get('bank_checked') or 0} ({s.get('bank_fixed') or 0} fixed for good, {s.get('bank_open') or 0} still open); "
+                      f"the bank of past questions {(s.get('bank_checked') or 0) - (s.get('bank_failed') or 0)} of {s.get('bank_checked') or 0} ({s.get('bank_fixed') or 0} fixed for good, {s.get('bank_open') or 0} still open); "
                       f"the never-again cases {(s.get('never_again_checked') or 0) - (s.get('never_again_failed') or 0)} of {s.get('never_again_checked') or 0}.")
     else:
         points.append("The nightly check has not written a result yet.")
@@ -694,7 +700,7 @@ def exam_explain(replay: dict | None, research: dict) -> dict:
     if s.get("bank_open"):
         points.append(f"Still open: {s['bank_open']} past answers that failed again last night; each is on the repair board until it passes.")
     points.append("A failed check changes an answer, never a trade: the paper books decide by their rules whatever the check says.")
-    return {"points": points, "updated": (_dw(s["night"]) + " night") if s.get("night") else "", "source": "docs/repair_shop/replay/latest.json and the weekly exam",
+    return {"points": points, "updated": (_dw(s["night"]) + " night") if s.get("night") else "", "source": "the nightly replay record and the weekly exam",
             "ask": "Explain the nightly check: what it re-asks every night, how it is graded, what failed recently and what is still open."}
 
 

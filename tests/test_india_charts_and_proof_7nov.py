@@ -18,11 +18,13 @@ def test_the_portfolio_chart_comes_from_the_benchmark_with_a_nifty_500_line_from
             {"day": "2026-11-06", "twin_inr": 165383, "frozen_inr": 167821, "start_inr": 162509, "twin_ret_pct": 1.77, "frozen_ret_pct": 3.27, "nifty500_ret_pct": 8.12,
              "managed_inr": 163885, "managed_ret_pct": 2.11, "managed_sessions": 5}]
     (acct / "benchmark.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    (acct / "frozen.json").write_text(json.dumps({"day": "2026-10-22", "start_inr": 162509.0}))
     c = surfaces.portfolio_chart(tmp_path)
     assert c["kind"] == "portfolio" and c["as_of"] == "2026-11-06" and c["sessions"] == 3
     assert c["chart"]["dates"] == ["2026-10-29", "2026-10-30", "2026-11-06"] and c["chart"]["yours"] == [160499, 162645, 165383]
     assert c["chart"]["managed"] == [None, 162572, 163885] and c["chart"]["nifty500"] == [164345, 164004, 175705]
-    assert "your holdings on paper ₹1,65,383 (+1.77%)" in c["words"] and "the Nifty 500 +8.12% on its own path" in c["words"]
+    assert "Your holdings on paper ₹1,65,383 (+1.77%)" in c["words"] and "the Nifty 500 +8.12% on its own path" in c["words"]
+    assert c["words"].startswith("Drawn from Thu 29 Oct to Fri 6 Nov; the returns count from the start (Thu 22 Oct, ₹1,62,509).")
     # a partial last row (a key missing, a null pct) still draws and reads instead of a 500 (review, 7 Nov)
     with (acct / "benchmark.jsonl").open("a") as f:
         f.write(json.dumps({"day": "2026-11-07", "twin_inr": 165900, "frozen_inr": None, "frozen_ret_pct": None, "nifty500_ret_pct": None}) + "\n")
@@ -50,7 +52,7 @@ def test_the_proof_explanations_are_written_from_the_facts():
     replay = {"night": "2026-11-06", "today_turns": 4, "today_failed": 0, "bank_checked": 5, "bank_failed": 2, "bank_open": 4, "bank_fixed": 22, "never_again_checked": 33, "never_again_failed": 1}
     e = surfaces.exam_explain(replay, rm["research"])
     pts = " ".join(e["points"])
-    assert "Last night (Fri 6 Nov): 4 of 4 of the day's answers passed; the regression bank 3 of 5 (22 fixed for good, 4 still open); the never-again cases 32 of 33" in pts
+    assert "Last night (Fri 6 Nov): 4 of 4 of the day's answers passed; the bank of past questions 3 of 5 (22 fixed for good, 4 still open); the never-again cases 32 of 33" in pts
     assert "The weekly India exam (Thu 5 Nov): knows 16 of 18" in pts and "FAIL; 4 of 6 runs passed" in pts and "Still open: 4" in pts
     assert e["updated"] == "Fri 6 Nov night"
     e2 = surfaces.exam_explain(None, {})

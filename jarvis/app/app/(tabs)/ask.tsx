@@ -33,6 +33,8 @@ export const ErrorBoundary = ScreenError;               // 28 Oct (flag 49): nev
 // Starter questions on an empty conversation (Madhav: a new person should know what to ask)
 const STARTERS = ["What's happening here?", "What are we doing here?", "Show me around", "Which coins are we watching?",
   "Show me the trades", "What are the rule gates?", "How do I make a paper trade?", "What should I watch today?"];
+// the Indian market has stocks, not coins (7 Nov: the chip said "coins" on the India Ask)
+const INDIA_STARTERS = STARTERS.map((s) => s.replace("Which coins are we watching?", "Which stocks are we watching?"));
 // A visitor's own account: questions about their coins and their book
 const GUEST_STARTERS = ["Find me a trade", "How are my coins doing?", "How does my practice book work?", "What can you do?", "Show me around"];
 
@@ -296,7 +298,8 @@ export default function Ananta() {
   const [ctx, setCtx] = useScreen();
   const { data: sg } = useData("/v3/ask/suggestions", 0);
   // Flags for you (24 Oct): what looks off in the facts under an India answer (old data, mixed signals, an unusual day), decided by the service's code
-  const { data: fl, reload: reloadFlags } = useData<{ flags: string[] }>(useMarket() === "india" ? "/v3/ask/flags" : null, 300000);
+  const market = useMarket();
+  const { data: fl, reload: reloadFlags } = useData<{ flags: string[] }>(market === "india" ? "/v3/ask/flags" : null, 300000);
   const nAnswers = msgs.filter((m) => m.role === "assistant").length;
   useEffect(() => { if (nAnswers) reloadFlags(); }, [nAnswers]);   // eslint-disable-line react-hooks/exhaustive-deps
   const scroll = useRef<ScrollView>(null);
@@ -833,7 +836,7 @@ export default function Ananta() {
   };
 
   const narrNow = useNarrating();
-  const qs: string[] = me?.guest ? GUEST_STARTERS : qcat === "new" ? STARTERS : (sg?.[qcat] as string[]) ?? sg?.questions ?? [];
+  const qs: string[] = me?.guest ? GUEST_STARTERS : qcat === "new" ? (market === "india" ? INDIA_STARTERS : STARTERS) : (sg?.[qcat] as string[]) ?? sg?.questions ?? [];
   const micLabel = { idle: "", listening: "Listening…", hearing: "Hearing you…", sending: "Got it…" }[mic.status];
   const hearing = live && phase === "listening" && mic.status === "hearing";
   const liveLabel = phase === "thinking" ? "Thinking…  ·  tap to cancel" : phase === "speaking" ? "Speaking  ·  tap to stop and talk"

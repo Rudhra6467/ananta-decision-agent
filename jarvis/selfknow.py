@@ -46,6 +46,7 @@ HOW = ("Ananta's book about itself. changes_on_this and changes_last_7_days come
        "listed (the Claude credit, a service) is over; it never means everything is fine while not_right lists items. Never say you cannot know what was done in the back "
        "end: say what the change book has, and if it has nothing on that, say so in one line.")
 
+REPO = Path(__file__).resolve().parents[1]
 _CACHE: dict = {}
 
 
@@ -387,6 +388,41 @@ def reviews(days: float = 7, now: float | None = None) -> list[str]:
     return out
 
 
+REVIEW_KEEP = ("Overnight", "Never again", "Ananta on itself", "Waiting for Madhav", "Fixed today", "Evidence", "Board")   # in budget order
+CRYPTO_REVIEWS = REPO / "docs" / "repair_shop" / "daily"
+
+
+def review_page(folder: Path, keep=REVIEW_KEEP, per_section: int = 5, cap: int = 1600) -> dict:
+    """7 Nov 2026 (Madhav's yes): the morning review's findings reach the voice. The newest dated page in the folder, its named sections,
+    the first few lines of each (the 'Lost or empty runs' dump is left out), capped so it stays a brief and not the page."""
+    pages = sorted(p for p in folder.glob("????-??-??.md")) if folder.exists() else []
+    if not pages:
+        return {}
+    page = pages[-1]
+    out: dict = {"day": page.stem, "sections": {}}
+    cur = None
+    for line in page.read_text(errors="ignore").splitlines():
+        if line.startswith("## "):
+            name = line[3:].strip()
+            cur = name if name in keep else None
+            if cur:
+                out["sections"][cur] = []
+            continue
+        if cur and line.strip() and len(out["sections"][cur]) < per_section:
+            out["sections"][cur].append(re.sub(r"\s+", " ", line.strip(" -*")).strip()[:220])
+    size = 0
+    for k in sorted(out["sections"], key=lambda k: keep.index(k) if k in keep else 99):
+        lines = []
+        for ln in out["sections"][k]:
+            if size + len(ln) > cap:
+                break
+            lines.append(ln)
+            size += len(ln)
+        out["sections"][k] = lines
+    out["how"] = ("the morning review's findings (Claude, each morning): quote it when he asks why a part errored or what was fixed" if cap > 1000 else "the morning review")
+    return out
+
+
 def brief(market: str, now: float | None = None) -> dict:
     """The book about itself in short, for every turn (5 Nov evening, Madhav's yes to the audit's recommendation: the India side opened the
     book by word lists, so a question phrased another way answered without it). About 1,500 characters: the last 3 days' changes in one
@@ -397,6 +433,15 @@ def brief(market: str, now: float | None = None) -> dict:
     rows = recent(3, now=now)[-8:]
     out["changes_last_3_days"] = [say(r)[:160] for r in rows]
     out["audits_and_reviews_last_7_days"] = reviews(7, now=now)[-6:]
+    try:
+        if market == "crypto":
+            out["morning_review"] = review_page(CRYPTO_REVIEWS, per_section=2, cap=650)
+        else:
+            from jarvis.india import selfparts
+
+            out["morning_review"] = selfparts.morning_review()
+    except Exception as exc:  # noqa: BLE001
+        out["morning_review"] = {"error": type(exc).__name__}
     try:
         from jarvis import selfcheck
 
@@ -431,6 +476,15 @@ def about_ananta(text: str, market: str, check: bool = True) -> dict:
         except Exception as exc:  # noqa: BLE001  the self-check never breaks an answer
             out["not_right"] = [f"the self-check could not run ({type(exc).__name__})"]
     out["audits_and_reviews_last_7_days"] = reviews(7)[-6:]
+    try:                                                   # the full page gets the fuller review
+        if market == "crypto":
+            out["morning_review"] = review_page(CRYPTO_REVIEWS)
+        else:
+            from jarvis.india import selfparts
+
+            out["morning_review"] = selfparts.morning_review(full=True)
+    except Exception as exc:  # noqa: BLE001
+        out["morning_review"] = {"error": type(exc).__name__}
     out["changes_on_this"] = [say(r)[:320] for r in search(text, limit=8)]
     out["changes_last_7_days"] = [say(r)[:200] for r in recent(7)][-10:]
     out["parts"] = parts(market)

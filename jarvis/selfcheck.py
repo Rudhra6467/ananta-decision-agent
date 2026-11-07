@@ -343,6 +343,10 @@ def refresh(now: float | None = None, opener=None, write: bool = True, post=None
             items += fn()
         except Exception as exc:  # noqa: BLE001  one check failing is itself a finding, never a crash
             items.append({"market": "both", "severity": "low", "source": name, "what": f"the {name} check could not run ({type(exc).__name__})"})
+    try:                                                   # 7 Nov: a sleeping Mac is one line, planned or not, never nine faults
+        items = fold_sleep(items, asleep_windows(now), downtime_notes(now), now)
+    except Exception:  # noqa: BLE001
+        pass
     items.sort(key=lambda x: SEV.get(x.get("severity"), 3))
     out = {"at": int(now), "at_words": _when(now), "items": items}
     if write:
@@ -395,7 +399,7 @@ CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hour
 
 SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",
                 "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac", "firewall": "gates", "leakcheck": "gates", "integrity": "gates",
-                "reconstruction order": "rx_order", "self-scan": "agree"}
+                "reconstruction order": "rx_order", "self-scan": "agree", "Mac asleep": "runs"}
 
 
 def fine(c: dict) -> list[str]:
@@ -452,3 +456,156 @@ def nudge(market: str, state: Path, thread: str, now: float | None = None, answe
         return ""
     what = "; and ".join(x["what"] for x in top)
     return f"One thing that isn't right, sir: {what[:1].lower()}{what[1:]}. Ask me what's wrong for the details."
+
+
+# ------------------------------------------------------------------------------------------------- the Mac asleep, and planned downtime
+# 7 Nov 2026 (Madhav's yes): the laptop slept from 12:10 to 15:10 and the self-check listed nine parts "down" or "did not run"; Ananta
+# told him they needed a look. The Mac's own sleep log says when it slept; those items fold into one line, and a note Madhav gives
+# ("I'm turning the laptop off for an hour") marks the window as planned.
+
+DOWNTIME = Path(os.getenv("ANANTA_DOWNTIME", str(HOME / "ananta_data" / "downtime.json")))
+_PM_LINE = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) [-+]\d{4} (Sleep|Wake|DarkWake)\s{2,}")   # not "Wake Requests" / "WakeDetails"
+_AT = re.compile(r"\bat (\d{1,2} [A-Z][a-z]{2} \d\d:\d\d) Toronto")
+
+
+def pm_log() -> str:
+    """The Mac's power log (read-only); empty when not on a Mac or when it cannot be read."""
+    import subprocess
+
+    try:
+        return subprocess.run(["pmset", "-g", "log"], capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def asleep_windows(now: float, log_text: str | None = None, days: float = 1.5) -> list[tuple[float, float]]:
+    """[(slept_at, woke_at)] from the Mac's sleep log, last 36 hours; a DarkWake (maintenance) does not end a sleep; gaps under 5 minutes merge."""
+    text = pm_log() if log_text is None else log_text
+    since = now - days * 86400
+    wins: list[list[float]] = []
+    open_at = None
+    for line in text.splitlines():
+        m = _PM_LINE.match(line.strip())
+        if not m:
+            continue
+        try:
+            t = time.mktime(time.strptime(m.group(1), "%Y-%m-%d %H:%M:%S"))
+        except ValueError:
+            continue
+        if t < since:
+            continue
+        if m.group(2) == "Sleep" and open_at is None:
+            open_at = t
+        elif m.group(2) == "Wake" and open_at is not None:
+            if wins and open_at - wins[-1][1] < 300:
+                wins[-1][1] = t
+            else:
+                wins.append([open_at, t])
+            open_at = None
+    if open_at is not None:                       # asleep right now (the check runs only awake, so this is a log tail without its Wake)
+        wins.append([open_at, now])
+    return [(a, b) for a, b in wins if b - a >= 120]
+
+
+def downtime_notes(now: float) -> list[dict]:
+    try:
+        rows = json.loads(DOWNTIME.read_text())
+    except (OSError, ValueError):
+        return []
+    return [r for r in rows if isinstance(r, dict) and float(r.get("to") or 0) > now - 1.5 * 86400]
+
+
+def note_downtime(hours: float, why: str, by: str, now: float | None = None) -> dict:
+    """Madhav's word that the Mac will be off or asleep: the window is written so the self-check calls it planned, not a fault."""
+    now = now or time.time()
+    row = {"from": int(now - 300), "to": int(now + hours * 3600), "why": why[:160], "by": by, "noted_at": int(now)}
+    rows = [r for r in downtime_notes(now) if float(r.get("to") or 0) > now - 1.5 * 86400]
+    rows.append(row)
+    DOWNTIME.parent.mkdir(parents=True, exist_ok=True)
+    DOWNTIME.write_text(json.dumps(rows, indent=1))
+    return row
+
+
+def _item_time(x: dict, now: float) -> float | None:
+    m = _AT.search(str(x.get("what") or ""))
+    if not m:
+        return None
+    try:
+        lt = time.localtime(now)
+        t = time.mktime(time.strptime(f"{lt.tm_year} {m.group(1)}", "%Y %d %b %H:%M"))
+        return t - 365 * 86400 if t > now + 86400 else t          # a December item read in January
+    except ValueError:
+        return None
+
+
+def fold_sleep(items: list[dict], windows: list[tuple[float, float]], notes: list[dict], now: float) -> list[dict]:
+    """Items from the lost-runs check and the watchdog whose time falls inside a sleep window (15 minutes either side) become one line per window."""
+    if not windows:
+        return items
+    out, folded = [], {i: [] for i in range(len(windows))}
+    for x in items:
+        t = _item_time(x, now)
+        hit = None
+        if t is not None and x.get("source") in ("lost-runs check", "watchdog", "self-scan"):
+            for i, (a, b) in enumerate(windows):
+                if a - 900 <= t <= b + 900:
+                    hit = i
+                    break
+        if hit is None:
+            out.append(x)
+        else:
+            folded[hit].append(x)
+    for i, (a, b) in enumerate(windows):
+        xs = folded[i]
+        if not xs:
+            continue
+        fits = [n for n in notes if float(n.get("from") or 0) - 900 <= a <= float(n.get("to") or 0) + 1800]
+        planned = max(fits, key=lambda n: float(n.get("to") or 0)) if fits else None
+        ran_long = bool(planned) and b > float(planned.get("to") or 0) + 1800
+        names = set()
+        for x in xs:
+            w = str(x.get("what") or "")
+            m = re.search(r"\(([^():]+):", w) if w.startswith("a part was down") else None
+            names.add(m.group(1).strip() if m else re.sub(r"\s+(did not run|ran but did too little|ran with an error|was down).*$", "", w).split(":")[0].strip())
+        names = sorted(n for n in names if n)
+        what = (f"the Mac was asleep or off from {_when(a)} to {time.strftime('%H:%M', time.localtime(b))}, so {len(xs)} part{'s' if len(xs) != 1 else ''} missed runs or were down"
+                + (f" ({', '.join(names[:5])}{', ...' if len(names) > 5 else ''})" if names else "")
+                + ((f"; planned: {planned.get('by', 'Madhav')} said about {max(1, round((float(planned['to']) - float(planned['from']) - 300) / 3600))} h"
+                    + (f", it lasted {int((b - a) // 3600)} h {int((b - a) % 3600 // 60)} min" if ran_long else "")) if planned else "; nobody said this was planned"))
+        out.append({"market": "both", "severity": "low" if planned and not ran_long else "medium", "source": "Mac asleep", "what": what, "planned": bool(planned)})
+    out.sort(key=lambda x: SEV.get(x.get("severity"), 3))
+    return out
+
+
+DOWNTIME_OBJ = re.compile(r"\b(laptop|mac(?:book)?(?: air| pro)?|computer|machine|lid|pc)\b", re.I)
+DOWNTIME_VERB = re.compile(r"\b(?:turn(?:ing)?|switch(?:ing)?|shut(?:ting)?|power(?:ing)?)\b[^.?!]{0,20}\b(?:off|down)\b|\b(?:clos(?:e|ing)|sleep(?:ing)?|asleep|restart(?:ing)?|reboot(?:ing)?)\b"
+                           r"|\bput(?:ting)?\b[^.?!]{0,20}\bto sleep\b", re.I)
+_DUR = re.compile(r"\bfor\s+(?:about\s+|around\s+|roughly\s+)?(an?|one|two|three|four|five|six|half an?|a couple of|\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?)\b", re.I)
+_NUM = {"a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "half a": 0.5, "half an": 0.5, "a couple of": 2}
+
+
+def downtime_words(text: str) -> float | None:
+    """7 Nov 2026 (Madhav's yes): "I'm turning the laptop off for an hour" -> the hours (1 when no length is given); None when it is not that."""
+    t = text or ""
+    if not (DOWNTIME_OBJ.search(t) and DOWNTIME_VERB.search(t)) or re.search(r"\b(what if|what happens|do i need|why)\b", t, re.I):
+        return None
+    m = _DUR.search(t)
+    if not m:
+        return 1.0
+    n = _NUM.get(m.group(1).lower(), None)
+    if n is None:
+        try:
+            n = float(m.group(1))
+        except ValueError:
+            n = 1.0
+    return round(n / 60, 2) if m.group(2).lower().startswith(("min", "m")) and not m.group(2).lower().startswith("h") else float(n)
+
+
+def downtime_answer(hours: float, market: str, asked: bool = False) -> str:
+    h = f"{int(hours)} hour{'s' if hours != 1 else ''}" if float(hours).is_integer() else f"{int(round(hours * 60))} minutes"
+    return ((f"Yes, sir, go ahead. The next {h} counts as planned downtime, not a fault, and the self-check will say so. " if asked else
+             f"Noted, sir: the next {h} counts as planned downtime, not a fault, and the self-check will say so. ")
+            + ("While the Mac sleeps, the crypto paper books stop watching prices and the 15-minute checks pause; a stop hit in that time is handled late. "
+               if market == "crypto" else
+               "While the Mac sleeps, the India jobs due in that window are skipped and run again at their next time; the paper books lose nothing, since nothing trades off-session. ")
+            + "Everything restarts by itself when you log back in.")

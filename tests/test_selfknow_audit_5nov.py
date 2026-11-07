@@ -128,7 +128,7 @@ def test_the_saturday_kite_fill_is_on_the_watch_list():
     from jarvis.service import runcheck_parts as RP
 
     p = [x for x in RP.PARTS if x["id"] == "india_kite_fill"]
-    assert p and p[0]["job"] == "com.ananta.india.kitefill" and p[0]["cadence"]["weekly"] == 5 and p[0]["cadence"]["tz"] == "Asia/Kolkata"
+    assert p and p[0]["job"] == "com.ananta.india.kitefill" and p[0]["cadence"]["weekly"] == 5 and p[0]["cadence"]["tz"] == "America/Toronto"   # 7 Nov: the job runs at 10:00 Saturday on the Mac's clock
     assert p[0]["proof"] == {"mtime": "{runs}/kite_fill_weekly.log", "err_file": "{runs}/kite_fill_weekly.err"}
 
 
@@ -136,10 +136,10 @@ def test_the_india_side_gets_the_book_in_short_on_every_turn(tmp_path, monkeypat
     monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
     (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": []}))
     b = selfknow.brief("india")
-    assert set(b) == {"how", "changes_last_3_days", "not_right", "checked_fine", "parts_in_one_line", "audits_and_reviews_last_7_days"}
+    assert set(b) == {"how", "changes_last_3_days", "not_right", "checked_fine", "parts_in_one_line", "audits_and_reviews_last_7_days", "morning_review"}
     assert b["changes_last_3_days"] and all(len(x) <= 160 for x in b["changes_last_3_days"])
     assert "Nothing is wrong" in b["not_right"][0] and set(b["parts_in_one_line"]) == {"voice", "voice_print", "watchdog", "database"}
-    assert len(json.dumps(b)) < 4500, "small enough for every turn"
+    assert len(json.dumps(b)) < 5000, "small enough for every turn (7 Nov: the audits list and the morning review in short were added)"
     src = open(india_ask.__file__).read()
     assert 'f["ananta_brief"] = selfknow.brief("india")' in src and '"ananta_brief")' in src
 

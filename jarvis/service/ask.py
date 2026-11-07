@@ -2579,6 +2579,17 @@ class Ask:
         pr = self._people_route(who, text, thread, voice, source, context)   # Batch 2: handovers decided by code, before any AI
         if pr is not None:
             return pr
+        try:                                                                  # 7 Nov 2026 (Madhav's yes): "turning the laptop off for an hour" is planned downtime
+            from jarvis import selfcheck as _sc
+
+            hrs = None if str(who).startswith(("guest:", "ananta")) else _sc.downtime_words(text)
+            if hrs is not None:
+                if source != "eval" and mode != "worker":
+                    _sc.note_downtime(hrs, f"Madhav, in chat with Ananta (crypto): \"{text[:120]}\"", "Madhav")
+                asked = bool(re.match(r"\s*(?:can|could|may|shall|should|is it)\b", text or "", re.I)) or "?" in (text or "")
+                return self._instant(text, thread, voice, _sc.downtime_answer(hrs, "crypto", asked), "Planned downtime noted")
+        except Exception:  # noqa: BLE001
+            pass
         quick = self._quick(who, text, thread, voice, source, context)
         if quick:
             return quick

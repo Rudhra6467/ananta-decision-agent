@@ -147,3 +147,11 @@ def scan(now: float | None = None) -> list[dict]:
     except Exception as exc:  # noqa: BLE001  the scan never breaks the check
         items.append({"market": "india", "severity": "low", "source": "self-scan", "what": f"the India self-scan could not run ({type(exc).__name__})"})
     return items
+
+
+def morning_review(full: bool = False) -> dict:
+    """7 Nov 2026 (Madhav's yes): the India morning review's findings (the records repo's reviews folder), for the voice."""
+    from jarvis import selfknow
+    from jarvis.india import views
+
+    return selfknow.review_page(views.REG / "reviews") if full else selfknow.review_page(views.REG / "reviews", per_section=2, cap=650)

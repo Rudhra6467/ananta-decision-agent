@@ -1288,6 +1288,23 @@ def garbled_flow(text: str) -> dict | None:
                   ["What is the Nifty trend?", "What did you decide for the next session?"], ["speech-to-text repeated one word: not answered as a question"])
 
 
+DETAIL_ASK = re.compile(r"\b(in detail|in full|fully|every (?:clock|trial|one|item|part|study|book|rule|step)|each (?:one|of them|clock|trial|study|book)|all of them|one by one|go through (?:each|every|all))\b", re.I)
+
+
+def _timing_log(thread: str | None, text: str, voice: bool, tm: dict) -> None:
+    """7 Nov 2026 (Madhav's yes): one line per answer in reports/ask_timing.jsonl (facts, model, guard, total milliseconds), so a slow turn
+    (a 54-second voice answer on 7 Nov) can be read back and the self-scan can flag it. Nothing from the question beyond its first words."""
+    if DRY_RUN:
+        return
+    try:
+        p = DATA / "reports" / "ask_timing.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with p.open("a") as fh:
+            fh.write(json.dumps({"t": int(time.time()), "thread": thread, "voice": bool(voice), "q": str(text)[:60], **tm}) + "\n")
+    except OSError:
+        pass
+
+
 def ask(who: str, text: str, thread: str | None = None, mode: str | None = None, context: dict | None = None, voice: bool = False, post=None,
         token: str | None = None, flag_post=None, flag_get=None, split_post=None, speak_live=None) -> dict:
     """speak_live (5 Nov 2026, the voice): called with each sentence of a model answer as soon as it is written and checked, so the voice can
@@ -1401,6 +1418,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 or (fix_flow(t, thread, token, context, post=flag_post, get=flag_get) if (commands and owner_here) else None)
                 or fragment_flow(t) or morning_flow(t, who) or _not_a_repeat(technicals.technicals_flow(t), thread) or marketcontext.market_context_flow(t)
                 or (allocation_flow(t, who) if (commands and owner_here) else None) or (_and_question(draft_flow(t, who), t) if commands else None)
+                or (downtime_flow(t, who) if (commands and owner_here) else None)
                 or portfolio_flow(t, who) or mover_flow(t) or book_flow(t) or decide_flow(t))
 
     # 29 Oct (one brain, code as its hands; jarvis/india/mind.py): a compound message is read whole by a small model first, which only says
@@ -1490,7 +1508,10 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     uid = uuid.uuid4().hex[:12]
     _append(thread, {"id": uid, "role": "user", "text": said, "t": int(time.time()), "voice": voice})
     # an observer Madhav brought in (the grader) hears what he would; family and other guests do not get his account
+    t_begin = time.time()                                      # 7 Nov 2026 (Madhav's yes): where a slow answer spends its time, per turn
     f = facts(owner=(who == "owner" or not str(who).startswith("guest:")) and (guest is None or guest.get("role") == "observer"))
+    tm = {"facts_ms": int((time.time() - t_begin) * 1000)}
+    t_guard = None
     f["talking_to"] = speaker.label(thread)
     # 27 Oct night (outside review): dated facts for the stocks, ETFs, sectors, gold, funds and rules the question names (jarvis/india/lookup.py),
     # and how to answer this question (jarvis/india/answerguide.py: horizon, decision asked, book quotable, topic lines); both per turn
@@ -1578,7 +1599,11 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                   "answer word for word. 5 Nov (Madhav: \"you are just repeating yourself\"): do not restate any fact the first answer already gave "
                   "(the index closes, the trade, the rupee result); start straight with what is new: why it happened, how the decision was made, "
                   "which holdings moved and why, and what it means next." if prev else
-                  "\n\nSHORT MODE: 2-4 short sentences, the answer first (a decision: about 4); he will say 'explain more' when he wants the detail.")
+                  ("\n\nDETAIL MODE (7 Nov 2026, Madhav's yes: a question that says 'in detail', 'every' or 'each' gets the detail spoken, not "
+                   "'say explain more'): go through each item in the answer itself, one or two short sentences per item, up to about 12 sentences, "
+                   "plain words and no codes; the breakdown may repeat them for the screen; do not end with an offer to explain more."
+                   if DETAIL_ASK.search(text) else
+                   "\n\nSHORT MODE: 2-4 short sentences, the answer first (a decision: about 4); he will say 'explain more' when he wants the detail."))
         b_end, budget = None, None
         if batch:
             text_q, b_end = batch_prompt(batch["questions"], batch["start"])
@@ -1617,8 +1642,10 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             live_now = f.get("today_live") or {}
             tap = AnswerTap(lambda s: (lambda c: speak_live(_addr(c)) if c else None)(live_sentence(s, live_now, f, text_q)))
         try:
+            t_model = time.time()
             raw, usage = _call(SYSTEM + "\n" + appmap.for_prompt(), hist, user, post=post, max_tokens=budget, cached=(facts_text, user_c),
                                on_text=tap.feed if tap else None)
+            tm["model_ms"] = int((time.time() - t_model) * 1000)
             if tap:
                 tap.close()
             reply = _parse(raw)
@@ -1656,6 +1683,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         # 2 Nov 2026 (Madhav: "these are huge mistakes ... make sure these things don't repeat"): before anything is spoken, the answer is
         # checked against today's block (the clock, today's prices, the options line's ledger). A contradiction gets one re-answer with the
         # correction; if that is still wrong, the contradicting sentences are dropped and today's block leads. Every catch is logged.
+        t_guard = time.time()
         try:
             from jarvis.india import livesession as _ls
             from jarvis.india import numcheck as _nc
@@ -1682,6 +1710,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 _guard_log(thread, text_q, probs, "scrubbed-rule")
         except Exception as e:  # noqa: BLE001
             _guard_log(thread, text_q, [f"guard error: {str(e)[:120]}"], "error")
+    if t_guard:
+        tm["guard_ms"] = int((time.time() - t_guard) * 1000)          # includes a re-answer when the guard asked for one
     reply = finish(reply, text, model=usage.get("model") not in ("rule", "none"))
     if not str(reply.get("answer") or "").strip():
         reply["answer"] = EMPTY_FALLBACK                       # never an empty answer (27 Oct)
@@ -1715,13 +1745,16 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if prev:
         reply["expanded"] = True
     ms = int((time.time() - t0) * 1000)
+    tm["total_ms"] = int((time.time() - t_begin) * 1000)
+    tm["guard"] = usage.get("guard")
+    _timing_log(thread, text, voice, tm)
     rid = uuid.uuid4().hex[:12]
-    row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "claude" if usage.get("model") not in ("rule", "none") else usage.get("model"), "ms": ms, "rating": None, **reply,
+    row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "claude" if usage.get("model") not in ("rule", "none") else usage.get("model"), "ms": ms, "rating": None, **reply, "timing": tm,
            "model_label": "Claude Sonnet" if usage.get("model") not in ("rule", "none") else "Ananta (rules)", "mode": mode or "auto", "cost_usd": round((usage.get("in", 0) * 3 + usage.get("out", 0) * 15) / 1e6, 5),
            "usage": usage, "thread": thread, "talking_to": speaker.label(thread), "live": live_record(f.get("today_live"))}
     _append(thread, row)
     _touch_index(thread, said[:60], voice)
-    return {**row, "id": rid, "thread": thread, "timing": {"ms": ms}}
+    return {**row, "id": rid, "thread": thread, "timing": {"ms": ms, **tm}}
 
 
 def thread_view(thread: str) -> list[dict]:
@@ -2049,6 +2082,25 @@ def bulk_draft_flow(text: str, who: str) -> dict | None:
                       "a rule must pass (the evidence staircase) only if it passes; nothing trades from this.", ["What happens after a study is registered?", "What's waiting?"],
                       ["paper/reconstruction/decisions.jsonl"])
     return _reply(("Skipped, sir: the draft is closed and will not be filed again." if len(d) == 1 else f"Skipped, sir: all {len(d)} drafts are closed and will not be filed again."), ["What's waiting?"], ["paper/reconstruction/decisions.jsonl"])
+
+
+def downtime_flow(text: str, who: str) -> dict | None:
+    """7 Nov 2026 (Madhav's yes): "I'm turning the laptop off for an hour" is noted, so the self-check calls the quiet hour planned."""
+    from jarvis import selfcheck as _sc
+
+    if not (who == "owner" or not str(who).startswith("guest:")):
+        return None
+    hours = _sc.downtime_words(text)
+    if hours is None:
+        return None
+    if not DRY_RUN:
+        try:
+            _sc.note_downtime(hours, f"Madhav, in chat with Ananta (India): \"{text[:120]}\"", "Madhav")
+        except Exception:  # noqa: BLE001
+            pass
+    asked = bool(re.match(r"\s*(?:can|could|may|shall|should|is it)\b", text or "", re.I)) or "?" in (text or "")
+    return _reply(_sc.downtime_answer(hours, "india", asked), ["Is anything off with you?", "What runs tonight?"],
+                  ["planned downtime noted (ananta_data/downtime.json)"], {"mode": "system"})
 
 
 def draft_flow(text: str, who: str) -> dict | None:

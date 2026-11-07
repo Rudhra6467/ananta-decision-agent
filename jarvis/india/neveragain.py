@@ -127,6 +127,12 @@ FEATURE_QS = [
     # 5 Nov 2026 (Madhav: "yes to all", C): the dated event calendar must reach the voice
     ("event calendar", "Ananta, what big events are coming up that could move the market?",
      lambda f: [r"\bRBI\b|Reserve Bank|\bFed\b|Federal Reserve|inflation|CPI|jobs report|GDP|budget"]),
+    # 7 Nov 2026 (Madhav: "like ChatGPT ... only for some important questions"): a bare "the book" gets one question with the four choices,
+    # answered in code (jarvis/india/clarify.py); and Ananta knows the rule it asks by
+    ("clarifying question: which book", "Ananta, how is the book doing?",
+     lambda f: [r"which book", r"practice book", r"managed book", r"options line"]),
+    ("clarifying question: the rule", "Ananta, when do you ask me which one I mean?",
+     lambda f: [r"draft|book|flag", r"wrong guess|choices?|which one"]),
 ]
 
 

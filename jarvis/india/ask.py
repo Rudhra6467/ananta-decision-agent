@@ -18,7 +18,7 @@ from pathlib import Path
 
 import requests
 
-from jarvis.india import answerguide, appmap, askwords, knowledgemap, lookup, marketcontext, mind, schedule, speaker, technicals, views, voiceid
+from jarvis.india import answerguide, appmap, askwords, clarify, knowledgemap, lookup, marketcontext, mind, schedule, speaker, technicals, views, voiceid
 
 # "my mom asks ...", "she wants to know ...": Madhav relaying for the guest, so his voice does not end the handover
 RELAY = re.compile(r"\b(?:my (?:mom|mother|amma|dad|father|nanna|pinni)|she|he|they|the grader)\s+(?:asks?|is asking|wants to know|says|said)\b", re.I)
@@ -338,7 +338,7 @@ def facts(owner: bool = False) -> dict:
             "technicals": technicals.facts_part(rm),     # 26 Oct: averages, crossovers, RSI, MACD, support/resistance, volume + what was tested
             "book_stats": book_stats_facts(rm),     # 26 Oct (Madhav: yes to all): expectancy, Sharpe-like ratio, holdings correlation, slippage, each with its "too few" flag
             "market_context": marketcontext.facts_part(rm),     # 26 Oct: rupee, dollar, crude, US yields/indices, fear gauges, FII/DII: to explain, never to predict
-            **({"account_allocation": _alloc_facts()} if owner else {})}
+            **({"account_allocation": _alloc_facts(), "clarifying_questions": clarify.summary()} if owner else {})}
 
 
 # Madhav approved all 12 drafts on 28 Oct 12:23; study RX1 answered them the same afternoon (records india/registrations/rx1_results_v1.md)
@@ -1393,6 +1393,18 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 if st["n"] >= 2 and not st.get("asked") and ACCOUNTISH.search(text):
                     ask_grader = "Am I speaking with the grader?"
                     speaker.stranger_mark_asked(thread)
+    # 7 Nov 2026 (Madhav: "like ChatGPT ... only for some important questions"): one clarifying question with choices, in code, only where a
+    # wrong guess would cost something; his next message picks a choice and becomes the question (jarvis/india/clarify.py)
+    if not early and guest is None and not str(who).startswith("guest:"):
+        picked = clarify.resolve(text, thread)
+        if picked:
+            text = picked
+        else:
+            cq = clarify.maybe(text, thread, context)
+            if cq and cq.get("resolved"):
+                text = cq["resolved"]
+            elif cq and cq.get("ask"):
+                early = cq["ask"]
     batch = None                                       # 27 Oct: a long numbered list, answered 6 at a time ("next" for the rest)
     if not early:
         qs = numbered_questions(text)

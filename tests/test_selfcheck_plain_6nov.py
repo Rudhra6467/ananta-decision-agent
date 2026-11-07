@@ -29,3 +29,19 @@ def test_restart_line_has_no_watchdog_word(tmp_path, monkeypatch):
     import time
     what = selfcheck._restarts(time.time())[0]["what"]
     assert "watchdog" not in what and "restarted automatically" in what
+
+
+def test_down_line_names_the_part_in_words(monkeypatch):
+    """7 Nov review: two of five 'a part was down' lines named no part (the code name had an underscore)."""
+    from jarvis.service import runcheck
+
+    misses = [{"name": "Outages the health watchdog recorded", "kind": "down", "t": 1794000000, "area": "crypto", "severity": "medium",
+               "detail": d} for d in ("hands_login: 64 min (login refused (HTTP 500))", "universe_feed: 63 min (prices 5 min old)",
+                                       "tunnel: 64 min (no answer (ConnectionError))")]
+    monkeypatch.setattr(runcheck, "run", lambda now=None: {"windows": {"24h": {"misses": misses}}})
+    whats = [x["what"] for x in selfcheck._runs(1794000000)]
+    assert whats[0].endswith("(Hands sign-in: 64 min)")
+    assert whats[1].endswith("(the universe feed: 63 min)")
+    assert whats[2].endswith("(the public address: 64 min)")
+    for w in whats:
+        assert "_" not in w

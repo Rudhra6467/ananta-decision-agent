@@ -66,13 +66,24 @@ def _plain_detail(detail) -> str:
     return det
 
 
+PART_WORDS = {"hands_login": "Hands sign-in", "universe_feed": "the universe feed", "jobs": "the 15-minute jobs",
+              "explorer": "the Explorer", "worker": "the worker Mac", "tunnel": "the public address", "hands": "Hands"}
+
+
 def _runs(now: float) -> list[dict]:
     from jarvis.service import runcheck
 
     out = []
     r = runcheck.run(now=now)
     for m in (r.get("windows") or {}).get("24h", {}).get("misses") or []:
-        det = _plain_detail(m.get("detail"))
+        raw = str(m.get("detail") or "")
+        if m.get("kind") == "down":
+            # 7 Nov review: 'hands_login: 64 min' and 'universe_feed: 63 min' lost the whole detail (the part's code name has an
+            # underscore), so the line said only 'a part was down'. Name the part in words before the code-word filter.
+            key, sep, rest = raw.partition(":")
+            if sep and re.fullmatch(r"[a-z0-9_]+", key.strip()):
+                raw = PART_WORDS.get(key.strip(), key.strip().replace("_", " ")) + sep + rest
+        det = _plain_detail(raw)
         name = str(m.get("name") or "a scheduled job").split(" (")[0]
         if m.get("kind") == "down":
             what = f"a part was down at {_when(m.get('t') or now)}" + (f" ({det})" if det else "")

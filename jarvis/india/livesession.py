@@ -431,6 +431,10 @@ def managed_today(clk: dict, plan: dict, fetch=None) -> dict:
                       + f". The fills are booked from the official NSE day file by the evening run at {_sched_at('com.ananta.india.evening')}, so the book's result arrives then.")}
 
 
+# 7 Nov 2026 (Ananta asked Madhav for it): the special sessions NSE has announced, by date, in plain words
+MUHURAT = {"2026-11-08": "the special Muhurat session: pre-open 14:05, normal market 14:20 to 15:30 IST, 3:50 to 5:00 am Toronto; "
+                         "Ananta's paper books and the options line trade regular sessions only, so it watches and records"}
+
 def holidays_ahead(clk: dict, days: int = 45) -> dict:
     """Independent audit, 2 Nov: Ananta said "the facts hold no holiday calendar" although NSE's holiday master is on disk. The NSE cash-market
     holidays in the next weeks, from manifests/nse_holidays.json; an asterisk in NSE's text means a special (Muhurat) session is announced later."""
@@ -451,7 +455,8 @@ def holidays_ahead(clk: dict, days: int = 45) -> dict:
             continue
         if start <= day <= start + dt.timedelta(days=days):
             desc = str(x.get("description") or "").strip()
-            note = " (NSE will announce a special Muhurat trading session; the time comes in its circular)" if desc.endswith("*") else ""
+            note = ((" (" + MUHURAT[day.isoformat()] + ")") if day.isoformat() in MUHURAT else
+                    " (NSE will announce a special Muhurat trading session; the time comes in its circular)") if desc.endswith("*") else ""
             rows.append({"date": day.isoformat(), "what": desc.rstrip("*").strip(), "words": f"{_dw(day)}: {desc.rstrip('*').strip()}{note}"
                          + (" (a weekend anyway)" if day.weekday() >= 5 else "")})
     return {"rows": rows, "words": ("NSE holidays in the next weeks (cash market): " + "; ".join(r["words"] for r in rows) + ".") if rows

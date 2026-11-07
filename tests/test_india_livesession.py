@@ -241,6 +241,7 @@ def test_holidays_ahead_reads_the_nse_list(tmp_path, monkeypatch):
     monkeypatch.setattr(L, "DATA", tmp_path)
     h = L.holidays_ahead(L.clock("2026-10-30", AT_0608_TORONTO))
     assert len(h["rows"]) == 2 and "Muhurat" in h["words"] and "Tuesday 10 Nov: Diwali-Balipratipada" in h["words"]
+    assert "14:20 to 15:30 IST" in h["words"] and "regular sessions only" in h["words"], "7 Nov: the announced time, not 'comes in its circular'"
 
 
 def test_index_now_falls_back_to_the_closing_bars_when_zerodha_is_signed_out(tmp_path, monkeypatch):

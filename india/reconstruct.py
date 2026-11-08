@@ -830,8 +830,11 @@ def _headline(c: dict) -> str:
         parts.append(f"{rv['count']} closed trade{'s' if rv['count'] != 1 else ''} reviewed ({tags}).")
     # 6 Nov 2026 (the reconstruction audit): "nothing waits for you" counted only tonight's new drafts, while 3 earlier drafts still waited
     # (the nightly replay had marked a "nothing is waiting" answer wrong). The tail now counts every draft still undecided.
+    # 8 Nov 2026 (morning self-scan): the headline is written before write_queue files tonight's drafts, so the 6 Nov card said "1 new idea
+    # tonight; nothing waits for you" while that draft waited. Tonight's own drafts count too, each key once.
+    tonight = {x.get("key") for x in f if x.get("lane") == "DECISION" and x.get("state") == "DRAFT"}
     try:
-        waiting = sum(1 for q in queue() if q.get("lane") == "DECISION" and q.get("state") == "DRAFT")
+        waiting = len({q.get("key") for q in queue() if q.get("lane") == "DECISION" and q.get("state") == "DRAFT"} | tonight)
     except Exception:  # noqa: BLE001
         waiting = dec
     new_w = f"{dec} new idea{'s' if dec != 1 else ''} tonight" if dec else "no new idea tonight"

@@ -1681,6 +1681,7 @@
     "jarvis/india/technicals.py",
     "jarvis/india/marketcontext.py",
     "jarvis/india/askwords.py",
+    "jarvis/india/clarify.py",
     "jarvis/india/askprompt.py",
     "jarvis/india/desk.py",
     "jarvis/india/numcheck.py",

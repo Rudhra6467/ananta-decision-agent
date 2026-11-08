@@ -182,6 +182,14 @@ def results(session: str | None = None) -> dict:
         held |= set(json.loads((paths.data_dir() / "paper" / "account" / "state.json").read_text()).get("positions") or {})
     except Exception:  # noqa: BLE001
         pass
+    # 8 Nov 2026 (the outside audit): the morning view said "no results board meeting today" for 9 Nov while the desk's calendar named six.
+    # One owner for the results calendar: NSE's board-meetings calendar the desk fetches (manifests/desk.json results_ahead), joined here.
+    try:
+        cal = (json.loads((_man() / "desk.json").read_text()).get("results_ahead") or {}).get(session_d.isoformat()) or []
+        for sym in cal:
+            today_meet.setdefault(sym, "NSE board-meetings calendar")
+    except Exception:  # noqa: BLE001
+        pass
     meet = sorted(today_meet)
     pub = sorted(published)
     out = {"session": session_d.isoformat(), "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "files": [Path(f).name for f in files],

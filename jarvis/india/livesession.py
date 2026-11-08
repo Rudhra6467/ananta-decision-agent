@@ -60,7 +60,7 @@ def prev_session(d: dt.date, hol: set | None = None) -> dt.date:
 
 
 def _dw(d: dt.date) -> str:
-    return d.strftime("%A %-d %b")
+    return d.strftime("%A %-d %b") + (f" {d.year}" if d.year != dt.date.today().year else "")
 
 
 def clock(data_through: str | None, now: dt.datetime | None = None) -> dict:
@@ -116,7 +116,18 @@ def clock(data_through: str | None, now: dt.datetime | None = None) -> dict:
     elif session_day and state in ("before_open", "pre_open"):
         rel += (f" Today's session ({_dw(today)}) has not started yet: 'today' and 'now' are about what is coming at 09:15 IST "
                 f"(the plan, the levels to watch, what happened overnight), and the last finished session is {_dw(latest)}.")
+    special = None
+    if not session_day and today.isoformat() in MUHURAT_IST:          # 8 Nov 2026 audit: the Muhurat hour's prints were called "Friday's close"
+        pre, o, c = MUHURAT_IST[today.isoformat()]
+        om, cm = int(o[:2]) * 60 + int(o[3:]), int(c[:2]) * 60 + int(c[3:])
+        phase = "ahead" if minute < om else ("on" if minute < cm else "over")
+        special = {"name": "Muhurat", "day": today.isoformat(), "day_words": _dw(today), "open": o, "close": c, "phase": phase,
+                   "words": f"{_dw(today)}'s special one-hour Muhurat session ({o} to {c} IST) is " + {"ahead": "still ahead", "on": "on now", "over": "over"}[phase]
+                            + f"; the last regular session is {_dw(latest)} and the next opens {_dw(nxt)} 09:15 IST. Ananta's paper books and the options line trade regular "
+                            "sessions only. Any Kite price from today is a Muhurat-hour print, never 'the close' of the last regular session."}
+        said += f"; {special['words'].split(';')[0]}"
     return {"ts": now.timestamp(), "ist_now": ist_words + " IST", "toronto_now": tor_words, "today_india": today.isoformat(), "today_is_session": session_day, "state": state,
+            "special_session": special,
             "latest_session": latest.isoformat(), "latest_session_words": _dw(latest), "next_session": nxt.isoformat(), "next_session_words": _dw(nxt),
             "nightly_data_through": through or None, "latest_session_in_nightly_data": latest_in_nightly,
             "words": f"It is {ist_words} in India ({tor_words} in Toronto): {said}.",
@@ -179,6 +190,9 @@ def _kind(clk: dict, fetched_at: float) -> tuple[str, str]:
         return at, f"in the pre-open at {at} (indicative; trading starts 09:15 IST)"
     if clk["latest_session"] == clk["today_india"]:
         return at, "at today's close (Kite's closing price; the official NSE file lands later the same day)"
+    sp = clk.get("special_session")
+    if sp and sp.get("phase") != "ahead":      # 8 Nov 2026 audit: a Kite price on a Muhurat day is that hour's print, not the last close
+        return at, f"a print from {sp['day_words']}'s Muhurat hour ({sp['open']}-{sp['close']} IST, a special one-hour session), not {clk['latest_session_words']}'s close"
     return at, f"at the close of {clk['latest_session_words']}, the last session (the next opens {clk['next_session_words']} 09:15 IST)"
 
 
@@ -226,6 +240,13 @@ def _closing_bars(clk: dict) -> dict | None:
                       "change_pct": _pct(r["close"], r.get("prev_close")), "from_open_pct": None}
     if "NIFTY 50" not in rows:
         return None
+    try:                                     # the VIX close is in the read model (NSE's file), not in the index bars; one owner for the close
+        rm = json.loads((DATA / "readmodel" / "latest.json").read_text())
+        vix = (rm.get("market") or {}).get("vix_close")
+        if isinstance(vix, (int, float)) and str(rm.get("data_through") or "")[:10] == clk["latest_session"]:
+            rows["INDIA VIX"] = {"last": vix, "prev_close": None, "open": None, "high": None, "low": None, "change_pct": None, "from_open_pct": None}
+    except Exception:  # noqa: BLE001
+        pass
     parts = [f"{ {'NIFTY 50': 'Nifty', 'NIFTY BANK': 'Bank Nifty', 'INDIA VIX': 'India VIX'}[n] } {r['last']:,.2f}"
              + (f" ({r['change_pct']:+.2f}% on the previous close {r['prev_close']:,.2f})" if r["change_pct"] is not None else "") for n, r in rows.items()]
     return {"live": False, "as_of": None, "kind": f"at the close of {clk['latest_session_words']} (from the closing bars on file; Zerodha's live feed is "
@@ -243,6 +264,29 @@ def index_now(clk: dict, fetch=None) -> dict:
         if fb:
             return fb | {"error": q["error"]}
         return {"live": False, "error": q["error"], "words": "I could not reach the live prices from Kite just now (" + q["error"][:60] + "); say so, do not guess."}
+    if clk["state"] == "no_session":
+        # 8 Nov 2026 (the outside audit): on a weekend or holiday Kite's row is the last close against itself (0.0%), or, on a Muhurat day,
+        # the special hour's print; neither is "the close of the last session". The closing bars on file are, with their own day change.
+        fb = _closing_bars(clk)
+        if fb:
+            fb["kind"] = f"at the close of {clk['latest_session_words']}, the last regular session (the closing bars on file; the next session opens {clk['next_session_words']} 09:15 IST)"
+            fb["words"] = f"{clk['latest_session_words']}, at the close, the last regular session: " + fb["words"].split("in this line): ", 1)[-1]
+            sp = clk.get("special_session")
+            if sp:
+                prints = []
+                for name, sym in INDEX.items():
+                    r = q["rows"].get(sym) or {}
+                    if r.get("last") is None:
+                        continue
+                    label = {"NIFTY 50": "Nifty", "NIFTY BANK": "Bank Nifty", "INDIA VIX": "India VIX"}[name]
+                    prev = (fb["rows"].get(name) or {}).get("last") or r.get("prev_close")     # the close on file is the owner of "Friday's close"
+                    ch = _pct(r["last"], prev)
+                    prints.append(f"{label} {r['last']:,.2f}" + (f" ({'+' if ch >= 0 else ''}{ch:.2f}% on {clk['latest_session_words']}'s close {prev:,.2f})" if ch is not None else ""))
+                fb["special_session"] = {"name": sp["name"], "day": sp["day"], "phase": sp["phase"], "rows": {n: q["rows"].get(s) for n, s in INDEX.items() if q["rows"].get(s)},
+                                         "words": f"{sp['day_words']}'s Muhurat hour ({sp['open']}-{sp['close']} IST, {sp['phase']}): " + ("; ".join(prints) + "." if prints else "no print yet.")
+                                                  + f" These are Muhurat-hour prints, not {clk['latest_session_words']}'s close; the paper books did not trade in it."}
+                fb["words"] += " " + fb["special_session"]["words"]
+            return fb
     rows = {}
     for name, sym in INDEX.items():
         r = q["rows"].get(sym) or {}
@@ -401,9 +445,50 @@ def holdings_today(clk: dict, positions: list[dict], fetch=None) -> dict:
     up = [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in rows[::-1][:3] if x["move_inr"] > 0]
     dn = [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in rows[:3] if x["move_inr"] < 0]
     when = ("so far today" if clk["state"] == "open" else "today" if clk["latest_session"] == clk["today_india"] else f"on {clk['latest_session_words']}")
+    sp = clk.get("special_session")
+    if clk["state"] == "no_session":
+        # 8 Nov 2026 (the outside audit): on a Muhurat day Kite's move is the Muhurat hour's against Friday's close, and on a plain weekend
+        # it is 0.0%; the last regular session's own move comes from the quotebook's day change, and is what "on Friday" means
+        qb = _quotebook_day_move(positions)
+        if qb:
+            out = {"move_inr": qb["move_inr"], "move_pct": qb["move_pct"], "rows": qb["rows"],
+                   "words": f"Your holdings as you have them (the 'As you have it' book on Money, not the twin) were {'up' if qb['move_inr'] >= 0 else 'down'} about Rs {abs(qb['move_inr']):,.0f} "
+                            f"({qb['move_pct']:+.2f}%) on {clk['latest_session_words']}, the last regular session (from the closing prices on file)"
+                            + (f"; best {', '.join(qb['up'])}" if qb["up"] else "") + (f"; worst {', '.join(qb['dn'])}" if qb["dn"] else "") + "."}
+            if sp:
+                out["special_session"] = {"move_inr": round(move), "move_pct": round(pct, 2), "rows": rows}
+                out["words"] += (f" In {sp['day_words']}'s Muhurat hour they moved {'+' if move >= 0 else '-'}Rs {abs(move):,.0f} ({pct:+.2f}%) against that close; "
+                                 "a one-hour special session, nothing traded by the paper books.")
+            return out
     return {"move_inr": round(move), "move_pct": round(pct, 2), "rows": rows,
             "words": f"Your holdings as you have them (the 'As you have it' book on Money, not the twin) are {'up' if move >= 0 else 'down'} about Rs {abs(move):,.0f} ({pct:+.2f}%) {when}"
                      + (f"; best {', '.join(up)}" if up else "") + (f"; worst {', '.join(dn)}" if dn else "") + "."}
+
+
+def _quotebook_day_move(positions: list[dict]) -> dict | None:
+    """The holdings' move on the last regular session, from the quotebook's closes and day changes (manifests/quotebook.json)."""
+    try:
+        qs = json.loads((DATA / "manifests" / "quotebook.json").read_text()).get("quotes") or {}
+    except Exception:  # noqa: BLE001
+        return None
+    move, base, rows = 0.0, 0.0, []
+    for p in positions:
+        r = qs.get(str(p.get("symbol") or "")) or {}
+        c, d1 = r.get("close"), r.get("chg_1d")
+        if not isinstance(c, (int, float)) or not isinstance(d1, (int, float)) or not p.get("qty") or d1 <= -1:
+            continue
+        prev = c / (1 + d1)
+        d = p["qty"] * (c - prev)
+        move += d
+        base += p["qty"] * prev
+        rows.append({"symbol": p["symbol"], "change_pct": round(100 * d1, 2), "move_inr": round(d)})
+    if not rows:
+        return None
+    rows.sort(key=lambda x: x["move_inr"])
+    pct = 100 * move / base if base else 0
+    return {"move_inr": round(move), "move_pct": round(pct, 2), "rows": rows,
+            "up": [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in rows[::-1][:3] if x["move_inr"] > 0],
+            "dn": [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in rows[:3] if x["move_inr"] < 0]}
 
 
 def managed_today(clk: dict, plan: dict, fetch=None) -> dict:
@@ -666,8 +751,14 @@ def scrub(answer: str, live: dict) -> str:
     if not hit:
         return str(answer or "")
     lead = []
-    if "clock" in hit:
-        lead.append((live.get("clock") or {}).get("words"))
+    if "clock" in hit:                     # 8 Nov audit: the full clock line read as a data dump in front of an RBI answer; one plain sentence
+        clk = live.get("clock") or {}
+        st = clk.get("state")
+        lead.append({"no_session": f"There is no NSE session today, sir; the last was {clk.get('latest_session_words')} and the next opens {clk.get('next_session_words')} at 09:15 IST.",
+                     "open": "The NSE session is open now, sir (09:15 to 15:30 IST).",
+                     "closed": f"Today's NSE session has closed, sir (15:30 IST); the next opens {clk.get('next_session_words')} at 09:15 IST.",
+                     "before_open": "Today's NSE session has not started yet, sir; it opens at 09:15 IST.",
+                     "pre_open": "NSE is in its pre-open, sir; trading starts at 09:15 IST."}.get(st) or clk.get("words"))
     if "index" in hit:
         lead.append((live.get("index_now") or {}).get("words"))
     if "options" in hit:

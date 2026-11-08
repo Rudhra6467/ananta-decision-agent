@@ -29,7 +29,8 @@ def _json(p: Path, default=None):
 
 def _dw(d: str | None) -> str:
     try:
-        return dt.date.fromisoformat(str(d)[:10]).strftime("%a %-d %b")
+        x = dt.date.fromisoformat(str(d)[:10])
+        return x.strftime("%a %-d %b") + (f" {x.year}" if x.year != dt.date.today().year else "")
     except (TypeError, ValueError):
         return str(d or "")
 
@@ -130,12 +131,18 @@ def _index_tile(rm: dict, clk: dict | None, fetch=None) -> dict:
     if clk:
         try:
             from jarvis.india import livesession
-            rows = livesession.index_now(clk, fetch).get("rows") or {}
+            ix = livesession.index_now(clk, fetch)
+            rows = ix.get("rows") or {}
             when = (f"Live · {dt.datetime.now(IST):%H:%M} IST" if clk["state"] == "open" else f"{_dw(clk['latest_session'])} close")
+            sp = (ix.get("special_session") or {}).get("rows") or {}       # 8 Nov: a Muhurat-hour print is shown beside the close, named
             for key, name in (("NIFTY 50", "Nifty 50"), ("NIFTY BANK", "Bank Nifty")):
                 r = rows.get(key) or {}
                 if r.get("last") is not None:
                     pages[key] = _index_page(name, r["last"], r.get("prev_close"), when)
+                    m = sp.get(key) or {}
+                    if m.get("last") is not None:
+                        mp = 100 * (m["last"] / r["last"] - 1)
+                        pages[key]["sub2"] = f"{when} · Muhurat {m['last']:,.0f} ({_signed(mp, 1)}%)"
         except Exception:  # noqa: BLE001
             pass
     newer = (rm.get("market") or {}).get("newer_closes") or {}
@@ -628,15 +635,17 @@ def portfolio_chart(data: Path | None = None) -> dict:
         since = str(json.loads((data / "paper" / "account" / "frozen.json").read_text()).get("day") or "")
     except (OSError, ValueError):
         since = ""
+    # 8 Nov (the outside audit, "two accounts on paper"): one owner for "my account on paper" is the managed book (the Map's change 3, 3 Nov);
+    # the twin is folded into it and is not drawn as a second "you". The lines: the managed book, the same holdings left alone, the Nifty 500.
     words = (f"Drawn from {_dw(dates[0])} to {_dw(dates[-1])}; the returns count from the start"
              + (f" ({_dw(since)}, {_inr(start)})" if since and start else "") + ". "
-             f"Your holdings on paper {_inr(last.get('twin_inr') or 0)} ({pct('twin_ret_pct'):+.2f}%), "
-             f"left untouched {_inr(last.get('frozen_inr') or 0)} ({pct('frozen_ret_pct'):+.2f}%)"
-             + (f", the managed book {_inr(last.get('managed_inr') or 0)} ({pct('managed_ret_pct'):+.2f}% over {last.get('managed_sessions') or 0} sessions)" if last.get("managed_inr") else "")
+             + (f"Your account on paper, the managed book, {_inr(last.get('managed_inr') or 0)} ({pct('managed_ret_pct'):+.2f}% over {last.get('managed_sessions') or 0} sessions); "
+                if last.get("managed_inr") else "The managed book has not started; ")
+             + f"the same holdings left untouched {_inr(last.get('frozen_inr') or 0)} ({pct('frozen_ret_pct'):+.2f}%)"
              + (f"; the Nifty 500 {pct('nifty500_ret_pct'):+.2f}% on its own path." if last.get("nifty500_ret_pct") is not None else "."))
-    return {"name": "Your portfolio", "kind": "portfolio", "as_of": dates[-1], "start_inr": start, "sessions": len(rows),
-            "chart": {"dates": dates, "yours": yours, "untouched": untouched, "managed": managed, "nifty500": n500},
-            "legend": {"yours": "your holdings on paper (the twin Ananta tends)", "untouched": "the same holdings left alone", "managed": "the managed book", "nifty500": "the Nifty 500, same rupees at its reference day"},
+    return {"name": "Your account on paper", "kind": "portfolio", "as_of": dates[-1], "start_inr": start, "sessions": len(rows),
+            "chart": {"dates": dates, "yours": managed, "untouched": untouched, "managed": managed, "nifty500": n500, "twin": yours},
+            "legend": {"yours": "your account on paper (the managed book)", "untouched": "the same holdings left alone", "nifty500": "the Nifty 500, same rupees at its reference day"},
             "words": words, "note": "paper only, one point per session at the close; the managed book starts on its own first day"}
 
 

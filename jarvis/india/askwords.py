@@ -99,6 +99,62 @@ LEFT_RE = re.compile(rf"(?<![\w-])(?:{_CARD}|{_STUDY}|ATRSTOP|T1515|NEXTOPEN|VAL
 _TITLES: dict = {"t": 0, "v": {}}
 
 
+_NAMES: dict = {"t": 0.0, "v": {}}
+# never a stock name, even when a symbol of that spelling exists
+NOT_A_STOCK = {"RSI", "VIX", "NSE", "BSE", "IST", "CPI", "GDP", "RBI", "FII", "DII", "ETF", "SIP", "IPO", "USD", "INR", "EPS", "MACD", "ATR", "SMA", "EMA",
+               "ROE", "ROCE", "NAV", "AUM", "PE", "PB", "OK", "AI", "API", "SEBI", "NIFTY", "BANKNIFTY", "SENSEX", "FAIL", "PASS", "NOTE", "LIVE", "PAPER",
+               "GIFT", "US", "UK", "EU", "FED", "ECB", "WTI", "CAD", "GOLD", "SILVER", "BEES", "ALL", "NEW", "LTD", "TRIM", "TIDY", "REDUCE", "HOLD", "BUY", "SELL",
+               "MIS", "NRML", "CNC", "NFO", "MCX", "YES", "NO", "AND", "THE", "FOR", "ONE", "TWO", "MAX", "MIN", "INDIA", "MARCH", "MAY", "JUNE", "JULY"}
+_SMALL = {"of", "and", "the", "in", "for"}
+
+
+def company_names() -> dict:
+    """Ticker -> company name as Madhav wants it spoken (30 Oct: "Jio Financial, not JIOFIN"), from the quote book's name list; {} when absent."""
+    if time.time() - _NAMES["t"] < 3600:
+        return _NAMES["v"]
+    out = {}
+    try:
+        import json
+        import os
+        from pathlib import Path
+        p = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "manifests" / "quotebook_names.json"
+        for sym, r in json.loads(p.read_text()).items():
+            if not re.fullmatch(r"[A-Z][A-Z0-9&-]{2,}", sym) or sym in NOT_A_STOCK or (r.get("kind") and r.get("kind") != "stock"):
+                continue
+            name = str(r.get("name") or "")
+            norm = str(r.get("norm") or "")
+            alias = str((r.get("aliases") or [""])[0] or "")
+            # the first alias when it is the same company said shorter (tata power); the norm when the alias is an old name (zomato for Eternal)
+            initials = "".join(w[0] for w in name.lower().split() if w not in _SMALL and w not in ("limited", "ltd", "ltd."))
+            acronym = bool(alias) and " " not in alias and initials.startswith(alias.lower()) and len(alias) >= 2
+            raw = alias if alias and norm and (alias.split()[0] == norm.split()[0] or acronym) else (norm or re.sub(r"\s+(limited|ltd\.?)$", "", name, flags=re.I))
+            if not raw or raw.endswith(" of"):
+                raw = re.sub(r"\s+(limited|ltd\.?)$", "", name, flags=re.I)
+            upper_in_name = {w for w in name.split() if w.isupper() and len(w) <= 5}
+            name_words = {w.lower() for w in name.split()}
+            said = []
+            for w in str(raw).split():
+                if w in _SMALL:
+                    said.append(w)
+                elif w.upper() in upper_in_name or (len(w) <= 3 and w.lower() not in name_words):
+                    said.append(w.upper())
+                else:
+                    said.append(w.capitalize())
+            out[sym] = " ".join(said)
+    except Exception:  # noqa: BLE001
+        out = {}
+    _NAMES.update({"t": time.time(), "v": out})
+    return out
+
+
+def spoken_names(s: str, names: dict | None = None) -> str:
+    """8 Nov 2026 (the outside audit: KALYANKJIL, AJANTPHARM, TMPV spoken as tickers): a ticker standing on its own becomes the company name."""
+    names = company_names() if names is None else names
+    if not names or not s:
+        return s
+    return re.sub(r"(?<![\w/.:-])([A-Z][A-Z0-9&-]{2,})(?![\w/&-]|[.:]\w)", lambda m: names.get(m.group(1), m.group(1)), s)
+
+
 def titles() -> dict:
     """Teacher-card titles by id (from the tested cards the app shows), refreshed every 10 minutes; {} when not available."""
     if time.time() - _TITLES["t"] < 600:
@@ -170,6 +226,7 @@ def words(s: str, known: dict | None = None) -> str:
     out = re.sub(r"\s+([,.;:])", r"\1", out)
     out = re.sub(r"  +", " ", out).strip()
     out = re.sub(r"((?:^|[.!?]\s+))(it) (came out|did not|held|had)\b", lambda m: m.group(1) + ("It" if m.group(1).strip() or not m.group(1) else m.group(2)) + " " + m.group(3), out)
+    out = spoken_names(out)
     return out
 
 

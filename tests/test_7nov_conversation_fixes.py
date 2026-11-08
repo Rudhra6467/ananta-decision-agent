@@ -37,7 +37,7 @@ def test_the_sleep_log_gives_one_window_and_the_items_fold_into_one_planned_line
     monkeypatch.setattr(selfcheck, "DOWNTIME", tmp_path / "downtime.json")
     selfcheck.note_downtime(1.0, "Can we turn off the laptop for 1 hour?", "Madhav", now=_t("2026-11-07 12:07"))
     out = [x for x in selfcheck.fold_sleep(items, w, selfcheck.downtime_notes(now), now) if x["source"] == "Mac asleep"]
-    assert out[0]["planned"] and "Madhav said about 1 h, it lasted 3 h 2 min" in out[0]["what"] and out[0]["severity"] == "medium", "planned, but it ran long"
+    assert out[0]["planned"] and "planned for about 1 h (Madhav's word), it lasted 3 h 2 min" in out[0]["what"] and out[0]["severity"] == "medium", "planned, but it ran long"
     selfcheck.note_downtime(3.5, "closing the lid for a few hours", "Madhav", now=_t("2026-11-07 12:07"))
     out = [x for x in selfcheck.fold_sleep(items, w, selfcheck.downtime_notes(now), now) if x["source"] == "Mac asleep"]
     assert out[0]["severity"] == "low" and "it lasted" not in out[0]["what"]

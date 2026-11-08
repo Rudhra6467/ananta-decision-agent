@@ -20,17 +20,17 @@ def test_the_portfolio_chart_comes_from_the_benchmark_with_a_nifty_500_line_from
     (acct / "benchmark.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
     (acct / "frozen.json").write_text(json.dumps({"day": "2026-10-22", "start_inr": 162509.0}))
     c = surfaces.portfolio_chart(tmp_path)
-    assert c["kind"] == "portfolio" and c["as_of"] == "2026-11-06" and c["sessions"] == 3
-    assert c["chart"]["dates"] == ["2026-10-29", "2026-10-30", "2026-11-06"] and c["chart"]["yours"] == [160499, 162645, 165383]
+    assert c["kind"] == "portfolio" and c["as_of"] == "2026-11-06" and c["sessions"] == 3 and c["name"] == "Your account on paper"
+    assert c["chart"]["dates"] == ["2026-10-29", "2026-10-30", "2026-11-06"] and c["chart"]["twin"] == [160499, 162645, 165383] and c["chart"]["yours"] == [None, 162572, 163885]
     assert c["chart"]["managed"] == [None, 162572, 163885] and c["chart"]["nifty500"] == [164345, 164004, 175705]
-    assert "Your holdings on paper ₹1,65,383 (+1.77%)" in c["words"] and "the Nifty 500 +8.12% on its own path" in c["words"]
+    assert "Your account on paper, the managed book, ₹1,63,885 (+2.11% over 5 sessions)" in c["words"] and "the Nifty 500 +8.12% on its own path" in c["words"]
     assert c["words"].startswith("Drawn from Thu 29 Oct to Fri 6 Nov; the returns count from the start (Thu 22 Oct, ₹1,62,509).")
     # a partial last row (a key missing, a null pct) still draws and reads instead of a 500 (review, 7 Nov)
     with (acct / "benchmark.jsonl").open("a") as f:
         f.write(json.dumps({"day": "2026-11-07", "twin_inr": 165900, "frozen_inr": None, "frozen_ret_pct": None, "nifty500_ret_pct": None}) + "\n")
     c2 = surfaces.portfolio_chart(tmp_path)
     assert c2["sessions"] == 4 and c2["chart"]["untouched"][-1] is None and c2["chart"]["nifty500"][-1] is None
-    assert "left untouched ₹0 (+0.00%)" in c2["words"] and c2["words"].endswith("sessions).") is False
+    assert "left untouched ₹0 (+0.00%)" in c2["words"]
     assert surfaces.portfolio_chart(tmp_path / "nowhere")["chart"]["dates"] == []
 
 
@@ -67,5 +67,5 @@ def test_the_chart_endpoint_serves_the_portfolio(tmp_path, monkeypatch):
     monkeypatch.setattr(surfaces, "DATA", tmp_path)
     c = TestClient(service.app, client=("127.0.0.1", 50000))
     r = c.get("/v3/chart/portfolio")
-    assert r.status_code == 200 and r.json()["chart"]["yours"] == [1, 2] and r.json()["chart"]["nifty500"] == [1, 2]
+    assert r.status_code == 200 and r.json()["chart"]["twin"] == [1, 2] and r.json()["chart"]["nifty500"] == [1, 2]
     assert surfaces.views.ROUTES["chart/portfolio"] is surfaces.portfolio_chart

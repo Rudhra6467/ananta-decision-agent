@@ -602,7 +602,8 @@ def _not_a_repeat(r: dict | None, thread: str) -> dict | None:
 
 def _day_words_safe(d) -> str:
     try:
-        return dt.date.fromisoformat(str(d)).strftime("%A %-d %b")
+        x = dt.date.fromisoformat(str(d))
+        return x.strftime("%A %-d %b") + (f" {x.year}" if x.year != dt.date.today().year else "")
     except (TypeError, ValueError):
         return "the next session"
 
@@ -618,6 +619,19 @@ def _managed_mention(text: str) -> str:
         if re.search(r"\b" + re.escape(c["symbol"]) + r"\b", text, re.I):
             return f" {c['symbol']} is on the managed book's paper cut list for {_day_words_safe(p.get('for_session'))}. A real order would be yours to place."
     return ""
+
+
+def _managed_cuts() -> list[dict]:
+    """Every cut in the managed book's plans so far (paper/managed/plans.jsonl): the name, the kind, the rupees, the reason, the replacement."""
+    out = []
+    for r in _jsonl_rows(DATA / "paper" / "managed" / "plans.jsonl"):
+        buys = {b.get("for_cut"): b.get("symbol") for b in r.get("buys") or []}
+        for c in r.get("cuts") or []:
+            k = str(c.get("kind") or "").upper()
+            out.append({"session": r.get("for_session"), "symbol": c.get("symbol"), "kind": k,
+                        "meaning": {"TRIM": "part of the stake sold, the rest kept", "REDUCE": "the stake cut back, not sold out", "TIDY": "a too-small stake sold whole"}.get(k, k),
+                        "inr": c.get("inr"), "why": c.get("why"), "replaced_by": buys.get(c.get("symbol")) or next((s for fc, s in buys.items() if c.get("symbol") in str(fc or "").split("+")), None)})
+    return out[-12:]
 
 
 def _managed_book() -> dict:
@@ -637,6 +651,9 @@ def _managed_book() -> dict:
                                **({"pooled_from": str(b.get("for_cut")).split("+"), "why_pooled": f"each of these cuts frees under Rs 3,000, too little for a name of its own, so together they buy one ({len(str(b.get('for_cut')).split('+'))} names: the tidy-ups plus any small reduce)"} if "+" in str(b.get("for_cut")) else {})}
                               for b in p.get("buys") or []],
                      "notes": p.get("notes")},
+            # 8 Nov (the outside audit: "why did you cut Tata Power?" got "not in my facts" while the plan on disk had the reason): every cut
+            # the book has made, with its kind (TRIM = part of the stake sold, REDUCE = cut back, TIDY = a too-small stake sold whole) and why
+            "cuts_made": _managed_cuts(),
             # 2 Nov fact map: the replacement ledger's score file was written nightly and read by nothing
             "score": _json_file(DATA / "paper" / "managed" / "score.json"),
             "tracked": ("Two places. The replacement ledger scores every cut and every replacement 5 and 20 sessions after the fill: did the cut name fall "
@@ -1132,13 +1149,16 @@ def finish(reply: dict, question: str, model: bool) -> dict:
     only where the question is about trading (the prompt already says so; the model kept adding it to every answer). 27 Oct: every code and
     field name is put into words (jarvis/india/askwords.py) before the answer is shown or spoken; the codes stay in "evidence"."""
     a = askwords.words(plain_codes(str(reply.get("answer") or "")))
+    # 8 Nov audit: the model sometimes writes "Ananta:", "Next:", "Market:" as line labels; spoken, they are noise
+    a = re.sub(r"(?:^|\n)\s*(?:Ananta|Next|Market|Answer|Note|Summary|Bottom line)\s*:\s*", " ", a).strip()
+    a = re.sub(r"[ \t]*\n[ \t]*", " ", a)
     # 30 Oct outside grade (cv5.2): an answer that ends by promising an example or a list and gives none loses the dangling promise
     a = re.sub(r"\s*(?:Here(?:'s| is) (?:a |an )?(?:made-up |quick |simple )?example|For example|An example)[:.]?\s*$", "", a).rstrip()
     # 31 Oct (outsider r5, "a daily checklist, five lines"): the answer promised a list ("here are five lines ... in this order") and the model
     # put the lines in `breakdown`, leaving the spoken answer empty of them. When the answer promises a list it does not contain and the
     # breakdown holds one, the breakdown's lines are spoken as the list.
     promise = re.search(r"\b(?:here (?:are|is)|these are) (?:the |my |a )?(?:\w+ ){0,2}(?:\d+|two|three|four|five|six|seven|eight|nine|ten) (?:lines|steps|points|checks|things|rules|questions|items)\b|\bin (?:this|that) order\b|:\s*$", a, re.I)
-    bd = [str(x).strip() for x in (reply.get("breakdown") or []) if str(x).strip()]
+    bd = [askwords.words(str(x).strip()) for x in (reply.get("breakdown") or []) if str(x).strip()]   # 8 Nov: the same names as the answer
     named = lambda x: (re.findall(r"[A-Z][A-Z&-]{2,}", x) or [x.split(":")[0]])[0]  # noqa: E731  the item's first name
     said_all = bd and all(named(x) in a for x in bd)        # 3 Nov (round 5): the list was spoken twice, as sentences and again numbered
     if promise and len(re.findall(r"(?:^|\s)(?:\d+[).:]|[-•])\s", a)) < 2 and len(bd) >= 3 and not said_all:

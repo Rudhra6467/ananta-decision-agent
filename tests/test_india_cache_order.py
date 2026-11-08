@@ -45,5 +45,5 @@ def test_the_self_check_reports_india_answers_that_fell_back(tmp_path, monkeypat
     (tmp_path / "ask" / "abc.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
     monkeypatch.setenv("ANANTA_INDIA_DATA", str(tmp_path))
     f = selfcheck.model_fallbacks(now)
-    assert f and f[0]["severity"] == "high" and f[0]["source"] == "Claude credit" and "1 India answer in the last 6 hours" in f[0]["what"]
+    assert f and f[0]["severity"] == "high" and f[0]["source"] == "Claude credit" and "1 India answer in the last 6 hours" in f[0]["what"] and "cache_control" in f[0]["detail"]
     assert selfcheck.model_fallbacks(now + 7 * 3600) == []

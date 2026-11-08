@@ -125,7 +125,7 @@ def test_semicolon_cut_and_codes_are_cleaned():
     r = ask.finish({"answer": "Both are marked after the close and noisy; all of this is paper only."}, "is that risky", True)
     assert "all of" not in r["answer"]
     r = ask.finish({"answer": "Four are on the cut list: TRIM JIOFIN, REDUCE IEX, TIDY IDEA."}, "cut list", True)
-    assert "TRIM" not in r["answer"] and "halve IEX" in r["answer"] and "tidy-up IDEA" in r["answer"]
+    assert "TRIM" not in r["answer"] and "halve Indian Energy Exchange" in r["answer"] and "tidy-up Vodafone Idea" in r["answer"]   # 8 Nov: company names
 
 
 def test_premium_paid_is_given_not_worked_out(monkeypatch, tmp_path):

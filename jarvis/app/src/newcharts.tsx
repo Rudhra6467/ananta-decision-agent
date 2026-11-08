@@ -1,6 +1,6 @@
 // 7 Nov 2026 (Madhav): on Today, the Nifty 50 and Bank Nifty box opens their chart (the last 120 closes with the 50- and 200-day averages
 // and the swing zones, from /v3/chart/NIFTY and /v3/chart/BANKNIFTY), and the portfolio box opens the portfolio's performance over time
-// (/v3/chart/PORTFOLIO: your holdings on paper, the same holdings left alone, the managed book and the Nifty 500 from one start, one
+// (/v3/chart/PORTFOLIO: your account on paper (the managed book), the same holdings left alone and the Nifty 500 from one start, one
 // point per session). A sheet over the screen, the new look's cards and gold; every sheet ends with an Ask Ananta button.
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
@@ -36,10 +36,10 @@ function ChartBody({ kind, cur, setCur, path, onClose, onAsk, onOpenMoney }: {
   const { data: d, loading, err } = useData<any>(path, 300000);
   const ch = d?.chart ?? {};
   const dates: string[] = ch.dates ?? [];
-  const title = kind === "index" ? (INDEX.find((i) => i.key === cur)?.label ?? cur) : "Your portfolio";
+  const title = kind === "index" ? (INDEX.find((i) => i.key === cur)?.label ?? cur) : "Your account on paper";
   const question = kind === "index"
     ? `Walk me through the ${title} chart: the trend, where support and resistance are, and what it says for the next session.`
-    : "Walk me through my portfolio's performance over time: my holdings on paper against the same holdings left alone, the managed book and the Nifty 500, and what explains the gap.";
+    : "Walk me through my account on paper over time: the managed book against the same holdings left alone and the Nifty 500, and what explains the gap.";
   let body: React.ReactNode;
   if (loading && !d) body = <Meta>Drawing…</Meta>;
   else if (err) body = <Body>{err}</Body>;
@@ -62,9 +62,8 @@ function ChartBody({ kind, cur, setCur, path, onClose, onAsk, onOpenMoney }: {
     body = yours.length >= 2 ? (
       <LineChart height={200} xLabels={[dates[0] ?? "", dates[dates.length - 1] ?? ""]}
         series={[
-          { data: yours, color: G.gold(), label: "yours on paper", fill: true },
+          { data: yours, color: G.gold(), label: "your account (managed book)", fill: true },
           { data: (ch.untouched ?? []).map(ix), color: C.dim, label: "left alone", dashed: true, width: 1 },
-          { data: (ch.managed ?? []).map(ix), color: G.twin(), label: "managed book", width: 1 },
           { data: (ch.nifty500 ?? []).map(ix), color: C.faint, label: "Nifty 500", dashed: true, width: 1 },
         ]} />
     ) : <Body>The portfolio record has {yours.length} session{yours.length === 1 ? "" : "s"} so far; the line starts at two.</Body>;
@@ -97,7 +96,7 @@ function ChartBody({ kind, cur, setCur, path, onClose, onAsk, onOpenMoney }: {
             {body}
             {kind === "portfolio" && d?.legend ? (
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-                {[["yours", G.gold()], ["untouched", C.dim], ["managed", G.twin()], ["nifty500", C.faint]].map(([k, col]) => (
+                {[["yours", G.gold()], ["untouched", C.dim], ["nifty500", C.faint]].map(([k, col]) => (
                   <View key={k} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                     <View style={{ width: 10, height: 3, borderRadius: 2, backgroundColor: col as string }} />
                     <Meta faint>{d.legend[k as string]}</Meta>

@@ -278,6 +278,6 @@ def next_session_after(day: str | dt.date | None) -> dt.date | None:
 def day_words(d) -> str:
     try:
         x = d if isinstance(d, dt.date) else dt.date.fromisoformat(str(d)[:10])
-        return f"{x:%a} {x.day} {x:%b}"
+        return f"{x:%a} {x.day} {x:%b}" + (f" {x.year}" if x.year != dt.date.today().year else "")
     except (TypeError, ValueError):
         return str(d)

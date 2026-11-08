@@ -138,7 +138,7 @@ def test_before_the_open_an_answer_about_friday_is_right(ledger, monkeypatch):
 def test_scrub_drops_the_wrong_sentences_and_leads_with_today(ledger, monkeypatch):
     live = _live(AT_0608_TORONTO, ledger, monkeypatch)
     out = L.scrub("Yes, sir, Monday's session is happening in India. The levels were 23,122 and 22,984.", live)
-    assert "happening" not in out and "CLOSED" in out and "23,122" in out and "Nifty 23,440.80" not in out     # only the fact that was wrong
+    assert "happening" not in out and "has closed, sir" in out and "23,122" in out and "Nifty 23,440.80" not in out     # only the fact that was wrong
     out = L.scrub("Sir, I can't see where the Nifty is trading. The levels were 23,122 and 22,984.", live)
     assert "Nifty 23,440.80" in out and "can't see" not in out
 
@@ -252,3 +252,46 @@ def test_index_now_falls_back_to_the_closing_bars_when_zerodha_is_signed_out(tmp
     c = L.clock("2026-10-30", dt.datetime(2026, 11, 3, 0, 40, tzinfo=UTC))      # Mon 19:40 Toronto = Tue 06:10 IST
     i = L.index_now(c, lambda syms: (_ for _ in ()).throw(RuntimeError("TokenException")))
     assert i["rows"]["NIFTY 50"]["last"] == 23440.8 and "closing bars" in i["words"] and "Monday 2 Nov" in i["words"]
+
+
+# ---- 8 Nov 2026 (the outside audit): a Muhurat day is not "Friday's close" ----------------------------------------------------------------
+
+AT_MUHURAT_OVER = dt.datetime(2026, 11, 8, 17, 30, tzinfo=UTC)       # Sunday 23:00 IST, the Muhurat hour over
+
+
+def _muhurat_stub(syms):
+    table = {"NSE:NIFTY 50": (24986.4, 25070.45, 25030.35), "NSE:NIFTY BANK": (58850.65, 59100.0, 59086.0), "NSE:INDIA VIX": (18.43, 17.5, 17.47),
+             "NSE:TATAPOWER": (401.0, 400.0, 398.0)}
+    return {s: {"last_price": table[s][0], "ohlc": {"open": table[s][1], "high": table[s][0], "low": table[s][1], "close": table[s][2]}} for s in syms if s in table}
+
+
+def test_a_muhurat_print_is_named_and_fridays_close_comes_from_the_files(tmp_path, monkeypatch):
+    monkeypatch.setattr(L, "DATA", tmp_path)
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "readmodel").mkdir()
+    (tmp_path / "manifests" / "technicals.json").write_text(json.dumps({"indices": {"NIFTY 50": {"close": 25030.35, "prev_close": 24536.6, "as_of": "2026-11-06"},
+                                                                                     "NIFTY BANK": {"close": 59086.0, "prev_close": 57773.65, "as_of": "2026-11-06"}}}))
+    (tmp_path / "readmodel" / "latest.json").write_text(json.dumps({"data_through": "2026-11-06", "market": {"vix_close": 17.58}}))
+    (tmp_path / "manifests" / "quotebook.json").write_text(json.dumps({"quotes": {"TATAPOWER": {"close": 398.0, "chg_1d": -0.033}}}))
+    L._CACHE.clear()
+    clk = L.clock("2026-11-06", AT_MUHURAT_OVER)
+    assert clk["state"] == "no_session" and clk["special_session"]["phase"] == "over" and "Muhurat" in clk["words"]
+    i = L.index_now(clk, _muhurat_stub)
+    assert i["rows"]["NIFTY 50"]["last"] == 25030.35 and i["rows"]["NIFTY 50"]["change_pct"] == 2.01       # Friday's close, Friday's change
+    assert "Friday 6 Nov, at the close, the last regular session: Nifty 25,030.35 (+2.01%" in i["words"]
+    assert "Muhurat hour (14:20-15:30 IST, over): Nifty 24,986.40 (-0.18% on Friday 6 Nov's close 25,030.35)" in i["words"]
+    assert "India VIX 17.58" in i["words"] and "India VIX 18.43 (+4.84% on Friday 6 Nov's close 17.58)" in i["words"]
+    assert "Muhurat hour" in L._kind(clk, AT_MUHURAT_OVER.timestamp())[1]
+    h = L.holdings_today(clk, [{"symbol": "TATAPOWER", "qty": 100}], _muhurat_stub)
+    assert "down about Rs 1,358 (-3.30%) on Friday 6 Nov, the last regular session" in h["words"] and "Muhurat hour they moved +Rs 300" in h["words"]
+
+
+def test_a_plain_weekend_keeps_fridays_change_not_kites_zero(tmp_path, monkeypatch):
+    monkeypatch.setattr(L, "DATA", tmp_path)
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "manifests" / "technicals.json").write_text(json.dumps({"indices": {"NIFTY 50": {"close": 25030.35, "prev_close": 24536.6, "as_of": "2026-11-06"},
+                                                                                     "NIFTY BANK": {"close": 59086.0, "prev_close": 57773.65, "as_of": "2026-11-06"}}}))
+    L._CACHE.clear()
+    clk = L.clock("2026-11-06", dt.datetime(2026, 11, 7, 15, 0, tzinfo=UTC))        # Saturday 20:30 IST
+    i = L.index_now(clk, lambda syms: {s: {"last_price": 25030.35, "ohlc": {"open": 25030.35, "high": 25030.35, "low": 25030.35, "close": 25030.35}} for s in syms})
+    assert clk["special_session"] is None and i["rows"]["NIFTY 50"]["change_pct"] == 2.01 and "Muhurat" not in i["words"]

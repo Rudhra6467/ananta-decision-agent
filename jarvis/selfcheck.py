@@ -288,15 +288,17 @@ def model_fallbacks(now: float | None = None, hours: float = 6.0) -> list[dict]:
                 if 'read model only' not in line:
                     continue
                 r = json.loads(line)
-                if r.get("role") == "assistant" and float(r.get("t") or 0) >= now - hours * 3600:
+                note = str(r.get("note") or "")             # the note, not the answer: the self-check's own words quoted in an answer are not a fallback
+                if r.get("role") == "assistant" and "read model only" in note and float(r.get("t") or 0) >= now - hours * 3600:
                     hits += 1
-                    why = str(r.get("note") or "")[:90]
+                    why = str(r.get("note") or "").split("read model only:", 1)[-1].strip(" :")[:80]
         except (OSError, ValueError):
             continue
     if not hits:
         return []
     return [{"market": "india", "severity": "high", "source": "Claude credit",
-             "what": f"{hits} India answer{'s' if hits != 1 else ''} in the last {int(hours)} hours came from the read model only, not from Claude ({why})"}]
+             "what": f"{hits} India answer{'s' if hits != 1 else ''} in the last {int(hours)} hours came from the read model only, not from Claude",
+             "detail": why}]
 
 
 def credit_probe(key: str, post=None) -> list[dict]:
@@ -596,7 +598,7 @@ def fold_sleep(items: list[dict], windows: list[tuple[float, float]], notes: lis
         names = sorted(n for n in names if n)
         what = (f"the Mac was asleep or off from {_when(a)} to {time.strftime('%H:%M', time.localtime(b))}, so {len(xs)} part{'s' if len(xs) != 1 else ''} missed runs or were down"
                 + (f" ({', '.join(names[:5])}{', ...' if len(names) > 5 else ''})" if names else "")
-                + ((f"; planned: {planned.get('by', 'Madhav')} said about {max(1, round((float(planned['to']) - float(planned['from']) - 300) / 3600))} h"
+                + ((f"; planned for about {max(1, round((float(planned['to']) - float(planned['from']) - 300) / 3600))} h ({planned.get('by', 'Madhav')}'s word)"
                     + (f", it lasted {int((b - a) // 3600)} h {int((b - a) % 3600 // 60)} min" if ran_long else "")) if planned else "; nobody said this was planned"))
         out.append({"market": "both", "severity": "low" if planned and not ran_long else "medium", "source": "Mac asleep", "what": what, "planned": bool(planned)})
     out.sort(key=lambda x: SEV.get(x.get("severity"), 3))

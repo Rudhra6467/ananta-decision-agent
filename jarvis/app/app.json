@@ -43,13 +43,18 @@
       "expo-asset"
     ],
     "extra": {
-      "defaultServer": "https://api.livetrading247.com"
+      "defaultServer": "https://api.livetrading247.com",
+      "router": {},
+      "eas": {
+        "projectId": "3ff1c9db-f59c-41a6-b61f-de379d389a04"
+      }
     },
     "web": {
       "output": "single",
       "bundler": "metro",
       "name": "Jarvis · Ananta"
     },
-    "icon": "./assets/icon.png"
+    "icon": "./assets/icon.png",
+    "owner": "vamsiadvs"
   }
 }

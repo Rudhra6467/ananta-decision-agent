@@ -37,6 +37,31 @@ def _non_session(day: dt.date) -> str | None:
     return "NSE holiday" if day in hol else None
 
 
+OPENS = "sp1_open_check"
+
+
+def open_check(day: dt.date, ledger: list[dict], rep: dict) -> list[dict]:
+    """The 09:15 open as the live run saw it against the open the replay rebuilt from the later candle file, side by side, one row per index.
+
+    8 Nov 2026 (board #149, Madhav chose "Fix it as I described" on 7 Nov): on 6 Nov the live Bank Nifty gap was -0.39% and the replay's +0.07%,
+    about 270 points apart. Read-only: it records both for a week so we learn which source is right before any input changes. The replay's
+    gap is only listed when it differs from the live one (sp1paper.replay_ledger state_differences), so an unlisted gap means they agree."""
+    out = []
+    diffs = {d.get("what"): d.get("diff") or {} for d in (rep.get("state_differences") or [])}
+    for r in ledger:
+        if r.get("kind") != "decision" or r.get("point") != "D0":
+            continue
+        st = r.get("state") or {}
+        pc, lo, lg = st.get("prev_close"), st.get("open"), st.get("gap")
+        rg = (diffs.get(f"{r.get('index')} D0") or {}).get("gap", [lg, lg])[1]
+        ro = round(pc * (1 + rg), 2) if pc is not None and rg is not None else None
+        out.append({"date": day.isoformat(), "index": r.get("index"), "prev_close": pc, "live_open": lo, "live_gap": lg,
+                    "replay_open": ro, "replay_gap": rg,
+                    "points_apart": round(ro - lo, 2) if ro is not None and lo is not None else None,
+                    "agree": lg is not None and rg is not None and abs(lg - rg) < 1e-9})
+    return out
+
+
 def run(day: dt.date | None = None, log=print) -> dict:
     day = day or dt.date.today()
     out: dict = {"date": day.isoformat(), "at": _now()}
@@ -63,6 +88,14 @@ def run(day: dt.date | None = None, log=print) -> dict:
                 rep = sp1paper.replay_ledger(day, log)
                 out["replay"] = rep
                 status = "PASS" if not rep["mismatches"] else "FAIL"
+                try:
+                    out["opens"] = open_check(day, led, rep)
+                    paths.manifest_dir().mkdir(parents=True, exist_ok=True)
+                    with (paths.manifest_dir() / f"{OPENS}.jsonl").open("a") as fh:
+                        for row in out["opens"]:
+                            fh.write(json.dumps(row, default=str) + "\n")
+                except Exception as e:  # a reporting line: never changes the replay's verdict
+                    out["opens_error"] = f"{type(e).__name__}: {e}"[:200]
             except kite.NeedLogin as e:
                 status, out["detail"] = "skipped (no token)", str(e)[:200]
             except Exception as e:

@@ -908,9 +908,15 @@ def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: 
         raise RuntimeError("no model key on this service")
     sysparts = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
     if cached:
-        sysparts.append({"type": "text", "text": cached[0], "cache_control": {"type": "ephemeral"}})
+        # 7 Nov 2026: the facts block lives an hour in the cache when Madhav is asking (his questions come in bursts more than five minutes
+        # apart: 16:45 then 16:50 rewrote 72,737 tokens); the nightly replay's turns are seconds apart, so the five-minute cache does there
+        cc = {"type": "ephemeral"} if DRY_RUN else {"type": "ephemeral", "ttl": "1h"}
+        sysparts.append({"type": "text", "text": cached[0], "cache_control": cc})
         user = cached[1]
     msgs = [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": user}]
+    if history:                                     # 7 Nov: the conversation so far is read from the cache on the next turn, not re-sent at full price
+        last = msgs[-2]
+        msgs[-2] = {"role": last["role"], "content": [{"type": "text", "text": last["content"], "cache_control": {"type": "ephemeral"}}]}
     body = {"model": MODEL, "max_tokens": int(max_tokens), "system": sysparts, "messages": msgs}   # the model thinks inside this budget too
     if on_text is not None and post is None:
         return _claude_stream(key, body, on_text)
@@ -1568,13 +1574,15 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         f["trader_desk"] = _desk.block(f, f"{text_q} {recent}")
     except Exception as e:  # noqa: BLE001  the desk never breaks the answer
         f["trader_desk"] = {"error": type(e).__name__}
-    if RX_TOPIC.search(text) or RX_TOPIC.search(recent) or str((context or {}).get("screen", "")).startswith(("reconstruction", "evidence", "missed")):
-        try:
-            f["reconstruction_detail"] = _rx_detail()
-        except Exception as e:  # noqa: BLE001
-            f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
-    if SYS_TOPIC.search(text) or SYS_TOPIC.search(recent):   # 28 Oct (grader): the watchdog and a fix's life after it is built were not in the facts
-        f["system_care"] = SYSTEM_CARE
+    # 7 Nov 2026 (Madhav, the prompt-cache note): the facts block the model reads from cache must have the SAME shape on every turn. The
+    # reconstruction detail, the system-care text, the trials and the options line's review used to come only when the topic came up, which
+    # changed the block mid-conversation and rewrote the whole cache (69,000 tokens at 1.25x) for one question; they are always in it now,
+    # at the cached price. What truly changes with the question (today, the desk, the lookup, the guide, the book about itself) stays per turn.
+    try:
+        f["reconstruction_detail"] = _rx_detail()
+    except Exception as e:  # noqa: BLE001
+        f["reconstruction_detail"] = {"how_it_works": RX_EXPLAINER, "error": str(e)[:120]}
+    f["system_care"] = SYSTEM_CARE
     try:                                                      # 5 Nov evening (Madhav's yes): the book in short on EVERY turn, so no phrasing misses it
         from jarvis import selfknow
         f["ananta_brief"] = selfknow.brief("india")
@@ -1585,12 +1593,16 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             f["about_ananta"] = selfknow.about_ananta(text, "india")
         except Exception as e:  # noqa: BLE001
             f["about_ananta"] = {"error": type(e).__name__}
-    if TRIAL_TOPIC.search(text) or TRIAL_TOPIC.search(recent):   # 30 Oct (Madhav): "what is the status of the trials, how much longer?" from the clocks
+    try:                                                       # 30 Oct (Madhav): "what is the status of the trials, how much longer?" from the clocks
         f["trials"] = _load_trials()
-        f["trials_meaning"] = ("every running trial: what it is, sessions done of needed, the expected finish date and what has happened so far; answer "
-                               "with the numbers and the date, say what is being judged, and that nothing is read into a trial before it completes")
-    if TRIAL_TOPIC.search(text) or TRIAL_TOPIC.search(recent) or OPT_REVIEW.search(text):   # 5 Nov (D): the options line's review questions
+    except Exception as e:  # noqa: BLE001
+        f["trials"] = {"error": type(e).__name__}
+    f["trials_meaning"] = ("every running trial: what it is, sessions done of needed, the expected finish date and what has happened so far; answer "
+                           "with the numbers and the date, say what is being judged, and that nothing is read into a trial before it completes")
+    try:                                                       # 5 Nov (D): the options line's review questions
         f["options_line_review"] = _options_review()
+    except Exception as e:  # noqa: BLE001
+        f["options_line_review"] = {"error": type(e).__name__}
     if MAP_TOPIC.search(text):                                 # 29 Oct (the one map): "what have you tested about X?" is answered from one source
         try:
             rows = knowledgemap.lookup(text)
@@ -1641,8 +1653,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
-        per_turn = ("today_live", "talking_to", "reconstruction_detail", "lookup", "answer_guide", "system_care", "waiting_for_you", "knowledge_map", "trader_desk",
-                    "options_line_review", "about_ananta", "ananta_brief")
+        per_turn = ("today_live", "talking_to", "lookup", "answer_guide", "waiting_for_you", "knowledge_map", "trader_desk", "about_ananta", "ananta_brief")
         facts_text = (f"FACTS (the nightly read model, full data through {f.get('data_through')}; today_live, in the user turn, is today). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"

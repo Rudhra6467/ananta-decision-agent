@@ -187,13 +187,19 @@
   },
   "india_exam": {
    "what": "The India exam's judges (india/exam.py, lines of code) and its questions and pass marks (india/registrations/india_exam_v1.json; answers and decides 9 of 9).",
-   "sha256": "ff5c5d750bb7ef30b68e6bfbf6d9649def6a52080914882b12af3e50b31bc3a8",
+   "sha256": "ad56bc9243e9a61f5fd9cabf606b573d479303dce8c49db6c84d0a8ad3502f6c",
    "history": [
     {
      "date": "2026-11-03",
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-11-03 (in chat), to the 3 Nov morning review's Waiting list (lock day: recommend yes; the India exam marks: recommend keep 9 of 9): \"Yes for all. Complete everything and make sure they are integrated well after completion. Test it\". Pinned on lock day (planned 1 Nov); see india/registrations/lock_day_2026-11-03.json.",
      "sha256": "ff5c5d750bb7ef30b68e6bfbf6d9649def6a52080914882b12af3e50b31bc3a8"
+    },
+    {
+     "date": "2026-11-08",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-11-08 (in chat), to the 8 Nov morning review's recommendation (the exam's don't-know judge, asked 6 Nov): \"Yes to your recommendations\". 'nobody can name' / 'no one can name' added to the don't-know words; the guarantee check reads each clause and a warning about others' promises is not a guarantee. Pass marks unchanged (answers and decides 9 of 9). In force from the next run; the 5 Nov run keeps its FAIL. See the spec's 'changes' entry of 2026-11-08.",
+     "sha256": "ad56bc9243e9a61f5fd9cabf606b573d479303dce8c49db6c84d0a8ad3502f6c"
     }
    ]
   },

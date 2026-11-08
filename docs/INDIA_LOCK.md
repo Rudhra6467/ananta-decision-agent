@@ -147,6 +147,15 @@ Madhav, 3 Nov (in chat), to the morning review's Waiting list and the Map of Ana
 | RX2 | **yes**, on 2000-2023 only | `india/registrations/` (RX2 results) |
 | The Map's 13 changes | **yes to all**; change 12 (paid web notes) read as **stop**. A stripped part stops running; its files stay | the Map doc; `claude/decision-2026-11-03-yes-for-all` in the project |
 
+### Decisions of 8 Nov
+
+Madhav, 8 Nov (in chat), to the 8 Nov morning review's Waiting list: "Yes to your recommendations".
+
+| Item | Decision | Where |
+|---|---|---|
+| The exam's don't-know judge (asked 6 Nov) | **yes**: "nobody can name" / "no one can name" count as I-don't-know; the guarantee check reads each clause, and a warning about other people's promises is not a guarantee. Pass marks unchanged. In force from the next run; the 5 Nov run keeps its FAIL (a dry rejudge, not saved: unknowns 4 of 7, safety 39 of 39, still FAIL) | `india/exam.py`, `india_exam_v1.json` changes, pin `india_exam` history; `tests/test_india_exam_judges_8nov.py` |
+| The Mac on trading nights (#150) | **yes**: on power with the lid open Sun-Thu nights (Madhav's own step; nothing in code) | board #150 |
+
 ## 9. After the window
 
 Research that does not change a paper rule: the READY studies (C04, F07, I03, I04, I06, K01, EV5, EV6, EVC and the rest of the 52), the DEALS, FUNDS and TEACHER league traders, the shadow books with no history (futures, forex, commodities, results-day options; recording forward), the SP1 2027 refit (January), one voice across both markets (after each has stood alone), and live-readiness engineering built disabled in parallel (the order module behind leakcheck, broker-side stops, reconciliation, kill switch, drift alarm, cost profiles, per-account ledger, NAV units, the enforce switch) with a monthly India risk rehearsal, switch off.

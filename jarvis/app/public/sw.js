@@ -7,8 +7,8 @@ self.addEventListener("push", (e) => {
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : "" }; }
   e.waitUntil(self.registration.showNotification(d.title || "Ananta", {
     body: d.body || "",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/favicon-32.png",
+    icon: "/icons/icon-192.png?v=trishul",
+    badge: "/icons/favicon-32.png?v=trishul",
     data: { url: d.url || "/" },
   }));
 });

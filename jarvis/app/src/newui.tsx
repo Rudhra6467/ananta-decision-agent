@@ -3,6 +3,7 @@
 // DecisionCard, Btn, and the orb. Dark is the default; every colour comes from C so the light theme still works.
 import { Pressable, Text, View, type ViewStyle } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
+import { AnantaMark } from "./logo";
 import { C } from "./theme";
 
 // tokens the palettes do not carry yet (gold is C.accent in Bat, blue in Light: here the brand is gold in both)
@@ -129,13 +130,16 @@ export const PeopleIcon = ({ color, size }: { color: string; size?: number }) =>
 export const MicIcon2 = ({ color, size }: { color: string; size?: number }) => <I color={color} size={size}><Rect x={9} y={3} width={6} height={11} rx={3} /><Path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" /></I>;
 export const LockIcon = ({ color, size }: { color: string; size?: number }) => <I color={color} size={size}><Rect x={5} y={11} width={14} height={10} rx={2} /><Path d="M8 11V7a4 4 0 0 1 8 0v4" /></I>;
 
-export function Orb({ size = 56, onPress, label = "Ask Ananta" }: { size?: number; onPress?: () => void; label?: string }) {
+// 7 Nov 2026 (Madhav): the orb carries Ananta's mark (the A with the trishul, in its plain "solo" form, dark on gold); on the Ask tab,
+// where the same press starts the voice, it shows the microphone instead, so what a press will do is always what the orb shows.
+export function Orb({ size = 56, onPress, label = "Ask Ananta", mic = false }: { size?: number; onPress?: () => void; label?: string; mic?: boolean }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
       style={{ width: size, height: size, borderRadius: 999, backgroundColor: G.gold(), alignItems: "center", justifyContent: "center",
         shadowColor: C.gold, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 }}>
       <View style={{ position: "absolute", left: -9, top: -9, right: -9, bottom: -9, borderRadius: 999, borderWidth: 2, borderColor: G.glow() }} />
-      <MicIcon2 color={G.onGold()} size={Math.round(size * 0.43)} />
+      {mic ? <MicIcon2 color={G.onGold()} size={Math.round(size * 0.43)} />
+        : <AnantaMark solo color={G.onGold()} grey="rgba(0,0,0,0.5)" ink={G.gold()} size={Math.round(size * 0.8)} />}
     </Pressable>
   );
 }

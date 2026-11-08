@@ -1,38 +1,73 @@
-"""Home Screen icons for the website (plan 2.5), from Ananta's mark (src/logo.tsx) in the Bat Mode colours, rendered with the
-Chromium that Playwright ships. Run from jarvis/app:  python3 scripts/make_icons.py   (writes public/icons/*.png)."""
+"""Home Screen icons for the website (plan 2.5), from Ananta's mark (its shapes are read from src/logo.tsx) in the Bat Mode colours, rendered with the
+Chromium that Playwright ships, or on the Mac with Quick Look and sips. Run from jarvis/app:  python3 scripts/make_icons.py   (writes public/icons/*.png)."""
 import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 Y, G, D = "#F2CF66", "#5A5E66", "#141518"
-NODES = [(20, 46), (25, 38), (29, 52), (22, 60), (31, 64), (80, 46), (75, 38), (71, 52), (78, 60), (69, 64)]
-EDGES = [(0, 1), (0, 2), (2, 3), (2, 4), (5, 6), (5, 7), (7, 8), (7, 9)]
+
+
+def shapes() -> dict:
+    """The mark's shapes, read from src/logo.tsx (the one place they live; 7 Nov 2026: the trishul replaced the trident there)."""
+    import json
+    import re
+    src = (ROOT / "src" / "logo.tsx").read_text()
+    block = src[src.index("MARK-SHAPES-START"):src.index("MARK-SHAPES-END")]
+    def arr(name: str):
+        m = re.search(rf"export const {name}(?::[^=]+)?\s*=\s*(\[.*?\]);\n", block, re.S)
+        return json.loads(re.sub(r",\s*\]", "]", m.group(1)))
+    a = re.search(r'export const LETTER_A = "([^"]+)"', block).group(1)
+    return {"arms": arr("TRISHUL_ARMS"), "trishul": arr("TRISHUL"), "a": a, "nodes": arr("NODES"), "edges": arr("EDGES")}
 
 
 def svg(pad: float) -> str:
     """The mark in a 100 x 100 box, shrunk by `pad` around the centre (maskable icons need a safe margin)."""
+    s = shapes()
     k = 1 - pad
-    lat = "".join(f'<line x1="{NODES[a][0]}" y1="{NODES[a][1]}" x2="{NODES[b][0]}" y2="{NODES[b][1]}"/>' for a, b in EDGES)
-    dots = "".join(f'<circle cx="{x}" cy="{y}" r="1.7"/>' for x, y in NODES)
+    N = s["nodes"]
+    lat = "".join(f'<line x1="{N[a][0]}" y1="{N[a][1]}" x2="{N[b][0]}" y2="{N[b][1]}"/>' for a, b in s["edges"])
+    dots = "".join(f'<circle cx="{x}" cy="{y}" r="1.7"/>' for x, y in N)
+    arms = "".join(f'<path d="{d}"/>' for d in s["arms"])
+    tri = "".join(f'<path d="{d}"/>' for d in s["trishul"])
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024"><rect width="100" height="100" fill="{D}"/>
 <g transform="translate(50 50) scale({k}) translate(-50 -50)">
 <circle cx="50" cy="50" r="47" fill="none" stroke="{G}" stroke-width="4"/><circle cx="50" cy="50" r="42.5" fill="none" stroke="{Y}" stroke-width="1.2" opacity="0.55"/>
-<g fill="{G}"><path d="M47 66 L53 66 L52 24 L48 24 Z"/><path d="M50 12 L55 24 L45 24 Z"/><path d="M44 60 C32 52 30 36 37 20 L30 19 C24 36 27 56 41 66 Z"/>
-<path d="M56 60 C68 52 70 36 63 20 L70 19 C76 36 73 56 59 66 Z"/><path d="M40 66 C44 72 56 72 60 66 L58 62 C55 66 45 66 42 62 Z"/></g>
+<g fill="none" stroke="{G}" stroke-width="3.2" stroke-linecap="round">{arms}</g><g fill="{G}">{tri}</g>
 <g stroke="{Y}" stroke-width="0.9" opacity="0.6" fill="{Y}">{lat}{dots}</g>
-<path fill-rule="evenodd" d="M50 20 L79 82 L66 82 L60 68 L40 68 L34 82 L21 82 Z M50 41 L56 57 L44 57 Z" fill="{Y}" stroke="{D}" stroke-width="2.2" stroke-linejoin="round"/>
+<path fill-rule="evenodd" d="{s["a"]}" fill="{Y}" stroke="{D}" stroke-width="2.2" stroke-linejoin="round"/>
 </g></svg>'''
 
 
-if __name__ == "__main__":
-    out = ROOT / "public" / "icons"
-    out.mkdir(parents=True, exist_ok=True)
-    for name, n, pad in (("icon-192.png", 192, 0.0), ("icon-512.png", 512, 0.0), ("maskable-512.png", 512, 0.28), ("apple-touch-icon.png", 180, 0.06), ("favicon-32.png", 32, 0.0)):
-        (out / "_mark.svg").write_text(svg(pad))
+def _render_mac(svg_text: str, n: int, png: Path) -> None:
+    """7 Nov 2026: this Mac has no Playwright Chromium; macOS renders an SVG with Quick Look (WebKit) and sips scales it to n x n."""
+    import shutil
+    import tempfile
+    tmp = Path(tempfile.mkdtemp(prefix="ananta_icon_"))
+    (tmp / "m.svg").write_text(svg_text)
+    subprocess.run(["qlmanage", "-t", "-s", "1024", "-o", str(tmp), str(tmp / "m.svg")], check=True, capture_output=True)
+    subprocess.run(["sips", "-s", "format", "png", "-z", str(n), str(n), str(tmp / "m.svg.png"), "--out", str(png)], check=True, capture_output=True)
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _render_chromium(svg_text: str, n: int, png: Path, out: Path) -> None:
+    (out / "_mark.svg").write_text(svg_text)
+    try:
         js = f"""const {{ chromium }} = require('playwright'); const fs = require('fs');
 (async () => {{ const b = await chromium.launch(); const p = await b.newPage({{ viewport: {{ width: {n}, height: {n} }} }});
   await p.setContent('<body style="margin:0;background:{D}">' + fs.readFileSync('{out / "_mark.svg"}', 'utf8').replace('width="1024" height="1024"', 'width="{n}" height="{n}"') + '</body>');
-  await p.screenshot({{ path: '{out / name}' }}); await b.close(); }})();"""
+  await p.screenshot({{ path: '{png}' }}); await b.close(); }})();"""
         subprocess.run(["node", "-e", js], check=True)
+    finally:
+        (out / "_mark.svg").unlink(missing_ok=True)
+
+
+if __name__ == "__main__":
+    import platform
+    out = ROOT / "public" / "icons"
+    out.mkdir(parents=True, exist_ok=True)
+    for name, n, pad in (("icon-192.png", 192, 0.0), ("icon-512.png", 512, 0.0), ("maskable-512.png", 512, 0.28), ("apple-touch-icon.png", 180, 0.06), ("favicon-32.png", 32, 0.0)):
+        if platform.system() == "Darwin":
+            _render_mac(svg(pad), n, out / name)
+        else:
+            _render_chromium(svg(pad), n, out / name, out)
         print("wrote", out / name)
-    (out / "_mark.svg").unlink()

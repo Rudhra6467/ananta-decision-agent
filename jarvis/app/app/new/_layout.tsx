@@ -31,7 +31,7 @@ function Bar({ state, navigation }: any) {
           return (
             <View key={t.name} style={{ width: 64, alignItems: "center", marginTop: active === "ask" ? -14 : -34 }}>
               {/* 7 Nov (Madhav): first press opens Ask; on Ask already, the same press starts the voice */}
-              <Orb label={active === "ask" ? "Talk to Ananta" : "Ask Ananta"} onPress={() => { if (active === "ask") pressOrb(); else navigation.navigate("ask"); }} />
+              <Orb mic={active === "ask"} label={active === "ask" ? "Talk to Ananta" : "Ask Ananta"} onPress={() => { if (active === "ask") pressOrb(); else navigation.navigate("ask"); }} />
             </View>
           );
         }

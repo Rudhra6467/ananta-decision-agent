@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native"
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "../src/theme";
+import { AnantaMark } from "./logo";
 import { Body, G, Title } from "./newui";
 import { useMarket } from "./market";
 import { useData } from "./useData";
@@ -24,9 +25,10 @@ export function NScreen({ title, children, loading, onRefresh, err, scrollRef }:
             <Text style={{ color: C.dim, fontSize: 11, fontWeight: "700", letterSpacing: 0.3 }}>{mk === "crypto" ? "CRYPTO" : "INDIAN MARKET"} ⇄</Text>
           </Pressable>
         </View>
+        {/* 7 Nov 2026 (Madhav): Ananta's mark here instead of the letter M; it still opens More (settings, the market, sign-out) */}
         <Pressable onPress={() => router.push("/more" as any)} accessibilityRole="button" accessibilityLabel="More"
-          style={{ width: 36, height: 36, borderRadius: 999, backgroundColor: C.card2, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: C.text, fontSize: 15, fontWeight: "700" }}>M</Text>
+          style={{ width: 40, height: 40, borderRadius: 999, alignItems: "center", justifyContent: "center" }}>
+          <AnantaMark color={G.gold()} grey={C.faint} ink={C.bg} size={40} />
         </Pressable>
       </View>
       {err ? <View style={{ backgroundColor: C.badSoft, borderRadius: 16, padding: 14 }}><Body>{err}</Body></View> : null}

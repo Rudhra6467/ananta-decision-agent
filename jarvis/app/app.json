@@ -1,20 +1,22 @@
 {
   "expo": {
-    "name": "Jarvis",
+    "name": "Ananta",
     "slug": "jarvis",
     "version": "0.4.0",
     "scheme": "jarvis",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "backgroundColor": "#F5F6F8",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#141518",
     "ios": {
       "bundleIdentifier": "com.rudhra.jarvis",
       "supportsTablet": false,
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Jarvis asks for Face ID before approving changes or touching the kill switch.",
+        "NSFaceIDUsageDescription": "Ananta asks for Face ID before approving changes or touching the kill switch.",
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
-        }
+        },
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDisplayName": "Ananta"
       }
     },
     "plugins": [
@@ -28,7 +30,17 @@
         {
           "microphonePermission": "Ananta listens when you hold the mic button to talk to it."
         }
-      ]
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "backgroundColor": "#141518",
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-asset"
     ],
     "extra": {
       "defaultServer": "https://api.livetrading247.com"
@@ -36,7 +48,8 @@
     "web": {
       "output": "single",
       "bundler": "metro",
-      "name": "Jarvis \u00b7 Ananta"
-    }
+      "name": "Jarvis · Ananta"
+    },
+    "icon": "./assets/icon.png"
   }
 }

@@ -3,10 +3,12 @@
 // is better on every screen it replaces. Nothing in the classic app changes while the switch is off.
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 
 export type Look = "classic" | "new";
 const KEY = "ananta_look";
-let current: Look = "classic";
+// 8 Nov 2026 (the TestFlight build): the iPhone app starts in the new look, the one Madhav uses; the website keeps classic as its default
+let current: Look = Platform.OS === "web" ? "classic" : "new";
 let loaded = false;
 const subs = new Set<() => void>();
 

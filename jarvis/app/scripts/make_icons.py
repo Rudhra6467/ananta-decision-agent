@@ -65,9 +65,19 @@ if __name__ == "__main__":
     import platform
     out = ROOT / "public" / "icons"
     out.mkdir(parents=True, exist_ok=True)
-    for name, n, pad in (("icon-192.png", 192, 0.0), ("icon-512.png", 512, 0.0), ("maskable-512.png", 512, 0.28), ("apple-touch-icon.png", 180, 0.06), ("favicon-32.png", 32, 0.0)):
+    jobs = [(out / name, n, pad) for name, n, pad in (("icon-192.png", 192, 0.0), ("icon-512.png", 512, 0.0), ("maskable-512.png", 512, 0.28),
+                                                         ("apple-touch-icon.png", 180, 0.06), ("favicon-32.png", 32, 0.0))]
+    # 8 Nov 2026 (the TestFlight build): the iPhone app's icon (1024, square, no transparency; iOS rounds the corners) and the splash mark
+    (ROOT / "assets").mkdir(exist_ok=True)
+    jobs += [(ROOT / "assets" / "icon.png", 1024, 0.1), (ROOT / "assets" / "splash-icon.png", 1024, 0.0)]
+    for png, n, pad in jobs:
         if platform.system() == "Darwin":
-            _render_mac(svg(pad), n, out / name)
+            _render_mac(svg(pad), n, png)
         else:
-            _render_chromium(svg(pad), n, out / name, out)
-        print("wrote", out / name)
+            _render_chromium(svg(pad), n, png, out)
+        if png.name == "icon.png" and platform.system() == "Darwin":      # the App Store refuses an icon with an alpha channel
+            jpg = png.with_suffix(".jpg")
+            subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "best", str(png), "--out", str(jpg)], check=True, capture_output=True)
+            subprocess.run(["sips", "-s", "format", "png", str(jpg), "--out", str(png)], check=True, capture_output=True)
+            jpg.unlink()
+        print("wrote", png)

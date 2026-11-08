@@ -270,7 +270,33 @@ def _read_json(p: Path):
 def _credit(post=None) -> list[dict]:
     """5 Nov 2026, 14:53 Toronto: the Anthropic credit ran out and nothing said so; India's answers fell back to its rules and crypto's to
     Gemini. A one-token call with the services' own key says whether Claude still answers (an empty balance is refused at once, free)."""
-    return credit_probe(os.getenv("ANTHROPIC_API_KEY", ""), post)
+    return credit_probe(os.getenv("ANTHROPIC_API_KEY", ""), post) + model_fallbacks()
+
+
+def model_fallbacks(now: float | None = None, hours: float = 6.0) -> list[dict]:
+    """8 Nov 2026: a request Claude refused (a cache setting it would not take) made every India answer fall back to the read model for a
+    morning, while the credit was fine and nothing said so. Any real India answer in the last hours that fell back is a finding."""
+    import glob
+    now = now or time.time()
+    d = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "ask"
+    hits, why = 0, ""
+    for f in glob.glob(str(d / "*.jsonl")):
+        if f.endswith("threads.jsonl") or os.path.getmtime(f) < now - hours * 3600:
+            continue
+        try:
+            for line in open(f):
+                if 'read model only' not in line:
+                    continue
+                r = json.loads(line)
+                if r.get("role") == "assistant" and float(r.get("t") or 0) >= now - hours * 3600:
+                    hits += 1
+                    why = str(r.get("note") or "")[:90]
+        except (OSError, ValueError):
+            continue
+    if not hits:
+        return []
+    return [{"market": "india", "severity": "high", "source": "Claude credit",
+             "what": f"{hits} India answer{'s' if hits != 1 else ''} in the last {int(hours)} hours came from the read model only, not from Claude ({why})"}]
 
 
 def credit_probe(key: str, post=None) -> list[dict]:

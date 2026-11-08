@@ -906,11 +906,13 @@ def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: 
     key = _load_env_key()
     if not key:
         raise RuntimeError("no model key on this service")
-    sysparts = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+    # 7 Nov 2026: the instructions and the facts block live an hour in the cache when Madhav is asking (his questions come in bursts more
+    # than five minutes apart); the nightly replay's turns are seconds apart, so the five-minute cache does there. 8 Nov: the API refuses a
+    # one-hour block placed after a five-minute one (every India answer fell back to the read model on 8 Nov morning), so every system part
+    # takes the same lifetime, and only the history breakpoint after them is five minutes. tests/test_india_cache_order.py holds this.
+    cc = {"type": "ephemeral"} if DRY_RUN else {"type": "ephemeral", "ttl": "1h"}
+    sysparts = [{"type": "text", "text": system, "cache_control": cc}]
     if cached:
-        # 7 Nov 2026: the facts block lives an hour in the cache when Madhav is asking (his questions come in bursts more than five minutes
-        # apart: 16:45 then 16:50 rewrote 72,737 tokens); the nightly replay's turns are seconds apart, so the five-minute cache does there
-        cc = {"type": "ephemeral"} if DRY_RUN else {"type": "ephemeral", "ttl": "1h"}
         sysparts.append({"type": "text", "text": cached[0], "cache_control": cc})
         user = cached[1]
     msgs = [{"role": m["role"], "content": m["text"]} for m in history] + [{"role": "user", "content": user}]

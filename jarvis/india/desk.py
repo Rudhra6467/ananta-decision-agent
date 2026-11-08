@@ -53,8 +53,8 @@ BASICS = {
                 "their futures positions; the option-interest walls of the last session (context only); results and filings for its names; "
                 "holidays and expiry days; the F&O ban list. At 09:15 it reads the gap against the previous close; at 09:15, 09:30, 09:45 and "
                 "10:15 IST the options line decides from the move so far against the option's cost; the first 15-30 minutes' range tells a "
-                "trend day from a range day. It has no GIFT Nifty and no live Asian feed; since 5 Nov it reads NSE's pre-open at 09:08 IST "
-                "(the two indexes and ten heavy stocks), its first sight of the gap before 09:15. Say the Toronto "
+                "trend day from a range day. It has no GIFT Nifty and no live Asian feed; since 5 Nov it reads NSE's pre-open prices at 09:09 IST, "
+                "a minute after the pre-open closes at 09:08 (the two indexes and ten heavy stocks), its first sight of the gap before 09:15. Say the Toronto "
                 "times too (trader_desk.prep.toronto_times)."),
     "gaps": ("A gap above the previous high: wait for the first 15-30 minutes to see if it holds (gap-and-go) or fills; flat open: the first "
              "range decides; a gap below the previous low: the same, the other way. The options line reads the gap at 09:15 and decides at "
@@ -295,8 +295,8 @@ def prep(f: dict, desk: dict) -> dict:
     out["toronto_times"] = toronto_times()
     us = next((x for x in desk.get("feeds") or [] if x.get("feed", "").startswith("US close")), {})
     out["overnight_cues"] = (f"the US close on file is for {us.get('last_day') or 'an earlier day'} (fetched {str(us.get('fetched_at') or '')[:16]} UTC); there "
-                             "is no GIFT Nifty and no live Asian feed; from 5 Nov the first Indian prices of the day are the 09:08 IST pre-open read "
-                             "(today_live.preopen, the two indexes and ten heavy stocks, an indication of the gap), so before 09:08 IST anything "
+                             "is no GIFT Nifty and no live Asian feed; from 5 Nov the first Indian prices of the day are the pre-open read at 09:09 IST, a minute after "
+                             "NSE's pre-open closes at 09:08 (today_live.preopen, the two indexes and ten heavy stocks, an indication of the gap), so before 09:09 IST anything "
                              "overnight is not visible; crude, the dollar and the rupee readings lag several days")
     out["how_to_use"] = ("say tomorrow's plan as scenarios, not orders: the previous high, low and close; what a gap up, flat or gap down open would "
                          "mean (BASICS gaps); the option-interest walls with their date; the expected move from VIX; the open option trades with "

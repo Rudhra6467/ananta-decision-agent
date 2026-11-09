@@ -116,6 +116,9 @@ def main() -> int:
     if session < _ist_today():
         print(f"shadow trader: skipped, the facts' session {session} is before today in India ({_ist_today()})")
         return 0
+    if session > _ist_today():       # 9 Nov 2026: Monday's plan was sealed on Saturday from Friday's facts; one seal, on the session's own morning
+        print(f"shadow trader: skipped, the plan for {session} is sealed on its own morning in India (today there is {_ist_today()})")
+        return 0
     raw = claude(PROMPT.format(facts=_facts_text(f)), MODEL)
     plan = _parse(raw)
     if plan is None:

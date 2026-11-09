@@ -53,8 +53,9 @@ REVIEWER = """You are an independent reviewer checking a morning market note wri
 Your job: (1) list every number or claim in the NOTE that is not supported by the FACTS or contradicts them (quote the words, say what the facts say); (2) say what the note
 leaves out that a careful trader would want from these facts; (3) give YOUR OWN odds for today's Nifty session as probabilities for "bull" (closes more than 0.3% up),
 "bear" (more than 0.3% down) and "neutral" that sum to 1, with a one-line basis drawn only from the facts (the base rates are in the facts; shift them only for a reason
-the facts support, and say by how much and why). Be brief and concrete. Reply with JSON only:
-{{"corrections": ["..."], "missing": ["..."], "verdict": "<one sentence: is the note fair to the facts?>", "scenarios": {{"bull": 0.0, "bear": 0.0, "neutral": 0.0}}, "basis": "<one line>"}}
+the facts support, and say by how much and why). Be brief and concrete: at most four corrections and three missing items, one short sentence each.
+Reply with JSON only, the keys in this order:
+{{"scenarios": {{"bull": 0.0, "bear": 0.0, "neutral": 0.0}}, "basis": "<one line>", "verdict": "<one sentence: is the note fair to the facts?>", "corrections": ["..."], "missing": ["..."]}}
 
 FACTS:
 {facts}
@@ -123,6 +124,26 @@ def _parse_review(raw: str) -> dict | None:
     return None
 
 
+def _salvage(raw: str) -> dict:
+    """What can still be read from a reviewer's answer that is not whole JSON (9 Nov 2026: on 4 and 6 Nov the answer ran out of room inside
+    its list of corrections, so the reviewer's odds were lost for the day; with one note a session there is no later run to make up for it).
+    The odds and their basis come first in the answer now, and are read from it even when the rest is cut off."""
+    out: dict = {}
+    m = re.search(r'"scenarios"\s*:\s*(\{[^{}]*\})', raw)
+    if m:
+        try:
+            sc = json.loads(m.group(1))
+            if all(isinstance(sc.get(k), (int, float)) for k in ("bull", "bear", "neutral")):
+                out["scenarios"] = sc
+        except ValueError:
+            pass
+    for key in ("basis", "verdict"):
+        m = re.search(rf'"{key}"\s*:\s*"((?:[^"\\]|\\.)*)"', raw)
+        if m:
+            out[key] = m.group(1).replace('\\"', "'")
+    return out
+
+
 def _ist_today() -> str:
     import datetime as _dt
     return _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=5, minutes=30))).date().isoformat()
@@ -137,7 +158,15 @@ def morning() -> int:
     # 24 Oct 2026: a "morning view" for a session that has already traded is not a morning view (the read model ran a session late
     # until the nightly timing fix; on 24 Oct it wrote "This morning · 23 Oct" on a Saturday). Skip and say why in the log.
     if session < _ist_today():
-        print(f"morning view: skipped, the read model's next session {session} is before today in India ({_ist_today()}); the data is behind")
+        print(f"morning view: skipped, the newest view is for {session}, before today in India ({_ist_today()}): no session this morning, or the data is behind")
+        return 0
+    # 9 Nov 2026 (the outsider readiness review; Madhav: "yes, lets complete"): the note for Monday 9 Nov was written and pushed on Saturday,
+    # Sunday and Monday. One note and one phone push, on the session's own morning in India; --again rewrites it on purpose.
+    if session > _ist_today():
+        print(f"morning view: skipped, the note for {session} is written on its own morning in India (today there is {_ist_today()})")
+        return 0
+    if f.get("words_at") and "--again" not in sys.argv:
+        print(f"morning view: skipped, the note for {session} was already written at {f.get('words_at')}; one note and one push a session")
         return 0
     lessons = "\n".join(f"- {x}" for x in (f.get("lessons_for_writer") or [])) or "- none yet"
     note = claude(WRITER.format(lessons=lessons, facts=_facts_for_prompt(f)), MODEL)
@@ -148,14 +177,17 @@ def morning() -> int:
         print(f"morning view: numbers not in the facts: {stray[:8]}")
     review = {"corrections": [], "missing": [], "verdict": "", "scenarios": None, "basis": ""}
     try:
-        raw = claude(REVIEWER.format(facts=_facts_for_prompt(f), note=note), REVIEW_MODEL, 2500)
+        raw = claude(REVIEWER.format(facts=_facts_for_prompt(f), note=note), REVIEW_MODEL, 4000)
         parsed = _parse_review(raw)
         if parsed is None:  # 29 Oct audit: one malformed answer (a stray quote inside a string) lost the whole review for 29 Oct; ask once more, JSON only
             raw = claude(REVIEWER.format(facts=_facts_for_prompt(f), note=note) + "\n\nReply with one valid JSON object and nothing else; escape any double quote inside a string.",
-                         REVIEW_MODEL, 2500)
+                         REVIEW_MODEL, 4000)
             parsed = _parse_review(raw)
-        if parsed is None:  # keep the reviewer's words rather than nothing; the scenarios stay empty and are not scored
-            review["verdict"] = "the reviewer answered but not in a readable form; its words: " + re.sub(r"\s+", " ", raw)[:600]
+        if parsed is None:  # keep what can be read (its odds and basis come first) and the reviewer's words rather than nothing
+            got = _salvage(raw)
+            review = {**review, **got}
+            if not got.get("verdict"):
+                review["verdict"] = "the reviewer answered but not in a readable form; its words: " + re.sub(r"\s+", " ", raw)[:600]
         else:
             review = {**review, **parsed}
     except Exception as exc:  # noqa: BLE001

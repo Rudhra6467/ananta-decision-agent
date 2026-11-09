@@ -1,6 +1,6 @@
 // The new look's shell (31 Oct 2026, gate 1): five surfaces on a bottom bar - Today, Money, (Ask as the orb), Proof, People - each
 // answering one question. The classic tabs (app/(tabs)) stay untouched; More › "New look" switches between them (src/look.ts).
-import { Tabs } from "expo-router";
+import SwipeTabs from "expo-router/js-top-tabs";        // 9 Nov 2026 (Madhav, TestFlight): swipe left / right between the tabs, as the classic look does
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "../../src/theme";
@@ -59,12 +59,13 @@ function Bar({ state, navigation }: any) {
 export default function NewLayout() {
   useThemeVersion();
   return (
-    <Tabs screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: C.bg } as any }} tabBar={(p) => <Bar {...p} />}>
-      <Tabs.Screen name="today" />
-      <Tabs.Screen name="money" />
-      <Tabs.Screen name="ask" />
-      <Tabs.Screen name="proof" />
-      <Tabs.Screen name="people" />
-    </Tabs>
+    <SwipeTabs tabBarPosition="bottom" initialRouteName="today" tabBar={(p: any) => <Bar {...p} />}
+      screenOptions={{ lazy: true, swipeEnabled: true, animationEnabled: true, sceneStyle: { backgroundColor: C.bg } } as any}>
+      <SwipeTabs.Screen name="today" />
+      <SwipeTabs.Screen name="money" />
+      <SwipeTabs.Screen name="ask" />
+      <SwipeTabs.Screen name="proof" />
+      <SwipeTabs.Screen name="people" />
+    </SwipeTabs>
   );
 }

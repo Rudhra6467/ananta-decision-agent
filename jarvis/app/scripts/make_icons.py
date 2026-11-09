@@ -4,37 +4,35 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-Y, G, D = "#F2CF66", "#5A5E66", "#141518"
-
-
 def shapes() -> dict:
-    """The mark's shapes, read from src/logo.tsx (the one place they live; 7 Nov 2026: the trishul replaced the trident there)."""
+    """The mark's shapes and colours, read from src/logo.tsx (the one place they live; 9 Nov 2026: Shiva's trishul in forged steel, the
+    lattice gone, the emblem on its own near-black disc)."""
     import json
     import re
     src = (ROOT / "src" / "logo.tsx").read_text()
     block = src[src.index("MARK-SHAPES-START"):src.index("MARK-SHAPES-END")]
-    def arr(name: str):
-        m = re.search(rf"export const {name}(?::[^=]+)?\s*=\s*(\[.*?\]);\n", block, re.S)
-        return json.loads(re.sub(r",\s*\]", "]", m.group(1)))
+    tri = json.loads(re.sub(r",\s*\]", "]", re.search(r"export const TRISHUL\s*=\s*(\[.*?\]);\n", block, re.S).group(1)))
     a = re.search(r'export const LETTER_A = "([^"]+)"', block).group(1)
-    return {"arms": arr("TRISHUL_ARMS"), "trishul": arr("TRISHUL"), "a": a, "nodes": arr("NODES"), "edges": arr("EDGES")}
+    col = json.loads(re.search(r"export const MARK_COLORS = (\{.*?\});", block, re.S).group(1))
+    return {"trishul": tri, "a": a, "colors": col}
+
+
+D = shapes()["colors"]["disc"]          # the page behind the mark in every icon: the emblem's own near-black
 
 
 def svg(pad: float) -> str:
     """The mark in a 100 x 100 box, shrunk by `pad` around the centre (maskable icons need a safe margin)."""
     s = shapes()
+    c = s["colors"]
     k = 1 - pad
-    N = s["nodes"]
-    lat = "".join(f'<line x1="{N[a][0]}" y1="{N[a][1]}" x2="{N[b][0]}" y2="{N[b][1]}"/>' for a, b in s["edges"])
-    dots = "".join(f'<circle cx="{x}" cy="{y}" r="1.7"/>' for x, y in N)
-    arms = "".join(f'<path d="{d}"/>' for d in s["arms"])
     tri = "".join(f'<path d="{d}"/>' for d in s["trishul"])
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024"><rect width="100" height="100" fill="{D}"/>
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024"><rect width="100" height="100" fill="{c["disc"]}"/>
+<defs><linearGradient id="st" gradientUnits="userSpaceOnUse" x1="0" y1="4" x2="0" y2="94"><stop offset="0" stop-color="{c["steelTop"]}"/><stop offset="0.5" stop-color="{c["steelMid"]}"/><stop offset="1" stop-color="{c["steelBottom"]}"/></linearGradient></defs>
 <g transform="translate(50 50) scale({k}) translate(-50 -50)">
-<circle cx="50" cy="50" r="47" fill="none" stroke="{G}" stroke-width="4"/><circle cx="50" cy="50" r="42.5" fill="none" stroke="{Y}" stroke-width="1.2" opacity="0.55"/>
-<g fill="none" stroke="{G}" stroke-width="3.2" stroke-linecap="round">{arms}</g><g fill="{G}">{tri}</g>
-<g stroke="{Y}" stroke-width="0.9" opacity="0.6" fill="{Y}">{lat}{dots}</g>
-<path fill-rule="evenodd" d="{s["a"]}" fill="{Y}" stroke="{D}" stroke-width="2.2" stroke-linejoin="round"/>
+<circle cx="50" cy="50" r="48" fill="{c["disc"]}"/><circle cx="50" cy="50" r="46.6" fill="none" stroke="{c["ring"]}" stroke-width="4.4"/>
+<circle cx="50" cy="50" r="42.6" fill="none" stroke="{c["gold"]}" stroke-width="1.1" opacity="0.6"/>
+<g fill="url(#st)">{tri}</g>
+<path fill-rule="evenodd" d="{s["a"]}" fill="{c["gold"]}" stroke="{c["disc"]}" stroke-width="2.4" stroke-linejoin="round"/>
 </g></svg>'''
 
 

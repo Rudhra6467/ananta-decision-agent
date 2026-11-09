@@ -27,7 +27,7 @@ export function AnantaButton({ count, onPress }: { count: number; onPress: () =>
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={count ? `Ananta, ${count} to check` : "Ananta"} hitSlop={6}
       style={({ pressed }) => ({ width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
-      <AnantaMark color={C.accent} size={56} grey={C.faint} ink={C.bg} />
+      <AnantaMark size={56} />
       {count ? (
         <View style={{ position: "absolute", top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: C.bad, alignItems: "center", justifyContent: "center", paddingHorizontal: 5, borderWidth: 2, borderColor: C.bg }}>
           <Text style={{ color: C.onInk, fontSize: 11, fontWeight: "800" }}>{count}</Text>
@@ -94,7 +94,7 @@ export function AnantaSheet({ open, onClose, home, onChanged }: { open: boolean;
     <Modal visible={open} animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: top }}>
         <View style={{ height: 48, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, gap: 10 }}>
-          <AnantaMark color={C.accent} size={34} grey={C.faint} ink={C.bg} />
+          <AnantaMark size={34} />
           <Text style={{ color: C.text, fontWeight: "800", fontSize: 18, flex: 1 }}>Ananta</Text>
           <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Close"><Text style={{ color: C.dim, fontSize: 20 }}>✕</Text></Pressable>
         </View>

@@ -27,8 +27,8 @@ export function NScreen({ title, children, loading, onRefresh, err, scrollRef }:
         </View>
         {/* 7 Nov 2026 (Madhav): Ananta's mark here instead of the letter M; it still opens More (settings, the market, sign-out) */}
         <Pressable onPress={() => router.push("/more" as any)} accessibilityRole="button" accessibilityLabel="More"
-          style={{ width: 40, height: 40, borderRadius: 999, alignItems: "center", justifyContent: "center" }}>
-          <AnantaMark color={G.gold()} grey={C.faint} ink={C.bg} size={40} />
+          style={{ width: 44, height: 44, borderRadius: 999, alignItems: "center", justifyContent: "center" }}>
+          <AnantaMark size={44} />
         </Pressable>
       </View>
       {err ? <View style={{ backgroundColor: C.badSoft, borderRadius: 16, padding: 14 }}><Body>{err}</Body></View> : null}

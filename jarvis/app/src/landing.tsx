@@ -105,7 +105,7 @@ export function Landing({ st, contact, signIn }: { st: any; contact: string; sig
       <View style={{ maxWidth: 1120, width: "100%", alignSelf: "center", paddingHorizontal: pad }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 22 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <AnantaMark color={K.gold} size={46} grey={K.line2} ink={K.bg} />
+            <AnantaMark size={46} />
             <Text style={{ color: K.text, fontSize: 18, fontWeight: "800", letterSpacing: 6 }}>ANANT<Text style={{ color: K.gold }}>A</Text></Text>
           </View>
           <Pressable onPress={toSignIn} accessibilityRole="button" style={{ borderWidth: 1, borderColor: K.line2, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}>

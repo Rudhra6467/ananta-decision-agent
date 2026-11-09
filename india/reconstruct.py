@@ -833,8 +833,12 @@ def _headline(c: dict) -> str:
     # 8 Nov 2026 (morning self-scan): the headline is written before write_queue files tonight's drafts, so the 6 Nov card said "1 new idea
     # tonight; nothing waits for you" while that draft waited. Tonight's own drafts count too, each key once.
     tonight = {x.get("key") for x in f if x.get("lane") == "DECISION" and x.get("state") == "DRAFT"}
+    # 9 Nov 2026 (morning self-scan): the 6 Nov card, rebuilt on 8 Nov after Madhav approved its draft, still said "1 draft waits": a key the
+    # queue already holds as decided is not waiting, even when this card's own finding still reads DRAFT.
     try:
-        waiting = len({q.get("key") for q in queue() if q.get("lane") == "DECISION" and q.get("state") == "DRAFT"} | tonight)
+        q_rows = queue()
+        decided = {q.get("key") for q in q_rows if q.get("state") in ("APPROVED", "SKIPPED")}
+        waiting = len({q.get("key") for q in q_rows if q.get("lane") == "DECISION" and q.get("state") == "DRAFT"} | (tonight - decided))
     except Exception:  # noqa: BLE001
         waiting = dec
     new_w = f"{dec} new idea{'s' if dec != 1 else ''} tonight" if dec else "no new idea tonight"

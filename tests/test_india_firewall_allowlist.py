@@ -41,3 +41,11 @@ def test_preopen_read_is_named_with_its_reason():
     reason = firewall.ALLOWED_REFS[("jarvis/india/preopen.py", r"ananta_data/india")]
     assert "paper/preopen" in reason
     assert ("jarvis/selfknow.py", r"ananta_data/india") not in firewall.ALLOWED_REFS   # outside the India app: Madhav's call, not allowed here
+
+
+def test_askwords_is_named_and_selfcheck_is_not():
+    """9 Nov morning review: jarvis/india/askwords.py (8 Nov) shipped without its allowlist line; selfcheck.py's India path moved into
+    jarvis/india/selfparts.py instead of being allowed (a file outside the India app is Madhav's call)."""
+    reason = firewall.ALLOWED_REFS[("jarvis/india/askwords.py", r"ananta_data/india")]
+    assert "quotebook_names" in reason and "read-only" in reason
+    assert ("jarvis/selfcheck.py", r"ananta_data/india") not in firewall.ALLOWED_REFS

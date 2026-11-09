@@ -74,6 +74,8 @@ ALLOWED_REFS = {
     ("jarvis/india/selfparts.py", r"ananta_data/india"): ("the India-side parts of Ananta's book about itself (6 Nov): where India's data lives "
                                                           "(folder names, file counts, newest file) and the pre-open read; read-only"),
     ("jarvis/india/selfparts.py", r"india\.duckdb"): "the same map names the query database by its file name; it never opens it",
+    # 9 Nov 2026 morning review: the Ask's company names (8 Nov) shipped without its line; the scan failed on it as on preopen.py (6 Nov)
+    ("jarvis/india/askwords.py", r"ananta_data/india"): "the Ask's spoken company names read manifests/quotebook_names.json (read-only)",
 }
 CANARY_FILE = paths.manifest_dir() / "firewall_canary.txt"
 

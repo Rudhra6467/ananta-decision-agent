@@ -26,3 +26,10 @@ def test_a_draft_already_in_the_queue_is_counted_once(monkeypatch):
 def test_nothing_new_and_nothing_queued(monkeypatch):
     monkeypatch.setattr(rx, "queue", lambda: [])
     assert "no new idea tonight; nothing waits for you." in rx._headline(_card([]))
+
+
+def test_a_draft_decided_before_the_card_was_rebuilt_is_not_waiting(monkeypatch):
+    """9 Nov morning self-scan: the 6 Nov card, rebuilt on 8 Nov after its draft was approved, said 1 draft waited while the queue held 0."""
+    monkeypatch.setattr(rx, "queue", lambda: [{"key": "ALLOC_WRONG:regime_table", "lane": "DECISION", "state": "APPROVED"}])
+    h = rx._headline(_card([{"key": "ALLOC_WRONG:regime_table", "lane": "DECISION", "state": "DRAFT"}]))
+    assert "nothing waits for you" in h

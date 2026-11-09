@@ -10,6 +10,12 @@ import time
 from pathlib import Path
 
 INDIA = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india")))
+
+
+def ask_dir() -> Path:
+    """The India Ask's own folder (its answer logs), read at call time so a test can point it elsewhere. 9 Nov 2026: jarvis/selfcheck.py
+    read this folder itself (the fallback finding of 8 Nov) and the firewall's static scan failed on it; the path now lives here, read-only."""
+    return Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "ask"
 MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
 
 

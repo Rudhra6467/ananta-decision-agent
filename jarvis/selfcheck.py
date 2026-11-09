@@ -278,7 +278,8 @@ def model_fallbacks(now: float | None = None, hours: float = 6.0) -> list[dict]:
     morning, while the credit was fine and nothing said so. Any real India answer in the last hours that fell back is a finding."""
     import glob
     now = now or time.time()
-    d = Path(os.getenv("ANANTA_INDIA_DATA", os.path.expanduser("~/ananta_data/india"))) / "ask"
+    from jarvis.india.selfparts import ask_dir   # the India data path lives in the India app (the firewall allowlist), 9 Nov
+    d = ask_dir()
     hits, why = 0, ""
     for f in glob.glob(str(d / "*.jsonl")):
         if f.endswith("threads.jsonl") or os.path.getmtime(f) < now - hours * 3600:

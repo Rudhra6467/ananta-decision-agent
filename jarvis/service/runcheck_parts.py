@@ -61,11 +61,13 @@ PARTS: list[dict] = [
     {"id": "brain_unreadable", "name": "Brain: paid replies it could not read", "job": "com.ananta.jarvis (brain worker)",
      "severity": "medium", "since": "2026-10-04", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 0}, "errors_only": True,
      "proof": {"sql": J, "query": "SELECT t, 1, COALESCE(note, 'unreadable reply') FROM brain_decisions WHERE action='ERROR' AND t >= :t0"}},
+    # 9 Nov 2026 (morning review): these two count work over the UTC day that starts at their 00:00 slot, so a grace of 3 hours judged
+    # the day 3 hours in (every morning's 24-hour list said "empty UTC day <today>"). They are judged 3 hours after the day closes.
     {"id": "brain_decides", "name": "Brain: at least one decision a day", "job": "com.ananta.jarvis (brain worker)",
-     "severity": "medium", "since": "2026-10-04", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 3 * 3600}, "min_work": 1,
+     "severity": "medium", "since": "2026-10-04", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 27 * 3600}, "min_work": 1,
      "zero_means": "empty", "proof": {"sql": J, "query": "SELECT t, 1 FROM brain_decisions WHERE action != 'ERROR' AND t >= :t0"}},
     {"id": "brain_wakes", "name": "Brain: moments reach its queue", "job": "eye, Explorer, daily watches -> brain.wake",
-     "severity": "high", "since": "2026-10-04", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 3 * 3600}, "min_work": 10,
+     "severity": "high", "since": "2026-10-04", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 27 * 3600}, "min_work": 10,
      "proof": {"sql": J, "query": "SELECT t, 1 FROM brain_queue WHERE t >= :t0"}},
     {"id": "stance", "name": "Brain's daily stance written by the brain (not 'facts only')", "job": "15-minute jobs after the daily close",
      "severity": "medium", "since": "2026-10-15", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 3 * 3600}, "min_work": 1,

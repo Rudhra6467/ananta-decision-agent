@@ -11,6 +11,7 @@ Everything is paper; nothing here places anything.
 from __future__ import annotations
 
 import datetime as dt
+import time
 import json
 from pathlib import Path
 
@@ -399,6 +400,24 @@ def plan_sentence(plan: dict) -> str:
     return f"On {day}, {n_cuts} cuts free about ₹{freed:,.0f}: {swaps}. Each with a 7% stop."
 
 
+def _running(health: dict) -> dict:
+    """The status line: the 15-minute self-check first (9 Nov, the outsider round: "Everything was running ... checked 328 min ago" while
+    Claude's credit had run out), the nightly jobs' health after it."""
+    try:
+        from jarvis import selfcheck
+        c = selfcheck.check("india")
+        top = [x for x in c.get("items") or [] if x.get("severity") == "high" and x.get("source") != "self-check"]
+        if top and c.get("at"):
+            mins = int((time.time() - float(c["at"])) // 60)
+            what = selfcheck.spoken(str(top[0]["what"]))
+            return {"ok": False, "words": what[:1].upper() + what[1:120] + ("…" if len(what) > 120 else ""), "checked": f"checked {mins} min ago",
+                    "more": len(top) - 1}
+    except Exception:  # noqa: BLE001
+        pass
+    return {"ok": bool(health.get("all_ok")), "words": ("Everything was running at the last check" if (health.get("checked_s_ago") or 0) > 3600 else "Everything is running") if health.get("all_ok") else f"{len(health.get('down') or [])} part{'s' if len(health.get('down') or []) != 1 else ''} down",
+            "checked": f"checked {int((health.get('checked_s_ago') or 0) // 60)} min ago" if health.get("checked_s_ago") is not None else ""}
+
+
 def today(full: bool = True) -> dict:
     rm = views.readmodel()
     m = views.morning()
@@ -441,10 +460,52 @@ def today(full: bool = True) -> dict:
     if hs:
         cards.append({"kind": "holdings", "label": "Your holdings · the cut list", "text": "Cut list: " + ", ".join(x.get("symbol") for x in hs if x.get("symbol")),
                       "points": _holdings_points(hs, acct.get("benchmark") or {})})
-    if m.get("chances"):
+    # 9 Nov (the outsider round): after the session the morning view was for, its chances and what-to-watch ("expiry day", "results today")
+    # are over; an after-the-close card from today's own numbers leads instead, with the next session (and a holiday before it) named
+    traded = bool(session) and bool(clk) and session <= clk.get("latest_session", "") and state in ("closed", "no_session")
+    if traded:
+        try:
+            from jarvis.india import livesession as _ls2
+            lt = _ls2.today(rm)
+            pts = []
+            ix = (lt.get("index_now") or {}).get("rows") or {}
+            n, b, v = ix.get("NIFTY 50") or {}, ix.get("NIFTY BANK") or {}, ix.get("INDIA VIX") or {}
+            if n.get("last") is not None:
+                pts.append(f"Nifty {n['last']:,.0f}" + (f" ({n['change_pct']:+.1f}%)" if n.get("change_pct") is not None else "")
+                           + (f" · Bank Nifty {b['last']:,.0f}" + (f" ({b['change_pct']:+.1f}%)" if b.get("change_pct") is not None else "") if b.get("last") is not None else "")
+                           + (f" · VIX {v['last']:.1f}" if v.get("last") is not None else ""))
+            h = lt.get("holdings_today") or {}
+            if h.get("move_inr") is not None:
+                pts.append(f"Your holdings {'+' if h['move_inr'] >= 0 else '−'}₹{abs(h['move_inr']):,} ({h.get('move_pct', 0):+.2f}%)")
+            o = lt.get("options_today") or {}
+            for x in (o.get("taken") or [])[:2]:
+                name = {"BANKNIFTY": "Bank Nifty", "NIFTY": "Nifty"}.get(str(x.get("index")), str(x.get("index")))
+                res = (x.get("result") or {}).get("net_inr")
+                pts.append(f"Options line: {name} {'short' if x.get('direction') == 'short' else 'long'} at {x.get('at')} IST"
+                           + (f", closed {'+' if res >= 0 else '−'}₹{abs(res):,.0f} on paper" if isinstance(res, (int, float)) and x.get("closed") else ", still open on paper"))
+            if o.get("decisions") and not o.get("taken"):
+                pts.append("Options line: passed at every decision point")
+            nxt = clk.get("next_session")
+            if nxt:
+                d0, d1 = dt.date.fromisoformat(clk["latest_session"]), dt.date.fromisoformat(nxt)
+                shut = [d0 + dt.timedelta(days=k) for k in range(1, (d1 - d0).days) if (d0 + dt.timedelta(days=k)).weekday() < 5]
+                pts.append(f"Next session {_dw(nxt)}, 09:15 IST" + (f" ({', '.join(_dw(x) for x in shut)} {'is a market holiday' if len(shut) == 1 else 'are market holidays'})" if shut else ""))
+            if pts:
+                cards.insert(0, {"kind": "close", "label": f"How {_dw(clk['latest_session'])} went", "text": "; ".join(pts), "points": pts, "accent": True})
+        except Exception:  # noqa: BLE001  the morning cards stand
+            pass
+    if m.get("chances") and not traded:
         cards.append({"kind": "chances", "label": "Our chances, honestly", "text": " ".join(m["chances"][:1]), "points": _split_points(" ".join(m["chances"]))})
-    if m.get("watch"):
+    if m.get("watch") and not traded:
         cards.append({"kind": "watch", "label": "What to watch", "text": " ".join(m["watch"][:2]), "points": _watch_points(m["watch"])})
+    try:                                     # 9 Nov (the outsider round): company names on the cards too, as the voice says them
+        from jarvis.india import askwords as _aw
+        for c in cards:
+            if c.get("kind") in ("plan", "holdings", "close"):
+                c["text"] = _aw.spoken_names(str(c.get("text") or ""))
+                c["points"] = [_aw.spoken_names(str(x)) for x in c.get("points") or []]
+    except Exception:  # noqa: BLE001
+        pass
     fills = mb.get("filled_today") or []
     evening = None
     if fills:
@@ -468,8 +529,7 @@ def today(full: bool = True) -> dict:
                           "sub": f"NSE close · {acct.get('positions') and len(acct['positions'])} stocks, ₹{acct.get('options_inr', 0):,.0f} options" if acct else "no snapshot yet"})],
             "waiting": {"count": waiting.get("count") or 0, "words": waiting.get("words")},
             # independent audit, 2 Nov: "Everything is running" beside "checked 234 min ago"; an old check now says it is old
-            "running": {"ok": bool(health.get("all_ok")), "words": ("Everything was running at the last check" if (health.get("checked_s_ago") or 0) > 3600 else "Everything is running") if health.get("all_ok") else f"{len(health.get('down') or [])} part{'s' if len(health.get('down') or []) != 1 else ''} down",
-                        "checked": f"checked {int((health.get('checked_s_ago') or 0) // 60)} min ago" if health.get("checked_s_ago") is not None else ""},
+            "running": _running(health),
             "cards": cards, "evening": evening, "clock": (mb.get("clock") or {}).get("words"),
             "suggested": ["What replaces Jio Financial?", "What is the plan for today?", "What's waiting for my yes?"],   # 3 Nov (the Map change 13): the trials are on Proof, asked for there
             "next_view": f"The morning view arrives at {views._sched().at('com.ananta.india.morningview')}." if not m.get("ready") else None, "paper": True}
@@ -529,12 +589,28 @@ def _options_block(acct: dict) -> dict:
             "words": f"At most one index option lot per index a session on paper (so up to two: Nifty and Bank Nifty), decided between 09:15 and 10:15 Indian time. {o.get('sessions') or 0} sessions so far; graded after 20."}
 
 
+def _sp1_clock(clocks: list[dict]) -> None:
+    """9 Nov (the outsider round): Proof said 10 sessions and Bank Nifty +Rs 802 while Money and the voice said 11 and -Rs 5,252. One owner for
+    the options line's record: its own book (paper/sp1/book.json, scored at 17:30 IST); the trials file is rebuilt only at night."""
+    b = _json(DATA / "paper" / "sp1" / "book.json", {}) or {}
+    if not b.get("sessions"):
+        return
+    for c in clocks:
+        if "options line" in str(c.get("name") or "") and int(b["sessions"]) >= int(c.get("done") or 0):
+            c["done"] = int(b["sessions"])
+            parts = [f"{ {'NIFTY': 'Nifty', 'BANKNIFTY': 'Bank Nifty'}.get(k, k) }: {v.get('trades')} trade{'s' if v.get('trades') != 1 else ''}, "
+                     f"{'+' if (v.get('option_1lot_rs_realistic_fill') or 0) >= 0 else '−'}₹{abs(v.get('option_1lot_rs_realistic_fill') or 0):,.0f} on one option lot"
+                     for k, v in (b.get("by_index") or {}).items()]
+            c["so_far"] = f"Over {b['sessions']} sessions, scored to {_dw(str(b.get('updated'))[:10])} with realistic fills: " + "; ".join(parts) + "."
+
+
 def proof(full: bool = True) -> dict:
     rm = views.readmodel()
     trials = (_json(DATA / "manifests" / "trials.json", {}) or {}).get("trials") or []
     clocks = [{"name": t.get("name"), "done": t.get("done"), "need": t.get("need"), "unit": t.get("unit"), "finish": t.get("expected_finish"),
-               "finish_words": _dw(t.get("expected_finish")) + (f" {str(t.get('expected_finish'))[:4]}" if str(t.get("expected_finish"))[:4] != str(dt.date.today().year) else ""),
+               "finish_words": _dw(t.get("expected_finish")),        # 9 Nov: _dw now carries another year itself ("2027 2027" on Proof)
                "complete": t.get("complete"), "so_far": t.get("so_far")} for t in trials]
+    _sp1_clock(clocks)
     research = rm.get("research") or {}
     exam = _json(DATA.parent / "ananta_runs" / "benchmark_20261030" / "scorecard.json", {}) or {}
     replay = None
@@ -637,10 +713,11 @@ def portfolio_chart(data: Path | None = None) -> dict:
         since = ""
     # 8 Nov (the outside audit, "two accounts on paper"): one owner for "my account on paper" is the managed book (the Map's change 3, 3 Nov);
     # the twin is folded into it and is not drawn as a second "you". The lines: the managed book, the same holdings left alone, the Nifty 500.
-    words = (f"Drawn from {_dw(dates[0])} to {_dw(dates[-1])}; the returns count from the start"
-             + (f" ({_dw(since)}, {_inr(start)})" if since and start else "") + ". "
-             + (f"Your account on paper, the managed book, {_inr(last.get('managed_inr') or 0)} ({pct('managed_ret_pct'):+.2f}% over {last.get('managed_sessions') or 0} sessions); "
-                if last.get("managed_inr") else "The managed book has not started; ")
+    m0 = next((r.get("day") for r in rows if r.get("managed_inr")), None)
+    words = (f"Drawn from {_dw(dates[0])} to {_dw(dates[-1])}. "
+             + (f"Your account on paper, the managed book, {_inr(last.get('managed_inr') or 0)}: {pct('managed_ret_pct'):+.2f}% since it started on {_dw(m0)} "
+                f"({last.get('managed_sessions') or 0} sessions). " if last.get("managed_inr") else "The managed book has not started. ")
+             + "From the snapshot" + (f" of {_dw(since)} ({_inr(start)})" if since and start else "") + ": "
              + f"the same holdings left untouched {_inr(last.get('frozen_inr') or 0)} ({pct('frozen_ret_pct'):+.2f}%)"
              + (f"; the Nifty 500 {pct('nifty500_ret_pct'):+.2f}% on its own path." if last.get("nifty500_ret_pct") is not None else "."))
     return {"name": "Your account on paper", "kind": "portfolio", "as_of": dates[-1], "start_inr": start, "sessions": len(rows),

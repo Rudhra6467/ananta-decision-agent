@@ -124,6 +124,7 @@ def test_india_ask_is_grounded_threaded_and_honest_offline(lake, monkeypatch):
     monkeypatch.setattr(views, "REG", lake / "registrations")
     monkeypatch.setattr(ia, "ASK_DIR", lake / "ask")
     monkeypatch.setattr(ia, "ENV_FILE", lake / "no.env")
+    monkeypatch.setattr(ia, "LIVE_OVERRIDE", {})            # 9 Nov: the offline answer leads with today's block when there is one; this lake has none
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     c = TestClient(service.app, client=("127.0.0.1", 50000))
     r = c.post("/v3/ask", json={"text": "What did you decide?"}).json()                 # no key: the read model's own words, said so
@@ -163,6 +164,7 @@ def test_india_voice_routes_use_the_local_voice_server(lake, monkeypatch):
     monkeypatch.setattr(views, "REG", lake / "registrations")
     monkeypatch.setattr(ia, "ASK_DIR", lake / "ask")
     monkeypatch.setattr(ia, "ENV_FILE", lake / "no.env")
+    monkeypatch.setattr(ia, "LIVE_OVERRIDE", {})            # 9 Nov: the offline answer leads with today's block when there is one; this lake has none
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     calls = []
 

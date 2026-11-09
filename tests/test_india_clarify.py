@@ -45,7 +45,7 @@ def test_one_draft_or_none_needs_no_question(scratch, monkeypatch):
 
 def test_the_book_with_no_name_asks_which_book(scratch):
     r = clarify.maybe("How is the book doing?", "t3")
-    assert r and r["ask"]["kind"] == "clarify" and len(r["ask"]["options"]) == 4
+    assert r and r["ask"]["kind"] == "clarify" and len(r["ask"]["options"]) == 3
     assert clarify.resolve("the managed book", "t3") == "How is the managed book doing?"       # a tapped chip sends its words
     clarify.maybe("how's the book?", "t3")
     assert clarify.resolve("2", "t3") == "How is the managed book doing?"

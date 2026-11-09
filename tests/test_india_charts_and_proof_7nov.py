@@ -23,8 +23,8 @@ def test_the_portfolio_chart_comes_from_the_benchmark_with_a_nifty_500_line_from
     assert c["kind"] == "portfolio" and c["as_of"] == "2026-11-06" and c["sessions"] == 3 and c["name"] == "Your account on paper"
     assert c["chart"]["dates"] == ["2026-10-29", "2026-10-30", "2026-11-06"] and c["chart"]["twin"] == [160499, 162645, 165383] and c["chart"]["yours"] == [None, 162572, 163885]
     assert c["chart"]["managed"] == [None, 162572, 163885] and c["chart"]["nifty500"] == [164345, 164004, 175705]
-    assert "Your account on paper, the managed book, ₹1,63,885 (+2.11% over 5 sessions)" in c["words"] and "the Nifty 500 +8.12% on its own path" in c["words"]
-    assert c["words"].startswith("Drawn from Thu 29 Oct to Fri 6 Nov; the returns count from the start (Thu 22 Oct, ₹1,62,509).")
+    assert "Your account on paper, the managed book, ₹1,63,885: +2.11% since it started on Fri 30 Oct (5 sessions)" in c["words"] and "the Nifty 500 +8.12% on its own path" in c["words"]
+    assert c["words"].startswith("Drawn from Thu 29 Oct to Fri 6 Nov.") and "From the snapshot of Thu 22 Oct (₹1,62,509)" in c["words"]   # 9 Nov: each return names its own start
     # a partial last row (a key missing, a null pct) still draws and reads instead of a 500 (review, 7 Nov)
     with (acct / "benchmark.jsonl").open("a") as f:
         f.write(json.dumps({"day": "2026-11-07", "twin_inr": 165900, "frozen_inr": None, "frozen_ret_pct": None, "nifty500_ret_pct": None}) + "\n")

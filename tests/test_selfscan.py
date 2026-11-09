@@ -95,7 +95,7 @@ def test_india_scan_sees_a_card_behind_the_book_a_disagreeing_headline_a_stale_r
     items = selfparts.scan(now=now)
     whats = [x["what"] for x in items]
     assert any("the card is a session behind" in w for w in whats), whats
-    assert any("says 1 draft wait for Madhav but the queue holds 2" in w for w in whats), whats
+    assert any("says 1 draft waits for Madhav's yes, but 2 are waiting" in w for w in whats), whats
     assert any("stuck at zero" in w and "movers" in w for w in whats) and any("stuck at zero" in w and "picks" in w for w in whats), whats
     assert [x for x in items if x["severity"] == "high" and "read model" in x["what"]], whats
     assert any("waited for Madhav's yes or skip for more than a week (oldest 28 Oct)" in w for w in whats), whats

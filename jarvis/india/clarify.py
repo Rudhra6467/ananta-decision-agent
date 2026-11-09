@@ -32,10 +32,10 @@ NUMS = {"1": 1, "one": 1, "first": 1, "2": 2, "two": 2, "second": 2, "3": 3, "th
 QUESTION = re.compile(r"\?|^\s*(?:what|how|why|when|where|which|who|is|are|do|does|did|can|could|should|will|would)\b", re.I)
 _STOP = {"the", "a", "an", "of", "on", "in", "my", "our", "its", "it", "is", "to", "and", "or", "one", "book", "paper", "doing", "going", "draft"}
 
+# 9 Nov (the outsider round): "the managed book" and "my account on paper" are one book since 3 Nov; one choice, named both ways
 BOOKS = [("the practice book (the research trades)", "How is the research book doing?"),
-         ("the managed book", "How is the managed book doing?"),
-         ("the index options line", "How is the index options line doing?"),
-         ("my account on paper", "How is my account doing on paper?")]
+         ("my account on paper (the managed book)", "How is the managed book doing?"),
+         ("the index options line", "How is the index options line doing?")]
 
 
 # ------------------------------------------------------------------------------------------------------------------------ the pending question

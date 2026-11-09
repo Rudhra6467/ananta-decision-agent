@@ -113,6 +113,9 @@ def _line(x: dict, fmt: str = ",.2f") -> str:
     return f"{LABELS.get(x['label'], x['label'])} {x['value']:{fmt}}{(' ' + x['unit']) if x.get('unit') and x['unit'] != '%' else ('%' if x.get('unit') == '%' else '')} on {_dw(x['as_of'])} ({_chg(x)}{lag})."
 
 
+LIVE_VIX = True        # 9 Nov: the latest session's VIX close from today's block; a test of the nightly file turns it off
+
+
 def market_context_flow(text: str) -> dict | None:
     """An instant answer for a short, plain question about the rupee, the US close, crude, yields, the dollar, the fear gauges, FII/DII or GIFT Nifty."""
     from jarvis.india.ask import _reply      # here, not at the top: ask.py imports this module
@@ -145,7 +148,16 @@ def market_context_flow(text: str) -> dict | None:
         elif k == "dollar":
             parts.append(_line(macro.get("DTWEXBGS", {})))
         elif k == "vix":
-            iv = mc.get("india_vix") or {}
+            iv = dict(mc.get("india_vix") or {})
+            try:                                         # 9 Nov (the outsider round): after the close the nightly file is a day behind; today's close wins
+                from jarvis.india import livesession as _ls
+                clk = _ls.clock(rm.get("data_through"))
+                if str(iv.get("as_of") or "")[:10] < clk["latest_session"] and LIVE_VIX:
+                    r = (_ls.index_now(clk).get("rows") or {}).get("INDIA VIX") or {}
+                    if r.get("last") is not None and r.get("prev_close"):
+                        iv = {"status": "ok", "value": float(r["last"]), "as_of": clk["latest_session"], "change_1": float(r["last"]) / float(r["prev_close"]) - 1}
+            except Exception:  # noqa: BLE001  the nightly reading stands
+                pass
             us = "" if re.search(r"\bindia(?:n)?\s+vix\b", text, re.I) else _line(macro.get("VIXCLS", {}))
             meaning = ""
             if iv.get("status") == "ok":                 # 28 Oct outside round 3: the level was given, not what it means for an option buyer

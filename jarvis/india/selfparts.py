@@ -119,7 +119,7 @@ def scan(now: float | None = None) -> list[dict]:
         said = int(m.group(1)) if m else (0 if "nothing waits for you" in head else None)
         if waiting is not None and said is not None and said != waiting:
             items.append({"market": "india", "severity": "medium", "source": "self-scan",
-                          "what": f"the card of {_day(day)} says {said} draft{'s' if said != 1 else ''} wait for Madhav but the queue holds {waiting}: two places disagree"})
+                          "what": f"the reconstruction card of {_day(day)} says {said} draft{' waits' if said == 1 else 's wait'} for Madhav's yes, but {waiting if waiting else 'none'} {'is' if waiting in (0, 1) else 'are'} waiting"})
         # 3. a section that could not build (the card still writes, with status 'error' in that part)
         bad = [k for k in ("market", "people", "ananta", "not_done", "reviews") if (card.get(k) or {}).get("status") == "error"]
         if bad:

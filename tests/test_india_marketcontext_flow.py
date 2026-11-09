@@ -37,6 +37,7 @@ RM = {"market_context": MC}
 @pytest.fixture
 def rm(monkeypatch):
     monkeypatch.setattr(views, "readmodel", lambda: RM)
+    monkeypatch.setattr(marketcontext, "LIVE_VIX", False)
     return RM
 
 

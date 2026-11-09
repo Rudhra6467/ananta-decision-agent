@@ -319,7 +319,7 @@ def credit_probe(key: str, post=None) -> list[dict]:
     if "credit balance" in why:
         return [{"market": "both", "severity": "high", "source": "Claude credit",
                  "what": ("Claude's API credit has run out, so India answers from its rules only and crypto falls back to Gemini; "
-                          "Madhav can top it up in the Anthropic Console under Plans & Billing")}]
+                          "it is topped up in the Anthropic Console under Plans & Billing")}]
     return []
 
 
@@ -483,8 +483,19 @@ def nudge(market: str, state: Path, thread: str, now: float | None = None, answe
         state.write_text(json.dumps({"threads": th, "last": {"key": key, "t": now}}))
     except OSError:
         return ""
-    what = "; and ".join(x["what"] for x in top)
+    what = spoken("; and ".join(x["what"] for x in top))
     return f"One thing that isn't right, sir: {what[:1].lower()}{what[1:]}. Ask me what's wrong for the details."
+
+
+def spoken(s: str) -> str:
+    """9 Nov 2026 (the outsider round): the self-check's items are written about Madhav; said to Madhav they are said to "you", and the
+    parts are named in words ("Brain:" was read out as a label)."""
+    s = re.sub(r"\bMadhav's\b", "your", s)
+    s = re.sub(r"\b(?:for|to|from|by) Madhav\b", lambda m: m.group(0).split()[0] + " you", s)
+    s = re.sub(r"\bMadhav (said|asked|planned|has|is)\b", lambda m: "you " + {"has": "have", "is": "are"}.get(m.group(1), m.group(1)), s)
+    s = re.sub(r"\bMadhav\b", "you", s)
+    s = re.sub(r"\bBrain:\s*", "the crypto brain: ", s)
+    return s
 
 
 # ------------------------------------------------------------------------------------------------- the Mac asleep, and planned downtime

@@ -1248,12 +1248,26 @@ def _alloc_path() -> Path:
     return (Path(ASK_DIR) / "dry_allocation.json") if DRY_RUN else (DATA / "paper" / "allocation.json")
 
 
+def offline_lead(why: str) -> str:
+    """9 Nov 2026 (the outsider round): when Claude does not answer, the answer says so first, in plain words, before any fact."""
+    w = (why or "").lower()
+    if "credit balance" in w or "billing" in w:
+        return ("Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. "
+                "Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again.")
+    if "overloaded" in w or "529" in w or "rate" in w:
+        return "Sir, Claude is busy right now and didn't answer, so this is only the latest facts, not an answer to your question; ask me again in a minute."
+    return "Sir, Claude didn't answer just now, so this is only the latest facts, not an answer to your question; ask me again in a minute."
+
+
 def _offline(question: str, f: dict, why: str) -> dict:
-    """No model (no key, a refused call): the read model's own sentences, so the chat still answers honestly."""
-    return {"kind": "answer", "stage": "observation", "answer": " ".join((f.get("brief") or [])[:3]) or "The India read model has not been built yet.",
-            "breakdown": [f"Daily call: {(f.get('daily_call') or {}).get('call')} ({(f.get('daily_call') or {}).get('hits')} of {(f.get('daily_call') or {}).get('scored')} right)",
-                          f"Stock book: {(f.get('stock_book') or {}).get('open_positions')} open positions", f"Index line: {(f.get('index_line_sp1') or {}).get('words')}"],
-            "evidence": [f"readmodel/latest.json, data through {f.get('data_through')}"], "assumption": "", "follow_ups": ["What did you decide for the next session?", "Is every job running?", "What is the Nifty trend?"],
+    """No model (no key, a refused call): say so plainly first (9 Nov), then the freshest facts: today's block when it has the latest close, else
+    the read model's own sentences, never presented as an answer to the question."""
+    live = f.get("today_live") or {}
+    fresh = " ".join(x for x in ((live.get("clock") or {}).get("words"), (live.get("index_now") or {}).get("words")) if x)
+    facts = fresh or " ".join((f.get("brief") or [])[:2]) or "The India read model has not been built yet."
+    return {"kind": "answer", "stage": "observation", "answer": offline_lead(why) + " " + facts,
+            "breakdown": [], "evidence": [f"readmodel/latest.json, data through {f.get('data_through')}"], "assumption": "",
+            "follow_ups": ["Ask me again", "Is everything running?"],
             "next_action": {}, "show": [], "options": [], "points": [], "actions": [], "ui": [], "route": "india", "note": f"answered from the read model only: {why}"}
 
 
@@ -1264,10 +1278,24 @@ TRIAL_TOPIC = re.compile(r"\b(?:trials?|how (?:much )?longer|how long|time neede
 
 
 def _load_trials() -> list:
+    """The trials (manifests/trials.json, rebuilt at night), with the options line's count and record from its own book, scored at 17:30
+    IST (9 Nov, the outsider round: the voice said 10 left after session 11 had run). The count is said with the list's own length."""
     try:
-        return json.loads((DATA / "manifests" / "trials.json").read_text()).get("trials") or []
+        rows = json.loads((DATA / "manifests" / "trials.json").read_text()).get("trials") or []
     except (OSError, ValueError):
         return []
+    try:
+        from jarvis.india import surfaces as _sf
+        cl = [{"name": r.get("name"), "done": r.get("done"), "so_far": r.get("so_far")} for r in rows]
+        _sf._sp1_clock(cl)
+        for r, c in zip(rows, cl):
+            if c["done"] != r.get("done"):
+                r["done"], r["so_far"] = c["done"], c["so_far"]
+                if r.get("need"):
+                    r["left"] = int(r["need"]) - int(c["done"])
+    except Exception:  # noqa: BLE001
+        pass
+    return rows
 
 
 MAP_TOPIC = re.compile(r"\b(?:tested|test|tests|study|studies|studied|research\w*|proved?|proven|validated|held up|evidence for|what do you know about|"
@@ -1619,7 +1647,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         f["trials"] = _load_trials()
     except Exception as e:  # noqa: BLE001
         f["trials"] = {"error": type(e).__name__}
-    f["trials_meaning"] = ("every running trial: what it is, sessions done of needed, the expected finish date and what has happened so far; answer "
+    f["trials_meaning"] = (f"{len([x for x in f['trials'] if isinstance(x, dict) and not x.get('complete')]) if isinstance(f.get('trials'), list) else 0} trials are running "
+                           "(say that count, the same as the list): what each is, sessions done of needed, the expected finish date and what has happened so far; answer "
                            "with the numbers and the date, say what is being judged, and that nothing is read into a trial before it completes")
     try:                                                       # 5 Nov (D): the options line's review questions
         f["options_line_review"] = _options_review()
@@ -2302,6 +2331,20 @@ def morning_flow(text: str, who: str) -> dict | None:
     if not m.get("ready"):
         return _reply("Good morning, sir. The morning view is not written yet; it comes before each Indian open, at 08:30 Indian time.", ["What did you learn last night?", "How are my holdings doing?"], [])
     greet = "Good morning, sir. " if re.search(r"good morning|start (my|the)", text, re.I) else ""
+    # 9 Nov (the outsider round): after the session the view has been for, it is not "the view for the next session"; say which it is and
+    # when the next one is written, instead of reading the old one as if it were next
+    try:
+        from jarvis.india import livesession as _ls
+        clk = _ls.clock(views.readmodel().get("data_through"))
+        done = str(m.get("session") or "")[:10] and str(m.get("session") or "")[:10] <= clk["latest_session"] and clk["state"] in ("closed", "no_session")
+        if done:
+            nxt = clk["next_session_words"]
+            head = (f"Sir, the view for {nxt} is not written yet: it comes before that open, at 08:30 Indian time. "
+                    f"The last one was for {m.get('session_words')}, which has traded: ")
+            return _reply(head + " ".join((m.get("view") or [])[:2]), ["How did today go?", "What changes for the next session?"], ["the morning view (paper/morningview)"],
+                          {"route": "india", "show": ["home.morning"]})
+    except Exception:  # noqa: BLE001  the view as written stands
+        pass
     if re.search(r"chances", text, re.I):
         ans = greet + " ".join(m.get("chances") or [])
         fu = ["What is the view for today?", "What are you doing today?", "What should I watch today?"]
@@ -2674,6 +2717,10 @@ def waiting_flow(text: str, w: dict | None) -> dict | None:
     """What waits for his yes (3 Nov, Madhav's chat and the outside grade): Indian market first; crypto told apart and short; one plain
     recommendation per item; no fix menu (flags are noted only since 2 Nov) and no command phrases to learn."""
     if not WAITING_Q.search(text or "") or len(text) > 120:
+        return None
+    # 9 Nov (the outsider round): "what's running right now, what changed, and what do you need from me" got only "nothing waiting"; a
+    # message that asks other things too goes to the model, which has the waiting list in its facts
+    if len(re.findall(r"\b(?:what|what's|how|why|which|when|is|are|did|do)\b", text, re.I)) > 1 and re.search(r",|\band\b", text):
         return None
     if w is None:
         return None                                   # no list (no sign-in token): the drafts flow or the model answers

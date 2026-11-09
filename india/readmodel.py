@@ -262,10 +262,22 @@ def sp1(day: str) -> dict:
                        f"with realistic fills" for k, v in bi.items() if v.get("trades"))
     words = (f"{when}: session lost: " + errors[0]) if status == "lost" and errors else (
         f"{when}: {len(decisions)} index decisions recorded" + (f", traded {', '.join(trades)}" if trades else ", no trade") if decisions else f"{when}: no SP1 rows")
+    # 9 Nov 2026 (morning review): the day plan records which inputs were stale (Mon 9 Nov: the cash-market file for the Diwali Muhurat session of
+    # Sun 8 Nov was not there at 07:30 IST, so breadth read 0 names), but the read model, the app and the Ask never said so. Madhav, 25 Oct: a
+    # decision made on stale inputs is marked, never stopped. Reporting only; the SP1 rules are untouched.
+    plan = next((r for r in reversed(rows) if r.get("kind") == "plan"), None) or {}
+    stale = [SP1_STALE_WORDS.get(k, k) for k, v in (plan.get("stale") or {}).items() if v]
+    inputs = {"stale": stale, "marked": bool(stale), "rule": "stale inputs are marked, never stopped or dropped (Madhav, 25 Oct 2026)"}
+    if stale and decisions:
+        words += f" (marked: planned on stale inputs: {'; '.join(stale)})"
     if scored:
         words += f". Book over {book.get('sessions')} scored session(s): {scored}"
     return {"status": status, "date": newest, "source": f"{d / 'decisions.jsonl'} and {d / 'book.json'}", "decisions": decisions, "errors": errors[:3],
-            "book": {"sessions": book.get("sessions"), "by_index": bi}, "capital_inr": _options_capital(), "words": words}
+            "inputs": inputs, "book": {"sessions": book.get("sessions"), "by_index": bi}, "capital_inr": _options_capital(), "words": words}
+
+
+SP1_STALE_WORDS = {"us_qqq": "the US close (QQQ)", "participant_oi": "the participants' open interest",
+                   "cm_bhavcopy": "the previous session's cash-market file (market breadth)"}
 
 
 def learning(day: str) -> dict:

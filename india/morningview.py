@@ -530,7 +530,14 @@ def show() -> None:
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "show"
     if cmd == "build":
-        f = build(sys.argv[2] if len(sys.argv) > 2 else None)
-        print(f["lines"]["headline"])
+        from india import dayplan as _dp
+        arg = sys.argv[2] if len(sys.argv) > 2 else None
+        if arg is None and _dp.own_morning() is None:
+            # 9 Nov 2026: Monday's view was built on Saturday, Sunday and Monday (three phone notes, facts two days old). One build, on the
+            # session's own morning; the scheduled job runs every day and says so here on the other days. A named session still builds.
+            print(f"morning view: not built; the view for {_dp.next_session()} is built on its own morning in India (today there is {_dp.ist_today()})")
+        else:
+            f = build(arg)
+            print(f["lines"]["headline"])
     else:
         show()

@@ -281,9 +281,13 @@ def proof(label: str, due: dt.datetime | None, ctx: dict) -> tuple[bool | None, 
         return n > 0, f"IST {ist_day}: {n} depth snapshots"
     if name == "evening":
         # 3 Nov (the Map's change 8): the evening run no longer fetches from Zerodha (evening_zerodha does); its proof is the next day plan
-        nxt = next_session(d + dt.timedelta(days=1), hol)
-        plan = (D / "paper" / "dayplans" / f"{nxt}.json").exists()
-        return plan, f"day plan for {nxt}: {'yes' if plan else 'no'}"
+        # 9 Nov: the day plan is written on the session's own morning only (dayplan.own_morning), so a run on a weekend or holiday morning
+        # in India owes no plan
+        ist_day = due.astimezone(IST).date()
+        if not is_session(ist_day, hol):
+            return None, f"IST {ist_day}: no session; the day plan for {next_session(ist_day + dt.timedelta(days=1), hol)} is written on its own morning"
+        plan = (D / "paper" / "dayplans" / f"{ist_day}.json").exists()
+        return plan, f"day plan for {ist_day}: {'yes' if plan else 'no'}"
     if name in ("recorder_noon", "evening_zerodha"):
         lo = due.astimezone(dt.timezone.utc).isoformat(timespec="seconds")
         hi = (due + dt.timedelta(hours=12)).astimezone(dt.timezone.utc).isoformat(timespec="seconds")

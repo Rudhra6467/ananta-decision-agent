@@ -50,6 +50,19 @@ def next_session(after: dt.date | None = None) -> dt.date:
     return d
 
 
+def ist_today() -> dt.date:
+    return dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30))).date()
+
+
+def own_morning() -> dt.date | None:
+    """The session whose own morning it is in India right now, else None (a weekend, a holiday, or after the 09:15 open).
+    9 Nov 2026 (the outsider readiness review; Madhav: "yes, lets complete"): the plan, the morning view and the shadow trader's plan for
+    Monday 9 Nov were written and sealed on Saturday morning, and the view was pushed three times; anything that happened in between was
+    not in them. They are now written once, on the session's own morning, the way the options line already does (sp1paper.run)."""
+    s = next_session()
+    return s if s == ist_today() else None
+
+
 def overnight() -> dict:
     mac = pd.read_parquet(next(p for p in (D / "silver/macro").iterdir() if p.suffix == ".parquet"))
     out = {}
@@ -91,6 +104,9 @@ def climatology(band: float = 0.003) -> dict:
 def run() -> dict:
     s = next_session()
     out = D / "paper" / "dayplans" / f"{s}.json"
+    if s != ist_today() and not out.exists():      # written on the session's own morning only (see own_morning); an older early file stands
+        return {"session": str(s), "written": False,
+                "note": f"not written yet: the plan for {s} is written on its own morning in India (today there is {ist_today()}), so it holds everything known by then"}
     if out.exists():
         return {"session": str(s), "note": "already written", "path": str(out)}
     snap = overnight()

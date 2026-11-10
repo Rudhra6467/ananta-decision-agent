@@ -1493,7 +1493,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         return ((waiting_flow(t, wait) if (commands and owner_here) else None) or garbled_flow(t) or (nav_flow(t) if commands else None)
                 or (comment_flow(t, thread, token, post=flag_post, get=flag_get) if (commands and owner_here) else None)
                 or (fix_flow(t, thread, token, context, post=flag_post, get=flag_get) if (commands and owner_here) else None)
-                or fragment_flow(t) or morning_flow(t, who) or _not_a_repeat(technicals.technicals_flow(t), thread) or marketcontext.market_context_flow(t)
+                or fragment_flow(t) or morning_flow(t, who) or readiness_flow(t) or _not_a_repeat(technicals.technicals_flow(t), thread) or marketcontext.market_context_flow(t)
                 or (allocation_flow(t, who) if (commands and owner_here) else None) or (_and_question(draft_flow(t, who), t) if commands else None)
                 or (downtime_flow(t, who) if (commands and owner_here) else None)
                 or portfolio_flow(t, who) or mover_flow(t) or book_flow(t) or decide_flow(t))
@@ -2319,6 +2319,19 @@ def portfolio_flow(text: str, who: str) -> dict | None:
     return r
 
 
+def readiness_flow(text: str) -> dict | None:
+    """9 Nov 2026 (Madhav: "yes, lets complete"): how it will open, the options line's plan for the open, what his stocks filed, and what
+    changed since the view, each from its one owner (jarvis/india/readiness.py), answered in code."""
+    try:
+        from jarvis.india import readiness
+        if not (readiness.OPEN_Q.search(text) or readiness.PLAN_Q.search(text) or readiness.NEWS_Q.search(text) or readiness.CHANGED_Q.search(text)):
+            return None
+        r = readiness.answer(text, _today_live(views.readmodel()))
+    except Exception:  # noqa: BLE001  the model answers with the same facts
+        return None
+    return _reply(r[0][:1900], r[1], r[2], {"route": "india", "show": ["home.morning"]}) if r else None
+
+
 MORNING = re.compile(r"\b(good morning|morning view|morning brief|today'?s view|view for (today|the day)|what'?s (good|the plan) (today|for today)|what (do you see|are we doing|is the plan) today|our chances today|chances (for )?today|start (my|the) (day|morning)|what should i watch today)\b", re.I)
 
 
@@ -2356,8 +2369,18 @@ def morning_flow(text: str, who: str) -> dict | None:
         fu = ["What are our chances today?", "What should I watch today?"]
     else:
         v = m.get("view") or []
-        ans = greet + f"The view for {m.get('session_words')}: " + " ".join(v[:3])
-        fu = ["What are you doing today?", "What are our chances today?", "What should I watch today?", "What did yesterday teach you?"]
+        # 9 Nov 2026 (Madhav: "yes, lets complete"): holdings first; and when the 09:09 second look changed the picture, that leads, not the 08:30 view
+        lead = ""
+        try:
+            po = (_today_live(views.readmodel()).get("preopen") or {})
+            rc = po.get("recheck") or {}
+            if rc.get("changed") and rc.get("words") and str(po.get("day")) == str(m.get("session")):
+                lead = "Since I wrote this view at 08:30, the pre-open changed the picture: " + rc["words"] + " "
+        except Exception:  # noqa: BLE001
+            pass
+        hold = m.get("holdings") or []
+        ans = greet + lead + (("Your holdings: " + " ".join(hold[:2]) + " ") if hold else "") + f"The view for {m.get('session_words')}: " + " ".join(v[:3])
+        fu = ["What are you doing today?", "What should I watch today?", "How will it open?", "What did yesterday teach you?"]
     return _reply(ans[:1800], fu, ["the morning view (paper/morningview)"], {"route": "india", "show": ["home.morning"]})
 
 

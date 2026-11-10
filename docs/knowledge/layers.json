@@ -1693,6 +1693,8 @@
     "jarvis/india/lookup.py",
     "jarvis/india/answerguide.py",
     "jarvis/india/preopen.py",
+    "jarvis/india/recheck.py",
+    "jarvis/india/readiness.py",
     "jarvis/india/compare.py"
    ]
   },

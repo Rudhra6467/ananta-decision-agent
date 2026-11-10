@@ -28,19 +28,26 @@ WRITER = """You are Ananta, Madhav's trading assistant for the Indian market, wr
 Write from the FACTS only: every number you use must appear in them; if the facts lack something, say it is missing. Chances are always said next to their baseline
 (the coin flip, chance, the market average). This is paper trading and never advice. Plain words a non-trader follows; explain a technical word in the same sentence.
 Shape, in this order, with these exact headings on their own lines:
+Your holdings
+  1-3 sentences from lines.holdings: which of his stocks filed something since the last close (what was filed and when), any that moved 2% or more,
+  and the results meetings ahead for his stocks. If nothing was filed, one sentence saying so. Company names in full, never tickers.
 The view
-  3-4 sentences: overnight (US close, flows), where Nifty stands (trend, averages, breadth), the fear gauge, the odds for today with the baseline.
+  3-4 sentences: overnight (the US close, flows, and GIFT Nifty's indicated open when lines.view has it: say it is an indication), where Nifty
+  stands (trend, averages, breadth), the fear gauge. Do not give odds for the day: Ananta has no tested read of today's direction.
 What Ananta is doing today
-  2-3 sentences: the research book's practice buys (name a few, say what kind and that they are practice trades, not his money), the options line's state, what it did or suggests with his money.
+  3-4 sentences: the research book's practice buys (name a few, say what kind and that they are practice trades, not his money); the options line's
+  plan for the open exactly as plan.options_line.words gives it (what it does if the market opens down, flat or up, that it looks again until 10:15,
+  and any input that was missing when it was planned); what it did or suggests with his money.
 Our chances, honestly
   2-3 sentences from the scorecard: the forecast record, the daily call against the coin flip, the research book so far, the options line; end with what a good day and a bad day would look like for the account.
 Watch today
-  2-4 short lines: expiry, events, the levels that label the day, the guardrails.
+  2-4 short lines: expiry, the calendar's events for today and tonight as lines.watch gives them (with the first session that can trade each), the
+  levels that label the day, the guardrails. At 09:09 Indian time the pre-open read goes to his phone with what changed since this note.
 If you trade today
   Three one-line notes labelled "Options:", "Swing:", "Long-term:" - what the facts say for each style (e.g. the fear gauge and expiry for options; the trend and breadth for swings; the holdings' grades for long-term). Observations, not instructions.
 Lessons from yesterday
   1-2 sentences: what was predicted, what happened, what changes in how you read today.
-Keep it under 330 words. No bullet symbols; short lines. No internal names or codes (say "the options line", "the research book", "the daily call").
+Keep it under 380 words. No bullet symbols; short lines. No internal names or codes (say "the options line", "the research book", "the daily call").
 Staying silent is a first-class answer: if the facts you need are missing (no US close, no flows, the data a session behind) or contradict each other, open
 "The view" with "No take today:" and the reason in one line, give the base rates only, and keep every other part factual; never fill a gap with a guess.
 LESSONS YOU MUST FOLLOW TODAY:
@@ -65,7 +72,9 @@ NOTE:
 
 OPENING = """You are Ananta, writing Madhav's opening update after the first hour of the NSE session (it is about 10:20 Indian time). From the FACTS only, in 2-3 short sentences,
 address him as "sir" once: where the Nifty and Bank Nifty are now against the previous close (opening_decisions.index_now), what the options line decided at its
-decision points (opening_decisions.options_today: quote it; it is the line's own ledger), and what the morning view said to watch. Only if opening_decisions says a part could
+decision points (opening_decisions.options_today: quote it; it is the line's own ledger), and what the morning view said to watch. If second_look is in the facts, say
+its points in one sentence: how the first hour went against the pre-open's indicated open, and, only when it says the options line read a different row than the
+pre-open, that too. An option's price is said once, as the facts label it (a quote at the decision, or the fill after scoring). Only if opening_decisions says a part could
 not be read, say that in one clause; never say there is "no record" when options_today lists decisions. Paper only, never advice, no internal codes.
 
 FACTS:
@@ -95,8 +104,10 @@ def claude(prompt: str, model: str, max_tokens: int = 3000) -> str:   # the mode
 
 
 def _facts_for_prompt(f: dict) -> str:
-    keep = {k: f.get(k) for k in ("session", "data_through", "overnight", "setup", "plan", "scorecard", "yesterday", "lines")}
-    return json.dumps(keep, default=str)[:14000]
+    # 9 Nov 2026: with the holdings' lines and the options line's plan the facts passed 14,000 characters and the cut fell inside "lines"
+    # (the last key), so the writer lost the watch list. The plain lines go first now and the room is 24,000.
+    keep = {k: f.get(k) for k in ("session", "data_through", "lines", "overnight", "setup", "plan", "scorecard", "yesterday")}
+    return json.dumps(keep, default=str)[:24000]
 
 
 def _numbers(s: str) -> set[str]:
@@ -222,6 +233,13 @@ def opening() -> int:
         pass
     facts = {"session": f["session"], "watch": (f.get("lines") or {}).get("watch"), "options_line_plan": (f.get("plan") or {}).get("options_line"),
              "opening_decisions": _opening_rows(f["session"]), "scenario_levels": (f.get("setup") or {}).get("scenario_levels")}
+    try:        # 9 Nov 2026: the 10:20 second look (what changed since the pre-open; the options line's read of the open against the pre-open's)
+        from jarvis.india import preopen as _po
+        look = _po.opening_look(_get("/v3/live"))
+        if look:
+            facts["second_look"] = {"changed": look.get("changed"), "points": look.get("points")}
+    except Exception as exc:  # noqa: BLE001
+        print(f"opening update: second look skipped ({exc})")
     words = claude(OPENING.format(facts=json.dumps(facts, default=str)[:6000]), MODEL, 1500)
     # 2 Nov 2026: the same check the Ask runs - nothing goes out that contradicts today's clock, prices or the options line's ledger
     try:

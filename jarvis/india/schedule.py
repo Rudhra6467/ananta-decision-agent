@@ -126,7 +126,7 @@ def words(changed: list[dict]) -> str:
 # Independent audit, 2 Nov: Ananta told Madhav "the picks come with the 7 pm run" (they come at 9:30 pm), "the day file lands at 7 pm" (12:45 pm),
 # and Toronto times written by hand did not move with the clock change. Every time Ananta says is now read from the launchd jobs.
 DAY = [   # (job, what it brings), in the order of Madhav's evening and night
-    ("com.ananta.india.postclose", "the closing index bars, the chart readings and a first market summary"),
+    ("com.ananta.india.postclose", "the closing index bars, the chart readings, a first market summary and the day's company filings so far (what your stocks filed)"),
     ("com.ananta.india.sp1paper.score", "the options line's score for the session (once a day)"),
     ("com.ananta.india.recorder_noon", "the day's 1-minute options and currency bars and the Zerodha snapshot"),
     ("com.ananta.india.nightly", "the official NSE day file (every stock's close), the chart readings, the stock quote book and the market summary (P/E, futures positions); the one place the quote book and the market summary are built (3 Nov)"),
@@ -136,8 +136,9 @@ DAY = [   # (job, what it brings), in the order of Madhav's evening and night
     ("com.ananta.india.studies", "the studies: the paper trials' clocks, the long-term tilt book, the write-ups and the knowledge map"),
     ("com.ananta.india.sp1paper", "the options line's plan for the session"),
     ("com.ananta.india.paper", "the practice book's picks for the session, the daily call, the missed moves, the comparison traders and the reconstruction (the coach's replay)"),
-    ("com.ananta.india.morningview", "the morning view (plan, levels to watch, honest chances)"),
-    ("com.ananta.india.openingview", "the opening update after the first hour"),
+    ("com.ananta.india.morningview", "the morning view, written once on the session's own morning: your holdings' filings, GIFT Nifty's indicated open, the options line's plan, levels and events to watch, honest chances"),
+    ("com.ananta.india.preopen", "the pre-open read sent to your phone: the indicated open, what changed since the morning view, and the options line's plan for that open"),
+    ("com.ananta.india.openingview", "the opening update after the first hour, with the second look against the pre-open"),
 ]
 
 

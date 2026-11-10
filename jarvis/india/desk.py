@@ -50,49 +50,31 @@ BASICS = {
     "oi_walls": ("The strike with the most call open interest is often read as resistance and the most put open interest as support; "
                  "Ananta's study F03 found the put-call ratio's extremes and the max-pain pin had no edge, so they are context, never a signal."),
     "routine": ("Before the open Ananta reads, in this order: the US close of the night (a day old) and VIX; the institutions' flows and "
-                "their futures positions; the option-interest walls of the last session (context only); results and filings for its names; "
+                "their futures positions; results and filings for its names and his holdings; "
                 "holidays and expiry days; the F&O ban list. At 09:15 it reads the gap against the previous close; at 09:15, 09:30, 09:45 and "
                 "10:15 IST the options line decides from the move so far against the option's cost; the first 15-30 minutes' range tells a "
-                "trend day from a range day. It has no GIFT Nifty and no live Asian feed; since 5 Nov it reads NSE's pre-open prices at 09:09 IST, "
-                "a minute after the pre-open closes at 09:08 (the two indexes and ten heavy stocks), its first sight of the gap before 09:15. Say the Toronto "
+                "trend day from a range day. It has no live Asian feed; since 9 Nov it reads GIFT Nifty (the Nifty future that trades overnight) for the "
+                "indicated gap in the 08:30 view, and since 5 Nov NSE's pre-open prices at 09:09 IST, a minute after the pre-open closes at 09:08 (the two "
+                "indexes and ten heavy stocks), sent to the phone with what changed since the view and the options line's plan for that open. Say the Toronto "
                 "times too (trader_desk.prep.toronto_times)."),
     "gaps": ("A gap above the previous high: wait for the first 15-30 minutes to see if it holds (gap-and-go) or fills; flat open: the first "
              "range decides; a gap below the previous low: the same, the other way. The options line reads the gap at 09:15 and decides at "
              "09:15, 09:30, 09:45 or 10:15."),
 }
 
-# Dated events from outside India that move the open (hand-written; each with its source)
-# 5 Nov 2026 (Madhav: "yes to all", C): the dated macro calendar, each date read from its owner's own published schedule on 5 Nov. "first_session"
-# is the first Indian session that can trade it (US releases at 8:30 am New York are 19:00 IST, after India's close). Re-check each source
-# when it changes; add the next quarter's dates before these run out (the FOMC's 2027 dates, the RBI's after February 2027).
-EVENTS = [
-    {"date": "2026-11-03", "what": "US midterm elections; results came in through the Indian session of Wednesday 4 Nov", "source": "US election calendar"},
-    {"date": "2026-11-06", "what": "US jobs report for October (19:00 IST)", "first_session": "the Muhurat session on Sunday 8 Nov, then Monday 9 Nov",
-     "source": "BLS release schedule 2026 (bls.gov/schedule/2026)"},
-    {"date": "2026-11-08", "what": "Diwali (Sunday): NSE's special Muhurat session, pre-open 14:05, normal market 14:20 to 15:30 IST, closing auction to 15:35 "
-                                   "(the Toronto hours are in the holidays line); Ananta's paper books and the options line trade regular sessions only, so it watches and records, nothing more",
-     "source": "NSE circulars CMTR76941 and FAOP76940 of 19 Oct 2026"},
-    {"date": "2026-11-10", "what": "US inflation (CPI) for October (19:00 IST; India is closed that day)", "first_session": "Wednesday 11 Nov",
-     "source": "BLS release schedule 2026"},
-    {"date": "2026-11-12", "what": "India inflation (CPI) for October (MoSPI, usually 16:00 IST, after the close)", "first_session": "Friday 13 Nov",
-     "source": "MoSPI advance release calendar 2026-27 (Sept 2026 update)"},
-    {"date": "2026-11-28", "what": "India industrial production (IIP) for October (MoSPI; a Saturday)", "first_session": "Monday 30 Nov",
-     "source": "MoSPI advance release calendar 2026-27"},
-    {"date": "2026-11-30", "what": "India GDP for July-September (Q2 FY27) (MoSPI, usually 16:00 IST, after the close)", "first_session": "Tuesday 1 Dec",
-     "source": "MoSPI advance release calendar 2026-27"},
-    {"date": "2026-12-04", "what": "RBI monetary policy decision (meeting 2-4 Dec; usually announced about 10:00 IST, during the session)",
-     "first_session": "Friday 4 Dec itself", "source": "RBI press release, MPC schedule 2026-27"},
-    {"date": "2026-12-04", "what": "US jobs report for November (19:00 IST)", "first_session": "Monday 7 Dec", "source": "BLS release schedule 2026"},
-    {"date": "2026-12-09", "what": "US Federal Reserve rate decision (FOMC 8-9 Dec; 00:30 IST on 10 Dec)", "first_session": "Thursday 10 Dec",
-     "source": "federalreserve.gov, December 2026 calendar"},
-    {"date": "2026-12-10", "what": "US inflation (CPI) for November (19:00 IST)", "first_session": "Friday 11 Dec", "source": "BLS release schedule 2026"},
-    {"date": "2026-12-12", "what": "India inflation (CPI) for November (MoSPI; a Saturday)", "first_session": "Monday 14 Dec",
-     "source": "MoSPI advance release calendar 2026-27"},
-    {"date": "2027-01-07", "what": "India GDP first advance estimate for FY27 (MoSPI)", "source": "MoSPI advance release calendar 2026-27"},
-    {"date": "2027-02-01", "what": "Union Budget (by convention on 1 Feb; the date is confirmed by the government nearer the time)",
-     "source": "convention since 2017; not yet announced"},
-    {"date": "2027-02-05", "what": "RBI monetary policy decision (meeting 3-5 Feb)", "source": "RBI press release, MPC schedule 2026-27"},
-]
+# The dated events ahead (9 Nov 2026; Madhav: "yes, lets complete", the outsider readiness review's fix 4: one calendar). A hand-kept list
+# lived here for the voice alone, while the morning view and the options line's event flag read the event registry, which had no row after
+# 7 Oct 2026 (so no RBI decision of 4 Dec). The one owner is now the records repo's india/registrations/calendar_ahead.json, built into
+# manifests/calendar.json (india/calendar_ahead.py) with each row's first Indian session worked out by code; the voice reads that file.
+def calendar_events(n: int = 6) -> list[dict]:
+    try:
+        d = json.loads((views.DATA / "manifests" / "calendar.json").read_text())
+    except (OSError, ValueError):
+        return []
+    since = (dt.date.today() - dt.timedelta(days=1)).isoformat()
+    return [{"date": e.get("date"), "what": e.get("what"), "time_ist": e.get("time_ist"), "first_session": e.get("first_session_words"),
+             "options_line_event_day": e.get("options_line_event_day"), "words": e.get("words"), "source": e.get("source")}
+            for e in d.get("events") or [] if str(e.get("date") or "") >= since][:n]
 
 
 def _json(p: Path, default=None):
@@ -288,18 +270,21 @@ def prep(f: dict, desk: dict) -> dict:
     out["results_ahead"] = {"by_session": desk.get("results_ahead"), "note": desk.get("results_ahead_note")}
     out["fo_ban"] = ban.get("words")
     today = dt.date.today().isoformat()
-    # 5 Nov (C): the next six dated events from the calendar above (macro releases, central banks, the budget), each with its source
-    out["events"] = [e for e in EVENTS if e["date"] >= (dt.date.today() - dt.timedelta(days=1)).isoformat()][:6] or []
-    out["events_how"] = ("these are the dated events Ananta keeps by hand from each owner's published schedule; say the event, its date, the "
-                         "first Indian session that can trade it and that it is context: no Ananta rule trades on events yet")
+    # 5 Nov (C): the next six dated events (macro releases, central banks, the budget), each with its source; 9 Nov: from the one calendar
+    out["events"] = calendar_events(6)
+    out["events_how"] = ("these are the dated events Ananta keeps from each owner's published schedule (one calendar: the same rows the morning view "
+                         "and the options line read); say the event, its day and time in India and the first Indian session that can trade it. Only "
+                         "an official RBI decision, Budget or election-counting day is an event day for the options line (options_line_event_day); "
+                         "no other Ananta rule trades on events")
     out["toronto_times"] = toronto_times()
     us = next((x for x in desk.get("feeds") or [] if x.get("feed", "").startswith("US close")), {})
     out["overnight_cues"] = (f"the US close on file is for {us.get('last_day') or 'an earlier day'} (fetched {str(us.get('fetched_at') or '')[:16]} UTC); there "
-                             "is no GIFT Nifty and no live Asian feed; from 5 Nov the first Indian prices of the day are the pre-open read at 09:09 IST, a minute after "
-                             "NSE's pre-open closes at 09:08 (today_live.preopen, the two indexes and ten heavy stocks, an indication of the gap), so before 09:09 IST anything "
-                             "overnight is not visible; crude, the dollar and the rupee readings lag several days")
+                             "is no live Asian feed; from 9 Nov the overnight read is GIFT Nifty, the Nifty future that trades through the night, read against its own level at the "
+                             "last NSE close (today_live.gift; in the 08:30 IST morning view); from 5 Nov the first Indian prices of the day are the pre-open read at 09:09 IST, a minute after "
+                             "NSE's pre-open closes at 09:08 (today_live.preopen, the two indexes and ten heavy stocks, sent to the phone with what changed since the view); "
+                             "crude, the dollar and the rupee readings lag several days")
     out["how_to_use"] = ("say tomorrow's plan as scenarios, not orders: the previous high, low and close; what a gap up, flat or gap down open would "
-                         "mean (BASICS gaps); the option-interest walls with their date; the expected move from VIX; the open option trades with "
+                         "mean (BASICS gaps); the expected move from VIX; the open option trades with "
                          "contract, expiry and that they are marked, not closed; the expiries, holidays, results ahead and events; then what the "
                          "options line itself will do. Moving averages are one level among these, not the plan.")
     out["today"] = today
@@ -361,7 +346,7 @@ def data_we_have(desk: dict) -> dict:
                 ("NSE's board-meetings calendar: fetched every night for the next 60 days, with history from 2010"
                  if str(desk.get("results_ahead_note") or "").startswith("NSE's board-meetings calendar (fetched") else
                  "NSE's board-meetings calendar is not fetched, so results dates ahead come only from filings that name them"),
-                "GIFT Nifty and live Asian markets: no free feed; the US close is a day old and crude, dollar and rupee lag several days",
+                "live Asian markets: no free feed (GIFT Nifty is read since 9 Nov, through Zerodha); the US close is a day old and crude, dollar and rupee lag several days",
                 "bulk and block deals: no history before 23 Oct 2026",
                 "most research uses the 250 most traded stocks of each day (chosen on that day, so delisted names are included), not the whole market",
                 "2024 onward is sealed for the one confirmatory test of each idea"],
@@ -387,6 +372,10 @@ def block(f: dict, text: str = "") -> dict:
     mv = moves(desk, tl.get("holdings_today") or {}, named, nifty)
     out = {"built_at": desk.get("built_at"), "feeds": desk.get("feeds"), "prep": prep(f, desk), "moves": mv, "radar": radar(desk, mv), "named_symbols": named,
            "scorecard": scorecard(f, mv), "ist_in_toronto": ist_in_toronto()}
+    hn = desk.get("holdings_news") or {}            # 9 Nov 2026: what each holding filed since the last close (weekends included), one line each
+    if hn.get("lines"):
+        out["holdings_news"] = {"since": hn.get("since"), "lines": hn.get("lines"), "note": hn.get("note"),
+                                "how_to_say_it": "for 'any news on my stocks': these lines, with full company names; what was filed and when, never the figures inside a filing"}
     if DATA_TOPIC.search(text or ""):
         out["data_we_have"] = data_we_have(desk)
     if BASICS_TOPIC.search(text or ""):

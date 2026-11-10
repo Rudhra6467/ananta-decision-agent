@@ -180,6 +180,52 @@ def _pct(a, b):
     return round(100 * (a / b - 1), 2) if isinstance(a, (int, float)) and isinstance(b, (int, float)) and b else None
 
 
+_GIFT: dict = {}
+GIFT_TTL_S = 120
+
+
+def gift_now(clk: dict, nifty_close: float | None = None, k=None, now: dt.datetime | None = None) -> dict | None:
+    """GIFT Nifty against its own level at the last NSE close (9 Nov 2026; Madhav: "yes, lets complete", the readiness review's fix 1). The
+    calculation has one owner, the records repo's india/giftnifty.py; this reads it with the same GET-only client as the quotes. It says
+    something only about an open still to come, so it is None while the market is open. Cached for two minutes; a failure is an 'error'."""
+    if clk.get("state") == "open" or (k is None and os.getenv("PYTEST_CURRENT_TEST")):       # a test never reaches Zerodha for this
+        return None
+    key = (clk.get("latest_session"), clk.get("state"))
+    hit = _GIFT.get(key)
+    if hit and k is None and time.time() - hit[0] < GIFT_TTL_S:
+        return hit[1]
+    try:
+        if str(RECORDS) not in sys.path:
+            sys.path.append(str(RECORDS))
+        from india import giftnifty
+        out = giftnifty.read(k or _kite(), clk.get("latest_session"), nifty_close, now)
+    except Exception as exc:  # noqa: BLE001
+        out = {"error": f"{type(exc).__name__}: {str(exc)[:100]}"}
+    if out.get("words"):
+        out["for_session"] = clk.get("today_india") if clk.get("state") in ("before_open", "pre_open") else clk.get("next_session")
+    if k is None:
+        _GIFT.clear()
+        _GIFT[key] = (time.time(), out)
+    return out
+
+
+def options_plan(clk: dict, indicated: dict | None = None) -> dict | None:
+    """The options line's own plan for today's 09:15 open, in words (records india/sp1plan.py, the one owner): what it does for each way the
+    market can open, the inputs it was planned with and any that were stale. From the 07:30 IST plan until the line's last decision point at
+    10:15 IST; None at other times or when no plan is written. indicated: {"NIFTY": pct, "BANKNIFTY": pct} names the row an indicated gap points to."""
+    if clk.get("state") not in ("before_open", "pre_open", "open") or dt.datetime.fromtimestamp(clk.get("ts", time.time()), IST).strftime("%H:%M") > "10:15":
+        return None
+    try:
+        if str(RECORDS) not in sys.path:
+            sys.path.append(str(RECORDS))
+        from india import sp1plan
+        p = DATA / "paper" / "sp1" / "plans" / f"{clk.get('today_india')}.json"
+        w = sp1plan.words(json.loads(p.read_text()), indicated)
+        return w if w.get("ready") else None
+    except Exception:  # noqa: BLE001  no plan file yet, or it could not be read
+        return None
+
+
 def _kind(clk: dict, fetched_at: float) -> tuple[str, str]:
     """What a Kite price is at this moment: live, pre-open, today's close or the last session's close."""
     ts = fetched_at if abs(fetched_at - clk.get("ts", fetched_at)) < 300 else clk["ts"]     # a replayed moment keeps its own time
@@ -380,6 +426,12 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
         sc = scored.get((x["index"], x["point"]))
         if not sc:
             continue
+        if sc.get("note") and not sc.get("index_proxy"):
+            # 9 Nov 2026 (the readiness review): the 6 Nov Bank Nifty trade was to close at the next session's open; the next session was the
+            # Muhurat hour, which the line's study leaves out, so the scorer wrote "not defined" and the trade has no result. Said, not hidden.
+            x["unscored"] = ("it has no result on the record: its exit was the next session's open and that session was a special one the line's study "
+                             "leaves out; how to count it waits for Madhav's decision")
+            continue
         ip, opt = sc.get("index_proxy") or {}, ((sc.get("legs") or {}).get("option") or {})
         x["closed"] = bool(ip.get("stopped")) or str(x.get("exit")).upper() != "NEXTOPEN"
         if x["closed"]:
@@ -391,17 +443,23 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
     tw = []
     for x in taken:
         s = f"{name.get(x['index'], x['index'])} {x['direction']} at {x['at']} IST (index near {x['index_level']:,.0f}"
-        if x["option"]:
-            s += f"; the {x['option']} option at about Rs {x['option_price_at_decision']}" if x["option_price_at_decision"] else f"; the {x['option']} option"
-        s += f"), {x['exit_words']}"
         res = x.get("result")
+        if x["option"]:
+            # 9 Nov 2026 (the strip list): one option trade was said with two entry prices (Rs 752.80, the quote when it decided, in the 10:20
+            # note; Rs 797.60, the next minute's fill, in the score). One price at a time: the quote until the day is scored, labelled as a
+            # quote; after that only the fill the result is counted from.
+            s += (f"; the {x['option']} option" if res or not x["option_price_at_decision"] else
+                  f"; the {x['option']} option, quoted near Rs {x['option_price_at_decision']} when it decided (its paper fill is the next minute's price, said once the day is scored)")
+        s += f"), {x['exit_words']}"
         if res:
             s += ("; it is CLOSED: " + ("its stop was hit" if res["stopped"] else "it closed by its rule")
                   + (f", the option sold near Rs {res['option_exit']:,.2f} (bought near Rs {res['option_entry']:,.2f} at the next minute's fill)"
                      if res.get("option_exit") and res.get("option_entry") else "")
                   + (f", a paper result of about Rs {res['net_inr']:+,} for the lot after costs" if res.get("net_inr") is not None else "")
                   + "; say it as a closed trade with this result, never today's option price")
-        if x.get("paper_move_inr_per_lot") is not None:
+        if x.get("unscored"):
+            s += "; " + x["unscored"]
+        elif x.get("paper_move_inr_per_lot") is not None:
             s += (f"; the option is at Rs {x['option_price_now']} now, about Rs {x['paper_move_inr_per_lot']:+,} a lot on paper"
                   f" ({'in profit' if x['paper_move_inr_per_lot'] > 0 else 'in loss' if x['paper_move_inr_per_lot'] < 0 else 'flat'})")
         if x.get("index_since_entry_words"):
@@ -653,7 +711,32 @@ def today(rm: dict | None = None, now: dt.datetime | None = None, fetch=None, po
             out["preopen"] = po
     except Exception:  # noqa: BLE001
         pass
-    out["words"] = " ".join(x for x in (clk["words"], (out.get("preopen") or {}).get("words"), out["index_now"].get("words"), out["options_today"].get("words"),
+    # 9 Nov 2026 (Madhav: "yes, lets complete"): see the open before it happens. Until the 09:09 pre-open read exists, GIFT Nifty is the
+    # indicated gap; either one names the row of the options line's plan it points to.
+    indicated = None
+    if out.get("preopen"):
+        ix = out["preopen"].get("indexes") or {}
+        indicated = {k2: (ix.get(n2) or {}).get("chg_pct") for k2, n2 in (("NIFTY", "NIFTY 50"), ("BANKNIFTY", "NIFTY BANK")) if (ix.get(n2) or {}).get("chg_pct") is not None}
+    elif clk["state"] != "open":
+        nrow = (out["index_now"].get("rows") or {}).get("NIFTY 50") or {}
+        if fetch is not None:
+            g = None
+        elif nrow.get("last") is None:        # the index quotes did not come back: Zerodha is not reachable, so GIFT Nifty is not asked for either
+            g = {"error": "Zerodha could not be reached"}
+        else:
+            g = gift_now(clk, nrow.get("prev_close") if clk["state"] == "pre_open" else nrow.get("last"))
+        if g and g.get("words"):
+            out["gift"] = g
+            if clk["state"] in ("before_open", "pre_open"):
+                indicated = {"NIFTY": g["change_pct"]}
+        elif g and g.get("error"):
+            out["gift"] = {"error": g["error"], "words": None}
+    op = options_plan(clk, indicated)
+    if op:
+        out["options_plan"] = op
+    out["words"] = " ".join(x for x in (clk["words"], (out.get("preopen") or {}).get("words"), (out.get("gift") or {}).get("words"),
+                                        (out.get("options_plan") or {}).get("short") if not out["options_today"].get("decisions") else None,
+                                        out["index_now"].get("words"), out["options_today"].get("words"),
                                         out["holdings_today"].get("words"), out["practice_today"].get("words"), out["managed_today"].get("words")) if x)
     out["how_to_say_it"] = ("This block is the truth about today. For any question about today, now, this morning, 'yesterday' (from Toronto) or "
                             "'the market', answer about clock.latest_session using index_now, options_today, holdings_today and managed_today. "
@@ -663,7 +746,10 @@ def today(rm: dict | None = None, now: dt.datetime | None = None, fetch=None, po
                             "'What did we do / what did you do' means all of Ananta's own books: the options line (options_today), the managed book "
                             "(managed_today: what it sold and what it bought in its place, and when its fills are booked) and the practice book; never "
                             "only one of them. A question about the managed book names its pairs (sold -> bought) and where each stands today. Before "
-                            "the open, say how long until 09:15 IST.")
+                            "the open, say how long until 09:15 IST. Before the open, 'how will it open' is answered from preopen (after 09:09 IST) "
+                            "or gift (GIFT Nifty against its own level at the last close): an indication, said with its time; and what the options "
+                            "line will do at that open is options_plan (its own written plan, with its inputs and any that were stale), never a guess. "
+                            "preopen.recheck says what changed since the 08:30 morning view: when it says changed, lead with the change, not the view.")
     return out
 
 

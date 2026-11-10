@@ -61,12 +61,16 @@ def test_us_close_and_crude_say_their_lag(rm):
     assert "115.22" in c and "Tue 20 Oct" in c and "6 days behind today" in c
 
 
-def test_flows_and_vix_and_gift(rm):
+def test_flows_and_vix_and_gift(rm, monkeypatch):
     f = _a("what did FII and DII do?")
     assert "FII -1,462 crore" in f and "DII +2,610 crore" in f and "Mon 26 Oct" in f
     v = _a("what is the VIX?")
     assert "India VIX 17.16" in v and "US VIX 19.45" in v
-    assert "no free source" in _a("what is GIFT Nifty showing?")
+    # 9 Nov 2026: GIFT Nifty is read through Zerodha against its own level at the last NSE close (records india/giftnifty.py)
+    monkeypatch.setattr(marketcontext, "GIFT_OVERRIDE", {"words": "GIFT Nifty, the Nifty future that trades overnight, is up 0.4% from where it stood at the last NSE close."})
+    assert "up 0.4% from where it stood at the last NSE close" in _a("what is GIFT Nifty showing?")
+    monkeypatch.setattr(marketcontext, "GIFT_OVERRIDE", {"error": "no sign-in"})
+    assert "could not be read right now (no sign-in)" in _a("what is GIFT Nifty showing?")
 
 
 def test_yield_and_dollar_index(rm):

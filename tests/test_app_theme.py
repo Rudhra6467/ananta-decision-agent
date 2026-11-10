@@ -54,7 +54,7 @@ def test_no_screen_paints_its_own_colours():
     allowed = {"#000"}                                            # shadows
     bad = []
     for p in list((APP / "app").rglob("*.tsx")) + list((APP / "src").rglob("*.ts*")):
-        if p.name in ("theme.ts",):
+        if p.name in ("theme.ts", "logo.tsx"):      # 9 Nov 2026: the mark owns its own fixed colours (MARK_COLORS), the same emblem in every theme (Madhav: "dark and powerful")
             continue
         for n, line in enumerate(p.read_text().split("\n"), 1):
             for h in re.findall(r'"(#[0-9A-Fa-f]{3,8})"', line):

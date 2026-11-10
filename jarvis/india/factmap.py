@@ -62,7 +62,7 @@ INTERNAL = [
     ("paper/managed/plans.jsonl", "the plan history (the latest plan is read through the managed view)"),
     ("paper/allocation_ledger.jsonl", "the allocator's ledger (its view is what is read)"),
     ("reports/*.md", "a written report for Madhav (the morning review page)"), ("reports/ask_guard.jsonl", "the answer guard's log (the morning review reads it)"),
-    ("readmodel/*", "the read model itself"), ("paper/sp1/plans/*", "the options line's plan files (the decisions ledger is read live)"),
+    ("readmodel/*", "the read model itself"),
     # 3 Nov (Madhav: yes, the Map's change 4): the expiry-day book stopped and is no longer shown; its old file ages out of the window
     ("paper/options_trades.jsonl", "the expiry-day options book: stopped 3 Nov, kept on disk, not shown"),
 ]
@@ -82,6 +82,8 @@ READ_BY = [
     ("paper/sp1/book.json", "jarvis/india/views.py", "def sp1_live"), ("paper/sp1/decisions.jsonl", "jarvis/india/views.py", "def sp1_live"),
     # 5 Nov 2026: the 09:08 IST pre-open read, said by the today block (livesession.today -> preopen.today) until 10:30 IST
     ("paper/preopen/DATE.json", "jarvis/india/preopen.py", '"preopen"'),
+    # 9 Nov 2026 (Madhav: "yes, lets complete"): the options line's own plan for the open is said (livesession.options_plan -> records sp1plan)
+    ("paper/sp1/plans/DATE.json", "jarvis/india/livesession.py", "def options_plan"),
 ]
 # Study results whose findings are written into the Ask's words by hand (not read): a re-run must update the words. Reported, not failed.
 COPIED = [

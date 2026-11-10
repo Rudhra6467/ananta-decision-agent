@@ -268,8 +268,14 @@ def _view_points(view: list[str]) -> list[str]:
             rest.insert(1 if rest else 0, _tidy(" · ".join(f"{'Foreign institutions' if w == 'foreign' and i == 0 else w} {v} ₹{a} cr" for i, (w, v, a) in enumerate(fl))))
             continue
         m = _re.match(r"Odds for today, from how Nifty has behaved since 2005: up (\d+)% \([^)]*\), down (\d+)% \([^)]*\), flat (\d+)%", s)
-        if m:
+        if m:           # views written before 9 Nov 2026 only: the fixed odds are no longer in the view
             rest.append(f"History's odds for the day: up {m[1]}% · down {m[2]}% · flat {m[3]}% (base rates, not a forecast)")
+            continue
+        # 9 Nov 2026: GIFT Nifty's indicated open, as one short point
+        m = _re.match(r"GIFT Nifty, the Nifty future that trades overnight, is (unchanged|up [\d.]+%|down [\d.]+%) from where it stood at the last NSE close "
+                      r"\([\d,]+ at (\d\d:\d\d) IST [^)]*\): it points to (an open higher|an open lower|a flat open)(?:, the Nifty near ([\d,]+))?", s)
+        if m:
+            first.append(_tidy(f"GIFT Nifty {m[1]} since the last close: points to {m[3]}" + (f", Nifty near {m[4]}" if m[4] else "") + f" ({m[2]} IST, an indication)"))
             continue
         rest.extend(_split_points(s))
     return first + rest
@@ -494,6 +500,26 @@ def today(full: bool = True) -> dict:
                 cards.insert(0, {"kind": "close", "label": f"How {_dw(clk['latest_session'])} went", "text": "; ".join(pts), "points": pts, "accent": True})
         except Exception:  # noqa: BLE001  the morning cards stand
             pass
+    # 9 Nov 2026 (Madhav: "yes, lets complete", the readiness review): holdings first (what each of his stocks filed since the last close), and
+    # above it the second look once the 09:09 pre-open read is in (what changed since the 08:30 view; jarvis/india/recheck.py)
+    if m.get("holdings") and not traded and session and session >= clk.get("today_india", session):
+        cards.insert(0, {"kind": "holdings_news", "label": "Your holdings · since the last close", "text": " ".join(m["holdings"][:2]), "points": list(m["holdings"])})
+    try:
+        if view_is_current or (state == "open" and session == clk.get("today_india")):
+            from jarvis.india import preopen as _po
+            pre = json.loads((_po.OUT / f"{clk.get('today_india')}.json").read_text())
+            pts = list((pre.get("recheck") or {}).get("points") or []) + list((pre.get("opening_look") or {}).get("points") or [])
+            if pts:
+                turned = bool((pre.get("recheck") or {}).get("changed") or (pre.get("opening_look") or {}).get("changed"))
+                cards.insert(0, {"kind": "second_look", "label": "Second look · " + ("this changes the 08:30 view" if turned else "the 08:30 view stands"),
+                                 "text": " ".join(pts[:2]), "points": pts, "accent": turned})
+    except Exception:  # noqa: BLE001  no pre-open read yet: the morning cards stand
+        pass
+    op = ((m.get("options_line") or {}).get("plan") or {}) if view_is_current else {}
+    if op.get("by_index"):                   # 9 Nov 2026 (fix 2): the options line's own plan for this open, as it wrote it at 07:30 IST
+        pts = list(op["by_index"].values()) + ["It looks again at 09:30, 09:45 and 10:15 IST; a pass at the open is not a pass for the day"]
+        pts += [f"Missing when it was planned: {x}" for x in op.get("missing") or []] or ["No input was stale when it was planned"]
+        cards.append({"kind": "options_plan", "label": "Options line · its plan for the 09:15 open", "text": op.get("short") or " ".join(pts[:2]), "points": pts})
     if m.get("chances") and not traded:
         cards.append({"kind": "chances", "label": "Our chances, honestly", "text": " ".join(m["chances"][:1]), "points": _split_points(" ".join(m["chances"]))})
     if m.get("watch") and not traded:
@@ -501,7 +527,7 @@ def today(full: bool = True) -> dict:
     try:                                     # 9 Nov (the outsider round): company names on the cards too, as the voice says them
         from jarvis.india import askwords as _aw
         for c in cards:
-            if c.get("kind") in ("plan", "holdings", "close"):
+            if c.get("kind") in ("plan", "holdings", "close", "holdings_news", "second_look"):      # each card's kind is unique: the app keys on it
                 c["text"] = _aw.spoken_names(str(c.get("text") or ""))
                 c["points"] = [_aw.spoken_names(str(x)) for x in c.get("points") or []]
     except Exception:  # noqa: BLE001

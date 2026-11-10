@@ -266,8 +266,14 @@ def auto(force: bool = False, min_left: int = 1800) -> dict:
             raise RuntimeError(f"two-factor step refused: {refused}")
         request_token = _request_token_from_redirects(s, connect_url + "&skip_session=true")
         out = exchange(request_token)
-        _log(f"auto sign-in ok: user {out.get('user_id')} until {out.get('expires_at_ist')}")
+        _log(f"auto sign-in ok until {out.get('expires_at_ist')}")       # 9 Nov 2026: no account id in a log
         return {**out, "auto": "signed in"}
+
+
+def _for_log(d: dict) -> dict:
+    """What a scheduled run may print: the state of the sign-in, never whose account it is (9 Nov 2026: the sign-in log held the account
+    holder's name and user id on every line)."""
+    return {k: v for k, v in d.items() if k not in ("user_id", "user_name", "access_token", "api_key")}
 
 
 if __name__ == "__main__":
@@ -275,14 +281,14 @@ if __name__ == "__main__":
 
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
     if cmd == "status":
-        print(json.dumps(status()))
+        print(json.dumps(_for_log(status())))
     elif cmd == "auto":
         if not LOGIN_ENV.exists():
             print(json.dumps({"ok": False, "why": "auto sign-in is off: no ~/ananta_private/kite_login.env"}))
             sys.exit(2)
         try:
             out = auto(force="--force" in sys.argv)
-            print(json.dumps(out))
+            print(json.dumps(_for_log(out)))
         except Exception as e:   # noqa: BLE001 - every reason goes to the log and the phone, never a secret
             why = str(e)[:300]
             _log(f"auto sign-in FAILED: {why}")

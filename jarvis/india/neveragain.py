@@ -133,6 +133,16 @@ FEATURE_QS = [
      lambda f: [r"which book", r"practice book", r"managed book", r"options line"]),
     ("clarifying question: the rule", "Ananta, when do you ask me which one I mean?",
      lambda f: [r"draft|book|flag", r"wrong guess|choices?|which one"]),
+    # 9 Nov 2026 (Madhav: "yes, lets complete", the outsider readiness review; and "adjust itself ... without sticking to old decisions"):
+    # the open before it happens, the options line's plan, the holdings' filings and the second look, each answered in code (readiness.py)
+    ("seeing the open", "Ananta, how will the market open?",
+     lambda f: [r"GIFT Nifty|pre-open|market is open"]),
+    ("the options line's plan", "Ananta, what will the options line do at the open?",
+     lambda f: [r"options line", r"opens|open|decision points|not written yet"]),
+    ("holdings first", "Ananta, did any of my stocks file anything?",
+     lambda f: [r"holdings|stocks", r"fil(?:ed|ing)|not built yet"]),
+    ("the second look", "Ananta, has anything changed since the morning view?",
+     lambda f: [r"second look|pre-open|first hour", r"view"]),
 ]
 
 

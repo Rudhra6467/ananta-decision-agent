@@ -3,7 +3,7 @@
 // DecisionCard, Btn, and the orb. Dark is the default; every colour comes from C so the light theme still works.
 import { Pressable, Text, View, type ViewStyle } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
-import { AnantaMark } from "./logo";
+import { AnantaMark, MARK_COLORS } from "./logo";
 import { C } from "./theme";
 
 // tokens the palettes do not carry yet (gold is C.accent in Bat, blue in Light: here the brand is gold in both)
@@ -136,7 +136,7 @@ export const LockIcon = ({ color, size }: { color: string; size?: number }) => <
 export function Orb({ size = 56, onPress, label = "Ask Ananta", mic = false }: { size?: number; onPress?: () => void; label?: string; mic?: boolean }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
-      style={{ width: size, height: size, borderRadius: 999, backgroundColor: mic ? G.gold() : "#08090B", alignItems: "center", justifyContent: "center",
+      style={{ width: size, height: size, borderRadius: 999, backgroundColor: mic ? G.gold() : MARK_COLORS.disc, alignItems: "center", justifyContent: "center",
         shadowColor: C.gold, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 }}>
       <View style={{ position: "absolute", left: -9, top: -9, right: -9, bottom: -9, borderRadius: 999, borderWidth: 2, borderColor: G.glow() }} />
       {mic ? <MicIcon2 color={G.onGold()} size={Math.round(size * 0.43)} />

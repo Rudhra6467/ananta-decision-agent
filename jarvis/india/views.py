@@ -1196,7 +1196,9 @@ def options() -> dict:
     sessions = book.get("sessions") or 0
     words = (f"{sessions} session{'s' if sessions != 1 else ''} traded on the options line so far." if sessions else "Nothing traded on options yet.") + (" The last session was missed because the morning sign-in to Zerodha failed." if s.get("status") == "lost" else "")
     return {"capital_inr": ACCOUNT_START, "value_inr": round(ACCOUNT_START + line_pnl, 2), "pnl_inr": round(line_pnl, 2), "sessions": sessions, "status": s.get("status"), "words": words,
-            "plan": {"session": plan.get("session"), "bull": fc.get("bull"), "bear": fc.get("bear"), "neutral": fc.get("neutral"), "scenarios": sc, "limits": plan.get("limits") or [],
+            # 9 Nov 2026 (the strip list): "Plan for <day>: up 40% · down 33% · flat 27%" was the same line every day (the 2005-2023 base
+            # rates, not a plan). The screen draws that line only when plan.session is set, so it is left empty; the day is kept beside it.
+            "plan": {"session": None, "day_plan_session": plan.get("session"), "bull": fc.get("bull"), "bear": fc.get("bear"), "neutral": fc.get("neutral"), "scenarios": sc, "limits": plan.get("limits") or [],
                      "vix": ((plan.get("overnight") or {}).get("INDIA VIX") or {}).get("close")},
             "decisions_today": s.get("decisions") or [], "errors": (s.get("errors") or [])[:1], "by_index": by_idx,
             # 3 Nov (Madhav: yes, the Map's change 4): the expiry-day paper book is no longer shown; the options line is the one options book
@@ -1265,7 +1267,7 @@ def morning() -> dict:
     L = f.get("lines") or {}
     sc = f.get("scorecard") or {}
     return {"ready": True, "session": f.get("session"), "session_words": _day_words(f.get("session")), "built_at": f.get("built_at"), "data_through": f.get("data_through"),
-            "headline": L.get("headline"), "view": L.get("view") or [], "plan": L.get("plan") or [], "chances": L.get("chances") or [], "watch": L.get("watch") or [], "yesterday": L.get("yesterday") or [],
+            "headline": L.get("headline"), "holdings": L.get("holdings") or [], "view": L.get("view") or [], "plan": L.get("plan") or [], "chances": L.get("chances") or [], "watch": L.get("watch") or [], "yesterday": L.get("yesterday") or [],
             "words": f.get("words"), "review": f.get("review"), "reviewer_scenarios": f.get("reviewer_scenarios"), "words_at": f.get("words_at"), "opening": f.get("opening"),
             "scenarios": (f.get("setup") or {}).get("scenarios"), "scenario_levels": (f.get("setup") or {}).get("scenario_levels"), "expiry": (f.get("setup") or {}).get("expiry"),
             "picks": (f.get("plan") or {}).get("picks") or [], "options_line": (f.get("plan") or {}).get("options_line"), "holdings_suggestions": (f.get("plan") or {}).get("holdings_suggestions") or [],

@@ -177,3 +177,9 @@ def test_login_creds_reports_the_pasted_code_plainly(login_env):
     (login_env / "kite_login.env").write_text("KITE_USER_ID=AB1234\nKITE_PASSWORD=pw\nKITE_TOTP_SECRET=654321\n")
     with pytest.raises(RuntimeError, match="6-digit code, not the key"):
         kite_auth.login_creds()
+
+
+def test_a_scheduled_run_never_prints_whose_account_it_is():
+    """9 Nov 2026 (the outsider readiness review): the sign-in log held the account holder's name and user id on every line."""
+    shown = kite_auth._for_log({"connected": True, "user_id": "AB1234", "user_name": "Someone", "expires_at_ist": "2026-11-10 06:00 IST", "auto": "signed in"})
+    assert shown == {"connected": True, "expires_at_ist": "2026-11-10 06:00 IST", "auto": "signed in"}

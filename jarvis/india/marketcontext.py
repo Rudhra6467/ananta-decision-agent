@@ -113,7 +113,8 @@ def _line(x: dict, fmt: str = ",.2f") -> str:
     return f"{LABELS.get(x['label'], x['label'])} {x['value']:{fmt}}{(' ' + x['unit']) if x.get('unit') and x['unit'] != '%' else ('%' if x.get('unit') == '%' else '')} on {_dw(x['as_of'])} ({_chg(x)}{lag})."
 
 
-LIVE_VIX = True        # 9 Nov: the latest session's VIX close from today's block; a test of the nightly file turns it off
+LIVE_VIX = True
+GIFT_OVERRIDE: dict | None = None        # tests: the GIFT Nifty read to answer with, instead of reaching Zerodha        # 9 Nov: the latest session's VIX close from today's block; a test of the nightly file turns it off
 
 
 def market_context_flow(text: str) -> dict | None:
@@ -176,7 +177,22 @@ def market_context_flow(text: str) -> dict | None:
             else:
                 parts.append("The institutions' flows are not available right now.")
         elif k == "gift":
-            parts.append("GIFT Nifty (the pre-open signal) has no free source, so Ananta does not have it.")
+            # 9 Nov 2026 (Madhav: "yes, lets complete"): GIFT Nifty is read through Zerodha, against its own level at the last NSE close
+            g = None
+            try:
+                from jarvis.india import livesession as _ls
+                from jarvis.india import views as _vw
+                _clk = _ls.clock(_vw.readmodel().get("data_through"))
+                _row = (_ls.index_now(_clk).get("rows") or {}).get("NIFTY 50") or {}
+                g = GIFT_OVERRIDE if GIFT_OVERRIDE is not None else _ls.gift_now(_clk, _row.get("prev_close") if _clk["state"] == "pre_open" else _row.get("last"))
+            except Exception:  # noqa: BLE001
+                g = None
+            if g and g.get("words"):
+                parts.append(g["words"])
+            elif g is None and GIFT_OVERRIDE is None:
+                parts.append("GIFT Nifty says something about an open still to come; the market is open now, so today's own prices are the read.")
+            else:
+                parts.append("GIFT Nifty could not be read right now" + (f" ({g['error']})" if g and g.get("error") else "") + "; it is read through the morning sign-in to Zerodha.")
     ans = "Sir, " + " ".join(p for p in parts if p) + " " + (TESTED_WORDS if mc.get("tested") else "")
     return _reply(ans, ["What is the rupee doing?", "How did the US close?", "What did FII and DII do?"], ["market_context (manifests/market_context.json), each reading with its as-of date"],
                   {})

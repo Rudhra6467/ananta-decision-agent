@@ -56,3 +56,12 @@ def test_the_reviewers_odds_survive_an_answer_that_is_cut_off():
     assert got["scenarios"] == {"bull": 0.38, "bear": 0.35, "neutral": 0.27}
     assert got["verdict"] == "Mostly fair." and got["basis"].startswith("two US falls")
     assert mv._salvage("I could not review this.") == {}
+
+
+def test_the_writer_sees_the_plain_lines_whole():
+    """9 Nov 2026: the facts for the writer were cut at 14,000 characters and the cut fell inside "lines", the last key."""
+    mv = _load("india_morningview")
+    f = {"session": "2026-11-11", "lines": {"holdings": ["TATACHEM: filed its results."], "watch": ["Guardrails: a 5% loss stops the day."]},
+         "plan": {"filler": "x" * 15000}, "overnight": {}, "setup": {}, "scorecard": {}, "yesterday": {}}
+    t = mv._facts_for_prompt(f)
+    assert "TATACHEM: filed its results." in t and "Guardrails: a 5% loss stops the day." in t and t.index('"lines"') < t.index('"plan"')

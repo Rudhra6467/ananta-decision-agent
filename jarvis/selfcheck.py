@@ -512,11 +512,17 @@ def already_said(items: list[dict], answer: str) -> bool:
     """True when the answer itself already tells these items (5 Nov evening: with the book in short on every India turn, an answer that
     listed the self-check got the same item again as a nudge)."""
     words = set(re.findall(r"[a-z0-9]+", (answer or "").lower()))
+    words |= {w[:-1] for w in words if w.endswith("s")}
     for x in items:
-        mine = [w for w in re.findall(r"[a-z0-9]+", str(x.get("what") or "").lower()) if len(w) > 3]
+        # 10 Nov 2026 (the nightly replay's "Is everything running?"): an answer that told the worker Mac's outage got it again as a nudge,
+        # because the item's filler words ("part", "Toronto") were not in the answer. Filler and clock words do not count.
+        mine = [w for w in re.findall(r"[a-z]+", str(x.get("what") or "").lower()) if len(w) > 3 and w not in _FILLER]
         if mine and sum(1 for w in mine if w in words) >= 0.6 * len(mine):
             return True
     return False
+
+
+_FILLER = {"part", "parts", "toronto", "from", "with", "that", "this", "were", "have", "than", "when", "what", "there", "their", "since"}
 
 
 def nudge(market: str, state: Path, thread: str, now: float | None = None, answer: str = "") -> str:

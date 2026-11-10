@@ -122,7 +122,16 @@ def test_how_it_opens_uses_the_pre_open_then_gift_nifty_then_says_it_cannot_see(
 
 def test_the_plan_answer_never_guesses_before_the_plan_is_written():
     a = readiness.options_plan({"clock": CLK, "options_today": {"words": "No options decisions in the ledger for Monday 9 Nov."}})
-    assert "not written yet" in a and "down, flat or up" in a
+    assert "not written yet" in a and "down, flat or up" in a and "On Monday 9 Nov it has no decision in its ledger." in a
+    # found on the first live ask (10 Nov): on a holiday it said "the decision points for this session have passed" and read out the block
+    # written for the model ("say it as a closed trade ..."). The last session is now one short sentence from the ledger rows.
+    ot = {"decisions": 5, "words": "... say it as a closed trade with this result, never today's option price ...",
+          "taken": [{"index": "BANKNIFTY", "direction": "short", "at": "09:15", "result": {"net_inr": -6054}}]}
+    h = readiness.options_plan({"clock": {**CLK, "state": "no_session"}, "options_today": ot})
+    assert "the plan for Wednesday 11 Nov is not written yet" in h and "On Monday 9 Nov it took Bank Nifty short at 09:15 IST, closed about −₹6,054 on paper." in h
+    assert "say it as" not in h and "have passed" not in h
+    live_day = {"clock": {**CLK, "state": "closed", "today_india": "2026-11-09"}, "options_today": ot}
+    assert "decision points for today have passed" in readiness.options_plan(live_day)
     b = readiness.options_plan({"clock": CLK, "options_plan": {"words": "The options line's plan for the 09:15 open: Nifty: no trade.", "row": {}}})
     assert b.startswith("Sir, the options line's plan for the 09:15 open")
 
@@ -165,3 +174,23 @@ def test_the_voice_reads_the_one_calendar(monkeypatch, tmp_path):
     monkeypatch.setattr(views, "DATA", tmp_path)
     ev = desk.calendar_events()
     assert [e["what"] for e in ev] == ["RBI monetary policy decision"] and ev[0]["options_line_event_day"] is True and ev[0]["source"]
+
+
+def test_the_changed_question_is_not_taken_for_a_request_to_hear_the_view():
+    """Found on the first live ask: 'has anything changed since the morning view?' was answered by the flow that reads the view out."""
+    from jarvis.india import ask
+    assert readiness.CHANGED_Q.search("Ananta, has anything changed since the morning view?") and ask.MORNING.search("has anything changed since the morning view?")
+    src = open(ask.__file__).read()
+    assert src.index("readiness_flow(t) or morning_flow(t, who)") > 0          # the order in the chain: the question first, then the reading
+
+
+def test_a_company_known_by_its_initials_keeps_them_in_capitals(monkeypatch, tmp_path):
+    from jarvis.india import askwords
+    (tmp_path / "manifests").mkdir()
+    (tmp_path / "manifests" / "quotebook_names.json").write_text(json.dumps({
+        "IRFC": {"name": "Indian Railway Finance Corporation Limited", "kind": "stock", "aliases": ["irfc"], "norm": "indian railway finance"},
+        "TATAPOWER": {"name": "Tata Power Company Limited", "kind": "stock", "aliases": ["tata power"], "norm": "tata power company"}}))
+    monkeypatch.setenv("ANANTA_INDIA_DATA", str(tmp_path))
+    monkeypatch.setattr(askwords, "_NAMES", {"t": 0.0, "v": {}})
+    n = askwords.company_names()
+    assert n["IRFC"] == "IRFC" and n["TATAPOWER"] == "Tata Power"

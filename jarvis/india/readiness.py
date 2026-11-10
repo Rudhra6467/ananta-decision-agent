@@ -63,19 +63,35 @@ def how_it_opens(live: dict) -> str:
             f"{_at('com.ananta.india.preopen')}, which go to your phone.")
 
 
+def _last_session_line(live: dict) -> str:
+    """What the options line did in the latest session, in one short sentence built from its ledger rows (not the long block written for the model)."""
+    clk, ot = live.get("clock") or {}, live.get("options_today") or {}
+    day = clk.get("latest_session_words") or "the last session"
+    if not ot.get("decisions"):
+        return f"On {day} it has no decision in its ledger."
+    name = {"NIFTY": "Nifty", "BANKNIFTY": "Bank Nifty"}
+    took = []
+    for x in ot.get("taken") or []:
+        res = (x.get("result") or {}).get("net_inr")
+        took.append(f"{name.get(x.get('index'), x.get('index'))} {x.get('direction')} at {x.get('at')} IST"
+                    + (f", closed about {'+' if res >= 0 else '−'}₹{abs(res):,} on paper" if isinstance(res, (int, float)) else
+                       (", with no result on the record yet" if x.get("unscored") else ", still open on paper")))
+    return (f"On {day} it took " + "; ".join(took) + "." if took else f"On {day} it passed at every decision point.")
+
+
 def options_plan(live: dict) -> str:
     clk = live.get("clock") or {}
     plan = live.get("options_plan") or {}
     if plan.get("words"):
         rows = " ".join(r["words"] for r in (plan.get("row") or {}).values())
         return "Sir, " + plan["words"][0].lower() + plan["words"][1:] + (f" For the open as it is indicated now: {rows}" if rows else "")
-    ot = live.get("options_today") or {}
-    if ot.get("decisions"):
-        return "Sir, the options line's decision points for this session have passed. " + str(ot.get("words") or "")
+    today_is_live = clk.get("state") in ("open", "closed") and clk.get("latest_session") == clk.get("today_india")
+    if today_is_live and (live.get("options_today") or {}).get("decisions"):
+        return "Sir, the options line's decision points for today have passed. " + _last_session_line(live)
     nxt = "today" if clk.get("state") in ("before_open", "pre_open") else clk.get("next_session_words")
     return (f"Sir, the options line writes its plan for the open at {_at('com.ananta.india.sp1paper')} on the session's own morning, from the inputs it has by then, so the plan for "
             f"{nxt or 'the next session'} is not written yet. When it is, I will say what it does if the market opens down, flat or up, and any input that was missing. "
-            + str(ot.get("words") or ""))
+            + _last_session_line(live))
 
 
 def holdings_news() -> str:

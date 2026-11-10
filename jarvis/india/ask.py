@@ -1493,7 +1493,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         return ((waiting_flow(t, wait) if (commands and owner_here) else None) or garbled_flow(t) or (nav_flow(t) if commands else None)
                 or (comment_flow(t, thread, token, post=flag_post, get=flag_get) if (commands and owner_here) else None)
                 or (fix_flow(t, thread, token, context, post=flag_post, get=flag_get) if (commands and owner_here) else None)
-                or fragment_flow(t) or morning_flow(t, who) or readiness_flow(t) or _not_a_repeat(technicals.technicals_flow(t), thread) or marketcontext.market_context_flow(t)
+                or fragment_flow(t) or readiness_flow(t) or morning_flow(t, who) or _not_a_repeat(technicals.technicals_flow(t), thread) or marketcontext.market_context_flow(t)
                 or (allocation_flow(t, who) if (commands and owner_here) else None) or (_and_question(draft_flow(t, who), t) if commands else None)
                 or (downtime_flow(t, who) if (commands and owner_here) else None)
                 or portfolio_flow(t, who) or mover_flow(t) or book_flow(t) or decide_flow(t))

@@ -136,8 +136,8 @@ def company_names() -> dict:
             for w in str(raw).split():
                 if w in _SMALL:
                     said.append(w)
-                elif w.upper() in upper_in_name or (len(w) <= 3 and w.lower() not in name_words):
-                    said.append(w.upper())
+                elif w.upper() in upper_in_name or (len(w) <= 3 and w.lower() not in name_words) or (acronym and w.lower() == alias.lower()):
+                    said.append(w.upper())          # 9 Nov 2026: a company known by its initials keeps them in capitals (IRFC was said "Irfc")
                 else:
                     said.append(w.capitalize())
             out[sym] = " ".join(said)

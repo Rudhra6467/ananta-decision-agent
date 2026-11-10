@@ -1560,7 +1560,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             fixed["answer"] = f"{fixed.get('answer') or ''} {ask_grader}".strip()
         if welcome:
             fixed["answer"] = with_welcome(welcome, fixed.get("answer"))
-        if wait and not early and not re.search(r"\b(?:drafts?|waiting for your yes)\b", str(fixed.get("answer") or ""), re.I):
+        if wait and not early and not re.search(r"\b(?:drafts?|wait(?:s|ing)? for your yes|needs? your yes)\b", str(fixed.get("answer") or ""), re.I):
             nd = waiting_nudge(thread, wait)
             if nd:
                 fixed["answer"] = f"{str(fixed.get('answer') or '').rstrip()} {nd}".strip()
@@ -2677,8 +2677,13 @@ def _unsettled(w: dict | None) -> dict | None:
     if not items:
         return {**w, "items": [], "line": ""}
     parts = []
-    for x in items[:3]:
+    asks = [x for x in items if x.get("kind") == "ask"]          # 10 Nov: questions from the open list are counted together, as the bar does
+    for x in [x for x in items if x.get("kind") != "ask"][:3]:
         parts.append(f"{x['count']} research drafts" if x.get("kind") == "drafts" else str(x.get("title") or "").split(":")[0].lower() or "a decision")
+    if len(asks) == 1:
+        parts.append(str(asks[0].get("title") or "a question for you").lower())
+    elif asks:
+        parts.append(f"{len(asks)} questions for you")
     words = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
     return {**w, "items": items, "line": f"{words[:1].upper()}{words[1:]} {'is' if len(parts) == 1 and not parts[0][:1].isdigit() else 'are'} waiting for your yes.",
             "key": (w.get("key") or "") + ":" + str(len(items))}
@@ -2765,7 +2770,10 @@ def waiting_flow(text: str, w: dict | None) -> dict | None:
             line = re.sub(r"\s*\([A-Z][A-Z_]{3,}\)", "", re.sub(r"^\[[^\]]*\]\s*", "", str(x.get("line") or "")))
             what = f"{x['title']} ({plain_codes(line)})" if line else x["title"]
         lines.append(f"{i + 1}. {what}: {_advice(x)}.")
-    head = (f"For the Indian market, {len(india)} thing{'s' if len(india) != 1 else ''} wait{'' if len(india) != 1 else 's'} for your yes, sir. "
+    shared = sum(1 for x in india if str(x.get("market") or "") == "both")      # 10 Nov: an item for both markets is not called India's
+    head = ((f"{len(india)} thing{'s' if len(india) != 1 else ''} wait{'' if len(india) != 1 else 's'} for your yes, sir"
+             + (f" ({len(india) - shared} for the Indian market, {shared} for both markets). " if shared else ". ")) if shared
+            else f"For the Indian market, {len(india)} thing{'s' if len(india) != 1 else ''} wait{'' if len(india) != 1 else 's'} for your yes, sir. "
             if india else "Nothing for the Indian market is waiting for your yes, sir. ")
     tail = ""
     if crypto:

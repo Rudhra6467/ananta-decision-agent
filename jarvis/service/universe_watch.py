@@ -770,7 +770,9 @@ def run_daily(j) -> dict:
     The rebuild covers the last 3 days each night and everything since the start on Mondays (the weekly full rebuild)."""
     out: dict = {}
     full = time.gmtime(j.now()).tm_wday == 0
-    from jarvis.service import universe_explorer
+    from jarvis.service import exposure, universe_explorer
+
+    exposure._CACHE.update(t=0, v=None)      # 10 Nov 2026: the new candle is in; an answer kept from before the close is a day old
 
     for name, fn in (("rules", lambda: run_rules(j)), ("arm", lambda: arm(j)), ("rebuild", lambda: rebuild(j, 400 if full else 3)),
                      ("explorer_compare", lambda: universe_explorer.compare_nightly(j)),

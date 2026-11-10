@@ -228,6 +228,19 @@ def _near(text: str, want: float, tol: float) -> bool:
     return any(abs(x - abs(want)) <= tol for x in _figures(text))
 
 
+_WORDS = {"zero": 0, "none": 0, "no": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
+
+
+def _count_before(text: str, n: int, nouns: str) -> bool:
+    """True when the answer says the count n right before one of the nouns ("9 trades", "nine closed", "1 won", "one made money"): a stray
+    9 in "9 Nov" or a 1 in "C$1.20" does not count (the second grading, 10 Nov 2026)."""
+    for m in re.finditer(r"\b(\d+|" + "|".join(_WORDS) + r")\s+(?:of\s+(?:them|those)\s+)?(?:" + nouns + r")\b", text or "", re.I):
+        v = m.group(1).lower()
+        if (int(v) if v.isdigit() else _WORDS[v]) == n:
+            return True
+    return False
+
+
 def numbers(j, ask=None) -> dict:
     """Five questions about the money, graded against the $500 book and the dial as they stand (10 Nov 2026, the outsider's review; Madhav:
     "yes, lets fix this faults"). The exam passed on 1 and 8 Nov while the book's value was 6% wrong: it tested memory of the rules, never
@@ -242,14 +255,22 @@ def numbers(j, ask=None) -> dict:
     m = re.search(r"at ([\d,]+(?:\.\d+)?)", str((d.get("why") or [""])[0]))
     close = float(m.group(1).replace(",", "")) if m else None
     value, cash, ret = float(s.get("value_cad") or 0), float(s.get("cash_cad") or 0), float(s.get("return_pct") or 0)
+    down = r"\bdown\b|\bloss\b|\blost\b|\bminus\b|\bnegative\b|[-−]\s?\d"
+    up = r"\bup\b|\bgain|\bplus\b|\bpositive\b|\+\s?\d"
+    is_open = (d.get("dial") or 0) > 0
+    dial_words = r"dial\W+(?:\w+\W+){0,4}?open|buying is on" if is_open else r"dial\W+(?:\w+\W+){0,4}?closed|buying is off|no new buys"
     qs = [("value", "What is the 500 dollar book worth right now, in Canadian dollars?", lambda t: _near(t, value, max(1.0, 0.01 * value)), f"{value:.2f}"),
-          ("cash", "How much cash does the 500 dollar book hold right now, in Canadian dollars?", lambda t: _near(t, cash, max(1.0, 0.01 * cash)), f"{cash:.2f}"),
-          ("return", "What is the 500 dollar book's return since it started, in percent?", lambda t: _near(t, ret, 0.3), f"{ret:.1f}%"),
+          ("cash", "How much of the 500 dollar book is in cash right now, and how much is in coins, in Canadian dollars?",
+           lambda t: _near(t, cash, max(1.0, 0.01 * cash)) and (_near(t, value - cash, max(1.0, 0.01 * value)) or (value - cash < 0.5 and bool(re.search(r"\bno coins\b|\bnothing\b|\bnone\b|\ball (?:of it )?(?:is )?(?:in )?cash\b|\bzero\b", t, re.I)))),
+           f"{cash:.2f} cash, {value - cash:.2f} coins"),
+          ("return", "What is the 500 dollar book's return since it started, in percent, and is it up or down?",
+           lambda t: _near(t, ret, 0.3) and bool(re.search(down if ret < 0 else up, t, re.I)), f"{ret:+.1f}%"),
           ("closed", "How many trades has the 500 dollar book closed so far, and how many of them made money?",
-           lambda t: _near(t, len(closed), 0) and (_near(t, won, 0) or (won == 0 and bool(re.search(r"\bnone\b|\bno\b|\bzero\b", t, re.I)))), f"{len(closed)} closed, {won} won"),
+           lambda t: _count_before(t, len(closed), r"trades?|closed|round trips?") and _count_before(t, won, r"won|wins?|winners?|made money|were profitable|profitable|in profit"),
+           f"{len(closed)} closed, {won} won"),
           ("dial_close", "At what price did Bitcoin last close for the dial, and is the dial open or closed?",
-           lambda t: close is not None and _near(t, close, 0.005 * close) and bool(re.search("open" if (d.get("dial") or 0) > 0 else "closed", t, re.I)),
-           f"{close:,.0f}, {'open' if (d.get('dial') or 0) > 0 else 'closed'}" if close else "unread")]
+           lambda t: close is not None and _near(t, close, 0.005 * close) and bool(re.search(dial_words, t, re.I)),
+           f"{close:,.0f}, {'open' if is_open else 'closed'}" if close else "unread")]
     rows = []
     for k, (cid, q, ok, want) in enumerate(qs):
         r = _ask(a, q, 500 + k)

@@ -257,7 +257,7 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
             n = net(coin, r["entry"], exit_px, r["watch"])
             j.db.execute("UPDATE evidence_trades SET exit_t=?, exit_day=?, exit=?, net_usd=?, status='CLOSED', exit_why=?, stop=?, detail=? WHERE id=?",
                          (exit_t, _day(exit_t), exit_px, n, why, r["stop"], json.dumps(det, default=str) if (protect_on or live) else r.get("detail"), r["id"]))
-            out.append({"watch": r["watch"], "coin": coin, "event": "closed", "net_usd": n})
+            out.append({"watch": r["watch"], "coin": coin, "event": "closed", "net_usd": n, "exit_t": exit_t})
         elif moved:                                           # the protect rule moved the stop: the row says so (stop_moves, high)
             j.db.execute("UPDATE evidence_trades SET stop=?, detail=? WHERE id=?", (r["stop"], json.dumps(det, default=str), r["id"]))
             out.append({"watch": r["watch"], "coin": coin, "event": "protected", "stop": r["stop"]})
@@ -363,7 +363,27 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, 
         j.db.execute(f"UPDATE evidence_trades SET status='CANCELLED', exit_why='never filled: its book was switched off before the fill' "
                      f"WHERE status='WAITING' AND source='daily' AND watch IN ({','.join('?' * len(exits_only))})", tuple(exits_only))
     j.db.commit()
+    _note_late(j, closed)
+    j.db.commit()
     return {"opened": opened, "filled": filled, "closed": closed}
+
+
+def _note_late(j, closed: list[dict]) -> None:
+    """A trade closed tonight on a rule's day more than two days past was a frozen row let go (a parked book, a coin that changed tier).
+    The night's count and net are kept in engine_state for the officer's note, which otherwise only sees closes dated today."""
+    now = int(j.now())
+    late = [e for e in closed if e.get("exit_t") and e["exit_t"] < now - 2 * DAY]
+    if not late:
+        return
+    key = "late_closes:" + _day(now)
+    row = j.db.execute("SELECT v FROM engine_state WHERE k=?", (key,)).fetchone()
+    cur = json.loads(row[0]) if row else {"n": 0, "net_usd": 0.0, "books": {}}
+    for e in late:
+        cur["n"] += 1
+        cur["net_usd"] = round(cur["net_usd"] + (e.get("net_usd") or 0), 2)
+        fam = e["watch"].split("-U")[0]
+        cur["books"][fam] = cur["books"].get(fam, 0) + 1
+    j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (key, json.dumps(cur)))
 
 
 # ---------------------------------------------------------------------------

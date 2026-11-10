@@ -157,7 +157,7 @@ def status(j) -> dict:
             "positions": s["pos"], "closed": s.get("closed", [])[-20:], "brakes": {k: s["brakes"].get(k) for k in ("paused", "block_until", "fired", "streak")},
             "brake_log": s["brakes"].get("log", [])[-10:], "dial_open": s.get("dial"), "last_step": s.get("last_step"),
             "execution_check": {"fills": inside[0], "inside_bid_ask": inside[1] or 0}, "recent_fills": fills,
-            "core_plan": s.get("core_plan"), "tranches": s.get("tranches"),
+            "core_plan": s.get("core_plan"), "tranches": s.get("tranches"), "repairs": s.get("repairs") or [],
             "rules": "src/research/book500.py (docs/research/BOOK500.md); core-v2: docs/knowledge/discipline_v1.json (Madhav, 24 Oct 2026)"}
 
 

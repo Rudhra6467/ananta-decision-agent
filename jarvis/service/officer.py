@@ -29,7 +29,9 @@ last seven days. Never invent a number: every figure must come from the facts. N
 greeting by time of day. If the facts say a brake fired or a strategy passed, lead with that. What fired at this close is
 "account.brakes_today"; mention the brakes ONLY when it says one fired, and never write that no brake fired;
 the "fired" numbers inside "brakes" are totals since the book started, never today's. If "account.corrections" is there, say the
-correction once in plain words (what was put right and the money). If "dial.warning" is there, say it. A "caught" move only means
+correction once in plain words (what was put right and the money). If "dial.warning" is there, say it. If "background.old_paper_trades_closed_late_tonight" is there, say in one sentence
+how many old paper trades of the measuring books were closed late tonight by their own rules, their net in US dollars, and that the
+account itself is untouched. A "caught" move only means
 some paper book held that coin, often a measuring book that may not trade for the account: say "a measuring book was in X", never
 "caught" as if it were a win. In a check's words, the books after "Paused books still closing"
 are different books from the ones before: never call a live book paused. A check with state DECIDED is one Madhav has already decided: say his decision, not a failure."""
@@ -64,7 +66,7 @@ def facts(j, daily: dict | None = None) -> dict:
             last[x.get("brake")] = x
         f["account"]["brakes_today"] = ("; ".join(f"the {x.get('brake', '').replace('_', '-')} brake fired at this close (no new buys until {x.get('until')})" for x in today)
                                         or "none fired at this close" + ("; last fired: " + ", ".join(f"{b.replace('_', '-')} on {x.get('day')} (blocked until {x.get('until')})" for b, x in last.items()) if last else ""))
-        fixes = [r for r in ((ndax_book._get(j, "state") or {}).get("repairs") or []) if str(r.get("day") or "") >= time.strftime("%Y-%m-%d", time.gmtime(j.now() - 2 * 86400))]
+        fixes = [r for r in ((ndax_book._get(j, "state") or {}).get("repairs") or []) if str(r.get("day") or "") >= time.strftime("%Y-%m-%d", time.gmtime(j.now() - 86400))]
         if fixes:                                             # a correction to the book is said once, in the note after it
             f["account"]["corrections"] = [{k: r.get(k) for k in ("day", "what", "cash_added")} for r in fixes]
     except Exception as exc:  # noqa: BLE001
@@ -97,6 +99,12 @@ def facts(j, daily: dict | None = None) -> dict:
         bg["evidence_rows_open"] = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND watch NOT LIKE 'RANDOM%'").fetchone()[0]
     except Exception as exc:  # noqa: BLE001
         bg["error"] = str(exc)[:120]
+    try:                                                  # 10 Nov 2026: paper trades closed tonight on a rule's day long past (a frozen row let go)
+        row = j.db.execute("SELECT v FROM engine_state WHERE k=?", ("late_closes:" + f["day"],)).fetchone()
+        if row:
+            bg["old_paper_trades_closed_late_tonight"] = json.loads(row[0])
+    except Exception:  # noqa: BLE001
+        pass
     f["background"] = {**bg, "brain_woke": daily.get("brain_woke"), "pushed": daily.get("pushed") or [],
                        "missed_moves": (daily.get("missed") or [])[:5] if isinstance(daily.get("missed"), list) else daily.get("missed"),
                        "brain_rebuild": daily.get("brain_rebuild"), "weekly_review": daily.get("weekly_review")}

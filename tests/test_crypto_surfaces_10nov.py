@@ -234,7 +234,7 @@ def test_the_strategies_card_opens_an_explanation():
     pts = e["points"]
     assert pts[0].startswith("A strategy is one way of trading") and " are on record: " in pts[1]
     assert any(p.startswith("The one measured edge is the short dip trade.") for p in pts)
-    assert any(p.startswith("Until Mon 14 Dec no new crypto strategy is studied and no rule changes (Rule B). Day 27 of 60") for p in pts)
+    assert any(p.startswith("Until Mon 14 Dec no new crypto strategy is added and no rule changes without your yes (Rule B). Day 27 of 60") for p in pts)
     assert not any(code in p for p in pts for code in ("H07", "E1-E8", "ZONE_TOUCH", "UNDER_REVIEW", "PARKED"))
 
 
@@ -444,6 +444,9 @@ def test_a_trade_whose_coin_left_the_tier_is_still_closed(tmp_path):
     out = W.run(j, watches=["H07"], coins=["AAA"], daily_fn=daily, live_trades=False)      # GONE is not among today's coins
     assert j.db.execute("SELECT status FROM evidence_trades WHERE id='left'").fetchone()[0] == "CLOSED"
     assert not [o for o in out["opened"] if o["coin"] == "GONE"], "a coin outside today's list opens nothing"
+    # a close on a rule's day long past is counted for the night's note, which only sees closes dated today
+    late = json.loads(j.db.execute("SELECT v FROM engine_state WHERE k LIKE 'late_closes:%'").fetchone()[0])
+    assert late["n"] == 1 and late["books"] == {"H07": 1}
 
 
 def test_the_exam_asks_about_the_money_and_grades_it_against_the_book(tmp_path, monkeypatch):
@@ -455,7 +458,7 @@ def test_the_exam_asks_about_the_money_and_grades_it_against_the_book(tmp_path, 
 
     class Right:
         def ask(self, who, q, **k):
-            return {"answer": {"worth": "It is worth about C$468.", "cash": "All of it, C$467.55, is cash.", "return": "Down 6.5% since the start.",
+            return {"answer": {"worth": "It is worth about C$468.", "cash": "C$467.55 is in cash and no coins are held.", "return": "Down 6.5% since the start.",
                                "trades": "9 trades closed; 1 made money.", "Bitcoin": "Bitcoin closed at about 75,400 and the dial is closed."}[next(w for w in ("worth", "cash", "return", "trades", "Bitcoin") if w in q)]}
 
     out = exam.numbers(None, ask=Right())
@@ -468,6 +471,17 @@ def test_the_exam_asks_about_the_money_and_grades_it_against_the_book(tmp_path, 
     out = exam.numbers(None, ask=Stale())                                      # the answer the exam passed on 1 and 8 Nov
     assert out["numbers"] == 0 and out["numbers_pass"] is False
     assert json.loads((tmp_path / "latest.json").read_text())["numbers_pass"] is False
+    # the second grading's holes: a stray 9 and 1, a word for a number, a missing sign, "Bitcoin closed" read as "the dial is closed"
+    assert exam._count_before("As of 9 Nov there is 1 thing to say: 8 trades closed", 9, "trades?|closed") is False
+    assert exam._count_before("Nine trades closed and one of them made money", 9, "trades?|closed") and exam._count_before("one of them made money", 1, "made money")
+
+    class Holes(Right):
+        def ask(self, who, q, **k):
+            return {"answer": "C$467.55, all of it cash. The return is 6.5%. Bitcoin closed at 75,368."}
+
+    out = exam.numbers(None, ask=Holes())
+    got = {r["id"]: r["ok"] for r in out["rows"] if r["kind"] == "numbers"}
+    assert got == {"value": True, "cash": True, "return": False, "closed": False, "dial_close": False}, got
 
 
 def test_the_book_check_watches_the_cash_the_value_and_the_notes_dial(tmp_path):

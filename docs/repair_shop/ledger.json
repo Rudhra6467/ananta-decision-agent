@@ -1,6 +1,6 @@
 {
  "version": "repair_shop.ledger.v1",
- "updated": "2026-10-25",
+ "updated": "2026-11-10",
  "meaning": {
   "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
   "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
@@ -569,6 +569,42 @@
    "changed": "Nothing until the look; every outcome is a proposal to Madhav after the window (LOCK section 9).",
    "files": [
     "docs/research/REVIEW_38.md"
+   ]
+  },
+  {
+   "id": "R39",
+   "date": "2026-11-10",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Is the buy-in-thirds core at least as good as the all-in core it replaced?",
+   "forwarded_because": "The outsider's review, 10 Nov 2026: the thirds core has run live since 24 Oct and was never backtested. Madhav lifted Rule B for reviews 39 and 40 (10 Nov 08:41 Toronto).",
+   "question": "On 2018-2023 and 2024 to 7 Nov 2026, is the thirds core's yearly return over worst fall at least the all-in core's, ending above its start in both?",
+   "result": "FAIL. 2018-2023: thirds 1.27 against all-in 0.85 (+383% and a 24% worst fall against +443% and 39%). 2024-2026: thirds 0.21 against 0.46 (+13% against +34%). Both end above the start in both periods.",
+   "changed": "Nothing live. The choice on the core (keep thirds, return to all-in, or other) is Madhav's.",
+   "files": [
+    "docs/research/REVIEW_39.md",
+    "docs/research/REVIEW_40.md",
+    "docs/research/REVIEW_39_40_RESULTS.md",
+    "docs/research/review39.json",
+    "src/research/review39.py"
+   ]
+  },
+  {
+   "id": "R40",
+   "date": "2026-11-10",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "Does a confirmation step stop the flip-flops at the dial's line?",
+   "forwarded_because": "Five dial flips in 12 live days (26 Oct to 6 Nov 2026); two re-entries cost C$9.15 of a C$500 book.",
+   "question": "Does a first buy only after two closes with the dial open cut core entries by a quarter in both periods without lowering yearly return over worst fall?",
+   "result": "FAIL, narrowly. Entries cut 31.7% in 2018-2023 and 19.2% in 2024-2026 (the mark: 25% in both); return over fall not lower in either. Beside: it improved every row.",
+   "changed": "Nothing live. The step is not offered as a rule.",
+   "files": [
+    "docs/research/REVIEW_39.md",
+    "docs/research/REVIEW_40.md",
+    "docs/research/REVIEW_39_40_RESULTS.md",
+    "docs/research/review39.json",
+    "src/research/review39.py"
    ]
   }
  ],

@@ -503,7 +503,7 @@ def today(j) -> dict:
                          "sub": f"{_pct(b.get('return_pct'))} since {_dw(b.get('started'))} · {len(pos)} coin{'s' if len(pos) != 1 else ''}"}],
             "waiting": {"count": w.get("count") or 0, "words": w.get("line")},
             "running": _running(h),
-            "cards": cards, "evening": evening, "clock": f"Evidence window: {win['words']}. Until then no new crypto studies and no rule changes (Rule B).",
+            "cards": cards, "evening": evening, "clock": f"Evidence window: {win['words']}. Until then no new crypto strategy and no rule change without your yes (Rule B).",
             "suggested": ([f"Why is the dial {state}?", f"How are {' and '.join(p['symbol'] for p in pos)} doing?", "What happens on 14 Dec?"] if pos
                           else [f"Why is the dial {state}?", "What would reopen the dial?" if not is_open else "What would close the dial?", "What happens on 14 Dec?"]),
             "next_view": None, "paper": True}
@@ -724,7 +724,7 @@ def strategies_explain(reg: dict, win: dict) -> dict:
         points.append(f"Switched off: {names('PARKED')}.")
     if n("EVIDENCE"):
         points.append(f"Only measured, never held in your account: {names('EVIDENCE')}.")
-    points.append(f"Until {_dw(RULE_B_END)} no new crypto strategy is studied and no rule changes (Rule B). {win['words']}.")
+    points.append(f"Until {_dw(RULE_B_END)} no new crypto strategy is added and no rule changes without your yes (Rule B). {win['words']}.")
     days = [str(reg.get("updated") or "")] + [str((v.get("parked") or {}).get("date") or "") for v in st.values()] + [str(v.get("since") or "") for v in st.values()]
     days = sorted(d for d in days if re.fullmatch(r"20\d\d-\d\d-\d\d", d))
     return {"title": "The strategies, explained", "points": points, "updated": _dw(days[-1]) if days else "", "source": "the strategy register", "ask": STRAT_Q}
@@ -843,18 +843,21 @@ def account_chart(j) -> dict:
             hold[i] = round(start * (1 + R.run(D, w_hold, cost, t0, t1)["total_pct"] / 100), 2)
             hurdle[i] = round(start * (1 + R.run(D, w_gate, cost, t0, t1)["total_pct"] / 100), 2)
     pct = lambda v: _pct(100 * (v / start - 1)) if isinstance(v, (int, float)) else "—"   # noqa: E731
-    words = (f"The $500 book stood at {_cad(yours[-1])} at the {_dw(dates[-1])} close: {pct(yours[-1])} since it started with {_cad(start, 0)} on {_dw(started)}. "
+    fixes = [r for r in (_safe(_repairs, j, default=[]) or []) if str(r.get("day") or "") > dates[-1] or str(r.get("day") or "") in dates[-14:]]
+    now_v = b.get("value_cad")
+    lead = (f"The $500 book stands at {_cad(now_v)} now: {_pct(b.get('return_pct'))} since it started with {_cad(start, 0)} on {_dw(started)}. "
+            f"The line's last nights were recorded before a correction, so it ends lower, at {_cad(yours[-1])}. " if fixes and isinstance(now_v, (int, float)) and abs(now_v - yours[-1]) > 0.5
+            else f"The $500 book stood at {_cad(yours[-1])} at the {_dw(dates[-1])} close: {pct(yours[-1])} since it started with {_cad(start, 0)} on {_dw(started)}. ")
+    words = (lead
              + (f"Over the same weeks Bitcoin just held is {pct(hold[-1])} and the hurdle (Bitcoin held only above its 50-day average) is {pct(hurdle[-1])}, "
                 f"both counted from {_dw(exposure.START)}. " if hold[-1] is not None else "")
              + f"Drawn from {len(dates) - 1} recorded night{'s' if len(dates) != 2 else ''} and the start.")
     gap = _safe(book_gap, j, b, default=[]) or []
     if gap:
         words += " " + gap_words(gap)
-    for r in _safe(_repairs, j, default=[]) or []:           # a correction is said: the nights before it were recorded without that money
-        if str(r.get("day") or "") > dates[-1] or str(r.get("day") or "") in dates[-14:]:
-            words += (f" Corrected on {_dw(r.get('day'))}: {_cad(r.get('cash_added'))} from a trade whose sale had not been recorded; "
-                      "the nights before that were recorded without it."
-                      + (f" The book stands at {_cad(b.get('value_cad'))} now." if isinstance(b.get("value_cad"), (int, float)) else ""))
+    for r in fixes:                                          # a correction is said: the nights before it were recorded without that money
+        words += (f" Corrected on {_dw(r.get('day'))}: {_cad(r.get('cash_added'))} from a trade whose sale had not been recorded; "
+                  "the nights before that were recorded without it.")
     return {"name": "Your account on paper", "kind": "portfolio", "ccy": "CAD", "as_of": _dm(dates[-1]) + " close", "start_cad": start, "sessions": len(dates) - 1,
             "chart": {"dates": dates, "yours": yours, "untouched": hold, "nifty500": hurdle}, "legend": legend, "lines": lines,
             "x_labels": [_dm(dates[0]), _dm(dates[-1])], "words": words, "note": note}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The day's records saved to git, every morning at 06:50 Toronto (Madhav's yes of 10 Nov 2026, open-list flag 75).
+     Only allowlisted record files, each by name; no code, no pinned file. Installed by scripts/install_records_job.sh. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.ananta.records</string>
+  <key>WorkingDirectory</key><string>__REPO__</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__HOME__/ananta_venvs/jarvis/bin/python</string>
+    <string>scripts/commit_records.py</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>50</integer></dict>
+  <key>StandardOutPath</key><string>__HOME__/ananta_runs/records_commit.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/ananta_runs/records_commit.log</string>
+</dict>
+</plist>

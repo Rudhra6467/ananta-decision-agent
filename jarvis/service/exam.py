@@ -217,6 +217,55 @@ def run(j, ask=None) -> dict:
     return out
 
 
+NUMBERS_PASS = 4          # of 5
+
+
+def _figures(text: str) -> list[float]:
+    return [abs(float(x.replace(",", ""))) for x in re.findall(r"(?<![\w.])-?\d[\d,]*(?:\.\d+)?", text or "")]
+
+
+def _near(text: str, want: float, tol: float) -> bool:
+    return any(abs(x - abs(want)) <= tol for x in _figures(text))
+
+
+def numbers(j, ask=None) -> dict:
+    """Five questions about the money, graded against the $500 book and the dial as they stand (10 Nov 2026, the outsider's review; Madhav:
+    "yes, lets fix this faults"). The exam passed on 1 and 8 Nov while the book's value was 6% wrong: it tested memory of the rules, never
+    the numbers. Kept beside the exam's own result in latest.json (numbers, numbers_of, numbers_pass); the exam's pinned verdict is unchanged."""
+    from jarvis.service import ask as askmod, exposure, ndax_book
+
+    a = ask or askmod.Ask(j)
+    s = ndax_book.status(j)
+    closed = (ndax_book._get(j, "state") or {}).get("closed") or []
+    won = sum(1 for c in closed if (c.get("pnl_cad") or 0) > 0)
+    d = exposure.state(j)
+    m = re.search(r"at ([\d,]+(?:\.\d+)?)", str((d.get("why") or [""])[0]))
+    close = float(m.group(1).replace(",", "")) if m else None
+    value, cash, ret = float(s.get("value_cad") or 0), float(s.get("cash_cad") or 0), float(s.get("return_pct") or 0)
+    qs = [("value", "What is the 500 dollar book worth right now, in Canadian dollars?", lambda t: _near(t, value, max(1.0, 0.01 * value)), f"{value:.2f}"),
+          ("cash", "How much cash does the 500 dollar book hold right now, in Canadian dollars?", lambda t: _near(t, cash, max(1.0, 0.01 * cash)), f"{cash:.2f}"),
+          ("return", "What is the 500 dollar book's return since it started, in percent?", lambda t: _near(t, ret, 0.3), f"{ret:.1f}%"),
+          ("closed", "How many trades has the 500 dollar book closed so far, and how many of them made money?",
+           lambda t: _near(t, len(closed), 0) and (_near(t, won, 0) or (won == 0 and bool(re.search(r"\bnone\b|\bno\b|\bzero\b", t, re.I)))), f"{len(closed)} closed, {won} won"),
+          ("dial_close", "At what price did Bitcoin last close for the dial, and is the dial open or closed?",
+           lambda t: close is not None and _near(t, close, 0.005 * close) and bool(re.search("open" if (d.get("dial") or 0) > 0 else "closed", t, re.I)),
+           f"{close:,.0f}, {'open' if (d.get('dial') or 0) > 0 else 'closed'}" if close else "unread")]
+    rows = []
+    for k, (cid, q, ok, want) in enumerate(qs):
+        r = _ask(a, q, 500 + k)
+        txt = str(r.get("answer") or r.get("error") or "")
+        rows.append({"id": cid, "kind": "numbers", "question": q, "ok": bool(ok(txt)) and not r.get("error"), "want": want, "answer": txt[:600]})
+    out = latest() or {"t": int(time.time()), "day": time.strftime("%Y-%m-%d"), "rows": []}
+    out["rows"] = [r for r in out.get("rows") or [] if r.get("kind") != "numbers"] + rows
+    out.update(numbers=sum(r["ok"] for r in rows), numbers_of=len(rows), numbers_pass=sum(r["ok"] for r in rows) >= NUMBERS_PASS)
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "latest.json").write_text(json.dumps(out, indent=1, ensure_ascii=False))
+    with (OUT / "history.jsonl").open("a") as f:
+        f.write(json.dumps({"file": "numbers", "t": int(time.time()), "day": time.strftime("%Y-%m-%d"), "numbers": out["numbers"], "numbers_of": out["numbers_of"],
+                            "numbers_pass": out["numbers_pass"]}) + "\n")
+    return out
+
+
 def _speak_wav(text: str, d: Path, k: int) -> bytes:
     aiff, wav = d / f"v{k}.aiff", d / f"v{k}.wav"
     subprocess.run(["say", "-o", str(aiff), text], check=True, timeout=60)

@@ -817,8 +817,14 @@ def recent(j, days: int = 7) -> dict:
 
     for r in rows:
         r["class_why"] = MISS_CLASSES.get(r["miss_class"] or "", "")
-    classes = {k: sum(1 for r in rows if r["miss_class"] == k) for k in MISS_CLASSES}
-    catches = {"all_tiers": _catch_split(rows),
+    # 10 Nov 2026 (the outsider's review): a coin in two lists (your ten and the wide list) was counted twice in the all-lists figures
+    seen, once = set(), []
+    for r in sorted(rows, key=lambda r: r["tier"] == "UNIV"):       # the coin's own list first
+        if (r["day"], r["coin"]) not in seen:
+            seen.add((r["day"], r["coin"]))
+            once.append(r)
+    classes = {k: sum(1 for r in once if r["miss_class"] == k) for k in MISS_CLASSES}
+    catches = {"all_tiers": _catch_split(once),
                "meaning": "CAUGHT_TRADE_OK: a book allowed to trade was in the move; CAUGHT_MONITOR_ONLY: only watches that monitor were "
                           "(won't take again, random, parked or retired); CAUGHT_UNSCORED: not scored yet."}
     if show:

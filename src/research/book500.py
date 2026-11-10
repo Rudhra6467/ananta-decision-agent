@@ -260,6 +260,8 @@ def simulate(C: dict[str, Coin], tier_a: list[str], inst: dict, cost: dict, t0: 
                 del pos[c]
         elif dial_prev and not core_held and brakes.may_buy(t):
             for c, w in CORE.items():
+                if c in pos:                              # 10 Nov 2026: held as a trade already; one holding a coin, never replaced
+                    continue
                 o = px(c, t, "o")
                 q = round_qty(w * eq_prev, o or 0, inst.get(c))
                 if q:

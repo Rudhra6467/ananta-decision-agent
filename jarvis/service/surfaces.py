@@ -598,9 +598,10 @@ def _exam() -> dict | None:
         e = json.loads(p.read_text())
     except Exception:  # noqa: BLE001
         return None
-    ok = all(e.get(k) for k in ("knows_pass", "unknowns_pass", "why_pass", "consistency_pass"))
+    ok = all(e.get(k) for k in ("knows_pass", "unknowns_pass", "why_pass", "consistency_pass")) and e.get("numbers_pass", True)   # 10 Nov: the money questions count
     return {"grade": "Pass" if ok else "Fail", "day": e.get("day"),
-            "words": f"{e.get('known')}/{e.get('known_of')} facts · {e.get('unknown')}/{e.get('unknown_of')} unknowns · {e.get('why')}/{e.get('why_of')} whys · {_dw(e.get('day'))}"}
+            "words": f"{e.get('known')}/{e.get('known_of')} facts · {e.get('unknown')}/{e.get('unknown_of')} unknowns · {e.get('why')}/{e.get('why_of')} whys"
+                     + (f" · {e.get('numbers')}/{e.get('numbers_of')} numbers" if e.get("numbers_of") else "") + f" · {_dw(e.get('day'))}"}
 
 
 def _pace(done: int, need: int, started, today: dt.date) -> str:
@@ -736,12 +737,13 @@ def exam_explain(repo: Path | None = None) -> dict | None:
         e = json.loads((d / "latest.json").read_text())
     except (OSError, ValueError):
         return None
-    passed = lambda x: all(x.get(k) for k in ("knows_pass", "unknowns_pass", "why_pass", "consistency_pass"))   # noqa: E731
+    passed = lambda x: all(x.get(k) for k in ("knows_pass", "unknowns_pass", "why_pass", "consistency_pass")) and x.get("numbers_pass", True)   # noqa: E731
     points = ["Every week Ananta sits an exam on its own crypto system: facts it must know, trick questions it must answer with 'I don't know', "
               "and reasons it must explain."]
     points.append(f"The last exam ({_dw(e.get('day'))}): knows {e.get('known')} of {e.get('known_of')}, says 'I don't know' when it should "
                   f"{e.get('unknown')} of {e.get('unknown_of')}, explains why {e.get('why')} of {e.get('why_of')}"
                   + (f", gives the same answer when asked twice {e.get('consistent')} of {e.get('consistent_of')}" if e.get("consistent_of") else "")
+                  + (f", gets the money right {e.get('numbers')} of {e.get('numbers_of')}" if e.get("numbers_of") else "")
                   + f": {'pass' if passed(e) else 'fail'}.")
     wrong = [str(r.get("question") or "").strip() for r in e.get("rows") or [] if r.get("ok") is False and r.get("question")]
     if wrong:

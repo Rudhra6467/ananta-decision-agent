@@ -151,10 +151,12 @@ def manage_live_rows(j, tier: str, coins: list[str]) -> int:
 
     labs = set(registry.lab10())
     n = 0
-    for c in coins:
+    # 10 Nov 2026: a zone touch whose coin has since moved to another tier is still this tier's trade to close (they were left open)
+    moved = [c for (c,) in j.db.execute("SELECT DISTINCT coin FROM evidence_trades WHERE status='OPEN' AND watch=?", (wid("ZONE_TOUCH", tier),)) if c not in set(coins)]
+    for c in list(coins) + moved:
         rows = j.db.execute(f"SELECT {', '.join(watch_engine.COLS)} FROM evidence_trades WHERE coin=? AND status='OPEN' AND "
                             "(watch=? OR (watch IN ('JARVIS','JARVIS_RANDOM','JARVIS_BOLD','RANDOM_BOLD') AND ?))",   # A8: the bold book too
-                            (c, wid("ZONE_TOUCH", tier), c not in labs)).fetchall()
+                            (c, wid("ZONE_TOUCH", tier), c not in labs and c not in moved)).fetchall()
         if not rows:
             continue
         D = _daily(j, c)

@@ -36,9 +36,14 @@ def _put(j, k: str, v) -> None:
 
 
 def _http(url: str):
+    """One more try after a failed read (10 Nov 2026, the outsider's review: the nightly step had no retry on NDAX or the Bank of Canada)."""
     import requests
 
-    return requests.get(url, timeout=20).json()
+    try:
+        return requests.get(url, timeout=20).json()
+    except Exception:  # noqa: BLE001
+        time.sleep(2)
+        return requests.get(url, timeout=20).json()
 
 
 def instruments(get=None) -> dict:

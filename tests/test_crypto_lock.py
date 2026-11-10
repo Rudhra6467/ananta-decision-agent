@@ -119,6 +119,7 @@ def current() -> dict[str, str]:
         "live_logic": _sha("\n#--\n".join([
             _top("jarvis/service/exposure.py", ["state", "dial_by_day"]),                       # how the dial is read and used
             _top("jarvis/service/ndax_book.py", ["passed_rules", "edge_signals"]),               # what may enter the $500 book's edge sleeve
+            _top("jarvis/service/ndax_book.py", ["step"]),                                       # 10 Nov 2026: the step that moves the money (it sat outside the lock)
             _top("jarvis/service/trade_guard.py", ["LIVE_PRICE_S", "BAR_PRICE_S", "DAILY_S", "FAIL_MEMORY_S", "PATHS"]),
             _top("jarvis/service/exam.py", ["KNOWS_PASS", "UNKNOWNS_PASS", "VOICE_PASS", "run", "rejudge", "voice"]),  # the pass marks
             _top("jarvis/service/evidence_live.py", ["EXAM_FRESH_DAYS", "_exam_age", "SIZING_ENTRIES", "CITES_N", "CITES_PASS",

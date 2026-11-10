@@ -34,6 +34,14 @@ def main() -> int:
     for r in e["rows"]:
         if not r["ok"]:
             print("  MISS", r["kind"], r["question"], "->", str(r.get("answer", ""))[:240].replace("\n", " "))
+    try:                                                   # 10 Nov 2026: five questions about the money, graded against the book
+        n = exam.numbers(j)
+        print("NUMBERS", n.get("numbers"), "of", n.get("numbers_of"), "PASS", n.get("numbers_pass"))
+        for r in n["rows"]:
+            if r.get("kind") == "numbers" and not r["ok"]:
+                print("  MISS numbers", r["question"], "want", r.get("want"), "->", str(r.get("answer", ""))[:240].replace("\n", " "))
+    except Exception as exc:  # noqa: BLE001
+        print("NUMBERS failed:", str(exc)[:200])
     print("FLIP_RATE", json.dumps(exam.flip_rate()), "MINUTES", round((time.time() - t0) / 60, 1), flush=True)
     return 0
 

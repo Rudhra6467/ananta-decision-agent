@@ -427,7 +427,47 @@ def test_a_parked_books_open_trades_run_to_their_exits_and_fill_nothing_new(tmp_
     W.run(j, watches=["RANDOM_10D"], coins=["AAA"], daily_fn=daily, live_trades=False, manage=["H07", "RANDOM_10D"])
     status, exit_day = j.db.execute("SELECT status, exit_day FROM evidence_trades WHERE id='old'").fetchone()
     assert status == "CLOSED" and exit_day <= W._day(bars[-10][0]), "closed by its own rule, on the rule's day, not today"
-    assert j.db.execute("SELECT status FROM evidence_trades WHERE id='unfilled'").fetchone()[0] == "WAITING"   # a parked book fills nothing new
+    status, why = j.db.execute("SELECT status, exit_why FROM evidence_trades WHERE id='unfilled'").fetchone()
+    assert status == "CANCELLED" and "switched off before the fill" in why      # a parked book fills nothing new, and the row says so
+
+
+def test_a_trade_whose_coin_left_the_tier_is_still_closed(tmp_path):
+    """10 Nov 2026: a coin that moved to another tier left its open paper trades behind (63 rows, random baselines among them): the nightly
+    run only looked at the tier's coins of today. They are closed by their own rules now, and they open nothing."""
+    from jarvis.service import watch_engine as W
+    j = J(tmp_path)
+    W._table(j)
+    bars = _bars(120, "2026-11-09", 100.0)
+    W._insert(j, {"id": "left", "watch": "H07", "coin": "GONE", "source": "daily", "signal_t": bars[-21][0], "signal_day": W._day(bars[-21][0]), "entry_t": bars[-20][0],
+                  "entry_day": W._day(bars[-20][0]), "entry": bars[-20][1], "stop": None, "status": "OPEN", "why": "test", "regime": None, "detail": "{}"})
+    daily = lambda jj, c: bars                                                 # noqa: E731
+    out = W.run(j, watches=["H07"], coins=["AAA"], daily_fn=daily, live_trades=False)      # GONE is not among today's coins
+    assert j.db.execute("SELECT status FROM evidence_trades WHERE id='left'").fetchone()[0] == "CLOSED"
+    assert not [o for o in out["opened"] if o["coin"] == "GONE"], "a coin outside today's list opens nothing"
+
+
+def test_the_exam_asks_about_the_money_and_grades_it_against_the_book(tmp_path, monkeypatch):
+    from jarvis.service import exam, exposure, ndax_book
+    monkeypatch.setattr(exam, "OUT", tmp_path)
+    monkeypatch.setattr(ndax_book, "status", lambda j: {"value_cad": 467.55, "cash_cad": 467.55, "return_pct": -6.5})
+    monkeypatch.setattr(ndax_book, "_get", lambda j, k, default=None: {"closed": [{"pnl_cad": -1.0}] * 8 + [{"pnl_cad": 0.8}]})
+    monkeypatch.setattr(exposure, "state", lambda j: {"dial": 0.0, "why": ["Bitcoin closed 2026-11-09 at 75,368"]})
+
+    class Right:
+        def ask(self, who, q, **k):
+            return {"answer": {"worth": "It is worth about C$468.", "cash": "All of it, C$467.55, is cash.", "return": "Down 6.5% since the start.",
+                               "trades": "9 trades closed; 1 made money.", "Bitcoin": "Bitcoin closed at about 75,400 and the dial is closed."}[next(w for w in ("worth", "cash", "return", "trades", "Bitcoin") if w in q)]}
+
+    out = exam.numbers(None, ask=Right())
+    assert (out["numbers"], out["numbers_of"], out["numbers_pass"]) == (5, 5, True)
+
+    class Stale(Right):
+        def ask(self, who, q, **k):
+            return {"answer": "The book is worth C$439, down 12%, 8 closed and none won; Bitcoin closed near 74,000, the dial is open."}
+
+    out = exam.numbers(None, ask=Stale())                                      # the answer the exam passed on 1 and 8 Nov
+    assert out["numbers"] == 0 and out["numbers_pass"] is False
+    assert json.loads((tmp_path / "latest.json").read_text())["numbers_pass"] is False
 
 
 def test_the_book_check_watches_the_cash_the_value_and_the_notes_dial(tmp_path):

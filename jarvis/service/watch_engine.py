@@ -338,6 +338,30 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, 
                                  f"AND watch IN ({','.join('?' * len(exits_only))})", (c, *exits_only)).fetchall()
         for ev in _manage(j, c, D, S, r10, rows):
             (filled if ev["event"] == "filled" else closed).append(ev)
+    # 10 Nov 2026: a coin that moved to another tier left its open trades behind (the run only looked at this tier's coins today): 63
+    # rows, random baselines among them, sat with nothing to fill or close them. They are managed here, on their own candles; they
+    # open nothing (the signals above never see these coins, so the random picks are unchanged).
+    every = names + exits_only
+    if coins is not None and every:
+        marks = ",".join("?" * len(every))
+        left = [c for (c,) in j.db.execute(f"SELECT DISTINCT coin FROM evidence_trades WHERE status IN ('WAITING','OPEN') AND source='daily' "
+                                           f"AND watch IN ({marks})", tuple(every)) if c not in data]
+        for c in left:
+            D = _daily_of(j, c)
+            if len(D) < 60:
+                continue
+            S = R.Series(D)
+            rows = j.db.execute(f"SELECT {', '.join(COLS)} FROM evidence_trades WHERE coin=? AND status IN ('WAITING','OPEN') AND source='daily' "
+                                f"AND watch IN ({','.join('?' * len(names))})", (c, *names)).fetchall() if names else []
+            if exits_only:
+                rows += j.db.execute(f"SELECT {', '.join(COLS)} FROM evidence_trades WHERE coin=? AND status='OPEN' AND source='daily' "
+                                     f"AND watch IN ({','.join('?' * len(exits_only))})", (c, *exits_only)).fetchall()
+            for ev in _manage(j, c, D, S, R.rsi(S.c, 10), rows):
+                (filled if ev["event"] == "filled" else closed).append(ev)
+    # a switched-off book fills nothing new: a row still waiting for its fill is cancelled and says why (it sat "waiting" for good)
+    if exits_only:
+        j.db.execute(f"UPDATE evidence_trades SET status='CANCELLED', exit_why='never filled: its book was switched off before the fill' "
+                     f"WHERE status='WAITING' AND source='daily' AND watch IN ({','.join('?' * len(exits_only))})", tuple(exits_only))
     j.db.commit()
     return {"opened": opened, "filled": filled, "closed": closed}
 

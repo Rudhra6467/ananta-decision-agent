@@ -9,13 +9,19 @@
    "files": [
     "src/research/book500.py"
    ],
-   "sha256": "9f2fc1c8b52168305af946de4a77f9a218f5a9c6ddef92707741a81f8d408a1c",
+   "sha256": "232abd0950ca83cef620745d3a38bee079d502a6375c0845af7b01b63506cb0c",
    "history": [
     {
      "date": "2026-10-15",
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-10-15: \"so now lets complete this crypto system and lock it\". Pinned at the lock; docs/LOCK.md lists every pinned item and what it covers.",
      "sha256": "9f2fc1c8b52168305af946de4a77f9a218f5a9c6ddef92707741a81f8d408a1c"
+    },
+    {
+     "date": "2026-11-10",
+     "approved_by": "Madhav (in chat)",
+     "note": "The study's copy of the $500 book (simulate): a core buy is skipped for a coin already held as a trade, so it can no longer replace the trade and lose its coins (the live fault of 28 Oct, fixed in the live book the same morning). Listed to Madhav as fault 1 (\"The study version of the $500 book has the same replace fault\"; \"Items 1 to 3 touch locked files, so they need your yes in words\"). Madhav, 2026-11-10 08:41 Toronto: \"yes, lets fix this faults and keenly verify them at end\".",
+     "sha256": "232abd0950ca83cef620745d3a38bee079d502a6375c0845af7b01b63506cb0c"
     }
    ]
   },
@@ -210,7 +216,7 @@
     "docs/knowledge/acceptance_gate.json",
     "jarvis/service/realism.py"
    ],
-   "sha256": "6c024ddd169507a778eff2f3b7fc4060e8fe227b8ed1b8ef50bb0e1cb4810191",
+   "sha256": "0e0c238e05aa30847c7033a93ca2b3cc6269e80dd50203ed94364ae30cd110b3",
    "history": [
     {
      "date": "2026-10-15",
@@ -229,6 +235,12 @@
      "approved_by": "Madhav (in chat)",
      "sha256": "6c024ddd169507a778eff2f3b7fc4060e8fe227b8ed1b8ef50bb0e1cb4810191",
      "note": "The gate bundle's new rules and constants (OUTAGE_DAYS, PART_OUTAGE_MAX_MIN, WORKER_BLIND_MAX_MIN, expires_days) in evidence_live.py and acceptance_gate.json. Madhav, 2026-10-21 09:41 Toronto: \"I approve all.\" and \"for all the recommeneded items , its yes.\""
+    },
+    {
+     "date": "2026-11-10",
+     "approved_by": "Madhav (in chat)",
+     "note": "The pin now also covers ndax_book.step, the step that moves the $500 book's money (it sat outside the lock, which is how the 28 Oct fault and its fix were not seen by it). Pinned as it stands on 10 Nov, with the morning's buy guard in it. Listed to Madhav as fault 3 (\"The lock does not cover the step that moves the money\"). Madhav, 2026-11-10 08:41 Toronto: \"yes, lets fix this faults and keenly verify them at end\".",
+     "sha256": "0e0c238e05aa30847c7033a93ca2b3cc6269e80dd50203ed94364ae30cd110b3"
     }
    ]
   }

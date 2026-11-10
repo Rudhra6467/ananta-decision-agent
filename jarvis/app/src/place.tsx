@@ -187,25 +187,78 @@ function Spark({ values, tone, w, h = 40 }: { values: number[]; tone?: string; w
     </Svg>
   );
 }
-function Box({ b, width }: { b: any; width?: number }) {
-  const [w, setW] = useState(0);
+function BoxBody({ b, w }: { b: any; w: number }) {
   return (
-    <Pressable onPress={b.to ? () => go(b.to) : undefined} accessibilityRole={b.to ? "button" : undefined}
-      style={[card(), { padding: 16, gap: 4 }, width ? { width } : { flex: 1, minWidth: 0 }]}
-      onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width - 32)}>
+    <>
       <Text style={[T.meta, { color: C.dim }]} numberOfLines={1}>{cap(b.label)}</Text>
       <Text style={[T.box, { color: C.text }, String(b.value).length > 8 ? { fontSize: 20 } : null]} numberOfLines={1}>{b.value}</Text>
       {b.spark ? <Spark values={b.spark} tone={b.tone} w={w} /> : null}
       {b.bar ? (
-        <View accessibilityLabel={`${Math.round(100 * (b.bar[0] || 0))}% of the account`} style={{ height: 40, justifyContent: "center" }}>
+        <View accessibilityLabel={`${Math.round(100 * ((b.bar[0] || 0) + (b.bar[1] || 0)))}% of the account`} style={{ height: 40, justifyContent: "center" }}>
           <View style={{ flexDirection: "row", gap: 2, height: 8, borderRadius: 4, overflow: "hidden", backgroundColor: C.card2, borderWidth: 1, borderColor: C.line }}>
-            {(b.bar as number[]).map((s, i) => s > 0 ? <View key={i} style={{ width: `${Math.round(100 * s)}%`, backgroundColor: i === 0 ? C.text : C.faint }} /> : null)}
+            {(b.bar as number[]).map((x, i) => x > 0 ? <View key={i} style={{ width: `${Math.round(100 * x)}%`, backgroundColor: i === 0 ? C.text : C.faint }} /> : null)}
           </View>
         </View>
       ) : null}
       {b.change ? <Text style={[T.meta, { color: toneColor(b.tone) ?? C.dim }]} numberOfLines={1}>{b.change} <Text style={{ color: C.dim, fontWeight: "500" }}>{b.since || ""}</Text></Text> : null}
       {b.caption ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]} numberOfLines={1}>{b.caption}</Text> : null}
+    </>
+  );
+}
+const BOX_H = 158;            // one height for every box in a row, so the two boxes line up and a page fits exactly
+function Box({ b, width, tall }: { b: any; width?: number; tall?: boolean }) {
+  const [w, setW] = useState(0);
+  if (b.pages && b.pages.length > 1 && !width) return <PagedBox b={b} />;
+  return (
+    <Pressable onPress={b.to ? () => go(b.to) : undefined} accessibilityRole={b.to ? "button" : undefined}
+      style={[card(), { padding: 16, gap: 4 }, width ? { width } : { flex: 1, minWidth: 0 }, tall ? { minHeight: BOX_H } : null]}
+      onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width - 32)}>
+      <BoxBody b={b} w={w} />
     </Pressable>
+  );
+}
+// Madhav, 10 Nov 14:46: "like we use to show banknifty and nift 50 in one box. Stock and option value in second box": one box, its numbers
+// swiped up inside it (paging, so it always rests on one); the dots on the right show which, and a tap on a dot switches. The first box nudges
+// up once, so the second number is found (the old Today tiles, 4 Nov).
+let nudged = false;
+function PagedBox({ b }: { b: any }) {
+  const pages: any[] = b.pages;
+  const [at, setAt] = useState(0);
+  const [w, setW] = useState(0);
+  const ref = useRef<ScrollView>(null);
+  const H = BOX_H - 2;                                   // inside the card's 1 px line
+  useEffect(() => {
+    if (nudged) return;
+    nudged = true;
+    let seen = false;
+    try { seen = Platform.OS === "web" && window.localStorage.getItem("ananta.tiles.hinted") === "1"; } catch { /* storage blocked */ }
+    if (seen) return;
+    const a = setTimeout(() => ref.current?.scrollTo({ y: 30, animated: true }), 1100);
+    const c = setTimeout(() => ref.current?.scrollTo({ y: 0, animated: true }), 1600);
+    try { if (Platform.OS === "web") window.localStorage.setItem("ananta.tiles.hinted", "1"); } catch { /* storage blocked */ }
+    return () => { clearTimeout(a); clearTimeout(c); };
+  }, []);
+  return (
+    <View style={[card(), { flex: 1, minWidth: 0, height: BOX_H, overflow: "hidden" }]} onLayout={(e) => setW(e.nativeEvent.layout.width - 40)}>
+      <ScrollView ref={ref} style={{ height: H }} pagingEnabled nestedScrollEnabled showsVerticalScrollIndicator={false} scrollEventThrottle={16}
+        decelerationRate="fast" snapToInterval={H} snapToAlignment="start"
+        onScroll={(e) => { const i = Math.max(0, Math.min(pages.length - 1, Math.round(e.nativeEvent.contentOffset.y / H))); if (i !== at) setAt(i); }}>
+        {pages.map((x, i) => (
+          <Pressable key={(x.label || "") + i} onPress={x.to ? () => go(x.to) : undefined} accessibilityRole="button"
+            accessibilityLabel={`${x.label} ${x.value}${x.change ? ", " + x.change : ""}${x.caption ? ", " + x.caption : ""}. ${i + 1} of ${pages.length}, ${i + 1 < pages.length ? "swipe up for more" : "swipe down for the first"}`}
+            style={{ height: H, paddingVertical: 15, paddingLeft: 16, paddingRight: 24, gap: 4 }}>
+            <BoxBody b={x} w={w} />
+          </Pressable>
+        ))}
+      </ScrollView>
+      <View style={{ position: "absolute", right: 10, top: 0, bottom: 0, justifyContent: "center", gap: 6 }}>
+        {pages.map((x, i) => (
+          <Pressable key={(x.label || "") + "dot" + i} onPress={() => ref.current?.scrollTo({ y: i * H, animated: true })} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Show ${x.label}`}>
+            <View style={{ width: 5, height: i === at ? 16 : 5, borderRadius: 3, backgroundColor: i === at ? C.gold : C.faint, opacity: i === at ? 1 : 0.5 }} />
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }
 function Peek({ p }: { p: any }) {
@@ -589,7 +642,7 @@ export function Parts({ data, needs }: { data: any; needs?: any }) {
     switch (p.t) {
       case "hero": out.push(<Hero key={k} p={p} />); break;
       case "today": out.push(<TodayCard key={k} p={p} />); break;
-      case "boxes": out.push(<View key={k} style={{ flexDirection: "row", gap: 12 }}>{(p.items || []).map((b: any, j: number) => <Box key={j} b={b} />)}</View>); break;
+      case "boxes": out.push(<View key={k} style={{ flexDirection: "row", gap: 12 }}>{(p.items || []).map((b: any, j: number) => <Box key={j} b={b} tall={(p.items || []).some((x: any) => x.pages && x.pages.length > 1)} />)}</View>); break;
       case "peek": out.push(<Peek key={k} p={p} />); break;
       case "rows": {
         const rows = chipPart && on !== first && !p.tags ? (p.rows || []).filter((r: any) => r.tag === on) : p.rows;

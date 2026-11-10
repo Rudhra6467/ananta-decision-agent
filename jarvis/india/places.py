@@ -225,6 +225,26 @@ def _spark(key: str) -> list:
         return []
 
 
+def _index_boxes(t: dict) -> list[dict]:
+    """Home's first box: the Nifty 50 and Bank Nifty, each with its day's change and its last 60 closes."""
+    out = []
+    for name, key in (("Nifty 50", "NIFTY 50"), ("Bank Nifty", "NIFTY BANK")):
+        p, chg = _index_box(t, name)
+        if p.get("label") != name:
+            continue
+        out.append(K.box(name, p.get("value") or "—", change=chg, tone=p.get("tone"), since=str(p.get("sub2") or "").replace(" close", "") or None,
+                         spark=_spark(key), to=K.tab("markets")))
+    return out
+
+
+def _options_caption(t: dict, m: dict) -> str:
+    """The old Options page's words: an open trade, or none, and the last one closed."""
+    pages = ((t.get("tiles") or [{}, {}])[1:2] or [{}])[0].get("pages") or []
+    p = next((x for x in pages if x.get("label") == "Options"), {})
+    ob = m.get("options_book") or {}
+    return K.clip(p.get("sub") or ("No open trade" if not ob.get("open") else f"{len(ob['open'])} open"), 6, 30)
+
+
 def home_notices(t: dict, m: dict, clk: dict) -> list[dict]:
     out = []
     run = t.get("running") or {}
@@ -255,7 +275,6 @@ def home(full: bool = True) -> dict:
     st = clk.get("state")
     label = (f"Next session · {IS._dw(nxt)}" if nxt else f"Before the open · {IS._dw(clk.get('today_india'))}" if st in ("before_open", "pre_open") and clk.get("today_india")
              else "Today · market hours" if st == "open" else "Today")
-    p, chg = _index_box(t)
     stocks, opts, cash = m.get("stocks_inr") or 0, m.get("options_inr") or 0, m.get("cash_inr") or 0
     tot = (stocks + opts + cash) or 1
     did = [r for _d, _o, r in _events(full)]
@@ -271,8 +290,9 @@ def home(full: bool = True) -> dict:
                     tone=_tone(ret), since=f"since {IS._dw(mb.get('start_day'))}" if mb.get("start_day") else None,
                     status={"ok": bool((t.get("running") or {}).get("ok")), "words": "Running" if (t.get("running") or {}).get("ok") else "Needs a look"}),
              K.today(label, line, sub, to=K.place("plan")),
-             K.boxes([K.box(p.get("label") or "Nifty 50", p.get("value") or "—", change=chg, tone=p.get("tone"), since=str(p.get("sub2") or "").replace(" close", "") or None, spark=_spark("NIFTY 50"), to=K.tab("markets")),
-                      K.box("In stocks", _rs(stocks), bar=[round(stocks / tot, 3), round(opts / tot, 3)], caption=f"{mb.get('positions') or len(m.get('holdings') or [])} stocks", to=K.place("account"))]),
+             K.boxes([K.paged(_index_boxes(t)),
+                      K.paged([K.box("In stocks", _rs(stocks), bar=[round(stocks / tot, 3), round(opts / tot, 3)], caption=f"{mb.get('positions') or len(m.get('holdings') or [])} stocks", to=K.place("account")),
+                               K.box("Options", _rs(opts), bar=[0, round(opts / tot, 3)], caption=_options_caption(t, m), to=K.place("options"))])]),
              {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices")},
              K.rows("What Ananta did", top, more=K.tab("activity")) if top else None,
              K.notices(home_notices(t, m, clk))]

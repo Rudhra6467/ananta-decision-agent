@@ -102,6 +102,14 @@ def box(label, value, change=None, tone=None, since=None, spark=None, bar=None, 
     return _drop({"label": label, "value": value, "change": change, "tone": tone, "since": since, "spark": spark, "bar": bar, "caption": caption, "to": to})
 
 
+def paged(pages) -> dict | None:
+    """One box, several numbers swiped up inside it (Madhav, 10 Nov 14:46: "like we use to show banknifty and nift 50 in one box")."""
+    ps = [p for p in pages if p]
+    if not ps:
+        return None
+    return {**ps[0], "pages": ps} if len(ps) > 1 else ps[0]
+
+
 def boxes(items) -> dict:
     return {"t": "boxes", "items": [x for x in items if x]}
 
@@ -228,7 +236,7 @@ def _texts(x):
     """Every string a person would read in a payload (labels, values, lines), for counting."""
     if isinstance(x, dict):
         for k, v in x.items():
-            if k in ("t", "icon", "tint", "tone", "right_tone", "tag", "tags", "id", "to", "more", "kind", "bar", "name", "market", "letter", "grade", "style", "color", "page"):
+            if k in ("t", "icon", "tint", "tone", "right_tone", "tag", "tags", "id", "to", "more", "kind", "bar", "name", "market", "letter", "grade", "style", "color", "page", "pages"):   # a paged box shows one page at a time: its first is counted where it sits
                 continue
             yield from _texts(v)
     elif isinstance(x, list):
@@ -316,7 +324,9 @@ def problems(name: str, payload: dict, _depth: int = 0) -> list[str]:
                 if nwords(c.get("label")) > MAX["chip"]:
                     say("a chip with too many words", c.get("label"))
         if t in ("boxes", "peek"):
-            for b in p.get("items") or []:
+            if t == "boxes" and len(p.get("items") or []) > 2:
+                say("more than two boxes in a row", len(p["items"]))
+            for b in [x for it in p.get("items") or [] for x in (it.get("pages") or [it])]:
                 if nwords(b.get("label")) > MAX["box_label"] or nwords(b.get("caption")) > MAX["box_caption"]:
                     say("a box with too many words", f"{b.get('label')} / {b.get('caption')}")
         if t == "line" and nwords(p.get("text")) > MAX["page_line"]:

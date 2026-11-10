@@ -154,7 +154,9 @@ def test_home_says_the_account_today_and_what_needs_you(crypto):
     assert K.words_on(h) <= K.MAX["home_words"]
     # the old Today's two boxes are the summary boxes; a correction is a notice card that can be closed
     boxes = next(p for p in h["parts"] if p["t"] == "boxes")["items"]
-    assert boxes[0]["label"] == "Bitcoin" and boxes[0]["value"] == "$73,043" and boxes[1]["label"] == "In coins"
+    assert len(boxes) == 2 and boxes[0]["label"] == "Bitcoin" and boxes[0]["value"] == "$73,043" and boxes[1]["label"] == "In coins"
+    assert [x["label"] for x in boxes[0]["pages"]] == ["Bitcoin", "Ethereum", "Solana"] and [x["label"] for x in boxes[1]["pages"]] == ["In coins", "Cash"]
+    assert boxes[0]["pages"][1]["to"] == {"place": "coin:ETH"} and boxes[1]["pages"][1]["value"] == "C$468"
     assert any("corrected" in n["line"] for n in next(p for p in h["parts"] if p["t"] == "notices")["items"])
 
 

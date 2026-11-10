@@ -231,7 +231,8 @@ def change_rows(market: str, since: str) -> list[tuple]:
                             K.trust(f"From the change book · {S._dw(ch.get('date'))}")],
                     ask_q=f"Tell me about this change of {S._dw(ch.get('date'))}: {K.clip(words, 16, 110)}")
         gist = re.sub(r"^(Decided( on Madhav's yes( to)?)?|Fixed|Repaired|Corrected|A fix)\s*[:,]?\s*", "", words, flags=re.I).strip() or words
-        out.append((str(ch.get("date")), 1 - i / 100000.0, K.row(title, K.clip(gist[:1].upper() + gist[1:], 8, 46), right=STATUS.get(ch.get("status")), icon="pencil" if fix else "check",
+        out.append((str(ch.get("date")), 1 - i / 100000.0, K.row(title, K.clip(gist[:1].upper() + gist[1:], 8, 46), right="Fixed" if fix and ch.get("status") == "live" else STATUS.get(ch.get("status")),
+                                                                icon="pencil" if fix else "check",
                                                                 tag="fix" if fix else "change", to=K.to_page(pg))))
     return out
 
@@ -327,6 +328,19 @@ def home_notices(j, c: dict) -> list[dict]:
     return out[:3]
 
 
+def _coin_boxes(j, pages: list[dict]) -> list[dict]:
+    """Home's first box: the three coins, each with its price now, its move since the daily close and its last 60 closes."""
+    out = []
+    for p in pages:
+        chg, _, since = str(p.get("sub") or "").partition(" ")
+        ok = chg[:1] in "+−-"
+        cc = (S._safe(S.coin_chart, j, p.get("coin") or "BTC", default={}) or {}).get("chart") or {}
+        out.append(K.box(p.get("label"), p.get("value") or "—", change=chg if ok else None, tone=p.get("tone"), since=since if ok else None,
+                         caption=None if ok else K.clip(p.get("sub"), 4, 24), spark=K.thin((cc.get("closes") or [])[-60:], 30),
+                         to=K.place("why") if p.get("coin") == "BTC" else K.place("coin:" + str(p.get("coin")))))
+    return out
+
+
 def home(j) -> dict:
     c = _ctx(j)
     b, pos, now = c["b"], c["pos"], c["now"]
@@ -335,9 +349,6 @@ def home(j) -> dict:
     run = S._running(c["health"])
     line, sub = _headline(c)
     pages = S._coin_pages(j, c["dial"], now, c["closes"])
-    btc = pages[0] if pages else {}
-    chg, _, since = str(btc.get("sub") or "").partition(" ")
-    cc = (S._safe(S.coin_chart, j, "BTC", default={}) or {}).get("chart") or {}
     coins = sum(p["value"] or 0 for p in pos)
     you = you_rows(c["list"])
     ev = _events(j, c)
@@ -352,9 +363,11 @@ def home(j) -> dict:
                     tone=S._tone(ret), since=f"since {S._dw(b.get('started'))}" if b.get("started") else None,
                     status={"ok": bool(run.get("ok")), "words": "Running" if run.get("ok") else "Needs a look"}),
              K.today("Today", line, sub, to=K.place("why")),
-             K.boxes([K.box("Bitcoin", btc.get("value") or "—", change=chg or None, tone=btc.get("tone"), since=since or None, spark=K.thin((cc.get("closes") or [])[-60:], 30), to=K.tab("markets")),
-                      K.box("In coins", S._cad(coins, 0), bar=[round(coins / value, 3) if value else 0], caption="All in cash" if not pos else f"{len(pos)} coin{'s' if len(pos) != 1 else ''} · {S._cad(b.get('cash_cad'), 0)} cash",
-                            to=K.place("account"))]),
+             K.boxes([K.paged(_coin_boxes(j, pages)),
+                      K.paged([K.box("In coins", S._cad(coins, 0), bar=[round(coins / value, 3) if value else 0],
+                                     caption="All in cash" if not pos else f"{len(pos)} coin{'s' if len(pos) != 1 else ''}", to=K.place("account")),
+                               K.box("Cash", S._cad(b.get("cash_cad"), 0), bar=[0, round((b.get("cash_cad") or 0) / value, 3) if value else 0],
+                                     caption=f"{round(100 * (b.get('cash_cad') or 0) / value)}% of the book" if value else None, to=K.place("account"))])]),
              K.rows("Needs you", you[:3], count=len(you), badge=True, more=K.place("notices")) if you else None,
              K.rows("What Ananta did", did, more=K.tab("activity")) if did else None,
              K.notices(home_notices(j, c))]

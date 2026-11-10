@@ -79,8 +79,11 @@ def test_india_home_and_what_moved_down_a_level(india):
     today = next(p for p in h["parts"] if p["t"] == "today")
     assert today["line"] == "No change on Wednesday." and today["label"] == "Before the open · Wed 11 Nov"
     assert any(p["t"] == "needs" for p in h["parts"])                       # the open list fills it (/v3/place/needs)
-    box = next(p for p in h["parts"] if p["t"] == "boxes")["items"][0]
+    boxes = next(p for p in h["parts"] if p["t"] == "boxes")["items"]
+    box = boxes[0]
     assert box["change"] == "+0.2%" and box["since"] == "Mon 9 Nov"
+    assert [x["label"] for x in box["pages"]] == ["Nifty 50", "Bank Nifty"] and box["pages"][1]["change"] == "+1.5%"
+    assert [x["label"] for x in boxes[1]["pages"]] == ["In stocks", "Options"] and boxes[1]["pages"][1]["value"] == "₹50,000"
     did = json.dumps(next(p for p in h["parts"] if p.get("title") == "What Ananta did"), ensure_ascii=False)
     assert "Options · Bank Nifty short" in did and "−₹6,054" in did
     # coverage: holdings with grade and action, the replacements, the options book, the plan

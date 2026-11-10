@@ -305,6 +305,35 @@ def test_the_account_chart_is_the_recorded_nights_against_the_yardsticks(monkeyp
     assert e["chart"]["dates"] == [] and "nothing to draw yet" in e["words"]
 
 
+def test_the_routes_answer_the_signed_in_owner_only(monkeypatch):
+    pytest.importorskip("fastapi")
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    from jarvis.service import app as appmod, feed
+    from tests.test_ask_ananta import _jarvis
+
+    j, _ = _jarvis()
+    monkeypatch.setattr(appmod, "_J", j)
+    monkeypatch.setattr(appmod, "_JG", {})
+    monkeypatch.setattr(appmod, "_A", {})
+    bars = _bars()
+    monkeypatch.setattr(feed, "daily", lambda j, coin: bars)
+    c = TestClient(appmod.app)
+    h = {"Authorization": f"Bearer {j.login('o@x.com', 'pw pw pw pw 1')}"}
+    r = c.get("/v3/surface/chart/BTC", headers=h)
+    assert r.status_code == 200 and r.json()["name"] == "Bitcoin" and len(r.json()["chart"]["closes"]) == 120, r.text
+    assert c.get("/v3/surface/chart/DOGE", headers=h).status_code == 404
+    assert c.get("/v3/surface/chart/BTC").status_code == 401, "signed in only"
+    p = c.get("/v3/surface/chart/PORTFOLIO", headers=h)
+    assert p.status_code == 200 and p.json()["kind"] == "portfolio" and "nothing to draw yet" in p.json()["words"], p.text   # a book not started yet
+    t = c.get("/v3/surface/today", headers=h)                                 # the whole Today through the route, on a fresh test service
+    assert t.status_code == 200 and t.json()["headline"] and [x["id"] for x in t.json()["tiles"]] == ["market", "account"], t.text
+    assert all(card["points"] for card in t.json()["cards"])
+    for name in ("money", "proof"):
+        assert c.get(f"/v3/surface/{name}", headers=h).status_code == 200
+
+
 # ---------------------------------------------------------------------------------------------------------------- display only; the app
 
 def test_the_surfaces_only_read():

@@ -796,9 +796,20 @@ def account_chart(j) -> dict:
     gap = _safe(book_gap, j, b, default=[]) or []
     if gap:
         words += " " + gap_words(gap)
+    for r in _safe(_repairs, j, default=[]) or []:           # a correction is said: the nights before it were recorded without that money
+        if str(r.get("day") or "") > dates[-1] or str(r.get("day") or "") in dates[-14:]:
+            words += (f" Corrected on {_dw(r.get('day'))}: {_cad(r.get('cash_added'))} from a trade whose sale had not been recorded; "
+                      "the nights before that were recorded without it."
+                      + (f" The book stands at {_cad(b.get('value_cad'))} now." if isinstance(b.get("value_cad"), (int, float)) else ""))
     return {"name": "Your account on paper", "kind": "portfolio", "ccy": "CAD", "as_of": _dm(dates[-1]) + " close", "start_cad": start, "sessions": len(dates) - 1,
             "chart": {"dates": dates, "yours": yours, "untouched": hold, "nifty500": hurdle}, "legend": legend, "lines": lines,
             "x_labels": [_dm(dates[0]), _dm(dates[-1])], "words": words, "note": note}
+
+
+def _repairs(j) -> list[dict]:
+    """Corrections written into the $500 book's own state with Madhav's yes (each: day, what, cash_added)."""
+    from jarvis.service import ndax_book
+    return list((ndax_book._get(j, "state") or {}).get("repairs") or [])
 
 
 def chart(j, name: str) -> dict:

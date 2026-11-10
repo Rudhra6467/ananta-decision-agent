@@ -299,6 +299,10 @@ def test_the_account_chart_is_the_recorded_nights_against_the_yardsticks(monkeyp
     assert c["x_labels"] == ["10 Oct", "9 Nov"] and c["as_of"] == "9 Nov close" and all(len(v) <= 20 for v in c["legend"].values())   # one line each on a phone
     assert c["words"].startswith("The $500 book stood at C$439.49 at the Mon 9 Nov close: −12.1% since it started with C$500 on Sun 11 Oct.")
     assert "Drawn from 4 recorded nights and the start." in c["words"] and "Under check" not in c["words"]
+    # a correction written into the book with Madhav's yes is said under the chart: the nights before it were recorded without that money
+    from jarvis.service import ndax_book
+    ndax_book._put(j, "state", {"repairs": [{"day": "2026-11-10", "what": "a sale recorded late", "cash_added": 28.06}]})
+    assert "Corrected on Tue 10 Nov: C$28.06 from a trade whose sale had not been recorded" in S.chart(j, "PORTFOLIO")["words"]
     # no nightly record yet: an empty chart that says so
     (tmp_path / "b").mkdir()
     e = S.account_chart(_j_with_fills(tmp_path / "b", []))

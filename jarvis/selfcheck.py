@@ -141,6 +141,34 @@ def _leftovers(db: Path = CRYPTO_DB) -> list[dict]:
              "what": f"a test card is waiting in your approvals though you never asked for it: {s[:100]}"} for _, s in rows]
 
 
+def _book500(db: Path = CRYPTO_DB) -> list[dict]:
+    """10 Nov 2026 (Madhav: "Yes to all"): the $500 book's trades and its holdings agree. Every coin's buys less its sells must be what the
+    book holds; on 28 Oct 0.008315 ETH left the holdings without a sale and nothing noticed for 13 days. Read-only."""
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
+        fills = con.execute("SELECT coin, side, qty FROM book500_fills").fetchall()
+        row = con.execute("SELECT v FROM book500 WHERE k='state'").fetchone()
+        con.close()
+    except sqlite3.Error:
+        return []
+    try:
+        held = {c: float(p.get("qty") or 0) for c, p in ((json.loads(row[0]) if row else {}).get("pos") or {}).items()}
+    except (ValueError, TypeError, AttributeError):
+        return []
+    net: dict[str, float] = {}
+    for coin, side, qty in fills:
+        net[coin] = net.get(coin, 0.0) + (qty if side == "BUY" else -qty)
+    out = []
+    for coin in sorted(set(net) | set(held)):
+        diff = net.get(coin, 0.0) - held.get(coin, 0.0)
+        if abs(diff) > 1e-9:
+            out.append({"market": "crypto", "severity": "high", "source": "book check",
+                        "what": (f"the $500 book's trades and holdings disagree on {coin}: {abs(diff):.6g} {coin} "
+                                 + ("was bought and never sold, yet is not held" if diff > 0 else "is held or sold with no buy on record")
+                                 + ", so the book's value is wrong until it is put right")})
+    return out
+
+
 def _restarts(now: float) -> list[dict]:
     out = []
     for f in sorted((HOME / "ananta_runs" / "stalls").glob("*_*.txt")) if (HOME / "ananta_runs" / "stalls").exists() else []:
@@ -367,7 +395,7 @@ def refresh(now: float | None = None, opener=None, write: bool = True, post=None
     items: list[dict] = []
     for name, fn in (("runs", lambda: _runs(now)), ("services", lambda: _services(opener)), ("answers", _answers),
                      ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac), ("gates", _gates), ("rx_order", _rx_order),
-                     ("agree", lambda: _agree(now))):
+                     ("agree", lambda: _agree(now)), ("book500", _book500)):
         try:
             items += fn()
         except Exception as exc:  # noqa: BLE001  one check failing is itself a finding, never a crash
@@ -423,12 +451,13 @@ CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hour
           ("watchdog", "no watchdog restart"), ("credit", "Claude answers (the API credit is there)"),
           ("mac", "the Mac has memory and CPU to spare"), ("gates", "the India firewall, leak check and integrity check pass"),
           ("rx_order", "the reconstruction cards come after the trials (India) and the missed-move review (crypto)"),
-          ("agree", "the parts agree with each other: the right day, matching counts, no number stuck at zero, nothing waiting over a week"))
+          ("agree", "the parts agree with each other: the right day, matching counts, no number stuck at zero, nothing waiting over a week"),
+          ("book500", "the $500 book's trades and its holdings agree"))
 
 
 SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",
                 "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac", "firewall": "gates", "leakcheck": "gates", "integrity": "gates",
-                "reconstruction order": "rx_order", "self-scan": "agree", "Mac asleep": "runs"}
+                "reconstruction order": "rx_order", "self-scan": "agree", "Mac asleep": "runs", "book check": "book500"}
 
 
 def fine(c: dict) -> list[str]:

@@ -299,6 +299,11 @@ def step(j, get=None, now: float | None = None) -> dict:
     risk_open = lambda: sum(p.get("risk", 0) for p in s["pos"].values() if p["sleeve"] != "CORE")  # noqa: E731
 
     def buy(c, sleeve, value_cad, why, **extra):
+        # 10 Nov 2026 (Madhav: "Yes to all"): the book keeps one holding a coin, so a buy never lands on a coin held in another sleeve.
+        # On 28 Oct the core's ETH buy replaced an edge trade in ETH and its 0.008315 ETH left the book without a sale.
+        if c in s["pos"] and s["pos"][c].get("sleeve") != sleeve:
+            out["skipped"].append(f"{c}: already held as {str(s['pos'][c].get('sleeve') or 'another').lower()}; a {sleeve.lower()} buy would replace it")
+            return False
         S = C.get(c)                                  # the trade guard: the kill switch and this coin's daily candle (the fill
         gwhy = trade_guard.blocked(j, "BOOK500", c, daily_t=S.t[-1] if S and S.t else 0)   # already needs a live NDAX quote)
         if gwhy:

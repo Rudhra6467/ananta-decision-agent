@@ -73,6 +73,52 @@ def test_step_fills_inside_bid_and_ask(tmp_path, monkeypatch):
     assert ndax_book.step(j, get=get).get("skipped")                          # one step per daily close
 
 
+def test_a_core_buy_never_replaces_a_trade_in_the_same_coin(tmp_path, monkeypatch):
+    """10 Nov 2026 (Madhav: "Yes to all"): on 28 Oct the core's ETH buy replaced an edge trade in ETH, and 0.008315 ETH left the book
+    without a sale. A buy now never lands on a coin held in another sleeve, and the book's trades and holdings keep agreeing."""
+    from jarvis import selfcheck
+    from jarvis.service import feed, ndax_book, registry
+
+    start = int(time.time()) - 300 * DAY
+    start -= start % DAY
+    monkeypatch.setattr(feed, "daily", lambda j, c: _bars(300, start))
+    monkeypatch.setattr(registry, "load", lambda j: {"coins": {"BTC": {"ndax": True, "tier": "A"}, "ETH": {"ndax": True, "tier": "A"}}})
+    monkeypatch.setattr(B, "h07_exit", lambda S, i: False)                    # the trade's own exit is not due
+    ndax_book._CACHE.clear()
+
+    def get(url):
+        if "GetInstruments" in url:
+            return [{"Product1Symbol": c, "Product2Symbol": "CAD", "InstrumentId": i, "MinimumQuantity": 1e-5, "QuantityIncrement": 1e-8}
+                    for i, c in ((1, "BTC"), (2, "ETH"))]
+        if "valet" in url:
+            return {"observations": [{"d": "2026-10-09", "FXUSDCAD": {"v": "1.40"}}]}
+        return {"BestBid": 99.0, "BestOffer": 101.0}
+
+    j = J(tmp_path)
+    ndax_book._table(j)
+    now = int(time.time())
+    j.db.execute("INSERT INTO book500_fills VALUES (?,?,?,?,?,?,?,?,?,?)", (now - DAY, "ETH", "BUY", "EDGE", 0.3, 100.0, 99.0, 100.0, 0.06, "H07"))
+    ndax_book._put(j, "state", {"started": "2026-10-11", "cash": 470.0, "closed": [], "brakes": {}, "judged": [],
+                                "pos": {"ETH": {"sleeve": "EDGE", "qty": 0.3, "paid": 30.06, "t": now - DAY, "day": "2026-10-26", "last": 99.0,
+                                                "book_value": 500.0, "dial": False, "rule": "H07"}}})
+    out = ndax_book.step(j, get=get, now=now)
+    st = ndax_book.status(j)
+    assert st["positions"]["ETH"]["sleeve"] == "EDGE" and st["positions"]["ETH"]["qty"] == 0.3, "the trade is still held, whole"
+    assert any(x.startswith("ETH: already held as edge") for x in out["skipped"]), out
+    assert {b.split()[0] for b in out["bought"]} == {"BTC"}                   # the core's other coin goes in as before
+    j.db.commit()
+    assert selfcheck._book500(tmp_path / "jarvis.sqlite") == []               # every coin's buys less its sells is what the book holds
+    # and the check speaks when a holding leaves the book without a sale
+    s = ndax_book._get(j, "state")
+    del s["pos"]["ETH"]
+    ndax_book._put(j, "state", s)
+    j.db.commit()
+    said = selfcheck._book500(tmp_path / "jarvis.sqlite")
+    assert len(said) == 1 and said[0]["severity"] == "high" and said[0]["market"] == "crypto"
+    assert "disagree on ETH: 0.3 ETH was bought and never sold, yet is not held" in said[0]["what"]
+    assert selfcheck._book500(tmp_path / "no_such.sqlite") == []              # no book: nothing to say
+
+
 def test_live_guard_brakes_and_limits(tmp_path, monkeypatch):
     from jarvis.service import live_guard as G, ndax_book
 

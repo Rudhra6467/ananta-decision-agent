@@ -333,7 +333,10 @@ def file_failed_checks(j, checks: list[dict]) -> list[int]:
         except Exception:  # noqa: BLE001
             pass
         try:
-            r = fixflow.flag(j, f"Officer check {c['id']} failed: {c['words']} (discipline item 8)", market="crypto", screen="officer", use_ai=False)
+            r = fixflow.flag(j, f"Officer check {c['id']} failed: {c['words']} (discipline item 8)", market="crypto", screen="officer", use_ai=False,
+                             topic=f"officer:{c['id']}", waits="WORK")           # 10 Nov 2026: a check failing again joins its open item (it was filed three times)
+            if r.get("joined"):
+                continue
             try:
                 j.db.execute("UPDATE owner_requests SET about=? WHERE num=?", (key, r["num"]))
                 j.db.commit()

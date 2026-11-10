@@ -658,7 +658,8 @@ def forward(j, rb: dict | None = None, log_request: Callable | None = None, comp
     U-15M). Missed-move repeats are forwarded by the missed-move loop (tier UNIV)."""
     from jarvis.service import brain, feed, requests_log
 
-    add = log_request or (lambda kind, text, about: requests_log.add(j, kind, text, about, by="ananta-auto"))
+    # 10 Nov 2026: each of these findings has one name (its `about`), so the same finding on a later day joins the open item
+    add = log_request or (lambda kind, text, about: requests_log.add(j, kind, text, about, by="ananta-auto", topic=about))
     day = time.strftime("%Y-%m-%d", time.gmtime(j.now()))
     out = []
 

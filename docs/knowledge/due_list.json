@@ -8,7 +8,8 @@
    "how": "If it is overdue on a Monday the Sunday run failed: read the 'steps that failed tonight' line in the newest daily/universe note and grep the service log for 'weekly', fix the cause, run learning.weekly_review once by hand, then mark this done.",
    "due": "2026-10-18",
    "cadence": "weekly",
-   "owner": "automatic"
+   "owner": "automatic",
+   "plain": "The weekly situation review, written by itself every Sunday night."
   },
   {
    "id": "STANCE-CHECK",
@@ -32,7 +33,8 @@
    "how": "Read ndax_spreads.table() beside the cost table and report the gaps to Madhav. The table changes only with his yes and a dated line in ndax_costs.py (tests/test_ndax_costs.py pins it). Mark this done with 'no change' or what he decided.",
    "due": "2026-11-01",
    "cadence": "monthly",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Monthly check of NDAX's trading costs against the cost table."
   },
   {
    "id": "CHECKPOINT-30",
@@ -40,7 +42,8 @@
    "how": "Open the Evidence page and docs/LOCK.md (section Checkpoints): the counts for Q1, Q2 and Q5-Q8, whether both dial states have been seen, execution fidelity so far, the Acceptance Gate (27 checks) and that every nightly step ran. Write a short day-30 note in docs/repair_shop/ and tell Madhav.",
    "due": "2026-11-14",
    "cadence": "once",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Day 30 of the crypto evidence window: read every evidence count and make sure nothing is stuck."
   },
   {
    "id": "CHECKPOINT-60",
@@ -48,7 +51,8 @@
    "how": "Run the Acceptance Gate and the graduation scorecard, write the result in docs/repair_shop/, list what passed and what did not, and put the real-money decision to Madhav. Real money is his decision alone and never starts by itself. Then open the after-the-window list.",
    "due": "2026-12-14",
    "cadence": "once",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Day 60: the crypto evidence window ends and Rule A (no real money before it) is judged for you. This is the scorecard's review day."
   },
   {
    "id": "ZONES-JUDGE",
@@ -56,7 +60,8 @@
    "how": "At day 60 read the live zone visits by kind (held, broken, open), count independent market events among them, and write the result beside zones_status.json. Entering a zone is not a trade by itself.",
    "due": "2026-12-14",
    "cadence": "once",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Judge the live record of price zones. They stay a label, never a trade."
   },
   {
    "id": "Q-R2-HL",
@@ -64,7 +69,8 @@
    "how": "Per ledger.json study R2: pull fresh Hyperliquid fills into HL.sqlite, then python -m src.research.review2_traders analyze --db LAB5 --hl HL.sqlite --out DIR. The after-window HL-RX question (PW-HL-RX) can share the same pull.",
    "due": "2027-01-01",
    "cadence": "quarterly",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Quarterly refresh of the other-traders study (reference only; nobody is copied)."
   },
   {
    "id": "Q-ME1",
@@ -72,7 +78,8 @@
    "how": "The Grok-era script me1_move_freq_v0.py lives only in the frozen folder. Rebuild the table from the 5-minute bars as a small counted script with the same horizons and thresholds, log the full date range it read (RESEARCH_RULES.md section 2), and compare with the Sep 13 table. Frequencies only; no rule changes.",
    "due": "2027-01-01",
    "cadence": "quarterly",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Quarterly refresh of the sheet of how often coins move 0.5%, 1% or 2% within minutes to hours."
   },
   {
    "id": "Q-F6",
@@ -80,7 +87,8 @@
    "how": "Re-run the comparison on data after the earlier tests, counted as one variant, with the pass rule written first. Report the numbers; the gate stays as it is unless Madhav decides otherwise.",
    "due": "2027-01-01",
    "cadence": "quarterly",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Quarterly re-measure of 'market allowed' (Bitcoin above its 50-day average)."
   },
   {
    "id": "Q-H01",
@@ -88,7 +96,8 @@
    "how": "Re-measure the gate's edge on data after the earlier tests, pre-registration first (RESEARCH_RULES.md section 1). Report; the gate stays unless Madhav decides otherwise.",
    "due": "2027-01-01",
    "cadence": "quarterly",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Quarterly re-measure of the rule 'buy only when the whole market is in an uptrend'."
   },
   {
    "id": "Q-T3",
@@ -96,7 +105,8 @@
    "how": "Read the live book against its backtest (Q2) and the 30-coin tier (Q8), then write one line: keep, change or stop, with numbers. Madhav decides; nothing changes by itself.",
    "due": "2027-01-01",
    "cadence": "quarterly",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Quarterly re-judge of the 10-coin trend portfolio."
   },
   {
    "id": "Q-NEWS-CREDIT",
@@ -104,7 +114,8 @@
    "how": "Count coin-days and weeks with outcomes first (counts only). When every flag has 10 weeks with both sides and an outcome, compute the eight comparisons once and put the result in the repair shop. A pass is a proposal for after the window, never a live change.",
    "due": "2027-01-01",
    "cadence": "quarterly",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Quarterly scoring of the daily news check and the layer signals."
   },
   {
    "id": "EV-Q1",
@@ -112,7 +123,8 @@
    "how": "When the Evidence page shows 10 of 10, write the one-line result with the numbers into ledger.json (Q1 done, live against replay), then mark this done.",
    "cadence": "evidence",
    "goal": "10 independent market events of Explorer trades (one count)",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Evidence still being counted: does the live Explorer behave like its 7-year replay?"
   },
   {
    "id": "EV-Q2",
@@ -120,7 +132,8 @@
    "how": "After 6 weekly rebalances (first decision 2026-09-30, so about 2026-11-11) read portfolio_book.sqlite against the backtest, write the one-line result in ledger.json and mark this done. It feeds Q-T3 and CHECKPOINT-30.",
    "cadence": "evidence",
    "goal": "6 weekly rebalances of the 10-coin trend book",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Evidence still being counted: does the live 10-coin trend book follow its backtest?"
   },
   {
    "id": "EV-Q5",
@@ -128,7 +141,8 @@
    "how": "Count market days with a live fire, not fires. At 10, compare them with random days and with the history test (reads_status.json) and write the result in ledger.json. M1a has never fired in any tier; if it still has not by CHECKPOINT-60, say so plainly.",
    "cadence": "evidence",
    "goal": "10 market days with a live signal from the setups",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Evidence still being counted: the live record of your own setups."
   },
   {
    "id": "EV-Q6",
@@ -136,7 +150,8 @@
    "how": "Count market days with a live H07 signal. At 10, write the result in ledger.json and tell Madhav. H07 fires on paper in either dial state; the $500 book's edge sleeve takes it only while the dial is closed.",
    "cadence": "evidence",
    "goal": "10 market days with a live H07 signal",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Evidence still being counted: the live record of the short dip trade."
   },
   {
    "id": "EV-Q7",
@@ -144,7 +159,8 @@
    "how": "At 10 independent market events compare the book with its random twins per $100, write the result in ledger.json and tell Madhav. It decides nothing by itself.",
    "cadence": "evidence",
    "goal": "10 independent market events of Jarvis's book",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Evidence still being counted: is Jarvis's own book better than random coins?"
   },
   {
    "id": "EV-Q8",
@@ -152,7 +168,8 @@
    "how": "After 6 weekly checks of the 30-coin trend book and 10 dip-trade events read both books and write the result in ledger.json. Promotion needs the pass rule, the Acceptance Gate and Rule A; Madhav decides.",
    "cadence": "evidence",
    "goal": "6 weekly checks of the 30-coin trend book and 10 dip-trade events",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Evidence still being counted: the 30-coin tier's trend book and dip trade on live paper."
   },
   {
    "id": "EV-DIAL-CLOSED",
@@ -160,7 +177,8 @@
    "how": "When the dial closes and later reopens, re-read every universe scoreboard per regime (universe_watch) and the wording on H07 read alerts, which was written while only the dial-open state had live data. Tick this when both states have a live record.",
    "cadence": "evidence",
    "goal": "the dial has closed once and reopened (both states seen)",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Evidence still being counted: a spell with buying off (Rule A needs both states seen)."
   },
   {
    "id": "OD-A6-EXAM",
@@ -506,7 +524,8 @@
    "how": "Rehearse docs/LIVE_MONEY_SAFETY.md section 6 on paper (kill switch on: no new entries, every paper position flattened; off: trading resumes), write the result in docs/repair_shop/, then mark this done: python3 ~/ananta_runs/svc_env_run.py \"from jarvis.service import core, due_list; j=core.from_env(); print(due_list.mark_done(j,'ENGINE-RISK-REHEARSAL','rehearsed, passed'))\". A failed rehearsal is a FAIL on the gate and a repair-board request.",
    "due": "2026-10-30",
    "cadence": "monthly",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Monthly rehearsal of the kill switch, the stops and the caps."
   },
   {
    "id": "PW-RULEBOOK-V1",
@@ -521,7 +540,8 @@
    "how": "For each hand-written check in docs/knowledge/acceptance_gate.json, re-check its evidence on today's data; if it still holds, set a new evidence date with what was checked; if not, let it read PARTLY and say why in the morning review.",
    "due": "2026-11-04",
    "cadence": "monthly",
-   "owner": "Claude"
+   "owner": "Claude",
+   "plain": "Monthly re-dating of the hand-written gate checks (each expires after 30 days)."
   }
  ]
 }

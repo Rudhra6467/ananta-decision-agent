@@ -455,9 +455,29 @@ def waiting_list(who: str = Depends(owner)) -> dict:
     """28 Oct (Madhav): everything waiting for his yes (India drafts, flags waiting for a pick, crypto decisions), for the bar on every screen."""
     if is_guest(who):
         return {"items": [], "count": 0, "key": "", "line": ""}
-    from jarvis.service import waiting
+    from jarvis.service import openlist, waiting
 
-    return waiting.collect(_main())
+    out = waiting.collect(_main())
+    try:                                             # 10 Nov 2026: the India Ask reads the bar from here; it gets the open list with it
+        out["open"] = openlist.short(_main(), market="india")
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
+@app.get("/v3/open")
+def open_list(who: str = Depends(owner), market: str | None = None) -> dict:
+    """10 Nov 2026 (Madhav: "comprehend this into a single set"): the one open list: what needs his yes, what is work to do, what waits
+    for a date or for evidence, and what is parked on purpose (jarvis/service/openlist.py)."""
+    if is_guest(who):
+        return {"line": "", "you": [], "work": [], "dated": [], "parked": [], "counts": {}}
+    from jarvis.service import openlist
+
+    d = openlist.collect(_main())
+    if market in ("crypto", "india"):
+        for k in ("you", "work", "dated", "parked"):
+            d[k] = [x for x in d[k] if x.get("market") in (market, "both")]
+    return d
 
 
 class NeedsIn(BaseModel):
@@ -2038,6 +2058,12 @@ def background_jobs() -> dict:
     try:
         from jarvis.service import requests_log
 
+        try:                                                         # 10 Nov 2026: a fix closes its item (the change book's `closes`)
+            from jarvis.service import openlist
+
+            out["closed_by_change_book"] = openlist.apply_closes(J())
+        except Exception as exc:  # noqa: BLE001
+            out["closes_error"] = str(exc)[:200]
         out["requests"] = requests_log.notify(J(), push=_push)       # "Fixed: request 4" on the phone
     except Exception as exc:  # noqa: BLE001
         out["requests_error"] = str(exc)[:200]

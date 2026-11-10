@@ -10,7 +10,7 @@ T = {"paper_only": True, "start_cad": 500.0, "value_cad": 467.55, "cash_cad": 46
      "closed_trades": 9, "closed_won": 1, "dial_open": False, "candle_day": "2026-11-09", "btc_close": 75368.0, "avg50": 79321.0, "avg200": 73209.0,
      "btc_vs_avg50_pct": -5.0, "btc_vs_avg200_pct": 2.9, "core_mode": "all_in", "core_weights_pct": {"BTC": 40, "ETH": 20},
      "btc_live": 74000.0, "safety_stops_pct": {"day_loss": 2.0, "week_loss": 4.0, "fall_from_peak": 15.0}, "window_day": 27, "window_of": 60, "round_trips_needed": 50,
-     "clean_nights": {"in_a_row": 0, "need": 30}, "repairs": [], "fills_last_14_days": []}
+     "clean_nights": {"in_a_row": 0, "need": 30}, "repairs": [], "fills_last_14_days": [], "open_list": {"needs_your_yes": 2, "work_to_do": 5}}
 
 RIGHT = {
     "value": "The $500 book is worth C$467.55 right now.",
@@ -30,8 +30,10 @@ RIGHT = {
     "window": "Today is day 27 of 60.",
     "round_trips": "The book has closed 9 round trips of the 50 it needs.",
     "stops": "A 2% loss in a day, a 4% loss in a week, and a 15% fall from the peak.",
+    "open_yes": "Two things are waiting for your yes, sir: flag 74 and flag 75.",
 }
 WRONG = {
+    "open_yes": "Nothing is waiting for your yes, sir.",
     "value": "The $500 book is worth C$439.49 right now.",
     "cash": "It holds C$300.00 in cash and C$167.55 in coins.",
     "return": "It is up 6.5% since it started.",

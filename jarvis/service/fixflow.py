@@ -94,7 +94,8 @@ def _fallback(text: str) -> dict:
                         {"title": "Investigate and tell me first", "what": "The worker finds the cause and writes a plan; nothing changes until you say yes."}]}
 
 
-def flag(j, text: str, market: str = "crypto", screen: str = "", route: str = "", post=None, use_ai: bool = True, notes_only: bool = False) -> dict:
+def flag(j, text: str, market: str = "crypto", screen: str = "", route: str = "", post=None, use_ai: bool = True, notes_only: bool = False,
+         topic: str | None = None, waits: str | None = None) -> dict:
     """File the request now and offer the fixes. Returns the request number, the diagnosis and the options with their lanes.
     notes_only (Madhav, 2 Nov 2026: "lets set it back to where just ananta notes it. and we here work on it. it can add a comment if i ask it
     to"): his own flags are noted with his words and nothing else: no fix menu, no repair worker; they are worked on with Claude outside the app."""
@@ -106,11 +107,18 @@ def flag(j, text: str, market: str = "crypto", screen: str = "", route: str = ""
     if not text:
         raise ValueError("say what is wrong")
     where = f"[{'Indian market' if market == 'india' else 'Crypto'} · {screen or route or 'app'}] "
-    req = requests_log.add(j, "bug", where + text, about=f"flag:{market}:{screen or route}"[:120], by="owner")
+    # 10 Nov 2026 (the open list): a finding Ananta files by itself (a failed check, a wrong test answer, a reconstruction finding) is work for
+    # a work session, not a choice put to Madhav: it is noted with its kind, and the bar does not ask him to "pick a fix" for it
+    notes_only = notes_only or waits in ("WORK", "DATE", "PARKED")
+    req = requests_log.add(j, "bug", where + text, about=f"flag:{market}:{screen or route}"[:120], by="owner", topic=topic, waits=waits)
     num = req["num"]
+    if req.get("joined"):                                     # 10 Nov 2026: seen again (the same topic): it joined the open item, no new flow
+        return {"num": num, "duplicate": True, "joined": True, "seen": req.get("seen")}
     old = j.db.execute("SELECT options FROM fix_flow WHERE num=?", (num,)).fetchone()
     if old:                                                   # the same words again: the same request and its options
         return {"num": num, "duplicate": True, **json.loads(old[0])}
+    if req.get("duplicate"):                                  # the same words as an open request that has no flow: no new flow either
+        return {"num": num, "duplicate": True}
     if notes_only:
         now = int(time.time())
         body = {"diagnosis": "", "title": text[:160], "note": text, "options": []}

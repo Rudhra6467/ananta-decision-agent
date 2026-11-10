@@ -32,6 +32,7 @@ AREAS = ("voice", "ask", "app", "today_screen", "options", "stocks", "managed_bo
          "other")
 STATUSES = ("live", "built", "parked", "reverted", "decided")
 KEYS = ("date", "market", "area", "words", "why", "status", "checked", "commits", "source")
+OPTIONAL_KEYS = ("closes",)     # 10 Nov 2026: the open-list items this change closes: stored numbers, or {"num", "how", "done", "quiet"} (openlist.apply_closes)
 MARKET_WORDS = {"india": "India", "crypto": "crypto", "both": "both markets"}
 STATUS_WORDS = {"live": "", "built": " (built, not running yet)", "parked": " (parked)", "reverted": " (undone)", "decided": " (your decision)"}
 MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
@@ -388,7 +389,10 @@ def reviews(days: float = 7, now: float | None = None) -> list[str]:
     return out
 
 
-REVIEW_KEEP = ("Overnight", "Ananta on itself", "Never again", "Evidence", "Fixed today", "Waiting for Madhav", "Board")   # in budget order
+# 10 Nov 2026 (the open list): the page's own "Waiting for Madhav" and "Board" lists are no longer carried by the voices. They were written
+# at 07:25 and said all day what had waited that morning; on 10 Nov two items they named were fixed by noon. What is open comes from the open
+# list, live (jarvis/service/openlist.py).
+REVIEW_KEEP = ("Overnight", "Ananta on itself", "Never again", "Evidence", "Fixed today")   # in budget order
 CRYPTO_REVIEWS = REPO / "docs" / "repair_shop" / "daily"
 
 

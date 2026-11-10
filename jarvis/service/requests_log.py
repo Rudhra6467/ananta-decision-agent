@@ -22,7 +22,10 @@ EXAM_THREAD = "exam-"      # jarvis/service/exam.py names its threads exam-<time
 EXAM_NOTE = "Made by the agent exam (a test question), not by Madhav."
 STATUSES = ("OPEN", "PLANNED", "DONE", "WONT")
 STATUS_WORDS = {"OPEN": "on the list", "PLANNED": "planned for the next work session", "DONE": "fixed", "WONT": "closed without a change"}
-COLS = ("id", "num", "t", "by", "kind", "text", "about", "thread", "status", "note", "updated_t", "pushed", "told")
+COLS = ("id", "num", "t", "by", "kind", "text", "about", "thread", "status", "note", "updated_t", "pushed", "told",
+        # 10 Nov 2026 (the open list, jarvis/service/openlist.py): what the item is about (a repeat with the same topic joins it), how many
+        # times it was seen, the last sightings, its kind (YOU | WORK | DATE | PARKED), its date, and what closed it
+        "topic", "seen", "sightings", "waits", "due", "closed_by", "line")       # line: the item in one plain sentence, when its first words are not one
 # The flag numbers restart after the 23 Oct reset (Madhav, 25 Oct: "the flag number is 90 plus. didn't we discuss to update the number?"):
 # request 82 is flag 1, 96 is flag 15. The stored number never changes (the repair ledger and the locks cite it); people see and say
 # the flag number, and every lookup takes either.
@@ -49,7 +52,8 @@ def _table(j) -> None:
     j.db.execute("CREATE TABLE IF NOT EXISTS owner_requests (id TEXT PRIMARY KEY, t INTEGER, by TEXT, kind TEXT, text TEXT, about TEXT, "
                  "thread TEXT, status TEXT, note TEXT)")
     have = {r[1] for r in j.db.execute("PRAGMA table_info(owner_requests)")}
-    for c, typ in (("num", "INTEGER"), ("updated_t", "INTEGER"), ("pushed", "INTEGER"), ("told", "INTEGER")):
+    for c, typ in (("num", "INTEGER"), ("updated_t", "INTEGER"), ("pushed", "INTEGER"), ("told", "INTEGER"), ("topic", "TEXT"), ("seen", "INTEGER"),
+                   ("sightings", "TEXT"), ("waits", "TEXT"), ("due", "TEXT"), ("closed_by", "TEXT"), ("line", "TEXT")):
         if c not in have:
             j.db.execute(f"ALTER TABLE owner_requests ADD COLUMN {c} {typ}")
     if "num" not in have:                                    # number the requests logged before numbers existed, oldest first
@@ -89,12 +93,31 @@ def get(j, ref: str | int) -> dict | None:
     return None
 
 
-def add(j, kind: str, text: str, about: str | None = None, by: str = "owner", thread: str | None = None) -> dict:
+def add(j, kind: str, text: str, about: str | None = None, by: str = "owner", thread: str | None = None, topic: str | None = None,
+        waits: str | None = None, due: str | None = None) -> dict:
+    """topic (10 Nov 2026): what the item is about, in a few fixed words. A filing with the topic of an item that is still open joins that
+    item (seen 2, seen 3 ...) and keeps its latest words; it is never a second item. On 10 Nov the board held the idle-cash check three
+    times and one other-traders finding four times."""
     _table(j)
     kind = kind if kind in KINDS else "feature"
     text = (text or "").strip()[:900]
     if not text:
         raise ValueError("say what is missing or wrong")
+    if topic:
+        same = j.db.execute("SELECT id, num, seen, sightings FROM owner_requests WHERE status IN ('OPEN','PLANNED') AND topic=? ORDER BY num LIMIT 1",
+                            (topic[:120],)).fetchone()
+        if same:
+            import json as _json
+
+            seen = int(same[2] or 1) + 1
+            try:
+                log = _json.loads(same[3] or "[]")[-4:]
+            except ValueError:
+                log = []
+            j.db.execute("UPDATE owner_requests SET seen=?, sightings=? WHERE id=?", (seen, _json.dumps(log + [[int(j.now()), text[:300]]]), same[0]))
+            j.db.commit()
+            return {"id": same[0], "num": same[1], "status": "OPEN", "duplicate": True, "joined": True, "seen": seen,
+                    "say": f"That's already on the list as {label(same[1])}; this is the {seen}{'nd' if seen == 2 else 'rd' if seen == 3 else 'th'} time it was seen."}
     dup = j.db.execute("SELECT id, num FROM owner_requests WHERE status IN ('OPEN','PLANNED') AND lower(text)=lower(?)", (text,)).fetchone()
     if dup:                                                  # the same words again: no second copy
         return {"id": dup[0], "num": dup[1], "status": "OPEN", "duplicate": True,
@@ -104,7 +127,8 @@ def add(j, kind: str, text: str, about: str | None = None, by: str = "owner", th
     exam = str(thread or "").startswith(EXAM_THREAD)        # the agent exam asks through the live path: kept, but closed and labelled
     j.db.execute(f"INSERT INTO owner_requests ({', '.join(COLS)}) VALUES ({', '.join('?' * len(COLS))})",
                  (rid, num, int(j.now()), "exam" if exam else by, kind, text, (about or "")[:120], thread,
-                  "WONT" if exam else "OPEN", EXAM_NOTE if exam else "", int(j.now()), 1, 1))
+                  "WONT" if exam else "OPEN", EXAM_NOTE if exam else "", int(j.now()), 1, 1,
+                  (topic or "")[:120] or None, 1, None, waits, due, None, None))
     j.db.commit()
     return {"id": rid, "num": num, "kind": kind, "status": "OPEN",
             "say": f"Flagged as {label(num)}. It's on your flags list, and I'll tell you when it's fixed."}
@@ -126,6 +150,12 @@ def set_status(j, ref: str | int, status: str, note: str = "") -> dict:
     j.db.execute("UPDATE owner_requests SET status=?, note=?, updated_t=?, pushed=?, told=? WHERE id=?",
                  (status, (note or r["note"] or "")[:400], int(j.now()), 0 if changed and status != "OPEN" else r["pushed"],
                   0 if changed and status != "OPEN" else r["told"], r["id"]))
+    if status in ("DONE", "WONT"):                 # 10 Nov 2026 (the open list): whoever closes a request, its fix flow closes with it
+        try:
+            j.db.execute("UPDATE fix_flow SET state=?, updated_t=? WHERE num=? AND state NOT IN ('deployed','cancelled','noted')",
+                         ("deployed" if status == "DONE" else "cancelled", int(j.now()), r["num"]))
+        except Exception:  # noqa: BLE001  no fix flow table in this database
+            pass
     j.db.commit()
     return get(j, r["id"])
 
@@ -159,7 +189,7 @@ def news(j, market: str | None = None, limit: int | None = 3) -> list[dict]:
     crypto voice drained yesterday's India fixes three at a time onto the end of every answer."""
     rows = _select(j, "WHERE COALESCE(told, 1)=0 AND status IN ('PLANNED','DONE','WONT')")
     if market:
-        is_india = lambda r: str(r.get("about") or "").startswith("flag:india") or str(r.get("text") or "").startswith("[Indian market")   # noqa: E731
+        is_india = lambda r: str(r.get("about") or "").startswith(("flag:india", "note:india", "list:india")) or str(r.get("text") or "").startswith("[Indian market")   # noqa: E731
         rows = [r for r in rows if is_india(r) == (market == "india")]
     rows = rows if limit is None else rows[:limit]
     return [{"num": r["num"], "status": r["status"], "text": r["text"][:160], "note": r["note"], "say": _sentence(r)} for r in rows]

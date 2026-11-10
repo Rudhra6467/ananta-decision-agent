@@ -76,7 +76,18 @@ def truth(j) -> dict:
             "fills_last_14_days": [{"day": time.strftime("%Y-%m-%d", time.gmtime(f["t"])), "side": f["side"], "coin": f["coin"],
                                     "cad": round((f.get("qty") or 0) * (f.get("px") or 0), 2)}
                                    for f in (s.get("recent_fills") or []) if (f.get("t") or 0) >= since],
+            "open_list": _open_counts(j),
             "cannot": "the book never sells short and never places a real order; it buys or it holds cash"}
+
+
+def _open_counts(j) -> dict:
+    try:
+        from jarvis.service import openlist
+
+        d = openlist.collect(j)
+        return {"line": d["line"], "needs_your_yes": d["counts"]["YOU"], "work_to_do": d["counts"]["WORK"], "names": [str(x["id"]) for x in d["you"]][:8]}
+    except Exception as exc:  # noqa: BLE001
+        return {"error": str(exc)[:120]}
 
 
 # ---------------------------------------------------------------- code marks
@@ -197,7 +208,16 @@ def _m_stops(t, T):
     return all(re.search(rf"(?<![\d.]){v:g}\s?%|(?<![\d.]){v:g} per ?cent", t, re.I) for v in T["safety_stops_pct"].values())
 
 
-MARKS = {"value": (_m_value, lambda T: f"C${T['value_cad']:.2f}"),
+def _m_open_yes(t, T):
+    """How many things wait for his yes, as the open list counts them (or that nothing does)."""
+    n = int((T.get("open_list") or {}).get("needs_your_yes") or 0)
+    if n == 0:
+        return bool(re.search(r"\bnothing\b|\bnone\b|\bno (?:items?|things?|decisions?)\b|\bzero\b|isn't anything|is not anything", t, re.I))
+    return _has_n(t, n)
+
+
+MARKS = {"open_yes": (_m_open_yes, lambda T: f"{(T.get('open_list') or {}).get('needs_your_yes', 0)} waiting for your yes"),
+         "value": (_m_value, lambda T: f"C${T['value_cad']:.2f}"),
          "cash": (_m_cash, lambda T: f"C${T['cash_cad']:.2f} cash, C${T['coins_cad']:.2f} in coins"),
          "return": (_m_return, lambda T: f"{T['return_pct']:+.1f}%"),
          "closed": (_m_closed, lambda T: f"{T['closed_trades']} closed, {T['closed_won']} made money"),
@@ -461,7 +481,10 @@ def file_wrong(j, wrong: list[dict]) -> list[int]:
         key = f"nightcheck:{w['id']}:{week}"
         if j.db.execute("SELECT 1 FROM owner_requests WHERE about=?", (key,)).fetchone():
             continue
-        r = fixflow.flag(j, f"Night test: Ananta answered '{w['question'][:140]}' wrongly ({str(w.get('why'))[:160]})", market="crypto", screen="night test", use_ai=False)
+        r = fixflow.flag(j, f"Night test: Ananta answered '{w['question'][:140]}' wrongly ({str(w.get('why'))[:160]})", market="crypto", screen="night test",
+                         use_ai=False, topic=f"nightcheck:{w['id']}", waits="WORK")
+        if r.get("joined"):                                   # still wrong on a later night: the same item, seen again
+            continue
         j.db.execute("UPDATE owner_requests SET about=? WHERE num=?", (key, r["num"]))
         j.db.commit()
         nums.append(r["num"])

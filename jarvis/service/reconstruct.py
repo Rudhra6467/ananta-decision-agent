@@ -298,7 +298,8 @@ def forward(j, day: str, rows: list[dict]) -> dict:
                 out["skipped"].append(key)
                 continue
             try:
-                r = fixflow.flag(j, f"Reconstruction ({f['kind']}): {f['words']}", market="crypto", screen="reconstruction", use_ai=False)
+                r = fixflow.flag(j, f"Reconstruction ({f['kind']}): {f['words']}", market="crypto", screen="reconstruction", use_ai=False,
+                                 topic=f"reconstruction:{f['kind']}", waits="WORK")
                 j.db.execute("INSERT INTO rx_queue VALUES (?,?,?,?,?,?,?,?,?,?,?)", (rid, day, int(j.now()), f["kind"], "SAFE", key, f["words"],
                                                                                   json.dumps(f["evidence"], default=str), "FILED", None, f"request #{r.get('num')}"))
                 out["safe"].append(key)

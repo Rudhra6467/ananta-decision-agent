@@ -874,6 +874,8 @@
     "jarvis/service/surfaces.py",
     "jarvis/service/exam.py",
     "jarvis/service/nightcheck.py",
+    "jarvis/service/openlist.py",
+    "scripts/open_list.py",
     "scripts/run_nightcheck.py",
     "jarvis/voice/telugu_server.py",
     "jarvis/service/knowledge_build.py"

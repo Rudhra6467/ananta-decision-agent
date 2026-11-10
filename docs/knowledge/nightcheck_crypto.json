@@ -217,6 +217,14 @@
    ],
    "core": false,
    "from": "plain words"
+  },
+  {
+   "id": "open_yes",
+   "name": "what waits for your yes",
+   "q": "How many things are waiting for my yes right now, and what are they?",
+   "mark": "code:open_yes",
+   "core": false,
+   "from": "the open list of 10 Nov"
   }
  ]
 }

@@ -1668,6 +1668,13 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                                 "items": [{k: x.get(k) for k in ("title", "line", "say", "market", "fixes", "review")} for x in (wait.get("items") or [])[:6]],
                                 "how": ("say each item in plain words with one recommendation; Indian market first, crypto separately and short; no command "
                                         "phrases to learn and no fix menu (his flags are noted only since 2 Nov)")}
+    if wait is not None and wait.get("open"):                 # 10 Nov 2026 (Madhav: "comprehend this into a single set"): the one open list
+        f["open_list"] = {**wait["open"],
+                          "use": ("This is the ONLY source for whether something is open, pending, planned, waiting for his yes, parked or already done. "
+                                  "Say an item by its name in one plain line; what needs his yes first, then this market's work, then the next dates. "
+                                  "Something not on it is not open: never call a thing waiting or pending from the morning review, a note or an "
+                                  "earlier answer. work_to_do and next_dates here are the Indian market's and the shared ones; crypto's are on the "
+                                  "crypto side.")}
     t0 = time.time()
     # 27 Oct: "How did the Nifty close today?" is a question, not an order (the model still never places anything)
     asks = "?" in text or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", text, re.I)
@@ -1704,7 +1711,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
-        per_turn = ("today_live", "talking_to", "lookup", "answer_guide", "waiting_for_you", "knowledge_map", "trader_desk", "about_ananta", "ananta_brief")
+        per_turn = ("today_live", "talking_to", "lookup", "answer_guide", "waiting_for_you", "open_list", "knowledge_map", "trader_desk", "about_ananta", "ananta_brief")
         facts_text = (f"FACTS (the nightly read model, full data through {f.get('data_through')}; today_live, in the user turn, is today). This is the FACTS block your rules refer to; this turn's few "
                       f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"
@@ -2754,7 +2761,7 @@ def waiting_flow(text: str, w: dict | None) -> dict | None:
     lines = []
     for i, x in enumerate(india[:5]):
         what = x["title"]
-        if x.get("kind", "").startswith("flag"):
+        if x.get("kind", "").startswith("flag") or x.get("kind") == "ask":     # 10 Nov: a question from the open list is said with its own line
             line = re.sub(r"\s*\([A-Z][A-Z_]{3,}\)", "", re.sub(r"^\[[^\]]*\]\s*", "", str(x.get("line") or "")))
             what = f"{x['title']} ({plain_codes(line)})" if line else x["title"]
         lines.append(f"{i + 1}. {what}: {_advice(x)}.")

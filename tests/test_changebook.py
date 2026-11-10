@@ -22,7 +22,9 @@ def test_every_line_is_well_formed_and_in_date_order():
     rows = _rows()
     assert len(rows) >= 100
     for r in rows:
-        assert set(r) == set(selfknow.KEYS), r
+        assert set(r) - set(selfknow.OPTIONAL_KEYS) == set(selfknow.KEYS), r
+        for e in r.get("closes") or []:                       # 10 Nov 2026: the open-list items a change closes (stored numbers)
+            assert isinstance(e, int) or (isinstance(e, dict) and isinstance(e.get("num"), int) and set(e) <= {"num", "how", "done", "quiet", "by"}), r
         assert re.fullmatch(r"2026-\d\d-\d\d", r["date"]), r
         assert r["market"] in selfknow.MARKETS and r["area"] in selfknow.AREAS and r["status"] in selfknow.STATUSES, r
         assert 20 <= len(r["words"]) <= 600 and isinstance(r["commits"], list), r

@@ -652,7 +652,8 @@ def _file_request(agent: Path) -> Callable[[str], dict]:
 
         con = sqlite3.connect(str(Path(agent) / "jarvis.sqlite"), timeout=30)
         try:
-            return requests_log.add(types.SimpleNamespace(db=con, now=time.time), "idea", text, about="other traders (daily)", by="ananta-auto")
+            return requests_log.add(types.SimpleNamespace(db=con, now=time.time), "idea", text, about="other traders (daily)", by="ananta-auto",
+                                    topic="other traders (daily)")      # 10 Nov 2026: the same reference finding again joins the open item (it was filed four times)
         finally:
             con.close()
     return add

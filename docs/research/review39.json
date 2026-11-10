@@ -1,0 +1,202 @@
+{
+ "reviews": [
+  39,
+  40
+ ],
+ "written": "2026-11-10 08:55",
+ "pre_registration_commit": "9c758c5",
+ "data": {
+  "first": "2017-08-18",
+  "last": "2026-11-07",
+  "days": 3338
+ },
+ "periods": {
+  "DISCOVERY": {
+   "ALLIN": {
+    "end": 2717.36,
+    "return_pct": 443.5,
+    "cagr_pct": 33.1,
+    "max_fall_pct": -39.0,
+    "cagr_over_fall": 0.848,
+    "entries": 41,
+    "entries_per_year": 6.9,
+    "fills": 162,
+    "cost_paid": 316.13,
+    "avg_invested_pct": 25.2,
+    "days": 2162
+   },
+   "THIRDS": {
+    "end": 2414.79,
+    "return_pct": 383.0,
+    "cagr_pct": 30.5,
+    "max_fall_pct": -24.1,
+    "cagr_over_fall": 1.265,
+    "entries": 41,
+    "entries_per_year": 6.9,
+    "fills": 256,
+    "cost_paid": 203.98,
+    "avg_invested_pct": 19.8,
+    "days": 2162
+   },
+   "ALLIN+CONFIRM": {
+    "end": 3008.64,
+    "return_pct": 501.7,
+    "cagr_pct": 35.4,
+    "max_fall_pct": -37.7,
+    "cagr_over_fall": 0.938,
+    "entries": 28,
+    "entries_per_year": 4.7,
+    "fills": 110,
+    "cost_paid": 212.08,
+    "avg_invested_pct": 24.0,
+    "days": 2162
+   },
+   "THIRDS+CONFIRM": {
+    "end": 2501.79,
+    "return_pct": 400.4,
+    "cagr_pct": 31.2,
+    "max_fall_pct": -23.3,
+    "cagr_over_fall": 1.338,
+    "entries": 28,
+    "entries_per_year": 4.7,
+    "fills": 195,
+    "cost_paid": 154.29,
+    "avg_invested_pct": 19.1,
+    "days": 2162
+   },
+   "HOLD60": {
+    "end": 1143.87,
+    "return_pct": 128.8,
+    "cagr_pct": 15.0,
+    "max_fall_pct": -67.7,
+    "cagr_over_fall": 0.222,
+    "entries": 0,
+    "entries_per_year": 0.0,
+    "fills": 1,
+    "cost_paid": 1.28,
+    "avg_invested_pct": 62.6,
+    "days": 2162
+   },
+   "GATE50_60": {
+    "end": 1791.47,
+    "return_pct": 258.3,
+    "cagr_pct": 24.0,
+    "max_fall_pct": -46.6,
+    "cagr_over_fall": 0.516,
+    "entries": 71,
+    "entries_per_year": 12.0,
+    "fills": 141,
+    "cost_paid": 339.62,
+    "avg_invested_pct": 33.2,
+    "days": 2162
+   }
+  },
+  "CONFIRM": {
+   "ALLIN": {
+    "end": 672.08,
+    "return_pct": 34.4,
+    "cagr_pct": 10.9,
+    "max_fall_pct": -23.9,
+    "cagr_over_fall": 0.456,
+    "entries": 26,
+    "entries_per_year": 9.1,
+    "fills": 104,
+    "cost_paid": 84.45,
+    "avg_invested_pct": 29.3,
+    "days": 1041
+   },
+   "THIRDS": {
+    "end": 566.24,
+    "return_pct": 13.2,
+    "cagr_pct": 4.5,
+    "max_fall_pct": -21.5,
+    "cagr_over_fall": 0.207,
+    "entries": 26,
+    "entries_per_year": 9.1,
+    "fills": 179,
+    "cost_paid": 61.07,
+    "avg_invested_pct": 20.4,
+    "days": 1041
+   },
+   "ALLIN+CONFIRM": {
+    "end": 707.95,
+    "return_pct": 41.6,
+    "cagr_pct": 13.0,
+    "max_fall_pct": -21.1,
+    "cagr_over_fall": 0.616,
+    "entries": 21,
+    "entries_per_year": 7.4,
+    "fills": 84,
+    "cost_paid": 70.29,
+    "avg_invested_pct": 27.7,
+    "days": 1041
+   },
+   "THIRDS+CONFIRM": {
+    "end": 577.65,
+    "return_pct": 15.5,
+    "cagr_pct": 5.2,
+    "max_fall_pct": -20.1,
+    "cagr_over_fall": 0.258,
+    "entries": 21,
+    "entries_per_year": 7.4,
+    "fills": 154,
+    "cost_paid": 54.74,
+    "avg_invested_pct": 19.8,
+    "days": 1041
+   },
+   "HOLD60": {
+    "end": 712.82,
+    "return_pct": 42.6,
+    "cagr_pct": 13.2,
+    "max_fall_pct": -42.8,
+    "cagr_over_fall": 0.309,
+    "entries": 0,
+    "entries_per_year": 0.0,
+    "fills": 1,
+    "cost_paid": 1.28,
+    "avg_invested_pct": 72.3,
+    "days": 1041
+   },
+   "GATE50_60": {
+    "end": 629.99,
+    "return_pct": 26.0,
+    "cagr_pct": 8.4,
+    "max_fall_pct": -23.6,
+    "cagr_over_fall": 0.357,
+    "entries": 36,
+    "entries_per_year": 12.6,
+    "fills": 72,
+    "cost_paid": 114.32,
+    "avg_invested_pct": 34.7,
+    "days": 1041
+   }
+  }
+ },
+ "review39": {
+  "by_period": {
+   "DISCOVERY": {
+    "ratio_ok": true,
+    "ends_above_start": true
+   },
+   "CONFIRM": {
+    "ratio_ok": false,
+    "ends_above_start": true
+   }
+  },
+  "pass": false
+ },
+ "review40": {
+  "base": "THIRDS",
+  "by_period": {
+   "DISCOVERY": {
+    "entries_cut_pct": 31.7,
+    "ratio_not_lower": true
+   },
+   "CONFIRM": {
+    "entries_cut_pct": 19.2,
+    "ratio_not_lower": true
+   }
+  },
+  "pass": false
+ }
+}

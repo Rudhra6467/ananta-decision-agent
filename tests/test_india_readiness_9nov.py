@@ -176,3 +176,12 @@ def test_a_plan_older_than_a_holdings_filing_says_so():
     assert any(x.startswith("Newer than that plan: TATACHEM has filed since the close it was written from") for x in L["plan"])
     assert not any("MARICO" in x for x in L["plan"])                                                     # not in today's plan: nothing to say beside it
     assert not any("Odds for today" in x for x in L["view"]) and not any("max pain" in x for x in L["watch"])      # the strip list
+
+
+def test_the_last_regular_session_comes_from_the_calendar_not_the_nightly_build():
+    """Found on the first live read (10 Nov, 06:06 IST): the read model was still on Friday, so GIFT Nifty was set against Friday's close."""
+    from india import premarket
+    hol = {dt.date(2026, 11, 10)}
+    assert premarket.last_regular_session(dt.date(2026, 11, 11), hol) == dt.date(2026, 11, 9)       # Wednesday, after Tuesday's holiday
+    assert premarket.last_regular_session(dt.date(2026, 11, 9), hol) == dt.date(2026, 11, 6)        # Monday: Friday (Sunday's Muhurat hour is not a regular session)
+    assert premarket.last_regular_session(dt.date(2026, 11, 12), hol) == dt.date(2026, 11, 11)

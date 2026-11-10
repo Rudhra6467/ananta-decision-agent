@@ -209,15 +209,21 @@ def announcements() -> dict:
     return announce.fetch_recent()
 
 
+def last_regular_session(today: dt.date | None = None, hol: set | None = None) -> dt.date:
+    """The last regular NSE session before today in India, from the calendar itself (weekdays that are not exchange holidays), so the read
+    does not depend on how far the nightly build has got."""
+    from india import dayplan
+    hol = dayplan.holidays(refresh=False) if hol is None else hol
+    d = (today or dayplan.ist_today()) - dt.timedelta(days=1)
+    while d.weekday() >= 5 or d in hol:
+        d -= dt.timedelta(days=1)
+    return d
+
+
 def gift() -> dict:
     """GIFT Nifty against its own level at the last NSE close, for the morning view (9 Nov 2026, the readiness review's fix 1). Read with
     the morning sign-in to Zerodha; when that is missing the file says so and the view says GIFT Nifty could not be read."""
     from india import giftnifty, kite
-    rm = {}
-    try:
-        rm = json.loads((paths.data_dir() / "readmodel" / "latest.json").read_text())
-    except (OSError, ValueError):
-        pass
     try:
         k = kite.Kite() if kite._read_token() is not None else None        # the file's own expiry only: no sign-in attempt, no phone nudge
     except Exception:  # noqa: BLE001
@@ -225,7 +231,13 @@ def gift() -> dict:
     if k is None:
         out = {"symbol": giftnifty.SYMBOL, "taken_at": dt.datetime.now(giftnifty.IST).isoformat(timespec="seconds"), "error": "no Zerodha sign-in this morning", "words": None}
     else:
-        out = giftnifty.read(k, rm.get("data_through"), (rm.get("market") or {}).get("nifty_close"))
+        last = last_regular_session()
+        close = None
+        try:        # before the pre-open the Nifty's last price is its last close
+            close = float(k.get("/quote/ohlc", params={"i": ["NSE:NIFTY 50"]})["NSE:NIFTY 50"]["last_price"])
+        except Exception:  # noqa: BLE001  the change is still said; only the indicated level is left out
+            close = None
+        out = giftnifty.read(k, last.isoformat(), close)
     (_man() / "premarket_gift.json").write_text(json.dumps(out, indent=1))
     return {**out, "status": out.get("words") or f"GIFT Nifty not read: {out.get('error')}"}
 

@@ -3,6 +3,8 @@ never in the headline); a failed idea never wakes the brain; only what passes is
 import json
 import time
 
+import pytest
+
 from jarvis.service import strategy_status as S
 from tests.test_universe_live import J
 
@@ -161,3 +163,23 @@ def test_the_explorer_is_counted_from_its_whole_closed_book_not_the_last_30(tmp_
     x = {y["strategy"]: y for y in r["by_strategy"]}["EXPLORER"]
     assert (x["closed"], x["won"], x["lost"]) == (40, 3, 37) and x["net_usd"] == round(3 - 37 * 0.5, 2)
     assert x["why"] == "40 closed, 3 won" and len(x["trades"]) == 37 and x["trades"][0]["day"]
+
+
+@pytest.mark.live_status
+def test_live_file_h07_records_on_big_coins_only():
+    """10 Nov 2026 (decided on Madhav's delegation): the short-dip rule's paper record runs again on big coins, recording only: it never
+    wakes the brain and, not being ACTIVE, never enters the $500 book. Mid and small coins stay parked. The days it sat out stay out."""
+    import calendar
+
+    from jarvis.service import ndax_book, universe_watch as U
+
+    S._CACHE.update(m=None, v={})
+    d = S.load()["strategies"]
+    assert d["H07"]["status"] == "EVIDENCE" and d["H07_SMALL"]["status"] == "PARKED"
+    assert S.trades("H07-UA") and S.trades("H07") and not S.wakes("H07-UA")
+    assert not S.trades("H07-UB") and not S.trades("H07-UC") and not S.trades("H07-T30")
+    assert "H07" not in ndax_book.passed_rules(None, False)
+    t = lambda day: calendar.timegm(time.strptime(day, "%Y-%m-%d"))               # noqa: E731
+    assert U.parked_when_judged("H07-UA", t("2026-11-03")) and not U.parked_when_judged("H07-UA", t("2026-11-10"))
+    assert not U.parked_when_judged("H07-UA", t("2026-10-20")) and U.parked_when_judged("H07-UB", t("2026-11-10"))
+    S._CACHE.update(m=None, v={})

@@ -272,7 +272,12 @@ def step(j, get=None, now: float | None = None) -> dict:
 
     i_b = len(btc.t) - 1
     state = discipline.dial_state_from(btc.c[i_b], btc.ema50[i_b], btc.sma200[i_b])
-    for c in [c for c, p in s["pos"].items() if p["sleeve"] == "CORE"]:
+    # 10 Nov 2026 (Madhav: "take decisions for every part ... Only buys or keep off until cooling"; review 39): the core's mode.
+    # "all_in" is the rule that was backtested (book500.simulate, review 39's ALLIN): the whole core (BTC 40%, ETH 20%) when the dial is
+    # open, all of it sold when the dial closes; no thirds, no trims, no own-average exits. "thirds" is core-v2 of 24 Oct, which failed
+    # its test against all-in for 2024-2026. The mode is read from discipline_v1.json (core.mode); without one it is thirds.
+    core_mode = str((discipline.rules().get("core") or {}).get("mode") or "thirds")
+    for c in [c for c, p in s["pos"].items() if p["sleeve"] == "CORE" and core_mode == "thirds"]:
         S = C.get(c)
         if S and S.ema50[-1] is not None and S.c[-1] < S.ema50[-1]:
             sell(c, f"invalidation: a daily close under its own 50-day average ({S.ema50[-1]:,.0f})")
@@ -352,6 +357,12 @@ def step(j, get=None, now: float | None = None) -> dict:
     if held_now and full_core and not s.get("tranches"):          # a core from before core-v2 counts as the thirds it already is
         tr["done"] = min(3, round(3 * sum(held_now.values()) / full_core))
     plan = discipline.core_targets(state, value, B.CORE, int(tr.get("done") or 0), held=held_now)
+    if core_mode == "all_in":
+        on = state in ("FRAGILE", "CONFIRMED")
+        full = {c: (round(value * w, 2) if on else 0.0) for c, w in B.CORE.items()}
+        plan = {**plan, "target": full, "next": dict(full), "cash_target": round(1 - sum(B.CORE.values()), 2) if on else 1.0, "tranche_frac": 1.0 if on else 0.0,
+                "trim_band": 10.0,      # never trimmed: the tested rule holds what it bought until the dial closes
+                "words": "the whole core: Bitcoin 40% and Ethereum 20% of the book" if on else "no core: cash", "mode": "all_in"}
     today = time.strftime("%Y-%m-%d", time.gmtime(now))
     for c, p in list(s["pos"].items()):
         if p["sleeve"] != "CORE":
@@ -366,13 +377,17 @@ def step(j, get=None, now: float | None = None) -> dict:
     if may:
         core_now = {c: p for c, p in s["pos"].items() if p["sleeve"] == "CORE"}
         want = state in ("FRAGILE", "CONFIRMED")
-        if want and state == "CONFIRMED" and core_now:              # the next third only after a close above the 20-day, a later session
+        if core_mode == "all_in":
+            pass                                                    # bought once when the dial opens; a coin already in the core is never topped up
+        elif want and state == "CONFIRMED" and core_now:            # the next third only after a close above the 20-day, a later session
             closes = btc.c[-20:]
             above20 = len(closes) == 20 and btc.c[-1] > sum(closes) / 20
             want = above20 and tr.get("last_day") != today and int(tr.get("done") or 0) < 3
         if want:
             added = False
             for c, w in B.CORE.items():
+                if core_mode == "all_in" and c in core_now:
+                    continue
                 S = C.get(c)
                 k = q(c)
                 held = (core_now[c]["qty"] * (k["bid"] if k else core_now[c]["last"])) if c in core_now else 0.0

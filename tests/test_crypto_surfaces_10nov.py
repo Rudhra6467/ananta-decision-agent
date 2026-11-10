@@ -535,3 +535,26 @@ def test_like_for_like_is_bitcoin_at_the_books_first_price(monkeypatch, tmp_path
     S._LFL.update(t=0.0, words="")
     assert said == ("Like for like (Bitcoin bought at the book's first price on NDAX and just held, in Canadian dollars): −7.9%. "
                     "The book had about 20% in coins on an average night. ")
+
+
+def test_clean_nights_count_in_a_row_and_start_again_after_a_bad_night(tmp_path):
+    """10 Nov 2026 (the scorecard): a night is clean when the note's dial candle is the book's candle and the book check is silent."""
+    import json as _j
+    import sqlite3
+
+    from jarvis.service import officer
+
+    class JJ:
+        db = sqlite3.connect(tmp_path / "jarvis.sqlite")
+
+    j = JJ()
+    j.db.execute("CREATE TABLE engine_state (k TEXT PRIMARY KEY, v TEXT)")
+    ok = {"dial": {"candle": "2026-11-11", "book_stepped_on": "2026-11-11"}}
+    assert officer.mark_clean_night(j, {**ok, "day": "2026-11-11"})["clean"]
+    bad = officer.mark_clean_night(j, {"day": "2026-11-12", "dial": {"candle": "2026-11-11", "book_stepped_on": "2026-11-12"}})
+    assert not bad["clean"] and "stepped on 2026-11-12" in bad["why"][0]
+    for d in ("2026-11-13", "2026-11-14"):
+        assert officer.mark_clean_night(j, {"day": d, "dial": {"candle": d, "book_stepped_on": d}})["clean"]
+    j.db.execute("INSERT INTO engine_state VALUES ('clean_night:2026-11-09', ?)", (_j.dumps({"clean": True}),))     # before the freeze: not counted
+    cn = officer.clean_nights(j)
+    assert cn["in_a_row"] == 2 and cn["need"] == 30 and cn["nights_marked"] == 4 and cn["last_break"]["day"] == "2026-11-12"

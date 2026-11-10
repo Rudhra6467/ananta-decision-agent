@@ -326,9 +326,14 @@ def parked_when_judged(w: str, t: int) -> bool:
     from jarvis.service import strategy_status
 
     try:
+        e = strategy_status.of_watch(w)
+        # 10 Nov 2026: a rule switched back on keeps the days it sat out (park_periods: from the park's day to the first day it is judged
+        # again), or every signal of those days would read as a rebuild mismatch from the night it returns
+        for per in ((e[1].get("park_periods") or []) if e else []):
+            if calendar.timegm(time.strptime(str(per["from"]), "%Y-%m-%d")) < int(t) + DAY < calendar.timegm(time.strptime(str(per["to"]), "%Y-%m-%d")):
+                return True
         if strategy_status.trades(w):
             return False
-        e = strategy_status.of_watch(w)
         day = (e[1].get("parked") or {}).get("date") if e and e[1].get("status") == "PARKED" else None
         return bool(day) and int(t) + DAY > calendar.timegm(time.strptime(str(day), "%Y-%m-%d"))
     except Exception:  # noqa: BLE001  an unreadable file explains nothing (the rebuild then shows a mismatch)

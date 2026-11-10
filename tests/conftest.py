@@ -72,7 +72,12 @@ def _strategy_status_as_tested(tmp_path, monkeypatch, request):
         live = _json.loads(_ss._path().read_text())
     except (OSError, ValueError):
         return
+    for sid in [k for k, s in (live.get("strategies") or {}).items() if s.get("split_from")]:
+        live["strategies"].pop(sid)                      # 10 Nov 2026: a part split off a rule by a Madhav decision (H07_SMALL) is undone too
     for s in (live.get("strategies") or {}).values():
+        if s.get("as_designed"):
+            s.update(s.pop("as_designed"))
+            s.pop("park_periods", None)
         if s.get("status_before_park"):
             s["status"] = s.pop("status_before_park")
             s.pop("parked", None)

@@ -439,7 +439,7 @@ def _decision(dial: dict, b: dict, pos: list[dict], brake: str | None) -> str:
     if (dial.get("dial") or 0) <= 0:
         s = "Buying is off (the dial is closed), so nothing new is bought and the cash waits."
     else:
-        s = "Buying is on (the dial is open): the book may buy Bitcoin and Ethereum in steps and take small trades by the rules that passed."
+        s = "Buying is on (the dial is open): the book holds Bitcoin (40%) and Ethereum (20%) and may take small trades by the rules that passed."
         if brake:
             s += f" For now {brake}."
     if held:
@@ -558,7 +558,7 @@ def money(j) -> dict:
     closed_dial = (dial.get("dial") or 0) <= 0
     brake = _brake(b, now)
     brief = (("Buying is off. The core (the Bitcoin and Ethereum part) is in cash until Bitcoin closes above both its 50-day and 200-day averages."
-              if closed_dial else f"Buying is on. The core (the Bitcoin and Ethereum part) aims for {cp.get('words') or 'its targets'}, bought in steps.")
+              if closed_dial else f"Buying is on. The core (the Bitcoin and Ethereum part) aims for {cp.get('words') or 'its targets'}.")
              + (f" {brake[0].upper() + brake[1:]}." if brake else "")
              + (" The coins held stay until their own rules sell." if pos else ""))
     under = gap_words(_safe(book_gap, j, b, default=[]) or [])
@@ -630,6 +630,16 @@ def proof(j) -> dict:
     clocks = [{"name": "The evidence window (Rule A and B)", "done": win["day"], "need": WINDOW_DAYS, "finish_words": _dw(RULE_B_END), "complete": win["day"] >= WINDOW_DAYS},
               {"name": "Round trips in the $500 book", "done": g.get("closed_trades") or 0, "need": 50, "finish_words": _pace(g.get("closed_trades") or 0, 50, b.get("started"), now.date()),
                "complete": (g.get("closed_trades") or 0) >= 50}]
+    from jarvis.service import officer as _officer
+
+    cn = _safe(_officer.clean_nights, j, default={}) or {}
+    if cn:
+        left = max(0, cn["need"] - cn["in_a_row"])
+        brk = cn.get("last_break")
+        clocks.append({"name": "Clean nights in a row (book, note and candle agree)", "done": cn["in_a_row"], "need": cn["need"],
+                       "finish_words": ("done" if not left else f"{left} more to go; counted from {_dm(cn['since'])}"
+                                        + (f". The count began again after {_dm(brk['day'])}" if brk else "")),
+                       "complete": not left})
     m = _safe(missed.recent, j, 7, default={}) or {}
     c, moves = m.get("counts") or {}, m.get("moves") or []
     n_big = sum(c.get(k, 0) for k in ("CAUGHT", "SEEN", "MISSED"))
@@ -716,6 +726,8 @@ def strategies_explain(reg: dict, win: dict) -> dict:
     if edge:
         pk = edge.get("parked") or {}
         s = f"The one measured edge is the {_short_name(edge.get('name'))}."
+        if edge.get("status") == "EVIDENCE":
+            s += " Its paper record is running again on big coins only; it does not trade for the account."
         if edge.get("status") == "PARKED":
             s += f" Its paper book is switched off{' since ' + _dw(pk.get('date')) if pk.get('date') else ''}"
             s += "; the research result stands." if "research verdict is unchanged" in str(pk.get("note") or "") else "."

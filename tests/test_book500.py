@@ -65,11 +65,9 @@ def test_step_fills_inside_bid_and_ask(tmp_path, monkeypatch):
     assert {b.split()[0] for b in out["bought"]} == {"BTC", "ETH"}             # uptrend: the dial is open, the core goes in
     st = ndax_book.status(j)
     assert st["execution_check"]["fills"] == 2 and st["execution_check"]["inside_bid_ask"] == 2
-    # core-v2 (Madhav, 24 Oct 2026, discipline item 4): the first fill is a third of the core (20% of the book), never the whole 60%
-    assert st["core_plan"]["state"] == "CONFIRMED"
-    assert abs(st["positions"]["BTC"]["paid"] - 200 / 3) < 1 and abs(st["positions"]["ETH"]["paid"] - 100 / 3) < 1
-    assert st["positions"]["BTC"]["inv"] and "50-day" in st["positions"]["BTC"]["inv_rule"]   # the invalidation is written at entry
-    assert st["tranches"]["done"] == 1
+    # 10 Nov 2026 (Madhav: "Only buys or keep off until cooling"; review 39): the core is the tested rule again, the whole 60% at once
+    assert st["core_plan"]["state"] == "CONFIRMED" and st["core_plan"]["mode"] == "all_in"
+    assert abs(st["positions"]["BTC"]["paid"] - 200) < 2 and abs(st["positions"]["ETH"]["paid"] - 100) < 2
     assert ndax_book.step(j, get=get).get("skipped")                          # one step per daily close
 
 
@@ -136,3 +134,46 @@ def test_live_guard_brakes_and_limits(tmp_path, monkeypatch):
     assert "PAUSED" in G.check_order(j, "BUY", "SOL", 10)["why"]
     k = G.kill_plan(j)
     assert k["dry_run"] and "cancel" in k["steps"][0] and any("BTC" in x for x in k["steps"])
+
+
+def test_thirds_mode_still_buys_a_third_and_all_in_sells_everything_when_the_dial_closes(tmp_path, monkeypatch):
+    """10 Nov 2026: core.mode in discipline_v1.json picks the core. 'thirds' (core-v2 of 24 Oct) is kept and switchable; 'all_in' buys the
+    whole core once, never tops up, and sells it all when the dial closes."""
+    from jarvis.service import discipline, feed, ndax_book, registry
+
+    start = int(time.time()) - 300 * DAY
+    start -= start % DAY
+    monkeypatch.setattr(registry, "load", lambda j: {"coins": {"BTC": {"ndax": True, "tier": "A"}, "ETH": {"ndax": True, "tier": "A"}}})
+
+    def get(url):
+        if "GetInstruments" in url:
+            return [{"Product1Symbol": c, "Product2Symbol": "CAD", "InstrumentId": i, "MinimumQuantity": 1e-5, "QuantityIncrement": 1e-8}
+                    for i, c in ((1, "BTC"), (2, "ETH"))]
+        if "valet" in url:
+            return {"observations": [{"d": "2026-10-09", "FXUSDCAD": {"v": "1.40"}}]}
+        return {"BestBid": 99.0, "BestOffer": 101.0}
+
+    real = discipline.rules()
+    thirds = {**real, "core": {**real["core"], "mode": "thirds"}}
+    monkeypatch.setattr(discipline, "rules", lambda: thirds)
+    monkeypatch.setattr(feed, "daily", lambda j, c: _bars(300, start))
+    ndax_book._CACHE.clear()
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    j = J(tmp_path / "a")
+    ndax_book.step(j, get=get)
+    st = ndax_book.status(j)
+    assert abs(st["positions"]["BTC"]["paid"] - 200 / 3) < 1 and st["tranches"]["done"] == 1 and "50-day" in st["positions"]["BTC"]["inv_rule"]
+
+    monkeypatch.setattr(discipline, "rules", lambda: real)
+    assert real["core"]["mode"] == "all_in"
+    ndax_book._CACHE.clear()
+    j = J(tmp_path / "b")
+    ndax_book.step(j, get=get)
+    assert set(ndax_book.status(j)["positions"]) == {"BTC", "ETH"}
+    monkeypatch.setattr(feed, "daily", lambda j, c: _bars(301, start))            # the next close, still rising: nothing is added, nothing trimmed
+    out = ndax_book.step(j, get=get)
+    assert not out.get("bought") and not out.get("sold"), out
+    monkeypatch.setattr(feed, "daily", lambda j, c: _bars(340, start, fall_at=302))   # a long fall: the dial closes and the whole core is sold
+    out = ndax_book.step(j, get=get)
+    assert {x.split()[0] for x in out["sold"]} == {"BTC", "ETH"} and not ndax_book.status(j)["positions"], out

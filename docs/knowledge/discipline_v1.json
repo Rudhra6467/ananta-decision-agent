@@ -69,7 +69,9 @@
    "CONFIRMED": 0.15
   },
   "trim_band": 0.05,
-  "next_tranche_needs": "a daily close above the 20-day average, dial CONFIRMED, at least one session after the last tranche"
+  "next_tranche_needs": "a daily close above the 20-day average, dial CONFIRMED, at least one session after the last tranche",
+  "mode": "all_in",
+  "mode_words": "all_in since 10 Nov 2026: the whole core (Bitcoin 40%, Ethereum 20% of the book) is bought when the dial opens and sold when it closes. The thirds, the trims, the cash targets by state and each coin's own-average exit (item 4 of 24 Oct) are off: review 39 found the thirds core worse than all-in for 2024-2026 (docs/research/REVIEW_39_40_RESULTS.md). 'thirds' switches item 4 back on."
  },
  "selection_floor": {
   "tiers": [
@@ -108,6 +110,12 @@
    "when": "2026-10-24T10:40-04:00",
    "who": "Claude (correction, no number changed)",
    "what": "item 4 coded as Madhav approved it: the first version read FRAGILE as 'a third of the core' and would have trimmed two-thirds of BTC and ETH at the next close; the approved rule is the 40% cash target, which the book already meets (41%). Caught on the first dry run before any fill."
+  },
+  {
+   "when": "2026-11-10T09:32-05:00",
+   "who": "Madhav",
+   "words": "Keep your best reasoning in place and take decisions for every part and continue here. Crypto is a very straightforward market. Only buys or keep off until cooling.",
+   "what": "core.mode set to all_in by Claude on Madhav's delegation, after review 39 (thirds FAILED against all-in for 2024-2026). The numbers of item 4 are kept in the file and are not used while the mode is all_in."
   }
  ]
 }

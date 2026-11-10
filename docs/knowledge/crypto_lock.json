@@ -100,7 +100,7 @@
    "files": [
     "docs/knowledge/strategy_status.json"
    ],
-   "sha256": "e97dff73666a15488daf08b3d5c8f9ec763e7708b0b6d8fc8500feaeece0a491",
+   "sha256": "7b02d394971ff383b18154b88f65f77dca00cd03fc204ffe49a641ca8002e747",
    "history": [
     {
      "date": "2026-10-15",
@@ -137,6 +137,12 @@
      "approved_by": "Madhav (in chat)",
      "sha256": "e97dff73666a15488daf08b3d5c8f9ec763e7708b0b6d8fc8500feaeece0a491",
      "note": "RBD PARKED (discipline v1 book-bleed: RBD, RBD-UA, RBD-UB 43 closed, 0 won, net -$312, all stopped on 29 Oct; no new paper trades, open ones run out). Madhav, 2026-10-30 11:01 Toronto: \"yes for RBD\". BRK and JARVIS_BOLD keep running (his yes to the recommendation of 08:03)."
+    },
+    {
+     "date": "2026-11-10",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 10 Nov 09:32 Toronto: \"Keep your best reasoning in place and take decisions for every part and continue here. Crypto is a very straightforward market. Only buys or keep off until cooling.\" Decided by Claude on that delegation. H07 split: its paper record on big coins (H07, H07-UA) is EVIDENCE, recording only, not waking the brain; H07_SMALL (tiers B, C and the 30-coin list) stays PARKED.",
+     "sha256": "7b02d394971ff383b18154b88f65f77dca00cd03fc204ffe49a641ca8002e747"
     }
    ]
   },
@@ -216,7 +222,7 @@
     "docs/knowledge/acceptance_gate.json",
     "jarvis/service/realism.py"
    ],
-   "sha256": "0e0c238e05aa30847c7033a93ca2b3cc6269e80dd50203ed94364ae30cd110b3",
+   "sha256": "e0b2d748e18bfc3e41c63e6f56c4505d42886b0c3dd1106d602fc12af1b88c62",
    "history": [
     {
      "date": "2026-10-15",
@@ -241,6 +247,12 @@
      "approved_by": "Madhav (in chat)",
      "note": "The pin now also covers ndax_book.step, the step that moves the $500 book's money (it sat outside the lock, which is how the 28 Oct fault and its fix were not seen by it). Pinned as it stands on 10 Nov, with the morning's buy guard in it. Listed to Madhav as fault 3 (\"The lock does not cover the step that moves the money\"). Madhav, 2026-11-10 08:41 Toronto: \"yes, lets fix this faults and keenly verify them at end\".",
      "sha256": "0e0c238e05aa30847c7033a93ca2b3cc6269e80dd50203ed94364ae30cd110b3"
+    },
+    {
+     "date": "2026-11-10",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 10 Nov 09:32 Toronto: \"Keep your best reasoning in place and take decisions for every part and continue here. Crypto is a very straightforward market. Only buys or keep off until cooling.\" Decided by Claude on that delegation. ndax_book.step reads core.mode from discipline_v1.json; all_in (the rule review 39 found better than thirds for 2024-2026) buys the whole core when the dial opens and sells it when the dial closes.",
+     "sha256": "e0b2d748e18bfc3e41c63e6f56c4505d42886b0c3dd1106d602fc12af1b88c62"
     }
    ]
   }

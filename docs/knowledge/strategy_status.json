@@ -1,6 +1,6 @@
 {
  "version": 2,
- "updated": "2026-10-24",
+ "updated": "2026-11-10",
  "meaning": "One list of every strategy that holds or held paper money, with its status and verdict. Madhav, Oct 13: the $500 NDAX book is THE account (what he and Ananta look at); the engine keeps every measuring book running in the background (watching, scanning, recording, tracking), and only what passes its bar is pushed into the account. status: ACTIVE (trades, counts as holdings) | UNDER_REVIEW (trades, counts, under a review) | EVIDENCE (measures in the background: records paper trades, never holdings, never in the headline) | PARKED (switched off by Madhav) | RETIRED (takes no new trades; its record is kept). verdict: wont_take_again | will_try_again | modify_rules. wakes_brain: false = its signals never wake the brain (a failed idea is recorded, not decided on). pushed: how a strategy enters the account.",
  "account": "BOOK500",
  "pushed": "A rule enters the $500 book's measured-edge sleeve when BOTH hold: its cell (rule x dial state x tier) passed on history in both periods after costs (the measured-edge table, review #26), AND its forward paper book is ahead of its random baseline over 10 market days in each regime (the promotion ladder), with Madhav's sign-off. When the ladder says a rule may step up, Ananta sends a phone note and opens a request; nothing enters the account by itself. Expect the first promotion to take a while: the one measured edge (H07 on tier A) counts only while the dial is closed, and the ladder needs 10 market days in each regime.",
@@ -35,25 +35,73 @@
   },
   "H07": {
    "name": "Short dip trade (H07)",
-   "status": "PARKED",
+   "status": "EVIDENCE",
    "verdict": "will_try_again",
    "watches": [
     "H07",
-    "H07-UA",
-    "H07-UB",
-    "H07-T30"
+    "H07-UA"
    ],
    "why": "The one measured edge (review #26: tier A while the dial is closed, +5.1% a trade over random, both periods; review #29 confirmed it point-in-time on all 530 Binance pairs with live costs, +6.3% a trade expected). Its live paper record is read from the database: {closed} closed, {won} won ({net}); the scoreboard counts independent market events, not trades (Evidence page). It feeds the $500 book's edge sleeve; tiers B/C and the 30-coin version keep measuring.",
    "cards": [
     "H07"
    ],
+   "wakes_brain": false,
+   "park_periods": [
+    {
+     "from": "2026-10-28",
+     "to": "2026-11-11"
+    }
+   ],
+   "history": [
+    {
+     "when": "2026-10-28",
+     "who": "Madhav",
+     "from": "ACTIVE",
+     "to": "PARKED",
+     "words": "Madhav (Needs you card, then in chat 17:15 Toronto: \"I have approved from my side on crypto\")",
+     "why": "Discipline v1 book-bleed check: H07 18 closed, net -$54 in 7 days against a -$36 weekly bar. Paused: no new paper trades; open ones run to their exits. Unpark with Madhav's yes."
+    },
+    {
+     "when": "2026-11-10",
+     "who": "Madhav",
+     "from": "PARKED",
+     "to": "EVIDENCE",
+     "words": "Keep your best reasoning in place and take decisions for every part and continue here. Crypto is a very straightforward market. Only buys or keep off until cooling.",
+     "why": "Decided by Claude on Madhav's delegation: the park of 28 Oct counted 18 trades that pooled mid and small coins, cases that never passed; the measured case (big coins, dial closed) had no closed live trade then. Its paper record is on again for big coins only, recording only: EVIDENCE status never enters the $500 book and does not wake the brain."
+    }
+   ],
+   "as_designed": {
+    "status": "ACTIVE",
+    "wakes_brain": true,
+    "watches": [
+     "H07",
+     "H07-UA",
+     "H07-UB",
+     "H07-UC",
+     "H07-T30"
+    ]
+   }
+  },
+  "H07_SMALL": {
+   "name": "Short dip trade on mid and small coins (H07)",
+   "status": "PARKED",
+   "verdict": "will_try_again",
+   "watches": [
+    "H07-UB",
+    "H07-UC",
+    "H07-T30"
+   ],
+   "wakes_brain": false,
+   "why": "The short dip rule on mid coins (tier B), small coins (tier C) and the 30-coin list: cases that never passed the test. Switched off with the rule on 28 Oct 2026 and left off on 10 Nov when the big-coin paper record was switched back on.",
+   "cards": [],
    "status_before_park": "ACTIVE",
    "parked": {
     "date": "2026-10-28",
     "by": "Madhav (Needs you card, then in chat 17:15 Toronto: \"I have approved from my side on crypto\")",
     "why": "Discipline v1 book-bleed check: H07 18 closed, net -$54 in 7 days against a -$36 weekly bar. Paused: no new paper trades; open ones run to their exits. Unpark with Madhav's yes.",
     "note": "H07 is the one measured crypto edge (review #26/#29); its research verdict is unchanged, only the live paper book is paused."
-   }
+   },
+   "split_from": "H07"
   },
   "JARVIS": {
    "name": "The brain's own $100 book",

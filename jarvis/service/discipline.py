@@ -380,6 +380,10 @@ def plan_line(j, day: str | None = None) -> dict:
         if value and plan.get("state") != state:          # tonight's step has not run yet: the plan the rule will apply, from the book as it is
             held = {c: p["qty"] * p["last"] for c, p in (s.get("pos") or {}).items() if p.get("sleeve") == "CORE"}
             plan = core_targets(state, value, B.CORE, int((s.get("tranches") or {}).get("done") or (3 if held else 0)), held=held)
+            if str((rules().get("core") or {}).get("mode") or "thirds") == "all_in":      # 10 Nov 2026: the plan line says the core as ndax_book.step applies it
+                on = state in ("FRAGILE", "CONFIRMED")
+                plan = {**plan, "cash_target": round(1 - sum(B.CORE.values()), 2) if on else 1.0,
+                        "words": "the whole core: Bitcoin 40% and Ethereum 20% of the book" if on else "no core: cash"}
         if value:
             parts.append(f"Account: {plan.get('words') or 'core by the dial'}; cash {100 * cash / value:.0f}% (target {100 * float(plan.get('cash_target', 0.4)):.0f}%).")
     except Exception:  # noqa: BLE001

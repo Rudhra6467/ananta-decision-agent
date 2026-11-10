@@ -180,6 +180,50 @@ def cad_labels(note: str, f: dict) -> str:
     return re.sub(r"(^|[^A-Za-z$])\$(\d[\d,]*(?:\.\d+)?)", fix, note)
 
 
+def mark_clean_night(j, f: dict) -> dict:
+    """A clean night: the book stepped on tonight's candle, the note read the dial from the same candle, and the book check is silent.
+    Kept in engine_state as clean_night:<day>; the Proof screen counts the nights in a row."""
+    from pathlib import Path
+
+    from jarvis import selfcheck
+
+    dial = f.get("dial") or {}
+    why = []
+    if not dial.get("candle") or dial.get("candle") != dial.get("book_stepped_on"):
+        why.append(f"the note read the dial at {dial.get('candle')}, the book stepped on {dial.get('book_stepped_on')}")
+    try:
+        db = [r[2] for r in j.db.execute("PRAGMA database_list").fetchall() if r[1] == "main"][0]
+        found = selfcheck._book500(Path(db)) if db else []
+    except Exception as exc:  # noqa: BLE001
+        found = [{"what": f"the book check could not run: {str(exc)[:80]}"}]
+    why += [str(x.get("what"))[:160] for x in found]
+    out = {"clean": not why, "why": why}
+    j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("clean_night:" + str(f["day"]), json.dumps(out)))
+    j.db.commit()
+    return out
+
+
+def clean_nights(j) -> dict:
+    """Clean nights in a row up to the latest marked night, from the scorecard's freeze day."""
+    from pathlib import Path
+
+    p = Path(__file__).resolve().parents[2] / "docs" / "knowledge" / "crypto_scorecard.json"
+    try:
+        card = json.loads(p.read_text())
+    except (OSError, ValueError):
+        return {}
+    start = str(card.get("freeze_from") or "")
+    rows = j.db.execute("SELECT k, v FROM engine_state WHERE k LIKE 'clean_night:%' AND k >= ? ORDER BY k DESC", ("clean_night:" + start,)).fetchall()
+    run, broke = 0, None
+    for k, v in rows:
+        d = json.loads(v)
+        if not d.get("clean"):
+            broke = {"day": k.split(":", 1)[1], "why": d.get("why")}
+            break
+        run += 1
+    return {"in_a_row": run, "need": int(card.get("clean_nights_needed") or 30), "since": start, "nights_marked": len(rows), "last_break": broke}
+
+
 def write(j, daily: dict | None = None, push: Callable | None = None, call: Callable | None = None) -> dict:
     from jarvis.service import brain
 
@@ -199,6 +243,10 @@ def write(j, daily: dict | None = None, push: Callable | None = None, call: Call
         return {"ok": False, "error": "empty note", "facts": f}
     j.db.execute("INSERT OR REPLACE INTO officer_notes VALUES (?,?,?,?,?)", (day, int(j.now()), note, json.dumps(f, default=str)[:20000], cost))
     j.db.commit()
+    try:  # 10 Nov 2026: the scorecard's clean nights (docs/knowledge/crypto_scorecard.json)
+        f["clean_night"] = mark_clean_night(j, f)
+    except Exception:  # noqa: BLE001
+        pass
     try:  # discipline item 8: a failed check is filed on the repair board, once a week per check
         from jarvis.service import discipline
 

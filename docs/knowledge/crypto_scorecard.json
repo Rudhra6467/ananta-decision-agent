@@ -1,0 +1,72 @@
+{
+ "what": "The crypto scorecard: what the review day reads, written before the days are counted. It sits beside the 60-day evidence window (pinned, unchanged); it does not replace it.",
+ "decided": {
+  "when": "2026-11-10T09:32-05:00",
+  "who": "Madhav",
+  "words": "Keep your best reasoning in place and take decisions for every part and continue here. Crypto is a very straightforward market. Only buys or keep off until cooling.",
+  "also": "It has to keep an eye for potential pullbacks and other market swings, any potential chances",
+  "how": "Decided by Claude on Madhav's delegation, from the plan review of 10 Nov (5.5 of 10: 'the window counts days, not clean days')."
+ },
+ "freeze_from": "2026-11-11",
+ "clean_nights_needed": 30,
+ "review_day": "the later of 14 Dec 2026 and the 30th clean night in a row",
+ "clean_night": "A night counts when all three hold: the $500 book stepped on that night's daily candle; the officer's note read the dial from the same candle; the book check found nothing (trades, holdings, cash and value agree). One night that fails starts the count again.",
+ "the_book": {
+  "rule": "Bitcoin 40% and Ethereum 20% of the book when the dial is open, all cash when it is closed (the all-in core, the rule tested on 2018-2026). Small trades only by a rule that is ACTIVE with a passing cell. Three safety stops.",
+  "frozen": "No rule of the book changes between the freeze and the review day, except to repair a fault, said in the change book."
+ },
+ "lines": [
+  {
+   "n": 1,
+   "line": "Clean nights in a row",
+   "pass": "30"
+  },
+  {
+   "n": 2,
+   "line": "The live book against the same rule replayed on the same candles",
+   "pass": "within 1% of the book's value over the clean nights",
+   "note": "read once, on the review day"
+  },
+  {
+   "n": 3,
+   "line": "The book against holding the same coins (60% Bitcoin and Ethereum, 40% cash, never sold)",
+   "pass": "a smaller worst fall; the return is reported, not marked"
+  },
+  {
+   "n": 4,
+   "line": "Every buy and sell inside the NDAX bid and ask of its minute",
+   "pass": "all of them"
+  },
+  {
+   "n": 5,
+   "line": "The safety stops",
+   "pass": "each firing said in that night's note"
+  },
+  {
+   "n": 6,
+   "line": "The officer's note against the book, night by night",
+   "pass": "no wrong figure on a clean night"
+  },
+  {
+   "n": 7,
+   "line": "The Sunday exam's money questions",
+   "pass": "4 of 5 or better each Sunday"
+  },
+  {
+   "n": 8,
+   "line": "The short-dip rule's paper record on big coins (recording only)",
+   "pass": "no mark: counted and reported; ten closed trades are needed before any decision"
+  },
+  {
+   "n": 9,
+   "line": "Big moves in the ten main coins: caught, seen, missed",
+   "pass": "no mark: reported, with those held back on purpose while buying was off"
+  },
+  {
+   "n": 10,
+   "line": "Faults found after the freeze",
+   "pass": "each one listed with its night and its repair"
+  }
+ ],
+ "left_running_until_review": "The Explorer's paper trades, the small-coin (tier C) measuring books and the random baselines keep recording: they never touch the account, and they are how Ananta keeps an eye on pullbacks and swings. The brain stays asleep as a buyer. Each is kept, shrunk or stopped on the review day, on its own record."
+}

@@ -29,8 +29,10 @@ Write from the FACTS only: every number you use must appear in them; if the fact
 (the coin flip, chance, the market average). This is paper trading and never advice. Plain words a non-trader follows; explain a technical word in the same sentence.
 Shape, in this order, with these exact headings on their own lines:
 Your holdings
-  1-3 sentences from lines.holdings: which of his stocks filed something since the last close (what was filed and when), any that moved 2% or more,
-  and the results meetings ahead for his stocks. If nothing was filed, one sentence saying so. Company names in full, never tickers.
+  1-3 sentences from lines.holdings: which of his stocks filed something since the last close (what was filed and when, and for a results filing
+  the figures the line gives: the top line and the profit or loss for the quarter with the change on the year), any that moved 2% or more, and the
+  results meetings ahead for his stocks. If nothing was filed, one sentence saying so. Company names in full, never tickers. Never call a result
+  good, bad, a beat or a miss: say the figures.
 The view
   3-4 sentences: overnight (the US close, flows, and GIFT Nifty's indicated open when lines.view has it: say it is an indication), where Nifty
   stands (trend, averages, breadth), the fear gauge. Do not give odds for the day: Ananta has no tested read of today's direction.

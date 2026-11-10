@@ -194,3 +194,17 @@ def test_a_company_known_by_its_initials_keeps_them_in_capitals(monkeypatch, tmp
     monkeypatch.setattr(askwords, "_NAMES", {"t": 0.0, "v": {}})
     n = askwords.company_names()
     assert n["IRFC"] == "IRFC" and n["TATAPOWER"] == "Tata Power"
+
+
+def test_a_trade_with_no_result_is_shown_beside_the_options_lines_record(tmp_path, monkeypatch):
+    """Madhav, 9 Nov 19:51 Toronto ("Yes to all your recommendations", 2): the 6 Nov Bank Nifty trade stays unscored and shown as such."""
+    from jarvis.india import surfaces
+    monkeypatch.setattr(surfaces, "DATA", tmp_path)
+    (tmp_path / "paper" / "sp1").mkdir(parents=True)
+    (tmp_path / "paper" / "sp1" / "book.json").write_text(json.dumps({"updated": "2026-11-09T17:30:07+05:30", "sessions": 11, "by_index": {"BANKNIFTY": {"trades": 10, "option_1lot_rs_realistic_fill": -5252.0}}}))
+    (tmp_path / "paper" / "sp1" / "outcomes.jsonl").write_text("\n".join(json.dumps(x) for x in [
+        {"kind": "outcome", "date": "2026-11-05", "index": "BANKNIFTY", "point": "D0", "index_proxy": {"net_bps": -1.0}},
+        {"kind": "outcome", "date": "2026-11-06", "index": "BANKNIFTY", "point": "D0", "note": "the study's outcome is not defined for this day"}]) + "\n")
+    cl = [{"name": "the options line", "done": 10, "so_far": "x"}]
+    surfaces._sp1_clock(cl)
+    assert "Not in these figures: 1 trade with no result (Fri 6 Nov, Bank Nifty)" in cl[0]["so_far"] and "stays unscored and is shown here" in cl[0]["so_far"]

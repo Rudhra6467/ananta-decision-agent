@@ -108,7 +108,8 @@ def holdings_news() -> str:
         read = f" (filings read up to {at:%H:%M} IST on {at:%a} {at.day} {at:%b})"
     except (TypeError, ValueError):
         read = ""
-    return "Sir, on your holdings" + read + ": " + " ".join(h["lines"]) + " I read what was filed and when, not the figures inside a results filing."
+    return ("Sir, on your holdings" + read + ": " + " ".join(h["lines"])
+            + " The figures are each filing's own; I have no record of what analysts expected, so I cannot call a result a beat or a miss.")
 
 
 def what_changed(live: dict) -> str:

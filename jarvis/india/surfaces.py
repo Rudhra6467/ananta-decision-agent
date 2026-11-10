@@ -628,6 +628,27 @@ def _sp1_clock(clocks: list[dict]) -> None:
                      f"{'+' if (v.get('option_1lot_rs_realistic_fill') or 0) >= 0 else '−'}₹{abs(v.get('option_1lot_rs_realistic_fill') or 0):,.0f} on one option lot"
                      for k, v in (b.get("by_index") or {}).items()]
             c["so_far"] = f"Over {b['sessions']} sessions, scored to {_dw(str(b.get('updated'))[:10])} with realistic fills: " + "; ".join(parts) + "."
+            un = _sp1_unscored()
+            if un:
+                c["so_far"] += (f" Not in these figures: {len(un)} trade{'s' if len(un) != 1 else ''} with no result ("
+                                + "; ".join(f"{_dw(r.get('date'))}, { {'NIFTY': 'Nifty', 'BANKNIFTY': 'Bank Nifty'}.get(r.get('index'), r.get('index')) }" for r in un[:3])
+                                + "): the exit fell on a special session the line's study leaves out, so it stays unscored and is shown here.")
+
+
+def _sp1_unscored() -> list[dict]:
+    """The options line's trades its scorer could not score (an outcome row with a note and no result). Madhav, 9 Nov 2026 19:51 Toronto
+    ("Yes to all your recommendations", recommendation 2): the 6 Nov Bank Nifty trade stays unscored and is shown as such, never left out."""
+    out = []
+    try:
+        for line in (DATA / "paper" / "sp1" / "outcomes.jsonl").read_text().splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            if r.get("kind") == "outcome" and r.get("note") and not r.get("index_proxy"):
+                out.append(r)
+    except (OSError, ValueError):
+        return []
+    return out
 
 
 def proof(full: bool = True) -> dict:

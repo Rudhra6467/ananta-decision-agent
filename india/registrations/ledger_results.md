@@ -1,4 +1,4 @@
-# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-11-03)
+# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-11-09)
 
 HISTORICAL BACKTEST only: development 2000-2017, validation 2018-2023; the 2024+ years are sealed. A verdict here is the registry's rule applied to the registered numbers (one family-wide bar for every variant ever tried in that family); it is evidence, not a decision, and nothing is in the paper book because of this page. A researcher's write-up (the *_results_v1.md pages) is the better source where one exists; this page exists so that no finished study is unwritten.
 
@@ -566,6 +566,17 @@ Intraday coverage: the 5-minute bars hold 2015 76%, 2016 80%, 2017 81%, 2018 78%
 |---|---|---|---|---|---|---|
 | IDX · or15_top · dayrange | CONDITIONAL | +0.19% | +2.0 | +0.45% | +4.4 | 3.241 |
 
+## market_phase (1 studies)
+
+### PH1: Market phase: does the Nifty's phase (trend up, trend down, range, squeeze) say how big and which way the next moves are, and how the options line does in each?
+Claim before the run: A squeeze (the 20-session high-low range in the bottom fifth of its own past year) is followed by bigger 10-session moves than usual, but says nothing about their direction; trend phases carry on (up phases have higher 20-session returns, down phases lower); range phases are followed by smaller moves. The options line (it buys options, so it needs moves) does better after a squeeze than after a range.
+Outcome: 4 had too little data to judge, 2 came out the opposite way, 2 not supported on seen years, 1 did not hold across 9 variants.
+
+| variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
+|---|---|---|---|---|---|---|
+| nifty · trend_up · fwd20 | OPPOSITE | -1.70% | -5.3 | -0.91% | -2.4 | 2.773 |
+| nifty · range · abs_fwd10 | OPPOSITE | +0.65% | +2.3 | +0.46% | +1.5 | 2.773 |
+
 ## news_tone (2 studies)
 
 ### HFN1: Does a financial-news model's reading of NSE company announcements predict the stock's drift over the next 5 and 20 sessions, beyond the announcement's category?
@@ -649,6 +660,12 @@ Outcome: 8 came out the opposite way, 8 held up, weaker in one period across 16 
 | vs_hold · stop0.6_trail0.25_nb14:45 | CONDITIONAL | +0.65% | +1.9 | +1.83% | +10.9 | 2.807 |
 | vs_hold · stop0.5_trail0.25_nb15:15 | CONDITIONAL | +0.63% | +1.9 | +1.82% | +10.9 | 2.498 |
 | vs_hold · stop0.6_trail0.25_nb15:15 | CONDITIONAL | +0.64% | +1.9 | +1.82% | +10.9 | 2.865 |
+
+## options_line_review (1 studies)
+
+### SP1R: The options line's 20-session review: four questions written down before the review
+Claim before the run: On 5 Nov the line bought a Bank Nifty put at 09:15 against a 2.1% gap up on a predicted edge of 1.6 basis points after costs with a standard error of 2.5 (0.6 of a standard error); the stop closed it for about Rs -7,253, about 15% of the Rs 50,000 options money. After 9 sessions Bank Nifty had traded every session for about +Rs 802 in all, Nifty twice for about +Rs 12,406 (one lot, realistic fills).
+Outcome: 2 had too little data to judge, 1 not supported on seen years across 3 variants.
 
 ## portfolio (4 studies)
 

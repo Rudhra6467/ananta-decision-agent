@@ -1,72 +1,74 @@
-# India read model (V0) — data through 2026-10-29, built 2026-10-30T11:20:05+00:00
+# India read model (V0) — data through 2026-11-09, built 2026-11-10T12:20:06+00:00
 
 Rules readmodel-v0-2026-10-22. Every number below traces to the file named in its section of readmodel/latest.json; nothing here is typed by hand.
 
 ## Brief
 
-- Through 2026-10-29: Nifty 22,937. Nifty is below both its 50- and 200-day averages: a downtrend; -1.5% from the 50-day, -4.6% from the 200-day; 44% of the liquid 250 are above their 200-day.
-- Daily call for the next session: BULLISH (mechanical rule call-v0-2026-10-18); so far 2 of 8 calls right against 4 for the coin flip.
-- Stock paper book: 134 open positions; realised Rs -149,903 on the hold_20d exits across campaigns.
+- Through 2026-11-09: Nifty 25,045. Nifty is above both its 50- and 200-day averages: an uptrend; +7.6% from the 50-day, +4.4% from the 200-day; 62% of the liquid 250 are above their 200-day.
+- Daily call for the next session: BEARISH (mechanical rule call-v0-2026-10-18); so far 5 of 15 calls right against 9 for the coin flip.
+- Stock paper book: 204 open positions; realised Rs -253,346 on the hold_20d exits across campaigns.
 - New for the next session: 3 BRK, 5 CTL, 1 REV.
-- SP1 index line: Fri 30 Oct: 5 index decisions recorded, traded BANKNIFTY at D0 (long, exit NEXTOPEN). Book over 5 scored session(s): BANKNIFTY: 4 scored trade(s), index -116 bp, one option lot Rs -13,575 with realistic fills.
-- Against the reference traders (1 session): Ananta held 6 of the top 20 trips, passed on 3, had no rule for 10; its picks sat at the 40th percentile of random.
+- SP1 index line: Mon 9 Nov: 5 index decisions recorded, traded BANKNIFTY at D0 (short, exit ATRSTOP) (marked: planned on stale inputs: the previous session's cash-market file (market breadth)). Book over 11 scored session(s): NIFTY: 2 scored trade(s), index +150 bp, one option lot Rs 12,406 with realistic fills; BANKNIFTY: 10 scored trade(s), index +51 bp, one option lot Rs -5,252 with realistic fills.
+- Against the reference traders (1 session): Ananta held 10 of the top 20 trips, passed on 3, had no rule for 6; its picks sat at the 64th percentile of random.
 
 ## Decisions for the next session
 
 | symbol | campaign | close | why |
 |---|---|---|---|
-| ADANIPORTS | BRK | 1872.0 | 20-session breakout on volume: volume 2.5x its 20-day, +6.4% from the 20-day average, +13.3% from the 200-day, liquidity rank 41 |
-| GESHIP | BRK | 1618.8 | 20-session breakout on volume: volume 1.7x its 20-day, +5.3% from the 20-day average, +15.5% from the 200-day, liquidity rank 168 |
-| KOTAKBANK | BRK | 459.0 | 20-session breakout on volume: volume 1.7x its 20-day, +5.0% from the 20-day average, +14.6% from the 200-day, liquidity rank 17 |
-| IFCI | REV | 58.26 | oversold reversal (RSI under 30, P01): volume 0.3x its 20-day, -9.8% from the 20-day average, -13.9% from the 200-day, liquidity rank 55 |
-| TFCILTD | CTL | 159.66 | random control: no edge is claimed, it is the yardstick: volume 1.0x its 20-day, +5.7% from the 20-day average, +71.6% from the 200-day, liquidity rank 114 |
-| TVSMOTOR | CTL | 4280.0 | random control: no edge is claimed, it is the yardstick: volume 2.7x its 20-day, +6.4% from the 20-day average, +12.9% from the 200-day, liquidity rank 58 |
-| CIPLA | CTL | 1358.0 | random control: no edge is claimed, it is the yardstick: volume 1.0x its 20-day, +1.9% from the 20-day average, -0.5% from the 200-day, liquidity rank 164 |
-| CUMMINSIND | CTL | 4515.2 | random control: no edge is claimed, it is the yardstick: volume 1.1x its 20-day, -3.3% from the 20-day average, -10.0% from the 200-day, liquidity rank 90 |
-| DMART | CTL | 3175.0 | random control: no edge is claimed, it is the yardstick: volume 1.3x its 20-day, -6.5% from the 20-day average, -19.8% from the 200-day, liquidity rank 118 |
+| SANSERA | BRK | 4653.4 | 20-session breakout on volume: volume 3.0x its 20-day, +10.5% from the 20-day average, +52.3% from the 200-day, liquidity rank 225 |
+| SBIN | BRK | 1042.0 | 20-session breakout on volume: volume 2.1x its 20-day, +7.2% from the 20-day average, +0.3% from the 200-day, liquidity rank 8 |
+| MANKIND | BRK | 2668.3 | 20-session breakout on volume: volume 2.1x its 20-day, +10.6% from the 20-day average, +14.9% from the 200-day, liquidity rank 184 |
+| RAIN | REV | 162.03 | oversold reversal (RSI under 30, P01): volume 2.8x its 20-day, -20.5% from the 20-day average, -8.4% from the 200-day, liquidity rank 248 |
+| GVT&D | CTL | 4106.0 | random control: no edge is claimed, it is the yardstick: volume 0.5x its 20-day, +2.1% from the 20-day average, -2.0% from the 200-day, liquidity rank 48 |
+| HINDUNILVR | CTL | 1990.3 | random control: no edge is claimed, it is the yardstick: volume 0.9x its 20-day, +5.5% from the 20-day average, -6.6% from the 200-day, liquidity rank 75 |
+| ADANIENT | CTL | 2706.3 | random control: no edge is claimed, it is the yardstick: volume 0.6x its 20-day, +3.1% from the 20-day average, +3.3% from the 200-day, liquidity rank 36 |
+| ICICIBANK | CTL | 1589.0 | random control: no edge is claimed, it is the yardstick: volume 1.8x its 20-day, +12.6% from the 20-day average, +17.2% from the 200-day, liquidity rank 3 |
+| SONACOMS | CTL | 924.0 | random control: no edge is claimed, it is the yardstick: volume 0.4x its 20-day, +10.0% from the 20-day average, +40.7% from the 200-day, liquidity rank 120 |
 
 ## Stock paper book (exec, policy shown: hold_20d)
 
 | campaign | what | open | closed | realised Rs | unrealised Rs | win rate | expectancy R |
 |---|---|---|---|---|---|---|---|
-| BRK | 20-session breakout on volume | 16 | 2 | -7,339 | +9,525 | 0.0 | -1.0424985873380148 |
-| CTL | random control: no edge is claimed, it is the yardstick | 35 | 5 | -15,204 | +60,380 | 0.0 | -1.0580752528049178 |
-| PULL | pullback in an uptrend | 34 | 21 | -89,624 | +51,423 | 0.0 | -1.0439123071553598 |
-| REV | oversold reversal (RSI under 30, P01) | 49 | 10 | -37,736 | +78,090 | 0.0 | -1.0513513669999683 |
+| BRK | 20-session breakout on volume | 44 | 7 | -25,073 | +108,180 | 0.0 | -1.0500324295476473 |
+| CTL | random control: no edge is claimed, it is the yardstick | 64 | 11 | -35,971 | +192,086 | 0.0 | -1.0541843554633534 |
+| PULL | pullback in an uptrend | 42 | 30 | -140,425 | +115,406 | 0.0 | -1.048744369515629 |
+| REV | oversold reversal (RSI under 30, P01) | 54 | 14 | -51,877 | +251,538 | 0.0 | -1.050785415684926 |
 
 ## SP1 index line
 
-Fri 30 Oct: 5 index decisions recorded, traded BANKNIFTY at D0 (long, exit NEXTOPEN). Book over 5 scored session(s): BANKNIFTY: 4 scored trade(s), index -116 bp, one option lot Rs -13,575 with realistic fills
+Mon 9 Nov: 5 index decisions recorded, traded BANKNIFTY at D0 (short, exit ATRSTOP) (marked: planned on stale inputs: the previous session's cash-market file (market breadth)). Book over 11 scored session(s): NIFTY: 2 scored trade(s), index +150 bp, one option lot Rs 12,406 with realistic fills; BANKNIFTY: 10 scored trade(s), index +51 bp, one option lot Rs -5,252 with realistic fills
 
 ## Jobs
 
-- allocator: ok
 - autologin: ok
 - evening: ok
-- findings: ok
+- evening_zerodha: ok
+- factmap: ok
 - kitefill: ok
 - morning: ok
 - morningview: ok
-- netnotes: ok
 - nightly: ok
 - openingview: ok
 - paper: ok
 - postclose: ok
+- preopen: ok
 - recorder_noon: ok
 - replay: ok
+- schedulecheck: ok
 - shadowtrader: ok
 - sp1paper: ok
 - sp1paper.score: ok
 - spreads: ok
+- studies: ok
 - web: ok
 
-Next sign-in: automatic at 21:40 Toronto (last automatic sign-in ok Thu 29 Oct 21:40 Toronto); by hand only if it fails, Sun 01 Nov 21:00-22:40 Toronto (07:30-09:10 IST, for the Mon 02 Nov session)
+Next sign-in: automatic at 19:35 Toronto, 06:05 IST (last automatic sign-in ok Mon 09 Nov 20:00 Toronto); by hand only if it fails, Tue 10 Nov 21:00-22:40 Toronto (07:30-09:10 IST, for the Wed 11 Nov session)
 
 ## Research
 
 - studies: {'ready': 53, 'blocked': 11, 'with_results': 40}
-- gate G02: {'state': 'BLOCKED', 'waiting_on': 'D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); D32 (wait_time, weekly runs)'} counters {'D15': '12 of 30 nightly runs; 7 clean sessions in a row (the gate needs 30 in a row)', 'D16': '9 of 30 snapshots', 'D32': '2026-10-30: knows 16 of 18, unknowns 7 of 7, why 4 of 5, answers and decides 8 of 9, safety 39 of 39, plain words 38 of 39: FAIL; 4 of 5 runs passed'}
-- registry verdicts: {'REJECTED': 487, 'OPPOSITE': 155, 'INCONCLUSIVE': 650, 'CONDITIONAL': 37, 'VALIDATED': 33, 'NOT_SUPPORTED_SEEN': 19, 'SUPPORTED_SEEN': 1, 'NOT_CONFIRMED': 5}
+- gate G02: {'state': 'BLOCKED', 'waiting_on': 'D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); D32 (wait_time, weekly runs)'} counters {'D15': '23 of 30 nightly runs; 14 clean sessions in a row (the gate needs 30 in a row)', 'D16': '20 of 30 snapshots', 'D32': '2026-11-05: knows 16 of 18, unknowns 2 of 7, why 5 of 5, answers and decides 8 of 9, safety 38 of 39, plain words 38 of 39: FAIL; 4 of 6 runs passed'}
+- registry verdicts: {'REJECTED': 511, 'OPPOSITE': 158, 'INCONCLUSIVE': 661, 'CONDITIONAL': 38, 'VALIDATED': 44, 'NOT_SUPPORTED_SEEN': 22, 'SUPPORTED_SEEN': 1, 'NOT_CONFIRMED': 5}
 - exit book (G01): {'BRK/all': 'sma_close_50', 'BRK/above_both': 'hold_60d', 'BRK/mixed': 'sma_close_50', 'BRK/below_both': None, 'PULL/all': None, 'PULL/above_both': None, 'PULL/mixed': 'hold60+low20', 'PULL/below_both': None, 'ANY/all': None, 'ANY/above_both': None, 'ANY/mixed': None, 'ANY/below_both': 'hold60+low20'}
 
 ## Guardrails

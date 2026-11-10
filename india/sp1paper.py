@@ -476,16 +476,60 @@ def candidates(sym: str, point: str, row: dict, model: dict, arr: dict, entry_es
     return out, f
 
 
-def index_bars(k: kite.Kite, day: dt.date, tokens: dict, last_bar: int, live: bool = False) -> tuple[dict, dict]:
-    """Today's minute bars of both indices that closed by the decision (bar <= last_bar); D0 reads only the 09:15 bar's open (live: retried for
-    up to 40 seconds, then the day's open from the quote). Also the open of the bar after last_bar when Kite already shows it (the study's entry
-    price) and the bar counts."""
+OPEN_CONFIRM = 0.001       # the quote's open counts as the official open only within 0.1% of the line's own pre-open read
+
+
+def preopen_levels(k: kite.Kite) -> dict:
+    """Each index's indicated open in the pre-open (its last price before 09:15 IST), read once by the line itself. Used for one thing only:
+    to confirm that the open the quote gives at 09:15 is today's official open (official_open)."""
+    q = k.get("/quote/ohlc", params=[("i", "NSE:NIFTY 50"), ("i", "NSE:NIFTY BANK")])
+    out = {}
+    for name in ("NIFTY 50", "NIFTY BANK"):
+        v = (q.get(f"NSE:{name}") or {}).get("last_price")
+        if v:
+            out[name] = float(v)
+    return out
+
+
+def official_open(k: kite.Kite, name: str, pre: dict | None) -> tuple[float | None, str]:
+    """The index's official 09:15 open, as the study's bars have it (Madhav, 9 Nov 2026 19:51 Toronto: "Yes to all your recommendations";
+    recommendation 1 of the readiness fixes: read the official open, not the first tick).
+
+    Live, the 09:15 minute bar is still forming at the decision and its open is the session's first tick; the finished bar the study and the
+    evening replay read carries the official open (set from the pre-open's matched prices). In 22 index-sessions to 9 Nov the two fell in
+    different rows of the plan once (6 Nov, Bank Nifty: first tick 57,545.7, 'down'; official 57,812.9, 'flat'). The quote's day open is the
+    official one, but nothing says at 09:15:08 that it is already today's, so it is taken only when it agrees with the pre-open read the
+    line took itself a minute before the open (within OPEN_CONFIRM). Otherwise None and why: the caller keeps the first tick, as before."""
+    try:
+        o = float(k.get("/quote/ohlc", params=[("i", f"NSE:{name}")])[f"NSE:{name}"]["ohlc"]["open"])
+    except Exception as e:  # noqa: BLE001
+        return None, f"the quote was not read ({type(e).__name__})"
+    p = (pre or {}).get(name)
+    if not o > 0:
+        return None, "the quote gave no open"
+    if not p:
+        return None, "no pre-open read to confirm the quote's open"
+    if abs(o / p - 1) > OPEN_CONFIRM:
+        return None, f"the quote's open {o:,.2f} is not within {OPEN_CONFIRM:.1%} of the pre-open read {p:,.2f}"
+    return o, "the quote's open, confirmed by the pre-open read"
+
+
+def index_bars(k: kite.Kite, day: dt.date, tokens: dict, last_bar: int, live: bool = False, pre: dict | None = None) -> tuple[dict, dict]:
+    """Today's minute bars of both indices that closed by the decision (bar <= last_bar); D0 reads only the 09:15 open: live, the official open
+    from the quote when the line's own pre-open read confirms it (official_open, 9 Nov 2026), else the forming 09:15 bar's open as before (retried
+    for up to 40 seconds, then the day's open from the quote). Also the open of the bar after last_bar when Kite already shows it (the study's
+    entry price) and the bar counts."""
     arrs, info = {}, {}
     for name in ("NIFTY 50", "NIFTY BANK"):
         c = _candles(k, tokens[name], "minute", day, day)
         c = c[(c["date"] == day) & (c["m"] >= 0)]
         src = "historical"
-        if live and last_bar == 0:
+        off, why = official_open(k, name, pre) if (live and last_bar == 0) else (None, "")
+        if off is not None:
+            c = pd.DataFrame([{"date": day, "m": 0, "open": off, "high": off, "low": off, "close": off, "volume": 0}])
+            src = "official open (quote), confirmed by the pre-open read"
+        elif live and last_bar == 0:
+            src = f"historical (the forming bar's first tick; official open not used: {why})"
             for _ in range(4):
                 if (c["m"] == 0).any():
                     break
@@ -500,7 +544,8 @@ def index_bars(k: kite.Kite, day: dt.date, tokens: dict, last_bar: int, live: bo
                 except Exception:
                     pass
         nxt = c.loc[c["m"] == last_bar + 1, "open"]
-        info[name] = {"bars": int((c["m"] <= last_bar).sum()), "next_open": float(nxt.iloc[0]) if len(nxt) else None, "source": src}
+        info[name] = {"bars": int((c["m"] <= last_bar).sum()), "next_open": float(nxt.iloc[0]) if len(nxt) else None, "source": src,
+                      "pre_open": (pre or {}).get(name)}
         cut = c[c["m"] <= last_bar].assign(index_name=name)
         if last_bar == 0:
             cut = cut.assign(high=cut["open"], low=cut["open"], close=cut["open"])  # D0: the 09:15 bar is still forming; only its open is used
@@ -596,11 +641,12 @@ def _row_from_plan(plan: dict, sym: str) -> dict:
     return r
 
 
-def decide_point(k: kite.Kite, plan: dict, model: dict, point: str, done: set, live: bool, now_fn=_ist_now) -> list[dict]:
-    """Decisions for every index that has not traded yet today, from the bars closed by the decision time."""
+def decide_point(k: kite.Kite, plan: dict, model: dict, point: str, done: set, live: bool, now_fn=_ist_now, pre: dict | None = None) -> list[dict]:
+    """Decisions for every index that has not traded yet today, from the bars closed by the decision time. pre: the line's own pre-open read
+    (live only), which confirms the official open at D0."""
     day = dt.date.fromisoformat(plan["date"])
     tokens = plan["index_tokens"]
-    arrs, info = index_bars(k, day, tokens, LAST_BAR[point], live=live)
+    arrs, info = index_bars(k, day, tokens, LAST_BAR[point], live=live, pre=pre)
     br, nb = (np.nan, 0)
     if point != "D0":
         br, nb = breadth_now(k, day, plan["breadth"]["names"], point)
@@ -612,6 +658,8 @@ def decide_point(k: kite.Kite, plan: dict, model: dict, point: str, done: set, l
         arr = arrs[name]
         base = {"kind": "decision", "date": day.isoformat(), "index": sym, "point": point, "spec_sha": plan["spec_sha"], "model_sha": plan["model_sha"],
                 "c": plan["c"][sym], "bars_seen": info[name]["bars"], "bars_source": info[name]["source"], "breadth_names": nb}
+        if point == "D0" and info[name].get("pre_open") is not None:
+            base["pre_open_read"] = info[name]["pre_open"]          # what confirmed (or failed to confirm) the official open
         if arr is None or other is None or not (arr["open"][0] == arr["open"][0]) or info[name]["bars"] < LAST_BAR[point] + 1 - 3:
             out.append({**base, "decided_at": now_fn().isoformat(timespec="seconds"), "choice": None, "tradable": False,
                         "note": "index bars missing at the decision time: no decision (the study would have dropped the session)"})
@@ -677,6 +725,20 @@ def live(day: dt.date | None = None, log=print) -> dict:
         if r.get("kind") == "decision" and r["date"] == day.isoformat() and r.get("choice"):
             done.add(r["index"])
     have_points = {(r["index"], r["point"]) for r in _rows(DECISIONS) if r.get("kind") == "decision" and r["date"] == day.isoformat()}
+    # 9 Nov 2026 (Madhav: "Yes to all your recommendations", the official open): one read of the pre-open's indicated open a minute before
+    # 09:15, by the line itself, only to confirm the official open the quote gives at the decision. A late start or a failed read leaves it
+    # empty and the open is read as before.
+    pre: dict = {}
+    if not all((s, "D0") in have_points for s in sp1.IDX):
+        at = dt.datetime.combine(day, dt.time(9, 14), IST)
+        while (w := (at - _ist_now()).total_seconds()) > 0:
+            time.sleep(min(w, 30))
+        if _ist_now() < dt.datetime.combine(day, dt.time(9, 15), IST):
+            try:
+                pre = preopen_levels(k)
+                log(f"pre-open read at {_ist_now():%H:%M:%S} IST: {pre}")
+            except Exception as e:  # noqa: BLE001
+                log(f"pre-open read failed ({type(e).__name__}); the open is read as before")
     summary = []
     for point in sp1.POINT_ENTRY:
         if all((s, point) in have_points for s in sp1.IDX) or len(done) == len(sp1.IDX):
@@ -685,7 +747,7 @@ def live(day: dt.date | None = None, log=print) -> dict:
         while (w := (at - _ist_now()).total_seconds()) > 0:
             time.sleep(min(w, 30))
         try:
-            rows = decide_point(k, plan, model, point, done, live=True)
+            rows = decide_point(k, plan, model, point, done, live=True, pre=pre)
         except kite.NeedLogin as e:
             _append(DECISIONS, {"kind": "error", "date": day.isoformat(), "point": point, "at": _ist_now().isoformat(timespec="seconds"), "error": str(e)})
             log(f"{point}: {e}")

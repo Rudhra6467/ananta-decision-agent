@@ -50,6 +50,7 @@ ALLOWED_REFS = {
     ("tests/test_india_web.py", r"import india\b"): "a test of the India web app",
     ("tests/test_india_plain.py", r"ananta_data/india"): "a test of the India plain-words screens",
     ("scripts/run_india_exam.py", r"ananta-records"): "the weekly India exam runner imports the records checkout's exam judges and asks the India Ask (25 Oct)",
+    ("scripts/commit_records.py", r"ananta-records"): ("the 06:50 daily records job (10 Nov) commits the records checkout's own generated pages, each added by name from its allowlist; it reads no India data and imports nothing from india"),
     ("tests/test_india_exam_runner.py", r"INDIA_DATA_DIR"): "a test that points the India data folder at a temporary folder",
     ("jarvis/service/runcheck_parts.py", r"bronze/ledger"): "the job watch checks that the India ledger snapshot file exists and its size (no read of its contents)",
     # 29 Oct audit (Phase 2.1): the India Ask files added 25-29 Oct, each read-only on the manifests/read model or writing only under its own folder

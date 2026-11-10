@@ -198,6 +198,10 @@ def gift_now(clk: dict, nifty_close: float | None = None, k=None, now: dt.dateti
         if str(RECORDS) not in sys.path:
             sys.path.append(str(RECORDS))
         from india import giftnifty
+        if k is None:
+            from india import kite as _k
+            if _k._read_token() is None:          # the token file's own expiry: no call, no sign-in attempt, no phone nudge
+                return {"error": "no Zerodha sign-in right now"}
         out = giftnifty.read(k or _kite(), clk.get("latest_session"), nifty_close, now)
     except Exception as exc:  # noqa: BLE001
         out = {"error": f"{type(exc).__name__}: {str(exc)[:100]}"}

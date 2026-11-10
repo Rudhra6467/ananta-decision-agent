@@ -2326,7 +2326,7 @@ def readiness_flow(text: str) -> dict | None:
         from jarvis.india import readiness
         if not (readiness.OPEN_Q.search(text) or readiness.PLAN_Q.search(text) or readiness.NEWS_Q.search(text) or readiness.CHANGED_Q.search(text)):
             return None
-        r = readiness.answer(text, _today_live(views.readmodel()))
+        r = readiness.answer(text, lambda: _today_live(views.readmodel()))
     except Exception:  # noqa: BLE001  the model answers with the same facts
         return None
     return _reply(r[0][:1900], r[1], r[2], {"route": "india", "show": ["home.morning"]}) if r else None

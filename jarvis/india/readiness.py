@@ -112,17 +112,20 @@ def what_changed(live: dict) -> str:
             "each time I say what changed since the view, and what the options line's own plan says for the open it gets.")
 
 
-def answer(text: str, live: dict | None) -> tuple[str, list[str], list[str]] | None:
+def answer(text: str, live) -> tuple[str, list[str], list[str]] | None:
+    """live: today's block, or a function that returns it (called only when the question needs today's prices; the holdings' filings do not)."""
     t = text or ""
     if len(t) > 140:
         return None
-    live = live or {}
+
+    def now() -> dict:
+        return (live() if callable(live) else live) or {}
     if CHANGED_Q.search(t):
-        return what_changed(live), ["How will it open?", "What will the options line do at the open?"], ["the second look (paper/preopen, jarvis/india/recheck.py)"]
+        return what_changed(now()), ["How will it open?", "What will the options line do at the open?"], ["the second look (paper/preopen, jarvis/india/recheck.py)"]
     if NEWS_Q.search(t):
         return holdings_news(), ["How are my holdings doing?", "What results are coming up?"], ["company announcements (NSE) through the desk (manifests/desk.json holdings_news)"]
     if PLAN_Q.search(t):
-        return options_plan(live), ["How will it open?", "What did the options line do last session?"], ["the options line's plan (paper/sp1/plans) and its ledger"]
+        return options_plan(now()), ["How will it open?", "What did the options line do last session?"], ["the options line's plan (paper/sp1/plans) and its ledger"]
     if OPEN_Q.search(t):
-        return how_it_opens(live), ["What will the options line do at the open?", "Has anything changed since the view?"], ["the pre-open read (paper/preopen) or GIFT Nifty through Zerodha"]
+        return how_it_opens(now()), ["What will the options line do at the open?", "Has anything changed since the view?"], ["the pre-open read (paper/preopen) or GIFT Nifty through Zerodha"]
     return None

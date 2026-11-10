@@ -159,6 +159,7 @@ def _fake_today(monkeypatch, tmp_path, dial=CLOSED, book=BOOK, fills=()):
     monkeypatch.setattr(exposure, "books", lambda j: {"books": [{"book": "HOLD", "return_pct": -9.2}, {"book": "GATE50", "return_pct": -13.9}]})
     from jarvis import selfcheck
     monkeypatch.setattr(selfcheck, "check", lambda market=None, now=None: {"at": None, "items": []})
+    monkeypatch.setattr(S, "like_for_like", lambda j: "")                     # it asks NDAX for a quote: never from a test
     return j
 
 
@@ -358,3 +359,125 @@ def test_the_app_draws_crypto_the_way_it_draws_india():
     proof = (APP / "app" / "new" / "proof.tsx").read_text()
     assert "ex?.title ||" in proof
     assert "d.under_check" in (APP / "app" / "new" / "money.tsx").read_text()
+
+
+# ---------------------------------------------------------------------------------------------------------------- the outsider's review, 10 Nov
+# Madhav, 10 Nov 05:56 Toronto: "Ok, let's complete them" (fixes 1 to 6 and the strip list of claude/review-2026-11-10-outsider-crypto.md)
+
+def test_the_note_reads_the_dial_afresh_and_knows_which_close_a_brake_fired_on(tmp_path, monkeypatch):
+    from jarvis.service import exposure, ndax_book, officer
+    j = _j_with_fills(tmp_path, [])
+    j.now = lambda: 1793232361.0                                               # 29 Oct 2026, 00:06 UTC: the step on the 28 Oct candle
+    ndax_book._put(j, "state", {"last_bar": 1793145600, "repairs": [{"day": "2026-10-28", "what": "a sale recorded late", "cash_added": 28.06}]})
+    log = [{"day": "2026-10-22", "brake": "day_loss", "value": 484.69, "until": "2026-10-24"}, {"day": "2026-10-28", "brake": "day_loss", "value": 452.26, "until": "2026-10-30"}]
+    monkeypatch.setattr(ndax_book, "status", lambda j: {"value_cad": 452.26, "cash_cad": 341.7, "return_pct": -9.55, "positions": {}, "closed": [],
+                                                         "brakes": {"log": log}, "last_step": "2026-10-29 00:06", "started": "2026-10-11"})
+    asked = []
+
+    def state(j):
+        asked.append(dict(exposure._CACHE))                                    # what was in hand when the note asked
+        return {"dial_words": "OPEN: buying allowed", "why": ["Bitcoin closed 2026-10-28 at 80,000"], "as_of_day": "2026-10-28"}
+
+    exposure._CACHE.update(t=9e18, v={"dial_words": "an answer kept from before the close"})
+    monkeypatch.setattr(exposure, "state", state)
+    f = officer.facts(j)
+    assert asked[0]["v"] is None, "the note never reads a dial answer kept from before the close"
+    assert f["dial"]["candle"] == f["dial"]["book_stepped_on"] == "2026-10-28" and "warning" not in f["dial"]
+    assert f["account"]["brakes_today"].startswith("the day-loss brake fired at this close (no new buys until 2026-10-30)")   # it said "no brake fired today"
+    assert f["account"]["corrections"] == [{"day": "2026-10-28", "what": "a sale recorded late", "cash_added": 28.06}]
+    monkeypatch.setattr(exposure, "state", lambda j: {"dial_words": "CLOSED", "why": [], "as_of_day": "2026-10-27"})
+    assert "different candle" in officer.facts(j)["dial"]["warning"]
+    for must in ("never write that no brake fired", "do NOT close every note with its day", "A check with state OK is not a failure", "never\n\"caught\" as if it were a win"):
+        assert must in officer.NOTE_RULES, must
+
+
+def test_idle_cash_fails_only_when_something_may_buy(monkeypatch):
+    from jarvis.service import discipline, ndax_book
+
+    class _J:
+        def now(self):
+            return 1794269159.0
+
+    state = {"value": 467.55, "cash": 467.55, "pos": {}, "cash_over_target_since": 1794269159 - 16 * 86400, "core_plan": {"state": "CLOSED", "cash_target": 0.7}}
+    monkeypatch.setattr(ndax_book, "_get", lambda j, k, default=None: state)
+    monkeypatch.setattr(ndax_book, "passed_rules", lambda j, dial: [])
+    c = next(x for x in discipline.officer_checks(_J()) if x["id"] == "idle_cash")
+    assert c["state"] == "OK" and "buying is off and no rule may trade, so cash is what the rules want" in c["words"]
+    monkeypatch.setattr(ndax_book, "passed_rules", lambda j, dial: ["H07"])    # a rule may trade the closed dial: idle money is a fail again
+    c = next(x for x in discipline.officer_checks(_J()) if x["id"] == "idle_cash")
+    assert c["state"] == "FAIL" and "for 16 days" in c["words"]
+    state["core_plan"]["state"] = "CONFIRMED"
+    monkeypatch.setattr(ndax_book, "passed_rules", lambda j, dial: [])
+    assert next(x for x in discipline.officer_checks(_J()) if x["id"] == "idle_cash")["state"] == "FAIL"   # buying is on: idle money fails
+
+
+def test_a_parked_books_open_trades_run_to_their_exits_and_fill_nothing_new(tmp_path):
+    from jarvis.service import watch_engine as W
+    j = J(tmp_path)
+    W._table(j)
+    bars = _bars(120, "2026-11-09", 100.0)
+    row = lambda i, status, k: {"id": i, "watch": "H07", "coin": "AAA", "source": "daily", "signal_t": bars[k - 1][0], "signal_day": W._day(bars[k - 1][0]),   # noqa: E731
+                                "entry_t": bars[k][0] if status == "OPEN" else None, "entry_day": W._day(bars[k][0]) if status == "OPEN" else None,
+                                "entry": bars[k][1] if status == "OPEN" else None, "stop": None, "status": status, "why": "test", "regime": None, "detail": "{}"}
+    W._insert(j, row("old", "OPEN", -20))                                      # 20 days old against the rule's 10
+    W._insert(j, row("unfilled", "WAITING", -1))
+    daily = lambda jj, c: bars                                                 # noqa: E731
+    W.run(j, watches=["RANDOM_10D"], coins=["AAA"], daily_fn=daily, live_trades=False)
+    assert j.db.execute("SELECT status FROM evidence_trades WHERE id='old'").fetchone()[0] == "OPEN", "left out of the watches, it was left out of the exits too"
+    W.run(j, watches=["RANDOM_10D"], coins=["AAA"], daily_fn=daily, live_trades=False, manage=["H07", "RANDOM_10D"])
+    status, exit_day = j.db.execute("SELECT status, exit_day FROM evidence_trades WHERE id='old'").fetchone()
+    assert status == "CLOSED" and exit_day <= W._day(bars[-10][0]), "closed by its own rule, on the rule's day, not today"
+    assert j.db.execute("SELECT status FROM evidence_trades WHERE id='unfilled'").fetchone()[0] == "WAITING"   # a parked book fills nothing new
+
+
+def test_the_book_check_watches_the_cash_the_value_and_the_notes_dial(tmp_path):
+    from jarvis import selfcheck
+    from jarvis.service import ndax_book, officer
+    j = _j_with_fills(tmp_path, FILLS[2:3] + FILLS[4:5])                       # one Bitcoin buy and its sale
+    officer._table(j)
+    cash = 500 - (0.000563 * 113719.86 + 0.128) + (0.000563 * 108815.09 - 0.122)
+    ndax_book._put(j, "state", {"cash": cash, "value": round(cash, 2), "pos": {}})
+    j.db.execute("INSERT INTO officer_notes VALUES (?,?,?,?,?)", ("2026-11-10", 0, "n", json.dumps({"dial": {"candle": "2026-11-09", "book_stepped_on": "2026-11-09"}}), 0.0))
+    j.db.commit()
+    db = tmp_path / "jarvis.sqlite"
+    assert selfcheck._book500(db) == []
+    ndax_book._put(j, "state", {"cash": cash - 27.26, "value": round(cash, 2), "pos": {}})
+    j.db.execute("UPDATE officer_notes SET facts=?", (json.dumps({"dial": {"candle": "2026-11-08", "book_stepped_on": "2026-11-09"}}),))
+    j.db.commit()
+    whats = [x["what"] for x in selfcheck._book500(db)]
+    assert any("cash is C$" in w and "its trades add up to" in w for w in whats), whats
+    assert any("value is C$" in w and "cash and holdings add up to" in w for w in whats), whats
+    assert any("read the dial from the 2026-11-08 candle, but the book stepped on 2026-11-09" in w for w in whats), whats
+
+
+def test_the_screens_after_the_review(monkeypatch, tmp_path):
+    from jarvis.service import missed, ndax_book
+    j = _fake_today(monkeypatch, tmp_path, book={**BOOK, "value_cad": 467.55, "cash_cad": 467.55, "return_pct": -6.5,
+                                                 "graduation": {"passed": 3, "of": 10, "verdict": "NOT READY", "closed_trades": 9}})
+    ndax_book._put(j, "state", {"repairs": [{"day": "2026-11-10", "what": "a sale recorded late", "cash_added": 28.06}]})
+    note = next(c for c in S.today(j)["cards"] if c["kind"] == "note")
+    assert note["points"][0] == "Corrected after this note was written: the account is C$467.55 (−6.5%), not the figure in the note"
+    m = S.money(j)
+    assert m["dial_block"]["graduation"] is None and "stop on NDAX" not in json.dumps(m) and "a real loss can be larger" in m["holdings_note"]
+    monkeypatch.setattr(missed, "recent", lambda j, days: {"counts": {"CAUGHT": 11, "SEEN": 17, "MISSED": 1, "CAUGHT_TRADE_OK": 2},
+                                                             "moves": [{"miss_class": "INTENTIONAL"}] * 9 + [{"miss_class": None}] * 20})
+    p = S.proof(j)
+    assert p["missed"]["words"] == ("In 7 days your ten main coins made 29 big moves. A paper book was in 11 of them (2 by a book allowed to trade, the rest by "
+                                    "measuring books only); 17 were seen and not traded; 1 missed. 9 were held back on purpose while buying was off.")
+    assert [c["name"] for c in p["clocks"]] == ["The evidence window (Rule A and B)", "Round trips in the $500 book"]
+    assert S._pace(9, 50, "2026-10-11", dt.date(2026, 11, 10)) == "about Mar 2027 at this pace" and S._pace(0, 50, "2026-10-11", dt.date(2026, 11, 10)) == ""
+
+
+def test_like_for_like_is_bitcoin_at_the_books_first_price(monkeypatch, tmp_path):
+    from jarvis.service import ndax_book, officer
+    j = _j_with_fills(tmp_path, FILLS[2:3])                                    # the book's first Bitcoin buy, at 113,719.86
+    officer._table(j)
+    for day, value, cash in (("2026-10-29", 500.0, 300.0), ("2026-10-30", 400.0, 400.0)):
+        j.db.execute("INSERT INTO officer_notes VALUES (?,?,?,?,?)", (day, 0, "n", json.dumps({"account": {"value_cad": value, "cash_cad": cash}}), 0.0))
+    monkeypatch.setattr(ndax_book, "instruments", lambda get=None: {"BTC": {"id": 1}})
+    monkeypatch.setattr(ndax_book, "quote", lambda coin, inst, get=None: {"bid": 105000.0, "ask": 105300.0})
+    S._LFL.update(t=0.0, words="")
+    said = S.like_for_like(j)
+    S._LFL.update(t=0.0, words="")
+    assert said == ("Like for like (Bitcoin bought at the book's first price on NDAX and just held, in Canadian dollars): −7.9%. "
+                    "The book had about 20% in coins on an average night. ")

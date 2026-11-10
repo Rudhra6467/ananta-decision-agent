@@ -239,7 +239,17 @@ def officer_checks(j) -> list[dict]:
         idle = cash / value - cash_target
         since = s.get("cash_over_target_since")
         days_over = (int(j.now()) - int(since)) / DAY if since else 0
-        if idle > 0.10 and days_over > float(oc.get("idle_days", 5)):
+        # 10 Nov 2026 (the outsider's review; Madhav: "Ok, let's complete them"): the check failed 12 nights running while buying was off
+        # and the one rule that may trade a closed dial was parked: the book was doing exactly what its rules say. A fail is for idle
+        # money that something may spend; the targets are unchanged.
+        try:
+            nothing_may_buy = plan.get("state") == "CLOSED" and not ndax_book.passed_rules(j, False)
+        except Exception:  # noqa: BLE001
+            nothing_may_buy = False
+        if idle > 0.10 and days_over > float(oc.get("idle_days", 5)) and nothing_may_buy:
+            out.append({"id": "idle_cash", "state": "OK", "words": f"cash is {100 * cash / value:.0f}% of the book: buying is off and no rule may trade, so cash is what the "
+                                                                   f"rules want (the {100 * cash_target:.0f}% target counts when a rule may trade)"})
+        elif idle > 0.10 and days_over > float(oc.get("idle_days", 5)):
             out.append({"id": "idle_cash", "state": "FAIL", "words": f"cash is {100 * cash / value:.0f}% of the book against a {100 * cash_target:.0f}% target, "
                                                                      f"for {days_over:.0f} days"})
         else:

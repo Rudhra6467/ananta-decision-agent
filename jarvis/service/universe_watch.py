@@ -116,9 +116,10 @@ def run_rules(j) -> dict:
             coins = coins + ["BTC"] if tier == "A" else coins
         from jarvis.service import strategy_status
 
-        names = [w for w in (wid(r, tier) for r in RULES_ALL + list(RANDOMS)) if strategy_status.trades(w)]   # Oct 13: retired rules sit out
+        every = [wid(r, tier) for r in RULES_ALL + list(RANDOMS)]
+        names = [w for w in every if strategy_status.trades(w)]   # Oct 13: retired rules sit out
         r = watch_engine.run(j, watches=names, coins=coins, daily_fn=lambda jj, c: _daily(jj, c), live_trades=False,
-                             day_ok=_in_tier_on(j, tier))
+                             day_ok=_in_tier_on(j, tier), manage=every)      # 10 Nov: a parked book's open trades still run to their exits
         r["managed_live"] = manage_live_rows(j, tier, coins)
         out[tier] = {k: len(v) if isinstance(v, list) else v for k, v in r.items()}
         out[tier]["opened_list"] = r.get("opened", [])

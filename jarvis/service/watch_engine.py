@@ -267,7 +267,7 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
 
 
 def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, daily_fn=None, live_trades: bool = True,
-        day_ok=None) -> dict:
+        day_ok=None, manage: tuple | list | None = None) -> dict:
     """Catch up every closed daily candle not processed yet (at most the last 10 days), then manage open trades.
 
     Tier watches (a "tier" in DAILY) run only when named, with their own candles (daily_fn) and coins; live_trades=False keeps
@@ -277,6 +277,11 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, 
 
     _table(j)
     names = [w for w in (watches or [w for w, sp in DAILY.items() if not sp.get("tier")]) if w in DAILY]
+    # 10 Nov 2026 (the outsider's review): a parked or retired book takes no new trades, and "open ones run to their exits" (the register).
+    # They did not: a book left out of `watches` was left out of the exits too, so 24 open rows of the short-dip and rebound books
+    # sat frozen for up to 24 days against a 10-day limit. `manage` names books whose OPEN rows are still closed by their rule; they
+    # open nothing and a row still WAITING for its fill stays unfilled.
+    exits_only = [w for w in (manage or []) if w in DAILY and w not in names]
     _daily_of = daily_fn or _daily
     btc = _daily_of(j, "BTC")
     if len(btc) < 60:
@@ -328,6 +333,9 @@ def run(j, watches: tuple | list | None = None, coins: list[str] | None = None, 
         live_q = " OR source IN ('eye','brain')" if live_trades else ""
         rows = j.db.execute(f"SELECT {', '.join(COLS)} FROM evidence_trades WHERE coin=? AND status IN ('WAITING','OPEN') "
                             f"AND (watch IN ({','.join('?' * len(names))}){live_q})", (c, *names)).fetchall()
+        if exits_only:
+            rows += j.db.execute(f"SELECT {', '.join(COLS)} FROM evidence_trades WHERE coin=? AND status='OPEN' "
+                                 f"AND watch IN ({','.join('?' * len(exits_only))})", (c, *exits_only)).fetchall()
         for ev in _manage(j, c, D, S, r10, rows):
             (filled if ev["event"] == "filled" else closed).append(ev)
     j.db.commit()

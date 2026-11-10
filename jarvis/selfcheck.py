@@ -141,6 +141,9 @@ def _leftovers(db: Path = CRYPTO_DB) -> list[dict]:
              "what": f"a test card is waiting in your approvals though you never asked for it: {s[:100]}"} for _, s in rows]
 
 
+BOOK500_START = 500.0          # the $500 book's starting cash in CAD (src/research/book500.START_CAD)
+
+
 def _book500(db: Path = CRYPTO_DB) -> list[dict]:
     """10 Nov 2026 (Madhav: "Yes to all"): the $500 book's trades and its holdings agree. Every coin's buys less its sells must be what the
     book holds; on 28 Oct 0.008315 ETH left the holdings without a sale and nothing noticed for 13 days. Read-only."""
@@ -152,13 +155,39 @@ def _book500(db: Path = CRYPTO_DB) -> list[dict]:
     except sqlite3.Error:
         return []
     try:
-        held = {c: float(p.get("qty") or 0) for c, p in ((json.loads(row[0]) if row else {}).get("pos") or {}).items()}
+        state = json.loads(row[0]) if row else {}
+        held = {c: float(p.get("qty") or 0) for c, p in (state.get("pos") or {}).items()}
     except (ValueError, TypeError, AttributeError):
         return []
     net: dict[str, float] = {}
     for coin, side, qty in fills:
         net[coin] = net.get(coin, 0.0) + (qty if side == "BUY" else -qty)
     out = []
+    # the cash is the C$500 it began with, less every buy, plus every sale, fees counted; the value is that cash plus what is held
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
+        money = con.execute("SELECT side, qty, px, fee FROM book500_fills").fetchall()
+        note = con.execute("SELECT day, facts FROM officer_notes ORDER BY day DESC LIMIT 1").fetchone()
+        con.close()
+    except sqlite3.Error:
+        money, note = [], None
+    if money and isinstance(state.get("cash"), (int, float)):
+        cash = BOOK500_START + sum((-(q * p) - (f or 0)) if side == "BUY" else (q * p - (f or 0)) for side, q, p, f in money)
+        if abs(cash - float(state["cash"])) > 0.01:
+            out.append({"market": "crypto", "severity": "high", "source": "book check",
+                        "what": f"the $500 book's cash is C${float(state['cash']):,.2f} but its trades add up to C${cash:,.2f}: the two disagree"})
+        worth = float(state["cash"]) + sum(float(p.get("qty") or 0) * float(p.get("last") or 0) for p in (state.get("pos") or {}).values())
+        if isinstance(state.get("value"), (int, float)) and abs(worth - float(state["value"])) > max(0.05, 0.001 * worth):
+            out.append({"market": "crypto", "severity": "high", "source": "book check",
+                        "what": f"the $500 book's value is C${float(state['value']):,.2f} but its cash and holdings add up to C${worth:,.2f}: the two disagree"})
+    # the nightly note read the dial from the candle the book stepped on (it read the one before, every night to 10 Nov)
+    try:
+        d = (json.loads(note[1] or "{}").get("dial") or {}) if note else {}
+        if d.get("candle") and d.get("book_stepped_on") and d["candle"] != d["book_stepped_on"]:
+            out.append({"market": "crypto", "severity": "medium", "source": "book check",
+                        "what": f"the nightly note of {note[0]} read the dial from the {d['candle']} candle, but the book stepped on {d['book_stepped_on']}"})
+    except (ValueError, TypeError, AttributeError):
+        pass
     for coin in sorted(set(net) | set(held)):
         diff = net.get(coin, 0.0) - held.get(coin, 0.0)
         if abs(diff) > 1e-9:
@@ -452,7 +481,7 @@ CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hour
           ("mac", "the Mac has memory and CPU to spare"), ("gates", "the India firewall, leak check and integrity check pass"),
           ("rx_order", "the reconstruction cards come after the trials (India) and the missed-move review (crypto)"),
           ("agree", "the parts agree with each other: the right day, matching counts, no number stuck at zero, nothing waiting over a week"),
-          ("book500", "the $500 book's trades and its holdings agree"))
+          ("book500", "the $500 book's trades, holdings, cash and value agree, and the nightly note read the dial from the book's own candle"))
 
 
 SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",

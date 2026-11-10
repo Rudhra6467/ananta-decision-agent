@@ -72,7 +72,10 @@ def crypto(db: Path = CRYPTO_DB, now: float | None = None) -> list[dict]:
             if len(v2) >= STUCK_NIGHTS:
                 last = v2[:STUCK_NIGHTS]
                 ns = [((x.get("ananta") or {}).get("brain") or {}).get("n") or 0 for x in last]
-                if all(n == 0 for n in ns):
+                # 10 Nov 2026 (the outsider's review): with the dial closed the setups are held back and the brain is not woken, so 0 is
+                # the right number, not a stuck one
+                shut = all("closed" in str((x.get("market") or {}).get("dial_words") or "").lower() for x in last)
+                if all(n == 0 for n in ns) and not shut:
                     items.append({"market": "crypto", "severity": "medium", "source": "self-scan",
                                   "what": f"the brain's decisions read 0 on the last {STUCK_NIGHTS} reconstruction cards: a number stuck at zero"})
             # 4. the value line and the wakes count are on the card (v2 shape)

@@ -163,7 +163,7 @@ def _positions(b: dict) -> list[dict]:
         rows.append({"symbol": coin, "value": v, "value_words": _cad(v), "weight_pct": round(100 * v / value, 1) if v and value else None,
                      "weight_of": "of book", "pnl_pct": round(pnl, 1) if pnl is not None else None, "paid": paid, "since": p.get("day"),
                      "rule": p.get("rule"), "stop": p.get("stop_on_ndax"), "sleeve": (p.get("sleeve") or "").lower(),
-                     "grade": None, "action": "hold", "chip": f"{CODE_WORDS.get(p.get('rule'), 'held')} · stop {_cad(p.get('stop_on_ndax'), 0 if (p.get('stop_on_ndax') or 0) >= 100 else 2)}"})
+                     "grade": None, "action": "hold", "chip": f"{CODE_WORDS.get(p.get('rule'), 'held')} · safety stop {_cad(p.get('stop_on_ndax'), 0 if (p.get('stop_on_ndax') or 0) >= 100 else 2)}"})
     rows.sort(key=lambda r: -(r["value"] or 0))
     return rows
 
@@ -443,7 +443,7 @@ def _decision(dial: dict, b: dict, pos: list[dict], brake: str | None) -> str:
         if brake:
             s += f" For now {brake}."
     if held:
-        s += f" {held} {'stays' if len(pos) == 1 else 'stay'} held, each with its stop on NDAX."
+        s += f" {held} {'stays' if len(pos) == 1 else 'stay'} held until {'its' if len(pos) == 1 else 'their'} own rule sells."
     return s
 
 
@@ -480,6 +480,9 @@ def today(j) -> dict:
     note = _officer_note(j)
     if note and note["text"]:
         pts = [_plain(x) for x in _sentences(note["text"])]
+        late = [r for r in (_safe(_repairs, j, default=[]) or []) if str(r.get("day") or "") >= str(note["day"])]
+        if late and isinstance(b.get("value_cad"), (int, float)):
+            pts.insert(0, f"Corrected after this note was written: the account is {_cad(b['value_cad'])} ({_pct(b.get('return_pct'))}), not the figure in the note")
         cards.append({"kind": "note", "label": f"Ananta's nightly note · {_dw(note['day'])}", "text": _plain(note["text"]), "points": pts})
     day, close_at = _last_close(dial)
     did = _did_points(b, close_at)
@@ -506,6 +509,40 @@ def today(j) -> dict:
             "next_view": None, "paper": True}
 
 
+_LFL: dict = {"t": 0.0, "words": ""}
+
+
+def like_for_like(j) -> str:
+    """One honest sentence beside the yardsticks (the outsider's review, 10 Nov 2026): Bitcoin bought with the whole C$500 at the book's own
+    first Bitcoin price on NDAX (its ask, fee paid) and just held, valued at NDAX's bid now; and the share of the book that was in coins
+    on an average recorded night. A second look, not a new yardstick: what counts as beating the hurdle is for the 14 Dec review.
+    Kept 15 minutes; the NDAX quote gets 4 seconds and the sentence is left out when it does not come."""
+    if time.time() - _LFL["t"] < 900:
+        return _LFL["words"]
+    import requests
+    from jarvis.service import ndax_book
+    from src.research import book500 as B
+    words = ""
+    first = j.db.execute("SELECT px FROM book500_fills WHERE coin='BTC' AND side='BUY' ORDER BY t LIMIT 1").fetchone()
+    get = lambda url: requests.get(url, timeout=4).json()   # noqa: E731
+    q = ndax_book.quote("BTC", ndax_book.instruments(get), get) if first else None
+    if first and q:
+        held = 100 * (q["bid"] / (first[0] * (1 + B.NDAX_FEE)) - 1)
+        words = f"Like for like (Bitcoin bought at the book's first price on NDAX and just held, in Canadian dollars): {_pct(held)}. "
+        share = []
+        for (facts,) in j.db.execute("SELECT facts FROM officer_notes ORDER BY day"):
+            try:
+                a = (json.loads(facts or "{}").get("account") or {})
+                if a.get("value_cad"):
+                    share.append(1 - float(a.get("cash_cad") or 0) / float(a["value_cad"]))
+            except (ValueError, TypeError):
+                continue
+        if share:
+            words += f"The book had about {100 * sum(share) / len(share):.0f}% in coins on an average night. "
+    _LFL.update(t=time.time(), words=words)
+    return words
+
+
 def money(j) -> dict:
     from jarvis.service import exposure
     now = dt.datetime.now(TOR)
@@ -523,29 +560,30 @@ def money(j) -> dict:
     brief = (("Buying is off. The core (the Bitcoin and Ethereum part) is in cash until Bitcoin closes above both its 50-day and 200-day averages."
               if closed_dial else f"Buying is on. The core (the Bitcoin and Ethereum part) aims for {cp.get('words') or 'its targets'}, bought in steps.")
              + (f" {brake[0].upper() + brake[1:]}." if brake else "")
-             + (" The coins held keep their stops on NDAX." if pos else ""))
+             + (" The coins held stay until their own rules sell." if pos else ""))
     under = gap_words(_safe(book_gap, j, b, default=[]) or [])
     closed = [{"coin": c.get("coin"), "in": _dw(c.get("in")), "out": _dw(c.get("out")), "pnl_words": _cad(c.get("pnl_cad")), "pnl": c.get("pnl_cad"),
                "pct": c.get("pct"), "why": _why(c.get("why"))} for c in (b.get("closed") or [])][::-1]
-    g = b.get("graduation") or {}
     return {"ready": True, "paper": True, "market": "crypto", "ccy": "CAD",
             "value_cad": b.get("value_cad"), "value_words": _cad(b.get("value_cad")),
             "sub_words": f"NDAX bid · {_dw(now.date())} · {_cad(coins)} in coins · {_cad(b.get('cash_cad'))} cash · {_pct(b.get('return_pct'))} since {_dw(b.get('started'))}",
             "books_title": "The book and its yardsticks",
             "books": books, "clock": {"words": win["words"], "sessions": win["day"], "of": WINDOW_DAYS},
-            "books_note": "Bitcoin-held and the hurdle are paper books on Bitcoin's daily candles since 10 Oct; the $500 book began 11 Oct. Nothing is read into the gap before 14 Dec.",
+            "books_note": ("Bitcoin-held and the hurdle are paper books on Bitcoin's daily candles since 10 Oct, in US dollars, fully in Bitcoin; the $500 book began "
+                           "11 Oct on NDAX in Canadian dollars. " + (_safe(like_for_like, j, default="") or "") + "Nothing is read into the gap before 14 Dec."),
             "books_ask": "Explain the book and its yardsticks in detail: what the $500 book holds and why, what 'Bitcoin, just held' and the dial's hurdle are, what the numbers mean today, what the 60-day evidence window is for, and what would tell us the book is working.",
             "plan": {"title": "At the next daily close", "tag": "dial closed" if closed_dial else "dial open", "brief": brief,
                      "asks": [{"label": "What would reopen it", "q": "What exactly would reopen the dial, and how close is Bitcoin to it?"},
                               {"label": "Ask about it", "q": "What will the $500 book do at the next daily close, and why?"}]},
             "managed": None,
-            "holdings_title": "Your coins", "holdings_head": ["Coin · value · on cost", "Rule · stop on NDAX"],
-            "holdings": pos, "holdings_note": "Paper, at real NDAX prices. Each small trade risks 0.5% of the book; its stop sits on NDAX." + (f" {under}" if under else ""),
+            "holdings_title": "Your coins", "holdings_head": ["Coin · value · on cost", "Rule · safety stop"],
+            "holdings": pos, "holdings_note": ("Paper, at real NDAX prices. Each small trade is sized for a loss of about 0.5% of the book; a real loss can be larger. "
+                                              "The safety stop shown is a far line for real trading: on paper a trade ends by its own rule.") + (f" {under}" if under else ""),
             "under_check": under,
             "holdings_empty": "No coins held: the whole book is cash.",
             "dial_block": {"state": "closed" if closed_dial else "open", "words": _plain(str(dial.get("dial_words") or "").replace("CLOSED", "Closed").replace("OPEN", "Open")), "why": [_isodates(x) for x in dial.get("why") or []], "as_of": _dw(dial.get("as_of_day")),
                            "brake": brake, "rule": "Buying is allowed only while Bitcoin closes above both its 50-day and 200-day averages.",
-                           "closed": closed, "graduation": {"passed": g.get("passed"), "of": g.get("of"), "verdict": "not ready" if g.get("verdict") == "NOT READY" else (g.get("verdict") or "").lower()}},
+                           "closed": closed, "graduation": None},
             "options_book": None}
 
 
@@ -565,6 +603,17 @@ def _exam() -> dict | None:
             "words": f"{e.get('known')}/{e.get('known_of')} facts · {e.get('unknown')}/{e.get('unknown_of')} unknowns · {e.get('why')}/{e.get('why_of')} whys · {_dw(e.get('day'))}"}
 
 
+def _pace(done: int, need: int, started, today: dt.date) -> str:
+    """When a count reaches its mark at the pace so far ("about Mar 2027 at this pace")."""
+    try:
+        days = (today - dt.date.fromisoformat(str(started)[:10])).days
+    except ValueError:
+        return ""
+    if done <= 0 or days <= 0 or done >= need:
+        return ""
+    return "about " + (today + dt.timedelta(days=round((need - done) * days / done))).strftime("%b %Y") + " at this pace"
+
+
 def proof(j) -> dict:
     from jarvis.service import missed, reconstruct, strategy_status
     now = dt.datetime.now(TOR)
@@ -578,12 +627,15 @@ def proof(j) -> dict:
     g = b.get("graduation") or {}
     win = _window(now.date())
     clocks = [{"name": "The evidence window (Rule A and B)", "done": win["day"], "need": WINDOW_DAYS, "finish_words": _dw(RULE_B_END), "complete": win["day"] >= WINDOW_DAYS},
-              {"name": "Round trips in the $500 book", "done": g.get("closed_trades") or 0, "need": 50, "finish_words": "", "complete": (g.get("closed_trades") or 0) >= 50},
-              {"name": "Graduation gates passed", "done": g.get("passed") or 0, "need": g.get("of") or 10, "finish_words": "", "complete": g.get("verdict") == "READY"}]
+              {"name": "Round trips in the $500 book", "done": g.get("closed_trades") or 0, "need": 50, "finish_words": _pace(g.get("closed_trades") or 0, 50, b.get("started"), now.date()),
+               "complete": (g.get("closed_trades") or 0) >= 50}]
     m = _safe(missed.recent, j, 7, default={}) or {}
-    c, cl = m.get("counts") or {}, m.get("classes") or {}
-    missed_words = (f"In 7 days, of the big moves: {c.get('CAUGHT', 0)} caught, {c.get('SEEN', 0)} seen, {c.get('MISSED', 0)} missed. "
-                    f"{cl.get('INTENTIONAL', 0)} were held back on purpose by the closed dial.") if c else None
+    c, moves = m.get("counts") or {}, m.get("moves") or []
+    n_big = sum(c.get(k, 0) for k in ("CAUGHT", "SEEN", "MISSED"))
+    on_purpose = sum(1 for x in moves if x.get("miss_class") == "INTENTIONAL")
+    missed_words = (f"In 7 days your ten main coins made {n_big} big move{'s' if n_big != 1 else ''}. A paper book was in {c.get('CAUGHT', 0)} of them "
+                    f"({c.get('CAUGHT_TRADE_OK', 0)} by a book allowed to trade, the rest by measuring books only); {c.get('SEEN', 0)} were seen and not traded; "
+                    f"{c.get('MISSED', 0)} missed." + (f" {on_purpose} were held back on purpose while buying was off." if on_purpose else "")) if c else None
     r = _safe(reconstruct.latest, j, default={}) or {}
     kinds: dict[str, int] = {}
     for f in r.get("findings") or []:

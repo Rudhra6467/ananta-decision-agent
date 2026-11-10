@@ -34,7 +34,7 @@ def test_background_rule_records_but_never_wakes_and_losses_are_classified(tmp_p
         W._insert(j, row)
     j.db.commit()
     seen = {}
-    monkeypatch.setattr(W, "run", lambda jj, watches=None, coins=None, daily_fn=None, live_trades=True, day_ok=None: seen.setdefault("w", list(watches)) and {"opened": []})
+    monkeypatch.setattr(W, "run", lambda jj, watches=None, coins=None, daily_fn=None, live_trades=True, day_ok=None, manage=None: seen.setdefault("w", list(watches)) and {"opened": []})
     from jarvis.service import registry
     monkeypatch.setattr(registry, "members", lambda jj, tier: ["BTC", "SOL"])
     U.run_rules(j)

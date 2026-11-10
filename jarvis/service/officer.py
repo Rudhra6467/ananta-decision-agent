@@ -23,10 +23,15 @@ Order: (1) what the account did today and why (the dial, the sleeves, the brakes
 the facts carry "checks" (idle cash, a core without an exit, a bleeding book, an explorer eaten by costs) and "layer_conflicts"; name every
 FAIL and every conflict plainly in one sentence each, with its number, and say what the rule does about it ("the stance wins", "trimmed to
 target"); if all pass, one short sentence says so; then what needs him, or "nothing needs you". Never write "nothing changed" when a check
-fails; (4) if the facts carry "evidence_window", one closing sentence: which day of the 60-day
-evidence window it is and whether the learning loop ran clean. Never invent a number: every figure must come from the facts. No headings, no bullet points, no
-greeting by time of day. If the facts say a brake fired or a strategy passed, lead with that. What fired TODAY is "account.brakes_today";
-the "fired" numbers inside "brakes" are totals since the book started, never today's. In a check's words, the books after "Paused books still closing"
+fails. A check with state OK is not a failure, however high the cash is: when buying is off and no rule may trade, cash is what the rules want.
+(4) the evidence window: do NOT close every note with its day; say it only when the learning loop did not run clean, or in the window's
+last seven days. Never invent a number: every figure must come from the facts. No headings, no bullet points, no
+greeting by time of day. If the facts say a brake fired or a strategy passed, lead with that. What fired at this close is
+"account.brakes_today"; mention the brakes ONLY when it says one fired, and never write that no brake fired;
+the "fired" numbers inside "brakes" are totals since the book started, never today's. If "account.corrections" is there, say the
+correction once in plain words (what was put right and the money). If "dial.warning" is there, say it. A "caught" move only means
+some paper book held that coin, often a measuring book that may not trade for the account: say "a measuring book was in X", never
+"caught" as if it were a win. In a check's words, the books after "Paused books still closing"
 are different books from the ones before: never call a live book paused. A check with state DECIDED is one Madhav has already decided: say his decision, not a failure."""
 
 
@@ -49,18 +54,30 @@ def facts(j, daily: dict | None = None) -> dict:
                         "closed_recent": (s.get("closed") or [])[-3:]}
         # 25 Oct: the note said "the day-loss brake fired once today" when it had fired on 22 Oct ("fired" counts are totals since the start).
         # Say in words what fired today and when each brake last fired.
+        # 10 Nov 2026 (the outsider's review): a brake's day is the candle it fired on, and the note is written on the UTC day after that
+        # candle, so "today" never matched and the note said "no brake fired today" on the night two fired (29 Oct).
         log = (s.get("brakes") or {}).get("log") or []
-        today = [x for x in log if x.get("day") == f["day"]]
+        candle = _candle_day(j, f["day"])
+        today = [x for x in log if x.get("day") == candle]
         last = {}
         for x in log:
             last[x.get("brake")] = x
-        f["account"]["brakes_today"] = ("; ".join(f"the {x.get('brake', '').replace('_', '-')} brake fired today (no new buys until {x.get('until')})" for x in today)
-                                        or "no brake fired today" + ("; last fired: " + ", ".join(f"{b.replace('_', '-')} on {x.get('day')} (blocked until {x.get('until')})" for b, x in last.items()) if last else ""))
+        f["account"]["brakes_today"] = ("; ".join(f"the {x.get('brake', '').replace('_', '-')} brake fired at this close (no new buys until {x.get('until')})" for x in today)
+                                        or "none fired at this close" + ("; last fired: " + ", ".join(f"{b.replace('_', '-')} on {x.get('day')} (blocked until {x.get('until')})" for b, x in last.items()) if last else ""))
+        fixes = [r for r in ((ndax_book._get(j, "state") or {}).get("repairs") or []) if str(r.get("day") or "") >= time.strftime("%Y-%m-%d", time.gmtime(j.now() - 2 * 86400))]
+        if fixes:                                             # a correction to the book is said once, in the note after it
+            f["account"]["corrections"] = [{k: r.get(k) for k in ("day", "what", "cash_added")} for r in fixes]
     except Exception as exc:  # noqa: BLE001
         f["account_error"] = str(exc)[:120]
     try:
+        # 10 Nov 2026 (the outsider's review): exposure.state keeps its answer for ten minutes, and one asked just before the close was
+        # still in hand at 00:05, so the note read the dial from the candle before the one the book had just stepped on (every night;
+        # on 26 Oct the note said open while the book sold for "dial closed"). The note asks afresh, and says which candle it read.
+        exposure._CACHE.update(t=0, v=None)
         d = exposure.state(j)
-        f["dial"] = {"state": d.get("dial_words"), "why": d.get("why")}
+        f["dial"] = {"state": d.get("dial_words"), "why": d.get("why"), "candle": d.get("as_of_day"), "book_stepped_on": _candle_day(j, f["day"])}
+        if f["dial"]["candle"] != f["dial"]["book_stepped_on"]:
+            f["dial"]["warning"] = "the dial was read from a different candle than the book stepped on: say so plainly"
     except Exception as exc:  # noqa: BLE001
         f["dial_error"] = str(exc)[:120]
     b5 = daily.get("book500") or {}
@@ -109,6 +126,20 @@ def facts(j, daily: dict | None = None) -> dict:
     except Exception as exc:  # noqa: BLE001
         f["checks_error"] = str(exc)[:120]
     return f
+
+
+def _candle_day(j, note_day: str) -> str:
+    """The daily candle the $500 book last stepped on (its UTC day); the day before the note's day when the book has no step yet."""
+    from jarvis.service import ndax_book
+
+    try:
+        t = (ndax_book._get(j, "state") or {}).get("last_bar")
+        if t:
+            return time.strftime("%Y-%m-%d", time.gmtime(int(t)))
+    except Exception:  # noqa: BLE001
+        pass
+    import calendar
+    return time.strftime("%Y-%m-%d", time.gmtime(calendar.timegm(time.strptime(note_day, "%Y-%m-%d")) - 86400))
 
 
 def _numbers(x) -> list[float]:

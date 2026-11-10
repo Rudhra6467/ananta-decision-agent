@@ -49,6 +49,10 @@ def test_crypto_scan_sees_the_wrong_day_a_count_mismatch_a_stuck_zero_and_an_old
     assert any("not the day before it" in w for w in whats), whats
     assert any("two places disagree" in w and "counts 0 brain decisions" in w and "holds 2" in w for w in whats), whats
     assert any("stuck at zero" in w for w in whats), whats
+    # 10 Nov 2026 (the outsider's review): with the dial closed on every one of those nights the brain is not woken, so 0 is right
+    shut = lambda about: {"about_day": about, "ananta": {"brain": {"n": 0}}, "value": {}, "wakes": {}, "market": {"dial_words": "the dial is closed (Bitcoin under its 50- or 200-day average)"}}   # noqa: E731
+    db = _crypto_db(tmp_path / "shut" if (tmp_path / "shut").mkdir() is None else tmp_path, [("2026-11-08", shut("2026-11-07")), ("2026-11-07", shut("2026-11-06")), ("2026-11-06", shut("2026-11-05"))])
+    assert not any("stuck at zero" in x["what"] for x in selfscan.crypto(db, now=NOW))
     assert any("missing its value line" in w for w in whats), whats
     assert any("waited for Madhav's decision for more than a week" in w for w in whats), whats
 

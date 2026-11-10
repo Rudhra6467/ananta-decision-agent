@@ -717,7 +717,22 @@ class Jarvis:
             raise ValueError("not an Expo push token")
         self.db.execute("INSERT OR REPLACE INTO push_tokens VALUES (?,?,?)", (token, device[:80], int(self.now())))
         self.db.commit()
+        self.save_push_file()
         self.audit(who, "push.register", device, "OK")
+
+    def save_push_file(self) -> None:
+        """The owner's phone tokens for the phone path (paper_watch.apple_push): ~/.ananta/expo_push_tokens.json, owner-only."""
+        import json as _json
+        import os as _os
+
+        from src.intelligence.paper_watch import _expo_tokens_file
+        f = _expo_tokens_file()
+        try:                                             # a phone that signs in is never refused over this file
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(_json.dumps(self.push_tokens()))
+            _os.chmod(f, 0o600)
+        except OSError:
+            pass
 
     def push_tokens(self) -> list[str]:
         return [t for (t,) in self.db.execute("SELECT token FROM push_tokens")]

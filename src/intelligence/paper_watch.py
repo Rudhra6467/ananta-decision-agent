@@ -91,11 +91,18 @@ def push_phone(title: str, body: str, *, level: str = "INFO", post: Callable[...
     returned as text and logged, and the watch keeps going.
     """
     topic = _ntfy_topic()
-    if not topic:
-        return "off"
     levels = {x.strip().upper() for x in os.getenv("ANANTA_NTFY_LEVELS", PHONE_LEVELS_DEFAULT).split(",") if x.strip()}
-    if level.upper() not in levels and level.upper() != "TEST":
+    wanted = level.upper() in levels or level.upper() == "TEST"
+    apple = apple_push(title, body, level=level) if wanted and post is None else "off"
+    if not topic:
+        return apple
+    if not wanted:
         return "skipped"
+    r = _ntfy_send(topic, title, body, level, post)
+    return "sent" if apple == "sent" and r != "sent" else r
+
+
+def _ntfy_send(topic: str, title: str, body: str, level: str, post: Callable[..., Any] | None) -> str:
     server = os.getenv("ANANTA_NTFY_SERVER", NTFY_SERVER).rstrip("/")
     ascii_title = title.encode("ascii", "replace").decode()[:100]  # HTTP headers must be ASCII
     headers = {"Title": ascii_title, "Priority": _PRIORITY.get(level.upper(), "3"), "Tags": level.lower()}
@@ -111,6 +118,52 @@ def push_phone(title: str, body: str, *, level: str = "INFO", post: Callable[...
         return "sent" if 200 <= int(code) < 300 else f"failed: HTTP {code}"
     except Exception as e:  # noqa: BLE001
         return f"failed: {type(e).__name__}: {str(e)[:120]}"
+
+
+def _expo_tokens_file() -> Path:
+    return Path(os.getenv("ANANTA_EXPO_TOKENS") or (Path.home() / ".ananta" / "expo_push_tokens.json"))
+
+
+APPLE_LOG = Path.home() / "ananta_runs" / "apple_push.jsonl"
+
+
+def apple_push(title: str, body: str, *, level: str = "EVENT") -> str:
+    """The same note through Apple's push to the Ananta app on the owner's iPhone (Expo's push service; the Apple key lives
+    with Expo, made on 10 Nov). The phone tokens are written by the service when the owner's app signs in
+    (~/.ananta/expo_push_tokens.json, never in git). Off when there is no token or ANANTA_APPLE_PUSH=0 (tests).
+    Never raises; each send is one line in ~/ananta_runs/apple_push.jsonl."""
+    if os.getenv("ANANTA_APPLE_PUSH", "1") == "0":
+        return "off"
+    try:
+        toks = [t for t in json.loads(_expo_tokens_file().read_text()) if str(t).startswith("ExponentPushToken[")]
+    except Exception:  # noqa: BLE001  no file yet: the app has not signed in
+        return "off"
+    if not toks:
+        return "off"
+    hot = level.upper() in ("ERROR", "WARN")
+    msgs = [{"to": t, "title": title[:100], "body": body[:500], "sound": "default", "priority": "high" if hot else "default"} for t in toks]
+    try:
+        import urllib.request
+
+        req = urllib.request.Request("https://exp.host/--/api/v2/push/send", data=json.dumps(msgs).encode(),
+                                     headers={"Content-Type": "application/json", "Accept": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as r:  # noqa: S310 (fixed https server)
+            res = json.loads(r.read().decode())
+        tickets = res.get("data") or []
+        ok = sum(1 for x in tickets if isinstance(x, dict) and x.get("status") == "ok")
+        bad = next((x for x in tickets if isinstance(x, dict) and x.get("status") != "ok"), None)
+        out = "sent" if ok else f"failed: {str((bad or {}).get('message') or res.get('errors') or 'no ticket')[:120]}"
+        if bad and ok:
+            out += f" ({ok} of {len(toks)}; {str(bad.get('message'))[:80]})"
+    except Exception as e:  # noqa: BLE001
+        out = f"failed: {type(e).__name__}: {str(e)[:120]}"
+    try:
+        APPLE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with APPLE_LOG.open("a") as f:
+            f.write(json.dumps({"ts": _now().isoformat(), "level": level, "title": title[:60], "phones": len(toks), "result": out}) + "\n")
+    except Exception:  # noqa: BLE001
+        pass
+    return out
 
 
 TOKEN_FILE = Path(os.getenv("ANANTA_TOKEN_FILE", "/tmp/ananta_login.json"))
@@ -374,7 +427,7 @@ if __name__ == "__main__":
     elif cmd == "run":
         run_forever()
     elif cmd == "test-alert":
-        res = push_phone("Ananta test alert", "If you can read this on your phone, Ananta alerts work.", level="TEST")
+        res = push_phone("Ananta test alert", "If you can read this on your phone, Ananta alerts work.", level="TEST")  # ntfy and the app
         print(f"phone push: {res}")
         if res == "off":
             print("ANANTA_NTFY_TOPIC is not set in .env")

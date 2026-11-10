@@ -5,6 +5,8 @@ import os
 import pytest
 
 os.environ["ANANTA_NTFY_TOPIC"] = ""
+os.environ["ANANTA_APPLE_PUSH"] = "0"
+os.environ["ANANTA_EXPO_TOKENS"] = os.path.join(__import__("tempfile").mkdtemp(prefix="ananta-tests-"), "expo_push_tokens.json")
 
 
 @pytest.fixture(autouse=True)
